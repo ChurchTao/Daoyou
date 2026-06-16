@@ -653,8 +653,8 @@ describe('craftFromFormula narrative copy', () => {
       status: 'cultivation_boost',
       usesRemaining: 1,
       payload: {
-        boostPercent: 0.5586,
-        retreatExpMultiplier: 1.5586,
+        boostPercent: 1.5695,
+        retreatExpMultiplier: 2.5695,
       },
     });
     expect((result.consumable.spec as PillSpec).operations).toContainEqual({

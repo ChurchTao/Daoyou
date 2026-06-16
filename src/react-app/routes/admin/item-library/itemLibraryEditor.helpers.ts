@@ -249,7 +249,7 @@ function buildDefaultPillOperation(family: PillFamily): VisualPillOperation {
         usesRemaining: '1',
         durationKind: 'until_removed',
         expiresAt: '',
-        boostPercent: '10',
+        boostPercent: '50',
         breakthroughChanceBonus: '2',
         failureExpLossReductionPercent: '20',
       };
@@ -267,7 +267,7 @@ function buildDefaultPillOperation(family: PillFamily): VisualPillOperation {
         usesRemaining: '1',
         durationKind: '',
         expiresAt: '',
-        boostPercent: '10',
+        boostPercent: '50',
         breakthroughChanceBonus: '2',
         failureExpLossReductionPercent: '20',
       };
@@ -322,7 +322,7 @@ export function createDefaultPillOperation(
         usesRemaining: '1',
         durationKind: '',
         expiresAt: '',
-        boostPercent: '10',
+        boostPercent: '50',
         breakthroughChanceBonus: '2',
         failureExpLossReductionPercent: '20',
       };
@@ -411,7 +411,7 @@ function visualOperationFromConditionOperation(
             : '',
         expiresAt:
           operation.duration?.kind === 'time' ? operation.duration.expiresAt : '',
-        boostPercent: rateToPercentText(boostPercent, '10'),
+        boostPercent: rateToPercentText(boostPercent, '50'),
         breakthroughChanceBonus: rateToPercentText(
           getPayloadNumber(operation.payload, 'breakthroughChanceBonus'),
           '2',

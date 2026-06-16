@@ -21,7 +21,7 @@ export const LEGACY_PROTECT_MERIDIANS_REDUCTION = 0.4;
 
 const NUMERIC_RULES = {
   restorePercent: { min: 0.08, max: 1 },
-  cultivationBoost: { min: 0.08, max: 2 },
+  cultivationBoost: { min: 0.3, max: 7 },
   insight: { min: 1, max: 100 },
   lifespan: { min: 10, max: 400 },
   detox: { min: 10, max: 120 },
@@ -302,4 +302,3 @@ export function buildCultivationBoostOperationV2(
 ): AddStatusOperation {
   return buildCultivationBoostOperation(quality, factor);
 }
-

@@ -391,7 +391,7 @@ describe('PillOperationExecutor', () => {
 
     const result = PillOperationExecutor.execute(
       cultivator,
-      createCultivationBoostPill(0.18),
+      createCultivationBoostPill(0.5),
       new Date('2026-05-25T12:00:00.000Z'),
     );
 
@@ -401,8 +401,8 @@ describe('PillOperationExecutor', () => {
         source: 'pill',
         usesRemaining: 1,
         payload: {
-          boostPercent: 0.18,
-          retreatExpMultiplier: 1.18,
+          boostPercent: 0.5,
+          retreatExpMultiplier: 1.5,
         },
       }),
     );
@@ -416,13 +416,13 @@ describe('PillOperationExecutor', () => {
     const now = new Date('2026-05-25T12:00:00.000Z');
     const strong = PillOperationExecutor.execute(
       cultivator,
-      createCultivationBoostPill(0.32, 'strong-pill'),
+      createCultivationBoostPill(1.2, 'strong-pill'),
       now,
     );
 
     const weak = PillOperationExecutor.execute(
       strong.cultivator,
-      createCultivationBoostPill(0.14, 'weak-pill'),
+      createCultivationBoostPill(0.5, 'weak-pill'),
       now,
     );
 
@@ -432,8 +432,8 @@ describe('PillOperationExecutor', () => {
       ) ?? [];
     expect(boosts).toHaveLength(1);
     expect(boosts[0]?.payload).toEqual({
-      boostPercent: 0.32,
-      retreatExpMultiplier: 1.32,
+      boostPercent: 1.2,
+      retreatExpMultiplier: 2.2,
     });
     expect(
       weak.cultivator.condition?.counters.cultivationPillUsesByRealm.筑基,

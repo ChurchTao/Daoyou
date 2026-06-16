@@ -530,8 +530,8 @@ describe('synthesizeAlchemy', () => {
       status: 'cultivation_boost',
       usesRemaining: 1,
       payload: {
-        boostPercent: 0.4857,
-        retreatExpMultiplier: 1.4857,
+        boostPercent: 1.3648,
+        retreatExpMultiplier: 2.3648,
       },
     });
     expect(result.appearance).toBe('middle');
@@ -616,8 +616,8 @@ describe('synthesizeAlchemy', () => {
       type: 'add_status',
       status: 'cultivation_boost',
       payload: {
-        boostPercent: 0.2703,
-        retreatExpMultiplier: 1.2703,
+        boostPercent: 0.8317,
+        retreatExpMultiplier: 1.8317,
       },
     });
   });

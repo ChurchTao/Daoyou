@@ -130,8 +130,8 @@ describe('item library editor helpers', () => {
               usesRemaining: 1,
               duration: { kind: 'until_removed' },
               payload: {
-                boostPercent: 0.1,
-                retreatExpMultiplier: 1.1,
+                boostPercent: 0.5,
+                retreatExpMultiplier: 1.5,
               },
             },
           ],
