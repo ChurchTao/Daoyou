@@ -2,6 +2,7 @@ import { EXP_CAP_TABLE } from '@shared/config/cultivationProgress';
 import type {
   CultivationExpCalculation,
   CultivationExpCalculationInput,
+  DailyBudgetExpCalculationInput,
 } from '@shared/lib/cultivationExpGain';
 import type { Quality, RealmStage, RealmType } from '@shared/types/constants';
 
@@ -20,7 +21,9 @@ export type CultivationExpGainScene = (typeof EXP_GAIN_SCENES)[number];
 
 export interface CultivationExpGainStrategy<Context> {
   id: CultivationExpGainScene;
-  resolve(context: Context): CultivationExpCalculationInput;
+  resolve(
+    context: Context,
+  ): CultivationExpCalculationInput | DailyBudgetExpCalculationInput;
   describe?(result: CultivationExpCalculation): string;
 }
 

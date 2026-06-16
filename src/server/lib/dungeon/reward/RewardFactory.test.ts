@@ -87,6 +87,44 @@ describe('RewardFactory', () => {
     );
   });
 
+  it('副本修为叠加评级、危险度和副本难度倍率', () => {
+    const playerInfo: PlayerInfo = {
+      name: '韩立',
+      realm: '化神 初期',
+      gender: '男',
+      age: 300,
+      lifespan: 1_000,
+      personality: '谨慎',
+      attributes: {
+        vitality: 80,
+        spirit: 76,
+        wisdom: 70,
+        speed: 68,
+        willpower: 72,
+      },
+      spiritual_roots: ['木(90)'],
+      fates: [],
+      skills: [],
+      spirit_stones: 0,
+      background: '',
+      resourceCaps: {
+        maxHp: 100,
+        maxMp: 100,
+      },
+    };
+
+    const rewards = RewardFactory.generateBaseRewards(
+      '化神',
+      'S',
+      100,
+      playerInfo,
+      'boss',
+    );
+    const expReward = rewards.find((reward) => reward.type === 'cultivation_exp');
+
+    expect(expReward?.value).toBe(4_752);
+  });
+
   it('按副本档位加成灵石、修为和感悟，不影响材料生成入口', () => {
     const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
     const playerInfo: PlayerInfo = {

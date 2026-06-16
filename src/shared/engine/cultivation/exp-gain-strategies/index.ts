@@ -3,17 +3,19 @@ import {
   DAILY_TASK_EXP_BUDGET,
   DUNGEON_EXP_BUDGET,
   EVENT_EXP_BUDGET,
-  EXP_GAIN_REALM_PACE_MULTIPLIER,
   OFFLINE_YIELD_EXP_BUDGET,
-  PILL_EXP_BUDGET,
+  REALM_DAILY_EXP_BUDGET,
   RETREAT_EXP_BUDGET,
   SYSTEM_REWARD_EXP_BUDGET,
 } from '@shared/config/cultivationExpGain';
 import {
   calculateCultivationExpByCap,
+  calculateCultivationExpByDailyBudget,
+  type CultivationExpCalculationInput,
+  type DailyBudgetExpCalculationInput,
   type CultivationExpCalculation,
 } from '@shared/lib/cultivationExpGain';
-import { QUALITY_ORDER } from '@shared/types/constants';
+import { buildPillCultivationExpInput } from '@shared/lib/pillCultivationExp';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import {
   clampNonNegativeFinite,
@@ -27,7 +29,6 @@ import {
   type EventExpContext,
   type OfflineYieldExpContext,
   type PillExpContext,
-  resolveExpCap,
   type RetreatExpContext,
   type SystemRewardExpContext,
 } from './types';
@@ -52,7 +53,11 @@ export type {
 } from './types';
 
 function normalizeDungeonTier(tier: string | undefined): DungeonTier {
-  return tier === 'S' || tier === 'A' || tier === 'B' || tier === 'C' || tier === 'D'
+  return tier === 'S' ||
+    tier === 'A' ||
+    tier === 'B' ||
+    tier === 'C' ||
+    tier === 'D'
     ? tier
     : 'D';
 }
@@ -65,8 +70,18 @@ function resolveRealmDiffMultiplier(realmDiff: number): number {
   return config.same;
 }
 
-function resolveRealmPaceMultiplier(realm: RealmType): number {
-  return EXP_GAIN_REALM_PACE_MULTIPLIER[realm] ?? 1;
+function resolveDailyBudget(realm: RealmType): number {
+  return REALM_DAILY_EXP_BUDGET[realm] ?? REALM_DAILY_EXP_BUDGET['炼气'];
+}
+
+function calculateResolvedExp(
+  input: CultivationExpCalculationInput | DailyBudgetExpCalculationInput,
+): CultivationExpCalculation {
+  if ('dailyBudget' in input) {
+    return calculateCultivationExpByDailyBudget(input);
+  }
+
+  return calculateCultivationExpByCap(input);
 }
 
 export const retreatStrategy: CultivationExpGainStrategy<RetreatExpContext> = {
@@ -75,10 +90,8 @@ export const retreatStrategy: CultivationExpGainStrategy<RetreatExpContext> = {
     const years = clampNonNegativeFinite(context.years ?? 1);
     const units = Math.min(years, RETREAT_EXP_BUDGET.maxYears);
     return {
-      cap: resolveExpCap(context),
-      percent:
-        RETREAT_EXP_BUDGET.percentPerYear *
-        resolveRealmPaceMultiplier(context.realm),
+      dailyBudget: resolveDailyBudget(context.realm),
+      sourceDailyFraction: RETREAT_EXP_BUDGET.dailyFractionPerYear,
       units,
       minBaseExp: RETREAT_EXP_BUDGET.minBaseExp,
     };
@@ -94,12 +107,10 @@ export const offlineYieldStrategy: CultivationExpGainStrategy<OfflineYieldExpCon
       OFFLINE_YIELD_EXP_BUDGET.maxUnits,
     );
     return {
-      cap: resolveExpCap(context),
-      percent:
-        OFFLINE_YIELD_EXP_BUDGET.percentPerUnit *
-        clampNonNegativeFinite(context.randomFactor ?? 1, 1) *
-        resolveRealmPaceMultiplier(context.realm),
+      dailyBudget: resolveDailyBudget(context.realm),
+      sourceDailyFraction: OFFLINE_YIELD_EXP_BUDGET.dailyFractionPerUnit,
       units,
+      sourceMultiplier: clampNonNegativeFinite(context.randomFactor ?? 1, 1),
       minBaseExp: OFFLINE_YIELD_EXP_BUDGET.minBaseExp,
     };
   },
@@ -110,12 +121,11 @@ export const battleVictoryStrategy: CultivationExpGainStrategy<BattleVictoryExpC
   resolve(context) {
     const victoryType = context.victoryType ?? 'normal';
     return {
-      cap: resolveExpCap(context),
-      percent:
-        BATTLE_VICTORY_EXP_BUDGET.percent *
+      dailyBudget: resolveDailyBudget(context.realm),
+      sourceDailyFraction: BATTLE_VICTORY_EXP_BUDGET.dailyFraction,
+      sourceMultiplier:
         resolveRealmDiffMultiplier(context.realmDiff ?? 0) *
-        BATTLE_VICTORY_EXP_BUDGET.victoryMultiplier[victoryType] *
-        resolveRealmPaceMultiplier(context.realm),
+        BATTLE_VICTORY_EXP_BUDGET.victoryMultiplier[victoryType],
       minBaseExp: BATTLE_VICTORY_EXP_BUDGET.minBaseExp,
     };
   },
@@ -124,20 +134,18 @@ export const battleVictoryStrategy: CultivationExpGainStrategy<BattleVictoryExpC
 export const dungeonStrategy: CultivationExpGainStrategy<DungeonExpContext> = {
   id: 'dungeon',
   resolve(context) {
-    const basePercent = context.result
-      ? DUNGEON_EXP_BUDGET.resultPercent[context.result]
-      : DUNGEON_EXP_BUDGET.tierPercent[normalizeDungeonTier(context.tier)];
+    const baseDailyFraction = context.result
+      ? DUNGEON_EXP_BUDGET.resultDailyFraction[context.result]
+      : DUNGEON_EXP_BUDGET.tierDailyFraction[normalizeDungeonTier(context.tier)];
     const dangerBonus = Math.min(
       clampNonNegativeFinite(context.dangerBonus ?? 0),
       1,
     );
 
     return {
-      cap: resolveExpCap(context),
-      percent:
-        basePercent *
-        (1 + dangerBonus * DUNGEON_EXP_BUDGET.dangerBonusScale) *
-        resolveRealmPaceMultiplier(context.realm),
+      dailyBudget: resolveDailyBudget(context.realm),
+      sourceDailyFraction: baseDailyFraction,
+      sourceMultiplier: 1 + dangerBonus * DUNGEON_EXP_BUDGET.dangerBonusScale,
       minBaseExp: DUNGEON_EXP_BUDGET.minBaseExp,
     };
   },
@@ -147,10 +155,11 @@ export const dailyTaskStrategy: CultivationExpGainStrategy<DailyTaskExpContext> 
   id: 'daily_task',
   resolve(context) {
     return {
-      cap: resolveExpCap(context),
-      percent:
-        DAILY_TASK_EXP_BUDGET.difficultyPercent[context.difficulty ?? 'normal'] *
-        resolveRealmPaceMultiplier(context.realm),
+      dailyBudget: resolveDailyBudget(context.realm),
+      sourceDailyFraction:
+        DAILY_TASK_EXP_BUDGET.difficultyDailyFraction[
+          context.difficulty ?? 'normal'
+        ],
       minBaseExp: DAILY_TASK_EXP_BUDGET.minBaseExp,
     };
   },
@@ -159,26 +168,7 @@ export const dailyTaskStrategy: CultivationExpGainStrategy<DailyTaskExpContext> 
 export const pillStrategy: CultivationExpGainStrategy<PillExpContext> = {
   id: 'pill',
   resolve(context) {
-    const quality = context.quality ?? '凡品';
-    const qualityScalar =
-      context.qualityScalar ??
-      1 + (QUALITY_ORDER[quality] ?? QUALITY_ORDER['凡品']) * 0.22;
-    const qualityPercent =
-      context.qualityScalar !== undefined
-        ? PILL_EXP_BUDGET.percentByQuality['凡品'] *
-          clampNonNegativeFinite(qualityScalar, 1)
-        : PILL_EXP_BUDGET.percentByQuality[quality] ??
-          PILL_EXP_BUDGET.percentByQuality['凡品'];
-    const fitMultiplier = clampNonNegativeFinite(context.fitMultiplier ?? 1, 1);
-
-    return {
-      cap: resolveExpCap(context),
-      percent:
-        qualityPercent *
-        fitMultiplier *
-        resolveRealmPaceMultiplier(context.realm),
-      minBaseExp: PILL_EXP_BUDGET.minBaseExp,
-    };
+    return buildPillCultivationExpInput(context);
   },
 };
 
@@ -186,11 +176,10 @@ export const eventStrategy: CultivationExpGainStrategy<EventExpContext> = {
   id: 'event',
   resolve(context) {
     return {
-      cap: resolveExpCap(context),
-      percent:
-        EVENT_EXP_BUDGET.percentByWeight[context.weight ?? 'normal'] *
-        clampNonNegativeFinite(context.multiplier ?? 1, 1) *
-        resolveRealmPaceMultiplier(context.realm),
+      dailyBudget: resolveDailyBudget(context.realm),
+      sourceDailyFraction:
+        EVENT_EXP_BUDGET.dailyFractionByWeight[context.weight ?? 'normal'],
+      sourceMultiplier: clampNonNegativeFinite(context.multiplier ?? 1, 1),
       minBaseExp: EVENT_EXP_BUDGET.minBaseExp,
     };
   },
@@ -199,15 +188,18 @@ export const eventStrategy: CultivationExpGainStrategy<EventExpContext> = {
 export const systemRewardStrategy: CultivationExpGainStrategy<SystemRewardExpContext> = {
   id: 'system_reward',
   resolve(context) {
-    const percent =
-      SYSTEM_REWARD_EXP_BUDGET.percentByWeight[context.weight ?? 'normal'] *
-      clampNonNegativeFinite(context.multiplier ?? 1, 1) *
-      resolveRealmPaceMultiplier(context.realm);
+    const dailyBudget = resolveDailyBudget(context.realm);
     return {
-      cap: resolveExpCap(context),
-      percent,
+      dailyBudget,
+      sourceDailyFraction:
+        SYSTEM_REWARD_EXP_BUDGET.dailyFractionByWeight[
+          context.weight ?? 'normal'
+        ],
+      sourceMultiplier: clampNonNegativeFinite(context.multiplier ?? 1, 1),
       minBaseExp: SYSTEM_REWARD_EXP_BUDGET.minBaseExp,
-      maxBaseExp: Math.floor(resolveExpCap(context) * SYSTEM_REWARD_EXP_BUDGET.maxPercent),
+      maxBaseExp: Math.floor(
+        dailyBudget * SYSTEM_REWARD_EXP_BUDGET.maxDailyFraction,
+      ),
     };
   },
 };
@@ -236,7 +228,7 @@ export function calculateSceneCultivationExp<
   const strategy = EXP_GAIN_STRATEGIES[scene] as CultivationExpGainStrategy<
     CultivationExpGainContextMap[Scene]
   >;
-  return calculateCultivationExpByCap(strategy.resolve(context));
+  return calculateResolvedExp(strategy.resolve(context));
 }
 
 export function getBaseExp(
@@ -244,7 +236,8 @@ export function getBaseExp(
   realm: RealmType,
   realmStage: RealmStage,
 ): number {
-  return calculateSceneCultivationExp(scene, { realm, realmStage } as never).baseExp;
+  return calculateSceneCultivationExp(scene, { realm, realmStage } as never)
+    .baseExp;
 }
 
 export function calculateRetreatBaseExp(

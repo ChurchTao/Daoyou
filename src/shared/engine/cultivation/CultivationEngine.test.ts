@@ -115,13 +115,13 @@ describe('CultivationEngine cultivation boost', () => {
   it('applies cultivation boost to retreat exp once and then consumes it', () => {
     const base = performCultivation(createCultivator(), 10, () => 0.5);
     const boosted = performCultivation(
-      withCultivationBoost(createCultivator(), 0.25),
+      withCultivationBoost(createCultivator(), 0.5),
       10,
       () => 0.5,
     );
 
     expect(boosted.summary.exp_gained).toBe(
-      Math.floor(base.summary.exp_gained * 1.25),
+      Math.floor(base.summary.exp_gained * 1.5),
     );
     expect(boosted.summary.insight_gained).toBe(base.summary.insight_gained);
     expect(
@@ -132,7 +132,7 @@ describe('CultivationEngine cultivation boost', () => {
   });
 
   it('does not consume cultivation boost during breakthrough attempts', () => {
-    const cultivator = withCultivationBoost(createCultivator(), 0.25);
+    const cultivator = withCultivationBoost(createCultivator(), 0.5);
     cultivator.cultivation_progress!.cultivation_exp = 80_000;
 
     const result = attemptBreakthrough(cultivator, () => 0.99);

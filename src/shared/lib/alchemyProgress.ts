@@ -1,5 +1,5 @@
-import { calculateSceneCultivationExp } from '@shared/engine/cultivation/ExpBudgetCalculator';
 import { buildInsightGain as buildInsightGainV2 } from '@shared/lib/pillEffectScaling';
+import { calculatePillCultivationExp } from '@shared/lib/pillCultivationExp';
 import type { Quality, RealmStage, RealmType } from '@shared/types/constants';
 
 export interface CultivationGainSnapshotInput {
@@ -30,7 +30,7 @@ export function buildCultivationGain(
         }
       : inputOrRealm;
 
-  return calculateSceneCultivationExp('pill', {
+  return calculatePillCultivationExp({
     realm: input.realm,
     realmStage: input.realmStage ?? '初期',
     expCap: input.expCap,
