@@ -109,7 +109,7 @@ describe('buildRetreatEfficiencyModel', () => {
     });
 
     expect(model.hasCultivationBoost).toBe(true);
-    expect(model.buffTags).toContainEqual({
+    expect(model.retreatTags).toContainEqual({
       key: 'cultivation_boost',
       icon: '🌿',
       label: '养元',
@@ -126,7 +126,7 @@ describe('buildRetreatEfficiencyModel', () => {
 
     expect(model.hasCultivationBoost).toBe(false);
     expect(
-      model.buffTags.some((tag) => tag.key === 'cultivation_boost'),
+      model.retreatTags.some((tag) => tag.key === 'cultivation_boost'),
     ).toBe(false);
     expect(model.emptyHint).toContain('未见养元药力');
   });
@@ -173,7 +173,7 @@ describe('buildRetreatEfficiencyModel', () => {
       retreatYears: '10',
     });
 
-    expect(positive.buffTags).toContainEqual({
+    expect(positive.retreatTags).toContainEqual({
       key: 'fate_retreat_exp',
       icon: '🌕',
       label: '静修命格',
@@ -181,7 +181,7 @@ describe('buildRetreatEfficiencyModel', () => {
       tone: 'positive',
     });
     expect(
-      negative.buffTags.some((tag) => tag.key === 'fate_retreat_exp'),
+      negative.retreatTags.some((tag) => tag.key === 'fate_retreat_exp'),
     ).toBe(false);
   });
 
@@ -201,7 +201,7 @@ describe('buildRetreatEfficiencyModel', () => {
       retreatYears: '10',
     });
 
-    expect(model.buffTags).toContainEqual({
+    expect(model.retreatTags).toContainEqual({
       key: 'bottleneck',
       icon: '⛰️',
       label: '瓶颈',
@@ -216,7 +216,7 @@ describe('buildRetreatEfficiencyModel', () => {
       retreatYears: '10',
     });
 
-    expect(model.buffTags).toContainEqual({
+    expect(model.breakthroughTags).toContainEqual({
       key: 'breakthrough_focus',
       icon: '🕯️',
       label: '破境凝神',

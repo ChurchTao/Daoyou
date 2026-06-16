@@ -22,7 +22,8 @@ export interface RetreatBuffTag {
 export interface RetreatEfficiencyModel {
   years: number;
   isValidYears: boolean;
-  buffTags: RetreatBuffTag[];
+  retreatTags: RetreatBuffTag[];
+  breakthroughTags: RetreatBuffTag[];
   hasCultivationBoost: boolean;
   lifespanCost: number;
   qiCost: number;
@@ -64,10 +65,11 @@ export function buildRetreatEfficiencyModel(input: {
   const breakthroughFocus = findActiveStatus(cultivator, 'breakthrough_focus');
   const protectMeridians = findActiveStatus(cultivator, 'protect_meridians');
   const clearMind = findActiveStatus(cultivator, 'clear_mind');
-  const buffTags: RetreatBuffTag[] = [];
+  const retreatTags: RetreatBuffTag[] = [];
+  const breakthroughTags: RetreatBuffTag[] = [];
 
   if (boostStatus) {
-    buffTags.push({
+    retreatTags.push({
       key: 'cultivation_boost',
       icon: '🌿',
       label: '养元',
@@ -77,7 +79,7 @@ export function buildRetreatEfficiencyModel(input: {
   }
 
   if (fateContext.retreatExpMultiplier > 1.02) {
-    buffTags.push({
+    retreatTags.push({
       key: 'fate_retreat_exp',
       icon: '🌕',
       label: '静修命格',
@@ -87,7 +89,7 @@ export function buildRetreatEfficiencyModel(input: {
   }
 
   if (breakthroughFocus) {
-    buffTags.push({
+    breakthroughTags.push({
       key: 'breakthrough_focus',
       icon: '🕯️',
       label: '破境凝神',
@@ -97,7 +99,7 @@ export function buildRetreatEfficiencyModel(input: {
   }
 
   if (protectMeridians) {
-    buffTags.push({
+    breakthroughTags.push({
       key: 'protect_meridians',
       icon: '🪢',
       label: '护脉',
@@ -109,7 +111,7 @@ export function buildRetreatEfficiencyModel(input: {
   }
 
   if (clearMind) {
-    buffTags.push({
+    breakthroughTags.push({
       key: 'clear_mind',
       icon: '🪷',
       label: '清心',
@@ -122,7 +124,7 @@ export function buildRetreatEfficiencyModel(input: {
   }
 
   if (cultivator.cultivation_progress?.bottleneck_state) {
-    buffTags.push({
+    retreatTags.push({
       key: 'bottleneck',
       icon: '⛰️',
       label: '瓶颈',
@@ -134,7 +136,8 @@ export function buildRetreatEfficiencyModel(input: {
   return {
     years,
     isValidYears,
-    buffTags,
+    retreatTags,
+    breakthroughTags,
     hasCultivationBoost: Boolean(boostStatus),
     lifespanCost: safeYears,
     qiCost: safeYears > 0 ? getRetreatQiCost(safeYears) : 0,
