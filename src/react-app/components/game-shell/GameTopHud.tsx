@@ -198,6 +198,50 @@ type HudStatusItem = {
   onClick?: () => void;
 };
 
+const STATUS_CATEGORY_LABELS: Record<
+  GameHudSnapshot['activeStatuses'][number]['category'],
+  string
+> = {
+  pill: '丹药药力',
+  breakthrough: '突破准备',
+  injury: '伤势与虚弱',
+  other: '其他状态',
+};
+
+function StatusDetailBlock({
+  status,
+}: {
+  status: GameHudSnapshot['activeStatuses'][number];
+}) {
+  return (
+    <div className="border-ink/10 bg-bgpaper/70 space-y-2 border border-dashed px-3 py-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-ink text-sm font-medium">
+            <span aria-hidden="true">{status.icon}</span> {status.label}
+          </p>
+          <p className="text-ink-secondary text-xs leading-5">
+            {status.shortDesc}
+          </p>
+        </div>
+        <div className="text-ink-secondary shrink-0 text-right text-xs leading-5">
+          {status.durationText ? <p>{status.durationText}</p> : null}
+          {status.usesRemaining !== null && status.usesRemaining > 0 ? (
+            <p>{status.usesRemaining}次</p>
+          ) : null}
+        </div>
+      </div>
+      {status.details.length > 0 ? (
+        <div className="text-ink-secondary space-y-1 text-xs leading-5">
+          {status.details.map((detail) => (
+            <p key={detail}>{detail}</p>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   const { openDialog } = useInkUI();
   const navigate = useNavigate();
@@ -470,11 +514,91 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
     });
   };
 
+  const openStatusInfo = () => {
+    const groupedStatuses = snapshot.activeStatuses.reduce(
+      (groups, status) => {
+        groups[status.category].push(status);
+        return groups;
+      },
+      {
+        pill: [],
+        breakthrough: [],
+        injury: [],
+        other: [],
+      } as Record<
+        GameHudSnapshot['activeStatuses'][number]['category'],
+        GameHudSnapshot['activeStatuses']
+      >,
+    );
+    const hasStatuses = snapshot.activeStatuses.length > 0;
+    const hasToxicity = snapshot.pillToxicity.active;
+
+    openDialog({
+      title: '当前状态',
+      content: (
+        <div className="space-y-4 text-sm leading-7">
+          {!hasStatuses && !hasToxicity ? (
+            <div className="border-ink/10 bg-bgpaper/70 space-y-2 border border-dashed px-3 py-2">
+              <p className="text-ink font-medium">安稳</p>
+              <p className="text-ink-secondary">
+                当前没有持续伤势、丹药药力或突破准备状态。
+              </p>
+              <p className="text-ink-secondary">
+                丹毒无明显压制，闭关与突破会按常规状态结算。
+              </p>
+            </div>
+          ) : null}
+
+          {hasToxicity ? (
+            <section className="space-y-2">
+              <p className="text-ink text-sm font-medium">丹毒</p>
+              <div className="border-ink/10 bg-bgpaper/70 space-y-1 border border-dashed px-3 py-2 text-xs leading-5">
+                <p>
+                  当前：{snapshot.pillToxicity.label}（
+                  {snapshot.pillToxicity.value}）
+                </p>
+                {snapshot.pillToxicity.details.map((detail) => (
+                  <p key={detail}>{detail}</p>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {(Object.keys(groupedStatuses) as Array<
+            keyof typeof groupedStatuses
+          >).map((category) => {
+            const statuses = groupedStatuses[category];
+            if (statuses.length === 0) return null;
+
+            return (
+              <section key={category} className="space-y-2">
+                <p className="text-ink text-sm font-medium">
+                  {STATUS_CATEGORY_LABELS[category]}
+                </p>
+                <div className="space-y-2">
+                  {statuses.map((status, index) => (
+                    <StatusDetailBlock
+                      key={`${status.key}:${index}`}
+                      status={status}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      ),
+      confirmLabel: null,
+      cancelLabel: '知道了',
+    });
+  };
+
   const hudStatusItems: HudStatusItem[] = [
     {
       key: 'status',
       label: '状态',
       value: snapshot.statusText,
+      onClick: openStatusInfo,
     },
     {
       key: 'realm',

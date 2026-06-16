@@ -64,6 +64,11 @@ interface RecycleDialogState {
 
 type RecycleTab = 'materials' | 'artifacts';
 
+function isMysteryMaterial(item: Pick<Material, 'details'>): boolean {
+  const details = item.details;
+  return !!details && typeof details === 'object' && 'mystery' in details;
+}
+
 async function requestSellPreview(
   itemType: SellItemType,
   itemIds: string[],
@@ -123,6 +128,7 @@ async function fetchAllLowTierMaterialIds(): Promise<string[]> {
     }
     const items = payload.data?.items || [];
     for (const item of items) {
+      if (isMysteryMaterial(item)) continue;
       if (item.id) ids.push(item.id);
     }
     hasMore = Boolean(payload.data?.pagination?.hasMore);
@@ -600,6 +606,7 @@ export default function MarketRecyclePage() {
             {materials.map((item) => {
               const typeInfo = getMaterialTypeInfo(item.type);
               const isLow = QUALITY_ORDER[item.rank] <= QUALITY_ORDER['玄品'];
+              const isMystery = isMysteryMaterial(item);
               return (
                 <InkListItem
                   key={item.id}
@@ -613,6 +620,11 @@ export default function MarketRecyclePage() {
                       <span className="text-ink-secondary ml-2 text-sm">
                         x{item.quantity}
                       </span>
+                      {isMystery && (
+                        <InkBadge tone="warning" className="ml-2">
+                          待鉴定
+                        </InkBadge>
+                      )}
                     </>
                   }
                   meta={`属性：${item.element || '无属性'}`}
@@ -624,14 +636,17 @@ export default function MarketRecyclePage() {
                       disabled={
                         isProcessing ||
                         bulkLoading ||
+                        isMystery ||
                         pendingItemId === item.id
                       }
                     >
                       {pendingItemId === item.id
                         ? '鉴定中…'
-                        : isLow
-                          ? '回收'
-                          : '鉴定回收'}
+                        : isMystery
+                          ? '待鉴定'
+                          : isLow
+                            ? '回收'
+                            : '鉴定回收'}
                     </InkButton>
                   }
                 />

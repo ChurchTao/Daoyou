@@ -24,6 +24,10 @@ import {
   consumeRetreatStream,
   isSuccessfulBreakthrough,
 } from '../lib/retreatStream';
+import {
+  buildRetreatEfficiencyModel,
+  type RetreatEfficiencyModel,
+} from '../lib/retreatEfficiency';
 
 export interface CultivationProgressData {
   cultivation_exp: number;
@@ -47,6 +51,7 @@ export interface UseRetreatViewModelReturn {
   note: string | undefined;
   remainingLifespan: number;
   cultivationProgress: CultivationProgressData | null;
+  retreatEfficiency: RetreatEfficiencyModel | null;
   breakthroughPreview: BreakthroughChancePreviewData | null;
   currentMajorTask: TaskInstance | null;
   isMajorBreakthrough: boolean;
@@ -137,6 +142,14 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
       breakthroughType,
     };
   }, [cultivator]);
+
+  const retreatEfficiency = useMemo((): RetreatEfficiencyModel | null => {
+    if (!cultivator) return null;
+    return buildRetreatEfficiencyModel({
+      cultivator,
+      retreatYears,
+    });
+  }, [cultivator, retreatYears]);
 
   const nextBreakthrough = useMemo(() => {
     if (!cultivator) {
@@ -411,6 +424,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     note,
     remainingLifespan,
     cultivationProgress,
+    retreatEfficiency,
     breakthroughPreview,
     currentMajorTask,
     isMajorBreakthrough,

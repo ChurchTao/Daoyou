@@ -121,4 +121,138 @@ describe('buildGameHudSnapshot', () => {
       breakthroughFailures: 2,
     });
   });
+
+  it('includes active status details for the HUD status dialog', () => {
+    const snapshot = buildGameHudSnapshot({
+      cultivator: {
+        id: 'cultivator-1',
+        name: '韩立',
+        title: null,
+        realm: '筑基',
+        realm_stage: '初期',
+        spirit_stones: 12345,
+        cultivation_progress: {
+          cultivation_exp: 80,
+          exp_cap: 100,
+          comprehension_insight: 30,
+        },
+        condition: {
+          gauges: {
+            pillToxicity: 0,
+          },
+          statuses: [
+            {
+              key: 'cultivation_boost',
+              stacks: 1,
+              source: 'pill',
+              duration: { kind: 'until_removed' },
+              usesRemaining: 1,
+              payload: {
+                boostPercent: 0.5,
+                retreatExpMultiplier: 1.5,
+              },
+              createdAt: '2026-06-01T00:00:00.000Z',
+              updatedAt: '2026-06-01T00:00:00.000Z',
+            },
+          ],
+        },
+      } as any,
+      display: {
+        resources: {
+          hp: { current: 80, max: 100, percent: 80 },
+          mp: { current: 60, max: 100, percent: 60 },
+        },
+      } as any,
+      unreadMailCount: 0,
+    });
+
+    expect(snapshot?.statusText).toBe('养元');
+    expect(snapshot?.activeStatuses).toHaveLength(1);
+    expect(snapshot?.activeStatuses[0]).toMatchObject({
+      key: 'cultivation_boost',
+      label: '养元',
+      category: 'pill',
+      usesRemaining: 1,
+    });
+    expect(snapshot?.activeStatuses[0].details.join('\n')).toContain(
+      '下次闭关修为 +50%',
+    );
+  });
+
+  it('includes pill toxicity details even when no status instance is active', () => {
+    const snapshot = buildGameHudSnapshot({
+      cultivator: {
+        id: 'cultivator-1',
+        name: '韩立',
+        title: null,
+        realm: '筑基',
+        realm_stage: '初期',
+        spirit_stones: 12345,
+        cultivation_progress: {
+          cultivation_exp: 80,
+          exp_cap: 100,
+          comprehension_insight: 30,
+        },
+        condition: {
+          gauges: {
+            pillToxicity: 450,
+          },
+          statuses: [],
+        },
+      } as any,
+      display: {
+        resources: {
+          hp: { current: 80, max: 100, percent: 80 },
+          mp: { current: 60, max: 100, percent: 60 },
+        },
+      } as any,
+      unreadMailCount: 0,
+    });
+
+    expect(snapshot?.statusText).toBe('丹毒郁结');
+    expect(snapshot?.activeStatuses).toHaveLength(0);
+    expect(snapshot?.pillToxicity).toMatchObject({
+      active: true,
+      label: '丹毒郁结',
+      value: 450,
+    });
+    expect(snapshot?.pillToxicity.details.join('\n')).toContain(
+      '当前丹毒值为 450',
+    );
+  });
+
+  it('keeps a stable calm status when there are no active statuses', () => {
+    const snapshot = buildGameHudSnapshot({
+      cultivator: {
+        id: 'cultivator-1',
+        name: '韩立',
+        title: null,
+        realm: '筑基',
+        realm_stage: '初期',
+        spirit_stones: 12345,
+        cultivation_progress: {
+          cultivation_exp: 80,
+          exp_cap: 100,
+          comprehension_insight: 30,
+        },
+        condition: {
+          gauges: {
+            pillToxicity: 0,
+          },
+          statuses: [],
+        },
+      } as any,
+      display: {
+        resources: {
+          hp: { current: 80, max: 100, percent: 80 },
+          mp: { current: 60, max: 100, percent: 60 },
+        },
+      } as any,
+      unreadMailCount: 0,
+    });
+
+    expect(snapshot?.statusText).toBe('安稳');
+    expect(snapshot?.activeStatuses).toEqual([]);
+    expect(snapshot?.pillToxicity.active).toBe(false);
+  });
 });

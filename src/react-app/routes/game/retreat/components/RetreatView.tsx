@@ -11,6 +11,7 @@ import { useRetreatViewModel } from '../hooks/useRetreatViewModel';
 import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
 import { RetreatResultModal } from './RetreatResultModal';
 import { cn } from '@shared/lib/utils';
+import type { RetreatEfficiencyModel } from '../lib/retreatEfficiency';
 
 const COMPREHENSION_LABEL = getGameConceptLabel('comprehension_insight');
 
@@ -115,6 +116,45 @@ function RetreatSummaryEntry({
   );
 }
 
+function RetreatBuffTags({
+  model,
+}: {
+  model: RetreatEfficiencyModel | null;
+}) {
+  if (!model || (model.buffTags.length === 0 && !model.emptyHint)) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+      {model.buffTags.map((tag) => (
+        <span
+          key={tag.key}
+          className={cn(
+            'border-ink/15 bg-bgpaper/70 inline-flex max-w-full items-center gap-1.5 border border-dashed px-2 py-1 text-xs leading-5',
+            tag.tone === 'positive' && 'border-emerald-700/25 text-emerald-800',
+            tag.tone === 'warning' && 'border-wood/35 text-wood',
+          )}
+        >
+          <span aria-hidden="true">{tag.icon}</span>
+          <span className="truncate">{tag.label}</span>
+          {tag.value ? <span className="font-mono">{tag.value}</span> : null}
+        </span>
+      ))}
+      {model.emptyHint ? (
+        <span className="text-ink-secondary inline-flex items-center gap-1.5 text-xs leading-5">
+          <span aria-hidden="true">🌿</span>
+          <span>{model.emptyHint}</span>
+          <InkButton href="/game/inventory" variant="ghost">
+            背包
+          </InkButton>
+          <InkButton href="/game/craft/alchemy" variant="ghost">
+            炼丹
+          </InkButton>
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 function getRetreatLeadText({
   isMajorBreakthrough,
   majorBreakthroughBlocked,
@@ -174,6 +214,7 @@ export function RetreatView() {
     note,
     remainingLifespan,
     cultivationProgress,
+    retreatEfficiency,
     breakthroughPreview,
     currentMajorTask,
     isMajorBreakthrough,
@@ -361,6 +402,7 @@ export function RetreatView() {
                   : '闭关越久，修为增长越多。'
               }
             />
+            <RetreatBuffTags model={retreatEfficiency} />
           </div>
 
           <div className="flex flex-wrap gap-2">

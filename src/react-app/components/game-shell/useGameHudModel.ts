@@ -8,10 +8,15 @@ import {
 } from '@shared/lib/condition';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
 import {
+  getPillToxicityEffectDetails,
+  getStatusEffectDetails,
+} from '@app/components/feature/cultivator/persistentStatusDetails';
+import {
   getGameConceptLabel,
   getResourceLabel,
   getResourceText,
 } from '@shared/lib/gameConceptDisplay';
+import type { ConditionStatusKey } from '@shared/types/condition';
 import { RealmType } from '@shared/types/constants';
 
 export interface GameHudMetric {
@@ -26,6 +31,19 @@ export interface GameHudStatusTag {
   key: string;
   label: string;
   icon: string;
+  category: 'pill' | 'injury' | 'breakthrough' | 'other';
+  shortDesc: string;
+  details: string[];
+  durationText: string | null;
+  usesRemaining: number | null;
+}
+
+export interface GameHudPillToxicityDetail {
+  key: string;
+  label: string;
+  value: number;
+  active: boolean;
+  details: string[];
 }
 
 export interface GameHudCultivationProgress {
@@ -53,6 +71,7 @@ export interface GameHudSnapshot {
   cultivationProgress: GameHudCultivationProgress;
   metrics: GameHudMetric[];
   activeStatuses: GameHudStatusTag[];
+  pillToxicity: GameHudPillToxicityDetail;
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -69,6 +88,50 @@ function formatHudResourceValue(value: number): string {
 
 function formatHudResourcePair(current: number, max: number): string {
   return `${formatHudResourceValue(current)}/${formatHudResourceValue(max)}`;
+}
+
+function getStatusCategory(
+  key: ConditionStatusKey,
+): GameHudStatusTag['category'] {
+  if (key === 'cultivation_boost') return 'pill';
+  if (
+    key === 'breakthrough_focus' ||
+    key === 'protect_meridians' ||
+    key === 'clear_mind'
+  ) {
+    return 'breakthrough';
+  }
+  if (
+    key === 'weakness' ||
+    key === 'minor_wound' ||
+    key === 'major_wound' ||
+    key === 'near_death'
+  ) {
+    return 'injury';
+  }
+  return 'other';
+}
+
+function formatStatusDurationText(
+  duration: { kind: 'until_removed' } | { kind: 'time'; expiresAt: string },
+  now: Date,
+): string | null {
+  if (duration.kind === 'until_removed') return null;
+
+  const expiresAt = Date.parse(duration.expiresAt);
+  if (!Number.isFinite(expiresAt)) return null;
+
+  const remainingMs = expiresAt - now.getTime();
+  if (remainingMs <= 0) return '已过期';
+
+  const totalMinutes = Math.max(1, Math.ceil(remainingMs / 60_000));
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) return hours > 0 ? `${days}日${hours}时` : `${days}日`;
+  if (hours > 0) return minutes > 0 ? `${hours}时${minutes}分` : `${hours}时`;
+  return `${minutes}分`;
 }
 
 export function buildGameHudSnapshot(input: {
@@ -107,10 +170,25 @@ export function buildGameHudSnapshot(input: {
         key: status.key,
         label: template?.name ?? status.key,
         icon: template?.display.icon ?? '💫',
+        category: getStatusCategory(status.key),
+        shortDesc:
+          template?.display.shortDesc ??
+          template?.description ??
+          '长期状态影响',
+        details: getStatusEffectDetails(status),
+        durationText: formatStatusDurationText(status.duration, now),
+        usesRemaining:
+          typeof status.usesRemaining === 'number'
+            ? status.usesRemaining
+            : null,
       };
     });
 
   const pillToxicityStage = getPillToxicityStage(cultivator.condition);
+  const pillToxicityValue = Math.max(
+    0,
+    Math.floor(cultivator.condition?.gauges?.pillToxicity ?? 0),
+  );
   const statusLabels = activeStatuses.map((status) => status.label);
   if (pillToxicityStage.key !== 'none') {
     statusLabels.push(pillToxicityStage.label);
@@ -127,6 +205,16 @@ export function buildGameHudSnapshot(input: {
     unreadMailCount,
     statusText: statusLabels.join(' ｜ ') || '安稳',
     activeStatuses,
+    pillToxicity: {
+      key: pillToxicityStage.key,
+      label: pillToxicityStage.label,
+      value: pillToxicityValue,
+      active: pillToxicityStage.key !== 'none',
+      details: getPillToxicityEffectDetails(
+        cultivator.condition,
+        cultivator.pre_heaven_fates ?? [],
+      ),
+    },
     cultivationProgress: {
       current: cultivationExp,
       cap: cultivationCap,

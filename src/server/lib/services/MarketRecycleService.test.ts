@@ -9,6 +9,7 @@ const {
 } = vi.hoisted(() => {
   const state = {
     materialRows: [] as any[],
+    transactionUpdate: { spiritStones: 0 },
   };
 
   const executor = {
@@ -21,6 +22,34 @@ const {
         },
       };
     },
+    transaction: vi.fn(async (callback: (tx: unknown) => unknown) => {
+      const tx = {
+        delete() {
+          return {
+            where() {
+              return {
+                returning: async () =>
+                  state.materialRows.map((row) => ({ id: row.id })),
+              };
+            },
+          };
+        },
+        update() {
+          return {
+            set() {
+              return {
+                where() {
+                  return {
+                    returning: async () => [state.transactionUpdate],
+                  };
+                },
+              };
+            },
+          };
+        },
+      };
+      return callback(tx);
+    }),
   };
 
   return {
@@ -64,12 +93,14 @@ vi.mock('@server/utils/aiClient', () => ({
 
 import {
   buildMaterialHighTierAppraisal,
+  confirmSell,
   previewSell,
 } from './MarketRecycleService';
 
 describe('MarketRecycleService', () => {
   beforeEach(() => {
     executorState.materialRows = [];
+    executorState.transactionUpdate = { spiritStones: 0 };
     creationProductRepositoryMock.findArtifactsByIdsAndCultivator.mockReset();
     creationProductRepositoryMock.findEquippedArtifacts.mockReset();
     creationProductRepositoryMock.deleteArtifactsByIdsAndCultivator.mockReset();
@@ -117,6 +148,99 @@ describe('MarketRecycleService', () => {
     );
     expect(redisSetMock).toHaveBeenCalledTimes(1);
     expect(textMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects mystery materials during recycle preview', async () => {
+    executorState.materialRows = [
+      {
+        id: 'material-1',
+        name: '封泥药囊',
+        type: 'herb',
+        rank: '玄品',
+        element: '木',
+        quantity: 1,
+        details: {
+          mystery: {
+            mysteryId: 'mystery-1',
+            identifyCost: 200,
+          },
+        },
+      },
+    ];
+
+    await expect(
+      previewSell({ id: 'cultivator-1' }, ['material-1'], 'material'),
+    ).rejects.toMatchObject({
+      status: 400,
+      message: '待鉴定材料不可回收，请先鉴定。',
+    });
+    expect(redisSetMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects mystery materials during recycle confirm from an existing session', async () => {
+    executorState.materialRows = [
+      {
+        id: 'material-1',
+        name: '封泥药囊',
+        type: 'herb',
+        rank: '玄品',
+        element: '木',
+        quantity: 1,
+        details: {
+          mystery: {
+            mysteryId: 'mystery-1',
+            identifyCost: 200,
+          },
+        },
+      },
+    ];
+    redisSetMock.mockResolvedValueOnce('OK');
+    redisGetMock.mockResolvedValueOnce(
+      JSON.stringify({
+        itemType: 'material',
+        sessionId: 'session-1',
+        mode: 'low_bulk',
+        items: [
+          {
+            id: 'material-1',
+            name: '封泥药囊',
+            rank: '玄品',
+            quantity: 1,
+            unitPrice: 10,
+            totalPrice: 10,
+          },
+        ],
+        totalSpiritStones: 10,
+        expiresAt: Date.now() + 60_000,
+        cultivatorId: 'cultivator-1',
+        itemIds: ['material-1'],
+        quotedItems: [
+          {
+            id: 'material-1',
+            name: '封泥药囊',
+            rank: '玄品',
+            quantity: 1,
+            unitPrice: 10,
+            totalPrice: 10,
+          },
+        ],
+        quotedTotal: 10,
+        snapshot: {
+          'material-1': {
+            id: 'material-1',
+            rank: '玄品',
+            quantity: 1,
+          },
+        },
+        equippedCheckAtPreview: [],
+        createdAt: Date.now(),
+      }),
+    );
+
+    await expect(confirmSell('cultivator-1', 'session-1')).rejects.toMatchObject({
+      status: 400,
+      message: '待鉴定材料不可回收，请先鉴定。',
+    });
   });
 
   it('keeps low-tier material preview in bulk mode', async () => {

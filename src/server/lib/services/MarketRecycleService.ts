@@ -43,9 +43,14 @@ import {
   toArtifactFromProduct,
 } from './creationProductArtifactSupport';
 import type { CreationProductRecord } from '@server/lib/repositories/creationProductRepository';
+import {
+  getMysteryMaterialBlockingReason,
+} from './materialMysteryGuard';
 
 const SELL_SESSION_PREFIX = 'market:sell:session:';
 const SELL_LOCK_PREFIX = 'market:sell:lock:';
+const MYSTERY_MATERIAL_RECYCLE_BLOCKING_REASON =
+  '待鉴定材料不可回收，请先鉴定。';
 const APPRAISAL_RATING_STEPS: HighTierAppraisal['rating'][] = ['C', 'B', 'A', 'S'];
 const HIGH_TIER_MATERIAL_BASE_RATING = {
   真品: 'C',
@@ -407,6 +412,13 @@ function normalizeItemIds(itemIds: string[]): string[] {
   return deduped;
 }
 
+function ensureNoMysteryMaterials(items: Material[]): void {
+  const reason = getMysteryMaterialBlockingReason(items);
+  if (reason) {
+    throw new MarketRecycleError(400, MYSTERY_MATERIAL_RECYCLE_BLOCKING_REASON);
+  }
+}
+
 async function loadOwnedMaterials(
   cultivatorId: string,
   materialIds: string[],
@@ -509,6 +521,7 @@ async function previewMaterialSell(
 ): Promise<SellPreviewResponse> {
   const ids = normalizeItemIds(materialIds);
   const ownedMaterials = await loadOwnedMaterials(cultivator.id, ids);
+  ensureNoMysteryMaterials(ownedMaterials);
 
   const lowTier = ownedMaterials.filter((item) => isLowTier(item.rank));
   const highTier = ownedMaterials.filter((item) => isHighTier(item.rank));
@@ -747,6 +760,7 @@ async function confirmMaterialSell(
     cultivatorId,
     session.itemIds,
   );
+  ensureNoMysteryMaterials(ownedMaterials);
   const snapshot = new Map(ownedMaterials.map((item) => [item.id, item]));
 
   for (const quoted of session.quotedItems) {
