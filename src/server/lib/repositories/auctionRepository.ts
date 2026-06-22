@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lte, or, sql, type SQL } from 'drizzle-orm';
 import { getExecutor, type DbExecutor, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 
@@ -17,6 +17,9 @@ export async function createListing(data: {
   itemId: string;
   itemSnapshot: unknown;
   price: number;
+  visibility?: 'public' | 'private';
+  targetCultivatorId?: string;
+  targetCultivatorName?: string;
   expiresAt: Date;
   tx?: DbTransaction;
 }): Promise<AuctionListing> {
@@ -30,6 +33,9 @@ export async function createListing(data: {
       itemId: data.itemId,
       itemSnapshot: data.itemSnapshot,
       price: data.price,
+      visibility: data.visibility ?? 'public',
+      targetCultivatorId: data.targetCultivatorId,
+      targetCultivatorName: data.targetCultivatorName,
       status: 'active',
       expiresAt: data.expiresAt,
     })
@@ -63,6 +69,7 @@ export interface FindActiveListingsOptions {
   sortBy?: 'price_asc' | 'price_desc' | 'latest';
   page?: number;
   limit?: number;
+  viewerCultivatorId?: string;
 }
 
 export async function findActiveListings(
@@ -76,6 +83,7 @@ export async function findActiveListings(
     sortBy = 'latest',
     page = 1,
     limit = 20,
+    viewerCultivatorId,
   } = options;
 
   // 构建筛选条件
@@ -93,6 +101,15 @@ export async function findActiveListings(
   if (maxPrice !== undefined) {
     conditions.push(lte(schema.auctionListings.price, maxPrice));
   }
+  conditions.push(
+    viewerCultivatorId
+      ? or(
+          eq(schema.auctionListings.visibility, 'public'),
+          eq(schema.auctionListings.sellerId, viewerCultivatorId),
+          eq(schema.auctionListings.targetCultivatorId, viewerCultivatorId),
+        )!
+      : eq(schema.auctionListings.visibility, 'public'),
+  );
 
   const whereClause = and(...conditions);
 

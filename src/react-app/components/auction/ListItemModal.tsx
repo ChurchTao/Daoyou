@@ -13,6 +13,7 @@ import {
   InkInput,
   InkList,
   InkNotice,
+  InkSelect,
   InkTabs,
   inkFieldVariants,
 } from '@app/components/ui';
@@ -57,6 +58,16 @@ type SelectableItem = (Material | Artifact | Consumable) & {
 };
 
 type InventoryApiType = 'materials' | 'artifacts' | 'consumables';
+type ListingVisibility = 'public' | 'private';
+
+interface FriendSummary {
+  id: string;
+  name: string;
+  title: string | null;
+  realm: string;
+  realmStage: string;
+  status: string;
+}
 
 interface InventoryPagination {
   page: number;
@@ -202,6 +213,10 @@ export function ListItemModal({
   const [selectedItem, setSelectedItem] = useState<SelectableItem | null>(null);
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('1');
+  const [visibility, setVisibility] = useState<ListingVisibility>('public');
+  const [targetCultivatorId, setTargetCultivatorId] = useState('');
+  const [friends, setFriends] = useState<FriendSummary[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [listError, setListError] = useState('');
@@ -230,6 +245,42 @@ export function ListItemModal({
     consumable: defaultPagination,
   });
   const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!cultivator?.id || step !== 'price') {
+      return;
+    }
+
+    let cancelled = false;
+    const loadFriends = async () => {
+      try {
+        setFriendsLoading(true);
+        const res = await fetch('/api/friends');
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok) {
+          throw new Error(data.error || '获取好友名录失败');
+        }
+        const nextFriends = (data.friends || []) as FriendSummary[];
+        setFriends(nextFriends);
+        setTargetCultivatorId((current) => current || nextFriends[0]?.id || '');
+      } catch (error) {
+        if (!cancelled) {
+          setError(error instanceof Error ? error.message : '获取好友名录失败');
+        }
+      } finally {
+        if (!cancelled) {
+          setFriendsLoading(false);
+        }
+      }
+    };
+
+    void loadFriends();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cultivator?.id, step]);
 
   const fetchItemPage = useCallback(
     async (itemType: ItemType, page: number) => {
@@ -401,6 +452,8 @@ export function ListItemModal({
     setSelectedItem(null);
     setPrice('');
     setQuantity('1');
+    setVisibility('public');
+    setTargetCultivatorId('');
     setError('');
   };
 
@@ -451,6 +504,10 @@ export function ListItemModal({
       setError(`数量范围为 1 ~ ${selectedItem.quantity}`);
       return;
     }
+    if (visibility === 'private' && !targetCultivatorId) {
+      setError('专属交易必须指定好友');
+      return;
+    }
 
     setIsSubmitting(true);
     setError('');
@@ -465,6 +522,9 @@ export function ListItemModal({
             itemId: selectedItem.id,
             price: priceNum,
             quantity: quantityNum,
+            visibility,
+            targetCultivatorId:
+              visibility === 'private' ? targetCultivatorId : undefined,
           }),
         }),
       );
@@ -1147,6 +1207,44 @@ export function ListItemModal({
             )}
           </div>
 
+          <div
+            className={`grid gap-3 ${visibility === 'private' ? 'md:grid-cols-2' : ''}`}
+          >
+            <InkSelect
+              label="交易范围"
+              value={visibility}
+              onChange={(value) => {
+                const nextVisibility = value as ListingVisibility;
+                setVisibility(nextVisibility);
+                if (nextVisibility === 'public') {
+                  setTargetCultivatorId('');
+                }
+                setError('');
+              }}
+            >
+              <option value="public">公开拍卖</option>
+              <option value="private">专属交易</option>
+            </InkSelect>
+            {visibility === 'private' && (
+              <InkSelect
+                label="指定道友"
+                value={targetCultivatorId}
+                onChange={setTargetCultivatorId}
+                disabled={friendsLoading}
+                hint="专属交易上架会消耗拍卖行贵宾符，可在天骄宝阁购买"
+              >
+                <option value="">
+                  {friendsLoading ? '读取好友名录中...' : '选择好友'}
+                </option>
+                {friends.map((friend) => (
+                  <option key={friend.id} value={friend.id}>
+                    {friend.name} · {friend.realm}{friend.realmStage}
+                  </option>
+                ))}
+              </InkSelect>
+            )}
+          </div>
+
           {error && <p className="text-crimson text-sm">{error}</p>}
 
           <div className="text-ink-secondary text-xs">
@@ -1154,6 +1252,7 @@ export function ListItemModal({
             <p>· 寄售后物品将从储物袋中扣除</p>
             <p>· 寄售时限为 48 小时</p>
             <p>· 交易成功后扣除 10% 手续费</p>
+            <p>· 专属交易只向指定好友展示，并额外消耗拍卖行贵宾符，可在天骄宝阁购买</p>
             <p>· 未售出的物品将通过邮件返还</p>
           </div>
         </div>

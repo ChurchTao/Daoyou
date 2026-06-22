@@ -7,6 +7,9 @@ const {
   keysMock,
   sendMailMock,
   setMock,
+  assertFriendMock,
+  consumeFirstTalismanByScenarioMock,
+  getInviteTargetMock,
   updateStatusMock,
 } = vi.hoisted(() => ({
   countActiveBySellerMock: vi.fn(),
@@ -17,6 +20,9 @@ const {
   keysMock: vi.fn(),
   sendMailMock: vi.fn(),
   setMock: vi.fn(),
+  assertFriendMock: vi.fn(),
+  consumeFirstTalismanByScenarioMock: vi.fn(),
+  getInviteTargetMock: vi.fn(),
   updateStatusMock: vi.fn(),
 }));
 
@@ -44,6 +50,24 @@ vi.mock('@server/lib/services/MailService', () => ({
     sendMail: sendMailMock,
     sendSystemMail: sendMailMock,
   },
+}));
+
+vi.mock('@server/lib/services/FriendService', () => ({
+  assertFriend: assertFriendMock,
+  FriendServiceError: class FriendServiceError extends Error {
+    constructor(
+      public readonly status: number,
+      message: string,
+    ) {
+      super(message);
+    }
+  },
+  getInviteTarget: getInviteTargetMock,
+}));
+
+vi.mock('@server/lib/services/TalismanScenarioService', () => ({
+  consumeFirstTalismanByScenario: consumeFirstTalismanByScenarioMock,
+  TalismanScenarioError: class TalismanScenarioError extends Error {},
 }));
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -216,6 +240,19 @@ describe('AuctionService', () => {
     createListingMock.mockResolvedValue({ id: 'listing-1' });
     updateStatusMock.mockResolvedValue(undefined);
     sendMailMock.mockResolvedValue({ id: 'mail-1' });
+    assertFriendMock.mockResolvedValue(undefined);
+    consumeFirstTalismanByScenarioMock.mockResolvedValue(undefined);
+    getInviteTargetMock.mockResolvedValue({
+      isFriend: true,
+      target: {
+        id: 'target-1',
+        name: '南宫婉',
+        title: null,
+        realm: '筑基',
+        realmStage: '初期',
+        status: 'active',
+      },
+    });
   });
 
   it('allows listing pills and preserves their full spec in the auction snapshot', async () => {
@@ -225,6 +262,7 @@ describe('AuctionService', () => {
     getExecutorMock.mockReturnValue(executor);
 
     await listItem({
+      userId: 'user-1',
       cultivatorId: 'cultivator-1',
       cultivatorName: '韩立',
       itemType: 'consumable',
@@ -270,6 +308,7 @@ describe('AuctionService', () => {
 
     await expect(
       listItem({
+        userId: 'user-1',
         cultivatorId: 'cultivator-1',
         cultivatorName: '韩立',
         itemType: 'consumable',
@@ -279,6 +318,48 @@ describe('AuctionService', () => {
       }),
     ).rejects.toThrow('当前仅支持丹药寄售');
     expect(createListingMock).not.toHaveBeenCalled();
+  });
+
+  it('consumes a private listing talisman and stores the target friend snapshot', async () => {
+    const { executor } = createExecutor({
+      consumableRow: createConsumableRow(),
+    });
+    getExecutorMock.mockReturnValue(executor);
+
+    await listItem({
+      userId: 'user-1',
+      cultivatorId: 'cultivator-1',
+      cultivatorName: '韩立',
+      itemType: 'consumable',
+      itemId: 'consumable-1',
+      price: 120,
+      quantity: 1,
+      visibility: 'private',
+      targetCultivatorId: 'target-1',
+    });
+
+    expect(getInviteTargetMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      'target-1',
+      executor,
+    );
+    expect(assertFriendMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      'target-1',
+      executor,
+    );
+    expect(consumeFirstTalismanByScenarioMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      'auction_private_listing',
+      executor,
+    );
+    expect(createListingMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        visibility: 'private',
+        targetCultivatorId: 'target-1',
+        targetCultivatorName: '南宫婉',
+      }),
+    );
   });
 
   it('sends the buyer a consumable attachment whose pill spec matches the sold snapshot', async () => {

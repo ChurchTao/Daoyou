@@ -5,6 +5,7 @@ import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,
 } from '@shared/config/temporaryRestrictions';
+import { AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO } from '@shared/config/socialConfig';
 import { isPillConsumable } from '@shared/lib/consumables';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
@@ -14,6 +15,15 @@ import * as schema from '../drizzle/schema';
 import { MailService } from './MailService';
 import { mapConsumableRow } from './consumablePersistence';
 import { toArtifactFromProduct } from './creationProductArtifactSupport';
+import {
+  assertFriend,
+  FriendServiceError,
+  getInviteTarget,
+} from './FriendService';
+import {
+  consumeFirstTalismanByScenario,
+  TalismanScenarioError,
+} from './TalismanScenarioService';
 
 // ============================================================================
 // Constants
@@ -59,9 +69,16 @@ export const AuctionError = {
   INVALID_ITEM_QUALITY: 'INVALID_ITEM_QUALITY',
   CONSUMABLE_LISTING_DISABLED: 'CONSUMABLE_LISTING_DISABLED',
   SAME_OWNER: 'SAME_OWNER',
+  INVALID_VISIBILITY: 'INVALID_VISIBILITY',
+  TARGET_NOT_FRIEND: 'TARGET_NOT_FRIEND',
+  MISSING_TALISMAN: 'MISSING_TALISMAN',
+  NOT_TARGET_BUYER: 'NOT_TARGET_BUYER',
 } as const;
 
 export type AuctionErrorCode = (typeof AuctionError)[keyof typeof AuctionError];
+
+export type AuctionItemType = 'material' | 'artifact' | 'consumable';
+export type AuctionListingVisibility = 'public' | 'private';
 
 export class AuctionServiceError extends Error {
   constructor(
@@ -78,12 +95,15 @@ export class AuctionServiceError extends Error {
 // ============================================================================
 
 export interface ListItemInput {
+  userId: string;
   cultivatorId: string;
   cultivatorName: string;
-  itemType: 'material' | 'artifact' | 'consumable';
+  itemType: AuctionItemType;
   itemId: string;
   price: number;
   quantity: number;
+  visibility?: AuctionListingVisibility;
+  targetCultivatorId?: string;
 }
 
 export interface ListItemResult {
@@ -123,8 +143,8 @@ async function getArtifactProductSnapshot(
   return rows[0] || null;
 }
 
-async function getItemSnapshot(
-  itemType: 'material' | 'artifact' | 'consumable',
+export async function getAuctionItemSnapshot(
+  itemType: AuctionItemType,
   itemId: string,
   cultivatorId: string,
   executor?: DbExecutor,
@@ -183,8 +203,8 @@ export async function clearAuctionListingsCache(): Promise<void> {
   }
 }
 
-function normalizeItemQuality(
-  itemType: 'material' | 'artifact' | 'consumable',
+export function normalizeAuctionItemQuality(
+  itemType: AuctionItemType,
   item: Material | Artifact | Consumable,
 ): Quality {
   if (itemType === 'material') {
@@ -195,8 +215,58 @@ function normalizeItemQuality(
   return quality in QUALITY_ORDER ? quality : '凡品';
 }
 
-function isAuctionListableQuality(quality: Quality): boolean {
+export function isAuctionListableQuality(quality: Quality): boolean {
   return QUALITY_ORDER[quality] >= QUALITY_ORDER[AUCTION_MIN_QUALITY];
+}
+
+export function assertAuctionListableItem(
+  itemType: AuctionItemType,
+  itemSnapshot: Material | Artifact | Consumable,
+  quantity: number,
+): void {
+  if ((itemSnapshot as Artifact).isEquipped) {
+    throw new AuctionServiceError(
+      AuctionError.INVALID_ITEM_TYPE,
+      '已装备法宝不可寄售，请先卸下',
+    );
+  }
+  if (
+    itemType === 'consumable' &&
+    !isPillConsumable(itemSnapshot as Consumable)
+  ) {
+    throw new AuctionServiceError(
+      AuctionError.INVALID_ITEM_TYPE,
+      '当前仅支持丹药寄售',
+    );
+  }
+
+  const itemQuality = normalizeAuctionItemQuality(itemType, itemSnapshot);
+  if (!isAuctionListableQuality(itemQuality)) {
+    throw new AuctionServiceError(
+      AuctionError.INVALID_ITEM_QUALITY,
+      `仅玄品及以上物品可寄售，当前为${itemQuality}`,
+    );
+  }
+
+  if (itemType === 'artifact' && quantity !== 1) {
+    throw new AuctionServiceError(
+      AuctionError.INVALID_QUANTITY,
+      '法宝每次只能上架 1 件',
+    );
+  }
+
+  const availableQuantity =
+    itemType === 'artifact'
+      ? 1
+      : 'quantity' in itemSnapshot
+        ? itemSnapshot.quantity
+        : 0;
+  if (itemType !== 'artifact' && quantity > availableQuantity) {
+    throw new AuctionServiceError(
+      AuctionError.INVALID_QUANTITY,
+      `上架数量不足，当前仅有 ${availableQuantity}`,
+    );
+  }
 }
 
 // ============================================================================
@@ -211,8 +281,17 @@ export async function listItem(
   options: AuctionMutationOptions = {},
 ): Promise<ListItemResult> {
   const q = getExecutor(options.tx);
-  const { cultivatorId, cultivatorName, itemType, itemId, price, quantity } =
-    input;
+  const {
+    cultivatorId,
+    cultivatorName,
+    itemType,
+    itemId,
+    price,
+    quantity,
+    targetCultivatorId,
+  } = input;
+  const visibility = input.visibility ?? 'public';
+  let targetCultivatorName: string | undefined;
 
   // 1. 校验价格（全局上限）
   if (price < 1) {
@@ -242,6 +321,41 @@ export async function listItem(
       AuctionError.INVALID_ITEM_TYPE,
       '无效的物品类型',
     );
+  }
+
+  if (!['public', 'private'].includes(visibility)) {
+    throw new AuctionServiceError(
+      AuctionError.INVALID_VISIBILITY,
+      '无效的拍卖可见范围',
+    );
+  }
+  if (visibility === 'private') {
+    if (!targetCultivatorId) {
+      throw new AuctionServiceError(
+        AuctionError.INVALID_VISIBILITY,
+        '专属交易必须指定好友',
+      );
+    }
+    try {
+      const target = await getInviteTarget(cultivatorId, targetCultivatorId, q);
+      if (!target.isFriend) {
+        throw new AuctionServiceError(
+          AuctionError.TARGET_NOT_FRIEND,
+          '专属交易只能指定好友名录中的道友',
+        );
+      }
+      targetCultivatorName = target.target.name;
+    } catch (error) {
+      if (error instanceof FriendServiceError) {
+        throw new AuctionServiceError(
+          error.status === 403
+            ? AuctionError.TARGET_NOT_FRIEND
+            : AuctionError.ITEM_NOT_FOUND,
+          error.message,
+        );
+      }
+      throw error;
+    }
   }
 
   if (
@@ -279,39 +393,20 @@ export async function listItem(
     }
 
     // 6. 获取物品快照并校验所有权
-    const artifactProduct =
-      itemType === 'artifact'
-        ? await getArtifactProductSnapshot(itemId, cultivatorId, q)
-        : null;
-    const itemSnapshot = await getItemSnapshot(itemType, itemId, cultivatorId, q);
+    const itemSnapshot = await getAuctionItemSnapshot(
+      itemType,
+      itemId,
+      cultivatorId,
+      q,
+    );
     if (!itemSnapshot) {
       throw new AuctionServiceError(
         AuctionError.ITEM_NOT_FOUND,
         '物品不存在或已消耗',
       );
     }
-    if (artifactProduct?.isEquipped) {
-      throw new AuctionServiceError(
-        AuctionError.INVALID_ITEM_TYPE,
-        '已装备法宝不可寄售，请先卸下',
-      );
-    }
-    if (
-      itemType === 'consumable' &&
-      !isPillConsumable(itemSnapshot as Consumable)
-    ) {
-      throw new AuctionServiceError(
-        AuctionError.INVALID_ITEM_TYPE,
-        '当前仅支持丹药寄售',
-      );
-    }
-    const itemQuality = normalizeItemQuality(itemType, itemSnapshot);
-    if (!isAuctionListableQuality(itemQuality)) {
-      throw new AuctionServiceError(
-        AuctionError.INVALID_ITEM_QUALITY,
-        `仅玄品及以上物品可寄售，当前为${itemQuality}`,
-      );
-    }
+    assertAuctionListableItem(itemType, itemSnapshot, quantity);
+    const itemQuality = normalizeAuctionItemQuality(itemType, itemSnapshot);
 
     // 按品质校验价格上限
     const qualityCap = QUALITY_PRICE_CAPS[itemQuality];
@@ -322,32 +417,13 @@ export async function listItem(
       );
     }
 
-    const availableQuantity =
-      itemType === 'artifact'
-        ? 1
-        : 'quantity' in itemSnapshot
-          ? itemSnapshot.quantity
-          : 0;
-    if (itemType === 'artifact' && quantity !== 1) {
-      throw new AuctionServiceError(
-        AuctionError.INVALID_QUANTITY,
-        '法宝每次只能上架 1 件',
-      );
-    }
-    if (itemType !== 'artifact' && quantity > availableQuantity) {
-      throw new AuctionServiceError(
-        AuctionError.INVALID_QUANTITY,
-        `上架数量不足，当前仅有 ${availableQuantity}`,
-      );
-    }
-
     // 7. 在事务中：扣减/删除物品 + 创建拍卖记录
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + LISTING_DURATION_HOURS);
 
     const persistListing = async (tx: DbTransaction) => {
       // 事务内二次校验并按数量扣减
-      const ownedItem = await getItemSnapshot(
+      const ownedItem = await getAuctionItemSnapshot(
         itemType,
         itemId,
         cultivatorId,
@@ -359,14 +435,37 @@ export async function listItem(
           '物品不存在或已被消耗',
         );
       }
-      if (
-        itemType === 'consumable' &&
-        !isPillConsumable(ownedItem as Consumable)
-      ) {
-        throw new AuctionServiceError(
-          AuctionError.INVALID_ITEM_TYPE,
-          '当前仅支持丹药寄售',
-        );
+      assertAuctionListableItem(itemType, ownedItem, quantity);
+
+      if (visibility === 'private') {
+        if (!targetCultivatorId) {
+          throw new AuctionServiceError(
+            AuctionError.INVALID_VISIBILITY,
+            '专属交易必须指定好友',
+          );
+        }
+        try {
+          await assertFriend(cultivatorId, targetCultivatorId, tx);
+          await consumeFirstTalismanByScenario(
+            cultivatorId,
+            AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO,
+            tx,
+          );
+        } catch (error) {
+          if (error instanceof FriendServiceError) {
+            throw new AuctionServiceError(
+              AuctionError.TARGET_NOT_FRIEND,
+              error.message,
+            );
+          }
+          if (error instanceof TalismanScenarioError) {
+            throw new AuctionServiceError(
+              AuctionError.MISSING_TALISMAN,
+              '缺少拍卖行贵宾符，可前往天骄宝阁购买后再上架专属交易',
+            );
+          }
+          throw error;
+        }
       }
 
       const listingSnapshot =
@@ -470,6 +569,11 @@ export async function listItem(
         itemId,
         itemSnapshot: listingSnapshot,
         price,
+        visibility,
+        targetCultivatorId:
+          visibility === 'private' ? targetCultivatorId : undefined,
+        targetCultivatorName:
+          visibility === 'private' ? targetCultivatorName : undefined,
         expiresAt,
         tx,
       });
@@ -545,6 +649,15 @@ export async function buyItem(
       throw new AuctionServiceError(
         AuctionError.NOT_OWNER,
         '无法购买自己寄售的物品',
+      );
+    }
+    if (
+      listing.visibility === 'private' &&
+      listing.targetCultivatorId !== buyerCultivatorId
+    ) {
+      throw new AuctionServiceError(
+        AuctionError.NOT_TARGET_BUYER,
+        '此物为专属交易，不可购买',
       );
     }
 

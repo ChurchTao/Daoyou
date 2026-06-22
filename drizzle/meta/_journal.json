@@ -15,6 +15,13 @@
       "when": 1782107240879,
       "tag": "0001_motionless_iron_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782118374333,
+      "tag": "0002_puzzling_wildside",
+      "breakpoints": true
     }
   ]
 }

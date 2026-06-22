@@ -52,6 +52,10 @@ import {
   identifyMysteryMaterial,
   MarketServiceError,
 } from '@server/lib/services/MarketService';
+import {
+  PlayerMailServiceError,
+  sendPlayerMail,
+} from '@server/lib/services/PlayerMailService';
 import { PillOperationExecutor } from '@server/lib/services/PillOperationExecutor';
 import {
   QiInsufficientError,
@@ -157,6 +161,18 @@ const IdentifySchema = z.object({
 
 const ClaimMailSchema = z.object({
   mailId: z.string(),
+});
+
+const SendMailSchema = z.object({
+  recipientCultivatorId: z.string().uuid(),
+  content: z.string().trim().min(1).max(1000),
+  attachment: z
+    .object({
+      itemType: z.enum(['material', 'artifact', 'consumable']),
+      itemId: z.string().uuid(),
+      quantity: z.number().int().min(1).default(1),
+    })
+    .optional(),
 });
 
 const ReadMailSchema = z.object({
@@ -2208,6 +2224,67 @@ mailRouter.get('/', requireActiveCultivatorRef(), async (c) => {
       hasMore,
     },
   });
+});
+
+mailRouter.post('/send', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
+  const cultivator = c.get('cultivator');
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
+  }
+
+  try {
+    const parsed = SendMailSchema.parse(await c.req.json());
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'player_mail_send',
+      run: async (tx) => {
+        const result = await sendPlayerMail({
+          senderCultivatorId: cultivator.id,
+          senderName: cultivator.name,
+          recipientCultivatorId: parsed.recipientCultivatorId,
+          content: parsed.content,
+          attachment: parsed.attachment,
+          tx,
+        });
+
+        const changes: StateChangeDescriptor[] = [
+          {
+            domain: 'inventory',
+            eventType: 'inventory.mail.sent',
+            invalidates: ['inventory'],
+          },
+        ];
+        if (parsed.attachment?.itemType === 'artifact') {
+          changes.push({
+            domain: 'products',
+            eventType: 'products.mail.sent',
+            invalidates: ['products'],
+          });
+        }
+
+        return {
+          result: {
+            message: `已向${result.recipientName}发出传音`,
+            attachmentCount: result.attachmentCount,
+          },
+          changes,
+        };
+      },
+    });
+
+    return c.json(toPlayerStateMutationResponse(committed));
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: '参数错误', details: error.issues }, 400);
+    }
+    if (error instanceof PlayerMailServiceError) {
+      return jsonWithStatus(c, { error: error.message }, error.status);
+    }
+    console.error('mail send api error:', error);
+    return c.json({ error: '发送传音失败' }, 500);
+  }
 });
 
 mailRouter.post('/claim', requireActiveCultivator(), async (c) => {

@@ -37,6 +37,8 @@ const ListSchema = z.object({
   itemId: z.string().uuid(),
   price: z.number().int().min(1).max(9_999_999),
   quantity: z.number().int().min(1).default(1),
+  visibility: z.enum(['public', 'private']).default('public'),
+  targetCultivatorId: z.string().uuid().optional(),
 });
 
 const statusMap: Record<string, number> = {
@@ -53,6 +55,10 @@ const statusMap: Record<string, number> = {
   INVALID_ITEM_QUALITY: 400,
   CONSUMABLE_LISTING_DISABLED: 400,
   SAME_OWNER: 403,
+  INVALID_VISIBILITY: 400,
+  TARGET_NOT_FRIEND: 403,
+  MISSING_TALISMAN: 400,
+  NOT_TARGET_BUYER: 403,
 };
 
 function getAuctionErrorStatus(error: AuctionServiceError): number {
@@ -61,7 +67,12 @@ function getAuctionErrorStatus(error: AuctionServiceError): number {
 
 const router = new Hono<AppEnv>();
 
-router.get('/listings', async (c) => {
+router.get('/listings', requireActiveCultivator(), async (c) => {
+  const cultivator = c.get('cultivator');
+  if (!cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
+  }
+
   try {
     const params = ListingsSchema.parse({
       itemType: c.req.query('itemType') || undefined,
@@ -72,7 +83,10 @@ router.get('/listings', async (c) => {
       limit: c.req.query('limit') ? Number(c.req.query('limit')) : undefined,
     });
 
-    const result = await auctionRepository.findActiveListings(params);
+    const result = await auctionRepository.findActiveListings({
+      ...params,
+      viewerCultivatorId: cultivator.id,
+    });
     const page = params.page || 1;
     const limit = params.limit || 20;
     const totalPages = Math.ceil(result.total / limit);
@@ -165,7 +179,8 @@ router.post('/list', requireActiveCultivator(), async (c) => {
   }
 
   try {
-    const { itemType, itemId, price, quantity } = ListSchema.parse(
+    const { itemType, itemId, price, quantity, visibility, targetCultivatorId } =
+      ListSchema.parse(
       await c.req.json(),
     );
 
@@ -176,12 +191,15 @@ router.post('/list', requireActiveCultivator(), async (c) => {
       run: async (tx) => {
         const result = await listItem(
           {
+            userId: user.id,
             cultivatorId: cultivator.id,
             cultivatorName: cultivator.name,
             itemType,
             itemId,
             price,
             quantity,
+            visibility,
+            targetCultivatorId,
           },
           { tx, deferCacheClear: true },
         );

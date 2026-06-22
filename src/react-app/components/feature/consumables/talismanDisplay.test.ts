@@ -1,6 +1,12 @@
+import {
+  AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO,
+  FRIEND_MAIL_TALISMAN_SCENARIO,
+} from '@shared/config/socialConfig';
 import type { Consumable } from '@shared/types/cultivator';
 import {
   buildTalismanDetailText,
+  getTalismanActionHref,
+  getTalismanActionLabel,
   getTalismanUsageHint,
   isQiRestoreTalisman,
 } from './talismanDisplay';
@@ -46,5 +52,31 @@ describe('talisman display helpers', () => {
     );
     expect(buildTalismanDetailText(item)).not.toContain('qi_restore_medium');
     expect(buildTalismanDetailText(item)).not.toContain('consume_on_action');
+  });
+
+  it('routes friend mail talismans to the mail scene with a purchase hint', () => {
+    const item = talisman(FRIEND_MAIL_TALISMAN_SCENARIO);
+
+    expect(getTalismanActionHref(item)).toBe('/game/mail');
+    expect(getTalismanActionLabel(item)).toBe('去传音');
+    expect(getTalismanUsageHint(item)).toContain('传音玉简');
+    expect(getTalismanUsageHint(item)).toContain('天骄宝阁');
+    expect(buildTalismanDetailText(item)).toContain('传音玉简·好友传音');
+    expect(buildTalismanDetailText(item)).not.toContain(
+      FRIEND_MAIL_TALISMAN_SCENARIO,
+    );
+  });
+
+  it('routes private auction talismans to the auction scene with a purchase hint', () => {
+    const item = talisman(AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO);
+
+    expect(getTalismanActionHref(item)).toBe('/game/auction');
+    expect(getTalismanActionLabel(item)).toBe('去上架');
+    expect(getTalismanUsageHint(item)).toContain('拍卖行');
+    expect(getTalismanUsageHint(item)).toContain('天骄宝阁');
+    expect(buildTalismanDetailText(item)).toContain('拍卖行·专属交易');
+    expect(buildTalismanDetailText(item)).not.toContain(
+      AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO,
+    );
   });
 });

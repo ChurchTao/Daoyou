@@ -41,6 +41,9 @@ type AuctionListing = {
   itemId: string;
   itemSnapshot: Material | Artifact | Consumable;
   price: number;
+  visibility?: 'public' | 'private';
+  targetCultivatorId?: string | null;
+  targetCultivatorName?: string | null;
   status: string;
   createdAt: string;
   expiresAt: string;
@@ -335,6 +338,14 @@ export default function AuctionPage() {
               {listing.sellerId === cultivator?.id ? ' (我)' : ''}
             </span>
             <span>数量: x{listedQuantity}</span>
+            {listing.visibility === 'private' && (
+              <span className="text-crimson">
+                专属：
+                {listing.targetCultivatorId === cultivator?.id
+                  ? '指定给我'
+                  : listing.targetCultivatorName || '指定道友'}
+              </span>
+            )}
             <span className="text-gold text-sm font-semibold">
               {SPIRIT_STONES_INFO.icon} {listing.price}{' '}
               {SPIRIT_STONES_INFO.label}

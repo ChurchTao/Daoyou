@@ -511,6 +511,28 @@ export const mails = pgTable(
   ],
 );
 
+// 好友名录：双向好友会写入两条记录，便于按当前角色快速查询
+export const cultivatorFriends = pgTable(
+  'wanjiedaoyou_cultivator_friends',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    friendCultivatorId: uuid('friend_cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('cultivator_friends_pair_uidx').on(
+      table.cultivatorId,
+      table.friendCultivatorId,
+    ),
+    index('cultivator_friends_friend_idx').on(table.friendCultivatorId),
+  ],
+);
+
 // 兑换码表
 export const redeemCodes = pgTable(
   'wanjiedaoyou_redeem_codes',
@@ -824,6 +846,12 @@ export const auctionListings = pgTable(
     // 价格与状态
     price: integer('price').notNull(), // 一口价（灵石）
     status: varchar('status', { length: 20 }).notNull().default('active'), // active | sold | expired | cancelled
+    visibility: varchar('visibility', { length: 20 }).notNull().default('public'), // public | private
+    targetCultivatorId: uuid('target_cultivator_id').references(
+      () => cultivators.id,
+      { onDelete: 'set null' },
+    ),
+    targetCultivatorName: varchar('target_cultivator_name', { length: 100 }),
 
     // 时间戳
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -850,6 +878,11 @@ export const auctionListings = pgTable(
       table.status,
       table.expiresAt,
       table.itemType,
+    ),
+    index('auction_visibility_target_status_idx').on(
+      table.visibility,
+      table.targetCultivatorId,
+      table.status,
     ),
   ],
 );

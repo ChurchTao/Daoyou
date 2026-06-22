@@ -9,7 +9,7 @@ import {
   qiLogs,
   reputationShopPurchases,
 } from '@server/lib/drizzle/schema';
-import { and, inArray, lt, ne } from 'drizzle-orm';
+import { and, inArray, lt, ne, sql } from 'drizzle-orm';
 
 export type ExpiredDataCleanupCutoffs = {
   mails: Date;
@@ -46,7 +46,12 @@ export async function pruneExpiredData(
   const mailsDeleted = await deleteExpiredRows(q, (executor) =>
     executor
       .delete(mails)
-      .where(lt(mails.createdAt, cutoffs.mails))
+      .where(
+        and(
+          lt(mails.createdAt, cutoffs.mails),
+          sql`(${mails.isClaimed} = true OR ${mails.attachments} IS NULL OR jsonb_typeof(${mails.attachments}) <> 'array' OR jsonb_array_length(${mails.attachments}) = 0)`,
+        ),
+      )
       .returning({ id: mails.id }),
   );
 

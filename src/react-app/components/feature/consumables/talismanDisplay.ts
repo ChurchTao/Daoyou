@@ -2,6 +2,10 @@ import {
   QI_RESTORE_TALISMAN_SCENARIOS,
   isQiRestoreTalismanScenario,
 } from '@shared/config/qiSystem';
+import {
+  AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO,
+  FRIEND_MAIL_TALISMAN_SCENARIO,
+} from '@shared/config/socialConfig';
 import { isTalismanConsumable } from '@shared/lib/consumables';
 import type { Consumable } from '@shared/types/cultivator';
 import { buildManualDrawHref } from '@shared/types/manualDraw';
@@ -10,24 +14,34 @@ const TALISMAN_SCENARIO_LABELS: Record<string, string> = {
   fate_reshape: '命格重塑',
   draw_gongfa: '问法寻卷·功法抽取',
   draw_skill: '问法寻卷·神通抽取',
+  [FRIEND_MAIL_TALISMAN_SCENARIO]: '传音玉简·好友传音',
+  [AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO]: '拍卖行·专属交易',
 };
 
 const TALISMAN_SCENARIO_HREFS: Record<string, string> = {
   fate_reshape: '/game/fate-reshape',
   draw_gongfa: buildManualDrawHref('gongfa'),
   draw_skill: buildManualDrawHref('skill'),
+  [FRIEND_MAIL_TALISMAN_SCENARIO]: '/game/mail',
+  [AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO]: '/game/auction',
 };
 
 const TALISMAN_SCENARIO_ACTION_LABELS: Record<string, string> = {
   fate_reshape: '前往重塑',
   draw_gongfa: '抽功法秘籍',
   draw_skill: '抽神通秘籍',
+  [FRIEND_MAIL_TALISMAN_SCENARIO]: '去传音',
+  [AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO]: '去上架',
 };
 
 const TALISMAN_USAGE_HINTS: Record<string, string> = {
   fate_reshape: '【前往命格重塑功能页启封，开启时立即扣除】',
   draw_gongfa: '【前往问法寻卷，直接消耗符箓抽取功法秘籍】',
   draw_skill: '【前往问法寻卷，直接消耗符箓抽取神通秘籍】',
+  [FRIEND_MAIL_TALISMAN_SCENARIO]:
+    '【前往传音玉简，给好友发送传音时消耗；不足时可去天骄宝阁购买】',
+  [AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO]:
+    '【前往拍卖行，上架专属交易时消耗；不足时可去天骄宝阁购买】',
 };
 
 function getQiRestoreEffectText(scenario: string): string | null {
