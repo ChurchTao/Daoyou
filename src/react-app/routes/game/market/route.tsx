@@ -539,7 +539,7 @@ export default function MarketPage() {
         ) : isRefreshingMarket ? (
           <InkNotice>坊市掌柜正在盘货，请稍候片刻再来。</InkNotice>
         ) : (
-          <InkNotice>今日货物已售罄，请稍后再来。</InkNotice>
+          <InkNotice>当前层级暂无货物，请等待下次刷新。</InkNotice>
         )}
       </div>
       <InkDialog

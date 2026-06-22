@@ -3,6 +3,7 @@ import {
   runBetBattleExpireJob,
   runExpiredDataCleanupJob,
   runMarketRefreshCronJob,
+  runMaterialLibraryDailyGenerationJob,
   runPlayerStateEventsCleanupJob,
   runRankRewardsJob,
   runTowerEnemySetRefreshJob,
@@ -85,6 +86,10 @@ router.get('/player-state-events-cleanup', (c) =>
 
 router.get('/expired-data-cleanup', (c) =>
   handleCronRequest(c.req.raw, runExpiredDataCleanupJob),
+);
+
+router.get('/material-library-daily-generation', (c) =>
+  handleCronRequest(c.req.raw, runMaterialLibraryDailyGenerationJob),
 );
 
 export default router;

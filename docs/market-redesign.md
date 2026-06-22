@@ -41,66 +41,39 @@ market:v2:buy:lock:{userId}:{nodeId}:{layer}
 
 ### 一、分层生成策略
 
-不同层级采用不同的生成方式和刷新节奏：
+当前市场刷新统一优先从持久材料库 `wanjiedaoyou_item_library` 抽样，不在刷新期触发 LLM。低层市场保留预设材料池作为材料库未初始化时的兜底，高层市场必须依赖材料库。
 
 | 层级 | 生成方式 | 刷新周期 | 商品数量 | 理由 |
 |------|---------|---------|---------|------|
-| 凡市 (common) | 预设材料池 | 15 分钟 | 10 | 高频低价，预设池足够，快速刷新保持新鲜感 |
-| 珍宝阁 (treasure) | 预设材料池 | 15 分钟 | 10 | 同上 |
-| 天宝殿 (heaven) | LLM 生成 | 2 小时 | 10 | 高价值商品需要独特名称描述，慢节奏增加稀缺感 |
-| 黑市 (black) | LLM 生成 | 2 小时 | 10 | 神秘物品需要 LLM 生成真实属性（mysteryPayload） |
+| 凡市 (common) | 材料库抽样，不足时预设兜底 | 15 分钟 | 10 | 低层市场允许未初始化材料库时继续供货 |
+| 珍宝阁 (treasure) | 材料库抽样，不足时预设兜底 | 15 分钟 | 10 | 同上，并保留炼体突破材料兜底 |
+| 天宝殿 (heaven) | 材料库抽样 | 2 小时 | 10 | 高价值商品必须来自预生产材料库；无候选则空货架并 warning |
+| 黑市 (black) | 材料库抽样 + 神秘遮罩 | 2 小时 | 10 | 购买时绑定隐藏结果；无候选则空货架并 warning |
 
-#### 1.1 预设池生成（凡市 / 珍宝阁）
+#### 1.1 材料库抽样
 
-从扩充后的 `MARKET_PRESET_POOL` 中随机抽取，流程：
-
-```typescript
-function generateFromPresets(
-  layer: 'common' | 'treasure',
-  regionProfile: RegionProfile,
-  count: number = 10,
-): MarketListing[] {
-  const rankRange = resolveLayerConfig(layer, regionProfile).rankRange;
-  const listings: MarketListing[] = [];
-
-  for (let i = 0; i < count; i++) {
-    // 1. 按 typeWeights 加权选取材料类型
-    const type = weightedPick(MATERIAL_TYPES, regionProfile.typeWeights);
-    // 2. 按 rankRange 加权选取品质
-    const rank = rollQuality(rankRange);
-    // 3. 从预设池中随机选取一个（池已扩充至 6 个/槽位）
-    const pool = MARKET_PRESET_POOL[type][rank];
-    const preset = pool[Math.floor(Math.random() * pool.length)];
-    // 4. 计算价格（基础价 × 类型倍率 × 地域修正 × 随机波动）
-    const price = computePrice(rank, type, regionProfile.priceModifier);
-    // 5. 生成 listing
-    listings.push({ id: crypto.randomUUID(), name: preset.name, ... });
-  }
-  return listings;
-}
-```
-
-#### 1.2 LLM 生成（天宝殿 / 黑市）
-
-沿用现有 `MaterialGenerator.generateRandom`，通过 AI 调用生成独特名称和描述。黑市额外应用 `applyMysteryLayer`。
+市场层先按地域权重和层级品质范围滚出具体 `materialType + quality`，再通过 `sampleKey >= random()` 从材料库索引范围抽样，不使用 `ORDER BY random()`，也不把全量材料加载进内存。
 
 ```typescript
-function generateFromLLM(
-  layer: 'heaven' | 'black',
+async function generateFromMaterialLibrary(
+  layer: MarketLayer,
   regionProfile: RegionProfile,
-  nodeId: string,
-  count: number = 10,
+  count: number,
 ): Promise<MarketListing[]> {
-  const layerConfig = resolveLayerConfig(layer, regionProfile);
-  const regionTags = getNodeRegionTags(nodeId);
-  return MaterialGenerator.generateRandom(count, {
-    rankRange: layerConfig.rankRange,
-    regionTags,
-    allowMystery: layer === 'black',
-    mysteryChance: layerConfig.mysteryChance,
-  });
+  const rankRange = resolveLayerConfig(layer, regionProfile).rankRange;
+  const requests = groupByMaterialTypeAndQuality(count, regionProfile, rankRange);
+  const sampled = await sampleMaterialLibraryEntries(requests);
+  return sampled.map(buildListingFromLibraryMaterial);
 }
 ```
+
+#### 1.2 低层预设兜底（凡市 / 珍宝阁）
+
+`common` / `treasure` 在材料库未配置或候选不足时，可以从 `MARKET_PRESET_POOL` 补足货架。这是低层市场的临时兜底，不作为高层市场的第二套生成逻辑。
+
+#### 1.3 高层材料库必需（天宝殿 / 黑市）
+
+`heaven` / `black` 不再调用 LLM，也不使用预设池兜底。材料库没有候选时，本轮返回空货架并写接口 warning，提醒开发者或运营先初始化道具库。
 
 ---
 
@@ -345,8 +318,9 @@ MARKET_LAYER_CONFIG[layer]（全局默认）
 MarketScheduler 每 10 秒检查
   → 遍历所有已启用坊市节点 × 4 层
   → 若距刷新 < 30 秒 且 下周期缓存不存在
-    → common/treasure: generateFromPresets()
-    → heaven/black: generateFromLLM()
+    → 所有层：先从 item_library 材料库抽样
+    → common/treasure: 不足时 generateFromPresets() 兜底
+    → heaven/black: 不足时写 warning，返回空缺货架，不触发 LLM
   → 写入 Redis market:v2:listings:{nodeId}:{layer}:{nextCycle}
 ```
 
@@ -359,7 +333,7 @@ MarketScheduler 每 10 秒检查
 | `shared/types/market.ts` | 新增 `RegionProfile` 类型 |
 | `shared/lib/game/marketConfig.ts` | 新增 `REGION_PROFILES`；新增 `resolveLayerConfig()`；新增 `getRefreshInterval()`；新增 `getEnabledMarketNodeIds()` |
 | `shared/engine/material/creation/marketPresets.ts` | **新增**：坊市专用预设材料池（7 类型 × 5 品质 × 6 预设） |
-| `server/lib/services/MarketService.ts` | 重写核心：共享缓存 + bought 集合；拆分 `generateFromPresets` 和 `generateFromLLM` |
+| `server/lib/services/MarketService.ts` | 共享缓存 + bought 集合；统一材料库抽样；低层预设兜底；高层空货架 warning |
 | `server/lib/services/MarketScheduler.ts` | **新增**：定时预生成调度器 |
 | `server/lib/services/MarketRecycleService.ts` | 基本不变 |
 | `server/routes/api/market.router.ts` | `getMarketListings` 传入 `userId`；移除 POST 手动刷新接口（改为定时） |
@@ -372,8 +346,8 @@ MarketScheduler 每 10 秒检查
 
 **无限库存 vs 限量**：本方案采用"无限库存 + 每人限购一次"模式。如果后续希望对某些稀有商品做全服限量（如天宝殿的神品只供应 3 份），可以在 listing 上加 `globalStock` 字段，用 Redis DECR 实现全服库存扣减，与个人购买记录并行。
 
-**预设池扩展性**：当前 6 个预设/槽位，10 个商品的凡市从中抽取，重复率约 30%。后续可按需扩充到 10~15 个/槽位进一步降低重复感。
+**预设池边界**：预设池只作为 common / treasure 的低层兜底。heaven / black 缺材料时不降级到预设池，避免高层市场维护第二套生成逻辑。
 
-**LLM 成本控制**：天宝殿和黑市仍使用 LLM 生成，每 2 小时 × 5 节点 × 2 层 = 每小时 5 次 LLM 调用，开销可控。
+**LLM 成本控制**：市场刷新期不再调用 LLM。LLM 只用于 admin 批量生成材料库；生成结果持久化后可被后续市场刷新和黑市鉴定复用。
 
 **拍卖行互补**：坊市定位为"日常采购 + 地域特色探索"，拍卖行承接"玩家间稀缺品流通"。

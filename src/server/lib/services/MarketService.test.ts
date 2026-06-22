@@ -7,7 +7,11 @@ const {
   getMarketConfigByNodeIdMock,
   getRegionFlavorMock,
   getRefreshIntervalMock,
+  materialLibraryEntryToMaterialMock,
   isMarketNodeEnabledMock,
+  qiCommitReservationMock,
+  qiGetCostMock,
+  qiReserveQiMock,
   redisDelMock,
   redisExpireMock,
   redisExistsMock,
@@ -17,6 +21,8 @@ const {
   redisSismemberMock,
   redisSmembersMock,
   resolveLayerConfigMock,
+  sampleMaterialForRangeMock,
+  sampleMaterialLibraryEntriesMock,
   validateLayerAccessMock,
 } = vi.hoisted(() => ({
   createMessageMock: vi.fn(),
@@ -36,7 +42,26 @@ const {
     description: '测试描述',
   })),
   getRefreshIntervalMock: vi.fn(() => 900_000),
+  materialLibraryEntryToMaterialMock: vi.fn((entry: any) => ({
+    name: entry.payload.name,
+    type: entry.payload.type,
+    rank: entry.payload.rank,
+    element: entry.payload.element,
+    description: entry.payload.description,
+    details: {},
+    quantity: 1,
+  })),
   isMarketNodeEnabledMock: vi.fn(() => true),
+  qiCommitReservationMock: vi.fn(),
+  qiGetCostMock: vi.fn(() => 1),
+  qiReserveQiMock: vi.fn(() => ({
+    success: true,
+    action: 'market_identify',
+    actionInstanceId: 'market-identify:mystery-1',
+    qiBefore: 200,
+    qiAfter: 199,
+    consumed: 1,
+  })),
   redisDelMock: vi.fn(),
   redisExpireMock: vi.fn(),
   redisExistsMock: vi.fn(),
@@ -52,6 +77,8 @@ const {
       : { min: '凡品', max: '玄品' },
     access: {},
   })),
+  sampleMaterialForRangeMock: vi.fn(),
+  sampleMaterialLibraryEntriesMock: vi.fn(),
   validateLayerAccessMock: vi.fn(() => ({ allowed: true })),
 }));
 
@@ -79,6 +106,20 @@ vi.mock('@server/lib/repositories/worldChatRepository', () => ({
 vi.mock('@shared/engine/material/creation/MaterialGenerator', () => ({
   MaterialGenerator: {
     generateRandom: generateRandomMock,
+  },
+}));
+
+vi.mock('./MaterialLibraryService', () => ({
+  materialLibraryEntryToMaterial: materialLibraryEntryToMaterialMock,
+  sampleMaterialForRange: sampleMaterialForRangeMock,
+  sampleMaterialLibraryEntries: sampleMaterialLibraryEntriesMock,
+}));
+
+vi.mock('./QiService', () => ({
+  QiService: {
+    getCost: qiGetCostMock,
+    reserveQi: qiReserveQiMock,
+    commitReservation: qiCommitReservationMock,
   },
 }));
 
@@ -201,6 +242,16 @@ describe('MarketService', () => {
     getExecutorMock.mockImplementation(() => ({
       transaction: vi.fn(),
     }));
+    materialLibraryEntryToMaterialMock.mockClear();
+    materialLibraryEntryToMaterialMock.mockImplementation((entry: any) => ({
+      name: entry.payload.name,
+      type: entry.payload.type,
+      rank: entry.payload.rank,
+      element: entry.payload.element,
+      description: entry.payload.description,
+      details: {},
+      quantity: 1,
+    }));
     getMarketConfigByNodeIdMock.mockClear();
     getRegionFlavorMock.mockClear();
     getRefreshIntervalMock.mockClear();
@@ -213,7 +264,55 @@ describe('MarketService', () => {
     redisSetMock.mockReset();
     redisSismemberMock.mockReset();
     redisSmembersMock.mockReset();
+    qiCommitReservationMock.mockReset();
+    qiGetCostMock.mockReset();
+    qiGetCostMock.mockReturnValue(1);
+    qiReserveQiMock.mockReset();
+    qiReserveQiMock.mockResolvedValue({
+      success: true,
+      action: 'market_identify',
+      actionInstanceId: 'market-identify:mystery-1',
+      qiBefore: 200,
+      qiAfter: 199,
+      consumed: 1,
+    });
     resolveLayerConfigMock.mockClear();
+    sampleMaterialForRangeMock.mockReset();
+    sampleMaterialLibraryEntriesMock.mockReset();
+    sampleMaterialLibraryEntriesMock.mockResolvedValue(
+      new Map([
+        [
+          'herb:灵品',
+          [
+            {
+              itemId: 'mat-herb-ling',
+              payload: {
+                name: '九叶金芝',
+                type: 'herb',
+                rank: '天品',
+                element: '木',
+                description: '真实高阶灵草。',
+              },
+            },
+          ],
+        ],
+        [
+          'aux:玄品',
+          [
+            {
+              itemId: 'mat-aux-xuan',
+              payload: {
+                name: '玄雷辅液',
+                type: 'aux',
+                rank: '玄品',
+                element: '雷',
+                description: '炼体辅料。',
+              },
+            },
+          ],
+        ],
+      ]),
+    );
     validateLayerAccessMock.mockClear();
   });
 
@@ -324,17 +423,30 @@ describe('MarketService', () => {
     redisGetMock.mockResolvedValueOnce(null);
     redisSetMock.mockResolvedValue('OK');
     redisSmembersMock.mockResolvedValueOnce([]);
-    generateRandomMock.mockResolvedValueOnce([
-      {
-        name: '九叶金芝',
-        type: 'herb',
-        rank: '天品',
-        element: '木',
-        description: '真实高阶灵草。',
-        quantity: 1,
-        price: 50000,
-      },
-    ]);
+    resolveLayerConfigMock.mockReturnValueOnce({
+      count: 1,
+      rankRange: { min: '天品', max: '天品' },
+      access: {},
+    });
+    sampleMaterialLibraryEntriesMock.mockResolvedValueOnce(
+      new Map([
+        [
+          'herb:天品',
+          [
+            {
+              itemId: 'mat-herb-tian',
+              payload: {
+                name: '九叶金芝',
+                type: 'herb',
+                rank: '天品',
+                element: '木',
+                description: '真实高阶灵草。',
+              },
+            },
+          ],
+        ],
+      ]),
+    );
 
     try {
       const result = await getMarketListings({
@@ -355,13 +467,119 @@ describe('MarketService', () => {
       const cached = JSON.parse(cacheSetCall![1] as string);
       expect(cached.listings[0].mysteryContext).toMatchObject({
         type: 'herb',
-        rankRange: { min: '灵品', max: '天品' },
+        rankRange: { min: '天品', max: '天品' },
         anchorPrice: 5000,
         nodeId: 'node-1',
         layer: 'black',
       });
       expect(cached.listings[0]).not.toHaveProperty('mysteryPayload');
       expect(cached.listings[0].mysteryContext).not.toHaveProperty('material');
+      expect(generateRandomMock).not.toHaveBeenCalled();
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
+  it('uses preset fallback for low-layer shelves when the material library is empty', async () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    redisGetMock.mockResolvedValueOnce(null);
+    redisSetMock.mockResolvedValue('OK');
+    redisSmembersMock.mockResolvedValueOnce([]);
+    sampleMaterialLibraryEntriesMock.mockResolvedValueOnce(new Map());
+    resolveLayerConfigMock.mockReturnValueOnce({
+      count: 1,
+      rankRange: { min: '凡品', max: '凡品' },
+      access: {},
+    });
+
+    try {
+      const result = await getMarketListings({
+        nodeId: 'node-1',
+        layer: 'common',
+        userId: 'user-1',
+        cultivatorRealm: '炼气',
+      });
+
+      expect(result.listings).toHaveLength(1);
+      expect(result.listings[0]).toMatchObject({
+        layer: 'common',
+        type: 'herb',
+        rank: '凡品',
+        quantity: 1,
+      });
+      expect(generateRandomMock).not.toHaveBeenCalled();
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
+  it('returns an empty high-layer shelf and warns when the material library is empty', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    redisGetMock.mockResolvedValueOnce(null);
+    redisSetMock.mockResolvedValue('OK');
+    redisSmembersMock.mockResolvedValueOnce([]);
+    sampleMaterialLibraryEntriesMock.mockResolvedValueOnce(new Map());
+    resolveLayerConfigMock.mockReturnValueOnce({
+      count: 1,
+      rankRange: { min: '天品', max: '天品' },
+      access: {},
+    });
+
+    try {
+      const result = await getMarketListings({
+        nodeId: 'node-1',
+        layer: 'heaven',
+        userId: 'user-1',
+        cultivatorRealm: '化神',
+      });
+
+      expect(result.listings).toEqual([]);
+      expect(result.nextRefresh).toBe(9999);
+      expect(generateRandomMock).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('未配置道具库或材料候选不足 node-1:heaven'),
+      );
+
+      const cacheSetCall = redisSetMock.mock.calls.find(
+        ([key]) => key === 'market:v2:listings:node-1:heaven:7',
+      );
+      expect(cacheSetCall).toBeTruthy();
+      const cached = JSON.parse(cacheSetCall![1] as string);
+      expect(cached.listings).toEqual([]);
+    } finally {
+      warnSpy.mockRestore();
+      randomSpy.mockRestore();
+    }
+  });
+
+  it('does not inject deterministic body-cultivation materials into treasure preset shelves', async () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    redisGetMock.mockResolvedValueOnce(null);
+    redisSetMock.mockResolvedValue('OK');
+    redisSmembersMock.mockResolvedValueOnce([]);
+    resolveLayerConfigMock.mockReturnValueOnce({
+      count: 1,
+      rankRange: { min: '玄品', max: '玄品' },
+      access: {},
+    });
+
+    try {
+      const result = await getMarketListings({
+        nodeId: 'node-1',
+        layer: 'treasure',
+        userId: 'user-1',
+        cultivatorRealm: '筑基',
+      });
+
+      expect(result.listings).toEqual([
+        expect.objectContaining({
+          rank: '玄品',
+          quantity: 1,
+        }),
+      ]);
+      expect(result.listings[0]?.name).not.toBe('铜皮破限液');
+      expect(generateRandomMock).not.toHaveBeenCalled();
     } finally {
       randomSpy.mockRestore();
     }
@@ -398,6 +616,16 @@ describe('MarketService', () => {
               regionTags: ['tiannan'],
               createdAt: 123,
             },
+            mysteryReveal: {
+              name: '新随机灵草',
+              type: 'herb',
+              rank: '玄品',
+              element: '木',
+              description: '购买时已绑定。',
+              details: {},
+              quantity: 1,
+              boundAt: '2026-06-22T00:00:00.000Z',
+            },
           },
         ],
         generatedAt: 123,
@@ -426,6 +654,10 @@ describe('MarketService', () => {
             layer: 'black',
             regionTags: ['tiannan'],
             anchorPrice: 88,
+          }),
+          __serverHiddenMysteryReveal: expect.objectContaining({
+            name: '新随机灵草',
+            rank: '玄品',
           }),
         },
       }),
@@ -481,30 +713,40 @@ describe('MarketService', () => {
         },
       }),
     );
-    generateRandomMock.mockResolvedValueOnce([
+    sampleMaterialForRangeMock.mockResolvedValueOnce({
+      itemId: 'mat-herb-xuan',
+      payload: {
+        name: '新随机灵草',
+        type: 'herb',
+        rank: '玄品',
+        element: '木',
+        description: '鉴定时从材料库抽取。',
+      },
+    });
+    materialLibraryEntryToMaterialMock.mockReturnValueOnce(
       {
         name: '新随机灵草',
         type: 'herb',
         rank: '玄品',
         element: '木',
-        description: '鉴定时重新生成。',
+        description: '鉴定时从材料库抽取。',
+        details: {},
         quantity: 1,
-        price: 1000,
       },
-    ]);
+    );
 
     const result = await identifyMysteryMaterial({
       materialId: 'material-1',
       cultivatorId: 'cultivator-1',
     });
 
-    expect(generateRandomMock).toHaveBeenCalledWith(
-      1,
+    expect(sampleMaterialForRangeMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        specifiedType: 'herb',
+        materialType: 'herb',
         rankRange: { min: '凡品', max: '玄品' },
       }),
     );
+    expect(generateRandomMock).not.toHaveBeenCalled();
     expect(result.revealedItem).toMatchObject({
       id: 'revealed-1',
       name: '新随机灵草',
@@ -545,29 +787,28 @@ describe('MarketService', () => {
     };
     getExecutorMock.mockImplementation(() => createIdentifyExecutor(state) as any);
     redisSetMock.mockResolvedValue('OK');
-    generateRandomMock
-      .mockResolvedValueOnce([
-        {
-          name: '新随机灵草甲',
-          type: 'herb',
-          rank: '灵品',
-          element: '木',
-          description: '第一次鉴定。',
-          quantity: 1,
-          price: 300,
-        },
-      ])
-      .mockResolvedValueOnce([
-        {
-          name: '新随机灵草乙',
-          type: 'herb',
-          rank: '玄品',
-          element: '木',
-          description: '第二次鉴定。',
-          quantity: 1,
-          price: 1000,
-        },
-      ]);
+    sampleMaterialForRangeMock
+      .mockResolvedValueOnce({ itemId: 'mat-a', payload: {} })
+      .mockResolvedValueOnce({ itemId: 'mat-b', payload: {} });
+    materialLibraryEntryToMaterialMock
+      .mockReturnValueOnce({
+        name: '新随机灵草甲',
+        type: 'herb',
+        rank: '灵品',
+        element: '木',
+        description: '第一次鉴定。',
+        details: {},
+        quantity: 1,
+      })
+      .mockReturnValueOnce({
+        name: '新随机灵草乙',
+        type: 'herb',
+        rank: '玄品',
+        element: '木',
+        description: '第二次鉴定。',
+        details: {},
+        quantity: 1,
+      });
 
     const first = await identifyMysteryMaterial({
       materialId: 'material-1',
@@ -591,6 +832,7 @@ describe('MarketService', () => {
 
     expect(first.revealedItem.name).toBe('新随机灵草甲');
     expect(second.revealedItem.name).toBe('新随机灵草乙');
-    expect(generateRandomMock).toHaveBeenCalledTimes(2);
+    expect(sampleMaterialForRangeMock).toHaveBeenCalledTimes(2);
+    expect(generateRandomMock).not.toHaveBeenCalled();
   });
 });

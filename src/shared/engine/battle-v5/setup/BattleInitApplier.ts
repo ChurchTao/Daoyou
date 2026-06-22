@@ -1,4 +1,5 @@
 import type { Cultivator } from '@shared/types/cultivator';
+import { getBodyCultivationBattleInitHooks } from '@shared/lib/bodyCultivation/effects';
 import { DefaultAbilitySelectionStrategy } from '../abilities/AbilitySelectionStrategy';
 import { createCombatUnitFromCultivator } from '../adapters/CultivatorCombatAdapter';
 import type { AttributeModifierConfig } from '../core/configs';
@@ -66,6 +67,16 @@ function resolveCurrentResource(
   return Math.max(0, Math.floor(maxValue * resource.value));
 }
 
+function resolveShieldResource(
+  shield: number | ResourcePointState | undefined,
+  maxHp: number,
+): number | undefined {
+  if (typeof shield === 'number') {
+    return Math.max(0, Math.floor(shield));
+  }
+  return resolveCurrentResource(shield, maxHp);
+}
+
 function applyStartingBuffs(
   unit: Unit,
   counterpart: Unit,
@@ -93,12 +104,10 @@ function applyStatusRefs(
   unit: Unit,
   counterpart: Unit,
   statusRefs: PersistentCombatStatusV5[] | undefined,
-): { hp?: ResourcePointState; mp?: ResourcePointState; shield?: number } | undefined {
+): BattleUnitInitSpec['resourceState'] | undefined {
   if (!statusRefs?.length) return undefined;
 
-  let deferredResourceState:
-    | { hp?: ResourcePointState; mp?: ResourcePointState; shield?: number }
-    | undefined;
+  let deferredResourceState: BattleUnitInitSpec['resourceState'] | undefined;
 
   for (const status of statusRefs) {
     const template = getCombatStatusTemplate(status.templateId);
@@ -141,9 +150,48 @@ function applyResourceState(
     unit.setMp(resolvedMp);
   }
 
-  if (typeof resourceState.shield === 'number' && Number.isFinite(resourceState.shield)) {
-    unit.setShield(resourceState.shield);
+  const resolvedShield = resolveShieldResource(resourceState.shield, unit.getMaxHp());
+  if (typeof resolvedShield === 'number') {
+    unit.setShield(resolvedShield);
   }
+}
+
+function mergeBodyCultivationInit(
+  spec: BattleUnitInitSpec | undefined,
+  cultivator: Cultivator,
+): BattleUnitInitSpec | undefined {
+  const hooks = getBodyCultivationBattleInitHooks(cultivator.condition);
+  const existingBuffIds = new Set(
+    spec?.startingBuffs?.map((entry) => entry.buff.id) ?? [],
+  );
+  const bodyStartingBuffs = hooks.startingBuffs
+    .filter((buff) => !existingBuffIds.has(buff.id))
+    .map((buff) => ({
+      buff,
+      source: 'self' as const,
+    }));
+  const bodyShield =
+    spec?.resourceState?.shield === undefined && hooks.startingShieldPercent > 0
+      ? ({ mode: 'percent', value: hooks.startingShieldPercent } as const)
+      : undefined;
+
+  if (!bodyStartingBuffs.length && !bodyShield) {
+    return spec;
+  }
+
+  return {
+    ...spec,
+    resourceState: bodyShield
+      ? {
+          ...spec?.resourceState,
+          shield: bodyShield,
+        }
+      : spec?.resourceState,
+    startingBuffs: [
+      ...(spec?.startingBuffs ?? []),
+      ...bodyStartingBuffs,
+    ],
+  };
 }
 
 function applyUnitInit(
@@ -176,9 +224,14 @@ export function createBattleUnitsWithInit(
 ): { playerUnit: Unit; opponentUnit: Unit } {
   const playerUnit = createCombatUnitFromCultivator(player);
   const opponentUnit = createCombatUnitFromCultivator(opponent);
+  const mergedConfig: BattleInitConfigV5 = {
+    ...config,
+    player: mergeBodyCultivationInit(config?.player, player),
+    opponent: mergeBodyCultivationInit(config?.opponent, opponent),
+  };
 
-  applyUnitInit(playerUnit, opponentUnit, config?.player);
-  applyUnitInit(opponentUnit, playerUnit, config?.opponent);
+  applyUnitInit(playerUnit, opponentUnit, mergedConfig.player);
+  applyUnitInit(opponentUnit, playerUnit, mergedConfig.opponent);
 
   return {
     playerUnit,

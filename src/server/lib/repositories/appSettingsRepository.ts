@@ -3,6 +3,9 @@ import { appSettings } from '@server/lib/drizzle/schema';
 import {
   APP_SETTING_KEYS,
   DEFAULT_COMMUNITY_QQ_GROUP_NUMBER,
+  DEFAULT_ITEM_LIBRARY_DAILY_MATERIAL_GENERATION_SETTINGS,
+  ItemLibraryDailyMaterialGenerationSettingsSchema,
+  type ItemLibraryDailyMaterialGenerationSettings,
 } from '@shared/lib/constants/appSettings';
 import { eq } from 'drizzle-orm';
 
@@ -50,4 +53,33 @@ export async function getResolvedCommunityQqGroupNumber(): Promise<string> {
 
 export async function getAuthPageAnnouncement(): Promise<string | null> {
   return getAppSetting(APP_SETTING_KEYS.authPageAnnouncement);
+}
+
+export async function getItemLibraryDailyMaterialGenerationSettings(): Promise<ItemLibraryDailyMaterialGenerationSettings> {
+  const raw = await getAppSetting(
+    APP_SETTING_KEYS.itemLibraryDailyMaterialGeneration,
+  );
+  if (!raw) return DEFAULT_ITEM_LIBRARY_DAILY_MATERIAL_GENERATION_SETTINGS;
+
+  try {
+    const parsedJson = JSON.parse(raw);
+    const parsed =
+      ItemLibraryDailyMaterialGenerationSettingsSchema.safeParse(parsedJson);
+    if (parsed.success) return parsed.data;
+  } catch {
+    // Fall through to defaults on malformed persisted settings.
+  }
+
+  return DEFAULT_ITEM_LIBRARY_DAILY_MATERIAL_GENERATION_SETTINGS;
+}
+
+export async function upsertItemLibraryDailyMaterialGenerationSettings(params: {
+  settings: ItemLibraryDailyMaterialGenerationSettings;
+  updatedBy: string;
+}): Promise<void> {
+  await upsertAppSetting({
+    key: APP_SETTING_KEYS.itemLibraryDailyMaterialGeneration,
+    value: JSON.stringify(params.settings),
+    updatedBy: params.updatedBy,
+  });
 }

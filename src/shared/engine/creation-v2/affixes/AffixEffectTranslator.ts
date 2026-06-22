@@ -157,6 +157,9 @@ export class AffixEffectTranslator {
               1.0,
             ),
             ...(template.params.tags ? { tags: template.params.tags } : {}),
+            ...(template.params.maxCount !== undefined
+              ? { maxCount: template.params.maxCount }
+              : {}),
           },
         };
 

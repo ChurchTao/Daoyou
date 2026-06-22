@@ -4,8 +4,27 @@ import { InkInput } from '@app/components/ui/InkInput';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { InkSelect } from '@app/components/ui/InkSelect';
 import { DEFAULT_AFFIX_REGISTRY } from '@shared/engine/creation-v2/affixes';
+import {
+  DEFAULT_ITEM_LIBRARY_DAILY_MATERIAL_GENERATION_SETTINGS,
+  type ItemLibraryDailyMaterialGenerationSettings,
+} from '@shared/lib/constants/appSettings';
 import { getAllConditionStatusTemplates } from '@shared/lib/conditionStatusRegistry';
 import { CULTIVATION_BOOST_STATUS_KEY } from '@shared/lib/cultivationBoost';
+import {
+  getEquipmentSlotLabel,
+  getMaterialTypeLabel,
+} from '@shared/lib/gameConceptDisplay';
+import type {
+  CreateItemLibraryEntry,
+  ItemLibraryEntry,
+  UpdateItemLibraryEntry,
+} from '@shared/lib/itemLibrary';
+import { getPillAppearanceLabel } from '@shared/lib/pillAppearance';
+import {
+  BREAKTHROUGH_FOCUS_STATUS_KEY,
+  CLEAR_MIND_STATUS_KEY,
+  PROTECT_MERIDIANS_STATUS_KEY,
+} from '@shared/lib/pillEffectScaling';
 import {
   ELEMENT_VALUES,
   EQUIPMENT_SLOT_VALUES,
@@ -14,24 +33,12 @@ import {
   REALM_STAGE_VALUES,
   REALM_VALUES,
 } from '@shared/types/constants';
-import { getEquipmentSlotLabel, getMaterialTypeLabel } from '@shared/lib/gameConceptDisplay';
 import {
   PILL_APPEARANCE_GRADE_VALUES,
   PILL_FAMILY_VALUES,
   PILL_QUOTA_CATEGORY_VALUES,
   TALISMAN_SESSION_MODE_VALUES,
 } from '@shared/types/consumable';
-import {
-  BREAKTHROUGH_FOCUS_STATUS_KEY,
-  CLEAR_MIND_STATUS_KEY,
-  PROTECT_MERIDIANS_STATUS_KEY,
-} from '@shared/lib/pillEffectScaling';
-import { getPillAppearanceLabel } from '@shared/lib/pillAppearance';
-import type {
-  CreateItemLibraryEntry,
-  ItemLibraryEntry,
-  UpdateItemLibraryEntry,
-} from '@shared/lib/itemLibrary';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ITEM_LIBRARY_STATUS_LABELS,
@@ -55,6 +62,17 @@ interface ItemLibraryResponse {
   items?: ItemLibraryEntry[];
   item?: ItemLibraryEntry;
   payload?: Extract<ItemLibraryEntry, { type: 'artifact' }>['payload'];
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  totalPages?: number;
+  generated?: number;
+  error?: string;
+}
+
+interface DailyMaterialGenerationSettingsResponse {
+  success?: boolean;
+  settings?: ItemLibraryDailyMaterialGenerationSettings;
   error?: string;
 }
 
@@ -68,10 +86,12 @@ const artifactAffixOptions = DEFAULT_AFFIX_REGISTRY.getAll()
     rarity: affix.rarity,
   }));
 
-const conditionStatusOptions = getAllConditionStatusTemplates().map((status) => ({
-  key: status.key,
-  name: status.name,
-}));
+const conditionStatusOptions = getAllConditionStatusTemplates().map(
+  (status) => ({
+    key: status.key,
+    name: status.name,
+  }),
+);
 
 function isDedicatedPillStatus(status: string) {
   return (
@@ -93,12 +113,26 @@ function getEntryMeta(entry: ItemLibraryEntry) {
 export default function ItemLibraryAdminPage() {
   const { pushToast } = useInkUI();
   const [items, setItems] = useState<ItemLibraryEntry[]>([]);
-  const [draft, setDraft] = useState<ItemLibraryDraft>(() => createEmptyDraft());
+  const [draft, setDraft] = useState<ItemLibraryDraft>(() =>
+    createEmptyDraft(),
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [statusFilter, setStatusFilter] = useState('published');
   const [typeFilter, setTypeFilter] = useState('');
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [generateCount, setGenerateCount] = useState('20');
+  const [generateType, setGenerateType] = useState(MATERIAL_TYPE_VALUES[0]);
+  const [generateQuality, setGenerateQuality] = useState(QUALITY_VALUES[0]);
+  const [generateSeed, setGenerateSeed] = useState('');
+  const [dailySettings, setDailySettings] =
+    useState<ItemLibraryDailyMaterialGenerationSettings>(
+      DEFAULT_ITEM_LIBRARY_DAILY_MATERIAL_GENERATION_SETTINGS,
+    );
+  const [dailySettingsLoading, setDailySettingsLoading] = useState(true);
+  const [dailySettingsSaving, setDailySettingsSaving] = useState(false);
   const [affixQuery, setAffixQuery] = useState('');
   const [affixCategoryFilter, setAffixCategoryFilter] = useState('');
   const [affixRarityFilter, setAffixRarityFilter] = useState('');
@@ -109,17 +143,17 @@ export default function ItemLibraryAdminPage() {
   );
   const selectedAffixes = useMemo(
     () =>
-      artifactAffixOptions.filter((affix) =>
-        selectedAffixSet.has(affix.id),
-      ),
+      artifactAffixOptions.filter((affix) => selectedAffixSet.has(affix.id)),
     [selectedAffixSet],
   );
   const affixCategories = useMemo(
-    () => Array.from(new Set(artifactAffixOptions.map((affix) => affix.category))),
+    () =>
+      Array.from(new Set(artifactAffixOptions.map((affix) => affix.category))),
     [],
   );
   const affixRarities = useMemo(
-    () => Array.from(new Set(artifactAffixOptions.map((affix) => affix.rarity))),
+    () =>
+      Array.from(new Set(artifactAffixOptions.map((affix) => affix.rarity))),
     [],
   );
   const filteredAffixOptions = useMemo(() => {
@@ -132,7 +166,13 @@ export default function ItemLibraryAdminPage() {
         return false;
       }
       if (!keyword) return true;
-      return [affix.name, affix.description, affix.category, affix.rarity, affix.id]
+      return [
+        affix.name,
+        affix.description,
+        affix.category,
+        affix.rarity,
+        affix.id,
+      ]
         .join(' ')
         .toLowerCase()
         .includes(keyword);
@@ -144,14 +184,19 @@ export default function ItemLibraryAdminPage() {
     if (statusFilter) params.set('status', statusFilter);
     if (typeFilter) params.set('type', typeFilter);
     if (query.trim()) params.set('q', query.trim());
+    params.set('page', String(page));
+    params.set('pageSize', '20');
 
-    const response = await fetch(`/api/admin/item-library?${params.toString()}`);
+    const response = await fetch(
+      `/api/admin/item-library?${params.toString()}`,
+    );
     const data = (await response.json()) as ItemLibraryResponse;
     if (!response.ok) {
       throw new Error(data.error ?? '加载道具库失败');
     }
     setItems(data.items ?? []);
-  }, [query, statusFilter, typeFilter]);
+    setTotalPages(data.totalPages ?? 1);
+  }, [page, query, statusFilter, typeFilter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -176,6 +221,39 @@ export default function ItemLibraryAdminPage() {
       cancelled = true;
     };
   }, [loadItems, pushToast]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setDailySettingsLoading(true);
+      try {
+        const response = await fetch(
+          '/api/admin/item-library/materials/daily-generation-settings',
+        );
+        const data =
+          (await response.json()) as DailyMaterialGenerationSettingsResponse;
+        if (!response.ok || !data.settings) {
+          throw new Error(data.error ?? '加载每日生成配置失败');
+        }
+        if (!cancelled) setDailySettings(data.settings);
+      } catch (error) {
+        if (!cancelled) {
+          pushToast({
+            message:
+              error instanceof Error ? error.message : '加载每日生成配置失败',
+            tone: 'danger',
+          });
+        }
+      } finally {
+        if (!cancelled) setDailySettingsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pushToast]);
 
   const setDraftField = <K extends keyof ItemLibraryDraft>(
     key: K,
@@ -212,8 +290,9 @@ export default function ItemLibraryAdminPage() {
     return data.payload;
   };
 
-  const buildSubmitBody = async ():
-    Promise<CreateItemLibraryEntry | UpdateItemLibraryEntry> => {
+  const buildSubmitBody = async (): Promise<
+    CreateItemLibraryEntry | UpdateItemLibraryEntry
+  > => {
     if (draft.type === 'artifact' && !draft.artifactPayload) {
       const payload = await previewArtifact();
       return buildItemLibrarySubmitBody({
@@ -295,6 +374,82 @@ export default function ItemLibraryAdminPage() {
     }
   };
 
+  const generateMaterials = async () => {
+    const count = Number(generateCount);
+    if (!Number.isInteger(count) || count < 1) {
+      pushToast({ message: '生成数量必须为正整数', tone: 'warning' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const response = await fetch(
+        '/api/admin/item-library/materials/generate',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            count,
+            materialType: generateType,
+            quality: generateQuality,
+            status: 'published',
+            seed: generateSeed.trim() || undefined,
+          }),
+        },
+      );
+      const data = (await response.json()) as ItemLibraryResponse;
+      if (!response.ok) {
+        throw new Error(data.error ?? '批量生成材料失败');
+      }
+      pushToast({
+        message: `已生成 ${data.generated ?? data.items?.length ?? 0} 个材料`,
+        tone: 'success',
+      });
+      setTypeFilter('material');
+      await loadItems();
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '批量生成材料失败',
+        tone: 'danger',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveDailySettings = async () => {
+    if (!Number.isInteger(dailySettings.count) || dailySettings.count < 1) {
+      pushToast({ message: '每日生成数量必须为正整数', tone: 'warning' });
+      return;
+    }
+
+    setDailySettingsSaving(true);
+    try {
+      const response = await fetch(
+        '/api/admin/item-library/materials/daily-generation-settings',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dailySettings),
+        },
+      );
+      const data =
+        (await response.json()) as DailyMaterialGenerationSettingsResponse;
+      if (!response.ok || !data.settings) {
+        throw new Error(data.error ?? '保存每日生成配置失败');
+      }
+      setDailySettings(data.settings);
+      pushToast({ message: '每日生成配置已保存', tone: 'success' });
+    } catch (error) {
+      pushToast({
+        message:
+          error instanceof Error ? error.message : '保存每日生成配置失败',
+        tone: 'danger',
+      });
+    } finally {
+      setDailySettingsSaving(false);
+    }
+  };
+
   const toggleAffix = (affixId: string) => {
     setDraft((current) => {
       const exists = current.artifactAffixIds.includes(affixId);
@@ -358,14 +513,20 @@ export default function ItemLibraryAdminPage() {
             <InkInput
               label="搜索"
               value={query}
-              onChange={setQuery}
+              onChange={(value) => {
+                setQuery(value);
+                setPage(1);
+              }}
               placeholder="名称或 itemId"
             />
             <div className="grid grid-cols-2 gap-3">
               <InkSelect
                 label="状态"
                 value={statusFilter}
-                onChange={setStatusFilter}
+                onChange={(value) => {
+                  setStatusFilter(value);
+                  setPage(1);
+                }}
               >
                 <option value="">全部</option>
                 <option value="published">
@@ -378,14 +539,21 @@ export default function ItemLibraryAdminPage() {
               <InkSelect
                 label="类型"
                 value={typeFilter}
-                onChange={setTypeFilter}
+                onChange={(value) => {
+                  setTypeFilter(value);
+                  setPage(1);
+                }}
               >
                 <option value="">全部</option>
-                <option value="material">{ITEM_LIBRARY_TYPE_LABELS.material}</option>
+                <option value="material">
+                  {ITEM_LIBRARY_TYPE_LABELS.material}
+                </option>
                 <option value="consumable">
                   {ITEM_LIBRARY_TYPE_LABELS.consumable}
                 </option>
-                <option value="artifact">{ITEM_LIBRARY_TYPE_LABELS.artifact}</option>
+                <option value="artifact">
+                  {ITEM_LIBRARY_TYPE_LABELS.artifact}
+                </option>
               </InkSelect>
             </div>
             <InkButton
@@ -394,6 +562,96 @@ export default function ItemLibraryAdminPage() {
               onClick={() => setDraft(createEmptyDraft())}
             >
               新建道具
+            </InkButton>
+          </div>
+
+          <div className="border-ink/15 bg-paper/70 space-y-3 border border-dashed p-3">
+            <p className="text-ink font-semibold">批量生成材料</p>
+            <InkInput
+              label="数量"
+              value={generateCount}
+              onChange={setGenerateCount}
+              placeholder="20"
+            />
+            <InkInput
+              label="Seed"
+              value={generateSeed}
+              onChange={setGenerateSeed}
+              placeholder="留空则按时间生成"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <InkSelect
+                label="材料类型"
+                value={generateType}
+                onChange={(value) =>
+                  setGenerateType(value as typeof generateType)
+                }
+              >
+                {MATERIAL_TYPE_VALUES.map((value) => (
+                  <option key={value} value={value}>
+                    {getMaterialTypeLabel(value)}
+                  </option>
+                ))}
+              </InkSelect>
+              <InkSelect
+                label="品质"
+                value={generateQuality}
+                onChange={(value) =>
+                  setGenerateQuality(value as typeof generateQuality)
+                }
+              >
+                {QUALITY_VALUES.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </InkSelect>
+            </div>
+            <InkButton
+              type="button"
+              variant="secondary"
+              onClick={generateMaterials}
+              disabled={saving}
+            >
+              生成入库
+            </InkButton>
+          </div>
+
+          <div className="border-ink/15 bg-paper/70 space-y-3 border border-dashed p-3">
+            <p className="text-ink font-semibold">每日随机材料生成</p>
+            <label className="text-ink flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={dailySettings.enabled}
+                onChange={(event) =>
+                  setDailySettings((current) => ({
+                    ...current,
+                    enabled: event.target.checked,
+                  }))
+                }
+                className="accent-crimson"
+              />
+              开启每日 01:00 自动入库
+            </label>
+            <InkInput
+              label="每日数量"
+              value={String(dailySettings.count)}
+              onChange={(value) =>
+                setDailySettings((current) => ({
+                  ...current,
+                  count: Number(value),
+                }))
+              }
+              type="number"
+              placeholder="20"
+            />
+            <InkButton
+              type="button"
+              variant="secondary"
+              onClick={saveDailySettings}
+              disabled={dailySettingsSaving || dailySettingsLoading}
+            >
+              保存配置
             </InkButton>
           </div>
 
@@ -420,6 +678,27 @@ export default function ItemLibraryAdminPage() {
               </button>
             ))}
           </div>
+          <div className="flex items-center justify-between gap-3">
+            <InkButton
+              type="button"
+              variant="secondary"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={page <= 1}
+            >
+              上一页
+            </InkButton>
+            <span className="text-ink-secondary text-xs">
+              {page} / {totalPages}
+            </span>
+            <InkButton
+              type="button"
+              variant="secondary"
+              onClick={() => setPage((current) => current + 1)}
+              disabled={page >= totalPages}
+            >
+              下一页
+            </InkButton>
+          </div>
         </aside>
 
         <section className="border-ink/15 bg-bgpaper/90 space-y-5 border border-dashed p-5">
@@ -441,11 +720,15 @@ export default function ItemLibraryAdminPage() {
               }
               disabled={Boolean(draft.rowId)}
             >
-              <option value="material">{ITEM_LIBRARY_TYPE_LABELS.material}</option>
+              <option value="material">
+                {ITEM_LIBRARY_TYPE_LABELS.material}
+              </option>
               <option value="consumable">
                 {ITEM_LIBRARY_TYPE_LABELS.consumable}
               </option>
-              <option value="artifact">{ITEM_LIBRARY_TYPE_LABELS.artifact}</option>
+              <option value="artifact">
+                {ITEM_LIBRARY_TYPE_LABELS.artifact}
+              </option>
             </InkSelect>
             <InkSelect
               label="状态"
@@ -653,7 +936,9 @@ export default function ItemLibraryAdminPage() {
                     <InkInput
                       label="药性稳定度"
                       value={draft.pillStability}
-                      onChange={(value) => setDraftField('pillStability', value)}
+                      onChange={(value) =>
+                        setDraftField('pillStability', value)
+                      }
                       type="number"
                       placeholder="例如：80"
                     />
@@ -676,7 +961,9 @@ export default function ItemLibraryAdminPage() {
 
                   <div className="border-ink/12 bg-paper/70 space-y-3 border border-dashed p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <h3 className="text-ink font-heading text-lg">丹药效果</h3>
+                      <h3 className="text-ink font-heading text-lg">
+                        丹药效果
+                      </h3>
                       <InkButton
                         type="button"
                         variant="secondary"
@@ -687,7 +974,9 @@ export default function ItemLibraryAdminPage() {
                     </div>
 
                     {draft.pillOperations.length === 0 ? (
-                      <InkNotice tone="warning">请至少添加一个丹药效果。</InkNotice>
+                      <InkNotice tone="warning">
+                        请至少添加一个丹药效果。
+                      </InkNotice>
                     ) : null}
 
                     {draft.pillOperations.map((operation, index) => (
@@ -793,7 +1082,9 @@ export default function ItemLibraryAdminPage() {
                               <option value="cultivation_exp">
                                 修为（历史丹药）
                               </option>
-                              <option value="comprehension_insight">悟性</option>
+                              <option value="comprehension_insight">
+                                悟性
+                              </option>
                             </InkSelect>
                             <InkInput
                               label="增加数值"
@@ -862,7 +1153,8 @@ export default function ItemLibraryAdminPage() {
                               ))}
                             </InkSelect>
 
-                            {operation.status === CULTIVATION_BOOST_STATUS_KEY ? (
+                            {operation.status ===
+                            CULTIVATION_BOOST_STATUS_KEY ? (
                               <InkInput
                                 label="下次闭关修为提升百分比"
                                 value={operation.boostPercent}
@@ -1049,7 +1341,9 @@ export default function ItemLibraryAdminPage() {
                   <InkInput
                     label="使用场景"
                     value={draft.talismanScenario}
-                    onChange={(value) => setDraftField('talismanScenario', value)}
+                    onChange={(value) =>
+                      setDraftField('talismanScenario', value)
+                    }
                     placeholder="例如：fate_reshape"
                   />
                   <InkSelect
@@ -1072,7 +1366,9 @@ export default function ItemLibraryAdminPage() {
                     <InkInput
                       label="备注"
                       value={draft.talismanNotes}
-                      onChange={(value) => setDraftField('talismanNotes', value)}
+                      onChange={(value) =>
+                        setDraftField('talismanNotes', value)
+                      }
                       placeholder="可选，给运营自己看的说明"
                       multiline
                       rows={3}
@@ -1222,7 +1518,9 @@ export default function ItemLibraryAdminPage() {
 
                 <div className="max-h-[420px] space-y-2 overflow-auto">
                   {filteredAffixOptions.length === 0 ? (
-                    <InkNotice tone="warning">没有符合筛选条件的法宝词缀。</InkNotice>
+                    <InkNotice tone="warning">
+                      没有符合筛选条件的法宝词缀。
+                    </InkNotice>
                   ) : null}
                   {filteredAffixOptions.map((affix) => (
                     <label
@@ -1257,7 +1555,10 @@ export default function ItemLibraryAdminPage() {
                   onClick={() =>
                     void previewArtifact()
                       .then(() =>
-                        pushToast({ message: '法宝预览已生成', tone: 'success' }),
+                        pushToast({
+                          message: '法宝预览已生成',
+                          tone: 'success',
+                        }),
                       )
                       .catch((error) =>
                         pushToast({

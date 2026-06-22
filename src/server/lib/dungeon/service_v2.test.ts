@@ -87,6 +87,7 @@ vi.mock('../services/cultivatorService', () => ({
 vi.mock('../services/ConditionService', () => ({
   ConditionService: {
     tickNaturalRecovery: vi.fn(),
+    previewExternalResourceLoss: vi.fn(),
     applyExternalResourceLoss: vi.fn(),
     addOrStackStatus: vi.fn(),
     buildBattleInit: vi.fn(),
@@ -396,6 +397,21 @@ function createEmptySettlement() {
     },
   };
 }
+
+describe('DungeonService prompt boundaries', () => {
+  it('does not instruct dungeon rounds to generate body cultivation materials', () => {
+    vi.mocked(renderPrompt).mockReturnValue({
+      system: 'round system',
+      user: 'round user',
+    });
+
+    const prompt = (new DungeonService() as unknown as { getSystemPrompt(): string })
+      .getSystemPrompt();
+
+    expect(prompt).not.toContain('炼体材料');
+    expect(prompt).not.toContain('服务端会归一');
+  });
+});
 
 describe('DungeonService dungeon enemy difficulty', () => {
   beforeEach(() => {
@@ -718,6 +734,22 @@ describe('DungeonService action recovery', () => {
       userId: 'user-1',
       updatedAt: new Date(),
     });
+    vi.mocked(ConditionService.previewExternalResourceLoss).mockReturnValueOnce({
+      maxHp: 1_000,
+      maxMp: 800,
+      rawHpLoss: 200,
+      rawMpLoss: 120,
+      hpLoss: 180,
+      mpLoss: 108,
+      preventedHpLoss: 20,
+      preventedMpLoss: 12,
+      hpLossMultiplier: 0.9,
+      mpLossMultiplier: 0.9,
+      triggerTexts: [
+        '肉身炼体生效：外护与承压降低气血损耗 20 点',
+        '肉身炼体生效：气血与元神稳住灵力损耗 12 点',
+      ],
+    });
     vi.mocked(ConditionService.applyExternalResourceLoss).mockReturnValueOnce(
       nextCondition,
     );
@@ -741,8 +773,48 @@ describe('DungeonService action recovery', () => {
         accumulatedHpLoss: 0.2,
         accumulatedMpLoss: 0.15,
         status: 'EXPLORING',
+        costLedger: [
+          {
+            costs: [
+              {
+                type: 'hp_loss',
+                metadata: {
+                  bodyCultivation: {
+                    eventType: 'generic',
+                    preventedLoss: 20,
+                    track: 'skin',
+                    trackLabel: '皮肤',
+                    triggerText:
+                      '肉身炼体生效：外护与承压降低气血损耗 20 点',
+                  },
+                },
+              },
+              {
+                type: 'mp_loss',
+                metadata: {
+                  bodyCultivation: {
+                    eventType: 'generic',
+                    preventedLoss: 12,
+                    track: 'primordial_spirit',
+                    trackLabel: '元神',
+                    triggerText:
+                      '肉身炼体生效：气血与元神稳住灵力损耗 12 点',
+                  },
+                },
+              },
+            ],
+          },
+        ],
       },
     });
+    expect(ConditionService.previewExternalResourceLoss).toHaveBeenCalledWith(
+      player,
+      player.condition,
+      {
+        hpPercent: 0.2,
+        mpPercent: 0.15,
+      },
+    );
     expect(ConditionService.applyExternalResourceLoss).toHaveBeenCalledWith(
       player,
       player.condition,
@@ -755,6 +827,149 @@ describe('DungeonService action recovery', () => {
       'cultivator-1',
       { condition: nextCondition },
       tx,
+    );
+  });
+
+  it('previews body cultivation resource-loss feedback on generated dungeon options', async () => {
+    const service = new DungeonService();
+    const state = createDungeonState('easy-map');
+    state.currentOptions = [
+      {
+        id: 1,
+        text: '绕过石门',
+        risk_level: 'low',
+        potential_cost: '继续探索',
+        costs: [],
+      },
+    ];
+    state.history.push({
+      round: 1,
+      scene: '石门之后传来低沉回响。',
+    });
+    const player = createEnemy({
+      realm: '元婴',
+      realmStage: '后期',
+      name: '韩立',
+    });
+    player.id = 'cultivator-1';
+    vi.mocked(getCultivatorByIdUnsafe).mockResolvedValue({
+      cultivator: player,
+      userId: 'user-1',
+      updatedAt: new Date(),
+    });
+    vi.mocked(ConditionService.previewExternalResourceLoss)
+      .mockReturnValueOnce({
+        maxHp: 1_000,
+        maxMp: 800,
+        rawHpLoss: 100,
+        rawMpLoss: 80,
+        hpLoss: 90,
+        mpLoss: 72,
+        preventedHpLoss: 10,
+        preventedMpLoss: 8,
+        hpLossMultiplier: 0.9,
+        mpLossMultiplier: 0.9,
+        triggerTexts: [
+          '肉身炼体生效：外护与承压降低气血损耗 10 点',
+          '肉身炼体生效：气血与元神稳住灵力损耗 8 点',
+        ],
+      })
+      .mockReturnValueOnce({
+        maxHp: 1_000,
+        maxMp: 800,
+        rawHpLoss: 0,
+        rawMpLoss: 0,
+        hpLoss: 0,
+        mpLoss: 0,
+        preventedHpLoss: 0,
+        preventedMpLoss: 0,
+        hpLossMultiplier: 1,
+        mpLossMultiplier: 1,
+        triggerTexts: [],
+      });
+    vi.spyOn(service, 'getState').mockResolvedValueOnce(state);
+    vi.spyOn(service as any, 'callAI').mockResolvedValueOnce({
+      ...createRound('禁制后的甬道泛起青光。'),
+      interaction: {
+        options: [
+          {
+            id: 1,
+            text: '强行穿过毒瘴幻境',
+            risk_level: 'medium' as const,
+            potential_cost: '毒瘴侵蚀皮膜，幻境牵动识海',
+            costs: [
+              { type: 'hp_loss' as const, value: 0.1 },
+              { type: 'mp_loss' as const, value: 0.1 },
+            ],
+          },
+          {
+            id: 2,
+            text: '原地调息',
+            risk_level: 'low' as const,
+            potential_cost: '无',
+            costs: [],
+          },
+          {
+            id: 3,
+            text: '折返探查',
+            risk_level: 'low' as const,
+            potential_cost: '无',
+            costs: [],
+          },
+        ],
+      },
+    });
+    vi.spyOn(service, 'saveState').mockResolvedValue();
+
+    const result = await service.handleAction(
+      'cultivator-1',
+      1,
+      'preview-action-1',
+    );
+
+    expect(result.state).toBeDefined();
+    const resultState = result.state as DungeonState;
+    expect(resultState.currentOptions?.[0].costPreview).toEqual([
+      {
+        type: 'hp_loss',
+        value: 0.1,
+        metadata: {
+          bodyCultivation: {
+            rawLoss: 100,
+            actualLoss: 90,
+            preventedLoss: 10,
+            multiplier: 0.9,
+            eventType: 'erosion',
+            track: 'skin',
+            trackLabel: '皮肤',
+            triggerText: '皮肤生效：降低外邪侵蚀，已抵消 10 点气血损耗',
+          },
+        },
+      },
+      {
+        type: 'mp_loss',
+        value: 0.1,
+        metadata: {
+          bodyCultivation: {
+            rawLoss: 80,
+            actualLoss: 72,
+            preventedLoss: 8,
+            multiplier: 0.9,
+            eventType: 'spirit_intrusion',
+            track: 'primordial_spirit',
+            trackLabel: '元神',
+            triggerText: '元神生效：降低神魂侵蚀，已抵消 8 点灵力损耗',
+          },
+        },
+      },
+    ]);
+    expect(ConditionService.previewExternalResourceLoss).toHaveBeenCalledWith(
+      player,
+      player.condition,
+      {
+        hpPercent: 0.1,
+        mpPercent: 0.1,
+      },
     );
   });
 

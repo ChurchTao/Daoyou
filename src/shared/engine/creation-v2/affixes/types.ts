@@ -109,7 +109,11 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
     | { type: 'reflect'; params: { ratio: ScalableParam } }
     | {
         type: 'cooldown_modify';
-        params: { cdModifyValue: ScalableParam; tags?: string[] };
+        params: {
+          cdModifyValue: ScalableParam;
+          tags?: string[];
+          maxCount?: number;
+        };
       }
     | {
         type: 'tag_trigger';

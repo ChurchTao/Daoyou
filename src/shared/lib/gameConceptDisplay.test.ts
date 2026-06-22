@@ -117,8 +117,6 @@ describe('game concept display registry', () => {
     expect(getAlchemyPropertyLabel('restore_mp')).toBe(
       `回补${getGameConceptLabel('mp')}`,
     );
-    expect(getAlchemyPropertyLabel('tempering_spirit')).toBe(
-      `炼体·${getGameConceptLabel('spirit')}`,
-    );
+    expect(getAlchemyPropertyLabel('tempering_spirit')).toBe('炼体·脏腑');
   });
 });

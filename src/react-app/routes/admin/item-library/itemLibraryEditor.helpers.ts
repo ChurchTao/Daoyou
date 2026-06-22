@@ -71,11 +71,11 @@ export const TALISMAN_SESSION_MODE_LABELS = {
 } satisfies Record<TalismanSessionMode, string>;
 
 export const TRACK_OPTIONS = [
-  { value: 'tempering.vitality', label: '淬体·体魄' },
-  { value: 'tempering.spirit', label: '淬体·灵力' },
-  { value: 'tempering.wisdom', label: '淬体·悟性' },
-  { value: 'tempering.speed', label: '淬体·身法' },
-  { value: 'tempering.willpower', label: '淬体·神识' },
+  { value: 'body.skin', label: '炼体·皮肤' },
+  { value: 'body.sinew_bone', label: '炼体·筋骨' },
+  { value: 'body.organs', label: '炼体·脏腑' },
+  { value: 'body.qi_blood', label: '炼体·气血' },
+  { value: 'body.primordial_spirit', label: '炼体·元神' },
   { value: 'marrow_wash', label: '洗髓' },
 ] satisfies Array<{ value: ConditionTrackPath; label: string }>;
 
@@ -274,7 +274,7 @@ function buildDefaultPillOperation(family: PillFamily): VisualPillOperation {
     case 'tempering':
       return {
         type: 'advance_track',
-        track: 'tempering.vitality',
+        track: 'body.skin',
         value: '10',
       };
     case 'marrow_wash':
@@ -327,7 +327,7 @@ export function createDefaultPillOperation(
         failureExpLossReductionPercent: '20',
       };
     case 'advance_track':
-      return { type, track: 'tempering.vitality', value: '10' };
+      return { type, track: 'body.skin', value: '10' };
     case 'gain_progress':
       return { type, target: 'cultivation_exp', value: '50' };
     case 'increase_lifespan':

@@ -1,0 +1,2 @@
+ALTER TABLE "wanjiedaoyou_item_library" ADD COLUMN "sample_key" double precision DEFAULT 0 NOT NULL;--> statement-breakpoint
+CREATE INDEX "item_library_material_sample_idx" ON "wanjiedaoyou_item_library" USING btree ("type","status","category","quality","sample_key");

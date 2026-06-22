@@ -1001,13 +1001,26 @@ const tutorialDefinitions: TutorialTaskDefinition[] = [
           quantity: 2,
         },
       },
+      {
+        type: 'material',
+        name: '青纹回元草',
+        quantity: 1,
+        data: {
+          name: '青纹回元草',
+          type: 'herb',
+          rank: '凡品',
+          element: '木',
+          description: '木气温润的灵草，可调和炉势并稳住药力。',
+          quantity: 1,
+        },
+      },
     ],
     stages: [
       {
         id: 'first-dungeon',
         title: '完成一次探秘结算',
         description: '进入云游探秘前先确认气血与法力，遇敌时先查探，危险就撤退。',
-        completionText: '第一次探秘已结算，你已经走完修炼、准备、探索、恢复的基础循环。',
+        completionText: '第一次探秘已结算，你已经走完修炼、准备、探索、恢复的基础循环，也带回了一份入门材料。',
         links: [
           { label: '去云游探秘', kind: 'dungeon' },
           { label: '去灵眼之泉', kind: 'inn' },

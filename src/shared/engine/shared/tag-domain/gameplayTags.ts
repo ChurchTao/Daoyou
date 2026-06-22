@@ -35,6 +35,8 @@ export const GameplayTags = {
       BLEEDING: 'Status.Bleeding',
       CHILLED: 'Status.Chilled',
       SHOCKED: 'Status.Shocked',
+      BODY_BURN_BLOOD_TRIGGERED: 'Status.BodyCultivation.BurnBloodTriggered',
+      BODY_ORGANS_SKILL_REFUNDED: 'Status.BodyCultivation.OrgansSkillRefunded',
     },
     CATEGORY: {
       BUFF: 'Status.Buff',
@@ -165,6 +167,7 @@ export const GameplayTags = {
     DAMAGE_REQUEST: 'DamageRequestEvent',
     DAMAGE: 'DamageEvent',
     ROUND_PRE: 'RoundPreEvent',
+    SKILL_PRE_CAST: 'SkillPreCastEvent',
     SKILL_CAST: 'SkillCastEvent',
     BUFF_ADD: 'BuffAddEvent',
     DEATH_PREVENT: 'DeathPreventEvent',

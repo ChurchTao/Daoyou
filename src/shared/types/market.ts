@@ -10,14 +10,16 @@ import type { Material } from './cultivator';
 export type MarketLayer = 'common' | 'treasure' | 'heaven' | 'black';
 export type RegionProfileKey = 'tiannan' | 'luanxinghai' | 'dajin' | 'default';
 
-/** 预设生成层（凡市 / 珍宝阁）使用内存预设池 */
-export const PRESET_LAYERS: MarketLayer[] = ['common', 'treasure'];
-/** LLM 生成层（天宝殿 / 黑市）使用 AI 调用 */
-export const LLM_LAYERS: MarketLayer[] = ['heaven', 'black'];
-
-export function isPresetLayer(layer: MarketLayer): boolean {
-  return PRESET_LAYERS.includes(layer);
-}
+/** 材料库不足时允许使用内存预设兜底的低层市场 */
+export const MARKET_PRESET_FALLBACK_LAYERS: MarketLayer[] = [
+  'common',
+  'treasure',
+];
+/** 必须依赖持久材料库的高层市场，不在刷新期触发 LLM 生成 */
+export const MARKET_LIBRARY_REQUIRED_LAYERS: MarketLayer[] = [
+  'heaven',
+  'black',
+];
 
 /** 刷新周期（毫秒） */
 export const MARKET_REFRESH_MS: Record<MarketLayer, number> = {

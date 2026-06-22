@@ -150,6 +150,7 @@ vi.mock('@server/lib/services/cultivatorService', () => ({
   addBreakthroughHistoryEntry: vi.fn(),
   addRetreatRecord: vi.fn(),
   consumeConsumableById: vi.fn(),
+  consumeMaterialById: vi.fn(),
   equipEquipment: vi.fn(),
   getCultivatorArtifacts: vi.fn(),
   getCultivatorById: vi.fn(),
@@ -209,6 +210,8 @@ import { TaskService } from '@server/lib/services/TaskService';
 import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
+  consumeConsumableById,
+  consumeMaterialById,
   getCultivatorById,
   updateCultivationExp,
   updateCultivator,
@@ -236,6 +239,8 @@ const buildRecoveryResultMock =
   InnRecoveryService.buildRecoveryResult as unknown as Mock;
 const sendMailMock = MailService.sendMail as unknown as Mock;
 const consumeMock = ConsumableUseEngine.consume as unknown as Mock;
+const consumeConsumableByIdMock = consumeConsumableById as unknown as Mock;
+const consumeMaterialByIdMock = consumeMaterialById as unknown as Mock;
 const consumeBreakthroughSupportStatusesMock =
   PillOperationExecutor.consumeBreakthroughSupportStatuses as unknown as Mock;
 const getQiStateMock = QiService.getQiState as unknown as Mock;
@@ -582,6 +587,44 @@ function mockConsumeTransaction() {
   }));
   const insert = vi.fn(() => ({ values }));
   const txMock = { select, insert };
+
+  dbMock.mockReturnValue({
+    transaction: async (callback: (tx: typeof txMock) => Promise<unknown>) =>
+      callback(txMock),
+  } as any);
+
+  return txMock;
+}
+
+function mockBodyCultivationBreakthroughTransaction() {
+  const versionRow = createStateVersionRow({
+    conditionVersion: 1,
+  });
+  const eventRows = createStateEventRows([
+    {
+      domain: 'condition',
+      eventType: 'condition.body_cultivation.breakthrough',
+      source: 'body_cultivation_breakthrough',
+      patch: {},
+    },
+    {
+      domain: 'inventory',
+      eventType: 'inventory.body_cultivation.breakthrough_consumed',
+      source: 'body_cultivation_breakthrough',
+      invalidates: ['inventory'],
+    },
+  ]);
+  const insertReturning = vi
+    .fn()
+    .mockResolvedValueOnce([versionRow])
+    .mockResolvedValueOnce(eventRows);
+  const onConflictDoUpdate = vi.fn(() => ({ returning: insertReturning }));
+  const values = vi.fn(() => ({
+    onConflictDoUpdate,
+    returning: insertReturning,
+  }));
+  const insert = vi.fn(() => ({ values }));
+  const txMock = { insert };
 
   dbMock.mockReturnValue({
     transaction: async (callback: (tx: typeof txMock) => Promise<unknown>) =>
@@ -1133,6 +1176,448 @@ describe('cultivator yield route', () => {
       'reward',
       expect.any(Object),
     );
+  });
+});
+
+describe('cultivator body cultivation routes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns body cultivation breakthrough readiness with inventory ownership', async () => {
+    const cultivator = createCultivator();
+    cultivator.realm = '炼气';
+    cultivator.condition = {
+      ...cultivator.condition!,
+      tracks: {
+        ...cultivator.condition!.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'mortal_body',
+          tracks: {
+            skin: { level: 4, progress: 0 },
+            sinew_bone: { level: 4, progress: 0 },
+            organs: { level: 4, progress: 0 },
+            qi_blood: { level: 0, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+    cultivator.inventory.consumables = [
+      {
+        id: 'pill-1',
+        name: '青岚淬膜丹',
+        type: '丹药',
+        quality: '玄品',
+        quantity: 1,
+        spec: {
+          kind: 'pill',
+          family: 'tempering',
+          operations: [],
+          consumeRules: {
+            scene: 'out_of_battle_only',
+            quotaCategory: 'none',
+          },
+          alchemyMeta: {
+            source: 'improvised',
+            sourceMaterials: [],
+            analysisVersion: 2,
+            propertyVector: [{ key: 'body_skin', weight: 1 }],
+            sourceMaterialVectors: [],
+            stability: 80,
+            toxicityRating: 3,
+            tags: ['tempering'],
+          },
+        },
+      },
+    ];
+    cultivator.inventory.materials = [
+      {
+        id: 'material-1',
+        name: '青纹破关露',
+        type: 'aux',
+        rank: '玄品',
+        quantity: 1,
+      },
+    ];
+    getCultivatorByIdMock.mockResolvedValueOnce(cultivator);
+
+    const response = await createApp().request(
+      '/api/cultivator/body-cultivation/breakthrough',
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        nextRealm: 'bronze_skin',
+        canAttempt: true,
+        successChance: 0.82,
+        guaranteeProgress: 0,
+        failedAttempts: 0,
+        inventoryRequirements: [
+          {
+            type: 'material',
+            name: '破限资材（特殊辅料，玄品以上）',
+            label: '破限资材（特殊辅料，玄品以上）',
+            quantity: 1,
+            ownedQuantity: 1,
+            met: true,
+            materialType: 'aux',
+            minQuality: '玄品',
+          },
+          {
+            type: 'consumable',
+            name: '炼体·皮肤破限丹（玄品以上）',
+            label: '炼体·皮肤破限丹（玄品以上）',
+            quantity: 1,
+            ownedQuantity: 1,
+            met: true,
+            family: 'tempering',
+            property: 'body_skin',
+            minQuality: '玄品',
+          },
+        ],
+      },
+    });
+  });
+
+  it('advances body cultivation realm and emits condition state events', async () => {
+    const cultivator = createCultivator();
+    cultivator.realm = '炼气';
+    cultivator.condition = {
+      ...cultivator.condition!,
+      tracks: {
+        ...cultivator.condition!.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'mortal_body',
+          tracks: {
+            skin: { level: 4, progress: 0 },
+            sinew_bone: { level: 4, progress: 0 },
+            organs: { level: 4, progress: 0 },
+            qi_blood: { level: 0, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+    cultivator.inventory.consumables = [
+      {
+        id: 'pill-1',
+        name: '青岚淬膜丹',
+        type: '丹药',
+        quality: '玄品',
+        quantity: 1,
+        spec: {
+          kind: 'pill',
+          family: 'tempering',
+          operations: [],
+          consumeRules: {
+            scene: 'out_of_battle_only',
+            quotaCategory: 'none',
+          },
+          alchemyMeta: {
+            source: 'improvised',
+            sourceMaterials: [],
+            analysisVersion: 2,
+            propertyVector: [{ key: 'body_skin', weight: 1 }],
+            sourceMaterialVectors: [],
+            stability: 80,
+            toxicityRating: 3,
+            tags: ['tempering'],
+          },
+        },
+      },
+    ];
+    cultivator.inventory.materials = [
+      {
+        id: 'material-1',
+        name: '青纹破关露',
+        type: 'aux',
+        rank: '玄品',
+        quantity: 1,
+      },
+    ];
+    getCultivatorByIdMock.mockResolvedValueOnce(cultivator);
+    updateCultivatorMock.mockImplementationOnce(
+      async (_cultivatorId, patch) => ({
+        ...cultivator,
+        ...patch,
+      }),
+    );
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValueOnce(0);
+    const tx = mockBodyCultivationBreakthroughTransaction();
+
+    let response: Response;
+    try {
+      response = await createApp().request(
+        '/api/cultivator/body-cultivation/breakthrough',
+        {
+          method: 'POST',
+        },
+      );
+    } finally {
+      randomSpy.mockRestore();
+    }
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      data: {
+        condition: {
+          tracks: {
+            bodyCultivation: Record<string, unknown>;
+          };
+        };
+      };
+    };
+    expect(body).toMatchObject({
+      success: true,
+      data: {
+        success: true,
+        fromRealm: 'mortal_body',
+        toRealm: 'bronze_skin',
+        chance: 0.82,
+        roll: 0,
+        failedAttempts: 0,
+        guaranteeProgress: 0,
+        condition: {
+          tracks: {
+            bodyCultivation: {
+              realm: 'bronze_skin',
+              milestones: {
+                'realm.bronze_skin': true,
+              },
+            },
+          },
+        },
+      },
+      state: {
+        cultivatorId: 'cultivator-1',
+        globalVersion: 1,
+      },
+    });
+    expect(
+      body.data.condition.tracks.bodyCultivation,
+    ).not.toHaveProperty('breakthrough');
+    expect(updateCultivatorMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      {
+        condition: expect.objectContaining({
+          tracks: expect.objectContaining({
+            bodyCultivation: expect.objectContaining({
+              realm: 'bronze_skin',
+            }),
+          }),
+        }),
+      },
+      tx,
+    );
+    expect(consumeMaterialByIdMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      'material-1',
+      1,
+      tx,
+    );
+    expect(consumeConsumableByIdMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      'pill-1',
+      1,
+      tx,
+    );
+  });
+
+  it('records failed body cultivation breakthrough progress and still consumes costs', async () => {
+    const cultivator = createCultivator();
+    cultivator.realm = '炼气';
+    cultivator.condition = {
+      ...cultivator.condition!,
+      tracks: {
+        ...cultivator.condition!.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'mortal_body',
+          tracks: {
+            skin: { level: 4, progress: 0 },
+            sinew_bone: { level: 4, progress: 0 },
+            organs: { level: 4, progress: 0 },
+            qi_blood: { level: 0, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+    cultivator.inventory.consumables = [
+      {
+        id: 'pill-1',
+        name: '青岚淬膜丹',
+        type: '丹药',
+        quality: '玄品',
+        quantity: 1,
+        spec: {
+          kind: 'pill',
+          family: 'tempering',
+          operations: [],
+          consumeRules: {
+            scene: 'out_of_battle_only',
+            quotaCategory: 'none',
+          },
+          alchemyMeta: {
+            source: 'improvised',
+            sourceMaterials: [],
+            analysisVersion: 2,
+            propertyVector: [{ key: 'body_skin', weight: 1 }],
+            sourceMaterialVectors: [],
+            stability: 80,
+            toxicityRating: 3,
+            tags: ['tempering'],
+          },
+        },
+      },
+    ];
+    cultivator.inventory.materials = [
+      {
+        id: 'material-1',
+        name: '青纹破关露',
+        type: 'aux',
+        rank: '玄品',
+        quantity: 1,
+      },
+    ];
+    getCultivatorByIdMock.mockResolvedValueOnce(cultivator);
+    updateCultivatorMock.mockImplementationOnce(
+      async (_cultivatorId, patch) => ({
+        ...cultivator,
+        ...patch,
+      }),
+    );
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValueOnce(0.99);
+    const tx = mockBodyCultivationBreakthroughTransaction();
+
+    let response: Response;
+    try {
+      response = await createApp().request(
+        '/api/cultivator/body-cultivation/breakthrough',
+        {
+          method: 'POST',
+        },
+      );
+    } finally {
+      randomSpy.mockRestore();
+    }
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        success: false,
+        fromRealm: 'mortal_body',
+        toRealm: 'bronze_skin',
+        chance: 0.82,
+        roll: 0.99,
+        failedAttempts: 1,
+        guaranteeProgress: 34,
+        condition: {
+          tracks: {
+            bodyCultivation: {
+              realm: 'mortal_body',
+              breakthrough: {
+                targetRealm: 'bronze_skin',
+                progress: 34,
+                failedAttempts: 1,
+              },
+            },
+          },
+        },
+      },
+    });
+    expect(updateCultivatorMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      {
+        condition: expect.objectContaining({
+          tracks: expect.objectContaining({
+            bodyCultivation: expect.objectContaining({
+              realm: 'mortal_body',
+              breakthrough: {
+                targetRealm: 'bronze_skin',
+                progress: 34,
+                failedAttempts: 1,
+              },
+            }),
+          }),
+        }),
+      },
+      tx,
+    );
+    expect(consumeMaterialByIdMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      'material-1',
+      1,
+      tx,
+    );
+    expect(consumeConsumableByIdMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      'pill-1',
+      1,
+      tx,
+    );
+  });
+
+  it('rejects body cultivation breakthrough when inventory costs are missing', async () => {
+    const cultivator = createCultivator();
+    cultivator.realm = '炼气';
+    cultivator.condition = {
+      ...cultivator.condition!,
+      tracks: {
+        ...cultivator.condition!.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'mortal_body',
+          tracks: {
+            skin: { level: 4, progress: 0 },
+            sinew_bone: { level: 4, progress: 0 },
+            organs: { level: 4, progress: 0 },
+            qi_blood: { level: 0, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+    cultivator.inventory.materials = [
+      {
+        id: 'material-1',
+        name: '青纹破关露',
+        type: 'aux',
+        rank: '玄品',
+        quantity: 1,
+      },
+    ];
+    cultivator.inventory.consumables = [];
+    getCultivatorByIdMock.mockResolvedValueOnce(cultivator);
+
+    const response = await createApp().request(
+      '/api/cultivator/body-cultivation/breakthrough',
+      {
+        method: 'POST',
+      },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: expect.stringContaining('炼体·皮肤破限丹（玄品以上） 0/1'),
+    });
+    expect(updateCultivatorMock).not.toHaveBeenCalled();
+    expect(dbMock).not.toHaveBeenCalled();
   });
 });
 

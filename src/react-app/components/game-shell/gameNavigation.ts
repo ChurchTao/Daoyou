@@ -52,6 +52,10 @@ export const gameDockGroups: GameNavGroup[] = [
         coreDockLabel: '角色',
       },
       {
+        id: 'body-cultivation',
+        sceneLabel: '肉身炼体',
+      },
+      {
         id: 'retreat',
         sceneLabel: '修炼室',
         href: '/game/retreat',

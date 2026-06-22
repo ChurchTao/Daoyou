@@ -39,7 +39,7 @@ export interface BattleUnitInitSpec {
   resourceState?: {
     hp?: ResourcePointState;
     mp?: ResourcePointState;
-    shield?: number;
+    shield?: number | ResourcePointState;
   };
   selectionStrategySettings?: BattleAbilityStrategySettings;
   statusRefs?: PersistentCombatStatusV5[];

@@ -29,6 +29,44 @@ function getAbilityTags(context: EffectContext) {
   return getAbilityTagsFromTriggerEvent(context.triggerEvent) ?? context.ability?.tags;
 }
 
+function getAbilityMpCost(context: EffectContext): number {
+  const ability = (() => {
+    if (
+      context.triggerEvent &&
+      typeof context.triggerEvent === 'object' &&
+      'ability' in context.triggerEvent
+    ) {
+      return (context.triggerEvent as { ability?: unknown }).ability;
+    }
+    return context.ability;
+  })();
+
+  if (!ability || typeof ability !== 'object') {
+    return 0;
+  }
+
+  const abilityLike = ability as {
+    manaCost?: unknown;
+    resourceCosts?: unknown;
+  };
+  if (typeof abilityLike.manaCost === 'number') {
+    return Math.max(0, abilityLike.manaCost);
+  }
+
+  if (Array.isArray(abilityLike.resourceCosts)) {
+    const mpCost = abilityLike.resourceCosts.find(
+      (cost): cost is { type: 'mp'; amount: number } =>
+        !!cost &&
+        typeof cost === 'object' &&
+        (cost as { type?: unknown }).type === 'mp' &&
+        typeof (cost as { amount?: unknown }).amount === 'number',
+    );
+    return Math.max(0, mpCost?.amount ?? 0);
+  }
+
+  return 0;
+}
+
 function getDamageTypeFromTriggerEvent(triggerEvent: unknown): DamageType | undefined {
   if (!triggerEvent || typeof triggerEvent !== 'object') return undefined;
 
@@ -105,6 +143,8 @@ export function evaluateCondition(
       return !!scopedUnit && scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() > threshold;
     case 'mp_below':
       return !!scopedUnit && scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() < threshold;
+    case 'ability_mp_cost_at_least':
+      return getAbilityMpCost(context) >= threshold;
     case 'has_shield':
       return !!scopedUnit && scopedUnit.getCurrentShield() > threshold;
     case 'buff_count_at_least':

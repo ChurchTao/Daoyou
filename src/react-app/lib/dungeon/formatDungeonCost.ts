@@ -47,3 +47,40 @@ export function formatDungeonCostValue(cost: DungeonOptionCost) {
 
   return `-${cost.value}`;
 }
+
+interface BodyCultivationCostFeedback {
+  rawLoss?: unknown;
+  actualLoss?: unknown;
+  preventedLoss?: unknown;
+  eventType?: unknown;
+  track?: unknown;
+  trackLabel?: unknown;
+  triggerText?: unknown;
+}
+
+function getBodyCultivationFeedback(
+  cost: DungeonOptionCost,
+): BodyCultivationCostFeedback | null {
+  const metadata = cost.metadata as
+    | { bodyCultivation?: BodyCultivationCostFeedback }
+    | undefined;
+  return metadata?.bodyCultivation ?? null;
+}
+
+export function formatDungeonCostBodyCultivationFeedback(
+  cost: DungeonOptionCost,
+) {
+  const feedback = getBodyCultivationFeedback(cost);
+  if (!feedback) return null;
+
+  if (typeof feedback.triggerText === 'string' && feedback.triggerText.trim()) {
+    return feedback.triggerText;
+  }
+
+  const preventedLoss = Number(feedback.preventedLoss);
+  if (Number.isFinite(preventedLoss) && preventedLoss > 0) {
+    return `肉身炼体生效：已抵消 ${Math.round(preventedLoss)} 点损耗`;
+  }
+
+  return null;
+}

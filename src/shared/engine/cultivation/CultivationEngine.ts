@@ -7,6 +7,7 @@ import {
   evaluateFateContext,
 } from '@shared/lib/fates';
 import { isConditionStatusActive } from '@shared/lib/condition';
+import { getBodyCultivationBreakthroughPressureHooks } from '@shared/lib/bodyCultivation/effects';
 import {
   consumeCultivationBoostStatus,
   getCultivationBoostRetreatMultiplier,
@@ -306,6 +307,9 @@ export function attemptBreakthrough(
     cultivator,
     'clear_mind',
   );
+  const bodyPressureHooks = getBodyCultivationBreakthroughPressureHooks(
+    cultivator.condition,
+  );
 
   if (success) {
     // 突破成功
@@ -398,6 +402,7 @@ export function attemptBreakthrough(
   } else {
     // 突破失败
     exp_lost = calculateExpLossOnFailure(progress, rng);
+    exp_lost = Math.floor(exp_lost * bodyPressureHooks.expLossMultiplier);
     if (protectMeridiansStatus) {
       exp_lost = Math.floor(
         exp_lost *
@@ -408,10 +413,13 @@ export function attemptBreakthrough(
 
     // 感悟值降低
     const insightLoss = Math.floor(10 + rng() * 10); // 10-20
+    const pressuredInsightLoss = Math.floor(
+      insightLoss * bodyPressureHooks.insightLossMultiplier,
+    );
     const finalInsightLoss =
       isMajorBreakthrough && clearMindStatus
-        ? Math.max(4, Math.floor(insightLoss * 0.7))
-        : insightLoss;
+        ? Math.max(4, Math.floor(pressuredInsightLoss * 0.7))
+        : pressuredInsightLoss;
     insight_change = -finalInsightLoss;
     progress.comprehension_insight = Math.max(
       0,
@@ -422,7 +430,10 @@ export function attemptBreakthrough(
     progress.breakthrough_failures += 1;
 
     if (isMajorBreakthrough) {
-      let deviationGain = getMajorDeviationGain(fromRealm, rng);
+      let deviationGain = Math.floor(
+        getMajorDeviationGain(fromRealm, rng) *
+          bodyPressureHooks.deviationGainMultiplier,
+      );
       if (clearMindStatus) {
         deviationGain = Math.max(5, Math.floor(deviationGain * 0.65));
       }
@@ -440,10 +451,12 @@ export function attemptBreakthrough(
 
     if (
       !clearMindStatus &&
-      rng() < getInnerDemonTriggerChance(
-        progress.breakthrough_failures,
-        isMajorBreakthrough,
-      )
+      rng() <
+        getInnerDemonTriggerChance(
+          progress.breakthrough_failures,
+          isMajorBreakthrough,
+        ) *
+          bodyPressureHooks.innerDemonChanceMultiplier
     ) {
       progress.inner_demon = true;
     }

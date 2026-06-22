@@ -5,6 +5,7 @@ import {
   getResourceIcon,
 } from '@shared/lib/gameConceptDisplay';
 import {
+  formatDungeonCostBodyCultivationFeedback,
   formatDungeonCostName,
   formatDungeonCostValue,
 } from '@app/lib/dungeon/formatDungeonCost';
@@ -49,6 +50,9 @@ export function ResourceCostCard({
     mpLossPercent > 0 ||
     resourceCosts.length > 0 ||
     pendingCosts.length > 0;
+  const bodyFeedbacks = [...costs, ...pendingCosts]
+    .map(formatDungeonCostBodyCultivationFeedback)
+    .filter((text): text is string => Boolean(text));
 
   return (
     <InkCard className={compact ? 'p-3' : 'p-4'}>
@@ -116,6 +120,21 @@ export function ResourceCostCard({
                   <span className="text-crimson font-bold">
                     {formatDungeonCostValue(cost)}
                   </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {bodyFeedbacks.length > 0 && (
+          <div className="border-ink/10 border-t pt-2">
+            <div className="space-y-1">
+              {bodyFeedbacks.map((text, idx) => (
+                <div
+                  key={`${text}-${idx}`}
+                  className="text-wood text-xs leading-5"
+                >
+                  {text}
                 </div>
               ))}
             </div>

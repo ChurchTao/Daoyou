@@ -48,7 +48,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
-    weight: 100,
+    weight: 10,
     energyCost: 10,
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'enemy' },
@@ -460,7 +460,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     category: 'skill_core',
     rarity: 'uncommon',
     match: {
-      all: [ELEMENT_TO_MATERIAL_TAG['火']],
       any: [
         CreationTags.MATERIAL.SEMANTIC_FLAME,
         CreationTags.MATERIAL.SEMANTIC_BURST,
@@ -504,9 +503,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     category: 'skill_core',
     rarity: 'uncommon',
     match: {
-      all: [ELEMENT_TO_MATERIAL_TAG['雷']],
+      all: [CreationTags.MATERIAL.SEMANTIC_THUNDER],
       any: [
-        CreationTags.MATERIAL.SEMANTIC_THUNDER,
         CreationTags.MATERIAL.SEMANTIC_SPIRIT,
         CreationTags.MATERIAL.SEMANTIC_ILLUSION,
       ],
@@ -549,9 +547,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     category: 'skill_core',
     rarity: 'uncommon',
     match: {
-      all: [ELEMENT_TO_MATERIAL_TAG['冰']],
+      all: [CreationTags.MATERIAL.SEMANTIC_FREEZE],
       any: [
-        CreationTags.MATERIAL.SEMANTIC_FREEZE,
         CreationTags.MATERIAL.SEMANTIC_SPIRIT,
         CreationTags.MATERIAL.SEMANTIC_GUARD,
       ],
@@ -1537,7 +1534,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
             GameplayTags.STATUS.CONTROL.NO_ACTION,
           ],
         },
-        chance: { base: 0.38, scale: 'quality', coefficient: 0.04 },
+        chance: { base: 0.32, scale: 'quality', coefficient: 0.032 },
       },
     },
   },
@@ -1600,6 +1597,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       conditions: [{ type: 'chance', params: { value: 0.6 } }],
       params: {
         cdModifyValue: { base: 1, scale: 'quality', coefficient: 0.25 },
+        maxCount: 1,
       },
     },
   },
@@ -1623,7 +1621,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
-    weight: 4,
+    weight: 40,
     energyCost: 55,
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'enemy' },
@@ -1659,7 +1657,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
-    weight: 19,
+    weight: 25,
     energyCost: 38,
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'self' },
@@ -1709,7 +1707,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
-    weight: 18,
+    weight: 25,
     energyCost: 40,
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'self' },
@@ -1815,7 +1813,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     category: 'skill_rare',
     rarity: 'legendary',
     match: {
-      all: [ELEMENT_TO_MATERIAL_TAG['土'], CreationTags.MATERIAL.TYPE_SPECIAL],
+      all: [ELEMENT_TO_MATERIAL_TAG['土']],
       any: [
         CreationTags.MATERIAL.SEMANTIC_EARTH,
         CreationTags.MATERIAL.SEMANTIC_GUARD,
@@ -1823,7 +1821,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
-    weight: 5,
+    weight: 25,
     energyCost: 48,
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'self' },

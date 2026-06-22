@@ -2,6 +2,12 @@ import { RankingItem } from '@server/lib/redis/rankings';
 
 export type BattleRankingItem = RankingItem;
 
+export interface BodyCultivationRankingInfo {
+  realm: string;
+  totalLevel: number;
+  label: string;
+}
+
 export type RankingItemType = 'artifact' | 'skill' | 'elixir' | 'technique';
 
 export interface ItemRankingEntry {

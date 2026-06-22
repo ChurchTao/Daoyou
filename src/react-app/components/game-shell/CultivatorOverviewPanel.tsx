@@ -1,7 +1,7 @@
 import {
   CultivatorCurrentStatusSection,
-  CultivatorTrackSection,
 } from '@app/components/feature/cultivator/PersistentStatusesCard';
+import { BodyCultivationEntrySection } from '@app/components/feature/cultivator/BodyCultivationPanels';
 import { TitleEditorModal } from '@app/components/feature/cultivator/TitleEditorModal';
 import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
 import { toFateDisplayModel } from '@app/components/feature/fates/FateDisplayAdapter';
@@ -493,7 +493,7 @@ export function CultivatorOverviewPanel() {
         ) : null}
       </GameSceneSection>
 
-      <CultivatorTrackSection />
+      <BodyCultivationEntrySection />
 
       <GameSceneSection title="所御法宝">
         {equippedItems.length > 0 ? (

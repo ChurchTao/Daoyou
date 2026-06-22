@@ -1,5 +1,6 @@
 import type { Cultivator } from '@shared/types/cultivator';
 import { REALM_ORDER, type RealmType } from '@shared/types/constants';
+import { buildBodyCultivationAttributeModifiers } from '@shared/lib/bodyCultivation/effects';
 import type { AttributeModifierConfig } from '../core/configs';
 import { AttributeType, ModifierType, type AttributeModifier, type UnitId } from '../core/types';
 import type { AttrsStateView } from '../systems/state/types';
@@ -127,6 +128,14 @@ export function createDisplayUnitFromCultivator(
       modifiers: scaleArtifactModifiers(artifact.attributeModifiers, factor),
     });
   }
+
+  mountModifiers(unit, 'bodyCultivation', {
+    id: 'body-cultivation',
+    name: '肉身炼体',
+    attributeModifiers: buildBodyCultivationAttributeModifiers(
+      cultivator.condition,
+    ),
+  });
 
   unit.updateDerivedStats();
   return unit;

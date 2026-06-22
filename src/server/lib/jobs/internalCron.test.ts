@@ -7,6 +7,8 @@ const {
   sendMailMock,
   pruneExpiredDataMock,
   prunePlayerStateEventsOlderThanMock,
+  getItemLibraryDailyMaterialGenerationSettingsMock,
+  generateRandomMaterialLibraryEntriesMock,
   redisMock,
   transactionMock,
 } = vi.hoisted(() => {
@@ -41,6 +43,8 @@ const {
     },
     sendMailMock: vi.fn(),
     transactionMock: tx,
+    getItemLibraryDailyMaterialGenerationSettingsMock: vi.fn(),
+    generateRandomMaterialLibraryEntriesMock: vi.fn(),
   };
 });
 
@@ -62,6 +66,11 @@ vi.mock('@server/lib/repositories/playerStateRepository', () => ({
 
 vi.mock('@server/lib/repositories/retentionRepository', () => ({
   pruneExpiredData: pruneExpiredDataMock,
+}));
+
+vi.mock('@server/lib/repositories/appSettingsRepository', () => ({
+  getItemLibraryDailyMaterialGenerationSettings:
+    getItemLibraryDailyMaterialGenerationSettingsMock,
 }));
 
 vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
@@ -86,6 +95,11 @@ vi.mock('@server/lib/services/MarketScheduler', () => ({
   runMarketRefreshJob: vi.fn(),
 }));
 
+vi.mock('@server/lib/services/MaterialLibraryService', () => ({
+  ITEM_LIBRARY_SYSTEM_USER_ID: '00000000-0000-4000-8000-000000000000',
+  generateRandomMaterialLibraryEntries: generateRandomMaterialLibraryEntriesMock,
+}));
+
 vi.mock('@server/lib/tower/enemySets', () => ({
   towerEnemySetService: {
     refreshCurrentAndNextIfNeeded: vi.fn(),
@@ -94,6 +108,7 @@ vi.mock('@server/lib/tower/enemySets', () => ({
 
 import {
   runExpiredDataCleanupJob,
+  runMaterialLibraryDailyGenerationJob,
   runPlayerStateEventsCleanupJob,
   runRankRewardsJob,
 } from './internalCron';
@@ -106,6 +121,13 @@ describe('internal cron jobs', () => {
     redisMock.set.mockResolvedValue('OK');
     redisMock.eval.mockResolvedValue(1);
     redisMock.exists.mockResolvedValue(0);
+    getItemLibraryDailyMaterialGenerationSettingsMock.mockResolvedValue({
+      enabled: true,
+      count: 20,
+    });
+    generateRandomMaterialLibraryEntriesMock.mockResolvedValue(
+      Array.from({ length: 20 }, (_, index) => ({ id: `item-${index}` })),
+    );
     sendMailMock.mockImplementation(async (cultivatorId: string) => ({
       id: `mail-${cultivatorId}`,
     }));
@@ -180,6 +202,75 @@ describe('internal cron jobs', () => {
       reputationShopPurchases: new Date('2026-05-25T12:00:00.000Z'),
       auctionListings: new Date('2026-06-01T12:00:00.000Z'),
     });
+  });
+
+  it('generates daily random materials with default settings', async () => {
+    await expect(runMaterialLibraryDailyGenerationJob()).resolves.toEqual({
+      success: true,
+      processed: 20,
+      skipped: false,
+    });
+
+    expect(getItemLibraryDailyMaterialGenerationSettingsMock).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(generateRandomMaterialLibraryEntriesMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        count: 20,
+        userId: '00000000-0000-4000-8000-000000000000',
+        source: 'daily_cron',
+      }),
+    );
+  });
+
+  it('skips daily random material generation when disabled', async () => {
+    getItemLibraryDailyMaterialGenerationSettingsMock.mockResolvedValueOnce({
+      enabled: false,
+      count: 20,
+    });
+
+    await expect(runMaterialLibraryDailyGenerationJob()).resolves.toEqual({
+      success: true,
+      processed: 0,
+      skipped: true,
+      reason: 'disabled',
+    });
+
+    expect(generateRandomMaterialLibraryEntriesMock).not.toHaveBeenCalled();
+  });
+
+  it('uses the configured daily random material count', async () => {
+    getItemLibraryDailyMaterialGenerationSettingsMock.mockResolvedValueOnce({
+      enabled: true,
+      count: 7,
+    });
+    generateRandomMaterialLibraryEntriesMock.mockResolvedValueOnce(
+      Array.from({ length: 7 }, (_, index) => ({ id: `item-${index}` })),
+    );
+
+    await expect(runMaterialLibraryDailyGenerationJob()).resolves.toEqual({
+      success: true,
+      processed: 7,
+      skipped: false,
+    });
+
+    expect(generateRandomMaterialLibraryEntriesMock).toHaveBeenCalledWith(
+      expect.objectContaining({ count: 7 }),
+    );
+  });
+
+  it('skips daily random material generation when another instance holds the lock', async () => {
+    redisMock.set.mockResolvedValueOnce(null);
+
+    await expect(runMaterialLibraryDailyGenerationJob()).resolves.toEqual({
+      success: true,
+      processed: 0,
+      skipped: true,
+      reason: 'job_in_progress',
+    });
+
+    expect(getItemLibraryDailyMaterialGenerationSettingsMock).not.toHaveBeenCalled();
+    expect(generateRandomMaterialLibraryEntriesMock).not.toHaveBeenCalled();
   });
 
   it('settles weekly rank rewards as reputation mail and emits mail events', async () => {

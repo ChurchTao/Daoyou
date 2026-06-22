@@ -1,6 +1,7 @@
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
 import type { Consumable, CultivationProgress } from '@shared/types/cultivator';
 import type {
+  BodyCultivationTrackPath,
   ConditionStatusDuration,
   ConditionStatusInstance,
   ConditionStatusKey,
@@ -32,6 +33,16 @@ import {
 } from '@shared/lib/pillEffectScaling';
 import { ConditionService } from './ConditionService';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
+import {
+  getBodyTrackKeyFromPath,
+  BODY_CULTIVATION_REALM_REQUIREMENTS,
+  isBodyCultivationTrackPath,
+  isLegacyTemperingTrackPath,
+} from '@shared/lib/bodyCultivation/config';
+import {
+  createDefaultBodyCultivationState,
+  normalizeBodyCultivationState,
+} from '@shared/lib/bodyCultivation/normalize';
 
 const EXECUTION_ORDER: ConditionOperation['type'][] = [
   'restore_resource',
@@ -123,8 +134,17 @@ function getTrackState(
     return condition.tracks.marrowWash;
   }
 
-  const key = track.replace('tempering.', '') as keyof CultivatorCondition['tracks']['tempering'];
-  return condition.tracks.tempering[key];
+  if (isBodyCultivationTrackPath(track) || isLegacyTemperingTrackPath(track)) {
+    const key = getBodyTrackKeyFromPath(track);
+    return (
+      condition.tracks.bodyCultivation?.tracks[key] ?? {
+        level: 0,
+        progress: 0,
+      }
+    );
+  }
+
+  throw new Error(`未知的长期进度轨道：${track satisfies never}`);
 }
 
 function setTrackState(
@@ -146,20 +166,30 @@ function setTrackState(
     };
   }
 
-  const key = track.replace('tempering.', '') as keyof CultivatorCondition['tracks']['tempering'];
-  return {
-    ...condition,
-    tracks: {
-      ...condition.tracks,
-      tempering: {
-        ...condition.tracks.tempering,
-        [key]: {
-          level,
-          progress,
+  if (isBodyCultivationTrackPath(track) || isLegacyTemperingTrackPath(track)) {
+    const key = getBodyTrackKeyFromPath(track);
+    const bodyCultivation =
+      condition.tracks.bodyCultivation ?? createDefaultBodyCultivationState();
+
+    return {
+      ...condition,
+      tracks: {
+        ...condition.tracks,
+        bodyCultivation: {
+          ...bodyCultivation,
+          tracks: {
+            ...bodyCultivation.tracks,
+            [key]: {
+              level,
+              progress,
+            },
+          },
         },
       },
-    },
-  };
+    };
+  }
+
+  throw new Error(`未知的长期进度轨道：${track satisfies never}`);
 }
 
 function applyTrackReward(
@@ -168,6 +198,10 @@ function applyTrackReward(
 ): Cultivator {
   const nextCultivator = cultivator;
   const reward = getTrackConfig(track).reward;
+
+  if (reward.kind === 'body_modifier') {
+    return nextCultivator;
+  }
 
   if (reward.kind === 'attribute') {
     nextCultivator.attributes = {
@@ -186,6 +220,27 @@ function applyTrackReward(
   return nextCultivator;
 }
 
+function getEffectiveTrackProgressValue(
+  condition: CultivatorCondition,
+  track: ConditionTrackPath,
+  value: number,
+): number {
+  const baseValue = Math.max(0, Math.floor(value));
+  if (!isBodyCultivationTrackPath(track) && !isLegacyTemperingTrackPath(track)) {
+    return baseValue;
+  }
+
+  const bodyState = normalizeBodyCultivationState(condition);
+  const key = getBodyTrackKeyFromPath(track);
+  const softCap =
+    BODY_CULTIVATION_REALM_REQUIREMENTS[bodyState.realm].softTrackCap;
+  if (bodyState.tracks[key].level < softCap) {
+    return baseValue;
+  }
+
+  return Math.floor(baseValue * 0.5);
+}
+
 function applyTrackProgress(
   cultivator: Cultivator,
   condition: CultivatorCondition,
@@ -195,16 +250,21 @@ function applyTrackProgress(
   let nextCultivator = cultivator;
   let nextCondition = condition;
   const levelUps: TrackLevelUpResult[] = [];
+  const levelUpTrack: ConditionTrackPath =
+    isBodyCultivationTrackPath(track) || isLegacyTemperingTrackPath(track)
+      ? (`body.${getBodyTrackKeyFromPath(track)}` as BodyCultivationTrackPath)
+      : track;
 
   const current = getTrackState(nextCondition, track);
   let level = current.level;
-  let progress = current.progress + Math.max(0, Math.floor(value));
+  let progress =
+    current.progress + getEffectiveTrackProgressValue(nextCondition, track, value);
 
   while (progress >= getTrackConfig(track).thresholdByLevel(level)) {
     progress -= getTrackConfig(track).thresholdByLevel(level);
     level += 1;
     nextCultivator = applyTrackReward(nextCultivator, track);
-    levelUps.push({ track, newLevel: level });
+    levelUps.push({ track: levelUpTrack, newLevel: level });
   }
 
   nextCondition = setTrackState(nextCondition, track, level, progress);

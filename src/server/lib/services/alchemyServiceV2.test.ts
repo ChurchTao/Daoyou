@@ -659,7 +659,87 @@ describe('synthesizeAlchemy', () => {
     expect(result.operations).toContainEqual({
       type: 'change_gauge',
       gauge: 'pillToxicity',
-      delta: 23,
+      delta: 19,
     });
+  });
+
+  it('lets deterministic body material hints steer synthesis toward body tracks', () => {
+    const result = synthesizeAlchemy(
+      [
+        createMaterial({
+          id: 'm1',
+          materialRef: 'material_1',
+          name: '真火莲',
+          description: '莲心真火入脏腑，可煅五脏并承载爆发。',
+          element: '火',
+          type: 'herb',
+        }),
+      ],
+      {
+        materialVectors: [
+          {
+            materialRef: 'material_1',
+            materialName: '真火莲',
+            properties: [{ key: 'body_organs', weight: 0.9 }],
+          },
+        ],
+        intentVector: [{ key: 'body_organs', weight: 1 }],
+        focusMode: 'focused',
+      },
+      '真品',
+      '筑基',
+      { rng: () => 0.5 },
+    );
+
+    expect(result.family).toBe('tempering');
+    expect(result.propertyVector).toEqual([{ key: 'body_organs', weight: 1 }]);
+    const operation = result.operations.find(
+      (entry) =>
+        entry.type === 'advance_track' && entry.track === 'body.organs',
+    );
+    expect(operation).toMatchObject({
+      type: 'advance_track',
+      track: 'body.organs',
+    });
+    expect(operation?.type === 'advance_track' ? operation.value : 0).toBeGreaterThan(0);
+  });
+
+  it('canonicalizes legacy tempering properties before synthesizing new pills', () => {
+    const result = synthesizeAlchemy(
+      [
+        createMaterial({
+          id: 'm1',
+          materialRef: 'material_1',
+          name: '真火莲',
+          description: '莲心真火入脏腑，可煅五脏并承载爆发。',
+          element: '火',
+          type: 'herb',
+        }),
+      ],
+      {
+        materialVectors: [
+          {
+            materialRef: 'material_1',
+            materialName: '真火莲',
+            properties: [{ key: 'tempering_spirit', weight: 1 }],
+          },
+        ],
+        intentVector: [{ key: 'tempering_spirit', weight: 1 }],
+        focusMode: 'focused',
+      } as never,
+      '真品',
+      '筑基',
+      { rng: () => 0.5 },
+    );
+
+    expect(result.family).toBe('tempering');
+    expect(result.rawPropertyVector).toEqual([{ key: 'body_organs', weight: 1 }]);
+    expect(result.propertyVector).toEqual([{ key: 'body_organs', weight: 1 }]);
+    expect(result.operations).toContainEqual(
+      expect.objectContaining({
+        type: 'advance_track',
+        track: 'body.organs',
+      }),
+    );
   });
 });

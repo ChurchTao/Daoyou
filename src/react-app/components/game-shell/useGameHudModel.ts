@@ -16,6 +16,10 @@ import {
   getResourceLabel,
   getResourceText,
 } from '@shared/lib/gameConceptDisplay';
+import {
+  getBodyCultivationSummary,
+  type BodyCultivationSummary,
+} from '@shared/lib/bodyCultivation/summary';
 import type { ConditionStatusKey } from '@shared/types/condition';
 import { RealmType } from '@shared/types/constants';
 
@@ -72,6 +76,7 @@ export interface GameHudSnapshot {
   metrics: GameHudMetric[];
   activeStatuses: GameHudStatusTag[];
   pillToxicity: GameHudPillToxicityDetail;
+  bodyCultivation: BodyCultivationSummary;
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -193,6 +198,9 @@ export function buildGameHudSnapshot(input: {
   if (pillToxicityStage.key !== 'none') {
     statusLabels.push(pillToxicityStage.label);
   }
+  const bodyCultivation = getBodyCultivationSummary(cultivator.condition, {
+    cultivatorRealm: cultivator.realm,
+  });
 
   return {
     cultivatorId: cultivator.id ?? '',
@@ -215,6 +223,7 @@ export function buildGameHudSnapshot(input: {
         cultivator.pre_heaven_fates ?? [],
       ),
     },
+    bodyCultivation,
     cultivationProgress: {
       current: cultivationExp,
       cap: cultivationCap,

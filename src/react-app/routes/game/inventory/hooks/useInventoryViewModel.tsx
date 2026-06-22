@@ -1,3 +1,4 @@
+import type { ItemDetailPayload } from '@app/components/feature/items';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import type { InkDialogState } from '@app/components/ui/InkDialog';
 import {
@@ -19,7 +20,6 @@ import {
 } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ItemDetailPayload } from '@app/components/feature/items';
 
 export type InventoryTab = 'artifacts' | 'materials' | 'consumables';
 export type InventoryItem = Artifact | Consumable | Material;
@@ -75,17 +75,6 @@ const inFlightInventoryRequestMap = new Map<
   Promise<InventoryApiPayload>
 >();
 
-const IDENTIFY_COST_BY_RANK: Record<Quality, number> = {
-  凡品: 20,
-  灵品: 80,
-  玄品: 200,
-  真品: 600,
-  地品: 1600,
-  天品: 4000,
-  仙品: 12000,
-  神品: 36000,
-};
-
 const DEFAULT_PAGE_SIZE = 20;
 
 const createEmptyPagination = (
@@ -98,17 +87,8 @@ const createEmptyPagination = (
   hasMore: false,
 });
 
-function getIdentifyCostText(item: Material): string {
-  const details = item.details;
-  const mystery =
-    details && typeof details === 'object'
-      ? (details as { mystery?: { identifyCost?: unknown } }).mystery
-      : null;
-  const cost = mystery?.identifyCost;
-  if (typeof cost === 'number' && Number.isFinite(cost)) {
-    return `${Math.max(1, Math.floor(cost))} 灵石`;
-  }
-  return `约 ${IDENTIFY_COST_BY_RANK[item.rank] ?? 200} 灵石`;
+function getIdentifyCostText(): string {
+  return '1 天地灵气';
 }
 
 function areMaterialFiltersEqual(
@@ -667,7 +647,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         content: (
           <p className="py-4 text-center">
             鉴定 <span className="font-bold">{item.name}</span> 需要消耗{' '}
-            <span className="font-bold">{getIdentifyCostText(item)}</span>。
+            <span className="font-bold">{getIdentifyCostText()}</span>。
             <br />
             <span className="text-ink-secondary text-xs">
               鉴定后才会揭开真实材料，结果无法预先得知。

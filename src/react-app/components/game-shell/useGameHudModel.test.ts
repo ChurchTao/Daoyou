@@ -122,6 +122,59 @@ describe('buildGameHudSnapshot', () => {
     });
   });
 
+  it('includes body cultivation summary for the HUD body tag', () => {
+    const snapshot = buildGameHudSnapshot({
+      cultivator: {
+        id: 'cultivator-1',
+        name: '韩立',
+        title: null,
+        realm: '筑基',
+        realm_stage: '初期',
+        spirit_stones: 12345,
+        cultivation_progress: {
+          cultivation_exp: 80,
+          exp_cap: 100,
+          comprehension_insight: 30,
+        },
+        condition: {
+          gauges: {
+            pillToxicity: 0,
+          },
+          statuses: [],
+          tracks: {
+            bodyCultivation: {
+              version: 1,
+              realm: 'bronze_skin',
+              tracks: {
+                skin: { level: 3, progress: 10 },
+                sinew_bone: { level: 2, progress: 20 },
+                organs: { level: 1, progress: 30 },
+                qi_blood: { level: 4, progress: 40 },
+                primordial_spirit: { level: 0, progress: 0 },
+              },
+              milestones: {},
+            },
+          },
+        },
+      } as any,
+      display: {
+        resources: {
+          hp: { current: 80, max: 100, percent: 80 },
+          mp: { current: 60, max: 100, percent: 60 },
+        },
+      } as any,
+      unreadMailCount: 0,
+    });
+
+    expect(snapshot?.bodyCultivation.realm.label).toBe('铜皮');
+    expect(snapshot?.bodyCultivation.totalLevel).toBe(10);
+    expect(snapshot?.bodyCultivation.tracks).toHaveLength(5);
+    expect(snapshot?.bodyCultivation.tracks[0]).toMatchObject({
+      key: 'skin',
+      level: 3,
+    });
+  });
+
   it('includes active status details for the HUD status dialog', () => {
     const snapshot = buildGameHudSnapshot({
       cultivator: {

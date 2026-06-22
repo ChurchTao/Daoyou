@@ -1,9 +1,11 @@
 import type { Cultivator } from '@shared/types/cultivator';
 import { REALM_ORDER, type RealmType } from '@shared/types/constants';
+import { buildBodyCultivationAttributeModifiers } from '@shared/lib/bodyCultivation/effects';
 import { AbilityFactory } from '../factories/AbilityFactory';
 import {
   AttributeType,
   ModifierType,
+  type AttributeModifier,
   type UnitId,
 } from '../core/types';
 import type { AbilityConfig } from '../core/configs';
@@ -30,6 +32,24 @@ const ARTIFACT_MAIN_PANEL_ATTRS = new Set<AttributeType>([
   AttributeType.WISDOM,
   AttributeType.WILLPOWER,
 ]);
+
+function mountBodyCultivationModifiers(unit: Unit, cultivator: Cultivator): void {
+  for (const [index, modifier] of buildBodyCultivationAttributeModifiers(
+    cultivator.condition,
+  ).entries()) {
+    const mountedModifier: AttributeModifier = {
+      id: `bodyCultivation:body-cultivation:${modifier.attrType}:${index}`,
+      attrType: modifier.attrType,
+      type: modifier.type,
+      value: modifier.value,
+      source: {
+        sourceType: 'bodyCultivation',
+        carrierId: 'body-cultivation',
+      },
+    };
+    unit.attributes.addModifier(mountedModifier);
+  }
+}
 
 function getCrossRealmModifierFactor(
   anchorRealm: RealmType | undefined,
@@ -116,6 +136,8 @@ export function createCombatUnitFromCultivator(
     );
     unit.abilities.addAbility(AbilityFactory.create(effectiveAbilityConfig));
   }
+
+  mountBodyCultivationModifiers(unit, cultivator);
 
   unit.updateDerivedStats();
   return unit;

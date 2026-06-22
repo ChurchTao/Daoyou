@@ -1,11 +1,11 @@
-import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { InkSelect } from '@app/components/ui/InkSelect';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { ItemLibraryEntry } from '@shared/lib/itemLibrary';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { ItemLibraryPicker } from './ItemLibraryPicker';
 import {
   createItemLibraryItemDraft,
   createReputationDraft,
@@ -20,18 +20,9 @@ interface RewardSelectionEditorProps {
   allowEmpty?: boolean;
 }
 
-interface ItemLibraryResponse {
-  items?: ItemLibraryEntry[];
-  error?: string;
-}
-
-function getItemLibraryItemLabel(item: ItemLibraryEntry) {
-  return `${item.name}（${getGameConceptLabel(item.type)} / ${item.itemId}）`;
-}
-
 function getDraftSummary(
   draft: RewardSelectionDraft,
-  itemLibraryItems: ItemLibraryEntry[],
+  itemLibraryItems: Record<string, ItemLibraryEntry>,
 ): string {
   if (draft.type === 'spirit_stones') {
     const label = getGameConceptLabel('spirit_stones');
@@ -43,13 +34,9 @@ function getDraftSummary(
     return draft.quantity.trim() ? `${label} x${draft.quantity.trim()}` : label;
   }
 
-  const item = itemLibraryItems.find(
-    (libraryItem) => libraryItem.itemId === draft.itemId,
-  );
+  const item = itemLibraryItems[draft.itemId];
   const name = item?.name ?? draft.itemId ?? '未选择道具';
-  return draft.quantity.trim()
-    ? `${name} x${draft.quantity.trim()}`
-    : name;
+  return draft.quantity.trim() ? `${name} x${draft.quantity.trim()}` : name;
 }
 
 export function RewardSelectionEditor({
@@ -58,72 +45,14 @@ export function RewardSelectionEditor({
   disabled = false,
   allowEmpty = false,
 }: RewardSelectionEditorProps) {
-  const { pushToast } = useInkUI();
-  const [itemLibraryItems, setItemLibraryItems] = useState<ItemLibraryEntry[]>([]);
-  const [itemLibraryLoading, setItemLibraryLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const response = await fetch('/api/admin/item-library?status=published');
-        const data = (await response.json()) as ItemLibraryResponse;
-        if (!response.ok) {
-          throw new Error(data.error ?? '加载道具库失败');
-        }
-        if (!cancelled) {
-          setItemLibraryItems(data.items ?? []);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          pushToast({
-            message: error instanceof Error ? error.message : '加载道具库失败',
-            tone: 'danger',
-          });
-        }
-      } finally {
-        if (!cancelled) {
-          setItemLibraryLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pushToast]);
-
-  useEffect(() => {
-    if (itemLibraryItems.length === 0) {
-      return;
-    }
-
-    let changed = false;
-    const nextValue = value.map((draft) => {
-      if (draft.type !== 'item_library') {
-        return draft;
-      }
-
-      const exists = itemLibraryItems.some((item) => item.itemId === draft.itemId);
-      if (exists) {
-        return draft;
-      }
-
-      changed = true;
-      return {
-        ...draft,
-        itemId: itemLibraryItems[0].itemId,
-      };
-    });
-
-    if (changed) {
-      onChange(nextValue);
-    }
-  }, [itemLibraryItems, onChange, value]);
+  const [selectedItems, setSelectedItems] = useState<
+    Record<string, ItemLibraryEntry>
+  >({});
 
   const updateDraft = (index: number, nextDraft: RewardSelectionDraft) => {
-    onChange(value.map((item, itemIndex) => (itemIndex === index ? nextDraft : item)));
+    onChange(
+      value.map((item, itemIndex) => (itemIndex === index ? nextDraft : item)),
+    );
   };
 
   const removeDraft = (index: number) => {
@@ -138,21 +67,7 @@ export function RewardSelectionEditor({
     onChange([...value, createReputationDraft()]);
   };
 
-  const addCatalogItem = () => {
-    if (itemLibraryItems.length === 0) {
-      pushToast({
-        message: '道具库为空，请先到“道具库”页面配置道具',
-        tone: 'warning',
-      });
-      return;
-    }
-
-    onChange([...value, createItemLibraryItemDraft(itemLibraryItems[0].itemId)]);
-  };
-
-  const summaries = value.map((draft) =>
-    getDraftSummary(draft, itemLibraryItems),
-  );
+  const summaries = value.map((draft) => getDraftSummary(draft, selectedItems));
 
   return (
     <div className="space-y-4">
@@ -173,29 +88,29 @@ export function RewardSelectionEditor({
         >
           添加声望
         </InkButton>
-        <InkButton
-          type="button"
-          variant="secondary"
-          onClick={addCatalogItem}
-          disabled={disabled || itemLibraryLoading}
-        >
-          添加道具库道具
-        </InkButton>
+        <ItemLibraryPicker
+          value=""
+          onChange={(itemId, item) => {
+            if (item) {
+              setSelectedItems((current) => ({
+                ...current,
+                [item.itemId]: item,
+              }));
+            }
+            onChange([...value, createItemLibraryItemDraft(itemId)]);
+          }}
+          disabled={disabled}
+          triggerOnly
+          triggerLabel="添加道具库道具"
+          confirmLabel="确定添加"
+        />
       </div>
-
-      {itemLibraryLoading ? (
-        <InkNotice tone="muted">道具库加载中...</InkNotice>
-      ) : null}
-
-      {!itemLibraryLoading && itemLibraryItems.length === 0 ? (
-        <InkNotice tone="warning">
-          当前道具库没有 published 道具，暂时只能添加灵石或声望奖励。
-        </InkNotice>
-      ) : null}
 
       {value.length === 0 ? (
         <InkNotice tone={allowEmpty ? 'muted' : 'warning'}>
-          {allowEmpty ? '当前未设置奖励，将发送为纯公告邮件。' : '请至少添加一项奖励。'}
+          {allowEmpty
+            ? '当前未设置奖励，将发送为纯公告邮件。'
+            : '请至少添加一项奖励。'}
         </InkNotice>
       ) : (
         value.map((draft, index) => (
@@ -213,9 +128,7 @@ export function RewardSelectionEditor({
                       ? createSpiritStoneDraft()
                       : nextType === 'reputation'
                         ? createReputationDraft()
-                        : createItemLibraryItemDraft(
-                            itemLibraryItems[0]?.itemId ?? '',
-                          );
+                        : createItemLibraryItemDraft('');
                   updateDraft(index, nextDraft);
                 }}
                 disabled={disabled}
@@ -230,27 +143,23 @@ export function RewardSelectionEditor({
               </InkSelect>
 
               {draft.type === 'item_library' ? (
-                <InkSelect
+                <ItemLibraryPicker
                   label="道具"
                   value={draft.itemId}
-                  onChange={(itemId) =>
+                  onChange={(itemId, item) => {
+                    if (item) {
+                      setSelectedItems((current) => ({
+                        ...current,
+                        [item.itemId]: item,
+                      }));
+                    }
                     updateDraft(index, {
                       ...draft,
                       itemId,
-                    })
-                  }
-                  disabled={disabled || itemLibraryItems.length === 0}
-                >
-                  {itemLibraryItems.length === 0 ? (
-                    <option value="">暂无道具</option>
-                  ) : (
-                    itemLibraryItems.map((item) => (
-                      <option key={item.id} value={item.itemId}>
-                        {getItemLibraryItemLabel(item)}
-                      </option>
-                    ))
-                  )}
-                </InkSelect>
+                    });
+                  }}
+                  disabled={disabled}
+                />
               ) : (
                 <div className="flex flex-col gap-1">
                   <span className="text-ink font-semibold tracking-[0.08em]">
@@ -288,7 +197,7 @@ export function RewardSelectionEditor({
             </div>
 
             <p className="text-ink-secondary text-sm">
-              奖励预览：{getDraftSummary(draft, itemLibraryItems)}
+              奖励预览：{getDraftSummary(draft, selectedItems)}
             </p>
           </div>
         ))

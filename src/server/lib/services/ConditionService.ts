@@ -12,8 +12,22 @@ import { evaluateFateContext } from '@shared/lib/fates';
 import {
   isConditionStatusKey,
 } from '@shared/lib/conditionStatusRegistry';
+import {
+  createDefaultBodyCultivationState,
+  normalizeBodyCultivationState,
+} from '@shared/lib/bodyCultivation/normalize';
+import {
+  breakthroughBodyCultivationRealm as advanceBodyCultivationRealm,
+} from '@shared/lib/bodyCultivation/breakthrough';
+import {
+  getBodyCultivationBattleInitHooks,
+  getBodyCultivationBattleSettleHooks,
+  getBodyCultivationExternalResourceLossHooks,
+  getBodyCultivationNaturalRecoveryMultiplier,
+} from '@shared/lib/bodyCultivation/effects';
 import type {
   BattleMode,
+  BodyCultivationRealm,
   ConditionStatusDuration,
   ConditionStatusInstance,
   ConditionStatusKey,
@@ -157,6 +171,20 @@ function removeStatuses(
   return statuses.filter((status) => !keySet.has(status.key));
 }
 
+export interface ExternalResourceLossPreview {
+  maxHp: number;
+  maxMp: number;
+  rawHpLoss: number;
+  rawMpLoss: number;
+  hpLoss: number;
+  mpLoss: number;
+  preventedHpLoss: number;
+  preventedMpLoss: number;
+  hpLossMultiplier: number;
+  mpLossMultiplier: number;
+  triggerTexts: string[];
+}
+
 function getWoundSeverityIndex(key: ConditionStatusKey): number {
   return WOUND_SEVERITY_ORDER.indexOf(key);
 }
@@ -172,6 +200,16 @@ function getCurrentWoundStatus(
   return woundStatuses.sort(
     (left, right) => getWoundSeverityIndex(right) - getWoundSeverityIndex(left),
   )[0] ?? null;
+}
+
+function downgradeWoundStatus(
+  woundStatus: ConditionStatusKey,
+  steps: number,
+): ConditionStatusKey | null {
+  const currentIndex = getWoundSeverityIndex(woundStatus);
+  if (currentIndex < 0) return woundStatus;
+  const nextIndex = currentIndex - Math.max(0, Math.floor(steps));
+  return nextIndex >= 0 ? WOUND_SEVERITY_ORDER[nextIndex] : null;
 }
 
 function setMinimumWoundStatus(
@@ -196,6 +234,20 @@ function setMinimumWoundStatus(
       updatedAt: now.toISOString(),
     },
   );
+}
+
+function setBattleWoundStatus(
+  statuses: ConditionStatusInstance[],
+  target: ConditionStatusKey,
+  downgradeSteps: number,
+  now: Date,
+): ConditionStatusInstance[] {
+  const downgraded = downgradeWoundStatus(target, downgradeSteps);
+  if (!downgraded) {
+    return removeStatuses(statuses, WOUND_SEVERITY_ORDER);
+  }
+
+  return setMinimumWoundStatus(statuses, downgraded, now);
 }
 
 function toBattleStatusRefs(statuses: ConditionStatusInstance[], now: Date) {
@@ -223,6 +275,7 @@ function buildDefaultCondition(
       pillToxicity: 0,
     },
     tracks: {
+      bodyCultivation: createDefaultBodyCultivationState(),
       tempering: createBaseTemperingTrack(),
       marrowWash: { level: 0, progress: 0 },
     },
@@ -243,8 +296,18 @@ function buildDefaultCondition(
 }
 
 export const ConditionService = {
-  getMaxResources(cultivator: Cultivator): { maxHp: number; maxMp: number } {
-    const display = getCultivatorDisplayAttributes(cultivator);
+  getMaxResources(
+    cultivator: Cultivator,
+    conditionInput?: CultivatorCondition,
+  ): { maxHp: number; maxMp: number } {
+    const display = getCultivatorDisplayAttributes(
+      conditionInput
+        ? {
+            ...cultivator,
+            condition: conditionInput,
+          }
+        : cultivator,
+    );
     return {
       maxHp: display.maxHp,
       maxMp: display.maxMp,
@@ -258,7 +321,7 @@ export const ConditionService = {
   ): CultivatorCondition {
     const defaults = buildDefaultCondition(cultivator, now);
     const raw = input ?? cultivator.condition;
-    const { maxHp, maxMp } = this.getMaxResources(cultivator);
+    const { maxHp, maxMp } = this.getMaxResources(cultivator, raw);
     const rawTempering = raw?.tracks?.tempering;
 
     return {
@@ -283,6 +346,7 @@ export const ConditionService = {
         pillToxicity: clamp(raw?.gauges?.pillToxicity ?? 0, 0, 1000),
       },
       tracks: {
+        bodyCultivation: normalizeBodyCultivationState(raw),
         tempering: {
           vitality: {
             level: Math.max(0, Math.floor(rawTempering?.vitality?.level ?? 0)),
@@ -354,7 +418,7 @@ export const ConditionService = {
     now: Date = new Date(),
   ): CultivatorCondition {
     const condition = this.normalizeCondition(cultivator, conditionInput, now);
-    const { maxHp, maxMp } = this.getMaxResources(cultivator);
+    const { maxHp, maxMp } = this.getMaxResources(cultivator, condition);
     const statuses = pruneInactiveStatuses(condition.statuses, now);
     const lastRecoveryAt = Date.parse(condition.timestamps.lastRecoveryAt ?? '');
 
@@ -383,9 +447,12 @@ export const ConditionService = {
       fateContext.toxicityPenaltyMultiplier,
     );
     const statusMultiplier = getNaturalRecoveryStatusMultiplier(condition, now);
+    const bodyCultivationMultiplier =
+      getBodyCultivationNaturalRecoveryMultiplier(condition);
     const recoveryFactor =
       toxicityMultiplier *
       statusMultiplier *
+      bodyCultivationMultiplier *
       fateContext.naturalRecoveryMultiplier;
     const hpRecover = Math.floor(
       maxHp * NATURAL_RECOVERY_CONFIG.hpPerHour * elapsedHours * recoveryFactor,
@@ -430,13 +497,8 @@ export const ConditionService = {
     now: Date = new Date(),
   ): CultivatorCondition {
     const condition = this.tickNaturalRecovery(cultivator, conditionInput, now);
-    const { maxHp, maxMp } = this.getMaxResources(cultivator);
-    const hpLoss = Math.floor(
-      maxHp * (options.hpPercent ?? 0) + (options.hpFlat ?? 0),
-    );
-    const mpLoss = Math.floor(
-      maxMp * (options.mpPercent ?? 0) + (options.mpFlat ?? 0),
-    );
+    const preview = this.previewExternalResourceLoss(cultivator, condition, options);
+    const { maxHp, maxMp, hpLoss, mpLoss } = preview;
 
     return {
       ...condition,
@@ -452,6 +514,53 @@ export const ConditionService = {
         ...condition.timestamps,
         lastRecoveryAt: now.toISOString(),
       },
+    };
+  },
+
+  previewExternalResourceLoss(
+    cultivator: Cultivator,
+    conditionInput: CultivatorCondition | undefined,
+    options: {
+      hpPercent?: number;
+      mpPercent?: number;
+      hpFlat?: number;
+      mpFlat?: number;
+    },
+  ): ExternalResourceLossPreview {
+    const condition = this.normalizeCondition(cultivator, conditionInput);
+    const { maxHp, maxMp } = this.getMaxResources(cultivator, condition);
+    const bodyHooks = getBodyCultivationExternalResourceLossHooks(condition);
+    const rawHpLossValue =
+      maxHp * (options.hpPercent ?? 0) + (options.hpFlat ?? 0);
+    const rawMpLossValue =
+      maxMp * (options.mpPercent ?? 0) + (options.mpFlat ?? 0);
+    const hpLoss = Math.floor(rawHpLossValue * bodyHooks.hpLossMultiplier);
+    const mpLoss = Math.floor(rawMpLossValue * bodyHooks.mpLossMultiplier);
+    const rawHpLoss = Math.floor(rawHpLossValue);
+    const rawMpLoss = Math.floor(rawMpLossValue);
+    const preventedHpLoss = Math.max(0, rawHpLoss - hpLoss);
+    const preventedMpLoss = Math.max(0, rawMpLoss - mpLoss);
+    const triggerTexts: string[] = [];
+
+    if (preventedHpLoss > 0) {
+      triggerTexts.push(`肉身炼体生效：外护与承压降低气血损耗 ${preventedHpLoss} 点`);
+    }
+    if (preventedMpLoss > 0) {
+      triggerTexts.push(`肉身炼体生效：气血与元神稳住灵力损耗 ${preventedMpLoss} 点`);
+    }
+
+    return {
+      maxHp,
+      maxMp,
+      rawHpLoss,
+      rawMpLoss,
+      hpLoss,
+      mpLoss,
+      preventedHpLoss,
+      preventedMpLoss,
+      hpLossMultiplier: bodyHooks.hpLossMultiplier,
+      mpLossMultiplier: bodyHooks.mpLossMultiplier,
+      triggerTexts,
     };
   },
 
@@ -491,6 +600,11 @@ export const ConditionService = {
     }
 
     const condition = this.tickNaturalRecovery(cultivator, conditionInput, now);
+    const { maxHp } = this.getMaxResources(cultivator, condition);
+    const battleInitHooks = getBodyCultivationBattleInitHooks(condition);
+    const startingShield = Math.floor(
+      maxHp * battleInitHooks.startingShieldPercent,
+    );
 
     return {
       player: {
@@ -503,8 +617,13 @@ export const ConditionService = {
             mode: 'absolute',
             value: condition.resources.mp.current,
           },
+          ...(startingShield > 0 ? { shield: startingShield } : {}),
         },
         statusRefs: toBattleStatusRefs(condition.statuses, now),
+        startingBuffs: battleInitHooks.startingBuffs.map((buff) => ({
+          buff,
+          source: 'self',
+        })),
       },
     };
   },
@@ -522,16 +641,25 @@ export const ConditionService = {
     }
 
     const condition = this.tickNaturalRecovery(cultivator, conditionInput, now);
-    const { maxHp, maxMp } = this.getMaxResources(cultivator);
+    const { maxHp, maxMp } = this.getMaxResources(cultivator, condition);
+    const bodyHooks = getBodyCultivationBattleSettleHooks(condition);
 
     if (didLose) {
+      const defeatProtection = bodyHooks.defeatProtection;
       return {
         ...condition,
         resources: {
-          hp: { current: 1 },
+          hp: { current: defeatProtection?.hpFloor ?? 1 },
           mp: { current: 0 },
         },
-        statuses: setMinimumWoundStatus(condition.statuses, 'near_death', now),
+        statuses: defeatProtection
+          ? setBattleWoundStatus(
+              condition.statuses,
+              defeatProtection.woundStatus,
+              0,
+              now,
+            )
+          : setMinimumWoundStatus(condition.statuses, 'near_death', now),
         timestamps: {
           ...condition.timestamps,
           lastBattleAt: now.toISOString(),
@@ -546,15 +674,35 @@ export const ConditionService = {
     let statuses = condition.statuses;
 
     if (hpRatio <= 0.15) {
-      statuses = setMinimumWoundStatus(statuses, 'major_wound', now);
+      statuses = setBattleWoundStatus(
+        statuses,
+        'major_wound',
+        bodyHooks.woundDowngradeSteps,
+        now,
+      );
     } else if (hpRatio <= 0.35) {
-      statuses = setMinimumWoundStatus(statuses, 'minor_wound', now);
+      statuses = setBattleWoundStatus(
+        statuses,
+        'minor_wound',
+        bodyHooks.woundDowngradeSteps,
+        now,
+      );
     }
+    const settledHp =
+      hpRatio > 0 &&
+      hpRatio < 0.5 &&
+      bodyHooks.lowHpRecoveryPercent > 0
+        ? clamp(
+            currentHp + Math.floor(maxHp * bodyHooks.lowHpRecoveryPercent),
+            0,
+            maxHp,
+          )
+        : currentHp;
 
     return {
       ...condition,
       resources: {
-        hp: { current: currentHp },
+        hp: { current: settledHp },
         mp: { current: currentMp },
       },
       statuses,
@@ -574,5 +722,43 @@ export const ConditionService = {
       conditionInput,
       evaluateFateContext(cultivator.pre_heaven_fates ?? []).toxicityPenaltyMultiplier,
     );
+  },
+
+  breakthroughBodyCultivationRealm(
+    cultivator: Cultivator,
+    conditionInput: CultivatorCondition | undefined,
+    now: Date = new Date(),
+    rng: () => number = Math.random,
+  ): {
+    condition: CultivatorCondition;
+    fromRealm: BodyCultivationRealm;
+    toRealm: BodyCultivationRealm;
+    success: boolean;
+    chance: number;
+    roll: number;
+    failedAttempts: number;
+    guaranteeProgress: number;
+  } {
+    const condition = this.normalizeCondition(cultivator, conditionInput, now);
+    const result = advanceBodyCultivationRealm(condition, {
+      cultivatorRealm: cultivator.realm,
+    }, rng);
+
+    return {
+      condition: {
+        ...condition,
+        tracks: {
+          ...condition.tracks,
+          bodyCultivation: result.state,
+        },
+      },
+      fromRealm: result.fromRealm,
+      toRealm: result.toRealm,
+      success: result.success,
+      chance: result.chance,
+      roll: result.roll,
+      failedAttempts: result.failedAttempts,
+      guaranteeProgress: result.guaranteeProgress,
+    };
   },
 };

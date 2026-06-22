@@ -8,8 +8,16 @@ import {
   getPillUsageRuleText,
   getRealmPillUsageLimit,
 } from '@shared/lib/pillUsageText';
+import { normalizeBodyCultivationState } from '@shared/lib/bodyCultivation/normalize';
+import { getBodyCultivationSummary } from '@shared/lib/bodyCultivation/summary';
 import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
+import {
+  getBodyCultivationThresholdByLevel,
+  getBodyTrackKeyFromPath,
+  isBodyCultivationTrackPath,
+  isLegacyTemperingTrackPath,
+} from '@shared/lib/bodyCultivation/config';
 import {
   CULTIVATION_BOOST_STATUS_KEY,
   getCultivationBoostDisplayText,
@@ -459,6 +467,114 @@ function buildCostAndRuleLines(
   return lines;
 }
 
+function advanceProgressPreview(args: {
+  level: number;
+  progress: number;
+  value: number;
+  thresholdByLevel: (level: number) => number;
+}) {
+  let level = Math.max(0, Math.floor(args.level));
+  let progress = Math.max(0, Math.floor(args.progress));
+  let remaining = Math.max(0, Math.floor(args.value));
+
+  while (remaining > 0) {
+    const threshold = Math.max(1, args.thresholdByLevel(level));
+    const needed = threshold - progress;
+    if (remaining < needed) {
+      progress += remaining;
+      remaining = 0;
+      break;
+    }
+    remaining -= needed;
+    level += 1;
+    progress = 0;
+  }
+
+  return {
+    level,
+    progress,
+    threshold: Math.max(1, args.thresholdByLevel(level)),
+  };
+}
+
+function getBodyTrackPreviewLines(
+  operation: Extract<ConditionOperation, { type: 'advance_track' }>,
+  condition: CultivatorCondition,
+): string[] {
+  if (
+    !isBodyCultivationTrackPath(operation.track) &&
+    !isLegacyTemperingTrackPath(operation.track)
+  ) {
+    return [];
+  }
+
+  const trackKey = getBodyTrackKeyFromPath(operation.track);
+  const state = normalizeBodyCultivationState(condition);
+  const currentTrack = state.tracks[trackKey];
+  const next = advanceProgressPreview({
+    level: currentTrack.level,
+    progress: currentTrack.progress,
+    value: operation.value,
+    thresholdByLevel: getBodyCultivationThresholdByLevel,
+  });
+  const currentSummary = getBodyCultivationSummary(condition).tracks.find(
+    (track) => track.key === trackKey,
+  );
+  const nextCondition: CultivatorCondition = {
+    ...condition,
+    tracks: {
+      ...condition.tracks,
+      bodyCultivation: {
+        ...state,
+        tracks: {
+          ...state.tracks,
+          [trackKey]: {
+            level: next.level,
+            progress: next.progress,
+          },
+        },
+      },
+    },
+  };
+  const nextSummary = getBodyCultivationSummary(nextCondition).tracks.find(
+    (track) => track.key === trackKey,
+  );
+  const trackName = currentSummary?.name ?? getTrackConfig(operation.track).name;
+  const currentThreshold = getBodyCultivationThresholdByLevel(
+    currentTrack.level,
+  );
+  const lines = [
+    `推进轨道：${trackName.replace('炼体·', '')} +${operation.value}`,
+    `预计进度：Lv.${currentTrack.level} ${currentTrack.progress}/${currentThreshold} -> Lv.${next.level} ${next.progress}/${next.threshold}`,
+  ];
+
+  if (next.level > currentTrack.level && nextSummary) {
+    lines.push(
+      `升级后收益：${nextSummary.currentEffects.join('、')}`,
+      `下个节点：Lv.${nextSummary.nextMilestoneLevel}`,
+    );
+  } else if (currentSummary) {
+    lines.push(`当前收益：${currentSummary.currentEffects.join('、')}`);
+  }
+
+  return lines;
+}
+
+function buildTrackPreviewLines(
+  spec: PillSpec,
+  options?: PillDisplayOptions,
+): string[] {
+  if (!options?.condition) {
+    return [];
+  }
+
+  return spec.operations.flatMap((operation) =>
+    operation.type === 'advance_track'
+      ? getBodyTrackPreviewLines(operation, options.condition!)
+      : [],
+  );
+}
+
 function buildAlchemyInfoLines(
   consumable: Consumable & { spec: PillSpec },
 ): string[] {
@@ -508,6 +624,7 @@ export function toPillDisplayModel(
   consumable: Consumable & { spec: PillSpec },
   options?: PillDisplayOptions,
 ): PillDisplayModel {
+  const trackPreviewLines = buildTrackPreviewLines(consumable.spec, options);
   return {
     familyLabel: getPillFamilyLabel(consumable.spec.family),
     appearance: getAppearanceDisplay(consumable.spec),
@@ -520,6 +637,15 @@ export function toPillDisplayModel(
         title: '核心药效',
         lines: buildCoreEffectLines(consumable.spec),
       },
+      ...(trackPreviewLines.length > 0
+        ? [
+            {
+              key: 'track-preview',
+              title: '服用预览',
+              lines: trackPreviewLines,
+            },
+          ]
+        : []),
       {
         key: 'cost-and-rules',
         title: '代价与规则',

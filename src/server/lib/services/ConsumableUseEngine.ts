@@ -50,6 +50,10 @@ function describeTrackLevelUp(levelUp: {
 }): string {
   const config = getTrackConfig(levelUp.track);
 
+  if (config.reward.kind === 'body_modifier') {
+    return `${config.name}提升至 Lv.${levelUp.newLevel}，肉身修正已生效`;
+  }
+
   if (config.reward.kind === 'attribute') {
     return `${config.name}提升至 Lv.${levelUp.newLevel}，${getAttributeLabel(
       config.reward.attribute,

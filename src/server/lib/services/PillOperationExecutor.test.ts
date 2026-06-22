@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ConditionService } from './ConditionService';
 import { PillOperationExecutor } from './PillOperationExecutor';
 import type { Consumable, Cultivator } from '@shared/types/cultivator';
+import type { PillSpec } from '@shared/types/consumable';
 
 function createCultivator(): Cultivator {
   return {
@@ -276,7 +277,7 @@ function createTemperingPill(): Consumable {
       kind: 'pill',
       family: 'tempering',
       operations: [
-        { type: 'advance_track', track: 'tempering.vitality', value: 1 },
+        { type: 'advance_track', track: 'body.qi_blood', value: 1 },
       ],
       consumeRules: {
         scene: 'out_of_battle_only',
@@ -286,12 +287,12 @@ function createTemperingPill(): Consumable {
         source: 'improvised',
         sourceMaterials: ['铁骨藤'],
         analysisVersion: 2,
-        propertyVector: [{ key: 'tempering_vitality', weight: 1 }],
+        propertyVector: [{ key: 'body_qi_blood', weight: 1 }],
         sourceMaterialVectors: [],
         dominantElement: '土',
         stability: 68,
         toxicityRating: 12,
-        tags: ['tempering_vitality'],
+        tags: ['body_qi_blood'],
       },
     },
   };
@@ -653,13 +654,25 @@ describe('PillOperationExecutor', () => {
     expect(cultivator.condition.counters.longevityPillUsesByRealm.筑基).toBe(8);
   });
 
-  it('levels up tempering tracks and applies the matching attribute reward', () => {
+  it('levels up body cultivation tracks without mutating base attributes', () => {
     const cultivator = createCultivator();
     cultivator.condition = {
       ...ConditionService.normalizeCondition(cultivator),
       tracks: {
+        bodyCultivation: {
+          version: 1,
+          realm: 'mortal_body',
+          tracks: {
+            skin: { level: 0, progress: 0 },
+            sinew_bone: { level: 0, progress: 0 },
+            organs: { level: 0, progress: 0 },
+            qi_blood: { level: 0, progress: 99 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
         tempering: {
-          vitality: { level: 0, progress: 99 },
+          vitality: { level: 0, progress: 0 },
           spirit: { level: 0, progress: 0 },
           wisdom: { level: 0, progress: 0 },
           speed: { level: 0, progress: 0 },
@@ -675,13 +688,65 @@ describe('PillOperationExecutor', () => {
       new Date('2026-05-25T12:00:00.000Z'),
     );
 
-    expect(result.cultivator.attributes.vitality).toBe(41);
-    expect(result.cultivator.condition?.tracks.tempering.vitality).toEqual({
+    expect(result.cultivator.attributes.vitality).toBe(40);
+    expect(result.cultivator.condition?.tracks.bodyCultivation?.tracks.qi_blood).toEqual({
       level: 1,
       progress: 0,
     });
     expect(result.trackLevelUps).toEqual([
-      { track: 'tempering.vitality', newLevel: 1 },
+      { track: 'body.qi_blood', newLevel: 1 },
     ]);
+  });
+
+  it('reduces body cultivation progress after the current realm soft cap', () => {
+    const cultivator = createCultivator();
+    cultivator.condition = {
+      ...ConditionService.normalizeCondition(cultivator),
+      tracks: {
+        bodyCultivation: {
+          version: 1,
+          realm: 'mortal_body',
+          tracks: {
+            skin: { level: 0, progress: 0 },
+            sinew_bone: { level: 0, progress: 0 },
+            organs: { level: 0, progress: 0 },
+            qi_blood: { level: 5, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+        tempering: {
+          vitality: { level: 0, progress: 0 },
+          spirit: { level: 0, progress: 0 },
+          wisdom: { level: 0, progress: 0 },
+          speed: { level: 0, progress: 0 },
+          willpower: { level: 0, progress: 0 },
+        },
+        marrowWash: { level: 0, progress: 0 },
+      },
+    };
+    const basePill = createTemperingPill();
+    const baseSpec = basePill.spec as PillSpec;
+    const pill: Consumable = {
+      ...basePill,
+      id: 'pill-tempering-soft-cap',
+      spec: {
+        ...baseSpec,
+        operations: [
+          { type: 'advance_track', track: 'body.qi_blood', value: 20 },
+        ],
+      },
+    };
+
+    const result = PillOperationExecutor.execute(
+      cultivator,
+      pill,
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(result.cultivator.condition?.tracks.bodyCultivation?.tracks.qi_blood).toEqual({
+      level: 5,
+      progress: 10,
+    });
   });
 });

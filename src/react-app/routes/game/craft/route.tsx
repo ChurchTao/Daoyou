@@ -27,7 +27,7 @@ export default function CraftPage() {
           <GameSceneAsideSection title="炉房分途">
             <div className="space-y-2 text-sm leading-7">
               <p>炼器室：矿材、妖骨、辅材入炉，锻出法宝形体。</p>
-              <p>炼丹房：草木灵药调性，求疗伤、破境与炼体诸丹。</p>
+              <p>炼丹房：草木灵药调性，求疗伤、破境与五轨炼体诸丹。</p>
             </div>
           </GameSceneAsideSection>
           <GameSceneAsideSection
@@ -86,7 +86,7 @@ export default function CraftPage() {
           <p className="text-ink-secondary mb-4 min-h-10 text-sm">
             调阴阳之气，炼制灵丹妙药。
             <br />
-            需消耗灵草灵果。
+            炼体丹按药性推进五轨，破限看药性与质量。
           </p>
           <InkButton href="/game/craft/alchemy" variant="primary">
             前往炼丹房

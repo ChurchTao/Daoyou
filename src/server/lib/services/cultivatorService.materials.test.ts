@@ -17,6 +17,7 @@ vi.mock('../repositories/cultivatorRepository', async (importOriginal) => {
 });
 
 import {
+  consumeMaterialById,
   hasMaterial,
   removeMaterialFromInventory,
 } from './cultivatorService';
@@ -41,6 +42,56 @@ function createMaterialExecutor(
         from() {
           return {
             where: async () => materialRows,
+          };
+        },
+      };
+    },
+    update() {
+      return {
+        set(values: unknown) {
+          return {
+            where: async (where: unknown) => {
+              state.updated.push({ values, where });
+            },
+          };
+        },
+      };
+    },
+    delete() {
+      return {
+        where: async (where: unknown) => {
+          state.deletedIds.push(where);
+        },
+      };
+    },
+  };
+
+  return { executor, state };
+}
+
+function createMaterialByIdExecutor(
+  materialRow:
+    | {
+        id: string;
+        quantity: number;
+      }
+    | undefined,
+) {
+  const state = {
+    deletedIds: [] as unknown[],
+    updated: [] as Array<{ values: unknown; where: unknown }>,
+  };
+
+  const executor = {
+    select() {
+      return {
+        from() {
+          return {
+            where() {
+              return {
+                limit: async () => (materialRow ? [materialRow] : []),
+              };
+            },
           };
         },
       };
@@ -123,5 +174,31 @@ describe('cultivator material consumption', () => {
     expect(state.updated).toHaveLength(1);
     expect(state.updated[0]?.values).toEqual({ quantity: 8 });
     expect(state.deletedIds).toHaveLength(1);
+  });
+
+  it('consumes material by id without matching material name', async () => {
+    const { executor, state } = createMaterialByIdExecutor({
+      id: 'material-1',
+      quantity: 3,
+    });
+    getExecutorMock.mockReturnValue(executor);
+
+    await consumeMaterialById('user-1', 'cultivator-1', 'material-1', 2);
+
+    expect(state.updated).toHaveLength(1);
+    expect(state.updated[0]?.values).toEqual({ quantity: 1 });
+    expect(state.deletedIds).toHaveLength(0);
+  });
+
+  it('rejects material by id consumption when quantity is insufficient', async () => {
+    const { executor } = createMaterialByIdExecutor({
+      id: 'material-1',
+      quantity: 1,
+    });
+    getExecutorMock.mockReturnValue(executor);
+
+    await expect(
+      consumeMaterialById('user-1', 'cultivator-1', 'material-1', 2),
+    ).rejects.toThrow('材料数量不足，当前仅有 1');
   });
 });

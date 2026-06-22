@@ -11,6 +11,8 @@ export interface ScalableValue {
   coefficient?: number;
   /** 目标最大气血的比例伤害（如 0.08 表示 8% 目标最大气血） */
   targetMaxHpRatio?: number;
+  /** 目标最大法力的比例值（如 0.08 表示 8% 目标最大法力） */
+  targetMaxMpRatio?: number;
 }
 
 /**
@@ -34,6 +36,9 @@ export class ValueCalculator {
     }
     if (value.targetMaxHpRatio && target) {
       total += target.getMaxHp() * value.targetMaxHpRatio;
+    }
+    if (value.targetMaxMpRatio && target) {
+      total += target.getMaxMp() * value.targetMaxMpRatio;
     }
     return Math.round(total);
   }

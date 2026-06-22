@@ -11,6 +11,7 @@ import {
   pruneExpiredData,
   type ExpiredDataCleanupResult,
 } from '@server/lib/repositories/retentionRepository';
+import { getItemLibraryDailyMaterialGenerationSettings } from '@server/lib/repositories/appSettingsRepository';
 import { expireListings } from '@server/lib/services/AuctionService';
 import { expireBetBattles } from '@server/lib/services/BetBattleService';
 import {
@@ -18,6 +19,10 @@ import {
   type MailAttachment,
 } from '@server/lib/services/MailService';
 import { runMarketRefreshJob } from '@server/lib/services/MarketScheduler';
+import {
+  generateRandomMaterialLibraryEntries,
+  ITEM_LIBRARY_SYSTEM_USER_ID,
+} from '@server/lib/services/MaterialLibraryService';
 import { commitPlayerStateMutation } from '@server/lib/services/PlayerStateMutationService';
 import { towerEnemySetService } from '@server/lib/tower/enemySets';
 import { RANKING_REWARDS, REALM_VALUES } from '@shared/types/constants';
@@ -31,9 +36,12 @@ const TOWER_ENEMY_SETS_LOCK_KEY = 'cron:tower-enemy-sets:lock';
 const PLAYER_STATE_EVENTS_CLEANUP_LOCK_KEY =
   'cron:player-state-events-cleanup:lock';
 const EXPIRED_DATA_CLEANUP_LOCK_KEY = 'cron:expired-data-cleanup:lock';
+const MATERIAL_LIBRARY_DAILY_GENERATION_LOCK_KEY =
+  'cron:material-library-daily-generation:lock';
 const RANK_REWARD_SETTLED_PREFIX = 'golden_rank:weekly_rewards:settled:';
 const LOCK_TTL_SECONDS = 15 * 60;
 const TOWER_ENEMY_SETS_LOCK_TTL_SECONDS = 2 * 60 * 60;
+const MATERIAL_LIBRARY_DAILY_GENERATION_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const SETTLED_TTL_SECONDS = 7 * 24 * 60 * 60;
 const PLAYER_STATE_EVENT_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
 const MAIL_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
@@ -336,6 +344,38 @@ export async function runMarketRefreshCronJob(): Promise<CronJobResult> {
       skipped: result.skipped,
     };
   });
+}
+
+export async function runMaterialLibraryDailyGenerationJob(): Promise<CronJobResult> {
+  return withJobLock(
+    'material-library-daily-generation',
+    MATERIAL_LIBRARY_DAILY_GENERATION_LOCK_KEY,
+    async () => {
+      const settings = await getItemLibraryDailyMaterialGenerationSettings();
+      if (!settings.enabled) {
+        return {
+          success: true,
+          processed: 0,
+          skipped: true,
+          reason: 'disabled',
+        };
+      }
+
+      const items = await generateRandomMaterialLibraryEntries({
+        count: settings.count,
+        userId: ITEM_LIBRARY_SYSTEM_USER_ID,
+        source: 'daily_cron',
+        seed: `daily_cron:${new Date().toISOString()}`,
+      });
+
+      return {
+        success: true,
+        processed: items.length,
+        skipped: false,
+      };
+    },
+    MATERIAL_LIBRARY_DAILY_GENERATION_LOCK_TTL_SECONDS,
+  );
 }
 
 export async function runTowerEnemySetRefreshJob(): Promise<

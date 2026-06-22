@@ -271,7 +271,24 @@ export const UpdateItemLibraryEntrySchema = z.discriminatedUnion('type', [
 export const ItemLibraryListQuerySchema = z.object({
   status: ItemLibraryStatusSchema.optional(),
   type: ItemLibraryTypeSchema.optional(),
+  materialType: z.enum(MATERIAL_TYPE_VALUES).optional(),
+  quality: z.enum(QUALITY_VALUES).optional(),
   q: z.string().trim().max(100).optional(),
+  itemIds: z
+    .string()
+    .trim()
+    .max(4000)
+    .optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+export const ItemLibraryMaterialGenerateSchema = z.object({
+  count: z.number().int().min(1).max(200),
+  materialType: z.enum(MATERIAL_TYPE_VALUES),
+  quality: z.enum(QUALITY_VALUES),
+  status: ItemLibraryStatusSchema.default('published'),
+  seed: z.string().trim().min(1).max(120).optional(),
 });
 
 export const ItemLibraryRewardSelectionSchema = z.discriminatedUnion('type', [
@@ -310,6 +327,10 @@ export type UpdateItemLibraryEntry = z.infer<
 >;
 export type ItemLibraryRewardSelection = z.infer<
   typeof ItemLibraryRewardSelectionSchema
+>;
+export type ItemLibraryListQuery = z.infer<typeof ItemLibraryListQuerySchema>;
+export type ItemLibraryMaterialGenerateInput = z.infer<
+  typeof ItemLibraryMaterialGenerateSchema
 >;
 
 function clonePlainData<T>(value: T): T {

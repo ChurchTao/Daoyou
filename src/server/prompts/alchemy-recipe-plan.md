@@ -41,7 +41,11 @@ id: alchemy-recipe-plan
 - 若材料文本明显出现“护脉、稳脉、续脉、镇络”，优先考虑 `protect_meridians_support`。
 - 若材料文本明显出现“冲关、破境、蓄势”，优先考虑 `breakthrough_support`。
 - 若材料文本明显出现“延寿、寿元、续命、命元、固本延年”，优先考虑 `extend_lifespan`。
-- 若材料文本明显出现“锻骨、强筋、炼体”，在五个 `tempering_*` 中选择最贴切的一类。
+- 若材料文本明显出现“刀枪不入、皮膜、抗毒、药浴”，优先考虑 `body_skin`。
+- 若材料文本明显出现“锻骨、强筋、骨髓、玄铁、重压”，优先考虑 `body_sinew_bone`。
+- 若材料文本明显出现“脏腑、五脏、五气、真火、爆发、雷音”，优先考虑 `body_organs`。
+- 若材料文本明显出现“气血、精血、续航、寿元、穴窍”，优先考虑 `body_qi_blood`。
+- 若材料文本明显出现“元神、神识、心魔、夺舍、幻境”，优先考虑 `body_primordial_spirit`。
 - 若材料文本明显出现“洗髓、伐脉、易筋”，优先考虑 `marrow_wash`。
 
 ## user

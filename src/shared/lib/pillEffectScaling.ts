@@ -62,7 +62,7 @@ export function buildDetoxPower(quality: Quality): number {
 }
 
 export function buildPositivePillToxicity(quality: Quality): number {
-  return Math.round(getLinearQualityValue(quality, 3, 50));
+  return Math.round(getLinearQualityValue(quality, 3, 40));
 }
 
 export function buildBreakthroughChanceBonus(quality: Quality): number {

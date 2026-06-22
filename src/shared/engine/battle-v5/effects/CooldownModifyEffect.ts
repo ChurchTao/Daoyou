@@ -17,29 +17,36 @@ export class CooldownModifyEffect extends GameplayEffect {
   execute(context: EffectContext): void {
     const { target, caster, ability } = context;
     const abilities = target.abilities.getAllAbilities();
+    const matchedSkills = abilities.filter(
+      (skill): skill is ActiveSkill =>
+        skill instanceof ActiveSkill &&
+        ability?.id !== skill.id &&
+        (!this.params.tags || skill.tags.hasAnyTag(this.params.tags)),
+    );
+    const countToModify =
+      this.params.maxCount === undefined
+        ? matchedSkills.length
+        : Math.min(
+            matchedSkills.length,
+            Math.max(0, Math.floor(this.params.maxCount)),
+          );
 
-    for (const skill of abilities) {
-      if (skill instanceof ActiveSkill && ability?.id != skill.id) {
-        // 如果指定了技能标识符
-        if (
-          !this.params.tags ||
-          (this.params.tags && skill.tags.hasAnyTag(this.params.tags))
-        ) {
-          // 调用 ActiveSkill 提供的标准化方法修改冷却
-          skill.modifyCooldown(this.params.cdModifyValue);
+    for (let i = 0; i < countToModify; i++) {
+      const skill = matchedSkills[i];
 
-          // 发布冷却修改事件
-          EventBus.instance.publish<CooldownModifyEvent>({
-            type: 'CooldownModifyEvent',
-            timestamp: Date.now(),
-            caster,
-            target,
-            ability,
-            cdModifyValue: this.params.cdModifyValue,
-            affectedAbilityName: skill.name,
-          });
-        }
-      }
+      // 调用 ActiveSkill 提供的标准化方法修改冷却
+      skill.modifyCooldown(this.params.cdModifyValue);
+
+      // 发布冷却修改事件
+      EventBus.instance.publish<CooldownModifyEvent>({
+        type: 'CooldownModifyEvent',
+        timestamp: Date.now(),
+        caster,
+        target,
+        ability,
+        cdModifyValue: this.params.cdModifyValue,
+        affectedAbilityName: skill.name,
+      });
     }
   }
 }

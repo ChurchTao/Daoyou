@@ -138,6 +138,32 @@ describe('route title helpers', () => {
     });
   });
 
+  it('uses standard dock metadata for the body cultivation detail route', () => {
+    const scene = resolveGameScene([
+      {
+        params: {},
+        handle: {
+          gameScene: {
+            id: 'body-cultivation',
+            label: '肉身炼体',
+            group: 'cultivation',
+            chrome: 'standard',
+            dock: 'core',
+            presentation: 'workflow',
+          },
+        },
+      },
+    ] as never);
+
+    expect(scene).toMatchObject({
+      id: 'body-cultivation',
+      group: 'cultivation',
+      chrome: 'standard',
+      dock: 'core',
+      presentation: 'workflow',
+    });
+  });
+
   it('preserves immersive scene metadata when a special route opts out of the standard shell', () => {
     const scene = resolveGameScene([
       {

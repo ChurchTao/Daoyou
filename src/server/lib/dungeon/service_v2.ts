@@ -42,6 +42,7 @@ import { TaskService } from '../services/TaskService';
 import { ConditionService } from '../services/ConditionService';
 import { buildDungeonBattleInit } from './battleInit';
 import { withPlayerAbilityStrategySettings } from '@shared/lib/battle/abilityStrategyInit';
+import { getBodyCultivationDungeonEventFeedback } from '@shared/lib/bodyCultivation/effects';
 import {
   buildDungeonRoundLlmContext,
   buildDungeonSettlementLlmContext,
@@ -406,6 +407,7 @@ export class DungeonService {
     cultivatorId: string,
     costs: DungeonOptionCost[],
     tx: DbTransaction,
+    contextText?: string,
   ) {
     const hpPercent = costs
       .filter((cost) => cost.type === 'hp_loss')
@@ -423,6 +425,16 @@ export class DungeonService {
       throw new Error('未找到修真者数据');
     }
 
+    const preview = ConditionService.previewExternalResourceLoss(
+      bundle.cultivator,
+      bundle.cultivator.condition,
+      {
+        hpPercent,
+        mpPercent,
+      },
+    );
+    this.annotateBodyCultivationResourceLossFeedback(costs, preview, contextText);
+
     const nextCondition = ConditionService.applyExternalResourceLoss(
       bundle.cultivator,
       bundle.cultivator.condition,
@@ -432,6 +444,136 @@ export class DungeonService {
       },
     );
     await updateCultivator(cultivatorId, { condition: nextCondition }, tx);
+  }
+
+  private annotateBodyCultivationResourceLossFeedback(
+    costs: DungeonOptionCost[],
+    preview: ReturnType<typeof ConditionService.previewExternalResourceLoss>,
+    contextText?: string,
+  ) {
+    if (preview.triggerTexts.length === 0) {
+      return;
+    }
+
+    const hpCost = costs.find((cost) => cost.type === 'hp_loss');
+    if (hpCost && preview.preventedHpLoss > 0) {
+      const eventFeedback = getBodyCultivationDungeonEventFeedback({
+        contextText: [contextText, hpCost.desc].filter(Boolean).join(' '),
+        resource: 'hp',
+        preventedLoss: preview.preventedHpLoss,
+        fallbackTriggerText: preview.triggerTexts.find((text) =>
+          text.includes('气血损耗'),
+        ),
+      });
+      hpCost.metadata = {
+        ...hpCost.metadata,
+        bodyCultivation: {
+          rawLoss: preview.rawHpLoss,
+          actualLoss: preview.hpLoss,
+          preventedLoss: preview.preventedHpLoss,
+          multiplier: preview.hpLossMultiplier,
+          eventType: eventFeedback?.eventType,
+          track: eventFeedback?.track,
+          trackLabel: eventFeedback?.trackLabel,
+          triggerText: eventFeedback?.triggerText,
+        },
+      };
+    }
+
+    const mpCost = costs.find((cost) => cost.type === 'mp_loss');
+    if (mpCost && preview.preventedMpLoss > 0) {
+      const eventFeedback = getBodyCultivationDungeonEventFeedback({
+        contextText: [contextText, mpCost.desc].filter(Boolean).join(' '),
+        resource: 'mp',
+        preventedLoss: preview.preventedMpLoss,
+        fallbackTriggerText: preview.triggerTexts.find((text) =>
+          text.includes('灵力损耗'),
+        ),
+      });
+      mpCost.metadata = {
+        ...mpCost.metadata,
+        bodyCultivation: {
+          rawLoss: preview.rawMpLoss,
+          actualLoss: preview.mpLoss,
+          preventedLoss: preview.preventedMpLoss,
+          multiplier: preview.mpLossMultiplier,
+          eventType: eventFeedback?.eventType,
+          track: eventFeedback?.track,
+          trackLabel: eventFeedback?.trackLabel,
+          triggerText: eventFeedback?.triggerText,
+        },
+      };
+    }
+  }
+
+  private annotateOptionBodyCultivationResourceLossFeedback(
+    costs: DungeonOptionCost[],
+    cultivator: Cultivator,
+    contextText?: string,
+  ) {
+    const hpPercent = costs
+      .filter((cost) => cost.type === 'hp_loss')
+      .reduce((sum, cost) => sum + cost.value, 0);
+    const mpPercent = costs
+      .filter((cost) => cost.type === 'mp_loss')
+      .reduce((sum, cost) => sum + cost.value, 0);
+
+    if (hpPercent <= 0 && mpPercent <= 0) {
+      return;
+    }
+
+    const preview = ConditionService.previewExternalResourceLoss(
+      cultivator,
+      cultivator.condition,
+      {
+        hpPercent,
+        mpPercent,
+      },
+    );
+    this.annotateBodyCultivationResourceLossFeedback(costs, preview, contextText);
+  }
+
+  private async annotateRoundBodyCultivationResourceLossFeedback(
+    roundData: DungeonRound,
+    cultivatorId: string,
+  ) {
+    const hasResourceLoss = roundData.interaction.options.some((option) =>
+      (option.costPreview ?? option.costs ?? []).some(
+        (cost) => cost.type === 'hp_loss' || cost.type === 'mp_loss',
+      ),
+    );
+    if (!hasResourceLoss) {
+      return roundData;
+    }
+
+    const bundle = await getCultivatorByIdUnsafe(cultivatorId);
+    const cultivator = bundle?.cultivator;
+    if (!cultivator) {
+      return roundData;
+    }
+
+    roundData.interaction.options = roundData.interaction.options.map((option) => {
+      const costPreview = cloneCosts(option.costPreview ?? option.costs);
+      this.annotateOptionBodyCultivationResourceLossFeedback(
+        costPreview,
+        cultivator,
+        [
+          roundData.scene_description,
+          option.text,
+          option.potential_cost,
+          ...costPreview.map((cost) => cost.desc),
+        ]
+          .filter(Boolean)
+          .join(' '),
+      );
+      return {
+        ...option,
+        costs: costPreview,
+        costPreview,
+      };
+    });
+
+    return roundData;
   }
 
   private async getBattleContext(cultivatorId: string, battleId: string) {
@@ -627,7 +769,11 @@ export class DungeonService {
       };
 
       // 3. 首次 AI 调用
-      const roundData = this.normalizeRoundOptions(await this.callAI(state), state);
+      const roundData =
+        await this.annotateRoundBodyCultivationResourceLossFeedback(
+          this.normalizeRoundOptions(await this.callAI(state), state),
+          cultivatorId,
+        );
 
       // 4. 更新历史并存入 Redis
       const gainedNames = roundData.acquired_items?.map(
@@ -754,6 +900,14 @@ export class DungeonService {
     }
 
     const actionCosts = this.normalizeOptionCosts(chosenOption);
+    const actionCostContextText = [
+      state.history[state.history.length - 1]?.scene,
+      chosenOption.text,
+      chosenOption.potential_cost,
+      ...actionCosts.map((cost) => cost.desc),
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     const consumeActionCostsOrThrow = async (dryRun = false) => {
       if (actionCosts.length === 0) return;
@@ -814,6 +968,7 @@ export class DungeonService {
                 cultivatorId,
                 actionCosts,
                 tx,
+                actionCostContextText,
               );
             },
         dryRun,
@@ -922,6 +1077,7 @@ export class DungeonService {
                   cultivatorId,
                   actionCosts,
                   resourceTx,
+                  actionCostContextText,
                 );
               },
             );
@@ -991,7 +1147,10 @@ export class DungeonService {
     // 3. AI 生成下一轮
     let roundData: DungeonRound;
     try {
-      roundData = this.normalizeRoundOptions(await this.callAI(state), state);
+      roundData = await this.annotateRoundBodyCultivationResourceLossFeedback(
+        this.normalizeRoundOptions(await this.callAI(state), state),
+        cultivatorId,
+      );
     } catch (error) {
       state.currentRound--;
       const recoverable = await this.markRecoverable(
@@ -1073,6 +1232,7 @@ export class DungeonService {
                 cultivatorId,
                 actionCosts,
                 resourceTx,
+                actionCostContextText,
               );
             },
           );
@@ -1474,7 +1634,10 @@ export class DungeonService {
   ) {
     let roundData: DungeonRound;
     try {
-      roundData = this.normalizeRoundOptions(await this.callAI(state), state);
+      roundData = await this.annotateRoundBodyCultivationResourceLossFeedback(
+        this.normalizeRoundOptions(await this.callAI(state), state),
+        cultivatorId,
+      );
     } catch (error) {
       console.error('[DungeonService] 战后生成失败:', error);
       const recoverable = await this.markRecoverable(
@@ -1710,6 +1873,12 @@ export class DungeonService {
       if (!userId) {
         throw new Error('无法获取修真者所属用户');
       }
+      const pendingActionCostContextText = [
+        pendingActionToCommit.choiceText,
+        ...pendingActionToCommit.costs.map((cost) => cost.desc),
+      ]
+        .filter(Boolean)
+        .join(' ');
       if (!deferPersistence) {
         const result = await resourceEngine.consume(
           userId,
@@ -1720,6 +1889,7 @@ export class DungeonService {
               state.cultivatorId,
               pendingActionToCommit.costs,
               tx,
+              pendingActionCostContextText,
             );
           },
         );
@@ -1861,6 +2031,12 @@ export class DungeonService {
       realGains,
       persist: async (tx) => {
         if (pendingActionToCommit) {
+          const pendingActionCostContextText = [
+            pendingActionToCommit.choiceText,
+            ...pendingActionToCommit.costs.map((cost) => cost.desc),
+          ]
+            .filter(Boolean)
+            .join(' ');
           const consumeResult = await resourceEngine.consumeInTransaction(
             userId,
             state.cultivatorId,
@@ -1871,6 +2047,7 @@ export class DungeonService {
                 state.cultivatorId,
                 pendingActionToCommit.costs,
                 resourceTx,
+                pendingActionCostContextText,
               );
             },
           );

@@ -13,6 +13,7 @@ export const QI_ACTION_COSTS = {
   creation_artifact: 8,
   creation_gongfa: 8,
   creation_skill: 8,
+  market_identify: 1,
 } as const;
 
 export type QiAction = keyof typeof QI_ACTION_COSTS;

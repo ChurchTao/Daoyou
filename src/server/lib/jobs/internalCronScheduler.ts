@@ -3,6 +3,7 @@ import {
   runBetBattleExpireJob,
   runExpiredDataCleanupJob,
   runMarketRefreshCronJob,
+  runMaterialLibraryDailyGenerationJob,
   runPlayerStateEventsCleanupJob,
   runRankRewardsJob,
   runTowerEnemySetRefreshJob,
@@ -28,6 +29,8 @@ const MARKET_REFRESH_SCHEDULE = '*/5 * * * *';
 const TOWER_ENEMY_SETS_SCHEDULE = '0 * * * *';
 const PLAYER_STATE_EVENTS_CLEANUP_SCHEDULE = '30 18 * * *';
 const EXPIRED_DATA_CLEANUP_SCHEDULE = '45 18 * * *';
+// 17:00 UTC equals 01:00 Asia/Shanghai.
+const MATERIAL_LIBRARY_DAILY_GENERATION_SCHEDULE = '0 17 * * *';
 
 let schedulerRegistered = false;
 let scheduledTasks: BunCronTask[] = [];
@@ -91,6 +94,12 @@ export function registerInternalCronJobs(options: {
     bunCron(EXPIRED_DATA_CLEANUP_SCHEDULE, () =>
       runScheduledJob('expired-data-cleanup', runExpiredDataCleanupJob),
     ),
+    bunCron(MATERIAL_LIBRARY_DAILY_GENERATION_SCHEDULE, () =>
+      runScheduledJob(
+        'material-library-daily-generation',
+        runMaterialLibraryDailyGenerationJob,
+      ),
+    ),
   ];
   schedulerRegistered = true;
 
@@ -103,6 +112,9 @@ export function registerInternalCronJobs(options: {
     towerEnemySets: TOWER_ENEMY_SETS_SCHEDULE,
     playerStateEventsCleanupUtc: PLAYER_STATE_EVENTS_CLEANUP_SCHEDULE,
     expiredDataCleanupUtc: EXPIRED_DATA_CLEANUP_SCHEDULE,
+    materialLibraryDailyGenerationUtc:
+      MATERIAL_LIBRARY_DAILY_GENERATION_SCHEDULE,
+    materialLibraryDailyGenerationLocal: '01:00 Asia/Shanghai',
   });
 
   return scheduledTasks;

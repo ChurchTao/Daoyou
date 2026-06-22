@@ -4,25 +4,11 @@ import {
 } from '@shared/engine/battle-v5/core/types';
 import type {
   BattleInitConfigV5,
-  PersistentCombatStatusV5,
-  ResourcePointState,
   TrainingRoomModifierDraft,
 } from '@shared/engine/battle-v5/setup/types';
 
 export const TRAINING_ROOM_STORAGE_KEY = 'training-room-config-v1';
-export const TRAINING_ROOM_STORAGE_VERSION = 1;
-
-export interface TrainingRoomResourceDraft {
-  mode: ResourcePointState['mode'];
-  value: number;
-}
-
-export interface TrainingRoomPlayerDraft {
-  hp: TrainingRoomResourceDraft;
-  mp: TrainingRoomResourceDraft;
-  shield: number;
-  statusRefs: PersistentCombatStatusV5[];
-}
+export const TRAINING_ROOM_STORAGE_VERSION = 2;
 
 export interface TrainingRoomDummyDraft {
   maxHp: number;
@@ -38,7 +24,6 @@ export interface TrainingRoomDummyDraft {
 }
 
 export interface TrainingRoomDraft {
-  player: TrainingRoomPlayerDraft;
   dummy: TrainingRoomDummyDraft;
 }
 
@@ -53,10 +38,6 @@ export interface TrainingRoomStorage {
   version: number;
   currentDraft: TrainingRoomDraft;
   presets: TrainingRoomPreset[];
-}
-
-function clampPercent(value: number): number {
-  return Math.max(0, Math.min(1, value));
 }
 
 function toFiniteNumber(value: unknown, fallback: number): number {
@@ -105,7 +86,6 @@ function sanitizeDraft(value: unknown): TrainingRoomDraft {
   const dummy = (candidate.dummy ?? {}) as Partial<TrainingRoomDummyDraft>;
 
   return {
-    player: fallback.player,
     dummy: {
       maxHp: Math.max(0, toFiniteNumber(dummy.maxHp, fallback.dummy.maxHp)),
       maxMp: Math.max(0, toFiniteNumber(dummy.maxMp, fallback.dummy.maxMp)),
@@ -162,12 +142,6 @@ function sanitizePresets(value: unknown): TrainingRoomPreset[] {
 
 export function createDefaultTrainingRoomDraft(): TrainingRoomDraft {
   return {
-    player: {
-      hp: { mode: 'percent', value: 1 },
-      mp: { mode: 'percent', value: 1 },
-      shield: 0,
-      statusRefs: [],
-    },
     dummy: {
       maxHp: 100_000,
       maxMp: 0,
@@ -196,7 +170,7 @@ export function parseTrainingRoomStorage(raw: string | null | undefined): Traini
 
   try {
     const parsed = JSON.parse(raw) as Partial<TrainingRoomStorage>;
-    if (parsed.version !== TRAINING_ROOM_STORAGE_VERSION) {
+    if (parsed.version !== 1 && parsed.version !== TRAINING_ROOM_STORAGE_VERSION) {
       return createDefaultTrainingRoomStorage();
     }
 
@@ -208,15 +182,6 @@ export function parseTrainingRoomStorage(raw: string | null | undefined): Traini
   } catch {
     return createDefaultTrainingRoomStorage();
   }
-}
-
-function toResourcePointState(
-  draft: TrainingRoomResourceDraft,
-): ResourcePointState {
-  return {
-    mode: draft.mode,
-    value: draft.mode === 'percent' ? clampPercent(draft.value) : Math.max(0, draft.value),
-  };
 }
 
 export function buildTrainingBattleInitConfig(
@@ -249,9 +214,8 @@ export function buildTrainingBattleInitConfig(
   return {
     player: {
       resourceState: {
-        hp: toResourcePointState({ mode: 'percent', value: 1 }),
-        mp: toResourcePointState({ mode: 'percent', value: 1 }),
-        shield: 0,
+        hp: { mode: 'percent', value: 1 },
+        mp: { mode: 'percent', value: 1 },
       },
     },
     opponent: {

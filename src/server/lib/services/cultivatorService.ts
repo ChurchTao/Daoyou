@@ -70,6 +70,7 @@ import {
 import { toArtifactFromProduct } from './creationProductArtifactSupport';
 import { FateEngine } from './FateEngine';
 import { addMaterialStackToInventory } from './materialInventory';
+import { sanitizeMaterialDetails } from './materialDetailsPrivacy';
 
 async function assembleCultivatorFromRelations(
   cultivatorRecord: CultivatorRecord,
@@ -241,7 +242,7 @@ async function assembleCultivatorFromRelations(
     rank: material.rank as Quality,
     element: material.element as ElementType | undefined,
     description: material.description || undefined,
-    details: (material.details as Record<string, unknown>) || undefined,
+    details: sanitizeMaterialDetails(material.details),
     quantity: material.quantity,
   }));
   const retreat_records: RetreatRecord[] = [];
@@ -720,6 +721,7 @@ export interface CultivatorBasic {
   gender: string | null;
   personality: string | null;
   background: string | null;
+  condition?: CultivatorCondition | null;
   updatedAt: Date | null;
 }
 
@@ -791,6 +793,7 @@ export async function getCultivatorBasicsByIdUnsafe(
     gender: row.gender,
     personality: row.personality,
     background: row.background,
+    condition: row.condition as CultivatorCondition | null,
     updatedAt: row.updatedAt,
   };
 }
@@ -817,6 +820,7 @@ export async function getCultivatorBasicsByIdsUnsafe(
       origin: schema.cultivators.origin,
       personality: schema.cultivators.personality,
       background: schema.cultivators.background,
+      condition: schema.cultivators.condition,
       updatedAt: schema.cultivators.updatedAt,
       status: schema.cultivators.status,
       age: schema.cultivators.age,
@@ -842,6 +846,7 @@ export async function getCultivatorBasicsByIdsUnsafe(
     gender: row.gender,
     personality: row.personality,
     background: row.background,
+    condition: row.condition as CultivatorCondition | null,
     updatedAt: row.updatedAt,
   }));
 }
@@ -1107,7 +1112,7 @@ function mapMaterialRow(
     rank: m.rank as Quality,
     element: m.element as ElementType | undefined,
     description: m.description || '',
-    details: (m.details as Record<string, unknown>) || undefined,
+    details: sanitizeMaterialDetails(m.details),
     quantity: m.quantity,
   };
 }
@@ -1402,7 +1407,7 @@ export async function getInventory(
       rank: m.rank as Quality,
       element: m.element as ElementType | undefined,
       description: m.description || undefined,
-      details: (m.details as Record<string, unknown>) || undefined,
+      details: sanitizeMaterialDetails(m.details),
       quantity: m.quantity,
     })),
   };
@@ -1817,6 +1822,49 @@ export async function removeMaterialFromInventory(
         .where(eq(schema.materials.id, material.id));
     }
   }
+}
+
+export async function consumeMaterialById(
+  userId: string,
+  cultivatorId: string,
+  materialId: string,
+  quantity: number,
+  tx?: DbTransaction,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const dbInstance = getExecutor(tx);
+  const rows = await dbInstance
+    .select()
+    .from(schema.materials)
+    .where(
+      and(
+        eq(schema.materials.id, materialId),
+        eq(schema.materials.cultivatorId, cultivatorId),
+      ),
+    )
+    .limit(1);
+
+  const existing = rows[0];
+  if (!existing) {
+    throw new Error('材料不存在或已被耗尽');
+  }
+
+  if (existing.quantity < quantity) {
+    throw new Error(`材料数量不足，当前仅有 ${existing.quantity}`);
+  }
+
+  if (existing.quantity === quantity) {
+    await dbInstance
+      .delete(schema.materials)
+      .where(eq(schema.materials.id, existing.id));
+    return;
+  }
+
+  await dbInstance
+    .update(schema.materials)
+    .set({ quantity: existing.quantity - quantity })
+    .where(eq(schema.materials.id, existing.id));
 }
 
 function sortMaterialsByQualityAsc<T extends {

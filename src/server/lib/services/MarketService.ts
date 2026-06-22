@@ -1,4 +1,3 @@
-import { MaterialGenerator } from '@shared/engine/material/creation/MaterialGenerator';
 import { MARKET_PRESET_POOL } from '@shared/engine/material/creation/marketPresets';
 import {
   BASE_PRICES,
@@ -26,6 +25,19 @@ import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import { addMaterialStackToInventory } from './materialInventory';
+import {
+  materialLibraryEntryToMaterial,
+  sampleMaterialForRange,
+  sampleMaterialLibraryEntries,
+  type MaterialLibrarySampleRequest,
+} from './MaterialLibraryService';
+import {
+  getHiddenMysteryReveal,
+  sanitizeMaterialDetails,
+  type HiddenMysteryReveal,
+  withHiddenMysteryReveal,
+} from './materialDetailsPrivacy';
+import { QiService } from './QiService';
 import type { MaterialType, Quality, RealmType } from '@shared/types/constants';
 import {
   MATERIAL_TYPE_VALUES,
@@ -40,7 +52,7 @@ import type {
   RegionProfile,
   ResolvedLayerConfig,
 } from '@shared/types/market';
-import { isPresetLayer } from '@shared/types/market';
+import { MARKET_PRESET_FALLBACK_LAYERS } from '@shared/types/market';
 import { and, eq, sql } from 'drizzle-orm';
 
 // ─── Redis 键前缀 ───
@@ -64,6 +76,7 @@ type CachedMarketData = {
 
 type InternalMarketListing = MarketListing & {
   mysteryContext?: MysteryRevealContext;
+  mysteryReveal?: HiddenMysteryReveal;
 };
 
 export type BuyInput = {
@@ -134,6 +147,10 @@ function getBoughtTtlSec(layer: MarketLayer): number {
   return Math.ceil(getRefreshInterval(layer) / 1000) + 3600;
 }
 
+function canUsePresetFallback(layer: MarketLayer): boolean {
+  return MARKET_PRESET_FALLBACK_LAYERS.includes(layer);
+}
+
 // ─── 随机工具 ───
 
 function randomPick<T>(list: T[]): T {
@@ -142,14 +159,6 @@ function randomPick<T>(list: T[]): T {
 
 function rollDisguiseRank() {
   return randomPick(['凡品', '灵品', '玄品', '真品', '地品'] as const);
-}
-
-function rollIdentifyCost(rank: keyof typeof QUALITY_ORDER): number {
-  const table: Record<string, number> = {
-    凡品: 20, 灵品: 80, 玄品: 200, 真品: 600,
-    地品: 1600, 天品: 4000, 仙品: 12000, 神品: 36000,
-  };
-  return table[rank] ?? 200;
 }
 
 /**
@@ -344,6 +353,16 @@ function applyMysteryLayer(
       regionTags: getNodeRegionTags(item.nodeId),
       createdAt: Date.now(),
     };
+    const mysteryReveal: HiddenMysteryReveal = {
+      name: item.name,
+      type: item.type,
+      rank: item.rank,
+      element: item.element,
+      description: item.description,
+      details: sanitizeMaterialDetails(item.details) ?? {},
+      quantity: 1,
+      boundAt: new Date().toISOString(),
+    };
 
     return {
       ...item,
@@ -357,6 +376,7 @@ function applyMysteryLayer(
       mysteryMask: { badge: '?', disguisedName: mask.disguisedName },
       price: disguisedPrice,
       mysteryContext,
+      mysteryReveal,
     };
   });
 }
@@ -422,7 +442,7 @@ function buildMysteryDetails(
   const context = getMysteryContextForListing(item);
   return {
     mysteryId,
-    identifyCost: rollIdentifyCost(item.rank),
+    identifyCost: 1,
     disguiseTier: item.rank,
     purchasedAt: Date.now(),
     type: context.type,
@@ -432,6 +452,16 @@ function buildMysteryDetails(
     layer: context.layer,
     regionTags: context.regionTags,
   };
+}
+
+function buildHiddenMysteryReveal(item: InternalMarketListing): HiddenMysteryReveal | null {
+  if (item.mysteryReveal) {
+    return item.mysteryReveal;
+  }
+  if (!item.isMystery) {
+    return null;
+  }
+  return null;
 }
 
 function resolveMysteryRevealContext(
@@ -475,32 +505,6 @@ function resolveMysteryRevealContext(
   };
 }
 
-async function rollMysteryRevealMaterial(
-  context: MysteryRevealContext,
-) {
-  const [generated] = await MaterialGenerator.generateRandom(1, {
-    specifiedType: context.type,
-    rankRange: context.rankRange,
-    regionTags: context.regionTags,
-    allowMystery: false,
-    mysteryChance: 0,
-  });
-
-  if (!generated) {
-    throw new MarketServiceError(503, '鉴定天机紊乱，请稍后重试');
-  }
-
-  return {
-    name: generated.name,
-    type: generated.type,
-    rank: generated.rank,
-    element: generated.element,
-    description: generated.description,
-    details: generated.details || {},
-    quantity: 1,
-  };
-}
-
 // ─── 列表清理 ───
 
 function sanitizeListing(listing: InternalMarketListing): MarketListing {
@@ -513,7 +517,7 @@ function sanitizeListing(listing: InternalMarketListing): MarketListing {
     rank: listing.rank,
     element: listing.element,
     description: listing.description,
-    details: listing.details,
+    details: sanitizeMaterialDetails(listing.details) ?? {},
     quantity: listing.quantity,
     price: listing.price,
     isMystery: listing.isMystery,
@@ -524,7 +528,7 @@ function sanitizeListing(listing: InternalMarketListing): MarketListing {
 // ─── 生成逻辑 ───
 
 /**
- * 从预设材料池生成商品列表（凡市 / 珍宝阁）
+ * 低层市场的材料库兜底池。仅 common / treasure 可用。
  */
 function generateFromPresets(
   nodeId: string,
@@ -562,34 +566,73 @@ function generateFromPresets(
   return listings;
 }
 
-/**
- * 通过 LLM 生成商品列表（天宝殿 / 黑市）
- */
-async function generateFromLLM(
+function buildListingFromLibraryMaterial(args: {
+  nodeId: string;
+  layer: MarketLayer;
+  material: ReturnType<typeof materialLibraryEntryToMaterial>;
+  priceModifier: RegionProfile['priceModifier'];
+}): InternalMarketListing {
+  return {
+    id: crypto.randomUUID(),
+    nodeId: args.nodeId,
+    layer: args.layer,
+    name: args.material.name,
+    type: args.material.type,
+    rank: args.material.rank,
+    element: args.material.element,
+    description: args.material.description,
+    details: args.material.details ?? {},
+    quantity: 1,
+    price: computePrice(args.material.rank, args.material.type, args.priceModifier),
+  };
+}
+
+async function generateFromMaterialLibrary(
   nodeId: string,
-  layer: 'heaven' | 'black',
+  layer: MarketLayer,
   profile: RegionProfile,
   layerConfig: ResolvedLayerConfig,
+  options: { warnShortage: boolean },
 ): Promise<InternalMarketListing[]> {
-  const regionTags = getNodeRegionTags(nodeId);
-  const items = await MaterialGenerator.generateRandom(layerConfig.count, {
-    rankRange: layerConfig.rankRange,
-    regionTags,
-    allowMystery: false, // 神秘层单独处理
-    mysteryChance: 0,
-  });
+  const requests = new Map<string, MaterialLibrarySampleRequest>();
+  for (let i = 0; i < layerConfig.count; i++) {
+    const materialType = weightedPickType(profile);
+    const quality = rollQualityInRange(layerConfig.rankRange);
+    const key = `${materialType}:${quality}`;
+    const current = requests.get(key);
+    requests.set(key, {
+      materialType,
+      quality,
+      count: (current?.count ?? 0) + 1,
+    });
+  }
 
-  return items.map((item) => ({
-    ...item,
-    id: crypto.randomUUID(),
-    nodeId,
-    layer,
-    quantity: 1,
-  }));
+  const sampled = await sampleMaterialLibraryEntries(Array.from(requests.values()));
+  const listings: InternalMarketListing[] = [];
+  for (const [key, request] of requests) {
+    const entries = sampled.get(key) ?? [];
+    if (options.warnShortage && entries.length < request.count) {
+      console.warn(
+        `[market] 未配置道具库或材料候选不足 ${nodeId}:${layer}:${key} requested=${request.count} actual=${entries.length}`,
+      );
+    }
+    for (const entry of entries.slice(0, request.count)) {
+      listings.push(
+        buildListingFromLibraryMaterial({
+          nodeId,
+          layer,
+          material: materialLibraryEntryToMaterial(entry),
+          priceModifier: profile.priceModifier,
+        }),
+      );
+    }
+  }
+
+  return listings.slice(0, layerConfig.count);
 }
 
 /**
- * 统一生成入口：根据层级选择预设池或 LLM
+ * 统一生成入口：所有市场先走持久材料库；common / treasure 不足时使用预设兜底。
  */
 async function generateListings(
   nodeId: string,
@@ -597,13 +640,30 @@ async function generateListings(
 ): Promise<InternalMarketListing[]> {
   const profile = getRegionProfile(nodeId);
   const layerConfig = resolveLayerConfig(layer, profile);
+  const allowPresetFallback = canUsePresetFallback(layer);
 
   let listings: InternalMarketListing[];
 
-  if (isPresetLayer(layer)) {
-    listings = generateFromPresets(nodeId, layer, profile, layerConfig);
-  } else {
-    listings = await generateFromLLM(nodeId, layer as 'heaven' | 'black', profile, layerConfig);
+  listings = await generateFromMaterialLibrary(
+    nodeId,
+    layer,
+    profile,
+    layerConfig,
+    { warnShortage: !allowPresetFallback },
+  );
+
+  if (allowPresetFallback && listings.length < layerConfig.count) {
+    const fallback = generateFromPresets(nodeId, layer, profile, {
+      ...layerConfig,
+      count: layerConfig.count - listings.length,
+    });
+    listings = [...listings, ...fallback];
+  }
+
+  if (!allowPresetFallback && listings.length < layerConfig.count) {
+    console.warn(
+      `[market] 未配置道具库或材料候选不足 ${nodeId}:${layer} requested=${layerConfig.count} actual=${listings.length}，本轮不触发 LLM，返回空缺货架。`,
+    );
   }
 
   // 黑市应用神秘层
@@ -816,6 +876,14 @@ export async function buyMarketItem(input: BuyInput) {
 
       if (item.isMystery) {
         const mysteryId = crypto.randomUUID();
+        const hiddenReveal = buildHiddenMysteryReveal(item);
+        if (!hiddenReveal) {
+          throw new MarketServiceError(503, '黑市鉴宝册缺页，请稍后再试');
+        }
+        const publicDetails = {
+          ...(sanitizeMaterialDetails(item.details) ?? {}),
+          mystery: buildMysteryDetails(item, mysteryId),
+        };
 
         await tx.insert(materials).values({
           cultivatorId,
@@ -825,10 +893,7 @@ export async function buyMarketItem(input: BuyInput) {
           element: item.element,
           description: item.description,
           quantity,
-          details: {
-            ...(item.details || {}),
-            mystery: buildMysteryDetails(item, mysteryId),
-          },
+          details: withHiddenMysteryReveal(publicDetails, hiddenReveal),
         });
       } else {
         await addMaterialStackToInventory(
@@ -954,6 +1019,14 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
       for (const { item, quantity } of processItems) {
         if (item.isMystery) {
           const mysteryId = crypto.randomUUID();
+          const hiddenReveal = buildHiddenMysteryReveal(item);
+          if (!hiddenReveal) {
+            throw new MarketServiceError(503, '黑市鉴宝册缺页，请稍后再试');
+          }
+          const publicDetails = {
+            ...(sanitizeMaterialDetails(item.details) ?? {}),
+            mystery: buildMysteryDetails(item, mysteryId),
+          };
 
           await tx.insert(materials).values({
             cultivatorId,
@@ -963,10 +1036,7 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
             element: item.element,
             description: item.description,
             quantity,
-            details: {
-              ...(item.details || {}),
-              mystery: buildMysteryDetails(item, mysteryId),
-            },
+            details: withHiddenMysteryReveal(publicDetails, hiddenReveal),
           });
         } else {
           await addMaterialStackToInventory(
@@ -1058,25 +1128,47 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
     }
 
     const mysteryKey = getMysteryKey(cultivatorId, mystery.mysteryId);
-    const cost = Math.max(
-      1,
-      mystery.identifyCost ?? rollIdentifyCost(target.rank as keyof typeof QUALITY_ORDER),
-    );
+    const cost = QiService.getCost('market_identify');
     const revealContext = resolveMysteryRevealContext(target, mystery);
-    const revealedMaterial = await rollMysteryRevealMaterial(revealContext);
+    let revealedMaterial = getHiddenMysteryReveal(details);
+    if (!revealedMaterial) {
+      const sampled = await sampleMaterialForRange({
+        materialType: revealContext.type,
+        rankRange: revealContext.rankRange,
+        count: 1,
+      });
+      if (!sampled) {
+        throw new MarketServiceError(503, '鉴定材料库暂无匹配灵材，请稍后再试');
+      }
+      const sampledMaterial = materialLibraryEntryToMaterial(sampled);
+      revealedMaterial = {
+        name: sampledMaterial.name,
+        type: sampledMaterial.type,
+        rank: sampledMaterial.rank,
+        element: sampledMaterial.element,
+        description: sampledMaterial.description,
+        details: sanitizeMaterialDetails(sampledMaterial.details) ?? {},
+        quantity: 1,
+        itemLibraryItemId: sampled.itemId,
+        boundAt: new Date().toISOString(),
+      };
+    }
 
     let revealedMaterialId = materialId;
+    let qiAfter: number | undefined;
     const writeReveal = async (tx: DbTransaction) => {
-      const [updatedCultivator] = await tx
-        .update(cultivators)
-        .set({ spirit_stones: sql`${cultivators.spirit_stones} - ${cost}` })
-        .where(
-          sql`${cultivators.id} = ${cultivatorId} AND ${cultivators.spirit_stones} >= ${cost}`,
-        )
-        .returning({ id: cultivators.id });
-      if (!updatedCultivator) {
-        throw new MarketServiceError(400, '囊中羞涩，灵石不足');
-      }
+      const qiReservation = await QiService.reserveQi({
+        cultivatorId,
+        action: 'market_identify',
+        actionInstanceId: `market-identify:${mystery.mysteryId}`,
+        metadata: {
+          materialId,
+          mysteryId: mystery.mysteryId,
+          revealName: revealedMaterial.name,
+        },
+        tx,
+      });
+      qiAfter = qiReservation.qiAfter;
 
       if (target.quantity > 1) {
         await tx
@@ -1097,10 +1189,19 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
           element: revealedMaterial.element,
           description: revealedMaterial.description,
           quantity: 1,
-          details: revealedMaterial.details || {},
+          details: sanitizeMaterialDetails(revealedMaterial.details) ?? {},
         })
         .returning({ id: materials.id });
       revealedMaterialId = insertedMaterial.id;
+
+      await QiService.commitReservation({
+        actionInstanceId: qiReservation.actionInstanceId,
+        metadata: {
+          revealedMaterialId,
+          committedAt: new Date().toISOString(),
+        },
+        tx,
+      });
     };
 
     if (input.tx) {
@@ -1167,6 +1268,7 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
       success: true,
       revealedItem: { id: revealedMaterialId, ...revealedMaterial, quantity: 1 },
       cost,
+      qiAfter,
       jackpotLevel,
       revealEffect: delta >= 2 ? '金光冲霄' : delta <= -2 ? '灵尘散尽' : '封印破除',
       afterCommit: input.deferSideEffects ? afterCommit : undefined,

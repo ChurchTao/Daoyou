@@ -1,4 +1,5 @@
 import { useQiState } from '@app/components/feature/cultivator/useQiState';
+import { BodyCultivationSummaryContent } from '@app/components/feature/cultivator/BodyCultivationPanels';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import Link from '@app/components/router/AppLink';
 import { InkHorizontalScroll } from '@app/components/ui';
@@ -324,6 +325,31 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
     });
   };
 
+  const openBodyCultivationInfo = () => {
+    openDialog({
+      title: '肉身炼体',
+      content: (
+        <div className="space-y-3 text-sm leading-7">
+          <BodyCultivationSummaryContent
+            summary={snapshot.bodyCultivation}
+            dense
+          />
+          <div className="border-ink/10 bg-bgpaper/60 border border-dashed px-3 py-2 text-xs leading-5">
+            <p className="text-ink">
+              提升：服用炼体丹，丹力会进入对应的肉身轨道。
+            </p>
+            <p className="text-ink-secondary mt-1">
+              破关：轨道等级、修为、资粮与丹品都满足后，才能进入下一重肉身。
+            </p>
+          </div>
+        </div>
+      ),
+      confirmLabel: '查看详情',
+      cancelLabel: '知道了',
+      onConfirm: () => navigate('/game/body-cultivation'),
+    });
+  };
+
   const openCultivationInfo = () => {
     const cultivationLabel = getGameConceptInfo('cultivation_exp').label;
     const progress = snapshot.cultivationProgress;
@@ -604,6 +630,11 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
       key: 'realm',
       value: `${snapshot.realm}·${snapshot.realmStage}`,
       onClick: openRealmInfo,
+    },
+    {
+      key: 'body-cultivation',
+      value: snapshot.bodyCultivation.realm.label,
+      onClick: openBodyCultivationInfo,
     },
     {
       key: 'qi',

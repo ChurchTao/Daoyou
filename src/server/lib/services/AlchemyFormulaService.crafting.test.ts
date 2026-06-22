@@ -660,7 +660,7 @@ describe('craftFromFormula narrative copy', () => {
     expect((result.consumable.spec as PillSpec).operations).toContainEqual({
       type: 'change_gauge',
       gauge: 'pillToxicity',
-      delta: 23,
+      delta: 19,
     });
     expect((result.consumable.spec as PillSpec).alchemyMeta.appearance).toBe(
       'middle',
@@ -929,6 +929,85 @@ describe('craftFromFormula narrative copy', () => {
     expect(
       (result.consumable.spec as PillSpec).alchemyMeta.breakthroughLabel,
     ).toBeUndefined();
+  });
+
+  it('uses formula product names when crafting body formulas', async () => {
+    executorState.formulaRows = [
+      {
+        ...executorState.formulaRows[0],
+        name: '真火炼脏丹方',
+        family: 'tempering',
+        pattern: {
+          targetPropertyVector: [{ key: 'body_organs', weight: 1 }],
+          dominantElement: '火',
+          minQuality: '真品',
+          slotCount: 1,
+        },
+        blueprint: {
+          operations: [
+            {
+              type: 'advance_track',
+              track: 'body.organs',
+              value: 130,
+            },
+            { type: 'change_gauge', gauge: 'pillToxicity', delta: 22 },
+          ],
+          consumeRules: {
+            scene: 'out_of_battle_only',
+            quotaCategory: 'long_term',
+          },
+          targetStability: 58,
+          targetToxicity: 22,
+        },
+      },
+    ];
+    executorState.materialRows = [
+      {
+        ...executorState.materialRows[0],
+        name: '真火莲',
+        description: '火性入脏，可煅五腑。',
+        element: '火',
+      },
+    ];
+    redisGetMock.mockResolvedValueOnce(
+      JSON.stringify(
+        createAnalysisPayload({
+          plan: {
+            materialVectors: [
+              {
+                materialRef: 'material_1',
+                materialName: '真火莲',
+                properties: [{ key: 'body_organs', weight: 1 }],
+              },
+            ],
+            intentVector: [],
+            focusMode: 'balanced',
+            requestedElementBias: '火',
+          },
+          aggregatedPropertyVector: [{ key: 'body_organs', weight: 1 }],
+          dominantElement: '火',
+          stability: 58,
+          toxicityRating: 22,
+        }),
+      ),
+    );
+
+    const result = await craftFromFormula(
+      'cultivator-1',
+      'formula-1',
+      ['m1'],
+      undefined,
+      'analysis-1',
+    );
+
+    expect(result.consumable.name).toBe('真火炼脏');
+    expect(result.consumable.spec.kind).toBe('pill');
+    expect((result.consumable.spec as PillSpec).family).toBe('tempering');
+    expect((result.consumable.spec as PillSpec).operations).toContainEqual({
+      type: 'advance_track',
+      track: 'body.organs',
+      value: 149,
+    });
   });
 
   it('stores formula target vector and fit metrics in formula alchemy meta', async () => {

@@ -1,4 +1,5 @@
 import { cn } from '@shared/lib/cn';
+import type { ReactNode } from 'react';
 import { tierColorMap, type Tier } from './inkBadgeTiers';
 
 /**
@@ -12,7 +13,7 @@ const toneColorMap = {
 };
 
 export interface InkBadgeProps {
-  children?: string;
+  children?: ReactNode;
   tier?: Tier;
   tierText?: string;
   tone?: 'default' | 'accent' | 'warning' | 'danger';
@@ -44,14 +45,24 @@ export function InkBadge({
     className,
   );
 
-  const wrapBadgeText = (text: string) =>
-    text.startsWith('「') && text.endsWith('」') ? text : `「${text}」`;
+  const wrapBadgeText = (value: ReactNode): ReactNode => {
+    if (typeof value !== 'string' && typeof value !== 'number') {
+      return value;
+    }
+
+    const text = String(value);
+    return text.startsWith('「') && text.endsWith('」') ? text : `「${text}」`;
+  };
 
   // 构建显示内容
   const displayContent = hideTierText
     ? children
     : tier
-      ? `「${tierText || tier}」${children || ''}`
+      ? (
+          <>
+            「{tierText || tier}」{children}
+          </>
+        )
       : children
         ? wrapBadgeText(children)
         : '';

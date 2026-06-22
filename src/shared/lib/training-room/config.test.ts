@@ -76,8 +76,9 @@ describe('training-room config', () => {
       }),
     );
 
-    expect(storage.currentDraft.player).toEqual(
-      createDefaultTrainingRoomStorage().currentDraft.player,
+    expect('player' in storage.currentDraft).toBe(false);
+    expect(storage.currentDraft.dummy).toEqual(
+      createDefaultTrainingRoomStorage().currentDraft.dummy,
     );
   });
 
@@ -97,20 +98,13 @@ describe('training-room config', () => {
 
   test('训练初始化不会读取玩家自定义草稿', () => {
     const initConfig = buildTrainingBattleInitConfig({
-      player: {
-        hp: { mode: 'percent', value: 0.2 },
-        mp: { mode: 'absolute', value: 12 },
-        shield: 999,
-        statusRefs: [{ version: 1, templateId: 'weakness', stacks: 3 }],
-      },
       dummy: createDefaultTrainingRoomStorage().currentDraft.dummy,
-    });
+    } as unknown as Parameters<typeof buildTrainingBattleInitConfig>[0]);
 
     expect(initConfig.player).toEqual({
       resourceState: {
         hp: { mode: 'percent', value: 1 },
         mp: { mode: 'percent', value: 1 },
-        shield: 0,
       },
     });
   });

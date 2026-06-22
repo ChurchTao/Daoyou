@@ -103,6 +103,55 @@ describe('CultivatorDisplayAdapter', () => {
     expect(finalAttributes.willpower).toBe(10);
   });
 
+  it('applies body cultivation modifiers without changing primary attributes', () => {
+    const cultivator = createCultivatorFixture();
+    cultivator.condition = {
+      version: 1,
+      resources: {
+        hp: { current: 0 },
+        mp: { current: 0 },
+      },
+      gauges: {
+        pillToxicity: 0,
+      },
+      tracks: {
+        bodyCultivation: {
+          version: 1,
+          realm: 'mortal_body',
+          tracks: {
+            skin: { level: 5, progress: 0 },
+            sinew_bone: { level: 0, progress: 0 },
+            organs: { level: 0, progress: 0 },
+            qi_blood: { level: 10, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+        tempering: {
+          vitality: { level: 0, progress: 0 },
+          spirit: { level: 0, progress: 0 },
+          wisdom: { level: 0, progress: 0 },
+          speed: { level: 0, progress: 0 },
+          willpower: { level: 0, progress: 0 },
+        },
+        marrowWash: { level: 0, progress: 0 },
+      },
+      counters: {
+        longTermPillUsesByRealm: {},
+        cultivationPillUsesByRealm: {},
+        longevityPillUsesByRealm: {},
+      },
+      statuses: [],
+      timestamps: {},
+    };
+
+    const { attrs, finalAttributes } = getCultivatorDisplayAttributes(cultivator);
+
+    expect(finalAttributes.vitality).toBe(15);
+    expect(attrs.maxHp).toBe(492);
+    expect(attrs.def).toBeCloseTo(56.65, 6);
+  });
+
   it('builds a serializable display snapshot from battle-v5 attrs and resources', () => {
     const cultivator = createCultivatorFixture();
     cultivator.condition = {

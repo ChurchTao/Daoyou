@@ -1,9 +1,13 @@
 import type { ConditionTrackPath } from '@shared/types/condition';
 import type {
   AlchemyPropertyKey,
+  CompatibleAlchemyPropertyKey,
+  CompatibleWeightedAlchemyProperty,
+  LegacyAlchemyPropertyKey,
   PillFamily,
   WeightedAlchemyProperty,
 } from '@shared/types/consumable';
+import { ALCHEMY_PROPERTY_KEY_VALUES } from '@shared/types/consumable';
 import { getGameConceptLabel } from './gameConceptDisplay';
 
 export const ALCHEMY_PROPERTY_LABELS: Record<AlchemyPropertyKey, string> = {
@@ -17,15 +21,23 @@ export const ALCHEMY_PROPERTY_LABELS: Record<AlchemyPropertyKey, string> = {
   protect_meridians_support: '护脉稳络',
   breakthrough_support: '冲关蓄势',
   extend_lifespan: `延长${getGameConceptLabel('lifespan')}`,
-  tempering_vitality: `炼体·${getGameConceptLabel('vitality')}`,
-  tempering_spirit: `炼体·${getGameConceptLabel('spirit')}`,
-  tempering_wisdom: `炼体·${getGameConceptLabel('wisdom')}`,
-  tempering_speed: `炼体·${getGameConceptLabel('speed')}`,
-  tempering_willpower: `炼体·${getGameConceptLabel('willpower')}`,
+  body_skin: '炼体·皮肤',
+  body_sinew_bone: '炼体·筋骨',
+  body_organs: '炼体·脏腑',
+  body_qi_blood: '炼体·气血',
+  body_primordial_spirit: '炼体·元神',
   marrow_wash: '洗髓伐脉',
 };
 
-const PROPERTY_SORT_ORDER: Record<AlchemyPropertyKey, number> = {
+const LEGACY_ALCHEMY_PROPERTY_LABELS: Record<LegacyAlchemyPropertyKey, string> = {
+  tempering_vitality: '炼体·气血',
+  tempering_spirit: '炼体·脏腑',
+  tempering_wisdom: '炼体·元神',
+  tempering_speed: '炼体·皮肤',
+  tempering_willpower: '炼体·筋骨',
+};
+
+const PROPERTY_SORT_ORDER: Record<CompatibleAlchemyPropertyKey, number> = {
   restore_hp: 0,
   heal_wounds: 1,
   restore_mp: 2,
@@ -36,20 +48,57 @@ const PROPERTY_SORT_ORDER: Record<AlchemyPropertyKey, number> = {
   protect_meridians_support: 7,
   breakthrough_support: 8,
   extend_lifespan: 9,
-  tempering_vitality: 10,
-  tempering_spirit: 11,
-  tempering_wisdom: 12,
-  tempering_speed: 13,
-  tempering_willpower: 14,
-  marrow_wash: 15,
+  body_skin: 10,
+  body_sinew_bone: 11,
+  body_organs: 12,
+  body_qi_blood: 13,
+  body_primordial_spirit: 14,
+  tempering_vitality: 15,
+  tempering_spirit: 16,
+  tempering_wisdom: 17,
+  tempering_speed: 18,
+  tempering_willpower: 19,
+  marrow_wash: 20,
 };
 
-export function getAlchemyPropertyLabel(key: AlchemyPropertyKey): string {
-  return ALCHEMY_PROPERTY_LABELS[key] ?? key;
+const LEGACY_TEMPERING_PROPERTY_TO_BODY_PROPERTY: Partial<
+  Record<CompatibleAlchemyPropertyKey, AlchemyPropertyKey>
+> = {
+  tempering_vitality: 'body_qi_blood',
+  tempering_spirit: 'body_organs',
+  tempering_wisdom: 'body_primordial_spirit',
+  tempering_speed: 'body_skin',
+  tempering_willpower: 'body_sinew_bone',
+};
+
+export const GENERATABLE_ALCHEMY_PROPERTY_KEY_VALUES =
+  ALCHEMY_PROPERTY_KEY_VALUES;
+
+export function getAlchemyPropertyLabel(
+  key: CompatibleAlchemyPropertyKey,
+): string {
+  return ALCHEMY_PROPERTY_LABELS[key as AlchemyPropertyKey] ??
+    LEGACY_ALCHEMY_PROPERTY_LABELS[key as LegacyAlchemyPropertyKey] ??
+    key;
+}
+
+export function canonicalizeAlchemyPropertyKey(
+  key: CompatibleAlchemyPropertyKey,
+): AlchemyPropertyKey {
+  return LEGACY_TEMPERING_PROPERTY_TO_BODY_PROPERTY[key] ?? (key as AlchemyPropertyKey);
+}
+
+export function canonicalizeWeightedAlchemyProperties(
+  properties: CompatibleWeightedAlchemyProperty[],
+): WeightedAlchemyProperty[] {
+  return properties.map((property) => ({
+    ...property,
+    key: canonicalizeAlchemyPropertyKey(property.key),
+  }));
 }
 
 export function getAlchemyPropertyFamily(
-  key: AlchemyPropertyKey,
+  key: CompatibleAlchemyPropertyKey,
 ): Exclude<PillFamily, 'hybrid'> {
   switch (key) {
     case 'restore_hp':
@@ -71,6 +120,11 @@ export function getAlchemyPropertyFamily(
       return 'longevity';
     case 'marrow_wash':
       return 'marrow_wash';
+    case 'body_skin':
+    case 'body_sinew_bone':
+    case 'body_organs':
+    case 'body_qi_blood':
+    case 'body_primordial_spirit':
     case 'tempering_vitality':
     case 'tempering_spirit':
     case 'tempering_wisdom':
@@ -81,25 +135,37 @@ export function getAlchemyPropertyFamily(
 }
 
 export function getAlchemyPropertyTrackPath(
-  key: AlchemyPropertyKey,
-): Extract<ConditionTrackPath, `tempering.${string}`> | null {
+  key: CompatibleAlchemyPropertyKey,
+): Extract<ConditionTrackPath, `body.${string}`> | null {
   switch (key) {
+    case 'body_skin':
+      return 'body.skin';
+    case 'body_sinew_bone':
+      return 'body.sinew_bone';
+    case 'body_organs':
+      return 'body.organs';
+    case 'body_qi_blood':
+      return 'body.qi_blood';
+    case 'body_primordial_spirit':
+      return 'body.primordial_spirit';
     case 'tempering_vitality':
-      return 'tempering.vitality';
+      return 'body.qi_blood';
     case 'tempering_spirit':
-      return 'tempering.spirit';
+      return 'body.organs';
     case 'tempering_wisdom':
-      return 'tempering.wisdom';
+      return 'body.primordial_spirit';
     case 'tempering_speed':
-      return 'tempering.speed';
+      return 'body.skin';
     case 'tempering_willpower':
-      return 'tempering.willpower';
+      return 'body.sinew_bone';
     default:
       return null;
   }
 }
 
-export function isLongTermAlchemyProperty(key: AlchemyPropertyKey): boolean {
+export function isLongTermAlchemyProperty(
+  key: CompatibleAlchemyPropertyKey,
+): boolean {
   return (
     key === 'cultivation' ||
     key === 'insight' ||
@@ -108,6 +174,7 @@ export function isLongTermAlchemyProperty(key: AlchemyPropertyKey): boolean {
     key === 'breakthrough_support' ||
     key === 'extend_lifespan' ||
     key === 'marrow_wash' ||
+    key.startsWith('body_') ||
     key.startsWith('tempering_')
   );
 }
@@ -124,11 +191,11 @@ export function sortWeightedAlchemyProperties(
 }
 
 export function normalizeWeightedAlchemyProperties(
-  properties: WeightedAlchemyProperty[],
+  properties: CompatibleWeightedAlchemyProperty[],
 ): WeightedAlchemyProperty[] {
   const totals = new Map<AlchemyPropertyKey, number>();
 
-  for (const property of properties) {
+  for (const property of canonicalizeWeightedAlchemyProperties(properties)) {
     if (!Number.isFinite(property.weight) || property.weight <= 0) {
       continue;
     }

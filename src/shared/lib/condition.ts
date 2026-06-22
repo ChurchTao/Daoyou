@@ -6,6 +6,11 @@ import type {
   CultivatorCondition,
 } from '@shared/types/condition';
 import { getConditionStatusTemplate } from './conditionStatusRegistry';
+import {
+  createDefaultBodyCultivationState,
+  normalizeBodyCultivationState,
+} from './bodyCultivation/normalize';
+import { getBodyCultivationNaturalRecoveryMultiplier } from './bodyCultivation/effects';
 
 export interface PillToxicityStage {
   key: 'none' | 'light' | 'heavy' | 'critical';
@@ -87,6 +92,7 @@ export function getNaturalRecoveryStatusMultiplier(
           pillToxicity: 0,
         },
         tracks: {
+          bodyCultivation: createDefaultBodyCultivationState(),
           tempering: {
             vitality: { level: 0, progress: 0 },
             spirit: { level: 0, progress: 0 },
@@ -149,6 +155,8 @@ export function getNaturalRecoveryEstimate(options: {
     conditionInput,
     now,
   );
+  const bodyCultivationMultiplier =
+    getBodyCultivationNaturalRecoveryMultiplier(conditionInput);
   const basePerHour =
     resource === 'hp'
       ? NATURAL_RECOVERY_CONFIG.hpPerHour
@@ -158,6 +166,7 @@ export function getNaturalRecoveryEstimate(options: {
     basePerHour *
     toxicityMultiplier *
     statusMultiplier *
+    bodyCultivationMultiplier *
     Math.max(0, naturalRecoveryMultiplier);
 
   if (perHour <= 0) {
@@ -181,11 +190,20 @@ export function getPillToxicityRecoveryMultiplier(
   conditionInput: CultivatorCondition | undefined,
   toxicityPenaltyMultiplier = 1,
 ): number {
+  const qiBloodLevel =
+    normalizeBodyCultivationState(conditionInput).tracks.qi_blood.level;
+  const bodyCultivationPenaltyMultiplier = clamp(
+    1 - qiBloodLevel * 0.003,
+    0.75,
+    1,
+  );
+
   return clamp(
     1 -
       (Math.max(0, conditionInput?.gauges.pillToxicity ?? 0) /
         NATURAL_RECOVERY_CONFIG.toxicityPenaltyDivisor) *
-        Math.max(0, toxicityPenaltyMultiplier),
+        Math.max(0, toxicityPenaltyMultiplier) *
+        bodyCultivationPenaltyMultiplier,
     0.3,
     1,
   );

@@ -13,14 +13,51 @@ export interface ConditionProgressTrack {
   progress: number;
 }
 
-export type TemperingTrackKey =
+export type LegacyTemperingTrackKey =
   | 'vitality'
   | 'spirit'
   | 'wisdom'
   | 'speed'
   | 'willpower';
 
-export type ConditionTrackPath = `tempering.${TemperingTrackKey}` | 'marrow_wash';
+export type TemperingTrackKey = LegacyTemperingTrackKey;
+
+export type BodyCultivationTrackKey =
+  | 'skin'
+  | 'sinew_bone'
+  | 'organs'
+  | 'qi_blood'
+  | 'primordial_spirit';
+
+export type LegacyTemperingTrackPath = `tempering.${LegacyTemperingTrackKey}`;
+
+export type BodyCultivationTrackPath = `body.${BodyCultivationTrackKey}`;
+
+export type ConditionTrackPath =
+  | BodyCultivationTrackPath
+  | LegacyTemperingTrackPath
+  | 'marrow_wash';
+
+export type BodyCultivationRealm =
+  | 'mortal_body'
+  | 'bronze_skin'
+  | 'iron_bone'
+  | 'jade_marrow'
+  | 'golden_body'
+  | 'dharma_body'
+  | 'dao_body';
+
+export interface BodyCultivationState {
+  version: 1;
+  realm: BodyCultivationRealm;
+  tracks: Record<BodyCultivationTrackKey, ConditionProgressTrack>;
+  milestones: Partial<Record<string, boolean>>;
+  breakthrough?: {
+    targetRealm: BodyCultivationRealm;
+    progress: number;
+    failedAttempts: number;
+  };
+}
 
 export type ConditionStatusKey =
   | 'weakness'
@@ -59,6 +96,7 @@ export interface CultivatorCondition {
     pillToxicity: number;
   };
   tracks: {
+    bodyCultivation?: BodyCultivationState;
     tempering: Record<TemperingTrackKey, ConditionProgressTrack>;
     marrowWash: ConditionProgressTrack;
   };

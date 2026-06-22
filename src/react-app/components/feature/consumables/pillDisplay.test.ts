@@ -49,6 +49,14 @@ function createCondition(
   };
 }
 
+function getDetailGroup(model: ReturnType<typeof toPillDisplayModel>, key: string) {
+  const group = model.detailGroups.find((item) => item.key === key);
+  if (!group) {
+    throw new Error(`missing detail group: ${key}`);
+  }
+  return group;
+}
+
 describe('toPillDisplayModel', () => {
   it('formats percent healing pills with a max-resource primary effect', () => {
     const model = toPillDisplayModel(
@@ -469,7 +477,7 @@ describe('toPillDisplayModel', () => {
       { realm: '金丹' },
     );
 
-    expect(temperingModel.primaryEffect).toBe('推进炼体·体魄 +40');
+    expect(temperingModel.primaryEffect).toBe('推进炼体·气血 +40');
     expect(marrowModel.primaryEffect).toBe('推进洗髓 +40');
   });
 
@@ -576,9 +584,95 @@ describe('toPillDisplayModel', () => {
     );
 
     expect(model.keywordLabels).toEqual(['炼体', '剩余 1/8', '丹毒 +10']);
-    expect(model.detailGroups[1].lines).toContain(
+    expect(getDetailGroup(model, 'cost-and-rules').lines).toContain(
       '本境界已服 7/8，尚可服 1 颗',
     );
+  });
+
+  it('previews body cultivation track progress and level-up effects', () => {
+    const condition = createCondition();
+    const model = toPillDisplayModel(
+      createPill({
+        kind: 'pill',
+        family: 'tempering',
+        operations: [
+          { type: 'advance_track', track: 'body.skin', value: 60 },
+          { type: 'change_gauge', gauge: 'pillToxicity', delta: 10 },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'long_term',
+        },
+        alchemyMeta: {
+          source: 'improvised',
+          sourceMaterials: ['雷击藤'],
+          stability: 62,
+          toxicityRating: 28,
+          tags: ['body_skin'],
+        },
+      }),
+      {
+        realm: '筑基',
+        condition: {
+          ...condition,
+          tracks: {
+            ...condition.tracks,
+            bodyCultivation: {
+              version: 1,
+              realm: 'mortal_body',
+              milestones: {},
+              tracks: {
+                skin: { level: 0, progress: 80 },
+                sinew_bone: { level: 0, progress: 0 },
+                organs: { level: 0, progress: 0 },
+                qi_blood: { level: 0, progress: 0 },
+                primordial_spirit: { level: 0, progress: 0 },
+              },
+            },
+          },
+        },
+      },
+    );
+
+    expect(getDetailGroup(model, 'track-preview').lines).toEqual([
+      '推进轨道：皮肤 +60',
+      '预计进度：Lv.0 80/100 -> Lv.1 40/200',
+      '升级后收益：物防 +0.6%、法防 +0.4%、受到直接伤害 -0.6%',
+      '下个节点：Lv.5',
+    ]);
+    expect(getDetailGroup(model, 'cost-and-rules').lines).toContain(
+      '本境界已服 0/8，尚可服 8 颗',
+    );
+  });
+
+  it('omits body cultivation preview when current condition is unavailable', () => {
+    const model = toPillDisplayModel(
+      createPill({
+        kind: 'pill',
+        family: 'tempering',
+        operations: [
+          { type: 'advance_track', track: 'body.skin', value: 60 },
+          { type: 'change_gauge', gauge: 'pillToxicity', delta: 10 },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'long_term',
+        },
+        alchemyMeta: {
+          source: 'improvised',
+          sourceMaterials: ['雷击藤'],
+          stability: 62,
+          toxicityRating: 28,
+          tags: ['body_skin'],
+        },
+      }),
+      { realm: '筑基' },
+    );
+
+    expect(
+      model.detailGroups.some((group) => group.key === 'track-preview'),
+    ).toBe(false);
+    expect(model.detailGroups[1].key).toBe('cost-and-rules');
   });
 
   it('falls back to realm-variable quota text when legacy realm data has no configured limit', () => {
@@ -615,7 +709,9 @@ describe('toPillDisplayModel', () => {
       '服用上限随境界变化',
       '丹毒 +10',
     ]);
-    expect(model.detailGroups[1].lines).toContain('服用上限：随当前境界变化');
+    expect(getDetailGroup(model, 'cost-and-rules').lines).toContain(
+      '服用上限：随当前境界变化',
+    );
     expect(model.keywordLabels.join(' ')).not.toContain('NaN');
     expect(model.keywordLabels.join(' ')).not.toContain('undefined');
   });
@@ -648,7 +744,7 @@ describe('toPillDisplayModel', () => {
     );
 
     expect(model.keywordLabels).toEqual(['炼体', '剩余 8/8', '丹毒 +10']);
-    expect(model.detailGroups[1].lines).toContain(
+    expect(getDetailGroup(model, 'cost-and-rules').lines).toContain(
       '本境界已服 0/8，尚可服 8 颗',
     );
   });

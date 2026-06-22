@@ -155,6 +155,19 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="body-cultivation"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/body-cultivation/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'body-cultivation',
+                  summary: '五轨肉身根基、当前收益与破关准备归于此处。',
+                },
+                '肉身炼体',
+              )}
+            />
+            <Route
               path="inventory"
               lazy={lazyRoute(() => import('@app/routes/game/inventory/route'))}
               handle={scene(

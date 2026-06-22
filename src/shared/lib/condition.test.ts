@@ -87,6 +87,32 @@ describe('condition recovery helpers', () => {
     expect(estimate.timeToFullMs).toBe(38961039);
   });
 
+  it('includes body cultivation recovery multiplier in estimates', () => {
+    const condition = createCondition();
+    condition.tracks.bodyCultivation = {
+      version: 1,
+      realm: 'mortal_body',
+      tracks: {
+        skin: { level: 0, progress: 0 },
+        sinew_bone: { level: 5, progress: 0 },
+        organs: { level: 0, progress: 0 },
+        qi_blood: { level: 10, progress: 0 },
+        primordial_spirit: { level: 0, progress: 0 },
+      },
+      milestones: {},
+    };
+
+    const estimate = getNaturalRecoveryEstimate({
+      resource: 'hp',
+      current: 200,
+      max: 1000,
+      conditionInput: condition,
+      now: new Date('2026-05-25T12:00:00.000Z'),
+    });
+
+    expect(estimate.perHour).toBeCloseTo(310.8);
+  });
+
   it('derives player-facing toxicity recovery and breakthrough penalties', () => {
     const condition = createCondition();
     condition.gauges.pillToxicity = 12;
@@ -95,5 +121,30 @@ describe('condition recovery helpers', () => {
       0.9333333333,
     );
     expect(getBreakthroughPenaltyPercent(condition)).toBe(1.2);
+  });
+
+  it('reduces pill toxicity recovery suppression through qi-blood cultivation', () => {
+    const condition = createCondition();
+    condition.gauges.pillToxicity = 12;
+    condition.tracks.bodyCultivation = {
+      version: 1,
+      realm: 'mortal_body',
+      tracks: {
+        skin: { level: 0, progress: 0 },
+        sinew_bone: { level: 0, progress: 0 },
+        organs: { level: 0, progress: 0 },
+        qi_blood: { level: 10, progress: 0 },
+        primordial_spirit: { level: 0, progress: 0 },
+      },
+      milestones: {},
+    };
+
+    expect(getPillToxicityRecoveryMultiplier(condition)).toBeCloseTo(
+      0.9353333333,
+    );
+    expect(getBreakthroughPenaltyPercent(condition)).toBe(1.2);
+
+    condition.gauges.pillToxicity = 0;
+    expect(getPillToxicityRecoveryMultiplier(condition)).toBe(1);
   });
 });

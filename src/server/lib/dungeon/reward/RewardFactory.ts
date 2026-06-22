@@ -224,18 +224,18 @@ export class RewardFactory {
     mapRealm: RealmType,
     tier: string,
   ): ResourceOperation {
-    // 获取或推断元素
-    const element = bp.element || this.inferElement(bp.description || '');
-    const materialType = this.resolveMaterialType(
-      bp.material_type,
-      bp.description || '',
-    );
     // 计算品质（使用新的评分公式）
     const quality = this.rollMaterialQuality(
       mapRealm,
       tier,
       dangerBonus * 200, // 转换回 0-100 的危险分数
       bp.reward_score ?? 50,
+    );
+    // 获取或推断元素
+    const element = bp.element || this.inferElement(bp.description || '');
+    const materialType = this.resolveMaterialType(
+      bp.material_type,
+      bp.description || '',
     );
 
     // 计算价格（带危险分数加成）

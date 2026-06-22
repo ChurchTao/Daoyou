@@ -1,6 +1,11 @@
 import { GameSceneSection } from '@app/components/game-shell/GameSceneSection';
-import { InkDialog, type InkDialogState } from '@app/components/ui';
-import { usePlayerStateView } from '@app/lib/player-state/selectors';
+import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { InkButton, InkDialog, type InkDialogState } from '@app/components/ui';
+import { consumePlayerStateMutation } from '@app/lib/player-state/store';
+import {
+  usePlayerStateDomainVersion,
+  usePlayerStateView,
+} from '@app/lib/player-state/selectors';
 import { cn } from '@shared/lib/cn';
 import {
   getBreakthroughPenaltyPercent,
@@ -13,12 +18,18 @@ import { evaluateFateContext } from '@shared/lib/fates';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
 import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
 import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
+import { getBodyCultivationSummary } from '@shared/lib/bodyCultivation/summary';
 import { getAllTrackConfigs } from '@shared/lib/trackConfigRegistry';
+import type { ApiFailure } from '@shared/contracts/http';
+import type {
+  BodyCultivationBreakthroughReadinessData,
+  BodyCultivationBreakthroughReadinessResponse,
+} from '@shared/contracts/bodyCultivation';
 import type {
   ConditionStatusInstance,
   ConditionTrackPath,
 } from '@shared/types/condition';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   getPillToxicityEffectDetails,
   getStatusEffectDetails,
@@ -26,11 +37,11 @@ import {
 
 const TRACK_ORDER: ConditionTrackPath[] = [
   'marrow_wash',
-  'tempering.vitality',
-  'tempering.spirit',
-  'tempering.wisdom',
-  'tempering.speed',
-  'tempering.willpower',
+  'body.skin',
+  'body.sinew_bone',
+  'body.organs',
+  'body.qi_blood',
+  'body.primordial_spirit',
 ];
 
 function formatRemainingTime(
@@ -127,15 +138,14 @@ function usePersistentStatusState() {
     (left, right) =>
       TRACK_ORDER.indexOf(left.key) - TRACK_ORDER.indexOf(right.key),
   );
+  const bodySummary = getBodyCultivationSummary(cultivator.condition, {
+    cultivatorRealm: cultivator.realm,
+  });
   const trackEntries = trackConfigs.map((config) => {
     const state =
       config.key === 'marrow_wash'
         ? cultivator.condition?.tracks.marrowWash
-        : cultivator.condition?.tracks.tempering[
-            config.key.replace('tempering.', '') as keyof NonNullable<
-              typeof cultivator.condition
-            >['tracks']['tempering']
-          ];
+        : bodySummary.tracks.find((track) => track.path === config.key);
     const level = state?.level ?? 0;
     const progress = state?.progress ?? 0;
     const threshold = config.thresholdByLevel(level);
@@ -183,6 +193,7 @@ function usePersistentStatusState() {
     pillToxicityRecoveryEfficiency,
     pillToxicityStage,
     statuses,
+    bodySummary,
     trackEntries,
   };
 }
@@ -427,24 +438,238 @@ export function CultivatorCurrentStatusSection() {
 
 export function CultivatorTrackSection() {
   const state = usePersistentStatusState();
+  const { pushToast } = useInkUI();
+  const conditionVersion = usePlayerStateDomainVersion('condition');
+  const inventoryVersion = usePlayerStateDomainVersion('inventory');
+  const [breakthroughPending, setBreakthroughPending] = useState(false);
+  const [readinessError, setReadinessError] = useState<{
+    realmKey: string;
+    message: string;
+  } | null>(null);
+  const [breakthroughReadiness, setBreakthroughReadiness] =
+    useState<BodyCultivationBreakthroughReadinessData | null>(null);
+
+  const nextRealm = state?.bodySummary.nextRealm ?? null;
+  const nextRealmKey = nextRealm?.key ?? null;
+
+  useEffect(() => {
+    if (!nextRealmKey) {
+      return;
+    }
+
+    const abortController = new AbortController();
+
+    void fetch('/api/cultivator/body-cultivation/breakthrough', {
+      signal: abortController.signal,
+    })
+      .then(async (response) => {
+        const payload = (await response.json()) as
+          | BodyCultivationBreakthroughReadinessResponse
+          | ApiFailure;
+        if (!response.ok || !payload.success) {
+          throw new Error(
+            'error' in payload ? payload.error : '肉身破限条件读取失败',
+          );
+        }
+        setBreakthroughReadiness(payload.data);
+        setReadinessError(null);
+      })
+      .catch((error) => {
+        if (abortController.signal.aborted) return;
+        setBreakthroughReadiness(null);
+        setReadinessError({
+          realmKey: nextRealmKey,
+          message:
+            error instanceof Error ? error.message : '肉身破限条件读取失败',
+        });
+      });
+
+    return () => abortController.abort();
+  }, [conditionVersion, inventoryVersion, nextRealmKey]);
 
   if (!state || state.trackEntries.length === 0) {
     return null;
   }
 
+  const matchingReadiness =
+    breakthroughReadiness && breakthroughReadiness.nextRealm === nextRealm?.key
+      ? breakthroughReadiness
+      : null;
+  const matchingReadinessError =
+    readinessError && readinessError.realmKey === nextRealm?.key
+      ? readinessError.message
+      : null;
+  const inventoryRequirements = matchingReadiness?.inventoryRequirements ?? [];
+  const readinessPending =
+    Boolean(nextRealm) && !matchingReadiness && !matchingReadinessError;
+  const inventoryReady =
+    inventoryRequirements.length > 0 &&
+    inventoryRequirements.every((requirement) => requirement.met);
+  const canAttemptBreakthrough =
+    Boolean(nextRealm?.canAttempt) &&
+    Boolean(matchingReadiness?.canAttempt);
+  const breakthroughStatus = readinessPending
+    ? '核算中'
+    : canAttemptBreakthrough
+      ? '可破限'
+      : matchingReadinessError
+        ? '读取失败'
+        : nextRealm?.canAttempt
+          ? inventoryReady
+            ? '待确认'
+            : '缺材料'
+          : '未满足';
+  const costText =
+    inventoryRequirements.length > 0
+      ? inventoryRequirements
+          .map(
+            (requirement) =>
+              `${requirement.met ? '✓' : '·'} ${requirement.label ?? requirement.name} ${requirement.ownedQuantity}/${requirement.quantity}`,
+          )
+          .join(' / ')
+      : readinessPending
+        ? '破限材料核算中'
+        : matchingReadinessError
+          ? matchingReadinessError
+          : undefined;
+  const handleBodyBreakthrough = async () => {
+    if (!canAttemptBreakthrough || breakthroughPending) return;
+    const targetRealmLabel = nextRealm?.label ?? '下一阶';
+
+    setBreakthroughPending(true);
+    try {
+      const response = await fetch('/api/cultivator/body-cultivation/breakthrough', {
+        method: 'POST',
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || '肉身破限失败');
+      }
+
+      await consumePlayerStateMutation(payload);
+      const result = payload.data as {
+        success?: boolean;
+        guaranteeProgress?: number;
+      };
+      pushToast({
+        message:
+          result.success === false
+            ? `肉身破限未成，破限火候 ${Math.floor(result.guaranteeProgress ?? 0)}%`
+            : `肉身已破入${targetRealmLabel}`,
+        tone: result.success === false ? 'warning' : 'success',
+      });
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '肉身破限失败',
+        tone: 'danger',
+      });
+    } finally {
+      setBreakthroughPending(false);
+    }
+  };
+
   return (
-    <GameSceneSection title="洗髓与炼体">
-      <div>
-        {state.trackEntries.map(({ config, level, progress, threshold }) => (
+    <GameSceneSection title="肉身炼体">
+      <div className="space-y-4">
+        <div>
           <CompactInfoRow
-            key={config.key}
-            icon={config.key === 'marrow_wash' ? '🫧' : '🥋'}
-            label={config.name}
-            note={config.shortDesc}
-            value={`Lv.${level}`}
-            trailing={`${progress} / ${threshold}`}
-            muted={level === 0 && progress === 0}
+            icon="🥋"
+            label={`肉身·${state.bodySummary.realm.label}`}
+            note={state.bodySummary.realm.unlockText}
+            value={`总 Lv.${state.bodySummary.totalLevel}`}
+            trailing={`单轨软上限 Lv.${state.bodySummary.realm.softTrackCap}`}
           />
+          {nextRealm ? (
+            <div className="border-ink/10 border-b border-dashed py-2.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  <span className="shrink-0 text-base leading-6" aria-hidden="true">
+                    ⛰️
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-ink text-sm leading-6">
+                      下阶·{nextRealm.label}
+                    </div>
+                    <div className="text-ink-secondary text-xs leading-5">
+                      {nextRealm.unlockText} · 成功率{' '}
+                      {Math.round((matchingReadiness?.successChance ?? 0) * 100)}
+                      % · 火候 {matchingReadiness?.guaranteeProgress ?? 0}%
+                    </div>
+                  </div>
+                </div>
+                <div className="text-ink shrink-0 text-right text-sm leading-6 font-semibold">
+                  {breakthroughStatus}
+                </div>
+              </div>
+              <div className="text-ink-secondary mt-2 space-y-1 pl-9 text-xs leading-5">
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {nextRealm.requirements.map((requirement) => (
+                    <span
+                      key={requirement.label}
+                      className={requirement.met ? 'text-wood' : undefined}
+                    >
+                      {requirement.met ? '✓' : '·'} {requirement.label}
+                    </span>
+                  ))}
+                </div>
+                {costText ? (
+                  <div className="break-words">材料：{costText}</div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+        {nextRealm?.canAttempt ? (
+          <div className="flex justify-end">
+            <InkButton
+              type="button"
+              variant="primary"
+              className="text-sm"
+              disabled={breakthroughPending || !canAttemptBreakthrough}
+              onClick={handleBodyBreakthrough}
+            >
+              {breakthroughPending
+                ? '破限中'
+                : readinessPending
+                  ? '核算中'
+                  : `破入${nextRealm.label}`}
+            </InkButton>
+          </div>
+        ) : null}
+        {state.trackEntries.map(({ config, level, progress, threshold }) => (
+          config.key === 'marrow_wash' ? (
+            <CompactInfoRow
+              key={config.key}
+              icon="🫧"
+              label={config.name}
+              note={config.shortDesc}
+              value={`Lv.${level}`}
+              trailing={`${progress} / ${threshold}`}
+              muted={level === 0 && progress === 0}
+            />
+          ) : (
+            (() => {
+              const track = state.bodySummary.tracks.find(
+                (entry) => entry.path === config.key,
+              );
+              return (
+                <CompactInfoRow
+                  key={config.key}
+                  icon="🥋"
+                  label={config.name}
+                  note={
+                    track
+                      ? `${config.shortDesc} · 下个节点 Lv.${track.nextMilestoneLevel}`
+                      : config.shortDesc
+                  }
+                  value={`Lv.${level}`}
+                  trailing={`${progress} / ${threshold}`}
+                  muted={level === 0 && progress === 0}
+                />
+              );
+            })()
+          )
         ))}
       </div>
     </GameSceneSection>

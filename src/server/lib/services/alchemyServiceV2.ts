@@ -456,7 +456,6 @@ export function createAlchemyService(
         ) {
           spec.alchemyMeta.breakthroughTargetRealm = breakthroughTargetRealm;
         }
-
         const generatedCopy =
           await alchemyNarrativeEnricher.generateImprovisedPillCopy({
             family: synthesis.family,

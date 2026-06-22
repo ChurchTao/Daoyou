@@ -29,6 +29,10 @@ const DungeonBattleMetadataSchema = z.object({
   is_boss: z.boolean().optional().describe('是否BOSS'),
 });
 
+const DungeonCostMetadataSchema = z
+  .record(z.string(), z.unknown())
+  .and(DungeonBattleMetadataSchema.partial());
+
 /**
  * 副本代价 Schema - 直接使用资源引擎类型
  */
@@ -52,9 +56,12 @@ export const DungeonCostSchema = z.object({
   required_quality: z.enum(DUNGEON_QUALITY_VALUES).optional().describe('模糊要求时：最低品质'),
   required_type: z.enum(['herb', 'ore', 'monster', 'tcdb', 'aux', 'gongfa_manual', 'skill_manual']).optional().describe('模糊要求时：材料类型'),
   desc: z.string().optional().describe('描述信息'),
-  metadata: DungeonBattleMetadataSchema.optional().describe('元数据（battle 类型需要）'),
+  metadata: DungeonCostMetadataSchema.optional().describe('元数据（battle 类型需要 race/realm_stage；其他代价可记录系统反馈）'),
 }).superRefine((cost, ctx) => {
-  if (cost.type === 'battle' && !cost.metadata) {
+  if (
+    cost.type === 'battle' &&
+    (!cost.metadata || !cost.metadata.race || !cost.metadata.realm_stage)
+  ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['metadata'],

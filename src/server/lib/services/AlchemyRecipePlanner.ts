@@ -2,20 +2,21 @@ import { renderPrompt } from '@server/lib/prompts';
 import { object } from '@server/utils/aiClient';
 import { stableCompactStringify, truncateText } from '@server/utils/llmPayload';
 import {
+  GENERATABLE_ALCHEMY_PROPERTY_KEY_VALUES,
   getAlchemyPropertyLabel,
   normalizeWeightedAlchemyProperties,
 } from '@shared/lib/alchemyProperties';
+import { mergeAlchemyMaterialPropertyHints } from '@shared/lib/alchemyMaterialHints';
 import { ELEMENT_VALUES } from '@shared/types/constants';
 import {
   ALCHEMY_FOCUS_MODE_VALUES,
-  ALCHEMY_PROPERTY_KEY_VALUES,
   type AlchemyRecipePlan,
 } from '@shared/types/consumable';
 import { z } from 'zod';
 import type { PreparedAlchemyMaterial } from './AlchemyRecipeRules';
 
 const weightedAlchemyPropertySchema = z.object({
-  key: z.enum(ALCHEMY_PROPERTY_KEY_VALUES),
+  key: z.enum(GENERATABLE_ALCHEMY_PROPERTY_KEY_VALUES),
   weight: z.number().min(0).max(1),
 });
 
@@ -33,7 +34,7 @@ const alchemyRecipePlanSchema = z.object({
 });
 
 function buildPropertyGuide(): string {
-  return ALCHEMY_PROPERTY_KEY_VALUES.map(
+  return GENERATABLE_ALCHEMY_PROPERTY_KEY_VALUES.map(
     (key) => `- ${key}: ${getAlchemyPropertyLabel(key)}`,
   ).join('\n');
 }
@@ -134,6 +135,7 @@ export class AlchemyRecipePlanner {
         );
       }
       vector.materialName = material.name;
+      vector.properties = mergeAlchemyMaterialPropertyHints(vector, material).properties;
     }
 
     if (!input.userPrompt?.trim()) {

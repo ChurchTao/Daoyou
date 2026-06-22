@@ -32,7 +32,12 @@ import { getRetreatLock } from '@server/lib/redis/retreatLock';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import { removeFromAllRankingRealmsExcept } from '@server/lib/redis/rankings';
+import {
+  consumeBodyCultivationBreakthroughCosts,
+  getBodyCultivationBreakthroughReadiness,
+} from '@server/lib/services/BodyCultivationBreakthroughService';
 import { ConsumableUseEngine } from '@server/lib/services/ConsumableUseEngine';
+import { ConditionService } from '@server/lib/services/ConditionService';
 import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
 import {
   commitPlayerStateMutation,
@@ -87,6 +92,7 @@ import type {
   RetreatResultData,
   RetreatStreamEvent,
 } from '@shared/contracts/retreat';
+import type { BodyCultivationBreakthroughReadinessResponse } from '@shared/contracts/bodyCultivation';
 import type {
   PlayerStateDomain,
   PlayerStateEvent,
@@ -780,6 +786,144 @@ router.post('/inn-recovery', requireActiveCultivator(), async (c) => {
   }
 
   return c.json(toPlayerStateMutationResponse(committed));
+});
+
+router.get('/body-cultivation/breakthrough', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
+  const activeCultivator = c.get('cultivator');
+  if (!user || !activeCultivator) {
+    return c.json({ success: false, error: '未授权访问' }, 401);
+  }
+
+  const cultivator = await getCultivatorById(user.id, activeCultivator.id);
+  if (!cultivator) {
+    return c.json({ success: false, error: '角色不存在' }, 404);
+  }
+
+  const readiness = getBodyCultivationBreakthroughReadiness(cultivator);
+  const response: BodyCultivationBreakthroughReadinessResponse = {
+    success: true,
+    data: {
+      nextRealm: readiness.nextRealm,
+      canAttempt: readiness.canAttempt,
+      successChance: readiness.successChance,
+      guaranteeProgress: readiness.guaranteeProgress,
+      failedAttempts: readiness.failedAttempts,
+      ruleRequirements: readiness.ruleRequirements,
+      inventoryRequirements: readiness.inventoryRequirements,
+    },
+  };
+
+  return c.json(response);
+});
+
+router.post('/body-cultivation/breakthrough', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
+  const activeCultivator = c.get('cultivator');
+  if (!user || !activeCultivator) {
+    return c.json({ success: false, error: '未授权访问' }, 401);
+  }
+
+  const cultivator = await getCultivatorById(user.id, activeCultivator.id);
+  if (!cultivator) {
+    return c.json({ success: false, error: '角色不存在' }, 404);
+  }
+
+  try {
+    const readiness = getBodyCultivationBreakthroughReadiness(cultivator);
+    const missingRuleRequirements = readiness.ruleRequirements.filter(
+      (requirement) => !requirement.met,
+    );
+    const missingInventoryRequirements = readiness.inventoryRequirements.filter(
+      (requirement) => !requirement.met,
+    );
+    if (!readiness.canAttempt) {
+      return c.json(
+        {
+          success: false,
+          error: [
+            ...missingRuleRequirements.map((requirement) => requirement.label),
+            ...missingInventoryRequirements.map(
+              (requirement) =>
+                `${requirement.label ?? requirement.name} ${requirement.ownedQuantity}/${requirement.quantity}`,
+            ),
+          ].join('、') || '肉身破限条件不足',
+          data: {
+            nextRealm: readiness.nextRealm,
+            ruleRequirements: readiness.ruleRequirements,
+            inventoryRequirements: readiness.inventoryRequirements,
+          },
+        },
+        400,
+      );
+    }
+
+    const result = ConditionService.breakthroughBodyCultivationRealm(
+      cultivator,
+      cultivator.condition,
+    );
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: activeCultivator.id,
+      source: 'body_cultivation_breakthrough',
+      run: async (tx) => {
+        await consumeBodyCultivationBreakthroughCosts(
+          user.id,
+          activeCultivator.id,
+          readiness.costPlan,
+          tx,
+        );
+        const saved = await updateCultivator(
+          activeCultivator.id,
+          {
+            condition: result.condition,
+          },
+          tx,
+        );
+
+        if (!saved) {
+          throw new Error('更新角色数据失败');
+        }
+
+        return {
+          result: {
+            success: result.success,
+            fromRealm: result.fromRealm,
+            toRealm: result.toRealm,
+            chance: result.chance,
+            roll: result.roll,
+            failedAttempts: result.failedAttempts,
+            guaranteeProgress: result.guaranteeProgress,
+            condition: result.condition,
+          },
+          changes: [
+            {
+              domain: 'condition' as const,
+              eventType: result.success
+                ? 'condition.body_cultivation.breakthrough'
+                : 'condition.body_cultivation.breakthrough_failed',
+              patch: { condition: result.condition },
+            },
+            {
+              domain: 'inventory' as const,
+              eventType: 'inventory.body_cultivation.breakthrough_consumed',
+              invalidates: ['inventory'],
+            },
+          ],
+        };
+      },
+    });
+
+    return c.json(toPlayerStateMutationResponse(committed));
+  } catch (error) {
+    return c.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : '肉身破限失败',
+      },
+      400,
+    );
+  }
 });
 
 router.get('/equip', requireActiveCultivator(), async (c) => {
@@ -1994,7 +2138,15 @@ inventoryRouter.post('/identify', requireActiveCultivator(), async (c) => {
             },
             {
               domain: 'currency',
-              eventType: 'currency.spirit_stones.spent',
+              eventType: 'currency.changed',
+              patch:
+                typeof result.qiAfter === 'number'
+                  ? {
+                      currency: {
+                        qi: result.qiAfter,
+                      },
+                    }
+                  : undefined,
               invalidates: ['currency'],
             },
           ],
@@ -2010,6 +2162,10 @@ inventoryRouter.post('/identify', requireActiveCultivator(), async (c) => {
     }
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
+    const qiResponse = qiErrorResponse(c, error);
+    if (qiResponse) {
+      return qiResponse;
+    }
     if (error instanceof MarketServiceError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }

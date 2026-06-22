@@ -1448,6 +1448,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       conditions: [{ type: 'chance', params: { value: 0.2 } }],
       params: {
         cdModifyValue: { base: -1, scale: 'quality', coefficient: -0.25 },
+        maxCount: 1,
       },
     },
     listenerSpec: {

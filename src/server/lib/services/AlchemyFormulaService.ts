@@ -43,7 +43,7 @@ import {
 } from '@shared/lib/pillEffectScaling';
 import {
   formatAlchemyPropertyVector,
-  sortWeightedAlchemyProperties,
+  normalizeWeightedAlchemyProperties,
 } from '@shared/lib/alchemyProperties';
 import {
   getBreakthroughPillLabel,
@@ -232,7 +232,7 @@ function mapAlchemyFormulaRow(row: AlchemyFormulaRow): AlchemyFormula {
     family: row.family,
     pattern: {
       ...row.pattern,
-      targetPropertyVector: sortWeightedAlchemyProperties(
+      targetPropertyVector: normalizeWeightedAlchemyProperties(
         row.pattern.targetPropertyVector as WeightedAlchemyProperty[],
       ),
     },
@@ -561,7 +561,7 @@ export function buildFormulaSignature(
     consumeRules: formula.blueprint.consumeRules,
     dominantElement: formula.pattern.dominantElement ?? null,
     minQuality: formula.pattern.minQuality ?? null,
-    targetPropertyVector: sortWeightedAlchemyProperties(
+    targetPropertyVector: normalizeWeightedAlchemyProperties(
       formula.pattern.targetPropertyVector,
     ),
     slotCount: formula.pattern.slotCount,

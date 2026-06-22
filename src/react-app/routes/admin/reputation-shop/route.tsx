@@ -16,15 +16,10 @@ import {
   REPUTATION_SHOP_MAX_PRICE,
   REPUTATION_SHOP_MAX_STACK_QUANTITY,
 } from '@shared/contracts/reputationShop';
-import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { ItemLibraryEntry } from '@shared/lib/itemLibrary';
 import { QUALITY_VALUES, type Quality } from '@shared/types/constants';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-
-interface ItemLibraryResponse {
-  items?: ItemLibraryEntry[];
-  error?: string;
-}
+import { ItemLibraryPicker } from '../_components/ItemLibraryPicker';
 
 interface ReputationShopAdminResponse {
   items?: ReputationShopItemView[];
@@ -51,7 +46,9 @@ const emptyDraft: DraftState = {
   sortOrder: '0',
 };
 
-function toQualityTier(quality: string | null | undefined): Quality | undefined {
+function toQualityTier(
+  quality: string | null | undefined,
+): Quality | undefined {
   return QUALITY_VALUES.includes(quality as Quality)
     ? (quality as Quality)
     : undefined;
@@ -88,7 +85,10 @@ function toMutation(
   if (item?.type === 'artifact' && quantity !== 1) {
     throw new Error('法宝类商品每次只能发放 1 件');
   }
-  if (item?.type !== 'artifact' && quantity > REPUTATION_SHOP_MAX_STACK_QUANTITY) {
+  if (
+    item?.type !== 'artifact' &&
+    quantity > REPUTATION_SHOP_MAX_STACK_QUANTITY
+  ) {
     throw new Error(
       `材料和消耗品每次最多发放 ${REPUTATION_SHOP_MAX_STACK_QUANTITY} 件`,
     );
@@ -125,34 +125,23 @@ export default function AdminReputationShopPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [shopResponse, libraryResponse] = await Promise.all([
-        fetch('/api/admin/reputation-shop', { cache: 'no-store' }),
-        fetch('/api/admin/item-library?status=published', { cache: 'no-store' }),
-      ]);
+      const shopResponse = await fetch('/api/admin/reputation-shop', {
+        cache: 'no-store',
+      });
       const shopData =
         (await shopResponse.json()) as ReputationShopAdminResponse;
-      const libraryData = (await libraryResponse.json()) as ItemLibraryResponse;
       if (!shopResponse.ok) {
         throw new Error(shopData.error ?? '加载声望商店失败');
       }
-      if (!libraryResponse.ok) {
-        throw new Error(libraryData.error ?? '加载道具库失败');
-      }
-      const nextLibraryItems = libraryData.items ?? [];
-      setItems(shopData.items ?? []);
-      setLibraryItems(nextLibraryItems);
-      setDraft((current) =>
-        current.itemLibraryItemId || nextLibraryItems.length === 0
-          ? current
-          : {
-              ...current,
-              itemLibraryItemId: nextLibraryItems[0].itemId,
-              quantity: normalizeQuantityForItem(
-                current.quantity,
-                nextLibraryItems[0],
-              ),
-            },
-      );
+      const nextItems = shopData.items ?? [];
+      setItems(nextItems);
+      setLibraryItems((current) => {
+        const byId = new Map(current.map((item) => [item.itemId, item]));
+        nextItems.forEach((shopItem) =>
+          byId.set(shopItem.item.itemId, shopItem.item),
+        );
+        return Array.from(byId.values());
+      });
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '加载失败',
@@ -170,12 +159,17 @@ export default function AdminReputationShopPage() {
   const resetDraft = () => {
     setDraft({
       ...emptyDraft,
-      itemLibraryItemId: libraryItems[0]?.itemId ?? '',
-      quantity: normalizeQuantityForItem('1', libraryItems[0]),
+      itemLibraryItemId: '',
+      quantity: '1',
     });
   };
 
   const editItem = (item: ReputationShopItemView) => {
+    setLibraryItems((current) => {
+      if (current.some((entry) => entry.itemId === item.item.itemId))
+        return current;
+      return [...current, item.item];
+    });
     setDraft({
       id: item.id,
       itemLibraryItemId: item.itemLibraryItemId,
@@ -219,9 +213,12 @@ export default function AdminReputationShopPage() {
   };
 
   const archive = async (item: ReputationShopItemView) => {
-    const response = await fetch(`/api/admin/reputation-shop/${item.id}/archive`, {
-      method: 'POST',
-    });
+    const response = await fetch(
+      `/api/admin/reputation-shop/${item.id}/archive`,
+      {
+        method: 'POST',
+      },
+    );
     const data = (await response.json()) as { error?: string };
     if (!response.ok) {
       pushToast({ message: data.error ?? '下架失败', tone: 'danger' });
@@ -242,29 +239,25 @@ export default function AdminReputationShopPage() {
 
       <section className="border-ink/15 bg-bgpaper/90 space-y-4 border border-dashed p-6">
         <div className="grid gap-4 md:grid-cols-3">
-          <InkSelect
+          <ItemLibraryPicker
             label="道具库道具"
             value={draft.itemLibraryItemId}
-            onChange={(itemLibraryItemId) => {
-              const item = libraryByItemId.get(itemLibraryItemId);
+            onChange={(itemLibraryItemId, item) => {
+              if (item) {
+                setLibraryItems((current) => {
+                  if (current.some((entry) => entry.itemId === item.itemId)) {
+                    return current;
+                  }
+                  return [...current, item];
+                });
+              }
               setDraft((current) => ({
                 ...current,
                 itemLibraryItemId,
                 quantity: normalizeQuantityForItem(current.quantity, item),
               }));
             }}
-            disabled={libraryItems.length === 0}
-          >
-            {libraryItems.length === 0 ? (
-              <option value="">暂无 published 道具</option>
-            ) : (
-              libraryItems.map((item) => (
-                <option key={item.id} value={item.itemId}>
-                  {item.name} / {getGameConceptLabel(item.type)} / {item.itemId}
-                </option>
-              ))
-            )}
-          </InkSelect>
+          />
           <InkInput
             label="声望价格"
             value={draft.price}
@@ -273,7 +266,10 @@ export default function AdminReputationShopPage() {
           />
           <InkInput
             label="单次获得"
-            value={normalizeQuantityForItem(draft.quantity, selectedLibraryItem)}
+            value={normalizeQuantityForItem(
+              draft.quantity,
+              selectedLibraryItem,
+            )}
             onChange={(quantity) =>
               setDraft((current) => ({ ...current, quantity }))
             }
@@ -358,7 +354,9 @@ export default function AdminReputationShopPage() {
                 meta={`价格 ${item.price} 声望 · 单次获得 ${item.quantity} · 每周限购 ${
                   item.perUserLimit ?? '不限'
                 } · 排序 ${item.sortOrder}`}
-                description={item.item.description ?? item.item.payload.description}
+                description={
+                  item.item.description ?? item.item.payload.description
+                }
                 actions={
                   <div className="flex gap-2">
                     <InkButton

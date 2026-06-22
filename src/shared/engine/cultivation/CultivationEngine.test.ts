@@ -111,6 +111,43 @@ function withStatus(
   } satisfies Cultivator;
 }
 
+function withBodyCultivation(
+  cultivator: Cultivator,
+  levels: {
+    realm?: NonNullable<Cultivator['condition']>['tracks']['bodyCultivation']['realm'];
+    skin?: number;
+    sinewBone?: number;
+    organs?: number;
+    qiBlood?: number;
+    primordialSpirit?: number;
+  },
+) {
+  return {
+    ...cultivator,
+    condition: {
+      ...cultivator.condition!,
+      tracks: {
+        ...cultivator.condition!.tracks,
+        bodyCultivation: {
+          version: 1 as const,
+          realm: levels.realm ?? 'iron_bone',
+          tracks: {
+            skin: { level: levels.skin ?? 0, progress: 0 },
+            sinew_bone: { level: levels.sinewBone ?? 0, progress: 0 },
+            organs: { level: levels.organs ?? 0, progress: 0 },
+            qi_blood: { level: levels.qiBlood ?? 0, progress: 0 },
+            primordial_spirit: {
+              level: levels.primordialSpirit ?? 0,
+              progress: 0,
+            },
+          },
+          milestones: {},
+        },
+      },
+    },
+  } satisfies Cultivator;
+}
+
 describe('CultivationEngine cultivation boost', () => {
   it('applies cultivation boost to retreat exp once and then consumes it', () => {
     const base = performCultivation(createCultivator(), 10, () => 0.5);
@@ -219,5 +256,90 @@ describe('CultivationEngine cultivation boost', () => {
     );
     expect(result.summary.success).toBe(false);
     expect(result.cultivator.cultivation_progress?.inner_demon).toBe(false);
+  });
+
+  it('uses body cultivation to reduce failed breakthrough pressure without changing success chance', () => {
+    const baseCultivator = createCultivator();
+    baseCultivator.realm_stage = '圆满';
+    baseCultivator.cultivation_progress!.cultivation_exp = 80_000;
+    baseCultivator.cultivation_progress!.breakthrough_failures = 1;
+    const bodyCultivator = withBodyCultivation(createCultivator(), {
+      sinewBone: 20,
+      qiBlood: 20,
+      primordialSpirit: 25,
+    });
+    bodyCultivator.realm_stage = '圆满';
+    bodyCultivator.cultivation_progress!.cultivation_exp = 80_000;
+    bodyCultivator.cultivation_progress!.breakthrough_failures = 1;
+
+    const baseRolls = [0.99, 0.5, 0.5, 0.5, 0.47];
+    const bodyRolls = [0.99, 0.5, 0.5, 0.5, 0.47];
+    const base = attemptBreakthrough(
+      baseCultivator,
+      () => baseRolls.shift() ?? 0,
+    );
+    const body = attemptBreakthrough(
+      bodyCultivator,
+      () => bodyRolls.shift() ?? 0,
+    );
+
+    expect(body.summary.chance).toBe(base.summary.chance);
+    expect(body.summary.exp_lost ?? 0).toBeLessThan(base.summary.exp_lost ?? 0);
+    expect(Math.abs(body.summary.insight_change)).toBeLessThan(
+      Math.abs(base.summary.insight_change),
+    );
+    expect(
+      body.cultivator.cultivation_progress?.deviation_risk ?? 0,
+    ).toBeLessThan(base.cultivator.cultivation_progress?.deviation_risk ?? 0);
+    expect(base.cultivator.cultivation_progress?.inner_demon).toBe(true);
+    expect(body.cultivator.cultivation_progress?.inner_demon).toBe(false);
+  });
+
+  it('applies dao-body breakthrough pressure carrying without changing success chance', () => {
+    const dharmaBodyCultivator = withBodyCultivation(createCultivator(), {
+      realm: 'dharma_body',
+      skin: 25,
+      sinewBone: 25,
+      organs: 25,
+      qiBlood: 25,
+      primordialSpirit: 25,
+    });
+    dharmaBodyCultivator.realm_stage = '圆满';
+    dharmaBodyCultivator.cultivation_progress!.cultivation_exp = 80_000;
+
+    const daoBodyCultivator = withBodyCultivation(createCultivator(), {
+      realm: 'dao_body',
+      skin: 25,
+      sinewBone: 25,
+      organs: 25,
+      qiBlood: 25,
+      primordialSpirit: 25,
+    });
+    daoBodyCultivator.realm_stage = '圆满';
+    daoBodyCultivator.cultivation_progress!.cultivation_exp = 80_000;
+
+    const dharmaRolls = [0.99, 0.5, 0.5, 0.5, 0.5];
+    const daoRolls = [0.99, 0.5, 0.5, 0.5, 0.5];
+    const dharmaBody = attemptBreakthrough(
+      dharmaBodyCultivator,
+      () => dharmaRolls.shift() ?? 0,
+    );
+    const daoBody = attemptBreakthrough(
+      daoBodyCultivator,
+      () => daoRolls.shift() ?? 0,
+    );
+
+    expect(daoBody.summary.chance).toBe(dharmaBody.summary.chance);
+    expect(daoBody.summary.exp_lost ?? 0).toBeLessThan(
+      dharmaBody.summary.exp_lost ?? 0,
+    );
+    expect(Math.abs(daoBody.summary.insight_change)).toBeLessThan(
+      Math.abs(dharmaBody.summary.insight_change),
+    );
+    expect(
+      daoBody.cultivator.cultivation_progress?.deviation_risk ?? 0,
+    ).toBeLessThan(
+      dharmaBody.cultivator.cultivation_progress?.deviation_risk ?? 0,
+    );
   });
 });

@@ -14,7 +14,7 @@ import {
   isConditionStatusActive,
 } from '@shared/lib/condition';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
-import { getAllTrackConfigs } from '@shared/lib/trackConfigRegistry';
+import { getBodyCultivationSummary } from '@shared/lib/bodyCultivation/summary';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 function calculateYieldHours(lastYieldAt: Date | string | undefined) {
@@ -68,29 +68,18 @@ export function HomeView() {
         )
       : 0;
 
-    const trackSummary = getAllTrackConfigs()
-      .map((config) => {
-        const state =
-          config.key === 'marrow_wash'
-            ? cultivator.condition?.tracks.marrowWash
-            : cultivator.condition?.tracks.tempering[
-                config.key.replace('tempering.', '') as keyof NonNullable<
-                  typeof cultivator.condition
-                >['tracks']['tempering']
-              ];
-        const level = state?.level ?? 0;
-        const progress = state?.progress ?? 0;
-        const threshold = config.thresholdByLevel(level);
-
-        if (level <= 0 && progress <= 0) {
-          return null;
-        }
-
-        return `${config.name.replace('炼体·', '')} Lv.${level} ${progress}/${threshold}`;
-      })
-      .filter((entry): entry is string => Boolean(entry))
-      .slice(0, 3)
-      .join(' · ');
+    const bodySummary = getBodyCultivationSummary(cultivator.condition);
+    const strongestBodyTrack = [...bodySummary.tracks].sort(
+      (a, b) => b.level - a.level,
+    )[0];
+    const bodySummaryText =
+      bodySummary.totalLevel > 0 && strongestBodyTrack
+        ? [
+            `肉身·${bodySummary.realm.label} 总 Lv.${bodySummary.totalLevel}`,
+            `${strongestBodyTrack.layerName} Lv.${strongestBodyTrack.level}`,
+            strongestBodyTrack.currentEffects[0],
+          ].join(' · ')
+        : null;
 
     return {
       activeStatuses,
@@ -100,7 +89,7 @@ export function HomeView() {
       maxMp,
       pillToxicityStage,
       cultivationPercent,
-      trackSummary,
+      bodySummaryText,
       insight: cultivationProgress?.comprehension_insight ?? 0,
     };
   }, [cultivator, display]);
@@ -234,6 +223,7 @@ export function HomeView() {
       statusNames
         ? `${statusNames}${(caveStatus?.activeStatuses.length ?? 0) > 2 ? '等状态' : ''}`
         : null,
+      caveStatus?.bodySummaryText,
     ].filter(Boolean);
 
     urgentItems.push(

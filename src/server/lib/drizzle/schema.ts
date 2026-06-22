@@ -616,6 +616,7 @@ export const itemLibrary = pgTable(
     quality: varchar('quality', { length: 20 }),
     element: varchar('element', { length: 10 }),
     category: varchar('category', { length: 40 }),
+    sampleKey: doublePrecision('sample_key').notNull().default(0),
     payload: jsonb('payload').$type<ItemLibraryPayload>().notNull(),
     editorConfig: jsonb('editor_config')
       .$type<ItemLibraryEditorConfig>()
@@ -632,6 +633,13 @@ export const itemLibrary = pgTable(
   (table) => [
     uniqueIndex('item_library_item_id_unique').on(table.itemId),
     index('item_library_status_type_idx').on(table.status, table.type),
+    index('item_library_material_sample_idx').on(
+      table.type,
+      table.status,
+      table.category,
+      table.quality,
+      table.sampleKey,
+    ),
     index('item_library_name_idx').on(table.name),
   ],
 );

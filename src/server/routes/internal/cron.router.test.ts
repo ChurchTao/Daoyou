@@ -5,6 +5,7 @@ const {
   runBetBattleExpireJobMock,
   runExpiredDataCleanupJobMock,
   runMarketRefreshCronJobMock,
+  runMaterialLibraryDailyGenerationJobMock,
   runPlayerStateEventsCleanupJobMock,
   runRankRewardsJobMock,
   runTowerEnemySetRefreshJobMock,
@@ -13,6 +14,7 @@ const {
   runBetBattleExpireJobMock: vi.fn(),
   runExpiredDataCleanupJobMock: vi.fn(),
   runMarketRefreshCronJobMock: vi.fn(),
+  runMaterialLibraryDailyGenerationJobMock: vi.fn(),
   runPlayerStateEventsCleanupJobMock: vi.fn(),
   runRankRewardsJobMock: vi.fn(),
   runTowerEnemySetRefreshJobMock: vi.fn(),
@@ -23,6 +25,8 @@ vi.mock('@server/lib/jobs/internalCron', () => ({
   runBetBattleExpireJob: runBetBattleExpireJobMock,
   runExpiredDataCleanupJob: runExpiredDataCleanupJobMock,
   runMarketRefreshCronJob: runMarketRefreshCronJobMock,
+  runMaterialLibraryDailyGenerationJob:
+    runMaterialLibraryDailyGenerationJobMock,
   runPlayerStateEventsCleanupJob: runPlayerStateEventsCleanupJobMock,
   runRankRewardsJob: runRankRewardsJobMock,
   runTowerEnemySetRefreshJob: runTowerEnemySetRefreshJobMock,
@@ -57,6 +61,10 @@ describe('cron router', () => {
       runPlayerStateEventsCleanupJobMock,
     ],
     ['/internal/cron/expired-data-cleanup', runExpiredDataCleanupJobMock],
+    [
+      '/internal/cron/material-library-daily-generation',
+      runMaterialLibraryDailyGenerationJobMock,
+    ],
   ])('rejects unauthorized requests for %s', async (path, runner) => {
     const response = await createApp().request(path);
 
@@ -128,6 +136,11 @@ describe('cron router', () => {
           auctionListings: 8,
         },
       },
+    ],
+    [
+      '/internal/cron/material-library-daily-generation',
+      runMaterialLibraryDailyGenerationJobMock,
+      { success: true, processed: 20, skipped: false },
     ],
   ])('runs %s when bearer auth is valid', async (path, runner, result) => {
     runner.mockResolvedValueOnce(result);

@@ -1,6 +1,7 @@
 import { InkModal } from '@app/components/layout/InkModal';
 import { LingGenMini } from '@app/components/func/LingGen';
 import { InkBadge } from '@app/components/ui';
+import { BodyCultivationInspectionSection } from '@app/components/feature/cultivator/BodyCultivationPanels';
 import type { Cultivator } from '@shared/types/cultivator';
 import type { ReactNode } from 'react';
 import { CultivatorAttributeTable } from './CultivatorAttributeTable';
@@ -72,6 +73,7 @@ export function CultivatorInspectionModal({
           </section>
         ) : null}
 
+        <BodyCultivationInspectionSection cultivator={cultivator} />
         <CultivatorAttributeTable cultivator={cultivator} />
         <CultivatorLoadoutSections cultivator={cultivator} />
         {mode === 'cultivator' ? (

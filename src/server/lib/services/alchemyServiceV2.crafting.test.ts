@@ -317,6 +317,49 @@ describe('processAlchemyCraft narrative copy', () => {
     });
   });
 
+  it('uses narrative names for focused body alchemy', async () => {
+    vi.spyOn(Math, 'random').mockReturnValueOnce(0.5);
+    generateImprovisedPillCopyMock.mockResolvedValueOnce({
+      name: '青岚淬膜丹',
+      description: '药气贴肤，温养皮膜。',
+    });
+    const service = createAlchemyService({
+      plan: vi.fn().mockResolvedValue({
+        materialVectors: [
+          {
+            materialRef: 'material_1',
+            materialName: '青岚草',
+            properties: [{ key: 'body_skin', weight: 1 }],
+          },
+        ],
+        intentVector: [{ key: 'body_skin', weight: 1 }],
+        focusMode: 'focused',
+      }),
+    } as any);
+
+    const result = await service.processAlchemyCraft('cultivator-1', ['m1'], {
+      userPrompt: '药浴润膜，稳固皮肤',
+    });
+
+    expect(result.consumable.name).toBe('青岚淬膜丹');
+    expect(result.consumable.spec.kind).toBe('pill');
+    expect((result.consumable.spec as PillSpec).family).toBe('tempering');
+    const bodyOperation = (result.consumable.spec as PillSpec).operations.find(
+      (operation) =>
+        operation.type === 'advance_track' && operation.track === 'body.skin',
+    );
+    expect(bodyOperation).toMatchObject({
+      type: 'advance_track',
+      track: 'body.skin',
+    });
+    expect(
+      bodyOperation?.type === 'advance_track' ? bodyOperation.value : 0,
+    ).toBeGreaterThanOrEqual(40);
+    expect((result.consumable.spec as PillSpec).alchemyMeta.tags).toContain(
+      'body_skin',
+    );
+  });
+
   it('uses one planner call and one naming call for improvised crafting', async () => {
     const planMock = vi.fn().mockResolvedValue({
       materialVectors: [

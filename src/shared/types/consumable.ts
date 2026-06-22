@@ -54,18 +54,38 @@ export const ALCHEMY_PROPERTY_KEY_VALUES = [
   'protect_meridians_support',
   'breakthrough_support',
   'extend_lifespan',
-  'tempering_vitality',
-  'tempering_spirit',
-  'tempering_wisdom',
-  'tempering_speed',
-  'tempering_willpower',
+  'body_skin',
+  'body_sinew_bone',
+  'body_organs',
+  'body_qi_blood',
+  'body_primordial_spirit',
   'marrow_wash',
 ] as const;
 
 export type AlchemyPropertyKey = (typeof ALCHEMY_PROPERTY_KEY_VALUES)[number];
 
+export const LEGACY_ALCHEMY_PROPERTY_KEY_VALUES = [
+  'tempering_vitality',
+  'tempering_spirit',
+  'tempering_wisdom',
+  'tempering_speed',
+  'tempering_willpower',
+] as const;
+
+export type LegacyAlchemyPropertyKey =
+  (typeof LEGACY_ALCHEMY_PROPERTY_KEY_VALUES)[number];
+
+export type CompatibleAlchemyPropertyKey =
+  | AlchemyPropertyKey
+  | LegacyAlchemyPropertyKey;
+
 export interface WeightedAlchemyProperty {
   key: AlchemyPropertyKey;
+  weight: number;
+}
+
+export interface CompatibleWeightedAlchemyProperty {
+  key: CompatibleAlchemyPropertyKey;
   weight: number;
 }
 

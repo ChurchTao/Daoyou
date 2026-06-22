@@ -3,12 +3,18 @@ import { Hono } from 'hono';
 const {
   archiveItemLibraryEntryMock,
   createItemLibraryEntryMock,
+  generateMaterialLibraryEntriesMock,
+  getItemLibraryDailyMaterialGenerationSettingsMock,
   listItemLibraryMock,
+  upsertItemLibraryDailyMaterialGenerationSettingsMock,
   updateItemLibraryEntryMock,
 } = vi.hoisted(() => ({
   archiveItemLibraryEntryMock: vi.fn(),
   createItemLibraryEntryMock: vi.fn(),
+  generateMaterialLibraryEntriesMock: vi.fn(),
+  getItemLibraryDailyMaterialGenerationSettingsMock: vi.fn(),
   listItemLibraryMock: vi.fn(),
+  upsertItemLibraryDailyMaterialGenerationSettingsMock: vi.fn(),
   updateItemLibraryEntryMock: vi.fn(),
 }));
 
@@ -27,7 +33,19 @@ vi.mock('@server/lib/repositories/itemLibraryRepository', () => ({
   createItemLibraryEntry: createItemLibraryEntryMock,
   findItemLibraryById: vi.fn(),
   listItemLibrary: listItemLibraryMock,
+  normalizeItemLibraryFilters: (query: any) => query,
   updateItemLibraryEntry: updateItemLibraryEntryMock,
+}));
+
+vi.mock('@server/lib/services/MaterialLibraryService', () => ({
+  generateMaterialLibraryEntries: generateMaterialLibraryEntriesMock,
+}));
+
+vi.mock('@server/lib/repositories/appSettingsRepository', () => ({
+  getItemLibraryDailyMaterialGenerationSettings:
+    getItemLibraryDailyMaterialGenerationSettingsMock,
+  upsertItemLibraryDailyMaterialGenerationSettings:
+    upsertItemLibraryDailyMaterialGenerationSettingsMock,
 }));
 
 import itemLibraryRouter from './item-library.router';
@@ -62,10 +80,20 @@ describe('admin item library router', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    getItemLibraryDailyMaterialGenerationSettingsMock.mockResolvedValue({
+      enabled: true,
+      count: 20,
+    });
   });
 
   it('lists item library entries with filters', async () => {
-    listItemLibraryMock.mockResolvedValueOnce([materialItem]);
+    listItemLibraryMock.mockResolvedValueOnce({
+      items: [materialItem],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+      totalPages: 1,
+    });
 
     const response = await createApp().request(
       '/api/admin/item-library?status=published&type=material&q=iron',
@@ -76,10 +104,102 @@ describe('admin item library router', () => {
       status: 'published',
       type: 'material',
       q: 'iron',
+      page: 1,
+      pageSize: 20,
     });
     await expect(response.json()).resolves.toEqual({
       items: [materialItem],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+      totalPages: 1,
     });
+  });
+
+  it('bulk generates material library entries', async () => {
+    generateMaterialLibraryEntriesMock.mockResolvedValueOnce([materialItem]);
+
+    const response = await createApp().request(
+      '/api/admin/item-library/materials/generate',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          count: 1,
+          materialType: 'ore',
+          quality: '玄品',
+          status: 'published',
+          seed: 'init-seed',
+        }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(generateMaterialLibraryEntriesMock).toHaveBeenCalledWith({
+      request: {
+        count: 1,
+        materialType: 'ore',
+        quality: '玄品',
+        status: 'published',
+        seed: 'init-seed',
+      },
+      userId: '11111111-1111-4111-8111-111111111111',
+    });
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      generated: 1,
+    });
+  });
+
+  it('returns daily material generation settings', async () => {
+    getItemLibraryDailyMaterialGenerationSettingsMock.mockResolvedValueOnce({
+      enabled: false,
+      count: 12,
+    });
+
+    const response = await createApp().request(
+      '/api/admin/item-library/materials/daily-generation-settings',
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      settings: { enabled: false, count: 12 },
+    });
+  });
+
+  it('updates daily material generation settings', async () => {
+    const response = await createApp().request(
+      '/api/admin/item-library/materials/daily-generation-settings',
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: true, count: 30 }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(upsertItemLibraryDailyMaterialGenerationSettingsMock).toHaveBeenCalledWith({
+      settings: { enabled: true, count: 30 },
+      updatedBy: '11111111-1111-4111-8111-111111111111',
+    });
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      settings: { enabled: true, count: 30 },
+    });
+  });
+
+  it('rejects invalid daily material generation settings', async () => {
+    const response = await createApp().request(
+      '/api/admin/item-library/materials/daily-generation-settings',
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: true, count: 0 }),
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(upsertItemLibraryDailyMaterialGenerationSettingsMock).not.toHaveBeenCalled();
   });
 
   it('creates material entries', async () => {

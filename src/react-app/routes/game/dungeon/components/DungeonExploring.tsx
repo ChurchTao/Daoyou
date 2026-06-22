@@ -13,6 +13,7 @@ import type {
 import type { Cultivator } from '@shared/types/cultivator';
 import { getResourceIcon } from '@shared/lib/gameConceptDisplay';
 import {
+  formatDungeonCostBodyCultivationFeedback,
   formatDungeonCostName,
   formatDungeonCostValue,
 } from '@app/lib/dungeon/formatDungeonCost';
@@ -34,19 +35,33 @@ function OptionCostPreview({ costs }: { costs: DungeonOptionCost[] }) {
     return <div className="text-ink-secondary mt-1 text-sm">代价: 无需代价</div>;
   }
 
+  const bodyFeedbacks = costs
+    .map(formatDungeonCostBodyCultivationFeedback)
+    .filter((text): text is string => Boolean(text));
+
   return (
-    <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
-      {costs.map((cost, index) => (
-        <span
-          key={`${cost.type}-${index}`}
-          className="border-ink/15 bg-paper-dark inline-flex items-center gap-1 border border-dashed px-1.5 py-0.5"
-        >
-          <span>{getResourceIcon(cost.type)}</span>
-          <span>{formatDungeonCostName(cost)}</span>
-          <span className="text-crimson font-semibold">
-            {formatDungeonCostValue(cost)}
+    <div className="mt-2 space-y-1.5">
+      <div className="flex flex-wrap gap-1.5 text-xs">
+        {costs.map((cost, index) => (
+          <span
+            key={`${cost.type}-${index}`}
+            className="border-ink/15 bg-paper-dark inline-flex items-center gap-1 border border-dashed px-1.5 py-0.5"
+          >
+            <span>{getResourceIcon(cost.type)}</span>
+            <span>{formatDungeonCostName(cost)}</span>
+            <span className="text-crimson font-semibold">
+              {formatDungeonCostValue(cost)}
+            </span>
           </span>
-        </span>
+        ))}
+      </div>
+      {bodyFeedbacks.map((text, index) => (
+        <div
+          key={`${text}-${index}`}
+          className="text-wood text-xs leading-5"
+        >
+          {text}
+        </div>
       ))}
     </div>
   );

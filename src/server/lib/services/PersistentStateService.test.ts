@@ -1,4 +1,5 @@
 import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
+import { getBodyCultivationExternalResourceLossHooks } from '@shared/lib/bodyCultivation/effects';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { Cultivator } from '@shared/types/cultivator';
 import { ConditionService } from './ConditionService';
@@ -145,6 +146,109 @@ describe('ConditionService', () => {
     expect(recovered.statuses).toEqual([]);
   });
 
+  it('uses body cultivation recovery multiplier during natural recovery', () => {
+    const cultivator = createCultivator();
+    const { maxHp, maxMp } = ConditionService.getMaxResources(cultivator);
+    const now = new Date('2026-05-25T12:00:00.000Z');
+    const twoHoursAgo = new Date('2026-05-25T10:00:00.000Z');
+    const baseCondition = ConditionService.normalizeCondition(cultivator);
+    const bodyCondition: CultivatorCondition = {
+      ...baseCondition,
+      tracks: {
+        ...baseCondition.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'mortal_body',
+          tracks: {
+            skin: { level: 0, progress: 0 },
+            sinew_bone: { level: 5, progress: 0 },
+            organs: { level: 0, progress: 0 },
+            qi_blood: { level: 10, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+    const { maxHp: bodyMaxHp } = ConditionService.getMaxResources(
+      cultivator,
+      bodyCondition,
+    );
+
+    const recovered = ConditionService.tickNaturalRecovery(
+      cultivator,
+      {
+        ...bodyCondition,
+        resources: {
+          hp: { current: maxHp - 1000 },
+          mp: { current: maxMp },
+        },
+        timestamps: {
+          lastRecoveryAt: twoHoursAgo.toISOString(),
+        },
+      },
+      now,
+    );
+
+    expect(recovered.resources.hp.current).toBe(
+      Math.max(0, maxHp - 1000) +
+        Math.floor(bodyMaxHp * 0.28 * 2 * 1.11),
+    );
+  });
+
+  it('uses qi-blood cultivation to reduce pill toxicity recovery suppression', () => {
+    const cultivator = createCultivator();
+    const { maxHp, maxMp } = ConditionService.getMaxResources(cultivator);
+    const now = new Date('2026-05-25T12:00:00.000Z');
+    const twoHoursAgo = new Date('2026-05-25T10:00:00.000Z');
+    const baseCondition = ConditionService.normalizeCondition(cultivator);
+    const bodyCondition: CultivatorCondition = {
+      ...baseCondition,
+      gauges: {
+        pillToxicity: 12,
+      },
+      tracks: {
+        ...baseCondition.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'mortal_body',
+          tracks: {
+            skin: { level: 0, progress: 0 },
+            sinew_bone: { level: 0, progress: 0 },
+            organs: { level: 0, progress: 0 },
+            qi_blood: { level: 10, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+    const { maxHp: bodyMaxHp } = ConditionService.getMaxResources(
+      cultivator,
+      bodyCondition,
+    );
+
+    const recovered = ConditionService.tickNaturalRecovery(
+      cultivator,
+      {
+        ...bodyCondition,
+        resources: {
+          hp: { current: maxHp - 1000 },
+          mp: { current: maxMp },
+        },
+        timestamps: {
+          lastRecoveryAt: twoHoursAgo.toISOString(),
+        },
+      },
+      now,
+    );
+
+    expect(recovered.resources.hp.current).toBe(
+      Math.max(0, maxHp - 1000) +
+        Math.floor(bodyMaxHp * 0.28 * 2 * 0.9353333333 * 1.08),
+    );
+  });
+
   it('lands defeated persistent PVE characters at 1 点气血、0 点法力、near_death', () => {
     const cultivator = createCultivator();
     const result = ConditionService.applyBattleOutcome(
@@ -160,6 +264,47 @@ describe('ConditionService', () => {
     expect(result.resources.mp.current).toBe(0);
     expect(result.statuses.map((status) => status.key)).toEqual(
       expect.arrayContaining(['near_death']),
+    );
+  });
+
+  it('uses jade marrow body cultivation to downgrade persistent PVE defeat from near death to major wound', () => {
+    const cultivator = createCultivator();
+    const baseCondition = ConditionService.normalizeCondition(cultivator);
+    const condition: CultivatorCondition = {
+      ...baseCondition,
+      tracks: {
+        ...baseCondition.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'jade_marrow',
+          tracks: {
+            skin: { level: 0, progress: 0 },
+            sinew_bone: { level: 12, progress: 0 },
+            organs: { level: 0, progress: 0 },
+            qi_blood: { level: 10, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+
+    const result = ConditionService.applyBattleOutcome(
+      cultivator,
+      condition,
+      createBattleSnapshot(0, 0),
+      'persistent_pve',
+      true,
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(result.resources.hp.current).toBe(1);
+    expect(result.resources.mp.current).toBe(0);
+    expect(result.statuses.map((status) => status.key)).toContain(
+      'major_wound',
+    );
+    expect(result.statuses.map((status) => status.key)).not.toContain(
+      'near_death',
     );
   });
 
@@ -185,6 +330,343 @@ describe('ConditionService', () => {
 
     expect(minor.statuses.map((status) => status.key)).toContain('minor_wound');
     expect(major.statuses.map((status) => status.key)).toContain('major_wound');
+  });
+
+  it('applies body cultivation battle settle recovery after low-hp victory', () => {
+    const cultivator = createCultivator();
+    const baseCondition = ConditionService.normalizeCondition(cultivator);
+    const condition: CultivatorCondition = {
+      ...baseCondition,
+      tracks: {
+        ...baseCondition.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'bronze_skin',
+          tracks: {
+            skin: { level: 0, progress: 0 },
+            sinew_bone: { level: 5, progress: 0 },
+            organs: { level: 0, progress: 0 },
+            qi_blood: { level: 10, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+    const { maxHp, maxMp } = ConditionService.getMaxResources(cultivator, condition);
+    const snapshotHp = Math.floor(maxHp * 0.4);
+
+    const result = ConditionService.applyBattleOutcome(
+      cultivator,
+      condition,
+      createBattleSnapshot(snapshotHp, Math.floor(maxMp * 0.6)),
+      'persistent_pve',
+      false,
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(result.resources.hp.current).toBe(
+      snapshotHp + Math.floor(maxHp * 0.07),
+    );
+  });
+
+  it('downgrades battle wounds when body cultivation structure is strong enough', () => {
+    const cultivator = createCultivator();
+    const baseCondition = ConditionService.normalizeCondition(cultivator);
+    const condition: CultivatorCondition = {
+      ...baseCondition,
+      tracks: {
+        ...baseCondition.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'iron_bone',
+          tracks: {
+            skin: { level: 0, progress: 0 },
+            sinew_bone: { level: 10, progress: 0 },
+            organs: { level: 0, progress: 0 },
+            qi_blood: { level: 0, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+    const { maxHp, maxMp } = ConditionService.getMaxResources(cultivator, condition);
+
+    const result = ConditionService.applyBattleOutcome(
+      cultivator,
+      condition,
+      createBattleSnapshot(Math.floor(maxHp * 0.12), Math.floor(maxMp * 0.6)),
+      'persistent_pve',
+      false,
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(result.statuses.map((status) => status.key)).toContain('minor_wound');
+    expect(result.statuses.map((status) => status.key)).not.toContain(
+      'major_wound',
+    );
+  });
+
+  it('adds body cultivation skin shield to persistent PVE battle init', () => {
+    const cultivator = createCultivator();
+    const baseCondition = ConditionService.normalizeCondition(cultivator);
+    const condition: CultivatorCondition = {
+      ...baseCondition,
+      tracks: {
+        ...baseCondition.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'bronze_skin',
+          tracks: {
+            skin: { level: 10, progress: 0 },
+            sinew_bone: { level: 0, progress: 0 },
+            organs: { level: 0, progress: 0 },
+            qi_blood: { level: 0, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+    const { maxHp } = ConditionService.getMaxResources(cultivator, condition);
+
+    const battleInit = ConditionService.buildBattleInit(
+      cultivator,
+      condition,
+      'persistent_pve',
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(battleInit.player?.resourceState?.shield).toBe(
+      Math.floor(maxHp * 0.04),
+    );
+    expect(battleInit.player?.startingBuffs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: 'self',
+          buff: expect.objectContaining({
+            id: 'body_cultivation_skin_damage_reduction',
+            name: '皮肤·外膜护体',
+            listeners: [
+              expect.objectContaining({
+                eventType: 'DamageRequestEvent',
+                effects: [
+                  {
+                    type: 'percent_damage_modifier',
+                    params: {
+                      mode: 'reduce',
+                      value: 0.06,
+                      cap: 0.45,
+                    },
+                  },
+                ],
+              }),
+            ],
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it('adds jade marrow death-prevent starting buff to persistent PVE battle init', () => {
+    const cultivator = createCultivator();
+    const baseCondition = ConditionService.normalizeCondition(cultivator);
+    const condition: CultivatorCondition = {
+      ...baseCondition,
+      tracks: {
+        ...baseCondition.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'jade_marrow',
+          tracks: {
+            skin: { level: 0, progress: 0 },
+            sinew_bone: { level: 12, progress: 0 },
+            organs: { level: 0, progress: 0 },
+            qi_blood: { level: 10, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+
+    const battleInit = ConditionService.buildBattleInit(
+      cultivator,
+      condition,
+      'persistent_pve',
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(battleInit.player?.startingBuffs).toEqual([
+      expect.objectContaining({
+        source: 'self',
+        buff: expect.objectContaining({
+          id: 'body_cultivation_jade_marrow_death_prevent',
+          name: '玉髓·不灭骨',
+          listeners: [
+            expect.objectContaining({
+              eventType: 'DamageTakenEvent',
+              effects: [{ type: 'death_prevent', params: {} }],
+            }),
+          ],
+        }),
+      }),
+    ]);
+  });
+
+  it('adds golden-body burn-blood starting buff to persistent PVE battle init', () => {
+    const cultivator = createCultivator();
+    const baseCondition = ConditionService.normalizeCondition(cultivator);
+    const condition: CultivatorCondition = {
+      ...baseCondition,
+      tracks: {
+        ...baseCondition.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'golden_body',
+          tracks: {
+            skin: { level: 10, progress: 0 },
+            sinew_bone: { level: 12, progress: 0 },
+            organs: { level: 15, progress: 0 },
+            qi_blood: { level: 10, progress: 0 },
+            primordial_spirit: { level: 10, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+
+    const battleInit = ConditionService.buildBattleInit(
+      cultivator,
+      condition,
+      'persistent_pve',
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(battleInit.player?.startingBuffs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: 'self',
+          buff: expect.objectContaining({
+            id: 'body_cultivation_golden_body_burn_blood',
+            name: '金身·燃血爆发',
+            listeners: [
+              expect.objectContaining({
+                eventType: 'DamageTakenEvent',
+                effects: [
+                  expect.objectContaining({
+                    type: 'apply_buff',
+                    params: expect.objectContaining({
+                      buffConfig: expect.objectContaining({
+                        id: 'body_cultivation_golden_body_burn_blood_active',
+                      }),
+                    }),
+                  }),
+                  expect.objectContaining({
+                    type: 'apply_buff',
+                    params: expect.objectContaining({
+                      buffConfig: expect.objectContaining({
+                        id: 'body_cultivation_golden_body_burn_blood_marker',
+                        duration: -1,
+                      }),
+                    }),
+                  }),
+                ],
+              }),
+            ],
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it('reduces external resource losses through body cultivation pressure hooks', () => {
+    const cultivator = createCultivator();
+    const baseCondition = ConditionService.normalizeCondition(cultivator);
+    const condition: CultivatorCondition = {
+      ...baseCondition,
+      tracks: {
+        ...baseCondition.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'iron_bone',
+          tracks: {
+            skin: { level: 10, progress: 0 },
+            sinew_bone: { level: 10, progress: 0 },
+            organs: { level: 5, progress: 0 },
+            qi_blood: { level: 10, progress: 0 },
+            primordial_spirit: { level: 10, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+    const { maxHp, maxMp } = ConditionService.getMaxResources(cultivator, condition);
+    const hooks = getBodyCultivationExternalResourceLossHooks(condition);
+    const fullCondition: CultivatorCondition = {
+      ...condition,
+      resources: {
+        hp: { current: maxHp },
+        mp: { current: maxMp },
+      },
+    };
+
+    const result = ConditionService.applyExternalResourceLoss(
+      cultivator,
+      fullCondition,
+      {
+        hpPercent: 0.2,
+        mpPercent: 0.2,
+      },
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(result.resources.hp.current).toBe(
+      maxHp - Math.floor(maxHp * 0.2 * hooks.hpLossMultiplier),
+    );
+    expect(result.resources.mp.current).toBe(
+      maxMp - Math.floor(maxMp * 0.2 * hooks.mpLossMultiplier),
+    );
+  });
+
+  it('advances body cultivation realm through the condition service', () => {
+    const cultivator = createCultivator();
+    cultivator.realm = '炼气';
+    const baseCondition = ConditionService.normalizeCondition(cultivator);
+    const condition: CultivatorCondition = {
+      ...baseCondition,
+      tracks: {
+        ...baseCondition.tracks,
+        bodyCultivation: {
+          version: 1,
+          realm: 'mortal_body',
+          tracks: {
+            skin: { level: 4, progress: 0 },
+            sinew_bone: { level: 4, progress: 0 },
+            organs: { level: 4, progress: 0 },
+            qi_blood: { level: 0, progress: 0 },
+            primordial_spirit: { level: 0, progress: 0 },
+          },
+          milestones: {},
+        },
+      },
+    };
+
+    const result = ConditionService.breakthroughBodyCultivationRealm(
+      cultivator,
+      condition,
+      new Date('2026-05-25T12:00:00.000Z'),
+      () => 0,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.fromRealm).toBe('mortal_body');
+    expect(result.toRealm).toBe('bronze_skin');
+    expect(result.condition.tracks.bodyCultivation?.realm).toBe('bronze_skin');
+    expect(
+      result.condition.tracks.bodyCultivation?.milestones['realm.bronze_skin'],
+    ).toBe(true);
   });
 
   it('does not read or rewrite condition for standard PVP or training', () => {

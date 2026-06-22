@@ -96,6 +96,7 @@ vi.mock('./cultivatorService', () => ({
 
 import type {
   AlchemyFormula,
+  CompatibleWeightedAlchemyProperty,
   PillSpec,
   WeightedAlchemyProperty,
 } from '@shared/types/consumable';
@@ -114,6 +115,12 @@ function createVector(
   entries: Array<[WeightedAlchemyProperty['key'], number]>,
 ): WeightedAlchemyProperty[] {
   return entries.map(([key, weight]) => ({ key, weight }));
+}
+
+function createLegacyVector(
+  entries: Array<[CompatibleWeightedAlchemyProperty['key'], number]>,
+): WeightedAlchemyProperty[] {
+  return entries.map(([key, weight]) => ({ key, weight })) as WeightedAlchemyProperty[];
 }
 
 function createFormula(
@@ -243,6 +250,63 @@ describe('AlchemyFormulaService', () => {
     });
 
     expect(buildFormulaSignature(left)).toBe(buildFormulaSignature(right));
+  });
+
+  it('normalizes legacy tempering formula signatures into body properties', () => {
+    const legacy = createFormula({
+      family: 'tempering',
+      pattern: {
+        targetPropertyVector: createLegacyVector([['tempering_spirit', 1]]),
+        slotCount: 1,
+      },
+      blueprint: {
+        operations: [
+          {
+            type: 'advance_track',
+            track: 'body.organs',
+            value: 40,
+          },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'long_term',
+        },
+        targetStability: 70,
+        targetToxicity: 10,
+      },
+    });
+    const current = createFormula({
+      family: 'tempering',
+      pattern: {
+        targetPropertyVector: createVector([['body_organs', 1]]),
+        slotCount: 1,
+      },
+      blueprint: legacy.blueprint,
+    });
+
+    expect(buildFormulaSignature(legacy)).toBe(buildFormulaSignature(current));
+  });
+
+  it('canonicalizes legacy tempering properties when listing formulas', async () => {
+    executorState.selectRows = [
+      {
+        ...createFormula({
+          family: 'tempering',
+          pattern: {
+            targetPropertyVector: createLegacyVector([['tempering_spirit', 1]]),
+            slotCount: 1,
+          },
+        }),
+        createdAt: new Date('2026-05-15T00:00:00.000Z'),
+        updatedAt: new Date('2026-05-15T00:00:00.000Z'),
+      },
+    ];
+
+    const formulas = await listCultivatorFormulas('cultivator-1');
+
+    expect(formulas[0]?.pattern.targetPropertyVector).toEqual([
+      { key: 'body_organs', weight: 1 },
+    ]);
   });
 
   it('calculates fit multiplier from overlap, dominant element and surplus quality', () => {

@@ -2,7 +2,9 @@ import {
   CultivatorBasic,
   getCultivatorBasicsByIdsUnsafe,
 } from '@server/lib/services/cultivatorService';
+import { getBodyCultivationRankingTag } from '@shared/lib/bodyCultivation/ranking';
 import { REALM_VALUES, type RealmType } from '@shared/types/constants';
+import type { BodyCultivationRankingInfo } from '@shared/types/rankings';
 import { redis } from './index';
 
 const RANKING_LIST_PREFIX = 'golden_rank:list:';
@@ -19,6 +21,7 @@ export interface RankingItem extends CultivatorBasic {
   rank: number;
   faction?: string;
   updated_at: number;
+  bodyCultivation?: BodyCultivationRankingInfo;
 }
 
 export interface CultivatorRankInfo {
@@ -106,6 +109,7 @@ export async function getRankingList(realm: RealmType): Promise<RankingItem[]> {
       gender: record.gender,
       personality: record.personality,
       background: record.background,
+      bodyCultivation: getBodyCultivationRankingTag(record.condition ?? undefined),
       updatedAt: record.updatedAt,
     });
   }

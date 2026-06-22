@@ -1,12 +1,18 @@
 import { requireAdmin } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
+  getItemLibraryDailyMaterialGenerationSettings,
+  upsertItemLibraryDailyMaterialGenerationSettings,
+} from '@server/lib/repositories/appSettingsRepository';
+import {
   archiveItemLibraryEntry,
   createItemLibraryEntry,
   findItemLibraryById,
   listItemLibrary,
+  normalizeItemLibraryFilters,
   updateItemLibraryEntry,
 } from '@server/lib/repositories/itemLibraryRepository';
+import { generateMaterialLibraryEntries } from '@server/lib/services/MaterialLibraryService';
 import { buildPresetArtifact } from '@shared/engine/cultivator/creation/presetProducts';
 import { DEFAULT_AFFIX_REGISTRY } from '@shared/engine/creation-v2/affixes';
 import {
@@ -14,11 +20,13 @@ import {
   serializeProductModel,
 } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
 import { calculateProductScore } from '@shared/engine/creation-v2/persistence/ScoreCalculator';
+import { ItemLibraryDailyMaterialGenerationSettingsSchema } from '@shared/lib/constants/appSettings';
 import {
   ArtifactPreviewRequestSchema,
   CreateItemLibraryEntrySchema,
   ItemLibraryArtifactPayloadSchema,
   ItemLibraryListQuerySchema,
+  ItemLibraryMaterialGenerateSchema,
   UpdateItemLibraryEntrySchema,
   type CreateItemLibraryEntry,
   type UpdateItemLibraryEntry,
@@ -106,15 +114,72 @@ router.get('/', requireAdmin(), async (c) => {
   const parsed = ItemLibraryListQuerySchema.safeParse({
     status: c.req.query('status') || undefined,
     type: c.req.query('type') || undefined,
+    materialType: c.req.query('materialType') || undefined,
+    quality: c.req.query('quality') || undefined,
     q: c.req.query('q') || undefined,
+    itemIds: c.req.query('itemIds') || undefined,
+    page: c.req.query('page') || undefined,
+    pageSize: c.req.query('pageSize') || undefined,
   });
 
   if (!parsed.success) {
     return c.json({ error: '参数错误', details: parsed.error.flatten() }, 400);
   }
 
-  const items = await listItemLibrary(parsed.data);
-  return c.json({ items });
+  const result = await listItemLibrary(normalizeItemLibraryFilters(parsed.data));
+  return c.json(result);
+});
+
+router.post('/materials/generate', requireAdmin(), async (c) => {
+  const user = c.get('user');
+  if (!user) {
+    return c.json({ error: '未授权访问' }, 401);
+  }
+
+  const body = await c.req.json().catch(() => null);
+  const parsed = ItemLibraryMaterialGenerateSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: '参数错误', details: parsed.error.flatten() }, 400);
+  }
+
+  try {
+    const items = await generateMaterialLibraryEntries({
+      request: parsed.data,
+      userId: user.id,
+    });
+    return c.json({ success: true, items, generated: items.length });
+  } catch (error) {
+    return c.json(
+      { error: error instanceof Error ? error.message : '批量生成材料失败' },
+      500,
+    );
+  }
+});
+
+router.get('/materials/daily-generation-settings', requireAdmin(), async (c) => {
+  const settings = await getItemLibraryDailyMaterialGenerationSettings();
+  return c.json({ settings });
+});
+
+router.put('/materials/daily-generation-settings', requireAdmin(), async (c) => {
+  const user = c.get('user');
+  if (!user) {
+    return c.json({ error: '未授权访问' }, 401);
+  }
+
+  const body = await c.req.json().catch(() => null);
+  const parsed =
+    ItemLibraryDailyMaterialGenerationSettingsSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: '参数错误', details: parsed.error.flatten() }, 400);
+  }
+
+  await upsertItemLibraryDailyMaterialGenerationSettings({
+    settings: parsed.data,
+    updatedBy: user.id,
+  });
+
+  return c.json({ success: true, settings: parsed.data });
 });
 
 router.post('/', requireAdmin(), async (c) => {

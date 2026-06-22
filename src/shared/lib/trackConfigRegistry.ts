@@ -1,7 +1,19 @@
 import type { Attributes } from '@shared/types/cultivator';
 import type { ConditionTrackPath } from '@shared/types/condition';
+import {
+  BODY_CULTIVATION_TRACK_KEYS,
+  BODY_TRACK_LABELS,
+  LEGACY_TEMPERING_TO_BODY_TRACK,
+  getBodyCultivationThresholdByLevel,
+  getBodyTrackKeyFromPath,
+  isBodyCultivationTrackPath,
+  isLegacyTemperingTrackPath,
+} from './bodyCultivation/config';
 
 export type TrackReward =
+  | {
+      kind: 'body_modifier';
+    }
   | {
       kind: 'attribute';
       attribute: keyof Attributes;
@@ -22,62 +34,41 @@ export interface TrackConfig {
   reward: TrackReward;
 }
 
-const trackConfigs: Record<ConditionTrackPath, TrackConfig> = {
-  'tempering.vitality': {
-    key: 'tempering.vitality',
-    name: '炼体·体魄',
-    shortDesc: '升级后永久提升体魄',
-    thresholdByLevel: (level) => 100 * (level + 1),
-    reward: {
-      kind: 'attribute',
-      attribute: 'vitality',
-      amount: 1,
-    },
-  },
-  'tempering.spirit': {
-    key: 'tempering.spirit',
-    name: '炼体·灵力',
-    shortDesc: '升级后永久提升灵力',
-    thresholdByLevel: (level) => 100 * (level + 1),
-    reward: {
-      kind: 'attribute',
-      attribute: 'spirit',
-      amount: 1,
-    },
-  },
-  'tempering.wisdom': {
-    key: 'tempering.wisdom',
-    name: '炼体·悟性',
-    shortDesc: '升级后永久提升悟性',
-    thresholdByLevel: (level) => 100 * (level + 1),
-    reward: {
-      kind: 'attribute',
-      attribute: 'wisdom',
-      amount: 1,
-    },
-  },
-  'tempering.speed': {
-    key: 'tempering.speed',
-    name: '炼体·身法',
-    shortDesc: '升级后永久提升身法',
-    thresholdByLevel: (level) => 100 * (level + 1),
-    reward: {
-      kind: 'attribute',
-      attribute: 'speed',
-      amount: 1,
-    },
-  },
-  'tempering.willpower': {
-    key: 'tempering.willpower',
-    name: '炼体·神识',
-    shortDesc: '升级后永久提升神识',
-    thresholdByLevel: (level) => 100 * (level + 1),
-    reward: {
-      kind: 'attribute',
-      attribute: 'willpower',
-      amount: 1,
-    },
-  },
+const trackConfigs = {
+  ...Object.fromEntries(
+    BODY_CULTIVATION_TRACK_KEYS.map((key) => {
+      const labels = BODY_TRACK_LABELS[key];
+      return [
+        `body.${key}`,
+        {
+          key: `body.${key}`,
+          name: labels.name,
+          shortDesc: labels.shortDesc,
+          thresholdByLevel: getBodyCultivationThresholdByLevel,
+          reward: {
+            kind: 'body_modifier',
+          },
+        },
+      ];
+    }),
+  ),
+  ...Object.fromEntries(
+    Object.entries(LEGACY_TEMPERING_TO_BODY_TRACK).map(([legacyKey, bodyKey]) => {
+      const labels = BODY_TRACK_LABELS[bodyKey];
+      return [
+        `tempering.${legacyKey}`,
+        {
+          key: `tempering.${legacyKey}`,
+          name: labels.name,
+          shortDesc: `${labels.shortDesc}（旧炼体进度已重铸）`,
+          thresholdByLevel: getBodyCultivationThresholdByLevel,
+          reward: {
+            kind: 'body_modifier',
+          },
+        },
+      ];
+    }),
+  ),
   marrow_wash: {
     key: 'marrow_wash',
     name: '洗髓',
@@ -90,12 +81,18 @@ const trackConfigs: Record<ConditionTrackPath, TrackConfig> = {
       cap: 100,
     },
   },
-};
+} as Record<ConditionTrackPath, TrackConfig>;
 
 export function getTrackConfig(key: ConditionTrackPath): TrackConfig {
+  if (isLegacyTemperingTrackPath(key)) {
+    const bodyKey = getBodyTrackKeyFromPath(key);
+    return trackConfigs[`body.${bodyKey}`];
+  }
   return trackConfigs[key];
 }
 
 export function getAllTrackConfigs(): TrackConfig[] {
-  return Object.values(trackConfigs);
+  return Object.values(trackConfigs).filter(
+    (config) => config.key === 'marrow_wash' || isBodyCultivationTrackPath(config.key),
+  );
 }

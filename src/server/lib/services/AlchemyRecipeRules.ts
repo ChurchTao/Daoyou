@@ -235,11 +235,11 @@ function buildBasePropertyOperation(
         track: 'marrow_wash',
         value: Math.max(20, Math.floor(40 * scalar)),
       };
-    case 'tempering_vitality':
-    case 'tempering_spirit':
-    case 'tempering_wisdom':
-    case 'tempering_speed':
-    case 'tempering_willpower': {
+    case 'body_skin':
+    case 'body_sinew_bone':
+    case 'body_organs':
+    case 'body_qi_blood':
+    case 'body_primordial_spirit': {
       const track = getAlchemyPropertyTrackPath(key);
       if (!track) {
         throw new AlchemyServiceError(`未找到药性 ${key} 对应的炼体路径`, 500);

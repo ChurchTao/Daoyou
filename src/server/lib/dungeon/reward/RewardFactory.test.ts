@@ -48,6 +48,63 @@ describe('RewardFactory', () => {
     expect(material.details).toBeUndefined();
   });
 
+  it('副本奖励不再把炼体语义蓝图归一成预设材料', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.95);
+
+    try {
+      const [reward] = RewardFactory.materialize(
+        [
+          {
+            name: '雷击药浴残液',
+            description: '可用于皮膜筋膜破限，药性仍有雷火余威。',
+            material_type: 'aux',
+            element: '水',
+            reward_score: 90,
+          },
+        ],
+        '炼气',
+        'S',
+        60,
+      );
+
+      expect(reward.type).toBe('material');
+      expect(reward.name).toBe('雷击药浴残液');
+
+      const material = reward.data as Material;
+      expect(material).toMatchObject({
+        name: '雷击药浴残液',
+        type: 'aux',
+        element: '水',
+      });
+      expect(material.description).toBe(
+        '可用于皮膜筋膜破限，药性仍有雷火余威。',
+      );
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
+  it('不会用炼体关键词覆盖显式神通秘术掉落', () => {
+    const [reward] = RewardFactory.materialize(
+      [
+        {
+          name: '金身搏杀秘卷',
+          description: '记载体修金身爆发的残缺神通。',
+          material_type: 'skill_manual',
+          element: '金',
+          reward_score: 90,
+        },
+      ],
+      '元婴',
+      'S',
+      60,
+    );
+
+    const material = reward.data as Material;
+    expect(material.name).toBe('金身搏杀秘卷');
+    expect(material.type).toBe('skill_manual');
+  });
+
   it('副本基础修为使用统一 dungeon 场景预算', () => {
     const playerInfo: PlayerInfo = {
       name: '韩立',

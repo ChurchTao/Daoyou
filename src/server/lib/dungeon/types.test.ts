@@ -33,6 +33,24 @@ describe('dungeon battle metadata schemas', () => {
   });
 
   it.each([
+    ['shared', sharedDungeonCostSchema],
+    ['server', serverDungeonCostSchema],
+  ])('%s DungeonCostSchema accepts non-battle feedback metadata', (_, schema) => {
+    expect(
+      schema.safeParse({
+        type: 'hp_loss',
+        value: 0.2,
+        metadata: {
+          bodyCultivation: {
+            preventedLoss: 20,
+            triggerText: '肉身炼体生效：外护与承压降低气血损耗 20 点',
+          },
+        },
+      }).success,
+    ).toBe(true);
+  });
+
+  it.each([
     ['shared', sharedDungeonRoundSchema],
     ['server', serverDungeonRoundSchema],
   ])('%s DungeonRoundSchema rejects battle costs missing race or realm_stage', (_, schema) => {

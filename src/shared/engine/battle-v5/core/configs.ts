@@ -35,6 +35,7 @@ export interface ConditionConfig {
     | 'hp_below'
     | 'mp_above'
     | 'mp_below'
+    | 'ability_mp_cost_at_least'
     | 'has_shield'
     | 'buff_count_at_least'
     | 'debuff_count_at_least'
@@ -137,6 +138,7 @@ export interface ManaBurnParams {
 export interface CooldownModifyParams {
   cdModifyValue: number;
   tags?: string[];
+  maxCount?: number;
 }
 
 export interface BuffDurationModifyParams {
