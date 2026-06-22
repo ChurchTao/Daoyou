@@ -98,7 +98,7 @@ const FOCUS_BONUS: Record<AlchemyFocusMode, number> = {
   risky: 0.9,
 };
 
-const PROPERTY_OPERATION_SCALARS = [1, 0.75, 0.55] as const;
+const PROPERTY_OPERATION_SCALARS = [1, 0.35, 0.2] as const;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));

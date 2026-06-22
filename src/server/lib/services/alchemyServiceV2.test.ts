@@ -273,7 +273,7 @@ describe('synthesizeAlchemy', () => {
       {
         type: 'change_gauge',
         gauge: 'pillToxicity',
-        delta: -23,
+        delta: -11,
       },
     ]);
   });
@@ -333,7 +333,7 @@ describe('synthesizeAlchemy', () => {
       type: 'restore_resource',
       resource: 'mp',
       mode: 'percent',
-      value: 0.3,
+      value: 0.14,
     });
   });
 
@@ -616,8 +616,8 @@ describe('synthesizeAlchemy', () => {
       type: 'add_status',
       status: 'cultivation_boost',
       payload: {
-        boostPercent: 0.8317,
-        retreatExpMultiplier: 1.8317,
+        boostPercent: 0.3024,
+        retreatExpMultiplier: 1.3024,
       },
     });
   });
