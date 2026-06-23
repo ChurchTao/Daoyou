@@ -1260,8 +1260,8 @@ describe('cultivator body cultivation routes', () => {
         inventoryRequirements: [
           {
             type: 'material',
-            name: '破限资材（特殊辅料，玄品以上）',
-            label: '破限资材（特殊辅料，玄品以上）',
+            name: '进阶材料（特殊辅料，玄品以上）',
+            label: '进阶材料（特殊辅料，玄品以上）',
             quantity: 1,
             ownedQuantity: 1,
             met: true,
@@ -1270,8 +1270,8 @@ describe('cultivator body cultivation routes', () => {
           },
           {
             type: 'consumable',
-            name: '炼体·皮肤破限丹（玄品以上）',
-            label: '炼体·皮肤破限丹（玄品以上）',
+            name: '皮肤方向炼体丹（玄品以上）',
+            label: '皮肤方向炼体丹（玄品以上）',
             quantity: 1,
             ownedQuantity: 1,
             met: true,
@@ -1614,7 +1614,7 @@ describe('cultivator body cultivation routes', () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      error: expect.stringContaining('炼体·皮肤破限丹（玄品以上） 0/1'),
+      error: expect.stringContaining('皮肤方向炼体丹（玄品以上） 0/1'),
     });
     expect(updateCultivatorMock).not.toHaveBeenCalled();
     expect(dbMock).not.toHaveBeenCalled();

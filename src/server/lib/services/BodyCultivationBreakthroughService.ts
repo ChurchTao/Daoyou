@@ -56,12 +56,24 @@ function isMatchingBodyBreakthroughPill(
     return false;
   }
 
-  return consumable.spec.alchemyMeta.propertyVector.some(
-    (property) =>
+  const propertyVector = consumable.spec.alchemyMeta?.propertyVector;
+  if (!Array.isArray(propertyVector)) {
+    return false;
+  }
+
+  return propertyVector.some((property) => {
+    const key = (property as { key?: unknown }).key;
+    const weight = (property as { weight?: unknown }).weight;
+    if (typeof key !== 'string' || typeof weight !== 'number') {
+      return false;
+    }
+
+    return (
       canonicalizeAlchemyPropertyKey(
-        property.key as CompatibleAlchemyPropertyKey,
-      ) === cost.property && property.weight > 0,
-  );
+        key as CompatibleAlchemyPropertyKey,
+      ) === cost.property && weight > 0
+    );
+  });
 }
 
 function planConsumableCost(

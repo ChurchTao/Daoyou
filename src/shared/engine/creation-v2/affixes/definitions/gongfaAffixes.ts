@@ -1344,7 +1344,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     selectionMeta: {
       gongfa: { role: 'secret', archetype: 'inferno', element: '火' },
     },
-    weight: 5,
+    weight: 8,
     energyCost: 50,
     applicableTo: ['gongfa'],
     effectTemplate: {
@@ -1392,7 +1392,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     selectionMeta: {
       gongfa: { role: 'secret', archetype: 'frost-soul', element: '冰' },
     },
-    weight: 5,
+    weight: 8,
     energyCost: 50,
     applicableTo: ['gongfa'],
     effectTemplate: {
@@ -1439,7 +1439,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     selectionMeta: {
       gongfa: { role: 'secret', archetype: 'cycle' },
     },
-    weight: 6,
+    weight: 8,
     energyCost: 45,
     applicableTo: ['gongfa'],
     grantedAbilityTags: [GameplayTags.TRAIT.COOLDOWN],
@@ -1484,7 +1484,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     selectionMeta: {
       gongfa: { role: 'secret', archetype: 'adaptive' },
     },
-    weight: 4,
+    weight: 8,
     energyCost: 55,
     applicableTo: ['gongfa'],
     effectTemplate: {

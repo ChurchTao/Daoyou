@@ -863,7 +863,7 @@ router.post('/body-cultivation/breakthrough', requireActiveCultivator(), async (
               (requirement) =>
                 `${requirement.label ?? requirement.name} ${requirement.ownedQuantity}/${requirement.quantity}`,
             ),
-          ].join('、') || '肉身破限条件不足',
+          ].join('、') || '肉身进阶条件不足',
           data: {
             nextRealm: readiness.nextRealm,
             ruleRequirements: readiness.ruleRequirements,
@@ -935,7 +935,7 @@ router.post('/body-cultivation/breakthrough', requireActiveCultivator(), async (
     return c.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : '肉身破限失败',
+        error: error instanceof Error ? error.message : '肉身进阶失败',
       },
       400,
     );

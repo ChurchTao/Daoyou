@@ -86,7 +86,7 @@ export default function CraftPage() {
           <p className="text-ink-secondary mb-4 min-h-10 text-sm">
             调阴阳之气，炼制灵丹妙药。
             <br />
-            炼体丹按药性推进五轨，破限看药性与质量。
+            炼体丹按药性推进五轨，肉身进阶看药性与质量。
           </p>
           <InkButton href="/game/craft/alchemy" variant="primary">
             前往炼丹房

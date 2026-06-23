@@ -109,32 +109,32 @@ const BODY_CULTIVATION_REALM_BREAKTHROUGH_PILL_REQUIREMENTS: Partial<
   bronze_skin: {
     property: 'body_skin',
     minQuality: '玄品',
-    label: '炼体·皮肤破限丹（玄品以上）',
+    label: '皮肤方向炼体丹（玄品以上）',
   },
   iron_bone: {
     property: 'body_sinew_bone',
     minQuality: '玄品',
-    label: '炼体·筋骨破限丹（玄品以上）',
+    label: '筋骨方向炼体丹（玄品以上）',
   },
   jade_marrow: {
     property: 'body_sinew_bone',
     minQuality: '真品',
-    label: '炼体·筋骨破限丹（真品以上）',
+    label: '筋骨方向炼体丹（真品以上）',
   },
   golden_body: {
     property: 'body_organs',
     minQuality: '地品',
-    label: '炼体·脏腑破限丹（地品以上）',
+    label: '脏腑方向炼体丹（地品以上）',
   },
   dharma_body: {
     property: 'body_primordial_spirit',
     minQuality: '天品',
-    label: '炼体·元神破限丹（天品以上）',
+    label: '元神方向炼体丹（天品以上）',
   },
   dao_body: {
     property: 'body_primordial_spirit',
     minQuality: '仙品',
-    label: '炼体·元神破限丹（仙品以上）',
+    label: '元神方向炼体丹（仙品以上）',
   },
 };
 
@@ -177,7 +177,7 @@ function getBodyCultivationMaterialRequirementLabel(
   materialType: MaterialType,
   minQuality: Quality,
 ): string {
-  return `破限资材（${getMaterialTypeLabel(materialType)}，${minQuality}以上）`;
+  return `进阶材料（${getMaterialTypeLabel(materialType)}，${minQuality}以上）`;
 }
 
 function buildBodyCultivationBreakthroughCosts(
@@ -288,7 +288,7 @@ export function breakthroughBodyCultivationRealm(
       .filter((requirement) => !requirement.met)
       .map((requirement) => requirement.label)
       .join('、');
-    throw new Error(`肉身破限条件不足：${missing}`);
+    throw new Error(`肉身进阶条件不足：${missing}`);
   }
 
   const nextRealm = getNextBodyCultivationRealm(state.realm);

@@ -154,8 +154,8 @@ describe('BodyCultivationBreakthroughService', () => {
     expect(readiness.inventoryRequirements).toEqual([
       {
         type: 'material',
-        name: '破限资材（特殊辅料，玄品以上）',
-        label: '破限资材（特殊辅料，玄品以上）',
+        name: '进阶材料（特殊辅料，玄品以上）',
+        label: '进阶材料（特殊辅料，玄品以上）',
         quantity: 1,
         ownedQuantity: 1,
         met: true,
@@ -164,8 +164,8 @@ describe('BodyCultivationBreakthroughService', () => {
       },
       {
         type: 'consumable',
-        name: '炼体·皮肤破限丹（玄品以上）',
-        label: '炼体·皮肤破限丹（玄品以上）',
+        name: '皮肤方向炼体丹（玄品以上）',
+        label: '皮肤方向炼体丹（玄品以上）',
         quantity: 1,
         ownedQuantity: 1,
         met: true,
@@ -217,8 +217,8 @@ describe('BodyCultivationBreakthroughService', () => {
     expect(readiness.canAttempt).toBe(false);
     expect(readiness.inventoryRequirements).toContainEqual({
       type: 'material',
-      name: '破限资材（特殊辅料，玄品以上）',
-      label: '破限资材（特殊辅料，玄品以上）',
+      name: '进阶材料（特殊辅料，玄品以上）',
+      label: '进阶材料（特殊辅料，玄品以上）',
       quantity: 1,
       ownedQuantity: 0,
       met: false,
@@ -244,8 +244,8 @@ describe('BodyCultivationBreakthroughService', () => {
     expect(readiness.canAttempt).toBe(false);
     expect(readiness.inventoryRequirements).toContainEqual({
       type: 'material',
-      name: '破限资材（特殊辅料，玄品以上）',
-      label: '破限资材（特殊辅料，玄品以上）',
+      name: '进阶材料（特殊辅料，玄品以上）',
+      label: '进阶材料（特殊辅料，玄品以上）',
       quantity: 1,
       ownedQuantity: 0,
       met: false,
@@ -334,8 +334,8 @@ describe('BodyCultivationBreakthroughService', () => {
     expect(readiness.canAttempt).toBe(false);
     expect(readiness.inventoryRequirements).toContainEqual({
       type: 'consumable',
-      name: '炼体·皮肤破限丹（玄品以上）',
-      label: '炼体·皮肤破限丹（玄品以上）',
+      name: '皮肤方向炼体丹（玄品以上）',
+      label: '皮肤方向炼体丹（玄品以上）',
       quantity: 1,
       ownedQuantity: 0,
       met: false,
@@ -359,8 +359,8 @@ describe('BodyCultivationBreakthroughService', () => {
     expect(readiness.canAttempt).toBe(false);
     expect(readiness.inventoryRequirements).toContainEqual({
       type: 'consumable',
-      name: '炼体·皮肤破限丹（玄品以上）',
-      label: '炼体·皮肤破限丹（玄品以上）',
+      name: '皮肤方向炼体丹（玄品以上）',
+      label: '皮肤方向炼体丹（玄品以上）',
       quantity: 1,
       ownedQuantity: 0,
       met: false,
@@ -385,6 +385,54 @@ describe('BodyCultivationBreakthroughService', () => {
     expect(readiness.costPlan.consumables).toEqual([
       { id: 'legacy-pill', quantity: 1 },
     ]);
+  });
+
+  it('ignores malformed legacy tempering pills instead of failing readiness', () => {
+    const cultivator = createCultivator();
+    delete cultivator.condition!.tracks.bodyCultivation;
+    cultivator.condition!.tracks.tempering = {
+      vitality: { level: 4, progress: 0 },
+      spirit: { level: 4, progress: 0 },
+      wisdom: { level: 0, progress: 0 },
+      speed: { level: 4, progress: 0 },
+      willpower: { level: 0, progress: 0 },
+    };
+    cultivator.inventory.consumables = [
+      {
+        id: 'legacy-malformed-pill',
+        name: '旧版淬体丹',
+        type: '丹药',
+        quality: '玄品',
+        quantity: 1,
+        description: '',
+        spec: {
+          kind: 'pill',
+          family: 'tempering',
+          operations: [],
+          consumeRules: {
+            scene: 'out_of_battle_only',
+            quotaCategory: 'none',
+          },
+        },
+      } as unknown as Consumable,
+    ];
+
+    const readiness = getBodyCultivationBreakthroughReadiness(cultivator);
+
+    expect(readiness.nextRealm).toBe('bronze_skin');
+    expect(readiness.ruleRequirements.every((requirement) => requirement.met)).toBe(true);
+    expect(readiness.inventoryRequirements).toContainEqual({
+      type: 'consumable',
+      name: '皮肤方向炼体丹（玄品以上）',
+      label: '皮肤方向炼体丹（玄品以上）',
+      quantity: 1,
+      ownedQuantity: 0,
+      met: false,
+      family: 'tempering',
+      property: 'body_skin',
+      minQuality: '玄品',
+    });
+    expect(readiness.canAttempt).toBe(false);
   });
 
   it('consumes planned materials and consumables in the provided transaction', async () => {

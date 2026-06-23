@@ -468,7 +468,7 @@ export function CultivatorTrackSection() {
           | ApiFailure;
         if (!response.ok || !payload.success) {
           throw new Error(
-            'error' in payload ? payload.error : '肉身破限条件读取失败',
+            'error' in payload ? payload.error : '肉身进阶条件读取失败',
           );
         }
         setBreakthroughReadiness(payload.data);
@@ -480,7 +480,7 @@ export function CultivatorTrackSection() {
         setReadinessError({
           realmKey: nextRealmKey,
           message:
-            error instanceof Error ? error.message : '肉身破限条件读取失败',
+            error instanceof Error ? error.message : '肉身进阶条件读取失败',
         });
       });
 
@@ -509,9 +509,9 @@ export function CultivatorTrackSection() {
     Boolean(nextRealm?.canAttempt) &&
     Boolean(matchingReadiness?.canAttempt);
   const breakthroughStatus = readinessPending
-    ? '核算中'
+    ? '读取中'
     : canAttemptBreakthrough
-      ? '可破限'
+      ? '可进阶'
       : matchingReadinessError
         ? '读取失败'
         : nextRealm?.canAttempt
@@ -528,7 +528,7 @@ export function CultivatorTrackSection() {
           )
           .join(' / ')
       : readinessPending
-        ? '破限材料核算中'
+        ? '正在读取所需材料和丹药'
         : matchingReadinessError
           ? matchingReadinessError
           : undefined;
@@ -544,7 +544,7 @@ export function CultivatorTrackSection() {
       const payload = await response.json();
 
       if (!response.ok || !payload.success) {
-        throw new Error(payload.error || '肉身破限失败');
+        throw new Error(payload.error || '肉身进阶失败');
       }
 
       await consumePlayerStateMutation(payload);
@@ -555,13 +555,13 @@ export function CultivatorTrackSection() {
       pushToast({
         message:
           result.success === false
-            ? `肉身破限未成，破限火候 ${Math.floor(result.guaranteeProgress ?? 0)}%`
-            : `肉身已破入${targetRealmLabel}`,
+            ? `肉身进阶失败，保底进度 ${Math.floor(result.guaranteeProgress ?? 0)}%`
+            : `肉身已提升到${targetRealmLabel}`,
         tone: result.success === false ? 'warning' : 'success',
       });
     } catch (error) {
       pushToast({
-        message: error instanceof Error ? error.message : '肉身破限失败',
+        message: error instanceof Error ? error.message : '肉身进阶失败',
         tone: 'danger',
       });
     } finally {
@@ -594,7 +594,7 @@ export function CultivatorTrackSection() {
                     <div className="text-ink-secondary text-xs leading-5">
                       {nextRealm.unlockText} · 成功率{' '}
                       {Math.round((matchingReadiness?.successChance ?? 0) * 100)}
-                      % · 火候 {matchingReadiness?.guaranteeProgress ?? 0}%
+                      % · 保底进度 {matchingReadiness?.guaranteeProgress ?? 0}%
                     </div>
                   </div>
                 </div>
@@ -630,10 +630,10 @@ export function CultivatorTrackSection() {
               onClick={handleBodyBreakthrough}
             >
               {breakthroughPending
-                ? '破限中'
+                ? '进阶中'
                 : readinessPending
-                  ? '核算中'
-                  : `破入${nextRealm.label}`}
+                  ? '读取中'
+                  : `提升到${nextRealm.label}`}
             </InkButton>
           </div>
         ) : null}

@@ -111,7 +111,7 @@ function BodyCultivationOverviewCard({
     <div className="border-ink/15 bg-bgpaper/75 overflow-hidden border border-dashed">
       <div className="flex flex-wrap items-start justify-between gap-3 px-3 py-3">
         <div className="min-w-0">
-          <p className="text-ink-secondary text-xs leading-5">当前肉身</p>
+          <p className="text-ink-secondary text-xs leading-5">当前阶位</p>
           <p className="text-ink text-xl leading-8 font-semibold">
             {summary.realm.label}
           </p>
@@ -124,10 +124,10 @@ function BodyCultivationOverviewCard({
 
       <div className="border-ink/10 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-dashed px-3 py-3 md:grid-cols-4">
         <BodyMetric label="炼体等级" value={`Lv.${summary.totalLevel}`} />
-        <BodyMetric label="当前承载" value={`Lv.${summary.realm.softTrackCap}`} />
+        <BodyMetric label="单轨建议上限" value={`Lv.${summary.realm.softTrackCap}`} />
         <BodyMetric label="下一境界" value={nextRealmLabel} />
         <BodyMetric
-          label="破关状态"
+          label="进阶状态"
           value={status ?? (nextRealm ? '条件未齐' : '已圆满')}
           tone={statusTone}
         />
@@ -167,7 +167,7 @@ function BodyCultivationTrackCard({
             {track.progress} / {track.threshold}
           </span>
           <span className="text-ink-secondary">
-            下一次蜕变 Lv.{track.nextMilestoneLevel}
+            下个节点 Lv.{track.nextMilestoneLevel}
           </span>
         </div>
         <div className="bg-ink/10 mt-1 h-1.5 overflow-hidden">
@@ -258,7 +258,7 @@ function useBodyBreakthroughReadiness(
           | ApiFailure;
         if (!response.ok || !payload.success) {
           throw new Error(
-            'error' in payload ? payload.error : '破关资粮读取失败',
+            'error' in payload ? payload.error : '进阶材料读取失败',
           );
         }
         setReadiness(payload.data);
@@ -270,7 +270,7 @@ function useBodyBreakthroughReadiness(
         setError({
           realmKey: nextRealmKey,
           message:
-            caught instanceof Error ? caught.message : '破关资粮读取失败',
+            caught instanceof Error ? caught.message : '进阶材料读取失败',
         });
       });
 
@@ -325,7 +325,7 @@ export function BodyCultivationEntrySection() {
   const nextRealm = summary.nextRealm;
   const nextRealmStatus = nextRealm
     ? nextRealm.canAttempt
-      ? '可筹备破关'
+      ? '可准备进阶'
       : '条件未齐'
     : '已圆满';
 
@@ -352,7 +352,7 @@ export function BodyCultivationEntrySection() {
           </div>
         ) : (
           <p className="text-ink-secondary text-xs leading-5">
-            此身已至当前肉身极境，可继续查看五轨收益。
+            已达到当前最高肉身阶位，可继续查看五轨收益。
           </p>
         )}
       </BodyCultivationOverviewCard>
@@ -390,20 +390,20 @@ export function BodyCultivationDetailPanel() {
   const canAttemptBreakthrough =
     Boolean(nextRealm?.canAttempt) && Boolean(matchingReadiness?.canAttempt);
   const breakthroughStatus = readinessState.pending
-    ? '清点中'
+    ? '读取中'
     : canAttemptBreakthrough
-      ? '可破关'
+      ? '可进阶'
       : matchingError
-        ? '清点受阻'
+        ? '读取失败'
         : nextRealm?.canAttempt
           ? inventoryReady
-            ? '资粮已齐'
-            : '资粮未齐'
-          : '根基未足';
+            ? '材料已齐'
+            : '材料不足'
+          : '条件未齐';
   const costText = matchingError
     ? matchingError
     : readinessState.pending
-      ? '正在清点破关资粮'
+      ? '正在读取所需材料和丹药'
       : formatRequirementCost(matchingReadiness);
 
   const handleBodyBreakthrough = async () => {
@@ -418,7 +418,7 @@ export function BodyCultivationDetailPanel() {
       const payload = await response.json();
 
       if (!response.ok || !payload.success) {
-        throw new Error(payload.error || '肉身破关失败');
+        throw new Error(payload.error || '肉身进阶失败');
       }
 
       await consumePlayerStateMutation(payload);
@@ -429,13 +429,13 @@ export function BodyCultivationDetailPanel() {
       pushToast({
         message:
           result.success === false
-            ? `肉身破关未成，破关蓄势 ${Math.floor(result.guaranteeProgress ?? 0)}%`
-            : `肉身已破入${targetRealmLabel}`,
+            ? `肉身进阶失败，保底进度 ${Math.floor(result.guaranteeProgress ?? 0)}%`
+            : `肉身已提升到${targetRealmLabel}`,
         tone: result.success === false ? 'warning' : 'success',
       });
     } catch (caught) {
       pushToast({
-        message: caught instanceof Error ? caught.message : '肉身破关失败',
+        message: caught instanceof Error ? caught.message : '肉身进阶失败',
         tone: 'danger',
       });
     } finally {
@@ -461,10 +461,10 @@ export function BodyCultivationDetailPanel() {
                 onClick={handleBodyBreakthrough}
               >
                 {breakthroughPending
-                  ? '破关中'
+                  ? '进阶中'
                   : readinessState.pending
-                    ? '清点中'
-                    : `破入${nextRealm.label}`}
+                    ? '读取中'
+                    : `提升到${nextRealm.label}`}
               </InkButton>
             ) : null
           }
@@ -474,11 +474,11 @@ export function BodyCultivationDetailPanel() {
               <div className="grid gap-2 text-xs leading-5 md:grid-cols-2">
                 <BodyMetric label="下阶开启" value={nextRealm.unlockText} />
                 <BodyMetric
-                  label="破关把握"
+                  label="进阶成功率"
                   value={
                     <>
                       {Math.round((matchingReadiness?.successChance ?? 0) * 100)}
-                      % · 蓄势 {matchingReadiness?.guaranteeProgress ?? 0}%
+                      % · 保底进度 {matchingReadiness?.guaranteeProgress ?? 0}%
                     </>
                   }
                 />
@@ -492,13 +492,13 @@ export function BodyCultivationDetailPanel() {
               </div>
               {costText ? (
                 <p className="text-ink-secondary break-words text-xs leading-5">
-                  资粮：{costText}
+                  所需材料和丹药：{costText}
                 </p>
               ) : null}
             </div>
           ) : (
             <p className="text-ink-secondary text-xs leading-5">
-              此身已臻当前极境，可继续查看五轨收益。
+              已达到当前最高肉身阶位，可继续查看五轨收益。
             </p>
           )}
         </BodyCultivationOverviewCard>
@@ -508,16 +508,16 @@ export function BodyCultivationDetailPanel() {
         <BodyCultivationTrackGrid summary={summary} />
       </GameSceneSection>
 
-      <GameSceneSection title="炼体门径">
+      <GameSceneSection title="炼体说明">
         <div className="text-ink-secondary space-y-2 text-sm leading-7">
           <p>
-            五轨各司其职：皮肤护外邪，筋骨撑气血，脏腑催爆发，气血续久战，元神稳心念。每一轨提升，都会让道身在不同处更扎实。
+            五条轨道分别影响不同收益：皮肤偏防御，筋骨和气血偏生命与恢复，脏腑偏攻击和回蓝，元神偏控制抗性。
           </p>
           <p>
-            炼体丹的丹力会滋养对应肉身根基。丹名可随炼制手法而变，只要丹力归属相同，便能推动同一处根基成长。
+            炼体丹按药性方向提升对应轨道。丹药名称可以不同，只要药性方向相同，就会作用到同一条轨道。
           </p>
           <p>
-            破关前需要根基、修为与资粮都到位；所用炼体丹还需丹力合用、丹品火候足够，方可助你跨入下一重肉身。
+            提升肉身阶位前，需要满足轨道等级、修为境界、材料和对应方向炼体丹的质量要求。
           </p>
         </div>
       </GameSceneSection>

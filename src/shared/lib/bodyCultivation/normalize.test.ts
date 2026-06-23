@@ -140,16 +140,16 @@ describe('normalizeBodyCultivationState', () => {
       costs: [
         {
           type: 'material',
-          name: '破限资材（特殊辅料，玄品以上）',
-          label: '破限资材（特殊辅料，玄品以上）',
+          name: '进阶材料（特殊辅料，玄品以上）',
+          label: '进阶材料（特殊辅料，玄品以上）',
           quantity: 1,
           materialType: 'aux',
           minQuality: '玄品',
         },
         {
           type: 'consumable',
-          name: '炼体·皮肤破限丹（玄品以上）',
-          label: '炼体·皮肤破限丹（玄品以上）',
+          name: '皮肤方向炼体丹（玄品以上）',
+          label: '皮肤方向炼体丹（玄品以上）',
           quantity: 1,
           family: 'tempering',
           property: 'body_skin',
@@ -281,7 +281,7 @@ describe('normalizeBodyCultivationState', () => {
       breakthroughBodyCultivationRealm(condition, {
         cultivatorRealm: '炼气',
       }),
-    ).toThrow('肉身破限条件不足');
+    ).toThrow('肉身进阶条件不足');
     expect(condition.tracks.bodyCultivation.realm).toBe('bronze_skin');
     expect(condition.tracks.bodyCultivation.milestones).toEqual({});
   });
