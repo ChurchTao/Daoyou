@@ -1,5 +1,5 @@
 import {
-  DAMAGE_CHANNEL_ABILITY_TAGS,
+  GameplayTags,
   type DamageChannel,
 } from '@shared/engine/shared/tag-domain';
 import { AFFIX_STOP_REASONS } from '../../types';
@@ -24,10 +24,10 @@ export class AbilityTagCompatibilityRules
       return;
     }
 
-    const selectedDamageChannels = this.getDamageChannels(
+    const selectedDamageChannel = this.getExclusiveDamageChannel(
       facts.selectedAbilityTags ?? [],
     );
-    if (selectedDamageChannels.length === 0) {
+    if (!selectedDamageChannel) {
       decision.trace.push({
         ruleId: this.id,
         outcome: 'applied',
@@ -40,16 +40,14 @@ export class AbilityTagCompatibilityRules
 
     for (const candidate of decision.candidatePool) {
       const candidateTags = candidate.grantedAbilityTags ?? [];
-      const candidateDamageChannels = this.getDamageChannels(candidateTags);
-      if (candidateDamageChannels.length === 0) {
+      const candidateDamageChannel =
+        this.getExclusiveDamageChannel(candidateTags);
+      if (!candidateDamageChannel) {
         accepted.push(candidate);
         continue;
       }
 
-      const conflictingDamageChannels = candidateDamageChannels.filter(
-        (channel) => !selectedDamageChannels.includes(channel),
-      );
-      if (conflictingDamageChannels.length > 0) {
+      if (candidateDamageChannel !== selectedDamageChannel) {
         decision.rejections.push({
           affixId: candidate.id,
           amount: candidate.energyCost,
@@ -64,9 +62,8 @@ export class AbilityTagCompatibilityRules
           message: '词缀因技能伤害频道冲突被过滤',
           details: {
             affixId: candidate.id,
-            selectedDamageChannels,
-            candidateDamageChannels,
-            conflictingDamageChannels,
+            selectedDamageChannel,
+            candidateDamageChannel,
           },
         });
         continue;
@@ -82,12 +79,18 @@ export class AbilityTagCompatibilityRules
       outcome: 'applied',
       message: `ability tag 兼容性过滤完成：${accepted.length} 个词缀通过`,
       details: {
-        selectedDamageChannels,
+        selectedDamageChannel,
       },
     });
   }
 
-  private getDamageChannels(tags: string[]): DamageChannel[] {
-    return DAMAGE_CHANNEL_ABILITY_TAGS.filter((tag) => tags.includes(tag));
+  private getExclusiveDamageChannel(tags: string[]): DamageChannel | undefined {
+    if (tags.includes(GameplayTags.ABILITY.CHANNEL.MAGIC)) {
+      return GameplayTags.ABILITY.CHANNEL.MAGIC;
+    }
+    if (tags.includes(GameplayTags.ABILITY.CHANNEL.PHYSICAL)) {
+      return GameplayTags.ABILITY.CHANNEL.PHYSICAL;
+    }
+    return undefined;
   }
 }

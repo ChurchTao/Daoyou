@@ -85,6 +85,27 @@ const ADVANCED_AFFIX_CASES: AdvancedAffixCase[] = [
 ];
 
 describe('advanced affix projection and rehydrate', () => {
+  it('rehydrates magic core skills with bleed DOT modifiers without mixed-channel rejection', () => {
+    const product = composeProductFromAffixIds({
+      productType: 'skill',
+      element: '金',
+      requestedQuality: '神品',
+      name: '金磁裂星指',
+      affixIds: [
+        'skill-core-damage',
+        'skill-variant-water-mana-burn',
+        'skill-variant-bleed-dot',
+        'skill-variant-def-break',
+      ],
+    });
+
+    const serialized = serializeProductModel(product);
+    const rehydrated = deserializeAndRehydrate(serialized);
+    const abilityConfig = projectAbilityConfig(rehydrated);
+
+    expect(() => AbilityFactory.create(abilityConfig)).not.toThrow();
+  });
+
   it.each(ADVANCED_AFFIX_CASES)(
     '$affixId produces a rehydratable battle ability accepted by AbilityFactory',
     ({ affixId, productType, element, requestedSlot, coreAffixId }) => {

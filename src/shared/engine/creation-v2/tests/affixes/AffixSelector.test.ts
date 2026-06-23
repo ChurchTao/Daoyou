@@ -51,7 +51,7 @@ const skillIntent: CreationIntent = {
 };
 
 describe('AffixSelector', () => {
-  it('应过滤与已选技能伤害频道冲突的后续词缀', () => {
+  it('应过滤与已选技能主伤害频道冲突的后续词缀，但允许 TRUE 附加伤害', () => {
     const selector = new AffixSelector(
       undefined,
       new AffixPicker(() => 0),
@@ -64,6 +64,10 @@ describe('AffixSelector', () => {
           GameplayTags.ABILITY.FUNCTION.DAMAGE,
           GameplayTags.ABILITY.CHANNEL.PHYSICAL,
         ]),
+        candidate('rare-magic', 'modifier', [
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+        ]),
         candidate('rare-true', 'modifier', [GameplayTags.ABILITY.CHANNEL.TRUE]),
         candidate('rare-physical', 'modifier', [
           GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -72,24 +76,27 @@ describe('AffixSelector', () => {
       ],
       budget(),
       skillIntent,
-      2,
+      3,
     );
 
     expect(audit.affixes.map((affix) => affix.id)).toEqual([
       'core-physical',
+      'rare-true',
       'rare-physical',
     ]);
     expect(audit.rounds[1].inputCandidates.map((affix) => affix.id)).toEqual([
+      'rare-magic',
       'rare-true',
       'rare-physical',
     ]);
     expect(audit.rounds[1].decision.candidatePool.map((affix) => affix.id)).toEqual([
+      'rare-true',
       'rare-physical',
     ]);
     expect(audit.rounds[1].decision.rejections).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          affixId: 'rare-true',
+          affixId: 'rare-magic',
           reason: 'ability_tag_conflict',
         }),
       ]),

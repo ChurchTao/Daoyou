@@ -757,11 +757,11 @@ describe('DamageSystem direct mitigation', () => {
     ).toThrow('[AbilityFactory] ability mixed_damage_channels mixes multiple damage channels');
   });
 
-  it('AbilityFactory should reject abilities that mix true and magical damage channels', () => {
+  it('AbilityFactory should allow true bonus damage with one primary damage channel', () => {
     expect(() =>
       AbilityFactory.create({
-        slug: 'mixed_true_magic_damage_channels',
-        name: '真法双通道冲突',
+        slug: 'true_magic_bonus_damage',
+        name: '真法附伤',
         type: AbilityType.ACTIVE_SKILL,
         tags: [
           GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -793,8 +793,68 @@ describe('DamageSystem direct mitigation', () => {
           },
         ],
       }),
-    ).toThrow(
-      '[AbilityFactory] ability mixed_true_magic_damage_channels mixes multiple damage channels',
-    );
+    ).not.toThrow();
+  });
+
+  it('AbilityFactory should not treat DOT buff ticks as the active skill primary channel', () => {
+    expect(() =>
+      AbilityFactory.create({
+        slug: 'magic_hit_with_bleed_dot',
+        name: '法伤裂创',
+        type: AbilityType.ACTIVE_SKILL,
+        tags: [
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+        ],
+        targetPolicy: { team: 'enemy', scope: 'single' },
+        effects: [
+          {
+            type: 'damage',
+            params: {
+              value: {
+                base: 20,
+                attribute: AttributeType.MAGIC_ATK,
+                coefficient: 0.6,
+              },
+            },
+          },
+          {
+            type: 'apply_buff',
+            params: {
+              buffConfig: {
+                id: 'test_bleed_dot',
+                name: '流血',
+                type: BuffType.DEBUFF,
+                duration: 2,
+                stackRule: StackRule.STACK_LAYER,
+                tags: [
+                  GameplayTags.BUFF.TYPE.DEBUFF,
+                  GameplayTags.BUFF.DOT.ROOT,
+                  GameplayTags.BUFF.DOT.BLEED,
+                ],
+                listeners: [
+                  {
+                    eventType: GameplayTags.EVENT.ACTION_PRE,
+                    scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
+                    effects: [
+                      {
+                        type: 'damage',
+                        params: {
+                          value: {
+                            base: 8,
+                            attribute: AttributeType.ATK,
+                            coefficient: 0.05,
+                          },
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      }),
+    ).not.toThrow();
   });
 });

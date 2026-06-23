@@ -206,12 +206,6 @@ export class AbilityFactory {
       if ('effects' in effect.params && Array.isArray(effect.params.effects)) {
         queue.push(...effect.params.effects);
       }
-      if (effect.type === 'apply_buff') {
-        queue.push(
-          ...(effect.params.buffConfig.listeners?.flatMap((listener) => listener.effects) ?? []),
-        );
-      }
-
       switch (effect.type) {
         case 'damage': {
           hasDamage = true;
@@ -281,7 +275,7 @@ export class AbilityFactory {
       }
     }
 
-    if (damageChannels.size > 1) {
+    if (damageChannels.has('magic') && damageChannels.has('physical')) {
       throw new Error(
         `[AbilityFactory] ability ${config.slug} mixes multiple damage channels`,
       );
