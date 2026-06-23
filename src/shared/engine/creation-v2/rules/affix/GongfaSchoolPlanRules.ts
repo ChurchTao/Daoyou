@@ -1,10 +1,6 @@
 import { ELEMENT_VALUES, type ElementType } from '@shared/types/constants';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import {
-  AFFIX_STOP_REASONS,
-  AffixCandidate,
-  GongfaAffixRole,
-} from '../../types';
+import { AFFIX_STOP_REASONS, AffixCandidate } from '../../types';
 import { Rule } from '../core';
 import { AffixSelectionDecision, AffixSelectionFacts } from '../contracts';
 
@@ -20,103 +16,60 @@ export class GongfaSchoolPlanRules
       return;
     }
 
-    const caps = facts.selectionConstraints.gongfaRoleCaps;
-    if (!caps) {
-      return;
-    }
-
     let accepted = [...decision.candidatePool];
-    accepted = this.applyRoleCaps(accepted, facts, decision);
-    accepted = this.applyPrimaryPriority(accepted, facts, decision);
+    accepted = this.applyIdentityPriority(accepted, facts, decision);
     accepted = this.applyResonanceCompatibility(accepted, facts, decision);
 
     decision.candidatePool = accepted;
     decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
-      message: `功法流派规划过滤完成：${accepted.length} 个词缀通过`,
+      message: `功法 slot 兼容过滤完成：${accepted.length} 个词缀通过`,
       details: {
+        currentSlot: facts.currentSlot,
         selectedGongfaSchoolPlan: facts.selectedGongfaSchoolPlan,
-        gongfaRoleCaps: caps,
       },
     });
   }
 
-  private applyRoleCaps(
+  private applyIdentityPriority(
     candidates: AffixCandidate[],
     facts: AffixSelectionFacts,
     decision: AffixSelectionDecision,
   ): AffixCandidate[] {
-    const caps = facts.selectionConstraints.gongfaRoleCaps ?? {};
-    const plan = facts.selectedGongfaSchoolPlan;
-    const accepted: AffixCandidate[] = [];
-
-    for (const candidate of candidates) {
-      const role = candidate.selectionMeta?.gongfa?.role;
-      if (!role) {
-        accepted.push(candidate);
-        continue;
-      }
-
-      const current = this.currentRoleCount(role, plan);
-      const cap = caps[role] ?? Number.POSITIVE_INFINITY;
-      if (current >= cap) {
-        this.reject(candidate, decision);
-        continue;
-      }
-
-      accepted.push(candidate);
+    if (!facts.currentSlot.slots.includes('identity')) {
+      return candidates;
     }
 
-    return accepted;
-  }
-
-  private applyPrimaryPriority(
-    candidates: AffixCandidate[],
-    facts: AffixSelectionFacts,
-    decision: AffixSelectionDecision,
-  ): AffixCandidate[] {
-    const plan = facts.selectedGongfaSchoolPlan;
-
-    if (plan?.primarySelected) {
-      return candidates.filter((candidate) => {
-        if (candidate.selectionMeta?.gongfa?.role !== 'primary') {
-          return true;
-        }
-
-        this.reject(candidate, decision);
-        return false;
-      });
-    }
-
-    const primaryCandidates = candidates.filter(
-      (candidate) => candidate.selectionMeta?.gongfa?.role === 'primary',
+    const identityCandidates = candidates.filter(
+      (candidate) => candidate.slot === 'identity',
     );
-    if (primaryCandidates.length === 0) {
+    if (identityCandidates.length === 0) {
       return candidates;
     }
 
     const inputElements = this.inputElements(facts);
-    const mixedPrimary = primaryCandidates.find(
+    const mixedIdentity = identityCandidates.find(
       (candidate) =>
         candidate.selectionMeta?.gongfa?.archetype === MIXED_ARCHETYPE,
     );
-    if (mixedPrimary && inputElements.size >= 3) {
+    if (mixedIdentity && inputElements.size >= 3) {
       for (const candidate of candidates) {
-        if (candidate.id !== mixedPrimary.id) {
+        if (candidate.id !== mixedIdentity.id) {
           this.reject(candidate, decision);
         }
       }
-      return [mixedPrimary];
+      return [mixedIdentity];
     }
 
-    const biasedPrimary = facts.elementBias
-      ? primaryCandidates.filter(
+    const biasedIdentity = facts.elementBias
+      ? identityCandidates.filter(
           (candidate) =>
             candidate.selectionMeta?.gongfa?.element === facts.elementBias,
         )
       : [];
-    const preferred = biasedPrimary.length > 0 ? biasedPrimary : primaryCandidates;
+    const preferred =
+      biasedIdentity.length > 0 ? biasedIdentity : identityCandidates;
 
     for (const candidate of candidates) {
       if (!preferred.includes(candidate)) {
@@ -133,7 +86,7 @@ export class GongfaSchoolPlanRules
     decision: AffixSelectionDecision,
   ): AffixCandidate[] {
     return candidates.filter((candidate) => {
-      if (candidate.selectionMeta?.gongfa?.role !== 'resonance') {
+      if (candidate.slot !== 'resonance') {
         return true;
       }
 
@@ -177,22 +130,6 @@ export class GongfaSchoolPlanRules
     return resonanceElements.every((element) => inputElements.has(element));
   }
 
-  private currentRoleCount(
-    role: GongfaAffixRole,
-    plan: AffixSelectionFacts['selectedGongfaSchoolPlan'],
-  ): number {
-    switch (role) {
-      case 'primary':
-        return plan?.primarySelected ? 1 : 0;
-      case 'resonance':
-        return plan?.resonanceCount ?? 0;
-      case 'support':
-        return plan?.supportCount ?? 0;
-      case 'secret':
-        return 0;
-    }
-  }
-
   private inputElements(facts: AffixSelectionFacts): Set<ElementType> {
     const tags = new Set(facts.inputTags);
     const elements = new Set<ElementType>();
@@ -213,7 +150,7 @@ export class GongfaSchoolPlanRules
     decision.rejections.push({
       affixId: candidate.id,
       amount: candidate.energyCost,
-      reason: AFFIX_STOP_REASONS.CATEGORY_QUOTA_REACHED,
+      reason: AFFIX_STOP_REASONS.SLOT_INCOMPATIBLE,
       ...(candidate.exclusiveGroup
         ? { exclusiveGroup: candidate.exclusiveGroup }
         : {}),
@@ -221,9 +158,10 @@ export class GongfaSchoolPlanRules
     decision.trace.push({
       ruleId: this.id,
       outcome: 'blocked',
-      message: '词缀因功法流派规划被过滤',
+      message: '词缀因功法 slot 规划被过滤',
       details: {
         affixId: candidate.id,
+        slot: candidate.slot,
         gongfaSelectionMeta: candidate.selectionMeta?.gongfa,
       },
     });

@@ -123,6 +123,23 @@ describe('AbilityTagAssembler', () => {
     ).toThrow('ability projection cannot mix multiple damage channels');
   });
 
+  it('应在 creation 投影阶段拒绝 true 与其他 damage channel 混用', () => {
+    expect(() =>
+      assembleAbilityTags({
+        productType: 'skill',
+        rolledAffixes: [
+          buildRolledAffix('skill-core-magic', [
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.MAGIC,
+          ]),
+          buildRolledAffix('skill-true-modifier', [
+            GameplayTags.ABILITY.CHANNEL.TRUE,
+          ]),
+        ],
+      }),
+    ).toThrow('ability projection cannot mix multiple damage channels');
+  });
+
   it('artifact 与 gongfa 只补自身 product kind，不再附带 passive kind', () => {
     const artifactTags = assembleAbilityTags({
       productType: 'artifact',

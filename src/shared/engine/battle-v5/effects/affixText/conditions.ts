@@ -55,6 +55,8 @@ function describeOne(
   switch (type) {
     case 'is_critical':
       return usesCasterPerspective(context) ? '暴击时' : '被暴击时';
+    case 'is_lethal':
+      return '受到致命伤时';
     case 'chance':
       return params.value !== undefined
         ? `${formatAffixPercent(params.value)}概率`
@@ -81,6 +83,10 @@ function describeOne(
       return params.value !== undefined
         ? prefixSubject(subject, `至少${params.value}层增益`)
         : null;
+    case 'buff_layer_at_least':
+      return params.value !== undefined
+        ? prefixSubject(subject, `「${params.id ?? params.tag ?? '状态'}」至少${params.value}层`)
+        : null;
     case 'debuff_count_at_least':
       return params.value !== undefined
         ? prefixSubject(subject, `至少${params.value}层减益`)
@@ -94,6 +100,13 @@ function describeOne(
       return params.value !== undefined
         ? prefixSubject(subject, `护盾至少吸收${params.value}`)
         : null;
+    case 'resource_compare': {
+      const resource = getResourceLabel(params.resource ?? 'mp');
+      const left = params.left === 'target' ? '目标' : '自身';
+      const right = params.right === 'target' ? '目标' : '自身';
+      const op = params.op === 'lte' || params.op === 'lt' ? '不高于' : '高于';
+      return `${left}${resource}${op}${right}${resource}`;
+    }
     case 'has_tag':
     case 'has_tag_on':
       return params.tag

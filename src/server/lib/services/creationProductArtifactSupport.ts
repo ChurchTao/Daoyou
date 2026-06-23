@@ -57,7 +57,7 @@ function enrichProductModelByAffixId<T>(model: T): T {
       ...affix,
       name: def.displayName,
       description: def.displayDescription,
-      category: def.category,
+      slot: def.slot,
       rarity: def.rarity,
       effectTemplate: def.effectTemplate,
       tags: flattenAffixMatcherTags(def.match),

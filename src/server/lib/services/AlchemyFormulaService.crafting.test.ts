@@ -647,7 +647,7 @@ describe('craftFromFormula narrative copy', () => {
     expect(result.consumable.spec.kind).toBe('pill');
     expect(
       (result.consumable.spec as PillSpec).consumeRules.quotaCategory,
-    ).toBe('cultivation');
+    ).toBe('none');
     expect((result.consumable.spec as PillSpec).operations).toContainEqual({
       type: 'add_status',
       status: 'cultivation_boost',
@@ -1003,6 +1003,9 @@ describe('craftFromFormula narrative copy', () => {
     expect(result.consumable.name).toBe('真火炼脏');
     expect(result.consumable.spec.kind).toBe('pill');
     expect((result.consumable.spec as PillSpec).family).toBe('tempering');
+    expect(
+      (result.consumable.spec as PillSpec).consumeRules.quotaCategory,
+    ).toBe('none');
     expect((result.consumable.spec as PillSpec).operations).toContainEqual({
       type: 'advance_track',
       track: 'body.organs',

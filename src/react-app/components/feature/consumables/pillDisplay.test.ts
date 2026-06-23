@@ -1,6 +1,7 @@
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { PillSpec } from '@shared/types/consumable';
 import type { Consumable } from '@shared/types/cultivator';
+import { BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT } from '@shared/config/consumableSystem';
 import { describe, expect, it } from 'vitest';
 import { toPillDisplayModel } from './pillDisplay';
 
@@ -481,7 +482,7 @@ describe('toPillDisplayModel', () => {
     expect(marrowModel.primaryEffect).toBe('推进洗髓 +40');
   });
 
-  it('formats cultivation pills with progress gain and a dedicated quota label', () => {
+  it('formats cultivation pills without a usage-limit label', () => {
     const model = toPillDisplayModel(
       createPill({
         kind: 'pill',
@@ -510,12 +511,12 @@ describe('toPillDisplayModel', () => {
     );
 
     expect(model.primaryEffect).toBe('修为 +498');
-    expect(model.keywordLabels).toEqual(['修为', '服用上限 30 次', '丹毒 +9']);
+    expect(model.keywordLabels).toEqual(['修为', '丹毒 +9']);
     expect(model.detailGroups[0].lines).toContain('修为 +498');
-    expect(model.detailGroups[1].lines).toContain('服用上限：30 次');
+    expect(model.detailGroups[1].lines).not.toContain('服用上限：30 次');
   });
 
-  it('formats cultivation pill remaining uses from the current condition', () => {
+  it('ignores historical cultivation pill counters in the display model', () => {
     const model = toPillDisplayModel(
       createPill({
         kind: 'pill',
@@ -548,13 +549,13 @@ describe('toPillDisplayModel', () => {
       },
     );
 
-    expect(model.keywordLabels).toEqual(['修为', '剩余 18/30', '丹毒 +9']);
-    expect(model.detailGroups[1].lines).toContain(
+    expect(model.keywordLabels).toEqual(['修为', '丹毒 +9']);
+    expect(model.detailGroups[1].lines).not.toContain(
       '本境界已服 12/30，尚可服 18 颗',
     );
   });
 
-  it('formats long-term pill remaining uses from the matching counter', () => {
+  it('formats total body cultivation pill remaining uses', () => {
     const model = toPillDisplayModel(
       createPill({
         kind: 'pill',
@@ -579,12 +580,20 @@ describe('toPillDisplayModel', () => {
         realm: '筑基',
         condition: createCondition({
           longTermPillUsesByRealm: { 筑基: 7 },
+          bodyCultivationPillUses: 12,
         }),
       },
     );
 
-    expect(model.keywordLabels).toEqual(['炼体', '剩余 1/8', '丹毒 +10']);
+    expect(model.keywordLabels).toEqual([
+      '炼体',
+      `炼体丹剩余 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT - 12}/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}`,
+      '丹毒 +10',
+    ]);
     expect(getDetailGroup(model, 'cost-and-rules').lines).toContain(
+      `炼体丹总服用 12/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}，尚可服 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT - 12} 颗`,
+    );
+    expect(getDetailGroup(model, 'cost-and-rules').lines).not.toContain(
       '本境界已服 7/8，尚可服 1 颗',
     );
   });
@@ -641,7 +650,7 @@ describe('toPillDisplayModel', () => {
       '下个节点：Lv.5',
     ]);
     expect(getDetailGroup(model, 'cost-and-rules').lines).toContain(
-      '本境界已服 0/8，尚可服 8 颗',
+      `炼体丹总服用 0/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}，尚可服 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT} 颗`,
     );
   });
 
@@ -675,7 +684,7 @@ describe('toPillDisplayModel', () => {
     expect(model.detailGroups[1].key).toBe('cost-and-rules');
   });
 
-  it('falls back to realm-variable quota text when legacy realm data has no configured limit', () => {
+  it('omits realm-variable quota text for legacy body cultivation pills', () => {
     const model = toPillDisplayModel(
       createPill({
         kind: 'pill',
@@ -706,17 +715,17 @@ describe('toPillDisplayModel', () => {
 
     expect(model.keywordLabels).toEqual([
       '炼体',
-      '服用上限随境界变化',
+      `炼体丹剩余 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}`,
       '丹毒 +10',
     ]);
-    expect(getDetailGroup(model, 'cost-and-rules').lines).toContain(
+    expect(getDetailGroup(model, 'cost-and-rules').lines).not.toContain(
       '服用上限：随当前境界变化',
     );
     expect(model.keywordLabels.join(' ')).not.toContain('NaN');
     expect(model.keywordLabels.join(' ')).not.toContain('undefined');
   });
 
-  it('treats legacy conditions without counters as zero used instead of crashing', () => {
+  it('shows body cultivation total usage as zero for legacy conditions without counters', () => {
     const model = toPillDisplayModel(
       createPill({
         kind: 'pill',
@@ -743,9 +752,13 @@ describe('toPillDisplayModel', () => {
       },
     );
 
-    expect(model.keywordLabels).toEqual(['炼体', '剩余 8/8', '丹毒 +10']);
+    expect(model.keywordLabels).toEqual([
+      '炼体',
+      `炼体丹剩余 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}`,
+      '丹毒 +10',
+    ]);
     expect(getDetailGroup(model, 'cost-and-rules').lines).toContain(
-      '本境界已服 0/8，尚可服 8 颗',
+      `炼体丹总服用 0/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}，尚可服 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT} 颗`,
     );
   });
 

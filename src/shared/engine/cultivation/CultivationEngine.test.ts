@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Cultivator } from '@shared/types/cultivator';
+import { resolveLiveExpCap } from '@server/utils/cultivationUtils';
 import { attemptBreakthrough, performCultivation } from './CultivationEngine';
 
 function createCultivator(): Cultivator {
@@ -179,6 +180,25 @@ describe('CultivationEngine cultivation boost', () => {
         (status) => status.key === 'cultivation_boost',
       ),
     ).toBe(true);
+  });
+
+  it('carries overflow cultivation exp into the next stage after successful breakthrough', () => {
+    const cultivator = createCultivator();
+    const currentCap = resolveLiveExpCap(
+      cultivator.realm,
+      cultivator.realm_stage,
+    );
+    cultivator.cultivation_progress!.cultivation_exp = currentCap + 275;
+
+    const result = attemptBreakthrough(cultivator, () => 0);
+
+    expect(result.summary.success).toBe(true);
+    expect(result.cultivator.realm).toBe('筑基');
+    expect(result.cultivator.realm_stage).toBe('中期');
+    expect(result.cultivator.cultivation_progress?.cultivation_exp).toBe(275);
+    expect(result.cultivator.cultivation_progress?.exp_cap).toBe(
+      resolveLiveExpCap('筑基', '中期'),
+    );
   });
 
   it('reads breakthrough focus payload as a success-rate bonus', () => {

@@ -7,7 +7,7 @@ import { CREATION_AFFIX_POOL_SCORING } from '../../config/CreationBalance';
  * 过滤掉非正权重并记录警告，保证后续抽签器只处理合法权重的候选项。
  */
 /*
- * AffixWeightRules: 计算候选词缀的权重（考虑 rarityWeight、category 优先级等），
+ * AffixWeightRules: 计算候选词缀的权重（考虑 admission score、标签命中与负向偏好等），
  * 为后续 Picker 的加权抽样提供权重表并记录 diagnostics。
  */
 export class AffixWeightRules
@@ -33,7 +33,7 @@ export class AffixWeightRules
         decision.rejectedCandidates.push({
           affixId: candidate.id,
           reason: 'non_positive_weight',
-          category: candidate.category,
+          slot: candidate.slot,
         });
         decision.warnings.push({
           code: 'affix_non_positive_weight',

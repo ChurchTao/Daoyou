@@ -95,8 +95,9 @@ export class EventBus {
 
     const subscribers = this._subscribers.get(event.type);
     if (!subscribers) return;
+    const dispatchList = [...subscribers];
 
-    for (const subscriber of subscribers) {
+    for (const subscriber of dispatchList) {
       subscriber.wrappedHandler(eventWithTimestamp);
     }
   }

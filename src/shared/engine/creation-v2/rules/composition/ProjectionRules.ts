@@ -106,7 +106,7 @@ export class ProjectionRules implements Rule<
       }
     }
 
-    const coreAffix = affixes.find((r) => r.category === 'skill_core');
+    const coreAffix = affixes.find((affix) => affix.slot === 'core');
     const coreDef = coreAffix
       ? this.registry.queryById(coreAffix.id)
       : undefined;

@@ -1,11 +1,20 @@
 import { DamageParams } from '../core/configs';
+import { executeEffectConfigs } from '../core/effectExecutor';
 import { EventBus } from '../core/EventBus';
 import { DamageRequestEvent } from '../core/events';
-import { DamageSource } from '../core/types';
+import { AttributeType, DamageSource, DamageType } from '../core/types';
+import {
+  clearMemory,
+  consumeAbilityTransform,
+  getActiveAbilityTransform,
+  peekAbilityTransform,
+  readMemory,
+} from '../core/runtimeState';
 import { ValueCalculator } from '../core/ValueCalculator';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { StackRule } from '../buffs/Buff';
+import { ActiveSkill } from '../abilities/ActiveSkill';
 import { EffectContext, GameplayEffect } from './Effect';
 
 /**
@@ -23,6 +32,25 @@ export class DamageEffect extends GameplayEffect {
 
     // 使用统一计算器计算基础伤害（传入 target 以支持 targetMaxHpRatio）
     let damage = ValueCalculator.calculate(this.params.value, resolvedCaster, target);
+    const activeTransform =
+      ability instanceof ActiveSkill
+        ? getActiveAbilityTransform(ability)
+        : undefined;
+    const transform =
+      activeTransform ??
+      (ability instanceof ActiveSkill
+        ? peekAbilityTransform(caster, ability)
+        : undefined);
+    const bonusDamageMemory = transform?.bonusDamageMemory;
+    if (bonusDamageMemory) {
+      const memory = readMemory(caster, bonusDamageMemory.key);
+      if (memory.amount > 0) {
+        damage += Math.round(memory.amount * (bonusDamageMemory.ratio ?? 1));
+        if (bonusDamageMemory.consume !== false) {
+          clearMemory(caster, bonusDamageMemory.key);
+        }
+      }
+    }
 
     if (
       buff &&
@@ -33,6 +61,9 @@ export class DamageEffect extends GameplayEffect {
     }
 
     if (damage <= 0) return;
+    if (!activeTransform && ability instanceof ActiveSkill) {
+      consumeAbilityTransform(caster, ability);
+    }
 
     // 发布伤害请求事件
     EventBus.instance.publish<DamageRequestEvent>({
@@ -46,9 +77,36 @@ export class DamageEffect extends GameplayEffect {
         context.triggerEvent?.type === 'DamageTakenEvent'
           ? DamageSource.REFLECT
           : DamageSource.DIRECT,
+      damageType:
+        this.params.damageType ??
+        (transform?.trueDamage ? DamageType.TRUE : this.inferDamageType(buff)),
       baseDamage: damage,
       finalDamage: damage, // 初始终伤等于基伤，由后续系统修正
+      isCritical: transform?.forceCritical ? true : undefined,
     });
+
+    if (transform?.addDispel && !transform.addDispelApplied) {
+      transform.addDispelApplied = true;
+      executeEffectConfigs([transform.addDispel], context);
+    }
+  }
+
+  private inferDamageType(buff: EffectContext['buff']): DamageType | undefined {
+    if (buff?.tags.hasTag(GameplayTags.BUFF.DOT.ROOT)) {
+      return DamageType.DOT;
+    }
+
+    const attribute = this.params.value.attribute;
+    if (
+      attribute === AttributeType.MAGIC_ATK ||
+      attribute === AttributeType.MAGIC_DEF
+    ) {
+      return DamageType.MAGICAL;
+    }
+    if (attribute === AttributeType.ATK || attribute === AttributeType.DEF) {
+      return DamageType.PHYSICAL;
+    }
+    return undefined;
   }
 }
 

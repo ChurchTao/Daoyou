@@ -16,10 +16,13 @@ import {
   ModifierType,
 } from '../contracts/battle';
 import type { CreationTagSignalSource } from '../types';
-import { AffixCategory, CreationProductType } from '../types';
+import type { AffixRarity, AffixSlot, CreationProductType } from '../types';
 import type { AffixSelectionMeta } from '../types';
 import type { ExclusiveGroup } from './exclusiveGroups';
 import { TargetPolicyConfig } from '@shared/engine/battle-v5/abilities/TargetPolicy';
+import type { DamageType } from '@shared/engine/battle-v5/core/types';
+
+export type { AffixRarity, AffixSlot } from '../types';
 
 // ===== 品质缩放值 =====
 
@@ -90,7 +93,10 @@ export interface AffixAttributeModifierTemplate {
  */
 export type AffixEffectTemplate = AffixEffectTemplateBase &
   (
-    | { type: 'damage'; params: { value: AffixScalableValue } }
+    | {
+        type: 'damage';
+        params: { value: AffixScalableValue; damageType?: DamageType };
+      }
     | {
         type: 'heal';
         params: { value: AffixScalableValue; target?: 'hp' | 'mp' };
@@ -121,11 +127,164 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
           triggerTag: string;
           damageRatio?: ScalableParam;
           removeOnTrigger?: boolean;
+          effects?: AffixEffectTemplate[];
         };
       }
     | {
+        type: 'consume_status_trigger';
+        params: {
+          match: { id?: string; tags?: string[] };
+          consume?: 'one' | 'all' | number;
+          effects: AffixEffectTemplate[];
+        };
+      }
+    | {
+        type: 'delayed_effect';
+        params: {
+          id: string;
+          name: string;
+          delayTurns: ScalableParam;
+          effects: AffixEffectTemplate[];
+          tags?: string[];
+          statusTags?: string[];
+          record?: {
+            key: string;
+            event: 'damage_taken' | 'heal' | 'shield';
+            maxStored?: ScalableParam;
+          };
+          triggerOnDispel?: boolean;
+          maxTriggers?: number;
+        };
+      }
+    | {
+        type: 'damage_memory';
+        params: {
+          key: string;
+          mode: 'record' | 'release' | 'clear';
+          event?:
+            | 'damage_taken'
+            | 'damage_dealt'
+            | 'heal'
+            | 'shield'
+            | 'critical_taken';
+          ratio?: ScalableParam;
+          releaseAs?: 'damage' | 'heal' | 'shield' | 'reflect';
+          target?: 'caster' | 'target';
+          maxStored?: ScalableParam;
+          consume?: boolean;
+        };
+      }
+    | {
+        type: 'buff_layer_modify';
+        params: {
+          match: { id?: string; tags?: string[] };
+          operation: 'add' | 'subtract' | 'clear' | 'set';
+          layers?: ScalableParam;
+          effects?: AffixEffectTemplate[];
+          scaleEffectsByLayer?: boolean;
+        };
+      }
+    | {
+        type: 'ability_transform';
+        params: {
+          id: string;
+          triggers?: number;
+          appliesToTags?: string[];
+          trueDamage?: boolean;
+          addDispel?: { targetTag?: string; maxCount?: number };
+          mpCostToHp?: boolean;
+          cooldownModify?: ScalableParam;
+          forceCritical?: boolean;
+          bonusDamageMemory?: {
+            key: string;
+            ratio?: ScalableParam;
+            consume?: boolean;
+          };
+        };
+      }
+    | {
+        type: 'hp_sacrifice_damage';
+        params: {
+          hpRatio: ScalableParam;
+          damagePerHp: ScalableParam;
+          minHpFloor?: number;
+        };
+      }
+    | {
+        type: 'ability_lock';
+        params: { rounds: ScalableParam; tags?: string[]; maxCount?: number };
+      }
+    | {
+        type: 'status_spread';
+        params: { match: { id?: string; tags?: string[] }; maxCount?: number };
+      }
+    | {
+        type: 'buff_copy';
+        params: {
+          id?: string;
+          match?: { id?: string; tags?: string[] };
+          target?: 'caster' | 'target';
+          durationDelta?: ScalableParam;
+          replayRemoved?: boolean;
+          maxTriggers?: number;
+        };
+      }
+    | {
+        type: 'damage_defer';
+        params: {
+          ratio: ScalableParam;
+          delayTurns: ScalableParam;
+          thresholdMaxHpRatio?: ScalableParam;
+        };
+      }
+    | {
+        type: 'next_hit_rule';
+        params: {
+          forceCritical?: boolean;
+          triggers?: number;
+          appliesToTags?: string[];
+        };
+      }
+    | {
+        type: 'dynamic_scalar';
+        params: {
+          mode: 'increase' | 'reduce';
+          value: ScalableParam;
+          resource: 'hp' | 'mp';
+          lowerIsStronger?: boolean;
+          cap?: number;
+        };
+      }
+    | {
+        type: 'turn_state_counter';
+        params: {
+          key: string;
+          event: 'no_damage_dealt' | 'damage_dealt';
+          threshold: number;
+          effects: AffixEffectTemplate[];
+          resetOnTrigger?: boolean;
+        };
+      }
+    | {
+        type: 'element_history';
+        params: {
+          key: string;
+          threshold: number;
+          effects: AffixEffectTemplate[];
+          resetOnTrigger?: boolean;
+        };
+      }
+    | {
+        type: 'effect_sequence';
+        params: { effects: AffixEffectTemplate[] };
+      }
+    | {
         type: 'apply_buff';
-        params: { buffConfig: BuffConfig; chance?: ScalableParam };
+        params: {
+          buffConfig: BuffConfig;
+          chance?: ScalableParam;
+          target?: 'caster' | 'target';
+        };
       }
     | {
         /**
@@ -241,14 +400,12 @@ export function collectAffixMatcherReferencedTags(
 
 // ===== 词缀定义 =====
 
-export type AffixRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
-
 export interface AffixDefinition {
   id: string;
   displayName: string;
   displayDescription: string;
-  /** 词缀类型，对应配方解锁阈值 */
-  category: AffixCategory;
+  /** 词缀结构槽位，决定抽选阶段的结构位置。 */
+  slot: AffixSlot;
   /** 词缀稀有度 */
   rarity: AffixRarity;
   /**

@@ -40,10 +40,10 @@ export class FallbackAffixRules
       decision.exhaustionReason = AFFIX_STOP_REASONS.ABILITY_TAG_CONFLICT;
     } else if (
       decision.rejections.some(
-        (rejection) => rejection.reason === AFFIX_STOP_REASONS.CATEGORY_QUOTA_REACHED,
+        (rejection) => rejection.reason === AFFIX_STOP_REASONS.SLOT_INCOMPATIBLE,
       )
     ) {
-      decision.exhaustionReason = AFFIX_STOP_REASONS.CATEGORY_QUOTA_REACHED;
+      decision.exhaustionReason = AFFIX_STOP_REASONS.SLOT_INCOMPATIBLE;
     } else {
       decision.exhaustionReason = AFFIX_STOP_REASONS.POOL_EXHAUSTED;
     }

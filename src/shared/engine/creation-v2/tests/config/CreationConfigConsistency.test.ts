@@ -1,20 +1,23 @@
 import {
-  CREATION_AFFIX_UNLOCK_THRESHOLDS,
+  CREATION_AFFIX_RARITY_UNLOCK_THRESHOLDS,
   CREATION_DURATION_POLICY,
   CREATION_LISTENER_PRIORITIES,
   CREATION_RESERVED_ENERGY,
 } from '@shared/engine/creation-v2/config/CreationBalance';
-import { resolveAffixSelectionConstraints } from '@shared/engine/creation-v2/config/AffixSelectionConstraints';
+import { resolveAffixSlotLayout } from '@shared/engine/creation-v2/config/AffixSelectionConstraints';
 import { CREATION_EVENT_PRIORITY_LEVELS } from '@shared/engine/creation-v2/config/CreationEventPriorities';
 import { CREATION_SLUG_CONFIG } from '@shared/engine/creation-v2/config/CreationSlugConfig';
 
 describe('Creation config consistency', () => {
   it('应保证词缀解锁阈值严格递增', () => {
-    expect(CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_core).toBeLessThan(
-      CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_variant,
+    expect(CREATION_AFFIX_RARITY_UNLOCK_THRESHOLDS.common).toBeLessThan(
+      CREATION_AFFIX_RARITY_UNLOCK_THRESHOLDS.uncommon,
     );
-    expect(CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_variant).toBeLessThan(
-      CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_rare,
+    expect(CREATION_AFFIX_RARITY_UNLOCK_THRESHOLDS.uncommon).toBeLessThan(
+      CREATION_AFFIX_RARITY_UNLOCK_THRESHOLDS.rare,
+    );
+    expect(CREATION_AFFIX_RARITY_UNLOCK_THRESHOLDS.rare).toBeLessThan(
+      CREATION_AFFIX_RARITY_UNLOCK_THRESHOLDS.legendary,
     );
   });
 
@@ -61,8 +64,8 @@ describe('Creation config consistency', () => {
   });
 
   it('应保证所有产品类型都有 affix selection constraint profile', () => {
-    expect(resolveAffixSelectionConstraints('skill', 5, [])).toBeDefined();
-    expect(resolveAffixSelectionConstraints('artifact', 5, [])).toBeDefined();
-    expect(resolveAffixSelectionConstraints('gongfa', 5, [])).toBeDefined();
+    expect(resolveAffixSlotLayout('skill', 5)).toBeDefined();
+    expect(resolveAffixSlotLayout('artifact', 5)).toBeDefined();
+    expect(resolveAffixSlotLayout('gongfa', 5)).toBeDefined();
   });
 });

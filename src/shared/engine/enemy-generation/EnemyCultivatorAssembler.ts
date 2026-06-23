@@ -4,6 +4,11 @@ import {
   REALM_ORDER,
   REALM_STAGE_CAPS,
 } from '@shared/types/constants';
+import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+import type {
+  BodyCultivationState,
+  CultivatorCondition,
+} from '@shared/types/condition';
 import type {
   Artifact,
   Attributes,
@@ -31,6 +36,59 @@ function isSkillProduct(
   return 'cooldown' in entry.item;
 }
 
+function createEmptyConditionWithBodyCultivation(
+  bodyCultivation: BodyCultivationState,
+): CultivatorCondition {
+  return {
+    version: 1,
+    resources: {
+      hp: { current: 0 },
+      mp: { current: 0 },
+    },
+    gauges: {
+      pillToxicity: 0,
+    },
+    tracks: {
+      bodyCultivation,
+      tempering: {
+        vitality: { level: 0, progress: 0 },
+        spirit: { level: 0, progress: 0 },
+        wisdom: { level: 0, progress: 0 },
+        speed: { level: 0, progress: 0 },
+        willpower: { level: 0, progress: 0 },
+      },
+      marrowWash: { level: 0, progress: 0 },
+    },
+    counters: {
+      longTermPillUsesByRealm: {},
+      cultivationPillUsesByRealm: {},
+      longevityPillUsesByRealm: {},
+      bodyCultivationPillUses: 0,
+    },
+    statuses: [],
+    timestamps: {},
+  };
+}
+
+function createEnemyCondition(
+  cultivator: Cultivator,
+  bodyCultivation: BodyCultivationState,
+): CultivatorCondition {
+  const condition = createEmptyConditionWithBodyCultivation(bodyCultivation);
+  const display = getCultivatorDisplayAttributes({
+    ...cultivator,
+    condition,
+  });
+
+  return {
+    ...condition,
+    resources: {
+      hp: { current: display.maxHp },
+      mp: { current: display.maxMp },
+    },
+  };
+}
+
 export class EnemyCultivatorAssembler {
   assemble(args: {
     variantKey: string;
@@ -43,6 +101,7 @@ export class EnemyCultivatorAssembler {
     background: string;
     description: string;
     loadout: EnemyCraftedLoadout;
+    bodyCultivation: BodyCultivationState;
   }): Cultivator {
     const {
       variantKey,
@@ -54,6 +113,7 @@ export class EnemyCultivatorAssembler {
       background,
       description,
       loadout,
+      bodyCultivation,
     } = args;
     const artifactEntries = loadout.artifacts.filter(isArtifactProduct);
     const skillEntries = loadout.skills.filter(isSkillProduct);
@@ -97,7 +157,7 @@ export class EnemyCultivatorAssembler {
         GENDER_VALUES.length
     ];
 
-    return {
+    const cultivator: Cultivator = {
       id: `enemy:${variantKey}`,
       name,
       title,
@@ -122,6 +182,11 @@ export class EnemyCultivatorAssembler {
       spirit_stones: 0,
       background,
       description,
+    };
+
+    return {
+      ...cultivator,
+      condition: createEnemyCondition(cultivator, bodyCultivation),
     };
   }
 }

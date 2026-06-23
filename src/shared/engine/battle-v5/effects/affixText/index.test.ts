@@ -95,4 +95,78 @@ describe('affixText mechanic rendering', () => {
     expect(view.effectText).toContain('灼烧');
     expect(view.effectText).not.toMatch(/Status\./);
   });
+
+  it('renders recursive advanced effect details instead of placeholder counts', () => {
+    const frostBurial = renderAffix('skill-rare-frost-burial');
+    expect(frostBurial.bodyText).toContain('消耗');
+    expect(frostBurial.bodyText).toContain('造成');
+    expect(frostBurial.bodyText).toContain('真实');
+    expect(frostBurial.bodyText).not.toContain('触发 2 段效果');
+
+    const borrowedLaw = renderAffix('gongfa-school-borrowed-law-returned');
+    expect(borrowedLaw.bodyText).toContain('记录治疗量');
+    expect(borrowedLaw.bodyText).toContain('附加记录值');
+    expect(borrowedLaw.bodyText).not.toContain('依次触发');
+  });
+
+  it('renders advanced event listener prefixes for planned passive affixes', () => {
+    expect(renderAffix('gongfa-secret-leakless-body').bodyText).toContain(
+      '抵抗控制时',
+    );
+    expect(renderAffix('gongfa-secret-void-step').bodyText).toContain('闪避时');
+    expect(renderAffix('artifact-treasure-returning-ruin-pearl').bodyText).toContain(
+      '护盾破裂时',
+    );
+  });
+
+  it('renders lethal-only condition for calamity coin', () => {
+    expect(renderAffix('artifact-treasure-calamity-coin').bodyText).toContain(
+      '受到致命伤时',
+    );
+  });
+
+  it('renders all planned advanced affixes without raw tags or placeholder text', () => {
+    const plannedAffixIds = [
+      'skill-rare-life-for-fire',
+      'skill-rare-frost-burial',
+      'skill-variant-thunder-pact',
+      'skill-rare-poison-gu-return',
+      'skill-rare-blood-ink-talisman',
+      'skill-variant-wind-exchange-step',
+      'skill-variant-cut-meridian',
+      'skill-rare-old-dream-rekindle',
+      'gongfa-secret-causality-scripture',
+      'gongfa-secret-myriad-unity',
+      'gongfa-school-reverse-cultivation',
+      'gongfa-secret-three-breath-sword',
+      'gongfa-secret-heaven-jealous-root',
+      'gongfa-secret-leakless-body',
+      'gongfa-secret-void-step',
+      'gongfa-school-borrowed-law-returned',
+      'artifact-treasure-karma-mirror',
+      'artifact-treasure-calamity-coin',
+      'artifact-treasure-thunder-devour-bottle',
+      'artifact-defense-soul-purifying-bell',
+      'artifact-treasure-taixu-robe',
+      'artifact-defense-demon-locking-nail',
+      'artifact-treasure-returning-ruin-pearl',
+      'artifact-treasure-steal-heaven-seal',
+    ];
+
+    for (const affixId of plannedAffixIds) {
+      const view = renderAffix(affixId);
+      const text = [
+        view.bodyText,
+        view.effectText,
+        ...view.conditionTexts,
+        ...view.tagLabels,
+        ...view.mechanicNotes,
+      ].join(' ');
+
+      expect(view.bodyText, affixId).not.toBe('');
+      expect(text, affixId).not.toMatch(/Ability\.|Status\.|Buff\./);
+      expect(text, affixId).not.toMatch(/undefined|NaN/);
+      expect(text, affixId).not.toMatch(/触发 \d+ 段效果|依次触发/);
+    }
+  });
 });

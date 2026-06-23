@@ -15,3 +15,4 @@ export * from './BuffImmunityEffect';
 export * from './DamageImmunityEffect';
 export * from './TagTriggerEffect';
 export * from './PercentDamageModifierEffect';
+export * from './AdvancedEffects';

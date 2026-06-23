@@ -19,6 +19,7 @@ import {
   HitCheckEvent,
   ManaShieldAbsorbEvent,
   ManaBurnEvent,
+  MechanicLogEvent,
   ResourceDrainEvent,
   RoundStartEvent,
   ShieldEvent,
@@ -399,6 +400,22 @@ export class LogCollector {
         id: this._generateId(),
         type: 'death_prevent',
         data: { targetName: e.target.name },
+        timestamp: Date.now(),
+      });
+    });
+
+    this._addHandler(eventBus, 'MechanicLogEvent', (e: MechanicLogEvent) => {
+      this._aggregator.addEntry({
+        id: this._generateId(),
+        type: 'mechanic',
+        data: {
+          mechanic: e.mechanic,
+          targetName: e.target.name,
+          sourceName: e.source?.name,
+          name: e.name,
+          value: e.value,
+          detail: e.detail,
+        },
         timestamp: Date.now(),
       });
     });

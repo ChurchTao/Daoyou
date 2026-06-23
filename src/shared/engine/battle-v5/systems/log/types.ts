@@ -18,7 +18,8 @@ export type LogEntryType =
   | 'death_prevent'
   | 'skill_interrupt'
   | 'cooldown_modify'
-  | 'control_skip';
+  | 'control_skip'
+  | 'mechanic';
 
 // ===== Entry Data Interfaces =====
 export interface DamageEntryData {
@@ -138,6 +139,22 @@ export interface ControlSkipEntryData {
   controlTag: string;
 }
 
+export interface MechanicEntryData {
+  mechanic:
+    | 'memory_record'
+    | 'memory_release'
+    | 'ability_transform'
+    | 'damage_defer'
+    | 'hp_sacrifice'
+    | 'buff_layer'
+    | 'status_spread';
+  targetName: string;
+  sourceName?: string;
+  name: string;
+  value?: number;
+  detail?: string;
+}
+
 // ===== EntryDataMap =====
 export interface EntryDataMap {
   damage: DamageEntryData;
@@ -159,6 +176,7 @@ export interface EntryDataMap {
   skill_interrupt: SkillInterruptEntryData;
   cooldown_modify: CooldownModifyEntryData;
   control_skip: ControlSkipEntryData;
+  mechanic: MechanicEntryData;
 }
 
 // ===== LogEntry =====

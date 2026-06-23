@@ -25,7 +25,7 @@ export class DeathPreventEffect extends GameplayEffect {
       .some(
         (e) =>
           e.type === 'DeathPreventEvent' &&
-          (e as DeathPreventEvent).target.id === target.id,
+          (e as DeathPreventEvent).target === target,
       );
     if (alreadyTriggered) return;
 

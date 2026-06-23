@@ -1,5 +1,5 @@
 import { QUALITY_ORDER, Quality } from '@shared/types/constants';
-import { AffixCategory, RolledAffix } from '../types';
+import { AffixRarity, AffixSlot, RolledAffix } from '../types';
 
 export interface PBUChannels {
   damage: number;
@@ -19,17 +19,18 @@ export interface BalanceMetrics {
   channels: PBUChannels;
 }
 
-const CATEGORY_MULTIPLIER: Record<AffixCategory, number> = {
-  skill_core: 1.3,
-  skill_variant: 1.0,
-  skill_rare: 1.5,
-  gongfa_foundation: 1.3,
-  gongfa_school: 1.15,
-  gongfa_secret: 1.4,
-  artifact_core: 1.3,
-  artifact_panel: 1.3,
-  artifact_defense: 1.1,
-  artifact_treasure: 1.5,
+const SLOT_MULTIPLIER: Record<AffixSlot, number> = {
+  core: 1.3,
+  identity: 1.2,
+  resonance: 1.15,
+  modifier: 1,
+};
+
+const RARITY_MULTIPLIER: Record<AffixRarity, number> = {
+  common: 1,
+  uncommon: 1.08,
+  rare: 1.22,
+  legendary: 1.4,
 };
 
 const EFFECT_MULTIPLIER = {
@@ -64,7 +65,8 @@ export function estimateBalanceMetrics(
     const efficiencyFactor = 0.8 + 0.4 * (affix.rollEfficiency ?? 1);
     const weightedEnergy = 
       affix.energyCost * 
-      CATEGORY_MULTIPLIER[affix.category] * 
+      SLOT_MULTIPLIER[affix.slot] *
+      RARITY_MULTIPLIER[affix.rarity] *
       efficiencyFactor;
 
     if (affix.isPerfect) {

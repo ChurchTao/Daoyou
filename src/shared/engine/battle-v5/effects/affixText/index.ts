@@ -368,6 +368,16 @@ function describeFormula(effect: EffectConfig): string | undefined {
       return effect.params.damageRatio !== undefined
         ? `额外伤害系数 ${formatAffixPercent(effect.params.damageRatio)}`
         : undefined;
+    case 'damage_memory':
+      return effect.params.ratio !== undefined
+        ? formatAffixPercent(effect.params.ratio)
+        : undefined;
+    case 'hp_sacrifice_damage':
+      return formatAffixPercent(effect.params.hpRatio);
+    case 'damage_defer':
+      return formatAffixPercent(effect.params.ratio);
+    case 'ability_lock':
+      return `${effect.params.rounds} 回合`;
     case 'apply_buff':
       return effect.params.chance !== undefined
         ? `附加概率 ${formatAffixPercent(effect.params.chance)}`
@@ -380,6 +390,17 @@ function describeFormula(effect: EffectConfig): string | undefined {
     case 'damage_immunity':
     case 'dispel':
     case 'buff_duration_modify':
+    case 'consume_status_trigger':
+    case 'delayed_effect':
+    case 'buff_layer_modify':
+    case 'ability_transform':
+    case 'status_spread':
+    case 'buff_copy':
+    case 'next_hit_rule':
+    case 'dynamic_scalar':
+    case 'turn_state_counter':
+    case 'element_history':
+    case 'effect_sequence':
       return undefined;
   }
 }
@@ -587,11 +608,54 @@ function collectEffectTags(effect: EffectConfig): string[] {
       return [
         ...(effect.params.buffConfig.tags ?? []),
         ...(effect.params.buffConfig.statusTags ?? []),
+        ...(effect.params.buffConfig.listeners?.flatMap((listener) =>
+          listener.effects.flatMap(collectEffectTags),
+        ) ?? []),
       ];
     case 'cooldown_modify':
       return effect.params.tags ?? [];
     case 'tag_trigger':
-      return [effect.params.triggerTag];
+      return [
+        effect.params.triggerTag,
+        ...(effect.params.effects?.flatMap(collectEffectTags) ?? []),
+      ];
+    case 'consume_status_trigger':
+      return [
+        ...(effect.params.match.tags ?? []),
+        ...effect.params.effects.flatMap(collectEffectTags),
+      ];
+    case 'delayed_effect':
+      return [
+        ...(effect.params.tags ?? []),
+        ...(effect.params.statusTags ?? []),
+        ...effect.params.effects.flatMap(collectEffectTags),
+      ];
+    case 'buff_layer_modify':
+      return [
+        ...(effect.params.match.tags ?? []),
+        ...(effect.params.effects?.flatMap(collectEffectTags) ?? []),
+      ];
+    case 'ability_transform':
+      return [
+        ...(effect.params.appliesToTags ?? []),
+        ...(effect.params.addDispel?.targetTag
+          ? [effect.params.addDispel.targetTag]
+          : []),
+      ];
+    case 'next_hit_rule':
+      return effect.params.appliesToTags ?? [];
+    case 'ability_lock':
+      return effect.params.tags ?? [];
+    case 'status_spread':
+      return effect.params.match.tags ?? [];
+    case 'buff_copy':
+      return effect.params.match?.tags ?? [];
+    case 'turn_state_counter':
+      return effect.params.effects.flatMap(collectEffectTags);
+    case 'element_history':
+      return effect.params.effects.flatMap(collectEffectTags);
+    case 'effect_sequence':
+      return effect.params.effects.flatMap(collectEffectTags);
     case 'buff_immunity':
     case 'damage_immunity':
       return effect.params.tags;

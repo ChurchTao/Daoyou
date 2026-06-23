@@ -68,7 +68,7 @@ export class DefaultRecipeValidator {
       recipeId: conflictedRecipeId(productType),
       valid: false,
       matchedTags: materialFacts.dominantTags,
-      unlockedAffixCategories: [],
+      unlockedAffixRarities: [],
       notes: [...decision.notes],
     };
   }
@@ -78,7 +78,7 @@ export class DefaultRecipeValidator {
       recipeId: decision.recipeId,
       valid: decision.valid,
       matchedTags: decision.matchedTags,
-      unlockedAffixCategories: decision.unlockedAffixCategories,
+      unlockedAffixRarities: decision.unlockedAffixRarities,
       reservedEnergy: decision.reservedEnergy,
       notes: decision.notes,
     };

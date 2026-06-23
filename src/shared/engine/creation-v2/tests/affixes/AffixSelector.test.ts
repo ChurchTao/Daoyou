@@ -6,20 +6,21 @@ import { AffixRollEngine } from '@shared/engine/creation-v2/affixes/AffixRollEng
 import { AffixSelector } from '@shared/engine/creation-v2/affixes/AffixSelector';
 import type {
   AffixCandidate,
-  AffixCategory,
+  AffixSlot,
   CreationIntent,
   EnergyBudget,
 } from '@shared/engine/creation-v2/types';
 
 function candidate(
   id: string,
-  category: AffixCategory,
+  slot: AffixSlot,
   grantedAbilityTags: string[],
 ): AffixCandidate {
   return {
     id,
     name: id,
-    category,
+    slot,
+    rarity: slot === 'core' ? 'common' : 'rare',
     match: matchAll([]),
     tags: [],
     weight: 10,
@@ -59,15 +60,12 @@ describe('AffixSelector', () => {
 
     const audit = selector.select(
       [
-        candidate('core-physical', 'skill_core', [
+        candidate('core-physical', 'core', [
           GameplayTags.ABILITY.FUNCTION.DAMAGE,
           GameplayTags.ABILITY.CHANNEL.PHYSICAL,
         ]),
-        candidate('rare-true', 'skill_rare', [
-          GameplayTags.ABILITY.FUNCTION.DAMAGE,
-          GameplayTags.ABILITY.CHANNEL.TRUE,
-        ]),
-        candidate('rare-physical', 'skill_rare', [
+        candidate('rare-true', 'modifier', [GameplayTags.ABILITY.CHANNEL.TRUE]),
+        candidate('rare-physical', 'modifier', [
           GameplayTags.ABILITY.FUNCTION.DAMAGE,
           GameplayTags.ABILITY.CHANNEL.PHYSICAL,
         ]),

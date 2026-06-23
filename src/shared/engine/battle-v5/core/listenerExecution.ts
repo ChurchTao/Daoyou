@@ -26,6 +26,9 @@ function getEventParticipant(event: CombatEvent, key: 'caster' | 'target' | 'sou
     target?: Unit;
     source?: Unit;
   };
+  if (key === 'caster') {
+    return eventAny.caster ?? eventAny.source;
+  }
   return eventAny[key];
 }
 
@@ -102,10 +105,11 @@ export function matchesListenerScope(
 
   switch (scope) {
     case 'owner_as_target':
-      return eventTarget?.id === owner.id;
+      return eventTarget === owner;
     case 'owner_as_caster':
+      return eventCaster === owner;
     case 'owner_as_actor':
-      return eventCaster?.id === owner.id;
+      return eventCaster === owner || eventTarget === owner;
     case 'global':
     default:
       return true;

@@ -14,7 +14,7 @@ export class AffixEligibilityRules
 
   apply({ facts, decision }: Parameters<Rule<AffixEligibilityFacts, AffixPoolDecision>['apply']>[0]): void {
     const accepted = [] as AffixPoolDecision['candidates'];
-    const scoreThresholds = CREATION_AFFIX_POOL_SCORING.minimumScoreByCategory;
+    const scoreThresholds = CREATION_AFFIX_POOL_SCORING.minimumScoreBySlot;
 
     for (const candidate of facts.candidatePool) {
       const matchResult = evaluateAffixMatcher(candidate.match, facts.inputTagSignals);
@@ -23,7 +23,7 @@ export class AffixEligibilityRules
         decision.rejectedCandidates.push({
           affixId: candidate.id,
           reason: 'match_unmet',
-          category: candidate.category,
+          slot: candidate.slot,
         });
         decision.trace.push({
           ruleId: this.id,
@@ -45,13 +45,13 @@ export class AffixEligibilityRules
       );
       const negativePenalty = this.calculateNegativePenalty(candidate.tags, facts);
       const evaluationScore = Math.max(0, baseEvaluationScore - negativePenalty);
-      const threshold = (scoreThresholds as Record<string, number>)[candidate.category] ?? 0.45;
+      const threshold = scoreThresholds[candidate.slot] ?? 0.45;
 
       if (evaluationScore < threshold) {
         decision.rejectedCandidates.push({
           affixId: candidate.id,
           reason: 'insufficient_admission_score',
-          category: candidate.category,
+          slot: candidate.slot,
           score: evaluationScore,
           threshold,
         });
@@ -95,9 +95,7 @@ export class AffixEligibilityRules
     matchResult: ReturnType<typeof evaluateAffixMatcher>,
   ): number {
     if (
-      ['skill_core', 'gongfa_foundation', 'artifact_core'].includes(
-        candidate.category,
-      ) ||
+      candidate.slot === 'core' ||
       matchResult.totalUnits === 0
     ) {
       return 1;

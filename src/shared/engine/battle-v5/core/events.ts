@@ -106,6 +106,13 @@ export interface HitCheckEvent extends CombatEvent {
   isResisted: boolean;
 }
 
+export interface DodgeEvent extends CombatEvent {
+  type: 'DodgeEvent';
+  caster: Unit;
+  target: Unit;
+  ability: Ability;
+}
+
 export interface ControlResistEvent extends CombatEvent {
   type: 'ControlResistEvent';
   caster: Unit;
@@ -204,6 +211,16 @@ export interface ShieldEvent extends CombatEvent {
   shieldAmount: number;
 }
 
+export interface ShieldBreakEvent extends CombatEvent {
+  type: 'ShieldBreakEvent';
+  caster?: Unit;
+  target: Unit;
+  ability?: Ability;
+  buff?: Buff;
+  brokenShieldAmount: number;
+  overflowDamage: number;
+}
+
 // ===== 冷却修改事件 =====
 export interface CooldownModifyEvent extends CombatEvent {
   type: 'CooldownModifyEvent';
@@ -297,6 +314,7 @@ export interface BuffAddEvent extends CombatEvent {
   type: 'BuffAddEvent';
   target: Unit;
   buff: Buff;
+  source?: Unit;
   isCancelled?: boolean;
   immuneTag?: TagPath;
 }
@@ -315,6 +333,23 @@ export interface BuffRemovedEvent extends CombatEvent {
   target: Unit;
   buff: Buff;
   reason: 'manual' | 'expired' | 'dispel' | 'replace'; // 移除原因
+}
+
+export interface MechanicLogEvent extends CombatEvent {
+  type: 'MechanicLogEvent';
+  mechanic:
+    | 'memory_record'
+    | 'memory_release'
+    | 'ability_transform'
+    | 'damage_defer'
+    | 'hp_sacrifice'
+    | 'buff_layer'
+    | 'status_spread';
+  target: Unit;
+  source?: Unit;
+  name: string;
+  value?: number;
+  detail?: string;
 }
 
 // ===== BUFF 免疫拦截事件 =====

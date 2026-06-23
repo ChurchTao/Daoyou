@@ -12,6 +12,11 @@ import type {
   RealmType,
 } from '@shared/types/constants';
 import type {
+  BodyCultivationRealm,
+  BodyCultivationTrackKey,
+  BodyCultivationState,
+} from '@shared/types/condition';
+import type {
   Artifact,
   Attributes,
   CultivationTechnique,
@@ -72,6 +77,7 @@ export interface EnemyGenerationBalanceSnapshot {
   primaryPersonaId: string;
   accentPersonaId?: string;
   recoveryTierUsed: number;
+  bodyCultivation: EnemyBodyCultivationSummary;
 }
 
 export interface EnemyCopyProductFacts {
@@ -94,6 +100,7 @@ export interface EnemyCopyFacts {
   realmStage: RealmStage;
   difficulty: number;
   difficultyFactor: number;
+  bodyCultivation: EnemyBodyCultivationSummary;
   primaryElement: ElementType;
   secondaryElement: ElementType;
   profileTags: string[];
@@ -128,6 +135,20 @@ export interface EnemyRaceProfile {
   techniqueTags: string[];
   skillTags: string[];
   artifactTags: string[];
+}
+
+export type BodyCultivationTrackLevels = Record<BodyCultivationTrackKey, number>;
+
+export interface EnemyBodyCultivationSummary {
+  realm: BodyCultivationRealm;
+  totalLevel: number;
+  focusTracks: BodyCultivationTrackKey[];
+  trackLevels: BodyCultivationTrackLevels;
+}
+
+export interface EnemyBodyCultivationPlan {
+  state: BodyCultivationState;
+  summary: EnemyBodyCultivationSummary;
 }
 
 export interface EnemyDifficultyProfile {

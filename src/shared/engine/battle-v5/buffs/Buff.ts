@@ -138,7 +138,8 @@ export class Buff {
    * Buff 移除时的清理（GAS 模式）
    * 子类重写此方法来取消订阅、移除标签、移除属性修改器等
    */
-  onDeactivate(): void {
+  onDeactivate(reason?: 'manual' | 'expired' | 'dispel' | 'replace'): void {
+    void reason;
     // 取消所有事件订阅
     this._unsubscribeAll();
     // 子类应重写此方法实现具体清理逻辑

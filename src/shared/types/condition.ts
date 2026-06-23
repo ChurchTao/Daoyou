@@ -104,6 +104,7 @@ export interface CultivatorCondition {
     longTermPillUsesByRealm: Partial<Record<RealmType, number>>;
     cultivationPillUsesByRealm: Partial<Record<RealmType, number>>;
     longevityPillUsesByRealm: Partial<Record<RealmType, number>>;
+    bodyCultivationPillUses?: number;
   };
   statuses: ConditionStatusInstance[];
   timestamps: {

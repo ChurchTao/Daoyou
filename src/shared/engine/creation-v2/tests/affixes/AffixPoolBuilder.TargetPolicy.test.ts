@@ -18,7 +18,7 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
       id: 'skill-core-damage-test',
       displayName: '伤害词缀',
       displayDescription: '测试用',
-      category: 'skill_core',
+      slot: 'core',
       rarity: 'common',
       match: { any: [CreationTags.MATERIAL.SEMANTIC_BLADE] },
       weight: 100,
@@ -31,7 +31,7 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
       id: 'skill-core-heal-test',
       displayName: '治疗词缀',
       displayDescription: '测试用',
-      category: 'skill_core',
+      slot: 'core',
       rarity: 'common',
       match: { any: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN] },
       weight: 100,
@@ -44,8 +44,8 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
       id: 'skill-variant-generic-test',
       displayName: '通用变体',
       displayDescription: '测试用',
-      category: 'skill_variant',
-      rarity: 'common',
+      slot: 'modifier',
+      rarity: 'uncommon',
       match: { any: [CreationTags.MATERIAL.SEMANTIC_QI] },
       weight: 100,
       energyCost: 5,
@@ -78,7 +78,7 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
       recipeId: 'test',
       valid: true,
       matchedTags: [],
-      unlockedAffixCategories: ['skill_core', 'skill_variant']
+      unlockedAffixRarities: ['common', 'uncommon', 'rare', 'legendary']
     };
 
     // 解析意图
@@ -110,7 +110,7 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
       recipeId: 'test',
       valid: true,
       matchedTags: [],
-      unlockedAffixCategories: ['skill_core']
+      unlockedAffixRarities: ['common', 'uncommon', 'rare', 'legendary']
     };
 
     const resolver = new DefaultIntentResolver();
@@ -128,8 +128,8 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
       id: 'skill-variant-aoe-only',
       displayName: '群体强化',
       displayDescription: '测试用',
-      category: 'skill_variant',
-      rarity: 'common',
+      slot: 'modifier',
+      rarity: 'uncommon',
       match: { any: [CreationTags.MATERIAL.SEMANTIC_BURST] },
       weight: 100,
       energyCost: 10,
@@ -149,7 +149,7 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
       requestedTargetPolicy: { team: 'enemy', scope: 'single' }
     });
     sessionSingle.syncInputTagSignals([{ tag: CreationTags.MATERIAL.SEMANTIC_BURST, source: 'material_semantic', weight: 1 }]);
-    sessionSingle.state.recipeMatch = { recipeId: 'test', valid: true, matchedTags: [], unlockedAffixCategories: ['skill_variant'] };
+    sessionSingle.state.recipeMatch = { recipeId: 'test', valid: true, matchedTags: [], unlockedAffixRarities: ['common', 'uncommon', 'rare', 'legendary'] };
     sessionSingle.state.intent = new DefaultIntentResolver().resolve(sessionSingle.state.input, []);
     
     expect(builder.build(localRegistry, sessionSingle).map(c => c.id)).not.toContain('skill-variant-aoe-only');
@@ -162,21 +162,21 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
       requestedTargetPolicy: { team: 'enemy', scope: 'aoe' }
     });
     sessionAoe.syncInputTagSignals([{ tag: CreationTags.MATERIAL.SEMANTIC_BURST, source: 'material_semantic', weight: 1 }]);
-    sessionAoe.state.recipeMatch = { recipeId: 'test', valid: true, matchedTags: [], unlockedAffixCategories: ['skill_variant'] };
+    sessionAoe.state.recipeMatch = { recipeId: 'test', valid: true, matchedTags: [], unlockedAffixRarities: ['common', 'uncommon', 'rare', 'legendary'] };
     sessionAoe.state.intent = new DefaultIntentResolver().resolve(sessionAoe.state.input, []);
 
     expect(builder.build(localRegistry, sessionAoe).map(c => c.id)).toContain('skill-variant-aoe-only');
   });
 
-  it('artifact requestedSlot 应过滤所有声明了 applicableArtifactSlots 的 category', () => {
+  it('artifact requestedSlot 应过滤所有声明了 applicableArtifactSlots 的 slot', () => {
     const artifactRegistry = new AffixRegistry();
     const artifactAffixes: AffixDefinition[] = [
       {
         id: 'artifact-core-weapon-test',
         displayName: '武器核心',
         displayDescription: '测试用',
-        category: 'artifact_core',
-        rarity: 'common',
+        slot: 'core',
+      rarity: 'common',
         match: { any: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
         weight: 100,
         energyCost: 10,
@@ -195,8 +195,8 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
         id: 'artifact-core-armor-test',
         displayName: '护甲核心',
         displayDescription: '测试用',
-        category: 'artifact_core',
-        rarity: 'common',
+        slot: 'core',
+      rarity: 'common',
         match: { any: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
         weight: 100,
         energyCost: 10,
@@ -215,8 +215,8 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
         id: 'artifact-defense-weapon-only',
         displayName: '武器防御',
         displayDescription: '测试用',
-        category: 'artifact_defense',
-        rarity: 'common',
+        slot: 'modifier',
+      rarity: 'uncommon',
         match: { any: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
         weight: 100,
         energyCost: 10,
@@ -235,8 +235,8 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
         id: 'artifact-defense-armor-only',
         displayName: '护甲防御',
         displayDescription: '测试用',
-        category: 'artifact_defense',
-        rarity: 'common',
+        slot: 'modifier',
+      rarity: 'uncommon',
         match: { any: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
         weight: 100,
         energyCost: 10,
@@ -255,8 +255,8 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
         id: 'artifact-treasure-weapon-only',
         displayName: '武器珍宝',
         displayDescription: '测试用',
-        category: 'artifact_treasure',
-        rarity: 'rare',
+        slot: 'modifier',
+      rarity: 'rare',
         match: { any: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
         weight: 100,
         energyCost: 10,
@@ -275,8 +275,8 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
         id: 'artifact-treasure-armor-only',
         displayName: '护甲珍宝',
         displayDescription: '测试用',
-        category: 'artifact_treasure',
-        rarity: 'rare',
+        slot: 'modifier',
+      rarity: 'rare',
         match: { any: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
         weight: 100,
         energyCost: 10,
@@ -308,7 +308,7 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
       recipeId: 'artifact-test',
       valid: true,
       matchedTags: [],
-      unlockedAffixCategories: ['artifact_core', 'artifact_defense', 'artifact_treasure'],
+      unlockedAffixRarities: ['common', 'uncommon', 'rare', 'legendary'],
     };
     session.state.intent = new DefaultIntentResolver().resolve(session.state.input, []);
 
@@ -338,18 +338,18 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
       recipeId: 'skill-test',
       valid: true,
       matchedTags: [],
-      unlockedAffixCategories: ['skill_core', 'skill_variant'],
+      unlockedAffixRarities: ['common', 'uncommon', 'rare', 'legendary'],
     };
     session.state.intent = new DefaultIntentResolver().resolve(session.state.input, []);
 
     const candidates = builder.build(DEFAULT_AFFIX_REGISTRY, session);
-    const ids = candidates.filter((candidate) => candidate.category === 'skill_core').map((candidate) => candidate.id);
+    const ids = candidates.filter((candidate) => candidate.slot === 'core').map((candidate) => candidate.id);
 
     expect(ids).toContain('skill-core-ice-frost-guard');
     expect(ids).not.toContain('skill-core-damage-ice');
   });
 
-  it('八系元素在 self 目标策略下都应至少保留一个低阶 skill_core', () => {
+  it('八系元素在 self 目标策略下都应至少保留一个低阶 core', () => {
     const canonicalSemanticByElement = {
       火: CreationTags.MATERIAL.SEMANTIC_FLAME,
       冰: CreationTags.MATERIAL.SEMANTIC_FREEZE,
@@ -379,20 +379,20 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
         recipeId: 'skill-test',
         valid: true,
         matchedTags: [],
-        unlockedAffixCategories: ['skill_core'],
+        unlockedAffixRarities: ['common', 'uncommon', 'rare', 'legendary'],
       };
       session.state.intent = new DefaultIntentResolver().resolve(session.state.input, []);
 
       const coreIds = builder
         .build(DEFAULT_AFFIX_REGISTRY, session)
-        .filter((candidate) => candidate.category === 'skill_core')
+        .filter((candidate) => candidate.slot === 'core')
         .map((candidate) => candidate.id);
 
       expect(coreIds.length).toBeGreaterThan(0);
     }
   });
 
-  it('水系特材 + self 目标策略 + rare 解锁时，应转向 self skill_rare 而非 enemy rare', () => {
+  it('水系特材 + self 目标策略 + rare 解锁时，应转向 self rare 而非 enemy rare', () => {
     const session = new CreationSession({
       sessionId: 'skill-water-self-rare',
       productType: 'skill',
@@ -427,13 +427,13 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
       recipeId: 'skill-test',
       valid: true,
       matchedTags: [],
-      unlockedAffixCategories: ['skill_core', 'skill_variant', 'skill_rare'],
+      unlockedAffixRarities: ['common', 'uncommon', 'rare', 'legendary'],
     };
     session.state.intent = new DefaultIntentResolver().resolve(session.state.input, []);
 
     const ids = builder
       .build(DEFAULT_AFFIX_REGISTRY, session)
-      .filter((candidate) => candidate.category === 'skill_rare')
+      .filter((candidate) => candidate.rarity === 'rare')
       .map((candidate) => candidate.id);
 
     expect(ids).toContain('skill-rare-water-purifying-tide');

@@ -21,17 +21,9 @@ import type { ExclusiveGroup } from './affixes/exclusiveGroups';
 
 export type CreationProductType = 'skill' | 'artifact' | 'gongfa';
 
-export type AffixCategory =
-  | 'skill_core'
-  | 'skill_variant'
-  | 'skill_rare'
-  | 'gongfa_foundation'
-  | 'gongfa_school'
-  | 'gongfa_secret'
-  | 'artifact_core'
-  | 'artifact_panel'
-  | 'artifact_defense'
-  | 'artifact_treasure';
+export type AffixSlot = 'core' | 'identity' | 'resonance' | 'modifier';
+
+export type AffixRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
 export type GongfaAffixRole = 'primary' | 'support' | 'resonance' | 'secret';
 
@@ -198,7 +190,7 @@ export interface RecipeMatch {
   recipeId: string;
   valid: boolean;
   matchedTags: string[];
-  unlockedAffixCategories: AffixCategory[];
+  unlockedAffixRarities: AffixRarity[];
   reservedEnergy?: number;
   notes?: string[];
 }
@@ -207,7 +199,7 @@ export type AffixSelectionStopReason =
   | 'budget_exhausted'
   | 'exclusive_group_conflict'
   | 'ability_tag_conflict'
-  | 'category_quota_reached'
+  | 'slot_incompatible'
   | 'pool_exhausted'
   | 'max_count_reached';
 
@@ -215,7 +207,7 @@ export const AFFIX_STOP_REASONS = {
   BUDGET_EXHAUSTED: 'budget_exhausted',
   EXCLUSIVE_GROUP_CONFLICT: 'exclusive_group_conflict',
   ABILITY_TAG_CONFLICT: 'ability_tag_conflict',
-  CATEGORY_QUOTA_REACHED: 'category_quota_reached',
+  SLOT_INCOMPATIBLE: 'slot_incompatible',
   POOL_EXHAUSTED: 'pool_exhausted',
   MAX_COUNT_REACHED: 'max_count_reached',
 } as const satisfies Record<string, AffixSelectionStopReason>;
@@ -307,7 +299,8 @@ export interface AffixCandidate {
   id: string;
   name: string;
   description?: string;
-  category: AffixCategory;
+  slot: AffixSlot;
+  rarity: AffixRarity;
   match: AffixTagMatcher;
   tags: string[];
   grantedAbilityTags?: string[];

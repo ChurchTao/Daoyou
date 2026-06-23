@@ -7,6 +7,7 @@ import {
   BuffRemovedEvent,
 } from '../core/events';
 import { EventBus } from '../core/EventBus';
+import { rememberRemovedBuff } from '../core/runtimeState';
 
 /**
  * BuffContainer - Buff 容器
@@ -36,6 +37,7 @@ export class BuffContainer {
       timestamp: Date.now(),
       target: this._owner,
       buff,
+      source,
       isCancelled: false,
     };
     EventBus.instance.publish(event);
@@ -44,7 +46,10 @@ export class BuffContainer {
     // 2. 堆叠规则处理
     const existing = this._buffs.get(buff.id);
     if (existing) {
-      this._applyStackRule(existing, buff, source);
+      const appliedBuff = this._applyStackRule(existing, buff, source);
+      if (appliedBuff) {
+        this._publishAppliedEvent(appliedBuff, source);
+      }
       return;
     }
 
@@ -66,14 +71,7 @@ export class BuffContainer {
     this._owner.updateDerivedStats();
 
     // 4. 发布应用成功事件
-    const appliedEvent: BuffAppliedEvent = {
-      type: 'BuffAppliedEvent',
-      timestamp: Date.now(),
-      target: this._owner,
-      buff,
-      source,
-    };
-    EventBus.instance.publish(appliedEvent);
+    this._publishAppliedEvent(buff, source);
   }
 
   /**
@@ -81,6 +79,37 @@ export class BuffContainer {
    */
   removeBuff(buffId: BuffId): void {
     this._removeBuffWithReason(buffId, 'manual');
+  }
+
+  removeBuffDispel(buffId: BuffId): void {
+    this._removeBuffWithReason(buffId, 'dispel');
+  }
+
+  modifyBuffLayer(buffId: BuffId, delta: number): number {
+    const buff = this._buffs.get(buffId);
+    if (!buff) return 0;
+
+    const nextLayer = buff.getLayer() + delta;
+    if (nextLayer <= 0) {
+      this._removeBuffWithReason(buffId, 'manual');
+      return 0;
+    }
+
+    buff.setLayer(nextLayer);
+    return nextLayer;
+  }
+
+  setBuffLayer(buffId: BuffId, layer: number): number {
+    const buff = this._buffs.get(buffId);
+    if (!buff) return 0;
+
+    if (layer <= 0) {
+      this._removeBuffWithReason(buffId, 'manual');
+      return 0;
+    }
+
+    buff.setLayer(layer);
+    return buff.getLayer();
   }
 
   /**
@@ -94,8 +123,12 @@ export class BuffContainer {
     const buff = this._buffs.get(buffId);
     if (!buff) return;
 
+    if (reason === 'dispel') {
+      rememberRemovedBuff(this._owner, buff);
+    }
+
     // GAS 模式：调用 onDeactivate（取消订阅、移除标签等）
-    buff.onDeactivate();
+    buff.onDeactivate(reason);
 
     this._buffs.delete(buffId);
     this._owner.updateDerivedStats();
@@ -124,28 +157,28 @@ export class BuffContainer {
     for (const id of buffIds) {
       const buff = this._buffs.get(id);
       if (buff) {
-        buff.onDeactivate();
+        buff.onDeactivate('manual');
       }
     }
     this._buffs.clear();
     this._owner.updateDerivedStats();
   }
 
-  private _applyStackRule(existing: Buff, newBuff: Buff, source?: Unit): void {
+  private _applyStackRule(existing: Buff, newBuff: Buff, source?: Unit): Buff | null {
     switch (newBuff.stackRule) {
       case StackRule.STACK_LAYER:
         existing.addLayer(1);
         if (source) {
           existing.setSource(source);
         }
-        break;
+        return existing;
 
       case StackRule.REFRESH_DURATION:
         existing.refreshToDuration(newBuff.getMaxDuration());
         if (source) {
           existing.setSource(source);
         }
-        break;
+        return existing;
 
       case StackRule.OVERRIDE:
         existing.onDeactivate();
@@ -156,11 +189,24 @@ export class BuffContainer {
         }
         newBuff.onActivate();
         this._owner.updateDerivedStats();
-        break;
+        return newBuff;
 
       case StackRule.IGNORE:
-        break;
+        return null;
     }
+
+    return null;
+  }
+
+  private _publishAppliedEvent(buff: Buff, source?: Unit): void {
+    const appliedEvent: BuffAppliedEvent = {
+      type: 'BuffAppliedEvent',
+      timestamp: Date.now(),
+      target: this._owner,
+      buff,
+      source,
+    };
+    EventBus.instance.publish(appliedEvent);
   }
 
   clone(owner: Unit): BuffContainer {

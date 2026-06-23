@@ -2,14 +2,17 @@ import { EventBus } from '../core/EventBus';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import {
   DamageEvent,
+  DodgeEvent,
   DamageRequestEvent,
   DamageTakenEvent,
   EventPriorityLevel,
   HitCheckEvent,
+  ShieldBreakEvent,
   SkillCastEvent,
   UnitDeadEvent,
 } from '../core/events';
 import { AttributeType, DamageSource, DamageType } from '../core/types';
+import { markDamageDealt } from '../core/runtimeState';
 import { calculateSpiritualRootDamageMultiplier } from './spiritualRootResonance';
 
 /**
@@ -84,7 +87,7 @@ export class DamageSystem {
     };
 
     // 关键修正：如果目标是自己，则跳过命中/闪避判定，直接命中
-    if (caster.id === target.id) {
+    if (caster === target) {
       hitCheckEvent.isHit = true;
     } else {
       // ===== ① 身法闪避判定 =====
@@ -107,6 +110,16 @@ export class DamageSystem {
 
     // 发布命中判定事件
     EventBus.instance.publish(hitCheckEvent);
+
+    if (hitCheckEvent.isDodged) {
+      EventBus.instance.publish<DodgeEvent>({
+        type: 'DodgeEvent',
+        timestamp: Date.now(),
+        caster,
+        target,
+        ability,
+      });
+    }
 
     // 关键演进：将结果写回 SkillCastEvent 契约对象
     // 这允许 ActionExecutionSystem 决定是否拦截后续效果链
@@ -287,8 +300,24 @@ export class DamageSystem {
     const remainingDamage = target.absorbDamage(finalDamage);
     const absorbedAmount = beforeShield - target.getCurrentShield();
 
+    if (beforeShield > 0 && target.getCurrentShield() <= 0) {
+      EventBus.instance.publish<ShieldBreakEvent>({
+        type: 'ShieldBreakEvent',
+        timestamp: Date.now(),
+        caster,
+        target,
+        ability,
+        buff,
+        brokenShieldAmount: beforeShield,
+        overflowDamage: remainingDamage,
+      });
+    }
+
     // 2. 应用剩余伤害到气血
     target.takeDamage(remainingDamage);
+    if (remainingDamage > 0) {
+      markDamageDealt(caster);
+    }
 
     // 发布受击事件（包含护盾抵扣和技能/暴击信息）
     // 注意：在这里发布事件，允许监听器（如免死效果）修改单位状态

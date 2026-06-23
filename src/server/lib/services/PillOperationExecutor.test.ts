@@ -3,6 +3,7 @@ import { ConditionService } from './ConditionService';
 import { PillOperationExecutor } from './PillOperationExecutor';
 import type { Consumable, Cultivator } from '@shared/types/cultivator';
 import type { PillSpec } from '@shared/types/consumable';
+import { BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT } from '@shared/config/consumableSystem';
 
 function createCultivator(): Cultivator {
   return {
@@ -360,7 +361,7 @@ describe('PillOperationExecutor', () => {
     expect(result.cultivator.condition?.resources.hp.current).toBeLessThan(maxHp);
   });
 
-  it('keeps historical direct cultivation pills working and tracks independent quota counters', () => {
+  it('keeps historical direct cultivation pills working without consuming quota counters', () => {
     const cultivator = createCultivator();
     cultivator.cultivation_progress = {
       cultivation_exp: 12,
@@ -380,8 +381,8 @@ describe('PillOperationExecutor', () => {
 
     expect(result.cultivator.cultivation_progress?.cultivation_exp).toBe(60);
     expect(
-      result.cultivator.condition?.counters.cultivationPillUsesByRealm.筑基,
-    ).toBe(1);
+      result.cultivator.condition?.counters.cultivationPillUsesByRealm.筑基 ?? 0,
+    ).toBe(0);
     expect(
       result.cultivator.condition?.counters.longTermPillUsesByRealm.筑基 ?? 0,
     ).toBe(0);
@@ -408,8 +409,8 @@ describe('PillOperationExecutor', () => {
       }),
     );
     expect(
-      result.cultivator.condition?.counters.cultivationPillUsesByRealm.筑基,
-    ).toBe(1);
+      result.cultivator.condition?.counters.cultivationPillUsesByRealm.筑基 ?? 0,
+    ).toBe(0);
   });
 
   it('keeps the strongest cultivation boost when weaker pills are consumed later', () => {
@@ -437,11 +438,11 @@ describe('PillOperationExecutor', () => {
       retreatExpMultiplier: 2.2,
     });
     expect(
-      weak.cultivator.condition?.counters.cultivationPillUsesByRealm.筑基,
-    ).toBe(2);
+      weak.cultivator.condition?.counters.cultivationPillUsesByRealm.筑基 ?? 0,
+    ).toBe(0);
   });
 
-  it('rejects cultivation pills above the current realm quality tolerance without mutating state', () => {
+  it('rejects cultivation pills above the current realm quality tolerance without consuming quota', () => {
     const cultivator = createCultivator();
     cultivator.cultivation_progress = {
       cultivation_exp: 12,
@@ -626,6 +627,28 @@ describe('PillOperationExecutor', () => {
     ).toBe(0);
   });
 
+  it('rejects non-cultivation pills above the current realm quality tolerance', () => {
+    const cultivator = createCultivator();
+    cultivator.condition = ConditionService.normalizeCondition(cultivator);
+    const pill = {
+      ...createLongevityPill(),
+      quality: '地品',
+    } satisfies Consumable;
+
+    expect(() =>
+      PillOperationExecutor.execute(
+        cultivator,
+        pill,
+        new Date('2026-05-25T12:00:00.000Z'),
+      ),
+    ).toThrow('当前境界最多可承受真品丹药');
+
+    expect(cultivator.lifespan).toBe(180);
+    expect(
+      cultivator.condition.counters.longevityPillUsesByRealm.筑基 ?? 0,
+    ).toBe(0);
+  });
+
   it('rejects longevity pills at their isolated quota limit without mutating lifespan', () => {
     const cultivator = createCultivator();
     cultivator.condition = {
@@ -696,6 +719,64 @@ describe('PillOperationExecutor', () => {
     expect(result.trackLevelUps).toEqual([
       { track: 'body.qi_blood', newLevel: 1 },
     ]);
+  });
+
+  it('allows legacy body cultivation pills at the old long-term quota limit', () => {
+    const cultivator = createCultivator();
+    cultivator.condition = {
+      ...ConditionService.normalizeCondition(cultivator),
+      counters: {
+        longTermPillUsesByRealm: {
+          筑基: 8,
+        },
+        cultivationPillUsesByRealm: {
+          筑基: 8,
+        },
+        longevityPillUsesByRealm: {},
+        bodyCultivationPillUses: 3,
+      },
+    };
+
+    const result = PillOperationExecutor.execute(
+      cultivator,
+      createTemperingPill(),
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(
+      result.cultivator.condition?.counters.longTermPillUsesByRealm.筑基,
+    ).toBe(8);
+    expect(
+      result.cultivator.condition?.counters.bodyCultivationPillUses,
+    ).toBe(4);
+    expect(
+      result.cultivator.condition?.tracks.bodyCultivation?.tracks.qi_blood.progress,
+    ).toBe(1);
+  });
+
+  it('rejects body cultivation pills at the total body pill limit', () => {
+    const cultivator = createCultivator();
+    cultivator.condition = {
+      ...ConditionService.normalizeCondition(cultivator),
+      counters: {
+        longTermPillUsesByRealm: {},
+        cultivationPillUsesByRealm: {},
+        longevityPillUsesByRealm: {},
+        bodyCultivationPillUses: BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT,
+      },
+    };
+
+    expect(() =>
+      PillOperationExecutor.execute(
+        cultivator,
+        createTemperingPill(),
+        new Date('2026-05-25T12:00:00.000Z'),
+      ),
+    ).toThrow('炼体丹服用总数已达上限');
+
+    expect(cultivator.condition.counters.bodyCultivationPillUses).toBe(
+      BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT,
+    );
   });
 
   it('reduces body cultivation progress after the current realm soft cap', () => {

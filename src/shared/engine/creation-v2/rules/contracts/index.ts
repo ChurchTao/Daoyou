@@ -4,7 +4,7 @@
 export type { AffixEligibilityFacts } from './AffixEligibilityFacts';
 export type { AffixPoolDecision } from './AffixPoolDecision';
 export type { AffixSelectionDecision } from './AffixSelectionDecision';
-export type { AffixSelectionConstraints, AffixSelectionFacts } from './AffixSelectionFacts';
+export type { AffixSelectionFacts } from './AffixSelectionFacts';
 export type {
   CompositionDecision,
   CompositionProjectionKind,

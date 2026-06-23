@@ -1,4 +1,4 @@
-import { AffixCandidate, AffixCategory } from '../../types';
+import { AffixCandidate, AffixSlot } from '../../types';
 import { RuleDecisionMeta } from '../core';
 
 export interface AffixPoolDecision extends RuleDecisionMeta {
@@ -6,7 +6,7 @@ export interface AffixPoolDecision extends RuleDecisionMeta {
   rejectedCandidates: Array<{
     affixId: string;
     reason: string;
-    category?: AffixCategory;
+    slot?: AffixSlot;
     score?: number;
     threshold?: number;
   }>;

@@ -22,6 +22,7 @@ describe('ServerEnemyCopyProvider narrative facts', () => {
       realm: '金丹',
       realmStage: '中期',
       isBoss: true,
+      bodyCultivation: draft.copyFacts.bodyCultivation,
     });
     expect(serialized).not.toContain('fallbackName');
     expect(serialized).not.toContain('fallbackTitle');

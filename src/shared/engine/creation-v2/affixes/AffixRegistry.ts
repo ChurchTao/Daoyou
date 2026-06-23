@@ -1,4 +1,4 @@
-import { AffixCategory, CreationProductType } from '../types';
+import { CreationProductType } from '../types';
 import {
   assertCreationTag,
   assertRuntimeTagInNamespaces,
@@ -31,18 +31,14 @@ export class AffixRegistry {
   }
 
   /**
-   * 按结构化输入信号 + 解锁类别 + 产物类型查询。
+   * 按结构化输入信号 + 产物类型查询。
    * affix 是否可进入候选池由其自身的 match 元数据决定，而不是外部分类阈值。
    */
   queryBySignals(
     signals: CreationTagSignal[],
-    unlockedCategories: AffixCategory[],
     productType?: CreationProductType,
   ): AffixDefinition[] {
-    const categorySet = new Set<AffixCategory>(unlockedCategories);
-
     return this.defs.filter((def) => {
-      if (!categorySet.has(def.category)) return false;
       if (productType && !def.applicableTo.includes(productType)) return false;
       return evaluateAffixMatcher(def.match, signals).matched;
     });
@@ -50,12 +46,10 @@ export class AffixRegistry {
 
   queryByTags(
     tags: string[],
-    unlockedCategories: AffixCategory[],
     productType?: CreationProductType,
   ): AffixDefinition[] {
     return this.queryBySignals(
       buildNeutralCreationTagSignals(tags),
-      unlockedCategories,
       productType,
     );
   }
@@ -86,54 +80,14 @@ export class AffixRegistry {
   }
 
   /**
-   * 产物类型边界校验（平衡三角硬规则）：
-   *
-   * 规则一：池与产物类型强绑定
-   *   - skill_* 池 → applicableTo 只能含 'skill'
-   *   - gongfa_* 池 → applicableTo 只能含 'gongfa'
-   *   - artifact_* 池 → applicableTo 只能含 'artifact'
-   *
-   * 规则二：稀有池只接受 rare/legendary
-   *   - skill_rare / gongfa_secret / artifact_treasure → rarity 必须为 rare 或 legendary
-   *
-   * 规则三：Artifact 禁止 OWNER_AS_CASTER scope
-   * 规则四：Gongfa 禁止 OWNER_AS_TARGET scope
-   * 规则五：Skill 禁止声明 listenerSpec
-   * 规则六：Skill 禁止 attribute_modifier / resource_drain / percent_damage_modifier
-   * 规则七：Gongfa 禁止 attribute_modifier 使用 FIXED modType
-   * 规则八：Skill 禁止 apply_buff 内嵌 OWNER_AS_CASTER listener 且 duration > 1
-   * 规则九：percent_damage_modifier 必须监听 DAMAGE_REQUEST
-   * 规则十：Skill apply_buff modifier 需按属性语义分流 FIXED / ADD
+   * 产物类型边界校验（平衡三角硬规则）。
+   * slot 只表达结构位置；产品边界由 applicableTo 显式声明。
    */
   private validateBoundary(def: AffixDefinition): void {
-    // 规则一：池与产物类型强绑定
-    const categoryPrefix = def.category.split('_')[0] as
-      | 'skill'
-      | 'gongfa'
-      | 'artifact';
-    for (const productType of def.applicableTo) {
-      if (productType !== categoryPrefix) {
-        throw new Error(
-          `affix ${def.id}: category '${def.category}' is bound to '${categoryPrefix}' but applicableTo contains '${productType}' (pool-product binding violation)`,
-        );
-      }
+    if (def.applicableTo.length === 0) {
+      throw new Error(`affix ${def.id}: applicableTo must not be empty`);
     }
 
-    // 规则二：稀有池只接受 rare/legendary
-    const RARE_POOLS: AffixCategory[] = [
-      'skill_rare',
-      'gongfa_secret',
-      'artifact_treasure',
-    ];
-    if (RARE_POOLS.includes(def.category)) {
-      if (def.rarity !== 'rare' && def.rarity !== 'legendary') {
-        throw new Error(
-          `affix ${def.id}: category '${def.category}' requires rarity 'rare' or 'legendary', got '${def.rarity}' (rare pool rarity violation)`,
-        );
-      }
-    }
-
-    // 规则三~七：scope 和 effectType 约束
     for (const productType of def.applicableTo) {
       // 规则三：Artifact 禁止 OWNER_AS_CASTER scope
       if (
@@ -145,15 +99,8 @@ export class AffixRegistry {
         );
       }
 
-      // 规则四：Gongfa 禁止 OWNER_AS_TARGET scope
-      if (
-        productType === 'gongfa' &&
-        def.listenerSpec?.scope === GameplayTags.SCOPE.OWNER_AS_TARGET
-      ) {
-        throw new Error(
-          `affix ${def.id}: gongfa affix must not use OWNER_AS_TARGET scope (boundary violation)`,
-        );
-      }
+      // Gongfa 可监听自身受击/抵抗/闪避等防御事件；否则只能用 global 伪装，
+      // 会导致对手事件误触发。边界仍保留在 artifact 禁止主动施法者监听。
 
       // 规则五：Skill 禁止声明 listenerSpec
       if (
@@ -298,6 +245,91 @@ export class AffixRegistry {
           ['Status.'],
           `${context}.params.triggerTag`,
         );
+        effect.params.effects?.forEach((child, index) =>
+          this.validateEffectTags(child, `${context}.params.effects[${index}]`),
+        );
+        return;
+
+      case 'consume_status_trigger':
+        this.validateBuffMatch(effect.params.match, `${context}.params.match`);
+        effect.params.effects.forEach((child, index) =>
+          this.validateEffectTags(child, `${context}.params.effects[${index}]`),
+        );
+        return;
+
+      case 'delayed_effect':
+        assertRuntimeTagsInNamespaces(
+          effect.params.tags ?? [],
+          ['Buff.'],
+          `${context}.params.tags`,
+        );
+        assertRuntimeTagsInNamespaces(
+          effect.params.statusTags ?? [],
+          ['Status.'],
+          `${context}.params.statusTags`,
+        );
+        effect.params.effects.forEach((child, index) =>
+          this.validateEffectTags(child, `${context}.params.effects[${index}]`),
+        );
+        return;
+
+      case 'buff_layer_modify':
+        this.validateBuffMatch(effect.params.match, `${context}.params.match`);
+        effect.params.effects?.forEach((child, index) =>
+          this.validateEffectTags(child, `${context}.params.effects[${index}]`),
+        );
+        return;
+
+      case 'ability_transform':
+      case 'next_hit_rule':
+        assertRuntimeTagsInNamespaces(
+          effect.params.appliesToTags ?? [],
+          ['Ability.'],
+          `${context}.params.appliesToTags`,
+        );
+        if (effect.type === 'ability_transform' && effect.params.addDispel?.targetTag) {
+          assertRuntimeTagInNamespaces(
+            effect.params.addDispel.targetTag,
+            ['Buff.'],
+            `${context}.params.addDispel.targetTag`,
+          );
+        }
+        return;
+
+      case 'status_spread':
+        this.validateBuffMatch(effect.params.match, `${context}.params.match`);
+        return;
+
+      case 'buff_copy':
+        if (effect.params.match) {
+          this.validateBuffMatch(effect.params.match, `${context}.params.match`);
+        }
+        return;
+
+      case 'ability_lock':
+        assertRuntimeTagsInNamespaces(
+          effect.params.tags ?? [],
+          ['Ability.'],
+          `${context}.params.tags`,
+        );
+        return;
+
+      case 'turn_state_counter':
+        effect.params.effects.forEach((child, index) =>
+          this.validateEffectTags(child, `${context}.params.effects[${index}]`),
+        );
+        return;
+
+      case 'element_history':
+        effect.params.effects.forEach((child, index) =>
+          this.validateEffectTags(child, `${context}.params.effects[${index}]`),
+        );
+        return;
+
+      case 'effect_sequence':
+        effect.params.effects.forEach((child, index) =>
+          this.validateEffectTags(child, `${context}.params.effects[${index}]`),
+        );
         return;
 
       case 'apply_buff':
@@ -336,6 +368,13 @@ export class AffixRegistry {
       default:
         return;
     }
+  }
+
+  private validateBuffMatch(
+    match: { id?: string; tags?: string[] },
+    context: string,
+  ): void {
+    assertRuntimeTagsInNamespaces(match.tags ?? [], ['Buff.'], `${context}.tags`);
   }
 
   private validateConditionTags(

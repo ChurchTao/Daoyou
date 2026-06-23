@@ -89,7 +89,7 @@ export class DataDrivenActiveSkill extends ActiveSkill {
 
     const eventAbility = (event as CombatEvent & { ability?: { id?: string } })
       .ability;
-    if (eventAbility && eventAbility.id !== this.id) {
+    if (eventAbility && eventAbility !== this) {
       return;
     }
 

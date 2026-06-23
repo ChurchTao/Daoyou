@@ -1,5 +1,6 @@
 import type { ElementType } from '@shared/types/constants';
 import {
+  DAMAGE_CHANNEL_ABILITY_TAGS,
   ELEMENT_TO_RUNTIME_ABILITY_TAG,
   GameplayTags,
 } from '@shared/engine/shared/tag-domain';
@@ -39,11 +40,9 @@ export function assembleAbilityTags({
     tags.add(GameplayTags.ABILITY.KIND.GONGFA);
   }
 
-  const damageChannelTags = [
-    GameplayTags.ABILITY.CHANNEL.MAGIC,
-    GameplayTags.ABILITY.CHANNEL.PHYSICAL,
-    GameplayTags.ABILITY.CHANNEL.TRUE,
-  ].filter((tag) => tags.has(tag));
+  const damageChannelTags = DAMAGE_CHANNEL_ABILITY_TAGS.filter((tag) =>
+    tags.has(tag),
+  );
 
   if (damageChannelTags.length > 1) {
     throw new CreationError(

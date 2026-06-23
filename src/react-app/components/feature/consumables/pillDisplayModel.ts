@@ -2,12 +2,12 @@ import { getBreakthroughFocusPillLabel } from '@shared/lib/breakthroughPill';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import {
-  getCultivationPillUsageLimit,
   getLongevityPillUsageLimit,
   getPillUsageKeywordLabel,
   getPillUsageRuleText,
   getRealmPillUsageLimit,
 } from '@shared/lib/pillUsageText';
+import { BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT } from '@shared/config/consumableSystem';
 import { normalizeBodyCultivationState } from '@shared/lib/bodyCultivation/normalize';
 import { getBodyCultivationSummary } from '@shared/lib/bodyCultivation/summary';
 import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
@@ -136,10 +136,9 @@ function getPillUsageLimit(
     switch (quotaCategory) {
       case 'long_term':
         return getRealmPillUsageLimit(realm);
-      case 'cultivation':
-        return getCultivationPillUsageLimit(realm);
       case 'longevity':
         return getLongevityPillUsageLimit(realm);
+      case 'cultivation':
       case 'none':
         return null;
     }
@@ -196,6 +195,59 @@ function getPillUsageProgressText(
   return {
     keyword,
     rule: `本境界已服 ${used}/${limit}，尚可服 ${remaining} 颗`,
+  };
+}
+
+function isBodyCultivationPillSpec(spec: PillSpec): boolean {
+  return (
+    spec.family === 'tempering' ||
+    spec.operations.some(
+      (operation) =>
+        operation.type === 'advance_track' &&
+        (isBodyCultivationTrackPath(operation.track) ||
+          isLegacyTemperingTrackPath(operation.track)),
+    )
+  );
+}
+
+function getEffectiveQuotaCategory(spec: PillSpec): PillQuotaCategory {
+  if (spec.family === 'cultivation' || isBodyCultivationPillSpec(spec)) {
+    return 'none';
+  }
+
+  if (
+    spec.consumeRules.quotaCategory === 'long_term' &&
+    spec.operations.some(
+      (operation) =>
+        operation.type === 'advance_track' &&
+        (isBodyCultivationTrackPath(operation.track) ||
+          isLegacyTemperingTrackPath(operation.track)),
+    )
+  ) {
+    return 'none';
+  }
+
+  return spec.consumeRules.quotaCategory;
+}
+
+function getBodyCultivationPillUsageProgressText(
+  spec: PillSpec,
+  options?: PillDisplayOptions,
+): { keyword: string; rule: string } | null {
+  if (!isBodyCultivationPillSpec(spec) || !options?.condition) {
+    return null;
+  }
+
+  const used = Math.max(
+    0,
+    Math.floor(options.condition.counters?.bodyCultivationPillUses ?? 0),
+  );
+  const limit = BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT;
+  const remaining = Math.max(0, limit - used);
+
+  return {
+    keyword: `炼体丹剩余 ${remaining}/${limit}`,
+    rule: `炼体丹总服用 ${used}/${limit}，尚可服 ${remaining} 颗`,
   };
 }
 
@@ -410,9 +462,10 @@ function buildKeywordLabels(
       ? getLifespanGainText(lifespan.value)
       : null,
     spec.family === 'breakthrough' ? getBreakthroughPurposeLabel(spec) : null,
-    getPillUsageProgressText(spec.consumeRules.quotaCategory, options)
+    getBodyCultivationPillUsageProgressText(spec, options)?.keyword ??
+      getPillUsageProgressText(getEffectiveQuotaCategory(spec), options)
       ?.keyword ??
-      getPillUsageKeywordLabel(spec.consumeRules.quotaCategory, options?.realm),
+      getPillUsageKeywordLabel(getEffectiveQuotaCategory(spec), options?.realm),
   ].filter((label): label is string => Boolean(label));
 
   const gaugeChange = spec.operations.find(
@@ -457,9 +510,11 @@ function buildCostAndRuleLines(
     .map((operation) => describePillOperation(operation));
 
   lines.push('仅可在场外服用');
+  const quotaCategory = getEffectiveQuotaCategory(spec);
   const usageRuleText =
-    getPillUsageProgressText(spec.consumeRules.quotaCategory, options)?.rule ??
-    getPillUsageRuleText(spec.consumeRules.quotaCategory, options?.realm);
+    getBodyCultivationPillUsageProgressText(spec, options)?.rule ??
+    getPillUsageProgressText(quotaCategory, options)?.rule ??
+    getPillUsageRuleText(quotaCategory, options?.realm);
   if (usageRuleText) {
     lines.push(usageRuleText);
   }

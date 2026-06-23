@@ -11,11 +11,9 @@ import type {
 import type { ConditionOperation, PillSpec } from '@shared/types/consumable';
 import type { Cultivator } from '@shared/types/cultivator';
 import { isPillConsumable } from '@shared/lib/consumables';
+import { getPillUsageLimitReachedText } from '@shared/lib/pillUsageText';
 import {
-  getCultivationPillUsageLimit,
-  getPillUsageLimitReachedText,
-} from '@shared/lib/pillUsageText';
-import {
+  BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT,
   CULTIVATION_PILL_MAX_QUALITY_BY_REALM,
   REALM_PILL_USAGE_LIMITS,
 } from '@shared/config/consumableSystem';
@@ -86,14 +84,10 @@ function createUntilRemovedDuration(): ConditionStatusDuration {
   return { kind: 'until_removed' };
 }
 
-function assertCultivationPillQualityAllowed(
+function assertPillQualityAllowed(
   cultivator: Cultivator,
   consumable: Consumable & { spec: PillSpec },
 ): void {
-  if (consumable.spec.family !== 'cultivation') {
-    return;
-  }
-
   const maxQuality = CULTIVATION_PILL_MAX_QUALITY_BY_REALM[cultivator.realm];
   const pillQuality = consumable.quality ?? '凡品';
   if ((QUALITY_ORDER[pillQuality] ?? 0) <= (QUALITY_ORDER[maxQuality] ?? 0)) {
@@ -101,7 +95,7 @@ function assertCultivationPillQualityAllowed(
   }
 
   throw new Error(
-    `药力过盛，强行服用恐爆体而亡。当前境界最多可承受${maxQuality}修为丹。`,
+    `药力过盛，强行服用恐爆体而亡。当前境界最多可承受${maxQuality}丹药。`,
   );
 }
 
@@ -451,6 +445,40 @@ function sortOperations(operations: ConditionOperation[]): ConditionOperation[] 
   );
 }
 
+function getEffectiveQuotaCategory(
+  spec: PillSpec,
+): PillSpec['consumeRules']['quotaCategory'] {
+  if (spec.family === 'cultivation' || isBodyCultivationPillSpec(spec)) {
+    return 'none';
+  }
+
+  if (
+    spec.consumeRules.quotaCategory === 'long_term' &&
+    spec.operations.some(
+      (operation) =>
+        operation.type === 'advance_track' &&
+        (isBodyCultivationTrackPath(operation.track) ||
+          isLegacyTemperingTrackPath(operation.track)),
+    )
+  ) {
+    return 'none';
+  }
+
+  return spec.consumeRules.quotaCategory;
+}
+
+function isBodyCultivationPillSpec(spec: PillSpec): boolean {
+  return (
+    spec.family === 'tempering' ||
+    spec.operations.some(
+      (operation) =>
+        operation.type === 'advance_track' &&
+        (isBodyCultivationTrackPath(operation.track) ||
+          isLegacyTemperingTrackPath(operation.track)),
+    )
+  );
+}
+
 function consumeBreakthroughStatus(
   status: ConditionStatusInstance,
   now: Date,
@@ -489,6 +517,8 @@ export const PillOperationExecutor = {
       throw new Error('该丹药当前不可在背包内直接服用。');
     }
 
+    assertPillQualityAllowed(cultivator, consumable);
+
     const nextCultivator = cloneCultivator(cultivator);
     let nextCondition = ConditionService.tickNaturalRecovery(
       nextCultivator,
@@ -497,9 +527,26 @@ export const PillOperationExecutor = {
     );
     const trackLevelUps: TrackLevelUpResult[] = [];
 
-    assertCultivationPillQualityAllowed(nextCultivator, consumable);
+    const quotaCategory = getEffectiveQuotaCategory(consumable.spec);
+    const isBodyCultivationPill = isBodyCultivationPillSpec(consumable.spec);
 
-    if (consumable.spec.consumeRules.quotaCategory === 'long_term') {
+    if (isBodyCultivationPill) {
+      const used = nextCondition.counters.bodyCultivationPillUses ?? 0;
+      if (used >= BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT) {
+        throw new Error(
+          `炼体丹服用总数已达上限（${used}/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}），无法继续服用。`,
+        );
+      }
+      nextCondition = {
+        ...nextCondition,
+        counters: {
+          ...nextCondition.counters,
+          bodyCultivationPillUses: used + 1,
+        },
+      };
+    }
+
+    if (quotaCategory === 'long_term') {
       const used =
         nextCondition.counters.longTermPillUsesByRealm[nextCultivator.realm] ?? 0;
       const limit = REALM_PILL_USAGE_LIMITS[nextCultivator.realm];
@@ -518,26 +565,7 @@ export const PillOperationExecutor = {
       };
     }
 
-    if (consumable.spec.consumeRules.quotaCategory === 'cultivation') {
-      const used =
-        nextCondition.counters.cultivationPillUsesByRealm[nextCultivator.realm] ?? 0;
-      const limit = getCultivationPillUsageLimit(nextCultivator.realm);
-      if (used >= limit) {
-        throw new Error(getPillUsageLimitReachedText('cultivation', used, limit));
-      }
-      nextCondition = {
-        ...nextCondition,
-        counters: {
-          ...nextCondition.counters,
-          cultivationPillUsesByRealm: {
-            ...nextCondition.counters.cultivationPillUsesByRealm,
-            [nextCultivator.realm]: used + 1,
-          },
-        },
-      };
-    }
-
-    if (consumable.spec.consumeRules.quotaCategory === 'longevity') {
+    if (quotaCategory === 'longevity') {
       const used =
         nextCondition.counters.longevityPillUsesByRealm[nextCultivator.realm] ?? 0;
       const limit = REALM_PILL_USAGE_LIMITS[nextCultivator.realm];

@@ -2,7 +2,7 @@ import { EventBus } from '../../core/EventBus';
 import { BattleEngineV5 } from '../../BattleEngineV5';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { DamageTakenEvent } from '../../core/types';
-import { RoundPreEvent, SkillCastEvent } from '../../core/events';
+import { DamageEvent, RoundPreEvent, SkillCastEvent } from '../../core/events';
 import { AbilityType, AttributeType, BuffType, ModifierType } from '../../core/types';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { Unit } from '../../units/Unit';
@@ -195,6 +195,43 @@ describe('Passive Listener Mapping Integration', () => {
 
     expect(attacker.buffs.getAllBuffIds()).toContain('counter_mark');
     expect(defender.buffs.getAllBuffIds()).not.toContain('counter_mark');
+  });
+
+  it('owner_as_actor scope should also match when owner is the event target', () => {
+    const attacker = createUnit('attacker', '攻击者');
+    const defender = createUnit('defender', '受击者');
+
+    defender.abilities.addAbility(
+      AbilityFactory.create({
+        slug: 'passive_actor_target_guard',
+        name: '参与守御',
+        type: AbilityType.PASSIVE_SKILL,
+        tags: [GameplayTags.ABILITY.KIND.PASSIVE],
+        listeners: [
+          {
+            id: 'actor_target_guard',
+            eventType: 'DamageEvent',
+            scope: 'owner_as_actor',
+            priority: 55,
+            mapping: {
+              caster: 'owner',
+              target: 'owner',
+            },
+            effects: [{ type: 'shield', params: { value: { base: 25 } } }],
+          },
+        ],
+      }),
+    );
+
+    EventBus.instance.publish<DamageEvent>({
+      type: 'DamageEvent',
+      timestamp: Date.now(),
+      caster: attacker,
+      target: defender,
+      finalDamage: 100,
+    });
+
+    expect(defender.getCurrentShield()).toBe(25);
   });
 
   it('mapping-driven cast mark should keep player log as single line', () => {

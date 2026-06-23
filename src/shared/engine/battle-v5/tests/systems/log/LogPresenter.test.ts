@@ -282,4 +282,34 @@ describe('LogPresenter 行动日志聚合', () => {
       '「张三」施放《火球术》，对「李四」施加的「灼烧」被免疫了',
     ]);
   });
+
+  it('高级机制日志应出现在行动描述中', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('mechanic', {
+        mechanic: 'damage_defer',
+        targetName: '李四',
+        name: '延迟伤害',
+        value: 120,
+        detail: '2',
+      }),
+      createEntry('mechanic', {
+        mechanic: 'ability_transform',
+        targetName: '张三',
+        name: '下一击规则',
+        value: 1,
+      }),
+      createEntry('mechanic', {
+        mechanic: 'hp_sacrifice',
+        targetName: '张三',
+        name: '气血献祭',
+        value: 80,
+      }),
+    ]);
+
+    expect(presenter.formatSpan(span)).toEqual([
+      '「张三」施放《火球术》，「李四」将 120 点伤害延后 2 回合结算',
+      '「张三」施放《火球术》，「张三」获得「下一击规则」强化，「张三」献祭 80 点气血',
+    ]);
+  });
 });

@@ -163,10 +163,10 @@ export function resolveSkillResourceAndCooldown(
   });
   const qualityOrder = input.projectionQualityProfile.qualityOrder;
   const nonCoreAffixCount = input.affixes.filter(
-    (affix) => affix.category !== 'skill_core',
+    (affix) => affix.slot !== 'core',
   ).length;
   const rareAffixCount = input.affixes.filter(
-    (affix) => affix.category === 'skill_rare',
+    (affix) => affix.rarity === 'rare' || affix.rarity === 'legendary',
   ).length;
   const hasDamage = hasAbilityFunction(
     input.abilityTags,

@@ -278,6 +278,10 @@ export function attemptBreakthrough(
   const breakthrough_type = getBreakthroughType(progress);
   const exp_progress = calculateExpProgress(progress);
   const insight_value = progress.comprehension_insight;
+  const carriedExpAfterBreakthrough = Math.max(
+    0,
+    Math.floor(progress.cultivation_exp - progress.exp_cap),
+  );
 
   // 使用新的突破概率计算系统
   const breakthroughResult = calculateBreakthroughChance(cultivator);
@@ -363,8 +367,8 @@ export function attemptBreakthrough(
       cultivator.lifespan += lifespanGained;
     }
 
-    // 重置修为进度
-    progress.cultivation_exp = 0;
+    // 扣除当前阶段突破成本，保留已经溢出的修为到下一阶段。
+    progress.cultivation_exp = carriedExpAfterBreakthrough;
     progress.exp_cap = resolveLiveExpCap(nextStage.realm, nextStage.stage);
     progress.breakthrough_failures = 0;
     progress.bottleneck_state = false;

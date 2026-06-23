@@ -144,7 +144,7 @@ export class AbilityContainer {
     if (
       !isBasicBlocked &&
       opponent &&
-      opponent.id !== this._owner.id &&
+      opponent !== this._owner &&
       opponent.isAlive()
     ) {
       this._prepareCast(this._getDefaultAttack(), opponent);

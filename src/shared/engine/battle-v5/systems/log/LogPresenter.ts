@@ -165,6 +165,7 @@ export class LogPresenter {
     const resourceDrains = this.findEntries(entries, 'resource_drain');
     const cooldownModifies = this.findEntries(entries, 'cooldown_modify');
     const tagTriggers = this.findEntries(entries, 'tag_trigger');
+    const mechanics = this.findEntries(entries, 'mechanic');
 
     const isBasicAttack = ability?.id === 'basic_attack';
     const actionDesc = isBasicAttack
@@ -215,7 +216,8 @@ export class LogPresenter {
       manaBurns[0]?.data.targetName ??
       resourceDrains[0]?.data.targetName ??
       cooldownModifies[0]?.data.targetName ??
-      tagTriggers[0]?.data.targetName;
+      tagTriggers[0]?.data.targetName ??
+      mechanics[0]?.data.targetName;
 
     // 情况 3: 伤害 + Buff + 死亡
     if (
@@ -381,6 +383,10 @@ export class LogPresenter {
       );
     }
 
+    for (const mechanic of mechanics) {
+      resultParts.push(this.formatMechanic(mechanic));
+    }
+
     if (resist) {
       const resistedTargets = Array.from(
         new Set(
@@ -437,6 +443,7 @@ export class LogPresenter {
       'death_prevent',
       'skill_interrupt',
       'cooldown_modify',
+      'mechanic',
     ];
 
     for (const entry of entries) {
@@ -502,6 +509,34 @@ export class LogPresenter {
     }
 
     return [dotHotText ?? `${actor} 持续效果触发`];
+  }
+
+  private formatMechanic(entry: LogEntry<'mechanic'>): string {
+    const target = this.formatName(entry.data.targetName);
+    const value = entry.data.value !== undefined
+      ? this.formatNumber(Math.round(entry.data.value))
+      : undefined;
+
+    switch (entry.data.mechanic) {
+      case 'memory_record':
+        return `${target}记录「${entry.data.name}」${value ?? ''}`;
+      case 'memory_release':
+        return `${target}释放「${entry.data.name}」${value ?? ''}`;
+      case 'ability_transform':
+        return `${target}获得「${entry.data.name}」强化`;
+      case 'damage_defer':
+        return `${target}将 ${value ?? 0} 点伤害延后 ${entry.data.detail ?? '?'} 回合结算`;
+      case 'hp_sacrifice':
+        return `${target}献祭 ${value ?? 0} 点气血`;
+      case 'buff_layer':
+        return `${target}调整「${entry.data.name}」层数`;
+      case 'status_spread':
+        return entry.data.detail === 'no_target'
+          ? `${target}没有可扩散目标`
+          : `${target}扩散「${entry.data.name}」`;
+      default:
+        return `${target}触发「${entry.data.name}」`;
+    }
   }
 
   private _buildDotHotText(

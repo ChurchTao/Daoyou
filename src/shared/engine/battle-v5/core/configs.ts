@@ -38,17 +38,25 @@ export interface ConditionConfig {
     | 'ability_mp_cost_at_least'
     | 'has_shield'
     | 'buff_count_at_least'
+    | 'buff_layer_at_least'
     | 'debuff_count_at_least'
     | 'damage_type_is'
     | 'shield_absorbed_at_least'
+    | 'resource_compare'
     | 'chance'
-    | 'is_critical';
+    | 'is_critical'
+    | 'is_lethal';
   params: {
     tag?: string;
+    id?: string;
     value?: number;
     // 条件作用域，默认 target。
     // hp/mp 条件也可使用该字段在 caster/target 间切换。
     scope?: 'caster' | 'target';
+    resource?: 'hp' | 'mp';
+    left?: 'caster' | 'target';
+    op?: 'gt' | 'gte' | 'lt' | 'lte';
+    right?: 'caster' | 'target';
     damageType?: DamageType;
   };
 }
@@ -69,6 +77,7 @@ export interface BaseEffectConfig {
  */
 export interface DamageParams {
   value: ScalableValue;
+  damageType?: DamageType;
 }
 
 /**
@@ -85,6 +94,7 @@ export interface HealParams {
 export interface ApplyBuffParams {
   buffConfig: BuffConfig;
   chance?: number;
+  target?: 'caster' | 'target';
 }
 
 /**
@@ -153,6 +163,134 @@ export interface TagTriggerParams {
   triggerTag: string;
   damageRatio?: number;
   removeOnTrigger?: boolean;
+  effects?: EffectConfig[];
+}
+
+export interface BuffMatchParams {
+  id?: string;
+  tags?: string[];
+}
+
+export interface ConsumeStatusTriggerParams {
+  match: BuffMatchParams;
+  consume?: 'one' | 'all' | number;
+  effects: EffectConfig[];
+}
+
+export interface DelayedEffectParams {
+  id: string;
+  name: string;
+  delayTurns: number;
+  effects: EffectConfig[];
+  tags?: string[];
+  statusTags?: string[];
+  record?: {
+    key: string;
+    event: 'damage_taken' | 'heal' | 'shield';
+    maxStored?: number;
+  };
+  triggerOnDispel?: boolean;
+  maxTriggers?: number;
+}
+
+export interface DamageMemoryParams {
+  key: string;
+  mode: 'record' | 'release' | 'clear';
+  event?: 'damage_taken' | 'damage_dealt' | 'heal' | 'shield' | 'critical_taken';
+  ratio?: number;
+  releaseAs?: 'damage' | 'heal' | 'shield' | 'reflect';
+  target?: 'caster' | 'target';
+  maxStored?: number;
+  consume?: boolean;
+}
+
+export interface BuffLayerModifyParams {
+  match: BuffMatchParams;
+  operation: 'add' | 'subtract' | 'clear' | 'set';
+  layers?: number;
+  effects?: EffectConfig[];
+  scaleEffectsByLayer?: boolean;
+}
+
+export interface AbilityTransformParams {
+  id: string;
+  triggers?: number;
+  appliesToTags?: string[];
+  trueDamage?: boolean;
+  addDispel?: DispelParams;
+  mpCostToHp?: boolean;
+  cooldownModify?: number;
+  forceCritical?: boolean;
+  bonusDamageMemory?: {
+    key: string;
+    ratio?: number;
+    consume?: boolean;
+  };
+}
+
+export interface HpSacrificeDamageParams {
+  hpRatio: number;
+  damagePerHp: number;
+  minHpFloor?: number;
+}
+
+export interface AbilityLockParams {
+  rounds: number;
+  tags?: string[];
+  maxCount?: number;
+}
+
+export interface StatusSpreadParams {
+  match: BuffMatchParams;
+  maxCount?: number;
+}
+
+export interface BuffCopyParams {
+  id?: string;
+  match?: BuffMatchParams;
+  target?: 'caster' | 'target';
+  durationDelta?: number;
+  replayRemoved?: boolean;
+  maxTriggers?: number;
+}
+
+export interface DamageDeferParams {
+  ratio: number;
+  delayTurns: number;
+  thresholdMaxHpRatio?: number;
+}
+
+export interface NextHitRuleParams {
+  forceCritical?: boolean;
+  triggers?: number;
+  appliesToTags?: string[];
+}
+
+export interface DynamicScalarParams {
+  mode: 'increase' | 'reduce';
+  value: number;
+  resource: 'hp' | 'mp';
+  lowerIsStronger?: boolean;
+  cap?: number;
+}
+
+export interface TurnStateCounterParams {
+  key: string;
+  event: 'no_damage_dealt' | 'damage_dealt';
+  threshold: number;
+  effects: EffectConfig[];
+  resetOnTrigger?: boolean;
+}
+
+export interface ElementHistoryParams {
+  key: string;
+  threshold: number;
+  effects: EffectConfig[];
+  resetOnTrigger?: boolean;
+}
+
+export interface EffectSequenceParams {
+  effects: EffectConfig[];
 }
 
 /**
@@ -203,6 +341,21 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'cooldown_modify'; params: CooldownModifyParams }
     | { type: 'buff_duration_modify'; params: BuffDurationModifyParams }
     | { type: 'tag_trigger'; params: TagTriggerParams }
+    | { type: 'consume_status_trigger'; params: ConsumeStatusTriggerParams }
+    | { type: 'delayed_effect'; params: DelayedEffectParams }
+    | { type: 'damage_memory'; params: DamageMemoryParams }
+    | { type: 'buff_layer_modify'; params: BuffLayerModifyParams }
+    | { type: 'ability_transform'; params: AbilityTransformParams }
+    | { type: 'hp_sacrifice_damage'; params: HpSacrificeDamageParams }
+    | { type: 'ability_lock'; params: AbilityLockParams }
+    | { type: 'status_spread'; params: StatusSpreadParams }
+    | { type: 'buff_copy'; params: BuffCopyParams }
+    | { type: 'damage_defer'; params: DamageDeferParams }
+    | { type: 'next_hit_rule'; params: NextHitRuleParams }
+    | { type: 'dynamic_scalar'; params: DynamicScalarParams }
+    | { type: 'turn_state_counter'; params: TurnStateCounterParams }
+    | { type: 'element_history'; params: ElementHistoryParams }
+    | { type: 'effect_sequence'; params: EffectSequenceParams }
     | { type: 'percent_damage_modifier'; params: PercentDamageModifierParams }
     | { type: 'death_prevent'; params: DeathPreventParams }
     | { type: 'buff_immunity'; params: BuffImmunityParams }

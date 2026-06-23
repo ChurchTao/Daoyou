@@ -262,7 +262,7 @@ router.post('/artifact/preview', requireAdmin(), async (c) => {
         id: affixId,
         name: def?.displayName ?? affixId,
         description: def?.displayDescription ?? '',
-        category: def?.category ?? '',
+        slot: def?.slot ?? '',
         rarity: def?.rarity ?? '',
       };
     });

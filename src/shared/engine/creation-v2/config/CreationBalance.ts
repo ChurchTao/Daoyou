@@ -1,27 +1,30 @@
-import { CreationProductType } from '../types';
+import { AffixRarity, AffixSlot, CreationProductType } from '../types';
 import { CREATION_EVENT_PRIORITY_LEVELS } from './CreationEventPriorities';
 import type { Quality } from '@shared/types/constants';
 
 /**
- * 词缀分类解锁阈值表。
- * 数值含义：当材料分析得到的 unlock score 达到该值后，对应分类才允许进入词缀池。
- * 三段阶梯：核心池(0) / 中层池(20) / 稀有池(40)
+ * 词缀稀有度解锁阈值表。
+ * 数值含义：当造物有效总预算达到该值后，对应稀有度才允许进入词缀池。
  */
-export const CREATION_AFFIX_UNLOCK_THRESHOLDS = {
-  // 核心池：永远可用
-  skill_core: 0,
-  gongfa_foundation: 0,
-  artifact_core: 0,
-  artifact_panel: 0,
-  // 中层池：中等材料解锁
-  skill_variant: 25,
-  gongfa_school: 25,
-  artifact_defense: 25,
-  // 稀有池：高投入材料才解锁
-  skill_rare: 80,
-  gongfa_secret: 80,
-  artifact_treasure: 80,
+export const CREATION_AFFIX_RARITY_UNLOCK_THRESHOLDS = {
+  common: 0,
+  uncommon: 25,
+  rare: 80,
+  legendary: 120,
 } as const;
+
+export function resolveUnlockedAffixRarities(
+  effectiveTotal: number,
+): AffixRarity[] {
+  return (
+    Object.entries(CREATION_AFFIX_RARITY_UNLOCK_THRESHOLDS) as [
+      AffixRarity,
+      number,
+    ][]
+  )
+    .filter(([, threshold]) => effectiveTotal >= threshold)
+    .map(([rarity]) => rarity);
+}
 
 /**
  * 各产物类型的保留能量。
@@ -129,7 +132,7 @@ export const CREATION_MANUAL_ALIGNMENT = {
 
 /**
  * unlock score 计算参数。
- * unlock score 用来决定“能解锁到多高阶的词缀分类”，与 spendable energy 分轨计算。
+ * unlock score 用来衡量材料语义强度，不再决定词缀稀有度解锁。
  */
 export const CREATION_UNLOCK_SCORE_PROFILE = {
   // 各材料按强度排序后的贡献权重，越靠后的材料对高阶解锁贡献越低。
@@ -145,29 +148,13 @@ export const CREATION_UNLOCK_SCORE_PROFILE = {
  * 这组配置决定词缀是否有资格进入候选池，以及进入后权重如何被放大或压低。
  */
 export const CREATION_AFFIX_POOL_SCORING = {
-  // 视为“高阶桶”的分类集合，用于统一做高阶数量限制。
-  highTierCategories: [
-    'skill_rare',
-    'gongfa_secret',
-    'artifact_treasure',
-  ] as const,
-
-  // 各分类进入候选池所需达到的最低 admission score。
-  minimumScoreByCategory: {
-    // 核心池不做分数门槛限制。
-    skill_core: 0,
-    gongfa_foundation: 0,
-    artifact_core: 0,
-    artifact_panel: 0,
-    // 中层池的最低准入分数。
-    skill_variant: 0.45,
-    gongfa_school: 0.45,
-    artifact_defense: 0.45,
-    // 稀有池的最低准入分数，要求最高。
-    skill_rare: 0.7,
-    gongfa_secret: 0.7,
-    artifact_treasure: 0.7,
-  } as const,
+  // 各结构槽进入候选池所需达到的最低 admission score。
+  minimumScoreBySlot: {
+    core: 0,
+    identity: 0.45,
+    resonance: 0.45,
+    modifier: 0.45,
+  } as const satisfies Record<AffixSlot, number>,
 
   // 各类信号源在 tagSignalScores 中的加权强度。
   tagSignalWeights: {
@@ -201,49 +188,17 @@ export const CREATION_AFFIX_POOL_SCORING = {
 };
 
 /**
- * 非 core 词缀的类别规划。
- * 主要用于表达系统希望不同类别在整体分布上承担的角色和占比。
+ * 词缀槽位长期统计目标。
+ * 仅用于平衡审计，不参与抽选硬限制。
  */
-export const CREATION_AFFIX_CATEGORY_PLAN = {
-  // 完整优先级顺序：核心池 > 中层池 > 稀有池。
-  priorityOrder: [
-    'skill_core',
-    'gongfa_foundation',
-    'artifact_core',
-    'skill_variant',
-    'gongfa_school',
-    'artifact_panel',
-    'artifact_defense',
-    'skill_rare',
-    'gongfa_secret',
-    'artifact_treasure',
-  ] as const,
-
-  // 各分类在长期统计中的目标占比，用于辅助分布校准。
+export const CREATION_AFFIX_SLOT_PLAN = {
   targetShare: {
-    skill_core: 0.12,
-    skill_variant: 0.22,
-    skill_rare: 0.08,
-    gongfa_foundation: 0.12,
-    gongfa_school: 0.22,
-    gongfa_secret: 0.06,
-    artifact_core: 0.03,
-    artifact_panel: 0.05,
-    artifact_defense: 0.08,
-    artifact_treasure: 0.02,
-  } as const,
+    core: 0.28,
+    identity: 0.12,
+    resonance: 0.08,
+    modifier: 0.52,
+  } as const satisfies Record<AffixSlot, number>,
 } as const;
-
-/**
- * 高阶桶上限。
- * 用来控制高阶词缀整体数量，而不是单独控制某个分类的出现次数。
- * 具体的每池上限（skill_rare/gongfa_secret/artifact_treasure 各 1）
- * 由 AffixSelectionConstraints 的固定池配额负责。
- */
-export interface CreationAffixBucketCaps {
-  /** skill_rare/gongfa_secret/artifact_treasure 这类稀有池词缀总共最多允许出现多少个。 */
-  highTierTotal: number;
-}
 
 /**
  * 造物侧 listener 的事件优先级配置。
@@ -308,7 +263,7 @@ export const CREATION_PROJECTION_BALANCE = {
  * 能量预算梯次 -> 词缀槽位数映射。
  * 低投入时限制词缀槽位，高投入时开放更多槽位，形成成长梯次感。
  * 槽位由“可支配词缀预算”决定，而不是总能量。
- * 解锁高阶类别与能否装满词缀槽位是两条独立轨道。
+ * 稀有度解锁使用有效总预算；槽位数量使用可支配词缀预算。
  * - 可支配能量 < 18：仅 core + 1 非核心，共 2 词缀。
  * - 可支配能量 18-33：core + 2 非核心，共 3 词缀。
  * - 可支配能量 34-55：core + 3 非核心，共 4 词缀。

@@ -3,8 +3,8 @@ import type { RealmStage, RealmType } from '@shared/types/constants';
 /**
  * 各境界 × 各阶段的单阶段修为上限表。
  *
- * 注意：突破成功后 cultivation_exp 会重置为 0，因此这里不是累计 cap，
- * 而是每个阶段从 0 走到可突破所需的独立经验成本。
+ * 注意：突破成功后会扣除当前阶段 cap，并把溢出的 cultivation_exp
+ * 带入下一阶段，因此这里不是累计 cap，而是每个阶段的独立经验成本。
  *
  * 推导公式：
  *   阶段 cap ≈ REALM_TARGET_DAYS[realm]

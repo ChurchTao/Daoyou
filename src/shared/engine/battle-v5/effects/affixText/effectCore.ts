@@ -29,6 +29,9 @@ export function describeEffectCore(
   effect: EffectConfig,
   context: EffectCoreTextContext = {},
 ): string {
+  const describeChildren = (effects: readonly EffectConfig[]) =>
+    effects.map((child) => describeEffectCore(child, context)).join('、');
+
   switch (effect.type) {
     case 'damage': {
       const damageLabel = inferDamageTypeLabels({
@@ -91,7 +94,8 @@ export function describeEffectCore(
         effect.params.chance !== undefined
           ? `（${formatAffixPercent(effect.params.chance)}）`
           : '';
-      return `附加「${effect.params.buffConfig.name}」${chance}`;
+      const target = effect.params.target === 'caster' ? '自身' : '目标';
+      return `给${target}附加「${effect.params.buffConfig.name}」${chance}`;
     }
 
     case 'cooldown_modify': {
@@ -105,6 +109,55 @@ export function describeEffectCore(
       }
       return `命中「${labelGameplayTag(effect.params.triggerTag)}」触发额外效果`;
 
+    case 'consume_status_trigger':
+      return `消耗${describeBuffMatch(effect.params.match)}后${describeChildren(effect.params.effects)}`;
+
+    case 'delayed_effect':
+      return `${effect.params.delayTurns} 回合后触发「${effect.params.name}」：${describeChildren(effect.params.effects)}`;
+
+    case 'damage_memory':
+      if (effect.params.mode === 'record') {
+        return `记录${describeMemoryEvent(effect.params.event)}${effect.params.maxStored !== undefined ? `，上限 ${formatAffixNumber(effect.params.maxStored)}` : ''}`;
+      }
+      if (effect.params.mode === 'clear') return '清除战斗记忆';
+      return `将记录值的 ${formatAffixPercent(effect.params.ratio ?? 1)} 转为${describeMemoryRelease(effect.params.releaseAs)}`;
+
+    case 'buff_layer_modify':
+      return `${describeLayerOperation(effect.params.operation, effect.params.layers)}${describeBuffMatch(effect.params.match)}${effect.params.effects?.length ? `并${effect.params.scaleEffectsByLayer ? '按原层数重复' : ''}${describeChildren(effect.params.effects)}` : ''}`;
+
+    case 'ability_transform':
+      return `强化下一次神通：${describeTransform(effect.params)}`;
+
+    case 'hp_sacrifice_damage':
+      return `消耗当前气血 ${formatAffixPercent(effect.params.hpRatio)} 追加伤害`;
+
+    case 'ability_lock':
+      return `封禁神通 ${effect.params.rounds} 回合`;
+
+    case 'status_spread':
+      return `扩散${describeBuffMatch(effect.params.match)}（1v1 无额外目标时不生效）`;
+
+    case 'buff_copy':
+      return `${effect.params.maxTriggers ? `最多 ${effect.params.maxTriggers} 次，` : ''}${effect.params.replayRemoved ? '重施最近被驱散的' : '复制'}${effect.params.match ? describeBuffMatch(effect.params.match) : '状态'}给${effect.params.target === 'target' ? '目标' : '自身/施加者'}${effect.params.durationDelta ? `，持续延长 ${formatAffixNumber(effect.params.durationDelta)} 回合` : ''}`;
+
+    case 'damage_defer':
+      return `延迟结算 ${formatAffixPercent(effect.params.ratio)} 伤害`;
+
+    case 'next_hit_rule':
+      return effect.params.forceCritical ? '下一次命中必定暴击' : '强化下一次命中';
+
+    case 'dynamic_scalar':
+      return `根据${effect.params.resource === 'hp' ? '气血' : '法力'}动态修正伤害`;
+
+    case 'turn_state_counter':
+      return `累计 ${effect.params.threshold} 次${effect.params.event === 'no_damage_dealt' ? '未造成伤害' : '造成伤害'}后${describeChildren(effect.params.effects)}`;
+
+    case 'element_history':
+      return `集齐 ${effect.params.threshold} 种元素后${describeChildren(effect.params.effects)}`;
+
+    case 'effect_sequence':
+      return describeChildren(effect.params.effects);
+
     case 'buff_duration_modify': {
       const action = effect.params.rounds >= 0 ? '延长' : '缩短';
       return `${action}状态 ${Math.abs(effect.params.rounds)} 回合`;
@@ -115,4 +168,78 @@ export function describeEffectCore(
       return (exhaustive as EffectConfig).type;
     }
   }
+}
+
+function describeBuffMatch(match: { id?: string; tags?: string[] }): string {
+  if (match.id) return `「${match.id}」`;
+  if (match.tags?.length) return labelTagList(match.tags);
+  return '状态';
+}
+
+function describeMemoryEvent(event?: string): string {
+  switch (event) {
+    case 'damage_dealt':
+      return '造成伤害';
+    case 'heal':
+      return '治疗量';
+    case 'shield':
+      return '护盾量';
+    case 'critical_taken':
+      return '受到暴击伤害';
+    case 'damage_taken':
+    default:
+      return '受到伤害';
+  }
+}
+
+function describeMemoryRelease(releaseAs?: string): string {
+  switch (releaseAs) {
+    case 'heal':
+      return '治疗';
+    case 'shield':
+      return '护盾';
+    case 'reflect':
+      return '反射伤害';
+    case 'damage':
+    default:
+      return '伤害';
+  }
+}
+
+function describeLayerOperation(operation: string, layers?: number): string {
+  switch (operation) {
+    case 'add':
+      return `增加 ${formatAffixNumber(layers ?? 1)} 层`;
+    case 'subtract':
+      return `减少 ${formatAffixNumber(layers ?? 1)} 层`;
+    case 'clear':
+      return '清空';
+    case 'set':
+      return `设为 ${formatAffixNumber(layers ?? 1)} 层`;
+    default:
+      return '调整';
+  }
+}
+
+function describeTransform(params: {
+  trueDamage?: boolean;
+  addDispel?: unknown;
+  mpCostToHp?: boolean;
+  cooldownModify?: number;
+  forceCritical?: boolean;
+  bonusDamageMemory?: { ratio?: number };
+}): string {
+  const parts = [
+    params.trueDamage ? '转为真实伤害' : '',
+    params.forceCritical ? '必定暴击' : '',
+    params.addDispel ? '附带驱散' : '',
+    params.mpCostToHp ? '法力消耗改为气血消耗' : '',
+    params.cooldownModify !== undefined
+      ? `冷却${params.cooldownModify >= 0 ? '增加' : '减少'} ${formatAffixNumber(Math.abs(params.cooldownModify))} 回合`
+      : '',
+    params.bonusDamageMemory
+      ? `附加记录值 ${formatAffixPercent(params.bonusDamageMemory.ratio ?? 1)} 伤害`
+      : '',
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join('、') : '获得一次强化';
 }

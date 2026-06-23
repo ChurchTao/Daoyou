@@ -94,6 +94,15 @@ function getIsCriticalFromTriggerEvent(triggerEvent: unknown): boolean {
   return eventLike.isCritical === true;
 }
 
+function getIsLethalFromTriggerEvent(triggerEvent: unknown): boolean {
+  if (!triggerEvent || typeof triggerEvent !== 'object') return false;
+
+  const eventLike = triggerEvent as {
+    isLethal?: boolean;
+  };
+  return eventLike.isLethal === true;
+}
+
 function countBuffs(
   unit: Unit | undefined,
   predicate: (buff: Buff) => boolean,
@@ -151,6 +160,16 @@ export function evaluateCondition(
       return (
         countBuffs(scopedUnit, (buff) => buff.type === BuffType.BUFF) >= threshold
       );
+    case 'buff_layer_at_least':
+      return (
+        countBuffs(
+          scopedUnit,
+          (buff) =>
+            (cond.params.id ? buff.id === cond.params.id : true) &&
+            (cond.params.tag ? buff.tags.hasTag(cond.params.tag) : true) &&
+            buff.getLayer() >= threshold,
+        ) >= 1
+      );
     case 'debuff_count_at_least':
       return (
         countBuffs(
@@ -166,6 +185,25 @@ export function evaluateCondition(
     }
     case 'shield_absorbed_at_least':
       return (getShieldAbsorbedFromTriggerEvent(context.triggerEvent) ?? 0) >= threshold;
+    case 'resource_compare': {
+      const left = getScopedUnit(context, cond.params.left);
+      const right = getScopedUnit(context, cond.params.right);
+      if (!left || !right) return false;
+      const resource = cond.params.resource ?? 'mp';
+      const leftValue = resource === 'hp' ? left.getCurrentHp() : left.getCurrentMp();
+      const rightValue = resource === 'hp' ? right.getCurrentHp() : right.getCurrentMp();
+      switch (cond.params.op ?? 'gt') {
+        case 'gte':
+          return leftValue >= rightValue;
+        case 'lt':
+          return leftValue < rightValue;
+        case 'lte':
+          return leftValue <= rightValue;
+        case 'gt':
+        default:
+          return leftValue > rightValue;
+      }
+    }
     case 'chance':
       return Math.random() < threshold;
     case 'is_critical': {
@@ -173,6 +211,8 @@ export function evaluateCondition(
       // 运行时都读取 triggerEvent.isCritical，因为暴击是事件级属性
       return getIsCriticalFromTriggerEvent(context.triggerEvent);
     }
+    case 'is_lethal':
+      return getIsLethalFromTriggerEvent(context.triggerEvent);
     default:
       return true;
   }

@@ -61,9 +61,9 @@ export class TargetSelectionSystem {
       case 'self':
         return [caster];
       case 'enemy':
-        return allUnits.filter(u => u.id !== caster.id);
+        return allUnits.filter(u => u !== caster);
       case 'ally':
-        return allUnits.filter(u => u.id === caster.id);
+        return allUnits.filter(u => u === caster);
       case 'any':
         return allUnits;
       default:

@@ -663,6 +663,61 @@ describe('synthesizeAlchemy', () => {
     });
   });
 
+  it('scales lifespan gain when extend lifespan is the secondary property', () => {
+    const result = synthesizeAlchemy(
+      [
+        createMaterial({
+          id: 'm1',
+          materialRef: 'material_1',
+          name: '回春草',
+          description: '叶脉温润，常用于补充气血。',
+          element: '木',
+          type: 'herb',
+        }),
+        createMaterial({
+          id: 'm2',
+          materialRef: 'material_2',
+          name: '寿元果',
+          description: '果中生机绵长，可固本延寿，续补命元。',
+          element: '木',
+          type: 'fruit',
+        }),
+      ],
+      {
+        materialVectors: [
+          {
+            materialRef: 'material_1',
+            materialName: '回春草',
+            properties: [{ key: 'restore_hp', weight: 1 }],
+          },
+          {
+            materialRef: 'material_2',
+            materialName: '寿元果',
+            properties: [{ key: 'extend_lifespan', weight: 0.5 }],
+          },
+        ],
+        intentVector: [],
+        focusMode: 'balanced',
+      },
+      '真品',
+      '金丹',
+      { rng: () => 0.5 },
+    );
+
+    expect(result.propertyVector.map((property) => property.key)).toEqual([
+      'restore_hp',
+      'extend_lifespan',
+    ]);
+    expect(result.operations).toContainEqual({
+      type: 'increase_lifespan',
+      value: 55,
+    });
+    expect(result.operations).not.toContainEqual({
+      type: 'increase_lifespan',
+      value: 91,
+    });
+  });
+
   it('lets deterministic body material hints steer synthesis toward body tracks', () => {
     const result = synthesizeAlchemy(
       [

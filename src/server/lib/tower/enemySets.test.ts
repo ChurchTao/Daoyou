@@ -86,6 +86,18 @@ function makeDraft(input: Record<string, unknown>): EnemyGenerationDraft {
       secondaryElement: '木',
       primaryPersonaId: 'test',
       recoveryTierUsed: 0,
+      bodyCultivation: {
+        realm: 'mortal_body',
+        totalLevel: 0,
+        focusTracks: [],
+        trackLevels: {
+          skin: 0,
+          sinew_bone: 0,
+          organs: 0,
+          qi_blood: 0,
+          primordial_spirit: 0,
+        },
+      },
     },
     copyFacts: {
       race: '人族',
@@ -93,6 +105,18 @@ function makeDraft(input: Record<string, unknown>): EnemyGenerationDraft {
       realmStage: '初期',
       difficulty: 5,
       difficultyFactor: 1,
+      bodyCultivation: {
+        realm: 'mortal_body',
+        totalLevel: 0,
+        focusTracks: [],
+        trackLevels: {
+          skin: 0,
+          sinew_bone: 0,
+          organs: 0,
+          qi_blood: 0,
+          primordial_spirit: 0,
+        },
+      },
       primaryElement: '金',
       secondaryElement: '木',
       profileTags: [],

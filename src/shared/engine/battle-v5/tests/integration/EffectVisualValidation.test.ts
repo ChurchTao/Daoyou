@@ -4,7 +4,7 @@ import { GameplayTags } from '../../core';
 import { BuffConfig } from '../../core/configs';
 import { EventBus } from '../../core/EventBus';
 import { ActionPreEvent, DamageRequestEvent } from '../../core/events';
-import { AbilityType, AttributeType, BuffType, DamageSource } from '../../core/types';
+import { AbilityType, AttributeType, BuffType, DamageSource, ModifierType } from '../../core/types';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { BuffFactory } from '../../factories/BuffFactory';
 import { Unit } from '../../units/Unit';
@@ -80,7 +80,11 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         slug: 'cast_poison',
         name: '施毒术',
         type: AbilityType.ACTIVE_SKILL,
-        tags: [GameplayTags.ABILITY.KIND.SKILL],
+        tags: [
+          GameplayTags.ABILITY.KIND.SKILL,
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+        ],
         priority: 100,
         cooldown: 5,
         effects: [
@@ -320,6 +324,13 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
     const attacker = createTestUnit('attacker', '雷震霄', {
       [AttributeType.SPEED]: 200,
       [AttributeType.VITALITY]: 120,
+    });
+    attacker.attributes.addModifier({
+      id: 'test_control_hit_lock',
+      attrType: AttributeType.CONTROL_HIT,
+      type: ModifierType.FIXED,
+      value: 1,
+      source: 'test',
     });
     const defender = createTestUnit('defender', '霜无痕', {
       [AttributeType.SPEED]: 0,

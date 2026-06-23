@@ -77,6 +77,7 @@ function snapshotEnemy(draft: ReturnType<typeof enemyGenerator.buildDraft>): str
       background: draft.cultivator.background,
       description: draft.cultivator.description,
       attributes: draft.cultivator.attributes,
+      condition: draft.cultivator.condition,
       spiritual_roots: draft.cultivator.spiritual_roots,
       equipped: draft.cultivator.equipped,
       cultivations: draft.cultivator.cultivations.map((technique) => ({
@@ -248,6 +249,109 @@ describe('EnemyGenerator', () => {
     expect(draft.balance.totalAttributeBudget).toBe(
       Math.round(REALM_STAGE_CAPS.筑基.中期 * factor * 5),
     );
+    expect(sumAttributes(draft.cultivator.attributes)).toBe(
+      draft.balance.totalAttributeBudget,
+    );
+  });
+
+  it('generates deterministic body cultivation condition without timestamp churn', () => {
+    const input = {
+      realm: '金丹' as const,
+      realmStage: '后期' as const,
+      race: '魔族' as const,
+      difficulty: 88,
+      isBoss: true,
+      variantSeed: 'body-deterministic',
+    };
+
+    const left = enemyGenerator.buildDraft(input);
+    const right = enemyGenerator.buildDraft(input);
+
+    expect(left.cultivator.condition).toEqual(right.cultivator.condition);
+    expect(left.cultivator.condition?.timestamps).toEqual({});
+    expect(left.cultivator.condition?.tracks.bodyCultivation).toMatchObject({
+      realm: left.balance.bodyCultivation.realm,
+      tracks: {
+        skin: { level: left.balance.bodyCultivation.trackLevels.skin },
+        sinew_bone: {
+          level: left.balance.bodyCultivation.trackLevels.sinew_bone,
+        },
+        organs: { level: left.balance.bodyCultivation.trackLevels.organs },
+        qi_blood: { level: left.balance.bodyCultivation.trackLevels.qi_blood },
+        primordial_spirit: {
+          level: left.balance.bodyCultivation.trackLevels.primordial_spirit,
+        },
+      },
+    });
+    expect(left.copyFacts.bodyCultivation).toEqual(left.balance.bodyCultivation);
+  });
+
+  it('scales enemy body cultivation total level by difficulty and boss status', () => {
+    const totals = [
+      { difficulty: 10, isBoss: false },
+      { difficulty: 50, isBoss: false },
+      { difficulty: 90, isBoss: false },
+      { difficulty: 90, isBoss: true },
+    ].map(
+      (input) =>
+        enemyGenerator.buildDraft({
+          realm: '筑基',
+          realmStage: '中期',
+          race: '妖族',
+          ...input,
+          variantSeed: `body-scale:${input.difficulty}:${input.isBoss}`,
+        }).balance.bodyCultivation.totalLevel,
+    );
+
+    expect(totals[1]).toBeGreaterThan(totals[0]);
+    expect(totals[2]).toBeGreaterThan(totals[1]);
+    expect(totals[3]).toBeGreaterThan(totals[2]);
+  });
+
+  it('uses race preferences for enemy body cultivation focus tracks', () => {
+    const expectedTopTracks: Record<EnemyRace, string[]> = {
+      人族: ['organs', 'primordial_spirit'],
+      妖族: ['qi_blood', 'sinew_bone', 'skin'],
+      鬼魂: ['primordial_spirit', 'organs'],
+      魔族: ['organs', 'qi_blood', 'skin'],
+      古兽: ['sinew_bone', 'skin', 'qi_blood'],
+      灵族: ['organs', 'primordial_spirit', 'skin'],
+    };
+
+    for (const race of ENEMY_RACE_VALUES) {
+      const draft = enemyGenerator.buildDraft({
+        realm: '元婴',
+        realmStage: '后期',
+        race,
+        difficulty: 100,
+        isBoss: true,
+        variantSeed: `body-race:${race}`,
+      });
+      const trackLevels = draft.balance.bodyCultivation.trackLevels;
+      const highestLevel = Math.max(...Object.values(trackLevels));
+      const highestTracks = Object.entries(trackLevels)
+        .filter(([, level]) => level === highestLevel)
+        .map(([track]) => track);
+
+      expect(
+        highestTracks.some((track) => expectedTopTracks[race].includes(track)),
+      ).toBe(true);
+    }
+  });
+
+  it('starts generated enemy condition resources at display max resources', () => {
+    const draft = enemyGenerator.buildDraft({
+      realm: '元婴',
+      realmStage: '后期',
+      race: '古兽',
+      difficulty: 95,
+      isBoss: true,
+      variantSeed: 'body-resources',
+    });
+    const display = getCultivatorDisplayAttributes(draft.cultivator);
+
+    expect(draft.cultivator.condition?.resources.hp.current).toBe(display.maxHp);
+    expect(draft.cultivator.condition?.resources.mp.current).toBe(display.maxMp);
     expect(sumAttributes(draft.cultivator.attributes)).toBe(
       draft.balance.totalAttributeBudget,
     );

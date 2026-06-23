@@ -1,5 +1,6 @@
 import { ENEMY_RACE_VALUES, REALM_STAGE_CAPS } from '@shared/types/constants';
 import type { Attributes } from '@shared/types/cultivator';
+import { EnemyBodyCultivationPlanner } from './EnemyBodyCultivationPlanner';
 import { EnemyCraftExecutor } from './EnemyCraftExecutor';
 import { EnemyCultivatorAssembler } from './EnemyCultivatorAssembler';
 import { EnemyLoadoutPlanner } from './EnemyLoadoutPlanner';
@@ -31,6 +32,7 @@ export class EnemyGenerationOrchestrator {
     private readonly craftExecutor = new EnemyCraftExecutor(),
     private readonly cultivatorAssembler = new EnemyCultivatorAssembler(),
     private readonly copyProvider: EnemyCopyProvider,
+    private readonly bodyCultivationPlanner = new EnemyBodyCultivationPlanner(),
   ) {}
 
   buildDraft(input: EnemyGenerationInput): EnemyGenerationDraft {
@@ -38,6 +40,10 @@ export class EnemyGenerationOrchestrator {
     const profile = ENEMY_RACE_PROFILES[normalized.race];
     const plan = this.loadoutPlanner.plan(normalized);
     const stats = this.buildStatBudget(normalized, profile.attributeWeights);
+    const bodyCultivation = this.bodyCultivationPlanner.plan({
+      input: normalized,
+      variantKey: plan.variantKey,
+    });
     const craftedLoadout = this.craftExecutor.execute({
       input: normalized,
       plan,
@@ -95,6 +101,7 @@ export class EnemyGenerationOrchestrator {
       background: fallbackBackground,
       description: fallbackDescription,
       loadout: craftedLoadout,
+      bodyCultivation: bodyCultivation.state,
     });
 
     return {
@@ -113,6 +120,7 @@ export class EnemyGenerationOrchestrator {
           ? { accentPersonaId: plan.accentPersona.id }
           : {}),
         recoveryTierUsed: craftedLoadout.recoveryTierUsed,
+        bodyCultivation: bodyCultivation.summary,
       },
       copyFacts: {
         race: normalized.race,
@@ -120,6 +128,7 @@ export class EnemyGenerationOrchestrator {
         realmStage: normalized.realmStage,
         difficulty: normalized.difficulty,
         difficultyFactor: stats.difficultyFactor,
+        bodyCultivation: bodyCultivation.summary,
         primaryElement: craftedLoadout.primaryElement,
         secondaryElement: craftedLoadout.secondaryElement,
         profileTags: profile.narrativeTags,

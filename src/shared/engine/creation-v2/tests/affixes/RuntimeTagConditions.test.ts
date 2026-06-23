@@ -18,7 +18,6 @@ describe('creation-v2 affix match contract', () => {
         CreationTags.MATERIAL.SEMANTIC_POISON,
         CreationTags.MATERIAL.SEMANTIC_THUNDER,
       ],
-      ['skill_variant'],
       'skill',
     );
 
@@ -45,7 +44,8 @@ describe('creation-v2 affix match contract', () => {
     const rolledAffix: RolledAffix = {
       id: 'test-control-mastery',
       name: '控制共鸣',
-      category: 'skill_variant',
+      slot: 'modifier',
+      rarity: 'uncommon',
       energyCost: 8,
       rollScore: 1,
       rollEfficiency: 1,
@@ -79,7 +79,8 @@ describe('creation-v2 affix match contract', () => {
     const rolledAffix: RolledAffix = {
       id: 'test-debuff-stack',
       name: 'debuff协同',
-      category: 'skill_rare',
+      slot: 'modifier',
+      rarity: 'rare',
       energyCost: 10,
       rollScore: 1,
       rollEfficiency: 1,
@@ -107,6 +108,65 @@ describe('creation-v2 affix match contract', () => {
         params: { value: 2 },
       },
     ]);
+  });
+
+  it('递归 effect 模板应解析为 battle-v5 EffectConfig', () => {
+    const rolledAffix: RolledAffix = {
+      id: 'test-sequence',
+      name: '序列效果',
+      slot: 'modifier',
+      rarity: 'rare',
+      energyCost: 10,
+      rollScore: 1,
+      rollEfficiency: 1,
+      finalMultiplier: 1,
+      isPerfect: false,
+      weight: 10,
+      match: {},
+      tags: [],
+      effectTemplate: {
+        type: 'effect_sequence',
+        params: {
+          effects: [
+            {
+              type: 'delayed_effect',
+              params: {
+                id: 'test_delay',
+                name: '测试延迟',
+                delayTurns: 2,
+                effects: [
+                  {
+                    type: 'damage',
+                    params: {
+                      value: { base: 10 },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    };
+    const result = translator.translate(rolledAffix, '玄品');
+
+    expect(result.type).toBe('effect_sequence');
+    if (result.type !== 'effect_sequence') {
+      throw new Error('expected effect sequence');
+    }
+    expect(result.params.effects[0].type).toBe('delayed_effect');
+  });
+
+  it('新机制词条应注册到默认词条库', () => {
+    expect(
+      DEFAULT_AFFIX_REGISTRY.queryById('skill-rare-frost-burial'),
+    ).toBeDefined();
+    expect(
+      DEFAULT_AFFIX_REGISTRY.queryById('gongfa-secret-myriad-unity'),
+    ).toBeDefined();
+    expect(
+      DEFAULT_AFFIX_REGISTRY.queryById('artifact-treasure-taixu-robe'),
+    ).toBeDefined();
   });
 
   it('默认 skill 词条不应再包含 listenerSpec 或被动式 effect 类型', () => {

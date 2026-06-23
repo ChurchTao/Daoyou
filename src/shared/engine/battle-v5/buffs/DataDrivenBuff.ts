@@ -117,6 +117,8 @@ export class DataDrivenBuff extends Buff {
     const cloned = new DataDrivenBuff(this._config);
     cloned.tags = this.tags.clone();
     cloned.setSource(this._source);
+    cloned.setDuration(this.getDuration());
+    cloned.setLayer(this.getLayer());
 
     // 复制已实例化的效果
     for (const listener of this._instantiatedListeners) {

@@ -62,8 +62,8 @@ export const REALM_DAILY_EXP_BUDGET = {
  *            × REALM_DAILY_EXP_BUDGET[realm]
  *            × STAGE_EXP_WEIGHT[stage]
  *
- * 当前突破成功会将 cultivation_exp 重置为 0，因此 EXP_CAP_TABLE 是
- * “单阶段经验成本”，不是累计经验。
+ * 当前突破成功会扣除当前阶段 cap，并把溢出的 cultivation_exp 带入下一阶段，
+ * 因此 EXP_CAP_TABLE 是“单阶段经验成本”，不是累计经验。
  */
 export const STAGE_EXP_WEIGHT = {
   初期: 0.15,

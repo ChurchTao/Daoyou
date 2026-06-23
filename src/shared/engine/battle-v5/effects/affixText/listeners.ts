@@ -16,6 +16,11 @@ const EVENT_LABEL: Record<string, string> = {
   ActionPreEvent: '行动前',
   SkillCastEvent: '施法时',
   BuffAddEvent: '获得状态时',
+  BuffAppliedEvent: '状态生效时',
+  DodgeEvent: '闪避时',
+  ControlResistEvent: '抵抗控制时',
+  ShieldBreakEvent: '护盾破裂时',
+  HealEvent: '治疗时',
   DeathPreventEvent: '免死触发时',
 };
 

@@ -31,7 +31,6 @@ import {
   getRefineSpiritStoneMultiplier,
   scaleFateAdjustedValue,
 } from '@shared/lib/fates';
-import { evaluateBodyCultivationCreationPrerequisites } from '@shared/lib/bodyCultivation/creationPrerequisites';
 import {
   getCreationProductTypeLabel,
   getGameConceptLabel,
@@ -52,7 +51,6 @@ import type {
   RealmStage,
   RealmType,
 } from '@shared/types/constants';
-import type { CultivatorCondition } from '@shared/types/condition';
 import type { Material, PreHeavenFate } from '@shared/types/cultivator';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { getCultivatorByIdUnsafe } from './cultivatorService';
@@ -101,7 +99,8 @@ export interface CreationV2Result {
   affixes: Array<{
     id: string;
     name: string;
-    category: string;
+    slot: string;
+    rarity: string;
     isPerfect: boolean;
     rollEfficiency: number;
   }>;
@@ -598,19 +597,6 @@ export async function processCreation(
       throw new CreationServiceError(failure ?? '造物失败，请检查材料组合');
     }
 
-    const bodyCultivationCondition =
-      fullCultivator?.cultivator.condition ??
-      (cultivator.condition as CultivatorCondition | undefined);
-    const bodyPrerequisites = evaluateBodyCultivationCreationPrerequisites(
-      bodyCultivationCondition,
-      outcome.blueprint.productModel,
-    );
-    if (!bodyPrerequisites.allowed) {
-      throw new CreationServiceError(
-        bodyPrerequisites.reason ?? '肉身神通承载不足',
-      );
-    }
-
     // 6. 映射为 DB 行
     const row = toRow(outcome, cultivatorId);
 
@@ -861,7 +847,8 @@ function extractAffixSummary(
   affixes: Array<{
     id: string;
     name: string;
-    category: string;
+    slot: string;
+    rarity: string;
     isPerfect: boolean;
     rollEfficiency: number;
   }>,
@@ -869,7 +856,8 @@ function extractAffixSummary(
   return affixes.map((affix) => ({
     id: affix.id,
     name: affix.name,
-    category: affix.category,
+    slot: affix.slot,
+    rarity: affix.rarity,
     isPerfect: affix.isPerfect,
     rollEfficiency: affix.rollEfficiency,
   }));

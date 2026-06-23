@@ -19,8 +19,9 @@ export { DefaultMaterialAnalyzer } from './analysis/DefaultMaterialAnalyzer';
 export { MaterialTagNormalizer } from './analysis/MaterialTagNormalizer';
 export { DefaultEnergyBudgeter } from './budgeting/DefaultEnergyBudgeter';
 export {
-	resolveAffixSelectionConstraints,
+	resolveAffixSlotLayout,
 } from './config/AffixSelectionConstraints';
+export type { AffixSlotLayoutStep } from './config/AffixSelectionConstraints';
 export { CreationEventBus } from './core/EventBus';
 export { CreationTagContainer, CreationTags } from '@shared/engine/shared/tag-domain';
 export { CreationPhaseHandlerRegistry } from './handlers/CreationPhaseHandlers';
@@ -44,7 +45,6 @@ export type {
 	AffixEligibilityFacts,
 	AffixPoolDecision,
 	AffixSelectionDecision,
-	AffixSelectionConstraints,
 	AffixSelectionFacts,
 	CompositionDecision,
 	CompositionEnergySummary,

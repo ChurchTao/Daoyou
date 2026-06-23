@@ -3,23 +3,21 @@ import { AffixSelectionDecision, AffixSelectionFacts } from '../contracts';
 import { RuleSet } from '../core';
 import { AbilityTagCompatibilityRules } from './AbilityTagCompatibilityRules';
 import { BudgetExhaustionRules } from './BudgetExhaustionRules';
-import { CategoryQuotaRules } from './CategoryQuotaRules';
 import { ExclusiveGroupRules } from './ExclusiveGroupRules';
 import { FallbackAffixRules } from './FallbackAffixRules';
 import { GongfaSchoolPlanRules } from './GongfaSchoolPlanRules';
-import { HighTierBucketRules } from './HighTierBucketRules';
+import { SlotCompatibilityRules } from './SlotCompatibilityRules';
 
 /*
  * AffixSelectionRuleSet: 词缀选择阶段的规则集合门面。
- * 包含 ExclusiveGroupRules / BudgetExhaustionRules / FallbackAffixRules，负责根据 facts 输出可供抽签的 candidatePool 及审计信息。
+ * 负责根据当前 slot facts 输出可供抽签的 candidatePool 及审计信息。
  */
 export class AffixSelectionRuleSet {
   private readonly ruleSet = new RuleSet<AffixSelectionFacts, AffixSelectionDecision>(
     [
+      new SlotCompatibilityRules(),
       new ExclusiveGroupRules(),
       new AbilityTagCompatibilityRules(),
-      new CategoryQuotaRules(),
-      new HighTierBucketRules(),
       new BudgetExhaustionRules(),
       new GongfaSchoolPlanRules(),
       new FallbackAffixRules(),

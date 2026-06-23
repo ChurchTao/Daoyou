@@ -93,7 +93,8 @@ function hydrateRolledAffix(
     id: def.id,
     name: def.displayName,
     description: def.displayDescription,
-    category: def.category,
+    slot: def.slot,
+    rarity: def.rarity,
     match: def.match,
     tags: flattenAffixMatcherTags(def.match),
     grantedAbilityTags: def.grantedAbilityTags,
@@ -263,7 +264,7 @@ function reProjectSkill(
   });
 
   const qualityOrder = QUALITY_ORDER[projectionQuality] ?? 0;
-  const coreAffix = affixes.find((affix) => affix.category === 'skill_core');
+  const coreAffix = affixes.find((affix) => affix.slot === 'core');
   const coreDef = coreAffix ? registry.queryById(coreAffix.id) : undefined;
   const coreType = coreDef?.effectTemplate.type ?? 'damage';
   const fallbackTargetPolicy = {

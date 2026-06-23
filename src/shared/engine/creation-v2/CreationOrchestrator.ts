@@ -712,9 +712,7 @@ export class CreationOrchestrator {
     const needsCore = ['skill', 'gongfa', 'artifact'].includes(
       session.state.input.productType,
     );
-    const hasCore = selection.affixes.some((a) =>
-      ['skill_core', 'gongfa_foundation', 'artifact_core'].includes(a.category),
-    );
+    const hasCore = selection.affixes.some((affix) => affix.slot === 'core');
     if (needsCore && !hasCore) {
       const message =
         selection.exhaustionReason === 'budget_exhausted'
@@ -1068,7 +1066,8 @@ export class CreationOrchestrator {
     return affixes.map((affix) => ({
       id: affix.id,
       name: affix.name,
-      category: affix.category,
+      slot: affix.slot,
+      rarity: affix.rarity,
       energyCost: affix.energyCost,
       rollScore: affix.rollScore,
       rollEfficiency: affix.rollEfficiency,

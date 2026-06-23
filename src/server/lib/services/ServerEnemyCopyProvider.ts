@@ -54,6 +54,7 @@ export function buildEnemyNarrativeFacts(draft: EnemyGenerationDraft) {
     realmStage: draft.copyFacts.realmStage,
     difficulty: draft.copyFacts.difficulty,
     difficultyFactor: draft.copyFacts.difficultyFactor,
+    bodyCultivation: draft.copyFacts.bodyCultivation,
     isBoss: draft.input.isBoss,
     primaryElement: draft.copyFacts.primaryElement,
     secondaryElement: draft.copyFacts.secondaryElement,

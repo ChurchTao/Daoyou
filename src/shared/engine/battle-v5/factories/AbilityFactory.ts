@@ -10,7 +10,7 @@ import {
   ListenerConfig,
 } from '../core/configs';
 import { buildListenerRuntimeConfig } from '../core/listenerExecution';
-import { AbilityId, AbilityType, AttributeType, BuffType } from '../core/types';
+import { AbilityId, AbilityType, AttributeType, BuffType, DamageType } from '../core/types';
 import { GameplayEffect } from '../effects/Effect';
 import { EffectRegistry } from './EffectRegistry';
 
@@ -142,15 +142,17 @@ export class AbilityFactory {
       );
     }
 
-    if (capabilities.damageChannel === 'magic') {
+    if (capabilities.damageChannels.has('magic')) {
       this.assertTag(tagSet, config.slug, GameplayTags.ABILITY.CHANNEL.MAGIC);
-    } else if (capabilities.damageChannel === 'physical') {
+    }
+    if (capabilities.damageChannels.has('physical')) {
       this.assertTag(
         tagSet,
         config.slug,
         GameplayTags.ABILITY.CHANNEL.PHYSICAL,
       );
-    } else if (capabilities.damageChannel === 'true') {
+    }
+    if (capabilities.damageChannels.has('true')) {
       this.assertTag(
         tagSet,
         config.slug,
@@ -189,7 +191,7 @@ export class AbilityFactory {
     hasDamage: boolean;
     hasHeal: boolean;
     hasControl: boolean;
-    damageChannel?: 'magic' | 'physical' | 'true';
+    damageChannels: Set<'magic' | 'physical' | 'true'>;
   } {
     const queue: EffectConfig[] = [
       ...(config.effects ?? []),
@@ -201,9 +203,23 @@ export class AbilityFactory {
     let hasControl = false;
 
     for (const effect of queue) {
+      if ('effects' in effect.params && Array.isArray(effect.params.effects)) {
+        queue.push(...effect.params.effects);
+      }
+      if (effect.type === 'apply_buff') {
+        queue.push(
+          ...(effect.params.buffConfig.listeners?.flatMap((listener) => listener.effects) ?? []),
+        );
+      }
+
       switch (effect.type) {
         case 'damage': {
           hasDamage = true;
+
+          if (effect.params.damageType === DamageType.TRUE) {
+            damageChannels.add('true');
+            break;
+          }
 
           const attribute = effect.params.value.attribute;
           if (
@@ -225,6 +241,27 @@ export class AbilityFactory {
         }
 
         case 'tag_trigger':
+          if (effect.params.effects && effect.params.effects.length > 0) {
+            queue.push(...effect.params.effects);
+          } else {
+            hasDamage = true;
+            damageChannels.add('magic');
+          }
+          break;
+
+        case 'damage_memory':
+          if (effect.type === 'damage_memory' && effect.params.mode !== 'release') {
+            break;
+          }
+          if (effect.params.releaseAs === 'heal') {
+            hasHeal = true;
+          } else if (effect.params.releaseAs !== 'shield') {
+            hasDamage = true;
+            damageChannels.add('true');
+          }
+          break;
+
+        case 'hp_sacrifice_damage':
           hasDamage = true;
           damageChannels.add('magic');
           break;
@@ -254,7 +291,7 @@ export class AbilityFactory {
       hasDamage,
       hasHeal,
       hasControl,
-      damageChannel: damageChannels.values().next().value,
+      damageChannels,
     };
   }
 
@@ -268,10 +305,31 @@ export class AbilityFactory {
     ];
 
     for (const effect of effects) {
+      if ('effects' in effect.params && Array.isArray(effect.params.effects)) {
+        effects.push(...effect.params.effects);
+      }
+      if (effect.type === 'apply_buff') {
+        effects.push(
+          ...(effect.params.buffConfig.listeners?.flatMap((listener) => listener.effects) ?? []),
+        );
+      }
+
       switch (effect.type) {
         case 'damage':
         case 'tag_trigger':
+        case 'hp_sacrifice_damage':
           intents.add('damage');
+          break;
+        case 'damage_memory':
+          if (effect.params.mode === 'release') {
+            if (effect.params.releaseAs === 'heal') {
+              intents.add('heal_hp');
+            } else if (effect.params.releaseAs === 'shield') {
+              intents.add('defensive');
+            } else {
+              intents.add('damage');
+            }
+          }
           break;
         case 'heal':
           intents.add(effect.params.target === 'mp' ? 'restore_mp' : 'heal_hp');
@@ -279,7 +337,16 @@ export class AbilityFactory {
         case 'shield':
         case 'magic_shield':
         case 'death_prevent':
+        case 'damage_defer':
           intents.add('defensive');
+          break;
+        case 'ability_lock':
+          intents.add('control');
+          break;
+        case 'ability_transform':
+        case 'next_hit_rule':
+        case 'buff_copy':
+          intents.add('buff');
           break;
         case 'apply_buff':
           intents.add(

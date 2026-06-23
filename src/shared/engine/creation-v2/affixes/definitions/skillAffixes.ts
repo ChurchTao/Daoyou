@@ -18,6 +18,7 @@ import {
   ModifierType,
   StackRule,
 } from '../../contracts/battle';
+import { DamageType } from '@shared/engine/battle-v5/core/types';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import type { AffixDefinition } from '../types';
 import { qualityScaledCoefficient } from './utils';
@@ -38,7 +39,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-damage',
     displayName: '基础伤害',
     displayDescription: '施放时造成一次基础法术伤害',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'common',
     match: {
       any: [
@@ -73,7 +74,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-damage-fire',
     displayName: '火系伤害',
     displayDescription: '施放时造成一次火系法术伤害',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['火']],
@@ -107,7 +108,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-damage-ice',
     displayName: '冰系伤害',
     displayDescription: '施放时造成一次冰系法术伤害',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['冰']],
@@ -141,7 +142,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-damage-thunder',
     displayName: '雷系伤害',
     displayDescription: '施放时造成一次雷系法术伤害',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['雷']],
@@ -175,7 +176,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-damage-wind',
     displayName: '风系伤害',
     displayDescription: '施放时造成一次风系物理伤害',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['风']],
@@ -209,7 +210,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-damage-metal',
     displayName: '金系伤害',
     displayDescription: '施放时造成一次金系物理伤害',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['金']],
@@ -243,7 +244,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-damage-water',
     displayName: '水系伤害',
     displayDescription: '施放时造成一次水系法术伤害',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['水']],
@@ -277,7 +278,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-damage-wood',
     displayName: '木系伤害',
     displayDescription: '施放时造成一次木系法术伤害',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['木']],
@@ -311,7 +312,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-damage-earth',
     displayName: '土系伤害',
     displayDescription: '施放时造成一次土系物理伤害',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['土']],
@@ -347,7 +348,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-heal',
     displayName: '基础治疗',
     displayDescription: '施放时恢复目标气血',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
@@ -380,7 +381,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-guard-aura',
     displayName: '罡气',
     displayDescription: '施放时为自身生成护盾',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['土']],
@@ -413,7 +414,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-wind-haste',
     displayName: '疾行',
     displayDescription: '施放时提升自身速度',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['风']],
@@ -457,7 +458,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-fire-channeling',
     displayName: '焰息',
     displayDescription: '施放时提升自身法术攻击',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'uncommon',
     match: {
       any: [
@@ -500,11 +501,12 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-thunder-focus',
     displayName: '雷印',
     displayDescription: '施放时提升自身控制命中',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_THUNDER],
       any: [
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
         CreationTags.MATERIAL.SEMANTIC_SPIRIT,
         CreationTags.MATERIAL.SEMANTIC_ILLUSION,
       ],
@@ -544,11 +546,12 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-ice-frost-guard',
     displayName: '冰魄',
     displayDescription: '施放时提升自身法术防御与控制抗性',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_FREEZE],
       any: [
+        CreationTags.MATERIAL.SEMANTIC_FREEZE,
         CreationTags.MATERIAL.SEMANTIC_SPIRIT,
         CreationTags.MATERIAL.SEMANTIC_GUARD,
       ],
@@ -593,7 +596,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-water-tide-surge',
     displayName: '潮生',
     displayDescription: '施放时提升自身灵力与法术防御',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['水']],
@@ -643,7 +646,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-metal-honed-edge',
     displayName: '砺锋',
     displayDescription: '施放时提升自身攻击与护甲穿透',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['金']],
@@ -692,7 +695,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-wood-regrowth',
     displayName: '回荣',
     displayDescription: '施放时提升自身体魄与灵力',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['木']],
@@ -742,7 +745,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-metal-edge',
     displayName: '金芒',
     displayDescription: '施放时提升自身护甲穿透',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'rare',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['金']],
@@ -786,7 +789,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-wood-evergreen',
     displayName: '长青',
     displayDescription: '施放时提升自身体魄与治疗加成',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'rare',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['木']],
@@ -836,7 +839,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-fire-solarflare',
     displayName: '焚阳',
     displayDescription: '施放时提升自身法术攻击与暴击伤害',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'legendary',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['火'], CreationTags.MATERIAL.TYPE_SPECIAL],
@@ -885,7 +888,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-wind-voidstep',
     displayName: '踏虚',
     displayDescription: '施放时提升自身速度与闪避',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'legendary',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['风'], CreationTags.MATERIAL.TYPE_SPECIAL],
@@ -935,7 +938,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-earth-immovable',
     displayName: '镇岳',
     displayDescription: '施放时提升自身防御与控制抗性',
-    category: 'skill_core',
+    slot: 'core',
     rarity: 'legendary',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['土'], CreationTags.MATERIAL.TYPE_SPECIAL],
@@ -989,7 +992,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-variant-control-stun',
     displayName: '眩晕',
     displayDescription: '命中时有概率使目标眩晕，短时间无法行动',
-    category: 'skill_variant',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       any: [
@@ -1030,7 +1033,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-variant-burn-dot',
     displayName: '灼烧',
     displayDescription: '命中时有概率附加灼烧，持续造成伤害',
-    category: 'skill_variant',
+    slot: 'modifier',
     rarity: 'common',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['火']],
@@ -1087,7 +1090,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-variant-freeze-slow',
     displayName: '寒霜',
     displayDescription: '命中时有概率附加冰缓，降低目标速度',
-    category: 'skill_variant',
+    slot: 'modifier',
     rarity: 'common',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['冰']],
@@ -1129,7 +1132,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-variant-poison-dot',
     displayName: '蚀骨',
     displayDescription: '命中时有概率附加中毒，持续造成伤害',
-    category: 'skill_variant',
+    slot: 'modifier',
     rarity: 'common',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['木']],
@@ -1189,7 +1192,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-variant-bleed-dot',
     displayName: '裂创',
     displayDescription: '命中时有概率附加流血，持续造成伤害',
-    category: 'skill_variant',
+    slot: 'modifier',
     rarity: 'common',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['金']],
@@ -1249,7 +1252,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-variant-thunder-shock',
     displayName: '感电',
     displayDescription: '命中时有概率附加感电，降低目标控制抗性',
-    category: 'skill_variant',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['雷']],
@@ -1299,7 +1302,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-variant-def-break',
     displayName: '碎甲',
     displayDescription: '命中时有概率降低目标防御',
-    category: 'skill_variant',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
@@ -1344,7 +1347,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-variant-dispel',
     displayName: '破法',
     displayDescription: '驱散目标 1 层增益状态',
-    category: 'skill_variant',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
@@ -1372,7 +1375,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-variant-heal-cleanse',
     displayName: '清心',
     displayDescription: '驱散自身最多 3 层负面状态',
-    category: 'skill_variant',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
@@ -1400,7 +1403,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-variant-mana-spring',
     displayName: '聚灵',
     displayDescription: '施放时回复自身灵力',
-    category: 'skill_variant',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
@@ -1432,7 +1435,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-variant-water-mana-burn',
     displayName: '蚀灵',
     displayDescription: '施放时燃烧目标灵力',
-    category: 'skill_variant',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['水']],
@@ -1466,7 +1469,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-ignite',
     displayName: '引燃',
     displayDescription: '命中灼烧目标时，额外引爆一次灼烧伤害',
-    category: 'skill_rare',
+    slot: 'modifier',
     rarity: 'legendary',
     match: {
       all: [
@@ -1502,7 +1505,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-thunder-prison',
     displayName: '雷牢',
     displayDescription: '命中时有概率使目标陷入强力控制，短时间无法行动',
-    category: 'skill_rare',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['雷'], CreationTags.MATERIAL.TYPE_SPECIAL],
@@ -1544,7 +1547,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-tide-collapse',
     displayName: '潮崩',
     displayDescription: '驱散目标最多 2 层增益状态',
-    category: 'skill_rare',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['水'], CreationTags.MATERIAL.TYPE_SPECIAL],
@@ -1573,7 +1576,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-cd-curse',
     displayName: '逆脉',
     displayDescription: '命中时有概率延长目标技能冷却',
-    category: 'skill_rare',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       all: [
@@ -1607,7 +1610,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-soul-rend',
     displayName: '魂伤',
     displayDescription: '施放时造成一次真实伤害',
-    category: 'skill_rare',
+    slot: 'modifier',
     rarity: 'legendary',
     match: {
       all: [
@@ -1646,7 +1649,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-ice-mirror-heart',
     displayName: '镜心',
     displayDescription: '施放时提升自身法术防御与暴击抵抗',
-    category: 'skill_rare',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['冰'], CreationTags.MATERIAL.TYPE_SPECIAL],
@@ -1696,7 +1699,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-metal-warform',
     displayName: '战锋',
     displayDescription: '施放时提升自身攻击与暴击率',
-    category: 'skill_rare',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['金'], CreationTags.MATERIAL.TYPE_SPECIAL],
@@ -1746,7 +1749,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-water-purifying-tide',
     displayName: '净潮',
     displayDescription: '驱散自身最多 4 层负面状态',
-    category: 'skill_rare',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['水'], CreationTags.MATERIAL.TYPE_SPECIAL],
@@ -1776,7 +1779,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-wood-spring-return',
     displayName: '回春',
     displayDescription: '施放时大量回复自身气血',
-    category: 'skill_rare',
+    slot: 'modifier',
     rarity: 'legendary',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['木'], CreationTags.MATERIAL.TYPE_SPECIAL],
@@ -1810,7 +1813,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-earth-rampart',
     displayName: '镇垒',
     displayDescription: '施放时为自身生成高额护盾',
-    category: 'skill_rare',
+    slot: 'modifier',
     rarity: 'legendary',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['土']],
@@ -1834,6 +1837,401 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           attribute: AttributeType.SPIRIT,
           coefficient: qualityScaledCoefficient(1.5),
         },
+      },
+    },
+  },
+  {
+    id: 'skill-rare-life-for-fire',
+    displayName: '劫火借命',
+    displayDescription: '造成火伤；低血时额外燃烧自身气血追加伤害',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['火']],
+      any: [CreationTags.MATERIAL.SEMANTIC_FLAME, CreationTags.MATERIAL.SEMANTIC_BLOOD],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
+    weight: 10,
+    energyCost: 50,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+      GameplayTags.ABILITY.ELEMENT.FIRE,
+    ],
+    effectTemplate: {
+      type: 'effect_sequence',
+      params: {
+        effects: [
+          {
+            type: 'damage',
+            params: {
+              value: {
+                base: { base: 90, scale: 'quality', coefficient: 16 },
+                attribute: AttributeType.MAGIC_ATK,
+                coefficient: qualityScaledCoefficient(1.15),
+              },
+            },
+          },
+          {
+            type: 'hp_sacrifice_damage',
+            conditions: [{ type: 'hp_below', params: { scope: 'caster', value: 0.4 } }],
+            params: {
+              hpRatio: 0.12,
+              damagePerHp: { base: 1.2, scale: 'quality', coefficient: 0.18 },
+              minHpFloor: 1,
+            },
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: 'skill-rare-frost-burial',
+    displayName: '霜葬',
+    displayDescription: '消耗冻结或寒冷，造成碎冰真伤并延后目标行动',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['冰']],
+      any: [CreationTags.MATERIAL.SEMANTIC_FREEZE, CreationTags.MATERIAL.SEMANTIC_BURST],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
+    weight: 10,
+    energyCost: 48,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.TRUE,
+      GameplayTags.ABILITY.ELEMENT.ICE,
+    ],
+    effectTemplate: {
+      type: 'consume_status_trigger',
+      params: {
+        match: { tags: [GameplayTags.BUFF.ELEMENT.ICE, GameplayTags.BUFF.DOT.FREEZE] },
+        consume: 'all',
+        effects: [
+          {
+            type: 'damage',
+            params: {
+              value: {
+                base: { base: 50, scale: 'quality', coefficient: 10 },
+                attribute: AttributeType.MAGIC_ATK,
+                coefficient: qualityScaledCoefficient(0.65),
+              },
+              damageType: DamageType.TRUE,
+            },
+          },
+          { type: 'cooldown_modify', params: { cdModifyValue: 1, maxCount: 1 } },
+        ],
+      },
+    },
+  },
+  {
+    id: 'skill-variant-thunder-pact',
+    displayName: '雷契',
+    displayDescription: '叠加雷印，雷印达到三层时爆发并增加冷却',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['雷']],
+      any: [CreationTags.MATERIAL.SEMANTIC_THUNDER, CreationTags.MATERIAL.SEMANTIC_FORMATION],
+    },
+    weight: 18,
+    energyCost: 24,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+      GameplayTags.ABILITY.ELEMENT.THUNDER,
+    ],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'thunder_mark',
+          name: '雷印',
+          type: BuffType.DEBUFF,
+          duration: 3,
+          stackRule: StackRule.STACK_LAYER,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.ELEMENT.THUNDER],
+          listeners: [
+            {
+              eventType: GameplayTags.EVENT.ACTION_PRE,
+              scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
+              priority: CREATION_LISTENER_PRIORITIES.actionPreBuff,
+              effects: [
+                {
+                  type: 'consume_status_trigger',
+                  conditions: [
+                    {
+                      type: 'buff_layer_at_least',
+                      params: { id: 'thunder_mark', value: 3 },
+                    },
+                  ],
+                  params: {
+                    match: { id: 'thunder_mark' },
+                    consume: 3,
+                    effects: [
+                      {
+                        type: 'damage',
+                        params: {
+                          value: { base: 60, attribute: AttributeType.MAGIC_ATK, coefficient: 0.6 },
+                        },
+                      },
+                      { type: 'cooldown_modify', params: { cdModifyValue: 1, maxCount: 1 } },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    id: 'skill-rare-poison-gu-return',
+    displayName: '毒蛊归巢',
+    displayDescription: '消耗中毒层数按层爆发，击杀时尝试扩散毒层',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_POISON, CreationTags.MATERIAL.TYPE_HERB],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
+    weight: 10,
+    energyCost: 46,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
+    effectTemplate: {
+      type: 'buff_layer_modify',
+      params: {
+        match: { tags: [GameplayTags.BUFF.DOT.POISON] },
+        operation: 'clear',
+        scaleEffectsByLayer: true,
+        effects: [
+          {
+            type: 'damage',
+            params: {
+              value: { base: 18, attribute: AttributeType.MAGIC_ATK, coefficient: 0.18 },
+            },
+          },
+          { type: 'status_spread', params: { match: { tags: [GameplayTags.BUFF.DOT.POISON] } } },
+        ],
+      },
+    },
+  },
+  {
+    id: 'skill-rare-blood-ink-talisman',
+    displayName: '血墨符',
+    displayDescription: '给目标下延迟符，数回合后爆发真伤',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_BLOOD, CreationTags.MATERIAL.SEMANTIC_TIME],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
+    weight: 8,
+    energyCost: 44,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.TRUE,
+    ],
+    effectTemplate: {
+      type: 'delayed_effect',
+      params: {
+        id: 'blood_ink_talisman',
+        name: '血墨符',
+        delayTurns: 2,
+        tags: [GameplayTags.BUFF.TYPE.DEBUFF],
+        record: {
+          key: 'blood_ink_damage',
+          event: 'damage_taken',
+        },
+        effects: [
+          {
+            type: 'damage_memory',
+            params: {
+              key: 'blood_ink_damage',
+              mode: 'release',
+              ratio: { base: 0.28, scale: 'quality', coefficient: 0.06 },
+              releaseAs: 'damage',
+              target: 'target',
+            },
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: 'skill-variant-wind-exchange-step',
+    displayName: '借风换位',
+    displayDescription: '伤害较低并获得身法；若触发则下一次命中必暴',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['风']],
+      any: [CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_SPACE],
+    },
+    weight: 18,
+    energyCost: 24,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+      GameplayTags.ABILITY.ELEMENT.WIND,
+    ],
+    effectTemplate: {
+      type: 'effect_sequence',
+      params: {
+        effects: [
+          {
+            type: 'damage',
+            params: {
+              value: { base: 45, attribute: AttributeType.ATK, coefficient: 0.55 },
+            },
+          },
+          {
+            type: 'apply_buff',
+            params: {
+              target: 'caster',
+              buffConfig: {
+                id: 'wind_exchange_step',
+                name: '借风',
+                type: BuffType.BUFF,
+                duration: 2,
+                stackRule: StackRule.REFRESH_DURATION,
+                tags: [GameplayTags.BUFF.TYPE.BUFF],
+                modifiers: [
+                  {
+                    attrType: AttributeType.SPEED,
+                    type: ModifierType.ADD,
+                    value: 0.18,
+                  },
+                  {
+                    attrType: AttributeType.EVASION_RATE,
+                    type: ModifierType.FIXED,
+                    value: 0.08,
+                  },
+                ],
+                listeners: [
+                  {
+                    eventType: 'DodgeEvent',
+                    scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+                    priority: CREATION_LISTENER_PRIORITIES.damageApply,
+                    mapping: { caster: 'owner', target: 'owner' },
+                    effects: [
+                      {
+                        type: 'next_hit_rule',
+                        params: { forceCritical: true, triggers: 1 },
+                      },
+                      {
+                        type: 'buff_layer_modify',
+                        params: {
+                          match: { id: 'wind_exchange_step' },
+                          operation: 'clear',
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: 'skill-variant-cut-meridian',
+    displayName: '截脉',
+    displayDescription: '法力占优时焚元，否则封禁目标神通',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_QI, CreationTags.MATERIAL.SEMANTIC_BLADE],
+    },
+    weight: 16,
+    energyCost: 25,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.CONTROL,
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
+    effectTemplate: {
+      type: 'effect_sequence',
+      params: {
+        effects: [
+          {
+            type: 'mana_burn',
+            conditions: [
+              {
+                type: 'resource_compare',
+                params: {
+                  resource: 'mp',
+                  left: 'target',
+                  op: 'gt',
+                  right: 'caster',
+                },
+              },
+            ],
+            params: {
+              value: { base: { base: 35, scale: 'quality', coefficient: 8 }, attribute: AttributeType.SPIRIT, coefficient: 0.25 },
+            },
+          },
+          {
+            type: 'ability_lock',
+            conditions: [
+              {
+                type: 'resource_compare',
+                params: {
+                  resource: 'mp',
+                  left: 'target',
+                  op: 'lte',
+                  right: 'caster',
+                },
+              },
+            ],
+            params: { rounds: 1, maxCount: 1 },
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: 'skill-rare-old-dream-rekindle',
+    displayName: '旧梦重燃',
+    displayDescription: '复制目标身上的一个负面状态，并延长战斗节奏',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_ILLUSION, CreationTags.MATERIAL.SEMANTIC_TIME],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
+    weight: 7,
+    energyCost: 42,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'buff_copy',
+      params: {
+        match: { tags: [GameplayTags.BUFF.TYPE.DEBUFF] },
+        target: 'target',
+        replayRemoved: true,
       },
     },
   },

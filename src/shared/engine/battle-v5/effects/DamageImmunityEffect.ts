@@ -1,7 +1,9 @@
 import { DamageImmunityParams } from '../core/configs';
 import { EventBus } from '../core/EventBus';
 import { DamageEvent, DamageImmuneEvent } from '../core/events';
+import { DamageType } from '../core/types';
 import { EffectRegistry } from '../factories/EffectRegistry';
+import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { EffectContext, GameplayEffect } from './Effect';
 
 /**
@@ -24,7 +26,15 @@ export class DamageImmunityEffect extends GameplayEffect {
     }
 
     const matchedTag = this.params.tags.find(
-      (tag) => event.ability?.tags.hasTag(tag) || event.buff?.tags.hasTag(tag),
+      (tag) =>
+        event.ability?.tags.hasTag(tag) ||
+        event.buff?.tags.hasTag(tag) ||
+        (tag === GameplayTags.ABILITY.CHANNEL.TRUE &&
+          event.damageType === DamageType.TRUE) ||
+        (tag === GameplayTags.ABILITY.CHANNEL.MAGIC &&
+          event.damageType === DamageType.MAGICAL) ||
+        (tag === GameplayTags.ABILITY.CHANNEL.PHYSICAL &&
+          event.damageType === DamageType.PHYSICAL),
     );
     if (!matchedTag) {
       return;

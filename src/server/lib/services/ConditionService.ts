@@ -283,6 +283,7 @@ function buildDefaultCondition(
       longTermPillUsesByRealm: {},
       cultivationPillUsesByRealm: {},
       longevityPillUsesByRealm: {},
+      bodyCultivationPillUses: 0,
     },
     statuses: [],
     timestamps: {
@@ -387,6 +388,10 @@ export const ConditionService = {
         longevityPillUsesByRealm:
           raw?.counters?.longevityPillUsesByRealm ??
           defaults.counters.longevityPillUsesByRealm,
+        bodyCultivationPillUses: Math.max(
+          0,
+          Math.floor(raw?.counters?.bodyCultivationPillUses ?? 0),
+        ),
       },
       statuses: pruneInactiveStatuses(
         normalizeStatuses(raw?.statuses, now),

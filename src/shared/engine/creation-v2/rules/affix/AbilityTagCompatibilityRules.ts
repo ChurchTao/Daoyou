@@ -1,6 +1,5 @@
 import {
   DAMAGE_CHANNEL_ABILITY_TAGS,
-  GameplayTags,
   type DamageChannel,
 } from '@shared/engine/shared/tag-domain';
 import { AFFIX_STOP_REASONS } from '../../types';
@@ -25,10 +24,10 @@ export class AbilityTagCompatibilityRules
       return;
     }
 
-    const selectedDamageChannel = this.getDamageChannel(
+    const selectedDamageChannels = this.getDamageChannels(
       facts.selectedAbilityTags ?? [],
     );
-    if (!selectedDamageChannel) {
+    if (selectedDamageChannels.length === 0) {
       decision.trace.push({
         ruleId: this.id,
         outcome: 'applied',
@@ -41,16 +40,16 @@ export class AbilityTagCompatibilityRules
 
     for (const candidate of decision.candidatePool) {
       const candidateTags = candidate.grantedAbilityTags ?? [];
-      if (!candidateTags.includes(GameplayTags.ABILITY.FUNCTION.DAMAGE)) {
+      const candidateDamageChannels = this.getDamageChannels(candidateTags);
+      if (candidateDamageChannels.length === 0) {
         accepted.push(candidate);
         continue;
       }
 
-      const candidateDamageChannel = this.getDamageChannel(candidateTags);
-      if (
-        candidateDamageChannel &&
-        candidateDamageChannel !== selectedDamageChannel
-      ) {
+      const conflictingDamageChannels = candidateDamageChannels.filter(
+        (channel) => !selectedDamageChannels.includes(channel),
+      );
+      if (conflictingDamageChannels.length > 0) {
         decision.rejections.push({
           affixId: candidate.id,
           amount: candidate.energyCost,
@@ -65,8 +64,9 @@ export class AbilityTagCompatibilityRules
           message: '词缀因技能伤害频道冲突被过滤',
           details: {
             affixId: candidate.id,
-            selectedDamageChannel,
-            candidateDamageChannel,
+            selectedDamageChannels,
+            candidateDamageChannels,
+            conflictingDamageChannels,
           },
         });
         continue;
@@ -82,12 +82,12 @@ export class AbilityTagCompatibilityRules
       outcome: 'applied',
       message: `ability tag 兼容性过滤完成：${accepted.length} 个词缀通过`,
       details: {
-        selectedDamageChannel,
+        selectedDamageChannels,
       },
     });
   }
 
-  private getDamageChannel(tags: string[]): DamageChannel | undefined {
-    return DAMAGE_CHANNEL_ABILITY_TAGS.find((tag) => tags.includes(tag));
+  private getDamageChannels(tags: string[]): DamageChannel[] {
+    return DAMAGE_CHANNEL_ABILITY_TAGS.filter((tag) => tags.includes(tag));
   }
 }

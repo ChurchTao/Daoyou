@@ -14,7 +14,7 @@ import {
 } from '@shared/engine/shared/tag-domain';
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import { AttributeType, ModifierType } from '../../contracts/battle';
+import { AttributeType, BuffType, ModifierType, StackRule } from '../../contracts/battle';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import { AffixDefinition } from '../types';
 import { qualityScaledCoefficient } from './utils';
@@ -29,7 +29,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-spirit',
     displayName: '灵力充沛',
     displayDescription: '功脉生息，提升灵力属性，使体内灵力更为充沛',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
@@ -55,7 +55,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-vitality',
     displayName: '强壮',
     displayDescription: '大脉强劲，提升气血属性，使肉身体魄更为强壮',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
@@ -82,7 +82,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-wisdom',
     displayName: '慧根',
     displayDescription: '心眼通明，提升悟性属性，使修行感悟更加敏锐',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_MANUAL],
@@ -108,7 +108,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-willpower',
     displayName: '固神',
     displayDescription: '识海如固，提升意志属性，使神识更为稳固',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -135,7 +135,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-speed',
     displayName: '御风',
     displayDescription: '步踏罡斗，提升速度属性，使身法运转更为迅捷',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_WIND],
@@ -161,7 +161,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-atk',
     displayName: '根骨',
     displayDescription: '淬炼筋骨，提升攻击属性，增强物理杀伤',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
@@ -188,7 +188,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-magic-atk',
     displayName: '通明',
     displayDescription: '通明达微，提升法术攻击属性，增强术法威能',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
@@ -215,7 +215,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-def',
     displayName: '厚重',
     displayDescription: '搬山卸岭，提升防御属性，使肉身更加厚重坚实',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -242,7 +242,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-magic-def',
     displayName: '凝神',
     displayDescription: '凝神聚气，提升法术防御属性，强化护体灵障',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -269,7 +269,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-max-hp',
     displayName: '养元',
     displayDescription: '血海绵长，提升最大气血，使续战根基更为深厚',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
@@ -296,7 +296,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-max-mp',
     displayName: '聚炁',
     displayDescription: '气府深藏，提升最大法力，使灵力储备更为充盈',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
@@ -323,7 +323,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-heal-amplify',
     displayName: '生息',
     displayDescription: '长青无极，提升治疗加成，使疗伤手段更为有效',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
@@ -352,7 +352,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-control-hit',
     displayName: '锁魂',
     displayDescription: '天威如网，提升控制命中，使控制类效果更易生效',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'uncommon',
     match: {
       any: [
@@ -381,7 +381,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-control-resistance',
     displayName: '镇厄',
     displayDescription: '镇压万邪，提升控制抗性，使自身更不易受控',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -410,7 +410,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-foundation-damage-increase',
     displayName: '狂歌',
     displayDescription: '道蕴不羁，直接提升造成的伤害',
-    category: 'gongfa_foundation',
+    slot: 'core',
     rarity: 'rare',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BURST],
@@ -448,7 +448,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-fire-spec',
     displayName: '火行真解',
     displayDescription: '通晓真火大道，提升火系技能造成的伤害',
-    category: 'gongfa_school',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['火']],
@@ -489,7 +489,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-ice-spec',
     displayName: '寒魄真解',
     displayDescription: '凝绝幽寒，提升冰系技能造成的伤害',
-    category: 'gongfa_school',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['冰']],
@@ -530,7 +530,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-thunder-spec',
     displayName: '惊雷真解',
     displayDescription: '参透雷霆幻变之机，提升雷系技能造成的伤害',
-    category: 'gongfa_school',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['雷']],
@@ -571,7 +571,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-wind-spec',
     displayName: '风行真解',
     displayDescription: '明谙风行之道，提升风系技能造成的伤害',
-    category: 'gongfa_school',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['风']],
@@ -612,7 +612,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-metal-spec',
     displayName: '金行真解',
     displayDescription: '金修内蕴之法，提升金系技能造成的伤害',
-    category: 'gongfa_school',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['金']],
@@ -653,7 +653,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-water-spec',
     displayName: '水行真解',
     displayDescription: '通悉若水无定之形，提升水系技能造成的伤害',
-    category: 'gongfa_school',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['水']],
@@ -694,7 +694,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-wood-spec',
     displayName: '青木真解',
     displayDescription: '融生克于一体，提升木系技能造成的伤害',
-    category: 'gongfa_school',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['木']],
@@ -735,7 +735,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-earth-spec',
     displayName: '厚土真解',
     displayDescription: '立足浩荡地脉，提升土系技能造成的伤害',
-    category: 'gongfa_school',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['土']],
@@ -778,7 +778,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-five-phase-flow',
     displayName: '五行流转',
     displayDescription: '诸行轮转不息，提升造成的伤害，但单系锋芒不及专修',
-    category: 'gongfa_school',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       any: [
@@ -819,7 +819,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-ice-thunder-resonance',
     displayName: '冰雷共鸣',
     displayDescription: '寒霆相激，雷系技能攻击受控目标时伤害提升',
-    category: 'gongfa_school',
+    slot: 'resonance',
     rarity: 'rare',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['冰'], ELEMENT_TO_MATERIAL_TAG['雷']],
@@ -866,7 +866,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-wind-fire-resonance',
     displayName: '风火相生',
     displayDescription: '风助火势，自身气血充盈时火系技能伤害提升',
-    category: 'gongfa_school',
+    slot: 'resonance',
     rarity: 'rare',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['风'], ELEMENT_TO_MATERIAL_TAG['火']],
@@ -911,7 +911,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-metal-fire-resonance',
     displayName: '金火锻锋',
     displayDescription: '烈火锻金，金系技能暴击时伤害提升',
-    category: 'gongfa_school',
+    slot: 'resonance',
     rarity: 'rare',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['金'], ELEMENT_TO_MATERIAL_TAG['火']],
@@ -956,7 +956,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-water-wood-resonance',
     displayName: '水木生息',
     displayDescription: '水养青木，自身拥有护盾时木系技能伤害提升',
-    category: 'gongfa_school',
+    slot: 'resonance',
     rarity: 'rare',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['水'], ELEMENT_TO_MATERIAL_TAG['木']],
@@ -1003,7 +1003,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-crit-mana',
     displayName: '涌潮',
     displayDescription: '灵力如潮，暴击时回复灵力',
-    category: 'gongfa_school',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BURST],
@@ -1044,7 +1044,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-low-mp-boost',
     displayName: '破釜',
     displayDescription: '燃灵破釜，自身灵力低于 30% 时造成的伤害提升',
-    category: 'gongfa_school',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BURST],
@@ -1083,7 +1083,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-first-round-boost',
     displayName: '傲气',
     displayDescription: '气脉全盛，自身气血高于 95% 时造成的伤害提升',
-    category: 'gongfa_school',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_WIND],
@@ -1122,7 +1122,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-low-hp-boost',
     displayName: '死战',
     displayDescription: '退无可退，自身气血低于 30% 时造成的伤害提升',
-    category: 'gongfa_school',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
@@ -1160,7 +1160,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-shielded-boost',
     displayName: '胆小鬼',
     displayDescription: '借护身灵罩为依托，自身拥有护盾时造成的伤害提升',
-    category: 'gongfa_school',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -1202,7 +1202,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-debuff-extend',
     displayName: '趁他病要他命',
     displayDescription: '痛打落水之狗，对带有减益状态的目标造成更高伤害',
-    category: 'gongfa_school',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_POISON],
@@ -1244,7 +1244,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-dot-amplify',
     displayName: '异常精通',
     displayDescription: '异常精通，持续伤害提升',
-    category: 'gongfa_school',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       any: [
@@ -1284,7 +1284,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-school-control-exploit',
     displayName: '摧心',
     displayDescription: '乘敌身形受制，对被定身的目标造成更高伤害',
-    category: 'gongfa_school',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       any: [
@@ -1328,7 +1328,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-secret-inferno',
     displayName: '火噬',
     displayDescription: '火系技能攻击灼烧目标时，造成的伤害进一步提升',
-    category: 'gongfa_secret',
+    slot: 'modifier',
     rarity: 'legendary',
     match: {
       all: [
@@ -1376,7 +1376,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-secret-frost-soul',
     displayName: '寒霜之息',
     displayDescription: '攻击冰缓目标时，附带目标最大气血一定比例的额外伤害',
-    category: 'gongfa_secret',
+    slot: 'modifier',
     rarity: 'legendary',
     match: {
       all: [
@@ -1422,7 +1422,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-secret-cycle',
     displayName: '回到过去',
     displayDescription: '施放技能时，有概率减少自身随机一个技能的冷却',
-    category: 'gongfa_secret',
+    slot: 'modifier',
     rarity: 'legendary',
     match: {
       all: [
@@ -1467,7 +1467,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     id: 'gongfa-secret-adaptive',
     displayName: '无相之变',
     displayDescription: '随机大幅度提升两项属性',
-    category: 'gongfa_secret',
+    slot: 'modifier',
     rarity: 'legendary',
     match: {
       all: [
@@ -1539,6 +1539,335 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         ],
         pickCount: 2,
       },
+    },
+  },
+  {
+    id: 'gongfa-secret-causality-scripture',
+    displayName: '因果经',
+    displayDescription: '受击时记录伤害，并按比例以真伤返还',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_DIVINE, CreationTags.MATERIAL.SEMANTIC_TIME],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
+    weight: 6,
+    energyCost: 50,
+    applicableTo: ['gongfa'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.TRUE,
+    ],
+    effectTemplate: {
+      type: 'damage_memory',
+      params: {
+        key: 'causality_damage',
+        mode: 'release',
+        ratio: { base: 0.16, scale: 'quality', coefficient: 0.04 },
+        releaseAs: 'reflect',
+        target: 'target',
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      mapping: { caster: 'event.caster', target: 'owner' },
+    },
+  },
+  {
+    id: 'gongfa-secret-myriad-unity',
+    displayName: '万象归一',
+    displayDescription: '连续运转后，使下一次神通转为真实伤害',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_FORMATION],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
+    weight: 6,
+    energyCost: 48,
+    applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'element_history',
+      params: {
+        key: 'myriad_unity',
+        threshold: 3,
+        effects: [
+          {
+            type: 'ability_transform',
+            params: {
+              id: 'myriad_unity_true_damage',
+              triggers: 1,
+              trueDamage: true,
+            },
+          },
+        ],
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: { caster: 'owner', target: 'owner' },
+    },
+  },
+  {
+    id: 'gongfa-school-reverse-cultivation',
+    displayName: '逆修诀',
+    displayDescription: '气血越低，造成的伤害越高',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_BLOOD, CreationTags.MATERIAL.SEMANTIC_MANUAL],
+    },
+    selectionMeta: { gongfa: { role: 'support', archetype: 'reverse-cultivation' } },
+    weight: 12,
+    energyCost: 28,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'dynamic_scalar',
+      params: {
+        mode: 'increase',
+        resource: 'hp',
+        lowerIsStronger: true,
+        value: { base: 0.12, scale: 'quality', coefficient: 0.04 },
+        cap: 0.35,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-secret-three-breath-sword',
+    displayName: '养剑三息',
+    displayDescription: '蓄势后强化下一次物理神通',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.SEMANTIC_MANUAL],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
+    weight: 6,
+    energyCost: 46,
+    applicableTo: ['gongfa'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.BUFF,
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.FUNCTION.HEAL,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
+    effectTemplate: {
+      type: 'turn_state_counter',
+      params: {
+        key: 'three_breath_sword',
+        event: 'no_damage_dealt',
+        threshold: 2,
+        effects: [
+          {
+            type: 'ability_transform',
+            params: {
+              id: 'three_breath_sword_burst',
+              triggers: 1,
+              appliesToTags: [GameplayTags.ABILITY.CHANNEL.PHYSICAL],
+              trueDamage: true,
+            },
+          },
+        ],
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.ROUND_PRE,
+      scope: GameplayTags.SCOPE.GLOBAL,
+      priority: CREATION_LISTENER_PRIORITIES.roundPre,
+      mapping: { caster: 'owner', target: 'owner' },
+    },
+  },
+  {
+    id: 'gongfa-secret-heaven-jealous-root',
+    displayName: '天妒灵根',
+    displayDescription: '暴击时叠加天妒，达到层数后爆发治疗',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_DIVINE, CreationTags.MATERIAL.SEMANTIC_THUNDER],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
+    weight: 6,
+    energyCost: 50,
+    applicableTo: ['gongfa'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.BUFF,
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.FUNCTION.HEAL,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
+    effectTemplate: {
+      type: 'apply_buff',
+      conditions: [{ type: 'is_critical', params: { scope: 'caster' } }],
+      params: {
+        buffConfig: {
+          id: 'heaven_jealousy',
+          name: '天妒',
+          type: BuffType.BUFF,
+          duration: 4,
+          stackRule: StackRule.STACK_LAYER,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          listeners: [
+            {
+              eventType: GameplayTags.EVENT.ACTION_PRE,
+              scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
+              priority: CREATION_LISTENER_PRIORITIES.actionPreBuff,
+              effects: [
+                { type: 'damage', params: { value: { base: 8, attribute: AttributeType.MAGIC_ATK, coefficient: 0.05 } } },
+                {
+                  type: 'buff_layer_modify',
+                  conditions: [{ type: 'buff_layer_at_least', params: { id: 'heaven_jealousy', value: 5 } }],
+                  params: {
+                    match: { id: 'heaven_jealousy' },
+                    operation: 'clear',
+                    effects: [{ type: 'heal', params: { value: { base: 80, attribute: AttributeType.SPIRIT, coefficient: 0.8 } } }],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      mapping: { caster: 'owner', target: 'owner' },
+    },
+  },
+  {
+    id: 'gongfa-secret-leakless-body',
+    displayName: '无漏法身',
+    displayDescription: '抵抗控制后获得无漏，下一次受击免伤',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.SEMANTIC_DIVINE],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
+    weight: 6,
+    energyCost: 48,
+    applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'leakless_body',
+          name: '无漏',
+          type: BuffType.BUFF,
+          duration: 2,
+          stackRule: StackRule.OVERRIDE,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          listeners: [
+            {
+              eventType: GameplayTags.EVENT.DAMAGE,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+              priority: CREATION_LISTENER_PRIORITIES.damageApply,
+              effects: [
+                { type: 'damage_immunity', params: { tags: [GameplayTags.ABILITY.CHANNEL.MAGIC, GameplayTags.ABILITY.CHANNEL.PHYSICAL, GameplayTags.ABILITY.CHANNEL.TRUE] } },
+                {
+                  type: 'buff_layer_modify',
+                  params: {
+                    match: { id: 'leakless_body' },
+                    operation: 'clear',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: 'ControlResistEvent',
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.buffIntercept,
+      mapping: { caster: 'owner', target: 'owner' },
+    },
+  },
+  {
+    id: 'gongfa-secret-void-step',
+    displayName: '空亡步',
+    displayDescription: '闪避后储存空亡，下一次命中必暴',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_SPACE],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
+    weight: 6,
+    energyCost: 44,
+    applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'next_hit_rule',
+      params: { forceCritical: true, triggers: 1 },
+    },
+    listenerSpec: {
+      eventType: 'DodgeEvent',
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageApply,
+      mapping: { caster: 'owner', target: 'owner' },
+    },
+  },
+  {
+    id: 'gongfa-school-borrowed-law-returned',
+    displayName: '借法还真',
+    displayDescription: '治疗后记录治疗量，之后可转化为伤害资源',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_LIFE, CreationTags.MATERIAL.SEMANTIC_MANUAL],
+    },
+    selectionMeta: { gongfa: { role: 'support', archetype: 'heal-convert' } },
+    weight: 12,
+    energyCost: 28,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'effect_sequence',
+      params: {
+        effects: [
+          {
+            type: 'damage_memory',
+            params: {
+              key: 'borrowed_heal',
+              mode: 'record',
+              event: 'heal',
+              target: 'caster',
+              maxStored: { base: 120, scale: 'quality', coefficient: 40 },
+            },
+          },
+          {
+            type: 'ability_transform',
+            params: {
+              id: 'borrowed_law_returned',
+              triggers: 1,
+              appliesToTags: [GameplayTags.ABILITY.FUNCTION.DAMAGE],
+              bonusDamageMemory: {
+                key: 'borrowed_heal',
+                ratio: { base: 0.35, scale: 'quality', coefficient: 0.08 },
+              },
+            },
+          },
+        ],
+      },
+    },
+    listenerSpec: {
+      eventType: 'HealEvent',
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
 ];

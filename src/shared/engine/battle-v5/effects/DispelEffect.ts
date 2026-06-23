@@ -34,7 +34,7 @@ export class DispelEffect extends GameplayEffect {
     // 执行移除
     for (let i = 0; i < countToRemove; i++) {
       removedBuffNames.push(matchBuffs[i].name);
-      target.buffs.removeBuff(matchBuffs[i].id);
+      target.buffs.removeBuffDispel(matchBuffs[i].id);
     }
 
     // 发布驱散事件

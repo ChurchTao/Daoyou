@@ -13,7 +13,8 @@ import {
 } from '@shared/engine/shared/tag-domain';
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import { AttributeType, ModifierType } from '../../contracts/battle';
+import { AttributeType, BuffType, ModifierType, StackRule } from '../../contracts/battle';
+import { DamageType } from '@shared/engine/battle-v5/core/types';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import { AffixDefinition } from '../types';
 
@@ -27,7 +28,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-weapon-dual-atk',
     displayName: '基础攻击',
     displayDescription: '提升攻击与法术攻击',
-    category: 'artifact_core',
+    slot: 'core',
     rarity: 'common',
     match: {},
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_SLOT_WEAPON,
@@ -58,7 +59,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-armor-dual-def',
     displayName: '基础防御',
     displayDescription: '提升防御与法术防御',
-    category: 'artifact_core',
+    slot: 'core',
     rarity: 'common',
     match: {},
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_SLOT_ARMOR,
@@ -89,7 +90,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-accessory-utility',
     displayName: '基础属性',
     displayDescription: '随机提升 2 项基础战斗属性',
-    category: 'artifact_core',
+    slot: 'core',
     rarity: 'common',
     match: {},
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_SLOT_ACCESSORY,
@@ -167,7 +168,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-atk',
     displayName: '锋锐',
     displayDescription: '提升攻击',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
@@ -193,7 +194,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-magic-atk',
     displayName: '聚灵',
     displayDescription: '提升法术攻击',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
@@ -219,7 +220,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-def',
     displayName: '铁壁',
     displayDescription: '提升防御',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -245,7 +246,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-magic-def',
     displayName: '御法',
     displayDescription: '提升法术防御',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -272,7 +273,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-crit-rate',
     displayName: '会心',
     displayDescription: '提升暴击几率',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BURST],
@@ -298,7 +299,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-crit-dmg',
     displayName: '裂星',
     displayDescription: '提升暴击伤害',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BURST],
@@ -324,7 +325,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-accuracy',
     displayName: '灵瞳',
     displayDescription: '提升命中率',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
@@ -350,7 +351,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-dodge',
     displayName: '无影',
     displayDescription: '提升闪避率',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_ILLUSION],
@@ -376,7 +377,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-control-hit',
     displayName: '镇魂',
     displayDescription: '提升控制命中',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_ILLUSION],
@@ -402,7 +403,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-control-resistance',
     displayName: '明心',
     displayDescription: '提升控制抗性',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_DIVINE],
@@ -428,7 +429,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-spirit',
     displayName: '蕴灵',
     displayDescription: '提升灵力属性',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
@@ -454,7 +455,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-vitality',
     displayName: '淬体',
     displayDescription: '提升体魄属性',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
@@ -480,7 +481,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-wisdom',
     displayName: '开智',
     displayDescription: '提升悟性属性',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_MANUAL],
@@ -506,7 +507,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-willpower',
     displayName: '凝神',
     displayDescription: '提升意志属性',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_DIVINE],
@@ -532,7 +533,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-panel-speed',
     displayName: '乘风',
     displayDescription: '提升速度属性',
-    category: 'artifact_panel',
+    slot: 'identity',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_WIND],
@@ -564,7 +565,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-reflect-thorns',
     displayName: '反噬',
     displayDescription: '受击时，有概率反震敌人',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -597,7 +598,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-death-prevent',
     displayName: '替身纸人',
     displayDescription: '受到致命伤害时免于死亡',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       all: [CreationTags.MATERIAL.TYPE_SPECIAL],
@@ -627,7 +628,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-last-stand-shell',
     displayName: '灵壁',
     displayDescription: '自身气血低于 30% 时，受击有概率生成护盾',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -667,7 +668,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-armor-passive',
     displayName: '坚甲',
     displayDescription: '降低受到的伤害',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -701,7 +702,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-mana-recovery',
     displayName: '灵泉',
     displayDescription: '每回合回复灵力',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
@@ -739,7 +740,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-magic-shield',
     displayName: '法力护盾',
     displayDescription: '受击时优先以灵力抵挡部分伤害',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
@@ -771,7 +772,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-debuff-cleanse',
     displayName: '清浊',
     displayDescription: '受到伤害时，有概率清除一个负面状态',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
@@ -804,7 +805,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-debuff-cleanse-per-round',
     displayName: '七宝玲珑心',
     displayDescription: '每回合有几率自动清除一个负面状态',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'rare',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_DIVINE],
@@ -839,7 +840,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-desperate-aegis',
     displayName: '临危不惧',
     displayDescription: '自身气血低于 30% 时，降低受到的伤害',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -874,7 +875,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-fire-resist',
     displayName: '辟火',
     displayDescription: '降低受到的火系伤害',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -908,7 +909,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-ice-resist',
     displayName: '辟冰',
     displayDescription: '降低受到的冰系伤害',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -945,7 +946,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-thunder-resist',
     displayName: '辟雷',
     displayDescription: '降低受到的雷系伤害',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -979,7 +980,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-wind-resist',
     displayName: '辟风',
     displayDescription: '降低受到的风系伤害',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -1013,7 +1014,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-metal-resist',
     displayName: '辟金',
     displayDescription: '降低受到的金系伤害',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -1047,7 +1048,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-water-resist',
     displayName: '辟水',
     displayDescription: '降低受到的水系伤害',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -1081,7 +1082,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-wood-resist',
     displayName: '辟木',
     displayDescription: '降低受到的木系伤害',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -1115,7 +1116,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-earth-resist',
     displayName: '辟土',
     displayDescription: '降低受到的土系伤害',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -1151,7 +1152,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-crit-shield',
     displayName: '波澜不惊',
     displayDescription: '被暴击时生成护盾',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
@@ -1188,7 +1189,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-crit-reflect',
     displayName: '混元',
     displayDescription: '被暴击时反弹部分伤害',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_METAL],
@@ -1221,7 +1222,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-defense-round-heal',
     displayName: '生命之泉',
     displayDescription: '每回合回复气血',
-    category: 'artifact_defense',
+    slot: 'modifier',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
@@ -1263,7 +1264,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-treasure-golden-armor',
     displayName: '金甲',
     displayDescription: '受击时有概率大幅降低本次伤害',
-    category: 'artifact_treasure',
+    slot: 'modifier',
     rarity: 'legendary',
     match: {
       all: [
@@ -1302,7 +1303,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-treasure-life-guard',
     displayName: '涅槃',
     displayDescription: '受到致命伤害时免于死亡，并保留 30% 气血',
-    category: 'artifact_treasure',
+    slot: 'modifier',
     rarity: 'legendary',
     match: {
       all: [
@@ -1336,7 +1337,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     id: 'artifact-treasure-void-mirror',
     displayName: '太虚',
     displayDescription: '受击时有概率免疫本次法术伤害',
-    category: 'artifact_treasure',
+    slot: 'modifier',
     rarity: 'legendary',
     match: {
       all: [
@@ -1365,6 +1366,367 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
+  },
+  {
+    id: 'artifact-treasure-karma-mirror',
+    displayName: '业镜',
+    displayDescription: '受到暴击时，下一次受击反射业力',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_DIVINE, CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
+    weight: 6,
+    energyCost: 46,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.TRUE,
+    ],
+    effectTemplate: {
+      type: 'effect_sequence',
+      conditions: [{ type: 'is_critical', params: { scope: 'target' } }],
+      params: {
+        effects: [
+          {
+            type: 'damage_memory',
+            params: {
+              key: 'karma_mirror_crit',
+              mode: 'record',
+              event: 'critical_taken',
+              target: 'target',
+              maxStored: { base: 180, scale: 'quality', coefficient: 60 },
+            },
+          },
+          {
+            type: 'apply_buff',
+            params: {
+              buffConfig: {
+                id: 'karma_mirror_ready',
+                name: '业镜',
+                type: BuffType.BUFF,
+                duration: 2,
+                stackRule: StackRule.OVERRIDE,
+                tags: [GameplayTags.BUFF.TYPE.BUFF],
+                listeners: [
+                  {
+                    eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+                    scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+                    priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+                    effects: [
+                      {
+                        type: 'damage_memory',
+                        params: {
+                          key: 'karma_mirror_crit',
+                          mode: 'release',
+                          ratio: 0.3,
+                          releaseAs: 'reflect',
+                          target: 'target',
+                        },
+                      },
+                      {
+                        type: 'buff_layer_modify',
+                        params: {
+                          match: { id: 'karma_mirror_ready' },
+                          operation: 'clear',
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
+  },
+  {
+    id: 'artifact-treasure-calamity-coin',
+    displayName: '替劫铜钱',
+    displayDescription: '免死后留下劫债，随后延迟偿还气血',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_METAL],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
+    weight: 6,
+    energyCost: 52,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.TRUE,
+    ],
+    effectTemplate: {
+      type: 'effect_sequence',
+      conditions: [{ type: 'is_lethal', params: {} }],
+      params: {
+        effects: [
+          { type: 'death_prevent', params: { hpFloorPercent: 0.12 } },
+          {
+            type: 'damage_memory',
+            params: {
+              key: 'calamity_debt',
+              mode: 'record',
+              event: 'damage_taken',
+              target: 'target',
+              maxStored: { base: 220, scale: 'quality', coefficient: 80 },
+            },
+          },
+          {
+            type: 'delayed_effect',
+            params: {
+              id: 'calamity_debt',
+              name: '劫债',
+              delayTurns: 1,
+              tags: [GameplayTags.BUFF.TYPE.DEBUFF],
+              effects: [
+                {
+                  type: 'damage_memory',
+                  params: {
+                    key: 'calamity_debt',
+                    mode: 'release',
+                    ratio: { base: 0.28, scale: 'quality', coefficient: 0.08 },
+                    releaseAs: 'damage',
+                    target: 'target',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      guard: { allowLethalWindow: true },
+    },
+  },
+  {
+    id: 'artifact-treasure-thunder-devour-bottle',
+    displayName: '吞雷瓶',
+    displayDescription: '受到雷系伤害时减少自身冷却',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_THUNDER, CreationTags.MATERIAL.SEMANTIC_ALCHEMY],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
+    weight: 6,
+    energyCost: 44,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
+    grantedAbilityTags: [GameplayTags.TRAIT.COOLDOWN],
+    effectTemplate: {
+      type: 'effect_sequence',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: GameplayTags.ABILITY.ELEMENT.THUNDER },
+        },
+      ],
+      params: {
+        effects: [
+          {
+            type: 'apply_buff',
+            params: {
+              target: 'caster',
+              buffConfig: {
+                id: 'thunder_devour_charge',
+                name: '蓄雷',
+                type: BuffType.BUFF,
+                duration: 3,
+                stackRule: StackRule.STACK_LAYER,
+                tags: [GameplayTags.BUFF.TYPE.BUFF],
+              },
+            },
+          },
+          {
+            type: 'consume_status_trigger',
+            conditions: [
+              {
+                type: 'buff_layer_at_least',
+                params: { id: 'thunder_devour_charge', value: 3 },
+              },
+            ],
+            params: {
+              match: { id: 'thunder_devour_charge' },
+              consume: 'all',
+              effects: [{ type: 'cooldown_modify', params: { cdModifyValue: -1, maxCount: 1 } }],
+            },
+          },
+        ],
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      mapping: { caster: 'owner', target: 'owner' },
+    },
+  },
+  {
+    id: 'artifact-defense-soul-purifying-bell',
+    displayName: '净魂铃',
+    displayDescription: '敌人施加负面状态时，有概率复制回施加者',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_DIVINE, CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+    },
+    weight: 14,
+    energyCost: 30,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'buff_copy',
+      conditions: [{ type: 'chance', params: { value: 0.35 } }],
+      params: {
+        match: { tags: [GameplayTags.BUFF.TYPE.DEBUFF] },
+        target: 'caster',
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.BUFF_ADD,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.buffIntercept,
+      mapping: { caster: 'event.source', target: 'owner' },
+    },
+  },
+  {
+    id: 'artifact-treasure-taixu-robe',
+    displayName: '太虚袍',
+    displayDescription: '受到重击时，将部分伤害延迟结算',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_SPACE, CreationTags.MATERIAL.SEMANTIC_GUARD],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
+    weight: 6,
+    energyCost: 50,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor'],
+    effectTemplate: {
+      type: 'damage_defer',
+      params: {
+        ratio: { base: 0.28, scale: 'quality', coefficient: 0.06 },
+        delayTurns: 2,
+        thresholdMaxHpRatio: 0.25,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageApply,
+    },
+  },
+  {
+    id: 'artifact-defense-demon-locking-nail',
+    displayName: '锁妖钉',
+    displayDescription: '抵抗控制时反向封禁施法者并增加其冷却',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_METAL, CreationTags.MATERIAL.SEMANTIC_GUARD],
+    },
+    weight: 14,
+    energyCost: 32,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.CONTROL],
+    effectTemplate: {
+      type: 'effect_sequence',
+      params: {
+        effects: [
+          { type: 'ability_lock', params: { rounds: 1, maxCount: 1 } },
+          { type: 'cooldown_modify', params: { cdModifyValue: 1, maxCount: 1 } },
+        ],
+      },
+    },
+    listenerSpec: {
+      eventType: 'ControlResistEvent',
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.buffIntercept,
+      mapping: { caster: 'owner', target: 'event.caster' },
+    },
+  },
+  {
+    id: 'artifact-treasure-returning-ruin-pearl',
+    displayName: '归墟珠',
+    displayDescription: '护盾破裂时，对敌人造成真伤',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_WATER, CreationTags.MATERIAL.SEMANTIC_SPACE],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
+    weight: 6,
+    energyCost: 48,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.TRUE,
+    ],
+    effectTemplate: {
+      type: 'damage',
+      params: {
+        value: { base: 65, attribute: AttributeType.MAGIC_ATK, coefficient: 0.45 },
+        damageType: DamageType.TRUE,
+      },
+    },
+    listenerSpec: {
+      eventType: 'ShieldBreakEvent',
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      mapping: { caster: 'owner', target: 'event.caster' },
+    },
+  },
+  {
+    id: 'artifact-treasure-steal-heaven-seal',
+    displayName: '偷天印',
+    displayDescription: '每场战斗首次受到增益时复制该增益',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      any: [CreationTags.MATERIAL.SEMANTIC_DIVINE, CreationTags.MATERIAL.SEMANTIC_ILLUSION],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
+    weight: 6,
+    energyCost: 42,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'buff_copy',
+      conditions: [{ type: 'chance', params: { value: 1 } }],
+      params: {
+        id: 'steal_heaven_first_buff',
+        match: { tags: [GameplayTags.BUFF.TYPE.BUFF] },
+        target: 'caster',
+        durationDelta: 1,
+        maxTriggers: 1,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.BUFF_ADD,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.buffIntercept,
+      mapping: { caster: 'owner', target: 'owner' },
     },
   },
 ];

@@ -82,7 +82,7 @@ const artifactAffixOptions = DEFAULT_AFFIX_REGISTRY.getAll()
     id: affix.id,
     name: affix.displayName,
     description: affix.displayDescription,
-    category: affix.category,
+    slot: affix.slot,
     rarity: affix.rarity,
   }));
 
@@ -134,7 +134,7 @@ export default function ItemLibraryAdminPage() {
   const [dailySettingsLoading, setDailySettingsLoading] = useState(true);
   const [dailySettingsSaving, setDailySettingsSaving] = useState(false);
   const [affixQuery, setAffixQuery] = useState('');
-  const [affixCategoryFilter, setAffixCategoryFilter] = useState('');
+  const [affixSlotFilter, setAffixSlotFilter] = useState('');
   const [affixRarityFilter, setAffixRarityFilter] = useState('');
 
   const selectedAffixSet = useMemo(
@@ -146,9 +146,9 @@ export default function ItemLibraryAdminPage() {
       artifactAffixOptions.filter((affix) => selectedAffixSet.has(affix.id)),
     [selectedAffixSet],
   );
-  const affixCategories = useMemo(
+  const affixSlots = useMemo(
     () =>
-      Array.from(new Set(artifactAffixOptions.map((affix) => affix.category))),
+      Array.from(new Set(artifactAffixOptions.map((affix) => affix.slot))),
     [],
   );
   const affixRarities = useMemo(
@@ -159,7 +159,7 @@ export default function ItemLibraryAdminPage() {
   const filteredAffixOptions = useMemo(() => {
     const keyword = affixQuery.trim().toLowerCase();
     return artifactAffixOptions.filter((affix) => {
-      if (affixCategoryFilter && affix.category !== affixCategoryFilter) {
+      if (affixSlotFilter && affix.slot !== affixSlotFilter) {
         return false;
       }
       if (affixRarityFilter && affix.rarity !== affixRarityFilter) {
@@ -169,7 +169,7 @@ export default function ItemLibraryAdminPage() {
       return [
         affix.name,
         affix.description,
-        affix.category,
+        affix.slot,
         affix.rarity,
         affix.id,
       ]
@@ -177,7 +177,7 @@ export default function ItemLibraryAdminPage() {
         .toLowerCase()
         .includes(keyword);
     });
-  }, [affixCategoryFilter, affixQuery, affixRarityFilter]);
+  }, [affixQuery, affixRarityFilter, affixSlotFilter]);
 
   const loadItems = useCallback(async () => {
     const params = new URLSearchParams();
@@ -1477,17 +1477,17 @@ export default function ItemLibraryAdminPage() {
                     label="搜索词缀"
                     value={affixQuery}
                     onChange={setAffixQuery}
-                    placeholder="输入名称、类别或描述"
+                    placeholder="输入名称、槽位或描述"
                   />
                   <InkSelect
-                    label="词缀类别"
-                    value={affixCategoryFilter}
-                    onChange={setAffixCategoryFilter}
+                    label="词缀槽位"
+                    value={affixSlotFilter}
+                    onChange={setAffixSlotFilter}
                   >
                     <option value="">全部</option>
-                    {affixCategories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
+                    {affixSlots.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {slot}
                       </option>
                     ))}
                   </InkSelect>
@@ -1537,7 +1537,7 @@ export default function ItemLibraryAdminPage() {
                           {affix.name}
                         </span>
                         <span className="text-ink-secondary ml-2">
-                          {affix.category} / {affix.rarity}
+                          {affix.slot} / {affix.rarity}
                         </span>
                         <span className="text-ink-secondary mt-1 block">
                           {affix.description}

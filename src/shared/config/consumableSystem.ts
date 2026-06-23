@@ -40,6 +40,8 @@ export function getConsumableQualityScalar(quality: Quality | undefined): number
   return 1 + (QUALITY_ORDER[quality ?? '凡品'] ?? 0) * 0.22;
 }
 
+export const BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT = 1000;
+
 export const CONSUMABLE_TOXICITY_DEFAULTS = {
   healing: 4,
   mana: 3,

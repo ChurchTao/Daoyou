@@ -4,9 +4,11 @@ import { AffixPoolRuleSet } from '../rules/affix/AffixPoolRuleSet';
 import { AffixEligibilityFacts, AffixPoolDecision } from '../rules/contracts';
 import {
   AFFIX_STOP_REASONS,
+  AffixRarity,
   AffixCandidate,
   createEmptyEnergyBudget,
 } from '../types';
+import { resolveUnlockedAffixRarities } from '../config/CreationBalance';
 import { AffixRegistry } from './AffixRegistry';
 import { AffixDefinition, flattenAffixMatcherTags } from './types';
 
@@ -66,28 +68,43 @@ export class AffixPoolBuilder {
       };
     }
 
+    const energyBudget = session.state.energyBudget ?? createEmptyEnergyBudget();
+    const unlockedRarities = resolveUnlockedAffixRarities(
+      energyBudget.effectiveTotal,
+    );
     const matching = this.filterCandidatesForProductContext(
       registry.queryBySignals(
         inputTagSignals,
-        recipeMatch.unlockedAffixCategories,
         input.productType,
       ),
       session,
-    ).map((def) => this.toCandidate(def));
+    )
+      .filter((def) => this.isRarityUnlocked(def.rarity, unlockedRarities))
+      .map((def) => this.toCandidate(def));
 
     const facts: AffixEligibilityFacts = {
       productType: input.productType,
       recipeMatch,
-      energyBudget: session.state.energyBudget ?? createEmptyEnergyBudget(),
+      energyBudget,
       candidatePool: matching,
-      allowedCategories: recipeMatch.unlockedAffixCategories,
+      unlockedRarities,
       inputTagSignals,
       inputTags,
       tagSignalScores: buildCreationTagSignalScoreMap(inputTagSignals),
       negativeTagBiases: session.state.intent?.negativeTagBiases ?? [],
     };
 
-    return this.ruleSet.evaluate(facts);
+    const decision = this.ruleSet.evaluate(facts);
+    decision.trace.unshift({
+      ruleId: 'affix.pool.rarity-unlock',
+      outcome: 'applied',
+      message: '已根据有效总预算过滤词缀稀有度',
+      details: {
+        effectiveTotal: energyBudget.effectiveTotal,
+        unlockedRarities,
+      },
+    });
+    return decision;
   }
 
   private filterCandidatesForProductContext(
@@ -123,39 +140,15 @@ export class AffixPoolBuilder {
         }
       }
 
-      // --- 2. 核心池特定内容校验 (Category-specific Content Validation) ---
-      // 注意：这里保留对核心池词缀的本质属性校验（如果有的话）
-      const isCore = [
-        'skill_core',
-        'gongfa_foundation',
-        'artifact_core',
-      ].includes(def.category);
-
-      if (isCore) {
-        switch (productType) {
-          case 'skill':
-            return this.isSkillCoreCandidate(def);
-          case 'gongfa':
-            return this.isGongfaCoreCandidate(def);
-        }
-      }
-
       return true;
     });
   }
 
-  private isSkillCoreCandidate(def: AffixDefinition): boolean {
-    if (def.category === 'skill_core') {
-      return true;
-    }
-    return false;
-  }
-
-  private isGongfaCoreCandidate(def: AffixDefinition): boolean {
-    if (def.category === 'gongfa_foundation') {
-      return true;
-    }
-    return false;
+  private isRarityUnlocked(
+    rarity: AffixRarity,
+    unlockedRarities: AffixRarity[],
+  ): boolean {
+    return unlockedRarities.includes(rarity);
   }
 
   private toCandidate(def: AffixDefinition): AffixCandidate {
@@ -163,7 +156,8 @@ export class AffixPoolBuilder {
       id: def.id,
       name: def.displayName,
       description: def.displayDescription,
-      category: def.category,
+      slot: def.slot,
+      rarity: def.rarity,
       match: def.match,
       tags: flattenAffixMatcherTags(def.match),
       grantedAbilityTags: def.grantedAbilityTags,

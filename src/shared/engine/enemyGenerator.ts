@@ -1,5 +1,6 @@
 import { CreationOrchestrator } from '@shared/engine/creation-v2/CreationOrchestrator';
 import { NoopEnemyCopyProvider } from './enemy-generation/EnemyCopyProvider';
+import { EnemyBodyCultivationPlanner } from './enemy-generation/EnemyBodyCultivationPlanner';
 import { EnemyCraftExecutor } from './enemy-generation/EnemyCraftExecutor';
 import { EnemyCultivatorAssembler } from './enemy-generation/EnemyCultivatorAssembler';
 import { EnemyGenerationOrchestrator } from './enemy-generation/EnemyGenerationOrchestrator';
@@ -12,8 +13,11 @@ import type { EnemyCopyProvider } from './enemy-generation/EnemyCopyProvider';
 
 export type {
   DifficultyBand,
+  BodyCultivationTrackLevels,
   EnemyCopyFacts,
   EnemyCopyProductFacts,
+  EnemyBodyCultivationPlan,
+  EnemyBodyCultivationSummary,
   EnemyDifficultyProfile,
   EnemyGenerationBalanceSnapshot,
   EnemyGenerationDraft,
@@ -26,6 +30,7 @@ export type {
 } from './enemy-generation/types';
 export type { EnemyCopyPayload, EnemyCopyProvider } from './enemy-generation/EnemyCopyProvider';
 export { NoopEnemyCopyProvider } from './enemy-generation/EnemyCopyProvider';
+export { EnemyBodyCultivationPlanner } from './enemy-generation/EnemyBodyCultivationPlanner';
 export { EnemyCraftExecutor } from './enemy-generation/EnemyCraftExecutor';
 export { EnemyGenerationOrchestrator } from './enemy-generation/EnemyGenerationOrchestrator';
 export { EnemyLoadoutPlanner } from './enemy-generation/EnemyLoadoutPlanner';
@@ -33,6 +38,7 @@ export { EnemyLoadoutPlanner } from './enemy-generation/EnemyLoadoutPlanner';
 interface EnemyGeneratorDeps {
   creationOrchestrator?: CreationOrchestrator;
   loadoutPlanner?: EnemyLoadoutPlanner;
+  bodyCultivationPlanner?: EnemyBodyCultivationPlanner;
   craftExecutor?: EnemyCraftExecutor;
   cultivatorAssembler?: EnemyCultivatorAssembler;
   copyProvider?: EnemyCopyProvider;
@@ -53,6 +59,7 @@ export class EnemyGenerator {
           ),
         deps.cultivatorAssembler ?? new EnemyCultivatorAssembler(),
         deps.copyProvider ?? new NoopEnemyCopyProvider(),
+        deps.bodyCultivationPlanner ?? new EnemyBodyCultivationPlanner(),
       );
   }
 

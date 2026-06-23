@@ -1,5 +1,10 @@
 import { AbilityId, AbilityType } from '../core/types';
 import type { AbilitySelectionProfile } from '../core/configs';
+import {
+  beginAbilityTransform,
+  endAbilityTransform,
+  peekAbilityTransform,
+} from '../core/runtimeState';
 import { Unit } from '../units/Unit';
 import { Ability, AbilityContext } from './Ability';
 import { TargetPolicy } from './TargetPolicy';
@@ -154,9 +159,14 @@ export abstract class ActiveSkill extends Ability {
    * 检查是否有足够资源
    */
   hasEnoughResources(caster: Unit): boolean {
+    const transform = peekAbilityTransform(caster, this);
     for (const cost of this._resourceCosts) {
       switch (cost.type) {
         case 'mp':
+          if (transform?.mpCostToHp) {
+            if (caster.getCurrentHp() <= cost.amount) return false;
+            break;
+          }
           if (caster.getCurrentMp() < cost.amount) return false;
           break;
         case 'hp':
@@ -171,10 +181,15 @@ export abstract class ActiveSkill extends Ability {
    * 消耗资源
    */
   consumeResources(caster: Unit): void {
+    const transform = peekAbilityTransform(caster, this);
     for (const cost of this._resourceCosts) {
       switch (cost.type) {
         case 'mp':
-          caster.consumeMp(cost.amount);
+          if (transform?.mpCostToHp) {
+            caster.takeDamage(cost.amount);
+          } else {
+            caster.consumeMp(cost.amount);
+          }
           break;
         case 'hp':
           caster.takeDamage(cost.amount);
@@ -213,13 +228,24 @@ export abstract class ActiveSkill extends Ability {
 
     // 启动冷却
     this.startCooldown();
-
-    if (context.shouldApplyEffects === false) {
-      return;
+    const transform = peekAbilityTransform(context.caster, this);
+    if (transform?.cooldownModify) {
+      this.modifyCooldown(transform.cooldownModify);
     }
 
-    // 执行技能效果（子类实现）
-    this.executeSkill(context.caster, context.target);
+    const activeTransform = beginAbilityTransform(context.caster, this);
+    try {
+      if (context.shouldApplyEffects === false) {
+        return;
+      }
+
+      // 执行技能效果（子类实现）
+      this.executeSkill(context.caster, context.target);
+    } finally {
+      if (activeTransform) {
+        endAbilityTransform(this);
+      }
+    }
   }
 
   /**

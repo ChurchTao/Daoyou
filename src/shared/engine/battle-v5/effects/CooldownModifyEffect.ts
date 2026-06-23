@@ -20,7 +20,7 @@ export class CooldownModifyEffect extends GameplayEffect {
     const matchedSkills = abilities.filter(
       (skill): skill is ActiveSkill =>
         skill instanceof ActiveSkill &&
-        ability?.id !== skill.id &&
+        ability !== skill &&
         (!this.params.tags || skill.tags.hasAnyTag(this.params.tags)),
     );
     const countToModify =

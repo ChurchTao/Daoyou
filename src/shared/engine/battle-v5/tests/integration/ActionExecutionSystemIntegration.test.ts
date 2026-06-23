@@ -756,4 +756,45 @@ describe('DamageSystem direct mitigation', () => {
       }),
     ).toThrow('[AbilityFactory] ability mixed_damage_channels mixes multiple damage channels');
   });
+
+  it('AbilityFactory should reject abilities that mix true and magical damage channels', () => {
+    expect(() =>
+      AbilityFactory.create({
+        slug: 'mixed_true_magic_damage_channels',
+        name: '真法双通道冲突',
+        type: AbilityType.ACTIVE_SKILL,
+        tags: [
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+          GameplayTags.ABILITY.CHANNEL.TRUE,
+        ],
+        targetPolicy: { team: 'enemy', scope: 'single' },
+        effects: [
+          {
+            type: 'damage',
+            params: {
+              value: {
+                base: 20,
+                attribute: AttributeType.MAGIC_ATK,
+                coefficient: 0.6,
+              },
+            },
+          },
+          {
+            type: 'damage',
+            params: {
+              value: {
+                base: 20,
+                attribute: AttributeType.WILLPOWER,
+                coefficient: 0.6,
+              },
+              damageType: DamageType.TRUE,
+            },
+          },
+        ],
+      }),
+    ).toThrow(
+      '[AbilityFactory] ability mixed_true_magic_damage_channels mixes multiple damage channels',
+    );
+  });
 });

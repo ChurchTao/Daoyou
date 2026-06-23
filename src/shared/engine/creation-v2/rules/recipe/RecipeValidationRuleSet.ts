@@ -9,11 +9,11 @@ import { ReservedEnergyRules } from './ReservedEnergyRules';
 
 /*
  * RecipeValidationRuleSet: 配方校验规则集合门面。
- * 包含 ProductSupport / AffixUnlock / ReservedEnergy 等规则，负责输出 RecipeDecision（包括解锁词缀分类与保留能量）。
+ * 包含 ProductSupport / AffixUnlock / ReservedEnergy 等规则，负责输出 RecipeDecision（包括解锁词缀稀有度与保留能量）。
  */
 export class RecipeValidationRuleSet {
   // intentional: all rules run even when valid=false — callers may want to inspect
-  // unlocked affix categories and reserved energy even for invalid recipes (e.g., to
+  // unlocked affix rarities and reserved energy even for invalid recipes (e.g., to
   // display "what would happen if the recipe were valid" in the UI).
   private readonly ruleSet = new RuleSet<RecipeFacts, RecipeDecision>(
     [
@@ -25,7 +25,7 @@ export class RecipeValidationRuleSet {
       recipeId: defaultRecipeId(facts.productType),
       valid: true,
       matchedTags: this.buildMatchedTags(facts),
-      unlockedAffixCategories: ['skill_core', 'gongfa_foundation', 'artifact_core', 'artifact_panel'],
+      unlockedAffixRarities: ['common'],
       reservedEnergy: undefined,
       notes: [],
       reasons: [],

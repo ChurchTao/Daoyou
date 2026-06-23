@@ -62,6 +62,9 @@ export class AffixEffectTranslator {
               qualityOrder,
               multiplier,
             ),
+            ...(template.params.damageType
+              ? { damageType: template.params.damageType }
+              : {}),
           },
         };
 
@@ -180,6 +183,363 @@ export class AffixEffectTranslator {
             ...(template.params.removeOnTrigger !== undefined
               ? { removeOnTrigger: template.params.removeOnTrigger }
               : {}),
+            ...(template.params.effects
+              ? {
+                  effects: this.resolveEffectList(
+                    template.params.effects,
+                    qualityOrder,
+                    multiplier,
+                  ),
+                }
+              : {}),
+          },
+        };
+
+      case 'consume_status_trigger':
+        return {
+          type: 'consume_status_trigger',
+          params: {
+            match: template.params.match,
+            ...(template.params.consume !== undefined
+              ? { consume: template.params.consume }
+              : {}),
+            effects: this.resolveEffectList(
+              template.params.effects,
+              qualityOrder,
+              multiplier,
+            ),
+          },
+        };
+
+      case 'delayed_effect':
+        return {
+          type: 'delayed_effect',
+          params: {
+            id: template.params.id,
+            name: template.params.name,
+            delayTurns: Math.max(
+              1,
+              Math.round(
+                this.resolveParam(template.params.delayTurns, qualityOrder, 1),
+              ),
+            ),
+            effects: this.resolveEffectList(
+              template.params.effects,
+              qualityOrder,
+              multiplier,
+            ),
+            ...(template.params.tags ? { tags: template.params.tags } : {}),
+            ...(template.params.statusTags
+              ? { statusTags: template.params.statusTags }
+              : {}),
+            ...(template.params.record
+              ? {
+                  record: {
+                    key: template.params.record.key,
+                    event: template.params.record.event,
+                    ...(template.params.record.maxStored !== undefined
+                      ? {
+                          maxStored: this.resolveParam(
+                            template.params.record.maxStored,
+                            qualityOrder,
+                            multiplier,
+                          ),
+                        }
+                      : {}),
+                  },
+                }
+              : {}),
+            ...(template.params.triggerOnDispel !== undefined
+              ? { triggerOnDispel: template.params.triggerOnDispel }
+              : {}),
+            ...(template.params.maxTriggers !== undefined
+              ? { maxTriggers: template.params.maxTriggers }
+              : {}),
+          },
+        };
+
+      case 'damage_memory':
+        return {
+          type: 'damage_memory',
+          params: {
+            key: template.params.key,
+            mode: template.params.mode,
+            ...(template.params.event ? { event: template.params.event } : {}),
+            ...(template.params.ratio !== undefined
+              ? {
+                  ratio: this.resolveParam(
+                    template.params.ratio,
+                    qualityOrder,
+                    multiplier,
+                  ),
+                }
+              : {}),
+            ...(template.params.releaseAs
+              ? { releaseAs: template.params.releaseAs }
+              : {}),
+            ...(template.params.target ? { target: template.params.target } : {}),
+            ...(template.params.maxStored !== undefined
+              ? {
+                  maxStored: this.resolveParam(
+                    template.params.maxStored,
+                    qualityOrder,
+                    multiplier,
+                  ),
+                }
+              : {}),
+            ...(template.params.consume !== undefined
+              ? { consume: template.params.consume }
+              : {}),
+          },
+        };
+
+      case 'buff_layer_modify':
+        return {
+          type: 'buff_layer_modify',
+          params: {
+            match: template.params.match,
+            operation: template.params.operation,
+            ...(template.params.layers !== undefined
+              ? {
+                  layers: this.resolveParam(
+                    template.params.layers,
+                    qualityOrder,
+                    1,
+                  ),
+                }
+              : {}),
+            ...(template.params.effects
+              ? {
+                  effects: this.resolveEffectList(
+                    template.params.effects,
+                    qualityOrder,
+                    multiplier,
+                  ),
+                }
+              : {}),
+            ...(template.params.scaleEffectsByLayer !== undefined
+              ? { scaleEffectsByLayer: template.params.scaleEffectsByLayer }
+              : {}),
+          },
+        };
+
+      case 'ability_transform':
+        return {
+          type: 'ability_transform',
+          params: {
+            id: template.params.id,
+            ...(template.params.triggers !== undefined
+              ? { triggers: template.params.triggers }
+              : {}),
+            ...(template.params.appliesToTags
+              ? { appliesToTags: template.params.appliesToTags }
+              : {}),
+            ...(template.params.trueDamage !== undefined
+              ? { trueDamage: template.params.trueDamage }
+              : {}),
+            ...(template.params.addDispel
+              ? { addDispel: template.params.addDispel }
+              : {}),
+            ...(template.params.mpCostToHp !== undefined
+              ? { mpCostToHp: template.params.mpCostToHp }
+              : {}),
+            ...(template.params.cooldownModify !== undefined
+              ? {
+                  cooldownModify: this.resolveParam(
+                    template.params.cooldownModify,
+                    qualityOrder,
+                    1,
+                  ),
+                }
+              : {}),
+            ...(template.params.forceCritical !== undefined
+              ? { forceCritical: template.params.forceCritical }
+              : {}),
+            ...(template.params.bonusDamageMemory
+              ? {
+                  bonusDamageMemory: {
+                    key: template.params.bonusDamageMemory.key,
+                    ...(template.params.bonusDamageMemory.ratio !== undefined
+                      ? {
+                          ratio: this.resolveParam(
+                            template.params.bonusDamageMemory.ratio,
+                            qualityOrder,
+                            multiplier,
+                          ),
+                        }
+                      : {}),
+                    ...(template.params.bonusDamageMemory.consume !== undefined
+                      ? { consume: template.params.bonusDamageMemory.consume }
+                      : {}),
+                  },
+                }
+              : {}),
+          },
+        };
+
+      case 'hp_sacrifice_damage':
+        return {
+          type: 'hp_sacrifice_damage',
+          params: {
+            hpRatio: this.resolveParam(
+              template.params.hpRatio,
+              qualityOrder,
+              multiplier,
+            ),
+            damagePerHp: this.resolveParam(
+              template.params.damagePerHp,
+              qualityOrder,
+              multiplier,
+            ),
+            ...(template.params.minHpFloor !== undefined
+              ? { minHpFloor: template.params.minHpFloor }
+              : {}),
+          },
+        };
+
+      case 'ability_lock':
+        return {
+          type: 'ability_lock',
+          params: {
+            rounds: Math.max(
+              1,
+              Math.round(this.resolveParam(template.params.rounds, qualityOrder, 1)),
+            ),
+            ...(template.params.tags ? { tags: template.params.tags } : {}),
+            ...(template.params.maxCount !== undefined
+              ? { maxCount: template.params.maxCount }
+              : {}),
+          },
+        };
+
+      case 'status_spread':
+        return {
+          type: 'status_spread',
+          params: { ...template.params },
+        };
+
+      case 'buff_copy':
+        return {
+          type: 'buff_copy',
+          params: {
+            ...(template.params.id ? { id: template.params.id } : {}),
+            ...(template.params.match ? { match: template.params.match } : {}),
+            ...(template.params.target ? { target: template.params.target } : {}),
+            ...(template.params.durationDelta !== undefined
+              ? {
+                  durationDelta: this.resolveParam(
+                    template.params.durationDelta,
+                    qualityOrder,
+                    1,
+                  ),
+                }
+              : {}),
+            ...(template.params.replayRemoved !== undefined
+              ? { replayRemoved: template.params.replayRemoved }
+              : {}),
+            ...(template.params.maxTriggers !== undefined
+              ? { maxTriggers: template.params.maxTriggers }
+              : {}),
+          },
+        };
+
+      case 'damage_defer':
+        return {
+          type: 'damage_defer',
+          params: {
+            ratio: this.resolveParam(
+              template.params.ratio,
+              qualityOrder,
+              multiplier,
+            ),
+            delayTurns: Math.max(
+              1,
+              Math.round(
+                this.resolveParam(template.params.delayTurns, qualityOrder, 1),
+              ),
+            ),
+            ...(template.params.thresholdMaxHpRatio !== undefined
+              ? {
+                  thresholdMaxHpRatio: this.resolveParam(
+                    template.params.thresholdMaxHpRatio,
+                    qualityOrder,
+                    multiplier,
+                  ),
+                }
+              : {}),
+          },
+        };
+
+      case 'next_hit_rule':
+        return {
+          type: 'next_hit_rule',
+          params: { ...template.params },
+        };
+
+      case 'dynamic_scalar':
+        return {
+          type: 'dynamic_scalar',
+          params: {
+            mode: template.params.mode,
+            value: this.resolveParam(
+              template.params.value,
+              qualityOrder,
+              multiplier,
+            ),
+            resource: template.params.resource,
+            ...(template.params.lowerIsStronger !== undefined
+              ? { lowerIsStronger: template.params.lowerIsStronger }
+              : {}),
+            ...(template.params.cap !== undefined
+              ? { cap: template.params.cap }
+              : {}),
+          },
+        };
+
+      case 'turn_state_counter':
+        return {
+          type: 'turn_state_counter',
+          params: {
+            key: template.params.key,
+            event: template.params.event,
+            threshold: template.params.threshold,
+            effects: this.resolveEffectList(
+              template.params.effects,
+              qualityOrder,
+              multiplier,
+            ),
+            ...(template.params.resetOnTrigger !== undefined
+              ? { resetOnTrigger: template.params.resetOnTrigger }
+              : {}),
+          },
+        };
+
+      case 'element_history':
+        return {
+          type: 'element_history',
+          params: {
+            key: template.params.key,
+            threshold: template.params.threshold,
+            effects: this.resolveEffectList(
+              template.params.effects,
+              qualityOrder,
+              multiplier,
+            ),
+            ...(template.params.resetOnTrigger !== undefined
+              ? { resetOnTrigger: template.params.resetOnTrigger }
+              : {}),
+          },
+        };
+
+      case 'effect_sequence':
+        return {
+          type: 'effect_sequence',
+          params: {
+            effects: this.resolveEffectList(
+              template.params.effects,
+              qualityOrder,
+              multiplier,
+            ),
           },
         };
 
@@ -193,6 +553,9 @@ export class AffixEffectTranslator {
             qualityOrder,
             multiplier,
           );
+        }
+        if (template.params.target) {
+          params.target = template.params.target;
         }
         return {
           type: 'apply_buff',
@@ -308,5 +671,15 @@ export class AffixEffectTranslator {
     }
 
     return baseValue * multiplier;
+  }
+
+  private resolveEffectList(
+    effects: AffixEffectTemplate[],
+    qualityOrder: number,
+    multiplier: number,
+  ): EffectConfig[] {
+    return effects.map((effect) =>
+      this.resolveTemplate(effect, qualityOrder, multiplier),
+    );
   }
 }

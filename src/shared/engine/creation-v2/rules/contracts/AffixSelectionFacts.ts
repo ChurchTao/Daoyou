@@ -1,21 +1,10 @@
 import {
   AffixCandidate,
-  AffixCategory,
+  AffixSlot,
   CreationProductType,
-  GongfaAffixRole,
 } from '../../types';
 import type { ElementType } from '@shared/types/constants';
-
-export interface AffixSelectionBucketCaps {
-  highTierTotal?: number;
-  mythic?: number;
-}
-
-export interface AffixSelectionConstraints {
-  categoryCaps: Partial<Record<AffixCategory, number>>;
-  bucketCaps?: AffixSelectionBucketCaps;
-  gongfaRoleCaps?: Partial<Record<GongfaAffixRole, number>>;
-}
+import type { AffixSlotLayoutStep } from '../../config/AffixSelectionConstraints';
 
 export interface SelectedGongfaSchoolPlan {
   primarySelected: boolean;
@@ -34,8 +23,8 @@ export interface AffixSelectionFacts {
   selectedAffixIds: string[];
   selectedExclusiveGroups: string[];
   selectedAbilityTags?: string[];
-  selectedCategoryCounts: Partial<Record<AffixCategory, number>>;
-  selectionConstraints: AffixSelectionConstraints;
+  selectedSlots: AffixSlot[];
+  currentSlot: AffixSlotLayoutStep;
   elementBias?: ElementType;
   selectedGongfaSchoolPlan?: SelectedGongfaSchoolPlan;
 }

@@ -69,7 +69,8 @@ function toRolledAffix(def: AffixDefinition): RolledAffix {
     id: def.id,
     name: def.displayName,
     description: def.displayDescription,
-    category: def.category,
+    slot: def.slot,
+    rarity: def.rarity,
     match: def.match,
     tags: flattenAffixMatcherTags(def.match),
     grantedAbilityTags: def.grantedAbilityTags,
@@ -142,8 +143,8 @@ export function composeProductFromAffixIds(
   const rolledAffixes = defs.map(toRolledAffix);
   const spentEnergy = defs.reduce((sum, def) => sum + def.energyCost, 0);
   const effectiveTotal = resolvePresetEffectiveEnergy(args.requestedQuality);
-  const unlockedAffixCategories = Array.from(
-    new Set(defs.map((def) => def.category)),
+  const unlockedAffixRarities = Array.from(
+    new Set(defs.map((def) => def.rarity)),
   );
   const slugSeed =
     args.slugSeed ??
@@ -186,7 +187,7 @@ export function composeProductFromAffixIds(
     recipeId: `preset-${args.productType}`,
     valid: true,
     matchedTags: [],
-    unlockedAffixCategories,
+    unlockedAffixRarities,
   };
   session.state.energyBudget = {
     baseTotal: effectiveTotal,

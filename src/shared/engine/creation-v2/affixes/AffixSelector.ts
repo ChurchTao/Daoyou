@@ -1,6 +1,5 @@
 import {
   AFFIX_STOP_REASONS,
-  AffixCategory,
   AffixCandidate,
   AffixSelectionAudit,
   CreationIntent,
@@ -12,26 +11,16 @@ import { AffixSelectionRuleSet } from '../rules/affix/AffixSelectionRuleSet';
 import { AffixPicker } from './AffixPicker';
 import { AffixRollEngine } from './AffixRollEngine';
 import { CREATION_PROJECTION_BALANCE } from '../config/CreationBalance';
-import { resolveAffixSelectionConstraints } from '../config/AffixSelectionConstraints';
+import {
+  AffixSlotLayoutStep,
+  resolveAffixSlotLayout,
+} from '../config/AffixSelectionConstraints';
 import type { ElementType } from '@shared/types/constants';
 
 export interface AffixSelectionResult {
   audit: AffixSelectionAudit;
 }
 
-/**
- * 词缀抽签器
- * 在能量预算约束下，对候选词缀进行加权随机抽取
- * 同一 exclusiveGroup 只能命中一个词缀
- */
-/*
- * AffixSelector: 在预算与互斥组约束下迭代选择词缀的策略实现。
- * 过程：
- *  - 使用 AffixSelectionRuleSet 得到候选池
- *  - 通过 AffixPicker 加权抽选
- *  - 通过 AffixRollEngine 计算数值波动与 Perfect 标记
- *  - 记录审计（allocations / rejections / spent / remaining / exhaustionReason）供外部记录与回溯
- */
 export class AffixSelector {
   constructor(
     private readonly ruleSet = new AffixSelectionRuleSet(),
@@ -59,21 +48,20 @@ export class AffixSelector {
     const allocations: AffixSelectionAudit['allocations'] = [];
     const rejections: AffixSelectionAudit['rejections'] = [];
     const rounds: AffixSelectionAudit['rounds'] = [];
+    const selectedAffixIds: string[] = [];
     let remaining = budget.remaining;
     let available = [...pool];
-    const selectedAffixIds: string[] = [];
-    const selectedCategoryCounts: Partial<Record<AffixCategory, number>> = {};
-    const selectionConstraints = resolveAffixSelectionConstraints(
-      intent.productType,
-      maxCount,
-      pool,
-    );
     let exhaustionReason: AffixSelectionAudit['exhaustionReason'];
     let finalDecision: AffixSelectionDecision | undefined;
     let selectedSkillTargetConstraint: AffixCandidate['targetPolicyConstraint'];
     let selectedArtifactSlots: AffixCandidate['applicableArtifactSlots'];
 
-    const runSelectionRound = (candidates: AffixCandidate[]): boolean => {
+    const layout = resolveAffixSlotLayout(intent.productType, maxCount);
+
+    const runSelectionRound = (
+      candidates: AffixCandidate[],
+      currentSlot: AffixSlotLayoutStep,
+    ): boolean => {
       const remainingBefore = remaining;
       const facts: AffixSelectionFacts = {
         productType: intent.productType,
@@ -85,8 +73,8 @@ export class AffixSelector {
         selectedAffixIds,
         selectedExclusiveGroups: Array.from(pickedGroups),
         selectedAbilityTags: this.buildSelectedAbilityTags(result),
-        selectedCategoryCounts,
-        selectionConstraints,
+        selectedSlots: result.map((affix) => affix.slot),
+        currentSlot,
         elementBias: intent.elementBias,
         selectedGongfaSchoolPlan: this.buildSelectedGongfaSchoolPlan(result),
       };
@@ -108,8 +96,6 @@ export class AffixSelector {
       }
 
       const picked = this.picker.pick(decision.candidatePool);
-      
-      // === 核心注入点：使用 RollEngine 为词缀注入数值灵魂 ===
       const chosen = this.rollEngine.roll(
         picked.candidate,
         budget,
@@ -120,20 +106,12 @@ export class AffixSelector {
       remaining -= chosen.energyCost;
       allocations.push({ affixId: chosen.id, amount: chosen.energyCost });
       selectedAffixIds.push(chosen.id);
-      selectedCategoryCounts[chosen.category] =
-        (selectedCategoryCounts[chosen.category] ?? 0) + 1;
 
-      if (
-        intent.productType === 'skill' &&
-        chosen.category === 'skill_core'
-      ) {
+      if (intent.productType === 'skill' && chosen.slot === 'core') {
         selectedSkillTargetConstraint = chosen.targetPolicyConstraint;
       }
 
-      if (
-        intent.productType === 'artifact' &&
-        chosen.category === 'artifact_core'
-      ) {
+      if (intent.productType === 'artifact' && chosen.slot === 'core') {
         selectedArtifactSlots = chosen.applicableArtifactSlots;
       }
 
@@ -148,25 +126,17 @@ export class AffixSelector {
         pickedAffix: chosen,
       });
 
-      available = available.filter((c) => c.id !== chosen.id);
+      available = available.filter((candidate) => candidate.id !== chosen.id);
       return true;
     };
 
-    // Stage A: core first — 保证主机制先落位。
-    let coreSelected = false;
-
-    if (maxCount > 0) {
-      const coreCandidates = available.filter((candidate) => ['skill_core', 'gongfa_foundation', 'artifact_core'].includes(candidate.category));
-      if (coreCandidates.length > 0) {
-        coreSelected = runSelectionRound(coreCandidates);
-      } else {
-        exhaustionReason = AFFIX_STOP_REASONS.POOL_EXHAUSTED;
+    for (const slotStep of layout) {
+      if (available.length === 0 || result.length >= maxCount) {
+        break;
       }
-    }
 
-    while (coreSelected && available.length > 0 && result.length < maxCount) {
-      const nonCoreCandidates = available.filter((candidate) => {
-        if (['skill_core', 'gongfa_foundation', 'artifact_core'].includes(candidate.category)) {
+      const slotCandidates = available.filter((candidate) => {
+        if (!slotStep.slots.includes(candidate.slot)) {
           return false;
         }
 
@@ -192,13 +162,53 @@ export class AffixSelector {
 
         return true;
       });
-      if (nonCoreCandidates.length === 0) {
-        exhaustionReason = AFFIX_STOP_REASONS.POOL_EXHAUSTED;
-        break;
+
+      if (slotCandidates.length === 0) {
+        if (slotStep.required) {
+          exhaustionReason = AFFIX_STOP_REASONS.POOL_EXHAUSTED;
+          const decision: AffixSelectionDecision = {
+            candidatePool: [],
+            rejections: [],
+            exhaustionReason,
+            reasons: [
+              {
+                code: 'required_slot_empty',
+                message: '必选 slot 没有可用词缀候选',
+                details: {
+                  slotIndex: slotStep.index,
+                  allowedSlots: slotStep.slots,
+                },
+              },
+            ],
+            warnings: [],
+            trace: [
+              {
+                ruleId: 'affix.selection.required-slot',
+                outcome: 'blocked',
+                message: '必选 slot 没有可用词缀候选，停止词缀抽选',
+                details: {
+                  slotIndex: slotStep.index,
+                  allowedSlots: slotStep.slots,
+                  availableCandidates: available.length,
+                },
+              },
+            ],
+          };
+          finalDecision = decision;
+          rounds.push({
+            round: rounds.length + 1,
+            remainingBefore: remaining,
+            remainingAfter: remaining,
+            inputCandidates: [],
+            decision,
+          });
+          break;
+        }
+        continue;
       }
 
-      const picked = runSelectionRound(nonCoreCandidates);
-      if (!picked) {
+      const picked = runSelectionRound(slotCandidates, slotStep);
+      if (!picked && slotStep.required) {
         break;
       }
     }
@@ -311,10 +321,10 @@ export class AffixSelector {
         continue;
       }
 
-      if (meta.role === 'primary') {
+      if (affix.slot === 'identity') {
         primarySelected = true;
         primaryElement = meta.element;
-      } else if (meta.role === 'resonance') {
+      } else if (affix.slot === 'resonance') {
         resonanceCount += 1;
       } else if (meta.role === 'support') {
         supportCount += 1;
@@ -328,5 +338,4 @@ export class AffixSelector {
       supportCount,
     };
   }
-
 }

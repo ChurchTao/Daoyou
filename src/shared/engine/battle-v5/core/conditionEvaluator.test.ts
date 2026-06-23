@@ -54,4 +54,32 @@ describe('conditionEvaluator damage type conditions', () => {
       evaluateCondition(createContext(DamageType.MAGICAL), condition),
     ).toBe(false);
   });
+
+  it('matches lethal damage windows only when trigger event is lethal', () => {
+    const condition: ConditionConfig = {
+      type: 'is_lethal',
+      params: {},
+    };
+    const context = createContext(DamageType.MAGICAL);
+
+    expect(
+      evaluateCondition(
+        {
+          ...context,
+          triggerEvent: {
+            type: 'DamageTakenEvent',
+            timestamp: Date.now(),
+            caster: context.caster,
+            target: context.target,
+            damageTaken: 100,
+            beforeHp: 100,
+            remainHp: 0,
+            isLethal: true,
+          },
+        },
+        condition,
+      ),
+    ).toBe(true);
+    expect(evaluateCondition(context, condition)).toBe(false);
+  });
 });

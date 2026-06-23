@@ -1,6 +1,6 @@
 import {
   AffixCandidate,
-  AffixCategory,
+  AffixRarity,
   CreationContextTagBias,
   CreationTagSignal,
   CreationProductType,
@@ -13,7 +13,7 @@ export interface AffixEligibilityFacts {
   recipeMatch: RecipeMatch;
   energyBudget: EnergyBudget;
   candidatePool: AffixCandidate[];
-  allowedCategories: AffixCategory[];
+  unlockedRarities: AffixRarity[];
   inputTagSignals: CreationTagSignal[];
   inputTags: string[];
   tagSignalScores: Record<string, number>;
