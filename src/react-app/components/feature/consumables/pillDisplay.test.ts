@@ -762,6 +762,54 @@ describe('toPillDisplayModel', () => {
     );
   });
 
+  it('does not show body pill usage limits for secondary body cultivation effects', () => {
+    const model = toPillDisplayModel(
+      createPill({
+        kind: 'pill',
+        family: 'healing',
+        operations: [
+          {
+            type: 'restore_resource',
+            resource: 'hp',
+            mode: 'percent',
+            value: 0.2,
+          },
+          { type: 'advance_track', track: 'body.qi_blood', value: 8 },
+          { type: 'change_gauge', gauge: 'pillToxicity', delta: 4 },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'none',
+        },
+        alchemyMeta: {
+          source: 'improvised',
+          sourceMaterials: ['青木芝', '铁骨藤'],
+          stability: 70,
+          toxicityRating: 8,
+          tags: ['restore_hp', 'body_qi_blood', 'healing'],
+        },
+      }),
+      {
+        realm: '筑基',
+        condition: createCondition({
+          longTermPillUsesByRealm: { 筑基: 8 },
+          bodyCultivationPillUses: 12,
+        }),
+      },
+    );
+
+    expect(model.keywordLabels).toEqual(['疗伤', '丹毒 +4']);
+    expect(getDetailGroup(model, 'track-preview').lines[0]).toBe(
+      '推进轨道：气血 +8',
+    );
+    expect(getDetailGroup(model, 'cost-and-rules').lines).not.toContain(
+      `炼体丹总服用 12/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}，尚可服 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT - 12} 颗`,
+    );
+    expect(getDetailGroup(model, 'cost-and-rules').lines).not.toContain(
+      '本境界已服 8/8，尚可服 0 颗',
+    );
+  });
+
   it('formats insight pills without any usage-limit label', () => {
     const model = toPillDisplayModel(
       createPill({

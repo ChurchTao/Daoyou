@@ -11,7 +11,11 @@ import type {
 import type { ConditionOperation, PillSpec } from '@shared/types/consumable';
 import type { Cultivator } from '@shared/types/cultivator';
 import { isPillConsumable } from '@shared/lib/consumables';
-import { getPillUsageLimitReachedText } from '@shared/lib/pillUsageText';
+import {
+  getPillUsageLimitReachedText,
+  getPrimaryPillQuotaCategory,
+  isPrimaryBodyCultivationPillSpec,
+} from '@shared/lib/pillUsageText';
 import {
   BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT,
   CULTIVATION_PILL_MAX_QUALITY_BY_REALM,
@@ -448,35 +452,7 @@ function sortOperations(operations: ConditionOperation[]): ConditionOperation[] 
 function getEffectiveQuotaCategory(
   spec: PillSpec,
 ): PillSpec['consumeRules']['quotaCategory'] {
-  if (spec.family === 'cultivation' || isBodyCultivationPillSpec(spec)) {
-    return 'none';
-  }
-
-  if (
-    spec.consumeRules.quotaCategory === 'long_term' &&
-    spec.operations.some(
-      (operation) =>
-        operation.type === 'advance_track' &&
-        (isBodyCultivationTrackPath(operation.track) ||
-          isLegacyTemperingTrackPath(operation.track)),
-    )
-  ) {
-    return 'none';
-  }
-
-  return spec.consumeRules.quotaCategory;
-}
-
-function isBodyCultivationPillSpec(spec: PillSpec): boolean {
-  return (
-    spec.family === 'tempering' ||
-    spec.operations.some(
-      (operation) =>
-        operation.type === 'advance_track' &&
-        (isBodyCultivationTrackPath(operation.track) ||
-          isLegacyTemperingTrackPath(operation.track)),
-    )
-  );
+  return getPrimaryPillQuotaCategory(spec);
 }
 
 function consumeBreakthroughStatus(
@@ -528,7 +504,9 @@ export const PillOperationExecutor = {
     const trackLevelUps: TrackLevelUpResult[] = [];
 
     const quotaCategory = getEffectiveQuotaCategory(consumable.spec);
-    const isBodyCultivationPill = isBodyCultivationPillSpec(consumable.spec);
+    const isBodyCultivationPill = isPrimaryBodyCultivationPillSpec(
+      consumable.spec,
+    );
 
     if (isBodyCultivationPill) {
       const used = nextCondition.counters.bodyCultivationPillUses ?? 0;

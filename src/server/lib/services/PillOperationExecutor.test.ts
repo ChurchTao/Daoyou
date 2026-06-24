@@ -299,6 +299,32 @@ function createTemperingPill(): Consumable {
   };
 }
 
+function createHealingPillWithBodyCultivationSecondary(): Consumable {
+  const pill = createHealingPill();
+  const spec = pill.spec as PillSpec;
+
+  return {
+    ...pill,
+    id: 'pill-healing-body-secondary',
+    name: '回春淬体丹',
+    spec: {
+      ...spec,
+      operations: [
+        ...spec.operations,
+        { type: 'advance_track', track: 'body.qi_blood', value: 8 },
+      ],
+      alchemyMeta: {
+        ...spec.alchemyMeta,
+        propertyVector: [
+          { key: 'restore_hp', weight: 0.7 },
+          { key: 'body_qi_blood', weight: 0.3 },
+        ],
+        tags: ['restore_hp', 'body_qi_blood', 'healing'],
+      },
+    },
+  };
+}
+
 function createLongevityPill(): Consumable {
   return {
     id: 'pill-longevity',
@@ -777,6 +803,37 @@ describe('PillOperationExecutor', () => {
     expect(cultivator.condition.counters.bodyCultivationPillUses).toBe(
       BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT,
     );
+  });
+
+  it('does not count secondary body cultivation effects toward the body pill limit', () => {
+    const cultivator = createCultivator();
+    cultivator.condition = {
+      ...ConditionService.normalizeCondition(cultivator),
+      counters: {
+        longTermPillUsesByRealm: {
+          筑基: 8,
+        },
+        cultivationPillUsesByRealm: {},
+        longevityPillUsesByRealm: {},
+        bodyCultivationPillUses: BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT,
+      },
+    };
+
+    const result = PillOperationExecutor.execute(
+      cultivator,
+      createHealingPillWithBodyCultivationSecondary(),
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(
+      result.cultivator.condition?.counters.bodyCultivationPillUses,
+    ).toBe(BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT);
+    expect(
+      result.cultivator.condition?.counters.longTermPillUsesByRealm.筑基,
+    ).toBe(8);
+    expect(
+      result.cultivator.condition?.tracks.bodyCultivation?.tracks.qi_blood.progress,
+    ).toBe(8);
   });
 
   it('reduces body cultivation progress after the current realm soft cap', () => {

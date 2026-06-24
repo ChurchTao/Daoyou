@@ -3,7 +3,7 @@ import {
   REALM_PILL_USAGE_LIMITS,
 } from '@shared/config/consumableSystem';
 import type { RealmType } from '@shared/types/constants';
-import type { PillQuotaCategory } from '@shared/types/consumable';
+import type { PillQuotaCategory, PillSpec } from '@shared/types/consumable';
 
 export function getRealmPillUsageLimit(realm: RealmType): number {
   return REALM_PILL_USAGE_LIMITS[realm];
@@ -15,6 +15,23 @@ export function getCultivationPillUsageLimit(realm: RealmType): number {
 
 export function getLongevityPillUsageLimit(realm: RealmType): number {
   return REALM_PILL_USAGE_LIMITS[realm];
+}
+
+export function isPrimaryBodyCultivationPillSpec(spec: PillSpec): boolean {
+  return spec.family === 'tempering';
+}
+
+export function getPrimaryPillQuotaCategory(
+  spec: PillSpec,
+): PillQuotaCategory {
+  switch (spec.family) {
+    case 'marrow_wash':
+      return 'long_term';
+    case 'longevity':
+      return 'longevity';
+    default:
+      return 'none';
+  }
 }
 
 function getKnownUsageLimit(

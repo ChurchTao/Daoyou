@@ -1641,7 +1641,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'rare',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_METAL, CreationTags.MATERIAL.SEMANTIC_GUARD],
+      all: [CreationTags.MATERIAL.SEMANTIC_FORMATION],
+      any: [CreationTags.MATERIAL.SEMANTIC_REFINING, CreationTags.MATERIAL.SEMANTIC_ILLUSION],
     },
     weight: 14,
     energyCost: 32,

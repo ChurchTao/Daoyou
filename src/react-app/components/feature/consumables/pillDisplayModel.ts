@@ -5,7 +5,9 @@ import {
   getLongevityPillUsageLimit,
   getPillUsageKeywordLabel,
   getPillUsageRuleText,
+  getPrimaryPillQuotaCategory,
   getRealmPillUsageLimit,
+  isPrimaryBodyCultivationPillSpec,
 } from '@shared/lib/pillUsageText';
 import { BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT } from '@shared/config/consumableSystem';
 import { normalizeBodyCultivationState } from '@shared/lib/bodyCultivation/normalize';
@@ -198,43 +200,15 @@ function getPillUsageProgressText(
   };
 }
 
-function isBodyCultivationPillSpec(spec: PillSpec): boolean {
-  return (
-    spec.family === 'tempering' ||
-    spec.operations.some(
-      (operation) =>
-        operation.type === 'advance_track' &&
-        (isBodyCultivationTrackPath(operation.track) ||
-          isLegacyTemperingTrackPath(operation.track)),
-    )
-  );
-}
-
 function getEffectiveQuotaCategory(spec: PillSpec): PillQuotaCategory {
-  if (spec.family === 'cultivation' || isBodyCultivationPillSpec(spec)) {
-    return 'none';
-  }
-
-  if (
-    spec.consumeRules.quotaCategory === 'long_term' &&
-    spec.operations.some(
-      (operation) =>
-        operation.type === 'advance_track' &&
-        (isBodyCultivationTrackPath(operation.track) ||
-          isLegacyTemperingTrackPath(operation.track)),
-    )
-  ) {
-    return 'none';
-  }
-
-  return spec.consumeRules.quotaCategory;
+  return getPrimaryPillQuotaCategory(spec);
 }
 
 function getBodyCultivationPillUsageProgressText(
   spec: PillSpec,
   options?: PillDisplayOptions,
 ): { keyword: string; rule: string } | null {
-  if (!isBodyCultivationPillSpec(spec) || !options?.condition) {
+  if (!isPrimaryBodyCultivationPillSpec(spec) || !options?.condition) {
     return null;
   }
 
