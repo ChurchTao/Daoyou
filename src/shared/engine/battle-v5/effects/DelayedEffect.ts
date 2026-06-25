@@ -5,10 +5,12 @@ import {
   ActionPostEvent,
   DamageTakenEvent,
   HealEvent,
+  ShieldBreakEvent,
   ShieldEvent,
 } from '../core/events';
 import { rememberAmount, setDelayedBuffEffects } from '../core/runtimeState';
 import { BuffType } from '../core/types';
+import { ValueCalculator } from '../core/ValueCalculator';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { EffectContext, GameplayEffect } from './Effect';
@@ -78,7 +80,12 @@ export class DelayedRuntimeBuff extends Buff {
         'DamageTakenEvent',
         (event) => {
           if (event.target !== this._owner || !this._owner) return;
-          rememberAmount(this._owner, record.key, event.damageTaken, record.maxStored);
+          rememberAmount(
+            this._owner,
+            record.key,
+            event.damageTaken,
+            this.resolveRecordMaxStored(),
+          );
         },
         30,
       );
@@ -89,20 +96,64 @@ export class DelayedRuntimeBuff extends Buff {
         'HealEvent',
         (event) => {
           if (event.target !== this._owner || !this._owner) return;
-          rememberAmount(this._owner, record.key, event.healAmount, record.maxStored);
+          rememberAmount(
+            this._owner,
+            record.key,
+            event.healAmount,
+            this.resolveRecordMaxStored(),
+          );
         },
         30,
       );
       return;
     }
-    this._subscribeEvent<ShieldEvent>(
-      'ShieldEvent',
+    if (record.event === 'shield') {
+      this._subscribeEvent<ShieldEvent>(
+        'ShieldEvent',
+        (event) => {
+          if (event.target !== this._owner || !this._owner) return;
+          rememberAmount(
+            this._owner,
+            record.key,
+            event.shieldAmount,
+            this.resolveRecordMaxStored(),
+          );
+        },
+        30,
+      );
+      return;
+    }
+
+    this._subscribeEvent<ShieldBreakEvent>(
+      'ShieldBreakEvent',
       (event) => {
         if (event.target !== this._owner || !this._owner) return;
-        rememberAmount(this._owner, record.key, event.shieldAmount, record.maxStored);
+        rememberAmount(
+          this._owner,
+          record.key,
+          event.brokenShieldAmount,
+          this.resolveRecordMaxStored(),
+        );
       },
       30,
     );
+  }
+
+  private resolveRecordMaxStored(): number | undefined {
+    const record = this.params.record;
+    if (!record || !this._owner) return undefined;
+    if (record.maxStoredValue) {
+      const valueCap = ValueCalculator.calculate(
+        record.maxStoredValue,
+        this._source ?? this._owner,
+        this._owner,
+      );
+      if (record.maxStored !== undefined) {
+        return Math.min(record.maxStored, valueCap);
+      }
+      return valueCap;
+    }
+    return record.maxStored;
   }
 
   override onDeactivate(reason?: 'manual' | 'expired' | 'dispel' | 'replace'): void {

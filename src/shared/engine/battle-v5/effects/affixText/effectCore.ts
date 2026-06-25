@@ -125,10 +125,10 @@ export function describeEffectCore(
 
     case 'damage_memory':
       if (effect.params.mode === 'record') {
-        return `记录${describeMemoryEvent(effect.params.event)}${effect.params.maxStored !== undefined ? `，上限 ${formatAffixNumber(effect.params.maxStored)}` : ''}`;
+        return `记录${describeMemoryEvent(effect.params.event)}${describeMemoryCap(effect)}`;
       }
       if (effect.params.mode === 'clear') return '清除战斗记忆';
-      return `将记录值的 ${formatAffixPercent(effect.params.ratio ?? 1)} 转为${describeMemoryRelease(effect.params.releaseAs)}`;
+      return `将${describeMemorySource(effect.params.event)}的 ${formatAffixPercent(effect.params.ratio ?? 1)} 转为${describeMemoryRelease(effect.params.releaseAs)}`;
 
     case 'buff_layer_modify':
       return `${describeLayerOperation(effect.params.operation, effect.params.layers)}${describeBuffMatch(effect.params.match)}${effect.params.effects?.length ? `并${effect.params.scaleEffectsByLayer ? '按原层数重复' : ''}${describeChildren(effect.params.effects)}` : ''}`;
@@ -178,6 +178,11 @@ export function describeEffectCore(
   }
 }
 
+function describeMemorySource(event?: string): string {
+  if (event === 'shield_break') return '破盾量';
+  return '记录值';
+}
+
 function describeMemoryEvent(event?: string): string {
   switch (event) {
     case 'damage_dealt':
@@ -186,12 +191,24 @@ function describeMemoryEvent(event?: string): string {
       return '治疗量';
     case 'shield':
       return '护盾量';
+    case 'shield_break':
+      return '破盾量';
     case 'critical_taken':
       return '受到暴击伤害';
     case 'damage_taken':
     default:
       return '受到伤害';
   }
+}
+
+function describeMemoryCap(effect: Extract<EffectConfig, { type: 'damage_memory' }>): string {
+  if (effect.params.maxStoredValue) {
+    return `，上限 ${formatScalableValue(effect.params.maxStoredValue)}`;
+  }
+  if (effect.params.maxStored !== undefined) {
+    return `，上限 ${formatAffixNumber(effect.params.maxStored)}`;
+  }
+  return '';
 }
 
 function describeMemoryRelease(releaseAs?: string): string {
@@ -201,10 +218,10 @@ function describeMemoryRelease(releaseAs?: string): string {
     case 'shield':
       return '护盾';
     case 'reflect':
-      return '反射伤害';
+      return '反射真实伤害';
     case 'damage':
     default:
-      return '伤害';
+      return '真实伤害';
   }
 }
 

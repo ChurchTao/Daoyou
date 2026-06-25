@@ -12,6 +12,7 @@ import type { CreationTagSignal } from '../types';
 import { buildNeutralCreationTagSignals, evaluateAffixMatcher } from './AffixMatcher';
 import {
   AffixDefinition,
+  AffixBuffConfig,
   collectAffixMatcherReferencedTags,
 } from './types';
 import type { AffixEffectTemplate } from './types';
@@ -415,7 +416,7 @@ export class AffixRegistry {
     });
   }
 
-  private validateBuffConfigTags(buffConfig: BuffConfig, context: string): void {
+  private validateBuffConfigTags(buffConfig: BuffConfig | AffixBuffConfig, context: string): void {
     if (buffConfig.tags) {
       assertRuntimeTagsInNamespaces(buffConfig.tags, ['Buff.'], `${context}.tags`);
     }

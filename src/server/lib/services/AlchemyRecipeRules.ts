@@ -61,7 +61,7 @@ export interface PreparedAlchemyMaterial {
   name: string;
   description: string;
   rank: Quality;
-  element: ElementType;
+  element?: ElementType;
   type: AlchemyMaterialType;
   dose: number;
 }
@@ -145,6 +145,9 @@ export function chooseDominantElement(
   const elementScores = new Map<ElementType, number>();
 
   for (const material of materials) {
+    if (!material.element) {
+      continue;
+    }
     elementScores.set(
       material.element,
       (elementScores.get(material.element) ?? 0) +

@@ -96,7 +96,7 @@ export class AlchemyFormulaAnalyzer {
         materialName: material.name,
         type: material.type,
         rank: material.rank,
-        element: material.element,
+        element: material.element ?? null,
         dose: material.dose,
         description: truncateText(material.description, 64),
       })),

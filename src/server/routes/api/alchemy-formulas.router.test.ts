@@ -4,12 +4,12 @@ const {
   analyzeFormulaMaterialsMock,
   confirmDiscoveryCandidateMock,
   deleteCultivatorFormulaMock,
-  listCultivatorFormulasMock,
+  listCultivatorFormulasPageMock,
 } = vi.hoisted(() => ({
   analyzeFormulaMaterialsMock: vi.fn(),
   confirmDiscoveryCandidateMock: vi.fn(),
   deleteCultivatorFormulaMock: vi.fn(),
-  listCultivatorFormulasMock: vi.fn(),
+  listCultivatorFormulasPageMock: vi.fn(),
 }));
 
 vi.mock('@server/lib/hono/middleware', () => ({
@@ -26,7 +26,7 @@ vi.mock('@server/lib/services/AlchemyFormulaService', () => ({
   analyzeFormulaMaterials: analyzeFormulaMaterialsMock,
   confirmDiscoveryCandidate: confirmDiscoveryCandidateMock,
   deleteCultivatorFormula: deleteCultivatorFormulaMock,
-  listCultivatorFormulas: listCultivatorFormulasMock,
+  listCultivatorFormulasPage: listCultivatorFormulasPageMock,
 }));
 
 import { AlchemyServiceError } from '@server/lib/services/AlchemyServiceError';
@@ -42,36 +42,48 @@ describe('alchemy formulas router', () => {
   });
 
   it('lists cultivator formulas via GET /api/alchemy/formulas', async () => {
-    listCultivatorFormulasMock.mockResolvedValueOnce([
-      {
-        id: '11111111-1111-4111-8111-111111111111',
-        cultivatorId: 'cultivator-1',
-        name: '青木疗伤丹丹方',
-        description: '此方偏于生机温养，主走木性回春之路。',
-        family: 'healing',
-        pattern: {
-          targetPropertyVector: [{ key: 'restore_hp', weight: 0.62 }],
-          slotCount: 1,
-        },
-        blueprint: {
-          operations: [],
-          consumeRules: {
-            scene: 'out_of_battle_only',
-            quotaCategory: 'none',
+    listCultivatorFormulasPageMock.mockResolvedValueOnce({
+      formulas: [
+        {
+          id: '11111111-1111-4111-8111-111111111111',
+          cultivatorId: 'cultivator-1',
+          name: '青木疗伤丹丹方',
+          description: '此方偏于生机温养，主走木性回春之路。',
+          family: 'healing',
+          pattern: {
+            targetPropertyVector: [{ key: 'restore_hp', weight: 0.62 }],
+            slotCount: 1,
           },
-          targetStability: 70,
-          targetToxicity: 4,
+          blueprint: {
+            operations: [],
+            consumeRules: {
+              scene: 'out_of_battle_only',
+              quotaCategory: 'none',
+            },
+            targetStability: 70,
+            targetToxicity: 4,
+          },
+          mastery: {
+            level: 0,
+            exp: 0,
+          },
+          createdAt: '2026-05-15T00:00:00.000Z',
+          updatedAt: '2026-05-15T00:00:00.000Z',
         },
-        mastery: {
-          level: 0,
-          exp: 0,
-        },
-        createdAt: '2026-05-15T00:00:00.000Z',
-        updatedAt: '2026-05-15T00:00:00.000Z',
+      ],
+      pagination: {
+        page: 2,
+        pageSize: 5,
+        total: 6,
+        totalPages: 2,
+        hasPreviousPage: true,
+        hasNextPage: false,
       },
-    ]);
+    });
 
-    const response = await createApp().request('/api/alchemy/formulas');
+    const response = await createApp().request(
+      '/api/alchemy/formulas?page=2&pageSize=5&search=%E9%9D%92%E6%9C%A8&family=healing',
+    );
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
@@ -84,9 +96,25 @@ describe('alchemy formulas router', () => {
             description: '此方偏于生机温养，主走木性回春之路。',
           }),
         ],
+        pagination: {
+          page: 2,
+          pageSize: 5,
+          total: 6,
+          totalPages: 2,
+          hasPreviousPage: true,
+          hasNextPage: false,
+        },
       },
     });
-    expect(listCultivatorFormulasMock).toHaveBeenCalledWith('cultivator-1');
+    expect(listCultivatorFormulasPageMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      {
+        page: 2,
+        pageSize: 5,
+        search: '青木',
+        family: 'healing',
+      },
+    );
   });
 
   it('confirms discovered formula via POST /api/alchemy/formulas/discovery/confirm', async () => {
@@ -159,7 +187,6 @@ describe('alchemy formulas router', () => {
       valid: true,
       fitScore: 0.7,
       fitBand: 'aligned',
-      hardBlockThreshold: 0.45,
       alignedThreshold: 0.65,
       warnings: ['炉势尚稳。'],
       materialJudgments: [

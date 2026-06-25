@@ -14,7 +14,6 @@ import {
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { AttributeType, BuffType, ModifierType, StackRule } from '../../contracts/battle';
-import { DamageType } from '@shared/engine/battle-v5/core/types';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import { AffixDefinition } from '../types';
 
@@ -1398,7 +1397,15 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
               mode: 'record',
               event: 'critical_taken',
               target: 'target',
-              maxStored: { base: 180, scale: 'quality', coefficient: 60 },
+              maxStoredValue: {
+                base: 0,
+                targetMaxHpRatio: {
+                  base: 1,
+                  scale: 'quality',
+                  coefficient: 0.08,
+                  max: 1.5,
+                },
+              },
             },
           },
           {
@@ -1407,7 +1414,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
               buffConfig: {
                 id: 'karma_mirror_ready',
                 name: '业镜',
-                description: '下一次受到攻击时，反射最近一次承受暴击伤害的30%，触发后消失。',
+                description: '下一次受到攻击时，反射最近一次承受暴击伤害的一部分，触发后消失。',
                 type: BuffType.BUFF,
                 duration: 2,
                 stackRule: StackRule.OVERRIDE,
@@ -1423,7 +1430,12 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
                         params: {
                           key: 'karma_mirror_crit',
                           mode: 'release',
-                          ratio: 0.3,
+                          ratio: {
+                            base: 0.26,
+                            scale: 'quality',
+                            coefficient: 0.025,
+                            max: 0.44,
+                          },
                           releaseAs: 'reflect',
                           target: 'target',
                         },
@@ -1473,7 +1485,17 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       conditions: [{ type: 'is_lethal', params: {} }],
       params: {
         effects: [
-          { type: 'death_prevent', params: { hpFloorPercent: 0.12 } },
+          {
+            type: 'death_prevent',
+            params: {
+              hpFloorPercent: {
+                base: 0.08,
+                scale: 'quality',
+                coefficient: 0.012,
+                max: 0.18,
+              },
+            },
+          },
           {
             type: 'damage_memory',
             params: {
@@ -1481,7 +1503,15 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
               mode: 'record',
               event: 'damage_taken',
               target: 'target',
-              maxStored: { base: 220, scale: 'quality', coefficient: 80 },
+              maxStoredValue: {
+                base: 0,
+                targetMaxHpRatio: {
+                  base: 1.1,
+                  scale: 'quality',
+                  coefficient: 0.08,
+                  max: 1.6,
+                },
+              },
             },
           },
           {
@@ -1489,7 +1519,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
             params: {
               id: 'calamity_debt',
               name: '劫债',
-              description: '1回合后偿还本次致命伤记录的一部分，以真实伤害结算到自身。',
+              description: '1回合后偿还本次致命伤记录的一部分；品质越高，偿还比例越低。',
               delayTurns: 1,
               tags: [GameplayTags.BUFF.TYPE.DEBUFF],
               effects: [
@@ -1498,7 +1528,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
                   params: {
                     key: 'calamity_debt',
                     mode: 'release',
-                    ratio: { base: 0.28, scale: 'quality', coefficient: 0.08 },
+                    ratio: {
+                      base: 0.38,
+                      scale: 'quality',
+                      coefficient: -0.025,
+                      min: 0.2,
+                      max: 0.38,
+                    },
                     releaseAs: 'damage',
                     target: 'target',
                   },
@@ -1626,7 +1662,12 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     effectTemplate: {
       type: 'damage_defer',
       params: {
-        ratio: { base: 0.28, scale: 'quality', coefficient: 0.06 },
+        ratio: {
+          base: 0.22,
+          scale: 'quality',
+          coefficient: 0.025,
+          max: 0.38,
+        },
         delayTurns: 2,
         thresholdMaxHpRatio: 0.25,
       },
@@ -1687,10 +1728,19 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       GameplayTags.ABILITY.CHANNEL.TRUE,
     ],
     effectTemplate: {
-      type: 'damage',
+      type: 'damage_memory',
       params: {
-        value: { base: 65, attribute: AttributeType.MAGIC_ATK, coefficient: 0.45 },
-        damageType: DamageType.TRUE,
+        key: 'shield_break',
+        mode: 'release',
+        event: 'shield_break',
+        ratio: {
+          base: 0.35,
+          scale: 'quality',
+          coefficient: 0.04,
+          max: 0.65,
+        },
+        releaseAs: 'damage',
+        target: 'target',
       },
     },
     listenerSpec: {

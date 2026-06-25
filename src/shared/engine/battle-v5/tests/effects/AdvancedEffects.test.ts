@@ -1,7 +1,13 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { Buff, StackRule } from '../../buffs/Buff';
-import { AbilityType, AttributeType, BuffType, DamageType } from '../../core/types';
+import {
+  AbilityType,
+  AttributeType,
+  BuffType,
+  DamageType,
+  ModifierType,
+} from '../../core/types';
 import { EventBus } from '../../core/EventBus';
 import {
   ActionPostEvent,
@@ -13,6 +19,7 @@ import {
   DamageTakenEvent,
   MechanicLogEvent,
   RoundPreEvent,
+  ShieldBreakEvent,
 } from '../../core/events';
 import {
   AbilityLockEffect,
@@ -305,6 +312,75 @@ describe('Advanced battle effects', () => {
     }).execute({ caster, target });
 
     expect(target.getCurrentShield()).toBe(40);
+  });
+
+  it('damage memory maxStoredValue scales with runtime max HP', () => {
+    const caster = createUnit('caster');
+    const target = createUnit('target');
+    target.attributes.addModifier({
+      id: 'test_hp_override',
+      attrType: AttributeType.MAX_HP,
+      type: ModifierType.OVERRIDE,
+      value: 20_000,
+      source: 'test',
+    });
+    target.updateDerivedStats();
+
+    new DamageMemoryEffect({
+      key: 'scaled_cap',
+      mode: 'record',
+      event: 'damage_taken',
+      target: 'target',
+      maxStoredValue: { targetMaxHpRatio: 0.5 },
+    }).execute({
+      caster,
+      target,
+      triggerEvent: {
+        type: 'DamageTakenEvent',
+        timestamp: Date.now(),
+        caster,
+        target,
+        damageTaken: 50_000,
+        beforeHp: target.getCurrentHp(),
+        remainHp: target.getCurrentHp() - 50_000,
+        isLethal: true,
+      } satisfies DamageTakenEvent,
+    });
+
+    expect(readMemory(target, 'scaled_cap').amount).toBe(10_000);
+  });
+
+  it('damage memory can release shield break amount as true damage', () => {
+    const caster = createUnit('caster');
+    const target = createUnit('target');
+    const requests: DamageRequestEvent[] = [];
+    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
+      requests.push(event);
+    });
+
+    new DamageMemoryEffect({
+      key: 'shield_break',
+      mode: 'release',
+      event: 'shield_break',
+      ratio: 0.45,
+      releaseAs: 'damage',
+      target: 'target',
+    }).execute({
+      caster,
+      target,
+      triggerEvent: {
+        type: 'ShieldBreakEvent',
+        timestamp: Date.now(),
+        caster,
+        target,
+        brokenShieldAmount: 400,
+        overflowDamage: 120,
+      } satisfies ShieldBreakEvent,
+    });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0].baseDamage).toBe(180);
+    expect(requests[0].damageType).toBe(DamageType.TRUE);
   });
 
   it('buff layer modify removes a buff at zero layers and scales child effects by previous layers', () => {

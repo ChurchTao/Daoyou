@@ -8,6 +8,7 @@ import {
 } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
 import type { CreationProductType } from '@shared/engine/creation-v2/types';
 import type { ElementType, EquipmentSlot } from '@shared/types/constants';
+import type { EffectConfig } from '@shared/engine/battle-v5/core/configs';
 
 interface AdvancedAffixCase {
   affixId: string;
@@ -200,5 +201,136 @@ describe('advanced affix projection and rehydrate', () => {
       type: 'effect_sequence',
       conditions: [{ type: 'is_lethal', params: {} }],
     });
+  });
+
+  it('calamity coin scales debt by max HP and improves repayment ratio with quality', () => {
+    const projectCalamityEffect = (requestedQuality: '凡品' | '神品') => {
+      const product = composeProductFromAffixIds({
+        productType: 'artifact',
+        element: '金',
+        requestedSlot: 'accessory',
+        requestedQuality,
+        name: `测试-替劫铜钱-${requestedQuality}`,
+        affixIds: ['artifact-treasure-calamity-coin'],
+      });
+      const abilityConfig = projectAbilityConfig(product);
+      const effect = abilityConfig.listeners?.flatMap((listener) => listener.effects)[0];
+      if (effect?.type !== 'effect_sequence') {
+        throw new Error('calamity coin did not project an effect sequence');
+      }
+      return effect;
+    };
+
+    const low = projectCalamityEffect('凡品');
+    const high = projectCalamityEffect('神品');
+    const lowDeathPrevent = low.params.effects[0];
+    const highDeathPrevent = high.params.effects[0];
+    const lowRecord = low.params.effects[1];
+    const highRecord = high.params.effects[1];
+    const lowDelayed = low.params.effects[2];
+    const highDelayed = high.params.effects[2];
+
+    expect(lowDeathPrevent).toMatchObject({ type: 'death_prevent' });
+    expect(highDeathPrevent).toMatchObject({ type: 'death_prevent' });
+    expect(highDeathPrevent.params.hpFloorPercent).toBeGreaterThan(
+      lowDeathPrevent.params.hpFloorPercent ?? 0,
+    );
+
+    expect(lowRecord).toMatchObject({ type: 'damage_memory' });
+    expect(highRecord).toMatchObject({ type: 'damage_memory' });
+    expect(lowRecord.params.maxStoredValue?.targetMaxHpRatio).toBeGreaterThan(1);
+    expect(highRecord.params.maxStoredValue?.targetMaxHpRatio).toBeGreaterThan(
+      lowRecord.params.maxStoredValue?.targetMaxHpRatio ?? 0,
+    );
+
+    if (lowDelayed.type !== 'delayed_effect' || highDelayed.type !== 'delayed_effect') {
+      throw new Error('calamity debt did not project delayed effects');
+    }
+    const lowRelease = lowDelayed.params.effects[0];
+    const highRelease = highDelayed.params.effects[0];
+    expect(lowRelease).toMatchObject({ type: 'damage_memory' });
+    expect(highRelease).toMatchObject({ type: 'damage_memory' });
+    expect(highRelease.params.ratio).toBeLessThan(lowRelease.params.ratio ?? 1);
+  });
+
+  it('projects apply_buff embedded listener effects recursively', () => {
+    const thunderPact = composeProductFromAffixIds({
+      productType: 'skill',
+      element: '雷',
+      requestedQuality: '神品',
+      name: '测试-雷契',
+      affixIds: ['skill-core-damage-thunder', 'skill-variant-thunder-pact'],
+    });
+    const thunderConfig = projectAbilityConfig(thunderPact);
+    const thunderApply = thunderConfig.effects?.find(
+      (effect): effect is Extract<EffectConfig, { type: 'apply_buff' }> =>
+        effect.type === 'apply_buff' &&
+        effect.params.buffConfig.id === 'thunder_mark',
+    );
+    const thunderDamage = thunderApply?.params.buffConfig.listeners?.[0]?.effects
+      .flatMap((effect) =>
+        effect.type === 'consume_status_trigger' ? effect.params.effects : [],
+      )
+      .find((effect) => effect.type === 'damage');
+
+    expect(thunderDamage).toBeDefined();
+    expect(thunderDamage?.params.value.base).toEqual(expect.any(Number));
+    expect(thunderDamage?.params.value.coefficient).toEqual(expect.any(Number));
+    expect(thunderDamage?.params.value.targetMaxHpRatio).toEqual(expect.any(Number));
+
+    const heavenRoot = composeProductFromAffixIds({
+      productType: 'gongfa',
+      element: '雷',
+      requestedQuality: '神品',
+      name: '测试-天妒灵根',
+      affixIds: ['gongfa-secret-heaven-jealous-root'],
+    });
+    const heavenConfig = projectAbilityConfig(heavenRoot);
+    const heavenApply = heavenConfig.listeners
+      ?.flatMap((listener) => listener.effects)
+      .find((effect): effect is Extract<EffectConfig, { type: 'apply_buff' }> =>
+        effect.type === 'apply_buff',
+      );
+    const heavenDamage = heavenApply?.params.buffConfig.listeners?.[0]?.effects.find(
+      (effect) => effect.type === 'damage',
+    );
+
+    expect(heavenDamage).toBeDefined();
+    expect(heavenDamage?.params.value.base).toEqual(expect.any(Number));
+    expect(heavenDamage?.params.value.targetMaxHpRatio).toEqual(expect.any(Number));
+  });
+
+  it('projects shield break and target max MP scaling into battle config', () => {
+    const ruinPearl = composeProductFromAffixIds({
+      productType: 'artifact',
+      element: '水',
+      requestedSlot: 'accessory',
+      requestedQuality: '神品',
+      name: '测试-归墟珠',
+      affixIds: ['artifact-treasure-returning-ruin-pearl'],
+    });
+    const ruinConfig = projectAbilityConfig(ruinPearl);
+    const ruinEffect = ruinConfig.listeners?.flatMap((listener) => listener.effects)[0];
+    expect(ruinEffect).toMatchObject({
+      type: 'damage_memory',
+      params: {
+        event: 'shield_break',
+        releaseAs: 'damage',
+      },
+    });
+
+    const cutMeridian = composeProductFromAffixIds({
+      productType: 'skill',
+      element: '金',
+      requestedQuality: '神品',
+      name: '测试-截脉',
+      affixIds: ['skill-core-damage', 'skill-variant-cut-meridian'],
+    });
+    const cutConfig = projectAbilityConfig(cutMeridian);
+    const sequence = cutConfig.effects?.find((effect) => effect.type === 'effect_sequence');
+    const manaBurn = sequence?.type === 'effect_sequence'
+      ? sequence.params.effects.find((effect) => effect.type === 'mana_burn')
+      : undefined;
+    expect(manaBurn?.params.value.targetMaxMpRatio).toEqual(expect.any(Number));
   });
 });

@@ -1563,7 +1563,12 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         key: 'causality_damage',
         mode: 'release',
-        ratio: { base: 0.16, scale: 'quality', coefficient: 0.04 },
+        ratio: {
+          base: 0.16,
+          scale: 'quality',
+          coefficient: 0.03,
+          max: 0.38,
+        },
         releaseAs: 'reflect',
         target: 'target',
       },
@@ -1724,14 +1729,46 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
               scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
               priority: CREATION_LISTENER_PRIORITIES.actionPreBuff,
               effects: [
-                { type: 'damage', params: { value: { base: 8, attribute: AttributeType.MAGIC_ATK, coefficient: 0.05 } } },
+                {
+                  type: 'damage',
+                  params: {
+                    value: {
+                      base: { base: 4, scale: 'quality', coefficient: 1 },
+                      attribute: AttributeType.MAGIC_ATK,
+                      coefficient: qualityScaledCoefficient(0.035),
+                      targetMaxHpRatio: {
+                        base: 0.015,
+                        scale: 'quality',
+                        coefficient: 0.002,
+                        max: 0.03,
+                      },
+                    },
+                  },
+                },
                 {
                   type: 'buff_layer_modify',
                   conditions: [{ type: 'buff_layer_at_least', params: { id: 'heaven_jealousy', value: 5 } }],
                   params: {
                     match: { id: 'heaven_jealousy' },
                     operation: 'clear',
-                    effects: [{ type: 'heal', params: { value: { base: 80, attribute: AttributeType.SPIRIT, coefficient: 0.8 } } }],
+                    effects: [
+                      {
+                        type: 'heal',
+                        params: {
+                          value: {
+                            base: { base: 55, scale: 'quality', coefficient: 12 },
+                            attribute: AttributeType.SPIRIT,
+                            coefficient: qualityScaledCoefficient(0.65),
+                            targetMaxHpRatio: {
+                              base: 0.08,
+                              scale: 'quality',
+                              coefficient: 0.01,
+                              max: 0.15,
+                            },
+                          },
+                        },
+                      },
+                    ],
                   },
                 },
               ],
@@ -1848,7 +1885,15 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
               mode: 'record',
               event: 'heal',
               target: 'caster',
-              maxStored: { base: 120, scale: 'quality', coefficient: 40 },
+              maxStoredValue: {
+                base: 0,
+                targetMaxHpRatio: {
+                  base: 0.45,
+                  scale: 'quality',
+                  coefficient: 0.06,
+                  max: 0.9,
+                },
+              },
             },
           },
           {
@@ -1859,7 +1904,12 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
               appliesToTags: [GameplayTags.ABILITY.FUNCTION.DAMAGE],
               bonusDamageMemory: {
                 key: 'borrowed_heal',
-                ratio: { base: 0.35, scale: 'quality', coefficient: 0.08 },
+                ratio: {
+                  base: 0.3,
+                  scale: 'quality',
+                  coefficient: 0.04,
+                  max: 0.58,
+                },
               },
             },
           },

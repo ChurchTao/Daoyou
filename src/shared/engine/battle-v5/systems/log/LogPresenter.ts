@@ -513,17 +513,18 @@ export class LogPresenter {
 
   private formatMechanic(entry: LogEntry<'mechanic'>): string {
     const target = this.formatName(entry.data.targetName);
+    const mechanicName = this.formatMechanicName(entry.data.name);
     const value = entry.data.value !== undefined
       ? this.formatNumber(Math.round(entry.data.value))
       : undefined;
 
     switch (entry.data.mechanic) {
       case 'memory_record':
-        return `${target}记录「${entry.data.name}」${value ?? ''}`;
+        return `${target}记录「${mechanicName}」${value ?? ''}`;
       case 'memory_release':
-        return `${target}释放「${entry.data.name}」${value ?? ''}`;
+        return `${target}释放「${mechanicName}」${value ?? ''}`;
       case 'ability_transform':
-        return `${target}获得「${entry.data.name}」强化`;
+        return `${target}获得「${mechanicName}」强化`;
       case 'damage_defer':
         return `${target}将 ${value ?? 0} 点伤害延后 ${entry.data.detail ?? '?'} 回合结算`;
       case 'hp_sacrifice':
@@ -533,10 +534,24 @@ export class LogPresenter {
       case 'status_spread':
         return entry.data.detail === 'no_target'
           ? `${target}没有可扩散目标`
-          : `${target}扩散「${entry.data.name}」`;
+          : `${target}扩散「${mechanicName}」`;
       default:
-        return `${target}触发「${entry.data.name}」`;
+        return `${target}触发「${mechanicName}」`;
     }
+  }
+
+  private formatMechanicName(name: string): string {
+    const labels: Record<string, string> = {
+      calamity_debt: '劫债',
+      karma_mirror_crit: '业镜',
+      blood_ink_damage: '血墨符',
+      borrowed_heal: '借法还真',
+      causality_damage: '因果',
+      shield_break: '破盾',
+      thunder_devour_charge: '蓄雷',
+      heaven_jealousy: '天妒',
+    };
+    return labels[name] ?? name;
   }
 
   private _buildDotHotText(

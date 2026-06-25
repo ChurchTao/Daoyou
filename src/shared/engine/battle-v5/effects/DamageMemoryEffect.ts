@@ -4,10 +4,12 @@ import {
   DamageRequestEvent,
   DamageTakenEvent,
   HealEvent,
+  ShieldBreakEvent,
   ShieldEvent,
 } from '../core/events';
 import { clearMemory, readMemory, rememberAmount } from '../core/runtimeState';
 import { DamageSource, DamageType } from '../core/types';
+import { ValueCalculator } from '../core/ValueCalculator';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { EffectContext, GameplayEffect } from './Effect';
 import { publishMechanicLog } from './advancedEffectUtils';
@@ -27,7 +29,7 @@ export class DamageMemoryEffect extends GameplayEffect {
     if (this.params.mode === 'record') {
       const amount = this.getRecordAmount(context);
       if (amount > 0) {
-        rememberAmount(owner, this.params.key, amount, this.params.maxStored);
+        rememberAmount(owner, this.params.key, amount, this.resolveMaxStored(context, owner));
         publishMechanicLog({
           mechanic: 'memory_record',
           source: context.caster,
@@ -125,6 +127,9 @@ export class DamageMemoryEffect extends GameplayEffect {
     if (this.params.event === 'shield' && event.type === 'ShieldEvent') {
       return (event as ShieldEvent).shieldAmount;
     }
+    if (this.params.event === 'shield_break' && event.type === 'ShieldBreakEvent') {
+      return (event as ShieldBreakEvent).brokenShieldAmount;
+    }
     if (event.type !== 'DamageTakenEvent') return 0;
     const damageEvent = event as DamageTakenEvent;
     if (this.params.event === 'critical_taken' && !damageEvent.isCritical) {
@@ -140,6 +145,24 @@ export class DamageMemoryEffect extends GameplayEffect {
       return 0;
     }
     return damageEvent.damageTaken;
+  }
+
+  private resolveMaxStored(
+    context: EffectContext,
+    owner: EffectContext['target'],
+  ): number | undefined {
+    if (this.params.maxStoredValue) {
+      const valueCap = ValueCalculator.calculate(
+        this.params.maxStoredValue,
+        context.caster,
+        owner,
+      );
+      if (this.params.maxStored !== undefined) {
+        return Math.min(this.params.maxStored, valueCap);
+      }
+      return valueCap;
+    }
+    return this.params.maxStored;
   }
 }
 

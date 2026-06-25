@@ -504,7 +504,7 @@ router.post('/', requireActiveCultivator(), async (c) => {
         return c.json({ error: '请先选定丹方。' }, 400);
       }
       if (resolvedAlchemyMode === 'formula' && !analysisId) {
-        return c.json({ error: '请先按方辨材。' }, 400);
+        return c.json({ error: '请先推演药路。' }, 400);
       }
 
       const craftQiActionInstanceId = randomUUID();

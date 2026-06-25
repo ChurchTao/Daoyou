@@ -615,7 +615,7 @@ function buildAlchemyInfoLines(
         ? '契合成丹'
         : alchemyMeta.fitBand === 'degraded'
           ? '勉强成丹'
-          : undefined
+          : '偏路成丹'
       : undefined;
   const formulaFitScoreText =
     alchemyMeta.source === 'formula' && Number.isFinite(alchemyMeta.fitScore)

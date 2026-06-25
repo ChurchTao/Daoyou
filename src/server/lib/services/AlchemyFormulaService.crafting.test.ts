@@ -191,7 +191,6 @@ function createAnalysisPayload(
     },
     fitScore: 1,
     fitBand: 'aligned',
-    hardBlockThreshold: 0.42,
     alignedThreshold: 0.65,
     warnings: [],
     materialJudgments: [
@@ -332,6 +331,53 @@ describe('craftFromFormula narrative copy', () => {
     );
   });
 
+  it('allows formula analysis and crafting with materials that have no element', async () => {
+    executorState.materialRows = [
+      {
+        ...executorState.materialRows[0],
+        element: null,
+      },
+    ];
+
+    const preview = await previewFormulaCraft(
+      'cultivator-1',
+      'formula-1',
+      ['m1'],
+      50000,
+    );
+    expect(preview.validation.valid).toBe(true);
+
+    const analysis = await analyzeFormulaMaterials(
+      'cultivator-1',
+      'formula-1',
+      ['m1'],
+      { m1: 1 },
+    );
+    expect(analysis.valid).toBe(true);
+    expect(analyzerAnalyzeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        materials: [
+          expect.objectContaining({
+            id: 'm1',
+            element: undefined,
+          }),
+        ],
+      }),
+    );
+
+    const result = await craftFromFormula(
+      'cultivator-1',
+      'formula-1',
+      ['m1'],
+      undefined,
+      'analysis-1',
+    );
+    expect(result.consumable.spec.kind).toBe('pill');
+    expect((result.consumable.spec as PillSpec).alchemyMeta.dominantElement).toBe(
+      '木',
+    );
+  });
+
   it('enforces the per-cultivator analyze cooldown and returns remaining seconds', async () => {
     redisSetMock.mockResolvedValueOnce(null);
     redisTtlMock.mockResolvedValueOnce(37);
@@ -339,7 +385,7 @@ describe('craftFromFormula narrative copy', () => {
     await expect(
       analyzeFormulaMaterials('cultivator-1', 'formula-1', ['m1'], { m1: 1 }),
     ).rejects.toMatchObject({
-      message: '请 37 秒后再按方辨材。',
+      message: '请 37 秒后再推演药路。',
       status: 429,
       details: {
         remainingSeconds: 37,
@@ -348,7 +394,7 @@ describe('craftFromFormula narrative copy', () => {
     expect(analyzerAnalyzeMock).not.toHaveBeenCalled();
   });
 
-  it('lowers the hard block threshold with mastery without changing fit score', async () => {
+  it('classifies low formula fit without using mastery as a hard gate', async () => {
     analyzerAnalyzeMock.mockResolvedValue({
       plan: {
         materialVectors: [
@@ -403,9 +449,7 @@ describe('craftFromFormula narrative copy', () => {
 
     expect(noviceResult.fitScore).toBeCloseTo(0.4, 4);
     expect(veteranResult.fitScore).toBeCloseTo(0.4, 4);
-    expect(noviceResult.hardBlockThreshold).toBeCloseTo(0.45, 4);
-    expect(veteranResult.hardBlockThreshold).toBeCloseTo(0.39, 4);
-    expect(noviceResult.fitBand).toBe('blocked');
+    expect(noviceResult.fitBand).toBe('degraded');
     expect(veteranResult.fitBand).toBe('degraded');
   });
 
@@ -426,7 +470,7 @@ describe('craftFromFormula narrative copy', () => {
   it('rejects formula crafting without a valid prior analysis id', async () => {
     await expect(
       craftFromFormula('cultivator-1', 'formula-1', ['m1']),
-    ).rejects.toThrow('请先按方辨材。');
+    ).rejects.toThrow('请先推演药路。');
   });
 
   it('rejects mystery materials during formula preview, analysis, and crafting', async () => {
@@ -463,7 +507,7 @@ describe('craftFromFormula narrative copy', () => {
     expect(analysis).toMatchObject({
       valid: false,
       staticBlockingReason: '待鉴定材料无法入炉，请先鉴定。',
-      fitBand: 'blocked',
+      fitBand: 'poor',
     });
     expect(analyzerAnalyzeMock).not.toHaveBeenCalled();
 
@@ -489,7 +533,7 @@ describe('craftFromFormula narrative copy', () => {
         undefined,
         'analysis-1',
       ),
-    ).rejects.toThrow('请先按方辨材。');
+    ).rejects.toThrow('请先推演药路。');
   });
 
   it('rejects formula crafting when the cached analysis signature no longer matches', async () => {
@@ -509,10 +553,10 @@ describe('craftFromFormula narrative copy', () => {
         undefined,
         'analysis-1',
       ),
-    ).rejects.toThrow('请先按方辨材。');
+    ).rejects.toThrow('请先推演药路。');
   });
 
-  it('rejects materials whose fit drops below the hard threshold', async () => {
+  it('allows poor formula fit to craft with strong penalties and no mastery gain', async () => {
     redisGetMock.mockResolvedValueOnce(
       JSON.stringify(
         createAnalysisPayload({
@@ -529,20 +573,29 @@ describe('craftFromFormula narrative copy', () => {
             requestedElementBias: '木',
           },
           fitScore: 0,
-          fitBand: 'blocked',
+          fitBand: 'poor',
         }),
       ),
     );
 
-    await expect(
-      craftFromFormula(
-        'cultivator-1',
-        'formula-1',
-        ['m1'],
-        undefined,
-        'analysis-1',
-      ),
-    ).rejects.toThrow('本炉药性与丹方偏差过大，强行开炉只会炸鼎。');
+    const result = await craftFromFormula(
+      'cultivator-1',
+      'formula-1',
+      ['m1'],
+      undefined,
+      'analysis-1',
+    );
+
+    expect(result.consumable.description).toContain('药路偏离丹方甚远');
+    expect(result.formulaProgress.gainedExp).toBe(0);
+    const alchemyMeta = (result.consumable.spec as PillSpec).alchemyMeta;
+    if (alchemyMeta.source !== 'formula') {
+      throw new Error('expected formula alchemy meta');
+    }
+    expect(alchemyMeta.fitBand).toBe('poor');
+    expect(alchemyMeta.fitMultiplier).toBeLessThan(0.6);
+    expect(alchemyMeta.stability).toBeLessThan(60);
+    expect(alchemyMeta.toxicityRating).toBeGreaterThan(30);
   });
 
   it('normalizes healing wound removal by the current crafted quality', async () => {

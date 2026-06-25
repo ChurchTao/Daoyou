@@ -12,7 +12,6 @@ import {
   buildAlchemyPreviewWarnings,
   buildAlchemyPropertyTags,
   calculatePropertyVectorFit,
-  chooseDominantElement,
   getQuotaCategoryForFamily,
   type PreparedAlchemyMaterial,
 } from '@server/lib/services/AlchemyRecipeRules';
@@ -75,11 +74,12 @@ import type {
   FormulaFitBand,
   FormulaMaterialJudgment,
   PillAppearanceGrade,
+  PillFamily,
   PillSpec,
   WeightedAlchemyProperty,
 } from '@shared/types/consumable';
 import type { Consumable, PreHeavenFate } from '@shared/types/cultivator';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { alchemyFormulaAnalyzer } from './AlchemyFormulaAnalyzer';
 import { AlchemyServiceError } from './AlchemyServiceError';
 import {
@@ -98,11 +98,11 @@ const FORMULA_ANALYSIS_COOLDOWN_SECONDS = 30;
 const FORMULA_LOCK_TTL_SECONDS = 30;
 const DISCOVERY_STABILITY_THRESHOLD = 70;
 const FIT_ALIGNED_THRESHOLD = 0.65;
-const FIT_BLOCK_THRESHOLD_BASE = 0.45;
-const FIT_BLOCK_THRESHOLD_MIN = 0.3;
-const FIT_BLOCK_THRESHOLD_STEP = 0.015;
+const FIT_POOR_THRESHOLD = 0.35;
 const DEGRADED_PENALTY_FACTOR_MIN = 0.78;
 const DEGRADED_PENALTY_FACTOR_MAX = 0.9;
+const POOR_PENALTY_FACTOR_MIN = 0.35;
+const POOR_PENALTY_FACTOR_MAX = 0.62;
 
 type MaterialRow = typeof materials.$inferSelect;
 type AlchemyFormulaRow = typeof alchemyFormulas.$inferSelect;
@@ -127,6 +127,25 @@ export interface FormulaProgress {
   leveledUp: boolean;
 }
 
+export interface FormulaListPageOptions {
+  page: number;
+  pageSize: number;
+  search?: string;
+  family?: PillFamily;
+}
+
+export interface FormulaListPageResult {
+  formulas: AlchemyFormula[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+  };
+}
+
 interface DiscoveryPayload {
   cultivatorId: string;
   formula: Omit<AlchemyFormula, 'id' | 'createdAt' | 'updatedAt'>;
@@ -141,7 +160,6 @@ interface FormulaAnalysisPayload {
   plan: AlchemyRecipePlan;
   fitScore: number;
   fitBand: FormulaFitBand;
-  hardBlockThreshold: number;
   alignedThreshold: number;
   warnings: string[];
   materialJudgments: FormulaMaterialJudgment[];
@@ -302,7 +320,7 @@ function buildFormulaDescription(
   toxicityRating: number,
   fitScore: number,
   fitMultiplier: number,
-  fitBand: Exclude<FormulaFitBand, 'blocked'>,
+  fitBand: FormulaFitBand,
 ): string {
   const lines = [
     `依《${formula.name}》炉意炼成，以${sourceMaterials.join('、')}合炉。`,
@@ -311,6 +329,8 @@ function buildFormulaDescription(
 
   if (fitBand === 'degraded') {
     lines.push('本炉循方成丹，但药力散逸，终究未尽合丹方原意。');
+  } else if (fitBand === 'poor') {
+    lines.push('本炉药路偏离丹方甚远，虽可收丹，药力与品相都受明显折损。');
   } else if (fitScore < FIT_ALIGNED_THRESHOLD) {
     lines.push('本炉药性虽能循方成丹，仍有几分偏离，药力难免散逸。');
   }
@@ -339,9 +359,6 @@ function buildPreparedMaterial(
   if (mysteryReason) {
     throw new AlchemyServiceError(mysteryReason, 400);
   }
-  if (!material.element) {
-    throw new AlchemyServiceError(`材料 ${material.name} 缺少五行属性`, 400);
-  }
   if (!isAlchemyMaterialType(material.type as MaterialType)) {
     throw new AlchemyServiceError(`材料 ${material.name} 不可用于炼丹`, 400);
   }
@@ -358,7 +375,7 @@ function buildPreparedMaterial(
     name: material.name,
     description: material.description.trim(),
     rank: material.rank as Quality,
-    element: material.element as ElementType,
+    element: material.element ? (material.element as ElementType) : undefined,
     type: material.type as PreparedAlchemyMaterial['type'],
     dose: normalizeDose(material, materialQuantities),
   };
@@ -427,23 +444,12 @@ function sortMaterialJudgments(
   });
 }
 
-function calculateFormulaHardBlockThreshold(masteryLevel: number): number {
-  return clamp(
-    FIT_BLOCK_THRESHOLD_BASE - masteryLevel * FIT_BLOCK_THRESHOLD_STEP,
-    FIT_BLOCK_THRESHOLD_MIN,
-    FIT_BLOCK_THRESHOLD_BASE,
-  );
-}
-
-function determineFormulaFitBand(
-  fitScore: number,
-  hardBlockThreshold: number,
-): FormulaFitBand {
+function determineFormulaFitBand(fitScore: number): FormulaFitBand {
   if (fitScore >= FIT_ALIGNED_THRESHOLD) {
     return 'aligned';
   }
-  if (fitScore < hardBlockThreshold) {
-    return 'blocked';
+  if (fitScore < FIT_POOR_THRESHOLD) {
+    return 'poor';
   }
   return 'degraded';
 }
@@ -453,6 +459,14 @@ function calculateDegradedPenaltyFactor(fitScore: number): number {
     0.55 + fitScore * 0.5,
     DEGRADED_PENALTY_FACTOR_MIN,
     DEGRADED_PENALTY_FACTOR_MAX,
+  );
+}
+
+function calculatePoorPenaltyFactor(fitScore: number): number {
+  return clamp(
+    0.22 + fitScore * 0.9,
+    POOR_PENALTY_FACTOR_MIN,
+    POOR_PENALTY_FACTOR_MAX,
   );
 }
 
@@ -507,17 +521,7 @@ function buildFormulaWarnings(
   formula: AlchemyFormula,
   materialsList: PreparedAlchemyMaterial[],
 ): string[] {
-  const warnings = buildAlchemyPreviewWarnings(materialsList);
-  const currentDominantElement = chooseDominantElement(materialsList);
-
-  if (
-    formula.pattern.dominantElement &&
-    currentDominantElement !== formula.pattern.dominantElement
-  ) {
-    warnings.push('本炉主元素偏离丹方原意，成丹拟合会略有折损。');
-  }
-
-  return warnings;
+  return buildAlchemyPreviewWarnings(materialsList);
 }
 
 function validateFormulaIngredients(
@@ -615,16 +619,13 @@ function buildFormulaAnalysisPayload(
     aggregated.rawPropertyVector,
     formula.pattern.targetPropertyVector,
   );
-  const hardBlockThreshold = calculateFormulaHardBlockThreshold(
-    formula.mastery.level,
-  );
-  const fitBand = determineFormulaFitBand(fitScore, hardBlockThreshold);
+  const fitBand = determineFormulaFitBand(fitScore);
   const warnings = buildFormulaWarnings(formula, materialsList);
 
   if (fitBand === 'degraded') {
     warnings.push('本炉虽可循方，但药力散逸较多，成丹后多半只得勉强之品。');
-  } else if (fitBand === 'blocked') {
-    warnings.push('当前炉材与丹方主路相冲，强行开炉极易炸鼎。');
+  } else if (fitBand === 'poor') {
+    warnings.push('本炉药路偏离丹方甚远，强行收丹会明显削弱药力与品相。');
   }
 
   return {
@@ -640,7 +641,6 @@ function buildFormulaAnalysisPayload(
     plan,
     fitScore,
     fitBand,
-    hardBlockThreshold,
     alignedThreshold: FIT_ALIGNED_THRESHOLD,
     warnings,
     materialJudgments: sortMaterialJudgments(materialJudgments),
@@ -795,12 +795,30 @@ function appendFormulaPositiveToxicity(
   ];
 }
 
-export function advanceFormulaMastery(mastery: AlchemyFormulaMastery): {
+function calculateFormulaMasteryGain(
+  fitScore: number,
+  fitBand: FormulaFitBand,
+): number {
+  if (fitBand === 'aligned') {
+    return fitScore >= 0.9 ? 3 : 2;
+  }
+  if (fitBand === 'degraded') {
+    return fitScore >= 0.5 ? 1 : 0;
+  }
+  return 0;
+}
+
+export function advanceFormulaMastery(
+  mastery: AlchemyFormulaMastery,
+  fitScore = 1,
+  fitBand: FormulaFitBand = 'aligned',
+): {
   next: AlchemyFormulaMastery;
   progress: FormulaProgress;
 } {
+  const gainedExp = calculateFormulaMasteryGain(fitScore, fitBand);
   let level = mastery.level;
-  let exp = mastery.exp + 1;
+  let exp = mastery.exp + gainedExp;
 
   while (exp >= 5 * (level + 1)) {
     exp -= 5 * (level + 1);
@@ -816,7 +834,7 @@ export function advanceFormulaMastery(mastery: AlchemyFormulaMastery): {
       previousLevel: mastery.level,
       level,
       exp,
-      gainedExp: 1,
+      gainedExp,
       leveledUp: level > mastery.level,
     },
   };
@@ -879,6 +897,58 @@ export async function listCultivatorFormulas(
     .orderBy(desc(alchemyFormulas.updatedAt));
 
   return rows.map(mapAlchemyFormulaRow);
+}
+
+export async function listCultivatorFormulasPage(
+  cultivatorId: string,
+  options: FormulaListPageOptions,
+): Promise<FormulaListPageResult> {
+  const page = Math.max(1, Math.floor(options.page));
+  const pageSize = Math.min(5, Math.max(1, Math.floor(options.pageSize)));
+  const search = options.search?.trim();
+  const conditions = [eq(alchemyFormulas.cultivatorId, cultivatorId)];
+
+  if (options.family) {
+    conditions.push(eq(alchemyFormulas.family, options.family));
+  }
+
+  if (search) {
+    const pattern = `%${search}%`;
+    conditions.push(
+      or(
+        ilike(alchemyFormulas.name, pattern),
+        ilike(alchemyFormulas.description, pattern),
+      )!,
+    );
+  }
+
+  const whereClause = and(...conditions);
+  const [{ count = 0 } = { count: 0 }] = await getExecutor()
+    .select({ count: sql<number>`count(*)::int` })
+    .from(alchemyFormulas)
+    .where(whereClause);
+  const total = Number(count) || 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const normalizedPage = Math.min(page, totalPages);
+  const rows = await getExecutor()
+    .select()
+    .from(alchemyFormulas)
+    .where(whereClause)
+    .orderBy(desc(alchemyFormulas.updatedAt))
+    .limit(pageSize)
+    .offset((normalizedPage - 1) * pageSize);
+
+  return {
+    formulas: rows.map(mapAlchemyFormulaRow),
+    pagination: {
+      page: normalizedPage,
+      pageSize,
+      total,
+      totalPages,
+      hasPreviousPage: normalizedPage > 1,
+      hasNextPage: normalizedPage < totalPages,
+    },
+  };
 }
 
 export async function deleteCultivatorFormula(
@@ -1062,10 +1132,7 @@ export async function analyzeFormulaMaterials(
         valid: false,
         staticBlockingReason: error.message,
         fitScore: 0,
-        fitBand: 'blocked',
-        hardBlockThreshold: calculateFormulaHardBlockThreshold(
-          formula.mastery.level,
-        ),
+        fitBand: 'poor',
         alignedThreshold: FIT_ALIGNED_THRESHOLD,
         warnings: [],
         materialJudgments: [],
@@ -1087,10 +1154,7 @@ export async function analyzeFormulaMaterials(
       valid: false,
       staticBlockingReason: validation.blockingReason,
       fitScore: 0,
-      fitBand: 'blocked',
-      hardBlockThreshold: calculateFormulaHardBlockThreshold(
-        formula.mastery.level,
-      ),
+      fitBand: 'poor',
       alignedThreshold: FIT_ALIGNED_THRESHOLD,
       warnings: validation.warnings,
       materialJudgments: [],
@@ -1106,7 +1170,7 @@ export async function analyzeFormulaMaterials(
   const cooldown = await checkAndAcquireFormulaAnalysisCooldown(cultivatorId);
   if (!cooldown.allowed) {
     throw new AlchemyServiceError(
-      `请 ${cooldown.remainingSeconds} 秒后再按方辨材。`,
+      `请 ${cooldown.remainingSeconds} 秒后再推演药路。`,
       429,
       { remainingSeconds: cooldown.remainingSeconds },
     );
@@ -1119,7 +1183,7 @@ export async function analyzeFormulaMaterials(
       materials: materialsList,
     });
   } catch {
-    throw new AlchemyServiceError('丹方炉意未明，请稍后再试。', 503);
+    throw new AlchemyServiceError('药路推演未明，请稍后再试。', 503);
   }
 
   const payload = buildFormulaAnalysisPayload(
@@ -1143,7 +1207,6 @@ export async function analyzeFormulaMaterials(
     valid: true,
     fitScore: payload.fitScore,
     fitBand: payload.fitBand,
-    hardBlockThreshold: payload.hardBlockThreshold,
     alignedThreshold: payload.alignedThreshold,
     warnings: payload.warnings,
     materialJudgments: payload.materialJudgments,
@@ -1261,7 +1324,7 @@ export async function craftFromFormula(
       throw new AlchemyServiceError('道友查无此人', 404);
     }
     if (!analysisId) {
-      throw new AlchemyServiceError('请先按方辨材。');
+      throw new AlchemyServiceError('请先推演药路。');
     }
 
     const materialsList = buildPreparedMaterials(
@@ -1279,7 +1342,7 @@ export async function craftFromFormula(
       analysisKey,
     );
     if (!analysisPayload) {
-      throw new AlchemyServiceError('请先按方辨材。');
+      throw new AlchemyServiceError('请先推演药路。');
     }
 
     const signature = buildFormulaAnalysisSignature(
@@ -1294,7 +1357,7 @@ export async function craftFromFormula(
       analysisPayload.formulaMasteryLevel !== formula.mastery.level ||
       analysisPayload.signature !== signature
     ) {
-      throw new AlchemyServiceError('请先按方辨材。');
+      throw new AlchemyServiceError('请先推演药路。');
     }
 
     const highestMaterialRank = calculateHighestMaterialRank(
@@ -1318,25 +1381,21 @@ export async function craftFromFormula(
       aggregated.rawPropertyVector,
       formula.pattern.targetPropertyVector,
     );
-    const fitBand = determineFormulaFitBand(
-      fit,
-      analysisPayload.hardBlockThreshold,
-    );
+    const fitBand = determineFormulaFitBand(fit);
     if (
       fitBand !== analysisPayload.fitBand ||
       Math.abs(fit - analysisPayload.fitScore) > 0.0001
     ) {
-      throw new AlchemyServiceError('请先按方辨材。');
-    }
-    if (fitBand === 'blocked') {
-      throw new AlchemyServiceError(
-        '本炉药性与丹方偏差过大，强行开炉只会炸鼎。',
-      );
+      throw new AlchemyServiceError('请先推演药路。');
     }
 
     const dominantElement = aggregated.dominantElement;
-    const degradedPenaltyFactor =
-      fitBand === 'degraded' ? calculateDegradedPenaltyFactor(fit) : 1;
+    const fitBandPenaltyFactor =
+      fitBand === 'poor'
+        ? calculatePoorPenaltyFactor(fit)
+        : fitBand === 'degraded'
+          ? calculateDegradedPenaltyFactor(fit)
+          : 1;
     const fitMultiplier = Number(
       (
         calculateFormulaFitMultiplier(
@@ -1344,13 +1403,25 @@ export async function craftFromFormula(
           aggregated.rawPropertyVector,
           dominantElement,
           materialsList,
-        ) * degradedPenaltyFactor
+        ) * fitBandPenaltyFactor
       ).toFixed(4),
     );
+    const appearanceStabilityPenalty =
+      fitBand === 'poor'
+        ? Math.round((FIT_POOR_THRESHOLD - fit) * 120 + 28)
+        : fitBand === 'degraded'
+          ? Math.round((FIT_ALIGNED_THRESHOLD - fit) * 35)
+          : 0;
+    const appearanceMasteryLevel =
+      fitBand === 'poor'
+        ? 0
+        : fitBand === 'degraded'
+          ? Math.max(0, Math.floor(formula.mastery.level / 2))
+          : formula.mastery.level;
     const appearance = rollPillAppearance({
-      stability: aggregated.stability,
+      stability: Math.max(0, aggregated.stability - appearanceStabilityPenalty),
       propertyVector: formula.pattern.targetPropertyVector,
-      masteryLevel: formula.mastery.level,
+      masteryLevel: appearanceMasteryLevel,
     });
     const operations = appendFormulaPositiveToxicity(
       applyPillAppearanceToOperations(
@@ -1371,9 +1442,17 @@ export async function craftFromFormula(
       fitBand === 'degraded'
         ? Math.round((FIT_ALIGNED_THRESHOLD - fit) * 40)
         : 0;
+    const poorStabilityPenalty =
+      fitBand === 'poor'
+        ? Math.round((FIT_POOR_THRESHOLD - fit) * 120 + 25)
+        : 0;
     const degradedToxicityPenalty =
       fitBand === 'degraded'
         ? Math.round((FIT_ALIGNED_THRESHOLD - fit) * 30)
+        : 0;
+    const poorToxicityPenalty =
+      fitBand === 'poor'
+        ? Math.round((FIT_POOR_THRESHOLD - fit) * 120 + 35)
         : 0;
     const spec: PillSpec = {
       kind: 'pill',
@@ -1397,14 +1476,16 @@ export async function craftFromFormula(
         stability: clamp(
           formula.blueprint.targetStability +
             masteryBonusStability -
-            degradedStabilityPenalty,
+            degradedStabilityPenalty -
+            poorStabilityPenalty,
           15,
           95,
         ),
         toxicityRating: clamp(
           formula.blueprint.targetToxicity -
             masteryBonusToxicity +
-            degradedToxicityPenalty,
+            degradedToxicityPenalty +
+            poorToxicityPenalty,
           0,
           100,
         ),
@@ -1454,6 +1535,8 @@ export async function craftFromFormula(
 
     const { next: nextMastery, progress } = advanceFormulaMastery(
       formula.mastery,
+      fit,
+      fitBand,
     );
 
     const writeFormulaCraft = async (tx: DbTransaction) => {

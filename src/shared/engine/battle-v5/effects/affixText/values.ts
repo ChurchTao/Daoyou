@@ -16,6 +16,7 @@ import { formatAffixNumber, formatAffixPercent } from './format';
  *   { base: 38, attribute: 'willpower', coefficient: 0.29 } → "38 + 神识×29%"
  *   { attribute: 'spirit', coefficient: 0.5 }     → "灵力×50%"
  *   { targetMaxHpRatio: 0.08 }                    → "目标气血8%"
+ *   { targetMaxMpRatio: 0.08 }                    → "目标法力8%"
  */
 export function formatScalableValue(value: ScalableValue): string {
   const parts: string[] = [];
@@ -33,6 +34,10 @@ export function formatScalableValue(value: ScalableValue): string {
 
   if (value.targetMaxHpRatio && value.targetMaxHpRatio > 0) {
     parts.push(`目标气血${formatAffixPercent(value.targetMaxHpRatio)}`);
+  }
+
+  if (value.targetMaxMpRatio && value.targetMaxMpRatio > 0) {
+    parts.push(`目标法力${formatAffixPercent(value.targetMaxMpRatio)}`);
   }
 
   if (parts.length === 0) {

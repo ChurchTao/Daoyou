@@ -187,8 +187,9 @@ export interface DelayedEffectParams {
   statusTags?: string[];
   record?: {
     key: string;
-    event: 'damage_taken' | 'heal' | 'shield';
+    event: 'damage_taken' | 'heal' | 'shield' | 'shield_break';
     maxStored?: number;
+    maxStoredValue?: ScalableValue;
   };
   triggerOnDispel?: boolean;
   maxTriggers?: number;
@@ -197,11 +198,18 @@ export interface DelayedEffectParams {
 export interface DamageMemoryParams {
   key: string;
   mode: 'record' | 'release' | 'clear';
-  event?: 'damage_taken' | 'damage_dealt' | 'heal' | 'shield' | 'critical_taken';
+  event?:
+    | 'damage_taken'
+    | 'damage_dealt'
+    | 'heal'
+    | 'shield'
+    | 'critical_taken'
+    | 'shield_break';
   ratio?: number;
   releaseAs?: 'damage' | 'heal' | 'shield' | 'reflect';
   target?: 'caster' | 'target';
   maxStored?: number;
+  maxStoredValue?: ScalableValue;
   consume?: boolean;
 }
 

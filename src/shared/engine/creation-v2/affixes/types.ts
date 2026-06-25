@@ -9,7 +9,7 @@ import {
   BuffImmunityParams,
   ConditionConfig,
   DamageImmunityParams,
-  DeathPreventParams,
+  ListenerConfig,
   ListenerContextMapping,
   ListenerGuardConfig,
   ListenerScope,
@@ -48,6 +48,8 @@ export interface ScalableValueV2 {
   base: number;
   scale: ScaleMode;
   coefficient: number;
+  min?: number;
+  max?: number;
 }
 
 /**
@@ -68,7 +70,13 @@ export interface AffixScalableValue {
   coefficient?: ScalableParam;
   /** 目标最大气血的比例伤害（固定值，不随品质缩放），如 0.08 表示 8% */
   targetMaxHpRatio?: ScalableParam;
+  /** 目标最大法力的比例值（固定值或品质缩放），如 0.08 表示 8% */
+  targetMaxMpRatio?: ScalableParam;
 }
+
+export type AffixBuffConfig = Omit<BuffConfig, 'listeners'> & {
+  listeners?: Array<Omit<ListenerConfig, 'effects'> & { effects: AffixEffectTemplate[] }>;
+};
 
 /**
  * 通用条件配置：透传到 battle-v5 EffectConfig.conditions
@@ -150,8 +158,9 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
           statusTags?: string[];
           record?: {
             key: string;
-            event: 'damage_taken' | 'heal' | 'shield';
+            event: 'damage_taken' | 'heal' | 'shield' | 'shield_break';
             maxStored?: ScalableParam;
+            maxStoredValue?: AffixScalableValue;
           };
           triggerOnDispel?: boolean;
           maxTriggers?: number;
@@ -167,11 +176,13 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
             | 'damage_dealt'
             | 'heal'
             | 'shield'
-            | 'critical_taken';
+            | 'critical_taken'
+            | 'shield_break';
           ratio?: ScalableParam;
           releaseAs?: 'damage' | 'heal' | 'shield' | 'reflect';
           target?: 'caster' | 'target';
           maxStored?: ScalableParam;
+          maxStoredValue?: AffixScalableValue;
           consume?: boolean;
         };
       }
@@ -282,7 +293,7 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
     | {
         type: 'apply_buff';
         params: {
-          buffConfig: BuffConfig;
+          buffConfig: AffixBuffConfig;
           chance?: ScalableParam;
           target?: 'caster' | 'target';
         };
@@ -311,7 +322,7 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
           cap?: number;
         };
       }
-    | { type: 'death_prevent'; params: DeathPreventParams }
+    | { type: 'death_prevent'; params: { hpFloorPercent?: ScalableParam } }
     | { type: 'buff_immunity'; params: BuffImmunityParams }
     | { type: 'damage_immunity'; params: DamageImmunityParams }
     | { type: 'dispel'; params: { targetTag?: string; maxCount?: number } }

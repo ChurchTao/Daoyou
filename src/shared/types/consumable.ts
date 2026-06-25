@@ -107,7 +107,7 @@ export type FormulaMaterialVerdict =
 export const FORMULA_FIT_BAND_VALUES = [
   'aligned',
   'degraded',
-  'blocked',
+  'poor',
 ] as const;
 
 export type FormulaFitBand = (typeof FORMULA_FIT_BAND_VALUES)[number];
@@ -163,7 +163,7 @@ export type PillAlchemyMeta =
       propertyVector: WeightedAlchemyProperty[];
       sourceMaterialVectors: AlchemyMaterialPropertyVector[];
       fitScore: number;
-      fitBand: Exclude<FormulaFitBand, 'blocked'>;
+      fitBand: FormulaFitBand;
       fitMultiplier: number;
       dominantElement?: ElementType;
       stability: number;
@@ -277,7 +277,6 @@ export interface FormulaAnalysisResult {
   staticBlockingReason?: string;
   fitScore: number;
   fitBand: FormulaFitBand;
-  hardBlockThreshold: number;
   alignedThreshold: number;
   warnings: string[];
   materialJudgments: FormulaMaterialJudgment[];

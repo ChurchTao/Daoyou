@@ -51,7 +51,7 @@ function getJudgmentLabel(verdict: FormulaMaterialJudgment['verdict']): string {
     case 'usable':
       return '可用';
     case 'conflict':
-      return '冲方';
+      return '偏路';
   }
 }
 

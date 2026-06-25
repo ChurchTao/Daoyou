@@ -2,11 +2,14 @@ import { Quality, QUALITY_ORDER } from '@shared/types/constants';
 import {
   ApplyBuffParams,
   AttributeType,
+  BuffConfig,
   EffectConfig,
+  ListenerConfig,
 } from '../contracts/battle';
 import { RolledAffix } from '../types';
 import {
   AffixEffectTemplate,
+  AffixBuffConfig,
   AffixScalableValue,
   ScalableParam,
   ScalableValueV2,
@@ -249,6 +252,15 @@ export class AffixEffectTranslator {
                           ),
                         }
                       : {}),
+                    ...(template.params.record.maxStoredValue !== undefined
+                      ? {
+                          maxStoredValue: this.resolveScalableValue(
+                            template.params.record.maxStoredValue,
+                            qualityOrder,
+                            multiplier,
+                          ),
+                        }
+                      : {}),
                   },
                 }
               : {}),
@@ -285,6 +297,15 @@ export class AffixEffectTranslator {
               ? {
                   maxStored: this.resolveParam(
                     template.params.maxStored,
+                    qualityOrder,
+                    multiplier,
+                  ),
+                }
+              : {}),
+            ...(template.params.maxStoredValue !== undefined
+              ? {
+                  maxStoredValue: this.resolveScalableValue(
+                    template.params.maxStoredValue,
                     qualityOrder,
                     multiplier,
                   ),
@@ -548,7 +569,11 @@ export class AffixEffectTranslator {
 
       case 'apply_buff': {
         const params: ApplyBuffParams = {
-          buffConfig: template.params.buffConfig,
+          buffConfig: this.resolveBuffConfig(
+            template.params.buffConfig,
+            qualityOrder,
+            multiplier,
+          ),
         };
         if (template.params.chance !== undefined) {
           params.chance = this.resolveParam(
@@ -598,7 +623,17 @@ export class AffixEffectTranslator {
       case 'death_prevent':
         return {
           type: 'death_prevent',
-          params: template.params,
+          params: {
+            ...(template.params.hpFloorPercent !== undefined
+              ? {
+                  hpFloorPercent: this.resolveParam(
+                    template.params.hpFloorPercent,
+                    qualityOrder,
+                    multiplier,
+                  ),
+                }
+              : {}),
+          },
         };
 
       case 'buff_immunity':
@@ -628,11 +663,40 @@ export class AffixEffectTranslator {
     }
   }
 
+  private resolveBuffConfig(
+    buffConfig: AffixBuffConfig,
+    qualityOrder: number,
+    multiplier: number,
+  ): BuffConfig {
+    const { listeners, ...buffBase } = buffConfig;
+    return {
+      ...buffBase,
+      ...(listeners
+        ? {
+            listeners: listeners.map((listener): ListenerConfig => ({
+              ...listener,
+              effects: this.resolveEffectList(
+                listener.effects,
+                qualityOrder,
+                multiplier,
+              ),
+            })),
+          }
+        : {}),
+    };
+  }
+
   private resolveScalableValue(
     sv: AffixScalableValue,
     qualityOrder: number,
     multiplier: number,
-  ): { base?: number; attribute?: AttributeType; coefficient?: number; targetMaxHpRatio?: number } {
+  ): {
+    base?: number;
+    attribute?: AttributeType;
+    coefficient?: number;
+    targetMaxHpRatio?: number;
+    targetMaxMpRatio?: number;
+  } {
     return {
       base: this.resolveParam(sv.base, qualityOrder, multiplier),
       ...(sv.attribute !== undefined ? { attribute: sv.attribute } : {}),
@@ -649,6 +713,15 @@ export class AffixEffectTranslator {
         ? {
             targetMaxHpRatio: this.resolveParam(
               sv.targetMaxHpRatio,
+              qualityOrder,
+              multiplier,
+            ),
+          }
+        : {}),
+      ...(sv.targetMaxMpRatio !== undefined
+        ? {
+            targetMaxMpRatio: this.resolveParam(
+              sv.targetMaxMpRatio,
               qualityOrder,
               multiplier,
             ),
@@ -673,7 +746,17 @@ export class AffixEffectTranslator {
           : sv.base + qualityOrder * sv.coefficient;
     }
 
-    return baseValue * multiplier;
+    const resolved = baseValue * multiplier;
+    if (typeof param === 'number') {
+      return resolved;
+    }
+
+    const min = param.min;
+    const max = param.max;
+    return Math.min(
+      max ?? Number.POSITIVE_INFINITY,
+      Math.max(min ?? Number.NEGATIVE_INFINITY, resolved),
+    );
   }
 
   private resolveEffectList(

@@ -53,7 +53,9 @@ import type {
   AlchemyMode,
   FormulaAnalysisResult,
   FormulaMaterialJudgment,
+  PillFamily,
 } from '@shared/types/consumable';
+import { PILL_FAMILY_VALUES } from '@shared/types/consumable';
 import type { Consumable, Material } from '@shared/types/cultivator';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -118,8 +120,18 @@ type FormulaListResponse = {
   success: boolean;
   data?: {
     formulas: AlchemyFormula[];
+    pagination: FormulaListPagination;
   };
   error?: string;
+};
+
+type FormulaListPagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
 };
 
 type DiscoveryConfirmResponse = {
@@ -152,33 +164,21 @@ const DEFAULT_PREVIEW_STATE: PreviewState = {
   previewError: null,
 };
 
-function resolvePreferredFormulaId(
-  formulas: AlchemyFormula[],
-  preferredId: string | null,
-): string | null {
-  return formulas.find((formula) => formula.id === preferredId)
-    ? preferredId
-    : (formulas[0]?.id ?? null);
-}
-
-function getNextSelectedFormulaIdAfterDelete(
-  formulas: AlchemyFormula[],
-  deletedFormulaId: string,
-  currentSelectedFormulaId: string | null,
-): string | null {
-  const remainingFormulas = formulas.filter(
-    (formula) => formula.id !== deletedFormulaId,
-  );
-  const preferredId =
-    currentSelectedFormulaId === deletedFormulaId
-      ? null
-      : currentSelectedFormulaId;
-
-  return resolvePreferredFormulaId(remainingFormulas, preferredId);
-}
+const DEFAULT_FORMULA_PAGINATION: FormulaListPagination = {
+  page: 1,
+  pageSize: 5,
+  total: 0,
+  totalPages: 1,
+  hasPreviousPage: false,
+  hasNextPage: false,
+};
 
 function formatFormulaTags(formula: AlchemyFormula): string {
   return formatAlchemyPropertyVector(formula.pattern.targetPropertyVector);
+}
+
+function getFormulaMasteryRequiredExp(formula: AlchemyFormula): number {
+  return 5 * (formula.mastery.level + 1);
 }
 
 function getFormulaFitBandLabel(
@@ -189,8 +189,8 @@ function getFormulaFitBandLabel(
       return '契合';
     case 'degraded':
       return '勉强';
-    case 'blocked':
-      return '冲方';
+    case 'poor':
+      return '偏路';
   }
 }
 
@@ -202,7 +202,7 @@ function getFormulaFitBandTone(
       return 'accent';
     case 'degraded':
       return 'warning';
-    case 'blocked':
+    case 'poor':
       return 'danger';
   }
 }
@@ -215,8 +215,21 @@ function getFormulaAnalysisNarrative(
       return '炉中药脉已顺着丹方主路收束，此刻开炉，最易成丹。';
     case 'degraded':
       return '这一炉尚能循方而行，只是药力已有散逸，成丹后难免折损几分。';
-    case 'blocked':
-      return '炉中药路相冲，若此刻强开，鼎中只会先起乱势。';
+    case 'poor':
+      return '这一炉药路偏离丹方甚远，仍可强行收丹，但药效和品相都会明显受损。';
+  }
+}
+
+function getFormulaFitBandEffectText(
+  fitBand: FormulaAnalysisResult['fitBand'],
+): string {
+  switch (fitBand) {
+    case 'aligned':
+      return '药效与品相概率按丹方正常发挥，契合越高熟练增长越快。';
+    case 'degraded':
+      return '药效会有折损，品相更难上行，熟练增长较少。';
+    case 'poor':
+      return '药效削减明显，品相大多偏下，且基本不会增长熟练。';
   }
 }
 
@@ -264,10 +277,10 @@ export function AlchemyGuideModal({
               丹方记的是成丹路数，不是死记哪几味药。先选丹方，再把你手头相近的灵材投入炉中；若炉位、品阶或灵石不够，炉前会直接拦下。
             </p>
             <p>
-              投料后先“引炉观脉”。这一步会看每味材料是能当主材、只能凑用，还是会冲了丹方。
+              投料后先“推演药路”。这一步会看每味材料是能当主材、只能凑用，还是会拖偏丹方。
             </p>
             <p>
-              观脉若见“契合”，便可安心开炉；若只是“勉强”，也能成丹，只是药力会折几分；若成了“冲方”，就别强开，换材或调剂量后再观一次。
+              药路若见“契合”，便可安心开炉；若只是“勉强”或“偏路”，也能强行成丹，只是药力、品相和熟练收益都会受影响。
             </p>
           </div>
         </section>
@@ -309,16 +322,13 @@ export function FormulaNarrativeBlock({
   return (
     <div className="text-ink-secondary mt-2 space-y-1 text-sm">
       <div>{formula.description}</div>
-      <div>核心药性：{formatFormulaTags(formula)}</div>
+      <div>药路取向：{formatFormulaTags(formula)}</div>
       <div>
-        炉位 {formula.pattern.slotCount} 种
+        需 {formula.pattern.slotCount} 味灵材
         {formula.pattern.minQuality
-          ? `，最低 ${formula.pattern.minQuality}`
+          ? `，至少 ${formula.pattern.minQuality}`
           : ''}
-        {formula.pattern.dominantElement
-          ? `，主元素 ${formula.pattern.dominantElement}`
-          : ''}
-        {showMasteryExp ? `，当前熟练进度 ${formula.mastery.exp}` : ''}
+        {showMasteryExp ? `，熟练进度 ${formula.mastery.exp}` : ''}
       </div>
     </div>
   );
@@ -347,20 +357,43 @@ export function AlchemyFormulaSummaryCard({
   );
 }
 
-export function AlchemyFormulaAnalysisCard({
+export function AlchemyFormulaAnalysisModal({
   analysis,
   cooldownRemainingSeconds,
+  isOpen,
+  isCrafting,
+  onClose,
+  onCraft,
 }: {
   analysis: FormulaAnalysisResult | null;
   cooldownRemainingSeconds: number;
+  isOpen: boolean;
+  isCrafting: boolean;
+  onClose: () => void;
+  onCraft: () => void;
 }) {
   if (!analysis) {
     return null;
   }
 
   return (
-    <InkCard variant="elevated" padding="lg">
-      <div className="space-y-3 text-sm">
+    <InkModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="药路推演"
+      className="max-w-2xl"
+      footer={
+        <InkActionGroup align="right">
+          <InkButton onClick={onClose} disabled={isCrafting}>
+            稍后开炉
+          </InkButton>
+          <InkButton variant="primary" onClick={onCraft} disabled={isCrafting}>
+            {isCrafting ? '丹火炼中……' : '确认开炉'}
+          </InkButton>
+        </InkActionGroup>
+      }
+    >
+      <div className="space-y-4 text-sm">
         <div className="flex flex-wrap items-center gap-2">
           <InkBadge tone={getFormulaFitBandTone(analysis.fitBand)}>
             {getFormulaFitBandLabel(analysis.fitBand)}
@@ -368,23 +401,43 @@ export function AlchemyFormulaAnalysisCard({
           <span className="text-ink-secondary">
             合方程度 {Math.round(analysis.fitScore * 100)}%
           </span>
-          <span className="text-ink-secondary">
-            炸炉线 {Math.round(analysis.hardBlockThreshold * 100)}%
-          </span>
         </div>
         <div className="text-ink-secondary space-y-1 leading-6">
           <p>{getFormulaAnalysisNarrative(analysis.fitBand)}</p>
-          <p>
-            熟练越深，越能把偏差药路勉强拢回丹方主脉；但若低于炸炉线，仍不可强开。
-          </p>
+          <p>{getFormulaFitBandEffectText(analysis.fitBand)}</p>
           {cooldownRemainingSeconds > 0 ? (
             <p>
-              {analysis.fitBand === 'blocked'
-                ? `${cooldownRemainingSeconds} 秒后可重新引炉观脉。`
-                : `本次观脉已留炉路，可直接开炉；${cooldownRemainingSeconds} 秒后可重新引炉观脉。`}
+              本次推演已留炉路，可直接开炉；{cooldownRemainingSeconds}{' '}
+              秒后可重新推演药路。
             </p>
           ) : null}
         </div>
+        {analysis.materialJudgments.length > 0 ? (
+          <div className="space-y-2">
+            {analysis.materialJudgments.map((judgment) => (
+              <div
+                key={judgment.materialId}
+                className="border-ink/10 flex flex-wrap items-center gap-2 border px-3 py-2"
+              >
+                <InkBadge tone={getFormulaFitBandTone(
+                  judgment.verdict === 'core'
+                    ? 'aligned'
+                    : judgment.verdict === 'usable'
+                      ? 'degraded'
+                      : 'poor',
+                )}>
+                  {judgment.verdict === 'core'
+                    ? '主材'
+                    : judgment.verdict === 'usable'
+                      ? '可用'
+                      : '偏路'}
+                </InkBadge>
+                <span className="font-medium">{judgment.materialName}</span>
+                <span className="text-ink-secondary">{judgment.reason}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
         {analysis.warnings.length > 0 ? (
           <div className="space-y-2">
             {analysis.warnings.map((warning) => (
@@ -395,7 +448,7 @@ export function AlchemyFormulaAnalysisCard({
           </div>
         ) : null}
       </div>
-    </InkCard>
+    </InkModal>
   );
 }
 
@@ -412,6 +465,8 @@ export function AlchemyFormulaListItem({
   onSelect: () => void;
   onDelete: () => void;
 }) {
+  const requiredMasteryExp = getFormulaMasteryRequiredExp(formula);
+
   return (
     <div
       role="button"
@@ -430,19 +485,29 @@ export function AlchemyFormulaListItem({
           : 'border-ink/10 hover:border-ink/30',
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold">{formula.name}</span>
+      <div className="space-y-3">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="font-semibold leading-6">{formula.name}</span>
             <InkBadge tone="default">
               {getPillFamilyLabel(formula.family)}
             </InkBadge>
-            <InkBadge tone="accent">{`Lv.${formula.mastery.level}`}</InkBadge>
           </div>
-          <FormulaNarrativeBlock formula={formula} />
+          <div className="text-ink-secondary flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+            <span>{`熟练 Lv.${formula.mastery.level}`}</span>
+            <span>{`进度 ${formula.mastery.exp}/${requiredMasteryExp}`}</span>
+            <span>{`需 ${formula.pattern.slotCount} 味灵材`}</span>
+            {formula.pattern.minQuality ? (
+              <span>{`至少 ${formula.pattern.minQuality}`}</span>
+            ) : null}
+          </div>
+          <div className="text-ink-secondary space-y-1 text-sm leading-6">
+            <p>{formula.description}</p>
+            <p>药路取向：{formatFormulaTags(formula)}</p>
+          </div>
         </div>
         <div
-          className="shrink-0"
+          className="flex justify-end"
           onClick={(event) => event.stopPropagation()}
           onKeyDown={(event) => event.stopPropagation()}
         >
@@ -450,13 +515,138 @@ export function AlchemyFormulaListItem({
             variant="ghost"
             onClick={onDelete}
             disabled={isDeleting}
-            className="text-crimson hover:text-crimson/80 w-[7em] justify-center"
+            className="text-crimson hover:text-crimson/80 w-[6em] justify-center"
           >
             {isDeleting ? '删除中……' : '删除'}
           </InkButton>
         </div>
       </div>
     </div>
+  );
+}
+
+export function AlchemyFormulaSelectionModal({
+  isOpen,
+  onClose,
+  formulas,
+  selectedFormulaId,
+  isLoading,
+  error,
+  search,
+  familyFilter,
+  pagination,
+  isDeleting,
+  isSubmitting,
+  onSearchChange,
+  onFamilyFilterChange,
+  onPageChange,
+  onSelectFormula,
+  onDeleteFormula,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  formulas: AlchemyFormula[];
+  selectedFormulaId: string | null;
+  isLoading: boolean;
+  error: string | null;
+  search: string;
+  familyFilter: PillFamily | 'all';
+  pagination: FormulaListPagination;
+  isDeleting: boolean;
+  isSubmitting: boolean;
+  onSearchChange: (value: string) => void;
+  onFamilyFilterChange: (value: PillFamily | 'all') => void;
+  onPageChange: (page: number) => void;
+  onSelectFormula: (formula: AlchemyFormula) => void;
+  onDeleteFormula: (formula: AlchemyFormula) => void;
+}) {
+  return (
+    <InkModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="选择丹方"
+      className="max-w-3xl"
+      footer={
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-ink-secondary text-xs">
+            共 {pagination.total} 份丹方，第 {pagination.page} /{' '}
+            {pagination.totalPages} 页
+          </div>
+          <InkActionGroup align="right">
+            <InkButton
+              onClick={() => onPageChange(pagination.page - 1)}
+              disabled={
+                isSubmitting || isLoading || !pagination.hasPreviousPage
+              }
+            >
+              上一页
+            </InkButton>
+            <InkButton
+              onClick={() => onPageChange(pagination.page + 1)}
+              disabled={isSubmitting || isLoading || !pagination.hasNextPage}
+            >
+              下一页
+            </InkButton>
+            <InkButton variant="primary" onClick={onClose}>
+              完成选择
+            </InkButton>
+          </InkActionGroup>
+        </div>
+      }
+    >
+      <div className="space-y-3">
+        <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_12rem]">
+          <InkInput
+            label="搜索丹方"
+            placeholder="按名称或记述查找"
+            value={search}
+            onChange={onSearchChange}
+            disabled={isSubmitting}
+          />
+          <label className="text-ink-secondary flex flex-col gap-1 text-sm">
+            族类
+            <select
+              value={familyFilter}
+              onChange={(event) =>
+                onFamilyFilterChange(event.target.value as PillFamily | 'all')
+              }
+              disabled={isSubmitting}
+              className="border-ink/20 bg-paper text-ink min-h-10 border px-3"
+            >
+              <option value="all">全部</option>
+              {PILL_FAMILY_VALUES.map((family) => (
+                <option key={family} value={family}>
+                  {getPillFamilyLabel(family)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {error ? <InkNotice tone="warning">{error}</InkNotice> : null}
+        {isLoading ? <InkNotice>正在整理你的丹方笔录……</InkNotice> : null}
+        {!isLoading && formulas.length === 0 ? (
+          <InkNotice tone="info">
+            {search || familyFilter !== 'all'
+              ? '没有符合筛选条件的丹方。'
+              : '你尚未悟得丹方。先在“即兴炼丹”中炼出稳固成丹，再尝试留方。'}
+          </InkNotice>
+        ) : null}
+
+        <div className="space-y-2">
+          {formulas.map((formula) => (
+            <AlchemyFormulaListItem
+              key={formula.id}
+              formula={formula}
+              isActive={formula.id === selectedFormulaId}
+              isDeleting={isDeleting}
+              onSelect={() => onSelectFormula(formula)}
+              onDelete={() => onDeleteFormula(formula)}
+            />
+          ))}
+        </div>
+      </div>
+    </InkModal>
   );
 }
 
@@ -635,6 +825,8 @@ export default function AlchemyPage() {
   const [isDeletingFormula, setIsDeletingFormula] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
+  const [isFormulaSelectionModalOpen, setIsFormulaSelectionModalOpen] =
+    useState(false);
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
   const [celebrationTick, setCelebrationTick] = useState(0);
   const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
@@ -643,6 +835,8 @@ export default function AlchemyPage() {
   );
   const [formulaAnalysis, setFormulaAnalysis] =
     useState<FormulaAnalysisResult | null>(null);
+  const [isFormulaAnalysisModalOpen, setIsFormulaAnalysisModalOpen] =
+    useState(false);
   const [isAnalyzingFormula, setIsAnalyzingFormula] = useState(false);
   const [formulaAnalysisError, setFormulaAnalysisError] = useState<
     string | null
@@ -653,19 +847,26 @@ export default function AlchemyPage() {
     null,
   );
   const [formulas, setFormulas] = useState<AlchemyFormula[]>([]);
+  const [selectedFormulaSnapshot, setSelectedFormulaSnapshot] =
+    useState<AlchemyFormula | null>(null);
+  const [formulaSearch, setFormulaSearch] = useState('');
+  const [formulaFamilyFilter, setFormulaFamilyFilter] = useState<
+    PillFamily | 'all'
+  >('all');
+  const [formulaPage, setFormulaPage] = useState(1);
+  const [formulaPagination, setFormulaPagination] =
+    useState<FormulaListPagination>(DEFAULT_FORMULA_PAGINATION);
   const [formulasError, setFormulasError] = useState<string | null>(null);
-  const [loadedFormulaCultivatorId, setLoadedFormulaCultivatorId] = useState<
-    string | null
-  >(null);
+  const [isLoadingFormulas, setIsLoadingFormulas] = useState(false);
   const analyzedFormulaSelectionKeyRef = useRef<string | null>(null);
   const { pushToast } = useInkUI();
   const { openQiActionConfirm } = useQiActionConfirm();
-  const isLoadingFormulas =
-    Boolean(cultivatorId) && loadedFormulaCultivatorId !== cultivatorId;
-
   const selectedFormula = useMemo(
-    () => formulas.find((formula) => formula.id === selectedFormulaId) ?? null,
-    [formulas, selectedFormulaId],
+    () =>
+      selectedFormulaSnapshot?.id === selectedFormulaId
+        ? selectedFormulaSnapshot
+        : (formulas.find((formula) => formula.id === selectedFormulaId) ?? null),
+    [formulas, selectedFormulaId, selectedFormulaSnapshot],
   );
   const nextTutorialTask = useMemo(() => findNextTutorialTask(tasks), [tasks]);
   const isStarterAlchemyTask =
@@ -721,8 +922,9 @@ export default function AlchemyPage() {
 
     const timer = window.setTimeout(() => {
       setFormulaAnalysis(null);
+      setIsFormulaAnalysisModalOpen(false);
       setAnalysisExpiresAfterMs(null);
-      setFormulaAnalysisError('上次辨材已散去，请重新按方辨材。');
+      setFormulaAnalysisError('上次推演已散去，请重新推演药路。');
     }, analysisExpiresAfterMs);
 
     return () => window.clearTimeout(timer);
@@ -730,6 +932,7 @@ export default function AlchemyPage() {
 
   const clearFormulaAnalysis = (options?: { keepError?: boolean }) => {
     setFormulaAnalysis(null);
+    setIsFormulaAnalysisModalOpen(false);
     setAnalysisExpiresAfterMs(null);
     analyzedFormulaSelectionKeyRef.current = null;
     if (!options?.keepError) {
@@ -744,20 +947,34 @@ export default function AlchemyPage() {
     ) {
       analyzedFormulaSelectionKeyRef.current = null;
       setFormulaAnalysis(null);
+      setIsFormulaAnalysisModalOpen(false);
       setAnalysisExpiresAfterMs(null);
       setFormulaAnalysisError(null);
     }
   }, [currentFormulaSelectionKey]);
 
   const loadFormulas = async (options?: {
-    selectFormulaId?: string | null;
+    page?: number;
   }) => {
     if (!cultivatorId) {
       return;
     }
 
     try {
-      const response = await fetch('/api/alchemy/formulas');
+      setIsLoadingFormulas(true);
+      const nextPage = options?.page ?? formulaPage;
+      const params = new URLSearchParams({
+        page: String(nextPage),
+        pageSize: '5',
+      });
+      const keyword = formulaSearch.trim();
+      if (keyword) {
+        params.set('search', keyword);
+      }
+      if (formulaFamilyFilter !== 'all') {
+        params.set('family', formulaFamilyFilter);
+      }
+      const response = await fetch(`/api/alchemy/formulas?${params.toString()}`);
       const result: FormulaListResponse = await response.json();
 
       if (!response.ok || !result.success || !result.data) {
@@ -767,11 +984,9 @@ export default function AlchemyPage() {
       const nextFormulas = result.data.formulas;
 
       setFormulas(nextFormulas);
+      setFormulaPagination(result.data.pagination);
+      setFormulaPage(result.data.pagination.page);
       setFormulasError(null);
-      setSelectedFormulaId((currentSelected) => {
-        const preferredId = options?.selectFormulaId ?? currentSelected;
-        return resolvePreferredFormulaId(nextFormulas, preferredId);
-      });
     } catch (error) {
       setFormulasError(
         error instanceof Error
@@ -779,12 +994,12 @@ export default function AlchemyPage() {
           : '丹方列表读取失败，请稍后再试。',
       );
     } finally {
-      setLoadedFormulaCultivatorId(cultivatorId);
+      setIsLoadingFormulas(false);
     }
   };
 
   useEffect(() => {
-    if (!cultivatorId) {
+    if (!cultivatorId || !isFormulaSelectionModalOpen) {
       return;
     }
 
@@ -792,7 +1007,19 @@ export default function AlchemyPage() {
 
     const loadInitialFormulas = async () => {
       try {
-        const response = await fetch('/api/alchemy/formulas');
+        setIsLoadingFormulas(true);
+        const params = new URLSearchParams({
+          page: String(formulaPage),
+          pageSize: '5',
+        });
+        const keyword = formulaSearch.trim();
+        if (keyword) {
+          params.set('search', keyword);
+        }
+        if (formulaFamilyFilter !== 'all') {
+          params.set('family', formulaFamilyFilter);
+        }
+        const response = await fetch(`/api/alchemy/formulas?${params.toString()}`);
         const result: FormulaListResponse = await response.json();
 
         if (cancelled) return;
@@ -804,10 +1031,9 @@ export default function AlchemyPage() {
         const nextFormulas = result.data.formulas;
 
         setFormulas(nextFormulas);
+        setFormulaPagination(result.data.pagination);
+        setFormulaPage(result.data.pagination.page);
         setFormulasError(null);
-        setSelectedFormulaId((currentSelected) =>
-          resolvePreferredFormulaId(nextFormulas, currentSelected),
-        );
       } catch (error) {
         if (cancelled) return;
         setFormulasError(
@@ -817,7 +1043,7 @@ export default function AlchemyPage() {
         );
       } finally {
         if (!cancelled) {
-          setLoadedFormulaCultivatorId(cultivatorId);
+          setIsLoadingFormulas(false);
         }
       }
     };
@@ -827,7 +1053,13 @@ export default function AlchemyPage() {
     return () => {
       cancelled = true;
     };
-  }, [cultivatorId]);
+  }, [
+    cultivatorId,
+    formulaFamilyFilter,
+    formulaPage,
+    formulaSearch,
+    isFormulaSelectionModalOpen,
+  ]);
 
   const previewRequest = useMemo(() => {
     if (selectedMaterialIds.length === 0) {
@@ -1035,7 +1267,7 @@ export default function AlchemyPage() {
     ? QI_ACTION_COSTS.alchemy_formula
     : QI_ACTION_COSTS.alchemy_improvised;
   const hasCraftableFormulaAnalysis =
-    !!formulaAnalysis?.analysisId && formulaAnalysis.fitBand !== 'blocked';
+    !!formulaAnalysis?.analysisId;
   const canAnalyzeFormula =
     !isSubmitting &&
     !isAnalyzingFormula &&
@@ -1055,16 +1287,17 @@ export default function AlchemyPage() {
     estimatedSpiritStones !== null &&
     displayCanAfford &&
     displayValidation?.valid !== false;
+  const canChooseMaterials = !isSubmitting && (!isFormulaMode || !!selectedFormulaId);
   const formulaPrimaryButtonLabel = isSubmitting
     ? '丹火炼中……'
     : isAnalyzingFormula
-      ? '观脉中……'
+      ? '推演中……'
       : !formulaAnalysis?.analysisId
       ? analysisCooldownRemaining > 0
-        ? `${analysisCooldownRemaining} 秒后可再观脉`
-        : '引炉观脉'
-      : formulaAnalysis.fitBand === 'blocked'
-        ? '冲方不可开'
+        ? `${analysisCooldownRemaining} 秒后可再推演`
+        : '推演药路'
+      : formulaAnalysis.fitBand === 'poor'
+        ? '强行开炉'
         : '依方成丹';
 
   const handleAnalyzeFormula = async () => {
@@ -1090,7 +1323,7 @@ export default function AlchemyPage() {
     }
     if (analysisCooldownRemaining > 0) {
       pushToast({
-        message: `炉意未散，请 ${analysisCooldownRemaining} 秒后再引炉观脉。`,
+        message: `炉意未散，请 ${analysisCooldownRemaining} 秒后再推演药路。`,
         tone: 'warning',
       });
       return;
@@ -1121,7 +1354,7 @@ export default function AlchemyPage() {
         if (typeof result.remainingSeconds === 'number') {
           setAnalysisCooldownRemaining(result.remainingSeconds);
         }
-        throw new Error(result.error || '按方辨材失败');
+        throw new Error(result.error || '推演药路失败');
       }
 
       if (!result.data.valid) {
@@ -1131,18 +1364,19 @@ export default function AlchemyPage() {
       }
 
       setFormulaAnalysis(result.data);
+      setIsFormulaAnalysisModalOpen(true);
       setAnalysisExpiresAfterMs(result.data.expiresInSeconds * 1000);
       analyzedFormulaSelectionKeyRef.current = currentFormulaSelectionKey;
       setAnalysisCooldownRemaining(result.data.cooldownRemainingSeconds);
       pushToast({
         message:
           result.data.fitBand === 'aligned'
-            ? '炉意已明，可依方成丹。'
+            ? '药路已明，可依方成丹。'
             : result.data.fitBand === 'degraded'
               ? '这炉尚可循方，但药力会有折损。'
-              : '此炉冲方，不可强开。',
+              : '这炉偏离丹方较远，仍可强行收丹。',
         tone:
-          result.data.fitBand === 'blocked'
+          result.data.fitBand === 'poor'
             ? 'warning'
             : result.data.fitBand === 'degraded'
               ? 'default'
@@ -1151,11 +1385,11 @@ export default function AlchemyPage() {
     } catch (error) {
       clearFormulaAnalysis({ keepError: true });
       setFormulaAnalysisError(
-        error instanceof Error ? error.message : '按方辨材失败，请稍后再试。',
+        error instanceof Error ? error.message : '推演药路失败，请稍后再试。',
       );
       pushToast({
         message:
-          error instanceof Error ? error.message : '按方辨材失败，请稍后再试。',
+          error instanceof Error ? error.message : '推演药路失败，请稍后再试。',
         tone: 'danger',
       });
     } finally {
@@ -1173,7 +1407,7 @@ export default function AlchemyPage() {
       return;
     }
     if (activeMode === 'formula' && !formulaAnalysis?.analysisId) {
-      pushToast({ message: '请先按方辨材。', tone: 'warning' });
+      pushToast({ message: '请先推演药路。', tone: 'warning' });
       return;
     }
     if (selectedMaterialIds.length === 0) {
@@ -1188,11 +1422,6 @@ export default function AlchemyPage() {
       pushToast({ message: '当前炉况未稳，暂不可开炉。', tone: 'warning' });
       return;
     }
-    if (activeMode === 'formula' && formulaAnalysis?.fitBand === 'blocked') {
-      pushToast({ message: '这炉冲方，不可强开。', tone: 'warning' });
-      return;
-    }
-
     openQiActionConfirm({
       actionName: activeMode === 'formula' ? '丹方炼丹' : '开炉炼丹',
       qiCost,
@@ -1245,7 +1474,7 @@ export default function AlchemyPage() {
           clearFormulaAnalysis();
           setMaterialsRefreshKey((prev) => prev + 1);
         } catch (error) {
-          if (error instanceof Error && error.message.includes('请先按方辨材')) {
+          if (error instanceof Error && error.message.includes('请先推演药路')) {
             clearFormulaAnalysis({ keepError: true });
             setFormulaAnalysisError(error.message);
           }
@@ -1286,9 +1515,10 @@ export default function AlchemyPage() {
       }
 
       if (accept && result.data.saved && result.data.formula) {
-        await loadFormulas({
-          selectFormulaId: result.data.formula.id,
-        });
+        setSelectedFormulaId(result.data.formula.id);
+        setSelectedFormulaSnapshot(result.data.formula);
+        setFormulaPage(1);
+        await loadFormulas({ page: 1 });
         pushToast({
           message: `已悟得【${result.data.formula.name}】`,
           tone: 'success',
@@ -1338,12 +1568,6 @@ export default function AlchemyPage() {
           return;
         }
 
-        const nextSelectedFormulaId = getNextSelectedFormulaIdAfterDelete(
-          formulas,
-          formula.id,
-          selectedFormulaId,
-        );
-
         try {
           setIsDeletingFormula(true);
           setDialog((currentDialog) =>
@@ -1366,8 +1590,15 @@ export default function AlchemyPage() {
 
           setPreviewState(DEFAULT_PREVIEW_STATE);
           clearFormulaAnalysis();
+          if (selectedFormulaId === formula.id) {
+            setSelectedFormulaId(null);
+            setSelectedFormulaSnapshot(null);
+          }
           await loadFormulas({
-            selectFormulaId: nextSelectedFormulaId,
+            page:
+              formulas.length === 1 && formulaPagination.hasPreviousPage
+                ? formulaPagination.page - 1
+                : formulaPagination.page,
           });
           pushToast({
             message: result.message || `已删除【${formula.name}】`,
@@ -1531,39 +1762,58 @@ export default function AlchemyPage() {
         onChange={handleModeChange}
       />
 
-      {activeMode === 'formula' && (
-        <GameSceneSection title="丹方总览">
-          {formulasError && (
-            <InkNotice tone="warning">{formulasError}</InkNotice>
-          )}
-          {isLoadingFormulas && <InkNotice>正在整理你的丹方笔录……</InkNotice>}
-          {!isLoadingFormulas && formulas.length === 0 && (
-            <InkNotice tone="info">
-              你尚未悟得丹方。先在“即兴炼丹”中炼出稳固成丹，再尝试留方。
-            </InkNotice>
-          )}
-          {formulas.length > 0 && (
-            <div className="space-y-2">
-              {formulas.map((formula) => {
-                const isActive = formula.id === selectedFormulaId;
-                return (
-                  <AlchemyFormulaListItem
-                    key={formula.id}
-                    formula={formula}
-                    isActive={isActive}
-                    isDeleting={isDeletingFormula}
-                    onSelect={() => {
-                      clearFormulaAnalysis();
-                      setSelectedFormulaId(formula.id);
-                    }}
-                    onDelete={() => openDeleteFormulaConfirm(formula)}
-                  />
-                );
-              })}
+      {activeMode === 'formula' ? (
+        <GameSceneSection title="丹方摘要">
+          {selectedFormula ? (
+            <div className="space-y-3">
+              <AlchemyFormulaSummaryCard formula={selectedFormula} />
+              <InkButton
+                variant="outline"
+                onClick={() => setIsFormulaSelectionModalOpen(true)}
+                disabled={isSubmitting}
+              >
+                更换丹方
+              </InkButton>
+              {formulaAnalysis ? (
+                <InkNotice tone="info">
+                  <div className="space-y-3">
+                    <span>
+                      药路已推演：{getFormulaFitBandLabel(formulaAnalysis.fitBand)}
+                      ，合方程度 {Math.round(formulaAnalysis.fitScore * 100)}%。
+                    </span>
+                    <InkButton
+                      variant="outline"
+                      onClick={() => setIsFormulaAnalysisModalOpen(true)}
+                      disabled={isSubmitting}
+                    >
+                      查看点评
+                    </InkButton>
+                  </div>
+                </InkNotice>
+              ) : formulaAnalysisError ? (
+                <InkNotice tone="warning">{formulaAnalysisError}</InkNotice>
+              ) : selectedMaterialIds.length > 0 ? (
+                <InkNotice tone="info">
+                  灵材既入炉中，还需先推演药路，再可依方收丹。
+                </InkNotice>
+              ) : null}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <InkNotice tone="info">
+                先选定一份丹方，再安排炉材。
+              </InkNotice>
+              <InkButton
+                variant="primary"
+                onClick={() => setIsFormulaSelectionModalOpen(true)}
+                disabled={isSubmitting}
+              >
+                选择丹方
+              </InkButton>
             </div>
           )}
         </GameSceneSection>
-      )}
+      ) : null}
 
       <GameSceneSection title="炉材投入">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -1573,18 +1823,23 @@ export default function AlchemyPage() {
           <InkButton
             variant="outline"
             onClick={() => setIsMaterialModalOpen(true)}
-            disabled={isSubmitting}
+            disabled={!canChooseMaterials}
           >
             打开材料
           </InkButton>
         </div>
+        {isFormulaMode && !selectedFormulaId ? (
+          <InkNotice tone="info">
+            先选丹方，再甄选这一炉要投入的灵材。
+          </InkNotice>
+        ) : null}
         <SelectedMaterialsWithDose
           selectedIds={selectedMaterialIds}
           materialMap={selectedMaterialMap}
           doseMap={doseMap}
           minDose={MIN_DOSE}
           maxDose={MAX_DOSE}
-          disabled={isSubmitting}
+          disabled={!canChooseMaterials}
           judgmentMap={formulaJudgmentMap}
           sortByJudgment={activeMode === 'formula' && !!formulaAnalysis}
           onRemove={(id) => toggleMaterial(id)}
@@ -1604,31 +1859,7 @@ export default function AlchemyPage() {
             disabled={isSubmitting}
           />
         </GameSceneSection>
-      ) : (
-        <GameSceneSection title="丹方摘要">
-          {selectedFormula ? (
-            <div className="space-y-3">
-              <AlchemyFormulaSummaryCard formula={selectedFormula} />
-              {formulaAnalysis ? (
-                <AlchemyFormulaAnalysisCard
-                  analysis={formulaAnalysis}
-                  cooldownRemainingSeconds={analysisCooldownRemaining}
-                />
-              ) : formulaAnalysisError ? (
-                <InkNotice tone="warning">{formulaAnalysisError}</InkNotice>
-              ) : selectedMaterialIds.length > 0 ? (
-                <InkNotice tone="info">
-                  灵材既入炉中，还需先辨明药脉，再可依方收丹。
-                </InkNotice>
-              ) : null}
-            </div>
-          ) : (
-            <InkNotice tone="info">
-              先从上方选定一份丹方，再安排炉材。
-            </InkNotice>
-          )}
-        </GameSceneSection>
-      )}
+      ) : null}
 
       <GameSceneSection title="预计消耗">
         {estimatedSpiritStones !== null ? (
@@ -1720,6 +1951,37 @@ export default function AlchemyPage() {
         totalText={(total) => `共 ${total} 份可用于炼丹的材料`}
       />
 
+      <AlchemyFormulaSelectionModal
+        isOpen={isFormulaSelectionModalOpen}
+        onClose={() => setIsFormulaSelectionModalOpen(false)}
+        formulas={formulas}
+        selectedFormulaId={selectedFormulaId}
+        isLoading={isLoadingFormulas}
+        error={formulasError}
+        search={formulaSearch}
+        familyFilter={formulaFamilyFilter}
+        pagination={formulaPagination}
+        isDeleting={isDeletingFormula}
+        isSubmitting={isSubmitting}
+        onSearchChange={(value) => {
+          setFormulaSearch(value);
+          setFormulaPage(1);
+        }}
+        onFamilyFilterChange={(value) => {
+          setFormulaFamilyFilter(value);
+          setFormulaPage(1);
+        }}
+        onPageChange={setFormulaPage}
+        onSelectFormula={(formula) => {
+          clearFormulaAnalysis();
+          setSelectedFormulaId(formula.id);
+          setSelectedFormulaSnapshot(formula);
+          setPreviewState(DEFAULT_PREVIEW_STATE);
+          setIsFormulaSelectionModalOpen(false);
+        }}
+        onDeleteFormula={openDeleteFormulaConfirm}
+      />
+
       <AlchemyResultModal
         consumable={createdConsumable}
         formulaProgress={formulaProgress}
@@ -1739,6 +2001,18 @@ export default function AlchemyPage() {
         isOpen={isDiscoveryModalOpen}
         onAcceptDiscovery={() => void handleDiscoveryDecision(true)}
         onRejectDiscovery={() => void handleDiscoveryDecision(false)}
+      />
+
+      <AlchemyFormulaAnalysisModal
+        analysis={formulaAnalysis}
+        cooldownRemainingSeconds={analysisCooldownRemaining}
+        isOpen={isFormulaAnalysisModalOpen}
+        isCrafting={isSubmitting}
+        onClose={() => setIsFormulaAnalysisModalOpen(false)}
+        onCraft={() => {
+          setIsFormulaAnalysisModalOpen(false);
+          void handleSubmit();
+        }}
       />
 
       <AlchemyGuideModal

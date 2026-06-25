@@ -312,4 +312,26 @@ describe('LogPresenter 行动日志聚合', () => {
       '「张三」施放《火球术》，「张三」获得「下一击规则」强化，「张三」献祭 80 点气血',
     ]);
   });
+
+  it('记忆机制日志不应展示内部 key', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('mechanic', {
+        mechanic: 'memory_record',
+        targetName: '李四',
+        name: 'calamity_debt',
+        value: 12_000,
+      }),
+      createEntry('mechanic', {
+        mechanic: 'memory_release',
+        targetName: '李四',
+        name: 'calamity_debt',
+        value: 2_400,
+      }),
+    ]);
+
+    const lines = presenter.formatSpan(span);
+    expect(lines.join(' ')).toContain('劫债');
+    expect(lines.join(' ')).not.toContain('calamity_debt');
+  });
 });

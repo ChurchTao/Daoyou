@@ -2,13 +2,14 @@ import {
   analyzeFormulaMaterials,
   confirmDiscoveryCandidate,
   deleteCultivatorFormula,
-  listCultivatorFormulas,
+  listCultivatorFormulasPage,
 } from '@server/lib/services/AlchemyFormulaService';
 import { AlchemyServiceError } from '@server/lib/services/AlchemyServiceError';
 import { requireActiveCultivator } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
+import { PILL_FAMILY_VALUES } from '@shared/types/consumable';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -36,6 +37,12 @@ const FormulaAnalyzeSchema = z.object({
     )
     .optional(),
 });
+const FormulaListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(5).default(5),
+  search: z.string().trim().max(40).optional(),
+  family: z.enum(PILL_FAMILY_VALUES).optional(),
+});
 
 router.get('/formulas', requireActiveCultivator(), async (c) => {
   const cultivator = c.get('cultivator');
@@ -44,14 +51,24 @@ router.get('/formulas', requireActiveCultivator(), async (c) => {
   }
 
   try {
-    const formulas = await listCultivatorFormulas(cultivator.id);
+    const query = FormulaListQuerySchema.parse({
+      page: c.req.query('page'),
+      pageSize: c.req.query('pageSize'),
+      search: c.req.query('search') || undefined,
+      family: c.req.query('family') || undefined,
+    });
+    const result = await listCultivatorFormulasPage(cultivator.id, query);
     return c.json({
       success: true,
       data: {
-        formulas,
+        formulas: result.formulas,
+        pagination: result.pagination,
       },
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: error.issues[0]?.message || '请求参数格式错误' }, 400);
+    }
     if (error instanceof AlchemyServiceError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }
@@ -121,7 +138,7 @@ router.post('/formulas/:formulaId/analyze', requireActiveCultivator(), async (c)
         error.status,
       );
     }
-    return c.json({ error: '按方辨材失败，请稍后再试。' }, 500);
+    return c.json({ error: '推演药路失败，请稍后再试。' }, 500);
   }
 });
 

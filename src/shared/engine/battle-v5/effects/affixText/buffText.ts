@@ -156,9 +156,8 @@ export function describeBuffRuntimeSummary(
   buff: BuffConfig,
   describeEffect: EffectTextFormatter,
 ): string[] {
-  if (buff.description) return [buff.description];
-
   return [
+    buff.description ?? '',
     ...describeBuffStatusEffects(buff),
     ...(buff.modifiers ?? []).map(formatBuffModifier),
     ...(buff.listeners ?? []).map((listener) =>

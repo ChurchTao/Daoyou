@@ -1920,6 +1920,12 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
                 base: { base: 50, scale: 'quality', coefficient: 10 },
                 attribute: AttributeType.MAGIC_ATK,
                 coefficient: qualityScaledCoefficient(0.65),
+                targetMaxHpRatio: {
+                  base: 0.04,
+                  scale: 'quality',
+                  coefficient: 0.005,
+                  max: 0.08,
+                },
               },
               damageType: DamageType.TRUE,
             },
@@ -1980,7 +1986,17 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
                       {
                         type: 'damage',
                         params: {
-                          value: { base: 60, attribute: AttributeType.MAGIC_ATK, coefficient: 0.6 },
+                          value: {
+                            base: { base: 40, scale: 'quality', coefficient: 8 },
+                            attribute: AttributeType.MAGIC_ATK,
+                            coefficient: qualityScaledCoefficient(0.55),
+                            targetMaxHpRatio: {
+                              base: 0.03,
+                              scale: 'quality',
+                              coefficient: 0.004,
+                              max: 0.06,
+                            },
+                          },
                         },
                       },
                       { type: 'cooldown_modify', params: { cdModifyValue: 1, maxCount: 1 } },
@@ -2022,7 +2038,17 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           {
             type: 'damage',
             params: {
-              value: { base: 18, attribute: AttributeType.MAGIC_ATK, coefficient: 0.18 },
+              value: {
+                base: { base: 8, scale: 'quality', coefficient: 2 },
+                attribute: AttributeType.MAGIC_ATK,
+                coefficient: qualityScaledCoefficient(0.14),
+                targetMaxHpRatio: {
+                  base: 0.012,
+                  scale: 'quality',
+                  coefficient: 0.002,
+                  max: 0.025,
+                },
+              },
             },
           },
           { type: 'status_spread', params: { match: { tags: [GameplayTags.BUFF.DOT.POISON] } } },
@@ -2059,6 +2085,15 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         record: {
           key: 'blood_ink_damage',
           event: 'damage_taken',
+          maxStoredValue: {
+            base: 0,
+            targetMaxHpRatio: {
+              base: 0.7,
+              scale: 'quality',
+              coefficient: 0.07,
+              max: 1.15,
+            },
+          },
         },
         effects: [
           {
@@ -2066,7 +2101,12 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
             params: {
               key: 'blood_ink_damage',
               mode: 'release',
-              ratio: { base: 0.28, scale: 'quality', coefficient: 0.06 },
+              ratio: {
+                base: 0.24,
+                scale: 'quality',
+                coefficient: 0.035,
+                max: 0.5,
+              },
               releaseAs: 'damage',
               target: 'target',
             },
@@ -2192,7 +2232,17 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
               },
             ],
             params: {
-              value: { base: { base: 35, scale: 'quality', coefficient: 8 }, attribute: AttributeType.SPIRIT, coefficient: 0.25 },
+              value: {
+                base: { base: 20, scale: 'quality', coefficient: 5 },
+                attribute: AttributeType.SPIRIT,
+                coefficient: qualityScaledCoefficient(0.22),
+                targetMaxMpRatio: {
+                  base: 0.08,
+                  scale: 'quality',
+                  coefficient: 0.01,
+                  max: 0.15,
+                },
+              },
             },
           },
           {

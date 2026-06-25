@@ -641,7 +641,7 @@ describe('craft router alchemy routes', () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      error: '请先按方辨材。',
+      error: '请先推演药路。',
     });
     expect(craftFromFormulaMock).not.toHaveBeenCalled();
     expect(reserveQiMock).not.toHaveBeenCalled();

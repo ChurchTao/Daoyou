@@ -345,23 +345,52 @@ describe('AlchemyFormulaService', () => {
     expect(multiplier).toBeCloseTo(1.15);
   });
 
-  it('advances mastery with overflow exp', () => {
+  it('advances mastery with fit-based overflow exp', () => {
     expect(
-      advanceFormulaMastery({
-        level: 0,
-        exp: 4,
-      }),
+      advanceFormulaMastery(
+        {
+          level: 0,
+          exp: 4,
+        },
+        0.95,
+        'aligned',
+      ),
     ).toEqual({
       next: {
         level: 1,
-        exp: 0,
+        exp: 2,
       },
       progress: {
         previousLevel: 0,
         level: 1,
-        exp: 0,
-        gainedExp: 1,
+        exp: 2,
+        gainedExp: 3,
         leveledUp: true,
+      },
+    });
+  });
+
+  it('does not advance mastery for poor formula fit', () => {
+    expect(
+      advanceFormulaMastery(
+        {
+          level: 2,
+          exp: 3,
+        },
+        0.2,
+        'poor',
+      ),
+    ).toEqual({
+      next: {
+        level: 2,
+        exp: 3,
+      },
+      progress: {
+        previousLevel: 2,
+        level: 2,
+        exp: 3,
+        gainedExp: 0,
+        leveledUp: false,
       },
     });
   });
