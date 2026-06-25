@@ -41,6 +41,7 @@ export class DamageDeferEffect extends GameplayEffect {
       new DelayedRuntimeBuff({
         id: `deferred_damage_${nextRuntimeSequence(event.target, 'damage_defer')}`,
         name: '延迟伤害',
+        description: `${this.params.delayTurns}回合后结算被太虚袍延后的伤害。`,
         delayTurns: this.params.delayTurns,
         effects: [
           {

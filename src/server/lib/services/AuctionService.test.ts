@@ -320,6 +320,36 @@ describe('AuctionService', () => {
     expect(createListingMock).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['玄品', 100_001, '100,000'],
+    ['真品', 200_001, '200,000'],
+    ['地品', 400_001, '400,000'],
+    ['天品', 800_001, '800,000'],
+    ['仙品', 1_600_001, '1,600,000'],
+  ] as const)('rejects %s listings above its quality price cap', async (
+    quality,
+    price,
+    formattedCap,
+  ) => {
+    const { executor } = createExecutor({
+      consumableRow: createConsumableRow({ quality }),
+    });
+    getExecutorMock.mockReturnValue(executor);
+
+    await expect(
+      listItem({
+        userId: 'user-1',
+        cultivatorId: 'cultivator-1',
+        cultivatorName: '韩立',
+        itemType: 'consumable',
+        itemId: 'consumable-1',
+        price,
+        quantity: 1,
+      }),
+    ).rejects.toThrow(`${quality}物品价格不得超过 ${formattedCap} 灵石`);
+    expect(createListingMock).not.toHaveBeenCalled();
+  });
+
   it('consumes a private listing talisman and stores the target friend snapshot', async () => {
     const { executor } = createExecutor({
       consumableRow: createConsumableRow(),

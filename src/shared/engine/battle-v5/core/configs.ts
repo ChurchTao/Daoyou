@@ -180,6 +180,7 @@ export interface ConsumeStatusTriggerParams {
 export interface DelayedEffectParams {
   id: string;
   name: string;
+  description?: string;
   delayTurns: number;
   effects: EffectConfig[];
   tags?: string[];
@@ -455,6 +456,7 @@ export interface AttributeModifierConfig {
 export interface BuffConfig {
   id: string;
   name: string;
+  description?: string;
   type: BuffType;
   duration: number; // -1 为永久
   stackRule: StackRule;

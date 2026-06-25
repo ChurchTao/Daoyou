@@ -1407,6 +1407,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
               buffConfig: {
                 id: 'karma_mirror_ready',
                 name: '业镜',
+                description: '下一次受到攻击时，反射最近一次承受暴击伤害的30%，触发后消失。',
                 type: BuffType.BUFF,
                 duration: 2,
                 stackRule: StackRule.OVERRIDE,
@@ -1488,6 +1489,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
             params: {
               id: 'calamity_debt',
               name: '劫债',
+              description: '1回合后偿还本次致命伤记录的一部分，以真实伤害结算到自身。',
               delayTurns: 1,
               tags: [GameplayTags.BUFF.TYPE.DEBUFF],
               effects: [
@@ -1546,6 +1548,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
               buffConfig: {
                 id: 'thunder_devour_charge',
                 name: '蓄雷',
+                description: '受到雷系伤害时积蓄；达到3层后清空，并减少自身一个技能冷却。',
                 type: BuffType.BUFF,
                 duration: 3,
                 stackRule: StackRule.STACK_LAYER,

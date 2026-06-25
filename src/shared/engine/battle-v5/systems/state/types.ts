@@ -2,6 +2,7 @@
 export interface BuffStateView {
   id: string;
   name: string;
+  description?: string;
   type: 'buff' | 'debuff' | 'control';
   layers: number;
   /** 剩余回合数；-1 表示永久 */

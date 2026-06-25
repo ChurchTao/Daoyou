@@ -23,7 +23,6 @@ import type {
   AttributeModifierConfig,
   BuffConfig,
   EffectConfig,
-  ListenerConfig,
 } from '../../core/configs';
 import { isPercentageAttributeType } from '../../core/attributeMeta';
 import { AttributeType, ModifierType } from '../../core/types';
@@ -38,6 +37,13 @@ import {
 } from './gameplayTagText';
 import { describeListener } from './listeners';
 import { formatScalableValue } from './values';
+import {
+  describeApplyBuffText,
+  describeBuffListener,
+  describeBuffType,
+  describeStackRule,
+  formatBuffModifier,
+} from './buffText';
 
 export interface RenderAffixOptions {
   registry?: AffixRegistry;
@@ -58,6 +64,7 @@ export interface RenderedAffixLine {
 
 export interface AffixBuffDetailView {
   name: string;
+  descriptionText?: string;
   typeText: string;
   durationText: string;
   stackText: string;
@@ -282,10 +289,7 @@ function buildMechanicDetail(args: BuildBodyArgs): MechanicDetail {
     conditionTexts: conditionText ? [conditionText] : [],
     effectText,
     formulaText: describeFormula(effect),
-    buffDetails:
-      effect.type === 'apply_buff'
-        ? [describeBuffDetail(effect.params.buffConfig, effect.params.chance)]
-        : [],
+    buffDetails: collectBuffDetails(effect),
     damageTypeLabels:
       effect.type === 'damage'
         ? inferDamageTypeLabels({
@@ -415,139 +419,50 @@ function describeBuffDetail(
   ]);
   return {
     name: buff.name,
+    ...(buff.description ? { descriptionText: buff.description } : {}),
     typeText: describeBuffType(buff.type),
     durationText: buff.duration === -1 ? '常驻' : `${buff.duration} 回合`,
     stackText: describeStackRule(buff.stackRule),
     ...(chance !== undefined
       ? { chanceText: formatAffixPercent(chance) }
       : {}),
-    modifierTexts: (buff.modifiers ?? []).map(formatModifier),
+    modifierTexts: (buff.modifiers ?? []).map(formatBuffModifier),
     listenerTexts: (buff.listeners ?? []).map((listener) =>
-      describeBuffListener(listener, buff.tags),
+      describeBuffListener(listener, buff.tags, (effect, effectContext) =>
+        describeEffectCore(effect, effectContext),
+      ),
     ),
     tagLabels,
   };
+}
+
+function collectBuffDetails(effect: EffectConfig): AffixBuffDetailView[] {
+  switch (effect.type) {
+    case 'apply_buff':
+      return [describeBuffDetail(effect.params.buffConfig, effect.params.chance)];
+    case 'effect_sequence':
+    case 'element_history':
+    case 'turn_state_counter':
+      return effect.params.effects.flatMap(collectBuffDetails);
+    case 'consume_status_trigger':
+    case 'delayed_effect':
+      return effect.params.effects.flatMap(collectBuffDetails);
+    case 'buff_layer_modify':
+      return effect.params.effects?.flatMap(collectBuffDetails) ?? [];
+    case 'tag_trigger':
+      return effect.params.effects?.flatMap(collectBuffDetails) ?? [];
+    default:
+      return [];
+  }
 }
 
 function describeApplyBuffInline(
   buff: BuffConfig,
   chance: number | undefined,
 ): string {
-  const chanceText =
-    chance !== undefined ? `${formatAffixPercent(chance)}概率` : '';
-  const stateParts = [
-    describeBuffType(buff.type),
-    buff.duration === -1 ? '常驻' : `${buff.duration}回合`,
-    describeStackRuleShort(buff.stackRule),
-  ].filter(Boolean);
-  const effectParts = [
-    ...describeBuffStatusEffects(buff),
-    ...(buff.modifiers ?? []).map(formatModifier),
-    ...(buff.listeners ?? []).map((listener) =>
-      describeBuffListenerInline(listener, buff.tags, buff.stackRule),
-    ),
-  ].filter(Boolean);
-  const detail = [...stateParts, ...effectParts].join('；');
-
-  return `${chanceText}附加「${buff.name}」${detail ? `（${detail}）` : ''}`;
-}
-
-function describeStackRuleShort(rule: BuffConfig['stackRule']): string {
-  switch (rule) {
-    case 'stack_layer':
-      return '可叠层';
-    case 'refresh_duration':
-      return '重复命中刷新持续';
-    case 'override':
-      return '新效果覆盖旧效果';
-    case 'ignore':
-      return '已有时不重复附加';
-    default:
-      return '';
-  }
-}
-
-function describeBuffStatusEffects(buff: BuffConfig): string[] {
-  const statusTags = buff.statusTags ?? [];
-  return [
-    statusTags.includes(GameplayTags.STATUS.CONTROL.NO_ACTION)
-      ? '无法行动'
-      : '',
-    statusTags.includes(GameplayTags.STATUS.CONTROL.NO_SKILL)
-      ? '无法施放神通'
-      : '',
-    statusTags.includes(GameplayTags.STATUS.CONTROL.NO_BASIC)
-      ? '无法普通攻击'
-      : '',
-  ].filter(Boolean);
-}
-
-function describeBuffListenerInline(
-  listener: ListenerConfig,
-  buffTags: string[] | undefined,
-  stackRule: BuffConfig['stackRule'],
-): string {
-  const trigger = describeListener({
-    eventType: listener.eventType,
-    scope: listener.scope,
-    priority: listener.priority,
-    ...(listener.mapping ? { mapping: listener.mapping } : {}),
-    ...(listener.guard ? { guard: listener.guard } : {}),
-  });
-  const effectTexts = listener.effects.map((effect) =>
-    describeEffectCore(effect, { buffTags }),
+  return describeApplyBuffText(buff, chance, undefined, (effect, effectContext) =>
+    describeEffectCore(effect, effectContext),
   );
-  const stackText =
-    stackRule === 'stack_layer' && buffTags?.includes(GameplayTags.BUFF.DOT.ROOT)
-      ? '，按层数放大'
-      : '';
-
-  return `${trigger || listener.eventType}${effectTexts.join('、')}${stackText}`;
-}
-
-function describeBuffType(type: BuffConfig['type']): string {
-  switch (type) {
-    case 'buff':
-      return '正面状态';
-    case 'debuff':
-      return '负面状态';
-    case 'control':
-      return '控制状态';
-    default:
-      return type;
-  }
-}
-
-function describeStackRule(rule: BuffConfig['stackRule']): string {
-  switch (rule) {
-    case 'stack_layer':
-      return '可叠层，同名状态会增加层数';
-    case 'refresh_duration':
-      return '重复命中时刷新持续时间';
-    case 'override':
-      return '新效果会覆盖旧效果';
-    case 'ignore':
-      return '已有同名状态时忽略新效果';
-    default:
-      return rule;
-  }
-}
-
-function describeBuffListener(
-  listener: ListenerConfig,
-  buffTags: string[] | undefined,
-): string {
-  const trigger = describeListener({
-    eventType: listener.eventType,
-    scope: listener.scope,
-    priority: listener.priority,
-    ...(listener.mapping ? { mapping: listener.mapping } : {}),
-    ...(listener.guard ? { guard: listener.guard } : {}),
-  });
-  const effectTexts = listener.effects.map((effect) =>
-    describeEffectCore(effect, { buffTags }),
-  );
-  return `${trigger || listener.eventType}：${effectTexts.join('、')}`;
 }
 
 function collectRuntimeTagLabels(

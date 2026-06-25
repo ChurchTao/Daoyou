@@ -125,6 +125,23 @@ describe('affixText mechanic rendering', () => {
     );
   });
 
+  it('explains advanced runtime buffs without exposing internal keys', () => {
+    const karmaMirror = renderAffix('artifact-treasure-karma-mirror');
+    expect(karmaMirror.bodyText).toContain('业镜');
+    expect(karmaMirror.bodyText).toContain('反射最近一次承受暴击伤害');
+    expect(karmaMirror.bodyText).not.toMatch(/karma_mirror|_ready|_crit/);
+    expect(karmaMirror.buffDetails[0]).toMatchObject({
+      name: '业镜',
+      descriptionText: expect.stringContaining('下一次受到攻击时'),
+    });
+
+    const thunderPact = renderAffix('skill-variant-thunder-pact');
+    expect(thunderPact.bodyText).toContain('雷印');
+    expect(thunderPact.bodyText).toContain('达到3层');
+    expect(thunderPact.bodyText).not.toMatch(/thunder_mark|buff_layer/);
+    expect(thunderPact.buffDetails[0]?.descriptionText).toContain('目标行动前');
+  });
+
   it('renders all planned advanced affixes without raw tags or placeholder text', () => {
     const plannedAffixIds = [
       'skill-rare-life-for-fire',
@@ -161,10 +178,21 @@ describe('affixText mechanic rendering', () => {
         ...view.conditionTexts,
         ...view.tagLabels,
         ...view.mechanicNotes,
+        ...view.buffDetails.flatMap((buff) => [
+          buff.name,
+          buff.descriptionText ?? '',
+          buff.typeText,
+          buff.durationText,
+          buff.stackText,
+          ...buff.modifierTexts,
+          ...buff.listenerTexts,
+          ...buff.tagLabels,
+        ]),
       ].join(' ');
 
       expect(view.bodyText, affixId).not.toBe('');
       expect(text, affixId).not.toMatch(/Ability\.|Status\.|Buff\./);
+      expect(text, affixId).not.toMatch(/[a-z]+_[a-z0-9_]+/);
       expect(text, affixId).not.toMatch(/undefined|NaN/);
       expect(text, affixId).not.toMatch(/触发 \d+ 段效果|依次触发/);
     }

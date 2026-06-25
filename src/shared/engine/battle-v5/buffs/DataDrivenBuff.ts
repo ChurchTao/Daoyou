@@ -30,8 +30,13 @@ export class DataDrivenBuff extends Buff {
       config.type,
       config.duration,
       config.stackRule,
+      config.description,
     );
     this._config = config;
+  }
+
+  getConfig(): BuffConfig {
+    return this._config;
   }
 
   addInstantiatedListener(runtime: ListenerRuntimeConfig, effects: GameplayEffect[]): void {

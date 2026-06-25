@@ -217,6 +217,9 @@ export class AffixEffectTranslator {
           params: {
             id: template.params.id,
             name: template.params.name,
+            ...(template.params.description
+              ? { description: template.params.description }
+              : {}),
             delayTurns: Math.max(
               1,
               Math.round(

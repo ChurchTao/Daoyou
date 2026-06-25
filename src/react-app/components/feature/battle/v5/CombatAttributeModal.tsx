@@ -58,6 +58,11 @@ function formatBuffLabel(buff: UnitStateSnapshot['buffs'][number]) {
   return `${buff.name}${layers} · ${duration}`;
 }
 
+function getBuffToneClass(buff: UnitStateSnapshot['buffs'][number]) {
+  if (buff.type === 'debuff' || buff.type === 'control') return 'text-crimson';
+  return 'text-teal';
+}
+
 export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
   if (!unit) return null;
 
@@ -152,21 +157,19 @@ export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
 
         <section>
           <p className="battle-caption mb-2 text-xs">状态效果</p>
-          <div className="flex flex-wrap gap-x-1 gap-y-1 py-2 text-sm leading-7">
+          <div className="space-y-2 py-2 text-sm leading-6">
             {unit.buffs.length > 0 ? (
               unit.buffs.map((buff, index) => (
-                <span key={buff.id} className="contents">
-                  <span
-                    className={cn(
-                      buff.type === 'debuff' ? 'text-crimson' : 'text-teal',
-                    )}
-                  >
+                <div key={`${buff.id}:${index}`} className="space-y-0.5">
+                  <div className={cn('font-medium', getBuffToneClass(buff))}>
                     {formatBuffLabel(buff)}
-                  </span>
-                  {index < unit.buffs.length - 1 && (
-                    <span className="text-battle-muted">｜</span>
-                  )}
-                </span>
+                  </div>
+                  {buff.description ? (
+                    <p className="text-battle-muted text-xs leading-5">
+                      {buff.description}
+                    </p>
+                  ) : null}
+                </div>
               ))
             ) : (
               <span className="text-battle-muted">无状态</span>

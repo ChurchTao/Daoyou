@@ -30,6 +30,7 @@ export type StackRule = typeof StackRule[keyof typeof StackRule];
 export class Buff {
   readonly id: BuffId;
   readonly name: string;
+  readonly description?: string;
   readonly type: BuffType;
   private _duration: number;
   private _maxDuration: number;
@@ -58,10 +59,12 @@ export class Buff {
     name: string,
     type: BuffType,
     duration: number,
-    stackRule: StackRule = StackRule.REFRESH_DURATION
+    stackRule: StackRule = StackRule.REFRESH_DURATION,
+    description?: string,
   ) {
     this.id = id;
     this.name = name;
+    this.description = description;
     this.type = type;
     this._maxDuration = duration;
     this._duration = duration;
@@ -257,7 +260,8 @@ export class Buff {
       this.name,
       this.type,
       this._maxDuration,
-      this.stackRule
+      this.stackRule,
+      this.description,
     );
     cloned.setDuration(this._duration);
     cloned.tags = this.tags.clone();

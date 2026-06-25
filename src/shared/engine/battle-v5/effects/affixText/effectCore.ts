@@ -18,6 +18,10 @@ import {
   labelGameplayTag,
   labelTagList,
 } from './gameplayTagText';
+import {
+  describeApplyBuffText,
+  describeBuffMatch,
+} from './buffText';
 
 export interface EffectCoreTextContext {
   abilityTags?: string[];
@@ -90,12 +94,16 @@ export function describeEffectCore(
       return `优先使用法力吸收受到的伤害，吸收比例 ${formatAffixPercent(effect.params.absorbRatio ?? 0.98)}`;
 
     case 'apply_buff': {
-      const chance =
-        effect.params.chance !== undefined
-          ? `（${formatAffixPercent(effect.params.chance)}）`
-          : '';
-      const target = effect.params.target === 'caster' ? '自身' : '目标';
-      return `给${target}附加「${effect.params.buffConfig.name}」${chance}`;
+      return describeApplyBuffText(
+        effect.params.buffConfig,
+        effect.params.chance,
+        effect.params.target,
+        (child, childContext) =>
+          describeEffectCore(child, {
+            ...context,
+            ...childContext,
+          }),
+      );
     }
 
     case 'cooldown_modify': {
@@ -168,12 +176,6 @@ export function describeEffectCore(
       return (exhaustive as EffectConfig).type;
     }
   }
-}
-
-function describeBuffMatch(match: { id?: string; tags?: string[] }): string {
-  if (match.id) return `「${match.id}」`;
-  if (match.tags?.length) return labelTagList(match.tags);
-  return '状态';
 }
 
 function describeMemoryEvent(event?: string): string {

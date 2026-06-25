@@ -49,6 +49,11 @@ function formatBuffLabel(buff: UnitStateSnapshot['buffs'][number]) {
   return `${buff.name}${layers} · ${duration}`;
 }
 
+function formatBuffTitle(buff: UnitStateSnapshot['buffs'][number]) {
+  const label = formatBuffLabel(buff);
+  return buff.description ? `${label}：${buff.description}` : label;
+}
+
 function ResourceRow({
   label,
   current,
@@ -189,6 +194,10 @@ export function CombatStatusHeader({
     player.buffs.length > 0
       ? player.buffs.map((buff) => formatBuffLabel(buff)).join(' ｜ ')
       : '无状态';
+  const statusTitle =
+    player.buffs.length > 0
+      ? player.buffs.map((buff) => formatBuffTitle(buff)).join('\n')
+      : undefined;
   const hasActions = onShowPlayerDetails || onShowOpponentDetails;
   const hasSkills = player.cooldowns.length > 0;
   const isDockCollapsed = isCompact && isCollapsed;
@@ -370,7 +379,10 @@ export function CombatStatusHeader({
 
               <div className="battle-module flex items-start gap-1.5 text-[13px] leading-5">
                 <span className="text-battle-muted shrink-0">状态</span>
-                <span className="text-ink block min-w-0 flex-1 truncate">
+                <span
+                  className="text-ink block min-w-0 flex-1 truncate"
+                  title={statusTitle}
+                >
                   {statusText}
                 </span>
               </div>

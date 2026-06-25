@@ -24,6 +24,7 @@ export class DelayedRuntimeBuff extends Buff {
       BuffType.DEBUFF,
       Math.max(1, Math.round(params.delayTurns)),
       StackRule.OVERRIDE,
+      params.description,
     );
     this.remainingTurns = Math.max(1, Math.round(params.delayTurns));
     this.tags.addTags(params.tags ?? [GameplayTags.BUFF.TYPE.DEBUFF]);

@@ -143,6 +143,7 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
         params: {
           id: string;
           name: string;
+          description?: string;
           delayTurns: ScalableParam;
           effects: AffixEffectTemplate[];
           tags?: string[];

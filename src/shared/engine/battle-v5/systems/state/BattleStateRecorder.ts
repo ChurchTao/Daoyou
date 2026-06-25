@@ -1,6 +1,10 @@
 import { ActiveSkill } from '../../abilities/ActiveSkill';
+import { DataDrivenBuff } from '../../buffs/DataDrivenBuff';
 import { GameplayTags } from '../../core';
 import { AttributeType, BuffType } from '../../core/types';
+import type { Buff } from '../../buffs/Buff';
+import { describeBuffRuntimeSummaryText } from '../../effects/affixText/buffText';
+import { describeEffectCore } from '../../effects/affixText/effectCore';
 import { Unit } from '../../units/Unit';
 import {
   AttrsStateView,
@@ -173,11 +177,20 @@ export class BattleStateRecorder {
     return unit.buffs.getAllBuffs().map((buff) => ({
       id: buff.id,
       name: buff.name,
+      description: this._describeBuff(buff),
       type: buff.type as BuffType,
       layers: buff.getLayer(),
       remaining: buff.isPermanent() ? -1 : buff.getDuration(),
       isPermanent: buff.isPermanent(),
     }));
+  }
+
+  private _describeBuff(buff: Buff): string | undefined {
+    if (buff instanceof DataDrivenBuff) {
+      return describeBuffRuntimeSummaryText(buff.getConfig(), describeEffectCore);
+    }
+
+    return buff.description;
   }
 
   private _buildCooldowns(unit: Unit): CooldownStateView[] {

@@ -1954,6 +1954,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         buffConfig: {
           id: 'thunder_mark',
           name: '雷印',
+          description: '目标行动前检查层数；达到3层时消耗3层，造成雷伤并增加一个技能冷却。',
           type: BuffType.DEBUFF,
           duration: 3,
           stackRule: StackRule.STACK_LAYER,
@@ -2052,6 +2053,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       params: {
         id: 'blood_ink_talisman',
         name: '血墨符',
+        description: '2回合后按期间记录的受伤量爆发额外伤害。',
         delayTurns: 2,
         tags: [GameplayTags.BUFF.TYPE.DEBUFF],
         record: {
@@ -2109,6 +2111,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
               buffConfig: {
                 id: 'wind_exchange_step',
                 name: '借风',
+                description: '提高速度与闪避；若闪避成功，下次命中必定暴击并移除此状态。',
                 type: BuffType.BUFF,
                 duration: 2,
                 stackRule: StackRule.REFRESH_DURATION,

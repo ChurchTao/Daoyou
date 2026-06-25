@@ -1713,6 +1713,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         buffConfig: {
           id: 'heaven_jealousy',
           name: '天妒',
+          description: '每次行动前受到少量反噬；达到5层时清空层数并爆发治疗。',
           type: BuffType.BUFF,
           duration: 4,
           stackRule: StackRule.STACK_LAYER,
@@ -1766,6 +1767,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         buffConfig: {
           id: 'leakless_body',
           name: '无漏',
+          description: '下一次受到伤害时免疫该次伤害，触发后消失。',
           type: BuffType.BUFF,
           duration: 2,
           stackRule: StackRule.OVERRIDE,
