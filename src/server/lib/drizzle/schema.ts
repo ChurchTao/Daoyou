@@ -839,6 +839,9 @@ export const auctionListings = pgTable(
     // 物品信息
     itemType: varchar('item_type', { length: 20 }).notNull(), // material | artifact | consumable
     itemId: uuid('item_id').notNull(), // 原物品ID（引用），售出后可清理
+    itemName: varchar('item_name', { length: 200 }).notNull().default(''),
+    itemQuality: varchar('item_quality', { length: 20 }).notNull().default(''),
+    itemCategory: varchar('item_category', { length: 50 }).notNull().default(''),
 
     // 物品快照（完整数据，保证下架后仍能展示）
     itemSnapshot: jsonb('item_snapshot').notNull(),
@@ -873,11 +876,43 @@ export const auctionListings = pgTable(
       table.expiresAt,
       table.price,
     ),
+    index('auction_status_type_expires_created_idx').on(
+      table.status,
+      table.itemType,
+      table.expiresAt,
+      table.createdAt,
+    ),
     // 复合索引：用于 active 列表按类型筛选
     index('auction_status_expires_item_type_idx').on(
       table.status,
       table.expiresAt,
       table.itemType,
+    ),
+    index('auction_status_type_category_expires_created_idx').on(
+      table.status,
+      table.itemType,
+      table.itemCategory,
+      table.expiresAt,
+      table.createdAt,
+    ),
+    index('auction_status_type_quality_expires_created_idx').on(
+      table.status,
+      table.itemType,
+      table.itemQuality,
+      table.expiresAt,
+      table.createdAt,
+    ),
+    index('auction_status_item_name_expires_created_idx').on(
+      table.status,
+      table.itemName,
+      table.expiresAt,
+      table.createdAt,
+    ),
+    index('auction_status_seller_name_expires_created_idx').on(
+      table.status,
+      table.sellerName,
+      table.expiresAt,
+      table.createdAt,
     ),
     index('auction_visibility_target_status_idx').on(
       table.visibility,

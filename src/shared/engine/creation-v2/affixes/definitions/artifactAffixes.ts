@@ -13,7 +13,12 @@ import {
 } from '@shared/engine/shared/tag-domain';
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import { AttributeType, BuffType, ModifierType, StackRule } from '../../contracts/battle';
+import {
+  AttributeType,
+  BuffType,
+  ModifierType,
+  StackRule,
+} from '../../contracts/battle';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import { AffixDefinition } from '../types';
 
@@ -1340,13 +1345,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'legendary',
     match: {
       all: [
-        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-        CreationTags.MATERIAL.TYPE_SPECIAL,
-      ],
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_WATER,
-        CreationTags.MATERIAL.SEMANTIC_DIVINE,
         CreationTags.MATERIAL.SEMANTIC_SPACE,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
@@ -1374,7 +1374,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_DIVINE, CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.SEMANTIC_FORMATION,
+      ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
     weight: 6,
@@ -1414,7 +1417,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
               buffConfig: {
                 id: 'karma_mirror_ready',
                 name: '业镜',
-                description: '下一次受到攻击时，反射最近一次承受暴击伤害的一部分，触发后消失。',
+                description:
+                  '下一次受到攻击时，反射最近一次承受暴击伤害的一部分，触发后消失。',
                 type: BuffType.BUFF,
                 duration: 2,
                 stackRule: StackRule.OVERRIDE,
@@ -1469,7 +1473,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_METAL],
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+      ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
     weight: 6,
@@ -1519,7 +1529,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
             params: {
               id: 'calamity_debt',
               name: '劫债',
-              description: '1回合后偿还本次致命伤记录的一部分；品质越高，偿还比例越低。',
+              description:
+                '1回合后偿还本次致命伤记录的一部分；品质越高，偿还比例越低。',
               delayTurns: 1,
               tags: [GameplayTags.BUFF.TYPE.DEBUFF],
               effects: [
@@ -1559,7 +1570,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_THUNDER, CreationTags.MATERIAL.SEMANTIC_ALCHEMY],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+        CreationTags.MATERIAL.SEMANTIC_ALCHEMY,
+      ],
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_FORMATION,
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+      ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
     weight: 6,
@@ -1584,7 +1602,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
               buffConfig: {
                 id: 'thunder_devour_charge',
                 name: '蓄雷',
-                description: '受到雷系伤害时积蓄；达到3层后清空，并减少自身一个技能冷却。',
+                description:
+                  '受到雷系伤害时积蓄；达到3层后清空，并减少自身一个技能冷却。',
                 type: BuffType.BUFF,
                 duration: 3,
                 stackRule: StackRule.STACK_LAYER,
@@ -1603,7 +1622,12 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
             params: {
               match: { id: 'thunder_devour_charge' },
               consume: 'all',
-              effects: [{ type: 'cooldown_modify', params: { cdModifyValue: -1, maxCount: 1 } }],
+              effects: [
+                {
+                  type: 'cooldown_modify',
+                  params: { cdModifyValue: -1, maxCount: 1 },
+                },
+              ],
             },
           },
         ],
@@ -1623,7 +1647,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'rare',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_DIVINE, CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      ],
+      all: [CreationTags.MATERIAL.SEMANTIC_DIVINE],
     },
     weight: 14,
     energyCost: 30,
@@ -1652,7 +1679,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_SPACE, CreationTags.MATERIAL.SEMANTIC_GUARD],
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+      ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
     weight: 6,
@@ -1686,7 +1716,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'rare',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_FORMATION],
-      any: [CreationTags.MATERIAL.SEMANTIC_REFINING, CreationTags.MATERIAL.SEMANTIC_ILLUSION],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_REFINING,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+      ],
     },
     weight: 14,
     energyCost: 32,
@@ -1698,7 +1731,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         effects: [
           { type: 'ability_lock', params: { rounds: 1, maxCount: 1 } },
-          { type: 'cooldown_modify', params: { cdModifyValue: 1, maxCount: 1 } },
+          {
+            type: 'cooldown_modify',
+            params: { cdModifyValue: 1, maxCount: 1 },
+          },
         ],
       },
     },
@@ -1716,7 +1752,11 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_WATER, CreationTags.MATERIAL.SEMANTIC_SPACE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+      ],
+      all: [CreationTags.MATERIAL.SEMANTIC_BURST],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
     weight: 6,
@@ -1757,7 +1797,11 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_DIVINE, CreationTags.MATERIAL.SEMANTIC_ILLUSION],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+      ],
+      all: [CreationTags.MATERIAL.SEMANTIC_TIME],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
     weight: 6,

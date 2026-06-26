@@ -215,6 +215,20 @@ export function normalizeAuctionItemQuality(
   return quality in QUALITY_ORDER ? quality : '凡品';
 }
 
+export function getAuctionItemCategory(
+  itemType: AuctionItemType,
+  item: Material | Artifact | Consumable,
+): string {
+  switch (itemType) {
+    case 'material':
+      return (item as Material).type;
+    case 'artifact':
+      return (item as Artifact).slot;
+    case 'consumable':
+      return (item as Consumable).type;
+  }
+}
+
 export function isAuctionListableQuality(quality: Quality): boolean {
   return QUALITY_ORDER[quality] >= QUALITY_ORDER[AUCTION_MIN_QUALITY];
 }
@@ -567,6 +581,9 @@ export async function listItem(
         sellerName: cultivatorName,
         itemType,
         itemId,
+        itemName: listingSnapshot.name,
+        itemQuality: normalizeAuctionItemQuality(itemType, listingSnapshot),
+        itemCategory: getAuctionItemCategory(itemType, listingSnapshot),
         itemSnapshot: listingSnapshot,
         price,
         visibility,

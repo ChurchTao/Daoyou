@@ -15,6 +15,9 @@ export async function createListing(data: {
   sellerName: string;
   itemType: 'material' | 'artifact' | 'consumable';
   itemId: string;
+  itemName: string;
+  itemQuality: string;
+  itemCategory: string;
   itemSnapshot: unknown;
   price: number;
   visibility?: 'public' | 'private';
@@ -31,6 +34,9 @@ export async function createListing(data: {
       sellerName: data.sellerName,
       itemType: data.itemType,
       itemId: data.itemId,
+      itemName: data.itemName,
+      itemQuality: data.itemQuality,
+      itemCategory: data.itemCategory,
       itemSnapshot: data.itemSnapshot,
       price: data.price,
       visibility: data.visibility ?? 'public',
@@ -63,7 +69,12 @@ export async function findById(
  * 查询进行中的拍卖列表（支持筛选、分页、排序）
  */
 export interface FindActiveListingsOptions {
+  scope?: 'all' | 'mine';
   itemType?: 'material' | 'artifact' | 'consumable';
+  itemCategory?: string;
+  itemQuality?: string;
+  itemName?: string;
+  sellerName?: string;
   minPrice?: number;
   maxPrice?: number;
   sortBy?: 'price_asc' | 'price_desc' | 'latest';
@@ -77,7 +88,12 @@ export async function findActiveListings(
 ): Promise<{ listings: AuctionListing[]; total: number }> {
   const q = getExecutor();
   const {
+    scope = 'all',
     itemType,
+    itemCategory,
+    itemQuality,
+    itemName,
+    sellerName,
     minPrice,
     maxPrice,
     sortBy = 'latest',
@@ -95,21 +111,41 @@ export async function findActiveListings(
   if (itemType) {
     conditions.push(eq(schema.auctionListings.itemType, itemType));
   }
+  if (itemCategory) {
+    conditions.push(eq(schema.auctionListings.itemCategory, itemCategory));
+  }
+  if (itemQuality) {
+    conditions.push(eq(schema.auctionListings.itemQuality, itemQuality));
+  }
+  if (itemName) {
+    conditions.push(eq(schema.auctionListings.itemName, itemName));
+  }
+  if (sellerName) {
+    conditions.push(eq(schema.auctionListings.sellerName, sellerName));
+  }
   if (minPrice !== undefined) {
     conditions.push(gte(schema.auctionListings.price, minPrice));
   }
   if (maxPrice !== undefined) {
     conditions.push(lte(schema.auctionListings.price, maxPrice));
   }
-  conditions.push(
-    viewerCultivatorId
-      ? or(
-          eq(schema.auctionListings.visibility, 'public'),
-          eq(schema.auctionListings.sellerId, viewerCultivatorId),
-          eq(schema.auctionListings.targetCultivatorId, viewerCultivatorId),
-        )!
-      : eq(schema.auctionListings.visibility, 'public'),
-  );
+  if (scope === 'mine') {
+    conditions.push(
+      viewerCultivatorId
+        ? eq(schema.auctionListings.sellerId, viewerCultivatorId)
+        : sql`false`,
+    );
+  } else {
+    conditions.push(
+      viewerCultivatorId
+        ? or(
+            eq(schema.auctionListings.visibility, 'public'),
+            eq(schema.auctionListings.sellerId, viewerCultivatorId),
+            eq(schema.auctionListings.targetCultivatorId, viewerCultivatorId),
+          )!
+        : eq(schema.auctionListings.visibility, 'public'),
+    );
+  }
 
   const whereClause = and(...conditions);
 

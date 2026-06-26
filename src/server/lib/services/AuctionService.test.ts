@@ -276,6 +276,9 @@ describe('AuctionService', () => {
       expect.objectContaining({
         itemType: 'consumable',
         itemId: 'consumable-1',
+        itemName: '回春丹',
+        itemQuality: '玄品',
+        itemCategory: '丹药',
         itemSnapshot: expect.objectContaining({
           name: '回春丹',
           type: '丹药',

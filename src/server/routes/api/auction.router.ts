@@ -16,11 +16,17 @@ import {
   clearAuctionListingsCache,
   listItem,
 } from '@server/lib/services/AuctionService';
+import { QUALITY_VALUES } from '@shared/types/constants';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 const ListingsSchema = z.object({
+  scope: z.enum(['all', 'mine']).default('all'),
   itemType: z.enum(['material', 'artifact', 'consumable']).optional(),
+  itemCategory: z.string().trim().min(1).max(50).optional(),
+  itemQuality: z.enum(QUALITY_VALUES).optional(),
+  itemName: z.string().trim().min(1).max(200).optional(),
+  sellerName: z.string().trim().min(1).max(100).optional(),
   minPrice: z.number().int().min(0).optional(),
   maxPrice: z.number().int().min(0).optional(),
   sortBy: z.enum(['price_asc', 'price_desc', 'latest']).optional(),
@@ -75,7 +81,12 @@ router.get('/listings', requireActiveCultivator(), async (c) => {
 
   try {
     const params = ListingsSchema.parse({
+      scope: c.req.query('scope') || undefined,
       itemType: c.req.query('itemType') || undefined,
+      itemCategory: c.req.query('itemCategory') || undefined,
+      itemQuality: c.req.query('itemQuality') || undefined,
+      itemName: c.req.query('itemName') || undefined,
+      sellerName: c.req.query('sellerName') || undefined,
       minPrice: c.req.query('minPrice') ? Number(c.req.query('minPrice')) : undefined,
       maxPrice: c.req.query('maxPrice') ? Number(c.req.query('maxPrice')) : undefined,
       sortBy: c.req.query('sortBy') || undefined,
