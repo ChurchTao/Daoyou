@@ -167,6 +167,15 @@ describe('creation-v2 affix match contract', () => {
     expect(
       DEFAULT_AFFIX_REGISTRY.queryById('artifact-treasure-taixu-robe'),
     ).toBeDefined();
+    expect(
+      DEFAULT_AFFIX_REGISTRY.queryById('artifact-weapon-soul-falling-nail'),
+    ).toBeDefined();
+    expect(
+      DEFAULT_AFFIX_REGISTRY.queryById('artifact-armor-soul-anchoring-plate'),
+    ).toBeDefined();
+    expect(
+      DEFAULT_AFFIX_REGISTRY.queryById('artifact-accessory-hidden-radiance-box'),
+    ).toBeDefined();
   });
 
   it('默认 skill 词条不应再包含 listenerSpec 或被动式 effect 类型', () => {

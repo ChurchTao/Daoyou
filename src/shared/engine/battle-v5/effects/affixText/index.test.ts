@@ -117,6 +117,12 @@ describe('affixText mechanic rendering', () => {
     expect(renderAffix('artifact-treasure-returning-ruin-pearl').bodyText).toContain(
       '护盾破裂时',
     );
+    expect(renderAffix('artifact-weapon-blood-drinker').bodyText).toContain(
+      '造成伤害后',
+    );
+    expect(renderAffix('artifact-accessory-mirror-thread-pendant').bodyText).toContain(
+      '闪避时',
+    );
   });
 
   it('renders lethal-only condition for calamity coin', () => {
@@ -168,6 +174,20 @@ describe('affixText mechanic rendering', () => {
       'artifact-defense-demon-locking-nail',
       'artifact-treasure-returning-ruin-pearl',
       'artifact-treasure-steal-heaven-seal',
+      'artifact-weapon-blood-drinker',
+      'artifact-weapon-soul-siphon',
+      'artifact-weapon-spirit-breaking-awl',
+      'artifact-weapon-ban-breaking-edge',
+      'artifact-weapon-shield-rending-edge',
+      'artifact-weapon-soul-falling-nail',
+      'artifact-armor-soul-anchoring-plate',
+      'artifact-armor-spirit-leaking-inscription',
+      'artifact-armor-tide-breaking-mail',
+      'artifact-armor-stone-cocoon',
+      'artifact-accessory-clear-heart-pendant',
+      'artifact-accessory-leaking-hourglass',
+      'artifact-accessory-mirror-thread-pendant',
+      'artifact-accessory-hidden-radiance-box',
     ];
 
     for (const affixId of plannedAffixIds) {

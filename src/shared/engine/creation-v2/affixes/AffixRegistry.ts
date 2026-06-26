@@ -90,10 +90,12 @@ export class AffixRegistry {
     }
 
     for (const productType of def.applicableTo) {
-      // 规则三：Artifact 禁止 OWNER_AS_CASTER scope
+      // 规则三：Artifact 默认禁止 OWNER_AS_CASTER scope。
+      // 武器法宝需要少量进攻型被动；只允许 weapon-only 词条在进攻事件上使用。
       if (
         productType === 'artifact' &&
-        def.listenerSpec?.scope === GameplayTags.SCOPE.OWNER_AS_CASTER
+        def.listenerSpec?.scope === GameplayTags.SCOPE.OWNER_AS_CASTER &&
+        !this.isWeaponArtifactCasterListenerAllowed(def)
       ) {
         throw new Error(
           `affix ${def.id}: artifact affix must not use OWNER_AS_CASTER scope (boundary violation)`,
@@ -198,6 +200,21 @@ export class AffixRegistry {
     }
 
     assertRuntimeTagsInNamespaces(tags, ['Ability.', 'Trait.'], context);
+  }
+
+  private isWeaponArtifactCasterListenerAllowed(def: AffixDefinition): boolean {
+    const slots = def.applicableArtifactSlots ?? [];
+    const isWeaponOnly = slots.length === 1 && slots[0] === 'weapon';
+    if (!isWeaponOnly) {
+      return false;
+    }
+
+    const allowedCasterEvents = new Set<string>([
+      GameplayTags.EVENT.DAMAGE_REQUEST,
+      GameplayTags.EVENT.DAMAGE_TAKEN,
+      GameplayTags.EVENT.SKILL_CAST,
+    ]);
+    return allowedCasterEvents.has(def.listenerSpec?.eventType ?? '');
   }
 
   /**

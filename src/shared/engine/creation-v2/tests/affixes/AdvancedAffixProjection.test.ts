@@ -83,6 +83,90 @@ const ADVANCED_AFFIX_CASES: AdvancedAffixCase[] = [
     element: '水',
     requestedSlot: 'accessory',
   },
+  {
+    affixId: 'artifact-weapon-blood-drinker',
+    productType: 'artifact',
+    element: '金',
+    requestedSlot: 'weapon',
+  },
+  {
+    affixId: 'artifact-weapon-soul-siphon',
+    productType: 'artifact',
+    element: '水',
+    requestedSlot: 'weapon',
+  },
+  {
+    affixId: 'artifact-weapon-spirit-breaking-awl',
+    productType: 'artifact',
+    element: '金',
+    requestedSlot: 'weapon',
+  },
+  {
+    affixId: 'artifact-weapon-ban-breaking-edge',
+    productType: 'artifact',
+    element: '金',
+    requestedSlot: 'weapon',
+  },
+  {
+    affixId: 'artifact-weapon-shield-rending-edge',
+    productType: 'artifact',
+    element: '金',
+    requestedSlot: 'weapon',
+  },
+  {
+    affixId: 'artifact-weapon-soul-falling-nail',
+    productType: 'artifact',
+    element: '金',
+    requestedSlot: 'weapon',
+  },
+  {
+    affixId: 'artifact-armor-soul-anchoring-plate',
+    productType: 'artifact',
+    element: '土',
+    requestedSlot: 'armor',
+  },
+  {
+    affixId: 'artifact-armor-spirit-leaking-inscription',
+    productType: 'artifact',
+    element: '土',
+    requestedSlot: 'armor',
+  },
+  {
+    affixId: 'artifact-armor-tide-breaking-mail',
+    productType: 'artifact',
+    element: '水',
+    requestedSlot: 'armor',
+  },
+  {
+    affixId: 'artifact-armor-stone-cocoon',
+    productType: 'artifact',
+    element: '土',
+    requestedSlot: 'armor',
+  },
+  {
+    affixId: 'artifact-accessory-clear-heart-pendant',
+    productType: 'artifact',
+    element: '水',
+    requestedSlot: 'accessory',
+  },
+  {
+    affixId: 'artifact-accessory-leaking-hourglass',
+    productType: 'artifact',
+    element: '水',
+    requestedSlot: 'accessory',
+  },
+  {
+    affixId: 'artifact-accessory-mirror-thread-pendant',
+    productType: 'artifact',
+    element: '风',
+    requestedSlot: 'accessory',
+  },
+  {
+    affixId: 'artifact-accessory-hidden-radiance-box',
+    productType: 'artifact',
+    element: '水',
+    requestedSlot: 'accessory',
+  },
 ];
 
 describe('advanced affix projection and rehydrate', () => {
@@ -155,6 +239,177 @@ describe('advanced affix projection and rehydrate', () => {
         consume: 'all',
         effects: [{ type: 'cooldown_modify' }],
       },
+    });
+  });
+
+  it('weapon artifact affixes project to their intended offensive listener effects', () => {
+    const projectWeaponAffix = (affixId: string, element: ElementType = '金') => {
+      const product = composeProductFromAffixIds({
+        productType: 'artifact',
+        element,
+        requestedSlot: 'weapon',
+        requestedQuality: '神品',
+        name: `测试-${affixId}`,
+        affixIds: [affixId],
+      });
+      return projectAbilityConfig(product);
+    };
+
+    const bloodDrinker = projectWeaponAffix('artifact-weapon-blood-drinker');
+    expect(bloodDrinker.listeners?.[0]).toMatchObject({
+      eventType: 'DamageTakenEvent',
+      scope: 'owner_as_caster',
+      guard: { skipReflectSource: true },
+      effects: [{ type: 'resource_drain' }],
+    });
+
+    const soulSiphon = projectWeaponAffix('artifact-weapon-soul-siphon', '水');
+    expect(soulSiphon.listeners?.[0]?.effects[0]).toMatchObject({
+      type: 'resource_drain',
+      params: { targetType: 'mp' },
+    });
+
+    const spiritBreakingAwl = projectWeaponAffix(
+      'artifact-weapon-spirit-breaking-awl',
+    );
+    expect(spiritBreakingAwl.listeners?.[0]).toMatchObject({
+      eventType: 'DamageTakenEvent',
+      scope: 'owner_as_caster',
+      guard: { skipReflectSource: true },
+      effects: [{ type: 'mana_burn' }],
+    });
+
+    const banBreakingEdge = projectWeaponAffix(
+      'artifact-weapon-ban-breaking-edge',
+    );
+    expect(banBreakingEdge.listeners?.[0]).toMatchObject({
+      eventType: 'DamageTakenEvent',
+      scope: 'owner_as_caster',
+      guard: { skipReflectSource: true },
+      effects: [{ type: 'dispel' }],
+    });
+
+    const shieldRendingEdge = projectWeaponAffix(
+      'artifact-weapon-shield-rending-edge',
+    );
+    expect(shieldRendingEdge.listeners?.[0]).toMatchObject({
+      eventType: 'DamageRequestEvent',
+      scope: 'owner_as_caster',
+      effects: [{ type: 'percent_damage_modifier' }],
+    });
+
+    const soulFallingNail = projectWeaponAffix(
+      'artifact-weapon-soul-falling-nail',
+    );
+    expect(soulFallingNail.listeners?.[0]).toMatchObject({
+      eventType: 'DamageTakenEvent',
+      scope: 'owner_as_caster',
+      guard: { skipReflectSource: true },
+      effects: [{ type: 'ability_lock' }],
+    });
+  });
+
+  it('armor and accessory affixes project to slot-scoped equipment reactions', () => {
+    const projectArtifactAffix = (
+      affixId: string,
+      requestedSlot: EquipmentSlot,
+      element: ElementType = '土',
+    ) => {
+      const product = composeProductFromAffixIds({
+        productType: 'artifact',
+        element,
+        requestedSlot,
+        requestedQuality: '神品',
+        name: `测试-${affixId}`,
+        affixIds: [affixId],
+      });
+      return projectAbilityConfig(product);
+    };
+
+    expect(
+      projectArtifactAffix('artifact-armor-soul-anchoring-plate', 'armor')
+        .listeners?.[0],
+    ).toMatchObject({
+      eventType: 'BuffAddEvent',
+      scope: 'owner_as_target',
+      effects: [{ type: 'buff_immunity' }],
+    });
+
+    expect(
+      projectArtifactAffix('artifact-armor-spirit-leaking-inscription', 'armor')
+        .listeners?.[0],
+    ).toMatchObject({
+      eventType: 'DamageEvent',
+      scope: 'owner_as_target',
+      effects: [{ type: 'magic_shield' }],
+    });
+
+    expect(
+      projectArtifactAffix('artifact-armor-tide-breaking-mail', 'armor', '水')
+        .listeners?.[0],
+    ).toMatchObject({
+      eventType: 'DamageTakenEvent',
+      scope: 'owner_as_target',
+      mapping: { caster: 'owner', target: 'owner' },
+      effects: [{ type: 'heal', params: { target: 'mp' } }],
+    });
+
+    expect(
+      projectArtifactAffix('artifact-armor-stone-cocoon', 'armor').listeners?.[0],
+    ).toMatchObject({
+      eventType: 'DamageTakenEvent',
+      scope: 'owner_as_target',
+      mapping: { caster: 'owner', target: 'owner' },
+      effects: [{ type: 'shield' }],
+    });
+
+    expect(
+      projectArtifactAffix(
+        'artifact-accessory-clear-heart-pendant',
+        'accessory',
+        '水',
+      ).listeners?.[0],
+    ).toMatchObject({
+      eventType: 'BuffAddEvent',
+      scope: 'owner_as_target',
+      effects: [{ type: 'buff_immunity' }],
+    });
+
+    expect(
+      projectArtifactAffix(
+        'artifact-accessory-leaking-hourglass',
+        'accessory',
+        '水',
+      ).listeners?.[0],
+    ).toMatchObject({
+      eventType: 'DamageTakenEvent',
+      scope: 'owner_as_target',
+      mapping: { caster: 'owner', target: 'event.caster' },
+      effects: [{ type: 'cooldown_modify' }],
+    });
+
+    expect(
+      projectArtifactAffix(
+        'artifact-accessory-mirror-thread-pendant',
+        'accessory',
+        '风',
+      ).listeners?.[0],
+    ).toMatchObject({
+      eventType: 'DodgeEvent',
+      scope: 'owner_as_target',
+      effects: [{ type: 'shield' }],
+    });
+
+    expect(
+      projectArtifactAffix(
+        'artifact-accessory-hidden-radiance-box',
+        'accessory',
+        '水',
+      ).listeners?.[0],
+    ).toMatchObject({
+      eventType: 'ShieldBreakEvent',
+      scope: 'owner_as_target',
+      effects: [{ type: 'damage_memory' }],
     });
   });
 

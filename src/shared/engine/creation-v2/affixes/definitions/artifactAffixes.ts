@@ -6,6 +6,7 @@
  *
  * PBU 换算逻辑：PBU = (∑词缀消耗 * 类别系数 * 效率加成) * 品质乘数 + 极品奖励。
  */
+import { DamageType } from '@shared/engine/battle-v5/core/types';
 import {
   CreationTags,
   ELEMENT_TO_RUNTIME_ABILITY_TAG,
@@ -739,6 +740,242 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
   },
 
+  // ================================================================
+  // ===== ARTIFACT_WEAPON 池 — 武器专属命中附带 / 器物反应
+  // ================================================================
+
+  {
+    id: 'artifact-weapon-blood-drinker',
+    displayName: '饮血',
+    displayDescription: '造成伤害后，将部分伤害转化为气血',
+    slot: 'modifier',
+    rarity: 'uncommon',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+        CreationTags.MATERIAL.SEMANTIC_BEAST,
+        CreationTags.MATERIAL.SEMANTIC_BONE,
+      ],
+    },
+    weight: 34,
+    energyCost: 18,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon'],
+    effectTemplate: {
+      type: 'resource_drain',
+      conditions: [
+        {
+          type: 'damage_type_is',
+          params: { damageType: DamageType.PHYSICAL },
+        },
+      ],
+      params: {
+        sourceType: 'hp',
+        targetType: 'hp',
+        ratio: { base: 0.08, scale: 'quality', coefficient: 0.018, max: 0.22 },
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      guard: { skipReflectSource: true },
+    },
+  },
+  {
+    id: 'artifact-weapon-soul-siphon',
+    displayName: '摄魂',
+    displayDescription: '法术造成伤害后，将部分伤害转化为法力',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+        CreationTags.MATERIAL.SEMANTIC_QI,
+      ],
+    },
+    weight: 18,
+    energyCost: 26,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon'],
+    grantedAbilityTags: [GameplayTags.TRAIT.MANA_THIEF],
+    effectTemplate: {
+      type: 'resource_drain',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: GameplayTags.ABILITY.CHANNEL.MAGIC },
+        },
+      ],
+      params: {
+        sourceType: 'hp',
+        targetType: 'mp',
+        ratio: { base: 0.1, scale: 'quality', coefficient: 0.02, max: 0.26 },
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      guard: { skipReflectSource: true },
+    },
+  },
+  {
+    id: 'artifact-weapon-spirit-breaking-awl',
+    displayName: '破灵锥',
+    displayDescription: '物理命中后削减目标法力',
+    slot: 'modifier',
+    rarity: 'uncommon',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_METAL],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_REFINING,
+      ],
+    },
+    weight: 26,
+    energyCost: 20,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon'],
+    effectTemplate: {
+      type: 'mana_burn',
+      conditions: [
+        {
+          type: 'damage_type_is',
+          params: { damageType: DamageType.PHYSICAL },
+        },
+      ],
+      params: {
+        value: {
+          base: { base: 8, scale: 'quality', coefficient: 4 },
+          attribute: AttributeType.ATK,
+          coefficient: 0.16,
+          targetMaxMpRatio: {
+            base: 0.02,
+            scale: 'quality',
+            coefficient: 0.004,
+            max: 0.05,
+          },
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      guard: { skipReflectSource: true },
+    },
+  },
+  {
+    id: 'artifact-weapon-ban-breaking-edge',
+    displayName: '破禁刃',
+    displayDescription: '命中后有概率驱散目标正面状态',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_FORMATION],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_REFINING,
+      ],
+    },
+    weight: 15,
+    energyCost: 30,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'dispel',
+      conditions: [{ type: 'chance', params: { value: 0.25 } }],
+      params: {
+        targetTag: GameplayTags.BUFF.TYPE.BUFF,
+        maxCount: 1,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken + 1,
+      guard: { skipReflectSource: true },
+    },
+  },
+  {
+    id: 'artifact-weapon-shield-rending-edge',
+    displayName: '裂盾锋',
+    displayDescription: '攻击有护盾的目标时，提升本次伤害',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_BONE,
+      ],
+    },
+    weight: 16,
+    energyCost: 30,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [{ type: 'has_shield', params: { scope: 'target' } }],
+      params: {
+        mode: 'increase',
+        value: { base: 0.1, scale: 'quality', coefficient: 0.018 },
+        cap: 0.3,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'artifact-weapon-soul-falling-nail',
+    displayName: '落魂钉',
+    displayDescription: '暴击命中后，有概率封禁目标神通',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BONE,
+        CreationTags.MATERIAL.SEMANTIC_FORMATION,
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
+    weight: 6,
+    energyCost: 44,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.CONTROL],
+    effectTemplate: {
+      type: 'ability_lock',
+      conditions: [
+        { type: 'is_critical', params: { scope: 'caster' } },
+        { type: 'chance', params: { value: 0.28 } },
+      ],
+      params: {
+        rounds: { base: 1, scale: 'quality', coefficient: 0, max: 1 },
+        maxCount: 1,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken + 2,
+      guard: { skipReflectSource: true },
+    },
+  },
+
   // --- 法力护盾 ---
   {
     id: 'artifact-defense-magic-shield',
@@ -754,7 +991,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         CreationTags.MATERIAL.SEMANTIC_WATER,
       ],
     },
-    weight: 18,
+    weight: 12,
     energyCost: 35,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['accessory'],
@@ -1187,6 +1424,167 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
+  {
+    id: 'artifact-armor-soul-anchoring-plate',
+    displayName: '镇魂甲',
+    displayDescription: '被施加控制状态时，有概率免疫该状态',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_FORMATION,
+      ],
+    },
+    weight: 14,
+    energyCost: 32,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'buff_immunity',
+      conditions: [{ type: 'chance', params: { value: 0.35 } }],
+      params: {
+        tags: [GameplayTags.BUFF.TYPE.CONTROL],
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.BUFF_ADD,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.buffIntercept,
+    },
+  },
+  {
+    id: 'artifact-armor-spirit-leaking-inscription',
+    displayName: '泄灵纹甲',
+    displayDescription: '受到法术伤害时，以法力吸收部分伤害',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_QI,
+        CreationTags.MATERIAL.SEMANTIC_REFINING,
+      ],
+    },
+    weight: 14,
+    energyCost: 34,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor'],
+    effectTemplate: {
+      type: 'magic_shield',
+      conditions: [
+        {
+          type: 'damage_type_is',
+          params: { damageType: DamageType.MAGICAL },
+        },
+      ],
+      params: {
+        absorbRatio: { base: 0.25, scale: 'quality', coefficient: 0.03, max: 0.46 },
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageApply,
+    },
+  },
+  {
+    id: 'artifact-armor-tide-breaking-mail',
+    displayName: '溃潮甲',
+    displayDescription: '护盾吸收足量伤害后回复法力',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_WATER],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
+    weight: 6,
+    energyCost: 42,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
+    effectTemplate: {
+      type: 'heal',
+      conditions: [
+        {
+          type: 'shield_absorbed_at_least',
+          params: { value: 24 },
+        },
+      ],
+      params: {
+        target: 'mp',
+        value: {
+          base: { base: 10, scale: 'quality', coefficient: 5 },
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.24,
+          targetMaxMpRatio: {
+            base: 0.04,
+            scale: 'quality',
+            coefficient: 0.006,
+            max: 0.08,
+          },
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken + 1,
+      mapping: { caster: 'owner', target: 'owner' },
+    },
+  },
+  {
+    id: 'artifact-armor-stone-cocoon',
+    displayName: '石茧甲',
+    displayDescription: '被暴击时生成厚重护盾',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_EARTH],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_BONE,
+        CreationTags.MATERIAL.TYPE_ORE,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
+    weight: 6,
+    energyCost: 40,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor'],
+    effectTemplate: {
+      type: 'shield',
+      conditions: [{ type: 'is_critical', params: { scope: 'target' } }],
+      params: {
+        value: {
+          base: { base: 35, scale: 'quality', coefficient: 10 },
+          attribute: AttributeType.DEF,
+          coefficient: 0.5,
+          targetMaxHpRatio: {
+            base: 0.04,
+            scale: 'quality',
+            coefficient: 0.008,
+            max: 0.1,
+          },
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken + 2,
+      mapping: { caster: 'owner', target: 'owner' },
+    },
+  },
 
   // --- 被暴击后反伤 ---
   {
@@ -1256,6 +1654,152 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       eventType: GameplayTags.EVENT.ROUND_PRE,
       scope: GameplayTags.SCOPE.GLOBAL,
       priority: CREATION_LISTENER_PRIORITIES.roundPre,
+    },
+  },
+  {
+    id: 'artifact-accessory-clear-heart-pendant',
+    displayName: '清心佩',
+    displayDescription: '被施加负面状态时，有概率免疫该状态',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_DIVINE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+      ],
+    },
+    weight: 14,
+    energyCost: 32,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'buff_immunity',
+      conditions: [{ type: 'chance', params: { value: 0.3 } }],
+      params: {
+        tags: [GameplayTags.BUFF.TYPE.DEBUFF],
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.BUFF_ADD,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.buffIntercept + 1,
+    },
+  },
+  {
+    id: 'artifact-accessory-leaking-hourglass',
+    displayName: '漏刻砂',
+    displayDescription: '被神通命中后，有概率延长施法者冷却',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_TIME],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+        CreationTags.MATERIAL.SEMANTIC_FORMATION,
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
+    weight: 6,
+    energyCost: 44,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
+    grantedAbilityTags: [GameplayTags.TRAIT.COOLDOWN],
+    effectTemplate: {
+      type: 'cooldown_modify',
+      conditions: [{ type: 'chance', params: { value: 0.25 } }],
+      params: {
+        cdModifyValue: { base: 1, scale: 'quality', coefficient: 0, max: 1 },
+        maxCount: 1,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken + 3,
+      mapping: { caster: 'owner', target: 'event.caster' },
+      guard: { skipReflectSource: true },
+    },
+  },
+  {
+    id: 'artifact-accessory-mirror-thread-pendant',
+    displayName: '镜丝坠',
+    displayDescription: '闪避时生成护盾',
+    slot: 'modifier',
+    rarity: 'rare',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_ILLUSION],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WIND,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+      ],
+    },
+    weight: 14,
+    energyCost: 28,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
+    effectTemplate: {
+      type: 'shield',
+      params: {
+        value: {
+          base: { base: 18, scale: 'quality', coefficient: 7 },
+          attribute: AttributeType.SPEED,
+          coefficient: 0.45,
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: 'DodgeEvent',
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageApply,
+      mapping: { caster: 'owner', target: 'owner' },
+    },
+  },
+  {
+    id: 'artifact-accessory-hidden-radiance-box',
+    displayName: '藏辉匣',
+    displayDescription: '护盾破裂时，按破盾量回复自身气血',
+    slot: 'modifier',
+    rarity: 'legendary',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_LIFE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
+    weight: 6,
+    energyCost: 42,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
+    effectTemplate: {
+      type: 'damage_memory',
+      params: {
+        key: 'hidden_radiance_shield_break',
+        mode: 'release',
+        event: 'shield_break',
+        ratio: {
+          base: 0.28,
+          scale: 'quality',
+          coefficient: 0.035,
+          max: 0.55,
+        },
+        releaseAs: 'heal',
+        target: 'target',
+      },
+    },
+    listenerSpec: {
+      eventType: 'ShieldBreakEvent',
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken + 1,
+      mapping: { caster: 'owner', target: 'owner' },
     },
   },
 
@@ -1473,9 +2017,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      all: [
-        CreationTags.MATERIAL.SEMANTIC_GUARD,
-      ],
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
       any: [
         CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
         CreationTags.MATERIAL.SEMANTIC_METAL,
@@ -1647,9 +2189,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'rare',
     match: {
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      ],
+      any: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
       all: [CreationTags.MATERIAL.SEMANTIC_DIVINE],
     },
     weight: 14,

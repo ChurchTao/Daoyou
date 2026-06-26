@@ -278,6 +278,84 @@ describe('AffixRegistry tag validation', () => {
     ).toThrow('skill affix must not declare listenerSpec');
   });
 
+  it('应允许武器法宝专属词条使用进攻型 OWNER_AS_CASTER 监听', () => {
+    const registry = new AffixRegistry();
+
+    expect(() =>
+      registry.register([
+        buildAffix({
+          applicableTo: ['artifact'],
+          applicableArtifactSlots: ['weapon'],
+          effectTemplate: {
+            type: 'resource_drain',
+            params: {
+              sourceType: 'hp',
+              targetType: 'hp',
+              ratio: 0.12,
+            },
+          },
+          listenerSpec: {
+            eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+            scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+            priority: 1,
+          },
+        }),
+      ]),
+    ).not.toThrow();
+  });
+
+  it('应继续拒绝非武器专属法宝使用 OWNER_AS_CASTER 监听', () => {
+    const registry = new AffixRegistry();
+
+    expect(() =>
+      registry.register([
+        buildAffix({
+          applicableTo: ['artifact'],
+          applicableArtifactSlots: ['weapon', 'accessory'],
+          effectTemplate: {
+            type: 'resource_drain',
+            params: {
+              sourceType: 'hp',
+              targetType: 'hp',
+              ratio: 0.12,
+            },
+          },
+          listenerSpec: {
+            eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+            scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+            priority: 1,
+          },
+        }),
+      ]),
+    ).toThrow('artifact affix must not use OWNER_AS_CASTER scope');
+  });
+
+  it('应继续拒绝武器法宝在非进攻事件使用 OWNER_AS_CASTER 监听', () => {
+    const registry = new AffixRegistry();
+
+    expect(() =>
+      registry.register([
+        buildAffix({
+          applicableTo: ['artifact'],
+          applicableArtifactSlots: ['weapon'],
+          effectTemplate: {
+            type: 'resource_drain',
+            params: {
+              sourceType: 'hp',
+              targetType: 'hp',
+              ratio: 0.12,
+            },
+          },
+          listenerSpec: {
+            eventType: GameplayTags.EVENT.BUFF_ADD,
+            scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+            priority: 1,
+          },
+        }),
+      ]),
+    ).toThrow('artifact affix must not use OWNER_AS_CASTER scope');
+  });
+
   it('应拒绝 skill 使用 percent_damage_modifier', () => {
     const registry = new AffixRegistry();
 
