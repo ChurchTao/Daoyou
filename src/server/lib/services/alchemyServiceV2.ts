@@ -6,6 +6,7 @@ import {
 } from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import {
+  buildAlchemyBatchPreview,
   buildAlchemyPreviewWarnings,
   buildAlchemyPropertyTags,
   describeAlchemyPropertyVector,
@@ -37,7 +38,11 @@ import type {
   RealmStage,
   RealmType,
 } from '@shared/types/constants';
-import type { AlchemyRecipePlan, PillSpec } from '@shared/types/consumable';
+import type {
+  AlchemyBatchPreview,
+  AlchemyRecipePlan,
+  PillSpec,
+} from '@shared/types/consumable';
 import type { Consumable, PreHeavenFate } from '@shared/types/cultivator';
 import { and, eq, inArray } from 'drizzle-orm';
 import { buildDiscoveryCandidate } from './AlchemyFormulaService';
@@ -74,6 +79,7 @@ export interface AlchemyPreviewResult {
   };
   canAfford: boolean;
   validation: AlchemySelectionValidation;
+  batchPreview: AlchemyBatchPreview;
 }
 
 export interface ImprovisedAlchemyCraftResult {
@@ -185,6 +191,7 @@ function buildPreparedMaterials(
 
 function buildSelectionValidation(
   materialRows: MaterialRow[],
+  materialQuantities?: Record<string, number>,
 ): AlchemySelectionValidation {
   for (const material of materialRows) {
     const error = validateMaterialRow(material);
@@ -193,7 +200,10 @@ function buildSelectionValidation(
     }
   }
 
-  const preparedMaterials = buildPreparedMaterials(materialRows);
+  const preparedMaterials = buildPreparedMaterials(
+    materialRows,
+    materialQuantities,
+  );
   return createValidation(
     true,
     undefined,
@@ -249,6 +259,7 @@ function buildAlchemySpec(
         synthesis.propertyVector,
         synthesis.family,
       ),
+      batch: synthesis.batchProfile,
     },
   };
 }
@@ -316,6 +327,7 @@ export async function previewAlchemySelection(
   availableSpiritStones: number,
   materialIds: string[],
   fates: PreHeavenFate[] = [],
+  materialQuantities?: Record<string, number>,
 ): Promise<AlchemyPreviewResult> {
   const { rows, blockingReason } = await loadPreviewMaterialRows(
     cultivatorId,
@@ -327,6 +339,7 @@ export async function previewAlchemySelection(
       cost: { spiritStones: 0 },
       canAfford: true,
       validation: createValidation(false, blockingReason),
+      batchPreview: buildAlchemyBatchPreview([]),
     };
   }
 
@@ -339,10 +352,15 @@ export async function previewAlchemySelection(
       )
     : 0;
 
+  const validation = buildSelectionValidation(rows, materialQuantities);
+  const preparedMaterials = validation.valid
+    ? buildPreparedMaterials(rows, materialQuantities)
+    : [];
   return {
     cost: { spiritStones },
     canAfford: availableSpiritStones >= spiritStones,
-    validation: buildSelectionValidation(rows),
+    validation,
+    batchPreview: buildAlchemyBatchPreview(preparedMaterials),
   };
 }
 
@@ -480,7 +498,7 @@ export function createAlchemyService(
           name: resolvedName,
           type: '丹药',
           quality: highestMaterialRank,
-          quantity: 1,
+          quantity: synthesis.batchProfile.yieldQuantity,
           prompt,
           description:
             generatedCopy?.description ??

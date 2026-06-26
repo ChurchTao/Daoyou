@@ -181,10 +181,18 @@ describe('craft router alchemy routes', () => {
         valid: true,
         warnings: ['药性稍杂。'],
       },
+      batchPreview: {
+        minYield: 2,
+        maxYield: 3,
+        materialKindCount: 2,
+        totalDose: 3,
+        summary: '多材合炉，实际产量取决于药性配伍与炉势。',
+        warnings: ['药性稍杂。'],
+      },
     });
 
     const response = await createApp().request(
-      '/api/craft?craftType=alchemy&materialIds=m1,m2',
+      `/api/craft?craftType=alchemy&materialIds=m1,m2&materialQuantities=${encodeURIComponent(JSON.stringify({ m1: 2, m2: 1 }))}`,
     );
 
     expect(response.status).toBe(200);
@@ -204,6 +212,7 @@ describe('craft router alchemy routes', () => {
       50000,
       ['m1', 'm2'],
       [],
+      { m1: 2, m2: 1 },
     );
   });
 
@@ -235,10 +244,18 @@ describe('craft router alchemy routes', () => {
         valid: true,
         warnings: ['辅性药材未尽契合丹方。'],
       },
+      batchPreview: {
+        minYield: 2,
+        maxYield: 3,
+        materialKindCount: 2,
+        totalDose: 3,
+        summary: '多材合炉，实际产量取决于药性配伍与炉势。',
+        warnings: [],
+      },
     });
 
     const response = await createApp().request(
-      '/api/craft?craftType=alchemy&alchemyMode=formula&formulaId=11111111-1111-4111-8111-111111111111&materialIds=m1,m2',
+      `/api/craft?craftType=alchemy&alchemyMode=formula&formulaId=11111111-1111-4111-8111-111111111111&materialIds=m1,m2&materialQuantities=${encodeURIComponent(JSON.stringify({ m1: 2, m2: 1 }))}`,
     );
 
     expect(response.status).toBe(200);
@@ -251,6 +268,14 @@ describe('craft router alchemy routes', () => {
           valid: true,
           warnings: ['辅性药材未尽契合丹方。'],
         },
+        batchPreview: {
+          minYield: 2,
+          maxYield: 3,
+          materialKindCount: 2,
+          totalDose: 3,
+          summary: '多材合炉，实际产量取决于药性配伍与炉势。',
+          warnings: [],
+        },
       },
     });
     expect(previewFormulaCraftMock).toHaveBeenCalledWith(
@@ -259,6 +284,7 @@ describe('craft router alchemy routes', () => {
       ['m1', 'm2'],
       50000,
       [],
+      { m1: 2, m2: 1 },
     );
   });
 

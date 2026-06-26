@@ -1610,7 +1610,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-soul-rend',
     displayName: '魂伤',
     displayDescription: '施放时造成一次真实伤害',
-    slot: 'modifier',
+    slot: 'core',
     rarity: 'legendary',
     match: {
       all: [
@@ -1623,7 +1623,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         CreationTags.MATERIAL.SEMANTIC_DIVINE,
       ],
     },
-    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 40,
     energyCost: 55,
     applicableTo: ['skill'],

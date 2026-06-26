@@ -48,6 +48,7 @@ import { isPillConsumable } from '@shared/lib/consumables';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { MaterialType, RealmType } from '@shared/types/constants';
 import type {
+  AlchemyBatchPreview,
   AlchemyFormula,
   AlchemyFormulaDiscoveryCandidate,
   AlchemyMode,
@@ -86,6 +87,7 @@ type AlchemyPreviewResponse = {
     };
     canAfford: boolean;
     validation: PreviewValidation;
+    batchPreview?: AlchemyBatchPreview;
   };
   error?: string;
 };
@@ -94,6 +96,7 @@ type PreviewState = {
   key: string | null;
   estimatedSpiritStones: number | null;
   validation: PreviewValidation | null;
+  batchPreview: AlchemyBatchPreview | null;
   canAfford: boolean;
   previewError: string | null;
 };
@@ -160,6 +163,7 @@ const DEFAULT_PREVIEW_STATE: PreviewState = {
   key: null,
   estimatedSpiritStones: null,
   validation: null,
+  batchPreview: null,
   canAfford: true,
   previewError: null,
 };
@@ -230,6 +234,21 @@ function getFormulaFitBandEffectText(
       return '药效会有折损，品相更难上行，熟练增长较少。';
     case 'poor':
       return '药效削减明显，品相大多偏下，且基本不会增长熟练。';
+  }
+}
+
+function getBatchTierLabel(
+  tier: NonNullable<FormulaAnalysisResult['batchProfile']>['compoundTier'],
+): string {
+  switch (tier) {
+    case 'single':
+      return '单材';
+    case 'balanced':
+      return '均衡';
+    case 'synergy':
+      return '协同';
+    case 'conflict':
+      return '冲突';
   }
 }
 
@@ -402,6 +421,25 @@ export function AlchemyFormulaAnalysisModal({
             合方程度 {Math.round(analysis.fitScore * 100)}%
           </span>
         </div>
+        {analysis.batchProfile ? (
+          <div className="border-ink/10 bg-ink/5 grid gap-3 border border-dashed p-3 sm:grid-cols-2">
+            <div>
+              <div className="text-ink-secondary text-xs">预计成丹</div>
+              <div className="text-wood text-2xl font-bold leading-9">
+                {analysis.batchProfile.yieldQuantity} 枚
+              </div>
+            </div>
+            <div>
+              <div className="text-ink-secondary text-xs">配伍</div>
+              <div className="font-semibold leading-7">
+                {getBatchTierLabel(analysis.batchProfile.compoundTier)}
+              </div>
+              <div className="text-ink-secondary text-xs leading-5">
+                {analysis.batchProfile.roleSummary}
+              </div>
+            </div>
+          </div>
+        ) : null}
         <div className="text-ink-secondary space-y-1 leading-6">
           <p>{getFormulaAnalysisNarrative(analysis.fitBand)}</p>
           <p>{getFormulaFitBandEffectText(analysis.fitBand)}</p>
@@ -701,10 +739,21 @@ export function AlchemyResultModal({
       ].filter(Boolean)}
       metaSection={
         <div className="space-y-2">
-          <div className="border-border/50 flex justify-between border-b pb-2">
-            <span className="opacity-70">出炉份数</span>
-            <span className="font-bold">{consumable.quantity}</span>
+          <div className="border-wood/30 bg-wood/10 flex items-center justify-between border px-3 py-2">
+            <span className="text-ink-secondary text-sm">本炉成丹</span>
+            <span className="text-wood text-xl font-bold">
+              {consumable.quantity} 枚
+            </span>
           </div>
+          {meta.batch ? (
+            <div className="border-border/50 flex justify-between border-b pb-2">
+              <span className="opacity-70">配伍</span>
+              <span className="font-bold">
+                {getBatchTierLabel(meta.batch.compoundTier)} ·{' '}
+                {meta.batch.roleSummary}
+              </span>
+            </div>
+          ) : null}
           <PillDetailGroups groups={model.detailGroups} />
           {formulaProgress && (
             <div className="border-ink/10 border border-dashed p-3">
@@ -1074,15 +1123,24 @@ export default function AlchemyPage() {
       alchemyMode: activeMode,
       materialIds: selectedMaterialIds.join(','),
     });
+    const materialQuantities = Object.fromEntries(
+      selectedMaterialIds.map((id) => [id, doseMap[id] ?? MIN_DOSE]),
+    );
+    params.set('materialQuantities', JSON.stringify(materialQuantities));
     if (activeMode === 'formula' && selectedFormulaId) {
       params.set('formulaId', selectedFormulaId);
     }
 
     return {
-      key: `${activeMode}:${selectedFormulaId ?? ''}:${selectedMaterialIds.join(',')}`,
+      key: JSON.stringify({
+        activeMode,
+        selectedFormulaId,
+        materialIds: selectedMaterialIds,
+        materialQuantities,
+      }),
       url: `/api/craft?${params.toString()}`,
     };
-  }, [activeMode, selectedFormulaId, selectedMaterialIds]);
+  }, [activeMode, doseMap, selectedFormulaId, selectedMaterialIds]);
 
   useEffect(() => {
     if (!previewRequest) {
@@ -1106,6 +1164,7 @@ export default function AlchemyPage() {
           key: previewRequest.key,
           estimatedSpiritStones: result.data.cost.spiritStones,
           validation: result.data.validation,
+          batchPreview: result.data.batchPreview ?? null,
           canAfford: result.data.canAfford,
           previewError: null,
         });
@@ -1115,6 +1174,7 @@ export default function AlchemyPage() {
           key: previewRequest.key,
           estimatedSpiritStones: null,
           validation: null,
+          batchPreview: null,
           canAfford: true,
           previewError:
             error instanceof Error
@@ -1257,12 +1317,16 @@ export default function AlchemyPage() {
   const estimatedSpiritStones = hasFreshPreview
     ? previewState.estimatedSpiritStones
     : null;
+  const batchPreview = hasFreshPreview ? previewState.batchPreview : null;
   const validation = hasFreshPreview ? previewState.validation : null;
   const canAfford = hasFreshPreview ? previewState.canAfford : true;
   const previewError = hasFreshPreview ? previewState.previewError : null;
   const displayValidation = validation;
   const displayCanAfford = canAfford;
   const isFormulaMode = activeMode === 'formula';
+  const displayBatchPreview = isFormulaMode ? batchPreview : null;
+  const displayPreviewWarnings =
+    isFormulaMode ? (displayValidation?.warnings ?? []) : [];
   const qiCost = isFormulaMode
     ? QI_ACTION_COSTS.alchemy_formula
     : QI_ACTION_COSTS.alchemy_improvised;
@@ -1454,7 +1518,7 @@ export default function AlchemyPage() {
 
           const nextConsumable = result.consumable;
           const discoveredFormula = result.formulaDiscovery ?? null;
-          const successMessage = `【${nextConsumable.name}】丹成！`;
+          const successMessage = `【${nextConsumable.name}】丹成 ${nextConsumable.quantity} 枚！`;
           setCreatedConsumable(nextConsumable);
           setFormulaDiscovery(discoveredFormula);
           setFormulaProgress(result.formulaProgress ?? null);
@@ -1718,6 +1782,15 @@ export default function AlchemyPage() {
               {estimatedSpiritStones !== null ? (
                 <p>预计耗费：{estimatedSpiritStones} 灵石</p>
               ) : null}
+              {displayBatchPreview ? (
+                <p>
+                  预计出丹：{displayBatchPreview.minYield}
+                  {displayBatchPreview.maxYield !== displayBatchPreview.minYield
+                    ? `-${displayBatchPreview.maxYield}`
+                    : ''}{' '}
+                  枚
+                </p>
+              ) : null}
             </div>
           </GameSceneAsideSection>
 
@@ -1781,6 +1854,16 @@ export default function AlchemyPage() {
                       药路已推演：{getFormulaFitBandLabel(formulaAnalysis.fitBand)}
                       ，合方程度 {Math.round(formulaAnalysis.fitScore * 100)}%。
                     </span>
+                    {formulaAnalysis.batchProfile ? (
+                      <span>
+                        本炉预计 {formulaAnalysis.batchProfile.yieldQuantity}{' '}
+                        枚，配伍
+                        {getBatchTierLabel(
+                          formulaAnalysis.batchProfile.compoundTier,
+                        )}
+                        。
+                      </span>
+                    ) : null}
                     <InkButton
                       variant="outline"
                       onClick={() => setIsFormulaAnalysisModalOpen(true)}
@@ -1885,13 +1968,25 @@ export default function AlchemyPage() {
           </InkNotice>
         )}
 
+        {displayBatchPreview ? (
+          <InkNotice tone="info">
+            {displayBatchPreview.summary} 预计出丹{' '}
+            {displayBatchPreview.minYield}
+            {displayBatchPreview.maxYield !== displayBatchPreview.minYield
+              ? `-${displayBatchPreview.maxYield}`
+              : ''}{' '}
+            枚；共 {displayBatchPreview.materialKindCount} 种灵材，合计{' '}
+            {displayBatchPreview.totalDose} 份。
+          </InkNotice>
+        ) : null}
+
         {previewError && <InkNotice tone="warning">{previewError}</InkNotice>}
         {displayValidation?.blockingReason && (
           <InkNotice tone="warning">
             {displayValidation.blockingReason}
           </InkNotice>
         )}
-        {displayValidation?.warnings.map((warning) => (
+        {displayPreviewWarnings.map((warning) => (
           <InkNotice key={warning} tone="info">
             {warning}
           </InkNotice>

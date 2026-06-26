@@ -94,6 +94,22 @@ const router = new Hono<AppEnv>();
 const pendingRouter = new Hono<AppEnv>();
 const confirmRouter = new Hono<AppEnv>();
 
+function parseMaterialQuantitiesQuery(
+  value: string | undefined,
+): Record<string, number> | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = JSON.parse(value) as unknown;
+  return z
+    .record(
+      z.string(),
+      z.number().int().min(minQuantityPerMaterial).max(maxQuantityPerMaterial),
+    )
+    .parse(parsed);
+}
+
 function getCraftQiAction(args: {
   craftType: (typeof SUPPORTED_CRAFT_TYPES)[number];
   alchemyMode?: string;
@@ -354,9 +370,12 @@ router.get('/', requireActiveCultivator(), async (c) => {
     const fullCultivator = await getCultivatorById(user.id, cultivator.id);
     const fateList = fullCultivator?.pre_heaven_fates ?? [];
     const materialIdsParam = c.req.query('materialIds');
+    const materialQuantitiesParam = c.req.query('materialQuantities');
     const craftType = c.req.query('craftType');
     const alchemyMode = c.req.query('alchemyMode') ?? 'improvised';
     const formulaId = c.req.query('formulaId');
+    const materialQuantities =
+      parseMaterialQuantitiesQuery(materialQuantitiesParam);
 
     if (!craftType) {
       return c.json({ error: '请指定造物类型' }, 400);
@@ -384,6 +403,7 @@ router.get('/', requireActiveCultivator(), async (c) => {
               materialIds,
               cultivator.spirit_stones || 0,
               fateList,
+              materialQuantities,
             );
           })()
         : await previewAlchemySelection(
@@ -391,11 +411,19 @@ router.get('/', requireActiveCultivator(), async (c) => {
             cultivator.spirit_stones || 0,
             materialIds,
             fateList,
+            materialQuantities,
           );
 
       return c.json({
         success: true,
-        data: preview,
+        data:
+          alchemyMode === 'formula'
+            ? preview
+            : {
+                cost: preview.cost,
+                canAfford: preview.canAfford,
+                validation: preview.validation,
+              },
       });
     }
     if (
@@ -451,6 +479,9 @@ router.get('/', requireActiveCultivator(), async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof z.ZodError || error instanceof SyntaxError) {
+      return c.json({ error: '材料数量参数格式错误' }, 400);
+    }
     if (error instanceof AlchemyServiceError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }

@@ -205,6 +205,16 @@ function createAnalysisPayload(
       { key: 'restore_hp', weight: 0.62 },
       { key: 'heal_wounds', weight: 0.38 },
     ],
+    batchProfile: {
+      yieldQuantity: 1,
+      synergyScore: 0,
+      conflictScore: 0,
+      compoundTier: 'single',
+      roleSummary: '单材直炼',
+      stabilityDelta: 0,
+      toxicityDelta: 0,
+      secondaryEffectMultiplierBonus: 0,
+    },
     dominantElement: '木',
     stability: 80,
     toxicityRating: 6,
@@ -302,6 +312,10 @@ describe('craftFromFormula narrative copy', () => {
 
     expect(result.valid).toBe(true);
     expect(result.fitBand).toBe('aligned');
+    expect(result.batchProfile).toMatchObject({
+      yieldQuantity: 1,
+      compoundTier: 'single',
+    });
     expect(result.cooldownRemainingSeconds).toBe(30);
     expect(redisSetMock).toHaveBeenNthCalledWith(
       1,
@@ -465,6 +479,47 @@ describe('craftFromFormula narrative copy', () => {
     expect(result.consumable.name).toBe('回春');
     expect(result.consumable.description).toContain('依《回春丹方》炉意炼成');
     expect(result.consumable.description).toContain('药力拟合 115%');
+  });
+
+  it('sets crafted formula pill quantity from the batch profile', async () => {
+    executorState.materialRows = [
+      {
+        ...executorState.materialRows[0],
+        quantity: 3,
+      },
+    ];
+    redisGetMock.mockResolvedValueOnce(
+      JSON.stringify(
+        createAnalysisPayload({
+          signature: JSON.stringify({
+            cultivatorId: 'cultivator-1',
+            formulaId: 'formula-1',
+            formulaMasteryLevel: 2,
+            materials: [{ dose: 3, id: 'm1' }],
+          }),
+        }),
+      ),
+    );
+
+    const result = await craftFromFormula(
+      'cultivator-1',
+      'formula-1',
+      ['m1'],
+      { m1: 3 },
+      'analysis-1',
+    );
+
+    expect(result.consumable.quantity).toBe(3);
+    expect((result.consumable.spec as PillSpec).alchemyMeta.batch).toMatchObject({
+      yieldQuantity: 3,
+      compoundTier: 'single',
+    });
+    expect(addConsumableToInventoryMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      expect.objectContaining({ quantity: 3 }),
+      expect.anything(),
+    );
   });
 
   it('rejects formula crafting without a valid prior analysis id', async () => {

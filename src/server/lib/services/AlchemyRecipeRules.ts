@@ -42,12 +42,17 @@ import type {
   RealmStage,
   RealmType,
 } from '@shared/types/constants';
+import { QUALITY_ORDER } from '@shared/types/constants';
 import type {
   AlchemyFocusMode,
+  AlchemyBatchPreview,
+  AlchemyBatchProfile,
   AlchemyMaterialPropertyVector,
   AlchemyPropertyKey,
   AlchemyRecipePlan,
   ConditionOperation,
+  FormulaFitBand,
+  FormulaMaterialJudgment,
   PillAppearanceGrade,
   PillFamily,
   PillQuotaCategory,
@@ -80,6 +85,7 @@ export interface SynthesizedAlchemyResult extends AggregatedAlchemyProperties {
   family: PillFamily;
   operations: ConditionOperation[];
   appearance: PillAppearanceGrade;
+  batchProfile: AlchemyBatchProfile;
 }
 
 export interface AlchemyCultivationSnapshotContext {
@@ -119,6 +125,72 @@ function applyLowStabilityPenalty(
 
 function getMaterialContribution(material: PreparedAlchemyMaterial): number {
   return material.dose * POTENCY_BY_QUALITY[material.rank];
+}
+
+function getYieldContribution(
+  material: PreparedAlchemyMaterial,
+  targetRank: Quality,
+): number {
+  const qualityGap = QUALITY_ORDER[targetRank] - QUALITY_ORDER[material.rank];
+  if (qualityGap <= 0) {
+    return getMaterialContribution(material);
+  }
+  if (qualityGap === 1) {
+    return getMaterialContribution(material) * 0.75;
+  }
+  return 0;
+}
+
+function getHighestMaterialRank(materials: PreparedAlchemyMaterial[]): Quality {
+  return materials.reduce<Quality>(
+    (best, material) =>
+      QUALITY_ORDER[material.rank] > QUALITY_ORDER[best]
+        ? material.rank
+        : best,
+    materials[0]!.rank,
+  );
+}
+
+function isYieldSupportingMaterial(
+  material: PreparedAlchemyMaterial,
+  targetRank: Quality,
+): boolean {
+  return QUALITY_ORDER[targetRank] - QUALITY_ORDER[material.rank] <= 1;
+}
+
+function countYieldSupportingMaterials(
+  materials: PreparedAlchemyMaterial[],
+  targetRank: Quality,
+): number {
+  return materials.filter((material) =>
+    isYieldSupportingMaterial(material, targetRank),
+  ).length;
+}
+
+function roundScore(value: number): number {
+  return Number(clamp(value, 0, 1).toFixed(4));
+}
+
+function sumMaterialDose(materials: PreparedAlchemyMaterial[]): number {
+  return materials.reduce((sum, material) => sum + Math.max(1, material.dose), 0);
+}
+
+function calculateBaseYield(materials: PreparedAlchemyMaterial[]): number {
+  if (materials.length === 0) {
+    return 1;
+  }
+
+  const highestRank = getHighestMaterialRank(materials);
+  const targetUnitContribution = POTENCY_BY_QUALITY[highestRank];
+  if (targetUnitContribution <= 0) {
+    return 1;
+  }
+  const effectiveContribution = materials.reduce(
+    (sum, material) => sum + getYieldContribution(material, highestRank),
+    0,
+  );
+
+  return clamp(Math.floor(effectiveContribution / targetUnitContribution), 1, 5);
 }
 
 export function getQuotaCategoryForFamily(
@@ -359,14 +431,19 @@ function selectEffectiveProperties(
 function buildPropertyOperationSet(
   selectedProperties: WeightedAlchemyProperty[],
   quality: Quality,
+  secondaryEffectMultiplierBonus = 0,
 ): ConditionOperation[] {
   const operations = selectedProperties.map((property, index) => {
     const baseOperation = buildBasePropertyOperation(
       property.key,
       quality,
     );
-    const scalar =
+    const baseScalar =
       PROPERTY_OPERATION_SCALARS[index] ?? PROPERTY_OPERATION_SCALARS[2];
+    const scalar =
+      index === 0
+        ? baseScalar
+        : Math.min(0.65, baseScalar * (1 + secondaryEffectMultiplierBonus));
     return scalePropertyOperation(baseOperation, scalar);
   });
 
@@ -493,6 +570,185 @@ export function buildAlchemyPreviewWarnings(
   return warnings;
 }
 
+export function buildAlchemyBatchPreview(
+  materials: PreparedAlchemyMaterial[],
+): AlchemyBatchPreview {
+  const baseYield = calculateBaseYield(materials);
+  const materialKindCount = materials.length;
+  const totalDose = sumMaterialDose(materials);
+  const canGainYieldBonus =
+    materialKindCount > 1 &&
+    countYieldSupportingMaterials(materials, getHighestMaterialRank(materials)) >
+      1;
+  const maxYield =
+    canGainYieldBonus ? Math.min(5, baseYield + 1) : baseYield;
+  const warnings = buildAlchemyPreviewWarnings(materials);
+
+  return {
+    minYield: Math.max(1, Math.min(baseYield, maxYield)),
+    maxYield,
+    materialKindCount,
+    totalDose,
+    summary:
+      materialKindCount <= 1
+        ? '单材成丹，药路稳定但变化有限。'
+        : '多材合炉，实际产量取决于药性配伍与炉势。',
+    warnings,
+  };
+}
+
+function getPrimaryPropertyByMaterial(
+  aggregated: Pick<AggregatedAlchemyProperties, 'sourceMaterialVectors'>,
+): Map<string, AlchemyPropertyKey> {
+  return new Map(
+    aggregated.sourceMaterialVectors.flatMap((vector) => {
+      const primary = normalizeWeightedAlchemyProperties(vector.properties)[0];
+      return primary ? [[vector.materialRef, primary.key]] : [];
+    }),
+  );
+}
+
+export function buildAlchemyBatchProfile(
+  materials: PreparedAlchemyMaterial[],
+  aggregated: Pick<
+    AggregatedAlchemyProperties,
+    | 'propertyVector'
+    | 'rawPropertyVector'
+    | 'sourceMaterialVectors'
+    | 'stability'
+    | 'toxicityRating'
+    | 'focusMode'
+  >,
+  options: {
+    formulaFitBand?: FormulaFitBand;
+    formulaFitScore?: number;
+    materialJudgments?: FormulaMaterialJudgment[];
+  } = {},
+): AlchemyBatchProfile {
+  const materialKindCount = materials.length;
+  const baseYield = calculateBaseYield(materials);
+  const highestRank =
+    materials.length > 0 ? getHighestMaterialRank(materials) : undefined;
+  const yieldSupportingMaterialCount = highestRank
+    ? countYieldSupportingMaterials(materials, highestRank)
+    : 0;
+  const dominantProperty = aggregated.propertyVector[0]?.key;
+  const primaryByRef = getPrimaryPropertyByMaterial(aggregated);
+  const primaryMatches = dominantProperty
+    ? materials.filter(
+        (material) => primaryByRef.get(material.materialRef) === dominantProperty,
+      ).length
+    : 0;
+  const uniquePrimaryProperties = new Set(primaryByRef.values());
+  const auxCount = materials.filter((material) => material.type === 'aux').length;
+  const activePropertyCount = aggregated.propertyVector.length;
+
+  const sameRouteScore =
+    materialKindCount > 1 && dominantProperty
+      ? primaryMatches / materialKindCount
+      : 0;
+  const complementaryScore =
+    materialKindCount > 1 && activePropertyCount >= 2
+      ? Math.min(0.3, (activePropertyCount - 1) * 0.12)
+      : 0;
+  const supportScore =
+    materialKindCount > 1 ? Math.min(0.2, auxCount * 0.1) : 0;
+  const judgmentScore = options.materialJudgments?.length
+    ? options.materialJudgments.filter((judgment) => judgment.verdict === 'core')
+        .length / options.materialJudgments.length * 0.18
+    : 0;
+  const fitScoreBonus =
+    options.formulaFitBand === 'aligned'
+      ? Math.min(0.18, (options.formulaFitScore ?? 0) * 0.18)
+      : 0;
+  const synergyScore = roundScore(
+    sameRouteScore * 0.68 +
+      complementaryScore +
+      supportScore +
+      judgmentScore +
+      fitScoreBonus,
+  );
+
+  const scatteredScore =
+    materialKindCount > 1
+      ? Math.max(0, uniquePrimaryProperties.size - 1) /
+        Math.max(1, materialKindCount - 1)
+      : 0;
+  const riskyScore = aggregated.focusMode === 'risky' ? 0.18 : 0;
+  const poorFitScore =
+    options.formulaFitBand === 'poor'
+      ? 0.45
+      : options.formulaFitBand === 'degraded'
+        ? 0.18
+        : 0;
+  const conflictScore = roundScore(
+    scatteredScore * 0.45 +
+      Math.max(0, activePropertyCount - 2) * 0.12 +
+      riskyScore +
+      poorFitScore,
+  );
+
+  const stabilityDelta = Math.round(
+    synergyScore * 10 + auxCount * 2 - conflictScore * 14,
+  );
+  const toxicityDelta = Math.round(
+    conflictScore * 18 - synergyScore * 8 - auxCount * 2,
+  );
+  const secondaryEffectMultiplierBonus =
+    materialKindCount > 1 && synergyScore >= 0.45 && conflictScore < 0.55
+      ? roundScore(Math.min(0.65, synergyScore * 0.7))
+      : 0;
+
+  let yieldQuantity = baseYield;
+  const adjustedStability = aggregated.stability + stabilityDelta;
+  if (
+    materialKindCount > 1 &&
+    yieldSupportingMaterialCount > 1 &&
+    synergyScore >= 0.65 &&
+    conflictScore < 0.45 &&
+    adjustedStability >= 55
+  ) {
+    yieldQuantity += 1;
+  }
+  if (adjustedStability < 45 || conflictScore >= 0.65) {
+    yieldQuantity -= 1;
+  }
+  if (options.formulaFitBand === 'degraded') {
+    yieldQuantity = Math.min(yieldQuantity, 3);
+  } else if (options.formulaFitBand === 'poor') {
+    yieldQuantity = Math.min(yieldQuantity - 1, 2);
+  }
+  yieldQuantity = clamp(yieldQuantity, 1, 5);
+
+  const compoundTier =
+    materialKindCount <= 1
+      ? 'single'
+      : conflictScore >= 0.65
+        ? 'conflict'
+        : synergyScore >= 0.65
+          ? 'synergy'
+          : 'balanced';
+  const roleSummary =
+    compoundTier === 'single'
+      ? '单材直炼'
+      : compoundTier === 'synergy'
+        ? '主辅相合'
+        : compoundTier === 'conflict'
+          ? '药路冲突'
+          : '多材均衡';
+
+  return {
+    yieldQuantity,
+    synergyScore,
+    conflictScore,
+    compoundTier,
+    roleSummary,
+    stabilityDelta,
+    toxicityDelta,
+    secondaryEffectMultiplierBonus,
+  };
+}
+
 function buildPlanVectorMap(
   vectors: AlchemyMaterialPropertyVector[],
 ): Map<string, WeightedAlchemyProperty[]> {
@@ -583,11 +839,26 @@ export function synthesizeAlchemyFromPlan(
   _cultivationContextOrRealm: AlchemyCultivationSnapshotContext | RealmType,
   options: AlchemySynthesisOptions = {},
 ): SynthesizedAlchemyResult {
-  const aggregated = aggregateAlchemyProperties(materials, plan);
+  const baseAggregated = aggregateAlchemyProperties(materials, plan);
+  const batchProfile = buildAlchemyBatchProfile(materials, baseAggregated);
+  const aggregated = {
+    ...baseAggregated,
+    stability: Math.round(
+      clamp(baseAggregated.stability + batchProfile.stabilityDelta, 15, 95),
+    ),
+    toxicityRating: Math.round(
+      clamp(
+        baseAggregated.toxicityRating + batchProfile.toxicityDelta,
+        0,
+        100,
+      ),
+    ),
+  };
   const family = determineAlchemyFamily(aggregated.propertyVector);
   let operations = buildPropertyOperationSet(
     aggregated.propertyVector,
     quality,
+    batchProfile.secondaryEffectMultiplierBonus,
   );
   const appearance = rollPillAppearance({
     stability: aggregated.stability,
@@ -612,6 +883,7 @@ export function synthesizeAlchemyFromPlan(
     family,
     operations,
     appearance,
+    batchProfile,
   };
 }
 

@@ -9,6 +9,8 @@ import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import {
   aggregateAlchemyProperties,
+  buildAlchemyBatchPreview,
+  buildAlchemyBatchProfile,
   buildAlchemyPreviewWarnings,
   buildAlchemyPropertyTags,
   calculatePropertyVectorFit,
@@ -64,6 +66,8 @@ import {
   type RealmType,
 } from '@shared/types/constants';
 import type {
+  AlchemyBatchPreview,
+  AlchemyBatchProfile,
   AlchemyFormula,
   AlchemyFormulaDiscoveryCandidate,
   AlchemyFormulaMastery,
@@ -117,6 +121,7 @@ export interface FormulaPreviewResult {
     blockingReason?: string;
     warnings: string[];
   };
+  batchPreview: AlchemyBatchPreview;
 }
 
 export interface FormulaProgress {
@@ -164,6 +169,7 @@ interface FormulaAnalysisPayload {
   warnings: string[];
   materialJudgments: FormulaMaterialJudgment[];
   aggregatedPropertyVector: WeightedAlchemyProperty[];
+  batchProfile: AlchemyBatchProfile;
   dominantElement: ElementType;
   stability: number;
   toxicityRating: number;
@@ -620,6 +626,11 @@ function buildFormulaAnalysisPayload(
     formula.pattern.targetPropertyVector,
   );
   const fitBand = determineFormulaFitBand(fitScore);
+  const batchProfile = buildAlchemyBatchProfile(materialsList, aggregated, {
+    formulaFitBand: fitBand,
+    formulaFitScore: fitScore,
+    materialJudgments,
+  });
   const warnings = buildFormulaWarnings(formula, materialsList);
 
   if (fitBand === 'degraded') {
@@ -645,9 +656,14 @@ function buildFormulaAnalysisPayload(
     warnings,
     materialJudgments: sortMaterialJudgments(materialJudgments),
     aggregatedPropertyVector: aggregated.rawPropertyVector,
+    batchProfile,
     dominantElement: aggregated.dominantElement,
-    stability: aggregated.stability,
-    toxicityRating: aggregated.toxicityRating,
+    stability: clamp(aggregated.stability + batchProfile.stabilityDelta, 15, 95),
+    toxicityRating: clamp(
+      aggregated.toxicityRating + batchProfile.toxicityDelta,
+      0,
+      100,
+    ),
   };
 }
 
@@ -976,10 +992,16 @@ export async function buildDiscoveryCandidate(
 ): Promise<AlchemyFormulaDiscoveryCandidate | null> {
   const { consumable, materials: materialsList } = context;
   const spec = consumable.spec;
+  const batch = spec.alchemyMeta.batch;
+  const effectiveDiscoveryStability =
+    spec.alchemyMeta.stability +
+    (batch && materialsList.length > 1 && batch.synergyScore >= 0.65 ? 8 : 0) -
+    (batch?.conflictScore && batch.conflictScore >= 0.65 ? 12 : 0);
 
   if (
     spec.alchemyMeta.analysisVersion !== 2 ||
-    spec.alchemyMeta.stability < DISCOVERY_STABILITY_THRESHOLD ||
+    effectiveDiscoveryStability < DISCOVERY_STABILITY_THRESHOLD ||
+    (batch?.conflictScore ?? 0) >= 0.65 ||
     spec.operations.length === 0 ||
     spec.alchemyMeta.propertyVector.length === 0
   ) {
@@ -1211,6 +1233,7 @@ export async function analyzeFormulaMaterials(
     warnings: payload.warnings,
     materialJudgments: payload.materialJudgments,
     aggregatedPropertyVector: payload.aggregatedPropertyVector,
+    batchProfile: payload.batchProfile,
     dominantElement: payload.dominantElement,
     stability: payload.stability,
     toxicityRating: payload.toxicityRating,
@@ -1225,6 +1248,7 @@ export async function previewFormulaCraft(
   materialIds: string[],
   availableSpiritStones: number,
   fates: PreHeavenFate[] = [],
+  materialQuantities?: Record<string, number>,
 ): Promise<FormulaPreviewResult> {
   const formula = await loadCultivatorFormula(cultivatorId, formulaId);
   const rows = sortRowsByRequestedIds(
@@ -1240,6 +1264,7 @@ export async function previewFormulaCraft(
       cost: { spiritStones: 0 },
       canAfford: true,
       validation: createValidation(false, '部分材料已耗尽或不存在。'),
+      batchPreview: buildAlchemyBatchPreview([]),
     };
   }
   if (rows.some((row) => row.cultivatorId !== cultivatorId)) {
@@ -1247,18 +1272,20 @@ export async function previewFormulaCraft(
       cost: { spiritStones: 0 },
       canAfford: true,
       validation: createValidation(false, '非本人材料，不可动用。'),
+      batchPreview: buildAlchemyBatchPreview([]),
     };
   }
 
   let materialsList: PreparedAlchemyMaterial[];
   try {
-    materialsList = buildPreparedMaterials(rows);
+    materialsList = buildPreparedMaterials(rows, materialQuantities);
   } catch (error) {
     if (error instanceof AlchemyServiceError) {
       return {
         cost: { spiritStones: 0 },
         canAfford: true,
         validation: createValidation(false, error.message),
+        batchPreview: buildAlchemyBatchPreview([]),
       };
     }
     throw error;
@@ -1276,6 +1303,7 @@ export async function previewFormulaCraft(
     cost: { spiritStones },
     canAfford: availableSpiritStones >= spiritStones,
     validation: validateFormulaIngredients(formula, materialsList),
+    batchPreview: buildAlchemyBatchPreview(materialsList),
   };
 }
 
@@ -1388,6 +1416,11 @@ export async function craftFromFormula(
     ) {
       throw new AlchemyServiceError('请先推演药路。');
     }
+    const batchProfile = buildAlchemyBatchProfile(materialsList, aggregated, {
+      formulaFitBand: fitBand,
+      formulaFitScore: fit,
+      materialJudgments: analysisPayload.materialJudgments,
+    });
 
     const dominantElement = aggregated.dominantElement;
     const fitBandPenaltyFactor =
@@ -1419,7 +1452,12 @@ export async function craftFromFormula(
           ? Math.max(0, Math.floor(formula.mastery.level / 2))
           : formula.mastery.level;
     const appearance = rollPillAppearance({
-      stability: Math.max(0, aggregated.stability - appearanceStabilityPenalty),
+      stability: Math.max(
+        0,
+        aggregated.stability +
+          batchProfile.stabilityDelta -
+          appearanceStabilityPenalty,
+      ),
       propertyVector: formula.pattern.targetPropertyVector,
       masteryLevel: appearanceMasteryLevel,
     });
@@ -1477,7 +1515,8 @@ export async function craftFromFormula(
           formula.blueprint.targetStability +
             masteryBonusStability -
             degradedStabilityPenalty -
-            poorStabilityPenalty,
+            poorStabilityPenalty +
+            batchProfile.stabilityDelta,
           15,
           95,
         ),
@@ -1485,7 +1524,8 @@ export async function craftFromFormula(
           formula.blueprint.targetToxicity -
             masteryBonusToxicity +
             degradedToxicityPenalty +
-            poorToxicityPenalty,
+            poorToxicityPenalty +
+            batchProfile.toxicityDelta,
           0,
           100,
         ),
@@ -1494,6 +1534,7 @@ export async function craftFromFormula(
           formula.pattern.targetPropertyVector,
           formula.family,
         ),
+        batch: batchProfile,
       },
     };
     const breakthroughTargetRealm =
@@ -1518,7 +1559,7 @@ export async function craftFromFormula(
         : getFormulaProductName(formula.name),
       type: '丹药',
       quality: highestMaterialRank,
-      quantity: 1,
+      quantity: batchProfile.yieldQuantity,
       description: buildFormulaDescription(
         formula,
         materialsList.map((material) => material.name),

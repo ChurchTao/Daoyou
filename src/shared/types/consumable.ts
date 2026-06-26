@@ -95,6 +95,36 @@ export interface AlchemyMaterialPropertyVector {
   properties: WeightedAlchemyProperty[];
 }
 
+export const ALCHEMY_COMPOUND_TIER_VALUES = [
+  'single',
+  'balanced',
+  'synergy',
+  'conflict',
+] as const;
+
+export type AlchemyCompoundTier =
+  (typeof ALCHEMY_COMPOUND_TIER_VALUES)[number];
+
+export interface AlchemyBatchProfile {
+  yieldQuantity: number;
+  synergyScore: number;
+  conflictScore: number;
+  compoundTier: AlchemyCompoundTier;
+  roleSummary: string;
+  stabilityDelta: number;
+  toxicityDelta: number;
+  secondaryEffectMultiplierBonus: number;
+}
+
+export interface AlchemyBatchPreview {
+  minYield: number;
+  maxYield: number;
+  materialKindCount: number;
+  totalDose: number;
+  summary: string;
+  warnings: string[];
+}
+
 export const FORMULA_MATERIAL_VERDICT_VALUES = [
   'core',
   'usable',
@@ -152,6 +182,7 @@ export type PillAlchemyMeta =
       toxicityRating: number;
       appearance?: PillAppearanceGrade;
       tags: string[];
+      batch?: AlchemyBatchProfile;
       breakthroughTargetRealm?: RealmType;
       breakthroughLabel?: string;
     }
@@ -170,6 +201,7 @@ export type PillAlchemyMeta =
       toxicityRating: number;
       appearance?: PillAppearanceGrade;
       tags: string[];
+      batch?: AlchemyBatchProfile;
       breakthroughTargetRealm?: RealmType;
       breakthroughLabel?: string;
     };
@@ -281,6 +313,7 @@ export interface FormulaAnalysisResult {
   warnings: string[];
   materialJudgments: FormulaMaterialJudgment[];
   aggregatedPropertyVector: WeightedAlchemyProperty[];
+  batchProfile?: AlchemyBatchProfile;
   dominantElement?: ElementType;
   stability: number;
   toxicityRating: number;
