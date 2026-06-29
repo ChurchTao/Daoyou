@@ -56,6 +56,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/llm-metrics',
   },
   {
+    title: '对战模拟器',
+    description: '验证角色对战与数值样本',
+    href: '/admin/battle-simulator',
+  },
+  {
     title: '蜃楼敌人',
     description: '按周查看与手动生成敌人',
     href: '/admin/tower-enemy-sets',
