@@ -39,6 +39,7 @@ export {
   type InkStatusDatum,
 } from './InkStatusBar';
 export { InkSelect, type InkSelectProps } from './InkSelect';
+export { ScoreMark } from './ScoreMark';
 export { InkTabs, type InkTabItem, type InkTabsProps } from './InkTabs';
 export { InkTag, type InkTagProps } from './InkTag';
 export {

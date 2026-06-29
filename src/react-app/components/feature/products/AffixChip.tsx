@@ -34,7 +34,7 @@ export function AffixChip({ affix }: AffixChipProps) {
           {affix.isPerfect && (
             <span
               aria-hidden="true"
-              className="absolute -top-1 -right-0.5 text-[0.62rem] font-semibold leading-none"
+              className="absolute -top-1 -right-0.5 text-xs font-semibold leading-none"
               data-affix-perfect-mark="embedded"
               style={getPerfectMarkStyle()}
             >

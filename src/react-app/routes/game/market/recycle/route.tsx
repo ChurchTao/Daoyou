@@ -11,6 +11,7 @@ import {
   InkListItem,
   InkNotice,
 } from '@app/components/ui';
+import { ArtifactListCard } from '@app/components/feature/products';
 import { TypewriterText } from '@app/components/ui/TypewriterText';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePaginatedInventoryArtifacts } from '@app/lib/hooks/usePaginatedInventoryArtifacts';
@@ -18,8 +19,7 @@ import { usePaginatedInventoryMaterials } from '@app/lib/hooks/usePaginatedInven
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { QUALITY_ORDER } from '@shared/types/constants';
 import type { Artifact, Material } from '@shared/types/cultivator';
-import {
-  getEquipmentSlotInfo, getMaterialTypeInfo, } from '@shared/lib/gameConceptDisplay';
+import { getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
 import type {
   HighTierAppraisal, SellConfirmResponse, SellItemType, SellPreviewResponse, } from '@shared/types/market';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
@@ -659,26 +659,11 @@ export default function MarketRecyclePage() {
               const quality = item.quality || '凡品';
               const isLow = QUALITY_ORDER[quality] <= QUALITY_ORDER['玄品'];
               const isEquipped = Boolean(item.id && equippedIds.has(item.id));
-              const slotInfo = getEquipmentSlotInfo(item.slot);
               return (
-                <InkListItem
+                <ArtifactListCard
                   key={item.id}
-                  layout="col"
-                  title={
-                    <>
-                      {slotInfo.icon} {item.name}
-                      <InkBadge tier={quality} className="ml-2">
-                        {slotInfo.label}
-                      </InkBadge>
-                      {isEquipped && (
-                        <InkBadge tone="default" className="ml-2">
-                          已装备
-                        </InkBadge>
-                      )}
-                    </>
-                  }
-                  meta={`属性：${item.element} · 评分：${item.score || 0}`}
-                  description={item.description || '尚未录入描述'}
+                  artifact={item}
+                  equipped={isEquipped}
                   actions={
                     <InkButton
                       variant="primary"
@@ -693,7 +678,7 @@ export default function MarketRecyclePage() {
                       {pendingItemId === item.id
                         ? '鉴评中…'
                         : isEquipped
-                          ? '已装备'
+                          ? '不可回收'
                           : isLow
                             ? '回收'
                             : '鉴定回收'}

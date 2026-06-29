@@ -1,5 +1,6 @@
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { ItemCard } from '@app/components/ui/ItemCard';
+import { ScoreMark } from '@app/components/ui/ScoreMark';
 import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
 import { calculatePillScore } from '@shared/lib/pillScore';
 import type { CultivatorCondition } from '@shared/types/condition';
@@ -10,7 +11,6 @@ import type { ReactNode } from 'react';
 import {
   PillAppearanceMark,
   PillKeywordLine,
-  PillScoreMark,
 } from './pillDisplayComponents';
 import { toPillDisplayModel } from './pillDisplayModel';
 import { getConsumableListSummary } from './consumableListSummary';
@@ -99,7 +99,7 @@ export function ConsumableListCard({
       }
       quality={consumable.quality}
       cornerMeta={
-        pillScore !== null ? <PillScoreMark score={pillScore} /> : undefined
+        pillScore !== null ? <ScoreMark score={pillScore} /> : undefined
       }
       badgeExtra={
         <>

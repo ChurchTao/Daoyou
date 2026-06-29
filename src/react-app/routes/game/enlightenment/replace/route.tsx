@@ -14,10 +14,8 @@ import {
 } from '@app/components/game-shell';
 import {
   InkActionGroup,
-  InkBadge,
   InkButton,
   InkNotice,
-  InkTag,
 } from '@app/components/ui';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
@@ -222,7 +220,7 @@ function ReplaceContent() {
           {pendingDisplayModel ? (
             <AbilityListCard
               product={pendingDisplayModel}
-              extraBadges={<InkBadge tone="accent">待纳入道基</InkBadge>}
+              variant="pending"
               actions={
                 <div className="flex gap-2">
                   <InkButton
@@ -260,9 +258,6 @@ function ReplaceContent() {
                       >
                         详情
                       </InkButton>
-                      {selectedOldId === item.id ? (
-                        <InkTag tone="good">已选舍弃</InkTag>
-                      ) : null}
                     </div>
                   }
                 />

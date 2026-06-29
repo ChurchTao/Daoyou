@@ -15,11 +15,11 @@ interface AffixInlineListProps {
 function AffixInlineToken({ affix }: { affix: AffixView }) {
   return (
     <span
-      className="inline-flex max-w-full items-baseline"
+      className="inline-flex max-w-full items-center"
       data-affix-inline-token={affix.id}
     >
       <span
-        className="relative inline-flex max-w-full border-b border-dashed pr-2 pb-px"
+        className="relative inline-flex max-w-full items-center border-b border-dashed pr-2 pb-px"
         style={getAffixUnderlineStyle(affix.isPerfect)}
       >
         <span
@@ -31,7 +31,7 @@ function AffixInlineToken({ affix }: { affix: AffixView }) {
         {affix.isPerfect && (
           <span
             aria-hidden="true"
-            className="absolute -top-1 -right-0.5 text-[0.62rem] font-semibold leading-none"
+            className="absolute -top-1 -right-0.5 text-xs font-semibold leading-none"
             data-affix-perfect-mark="embedded"
             style={getPerfectMarkStyle()}
           >
@@ -51,7 +51,7 @@ export function AffixInlineList({
   if (affixes.length === 0) return null;
 
   return (
-    <div className={cn('flex flex-wrap items-start gap-x-2 gap-y-1 text-sm', className)}>
+    <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 text-sm', className)}>
       <span className="text-ink-secondary shrink-0">{label}：</span>
       <div className="flex min-w-0 flex-1 flex-wrap gap-x-2.5 gap-y-1">
         {affixes.map((affix) => (

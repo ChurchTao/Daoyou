@@ -8,7 +8,6 @@ import {
   AbilityListCard,
 } from '@app/components/feature/products';
 import {
-  InkBadge,
   InkButton,
   InkDialog,
   InkNotice,
@@ -85,11 +84,6 @@ export function SkillsView() {
               <AbilityListCard
                 key={skill.id}
                 product={skill}
-                extraBadges={
-                  <InkBadge tone={skill.isEquipped ? 'accent' : 'default'}>
-                    {skill.isEquipped ? '已启用' : '已停用'}
-                  </InkBadge>
-                }
                 actions={
                   <div className="flex flex-wrap gap-2">
                     <InkButton variant="secondary" onClick={() => openSkillDetail(skill)}>

@@ -9,6 +9,7 @@ import {
   formatTargetPolicyValue,
   type ProductDisplayModel,
 } from './abilityDisplay';
+import { getScoreMark } from './scoreMeta';
 
 function getProductIcon(product: ProductDisplayModel): string {
   if (product.productType === 'artifact') {
@@ -172,5 +173,6 @@ export function getProductShowcaseProps(
     description: product.description,
     descriptionTitle: getDescriptionTitle(product),
     footer: getFooter(product),
+    cornerMeta: getScoreMark(product.score),
   };
 }

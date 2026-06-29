@@ -1,10 +1,9 @@
-import { ItemCard } from '@app/components/ui/ItemCard';
-import { InkBadge } from '@app/components/ui/InkBadge';
 import { getGameConceptIcon } from '@shared/lib/gameConceptDisplay';
 import type { ReactNode } from 'react';
 import { AbilityMetaLine } from './AbilityMetaLine';
 import { AffixInlineList } from './AffixInlineList';
 import type { ProductDisplayModel } from './abilityDisplay';
+import { ProductListRow } from './ProductListRow';
 
 export interface AbilityListCardProps {
   product: ProductDisplayModel;
@@ -12,6 +11,7 @@ export interface AbilityListCardProps {
   selected?: boolean;
   onSelect?: () => void;
   extraBadges?: ReactNode;
+  variant?: 'normal' | 'pending';
 }
 
 function getAbilityIcon(product: ProductDisplayModel): string {
@@ -31,7 +31,7 @@ export function AbilityListCard({
   actions,
   selected = false,
   onSelect,
-  extraBadges,
+  variant = 'normal',
 }: AbilityListCardProps) {
   const affixMeta =
     product.affixes.length > 0 ? <AffixInlineList affixes={product.affixes} /> : null;
@@ -46,59 +46,35 @@ export function AbilityListCard({
         {projectionMeta}
       </div>
     ) : undefined;
-  const card = (
-    <ItemCard
+  const state = selected
+    ? 'selected'
+    : variant === 'pending'
+      ? 'pending'
+      : product.isEquipped
+        ? 'active'
+        : 'normal';
+  const stateLabel = selected
+    ? '已选中'
+    : variant === 'pending'
+      ? '待纳入'
+      : product.isEquipped
+        ? '已启用'
+        : undefined;
+
+  return (
+    <ProductListRow
       icon={getAbilityIcon(product)}
       name={product.name}
       quality={product.quality}
-      badgeExtra={
-        <>
-          {product.element ? (
-            <InkBadge tone="default">{product.element}</InkBadge>
-          ) : null}
-          {extraBadges}
-        </>
-      }
+      element={product.element}
+      score={product.score}
+      state={state}
+      stateLabel={stateLabel}
       meta={meta}
       description={product.description}
-      actions={
-        actions ? (
-          onSelect ? (
-            <div
-              onClick={(event) => event.stopPropagation()}
-              onKeyDown={(event) => event.stopPropagation()}
-            >
-              {actions}
-            </div>
-          ) : (
-            actions
-          )
-        ) : undefined
-      }
-      highlight={selected}
-      layout="col"
+      actions={actions}
+      selected={selected}
+      onSelect={onSelect}
     />
-  );
-
-  if (!onSelect) {
-    return card;
-  }
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-pressed={selected}
-      className="w-full cursor-pointer text-left"
-      onClick={onSelect}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onSelect();
-        }
-      }}
-    >
-      {card}
-    </div>
   );
 }

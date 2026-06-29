@@ -13,7 +13,6 @@ export {
   PillDetailGroups,
   PillKeywordBadges,
   PillKeywordLine,
-  PillScoreMark,
   PillSummary,
   toPillDisplayModel,
   type PillDetailGroup,

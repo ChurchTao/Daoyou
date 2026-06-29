@@ -1,5 +1,3 @@
-import { InkBadge } from '@app/components/ui';
-import { ItemCard } from '@app/components/ui/ItemCard';
 import type { Artifact } from '@shared/types/cultivator';
 import { getEquipmentSlotInfo } from '@shared/lib/gameConceptDisplay';
 import type { ReactNode } from 'react';
@@ -8,17 +6,20 @@ import {
   toProductDisplayModel,
   type ProductRecordLike,
 } from './abilityDisplay';
+import { ProductListRow } from './ProductListRow';
 
 export interface ArtifactListCardProps {
   artifact: Artifact;
   equipped?: boolean;
   actions?: ReactNode;
+  contextMeta?: ReactNode;
 }
 
 export function ArtifactListCard({
   artifact,
   equipped = false,
   actions,
+  contextMeta,
 }: ArtifactListCardProps) {
   const product = toProductDisplayModel({
     ...(artifact as ProductRecordLike),
@@ -27,29 +28,26 @@ export function ArtifactListCard({
   const slotInfo = getEquipmentSlotInfo(artifact.slot);
 
   return (
-    <ItemCard
+    <ProductListRow
       icon={slotInfo.icon}
       name={artifact.name}
       quality={artifact.quality}
-      badgeExtra={
-        <>
-          <InkBadge tone="default">{artifact.element}</InkBadge>
-          <InkBadge tone="default">{slotInfo.label}</InkBadge>
-        </>
-      }
+      element={artifact.element}
+      score={product.score}
+      state={equipped ? 'active' : 'normal'}
+      stateLabel={equipped ? '已装备' : undefined}
       meta={
-        <div className="space-y-1">
-          <AffixInlineList affixes={product.affixes} />
-          {equipped ? (
-            <div className="text-ink-secondary flex flex-wrap gap-2 text-sm">
-              <span className="text-ink font-medium">已装备</span>
-            </div>
-          ) : null}
-        </div>
+        product.affixes.length > 0 || contextMeta ? (
+          <div className="space-y-1">
+            {product.affixes.length > 0 ? (
+              <AffixInlineList affixes={product.affixes} />
+            ) : null}
+            {contextMeta}
+          </div>
+        ) : undefined
       }
       description={artifact.description}
       actions={actions}
-      layout="col"
     />
   );
 }

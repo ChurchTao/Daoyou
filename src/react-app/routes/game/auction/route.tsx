@@ -2,6 +2,7 @@ import { ListItemModal } from '@app/components/auction/ListItemModal';
 import {
   ConsumableListCard,
 } from '@app/components/feature/consumables';
+import { ArtifactListCard } from '@app/components/feature/products';
 import {
   ItemDetailModal,
   toInventoryItemDetail,
@@ -580,6 +581,17 @@ export default function AuctionPage() {
           consumable={listing.itemSnapshot as Consumable}
           realm={cultivator?.realm}
           condition={cultivator?.condition}
+          contextMeta={listingMeta}
+          actions={actions}
+        />
+      );
+    }
+
+    if (listing.itemType === 'artifact') {
+      return (
+        <ArtifactListCard
+          key={listing.id}
+          artifact={listing.itemSnapshot as Artifact}
           contextMeta={listingMeta}
           actions={actions}
         />

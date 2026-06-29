@@ -3,6 +3,7 @@ import {
   ConsumableListCard,
   getConsumableListSummary,
 } from '@app/components/feature/consumables';
+import { ArtifactListCard } from '@app/components/feature/products';
 import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,
@@ -612,6 +613,14 @@ export function ListItemModal({
       );
     }
 
+    if (selectedItem.itemType === 'artifact') {
+      return (
+        <div className="bg-ink/5 border-ink/20 border border-dashed p-4">
+          <ArtifactListCard artifact={selectedItem as Artifact} actions={null} />
+        </div>
+      );
+    }
+
     const displayProps = getItemDisplayProps(selectedItem);
 
     return (
@@ -623,12 +632,10 @@ export function ListItemModal({
         <p className="text-ink-secondary mt-1 text-sm">
           {displayProps.description}
         </p>
-        {selectedItem.itemType !== 'artifact' && (
-          <p className="text-ink-secondary mt-2 text-sm">
-            当前拥有: x
-            {isStackableItem(selectedItem) ? selectedItem.quantity : 1}
-          </p>
-        )}
+        <p className="text-ink-secondary mt-2 text-sm">
+          当前拥有: x
+          {isStackableItem(selectedItem) ? selectedItem.quantity : 1}
+        </p>
       </div>
     );
   };
@@ -1078,6 +1085,31 @@ export function ListItemModal({
                         contextMeta={
                           <div className="text-ink-secondary text-xs">
                             数量: x{isStackableItem(item) ? item.quantity : 1}
+                          </div>
+                        }
+                        actions={
+                          <div className="flex w-full justify-end">
+                            <InkButton
+                              onClick={() => handleSelectItem(item)}
+                              variant="primary"
+                              className="min-w-16"
+                            >
+                              选择
+                            </InkButton>
+                          </div>
+                        }
+                      />
+                    );
+                  }
+
+                  if (item.itemType === 'artifact') {
+                    return (
+                      <ArtifactListCard
+                        key={item.id}
+                        artifact={item as Artifact}
+                        contextMeta={
+                          <div className="text-ink-secondary mt-1 space-y-1 text-xs">
+                            <div>数量: x{isStackableItem(item) ? item.quantity : 1}</div>
                           </div>
                         }
                         actions={

@@ -166,6 +166,7 @@ export interface Skill {
   name: string;
   element: ElementType;
   quality?: Quality;
+  score?: number;
   cost?: number;
   cooldown: number;
   target_self?: boolean;

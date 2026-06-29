@@ -30,6 +30,7 @@ export function toRankingDetailItem(item: ItemRankingEntry): ItemDetailPayload {
       name: item.name,
       element: (item.element as Skill['element']) || '金',
       quality: item.quality as Skill['quality'],
+      score: item.score,
       cost: item.cost || 0,
       cooldown: item.cooldown || 0,
       description: item.description,
@@ -45,6 +46,7 @@ export function toRankingDetailItem(item: ItemRankingEntry): ItemDetailPayload {
       name: item.name,
       element: item.element as CultivationTechnique['element'],
       quality: item.quality as CultivationTechnique['quality'],
+      score: item.score,
       description: item.description,
       productModel: item.productModel,
     };

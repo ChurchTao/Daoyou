@@ -3,6 +3,7 @@ import {
   getProtectMeridiansReductionPercent,
 } from '@shared/lib/pillEffectScaling';
 import { getCultivationBoostPercent } from '@shared/lib/cultivationBoost';
+import { formatScore } from '@shared/lib/scoreFormat';
 import type { Quality } from '@shared/types/constants';
 import type {
   AddStatusOperation,
@@ -176,9 +177,5 @@ export function calculatePillScore(
 }
 
 export function formatPillScore(score: number | null | undefined): string {
-  const value =
-    typeof score === 'number' && Number.isFinite(score)
-      ? Math.max(1, Math.round(score))
-      : 0;
-  return `评分 ${value}`;
+  return formatScore(score);
 }
