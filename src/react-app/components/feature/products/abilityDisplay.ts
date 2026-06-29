@@ -235,6 +235,36 @@ function collectAbilityTags(model: CreationProductModel): string[] {
   return model.battleProjection?.abilityTags ?? [];
 }
 
+function getAffixModifierCount(affix: RolledAffix): number {
+  const template = affix.effectTemplate;
+  if (!template) return 0;
+
+  if (template.type === 'attribute_modifier') {
+    return 'modifiers' in template.params ? template.params.modifiers.length : 1;
+  }
+
+  if (template.type === 'random_attribute_modifier') {
+    return affix.modifierSelections?.length ?? 0;
+  }
+
+  return 0;
+}
+
+function allocateResolvedModifiersByAffix(
+  affixes: RolledAffix[],
+  projectionModifiers: AttributeModifierConfig[],
+): AttributeModifierConfig[][] {
+  let cursor = 0;
+  return affixes.map((affix) => {
+    const count = getAffixModifierCount(affix);
+    if (count <= 0) return [];
+
+    const resolved = projectionModifiers.slice(cursor, cursor + count);
+    cursor += count;
+    return resolved;
+  });
+}
+
 /**
  * DB/API 返回的单个产物记录的最小结构。与 `CreationProductRecord` 兼容。
  */
@@ -312,8 +342,13 @@ export function toProductDisplayModel(
     ((record.quality as Quality | null) ?? DEFAULT_QUALITY);
   const projectionModifiers = rawModel ? collectModifiers(rawModel) : [];
   const abilityTags = rawModel ? collectAbilityTags(rawModel) : [];
-  const affixes = (rawModel?.affixes ?? []).map((affix) =>
-    toAffixView(affix, quality, affix.resolvedModifiers, abilityTags),
+  const rawAffixes = rawModel?.affixes ?? [];
+  const modifiersByAffix = allocateResolvedModifiersByAffix(
+    rawAffixes,
+    projectionModifiers,
+  );
+  const affixes = rawAffixes.map((affix, index) =>
+    toAffixView(affix, quality, modifiersByAffix[index], abilityTags),
   );
   const modifiers = projectionModifiers.map(toAttributeModifierView);
 

@@ -11,7 +11,7 @@ import {
 import { CompositionRuleSet } from '@shared/engine/creation-v2/rules/composition/CompositionRuleSet';
 import type { CompositionFacts } from '@shared/engine/creation-v2/rules/contracts/CompositionFacts';
 import type { RolledAffix } from '@shared/engine/creation-v2/types';
-import { REALM_STAGE_CAPS } from '@shared/types/constants';
+import { getArtifactRealmGrowthFactor } from '@shared/engine/shared/artifactRealmScaling';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 function toRolledAffix(def: AffixDefinition): RolledAffix {
@@ -278,8 +278,8 @@ describe('ScalingRules (mpCost and cooldown)', () => {
       7,
       1.0,
     );
-    const lowFactor = Math.pow(REALM_STAGE_CAPS['炼气']['圆满'] / 20, 0.45);
-    const highFactor = Math.pow(REALM_STAGE_CAPS['渡劫']['圆满'] / 20, 0.45);
+    const lowFactor = getArtifactRealmGrowthFactor('炼气', '圆满');
+    const highFactor = getArtifactRealmGrowthFactor('渡劫', '圆满');
 
     expect(lowValue).toBeCloseTo(baseByQuality * lowFactor, 6);
     expect(highValue).toBeCloseTo(baseByQuality * highFactor, 6);

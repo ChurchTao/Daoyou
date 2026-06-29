@@ -30,6 +30,7 @@ export interface BattleRuntimeState {
   transforms: PendingAbilityTransform[];
   counters: Map<string, number>;
   activeEffectGuards: Set<string>;
+  deathPreventTriggers: Set<string>;
   sequences: Map<string, number>;
   dealtDamageSinceLastCheck: boolean;
   removedBuffs: Buff[];
@@ -48,6 +49,7 @@ export function getBattleRuntimeState(unit: Unit): BattleRuntimeState {
       transforms: [],
       counters: new Map(),
       activeEffectGuards: new Set(),
+      deathPreventTriggers: new Set(),
       sequences: new Map(),
       dealtDamageSinceLastCheck: false,
       removedBuffs: [],

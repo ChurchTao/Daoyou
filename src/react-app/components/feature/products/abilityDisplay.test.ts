@@ -115,4 +115,63 @@ describe('abilityDisplay', () => {
       ].join('、'),
     ).not.toMatch(/Ability\.|Status\.|Buff\./);
   });
+
+  it('renders only picked random artifact modifiers in affix text', () => {
+    const artifact = composeProductFromAffixIds({
+      productType: 'artifact',
+      element: '金',
+      name: '玄金戒',
+      affixIds: ['artifact-panel-accessory-utility'],
+      requestedSlot: 'accessory',
+      requestedQuality: '仙品',
+      realm: '化神',
+      realmStage: '中期',
+    });
+
+    const displayModel = toProductDisplayModel({
+      name: artifact.name,
+      productType: artifact.productType,
+      element: '金',
+      quality: artifact.projectionQuality,
+      slot: 'accessory',
+      score: 18,
+      productModel: serializeProductModel(artifact),
+    });
+
+    expect(displayModel.modifiers).toHaveLength(2);
+    expect(displayModel.affixes[0].effectText.split('、')).toHaveLength(2);
+    for (const modifier of displayModel.modifiers) {
+      expect(displayModel.affixes[0].effectText).toContain(modifier.attrLabel);
+    }
+  });
+
+  it('renders artifact affix text with realm-scaled modifier values', () => {
+    const artifact = composeProductFromAffixIds({
+      productType: 'artifact',
+      element: '金',
+      name: '化神金剑',
+      affixIds: ['artifact-panel-weapon-dual-atk'],
+      requestedSlot: 'weapon',
+      requestedQuality: '仙品',
+      realm: '化神',
+      realmStage: '中期',
+    });
+
+    const displayModel = toProductDisplayModel({
+      name: artifact.name,
+      productType: artifact.productType,
+      element: '金',
+      quality: artifact.projectionQuality,
+      slot: 'weapon',
+      score: 18,
+      productModel: serializeProductModel(artifact),
+    });
+
+    expect(displayModel.modifiers).toHaveLength(2);
+    expect(displayModel.modifiers[0].raw.value).toBeCloseTo(
+      186.69065996960012,
+      6,
+    );
+    expect(displayModel.affixes[0].effectText).toContain('+187');
+  });
 });

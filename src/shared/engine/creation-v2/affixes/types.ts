@@ -322,7 +322,10 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
           cap?: number;
         };
       }
-    | { type: 'death_prevent'; params: { hpFloorPercent?: ScalableParam } }
+    | {
+        type: 'death_prevent';
+        params: { hpFloorPercent?: ScalableParam; triggerKey?: string };
+      }
     | { type: 'buff_immunity'; params: BuffImmunityParams }
     | { type: 'damage_immunity'; params: DamageImmunityParams }
     | { type: 'dispel'; params: { targetTag?: string; maxCount?: number } }

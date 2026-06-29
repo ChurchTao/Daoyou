@@ -1,10 +1,13 @@
 import type { Cultivator } from '@shared/types/cultivator';
-import { REALM_ORDER, type RealmType } from '@shared/types/constants';
+import type { RealmStage, RealmType } from '@shared/types/constants';
+import {
+  getArtifactWearerRealmFactor,
+  scaleArtifactMainPanelFixedModifiers,
+} from '@shared/engine/shared/artifactRealmScaling';
 import { buildBodyCultivationAttributeModifiers } from '@shared/lib/bodyCultivation/effects';
 import { AbilityFactory } from '../factories/AbilityFactory';
 import {
   AttributeType,
-  ModifierType,
   type AttributeModifier,
   type UnitId,
 } from '../core/types';
@@ -18,20 +21,6 @@ const ATTRIBUTE_MAP = {
   wisdom: AttributeType.WISDOM,
   willpower: AttributeType.WILLPOWER,
 } as const;
-
-const ARTIFACT_MAIN_PANEL_ATTRS = new Set<AttributeType>([
-  AttributeType.ATK,
-  AttributeType.MAGIC_ATK,
-  AttributeType.DEF,
-  AttributeType.MAGIC_DEF,
-  AttributeType.MAX_HP,
-  AttributeType.MAX_MP,
-  AttributeType.SPIRIT,
-  AttributeType.VITALITY,
-  AttributeType.SPEED,
-  AttributeType.WISDOM,
-  AttributeType.WILLPOWER,
-]);
 
 function mountBodyCultivationModifiers(unit: Unit, cultivator: Cultivator): void {
   for (const [index, modifier] of buildBodyCultivationAttributeModifiers(
@@ -49,42 +38,6 @@ function mountBodyCultivationModifiers(unit: Unit, cultivator: Cultivator): void
     };
     unit.attributes.addModifier(mountedModifier);
   }
-}
-
-function getCrossRealmModifierFactor(
-  anchorRealm: RealmType | undefined,
-  wearerRealm: RealmType,
-): number {
-  if (!anchorRealm) return 1;
-  const diff = REALM_ORDER[anchorRealm] - REALM_ORDER[wearerRealm];
-  if (diff <= 0) return 1;
-  if (diff === 1) return 0.8;
-  if (diff === 2) return 0.55;
-  if (diff === 3) return 0.45;
-  return 0.35;
-}
-
-function scaleArtifactAbilityConfig(
-  abilityConfig: AbilityConfig,
-  factor: number,
-): AbilityConfig {
-  if (!abilityConfig.modifiers?.length || factor >= 0.999) {
-    return abilityConfig;
-  }
-
-  return {
-    ...abilityConfig,
-    modifiers: abilityConfig.modifiers.map((modifier) => {
-      const shouldScale =
-        modifier.type === ModifierType.FIXED &&
-        ARTIFACT_MAIN_PANEL_ATTRS.has(modifier.attrType);
-      if (!shouldScale) return modifier;
-      return {
-        ...modifier,
-        value: modifier.value * factor,
-      };
-    }),
-  };
 }
 
 export function createCombatUnitFromCultivator(
@@ -123,17 +76,26 @@ export function createCombatUnitFromCultivator(
       continue;
     }
     const productModel = (artifact.productModel ?? {}) as {
-      metadata?: { anchorRealm?: RealmType };
+      metadata?: { anchorRealm?: RealmType; anchorRealmStage?: RealmStage };
     };
-    const factor = getCrossRealmModifierFactor(
+    const factor = getArtifactWearerRealmFactor(
       artifact.battleRuntimeMeta?.anchorRealm ??
         productModel.metadata?.anchorRealm,
+      artifact.battleRuntimeMeta?.anchorRealmStage ??
+        productModel.metadata?.anchorRealmStage,
       cultivator.realm,
+      cultivator.realm_stage,
     );
-    const effectiveAbilityConfig = scaleArtifactAbilityConfig(
-      artifact.abilityConfig,
-      factor,
-    );
+    const effectiveAbilityConfig: AbilityConfig =
+      artifact.abilityConfig.modifiers?.length && factor < 0.999
+        ? {
+            ...artifact.abilityConfig,
+            modifiers: scaleArtifactMainPanelFixedModifiers(
+              artifact.abilityConfig.modifiers,
+              factor,
+            ),
+          }
+        : artifact.abilityConfig;
     unit.abilities.addAbility(AbilityFactory.create(effectiveAbilityConfig));
   }
 

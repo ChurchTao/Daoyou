@@ -7,7 +7,10 @@ import {
   flattenAffixMatcherTags,
 } from '../affixes';
 import type { AffixRegistry } from '../affixes/AffixRegistry';
-import type { AffixDefinition } from '../affixes/types';
+import type {
+  AffixAttributeModifierTemplate,
+  AffixDefinition,
+} from '../affixes/types';
 import { buildGroupedListeners, buildCreationListenerGuard } from '../composers/shared';
 import { CREATION_LISTENER_PRIORITIES } from '../config/CreationBalance';
 import type {
@@ -15,7 +18,7 @@ import type {
   ListenerConfig,
 } from '../contracts/battle';
 import { GameplayTags } from '../contracts/battle';
-import { AttributeType, ModifierType } from '../contracts/battle';
+import type { AttributeType, ModifierType } from '../contracts/battle';
 import { assembleAbilityTags } from '../rules/composition/AbilityTagAssembler';
 import { resolveSkillResourceAndCooldown } from '../rules/composition/SkillPacingRules';
 import type {
@@ -27,11 +30,16 @@ import type {
   SkillProductModel,
 } from '../models/types';
 import type {
+  AffixModifierSelection,
   CreationProductType,
   CreationSkillProjectionContext,
   RolledAffix,
 } from '../types';
-import { REALM_STAGE_CAPS, type RealmStage, type RealmType } from '@shared/types/constants';
+import type { RealmStage, RealmType } from '@shared/types/constants';
+import {
+  getArtifactRealmGrowthFactor,
+  isArtifactMainPanelFixedModifier,
+} from '@shared/engine/shared/artifactRealmScaling';
 
 const translator = new AffixEffectTranslator();
 
@@ -41,31 +49,18 @@ export interface StoredAffixSlim {
   rollScore: number;
   rollEfficiency: number;
   isPerfect: boolean;
+  modifierSelections?: AffixModifierSelection[];
   resolvedModifiers?: AttributeModifierConfig[];
 }
 
-const ARTIFACT_MAIN_PANEL_ATTRS = new Set<AttributeType>([
-  AttributeType.ATK,
-  AttributeType.MAGIC_ATK,
-  AttributeType.DEF,
-  AttributeType.MAGIC_DEF,
-  AttributeType.SPIRIT,
-  AttributeType.VITALITY,
-  AttributeType.SPEED,
-  AttributeType.WISDOM,
-  AttributeType.WILLPOWER,
-]);
-
 function getAnchorGrowthFactor(
   productType: CreationProductType,
-  anchorRealm?: RealmType,
-  anchorRealmStage?: RealmStage,
+  ...anchor: Parameters<typeof getArtifactRealmGrowthFactor>
 ): number {
-  if (productType !== 'artifact' || !anchorRealm || !anchorRealmStage) {
+  if (productType !== 'artifact') {
     return 1;
   }
-  const anchorCap = REALM_STAGE_CAPS[anchorRealm][anchorRealmStage];
-  return Math.pow(anchorCap / 20, 0.45);
+  return getArtifactRealmGrowthFactor(...anchor);
 }
 
 function applyArtifactAnchorGrowth(
@@ -77,12 +72,105 @@ function applyArtifactAnchorGrowth(
 ): number {
   if (
     productType !== 'artifact' ||
-    modType !== ModifierType.FIXED ||
-    !ARTIFACT_MAIN_PANEL_ATTRS.has(attrType)
+    !isArtifactMainPanelFixedModifier({ attrType, type: modType })
   ) {
     return baseValue;
   }
   return baseValue * anchorFactor;
+}
+
+function resolveStoredModifierEntry(
+  productType: CreationProductType,
+  entry: AffixAttributeModifierTemplate,
+  qualityOrder: number,
+  anchorFactor: number,
+  finalMultiplier: number,
+): AttributeModifierConfig {
+  const baseValue = translator.resolveParam(entry.value, qualityOrder);
+  const grownValue = applyArtifactAnchorGrowth(
+    productType,
+    entry.attrType,
+    entry.modType,
+    baseValue,
+    anchorFactor,
+  );
+
+  return {
+    attrType: entry.attrType,
+    type: entry.modType,
+    value: grownValue * finalMultiplier,
+  };
+}
+
+function getAttributeModifierEntries(
+  def: AffixDefinition,
+): AffixAttributeModifierTemplate[] {
+  if (def.effectTemplate.type !== 'attribute_modifier') return [];
+
+  return 'modifiers' in def.effectTemplate.params
+    ? def.effectTemplate.params.modifiers
+    : [
+        {
+          attrType: def.effectTemplate.params.attrType,
+          modType: def.effectTemplate.params.modType,
+          value: def.effectTemplate.params.value,
+        },
+      ];
+}
+
+function resolveRandomModifierSelection(
+  productType: CreationProductType,
+  pool: AffixAttributeModifierTemplate[],
+  modifierSelections: AffixModifierSelection[] | undefined,
+  qualityOrder: number,
+  anchorFactor: number,
+  finalMultiplier: number,
+): AttributeModifierConfig[] {
+  if (!modifierSelections?.length) return [];
+
+  const usedIndexes = new Set<number>();
+  return modifierSelections.map((selection) => {
+    const poolIndex = pool.findIndex(
+      (entry, index) =>
+        !usedIndexes.has(index) &&
+        entry.attrType === selection.attrType &&
+        entry.modType === selection.type,
+    );
+
+    if (poolIndex < 0) {
+      throw new Error(
+        `[ProductRehydrator] Unknown random modifier selection: ${selection.attrType}/${selection.type}`,
+      );
+    }
+    usedIndexes.add(poolIndex);
+    return resolveStoredModifierEntry(
+      productType,
+      pool[poolIndex],
+      qualityOrder,
+      anchorFactor,
+      finalMultiplier,
+    );
+  });
+}
+
+function normalizeModifierSelections(
+  stored: StoredAffixSlim,
+): AffixModifierSelection[] | undefined {
+  if (Array.isArray(stored.modifierSelections)) {
+    return stored.modifierSelections.map((selection) => ({
+      attrType: selection.attrType,
+      type: selection.type,
+    }));
+  }
+
+  if (Array.isArray(stored.resolvedModifiers)) {
+    return stored.resolvedModifiers.map((modifier) => ({
+      attrType: modifier.attrType,
+      type: modifier.type,
+    }));
+  }
+
+  return undefined;
 }
 
 function hydrateRolledAffix(
@@ -108,7 +196,7 @@ function hydrateRolledAffix(
     rollEfficiency: stored.rollEfficiency,
     finalMultiplier: stored.finalMultiplier,
     isPerfect: stored.isPerfect,
-    resolvedModifiers: stored.resolvedModifiers,
+    modifierSelections: normalizeModifierSelections(stored),
   };
 }
 
@@ -141,35 +229,29 @@ function reProjectPassive(
       def.effectTemplate.type === 'attribute_modifier' ||
       def.effectTemplate.type === 'random_attribute_modifier'
     ) {
-      if (rolled.resolvedModifiers?.length) {
-        modifiers.push(...rolled.resolvedModifiers);
-      } else if (def.effectTemplate.type === 'attribute_modifier') {
-        const modifierEntries =
-          'modifiers' in def.effectTemplate.params
-            ? def.effectTemplate.params.modifiers
-            : [
-                {
-                  attrType: def.effectTemplate.params.attrType,
-                  modType: def.effectTemplate.params.modType,
-                  value: def.effectTemplate.params.value,
-                },
-              ];
-
-        for (const entry of modifierEntries) {
-          const baseValue = translator.resolveParam(entry.value, qualityOrder);
-          const grownValue = applyArtifactAnchorGrowth(
-            productType,
-            entry.attrType,
-            entry.modType,
-            baseValue,
-            anchorFactor,
+      if (def.effectTemplate.type === 'attribute_modifier') {
+        for (const entry of getAttributeModifierEntries(def)) {
+          modifiers.push(
+            resolveStoredModifierEntry(
+              productType,
+              entry,
+              qualityOrder,
+              anchorFactor,
+              rolled.finalMultiplier,
+            ),
           );
-          modifiers.push({
-            attrType: entry.attrType,
-            type: entry.modType,
-            value: grownValue * rolled.finalMultiplier,
-          });
         }
+      } else {
+        modifiers.push(
+          ...resolveRandomModifierSelection(
+            productType,
+            def.effectTemplate.params.pool,
+            rolled.modifierSelections,
+            qualityOrder,
+            anchorFactor,
+            rolled.finalMultiplier,
+          ),
+        );
       }
     } else {
       rolledListeners.push(rolled);

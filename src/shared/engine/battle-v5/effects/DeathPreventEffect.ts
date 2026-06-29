@@ -1,6 +1,7 @@
 import { EventBus } from '../core/EventBus';
 import { DeathPreventParams } from '../core/configs';
 import { DamageTakenEvent, DeathPreventEvent } from '../core/events';
+import { getBattleRuntimeState } from '../core/runtimeState';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { EffectContext, GameplayEffect } from './Effect';
 
@@ -13,25 +14,20 @@ export class DeathPreventEffect extends GameplayEffect {
   }
 
   execute(context: EffectContext): void {
-    const { target, triggerEvent, ability } = context;
+    const { target, triggerEvent, ability, buff } = context;
 
     if (!triggerEvent || triggerEvent.type !== 'DamageTakenEvent') {
       return;
     }
 
-    // 全局仅触发一次：检查 EventBus 历史中是否已有相同事件
-    const alreadyTriggered = EventBus.instance
-      .getEventHistory()
-      .some(
-        (e) =>
-          e.type === 'DeathPreventEvent' &&
-          (e as DeathPreventEvent).target === target,
-      );
-    if (alreadyTriggered) return;
-
     const damageTakenEvent = triggerEvent as DamageTakenEvent;
 
-    if (damageTakenEvent.isLethal) {
+    if (damageTakenEvent.isLethal && target.getCurrentHp() <= 0) {
+      const sourceKey =
+        this.params.triggerKey ?? ability?.id ?? buff?.id ?? 'death_prevent';
+      const runtimeState = getBattleRuntimeState(target);
+      if (runtimeState.deathPreventTriggers.has(sourceKey)) return;
+
       let hpFloor = 1;
       if (this.params.hpFloorPercent !== undefined) {
         hpFloor = Math.max(
@@ -42,6 +38,7 @@ export class DeathPreventEffect extends GameplayEffect {
         );
       }
       target.setHp(hpFloor); // 将气血设置为 hpFloor，避免死亡
+      runtimeState.deathPreventTriggers.add(sourceKey);
 
       // 发布免死事件
       EventBus.instance.publish<DeathPreventEvent>({
@@ -49,6 +46,8 @@ export class DeathPreventEffect extends GameplayEffect {
         timestamp: Date.now(),
         target,
         ability,
+        sourceKey,
+        sourceName: ability?.name ?? buff?.name,
       });
     }
   }

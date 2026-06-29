@@ -264,6 +264,8 @@ export interface DeathPreventEvent extends CombatEvent {
   type: 'DeathPreventEvent';
   target: Unit;
   ability?: Ability;
+  sourceKey?: string;
+  sourceName?: string;
 }
 
 // ===== 受击事件 =====

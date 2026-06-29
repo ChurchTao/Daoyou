@@ -61,8 +61,8 @@ export function serializeProductModel(
       rollScore: affix.rollScore,
       rollEfficiency: affix.rollEfficiency,
       isPerfect: affix.isPerfect,
-      ...(Array.isArray(affix.resolvedModifiers)
-        ? { resolvedModifiers: affix.resolvedModifiers }
+      ...(Array.isArray(affix.modifierSelections)
+        ? { modifierSelections: affix.modifierSelections }
         : {}),
     }));
   }

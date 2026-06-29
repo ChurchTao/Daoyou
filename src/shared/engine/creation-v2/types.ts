@@ -314,16 +314,22 @@ export interface AffixCandidate {
   effectTemplate: AffixEffectTemplate;
 }
 
+export interface AffixModifierSelection {
+  attrType: AttributeModifierConfig['attrType'];
+  type: AttributeModifierConfig['type'];
+}
+
 export interface RolledAffix extends AffixCandidate {
   rollScore: number;
   rollEfficiency: number; // 0.0 - 1.0 之间的效率分
   finalMultiplier: number; // 最终随到的数值倍率（如 1.12）
   isPerfect: boolean; // 是否触发了“完美”标记
   /**
-   * 造物投影阶段为该 affix 解析出的最终属性结果。
-   * 仅对 attribute_modifier / random_attribute_modifier 这类被动面板词缀生效，
-   * 作为 product_model 的展示权威来源持久化。
+   * random_attribute_modifier 的随机选择结果。
+   * 仅记录选中的属性与 modifier 类型；数值在 rehydrate 时从公式实时重算。
    */
+  modifierSelections?: AffixModifierSelection[];
+  /** @deprecated 旧 productModel 兼容字段；读取时仅使用 attrType/type，忽略 value。 */
   resolvedModifiers?: AttributeModifierConfig[];
 }
 

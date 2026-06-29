@@ -70,7 +70,7 @@ export function buildCreationListenerGuard(
   effect: EffectConfig,
   guard?: ListenerConfig['guard'],
 ): ListenerConfig['guard'] | undefined {
-  if (eventType === 'DamageTakenEvent' && effect.type === 'death_prevent') {
+  if (eventType === 'DamageTakenEvent' && executesDeathPrevent(effect)) {
     return {
       ...guard,
       allowLethalWindow: true,
@@ -85,6 +85,16 @@ export function buildCreationListenerGuard(
     ...guard,
     skipReflectSource: true,
   };
+}
+
+function executesDeathPrevent(effect: EffectConfig): boolean {
+  if (effect.type === 'death_prevent') return true;
+
+  if ('effects' in effect.params && Array.isArray(effect.params.effects)) {
+    return effect.params.effects.some(executesDeathPrevent);
+  }
+
+  return false;
 }
 
 /**

@@ -399,7 +399,11 @@ export class LogCollector {
       this._aggregator.addEntry({
         id: this._generateId(),
         type: 'death_prevent',
-        data: { targetName: e.target.name },
+        data: {
+          targetName: e.target.name,
+          sourceKey: e.sourceKey,
+          sourceName: e.sourceName,
+        },
         timestamp: Date.now(),
       });
     });

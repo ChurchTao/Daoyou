@@ -315,6 +315,7 @@ export class DamageSystem {
 
     // 2. 应用剩余伤害到气血
     target.takeDamage(remainingDamage);
+    const actualHpDamage = Math.max(0, beforeHp - target.getCurrentHp());
     if (remainingDamage > 0) {
       markDamageDealt(caster);
     }
@@ -334,7 +335,7 @@ export class DamageSystem {
         damageEvent.damageSource === DamageSource.REFLECT
           ? caster?.name
           : undefined,
-      damageTaken: remainingDamage,
+      damageTaken: actualHpDamage,
       beforeHp,
       remainHp: target.getCurrentHp(), // 此时可能为 0
       shieldAbsorbed: absorbedAmount,

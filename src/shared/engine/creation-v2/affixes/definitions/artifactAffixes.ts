@@ -42,19 +42,18 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon'],
     effectTemplate: {
-      type: 'random_attribute_modifier',
+      type: 'attribute_modifier',
       params: {
-        pickCount: 2,
-        pool: [
+        modifiers: [
           {
             attrType: AttributeType.ATK,
             modType: ModifierType.FIXED,
-            value: { base: 40, scale: 'quality', coefficient: 6 },
+            value: { base: 40, scale: 'quality', coefficient: 12 },
           },
           {
             attrType: AttributeType.MAGIC_ATK,
             modType: ModifierType.FIXED,
-            value: { base: 40, scale: 'quality', coefficient: 6 },
+            value: { base: 40, scale: 'quality', coefficient: 12 },
           },
         ],
       },
@@ -73,19 +72,18 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['armor'],
     effectTemplate: {
-      type: 'random_attribute_modifier',
+      type: 'attribute_modifier',
       params: {
-        pickCount: 2,
-        pool: [
+        modifiers: [
           {
             attrType: AttributeType.DEF,
             modType: ModifierType.FIXED,
-            value: { base: 32, scale: 'quality', coefficient: 6 },
+            value: { base: 32, scale: 'quality', coefficient: 10 },
           },
           {
             attrType: AttributeType.MAGIC_DEF,
             modType: ModifierType.FIXED,
-            value: { base: 32, scale: 'quality', coefficient: 6 },
+            value: { base: 32, scale: 'quality', coefficient: 10 },
           },
         ],
       },
@@ -191,7 +189,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.ATK,
         modType: ModifierType.FIXED,
-        value: { base: 18, scale: 'quality', coefficient: 4 },
+        value: { base: 18, scale: 'quality', coefficient: 8 },
       },
     },
   },
@@ -217,7 +215,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.MAGIC_ATK,
         modType: ModifierType.FIXED,
-        value: { base: 18, scale: 'quality', coefficient: 4 },
+        value: { base: 18, scale: 'quality', coefficient: 8 },
       },
     },
   },
@@ -243,7 +241,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.DEF,
         modType: ModifierType.FIXED,
-        value: { base: 12, scale: 'quality', coefficient: 5 },
+        value: { base: 12, scale: 'quality', coefficient: 6 },
       },
     },
   },
@@ -269,7 +267,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.MAGIC_DEF,
         modType: ModifierType.FIXED,
-        value: { base: 12, scale: 'quality', coefficient: 5 },
+        value: { base: 12, scale: 'quality', coefficient: 6 },
       },
     },
   },
@@ -452,7 +450,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.SPIRIT,
         modType: ModifierType.FIXED,
-        value: { base: 12, scale: 'quality', coefficient: 5 },
+        value: { base: 7, scale: 'quality', coefficient: 3.5 },
       },
     },
   },
@@ -478,7 +476,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.VITALITY,
         modType: ModifierType.FIXED,
-        value: { base: 12, scale: 'quality', coefficient: 5 },
+        value: { base: 7, scale: 'quality', coefficient: 3.5 },
       },
     },
   },
@@ -504,7 +502,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.WISDOM,
         modType: ModifierType.FIXED,
-        value: { base: 12, scale: 'quality', coefficient: 5 },
+        value: { base: 7, scale: 'quality', coefficient: 3.5 },
       },
     },
   },
@@ -530,7 +528,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.WILLPOWER,
         modType: ModifierType.FIXED,
-        value: { base: 12, scale: 'quality', coefficient: 5 },
+        value: { base: 7, scale: 'quality', coefficient: 3.5 },
       },
     },
   },
@@ -556,7 +554,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.SPEED,
         modType: ModifierType.FIXED,
-        value: { base: 12, scale: 'quality', coefficient: 5 },
+        value: { base: 7, scale: 'quality', coefficient: 3.5 },
       },
     },
   },
@@ -655,9 +653,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
       params: {
         value: {
-          base: { base: 15, scale: 'quality', coefficient: 6 },
+          base: { base: 15, scale: 'quality', coefficient: 12 },
           attribute: AttributeType.SPIRIT,
-          coefficient: 0.55,
+          coefficient: 1,
         },
       },
     },
@@ -727,9 +725,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         target: 'mp',
         value: {
-          base: { base: 5, scale: 'quality', coefficient: 8 },
+          base: { base: 0, scale: 'quality', coefficient: 12 },
           attribute: AttributeType.SPIRIT,
-          coefficient: 0.25,
+          coefficient: 0.8,
         },
       },
     },
@@ -1412,9 +1410,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       conditions: [{ type: 'is_critical', params: {} }],
       params: {
         value: {
-          base: { base: 12, scale: 'quality', coefficient: 5 },
+          base: { base: 12, scale: 'quality', coefficient: 12 },
           attribute: AttributeType.SPIRIT,
-          coefficient: 0.3,
+          coefficient: 1,
         },
       },
     },
@@ -1644,9 +1642,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'heal',
       params: {
         value: {
-          base: { base: 6, scale: 'quality', coefficient: 6 },
+          base: { base: 0, scale: 'quality', coefficient: 12 },
           attribute: AttributeType.VITALITY,
-          coefficient: 0.55,
+          coefficient: 0.88,
         },
       },
     },
@@ -1746,9 +1744,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'shield',
       params: {
         value: {
-          base: { base: 18, scale: 'quality', coefficient: 7 },
+          base: { base: 18, scale: 'quality', coefficient: 12 },
           attribute: AttributeType.SPEED,
-          coefficient: 0.45,
+          coefficient: 1,
         },
       },
     },
@@ -1900,7 +1898,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     applicableArtifactSlots: ['weapon', 'accessory'],
     effectTemplate: {
       type: 'damage_immunity',
-      conditions: [{ type: 'chance', params: { value: 0.15 } }],
+      conditions: [{ type: 'chance', params: { value: 0.25 } }],
       params: {
         tags: [GameplayTags.ABILITY.CHANNEL.MAGIC],
       },

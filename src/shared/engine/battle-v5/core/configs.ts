@@ -317,6 +317,8 @@ export interface PercentDamageModifierParams {
 export interface DeathPreventParams {
   /** 触发后保留的气血值百分比，不传则=1点 */
   hpFloorPercent?: number;
+  /** 免死触发记账 key；不传时由运行时来源推导 */
+  triggerKey?: string;
 }
 
 /**

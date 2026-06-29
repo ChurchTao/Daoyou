@@ -53,6 +53,7 @@ function createCultivatorFixture(): Cultivator {
             productType: 'artifact',
             metadata: {
               anchorRealm: '金丹',
+              anchorRealmStage: '圆满',
             },
           },
         },
@@ -74,8 +75,11 @@ describe('CultivatorCombatAdapter', () => {
   it('applies cross-realm decay only to main panel fixed modifiers', () => {
     const unit = createCombatUnitFromCultivator(createCultivatorFixture());
 
-    // Base ATK = VITALITY*4 + SPEED*1 = 50; 金丹->炼气 diff=2 => factor=0.55, +55
-    expect(unit.attributes.getValue(AttributeType.ATK)).toBe(105);
+    // Base ATK = VITALITY*4 + SPEED*1 = 50; 金丹圆满->炼气初期 uses inverse anchor/wearer factor.
+    expect(unit.attributes.getValue(AttributeType.ATK)).toBeCloseTo(
+      108.419068,
+      6,
+    );
     // CRIT_RATE is functional attribute and should not be decayed
     expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(0.153, 6);
   });

@@ -119,6 +119,8 @@ export interface TagTriggerEntryData {
 
 export interface DeathPreventEntryData {
   targetName: string;
+  sourceKey?: string;
+  sourceName?: string;
 }
 
 export interface SkillInterruptEntryData {

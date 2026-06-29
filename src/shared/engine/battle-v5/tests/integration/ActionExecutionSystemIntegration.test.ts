@@ -14,11 +14,13 @@ import { EventBus } from '../../core/EventBus';
 import {
   ControlResistEvent,
   DamageRequestEvent,
+  DamageTakenEvent,
   HitCheckEvent,
   SkillCastEvent,
   SkillPreCastEvent,
 } from '../../core/events';
 import { DamageEffect } from '../../effects/DamageEffect';
+import { ReflectEffect } from '../../effects/ReflectEffect';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { ActionExecutionSystem } from '../../systems/ActionExecutionSystem';
 import { DamageSystem } from '../../systems/DamageSystem';
@@ -600,6 +602,56 @@ describe('DamageSystem direct mitigation', () => {
     EventBus.instance.publish(event);
 
     expect(event.finalDamage).toBe(100);
+
+    damageSystem.destroy();
+  });
+
+  it('reflect damage should use actual hp loss instead of overkill damage', () => {
+    const damageSystem = new DamageSystem();
+    const attacker = new Unit('attacker', '攻击者', {});
+    const defender = new Unit('defender', '防御者', {
+      [AttributeType.VITALITY]: 100,
+    });
+    defender.setHp(500);
+
+    const reflectRequests: DamageRequestEvent[] = [];
+    const reflect = new ReflectEffect({ ratio: 0.5 });
+
+    EventBus.instance.subscribe<DamageTakenEvent>('DamageTakenEvent', (event) => {
+      if (event.target === defender) {
+        reflect.execute({
+          caster: defender,
+          target: defender,
+          triggerEvent: event,
+        });
+      }
+    });
+    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
+      if (event.damageSource === DamageSource.REFLECT) {
+        reflectRequests.push(event);
+      }
+    });
+
+    vi.spyOn(Math, 'random')
+      .mockReturnValueOnce(0.99)
+      .mockReturnValueOnce(0.5)
+      .mockReturnValueOnce(0.5);
+
+    EventBus.instance.publish<DamageRequestEvent>({
+      type: 'DamageRequestEvent',
+      timestamp: Date.now(),
+      caster: attacker,
+      target: defender,
+      damageSource: DamageSource.DIRECT,
+      damageType: DamageType.TRUE,
+      baseDamage: 5_000,
+      finalDamage: 5_000,
+    });
+
+    expect(defender.getCurrentHp()).toBe(0);
+    expect(reflectRequests).toHaveLength(1);
+    expect(reflectRequests[0].baseDamage).toBe(250);
+    expect(reflectRequests[0].finalDamage).toBe(250);
 
     damageSystem.destroy();
   });

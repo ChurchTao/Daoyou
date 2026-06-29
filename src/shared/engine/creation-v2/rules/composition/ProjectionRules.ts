@@ -12,8 +12,11 @@ import type {
   ListenerConfig,
 } from '../../contracts/battle';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
-import { REALM_STAGE_CAPS, RealmStage, RealmType } from '@shared/types/constants';
-import { AttributeType, ModifierType } from '../../contracts/battle';
+import {
+  getArtifactRealmGrowthFactor,
+  isArtifactMainPanelFixedModifier,
+} from '@shared/engine/shared/artifactRealmScaling';
+import type { AttributeType, ModifierType } from '../../contracts/battle';
 import { RolledAffix } from '../../types';
 import {
   CompositionDecision,
@@ -202,6 +205,7 @@ export class ProjectionRules implements Rule<
     for (const rolled of affixes) {
       const def = this.registry.queryById(rolled.id);
       if (!def) continue;
+      rolled.modifierSelections = undefined;
       rolled.resolvedModifiers = undefined;
       if (def.effectTemplate.type === 'attribute_modifier') {
         const modifierEntries =
@@ -215,7 +219,6 @@ export class ProjectionRules implements Rule<
                 },
               ];
 
-        const resolvedModifiers: AttributeModifierConfig[] = [];
         for (const modifierEntry of modifierEntries) {
           const baseValue = this.translator.resolveParam(
             modifierEntry.value,
@@ -235,16 +238,17 @@ export class ProjectionRules implements Rule<
             value: grownValue * rolled.finalMultiplier,
           };
           modifiers.push(modifier);
-          resolvedModifiers.push(modifier);
         }
-        rolled.resolvedModifiers = resolvedModifiers;
       } else if (def.effectTemplate.type === 'random_attribute_modifier') {
         const { pool, pickCount } = def.effectTemplate.params;
         // 造物时随机抽取，结果固化在此次投影中
         const picked = pickRandom(pool, pickCount).sort(
           (left, right) => pool.indexOf(left) - pool.indexOf(right),
         );
-        const resolvedModifiers: AttributeModifierConfig[] = [];
+        rolled.modifierSelections = picked.map((entry) => ({
+          attrType: entry.attrType,
+          type: entry.modType,
+        }));
         for (const entry of picked) {
           const baseValue = this.translator.resolveParam(
             entry.value,
@@ -263,9 +267,7 @@ export class ProjectionRules implements Rule<
             value: grownValue * rolled.finalMultiplier,
           };
           modifiers.push(modifier);
-          resolvedModifiers.push(modifier);
         }
-        rolled.resolvedModifiers = resolvedModifiers;
       } else {
         rolledListeners.push(rolled);
       }
@@ -318,14 +320,12 @@ export class ProjectionRules implements Rule<
 
   private getAnchorGrowthFactor(
     productType: 'skill' | 'artifact' | 'gongfa',
-    anchorRealm?: RealmType,
-    anchorRealmStage?: RealmStage,
+    ...anchor: Parameters<typeof getArtifactRealmGrowthFactor>
   ): number {
-    if (productType !== 'artifact' || !anchorRealm || !anchorRealmStage) {
+    if (productType !== 'artifact') {
       return 1;
     }
-    const anchorCap = REALM_STAGE_CAPS[anchorRealm][anchorRealmStage];
-    return Math.pow(anchorCap / 20, 0.45);
+    return getArtifactRealmGrowthFactor(...anchor);
   }
 
   private applyArtifactAnchorGrowth(
@@ -337,26 +337,13 @@ export class ProjectionRules implements Rule<
   ): number {
     if (
       productType !== 'artifact' ||
-      modType !== ModifierType.FIXED ||
-      !ARTIFACT_MAIN_PANEL_ATTRS.has(attrType)
+      !isArtifactMainPanelFixedModifier({ attrType, type: modType })
     ) {
       return baseValue;
     }
     return baseValue * anchorFactor;
   }
 }
-
-const ARTIFACT_MAIN_PANEL_ATTRS = new Set<AttributeType>([
-  AttributeType.ATK,
-  AttributeType.MAGIC_ATK,
-  AttributeType.DEF,
-  AttributeType.MAGIC_DEF,
-  AttributeType.SPIRIT,
-  AttributeType.VITALITY,
-  AttributeType.SPEED,
-  AttributeType.WISDOM,
-  AttributeType.WILLPOWER,
-]);
 
 /**
  * 从数组中随机不重复地抽取 count 个元素（Fisher-Yates partial shuffle）。

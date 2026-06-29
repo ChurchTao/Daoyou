@@ -216,13 +216,13 @@ describe('CultivatorDisplayAdapter', () => {
     ];
     cultivator.inventory.artifacts[0].productModel = {
       productType: 'artifact',
-      metadata: { anchorRealm: '金丹' },
+      metadata: { anchorRealm: '金丹', anchorRealmStage: '圆满' },
     };
 
     const unit = createDisplayUnitFromCultivator(cultivator);
 
-    // 金丹 -> 炼气 diff=2 => factor=0.55，SPIRIT +55
-    expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(65);
+    // 金丹圆满->炼气初期 uses inverse anchor/wearer factor.
+    expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(68);
     // 功能属性不衰减
     expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(0.153, 6);
   });

@@ -29,10 +29,13 @@ export class AffixEffectTranslator {
   translate(affix: RolledAffix, quality: Quality): EffectConfig {
     return this.withConditions(
       affix,
-      this.resolveTemplate(
-        affix.effectTemplate,
-        QUALITY_ORDER[quality],
-        affix.finalMultiplier,
+      this.withDeathPreventTriggerKey(
+        this.resolveTemplate(
+          affix.effectTemplate,
+          QUALITY_ORDER[quality],
+          affix.finalMultiplier,
+        ),
+        affix.id,
       ),
     );
   }
@@ -48,6 +51,53 @@ export class AffixEffectTranslator {
       ...effect,
       conditions,
     };
+  }
+
+  private withDeathPreventTriggerKey(
+    effect: EffectConfig,
+    triggerKey: string,
+  ): EffectConfig {
+    if (effect.type === 'death_prevent') {
+      return {
+        ...effect,
+        params: {
+          ...effect.params,
+          triggerKey: effect.params.triggerKey ?? triggerKey,
+        },
+      };
+    }
+
+    if (effect.type === 'effect_sequence') {
+      return {
+        ...effect,
+        params: {
+          ...effect.params,
+          effects: effect.params.effects.map((nestedEffect) =>
+            this.withDeathPreventTriggerKey(nestedEffect, triggerKey),
+          ),
+        },
+      };
+    }
+
+    if (effect.type === 'apply_buff') {
+      return {
+        ...effect,
+        params: {
+          ...effect.params,
+          buffConfig: {
+            ...effect.params.buffConfig,
+            listeners: effect.params.buffConfig.listeners?.map((listener) => ({
+              ...listener,
+              effects: listener.effects.map((nestedEffect) =>
+                this.withDeathPreventTriggerKey(nestedEffect, triggerKey),
+              ),
+            })),
+          },
+        },
+      };
+    }
+
+    return effect;
   }
 
   private resolveTemplate(
@@ -632,6 +682,9 @@ export class AffixEffectTranslator {
                     multiplier,
                   ),
                 }
+              : {}),
+            ...(template.params.triggerKey !== undefined
+              ? { triggerKey: template.params.triggerKey }
               : {}),
           },
         };
