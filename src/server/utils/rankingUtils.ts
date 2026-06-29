@@ -8,6 +8,7 @@
 
 import { Quality } from '@shared/types/constants';
 import { Artifact, Consumable } from '@shared/types/cultivator';
+import { calculatePillScore } from '@shared/lib/pillScore';
 
 const QUALITY_SCORE_MAP: Record<Quality, number> = {
   凡品: 80,
@@ -29,8 +30,17 @@ export function calculateSingleArtifactScore(artifact: Artifact): number {
 }
 
 export function calculateSingleElixirScore(consumable: Consumable): number {
-  if (typeof consumable.score === 'number') {
-    return consumable.score;
+  const pillScore = calculatePillScore(consumable);
+  if (pillScore !== null) {
+    return pillScore;
+  }
+
+  if (
+    typeof consumable.score === 'number' &&
+    Number.isFinite(consumable.score) &&
+    consumable.score > 0
+  ) {
+    return Math.round(consumable.score);
   }
   const base = QUALITY_SCORE_MAP[consumable.quality || '凡品'] || 80;
   return Math.floor(Math.max(1, base * 0.72));

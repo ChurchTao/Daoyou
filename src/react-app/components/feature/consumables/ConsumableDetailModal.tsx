@@ -1,11 +1,16 @@
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { ItemShowcaseModal } from '@app/components/ui/ItemShowcaseModal';
 import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
+import { calculatePillScore } from '@shared/lib/pillScore';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type { Consumable } from '@shared/types/cultivator';
 import { CONSUMABLE_TYPE_DISPLAY_MAP } from '@shared/lib/gameConceptDisplay';
-import { PillAppearanceMark, PillDetailGroups } from './pillDisplayComponents';
+import {
+  PillAppearanceMark,
+  PillDetailGroups,
+  PillScoreMark,
+} from './pillDisplayComponents';
 import { toPillDisplayModel } from './pillDisplayModel';
 import { buildTalismanDetailText } from './talismanDisplay';
 
@@ -48,6 +53,7 @@ export function ConsumableDetailModal({
       realm: viewerRealm,
       condition: viewerCondition,
     });
+    const pillScore = calculatePillScore(consumable);
 
     return (
       <ItemShowcaseModal
@@ -55,6 +61,9 @@ export function ConsumableDetailModal({
         onClose={onClose}
         icon={typeInfo.icon}
         name={consumable.name}
+        cornerMeta={
+          pillScore !== null ? <PillScoreMark score={pillScore} /> : undefined
+        }
         nameMark={
           model.appearance ? (
             <PillAppearanceMark

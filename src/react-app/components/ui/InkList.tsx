@@ -28,6 +28,7 @@ export function InkList({
 
 export interface InkListItemProps {
   title: ReactNode;
+  cornerMeta?: ReactNode;
   meta?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
@@ -41,6 +42,7 @@ export interface InkListItemProps {
  */
 export function InkListItem({
   title,
+  cornerMeta,
   meta,
   description,
   actions,
@@ -52,13 +54,16 @@ export function InkListItem({
   return (
     <div
       className={cn(
-        'border-ink/10 flex gap-2 border-b border-dashed p-1',
+        'border-ink/10 relative flex gap-2 border-b border-dashed p-1',
         highlight && 'border-b-crimson/50 bg-crimson/5',
         isColumn ? 'flex-col items-stretch' : 'justify-between',
       )}
     >
+      {cornerMeta && (
+        <div className="absolute top-1 right-1 z-10">{cornerMeta}</div>
+      )}
       {/* 主内容区 */}
-      <div className={cn('min-w-0 flex-1', isColumn && 'w-full')}>
+      <div className={cn('min-w-0 flex-1', cornerMeta && 'pr-16', isColumn && 'w-full')}>
         {/* 标题行 */}
         <div className="font-semibold">{title}</div>
         {/* 元信息 */}

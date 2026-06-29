@@ -4,6 +4,7 @@ import {
 } from '@app/components/feature/products/affixPresentation';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { getPillAppearanceColorClass } from '@shared/lib/pillAppearance';
+import { formatPillScore } from '@shared/lib/pillScore';
 import { cn } from '@shared/lib/cn';
 import type { PillDetailGroup, PillDisplayModel } from './pillDisplayModel';
 
@@ -28,6 +29,32 @@ export function PillAppearanceMark({
       data-pill-appearance={appearance.grade}
     >
       {appearance.label}
+    </span>
+  );
+}
+
+export function PillScoreMark({
+  score,
+  className,
+}: {
+  score: number;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        'text-ink-secondary/70 pointer-events-none inline-flex h-4 items-center gap-1 text-[0.68rem] leading-4',
+        className,
+      )}
+      data-pill-score-mark
+    >
+      <span
+        aria-hidden="true"
+        className="border-crimson/45 bg-crimson/8 inline-block h-1.5 w-1.5 shrink-0 rotate-45 border"
+      />
+      <span className="border-ink/20 inline-flex h-4 items-center border-b border-dashed leading-4">
+        {formatPillScore(score)}
+      </span>
     </span>
   );
 }

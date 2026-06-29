@@ -481,6 +481,24 @@ describe('craftFromFormula narrative copy', () => {
     expect(result.consumable.description).toContain('药力拟合 115%');
   });
 
+  it('writes a deterministic pill score instead of preserving score 0', async () => {
+    const result = await craftFromFormula(
+      'cultivator-1',
+      'formula-1',
+      ['m1'],
+      undefined,
+      'analysis-1',
+    );
+
+    expect(result.consumable.score).toBeGreaterThan(0);
+    expect(addConsumableToInventoryMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      expect.objectContaining({ score: result.consumable.score }),
+      expect.anything(),
+    );
+  });
+
   it('sets crafted formula pill quantity from the batch profile', async () => {
     executorState.materialRows = [
       {

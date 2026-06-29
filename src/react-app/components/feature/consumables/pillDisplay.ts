@@ -3,6 +3,7 @@ export {
   PillDetailGroups,
   PillKeywordBadges,
   PillKeywordLine,
+  PillScoreMark,
   PillSummary,
 } from './pillDisplayComponents';
 export {

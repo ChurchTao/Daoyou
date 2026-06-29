@@ -15,6 +15,7 @@ export interface ItemShowcaseModalProps {
   icon: string;
   name: string;
   nameMark?: ReactNode;
+  cornerMeta?: ReactNode;
   badges?: ReactNode[];
   summary?: ReactNode;
   metaSection?: ReactNode;
@@ -30,6 +31,7 @@ export function ItemShowcaseModal({
   icon,
   name,
   nameMark,
+  cornerMeta,
   badges = [],
   summary,
   metaSection,
@@ -40,7 +42,10 @@ export function ItemShowcaseModal({
 }: ItemShowcaseModalProps) {
   return (
     <InkModal isOpen={isOpen} onClose={onClose}>
-      <div className="space-y-3">
+      <div className="relative space-y-3">
+        {cornerMeta && (
+          <div className="absolute top-0 right-0 z-10">{cornerMeta}</div>
+        )}
         <div className="flex flex-col items-center gap-2 p-4 text-center">
           <div className="mb-2 text-4xl">{icon}</div>
           <h4

@@ -14,6 +14,7 @@ export interface ItemCardProps {
   icon?: string;
   name: string;
   nameMark?: ReactNode;
+  cornerMeta?: ReactNode;
   quality?: Quality;
   badgeExtra?: ReactNode;
   description?: string;
@@ -28,6 +29,7 @@ export function ItemCard({
   icon,
   name,
   nameMark,
+  cornerMeta,
   quality,
   badgeExtra,
   description,
@@ -56,6 +58,7 @@ export function ItemCard({
           {badgeExtra}
         </div>
       }
+      cornerMeta={cornerMeta}
       description={
         <>
           {meta && <div className="mb-1">{meta}</div>}
