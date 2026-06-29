@@ -1,5 +1,6 @@
 import { requireUser } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
+import { getRequestIp } from '@server/lib/http/requestIp';
 import {
   consumeCharacterGenerationQuota,
   getCharacterGenerationQuota,
@@ -13,7 +14,7 @@ import {
   type CharacterGenerationQuotaResponse,
   type GenerateCharacterResponse,
 } from '@shared/contracts/character-generation';
-import { Hono, type Context } from 'hono';
+import { Hono } from 'hono';
 import { z } from 'zod';
 
 const MIN_PROMPT_LENGTH = 2;
@@ -24,15 +25,6 @@ const GenerateCharacterSchema = z.object({
 });
 
 const countChars = (input: string): number => Array.from(input).length;
-
-function getRequestIp(c: Context<AppEnv>): string | undefined {
-  const forwardedFor = c.req.header('x-forwarded-for');
-  if (forwardedFor) {
-    return forwardedFor.split(',')[0]?.trim() || undefined;
-  }
-
-  return c.req.header('cf-connecting-ip') || undefined;
-}
 
 function getQuotaExceededMessage(quota: CharacterGenerationQuota): string {
   switch (quota.limitedBy) {

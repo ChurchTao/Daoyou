@@ -1,6 +1,7 @@
 import { handleAuthRequest } from '@server/lib/auth/hono';
 import { Hono } from 'hono';
 import { runWithContext } from '@server/lib/http/context';
+import { apiIpRateLimit } from '@server/lib/hono/apiIpRateLimit';
 import { jsonError } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
 import { validateLlmBaseUrl } from '@server/lib/llm/allowedHosts';
@@ -47,6 +48,7 @@ app.use('*', async (context, next) => {
   await next();
 });
 
+app.use('/api/*', apiIpRateLimit());
 app.all('/api/auth/*', handleAuthRequest);
 app.use('/api/*', jsonError());
 app.use('/internal/*', jsonError());

@@ -5,6 +5,7 @@ import {
   verifyTurnstileToken,
 } from '@server/lib/auth/turnstile';
 import { db } from '@server/lib/drizzle/db';
+import { getRequestIp } from '@server/lib/http/requestIp';
 import { eq } from 'drizzle-orm';
 import type { Context } from 'hono';
 
@@ -14,15 +15,6 @@ const CAPTCHA_PROTECTED_PATHS = new Set([
   '/api/auth/request-password-reset',
   '/api/auth/email-otp/send-verification-otp',
 ]);
-
-function getRequestIp(context: Context): string | undefined {
-  const forwardedFor = context.req.header('x-forwarded-for');
-  if (forwardedFor) {
-    return forwardedFor.split(',')[0]?.trim() || undefined;
-  }
-
-  return context.req.header('cf-connecting-ip') || undefined;
-}
 
 async function readRequestBody(request: Request): Promise<Record<string, unknown>> {
   const contentType = request.headers.get('content-type') || '';
