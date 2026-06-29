@@ -598,7 +598,7 @@ export async function createCultivator(
           quality: normalizedTechnique.quality,
           slot: null,
           score: normalizedTechnique.score ?? 0,
-          isEquipped: false,
+          isEquipped: true,
           productModel: serializeProductModel(normalizedTechnique.productModel),
         };
       }),
@@ -613,7 +613,7 @@ export async function createCultivator(
           quality: normalizedSkill.quality,
           slot: null,
           score: 0,
-          isEquipped: false,
+          isEquipped: true,
           productModel: serializeProductModel(normalizedSkill.productModel),
         };
       }),

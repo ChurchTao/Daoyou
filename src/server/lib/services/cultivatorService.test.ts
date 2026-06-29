@@ -3,6 +3,7 @@ const {
   getExecutorMock,
   hasCultivatorOwnershipMock,
   insertMock,
+  loadCultivatorRelationsMock,
   setMock,
   updateMock,
   whereMock,
@@ -11,6 +12,7 @@ const {
   getExecutorMock: vi.fn(),
   hasCultivatorOwnershipMock: vi.fn(),
   insertMock: vi.fn(),
+  loadCultivatorRelationsMock: vi.fn(),
   setMock: vi.fn(),
   updateMock: vi.fn(),
   whereMock: vi.fn(),
@@ -29,6 +31,7 @@ vi.mock('@server/lib/repositories/cultivatorRepository', async () => {
   return {
     ...actual,
     hasCultivatorOwnership: hasCultivatorOwnershipMock,
+    loadCultivatorRelations: loadCultivatorRelationsMock,
   };
 });
 
@@ -45,12 +48,160 @@ vi.mock('@server/lib/repositories/creationProductRepository', async () => {
 });
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as schema from '@server/lib/drizzle/schema';
 import { rehydrateStoredProductModel } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
+import { BASIC_SKILLS, BASIC_TECHNIQUES } from '@shared/engine/cultivator/creation/config';
 import { buildPresetArtifact } from '@shared/engine/cultivator/creation/presetProducts';
+import type { Cultivator } from '@shared/types/cultivator';
 import {
   addArtifactToInventory,
+  createCultivator,
   updateCultivatorGameSettings,
 } from './cultivatorService';
+
+function createGeneratedCultivator(): Cultivator {
+  return {
+    id: '',
+    name: '初入山门',
+    gender: '男',
+    origin: '青石镇',
+    personality: '沉稳',
+    background: '初入道途',
+    prompt: '测试角色',
+    realm: '炼气',
+    realm_stage: '初期',
+    age: 16,
+    lifespan: 100,
+    status: 'active',
+    attributes: {
+      vitality: 12,
+      spirit: 14,
+      wisdom: 13,
+      speed: 11,
+      willpower: 10,
+    },
+    spiritual_roots: [{ element: '金', strength: 90, grade: '天灵根' }],
+    pre_heaven_fates: [],
+    cultivations: [BASIC_TECHNIQUES.金()],
+    skills: [...BASIC_SKILLS.金],
+    inventory: {
+      artifacts: [],
+      consumables: [],
+      materials: [],
+    },
+    equipped: {
+      weapon: null,
+      armor: null,
+      accessory: null,
+    },
+    max_skills: 4,
+    spirit_stones: 0,
+  };
+}
+
+describe('createCultivator', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('persists starter gongfa and skills as equipped so the new cultivator can fight immediately', async () => {
+    const cultivator = createGeneratedCultivator();
+    let createdProductRows: Record<string, unknown>[] = [];
+    const persistedRecord = {
+      id: 'cultivator-1',
+      userId: 'user-1',
+      name: cultivator.name,
+      title: null,
+      gender: cultivator.gender,
+      origin: cultivator.origin,
+      personality: cultivator.personality,
+      background: cultivator.background,
+      prompt: cultivator.prompt,
+      realm: cultivator.realm,
+      realm_stage: cultivator.realm_stage,
+      age: cultivator.age,
+      lifespan: cultivator.lifespan,
+      closedDoorYearsTotal: 0,
+      status: 'active',
+      diedAt: null,
+      vitality: cultivator.attributes.vitality,
+      spirit: cultivator.attributes.spirit,
+      wisdom: cultivator.attributes.wisdom,
+      speed: cultivator.attributes.speed,
+      willpower: cultivator.attributes.willpower,
+      spirit_stones: 0,
+      reputation: 0,
+      qi: 200,
+      qiLastRefreshedAt: new Date('2026-01-01T00:00:00.000Z'),
+      last_yield_at: new Date('2026-01-01T00:00:00.000Z'),
+      max_skills: cultivator.max_skills,
+      balance_notes: null,
+      condition: {},
+      gameSettings: {},
+      cultivation_progress: {},
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    } as typeof schema.cultivators.$inferSelect;
+
+    const tx = {
+      insert: vi.fn((table: unknown) => ({
+        values: vi.fn((values: unknown) => {
+          if (table === schema.cultivators) {
+            return {
+              returning: vi.fn().mockResolvedValue([persistedRecord]),
+            };
+          }
+
+          if (table === schema.creationProducts) {
+            createdProductRows = Array.isArray(values)
+              ? (values as Record<string, unknown>[])
+              : [values as Record<string, unknown>];
+          }
+
+          return Promise.resolve(undefined);
+        }),
+      })),
+    };
+    const executor = {
+      transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
+        callback(tx),
+      ),
+    };
+
+    getExecutorMock.mockReturnValue(executor);
+    loadCultivatorRelationsMock.mockImplementation(async () => ({
+      spiritualRoots: [
+        {
+          cultivatorId: 'cultivator-1',
+          element: '金',
+          strength: 90,
+          grade: '天灵根',
+        },
+      ],
+      preHeavenFates: [],
+      creationProducts: createdProductRows.map((row, index) => ({
+        id: `product-${index + 1}`,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        ...row,
+      })),
+      consumables: [],
+      materials: [],
+    }));
+
+    const result = await createCultivator('user-1', cultivator);
+    const starterRows = createdProductRows.filter(
+      (row) => row.productType === 'gongfa' || row.productType === 'skill',
+    );
+
+    expect(starterRows).toHaveLength(
+      cultivator.cultivations.length + cultivator.skills.length,
+    );
+    expect(starterRows.every((row) => row.isEquipped === true)).toBe(true);
+    expect(result.cultivations).toHaveLength(cultivator.cultivations.length);
+    expect(result.skills).toHaveLength(cultivator.skills.length);
+  });
+});
 
 describe('addArtifactToInventory', () => {
   beforeEach(() => {
