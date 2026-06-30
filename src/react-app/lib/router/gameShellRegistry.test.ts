@@ -28,6 +28,9 @@ describe('game shell registry', () => {
     expect(resolveGameShellKind('/game/reincarnate')).toBe('genesis');
     expect(resolveGameShellKind('/game')).toBe('viewport');
     expect(resolveGameShellKind('/game/inventory')).toBe('viewport');
+    expect(resolveGameShellKind('/game/cultivator/attributes')).toBe(
+      'viewport',
+    );
     expect(resolveGameShellKind('/game/body-cultivation')).toBe('viewport');
     expect(resolveGameShellKind('/game/bet-battle')).toBe('viewport');
     expect(resolveGameShellKind('/game/settings')).toBe('viewport');

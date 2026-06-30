@@ -19,6 +19,7 @@ describe('game navigation dock groups', () => {
     expect(expandedIds).not.toContain('manual-draw');
     expect(expandedIds).not.toContain('inventory');
     expect(expandedIds).not.toContain('mail');
+    expect(expandedIds).not.toContain('cultivator-attributes');
     expect(expandedIds).not.toContain('body-cultivation');
   });
 
@@ -35,5 +36,20 @@ describe('game navigation dock groups', () => {
     });
     expect(coreIds).not.toContain('body-cultivation');
     expect(expandedIds).not.toContain('body-cultivation');
+  });
+
+  it('registers cultivator attributes scene metadata without adding a dock entry', () => {
+    const coreIds = getCoreDockItems().map((item) => item.id);
+    const expandedIds = getExpandedDockGroups().flatMap((group) =>
+      group.actions.map((action) => action.id),
+    );
+
+    expect(getGameSceneMeta('cultivator-attributes')).toMatchObject({
+      id: 'cultivator-attributes',
+      label: '根基属性',
+      group: 'cultivation',
+    });
+    expect(coreIds).not.toContain('cultivator-attributes');
+    expect(expandedIds).not.toContain('cultivator-attributes');
   });
 });

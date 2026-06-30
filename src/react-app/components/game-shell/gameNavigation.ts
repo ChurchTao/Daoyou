@@ -52,6 +52,10 @@ export const gameDockGroups: GameNavGroup[] = [
         coreDockLabel: '角色',
       },
       {
+        id: 'cultivator-attributes',
+        sceneLabel: '根基属性',
+      },
+      {
         id: 'body-cultivation',
         sceneLabel: '肉身炼体',
       },

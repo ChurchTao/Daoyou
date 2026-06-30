@@ -15,6 +15,7 @@ export interface GameSceneSectionProps {
   className?: string;
   contentClassName?: string;
   help?: GameSceneHelp;
+  actions?: ReactNode;
 }
 
 export function GameSceneHelpButton({ help }: { help: GameSceneHelp }) {
@@ -47,6 +48,7 @@ export function GameSceneSection({
   className,
   contentClassName,
   help,
+  actions,
 }: GameSceneSectionProps) {
   return (
     <section
@@ -55,7 +57,7 @@ export function GameSceneSection({
         className,
       )}
     >
-      {title || help ? (
+      {title || help || actions ? (
         <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
           {title ? (
             <span
@@ -68,7 +70,12 @@ export function GameSceneSection({
           ) : (
             <span />
           )}
-          {help ? <GameSceneHelpButton help={help} /> : null}
+          {actions || help ? (
+            <div className="flex shrink-0 items-center gap-2">
+              {actions}
+              {help ? <GameSceneHelpButton help={help} /> : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
       <div className={cn(contentClassName)}>{children}</div>

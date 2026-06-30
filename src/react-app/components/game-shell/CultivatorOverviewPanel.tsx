@@ -1,14 +1,8 @@
 import {
   CultivatorCurrentStatusSection,
 } from '@app/components/feature/cultivator/PersistentStatusesCard';
-import {
-  AttributeAllocationControl,
-} from '@app/components/feature/cultivator/AttributeAllocationControl';
-import {
-  canSubmitAttributeAllocation,
-  createEmptyAttributeDraft,
-} from '@app/components/feature/cultivator/attributeAllocationControlLogic';
 import { BodyCultivationEntrySection } from '@app/components/feature/cultivator/BodyCultivationPanels';
+import { CultivatorAttributeOverview } from '@app/components/feature/cultivator/CultivatorAttributeOverview';
 import { TitleEditorModal } from '@app/components/feature/cultivator/TitleEditorModal';
 import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
 import { toFateDisplayModel } from '@app/components/feature/fates/FateDisplayAdapter';
@@ -32,65 +26,14 @@ import {
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
-import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { AttributeType } from '@shared/engine/battle-v5/core/types';
 import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
 import { cn } from '@shared/lib/cn';
-import type { Attributes, Cultivator } from '@shared/types/cultivator';
+import type { Cultivator } from '@shared/types/cultivator';
 import { getEquipmentSlotInfo } from '@shared/lib/gameConceptDisplay';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { GameSceneSection } from './GameSceneSection';
-
-type PrimaryAttributeType =
-  | AttributeType.SPIRIT
-  | AttributeType.VITALITY
-  | AttributeType.SPEED
-  | AttributeType.WILLPOWER
-  | AttributeType.WISDOM;
-
-const PRIMARY_ATTR_ORDER: PrimaryAttributeType[] = [
-  AttributeType.SPIRIT,
-  AttributeType.VITALITY,
-  AttributeType.SPEED,
-  AttributeType.WILLPOWER,
-  AttributeType.WISDOM,
-];
-
-const SECONDARY_ATTR_ORDER: AttributeType[] = [
-  AttributeType.ATK,
-  AttributeType.DEF,
-  AttributeType.MAGIC_ATK,
-  AttributeType.MAGIC_DEF,
-  AttributeType.CRIT_RATE,
-  AttributeType.CRIT_DAMAGE_MULT,
-  AttributeType.EVASION_RATE,
-  AttributeType.CONTROL_HIT,
-  AttributeType.CONTROL_RESISTANCE,
-  AttributeType.ARMOR_PENETRATION,
-  AttributeType.MAGIC_PENETRATION,
-  AttributeType.CRIT_RESIST,
-  AttributeType.CRIT_DAMAGE_REDUCTION,
-  AttributeType.ACCURACY,
-  AttributeType.HEAL_AMPLIFY,
-];
-
-const PERCENT_ATTRS = new Set<AttributeType>([
-  AttributeType.CRIT_RATE,
-  AttributeType.EVASION_RATE,
-  AttributeType.CONTROL_HIT,
-  AttributeType.CONTROL_RESISTANCE,
-  AttributeType.ARMOR_PENETRATION,
-  AttributeType.MAGIC_PENETRATION,
-  AttributeType.CRIT_RESIST,
-  AttributeType.CRIT_DAMAGE_REDUCTION,
-  AttributeType.ACCURACY,
-  AttributeType.HEAL_AMPLIFY,
-]);
-
-const MULTIPLIER_ATTRS = new Set<AttributeType>([
-  AttributeType.CRIT_DAMAGE_MULT,
-]);
 
 const PRIMARY_ATTRIBUTE_HELP = [
   {
@@ -137,37 +80,6 @@ const PRIMARY_ATTRIBUTE_HELP_DIALOG = {
   ),
 };
 
-function formatAttributeValue(attrType: AttributeType, value: number): string {
-  if (PERCENT_ATTRS.has(attrType)) {
-    return `${(value * 100).toFixed(1)}%`;
-  }
-  if (MULTIPLIER_ATTRS.has(attrType)) {
-    return `${value.toFixed(2)}x`;
-  }
-  return Number.isInteger(value) ? `${value}` : value.toFixed(2);
-}
-
-function formatModifier(attrType: AttributeType, value: number): string {
-  const abs = Math.abs(value);
-  const sign = value >= 0 ? '+' : '-';
-  if (PERCENT_ATTRS.has(attrType)) {
-    return `${sign}${(abs * 100).toFixed(1)}%`;
-  }
-  if (MULTIPLIER_ATTRS.has(attrType)) {
-    return `${sign}${abs.toFixed(2)}x`;
-  }
-  const rendered = Number.isInteger(abs) ? `${abs}` : abs.toFixed(2);
-  return `${sign}${rendered}`;
-}
-
-function chunkPairs<T>(items: T[]): T[][] {
-  const rows: T[][] = [];
-  for (let i = 0; i < items.length; i += 2) {
-    rows.push(items.slice(i, i + 2));
-  }
-  return rows;
-}
-
 function OverviewDetailItem({
   icon,
   label,
@@ -202,6 +114,26 @@ function OverviewDetailItem({
   );
 }
 
+function ReminderDot() {
+  return (
+    <span className="absolute -top-0.5 -right-1.5 flex h-3 w-3">
+      <span className="bg-crimson absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+      <span className="bg-crimson relative inline-flex h-3 w-3 rounded-full" />
+    </span>
+  );
+}
+
+function AttributeDetailEntry({ hasReminder }: { hasReminder: boolean }) {
+  return (
+    <span className="relative inline-flex">
+      <InkButton href="/game/cultivator/attributes" className="text-sm">
+        详情
+      </InkButton>
+      {hasReminder ? <ReminderDot /> : null}
+    </span>
+  );
+}
+
 export function CultivatorOverviewPanel() {
   const { cultivator, inventory, skills, equipped } = usePlayerStateView();
   const navigate = useNavigate();
@@ -211,14 +143,9 @@ export function CultivatorOverviewPanel() {
   const [detailFate, setDetailFate] = useState<
     Cultivator['pre_heaven_fates'][number] | null
   >(null);
-  const [showAllAttributes, setShowAllAttributes] = useState(false);
   const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
   const [isSavingTitle, setIsSavingTitle] = useState(false);
-  const [attributeDraft, setAttributeDraft] = useState<Attributes>(
-    createEmptyAttributeDraft(),
-  );
-  const [isAllocatingAttributes, setIsAllocatingAttributes] = useState(false);
 
   if (!cultivator) {
     return <InkNotice>尚无角色资料，先去觉醒灵根，再来凝视真形。</InkNotice>;
@@ -283,37 +210,6 @@ export function CultivatorOverviewPanel() {
   const unallocatedAttributePoints =
     cultivator.unallocated_attribute_points ?? 0;
 
-  const handleAllocateAttributes = async () => {
-    if (
-      !canSubmitAttributeAllocation({
-        draft: attributeDraft,
-        unallocatedPoints: unallocatedAttributePoints,
-        loading: isAllocatingAttributes,
-      })
-    ) {
-      return;
-    }
-    try {
-      setIsAllocatingAttributes(true);
-      await mutate(
-        fetch('/api/cultivator/attributes/allocate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(attributeDraft),
-        }),
-      );
-      setAttributeDraft(createEmptyAttributeDraft());
-      pushToast({ message: '根基属性已分配', tone: 'success' });
-    } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '属性分配失败',
-        tone: 'danger',
-      });
-    } finally {
-      setIsAllocatingAttributes(false);
-    }
-  };
-
   const openReincarnateDialog = () => {
     setDialog({
       id: 'reincarnate-confirm',
@@ -334,26 +230,6 @@ export function CultivatorOverviewPanel() {
       onConfirm: handleReincarnate,
     });
   };
-
-  const { unit } = getCultivatorDisplayAttributes(cultivator);
-  const orderedAttributes = [...PRIMARY_ATTR_ORDER, ...SECONDARY_ATTR_ORDER];
-  const displayAttributes = orderedAttributes.map((attrType) => {
-    const baseValue = unit.attributes.getBaseValue(attrType);
-    const finalValue = unit.attributes.getValue(attrType);
-    const modifier = finalValue - baseValue;
-    return {
-      type: attrType,
-      label: attrLabel(attrType),
-      baseValue,
-      modifier,
-    };
-  });
-  const primaryRows = displayAttributes.slice(0, PRIMARY_ATTR_ORDER.length);
-  const secondaryAll = displayAttributes.slice(PRIMARY_ATTR_ORDER.length);
-  const secondaryVisible = showAllAttributes
-    ? secondaryAll
-    : secondaryAll.slice(0, 4);
-  const secondaryRows = chunkPairs(secondaryVisible);
 
   const equippedItems = inventory.artifacts.filter(
     (item) =>
@@ -457,102 +333,14 @@ export function CultivatorOverviewPanel() {
         </GameSceneSection>
       ) : null}
 
-      <GameSceneSection title="根基属性" help={PRIMARY_ATTRIBUTE_HELP_DIALOG}>
-        {unallocatedAttributePoints > 0 ? (
-          <AttributeAllocationControl
-            currentAttributes={cultivator.attributes}
-            unallocatedPoints={unallocatedAttributePoints}
-            draft={attributeDraft}
-            loading={isAllocatingAttributes}
-            onChange={setAttributeDraft}
-            onSubmit={() => void handleAllocateAttributes()}
-          />
-        ) : null}
-        <div className="border-ink/15 overflow-x-auto border border-dashed">
-          <table className="border-ink/10 w-full border-collapse text-sm">
-            <tbody>
-              {primaryRows.map((item) => (
-                <tr
-                  key={item.type}
-                  className="border-ink/10 border-b border-dashed last:border-b-0"
-                >
-                  <td className="text-crimson w-[40%] py-2 pr-2 pl-3 font-semibold">
-                    {item.label}
-                  </td>
-                  <td className="text-ink-secondary py-2 pr-3 text-right">
-                    {formatAttributeValue(item.type, item.baseValue)}
-                    {item.modifier !== 0 ? (
-                      <>
-                        {' '}
-                        <span
-                          className={cn(
-                            'font-semibold',
-                            item.modifier > 0
-                              ? 'text-emerald-700'
-                              : 'text-violet-700',
-                          )}
-                        >
-                          {formatModifier(item.type, item.modifier)}
-                        </span>
-                      </>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-              {secondaryRows.map((pair, rowIdx) => (
-                <tr
-                  key={`sec-${rowIdx}`}
-                  className="border-ink/10 border-b border-dashed last:border-b-0"
-                >
-                  {pair.map((item, colIdx) => (
-                    <td
-                      key={item.type}
-                      colSpan={pair.length === 1 ? 2 : 1}
-                      className={cn(
-                        'w-1/2 min-w-0 py-2 pr-2 pl-3 align-top',
-                        colIdx === 0 &&
-                          pair.length === 2 &&
-                          'border-ink/10 border-r border-dashed',
-                      )}
-                    >
-                      <div className="flex min-w-0 items-baseline justify-between gap-2">
-                        <span className="text-ink shrink-0">{item.label}</span>
-                        <span className="text-ink-secondary min-w-0 text-right">
-                          {formatAttributeValue(item.type, item.baseValue)}
-                          {item.modifier !== 0 ? (
-                            <>
-                              {' '}
-                              <span
-                                className={cn(
-                                  'font-semibold',
-                                  item.modifier > 0
-                                    ? 'text-emerald-700'
-                                    : 'text-violet-700',
-                                )}
-                              >
-                                {formatModifier(item.type, item.modifier)}
-                              </span>
-                            </>
-                          ) : null}
-                        </span>
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {secondaryAll.length > 4 ? (
-          <div className="mt-3">
-            <InkButton
-              onClick={() => setShowAllAttributes((prev) => !prev)}
-              className="text-sm"
-            >
-              {showAllAttributes ? '收起次级属性' : '展开全部属性'}
-            </InkButton>
-          </div>
-        ) : null}
+      <GameSceneSection
+        title="根基属性"
+        help={PRIMARY_ATTRIBUTE_HELP_DIALOG}
+        actions={
+          <AttributeDetailEntry hasReminder={unallocatedAttributePoints > 0} />
+        }
+      >
+        <CultivatorAttributeOverview cultivator={cultivator} />
       </GameSceneSection>
 
       <BodyCultivationEntrySection />

@@ -71,6 +71,7 @@ export interface GameHudSnapshot {
   spiritStones: number;
   reputation: number;
   unreadMailCount: number;
+  hasUnallocatedAttributePoints: boolean;
   statusText: string;
   cultivationProgress: GameHudCultivationProgress;
   metrics: GameHudMetric[];
@@ -211,6 +212,8 @@ export function buildGameHudSnapshot(input: {
     spiritStones: cultivator.spirit_stones,
     reputation: cultivator.reputation ?? 0,
     unreadMailCount,
+    hasUnallocatedAttributePoints:
+      (cultivator.unallocated_attribute_points ?? 0) > 0,
     statusText: statusLabels.join(' ｜ ') || '安稳',
     activeStatuses,
     pillToxicity: {

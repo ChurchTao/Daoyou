@@ -333,6 +333,9 @@ export function GameViewportLayout() {
           <GameBottomDock
             sceneId={scene?.id ?? null}
             unreadMailCount={hud?.unreadMailCount ?? 0}
+            hasUnallocatedAttributePoints={
+              hud?.hasUnallocatedAttributePoints ?? false
+            }
             isExpanded={isDockExpanded}
             onToggleExpanded={toggleDockExpanded}
             dockMode={scene?.dock ?? 'core'}

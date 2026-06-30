@@ -155,6 +155,20 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="cultivator/attributes"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/cultivator/attributes/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'cultivator-attributes',
+                  presentation: 'archive',
+                  summary: '五维根基、次级属性与可分配点在此处归档。',
+                },
+                '根基属性',
+              )}
+            />
+            <Route
               path="body-cultivation"
               lazy={lazyRoute(
                 () => import('@app/routes/game/body-cultivation/route'),

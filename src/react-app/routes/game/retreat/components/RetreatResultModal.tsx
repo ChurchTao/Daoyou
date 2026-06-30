@@ -45,6 +45,11 @@ export function RetreatResultModal({
     : retreatResult.depleted
       ? '转世重修 →'
       : '收拢心神';
+  const canGoAllocateAttributes =
+    !isStreaming &&
+    isSuccessfulBreakthrough(retreatResult) &&
+    'attributePointReward' in retreatResult.summary &&
+    retreatResult.summary.attributePointReward > 0;
 
   return (
     <>
@@ -54,12 +59,21 @@ export function RetreatResultModal({
         title={title}
         className="max-w-2xl"
         footer={
-          <div className="flex flex-wrap gap-3">
+          <div className="flex w-full flex-wrap gap-3">
+            {canGoAllocateAttributes ? (
+              <InkButton
+                href="/game/cultivator/attributes"
+                variant="secondary"
+                className="w-full sm:w-auto"
+              >
+                分配根基属性
+              </InkButton>
+            ) : null}
             <InkButton
               variant="primary"
               onClick={retreatResult.depleted ? onGoReincarnate : onClose}
               disabled={isStreaming}
-              className="w-full"
+              className={canGoAllocateAttributes ? 'w-full sm:w-auto' : 'w-full'}
             >
               {primaryLabel}
             </InkButton>

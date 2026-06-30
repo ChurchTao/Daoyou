@@ -1,5 +1,10 @@
 import Link from '@app/components/router/AppLink';
 import { cn } from '@shared/lib/cn';
+import {
+  getCoreDockItemBadge,
+  shouldShowGameDockBadge,
+  type GameDockBadge,
+} from './gameBottomDockBadge';
 import { getCoreDockItems, getExpandedDockGroups } from './gameNavigation';
 
 function DockLink({
@@ -11,7 +16,7 @@ function DockLink({
   href: string;
   label: string;
   active?: boolean;
-  badge?: number;
+  badge?: GameDockBadge;
 }) {
   return (
     <Link
@@ -23,7 +28,7 @@ function DockLink({
     >
       <span className="relative inline-flex items-center">
         [{label}]
-        {badge && badge > 0 ? (
+        {shouldShowGameDockBadge(badge) ? (
           <span className="absolute -top-0.5 -right-2 flex h-3 w-3">
             <span className="bg-crimson absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
             <span className="bg-crimson relative inline-flex h-3 w-3 rounded-full" />
@@ -37,12 +42,14 @@ function DockLink({
 export function GameBottomDock({
   sceneId,
   unreadMailCount,
+  hasUnallocatedAttributePoints,
   isExpanded,
   onToggleExpanded,
   dockMode = 'core',
 }: {
   sceneId?: string | null;
   unreadMailCount: number;
+  hasUnallocatedAttributePoints: boolean;
   isExpanded: boolean;
   onToggleExpanded: () => void;
   dockMode?: 'core' | 'expanded' | 'hidden';
@@ -68,7 +75,10 @@ export function GameBottomDock({
               href={item.href}
               label={item.label}
               active={sceneId === item.id}
-              badge={item.id === 'mail' ? unreadMailCount : undefined}
+              badge={getCoreDockItemBadge(item.id, {
+                unreadMailCount,
+                hasUnallocatedAttributePoints,
+              })}
             />
           ))}
           <button
