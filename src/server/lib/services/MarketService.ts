@@ -45,6 +45,9 @@ import {
   QUALITY_VALUES,
 } from '@shared/types/constants';
 import type {
+  PreHeavenFate,
+} from '@shared/types/cultivator';
+import type {
   MarketAccessState,
   MarketLayer,
   MarketListing,
@@ -54,6 +57,11 @@ import type {
 } from '@shared/types/market';
 import { MARKET_PRESET_FALLBACK_LAYERS } from '@shared/types/market';
 import { and, eq, sql } from 'drizzle-orm';
+import {
+  evaluateFateContext,
+  getMarketPurchasePriceMultiplier,
+  scaleFateAdjustedValue,
+} from '@shared/lib/fates';
 
 // ─── Redis 键前缀 ───
 
@@ -87,6 +95,7 @@ export type BuyInput = {
   userId: string;
   cultivatorId: string;
   cultivatorRealm: RealmType;
+  fates?: PreHeavenFate[];
   tx?: DbTransaction;
   deferSideEffects?: boolean;
 };
@@ -98,6 +107,7 @@ export type BatchBuyInput = {
   userId: string;
   cultivatorId: string;
   cultivatorRealm: RealmType;
+  fates?: PreHeavenFate[];
   tx?: DbTransaction;
   deferSideEffects?: boolean;
 };
@@ -520,8 +530,39 @@ function sanitizeListing(listing: InternalMarketListing): MarketListing {
     details: sanitizeMaterialDetails(listing.details) ?? {},
     quantity: listing.quantity,
     price: listing.price,
+    basePrice: listing.basePrice,
     isMystery: listing.isMystery,
     mysteryMask: listing.mysteryMask,
+  };
+}
+
+function getMarketPriceMultiplier(fates: PreHeavenFate[] = []): number {
+  return getMarketPurchasePriceMultiplier(evaluateFateContext(fates));
+}
+
+function getDiscountedMarketPrice(
+  basePrice: number,
+  fates: PreHeavenFate[] = [],
+): number {
+  return scaleFateAdjustedValue(basePrice, getMarketPriceMultiplier(fates));
+}
+
+function applyMarketPurchaseDiscount(
+  listing: MarketListing,
+  fates: PreHeavenFate[] = [],
+): MarketListing {
+  const discountedPrice = getDiscountedMarketPrice(listing.price, fates);
+  if (discountedPrice >= listing.price) {
+    return {
+      ...listing,
+      basePrice: undefined,
+    };
+  }
+
+  return {
+    ...listing,
+    basePrice: listing.price,
+    price: discountedPrice,
   };
 }
 
@@ -765,6 +806,7 @@ export async function getMarketListings(input: {
   layer: MarketLayer;
   userId: string;
   cultivatorRealm: RealmType;
+  fates?: PreHeavenFate[];
 }) {
   const { nodeId, layer, userId, cultivatorRealm } = input;
   if (!isMarketNodeEnabled(nodeId)) {
@@ -800,7 +842,7 @@ export async function getMarketListings(input: {
 
   // 5. 合并视图：已买的标记 quantity = 0
   const listings = cachedData.listings.map((l) => ({
-    ...sanitizeListing(l),
+    ...applyMarketPurchaseDiscount(sanitizeListing(l), input.fates),
     quantity: boughtIds.has(l.id) ? 0 : 1,
   }));
 
@@ -858,7 +900,8 @@ export async function buyMarketItem(input: BuyInput) {
       throw new MarketServiceError(400, '本批此物你已购入，不可重复购买');
     }
 
-    const totalPrice = item.price * quantity;
+    const itemPrice = getDiscountedMarketPrice(item.price, input.fates);
+    const totalPrice = itemPrice * quantity;
 
     const afterCommitJobs: Array<() => Promise<void>> = [];
     const writePurchase = async (tx: DbTransaction) => {
@@ -936,7 +979,7 @@ export async function buyMarketItem(input: BuyInput) {
     return {
       success: true,
       message: `成功购入 ${item.name} x${quantity}`,
-      item: sanitizeListing(item),
+      item: applyMarketPurchaseDiscount(sanitizeListing(item), input.fates),
       afterCommit: input.deferSideEffects ? afterCommit : undefined,
     };
   } finally {
@@ -998,7 +1041,7 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
       if (boughtIds.has(item.id)) {
         throw new MarketServiceError(400, `你已购入过 ${item.name}`);
       }
-      totalCost += item.price * buyReq.quantity;
+      totalCost += getDiscountedMarketPrice(item.price, input.fates) * buyReq.quantity;
       processItems.push({ item, quantity: buyReq.quantity });
     }
 

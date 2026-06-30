@@ -21,6 +21,8 @@ import {
   toPlayerStateMutationResponse,
   type StateChangeDescriptor,
 } from '@server/lib/services/PlayerStateMutationService';
+import { getCultivatorById } from '@server/lib/services/cultivatorService';
+import type { PreHeavenFate } from '@shared/types/cultivator';
 import { RealmType } from '@shared/types/constants';
 import type { SellConfirmResponse } from '@shared/types/market';
 import { Hono } from 'hono';
@@ -117,6 +119,16 @@ function marketSellChanges(
   ];
 }
 
+async function loadMarketFates(
+  cultivator: { id: string; userId: string },
+): Promise<PreHeavenFate[]> {
+  const fullCultivator = await getCultivatorById(
+    cultivator.userId,
+    cultivator.id,
+  );
+  return fullCultivator?.pre_heaven_fates ?? [];
+}
+
 router.post('/sell', requireActiveCultivator(), async (c) => {
   const cultivator = c.get('cultivator');
   if (!cultivator) {
@@ -181,11 +193,13 @@ router.get('/:nodeId', requireActiveCultivator(), async (c) => {
   try {
     const nodeId = resolveNodeId(c.req.param('nodeId'));
     const layer = resolveLayer(c.req.query('layer'));
+    const fates = await loadMarketFates(cultivator);
     const result = await getMarketListings({
       nodeId,
       layer,
       userId: cultivator.userId,
       cultivatorRealm: cultivator.realm as RealmType,
+      fates,
     });
 
     return c.json(result);
@@ -209,6 +223,7 @@ router.post('/:nodeId/buy', requireActiveCultivator(), async (c) => {
     const parsed = BuySchema.parse(await c.req.json());
     const nodeId = resolveNodeId(c.req.param('nodeId'));
     const layer = parsed.layer || resolveLayer(c.req.query('layer'));
+    const fates = await loadMarketFates(cultivator);
 
     if (parsed.items && parsed.items.length > 0) {
       const items = parsed.items;
@@ -226,6 +241,7 @@ router.post('/:nodeId/buy', requireActiveCultivator(), async (c) => {
               userId: cultivator.userId,
               cultivatorId: cultivator.id,
               cultivatorRealm: cultivator.realm as RealmType,
+              fates,
               tx,
               deferSideEffects: true,
             });
@@ -261,6 +277,7 @@ router.post('/:nodeId/buy', requireActiveCultivator(), async (c) => {
           userId: cultivator.userId,
           cultivatorId: cultivator.id,
           cultivatorRealm: cultivator.realm as RealmType,
+          fates,
           tx,
           deferSideEffects: true,
         });

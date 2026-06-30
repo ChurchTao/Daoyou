@@ -3,14 +3,17 @@ import type { Cultivator } from '@shared/types/cultivator';
 import { QUALITY_ORDER } from '@shared/types/constants';
 import { FateEngine } from './FateEngine';
 
-process.env.DISABLE_LLM_NAMING = 'true';
-
 function createSeededRng(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
     state = (state * 1664525 + 1013904223) >>> 0;
     return state / 0x100000000;
   };
+}
+
+function createSequenceRng(values: number[]): () => number {
+  let index = 0;
+  return () => values[index++] ?? 0.5;
 }
 
 const buildCultivator = (
@@ -90,6 +93,7 @@ describe('FateEngine', () => {
       }
 
       expect(fate.name).toMatch(/^[\u4e00-\u9fff]{4,5}$/);
+      expect(fate.namingMetadata).toBeUndefined();
     }
   });
 
@@ -108,6 +112,7 @@ describe('FateEngine', () => {
       'enlightenment_insight_multiplier',
       'inn_cultivation_loss_multiplier',
       'system_spirit_stone_multiplier',
+      'market_purchase_price_multiplier',
     ]);
 
     for (const effect of pool.flatMap((fate) => fate.effects ?? [])) {
@@ -117,36 +122,38 @@ describe('FateEngine', () => {
     }
   });
 
-  it('uses prompt keywords as light weighting rather than hard restrictions', async () => {
-    let neutralPreferredCount = 0;
-    let alchemyPreferredCount = 0;
+  it('does not use prompt text to weight effect selection', async () => {
+    const neutralPool = await FateEngine.generateCandidatePool(
+      buildCultivator({ prompt: '寻常散修' }),
+      { rng: createSeededRng(9) },
+    );
+    const alchemyPool = await FateEngine.generateCandidatePool(
+      buildCultivator({ prompt: '偏爱炼丹、调息、化解丹毒' }),
+      { rng: createSeededRng(9) },
+    );
 
-    for (let seed = 1; seed <= 24; seed += 1) {
-      const neutralPool = await FateEngine.generateCandidatePool(
-        buildCultivator({ prompt: '寻常散修' }),
-        { rng: createSeededRng(seed) },
-      );
-      const alchemyPool = await FateEngine.generateCandidatePool(
-        buildCultivator({ prompt: '偏爱炼丹、调息、化解丹毒' }),
-        { rng: createSeededRng(seed) },
-      );
+    expect(alchemyPool).toEqual(neutralPool);
+  });
 
-      neutralPreferredCount += neutralPool
-        .flatMap((fate) => fate.effects ?? [])
-        .filter((effect) =>
-          ['alchemy-cost-reduction', 'toxicity-mitigation'].includes(
-            effect.effectId,
-          ),
-        ).length;
-      alchemyPreferredCount += alchemyPool
-        .flatMap((fate) => fate.effects ?? [])
-        .filter((effect) =>
-          ['alchemy-cost-reduction', 'toxicity-mitigation'].includes(
-            effect.effectId,
-          ),
-        ).length;
-    }
+  it('rolls quality before effect from the full quality table', async () => {
+    const pool = await FateEngine.generateCandidatePool(buildCultivator(), {
+      rng: createSequenceRng([
+        0.999,
+        0,
+        0.999,
+        0.5,
+        0.1,
+        0.2,
+        0.9,
+        0.5,
+        0.2,
+        0.3,
+        0.9,
+        0.5,
+      ]),
+    });
 
-    expect(alchemyPreferredCount).toBeGreaterThan(neutralPreferredCount);
+    expect(pool[0]?.quality).toBe('神品');
+    expect(pool[0]?.effects?.[0]?.effectId).toBe('retreat-exp-gain');
   });
 });

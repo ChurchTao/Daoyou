@@ -150,34 +150,91 @@ import {
   getMarketListings,
   identifyMysteryMaterial,
 } from './MarketService';
+import type { PreHeavenFate } from '@shared/types/cultivator';
 
-function createPurchaseExecutor(insertValues: (values: unknown) => void) {
+function createPurchaseTx(
+  insertValues: (values: unknown) => void,
+  recordUpdate?: (values: unknown) => void,
+) {
   return {
-    transaction: async (callback: (tx: any) => Promise<void>) =>
-      callback({
-        update() {
+    update() {
+      return {
+        set(values: unknown) {
+          recordUpdate?.(values);
           return {
-            set() {
+            where() {
               return {
-                where() {
+                returning: async () => [{ id: 'cultivator-1' }],
+              };
+            },
+          };
+        },
+      };
+    },
+    select() {
+      return {
+        from() {
+          return {
+            where() {
+              return {
+                orderBy() {
                   return {
-                    returning: async () => [{ id: 'cultivator-1' }],
+                    limit: async () => [],
                   };
                 },
               };
             },
           };
         },
-        insert() {
+      };
+    },
+    insert() {
+      return {
+        values: (values: unknown) => {
+          insertValues(values);
           return {
-            values: async (values: unknown) => {
-              insertValues(values);
-            },
+            returning: async () => [{ id: 'material-1' }],
           };
         },
-      }),
+      };
+    },
   };
 }
+
+function createPurchaseExecutor(
+  insertValues: (values: unknown) => void,
+  recordUpdate?: (values: unknown) => void,
+) {
+  const tx = createPurchaseTx(insertValues, recordUpdate);
+  return {
+    transaction: async (callback: (tx: any) => Promise<void>) => callback(tx),
+  };
+}
+
+const marketDiscountFate = (value: number): PreHeavenFate => ({
+  name: '测试识价命',
+  quality: '真品',
+  description: '测试坊市折扣。',
+  effects: [
+    {
+      id: 'test-market-discount',
+      effectId: 'market-purchase-discount',
+      scope: 'daily',
+      polarity: 'boon',
+      effectType: 'market_purchase_price_multiplier',
+      value,
+      label: '坊市购买价格 -20%',
+      description: '测试折扣。',
+      rollMeta: {
+        qualityAnchor: '真品',
+        minValue: value,
+        maxValue: value,
+        rolledPercentile: 0,
+        roundingStep: 0.01,
+      },
+    },
+  ],
+});
 
 function createIdentifyExecutor(state: {
   materialRow: any;
@@ -378,6 +435,81 @@ describe('MarketService', () => {
     expect(result.nextRefresh).toBe(9999);
   });
 
+  it('returns discounted listing prices with basePrice when market purchase fate applies', async () => {
+    redisGetMock.mockResolvedValueOnce(
+      JSON.stringify({
+        listings: [
+          {
+            id: 'listing-1',
+            nodeId: 'node-1',
+            layer: 'common',
+            name: '青灵草',
+            type: 'herb',
+            rank: '凡品',
+            element: '木',
+            description: '测试材料',
+            details: {},
+            quantity: 1,
+            price: 100,
+          },
+        ],
+        generatedAt: 123,
+      }),
+    );
+    redisSmembersMock.mockResolvedValueOnce([]);
+
+    const result = await getMarketListings({
+      nodeId: 'node-1',
+      layer: 'common',
+      userId: 'user-1',
+      cultivatorRealm: '炼气',
+      fates: [marketDiscountFate(0.8)],
+    });
+
+    expect(result.listings[0]).toMatchObject({
+      id: 'listing-1',
+      price: 80,
+      basePrice: 100,
+    });
+  });
+
+  it('keeps listing prices unchanged when no market purchase fate applies', async () => {
+    redisGetMock.mockResolvedValueOnce(
+      JSON.stringify({
+        listings: [
+          {
+            id: 'listing-1',
+            nodeId: 'node-1',
+            layer: 'common',
+            name: '青灵草',
+            type: 'herb',
+            rank: '凡品',
+            element: '木',
+            description: '测试材料',
+            details: {},
+            quantity: 1,
+            price: 100,
+          },
+        ],
+        generatedAt: 123,
+      }),
+    );
+    redisSmembersMock.mockResolvedValueOnce([]);
+
+    const result = await getMarketListings({
+      nodeId: 'node-1',
+      layer: 'common',
+      userId: 'user-1',
+      cultivatorRealm: '炼气',
+    });
+
+    expect(result.listings[0]).toMatchObject({
+      id: 'listing-1',
+      price: 100,
+    });
+    expect(result.listings[0]?.basePrice).toBeUndefined();
+  });
+
   it('rejects buying more than one unit from the shared shelf', async () => {
     await expect(
       buyMarketItem({
@@ -416,6 +548,109 @@ describe('MarketService', () => {
     });
 
     expect(redisSetMock).not.toHaveBeenCalled();
+  });
+
+  it('returns discounted purchase item prices for single buys', async () => {
+    const insertValuesMock = vi.fn();
+    const tx = createPurchaseTx(insertValuesMock) as any;
+    getExecutorMock.mockImplementation((maybeTx?: any) => maybeTx ?? tx);
+    redisSetMock.mockResolvedValue('OK');
+    redisGetMock.mockResolvedValueOnce(
+      JSON.stringify({
+        listings: [
+          {
+            id: 'listing-1',
+            nodeId: 'node-1',
+            layer: 'common',
+            name: '青灵草',
+            type: 'herb',
+            rank: '凡品',
+            element: '木',
+            description: '测试材料',
+            details: {},
+            quantity: 1,
+            price: 100,
+          },
+        ],
+        generatedAt: 123,
+      }),
+    );
+    redisSismemberMock.mockResolvedValueOnce(0);
+
+    const result = await buyMarketItem({
+      nodeId: 'node-1',
+      layer: 'common',
+      listingId: 'listing-1',
+      quantity: 1,
+      userId: 'user-1',
+      cultivatorId: 'cultivator-1',
+      cultivatorRealm: '炼气',
+      fates: [marketDiscountFate(0.8)],
+      tx,
+    });
+
+    expect(result.item).toMatchObject({
+      id: 'listing-1',
+      price: 80,
+      basePrice: 100,
+    });
+  });
+
+  it('uses discounted total cost for batch buys', async () => {
+    const insertValuesMock = vi.fn();
+    const tx = createPurchaseTx(insertValuesMock) as any;
+    getExecutorMock.mockImplementation((maybeTx?: any) => maybeTx ?? tx);
+    redisSetMock.mockResolvedValue('OK');
+    redisGetMock.mockResolvedValueOnce(
+      JSON.stringify({
+        listings: [
+          {
+            id: 'listing-1',
+            nodeId: 'node-1',
+            layer: 'common',
+            name: '青灵草',
+            type: 'herb',
+            rank: '凡品',
+            element: '木',
+            description: '测试材料',
+            details: {},
+            quantity: 1,
+            price: 100,
+          },
+          {
+            id: 'listing-2',
+            nodeId: 'node-1',
+            layer: 'common',
+            name: '赤芽花',
+            type: 'herb',
+            rank: '凡品',
+            element: '火',
+            description: '测试材料。',
+            details: {},
+            quantity: 1,
+            price: 100,
+          },
+        ],
+        generatedAt: 123,
+      }),
+    );
+    redisSmembersMock.mockResolvedValueOnce([]);
+
+    const result = await batchBuyMarketItems({
+      nodeId: 'node-1',
+      layer: 'common',
+      items: [
+        { listingId: 'listing-1', quantity: 1 },
+        { listingId: 'listing-2', quantity: 1 },
+      ],
+      userId: 'user-1',
+      cultivatorId: 'cultivator-1',
+      cultivatorRealm: '炼气',
+      fates: [marketDiscountFate(0.8)],
+      tx,
+    });
+
+    expect(result.totalCost).toBe(160);
   });
 
   it('does not cache real mystery reveal materials on the black market shelf', async () => {

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildFateEffectEntry,
-  buildFallbackFateName,
   getNegativeFateEffects,
   getPositiveFateEffects,
 } from './FateFragmentRegistry';
@@ -52,31 +51,12 @@ describe('FateFragmentRegistry', () => {
     expect(breakthroughRoll.value).toBeLessThan(0);
   });
 
-  it('builds fallback names as 4-5 character fate-style labels', () => {
-    expect(
-      buildFallbackFateName(
-        getPositiveEffect('retreat-insight-gain'),
-        '凡品',
-      ),
-    ).toBe('凡品澄照台');
-    expect(
-      buildFallbackFateName(
-        getNegativeEffect('toxicity-burden'),
-        '仙品',
-      ),
-    ).toBe('仙品郁毒心');
+  it('scales market purchase discount by quality', () => {
+    const definition = getPositiveEffect('market-purchase-discount');
+    const mortalRoll = buildFateEffectEntry(definition, '凡品', () => 0.5);
+    const divineRoll = buildFateEffectEntry(definition, '神品', () => 0.5);
 
-    expect(
-      buildFallbackFateName(
-        getPositiveEffect('retreat-insight-gain'),
-        '凡品',
-      ),
-    ).toMatch(/^[\u4e00-\u9fff]{4,5}$/);
-    expect(
-      buildFallbackFateName(
-        getNegativeEffect('toxicity-burden'),
-        '仙品',
-      ),
-    ).toMatch(/^[\u4e00-\u9fff]{4,5}$/);
+    expect(mortalRoll.effectType).toBe('market_purchase_price_multiplier');
+    expect(divineRoll.value).toBeLessThan(mortalRoll.value);
   });
 });

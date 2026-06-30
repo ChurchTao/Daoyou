@@ -25,6 +25,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 
 type MarketListing = Material & {
   price: number;
+  basePrice?: number;
   id: string;
   nodeId: string;
   layer: MarketLayer;
@@ -500,9 +501,16 @@ export default function MarketPage() {
                       <span>
                         {typeInfo.icon} · {item.element || '无属性'}
                       </span>
-                      <span className="text-gold font-bold">
-                        {SPIRIT_STONES_INFO.icon} {item.price}{' '}
-                        {SPIRIT_STONES_INFO.label}
+                      <span className="text-gold flex items-center gap-2 font-bold">
+                        {item.basePrice && item.basePrice > item.price ? (
+                          <span className="text-ink-secondary text-xs line-through">
+                            {SPIRIT_STONES_INFO.icon} {item.basePrice}
+                          </span>
+                        ) : null}
+                        <span>
+                          {SPIRIT_STONES_INFO.icon} {item.price}{' '}
+                          {SPIRIT_STONES_INFO.label}
+                        </span>
                       </span>
                     </div>
                   }

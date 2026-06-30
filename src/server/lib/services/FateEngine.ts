@@ -10,72 +10,31 @@ import type {
   PreHeavenFate,
 } from '@shared/types/cultivator';
 import type { Quality } from '@shared/types/constants';
-import { QUALITY_ORDER } from '@shared/types/constants';
 import {
   FATE_CANDIDATE_COUNT,
-  FATE_CANDIDATE_QUALITY_SLOTS,
   FATE_DUAL_SIDED_CHANCE,
   FATE_QUALITY_ORDER,
   FATE_SLOT_COUNT,
 } from './FateConfig';
 import {
-  buildFallbackFateDescription,
   buildFallbackFateName,
   buildFateEffectEntry,
+  buildPresetFateDescription,
   getFateRollVersion,
   getNegativeFateEffects,
   getPositiveFateEffects,
   isHighQualityFate,
-  type FateEffectDefinition,
 } from './FateFragmentRegistry';
-import {
-  FateNamingEnricher,
-  type FateNamingFacts,
-} from './FateNamingEnricher';
 
 interface FateGenerationOptions {
   rng?: () => number;
 }
 
-const DEFAULT_NAMER = new FateNamingEnricher();
-
-function buildPromptText(cultivator: Cultivator): string {
-  return [
-    cultivator.prompt,
-    cultivator.background,
-    cultivator.origin,
-    cultivator.personality,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-}
-
-function keywordHitCount(prompt: string, keywords: string[]): number {
-  return keywords.reduce(
-    (sum, keyword) => sum + (prompt.includes(keyword.toLowerCase()) ? 1 : 0),
-    0,
-  );
-}
-
-function weightedPickOne<T>(
-  pool: Array<{ value: T; weight: number }>,
-  rng: () => number,
-): T | null {
+function randomPickOne<T>(pool: T[], rng: () => number): T | null {
   if (pool.length === 0) return null;
 
-  const totalWeight = pool.reduce(
-    (sum, entry) => sum + Math.max(entry.weight, 0.01),
-    0,
-  );
-  let roll = rng() * totalWeight;
-  for (const entry of pool) {
-    roll -= Math.max(entry.weight, 0.01);
-    if (roll <= 0) {
-      return entry.value;
-    }
-  }
-  return pool[pool.length - 1]?.value ?? null;
+  const index = Math.min(pool.length - 1, Math.floor(rng() * pool.length));
+  return pool[index] ?? null;
 }
 
 function createCompositionHash(
@@ -95,38 +54,6 @@ function createCompositionHash(
     .slice(0, 12);
 }
 
-function scoreEffect(
-  definition: FateEffectDefinition,
-  cultivator: Cultivator,
-): number {
-  const prompt = buildPromptText(cultivator);
-  return definition.weight + keywordHitCount(prompt, definition.keywords) * 0.3;
-}
-
-function pickTargetQuality(
-  qualities: Quality[],
-  rng: () => number,
-): Quality | null {
-  return weightedPickOne(
-    qualities.map((quality) => ({
-      value: quality,
-      weight: QUALITY_ORDER[quality] + 1,
-    })),
-    rng,
-  );
-}
-
-function qualityFallbackChain(
-  target: Quality,
-  slotQualities: Quality[],
-): Quality[] {
-  return FATE_QUALITY_ORDER.filter(
-    (quality) =>
-      QUALITY_ORDER[quality] <= QUALITY_ORDER[target] &&
-      slotQualities.includes(quality),
-  ).sort((left, right) => QUALITY_ORDER[right] - QUALITY_ORDER[left]);
-}
-
 function shouldGenerateDualSided(
   quality: Quality,
   dualSidedUsed: boolean,
@@ -140,19 +67,15 @@ function shouldGenerateDualSided(
 }
 
 function composeCandidate(
-  cultivator: Cultivator,
   quality: Quality,
   rng: () => number,
   dualSidedUsed: boolean,
   usedHashes: Set<string>,
 ): PreHeavenFate | null {
-  const positivePool = getPositiveFateEffects().map((effect) => ({
-    value: effect,
-    weight: scoreEffect(effect, cultivator),
-  }));
+  const positivePool = getPositiveFateEffects();
 
   for (let attempt = 0; attempt < 32; attempt += 1) {
-    const positive = weightedPickOne(positivePool, rng);
+    const positive = randomPickOne(positivePool, rng);
     if (!positive) {
       return null;
     }
@@ -161,12 +84,8 @@ function composeCandidate(
     const negativePool = wantsDualSided
       ? getNegativeFateEffects()
           .filter((effect) => effect.family !== positive.family)
-          .map((effect) => ({
-            value: effect,
-            weight: scoreEffect(effect, cultivator),
-          }))
       : [];
-    const negative = wantsDualSided ? weightedPickOne(negativePool, rng) : null;
+    const negative = wantsDualSided ? randomPickOne(negativePool, rng) : null;
     const category: FateGenerationCategory =
       wantsDualSided && negative ? 'dual_sided' : 'single_positive';
     const effectIds = negative
@@ -182,7 +101,11 @@ function composeCandidate(
       ...(negative ? [buildFateEffectEntry(negative, quality, rng)] : []),
     ];
     const fallbackName = buildFallbackFateName(positive, quality);
-    const fallbackDescription = buildFallbackFateDescription(effects);
+    const fallbackDescription = buildPresetFateDescription(
+      positive,
+      quality,
+      effects[0]!,
+    );
 
     usedHashes.add(compositionHash);
 
@@ -199,51 +122,10 @@ function composeCandidate(
         compositionHash,
         category,
       },
-      namingMetadata: {
-        status: 'fallback',
-        originalName: fallbackName,
-      },
     };
   }
 
   return null;
-}
-
-async function enrichFateNames(
-  fates: PreHeavenFate[],
-): Promise<PreHeavenFate[]> {
-  const normalized = normalizeSharedFates(fates);
-  const facts: FateNamingFacts[] = normalized.map((fate) => {
-    const [primary, burden] = fate.effects ?? [];
-    return {
-      quality: fate.quality ?? '凡品',
-      primaryEffectLabel: primary?.label ?? '命格未明',
-      burdenEffectLabel: burden?.label,
-      isDualSided: (fate.effects?.length ?? 0) > 1,
-      fallbackDescription: fate.description ?? '',
-    };
-  });
-
-  const enrichments = await DEFAULT_NAMER.enrichBatch(facts);
-  if (!enrichments) {
-    return normalized;
-  }
-
-  return normalized.map((fate, index) => {
-    const enrichment = enrichments[index];
-    if (!enrichment) return fate;
-    return {
-      ...fate,
-      name: enrichment.name,
-      description: enrichment.description,
-      namingMetadata: {
-        status: 'success',
-        originalName: fate.name,
-        provider: 'deepseek',
-        styleInsight: enrichment.styleInsight,
-      },
-    };
-  });
 }
 
 export const FateEngine = {
@@ -259,37 +141,22 @@ export const FateEngine = {
     cultivator: Cultivator,
     options: FateGenerationOptions | (() => number) = {},
   ): Promise<PreHeavenFate[]> {
+    void cultivator;
     const rng = typeof options === 'function' ? options : options.rng ?? Math.random;
     const usedHashes = new Set<string>();
     const generated: PreHeavenFate[] = [];
     let dualSidedUsed = false;
 
-    for (const slotQualities of FATE_CANDIDATE_QUALITY_SLOTS) {
-      const targetQuality = pickTargetQuality(slotQualities, rng);
-      const fallbackQualities = targetQuality
-        ? qualityFallbackChain(targetQuality, slotQualities)
-        : [...slotQualities].sort(
-            (left, right) => QUALITY_ORDER[right] - QUALITY_ORDER[left],
-          );
-
-      let candidate: PreHeavenFate | null = null;
-      for (const quality of fallbackQualities) {
-        candidate = composeCandidate(
-          cultivator,
-          quality,
-          rng,
-          dualSidedUsed,
-          usedHashes,
-        );
-        if (candidate) {
-          dualSidedUsed =
-            dualSidedUsed ||
-            candidate.generationModel?.category === 'dual_sided';
-          break;
-        }
-      }
+    for (let slot = 0; slot < FATE_CANDIDATE_COUNT; slot += 1) {
+      const targetQuality = randomPickOne([...FATE_QUALITY_ORDER], rng);
+      const candidate: PreHeavenFate | null = targetQuality
+        ? composeCandidate(targetQuality, rng, dualSidedUsed, usedHashes)
+        : null;
 
       if (candidate) {
+        dualSidedUsed =
+          dualSidedUsed ||
+          candidate.generationModel?.category === 'dual_sided';
         generated.push(candidate);
       }
     }
@@ -298,7 +165,6 @@ export const FateEngine = {
       for (const quality of [...FATE_QUALITY_ORDER].reverse()) {
         if (generated.length >= FATE_CANDIDATE_COUNT) break;
         const candidate = composeCandidate(
-          cultivator,
           quality,
           rng,
           dualSidedUsed,
@@ -313,7 +179,7 @@ export const FateEngine = {
       }
     }
 
-    return enrichFateNames(generated);
+    return normalizeSharedFates(generated);
   },
 
   async rerollWholeSet(

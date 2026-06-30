@@ -14,6 +14,7 @@ export interface FateContext {
   enlightenmentInsightMultiplier: number;
   innCultivationLossMultiplier: number;
   systemSpiritStoneMultiplier: number;
+  marketPurchasePriceMultiplier: number;
   summary: string;
 }
 
@@ -28,6 +29,7 @@ const FATE_LIMITS = {
   enlightenmentInsightMultiplier: { min: 0.65, max: 1.3 },
   innCultivationLossMultiplier: { min: 0, max: 1.3 },
   systemSpiritStoneMultiplier: { min: 0.7, max: 1.3 },
+  marketPurchasePriceMultiplier: { min: 0.65, max: 1 },
 } as const;
 
 function clamp(value: number, min: number, max: number): number {
@@ -61,6 +63,7 @@ export function evaluateFateContext(fates: PreHeavenFate[]): FateContext {
   let enlightenmentInsightMultiplier = 1;
   let innCultivationLossReduction = 0;
   let systemSpiritStoneMultiplier = 1;
+  let marketPurchasePriceMultiplier = 1;
 
   for (const fate of normalized) {
     for (const effect of fate.effects ?? []) {
@@ -94,6 +97,9 @@ export function evaluateFateContext(fates: PreHeavenFate[]): FateContext {
           break;
         case 'system_spirit_stone_multiplier':
           systemSpiritStoneMultiplier *= effect.value;
+          break;
+        case 'market_purchase_price_multiplier':
+          marketPurchasePriceMultiplier *= effect.value;
           break;
       }
     }
@@ -150,6 +156,11 @@ export function evaluateFateContext(fates: PreHeavenFate[]): FateContext {
       FATE_LIMITS.systemSpiritStoneMultiplier.min,
       FATE_LIMITS.systemSpiritStoneMultiplier.max,
     ),
+    marketPurchasePriceMultiplier: clamp(
+      marketPurchasePriceMultiplier,
+      FATE_LIMITS.marketPurchasePriceMultiplier.min,
+      FATE_LIMITS.marketPurchasePriceMultiplier.max,
+    ),
     summary: normalized
       .map((fate) => {
         const summary = summarizeEffects(fate.effects ?? []);
@@ -180,6 +191,16 @@ export function getInnSpiritStoneMultiplier(context: FateContext): number {
     context.systemSpiritStoneMultiplier,
     FATE_LIMITS.systemSpiritStoneMultiplier.min,
     FATE_LIMITS.systemSpiritStoneMultiplier.max,
+  );
+}
+
+export function getMarketPurchasePriceMultiplier(
+  context: FateContext,
+): number {
+  return clamp(
+    context.marketPurchasePriceMultiplier,
+    FATE_LIMITS.marketPurchasePriceMultiplier.min,
+    FATE_LIMITS.marketPurchasePriceMultiplier.max,
   );
 }
 

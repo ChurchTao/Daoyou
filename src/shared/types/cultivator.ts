@@ -96,7 +96,8 @@ export type FateEffectType =
   | 'refine_spirit_stone_multiplier'
   | 'enlightenment_insight_multiplier'
   | 'inn_cultivation_loss_multiplier'
-  | 'system_spirit_stone_multiplier';
+  | 'system_spirit_stone_multiplier'
+  | 'market_purchase_price_multiplier';
 
 export interface FateEffectRollMeta {
   qualityAnchor: Quality;

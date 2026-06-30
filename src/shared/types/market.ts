@@ -72,6 +72,7 @@ export interface MarketListingBase {
   nodeId: string;
   layer: MarketLayer;
   price: number;
+  basePrice?: number;
   quantity: number;
 }
 

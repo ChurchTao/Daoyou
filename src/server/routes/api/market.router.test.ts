@@ -5,6 +5,7 @@ const {
   buyMarketItemMock,
   confirmSellMock,
   getMarketListingsMock,
+  getCultivatorByIdMock,
   previewSellMock,
   commitPlayerStateMutationMock,
   resolveLayerMock,
@@ -14,6 +15,7 @@ const {
   buyMarketItemMock: vi.fn(),
   confirmSellMock: vi.fn(),
   getMarketListingsMock: vi.fn(),
+  getCultivatorByIdMock: vi.fn(),
   previewSellMock: vi.fn(),
   commitPlayerStateMutationMock: vi.fn(async (input: any) => {
     const { result, changes } = await input.run({ __tx: true });
@@ -50,6 +52,18 @@ vi.mock('@server/lib/hono/middleware', () => ({
         id: 'cultivator-1',
         userId: 'user-1',
         realm: '筑基',
+        pre_heaven_fates: [
+          {
+            name: '测试识价命',
+            quality: '真品',
+            effects: [
+              {
+                effectType: 'market_purchase_price_multiplier',
+                value: 0.8,
+              },
+            ],
+          },
+        ],
       });
       await next();
     },
@@ -74,6 +88,10 @@ vi.mock('@server/lib/services/MarketService', () => ({
   },
   resolveLayer: resolveLayerMock,
   resolveNodeId: resolveNodeIdMock,
+}));
+
+vi.mock('@server/lib/services/cultivatorService', () => ({
+  getCultivatorById: getCultivatorByIdMock,
 }));
 
 vi.mock('@server/lib/services/MarketRecycleService', () => ({
@@ -109,6 +127,20 @@ describe('market router', () => {
     vi.clearAllMocks();
     resolveLayerMock.mockReturnValue('common');
     resolveNodeIdMock.mockImplementation((value?: string | null) => value || 'node-1');
+    getCultivatorByIdMock.mockResolvedValue({
+      pre_heaven_fates: [
+        {
+          name: '测试识价命',
+          quality: '真品',
+          effects: [
+            {
+              effectType: 'market_purchase_price_multiplier',
+              value: 0.8,
+            },
+          ],
+        },
+      ],
+    });
   });
 
   it('routes GET /:nodeId to getMarketListings with userId', async () => {
@@ -127,6 +159,11 @@ describe('market router', () => {
       layer: 'common',
       userId: 'user-1',
       cultivatorRealm: '筑基',
+      fates: [
+        expect.objectContaining({
+          name: '测试识价命',
+        }),
+      ],
     });
   });
 
@@ -261,6 +298,11 @@ describe('market router', () => {
       userId: 'user-1',
       cultivatorId: 'cultivator-1',
       cultivatorRealm: '筑基',
+      fates: [
+        expect.objectContaining({
+          name: '测试识价命',
+        }),
+      ],
       tx: { __tx: true },
       deferSideEffects: true,
     });
