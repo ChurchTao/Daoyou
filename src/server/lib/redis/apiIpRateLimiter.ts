@@ -1,36 +1,55 @@
-import { createHash, randomUUID } from 'node:crypto';
-
 import { redis } from './index';
 
 const KEY_PREFIX = 'api:rate-limit:ip';
 const DEFAULT_WINDOW_SECONDS = 60;
-const DEFAULT_MAX_REQUESTS = 360;
+const DEFAULT_MAX_REQUESTS = 300;
+const TOKEN_SCALE = 1000;
 
 const CHECK_RATE_LIMIT_SCRIPT = `
 local key = KEYS[1]
 local nowMs = tonumber(ARGV[1])
 local windowMs = tonumber(ARGV[2])
-local limit = tonumber(ARGV[3])
-local member = ARGV[4]
+local capacity = tonumber(ARGV[3])
+local tokenScale = tonumber(ARGV[4])
+local capacityUnits = capacity * tokenScale
 
-local windowStart = nowMs - windowMs
-redis.call('zremrangebyscore', key, 0, windowStart)
+local bucket = redis.call('hmget', key, 'tokens', 'updatedAtMs')
+local tokens = tonumber(bucket[1])
+local updatedAtMs = tonumber(bucket[2])
 
-local currentCount = redis.call('zcard', key)
-if currentCount >= limit then
-  local oldest = redis.call('zrange', key, 0, 0, 'WITHSCORES')
-  local oldestScore = tonumber(oldest[2] or nowMs)
-  local resetMs = oldestScore + windowMs
-  redis.call('pexpire', key, windowMs)
-  return {0, currentCount, resetMs}
+if tokens == nil or updatedAtMs == nil then
+  tokens = capacityUnits
+  updatedAtMs = nowMs
+else
+  local elapsedMs = math.max(0, nowMs - updatedAtMs)
+  if elapsedMs > 0 then
+    local refillUnits = math.floor((elapsedMs * capacityUnits) / windowMs)
+    tokens = math.min(capacityUnits, tokens + refillUnits)
+    updatedAtMs = nowMs
+  end
 end
 
-redis.call('zadd', key, nowMs, member)
-redis.call('pexpire', key, windowMs)
+local allowed = 0
+if tokens >= tokenScale then
+  tokens = tokens - tokenScale
+  allowed = 1
+end
 
-currentCount = currentCount + 1
-local resetMs = nowMs + windowMs
-return {1, currentCount, resetMs}
+local remaining = math.floor(tokens / tokenScale)
+local missingForOne = math.max(0, tokenScale - tokens)
+local retryAfterMs = 0
+if allowed == 0 then
+  retryAfterMs = math.ceil((missingForOne * windowMs) / capacityUnits)
+end
+
+local fullRecoveryMs = math.ceil(((capacityUnits - tokens) * windowMs) / capacityUnits)
+local resetMs = nowMs + fullRecoveryMs
+local ttlMs = math.max(1000, fullRecoveryMs * 2)
+
+redis.call('hmset', key, 'tokens', tokens, 'updatedAtMs', updatedAtMs)
+redis.call('pexpire', key, ttlMs)
+
+return {allowed, remaining, resetMs, retryAfterMs}
 `;
 
 export type ApiIpRateLimitResult = {
@@ -78,12 +97,8 @@ export function getApiIpRateLimitConfig(options: ApiIpRateLimitOptions = {}) {
   };
 }
 
-function hashIdentifier(value: string): string {
-  return createHash('sha256').update(value).digest('hex').slice(0, 24);
-}
-
 function buildRateLimitKey(ip: string): string {
-  return `${KEY_PREFIX}:${hashIdentifier(ip)}`;
+  return `${KEY_PREFIX}:${ip}`;
 }
 
 function parseCount(value: unknown): number {
@@ -104,19 +119,22 @@ function parseCount(value: unknown): number {
 function buildFallbackResult(params: {
   allowed: boolean;
   limit: number;
-  used: number;
+  remaining: number;
   resetMs: number;
+  retryAfterMs?: number;
   nowMs: number;
 }): ApiIpRateLimitResult {
   const resetAt = new Date(params.resetMs);
   return {
     allowed: params.allowed,
     limit: params.limit,
-    remaining: Math.max(0, params.limit - params.used),
+    remaining: Math.max(0, Math.min(params.limit, params.remaining)),
     resetAt,
     retryAfterSeconds: Math.max(
       1,
-      Math.ceil((resetAt.getTime() - params.nowMs) / 1000),
+      Math.ceil(
+        (params.retryAfterMs ?? resetAt.getTime() - params.nowMs) / 1000,
+      ),
     ),
   };
 }
@@ -135,7 +153,7 @@ export async function checkApiIpRateLimit(
     return buildFallbackResult({
       allowed: true,
       limit: maxRequests,
-      used: 0,
+      remaining: maxRequests,
       resetMs,
       nowMs,
     });
@@ -148,19 +166,21 @@ export async function checkApiIpRateLimit(
     nowMs,
     windowMs,
     maxRequests,
-    `${nowMs}:${randomUUID()}`,
+    TOKEN_SCALE,
   )) as unknown[];
 
   const allowed = parseCount(rawResult[0]) === 1;
-  const used = parseCount(rawResult[1]);
+  const remaining = parseCount(rawResult[1]);
   const rawResetMs = parseCount(rawResult[2]);
+  const retryAfterMs = parseCount(rawResult[3]);
   const safeResetMs = rawResetMs > nowMs ? rawResetMs : resetMs;
 
   return buildFallbackResult({
     allowed,
     limit: maxRequests,
-    used,
+    remaining,
     resetMs: safeResetMs,
+    retryAfterMs,
     nowMs,
   });
 }

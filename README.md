@@ -121,8 +121,8 @@ cp .env.example .env.local
 | 变量 | 说明 |
 | --- | --- |
 | `REDIS_URL` | Redis 连接串；缺失时相关功能会在运行时失败 |
-| `API_IP_RATE_LIMIT_WINDOW_SECONDS` | `/api/*` 全局 IP 限流窗口秒数；默认 `60` |
-| `API_IP_RATE_LIMIT_MAX_REQUESTS` | `/api/*` 同 IP 每窗口最大请求数；默认 `120` |
+| `API_IP_RATE_LIMIT_WINDOW_SECONDS` | `/api/*` 全局 IP 令牌桶补充周期秒数；默认 `60` |
+| `API_IP_RATE_LIMIT_MAX_REQUESTS` | `/api/*` 同 IP 令牌桶容量和每周期补充 token 数；默认 `300` |
 | `BETTER_AUTH_DB_SCHEMA` | Better Auth schema 名；默认值为 `better_auth` |
 | `ADMIN_EMAILS` | 管理员邮箱白名单，逗号分隔 |
 
