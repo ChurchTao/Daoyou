@@ -105,6 +105,9 @@ export interface FateEffectRollMeta {
   maxValue: number;
   rolledPercentile: number;
   roundingStep: number;
+  variancePercentile?: number;
+  varianceMultiplier?: number;
+  strengthMultiplier?: number;
 }
 
 export interface FateEffectEntry {

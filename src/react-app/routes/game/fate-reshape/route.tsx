@@ -325,7 +325,7 @@ export default function FateReshapePage() {
                 title: '命格重塑操作规则',
                 content: (
                   <div className="space-y-2 text-sm leading-7">
-                    <p>开启后会消耗 1 张逆命符，并给出 6 个候选命格。</p>
+                    <p>开启后会消耗 1 张逆命符，并给出 8 个候选命格。</p>
                     <p>需从中选 3 个，直接全量替换当前命格。</p>
                   </div>
                 ),
@@ -405,7 +405,7 @@ export default function FateReshapePage() {
             </div>
             <div className="space-y-2 text-sm leading-6">
               <p>点击下方按钮后，会立刻消耗 1 张天机逆命符。</p>
-              <p>天道会为你重塑 6 个新命格，你要从里面选 3 个</p>
+              <p>天道会为你重塑 8 个新命格，你要从里面选 3 个</p>
               <p>确认后，你现在的 3 个命格会被这 3 个新命格直接替换，也可以直接放弃，消耗不会返还。</p>
             </div>
             {talismanCount <= 0 && (
@@ -473,7 +473,7 @@ export default function FateReshapePage() {
             </div>
 
             <p className="text-ink-secondary mb-4 text-sm leading-6">
-              下面是这次重塑的 6 个新命格。先选满 3 个，再确认替换当前命格。
+              下面是这次重塑的 8 个新命格。先选满 3 个，再确认替换当前命格。
             </p>
 
             {isBooting ? (

@@ -2,8 +2,9 @@ import type { Quality } from '@shared/types/constants';
 
 export const FATE_SLOT_COUNT = 3;
 export const FATE_CANDIDATE_COUNT = 6;
+export const FATE_RESHAPE_CANDIDATE_COUNT = 8;
 export const FATE_REROLL_LIMIT = 5;
-export const FATE_ROLL_VERSION = 'v5';
+export const FATE_ROLL_VERSION = 'v6';
 
 export const FATE_QUALITY_ORDER = [
   '凡品',
@@ -27,17 +28,19 @@ export const FATE_QUALITY_SCALE: Record<Quality, number> = {
   神品: 4.5,
 };
 
+export const FATE_QUALITY_WEIGHTS: Record<Quality, number> = {
+  凡品: 0.348,
+  灵品: 0.235,
+  玄品: 0.157,
+  真品: 0.113,
+  地品: 0.095,
+  天品: 0.027,
+  仙品: 0.013,
+  神品: 0.012,
+};
+
 export const FATE_DUAL_SIDED_CHANCE: Partial<Record<Quality, number>> = {
   天品: 0.15,
   仙品: 0.3,
   神品: 0.45,
 };
-
-export const FATE_CANDIDATE_QUALITY_SLOTS: Quality[][] = [
-  ['凡品', '灵品'],
-  ['灵品', '玄品', '真品'],
-  ['玄品', '真品', '地品'],
-  ['真品', '地品', '天品'],
-  ['地品', '天品', '仙品'],
-  ['天品', '仙品', '神品'],
-];

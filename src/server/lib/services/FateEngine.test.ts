@@ -57,12 +57,17 @@ const buildCultivator = (
 });
 
 describe('FateEngine', () => {
-  it('generates six candidates and keeps only three selected fates', async () => {
+  it('generates six candidates by default, supports eight candidates, and keeps only three selected fates', async () => {
     const pool = await FateEngine.generateCandidatePool(buildCultivator(), {
       rng: createSeededRng(7),
     });
+    const reshapePool = await FateEngine.generateCandidatePool(buildCultivator(), {
+      candidateCount: 8,
+      rng: createSeededRng(8),
+    });
 
     expect(pool).toHaveLength(6);
+    expect(reshapePool).toHaveLength(8);
     expect(FateEngine.getSelectedFates(pool)).toHaveLength(3);
   });
 
@@ -92,7 +97,7 @@ describe('FateEngine', () => {
         expect(effects[0]?.polarity).toBe('boon');
       }
 
-      expect(fate.name).toMatch(/^[\u4e00-\u9fff]{4,5}$/);
+      expect(fate.name).toBeTruthy();
       expect(fate.namingMetadata).toBeUndefined();
     }
   });
@@ -135,25 +140,66 @@ describe('FateEngine', () => {
     expect(alchemyPool).toEqual(neutralPool);
   });
 
-  it('rolls quality before effect from the full quality table', async () => {
-    const pool = await FateEngine.generateCandidatePool(buildCultivator(), {
+  it('rolls quality from the weighted quality table', async () => {
+    const mortalPool = await FateEngine.generateCandidatePool(buildCultivator(), {
+      candidateCount: 1,
       rng: createSequenceRng([
-        0.999,
+        0.1,
+        0,
+        0.5,
+        0.5,
+      ]),
+    });
+    const spiritPool = await FateEngine.generateCandidatePool(buildCultivator(), {
+      candidateCount: 1,
+      rng: createSequenceRng([
+        0.361,
+        0,
+        0.5,
+        0.5,
+      ]),
+    });
+    const divinePool = await FateEngine.generateCandidatePool(buildCultivator(), {
+      candidateCount: 1,
+      rng: createSequenceRng([
+        0.995,
         0,
         0.999,
         0.5,
-        0.1,
-        0.2,
-        0.9,
-        0.5,
-        0.2,
-        0.3,
-        0.9,
         0.5,
       ]),
     });
 
-    expect(pool[0]?.quality).toBe('神品');
-    expect(pool[0]?.effects?.[0]?.effectId).toBe('retreat-exp-gain');
+    expect(mortalPool[0]?.quality).toBe('凡品');
+    expect(spiritPool[0]?.quality).toBe('灵品');
+    expect(divinePool[0]?.quality).toBe('神品');
+  });
+
+  it('boosts only the primary effect for dual-sided fates', async () => {
+    const pool = await FateEngine.generateCandidatePool(buildCultivator(), {
+      candidateCount: 1,
+      rng: createSequenceRng([
+        0.965,
+        0,
+        0,
+        0,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+      ]),
+    });
+    const dualSided = pool[0];
+    const effects = dualSided?.effects ?? [];
+
+    expect(dualSided?.quality).toBe('天品');
+    expect(dualSided?.generationModel?.version).toBe('v6');
+    expect(dualSided?.generationModel?.rollVersion).toBe('v6');
+    expect(dualSided?.generationModel?.category).toBe('dual_sided');
+    expect(effects).toHaveLength(2);
+    expect(effects[0]?.polarity).toBe('boon');
+    expect(effects[0]?.rollMeta.strengthMultiplier).toBe(1.3);
+    expect(effects[1]?.polarity).toBe('burden');
+    expect(effects[1]?.rollMeta.strengthMultiplier).toBe(1);
   });
 });

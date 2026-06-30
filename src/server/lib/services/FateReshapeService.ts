@@ -9,6 +9,7 @@ import type { PreHeavenFate } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
 import { getExecutor, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
+import { FATE_RESHAPE_CANDIDATE_COUNT } from './FateConfig';
 import { FateEngine } from './FateEngine';
 import {
   consumeConsumableById,
@@ -199,7 +200,10 @@ export const FateReshapeService = {
         throw new FateReshapeServiceError(400, '缺少天机逆命符，无法开启命格重塑');
       }
 
-      const currentCandidates = await FateEngine.generateCandidatePool(cultivator);
+      const currentCandidates = await FateEngine.generateCandidatePool(
+        cultivator,
+        { candidateCount: FATE_RESHAPE_CANDIDATE_COUNT },
+      );
       const createdAt = Date.now();
       const session: FateReshapeSessionStore = {
         sessionId: crypto.randomUUID(),
@@ -256,6 +260,7 @@ export const FateReshapeService = {
 
       const currentCandidates = await FateEngine.generateCandidatePool(
         bundle.cultivator,
+        { candidateCount: FATE_RESHAPE_CANDIDATE_COUNT },
       );
 
       const nextSession: FateReshapeSessionStore = {

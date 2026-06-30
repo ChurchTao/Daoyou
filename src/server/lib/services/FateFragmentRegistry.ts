@@ -51,6 +51,11 @@ export interface FateRolledValue {
   roundingStep: number;
 }
 
+export interface FateEffectBuildOptions {
+  strengthMultiplier?: number;
+  varianceRange?: number;
+}
+
 function roundToStep(value: number, step: number): number {
   if (step <= 0) return value;
   return Math.round(value / step) * step;
@@ -86,6 +91,19 @@ function applyScaledValue(
     case 'bonus_down':
       return -base * scale;
   }
+}
+
+function getNeutralValue(kind: FateValueKind): number {
+  return kind.startsWith('multiplier') ? 1 : 0;
+}
+
+function applyStrengthMultiplier(
+  value: number,
+  kind: FateValueKind,
+  multiplier: number,
+): number {
+  const neutralValue = getNeutralValue(kind);
+  return neutralValue + (value - neutralValue) * multiplier;
 }
 
 function rollValue(
@@ -375,24 +393,68 @@ export function buildFateEffectEntry(
   definition: FateEffectDefinition,
   quality: Quality,
   rng: () => number,
+  options: FateEffectBuildOptions = {},
 ): FateEffectEntry {
   const rolled = rollValue(definition, quality, rng);
+  const strengthMultiplier = options.strengthMultiplier ?? 1;
+  const varianceRange = options.varianceRange ?? 0.2;
+  const variancePercentile = rng();
+  const varianceMultiplier =
+    1 + (variancePercentile * 2 - 1) * varianceRange;
+  const combinedMultiplier = strengthMultiplier * varianceMultiplier;
+  const adjustedValue = roundToStep(
+    applyStrengthMultiplier(
+      rolled.value,
+      definition.valueKind,
+      combinedMultiplier,
+    ),
+    rolled.roundingStep,
+  );
+  const adjustedRangeValues = [
+    rolled.minValue,
+    rolled.maxValue,
+  ].flatMap((value) => [
+    roundToStep(
+      applyStrengthMultiplier(
+        value,
+        definition.valueKind,
+        strengthMultiplier * (1 - varianceRange),
+      ),
+      rolled.roundingStep,
+    ),
+    roundToStep(
+      applyStrengthMultiplier(
+        value,
+        definition.valueKind,
+        strengthMultiplier * (1 + varianceRange),
+      ),
+      rolled.roundingStep,
+    ),
+  ]);
 
   return {
-    id: `${definition.id}:${quality}:${rolled.rolledPercentile.toFixed(6)}`,
+    id: [
+      definition.id,
+      quality,
+      rolled.rolledPercentile.toFixed(6),
+      variancePercentile.toFixed(6),
+    ].join(':'),
     effectId: definition.id,
     scope: definition.polarity === 'boon' ? 'daily' : 'drawback',
     polarity: definition.polarity,
     effectType: definition.effectType,
-    value: rolled.value,
-    label: definition.buildLabel(rolled.value),
-    description: definition.buildDescription(rolled.value),
+    value: adjustedValue,
+    label: definition.buildLabel(adjustedValue),
+    description: definition.buildDescription(adjustedValue),
     rollMeta: {
       qualityAnchor: quality,
-      minValue: rolled.minValue,
-      maxValue: rolled.maxValue,
+      minValue: Math.min(...adjustedRangeValues),
+      maxValue: Math.max(...adjustedRangeValues),
       rolledPercentile: rolled.rolledPercentile,
       roundingStep: rolled.roundingStep,
+      variancePercentile,
+      varianceMultiplier,
+      strengthMultiplier,
     },
   };
 }
@@ -409,9 +471,9 @@ export type FateTextPresetRegistry = Record<
 
 export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
   'retreat-exp-gain': {
-    凡品: { name: '勤修骨', descriptionTemplate: '根骨不显异象，却耐得住长久吐纳，闭关时每一缕灵气都肯慢慢沉入丹田。' },
-    灵品: { name: '藏息体', descriptionTemplate: '气息入体后不易散失，像浅井蓄泉，闭关越久，越能看出积累的好处。' },
-    玄品: { name: '九息服气', descriptionTemplate: '呼吸之间能牵引天地灵机，虽未到无师自通的地步，闭关修行已比常人顺畅许多。' },
+    凡品: { name: '每日签到', descriptionTemplate: '没有惊天异象，胜在日日不鸽；闭关像领签到奖励，攒着攒着也能多出一截修为。' },
+    灵品: { name: '再修五分钟', descriptionTemplate: '嘴上说再修五分钟，转眼又过一夜；不算天才，但硬是能把进度条熬上去。' },
+    玄品: { name: '修炼自律表', descriptionTemplate: '把闭关排得像待办清单，到点吐纳、到点复盘，修为也比寻常散修更肯按时到账。' },
     真品: { name: '龙虎之躯', descriptionTemplate: '气血与真息相互托举，静坐时如龙虎盘踞，修为增长自有一股厚劲。' },
     地品: { name: '人仙体', descriptionTemplate: '肉身与灵机亲和，闭关时精气神同涨，修为不再只靠苦熬时日。' },
     天品: { name: '先天道胎', descriptionTemplate: '天生近道，吐纳时像被大道牵引，寻常闭关也能化作稳固的进境。' },
@@ -419,9 +481,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '混沌体', descriptionTemplate: '身具混沌气象，灵机入体便可演化诸般根本，闭关所得常如开天辟地般厚重。' },
   },
   'retreat-insight-gain': {
-    凡品: { name: '慧根初醒', descriptionTemplate: '心中一点慧根初醒，读经参坐时常能比旁人多明白半句。' },
-    灵品: { name: '过目不忘', descriptionTemplate: '经文入眼便不易散失，旧日所学会在闭关时自行串联成新的领悟。' },
-    玄品: { name: '天生慧根', descriptionTemplate: '生来对法理格外敏锐，许多晦涩关节只需静坐片刻便能摸到门径。' },
+    凡品: { name: '弹幕提醒', descriptionTemplate: '读经参坐时，识海偶尔飘过一条像弹幕的灵感，虽不连贯，却常能点醒半句。' },
+    灵品: { name: '收藏夹吃灰', descriptionTemplate: '看过的经文像被塞进收藏夹，平时未必打开，闭关时却总能翻出一点有用旧货。' },
+    玄品: { name: '攻略党', descriptionTemplate: '面对晦涩法理时，总像提前看过半篇攻略，未必全会，却能更快摸到门径。' },
     真品: { name: '七窍玲珑心', descriptionTemplate: '心窍玲珑，能听见万物运行中的细响，闭关感悟常从旁人忽略处生出。' },
     地品: { name: '先天道体', descriptionTemplate: '与道天然相亲，法理不再隔着重雾，参悟时常有水到渠成之感。' },
     天品: { name: '醍醐灌顶', descriptionTemplate: '识海如受无上智慧灌注，疑难落入心中，往往会自行显出清楚脉络。' },
@@ -429,9 +491,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '天生圣人', descriptionTemplate: '集天地大运而生，万事万物一看便会，一学便精，悟道如饮水般自然。' },
   },
   'breakthrough-bonus': {
-    凡品: { name: '龙鲤入命', descriptionTemplate: '鲤鱼也有化龙之心，此命虽浅，却已得下场争关破境的资格。' },
-    灵品: { name: '逢关有路', descriptionTemplate: '每遇瓶颈，命中总会留出一条不甚显眼的小路，足够临门借力。' },
-    玄品: { name: '潜龙命格', descriptionTemplate: '潜龙未出渊，气数已先动；破境时常能在险处寻到回旋。' },
+    凡品: { name: '新手保护', descriptionTemplate: '天道像给初入门的道友留了半层新手保护，关口虽硬，临门时仍有一点回旋。' },
+    灵品: { name: '临门不鸽', descriptionTemplate: '约好的破境时机不太会临时放鸽子，每遇瓶颈，命中总会留出一条小路。' },
+    玄品: { name: '小保底没歪', descriptionTemplate: '冲关仍要看本事，但气数偶尔像抽签有保底，险处也能多摸到一线生机。' },
     真品: { name: '天命之人', descriptionTemplate: '身负天命，每逢绝境总有一线生机递到手边，冲关时尤其明显。' },
     地品: { name: '紫微星命', descriptionTemplate: '帝星入命，诸关虽险，却难完全压住此人向上之势。' },
     天品: { name: '先天鸿运', descriptionTemplate: '得天地独钟，为纪元所偏爱，破境时劫难常会先让三分。' },
@@ -439,9 +501,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '气运本源', descriptionTemplate: '此命已非顺应天命，而是自为天命；关隘当前，也要被其强行烙出通路。' },
   },
   'natural-recovery': {
-    凡品: { name: '身强体壮', descriptionTemplate: '筋骨厚实，气血耐耗，伤后恢复虽不惊人，却总比常人稳一些。' },
-    灵品: { name: '龙精虎猛', descriptionTemplate: '精气充沛，气血回转有龙虎之势，寻常损耗很难久拖不复。' },
-    玄品: { name: '厚土之体', descriptionTemplate: '肉身如厚土养根，受创后不急不躁，却能一点点把亏空补回来。' },
+    凡品: { name: '饭后回血', descriptionTemplate: '吃口热饭、调个息，血条便肯慢慢往回爬，虽不惊人却很实用。' },
+    灵品: { name: '睡一觉就好', descriptionTemplate: '口头禅是睡一觉就好，气血也确实给面子，寻常损耗很难久拖不复。' },
+    玄品: { name: '后台回血中', descriptionTemplate: '受创后不急不躁，像把恢复挂在后台，过一阵再看亏空已经补回不少。' },
     真品: { name: '金身不灭体', descriptionTemplate: '筋骨带有不灭金意，伤势落身后难以深扎，气血也更容易重新鼓荡。' },
     地品: { name: '万古不朽体', descriptionTemplate: '肉身有历劫不朽之相，越是重伤，越能看出深处生机绵长。' },
     天品: { name: '涅槃之体', descriptionTemplate: '衰败之中自含重燃之机，气血与法力常能从低谷处重新生发。' },
@@ -449,9 +511,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '生死轮回体', descriptionTemplate: '掌一线生死轮回之意，败落可返盛，枯竭可回春，恢复之势近乎逆转生死。' },
   },
   'toxicity-mitigation': {
-    凡品: { name: '清肝命', descriptionTemplate: '肝气清正，能化去一部分药性浊滞，服丹后少些沉毒牵缠。' },
-    灵品: { name: '百毒不侵', descriptionTemplate: '肉身自带净毒之能，丹毒入体后也会被慢慢排出经脉。' },
-    玄品: { name: '乙木之体', descriptionTemplate: '乙木生机善解郁滞，药毒虽烈，也会被草木之气一点点消磨。' },
+    凡品: { name: '少糖少冰', descriptionTemplate: '服丹时懂得适可而止，药力入口先打个折，沉毒牵缠也随之少些。' },
+    灵品: { name: '保温杯泡灵草', descriptionTemplate: '保温杯里常泡灵草，身体习惯慢慢化浊，丹毒入体后也不易赖着不走。' },
+    玄品: { name: '排毒打卡', descriptionTemplate: '药毒虽烈，也会被按日清理，像修行群里从不缺席的排毒打卡。' },
     真品: { name: '琉璃药心', descriptionTemplate: '心如琉璃照见药性清浊，清者留，浊者散，烈丹入体也难深伤根基。' },
     地品: { name: '造化神体', descriptionTemplate: '体内造化之力能重整药性，毒与药之间不再全由丹力摆布。' },
     天品: { name: '万毒不侵体', descriptionTemplate: '万毒难侵其身，反可被炼作资粮，丹毒落入体内也多半成不了大患。' },
@@ -459,9 +521,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '造化仙胎', descriptionTemplate: '体内自孕造化仙机，丹毒尚未成患，便被改易成可承受的药力余韵。' },
   },
   'alchemy-cost-reduction': {
-    凡品: { name: '惜火手', descriptionTemplate: '开炉时懂得惜火省力，几枚灵石也要用到真正该用的火候上。' },
-    灵品: { name: '妙手偶得', descriptionTemplate: '灵丹妙药常能信手调和，炼丹时少走许多白白耗费的弯路。' },
-    玄品: { name: '丹火亲和', descriptionTemplate: '与丹火相性极佳，火候一起便知进退，灵石消耗自然轻了许多。' },
+    凡品: { name: '省火小能手', descriptionTemplate: '开炉时懂得惜火省力，几枚灵石也要花在真正该花的火候上。' },
+    灵品: { name: '边角料大师', descriptionTemplate: '边角药材也能蹭出几分药香，炼丹时少走许多白白耗费的弯路。' },
+    玄品: { name: '低功耗模式', descriptionTemplate: '与丹火相性极佳，炉火一起像进了低耗模式，灵石消耗自然轻了许多。' },
     真品: { name: '南冥离火体', descriptionTemplate: '离火入命，善炼万药，炉中火力更听驱使，不必靠堆砌灵石强催。' },
     地品: { name: '丹王命格', descriptionTemplate: '命中与丹道有缘，药材、火候、灵石三者常能合在最省力的位置。' },
     天品: { name: '无垢丹心', descriptionTemplate: '丹心无垢，杂火杂念皆少，灵石多化为药力，少化为虚烟。' },
@@ -469,9 +531,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '造化丹胎', descriptionTemplate: '身如造化丹胎，万药入炉皆能顺势成形，炼丹几乎不需用灵石硬推。' },
   },
   'refine-cost-reduction': {
-    凡品: { name: '拙锤手', descriptionTemplate: '锤法看似朴拙，却少有虚敲，炼器时常能省下一些无谓火耗。' },
-    灵品: { name: '顺金骨', descriptionTemplate: '金火入手较顺，器胚哪里该受力，往往能先一步察觉。' },
-    玄品: { name: '庚金之体', descriptionTemplate: '天生亲近金铁，炼器时器胚回应更快，灵石不必浪费在反复校正上。' },
+    凡品: { name: '省料锤法', descriptionTemplate: '锤法看似朴拙，实则每一锤都像在算预算，炼器时常能省下一些无谓火耗。' },
+    灵品: { name: '手搓器胚', descriptionTemplate: '别人开炉先烧灵石，此人先把器胚手感摸顺，哪里该受力往往能早一步察觉。' },
+    玄品: { name: '反复利用', descriptionTemplate: '器胚到手像进入低耗模式，边角金铁也能派上用场，灵石不必浪费在反复校正上。' },
     真品: { name: '折金藏锋', descriptionTemplate: '懂得藏锋，不把灵石浪费在声势上，只送入器胚真正要害。' },
     地品: { name: '神印王体', descriptionTemplate: '身具神印之相，炼器时符纹与器胚更易相合，成器代价自然降低。' },
     天品: { name: '玄黄器骨', descriptionTemplate: '骨中玄黄气厚重，最善承载器道法则，铸炼时少有无谓损耗。' },
@@ -479,9 +541,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '混沌器胎', descriptionTemplate: '混沌之中可演万器，器胚落到手里便像找到了源头，所需灵石大幅减少。' },
   },
   'market-purchase-discount': {
-    凡品: { name: '听价耳', descriptionTemplate: '摊前几句闲谈，便能听出价钱虚实，不至被掌柜随口抬价。' },
-    灵品: { name: '青囊眼', descriptionTemplate: '买物时眼光清亮，货色好坏、价钱高低，总能比旁人多看出一层。' },
-    玄品: { name: '奇货可居', descriptionTemplate: '天生会在坊市里发现被低估的货色，真正值钱的东西往往能以合适价格入手。' },
+    凡品: { name: '砍价道友', descriptionTemplate: '摊前一句“道友再便宜点”，常能听出价钱虚实，不至被掌柜随口抬价。' },
+    灵品: { name: '薅羊毛熟手', descriptionTemplate: '买物时眼光清亮，哪里能薅一点坊市羊毛，总能比旁人多看出一层。' },
+    玄品: { name: '拼单成功', descriptionTemplate: '天生会在坊市里等到合适货色，也懂拉同门一起分摊价钱，真正值钱的东西更易低价入手。' },
     真品: { name: '聚宝命格', descriptionTemplate: '财气聚而不滞，入坊市时常能碰见合适货色，也能谈出合适价钱。' },
     地品: { name: '紫微财星', descriptionTemplate: '帝星余辉照入财帛，商贩见之也愿让利三分，买物少费灵石。' },
     天品: { name: '点金慧眸', descriptionTemplate: '慧眸能看穿货价浮沫，不被虚价遮眼，灵石自然少花在虚处。' },
@@ -489,9 +551,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '招财道运', descriptionTemplate: '财运近乎自成一条大道，连市井交易也会被轻轻推向对他有利的一端。' },
   },
   'enlightenment-insight-reduction': {
-    凡品: { name: '点墨心', descriptionTemplate: '读法时不必满纸涂改，偶有一点墨落，便能顺出一小段理路。' },
-    灵品: { name: '照简明心', descriptionTemplate: '看过的经文不易散失，参悟时少费许多反复翻检的心力。' },
-    玄品: { name: '开卷生悟', descriptionTemplate: '慧根自生，功法神通的门径对他不算全然隐晦，参悟耗费也随之减轻。' },
+    凡品: { name: '课代表划重点', descriptionTemplate: '法诀刚看完便能整理重点，虽称不上大悟，参悟时却少费许多涂改心力。' },
+    灵品: { name: '攻略收藏夹', descriptionTemplate: '看过的经文不易散失，参悟前像翻过前人攻略，反复检索的心力自然少些。' },
+    玄品: { name: '一键入门', descriptionTemplate: '慧根自生，功法神通的门径对他不算全然隐晦，常像跳过教程般先摸到入门处。' },
     真品: { name: '玲珑道心', descriptionTemplate: '心有玲珑之相，能把繁复法理拆成可循的细线，参悟时少走死路。' },
     地品: { name: '近道之体', descriptionTemplate: '与道相亲，功法未尽开而理已先露，许多消耗都省在入门之前。' },
     天品: { name: '重瞳', descriptionTemplate: '重瞳炽盛，可洞悉本源，法诀破绽与关窍在眼中纤毫毕现。' },
@@ -499,9 +561,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '言出法随', descriptionTemplate: '口含天宪，字句近乎天规律法；参悟法门时，法理反像主动顺从其意。' },
   },
   'inn-loss-reduction': {
-    凡品: { name: '抱元守一', descriptionTemplate: '疗伤时能守住一口元气，不让灵泉把修为根底一并冲散。' },
-    灵品: { name: '藏珠身', descriptionTemplate: '修为像珠藏蚌中，疗伤的水流过后，仍能留下不少光泽。' },
-    玄品: { name: '守藏命格', descriptionTemplate: '命中善守根本，外力疗伤时也会先护住自身修为。' },
+    凡品: { name: '残血不掉线', descriptionTemplate: '疗伤时能强撑一口元气，像残血也不肯掉线，不让灵泉把修为根底一并冲散。' },
+    灵品: { name: '读档成功', descriptionTemplate: '修为像有一层旧日存档，疗伤的水流过后，仍能留下不少底子。' },
+    玄品: { name: '灵泉防沉迷', descriptionTemplate: '灵泉再猛也会被自动限量，外力疗伤时先护住自身修为，不让进度一口气清空。' },
     真品: { name: '归元井', descriptionTemplate: '体内仿佛有一口归元深井，灵泉冲刷时，散去的元气常会绕回井中。' },
     地品: { name: '万寿无疆', descriptionTemplate: '与天常在，与道长存，疗伤虽借外力，却不轻易损及寿元般的根基。' },
     天品: { name: '不漏冥王体', descriptionTemplate: '衰败与创伤难以真正夺走其根本，灵泉疗伤时修为流失也被压到更低。' },
@@ -509,9 +571,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '永恒命基', descriptionTemplate: '体内有近乎永恒的根基镇守，灵泉可洗伤，却难洗走真正属于他的修为。' },
   },
   'retreat-exp-drag': {
-    凡品: { name: '尘锁骨', descriptionTemplate: '根骨像蒙着薄尘，闭关时气息能行，却总差一点清爽。' },
-    灵品: { name: '冷灰炉', descriptionTemplate: '炉中有火也有冷灰，苦修所得常被那层灰气压慢。' },
-    玄品: { name: '闭山命', descriptionTemplate: '山门太重，能护住内息，也会挡住一部分修为进境。' },
+    凡品: { name: '闭关摸鱼', descriptionTemplate: '闭关没多久就想看看炉火、翻翻储物袋，气息能走，却总差一点清爽。' },
+    灵品: { name: '卡顿吐纳', descriptionTemplate: '炉中有火也有冷灰，灵气走到半路像忽然卡顿，苦修所得常被那层灰气压慢。' },
+    玄品: { name: '低电量提醒', descriptionTemplate: '才运转几周天，识海便像弹出低电量提醒，修为进境也被挡住一截。' },
     真品: { name: '绝灵根', descriptionTemplate: '灵机近身时常被无形隔开，闭关虽能前行，却比旁人更费时日。' },
     地品: { name: '寂灭道体', descriptionTemplate: '寂灭之意盘踞体内，万物生机入身先衰三分，修为增长因此受阻。' },
     天品: { name: '十绝闭脉体', descriptionTemplate: '十绝并非全是锋芒，也会断绝部分修行通路，闭关进境常被自身格局拖慢。' },
@@ -519,9 +581,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '孤星绝运', descriptionTemplate: '命犯天煞，连天地灵机也不愿久伴身侧，闭关所得常被孤煞之气削去一截。' },
   },
   'breakthrough-stumble': {
-    凡品: { name: '绊石劫', descriptionTemplate: '命路上总有小石绊脚，平时无碍，临门破境时却格外讨厌。' },
-    灵品: { name: '雾关命格', descriptionTemplate: '关前多雾，明明路在眼前，也容易因一念不清而错失时机。' },
-    玄品: { name: '折渡命格', descriptionTemplate: '能见渡口，却常在登舟时生出一折，冲关不免多险。' },
+    凡品: { name: '临门脚滑', descriptionTemplate: '命路上总有小石绊脚，平时无碍，临门破境时却像鞋底忽然打滑。' },
+    灵品: { name: '关键时刻断网', descriptionTemplate: '关前多雾，明明攻略都懂，关键时刻心神却像断网，容易错失时机。' },
+    玄品: { name: '保底歪了', descriptionTemplate: '能见渡口，却常在登舟时歪向旁支，冲关像抽到保底却不是想要的那一签。' },
     真品: { name: '颠覆命格', descriptionTemplate: '此为命理中的小人之变，善吸附、渗透、转化，也最易在关口处颠覆原本走势。' },
     地品: { name: '天煞关星', descriptionTemplate: '孤煞入命，越是临近大关，越容易因命数牵扯而生出额外阻力。' },
     天品: { name: '十绝关体', descriptionTemplate: '体内十绝之势会在破境时互相牵制，稍有不慎，便从助力化作关隘。' },
@@ -529,9 +591,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '气运反噬', descriptionTemplate: '气运太盛而自生反噬，每逢大关，天地都要先向此人讨回一笔旧账。' },
   },
   'natural-recovery-drag': {
-    凡品: { name: '薄霜身', descriptionTemplate: '气血表面像覆着薄霜，伤后能回暖，只是总慢一拍。' },
-    灵品: { name: '寒叶体', descriptionTemplate: '此身有寒叶之象，生机未绝，却不容易立刻舒展。' },
-    玄品: { name: '幽寒古体', descriptionTemplate: '寒意入骨，肉身洁而难温，恢复之势常被清寒拖住。' },
+    凡品: { name: '慢热血条', descriptionTemplate: '气血表面像覆着薄霜，伤后能回暖，只是读条慢得让人想刷新。' },
+    灵品: { name: '睡醒仍残', descriptionTemplate: '睡前说醒来就好，醒来却发现恢复还在半路。' },
+    玄品: { name: '冷却中', descriptionTemplate: '恢复像技能冷却，明明会好，却总要多等一会儿。' },
     真品: { name: '冰封王体', descriptionTemplate: '冰封之力镇住气血，也镇住生机，伤势恢复往往比旁人迟缓。' },
     地品: { name: '寂灭寒身', descriptionTemplate: '寂灭气息压住复苏之机，越是伤重，越难立刻唤醒生机。' },
     天品: { name: '冥王冻体', descriptionTemplate: '此体近死而不死，却也常在冥寂中久留，恢复起来并不轻快。' },
@@ -539,9 +601,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '永恒冻土', descriptionTemplate: '永恒之意化作冻土封住肉身，生机尚在，却很难迅速破土而出。' },
   },
   'toxicity-burden': {
-    凡品: { name: '苦舌根', descriptionTemplate: '药入口中先成苦意，入体后也容易留下不肯散的余毒。' },
-    灵品: { name: '浊壶命', descriptionTemplate: '此命如旧壶盛新酒，药性越多，浊味越不容易洗净。' },
-    玄品: { name: '蚀药骨', descriptionTemplate: '药力越杂，越可能在经脉里留下暗刺，像细虫慢慢啮骨。' },
+    凡品: { name: '丹药上头', descriptionTemplate: '药入口中先说没事，转头苦意上头，入体后也容易留下不肯散的余毒。' },
+    灵品: { name: '看见就嗑', descriptionTemplate: '看见丹药就想试试，药性越多，浊味越不容易洗净。' },
+    玄品: { name: '叠毒收藏家', descriptionTemplate: '药力越杂，越可能在经脉里留下暗刺；好处没攒明白，丹毒先叠出了层数。' },
     真品: { name: '万厄毒胎', descriptionTemplate: '万毒皆可入身，却未必都能为己所用；丹药越烈，反噬越深。' },
     地品: { name: '幽冥之体', descriptionTemplate: '幽冥阴气善藏沉毒，药力入体后常往暗处沉积，久了便成深患。' },
     天品: { name: '吞毒之体', descriptionTemplate: '吞噬之力不分清浊，药力与丹毒一并卷入体内，反使毒性更难排出。' },
@@ -549,9 +611,9 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     神品: { name: '饮鸩命格', descriptionTemplate: '得力越快，反噬越狠；此命纳药极深，也纳毒极深。' },
   },
   'system-spirit-stone-surcharge': {
-    凡品: { name: '漏财命', descriptionTemplate: '灵石到了他手里不是留不住，而是修行途中总会多漏几枚。' },
-    灵品: { name: '破盏财', descriptionTemplate: '如破盏盛水，调养祭炼都容易生出额外耗费。' },
-    玄品: { name: '吞金化石', descriptionTemplate: '消化外物的本事太强，灵石投入修行后常被额外吞去一截。' },
+    凡品: { name: '月光灵石', descriptionTemplate: '灵石刚到手，修行账单就像自动扣款，途中总会多漏几枚。' },
+    灵品: { name: '预算爆炸', descriptionTemplate: '每次都说这次省着点，结果调养祭炼一开炉，额外耗费又把预算炸穿。' },
+    玄品: { name: '氪金未遂', descriptionTemplate: '明明只是正常养成，却总被命数加购一份灵石消耗，看起来很像氪了，但强度还没跟上。' },
     真品: { name: '沉债命格', descriptionTemplate: '修行像背着旧债，凡需灵石处，总要多还一点给命数。' },
     地品: { name: '耗财命格', descriptionTemplate: '此格善吸附与转化，连投入养成的灵石也容易被旁支细节吸走。' },
     天品: { name: '吞金之体', descriptionTemplate: '吞噬之力索求无度，祭炼、调养、参悟皆要先被它分去一份灵石。' },

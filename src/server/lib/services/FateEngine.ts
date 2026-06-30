@@ -14,6 +14,7 @@ import {
   FATE_CANDIDATE_COUNT,
   FATE_DUAL_SIDED_CHANCE,
   FATE_QUALITY_ORDER,
+  FATE_QUALITY_WEIGHTS,
   FATE_SLOT_COUNT,
 } from './FateConfig';
 import {
@@ -27,14 +28,34 @@ import {
 } from './FateFragmentRegistry';
 
 interface FateGenerationOptions {
+  candidateCount?: number;
   rng?: () => number;
 }
+
+const DUAL_SIDED_PRIMARY_STRENGTH_MULTIPLIER = 1.3;
 
 function randomPickOne<T>(pool: T[], rng: () => number): T | null {
   if (pool.length === 0) return null;
 
   const index = Math.min(pool.length - 1, Math.floor(rng() * pool.length));
   return pool[index] ?? null;
+}
+
+function randomPickWeightedQuality(rng: () => number): Quality {
+  const totalWeight = FATE_QUALITY_ORDER.reduce(
+    (sum, quality) => sum + FATE_QUALITY_WEIGHTS[quality],
+    0,
+  );
+  let roll = rng() * totalWeight;
+
+  for (const quality of FATE_QUALITY_ORDER) {
+    roll -= FATE_QUALITY_WEIGHTS[quality];
+    if (roll <= 0) {
+      return quality;
+    }
+  }
+
+  return FATE_QUALITY_ORDER[FATE_QUALITY_ORDER.length - 1];
 }
 
 function createCompositionHash(
@@ -97,7 +118,11 @@ function composeCandidate(
     }
 
     const effects = [
-      buildFateEffectEntry(positive, quality, rng),
+      buildFateEffectEntry(positive, quality, rng, {
+        strengthMultiplier: negative
+          ? DUAL_SIDED_PRIMARY_STRENGTH_MULTIPLIER
+          : 1,
+      }),
       ...(negative ? [buildFateEffectEntry(negative, quality, rng)] : []),
     ];
     const fallbackName = buildFallbackFateName(positive, quality);
@@ -115,7 +140,7 @@ function composeCandidate(
       description: fallbackDescription,
       effects,
       generationModel: {
-        version: 'v5',
+        version: getFateRollVersion(),
         rollVersion: getFateRollVersion(),
         quality,
         effectIds,
@@ -143,15 +168,22 @@ export const FateEngine = {
   ): Promise<PreHeavenFate[]> {
     void cultivator;
     const rng = typeof options === 'function' ? options : options.rng ?? Math.random;
+    const candidateCount =
+      typeof options === 'function'
+        ? FATE_CANDIDATE_COUNT
+        : options.candidateCount ?? FATE_CANDIDATE_COUNT;
     const usedHashes = new Set<string>();
     const generated: PreHeavenFate[] = [];
     let dualSidedUsed = false;
 
-    for (let slot = 0; slot < FATE_CANDIDATE_COUNT; slot += 1) {
-      const targetQuality = randomPickOne([...FATE_QUALITY_ORDER], rng);
-      const candidate: PreHeavenFate | null = targetQuality
-        ? composeCandidate(targetQuality, rng, dualSidedUsed, usedHashes)
-        : null;
+    for (let slot = 0; slot < candidateCount; slot += 1) {
+      const targetQuality = randomPickWeightedQuality(rng);
+      const candidate = composeCandidate(
+        targetQuality,
+        rng,
+        dualSidedUsed,
+        usedHashes,
+      );
 
       if (candidate) {
         dualSidedUsed =
@@ -161,9 +193,9 @@ export const FateEngine = {
       }
     }
 
-    if (generated.length < FATE_CANDIDATE_COUNT) {
+    if (generated.length < candidateCount) {
       for (const quality of [...FATE_QUALITY_ORDER].reverse()) {
-        if (generated.length >= FATE_CANDIDATE_COUNT) break;
+        if (generated.length >= candidateCount) break;
         const candidate = composeCandidate(
           quality,
           rng,
@@ -180,13 +212,6 @@ export const FateEngine = {
     }
 
     return normalizeSharedFates(generated);
-  },
-
-  async rerollWholeSet(
-    cultivator: Cultivator,
-    options: FateGenerationOptions | (() => number) = {},
-  ): Promise<PreHeavenFate[]> {
-    return this.generateCandidatePool(cultivator, options);
   },
 
   getSelectedFates(fates: PreHeavenFate[]): PreHeavenFate[] {

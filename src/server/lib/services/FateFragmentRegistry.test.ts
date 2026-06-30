@@ -21,6 +21,11 @@ function getNegativeEffect(effectId: string) {
   return effect;
 }
 
+function createSequenceRng(values: number[]): () => number {
+  let index = 0;
+  return () => values[index++] ?? 0.5;
+}
+
 describe('FateFragmentRegistry', () => {
   it('rolls different persisted values for the same quality and effect within range', () => {
     const definition = getPositiveEffect('retreat-exp-gain');
@@ -58,5 +63,53 @@ describe('FateFragmentRegistry', () => {
 
     expect(mortalRoll.effectType).toBe('market_purchase_price_multiplier');
     expect(divineRoll.value).toBeLessThan(mortalRoll.value);
+  });
+
+  it('records same-quality variance metadata and varies final strength', () => {
+    const definition = getPositiveEffect('retreat-exp-gain');
+    const lowVarianceRoll = buildFateEffectEntry(
+      definition,
+      '玄品',
+      createSequenceRng([0.5, 0]),
+    );
+    const highVarianceRoll = buildFateEffectEntry(
+      definition,
+      '玄品',
+      createSequenceRng([0.5, 0.999999]),
+    );
+
+    expect(lowVarianceRoll.rollMeta.variancePercentile).toBe(0);
+    expect(lowVarianceRoll.rollMeta.varianceMultiplier).toBe(0.8);
+    expect(lowVarianceRoll.rollMeta.strengthMultiplier).toBe(1);
+    expect(highVarianceRoll.rollMeta.varianceMultiplier).toBeCloseTo(1.2, 5);
+    expect(highVarianceRoll.value).toBeGreaterThan(lowVarianceRoll.value);
+    expect(lowVarianceRoll.value).toBeGreaterThanOrEqual(
+      lowVarianceRoll.rollMeta.minValue,
+    );
+    expect(highVarianceRoll.value).toBeLessThanOrEqual(
+      highVarianceRoll.rollMeta.maxValue,
+    );
+  });
+
+  it('keeps adjusted values in their original direction', () => {
+    const discount = buildFateEffectEntry(
+      getPositiveEffect('market-purchase-discount'),
+      '神品',
+      createSequenceRng([0.5, 0.999999]),
+    );
+    const breakthroughBurden = buildFateEffectEntry(
+      getNegativeEffect('breakthrough-stumble'),
+      '神品',
+      createSequenceRng([0.5, 0.999999]),
+    );
+    const toxicityBurden = buildFateEffectEntry(
+      getNegativeEffect('toxicity-burden'),
+      '神品',
+      createSequenceRng([0.5, 0.999999]),
+    );
+
+    expect(discount.value).toBeLessThan(1);
+    expect(breakthroughBurden.value).toBeLessThan(0);
+    expect(toxicityBurden.value).toBeGreaterThan(1);
   });
 });
