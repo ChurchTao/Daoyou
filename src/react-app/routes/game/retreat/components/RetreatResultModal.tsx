@@ -180,9 +180,14 @@ function BreakthroughResultContent({
 
       {realmChangeText ? <p>境界突破：{realmChangeText}</p> : null}
 
+      {'naturalAttributeGrowth' in summary &&
+      summary.naturalAttributeGrowth > 0 ? (
+        <p>自然成长：五维各 +{summary.naturalAttributeGrowth}</p>
+      ) : null}
+
       {summary.attributePointReward > 0 ? (
         <p>根基收益：获得 {summary.attributePointReward} 点可分配属性点</p>
-      ) : attributeGrowthText ? (
+      ) : !('naturalAttributeGrowth' in summary) && attributeGrowthText ? (
         <p>属性收获：{attributeGrowthText}</p>
       ) : null}
 

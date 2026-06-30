@@ -76,12 +76,12 @@ describe('CultivatorCombatAdapter', () => {
 
     // 金丹圆满->炼气初期 uses inverse anchor/wearer factor.
     expect(unit.attributes.getValue(AttributeType.ATK)).toBeCloseTo(
-      119.772343,
+      127.84722,
       6,
     );
     // CRIT_RATE is functional attribute and should not be decayed
     expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(
-      0.143913,
+      0.144884,
       6,
     );
   });
@@ -141,9 +141,9 @@ describe('CultivatorCombatAdapter', () => {
     const unit = createCombatUnitFromCultivator(cultivator);
 
     expect(unit.attributes.getValue(AttributeType.VITALITY)).toBe(10);
-    expect(unit.attributes.getValue(AttributeType.MAX_HP)).toBe(526);
+    expect(unit.attributes.getValue(AttributeType.MAX_HP)).toBe(562);
     expect(unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE)).toBeCloseTo(
-      0.083704,
+      0.0848,
       6,
     );
   });

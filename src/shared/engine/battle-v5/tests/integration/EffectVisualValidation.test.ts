@@ -313,7 +313,7 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
     });
 
     expect(damageRequests).toHaveLength(1);
-    expect(damageRequests[0].baseDamage).toBe(110);
+    expect(damageRequests[0].baseDamage).toBe(118);
     expect(damageRequests[0].buff?.id).toBe('stacking_poison');
     expect(damageRequests[0].caster?.id).toBe(source.id);
     expect(damageRequests[0].target.id).toBe(target.id);

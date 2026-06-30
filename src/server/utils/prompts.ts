@@ -109,6 +109,7 @@ export interface BreakthroughStoryPayload {
     toStage?: RealmStage;
     lifespanGained: number;
     attributeGrowth: Partial<Attributes>;
+    naturalAttributeGrowth?: number;
     attributePointReward?: number;
     lifespanDepleted: boolean;
     modifiers: BreakthroughModifiers;
@@ -123,9 +124,18 @@ export function getBreakthroughStoryPrompt({
   const cultivations =
     cultivator.cultivations?.map((cult) => cult.name).join('，') ?? '无';
   const fates = summarizeFateNames(cultivator);
+  const attributeGainParts: string[] = [];
+  if (summary.naturalAttributeGrowth && summary.naturalAttributeGrowth > 0) {
+    attributeGainParts.push(
+      `五维各自然成长 ${summary.naturalAttributeGrowth} 点`,
+    );
+  }
+  if (summary.attributePointReward !== undefined) {
+    attributeGainParts.push(`获得 ${summary.attributePointReward} 点可分配属性点`);
+  }
   const attributeGain =
-    summary.attributePointReward !== undefined
-      ? `获得 ${summary.attributePointReward} 点可分配属性点`
+    attributeGainParts.length > 0
+      ? attributeGainParts.join('，')
       : formatAttributeGrowth(summary.attributeGrowth);
   const targetRealm = summary.toRealm ?? summary.fromRealm;
   const targetStage = summary.toStage ?? summary.fromStage;
@@ -166,6 +176,7 @@ export interface LifespanExhaustedStoryPayload {
     toStage?: RealmStage;
     lifespanGained: number;
     attributeGrowth: Partial<Attributes>;
+    naturalAttributeGrowth?: number;
     attributePointReward?: number;
     lifespanDepleted: boolean;
     modifiers: BreakthroughModifiers;

@@ -87,8 +87,8 @@ describe('CultivatorDisplayAdapter', () => {
     expect(unit.attributes.getValue(AttributeType.VITALITY)).toBe(15);
     expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(12);
     expect(unit.attributes.getValue(AttributeType.SPEED)).toBe(10);
-    expect(unit.getMaxHp()).toBe(545);
-    expect(unit.getMaxMp()).toBe(350);
+    expect(unit.getMaxHp()).toBe(583);
+    expect(unit.getMaxMp()).toBe(383);
   });
 
   it('maps Unit values back to cultivator display attributes', () => {
@@ -147,8 +147,8 @@ describe('CultivatorDisplayAdapter', () => {
     const { attrs, finalAttributes } = getCultivatorDisplayAttributes(cultivator);
 
     expect(finalAttributes.vitality).toBe(15);
-    expect(attrs.maxHp).toBe(610);
-    expect(attrs.def).toBeCloseTo(29.87, 6);
+    expect(attrs.maxHp).toBe(652);
+    expect(attrs.def).toBeCloseTo(32.96, 6);
   });
 
   it('builds a serializable display snapshot from battle-v5 attrs and resources', () => {
@@ -185,17 +185,17 @@ describe('CultivatorDisplayAdapter', () => {
 
     expect(snapshot.attrs.vitality).toBe(15);
     expect(snapshot.attrs.spirit).toBe(12);
-    expect(snapshot.attrs.maxHp).toBe(545);
-    expect(snapshot.attrs.maxMp).toBe(350);
+    expect(snapshot.attrs.maxHp).toBe(583);
+    expect(snapshot.attrs.maxMp).toBe(383);
     expect(snapshot.resources.hp).toEqual({
       current: 320,
-      max: 545,
-      percent: 58.72,
+      max: 583,
+      percent: 54.89,
     });
     expect(snapshot.resources.mp).toEqual({
       current: 180,
-      max: 350,
-      percent: 51.43,
+      max: 383,
+      percent: 47,
     });
   });
 
@@ -221,10 +221,10 @@ describe('CultivatorDisplayAdapter', () => {
     const unit = createDisplayUnitFromCultivator(cultivator);
 
     // 金丹圆满->炼气初期 uses inverse anchor/wearer factor.
-    expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(66);
+    expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(67);
     // 功能属性不衰减
     expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(
-      0.143913,
+      0.144884,
       6,
     );
   });

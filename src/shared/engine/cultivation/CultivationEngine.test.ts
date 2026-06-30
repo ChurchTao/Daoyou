@@ -201,26 +201,42 @@ describe('CultivationEngine cultivation boost', () => {
     );
   });
 
-  it('grants fixed unallocated attribute points after breakthrough', () => {
+  it('grants natural attribute growth and fixed unallocated points after breakthrough', () => {
     const minor = createCultivator();
     minor.cultivation_progress!.cultivation_exp = 80_000;
+    const minorAttributesBefore = { ...minor.attributes };
 
     const minorResult = attemptBreakthrough(minor, () => 0);
 
     expect(minorResult.summary.attributeGrowth).toEqual({});
-    expect(minorResult.summary.attributePointReward).toBe(20);
-    expect(minorResult.cultivator.unallocated_attribute_points).toBe(20);
-    expect(minorResult.cultivator.attributes).toEqual(minor.attributes);
+    expect(minorResult.summary.naturalAttributeGrowth).toBe(2);
+    expect(minorResult.summary.attributePointReward).toBe(10);
+    expect(minorResult.cultivator.unallocated_attribute_points).toBe(10);
+    expect(minorResult.cultivator.attributes).toEqual({
+      vitality: minorAttributesBefore.vitality + 2,
+      spirit: minorAttributesBefore.spirit + 2,
+      wisdom: minorAttributesBefore.wisdom + 2,
+      speed: minorAttributesBefore.speed + 2,
+      willpower: minorAttributesBefore.willpower + 2,
+    });
 
     const major = createCultivator();
     major.realm_stage = '圆满';
     major.cultivation_progress!.cultivation_exp = 80_000;
+    const majorAttributesBefore = { ...major.attributes };
 
     const majorResult = attemptBreakthrough(major, () => 0);
 
-    expect(majorResult.summary.attributePointReward).toBe(50);
-    expect(majorResult.cultivator.unallocated_attribute_points).toBe(50);
-    expect(majorResult.cultivator.attributes).toEqual(major.attributes);
+    expect(majorResult.summary.naturalAttributeGrowth).toBe(4);
+    expect(majorResult.summary.attributePointReward).toBe(20);
+    expect(majorResult.cultivator.unallocated_attribute_points).toBe(20);
+    expect(majorResult.cultivator.attributes).toEqual({
+      vitality: majorAttributesBefore.vitality + 4,
+      spirit: majorAttributesBefore.spirit + 4,
+      wisdom: majorAttributesBefore.wisdom + 4,
+      speed: majorAttributesBefore.speed + 4,
+      willpower: majorAttributesBefore.willpower + 4,
+    });
   });
 
   it('reads breakthrough focus payload as a success-rate bonus', () => {

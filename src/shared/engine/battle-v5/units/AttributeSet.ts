@@ -139,16 +139,16 @@ class Attribute {
  * - WISDOM    (悟性)    — 暴击率加成、暴击伤害上限、法力上限
  *
  * 派生型二级属性（浮点，base=公式，modifier 可叠加）：
- * - ATK                物理攻击   = 20 + VITALITY×3.2 + SPEED×1.1
- * - DEF                物理防御   = VITALITY×1.55 + SPEED×0.65
- * - MAGIC_ATK          法术攻击   = 20 + SPIRIT×3.2 + WILLPOWER×1.1
- * - MAGIC_DEF          法术防御   = SPIRIT×1.55 + WILLPOWER×0.65
- * - CRIT_RATE          暴击率     = 0.03 + curve(SPEED×0.65 + WISDOM×0.35, 220, 0.32)
- * - CRIT_DAMAGE_MULT   暴击伤害   = 1.25 + curve(WISDOM, 260, 0.75)
- * - EVASION_RATE       闪避率     = 0.02 + curve(SPEED, 260, 0.26)
- * - ACCURACY           命中       = 0.04 + curve(WISDOM×0.65 + WILLPOWER×0.35, 240, 0.28)
- * - CONTROL_HIT        控制命中   = 0.05 + curve(WISDOM×0.35 + WILLPOWER×0.65, 260, 0.35)
- * - CONTROL_RESISTANCE 控制抗性   = 0.03 + curve(WILLPOWER, 260, 0.37)
+ * - ATK                物理攻击   = 24 + VITALITY×3.45 + SPEED×1.2
+ * - DEF                物理防御   = VITALITY×1.68 + SPEED×0.72
+ * - MAGIC_ATK          法术攻击   = 24 + SPIRIT×3.45 + WILLPOWER×1.2
+ * - MAGIC_DEF          法术防御   = SPIRIT×1.68 + WILLPOWER×0.72
+ * - CRIT_RATE          暴击率     = 0.03 + curve(SPEED×0.65 + WISDOM×0.35, 205, 0.32)
+ * - CRIT_DAMAGE_MULT   暴击伤害   = 1.25 + curve(WISDOM, 240, 0.75)
+ * - EVASION_RATE       闪避率     = 0.02 + curve(SPEED, 240, 0.26)
+ * - ACCURACY           命中       = 0.04 + curve(WISDOM×0.65 + WILLPOWER×0.35, 220, 0.28)
+ * - CONTROL_HIT        控制命中   = 0.05 + curve(WISDOM×0.35 + WILLPOWER×0.65, 240, 0.35)
+ * - CONTROL_RESISTANCE 控制抗性   = 0.03 + curve(WILLPOWER, 240, 0.37)
  *
  * 外部注入型二级属性（浮点，base=0，由装备/Buff/命格提供）：
  * - ARMOR_PENETRATION、MAGIC_PENETRATION、CRIT_RESIST、CRIT_DAMAGE_REDUCTION、HEAL_AMPLIFY
@@ -185,9 +185,9 @@ export class AttributeSet {
         true,
         () =>
           Math.floor(
-            20 +
-              this.getValue(AttributeType.VITALITY) * 3.2 +
-              this.getValue(AttributeType.SPEED) * 1.1,
+            24 +
+              this.getValue(AttributeType.VITALITY) * 3.45 +
+              this.getValue(AttributeType.SPEED) * 1.2,
           ),
       ),
     );
@@ -200,8 +200,8 @@ export class AttributeSet {
         true,
         () =>
           Math.floor(
-            this.getValue(AttributeType.VITALITY) * 1.55 +
-              this.getValue(AttributeType.SPEED) * 0.65,
+            this.getValue(AttributeType.VITALITY) * 1.68 +
+              this.getValue(AttributeType.SPEED) * 0.72,
           ),
       ),
     );
@@ -214,9 +214,9 @@ export class AttributeSet {
         true,
         () =>
           Math.floor(
-            20 +
-              this.getValue(AttributeType.SPIRIT) * 3.2 +
-              this.getValue(AttributeType.WILLPOWER) * 1.1,
+            24 +
+              this.getValue(AttributeType.SPIRIT) * 3.45 +
+              this.getValue(AttributeType.WILLPOWER) * 1.2,
           ),
       ),
     );
@@ -229,8 +229,8 @@ export class AttributeSet {
         true,
         () =>
           Math.floor(
-            this.getValue(AttributeType.SPIRIT) * 1.55 +
-              this.getValue(AttributeType.WILLPOWER) * 0.65,
+            this.getValue(AttributeType.SPIRIT) * 1.68 +
+              this.getValue(AttributeType.WILLPOWER) * 0.72,
           ),
       ),
     );
@@ -242,7 +242,7 @@ export class AttributeSet {
         curve(
           this.getValue(AttributeType.SPEED) * 0.65 +
             this.getValue(AttributeType.WISDOM) * 0.35,
-          220,
+          205,
           0.32,
         ),
       ),
@@ -251,14 +251,14 @@ export class AttributeSet {
     this._attributes.set(
       AttributeType.CRIT_DAMAGE_MULT,
       new Attribute(AttributeType.CRIT_DAMAGE_MULT, 0, true, () =>
-        1.25 + curve(this.getValue(AttributeType.WISDOM), 260, 0.75),
+        1.25 + curve(this.getValue(AttributeType.WISDOM), 240, 0.75),
       ),
     );
 
     this._attributes.set(
       AttributeType.EVASION_RATE,
       new Attribute(AttributeType.EVASION_RATE, 0, true, () =>
-        0.02 + curve(this.getValue(AttributeType.SPEED), 260, 0.26),
+        0.02 + curve(this.getValue(AttributeType.SPEED), 240, 0.26),
       ),
     );
 
@@ -269,7 +269,7 @@ export class AttributeSet {
         curve(
           this.getValue(AttributeType.WISDOM) * 0.65 +
             this.getValue(AttributeType.WILLPOWER) * 0.35,
-          240,
+          220,
           0.28,
         ),
       ),
@@ -282,7 +282,7 @@ export class AttributeSet {
         curve(
           this.getValue(AttributeType.WISDOM) * 0.35 +
             this.getValue(AttributeType.WILLPOWER) * 0.65,
-          260,
+          240,
           0.35,
         ),
       ),
@@ -291,7 +291,7 @@ export class AttributeSet {
     this._attributes.set(
       AttributeType.CONTROL_RESISTANCE,
       new Attribute(AttributeType.CONTROL_RESISTANCE, 0, true, () =>
-        0.03 + curve(this.getValue(AttributeType.WILLPOWER), 260, 0.37),
+        0.03 + curve(this.getValue(AttributeType.WILLPOWER), 240, 0.37),
       ),
     );
 
@@ -301,7 +301,7 @@ export class AttributeSet {
         AttributeType.MAX_HP,
         0,
         false,
-        () => Math.floor(320 + this.getValue(AttributeType.VITALITY) * 15),
+        () => Math.floor(340 + this.getValue(AttributeType.VITALITY) * 16.2),
       ),
     );
 
@@ -313,9 +313,9 @@ export class AttributeSet {
         false,
         () =>
           Math.floor(
-            180 +
-              this.getValue(AttributeType.SPIRIT) * 10 +
-              this.getValue(AttributeType.WILLPOWER) * 5,
+            200 +
+              this.getValue(AttributeType.SPIRIT) * 10.8 +
+              this.getValue(AttributeType.WILLPOWER) * 5.4,
           ),
       ),
     );
@@ -415,14 +415,14 @@ export class AttributeSet {
   }
 
   /**
-   * 气血 = 320 + VITALITY×15
+   * 气血 = 340 + VITALITY×16.2
    */
   getMaxHp(): number {
     return this.getValue(AttributeType.MAX_HP);
   }
 
   /**
-   * 法力 = 180 + SPIRIT×10 + WILLPOWER×5
+   * 法力 = 200 + SPIRIT×10.8 + WILLPOWER×5.4
    */
   getMaxMp(): number {
     return this.getValue(AttributeType.MAX_MP);

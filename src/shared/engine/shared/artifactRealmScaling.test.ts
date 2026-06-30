@@ -7,11 +7,15 @@ import {
   scaleArtifactMainPanelFixedModifiers,
 } from './artifactRealmScaling';
 import { AttributeType, ModifierType } from '@shared/engine/battle-v5/core/types';
+import { getRealmStageAttributeBudget } from '@shared/config/realmProgression';
 
 describe('artifactRealmScaling', () => {
   it('uses the shared realm growth exponent for anchor scaling', () => {
     expect(getArtifactRealmGrowthFactor('渡劫', '圆满')).toBeCloseTo(
-      Math.pow(990 / 50, ARTIFACT_REALM_SCALING_EXPONENT),
+      Math.pow(
+        getRealmStageAttributeBudget('渡劫', '圆满') / 50,
+        ARTIFACT_REALM_SCALING_EXPONENT,
+      ),
       10,
     );
   });

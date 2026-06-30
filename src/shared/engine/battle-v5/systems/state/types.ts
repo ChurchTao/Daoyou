@@ -35,15 +35,15 @@ export interface AttrsStateView {
   def: number;
   magicAtk: number;
   magicDef: number;
-  /** 暴击率 0-0.60 */
+  /** 暴击率，递减收益小数值，如 0.35 表示 35% */
   critRate: number;
-  /** 暴击伤害倍率 1.25-2.00 */
+  /** 暴击伤害倍率，递减收益 */
   critDamageMult: number;
-  /** 闪避率 0-0.50 */
+  /** 闪避率，递减收益小数值 */
   evasionRate: number;
-  /** 控制命中 0-0.80 */
+  /** 控制命中，递减收益小数值 */
   controlHit: number;
-  /** 控制抗性 0-0.80 */
+  /** 控制抗性，递减收益小数值 */
   controlResistance: number;
   // 外部注入型二级属性
   armorPenetration: number;

@@ -10,23 +10,23 @@ describe('AttributeSet derived hit and evasion attributes', () => {
     });
 
     expect(attributes.getBaseValue(AttributeType.ACCURACY)).toBeCloseTo(
-      0.265806,
+      0.269508,
       6,
     );
     expect(attributes.getValue(AttributeType.ACCURACY)).toBeCloseTo(
-      0.265806,
+      0.269508,
       6,
     );
   });
 
-  it('caps derived accuracy at 30%', () => {
+  it('keeps derived accuracy on a diminishing-return curve', () => {
     const attributes = new AttributeSet({
       [AttributeType.WISDOM]: 3000,
       [AttributeType.WILLPOWER]: 3000,
     });
 
     expect(attributes.getBaseValue(AttributeType.ACCURACY)).toBeCloseTo(
-      0.299259,
+      0.30087,
       6,
     );
   });
@@ -40,11 +40,11 @@ describe('AttributeSet derived hit and evasion attributes', () => {
     });
 
     expect(attributes.getBaseValue(AttributeType.EVASION_RATE)).toBeCloseTo(
-      0.226349,
+      0.229677,
       6,
     );
     expect(cappedAttributes.getBaseValue(AttributeType.EVASION_RATE)).toBeCloseTo(
-      0.259264,
+      0.260741,
       6,
     );
   });
@@ -72,12 +72,28 @@ describe('AttributeSet derived hit and evasion attributes', () => {
     });
 
     expect(attributes.getValue(AttributeType.ACCURACY)).toBeCloseTo(
-      0.315806,
+      0.319508,
       6,
     );
     expect(attributes.getValue(AttributeType.EVASION_RATE)).toBeCloseTo(
-      0.266349,
+      0.269677,
       6,
     );
+  });
+
+  it('derives fixed combat attributes linearly from primary attributes', () => {
+    const attributes = new AttributeSet({
+      [AttributeType.VITALITY]: 100,
+      [AttributeType.SPEED]: 50,
+      [AttributeType.SPIRIT]: 100,
+      [AttributeType.WILLPOWER]: 50,
+    });
+
+    expect(attributes.getBaseValue(AttributeType.ATK)).toBe(429);
+    expect(attributes.getBaseValue(AttributeType.DEF)).toBe(204);
+    expect(attributes.getBaseValue(AttributeType.MAGIC_ATK)).toBe(429);
+    expect(attributes.getBaseValue(AttributeType.MAGIC_DEF)).toBe(204);
+    expect(attributes.getBaseValue(AttributeType.MAX_HP)).toBe(1960);
+    expect(attributes.getBaseValue(AttributeType.MAX_MP)).toBe(1550);
   });
 });

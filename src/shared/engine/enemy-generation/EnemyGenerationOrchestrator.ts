@@ -1,4 +1,7 @@
-import { getRealmStageAttributeBudget } from '@shared/config/realmProgression';
+import {
+  getRealmStageAttributeBudget,
+  getRealmStageNaturalAttributeValue,
+} from '@shared/config/realmProgression';
 import { ENEMY_RACE_VALUES } from '@shared/types/constants';
 import type { Attributes } from '@shared/types/cultivator';
 import { EnemyBodyCultivationPlanner } from './EnemyBodyCultivationPlanner';
@@ -279,11 +282,17 @@ export class EnemyGenerationOrchestrator {
     totalAttributeBudget: number;
   } {
     const baseCap = getRealmStageAttributeBudget(input.realm, input.realmStage);
+    const naturalAttributeValue = getRealmStageNaturalAttributeValue(
+      input.realm,
+      input.realmStage,
+    );
+    const naturalTotal = naturalAttributeValue * ATTRIBUTE_KEYS.length;
     const difficultyFactor = buildDifficultyFactor(input.difficulty);
     const totalAttributeBudget = Math.max(
-      50,
+      naturalTotal,
       Math.round(baseCap * difficultyFactor),
     );
+    const allocatableBudget = totalAttributeBudget - naturalTotal;
     const totalWeight = ATTRIBUTE_KEYS.reduce(
       (sum, key) => sum + attributeWeights[key],
       0,
@@ -291,7 +300,7 @@ export class EnemyGenerationOrchestrator {
 
     const raw = ATTRIBUTE_KEYS.map((key) => ({
       key,
-      value: (totalAttributeBudget * attributeWeights[key]) / totalWeight,
+      value: (allocatableBudget * attributeWeights[key]) / totalWeight,
     }));
     const base = raw.map((entry) => ({
       key: entry.key,
@@ -299,7 +308,7 @@ export class EnemyGenerationOrchestrator {
       fraction: entry.value - Math.floor(entry.value),
     }));
     let remaining =
-      totalAttributeBudget -
+      allocatableBudget -
       base.reduce((sum, entry) => sum + entry.value, 0);
 
     base
@@ -312,11 +321,11 @@ export class EnemyGenerationOrchestrator {
 
     const valueMap = new Map(base.map((entry) => [entry.key, entry.value]));
     const attributes: Attributes = {
-      vitality: valueMap.get('vitality') ?? 0,
-      spirit: valueMap.get('spirit') ?? 0,
-      wisdom: valueMap.get('wisdom') ?? 0,
-      speed: valueMap.get('speed') ?? 0,
-      willpower: valueMap.get('willpower') ?? 0,
+      vitality: naturalAttributeValue + (valueMap.get('vitality') ?? 0),
+      spirit: naturalAttributeValue + (valueMap.get('spirit') ?? 0),
+      wisdom: naturalAttributeValue + (valueMap.get('wisdom') ?? 0),
+      speed: naturalAttributeValue + (valueMap.get('speed') ?? 0),
+      willpower: naturalAttributeValue + (valueMap.get('willpower') ?? 0),
     };
 
     return {

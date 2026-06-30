@@ -95,9 +95,8 @@ import {
 import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward';
 import { getRetreatQiCost } from '@shared/config/qiSystem';
 import {
-  BASE_ATTRIBUTE_TOTAL,
-  BASE_ATTRIBUTE_VALUE,
-  getRealmStageAttributeBudget,
+  getRealmStageNaturalAttributeValue,
+  getRealmStageUnallocatedAttributeBudget,
 } from '@shared/config/realmProgression';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import { isTalismanConsumable } from '@shared/lib/consumables';
@@ -1172,17 +1171,22 @@ router.post('/attributes/allocate', requireActiveCultivator(), async (c) => {
           willpower: current.willpower + delta.willpower,
         };
         const values = Object.values(nextAttributes);
-        if (values.some((value) => value < BASE_ATTRIBUTE_VALUE)) {
-          throw new Error('属性不能低于基础值');
+        const naturalAttributeValue = getRealmStageNaturalAttributeValue(
+          current.realm as RealmType,
+          current.realmStage as RealmStage,
+        );
+        if (values.some((value) => value < naturalAttributeValue)) {
+          throw new Error('属性不能低于当前境界自然值');
         }
 
-        const budget = getRealmStageAttributeBudget(
+        const freeAttributeBudget = getRealmStageUnallocatedAttributeBudget(
           current.realm as RealmType,
           current.realmStage as RealmStage,
         );
         const totalAttributes = values.reduce((sum, value) => sum + value, 0);
-        const allocatedPoints = totalAttributes - BASE_ATTRIBUTE_TOTAL;
-        if (allocatedPoints > budget - BASE_ATTRIBUTE_TOTAL) {
+        const allocatedPoints =
+          totalAttributes - naturalAttributeValue * 5;
+        if (allocatedPoints > freeAttributeBudget) {
           throw new Error('属性总点数超过当前境界预算');
         }
 
@@ -1604,6 +1608,7 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
               toStage: result.summary.toStage,
               lifespanGained: result.summary.lifespanGained,
               attributeGrowth: result.summary.attributeGrowth,
+              naturalAttributeGrowth: result.summary.naturalAttributeGrowth,
               attributePointReward: result.summary.attributePointReward,
               lifespanDepleted: false,
               modifiers: result.summary.modifiers,

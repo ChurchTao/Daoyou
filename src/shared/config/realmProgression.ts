@@ -9,8 +9,12 @@ export const BASE_ATTRIBUTE_VALUE = 10;
 export const ATTRIBUTE_KEY_COUNT = 5;
 export const BASE_ATTRIBUTE_TOTAL =
   BASE_ATTRIBUTE_VALUE * ATTRIBUTE_KEY_COUNT;
-export const MINOR_STAGE_ATTRIBUTE_POINTS = 20;
-export const MAJOR_REALM_ATTRIBUTE_POINTS = 50;
+export const MINOR_STAGE_NATURAL_ATTRIBUTE_GAIN = 2;
+export const MAJOR_REALM_NATURAL_ATTRIBUTE_GAIN = 4;
+export const MINOR_STAGE_ATTRIBUTE_POINTS = 10;
+export const MAJOR_REALM_ATTRIBUTE_POINTS = 20;
+export const MAJOR_REALM_NATURAL_ATTRIBUTE_GAIN_TOTAL =
+  MAJOR_REALM_NATURAL_ATTRIBUTE_GAIN + MINOR_STAGE_NATURAL_ATTRIBUTE_GAIN * 3;
 export const MAJOR_REALM_TOTAL_ATTRIBUTE_POINTS =
   MAJOR_REALM_ATTRIBUTE_POINTS + MINOR_STAGE_ATTRIBUTE_POINTS * 3;
 
@@ -27,22 +31,50 @@ export function getRealmStageAttributeBudget(
   realm: RealmType,
   stage: RealmStage,
 ): number {
+  return (
+    getRealmStageNaturalAttributeValue(realm, stage) * ATTRIBUTE_KEY_COUNT +
+    getRealmStageUnallocatedAttributeBudget(realm, stage)
+  );
+}
+
+export function getRealmStageNaturalAttributeValue(
+  realm: RealmType,
+  stage: RealmStage,
+): number {
   const realmIndex = Math.max(0, REALM_VALUES.indexOf(realm));
   const stageIndex = Math.max(0, REALM_STAGE_VALUES.indexOf(stage));
   return (
-    BASE_ATTRIBUTE_TOTAL +
+    BASE_ATTRIBUTE_VALUE +
+    realmIndex * MAJOR_REALM_NATURAL_ATTRIBUTE_GAIN_TOTAL +
+    stageIndex * MINOR_STAGE_NATURAL_ATTRIBUTE_GAIN
+  );
+}
+
+export function getRealmStageUnallocatedAttributeBudget(
+  realm: RealmType,
+  stage: RealmStage,
+): number {
+  const realmIndex = Math.max(0, REALM_VALUES.indexOf(realm));
+  const stageIndex = Math.max(0, REALM_STAGE_VALUES.indexOf(stage));
+  return (
     realmIndex * MAJOR_REALM_TOTAL_ATTRIBUTE_POINTS +
     stageIndex * MINOR_STAGE_ATTRIBUTE_POINTS
   );
 }
 
-export function getBreakthroughAttributePointReward(
+export function getBreakthroughAttributeGrowthReward(
   from: { realm: RealmType; stage: RealmStage },
   to: { realm: RealmType; stage: RealmStage },
-): number {
+): { naturalPerAttribute: number; attributePointReward: number } {
   return from.realm === to.realm
-    ? MINOR_STAGE_ATTRIBUTE_POINTS
-    : MAJOR_REALM_ATTRIBUTE_POINTS;
+    ? {
+        naturalPerAttribute: MINOR_STAGE_NATURAL_ATTRIBUTE_GAIN,
+        attributePointReward: MINOR_STAGE_ATTRIBUTE_POINTS,
+      }
+    : {
+        naturalPerAttribute: MAJOR_REALM_NATURAL_ATTRIBUTE_GAIN,
+        attributePointReward: MAJOR_REALM_ATTRIBUTE_POINTS,
+      };
 }
 
 export function getRealmDamagePressureMultiplier(delta: number): number {

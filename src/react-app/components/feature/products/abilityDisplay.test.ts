@@ -169,9 +169,9 @@ describe('abilityDisplay', () => {
 
     expect(displayModel.modifiers).toHaveLength(2);
     expect(displayModel.modifiers[0].raw.value).toBeCloseTo(
-      224.80091479457968,
+      219.359465258856,
       6,
     );
-    expect(displayModel.affixes[0].effectText).toContain('+225');
+    expect(displayModel.affixes[0].effectText).toContain('+219');
   });
 });

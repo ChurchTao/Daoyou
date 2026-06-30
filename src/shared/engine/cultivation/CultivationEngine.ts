@@ -1,6 +1,6 @@
 import { type RealmStage, type RealmType } from '@shared/types/constants';
 import {
-  getBreakthroughAttributePointReward,
+  getBreakthroughAttributeGrowthReward,
 } from '@shared/config/realmProgression';
 import {
   evaluateFateContext,
@@ -44,6 +44,14 @@ import {
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
+
+const PRIMARY_ATTRIBUTE_KEYS = [
+  'vitality',
+  'spirit',
+  'wisdom',
+  'speed',
+  'willpower',
+] as const satisfies ReadonlyArray<keyof Attributes>;
 
 function randomInt(min: number, max: number, rng: () => number): number {
   return Math.floor(rng() * (max - min + 1)) + min;
@@ -128,6 +136,7 @@ export interface BreakthroughResult {
     toStage?: RealmStage;
     lifespanGained: number;
     attributeGrowth: Partial<Attributes>;
+    naturalAttributeGrowth: number;
     attributePointReward: number;
     exp_progress: number;
     insight_value: number;
@@ -297,6 +306,7 @@ export function attemptBreakthrough(
 
   let lifespanGained = 0;
   const attributeGrowth: Partial<Attributes> = {};
+  let naturalAttributeGrowth = 0;
   let attributePointReward = 0;
   let historyEntry: BreakthroughHistoryEntry | undefined;
   let insight_change = 0;
@@ -316,10 +326,15 @@ export function attemptBreakthrough(
 
   if (success) {
     // 突破成功
-    attributePointReward = getBreakthroughAttributePointReward(
+    const attributeReward = getBreakthroughAttributeGrowthReward(
       { realm: fromRealm, stage: fromStage },
       nextStage,
     );
+    naturalAttributeGrowth = attributeReward.naturalPerAttribute;
+    attributePointReward = attributeReward.attributePointReward;
+    for (const key of PRIMARY_ATTRIBUTE_KEYS) {
+      cultivator.attributes[key] += naturalAttributeGrowth;
+    }
     cultivator.unallocated_attribute_points =
       (cultivator.unallocated_attribute_points ?? 0) + attributePointReward;
 
@@ -444,6 +459,7 @@ export function attemptBreakthrough(
       toStage: success ? nextStage.stage : undefined,
       lifespanGained,
       attributeGrowth,
+      naturalAttributeGrowth,
       attributePointReward,
       exp_progress,
       insight_value,

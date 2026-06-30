@@ -204,8 +204,8 @@ describe('BattleInitApplier', () => {
       },
     });
 
-    expect(opponentUnit.getMaxHp()).toBe(513);
-    expect(opponentUnit.getCurrentHp()).toBe(256);
+    expect(opponentUnit.getMaxHp()).toBe(541);
+    expect(opponentUnit.getCurrentHp()).toBe(270);
   });
 
   test('状态录制中的 maxHp 底座与修正值能正确区分', () => {
@@ -229,7 +229,7 @@ describe('BattleInitApplier', () => {
 
     const initFrame = result.stateTimeline.frames[0].units.dummy;
 
-    expect(initFrame.baseAttrs.maxHp).toBe(470);
+    expect(initFrame.baseAttrs.maxHp).toBe(502);
     expect(initFrame.attrs.maxHp).toBe(1_000);
     expect(initFrame.hp.current).toBe(1_000);
   });

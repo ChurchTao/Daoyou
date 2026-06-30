@@ -259,18 +259,18 @@ describe('player router', () => {
             attrs: expect.objectContaining({
               spirit: 10,
               willpower: 10,
-              maxHp: 470,
-              maxMp: 330,
+              maxHp: 502,
+              maxMp: 362,
             }),
             resources: {
               hp: {
-                current: 470,
-                max: 470,
+                current: 502,
+                max: 502,
                 percent: 100,
               },
               mp: {
-                current: 330,
-                max: 330,
+                current: 362,
+                max: 362,
                 percent: 100,
               },
             },
@@ -283,7 +283,7 @@ describe('player router', () => {
               createdAt: '2026-01-02T03:04:05.000Z',
             }),
             display: expect.objectContaining({
-              attrs: expect.objectContaining({ maxMp: 330 }),
+              attrs: expect.objectContaining({ maxMp: 362 }),
             }),
           }),
         ],

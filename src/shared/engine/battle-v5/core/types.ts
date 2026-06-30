@@ -32,18 +32,18 @@ export enum AttributeType {
   WISDOM = 'wisdom',       // 悟性：暴击率加成、暴击伤害上限、法力上限
 
   // ── 派生型二级属性（base 由主属性公式推算，modifier 可叠加）──
-  ATK = 'atk',                                 // 物理攻击：VITALITY×5
-  DEF = 'def',                                 // 物理防御：VITALITY×3
-  MAGIC_ATK = 'magicAtk',                      // 法术攻击：SPIRIT×5
-  MAGIC_DEF = 'magicDef',                      // 法术防御：WILLPOWER×3
-  CRIT_RATE = 'critRate',                       // 暴击率 (0~0.60)：0.05 + SPEED×0.0002 + WISDOM×0.0001
-  CRIT_DAMAGE_MULT = 'critDamageMult',          // 暴击伤害倍率 (1.25~2.00)：1.25 + WISDOM×0.0005
-  EVASION_RATE = 'evasionRate',                 // 闪避率 (0~0.30)：SPEED×0.00018
-  ACCURACY = 'accuracy',                         // 命中 (0~0.30)：WISDOM×0.00012 + WILLPOWER×0.00008
-  CONTROL_HIT = 'controlHit',                   // 控制命中 (0~0.80)：WILLPOWER×0.003
-  CONTROL_RESISTANCE = 'controlResistance',     // 控制抗性 (0~0.80)：WILLPOWER×0.006
-  MAX_HP = 'maxHp',                             // 最大气血：200 + VITALITY×16
-  MAX_MP = 'maxMp',                             // 最大法力：200 + SPIRIT×10 + WILLPOWER×6
+  ATK = 'atk',                                 // 物理攻击：24 + VITALITY×3.45 + SPEED×1.2
+  DEF = 'def',                                 // 物理防御：VITALITY×1.68 + SPEED×0.72
+  MAGIC_ATK = 'magicAtk',                      // 法术攻击：24 + SPIRIT×3.45 + WILLPOWER×1.2
+  MAGIC_DEF = 'magicDef',                      // 法术防御：SPIRIT×1.68 + WILLPOWER×0.72
+  CRIT_RATE = 'critRate',                       // 暴击率：0.03 + curve(SPEED×0.65 + WISDOM×0.35, 205, 0.32)
+  CRIT_DAMAGE_MULT = 'critDamageMult',          // 暴击伤害倍率：1.25 + curve(WISDOM, 240, 0.75)
+  EVASION_RATE = 'evasionRate',                 // 闪避率：0.02 + curve(SPEED, 240, 0.26)
+  ACCURACY = 'accuracy',                         // 命中：0.04 + curve(WISDOM×0.65 + WILLPOWER×0.35, 220, 0.28)
+  CONTROL_HIT = 'controlHit',                   // 控制命中：0.05 + curve(WISDOM×0.35 + WILLPOWER×0.65, 240, 0.35)
+  CONTROL_RESISTANCE = 'controlResistance',     // 控制抗性：0.03 + curve(WILLPOWER, 240, 0.37)
+  MAX_HP = 'maxHp',                             // 最大气血：340 + VITALITY×16.2
+  MAX_MP = 'maxMp',                             // 最大法力：200 + SPIRIT×10.8 + WILLPOWER×5.4
 
   // ── 外部注入型二级属性（base=0，完全由装备/Buff/命格提供）──
   ARMOR_PENETRATION = 'armorPenetration',        // 破防：抵消目标减伤率 (0~1)
