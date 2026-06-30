@@ -221,4 +221,26 @@ describe('AlchemyRecipeRules batch profile', () => {
 
     expect(poorProfile.yieldQuantity).toBeLessThanOrEqual(2);
   });
+
+  it('uses the steeper divine quality curve for body cultivation pills', () => {
+    const result = synthesizeAlchemyFromPlan(
+      [material({ rank: '神品' })],
+      plan([
+        {
+          materialRef: 'material_1',
+          materialName: '龙血藤',
+          properties: [{ key: 'body_qi_blood', weight: 1 }],
+        },
+      ]),
+      '神品',
+      '筑基',
+      { rng: () => 0.5 },
+    );
+
+    expect(result.operations).toContainEqual({
+      type: 'advance_track',
+      track: 'body.qi_blood',
+      value: 210,
+    });
+  });
 });

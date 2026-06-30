@@ -5,7 +5,6 @@ import {
   QUALITY_STABILITY_BONUS,
   type AlchemyMaterialType,
 } from '@shared/config/alchemyConfig';
-import { getConsumableQualityScalar } from '@shared/config/consumableSystem';
 import {
   buildCultivationBoostOperation,
   CULTIVATION_BOOST_STATUS_KEY,
@@ -18,6 +17,7 @@ import { buildInsightGain } from '@shared/lib/alchemyProgress';
 import { rollPillAppearance } from '@shared/lib/pillAppearance';
 import {
   applyPillAppearanceToOperations,
+  buildBodyTrackAdvance,
   buildBreakthroughFocusOperation,
   buildClearMindOperation,
   buildDetoxPower,
@@ -256,8 +256,6 @@ function buildBasePropertyOperation(
   key: AlchemyPropertyKey,
   quality: Quality,
 ): ConditionOperation {
-  const scalar = getConsumableQualityScalar(quality);
-
   switch (key) {
     case 'restore_hp':
       return {
@@ -307,7 +305,7 @@ function buildBasePropertyOperation(
       return {
         type: 'advance_track',
         track: 'marrow_wash',
-        value: Math.max(20, Math.floor(40 * scalar)),
+        value: buildBodyTrackAdvance(quality),
       };
     case 'body_skin':
     case 'body_sinew_bone':
@@ -322,7 +320,7 @@ function buildBasePropertyOperation(
       return {
         type: 'advance_track',
         track,
-        value: Math.max(20, Math.floor(40 * scalar)),
+        value: buildBodyTrackAdvance(quality),
       };
     }
   }

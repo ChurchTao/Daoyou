@@ -29,6 +29,39 @@ const NUMERIC_RULES = {
   protectMeridians: { min: 0.15, max: 1 },
 } as const;
 
+export const LIFESPAN_GAIN_BY_QUALITY: Record<Quality, number> = {
+  凡品: 10,
+  灵品: 37,
+  玄品: 64,
+  真品: 91,
+  地品: 120,
+  天品: 155,
+  仙品: 240,
+  神品: 320,
+};
+
+export const DETOX_POWER_BY_QUALITY: Record<Quality, number> = {
+  凡品: 10,
+  灵品: 17,
+  玄品: 24,
+  真品: 31,
+  地品: 40,
+  天品: 52,
+  仙品: 85,
+  神品: 120,
+};
+
+export const BODY_TRACK_ADVANCE_BY_QUALITY: Record<Quality, number> = {
+  凡品: 40,
+  灵品: 48,
+  玄品: 57,
+  真品: 66,
+  地品: 78,
+  天品: 96,
+  仙品: 140,
+  神品: 210,
+};
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -54,15 +87,19 @@ export function buildInsightGain(quality: Quality): number {
 }
 
 export function buildLifespanGain(quality: Quality): number {
-  return Math.round(getLinearQualityValue(quality, 10, 200));
+  return LIFESPAN_GAIN_BY_QUALITY[quality];
 }
 
 export function buildDetoxPower(quality: Quality): number {
-  return Math.round(getLinearQualityValue(quality, 10, 60));
+  return DETOX_POWER_BY_QUALITY[quality];
 }
 
 export function buildPositivePillToxicity(quality: Quality): number {
   return Math.round(getLinearQualityValue(quality, 3, 40));
+}
+
+export function buildBodyTrackAdvance(quality: Quality): number {
+  return BODY_TRACK_ADVANCE_BY_QUALITY[quality];
 }
 
 export function buildBreakthroughChanceBonus(quality: Quality): number {

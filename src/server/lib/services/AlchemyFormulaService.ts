@@ -32,6 +32,7 @@ import {
 } from '@shared/lib/pillAppearance';
 import {
   applyPillAppearanceToOperations,
+  buildBodyTrackAdvance,
   buildBreakthroughFocusOperation,
   buildClearMindOperation,
   buildCultivationBoostOperationV2,
@@ -671,6 +672,7 @@ function scaleFormulaOperations(
   operations: ConditionOperation[],
   fitMultiplier: number,
   quality: Quality,
+  minQuality?: Quality,
 ): ConditionOperation[] {
   return operations.flatMap((operation): ConditionOperation[] => {
     if (operation.type === 'restore_resource') {
@@ -717,6 +719,25 @@ function scaleFormulaOperations(
     }
 
     if (operation.type === 'advance_track') {
+      if (
+        minQuality &&
+        (operation.track === 'marrow_wash' || operation.track.startsWith('body.'))
+      ) {
+        const baseValue = buildBodyTrackAdvance(minQuality);
+        const qualityValue = buildBodyTrackAdvance(quality);
+        return [
+          scalePillEffectOperation(
+            {
+              ...operation,
+              value: Math.max(
+                1,
+                Math.round(operation.value * (qualityValue / baseValue)),
+              ),
+            },
+            fitMultiplier,
+          ),
+        ];
+      }
       return [scalePillEffectOperation(operation, fitMultiplier)];
     }
 
@@ -1467,6 +1488,7 @@ export async function craftFromFormula(
           formula.blueprint.operations,
           fitMultiplier,
           highestMaterialRank,
+          formula.pattern.minQuality,
         ),
         appearance,
       ),
