@@ -2,8 +2,8 @@ import {
   EnemyRace,
   GENDER_VALUES,
   REALM_ORDER,
-  REALM_STAGE_CAPS,
 } from '@shared/types/constants';
+import { getRealmStageRank } from '@shared/config/realmProgression';
 import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import type {
   BodyCultivationState,
@@ -166,8 +166,9 @@ export class EnemyCultivatorAssembler {
       realm: input.realm,
       realm_stage: input.realmStage,
       age: 30 + REALM_ORDER[input.realm] * 45 + (input.difficulty % 20),
-      lifespan: 150 + REALM_STAGE_CAPS[input.realm][input.realmStage] * 6,
+      lifespan: 120 + getRealmStageRank(input.realm, input.realmStage) * 45,
       attributes,
+      unallocated_attribute_points: 0,
       spiritual_roots: spiritualRoots,
       pre_heaven_fates: [],
       cultivations: [loadout.technique.item],
@@ -178,7 +179,6 @@ export class EnemyCultivatorAssembler {
         materials: [],
       },
       equipped,
-      max_skills: Math.max(6, skillEntries.length + 1),
       spirit_stones: 0,
       background,
       description,

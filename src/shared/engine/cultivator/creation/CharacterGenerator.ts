@@ -38,7 +38,7 @@ export class CharacterGenerator {
     const data = normalizeCultivatorAIData(aiResponse.object);
 
     // 2. 数值化生成
-    const attributes = generateAttributes(data.aptitude_score);
+    const attributes = generateAttributes();
     const spiritual_roots = generateSpiritualRoots(
       data.aptitude_score,
       data.element_preferences,
@@ -81,8 +81,6 @@ export class CharacterGenerator {
       spiritual_roots,
       cultivations,
       skills,
-      max_skills: 2 + Math.floor(attributes.wisdom / 10), // 悟性决定神通上限
-
       status: 'active',
       spirit_stones: 0,
       pre_heaven_fates: [], // 后续流程生成

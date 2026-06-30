@@ -86,6 +86,7 @@ export async function consumeLifespanAndHandleDepletion(
           fromStage: cultivator.realm_stage as RealmStage,
           lifespanGained: 0,
           attributeGrowth: {},
+          attributePointReward: 0,
           lifespanDepleted: true,
           modifiers: {} as BreakthroughModifiers,
         },

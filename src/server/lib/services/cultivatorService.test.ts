@@ -94,7 +94,6 @@ function createGeneratedCultivator(): Cultivator {
       armor: null,
       accessory: null,
     },
-    max_skills: 4,
     spirit_stones: 0,
   };
 }
@@ -134,7 +133,6 @@ describe('createCultivator', () => {
       qi: 200,
       qiLastRefreshedAt: new Date('2026-01-01T00:00:00.000Z'),
       last_yield_at: new Date('2026-01-01T00:00:00.000Z'),
-      max_skills: cultivator.max_skills,
       balance_notes: null,
       condition: {},
       gameSettings: {},

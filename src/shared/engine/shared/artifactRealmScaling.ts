@@ -1,8 +1,8 @@
 import {
-  REALM_STAGE_CAPS,
-  type RealmStage,
-  type RealmType,
-} from '@shared/types/constants';
+  BASE_ATTRIBUTE_TOTAL,
+  getRealmStageAttributeBudget,
+} from '@shared/config/realmProgression';
+import type { RealmStage, RealmType } from '@shared/types/constants';
 import { AttributeType, ModifierType } from '@shared/engine/battle-v5/core/types';
 
 export const ARTIFACT_REALM_SCALING_EXPONENT = 0.3;
@@ -33,10 +33,10 @@ export function getArtifactRealmGrowthFactor(
   if (!realm) return 1;
 
   const resolvedStage = realmStage ?? DEFAULT_ARTIFACT_REALM_SCALING_STAGE;
-  const cap = REALM_STAGE_CAPS[realm]?.[resolvedStage];
-  if (!cap) return 1;
+  const budget = getRealmStageAttributeBudget(realm, resolvedStage);
+  if (!budget) return 1;
 
-  return Math.pow(cap / 20, ARTIFACT_REALM_SCALING_EXPONENT);
+  return Math.pow(budget / BASE_ATTRIBUTE_TOTAL, ARTIFACT_REALM_SCALING_EXPONENT);
 }
 
 export function getArtifactWearerRealmFactor(

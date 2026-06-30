@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_cultivators" ADD COLUMN "unallocated_attribute_points" integer DEFAULT 0 NOT NULL;

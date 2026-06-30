@@ -39,7 +39,6 @@ function createCultivator(
       armor: null,
       accessory: null,
     },
-    max_skills: overrides.max_skills ?? 4,
     spirit_stones: overrides.spirit_stones ?? 0,
     cultivation_progress: overrides.cultivation_progress ?? {
       cultivation_exp: 100,

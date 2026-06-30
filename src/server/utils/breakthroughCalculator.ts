@@ -12,7 +12,6 @@ import {
   type RealmType,
 } from '@shared/types/constants';
 import type {
-  Attributes,
   CultivationProgress,
   Cultivator,
 } from '@shared/types/cultivator';
@@ -32,17 +31,9 @@ import type {
 } from '@shared/types/condition';
 import { format } from 'd3-format';
 import { calculateExpProgress, getBreakthroughType } from './cultivationUtils';
-import { getRealmStageAttributeCap } from './cultivatorUtils';
 
 const REALM_ORDER = [...REALM_VALUES];
 const STAGE_ORDER = [...REALM_STAGE_VALUES];
-const ATTRIBUTE_KEYS: Array<keyof Attributes> = [
-  'vitality',
-  'spirit',
-  'wisdom',
-  'speed',
-  'willpower',
-];
 
 const LIFESPAN_BONUS_BY_REALM: Partial<Record<RealmType, number>> = {
   筑基: 200,
@@ -437,75 +428,3 @@ ${modifiers.demonPenalty < 1.0 ? `• 心魔惩罚：×${format('.2f')(modifiers
 }
 
 // ==================== 属性成长相关工具函数 ====================
-
-/**
- * 获取悟性修正系数
- */
-function getComprehensionModifier(wisdom: number): number {
-  // 悟性越高，修正倍率越高，最高不超过0.18
-  return Math.min(0.18, Math.max((wisdom - 50) / 1000, 0));
-}
-
-/**
- * 获取属性增长范围
- * @param wisdom 悟性
- * @param fromStage 当前境界
- * @param nextStage 下一境界
- * @param isMajor 是否大境界突破
- * @returns 属性增长范围
- */
-export function getAttributeGrowthRange(
-  wisdom: number,
-  fromStage: { realm: RealmType; stage: RealmStage },
-  nextStage: { realm: RealmType; stage: RealmStage },
-  isMajor: boolean,
-): { min: number; max: number } {
-  const fromCap = getRealmStageAttributeCap(fromStage.realm, fromStage.stage);
-  const nextCap = getRealmStageAttributeCap(nextStage.realm, nextStage.stage);
-  const capDiff = nextCap - fromCap;
-  const wisdomModifier = getComprehensionModifier(wisdom);
-  const min = Math.round(capDiff * (0.7 + wisdomModifier));
-  const max = Math.round(capDiff * (0.8 + wisdomModifier));
-  const majorMin = Math.round(capDiff * (0.8 + wisdomModifier));
-  const majorMax = Math.round(capDiff * (0.9 + wisdomModifier));
-  return isMajor ? { min: majorMin, max: majorMax } : { min, max };
-}
-
-/**
- * 应用属性成长
- */
-export function applyAttributeGrowth(
-  attributes: Attributes,
-  cap: number,
-  range: { min: number; max: number },
-  isMajor: boolean,
-  rng: () => number = Math.random,
-): { attributes: Attributes; growth: Partial<Attributes> } {
-  const updated = { ...attributes };
-  const growth: Partial<Attributes> = {};
-
-  ATTRIBUTE_KEYS.forEach((key) => {
-    const current = updated[key]!;
-    // 如果属性已达到或超过新境界上限，不给予成长，但保留原有属性（包括丹药加成）
-    if (current >= cap) {
-      growth[key] = 0;
-      // updated[key] 保持原值不变
-      return;
-    }
-    // 正常情况：给予成长，但不超过上限
-    const delta = randomInt(range.min, range.max, rng);
-    const boosted = Math.min(current + delta, cap);
-    growth[key] = boosted - current;
-    updated[key] = boosted;
-  });
-
-  return { attributes: updated, growth };
-}
-
-/**
- * 随机整数
- */
-function randomInt(min: number, max: number, rng: () => number): number {
-  if (max <= min) return min;
-  return Math.floor(rng() * (max - min + 1)) + min;
-}

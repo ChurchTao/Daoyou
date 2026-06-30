@@ -1,4 +1,5 @@
 import { GameplayTagContainer, GameplayTags } from '@shared/engine/shared/tag-domain';
+import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { SpiritualRoot } from '@shared/types/cultivator';
 import { AttributeType, UnitId, UnitSnapshot } from '../core/types';
 import { AbilityContainer } from './AbilityContainer';
@@ -7,6 +8,9 @@ import { BuffContainer } from './BuffContainer';
 
 interface UnitRuntimeMeta {
   spiritualRoots: SpiritualRoot[];
+  realm?: RealmType;
+  realmStage?: RealmStage;
+  realmRank?: number;
 }
 
 export class Unit {
@@ -185,6 +189,7 @@ export class Unit {
     clone.maxMp = this.maxMp;
     clone.currentShield = this.currentShield;
     clone.setSpiritualRoots(this.getSpiritualRoots());
+    clone.setRealmMeta(this.getRealmMeta());
 
     // Clone tags (clear default tags from constructor, then copy all tags from original)
     clone.tags.clear();
@@ -226,6 +231,28 @@ export class Unit {
     return this._runtimeMeta.spiritualRoots.map((root) => ({
       ...root,
     }));
+  }
+
+  setRealmMeta(meta: {
+    realm?: RealmType;
+    realmStage?: RealmStage;
+    realmRank?: number;
+  }): void {
+    this._runtimeMeta.realm = meta.realm;
+    this._runtimeMeta.realmStage = meta.realmStage;
+    this._runtimeMeta.realmRank = meta.realmRank;
+  }
+
+  getRealmMeta(): {
+    realm?: RealmType;
+    realmStage?: RealmStage;
+    realmRank?: number;
+  } {
+    return {
+      realm: this._runtimeMeta.realm,
+      realmStage: this._runtimeMeta.realmStage,
+      realmRank: this._runtimeMeta.realmRank,
+    };
   }
 
   getCurrentShield(): number {

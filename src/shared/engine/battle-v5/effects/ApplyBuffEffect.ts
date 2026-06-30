@@ -5,6 +5,11 @@ import { BuffFactory } from '../factories/BuffFactory';
 import { AttributeType, BuffType } from '../core/types';
 import { EventBus } from '../core/EventBus';
 import { ControlResistEvent } from '../core/events';
+import { getRealmEffectChanceMultiplier } from '@shared/config/realmProgression';
+
+function clampChance(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
 
 /**
  * 施加 Buff 原子效果
@@ -17,16 +22,36 @@ export class ApplyBuffEffect extends GameplayEffect {
   execute(context: EffectContext): void {
     const { caster } = context;
     const target = this.params.target === 'caster' ? caster : context.target;
+    const isHostile = caster !== target;
 
     // 概率检查
-    if (this.params.chance !== undefined && Math.random() > this.params.chance) {
+    const baseChance = this.params.chance ?? 1;
+    let finalChance = baseChance;
+    const buffPreview = BuffFactory.create(this.params.buffConfig);
+    if (
+      isHostile &&
+      (buffPreview.type === BuffType.DEBUFF ||
+        buffPreview.type === BuffType.CONTROL)
+    ) {
+      const casterRank = caster.getRealmMeta().realmRank;
+      const targetRank = target.getRealmMeta().realmRank;
+      if (casterRank !== undefined && targetRank !== undefined) {
+        finalChance *= getRealmEffectChanceMultiplier(casterRank - targetRank);
+      }
+    }
+
+    const resolvedChance = clampChance(finalChance);
+    if (resolvedChance <= 0) {
+      return;
+    }
+    if (resolvedChance < 1 && Math.random() > resolvedChance) {
       return;
     }
 
     // 创建 Buff 实例并添加到目标
-    const buff = BuffFactory.create(this.params.buffConfig);
+    const buff = buffPreview;
 
-    if (buff.type === BuffType.CONTROL && caster !== target) {
+    if (buff.type === BuffType.CONTROL && isHostile) {
       const controlResistance = target.attributes.getValue(
         AttributeType.CONTROL_RESISTANCE,
       );

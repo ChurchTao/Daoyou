@@ -58,13 +58,16 @@ export const cultivators = pgTable(
     wisdom: integer('wisdom').notNull(),
     speed: integer('speed').notNull(),
     willpower: integer('willpower').notNull(),
+    unallocatedAttributePoints: integer('unallocated_attribute_points')
+      .notNull()
+      .default(0),
 
     spirit_stones: integer('spirit_stones').notNull().default(0), // 灵石
     reputation: integer('reputation').notNull().default(0), // 声望
     qi: integer('qi').notNull().default(200), // 天地灵气
     qiLastRefreshedAt: timestamp('qi_last_refreshed_at').notNull().defaultNow(),
     last_yield_at: timestamp('last_yield_at').defaultNow(),
-
+    // @deprecated 上线后删除
     max_skills: integer('max_skills').notNull().default(4),
     balance_notes: text('balance_notes'),
 

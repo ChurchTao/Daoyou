@@ -12,7 +12,8 @@ import {
 } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { simulateBattleV5 } from '@shared/lib/battle/simulateBattleV5';
-import { ENEMY_RACE_VALUES, REALM_STAGE_CAPS, type EnemyRace } from '@shared/types/constants';
+import { getRealmStageAttributeBudget } from '@shared/config/realmProgression';
+import { ENEMY_RACE_VALUES, type EnemyRace } from '@shared/types/constants';
 import type { Cultivator } from '@shared/types/cultivator';
 import {
   enemyGenerator,
@@ -61,7 +62,6 @@ function createPlayerFixture(): Cultivator {
       armor: null,
       accessory: null,
     },
-    max_skills: 4,
     spirit_stones: 0,
     background: '测试用玩家角色',
   };
@@ -247,7 +247,7 @@ describe('EnemyGenerator', () => {
 
     expect(draft.balance.difficultyFactor).toBeCloseTo(factor, 6);
     expect(draft.balance.totalAttributeBudget).toBe(
-      Math.round(REALM_STAGE_CAPS.筑基.中期 * factor * 5),
+      Math.round(getRealmStageAttributeBudget('筑基', '中期') * factor),
     );
     expect(sumAttributes(draft.cultivator.attributes)).toBe(
       draft.balance.totalAttributeBudget,

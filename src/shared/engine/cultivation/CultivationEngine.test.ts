@@ -20,6 +20,7 @@ function createCultivator(): Cultivator {
       speed: 28,
       willpower: 32,
     },
+    unallocated_attribute_points: 0,
     spiritual_roots: [{ element: '木', strength: 80, grade: '真灵根' }],
     pre_heaven_fates: [],
     cultivations: [],
@@ -34,7 +35,6 @@ function createCultivator(): Cultivator {
       armor: null,
       accessory: null,
     },
-    max_skills: 4,
     spirit_stones: 0,
     cultivation_progress: {
       cultivation_exp: 0,
@@ -199,6 +199,28 @@ describe('CultivationEngine cultivation boost', () => {
     expect(result.cultivator.cultivation_progress?.exp_cap).toBe(
       resolveLiveExpCap('筑基', '中期'),
     );
+  });
+
+  it('grants fixed unallocated attribute points after breakthrough', () => {
+    const minor = createCultivator();
+    minor.cultivation_progress!.cultivation_exp = 80_000;
+
+    const minorResult = attemptBreakthrough(minor, () => 0);
+
+    expect(minorResult.summary.attributeGrowth).toEqual({});
+    expect(minorResult.summary.attributePointReward).toBe(20);
+    expect(minorResult.cultivator.unallocated_attribute_points).toBe(20);
+    expect(minorResult.cultivator.attributes).toEqual(minor.attributes);
+
+    const major = createCultivator();
+    major.realm_stage = '圆满';
+    major.cultivation_progress!.cultivation_exp = 80_000;
+
+    const majorResult = attemptBreakthrough(major, () => 0);
+
+    expect(majorResult.summary.attributePointReward).toBe(50);
+    expect(majorResult.cultivator.unallocated_attribute_points).toBe(50);
+    expect(majorResult.cultivator.attributes).toEqual(major.attributes);
   });
 
   it('reads breakthrough focus payload as a success-rate bonus', () => {

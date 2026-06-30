@@ -150,7 +150,6 @@ describe('prompt integrations', () => {
           effects: [],
         },
       ],
-      max_skills: 2,
       status: 'active',
       spirit_stones: 0,
       inventory: { artifacts: [], consumables: [], materials: [] },

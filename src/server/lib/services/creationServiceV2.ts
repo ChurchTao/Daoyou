@@ -39,6 +39,7 @@ import {
   MAX_EQUIPPED_GONGFA,
   MAX_OWNED_CREATION_PRODUCTS_PER_TYPE,
 } from '@shared/config/creationProductLimits';
+import { DEFAULT_MAX_ACTIVE_SKILLS } from '@shared/config/skillLimits';
 import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import { cultivators, materials } from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
@@ -319,9 +320,10 @@ function buildCreationPreviewValidation(
 
 function getEffectiveProductLimit(
   productType: CreationProductType,
-  cultivator: { max_skills?: number | null },
+  cultivator: unknown,
 ): number | null {
-  if (productType === 'skill') return cultivator.max_skills ?? 3;
+  void cultivator;
+  if (productType === 'skill') return DEFAULT_MAX_ACTIVE_SKILLS;
   if (productType === 'gongfa') return MAX_EQUIPPED_GONGFA;
   return null;
 }

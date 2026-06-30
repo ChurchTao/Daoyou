@@ -11,7 +11,6 @@ vi.mock('@server/lib/hono/middleware', () => ({
       context.set('user', { id: 'user-1' });
       context.set('cultivator', {
         id: 'cultivator-1',
-        max_skills: 2,
       });
       await next();
     },
@@ -38,6 +37,7 @@ vi.mock('@server/lib/repositories/creationProductRepository', () => ({
 
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { db } from '@server/lib/drizzle/db';
+import { DEFAULT_MAX_ACTIVE_SKILLS } from '@shared/config/skillLimits';
 import productsRouter from './products.router';
 
 const dbMock = db as unknown as Mock;
@@ -116,7 +116,7 @@ describe('products router equip toggle', () => {
       productType: 'skill',
       isEquipped: false,
     });
-    countEquippedByTypeMock.mockResolvedValueOnce(2);
+    countEquippedByTypeMock.mockResolvedValueOnce(DEFAULT_MAX_ACTIVE_SKILLS);
 
     const response = await createApp().request('/api/v2/products/equip', {
       method: 'POST',

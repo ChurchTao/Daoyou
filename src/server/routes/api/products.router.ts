@@ -12,6 +12,7 @@ import {
 import {
   MAX_EQUIPPED_GONGFA,
 } from '@shared/config/creationProductLimits';
+import { DEFAULT_MAX_ACTIVE_SKILLS } from '@shared/config/skillLimits';
 import { rehydrateStoredProductModel } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
 import type { CreationProductType } from '@shared/engine/creation-v2/types';
 import { getCreationProductTypeLabel } from '@shared/lib/gameConceptDisplay';
@@ -159,9 +160,7 @@ router.post('/equip', requireActiveCultivator(), async (c) => {
   }
 
   const maxEquipped =
-    productType === 'skill'
-      ? (cultivator.max_skills ?? 3)
-      : MAX_EQUIPPED_GONGFA;
+    productType === 'skill' ? DEFAULT_MAX_ACTIVE_SKILLS : MAX_EQUIPPED_GONGFA;
   const equippedCount = await creationProductRepository.countEquippedByType(
     cultivator.id,
     productType,

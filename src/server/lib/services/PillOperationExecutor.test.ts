@@ -36,7 +36,6 @@ function createCultivator(): Cultivator {
       armor: null,
       accessory: null,
     },
-    max_skills: 4,
     spirit_stones: 0,
   };
 }

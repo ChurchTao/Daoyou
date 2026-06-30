@@ -1,4 +1,5 @@
-import { ENEMY_RACE_VALUES, REALM_STAGE_CAPS } from '@shared/types/constants';
+import { getRealmStageAttributeBudget } from '@shared/config/realmProgression';
+import { ENEMY_RACE_VALUES } from '@shared/types/constants';
 import type { Attributes } from '@shared/types/cultivator';
 import { EnemyBodyCultivationPlanner } from './EnemyBodyCultivationPlanner';
 import { EnemyCraftExecutor } from './EnemyCraftExecutor';
@@ -277,10 +278,11 @@ export class EnemyGenerationOrchestrator {
     difficultyFactor: number;
     totalAttributeBudget: number;
   } {
-    const baseCap = REALM_STAGE_CAPS[input.realm][input.realmStage];
+    const baseCap = getRealmStageAttributeBudget(input.realm, input.realmStage);
     const difficultyFactor = buildDifficultyFactor(input.difficulty);
-    const totalAttributeBudget = Math.round(
-      baseCap * difficultyFactor * ATTRIBUTE_KEYS.length,
+    const totalAttributeBudget = Math.max(
+      50,
+      Math.round(baseCap * difficultyFactor),
     );
     const totalWeight = ATTRIBUTE_KEYS.reduce(
       (sum, key) => sum + attributeWeights[key],

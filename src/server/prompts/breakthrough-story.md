@@ -17,6 +17,6 @@ id: breakthrough-story
 
 【角色】{{name}}｜{{realm}}{{realmStage}}｜悟性 {{wisdom}} 灵根：{{roots}} 功法：{{cultivations}} 气运：{{fates}} 年龄：{{age}}，寿元：{{lifespan}}
 
-【闭关】本次闭关 {{yearsSpent}} 年。【突破】从 {{fromRealm}}{{fromStage}} → {{toRealm}}{{toStage}}，{{breakthroughType}}，寿元提升 {{lifespanGained}} 年。【收获】基础属性增幅：{{attributeGain}}。
+【闭关】本次闭关 {{yearsSpent}} 年。【突破】从 {{fromRealm}}{{fromStage}} → {{toRealm}}{{toStage}}，{{breakthroughType}}，寿元提升 {{lifespanGained}} 年。【收获】{{attributeGain}}。
 
 请依据以上资料创作突破成功的短篇故事，重点描绘心境、天地异象与突破瞬间。

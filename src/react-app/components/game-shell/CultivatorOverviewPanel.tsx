@@ -1,6 +1,13 @@
 import {
   CultivatorCurrentStatusSection,
 } from '@app/components/feature/cultivator/PersistentStatusesCard';
+import {
+  AttributeAllocationControl,
+} from '@app/components/feature/cultivator/AttributeAllocationControl';
+import {
+  canSubmitAttributeAllocation,
+  createEmptyAttributeDraft,
+} from '@app/components/feature/cultivator/attributeAllocationControlLogic';
 import { BodyCultivationEntrySection } from '@app/components/feature/cultivator/BodyCultivationPanels';
 import { TitleEditorModal } from '@app/components/feature/cultivator/TitleEditorModal';
 import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
@@ -29,13 +36,20 @@ import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapter
 import { AttributeType } from '@shared/engine/battle-v5/core/types';
 import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
 import { cn } from '@shared/lib/cn';
-import type { Cultivator } from '@shared/types/cultivator';
+import type { Attributes, Cultivator } from '@shared/types/cultivator';
 import { getEquipmentSlotInfo } from '@shared/lib/gameConceptDisplay';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { GameSceneSection } from './GameSceneSection';
 
-const PRIMARY_ATTR_ORDER: AttributeType[] = [
+type PrimaryAttributeType =
+  | AttributeType.SPIRIT
+  | AttributeType.VITALITY
+  | AttributeType.SPEED
+  | AttributeType.WILLPOWER
+  | AttributeType.WISDOM;
+
+const PRIMARY_ATTR_ORDER: PrimaryAttributeType[] = [
   AttributeType.SPIRIT,
   AttributeType.VITALITY,
   AttributeType.SPEED,
@@ -201,6 +215,10 @@ export function CultivatorOverviewPanel() {
   const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
   const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const [attributeDraft, setAttributeDraft] = useState<Attributes>(
+    createEmptyAttributeDraft(),
+  );
+  const [isAllocatingAttributes, setIsAllocatingAttributes] = useState(false);
 
   if (!cultivator) {
     return <InkNotice>尚无角色资料，先去觉醒灵根，再来凝视真形。</InkNotice>;
@@ -260,6 +278,40 @@ export function CultivatorOverviewPanel() {
   const openTitleEditor = () => {
     setEditingTitle(cultivator.title || '');
     setIsTitleModalOpen(true);
+  };
+
+  const unallocatedAttributePoints =
+    cultivator.unallocated_attribute_points ?? 0;
+
+  const handleAllocateAttributes = async () => {
+    if (
+      !canSubmitAttributeAllocation({
+        draft: attributeDraft,
+        unallocatedPoints: unallocatedAttributePoints,
+        loading: isAllocatingAttributes,
+      })
+    ) {
+      return;
+    }
+    try {
+      setIsAllocatingAttributes(true);
+      await mutate(
+        fetch('/api/cultivator/attributes/allocate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(attributeDraft),
+        }),
+      );
+      setAttributeDraft(createEmptyAttributeDraft());
+      pushToast({ message: '根基属性已分配', tone: 'success' });
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '属性分配失败',
+        tone: 'danger',
+      });
+    } finally {
+      setIsAllocatingAttributes(false);
+    }
   };
 
   const openReincarnateDialog = () => {
@@ -406,6 +458,16 @@ export function CultivatorOverviewPanel() {
       ) : null}
 
       <GameSceneSection title="根基属性" help={PRIMARY_ATTRIBUTE_HELP_DIALOG}>
+        {unallocatedAttributePoints > 0 ? (
+          <AttributeAllocationControl
+            currentAttributes={cultivator.attributes}
+            unallocatedPoints={unallocatedAttributePoints}
+            draft={attributeDraft}
+            loading={isAllocatingAttributes}
+            onChange={setAttributeDraft}
+            onSubmit={() => void handleAllocateAttributes()}
+          />
+        ) : null}
         <div className="border-ink/15 overflow-x-auto border border-dashed">
           <table className="border-ink/10 w-full border-collapse text-sm">
             <tbody>

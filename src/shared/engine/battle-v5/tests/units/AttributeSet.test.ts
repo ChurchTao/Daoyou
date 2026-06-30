@@ -9,8 +9,14 @@ describe('AttributeSet derived hit and evasion attributes', () => {
       [AttributeType.WILLPOWER]: 1000,
     });
 
-    expect(attributes.getBaseValue(AttributeType.ACCURACY)).toBeCloseTo(0.2);
-    expect(attributes.getValue(AttributeType.ACCURACY)).toBeCloseTo(0.2);
+    expect(attributes.getBaseValue(AttributeType.ACCURACY)).toBeCloseTo(
+      0.265806,
+      6,
+    );
+    expect(attributes.getValue(AttributeType.ACCURACY)).toBeCloseTo(
+      0.265806,
+      6,
+    );
   });
 
   it('caps derived accuracy at 30%', () => {
@@ -19,10 +25,13 @@ describe('AttributeSet derived hit and evasion attributes', () => {
       [AttributeType.WILLPOWER]: 3000,
     });
 
-    expect(attributes.getBaseValue(AttributeType.ACCURACY)).toBeCloseTo(0.3);
+    expect(attributes.getBaseValue(AttributeType.ACCURACY)).toBeCloseTo(
+      0.299259,
+      6,
+    );
   });
 
-  it('derives evasion from speed and caps it at 30%', () => {
+  it('derives evasion from speed with diminishing returns', () => {
     const attributes = new AttributeSet({
       [AttributeType.SPEED]: 1000,
     });
@@ -31,10 +40,12 @@ describe('AttributeSet derived hit and evasion attributes', () => {
     });
 
     expect(attributes.getBaseValue(AttributeType.EVASION_RATE)).toBeCloseTo(
-      0.18,
+      0.226349,
+      6,
     );
     expect(cappedAttributes.getBaseValue(AttributeType.EVASION_RATE)).toBeCloseTo(
-      0.3,
+      0.259264,
+      6,
     );
   });
 
@@ -60,7 +71,13 @@ describe('AttributeSet derived hit and evasion attributes', () => {
       source: 'test',
     });
 
-    expect(attributes.getValue(AttributeType.ACCURACY)).toBeCloseTo(0.25);
-    expect(attributes.getValue(AttributeType.EVASION_RATE)).toBeCloseTo(0.22);
+    expect(attributes.getValue(AttributeType.ACCURACY)).toBeCloseTo(
+      0.315806,
+      6,
+    );
+    expect(attributes.getValue(AttributeType.EVASION_RATE)).toBeCloseTo(
+      0.266349,
+      6,
+    );
   });
 });

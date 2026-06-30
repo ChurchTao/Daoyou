@@ -1,8 +1,7 @@
+import { type RealmStage, type RealmType } from '@shared/types/constants';
 import {
-  REALM_STAGE_CAPS,
-  type RealmStage,
-  type RealmType,
-} from '@shared/types/constants';
+  getBreakthroughAttributePointReward,
+} from '@shared/config/realmProgression';
 import {
   evaluateFateContext,
 } from '@shared/lib/fates';
@@ -26,9 +25,7 @@ import type {
   RetreatRecord,
 } from '@shared/types/cultivator';
 import {
-  applyAttributeGrowth,
   calculateBreakthroughChance,
-  getAttributeGrowthRange,
   getNextStage,
   LIFESPAN_BONUS_BY_REALM,
   type BreakthroughModifiers,
@@ -131,6 +128,7 @@ export interface BreakthroughResult {
     toStage?: RealmStage;
     lifespanGained: number;
     attributeGrowth: Partial<Attributes>;
+    attributePointReward: number;
     exp_progress: number;
     insight_value: number;
     exp_lost?: number;
@@ -299,6 +297,7 @@ export function attemptBreakthrough(
 
   let lifespanGained = 0;
   const attributeGrowth: Partial<Attributes> = {};
+  let attributePointReward = 0;
   let historyEntry: BreakthroughHistoryEntry | undefined;
   let insight_change = 0;
   let exp_lost = 0;
@@ -317,45 +316,12 @@ export function attemptBreakthrough(
 
   if (success) {
     // 突破成功
-    // 应用属性成长
-    const growthRange = getAttributeGrowthRange(
-      cultivator.attributes.wisdom,
+    attributePointReward = getBreakthroughAttributePointReward(
       { realm: fromRealm, stage: fromStage },
       nextStage,
-      isMajorBreakthrough,
     );
-
-    const { attributes: grownAttributes, growth } = applyAttributeGrowth(
-      cultivator.attributes,
-      getRealmStageAttributeCap(nextStage.realm, nextStage.stage),
-      growthRange,
-      isMajorBreakthrough,
-      rng,
-    );
-
-    // 根据突破类型调整属性成长
-    if (breakthrough_type === 'perfect') {
-      Object.keys(growth).forEach((key) => {
-        const attrKey = key as keyof Attributes;
-        if (growth[attrKey]) {
-          growth[attrKey] = Math.floor(growth[attrKey]! * 1.2);
-          grownAttributes[attrKey] =
-            cultivator.attributes[attrKey]! + growth[attrKey]!;
-        }
-      });
-    } else if (breakthrough_type === 'forced') {
-      Object.keys(growth).forEach((key) => {
-        const attrKey = key as keyof Attributes;
-        if (growth[attrKey]) {
-          growth[attrKey] = Math.floor(growth[attrKey]! * 0.8);
-          grownAttributes[attrKey] =
-            cultivator.attributes[attrKey]! + growth[attrKey]!;
-        }
-      });
-    }
-
-    cultivator.attributes = grownAttributes;
-    Object.assign(attributeGrowth, growth);
+    cultivator.unallocated_attribute_points =
+      (cultivator.unallocated_attribute_points ?? 0) + attributePointReward;
 
     // 更新境界
     cultivator.realm = nextStage.realm;
@@ -478,6 +444,7 @@ export function attemptBreakthrough(
       toStage: success ? nextStage.stage : undefined,
       lifespanGained,
       attributeGrowth,
+      attributePointReward,
       exp_progress,
       insight_value,
       exp_lost: success ? undefined : exp_lost,
@@ -488,26 +455,4 @@ export function attemptBreakthrough(
     },
     historyEntry,
   };
-}
-
-/**
- * 获取境界属性上限
- */
-export function getRealmAttributeCap(realm: RealmType): number {
-  const stageCaps = REALM_STAGE_CAPS[realm];
-  if (!stageCaps) return 100;
-  return (
-    stageCaps.圆满 ?? stageCaps.后期 ?? stageCaps.中期 ?? stageCaps.初期 ?? 100
-  );
-}
-
-export function getRealmStageAttributeCap(
-  realm: RealmType,
-  realmStage: RealmStage,
-): number {
-  const stageCaps = REALM_STAGE_CAPS[realm];
-  if (!stageCaps) {
-    return getRealmAttributeCap(realm);
-  }
-  return stageCaps[realmStage] ?? getRealmAttributeCap(realm);
 }

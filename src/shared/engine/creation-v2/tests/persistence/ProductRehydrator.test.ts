@@ -170,7 +170,7 @@ describe('ProductRehydrator', () => {
     if (rehydrated.productType !== 'artifact') return;
     expect(rehydrated.metadata).toBeUndefined();
     expect(rehydrated.battleProjection.modifiers?.[0]?.value).toBeCloseTo(
-      76,
+      112,
       6,
     );
   });

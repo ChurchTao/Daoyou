@@ -11,7 +11,7 @@ import { AttributeType, ModifierType } from '@shared/engine/battle-v5/core/types
 describe('artifactRealmScaling', () => {
   it('uses the shared realm growth exponent for anchor scaling', () => {
     expect(getArtifactRealmGrowthFactor('渡劫', '圆满')).toBeCloseTo(
-      Math.pow(7680 / 20, ARTIFACT_REALM_SCALING_EXPONENT),
+      Math.pow(990 / 50, ARTIFACT_REALM_SCALING_EXPONENT),
       10,
     );
   });

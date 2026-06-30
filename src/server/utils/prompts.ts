@@ -109,6 +109,7 @@ export interface BreakthroughStoryPayload {
     toStage?: RealmStage;
     lifespanGained: number;
     attributeGrowth: Partial<Attributes>;
+    attributePointReward?: number;
     lifespanDepleted: boolean;
     modifiers: BreakthroughModifiers;
   };
@@ -122,7 +123,10 @@ export function getBreakthroughStoryPrompt({
   const cultivations =
     cultivator.cultivations?.map((cult) => cult.name).join('，') ?? '无';
   const fates = summarizeFateNames(cultivator);
-  const attributeGain = formatAttributeGrowth(summary.attributeGrowth);
+  const attributeGain =
+    summary.attributePointReward !== undefined
+      ? `获得 ${summary.attributePointReward} 点可分配属性点`
+      : formatAttributeGrowth(summary.attributeGrowth);
   const targetRealm = summary.toRealm ?? summary.fromRealm;
   const targetStage = summary.toStage ?? summary.fromStage;
   const { system, user } = renderPrompt('breakthrough-story', {
@@ -162,6 +166,7 @@ export interface LifespanExhaustedStoryPayload {
     toStage?: RealmStage;
     lifespanGained: number;
     attributeGrowth: Partial<Attributes>;
+    attributePointReward?: number;
     lifespanDepleted: boolean;
     modifiers: BreakthroughModifiers;
   };

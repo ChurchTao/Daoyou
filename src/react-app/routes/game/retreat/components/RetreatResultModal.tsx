@@ -139,6 +139,10 @@ function BreakthroughResultContent({
     0,
     Math.min(1, summary.chance - buffBonus),
   );
+  const realmChangeText =
+    summary.success && summary.toRealm && summary.toStage
+      ? `${summary.fromRealm}${summary.fromStage} → ${summary.toRealm}${summary.toStage}`
+      : '';
 
   const attributeGrowthText = useMemo(() => {
     if (!summary.attributeGrowth) return '';
@@ -174,7 +178,13 @@ function BreakthroughResultContent({
         </p>
       ) : null}
 
-      {attributeGrowthText ? <p>属性收获：{attributeGrowthText}</p> : null}
+      {realmChangeText ? <p>境界突破：{realmChangeText}</p> : null}
+
+      {summary.attributePointReward > 0 ? (
+        <p>根基收益：获得 {summary.attributePointReward} 点可分配属性点</p>
+      ) : attributeGrowthText ? (
+        <p>属性收获：{attributeGrowthText}</p>
+      ) : null}
 
       {summary.lifespanGained > 0 ? (
         <p>寿元增加：+{summary.lifespanGained} 年</p>

@@ -48,7 +48,6 @@ const buildCultivator = (
     armor: null,
     accessory: null,
   },
-  max_skills: 4,
   spirit_stones: 0,
   prompt: '寒门修士，想稳扎稳打地闭关冲关',
   ...overrides,

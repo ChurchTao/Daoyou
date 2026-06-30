@@ -48,7 +48,6 @@ function makeCultivator(id: string, name: string): Cultivator {
       armor: null,
       accessory: null,
     },
-    max_skills: 6,
     spirit_stones: 0,
     background: '',
     gender: '男',

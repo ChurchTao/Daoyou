@@ -71,4 +71,24 @@ describe('CharacterGenerator', () => {
       '水',
     ]);
   });
+
+  it('creates fixed base attributes without a persisted skill cap field', async () => {
+    objectMock.mockResolvedValueOnce({
+      object: buildAIData({
+        aptitude_score: 95,
+      }),
+    });
+
+    const { cultivator } = await CharacterGenerator.generate('根骨上佳的修士');
+
+    expect(cultivator.attributes).toEqual({
+      vitality: 10,
+      spirit: 10,
+      wisdom: 10,
+      speed: 10,
+      willpower: 10,
+    });
+    const removedSkillCapKey = 'max' + '_skills';
+    expect(removedSkillCapKey in cultivator).toBe(false);
+  });
 });

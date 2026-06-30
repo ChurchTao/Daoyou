@@ -66,7 +66,6 @@ function createCultivatorFixture(): Cultivator {
       armor: null,
       accessory: 'artifact-equipped',
     },
-    max_skills: 3,
     spirit_stones: 0,
   };
 }
@@ -75,13 +74,16 @@ describe('CultivatorCombatAdapter', () => {
   it('applies cross-realm decay only to main panel fixed modifiers', () => {
     const unit = createCombatUnitFromCultivator(createCultivatorFixture());
 
-    // Base ATK = VITALITY*4 + SPEED*1 = 50; 金丹圆满->炼气初期 uses inverse anchor/wearer factor.
+    // 金丹圆满->炼气初期 uses inverse anchor/wearer factor.
     expect(unit.attributes.getValue(AttributeType.ATK)).toBeCloseTo(
-      108.419068,
+      119.772343,
       6,
     );
     // CRIT_RATE is functional attribute and should not be decayed
-    expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(0.153, 6);
+    expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(
+      0.143913,
+      6,
+    );
   });
 
   it('injects spiritual roots into runtime metadata and preserves them after clone', () => {
@@ -139,9 +141,9 @@ describe('CultivatorCombatAdapter', () => {
     const unit = createCombatUnitFromCultivator(cultivator);
 
     expect(unit.attributes.getValue(AttributeType.VITALITY)).toBe(10);
-    expect(unit.attributes.getValue(AttributeType.MAX_HP)).toBe(403);
+    expect(unit.attributes.getValue(AttributeType.MAX_HP)).toBe(526);
     expect(unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE)).toBeCloseTo(
-      0.046,
+      0.083704,
       6,
     );
   });

@@ -273,6 +273,8 @@ async function assembleCultivatorFromRelations(
       speed: cultivatorRecord.speed,
       willpower: cultivatorRecord.willpower,
     },
+    unallocated_attribute_points:
+      cultivatorRecord.unallocatedAttributePoints ?? 0,
     spiritual_roots,
     pre_heaven_fates,
     cultivations,
@@ -283,7 +285,6 @@ async function assembleCultivatorFromRelations(
       materials,
     },
     equipped,
-    max_skills: cultivatorRecord.max_skills,
     spirit_stones: cultivatorRecord.spirit_stones,
     reputation: cultivatorRecord.reputation,
     last_yield_at: cultivatorRecord.last_yield_at || new Date(),
@@ -321,6 +322,8 @@ async function assembleCultivatorFromRelations(
           speed: cultivatorRecord.speed,
           willpower: cultivatorRecord.willpower,
         },
+        unallocated_attribute_points:
+          cultivatorRecord.unallocatedAttributePoints ?? 0,
         spiritual_roots,
         pre_heaven_fates,
         cultivations,
@@ -331,7 +334,6 @@ async function assembleCultivatorFromRelations(
           materials,
         },
         equipped,
-        max_skills: cultivatorRecord.max_skills,
         spirit_stones: cultivatorRecord.spirit_stones,
         reputation: cultivatorRecord.reputation,
         last_yield_at: cultivatorRecord.last_yield_at || new Date(),
@@ -431,6 +433,8 @@ export function createMinimalCultivator(
       speed: cultivatorRecord.speed,
       willpower: cultivatorRecord.willpower,
     },
+    unallocated_attribute_points:
+      cultivatorRecord.unallocatedAttributePoints ?? 0,
     spiritual_roots: [],
     pre_heaven_fates: [],
     cultivations: [],
@@ -445,7 +449,6 @@ export function createMinimalCultivator(
       armor: null,
       accessory: null,
     },
-    max_skills: cultivatorRecord.max_skills,
     spirit_stones: cultivatorRecord.spirit_stones,
     reputation: cultivatorRecord.reputation,
     last_yield_at: cultivatorRecord.last_yield_at || new Date(),
@@ -485,6 +488,8 @@ export function createMinimalCultivator(
           speed: cultivatorRecord.speed,
           willpower: cultivatorRecord.willpower,
         },
+        unallocated_attribute_points:
+          cultivatorRecord.unallocatedAttributePoints ?? 0,
         spiritual_roots: [],
         pre_heaven_fates: [],
         cultivations: [],
@@ -499,7 +504,6 @@ export function createMinimalCultivator(
           armor: null,
           accessory: null,
         },
-        max_skills: cultivatorRecord.max_skills,
         spirit_stones: cultivatorRecord.spirit_stones,
         reputation: cultivatorRecord.reputation,
         last_yield_at: cultivatorRecord.last_yield_at || new Date(),
@@ -553,7 +557,8 @@ export async function createCultivator(
         wisdom: cultivator.attributes.wisdom,
         speed: cultivator.attributes.speed,
         willpower: cultivator.attributes.willpower,
-        max_skills: cultivator.max_skills,
+        unallocatedAttributePoints:
+          cultivator.unallocated_attribute_points ?? 0,
         condition: ConditionService.normalizeCondition(
           cultivator,
           cultivator.condition,
@@ -909,7 +914,7 @@ export async function updateCultivator(
       | 'age'
       | 'lifespan'
       | 'attributes'
-      | 'max_skills'
+      | 'unallocated_attribute_points'
       | 'closed_door_years_total'
       | 'status'
       | 'cultivation_progress'
@@ -944,8 +949,12 @@ export async function updateCultivator(
     updateData.speed = Math.round(updates.attributes.speed);
     updateData.willpower = Math.round(updates.attributes.willpower);
   }
-  if (updates.max_skills !== undefined)
-    updateData.max_skills = updates.max_skills;
+  if (updates.unallocated_attribute_points !== undefined) {
+    updateData.unallocatedAttributePoints = Math.max(
+      0,
+      Math.round(updates.unallocated_attribute_points),
+    );
+  }
   if (updates.closed_door_years_total !== undefined)
     updateData.closedDoorYearsTotal = updates.closed_door_years_total;
   if (updates.status !== undefined) updateData.status = updates.status;

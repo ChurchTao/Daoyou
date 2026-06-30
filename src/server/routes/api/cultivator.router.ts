@@ -28,6 +28,11 @@ import {
   normalizeRedeemCode,
 } from '@server/lib/redeem/code';
 import { redis } from '@server/lib/redis';
+import {
+  createRedisLock,
+  LockAcquisitionError,
+  releaseRedisLock,
+} from '@server/lib/redis/lock';
 import { getRetreatLock } from '@server/lib/redis/retreatLock';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { createMessage } from '@server/lib/repositories/worldChatRepository';
@@ -89,6 +94,11 @@ import {
 } from '@server/utils/prompts';
 import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward';
 import { getRetreatQiCost } from '@shared/config/qiSystem';
+import {
+  BASE_ATTRIBUTE_TOTAL,
+  BASE_ATTRIBUTE_VALUE,
+  getRealmStageAttributeBudget,
+} from '@shared/config/realmProgression';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import { isTalismanConsumable } from '@shared/lib/consumables';
 import { attachmentsToResourceOperations } from '@shared/lib/itemLibrary';
@@ -148,6 +158,14 @@ const ClaimRedeemCodeSchema = z.object({
 const RetreatSchema = z.object({
   years: z.number().optional(),
   action: z.enum(['cultivate', 'breakthrough']).default('cultivate'),
+});
+
+const AttributeAllocationSchema = z.object({
+  vitality: z.number().int().min(0).default(0),
+  spirit: z.number().int().min(0).default(0),
+  wisdom: z.number().int().min(0).default(0),
+  speed: z.number().int().min(0).default(0),
+  willpower: z.number().int().min(0).default(0),
 });
 
 const DiscardSchema = z.object({
@@ -1084,6 +1102,156 @@ router.post('/title', requireActiveCultivator(), async (c) => {
   return c.json(toPlayerStateMutationResponse(committed));
 });
 
+router.post('/attributes/allocate', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
+  const cultivator = c.get('cultivator');
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
+  }
+
+  const parsed = AttributeAllocationSchema.safeParse(await c.req.json());
+  if (!parsed.success) {
+    return c.json({ error: '参数错误', details: parsed.error.flatten() }, 400);
+  }
+
+  const delta = parsed.data;
+  const spent =
+    delta.vitality +
+    delta.spirit +
+    delta.wisdom +
+    delta.speed +
+    delta.willpower;
+  if (spent <= 0) {
+    return c.json({ error: '请选择要分配的属性点' }, 400);
+  }
+
+  const lockKey = `cultivator:attributes:allocate:lock:${cultivator.id}`;
+  const lock = createRedisLock({
+    retries: 0,
+    delay: 50,
+  });
+  let lockAcquired = false;
+
+  try {
+    await lock.acquire(lockKey);
+    lockAcquired = true;
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'profile_attribute_allocate',
+      run: async (tx) => {
+        const [current] = await tx
+          .select({
+            id: cultivators.id,
+            realm: cultivators.realm,
+            realmStage: cultivators.realm_stage,
+            vitality: cultivators.vitality,
+            spirit: cultivators.spirit,
+            wisdom: cultivators.wisdom,
+            speed: cultivators.speed,
+            willpower: cultivators.willpower,
+            unallocatedAttributePoints:
+              cultivators.unallocatedAttributePoints,
+          })
+          .from(cultivators)
+          .where(eq(cultivators.id, cultivator.id));
+
+        if (!current) {
+          throw new Error('角色不存在');
+        }
+
+        if (spent > current.unallocatedAttributePoints) {
+          throw new Error('未分配属性点不足');
+        }
+
+        const nextAttributes = {
+          vitality: current.vitality + delta.vitality,
+          spirit: current.spirit + delta.spirit,
+          wisdom: current.wisdom + delta.wisdom,
+          speed: current.speed + delta.speed,
+          willpower: current.willpower + delta.willpower,
+        };
+        const values = Object.values(nextAttributes);
+        if (values.some((value) => value < BASE_ATTRIBUTE_VALUE)) {
+          throw new Error('属性不能低于基础值');
+        }
+
+        const budget = getRealmStageAttributeBudget(
+          current.realm as RealmType,
+          current.realmStage as RealmStage,
+        );
+        const totalAttributes = values.reduce((sum, value) => sum + value, 0);
+        const allocatedPoints = totalAttributes - BASE_ATTRIBUTE_TOTAL;
+        if (allocatedPoints > budget - BASE_ATTRIBUTE_TOTAL) {
+          throw new Error('属性总点数超过当前境界预算');
+        }
+
+        const [updated] = await tx
+          .update(cultivators)
+          .set({
+            ...nextAttributes,
+            unallocatedAttributePoints:
+              current.unallocatedAttributePoints - spent,
+          })
+          .where(eq(cultivators.id, cultivator.id))
+          .returning({
+            vitality: cultivators.vitality,
+            spirit: cultivators.spirit,
+            wisdom: cultivators.wisdom,
+            speed: cultivators.speed,
+            willpower: cultivators.willpower,
+            unallocated_attribute_points:
+              cultivators.unallocatedAttributePoints,
+          });
+        const result = {
+          attributes: {
+            vitality: updated.vitality,
+            spirit: updated.spirit,
+            wisdom: updated.wisdom,
+            speed: updated.speed,
+            willpower: updated.willpower,
+          },
+          unallocated_attribute_points: updated.unallocated_attribute_points,
+        };
+
+        return {
+          result,
+          changes: [
+            {
+              domain: 'profile',
+              eventType: 'profile.attributes.allocated',
+              patch: result,
+              invalidates: ['profile'],
+            },
+          ],
+        };
+      },
+    });
+
+    return c.json(toPlayerStateMutationResponse(committed));
+  } catch (error) {
+    if (error instanceof LockAcquisitionError) {
+      return c.json({ error: '属性分配正在处理中，请稍后' }, 429);
+    }
+    const message = error instanceof Error ? error.message : '属性分配失败';
+    if (
+      [
+        '角色不存在',
+        '未分配属性点不足',
+        '属性不能低于基础值',
+        '属性总点数超过当前境界预算',
+      ].includes(message)
+    ) {
+      return c.json({ error: message }, message === '角色不存在' ? 404 : 400);
+    }
+    throw error;
+  } finally {
+    if (lockAcquired) {
+      await releaseRedisLock(lock, lockKey);
+    }
+  }
+});
+
 router.post('/redeem-code/claim', requireActiveCultivator(), async (c) => {
   const user = c.get('user');
   const cultivator = c.get('cultivator');
@@ -1436,6 +1604,7 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
               toStage: result.summary.toStage,
               lifespanGained: result.summary.lifespanGained,
               attributeGrowth: result.summary.attributeGrowth,
+              attributePointReward: result.summary.attributePointReward,
               lifespanDepleted: false,
               modifiers: result.summary.modifiers,
             },
@@ -1501,6 +1670,8 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
           age: result.cultivator.age,
           lifespan: result.cultivator.lifespan,
           attributes: result.cultivator.attributes,
+          unallocated_attribute_points:
+            result.cultivator.unallocated_attribute_points,
           cultivation_progress: result.cultivator.cultivation_progress,
           condition: result.cultivator.condition,
         }, tx);

@@ -203,12 +203,7 @@ describe('DamageSystem hit check', () => {
     const initialHp = target.getCurrentHp();
     const resistedEvents: ControlResistEvent[] = [];
 
-    const randomSpy = vi
-      .spyOn(Math, 'random')
-      .mockReturnValueOnce(0.99)
-      .mockReturnValueOnce(0)
-      .mockReturnValueOnce(0.99)
-      .mockReturnValueOnce(0.5);
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.2);
 
     EventBus.instance.subscribe<ControlResistEvent>(
       'ControlResistEvent',

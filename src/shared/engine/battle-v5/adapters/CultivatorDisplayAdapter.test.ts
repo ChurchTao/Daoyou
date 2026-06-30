@@ -76,7 +76,6 @@ function createCultivatorFixture(): Cultivator {
       armor: null,
       accessory: 'artifact-equipped',
     },
-    max_skills: 3,
     spirit_stones: 0,
   };
 }
@@ -88,8 +87,8 @@ describe('CultivatorDisplayAdapter', () => {
     expect(unit.attributes.getValue(AttributeType.VITALITY)).toBe(15);
     expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(12);
     expect(unit.attributes.getValue(AttributeType.SPEED)).toBe(10);
-    expect(unit.getMaxHp()).toBe(440);
-    expect(unit.getMaxMp()).toBe(380);
+    expect(unit.getMaxHp()).toBe(545);
+    expect(unit.getMaxMp()).toBe(350);
   });
 
   it('maps Unit values back to cultivator display attributes', () => {
@@ -148,8 +147,8 @@ describe('CultivatorDisplayAdapter', () => {
     const { attrs, finalAttributes } = getCultivatorDisplayAttributes(cultivator);
 
     expect(finalAttributes.vitality).toBe(15);
-    expect(attrs.maxHp).toBe(492);
-    expect(attrs.def).toBeCloseTo(56.65, 6);
+    expect(attrs.maxHp).toBe(610);
+    expect(attrs.def).toBeCloseTo(29.87, 6);
   });
 
   it('builds a serializable display snapshot from battle-v5 attrs and resources', () => {
@@ -186,17 +185,17 @@ describe('CultivatorDisplayAdapter', () => {
 
     expect(snapshot.attrs.vitality).toBe(15);
     expect(snapshot.attrs.spirit).toBe(12);
-    expect(snapshot.attrs.maxHp).toBe(440);
-    expect(snapshot.attrs.maxMp).toBe(380);
+    expect(snapshot.attrs.maxHp).toBe(545);
+    expect(snapshot.attrs.maxMp).toBe(350);
     expect(snapshot.resources.hp).toEqual({
       current: 320,
-      max: 440,
-      percent: 72.73,
+      max: 545,
+      percent: 58.72,
     });
     expect(snapshot.resources.mp).toEqual({
       current: 180,
-      max: 380,
-      percent: 47.37,
+      max: 350,
+      percent: 51.43,
     });
   });
 
@@ -222,9 +221,12 @@ describe('CultivatorDisplayAdapter', () => {
     const unit = createDisplayUnitFromCultivator(cultivator);
 
     // 金丹圆满->炼气初期 uses inverse anchor/wearer factor.
-    expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(68);
+    expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(66);
     // 功能属性不衰减
-    expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(0.153, 6);
+    expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(
+      0.143913,
+      6,
+    );
   });
 
   it('clamps legacy over-cap resource values when building the display snapshot', () => {

@@ -4,6 +4,13 @@ import type { CultivationProgress, Cultivator } from '@shared/types/cultivator';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
+const { createRedisLockMock, releaseRedisLockMock, lockAcquireMock } =
+  vi.hoisted(() => ({
+    createRedisLockMock: vi.fn(),
+    releaseRedisLockMock: vi.fn(),
+    lockAcquireMock: vi.fn(async () => undefined),
+  }));
+
 vi.mock('@server/lib/drizzle/db', () => ({
   db: vi.fn(),
   getExecutor: vi.fn(),
@@ -63,6 +70,12 @@ vi.mock('@server/lib/redis', () => ({
     set: vi.fn(),
     del: vi.fn(),
   },
+}));
+
+vi.mock('@server/lib/redis/lock', () => ({
+  createRedisLock: createRedisLockMock,
+  releaseRedisLock: releaseRedisLockMock,
+  LockAcquisitionError: class LockAcquisitionError extends Error {},
 }));
 
 vi.mock('@server/lib/redis/retreatLock', () => ({
@@ -200,6 +213,7 @@ import { runDetached } from '@server/lib/http/response';
 import { consumeLifespanAndHandleDepletion } from '@server/lib/lifespan/handleLifespan';
 import { renderPrompt } from '@server/lib/prompts';
 import { redis } from '@server/lib/redis';
+import { LockAcquisitionError } from '@server/lib/redis/lock';
 import { getRetreatLock } from '@server/lib/redis/retreatLock';
 import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
 import { MailService } from '@server/lib/services/MailService';
@@ -292,6 +306,7 @@ function createCultivator(): Cultivator {
       speed: 28,
       willpower: 32,
     },
+    unallocated_attribute_points: 0,
     spiritual_roots: [],
     pre_heaven_fates: [],
     cultivations: [],
@@ -306,7 +321,6 @@ function createCultivator(): Cultivator {
       armor: null,
       accessory: null,
     },
-    max_skills: 4,
     spirit_stones: 9000,
     cultivation_progress: {
       cultivation_exp: 880,
@@ -413,6 +427,69 @@ function mockStateOnlyTransaction(args: {
   } as any);
 
   return txMock;
+}
+
+function mockAttributeAllocationTransaction(args: {
+  current: {
+    realm: string;
+    realmStage: string;
+    vitality: number;
+    spirit: number;
+    wisdom: number;
+    speed: number;
+    willpower: number;
+    unallocatedAttributePoints: number;
+  };
+}) {
+  const selectWhere = vi.fn().mockResolvedValue([
+    {
+      id: 'cultivator-1',
+      ...args.current,
+    },
+  ]);
+  const from = vi.fn(() => ({ where: selectWhere }));
+  const select = vi.fn(() => ({ from }));
+  const updateReturning = vi.fn().mockResolvedValue([
+      {
+        vitality: args.current.vitality + 2,
+        spirit: args.current.spirit + 1,
+        wisdom: args.current.wisdom,
+        speed: args.current.speed,
+        willpower: args.current.willpower,
+        unallocated_attribute_points:
+          args.current.unallocatedAttributePoints - 3,
+      },
+    ]);
+  const updateWhere = vi.fn(() => ({ returning: updateReturning }));
+  const set = vi.fn(() => ({ where: updateWhere }));
+  const update = vi.fn(() => ({ set }));
+  const insertReturning = vi
+    .fn()
+    .mockResolvedValueOnce([createStateVersionRow()])
+    .mockResolvedValueOnce(
+      createStateEventRows([
+        {
+          domain: 'profile',
+          eventType: 'profile.attributes.allocated',
+          source: 'profile_attribute_allocate',
+          invalidates: ['profile'],
+        },
+      ]),
+    );
+  const onConflictDoUpdate = vi.fn(() => ({ returning: insertReturning }));
+  const values = vi.fn(() => ({
+    onConflictDoUpdate,
+    returning: insertReturning,
+  }));
+  const insert = vi.fn(() => ({ values }));
+  const txMock = { select, update, insert };
+
+  dbMock.mockReturnValue({
+    transaction: async (callback: (tx: typeof txMock) => Promise<unknown>) =>
+      callback(txMock),
+  } as any);
+
+  return { select, update, set, updateWhere, updateReturning };
 }
 
 function mockTransactionReturning(rows: unknown[]) {
@@ -666,6 +743,142 @@ function parseSseEvents(raw: string): RetreatStreamEvent[] {
     .filter(Boolean)
     .map((payload) => JSON.parse(payload) as RetreatStreamEvent);
 }
+
+describe('cultivator attribute allocation route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    createRedisLockMock.mockReturnValue({
+      acquire: lockAcquireMock,
+    });
+    lockAcquireMock.mockResolvedValue(undefined);
+  });
+
+  it('allocates fixed points without enforcing a per-attribute cap', async () => {
+    mockAttributeAllocationTransaction({
+      current: {
+        realm: '筑基',
+        realmStage: '初期',
+        vitality: 107,
+        spirit: 10,
+        wisdom: 10,
+        speed: 10,
+        willpower: 10,
+        unallocatedAttributePoints: 3,
+      },
+    });
+
+    const response = await createApp().request(
+      '/api/cultivator/attributes/allocate',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vitality: 2,
+          spirit: 1,
+          wisdom: 0,
+          speed: 0,
+          willpower: 0,
+        }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(createRedisLockMock).toHaveBeenCalledWith({
+      retries: 0,
+      delay: 50,
+    });
+    expect(lockAcquireMock).toHaveBeenCalledWith(
+      'cultivator:attributes:allocate:lock:cultivator-1',
+    );
+    expect(releaseRedisLockMock).toHaveBeenCalledWith(
+      expect.objectContaining({ acquire: lockAcquireMock }),
+      'cultivator:attributes:allocate:lock:cultivator-1',
+    );
+    const json = await response.json();
+    expect(json).toEqual(
+      expect.objectContaining({
+        success: true,
+        data: {
+          attributes: {
+            vitality: 109,
+            spirit: 11,
+            wisdom: 10,
+            speed: 10,
+            willpower: 10,
+          },
+          unallocated_attribute_points: 0,
+        },
+      }),
+    );
+  });
+
+  it('rejects overspending unallocated attribute points', async () => {
+    mockAttributeAllocationTransaction({
+      current: {
+        realm: '筑基',
+        realmStage: '初期',
+        vitality: 10,
+        spirit: 10,
+        wisdom: 10,
+        speed: 10,
+        willpower: 10,
+        unallocatedAttributePoints: 1,
+      },
+    });
+
+    const response = await createApp().request(
+      '/api/cultivator/attributes/allocate',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vitality: 2,
+          spirit: 0,
+          wisdom: 0,
+          speed: 0,
+          willpower: 0,
+        }),
+      },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: '未分配属性点不足',
+    });
+    expect(releaseRedisLockMock).toHaveBeenCalledWith(
+      expect.objectContaining({ acquire: lockAcquireMock }),
+      'cultivator:attributes:allocate:lock:cultivator-1',
+    );
+  });
+
+  it('returns 429 when another allocation holds the lock', async () => {
+    lockAcquireMock.mockRejectedValueOnce(
+      new LockAcquisitionError('lock busy'),
+    );
+
+    const response = await createApp().request(
+      '/api/cultivator/attributes/allocate',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vitality: 1,
+          spirit: 0,
+          wisdom: 0,
+          speed: 0,
+          willpower: 0,
+        }),
+      },
+    );
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toEqual({
+      error: '属性分配正在处理中，请稍后',
+    });
+    expect(dbMock).not.toHaveBeenCalled();
+    expect(releaseRedisLockMock).not.toHaveBeenCalled();
+  });
+});
 
 describe('cultivator redeem route', () => {
   beforeEach(() => {
@@ -1868,7 +2081,8 @@ describe('cultivator retreat route', () => {
         toRealm: '筑基',
         toStage: '中期',
         lifespanGained: 20,
-        attributeGrowth: { vitality: 2, spirit: 1 },
+        attributeGrowth: {},
+        attributePointReward: 20,
         exp_progress: 0,
         insight_value: 44,
         breakthrough_type: 'normal',

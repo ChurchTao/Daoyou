@@ -1,5 +1,6 @@
 import { EventBus } from '../core/EventBus';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
+import { getRealmDamagePressureMultiplier } from '@shared/config/realmProgression';
 import {
   DamageEvent,
   DodgeEvent,
@@ -193,10 +194,13 @@ export class DamageSystem {
     const damageMultiplier = Math.max(0, 1 + increasePct - reductionPct);
     event.finalDamage *= damageMultiplier;
 
-    // ===== ④ 灵根共鸣/失配倍率 =====
+    // ===== ④ 境界威压倍率 =====
+    event.finalDamage *= this._getRealmDamageMultiplier(event);
+
+    // ===== ⑤ 灵根共鸣/失配倍率 =====
     event.finalDamage *= calculateSpiritualRootDamageMultiplier(event);
 
-    // ===== ⑤ 暴击判定（减伤后） =====
+    // ===== ⑥ 暴击判定（减伤后） =====
     // 仅在非 DOT/反伤且有施法者时参与暴击；已由上层标记为暴击的不再重算
     if (
       !event.isCritical &&
@@ -224,11 +228,11 @@ export class DamageSystem {
       }
     }
 
-    // ===== ⑥ 随机浮动 (0.9 ~ 1.1，降低纯数值比拼的确定性) =====
+    // ===== ⑦ 随机浮动 (0.9 ~ 1.1，降低纯数值比拼的确定性) =====
     const randomFactor = 0.9 + Math.random() * 0.2;
     event.finalDamage = event.finalDamage * randomFactor;
 
-    // ===== ⑦ 最小伤害保证（避免0伤害）并四舍五入 =====
+    // ===== ⑧ 最小伤害保证（避免0伤害）并四舍五入 =====
     event.finalDamage = Math.max(1, Math.round(event.finalDamage));
 
     // 发布伤害应用事件（供护盾/无敌效果订阅）
@@ -270,6 +274,15 @@ export class DamageSystem {
     }
 
     return DamageType.PHYSICAL; // 默认物理伤害
+  }
+
+  private _getRealmDamageMultiplier(event: DamageRequestEvent): number {
+    const attackerRank = event.caster?.getRealmMeta().realmRank;
+    const defenderRank = event.target.getRealmMeta().realmRank;
+    if (attackerRank === undefined || defenderRank === undefined) {
+      return 1;
+    }
+    return getRealmDamagePressureMultiplier(attackerRank - defenderRank);
   }
 
   // ==================== 伤害应用 ====================

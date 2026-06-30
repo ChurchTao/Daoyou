@@ -35,7 +35,6 @@ function createCultivator(overrides: Partial<Cultivator> = {}): Cultivator {
       armor: null,
       accessory: null,
     },
-    max_skills: 3,
     spirit_stones: 120,
     cultivation_progress: {
       cultivation_exp: 20,

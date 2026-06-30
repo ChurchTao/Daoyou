@@ -1,20 +1,14 @@
+import { BASE_ATTRIBUTE_VALUE } from '@shared/config/realmProgression';
 import { ELEMENT_VALUES, type ElementType } from '@shared/types/constants';
 import type { Attributes, SpiritualRoot } from '@shared/types/cultivator';
 
-export function generateAttributes(score: number): Attributes {
-  // 基础值 10，随机浮动 0-10，加分项 (score/10)
-  // 炼气初期属性通常在 10-30 之间
-  const base = 10;
-  const bonus = Math.floor(score / 10);
-
-  const rand = () => Math.floor(Math.random() * 6); // 0-5
-
+export function generateAttributes(): Attributes {
   return {
-    vitality: base + rand() + Math.floor(bonus * (0.5 + Math.random())),
-    spirit: base + rand() + Math.floor(bonus * (0.5 + Math.random())),
-    wisdom: base + rand() + Math.floor(bonus * (0.5 + Math.random())),
-    speed: base + rand() + Math.floor(bonus * (0.5 + Math.random())),
-    willpower: base + rand() + Math.floor(bonus * (0.5 + Math.random())),
+    vitality: BASE_ATTRIBUTE_VALUE,
+    spirit: BASE_ATTRIBUTE_VALUE,
+    wisdom: BASE_ATTRIBUTE_VALUE,
+    speed: BASE_ATTRIBUTE_VALUE,
+    willpower: BASE_ATTRIBUTE_VALUE,
   };
 }
 

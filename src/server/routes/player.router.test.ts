@@ -176,7 +176,6 @@ function createCultivator(overrides: Partial<Cultivator> = {}): Cultivator {
       armor: null,
       accessory: null,
     },
-    max_skills: 3,
     spirit_stones: 128,
     condition: {
       version: 1,
@@ -260,18 +259,18 @@ describe('player router', () => {
             attrs: expect.objectContaining({
               spirit: 10,
               willpower: 10,
-              maxHp: 360,
-              maxMp: 360,
+              maxHp: 470,
+              maxMp: 330,
             }),
             resources: {
               hp: {
-                current: 360,
-                max: 360,
+                current: 470,
+                max: 470,
                 percent: 100,
               },
               mp: {
-                current: 360,
-                max: 360,
+                current: 330,
+                max: 330,
                 percent: 100,
               },
             },
@@ -284,7 +283,7 @@ describe('player router', () => {
               createdAt: '2026-01-02T03:04:05.000Z',
             }),
             display: expect.objectContaining({
-              attrs: expect.objectContaining({ maxMp: 360 }),
+              attrs: expect.objectContaining({ maxMp: 330 }),
             }),
           }),
         ],

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { getRealmStageAttributeBudget } from '@shared/config/realmProgression';
 import { buildDifficultyFactor } from '@shared/engine/enemy-generation/utils';
-import { REALM_STAGE_CAPS, type RealmStage, type RealmType } from '@shared/types/constants';
 import type { Cultivator } from '@shared/types/cultivator';
 import { getTaskChallengeProfile } from './taskDefinitions';
 
@@ -41,7 +41,6 @@ function createCultivator(overrides: Partial<Cultivator> = {}): Cultivator {
       armor: null,
       accessory: null,
     },
-    max_skills: 4,
     spirit_stones: 0,
     condition: {
       version: 1,
@@ -154,9 +153,8 @@ describe('taskDefinitions heart demon challenge', () => {
       expect(opponent).toBeTruthy();
       expect(sumAttributes(opponent!.attributes)).toBe(
         Math.round(
-          REALM_STAGE_CAPS[realm as RealmType][realmStage as RealmStage] *
-            buildDifficultyFactor(enemyDifficulty) *
-            5,
+          getRealmStageAttributeBudget(realm, realmStage) *
+            buildDifficultyFactor(enemyDifficulty),
         ),
       );
     },

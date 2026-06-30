@@ -39,7 +39,6 @@ function createCultivator(id: string, name: string): Cultivator {
     skills: [],
     inventory: { artifacts: [], consumables: [], materials: [] },
     equipped: { weapon: null, armor: null, accessory: null },
-    max_skills: 0,
     spirit_stones: 0,
     gender: '男',
     realm: '炼气',
@@ -205,8 +204,8 @@ describe('BattleInitApplier', () => {
       },
     });
 
-    expect(opponentUnit.getMaxHp()).toBe(414);
-    expect(opponentUnit.getCurrentHp()).toBe(207);
+    expect(opponentUnit.getMaxHp()).toBe(513);
+    expect(opponentUnit.getCurrentHp()).toBe(256);
   });
 
   test('状态录制中的 maxHp 底座与修正值能正确区分', () => {
@@ -230,7 +229,7 @@ describe('BattleInitApplier', () => {
 
     const initFrame = result.stateTimeline.frames[0].units.dummy;
 
-    expect(initFrame.baseAttrs.maxHp).toBe(360);
+    expect(initFrame.baseAttrs.maxHp).toBe(470);
     expect(initFrame.attrs.maxHp).toBe(1_000);
     expect(initFrame.hp.current).toBe(1_000);
   });

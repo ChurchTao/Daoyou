@@ -274,6 +274,7 @@ export interface Cultivator {
   breakthrough_history?: BreakthroughHistoryEntry[];
 
   attributes: Attributes;
+  unallocated_attribute_points?: number;
   spiritual_roots: SpiritualRoot[];
   pre_heaven_fates: PreHeavenFate[];
   cultivations: CultivationTechnique[];
@@ -282,7 +283,6 @@ export interface Cultivator {
   inventory: Inventory;
   equipped: EquippedItems;
 
-  max_skills: number;
   spirit_stones: number;
   reputation?: number;
   last_yield_at?: Date;

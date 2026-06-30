@@ -11,6 +11,7 @@ import {
 } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { MAX_OWNED_CREATION_PRODUCTS_PER_TYPE } from '@shared/config/creationProductLimits';
+import { DEFAULT_MAX_ACTIVE_SKILLS } from '@shared/config/skillLimits';
 import { useCallback, useEffect, useState } from 'react';
 
 export type V2Skill = ProductDisplayModel & { id: string };
@@ -47,7 +48,7 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
   const [skillsLoading, setSkillsLoading] = useState(Boolean(cultivator));
   const [pendingToggleId, setPendingToggleId] = useState<string | null>(null);
 
-  const maxSkills = cultivator?.max_skills ?? 3;
+  const maxSkills = DEFAULT_MAX_ACTIVE_SKILLS;
   const maxOwnedSkills = MAX_OWNED_CREATION_PRODUCTS_PER_TYPE;
   const enabledSkillCount = skills.filter((skill) => skill.isEquipped).length;
 

@@ -60,7 +60,6 @@ function makeCultivator(id: string): Cultivator {
     skills: [],
     inventory: { artifacts: [], consumables: [], materials: [] },
     equipped: { weapon: null, armor: null, accessory: null },
-    max_skills: 6,
     spirit_stones: 0,
     background: 'fallback',
     description: 'fallback',

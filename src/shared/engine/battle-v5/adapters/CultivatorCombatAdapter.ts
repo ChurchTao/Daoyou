@@ -1,5 +1,6 @@
 import type { Cultivator } from '@shared/types/cultivator';
 import type { RealmStage, RealmType } from '@shared/types/constants';
+import { getRealmStageRank } from '@shared/config/realmProgression';
 import {
   getArtifactWearerRealmFactor,
   scaleArtifactMainPanelFixedModifiers,
@@ -55,6 +56,11 @@ export function createCombatUnitFromCultivator(
   const unitName = isMirror ? `${cultivator.name}的镜像` : cultivator.name;
   const unit = new Unit(unitId, unitName, baseAttrs);
   unit.setSpiritualRoots(cultivator.spiritual_roots ?? []);
+  unit.setRealmMeta({
+    realm: cultivator.realm,
+    realmStage: cultivator.realm_stage,
+    realmRank: getRealmStageRank(cultivator.realm, cultivator.realm_stage),
+  });
 
   for (const skill of cultivator.skills ?? []) {
     if (!skill.abilityConfig) continue;

@@ -269,7 +269,6 @@ export default function TrainingRoomPage() {
         skills: [],
         inventory: { artifacts: [], consumables: [], materials: [] },
         equipped: { weapon: null, armor: null, accessory: null },
-        max_skills: 0,
         spirit_stones: 0,
         gender: '男',
         realm: '炼气',
