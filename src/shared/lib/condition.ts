@@ -11,6 +11,7 @@ import {
   normalizeBodyCultivationState,
 } from './bodyCultivation/normalize';
 import { getBodyCultivationNaturalRecoveryMultiplier } from './bodyCultivation/effects';
+import { PILL_TOXICITY_CAP } from '@shared/config/consumableSystem';
 
 export interface PillToxicityStage {
   key: 'none' | 'light' | 'heavy' | 'critical';
@@ -218,7 +219,11 @@ export function getBreakthroughPenalty(
     0,
     conditionInput?.gauges.pillToxicity ?? 0,
   );
-  return clamp(pillToxicity / 1000 * Math.max(0, toxicityPenaltyMultiplier), 0, 0.18);
+  return clamp(
+    (pillToxicity / PILL_TOXICITY_CAP) * Math.max(0, toxicityPenaltyMultiplier),
+    0,
+    0.18,
+  );
 }
 
 export function getBreakthroughPenaltyPercent(

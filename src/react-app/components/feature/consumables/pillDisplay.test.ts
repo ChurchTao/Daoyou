@@ -1,7 +1,6 @@
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { PillSpec } from '@shared/types/consumable';
 import type { Consumable } from '@shared/types/cultivator';
-import { BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT } from '@shared/config/consumableSystem';
 import { describe, expect, it } from 'vitest';
 import { toPillDisplayModel } from './pillDisplay';
 
@@ -482,6 +481,44 @@ describe('toPillDisplayModel', () => {
     expect(marrowModel.primaryEffect).toBe('推进洗髓 +40');
   });
 
+  it('does not show usage-limit text for marrow-wash pills', () => {
+    const model = toPillDisplayModel(
+      createPill({
+        kind: 'pill',
+        family: 'marrow_wash',
+        operations: [
+          { type: 'advance_track', track: 'marrow_wash', value: 40 },
+          { type: 'change_gauge', gauge: 'pillToxicity', delta: 14 },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'long_term',
+        },
+        alchemyMeta: {
+          source: 'improvised',
+          sourceMaterials: ['洗髓花'],
+          stability: 58,
+          toxicityRating: 34,
+          tags: ['marrow_wash'],
+        },
+      }),
+      {
+        realm: '筑基',
+        condition: createCondition({
+          longTermPillUsesByRealm: { 筑基: 8 },
+        }),
+      },
+    );
+
+    expect(model.keywordLabels).toEqual(['洗髓', '丹毒 +14']);
+    expect(
+      getDetailGroup(model, 'cost-and-rules').lines.some(
+        (line) =>
+          line.startsWith('服用上限') || line.startsWith('本境界已服'),
+      ),
+    ).toBe(false);
+  });
+
   it('formats cultivation pills without a usage-limit label', () => {
     const model = toPillDisplayModel(
       createPill({
@@ -555,7 +592,7 @@ describe('toPillDisplayModel', () => {
     );
   });
 
-  it('formats total body cultivation pill remaining uses', () => {
+  it('does not show body cultivation pill usage limits', () => {
     const model = toPillDisplayModel(
       createPill({
         kind: 'pill',
@@ -585,13 +622,9 @@ describe('toPillDisplayModel', () => {
       },
     );
 
-    expect(model.keywordLabels).toEqual([
-      '炼体',
-      `炼体丹剩余 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT - 12}/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}`,
-      '丹毒 +10',
-    ]);
-    expect(getDetailGroup(model, 'cost-and-rules').lines).toContain(
-      `炼体丹总服用 12/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}，尚可服 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT - 12} 颗`,
+    expect(model.keywordLabels).toEqual(['炼体', '丹毒 +10']);
+    expect(getDetailGroup(model, 'cost-and-rules').lines).not.toContain(
+      '炼体丹总服用',
     );
     expect(getDetailGroup(model, 'cost-and-rules').lines).not.toContain(
       '本境界已服 7/8，尚可服 1 颗',
@@ -645,13 +678,68 @@ describe('toPillDisplayModel', () => {
 
     expect(getDetailGroup(model, 'track-preview').lines).toEqual([
       '推进轨道：皮肤 +60',
+      '当前肉身境界单轨上限：Lv.5',
       '预计进度：Lv.0 80/100 -> Lv.1 40/200',
       '升级后收益：物防 +0.6%、法防 +0.4%、受到直接伤害 -0.6%',
       '下个节点：Lv.5',
     ]);
-    expect(getDetailGroup(model, 'cost-and-rules').lines).toContain(
-      `炼体丹总服用 0/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}，尚可服 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT} 颗`,
+    expect(
+      getDetailGroup(model, 'cost-and-rules').lines.some((line) =>
+        line.includes('炼体丹总服用'),
+      ),
+    ).toBe(false);
+  });
+
+  it('previews body cultivation track cap blocks', () => {
+    const condition = createCondition();
+    const model = toPillDisplayModel(
+      createPill({
+        kind: 'pill',
+        family: 'tempering',
+        operations: [
+          { type: 'advance_track', track: 'body.skin', value: 60 },
+          { type: 'change_gauge', gauge: 'pillToxicity', delta: 10 },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'none',
+        },
+        alchemyMeta: {
+          source: 'improvised',
+          sourceMaterials: ['雷击藤'],
+          stability: 62,
+          toxicityRating: 28,
+          tags: ['body_skin'],
+        },
+      }),
+      {
+        realm: '筑基',
+        condition: {
+          ...condition,
+          tracks: {
+            ...condition.tracks,
+            bodyCultivation: {
+              version: 1,
+              realm: 'mortal_body',
+              milestones: {},
+              tracks: {
+                skin: { level: 5, progress: 0 },
+                sinew_bone: { level: 0, progress: 0 },
+                organs: { level: 0, progress: 0 },
+                qi_blood: { level: 0, progress: 0 },
+                primordial_spirit: { level: 0, progress: 0 },
+              },
+            },
+          },
+        },
+      },
     );
+
+    expect(getDetailGroup(model, 'track-preview').lines).toEqual([
+      '推进轨道：皮肤 +60',
+      '当前肉身境界单轨上限：Lv.5',
+      '已达上限，请先完成肉身破限',
+    ]);
   });
 
   it('omits body cultivation preview when current condition is unavailable', () => {
@@ -713,11 +801,7 @@ describe('toPillDisplayModel', () => {
       },
     );
 
-    expect(model.keywordLabels).toEqual([
-      '炼体',
-      `炼体丹剩余 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}`,
-      '丹毒 +10',
-    ]);
+    expect(model.keywordLabels).toEqual(['炼体', '丹毒 +10']);
     expect(getDetailGroup(model, 'cost-and-rules').lines).not.toContain(
       '服用上限：随当前境界变化',
     );
@@ -725,7 +809,7 @@ describe('toPillDisplayModel', () => {
     expect(model.keywordLabels.join(' ')).not.toContain('undefined');
   });
 
-  it('shows body cultivation total usage as zero for legacy conditions without counters', () => {
+  it('omits body cultivation usage limits for legacy conditions without counters', () => {
     const model = toPillDisplayModel(
       createPill({
         kind: 'pill',
@@ -752,14 +836,12 @@ describe('toPillDisplayModel', () => {
       },
     );
 
-    expect(model.keywordLabels).toEqual([
-      '炼体',
-      `炼体丹剩余 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}`,
-      '丹毒 +10',
-    ]);
-    expect(getDetailGroup(model, 'cost-and-rules').lines).toContain(
-      `炼体丹总服用 0/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}，尚可服 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT} 颗`,
-    );
+    expect(model.keywordLabels).toEqual(['炼体', '丹毒 +10']);
+    expect(
+      getDetailGroup(model, 'cost-and-rules').lines.some((line) =>
+        line.includes('炼体丹总服用'),
+      ),
+    ).toBe(false);
   });
 
   it('does not show body pill usage limits for secondary body cultivation effects', () => {
@@ -803,7 +885,7 @@ describe('toPillDisplayModel', () => {
       '推进轨道：气血 +8',
     );
     expect(getDetailGroup(model, 'cost-and-rules').lines).not.toContain(
-      `炼体丹总服用 12/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}，尚可服 ${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT - 12} 颗`,
+      '炼体丹总服用',
     );
     expect(getDetailGroup(model, 'cost-and-rules').lines).not.toContain(
       '本境界已服 8/8，尚可服 0 颗',

@@ -25,8 +25,6 @@ export function getPrimaryPillQuotaCategory(
   spec: PillSpec,
 ): PillQuotaCategory {
   switch (spec.family) {
-    case 'marrow_wash':
-      return 'long_term';
     case 'longevity':
       return 'longevity';
     default:

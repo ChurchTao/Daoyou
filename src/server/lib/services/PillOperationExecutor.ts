@@ -14,11 +14,10 @@ import { isPillConsumable } from '@shared/lib/consumables';
 import {
   getPillUsageLimitReachedText,
   getPrimaryPillQuotaCategory,
-  isPrimaryBodyCultivationPillSpec,
 } from '@shared/lib/pillUsageText';
 import {
-  BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT,
   CULTIVATION_PILL_MAX_QUALITY_BY_REALM,
+  PILL_TOXICITY_CAP,
   REALM_PILL_USAGE_LIMITS,
 } from '@shared/config/consumableSystem';
 import { QUALITY_ORDER } from '@shared/types/constants';
@@ -38,6 +37,7 @@ import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import {
   getBodyTrackKeyFromPath,
   BODY_CULTIVATION_REALM_REQUIREMENTS,
+  BODY_REALM_LABELS,
   isBodyCultivationTrackPath,
   isLegacyTemperingTrackPath,
 } from '@shared/lib/bodyCultivation/config';
@@ -58,6 +58,8 @@ const EXECUTION_ORDER: ConditionOperation['type'][] = [
 
 const MAX_LIFESPAN_DELTA = 100_000;
 const MAX_LIFESPAN_TOTAL = 10_000_000;
+const PILL_TOXICITY_BLOCK_MESSAGE =
+  '丹毒已达上限，暂不可继续服用会增加丹毒的丹药。请先炼制或服用解毒丹化解丹毒。';
 
 const BREAKTHROUGH_SUPPORT_STATUSES: ConditionStatusKey[] = [
   'breakthrough_focus',
@@ -218,25 +220,9 @@ function applyTrackReward(
   return nextCultivator;
 }
 
-function getEffectiveTrackProgressValue(
-  condition: CultivatorCondition,
-  track: ConditionTrackPath,
-  value: number,
-): number {
+function getEffectiveTrackProgressValue(value: number): number {
   const baseValue = Math.max(0, Math.floor(value));
-  if (!isBodyCultivationTrackPath(track) && !isLegacyTemperingTrackPath(track)) {
-    return baseValue;
-  }
-
-  const bodyState = normalizeBodyCultivationState(condition);
-  const key = getBodyTrackKeyFromPath(track);
-  const softCap =
-    BODY_CULTIVATION_REALM_REQUIREMENTS[bodyState.realm].softTrackCap;
-  if (bodyState.tracks[key].level < softCap) {
-    return baseValue;
-  }
-
-  return Math.floor(baseValue * 0.5);
+  return baseValue;
 }
 
 function applyTrackProgress(
@@ -255,8 +241,7 @@ function applyTrackProgress(
 
   const current = getTrackState(nextCondition, track);
   let level = current.level;
-  let progress =
-    current.progress + getEffectiveTrackProgressValue(nextCondition, track, value);
+  let progress = current.progress + getEffectiveTrackProgressValue(value);
 
   while (progress >= getTrackConfig(track).thresholdByLevel(level)) {
     progress -= getTrackConfig(track).thresholdByLevel(level);
@@ -449,6 +434,87 @@ function sortOperations(operations: ConditionOperation[]): ConditionOperation[] 
   );
 }
 
+function getNetPillToxicityDelta(spec: PillSpec): number {
+  return spec.operations.reduce((sum, operation) => {
+    if (
+      operation.type !== 'change_gauge' ||
+      operation.gauge !== 'pillToxicity'
+    ) {
+      return sum;
+    }
+
+    return sum + operation.delta;
+  }, 0);
+}
+
+function assertBodyCultivationPillTrackCaps(
+  condition: CultivatorCondition,
+  spec: PillSpec,
+): void {
+  let projectedCondition = condition;
+
+  for (const operation of sortOperations(spec.operations)) {
+    if (
+      operation.type !== 'advance_track' ||
+      (
+        !isBodyCultivationTrackPath(operation.track) &&
+        !isLegacyTemperingTrackPath(operation.track)
+      )
+    ) {
+      continue;
+    }
+
+    const value = Math.max(0, Math.floor(operation.value));
+    if (value <= 0) {
+      continue;
+    }
+
+    const bodyState = normalizeBodyCultivationState(projectedCondition);
+    const cap =
+      BODY_CULTIVATION_REALM_REQUIREMENTS[bodyState.realm].softTrackCap;
+    const trackState = getTrackState(projectedCondition, operation.track);
+    const trackName = getTrackConfig(operation.track).name;
+    const realmLabel = BODY_REALM_LABELS[bodyState.realm];
+
+    if (trackState.level >= cap) {
+      throw new Error(
+        `${trackName}已达当前肉身境界「${realmLabel}」的单轨上限 Lv.${cap}，请先完成肉身破限后再服用炼体丹。`,
+      );
+    }
+
+    let level = trackState.level;
+    let progress = trackState.progress;
+    let remaining = value;
+
+    while (remaining > 0) {
+      const threshold = getTrackConfig(operation.track).thresholdByLevel(level);
+      const needed = threshold - progress;
+      if (remaining < needed) {
+        progress += remaining;
+        remaining = 0;
+        break;
+      }
+
+      remaining -= needed;
+      level += 1;
+      progress = 0;
+
+      if (level > cap || (level === cap && remaining > 0)) {
+        throw new Error(
+          `${trackName}本次药力将超过当前肉身境界「${realmLabel}」的单轨上限 Lv.${cap}，请先完成肉身破限后再服用炼体丹。`,
+        );
+      }
+    }
+
+    projectedCondition = setTrackState(
+      projectedCondition,
+      operation.track,
+      level,
+      progress,
+    );
+  }
+}
+
 function getEffectiveQuotaCategory(
   spec: PillSpec,
 ): PillSpec['consumeRules']['quotaCategory'] {
@@ -504,25 +570,13 @@ export const PillOperationExecutor = {
     const trackLevelUps: TrackLevelUpResult[] = [];
 
     const quotaCategory = getEffectiveQuotaCategory(consumable.spec);
-    const isBodyCultivationPill = isPrimaryBodyCultivationPillSpec(
-      consumable.spec,
-    );
-
-    if (isBodyCultivationPill) {
-      const used = nextCondition.counters.bodyCultivationPillUses ?? 0;
-      if (used >= BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT) {
-        throw new Error(
-          `炼体丹服用总数已达上限（${used}/${BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT}），无法继续服用。`,
-        );
-      }
-      nextCondition = {
-        ...nextCondition,
-        counters: {
-          ...nextCondition.counters,
-          bodyCultivationPillUses: used + 1,
-        },
-      };
+    if (
+      nextCondition.gauges.pillToxicity >= PILL_TOXICITY_CAP &&
+      getNetPillToxicityDelta(consumable.spec) > 0
+    ) {
+      throw new Error(PILL_TOXICITY_BLOCK_MESSAGE);
     }
+    assertBodyCultivationPillTrackCaps(nextCondition, consumable.spec);
 
     if (quotaCategory === 'long_term') {
       const used =
@@ -579,7 +633,7 @@ export const PillOperationExecutor = {
               pillToxicity: clamp(
                 nextCondition.gauges.pillToxicity + operation.delta,
                 0,
-                1000,
+                PILL_TOXICITY_CAP,
               ),
             },
           };

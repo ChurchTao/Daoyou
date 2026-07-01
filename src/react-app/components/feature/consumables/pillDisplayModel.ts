@@ -7,14 +7,13 @@ import {
   getPillUsageRuleText,
   getPrimaryPillQuotaCategory,
   getRealmPillUsageLimit,
-  isPrimaryBodyCultivationPillSpec,
 } from '@shared/lib/pillUsageText';
-import { BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT } from '@shared/config/consumableSystem';
 import { normalizeBodyCultivationState } from '@shared/lib/bodyCultivation/normalize';
 import { getBodyCultivationSummary } from '@shared/lib/bodyCultivation/summary';
 import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
 import {
+  BODY_CULTIVATION_REALM_REQUIREMENTS,
   getBodyCultivationThresholdByLevel,
   getBodyTrackKeyFromPath,
   isBodyCultivationTrackPath,
@@ -202,27 +201,6 @@ function getPillUsageProgressText(
 
 function getEffectiveQuotaCategory(spec: PillSpec): PillQuotaCategory {
   return getPrimaryPillQuotaCategory(spec);
-}
-
-function getBodyCultivationPillUsageProgressText(
-  spec: PillSpec,
-  options?: PillDisplayOptions,
-): { keyword: string; rule: string } | null {
-  if (!isPrimaryBodyCultivationPillSpec(spec) || !options?.condition) {
-    return null;
-  }
-
-  const used = Math.max(
-    0,
-    Math.floor(options.condition.counters?.bodyCultivationPillUses ?? 0),
-  );
-  const limit = BODY_CULTIVATION_TOTAL_PILL_USAGE_LIMIT;
-  const remaining = Math.max(0, limit - used);
-
-  return {
-    keyword: `炼体丹剩余 ${remaining}/${limit}`,
-    rule: `炼体丹总服用 ${used}/${limit}，尚可服 ${remaining} 颗`,
-  };
 }
 
 export function getPillFamilyLabel(family: PillFamily): string {
@@ -436,8 +414,7 @@ function buildKeywordLabels(
       ? getLifespanGainText(lifespan.value)
       : null,
     spec.family === 'breakthrough' ? getBreakthroughPurposeLabel(spec) : null,
-    getBodyCultivationPillUsageProgressText(spec, options)?.keyword ??
-      getPillUsageProgressText(getEffectiveQuotaCategory(spec), options)
+    getPillUsageProgressText(getEffectiveQuotaCategory(spec), options)
       ?.keyword ??
       getPillUsageKeywordLabel(getEffectiveQuotaCategory(spec), options?.realm),
   ].filter((label): label is string => Boolean(label));
@@ -486,7 +463,6 @@ function buildCostAndRuleLines(
   lines.push('仅可在场外服用');
   const quotaCategory = getEffectiveQuotaCategory(spec);
   const usageRuleText =
-    getBodyCultivationPillUsageProgressText(spec, options)?.rule ??
     getPillUsageProgressText(quotaCategory, options)?.rule ??
     getPillUsageRuleText(quotaCategory, options?.realm);
   if (usageRuleText) {
@@ -540,6 +516,8 @@ function getBodyTrackPreviewLines(
   const trackKey = getBodyTrackKeyFromPath(operation.track);
   const state = normalizeBodyCultivationState(condition);
   const currentTrack = state.tracks[trackKey];
+  const trackCap =
+    BODY_CULTIVATION_REALM_REQUIREMENTS[state.realm].softTrackCap;
   const next = advanceProgressPreview({
     level: currentTrack.level,
     progress: currentTrack.progress,
@@ -574,8 +552,25 @@ function getBodyTrackPreviewLines(
   );
   const lines = [
     `推进轨道：${trackName.replace('炼体·', '')} +${operation.value}`,
-    `预计进度：Lv.${currentTrack.level} ${currentTrack.progress}/${currentThreshold} -> Lv.${next.level} ${next.progress}/${next.threshold}`,
+    `当前肉身境界单轨上限：Lv.${trackCap}`,
   ];
+
+  if (currentTrack.level >= trackCap) {
+    lines.push('已达上限，请先完成肉身破限');
+    return lines;
+  }
+
+  if (next.level > trackCap || (next.level === trackCap && next.progress > 0)) {
+    lines.push(
+      `预计超过上限：Lv.${currentTrack.level} ${currentTrack.progress}/${currentThreshold} -> Lv.${next.level} ${next.progress}/${next.threshold}`,
+      '请先完成肉身破限后再服用',
+    );
+    return lines;
+  }
+
+  lines.push(
+    `预计进度：Lv.${currentTrack.level} ${currentTrack.progress}/${currentThreshold} -> Lv.${next.level} ${next.progress}/${next.threshold}`,
+  );
 
   if (next.level > currentTrack.level && nextSummary) {
     lines.push(

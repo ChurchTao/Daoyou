@@ -4,7 +4,7 @@ import { useBattlePlaybackState } from '@app/components/feature/battle/useBattle
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
 import { GameImmersiveLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
-import { startTaskChallenge } from '@app/lib/tasks/taskClient';
+import { startTaskChallengeOnce } from '@app/lib/tasks/taskClient';
 import type { TaskChallengeResponse } from '@shared/contracts/task';
 import type { BattleRecord } from '@shared/types/battle';
 import { Suspense, useEffect, useState } from 'react';
@@ -35,7 +35,9 @@ function TaskChallengePageContent() {
       setBattleResult(undefined);
 
       try {
-        const payload = (await startTaskChallenge(taskId)) as TaskChallengeResponse;
+        const payload = (await startTaskChallengeOnce(
+          taskId,
+        )) as TaskChallengeResponse;
         if (cancelled) {
           return;
         }

@@ -197,11 +197,10 @@ export function getQuotaCategoryForFamily(
   family: PillFamily,
 ): PillQuotaCategory {
   switch (family) {
-    case 'marrow_wash':
-      return 'long_term';
     case 'longevity':
       return 'longevity';
     case 'cultivation':
+    case 'marrow_wash':
     case 'tempering':
     case 'breakthrough':
       return 'none';

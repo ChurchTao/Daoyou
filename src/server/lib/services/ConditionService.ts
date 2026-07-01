@@ -25,6 +25,7 @@ import {
   getBodyCultivationExternalResourceLossHooks,
   getBodyCultivationNaturalRecoveryMultiplier,
 } from '@shared/lib/bodyCultivation/effects';
+import { PILL_TOXICITY_CAP } from '@shared/config/consumableSystem';
 import type {
   BattleMode,
   BodyCultivationRealm,
@@ -393,7 +394,7 @@ export const ConditionService = {
         }),
       },
       gauges: {
-        pillToxicity: clamp(raw?.gauges?.pillToxicity ?? 0, 0, 1000),
+        pillToxicity: clamp(raw?.gauges?.pillToxicity ?? 0, 0, PILL_TOXICITY_CAP),
       },
       tracks: {
         bodyCultivation: normalizeBodyCultivationState(raw),

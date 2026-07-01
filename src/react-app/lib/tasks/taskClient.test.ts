@@ -1,9 +1,11 @@
+import type { TaskChallengeResponse } from '@shared/contracts/task';
 import type { Cultivator } from '@shared/types/cultivator';
 import type { TaskInstance } from '@shared/types/task';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   findCurrentMajorBreakthroughTask,
   findNextTutorialTask,
+  startTaskChallengeOnce,
 } from './taskClient';
 
 function createCultivator(
@@ -84,6 +86,63 @@ function createTask(
     },
   };
 }
+
+function createChallengeResponse(): TaskChallengeResponse {
+  const winner = createCultivator({ id: 'cultivator-1', name: '韩立' });
+  const loser = createCultivator({ id: 'enemy-1', name: '心魔化身' });
+
+  return {
+    success: true,
+    data: {
+      task: createTask(),
+      battleResult: {
+        winner,
+        loser,
+        logs: [],
+        turns: 1,
+        player: winner.id,
+        opponent: loser.id,
+        logSpans: [],
+        stateTimeline: [],
+        winnerSnapshot: {} as never,
+      },
+      isWin: true,
+      challengeTitle: '心魔劫',
+    },
+  };
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe('startTaskChallengeOnce', () => {
+  it('dedupes concurrent task challenge executions', async () => {
+    const payload = createChallengeResponse();
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const [first, second] = await Promise.all([
+      startTaskChallengeOnce('task-1'),
+      startTaskChallengeOnce('task-1'),
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('/api/tasks/task-1/challenge', {
+      method: 'POST',
+    });
+    expect(second).toBe(first);
+
+    await startTaskChallengeOnce('task-1');
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
 
 describe('findCurrentMajorBreakthroughTask', () => {
   it('returns the task matching the current major transition', () => {

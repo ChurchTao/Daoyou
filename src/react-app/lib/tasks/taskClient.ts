@@ -47,6 +47,23 @@ export async function startTaskChallenge(taskId: string) {
   return readJsonOrThrow<TaskChallengeResponse>(response);
 }
 
+const taskChallengeRequests = new Map<string, Promise<TaskChallengeResponse>>();
+
+export async function startTaskChallengeOnce(taskId: string) {
+  const key = taskId.trim();
+  const inFlight = taskChallengeRequests.get(key);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const request = startTaskChallenge(taskId).finally(() => {
+    taskChallengeRequests.delete(key);
+  });
+
+  taskChallengeRequests.set(key, request);
+  return request;
+}
+
 export async function claimTaskReward(taskId: string) {
   const response = await fetch(`/api/tasks/${taskId}/claim-reward`, {
     method: 'POST',
