@@ -1641,7 +1641,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         value: {
           base: { base: 90, scale: 'quality', coefficient: 18 },
           attribute: AttributeType.WILLPOWER,
-          coefficient: qualityScaledCoefficient(12),
+          coefficient: qualityScaledCoefficient(8),
         },
       },
     },

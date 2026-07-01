@@ -2,6 +2,7 @@ import {
   DEFAULT_AFFIX_REGISTRY,
   flattenAffixMatcherTags,
 } from '@shared/engine/creation-v2/affixes';
+import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import type { AffixDefinition } from '@shared/engine/creation-v2/affixes/types';
 import type { RolledAffix } from '@shared/engine/creation-v2/types';
 import { renderAffixMechanic } from './index';
@@ -31,12 +32,19 @@ function toRolledAffix(def: AffixDefinition): RolledAffix {
 }
 
 function renderAffix(affixId: string) {
+  return renderAffixWithAbilityTags(affixId);
+}
+
+function renderAffixWithAbilityTags(
+  affixId: string,
+  abilityTags?: string[],
+) {
   const def = DEFAULT_AFFIX_REGISTRY.queryById(affixId);
   if (!def) throw new Error(`missing test affix: ${affixId}`);
   const affix = toRolledAffix(def);
 
   return renderAffixMechanic(affix, '凡品', {
-    abilityTags: def.grantedAbilityTags,
+    abilityTags: abilityTags ?? def.grantedAbilityTags,
   });
 }
 
@@ -54,6 +62,31 @@ describe('affixText mechanic rendering', () => {
     expect(view.effectText).toContain('真实伤害');
     expect(view.tagLabels).toContain('真实');
     expect(view.tagLabels.join('、')).not.toMatch(/Ability\./);
+  });
+
+  it('does not let product-level true or wind tags override physical damage affix text', () => {
+    const view = renderAffixWithAbilityTags('skill-core-damage-metal', [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+      GameplayTags.ABILITY.CHANNEL.TRUE,
+      GameplayTags.ABILITY.ELEMENT.WIND,
+      GameplayTags.ABILITY.KIND.SKILL,
+    ]);
+
+    expect(view.effectText).toContain('金系物理伤害');
+    expect(view.effectText).not.toContain('风系真实伤害');
+  });
+
+  it('does not let product-level element and true channel pollute generic magic damage text', () => {
+    const view = renderAffixWithAbilityTags('skill-core-damage', [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.TRUE,
+      GameplayTags.ABILITY.ELEMENT.WIND,
+      GameplayTags.ABILITY.KIND.SKILL,
+    ]);
+
+    expect(view.effectText).toContain('法术伤害');
+    expect(view.effectText).not.toContain('风系真实伤害');
   });
 
   it('expands dot buff details', () => {

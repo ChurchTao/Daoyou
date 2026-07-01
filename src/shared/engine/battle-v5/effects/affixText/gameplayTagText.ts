@@ -1,6 +1,6 @@
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
-import { DamageType } from '../../core/types';
+import { AttributeType, DamageType } from '../../core/types';
 
 const GAMEPLAY_TAG_LABELS: Record<string, string> = {
   [GameplayTags.ABILITY.FUNCTION.DAMAGE]: '伤害',
@@ -112,16 +112,30 @@ export function inferDamageTypeLabels(args: {
   abilityTags?: string[];
   buffTags?: string[];
   explicitDamageType?: DamageType;
+  valueAttribute?: AttributeType;
 }): string[] {
-  const { abilityTags = [], buffTags = [], explicitDamageType } = args;
-  if (explicitDamageType) return [labelDamageType(explicitDamageType)];
-  if (buffTags.includes(GameplayTags.BUFF.DOT.ROOT)) {
-    return [labelDamageType(DamageType.DOT)];
-  }
-
+  const { abilityTags = [], buffTags = [], explicitDamageType, valueAttribute } = args;
   const channel = DAMAGE_CHANNEL_TAGS.find((tag) => abilityTags.includes(tag));
   const element = ELEMENT_TAGS.find((tag) => abilityTags.includes(tag));
-  const labels = [element ? labelGameplayTag(element) : '', channel ? labelGameplayTag(channel) : '']
+  const inferredDamageType =
+    explicitDamageType ??
+    (buffTags.includes(GameplayTags.BUFF.DOT.ROOT)
+      ? DamageType.DOT
+      : inferDamageTypeFromAttribute(valueAttribute));
+
+  if (inferredDamageType === DamageType.TRUE) {
+    return [`${labelDamageType(inferredDamageType)}伤害`];
+  }
+  if (inferredDamageType === DamageType.DOT) {
+    return [labelDamageType(inferredDamageType)];
+  }
+
+  const channelLabel = inferredDamageType
+    ? labelDamageType(inferredDamageType)
+    : channel
+      ? labelGameplayTag(channel)
+      : '';
+  const labels = [element ? labelGameplayTag(element) : '', channelLabel]
     .filter(Boolean);
 
   return labels.length > 0 ? [`${labels.join('')}伤害`] : ['伤害'];
@@ -129,4 +143,19 @@ export function inferDamageTypeLabels(args: {
 
 export function labelTagList(tags: string[] | undefined): string {
   return labelGameplayTags(tags).join('、');
+}
+
+function inferDamageTypeFromAttribute(
+  attribute?: AttributeType,
+): DamageType | undefined {
+  switch (attribute) {
+    case AttributeType.MAGIC_ATK:
+    case AttributeType.MAGIC_DEF:
+      return DamageType.MAGICAL;
+    case AttributeType.ATK:
+    case AttributeType.DEF:
+      return DamageType.PHYSICAL;
+    default:
+      return undefined;
+  }
 }

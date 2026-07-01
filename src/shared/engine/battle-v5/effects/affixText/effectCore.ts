@@ -41,6 +41,8 @@ export function describeEffectCore(
       const damageLabel = inferDamageTypeLabels({
         abilityTags: context.abilityTags,
         buffTags: context.buffTags,
+        explicitDamageType: effect.params.damageType,
+        valueAttribute: effect.params.value.attribute,
       })[0] ?? '伤害';
       return `造成 ${formatScalableValue(effect.params.value)} 点${damageLabel}`;
     }

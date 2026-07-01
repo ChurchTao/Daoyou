@@ -129,6 +129,7 @@ export function renderAffixMechanic(
   const name = (affix.name as string) ?? definition?.displayName ?? affix.id;
   const template = affix.effectTemplate ?? definition?.effectTemplate;
   const listenerSpec = definition?.listenerSpec;
+  const scopedAbilityTags = buildScopedAbilityTags(affix, options.abilityTags);
 
   const bodyText = buildBodyText({
     affix,
@@ -137,7 +138,7 @@ export function renderAffixMechanic(
     listenerSpec,
     abilityConfig: options.abilityConfig,
     resolvedModifiers: options.resolvedModifiers,
-    abilityTags: options.abilityTags,
+    abilityTags: scopedAbilityTags,
   });
 
   const detail = buildMechanicDetail({
@@ -147,7 +148,7 @@ export function renderAffixMechanic(
     listenerSpec,
     abilityConfig: options.abilityConfig,
     resolvedModifiers: options.resolvedModifiers,
-    abilityTags: options.abilityTags,
+    abilityTags: scopedAbilityTags,
   });
 
   return {
@@ -162,6 +163,17 @@ export function renderAffixMechanic(
 }
 
 // --- 内部实现 ---
+
+function buildScopedAbilityTags(
+  affix: RolledAffix,
+  productAbilityTags: string[] | undefined,
+): string[] | undefined {
+  const affixTags = affix.grantedAbilityTags ?? [];
+  if (affixTags.length > 0) {
+    return Array.from(new Set(affixTags));
+  }
+  return productAbilityTags;
+}
 
 interface BuildBodyArgs {
   affix: RolledAffix;
@@ -294,7 +306,8 @@ function buildMechanicDetail(args: BuildBodyArgs): MechanicDetail {
       effect.type === 'damage'
         ? inferDamageTypeLabels({
             abilityTags,
-            ...(effect.type === 'damage' ? {} : {}),
+            explicitDamageType: effect.params.damageType,
+            valueAttribute: effect.params.value.attribute,
           })
         : [],
     tagLabels: collectRuntimeTagLabels(affix, effect, abilityTags),
