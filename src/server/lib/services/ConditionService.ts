@@ -31,6 +31,7 @@ import type {
   ConditionStatusDuration,
   ConditionStatusInstance,
   ConditionStatusKey,
+  ConditionResourcePoint,
   CultivatorCondition,
   TemperingTrackKey,
 } from '@shared/types/condition';
@@ -185,6 +186,15 @@ export interface ExternalResourceLossPreview {
   triggerTexts: string[];
 }
 
+interface ConditionResourceMaxSnapshot {
+  maxHp: number;
+  maxMp: number;
+}
+
+interface NormalizeConditionOptions {
+  legacyMaxResources?: ConditionResourceMaxSnapshot;
+}
+
 function getWoundSeverityIndex(key: ConditionStatusKey): number {
   return WOUND_SEVERITY_ORDER.indexOf(key);
 }
@@ -268,8 +278,8 @@ function buildDefaultCondition(
   return {
     version: 1,
     resources: {
-      hp: { current: display.maxHp },
-      mp: { current: display.maxMp },
+      hp: { current: display.maxHp, max: display.maxHp },
+      mp: { current: display.maxMp, max: display.maxMp },
     },
     gauges: {
       pillToxicity: 0,
@@ -296,6 +306,44 @@ function buildDefaultCondition(
   };
 }
 
+function getStoredResourceMax(value: unknown): number | undefined {
+  if (
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value >= 0
+  ) {
+    return Math.floor(value);
+  }
+
+  return undefined;
+}
+
+function normalizeResourcePoint(args: {
+  current: number | undefined;
+  defaultCurrent: number;
+  runtimeMax: number;
+  storedMax?: number;
+  legacyMax?: number;
+}): ConditionResourcePoint {
+  const rawCurrent =
+    typeof args.current === 'number' && Number.isFinite(args.current)
+      ? Math.floor(args.current)
+      : args.defaultCurrent;
+  const previousMax = args.storedMax ?? args.legacyMax;
+  const shouldPreserveFullState =
+    previousMax !== undefined &&
+    args.runtimeMax > previousMax &&
+    rawCurrent >= previousMax;
+  const current = shouldPreserveFullState
+    ? args.runtimeMax
+    : clamp(rawCurrent, 0, args.runtimeMax);
+
+  return {
+    current,
+    max: args.runtimeMax,
+  };
+}
+
 export const ConditionService = {
   getMaxResources(
     cultivator: Cultivator,
@@ -319,6 +367,7 @@ export const ConditionService = {
     cultivator: Cultivator,
     input?: CultivatorCondition,
     now: Date = new Date(),
+    options: NormalizeConditionOptions = {},
   ): CultivatorCondition {
     const defaults = buildDefaultCondition(cultivator, now);
     const raw = input ?? cultivator.condition;
@@ -328,20 +377,20 @@ export const ConditionService = {
     return {
       version: 1,
       resources: {
-        hp: {
-          current: clamp(
-            raw?.resources?.hp?.current ?? defaults.resources.hp.current,
-            0,
-            maxHp,
-          ),
-        },
-        mp: {
-          current: clamp(
-            raw?.resources?.mp?.current ?? defaults.resources.mp.current,
-            0,
-            maxMp,
-          ),
-        },
+        hp: normalizeResourcePoint({
+          current: raw?.resources?.hp?.current,
+          defaultCurrent: defaults.resources.hp.current,
+          runtimeMax: maxHp,
+          storedMax: getStoredResourceMax(raw?.resources?.hp?.max),
+          legacyMax: options.legacyMaxResources?.maxHp,
+        }),
+        mp: normalizeResourcePoint({
+          current: raw?.resources?.mp?.current,
+          defaultCurrent: defaults.resources.mp.current,
+          runtimeMax: maxMp,
+          storedMax: getStoredResourceMax(raw?.resources?.mp?.max),
+          legacyMax: options.legacyMaxResources?.maxMp,
+        }),
       },
       gauges: {
         pillToxicity: clamp(raw?.gauges?.pillToxicity ?? 0, 0, 1000),
@@ -421,8 +470,14 @@ export const ConditionService = {
     cultivator: Cultivator,
     conditionInput?: CultivatorCondition,
     now: Date = new Date(),
+    options: NormalizeConditionOptions = {},
   ): CultivatorCondition {
-    const condition = this.normalizeCondition(cultivator, conditionInput, now);
+    const condition = this.normalizeCondition(
+      cultivator,
+      conditionInput,
+      now,
+      options,
+    );
     const { maxHp, maxMp } = this.getMaxResources(cultivator, condition);
     const statuses = pruneInactiveStatuses(condition.statuses, now);
     const lastRecoveryAt = Date.parse(condition.timestamps.lastRecoveryAt ?? '');
@@ -471,8 +526,8 @@ export const ConditionService = {
     return {
       ...condition,
       resources: {
-        hp: { current: nextHp },
-        mp: { current: nextMp },
+        hp: { current: nextHp, max: maxHp },
+        mp: { current: nextMp, max: maxMp },
       },
       statuses,
       timestamps: {
@@ -510,9 +565,11 @@ export const ConditionService = {
       resources: {
         hp: {
           current: clamp(condition.resources.hp.current - hpLoss, 0, maxHp),
+          max: maxHp,
         },
         mp: {
           current: clamp(condition.resources.mp.current - mpLoss, 0, maxMp),
+          max: maxMp,
         },
       },
       timestamps: {
@@ -654,8 +711,8 @@ export const ConditionService = {
       return {
         ...condition,
         resources: {
-          hp: { current: defeatProtection?.hpFloor ?? 1 },
-          mp: { current: 0 },
+          hp: { current: defeatProtection?.hpFloor ?? 1, max: maxHp },
+          mp: { current: 0, max: maxMp },
         },
         statuses: defeatProtection
           ? setBattleWoundStatus(
@@ -707,8 +764,8 @@ export const ConditionService = {
     return {
       ...condition,
       resources: {
-        hp: { current: settledHp },
-        mp: { current: currentMp },
+        hp: { current: settledHp, max: maxHp },
+        mp: { current: currentMp, max: maxMp },
       },
       statuses,
       timestamps: {

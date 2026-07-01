@@ -248,8 +248,8 @@ export function applyTowerBattleOutcome(args: {
     return {
       ...normalizedCondition,
       resources: {
-        hp: { current: 1 },
-        mp: { current: 0 },
+        hp: { current: 1, max: maxHp },
+        mp: { current: 0, max: maxMp },
       },
       statuses: replaceWoundStatus(
         normalizedCondition.statuses,
@@ -278,8 +278,8 @@ export function applyTowerBattleOutcome(args: {
   return {
     ...normalizedCondition,
     resources: {
-      hp: { current: currentHp },
-      mp: { current: currentMp },
+      hp: { current: currentHp, max: maxHp },
+      mp: { current: currentMp, max: maxMp },
     },
     statuses,
     timestamps: {

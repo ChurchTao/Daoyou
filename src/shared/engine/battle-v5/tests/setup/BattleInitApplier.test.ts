@@ -208,6 +208,31 @@ describe('BattleInitApplier', () => {
     expect(opponentUnit.getCurrentHp()).toBe(270);
   });
 
+  test('百分比资源初始化按 modifier 后的最终上限结算', () => {
+    const player = createCultivator('player', '道友');
+    const opponent = createCultivator('dummy', '木桩');
+
+    const { opponentUnit } = createBattleUnitsWithInit(player, opponent, {
+      opponent: {
+        modifiers: [
+          {
+            attrType: AttributeType.MAX_HP,
+            type: ModifierType.FIXED,
+            value: 1000,
+          },
+        ],
+        resourceState: {
+          hp: { mode: 'percent', value: 1 },
+          mp: { mode: 'percent', value: 1 },
+        },
+      },
+    });
+
+    expect(opponentUnit.getCurrentHp()).toBe(opponentUnit.getMaxHp());
+    expect(opponentUnit.getCurrentMp()).toBe(opponentUnit.getMaxMp());
+    EventBus.instance.reset();
+  });
+
   test('状态录制中的 maxHp 底座与修正值能正确区分', () => {
     const player = createCultivator('player', '道友');
     const opponent = createCultivator('dummy', '木桩');

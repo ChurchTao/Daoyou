@@ -82,6 +82,13 @@ const emptyEquipped: EquippedItems = {
   accessory: null,
 };
 
+const emptyLoadout: PlayerLoadout = {
+  skills: [],
+  cultivations: [],
+  artifacts: [],
+  equipped: emptyEquipped,
+};
+
 function mapSpiritualRoots(
   roots: CultivatorRelations['spiritualRoots'],
 ): Cultivator['spiritual_roots'] {
@@ -286,19 +293,12 @@ function buildProfileCultivator(
 
   return {
     ...profileWithoutCondition,
-    condition: ConditionService.tickNaturalRecovery(
-      buildCultivatorRuntime(profileWithoutCondition, {
-        skills: [],
-        cultivations: [],
-        artifacts: [],
-        equipped: emptyEquipped,
-      }),
+    condition:
       (cultivatorRecord.condition as CultivatorCondition | null) ?? undefined,
-    ),
   };
 }
 
-export function buildCultivatorRuntime(
+function attachLoadoutToCultivator(
   profile: PlayerProfileCultivator,
   loadout: PlayerLoadout,
 ): Cultivator {
@@ -312,6 +312,27 @@ export function buildCultivatorRuntime(
       materials: [],
     },
     equipped: loadout.equipped,
+  };
+}
+
+export function buildCultivatorRuntime(
+  profile: PlayerProfileCultivator,
+  loadout: PlayerLoadout,
+): Cultivator {
+  const runtimeCultivator = attachLoadoutToCultivator(profile, loadout);
+  const legacyMaxResources = ConditionService.getMaxResources(
+    attachLoadoutToCultivator(profile, emptyLoadout),
+    profile.condition,
+  );
+
+  return {
+    ...runtimeCultivator,
+    condition: ConditionService.tickNaturalRecovery(
+      runtimeCultivator,
+      profile.condition,
+      undefined,
+      { legacyMaxResources },
+    ),
   };
 }
 

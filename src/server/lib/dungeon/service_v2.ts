@@ -1311,7 +1311,14 @@ export class DungeonService {
         level: `${enemy.realm} ${enemy.realm_stage}`,
         difficulty: enemyDifficulty,
       },
-      battleInit: {},
+      battleInit: {
+        opponent: {
+          resourceState: {
+            hp: { mode: 'percent', value: 1 },
+            mp: { mode: 'percent', value: 1 },
+          },
+        },
+      },
     };
 
     if (!options.deferPersistence) {

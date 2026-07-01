@@ -49,7 +49,7 @@ export async function buildPlayerStateSnapshot(args: {
   const profile = needsFullCultivator
     ? await getPlayerProfileCultivatorById(args.userId, args.cultivatorId, q)
     : null;
-  const loadout = domainSet.has('profile') || domainSet.has('loadout')
+  const loadout = needsFullCultivator || domainSet.has('loadout')
     ? await getPlayerLoadoutByCultivatorId(args.cultivatorId, q)
     : null;
 
@@ -74,18 +74,24 @@ export async function buildPlayerStateSnapshot(args: {
     throw new Error('角色不存在');
   }
 
+  const runtimeCultivator = needsFullCultivator
+    ? buildCultivatorRuntime(profile!, loadout!)
+    : null;
+
   const snapshot: Partial<PlayerStateSnapshot> = {};
 
   if (domainSet.has('profile')) {
-    const runtimeCultivator = buildCultivatorRuntime(profile!, loadout!);
     snapshot.profile = {
-      cultivator: profile!,
-      display: getCultivatorDisplaySnapshot(runtimeCultivator),
+      cultivator: {
+        ...profile!,
+        condition: runtimeCultivator!.condition,
+      },
+      display: getCultivatorDisplaySnapshot(runtimeCultivator!),
     };
   }
 
   if (domainSet.has('condition')) {
-    snapshot.condition = profile!.condition;
+    snapshot.condition = runtimeCultivator!.condition;
   }
 
   if (domainSet.has('progress')) {

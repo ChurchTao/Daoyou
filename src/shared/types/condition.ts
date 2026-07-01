@@ -6,6 +6,7 @@ export type ConditionResourceKey = 'hp' | 'mp';
 
 export interface ConditionResourcePoint {
   current: number;
+  max?: number;
 }
 
 export interface ConditionProgressTrack {

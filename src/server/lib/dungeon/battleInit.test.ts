@@ -4,6 +4,9 @@ import {
   incrementOrInsertStatus,
   promoteInjuryStatus,
 } from './battleInit';
+import { ConditionService } from '@server/lib/services/ConditionService';
+import { AttributeType, ModifierType } from '@shared/engine/battle-v5/core/types';
+import type { PlayerLoadout } from '@shared/contracts/player';
 import type { Cultivator } from '@shared/types/cultivator';
 
 function createCultivator(condition?: Cultivator['condition']): Cultivator {
@@ -87,6 +90,84 @@ describe('dungeon battle init helpers', () => {
     expect(battleInit.player?.resourceState?.mp).toEqual({
       mode: 'absolute',
       value: 123,
+    });
+  });
+
+  test('副本战斗在完整 loadout 上限下保留旧满血语义', () => {
+    const bareMax = ConditionService.getMaxResources(createCultivator());
+    const profile = createCultivator({
+      version: 1,
+      resources: {
+        hp: { current: bareMax.maxHp },
+        mp: { current: bareMax.maxMp },
+      },
+      gauges: {
+        pillToxicity: 0,
+      },
+      tracks: {
+        tempering: {
+          vitality: { level: 0, progress: 0 },
+          spirit: { level: 0, progress: 0 },
+          wisdom: { level: 0, progress: 0 },
+          speed: { level: 0, progress: 0 },
+          willpower: { level: 0, progress: 0 },
+        },
+      },
+      counters: {
+        longTermPillUsesByRealm: {},
+        cultivationPillUsesByRealm: {},
+        longevityPillUsesByRealm: {},
+      },
+      statuses: [],
+      timestamps: {
+        lastRecoveryAt: new Date().toISOString(),
+      },
+    });
+    const loadout: PlayerLoadout = {
+      skills: [],
+      cultivations: [
+        {
+          id: 'gongfa-1',
+          name: '归元诀',
+          attributeModifiers: [
+            {
+              attrType: AttributeType.VITALITY,
+              type: ModifierType.ADD,
+              value: 1,
+            },
+          ],
+        },
+      ],
+      artifacts: [],
+      equipped: {
+        weapon: null,
+        armor: null,
+        accessory: null,
+      },
+    };
+    const runtime: Cultivator = {
+      ...profile,
+      skills: loadout.skills,
+      cultivations: loadout.cultivations,
+      inventory: {
+        artifacts: loadout.artifacts,
+        consumables: [],
+        materials: [],
+      },
+      equipped: loadout.equipped,
+    };
+    runtime.condition = ConditionService.tickNaturalRecovery(
+      runtime,
+      profile.condition,
+      undefined,
+      { legacyMaxResources: bareMax },
+    );
+    const runtimeMax = ConditionService.getMaxResources(runtime);
+    const battleInit = buildDungeonBattleInit(runtime);
+
+    expect(battleInit.player?.resourceState?.hp).toEqual({
+      mode: 'absolute',
+      value: runtimeMax.maxHp,
     });
   });
 

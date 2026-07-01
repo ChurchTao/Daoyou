@@ -42,8 +42,8 @@ function createEmptyConditionWithBodyCultivation(
   return {
     version: 1,
     resources: {
-      hp: { current: 0 },
-      mp: { current: 0 },
+      hp: { current: 0, max: 0 },
+      mp: { current: 0, max: 0 },
     },
     gauges: {
       pillToxicity: 0,
@@ -83,8 +83,8 @@ function createEnemyCondition(
   return {
     ...condition,
     resources: {
-      hp: { current: display.maxHp },
-      mp: { current: display.maxMp },
+      hp: { current: display.maxHp, max: display.maxHp },
+      mp: { current: display.maxMp, max: display.maxMp },
     },
   };
 }
