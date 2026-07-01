@@ -605,6 +605,7 @@ export class EnemyCraftExecutor {
       realm: input.realm,
       realmStage: input.realmStage,
       slugSeed: intent.slugSeed,
+      requestedQuality: intent.qualityFloor,
     });
     const product = this.materializeFromProductModel(
       productModel,

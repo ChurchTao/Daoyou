@@ -20,7 +20,8 @@ import {
   buildVariantKey,
   difficultyToBand,
   pickBySeed,
-  resolveEnergyBudget,
+  resolveEnemyProductEnergyBudget,
+  resolveEnemyProductQualityFloor,
   resolveUnlockScore,
 } from './utils';
 
@@ -80,7 +81,12 @@ function resolveDifficultyProfile(
 
 function resolveMaxAffixCount(
   band: EnemyDifficultyProfile['band'],
+  input: NormalizedEnemyGenerationInput,
 ): number {
+  if (input.difficulty >= 95 || (input.isBoss && input.difficulty >= 85)) {
+    return 5;
+  }
+
   switch (band) {
     case 'core':
       return 1;
@@ -397,18 +403,26 @@ export class EnemyLoadoutPlanner {
       dominantTags: uniqueStrings(dominantTags),
       personaTags: uniqueStrings(args.personaTags),
       candidateArchetypeIds: args.candidateArchetypeIds,
-      energyBudget: resolveEnergyBudget(
-        args.input.difficulty,
-        args.productType,
-        0,
-        args.input.isBoss,
-      ),
+      energyBudget: resolveEnemyProductEnergyBudget({
+        difficulty: args.input.difficulty,
+        race: args.input.race,
+        isBoss: args.input.isBoss,
+        productType: args.productType,
+      }),
       unlockScore: resolveUnlockScore(
         args.input.difficulty,
         0,
         args.input.isBoss,
       ),
-      maxAffixCount: resolveMaxAffixCount(args.difficultyProfile.band),
+      maxAffixCount: resolveMaxAffixCount(
+        args.difficultyProfile.band,
+        args.input,
+      ),
+      qualityFloor: resolveEnemyProductQualityFloor({
+        difficulty: args.input.difficulty,
+        race: args.input.race,
+        isBoss: args.input.isBoss,
+      }),
     };
   }
 }

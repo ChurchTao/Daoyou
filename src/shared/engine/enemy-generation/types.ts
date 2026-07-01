@@ -225,6 +225,7 @@ export interface EnemyPlannedProductIntent {
   energyBudget: number;
   unlockScore: number;
   maxAffixCount: number;
+  qualityFloor: Quality;
 }
 
 export interface EnemyLoadoutPlan {

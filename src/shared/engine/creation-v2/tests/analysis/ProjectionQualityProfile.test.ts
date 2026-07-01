@@ -1,4 +1,8 @@
-import { deriveProjectionQualityFromBudget } from '@shared/engine/creation-v2/analysis/ProjectionQualityProfile';
+import {
+  deriveProjectionQualityFromBudget,
+  getMinimumEffectiveEnergyForProjectionQuality,
+} from '@shared/engine/creation-v2/analysis/ProjectionQualityProfile';
+import type { Quality } from '@shared/types/constants';
 import type { EnergyBudget } from '@shared/engine/creation-v2/types';
 
 function budget(effectiveTotal: number): EnergyBudget {
@@ -44,5 +48,26 @@ describe('ProjectionQualityProfile', () => {
     expect(profile.qualityOrder).toBe(3);
     expect(profile.basisEnergy).toBe(45);
   });
-});
 
+  it('应反查达到指定投影品质的最低 effectiveTotal', () => {
+    const expectations: Array<[Quality, number]> = [
+      ['凡品', 0],
+      ['灵品', 18],
+      ['玄品', 30],
+      ['真品', 45],
+      ['地品', 65],
+      ['天品', 90],
+      ['仙品', 125],
+      ['神品', 170],
+    ];
+
+    for (const [quality, minimumEnergy] of expectations) {
+      expect(getMinimumEffectiveEnergyForProjectionQuality(quality)).toBe(
+        minimumEnergy,
+      );
+      expect(deriveProjectionQualityFromBudget(budget(minimumEnergy)).quality).toBe(
+        quality,
+      );
+    }
+  });
+});

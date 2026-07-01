@@ -1,6 +1,15 @@
 import { ELEMENT_NAME_PREFIX } from '@shared/engine/creation-v2/config/CreationMappings';
 import { CREATION_RESERVED_ENERGY } from '@shared/engine/creation-v2/config/CreationBalance';
-import type { ElementType, EnemyRace, RealmStage, RealmType } from '@shared/types/constants';
+import { getMinimumEffectiveEnergyForProjectionQuality } from '@shared/engine/creation-v2/analysis/ProjectionQualityProfile';
+import {
+  QUALITY_ORDER,
+  QUALITY_VALUES,
+  type ElementType,
+  type EnemyRace,
+  type Quality,
+  type RealmStage,
+  type RealmType,
+} from '@shared/types/constants';
 import {
   ATTRIBUTE_KEYS,
   type DifficultyBand,
@@ -184,6 +193,58 @@ export function resolveEnergyBudget(
   return Math.max(
     minByType,
     Math.round(base + difficulty * scale + bias + bossBonus),
+  );
+}
+
+export function resolveEnemyProductQualityFloor(input: {
+  difficulty: number;
+  race: EnemyRace;
+  isBoss: boolean;
+}): Quality {
+  const difficulty = Math.max(0, Math.min(100, Math.round(input.difficulty)));
+  const baseQuality =
+    difficulty >= 95
+      ? '神品'
+      : difficulty >= 85
+        ? '仙品'
+        : difficulty >= 75
+          ? '天品'
+          : difficulty >= 60
+            ? '地品'
+            : difficulty >= 40
+              ? '真品'
+              : difficulty >= 20
+                ? '玄品'
+                : '灵品';
+
+  if (!input.isBoss && input.race !== '古兽') {
+    return baseQuality;
+  }
+
+  const nextOrder = Math.min(
+    QUALITY_VALUES.length - 1,
+    QUALITY_ORDER[baseQuality] + 1,
+  );
+  return QUALITY_VALUES[nextOrder] ?? '神品';
+}
+
+export function resolveEnemyProductEnergyBudget(input: {
+  difficulty: number;
+  race: EnemyRace;
+  isBoss: boolean;
+  productType: 'skill' | 'gongfa' | 'artifact';
+  bias?: number;
+}): number {
+  const qualityFloor = resolveEnemyProductQualityFloor(input);
+  const linearBudget = resolveEnergyBudget(
+    input.difficulty,
+    input.productType,
+    input.bias ?? 0,
+    input.isBoss,
+  );
+  return Math.max(
+    linearBudget,
+    getMinimumEffectiveEnergyForProjectionQuality(qualityFloor) + 5,
   );
 }
 

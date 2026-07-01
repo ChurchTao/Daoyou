@@ -16,7 +16,12 @@ import {
   getRealmStageAttributeBudget,
   getRealmStageNaturalAttributeValue,
 } from '@shared/config/realmProgression';
-import { ENEMY_RACE_VALUES, type EnemyRace } from '@shared/types/constants';
+import {
+  ENEMY_RACE_VALUES,
+  QUALITY_ORDER,
+  type EnemyRace,
+  type Quality,
+} from '@shared/types/constants';
 import type { Cultivator } from '@shared/types/cultivator';
 import {
   enemyGenerator,
@@ -29,6 +34,10 @@ import {
   getEnemyCombatPolicy,
   validateEnemySkillRoles,
 } from './enemy-generation/EnemyCombatPolicy';
+import {
+  resolveEnemyProductEnergyBudget,
+  resolveEnemyProductQualityFloor,
+} from './enemy-generation/utils';
 
 function sumAttributes(attributes: Cultivator['attributes']): number {
   return Object.values(attributes).reduce((sum, value) => sum + value, 0);
@@ -232,6 +241,30 @@ function assertThreateningLoadout(
   }
 }
 
+function expectLoadoutQualityAtLeast(
+  draft: ReturnType<typeof enemyGenerator.buildDraft>,
+  qualityFloor: Quality,
+) {
+  const qualities = [
+    ...draft.cultivator.cultivations.map((technique) => technique.quality),
+    ...draft.cultivator.skills.map((skill) => skill.quality),
+    ...draft.cultivator.inventory.artifacts.map((artifact) => artifact.quality),
+  ];
+
+  expect(qualities.length).toBeGreaterThan(0);
+  for (const quality of qualities) {
+    expect(QUALITY_ORDER[quality]).toBeGreaterThanOrEqual(
+      QUALITY_ORDER[qualityFloor],
+    );
+  }
+
+  for (const product of draft.copyFacts.products) {
+    expect(QUALITY_ORDER[product.quality]).toBeGreaterThanOrEqual(
+      QUALITY_ORDER[qualityFloor],
+    );
+  }
+}
+
 describe('EnemyGenerator', () => {
   it.each([
     { difficulty: 0, factor: 0.6 },
@@ -258,6 +291,76 @@ describe('EnemyGenerator', () => {
     expect(sumAttributes(draft.cultivator.attributes)).toBe(
       draft.balance.totalAttributeBudget,
     );
+  });
+
+  it.each([
+    { difficulty: 60, expectedQuality: '地品' },
+    { difficulty: 75, expectedQuality: '天品' },
+    { difficulty: 85, expectedQuality: '仙品' },
+    { difficulty: 95, expectedQuality: '神品' },
+  ] as const)(
+    'maps enemy difficulty $difficulty to product quality floor $expectedQuality',
+    ({ difficulty, expectedQuality }) => {
+      expect(
+        resolveEnemyProductQualityFloor({
+          difficulty,
+          race: '人族',
+          isBoss: false,
+        }),
+      ).toBe(expectedQuality);
+    },
+  );
+
+  it('raises boss or ancient beast product quality floor by one tier without stacking', () => {
+    expect(
+      resolveEnemyProductQualityFloor({
+        difficulty: 75,
+        race: '人族',
+        isBoss: true,
+      }),
+    ).toBe('仙品');
+    expect(
+      resolveEnemyProductQualityFloor({
+        difficulty: 75,
+        race: '古兽',
+        isBoss: false,
+      }),
+    ).toBe('仙品');
+    expect(
+      resolveEnemyProductQualityFloor({
+        difficulty: 75,
+        race: '古兽',
+        isBoss: true,
+      }),
+    ).toBe('仙品');
+    expect(
+      resolveEnemyProductQualityFloor({
+        difficulty: 95,
+        race: '古兽',
+        isBoss: true,
+      }),
+    ).toBe('神品');
+  });
+
+  it('keeps high difficulty enemy product budgets above low quality ranges', () => {
+    for (const productType of ['skill', 'gongfa', 'artifact'] as const) {
+      expect(
+        resolveEnemyProductEnergyBudget({
+          difficulty: 80,
+          race: '人族',
+          isBoss: false,
+          productType,
+        }),
+      ).toBeGreaterThanOrEqual(95);
+      expect(
+        resolveEnemyProductEnergyBudget({
+          difficulty: 90,
+          race: '人族',
+          isBoss: false,
+          productType,
+        }),
+      ).toBeGreaterThanOrEqual(130);
+    }
   });
 
   it('generates deterministic body cultivation condition without timestamp churn', () => {
@@ -413,6 +516,31 @@ describe('EnemyGenerator', () => {
       expect(draft.balance.band).toBe(expectedBand);
       expect(draft.cultivator.skills).toHaveLength(expectedSkills);
       expect(draft.cultivator.inventory.artifacts).toHaveLength(expectedArtifacts);
+    },
+  );
+
+  it.each([
+    { difficulty: 80, isBoss: false, race: '人族', expectedQuality: '天品' },
+    { difficulty: 90, isBoss: false, race: '人族', expectedQuality: '仙品' },
+    { difficulty: 95, isBoss: false, race: '人族', expectedQuality: '神品' },
+    { difficulty: 85, isBoss: true, race: '人族', expectedQuality: '神品' },
+    { difficulty: 85, isBoss: false, race: '古兽', expectedQuality: '神品' },
+  ] as const)(
+    'generates $expectedQuality or better products for difficulty $difficulty race=$race boss=$isBoss',
+    ({ difficulty, isBoss, race, expectedQuality }) => {
+      const draft = enemyGenerator.buildDraft({
+        realm: '元婴',
+        realmStage: '中期',
+        race,
+        difficulty,
+        isBoss,
+        variantSeed: 'quality-floor',
+      });
+
+      expectLoadoutQualityAtLeast(draft, expectedQuality);
+      for (const product of draft.copyFacts.products) {
+        expect(product.quality).toBe(expectedQuality);
+      }
     },
   );
 
@@ -815,11 +943,14 @@ describe('EnemyGenerator', () => {
     });
 
     expect(loadout.recoveryTierUsed).toBe(3);
+    expect(loadout.technique.item.quality).toBe('神品');
     expect(() => AbilityFactory.create(loadout.technique.item.abilityConfig!)).not.toThrow();
     for (const skill of loadout.skills) {
+      expect(skill.item.quality).toBe('神品');
       expect(() => AbilityFactory.create(skill.item.abilityConfig!)).not.toThrow();
     }
     for (const artifact of loadout.artifacts) {
+      expect(artifact.item.quality).toBe('神品');
       expect(() => AbilityFactory.create(artifact.item.abilityConfig!)).not.toThrow();
     }
 

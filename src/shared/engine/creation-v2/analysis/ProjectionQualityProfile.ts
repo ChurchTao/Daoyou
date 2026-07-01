@@ -27,3 +27,12 @@ export function deriveProjectionQualityFromBudget(
   return { quality, qualityOrder: QUALITY_ORDER[quality], basisEnergy };
 }
 
+export function getMinimumEffectiveEnergyForProjectionQuality(
+  quality: Quality,
+): number {
+  const index = CREATION_PROJECTION_QUALITY_TIERS.findIndex(
+    (tier) => tier.quality === quality,
+  );
+  if (index <= 0) return 0;
+  return CREATION_PROJECTION_QUALITY_TIERS[index - 1].maxEnergy;
+}
