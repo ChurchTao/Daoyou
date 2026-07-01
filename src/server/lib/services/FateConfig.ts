@@ -29,18 +29,19 @@ export const FATE_QUALITY_SCALE: Record<Quality, number> = {
 };
 
 export const FATE_QUALITY_WEIGHTS: Record<Quality, number> = {
-  凡品: 0.348,
+  凡品: 0.328,
   灵品: 0.235,
   玄品: 0.157,
   真品: 0.113,
   地品: 0.095,
-  天品: 0.027,
-  仙品: 0.013,
+  天品: 0.037,
+  仙品: 0.023,
   神品: 0.012,
 };
 
 export const FATE_DUAL_SIDED_CHANCE: Partial<Record<Quality, number>> = {
-  天品: 0.15,
+  地品: 0.1,
+  天品: 0.2,
   仙品: 0.3,
   神品: 0.45,
 };
