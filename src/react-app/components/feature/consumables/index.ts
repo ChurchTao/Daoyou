@@ -20,6 +20,7 @@ export {
 } from './pillDisplay';
 export {
   buildTalismanDetailText,
+  buildTalismanUseConfirmText,
   getTalismanActionHref,
   getTalismanActionLabel,
   getTalismanScenarioLabel,

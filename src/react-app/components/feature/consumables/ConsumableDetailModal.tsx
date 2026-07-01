@@ -11,6 +11,7 @@ import {
   PillAppearanceMark,
   PillDetailGroups,
 } from './pillDisplayComponents';
+import type { PillDetailGroup } from './pillDisplayModel';
 import { toPillDisplayModel } from './pillDisplayModel';
 import { buildTalismanDetailText } from './talismanDisplay';
 
@@ -24,7 +25,7 @@ interface ConsumableDetailModalProps {
 
 function QuantityInfo({ quantity }: { quantity: number }) {
   return (
-    <div className="border-border/50 flex justify-between border-b pb-2">
+    <div className="border-ink/15 flex justify-between border-b border-dashed pb-2">
       <span className="opacity-70">持有数量</span>
       <span className="font-bold">{quantity}</span>
     </div>
@@ -37,6 +38,34 @@ function buildTalismanDescription(consumable: Consumable): string {
   }
 
   return consumable.description ?? '';
+}
+
+function buildTalismanDetailGroups(text: string): PillDetailGroup[] {
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return lines.map((line, index) => {
+    const separatorIndex = line.indexOf('：');
+    const hasLabel = separatorIndex > 0;
+    const title = hasLabel ? line.slice(0, separatorIndex) : '符箓记述';
+    const content = hasLabel ? line.slice(separatorIndex + 1) : line;
+
+    return {
+      key: `talisman-${title}-${index}`,
+      title,
+      lines: [content],
+    };
+  });
+}
+
+function TalismanDetailRows({ text }: { text: string }) {
+  const groups = buildTalismanDetailGroups(text);
+
+  if (groups.length === 0) return null;
+
+  return <PillDetailGroups groups={groups} />;
 }
 
 export function ConsumableDetailModal({
@@ -91,6 +120,32 @@ export function ConsumableDetailModal({
     );
   }
 
+  if (isTalismanConsumable(consumable)) {
+    return (
+      <ItemShowcaseModal
+        isOpen={isOpen}
+        onClose={onClose}
+        icon={typeInfo.icon}
+        name={consumable.name}
+        badges={[
+          consumable.quality ? (
+            <InkBadge key="type" tier={consumable.quality}>
+              {typeInfo.label}
+            </InkBadge>
+          ) : (
+            <InkBadge key="type" tone="default">
+              {typeInfo.label}
+            </InkBadge>
+          ),
+        ].filter(Boolean)}
+        metaSection={<QuantityInfo quantity={consumable.quantity} />}
+        extraInfo={
+          <TalismanDetailRows text={buildTalismanDescription(consumable)} />
+        }
+      />
+    );
+  }
+
   return (
     <ItemShowcaseModal
       isOpen={isOpen}
@@ -110,7 +165,7 @@ export function ConsumableDetailModal({
       ].filter(Boolean)}
       extraInfo={<QuantityInfo quantity={consumable.quantity} />}
       description={buildTalismanDescription(consumable)}
-      descriptionTitle="符箓说明"
+      descriptionTitle="物品说明"
     />
   );
 }

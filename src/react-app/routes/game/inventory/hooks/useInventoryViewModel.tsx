@@ -1,4 +1,5 @@
 import type { ItemDetailPayload } from '@app/components/feature/items';
+import { buildTalismanUseConfirmText } from '@app/components/feature/consumables';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import type { InkDialogState } from '@app/components/ui/InkDialog';
 import {
@@ -24,6 +25,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export type InventoryTab = 'artifacts' | 'materials' | 'consumables';
 export type InventoryItem = Artifact | Consumable | Material;
+type ConsumableWithId = Consumable & { id: string };
 
 interface InventoryPagination {
   page: number;
@@ -90,6 +92,13 @@ const createEmptyPagination = (
 
 function getIdentifyCostText(): string {
   return '1 天地灵气';
+}
+
+function getTalismanUseConfirmLines(item: Consumable): string[] {
+  return buildTalismanUseConfirmText(item)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 function areMaterialFiltersEqual(
@@ -529,37 +538,8 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     [cultivator, fetchTabPage, mutate, pushToast],
   );
 
-  // 服用丹药
-  const handleConsume = useCallback(
-    async (item: Consumable) => {
-      if (!cultivator || !item.id) {
-        pushToast({
-          message: '此消耗品暂无有效 ID，无法使用。',
-          tone: 'warning',
-        });
-        return;
-      }
-
-      if (isTalismanConsumable(item)) {
-        if (
-          !isQiRestoreTalismanScenario(item.spec.scenario) &&
-          !isAttributeResetTalismanScenario(item.spec.scenario)
-        ) {
-          pushToast({
-            message:
-              '符箓需在对应特殊玩法入口校验并锁定，不能在背包中直接使用。',
-            tone: 'warning',
-          });
-          return;
-        }
-      } else if (!isPillConsumable(item)) {
-        pushToast({
-          message: '该消耗品缺少有效丹药数据，暂时无法服用。',
-          tone: 'warning',
-        });
-        return;
-      }
-
+  const executeConsumableUse = useCallback(
+    async (item: ConsumableWithId) => {
       setPendingId(item.id);
       try {
         const result = await mutate<{
@@ -591,7 +571,72 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         setPendingId(null);
       }
     },
-    [cultivator, fetchTabPage, mutate, pushToast],
+    [fetchTabPage, mutate, pushToast],
+  );
+
+  // 使用消耗品
+  const handleConsume = useCallback(
+    async (item: Consumable) => {
+      if (!cultivator || !item.id) {
+        pushToast({
+          message: '此消耗品暂无有效 ID，无法使用。',
+          tone: 'warning',
+        });
+        return;
+      }
+      const usableItem: ConsumableWithId = { ...item, id: item.id };
+
+      if (isTalismanConsumable(usableItem)) {
+        if (
+          !isQiRestoreTalismanScenario(usableItem.spec.scenario) &&
+          !isAttributeResetTalismanScenario(usableItem.spec.scenario)
+        ) {
+          pushToast({
+            message:
+              '符箓需在对应特殊玩法入口校验并锁定，不能在背包中直接使用。',
+            tone: 'warning',
+          });
+          return;
+        }
+
+        const effectLines = getTalismanUseConfirmLines(usableItem);
+        setDialog({
+          id: `talisman-use-confirm-${usableItem.id}`,
+          title: '符箓使用确认',
+          content: (
+            <div className="space-y-3 py-3 text-sm leading-7">
+              <p className="text-center">
+                确认使用 <span className="font-bold">{usableItem.name}</span> 吗？
+              </p>
+              <div className="border-ink/10 bg-paper space-y-1 border border-dashed p-3">
+                <p className="text-ink-secondary text-xs font-bold">效用</p>
+                {effectLines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+              <p className="text-ink-secondary text-center text-xs">
+                确认后将消耗 1 张符箓，使用结果无法撤回。
+              </p>
+            </div>
+          ),
+          confirmLabel: '确认使用',
+          loadingLabel: '使用中...',
+          onConfirm: async () => await executeConsumableUse(usableItem),
+        });
+        return;
+      }
+
+      if (!isPillConsumable(usableItem)) {
+        pushToast({
+          message: '该消耗品缺少有效丹药数据，暂时无法服用。',
+          tone: 'warning',
+        });
+        return;
+      }
+
+      await executeConsumableUse(usableItem);
+    },
+    [cultivator, executeConsumableUse, pushToast],
   );
 
   // 鉴定神秘材料

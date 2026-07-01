@@ -73,6 +73,7 @@ export function ConsumablesTab({
             consumable={item}
             realm={realm}
             condition={condition}
+            showUsageHint={false}
             actions={
               <div className="flex gap-2">
                 <InkButton

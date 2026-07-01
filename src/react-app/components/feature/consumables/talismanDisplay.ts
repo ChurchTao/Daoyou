@@ -145,3 +145,7 @@ export function buildTalismanDetailText(consumable: Consumable): string {
 
   return lines.filter(Boolean).join('\n');
 }
+
+export function buildTalismanUseConfirmText(consumable: Consumable): string {
+  return buildTalismanDetailText(consumable);
+}
