@@ -112,6 +112,7 @@ describe('dungeon battle init helpers', () => {
           speed: { level: 0, progress: 0 },
           willpower: { level: 0, progress: 0 },
         },
+        marrowWash: { level: 0, progress: 0 },
       },
       counters: {
         longTermPillUsesByRealm: {},
