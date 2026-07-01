@@ -7,6 +7,7 @@ import {
   type PlayerStateView,
 } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
+import { isAttributeResetTalismanScenario } from '@shared/config/attributeResetTalisman';
 import { isQiRestoreTalismanScenario } from '@shared/config/qiSystem';
 import {
   isPillConsumable,
@@ -534,7 +535,10 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
       }
 
       if (isTalismanConsumable(item)) {
-        if (!isQiRestoreTalismanScenario(item.spec.scenario)) {
+        if (
+          !isQiRestoreTalismanScenario(item.spec.scenario) &&
+          !isAttributeResetTalismanScenario(item.spec.scenario)
+        ) {
           pushToast({
             message:
               '符箓需在对应特殊玩法入口校验并锁定，不能在背包中直接使用。',

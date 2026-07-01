@@ -41,6 +41,11 @@ import {
   consumeBodyCultivationBreakthroughCosts,
   getBodyCultivationBreakthroughReadiness,
 } from '@server/lib/services/BodyCultivationBreakthroughService';
+import {
+  AttributeResetService,
+  AttributeResetServiceError,
+  withAttributeResetLock,
+} from '@server/lib/services/AttributeResetService';
 import { ConsumableUseEngine } from '@server/lib/services/ConsumableUseEngine';
 import { ConditionService } from '@server/lib/services/ConditionService';
 import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
@@ -93,6 +98,7 @@ import {
   type LifespanExhaustedStoryPayload,
 } from '@server/utils/prompts';
 import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward';
+import { isAttributeResetTalismanScenario } from '@shared/config/attributeResetTalisman';
 import { getRetreatQiCost } from '@shared/config/qiSystem';
 import {
   getRealmStageNaturalAttributeValue,
@@ -643,6 +649,8 @@ router.post('/consume', requireActiveCultivator(), async (c) => {
             wisdom: cultivators.wisdom,
             speed: cultivators.speed,
             willpower: cultivators.willpower,
+            unallocatedAttributePoints:
+              cultivators.unallocatedAttributePoints,
           })
           .from(cultivators)
           .where(eq(cultivators.id, cultivator.id))
@@ -661,7 +669,27 @@ router.post('/consume', requireActiveCultivator(), async (c) => {
           },
         ];
 
-        if (isTalismanConsumable(result.consumable)) {
+        if (
+          isTalismanConsumable(result.consumable) &&
+          isAttributeResetTalismanScenario(result.consumable.spec.scenario)
+        ) {
+          changes.push({
+            domain: 'profile',
+            eventType: 'profile.attributes.reset',
+            patch: {
+              attributes: {
+                vitality: cultivatorState?.vitality,
+                spirit: cultivatorState?.spirit,
+                wisdom: cultivatorState?.wisdom,
+                speed: cultivatorState?.speed,
+                willpower: cultivatorState?.willpower,
+              },
+              unallocated_attribute_points:
+                cultivatorState?.unallocatedAttributePoints,
+            },
+            invalidates: ['profile'],
+          });
+        } else if (isTalismanConsumable(result.consumable)) {
           changes.push({
             domain: 'currency',
             eventType: 'currency.qi.changed',
@@ -708,6 +736,12 @@ router.post('/consume', requireActiveCultivator(), async (c) => {
     }
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
+    if (error instanceof LockAcquisitionError) {
+      return c.json({ error: '属性重置正在处理中，请稍后' }, 429);
+    }
+    if (error instanceof AttributeResetServiceError) {
+      return c.json({ error: error.message }, error.status as 400 | 404);
+    }
     const qiResponse = qiErrorResponse(c, error);
     if (qiResponse) return qiResponse;
     return c.json(
@@ -1253,6 +1287,63 @@ router.post('/attributes/allocate', requireActiveCultivator(), async (c) => {
     if (lockAcquired) {
       await releaseRedisLock(lock, lockKey);
     }
+  }
+});
+
+router.post('/attributes/reset', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
+  const cultivator = c.get('cultivator');
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
+  }
+
+  try {
+    const committed = await withAttributeResetLock(cultivator.id, () =>
+      commitPlayerStateMutation({
+        userId: user.id,
+        cultivatorId: cultivator.id,
+        source: 'profile_attribute_reset',
+        run: async (tx) => {
+          const result =
+            await AttributeResetService.resetAttributesWithTalisman({
+              userId: user.id,
+              cultivatorId: cultivator.id,
+              tx,
+            });
+
+          return {
+            result,
+            changes: [
+              {
+                domain: 'inventory',
+                eventType: 'inventory.attribute_reset_talisman.used',
+                invalidates: ['inventory'],
+              },
+              {
+                domain: 'profile',
+                eventType: 'profile.attributes.reset',
+                patch: {
+                  attributes: result.attributes,
+                  unallocated_attribute_points:
+                    result.unallocated_attribute_points,
+                },
+                invalidates: ['profile'],
+              },
+            ],
+          };
+        },
+      }),
+    );
+
+    return c.json(toPlayerStateMutationResponse(committed));
+  } catch (error) {
+    if (error instanceof LockAcquisitionError) {
+      return c.json({ error: '属性重置正在处理中，请稍后' }, 429);
+    }
+    if (error instanceof AttributeResetServiceError) {
+      return c.json({ error: error.message }, error.status as 400 | 404);
+    }
+    throw error;
   }
 });
 

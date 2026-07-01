@@ -1,4 +1,8 @@
 import {
+  ATTRIBUTE_RESET_TALISMAN_NAME,
+  ATTRIBUTE_RESET_TALISMAN_SCENARIO,
+} from '@shared/config/attributeResetTalisman';
+import {
   AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO,
   FRIEND_MAIL_TALISMAN_SCENARIO,
 } from '@shared/config/socialConfig';
@@ -8,6 +12,7 @@ import {
   getTalismanActionHref,
   getTalismanActionLabel,
   getTalismanUsageHint,
+  isAttributeResetTalisman,
   isQiRestoreTalisman,
 } from './talismanDisplay';
 
@@ -52,6 +57,28 @@ describe('talisman display helpers', () => {
     );
     expect(buildTalismanDetailText(item)).not.toContain('qi_restore_medium');
     expect(buildTalismanDetailText(item)).not.toContain('consume_on_action');
+  });
+
+  it('renders attribute reset talismans as directly usable', () => {
+    const item = {
+      ...talisman(
+        ATTRIBUTE_RESET_TALISMAN_SCENARIO,
+        `${ATTRIBUTE_RESET_TALISMAN_NAME}启封后，可令五维归元。`,
+      ),
+      name: ATTRIBUTE_RESET_TALISMAN_NAME,
+    };
+
+    expect(isAttributeResetTalisman(item)).toBe(true);
+    expect(getTalismanActionHref(item)).toBeUndefined();
+    expect(getTalismanActionLabel(item)).toBe('使用');
+    expect(getTalismanUsageHint(item)).toBe(
+      '【可在背包中直接使用，重置五维自由分配并返还属性点】',
+    );
+    expect(buildTalismanDetailText(item)).toContain('用途：重置五维自由分配');
+    expect(buildTalismanDetailText(item)).toContain('可在背包中直接使用');
+    expect(buildTalismanDetailText(item)).not.toContain(
+      ATTRIBUTE_RESET_TALISMAN_SCENARIO,
+    );
   });
 
   it('routes friend mail talismans to the mail scene with a purchase hint', () => {

@@ -4,11 +4,20 @@ import type { CultivationProgress, Cultivator } from '@shared/types/cultivator';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
-const { createRedisLockMock, releaseRedisLockMock, lockAcquireMock } =
-  vi.hoisted(() => ({
+const {
+  createRedisLockMock,
+  releaseRedisLockMock,
+  lockAcquireMock,
+  resetAttributesWithTalismanMock,
+  withAttributeResetLockMock,
+} = vi.hoisted(() => ({
     createRedisLockMock: vi.fn(),
     releaseRedisLockMock: vi.fn(),
     lockAcquireMock: vi.fn(async () => undefined),
+    resetAttributesWithTalismanMock: vi.fn(),
+    withAttributeResetLockMock: vi.fn(
+      async (_cultivatorId: string, task: () => Promise<unknown>) => task(),
+    ),
   }));
 
 vi.mock('@server/lib/drizzle/db', () => ({
@@ -94,6 +103,22 @@ vi.mock('@server/lib/services/ConsumableUseEngine', () => ({
   ConsumableUseEngine: {
     consume: vi.fn(),
   },
+}));
+
+vi.mock('@server/lib/services/AttributeResetService', () => ({
+  AttributeResetService: {
+    resetAttributesWithTalisman: resetAttributesWithTalismanMock,
+  },
+  AttributeResetServiceError: class AttributeResetServiceError extends Error {
+    constructor(
+      public readonly status: number,
+      message: string,
+    ) {
+      super(message);
+      this.name = 'AttributeResetServiceError';
+    }
+  },
+  withAttributeResetLock: withAttributeResetLockMock,
 }));
 
 vi.mock('@server/lib/services/MailService', () => ({
@@ -218,6 +243,10 @@ import { getRetreatLock } from '@server/lib/redis/retreatLock';
 import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
 import { MailService } from '@server/lib/services/MailService';
 import { ConsumableUseEngine } from '@server/lib/services/ConsumableUseEngine';
+import {
+  AttributeResetService,
+  AttributeResetServiceError,
+} from '@server/lib/services/AttributeResetService';
 import { PillOperationExecutor } from '@server/lib/services/PillOperationExecutor';
 import { QiService, QiServiceError } from '@server/lib/services/QiService';
 import { TaskService } from '@server/lib/services/TaskService';
@@ -253,6 +282,8 @@ const buildRecoveryResultMock =
   InnRecoveryService.buildRecoveryResult as unknown as Mock;
 const sendMailMock = MailService.sendMail as unknown as Mock;
 const consumeMock = ConsumableUseEngine.consume as unknown as Mock;
+const resetAttributesWithTalismanServiceMock =
+  AttributeResetService.resetAttributesWithTalisman as unknown as Mock;
 const consumeConsumableByIdMock = consumeConsumableById as unknown as Mock;
 const consumeMaterialByIdMock = consumeMaterialById as unknown as Mock;
 const consumeBreakthroughSupportStatusesMock =
@@ -608,7 +639,9 @@ function mockMailReadTransaction(unreadCount: number) {
   return { update, set, updateWhere, select, from, selectWhere, insert };
 }
 
-function mockConsumeTransaction() {
+function mockConsumeTransaction(
+  options: { attributeReset?: boolean } = {},
+) {
   const selectedCultivator = {
     condition: {},
     cultivationProgress: {},
@@ -620,6 +653,7 @@ function mockConsumeTransaction() {
     wisdom: 10,
     speed: 10,
     willpower: 10,
+    unallocatedAttributePoints: options.attributeReset ? 18 : 0,
   };
   const limit = vi.fn().mockResolvedValue([selectedCultivator]);
   const where = vi.fn(() => ({ limit }));
@@ -628,31 +662,58 @@ function mockConsumeTransaction() {
   const versionRow = {
     cultivatorId: 'cultivator-1',
     globalVersion: 1,
-    profileVersion: 0,
+    profileVersion: options.attributeReset ? 1 : 0,
     conditionVersion: 0,
     progressVersion: 0,
-    currencyVersion: 1,
+    currencyVersion: options.attributeReset ? 0 : 1,
     inventoryVersion: 1,
     productsVersion: 0,
     mailVersion: 0,
     tasksVersion: 1,
     updatedAt: new Date('2026-06-10T00:00:00.000Z'),
   };
-  const eventRows = [
-    {
-      id: 21,
-      cultivatorId: 'cultivator-1',
-      userId: 'user-1',
-      globalVersion: 1,
-      domain: 'inventory',
-      eventType: 'inventory.consumable.used',
-      patch: {},
-      invalidates: ['inventory'],
-      source: 'consumable_use',
-      requestId: null,
-      createdAt: new Date('2026-06-10T00:00:00.000Z'),
-    },
-  ];
+  const eventRows = options.attributeReset
+    ? createStateEventRows([
+        {
+          id: 21,
+          domain: 'inventory',
+          eventType: 'inventory.consumable.used',
+          source: 'consumable_use',
+          invalidates: ['inventory'],
+        },
+        {
+          id: 22,
+          domain: 'profile',
+          eventType: 'profile.attributes.reset',
+          source: 'consumable_use',
+          invalidates: ['profile'],
+          patch: {
+            attributes: {
+              vitality: 10,
+              spirit: 10,
+              wisdom: 10,
+              speed: 10,
+              willpower: 10,
+            },
+            unallocated_attribute_points: 18,
+          },
+        },
+      ])
+    : [
+        {
+          id: 21,
+          cultivatorId: 'cultivator-1',
+          userId: 'user-1',
+          globalVersion: 1,
+          domain: 'inventory',
+          eventType: 'inventory.consumable.used',
+          patch: {},
+          invalidates: ['inventory'],
+          source: 'consumable_use',
+          requestId: null,
+          createdAt: new Date('2026-06-10T00:00:00.000Z'),
+        },
+      ];
   const insertReturning = vi
     .fn()
     .mockResolvedValueOnce([versionRow])
@@ -877,6 +938,120 @@ describe('cultivator attribute allocation route', () => {
     });
     expect(dbMock).not.toHaveBeenCalled();
     expect(releaseRedisLockMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('cultivator attribute reset route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    withAttributeResetLockMock.mockImplementation(
+      async (_cultivatorId: string, task: () => Promise<unknown>) => task(),
+    );
+  });
+
+  it('resets allocated attributes with a reset talisman', async () => {
+    const resetResult = {
+      attributes: {
+        vitality: 20,
+        spirit: 20,
+        wisdom: 20,
+        speed: 20,
+        willpower: 20,
+      },
+      unallocated_attribute_points: 38,
+      refunded_attribute_points: 18,
+      consumed_talisman_name: '归元洗髓符',
+    };
+    resetAttributesWithTalismanServiceMock.mockResolvedValueOnce(resetResult);
+    const txMock = mockStateOnlyTransaction({
+      versionRow: createStateVersionRow({
+        profileVersion: 1,
+        inventoryVersion: 1,
+      }),
+      eventRows: createStateEventRows([
+        {
+          domain: 'inventory',
+          eventType: 'inventory.attribute_reset_talisman.used',
+          source: 'profile_attribute_reset',
+          invalidates: ['inventory'],
+        },
+        {
+          domain: 'profile',
+          eventType: 'profile.attributes.reset',
+          source: 'profile_attribute_reset',
+          invalidates: ['profile'],
+          patch: {
+            attributes: resetResult.attributes,
+            unallocated_attribute_points:
+              resetResult.unallocated_attribute_points,
+          },
+        },
+      ]),
+    });
+
+    const response = await createApp().request(
+      '/api/cultivator/attributes/reset',
+      { method: 'POST' },
+    );
+
+    expect(response.status).toBe(200);
+    expect(withAttributeResetLockMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      expect.any(Function),
+    );
+    expect(resetAttributesWithTalismanServiceMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cultivatorId: 'cultivator-1',
+      tx: txMock,
+    });
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: resetResult,
+        state: expect.objectContaining({
+          domainVersions: {
+            inventory: 1,
+            profile: 1,
+          },
+        }),
+      }),
+    );
+  });
+
+  it('rejects reset when the reset talisman is missing', async () => {
+    resetAttributesWithTalismanServiceMock.mockRejectedValueOnce(
+      new AttributeResetServiceError(400, '缺少归元洗髓符，无法重置根基属性'),
+    );
+    mockStateOnlyTransaction({
+      eventRows: createStateEventRows([]),
+    });
+
+    const response = await createApp().request(
+      '/api/cultivator/attributes/reset',
+      { method: 'POST' },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: '缺少归元洗髓符，无法重置根基属性',
+    });
+  });
+
+  it('returns 429 when another reset holds the lock', async () => {
+    withAttributeResetLockMock.mockRejectedValueOnce(
+      new LockAcquisitionError('lock busy'),
+    );
+
+    const response = await createApp().request(
+      '/api/cultivator/attributes/reset',
+      { method: 'POST' },
+    );
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toEqual({
+      error: '属性重置正在处理中，请稍后',
+    });
+    expect(resetAttributesWithTalismanServiceMock).not.toHaveBeenCalled();
   });
 });
 
@@ -1196,6 +1371,63 @@ describe('cultivator qi routes', () => {
       { tx: txMock },
     );
     expect(syncCultivatorTasksMock).toHaveBeenCalledWith('cultivator-1');
+  });
+
+  it('uses attribute reset talismans through the unified consume route', async () => {
+    consumeMock.mockResolvedValueOnce({
+      message: '已使用归元洗髓符，五维根基归于自然成长，可分配属性点已返还。',
+      consumable: {
+        id: '11111111-1111-4111-8111-111111111111',
+        name: '归元洗髓符',
+        spec: {
+          kind: 'talisman',
+          scenario: 'attribute_reset',
+          sessionMode: 'consume_on_action',
+        },
+      },
+    });
+    syncCultivatorTasksMock.mockResolvedValueOnce(undefined);
+    mockConsumeTransaction({ attributeReset: true });
+
+    const response = await createApp().request('/api/cultivator/consume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consumableId: '11111111-1111-4111-8111-111111111111' }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          message:
+            '已使用归元洗髓符，五维根基归于自然成长，可分配属性点已返还。',
+        }),
+        state: expect.objectContaining({
+          domainVersions: {
+            inventory: 1,
+            profile: 1,
+            tasks: 1,
+          },
+          events: expect.arrayContaining([
+            expect.objectContaining({
+              domain: 'profile',
+              eventType: 'profile.attributes.reset',
+              patch: {
+                attributes: {
+                  vitality: 10,
+                  spirit: 10,
+                  wisdom: 10,
+                  speed: 10,
+                  willpower: 10,
+                },
+                unallocated_attribute_points: 18,
+              },
+            }),
+          ]),
+        }),
+      }),
+    );
   });
 
   it('passes qi restore errors through the unified consume route', async () => {

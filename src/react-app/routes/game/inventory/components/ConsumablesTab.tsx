@@ -2,6 +2,7 @@ import {
   ConsumableListCard,
   getTalismanActionHref,
   getTalismanActionLabel,
+  isAttributeResetTalisman,
   isQiRestoreTalisman,
 } from '@app/components/feature/consumables';
 import { InkButton, InkList, InkNotice } from '@app/components/ui';
@@ -59,7 +60,9 @@ export function ConsumablesTab({
       {sortedItems.map((item, idx) => {
         const isTalisman = isTalismanConsumable(item);
         const isDirectlyUsable =
-          isPillConsumable(item) || isQiRestoreTalisman(item);
+          isPillConsumable(item) ||
+          isQiRestoreTalisman(item) ||
+          isAttributeResetTalisman(item);
         const scenarioHref = getTalismanActionHref(item);
         const scenarioActionLabel = getTalismanActionLabel(item);
         const canNavigateToScenario = Boolean(item.id && scenarioHref);

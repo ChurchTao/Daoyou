@@ -3,6 +3,11 @@ import {
   isQiRestoreTalismanScenario,
 } from '@shared/config/qiSystem';
 import {
+  ATTRIBUTE_RESET_TALISMAN_NAME,
+  ATTRIBUTE_RESET_TALISMAN_SCENARIO,
+  isAttributeResetTalismanScenario,
+} from '@shared/config/attributeResetTalisman';
+import {
   AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO,
   FRIEND_MAIL_TALISMAN_SCENARIO,
 } from '@shared/config/socialConfig';
@@ -11,6 +16,7 @@ import type { Consumable } from '@shared/types/cultivator';
 import { buildManualDrawHref } from '@shared/types/manualDraw';
 
 const TALISMAN_SCENARIO_LABELS: Record<string, string> = {
+  [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: '根基属性重洗',
   fate_reshape: '命格重塑',
   draw_gongfa: '问法寻卷·功法抽取',
   draw_skill: '问法寻卷·神通抽取',
@@ -27,6 +33,7 @@ const TALISMAN_SCENARIO_HREFS: Record<string, string> = {
 };
 
 const TALISMAN_SCENARIO_ACTION_LABELS: Record<string, string> = {
+  [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: '使用',
   fate_reshape: '前往重塑',
   draw_gongfa: '抽功法秘籍',
   draw_skill: '抽神通秘籍',
@@ -35,6 +42,8 @@ const TALISMAN_SCENARIO_ACTION_LABELS: Record<string, string> = {
 };
 
 const TALISMAN_USAGE_HINTS: Record<string, string> = {
+  [ATTRIBUTE_RESET_TALISMAN_SCENARIO]:
+    `【可在背包中直接使用，重置五维自由分配并返还属性点】`,
   fate_reshape: '【前往命格重塑功能页启封，开启时立即扣除】',
   draw_gongfa: '【前往问法寻卷，直接消耗符箓抽取功法秘籍】',
   draw_skill: '【前往问法寻卷，直接消耗符箓抽取神通秘籍】',
@@ -57,6 +66,13 @@ export function isQiRestoreTalisman(consumable: Consumable): boolean {
   return (
     isTalismanConsumable(consumable) &&
     isQiRestoreTalismanScenario(consumable.spec.scenario)
+  );
+}
+
+export function isAttributeResetTalisman(consumable: Consumable): boolean {
+  return (
+    isTalismanConsumable(consumable) &&
+    isAttributeResetTalismanScenario(consumable.spec.scenario)
   );
 }
 
@@ -86,6 +102,9 @@ export function getTalismanUsageHint(consumable: Consumable): string {
   }
 
   const restoreText = getQiRestoreEffectText(consumable.spec.scenario);
+  if (isAttributeResetTalismanScenario(consumable.spec.scenario)) {
+    return TALISMAN_USAGE_HINTS[ATTRIBUTE_RESET_TALISMAN_SCENARIO];
+  }
   if (restoreText) {
     return `【可在背包中直接使用，${restoreText}】`;
   }
@@ -102,7 +121,15 @@ export function buildTalismanDetailText(consumable: Consumable): string {
   }
 
   const restoreText = getQiRestoreEffectText(consumable.spec.scenario);
-  const lines = restoreText
+  const lines = isAttributeResetTalismanScenario(consumable.spec.scenario)
+    ? [
+        `用途：重置五维自由分配，返还已投入的可分配属性点`,
+        '使用方式：可在背包中直接使用，也可在根基属性页确认启封',
+        consumable.spec.notes ??
+          `${ATTRIBUTE_RESET_TALISMAN_NAME}启封后，五维回到当前境界自然成长值。`,
+        consumable.description,
+      ]
+    : restoreText
     ? [
         `用途：${restoreText}`,
         '使用方式：可在背包中直接使用',

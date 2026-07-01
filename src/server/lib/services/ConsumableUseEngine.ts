@@ -4,6 +4,10 @@ import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import { stripExpCapForStorage } from '@server/utils/cultivationUtils';
 import {
+  ATTRIBUTE_RESET_TALISMAN_NAME,
+  ATTRIBUTE_RESET_TALISMAN_SCENARIO,
+} from '@shared/config/attributeResetTalisman';
+import {
   QI_RESTORE_TALISMAN_SCENARIOS,
   isQiRestoreTalismanScenario,
 } from '@shared/config/qiSystem';
@@ -25,6 +29,10 @@ import { QiService } from './QiService';
 import { mapConsumableRow } from './consumablePersistence';
 import { randomUUID } from 'crypto';
 import type { DbTransaction } from '@server/lib/drizzle/db';
+import {
+  AttributeResetService,
+  withAttributeResetLock,
+} from './AttributeResetService';
 
 async function loadOwnedConsumable(
   cultivatorId: string,
@@ -84,6 +92,28 @@ export const ConsumableUseEngine = {
     }
 
     if (isTalismanConsumable(consumable)) {
+      if (consumable.spec.scenario === ATTRIBUTE_RESET_TALISMAN_SCENARIO) {
+        if (consumable.spec.sessionMode !== 'consume_on_action') {
+          throw new Error(
+            `该${ATTRIBUTE_RESET_TALISMAN_NAME}需直接启封，不能在会话中锁定。`,
+          );
+        }
+
+        await withAttributeResetLock(cultivatorId, () =>
+          AttributeResetService.resetAttributesWithTalisman({
+            userId,
+            cultivatorId,
+            consumableId,
+            tx: options.tx,
+          }),
+        );
+
+        return {
+          message: `已使用${consumable.name}，五维根基归于自然成长，可分配属性点已返还。`,
+          consumable,
+        };
+      }
+
       if (!isQiRestoreTalismanScenario(consumable.spec.scenario)) {
         throw new Error('符箓需在对应玩法入口校验并消耗，不能在背包中直接使用。');
       }
