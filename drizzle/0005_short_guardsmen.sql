@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_cultivator_state_versions" ADD COLUMN "loadout_version" bigint DEFAULT 0 NOT NULL;

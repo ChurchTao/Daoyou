@@ -24,10 +24,14 @@ import {
   toPlayerStateMutationResponse,
   type StateChangeDescriptor,
 } from '@server/lib/services/PlayerStateMutationService';
-import { getCultivatorByIdUnsafe } from '@server/lib/services/cultivatorService';
+import { hasCultivatorRecoveryPill } from '@server/lib/repositories/cultivatorRepository';
+import {
+  buildCultivatorRuntime,
+  getPlayerLoadoutByCultivatorId,
+  getPlayerProfileCultivatorById,
+} from '@server/lib/services/cultivatorService';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import { getCultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import type { ResourceOperation } from '@shared/engine/resource/types';
 import {
   canChallengeDungeonRealm,
   getMapNode,
@@ -127,23 +131,6 @@ function stableJson(value: unknown): string {
   return JSON.stringify(value ?? null);
 }
 
-function getDungeonResultGains(result: unknown): ResourceOperation[] {
-  if (!result || typeof result !== 'object') return [];
-  const record = result as Record<string, unknown>;
-  if (Array.isArray(record.realGains)) {
-    return record.realGains as ResourceOperation[];
-  }
-  const callbackData = record.callbackData;
-  if (
-    callbackData &&
-    typeof callbackData === 'object' &&
-    Array.isArray((callbackData as Record<string, unknown>).realGains)
-  ) {
-    return (callbackData as Record<string, unknown>).realGains as ResourceOperation[];
-  }
-  return [];
-}
-
 function buildDungeonStateChanges(args: {
   before: DungeonPlayerStateRow | null;
   after: DungeonPlayerStateRow | null;
@@ -196,24 +183,6 @@ function buildDungeonStateChanges(args: {
           after.realmStage,
         ),
       },
-    });
-  }
-
-  const gains = getDungeonResultGains(args.result);
-  if (
-    gains.some((gain) => gain.type === 'material' || gain.type === 'consumable')
-  ) {
-    changes.push({
-      domain: 'inventory',
-      eventType: 'inventory.changed',
-      invalidates: ['inventory'],
-    });
-  }
-  if (gains.some((gain) => gain.type === 'artifact')) {
-    changes.push({
-      domain: 'products',
-      eventType: 'products.changed',
-      invalidates: ['products'],
     });
   }
 
@@ -296,13 +265,16 @@ router.post('/start', requireActiveCultivator(), async (c) => {
     return c.json({ error: '只有秘境节点可以进行副本挑战' }, 400);
   }
 
-  const [tasks, bundle] = await Promise.all([
+  const [tasks, profile, loadout, hasRecoveryPill] = await Promise.all([
     TaskService.listCultivatorTasks(cultivator.id),
-    getCultivatorByIdUnsafe(cultivator.id),
+    getPlayerProfileCultivatorById(user.id, cultivator.id),
+    getPlayerLoadoutByCultivatorId(cultivator.id),
+    hasCultivatorRecoveryPill(cultivator.id),
   ]);
-  if (!bundle) {
+  if (!profile) {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
+  const runtimeCultivator = buildCultivatorRuntime(profile, loadout);
 
   const firstDungeonTask = tasks.find(
     (task) => task.definitionId === 'tutorial_first_dungeon',
@@ -314,25 +286,26 @@ router.post('/start', requireActiveCultivator(), async (c) => {
       : null;
   if (
     selectedNodeRealm &&
-    !canChallengeDungeonRealm(bundle.cultivator.realm, selectedNodeRealm)
+    !canChallengeDungeonRealm(runtimeCultivator.realm, selectedNodeRealm)
   ) {
     return c.json(
       {
-        error: `当前境界${bundle.cultivator.realm}不可挑战${selectedNodeRealm}副本，请先提升大境界`,
+        error: `当前境界${runtimeCultivator.realm}不可挑战${selectedNodeRealm}副本，请先提升大境界`,
       },
       409,
     );
   }
 
-  const display = getCultivatorDisplaySnapshot(bundle.cultivator);
+  const display = getCultivatorDisplaySnapshot(runtimeCultivator);
   const readiness = evaluateNoviceReadiness({
-    cultivator: bundle.cultivator,
+    cultivator: runtimeCultivator,
     selectedNodeRealm,
     hp: display.resources.hp,
     mp: display.resources.mp,
     isFirstDungeonTutorialActive: Boolean(
       firstDungeonTask && !firstDungeonTask.snapshot.isCompleted,
     ),
+    hasRecoveryPill,
   });
 
   if (readiness.shouldBlock) {

@@ -122,6 +122,7 @@ vi.mock('@server/lib/repositories/worldChatRepository', () => ({
 
 vi.mock('@server/lib/services/cultivatorService', () => ({
   getCultivatorByIdUnsafe: getCultivatorByIdUnsafeMock,
+  getPlayerRuntimeCultivatorByIdUnsafe: getCultivatorByIdUnsafeMock,
 }));
 
 vi.mock('@server/lib/services/simulateBattleV5', () => ({

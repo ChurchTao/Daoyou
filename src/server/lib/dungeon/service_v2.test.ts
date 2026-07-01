@@ -77,12 +77,17 @@ vi.mock('../drizzle/db', () => ({
   getExecutor: vi.fn(),
 }));
 
-vi.mock('../services/cultivatorService', () => ({
-  getCultivatorByIdUnsafe: vi.fn(),
-  getCultivatorOwnerId: vi.fn(),
-  getPaginatedInventoryByType: vi.fn(),
-  updateCultivator: vi.fn(),
-}));
+vi.mock('../services/cultivatorService', () => {
+  const getCultivatorByIdUnsafe = vi.fn();
+
+  return {
+    getCultivatorByIdUnsafe,
+    getPlayerRuntimeCultivatorByIdUnsafe: getCultivatorByIdUnsafe,
+    getCultivatorOwnerId: vi.fn(),
+    getPaginatedInventoryByType: vi.fn(),
+    updateCultivator: vi.fn(),
+  };
+});
 
 vi.mock('../services/ConditionService', () => ({
   ConditionService: {

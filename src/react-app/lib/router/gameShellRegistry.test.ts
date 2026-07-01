@@ -32,6 +32,9 @@ describe('game shell registry', () => {
       'viewport',
     );
     expect(resolveGameShellKind('/game/body-cultivation')).toBe('viewport');
+    expect(resolveGameShellKind('/game/body-cultivation/breakthrough')).toBe(
+      'viewport',
+    );
     expect(resolveGameShellKind('/game/bet-battle')).toBe('viewport');
     expect(resolveGameShellKind('/game/settings')).toBe('viewport');
     expect(resolveGameShellKind('/game/battle')).toBe('combat');

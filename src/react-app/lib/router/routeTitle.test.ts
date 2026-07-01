@@ -164,6 +164,38 @@ describe('route title helpers', () => {
     });
   });
 
+  it('uses body cultivation scene metadata for the breakthrough route', () => {
+    const matches = [
+      {
+        params: {},
+        handle: {
+          title: '肉身破限',
+          gameScene: {
+            id: 'body-cultivation',
+            label: '肉身炼体',
+            group: 'cultivation',
+            chrome: 'standard',
+            dock: 'core',
+            presentation: 'workflow',
+          },
+        },
+      },
+    ] as never;
+
+    expect(
+      resolveRouteTitle(matches, {
+        pathname: '/game/body-cultivation/breakthrough',
+        search: '',
+      }),
+    ).toBe('肉身破限');
+    expect(resolveGameScene(matches)).toMatchObject({
+      id: 'body-cultivation',
+      group: 'cultivation',
+      chrome: 'standard',
+      dock: 'core',
+    });
+  });
+
   it('preserves immersive scene metadata when a special route opts out of the standard shell', () => {
     const scene = resolveGameScene([
       {

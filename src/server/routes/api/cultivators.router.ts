@@ -2,10 +2,12 @@ import { requireUser } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
   deleteCultivator,
-  getCultivatorById,
-  getCultivatorsByUserId,
   getLastDeadCultivatorSummary,
+  getPlayerLoadoutByCultivatorId,
+  getPlayerProfileCultivatorsByUserId,
+  getPlayerRuntimeCultivatorById,
   hasDeadCultivator,
+  buildCultivatorRuntime,
 } from '@server/lib/services/cultivatorService';
 import { Hono } from 'hono';
 
@@ -19,7 +21,10 @@ router.get('/', requireUser(), async (c) => {
 
   const cultivatorId = c.req.query('id');
   if (cultivatorId) {
-    const cultivator = await getCultivatorById(user.id, cultivatorId);
+    const cultivator = await getPlayerRuntimeCultivatorById(
+      user.id,
+      cultivatorId,
+    );
     if (!cultivator) {
       return c.json({ error: '角色不存在' }, 404);
     }
@@ -30,7 +35,15 @@ router.get('/', requireUser(), async (c) => {
     });
   }
 
-  const cultivators = await getCultivatorsByUserId(user.id);
+  const profiles = await getPlayerProfileCultivatorsByUserId(user.id);
+  const cultivators = await Promise.all(
+    profiles.map(async (profile) =>
+      buildCultivatorRuntime(
+        profile,
+        await getPlayerLoadoutByCultivatorId(profile.id!),
+      ),
+    ),
+  );
   const deadExists = await hasDeadCultivator(user.id);
   return c.json({
     success: true,

@@ -21,7 +21,7 @@ import {
   toPlayerStateMutationResponse,
   type StateChangeDescriptor,
 } from '@server/lib/services/PlayerStateMutationService';
-import { getCultivatorById } from '@server/lib/services/cultivatorService';
+import { getPlayerProfileCultivatorById } from '@server/lib/services/cultivatorService';
 import type { PreHeavenFate } from '@shared/types/cultivator';
 import { RealmType } from '@shared/types/constants';
 import type { SellConfirmResponse } from '@shared/types/market';
@@ -85,19 +85,13 @@ function marketBuyChanges(): StateChangeDescriptor[] {
       eventType: 'currency.changed',
       invalidates: ['currency'],
     },
-    {
-      domain: 'inventory',
-      eventType: 'inventory.changed',
-      invalidates: ['inventory'],
-    },
   ];
 }
 
 function marketSellChanges(
   result: SellConfirmResponse,
 ): StateChangeDescriptor[] {
-  const inventoryDomain = result.itemType === 'artifact' ? 'products' : 'inventory';
-  return [
+  const changes: StateChangeDescriptor[] = [
     {
       domain: 'currency',
       eventType: 'currency.changed',
@@ -108,25 +102,27 @@ function marketSellChanges(
       },
       invalidates: ['currency'],
     },
-    {
-      domain: inventoryDomain,
-      eventType:
-        result.itemType === 'artifact'
-          ? 'products.changed'
-          : 'inventory.changed',
-      invalidates: [inventoryDomain],
-    },
   ];
+
+  if (result.itemType === 'artifact') {
+    changes.push({
+      domain: 'loadout',
+      eventType: 'loadout.changed',
+      invalidates: ['loadout'],
+    });
+  }
+
+  return changes;
 }
 
 async function loadMarketFates(
   cultivator: { id: string; userId: string },
 ): Promise<PreHeavenFate[]> {
-  const fullCultivator = await getCultivatorById(
+  const profileCultivator = await getPlayerProfileCultivatorById(
     cultivator.userId,
     cultivator.id,
   );
-  return fullCultivator?.pre_heaven_fates ?? [];
+  return profileCultivator?.pre_heaven_fates ?? [];
 }
 
 router.post('/sell', requireActiveCultivator(), async (c) => {

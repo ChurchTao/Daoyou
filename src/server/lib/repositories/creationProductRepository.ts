@@ -58,6 +58,28 @@ export async function findByTypeAndCultivator(
     );
 }
 
+export async function findByTypeAndCultivatorPage(
+  cultivatorId: string,
+  productType: CreationProductType,
+  options: { page: number; pageSize: number },
+  q: DbExecutor = getExecutor(),
+): Promise<CreationProductRecord[]> {
+  const page = Math.max(1, options.page);
+  const pageSize = Math.max(1, options.pageSize);
+  return q
+    .select()
+    .from(schema.creationProducts)
+    .where(
+      and(
+        eq(schema.creationProducts.cultivatorId, cultivatorId),
+        eq(schema.creationProducts.productType, productType),
+      ),
+    )
+    .orderBy(desc(schema.creationProducts.createdAt), desc(schema.creationProducts.id))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+}
+
 export async function findArtifactsByIdsAndCultivator(
   cultivatorId: string,
   artifactIds: string[],

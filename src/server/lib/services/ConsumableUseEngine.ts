@@ -21,7 +21,7 @@ import type { Consumable } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
 import {
   consumeConsumableById,
-  getCultivatorById,
+  getPlayerRuntimeCultivatorById,
   replaceSpiritualRoots,
 } from './cultivatorService';
 import { PillOperationExecutor } from './PillOperationExecutor';
@@ -81,7 +81,7 @@ export const ConsumableUseEngine = {
     message: string;
     consumable: Consumable;
   }> {
-    const cultivator = await getCultivatorById(userId, cultivatorId);
+    const cultivator = await getPlayerRuntimeCultivatorById(userId, cultivatorId);
     if (!cultivator) {
       throw new Error('角色不存在或无权限操作。');
     }

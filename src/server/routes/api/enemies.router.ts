@@ -1,6 +1,6 @@
 import { requireUser } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
-import { getCultivatorById } from '@server/lib/services/cultivatorService';
+import { getPlayerProfileCultivatorById } from '@server/lib/services/cultivatorService';
 import { Hono } from 'hono';
 
 const router = new Hono<AppEnv>();
@@ -17,7 +17,7 @@ router.get('/:id', requireUser(), async (c) => {
   }
 
   try {
-    const enemy = await getCultivatorById(user.id, id);
+    const enemy = await getPlayerProfileCultivatorById(user.id, id);
 
     if (!enemy) {
       return c.json({ error: '敌人角色不存在' }, 404);

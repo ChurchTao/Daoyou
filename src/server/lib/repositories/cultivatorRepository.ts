@@ -80,6 +80,26 @@ export async function listCultivatorBreakthroughPills(
     );
 }
 
+export async function hasCultivatorRecoveryPill(
+  cultivatorId: string,
+  q: DbExecutor = getExecutor(),
+): Promise<boolean> {
+  const [result] = await q
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.consumables)
+    .where(
+      and(
+        eq(schema.consumables.cultivatorId, cultivatorId),
+        eq(schema.consumables.type, '丹药'),
+        sql`${schema.consumables.quantity} > 0`,
+        sql`${schema.consumables.spec} ->> 'kind' = 'pill'`,
+        sql`jsonb_path_exists(${schema.consumables.spec}, '$.operations[*] ? (@.type == "restore_resource" && (@.resource == "hp" || @.resource == "mp"))')`,
+      ),
+    );
+
+  return Number(result?.count ?? 0) > 0;
+}
+
 export async function listCultivatorTechniqueQualities(
   cultivatorId: string,
   q: DbExecutor = getExecutor(),

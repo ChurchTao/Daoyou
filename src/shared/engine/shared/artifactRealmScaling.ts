@@ -5,7 +5,7 @@ import {
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { AttributeType, ModifierType } from '@shared/engine/battle-v5/core/types';
 
-export const ARTIFACT_REALM_SCALING_EXPONENT = 0.3;
+export const ARTIFACT_REALM_SCALING_EXPONENT = 0.7;
 export const DEFAULT_ARTIFACT_REALM_SCALING_STAGE: RealmStage = '圆满';
 
 const ARTIFACT_MAIN_PANEL_ATTRS = new Set<AttributeType>([

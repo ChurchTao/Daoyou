@@ -3,12 +3,24 @@ import type { CultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapter
 import type {
   Cultivator,
   CultivationProgress,
-  Inventory,
 } from '@shared/types/cultivator';
 
+export type PlayerLoadout = {
+  skills: Cultivator['skills'];
+  cultivations: Cultivator['cultivations'];
+  artifacts: Cultivator['inventory']['artifacts'];
+  equipped: Cultivator['equipped'];
+};
+
+export type PlayerProfileCultivator = Omit<
+  Cultivator,
+  'inventory' | 'skills' | 'cultivations' | 'equipped'
+>;
+
 export type PlayerCultivatorView = {
-  cultivator: Cultivator;
+  cultivator: PlayerProfileCultivator;
   display: CultivatorDisplaySnapshot;
+  loadout: PlayerLoadout;
 };
 
 export type PlayerActiveData = {
@@ -29,8 +41,7 @@ export const PLAYER_STATE_DOMAINS = [
   'condition',
   'progress',
   'currency',
-  'inventory',
-  'products',
+  'loadout',
   'mail',
   'tasks',
 ] as const;
@@ -72,7 +83,7 @@ export type PlayerStateMutationResponse<TData> = {
 
 export type PlayerStateSnapshot = {
   profile: {
-    cultivator: Cultivator;
+    cultivator: PlayerProfileCultivator;
     display: CultivatorDisplaySnapshot;
   };
   condition: Cultivator['condition'];
@@ -83,13 +94,7 @@ export type PlayerStateSnapshot = {
     qi: number;
     qiLastRefreshedAt: string | null;
   };
-  inventory: Inventory;
-  products: {
-    skills: Cultivator['skills'];
-    cultivations: Cultivator['cultivations'];
-    artifacts: Cultivator['inventory']['artifacts'];
-    equipped: Cultivator['equipped'];
-  };
+  loadout: PlayerLoadout;
   mail: {
     unreadCount: number;
   };

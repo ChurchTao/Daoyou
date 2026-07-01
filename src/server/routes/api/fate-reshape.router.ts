@@ -62,6 +62,7 @@ router.post('/session', requireActiveCultivator(), async (c) => {
       userId: user.id,
       cultivatorId: cultivator.id,
       source: 'fate_reshape_start',
+      allowEmpty: true,
       run: async (tx) => {
         const session = await FateReshapeService.startSession(
           user.id,
@@ -77,13 +78,7 @@ router.post('/session', requireActiveCultivator(), async (c) => {
             session,
             talismanCount,
           },
-          changes: [
-            {
-              domain: 'inventory',
-              eventType: 'inventory.changed',
-              invalidates: ['inventory'],
-            },
-          ],
+          changes: [],
         };
       },
     });

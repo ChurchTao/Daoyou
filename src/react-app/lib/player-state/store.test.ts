@@ -39,7 +39,7 @@ function createSnapshotResponse(
         progress: 0,
         currency: 0,
         inventory: 2,
-        products: 0,
+        loadout: 0,
         mail: 1,
         tasks: 0,
       },
@@ -203,10 +203,11 @@ describe('PlayerStateStore', () => {
       .mockResolvedValueOnce(
         jsonResponse(
           createSnapshotResponse({
-            inventory: {
-              artifacts: [],
-              consumables: [],
-              materials: [{ id: 'material-1', name: '灵草', quantity: 3 }],
+            loadout: {
+              artifacts: [{ id: 'artifact-1', name: '青锋' }],
+              skills: [],
+              cultivations: [],
+              equipped: { weapon: 'artifact-1', armor: null, accessory: null },
             },
           }),
         ),
@@ -216,20 +217,20 @@ describe('PlayerStateStore', () => {
     await store.refresh(undefined, 'user-1');
     store.applyEvents([
       createEvent({
-        domain: 'inventory',
+        domain: 'loadout',
         domainVersion: 3,
-        eventType: 'inventory.changed',
+        eventType: 'loadout.changed',
         patch: {},
-        invalidates: ['inventory'],
+        invalidates: ['loadout'],
       }),
     ]);
 
     await flushAsyncWork();
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/player/state?domains=inventory');
+    expect(fetchMock).toHaveBeenCalledWith('/api/player/state?domains=loadout');
     expect(store.getSnapshot().staleDomains.size).toBe(0);
-    expect(store.getSnapshot().snapshot.inventory?.materials).toEqual([
-      { id: 'material-1', name: '灵草', quantity: 3 },
+    expect(store.getSnapshot().snapshot.loadout?.artifacts).toEqual([
+      { id: 'artifact-1', name: '青锋' },
     ]);
   });
 

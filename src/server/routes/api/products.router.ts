@@ -56,14 +56,36 @@ router.get('/', requireActiveCultivatorRef(), async (c) => {
     return c.json({ error: '请指定有效的产物类型 (skill|gongfa|artifact)' }, 400);
   }
 
-  const products = await creationProductRepository.findByTypeAndCultivator(
-    ref.cultivatorId,
-    type as CreationProductType,
+  const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
+  const pageSize = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query('pageSize') || '20', 10)),
   );
+  const [total, products] = await Promise.all([
+    creationProductRepository.countByType(
+      ref.cultivatorId,
+      type as CreationProductType,
+    ),
+    creationProductRepository.findByTypeAndCultivatorPage(
+      ref.cultivatorId,
+      type as CreationProductType,
+      { page, pageSize },
+    ),
+  ]);
+  const totalPages = Math.ceil(total / pageSize);
 
   return c.json({
     success: true,
-    data: products.map(withRehydratedProductModel),
+    data: {
+      items: products.map(withRehydratedProductModel),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages,
+        hasMore: page < totalPages,
+      },
+    },
   });
 });
 
@@ -129,7 +151,7 @@ router.post('/equip', requireActiveCultivator(), async (c) => {
             productType,
             equipped,
           },
-          changes: buildProductStateChanges(productType, 'products.equipped'),
+          changes: buildProductStateChanges(productType, 'loadout.equipped'),
         };
       },
     });
@@ -151,7 +173,7 @@ router.post('/equip', requireActiveCultivator(), async (c) => {
             productType,
             equipped: false,
           },
-          changes: buildProductStateChanges(productType, 'products.equipped'),
+          changes: buildProductStateChanges(productType, 'loadout.equipped'),
         };
       },
     });
@@ -187,7 +209,7 @@ router.post('/equip', requireActiveCultivator(), async (c) => {
           productType,
           equipped: true,
         },
-        changes: buildProductStateChanges(productType, 'products.equipped'),
+        changes: buildProductStateChanges(productType, 'loadout.equipped'),
       };
     },
   });
@@ -235,7 +257,7 @@ router.delete('/:id', requireActiveCultivator(), async (c) => {
           productId: id,
           productType,
         },
-        changes: buildProductStateChanges(productType, 'products.deleted'),
+        changes: buildProductStateChanges(productType, 'loadout.deleted'),
       };
     },
   });
@@ -249,24 +271,16 @@ function buildProductStateChanges(
 ): StateChangeDescriptor[] {
   const changes: StateChangeDescriptor[] = [
     {
-      domain: 'products',
+      domain: 'loadout',
       eventType,
-      invalidates: ['products'],
+      invalidates: ['loadout'],
     },
     {
       domain: 'profile',
-      eventType: 'profile.products.changed',
+      eventType: 'profile.loadout.changed',
       invalidates: ['profile'],
     },
   ];
-
-  if (productType === 'artifact') {
-    changes.push({
-      domain: 'inventory',
-      eventType: 'inventory.artifacts.changed',
-      invalidates: ['inventory'],
-    });
-  }
 
   return changes;
 }

@@ -184,23 +184,28 @@ vi.mock('@server/lib/services/InnRecoveryService', () => ({
   },
 }));
 
-vi.mock('@server/lib/services/cultivatorService', () => ({
-  addBreakthroughHistoryEntry: vi.fn(),
-  addRetreatRecord: vi.fn(),
-  consumeConsumableById: vi.fn(),
-  consumeMaterialById: vi.fn(),
-  equipEquipment: vi.fn(),
-  getCultivatorArtifacts: vi.fn(),
-  getCultivatorById: vi.fn(),
-  getCultivatorConsumables: vi.fn(),
-  getCultivatorMaterials: vi.fn(),
-  getLastDeadCultivatorSummary: vi.fn(),
-  getPaginatedInventoryByType: vi.fn(),
-  updateCultivationExp: vi.fn(),
-  updateCultivator: vi.fn(),
-  updateLastYieldAt: vi.fn(),
-  updateSpiritStones: vi.fn(),
-}));
+vi.mock('@server/lib/services/cultivatorService', () => {
+  const getCultivatorById = vi.fn();
+
+  return {
+    addBreakthroughHistoryEntry: vi.fn(),
+    addRetreatRecord: vi.fn(),
+    consumeConsumableById: vi.fn(),
+    consumeMaterialById: vi.fn(),
+    equipEquipment: vi.fn(),
+    getCultivatorArtifacts: vi.fn(),
+    getCultivatorById,
+    getPlayerRuntimeCultivatorById: getCultivatorById,
+    getCultivatorConsumables: vi.fn(),
+    getCultivatorMaterials: vi.fn(),
+    getLastDeadCultivatorSummary: vi.fn(),
+    getPaginatedInventoryByType: vi.fn(),
+    updateCultivationExp: vi.fn(),
+    updateCultivator: vi.fn(),
+    updateLastYieldAt: vi.fn(),
+    updateSpiritStones: vi.fn(),
+  };
+});
 
 vi.mock('@server/utils/aiClient', () => ({
   stream_text: vi.fn(),
@@ -402,8 +407,7 @@ function createStateVersionRow(overrides: Record<string, unknown> = {}) {
     conditionVersion: 0,
     progressVersion: 0,
     currencyVersion: 0,
-    inventoryVersion: 0,
-    productsVersion: 0,
+    loadoutVersion: 0,
     mailVersion: 0,
     tasksVersion: 0,
     updatedAt: new Date('2026-06-10T00:00:00.000Z'),
@@ -535,8 +539,7 @@ function mockTransactionReturning(rows: unknown[]) {
     conditionVersion: 1,
     progressVersion: 1,
     currencyVersion: 1,
-    inventoryVersion: 0,
-    productsVersion: 0,
+    loadoutVersion: 0,
     mailVersion: 0,
     tasksVersion: 0,
     updatedAt: new Date('2026-06-10T00:00:00.000Z'),
@@ -595,8 +598,7 @@ function mockMailReadTransaction(unreadCount: number) {
     conditionVersion: 0,
     progressVersion: 0,
     currencyVersion: 0,
-    inventoryVersion: 0,
-    productsVersion: 0,
+    loadoutVersion: 0,
     mailVersion: 1,
     tasksVersion: 0,
     updatedAt: new Date('2026-06-10T00:00:00.000Z'),
@@ -666,8 +668,7 @@ function mockConsumeTransaction(
     conditionVersion: 0,
     progressVersion: 0,
     currencyVersion: options.attributeReset ? 0 : 1,
-    inventoryVersion: 1,
-    productsVersion: 0,
+    loadoutVersion: 0,
     mailVersion: 0,
     tasksVersion: 1,
     updatedAt: new Date('2026-06-10T00:00:00.000Z'),
@@ -676,13 +677,6 @@ function mockConsumeTransaction(
     ? createStateEventRows([
         {
           id: 21,
-          domain: 'inventory',
-          eventType: 'inventory.consumable.used',
-          source: 'consumable_use',
-          invalidates: ['inventory'],
-        },
-        {
-          id: 22,
           domain: 'profile',
           eventType: 'profile.attributes.reset',
           source: 'consumable_use',
@@ -698,6 +692,13 @@ function mockConsumeTransaction(
             unallocated_attribute_points: 18,
           },
         },
+        {
+          id: 22,
+          domain: 'tasks',
+          eventType: 'tasks.maybe_changed',
+          source: 'consumable_use',
+          invalidates: ['tasks'],
+        },
       ])
     : [
         {
@@ -705,10 +706,23 @@ function mockConsumeTransaction(
           cultivatorId: 'cultivator-1',
           userId: 'user-1',
           globalVersion: 1,
-          domain: 'inventory',
-          eventType: 'inventory.consumable.used',
+          domain: 'currency',
+          eventType: 'currency.qi.changed',
+          patch: { currency: { qi: 150 } },
+          invalidates: ['currency'],
+          source: 'consumable_use',
+          requestId: null,
+          createdAt: new Date('2026-06-10T00:00:00.000Z'),
+        },
+        {
+          id: 22,
+          cultivatorId: 'cultivator-1',
+          userId: 'user-1',
+          globalVersion: 1,
+          domain: 'tasks',
+          eventType: 'tasks.maybe_changed',
           patch: {},
-          invalidates: ['inventory'],
+          invalidates: ['tasks'],
           source: 'consumable_use',
           requestId: null,
           createdAt: new Date('2026-06-10T00:00:00.000Z'),
@@ -746,10 +760,10 @@ function mockBodyCultivationBreakthroughTransaction() {
       patch: {},
     },
     {
-      domain: 'inventory',
+      domain: 'loadout',
       eventType: 'inventory.body_cultivation.breakthrough_consumed',
       source: 'body_cultivation_breakthrough',
-      invalidates: ['inventory'],
+      invalidates: ['loadout'],
     },
   ]);
   const insertReturning = vi
@@ -966,15 +980,8 @@ describe('cultivator attribute reset route', () => {
     const txMock = mockStateOnlyTransaction({
       versionRow: createStateVersionRow({
         profileVersion: 1,
-        inventoryVersion: 1,
       }),
       eventRows: createStateEventRows([
-        {
-          domain: 'inventory',
-          eventType: 'inventory.attribute_reset_talisman.used',
-          source: 'profile_attribute_reset',
-          invalidates: ['inventory'],
-        },
         {
           domain: 'profile',
           eventType: 'profile.attributes.reset',
@@ -1010,7 +1017,6 @@ describe('cultivator attribute reset route', () => {
         data: resetResult,
         state: expect.objectContaining({
           domainVersions: {
-            inventory: 1,
             profile: 1,
           },
         }),
@@ -1346,7 +1352,6 @@ describe('cultivator qi routes', () => {
         globalVersion: 1,
         domainVersions: {
           currency: 1,
-          inventory: 1,
           tasks: 1,
         },
         events: [
@@ -1354,10 +1359,21 @@ describe('cultivator qi routes', () => {
             id: 21,
             cultivatorId: 'cultivator-1',
             globalVersion: 1,
-            domain: 'inventory',
-            eventType: 'inventory.consumable.used',
+            domain: 'currency',
+            eventType: 'currency.qi.changed',
+            patch: { currency: { qi: 150 } },
+            invalidates: ['currency'],
+            source: 'consumable_use',
+            createdAt: '2026-06-10T00:00:00.000Z',
+          },
+          {
+            id: 22,
+            cultivatorId: 'cultivator-1',
+            globalVersion: 1,
+            domain: 'tasks',
+            eventType: 'tasks.maybe_changed',
             patch: {},
-            invalidates: ['inventory'],
+            invalidates: ['tasks'],
             source: 'consumable_use',
             createdAt: '2026-06-10T00:00:00.000Z',
           },
@@ -1405,7 +1421,6 @@ describe('cultivator qi routes', () => {
         }),
         state: expect.objectContaining({
           domainVersions: {
-            inventory: 1,
             profile: 1,
             tasks: 1,
           },
@@ -1629,7 +1644,7 @@ describe('cultivator body cultivation routes', () => {
     vi.clearAllMocks();
   });
 
-  it('returns body cultivation breakthrough readiness with inventory ownership', async () => {
+  it('returns body cultivation breakthrough readiness without inventory ownership', async () => {
     const cultivator = createCultivator();
     cultivator.realm = '炼气';
     cultivator.condition = {
@@ -1702,14 +1717,12 @@ describe('cultivator body cultivation routes', () => {
         successChance: 0.82,
         guaranteeProgress: 0,
         failedAttempts: 0,
-        inventoryRequirements: [
+        costRequirements: [
           {
             type: 'material',
             name: '进阶材料（特殊辅料，玄品以上）',
             label: '进阶材料（特殊辅料，玄品以上）',
             quantity: 1,
-            ownedQuantity: 1,
-            met: true,
             materialType: 'aux',
             minQuality: '玄品',
           },
@@ -1718,8 +1731,6 @@ describe('cultivator body cultivation routes', () => {
             name: '皮肤方向炼体丹（玄品以上）',
             label: '皮肤方向炼体丹（玄品以上）',
             quantity: 1,
-            ownedQuantity: 1,
-            met: true,
             family: 'tempering',
             property: 'body_skin',
             minQuality: '玄品',
@@ -1803,6 +1814,11 @@ describe('cultivator body cultivation routes', () => {
         '/api/cultivator/body-cultivation/breakthrough',
         {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            materialSelections: [{ id: 'material-1', quantity: 1 }],
+            consumableSelections: [{ id: 'pill-1', quantity: 1 }],
+          }),
         },
       );
     } finally {
@@ -1951,6 +1967,11 @@ describe('cultivator body cultivation routes', () => {
         '/api/cultivator/body-cultivation/breakthrough',
         {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            materialSelections: [{ id: 'material-1', quantity: 1 }],
+            consumableSelections: [{ id: 'pill-1', quantity: 1 }],
+          }),
         },
       );
     } finally {
@@ -2053,6 +2074,11 @@ describe('cultivator body cultivation routes', () => {
       '/api/cultivator/body-cultivation/breakthrough',
       {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          materialSelections: [{ id: 'material-1', quantity: 1 }],
+          consumableSelections: [],
+        }),
       },
     );
 

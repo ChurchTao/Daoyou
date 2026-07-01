@@ -39,7 +39,9 @@ import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import { removeFromAllRankingRealmsExcept } from '@server/lib/redis/rankings';
 import {
   consumeBodyCultivationBreakthroughCosts,
-  getBodyCultivationBreakthroughReadiness,
+  getBodyCultivationBreakthroughPreviewData,
+  listEligibleBodyCultivationBreakthroughItems,
+  planBodyCultivationBreakthroughSelections,
 } from '@server/lib/services/BodyCultivationBreakthroughService';
 import {
   AttributeResetService,
@@ -76,12 +78,9 @@ import { TaskService } from '@server/lib/services/TaskService';
 import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
-  getCultivatorArtifacts,
-  getCultivatorById,
-  getCultivatorConsumables,
-  getCultivatorMaterials,
   getLastDeadCultivatorSummary,
   getPaginatedInventoryByType,
+  getPlayerRuntimeCultivatorById,
   updateCultivationExp,
   updateCultivator,
   updateSpiritStones,
@@ -111,7 +110,10 @@ import type {
   RetreatResultData,
   RetreatStreamEvent,
 } from '@shared/contracts/retreat';
-import type { BodyCultivationBreakthroughReadinessResponse } from '@shared/contracts/bodyCultivation';
+import type {
+  BodyCultivationBreakthroughEligibleResponse,
+  BodyCultivationBreakthroughReadinessResponse,
+} from '@shared/contracts/bodyCultivation';
 import type {
   PlayerStateDomain,
   PlayerStateEvent,
@@ -202,6 +204,20 @@ const ReadMailSchema = z.object({
   mailId: z.string(),
 });
 
+const BodyCultivationBreakthroughSelectionSchema = z.object({
+  id: z.string().min(1),
+  quantity: z.number().int().min(1),
+});
+
+const BodyCultivationBreakthroughSchema = z.object({
+  materialSelections: z
+    .array(BodyCultivationBreakthroughSelectionSchema)
+    .default([]),
+  consumableSelections: z
+    .array(BodyCultivationBreakthroughSelectionSchema)
+    .default([]),
+});
+
 class RedeemClaimError extends Error {
   status: number;
 
@@ -261,10 +277,7 @@ function getRewardAffectedDomains(
       gain.type === 'consumable' ||
       gain.type === 'artifact'
     ) {
-      domains.add('inventory');
-    }
-    if (gain.type === 'artifact') {
-      domains.add('products');
+      continue;
     }
     if (gain.type === 'spirit_stones' || gain.type === 'reputation') {
       domains.add('currency');
@@ -305,19 +318,11 @@ function buildMailStateChanges(args: {
     },
   ];
 
-  if (affectedDomains.has('inventory')) {
+  if (affectedDomains.has('loadout')) {
     changes.push({
-      domain: 'inventory',
-      eventType: 'inventory.changed',
-      invalidates: ['inventory'],
-    });
-  }
-
-  if (affectedDomains.has('products')) {
-    changes.push({
-      domain: 'products',
-      eventType: 'products.changed',
-      invalidates: ['products'],
+      domain: 'loadout',
+      eventType: 'loadout.changed',
+      invalidates: ['loadout'],
     });
   }
 
@@ -364,18 +369,13 @@ function buildMailStateChanges(args: {
 function buildArtifactEquipStateChanges(eventType: string): StateChangeDescriptor[] {
   return [
     {
-      domain: 'products',
+      domain: 'loadout',
       eventType,
-      invalidates: ['products'],
-    },
-    {
-      domain: 'inventory',
-      eventType: 'inventory.artifacts.changed',
-      invalidates: ['inventory'],
+      invalidates: ['loadout'],
     },
     {
       domain: 'profile',
-      eventType: 'profile.products.changed',
+      eventType: 'profile.loadout.changed',
       invalidates: ['profile'],
     },
   ];
@@ -658,11 +658,6 @@ router.post('/consume', requireActiveCultivator(), async (c) => {
 
         const changes: StateChangeDescriptor[] = [
           {
-            domain: 'inventory',
-            eventType: 'inventory.consumable.used',
-            invalidates: ['inventory'],
-          },
-          {
             domain: 'tasks',
             eventType: 'tasks.maybe_changed',
             invalidates: ['tasks'],
@@ -761,7 +756,10 @@ router.post('/inn-recovery', requireActiveCultivator(), async (c) => {
     return c.json({ success: false, error: '未授权访问' }, 401);
   }
 
-  const cultivator = await getCultivatorById(user.id, activeCultivator.id);
+  const cultivator = await getPlayerRuntimeCultivatorById(
+    user.id,
+    activeCultivator.id,
+  );
   if (!cultivator) {
     return c.json({ success: false, error: '角色不存在' }, 404);
   }
@@ -862,22 +860,61 @@ router.get('/body-cultivation/breakthrough', requireActiveCultivator(), async (c
     return c.json({ success: false, error: '未授权访问' }, 401);
   }
 
-  const cultivator = await getCultivatorById(user.id, activeCultivator.id);
+  const cultivator = await getPlayerRuntimeCultivatorById(
+    user.id,
+    activeCultivator.id,
+  );
   if (!cultivator) {
     return c.json({ success: false, error: '角色不存在' }, 404);
   }
 
-  const readiness = getBodyCultivationBreakthroughReadiness(cultivator);
+  const readiness = getBodyCultivationBreakthroughPreviewData(cultivator);
   const response: BodyCultivationBreakthroughReadinessResponse = {
     success: true,
+    data: readiness,
+  };
+
+  return c.json(response);
+});
+
+router.get('/body-cultivation/breakthrough/eligible', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
+  const activeCultivator = c.get('cultivator');
+  if (!user || !activeCultivator) {
+    return c.json({ success: false, error: '未授权访问' }, 401);
+  }
+
+  const cultivator = await getPlayerRuntimeCultivatorById(
+    user.id,
+    activeCultivator.id,
+  );
+  if (!cultivator) {
+    return c.json({ success: false, error: '角色不存在' }, 404);
+  }
+
+  const eligible = await listEligibleBodyCultivationBreakthroughItems(cultivator);
+  const response: BodyCultivationBreakthroughEligibleResponse = {
+    success: true,
     data: {
-      nextRealm: readiness.nextRealm,
-      canAttempt: readiness.canAttempt,
-      successChance: readiness.successChance,
-      guaranteeProgress: readiness.guaranteeProgress,
-      failedAttempts: readiness.failedAttempts,
-      ruleRequirements: readiness.ruleRequirements,
-      inventoryRequirements: readiness.inventoryRequirements,
+      requirements: eligible.requirements,
+      materials: eligible.materials.map((material) => ({
+        id: material.id!,
+        name: material.name,
+        type: material.type,
+        rank: material.rank,
+        quantity: material.quantity,
+        element: material.element,
+        description: material.description,
+        requirementLabel: material.requirementLabel,
+      })),
+      consumables: eligible.consumables.map((consumable) => ({
+        id: consumable.id!,
+        name: consumable.name,
+        type: consumable.type,
+        quality: consumable.quality ?? '凡品',
+        quantity: consumable.quantity,
+        requirementLabel: consumable.requirementLabel,
+      })),
     },
   };
 
@@ -891,39 +928,22 @@ router.post('/body-cultivation/breakthrough', requireActiveCultivator(), async (
     return c.json({ success: false, error: '未授权访问' }, 401);
   }
 
-  const cultivator = await getCultivatorById(user.id, activeCultivator.id);
+  const cultivator = await getPlayerRuntimeCultivatorById(
+    user.id,
+    activeCultivator.id,
+  );
   if (!cultivator) {
     return c.json({ success: false, error: '角色不存在' }, 404);
   }
 
   try {
-    const readiness = getBodyCultivationBreakthroughReadiness(cultivator);
-    const missingRuleRequirements = readiness.ruleRequirements.filter(
-      (requirement) => !requirement.met,
+    const requestBody = BodyCultivationBreakthroughSchema.parse(
+      await c.req.json().catch(() => ({})),
     );
-    const missingInventoryRequirements = readiness.inventoryRequirements.filter(
-      (requirement) => !requirement.met,
+    const costPlan = await planBodyCultivationBreakthroughSelections(
+      cultivator,
+      requestBody,
     );
-    if (!readiness.canAttempt) {
-      return c.json(
-        {
-          success: false,
-          error: [
-            ...missingRuleRequirements.map((requirement) => requirement.label),
-            ...missingInventoryRequirements.map(
-              (requirement) =>
-                `${requirement.label ?? requirement.name} ${requirement.ownedQuantity}/${requirement.quantity}`,
-            ),
-          ].join('、') || '肉身进阶条件不足',
-          data: {
-            nextRealm: readiness.nextRealm,
-            ruleRequirements: readiness.ruleRequirements,
-            inventoryRequirements: readiness.inventoryRequirements,
-          },
-        },
-        400,
-      );
-    }
 
     const result = ConditionService.breakthroughBodyCultivationRealm(
       cultivator,
@@ -937,7 +957,7 @@ router.post('/body-cultivation/breakthrough', requireActiveCultivator(), async (
         await consumeBodyCultivationBreakthroughCosts(
           user.id,
           activeCultivator.id,
-          readiness.costPlan,
+          costPlan,
           tx,
         );
         const saved = await updateCultivator(
@@ -972,9 +992,9 @@ router.post('/body-cultivation/breakthrough', requireActiveCultivator(), async (
               patch: { condition: result.condition },
             },
             {
-              domain: 'inventory' as const,
+              domain: 'loadout' as const,
               eventType: 'inventory.body_cultivation.breakthrough_consumed',
-              invalidates: ['inventory'],
+              invalidates: ['loadout'],
             },
           ],
         };
@@ -1060,7 +1080,7 @@ router.post('/equip', requireActiveCultivator(), async (c) => {
 
       return {
         result: equippedItems,
-        changes: buildArtifactEquipStateChanges('products.artifact.equipped'),
+        changes: buildArtifactEquipStateChanges('loadout.artifact.equipped'),
       };
     },
   });
@@ -1315,11 +1335,6 @@ router.post('/attributes/reset', requireActiveCultivator(), async (c) => {
             result,
             changes: [
               {
-                domain: 'inventory',
-                eventType: 'inventory.attribute_reset_talisman.used',
-                invalidates: ['inventory'],
-              },
-              {
                 domain: 'profile',
                 eventType: 'profile.attributes.reset',
                 patch: {
@@ -1500,7 +1515,10 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
       return c.json({ error: '角色正在闭关中，请稍后再试' }, 409);
     }
 
-    const cultivator = await getCultivatorById(user.id, cultivatorId);
+    const cultivator = await getPlayerRuntimeCultivatorById(
+      user.id,
+      cultivatorId,
+    );
     if (!cultivator) {
       return c.json({ error: '角色不存在' }, 404);
     }
@@ -1892,7 +1910,10 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
   }
 
   try {
-    const fullCultivator = await getCultivatorById(userId, cultivatorId);
+    const fullCultivator = await getPlayerRuntimeCultivatorById(
+      userId,
+      cultivatorId,
+    );
     if (!fullCultivator) {
       await redis.del(lockKey);
       return c.json({ success: false, error: '未找到角色信息' }, 404);
@@ -2187,8 +2208,17 @@ inventoryRouter.get('/', requireActiveCultivatorRef(), async (c) => {
   }
 
   const type = c.req.query('type');
-  if (type) {
-    if (!['artifacts', 'materials', 'consumables'].includes(type)) {
+  if (!type) {
+    return c.json(
+      {
+        success: false,
+        error: '必须指定背包类型和分页参数',
+      },
+      400,
+    );
+  }
+
+  if (!['artifacts', 'materials', 'consumables'].includes(type)) {
       return c.json(
         {
           success: false,
@@ -2291,22 +2321,6 @@ inventoryRouter.get('/', requireActiveCultivatorRef(), async (c) => {
       success: true,
       data: result,
     });
-  }
-
-  const [consumableItems, materialItems, artifactItems] = await Promise.all([
-    getCultivatorConsumables(user.id, ref.cultivatorId),
-    getCultivatorMaterials(user.id, ref.cultivatorId),
-    getCultivatorArtifacts(user.id, ref.cultivatorId),
-  ]);
-
-  return c.json({
-    success: true,
-    data: {
-      consumables: consumableItems,
-      materials: materialItems,
-      artifacts: artifactItems,
-    },
-  });
 });
 
 inventoryRouter.post('/discard', requireActiveCultivator(), async (c) => {
@@ -2322,6 +2336,7 @@ inventoryRouter.post('/discard', requireActiveCultivator(), async (c) => {
     userId: user.id,
     cultivatorId: cultivator.id,
     source: 'inventory_discard',
+    allowEmpty: true,
     run: async (tx) => {
       let deleted = false;
 
@@ -2363,18 +2378,12 @@ inventoryRouter.post('/discard', requireActiveCultivator(), async (c) => {
         throw new MarketServiceError(404, '物品未找到或无法删除');
       }
 
-      const changes: StateChangeDescriptor[] = [
-        {
-          domain: 'inventory',
-          eventType: 'inventory.discarded',
-          invalidates: ['inventory'],
-        },
-      ];
+      const changes: StateChangeDescriptor[] = [];
       if (itemType === 'artifact') {
         changes.push({
-          domain: 'products',
-          eventType: 'products.artifact.discarded',
-          invalidates: ['products'],
+          domain: 'loadout',
+          eventType: 'loadout.artifact.discarded',
+          invalidates: ['loadout'],
         });
       }
 
@@ -2414,11 +2423,6 @@ inventoryRouter.post('/identify', requireActiveCultivator(), async (c) => {
         return {
           result,
           changes: [
-            {
-              domain: 'inventory',
-              eventType: 'inventory.material.identified',
-              invalidates: ['inventory'],
-            },
             {
               domain: 'currency',
               eventType: 'currency.changed',
@@ -2506,6 +2510,7 @@ mailRouter.post('/send', requireActiveCultivator(), async (c) => {
       userId: user.id,
       cultivatorId: cultivator.id,
       source: 'player_mail_send',
+      allowEmpty: true,
       run: async (tx) => {
         const result = await sendPlayerMail({
           senderCultivatorId: cultivator.id,
@@ -2516,18 +2521,12 @@ mailRouter.post('/send', requireActiveCultivator(), async (c) => {
           tx,
         });
 
-        const changes: StateChangeDescriptor[] = [
-          {
-            domain: 'inventory',
-            eventType: 'inventory.mail.sent',
-            invalidates: ['inventory'],
-          },
-        ];
+        const changes: StateChangeDescriptor[] = [];
         if (parsed.attachment?.itemType === 'artifact') {
           changes.push({
-            domain: 'products',
-            eventType: 'products.mail.sent',
-            invalidates: ['products'],
+            domain: 'loadout',
+            eventType: 'loadout.mail.sent',
+            invalidates: ['loadout'],
           });
         }
 

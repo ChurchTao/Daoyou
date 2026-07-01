@@ -12,6 +12,7 @@ const {
   recoverDungeonMock,
   listCultivatorTasksMock,
   getCultivatorByIdUnsafeMock,
+  hasCultivatorRecoveryPillMock,
   getCultivatorDisplaySnapshotMock,
   getMapNodeMock,
   isSatelliteNodeMock,
@@ -32,6 +33,7 @@ const {
   recoverDungeonMock: vi.fn(),
   listCultivatorTasksMock: vi.fn(),
   getCultivatorByIdUnsafeMock: vi.fn(),
+  hasCultivatorRecoveryPillMock: vi.fn(),
   getCultivatorDisplaySnapshotMock: vi.fn(),
   getMapNodeMock: vi.fn(),
   isSatelliteNodeMock: vi.fn(),
@@ -162,7 +164,39 @@ vi.mock('@server/lib/services/QiService', () => ({
 }));
 
 vi.mock('@server/lib/services/cultivatorService', () => ({
+  buildCultivatorRuntime: vi.fn((profile, loadout) => ({
+    ...profile,
+    skills: loadout.skills,
+    cultivations: loadout.cultivations,
+    inventory: {
+      artifacts: loadout.artifacts,
+      materials: [],
+      consumables: [],
+    },
+    equipped: loadout.equipped,
+  })),
   getCultivatorByIdUnsafe: getCultivatorByIdUnsafeMock,
+  getPlayerLoadoutByCultivatorId: vi.fn(async () => ({
+    skills: [],
+    cultivations: [],
+    artifacts: [],
+    equipped: {
+      weapon: null,
+      armor: null,
+      accessory: null,
+    },
+  })),
+  getPlayerProfileCultivatorById: vi.fn(async () => {
+    const bundle = await getCultivatorByIdUnsafeMock();
+    return {
+      id: 'cultivator-1',
+      realm: bundle?.cultivator?.realm ?? '炼气',
+    };
+  }),
+}));
+
+vi.mock('@server/lib/repositories/cultivatorRepository', () => ({
+  hasCultivatorRecoveryPill: hasCultivatorRecoveryPillMock,
 }));
 
 vi.mock('@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter', () => ({
@@ -198,6 +232,7 @@ describe('dungeon battle router', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listCultivatorTasksMock.mockResolvedValue([]);
+    hasCultivatorRecoveryPillMock.mockResolvedValue(true);
     getCultivatorByIdUnsafeMock.mockResolvedValue({
       cultivator: {
         id: 'cultivator-1',

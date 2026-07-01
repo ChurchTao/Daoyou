@@ -92,18 +92,12 @@ function buildBetStakeChanges(
     ];
   }
 
-  const changes: StateChangeDescriptor[] = [
-    {
-      domain: 'inventory',
-      eventType: 'inventory.bet_battle.staked',
-      invalidates: ['inventory'],
-    },
-  ];
+  const changes: StateChangeDescriptor[] = [];
   if (stakeItem?.itemType === 'artifact') {
     changes.push({
-      domain: 'products',
-      eventType: 'products.bet_battle.staked',
-      invalidates: ['products'],
+      domain: 'loadout',
+      eventType: 'loadout.bet_battle.staked',
+      invalidates: ['loadout'],
     });
   }
   return changes;
@@ -195,6 +189,7 @@ router.post('/create', requireActiveCultivator(), async (c) => {
       userId: user.id,
       cultivatorId: cultivator.id,
       source: 'bet_battle_create',
+      allowEmpty: true,
       run: async (tx) => {
         const result = await createBetBattle(
           {

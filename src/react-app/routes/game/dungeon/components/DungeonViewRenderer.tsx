@@ -396,6 +396,7 @@ export function DungeonViewRenderer({
             isFirstDungeonTutorialActive: Boolean(
               firstDungeonTask && !firstDungeonTask.snapshot.isCompleted,
             ),
+            hasRecoveryPill: null,
           })
         : null;
 

@@ -30,6 +30,7 @@ vi.mock('@server/lib/redis', () => ({
 
 vi.mock('@server/lib/services/cultivatorService', () => ({
   getCultivatorByIdUnsafe: getCultivatorByIdUnsafeMock,
+  getPlayerRuntimeCultivatorByIdUnsafe: getCultivatorByIdUnsafeMock,
 }));
 
 vi.mock('@server/lib/services/ConditionService', () => ({

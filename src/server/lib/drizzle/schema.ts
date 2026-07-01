@@ -146,10 +146,15 @@ export const cultivatorStateVersions = pgTable(
     currencyVersion: bigint('currency_version', { mode: 'number' })
       .notNull()
       .default(0),
+    /** @deprecated Retained for rolling deploy compatibility. Use loadoutVersion. */
     inventoryVersion: bigint('inventory_version', { mode: 'number' })
       .notNull()
       .default(0),
+    /** @deprecated Retained for rolling deploy compatibility. Use loadoutVersion. */
     productsVersion: bigint('products_version', { mode: 'number' })
+      .notNull()
+      .default(0),
+    loadoutVersion: bigint('loadout_version', { mode: 'number' })
       .notNull()
       .default(0),
     mailVersion: bigint('mail_version', { mode: 'number' })

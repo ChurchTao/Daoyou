@@ -31,9 +31,9 @@ import { redis } from '../redis';
 import { parseRedisJson } from '../redis/json';
 import { stableCompactStringify } from '@server/utils/llmPayload';
 import {
-  getCultivatorByIdUnsafe,
   getCultivatorOwnerId,
   getPaginatedInventoryByType,
+  getPlayerRuntimeCultivatorByIdUnsafe,
   updateCultivator,
 } from '../services/cultivatorService';
 import { QiService } from '../services/QiService';
@@ -420,7 +420,7 @@ export class DungeonService {
       return;
     }
 
-    const bundle = await getCultivatorByIdUnsafe(cultivatorId, tx);
+    const bundle = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId, tx);
     if (!bundle?.cultivator) {
       throw new Error('未找到修真者数据');
     }
@@ -546,7 +546,7 @@ export class DungeonService {
       return roundData;
     }
 
-    const bundle = await getCultivatorByIdUnsafe(cultivatorId);
+    const bundle = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId);
     const cultivator = bundle?.cultivator;
     if (!cultivator) {
       return roundData;
@@ -1456,7 +1456,7 @@ export class DungeonService {
       battleId,
     );
 
-    const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
+    const cultivatorBundle = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId);
     if (!cultivatorBundle?.cultivator) {
       throw new Error('未找到修真者数据');
     }
@@ -2247,7 +2247,7 @@ export class DungeonService {
   }
 
   async getPlayer(cultivatorId: string) {
-    const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
+    const cultivatorBundle = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId);
     if (!cultivatorBundle || !cultivatorBundle.cultivator)
       throw new Error('未找到名为该道友的记录');
     const cultivator = cultivatorBundle.cultivator;

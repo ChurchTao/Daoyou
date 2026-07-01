@@ -20,8 +20,7 @@ const VERSION_COLUMNS = {
   condition: 'conditionVersion',
   progress: 'progressVersion',
   currency: 'currencyVersion',
-  inventory: 'inventoryVersion',
-  products: 'productsVersion',
+  loadout: 'loadoutVersion',
   mail: 'mailVersion',
   tasks: 'tasksVersion',
 } satisfies Record<PlayerStateDomain, string>;
@@ -34,8 +33,7 @@ function domainVersionsFromRow(
     condition: row.conditionVersion,
     progress: row.progressVersion,
     currency: row.currencyVersion,
-    inventory: row.inventoryVersion,
-    products: row.productsVersion,
+    loadout: row.loadoutVersion,
     mail: row.mailVersion,
     tasks: row.tasksVersion,
   };

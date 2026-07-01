@@ -182,6 +182,20 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="body-cultivation/breakthrough"
+              lazy={lazyRoute(
+                () =>
+                  import('@app/routes/game/body-cultivation/breakthrough/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'body-cultivation',
+                  summary: '五轨炼体等级、当前收益与进阶准备归于此处。',
+                },
+                '肉身破限',
+              )}
+            />
+            <Route
               path="inventory"
               lazy={lazyRoute(() => import('@app/routes/game/inventory/route'))}
               handle={scene(

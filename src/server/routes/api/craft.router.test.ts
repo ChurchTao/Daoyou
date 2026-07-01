@@ -110,9 +110,14 @@ vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
   })),
 }));
 
-vi.mock('@server/lib/services/cultivatorService', () => ({
-  getCultivatorById: vi.fn(),
-}));
+vi.mock('@server/lib/services/cultivatorService', () => {
+  const getCultivatorById = vi.fn();
+
+  return {
+    getCultivatorById,
+    getPlayerProfileCultivatorById: getCultivatorById,
+  };
+});
 
 import {
   craftFromFormula,
@@ -380,11 +385,6 @@ describe('craft router alchemy routes', () => {
             invalidates: ['currency'],
           }),
           expect.objectContaining({
-            domain: 'inventory',
-            eventType: 'inventory.changed',
-            invalidates: ['inventory'],
-          }),
-          expect.objectContaining({
             domain: 'tasks',
             eventType: 'tasks.changed',
             invalidates: ['tasks'],
@@ -596,10 +596,6 @@ describe('craft router alchemy routes', () => {
           expect.objectContaining({
             domain: 'currency',
             eventType: 'currency.changed',
-          }),
-          expect.objectContaining({
-            domain: 'inventory',
-            eventType: 'inventory.changed',
           }),
           expect.objectContaining({
             domain: 'tasks',

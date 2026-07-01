@@ -23,7 +23,7 @@ import { RewardFactory } from '@server/lib/dungeon/reward';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import {
-  getCultivatorByIdUnsafe,
+  getPlayerRuntimeCultivatorByIdUnsafe,
 } from '@server/lib/services/cultivatorService';
 import { ConditionService } from '@server/lib/services/ConditionService';
 import { MailService, type MailAttachment } from '@server/lib/services/MailService';
@@ -389,7 +389,7 @@ export class TowerService {
       throw new Error('当前已有尚未结束的幻境进度');
     }
 
-    const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
+    const cultivatorBundle = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId);
     if (!cultivatorBundle?.cultivator) {
       throw new Error('未找到修真者数据');
     }
@@ -491,7 +491,7 @@ export class TowerService {
       state.status = 'READY';
     }
 
-    const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
+    const cultivatorBundle = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId);
     if (!cultivatorBundle?.cultivator) {
       throw new Error('未找到修真者数据');
     }
@@ -591,7 +591,7 @@ export class TowerService {
       throw new Error('幻境战局数据不存在或已失效');
     }
 
-    const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
+    const cultivatorBundle = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId);
     if (!cultivatorBundle?.cultivator) {
       throw new Error('未找到修真者数据');
     }

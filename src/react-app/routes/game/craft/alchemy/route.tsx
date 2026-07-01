@@ -34,7 +34,6 @@ import {
 } from '@app/components/ui';
 import {
   STARTER_ALCHEMY_PROMPT,
-  selectRecommendedStarterAlchemyMaterials,
 } from '@app/lib/alchemy/starterAlchemy';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
@@ -920,14 +919,6 @@ export default function AlchemyPage() {
   const nextTutorialTask = useMemo(() => findNextTutorialTask(tasks), [tasks]);
   const isStarterAlchemyTask =
     nextTutorialTask?.definitionId === 'tutorial_first_alchemy';
-  const starterAlchemySelection = useMemo(
-    () =>
-      selectRecommendedStarterAlchemyMaterials(
-        cultivator?.inventory.materials ?? [],
-        MIN_DOSE,
-      ),
-    [cultivator?.inventory.materials],
-  );
   const formulaJudgmentMap = useMemo(
     () =>
       Object.fromEntries(
@@ -1262,32 +1253,6 @@ export default function AlchemyPage() {
 
   const resetAll = () => {
     resetWorkbench();
-  };
-
-  const applyStarterAlchemyRecommendation = () => {
-    const selection = starterAlchemySelection;
-    if (selection.missingNames.length > 0) {
-      pushToast({
-        message: `缺少${selection.missingNames.join('、')}，先领取入门供给或检查储物袋。`,
-        tone: 'warning',
-      });
-      return;
-    }
-
-    setActiveMode('improvised');
-    setStatus('');
-    setCreatedConsumable(null);
-    setFormulaDiscovery(null);
-    setFormulaProgress(null);
-    setIsResultModalOpen(false);
-    setIsDiscoveryModalOpen(false);
-    setSelectedMaterialIds(selection.selectedIds);
-    setSelectedMaterialMap(selection.selectedMap);
-    setDoseMap(selection.doseMap);
-    setUserPrompt(STARTER_ALCHEMY_PROMPT);
-    setPreviewState(DEFAULT_PREVIEW_STATE);
-    clearFormulaAnalysis();
-    pushToast({ message: '已按入门方意备好第一炉。', tone: 'success' });
   };
 
   const submitPayload = useMemo(
@@ -1755,17 +1720,17 @@ export default function AlchemyPage() {
               {isStarterAlchemyTask ? (
                 <InkButton
                   variant="primary"
-                  onClick={applyStarterAlchemyRecommendation}
+                  onClick={() => {
+                    setActiveMode('improvised');
+                    setUserPrompt(STARTER_ALCHEMY_PROMPT);
+                    setPreviewState(DEFAULT_PREVIEW_STATE);
+                    clearFormulaAnalysis();
+                    setIsMaterialModalOpen(true);
+                  }}
                   disabled={isSubmitting}
                 >
-                  使用推荐首炉
+                  选择首炉灵材
                 </InkButton>
-              ) : null}
-              {isStarterAlchemyTask &&
-              starterAlchemySelection.missingNames.length > 0 ? (
-                <p className="text-crimson text-xs leading-6">
-                  缺少{starterAlchemySelection.missingNames.join('、')}，先回入门卷宗领奖或查看储物袋。
-                </p>
               ) : null}
             </div>
           </GameSceneAsideSection>

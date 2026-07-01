@@ -70,7 +70,7 @@ function ReplaceContent() {
       try {
         const [pendingRes, existingRes] = await Promise.all([
           fetch(`/api/craft/pending?type=${craftType}`),
-          fetch(`/api/v2/products?type=${productType}`),
+          fetch(`/api/v2/products?type=${productType}&page=1&pageSize=100`),
         ]);
         const [pendingData, existingData] = await Promise.all([
           pendingRes.json(),
@@ -86,7 +86,7 @@ function ReplaceContent() {
         }
 
         if (existingData.success) {
-          const items: V2Product[] = (existingData.data ?? []).map(
+          const items: V2Product[] = (existingData.data?.items ?? []).map(
             (item: Record<string, unknown>) => ({
               id: item.id as string,
               ...toProductDisplayModel(item),

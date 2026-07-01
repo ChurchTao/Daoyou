@@ -17,7 +17,7 @@ import { MailAttachment, MailService } from './MailService';
 import { mapConsumableRow } from './consumablePersistence';
 import { simulateBattleV5 } from './simulateBattleV5';
 import { toArtifactFromProduct } from './creationProductArtifactSupport';
-import { getCultivatorByIdUnsafe } from './cultivatorService';
+import { getPlayerRuntimeCultivatorByIdUnsafe } from './cultivatorService';
 import { withPlayerAbilityStrategySettings } from '@shared/lib/battle/abilityStrategyInit';
 
 const CREATE_LOCK_PREFIX = 'bet_battle:create:lock:';
@@ -633,7 +633,7 @@ export async function challengeBetBattle(
       );
     }
 
-    const challengerBundle = await getCultivatorByIdUnsafe(input.challengerId);
+    const challengerBundle = await getPlayerRuntimeCultivatorByIdUnsafe(input.challengerId);
     if (!challengerBundle?.cultivator) {
       throw new BetBattleServiceError(
         BetBattleError.BATTLE_NOT_FOUND,
@@ -659,7 +659,7 @@ export async function challengeBetBattle(
       );
     }
 
-    const creatorBundle = await getCultivatorByIdUnsafe(betBattle.creatorId);
+    const creatorBundle = await getPlayerRuntimeCultivatorByIdUnsafe(betBattle.creatorId);
     if (!creatorBundle?.cultivator) {
       throw new BetBattleServiceError(
         BetBattleError.BATTLE_NOT_FOUND,

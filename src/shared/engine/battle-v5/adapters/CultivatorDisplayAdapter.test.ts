@@ -1,4 +1,5 @@
 import { AttributeType, ModifierType } from '../core/types';
+import { getArtifactWearerRealmFactor } from '@shared/engine/shared/artifactRealmScaling';
 import {
   createDisplayUnitFromCultivator,
   getCultivatorDisplayAttributes,
@@ -219,9 +220,17 @@ describe('CultivatorDisplayAdapter', () => {
     };
 
     const unit = createDisplayUnitFromCultivator(cultivator);
+    const factor = getArtifactWearerRealmFactor(
+      '金丹',
+      '圆满',
+      '炼气',
+      '初期',
+    );
 
     // 金丹圆满->炼气初期 uses inverse anchor/wearer factor.
-    expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(67);
+    expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(
+      Math.floor(10 + 100 * factor),
+    );
     // 功能属性不衰减
     expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(
       0.144884,

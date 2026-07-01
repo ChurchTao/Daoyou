@@ -26,6 +26,7 @@ export interface NoviceDungeonReadinessInput {
   hp: NoviceReadinessResource;
   mp: NoviceReadinessResource;
   isFirstDungeonTutorialActive: boolean;
+  hasRecoveryPill?: boolean | null;
 }
 
 export interface NoviceDungeonReadiness {
@@ -40,7 +41,7 @@ export interface NoviceDungeonReadiness {
   unequippedNoviceEquipmentNames: string[];
   hasFullNoviceEquipment: boolean;
   hasEquippedFullNoviceEquipment: boolean;
-  hasRecoveryPill: boolean;
+  hasRecoveryPill: boolean | null;
 }
 
 function toPercent(resource: NoviceReadinessResource): number {
@@ -115,7 +116,10 @@ export function evaluateNoviceReadiness(
       cultivator.equipped.accessory === noviceGuardArtifact.id,
   );
   const noviceEquipmentState = getNoviceEquipmentState(cultivator);
-  const hasRecoveryPill = cultivator.inventory.consumables.some(isRecoveryPill);
+  const hasRecoveryPill =
+    input.hasRecoveryPill !== undefined
+      ? input.hasRecoveryPill
+      : cultivator.inventory.consumables.some(isRecoveryPill);
   const reasons: string[] = [];
   const hints: string[] = [];
 
@@ -166,7 +170,7 @@ export function evaluateNoviceReadiness(
     );
   }
 
-  if (!hasRecoveryPill) {
+  if (hasRecoveryPill === false) {
     hints.push('若还没有恢复丹，可先在炼丹房完成第一炉疗伤丹。');
   }
 

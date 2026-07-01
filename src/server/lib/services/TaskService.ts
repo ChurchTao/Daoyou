@@ -38,7 +38,10 @@ import {
 import { getNextStage } from '@server/utils/breakthroughCalculator';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import { simulateBattleV5 } from './simulateBattleV5';
-import { getCultivatorByIdUnsafe, getInventory } from './cultivatorService';
+import {
+  getInventory,
+  getPlayerRuntimeCultivatorByIdUnsafe,
+} from './cultivatorService';
 import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import { calculateSceneCultivationExp } from '@shared/engine/cultivation/ExpBudgetCalculator';
 import {
@@ -1286,7 +1289,7 @@ async function syncTaskRecord(
 }
 
 async function loadBundleOrThrow(cultivatorId: string): Promise<Cultivator> {
-  const bundle = await getCultivatorByIdUnsafe(cultivatorId);
+  const bundle = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId);
   if (!bundle) {
     throw new Error('角色不存在');
   }

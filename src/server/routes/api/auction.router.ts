@@ -199,6 +199,7 @@ router.post('/list', requireActiveCultivator(), async (c) => {
       userId: user.id,
       cultivatorId: cultivator.id,
       source: 'auction_list',
+      allowEmpty: true,
       run: async (tx) => {
         const result = await listItem(
           {
@@ -215,18 +216,12 @@ router.post('/list', requireActiveCultivator(), async (c) => {
           { tx, deferCacheClear: true },
         );
 
-        const changes: StateChangeDescriptor[] = [
-          {
-            domain: 'inventory',
-            eventType: 'inventory.auction.listed',
-            invalidates: ['inventory'],
-          },
-        ];
+        const changes: StateChangeDescriptor[] = [];
         if (itemType === 'artifact') {
           changes.push({
-            domain: 'products',
-            eventType: 'products.auction.listed',
-            invalidates: ['products'],
+            domain: 'loadout',
+            eventType: 'loadout.auction.listed',
+            invalidates: ['loadout'],
           });
         }
 

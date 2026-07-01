@@ -19,7 +19,9 @@ import {
 import { subscribePlayerStateEvents } from '@server/lib/services/playerStateBroadcaster';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
-  getCultivatorsByUserId,
+  buildCultivatorRuntime,
+  getPlayerLoadoutByCultivatorId,
+  getPlayerProfileCultivatorsByUserId,
   hasDeadCultivator,
   updateCultivatorGameSettings,
 } from '@server/lib/services/cultivatorService';
@@ -56,12 +58,20 @@ router.get('/active', requireUser(), async (c) => {
     return c.json({ success: false, error: '未授权访问' }, 401);
   }
 
-  const cultivators = await getCultivatorsByUserId(user.id);
+  const cultivators = await getPlayerProfileCultivatorsByUserId(user.id);
   const hasDead = await hasDeadCultivator(user.id);
-  const cultivatorViews = cultivators.map((cultivator) => ({
-    cultivator,
-    display: getCultivatorDisplaySnapshot(cultivator),
-  }));
+  const cultivatorViews = await Promise.all(
+    cultivators.map(async (cultivator) => {
+      const loadout = await getPlayerLoadoutByCultivatorId(cultivator.id!);
+      return {
+        cultivator,
+        display: getCultivatorDisplaySnapshot(
+          buildCultivatorRuntime(cultivator, loadout),
+        ),
+        loadout,
+      };
+    }),
+  );
   const activeCultivator = cultivatorViews[0] ?? null;
   const activeCultivatorId = activeCultivator?.cultivator.id;
 

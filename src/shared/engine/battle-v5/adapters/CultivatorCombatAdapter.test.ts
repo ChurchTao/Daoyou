@@ -1,4 +1,5 @@
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
+import { getArtifactWearerRealmFactor } from '@shared/engine/shared/artifactRealmScaling';
 import type { Cultivator } from '@shared/types/cultivator';
 import { AbilityType, AttributeType, ModifierType } from '../core/types';
 import { createCombatUnitFromCultivator } from './CultivatorCombatAdapter';
@@ -73,10 +74,16 @@ function createCultivatorFixture(): Cultivator {
 describe('CultivatorCombatAdapter', () => {
   it('applies cross-realm decay only to main panel fixed modifiers', () => {
     const unit = createCombatUnitFromCultivator(createCultivatorFixture());
+    const factor = getArtifactWearerRealmFactor(
+      '金丹',
+      '圆满',
+      '炼气',
+      '初期',
+    );
 
     // 金丹圆满->炼气初期 uses inverse anchor/wearer factor.
     expect(unit.attributes.getValue(AttributeType.ATK)).toBeCloseTo(
-      127.84722,
+      70 + 100 * factor,
       6,
     );
     // CRIT_RATE is functional attribute and should not be decayed

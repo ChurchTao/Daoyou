@@ -36,6 +36,13 @@
       "when": 1782790790603,
       "tag": "0004_adorable_sasquatch",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782879152610,
+      "tag": "0005_short_guardsmen",
+      "breakpoints": true
     }
   ]
 }

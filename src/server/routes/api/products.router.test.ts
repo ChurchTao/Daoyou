@@ -27,9 +27,10 @@ vi.mock('@server/lib/hono/middleware', () => ({
 
 vi.mock('@server/lib/repositories/creationProductRepository', () => ({
   countEquippedByType: vi.fn(),
+  countByType: vi.fn(),
   equipArtifact: vi.fn(),
   findById: vi.fn(),
-  findByTypeAndCultivator: vi.fn(),
+  findByTypeAndCultivatorPage: vi.fn(),
   findEquippedArtifacts: vi.fn(),
   setProductEquipped: vi.fn(),
   unequipArtifact: vi.fn(),
@@ -42,6 +43,9 @@ import productsRouter from './products.router';
 
 const dbMock = db as unknown as Mock;
 const findByIdMock = creationProductRepository.findById as unknown as Mock;
+const countByTypeMock = creationProductRepository.countByType as unknown as Mock;
+const findByTypeAndCultivatorPageMock =
+  creationProductRepository.findByTypeAndCultivatorPage as unknown as Mock;
 const countEquippedByTypeMock =
   creationProductRepository.countEquippedByType as unknown as Mock;
 const setProductEquippedMock =
@@ -55,7 +59,7 @@ function createApp() {
   return new Hono().route('/api/v2/products', productsRouter);
 }
 
-function mockProductTransaction(eventType = 'products.equipped') {
+function mockProductTransaction(eventType = 'loadout.equipped') {
   const versionRow = {
     cultivatorId: 'cultivator-1',
     globalVersion: 1,
@@ -63,8 +67,7 @@ function mockProductTransaction(eventType = 'products.equipped') {
     conditionVersion: 0,
     progressVersion: 0,
     currencyVersion: 0,
-    inventoryVersion: 1,
-    productsVersion: 1,
+    loadoutVersion: 1,
     mailVersion: 0,
     tasksVersion: 0,
     updatedAt: new Date('2026-06-10T00:00:00.000Z'),
@@ -75,11 +78,11 @@ function mockProductTransaction(eventType = 'products.equipped') {
       cultivatorId: 'cultivator-1',
       userId: 'user-1',
       globalVersion: 1,
-      domain: 'products',
+      domain: 'loadout',
       eventType,
       patch: {},
-      invalidates: ['products'],
-      source: eventType === 'products.deleted' ? 'product_delete' : 'product_equip',
+      invalidates: ['loadout'],
+      source: eventType === 'loadout.deleted' ? 'product_delete' : 'product_equip',
       requestId: null,
       createdAt: new Date('2026-06-10T00:00:00.000Z'),
     },
@@ -107,6 +110,49 @@ function mockProductTransaction(eventType = 'products.equipped') {
 describe('products router equip toggle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('returns products as a paginated list', async () => {
+    countByTypeMock.mockResolvedValueOnce(1);
+    findByTypeAndCultivatorPageMock.mockResolvedValueOnce([
+      {
+        id: '44444444-4444-4444-8444-444444444444',
+        cultivatorId: 'cultivator-1',
+        productType: 'artifact',
+        name: '青锋',
+        element: '金',
+        productModel: {},
+      },
+    ]);
+
+    const response = await createApp().request(
+      '/api/v2/products?type=artifact&page=2&pageSize=10',
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        items: [
+          {
+            id: '44444444-4444-4444-8444-444444444444',
+            name: '青锋',
+          },
+        ],
+        pagination: {
+          page: 2,
+          pageSize: 10,
+          total: 1,
+          totalPages: 1,
+          hasMore: false,
+        },
+      },
+    });
+    expect(findByTypeAndCultivatorPageMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      'artifact',
+      { page: 2, pageSize: 10 },
+    );
   });
 
   it('rejects enabling a skill when the effective skill limit is full', async () => {
@@ -162,7 +208,7 @@ describe('products router equip toggle', () => {
         cultivatorId: 'cultivator-1',
         globalVersion: 1,
         domainVersions: {
-          products: 1,
+          loadout: 1,
           profile: 1,
         },
         events: [
@@ -170,10 +216,10 @@ describe('products router equip toggle', () => {
             id: 31,
             cultivatorId: 'cultivator-1',
             globalVersion: 1,
-            domain: 'products',
-            eventType: 'products.equipped',
+            domain: 'loadout',
+            eventType: 'loadout.equipped',
             patch: {},
-            invalidates: ['products'],
+            invalidates: ['loadout'],
             source: 'product_equip',
             createdAt: '2026-06-10T00:00:00.000Z',
           },
@@ -218,19 +264,18 @@ describe('products router equip toggle', () => {
         cultivatorId: 'cultivator-1',
         globalVersion: 1,
         domainVersions: {
-          products: 1,
+          loadout: 1,
           profile: 1,
-          inventory: 1,
         },
         events: [
           {
             id: 31,
             cultivatorId: 'cultivator-1',
             globalVersion: 1,
-            domain: 'products',
-            eventType: 'products.equipped',
+            domain: 'loadout',
+            eventType: 'loadout.equipped',
             patch: {},
-            invalidates: ['products'],
+            invalidates: ['loadout'],
             source: 'product_equip',
             createdAt: '2026-06-10T00:00:00.000Z',
           },

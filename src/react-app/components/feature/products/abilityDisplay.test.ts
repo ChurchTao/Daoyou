@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { composeProductFromAffixIds } from '@shared/engine/creation-v2/composeProductFromAffixIds';
 import { serializeProductModel } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
+import { getArtifactRealmGrowthFactor } from '@shared/engine/shared/artifactRealmScaling';
 import { toProductDisplayModel } from './abilityDisplay';
 
 describe('abilityDisplay', () => {
@@ -168,10 +169,9 @@ describe('abilityDisplay', () => {
     });
 
     expect(displayModel.modifiers).toHaveLength(2);
-    expect(displayModel.modifiers[0].raw.value).toBeCloseTo(
-      219.359465258856,
-      6,
-    );
-    expect(displayModel.affixes[0].effectText).toContain('+219');
+    const expectedValue =
+      (6 + 2.5 * 6) * getArtifactRealmGrowthFactor('化神', '中期');
+    expect(displayModel.modifiers[0].raw.value).toBeCloseTo(expectedValue, 6);
+    expect(displayModel.affixes[0].effectText).toContain('+101');
   });
 });

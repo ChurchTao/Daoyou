@@ -21,7 +21,10 @@ import {
 import { DamageType } from '@shared/engine/battle-v5/core/types';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import type { AffixDefinition } from '../types';
-import { qualityScaledCoefficient } from './utils';
+import {
+  qualityScaledCoefficient,
+  qualityScaledDamageCoefficient,
+} from './utils';
 
 const DOT_TICK_LISTENER = {
   eventType: GameplayTags.EVENT.ACTION_PRE,
@@ -61,9 +64,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 80, scale: 'quality', coefficient: 14 },
+          base: { base: 35, scale: 'quality', coefficient: 6 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: qualityScaledCoefficient(1.0),
+          coefficient: qualityScaledDamageCoefficient(1.0),
         },
       },
     },
@@ -97,9 +100,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 86, scale: 'quality', coefficient: 15 },
+          base: { base: 38, scale: 'quality', coefficient: 7 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: qualityScaledCoefficient(1.2),
+          coefficient: qualityScaledDamageCoefficient(1.08),
         },
       },
     },
@@ -131,9 +134,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 78, scale: 'quality', coefficient: 14 },
+          base: { base: 35, scale: 'quality', coefficient: 6 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: qualityScaledCoefficient(1.15),
+          coefficient: qualityScaledDamageCoefficient(1.02),
         },
       },
     },
@@ -165,9 +168,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 92, scale: 'quality', coefficient: 15 },
+          base: { base: 40, scale: 'quality', coefficient: 7 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: qualityScaledCoefficient(0.94),
+          coefficient: qualityScaledDamageCoefficient(1.04),
         },
       },
     },
@@ -199,9 +202,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 60, scale: 'quality', coefficient: 12 },
+          base: { base: 30, scale: 'quality', coefficient: 5 },
           attribute: AttributeType.ATK,
-          coefficient: qualityScaledCoefficient(1.12),
+          coefficient: qualityScaledDamageCoefficient(1.0),
         },
       },
     },
@@ -233,9 +236,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 65, scale: 'quality', coefficient: 13 },
+          base: { base: 32, scale: 'quality', coefficient: 6 },
           attribute: AttributeType.ATK,
-          coefficient: qualityScaledCoefficient(1.18),
+          coefficient: qualityScaledDamageCoefficient(1.06),
         },
       },
     },
@@ -267,9 +270,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 74, scale: 'quality', coefficient: 13 },
+          base: { base: 34, scale: 'quality', coefficient: 6 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: qualityScaledCoefficient(0.95),
+          coefficient: qualityScaledDamageCoefficient(0.98),
         },
       },
     },
@@ -301,9 +304,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 70, scale: 'quality', coefficient: 12 },
+          base: { base: 32, scale: 'quality', coefficient: 5 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: qualityScaledCoefficient(1.0),
+          coefficient: qualityScaledDamageCoefficient(0.96),
         },
       },
     },
@@ -335,9 +338,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 82, scale: 'quality', coefficient: 14 },
+          base: { base: 36, scale: 'quality', coefficient: 6 },
           attribute: AttributeType.ATK,
-          coefficient: qualityScaledCoefficient(1.0),
+          coefficient: qualityScaledDamageCoefficient(0.98),
         },
       },
     },

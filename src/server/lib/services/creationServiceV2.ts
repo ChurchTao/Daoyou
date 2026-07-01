@@ -54,7 +54,7 @@ import type {
 } from '@shared/types/constants';
 import type { Material, PreHeavenFate } from '@shared/types/cultivator';
 import { eq, inArray, sql } from 'drizzle-orm';
-import { getCultivatorByIdUnsafe } from './cultivatorService';
+import { getPlayerRuntimeCultivatorByIdUnsafe } from './cultivatorService';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
 
 /**
@@ -495,7 +495,10 @@ export async function processCreation(
       throw new CreationServiceError('道友查无此人', 404);
     }
 
-    const fullCultivator = await getCultivatorByIdUnsafe(cultivatorId, q);
+    const fullCultivator = await getPlayerRuntimeCultivatorByIdUnsafe(
+      cultivatorId,
+      q,
+    );
     const fateContext = evaluateFateContext(
       fullCultivator?.cultivator.pre_heaven_fates ?? [],
     );

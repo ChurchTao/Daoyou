@@ -1,7 +1,11 @@
 import { getExecutor, type DbExecutor } from '@server/lib/drizzle/db';
 import { cultivators, cultivatorTasks, mails } from '@server/lib/drizzle/schema';
 import { getOrCreateStateVersion } from '@server/lib/repositories/playerStateRepository';
-import { getCultivatorById } from '@server/lib/services/cultivatorService';
+import {
+  buildCultivatorRuntime,
+  getPlayerLoadoutByCultivatorId,
+  getPlayerProfileCultivatorById,
+} from '@server/lib/services/cultivatorService';
 import { QiService } from '@server/lib/services/QiService';
 import {
   PLAYER_STATE_DOMAINS,
@@ -39,14 +43,17 @@ export async function buildPlayerStateSnapshot(args: {
   const domainSet = new Set<PlayerStateDomain>(domains);
   const version = await getOrCreateStateVersion(args.cultivatorId, q);
   const needsFullCultivator = domains.some((domain) =>
-    ['profile', 'condition', 'progress', 'inventory', 'products'].includes(domain),
+    ['profile', 'condition', 'progress', 'loadout'].includes(domain),
   );
   const needsCultivatorRow = needsFullCultivator || domainSet.has('currency');
-  const cultivator = needsFullCultivator
-    ? await getCultivatorById(args.userId, args.cultivatorId)
+  const profile = needsFullCultivator
+    ? await getPlayerProfileCultivatorById(args.userId, args.cultivatorId, q)
+    : null;
+  const loadout = domainSet.has('profile') || domainSet.has('loadout')
+    ? await getPlayerLoadoutByCultivatorId(args.cultivatorId, q)
     : null;
 
-  if (needsFullCultivator && !cultivator) {
+  if (needsFullCultivator && !profile) {
     throw new Error('角色不存在');
   }
 
@@ -70,18 +77,19 @@ export async function buildPlayerStateSnapshot(args: {
   const snapshot: Partial<PlayerStateSnapshot> = {};
 
   if (domainSet.has('profile')) {
+    const runtimeCultivator = buildCultivatorRuntime(profile!, loadout!);
     snapshot.profile = {
-      cultivator: cultivator!,
-      display: getCultivatorDisplaySnapshot(cultivator!),
+      cultivator: profile!,
+      display: getCultivatorDisplaySnapshot(runtimeCultivator),
     };
   }
 
   if (domainSet.has('condition')) {
-    snapshot.condition = cultivator!.condition;
+    snapshot.condition = profile!.condition;
   }
 
   if (domainSet.has('progress')) {
-    snapshot.progress = cultivator!.cultivation_progress ?? {};
+    snapshot.progress = profile!.cultivation_progress ?? {};
   }
 
   if (domainSet.has('currency')) {
@@ -90,25 +98,16 @@ export async function buildPlayerStateSnapshot(args: {
       qiLastRefreshedAt: rawCultivator?.qiLastRefreshedAt ?? null,
     });
     snapshot.currency = {
-      spiritStones: rawCultivator?.spirit_stones ?? cultivator?.spirit_stones ?? 0,
-      reputation: rawCultivator?.reputation ?? cultivator?.reputation ?? 0,
+      spiritStones: rawCultivator?.spirit_stones ?? profile?.spirit_stones ?? 0,
+      reputation: rawCultivator?.reputation ?? profile?.reputation ?? 0,
       qi: qiState.qi,
       qiLastRefreshedAt:
         qiState.qiLastRefreshedAt?.toISOString() ?? null,
     };
   }
 
-  if (domainSet.has('inventory')) {
-    snapshot.inventory = cultivator!.inventory;
-  }
-
-  if (domainSet.has('products')) {
-    snapshot.products = {
-      skills: cultivator!.skills,
-      cultivations: cultivator!.cultivations,
-      artifacts: cultivator!.inventory.artifacts,
-      equipped: cultivator!.equipped,
-    };
+  if (domainSet.has('loadout')) {
+    snapshot.loadout = loadout!;
   }
 
   if (domainSet.has('mail')) {

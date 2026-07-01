@@ -32,7 +32,7 @@ import {
   toPlayerStateMutationResponse,
 } from '@server/lib/services/PlayerStateMutationService';
 import {
-  getCultivatorByIdUnsafe,
+  getPlayerRuntimeCultivatorByIdUnsafe,
 } from '@server/lib/services/cultivatorService';
 import { simulateBattleV5 } from '@server/lib/services/simulateBattleV5';
 import { TaskService } from '@server/lib/services/TaskService';
@@ -376,7 +376,7 @@ challengeRouter.post('/probe', requireActiveCultivator(), async (c) => {
       return c.json({ error: '请提供有效的目标角色ID' }, 400);
     }
 
-    const targetRecord = await getCultivatorByIdUnsafe(targetId);
+    const targetRecord = await getPlayerRuntimeCultivatorByIdUnsafe(targetId);
     if (!targetRecord) {
       return c.json({ error: '目标角色不存在或不可查探' }, 404);
     }
@@ -574,8 +574,8 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
     }
     lockAcquired = true;
 
-    const challengerRecord = await getCultivatorByIdUnsafe(cultivatorId);
-    const targetRecord = await getCultivatorByIdUnsafe(targetId);
+    const challengerRecord = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId);
+    const targetRecord = await getPlayerRuntimeCultivatorByIdUnsafe(targetId);
     if (!challengerRecord || !targetRecord) {
       return c.json({ error: '角色不存在' }, 404);
     }

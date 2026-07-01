@@ -184,10 +184,6 @@ describe('reputation shop router', () => {
               eventType: 'currency.reputation.spent',
               patch: { currency: { reputation: 2200 } },
             }),
-            expect.objectContaining({
-              domain: 'inventory',
-              eventType: 'inventory.reputation_shop.gained',
-            }),
           ]),
         }),
       }),

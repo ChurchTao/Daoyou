@@ -13,8 +13,8 @@ import { FATE_RESHAPE_CANDIDATE_COUNT } from './FateConfig';
 import { FateEngine } from './FateEngine';
 import {
   consumeConsumableById,
-  getCultivatorById,
-  getCultivatorByIdUnsafe,
+  getPlayerRuntimeCultivatorById,
+  getPlayerRuntimeCultivatorByIdUnsafe,
   replacePreHeavenFates,
 } from './cultivatorService';
 import { mapConsumableRow, type ConsumableRow } from './consumablePersistence';
@@ -189,7 +189,10 @@ export const FateReshapeService = {
         return toSessionDto(existing);
       }
 
-      const cultivator = await getCultivatorById(userId, cultivatorId);
+      const cultivator = await getPlayerRuntimeCultivatorById(
+        userId,
+        cultivatorId,
+      );
       if (!cultivator) {
         throw new FateReshapeServiceError(404, '当前没有可重塑命格的角色');
       }
@@ -253,7 +256,7 @@ export const FateReshapeService = {
         throw new FateReshapeServiceError(400, '本次命格重塑已无法再重抽');
       }
 
-      const bundle = await getCultivatorByIdUnsafe(cultivatorId);
+      const bundle = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId);
       if (!bundle?.cultivator) {
         throw new FateReshapeServiceError(404, '当前没有可重塑命格的角色');
       }

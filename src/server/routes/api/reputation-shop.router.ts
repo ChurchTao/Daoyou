@@ -38,26 +38,6 @@ function buildBuyChanges(args: {
     },
   ];
 
-  const hasInventoryGain = args.gains.some((gain) =>
-    ['material', 'consumable'].includes(gain.type),
-  );
-  const hasProductGain = args.gains.some((gain) => gain.type === 'artifact');
-
-  if (hasInventoryGain) {
-    changes.push({
-      domain: 'inventory',
-      eventType: 'inventory.reputation_shop.gained',
-      invalidates: ['inventory'],
-    });
-  }
-  if (hasProductGain) {
-    changes.push({
-      domain: 'products',
-      eventType: 'products.reputation_shop.gained',
-      invalidates: ['products'],
-    });
-  }
-
   return changes;
 }
 

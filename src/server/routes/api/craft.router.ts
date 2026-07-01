@@ -22,7 +22,7 @@ import {
   QiServiceError,
 } from '@server/lib/services/QiService';
 import { TaskService } from '@server/lib/services/TaskService';
-import { getCultivatorById } from '@server/lib/services/cultivatorService';
+import { getPlayerProfileCultivatorById } from '@server/lib/services/cultivatorService';
 import {
   commitPlayerStateMutation,
   toPlayerStateMutationResponse,
@@ -163,11 +163,6 @@ function buildAlchemyStateChanges(args: {
       },
       invalidates: ['currency'],
     },
-    {
-      domain: 'inventory',
-      eventType: 'inventory.changed',
-      invalidates: ['inventory'],
-    },
   ];
 
   if (args.taskSynced) {
@@ -197,11 +192,6 @@ function buildCreationStateChanges(args: {
       },
       invalidates: ['currency'],
     },
-    {
-      domain: 'inventory',
-      eventType: 'inventory.changed',
-      invalidates: ['inventory'],
-    },
   ];
 
   if (args.craftType === 'create_skill' || args.craftType === 'create_gongfa') {
@@ -212,11 +202,14 @@ function buildCreationStateChanges(args: {
     });
   }
 
-  if (!args.needsReplace) {
+  if (
+    !args.needsReplace &&
+    (args.craftType === 'create_skill' || args.craftType === 'create_gongfa')
+  ) {
     changes.push({
-      domain: 'products',
-      eventType: 'products.changed',
-      invalidates: ['products'],
+      domain: 'loadout',
+      eventType: 'loadout.changed',
+      invalidates: ['loadout'],
     });
   }
 
@@ -367,8 +360,11 @@ router.get('/', requireActiveCultivator(), async (c) => {
   }
 
   try {
-    const fullCultivator = await getCultivatorById(user.id, cultivator.id);
-    const fateList = fullCultivator?.pre_heaven_fates ?? [];
+    const profileCultivator = await getPlayerProfileCultivatorById(
+      user.id,
+      cultivator.id,
+    );
+    const fateList = profileCultivator?.pre_heaven_fates ?? [];
     const materialIdsParam = c.req.query('materialIds');
     const materialQuantitiesParam = c.req.query('materialQuantities');
     const craftType = c.req.query('craftType');
@@ -748,9 +744,9 @@ confirmRouter.post('/', requireActiveCultivator(), async (c) => {
           },
           changes: [
             {
-              domain: 'products',
-              eventType: 'products.changed',
-              invalidates: ['products'],
+              domain: 'loadout',
+              eventType: 'loadout.changed',
+              invalidates: ['loadout'],
             },
           ],
         };

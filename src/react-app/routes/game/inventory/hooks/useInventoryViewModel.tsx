@@ -182,8 +182,7 @@ export interface UseInventoryViewModelReturn {
  */
 export function useInventoryViewModel(): UseInventoryViewModelReturn {
   const { cultivator, equipped, isLoading, note } = usePlayerStateView();
-  const inventoryVersion = usePlayerStateDomainVersion('inventory');
-  const productsVersion = usePlayerStateDomainVersion('products');
+  const loadoutVersion = usePlayerStateDomainVersion('loadout');
 
   const { pushToast } = useInkUI();
   const { mutate } = usePlayerStateActions();
@@ -402,9 +401,8 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
   }, [
     activeTab,
     cultivator?.id,
-    inventoryVersion,
+    loadoutVersion,
     materialFilters,
-    productsVersion,
     pushToast,
   ]);
 
@@ -447,6 +445,13 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         );
 
         pushToast({ message: '物品已丢弃', tone: 'success' });
+        const tab: InventoryTab =
+          type === 'artifact'
+            ? 'artifacts'
+            : type === 'material'
+              ? 'materials'
+              : 'consumables';
+        void fetchTabPage(tab, paginationByTabRef.current[tab].page || 1);
       } catch (error) {
         pushToast({
           message:
@@ -460,7 +465,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         }));
       }
     },
-    [cultivator, mutate, pushToast],
+    [cultivator, fetchTabPage, mutate, pushToast],
   );
 
   // 打开丢弃确认
@@ -508,6 +513,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         );
 
         pushToast({ message: '法宝灵性已调顺。', tone: 'success' });
+        void fetchTabPage('artifacts', paginationByTabRef.current.artifacts.page || 1);
       } catch (error) {
         pushToast({
           message:
@@ -520,7 +526,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         setPendingId(null);
       }
     },
-    [cultivator, mutate, pushToast],
+    [cultivator, fetchTabPage, mutate, pushToast],
   );
 
   // 服用丹药
@@ -571,6 +577,10 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
           message: result.message || `${item.name}已使用。`,
           tone: 'success',
         });
+        void fetchTabPage(
+          'consumables',
+          paginationByTabRef.current.consumables.page || 1,
+        );
       } catch (error) {
         pushToast({
           message:
@@ -581,7 +591,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         setPendingId(null);
       }
     },
-    [cultivator, mutate, pushToast],
+    [cultivator, fetchTabPage, mutate, pushToast],
   );
 
   // 鉴定神秘材料
@@ -632,6 +642,10 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
               rank: revealed.rank,
             });
           }
+          void fetchTabPage(
+            'materials',
+            paginationByTabRef.current.materials.page || 1,
+          );
         } catch (error) {
           pushToast({
             message:
@@ -663,7 +677,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         onConfirm: executeIdentify,
       });
     },
-    [cultivator, mutate, pushToast],
+    [cultivator, fetchTabPage, mutate, pushToast],
   );
 
   const pagination = paginationByTab[activeTab];

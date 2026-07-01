@@ -1,11 +1,6 @@
 import { GameSceneSection } from '@app/components/game-shell/GameSceneSection';
-import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkDialog, type InkDialogState } from '@app/components/ui';
-import { consumePlayerStateMutation } from '@app/lib/player-state/store';
-import {
-  usePlayerStateDomainVersion,
-  usePlayerStateView,
-} from '@app/lib/player-state/selectors';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { cn } from '@shared/lib/cn';
 import {
   getBreakthroughPenaltyPercent,
@@ -20,16 +15,11 @@ import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
 import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
 import { getBodyCultivationSummary } from '@shared/lib/bodyCultivation/summary';
 import { getAllTrackConfigs } from '@shared/lib/trackConfigRegistry';
-import type { ApiFailure } from '@shared/contracts/http';
-import type {
-  BodyCultivationBreakthroughReadinessData,
-  BodyCultivationBreakthroughReadinessResponse,
-} from '@shared/contracts/bodyCultivation';
 import type {
   ConditionStatusInstance,
   ConditionTrackPath,
 } from '@shared/types/condition';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   getPillToxicityEffectDetails,
   getStatusEffectDetails,
@@ -438,136 +428,13 @@ export function CultivatorCurrentStatusSection() {
 
 export function CultivatorTrackSection() {
   const state = usePersistentStatusState();
-  const { pushToast } = useInkUI();
-  const conditionVersion = usePlayerStateDomainVersion('condition');
-  const inventoryVersion = usePlayerStateDomainVersion('inventory');
-  const [breakthroughPending, setBreakthroughPending] = useState(false);
-  const [readinessError, setReadinessError] = useState<{
-    realmKey: string;
-    message: string;
-  } | null>(null);
-  const [breakthroughReadiness, setBreakthroughReadiness] =
-    useState<BodyCultivationBreakthroughReadinessData | null>(null);
-
   const nextRealm = state?.bodySummary.nextRealm ?? null;
-  const nextRealmKey = nextRealm?.key ?? null;
-
-  useEffect(() => {
-    if (!nextRealmKey) {
-      return;
-    }
-
-    const abortController = new AbortController();
-
-    void fetch('/api/cultivator/body-cultivation/breakthrough', {
-      signal: abortController.signal,
-    })
-      .then(async (response) => {
-        const payload = (await response.json()) as
-          | BodyCultivationBreakthroughReadinessResponse
-          | ApiFailure;
-        if (!response.ok || !payload.success) {
-          throw new Error(
-            'error' in payload ? payload.error : '肉身进阶条件读取失败',
-          );
-        }
-        setBreakthroughReadiness(payload.data);
-        setReadinessError(null);
-      })
-      .catch((error) => {
-        if (abortController.signal.aborted) return;
-        setBreakthroughReadiness(null);
-        setReadinessError({
-          realmKey: nextRealmKey,
-          message:
-            error instanceof Error ? error.message : '肉身进阶条件读取失败',
-        });
-      });
-
-    return () => abortController.abort();
-  }, [conditionVersion, inventoryVersion, nextRealmKey]);
 
   if (!state || state.trackEntries.length === 0) {
     return null;
   }
 
-  const matchingReadiness =
-    breakthroughReadiness && breakthroughReadiness.nextRealm === nextRealm?.key
-      ? breakthroughReadiness
-      : null;
-  const matchingReadinessError =
-    readinessError && readinessError.realmKey === nextRealm?.key
-      ? readinessError.message
-      : null;
-  const inventoryRequirements = matchingReadiness?.inventoryRequirements ?? [];
-  const readinessPending =
-    Boolean(nextRealm) && !matchingReadiness && !matchingReadinessError;
-  const inventoryReady =
-    inventoryRequirements.length > 0 &&
-    inventoryRequirements.every((requirement) => requirement.met);
-  const canAttemptBreakthrough =
-    Boolean(nextRealm?.canAttempt) &&
-    Boolean(matchingReadiness?.canAttempt);
-  const breakthroughStatus = readinessPending
-    ? '读取中'
-    : canAttemptBreakthrough
-      ? '可进阶'
-      : matchingReadinessError
-        ? '读取失败'
-        : nextRealm?.canAttempt
-          ? inventoryReady
-            ? '待确认'
-            : '缺材料'
-          : '未满足';
-  const costText =
-    inventoryRequirements.length > 0
-      ? inventoryRequirements
-          .map(
-            (requirement) =>
-              `${requirement.met ? '✓' : '·'} ${requirement.label ?? requirement.name} ${requirement.ownedQuantity}/${requirement.quantity}`,
-          )
-          .join(' / ')
-      : readinessPending
-        ? '正在读取所需材料和丹药'
-        : matchingReadinessError
-          ? matchingReadinessError
-          : undefined;
-  const handleBodyBreakthrough = async () => {
-    if (!canAttemptBreakthrough || breakthroughPending) return;
-    const targetRealmLabel = nextRealm?.label ?? '下一阶';
-
-    setBreakthroughPending(true);
-    try {
-      const response = await fetch('/api/cultivator/body-cultivation/breakthrough', {
-        method: 'POST',
-      });
-      const payload = await response.json();
-
-      if (!response.ok || !payload.success) {
-        throw new Error(payload.error || '肉身进阶失败');
-      }
-
-      await consumePlayerStateMutation(payload);
-      const result = payload.data as {
-        success?: boolean;
-        guaranteeProgress?: number;
-      };
-      pushToast({
-        message:
-          result.success === false
-            ? `肉身进阶失败，保底进度 ${Math.floor(result.guaranteeProgress ?? 0)}%`
-            : `肉身已提升到${targetRealmLabel}`,
-        tone: result.success === false ? 'warning' : 'success',
-      });
-    } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '肉身进阶失败',
-        tone: 'danger',
-      });
-    } finally {
-      setBreakthroughPending(false);
-    }
-  };
+  const breakthroughStatus = nextRealm?.canAttempt ? '可破限' : '未满足';
 
   return (
     <GameSceneSection title="肉身炼体">
@@ -592,9 +459,7 @@ export function CultivatorTrackSection() {
                       下阶·{nextRealm.label}
                     </div>
                     <div className="text-ink-secondary text-xs leading-5">
-                      {nextRealm.unlockText} · 成功率{' '}
-                      {Math.round((matchingReadiness?.successChance ?? 0) * 100)}
-                      % · 保底进度 {matchingReadiness?.guaranteeProgress ?? 0}%
+                      {nextRealm.unlockText}
                     </div>
                   </div>
                 </div>
@@ -613,9 +478,6 @@ export function CultivatorTrackSection() {
                     </span>
                   ))}
                 </div>
-                {costText ? (
-                  <div className="break-words">材料：{costText}</div>
-                ) : null}
               </div>
             </div>
           ) : null}
@@ -623,17 +485,11 @@ export function CultivatorTrackSection() {
         {nextRealm?.canAttempt ? (
           <div className="flex justify-end">
             <InkButton
-              type="button"
+              href="/game/body-cultivation/breakthrough"
               variant="primary"
               className="text-sm"
-              disabled={breakthroughPending || !canAttemptBreakthrough}
-              onClick={handleBodyBreakthrough}
             >
-              {breakthroughPending
-                ? '进阶中'
-                : readinessPending
-                  ? '读取中'
-                  : `提升到${nextRealm.label}`}
+              前往破限
             </InkButton>
           </div>
         ) : null}

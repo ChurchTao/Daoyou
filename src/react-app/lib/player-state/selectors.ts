@@ -48,14 +48,14 @@ export function selectActiveCultivatorProfile(
     return null;
   }
 
-  const products = storeState.snapshot.products;
-  const inventory: Inventory = storeState.snapshot.inventory ?? {
-    artifacts: products?.artifacts ?? cultivator.inventory?.artifacts ?? [],
-    consumables: cultivator.inventory?.consumables ?? [],
-    materials: cultivator.inventory?.materials ?? [],
+  const loadout = storeState.snapshot.loadout;
+  const inventory: Inventory = {
+    artifacts: loadout?.artifacts ?? [],
+    consumables: [],
+    materials: [],
   };
-  const equipped = products?.equipped ?? cultivator.equipped ?? defaultEquipped;
-  const skills = products?.skills ?? cultivator.skills ?? [];
+  const equipped = loadout?.equipped ?? defaultEquipped;
+  const skills = loadout?.skills ?? [];
   const patchedProgress =
     'cultivation_exp' in (storeState.snapshot.progress ?? {})
       ? (storeState.snapshot.progress as CultivationProgress)
@@ -79,7 +79,7 @@ export function selectActiveCultivatorProfile(
     reputation: storeState.snapshot.currency?.reputation ?? cultivator.reputation ?? 0,
     inventory,
     skills,
-    cultivations: products?.cultivations ?? cultivator.cultivations ?? [],
+    cultivations: loadout?.cultivations ?? [],
     equipped,
   };
 }
@@ -101,10 +101,10 @@ export function selectInventorySnapshot(
 
 export function selectProductsSnapshot(
   storeState: PlayerStateStoreData,
-): PlayerStateSnapshot['products'] {
+): PlayerStateSnapshot['loadout'] {
   const cultivator = selectActiveCultivatorProfile(storeState);
 
-  return {
+  return storeState.snapshot.loadout ?? {
     skills: cultivator?.skills ?? [],
     cultivations: cultivator?.cultivations ?? [],
     artifacts: cultivator?.inventory.artifacts ?? [],

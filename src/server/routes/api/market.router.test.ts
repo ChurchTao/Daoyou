@@ -92,6 +92,7 @@ vi.mock('@server/lib/services/MarketService', () => ({
 
 vi.mock('@server/lib/services/cultivatorService', () => ({
   getCultivatorById: getCultivatorByIdMock,
+  getPlayerProfileCultivatorById: getCultivatorByIdMock,
 }));
 
 vi.mock('@server/lib/services/MarketRecycleService', () => ({
@@ -243,11 +244,6 @@ describe('market router', () => {
               eventType: 'currency.changed',
               patch: { currency: { spiritStones: 1688 } },
             }),
-            expect.objectContaining({
-              domain: 'products',
-              eventType: 'products.changed',
-              invalidates: ['products'],
-            }),
           ]),
         }),
       }),
@@ -280,11 +276,6 @@ describe('market router', () => {
               domain: 'currency',
               eventType: 'currency.changed',
               invalidates: ['currency'],
-            }),
-            expect.objectContaining({
-              domain: 'inventory',
-              eventType: 'inventory.changed',
-              invalidates: ['inventory'],
             }),
           ]),
         }),

@@ -39,6 +39,7 @@ router.post('/', requireActiveCultivator(), async (c) => {
       userId: user.id,
       cultivatorId: cultivator.id,
       source: 'manual_draw',
+      allowEmpty: true,
       run: async (tx) => {
         const result = await ManualDrawService.draw(
           user.id,
@@ -49,13 +50,7 @@ router.post('/', requireActiveCultivator(), async (c) => {
         );
         return {
           result,
-          changes: [
-            {
-              domain: 'inventory',
-              eventType: 'inventory.changed',
-              invalidates: ['inventory'],
-            },
-          ],
+          changes: [],
         };
       },
     });

@@ -1,18 +1,8 @@
 import {
   GameSceneSection,
 } from '@app/components/game-shell/GameSceneSection';
-import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkBadge, InkButton, InkNotice } from '@app/components/ui';
-import {
-  usePlayerStateDomainVersion,
-  usePlayerStateView,
-} from '@app/lib/player-state/selectors';
-import { consumePlayerStateMutation } from '@app/lib/player-state/store';
-import type { ApiFailure } from '@shared/contracts/http';
-import type {
-  BodyCultivationBreakthroughReadinessData,
-  BodyCultivationBreakthroughReadinessResponse,
-} from '@shared/contracts/bodyCultivation';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { cn } from '@shared/lib/cn';
 import {
   getBodyCultivationSummary,
@@ -20,13 +10,7 @@ import {
   type BodyCultivationTrackSummary,
 } from '@shared/lib/bodyCultivation/summary';
 import type { Cultivator } from '@shared/types/cultivator';
-import { useEffect, useState, type ReactNode } from 'react';
-
-type BreakthroughReadinessState = {
-  readiness: BodyCultivationBreakthroughReadinessData | null;
-  error: { realmKey: string; message: string } | null;
-  pending: boolean;
-};
+import { type ReactNode } from 'react';
 
 function BodyMetric({
   label,
@@ -68,20 +52,6 @@ function RequirementLine({
       {met ? '✓' : '·'} {children}
     </span>
   );
-}
-
-function formatRequirementCost(
-  readiness: BodyCultivationBreakthroughReadinessData | null,
-): string | null {
-  const requirements = readiness?.inventoryRequirements ?? [];
-  if (requirements.length === 0) return null;
-
-  return requirements
-    .map(
-      (requirement) =>
-        `${requirement.met ? '✓' : '·'} ${requirement.label ?? requirement.name} ${requirement.ownedQuantity}/${requirement.quantity}`,
-    )
-    .join(' / ');
 }
 
 function getTrackProgressPercent(track: BodyCultivationTrackSummary): number {
@@ -230,68 +200,6 @@ function BodyCultivationTrackGrid({
   );
 }
 
-function useBodyBreakthroughReadiness(
-  nextRealmKey: string | null,
-): BreakthroughReadinessState {
-  const conditionVersion = usePlayerStateDomainVersion('condition');
-  const inventoryVersion = usePlayerStateDomainVersion('inventory');
-  const [readiness, setReadiness] =
-    useState<BodyCultivationBreakthroughReadinessData | null>(null);
-  const [error, setError] = useState<{
-    realmKey: string;
-    message: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!nextRealmKey) {
-      return;
-    }
-
-    const abortController = new AbortController();
-
-    void fetch('/api/cultivator/body-cultivation/breakthrough', {
-      signal: abortController.signal,
-    })
-      .then(async (response) => {
-        const payload = (await response.json()) as
-          | BodyCultivationBreakthroughReadinessResponse
-          | ApiFailure;
-        if (!response.ok || !payload.success) {
-          throw new Error(
-            'error' in payload ? payload.error : '进阶材料读取失败',
-          );
-        }
-        setReadiness(payload.data);
-        setError(null);
-      })
-      .catch((caught) => {
-        if (abortController.signal.aborted) return;
-        setReadiness(null);
-        setError({
-          realmKey: nextRealmKey,
-          message:
-            caught instanceof Error ? caught.message : '进阶材料读取失败',
-        });
-      });
-
-    return () => abortController.abort();
-  }, [conditionVersion, inventoryVersion, nextRealmKey]);
-
-  if (!nextRealmKey) {
-    return {
-      readiness: null,
-      error: null,
-      pending: false,
-    };
-  }
-
-  return {
-    readiness,
-    error,
-    pending: Boolean(nextRealmKey) && !readiness && !error,
-  };
-}
-
 export function BodyCultivationSummaryContent({
   summary,
   dense = false,
@@ -362,86 +270,19 @@ export function BodyCultivationEntrySection() {
 
 export function BodyCultivationDetailPanel() {
   const { cultivator } = usePlayerStateView();
-  const { pushToast } = useInkUI();
-  const [breakthroughPending, setBreakthroughPending] = useState(false);
   const summary = cultivator
     ? getBodyCultivationSummary(cultivator.condition, {
         cultivatorRealm: cultivator.realm,
       })
     : null;
   const nextRealm = summary?.nextRealm ?? null;
-  const readinessState = useBodyBreakthroughReadiness(nextRealm?.key ?? null);
 
   if (!cultivator || !summary) return <InkNotice>尚无角色资料。</InkNotice>;
-  const matchingReadiness =
-    readinessState.readiness &&
-    readinessState.readiness.nextRealm === nextRealm?.key
-      ? readinessState.readiness
-      : null;
-  const matchingError =
-    readinessState.error && readinessState.error.realmKey === nextRealm?.key
-      ? readinessState.error.message
-      : null;
-  const inventoryReady =
-    (matchingReadiness?.inventoryRequirements ?? []).length > 0 &&
-    (matchingReadiness?.inventoryRequirements ?? []).every(
-      (requirement) => requirement.met,
-    );
-  const canAttemptBreakthrough =
-    Boolean(nextRealm?.canAttempt) && Boolean(matchingReadiness?.canAttempt);
-  const breakthroughStatus = readinessState.pending
-    ? '读取中'
-    : canAttemptBreakthrough
-      ? '可进阶'
-      : matchingError
-        ? '读取失败'
-        : nextRealm?.canAttempt
-          ? inventoryReady
-            ? '材料已齐'
-            : '材料不足'
-          : '条件未齐';
-  const costText = matchingError
-    ? matchingError
-    : readinessState.pending
-      ? '正在读取所需材料和丹药'
-      : formatRequirementCost(matchingReadiness);
-
-  const handleBodyBreakthrough = async () => {
-    if (!canAttemptBreakthrough || breakthroughPending) return;
-    const targetRealmLabel = nextRealm?.label ?? '下一阶';
-
-    setBreakthroughPending(true);
-    try {
-      const response = await fetch('/api/cultivator/body-cultivation/breakthrough', {
-        method: 'POST',
-      });
-      const payload = await response.json();
-
-      if (!response.ok || !payload.success) {
-        throw new Error(payload.error || '肉身进阶失败');
-      }
-
-      await consumePlayerStateMutation(payload);
-      const result = payload.data as {
-        success?: boolean;
-        guaranteeProgress?: number;
-      };
-      pushToast({
-        message:
-          result.success === false
-            ? `肉身进阶失败，保底进度 ${Math.floor(result.guaranteeProgress ?? 0)}%`
-            : `肉身已提升到${targetRealmLabel}`,
-        tone: result.success === false ? 'warning' : 'success',
-      });
-    } catch (caught) {
-      pushToast({
-        message: caught instanceof Error ? caught.message : '肉身进阶失败',
-        tone: 'danger',
-      });
-    } finally {
-      setBreakthroughPending(false);
-    }
-  };
+  const breakthroughStatus = nextRealm
+    ? nextRealm.canAttempt
+      ? '可破限'
+      : '条件未齐'
+    : '已圆满';
 
   return (
     <div className="space-y-5">
@@ -450,21 +291,15 @@ export function BodyCultivationDetailPanel() {
           summary={summary}
           nextRealm={nextRealm}
           status={breakthroughStatus}
-          statusTone={canAttemptBreakthrough ? 'success' : 'default'}
+          statusTone={nextRealm?.canAttempt ? 'success' : 'default'}
           action={
             nextRealm?.canAttempt ? (
               <InkButton
-                type="button"
+                href="/game/body-cultivation/breakthrough"
                 variant="primary"
                 className="text-sm"
-                disabled={breakthroughPending || !canAttemptBreakthrough}
-                onClick={handleBodyBreakthrough}
               >
-                {breakthroughPending
-                  ? '进阶中'
-                  : readinessState.pending
-                    ? '读取中'
-                    : `提升到${nextRealm.label}`}
+                突破
               </InkButton>
             ) : null
           }
@@ -474,13 +309,8 @@ export function BodyCultivationDetailPanel() {
               <div className="grid gap-2 text-xs leading-5 md:grid-cols-2">
                 <BodyMetric label="下阶开启" value={nextRealm.unlockText} />
                 <BodyMetric
-                  label="进阶成功率"
-                  value={
-                    <>
-                      {Math.round((matchingReadiness?.successChance ?? 0) * 100)}
-                      % · 保底进度 {matchingReadiness?.guaranteeProgress ?? 0}%
-                    </>
-                  }
+                  label="破限入口"
+                  value={nextRealm.canAttempt ? '可进入准备' : '继续炼体'}
                 />
               </div>
               <div className="text-ink-secondary flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5">
@@ -490,11 +320,6 @@ export function BodyCultivationDetailPanel() {
                   </RequirementLine>
                 ))}
               </div>
-              {costText ? (
-                <p className="text-ink-secondary break-words text-xs leading-5">
-                  所需材料和丹药：{costText}
-                </p>
-              ) : null}
             </div>
           ) : (
             <p className="text-ink-secondary text-xs leading-5">

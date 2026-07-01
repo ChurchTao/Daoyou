@@ -37,7 +37,7 @@ export interface UseSkillsViewModelReturn {
 
 export function useSkillsViewModel(): UseSkillsViewModelReturn {
   const { cultivator, isLoading, note } = usePlayerStateView();
-  const productsVersion = usePlayerStateDomainVersion('products');
+  const loadoutVersion = usePlayerStateDomainVersion('loadout');
   const { mutate } = usePlayerStateActions();
   const { pushToast, openDialog } = useInkUI();
 
@@ -62,12 +62,12 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
     const loadSkills = async () => {
       setSkillsLoading(true);
       try {
-        const res = await fetch('/api/v2/products?type=skill');
+        const res = await fetch('/api/v2/products?type=skill&page=1&pageSize=100');
         const data = await res.json();
         if (cancelled) return;
 
         if (data.success) {
-          const parsed: V2Skill[] = (data.data ?? []).map(
+          const parsed: V2Skill[] = (data.data?.items ?? []).map(
             (r: Record<string, unknown>) => ({
               id: r.id as string,
               ...toProductDisplayModel(r),
@@ -91,7 +91,7 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
     return () => {
       cancelled = true;
     };
-  }, [cultivator?.id, productsVersion]);
+  }, [cultivator?.id, loadoutVersion]);
 
   const closeDialog = useCallback(() => setDialog(null), []);
 

@@ -28,6 +28,10 @@ import {
   ensureStarterTechnique,
 } from '@shared/engine/cultivator/creation/starterProducts';
 import type { CultivatorCondition } from '@shared/types/condition';
+import type {
+  PlayerLoadout,
+  PlayerProfileCultivator,
+} from '@shared/contracts/player';
 import {
   ElementType,
   EquipmentSlot,
@@ -71,6 +75,245 @@ import { toArtifactFromProduct } from './creationProductArtifactSupport';
 import { FateEngine } from './FateEngine';
 import { addMaterialStackToInventory } from './materialInventory';
 import { sanitizeMaterialDetails } from './materialDetailsPrivacy';
+
+const emptyEquipped: EquippedItems = {
+  weapon: null,
+  armor: null,
+  accessory: null,
+};
+
+function mapSpiritualRoots(
+  roots: CultivatorRelations['spiritualRoots'],
+): Cultivator['spiritual_roots'] {
+  const spiritualRootCount = roots.length;
+  return roots.map((r) => {
+    const element = r.element as ElementType;
+    return {
+      element,
+      strength: r.strength,
+      grade:
+        (r.grade as SpiritualRootGrade) ??
+        resolveSpiritualRootGrade(spiritualRootCount, element),
+    };
+  });
+}
+
+function mapPreHeavenFates(
+  fates: CultivatorRelations['preHeavenFates'],
+): Cultivator['pre_heaven_fates'] {
+  return FateEngine.normalizeFates(
+    fates.map(
+      (f): PreHeavenFate => ({
+        name: f.name,
+        quality: f.quality as Quality,
+        description: f.description || undefined,
+        effects:
+          ((f.details as Record<string, unknown> | null)?.effects as
+            | PreHeavenFate['effects']
+            | undefined) || undefined,
+        generationModel:
+          ((f.details as Record<string, unknown> | null)?.generationModel as
+            | PreHeavenFate['generationModel']
+            | undefined) || undefined,
+        namingMetadata:
+          ((f.details as Record<string, unknown> | null)?.namingMetadata as
+            | PreHeavenFate['namingMetadata']
+            | undefined) || undefined,
+      }),
+    ),
+  );
+}
+
+function productModelToAbilityConfig(
+  productModel: Record<string, unknown> | null | undefined,
+  element: string | null | undefined,
+  id: string,
+): AbilityConfig {
+  const rehydrated = rehydrateStoredProductModel(
+    productModel as Record<string, unknown>,
+    (element as ElementType) || undefined,
+  );
+  if (!rehydrated) {
+    return { slug: id } as AbilityConfig;
+  }
+  const config = projectAbilityConfig(rehydrated);
+  return { ...config, slug: id };
+}
+
+function productModelToRuntimeModel(
+  productModel: Record<string, unknown> | null | undefined,
+  element: string | null | undefined,
+) {
+  return rehydrateStoredProductModel(
+    productModel as Record<string, unknown>,
+    (element as ElementType) || undefined,
+  );
+}
+
+function mapLoadoutFromProducts(
+  products: Awaited<ReturnType<typeof creationProductRepository.findEquippedByType>>[],
+): PlayerLoadout {
+  const flatProducts = products.flat();
+  const skillProducts = flatProducts.filter(
+    (product) => product.productType === 'skill' && product.isEquipped,
+  );
+  const gongfaProducts = flatProducts.filter(
+    (product) => product.productType === 'gongfa' && product.isEquipped,
+  );
+  const artifactProducts = flatProducts.filter(
+    (product) => product.productType === 'artifact' && product.isEquipped,
+  );
+
+  const cultivations: Cultivator['cultivations'] = gongfaProducts.map((product) => {
+    const rehydratedModel = productModelToRuntimeModel(
+      product.productModel as Record<string, unknown>,
+      product.element,
+    );
+    const abilityConfig = productModelToAbilityConfig(
+      product.productModel as Record<string, unknown>,
+      product.element,
+      product.id,
+    );
+
+    return {
+      id: product.id,
+      name: product.name,
+      element: (product.element as ElementType) || undefined,
+      quality: product.quality as Quality | undefined,
+      score: product.score || 0,
+      description: product.description || undefined,
+      attributeModifiers: abilityConfig.modifiers ?? [],
+      abilityConfig,
+      productModel: rehydratedModel ?? product.productModel ?? undefined,
+    };
+  });
+
+  const skills: Cultivator['skills'] = skillProducts.map((product) => {
+    const rehydratedModel = productModelToRuntimeModel(
+      product.productModel as Record<string, unknown>,
+      product.element,
+    );
+    const abilityConfig = productModelToAbilityConfig(
+      product.productModel as Record<string, unknown>,
+      product.element,
+      product.id,
+    );
+
+    return {
+      id: product.id,
+      name: product.name,
+      element: (product.element as ElementType) || '金',
+      quality: product.quality as Quality | undefined,
+      cost: abilityConfig.mpCost || undefined,
+      cooldown: abilityConfig.cooldown ?? 0,
+      target_self:
+        abilityConfig.targetPolicy?.team === 'self' ? true : undefined,
+      description: product.description || undefined,
+      abilityConfig,
+      productModel: rehydratedModel ?? product.productModel ?? undefined,
+    };
+  });
+
+  const artifacts = artifactProducts.map((artifact) =>
+    mapArtifactRow(toArtifactFromProduct(artifact)),
+  );
+
+  const equipped: EquippedItems = {
+    weapon:
+      artifactProducts.find((product) => product.slot === 'weapon')?.id ?? null,
+    armor:
+      artifactProducts.find((product) => product.slot === 'armor')?.id ?? null,
+    accessory:
+      artifactProducts.find((product) => product.slot === 'accessory')?.id ?? null,
+  };
+
+  return {
+    skills,
+    cultivations,
+    artifacts,
+    equipped,
+  };
+}
+
+function buildProfileCultivator(
+  cultivatorRecord: CultivatorRecord,
+  relations: Pick<CultivatorRelations, 'spiritualRoots' | 'preHeavenFates'>,
+): PlayerProfileCultivator {
+  const spiritual_roots = mapSpiritualRoots(relations.spiritualRoots);
+  const pre_heaven_fates = mapPreHeavenFates(relations.preHeavenFates);
+  const profileWithoutCondition: PlayerProfileCultivator = {
+    id: cultivatorRecord.id,
+    createdAt: cultivatorRecord.createdAt?.toISOString(),
+    name: cultivatorRecord.name,
+    title: cultivatorRecord.title || undefined,
+    gender: (cultivatorRecord.gender as GenderType) || undefined,
+    origin: cultivatorRecord.origin || undefined,
+    personality: cultivatorRecord.personality || undefined,
+    background: cultivatorRecord.background || undefined,
+    prompt: cultivatorRecord.prompt,
+    realm: cultivatorRecord.realm as RealmType,
+    realm_stage: cultivatorRecord.realm_stage as RealmStage,
+    age: cultivatorRecord.age,
+    lifespan: cultivatorRecord.lifespan,
+    status: (cultivatorRecord.status as Cultivator['status']) ?? 'active',
+    closed_door_years_total: cultivatorRecord.closedDoorYearsTotal ?? undefined,
+    retreat_records: [],
+    breakthrough_history: [],
+    attributes: {
+      vitality: cultivatorRecord.vitality,
+      spirit: cultivatorRecord.spirit,
+      wisdom: cultivatorRecord.wisdom,
+      speed: cultivatorRecord.speed,
+      willpower: cultivatorRecord.willpower,
+    },
+    unallocated_attribute_points:
+      cultivatorRecord.unallocatedAttributePoints ?? 0,
+    spiritual_roots,
+    pre_heaven_fates,
+    spirit_stones: cultivatorRecord.spirit_stones,
+    reputation: cultivatorRecord.reputation,
+    last_yield_at: cultivatorRecord.last_yield_at || new Date(),
+    balance_notes: cultivatorRecord.balance_notes || undefined,
+    gameSettings: normalizeCultivatorGameSettings(
+      cultivatorRecord.gameSettings,
+    ),
+    cultivation_progress: getOrInitCultivationProgress(
+      cultivatorRecord.cultivation_progress as CultivationProgress,
+      cultivatorRecord.realm as Cultivator['realm'],
+      cultivatorRecord.realm_stage as Cultivator['realm_stage'],
+    ),
+  };
+
+  return {
+    ...profileWithoutCondition,
+    condition: ConditionService.tickNaturalRecovery(
+      buildCultivatorRuntime(profileWithoutCondition, {
+        skills: [],
+        cultivations: [],
+        artifacts: [],
+        equipped: emptyEquipped,
+      }),
+      (cultivatorRecord.condition as CultivatorCondition | null) ?? undefined,
+    ),
+  };
+}
+
+export function buildCultivatorRuntime(
+  profile: PlayerProfileCultivator,
+  loadout: PlayerLoadout,
+): Cultivator {
+  return {
+    ...profile,
+    skills: loadout.skills,
+    cultivations: loadout.cultivations,
+    inventory: {
+      artifacts: loadout.artifacts,
+      consumables: [],
+      materials: [],
+    },
+    equipped: loadout.equipped,
+  };
+}
 
 async function assembleCultivatorFromRelations(
   cultivatorRecord: CultivatorRecord,
@@ -688,6 +931,80 @@ export async function getCultivatorById(
   return assembleCultivator(cultivatorRecord, userId, q);
 }
 
+export async function getPlayerRuntimeCultivatorById(
+  userId: string,
+  cultivatorId: string,
+  executor?: DbExecutor | DbTransaction,
+): Promise<Cultivator | null> {
+  const q = executor ?? getExecutor();
+  const profile = await getPlayerProfileCultivatorById(userId, cultivatorId, q);
+  if (!profile) {
+    return null;
+  }
+
+  const loadout = await getPlayerLoadoutByCultivatorId(cultivatorId, q);
+  return buildCultivatorRuntime(profile, loadout);
+}
+
+export async function getPlayerProfileCultivatorById(
+  userId: string,
+  cultivatorId: string,
+  executor?: DbExecutor | DbTransaction,
+): Promise<PlayerProfileCultivator | null> {
+  const q = executor ?? getExecutor();
+  const cultivatorRecord = await findActiveCultivatorRecordByIdAndUser(
+    userId,
+    cultivatorId,
+    q,
+  );
+  if (!cultivatorRecord) {
+    return null;
+  }
+
+  const [spiritualRoots, preHeavenFates] = await Promise.all([
+    q
+      .select()
+      .from(schema.spiritualRoots)
+      .where(eq(schema.spiritualRoots.cultivatorId, cultivatorId)),
+    q
+      .select()
+      .from(schema.preHeavenFates)
+      .where(eq(schema.preHeavenFates.cultivatorId, cultivatorId)),
+  ]);
+
+  return buildProfileCultivator(cultivatorRecord, {
+    spiritualRoots,
+    preHeavenFates,
+  });
+}
+
+export async function getPlayerLoadoutByCultivatorId(
+  cultivatorId: string,
+  executor?: DbExecutor | DbTransaction,
+): Promise<PlayerLoadout> {
+  const q = executor ?? getExecutor();
+  const [skills, cultivations, artifacts] = await Promise.all([
+    creationProductRepository.findEquippedByType(cultivatorId, 'skill', q),
+    creationProductRepository.findEquippedByType(cultivatorId, 'gongfa', q),
+    creationProductRepository.findEquippedByType(cultivatorId, 'artifact', q),
+  ]);
+
+  return mapLoadoutFromProducts([skills, cultivations, artifacts]);
+}
+
+export async function getPlayerProfileCultivatorsByUserId(
+  userId: string,
+): Promise<PlayerProfileCultivator[]> {
+  const q = getExecutor();
+  const record = await findActiveCultivatorRecordByUserId(userId, q);
+  if (!record) {
+    return [];
+  }
+
+  const profile = await getPlayerProfileCultivatorById(userId, record.id, q);
+  return profile ? [profile] : [];
+}
+
 /**
  * 获取用户的所有角色
  */
@@ -770,6 +1087,31 @@ export async function getCultivatorByIdUnsafe(
     cultivator: full,
     userId: record.userId,
     updatedAt: record.updatedAt,
+  };
+}
+
+export async function getPlayerRuntimeCultivatorByIdUnsafe(
+  cultivatorId: string,
+  executor?: DbExecutor | DbTransaction,
+): Promise<CultivatorWithOwner | null> {
+  const q = executor ?? getExecutor();
+  const owner = await findCultivatorOwnerStatusById(cultivatorId, q);
+  if (!owner || owner.status !== 'active') {
+    return null;
+  }
+
+  const [profile, loadout] = await Promise.all([
+    getPlayerProfileCultivatorById(owner.userId, cultivatorId, q),
+    getPlayerLoadoutByCultivatorId(cultivatorId, q),
+  ]);
+
+  if (!profile) {
+    return null;
+  }
+
+  return {
+    cultivator: buildCultivatorRuntime(profile, loadout),
+    userId: owner.userId,
   };
 }
 
@@ -973,7 +1315,7 @@ export async function updateCultivator(
     .update(schema.cultivators)
     .set(updateData)
     .where(eq(schema.cultivators.id, cultivatorId));
-  const res = await getCultivatorByIdUnsafe(cultivatorId, q);
+  const res = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId, q);
   return res?.cultivator || null;
 }
 

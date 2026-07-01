@@ -18,7 +18,7 @@ export type V2Technique = ProductDisplayModel & { id: string };
 
 export function useTechniquesViewModel() {
   const { cultivator, isLoading, note } = usePlayerStateView();
-  const productsVersion = usePlayerStateDomainVersion('products');
+  const loadoutVersion = usePlayerStateDomainVersion('loadout');
   const { mutate } = usePlayerStateActions();
   const { pushToast, openDialog } = useInkUI();
 
@@ -43,12 +43,12 @@ export function useTechniquesViewModel() {
     const loadTechniques = async () => {
       setTechniquesLoading(true);
       try {
-        const res = await fetch('/api/v2/products?type=gongfa');
+        const res = await fetch('/api/v2/products?type=gongfa&page=1&pageSize=100');
         const data = await res.json();
         if (cancelled) return;
 
         if (data.success) {
-          const parsed: V2Technique[] = (data.data ?? []).map(
+          const parsed: V2Technique[] = (data.data?.items ?? []).map(
             (r: Record<string, unknown>) => ({
               id: r.id as string,
               ...toProductDisplayModel(r),
@@ -72,7 +72,7 @@ export function useTechniquesViewModel() {
     return () => {
       cancelled = true;
     };
-  }, [cultivator?.id, productsVersion]);
+  }, [cultivator?.id, loadoutVersion]);
 
   const openTechniqueDetail = useCallback((technique: V2Technique) => {
     setSelectedTechnique(technique);

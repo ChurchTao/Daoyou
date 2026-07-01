@@ -93,7 +93,7 @@ import {
 } from './consumablePersistence';
 import {
   addConsumableToInventory,
-  getCultivatorByIdUnsafe,
+  getPlayerRuntimeCultivatorByIdUnsafe,
 } from './cultivatorService';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
 
@@ -1363,7 +1363,7 @@ export async function craftFromFormula(
           .where(eq(cultivators.id, cultivatorId))
           .limit(1)
           .then((rows) => rows[0]),
-        getCultivatorByIdUnsafe(cultivatorId, options.tx),
+        getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId, options.tx),
         analysisId
           ? redis.get(getFormulaAnalysisKey(cultivatorId, analysisId))
           : Promise.resolve(null),

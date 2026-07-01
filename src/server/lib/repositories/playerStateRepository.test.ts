@@ -34,10 +34,10 @@ describe('playerStateRepository', () => {
           userId: 'user-1',
           globalVersion: 8,
           domainVersion: 5,
-          domain: 'inventory',
-          eventType: 'inventory.changed',
+          domain: 'loadout',
+          eventType: 'loadout.changed',
           patch: {},
-          invalidates: ['inventory'],
+          invalidates: ['loadout'],
           source: 'test',
           requestId: null,
           createdAt: new Date('2026-06-10T00:00:01.000Z'),
@@ -54,7 +54,7 @@ describe('playerStateRepository', () => {
       globalVersion: 8,
       domainVersions: {
         currency: 3,
-        inventory: 5,
+        loadout: 5,
       },
       events: [
         {
@@ -64,9 +64,9 @@ describe('playerStateRepository', () => {
           source: 'test',
         },
         {
-          domain: 'inventory',
-          eventType: 'inventory.changed',
-          invalidates: ['inventory'],
+          domain: 'loadout',
+          eventType: 'loadout.changed',
+          invalidates: ['loadout'],
           source: 'test',
         },
       ],
@@ -80,7 +80,7 @@ describe('playerStateRepository', () => {
       }),
       expect.objectContaining({
         globalVersion: 8,
-        domain: 'inventory',
+        domain: 'loadout',
         domainVersion: 5,
       }),
     ]);
