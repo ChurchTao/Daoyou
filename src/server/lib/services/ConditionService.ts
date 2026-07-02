@@ -26,6 +26,7 @@ import {
   getBodyCultivationNaturalRecoveryMultiplier,
 } from '@shared/lib/bodyCultivation/effects';
 import { PILL_TOXICITY_CAP } from '@shared/config/consumableSystem';
+import { normalizeMarrowWashState } from '@shared/lib/marrowWash';
 import type {
   BattleMode,
   BodyCultivationRealm,
@@ -288,7 +289,13 @@ function buildDefaultCondition(
     tracks: {
       bodyCultivation: createDefaultBodyCultivationState(),
       tempering: createBaseTemperingTrack(),
-      marrowWash: { level: 0, progress: 0 },
+          marrowWash: {
+            version: 1,
+            level: 0,
+            progress: 0,
+            realm: 0,
+            breakthroughs: 0,
+          },
     },
     counters: {
       longTermPillUsesByRealm: {},
@@ -420,13 +427,7 @@ export const ConditionService = {
             progress: Math.max(0, Math.floor(rawTempering?.willpower?.progress ?? 0)),
           },
         },
-        marrowWash: {
-          level: Math.max(0, Math.floor(raw?.tracks?.marrowWash?.level ?? 0)),
-          progress: Math.max(
-            0,
-            Math.floor(raw?.tracks?.marrowWash?.progress ?? 0),
-          ),
-        },
+        marrowWash: normalizeMarrowWashState(raw),
       },
       counters: {
         longTermPillUsesByRealm:

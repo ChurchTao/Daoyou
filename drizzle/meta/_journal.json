@@ -43,6 +43,13 @@
       "when": 1782879152610,
       "tag": "0005_short_guardsmen",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782961499515,
+      "tag": "0006_brainy_winter_soldier",
+      "breakpoints": true
     }
   ]
 }

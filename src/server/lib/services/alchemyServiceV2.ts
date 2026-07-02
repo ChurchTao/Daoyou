@@ -53,7 +53,7 @@ import {
 } from './AlchemyRecipePlanner';
 import { AlchemyServiceError } from './AlchemyServiceError';
 import {
-  mapConsumableRow,
+  mapConsumableCraftResult,
   serializeConsumableSpec,
 } from './consumablePersistence';
 import {
@@ -576,7 +576,7 @@ export function createAlchemyService(
         });
 
         const savedConsumable = insertedRow
-          ? mapConsumableRow(insertedRow)
+          ? mapConsumableCraftResult(insertedRow, consumable.quantity)
           : consumable;
         const formulaDiscovery = await buildDiscoveryCandidate(cultivatorId, {
           consumable: savedConsumable as Consumable & { spec: PillSpec },

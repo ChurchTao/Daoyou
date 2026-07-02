@@ -196,6 +196,38 @@ describe('route title helpers', () => {
     });
   });
 
+  it('uses standard dock metadata for the marrow wash route', () => {
+    const matches = [
+      {
+        params: {},
+        handle: {
+          title: '洗髓池',
+          gameScene: {
+            id: 'marrow-wash',
+            label: '洗髓池',
+            group: 'cultivation',
+            chrome: 'standard',
+            dock: 'core',
+            presentation: 'workflow',
+          },
+        },
+      },
+    ] as never;
+
+    expect(
+      resolveRouteTitle(matches, {
+        pathname: '/game/marrow-wash',
+        search: '',
+      }),
+    ).toBe('洗髓池');
+    expect(resolveGameScene(matches)).toMatchObject({
+      id: 'marrow-wash',
+      group: 'cultivation',
+      chrome: 'standard',
+      dock: 'core',
+    });
+  });
+
   it('preserves immersive scene metadata when a special route opts out of the standard shell', () => {
     const scene = resolveGameScene([
       {

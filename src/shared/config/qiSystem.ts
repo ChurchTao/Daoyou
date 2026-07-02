@@ -13,6 +13,7 @@ export const QI_ACTION_COSTS = {
   creation_artifact: 8,
   creation_gongfa: 8,
   creation_skill: 8,
+  marrow_wash_breakthrough: 20,
   market_identify: 1,
 } as const;
 

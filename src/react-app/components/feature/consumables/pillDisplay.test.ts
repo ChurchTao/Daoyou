@@ -478,7 +478,9 @@ describe('toPillDisplayModel', () => {
     );
 
     expect(temperingModel.primaryEffect).toBe('推进炼体·气血 +40');
-    expect(marrowModel.primaryEffect).toBe('推进洗髓 +40');
+    expect(marrowModel.primaryEffect).toBe(
+      '推进洗髓进度 +40，升级可获得自由属性点',
+    );
   });
 
   it('does not show usage-limit text for marrow-wash pills', () => {

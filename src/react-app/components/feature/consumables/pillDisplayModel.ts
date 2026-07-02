@@ -267,6 +267,9 @@ export function describePillOperation(operation: ConditionOperation): string {
           : ''
       }`;
     case 'advance_track':
+      if (operation.track === 'marrow_wash') {
+        return `推进洗髓进度 +${operation.value}，升级可获得自由属性点`;
+      }
       return `推进${getTrackConfig(operation.track).name} +${operation.value}`;
   }
 }

@@ -21,6 +21,7 @@ describe('game navigation dock groups', () => {
     expect(expandedIds).not.toContain('mail');
     expect(expandedIds).not.toContain('cultivator-attributes');
     expect(expandedIds).not.toContain('body-cultivation');
+    expect(expandedIds).not.toContain('marrow-wash');
   });
 
   it('registers body cultivation scene metadata without adding a dock entry', () => {
@@ -36,6 +37,21 @@ describe('game navigation dock groups', () => {
     });
     expect(coreIds).not.toContain('body-cultivation');
     expect(expandedIds).not.toContain('body-cultivation');
+  });
+
+  it('registers marrow wash scene metadata without adding a dock entry', () => {
+    const coreIds = getCoreDockItems().map((item) => item.id);
+    const expandedIds = getExpandedDockGroups().flatMap((group) =>
+      group.actions.map((action) => action.id),
+    );
+
+    expect(getGameSceneMeta('marrow-wash')).toMatchObject({
+      id: 'marrow-wash',
+      label: '洗髓池',
+      group: 'cultivation',
+    });
+    expect(coreIds).not.toContain('marrow-wash');
+    expect(expandedIds).not.toContain('marrow-wash');
   });
 
   it('registers cultivator attributes scene metadata without adding a dock entry', () => {

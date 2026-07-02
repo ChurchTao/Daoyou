@@ -12,6 +12,9 @@ import {
 
 export type TrackReward =
   | {
+      kind: 'none';
+    }
+  | {
       kind: 'body_modifier';
     }
   | {
@@ -72,13 +75,10 @@ const trackConfigs = {
   marrow_wash: {
     key: 'marrow_wash',
     name: '洗髓',
-    shortDesc: '升级后所有灵根各提升 1 点',
+    shortDesc: '升级后获得 1 点自由属性点，破限后强化后天灵根强度',
     thresholdByLevel: (level) => 100 * (level + 1),
     reward: {
-      kind: 'spiritual_root',
-      mode: 'all',
-      amount: 1,
-      cap: 100,
+      kind: 'none',
     },
   },
 } as Record<ConditionTrackPath, TrackConfig>;

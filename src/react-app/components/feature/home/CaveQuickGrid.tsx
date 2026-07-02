@@ -20,6 +20,7 @@ const CAVE_AREA_GROUPS: CaveQuickGroup[] = [
       { label: '📚 悟道室', href: '/game/enlightenment' },
       { label: '👊 练功房', href: '/game/training-room' },
       { label: '💧 灵眼之泉', href: '/game/inn' },
+      { label: '🫧 洗髓池', href: '/game/marrow-wash' },
       { label: '👤 道身概览', href: '/game/cultivator' },
     ],
   },

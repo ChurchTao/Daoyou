@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_spiritual_roots" ADD COLUMN "marrow_wash_bonus" integer DEFAULT 0 NOT NULL;

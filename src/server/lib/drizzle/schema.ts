@@ -214,6 +214,7 @@ export const spiritualRoots = pgTable(
       .notNull(),
     element: varchar('element', { length: 10 }).notNull(), // 金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰 | 无
     strength: integer('strength').notNull(), // 0-100
+    marrowWashBonus: integer('marrow_wash_bonus').notNull().default(0),
     grade: varchar('grade', { length: 20 }), // 天灵根 | 真灵根 | 伪灵根 | 变异灵根
     createdAt: timestamp('created_at').defaultNow(),
   },

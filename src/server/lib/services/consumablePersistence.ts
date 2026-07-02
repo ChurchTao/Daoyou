@@ -19,6 +19,16 @@ export function mapConsumableRow(row: ConsumableRow): Consumable {
   };
 }
 
+export function mapConsumableCraftResult(
+  row: ConsumableRow,
+  craftedQuantity: number,
+): Consumable {
+  return {
+    ...mapConsumableRow(row),
+    quantity: craftedQuantity,
+  };
+}
+
 export function serializeConsumableSpec(spec: Consumable['spec']): string {
   return stableSerializeConsumableSpec(spec);
 }

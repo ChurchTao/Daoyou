@@ -200,6 +200,7 @@ vi.mock('@server/lib/services/cultivatorService', () => {
     getCultivatorMaterials: vi.fn(),
     getLastDeadCultivatorSummary: vi.fn(),
     getPaginatedInventoryByType: vi.fn(),
+    increaseSpiritualRootMarrowWashBonus: vi.fn(),
     updateCultivationExp: vi.fn(),
     updateCultivator: vi.fn(),
     updateLastYieldAt: vi.fn(),
@@ -253,7 +254,11 @@ import {
   AttributeResetServiceError,
 } from '@server/lib/services/AttributeResetService';
 import { PillOperationExecutor } from '@server/lib/services/PillOperationExecutor';
-import { QiService, QiServiceError } from '@server/lib/services/QiService';
+import {
+  QiInsufficientError,
+  QiService,
+  QiServiceError,
+} from '@server/lib/services/QiService';
 import { TaskService } from '@server/lib/services/TaskService';
 import {
   addBreakthroughHistoryEntry,
@@ -261,6 +266,7 @@ import {
   consumeConsumableById,
   consumeMaterialById,
   getCultivatorById,
+  increaseSpiritualRootMarrowWashBonus,
   updateCultivationExp,
   updateCultivator,
   updateSpiritStones,
@@ -307,6 +313,8 @@ const addBreakthroughHistoryEntryMock =
   addBreakthroughHistoryEntry as unknown as Mock;
 const addRetreatRecordMock = addRetreatRecord as unknown as Mock;
 const getCultivatorByIdMock = getCultivatorById as unknown as Mock;
+const increaseSpiritualRootMarrowWashBonusMock =
+  increaseSpiritualRootMarrowWashBonus as unknown as Mock;
 const updateCultivatorMock = updateCultivator as unknown as Mock;
 const updateCultivationExpMock = updateCultivationExp as unknown as Mock;
 const updateSpiritStonesMock = updateSpiritStones as unknown as Mock;
@@ -2577,6 +2585,226 @@ describe('cultivator inn recovery route', () => {
       success: false,
       error: '囊中羞涩，灵石不足（至少需要 3000 灵石）',
     });
+  });
+});
+
+describe('cultivator marrow wash routes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('breaks through marrow wash, spends qi, and emits condition/profile/currency events', async () => {
+    const cultivator = createCultivator();
+    cultivator.realm = '筑基';
+    cultivator.condition = {
+      ...cultivator.condition!,
+      tracks: {
+        ...cultivator.condition!.tracks,
+        marrowWash: {
+          version: 1,
+          level: 10,
+          progress: 0,
+          realm: 0,
+          breakthroughs: 0,
+        },
+      },
+    };
+    cultivator.spiritual_roots = [
+      {
+        element: '木',
+        strength: 119,
+        baseStrength: 95,
+        marrowWashBonus: 24,
+        grade: '真灵根',
+      },
+      {
+        element: '火',
+        strength: 120,
+        baseStrength: 100,
+        marrowWashBonus: 20,
+        grade: '真灵根',
+      },
+    ];
+    getCultivatorByIdMock.mockResolvedValueOnce(cultivator);
+    reserveQiMock.mockResolvedValueOnce({
+      success: true,
+      action: 'marrow_wash_breakthrough',
+      actionInstanceId: 'qi-action-1',
+      qiBefore: 100,
+      qiAfter: 80,
+      consumed: 20,
+    });
+    updateCultivatorMock.mockImplementationOnce(
+      async (_cultivatorId, patch) => ({
+        ...cultivator,
+        ...patch,
+      }),
+    );
+    mockStateOnlyTransaction({
+      versionRow: createStateVersionRow({
+        conditionVersion: 1,
+        profileVersion: 1,
+        currencyVersion: 1,
+      }),
+      eventRows: createStateEventRows([
+        {
+          domain: 'condition',
+          eventType: 'condition.marrow_wash.breakthrough',
+          source: 'marrow_wash_breakthrough',
+        },
+        {
+          domain: 'profile',
+          eventType: 'profile.spiritual_roots.marrow_wash_bonus',
+          source: 'marrow_wash_breakthrough',
+        },
+        {
+          domain: 'currency',
+          eventType: 'currency.qi.spent',
+          source: 'marrow_wash_breakthrough',
+        },
+      ]),
+    });
+
+    const response = await createApp().request(
+      '/api/cultivator/marrow-wash/breakthrough',
+      { method: 'POST' },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        fromRealm: 0,
+        toRealm: 1,
+        breakthroughLevel: 10,
+        qiCost: 20,
+        qiAfter: 80,
+        condition: {
+          tracks: {
+            marrowWash: {
+              realm: 1,
+              breakthroughs: 1,
+            },
+          },
+        },
+        spiritual_roots: [
+          {
+            element: '木',
+            strength: 120,
+            baseStrength: 95,
+            marrowWashBonus: 25,
+          },
+          {
+            element: '火',
+            strength: 120,
+            baseStrength: 100,
+            marrowWashBonus: 20,
+          },
+        ],
+      },
+      state: {
+        cultivatorId: 'cultivator-1',
+        globalVersion: 1,
+      },
+    });
+    expect(updateCultivatorMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      {
+        condition: expect.objectContaining({
+          tracks: expect.objectContaining({
+            marrowWash: expect.objectContaining({
+              realm: 1,
+              breakthroughs: 1,
+            }),
+          }),
+        }),
+      },
+      expect.any(Object),
+    );
+    expect(increaseSpiritualRootMarrowWashBonusMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      1,
+      expect.any(Object),
+    );
+    expect(commitReservationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionInstanceId: expect.any(String),
+      }),
+    );
+  });
+
+  it('rejects marrow wash breakthrough when qi is insufficient', async () => {
+    const cultivator = createCultivator();
+    cultivator.condition = {
+      ...cultivator.condition!,
+      tracks: {
+        ...cultivator.condition!.tracks,
+        marrowWash: {
+          version: 1,
+          level: 10,
+          progress: 0,
+          realm: 0,
+          breakthroughs: 0,
+        },
+      },
+    };
+    getCultivatorByIdMock.mockResolvedValueOnce(cultivator);
+    reserveQiMock.mockRejectedValueOnce(
+      new QiInsufficientError({
+        action: 'marrow_wash_breakthrough',
+        required: 20,
+        current: 5,
+      }),
+    );
+    mockStateOnlyTransaction({
+      eventRows: createStateEventRows([]),
+    });
+
+    const response = await createApp().request(
+      '/api/cultivator/marrow-wash/breakthrough',
+      { method: 'POST' },
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: 'QI_INSUFFICIENT',
+      required: 20,
+      current: 5,
+      action: 'marrow_wash_breakthrough',
+    });
+    expect(updateCultivatorMock).not.toHaveBeenCalled();
+    expect(increaseSpiritualRootMarrowWashBonusMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects marrow wash breakthrough before the level threshold', async () => {
+    const cultivator = createCultivator();
+    cultivator.condition = {
+      ...cultivator.condition!,
+      tracks: {
+        ...cultivator.condition!.tracks,
+        marrowWash: {
+          version: 1,
+          level: 9,
+          progress: 900,
+          realm: 0,
+          breakthroughs: 0,
+        },
+      },
+    };
+    getCultivatorByIdMock.mockResolvedValueOnce(cultivator);
+
+    const response = await createApp().request(
+      '/api/cultivator/marrow-wash/breakthrough',
+      { method: 'POST' },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: '洗髓等级不足，达到 Lv.10 后方可破限。',
+    });
+    expect(reserveQiMock).not.toHaveBeenCalled();
   });
 });
 

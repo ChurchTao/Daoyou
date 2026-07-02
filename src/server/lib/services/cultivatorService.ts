@@ -68,6 +68,10 @@ import {
 import * as schema from '../drizzle/schema';
 import { ConditionService } from './ConditionService';
 import {
+  SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
+  clampSpiritualRootEffectiveStrength,
+} from '@shared/lib/marrowWash';
+import {
   mapConsumableRow,
   serializeConsumableSpec,
 } from './consumablePersistence';
@@ -95,9 +99,13 @@ function mapSpiritualRoots(
   const spiritualRootCount = roots.length;
   return roots.map((r) => {
     const element = r.element as ElementType;
+    const baseStrength = Math.max(0, Math.floor(r.strength));
+    const marrowWashBonus = Math.max(0, Math.floor(r.marrowWashBonus ?? 0));
     return {
       element,
-      strength: r.strength,
+      strength: clampSpiritualRootEffectiveStrength(baseStrength + marrowWashBonus),
+      baseStrength,
+      marrowWashBonus,
       grade:
         (r.grade as SpiritualRootGrade) ??
         resolveSpiritualRootGrade(spiritualRootCount, element),
@@ -343,9 +351,13 @@ async function assembleCultivatorFromRelations(
   const spiritualRootCount = relations.spiritualRoots.length;
   const spiritual_roots = relations.spiritualRoots.map((r) => {
     const element = r.element as ElementType;
+    const baseStrength = Math.max(0, Math.floor(r.strength));
+    const marrowWashBonus = Math.max(0, Math.floor(r.marrowWashBonus ?? 0));
     return {
       element,
-      strength: r.strength,
+      strength: clampSpiritualRootEffectiveStrength(baseStrength + marrowWashBonus),
+      baseStrength,
+      marrowWashBonus,
       grade:
         (r.grade as SpiritualRootGrade) ??
         resolveSpiritualRootGrade(spiritualRootCount, element),
@@ -840,7 +852,8 @@ export async function createCultivator(
         cultivator.spiritual_roots.map((root) => ({
           cultivatorId,
           element: root.element,
-          strength: root.strength,
+          strength: root.baseStrength ?? root.strength,
+          marrowWashBonus: root.marrowWashBonus ?? 0,
           grade:
             root.grade ??
             resolveSpiritualRootGrade(spiritualRootCount, root.element),
@@ -2385,10 +2398,33 @@ export async function replaceSpiritualRoots(
     spiritualRoots.map((root) => ({
       cultivatorId,
       element: root.element,
-      strength: root.strength,
+      strength: root.baseStrength ?? root.strength,
+      marrowWashBonus: root.marrowWashBonus ?? 0,
       grade: root.grade ?? resolveSpiritualRootGrade(rootCount, root.element),
     })),
   );
+}
+
+export async function increaseSpiritualRootMarrowWashBonus(
+  userId: string,
+  cultivatorId: string,
+  amount: number,
+  tx?: DbTransaction,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const delta = Math.max(0, Math.floor(amount));
+  if (delta <= 0) {
+    return;
+  }
+
+  const dbInstance = getExecutor(tx);
+  await dbInstance
+    .update(schema.spiritualRoots)
+    .set({
+      marrowWashBonus: sql`least(${schema.spiritualRoots.marrowWashBonus} + ${delta}, greatest(0, ${SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP} - ${schema.spiritualRoots.strength}))`,
+    })
+    .where(eq(schema.spiritualRoots.cultivatorId, cultivatorId));
 }
 
 export async function replacePreHeavenFates(

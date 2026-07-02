@@ -39,7 +39,9 @@ export interface Attributes {
 // 灵根
 export interface SpiritualRoot {
   element: ElementType;
-  strength: number; // 0-100
+  strength: number; // effective strength, capped by current systems
+  baseStrength?: number; // original persisted strength before acquired bonuses
+  marrowWashBonus?: number; // acquired bonus from marrow-wash breakthroughs
   grade?: SpiritualRootGrade; // 天灵根 | 真灵根 | 伪灵根 | 变异灵根
 }
 

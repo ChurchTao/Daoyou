@@ -101,7 +101,13 @@ export function getNaturalRecoveryStatusMultiplier(
             speed: { level: 0, progress: 0 },
             willpower: { level: 0, progress: 0 },
           },
-          marrowWash: { level: 0, progress: 0 },
+          marrowWash: {
+            version: 1,
+            level: 0,
+            progress: 0,
+            realm: 0,
+            breakthroughs: 0,
+          },
         },
         counters: {
           longTermPillUsesByRealm: {},

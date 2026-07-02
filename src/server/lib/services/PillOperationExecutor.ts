@@ -45,6 +45,10 @@ import {
   createDefaultBodyCultivationState,
   normalizeBodyCultivationState,
 } from '@shared/lib/bodyCultivation/normalize';
+import {
+  getMarrowWashLevelCapByCultivationRealm,
+  normalizeMarrowWashState,
+} from '@shared/lib/marrowWash';
 
 const EXECUTION_ORDER: ConditionOperation['type'][] = [
   'restore_resource',
@@ -198,6 +202,16 @@ function applyTrackReward(
 ): Cultivator {
   const nextCultivator = cultivator;
   const reward = getTrackConfig(track).reward;
+
+  if (track === 'marrow_wash') {
+    nextCultivator.unallocated_attribute_points =
+      Math.max(0, Math.floor(nextCultivator.unallocated_attribute_points ?? 0)) + 1;
+    return nextCultivator;
+  }
+
+  if (reward.kind === 'none') {
+    return nextCultivator;
+  }
 
   if (reward.kind === 'body_modifier') {
     return nextCultivator;
@@ -515,6 +529,62 @@ function assertBodyCultivationPillTrackCaps(
   }
 }
 
+function assertMarrowWashPillTrackCaps(
+  cultivator: Cultivator,
+  condition: CultivatorCondition,
+  spec: PillSpec,
+): void {
+  let projectedState = normalizeMarrowWashState(condition);
+  const cap = getMarrowWashLevelCapByCultivationRealm(cultivator.realm);
+
+  for (const operation of sortOperations(spec.operations)) {
+    if (operation.type !== 'advance_track' || operation.track !== 'marrow_wash') {
+      continue;
+    }
+
+    const value = Math.max(0, Math.floor(operation.value));
+    if (value <= 0) {
+      continue;
+    }
+
+    if (projectedState.level >= cap) {
+      throw new Error(
+        `洗髓已达当前修为境界的等级上限 Lv.${cap}，请先提升修为境界后再服用洗髓丹。`,
+      );
+    }
+
+    let level = projectedState.level;
+    let progress = projectedState.progress;
+    let remaining = value;
+
+    while (remaining > 0) {
+      const threshold = getTrackConfig(operation.track).thresholdByLevel(level);
+      const needed = threshold - progress;
+      if (remaining < needed) {
+        progress += remaining;
+        remaining = 0;
+        break;
+      }
+
+      remaining -= needed;
+      level += 1;
+      progress = 0;
+
+      if (level > cap || (level === cap && remaining > 0)) {
+        throw new Error(
+          `本次药力将超过当前修为境界的洗髓等级上限 Lv.${cap}，请先提升修为境界后再服用洗髓丹。`,
+        );
+      }
+    }
+
+    projectedState = {
+      ...projectedState,
+      level,
+      progress,
+    };
+  }
+}
+
 function getEffectiveQuotaCategory(
   spec: PillSpec,
 ): PillSpec['consumeRules']['quotaCategory'] {
@@ -577,6 +647,7 @@ export const PillOperationExecutor = {
       throw new Error(PILL_TOXICITY_BLOCK_MESSAGE);
     }
     assertBodyCultivationPillTrackCaps(nextCondition, consumable.spec);
+    assertMarrowWashPillTrackCaps(nextCultivator, nextCondition, consumable.spec);
 
     if (quotaCategory === 'long_term') {
       const used =
@@ -669,6 +740,8 @@ export const PillOperationExecutor = {
             operation.value,
           );
           nextCultivator.attributes = result.cultivator.attributes;
+          nextCultivator.unallocated_attribute_points =
+            result.cultivator.unallocated_attribute_points;
           nextCultivator.spiritual_roots = result.cultivator.spiritual_roots;
           nextCondition = result.condition;
           trackLevelUps.push(...result.levelUps);

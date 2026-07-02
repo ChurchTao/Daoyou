@@ -9,6 +9,14 @@ import { getElementInfo } from '@shared/lib/gameConceptDisplay';
 import { ReactNode } from 'react';
 import { useInkUI } from '../providers/InkUIProvider';
 
+function formatRootStrength(root: SpiritualRoot): string {
+  const bonus = root.marrowWashBonus ?? 0;
+  if (bonus <= 0) {
+    return `强度：${root.strength}`;
+  }
+  return `强度：${root.strength}（原始 ${root.baseStrength ?? root.strength}，后天 +${bonus}）`;
+}
+
 interface LingGenProps {
   spiritualRoots: SpiritualRoot[];
   /** 是否显示在 Section 中，默认 true */
@@ -86,7 +94,7 @@ export function LingGen({
               <InkBadge tier={root.grade} />
             </div>
           }
-          meta={`强度：${root.strength}`}
+          meta={formatRootStrength(root)}
         />
       ))}
     </InkList>
@@ -133,7 +141,11 @@ export function LingGenMini({
         {spiritualRoots && spiritualRoots.length > 0 ? (
           spiritualRoots.map((root, idx) => (
             <InkBadge tier={root.grade} key={`${root.element}-${idx}`}>
-              {`${root.element} · ${root.strength}`}
+              {`${root.element} · ${root.strength}${
+                (root.marrowWashBonus ?? 0) > 0
+                  ? `(+${root.marrowWashBonus})`
+                  : ''
+              }`}
             </InkBadge>
           ))
         ) : (

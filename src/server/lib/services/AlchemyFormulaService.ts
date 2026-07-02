@@ -88,7 +88,7 @@ import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { alchemyFormulaAnalyzer } from './AlchemyFormulaAnalyzer';
 import { AlchemyServiceError } from './AlchemyServiceError';
 import {
-  mapConsumableRow,
+  mapConsumableCraftResult,
   serializeConsumableSpec,
 } from './consumablePersistence';
 import {
@@ -1674,7 +1674,9 @@ export async function craftFromFormula(
     });
 
     return {
-      consumable: insertedRow ? mapConsumableRow(insertedRow) : consumable,
+      consumable: insertedRow
+        ? mapConsumableCraftResult(insertedRow, consumable.quantity)
+        : consumable,
       formulaProgress: progress,
       afterCommit: options.deferSideEffects ? afterCommit : undefined,
     };

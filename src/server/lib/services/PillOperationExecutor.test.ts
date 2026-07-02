@@ -103,6 +103,7 @@ function createCultivator(condition: CultivatorCondition): Cultivator {
       accessory: null,
     },
     spirit_stones: 0,
+    unallocated_attribute_points: 0,
     condition,
   };
 }
@@ -286,5 +287,99 @@ describe('PillOperationExecutor toxicity and quota rules', () => {
       level: 15,
       progress: 0,
     });
+  });
+
+  it('marrow-wash pills grant free attribute points on level up without changing roots', () => {
+    const cultivator = createCultivator({
+      ...createCondition(0),
+      tracks: {
+        ...createCondition(0).tracks,
+        marrowWash: { level: 0, progress: 90 },
+      },
+    });
+    cultivator.spiritual_roots = [
+      {
+        element: '木',
+        strength: 88,
+        baseStrength: 88,
+        marrowWashBonus: 0,
+        grade: '真灵根',
+      },
+    ];
+    const pill = createPill('marrow_wash', [
+      { type: 'advance_track', track: 'marrow_wash', value: 10 },
+    ]);
+
+    const result = PillOperationExecutor.execute(cultivator, pill, NOW);
+
+    expect(result.cultivator.condition?.tracks.marrowWash).toMatchObject({
+      level: 1,
+      progress: 0,
+    });
+    expect(result.cultivator.unallocated_attribute_points).toBe(1);
+    expect(result.cultivator.spiritual_roots).toEqual(cultivator.spiritual_roots);
+  });
+
+  it('normalizes legacy marrow-wash state while applying pill progress', () => {
+    const cultivator = createCultivator({
+      ...createCondition(0),
+      tracks: {
+        ...createCondition(0).tracks,
+        marrowWash: { level: 1, progress: 10 },
+      },
+    });
+    const pill = createPill('marrow_wash', [
+      { type: 'advance_track', track: 'marrow_wash', value: 5 },
+    ]);
+
+    const result = PillOperationExecutor.execute(cultivator, pill, NOW);
+
+    expect(result.cultivator.condition?.tracks.marrowWash).toMatchObject({
+      version: 1,
+      level: 1,
+      progress: 15,
+      realm: 0,
+      breakthroughs: 0,
+    });
+  });
+
+  it('rejects marrow-wash pills when their progress would exceed the cultivation realm cap', () => {
+    const cultivator = createCultivator({
+      ...createCondition(0),
+      tracks: {
+        ...createCondition(0).tracks,
+        marrowWash: { level: 9, progress: 990 },
+      },
+    });
+    cultivator.realm = '炼气';
+    const pill = createPill('marrow_wash', [
+      { type: 'advance_track', track: 'marrow_wash', value: 11 },
+    ]);
+
+    expect(() => PillOperationExecutor.execute(cultivator, pill, NOW)).toThrow(
+      '洗髓等级上限 Lv.10',
+    );
+  });
+
+  it('allows marrow-wash pills that land exactly on the cultivation realm cap', () => {
+    const cultivator = createCultivator({
+      ...createCondition(0),
+      tracks: {
+        ...createCondition(0).tracks,
+        marrowWash: { level: 9, progress: 990 },
+      },
+    });
+    cultivator.realm = '炼气';
+    const pill = createPill('marrow_wash', [
+      { type: 'advance_track', track: 'marrow_wash', value: 10 },
+    ]);
+
+    const result = PillOperationExecutor.execute(cultivator, pill, NOW);
+
+    expect(result.cultivator.condition?.tracks.marrowWash).toMatchObject({
+      level: 10,
+      progress: 0,
+    });
+    expect(result.cultivator.unallocated_attribute_points).toBe(1);
   });
 });

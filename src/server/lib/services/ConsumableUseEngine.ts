@@ -68,6 +68,14 @@ function describeTrackLevelUp(levelUp: {
     )} +${config.reward.amount}`;
   }
 
+  if (config.reward.kind === 'none' && levelUp.track === 'marrow_wash') {
+    return `${config.name}提升至 Lv.${levelUp.newLevel}，自由属性点 +1`;
+  }
+
+  if (config.reward.kind === 'none') {
+    return `${config.name}提升至 Lv.${levelUp.newLevel}`;
+  }
+
   return `${config.name}提升至 Lv.${levelUp.newLevel}，所有灵根 +${config.reward.amount}`;
 }
 
@@ -172,6 +180,8 @@ export const ConsumableUseEngine = {
           wisdom: Math.round(nextCultivator.attributes.wisdom),
           speed: Math.round(nextCultivator.attributes.speed),
           willpower: Math.round(nextCultivator.attributes.willpower),
+          unallocatedAttributePoints:
+            Math.round(nextCultivator.unallocated_attribute_points ?? 0),
           cultivation_progress: nextCultivator.cultivation_progress
             ? stripExpCapForStorage(nextCultivator.cultivation_progress)
             : null,

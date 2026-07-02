@@ -81,6 +81,7 @@ import {
   getLastDeadCultivatorSummary,
   getPaginatedInventoryByType,
   getPlayerRuntimeCultivatorById,
+  increaseSpiritualRootMarrowWashBonus,
   updateCultivationExp,
   updateCultivator,
   updateSpiritStones,
@@ -104,6 +105,11 @@ import {
   getRealmStageUnallocatedAttributeBudget,
 } from '@shared/config/realmProgression';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
+import {
+  MARROW_WASH_BREAKTHROUGH_QI_COST,
+  SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
+  breakthroughMarrowWash,
+} from '@shared/lib/marrowWash';
 import { isTalismanConsumable } from '@shared/lib/consumables';
 import { attachmentsToResourceOperations } from '@shared/lib/itemLibrary';
 import type {
@@ -1007,6 +1013,142 @@ router.post('/body-cultivation/breakthrough', requireActiveCultivator(), async (
       {
         success: false,
         error: error instanceof Error ? error.message : '肉身进阶失败',
+      },
+      400,
+    );
+  }
+});
+
+router.post('/marrow-wash/breakthrough', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
+  const activeCultivator = c.get('cultivator');
+  if (!user || !activeCultivator) {
+    return c.json({ success: false, error: '未授权访问' }, 401);
+  }
+
+  const cultivator = await getPlayerRuntimeCultivatorById(
+    user.id,
+    activeCultivator.id,
+  );
+  if (!cultivator) {
+    return c.json({ success: false, error: '角色不存在' }, 404);
+  }
+
+  try {
+    const result = breakthroughMarrowWash(cultivator.condition, {
+      cultivatorRealm: cultivator.realm,
+    });
+    const actionInstanceId = randomUUID();
+    let qiAfter: number | null = null;
+
+    const nextRoots = cultivator.spiritual_roots.map((root) => {
+      const baseStrength = root.baseStrength ?? root.strength;
+      const currentBonus = root.marrowWashBonus ?? 0;
+      const nextBonus = Math.min(
+        currentBonus + 1,
+        Math.max(0, SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP - baseStrength),
+      );
+      return {
+        ...root,
+        baseStrength,
+        marrowWashBonus: nextBonus,
+        strength: Math.min(
+          SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
+          baseStrength + nextBonus,
+        ),
+      };
+    });
+
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: activeCultivator.id,
+      source: 'marrow_wash_breakthrough',
+      run: async (tx) => {
+        const qiReservation = await QiService.reserveQi({
+          cultivatorId: activeCultivator.id,
+          action: 'marrow_wash_breakthrough',
+          actionInstanceId,
+          cost: MARROW_WASH_BREAKTHROUGH_QI_COST,
+          metadata: {
+            fromRealm: result.fromRealm,
+            toRealm: result.toRealm,
+            breakthroughLevel: result.breakthroughLevel,
+          },
+          tx,
+        });
+        qiAfter =
+          typeof qiReservation?.qiAfter === 'number'
+            ? qiReservation.qiAfter
+            : null;
+
+        const saved = await updateCultivator(
+          activeCultivator.id,
+          {
+            condition: result.condition,
+          },
+          tx,
+        );
+
+        if (!saved) {
+          throw new Error('更新角色数据失败');
+        }
+
+        await increaseSpiritualRootMarrowWashBonus(
+          user.id,
+          activeCultivator.id,
+          1,
+          tx,
+        );
+        await QiService.commitReservation({
+          actionInstanceId,
+          metadata: { committedAt: new Date().toISOString() },
+          tx,
+        });
+
+        return {
+          result: {
+            fromRealm: result.fromRealm,
+            toRealm: result.toRealm,
+            breakthroughLevel: result.breakthroughLevel,
+            qiCost: MARROW_WASH_BREAKTHROUGH_QI_COST,
+            qiAfter,
+            condition: result.condition,
+            spiritual_roots: nextRoots,
+          },
+          changes: [
+            {
+              domain: 'condition' as const,
+              eventType: 'condition.marrow_wash.breakthrough',
+              patch: { condition: result.condition },
+            },
+            {
+              domain: 'profile' as const,
+              eventType: 'profile.spiritual_roots.marrow_wash_bonus',
+              patch: {
+                cultivator: {
+                  spiritual_roots: nextRoots,
+                },
+              },
+            },
+            {
+              domain: 'currency' as const,
+              eventType: 'currency.qi.spent',
+              patch: qiAfter === null ? {} : { currency: { qi: qiAfter } },
+            },
+          ],
+        };
+      },
+    });
+
+    return c.json(toPlayerStateMutationResponse(committed));
+  } catch (error) {
+    const qiResponse = qiErrorResponse(c, error);
+    if (qiResponse) return qiResponse;
+
+    return c.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : '洗髓破限失败',
       },
       400,
     );

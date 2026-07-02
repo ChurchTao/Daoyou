@@ -196,6 +196,19 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="marrow-wash"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/marrow-wash/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'marrow-wash',
+                  summary: '洗髓进度、自由属性点与后天灵根加成归于此处。',
+                },
+                '洗髓池',
+              )}
+            />
+            <Route
               path="inventory"
               lazy={lazyRoute(() => import('@app/routes/game/inventory/route'))}
               handle={scene(

@@ -14,6 +14,12 @@ export interface ConditionProgressTrack {
   progress: number;
 }
 
+export interface MarrowWashState extends ConditionProgressTrack {
+  version?: 1;
+  realm?: number;
+  breakthroughs?: number;
+}
+
 export type LegacyTemperingTrackKey =
   | 'vitality'
   | 'spirit'
@@ -99,7 +105,7 @@ export interface CultivatorCondition {
   tracks: {
     bodyCultivation?: BodyCultivationState;
     tempering: Record<TemperingTrackKey, ConditionProgressTrack>;
-    marrowWash: ConditionProgressTrack;
+    marrowWash: MarrowWashState;
   };
   counters: {
     longTermPillUsesByRealm: Partial<Record<RealmType, number>>;
