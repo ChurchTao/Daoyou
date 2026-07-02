@@ -895,6 +895,54 @@ describe('cultivator attribute allocation route', () => {
     );
   });
 
+  it('allocates marrow-wash points above the realm attribute budget', async () => {
+    mockAttributeAllocationTransaction({
+      current: {
+        realm: '筑基',
+        realmStage: '初期',
+        vitality: 70,
+        spirit: 20,
+        wisdom: 20,
+        speed: 20,
+        willpower: 20,
+        unallocatedAttributePoints: 3,
+      },
+    });
+
+    const response = await createApp().request(
+      '/api/cultivator/attributes/allocate',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vitality: 2,
+          spirit: 1,
+          wisdom: 0,
+          speed: 0,
+          willpower: 0,
+        }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json).toEqual(
+      expect.objectContaining({
+        success: true,
+        data: {
+          attributes: {
+            vitality: 72,
+            spirit: 21,
+            wisdom: 20,
+            speed: 20,
+            willpower: 20,
+          },
+          unallocated_attribute_points: 0,
+        },
+      }),
+    );
+  });
+
   it('rejects overspending unallocated attribute points', async () => {
     mockAttributeAllocationTransaction({
       current: {

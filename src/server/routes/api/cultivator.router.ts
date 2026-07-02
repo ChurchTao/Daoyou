@@ -1382,7 +1382,18 @@ router.post('/attributes/allocate', requireActiveCultivator(), async (c) => {
         const totalAttributes = values.reduce((sum, value) => sum + value, 0);
         const allocatedPoints =
           totalAttributes - naturalAttributeValue * 5;
-        if (allocatedPoints > freeAttributeBudget) {
+        const currentAllocatedPoints =
+          current.vitality +
+          current.spirit +
+          current.wisdom +
+          current.speed +
+          current.willpower -
+          naturalAttributeValue * 5;
+        const earnedAttributeBudget = Math.max(
+          freeAttributeBudget,
+          currentAllocatedPoints + current.unallocatedAttributePoints,
+        );
+        if (allocatedPoints > earnedAttributeBudget) {
           throw new Error('属性总点数超过当前境界预算');
         }
 

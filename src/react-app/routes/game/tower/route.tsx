@@ -615,8 +615,8 @@ export default function TowerPage() {
     payload?.eligible ??
     (cultivatorRealm ? isTowerRealmEligible(cultivatorRealm) : false);
   const minRealm = payload?.minRealm ?? TOWER_MIN_REALM;
-  const maxHp = display?.resources.hp.max ?? 0;
-  const maxMp = display?.resources.mp.max ?? 0;
+  const maxHp = towerState?.condition.resources.hp.max ?? display?.resources.hp.max ?? 0;
+  const maxMp = towerState?.condition.resources.mp.max ?? display?.resources.mp.max ?? 0;
   const scenePulse = buildScenePulse(season);
   const encounterProbe =
     towerState?.status === 'WAITING_BATTLE' &&

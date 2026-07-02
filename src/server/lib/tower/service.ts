@@ -568,6 +568,19 @@ export class TowerService {
     state.currentFloor += 1;
     state.status = 'READY';
 
+    const cultivatorBundle = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId);
+    if (!cultivatorBundle?.cultivator) {
+      throw new Error('未找到修真者数据');
+    }
+    const { normalizedCondition } = buildTowerBattleInit({
+      cultivator: cultivatorBundle.cultivator,
+      condition: state.condition,
+      blessings: state.blessings,
+      encounterKind: 'normal',
+      recoverResources: false,
+    });
+    state.condition = normalizedCondition;
+
     await this.saveState(cultivatorId, state);
     return {
       season,
