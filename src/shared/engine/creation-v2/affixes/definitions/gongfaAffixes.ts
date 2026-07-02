@@ -1026,7 +1026,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         target: 'mp',
         value: {
-          base: { base: 80, scale: 'quality', coefficient: 22 },
           attribute: AttributeType.SPIRIT,
           coefficient: qualityScaledCoefficient(0.08),
         },
@@ -1405,7 +1404,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
       params: {
         value: {
-          base: 0,
           targetMaxHpRatio: { base: 0.06, scale: 'quality', coefficient: 0.01 },
         },
       },
@@ -1733,7 +1731,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
                   type: 'damage',
                   params: {
                     value: {
-                      base: { base: 4, scale: 'quality', coefficient: 1 },
                       attribute: AttributeType.MAGIC_ATK,
                       coefficient: qualityScaledCoefficient(0.035),
                       targetMaxHpRatio: {
@@ -1756,7 +1753,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
                         type: 'heal',
                         params: {
                           value: {
-                            base: { base: 55, scale: 'quality', coefficient: 12 },
                             attribute: AttributeType.SPIRIT,
                             coefficient: qualityScaledCoefficient(0.65),
                             targetMaxHpRatio: {
@@ -1886,7 +1882,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
               event: 'heal',
               target: 'caster',
               maxStoredValue: {
-                base: 0,
                 targetMaxHpRatio: {
                   base: 0.45,
                   scale: 'quality',

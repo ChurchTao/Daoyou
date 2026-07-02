@@ -751,7 +751,9 @@ export class AffixEffectTranslator {
     targetMaxMpRatio?: number;
   } {
     return {
-      base: this.resolveParam(sv.base, qualityOrder, multiplier),
+      ...(sv.base !== undefined
+        ? { base: this.resolveParam(sv.base, qualityOrder, multiplier) }
+        : {}),
       ...(sv.attribute !== undefined ? { attribute: sv.attribute } : {}),
       ...(sv.coefficient !== undefined
         ? {

@@ -7,7 +7,10 @@ import {
   getRealmStageNaturalAttributeValue,
   getRealmStageUnallocatedAttributeBudget,
 } from '@shared/config/realmProgression';
-import type { DamageParams } from '@shared/engine/battle-v5/core/configs';
+import type {
+  DamageParams,
+  EffectConfig,
+} from '@shared/engine/battle-v5/core/configs';
 import {
   QUALITY_VALUES,
   type Quality,
@@ -16,9 +19,9 @@ import {
 } from '@shared/types/constants';
 
 const QUALITY_CASES = [
-  { quality: '凡品', minSkillHpRatio: 0.14, maxSkillHpRatio: 0.2, minWeaponGain: 0.1, maxWeaponGain: 0.22 },
-  { quality: '真品', minSkillHpRatio: 0.2, maxSkillHpRatio: 0.28, minWeaponGain: 0.25, maxWeaponGain: 0.45 },
-  { quality: '神品', minSkillHpRatio: 0.28, maxSkillHpRatio: 0.4, minWeaponGain: 0.45, maxWeaponGain: 0.72 },
+  { quality: '凡品', minSkillHpRatio: 0.11, maxSkillHpRatio: 0.21, minWeaponGain: 0.1, maxWeaponGain: 0.22 },
+  { quality: '真品', minSkillHpRatio: 0.14, maxSkillHpRatio: 0.27, minWeaponGain: 0.25, maxWeaponGain: 0.45 },
+  { quality: '神品', minSkillHpRatio: 0.17, maxSkillHpRatio: 0.34, minWeaponGain: 0.45, maxWeaponGain: 0.72 },
 ] as const satisfies ReadonlyArray<{
   quality: Quality;
   minSkillHpRatio: number;
@@ -52,12 +55,14 @@ function expectedDirectDamage(args: {
   preMitigationDamage: number;
   defender: AttributeSet;
   attacker: AttributeSet;
-  defenseType: AttributeType.DEF | AttributeType.MAGIC_DEF;
+  defenseType?: AttributeType.DEF | AttributeType.MAGIC_DEF;
 }): number {
   const { preMitigationDamage, defender, attacker, defenseType } = args;
+  const effectiveDefense =
+    defenseType === undefined ? 0 : defender.getValue(defenseType);
   const afterDefense = Math.max(
     preMitigationDamage * 0.1,
-    preMitigationDamage - defender.getValue(defenseType),
+    preMitigationDamage - effectiveDefense,
   );
   const critRate = attacker.getValue(AttributeType.CRIT_RATE);
   const critDamage = attacker.getValue(AttributeType.CRIT_DAMAGE_MULT);
@@ -67,36 +72,90 @@ function expectedDirectDamage(args: {
   return afterDefense * critExpectation * 0.97;
 }
 
-function calculateSkillDamageHpRatio(
-  realm: RealmType,
-  stage: RealmStage,
-  quality: Quality,
-): number {
-  const attrs = createAverageAttributeSet(realm, stage);
-  const skill = composeProductFromAffixIds({
-    productType: 'skill',
-    element: '火',
-    name: `测试火伤-${quality}`,
-    affixIds: ['skill-core-damage-fire'],
-    requestedQuality: quality,
-  });
-  const ability = projectAbilityConfig(skill);
-  const damageEffect = ability.effects?.find((effect) => effect.type === 'damage');
-  expect(damageEffect).toBeDefined();
+function collectDamageEffects(effects: EffectConfig[] = []): EffectConfig[] {
+  const damageEffects: EffectConfig[] = [];
+  for (const effect of effects) {
+    if (effect.type === 'damage') {
+      damageEffects.push(effect);
+      continue;
+    }
+    if (effect.type === 'effect_sequence') {
+      damageEffects.push(...collectDamageEffects(effect.params.effects));
+    }
+  }
+  return damageEffects;
+}
 
-  const value = (damageEffect!.params as DamageParams).value;
+function calculateDamageEffectHpRatio(
+  effect: EffectConfig,
+  attrs: AttributeSet,
+): number {
+  expect(effect.type).toBe('damage');
+
+  const value = (effect.params as DamageParams).value;
   const preMitigationDamage =
     (value.base ?? 0) +
     attrs.getValue(value.attribute ?? AttributeType.MAGIC_ATK) *
       (value.coefficient ?? 1) +
     attrs.getMaxHp() * (value.targetMaxHpRatio ?? 0);
 
+  const defenseType =
+    value.attribute === AttributeType.ATK
+      ? AttributeType.DEF
+      : value.attribute === AttributeType.MAGIC_ATK
+        ? AttributeType.MAGIC_DEF
+        : undefined;
+
   return expectedDirectDamage({
     preMitigationDamage: Math.round(preMitigationDamage),
     defender: attrs,
     attacker: attrs,
-    defenseType: AttributeType.MAGIC_DEF,
+    defenseType,
   }) / attrs.getMaxHp();
+}
+
+function calculateSkillDamageHpRatio(
+  realm: RealmType,
+  stage: RealmStage,
+  quality: Quality,
+  affixIds: string[] = ['skill-core-damage-fire'],
+): number {
+  const attrs = createAverageAttributeSet(realm, stage);
+  const skill = composeProductFromAffixIds({
+    productType: 'skill',
+    element: '火',
+    name: `测试火伤-${quality}`,
+    affixIds,
+    requestedQuality: quality,
+  });
+  const ability = projectAbilityConfig(skill);
+  const damageEffect = collectDamageEffects(ability.effects)[0];
+  expect(damageEffect).toBeDefined();
+
+  return calculateDamageEffectHpRatio(damageEffect!, attrs);
+}
+
+function calculateMaxSkillDamageHpRatio(
+  realm: RealmType,
+  stage: RealmStage,
+  quality: Quality,
+  affixIds: string[],
+): number {
+  const attrs = createAverageAttributeSet(realm, stage);
+  const skill = composeProductFromAffixIds({
+    productType: 'skill',
+    element: '火',
+    name: `测试高伤-${quality}`,
+    affixIds,
+    requestedQuality: quality,
+  });
+  const ability = projectAbilityConfig(skill);
+  const damageEffects = collectDamageEffects(ability.effects);
+  expect(damageEffects.length).toBeGreaterThan(0);
+
+  return Math.max(
+    ...damageEffects.map((effect) => calculateDamageEffectHpRatio(effect, attrs)),
+  );
 }
 
 function calculateWeaponCoreBasicAttackGain(
@@ -161,6 +220,24 @@ describe('combat number balance', () => {
         expect(hpRatio).toBeLessThanOrEqual(qualityCase.maxSkillHpRatio);
       }
     }
+  });
+
+  it('keeps high-PBU direct damage affixes below one-shot territory', () => {
+    const soulRendRatio = calculateMaxSkillDamageHpRatio(
+      '渡劫',
+      '圆满',
+      '神品',
+      ['skill-rare-soul-rend'],
+    );
+    const lifeForFireRatio = calculateMaxSkillDamageHpRatio(
+      '渡劫',
+      '圆满',
+      '神品',
+      ['skill-core-damage-fire', 'skill-rare-life-for-fire'],
+    );
+
+    expect(soulRendRatio).toBeLessThanOrEqual(0.5);
+    expect(lifeForFireRatio).toBeLessThanOrEqual(0.4);
   });
 
   it('keeps same-realm weapon core fixed attack gains inside target bands', () => {

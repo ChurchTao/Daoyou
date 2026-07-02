@@ -64,7 +64,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 35, scale: 'quality', coefficient: 6 },
           attribute: AttributeType.MAGIC_ATK,
           coefficient: qualityScaledDamageCoefficient(1.0),
         },
@@ -100,7 +99,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 38, scale: 'quality', coefficient: 7 },
           attribute: AttributeType.MAGIC_ATK,
           coefficient: qualityScaledDamageCoefficient(1.08),
         },
@@ -134,7 +132,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 35, scale: 'quality', coefficient: 6 },
           attribute: AttributeType.MAGIC_ATK,
           coefficient: qualityScaledDamageCoefficient(1.02),
         },
@@ -168,7 +165,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 40, scale: 'quality', coefficient: 7 },
           attribute: AttributeType.MAGIC_ATK,
           coefficient: qualityScaledDamageCoefficient(1.04),
         },
@@ -202,7 +198,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 30, scale: 'quality', coefficient: 5 },
           attribute: AttributeType.ATK,
           coefficient: qualityScaledDamageCoefficient(1.0),
         },
@@ -236,7 +231,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 32, scale: 'quality', coefficient: 6 },
           attribute: AttributeType.ATK,
           coefficient: qualityScaledDamageCoefficient(1.06),
         },
@@ -270,7 +264,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 34, scale: 'quality', coefficient: 6 },
           attribute: AttributeType.MAGIC_ATK,
           coefficient: qualityScaledDamageCoefficient(0.98),
         },
@@ -304,7 +297,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 32, scale: 'quality', coefficient: 5 },
           attribute: AttributeType.MAGIC_ATK,
           coefficient: qualityScaledDamageCoefficient(0.96),
         },
@@ -338,7 +330,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 36, scale: 'quality', coefficient: 6 },
           attribute: AttributeType.ATK,
           coefficient: qualityScaledDamageCoefficient(0.98),
         },
@@ -371,7 +362,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'heal',
       params: {
         value: {
-          base: { base: 18, scale: 'quality', coefficient: 7 },
           attribute: AttributeType.MAGIC_ATK,
           coefficient: qualityScaledCoefficient(0.35),
         },
@@ -404,7 +394,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'shield',
       params: {
         value: {
-          base: { base: 12, scale: 'quality', coefficient: 4 },
           attribute: AttributeType.SPIRIT,
           coefficient: qualityScaledCoefficient(1),
         },
@@ -1072,11 +1061,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
                 {
                   type: 'damage',
                   params: {
-                    value: {
-                      base: 8,
-                      attribute: AttributeType.MAGIC_ATK,
-                      coefficient: 0.12,
-                    },
+	                    value: {
+	                      attribute: AttributeType.MAGIC_ATK,
+	                      coefficient: 0.18,
+	                    },
                   },
                 },
               ],
@@ -1174,11 +1162,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
                 {
                   type: 'damage',
                   params: {
-                    value: {
-                      base: 18,
-                      attribute: AttributeType.MAGIC_ATK,
-                      coefficient: 0.06,
-                    },
+	                    value: {
+	                      attribute: AttributeType.MAGIC_ATK,
+	                      coefficient: 0.2,
+	                    },
                   },
                 },
               ],
@@ -1234,11 +1221,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
                 {
                   type: 'damage',
                   params: {
-                    value: {
-                      base: 12,
-                      attribute: AttributeType.ATK,
-                      coefficient: 0.05,
-                    },
+	                    value: {
+	                      attribute: AttributeType.ATK,
+	                      coefficient: 0.18,
+	                    },
                   },
                 },
               ],
@@ -1425,7 +1411,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       params: {
         target: 'mp',
         value: {
-          base: { base: 14, scale: 'quality', coefficient: 5 },
           attribute: AttributeType.SPIRIT,
           coefficient: qualityScaledCoefficient(0.1),
         },
@@ -1455,7 +1440,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'mana_burn',
       params: {
         value: {
-          base: { base: 12, scale: 'quality', coefficient: 12 },
           attribute: AttributeType.SPIRIT,
           coefficient: qualityScaledCoefficient(1.2),
         },
@@ -1639,9 +1623,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 90, scale: 'quality', coefficient: 18 },
           attribute: AttributeType.WILLPOWER,
-          coefficient: qualityScaledCoefficient(8),
+          coefficient: qualityScaledDamageCoefficient(5.2),
         },
       },
     },
@@ -1803,7 +1786,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'heal',
       params: {
         value: {
-          base: { base: 40, scale: 'quality', coefficient: 9 },
           attribute: AttributeType.SPIRIT,
           coefficient: qualityScaledCoefficient(0.45),
         },
@@ -1836,7 +1818,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'shield',
       params: {
         value: {
-          base: { base: 28, scale: 'quality', coefficient: 8 },
           attribute: AttributeType.SPIRIT,
           coefficient: qualityScaledCoefficient(1.5),
         },
@@ -1871,9 +1852,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
             type: 'damage',
             params: {
               value: {
-                base: { base: 90, scale: 'quality', coefficient: 16 },
                 attribute: AttributeType.MAGIC_ATK,
-                coefficient: qualityScaledCoefficient(1.15),
+                coefficient: qualityScaledDamageCoefficient(1.2),
               },
             },
           },
@@ -1920,9 +1900,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
             type: 'damage',
             params: {
               value: {
-                base: { base: 50, scale: 'quality', coefficient: 10 },
                 attribute: AttributeType.MAGIC_ATK,
-                coefficient: qualityScaledCoefficient(0.65),
+                coefficient: qualityScaledDamageCoefficient(0.65),
                 targetMaxHpRatio: {
                   base: 0.04,
                   scale: 'quality',
@@ -1990,9 +1969,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
                         type: 'damage',
                         params: {
                           value: {
-                            base: { base: 40, scale: 'quality', coefficient: 8 },
                             attribute: AttributeType.MAGIC_ATK,
-                            coefficient: qualityScaledCoefficient(0.55),
+                            coefficient: qualityScaledDamageCoefficient(0.55),
                             targetMaxHpRatio: {
                               base: 0.03,
                               scale: 'quality',
@@ -2042,7 +2020,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
             type: 'damage',
             params: {
               value: {
-                base: { base: 8, scale: 'quality', coefficient: 2 },
                 attribute: AttributeType.MAGIC_ATK,
                 coefficient: qualityScaledCoefficient(0.14),
                 targetMaxHpRatio: {
@@ -2089,7 +2066,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           key: 'blood_ink_damage',
           event: 'damage_taken',
           maxStoredValue: {
-            base: 0,
             targetMaxHpRatio: {
               base: 0.7,
               scale: 'quality',
@@ -2144,7 +2120,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           {
             type: 'damage',
             params: {
-              value: { base: 45, attribute: AttributeType.ATK, coefficient: 0.55 },
+              value: { attribute: AttributeType.ATK, coefficient: 0.55 },
             },
           },
           {
@@ -2236,7 +2212,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
             ],
             params: {
               value: {
-                base: { base: 20, scale: 'quality', coefficient: 5 },
                 attribute: AttributeType.SPIRIT,
                 coefficient: qualityScaledCoefficient(0.22),
                 targetMaxMpRatio: {

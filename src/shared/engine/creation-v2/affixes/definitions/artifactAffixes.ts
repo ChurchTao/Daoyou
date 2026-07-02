@@ -653,7 +653,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
       params: {
         value: {
-          base: { base: 15, scale: 'quality', coefficient: 12 },
           attribute: AttributeType.SPIRIT,
           coefficient: 1,
         },
@@ -725,7 +724,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         target: 'mp',
         value: {
-          base: { base: 0, scale: 'quality', coefficient: 12 },
           attribute: AttributeType.SPIRIT,
           coefficient: 0.8,
         },
@@ -849,7 +847,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
       params: {
         value: {
-          base: { base: 8, scale: 'quality', coefficient: 4 },
           attribute: AttributeType.ATK,
           coefficient: 0.16,
           targetMaxMpRatio: {
@@ -1410,7 +1407,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       conditions: [{ type: 'is_critical', params: {} }],
       params: {
         value: {
-          base: { base: 12, scale: 'quality', coefficient: 12 },
           attribute: AttributeType.SPIRIT,
           coefficient: 1,
         },
@@ -1521,7 +1517,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         target: 'mp',
         value: {
-          base: { base: 10, scale: 'quality', coefficient: 5 },
           attribute: AttributeType.SPIRIT,
           coefficient: 0.24,
           targetMaxMpRatio: {
@@ -1564,7 +1559,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       conditions: [{ type: 'is_critical', params: { scope: 'target' } }],
       params: {
         value: {
-          base: { base: 35, scale: 'quality', coefficient: 10 },
           attribute: AttributeType.DEF,
           coefficient: 0.5,
           targetMaxHpRatio: {
@@ -1642,7 +1636,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'heal',
       params: {
         value: {
-          base: { base: 0, scale: 'quality', coefficient: 12 },
           attribute: AttributeType.VITALITY,
           coefficient: 0.88,
         },
@@ -1744,7 +1737,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'shield',
       params: {
         value: {
-          base: { base: 18, scale: 'quality', coefficient: 12 },
           attribute: AttributeType.SPEED,
           coefficient: 1,
         },
@@ -1943,7 +1935,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
               event: 'critical_taken',
               target: 'target',
               maxStoredValue: {
-                base: 0,
                 targetMaxHpRatio: {
                   base: 1,
                   scale: 'quality',
@@ -2054,7 +2045,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
               event: 'damage_taken',
               target: 'target',
               maxStoredValue: {
-                base: 0,
                 targetMaxHpRatio: {
                   base: 1.1,
                   scale: 'quality',

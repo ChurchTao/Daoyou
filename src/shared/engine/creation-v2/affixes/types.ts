@@ -61,11 +61,11 @@ export type ScalableParam = number | ScalableValueV2;
 
 /**
  * 映射到 battle-v5 ScalableValue 的词缀值
- * base 与 attribute coefficient 可在造物投影阶段进行品质缩放；
+ * base、attribute coefficient 可在造物投影阶段进行品质缩放；
  * 投影后 battle-v5 只消费解析完成的纯数字。
  */
 export interface AffixScalableValue {
-  base: ScalableParam;
+  base?: ScalableParam;
   attribute?: AttributeType;
   coefficient?: ScalableParam;
   /** 目标最大气血的比例伤害（固定值，不随品质缩放），如 0.08 表示 8% */

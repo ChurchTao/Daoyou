@@ -536,7 +536,7 @@ describe('advanced affix projection and rehydrate', () => {
     expect(thunderTrigger?.conditions).toEqual([
       { type: 'buff_layer_at_least', params: { id: 'thunder_mark', value: 3 } },
     ]);
-    expect(thunderDamage?.params.value.base).toEqual(expect.any(Number));
+    expect(thunderDamage?.params.value.base).toBeUndefined();
     expect(thunderDamage?.params.value.coefficient).toEqual(expect.any(Number));
     expect(thunderDamage?.params.value.targetMaxHpRatio).toEqual(expect.any(Number));
 
@@ -558,7 +558,7 @@ describe('advanced affix projection and rehydrate', () => {
     );
 
     expect(heavenDamage).toBeDefined();
-    expect(heavenDamage?.params.value.base).toEqual(expect.any(Number));
+    expect(heavenDamage?.params.value.base).toBeUndefined();
     expect(heavenDamage?.params.value.targetMaxHpRatio).toEqual(expect.any(Number));
   });
 
