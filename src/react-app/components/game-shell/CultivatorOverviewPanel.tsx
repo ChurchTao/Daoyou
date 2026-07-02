@@ -195,6 +195,7 @@ export function CultivatorOverviewPanel() {
 
   const unallocatedAttributePoints =
     cultivator.unallocated_attribute_points ?? 0;
+  const hasUnallocatedAttributePoints = unallocatedAttributePoints > 0;
 
   const openReincarnateDialog = () => {
     setDialog({
@@ -326,9 +327,21 @@ export function CultivatorOverviewPanel() {
             <div>
               <InkButton
                 href="/game/cultivator/attributes"
-                className="text-sm"
+                className={cn(
+                  'text-sm',
+                  hasUnallocatedAttributePoints && 'relative pr-3',
+                )}
               >
-                {getAttributeDetailActionLabel(unallocatedAttributePoints > 0)}
+                {getAttributeDetailActionLabel(hasUnallocatedAttributePoints)}
+                {hasUnallocatedAttributePoints ? (
+                  <span
+                    className="absolute top-0.5 right-1 flex h-2.5 w-2.5"
+                    aria-hidden="true"
+                  >
+                    <span className="bg-crimson absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+                    <span className="bg-crimson relative inline-flex h-2.5 w-2.5 rounded-full" />
+                  </span>
+                ) : null}
               </InkButton>
             </div>
           }
