@@ -527,8 +527,15 @@ describe('advanced affix projection and rehydrate', () => {
         effect.type === 'consume_status_trigger' ? effect.params.effects : [],
       )
       .find((effect) => effect.type === 'damage');
+    const thunderTrigger = thunderApply?.params.buffConfig.listeners?.[0]?.effects.find(
+      (effect): effect is Extract<EffectConfig, { type: 'consume_status_trigger' }> =>
+        effect.type === 'consume_status_trigger',
+    );
 
     expect(thunderDamage).toBeDefined();
+    expect(thunderTrigger?.conditions).toEqual([
+      { type: 'buff_layer_at_least', params: { id: 'thunder_mark', value: 3 } },
+    ]);
     expect(thunderDamage?.params.value.base).toEqual(expect.any(Number));
     expect(thunderDamage?.params.value.coefficient).toEqual(expect.any(Number));
     expect(thunderDamage?.params.value.targetMaxHpRatio).toEqual(expect.any(Number));

@@ -8,6 +8,10 @@ import {
   AbilityListCard,
 } from '@app/components/feature/products';
 import {
+  PendingCreationNotice,
+  usePendingCreations,
+} from '@app/components/feature/creation';
+import {
   InkButton,
   InkNotice,
 } from '@app/components/ui';
@@ -31,6 +35,10 @@ export function TechniquesView() {
     toggleTechniqueEnabled,
     openForgetConfirm,
   } = useTechniquesViewModel();
+  const pendingCreations = usePendingCreations({
+    craftTypes: ['create_gongfa'],
+    enabled: Boolean(cultivator),
+  });
 
   if (isLoading && !cultivator) {
     return (
@@ -67,12 +75,17 @@ export function TechniquesView() {
         </>
       }
     >
-      {!cultivator ? (
-        <InkNotice>还未觉醒道身，何谈功法？先去首页觉醒吧。</InkNotice>
-      ) : techniques.length === 0 ? (
-        <InkNotice>尚未参悟任何功法，前往悟道室修行吧。</InkNotice>
-      ) : (
-        <>
+      <div className="space-y-4">
+        <PendingCreationNotice
+          pendingTypes={pendingCreations.pendingTypes}
+          loading={pendingCreations.isLoading}
+        />
+        {!cultivator ? (
+          <InkNotice>还未觉醒道身，何谈功法？先去首页觉醒吧。</InkNotice>
+        ) : techniques.length === 0 ? (
+          <InkNotice>尚未参悟任何功法，前往悟道室修行吧。</InkNotice>
+        ) : (
+          <>
           <div className="space-y-3">
             {techniques.map((t) => (
               <AbilityListCard
@@ -106,8 +119,9 @@ export function TechniquesView() {
             onClose={closeTechniqueDetail}
             product={selectedTechnique}
           />
-        </>
-      )}
+          </>
+        )}
+      </div>
     </GameSceneFrame>
   );
 }

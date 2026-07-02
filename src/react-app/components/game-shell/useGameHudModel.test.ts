@@ -189,6 +189,13 @@ describe('buildGameHudSnapshot', () => {
               },
               milestones: {},
             },
+            marrowWash: {
+              version: 1,
+              level: 10,
+              progress: 35,
+              realm: 0,
+              breakthroughs: 0,
+            },
           },
         },
       } as any,
@@ -207,6 +214,12 @@ describe('buildGameHudSnapshot', () => {
     expect(snapshot?.bodyCultivation.tracks[0]).toMatchObject({
       key: 'skin',
       level: 3,
+    });
+    expect(snapshot?.marrowWash).toMatchObject({
+      level: 10,
+      progress: 35,
+      levelCap: 20,
+      canBreakthrough: true,
     });
   });
 

@@ -817,8 +817,16 @@ export class AffixEffectTranslator {
     qualityOrder: number,
     multiplier: number,
   ): EffectConfig[] {
-    return effects.map((effect) =>
-      this.resolveTemplate(effect, qualityOrder, multiplier),
-    );
+    return effects.map((effect) => {
+      const resolved = this.resolveTemplate(effect, qualityOrder, multiplier);
+      if (!effect.conditions || effect.conditions.length === 0) {
+        return resolved;
+      }
+
+      return {
+        ...resolved,
+        conditions: effect.conditions,
+      };
+    });
   }
 }

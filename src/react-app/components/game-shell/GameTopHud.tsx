@@ -1,8 +1,11 @@
 import { useQiState } from '@app/components/feature/cultivator/useQiState';
-import { BodyCultivationSummaryContent } from '@app/components/feature/cultivator/BodyCultivationPanels';
+import {
+  BodyCultivationSummaryContent,
+  MarrowWashSummaryContent,
+} from '@app/components/feature/cultivator/BodyCultivationPanels';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import Link from '@app/components/router/AppLink';
-import { InkHorizontalScroll } from '@app/components/ui';
+import { InkButton, InkHorizontalScroll } from '@app/components/ui';
 import {
   BOTTLENECK_THRESHOLD,
   BREAKTHROUGH_MIN_PROGRESS,
@@ -244,7 +247,7 @@ function StatusDetailBlock({
 }
 
 export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
-  const { openDialog } = useInkUI();
+  const { closeDialog, openDialog } = useInkUI();
   const navigate = useNavigate();
   const {
     state: qiState,
@@ -326,6 +329,11 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   };
 
   const openBodyCultivationInfo = () => {
+    const openMarrowWashDetail = () => {
+      closeDialog();
+      void navigate('/game/marrow-wash');
+    };
+
     openDialog({
       title: '肉身炼体',
       content: (
@@ -342,6 +350,18 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
               进阶：轨道等级、修为境界、材料和对应方向炼体丹都满足后，才能提升肉身阶位。
             </p>
           </div>
+          <MarrowWashSummaryContent
+            summary={snapshot.marrowWash}
+            action={
+              <InkButton
+                onClick={openMarrowWashDetail}
+                variant="secondary"
+                className="text-xs"
+              >
+                查看详情
+              </InkButton>
+            }
+          />
         </div>
       ),
       confirmLabel: '查看详情',

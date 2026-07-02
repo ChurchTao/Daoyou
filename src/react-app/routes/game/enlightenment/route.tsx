@@ -1,4 +1,9 @@
 import {
+  PENDING_CREATION_CRAFT_TYPES,
+  PendingCreationNotice,
+  usePendingCreations,
+} from '@app/components/feature/creation';
+import {
   GameSceneAsideSection,
   GameSceneFrame,
   GameSceneNote,
@@ -8,7 +13,11 @@ import { InkCard } from '@app/components/ui/InkCard';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
 
 export default function EnlightenmentPage() {
-  const { note } = usePlayerStateView();
+  const { cultivator, note } = usePlayerStateView();
+  const pendingCreations = usePendingCreations({
+    craftTypes: PENDING_CREATION_CRAFT_TYPES,
+    enabled: Boolean(cultivator),
+  });
 
   return (
     <GameSceneFrame
@@ -62,7 +71,12 @@ export default function EnlightenmentPage() {
         </>
       }
     >
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="space-y-4">
+        <PendingCreationNotice
+          pendingTypes={pendingCreations.pendingTypes}
+          loading={pendingCreations.isLoading}
+        />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <InkCard className="flex flex-col items-center p-4 text-center">
           <div className="mb-2 text-3xl">⚡</div>
           <h3 className="text-ink-primary mb-2 text-lg font-semibold">
@@ -92,6 +106,7 @@ export default function EnlightenmentPage() {
             开始参悟
           </InkButton>
         </InkCard>
+        </div>
       </div>
     </GameSceneFrame>
   );

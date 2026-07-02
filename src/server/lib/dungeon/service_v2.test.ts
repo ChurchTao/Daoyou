@@ -44,6 +44,8 @@ vi.mock('@shared/engine/resource/ResourceEngine', () => ({
   resourceEngine: {
     consume: resourceConsumeMock,
     gain: resourceGainMock,
+    consumeInTransaction: vi.fn(async () => ({ success: true })),
+    gainInTransaction: vi.fn(async () => ({ success: true })),
   },
 }));
 
@@ -1496,6 +1498,49 @@ describe('DungeonService looting continuation', () => {
     expect(objectMock).not.toHaveBeenCalled();
     expect(resourceGainMock).not.toHaveBeenCalled();
     expect(archiveSpy).toHaveBeenCalledWith(state, state.settlement, gains);
+  });
+
+  it('rejects deferred settlement persistence when the run was already finished', async () => {
+    const service = new DungeonService();
+    const state = createDungeonState('easy-map');
+    state.runId = '00000000-0000-0000-0000-000000000001';
+    state.status = 'SETTLING';
+    state.settlement = createSettlement();
+    state.realGains = [{ type: 'spirit_stones' as const, value: 10 }];
+    state.gainLedger = [
+      {
+        source: 'settlement',
+        gains: state.realGains,
+        committedAt: new Date(0).toISOString(),
+      },
+    ];
+    const tx = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            for: vi.fn(() => ({
+              limit: vi.fn(async () => [
+                {
+                  id: state.runId,
+                  status: 'FINISHED',
+                  endedAt: new Date(),
+                },
+              ]),
+            })),
+          })),
+        })),
+      })),
+    };
+
+    const result = await service.settleDungeon(state, {
+      deferPersistence: true,
+    });
+
+    await expect(result.persist?.(tx as unknown as never)).rejects.toMatchObject({
+      code: DungeonFlowErrorCode.INVALID_STATE,
+      message: '当前副本已完成，请刷新查看结算',
+      status: 409,
+    });
   });
 
   it('keeps archive failures recoverable instead of presenting a finished settlement', async () => {

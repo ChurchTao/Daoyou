@@ -13,6 +13,11 @@ interface AlchemyMaterialHintRule {
 
 const BODY_MATERIAL_HINT_RULES: readonly AlchemyMaterialHintRule[] = [
   {
+    property: 'marrow_wash',
+    weight: 0.92,
+    keywords: ['洗髓', '伐脉', '易筋', '脱胎换骨'],
+  },
+  {
     property: 'body_skin',
     weight: 0.85,
     keywords: ['皮膜', '筋膜', '护膜', '外皮', '鳞', '甲', '毒瘴', '寒铁砂', '风蚀'],

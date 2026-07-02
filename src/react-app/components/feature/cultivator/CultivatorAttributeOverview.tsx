@@ -4,7 +4,7 @@ import { AttributeType } from '@shared/engine/battle-v5/core/types';
 import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
 import { cn } from '@shared/lib/cn';
 import type { Cultivator } from '@shared/types/cultivator';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 type PrimaryAttributeType =
   | AttributeType.SPIRIT
@@ -91,10 +91,12 @@ export function CultivatorAttributeOverview({
   cultivator,
   defaultExpanded = false,
   expandable = true,
+  footerActions,
 }: {
   cultivator: Cultivator;
   defaultExpanded?: boolean;
   expandable?: boolean;
+  footerActions?: ReactNode;
 }) {
   const [showAllAttributes, setShowAllAttributes] = useState(defaultExpanded);
   const { unit } = getCultivatorDisplayAttributes(cultivator);
@@ -116,6 +118,7 @@ export function CultivatorAttributeOverview({
     ? secondaryAll
     : secondaryAll.slice(0, 4);
   const secondaryRows = chunkPairs(secondaryVisible);
+  const canExpand = expandable && secondaryAll.length > 4;
 
   return (
     <>
@@ -194,14 +197,21 @@ export function CultivatorAttributeOverview({
           </tbody>
         </table>
       </div>
-      {expandable && secondaryAll.length > 4 ? (
-        <div className="mt-3">
-          <InkButton
-            onClick={() => setShowAllAttributes((prev) => !prev)}
-            className="text-sm"
-          >
-            {showAllAttributes ? '收起次级属性' : '展开全部属性'}
-          </InkButton>
+      {canExpand || footerActions ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            {canExpand ? (
+              <InkButton
+                onClick={() => setShowAllAttributes((prev) => !prev)}
+                className="text-sm"
+              >
+                {showAllAttributes ? '收起次级属性' : '展开全部属性'}
+              </InkButton>
+            ) : null}
+          </div>
+          {footerActions ? (
+            <div className="flex items-center gap-2">{footerActions}</div>
+          ) : null}
         </div>
       ) : null}
     </>

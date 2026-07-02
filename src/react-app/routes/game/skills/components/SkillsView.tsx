@@ -8,6 +8,10 @@ import {
   AbilityListCard,
 } from '@app/components/feature/products';
 import {
+  PendingCreationNotice,
+  usePendingCreations,
+} from '@app/components/feature/creation';
+import {
   InkButton,
   InkDialog,
   InkNotice,
@@ -37,6 +41,10 @@ export function SkillsView() {
     toggleSkillEnabled,
     openForgetConfirm,
   } = useSkillsViewModel();
+  const pendingCreations = usePendingCreations({
+    craftTypes: ['create_skill'],
+    enabled: Boolean(cultivator),
+  });
 
   if (isLoading && !cultivator) {
     return (
@@ -73,12 +81,17 @@ export function SkillsView() {
         </>
       }
     >
-      {!cultivator ? (
-        <InkNotice>还未觉醒道身，何谈神通？先去首页觉醒吧。</InkNotice>
-      ) : skills.length === 0 ? (
-        <InkNotice>尚未领悟任何神通，前往悟道室参悟吧。</InkNotice>
-      ) : (
-        <>
+      <div className="space-y-4">
+        <PendingCreationNotice
+          pendingTypes={pendingCreations.pendingTypes}
+          loading={pendingCreations.isLoading}
+        />
+        {!cultivator ? (
+          <InkNotice>还未觉醒道身，何谈神通？先去首页觉醒吧。</InkNotice>
+        ) : skills.length === 0 ? (
+          <InkNotice>尚未领悟任何神通，前往悟道室参悟吧。</InkNotice>
+        ) : (
+          <>
           <div className="space-y-3">
             {skills.map((skill) => (
               <AbilityListCard
@@ -115,8 +128,9 @@ export function SkillsView() {
             onClose={closeSkillDetail}
             product={selectedSkill}
           />
-        </>
-      )}
+          </>
+        )}
+      </div>
     </GameSceneFrame>
   );
 }

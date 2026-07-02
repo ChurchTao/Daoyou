@@ -9,6 +9,10 @@ import {
   type BodyCultivationSummary,
   type BodyCultivationTrackSummary,
 } from '@shared/lib/bodyCultivation/summary';
+import {
+  getMarrowWashSummary,
+  type MarrowWashSummary,
+} from '@shared/lib/marrowWash';
 import type { Cultivator } from '@shared/types/cultivator';
 import { type ReactNode } from 'react';
 
@@ -264,6 +268,101 @@ export function BodyCultivationEntrySection() {
           </p>
         )}
       </BodyCultivationOverviewCard>
+    </GameSceneSection>
+  );
+}
+
+export function MarrowWashSummaryContent({
+  summary,
+  action,
+  unallocatedPoints,
+}: {
+  summary: MarrowWashSummary;
+  action?: ReactNode;
+  unallocatedPoints?: number;
+}) {
+  const progressPercent = Math.round(
+    Math.max(0, Math.min(summary.progress / summary.threshold, 1)) * 100,
+  );
+
+  return (
+    <div className="border-ink/15 bg-bgpaper/75 overflow-hidden border border-dashed">
+      <div className="flex flex-wrap items-start justify-between gap-3 px-3 py-3">
+        <div className="min-w-0">
+          <p className="text-ink-secondary text-xs leading-5">当前洗髓</p>
+          <p className="text-ink text-xl leading-8 font-semibold">
+            Lv.{summary.level} · {summary.realmLabel}
+          </p>
+          <p className="text-ink-secondary text-xs leading-5">
+            服用洗髓丹推进进度，升级沉淀为自由属性点。
+          </p>
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+
+      <div className="border-ink/10 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-dashed px-3 py-3 md:grid-cols-4">
+        <BodyMetric label="当前上限" value={`Lv.${summary.levelCap}`} />
+        <BodyMetric
+          label="破限门槛"
+          value={
+            summary.nextBreakthroughLevel
+              ? `Lv.${summary.nextBreakthroughLevel}`
+              : '修为不足'
+          }
+        />
+        <BodyMetric
+          label="破限状态"
+          value={summary.canBreakthrough ? '可破限' : '继续洗髓'}
+          tone={summary.canBreakthrough ? 'success' : 'default'}
+        />
+        {typeof unallocatedPoints === 'number' ? (
+          <BodyMetric label="自由属性点" value={unallocatedPoints} />
+        ) : (
+          <BodyMetric
+            label="当前进度"
+            value={`${summary.progress} / ${summary.threshold}`}
+          />
+        )}
+      </div>
+
+      <div className="border-ink/10 border-t border-dashed px-3 py-3">
+        <div className="flex items-center justify-between gap-2 text-xs leading-5">
+          <span className="text-ink-secondary">
+            {summary.progress} / {summary.threshold}
+          </span>
+          <span className="text-ink-secondary">{progressPercent}%</span>
+        </div>
+        <div className="bg-ink/10 mt-1 h-1.5 overflow-hidden">
+          <div
+            className="bg-teal h-full"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function MarrowWashEntrySection() {
+  const { cultivator } = usePlayerStateView();
+  if (!cultivator) return null;
+
+  const summary = getMarrowWashSummary(cultivator.condition, {
+    cultivatorRealm: cultivator.realm,
+  });
+  const unallocatedPoints = cultivator.unallocated_attribute_points ?? 0;
+
+  return (
+    <GameSceneSection title="洗髓">
+      <MarrowWashSummaryContent
+        summary={summary}
+        unallocatedPoints={unallocatedPoints}
+        action={
+          <InkButton href="/game/marrow-wash" className="text-xs">
+            查看详情
+          </InkButton>
+        }
+      />
     </GameSceneSection>
   );
 }

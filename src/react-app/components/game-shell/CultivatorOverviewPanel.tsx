@@ -1,8 +1,14 @@
 import {
   CultivatorCurrentStatusSection,
 } from '@app/components/feature/cultivator/PersistentStatusesCard';
-import { BodyCultivationEntrySection } from '@app/components/feature/cultivator/BodyCultivationPanels';
-import { CultivatorAttributeOverview } from '@app/components/feature/cultivator/CultivatorAttributeOverview';
+import {
+  BodyCultivationEntrySection,
+  MarrowWashEntrySection,
+} from '@app/components/feature/cultivator/BodyCultivationPanels';
+import {
+  CultivatorAttributeOverview,
+} from '@app/components/feature/cultivator/CultivatorAttributeOverview';
+import { getAttributeDetailActionLabel } from '@app/components/feature/cultivator/attributeActionLabels';
 import { TitleEditorModal } from '@app/components/feature/cultivator/TitleEditorModal';
 import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
 import { toFateDisplayModel } from '@app/components/feature/fates/FateDisplayAdapter';
@@ -111,26 +117,6 @@ function OverviewDetailItem({
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
-  );
-}
-
-function ReminderDot() {
-  return (
-    <span className="absolute -top-0.5 -right-1.5 flex h-3 w-3">
-      <span className="bg-crimson absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
-      <span className="bg-crimson relative inline-flex h-3 w-3 rounded-full" />
-    </span>
-  );
-}
-
-function AttributeDetailEntry({ hasReminder }: { hasReminder: boolean }) {
-  return (
-    <span className="relative inline-flex">
-      <InkButton href="/game/cultivator/attributes" className="text-sm">
-        详情
-      </InkButton>
-      {hasReminder ? <ReminderDot /> : null}
-    </span>
   );
 }
 
@@ -333,15 +319,23 @@ export function CultivatorOverviewPanel() {
         </GameSceneSection>
       ) : null}
 
-      <GameSceneSection
-        title="根基属性"
-        help={PRIMARY_ATTRIBUTE_HELP_DIALOG}
-        actions={
-          <AttributeDetailEntry hasReminder={unallocatedAttributePoints > 0} />
-        }
-      >
-        <CultivatorAttributeOverview cultivator={cultivator} />
+      <GameSceneSection title="根基属性" help={PRIMARY_ATTRIBUTE_HELP_DIALOG}>
+        <CultivatorAttributeOverview
+          cultivator={cultivator}
+          footerActions={
+            <div>
+              <InkButton
+                href="/game/cultivator/attributes"
+                className="text-sm"
+              >
+                {getAttributeDetailActionLabel(unallocatedAttributePoints > 0)}
+              </InkButton>
+            </div>
+          }
+        />
       </GameSceneSection>
+
+      <MarrowWashEntrySection />
 
       <BodyCultivationEntrySection />
 

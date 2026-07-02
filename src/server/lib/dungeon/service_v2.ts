@@ -2037,6 +2037,8 @@ export class DungeonService {
       settlement,
       realGains,
       persist: async (tx) => {
+        await this.assertTerminalRunCanCommit(tx, state);
+
         if (pendingActionToCommit) {
           const pendingActionCostContextText = [
             pendingActionToCommit.choiceText,
@@ -2199,6 +2201,42 @@ export class DungeonService {
           .set({ runState: state })
           .where(eq(dungeonRuns.id, state.runId));
       }
+    }
+  }
+
+  private async assertTerminalRunCanCommit(
+    tx: DbTransaction,
+    state: DungeonState,
+  ) {
+    if (!state.runId) {
+      return;
+    }
+
+    const [run] = await tx
+      .select({
+        id: dungeonRuns.id,
+        status: dungeonRuns.status,
+        endedAt: dungeonRuns.endedAt,
+      })
+      .from(dungeonRuns)
+      .where(eq(dungeonRuns.id, state.runId))
+      .for('update')
+      .limit(1);
+
+    if (!run) {
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.NOT_FOUND,
+        '副本已失效',
+        404,
+      );
+    }
+
+    if (run.endedAt || RUN_TERMINAL_STATUSES.has(run.status)) {
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '当前副本已完成，请刷新查看结算',
+        409,
+      );
     }
   }
 

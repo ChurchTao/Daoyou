@@ -20,6 +20,10 @@ import {
   getBodyCultivationSummary,
   type BodyCultivationSummary,
 } from '@shared/lib/bodyCultivation/summary';
+import {
+  getMarrowWashSummary,
+  type MarrowWashSummary,
+} from '@shared/lib/marrowWash';
 import type { ConditionStatusKey } from '@shared/types/condition';
 import { RealmType } from '@shared/types/constants';
 
@@ -78,6 +82,7 @@ export interface GameHudSnapshot {
   activeStatuses: GameHudStatusTag[];
   pillToxicity: GameHudPillToxicityDetail;
   bodyCultivation: BodyCultivationSummary;
+  marrowWash: MarrowWashSummary;
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -202,6 +207,9 @@ export function buildGameHudSnapshot(input: {
   const bodyCultivation = getBodyCultivationSummary(cultivator.condition, {
     cultivatorRealm: cultivator.realm,
   });
+  const marrowWash = getMarrowWashSummary(cultivator.condition, {
+    cultivatorRealm: cultivator.realm,
+  });
 
   return {
     cultivatorId: cultivator.id ?? '',
@@ -227,6 +235,7 @@ export function buildGameHudSnapshot(input: {
       ),
     },
     bodyCultivation,
+    marrowWash,
     cultivationProgress: {
       current: cultivationExp,
       cap: cultivationCap,

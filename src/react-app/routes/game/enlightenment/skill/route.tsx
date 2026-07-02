@@ -1,9 +1,13 @@
 import {
   CreationIntentPanel,
+  PendingCreationNotice,
   CreationProductResultModal,
   MaterialSelectionModal,
   SelectedMaterialsWithDose,
+  getPendingCreationReplaceHref,
   type CreationProductResultRecord,
+  usePendingCreationDialog,
+  usePendingCreations,
 } from '@app/components/feature/creation';
 import {
   GameSceneAsideSection,
@@ -29,7 +33,7 @@ import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { Material } from '@shared/types/cultivator';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 
@@ -96,46 +100,35 @@ export default function SkillCreationPage() {
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
   const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
   const [celebrationTick, setCelebrationTick] = useState(0);
-  const [pendingReplaceHref, setPendingReplaceHref] = useState<string | null>(null);
+  const [hasCreatedPendingReplace, setHasCreatedPendingReplace] = useState(false);
   const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
   const [estimatedCost, setEstimatedCost] = useState<CostEstimate | null>(null);
   const [validation, setValidation] = useState<PreviewValidation | null>(null);
   const [canAfford, setCanAfford] = useState(true);
   const [targetPolicy, setTargetPolicy] = useState<TargetPolicySelection>(null);
-  const { pushToast, openDialog } = useInkUI();
+  const { pushToast } = useInkUI();
   const { openQiActionConfirm } = useQiActionConfirm();
+  const openPendingCreationDialog = usePendingCreationDialog();
+  const announcedPendingRef = useRef(false);
+  const pendingCreations = usePendingCreations({
+    craftTypes: [CRAFT_TYPE],
+    enabled: Boolean(cultivator),
+  });
+  const pendingReplaceHref =
+    pendingCreations.hasPending || hasCreatedPendingReplace
+      ? getPendingCreationReplaceHref(CRAFT_TYPE)
+      : null;
 
   useEffect(() => {
-    const checkPending = async () => {
-      if (!cultivator) return;
-      const replaceHref = `/game/enlightenment/replace?type=${CRAFT_TYPE}`;
-      try {
-        const res = await fetch(`/api/craft/pending?type=${CRAFT_TYPE}`);
-        const data = await res.json();
-        if (data.success && data.hasPending) {
-          setPendingReplaceHref(replaceHref);
-          openDialog({
-            title: '感应天机',
-            content: (
-              <p className="py-2">
-                系统感应到道友先前推演了一门神通，但尚未将其纳入道基。是否立即前往处理？
-              </p>
-            ),
-            confirmLabel: '继续推演',
-            cancelLabel: '暂不处理',
-            onConfirm: () => {
-              navigate(replaceHref);
-            },
-          });
-        } else {
-          setPendingReplaceHref(null);
-        }
-      } catch (e) {
-        console.error('检查待定失败:', e);
-      }
-    };
-    void checkPending();
-  }, [cultivator, navigate, openDialog]);
+    const hasServerPending = pendingCreations.pendingTypes.includes(CRAFT_TYPE);
+    if (hasServerPending && !announcedPendingRef.current) {
+      announcedPendingRef.current = true;
+      openPendingCreationDialog(CRAFT_TYPE);
+    }
+    if (!hasServerPending) {
+      announcedPendingRef.current = false;
+    }
+  }, [openPendingCreationDialog, pendingCreations.pendingTypes]);
 
   useEffect(() => {
     if (selectedMaterialIds.length === 0) {
@@ -260,7 +253,7 @@ export default function SkillCreationPage() {
     }
 
     if (pendingReplaceHref) {
-      pushToast({ message: '已有待纳入道基的新神通，请先前往处理。', tone: 'warning' });
+      openPendingCreationDialog(CRAFT_TYPE);
       return;
     }
 
@@ -296,11 +289,12 @@ export default function SkillCreationPage() {
           setMaterialsRefreshKey((prev) => prev + 1);
 
           if (skill.needs_replace) {
-            setPendingReplaceHref(`/game/enlightenment/replace?type=${CRAFT_TYPE}`);
+            setHasCreatedPendingReplace(true);
+            void pendingCreations.refresh();
             return;
           }
 
-          setPendingReplaceHref(null);
+          setHasCreatedPendingReplace(false);
         } catch (error) {
           const failMessage =
             error instanceof Error
@@ -529,16 +523,11 @@ export default function SkillCreationPage() {
       )}
 
       {pendingReplaceHref && (
-        <div className="mt-4 space-y-3">
-          <InkNotice tone="warning">
-            已有一门待纳入道基的新神通，请先处理取舍，再继续推演。
-          </InkNotice>
-          <InkActionGroup align="right">
-            <InkButton href={pendingReplaceHref} variant="secondary">
-              前往处理
-            </InkButton>
-          </InkActionGroup>
-        </div>
+        <PendingCreationNotice
+          pendingTypes={[CRAFT_TYPE]}
+          loading={pendingCreations.isLoading}
+          className="mt-4"
+        />
       )}
 
       <MaterialSelectionModal
@@ -570,7 +559,13 @@ export default function SkillCreationPage() {
                 神通栏已满，请先择一门旧术让位，方可将新神通纳入道基。
               </InkNotice>
               <InkActionGroup align="right">
-                <InkButton href={pendingReplaceHref} variant="primary">
+                <InkButton
+                  variant="primary"
+                  onClick={() => {
+                    setIsResultModalOpen(false);
+                    navigate(pendingReplaceHref);
+                  }}
+                >
                   前往处理
                 </InkButton>
               </InkActionGroup>

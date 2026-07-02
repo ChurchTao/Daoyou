@@ -1,5 +1,14 @@
 import { getCreationProductTypeFromCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
-import type { CreationProductResultRecord } from '@app/components/feature/creation';
+import {
+  PENDING_CREATION_CRAFT_TYPES,
+  getPendingCreationConfig,
+  getPendingCreationReplaceHref,
+  isPendingCreationCraftType,
+  resolvePendingCreationRoute,
+  type CreationProductResultRecord,
+  type PendingCreationCraftType,
+  usePendingCreations,
+} from '@app/components/feature/creation';
 import {
   AbilityDetailModal,
   AbilityListCard,
@@ -21,7 +30,7 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { getCreationProductTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 type V2Product = ProductDisplayModel & { id: string };
@@ -30,7 +39,9 @@ type PendingItem = CreationProductResultRecord;
 function ReplaceContent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const craftType = searchParams.get('type');
+  const rawCraftType = searchParams.get('type');
+  const activeCraftType: PendingCreationCraftType | null =
+    isPendingCreationCraftType(rawCraftType) ? rawCraftType : null;
   const {
     cultivator,
     isLoading: cultivatorLoading,
@@ -39,25 +50,63 @@ function ReplaceContent() {
   const { pushToast, openDialog } = useInkUI();
 
   const [loading, setLoading] = useState(false);
-  const [initializing, setInitializing] = useState(true);
-  const [pendingItem, setPendingItem] = useState<PendingItem | null>(null);
+  const [initializing, setInitializing] = useState(false);
   const [existingItems, setExistingItems] = useState<V2Product[]>([]);
   const [selectedOldId, setSelectedOldId] = useState<string | null>(null);
   const [detailProduct, setDetailProduct] = useState<ProductDisplayModel | null>(
     null,
   );
 
-  const productType = craftType
-    ? getCreationProductTypeFromCraftType(craftType)
+  const pendingCreations = usePendingCreations({
+    craftTypes: PENDING_CREATION_CRAFT_TYPES,
+    enabled: Boolean(cultivator),
+  });
+  const routeResolution = useMemo(
+    () =>
+      resolvePendingCreationRoute({
+        requestedType: rawCraftType,
+        pendingTypes: pendingCreations.pendingTypes,
+      }),
+    [pendingCreations.pendingTypes, rawCraftType],
+  );
+  const pendingItem: PendingItem | null = activeCraftType
+    ? (pendingCreations.items[activeCraftType] ?? null)
+    : null;
+  const productType = activeCraftType
+    ? getCreationProductTypeFromCraftType(activeCraftType)
     : undefined;
-  const isSkill = productType === 'skill';
   const abilityLabel = productType
     ? getCreationProductTypeLabel(productType)
     : getCreationProductTypeLabel('gongfa');
   const pendingDisplayModel = pendingItem ? toProductDisplayModel(pendingItem) : null;
 
   useEffect(() => {
-    if (cultivatorLoading || !cultivator || !craftType || !productType) {
+    if (
+      cultivatorLoading ||
+      !cultivator ||
+      pendingCreations.isLoading ||
+      routeResolution.mode !== 'single'
+    ) {
+      return;
+    }
+
+    navigate(getPendingCreationReplaceHref(routeResolution.craftType), {
+      replace: true,
+    });
+  }, [
+    cultivator,
+    cultivatorLoading,
+    navigate,
+    pendingCreations.isLoading,
+    routeResolution,
+  ]);
+
+  useEffect(() => {
+    if (cultivatorLoading || !cultivator) {
+      return;
+    }
+
+    if (!activeCraftType || !productType) {
       return;
     }
 
@@ -68,22 +117,12 @@ function ReplaceContent() {
       setSelectedOldId(null);
 
       try {
-        const [pendingRes, existingRes] = await Promise.all([
-          fetch(`/api/craft/pending?type=${craftType}`),
-          fetch(`/api/v2/products?type=${productType}&page=1&pageSize=100`),
-        ]);
-        const [pendingData, existingData] = await Promise.all([
-          pendingRes.json(),
-          existingRes.json(),
-        ]);
+        const existingRes = await fetch(
+          `/api/v2/products?type=${productType}&page=1&pageSize=100`,
+        );
+        const existingData = await existingRes.json();
 
         if (cancelled) return;
-
-        if (pendingData.success && pendingData.hasPending) {
-          setPendingItem(pendingData.item);
-        } else {
-          setPendingItem(null);
-        }
 
         if (existingData.success) {
           const items: V2Product[] = (existingData.data?.items ?? []).map(
@@ -99,7 +138,6 @@ function ReplaceContent() {
       } catch (e) {
         if (!cancelled) {
           console.error('获取数据失败:', e);
-          setPendingItem(null);
           setExistingItems([]);
         }
       } finally {
@@ -114,11 +152,16 @@ function ReplaceContent() {
     return () => {
       cancelled = true;
     };
-  }, [craftType, cultivator, cultivatorLoading, productType]);
+  }, [activeCraftType, cultivator, cultivatorLoading, productType]);
 
   const handleConfirm = async (isAbandon: boolean) => {
     if (!isAbandon && !selectedOldId) {
       pushToast({ message: '请选择需要舍弃的旧法门', tone: 'warning' });
+      return;
+    }
+
+    if (!activeCraftType) {
+      pushToast({ message: '当前参悟类型无效，无法确认取舍', tone: 'danger' });
       return;
     }
 
@@ -128,7 +171,7 @@ function ReplaceContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            craftType,
+            craftType: activeCraftType,
             replaceId: isAbandon ? null : selectedOldId,
             abandon: isAbandon,
           }),
@@ -148,7 +191,7 @@ function ReplaceContent() {
         title: isAbandon ? '尘缘尽散' : '领悟成功',
         content: <p>{data.message}</p>,
         onConfirm: () => {
-          navigate(isSkill ? '/game/skills' : '/game/techniques');
+          navigate(getPendingCreationConfig(activeCraftType).ownerHref);
         },
         confirmLabel: '善哉',
       });
@@ -160,7 +203,10 @@ function ReplaceContent() {
     }
   };
 
-  if (cultivatorLoading || initializing) {
+  if (
+    cultivatorLoading ||
+    (Boolean(cultivator) && (pendingCreations.isLoading || initializing))
+  ) {
     return <GameSceneLoading message="感知天机中..." />;
   }
 
@@ -172,18 +218,79 @@ function ReplaceContent() {
     );
   }
 
-  if (!craftType || !productType) {
+  if (routeResolution.mode === 'invalid_type') {
     return (
       <GameSceneFrame variant="lite">
         <InkNotice>当前参悟类型无效，无法进入取舍流程。</InkNotice>
+        <InkActionGroup align="right">
+          <InkButton href="/game/enlightenment" variant="secondary">
+            返回悟道室
+          </InkButton>
+        </InkActionGroup>
+      </GameSceneFrame>
+    );
+  }
+
+  if (routeResolution.mode === 'single') {
+    return <GameSceneLoading message="转入取舍流程中..." />;
+  }
+
+  if (routeResolution.mode === 'multiple') {
+    return (
+      <GameSceneFrame variant="lite">
+        <div className="space-y-4">
+          <InkNotice tone="warning">
+            当前有多门待纳入道基的新法门，请选择一项处理。
+          </InkNotice>
+          <InkActionGroup align="right">
+            {routeResolution.pendingTypes.map((craftType) => {
+              const config = getPendingCreationConfig(craftType);
+              return (
+                <InkButton
+                  key={craftType}
+                  href={config.replaceHref}
+                  variant="secondary"
+                >
+                  处理{config.label}
+                </InkButton>
+              );
+            })}
+          </InkActionGroup>
+        </div>
+      </GameSceneFrame>
+    );
+  }
+
+  if (routeResolution.mode === 'empty' || !activeCraftType || !productType) {
+    return (
+      <GameSceneFrame variant="lite">
+        <div className="space-y-4">
+          <InkNotice>当前没有待处理的新法门。</InkNotice>
+          <InkActionGroup align="right">
+            <InkButton href="/game/enlightenment" variant="secondary">
+              返回悟道室
+            </InkButton>
+          </InkActionGroup>
+        </div>
       </GameSceneFrame>
     );
   }
 
   if (!pendingItem) {
+    const config = getPendingCreationConfig(activeCraftType);
     return (
       <GameSceneFrame variant="lite">
-        <InkNotice>当前没有待处理的新法门。</InkNotice>
+        <div className="space-y-4">
+          <InkNotice>当前没有待处理的新{config.label}，可能已处理或已过期。</InkNotice>
+          <InkActionGroup align="right">
+            <InkButton href="/game/enlightenment" variant="secondary">
+              返回悟道室
+            </InkButton>
+            <InkButton href={config.ownerHref} variant="secondary">
+              查看{config.ownerLabel}
+            </InkButton>
+          </InkActionGroup>
+        </div>
       </GameSceneFrame>
     );
   }
