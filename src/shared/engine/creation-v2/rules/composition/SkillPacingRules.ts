@@ -3,6 +3,7 @@ import {
   CREATION_PROJECTION_BALANCE,
   CREATION_SKILL_DEFAULTS,
 } from '../../config/CreationBalance';
+import { estimateBalanceMetrics } from '../../balancing/PBU';
 import type { EffectConfig, ListenerConfig } from '../../contracts/battle';
 import { BuffType } from '../../contracts/battle';
 import type {
@@ -37,23 +38,15 @@ const ROLE_COOLDOWN_LIMITS: Record<SkillPacingRole, { min: number; max: number }
   sustain: { min: 3, max: 6 },
 };
 
-const ROLE_MP_RATIO_BASE: Record<SkillPacingRole, number> = {
-  offense: 0.12,
-  control: 0.14,
-  guard: 0.13,
-  sustain: 0.16,
+const ROLE_MP_COST_MULTIPLIER: Record<SkillPacingRole, number> = {
+  offense: 1,
+  control: 1.22,
+  guard: 1.12,
+  sustain: 1.28,
 };
 
-const QUALITY_MP_ANCHOR_BY_ORDER = [
-  520,
-  680,
-  1160,
-  2120,
-  4040,
-  5320,
-  6600,
-  7880,
-] as const;
+const MIN_SKILL_MP_COST = 40;
+const MAX_SKILL_MP_COST = 720;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -131,23 +124,42 @@ function resolveQualityCooldownAdd(qualityOrder: number): number {
   return 0;
 }
 
-function resolveQualityMpAnchor(qualityOrder: number): number {
-  return (
-    QUALITY_MP_ANCHOR_BY_ORDER[qualityOrder] ??
-    QUALITY_MP_ANCHOR_BY_ORDER[0]
-  );
-}
-
 function resolveMpCost(args: {
+  role: SkillPacingRole;
   qualityOrder: number;
-  mpRatio: number;
+  pbu: number;
+  cooldown: number;
+  listenerCount: number;
+  paceProfile?: CreationSkillProjectionContext['paceProfile'];
 }): number {
-  const qualityAnchor = resolveQualityMpAnchor(args.qualityOrder);
-  return roundTo10(
-    Math.max(
-      60,
-      qualityAnchor * args.mpRatio,
-    ),
+  const qualityOrder = Math.max(0, args.qualityOrder);
+  const bodyCost =
+    12 +
+    args.pbu * 1.6 +
+    qualityOrder * 3 +
+    qualityOrder * qualityOrder * 1.15 +
+    args.listenerCount * 8;
+  const paceMultiplier =
+    args.paceProfile === 'aggressive'
+      ? 0.92
+      : args.paceProfile === 'sustain'
+        ? 1.08
+        : 1;
+  const cooldownMultiplier = clamp(
+    1 - Math.max(0, args.cooldown - 2) * 0.04,
+    0.88,
+    1,
+  );
+  const roleAdjusted =
+    bodyCost *
+    ROLE_MP_COST_MULTIPLIER[args.role] *
+    paceMultiplier *
+    cooldownMultiplier;
+
+  return clamp(
+    roundTo10(roleAdjusted),
+    MIN_SKILL_MP_COST,
+    MAX_SKILL_MP_COST,
   );
 }
 
@@ -196,24 +208,17 @@ export function resolveSkillResourceAndCooldown(
     limits.max,
   );
 
-  const paceModifier =
-    input.projectionContext?.paceProfile === 'aggressive'
-      ? -0.015
-      : input.projectionContext?.paceProfile === 'sustain'
-        ? 0.01
-        : 0;
-  const mpRatio = clamp(
-    ROLE_MP_RATIO_BASE[role] +
-      qualityOrder * 0.012 +
-      nonCoreAffixCount * 0.015 +
-      rareAffixCount * 0.03 +
-      paceModifier,
-    0.06,
-    role === 'guard' || role === 'sustain' ? 0.28 : 0.24,
+  const balanceMetrics = estimateBalanceMetrics(
+    input.affixes,
+    input.projectionQualityProfile.quality,
   );
   const mpCost = resolveMpCost({
+    role,
     qualityOrder,
-    mpRatio,
+    pbu: balanceMetrics.pbu,
+    cooldown,
+    listenerCount: input.listeners?.length ?? 0,
+    paceProfile: input.projectionContext?.paceProfile,
   });
 
   const priority =
@@ -225,8 +230,8 @@ export function resolveSkillResourceAndCooldown(
     priority,
     traceMessage:
       `skill pacing: role=${role}, cooldown=${cooldown}, mpCost=${mpCost}, ` +
-      `qualityOrder=${qualityOrder}, mpRatio=${mpRatio.toFixed(3)}, ` +
-      `qualityAnchor=${resolveQualityMpAnchor(qualityOrder)}, ` +
+      `qualityOrder=${qualityOrder}, pbu=${balanceMetrics.pbu}, ` +
+      `roleMultiplier=${ROLE_MP_COST_MULTIPLIER[role].toFixed(2)}, ` +
       `nonCore=${nonCoreAffixCount}, rare=${rareAffixCount}`,
   };
 }

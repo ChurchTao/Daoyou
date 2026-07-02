@@ -8,7 +8,12 @@ import {
   getRealmStageUnallocatedAttributeBudget,
 } from '@shared/config/realmProgression';
 import type { DamageParams } from '@shared/engine/battle-v5/core/configs';
-import type { Quality, RealmStage, RealmType } from '@shared/types/constants';
+import {
+  QUALITY_VALUES,
+  type Quality,
+  type RealmStage,
+  type RealmType,
+} from '@shared/types/constants';
 
 const QUALITY_CASES = [
   { quality: '凡品', minSkillHpRatio: 0.14, maxSkillHpRatio: 0.2, minWeaponGain: 0.1, maxWeaponGain: 0.22 },
@@ -130,6 +135,18 @@ function calculateWeaponCoreBasicAttackGain(
   return withWeaponDamage / baseDamage - 1;
 }
 
+function calculateCoreSkillMpCost(quality: Quality): number {
+  const skill = composeProductFromAffixIds({
+    productType: 'skill',
+    element: '火',
+    name: `测试火耗-${quality}`,
+    affixIds: ['skill-core-damage-fire'],
+    requestedQuality: quality,
+  });
+
+  return skill.battleProjection.mpCost;
+}
+
 describe('combat number balance', () => {
   it('keeps core skill single-hit damage inside same-realm HP targets', () => {
     for (const realmCase of REALM_CASES) {
@@ -159,5 +176,60 @@ describe('combat number balance', () => {
         expect(gain).toBeLessThanOrEqual(qualityCase.maxWeaponGain);
       }
     }
+  });
+
+  it('prices core skill mp costs as item-bound absolute costs', () => {
+    const expectedCoreCosts = [60, 70, 80, 90, 110, 120, 140, 160];
+
+    expect(QUALITY_VALUES.map(calculateCoreSkillMpCost)).toEqual(
+      expectedCoreCosts,
+    );
+
+    const earlySkill = composeProductFromAffixIds({
+      productType: 'skill',
+      element: '火',
+      name: '炼气赤炎术',
+      affixIds: ['skill-core-damage-fire'],
+      requestedQuality: '神品',
+      realm: '炼气',
+      realmStage: '初期',
+    });
+    const lateSkill = composeProductFromAffixIds({
+      productType: 'skill',
+      element: '火',
+      name: '渡劫赤炎术',
+      affixIds: ['skill-core-damage-fire'],
+      requestedQuality: '神品',
+      realm: '渡劫',
+      realmStage: '圆满',
+    });
+
+    expect(lateSkill.battleProjection.mpCost).toBe(
+      earlySkill.battleProjection.mpCost,
+    );
+  });
+
+  it('charges extra mp for high-PBU skill affix complexity without realm scaling', () => {
+    const coreSkill = composeProductFromAffixIds({
+      productType: 'skill',
+      element: '火',
+      name: '神品赤炎术',
+      affixIds: ['skill-core-damage-fire'],
+      requestedQuality: '神品',
+    });
+    const rareSkill = composeProductFromAffixIds({
+      productType: 'skill',
+      element: '火',
+      name: '神品赤炎壁',
+      affixIds: ['skill-core-damage-fire', 'skill-rare-earth-rampart'],
+      requestedQuality: '神品',
+      realm: '渡劫',
+      realmStage: '圆满',
+    });
+
+    expect(rareSkill.battleProjection.mpCost).toBeGreaterThan(
+      coreSkill.battleProjection.mpCost,
+    );
+    expect(rareSkill.battleProjection.mpCost).toBe(380);
   });
 });
