@@ -608,6 +608,7 @@ export class TowerService {
       condition: state.condition,
       blessings: state.blessings,
       encounterKind: payload.session.encounter.kind,
+      recoverResources: false,
     });
     const battleResult = simulateBattleV5(
       cultivatorBundle.cultivator,
@@ -630,6 +631,7 @@ export class TowerService {
     state.condition = applyTowerBattleOutcome({
       cultivator: cultivatorBundle.cultivator,
       condition: state.condition,
+      blessings: state.blessings,
       playerSnapshot,
       didLose: !isWin,
       now,
@@ -703,9 +705,11 @@ export class TowerService {
         state.status = 'FINISHED';
         settlement = buildTowerSettlement(state, 'clear');
       } else {
-        const { maxHp, maxMp } = ConditionService.getMaxResources(
+        const externalCaps = ConditionService.getMaxResources(
           cultivatorBundle.cultivator,
         );
+        const maxHp = state.condition.resources.hp.max ?? externalCaps.maxHp;
+        const maxMp = state.condition.resources.mp.max ?? externalCaps.maxMp;
         const choices = buildTowerBlessingChoices({
           runId: state.runId,
           clearedFloor,

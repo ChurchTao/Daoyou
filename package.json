@@ -9,6 +9,7 @@
     "auth:info": "bunx auth@latest info --config src/server/lib/auth/auth.ts --json",
     "auth:migrate": "bunx auth@latest migrate --config src/server/lib/auth/auth.ts --yes",
     "build": "tsc -b && vite build --mode client && vite build",
+    "build:client": "tsc -b && vite build --mode client",
     "check": "bun run build",
     "dev": "vite",
     "lint": "eslint .",

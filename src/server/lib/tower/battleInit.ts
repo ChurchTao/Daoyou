@@ -4,6 +4,7 @@ import {
   ModifierType,
 } from '@shared/engine/battle-v5/core/types';
 import type { BattleInitConfigV5 } from '@shared/engine/battle-v5/setup/types';
+import { createCombatUnitFromCultivator } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
 import { isConditionStatusActive } from '@shared/lib/condition';
 import type {
   ConditionStatusInstance,
@@ -111,6 +112,85 @@ function buildBlessingModifiers(
   return modifiers;
 }
 
+function applyModifiersToUnit(
+  cultivator: Cultivator,
+  modifiers: AttributeModifierConfig[],
+) {
+  const unit = createCombatUnitFromCultivator(cultivator);
+
+  modifiers.forEach((modifier, index) => {
+    unit.attributes.addModifier({
+      id: `tower-blessing:${modifier.attrType}:${modifier.type}:${index}`,
+      attrType: modifier.attrType,
+      type: modifier.type,
+      value: modifier.value,
+      source: {
+        sourceType: 'battle_init',
+        sourceKey: 'tower-blessing',
+      },
+    });
+  });
+  unit.updateDerivedStats();
+
+  return unit;
+}
+
+function getTowerMaxResources(args: {
+  cultivator: Cultivator;
+  blessings: Partial<Record<TowerBlessingId, number>>;
+}) {
+  const unit = applyModifiersToUnit(
+    args.cultivator,
+    buildBlessingModifiers(args.blessings),
+  );
+
+  return {
+    maxHp: unit.getMaxHp(),
+    maxMp: unit.getMaxMp(),
+  };
+}
+
+function getFiniteCurrent(value: number | undefined, fallback: number) {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.floor(value)
+    : fallback;
+}
+
+function withTowerResourceCaps(args: {
+  condition: CultivatorCondition;
+  rawCondition: CultivatorCondition | undefined;
+  maxHp: number;
+  maxMp: number;
+}) {
+  return {
+    ...args.condition,
+    resources: {
+      hp: {
+        current: clamp(
+          getFiniteCurrent(
+            args.rawCondition?.resources?.hp?.current,
+            args.condition.resources.hp.current,
+          ),
+          0,
+          args.maxHp,
+        ),
+        max: args.maxHp,
+      },
+      mp: {
+        current: clamp(
+          getFiniteCurrent(
+            args.rawCondition?.resources?.mp?.current,
+            args.condition.resources.mp.current,
+          ),
+          0,
+          args.maxMp,
+        ),
+        max: args.maxMp,
+      },
+    },
+  };
+}
+
 function applyPreBattleRecovery(args: {
   condition: CultivatorCondition;
   maxHp: number;
@@ -183,6 +263,7 @@ export function buildTowerBattleInit(args: {
   condition: CultivatorCondition;
   blessings: Partial<Record<TowerBlessingId, number>>;
   encounterKind: TowerFloorKind;
+  recoverResources?: boolean;
 }): {
   battleInit: BattleInitConfigV5;
   normalizedCondition: CultivatorCondition;
@@ -191,16 +272,37 @@ export function buildTowerBattleInit(args: {
     args.cultivator,
     args.condition,
   );
-  const { maxHp, maxMp } = ConditionService.getMaxResources(args.cultivator);
-  const recovered = applyPreBattleRecovery({
-    condition: normalizedCondition,
-    maxHp,
-    maxMp,
+  const { maxHp, maxMp } = getTowerMaxResources({
+    cultivator: args.cultivator,
     blessings: args.blessings,
   });
+  const towerCondition = withTowerResourceCaps({
+    condition: normalizedCondition,
+    rawCondition: args.condition,
+    maxHp,
+    maxMp,
+  });
+  const recovered = args.recoverResources === false
+    ? {
+        hp: towerCondition.resources.hp.current,
+        mp: towerCondition.resources.mp.current,
+      }
+    : applyPreBattleRecovery({
+        condition: towerCondition,
+        maxHp,
+        maxMp,
+        blessings: args.blessings,
+      });
+  const battleStartCondition = {
+    ...towerCondition,
+    resources: {
+      hp: { current: recovered.hp, max: maxHp },
+      mp: { current: recovered.mp, max: maxMp },
+    },
+  };
 
   return {
-    normalizedCondition,
+    normalizedCondition: battleStartCondition,
     battleInit: {
       player: {
         modifiers: buildBlessingModifiers(args.blessings),
@@ -224,6 +326,16 @@ export function buildTowerBattleInit(args: {
       },
       opponent: {
         modifiers: buildOpponentModifiers(args.encounterKind),
+        resourceState: {
+          hp: {
+            mode: 'percent',
+            value: 1,
+          },
+          mp: {
+            mode: 'percent',
+            value: 1,
+          },
+        },
       },
     },
   };
@@ -232,6 +344,7 @@ export function buildTowerBattleInit(args: {
 export function applyTowerBattleOutcome(args: {
   cultivator: Cultivator;
   condition: CultivatorCondition;
+  blessings: Partial<Record<TowerBlessingId, number>>;
   playerSnapshot: UnitStateSnapshot;
   didLose: boolean;
   now?: Date;
@@ -242,22 +355,31 @@ export function applyTowerBattleOutcome(args: {
     args.condition,
     now,
   );
-  const { maxHp, maxMp } = ConditionService.getMaxResources(args.cultivator);
+  const { maxHp, maxMp } = getTowerMaxResources({
+    cultivator: args.cultivator,
+    blessings: args.blessings,
+  });
+  const towerCondition = withTowerResourceCaps({
+    condition: normalizedCondition,
+    rawCondition: args.condition,
+    maxHp,
+    maxMp,
+  });
 
   if (args.didLose) {
     return {
-      ...normalizedCondition,
+      ...towerCondition,
       resources: {
         hp: { current: 1, max: maxHp },
         mp: { current: 0, max: maxMp },
       },
       statuses: replaceWoundStatus(
-        normalizedCondition.statuses,
+        towerCondition.statuses,
         'near_death',
         now.toISOString(),
       ),
       timestamps: {
-        ...normalizedCondition.timestamps,
+        ...towerCondition.timestamps,
         lastBattleAt: now.toISOString(),
         lastRecoveryAt: now.toISOString(),
       },
@@ -267,7 +389,7 @@ export function applyTowerBattleOutcome(args: {
   const currentHp = clamp(args.playerSnapshot.hp.current, 0, maxHp);
   const currentMp = clamp(args.playerSnapshot.mp.current, 0, maxMp);
   const hpRatio = maxHp > 0 ? currentHp / maxHp : 0;
-  let statuses = normalizedCondition.statuses;
+  let statuses = towerCondition.statuses;
 
   if (hpRatio <= 0.15) {
     statuses = replaceWoundStatus(statuses, 'major_wound', now.toISOString());
@@ -276,14 +398,14 @@ export function applyTowerBattleOutcome(args: {
   }
 
   return {
-    ...normalizedCondition,
+    ...towerCondition,
     resources: {
       hp: { current: currentHp, max: maxHp },
       mp: { current: currentMp, max: maxMp },
     },
     statuses,
     timestamps: {
-      ...normalizedCondition.timestamps,
+      ...towerCondition.timestamps,
       lastBattleAt: now.toISOString(),
       lastRecoveryAt: now.toISOString(),
     },

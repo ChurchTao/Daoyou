@@ -82,7 +82,7 @@ function createCondition(overrides: Partial<CultivatorCondition> = {}): Cultivat
 }
 
 describe('tower battle init', () => {
-  it('clamps tower resources to the live character cap and applies recoveries plus modifiers', () => {
+  it('projects tower resources to the battle-start state with recoveries plus modifiers', () => {
     const cultivator = createCultivator();
     const { maxHp, maxMp } = ConditionService.getMaxResources(cultivator);
     const condition = createCondition({
@@ -103,10 +103,11 @@ describe('tower battle init', () => {
       encounterKind: 'elite',
     });
 
-    expect(result.normalizedCondition.resources.hp.current).toBe(maxHp - 80);
+    expect(result.normalizedCondition.resources.hp.max).toBeGreaterThan(maxHp);
+    expect(result.normalizedCondition.resources.hp.current).toBeGreaterThan(maxHp - 80);
     expect(result.normalizedCondition.resources.mp.current).toBe(maxMp);
     expect(result.battleInit.player?.resourceState?.hp?.mode).toBe('absolute');
-    expect(result.battleInit.player?.resourceState?.hp?.value).toBeGreaterThan(
+    expect(result.battleInit.player?.resourceState?.hp?.value).toBe(
       result.normalizedCondition.resources.hp.current,
     );
     expect(result.battleInit.player?.modifiers).toEqual(
@@ -156,6 +157,111 @@ describe('tower battle init', () => {
     expect(blessed.maxHp).toBeGreaterThan(baseline.maxHp);
   });
 
+  it('starts tower opponents at full resources after floor modifiers', () => {
+    const cultivator = createCultivator();
+    const opponent = {
+      ...createCultivator(),
+      id: 'opponent-1',
+      name: '厉飞雨',
+    };
+    const { battleInit } = buildTowerBattleInit({
+      cultivator,
+      condition: createCondition(),
+      blessings: {},
+      encounterKind: 'elite',
+    });
+
+    const { opponentUnit } = createBattleUnitsWithInit(
+      cultivator,
+      opponent,
+      battleInit,
+    );
+    const snapshot = opponentUnit.getSnapshot();
+
+    expect(snapshot.currentHp).toBe(snapshot.maxHp);
+    expect(snapshot.currentMp).toBe(snapshot.maxMp);
+  });
+
+  it('lets tower resource blessings recover and persist above the external cap', () => {
+    const cultivator = createCultivator();
+    const opponent = {
+      ...createCultivator(),
+      id: 'opponent-1',
+      name: '厉飞雨',
+    };
+    const { maxHp, maxMp } = ConditionService.getMaxResources(cultivator);
+    const condition = createCondition({
+      resources: {
+        hp: { current: maxHp },
+        mp: { current: maxMp },
+      },
+    });
+    const { battleInit } = buildTowerBattleInit({
+      cultivator,
+      condition,
+      blessings: {
+        jade_bones: 1,
+        sea_of_qi: 1,
+        breathing_technique: 3,
+        meridian_cycle: 3,
+      },
+      encounterKind: 'normal',
+    });
+
+    const { playerUnit } = createBattleUnitsWithInit(
+      cultivator,
+      opponent,
+      battleInit,
+    );
+    const snapshot = playerUnit.getSnapshot();
+
+    expect(snapshot.maxHp).toBeGreaterThan(maxHp);
+    expect(snapshot.maxMp).toBeGreaterThan(maxMp);
+    expect(snapshot.currentHp).toBeGreaterThan(maxHp);
+    expect(snapshot.currentMp).toBeGreaterThan(maxMp);
+
+    const nextCondition = applyTowerBattleOutcome({
+      cultivator,
+      condition,
+      blessings: {
+        jade_bones: 1,
+        sea_of_qi: 1,
+      },
+      playerSnapshot: {
+        hp: { current: snapshot.maxHp, max: snapshot.maxHp, percent: 100 },
+        mp: { current: snapshot.maxMp, max: snapshot.maxMp, percent: 100 },
+        shield: 0,
+        alive: true,
+        buffs: [],
+      } as any,
+      didLose: false,
+      now: new Date('2026-05-26T12:00:00.000Z'),
+    });
+
+    expect(nextCondition.resources.hp.current).toBe(snapshot.maxHp);
+    expect(nextCondition.resources.hp.max).toBe(snapshot.maxHp);
+    expect(nextCondition.resources.mp.current).toBe(snapshot.maxMp);
+    expect(nextCondition.resources.mp.max).toBe(snapshot.maxMp);
+
+    const resumed = buildTowerBattleInit({
+      cultivator,
+      condition: nextCondition,
+      blessings: {
+        jade_bones: 1,
+        sea_of_qi: 1,
+        breathing_technique: 3,
+        meridian_cycle: 3,
+      },
+      encounterKind: 'normal',
+      recoverResources: false,
+    });
+
+    expect(resumed.normalizedCondition.resources.hp.current).toBe(snapshot.maxHp);
+    expect(resumed.normalizedCondition.resources.mp.current).toBe(snapshot.maxMp);
+    expect(resumed.battleInit.player?.resourceState?.hp?.value).toBe(snapshot.maxHp);
+    expect(resumed.battleInit.player?.resourceState?.mp?.value).toBe(snapshot.maxMp);
+  });
+
   it('marks defeat as near death without natural recovery', () => {
     const cultivator = createCultivator();
     const condition = createCondition({
@@ -168,6 +274,7 @@ describe('tower battle init', () => {
     const nextCondition = applyTowerBattleOutcome({
       cultivator,
       condition,
+      blessings: {},
       playerSnapshot: {
         hp: { current: 0, max: 0, percent: 0 },
         mp: { current: 0, max: 0, percent: 0 },
@@ -224,6 +331,7 @@ describe('tower battle init', () => {
     const nextCondition = applyTowerBattleOutcome({
       cultivator,
       condition,
+      blessings: {},
       playerSnapshot: playerSnapshot!,
       didLose: result.winner.id !== cultivatorId,
       now: new Date('2026-05-26T12:00:00.000Z'),
