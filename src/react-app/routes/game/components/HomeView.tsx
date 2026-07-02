@@ -121,6 +121,8 @@ export function HomeView() {
   }
 
   const urgentItems: ReactNode[] = [];
+  const unallocatedAttributePoints =
+    cultivator.unallocated_attribute_points ?? 0;
   const noviceAction = getNextNoviceHomeAction({
     tasks,
     cultivator,
@@ -147,6 +149,21 @@ export function HomeView() {
         action={
           <InkButton href={noviceAction.href} variant="primary">
             {noviceAction.label}
+          </InkButton>
+        }
+      />,
+    );
+  }
+
+  if (unallocatedAttributePoints > 0) {
+    urgentItems.push(
+      <HomeUrgentRow
+        key="unallocated-attributes"
+        title={<span className="text-wood">✦ 根基待定</span>}
+        summary={`尚有 ${unallocatedAttributePoints} 点可分配属性点`}
+        action={
+          <InkButton href="/game/cultivator/attributes" variant="primary">
+            分配
           </InkButton>
         }
       />,

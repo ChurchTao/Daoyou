@@ -287,7 +287,7 @@ export function MarrowWashSummaryContent({
 
   return (
     <div className="border-ink/15 bg-bgpaper/75 overflow-hidden border border-dashed">
-      <div className="flex flex-wrap items-start justify-between gap-3 px-3 py-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-3 py-3">
         <div className="min-w-0">
           <p className="text-ink-secondary text-xs leading-5">当前洗髓</p>
           <p className="text-ink text-xl leading-8 font-semibold">
