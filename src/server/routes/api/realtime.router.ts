@@ -1,5 +1,6 @@
 import { requireActiveCultivatorRef } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
+import { isAllowedRealtimeOrigin } from '@server/lib/http/realtimeOrigin';
 import { subscribePlayerStateEvents } from '@server/lib/services/playerStateBroadcaster';
 import { subscribeWorldChatMessages } from '@server/lib/services/worldChatBroadcaster';
 import type { RealtimeServerEvent } from '@shared/contracts/realtime';
@@ -18,6 +19,10 @@ function sendEnvelope(ws: WSContext, event: RealtimeServerEvent) {
 }
 
 router.get('/', requireActiveCultivatorRef(), async (c) => {
+  if (!isAllowedRealtimeOrigin(c.req.header('origin'))) {
+    return c.json({ success: false, error: 'Forbidden origin' }, 403);
+  }
+
   const ref = c.get('activeCultivatorRef');
   if (!ref) {
     return c.json({ success: false, error: '当前没有活跃角色' }, 404);

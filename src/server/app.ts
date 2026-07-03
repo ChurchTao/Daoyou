@@ -1,5 +1,8 @@
 import { handleAuthRequest } from '@server/lib/auth/hono';
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { apiCorsOptions } from '@server/lib/http/cors';
 import { runWithContext } from '@server/lib/http/context';
 import { apiIpRateLimit } from '@server/lib/hono/apiIpRateLimit';
 import { jsonError } from '@server/lib/hono/middleware';
@@ -10,7 +13,15 @@ import internalRouter from '@server/routes/internal';
 
 const app = new Hono<AppEnv>();
 
+app.use('/api/*', logger());
+app.use('/internal/*', logger());
+
 app.use('*', async (context, next) => runWithContext(context, next));
+
+app.use(
+  '/api/*',
+  cors(apiCorsOptions),
+);
 
 app.use('*', async (context, next) => {
   const provider = context.req.header('x-llm-provider');

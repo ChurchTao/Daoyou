@@ -64,7 +64,7 @@ export async function authLayoutLoader({
   try {
     const response = await fetch('/api/community/announcement', {
       cache: 'no-store',
-      credentials: 'same-origin',
+      credentials: 'include',
       signal: request.signal,
     });
     const payload = (await response.json()) as AuthAnnouncementResponse;
@@ -99,7 +99,7 @@ export async function requireAdminLoader({
 
   const response = await fetch('/api/admin/session', {
     cache: 'no-store',
-    credentials: 'same-origin',
+    credentials: 'include',
     signal: request.signal,
   });
   const payload = (await response.json()) as AdminSessionResponse;

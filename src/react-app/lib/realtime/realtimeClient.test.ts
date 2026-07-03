@@ -2,6 +2,10 @@ import type { RealtimeServerEvent } from '@shared/contracts/realtime';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RealtimeClient } from './realtimeClient';
 
+vi.mock('@app/lib/api/url', () => ({
+  resolveRealtimeUrl: () => 'wss://api.example.com/api/realtime',
+}));
+
 class MockWebSocket {
   static OPEN = 1;
   static CONNECTING = 0;
@@ -81,7 +85,7 @@ describe('RealtimeClient', () => {
       },
     });
 
-    expect(socket.url).toBe('ws://localhost:5173/api/realtime');
+    expect(socket.url).toBe('wss://api.example.com/api/realtime');
     expect(socket.sent).toContain(JSON.stringify({ type: 'pong' }));
     expect(listener).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'world-chat.message' }),

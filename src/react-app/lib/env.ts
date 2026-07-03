@@ -12,5 +12,6 @@ function getOptionalEnv(...names: string[]): string | undefined {
 }
 
 export const clientEnv = {
+  apiBaseUrl: getOptionalEnv('VITE_API_BASE_URL')?.replace(/\/+$/, ''),
   turnstileSiteKey: getOptionalEnv('VITE_TURNSTILE_SITE_KEY'),
 };

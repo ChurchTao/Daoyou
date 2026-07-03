@@ -57,7 +57,7 @@
 
 ```text
 .
-├── src/index.ts                 # 根 Hono 应用，生产环境负责 SPA fallback
+├── src/index.ts                 # Bun 后端入口，导出 Hono API 与 WebSocket 配置
 ├── src/server/                  # Hono API、认证、服务层、数据库访问
 ├── src/react-app/               # React SPA
 ├── src/shared/                  # 共享引擎、配置、类型、契约
@@ -75,7 +75,7 @@
 - `src/react-app` 使用 `BrowserRouter` 管理前端路由
 - `src/server/app.ts` 提供 `/api/*` 和 `/internal/*` 接口
 - `src/index.ts` 在生产环境会注册 Bun 内置 cron，用于单容器内直接触发定时任务
-- `src/index.ts` 在生产环境对非 API 的 `GET/HEAD` 请求返回 `dist/index.html`，由前端 SPA 接管路由
+- 前端 SPA 独立部署到 Cloudflare Pages；后端 Docker 不再服务 `index.html` 或静态资源
 
 当前路由约定：
 
@@ -83,7 +83,7 @@
 - `/api/auth/*`：Better Auth
 - `/internal/cron/*`：内部定时任务接口
 - `/api/health-check`：健康检查
-- 其余如 `/login`、`/game`、`/admin`：前端 SPA 路由
+- 其余如 `/login`、`/game`、`/admin`：Cloudflare Pages 上的前端 SPA 路由
 
 ## 环境要求
 
@@ -114,7 +114,7 @@ cp .env.example .env.local
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL 连接串 |
 | `BETTER_AUTH_SECRET` | Better Auth 密钥 |
-| `BETTER_AUTH_URL` | Better Auth 对外基准地址；本地开发通常填 `http://localhost:5173`，构建后本地运行通常填 `http://localhost:3000` |
+| `BETTER_AUTH_URL` | Better Auth 后端对外基准地址；生产填 API 域名，如 `https://api.example.com` |
 
 ### 建议同时配置
 
@@ -124,6 +124,8 @@ cp .env.example .env.local
 | `API_IP_RATE_LIMIT_WINDOW_SECONDS` | `/api/*` 全局 IP 令牌桶补充周期秒数；默认 `60` |
 | `API_IP_RATE_LIMIT_MAX_REQUESTS` | `/api/*` 同 IP 令牌桶容量和每周期补充 token 数；默认 `300` |
 | `BETTER_AUTH_DB_SCHEMA` | Better Auth schema 名；默认值为 `better_auth` |
+| `PUBLIC_WEB_ORIGINS` | 允许访问 API 的前端 origin，逗号分隔，如 `https://app.example.com,http://localhost:5173` |
+| `BETTER_AUTH_COOKIE_DOMAIN` | 可选；同站子域部署时可填 `.example.com` 启用跨子域 cookie |
 | `ADMIN_EMAILS` | 管理员邮箱白名单，逗号分隔 |
 
 ### 生产 cron 必需
@@ -145,6 +147,7 @@ cp .env.example .env.local
 
 | 变量 | 说明 |
 | --- | --- |
+| `VITE_API_BASE_URL` | 前端构建时注入的后端 API 基地址，如 `https://api.example.com` |
 | `VITE_TURNSTILE_SITE_KEY` | 前端构建时注入；没有它，登录/注册/找回密码页不会渲染验证码组件 |
 | `TURNSTILE_SECRET_KEY` 或 `TURNSTILE_SECRET` | 服务端校验 Turnstile 的密钥；未配置时服务端仍要求 token，但不会调用 Cloudflare 做真正校验 |
 
@@ -213,7 +216,9 @@ bun run dev
 | 命令 | 作用 |
 | --- | --- |
 | `bun run dev` | 本地开发 |
-| `bun run build` | 构建前端与服务端到 `dist/` |
+| `bun run build` | 依次构建前端与服务端 |
+| `bun run build:client` | 构建 Cloudflare Pages 使用的前端 SPA |
+| `bun run build:server` | 构建 Docker 使用的 Bun/Hono 后端 |
 | `bun run preview` | 先构建，再运行 `dist/index.js` |
 | `bun run start` | 直接运行已构建产物 |
 | `bun run lint` | ESLint 检查 |
@@ -223,8 +228,8 @@ bun run dev
 
 构建产物：
 
-- `dist/index.html`：前端 SPA
-- `dist/index.js`：Bun 运行的 Hono 服务入口
+- `build:client` 产出前端 SPA
+- `build:server` 产出 Bun 运行的 Hono 服务入口 `dist/index.js`
 
 ## Docker
 
@@ -233,9 +238,7 @@ bun run dev
 本地构建镜像：
 
 ```bash
-docker build -t daoyou-hono-bun:local \
-  --build-arg VITE_TURNSTILE_SITE_KEY=your-public-site-key \
-  -f Dockerfile .
+docker build -t daoyou-hono-bun:local -f Dockerfile .
 ```
 
 运行镜像：
@@ -248,7 +251,7 @@ docker run --rm -p 3000:3000 \
 
 注意：
 
-- `VITE_TURNSTILE_SITE_KEY` 是前端构建期变量，不是单纯的运行时变量
+- `VITE_API_BASE_URL` 和 `VITE_TURNSTILE_SITE_KEY` 是前端 Pages 构建期变量，不进入后端 Docker 镜像
 - 服务运行时环境变量通过 shell、容器环境或 `--env-file` 注入
 
 ## 仓库内现成部署脚本
@@ -337,7 +340,6 @@ docker compose up -d
 
 - 构建 Docker 镜像
 - 推送到 Docker Hub
-- 将 `VITE_TURNSTILE_SITE_KEY` 作为构建参数注入
 
 ## 贡献指南
 

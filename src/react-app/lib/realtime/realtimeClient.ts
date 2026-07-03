@@ -2,6 +2,7 @@ import type {
   RealtimeServerEvent,
   RealtimeServerEventType,
 } from '@shared/contracts/realtime';
+import { resolveRealtimeUrl } from '@app/lib/api/url';
 
 type RealtimeListener<T extends RealtimeServerEventType> = (
   event: Extract<RealtimeServerEvent, { type: T }>,
@@ -29,10 +30,7 @@ export class RealtimeClient {
     }
 
     this.manuallyClosed = false;
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(
-      `${protocol}//${window.location.host}/api/realtime`,
-    );
+    const socket = new WebSocket(resolveRealtimeUrl());
     this.socket = socket;
 
     socket.onopen = () => {

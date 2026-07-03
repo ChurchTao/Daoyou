@@ -1,12 +1,14 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
+import { resolveApiUrl } from './lib/api/url';
 import { router } from './router';
 import './index.css';
 
 const originalFetch = window.fetch;
 window.fetch = async (input, init) => {
   if (typeof input === 'string' && input.startsWith('/api/')) {
+    init = { ...init, credentials: init?.credentials ?? 'include' };
     const raw = localStorage.getItem('daoyou_llm_config');
     if (raw) {
       try {
@@ -22,6 +24,8 @@ window.fetch = async (input, init) => {
         // ignore invalid json
       }
     }
+
+    input = resolveApiUrl(input);
   }
   return originalFetch(input, init);
 };

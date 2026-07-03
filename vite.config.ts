@@ -42,8 +42,7 @@ export default defineConfig(({ command, mode }) => {
       plugins: [
         build({
           entry: './src/index.ts',
-          staticRoot: './dist',
-          emptyOutDir: false,
+          emptyOutDir: true,
           entryContentDefaultExportHook: (
             appName,
           ) => `export default websocket !== undefined

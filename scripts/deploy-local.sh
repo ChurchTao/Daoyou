@@ -10,12 +10,7 @@ PORT="${PORT:-3000}"
 ENV_FILE="${ENV_FILE:-}"
 HEALTHCHECK_PATH="${HEALTHCHECK_PATH:-/api/health-check}"
 
-BUILD_ARGS=()
 RUN_ARGS=()
-
-if [ -n "${VITE_TURNSTILE_SITE_KEY:-}" ]; then
-  BUILD_ARGS+=(--build-arg "VITE_TURNSTILE_SITE_KEY=${VITE_TURNSTILE_SITE_KEY}")
-fi
 
 if [ -n "${ENV_FILE}" ]; then
   if [ ! -f "${ENV_FILE}" ]; then
@@ -26,7 +21,7 @@ if [ -n "${ENV_FILE}" ]; then
 fi
 
 echo "==> Building image: ${IMAGE_TAG}"
-docker build "${BUILD_ARGS[@]}" -t "${IMAGE_TAG}" -f Dockerfile .
+docker build -t "${IMAGE_TAG}" -f Dockerfile .
 
 if docker ps -a --format '{{.Names}}' | awk -v name="${CONTAINER_NAME}" '$0 == name { found=1 } END { exit !found }'; then
   echo "==> Removing existing container: ${CONTAINER_NAME}"
