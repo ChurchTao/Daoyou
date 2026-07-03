@@ -119,6 +119,7 @@ vi.mock('@server/lib/services/cultivatorService', () => {
   };
 });
 
+import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import {
   craftFromFormula,
   previewFormulaCraft,
@@ -132,12 +133,9 @@ import {
   processCreation,
 } from '@server/lib/services/creationServiceV2';
 import { getCultivatorById } from '@server/lib/services/cultivatorService';
+import { commitPlayerStateMutation } from '@server/lib/services/PlayerStateMutationService';
 import { QiService } from '@server/lib/services/QiService';
 import { TaskService } from '@server/lib/services/TaskService';
-import {
-  commitPlayerStateMutation,
-} from '@server/lib/services/PlayerStateMutationService';
-import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import craftRouter from './craft.router';
 
 const previewAlchemySelectionMock = previewAlchemySelection as unknown as Mock;
@@ -431,6 +429,7 @@ describe('craft router alchemy routes', () => {
     );
     expect(createMessageMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        channel: 'system',
         senderCultivatorId: null,
         senderName: '修仙界传闻',
         senderRealmStage: '系统',
@@ -709,7 +708,7 @@ describe('craft router creation broadcasts', () => {
     commitReservationMock.mockResolvedValue(undefined);
     createMessageMock.mockResolvedValue({
       id: 'chat-1',
-      channel: 'world',
+      channel: 'system',
     });
   });
 
@@ -760,6 +759,7 @@ describe('craft router creation broadcasts', () => {
     );
     expect(createMessageMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        channel: 'system',
         senderCultivatorId: null,
         senderName: '修仙界传闻',
         senderRealmStage: '系统',
@@ -855,6 +855,7 @@ describe('craft router creation broadcasts', () => {
     expect(response.status).toBe(200);
     expect(createMessageMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        channel: 'system',
         messageType: 'item_showcase',
         payload: expect.objectContaining({
           itemType: 'skill',

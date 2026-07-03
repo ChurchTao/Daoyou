@@ -75,9 +75,12 @@ vi.mock('@server/lib/hono/middleware', () => ({
     },
 }));
 
-vi.mock('@shared/engine/creation-v2/persistence/ProductPersistenceMapper', () => ({
-  deserializeAndRehydrate: vi.fn(),
-}));
+vi.mock(
+  '@shared/engine/creation-v2/persistence/ProductPersistenceMapper',
+  () => ({
+    deserializeAndRehydrate: vi.fn(),
+  }),
+);
 
 vi.mock('@shared/engine/creation-v2/models/AbilityProjection', () => ({
   projectAbilityConfig: vi.fn(() => ({ cooldown: 0, mpCost: 0 })),
@@ -153,7 +156,10 @@ function createApp() {
 describe('rankings router', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    checkDailyChallengesMock.mockResolvedValue({ success: true, remaining: 10 });
+    checkDailyChallengesMock.mockResolvedValue({
+      success: true,
+      remaining: 10,
+    });
     isRankingEmptyMock.mockResolvedValue(false);
     getRemainingChallengesMock.mockResolvedValue(10);
     getCultivatorRankMock
@@ -251,6 +257,7 @@ describe('rankings router', () => {
     );
     expect(createMessageMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        channel: 'system',
         senderCultivatorId: null,
         senderName: '修仙界传闻',
         messageType: 'text',
@@ -346,9 +353,7 @@ describe('rankings router', () => {
 
   it('does not update ranking for cross-realm challenge battles', async () => {
     getCultivatorRankMock.mockReset();
-    getCultivatorRankMock
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(1);
+    getCultivatorRankMock.mockResolvedValueOnce(null).mockResolvedValueOnce(1);
 
     const response = await createApp().request(
       '/api/rankings/challenge-battle/v5',
@@ -422,13 +427,17 @@ describe('rankings router', () => {
     );
     expect(createMessageMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        channel: 'system',
         textContent: '万界金榜初开，韩立登临筑基天骄榜第1名。',
         payload: { text: '万界金榜初开，韩立登临筑基天骄榜第1名。' },
       }),
     );
 
     vi.clearAllMocks();
-    checkDailyChallengesMock.mockResolvedValue({ success: true, remaining: 10 });
+    checkDailyChallengesMock.mockResolvedValue({
+      success: true,
+      remaining: 10,
+    });
     isRankingEmptyMock.mockResolvedValue(true);
     getCultivatorRankMock.mockResolvedValue(null);
 
@@ -452,9 +461,7 @@ describe('rankings router', () => {
 
   it('allows cross-realm challenge validation without ranking changes', async () => {
     getCultivatorRankMock.mockReset();
-    getCultivatorRankMock
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(1);
+    getCultivatorRankMock.mockResolvedValueOnce(null).mockResolvedValueOnce(1);
 
     const response = await createApp().request('/api/rankings/challenge', {
       method: 'POST',
@@ -508,9 +515,7 @@ describe('rankings router', () => {
 
   it('adds an unranked loser to the ranking tail when own-realm ranking has vacancies', async () => {
     getCultivatorRankMock.mockReset();
-    getCultivatorRankMock
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(1);
+    getCultivatorRankMock.mockResolvedValueOnce(null).mockResolvedValueOnce(1);
     simulateBattleV5Mock.mockReturnValueOnce({
       winner: { id: 'target-1' },
       loser: { id: 'cultivator-1' },
@@ -558,6 +563,7 @@ describe('rankings router', () => {
     );
     expect(createMessageMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        channel: 'system',
         textContent:
           '万界金榜有感，韩立虽挑战厉飞雨未胜，仍补入筑基天骄榜第2名。',
         payload: {
@@ -569,9 +575,7 @@ describe('rankings router', () => {
 
   it('does not broadcast when an unranked loser cannot enter a full ranking', async () => {
     getCultivatorRankMock.mockReset();
-    getCultivatorRankMock
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(1);
+    getCultivatorRankMock.mockResolvedValueOnce(null).mockResolvedValueOnce(1);
     simulateBattleV5Mock.mockReturnValueOnce({
       winner: { id: 'target-1' },
       loser: { id: 'cultivator-1' },

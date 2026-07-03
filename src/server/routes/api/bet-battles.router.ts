@@ -1,21 +1,19 @@
-import * as betBattleRepository from '@server/lib/repositories/betBattleRepository';
-import {
-  requireActiveCultivator,
-} from '@server/lib/hono/middleware';
+import { requireActiveCultivator } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
+import * as betBattleRepository from '@server/lib/repositories/betBattleRepository';
 import { createMessage } from '@server/lib/repositories/worldChatRepository';
-import {
-  commitPlayerStateMutation,
-  type StateChangeDescriptor,
-  toPlayerStateMutationResponse,
-} from '@server/lib/services/PlayerStateMutationService';
 import {
   BetBattleServiceError,
   cancelBetBattle,
   challengeBetBattle,
   createBetBattle,
 } from '@server/lib/services/BetBattleService';
+import {
+  commitPlayerStateMutation,
+  type StateChangeDescriptor,
+  toPlayerStateMutationResponse,
+} from '@server/lib/services/PlayerStateMutationService';
 import { REALM_VALUES } from '@shared/types/constants';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -149,7 +147,10 @@ router.get('/my', requireActiveCultivator(), async (c) => {
       limit: c.req.query('limit') ? Number(c.req.query('limit')) : undefined,
     });
 
-    const result = await betBattleRepository.findMyBetBattles(cultivator.id, params);
+    const result = await betBattleRepository.findMyBetBattles(
+      cultivator.id,
+      params,
+    );
     const page = params.page || 1;
     const limit = params.limit || 20;
     const totalPages = Math.ceil(result.total / limit);
@@ -227,6 +228,7 @@ router.post('/create', requireActiveCultivator(), async (c) => {
         senderName: '修仙界传闻',
         senderRealm: '炼气',
         senderRealmStage: '系统',
+        channel: 'system',
         messageType: 'duel_invite',
         textContent: rumor,
         payload: {
@@ -250,7 +252,11 @@ router.post('/create', requireActiveCultivator(), async (c) => {
     }
 
     if (error instanceof BetBattleServiceError) {
-      return jsonWithStatus(c, { error: error.message }, statusMap[error.code] || 400);
+      return jsonWithStatus(
+        c,
+        { error: error.message },
+        statusMap[error.code] || 400,
+      );
     }
 
     console.error('Create bet battle API error:', error);
@@ -289,7 +295,11 @@ router.post('/:id/cancel', requireActiveCultivator(), async (c) => {
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     if (error instanceof BetBattleServiceError) {
-      return jsonWithStatus(c, { error: error.message }, statusMap[error.code] || 400);
+      return jsonWithStatus(
+        c,
+        { error: error.message },
+        statusMap[error.code] || 400,
+      );
     }
 
     console.error('Cancel bet battle API error:', error);
@@ -315,9 +325,8 @@ router.post('/:id/challenge/v5', requireActiveCultivator(), async (c) => {
   }
 
   try {
-    const { stakeType, spiritStones, stakeItem } = ChallengeBetBattleSchema.parse(
-      await c.req.json(),
-    );
+    const { stakeType, spiritStones, stakeItem } =
+      ChallengeBetBattleSchema.parse(await c.req.json());
 
     const committed = await commitPlayerStateMutation({
       userId: user.id,
@@ -373,7 +382,11 @@ router.post('/:id/challenge/v5', requireActiveCultivator(), async (c) => {
     }
 
     if (error instanceof BetBattleServiceError) {
-      return jsonWithStatus(c, { error: error.message }, statusMap[error.code] || 400);
+      return jsonWithStatus(
+        c,
+        { error: error.message },
+        statusMap[error.code] || 400,
+      );
     }
 
     console.error('Challenge bet battle v5 API error:', error);

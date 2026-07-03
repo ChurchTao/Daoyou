@@ -1,13 +1,10 @@
 import Link from '@app/components/router/AppLink';
-import { getWorldChatMessageBody } from './worldChatSummary';
 import { useWorldChatFeedModel } from './useWorldChatFeedModel';
+import { getWorldChatMessageBody } from './worldChatSummary';
 
 export function WorldChatPreviewBar() {
-  const {
-    latestMessage,
-    newMessageCount,
-    isWorldChatRoute,
-  } = useWorldChatFeedModel();
+  const { latestMessage, newMessageCount, isWorldChatRoute } =
+    useWorldChatFeedModel();
 
   if (isWorldChatRoute) {
     return null;
@@ -17,6 +14,7 @@ export function WorldChatPreviewBar() {
     ? getWorldChatMessageBody(latestMessage)
     : '暂无新声';
   const sender = latestMessage?.senderName ?? '万界频道';
+  const channelLabel = latestMessage?.channel === 'system' ? '系统' : '世界';
 
   return (
     <div className="battle-dock border-battle-rule-strong border-t border-dashed">
@@ -25,13 +23,13 @@ export function WorldChatPreviewBar() {
           href="/game/world-chat"
           className="hover:text-crimson flex w-full items-center gap-2 px-0 py-1.5 text-left transition"
         >
-          <span
-            aria-hidden="true"
-            className="shrink-0 text-sm leading-none"
-          >
+          <span aria-hidden="true" className="shrink-0 text-sm leading-none">
             🔔
           </span>
           <div className="min-w-0 flex-1 truncate text-sm leading-6">
+            {latestMessage ? (
+              <span className="text-battle-muted">{`[${channelLabel}] `}</span>
+            ) : null}
             <span className="text-battle-muted">{sender}：</span>
             <span className="text-ink">{previewBody}</span>
           </div>

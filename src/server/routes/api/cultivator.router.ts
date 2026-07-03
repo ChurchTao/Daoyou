@@ -27,35 +27,31 @@ import {
   isValidRedeemCodeFormat,
   normalizeRedeemCode,
 } from '@server/lib/redeem/code';
+import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward';
 import { redis } from '@server/lib/redis';
 import {
   createRedisLock,
   LockAcquisitionError,
   releaseRedisLock,
 } from '@server/lib/redis/lock';
+import { removeFromAllRankingRealmsExcept } from '@server/lib/redis/rankings';
 import { getRetreatLock } from '@server/lib/redis/retreatLock';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { createMessage } from '@server/lib/repositories/worldChatRepository';
-import { removeFromAllRankingRealmsExcept } from '@server/lib/redis/rankings';
+import {
+  AttributeResetService,
+  AttributeResetServiceError,
+  withAttributeResetLock,
+} from '@server/lib/services/AttributeResetService';
 import {
   consumeBodyCultivationBreakthroughCosts,
   getBodyCultivationBreakthroughPreviewData,
   listEligibleBodyCultivationBreakthroughItems,
   planBodyCultivationBreakthroughSelections,
 } from '@server/lib/services/BodyCultivationBreakthroughService';
-import {
-  AttributeResetService,
-  AttributeResetServiceError,
-  withAttributeResetLock,
-} from '@server/lib/services/AttributeResetService';
-import { ConsumableUseEngine } from '@server/lib/services/ConsumableUseEngine';
 import { ConditionService } from '@server/lib/services/ConditionService';
+import { ConsumableUseEngine } from '@server/lib/services/ConsumableUseEngine';
 import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
-import {
-  commitPlayerStateMutation,
-  type StateChangeDescriptor,
-  toPlayerStateMutationResponse,
-} from '@server/lib/services/PlayerStateMutationService';
 import {
   MailService,
   type MailAttachment,
@@ -64,11 +60,16 @@ import {
   identifyMysteryMaterial,
   MarketServiceError,
 } from '@server/lib/services/MarketService';
+import { PillOperationExecutor } from '@server/lib/services/PillOperationExecutor';
 import {
   PlayerMailServiceError,
   sendPlayerMail,
 } from '@server/lib/services/PlayerMailService';
-import { PillOperationExecutor } from '@server/lib/services/PillOperationExecutor';
+import {
+  commitPlayerStateMutation,
+  toPlayerStateMutationResponse,
+  type StateChangeDescriptor,
+} from '@server/lib/services/PlayerStateMutationService';
 import {
   QiInsufficientError,
   QiService,
@@ -97,25 +98,12 @@ import {
   type BreakthroughStoryPayload,
   type LifespanExhaustedStoryPayload,
 } from '@server/utils/prompts';
-import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward';
 import { isAttributeResetTalismanScenario } from '@shared/config/attributeResetTalisman';
 import { getRetreatQiCost } from '@shared/config/qiSystem';
 import {
   getRealmStageNaturalAttributeValue,
   getRealmStageUnallocatedAttributeBudget,
 } from '@shared/config/realmProgression';
-import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
-import {
-  MARROW_WASH_BREAKTHROUGH_QI_COST,
-  SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
-  breakthroughMarrowWash,
-} from '@shared/lib/marrowWash';
-import { isTalismanConsumable } from '@shared/lib/consumables';
-import { attachmentsToResourceOperations } from '@shared/lib/itemLibrary';
-import type {
-  RetreatResultData,
-  RetreatStreamEvent,
-} from '@shared/contracts/retreat';
 import type {
   BodyCultivationBreakthroughEligibleResponse,
   BodyCultivationBreakthroughReadinessResponse,
@@ -124,6 +112,10 @@ import type {
   PlayerStateDomain,
   PlayerStateEvent,
 } from '@shared/contracts/player';
+import type {
+  RetreatResultData,
+  RetreatStreamEvent,
+} from '@shared/contracts/retreat';
 import {
   attemptBreakthrough,
   performCultivation,
@@ -133,6 +125,14 @@ import type { GeneratedMaterial } from '@shared/engine/material/creation/types';
 import { resourceEngine } from '@shared/engine/resource/ResourceEngine';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import { YieldCalculator } from '@shared/engine/yield/YieldCalculator';
+import { isTalismanConsumable } from '@shared/lib/consumables';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
+import { attachmentsToResourceOperations } from '@shared/lib/itemLibrary';
+import {
+  breakthroughMarrowWash,
+  MARROW_WASH_BREAKTHROUGH_QI_COST,
+  SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
+} from '@shared/lib/marrowWash';
 import {
   ELEMENT_VALUES,
   MATERIAL_TYPE_VALUES,
@@ -372,7 +372,9 @@ function buildMailStateChanges(args: {
   return changes;
 }
 
-function buildArtifactEquipStateChanges(eventType: string): StateChangeDescriptor[] {
+function buildArtifactEquipStateChanges(
+  eventType: string,
+): StateChangeDescriptor[] {
   return [
     {
       domain: 'loadout',
@@ -655,8 +657,7 @@ router.post('/consume', requireActiveCultivator(), async (c) => {
             wisdom: cultivators.wisdom,
             speed: cultivators.speed,
             willpower: cultivators.willpower,
-            unallocatedAttributePoints:
-              cultivators.unallocatedAttributePoints,
+            unallocatedAttributePoints: cultivators.unallocatedAttributePoints,
           })
           .from(cultivators)
           .where(eq(cultivators.id, cultivator.id))
@@ -780,7 +781,9 @@ router.post('/inn-recovery', requireActiveCultivator(), async (c) => {
         .update(cultivators)
         .set({
           spirit_stones: sql`${cultivators.spirit_stones} - ${recovery.spiritStoneCost}`,
-          cultivation_progress: stripExpCapForStorage(recovery.nextCultivationProgress),
+          cultivation_progress: stripExpCapForStorage(
+            recovery.nextCultivationProgress,
+          ),
           condition: recovery.nextCondition,
         })
         .where(
@@ -859,301 +862,318 @@ router.post('/inn-recovery', requireActiveCultivator(), async (c) => {
   return c.json(toPlayerStateMutationResponse(committed));
 });
 
-router.get('/body-cultivation/breakthrough', requireActiveCultivator(), async (c) => {
-  const user = c.get('user');
-  const activeCultivator = c.get('cultivator');
-  if (!user || !activeCultivator) {
-    return c.json({ success: false, error: '未授权访问' }, 401);
-  }
+router.get(
+  '/body-cultivation/breakthrough',
+  requireActiveCultivator(),
+  async (c) => {
+    const user = c.get('user');
+    const activeCultivator = c.get('cultivator');
+    if (!user || !activeCultivator) {
+      return c.json({ success: false, error: '未授权访问' }, 401);
+    }
 
-  const cultivator = await getPlayerRuntimeCultivatorById(
-    user.id,
-    activeCultivator.id,
-  );
-  if (!cultivator) {
-    return c.json({ success: false, error: '角色不存在' }, 404);
-  }
-
-  const readiness = getBodyCultivationBreakthroughPreviewData(cultivator);
-  const response: BodyCultivationBreakthroughReadinessResponse = {
-    success: true,
-    data: readiness,
-  };
-
-  return c.json(response);
-});
-
-router.get('/body-cultivation/breakthrough/eligible', requireActiveCultivator(), async (c) => {
-  const user = c.get('user');
-  const activeCultivator = c.get('cultivator');
-  if (!user || !activeCultivator) {
-    return c.json({ success: false, error: '未授权访问' }, 401);
-  }
-
-  const cultivator = await getPlayerRuntimeCultivatorById(
-    user.id,
-    activeCultivator.id,
-  );
-  if (!cultivator) {
-    return c.json({ success: false, error: '角色不存在' }, 404);
-  }
-
-  const eligible = await listEligibleBodyCultivationBreakthroughItems(cultivator);
-  const response: BodyCultivationBreakthroughEligibleResponse = {
-    success: true,
-    data: {
-      requirements: eligible.requirements,
-      materials: eligible.materials.map((material) => ({
-        id: material.id!,
-        name: material.name,
-        type: material.type,
-        rank: material.rank,
-        quantity: material.quantity,
-        element: material.element,
-        description: material.description,
-        requirementLabel: material.requirementLabel,
-      })),
-      consumables: eligible.consumables.map((consumable) => ({
-        id: consumable.id!,
-        name: consumable.name,
-        type: consumable.type,
-        quality: consumable.quality ?? '凡品',
-        quantity: consumable.quantity,
-        requirementLabel: consumable.requirementLabel,
-      })),
-    },
-  };
-
-  return c.json(response);
-});
-
-router.post('/body-cultivation/breakthrough', requireActiveCultivator(), async (c) => {
-  const user = c.get('user');
-  const activeCultivator = c.get('cultivator');
-  if (!user || !activeCultivator) {
-    return c.json({ success: false, error: '未授权访问' }, 401);
-  }
-
-  const cultivator = await getPlayerRuntimeCultivatorById(
-    user.id,
-    activeCultivator.id,
-  );
-  if (!cultivator) {
-    return c.json({ success: false, error: '角色不存在' }, 404);
-  }
-
-  try {
-    const requestBody = BodyCultivationBreakthroughSchema.parse(
-      await c.req.json().catch(() => ({})),
+    const cultivator = await getPlayerRuntimeCultivatorById(
+      user.id,
+      activeCultivator.id,
     );
-    const costPlan = await planBodyCultivationBreakthroughSelections(
-      cultivator,
-      requestBody,
+    if (!cultivator) {
+      return c.json({ success: false, error: '角色不存在' }, 404);
+    }
+
+    const readiness = getBodyCultivationBreakthroughPreviewData(cultivator);
+    const response: BodyCultivationBreakthroughReadinessResponse = {
+      success: true,
+      data: readiness,
+    };
+
+    return c.json(response);
+  },
+);
+
+router.get(
+  '/body-cultivation/breakthrough/eligible',
+  requireActiveCultivator(),
+  async (c) => {
+    const user = c.get('user');
+    const activeCultivator = c.get('cultivator');
+    if (!user || !activeCultivator) {
+      return c.json({ success: false, error: '未授权访问' }, 401);
+    }
+
+    const cultivator = await getPlayerRuntimeCultivatorById(
+      user.id,
+      activeCultivator.id,
     );
+    if (!cultivator) {
+      return c.json({ success: false, error: '角色不存在' }, 404);
+    }
 
-    const result = ConditionService.breakthroughBodyCultivationRealm(
-      cultivator,
-      cultivator.condition,
-    );
-    const committed = await commitPlayerStateMutation({
-      userId: user.id,
-      cultivatorId: activeCultivator.id,
-      source: 'body_cultivation_breakthrough',
-      run: async (tx) => {
-        await consumeBodyCultivationBreakthroughCosts(
-          user.id,
-          activeCultivator.id,
-          costPlan,
-          tx,
-        );
-        const saved = await updateCultivator(
-          activeCultivator.id,
-          {
-            condition: result.condition,
-          },
-          tx,
-        );
-
-        if (!saved) {
-          throw new Error('更新角色数据失败');
-        }
-
-        return {
-          result: {
-            success: result.success,
-            fromRealm: result.fromRealm,
-            toRealm: result.toRealm,
-            chance: result.chance,
-            roll: result.roll,
-            failedAttempts: result.failedAttempts,
-            guaranteeProgress: result.guaranteeProgress,
-            condition: result.condition,
-          },
-          changes: [
-            {
-              domain: 'condition' as const,
-              eventType: result.success
-                ? 'condition.body_cultivation.breakthrough'
-                : 'condition.body_cultivation.breakthrough_failed',
-              patch: { condition: result.condition },
-            },
-            {
-              domain: 'loadout' as const,
-              eventType: 'inventory.body_cultivation.breakthrough_consumed',
-              invalidates: ['loadout'],
-            },
-          ],
-        };
+    const eligible =
+      await listEligibleBodyCultivationBreakthroughItems(cultivator);
+    const response: BodyCultivationBreakthroughEligibleResponse = {
+      success: true,
+      data: {
+        requirements: eligible.requirements,
+        materials: eligible.materials.map((material) => ({
+          id: material.id!,
+          name: material.name,
+          type: material.type,
+          rank: material.rank,
+          quantity: material.quantity,
+          element: material.element,
+          description: material.description,
+          requirementLabel: material.requirementLabel,
+        })),
+        consumables: eligible.consumables.map((consumable) => ({
+          id: consumable.id!,
+          name: consumable.name,
+          type: consumable.type,
+          quality: consumable.quality ?? '凡品',
+          quantity: consumable.quantity,
+          requirementLabel: consumable.requirementLabel,
+        })),
       },
-    });
+    };
 
-    return c.json(toPlayerStateMutationResponse(committed));
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : '肉身进阶失败',
-      },
-      400,
+    return c.json(response);
+  },
+);
+
+router.post(
+  '/body-cultivation/breakthrough',
+  requireActiveCultivator(),
+  async (c) => {
+    const user = c.get('user');
+    const activeCultivator = c.get('cultivator');
+    if (!user || !activeCultivator) {
+      return c.json({ success: false, error: '未授权访问' }, 401);
+    }
+
+    const cultivator = await getPlayerRuntimeCultivatorById(
+      user.id,
+      activeCultivator.id,
     );
-  }
-});
+    if (!cultivator) {
+      return c.json({ success: false, error: '角色不存在' }, 404);
+    }
 
-router.post('/marrow-wash/breakthrough', requireActiveCultivator(), async (c) => {
-  const user = c.get('user');
-  const activeCultivator = c.get('cultivator');
-  if (!user || !activeCultivator) {
-    return c.json({ success: false, error: '未授权访问' }, 401);
-  }
-
-  const cultivator = await getPlayerRuntimeCultivatorById(
-    user.id,
-    activeCultivator.id,
-  );
-  if (!cultivator) {
-    return c.json({ success: false, error: '角色不存在' }, 404);
-  }
-
-  try {
-    const result = breakthroughMarrowWash(cultivator.condition, {
-      cultivatorRealm: cultivator.realm,
-    });
-    const actionInstanceId = randomUUID();
-    let qiAfter: number | null = null;
-
-    const nextRoots = cultivator.spiritual_roots.map((root) => {
-      const baseStrength = root.baseStrength ?? root.strength;
-      const currentBonus = root.marrowWashBonus ?? 0;
-      const nextBonus = Math.min(
-        currentBonus + 1,
-        Math.max(0, SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP - baseStrength),
+    try {
+      const requestBody = BodyCultivationBreakthroughSchema.parse(
+        await c.req.json().catch(() => ({})),
       );
-      return {
-        ...root,
-        baseStrength,
-        marrowWashBonus: nextBonus,
-        strength: Math.min(
-          SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
-          baseStrength + nextBonus,
-        ),
-      };
-    });
+      const costPlan = await planBodyCultivationBreakthroughSelections(
+        cultivator,
+        requestBody,
+      );
 
-    const committed = await commitPlayerStateMutation({
-      userId: user.id,
-      cultivatorId: activeCultivator.id,
-      source: 'marrow_wash_breakthrough',
-      run: async (tx) => {
-        const qiReservation = await QiService.reserveQi({
-          cultivatorId: activeCultivator.id,
-          action: 'marrow_wash_breakthrough',
-          actionInstanceId,
-          cost: MARROW_WASH_BREAKTHROUGH_QI_COST,
-          metadata: {
-            fromRealm: result.fromRealm,
-            toRealm: result.toRealm,
-            breakthroughLevel: result.breakthroughLevel,
-          },
-          tx,
-        });
-        qiAfter =
-          typeof qiReservation?.qiAfter === 'number'
-            ? qiReservation.qiAfter
-            : null;
-
-        const saved = await updateCultivator(
-          activeCultivator.id,
-          {
-            condition: result.condition,
-          },
-          tx,
-        );
-
-        if (!saved) {
-          throw new Error('更新角色数据失败');
-        }
-
-        await increaseSpiritualRootMarrowWashBonus(
-          user.id,
-          activeCultivator.id,
-          1,
-          tx,
-        );
-        await QiService.commitReservation({
-          actionInstanceId,
-          metadata: { committedAt: new Date().toISOString() },
-          tx,
-        });
-
-        return {
-          result: {
-            fromRealm: result.fromRealm,
-            toRealm: result.toRealm,
-            breakthroughLevel: result.breakthroughLevel,
-            qiCost: MARROW_WASH_BREAKTHROUGH_QI_COST,
-            qiAfter,
-            condition: result.condition,
-            spiritual_roots: nextRoots,
-          },
-          changes: [
+      const result = ConditionService.breakthroughBodyCultivationRealm(
+        cultivator,
+        cultivator.condition,
+      );
+      const committed = await commitPlayerStateMutation({
+        userId: user.id,
+        cultivatorId: activeCultivator.id,
+        source: 'body_cultivation_breakthrough',
+        run: async (tx) => {
+          await consumeBodyCultivationBreakthroughCosts(
+            user.id,
+            activeCultivator.id,
+            costPlan,
+            tx,
+          );
+          const saved = await updateCultivator(
+            activeCultivator.id,
             {
-              domain: 'condition' as const,
-              eventType: 'condition.marrow_wash.breakthrough',
-              patch: { condition: result.condition },
+              condition: result.condition,
             },
+            tx,
+          );
+
+          if (!saved) {
+            throw new Error('更新角色数据失败');
+          }
+
+          return {
+            result: {
+              success: result.success,
+              fromRealm: result.fromRealm,
+              toRealm: result.toRealm,
+              chance: result.chance,
+              roll: result.roll,
+              failedAttempts: result.failedAttempts,
+              guaranteeProgress: result.guaranteeProgress,
+              condition: result.condition,
+            },
+            changes: [
+              {
+                domain: 'condition' as const,
+                eventType: result.success
+                  ? 'condition.body_cultivation.breakthrough'
+                  : 'condition.body_cultivation.breakthrough_failed',
+                patch: { condition: result.condition },
+              },
+              {
+                domain: 'loadout' as const,
+                eventType: 'inventory.body_cultivation.breakthrough_consumed',
+                invalidates: ['loadout'],
+              },
+            ],
+          };
+        },
+      });
+
+      return c.json(toPlayerStateMutationResponse(committed));
+    } catch (error) {
+      return c.json(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : '肉身进阶失败',
+        },
+        400,
+      );
+    }
+  },
+);
+
+router.post(
+  '/marrow-wash/breakthrough',
+  requireActiveCultivator(),
+  async (c) => {
+    const user = c.get('user');
+    const activeCultivator = c.get('cultivator');
+    if (!user || !activeCultivator) {
+      return c.json({ success: false, error: '未授权访问' }, 401);
+    }
+
+    const cultivator = await getPlayerRuntimeCultivatorById(
+      user.id,
+      activeCultivator.id,
+    );
+    if (!cultivator) {
+      return c.json({ success: false, error: '角色不存在' }, 404);
+    }
+
+    try {
+      const result = breakthroughMarrowWash(cultivator.condition, {
+        cultivatorRealm: cultivator.realm,
+      });
+      const actionInstanceId = randomUUID();
+      let qiAfter: number | null = null;
+
+      const nextRoots = cultivator.spiritual_roots.map((root) => {
+        const baseStrength = root.baseStrength ?? root.strength;
+        const currentBonus = root.marrowWashBonus ?? 0;
+        const nextBonus = Math.min(
+          currentBonus + 1,
+          Math.max(0, SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP - baseStrength),
+        );
+        return {
+          ...root,
+          baseStrength,
+          marrowWashBonus: nextBonus,
+          strength: Math.min(
+            SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
+            baseStrength + nextBonus,
+          ),
+        };
+      });
+
+      const committed = await commitPlayerStateMutation({
+        userId: user.id,
+        cultivatorId: activeCultivator.id,
+        source: 'marrow_wash_breakthrough',
+        run: async (tx) => {
+          const qiReservation = await QiService.reserveQi({
+            cultivatorId: activeCultivator.id,
+            action: 'marrow_wash_breakthrough',
+            actionInstanceId,
+            cost: MARROW_WASH_BREAKTHROUGH_QI_COST,
+            metadata: {
+              fromRealm: result.fromRealm,
+              toRealm: result.toRealm,
+              breakthroughLevel: result.breakthroughLevel,
+            },
+            tx,
+          });
+          qiAfter =
+            typeof qiReservation?.qiAfter === 'number'
+              ? qiReservation.qiAfter
+              : null;
+
+          const saved = await updateCultivator(
+            activeCultivator.id,
             {
-              domain: 'profile' as const,
-              eventType: 'profile.spiritual_roots.marrow_wash_bonus',
-              patch: {
-                cultivator: {
-                  spiritual_roots: nextRoots,
+              condition: result.condition,
+            },
+            tx,
+          );
+
+          if (!saved) {
+            throw new Error('更新角色数据失败');
+          }
+
+          await increaseSpiritualRootMarrowWashBonus(
+            user.id,
+            activeCultivator.id,
+            1,
+            tx,
+          );
+          await QiService.commitReservation({
+            actionInstanceId,
+            metadata: { committedAt: new Date().toISOString() },
+            tx,
+          });
+
+          return {
+            result: {
+              fromRealm: result.fromRealm,
+              toRealm: result.toRealm,
+              breakthroughLevel: result.breakthroughLevel,
+              qiCost: MARROW_WASH_BREAKTHROUGH_QI_COST,
+              qiAfter,
+              condition: result.condition,
+              spiritual_roots: nextRoots,
+            },
+            changes: [
+              {
+                domain: 'condition' as const,
+                eventType: 'condition.marrow_wash.breakthrough',
+                patch: { condition: result.condition },
+              },
+              {
+                domain: 'profile' as const,
+                eventType: 'profile.spiritual_roots.marrow_wash_bonus',
+                patch: {
+                  cultivator: {
+                    spiritual_roots: nextRoots,
+                  },
                 },
               },
-            },
-            {
-              domain: 'currency' as const,
-              eventType: 'currency.qi.spent',
-              patch: qiAfter === null ? {} : { currency: { qi: qiAfter } },
-            },
-          ],
-        };
-      },
-    });
+              {
+                domain: 'currency' as const,
+                eventType: 'currency.qi.spent',
+                patch: qiAfter === null ? {} : { currency: { qi: qiAfter } },
+              },
+            ],
+          };
+        },
+      });
 
-    return c.json(toPlayerStateMutationResponse(committed));
-  } catch (error) {
-    const qiResponse = qiErrorResponse(c, error);
-    if (qiResponse) return qiResponse;
+      return c.json(toPlayerStateMutationResponse(committed));
+    } catch (error) {
+      const qiResponse = qiErrorResponse(c, error);
+      if (qiResponse) return qiResponse;
 
-    return c.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : '洗髓破限失败',
-      },
-      400,
-    );
-  }
-});
+      return c.json(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : '洗髓破限失败',
+        },
+        400,
+      );
+    }
+  },
+);
 
 router.get('/equip', requireActiveCultivator(), async (c) => {
   const cultivator = c.get('cultivator');
@@ -1210,14 +1230,18 @@ router.post('/equip', requireActiveCultivator(), async (c) => {
       }
 
       const equippedArtifacts =
-        await creationProductRepository.findEquippedArtifacts(cultivator.id, tx);
+        await creationProductRepository.findEquippedArtifacts(
+          cultivator.id,
+          tx,
+        );
       const equippedItems = {
         weapon:
           equippedArtifacts.find((item) => item.slot === 'weapon')?.id ?? null,
         armor:
           equippedArtifacts.find((item) => item.slot === 'armor')?.id ?? null,
         accessory:
-          equippedArtifacts.find((item) => item.slot === 'accessory')?.id ?? null,
+          equippedArtifacts.find((item) => item.slot === 'accessory')?.id ??
+          null,
       };
 
       return {
@@ -1254,10 +1278,7 @@ router.get('/qi/logs', requireActiveCultivator(), async (c) => {
   }
 
   const page = parsePositiveInt(c.req.query('page'), 1);
-  const pageSize = Math.min(
-    100,
-    parsePositiveInt(c.req.query('pageSize'), 20),
-  );
+  const pageSize = Math.min(100, parsePositiveInt(c.req.query('pageSize'), 20));
   const data = await QiService.listLogs(cultivator.id, { page, pageSize });
   return c.json({ success: true, data });
 });
@@ -1345,8 +1366,7 @@ router.post('/attributes/allocate', requireActiveCultivator(), async (c) => {
             wisdom: cultivators.wisdom,
             speed: cultivators.speed,
             willpower: cultivators.willpower,
-            unallocatedAttributePoints:
-              cultivators.unallocatedAttributePoints,
+            unallocatedAttributePoints: cultivators.unallocatedAttributePoints,
           })
           .from(cultivators)
           .where(eq(cultivators.id, cultivator.id));
@@ -1380,8 +1400,7 @@ router.post('/attributes/allocate', requireActiveCultivator(), async (c) => {
           current.realmStage as RealmStage,
         );
         const totalAttributes = values.reduce((sum, value) => sum + value, 0);
-        const allocatedPoints =
-          totalAttributes - naturalAttributeValue * 5;
+        const allocatedPoints = totalAttributes - naturalAttributeValue * 5;
         const currentAllocatedPoints =
           current.vitality +
           current.spirit +
@@ -1718,12 +1737,17 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
 
           await addRetreatRecord(user.id, cultivatorId, result.record, tx);
 
-          const saved = await updateCultivator(cultivatorId, {
-            age: result.cultivator.age,
-            closed_door_years_total: result.cultivator.closed_door_years_total,
-            cultivation_progress: result.cultivator.cultivation_progress,
-            condition: result.cultivator.condition,
-          }, tx);
+          const saved = await updateCultivator(
+            cultivatorId,
+            {
+              age: result.cultivator.age,
+              closed_door_years_total:
+                result.cultivator.closed_door_years_total,
+              cultivation_progress: result.cultivator.cultivation_progress,
+              condition: result.cultivator.condition,
+            },
+            tx,
+          );
 
           if (!saved) {
             throw new Error('更新角色数据失败');
@@ -1897,6 +1921,7 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
               senderName: '修仙界传闻',
               senderRealm: '炼气',
               senderRealmStage: '系统',
+              channel: 'system',
               messageType: 'text',
               textContent: rumor,
               payload: { text: rumor },
@@ -1908,9 +1933,9 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
       : null;
 
     const retreatResult: RetreatResultData = {
-        summary: result.summary,
-        storyType: storySource ? 'breakthrough' : null,
-        action: 'breakthrough',
+      summary: result.summary,
+      storyType: storySource ? 'breakthrough' : null,
+      action: 'breakthrough',
     };
     const committed = await commitPlayerStateMutation({
       userId: user.id,
@@ -1931,17 +1956,21 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
             ? qiReservation.qiAfter
             : null;
 
-        const saved = await updateCultivator(cultivatorId, {
-          realm: result.cultivator.realm,
-          realm_stage: result.cultivator.realm_stage,
-          age: result.cultivator.age,
-          lifespan: result.cultivator.lifespan,
-          attributes: result.cultivator.attributes,
-          unallocated_attribute_points:
-            result.cultivator.unallocated_attribute_points,
-          cultivation_progress: result.cultivator.cultivation_progress,
-          condition: result.cultivator.condition,
-        }, tx);
+        const saved = await updateCultivator(
+          cultivatorId,
+          {
+            realm: result.cultivator.realm,
+            realm_stage: result.cultivator.realm_stage,
+            age: result.cultivator.age,
+            lifespan: result.cultivator.lifespan,
+            attributes: result.cultivator.attributes,
+            unallocated_attribute_points:
+              result.cultivator.unallocated_attribute_points,
+            cultivation_progress: result.cultivator.cultivation_progress,
+            condition: result.cultivator.condition,
+          },
+          tx,
+        );
 
         if (!saved) {
           throw new Error('更新角色数据失败');
@@ -2180,8 +2209,7 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
                   spiritStones: nextSpiritStones,
                   qi: activeCultivator.qi,
                   qiLastRefreshedAt:
-                    activeCultivator.qiLastRefreshedAt?.toISOString?.() ??
-                    null,
+                    activeCultivator.qiLastRefreshedAt?.toISOString?.() ?? null,
                 },
               },
             },
@@ -2372,108 +2400,107 @@ inventoryRouter.get('/', requireActiveCultivatorRef(), async (c) => {
   }
 
   if (!['artifacts', 'materials', 'consumables'].includes(type)) {
-      return c.json(
-        {
-          success: false,
-          error: '无效的背包类型，仅支持 artifacts | materials | consumables',
-        },
-        400,
-      );
-    }
-
-    const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
-    const pageSize = Math.min(
-      100,
-      Math.max(1, parseInt(c.req.query('pageSize') || '20', 10)),
+    return c.json(
+      {
+        success: false,
+        error: '无效的背包类型，仅支持 artifacts | materials | consumables',
+      },
+      400,
     );
+  }
 
-    let materialTypes: MaterialType[] | undefined;
-    let excludeMaterialTypes: MaterialType[] | undefined;
-    let materialRanks: Quality[] | undefined;
-    let materialElements: ElementType[] | undefined;
+  const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
+  const pageSize = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query('pageSize') || '20', 10)),
+  );
 
-    try {
-      materialTypes = parseMaterialTypes(c.req.query('materialTypes') ?? null);
-      excludeMaterialTypes = parseMaterialTypes(
-        c.req.query('excludeMaterialTypes') ?? null,
-      );
-      materialRanks = parseMaterialRanks(c.req.query('materialRanks') ?? null);
-      materialElements = parseMaterialElements(
-        c.req.query('materialElements') ?? null,
-      );
-    } catch (error) {
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : '材料类型参数解析失败',
-        },
-        400,
-      );
-    }
+  let materialTypes: MaterialType[] | undefined;
+  let excludeMaterialTypes: MaterialType[] | undefined;
+  let materialRanks: Quality[] | undefined;
+  let materialElements: ElementType[] | undefined;
 
-    const materialSortBy = c.req.query('materialSortBy');
-    const materialSortOrder = c.req.query('materialSortOrder');
-    const validSortBy = [
-      'createdAt',
-      'rank',
-      'type',
-      'element',
-      'quantity',
-      'name',
-    ] as const;
-    const validSortOrder = ['asc', 'desc'] as const;
+  try {
+    materialTypes = parseMaterialTypes(c.req.query('materialTypes') ?? null);
+    excludeMaterialTypes = parseMaterialTypes(
+      c.req.query('excludeMaterialTypes') ?? null,
+    );
+    materialRanks = parseMaterialRanks(c.req.query('materialRanks') ?? null);
+    materialElements = parseMaterialElements(
+      c.req.query('materialElements') ?? null,
+    );
+  } catch (error) {
+    return c.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : '材料类型参数解析失败',
+      },
+      400,
+    );
+  }
 
-    if (
-      materialSortBy &&
-      !validSortBy.includes(materialSortBy as (typeof validSortBy)[number])
-    ) {
-      return c.json(
-        {
-          success: false,
-          error: `无效的排序字段，支持：${validSortBy.join(', ')}`,
-        },
-        400,
-      );
-    }
-    if (
-      materialSortOrder &&
-      !validSortOrder.includes(
-        materialSortOrder as (typeof validSortOrder)[number],
-      )
-    ) {
-      return c.json(
-        {
-          success: false,
-          error: `无效的排序方向，支持：${validSortOrder.join(', ')}`,
-        },
-        400,
-      );
-    }
+  const materialSortBy = c.req.query('materialSortBy');
+  const materialSortOrder = c.req.query('materialSortOrder');
+  const validSortBy = [
+    'createdAt',
+    'rank',
+    'type',
+    'element',
+    'quantity',
+    'name',
+  ] as const;
+  const validSortOrder = ['asc', 'desc'] as const;
 
-    const result = await getPaginatedInventoryByType(user.id, ref.cultivatorId, {
-      type: type as 'artifacts' | 'materials' | 'consumables',
-      page,
-      pageSize,
-      materialTypes,
-      excludeMaterialTypes,
-      materialRanks,
-      materialElements,
-      materialSortBy: materialSortBy as
-        | 'createdAt'
-        | 'rank'
-        | 'type'
-        | 'element'
-        | 'quantity'
-        | 'name'
-        | undefined,
-      materialSortOrder: materialSortOrder as 'asc' | 'desc' | undefined,
-    });
+  if (
+    materialSortBy &&
+    !validSortBy.includes(materialSortBy as (typeof validSortBy)[number])
+  ) {
+    return c.json(
+      {
+        success: false,
+        error: `无效的排序字段，支持：${validSortBy.join(', ')}`,
+      },
+      400,
+    );
+  }
+  if (
+    materialSortOrder &&
+    !validSortOrder.includes(
+      materialSortOrder as (typeof validSortOrder)[number],
+    )
+  ) {
+    return c.json(
+      {
+        success: false,
+        error: `无效的排序方向，支持：${validSortOrder.join(', ')}`,
+      },
+      400,
+    );
+  }
 
-    return c.json({
-      success: true,
-      data: result,
-    });
+  const result = await getPaginatedInventoryByType(user.id, ref.cultivatorId, {
+    type: type as 'artifacts' | 'materials' | 'consumables',
+    page,
+    pageSize,
+    materialTypes,
+    excludeMaterialTypes,
+    materialRanks,
+    materialElements,
+    materialSortBy: materialSortBy as
+      | 'createdAt'
+      | 'rank'
+      | 'type'
+      | 'element'
+      | 'quantity'
+      | 'name'
+      | undefined,
+    materialSortOrder: materialSortOrder as 'asc' | 'desc' | undefined,
+  });
+
+  return c.json({
+    success: true,
+    data: result,
+  });
 });
 
 inventoryRouter.post('/discard', requireActiveCultivator(), async (c) => {
@@ -2567,11 +2594,11 @@ inventoryRouter.post('/identify', requireActiveCultivator(), async (c) => {
       run: async (tx) => {
         const { afterCommit: identifyAfterCommit, ...result } =
           await identifyMysteryMaterial({
-          materialId,
-          cultivatorId: cultivator.id,
-          tx,
-          deferSideEffects: true,
-        });
+            materialId,
+            cultivatorId: cultivator.id,
+            tx,
+            deferSideEffects: true,
+          });
         afterCommit = identifyAfterCommit;
         return {
           result,
@@ -2817,7 +2844,13 @@ mailRouter.post('/claim-all', requireActiveCultivator(), async (c) => {
 
   // [安全] 分布式锁防止同一用户并发批量领取
   const claimAllLockKey = `mail:claim-all:lock:${cultivator.id}`;
-  const acquiredLock = await redis.set(claimAllLockKey, 'locked', 'EX', 15, 'NX');
+  const acquiredLock = await redis.set(
+    claimAllLockKey,
+    'locked',
+    'EX',
+    15,
+    'NX',
+  );
   if (!acquiredLock) {
     return c.json({ error: '领取正在处理中，请稍后' }, 429);
   }
@@ -2842,7 +2875,9 @@ mailRouter.post('/claim-all', requireActiveCultivator(), async (c) => {
 
     const claimedMailIds = claimableMails.map((mail) => mail.id);
     const gains = claimableMails.flatMap((mail) =>
-      attachmentsToResourceOperations((mail.attachments as MailAttachment[]) || []),
+      attachmentsToResourceOperations(
+        (mail.attachments as MailAttachment[]) || [],
+      ),
     );
 
     const committed = await commitPlayerStateMutation({
@@ -2861,7 +2896,10 @@ mailRouter.post('/claim-all', requireActiveCultivator(), async (c) => {
               .update(mails)
               .set({ isClaimed: true, isRead: true })
               .where(
-                and(inArray(mails.id, claimedMailIds), eq(mails.isClaimed, false)),
+                and(
+                  inArray(mails.id, claimedMailIds),
+                  eq(mails.isClaimed, false),
+                ),
               )
               .returning({ id: mails.id });
 
@@ -2938,7 +2976,9 @@ mailRouter.post('/read', requireActiveCultivator(), async (c) => {
       await tx
         .update(mails)
         .set({ isRead: true })
-        .where(and(eq(mails.id, mailId), eq(mails.cultivatorId, cultivator.id)));
+        .where(
+          and(eq(mails.id, mailId), eq(mails.cultivatorId, cultivator.id)),
+        );
       const unreadMailCount = await countUnreadMail(cultivator.id, tx);
 
       return {

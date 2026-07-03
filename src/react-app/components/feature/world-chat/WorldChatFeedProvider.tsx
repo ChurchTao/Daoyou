@@ -1,5 +1,8 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import type { WorldChatMessageDTO } from '@shared/types/world-chat';
+import type {
+  WorldChatChannel,
+  WorldChatMessageDTO,
+} from '@shared/types/world-chat';
 import {
   useCallback,
   useEffect,
@@ -15,6 +18,7 @@ import {
 } from './worldChatFeedContext';
 import {
   countNewWorldChatMessages,
+  filterWorldChatMessagesByChannel,
   mergeWorldChatMessages,
   PAGE_SIZE,
   POLL_INTERVAL_MS,
@@ -24,6 +28,8 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
   const { pushToast } = useInkUI();
   const location = useLocation();
   const isWorldChatRoute = location.pathname === '/game/world-chat';
+  const [activeChannel, setActiveChannel] = useState<WorldChatChannel>('all');
+  const [allMessages, setAllMessages] = useState<WorldChatMessageDTO[]>([]);
   const [messages, setMessages] = useState<WorldChatMessageDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -34,13 +40,13 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
     null,
   );
 
-  const latestMessage = messages[0] ?? null;
+  const latestMessage = allMessages[0] ?? null;
   const newMessageCount = isWorldChatRoute
     ? 0
-    : countNewWorldChatMessages(messages, lastSeenMessageId);
+    : countNewWorldChatMessages(allMessages, lastSeenMessageId);
 
   const fetchPage = useCallback(
-    async (targetPage: number, append: boolean) => {
+    async (channel: WorldChatChannel, targetPage: number, append: boolean) => {
       try {
         if (append) {
           setLoadingMore(true);
@@ -49,7 +55,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
         }
 
         const res = await fetch(
-          `/api/world-chat/messages?page=${targetPage}&pageSize=${PAGE_SIZE}`,
+          `/api/world-chat/messages?channel=${channel}&page=${targetPage}&pageSize=${PAGE_SIZE}`,
           { cache: 'no-store' },
         );
         const data = await res.json();
@@ -62,6 +68,11 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
         setMessages((prev) =>
           append ? [...prev, ...nextMessages] : nextMessages,
         );
+        if (channel === 'all') {
+          setAllMessages((prev) =>
+            append ? mergeWorldChatMessages(prev, nextMessages) : nextMessages,
+          );
+        }
         setHasMore(Boolean(data.pagination?.hasMore));
         setPage(targetPage);
       } catch (error) {
@@ -85,8 +96,9 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
 
     const loadInitialPage = async () => {
       try {
+        setLoading(true);
         const res = await fetch(
-          `/api/world-chat/messages?page=1&pageSize=${PAGE_SIZE}`,
+          `/api/world-chat/messages?channel=${activeChannel}&page=1&pageSize=${PAGE_SIZE}`,
           { cache: 'no-store' },
         );
         const data = await res.json();
@@ -97,7 +109,11 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
 
         if (cancelled) return;
 
-        setMessages((data.data || []) as WorldChatMessageDTO[]);
+        const nextMessages = (data.data || []) as WorldChatMessageDTO[];
+        setMessages(nextMessages);
+        if (activeChannel === 'all') {
+          setAllMessages(nextMessages);
+        }
         setHasMore(Boolean(data.pagination?.hasMore));
         setPage(1);
       } catch (error) {
@@ -118,7 +134,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [pushToast]);
+  }, [activeChannel, pushToast]);
 
   useEffect(() => {
     if (lastSeenMessageId || !latestMessage) {
@@ -162,29 +178,35 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
     const timer = setInterval(async () => {
       try {
         const res = await fetch(
-          `/api/world-chat/messages?page=1&pageSize=${PAGE_SIZE}`,
+          `/api/world-chat/messages?channel=all&page=1&pageSize=${PAGE_SIZE}`,
           { cache: 'no-store' },
         );
         const data = await res.json();
         if (!res.ok || !data.success) return;
 
         const latest = (data.data || []) as WorldChatMessageDTO[];
-        setMessages((prev) => mergeWorldChatMessages(prev, latest));
+        setAllMessages((prev) => mergeWorldChatMessages(prev, latest));
+        setMessages((prev) =>
+          mergeWorldChatMessages(
+            prev,
+            filterWorldChatMessagesByChannel(latest, activeChannel),
+          ),
+        );
       } catch (error) {
         console.error('轮询世界传音失败:', error);
       }
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [activeChannel]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || loadingMore) {
       return;
     }
 
-    await fetchPage(page + 1, true);
-  }, [fetchPage, hasMore, loadingMore, page]);
+    await fetchPage(activeChannel, page + 1, true);
+  }, [activeChannel, fetchPage, hasMore, loadingMore, page]);
 
   const sendTextMessage = useCallback(
     async (text: string) => {
@@ -206,7 +228,10 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
         }
 
         const created = data.data as WorldChatMessageDTO;
-        setMessages((prev) => mergeWorldChatMessages(prev, [created]));
+        setAllMessages((prev) => mergeWorldChatMessages(prev, [created]));
+        if (activeChannel !== 'system') {
+          setMessages((prev) => mergeWorldChatMessages(prev, [created]));
+        }
         pushToast({ message: '已发出传音', tone: 'success' });
         return true;
       } catch (error) {
@@ -219,7 +244,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
         setPosting(false);
       }
     },
-    [pushToast],
+    [activeChannel, pushToast],
   );
 
   const sendShowcaseMessage = useCallback(
@@ -243,7 +268,10 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
         }
 
         const created = data.data as WorldChatMessageDTO;
-        setMessages((prev) => mergeWorldChatMessages(prev, [created]));
+        setAllMessages((prev) => mergeWorldChatMessages(prev, [created]));
+        if (activeChannel !== 'system') {
+          setMessages((prev) => mergeWorldChatMessages(prev, [created]));
+        }
         pushToast({ message: '已展示道具', tone: 'success' });
         return true;
       } catch (error) {
@@ -256,7 +284,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
         setPosting(false);
       }
     },
-    [pushToast],
+    [activeChannel, pushToast],
   );
 
   const value = useMemo<WorldChatFeedModel>(
@@ -269,11 +297,14 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
       hasMore,
       posting,
       isWorldChatRoute,
+      activeChannel,
+      setActiveChannel,
       loadMore,
       sendTextMessage,
       sendShowcaseMessage,
     }),
     [
+      activeChannel,
       hasMore,
       isWorldChatRoute,
       latestMessage,

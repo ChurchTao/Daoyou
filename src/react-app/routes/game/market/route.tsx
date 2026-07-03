@@ -15,12 +15,16 @@ import {
 } from '@app/components/ui';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
-import { getMapNode } from '@shared/lib/game/mapSystem';
 import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
 import { Material } from '@shared/types/cultivator';
 import { getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
+import {
+  getMarketNodeSwitchOptions,
+  getMarketProfileHint,
+  resolveMarketSwitchLayer,
+} from '@shared/lib/game/marketConfig';
 import { MarketLayer } from '@shared/types/market';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 type MarketListing = Material & {
@@ -45,6 +49,9 @@ const LAYER_OPTIONS: Array<{ label: string; value: MarketLayer }> = [
   { label: '天宝殿', value: 'heaven' },
   { label: '黑市', value: 'black' },
 ];
+
+const getLayerLabel = (layer: MarketLayer) =>
+  LAYER_OPTIONS.find((item) => item.value === layer)?.label ?? layer;
 
 type MarketSnapshot = {
   listings: MarketListing[];
@@ -120,6 +127,8 @@ export default function MarketPage() {
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBatchBuying, setIsBatchBuying] = useState(false);
+  const [timeLeft, setTimeLeft] = useState('');
+  const [switchDialog, setSwitchDialog] = useState<InkDialogState | null>(null);
   const [batchBuyDialog, setBatchBuyDialog] = useState<InkDialogState | null>(
     null,
   );
@@ -127,7 +136,28 @@ export default function MarketPage() {
   const isFetchingRef = useRef(false);
   const nextRetryAtRef = useRef(0);
 
-  const selectedNode = getMapNode(nodeId);
+  const marketHint = useMemo(
+    () => getMarketProfileHint(nodeId, activeLayer),
+    [activeLayer, nodeId],
+  );
+  const marketSwitchOptions = useMemo(() => getMarketNodeSwitchOptions(), []);
+  const sortedMarketSwitchOptions = useMemo(
+    () =>
+      [...marketSwitchOptions].sort((a, b) => {
+        if (a.id === nodeId) return -1;
+        if (b.id === nodeId) return 1;
+        return a.name.localeCompare(b.name, 'zh-Hans-CN');
+      }),
+    [marketSwitchOptions, nodeId],
+  );
+  const currentSwitchOption = useMemo(
+    () => marketSwitchOptions.find((option) => option.id === nodeId),
+    [marketSwitchOptions, nodeId],
+  );
+  const marketHintTypeLabels =
+    marketHint.dominantMaterialTypes
+      .map((type) => getMaterialTypeInfo(type).label)
+      .join('、') || '杂货';
   const applyMarketSnapshot = useCallback(
     (snapshot: MarketSnapshot) => {
       setListings(snapshot.listings);
@@ -343,8 +373,6 @@ export default function MarketPage() {
     return `${minutes}分${seconds}秒`;
   };
 
-  const [timeLeft, setTimeLeft] = useState('');
-
   useEffect(() => {
     const timer = setInterval(() => {
       const now = Date.now();
@@ -370,12 +398,94 @@ export default function MarketPage() {
     navigate(`/game/market?${next.toString()}`, { replace: true });
   };
 
+  const handleMarketNodeSwitch = (targetNodeId: string) => {
+    const nextLayer = resolveMarketSwitchLayer(targetNodeId, activeLayer);
+    const next = new URLSearchParams(searchParams.toString());
+    next.set('nodeId', targetNodeId);
+    next.set('layer', nextLayer);
+    setSwitchDialog(null);
+    setIsBatchMode(false);
+    setSelectedIds(new Set());
+    navigate(`/game/market?${next.toString()}`);
+  };
+
+  const openMarketSwitchDialog = () => {
+    setSwitchDialog({
+      id: 'market-switch',
+      title: '快捷切换',
+      cancelLabel: '关闭',
+      confirmLabel: null,
+      content: (
+        <div className="grid gap-2 md:grid-cols-2">
+          {sortedMarketSwitchOptions.map((option) => {
+            const isCurrent = option.id === nodeId;
+            const targetLayer = resolveMarketSwitchLayer(
+              option.id,
+              activeLayer,
+            );
+            const typeLabels = option.dominantMaterialTypes
+              .map((type) => getMaterialTypeInfo(type).label)
+              .join('、');
+
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => handleMarketNodeSwitch(option.id)}
+                disabled={isCurrent}
+                className={[
+                  'min-w-0 border px-3 py-2 text-left transition-colors',
+                  isCurrent
+                    ? 'border-crimson/35 bg-crimson/6 text-ink cursor-default'
+                    : 'border-ink/15 bg-paper/50 hover:border-crimson/35 hover:text-crimson',
+                ].join(' ')}
+              >
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="font-semibold">{option.name}</span>
+                  {isCurrent ? (
+                    <span className="text-crimson text-xs">当前</span>
+                  ) : null}
+                </div>
+                <div className="text-ink-secondary mt-1 text-xs leading-5">
+                  {option.region} · {option.realmRequirement} ·{' '}
+                  {getLayerLabel(targetLayer)}
+                </div>
+                <div className="text-ink-secondary mt-1 text-xs leading-5">
+                  {typeLabels || '杂货'} · {option.summary}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ),
+    });
+  };
+
   return (
     <GameSceneFrame
       title={`【${marketFlavor?.title || '云游坊市'}】`}
       description={
         marketFlavor?.description ||
         '四方云集，奇货待价。先看节点、层级与刷新节奏，再决定补给、捡漏还是观望。'
+      }
+      headerMeta={
+        <div className="space-y-3 text-sm leading-6">
+          <div className="text-ink-secondary flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>{marketHint.nodeName}</span>
+            <span>{marketHint.region}</span>
+            <span>主打 {marketHintTypeLabels}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {marketHint.signatureTags.slice(0, 4).map((tag) => (
+              <span
+                key={tag}
+                className="border-ink/15 text-ink-secondary bg-ink/4 inline-flex border px-2 py-0.5 text-xs leading-5"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
       }
       aside={
         <>
@@ -385,15 +495,32 @@ export default function MarketPage() {
                 {SPIRIT_STONES_INFO.label}余额：
                 {cultivator?.spirit_stones ?? 0}
               </p>
-              <p>当前节点：{selectedNode?.name || nodeId}</p>
-              <p>
-                当前层级：
-                {
-                  LAYER_OPTIONS.find((item) => item.value === activeLayer)
-                    ?.label
-                }
-              </p>
+              <p>当前节点：{marketHint.nodeName}</p>
+              <p>当前层级：{getLayerLabel(activeLayer)}</p>
               <p>刷新倒计时：{timeLeft}</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="坊市风闻">
+            <div className="space-y-3 text-sm leading-7">
+              <p>{marketHint.priceTendency}</p>
+              <div className="flex flex-wrap gap-2">
+                {marketHint.dominantMaterialTypes.map((type) => {
+                  const info = getMaterialTypeInfo(type);
+                  return (
+                    <span
+                      key={type}
+                      className="border-ink/15 bg-paper/50 text-ink inline-flex border px-2 py-0.5 text-xs leading-5"
+                    >
+                      {info.icon} {info.label}
+                    </span>
+                  );
+                })}
+              </div>
+              {marketHint.layerHints.length > 0 ? (
+                <p className="text-ink-secondary">
+                  {marketHint.layerHints.join(' ')}
+                </p>
+              ) : null}
             </div>
           </GameSceneAsideSection>
           <GameSceneAsideSection
@@ -421,21 +548,21 @@ export default function MarketPage() {
       }
     >
       <div className="space-y-4">
-        <GameSceneTabs
-          activeValue={activeLayer}
-          onChange={handleLayerChange}
-          items={LAYER_OPTIONS}
-        />
-        <div className="mb-4 flex items-center justify-between">
-          <InkButton
-            onClick={() => {
-              setIsBatchMode(!isBatchMode);
-              setSelectedIds(new Set());
-            }}
-            variant={isBatchMode ? 'primary' : 'default'}
-          >
-            {isBatchMode ? '退出批量' : '批量模式'}
-          </InkButton>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <InkButton onClick={openMarketSwitchDialog}>
+              快捷切换
+            </InkButton>
+            <InkButton
+              onClick={() => {
+                setIsBatchMode(!isBatchMode);
+                setSelectedIds(new Set());
+              }}
+              variant={isBatchMode ? 'primary' : 'default'}
+            >
+              {isBatchMode ? '退出批量' : '批量模式'}
+            </InkButton>
+          </div>
           {isBatchMode && selectedIds.size > 0 && (
             <InkButton
               variant="primary"
@@ -450,6 +577,16 @@ export default function MarketPage() {
             </InkButton>
           )}
         </div>
+        {currentSwitchOption ? (
+          <p className="text-ink-secondary text-sm leading-6">
+            {currentSwitchOption.summary}
+          </p>
+        ) : null}
+        <GameSceneTabs
+          activeValue={activeLayer}
+          onChange={handleLayerChange}
+          items={LAYER_OPTIONS}
+        />
         {!access.allowed && (
           <InkNotice>{access.reason || '当前层不可进入'}</InkNotice>
         )}
@@ -471,6 +608,7 @@ export default function MarketPage() {
                 <InkListItem
                   key={item.id}
                   highlight={isBatchMode && isSelected}
+                  layout="col"
                   title={
                     <div
                       className="flex cursor-pointer items-center"
@@ -530,7 +668,7 @@ export default function MarketPage() {
                           !!buyingId || item.quantity <= 0 || !access.allowed
                         }
                         variant="primary"
-                        className="min-w-20"
+                        className="min-w-20 justify-end"
                       >
                         {buyingId === item.id
                           ? '交易中'
@@ -553,6 +691,10 @@ export default function MarketPage() {
       <InkDialog
         dialog={batchBuyDialog}
         onClose={() => setBatchBuyDialog(null)}
+      />
+      <InkDialog
+        dialog={switchDialog}
+        onClose={() => setSwitchDialog(null)}
       />
     </GameSceneFrame>
   );

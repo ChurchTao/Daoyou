@@ -1,7 +1,12 @@
-import { getRealmOrder } from '@server/lib/admin/realm';
 import type { MapNode } from '@shared/lib/game/mapSystem';
 import { getMapNode } from '@shared/lib/game/mapSystem';
-import type { MaterialType, Quality, RealmType } from '@shared/types/constants';
+import {
+  MATERIAL_TYPE_VALUES,
+  REALM_ORDER,
+  type MaterialType,
+  type Quality,
+  type RealmType,
+} from '@shared/types/constants';
 import type {
   MarketAccessRule,
   MarketAccessState,
@@ -25,6 +30,29 @@ type LayerConfig = {
   access: MarketAccessRule;
   mysteryChance?: number;
 };
+
+export interface MarketProfileHint {
+  nodeId: string;
+  nodeName: string;
+  region: string;
+  title: string;
+  description: string;
+  signatureTags: string[];
+  dominantMaterialTypes: MaterialType[];
+  priceTendency: string;
+  layerHints: string[];
+}
+
+export interface MarketNodeSwitchOption {
+  id: string;
+  name: string;
+  region: string;
+  realmRequirement: RealmType;
+  allowedLayers: MarketLayer[];
+  signatureTags: string[];
+  dominantMaterialTypes: MaterialType[];
+  summary: string;
+}
 
 export const MARKET_LAYER_CONFIG: Record<MarketLayer, LayerConfig> = {
   common: {
@@ -162,6 +190,111 @@ export function getRegionProfile(nodeId: string): RegionProfile {
   const config = getMarketConfigByNodeId(nodeId);
   const key = config?.region_profile ?? 'default';
   return REGION_PROFILES[key];
+}
+
+export function getDominantMarketMaterialTypes(
+  nodeId: string,
+  limit = 3,
+): MaterialType[] {
+  const profile = getRegionProfile(nodeId);
+  return MATERIAL_TYPE_VALUES.filter(
+    (type) => (profile.typeWeights[type] ?? 0) > 0,
+  )
+    .sort((a, b) => {
+      const weightDelta =
+        (profile.typeWeights[b] ?? 0) - (profile.typeWeights[a] ?? 0);
+      if (weightDelta !== 0) return weightDelta;
+      return MATERIAL_TYPE_VALUES.indexOf(a) - MATERIAL_TYPE_VALUES.indexOf(b);
+    })
+    .slice(0, limit);
+}
+
+function getRealmOrder(realm: RealmType): number {
+  return REALM_ORDER[realm] ?? -1;
+}
+
+function getPriceTendency(profile: RegionProfile): string {
+  const averageModifier =
+    (profile.priceModifier.min + profile.priceModifier.max) / 2;
+  if (averageModifier <= 0.98) return '市价偏松，常有平价补给。';
+  if (averageModifier >= 1.25) return '货色稀罕，市价多有溢价。';
+  return '行价平稳，偶有珍货浮动。';
+}
+
+function getLayerHints(profile: RegionProfile): string[] {
+  const hints: string[] = [];
+  const blackOverride = profile.layerOverrides.black;
+  const heavenOverride = profile.layerOverrides.heaven;
+  const treasureOverride = profile.layerOverrides.treasure;
+
+  if (blackOverride?.mysteryChance) {
+    hints.push('黑市疑货更多，适合赌眼力。');
+  }
+  if (heavenOverride?.rankRange) {
+    hints.push('天宝殿偏重高阶天材。');
+  }
+  if (treasureOverride?.rankRange) {
+    hints.push('珍宝阁门槛与货品更高。');
+  }
+
+  return hints;
+}
+
+function getEnabledMarketNodes(): MapNode[] {
+  return getRawMainNodes().filter((node) => node.market_config?.enabled);
+}
+
+export function getMarketProfileHint(
+  nodeId: string,
+  layer: MarketLayer,
+): MarketProfileHint {
+  const node = getMapNode(nodeId);
+  const mainNode = node && 'region' in node ? node : undefined;
+  const profile = getRegionProfile(nodeId);
+  const flavor = getRegionFlavor(nodeId, layer);
+
+  return {
+    nodeId,
+    nodeName: mainNode?.name ?? nodeId,
+    region: mainNode?.region ?? '未知地域',
+    title: flavor.title,
+    description: flavor.description,
+    signatureTags: profile.signatureTags,
+    dominantMaterialTypes: getDominantMarketMaterialTypes(nodeId),
+    priceTendency: getPriceTendency(profile),
+    layerHints: getLayerHints(profile),
+  };
+}
+
+export function getMarketNodeSwitchOptions(): MarketNodeSwitchOption[] {
+  return getEnabledMarketNodes().map((node) => {
+    const profile = getRegionProfile(node.id);
+    const signatureTags = profile.signatureTags.slice(0, 3);
+
+    return {
+      id: node.id,
+      name: node.name,
+      region: node.region,
+      realmRequirement: node.realm_requirement,
+      allowedLayers: node.market_config?.allowed_layers ?? [],
+      signatureTags,
+      dominantMaterialTypes: getDominantMarketMaterialTypes(node.id),
+      summary:
+        signatureTags.length > 0
+          ? `${node.region}商路，${signatureTags.slice(0, 2).join('、')}走俏。`
+          : `${node.region}商路，货源混杂。`,
+    };
+  });
+}
+
+export function resolveMarketSwitchLayer(
+  targetNodeId: string,
+  preferredLayer: MarketLayer,
+): MarketLayer {
+  const config = getMarketConfigByNodeId(targetNodeId);
+  if (config?.allowed_layers.includes(preferredLayer)) return preferredLayer;
+  if (config?.allowed_layers.includes('common')) return 'common';
+  return config?.allowed_layers[0] ?? 'common';
 }
 
 export function getRefreshInterval(layer: MarketLayer): number {

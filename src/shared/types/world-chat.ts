@@ -1,11 +1,9 @@
-import type {
-  Artifact,
-  Consumable,
-  Material,
-} from './cultivator';
 import type { ElementType, Quality } from './constants';
+import type { Artifact, Consumable, Material } from './cultivator';
 
-export type WorldChatChannel = 'world';
+export type WorldChatMessageChannel = 'system' | 'world';
+
+export type WorldChatChannel = 'all' | WorldChatMessageChannel;
 
 export type WorldChatMessageType = 'text' | 'duel_invite' | 'item_showcase';
 
@@ -34,7 +32,13 @@ export type WorldChatShowcaseItemType =
 export type ItemShowcaseSnapshotMap = {
   artifact: Pick<
     Artifact,
-    'id' | 'name' | 'slot' | 'element' | 'quality' | 'description' | 'productModel'
+    | 'id'
+    | 'name'
+    | 'slot'
+    | 'element'
+    | 'quality'
+    | 'description'
+    | 'productModel'
   >;
   material: Pick<
     Material,
@@ -86,7 +90,7 @@ export type WorldChatPayload = WorldChatPayloadMap[WorldChatMessageType];
 
 export interface WorldChatMessageDTO {
   id: string;
-  channel: WorldChatChannel;
+  channel: WorldChatMessageChannel;
   senderUserId: string;
   senderCultivatorId: string | null;
   senderName: string;

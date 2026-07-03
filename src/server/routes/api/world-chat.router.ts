@@ -6,13 +6,13 @@ import {
   validateQuery,
 } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
+import { checkAndAcquireCooldown } from '@server/lib/redis/worldChatLimiter';
+import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import {
   createMessage,
   listLatestMessages,
   listMessages,
 } from '@server/lib/repositories/worldChatRepository';
-import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
-import { checkAndAcquireCooldown } from '@server/lib/redis/worldChatLimiter';
 import {
   getCultivatorConsumables,
   getCultivatorMaterials,
@@ -49,7 +49,11 @@ async function buildItemShowcasePayload(params: {
   const { userId, cultivatorId, itemType, itemId, text } = params;
   const showcaseText = text?.trim() || undefined;
 
-  if (itemType === 'artifact' || itemType === 'skill' || itemType === 'gongfa') {
+  if (
+    itemType === 'artifact' ||
+    itemType === 'skill' ||
+    itemType === 'gongfa'
+  ) {
     const item = await creationProductRepository.findById(itemId);
     if (
       !item ||
@@ -76,8 +80,10 @@ async function buildItemShowcasePayload(params: {
       id: item.id,
       name: item.name,
       productType: itemType,
-      element: item.element as ItemShowcaseSnapshotMap[typeof itemType]['element'],
-      quality: item.quality as ItemShowcaseSnapshotMap[typeof itemType]['quality'],
+      element:
+        item.element as ItemShowcaseSnapshotMap[typeof itemType]['element'],
+      quality:
+        item.quality as ItemShowcaseSnapshotMap[typeof itemType]['quality'],
       description: item.description,
       score: item.score ?? 0,
       productModel: item.productModel,
@@ -118,38 +124,36 @@ async function buildItemShowcasePayload(params: {
 
 const router = new Hono<AppEnv>();
 
-router.get(
-  '/messages',
-  validateQuery(WorldChatListQuerySchema),
-  async (c) => {
-    const { limit, page, pageSize } = getValidatedQuery<WorldChatListQuery>(c);
+router.get('/messages', validateQuery(WorldChatListQuerySchema), async (c) => {
+  const { channel, limit, page, pageSize } =
+    getValidatedQuery<WorldChatListQuery>(c);
 
-    if (limit) {
-      const messages = await listLatestMessages(limit);
-      return c.json({
-        success: true,
-        data: messages,
-      });
-    }
-
-    const currentPage = page || 1;
-    const currentPageSize = pageSize || 20;
-    const result = await listMessages({
-      page: currentPage,
-      pageSize: currentPageSize,
-    });
-
+  if (limit) {
+    const messages = await listLatestMessages(limit, channel);
     return c.json({
       success: true,
-      data: result.messages,
-      pagination: {
-        page: currentPage,
-        pageSize: currentPageSize,
-        hasMore: result.hasMore,
-      },
+      data: messages,
     });
-  },
-);
+  }
+
+  const currentPage = page || 1;
+  const currentPageSize = pageSize || 20;
+  const result = await listMessages({
+    channel,
+    page: currentPage,
+    pageSize: currentPageSize,
+  });
+
+  return c.json({
+    success: true,
+    data: result.messages,
+    pagination: {
+      page: currentPage,
+      pageSize: currentPageSize,
+      hasMore: result.hasMore,
+    },
+  });
+});
 
 router.post(
   '/messages',
@@ -189,19 +193,30 @@ router.post(
         const text = normalizeText(parsed);
         const textLength = countChars(text);
         if (textLength < 1 || textLength > 100) {
-          return c.json({ success: false, error: '消息长度需在 1-100 字之间' }, 400);
+          return c.json(
+            { success: false, error: '消息长度需在 1-100 字之间' },
+            400,
+          );
         }
 
         message = await createMessage({
           ...senderBase,
+          channel: 'world',
           messageType: 'text',
           textContent: text,
           payload: { text },
         });
       } else {
-        const showcaseText = (parsed.textContent ?? parsed.payload?.text ?? '').trim();
+        const showcaseText = (
+          parsed.textContent ??
+          parsed.payload?.text ??
+          ''
+        ).trim();
         if (countChars(showcaseText) > 100) {
-          return c.json({ success: false, error: '附言长度需在 100 字以内' }, 400);
+          return c.json(
+            { success: false, error: '附言长度需在 100 字以内' },
+            400,
+          );
         }
 
         const payload = await buildItemShowcasePayload({
@@ -213,11 +228,15 @@ router.post(
         });
 
         if (!payload) {
-          return c.json({ success: false, error: '道具不存在或不属于当前角色' }, 404);
+          return c.json(
+            { success: false, error: '道具不存在或不属于当前角色' },
+            404,
+          );
         }
 
         message = await createMessage({
           ...senderBase,
+          channel: 'world',
           messageType: 'item_showcase',
           textContent: payload.text,
           payload,

@@ -1,5 +1,7 @@
 import { redis } from '@server/lib/redis';
 import type {
+  WorldChatChannel,
+  WorldChatMessageChannel,
   WorldChatMessageDTO,
   WorldChatMessageType,
   WorldChatPayload,
@@ -11,7 +13,7 @@ const WORLD_CHAT_MAX_MESSAGES = 100;
 
 type StoredWorldChatMessage = {
   id: string;
-  channel: 'world';
+  channel?: WorldChatMessageChannel;
   senderUserId: string;
   senderCultivatorId: string | null;
   senderName: string;
@@ -24,16 +26,35 @@ type StoredWorldChatMessage = {
   createdAt: string;
 };
 
+function resolveStoredChannel(
+  message: Partial<StoredWorldChatMessage>,
+): WorldChatMessageChannel {
+  if (
+    message.senderCultivatorId === null &&
+    message.senderName === '修仙界传闻'
+  ) {
+    return 'system';
+  }
+
+  if (message.channel === 'system' || message.channel === 'world') {
+    return message.channel;
+  }
+
+  return 'world';
+}
+
 function parseStoredMessage(raw: unknown): WorldChatMessageDTO | null {
   if (typeof raw === 'object' && raw !== null) {
     const parsed = raw as Partial<StoredWorldChatMessage>;
     if (
       typeof parsed.id === 'string' &&
-      parsed.channel === 'world' &&
       typeof parsed.senderName === 'string' &&
       typeof parsed.createdAt === 'string'
     ) {
-      return parsed as WorldChatMessageDTO;
+      return {
+        ...parsed,
+        channel: resolveStoredChannel(parsed),
+      } as WorldChatMessageDTO;
     }
     return null;
   }
@@ -42,7 +63,10 @@ function parseStoredMessage(raw: unknown): WorldChatMessageDTO | null {
     try {
       const parsed = JSON.parse(raw) as StoredWorldChatMessage;
       if (!parsed || typeof parsed.id !== 'string') return null;
-      return parsed;
+      return {
+        ...parsed,
+        channel: resolveStoredChannel(parsed),
+      };
     } catch {
       return null;
     }
@@ -61,13 +85,14 @@ export async function createMessage(data: {
   senderName: string;
   senderRealm: string;
   senderRealmStage: string;
+  channel?: WorldChatMessageChannel;
   messageType: WorldChatMessageType;
   textContent?: string;
   payload: WorldChatPayload;
 }): Promise<WorldChatMessageDTO> {
   const message: WorldChatMessageDTO = {
     id: randomUUID(),
-    channel: 'world',
+    channel: data.channel ?? 'world',
     senderUserId: data.senderUserId,
     senderCultivatorId: data.senderCultivatorId,
     senderName: data.senderName,
@@ -87,6 +112,7 @@ export async function createMessage(data: {
 }
 
 export async function listMessages(options: {
+  channel: WorldChatChannel;
   page: number;
   pageSize: number;
 }): Promise<{
@@ -94,15 +120,21 @@ export async function listMessages(options: {
   hasMore: boolean;
 }> {
   const start = (options.page - 1) * options.pageSize;
-  const end = start + options.pageSize;
-  const rows = await redis.lrange(WORLD_CHAT_LIST_KEY, start, end);
+  const end = start + options.pageSize + 1;
+  const rows = await redis.lrange(
+    WORLD_CHAT_LIST_KEY,
+    0,
+    WORLD_CHAT_MAX_MESSAGES - 1,
+  );
   const parsedRows = (rows || [])
     .map((raw) => parseStoredMessage(raw))
-    .filter((item): item is WorldChatMessageDTO => Boolean(item));
-  const hasMore = parsedRows.length > options.pageSize;
-  const trimmedRows = hasMore
-    ? parsedRows.slice(0, options.pageSize)
-    : parsedRows;
+    .filter((item): item is WorldChatMessageDTO => Boolean(item))
+    .filter(
+      (item) => options.channel === 'all' || item.channel === options.channel,
+    );
+  const pageRows = parsedRows.slice(start, end);
+  const hasMore = pageRows.length > options.pageSize;
+  const trimmedRows = hasMore ? pageRows.slice(0, options.pageSize) : pageRows;
 
   return {
     messages: trimmedRows,
@@ -112,9 +144,16 @@ export async function listMessages(options: {
 
 export async function listLatestMessages(
   limit: number,
+  channel: WorldChatChannel = 'all',
 ): Promise<WorldChatMessageDTO[]> {
-  const rows = await redis.lrange(WORLD_CHAT_LIST_KEY, 0, limit - 1);
+  const rows = await redis.lrange(
+    WORLD_CHAT_LIST_KEY,
+    0,
+    WORLD_CHAT_MAX_MESSAGES - 1,
+  );
   return (rows || [])
     .map((raw) => parseStoredMessage(raw))
-    .filter((item): item is WorldChatMessageDTO => Boolean(item));
+    .filter((item): item is WorldChatMessageDTO => Boolean(item))
+    .filter((item) => channel === 'all' || item.channel === channel)
+    .slice(0, limit);
 }

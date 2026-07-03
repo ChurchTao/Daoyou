@@ -1,10 +1,10 @@
-import type { Tier } from '@app/components/ui/InkBadge';
-import { InkBadge, tierColorMap } from '@app/components/ui/InkBadge';
-import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import {
   ItemDetailModal,
   type ItemDetailPayload,
 } from '@app/components/feature/items';
+import type { Tier } from '@app/components/ui/InkBadge';
+import { InkBadge, tierColorMap } from '@app/components/ui/InkBadge';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { cn } from '@shared/lib/cn';
 import type {
   ItemShowcaseSnapshotMap,
@@ -215,7 +215,9 @@ export function WorldChatMessageItem({ message }: WorldChatMessageItemProps) {
   const [detailItem, setDetailItem] = useState<ItemDetailPayload | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const isSystemRumor =
-    message.senderCultivatorId === null && message.senderName === '修仙界传闻';
+    message.channel === 'system' ||
+    (message.senderCultivatorId === null &&
+      message.senderName === '修仙界传闻');
 
   const showcaseData = useMemo(() => {
     if (message.messageType !== 'item_showcase') return null;

@@ -1,20 +1,15 @@
-import { rehydrateStoredProductModel } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
-import { projectAbilityConfig } from '@shared/engine/creation-v2/models/AbilityProjection';
-import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { getExecutor } from '@server/lib/drizzle/db';
 import {
   consumables,
   creationProducts,
   cultivators,
 } from '@server/lib/drizzle/schema';
-import {
-  requireActiveCultivator,
-} from '@server/lib/hono/middleware';
+import { requireActiveCultivator } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
   acquireChallengeLock,
-  addToRankingTailIfVacant,
   addToRanking,
+  addToRankingTailIfVacant,
   checkDailyChallenges,
   getCultivatorRank,
   getRankingList,
@@ -27,18 +22,23 @@ import {
 } from '@server/lib/redis/rankings';
 import { createBattleRecordV2 } from '@server/lib/repositories/battleRecordV2Repository';
 import { createMessage } from '@server/lib/repositories/worldChatRepository';
+import { getPlayerRuntimeCultivatorByIdUnsafe } from '@server/lib/services/cultivatorService';
 import {
   commitPlayerStateMutation,
   toPlayerStateMutationResponse,
 } from '@server/lib/services/PlayerStateMutationService';
-import {
-  getPlayerRuntimeCultivatorByIdUnsafe,
-} from '@server/lib/services/cultivatorService';
 import { simulateBattleV5 } from '@server/lib/services/simulateBattleV5';
 import { TaskService } from '@server/lib/services/TaskService';
-import type { BattleInitConfigV5 } from '@shared/types/battle';
+import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+import { projectAbilityConfig } from '@shared/engine/creation-v2/models/AbilityProjection';
+import { rehydrateStoredProductModel } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
 import { withPlayerAbilityStrategySettings } from '@shared/lib/battle/abilityStrategyInit';
-import { getCreationProductTypeLabel } from '@shared/lib/gameConceptDisplay';
+import {
+  getConsumableTypeLabel,
+  getCreationProductTypeLabel,
+  getEquipmentSlotLabel,
+} from '@shared/lib/gameConceptDisplay';
+import type { BattleInitConfigV5 } from '@shared/types/battle';
 import {
   EquipmentSlot,
   QUALITY_VALUES,
@@ -46,10 +46,6 @@ import {
   type ElementType,
   type RealmType,
 } from '@shared/types/constants';
-import {
-  getConsumableTypeLabel,
-  getEquipmentSlotLabel,
-} from '@shared/lib/gameConceptDisplay';
 import type { ItemRankingEntry } from '@shared/types/rankings';
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -141,6 +137,7 @@ async function broadcastRankingChange(params: {
       senderName: '修仙界传闻',
       senderRealm: '炼气',
       senderRealmStage: '系统',
+      channel: 'system',
       messageType: 'text',
       textContent: rumor,
       payload: { text: rumor },
@@ -188,7 +185,10 @@ publicRouter.get('/items', async (c) => {
       const rows = await getExecutor()
         .select({ item: creationProducts, owner: cultivators })
         .from(creationProducts)
-        .leftJoin(cultivators, eq(creationProducts.cultivatorId, cultivators.id))
+        .leftJoin(
+          cultivators,
+          eq(creationProducts.cultivatorId, cultivators.id),
+        )
         .where(
           and(
             isNotNull(creationProducts.cultivatorId),
@@ -225,12 +225,18 @@ publicRouter.get('/items', async (c) => {
       const rows = await getExecutor()
         .select({ item: creationProducts, owner: cultivators })
         .from(creationProducts)
-        .leftJoin(cultivators, eq(creationProducts.cultivatorId, cultivators.id))
+        .leftJoin(
+          cultivators,
+          eq(creationProducts.cultivatorId, cultivators.id),
+        )
         .where(
           and(
             isNotNull(creationProducts.cultivatorId),
             eq(creationProducts.productType, 'skill'),
-            inArray(creationProducts.quality, validProductQualities as string[]),
+            inArray(
+              creationProducts.quality,
+              validProductQualities as string[],
+            ),
           ),
         )
         .orderBy(desc(creationProducts.score))
@@ -306,12 +312,18 @@ publicRouter.get('/items', async (c) => {
       const rows = await getExecutor()
         .select({ item: creationProducts, owner: cultivators })
         .from(creationProducts)
-        .leftJoin(cultivators, eq(creationProducts.cultivatorId, cultivators.id))
+        .leftJoin(
+          cultivators,
+          eq(creationProducts.cultivatorId, cultivators.id),
+        )
         .where(
           and(
             isNotNull(creationProducts.cultivatorId),
             eq(creationProducts.productType, 'gongfa'),
-            inArray(creationProducts.quality, validProductQualities as string[]),
+            inArray(
+              creationProducts.quality,
+              validProductQualities as string[],
+            ),
           ),
         )
         .orderBy(desc(creationProducts.score))
@@ -355,7 +367,8 @@ challengeRouter.get('/my-rank', requireActiveCultivator(), async (c) => {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
-  const realm = parseRealmQuery(c.req.query('realm')) ?? getCultivatorRealm(cultivator);
+  const realm =
+    parseRealmQuery(c.req.query('realm')) ?? getCultivatorRealm(cultivator);
   const rank = await getCultivatorRank(realm, cultivator.id);
   const remainingChallenges = await getRemainingChallenges(cultivator.id);
 
@@ -490,203 +503,211 @@ challengeRouter.post('/challenge-battle', requireActiveCultivator(), (c) => {
   );
 });
 
-challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c) => {
-  const user = c.get('user');
-  const challenger = c.get('cultivator');
-  if (!user || !challenger) {
-    return c.json({ error: '未授权访问' }, 401);
-  }
-
-  let lockAcquired = false;
-  let targetId: string | null = null;
-
-  try {
-    const parsed = ChallengeBattleSchema.parse(await c.req.json());
-    targetId = parsed.targetId || null;
-    const cultivatorId = challenger.id;
-    const ownRealm = getCultivatorRealm(challenger);
-    const rankingRealm = parsed.realm ?? ownRealm;
-    const affectsRanking = rankingRealm === ownRealm;
-
-    const challengeCheck = await checkDailyChallenges(cultivatorId);
-    if (!challengeCheck.success) {
-      return c.json({ error: '今日挑战次数已用完（每日限10次）' }, 403);
+challengeRouter.post(
+  '/challenge-battle/v5',
+  requireActiveCultivator(),
+  async (c) => {
+    const user = c.get('user');
+    const challenger = c.get('cultivator');
+    if (!user || !challenger) {
+      return c.json({ error: '未授权访问' }, 401);
     }
 
-    const isEmpty = await isRankingEmpty(rankingRealm);
-    const challengerRank = await getCultivatorRank(rankingRealm, cultivatorId);
+    let lockAcquired = false;
+    let targetId: string | null = null;
 
-    if (
-      (!targetId || targetId === '') &&
-      affectsRanking &&
-      isEmpty &&
-      challengerRank === null
-    ) {
-      await addToRanking(rankingRealm, cultivatorId, user.id, 1);
-      const committed = await commitPlayerStateMutation({
-        userId: user.id,
-        cultivatorId,
-        source: 'ranking_challenge_direct_entry',
-        run: async () => ({
-          result: {
-            type: 'direct_entry' as const,
-            realm: rankingRealm,
-            rank: 1,
-            remainingChallenges: challengeCheck.remaining,
-          },
-          changes: [
-            {
-              domain: 'tasks',
-              eventType: 'tasks.ranking.direct_entry',
-              invalidates: ['tasks'],
-            },
-          ],
-        }),
-      });
-      await broadcastRankingChange({
-        userId: user.id,
-        changeType: 'direct_entry',
-        challengerName: challenger.name,
-        realm: rankingRealm,
-        rank: 1,
-      });
-      return c.json(toPlayerStateMutationResponse(committed));
-    }
+    try {
+      const parsed = ChallengeBattleSchema.parse(await c.req.json());
+      targetId = parsed.targetId || null;
+      const cultivatorId = challenger.id;
+      const ownRealm = getCultivatorRealm(challenger);
+      const rankingRealm = parsed.realm ?? ownRealm;
+      const affectsRanking = rankingRealm === ownRealm;
 
-    if (!targetId || targetId.trim() === '') {
-      return c.json(
-        {
-          error: affectsRanking
-            ? '请提供被挑战者ID'
-            : '越境榜单不可直接上榜，请选择榜上修士切磋',
-        },
-        400,
-      );
-    }
-
-    const targetRank = await getCultivatorRank(rankingRealm, targetId);
-    if (targetRank === null) {
-      return c.json({ error: '被挑战者不在排行榜上' }, 404);
-    }
-
-    if (!(await acquireChallengeLock(targetId))) {
-      return c.json({ error: '被挑战者正在被其他玩家挑战，请稍后再试' }, 429);
-    }
-    lockAcquired = true;
-
-    const challengerRecord = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId);
-    const targetRecord = await getPlayerRuntimeCultivatorByIdUnsafe(targetId);
-    if (!challengerRecord || !targetRecord) {
-      return c.json({ error: '角色不存在' }, 404);
-    }
-
-    const battleResult = simulateBattleV5(
-      challengerRecord.cultivator,
-      targetRecord.cultivator,
-      withPlayerAbilityStrategySettings(
-        createFullResourcePvpBattleInit(),
-        challengerRecord.cultivator,
-      ),
-    );
-
-    const isWin = battleResult.winner.id === challenger.id;
-    let newChallengerRank: number | null = challengerRank;
-    let newTargetRank: number | null = targetRank;
-    let rankChangeType: RankingChangeType = null;
-
-    if (
-      affectsRanking &&
-      isWin &&
-      (challengerRank === null || challengerRank > targetRank)
-    ) {
-      await updateRanking(rankingRealm, cultivatorId, targetId);
-      newChallengerRank = await getCultivatorRank(rankingRealm, cultivatorId);
-      newTargetRank = await getCultivatorRank(rankingRealm, targetId);
-      if (newChallengerRank !== null) {
-        rankChangeType = 'challenge_win';
+      const challengeCheck = await checkDailyChallenges(cultivatorId);
+      if (!challengeCheck.success) {
+        return c.json({ error: '今日挑战次数已用完（每日限10次）' }, 403);
       }
-    } else if (affectsRanking && !isWin && challengerRank === null) {
-      newChallengerRank = await addToRankingTailIfVacant(
+
+      const isEmpty = await isRankingEmpty(rankingRealm);
+      const challengerRank = await getCultivatorRank(
         rankingRealm,
         cultivatorId,
       );
-      if (newChallengerRank !== null) {
-        rankChangeType = 'vacancy_entry';
+
+      if (
+        (!targetId || targetId === '') &&
+        affectsRanking &&
+        isEmpty &&
+        challengerRank === null
+      ) {
+        await addToRanking(rankingRealm, cultivatorId, user.id, 1);
+        const committed = await commitPlayerStateMutation({
+          userId: user.id,
+          cultivatorId,
+          source: 'ranking_challenge_direct_entry',
+          run: async () => ({
+            result: {
+              type: 'direct_entry' as const,
+              realm: rankingRealm,
+              rank: 1,
+              remainingChallenges: challengeCheck.remaining,
+            },
+            changes: [
+              {
+                domain: 'tasks',
+                eventType: 'tasks.ranking.direct_entry',
+                invalidates: ['tasks'],
+              },
+            ],
+          }),
+        });
+        await broadcastRankingChange({
+          userId: user.id,
+          changeType: 'direct_entry',
+          challengerName: challenger.name,
+          realm: rankingRealm,
+          rank: 1,
+        });
+        return c.json(toPlayerStateMutationResponse(committed));
+      }
+
+      if (!targetId || targetId.trim() === '') {
+        return c.json(
+          {
+            error: affectsRanking
+              ? '请提供被挑战者ID'
+              : '越境榜单不可直接上榜，请选择榜上修士切磋',
+          },
+          400,
+        );
+      }
+
+      const targetRank = await getCultivatorRank(rankingRealm, targetId);
+      if (targetRank === null) {
+        return c.json({ error: '被挑战者不在排行榜上' }, 404);
+      }
+
+      if (!(await acquireChallengeLock(targetId))) {
+        return c.json({ error: '被挑战者正在被其他玩家挑战，请稍后再试' }, 429);
+      }
+      lockAcquired = true;
+
+      const challengerRecord =
+        await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId);
+      const targetRecord = await getPlayerRuntimeCultivatorByIdUnsafe(targetId);
+      if (!challengerRecord || !targetRecord) {
+        return c.json({ error: '角色不存在' }, 404);
+      }
+
+      const battleResult = simulateBattleV5(
+        challengerRecord.cultivator,
+        targetRecord.cultivator,
+        withPlayerAbilityStrategySettings(
+          createFullResourcePvpBattleInit(),
+          challengerRecord.cultivator,
+        ),
+      );
+
+      const isWin = battleResult.winner.id === challenger.id;
+      let newChallengerRank: number | null = challengerRank;
+      let newTargetRank: number | null = targetRank;
+      let rankChangeType: RankingChangeType = null;
+
+      if (
+        affectsRanking &&
+        isWin &&
+        (challengerRank === null || challengerRank > targetRank)
+      ) {
+        await updateRanking(rankingRealm, cultivatorId, targetId);
+        newChallengerRank = await getCultivatorRank(rankingRealm, cultivatorId);
+        newTargetRank = await getCultivatorRank(rankingRealm, targetId);
+        if (newChallengerRank !== null) {
+          rankChangeType = 'challenge_win';
+        }
+      } else if (affectsRanking && !isWin && challengerRank === null) {
+        newChallengerRank = await addToRankingTailIfVacant(
+          rankingRealm,
+          cultivatorId,
+        );
+        if (newChallengerRank !== null) {
+          rankChangeType = 'vacancy_entry';
+        }
+      }
+
+      const remainingChallenges = await incrementDailyChallenges(cultivatorId);
+
+      const committed = await commitPlayerStateMutation({
+        userId: user.id,
+        cultivatorId,
+        source: 'ranking_challenge_battle',
+        run: async (tx) => {
+          await createBattleRecordV2(
+            {
+              userId: user.id,
+              cultivatorId,
+              battleType: 'challenge',
+              opponentCultivatorId: targetId,
+              battleResult,
+            },
+            tx,
+          );
+          await TaskService.recordTaskEvent(
+            cultivatorId,
+            'ranking_challenge_battled',
+            { tx },
+          );
+
+          return {
+            result: {
+              type: 'battle_result' as const,
+              battleResult,
+              rankingUpdate: {
+                isWin,
+                realm: rankingRealm,
+                affectsRanking,
+                challengerRank: newChallengerRank,
+                targetRank: newTargetRank,
+                remainingChallenges,
+                rankChangeType,
+              },
+            },
+            changes: [
+              {
+                domain: 'tasks',
+                eventType: 'tasks.ranking.challenge_battled',
+                invalidates: ['tasks'],
+              },
+            ],
+          };
+        },
+      });
+
+      if (rankChangeType && newChallengerRank !== null) {
+        await broadcastRankingChange({
+          userId: user.id,
+          changeType: rankChangeType,
+          challengerName: challengerRecord.cultivator.name,
+          targetName: targetRecord.cultivator.name,
+          realm: rankingRealm,
+          rank: newChallengerRank,
+        });
+      }
+
+      return c.json(toPlayerStateMutationResponse(committed));
+    } catch (error) {
+      console.error('挑战战斗流程错误:', error);
+      return c.json(
+        { error: error instanceof Error ? error.message : '挑战失败' },
+        500,
+      );
+    } finally {
+      if (lockAcquired && targetId) {
+        await releaseChallengeLock(targetId);
       }
     }
-
-    const remainingChallenges = await incrementDailyChallenges(cultivatorId);
-
-    const committed = await commitPlayerStateMutation({
-      userId: user.id,
-      cultivatorId,
-      source: 'ranking_challenge_battle',
-      run: async (tx) => {
-        await createBattleRecordV2(
-          {
-            userId: user.id,
-            cultivatorId,
-            battleType: 'challenge',
-            opponentCultivatorId: targetId,
-            battleResult,
-          },
-          tx,
-        );
-        await TaskService.recordTaskEvent(
-          cultivatorId,
-          'ranking_challenge_battled',
-          { tx },
-        );
-
-        return {
-          result: {
-            type: 'battle_result' as const,
-            battleResult,
-            rankingUpdate: {
-              isWin,
-              realm: rankingRealm,
-              affectsRanking,
-              challengerRank: newChallengerRank,
-              targetRank: newTargetRank,
-              remainingChallenges,
-              rankChangeType,
-            },
-          },
-          changes: [
-            {
-              domain: 'tasks',
-              eventType: 'tasks.ranking.challenge_battled',
-              invalidates: ['tasks'],
-            },
-          ],
-        };
-      },
-    });
-
-    if (rankChangeType && newChallengerRank !== null) {
-      await broadcastRankingChange({
-        userId: user.id,
-        changeType: rankChangeType,
-        challengerName: challengerRecord.cultivator.name,
-        targetName: targetRecord.cultivator.name,
-        realm: rankingRealm,
-        rank: newChallengerRank,
-      });
-    }
-
-    return c.json(toPlayerStateMutationResponse(committed));
-  } catch (error) {
-    console.error('挑战战斗流程错误:', error);
-    return c.json(
-      { error: error instanceof Error ? error.message : '挑战失败' },
-      500,
-    );
-  } finally {
-    if (lockAcquired && targetId) {
-      await releaseChallengeLock(targetId);
-    }
-  }
-});
+  },
+);
 
 router.route('/', publicRouter);
 router.route('/', challengeRouter);

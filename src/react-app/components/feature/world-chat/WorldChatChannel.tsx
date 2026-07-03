@@ -6,19 +6,25 @@ import { InkInput } from '@app/components/ui/InkInput';
 import { InkList, InkListItem } from '@app/components/ui/InkList';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { InkTabs } from '@app/components/ui/InkTabs';
-import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
   getMaterialTypeInfo,
   getResourceTypeLabel,
 } from '@shared/lib/gameConceptDisplay';
+import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
+import type { WorldChatChannel as WorldChatViewChannel } from '@shared/types/world-chat';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { WorldChatMessageItem } from './WorldChatMessageItem';
 import { useWorldChatFeedModel } from './useWorldChatFeedModel';
 
 const MAX_LENGTH = 100;
 const SHOWCASE_PAGE_SIZE = 20;
+const CHANNEL_TABS: { label: string; value: WorldChatViewChannel }[] = [
+  { label: '全部', value: 'all' },
+  { label: '系统', value: 'system' },
+  { label: '世界', value: 'world' },
+];
 
 type ShowcaseTab = 'artifacts' | 'materials' | 'consumables';
 
@@ -59,6 +65,8 @@ export function WorldChatChannel() {
     loadMore,
     sendTextMessage,
     sendShowcaseMessage,
+    activeChannel,
+    setActiveChannel,
   } = useWorldChatFeedModel();
   const [input, setInput] = useState('');
   const [showcaseOpen, setShowcaseOpen] = useState(false);
@@ -88,12 +96,17 @@ export function WorldChatChannel() {
 
   const charCount = useMemo(() => countChars(input), [input]);
   const displayMessages = useMemo(() => [...messages].reverse(), [messages]);
+  const canSendMessage = activeChannel !== 'system';
   const currentShowcaseItems = showcaseItems[
     showcaseTab
   ] as ShowcaseItemByTab[ShowcaseTab][];
 
   useEffect(() => {
-    if (!showcaseOpen || showcaseLoaded[showcaseTab] || showcaseLoadingRef.current) {
+    if (
+      !showcaseOpen ||
+      showcaseLoaded[showcaseTab] ||
+      showcaseLoadingRef.current
+    ) {
       return;
     }
 
@@ -118,7 +131,8 @@ export function WorldChatChannel() {
 
         setShowcaseItems((prev) => ({
           ...prev,
-          [showcaseTab]: (data.data?.items || []) as ShowcaseItemByTab[typeof showcaseTab][],
+          [showcaseTab]: (data.data?.items ||
+            []) as ShowcaseItemByTab[typeof showcaseTab][],
         }));
         setShowcaseLoaded((prev) => ({ ...prev, [showcaseTab]: true }));
       } catch (error) {
@@ -251,6 +265,12 @@ export function WorldChatChannel() {
   return (
     <>
       <div className="space-y-4">
+        <InkTabs
+          activeValue={activeChannel}
+          onChange={(value) => setActiveChannel(value as WorldChatViewChannel)}
+          items={CHANNEL_TABS}
+        />
+
         <div
           ref={messageListRef}
           className="battle-scroll h-[22rem] overflow-y-auto pr-1 md:h-[20rem]"
@@ -264,7 +284,13 @@ export function WorldChatChannel() {
           {loading ? (
             <InkNotice>加载中……</InkNotice>
           ) : messages.length === 0 ? (
-            <InkNotice>暂无传音。</InkNotice>
+            <InkNotice>
+              {activeChannel === 'system'
+                ? '暂无系统传音。'
+                : activeChannel === 'world'
+                  ? '暂无世界传音。'
+                  : '暂无传音。'}
+            </InkNotice>
           ) : (
             <div>
               {hasMore ? (
@@ -281,36 +307,38 @@ export function WorldChatChannel() {
           )}
         </div>
 
-        <div className="pt-3">
-          <InkInput
-            value={input}
-            multiline
-            rows={3}
-            placeholder="道友请留步，输入你想说的话..."
-            onChange={(next) => {
-              const limited = Array.from(next).slice(0, MAX_LENGTH).join('');
-              setInput(limited);
-            }}
-            hint={`${charCount}/${MAX_LENGTH}`}
-            disabled={posting}
-          />
-          <div className="flex justify-end gap-2">
-            <InkButton
-              variant="secondary"
-              onClick={() => setShowcaseOpen(true)}
+        {canSendMessage ? (
+          <div className="pt-3">
+            <InkInput
+              value={input}
+              multiline
+              rows={3}
+              placeholder="道友请留步，输入你想说的话..."
+              onChange={(next) => {
+                const limited = Array.from(next).slice(0, MAX_LENGTH).join('');
+                setInput(limited);
+              }}
+              hint={`${charCount}/${MAX_LENGTH}`}
               disabled={posting}
-            >
-              展示道具
-            </InkButton>
-            <InkButton
-              variant="primary"
-              onClick={handleSend}
-              disabled={posting || charCount < 1}
-            >
-              {posting ? '传音中...' : '发送'}
-            </InkButton>
+            />
+            <div className="flex justify-end gap-2">
+              <InkButton
+                variant="secondary"
+                onClick={() => setShowcaseOpen(true)}
+                disabled={posting}
+              >
+                展示道具
+              </InkButton>
+              <InkButton
+                variant="primary"
+                onClick={handleSend}
+                disabled={posting || charCount < 1}
+              >
+                {posting ? '传音中...' : '发送'}
+              </InkButton>
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
       <InkModal
@@ -326,7 +354,10 @@ export function WorldChatChannel() {
             items={[
               { label: getResourceTypeLabel('artifact'), value: 'artifacts' },
               { label: getResourceTypeLabel('material'), value: 'materials' },
-              { label: getResourceTypeLabel('consumable'), value: 'consumables' },
+              {
+                label: getResourceTypeLabel('consumable'),
+                value: 'consumables',
+              },
             ]}
           />
           <InkInput

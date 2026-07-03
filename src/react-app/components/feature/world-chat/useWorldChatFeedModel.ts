@@ -7,6 +7,7 @@ export type {
 } from './worldChatFeedContext';
 export {
   countNewWorldChatMessages,
+  filterWorldChatMessagesByChannel,
   mergeWorldChatMessages,
 } from './worldChatFeedHelpers';
 export { WorldChatFeedProvider };

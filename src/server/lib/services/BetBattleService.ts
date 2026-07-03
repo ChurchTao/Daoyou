@@ -1,24 +1,28 @@
-import {
-  TEMP_DISABLED_MESSAGES,
-  temporaryRestrictions,
-} from '@shared/config/temporaryRestrictions';
 import { redis } from '@server/lib/redis';
 import * as betBattleRepository from '@server/lib/repositories/betBattleRepository';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { createMessage } from '@server/lib/repositories/worldChatRepository';
+import {
+  TEMP_DISABLED_MESSAGES,
+  temporaryRestrictions,
+} from '@shared/config/temporaryRestrictions';
+import { withPlayerAbilityStrategySettings } from '@shared/lib/battle/abilityStrategyInit';
 import type { Cultivator } from '@shared/types/cultivator';
 import { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
 import { isRealmInRange, toRealmType } from '../admin/realm';
-import { getExecutor, type DbExecutor, type DbTransaction } from '../drizzle/db';
+import {
+  getExecutor,
+  type DbExecutor,
+  type DbTransaction,
+} from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import type { BattleRecord } from './battleResult';
-import { MailAttachment, MailService } from './MailService';
 import { mapConsumableRow } from './consumablePersistence';
-import { simulateBattleV5 } from './simulateBattleV5';
 import { toArtifactFromProduct } from './creationProductArtifactSupport';
 import { getPlayerRuntimeCultivatorByIdUnsafe } from './cultivatorService';
-import { withPlayerAbilityStrategySettings } from '@shared/lib/battle/abilityStrategyInit';
+import { MailAttachment, MailService } from './MailService';
+import { simulateBattleV5 } from './simulateBattleV5';
 
 const CREATE_LOCK_PREFIX = 'bet_battle:create:lock:';
 const CHALLENGE_LOCK_PREFIX = 'bet_battle:challenge:lock:';
@@ -172,7 +176,9 @@ function validateExclusiveStake(
   }
 }
 
-function assertConsumableStakeAllowed(stakeItem: BetStakeInputItem | null): void {
+function assertConsumableStakeAllowed(
+  stakeItem: BetStakeInputItem | null,
+): void {
   if (!temporaryRestrictions.disableConsumableBetBattle) return;
   if (stakeItem?.itemType !== 'consumable') return;
 
@@ -235,11 +241,12 @@ async function getItemSnapshot(
   }
 
   if (itemType === 'artifact') {
-    const rows = await creationProductRepository.findArtifactsByIdsAndCultivator(
-      cultivatorId,
-      [itemId],
-      q,
-    );
+    const rows =
+      await creationProductRepository.findArtifactsByIdsAndCultivator(
+        cultivatorId,
+        [itemId],
+        q,
+      );
     const artifact = rows[0] || null;
     if (!artifact || artifact.isEquipped) {
       return null;
@@ -312,11 +319,12 @@ async function deductStakeItem(
       );
     }
 
-    const deleted = await creationProductRepository.deleteArtifactsByIdsAndCultivator(
-      cultivatorId,
-      [stakeItem.itemId],
-      tx,
-    );
+    const deleted =
+      await creationProductRepository.deleteArtifactsByIdsAndCultivator(
+        cultivatorId,
+        [stakeItem.itemId],
+        tx,
+      );
     if (deleted.length !== 1) {
       throw new BetBattleServiceError(
         BetBattleError.ITEM_NOT_FOUND,
@@ -633,7 +641,9 @@ export async function challengeBetBattle(
       );
     }
 
-    const challengerBundle = await getPlayerRuntimeCultivatorByIdUnsafe(input.challengerId);
+    const challengerBundle = await getPlayerRuntimeCultivatorByIdUnsafe(
+      input.challengerId,
+    );
     if (!challengerBundle?.cultivator) {
       throw new BetBattleServiceError(
         BetBattleError.BATTLE_NOT_FOUND,
@@ -659,7 +669,9 @@ export async function challengeBetBattle(
       );
     }
 
-    const creatorBundle = await getPlayerRuntimeCultivatorByIdUnsafe(betBattle.creatorId);
+    const creatorBundle = await getPlayerRuntimeCultivatorByIdUnsafe(
+      betBattle.creatorId,
+    );
     if (!creatorBundle?.cultivator) {
       throw new BetBattleServiceError(
         BetBattleError.BATTLE_NOT_FOUND,
@@ -673,10 +685,7 @@ export async function challengeBetBattle(
     const battleResult = simulateBattleV5(
       challengerBundle.cultivator,
       creatorBundle.cultivator,
-      withPlayerAbilityStrategySettings(
-        undefined,
-        challengerBundle.cultivator,
-      ),
+      withPlayerAbilityStrategySettings(undefined, challengerBundle.cultivator),
     );
     const winnerId =
       battleResult.winner.id === input.challengerId
@@ -778,6 +787,7 @@ export async function challengeBetBattle(
         senderName: '修仙界传闻',
         senderRealm: '炼气',
         senderRealmStage: '系统',
+        channel: 'system',
         messageType: 'text',
         textContent: rumor,
         payload: { text: rumor },

@@ -1,52 +1,41 @@
-import { MARKET_PRESET_POOL } from '@shared/engine/material/creation/marketPresets';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
+import { cultivators, materials } from '@server/lib/drizzle/schema';
+import { redis } from '@server/lib/redis';
+import { parseRedisJson } from '@server/lib/redis/json';
+import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import {
   BASE_PRICES,
   QUALITY_CHANCE_MAP,
   TYPE_CHANCE_MAP,
   TYPE_MULTIPLIERS,
 } from '@shared/engine/material/creation/config';
-import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
-import { cultivators, materials } from '@server/lib/drizzle/schema';
+import { MARKET_PRESET_POOL } from '@shared/engine/material/creation/marketPresets';
+import {
+  evaluateFateContext,
+  getMarketPurchasePriceMultiplier,
+  scaleFateAdjustedValue,
+} from '@shared/lib/fates';
 import {
   getCurrentCycle,
   getCycleEndTime,
   getDefaultMarketNodeId,
   getMarketConfigByNodeId,
   getNodeRegionTags,
+  getRefreshInterval,
   getRegionFlavor,
   getRegionProfile,
-  getRefreshInterval,
   isMarketNodeEnabled,
   MARKET_STALE_RETRY_MS,
   resolveLayerConfig,
   validateLayerAccess,
 } from '@shared/lib/game/marketConfig';
-import { redis } from '@server/lib/redis';
-import { parseRedisJson } from '@server/lib/redis/json';
-import { createMessage } from '@server/lib/repositories/worldChatRepository';
-import { addMaterialStackToInventory } from './materialInventory';
-import {
-  materialLibraryEntryToMaterial,
-  sampleMaterialForRange,
-  sampleMaterialLibraryEntries,
-  type MaterialLibrarySampleRequest,
-} from './MaterialLibraryService';
-import {
-  getHiddenMysteryReveal,
-  sanitizeMaterialDetails,
-  type HiddenMysteryReveal,
-  withHiddenMysteryReveal,
-} from './materialDetailsPrivacy';
-import { QiService } from './QiService';
 import type { MaterialType, Quality, RealmType } from '@shared/types/constants';
 import {
   MATERIAL_TYPE_VALUES,
   QUALITY_ORDER,
   QUALITY_VALUES,
 } from '@shared/types/constants';
-import type {
-  PreHeavenFate,
-} from '@shared/types/cultivator';
+import type { PreHeavenFate } from '@shared/types/cultivator';
 import type {
   MarketAccessState,
   MarketLayer,
@@ -58,10 +47,19 @@ import type {
 import { MARKET_PRESET_FALLBACK_LAYERS } from '@shared/types/market';
 import { and, eq, sql } from 'drizzle-orm';
 import {
-  evaluateFateContext,
-  getMarketPurchasePriceMultiplier,
-  scaleFateAdjustedValue,
-} from '@shared/lib/fates';
+  getHiddenMysteryReveal,
+  sanitizeMaterialDetails,
+  withHiddenMysteryReveal,
+  type HiddenMysteryReveal,
+} from './materialDetailsPrivacy';
+import { addMaterialStackToInventory } from './materialInventory';
+import {
+  materialLibraryEntryToMaterial,
+  sampleMaterialForRange,
+  sampleMaterialLibraryEntries,
+  type MaterialLibrarySampleRequest,
+} from './MaterialLibraryService';
+import { QiService } from './QiService';
 
 // ─── Redis 键前缀 ───
 
@@ -133,7 +131,12 @@ function getCacheKey(nodeId: string, layer: MarketLayer, cycle: number) {
   return `${MARKET_CACHE_PREFIX}:${nodeId}:${layer}:${cycle}`;
 }
 
-function getBoughtKey(userId: string, nodeId: string, layer: MarketLayer, cycle: number) {
+function getBoughtKey(
+  userId: string,
+  nodeId: string,
+  layer: MarketLayer,
+  cycle: number,
+) {
   return `${MARKET_BOUGHT_PREFIX}:${userId}:${nodeId}:${layer}:${cycle}`;
 }
 
@@ -174,12 +177,18 @@ function rollDisguiseRank() {
 /**
  * 按权重随机选取品质（限定在 rankRange 内）
  */
-function rollQualityInRange(rankRange: { min: Quality; max: Quality }): Quality {
+function rollQualityInRange(rankRange: {
+  min: Quality;
+  max: Quality;
+}): Quality {
   const minOrder = QUALITY_ORDER[rankRange.min];
   const maxOrder = QUALITY_ORDER[rankRange.max];
   const candidates: { quality: Quality; weight: number }[] = [];
 
-  for (const [quality, order] of Object.entries(QUALITY_ORDER) as [Quality, number][]) {
+  for (const [quality, order] of Object.entries(QUALITY_ORDER) as [
+    Quality,
+    number,
+  ][]) {
     if (order >= minOrder && order <= maxOrder) {
       candidates.push({ quality, weight: QUALITY_CHANCE_MAP[quality] ?? 0.01 });
     }
@@ -199,7 +208,15 @@ function rollQualityInRange(rankRange: { min: Quality; max: Quality }): Quality 
  */
 function weightedPickType(profile: RegionProfile): MaterialType {
   const weights = profile.typeWeights;
-  const allTypes: MaterialType[] = ['herb', 'ore', 'monster', 'tcdb', 'aux', 'gongfa_manual', 'skill_manual'];
+  const allTypes: MaterialType[] = [
+    'herb',
+    'ore',
+    'monster',
+    'tcdb',
+    'aux',
+    'gongfa_manual',
+    'skill_manual',
+  ];
 
   const entries = allTypes.map((t) => ({
     type: t,
@@ -237,7 +254,10 @@ function getQualityByOrder(order: number): Quality {
   );
 }
 
-function clampQualityOrder(order: number, range: { min: Quality; max: Quality }) {
+function clampQualityOrder(
+  order: number,
+  range: { min: Quality; max: Quality },
+) {
   return Math.max(
     QUALITY_ORDER[range.min],
     Math.min(QUALITY_ORDER[range.max], order),
@@ -285,7 +305,10 @@ function buildMysteryMask(type: MaterialType) {
     ],
   };
 
-  const poolByType: Record<MaterialType, { names: string[]; descriptions: string[] }> = {
+  const poolByType: Record<
+    MaterialType,
+    { names: string[]; descriptions: string[] }
+  > = {
     herb: {
       names: ['枯萎的灵草束', '封泥药囊', '残叶草根'],
       descriptions: [
@@ -349,7 +372,10 @@ function applyMysteryLayer(
     const mask = buildMysteryMask(item.type);
     const disguiseRank = rollDisguiseRank();
     const noisyMultiplier = 0.1 + Math.random() * 2.2;
-    const disguisedPrice = Math.max(1, Math.floor(item.price * noisyMultiplier));
+    const disguisedPrice = Math.max(
+      1,
+      Math.floor(item.price * noisyMultiplier),
+    );
     const mysteryContext: MysteryRevealContext = {
       type: item.type,
       rankRange: buildPriceAnchoredRankRange(
@@ -445,10 +471,7 @@ function getMysteryContextForListing(
   };
 }
 
-function buildMysteryDetails(
-  item: InternalMarketListing,
-  mysteryId: string,
-) {
+function buildMysteryDetails(item: InternalMarketListing, mysteryId: string) {
   const context = getMysteryContextForListing(item);
   return {
     mysteryId,
@@ -464,7 +487,9 @@ function buildMysteryDetails(
   };
 }
 
-function buildHiddenMysteryReveal(item: InternalMarketListing): HiddenMysteryReveal | null {
+function buildHiddenMysteryReveal(
+  item: InternalMarketListing,
+): HiddenMysteryReveal | null {
   if (item.mysteryReveal) {
     return item.mysteryReveal;
   }
@@ -503,13 +528,16 @@ function resolveMysteryRevealContext(
         : 'aux',
     rankRange: normalizeRankRange(mystery.rankRange, fallbackRange),
     anchorPrice:
-      typeof mystery.anchorPrice === 'number' && Number.isFinite(mystery.anchorPrice)
+      typeof mystery.anchorPrice === 'number' &&
+      Number.isFinite(mystery.anchorPrice)
         ? mystery.anchorPrice
         : 0,
     nodeId,
     layer,
     regionTags: Array.isArray(mystery.regionTags)
-      ? mystery.regionTags.filter((tag): tag is string => typeof tag === 'string')
+      ? mystery.regionTags.filter(
+          (tag): tag is string => typeof tag === 'string',
+        )
       : getNodeRegionTags(nodeId),
     createdAt: Date.now(),
   };
@@ -624,7 +652,11 @@ function buildListingFromLibraryMaterial(args: {
     description: args.material.description,
     details: args.material.details ?? {},
     quantity: 1,
-    price: computePrice(args.material.rank, args.material.type, args.priceModifier),
+    price: computePrice(
+      args.material.rank,
+      args.material.type,
+      args.priceModifier,
+    ),
   };
 }
 
@@ -648,7 +680,9 @@ async function generateFromMaterialLibrary(
     });
   }
 
-  const sampled = await sampleMaterialLibraryEntries(Array.from(requests.values()));
+  const sampled = await sampleMaterialLibraryEntries(
+    Array.from(requests.values()),
+  );
   const listings: InternalMarketListing[] = [];
   for (const [key, request] of requests) {
     const entries = sampled.get(key) ?? [];
@@ -735,7 +769,12 @@ async function generateAndCache(
     const listings = await generateListings(nodeId, layer);
     const data: CachedMarketData = { listings, generatedAt: Date.now() };
     const ttlSec = Math.ceil(getRefreshInterval(layer) / 1000) + 3600;
-    await redis.set(getCacheKey(nodeId, layer, cycle), JSON.stringify(data), 'EX', ttlSec);
+    await redis.set(
+      getCacheKey(nodeId, layer, cycle),
+      JSON.stringify(data),
+      'EX',
+      ttlSec,
+    );
     return data;
   } finally {
     await redis.del(lockKey);
@@ -767,7 +806,12 @@ async function waitForCacheData(
 // ─── 解析输入 ───
 
 function parseLayer(input: string | null | undefined): MarketLayer {
-  if (input === 'common' || input === 'treasure' || input === 'heaven' || input === 'black') {
+  if (
+    input === 'common' ||
+    input === 'treasure' ||
+    input === 'heaven' ||
+    input === 'black'
+  ) {
     return input;
   }
   return 'common';
@@ -776,7 +820,10 @@ function parseLayer(input: string | null | undefined): MarketLayer {
 function parseCachedData(raw: string | null): CachedMarketData | null {
   const asData = parseRedisJson<CachedMarketData>(raw, 'market cache');
   if (!asData) return null;
-  if (!Array.isArray(asData.listings) || typeof asData.generatedAt !== 'number') {
+  if (
+    !Array.isArray(asData.listings) ||
+    typeof asData.generatedAt !== 'number'
+  ) {
     return null;
   }
   return asData;
@@ -857,7 +904,15 @@ export async function getMarketListings(input: {
 }
 
 export async function buyMarketItem(input: BuyInput) {
-  const { nodeId, layer, listingId, quantity, userId, cultivatorId, cultivatorRealm } = input;
+  const {
+    nodeId,
+    layer,
+    listingId,
+    quantity,
+    userId,
+    cultivatorId,
+    cultivatorRealm,
+  } = input;
 
   if (quantity < 1) {
     throw new MarketServiceError(400, '购买数量必须大于 0');
@@ -907,7 +962,9 @@ export async function buyMarketItem(input: BuyInput) {
     const writePurchase = async (tx: DbTransaction) => {
       const [updatedCultivator] = await tx
         .update(cultivators)
-        .set({ spirit_stones: sql`${cultivators.spirit_stones} - ${totalPrice}` })
+        .set({
+          spirit_stones: sql`${cultivators.spirit_stones} - ${totalPrice}`,
+        })
         .where(
           sql`${cultivators.id} = ${cultivatorId} AND ${cultivators.spirit_stones} >= ${totalPrice}`,
         )
@@ -1031,7 +1088,8 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
     const boughtIds = new Set(await redis.smembers(boughtKey));
 
     let totalCost = 0;
-    const processItems: { item: InternalMarketListing; quantity: number }[] = [];
+    const processItems: { item: InternalMarketListing; quantity: number }[] =
+      [];
 
     for (const buyReq of items) {
       const item = cachedData.listings.find((l) => l.id === buyReq.listingId);
@@ -1041,7 +1099,8 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
       if (boughtIds.has(item.id)) {
         throw new MarketServiceError(400, `你已购入过 ${item.name}`);
       }
-      totalCost += getDiscountedMarketPrice(item.price, input.fates) * buyReq.quantity;
+      totalCost +=
+        getDiscountedMarketPrice(item.price, input.fates) * buyReq.quantity;
       processItems.push({ item, quantity: buyReq.quantity });
     }
 
@@ -1049,7 +1108,9 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
     const writeBatchPurchase = async (tx: DbTransaction) => {
       const [updatedCultivator] = await tx
         .update(cultivators)
-        .set({ spirit_stones: sql`${cultivators.spirit_stones} - ${totalCost}` })
+        .set({
+          spirit_stones: sql`${cultivators.spirit_stones} - ${totalCost}`,
+        })
         .where(
           sql`${cultivators.id} = ${cultivatorId} AND ${cultivators.spirit_stones} >= ${totalCost}`,
         )
@@ -1147,7 +1208,12 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
     const current = await q
       .select()
       .from(materials)
-      .where(and(eq(materials.id, materialId), eq(materials.cultivatorId, cultivatorId)))
+      .where(
+        and(
+          eq(materials.id, materialId),
+          eq(materials.cultivatorId, cultivatorId),
+        ),
+      )
       .limit(1);
     const target = current[0];
     if (!target) {
@@ -1254,11 +1320,19 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
     }
 
     const disguiseOrder =
-      QUALITY_ORDER[(mystery.disguiseTier || target.rank) as keyof typeof QUALITY_ORDER];
+      QUALITY_ORDER[
+        (mystery.disguiseTier || target.rank) as keyof typeof QUALITY_ORDER
+      ];
     const realOrder = QUALITY_ORDER[revealedMaterial.rank];
     const delta = realOrder - disguiseOrder;
     const jackpotLevel =
-      delta >= 3 ? 'legendary_win' : delta >= 1 ? 'win' : delta <= -2 ? 'big_loss' : 'normal';
+      delta >= 3
+        ? 'legendary_win'
+        : delta >= 1
+          ? 'win'
+          : delta <= -2
+            ? 'big_loss'
+            : 'normal';
     const isHeavenOrAbove = realOrder >= QUALITY_ORDER['天品'];
 
     const afterCommit = async () => {
@@ -1280,6 +1354,7 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
             senderName: '修仙界传闻',
             senderRealm: '炼气',
             senderRealmStage: '系统',
+            channel: 'system',
             messageType: 'item_showcase',
             textContent: rumorText,
             payload: {
@@ -1309,11 +1384,16 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
 
     return {
       success: true,
-      revealedItem: { id: revealedMaterialId, ...revealedMaterial, quantity: 1 },
+      revealedItem: {
+        id: revealedMaterialId,
+        ...revealedMaterial,
+        quantity: 1,
+      },
       cost,
       qiAfter,
       jackpotLevel,
-      revealEffect: delta >= 2 ? '金光冲霄' : delta <= -2 ? '灵尘散尽' : '封印破除',
+      revealEffect:
+        delta >= 2 ? '金光冲霄' : delta <= -2 ? '灵尘散尽' : '封印破除',
       afterCommit: input.deferSideEffects ? afterCommit : undefined,
     };
   } finally {

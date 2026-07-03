@@ -1,4 +1,5 @@
 import type {
+  WorldChatChannel,
   WorldChatMessageDTO,
   WorldChatShowcaseItemType,
 } from '@shared/types/world-chat';
@@ -19,6 +20,8 @@ export interface WorldChatFeedModel {
   hasMore: boolean;
   posting: boolean;
   isWorldChatRoute: boolean;
+  activeChannel: WorldChatChannel;
+  setActiveChannel: (channel: WorldChatChannel) => void;
   loadMore: () => Promise<void>;
   sendTextMessage: (text: string) => Promise<boolean>;
   sendShowcaseMessage: (input: SendWorldChatShowcaseInput) => Promise<boolean>;

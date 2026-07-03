@@ -1,3 +1,16 @@
+import { requireActiveCultivator } from '@server/lib/hono/middleware';
+import { jsonWithStatus } from '@server/lib/hono/response';
+import type { AppEnv } from '@server/lib/hono/types';
+import { createMessage } from '@server/lib/repositories/worldChatRepository';
+import {
+  craftFromFormula,
+  previewFormulaCraft,
+} from '@server/lib/services/AlchemyFormulaService';
+import {
+  AlchemyServiceError,
+  previewAlchemySelection,
+  processAlchemyCraft,
+} from '@server/lib/services/alchemyServiceV2';
 import {
   abandonPending,
   confirmCreation,
@@ -7,34 +20,20 @@ import {
   previewCreationSelection,
   processCreation,
 } from '@server/lib/services/creationServiceV2';
-import {
-  AlchemyServiceError,
-  previewAlchemySelection,
-  processAlchemyCraft,
-} from '@server/lib/services/alchemyServiceV2';
-import {
-  craftFromFormula,
-  previewFormulaCraft,
-} from '@server/lib/services/AlchemyFormulaService';
-import {
-  QiInsufficientError,
-  QiService,
-  QiServiceError,
-} from '@server/lib/services/QiService';
-import { TaskService } from '@server/lib/services/TaskService';
 import { getPlayerProfileCultivatorById } from '@server/lib/services/cultivatorService';
 import {
   commitPlayerStateMutation,
   toPlayerStateMutationResponse,
   type StateChangeDescriptor,
 } from '@server/lib/services/PlayerStateMutationService';
-import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import {
-  requireActiveCultivator,
-} from '@server/lib/hono/middleware';
-import { jsonWithStatus } from '@server/lib/hono/response';
-import type { AppEnv } from '@server/lib/hono/types';
+  QiInsufficientError,
+  QiService,
+  QiServiceError,
+} from '@server/lib/services/QiService';
+import { TaskService } from '@server/lib/services/TaskService';
 import { normalizeFreeformLlmInput } from '@server/utils/llmPayload';
+import type { QiAction } from '@shared/config/qiSystem';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
 import {
   CREATION_CRAFT_TYPES,
@@ -42,14 +41,13 @@ import {
   type CreationCraftType,
 } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
 import type { CreationProductType } from '@shared/engine/creation-v2/types';
-import type { QiAction } from '@shared/config/qiSystem';
-import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
 import {
   EQUIPMENT_SLOT_VALUES,
   QUALITY_ORDER,
   type ElementType,
   type Quality,
 } from '@shared/types/constants';
+import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
 import type { Consumable } from '@shared/types/cultivator';
 import type { ItemShowcaseSnapshotMap } from '@shared/types/world-chat';
 import { randomUUID } from 'crypto';
@@ -297,6 +295,7 @@ async function broadcastCreationRumor(args: {
       senderName: '修仙界传闻',
       senderRealm: '炼气',
       senderRealmStage: '系统',
+      channel: 'system',
       messageType: 'item_showcase',
       textContent: text,
       payload: {
@@ -330,6 +329,7 @@ async function broadcastAlchemyRumor(args: {
       senderName: '修仙界传闻',
       senderRealm: '炼气',
       senderRealmStage: '系统',
+      channel: 'system',
       messageType: 'item_showcase',
       textContent: text,
       payload: {
@@ -370,8 +370,9 @@ router.get('/', requireActiveCultivator(), async (c) => {
     const craftType = c.req.query('craftType');
     const alchemyMode = c.req.query('alchemyMode') ?? 'improvised';
     const formulaId = c.req.query('formulaId');
-    const materialQuantities =
-      parseMaterialQuantitiesQuery(materialQuantitiesParam);
+    const materialQuantities = parseMaterialQuantitiesQuery(
+      materialQuantitiesParam,
+    );
 
     if (!craftType) {
       return c.json({ error: '请指定造物类型' }, 400);
@@ -388,27 +389,28 @@ router.get('/', requireActiveCultivator(), async (c) => {
       }
 
       const materialIds = materialIdsParam.split(',');
-      const preview = alchemyMode === 'formula'
-        ? await (() => {
-            if (!formulaId) {
-              throw new AlchemyServiceError('请选择丹方后再校验炉材。');
-            }
-            return previewFormulaCraft(
+      const preview =
+        alchemyMode === 'formula'
+          ? await (() => {
+              if (!formulaId) {
+                throw new AlchemyServiceError('请选择丹方后再校验炉材。');
+              }
+              return previewFormulaCraft(
+                cultivator.id,
+                formulaId,
+                materialIds,
+                cultivator.spirit_stones || 0,
+                fateList,
+                materialQuantities,
+              );
+            })()
+          : await previewAlchemySelection(
               cultivator.id,
-              formulaId,
-              materialIds,
               cultivator.spirit_stones || 0,
+              materialIds,
               fateList,
               materialQuantities,
             );
-          })()
-        : await previewAlchemySelection(
-            cultivator.id,
-            cultivator.spirit_stones || 0,
-            materialIds,
-            fateList,
-            materialQuantities,
-          );
 
       return c.json({
         success: true,
@@ -432,9 +434,9 @@ router.get('/', requireActiveCultivator(), async (c) => {
 
     let cost: { spiritStones?: number; comprehension?: number };
     let canAfford = true;
-    let validation: Awaited<
-      ReturnType<typeof previewCreationSelection>
-    >['validation'] | null = null;
+    let validation:
+      | Awaited<ReturnType<typeof previewCreationSelection>>['validation']
+      | null = null;
 
     if (materialIdsParam && materialIdsParam.length > 0) {
       const materialIds = materialIdsParam.split(',');
@@ -450,11 +452,7 @@ router.get('/', requireActiveCultivator(), async (c) => {
       );
       validation = preview.validation;
     } else {
-      cost = estimateCost(
-        [{ rank: '凡品' }],
-        craftType,
-        fateList,
-      );
+      cost = estimateCost([{ rank: '凡品' }], craftType, fateList);
     }
 
     if (cost.spiritStones !== undefined) {
@@ -586,9 +584,13 @@ router.post('/', requireActiveCultivator(), async (c) => {
 
           let taskSynced = false;
           try {
-            await TaskService.recordTaskEvent(cultivator.id, 'alchemy_crafted', {
-              tx,
-            });
+            await TaskService.recordTaskEvent(
+              cultivator.id,
+              'alchemy_crafted',
+              {
+                tx,
+              },
+            );
             taskSynced = true;
           } catch (syncError) {
             console.error('炼丹后同步任务失败:', syncError);
@@ -683,7 +685,10 @@ router.post('/', requireActiveCultivator(), async (c) => {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }
     if (error instanceof z.ZodError) {
-      return c.json({ error: error.issues[0]?.message || '请求参数格式错误' }, 400);
+      return c.json(
+        { error: error.issues[0]?.message || '请求参数格式错误' },
+        400,
+      );
     }
     return c.json({ error: '造物失败，请稍后再试。' }, 500);
   }
@@ -716,7 +721,9 @@ confirmRouter.post('/', requireActiveCultivator(), async (c) => {
   }
 
   try {
-    const { craftType, replaceId, abandon } = ConfirmSchema.parse(await c.req.json());
+    const { craftType, replaceId, abandon } = ConfirmSchema.parse(
+      await c.req.json(),
+    );
     if (abandon) {
       await abandonPending(cultivator.id, craftType);
       return c.json({
@@ -763,7 +770,10 @@ confirmRouter.post('/', requireActiveCultivator(), async (c) => {
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json({ error: error.issues[0]?.message || '请求参数格式错误' }, 400);
+      return c.json(
+        { error: error.issues[0]?.message || '请求参数格式错误' },
+        400,
+      );
     }
     if (error instanceof CreationServiceError) {
       return jsonWithStatus(c, { error: error.message }, error.status);

@@ -2,6 +2,7 @@ import type { WorldChatMessageDTO } from '@shared/types/world-chat';
 import { describe, expect, it } from 'vitest';
 import {
   countNewWorldChatMessages,
+  filterWorldChatMessagesByChannel,
   mergeWorldChatMessages,
 } from './useWorldChatFeedModel';
 import { getWorldChatMessageBody } from './worldChatSummary';
@@ -42,11 +43,9 @@ describe('world chat feed model helpers', () => {
       }),
     ];
 
-    expect(mergeWorldChatMessages(base, incoming).map((message) => message.id)).toEqual([
-      'm3',
-      'm2',
-      'm1',
-    ]);
+    expect(
+      mergeWorldChatMessages(base, incoming).map((message) => message.id),
+    ).toEqual(['m3', 'm2', 'm1']);
   });
 
   it('counts local new messages from the last seen message id', () => {
@@ -60,6 +59,31 @@ describe('world chat feed model helpers', () => {
     expect(countNewWorldChatMessages(messages, 'm2')).toBe(2);
     expect(countNewWorldChatMessages(messages, 'm4')).toBe(0);
     expect(countNewWorldChatMessages(messages, 'missing')).toBe(0);
+  });
+
+  it('filters messages by the selected channel view', () => {
+    const messages = [
+      createMessage('system', '2026-05-17T08:04:00.000Z', {
+        channel: 'system',
+        senderCultivatorId: null,
+        senderName: '修仙界传闻',
+      }),
+      createMessage('world', '2026-05-17T08:03:00.000Z'),
+    ];
+
+    expect(
+      filterWorldChatMessagesByChannel(messages, 'all').map((item) => item.id),
+    ).toEqual(['system', 'world']);
+    expect(
+      filterWorldChatMessagesByChannel(messages, 'system').map(
+        (item) => item.id,
+      ),
+    ).toEqual(['system']);
+    expect(
+      filterWorldChatMessagesByChannel(messages, 'world').map(
+        (item) => item.id,
+      ),
+    ).toEqual(['world']);
   });
 
   it('builds compact preview bodies for different message types', () => {
@@ -128,10 +152,20 @@ describe('world chat feed model helpers', () => {
       },
     });
 
-    expect(getWorldChatMessageBody(duelInvite)).toBe('赌战台已有战帖，速来应战。');
-    expect(getWorldChatMessageBody(showcase)).toBe('展示了「玄雷剑胚」 今日刚出炉。');
-    expect(getWorldChatMessageBody(textMessage)).toBe('诸位道友，今晚子时再会。');
-    expect(getWorldChatMessageBody(skillShowcase)).toBe('展示了「紫霄引雷诀」 灵韵自生。');
-    expect(getWorldChatMessageBody(gongfaShowcase)).toBe('展示了「太虚凝元篇」 足令诸修侧目。');
+    expect(getWorldChatMessageBody(duelInvite)).toBe(
+      '赌战台已有战帖，速来应战。',
+    );
+    expect(getWorldChatMessageBody(showcase)).toBe(
+      '展示了「玄雷剑胚」 今日刚出炉。',
+    );
+    expect(getWorldChatMessageBody(textMessage)).toBe(
+      '诸位道友，今晚子时再会。',
+    );
+    expect(getWorldChatMessageBody(skillShowcase)).toBe(
+      '展示了「紫霄引雷诀」 灵韵自生。',
+    );
+    expect(getWorldChatMessageBody(gongfaShowcase)).toBe(
+      '展示了「太虚凝元篇」 足令诸修侧目。',
+    );
   });
 });

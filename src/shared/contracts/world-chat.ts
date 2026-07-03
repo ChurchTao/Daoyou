@@ -22,12 +22,13 @@ export const WorldChatItemShowcaseMessageSchema = z.object({
     .optional(),
 });
 
-export const WorldChatCreateMessageSchema = z.discriminatedUnion('messageType', [
-  WorldChatTextMessageSchema,
-  WorldChatItemShowcaseMessageSchema,
-]);
+export const WorldChatCreateMessageSchema = z.discriminatedUnion(
+  'messageType',
+  [WorldChatTextMessageSchema, WorldChatItemShowcaseMessageSchema],
+);
 
 export const WorldChatListQuerySchema = z.object({
+  channel: z.enum(['all', 'system', 'world']).optional().default('all'),
   limit: z.coerce.number().int().min(1).max(50).optional(),
   page: z.coerce.number().int().min(1).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
