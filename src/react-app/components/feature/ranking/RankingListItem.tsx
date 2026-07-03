@@ -6,6 +6,10 @@ import { InkBadge, InkButton, type Tier } from '@app/components/ui';
 import { cn } from '@shared/lib/cn';
 import { isPillSpec } from '@shared/lib/consumables';
 import {
+  formatCompactGameNumber,
+  formatFullGameNumber,
+} from '@shared/lib/numberFormat';
+import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
 } from '@shared/lib/gameConceptDisplay';
@@ -16,6 +20,7 @@ import type {
   BattleRankingItem,
   ItemRankingEntry,
   RankingsDisplayItem,
+  WealthRankingEntry,
 } from '@shared/types/rankings';
 import { memo } from 'react';
 
@@ -35,6 +40,12 @@ interface ItemRankingCardProps {
   item: ItemRankingEntry;
   viewerRealm?: RealmType;
   onViewDetails?: (item: ItemRankingEntry) => void;
+  variant?: 'list' | 'podium';
+}
+
+interface WealthRankingCardProps {
+  item: WealthRankingEntry;
+  isSelf?: boolean;
   variant?: 'list' | 'podium';
 }
 
@@ -301,8 +312,68 @@ function ItemRankingCardComponent({
   );
 }
 
+function WealthRankingCardComponent({
+  item,
+  isSelf,
+  variant = 'list',
+}: WealthRankingCardProps) {
+  const rankTone = resolveBattleRankTone(item.rank);
+  const origin = item.origin ?? '散修';
+  const realmLabel = [item.realm, item.realm_stage].filter(Boolean).join(' · ');
+  const fullSpiritStones = `${formatFullGameNumber(item.spiritStones)} 灵石`;
+
+  return (
+    <article
+      className={cn(
+        'group border-ink/25 hover:border-crimson/30 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors',
+        isSelf && 'border-crimson/30 bg-amber-200/30',
+        variant === 'podium' && 'border-gold/30 bg-gold/15',
+      )}
+    >
+      <div className="grid min-w-0 gap-2 px-3 py-3 lg:grid-cols-[4.75rem_minmax(0,1fr)_8.5rem] lg:items-start lg:gap-4 lg:px-4 lg:py-3">
+        <div className="absolute top-3 right-3 flex items-start lg:static">
+          <RankSeal label={rankTone.label} className={rankTone.className} />
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <h3 className="text-ink text-[1.05rem] leading-6 font-semibold wrap-break-word sm:text-lg sm:leading-7">
+              {item.name}
+            </h3>
+            {item.title ? (
+              <span className="text-ink-secondary text-sm leading-6 wrap-break-word">
+                「{item.title}」
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
+            {realmLabel ? (
+              <MetaChip>
+                <span className="text-crimson font-semibold">{realmLabel}</span>
+              </MetaChip>
+            ) : null}
+            <MetaChip>{item.age} 岁</MetaChip>
+            <MetaChip>{origin}</MetaChip>
+          </div>
+        </div>
+
+        <div className="mt-2 text-right lg:mt-0" title={fullSpiritStones}>
+          <div className="text-battle-muted text-xs leading-5">灵石</div>
+          <div className="text-wood text-lg leading-7 font-semibold">
+            {formatCompactGameNumber(item.spiritStones)}
+          </div>
+          <div className="text-battle-muted text-xs leading-5">
+            {fullSpiritStones}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export const BattleRankingCard = memo(BattleRankingCardComponent);
 export const ItemRankingCard = memo(ItemRankingCardComponent);
+export const WealthRankingCard = memo(WealthRankingCardComponent);
 
 function RankingListItemComponent({
   item,
@@ -324,6 +395,10 @@ function RankingListItemComponent({
         onViewDetails={onViewDetails}
       />
     );
+  }
+
+  if ('rankingType' in item && item.rankingType === 'wealth') {
+    return <WealthRankingCard item={item as WealthRankingEntry} isSelf={isSelf} />;
   }
 
   return (

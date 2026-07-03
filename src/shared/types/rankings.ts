@@ -32,4 +32,20 @@ export interface ItemRankingEntry {
   title?: string;
 }
 
-export type RankingsDisplayItem = BattleRankingItem | ItemRankingEntry;
+export interface WealthRankingEntry {
+  id: string;
+  rank: number;
+  rankingType: 'wealth';
+  name: string;
+  title?: string | null;
+  realm: string;
+  realm_stage: string;
+  age: number;
+  origin?: string | null;
+  spiritStones: number;
+}
+
+export type RankingsDisplayItem =
+  | BattleRankingItem
+  | ItemRankingEntry
+  | WealthRankingEntry;

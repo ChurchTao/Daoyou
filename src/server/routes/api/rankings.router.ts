@@ -46,7 +46,10 @@ import {
   type ElementType,
   type RealmType,
 } from '@shared/types/constants';
-import type { ItemRankingEntry } from '@shared/types/rankings';
+import type {
+  ItemRankingEntry,
+  WealthRankingEntry,
+} from '@shared/types/rankings';
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -358,6 +361,48 @@ publicRouter.get('/items', async (c) => {
   } catch (error) {
     console.error('获取排行榜失败:', error);
     return c.json({ success: false, error: '获取排行榜失败' }, 500);
+  }
+});
+
+publicRouter.get('/wealth', async (c) => {
+  try {
+    const limit = 100;
+    const rows = await getExecutor()
+      .select({
+        id: cultivators.id,
+        name: cultivators.name,
+        title: cultivators.title,
+        realm: cultivators.realm,
+        realmStage: cultivators.realm_stage,
+        age: cultivators.age,
+        origin: cultivators.origin,
+        spiritStones: cultivators.spirit_stones,
+      })
+      .from(cultivators)
+      .where(eq(cultivators.status, 'active'))
+      .orderBy(desc(cultivators.spirit_stones))
+      .limit(limit);
+
+    const items: WealthRankingEntry[] = rows.map((row, index) => ({
+      id: row.id,
+      rank: index + 1,
+      rankingType: 'wealth',
+      name: row.name,
+      title: row.title,
+      realm: row.realm,
+      realm_stage: row.realmStage,
+      age: row.age,
+      origin: row.origin,
+      spiritStones: row.spiritStones,
+    }));
+
+    return c.json({
+      success: true,
+      data: items,
+    });
+  } catch (error) {
+    console.error('获取财富榜失败:', error);
+    return c.json({ success: false, error: '获取财富榜失败' }, 500);
   }
 });
 

@@ -6,6 +6,7 @@ import { CultivatorInspectionModal } from '@app/components/feature/cultivator-in
 import {
   BattleRankingCard,
   ItemRankingCard,
+  WealthRankingCard,
 } from '@app/components/feature/ranking/RankingListItem';
 import {
   GameSceneAsideSection,
@@ -35,6 +36,7 @@ import type {
   BattleRankingItem,
   ItemRankingEntry,
   RankingsDisplayItem,
+  WealthRankingEntry,
 } from '@shared/types/rankings';
 import { useCallback, useEffect, useState } from 'react';
 import { toRankingDetailItem } from './rankingDetailItem';
@@ -47,7 +49,13 @@ type MyRankInfo = {
 
 type LoadingState = 'idle' | 'loading' | 'loaded';
 
-type RankingTab = 'battle' | 'artifact' | 'technique' | 'skill' | 'elixir';
+type RankingTab =
+  | 'battle'
+  | 'artifact'
+  | 'technique'
+  | 'skill'
+  | 'elixir'
+  | 'wealth';
 const REPUTATION_INFO = getGameConceptInfo('reputation');
 const REPUTATION_LABEL = `${REPUTATION_INFO.icon} ${REPUTATION_INFO.label}`;
 
@@ -196,6 +204,8 @@ function RankingEmptyState({
     <InkNotice>
       {activeTab === 'battle'
         ? `${activeRealm}天骄榜暂无记录。越境榜单不可直接上榜，需等待本境修士留名后方可切磋。`
+        : activeTab === 'wealth'
+          ? '财富榜暂无记录，静待灵石入库。'
         : '此榜单暂无记录，静待宝物出世。'}
     </InkNotice>
   );
@@ -227,7 +237,9 @@ export default function RankingsPage() {
       setError('');
       try {
         let url = `/api/rankings?realm=${encodeURIComponent(realm)}`;
-        if (tab !== 'battle') {
+        if (tab === 'wealth') {
+          url = '/api/rankings/wealth';
+        } else if (tab !== 'battle') {
           url = `/api/rankings/items?type=${tab}`;
         }
 
@@ -279,7 +291,9 @@ export default function RankingsPage() {
     const loadInitialRankings = async () => {
       try {
         let url = `/api/rankings?realm=${encodeURIComponent(activeRealm)}`;
-        if (activeTab !== 'battle') {
+        if (activeTab === 'wealth') {
+          url = '/api/rankings/wealth';
+        } else if (activeTab !== 'battle') {
           url = `/api/rankings/items?type=${activeTab}`;
         }
 
@@ -510,6 +524,7 @@ export default function RankingsPage() {
   const ownRealm = cultivator?.realm ? resolveRealm(cultivator.realm) : undefined;
   const rankingTabs = [
     { label: '天骄榜', value: 'battle' },
+    { label: '财富榜', value: 'wealth' },
     { label: '法宝榜', value: 'artifact' },
     { label: '功法榜', value: 'technique' },
     { label: '神通榜', value: 'skill' },
@@ -544,6 +559,8 @@ export default function RankingsPage() {
         description={
           activeTab === 'battle'
             ? '择敌、查探、挑战，一切夺位都从榜前决断。'
+            : activeTab === 'wealth'
+              ? '灵石聚散自有痕迹，榜上只看当前身家。'
             : '诸般名器留影于榜，观其品阶、评分与持有者。'
         }
         headerMeta={
@@ -577,7 +594,12 @@ export default function RankingsPage() {
                   {REPUTATION_LABEL}：{cultivator?.reputation ?? 0}
                 </p>
                 <p>
-                  当前收录：{rankings.length} {activeTab === 'battle' ? '条' : '件'}
+                  当前收录：{rankings.length}{' '}
+                  {activeTab === 'battle'
+                    ? '条'
+                    : activeTab === 'wealth'
+                      ? '人'
+                      : '件'}
                 </p>
                 {activeTab === 'battle' ? (
                   <p>
@@ -727,6 +749,37 @@ export default function RankingsPage() {
                           />
                         );
                       })}
+                    </div>
+                  </GameSceneSection>
+                ) : null}
+              </>
+            ) : activeTab === 'wealth' ? (
+              <>
+                {podiumEntries.length > 0 ? (
+                  <GameSceneSection title="富甲三席">
+                    <div className="grid gap-3">
+                      {(podiumEntries as WealthRankingEntry[]).map((item) => (
+                        <WealthRankingCard
+                          key={item.id}
+                          item={item}
+                          isSelf={item.id === cultivator.id}
+                          variant="podium"
+                        />
+                      ))}
+                    </div>
+                  </GameSceneSection>
+                ) : null}
+
+                {listEntries.length > 0 ? (
+                  <GameSceneSection title="财富名录">
+                    <div className="grid gap-3">
+                      {(listEntries as WealthRankingEntry[]).map((item) => (
+                        <WealthRankingCard
+                          key={item.id}
+                          item={item}
+                          isSelf={item.id === cultivator.id}
+                        />
+                      ))}
                     </div>
                   </GameSceneSection>
                 ) : null}

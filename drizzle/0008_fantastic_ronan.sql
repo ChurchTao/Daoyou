@@ -1,0 +1,1 @@
+CREATE INDEX "cultivators_status_spirit_stones_idx" ON "wanjiedaoyou_cultivators" USING btree ("status","spirit_stones");

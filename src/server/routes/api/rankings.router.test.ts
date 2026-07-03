@@ -20,6 +20,7 @@ const {
   getRemainingChallengesMock,
   isLockedMock,
   createMessageMock,
+  getExecutorMock,
 } = vi.hoisted(() => ({
   checkDailyChallengesMock: vi.fn(),
   isRankingEmptyMock: vi.fn(),
@@ -60,6 +61,7 @@ const {
   getRemainingChallengesMock: vi.fn(),
   isLockedMock: vi.fn(() => false),
   createMessageMock: vi.fn(),
+  getExecutorMock: vi.fn(),
 }));
 
 vi.mock('@server/lib/hono/middleware', () => ({
@@ -90,14 +92,36 @@ vi.mock('@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter', () => ({
   getCultivatorDisplayAttributes: vi.fn(),
 }));
 
+vi.mock('drizzle-orm', () => ({
+  and: vi.fn((...conditions: unknown[]) => ({ type: 'and', conditions })),
+  desc: vi.fn((column: unknown) => ({ type: 'desc', column })),
+  eq: vi.fn((left: unknown, right: unknown) => ({ type: 'eq', left, right })),
+  inArray: vi.fn((column: unknown, values: unknown[]) => ({
+    type: 'inArray',
+    column,
+    values,
+  })),
+  isNotNull: vi.fn((column: unknown) => ({ type: 'isNotNull', column })),
+}));
+
 vi.mock('@server/lib/drizzle/db', () => ({
-  getExecutor: vi.fn(),
+  getExecutor: getExecutorMock,
 }));
 
 vi.mock('@server/lib/drizzle/schema', () => ({
   consumables: {},
   creationProducts: {},
-  cultivators: {},
+  cultivators: {
+    id: 'cultivators.id',
+    name: 'cultivators.name',
+    title: 'cultivators.title',
+    realm: 'cultivators.realm',
+    realm_stage: 'cultivators.realm_stage',
+    age: 'cultivators.age',
+    origin: 'cultivators.origin',
+    status: 'cultivators.status',
+    spirit_stones: 'cultivators.spirit_stones',
+  },
 }));
 
 vi.mock('@server/lib/redis/rankings', () => ({
@@ -198,6 +222,7 @@ describe('rankings router', () => {
     addToRankingMock.mockResolvedValue(undefined);
     getRankingListMock.mockResolvedValue([]);
     createMessageMock.mockResolvedValue({ id: 'chat-1' });
+    getExecutorMock.mockReset();
   });
 
   it('loads battle ranking and my rank from the requested realm bucket', async () => {
@@ -227,6 +252,47 @@ describe('rankings router', () => {
     expect(rankResponse.status).toBe(200);
     expect(rankJson.data).toMatchObject({ realm: '金丹', rank: 3 });
     expect(getCultivatorRankMock).toHaveBeenCalledWith('金丹', 'cultivator-1');
+  });
+
+  it('loads wealth ranking ordered by spirit stones', async () => {
+    const query = {
+      select: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue([
+        {
+          id: 'rich-1',
+          name: '铁算盘',
+          title: '富甲一方',
+          realm: '金丹',
+          realmStage: '后期',
+          age: 88,
+          origin: '商会',
+          spiritStones: 120000,
+        },
+      ]),
+    };
+    getExecutorMock.mockReturnValue(query);
+
+    const response = await createApp().request('/api/rankings/wealth');
+    const json = (await response.json()) as {
+      success: boolean;
+      data: Array<{
+        rank: number;
+        rankingType: string;
+        spiritStones: number;
+      }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(query.limit).toHaveBeenCalledWith(100);
+    expect(json.data[0]).toMatchObject({
+      rank: 1,
+      rankingType: 'wealth',
+      spiritStones: 120000,
+    });
   });
 
   it('records the daily ranking task only after a challenge battle completes', async () => {
