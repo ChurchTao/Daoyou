@@ -191,6 +191,7 @@ function hydrateRolledAffix(
     exclusiveGroup: def.exclusiveGroup,
     applicableArtifactSlots: def.applicableArtifactSlots,
     targetPolicyConstraint: def.targetPolicyConstraint,
+    globalUnique: def.globalUnique,
     effectTemplate: def.effectTemplate,
     rollScore: stored.rollScore,
     rollEfficiency: stored.rollEfficiency,

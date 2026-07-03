@@ -6,6 +6,7 @@ import {
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 import { AccountSettingsTab } from './components/AccountSettingsTab';
+import { ConnectionStatusTab } from './components/ConnectionStatusTab';
 import { GameSettingsTab } from './components/GameSettingsTab';
 import { ModelConfigTab } from './components/ModelConfigTab';
 import { QiLogsTab } from './components/QiLogsTab';
@@ -15,6 +16,7 @@ const SETTINGS_TABS = [
   { label: '天地灵气', value: 'qi' },
   { label: '账号管理', value: 'account' },
   { label: '模型配置', value: 'llm' },
+  { label: '连接状态', value: 'connection' },
 ] as const;
 
 type SettingsTab = (typeof SETTINGS_TABS)[number]['value'];
@@ -68,6 +70,7 @@ export default function SettingsPage() {
         {activeTab === 'qi' ? <QiLogsTab /> : null}
         {activeTab === 'account' ? <AccountSettingsTab /> : null}
         {activeTab === 'llm' ? <ModelConfigTab /> : null}
+        {activeTab === 'connection' ? <ConnectionStatusTab /> : null}
       </div>
     </GameSceneFrame>
   );

@@ -32,5 +32,8 @@ describe('api url helpers', () => {
     const { resolveRealtimeUrl } = await loadUrlModule('https://api.example.com');
 
     expect(resolveRealtimeUrl()).toBe('wss://api.example.com/api/realtime');
+    expect(resolveRealtimeUrl(['world-chat', 'player-state'])).toBe(
+      'wss://api.example.com/api/realtime?channels=world-chat%2Cplayer-state',
+    );
   });
 });

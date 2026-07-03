@@ -30,6 +30,7 @@ export interface BattleRuntimeState {
   transforms: PendingAbilityTransform[];
   counters: Map<string, number>;
   activeEffectGuards: Set<string>;
+  globalUniqueEffects: Map<string, object>;
   deathPreventTriggers: Set<string>;
   sequences: Map<string, number>;
   dealtDamageSinceLastCheck: boolean;
@@ -49,6 +50,7 @@ export function getBattleRuntimeState(unit: Unit): BattleRuntimeState {
       transforms: [],
       counters: new Map(),
       activeEffectGuards: new Set(),
+      globalUniqueEffects: new Map(),
       deathPreventTriggers: new Set(),
       sequences: new Map(),
       dealtDamageSinceLastCheck: false,
@@ -86,6 +88,30 @@ export function readMemory(unit: Unit, key: string): DamageMemoryEntry {
 
 export function clearMemory(unit: Unit, key: string): void {
   getBattleRuntimeState(unit).memories.delete(key);
+}
+
+export function claimGlobalUniqueEffect(
+  unit: Unit,
+  key: string,
+  source: object,
+): boolean {
+  const claims = getBattleRuntimeState(unit).globalUniqueEffects;
+  const current = claims.get(key);
+  if (current && current !== source) {
+    return false;
+  }
+
+  claims.set(key, source);
+  return true;
+}
+
+export function releaseGlobalUniqueEffects(unit: Unit, source: object): void {
+  const claims = getBattleRuntimeState(unit).globalUniqueEffects;
+  for (const [key, owner] of claims.entries()) {
+    if (owner === source) {
+      claims.delete(key);
+    }
+  }
 }
 
 export function beginRuntimeGuard(unit: Unit, key: string): boolean {

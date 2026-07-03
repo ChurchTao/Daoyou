@@ -1,4 +1,5 @@
 import { ActiveSkill, ActiveSkillConfig } from './ActiveSkill';
+import { GlobalUniqueConfig } from '../core/configs';
 import { GameplayEffect, EffectContext } from '../effects/Effect';
 import { AbilityId, CombatEvent } from '../core/types';
 import {
@@ -6,6 +7,10 @@ import {
   resolveListenerContext,
   shouldExecuteListener,
 } from '../core/listenerExecution';
+import {
+  claimGlobalUniqueEffect,
+  releaseGlobalUniqueEffects,
+} from '../core/runtimeState';
 import { Unit } from '../units/Unit';
 
 /**
@@ -20,7 +25,7 @@ export class DataDrivenActiveSkill extends ActiveSkill {
   private _effects: GameplayEffect[] = [];
   private _instantiatedListeners: Array<{
     runtime: ListenerRuntimeConfig;
-    effects: GameplayEffect[];
+    effects: InstantiatedGameplayEffect[];
   }> = [];
 
   constructor(id: AbilityId, name: string, config: ActiveSkillConfig = {}) {
@@ -37,27 +42,45 @@ export class DataDrivenActiveSkill extends ActiveSkill {
 
   addInstantiatedListener(
     runtime: ListenerRuntimeConfig,
-    effects: GameplayEffect[],
+    effects: InstantiatedGameplayEffect[],
   ): void {
     this._instantiatedListeners.push({ runtime, effects });
   }
 
   protected override onActivate(): void {
     super.onActivate();
+    const owner = this.getOwner();
+    if (!owner) return;
 
     for (const listener of this._instantiatedListeners) {
+      const mountedEffects = listener.effects.filter((entry) => {
+        const key = entry.globalUnique?.key;
+        return !key || claimGlobalUniqueEffect(owner, key, this);
+      });
+      if (mountedEffects.length === 0) {
+        continue;
+      }
+
       this.subscribeEvent(
         listener.runtime.eventType,
         (event: CombatEvent) => {
           this._executeInstantiatedEffects(
             listener.runtime,
-            listener.effects,
+            mountedEffects,
             event,
           );
         },
         listener.runtime.priority,
       );
     }
+  }
+
+  protected override onDeactivate(): void {
+    const owner = this.getOwner();
+    if (owner) {
+      releaseGlobalUniqueEffects(owner, this);
+    }
+    super.onDeactivate();
   }
 
   /**
@@ -79,7 +102,7 @@ export class DataDrivenActiveSkill extends ActiveSkill {
 
   private _executeInstantiatedEffects(
     runtime: ListenerRuntimeConfig,
-    effects: GameplayEffect[],
+    effects: InstantiatedGameplayEffect[],
     event: CombatEvent,
   ): void {
     const owner = this.getOwner();
@@ -105,7 +128,7 @@ export class DataDrivenActiveSkill extends ActiveSkill {
       triggerEvent: event,
     };
 
-    for (const effect of effects) {
+    for (const { effect } of effects) {
       effect.execute(context);
     }
   }
@@ -130,4 +153,9 @@ export class DataDrivenActiveSkill extends ActiveSkill {
     }
     return cloned;
   }
+}
+
+export interface InstantiatedGameplayEffect {
+  effect: GameplayEffect;
+  globalUnique?: GlobalUniqueConfig;
 }

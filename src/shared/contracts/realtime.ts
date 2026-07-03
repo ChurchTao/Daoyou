@@ -1,6 +1,10 @@
 import type { PlayerStateEvent } from '@shared/contracts/player';
 import type { WorldChatMessageDTO } from '@shared/types/world-chat';
 
+export const REALTIME_CHANNELS = ['world-chat', 'player-state'] as const;
+
+export type RealtimeChannel = (typeof REALTIME_CHANNELS)[number];
+
 export type RealtimePlayerStatePayload = {
   events?: PlayerStateEvent[];
   requiresSnapshot?: boolean;
@@ -11,6 +15,7 @@ export type RealtimeServerEvent =
       type: 'ready';
       payload: {
         cultivatorId: string;
+        channels: RealtimeChannel[];
       };
     }
   | {

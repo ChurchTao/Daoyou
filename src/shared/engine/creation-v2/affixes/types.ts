@@ -9,6 +9,7 @@ import {
   BuffImmunityParams,
   ConditionConfig,
   DamageImmunityParams,
+  GlobalUniqueConfig,
   ListenerConfig,
   ListenerContextMapping,
   ListenerGuardConfig,
@@ -441,6 +442,8 @@ export interface AffixDefinition {
   selectionMeta?: AffixSelectionMeta;
   /** 词缀效果模板（含品质缩放参数） */
   effectTemplate: AffixEffectTemplate;
+  /** 同 key 的运行时效果在同一单位上只会挂载一份。 */
+  globalUnique?: GlobalUniqueConfig;
   /** 被动能力词缀的监听器规格（artifact/gongfa 词缀必填） */
   listenerSpec?: AffixListenerSpec;
   /** 适用产物类型 */

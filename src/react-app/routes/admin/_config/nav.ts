@@ -56,6 +56,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/llm-metrics',
   },
   {
+    title: '在线人数',
+    description: '查看实时在线与峰值',
+    href: '/admin/online-users',
+  },
+  {
     title: '对战模拟器',
     description: '验证角色对战与数值样本',
     href: '/admin/battle-simulator',

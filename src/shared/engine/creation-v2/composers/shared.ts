@@ -77,7 +77,7 @@ export function buildCreationListenerGuard(
     };
   }
 
-  if (eventType !== 'DamageTakenEvent' || effect.type !== 'damage') {
+  if (eventType !== 'DamageTakenEvent' || !executesDamageResponse(effect)) {
     return guard;
   }
 
@@ -85,6 +85,23 @@ export function buildCreationListenerGuard(
     ...guard,
     skipReflectSource: true,
   };
+}
+
+function executesDamageResponse(effect: EffectConfig): boolean {
+  if (effect.type === 'damage') return true;
+  if (effect.type === 'damage_memory') {
+    return (
+      effect.params.mode === 'release' &&
+      effect.params.releaseAs !== 'heal' &&
+      effect.params.releaseAs !== 'shield'
+    );
+  }
+
+  if ('effects' in effect.params && Array.isArray(effect.params.effects)) {
+    return effect.params.effects.some(executesDamageResponse);
+  }
+
+  return false;
 }
 
 function executesDeathPrevent(effect: EffectConfig): boolean {

@@ -42,14 +42,16 @@ export class AffixEffectTranslator {
 
   private withConditions(def: RolledAffix, effect: EffectConfig): EffectConfig {
     const conditions = def.effectTemplate.conditions;
+    const globalUnique = def.globalUnique;
 
-    if (!conditions || conditions.length === 0) {
+    if ((!conditions || conditions.length === 0) && !globalUnique) {
       return effect;
     }
 
     return {
       ...effect,
-      conditions,
+      ...(conditions && conditions.length > 0 ? { conditions } : {}),
+      ...(globalUnique ? { globalUnique } : {}),
     };
   }
 

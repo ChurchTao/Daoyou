@@ -1,4 +1,8 @@
 import type { PlayerStateEvent } from '@shared/contracts/player';
+import {
+  createPubSubEnvelope,
+  parsePubSubEnvelope,
+} from './pubSubEnvelope';
 import { publishRedisMessage, subscribeRedisChannel } from './redisPubSub';
 
 type Listener = (events: PlayerStateEvent[]) => void;
@@ -11,22 +15,21 @@ function channelForCultivator(cultivatorId: string): string {
   return `${PLAYER_STATE_CHANNEL_PREFIX}${cultivatorId}`;
 }
 
-function parseEvents(raw: string): PlayerStateEvent[] {
-  try {
-    const parsed = JSON.parse(raw) as PlayerStateEvent[];
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-    return parsed.filter(
-      (event): event is PlayerStateEvent =>
+function isPlayerStateEvents(value: unknown): value is PlayerStateEvent[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (event) =>
         event &&
         typeof event === 'object' &&
-        typeof event.id === 'number' &&
-        typeof event.globalVersion === 'number',
-    );
-  } catch {
-    return [];
-  }
+        typeof (event as { id?: unknown }).id === 'number' &&
+        typeof (event as { globalVersion?: unknown }).globalVersion === 'number',
+    )
+  );
+}
+
+function parseEvents(raw: string): PlayerStateEvent[] {
+  return parsePubSubEnvelope(raw, isPlayerStateEvents) ?? [];
 }
 
 function ensureRedisSubscription(cultivatorId: string) {
@@ -88,5 +91,8 @@ export function publishPlayerStateEvents(
   }
 
   notifyLocalPlayerStateListeners(cultivatorId, events);
-  void publishRedisMessage(channelForCultivator(cultivatorId), JSON.stringify(events));
+  void publishRedisMessage(
+    channelForCultivator(cultivatorId),
+    JSON.stringify(createPubSubEnvelope(events)),
+  );
 }

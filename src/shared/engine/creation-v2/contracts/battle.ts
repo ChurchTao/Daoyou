@@ -10,6 +10,7 @@ export type {
   DamageImmunityParams,
   DeathPreventParams,
   EffectConfig,
+  GlobalUniqueConfig,
   ListenerContextMapping,
   ListenerGuardConfig,
   ListenerConfig,

@@ -70,8 +70,11 @@ export class AbilityFactory {
         config.listeners.forEach((listener) => {
           this.assertListenerContract(listener);
           const effects = listener.effects
-            .map((eff) => this.createEffect(eff))
-            .filter((e) => e !== null) as GameplayEffect[];
+            .map((eff) => {
+              const effect = this.createEffect(eff);
+              return effect ? { effect, globalUnique: eff.globalUnique } : null;
+            })
+            .filter((e) => e !== null);
           skill.addInstantiatedListener(
             buildListenerRuntimeConfig(listener),
             effects,
@@ -93,8 +96,11 @@ export class AbilityFactory {
         config.listeners.forEach((listener) => {
           this.assertListenerContract(listener);
           const effects = listener.effects
-            .map((eff) => this.createEffect(eff))
-            .filter((e) => e !== null) as GameplayEffect[];
+            .map((eff) => {
+              const effect = this.createEffect(eff);
+              return effect ? { effect, globalUnique: eff.globalUnique } : null;
+            })
+            .filter((e) => e !== null);
           ability.addInstantiatedListener(
             buildListenerRuntimeConfig(listener),
             effects,

@@ -8,6 +8,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -38,6 +39,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
   const [lastSeenMessageId, setLastSeenMessageId] = useState<string | null>(
     null,
   );
+  const reconnectRefreshPendingRef = useRef(false);
 
   const latestMessage = allMessages[0] ?? null;
   const newMessageCount = isWorldChatRoute
@@ -174,6 +176,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
   }, [isWorldChatRoute, lastSeenMessageId, latestMessage]);
 
   useEffect(() => {
+    realtimeClient.enableChannel('world-chat');
     return realtimeClient.subscribe('world-chat.message', (event) => {
       const message = event.payload;
       setAllMessages((prev) => mergeWorldChatMessages(prev, [message]));
@@ -182,6 +185,29 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
       }
     });
   }, [activeChannel]);
+
+  useEffect(() => {
+    let wasOnline = false;
+    const unsubscribe = realtimeClient.subscribeStatus((status) => {
+      const chat = status.channels['world-chat'];
+      if (!chat.enabled) {
+        return;
+      }
+      if (chat.state === 'online') {
+        if (wasOnline && !reconnectRefreshPendingRef.current) {
+          reconnectRefreshPendingRef.current = true;
+          void fetchPage(activeChannel, 1, false).finally(() => {
+            reconnectRefreshPendingRef.current = false;
+          });
+        }
+        wasOnline = true;
+      }
+    });
+    return () => {
+      unsubscribe();
+      realtimeClient.disableChannel('world-chat');
+    };
+  }, [activeChannel, fetchPage]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || loadingMore) {

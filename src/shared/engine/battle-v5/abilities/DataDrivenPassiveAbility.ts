@@ -1,6 +1,10 @@
 import { PassiveAbility } from './PassiveAbility';
 import { AbilityId, AttributeModifier, CombatEvent } from '../core/types';
-import { AttributeModifierConfig } from '../core/configs';
+import { AttributeModifierConfig, GlobalUniqueConfig } from '../core/configs';
+import {
+  claimGlobalUniqueEffect,
+  releaseGlobalUniqueEffects,
+} from '../core/runtimeState';
 import { GameplayEffect, EffectContext } from '../effects/Effect';
 import {
   ListenerRuntimeConfig,
@@ -21,7 +25,7 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
    */
   private _instantiatedListeners: Array<{
     runtime: ListenerRuntimeConfig;
-    effects: GameplayEffect[];
+    effects: InstantiatedGameplayEffect[];
   }> = [];
   private _modifiers: AttributeModifierConfig[] = [];
 
@@ -29,7 +33,10 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
     super(id, name);
   }
 
-  addInstantiatedListener(runtime: ListenerRuntimeConfig, effects: GameplayEffect[]): void {
+  addInstantiatedListener(
+    runtime: ListenerRuntimeConfig,
+    effects: InstantiatedGameplayEffect[],
+  ): void {
     this._instantiatedListeners.push({ runtime, effects });
   }
 
@@ -65,6 +72,9 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
     }
 
     super.onDeactivate();
+    if (owner) {
+      releaseGlobalUniqueEffects(owner, this);
+    }
   }
 
   /**
@@ -72,12 +82,23 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
    * 覆盖基类方法，实现动态订阅
    */
   protected override setupEventListeners(): void {
+    const owner = this.getOwner();
+    if (!owner) return;
+
     for (const listener of this._instantiatedListeners) {
+      const mountedEffects = listener.effects.filter((entry) => {
+        const key = entry.globalUnique?.key;
+        return !key || claimGlobalUniqueEffect(owner, key, this);
+      });
+      if (mountedEffects.length === 0) {
+        continue;
+      }
+
       // 订阅指定类型的事件
       this.subscribeEvent(
         listener.runtime.eventType,
         this.createEventHandler((event: CombatEvent) => {
-          this._executeInstantiatedEffects(listener.runtime, listener.effects, event);
+          this._executeInstantiatedEffects(listener.runtime, mountedEffects, event);
         }),
         listener.runtime.priority,
       );
@@ -86,7 +107,7 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
 
   private _executeInstantiatedEffects(
     runtime: ListenerRuntimeConfig,
-    effects: GameplayEffect[],
+    effects: InstantiatedGameplayEffect[],
     event: CombatEvent,
   ): void {
     const owner = this.getOwner();
@@ -105,7 +126,7 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
       triggerEvent: event, // 关键：注入触发事件
     };
 
-    for (const effect of effects) {
+    for (const { effect } of effects) {
       effect.execute(context);
     }
   }
@@ -133,4 +154,9 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
     }
     return cloned;
   }
+}
+
+export interface InstantiatedGameplayEffect {
+  effect: GameplayEffect;
+  globalUnique?: GlobalUniqueConfig;
 }

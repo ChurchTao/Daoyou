@@ -14,12 +14,19 @@ afterEach(() => {
 describe('public web origins', () => {
   it('parses comma-separated origins', () => {
     process.env.PUBLIC_WEB_ORIGINS =
-      'https://app.example.com, http://localhost:5173 ';
+      'https://app.example.com/, http://localhost:5173 ';
 
     expect(getPublicWebOrigins()).toEqual([
       'https://app.example.com',
       'http://localhost:5173',
     ]);
+  });
+
+  it('drops origins with paths', () => {
+    process.env.PUBLIC_WEB_ORIGINS =
+      'https://app.example.com/game, https://ok.example.com';
+
+    expect(getPublicWebOrigins()).toEqual(['https://ok.example.com']);
   });
 
   it('allows missing origin for non-browser probes', () => {

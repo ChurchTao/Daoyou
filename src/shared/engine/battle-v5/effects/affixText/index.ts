@@ -23,6 +23,7 @@ import type {
   AttributeModifierConfig,
   BuffConfig,
   EffectConfig,
+  GlobalUniqueConfig,
 } from '../../core/configs';
 import { isPercentageAttributeType } from '../../core/attributeMeta';
 import { AttributeType, ModifierType } from '../../core/types';
@@ -60,6 +61,7 @@ export interface RenderedAffixLine {
   rarity: AffixRarity;
   isPerfect: boolean;
   bodyText: string;
+  globalUniqueText?: string;
 }
 
 export interface AffixBuffDetailView {
@@ -107,6 +109,7 @@ export function renderAffixLine(
     rarity: mechanic.rarity,
     isPerfect: mechanic.isPerfect,
     bodyText: mechanic.bodyText,
+    globalUniqueText: mechanic.globalUniqueText,
   };
 }
 
@@ -156,7 +159,8 @@ export function renderAffixMechanic(
     name,
     rarity,
     isPerfect: affix.isPerfect,
-    bodyText,
+    bodyText: appendGlobalUniqueText(bodyText, definition?.globalUnique),
+    globalUniqueText: formatGlobalUniqueText(definition?.globalUnique),
     intentText: definition?.displayDescription ?? affix.description,
     ...detail,
   };
@@ -227,6 +231,21 @@ function buildBodyText(args: BuildBodyArgs): string {
         });
 
   return joinSegments(listenerText, conditionText, coreText);
+}
+
+function formatGlobalUniqueText(
+  globalUnique: GlobalUniqueConfig | undefined,
+): string | undefined {
+  if (!globalUnique) return undefined;
+  return globalUnique.label ? `全局唯一：${globalUnique.label}` : '全局唯一';
+}
+
+function appendGlobalUniqueText(
+  bodyText: string,
+  globalUnique: GlobalUniqueConfig | undefined,
+): string {
+  if (!globalUnique) return bodyText;
+  return bodyText ? `${bodyText}（全局唯一）` : '全局唯一';
 }
 
 interface MechanicDetail {
@@ -311,7 +330,12 @@ function buildMechanicDetail(args: BuildBodyArgs): MechanicDetail {
           })
         : [],
     tagLabels: collectRuntimeTagLabels(affix, effect, abilityTags),
-    mechanicNotes: buildMechanicNotes(effect),
+    mechanicNotes: [
+      ...buildMechanicNotes(effect),
+      ...(formatGlobalUniqueText(affix.globalUnique)
+        ? [formatGlobalUniqueText(affix.globalUnique)!]
+        : []),
+    ],
   };
 }
 

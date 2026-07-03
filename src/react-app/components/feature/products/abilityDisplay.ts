@@ -57,6 +57,8 @@ export interface AffixView {
   tagLabels: string[];
   /** 特殊机制说明，如 DOT 叠层、无法行动等 */
   mechanicNotes: string[];
+  /** 全局唯一提示，同类运行时效果只会生效一份 */
+  globalUniqueText?: string;
   /** 按稀有度上色 */
   rarityTone: AffixRarityTone;
   /** 原始稀有度（common/uncommon/rare/legendary） */
@@ -176,6 +178,7 @@ export function toAffixView(
     damageTypeLabels: mechanic.damageTypeLabels,
     tagLabels: mechanic.tagLabels,
     mechanicNotes: mechanic.mechanicNotes,
+    globalUniqueText: mechanic.globalUniqueText,
     rarity: mechanic.rarity,
     rarityTone: rarityToTone(mechanic.rarity),
     isPerfect: mechanic.isPerfect,

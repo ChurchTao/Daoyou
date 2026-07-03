@@ -7,6 +7,7 @@ import communityGroupRouter from '@server/routes/api/admin/community-qrcode.rout
 import feedbackRouter from '@server/routes/api/admin/feedback.router';
 import itemLibraryRouter from '@server/routes/api/admin/item-library.router';
 import llmMetricsRouter from '@server/routes/api/admin/llm-metrics.router';
+import onlineUsersRouter from '@server/routes/api/admin/online-users.router';
 import redeemCodesRouter from '@server/routes/api/admin/redeem-codes.router';
 import reputationShopRouter from '@server/routes/api/admin/reputation-shop.router';
 import templatesRouter from '@server/routes/api/admin/templates.router';
@@ -32,6 +33,7 @@ router.route('/redeem-codes', redeemCodesRouter);
 router.route('/reputation-shop', reputationShopRouter);
 router.route('/community-group', communityGroupRouter);
 router.route('/llm-metrics', llmMetricsRouter);
+router.route('/online-users', onlineUsersRouter);
 router.route('/tower-enemy-sets', towerEnemySetsRouter);
 router.route('/battle-simulator', battleSimulatorRouter);
 

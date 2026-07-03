@@ -9,6 +9,7 @@ import { Material } from '@shared/types/cultivator';
 import type { TargetPolicyConfig } from '@shared/engine/battle-v5/abilities/TargetPolicy';
 import type { Ability } from './contracts/battle';
 import type { AttributeModifierConfig } from './contracts/battle';
+import type { GlobalUniqueConfig } from './contracts/battle';
 import { CreationPhase } from './core/types';
 import type { CreationProductModel } from './models/types';
 import type { AffixTagMatcher } from './affixes/types';
@@ -311,6 +312,7 @@ export interface AffixCandidate {
   applicableArtifactSlots?: EquipmentSlot[];
   targetPolicyConstraint?: Partial<TargetPolicyConfig>;
   selectionMeta?: AffixSelectionMeta;
+  globalUnique?: GlobalUniqueConfig;
   effectTemplate: AffixEffectTemplate;
 }
 

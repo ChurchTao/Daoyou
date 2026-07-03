@@ -309,6 +309,32 @@ describe('advanced affix projection and rehydrate', () => {
     });
   });
 
+  it('projects causality scripture as reflect-safe and global unique', () => {
+    const product = composeProductFromAffixIds({
+      productType: 'gongfa',
+      element: '水',
+      requestedQuality: '神品',
+      name: '测试-因果经',
+      affixIds: ['gongfa-secret-causality-scripture'],
+    });
+    const abilityConfig = projectAbilityConfig(product);
+    const listener = abilityConfig.listeners?.[0];
+    const effect = listener?.effects[0];
+
+    expect(listener).toMatchObject({
+      eventType: 'DamageTakenEvent',
+      scope: 'owner_as_target',
+      guard: { skipReflectSource: true },
+    });
+    expect(effect).toMatchObject({
+      type: 'damage_memory',
+      globalUnique: {
+        key: 'gongfa-secret-causality-scripture',
+        label: '因果经',
+      },
+    });
+  });
+
   it('armor and accessory affixes project to slot-scoped equipment reactions', () => {
     const projectArtifactAffix = (
       affixId: string,

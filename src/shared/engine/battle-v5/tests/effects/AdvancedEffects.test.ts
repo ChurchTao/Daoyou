@@ -383,6 +383,70 @@ describe('Advanced battle effects', () => {
     expect(requests[0].damageType).toBe(DamageType.TRUE);
   });
 
+  it('mounts only one listener effect for a global unique key', () => {
+    const owner = createUnit('owner');
+    const attacker = createUnit('attacker');
+    const requests: DamageRequestEvent[] = [];
+    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
+      requests.push(event);
+    });
+
+    const createReflectPassive = (slug: string) =>
+      AbilityFactory.create({
+        slug,
+        name: slug,
+        type: AbilityType.PASSIVE_SKILL,
+        tags: [
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.TRUE,
+        ],
+        listeners: [
+          {
+            eventType: 'DamageTakenEvent',
+            scope: 'owner_as_target',
+            priority: 0,
+            guard: { skipReflectSource: true },
+            effects: [
+              {
+                type: 'damage_memory',
+                globalUnique: { key: 'test-global-reflect', label: '测试反伤' },
+                params: {
+                  key: 'test_reflect',
+                  mode: 'release',
+                  ratio: 1,
+                  releaseAs: 'reflect',
+                  target: 'target',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+    owner.abilities.addAbility(createReflectPassive('global-reflect-a'));
+    owner.abilities.addAbility(createReflectPassive('global-reflect-b'));
+
+    EventBus.instance.publish<DamageTakenEvent>({
+      type: 'DamageTakenEvent',
+      timestamp: Date.now(),
+      caster: attacker,
+      target: owner,
+      damageTaken: 10,
+      beforeHp: 100,
+      remainHp: 90,
+      shieldAbsorbed: 0,
+      remainShield: 0,
+      isLethal: false,
+    });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      caster: owner,
+      target: attacker,
+      finalDamage: 10,
+    });
+  });
+
   it('buff layer modify removes a buff at zero layers and scales child effects by previous layers', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');

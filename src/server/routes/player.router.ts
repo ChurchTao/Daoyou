@@ -50,6 +50,9 @@ const UpdatePlayerSettingsSchema = z.object({
   gameSettings: CultivatorGameSettingsSchema,
 });
 
+// TODO(cleanup:player-state-websocket): remove this legacy aggregate endpoint
+// after any external callers migrate to GET /api/player/state. The React app no
+// longer calls /api/player/active for the main character snapshot.
 router.get('/active', requireUser(), async (c) => {
   const user = c.get('user');
   if (!user) {
@@ -125,6 +128,8 @@ router.get('/state', requireActiveCultivatorRef(), async (c) => {
   return c.json(payload);
 });
 
+// WebSocket gap-recovery endpoint. This is not an SSE stream; keep it until the
+// realtime client no longer needs HTTP backfill after reconnect/version gaps.
 router.get('/state/events', requireActiveCultivatorRef(), async (c) => {
   const ref = c.get('activeCultivatorRef');
   if (!ref) {

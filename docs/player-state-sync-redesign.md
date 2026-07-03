@@ -1,5 +1,12 @@
 # 玩家状态同步系统完全重构方案
 
+> Cleanup note, 2026-07-03: this document is migration history. The SSE plan
+> below is obsolete after the WebSocket realtime migration. Current player-state
+> realtime uses `GET /api/realtime` with the `player-state` channel, while
+> `GET /api/player/state/events?after=` remains a JSON backfill endpoint for
+> reconnect/version-gap recovery, not an SSE stream. See
+> `docs/player-state-realtime-cleanup-audit.md`.
+
 ## 1. 文档状态
 
 - 状态：方案稿

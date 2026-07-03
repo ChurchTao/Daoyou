@@ -23,6 +23,7 @@ function toRolledAffix(def: AffixDefinition): RolledAffix {
     applicableArtifactSlots: def.applicableArtifactSlots,
     targetPolicyConstraint: def.targetPolicyConstraint,
     selectionMeta: def.selectionMeta,
+    globalUnique: def.globalUnique,
     effectTemplate: def.effectTemplate,
     rollScore: 1,
     rollEfficiency: 1,
@@ -62,6 +63,14 @@ describe('affixText mechanic rendering', () => {
     expect(view.effectText).toContain('真实伤害');
     expect(view.tagLabels).toContain('真实');
     expect(view.tagLabels.join('、')).not.toMatch(/Ability\./);
+  });
+
+  it('marks global unique affixes in player-facing text', () => {
+    const view = renderAffix('gongfa-secret-causality-scripture');
+
+    expect(view.bodyText).toContain('全局唯一');
+    expect(view.globalUniqueText).toBe('全局唯一：因果经');
+    expect(view.mechanicNotes).toContain('全局唯一：因果经');
   });
 
   it('does not let product-level true or wind tags override physical damage affix text', () => {

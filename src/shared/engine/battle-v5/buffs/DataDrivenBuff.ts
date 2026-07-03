@@ -1,4 +1,4 @@
-import { BuffConfig } from '../core/configs';
+import { BuffConfig, GlobalUniqueConfig } from '../core/configs';
 import { BuffId, CombatEvent } from '../core/types';
 import { EffectContext, GameplayEffect } from '../effects/Effect';
 import {
@@ -6,6 +6,10 @@ import {
   resolveListenerContext,
   shouldExecuteListener,
 } from '../core/listenerExecution';
+import {
+  claimGlobalUniqueEffect,
+  releaseGlobalUniqueEffects,
+} from '../core/runtimeState';
 import { Buff } from './Buff';
 
 /**
@@ -20,7 +24,7 @@ export class DataDrivenBuff extends Buff {
   private _config: BuffConfig;
   private _instantiatedListeners: Array<{
     runtime: ListenerRuntimeConfig;
-    effects: GameplayEffect[];
+    effects: InstantiatedGameplayEffect[];
   }> = [];
 
   constructor(config: BuffConfig) {
@@ -39,7 +43,10 @@ export class DataDrivenBuff extends Buff {
     return this._config;
   }
 
-  addInstantiatedListener(runtime: ListenerRuntimeConfig, effects: GameplayEffect[]): void {
+  addInstantiatedListener(
+    runtime: ListenerRuntimeConfig,
+    effects: InstantiatedGameplayEffect[],
+  ): void {
     this._instantiatedListeners.push({ runtime, effects });
   }
 
@@ -70,10 +77,20 @@ export class DataDrivenBuff extends Buff {
   }
 
   private _setupEventListeners(): void {
+    if (!this._owner) return;
+
     for (const listener of this._instantiatedListeners) {
+      const mountedEffects = listener.effects.filter((entry) => {
+        const key = entry.globalUnique?.key;
+        return !key || claimGlobalUniqueEffect(this._owner!, key, this);
+      });
+      if (mountedEffects.length === 0) {
+        continue;
+      }
+
       this._subscribeEvent<CombatEvent>(
         listener.runtime.eventType,
-        (event) => this._executeEffects(listener.runtime, listener.effects, event),
+        (event) => this._executeEffects(listener.runtime, mountedEffects, event),
         listener.runtime.priority,
       );
     }
@@ -81,7 +98,7 @@ export class DataDrivenBuff extends Buff {
 
   private _executeEffects(
     runtime: ListenerRuntimeConfig,
-    effects: GameplayEffect[],
+    effects: InstantiatedGameplayEffect[],
     event: CombatEvent,
   ): void {
     if (!this._owner) return; // 仅检查是否存在，不检查存活，以便处理免死逻辑
@@ -99,7 +116,7 @@ export class DataDrivenBuff extends Buff {
       buff: this,
     };
 
-    for (const effect of effects) {
+    for (const { effect } of effects) {
       effect.execute(context);
     }
   }
@@ -113,6 +130,7 @@ export class DataDrivenBuff extends Buff {
 
       // 2. 移除属性修改器 (通过 source 批量移除)
       this._owner.attributes.removeModifierBySource(this);
+      releaseGlobalUniqueEffects(this._owner, this);
     }
 
     super.onDeactivate();
@@ -139,4 +157,9 @@ export class DataDrivenBuff extends Buff {
 
     return cloned;
   }
+}
+
+export interface InstantiatedGameplayEffect {
+  effect: GameplayEffect;
+  globalUnique?: GlobalUniqueConfig;
 }

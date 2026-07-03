@@ -1,3 +1,20 @@
+export function normalizeOrigin(value: string | undefined | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    if (url.pathname !== '/' || url.search || url.hash) {
+      return null;
+    }
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
 function splitOrigins(value: string | undefined) {
   if (!value) {
     return [];
@@ -5,8 +22,8 @@ function splitOrigins(value: string | undefined) {
 
   return value
     .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+    .map((origin) => normalizeOrigin(origin))
+    .filter((origin): origin is string => Boolean(origin));
 }
 
 export function getPublicWebOrigins() {
@@ -18,9 +35,11 @@ export function isAllowedPublicWebOrigin(origin: string | undefined | null) {
     return true;
   }
 
-  return getPublicWebOrigins().includes(origin);
+  const normalized = normalizeOrigin(origin);
+  return Boolean(normalized && getPublicWebOrigins().includes(normalized));
 }
 
 export function resolveCorsOrigin(origin: string) {
-  return isAllowedPublicWebOrigin(origin) ? origin : '';
+  const normalized = normalizeOrigin(origin);
+  return normalized && isAllowedPublicWebOrigin(normalized) ? normalized : '';
 }

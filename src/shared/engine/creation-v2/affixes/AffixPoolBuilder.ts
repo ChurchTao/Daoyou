@@ -167,6 +167,7 @@ export class AffixPoolBuilder {
       applicableArtifactSlots: def.applicableArtifactSlots,
       targetPolicyConstraint: def.targetPolicyConstraint,
       selectionMeta: def.selectionMeta,
+      globalUnique: def.globalUnique,
       effectTemplate: def.effectTemplate,
     };
   }

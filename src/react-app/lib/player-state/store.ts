@@ -67,7 +67,7 @@ export class PlayerStateStore {
   private initializePromise: Promise<void> | null = null;
   private realtimeCultivatorId: string | null = null;
   private unsubscribeRealtimeState: (() => void) | null = null;
-  private unsubscribeRealtimeError: (() => void) | null = null;
+  private unsubscribeRealtimeStatus: (() => void) | null = null;
   private recoveryPromise: Promise<void> | null = null;
   private staleRefreshPromise: Promise<void> | null = null;
   private realtimeErrorTimer: ReturnType<typeof setTimeout> | null = null;
@@ -365,6 +365,8 @@ export class PlayerStateStore {
       error: null,
     });
     try {
+      // WebSocket reconnect backfill. This endpoint returns JSON and is not the
+      // removed SSE state stream.
       const response = await fetch(
         `/api/player/state/events?after=${encodeURIComponent(String(after))}`,
       );
@@ -438,11 +440,14 @@ export class PlayerStateStore {
       this.realtimeCultivatorId === this.state.cultivatorId &&
       this.unsubscribeRealtimeState
     ) {
-      realtimeClient.connect();
+      realtimeClient.enableChannel('player-state');
+      realtimeClient.setCultivatorId(this.state.cultivatorId);
       return;
     }
 
     this.disconnectRealtime();
+    realtimeClient.enableChannel('player-state');
+    realtimeClient.setCultivatorId(this.state.cultivatorId);
     this.unsubscribeRealtimeState = realtimeClient.subscribe(
       'player-state.events',
       (event) => {
@@ -456,27 +461,46 @@ export class PlayerStateStore {
         }
       },
     );
-    this.unsubscribeRealtimeError = realtimeClient.subscribeError(() => {
-      if (this.realtimeErrorTimer) {
+    let wasOnline = false;
+    this.unsubscribeRealtimeStatus = realtimeClient.subscribeStatus((status) => {
+      const channel = status.channels['player-state'];
+      if (!channel.enabled) {
         return;
       }
-      this.realtimeErrorTimer = setTimeout(() => {
-        this.realtimeErrorTimer = null;
-        this.markStale([...PLAYER_STATE_DOMAINS]);
-      }, 2_000);
+      if (channel.state === 'online') {
+        if (wasOnline && this.state.globalVersion > 0) {
+          this.scheduleEventRecovery(this.state.globalVersion);
+        }
+        wasOnline = true;
+        this.clearRealtimeErrorTimer();
+        return;
+      }
+      if (
+        channel.state === 'reconnecting' ||
+        channel.state === 'offline' ||
+        channel.state === 'blocked'
+      ) {
+        if (this.realtimeErrorTimer) {
+          return;
+        }
+        this.realtimeErrorTimer = setTimeout(() => {
+          this.realtimeErrorTimer = null;
+          this.markStale([...PLAYER_STATE_DOMAINS]);
+        }, 2_000);
+      }
     });
     this.realtimeCultivatorId = this.state.cultivatorId;
-    realtimeClient.connect();
   }
 
   private disconnectRealtime() {
     this.clearRealtimeErrorTimer();
     this.unsubscribeRealtimeState?.();
-    this.unsubscribeRealtimeError?.();
+    this.unsubscribeRealtimeStatus?.();
     this.unsubscribeRealtimeState = null;
-    this.unsubscribeRealtimeError = null;
+    this.unsubscribeRealtimeStatus = null;
     this.realtimeCultivatorId = null;
-    realtimeClient.disconnect();
+    realtimeClient.disableChannel('player-state');
+    realtimeClient.setCultivatorId(null);
   }
 
   private clearRealtimeErrorTimer() {

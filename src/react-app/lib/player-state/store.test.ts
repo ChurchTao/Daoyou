@@ -5,15 +5,17 @@ import type {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const {
-  realtimeConnectMock,
-  realtimeDisconnectMock,
-  realtimeSubscribeErrorMock,
+  realtimeDisableChannelMock,
+  realtimeEnableChannelMock,
+  realtimeSetCultivatorIdMock,
+  realtimeSubscribeStatusMock,
   realtimeSubscribeMock,
   realtimeState,
 } = vi.hoisted(() => ({
-  realtimeConnectMock: vi.fn(),
-  realtimeDisconnectMock: vi.fn(),
-  realtimeSubscribeErrorMock: vi.fn(() => vi.fn()),
+  realtimeDisableChannelMock: vi.fn(),
+  realtimeEnableChannelMock: vi.fn(),
+  realtimeSetCultivatorIdMock: vi.fn(),
+  realtimeSubscribeStatusMock: vi.fn(() => vi.fn()),
   realtimeSubscribeMock: vi.fn(() => vi.fn()),
   realtimeState: {
     playerStateHandler: null as
@@ -27,15 +29,16 @@ const {
 
 vi.mock('@app/lib/realtime/realtimeClient', () => ({
   realtimeClient: {
-    connect: realtimeConnectMock,
-    disconnect: realtimeDisconnectMock,
+    disableChannel: realtimeDisableChannelMock,
+    enableChannel: realtimeEnableChannelMock,
+    setCultivatorId: realtimeSetCultivatorIdMock,
     subscribe: realtimeSubscribeMock.mockImplementation((type, handler) => {
       if (type === 'player-state.events') {
         realtimeState.playerStateHandler = handler;
       }
       return vi.fn();
     }),
-    subscribeError: realtimeSubscribeErrorMock,
+    subscribeStatus: realtimeSubscribeStatusMock,
   },
 }));
 
@@ -209,7 +212,8 @@ describe('PlayerStateStore', () => {
       },
     });
 
-    expect(realtimeConnectMock).toHaveBeenCalled();
+    expect(realtimeSetCultivatorIdMock).toHaveBeenCalledWith('cultivator-1');
+    expect(realtimeEnableChannelMock).toHaveBeenCalledWith('player-state');
     expect(store.getSnapshot().snapshot.mail?.unreadCount).toBe(6);
   });
 

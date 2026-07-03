@@ -80,6 +80,7 @@ function toRolledAffix(def: AffixDefinition): RolledAffix {
     applicableArtifactSlots: def.applicableArtifactSlots,
     targetPolicyConstraint: def.targetPolicyConstraint,
     selectionMeta: def.selectionMeta,
+    globalUnique: def.globalUnique,
     effectTemplate: def.effectTemplate,
     rollScore: 1,
     rollEfficiency: 1,

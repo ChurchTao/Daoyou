@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { publishRedisMessageMock, subscribeRedisChannelMock } = vi.hoisted(() => ({
   publishRedisMessageMock: vi.fn(),
-  subscribeRedisChannelMock: vi.fn(() => vi.fn()),
+  subscribeRedisChannelMock: vi.fn(
+    (_channel: string, _handler: (raw: string) => void) => vi.fn(),
+  ),
 }));
 
 vi.mock('@server/lib/services/redisPubSub', () => ({
@@ -11,6 +13,10 @@ vi.mock('@server/lib/services/redisPubSub', () => ({
   subscribeRedisChannel: subscribeRedisChannelMock,
 }));
 
+import {
+  getPubSubInstanceId,
+  type PubSubEnvelope,
+} from './pubSubEnvelope';
 import {
   publishWorldChatMessage,
   subscribeWorldChatMessages,
@@ -48,10 +54,38 @@ describe('worldChatBroadcaster', () => {
     unsubscribe();
 
     expect(listener).toHaveBeenCalledWith(message);
-    expect(publishRedisMessageMock).toHaveBeenCalledWith(
-      'world-chat',
-      JSON.stringify(message),
+    const [, raw] = publishRedisMessageMock.mock.calls[0];
+    const envelope = JSON.parse(raw) as PubSubEnvelope<WorldChatMessageDTO>;
+    expect(envelope.payload).toEqual(message);
+    expect(envelope.sourceInstanceId).toBe(getPubSubInstanceId());
+  });
+
+  it('ignores redis messages from the same instance and accepts external envelopes', () => {
+    const redisHandlers: Array<(raw: string) => void> = [];
+    subscribeRedisChannelMock.mockImplementationOnce((_channel, handler) => {
+      redisHandlers.push(handler);
+      return vi.fn();
+    });
+    const listener = vi.fn();
+    const message = createMessage();
+
+    const unsubscribe = subscribeWorldChatMessages(listener);
+    redisHandlers[0]?.(
+      JSON.stringify({
+        sourceInstanceId: getPubSubInstanceId(),
+        payload: message,
+      }),
     );
+    redisHandlers[0]?.(
+      JSON.stringify({
+        sourceInstanceId: 'other-instance',
+        payload: message,
+      }),
+    );
+    unsubscribe();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(message);
   });
 
   it('cleans up subscriptions when the last listener unsubscribes', () => {

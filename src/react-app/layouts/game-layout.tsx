@@ -1,4 +1,5 @@
 import { GameBottomDock } from '@app/components/game-shell/GameBottomDock';
+import { RealtimeConnectionToasts } from '@app/components/game-shell/RealtimeConnectionToasts';
 import { GameTopHud } from '@app/components/game-shell/GameTopHud';
 import { useGameHudModel } from '@app/components/game-shell/useGameHudModel';
 import {
@@ -328,6 +329,7 @@ export function GameViewportLayout() {
             <Outlet />
           </main>
         </div>
+        <RealtimeConnectionToasts />
         <div ref={bottomChromeRef} className="fixed inset-x-0 bottom-0 z-40">
           <WorldChatPreviewBar />
           <GameBottomDock

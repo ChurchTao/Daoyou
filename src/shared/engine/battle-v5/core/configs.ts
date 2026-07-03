@@ -66,6 +66,7 @@ export interface ConditionConfig {
  */
 export interface BaseEffectConfig {
   conditions?: ConditionConfig[];
+  globalUnique?: GlobalUniqueConfig;
 }
 
 /**
@@ -452,6 +453,11 @@ export interface ListenerConfig {
    * 触发时执行的效果链
    */
   effects: EffectConfig[];
+}
+
+export interface GlobalUniqueConfig {
+  key: string;
+  label?: string;
 }
 
 export interface AttributeModifierConfig {

@@ -4,6 +4,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { apiCorsOptions } from '@server/lib/http/cors';
 import { runWithContext } from '@server/lib/http/context';
+import { unsafeRequestOriginGuard } from '@server/lib/http/originGuard';
 import { apiIpRateLimit } from '@server/lib/hono/apiIpRateLimit';
 import { jsonError } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
@@ -22,6 +23,7 @@ app.use(
   '/api/*',
   cors(apiCorsOptions),
 );
+app.use('/api/*', unsafeRequestOriginGuard());
 
 app.use('*', async (context, next) => {
   const provider = context.req.header('x-llm-provider');
@@ -67,15 +69,7 @@ app.use('/internal/*', jsonError());
 app.route('/api', apiRouter);
 app.route('/internal', internalRouter);
 
-app.notFound((c) =>
-  c.json(
-    {
-      success: false,
-      error: 'Not Found',
-    },
-    404,
-  ),
-);
+app.notFound((c) => c.redirect('https://client.daoyou.org'));
 
 app.onError((error, c) => {
   console.error('Unhandled Hono error:', error);

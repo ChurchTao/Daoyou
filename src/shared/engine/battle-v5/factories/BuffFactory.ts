@@ -36,7 +36,12 @@ export class BuffFactory {
     if (config.listeners) {
       for (const listener of config.listeners) {
         this.assertListenerContract(listener);
-        const instantiatedEffects = listener.effects.map(effCfg => this.createEffect(effCfg)).filter(e => e !== null) as GameplayEffect[];
+        const instantiatedEffects = listener.effects
+          .map((effCfg) => {
+            const effect = this.createEffect(effCfg);
+            return effect ? { effect, globalUnique: effCfg.globalUnique } : null;
+          })
+          .filter((e) => e !== null);
         buff.addInstantiatedListener(buildListenerRuntimeConfig(listener), instantiatedEffects);
       }
     }

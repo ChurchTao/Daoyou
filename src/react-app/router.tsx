@@ -809,6 +809,11 @@ export const router = createBrowserRouter(
           handle={title('LLM 观测')}
         />
         <Route
+          path="online-users"
+          lazy={lazyRoute(() => import('@app/routes/admin/online-users/route'))}
+          handle={title('在线人数')}
+        />
+        <Route
           path="battle-simulator"
           lazy={lazyRoute(
             () => import('@app/routes/admin/battle-simulator/route'),

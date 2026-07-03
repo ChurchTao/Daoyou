@@ -1552,6 +1552,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 6,
     energyCost: 50,
     applicableTo: ['gongfa'],
+    globalUnique: {
+      key: 'gongfa-secret-causality-scripture',
+      label: '因果经',
+    },
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.TRUE,
@@ -1576,6 +1580,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
       mapping: { caster: 'event.caster', target: 'owner' },
+      guard: { skipReflectSource: true },
     },
   },
   {
