@@ -3,9 +3,14 @@ import type {
   PlayerLoadout,
   PlayerProfileCultivator,
 } from '@shared/contracts/player';
+import { evaluateFateContext } from '@shared/lib/fates';
 import type { CultivatorCondition } from '@shared/types/condition';
+import type { FateEffectEntry } from '@shared/types/cultivator';
 import { ConditionService } from './ConditionService';
-import { buildCultivatorRuntime } from './cultivatorService';
+import {
+  buildCultivatorRuntime,
+  mapPreHeavenFatesForRuntime,
+} from './cultivatorService';
 
 vi.mock('@server/lib/drizzle/db', () => ({
   getExecutor: vi.fn(),
@@ -91,6 +96,39 @@ function createLoadout(): PlayerLoadout {
   };
 }
 
+function enlightenmentEffect(value: number): FateEffectEntry {
+  return {
+    id: `enlightenment:${value}`,
+    effectId: 'enlightenment-insight-reduction',
+    scope: 'daily',
+    polarity: 'boon',
+    effectType: 'enlightenment_insight_multiplier',
+    value,
+    label: '参悟感悟消耗降低',
+    description: '测试。',
+    rollMeta: {
+      qualityAnchor: '真品',
+      minValue: value,
+      maxValue: value,
+      rolledPercentile: 0,
+      roundingStep: 0.01,
+    },
+  };
+}
+
+function fateRow(overrides: Record<string, unknown>) {
+  return {
+    id: 'fate-1',
+    cultivatorId: 'cultivator-1',
+    name: '明悟台',
+    quality: '真品',
+    details: {},
+    description: null,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    ...overrides,
+  } as any;
+}
+
 describe('buildCultivatorRuntime condition normalization', () => {
   it('keeps legacy full health full after loadout raises the runtime max', () => {
     const bareProfile = createProfile(createCondition(0));
@@ -142,5 +180,18 @@ describe('buildCultivatorRuntime condition normalization', () => {
       current: bareMax.maxHp - 80,
       max: runtimeMax.maxHp,
     });
+  });
+});
+
+describe('mapPreHeavenFatesForRuntime', () => {
+  it('restores fate effects from details', () => {
+    const fates = mapPreHeavenFatesForRuntime([
+      fateRow({
+        details: { effects: [enlightenmentEffect(0.8)] },
+      }),
+    ]);
+
+    expect(fates[0]?.effects).toHaveLength(1);
+    expect(evaluateFateContext(fates).enlightenmentInsightMultiplier).toBe(0.8);
   });
 });

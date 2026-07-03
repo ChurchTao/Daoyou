@@ -67,8 +67,6 @@ export const cultivators = pgTable(
     qi: integer('qi').notNull().default(200), // 天地灵气
     qiLastRefreshedAt: timestamp('qi_last_refreshed_at').notNull().defaultNow(),
     last_yield_at: timestamp('last_yield_at').defaultNow(),
-    // @deprecated 上线后删除
-    max_skills: integer('max_skills').notNull().default(4),
     balance_notes: text('balance_notes'),
 
     // 角色当前状态（用于存储战斗/副本中产生的持久状态）
@@ -144,14 +142,6 @@ export const cultivatorStateVersions = pgTable(
       .notNull()
       .default(0),
     currencyVersion: bigint('currency_version', { mode: 'number' })
-      .notNull()
-      .default(0),
-    /** @deprecated Retained for rolling deploy compatibility. Use loadoutVersion. */
-    inventoryVersion: bigint('inventory_version', { mode: 'number' })
-      .notNull()
-      .default(0),
-    /** @deprecated Retained for rolling deploy compatibility. Use loadoutVersion. */
-    productsVersion: bigint('products_version', { mode: 'number' })
       .notNull()
       .default(0),
     loadoutVersion: bigint('loadout_version', { mode: 'number' })
@@ -231,9 +221,6 @@ export const preHeavenFates = pgTable(
       .notNull(),
     name: varchar('name', { length: 100 }).notNull(),
     quality: varchar('quality', { length: 10 }), // 凡品 | 灵品 | 玄品 | 真品
-    // @deprecated 新版本上线后删除
-    effects: jsonb('effects').default([]),
-    registryKey: varchar('registry_key', { length: 100 }),
     details: jsonb('details').default({}),
     description: text('description'),
     createdAt: timestamp('created_at').defaultNow(),

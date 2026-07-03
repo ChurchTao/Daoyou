@@ -113,7 +113,7 @@ function mapSpiritualRoots(
   });
 }
 
-function mapPreHeavenFates(
+export function mapPreHeavenFatesForRuntime(
   fates: CultivatorRelations['preHeavenFates'],
 ): Cultivator['pre_heaven_fates'] {
   return FateEngine.normalizeFates(
@@ -138,6 +138,8 @@ function mapPreHeavenFates(
     ),
   );
 }
+
+const mapPreHeavenFates = mapPreHeavenFatesForRuntime;
 
 function productModelToAbilityConfig(
   productModel: Record<string, unknown> | null | undefined,
@@ -364,27 +366,7 @@ async function assembleCultivatorFromRelations(
     };
   });
 
-  const pre_heaven_fates = FateEngine.normalizeFates(
-    relations.preHeavenFates.map(
-      (f): PreHeavenFate => ({
-        name: f.name,
-        quality: f.quality as Quality,
-        description: f.description || undefined,
-        effects:
-          ((f.details as Record<string, unknown> | null)?.effects as
-            | PreHeavenFate['effects']
-            | undefined) || undefined,
-        generationModel:
-          ((f.details as Record<string, unknown> | null)?.generationModel as
-            | PreHeavenFate['generationModel']
-            | undefined) || undefined,
-        namingMetadata:
-          ((f.details as Record<string, unknown> | null)?.namingMetadata as
-            | PreHeavenFate['namingMetadata']
-            | undefined) || undefined,
-      }),
-    ),
-  );
+  const pre_heaven_fates = mapPreHeavenFates(relations.preHeavenFates);
   const skillProducts = relations.creationProducts.filter(
     (product) => product.productType === 'skill' && product.isEquipped,
   );
@@ -638,7 +620,6 @@ function buildPreHeavenFateInsertValues(
     cultivatorId,
     name: fate.name,
     quality: fate.quality || null,
-    registryKey: null,
     details: {
       effects: fate.effects ?? [],
       generationModel: fate.generationModel ?? null,
