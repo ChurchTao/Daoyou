@@ -43,18 +43,6 @@ export default defineConfig(({ command, mode }) => {
         build({
           entry: './src/index.ts',
           emptyOutDir: true,
-          entryContentDefaultExportHook: (
-            appName,
-          ) => `export default websocket !== undefined
-  ? {
-      port: Number(process.env.PORT ?? 3000),
-      fetch: ${appName}.fetch.bind(${appName}),
-      websocket,
-    }
-  : {
-      port: Number(process.env.PORT ?? 3000),
-      fetch: ${appName}.fetch.bind(${appName}),
-    }`,
         }),
       ],
     };
