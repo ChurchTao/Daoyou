@@ -9,9 +9,9 @@ import type {
   PlayerStateMutationResponse,
   PlayerStateSnapshot,
   PlayerStateSnapshotResponse,
-  PlayerStateStreamPayload,
 } from '@shared/contracts/player';
 import { PLAYER_STATE_DOMAINS } from '@shared/contracts/player';
+import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 
 export type PlayerStateStoreData = {
@@ -65,11 +65,12 @@ export class PlayerStateStore {
   private state: PlayerStateStoreData = initialState;
   private listeners = new Set<Listener>();
   private initializePromise: Promise<void> | null = null;
-  private eventSource: EventSource | null = null;
-  private streamCultivatorId: string | null = null;
+  private realtimeCultivatorId: string | null = null;
+  private unsubscribeRealtimeState: (() => void) | null = null;
+  private unsubscribeRealtimeError: (() => void) | null = null;
   private recoveryPromise: Promise<void> | null = null;
   private staleRefreshPromise: Promise<void> | null = null;
-  private streamErrorTimer: ReturnType<typeof setTimeout> | null = null;
+  private realtimeErrorTimer: ReturnType<typeof setTimeout> | null = null;
   private processedEventIds = new Set<number>();
 
   getSnapshot = () => this.state;
@@ -84,7 +85,7 @@ export class PlayerStateStore {
   async initialize(userId: string | null): Promise<void> {
     if (!userId) {
       this.initializePromise = null;
-      this.disconnectStream();
+      this.disconnectRealtime();
       this.processedEventIds.clear();
       this.setState(createInitialState());
       return;
@@ -105,7 +106,7 @@ export class PlayerStateStore {
     userId = this.state.userId,
   ): Promise<void> {
     if (!userId) {
-      this.disconnectStream();
+      this.disconnectRealtime();
       this.processedEventIds.clear();
       this.setState(createInitialState());
       return;
@@ -148,7 +149,7 @@ export class PlayerStateStore {
           }
         : this.state;
       if (cultivatorChanged) {
-        this.disconnectStream();
+        this.disconnectRealtime();
         this.processedEventIds.clear();
       }
       const staleDomains = clearStaleDomains(baseState.staleDomains, domains);
@@ -170,7 +171,7 @@ export class PlayerStateStore {
         lastSyncAt: Date.now(),
         error: null,
       });
-      this.connectStream();
+      this.connectRealtime();
     } catch (error) {
       this.setState({
         ...this.state,
@@ -428,35 +429,24 @@ export class PlayerStateStore {
     });
   }
 
-  private connectStream() {
-    if (
-      typeof window === 'undefined' ||
-      typeof EventSource === 'undefined' ||
-      !this.state.cultivatorId
-    ) {
+  private connectRealtime() {
+    if (typeof window === 'undefined' || !this.state.cultivatorId) {
       return;
     }
 
     if (
-      this.eventSource &&
-      this.streamCultivatorId === this.state.cultivatorId
+      this.realtimeCultivatorId === this.state.cultivatorId &&
+      this.unsubscribeRealtimeState
     ) {
+      realtimeClient.connect();
       return;
     }
 
-    this.disconnectStream();
-    const params = new URLSearchParams({
-      after: String(this.state.globalVersion),
-    });
-    const source = new EventSource(`/api/player/state/stream?${params}`);
-    source.onopen = () => {
-      this.clearStreamErrorTimer();
-    };
-    source.addEventListener('player-state', (event) => {
-      try {
-        const payload = JSON.parse((event as MessageEvent).data) as {
-          events?: PlayerStateEvent[];
-        } & PlayerStateStreamPayload;
+    this.disconnectRealtime();
+    this.unsubscribeRealtimeState = realtimeClient.subscribe(
+      'player-state.events',
+      (event) => {
+        const payload = event.payload;
         if (payload.requiresSnapshot) {
           void this.refresh();
           return;
@@ -464,36 +454,37 @@ export class PlayerStateStore {
         if (payload.events?.length) {
           this.applyEvents(payload.events);
         }
-      } catch (error) {
-        console.warn('[player-state] failed to parse SSE payload', error);
-      }
-    });
-    source.onerror = () => {
-      if (this.streamErrorTimer) {
+      },
+    );
+    this.unsubscribeRealtimeError = realtimeClient.subscribeError(() => {
+      if (this.realtimeErrorTimer) {
         return;
       }
-      this.streamErrorTimer = setTimeout(() => {
-        this.streamErrorTimer = null;
+      this.realtimeErrorTimer = setTimeout(() => {
+        this.realtimeErrorTimer = null;
         this.markStale([...PLAYER_STATE_DOMAINS]);
       }, 2_000);
-    };
-    this.eventSource = source;
-    this.streamCultivatorId = this.state.cultivatorId;
+    });
+    this.realtimeCultivatorId = this.state.cultivatorId;
+    realtimeClient.connect();
   }
 
-  private disconnectStream() {
-    this.clearStreamErrorTimer();
-    this.eventSource?.close();
-    this.eventSource = null;
-    this.streamCultivatorId = null;
+  private disconnectRealtime() {
+    this.clearRealtimeErrorTimer();
+    this.unsubscribeRealtimeState?.();
+    this.unsubscribeRealtimeError?.();
+    this.unsubscribeRealtimeState = null;
+    this.unsubscribeRealtimeError = null;
+    this.realtimeCultivatorId = null;
+    realtimeClient.disconnect();
   }
 
-  private clearStreamErrorTimer() {
-    if (!this.streamErrorTimer) {
+  private clearRealtimeErrorTimer() {
+    if (!this.realtimeErrorTimer) {
       return;
     }
-    clearTimeout(this.streamErrorTimer);
-    this.streamErrorTimer = null;
+    clearTimeout(this.realtimeErrorTimer);
+    this.realtimeErrorTimer = null;
   }
 
   private rememberProcessedEvent(id: number) {

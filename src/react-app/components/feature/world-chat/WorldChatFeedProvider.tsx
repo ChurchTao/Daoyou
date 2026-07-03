@@ -1,4 +1,5 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import type {
   WorldChatChannel,
   WorldChatMessageDTO,
@@ -18,10 +19,8 @@ import {
 } from './worldChatFeedContext';
 import {
   countNewWorldChatMessages,
-  filterWorldChatMessagesByChannel,
   mergeWorldChatMessages,
   PAGE_SIZE,
-  POLL_INTERVAL_MS,
 } from './worldChatFeedHelpers';
 
 export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
@@ -175,29 +174,13 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
   }, [isWorldChatRoute, lastSeenMessageId, latestMessage]);
 
   useEffect(() => {
-    const timer = setInterval(async () => {
-      try {
-        const res = await fetch(
-          `/api/world-chat/messages?channel=all&page=1&pageSize=${PAGE_SIZE}`,
-          { cache: 'no-store' },
-        );
-        const data = await res.json();
-        if (!res.ok || !data.success) return;
-
-        const latest = (data.data || []) as WorldChatMessageDTO[];
-        setAllMessages((prev) => mergeWorldChatMessages(prev, latest));
-        setMessages((prev) =>
-          mergeWorldChatMessages(
-            prev,
-            filterWorldChatMessagesByChannel(latest, activeChannel),
-          ),
-        );
-      } catch (error) {
-        console.error('轮询世界传音失败:', error);
+    return realtimeClient.subscribe('world-chat.message', (event) => {
+      const message = event.payload;
+      setAllMessages((prev) => mergeWorldChatMessages(prev, [message]));
+      if (activeChannel === 'all' || message.channel === activeChannel) {
+        setMessages((prev) => mergeWorldChatMessages(prev, [message]));
       }
-    }, POLL_INTERVAL_MS);
-
-    return () => clearInterval(timer);
+    });
   }, [activeChannel]);
 
   const loadMore = useCallback(async () => {

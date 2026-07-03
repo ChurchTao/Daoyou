@@ -121,9 +121,4 @@ export type PlayerStateEventsData = {
   requiresSnapshot: boolean;
 };
 
-export type PlayerStateStreamPayload = {
-  events?: PlayerStateEvent[];
-  requiresSnapshot?: boolean;
-};
-
 export type PlayerStateEventsResponse = ApiSuccess<PlayerStateEventsData>;

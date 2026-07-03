@@ -1,9 +1,10 @@
 import type { WorldChatMessageDTO } from '@shared/types/world-chat';
 
-const { lpushMock, lrangeMock, ltrimMock } = vi.hoisted(() => ({
+const { lpushMock, lrangeMock, ltrimMock, publishWorldChatMessageMock } = vi.hoisted(() => ({
   lpushMock: vi.fn(),
   lrangeMock: vi.fn(),
   ltrimMock: vi.fn(),
+  publishWorldChatMessageMock: vi.fn(),
 }));
 
 vi.mock('@server/lib/redis', () => ({
@@ -12,6 +13,10 @@ vi.mock('@server/lib/redis', () => ({
     lrange: lrangeMock,
     ltrim: ltrimMock,
   },
+}));
+
+vi.mock('@server/lib/services/worldChatBroadcaster', () => ({
+  publishWorldChatMessage: publishWorldChatMessageMock,
 }));
 
 import {
@@ -65,6 +70,7 @@ describe('worldChatRepository', () => {
       'world_chat:messages',
       expect.stringContaining('"channel":"world"'),
     );
+    expect(publishWorldChatMessageMock).toHaveBeenCalledWith(created);
   });
 
   it('filters paginated messages by channel and keeps all as mixed feed', async () => {

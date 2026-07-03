@@ -1,3 +1,19 @@
+import alchemyFormulaAnalysisPrompt from '@server/prompts/alchemy-formula-analysis.md?raw';
+import alchemyImprovisedCopyPrompt from '@server/prompts/alchemy-improvised-copy.md?raw';
+import alchemyRecipePlanPrompt from '@server/prompts/alchemy-recipe-plan.md?raw';
+import battleReportPrompt from '@server/prompts/battle-report.md?raw';
+import breakthroughStoryPrompt from '@server/prompts/breakthrough-story.md?raw';
+import characterGenerationPrompt from '@server/prompts/character-generation.md?raw';
+import divineFortunePrompt from '@server/prompts/divine-fortune.md?raw';
+import dungeonRoundPrompt from '@server/prompts/dungeon-round.md?raw';
+import dungeonSettlementPrompt from '@server/prompts/dungeon-settlement.md?raw';
+import enemyNarrativePrompt from '@server/prompts/enemy-narrative.md?raw';
+import fateNamingPrompt from '@server/prompts/fate-naming.md?raw';
+import lifespanExhaustedPrompt from '@server/prompts/lifespan-exhausted.md?raw';
+import materialGenerationPrompt from '@server/prompts/material-generation.md?raw';
+import materialSemanticEnrichmentPrompt from '@server/prompts/material-semantic-enrichment.md?raw';
+import productNamingPrompt from '@server/prompts/product-naming.md?raw';
+import yieldStoryPrompt from '@server/prompts/yield-story.md?raw';
 import { renderTemplate, type TemplateVariableMap } from '../template/render';
 
 export interface PromptTemplateFile {
@@ -13,11 +29,24 @@ export interface RenderedPrompt {
 
 export type PromptSectionKey = 'system' | 'user';
 
-const bundledPromptSources = import.meta.glob('../../prompts/*.md', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-}) as Record<string, string>;
+const bundledPromptSources: Record<string, string> = {
+  'alchemy-formula-analysis.md': alchemyFormulaAnalysisPrompt,
+  'alchemy-improvised-copy.md': alchemyImprovisedCopyPrompt,
+  'alchemy-recipe-plan.md': alchemyRecipePlanPrompt,
+  'battle-report.md': battleReportPrompt,
+  'breakthrough-story.md': breakthroughStoryPrompt,
+  'character-generation.md': characterGenerationPrompt,
+  'divine-fortune.md': divineFortunePrompt,
+  'dungeon-round.md': dungeonRoundPrompt,
+  'dungeon-settlement.md': dungeonSettlementPrompt,
+  'enemy-narrative.md': enemyNarrativePrompt,
+  'fate-naming.md': fateNamingPrompt,
+  'lifespan-exhausted.md': lifespanExhaustedPrompt,
+  'material-generation.md': materialGenerationPrompt,
+  'material-semantic-enrichment.md': materialSemanticEnrichmentPrompt,
+  'product-naming.md': productNamingPrompt,
+  'yield-story.md': yieldStoryPrompt,
+};
 
 export function parsePromptTemplateMarkdown(
   raw: string,

@@ -3,6 +3,42 @@ import type {
   PlayerStateSnapshotResponse,
 } from '@shared/contracts/player';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const {
+  realtimeConnectMock,
+  realtimeDisconnectMock,
+  realtimeSubscribeErrorMock,
+  realtimeSubscribeMock,
+  realtimeState,
+} = vi.hoisted(() => ({
+  realtimeConnectMock: vi.fn(),
+  realtimeDisconnectMock: vi.fn(),
+  realtimeSubscribeErrorMock: vi.fn(() => vi.fn()),
+  realtimeSubscribeMock: vi.fn(() => vi.fn()),
+  realtimeState: {
+    playerStateHandler: null as
+      | ((event: {
+          type: 'player-state.events';
+          payload: { events?: PlayerStateEvent[]; requiresSnapshot?: boolean };
+        }) => void)
+      | null,
+  },
+}));
+
+vi.mock('@app/lib/realtime/realtimeClient', () => ({
+  realtimeClient: {
+    connect: realtimeConnectMock,
+    disconnect: realtimeDisconnectMock,
+    subscribe: realtimeSubscribeMock.mockImplementation((type, handler) => {
+      if (type === 'player-state.events') {
+        realtimeState.playerStateHandler = handler;
+      }
+      return vi.fn();
+    }),
+    subscribeError: realtimeSubscribeErrorMock,
+  },
+}));
+
 import { PlayerStateStore } from './store';
 
 function createEvent(
@@ -38,7 +74,6 @@ function createSnapshotResponse(
         condition: 0,
         progress: 0,
         currency: 0,
-        inventory: 2,
         loadout: 0,
         mail: 1,
         tasks: 0,
@@ -87,6 +122,8 @@ async function flushAsyncWork() {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.clearAllMocks();
+  realtimeState.playerStateHandler = null;
 });
 
 describe('PlayerStateStore', () => {
@@ -147,6 +184,33 @@ describe('PlayerStateStore', () => {
     ]);
 
     expect(store.getSnapshot().snapshot.mail?.unreadCount).toBe(4);
+  });
+
+  it('applies player-state events received from realtime', async () => {
+    const store = new PlayerStateStore();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(createSnapshotResponse({}, 0)));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('window', { location: { protocol: 'http:', host: 'localhost' } });
+
+    await store.refresh(undefined, 'user-1');
+    realtimeState.playerStateHandler?.({
+      type: 'player-state.events',
+      payload: {
+        events: [
+          createEvent({
+            id: 1,
+            globalVersion: 1,
+            domainVersion: 1,
+            patch: { unreadMailCount: 6 },
+          }),
+        ],
+      },
+    });
+
+    expect(realtimeConnectMock).toHaveBeenCalled();
+    expect(store.getSnapshot().snapshot.mail?.unreadCount).toBe(6);
   });
 
   it('recovers a version gap by fetching missing events', async () => {

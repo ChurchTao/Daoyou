@@ -4,7 +4,6 @@ import type {
 } from '@shared/types/world-chat';
 
 export const PAGE_SIZE = 20;
-export const POLL_INTERVAL_MS = 15 * 1000;
 
 export function mergeWorldChatMessages(
   base: WorldChatMessageDTO[],

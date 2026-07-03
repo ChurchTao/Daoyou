@@ -30,5 +30,6 @@
     "./src/index.ts",
     "./src/server",
     "./scripts"
-  ]
+  ],
+  "files": ["./src/server/types/markdown.d.ts"]
 }

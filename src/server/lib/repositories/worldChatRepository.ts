@@ -1,4 +1,5 @@
 import { redis } from '@server/lib/redis';
+import { publishWorldChatMessage } from '@server/lib/services/worldChatBroadcaster';
 import type {
   WorldChatChannel,
   WorldChatMessageChannel,
@@ -107,6 +108,7 @@ export async function createMessage(data: {
 
   await redis.lpush(WORLD_CHAT_LIST_KEY, JSON.stringify(message));
   await redis.ltrim(WORLD_CHAT_LIST_KEY, 0, WORLD_CHAT_MAX_MESSAGES - 1);
+  publishWorldChatMessage(message);
 
   return message;
 }

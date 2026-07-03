@@ -206,7 +206,7 @@ bun run dev
 - 前端页面：`http://localhost:5173`
 - 健康检查：`http://localhost:5173/api/health-check`
 
-`bun run dev` 由 `vite` 启动，并通过 `@hono/vite-dev-server` 同时提供前端页面和 Hono API。
+`bun run dev` 会同时启动两个进程：Vite 提供前端页面，Bun 在本地提供 Hono API 与 WebSocket；Vite 将 `/api` 和 `/internal` 代理到 Bun API 服务。
 
 ## 构建与运行
 

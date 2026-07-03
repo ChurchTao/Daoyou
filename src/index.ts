@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 
 import { Hono } from 'hono';
 import { logger } from 'hono/logger';
+export { websocket } from 'hono/bun';
 import apiApp from './server/app';
 import { registerInternalCronJobs } from './server/lib/jobs/internalCronScheduler';
 
