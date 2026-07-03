@@ -168,7 +168,10 @@ router.post(
       }
 
       const parsed = getValidatedJson<WorldChatCreateMessageRequest>(c);
-      const cooldown = await checkAndAcquireCooldown(cultivator.id);
+      const cooldown = await checkAndAcquireCooldown(
+        cultivator.id,
+        cultivator.realm,
+      );
       if (!cooldown.allowed) {
         return c.json(
           {

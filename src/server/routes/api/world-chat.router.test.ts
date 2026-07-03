@@ -195,6 +195,10 @@ describe('world chat router', () => {
     });
 
     expect(response.status).toBe(200);
+    expect(checkAndAcquireCooldownMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      'foundation',
+    );
     expect(createMessageMock).toHaveBeenCalledWith(
       expect.objectContaining({
         channel: 'world',
