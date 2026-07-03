@@ -4,6 +4,7 @@ import { emailOTP } from 'better-auth/plugins/email-otp';
 import { sendViaSmtp } from '../admin/smtp';
 import { pgPool } from '../drizzle/db';
 import { getPublicWebOrigins } from '../http/origins';
+import { getCookieDomainConfig } from './cookieDomain';
 
 function getRequiredEnv(name: 'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL') {
   const value = process.env[name];
@@ -30,19 +31,6 @@ function getGitHubProviderConfig() {
   return {
     clientId,
     clientSecret,
-  };
-}
-
-function getCookieDomainConfig() {
-  const domain = process.env.BETTER_AUTH_COOKIE_DOMAIN?.trim();
-
-  if (!domain) {
-    return undefined;
-  }
-
-  return {
-    enabled: true,
-    domain,
   };
 }
 
@@ -97,13 +85,13 @@ export const auth = betterAuth({
   secret: getRequiredEnv('BETTER_AUTH_SECRET'),
   trustedOrigins: getPublicWebOrigins(),
   database: pgPool,
+  ...(getCookieDomainConfig()
+    ? { crossSubDomainCookies: getCookieDomainConfig() }
+    : {}),
   advanced: {
     database: {
       generateId: 'uuid',
     },
-    ...(getCookieDomainConfig()
-      ? { crossSubDomainCookies: getCookieDomainConfig() }
-      : {}),
   },
   emailAndPassword: {
     enabled: true,
