@@ -23,13 +23,12 @@ import type {
 } from '@shared/engine/creation-v2/types';
 import { CreationError } from '@shared/engine/creation-v2/errors';
 import {
-  calculateCraftCost,
+  calculateFateAdjustedCraftCost,
   calculateHighestMaterialRank,
 } from '@shared/engine/creation-v2/CraftCostCalculator';
 import {
   evaluateFateContext,
   getRefineSpiritStoneMultiplier,
-  scaleFateAdjustedValue,
 } from '@shared/lib/fates';
 import {
   getCreationProductTypeLabel,
@@ -509,9 +508,9 @@ export async function processCreation(
     );
     const resourceType =
       productType === 'artifact' ? 'spiritStone' : 'comprehension';
-    const baseCostAmount = calculateCraftCost(highestMaterialRank, resourceType);
-    const costAmount = scaleFateAdjustedValue(
-      baseCostAmount,
+    const costAmount = calculateFateAdjustedCraftCost(
+      highestMaterialRank,
+      resourceType,
       resourceType === 'spiritStone'
         ? getRefineSpiritStoneMultiplier(fateContext)
         : fateContext.enlightenmentInsightMultiplier,
@@ -881,16 +880,18 @@ export function estimateCost(
   const fateContext = evaluateFateContext(fates);
   if (productType === 'artifact') {
     return {
-      spiritStones: scaleFateAdjustedValue(
-        calculateCraftCost(highestMaterialRank, 'spiritStone'),
+      spiritStones: calculateFateAdjustedCraftCost(
+        highestMaterialRank,
+        'spiritStone',
         getRefineSpiritStoneMultiplier(fateContext),
       ),
     };
   }
 
   return {
-    comprehension: scaleFateAdjustedValue(
-      calculateCraftCost(highestMaterialRank, 'comprehension'),
+    comprehension: calculateFateAdjustedCraftCost(
+      highestMaterialRank,
+      'comprehension',
       fateContext.enlightenmentInsightMultiplier,
     ),
   };

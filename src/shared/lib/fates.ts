@@ -210,3 +210,19 @@ export function scaleFateAdjustedValue(
 ): number {
   return Math.max(0, Math.round(Math.max(0, baseValue) * multiplier));
 }
+
+export function scaleFateAdjustedCost(
+  baseValue: number,
+  multiplier: number,
+): number {
+  const normalizedBaseValue = Math.max(0, baseValue);
+  if (normalizedBaseValue === 0) {
+    return 0;
+  }
+
+  const adjustedValue = normalizedBaseValue * multiplier;
+  const roundedValue =
+    multiplier < 1 ? Math.floor(adjustedValue) : Math.round(adjustedValue);
+
+  return Math.max(1, roundedValue);
+}

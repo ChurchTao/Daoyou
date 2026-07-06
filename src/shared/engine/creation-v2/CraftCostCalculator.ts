@@ -1,4 +1,5 @@
 import { Quality, QUALITY_ORDER, QUALITY_VALUES } from '@shared/types/constants';
+import { scaleFateAdjustedCost } from '@shared/lib/fates';
 
 export const CRAFT_COST_CONFIG = {
   spiritStone: {
@@ -30,6 +31,17 @@ export function calculateCraftCost(
   }
 
   return CRAFT_COST_CONFIG.comprehension[highestMaterialRank] || 10;
+}
+
+export function calculateFateAdjustedCraftCost(
+  highestMaterialRank: Quality,
+  resourceType: CraftResourceType,
+  multiplier: number,
+): number {
+  return scaleFateAdjustedCost(
+    calculateCraftCost(highestMaterialRank, resourceType),
+    multiplier,
+  );
 }
 
 export function getCostDescription(
