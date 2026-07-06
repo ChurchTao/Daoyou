@@ -32,6 +32,7 @@ function HudMeter({
   tone,
   onClick,
 }: GameHudSnapshot['metrics'][number] & { onClick?: () => void }) {
+  const barPercent = Math.max(0, Math.min(percent, 100));
   const toneClass =
     tone === 'hp'
       ? 'bg-crimson'
@@ -58,7 +59,7 @@ function HudMeter({
       <div className="bg-battle-faint h-[3px] min-w-0 overflow-hidden">
         <div
           className={`${toneClass} h-full`}
-          style={{ width: `${percent}%` }}
+          style={{ width: `${barPercent}%` }}
         />
       </div>
     </>
@@ -390,7 +391,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
             {cultivationLabel}
             是当前小阶段内的积累。闭关、秘境、任务与部分丹药都可能带来
             {cultivationLabel}
-            增长；突破成功后会进入下一阶段或大境界，当前阶段的修为进度会重新计算。
+            增长；突破成功后会扣除当前阶段所需修为，溢出的积累会带入下一阶段。
           </p>
           <p>
             进度越接近上限，越适合在静室冲关。未满时也可强行尝试，但失败会折损修为，并可能提高走火入魔风险。
@@ -405,6 +406,14 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
                 label: '当前进度',
                 value: `${progress.percent}%`,
               },
+              ...(progress.overflow > 0
+                ? [
+                    {
+                      label: '溢出修为',
+                      value: formatHudNumber(progress.overflow),
+                    },
+                  ]
+                : []),
               {
                 label: insightInfo.label,
                 value: `${progress.insight} / 100`,

@@ -102,16 +102,15 @@ export function addCultivationExp(
     exp_gained *= 0.5;
   }
 
-  // 检查是否会超过上限
+  // 检查是否超过当前阶段 cap。修为本身继续累积，突破时扣除本阶段 cap。
   let capped = false;
   const potential_exp = exp_before + exp_gained;
   if (potential_exp > exp_cap) {
-    exp_gained = exp_cap - exp_before;
     capped = true;
   }
 
   // 更新修为
-  progress.cultivation_exp = Math.min(exp_before + exp_gained, exp_cap);
+  progress.cultivation_exp = exp_before + exp_gained;
 
   // 更新感悟值（如果有）
   if (options.insight_gain && options.insight_gain > 0) {

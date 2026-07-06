@@ -400,10 +400,8 @@ function applyGainProgressOperation(
     operation.target === 'cultivation_exp'
       ? {
           ...progress,
-          cultivation_exp: Math.min(
-            progress.exp_cap,
+          cultivation_exp:
             progress.cultivation_exp + Math.max(0, Math.floor(operation.value)),
-          ),
         }
       : {
           ...progress,

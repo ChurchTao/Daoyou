@@ -1,4 +1,5 @@
 import { PILL_TOXICITY_CAP } from '@shared/config/consumableSystem';
+import { resolveLiveExpCap } from '@server/utils/cultivationUtils';
 import type {
   BodyCultivationRealm,
   CultivatorCondition,
@@ -231,6 +232,27 @@ describe('PillOperationExecutor toxicity and quota rules', () => {
     expect(marrowResult.cultivator.condition?.tracks.marrowWash.progress).toBe(
       40,
     );
+  });
+
+  it('allows cultivation progress pills to overflow the current stage cap', () => {
+    const cultivator = createCultivator(createCondition(0));
+    const cap = resolveLiveExpCap(cultivator.realm, cultivator.realm_stage);
+    cultivator.cultivation_progress = {
+      cultivation_exp: cap - 5,
+      exp_cap: cap,
+      comprehension_insight: 0,
+      breakthrough_failures: 0,
+      bottleneck_state: false,
+      inner_demon: false,
+      deviation_risk: 0,
+    };
+    const pill = createPill('cultivation', [
+      { type: 'gain_progress', target: 'cultivation_exp', value: 12 },
+    ]);
+
+    const result = PillOperationExecutor.execute(cultivator, pill, NOW);
+
+    expect(result.cultivator.cultivation_progress?.cultivation_exp).toBe(cap + 7);
   });
 
   it('rejects body cultivation pills when the current body realm track cap is reached', () => {

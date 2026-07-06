@@ -148,6 +148,7 @@ describe('buildGameHudSnapshot', () => {
       current: 240,
       cap: 300,
       remaining: 60,
+      overflow: 0,
       percent: 80,
       insight: 45,
       bottleneckState: true,
@@ -155,6 +156,48 @@ describe('buildGameHudSnapshot', () => {
       deviationRisk: 18,
       breakthroughFailures: 2,
     });
+  });
+
+  it('surfaces overflow cultivation progress in the HUD model', () => {
+    const snapshot = buildGameHudSnapshot({
+      cultivator: {
+        id: 'cultivator-1',
+        name: '韩立',
+        title: null,
+        realm: '筑基',
+        realm_stage: '初期',
+        spirit_stones: 12345,
+        cultivation_progress: {
+          cultivation_exp: 360,
+          exp_cap: 300,
+          comprehension_insight: 45,
+        },
+        condition: {
+          gauges: {
+            pillToxicity: 0,
+          },
+          statuses: [],
+        },
+      } as any,
+      display: {
+        resources: {
+          hp: { current: 80, max: 100, percent: 80 },
+          mp: { current: 60, max: 100, percent: 60 },
+        },
+      } as any,
+      unreadMailCount: 0,
+    });
+
+    expect(snapshot?.cultivationProgress).toMatchObject({
+      current: 360,
+      cap: 300,
+      remaining: 0,
+      overflow: 60,
+      percent: 120,
+    });
+    expect(
+      snapshot?.metrics.find((metric) => metric.key === 'cultivation')?.display,
+    ).toBe('360/300');
   });
 
   it('includes body cultivation summary for the HUD body tag', () => {

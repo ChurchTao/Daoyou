@@ -190,11 +190,8 @@ export function performCultivation(
     ),
   );
 
-  // 更新修为
-  progress.cultivation_exp = Math.min(
-    exp_before + finalExpGain,
-    progress.exp_cap,
-  );
+  // 修为允许超过当前阶段 cap；突破成功时扣除本阶段 cap 并保留溢出。
+  progress.cultivation_exp = exp_before + finalExpGain;
 
   // 更新感悟值（每次闭关都可能获得，非顿悟时0~20，顿悟时20~50）
   if (finalInsightGain > 0) {

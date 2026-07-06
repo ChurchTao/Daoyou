@@ -97,7 +97,7 @@ function usePersistentStatusState() {
     Math.floor(cultivator.cultivation_progress?.exp_cap ?? 100),
   );
   const cultivationPercent = Math.round(
-    Math.max(0, Math.min((cultivationExp / cultivationCap) * 100, 100)),
+    Math.max(0, (cultivationExp / cultivationCap) * 100),
   );
   const comprehensionInsight = Math.round(
     Math.max(

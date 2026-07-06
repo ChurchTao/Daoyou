@@ -58,6 +58,7 @@ export interface GameHudCultivationProgress {
   current: number;
   cap: number;
   remaining: number;
+  overflow: number;
   percent: number;
   insight: number;
   bottleneckState: boolean;
@@ -167,7 +168,7 @@ export function buildGameHudSnapshot(input: {
     cultivator.cultivation_progress?.exp_cap ?? 100,
   );
   const cultivationPercent = Math.round(
-    clamp((cultivationExp / cultivationCap) * 100, 0, 100),
+    Math.max(0, (cultivationExp / cultivationCap) * 100),
   );
   const insight = Math.round(
     clamp(cultivator.cultivation_progress?.comprehension_insight ?? 0, 0, 100),
@@ -240,6 +241,7 @@ export function buildGameHudSnapshot(input: {
       current: cultivationExp,
       cap: cultivationCap,
       remaining: Math.max(0, cultivationCap - cultivationExp),
+      overflow: Math.max(0, cultivationExp - cultivationCap),
       percent: cultivationPercent,
       insight,
       bottleneckState:
@@ -269,7 +271,7 @@ export function buildGameHudSnapshot(input: {
       {
         key: 'cultivation',
         label: getResourceText('cultivation_exp'),
-        display: `${cultivationPercent}%`,
+        display: formatHudResourcePair(cultivationExp, cultivationCap),
         percent: cultivationPercent,
         tone: 'progress',
       },

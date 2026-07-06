@@ -182,6 +182,25 @@ describe('CultivationEngine cultivation boost', () => {
     ).toBe(true);
   });
 
+  it('allows retreat cultivation exp to accumulate past the current stage cap', () => {
+    const cultivator = createCultivator();
+    const currentCap = resolveLiveExpCap(
+      cultivator.realm,
+      cultivator.realm_stage,
+    );
+    cultivator.cultivation_progress!.cultivation_exp = currentCap - 1;
+
+    const result = performCultivation(cultivator, 10, () => 0.5);
+
+    expect(result.summary.exp_gained).toBeGreaterThan(1);
+    expect(result.cultivator.cultivation_progress?.cultivation_exp).toBe(
+      currentCap - 1 + result.summary.exp_gained,
+    );
+    expect(result.cultivator.cultivation_progress?.cultivation_exp).toBeGreaterThan(
+      currentCap,
+    );
+  });
+
   it('carries overflow cultivation exp into the next stage after successful breakthrough', () => {
     const cultivator = createCultivator();
     const currentCap = resolveLiveExpCap(
