@@ -59,6 +59,7 @@ import {
   DungeonRoundLlmSchema,
   DungeonRoundSchema,
   DungeonSettlement,
+  DungeonSettlementGeneratedSchema,
   DungeonSettlementLlmContext,
   DungeonSettlementLlmSchema,
   DungeonSettlementSchema,
@@ -76,6 +77,7 @@ const REDIS_TTL = 3600; // 1 hour expiration for active sessions
 const START_LOCK_TTL_SECONDS = 180;
 const FLOW_LOCK_TTL_SECONDS = 180;
 const RUN_TERMINAL_STATUSES = new Set(['FINISHED']);
+const DUNGEON_REWARD_BLUEPRINT_LIMIT = 5;
 export const DungeonFlowErrorCode = {
   NOT_FOUND: 'DUNGEON_NOT_FOUND',
   INVALID_STATE: 'DUNGEON_INVALID_STATE',
@@ -130,6 +132,81 @@ type DungeonPersistenceHooks = {
   persist: (tx: DbTransaction) => Promise<void>;
   afterCommit: () => Promise<void>;
 };
+
+function rewardBlueprintKey(reward: RewardBlueprint): string {
+  return [
+    reward.name?.trim() ?? '',
+    reward.material_type ?? '',
+    reward.element ?? '',
+    reward.description?.trim() ?? '',
+  ].join('|');
+}
+
+function selectMostValuableRewardBlueprints(
+  rewards: RewardBlueprint[] | undefined,
+  limit: number,
+): RewardBlueprint[] {
+  if (!rewards?.length || limit <= 0) return [];
+  if (rewards.length <= limit) return rewards;
+
+  return rewards
+    .map((reward, index) => ({
+      reward,
+      index,
+      score:
+        typeof reward.reward_score === 'number' &&
+        Number.isFinite(reward.reward_score)
+          ? reward.reward_score
+          : 0,
+    }))
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .slice(0, limit)
+    .sort((a, b) => a.index - b.index)
+    .map((entry) => entry.reward);
+}
+
+function appendRoundRewards(
+  state: DungeonState,
+  acquiredItems: RewardBlueprint[] | undefined,
+): RewardBlueprint[] {
+  const remainingSlots = Math.max(
+    0,
+    DUNGEON_REWARD_BLUEPRINT_LIMIT - (state.accumulatedRewards?.length ?? 0),
+  );
+  const acceptedItems = (acquiredItems ?? []).slice(0, remainingSlots);
+  state.currentRoundItems = acceptedItems;
+  if (acceptedItems.length) {
+    if (!state.accumulatedRewards) state.accumulatedRewards = [];
+    state.accumulatedRewards.push(...acceptedItems);
+  }
+  return acceptedItems;
+}
+
+function normalizeSettlementRewards(
+  settlement: DungeonSettlement,
+  accumulatedRewards: RewardBlueprint[],
+): DungeonSettlement {
+  const inheritedRewards = selectMostValuableRewardBlueprints(
+    accumulatedRewards,
+    DUNGEON_REWARD_BLUEPRINT_LIMIT,
+  );
+  const inheritedKeys = new Set(inheritedRewards.map(rewardBlueprintKey));
+  const extraRewards = settlement.settlement.reward_blueprints.filter(
+    (reward) => !inheritedKeys.has(rewardBlueprintKey(reward)),
+  );
+  const reward_blueprints = [
+    ...inheritedRewards,
+    ...extraRewards,
+  ].slice(0, DUNGEON_REWARD_BLUEPRINT_LIMIT);
+
+  return DungeonSettlementSchema.parse({
+    ...settlement,
+    settlement: {
+      ...settlement.settlement,
+      reward_blueprints,
+    },
+  });
+}
 
 const DEFAULT_RECOVERABLE_ACTIONS: DungeonRecoverAction[] = [
   'safe_retreat',
@@ -776,20 +853,14 @@ export class DungeonService {
         );
 
       // 4. 更新历史并存入 Redis
-      const gainedNames = roundData.acquired_items?.map(
-        (i) => i.name || '未知物品',
-      );
+      const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
+      const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
       state.history.push({
         round: 1,
         scene: roundData.scene_description,
         gained_items: gainedNames,
       });
       state.currentOptions = roundData.interaction.options;
-      state.currentRoundItems = roundData.acquired_items || [];
-      if (roundData.acquired_items?.length) {
-        if (!state.accumulatedRewards) state.accumulatedRewards = [];
-        state.accumulatedRewards.push(...roundData.acquired_items);
-      }
       if (!options.deferPersistence) {
         await this.saveState(cultivatorId, state);
       }
@@ -1192,14 +1263,8 @@ export class DungeonService {
     state.costPreview = undefined;
 
     // 记录过程战利品
-    const gainedNames = roundData.acquired_items?.map(
-      (i) => i.name || '未知物品',
-    );
-    state.currentRoundItems = roundData.acquired_items || [];
-    if (roundData.acquired_items?.length) {
-      if (!state.accumulatedRewards) state.accumulatedRewards = [];
-      state.accumulatedRewards.push(...roundData.acquired_items);
-    }
+    const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
+    const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
 
     // 4. 更新状态
     state.history.push({
@@ -1663,14 +1728,8 @@ export class DungeonService {
         : { state: recoverable, isFinished: false };
     }
 
-    const gainedNames = roundData.acquired_items?.map(
-      (i) => i.name || '未知物品',
-    );
-    state.currentRoundItems = roundData.acquired_items || [];
-    if (roundData.acquired_items?.length) {
-      if (!state.accumulatedRewards) state.accumulatedRewards = [];
-      state.accumulatedRewards.push(...roundData.acquired_items);
-    }
+    const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
+    const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
 
     state.history.push({
       round: state.currentRound,
@@ -1867,13 +1926,20 @@ export class DungeonService {
         });
 
       const aiRes = await object(settlementPrompt, settlementUserPrompt, {
-        schema: DungeonSettlementSchema,
+        schema: DungeonSettlementGeneratedSchema,
         llmSchema: DungeonSettlementLlmSchema,
         schemaName: 'DungeonSettlement',
         sceneId: 'dungeon-settlement',
       });
-      settlement = aiRes.object;
+      settlement = normalizeSettlementRewards(
+        aiRes.object,
+        state.accumulatedRewards ?? [],
+      );
     }
+    settlement = normalizeSettlementRewards(
+      settlement,
+      state.accumulatedRewards ?? [],
+    );
 
     if (pendingActionToCommit) {
       const userId = await getCultivatorOwnerId(state.cultivatorId);

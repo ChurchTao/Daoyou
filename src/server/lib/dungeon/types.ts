@@ -153,7 +153,7 @@ const RewardBlueprintLlmSchema = z.object({
     ])
     .optional(),
   element: z.enum(['金', '木', '水', '火', '土', '风', '雷', '冰']).optional(),
-  reward_score: z.number().min(0).max(100).optional(),
+  reward_score: z.number().min(0).max(100),
 });
 
 // Response from AI for each round
@@ -269,6 +269,15 @@ export const DungeonSettlementLlmSchema = z.object({
   settlement: z.object({
     reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']),
     reward_blueprints: z.array(RewardBlueprintLlmSchema).max(5),
+    performance_tags: z.array(z.string()).max(10),
+  }),
+});
+
+export const DungeonSettlementGeneratedSchema = z.object({
+  ending_narrative: z.string(),
+  settlement: z.object({
+    reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']),
+    reward_blueprints: z.array(RewardBlueprintLlmSchema).max(20),
     performance_tags: z.array(z.string()).max(10),
   }),
 });
@@ -473,5 +482,8 @@ export interface DungeonSettlementLlmContext {
     element?: RewardBlueprint['element'];
     reward_score?: number;
   }>;
+  rewardBlueprintLimit: number;
+  accumulatedRewardCount: number;
+  remainingExtraRewardSlots: number;
   endDisposition: 'completed' | 'retreated_after_battle' | 'abandoned_before_battle';
 }

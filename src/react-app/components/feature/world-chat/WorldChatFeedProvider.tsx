@@ -177,6 +177,12 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     realtimeClient.enableChannel('world-chat');
+    return () => {
+      realtimeClient.disableChannel('world-chat');
+    };
+  }, []);
+
+  useEffect(() => {
     return realtimeClient.subscribe('world-chat.message', (event) => {
       const message = event.payload;
       setAllMessages((prev) => mergeWorldChatMessages(prev, [message]));
@@ -205,7 +211,6 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
     });
     return () => {
       unsubscribe();
-      realtimeClient.disableChannel('world-chat');
     };
   }, [activeChannel, fetchPage]);
 

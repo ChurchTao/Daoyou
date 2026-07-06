@@ -96,12 +96,12 @@ export const QUALITY_HINT_OFFSET: Record<string, number> = {
  * 目的：保持数值平衡，高阶材料应从高阶副本产出。
  */
 export const REALM_QUALITY_CAP: Record<RealmType, Quality> = {
-  炼气: '灵品', // 炼气副本最高出灵品（偶尔越阶）
-  筑基: '玄品',
-  金丹: '真品',
-  元婴: '地品',
-  化神: '天品',
-  炼虚: '仙品',
+  炼气: '玄品',
+  筑基: '真品',
+  金丹: '地品',
+  元婴: '天品',
+  化神: '仙品',
+  炼虚: '神品',
   合体: '神品',
   大乘: '神品',
   渡劫: '神品',

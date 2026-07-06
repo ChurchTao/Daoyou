@@ -331,16 +331,10 @@ export class RewardFactory {
   }
 
   /**
-   * 随机生成材料品质
+   * 生成材料品质。
    *
-   * 采用线性分布逻辑：
-   * 最终品级 = 地图境界索引 + 副本评分加成 + 危险分数加成 + 材料评分加成 + 随机微调
-   *
-   * @param mapRealm 地图境界 (如：筑基)
-   * @param tier 副本评分 (S/A/B/C/D)
-   * @param dangerScore 危险系数 (0-100)
-   * @param rewardScore 材料个体评分 (0-100)
-   * @returns 随机生成的材料品质
+   * 品质由材料自身稀有度主导；副本评级和危险分只影响临界分，
+   * 避免同一副本内所有材料随总评价同步升品。
    */
   private static rollMaterialQuality(
     mapRealm: RealmType,
@@ -351,45 +345,44 @@ export class RewardFactory {
     const realmIndex = REALM_VALUES.indexOf(mapRealm);
     const capQuality = REALM_QUALITY_CAP[mapRealm] || '神品';
     const capIndex = QUALITY_VALUES.indexOf(capQuality);
+    const safeRewardScore =
+      Number.isFinite(rewardScore) && rewardScore >= 0 && rewardScore <= 100
+        ? rewardScore
+        : 50;
 
-    // 1. 基础品质索引 (Base Index)
-    // 炼气:0(凡品), 筑基:1(灵品), ...
     const baseIndex = Math.min(realmIndex, QUALITY_VALUES.length - 1);
-
-    // 2. 副本评分权重 (Tier Weight)
-    // S: +0.6, A: +0.2, B: 0, C: -0.4, D: -0.8
-    const tierWeightMap: Record<string, number> = {
-      S: 0.6,
-      A: 0.2,
+    const tierScoreBias: Record<string, number> = {
+      S: 2,
+      A: 1,
       B: 0,
-      C: -0.4,
-      D: -0.8,
+      C: -2,
+      D: -4,
     };
-    const tierWeight = tierWeightMap[tier] || 0;
+    const dangerScoreBias =
+      dangerScore >= 80 ? 3 : dangerScore >= 60 ? 2 : dangerScore >= 40 ? 1 : 0;
+    const effectiveScore = Math.max(
+      0,
+      Math.min(
+        100,
+        safeRewardScore + (tierScoreBias[tier] ?? 0) + dangerScoreBias,
+      ),
+    );
+    const rarityOffset =
+      effectiveScore < 20
+        ? -1
+        : effectiveScore < 70
+          ? 0
+          : effectiveScore < 85
+            ? 1
+            : 2;
 
-    // 3. 危险分数权重 (Danger Weight): 0-100 -> 0 to 0.4
-    const dangerWeight = (dangerScore / 100) * 0.4;
-
-    // 4. 材料评分权重 (Reward Score Weight): 0-100 -> -0.5 to 0.7
-    // 0 -> -0.5 (大跌), 50 -> 0 (正常), 100 -> 0.7 (极品)
-    const scoreWeight = ((rewardScore - 50) / 50) * 0.6;
-
-    // 5. 随机微调 (Random Offset): [-0.3, 0.3]
-    const randomOffset = (Math.random() - 0.5) * 0.6;
-
-    // 6. 计算最终索引
-    const finalIndex =
-      baseIndex + tierWeight + dangerWeight + scoreWeight + randomOffset;
-
-    // 7. 境界上限控制与边界锁定
-    // 规则：通常产出为境界品质，但在评分和危险系数全满时，允许最高跨越 2 个大阶位 (如筑基副本产出真品)
     const maxAllowedIndex = Math.min(capIndex, baseIndex + 2);
-    const minAllowedIndex = Math.max(0, baseIndex - 2);
+    const minAllowedIndex = Math.max(0, baseIndex - 1);
 
     const lockedIndex = Math.max(
       minAllowedIndex,
       Math.min(
-        Math.round(finalIndex),
+        baseIndex + rarityOffset,
         maxAllowedIndex,
         QUALITY_VALUES.length - 1,
       ),

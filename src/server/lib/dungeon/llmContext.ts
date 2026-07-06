@@ -16,6 +16,7 @@ const SCENE_SUMMARY_MAX_CHARS = 80;
 const OUTCOME_SUMMARY_MAX_CHARS = 60;
 const MAP_DESCRIPTION_MAX_CHARS = 80;
 const FALLBACK_TEXT = '未见分明痕迹';
+const DUNGEON_REWARD_BLUEPRINT_LIMIT = 5;
 
 function uniqueStrings(values: Array<string | undefined | null>): string[] {
   return Array.from(
@@ -241,6 +242,12 @@ export function buildDungeonSettlementLlmContext(args: {
     dangerScore: state.dangerScore,
     sacrificeSummary: buildSacrificeSummary(state.summary_of_sacrifice),
     accumulatedRewards: summarizeRewards(state.accumulatedRewards),
+    rewardBlueprintLimit: DUNGEON_REWARD_BLUEPRINT_LIMIT,
+    accumulatedRewardCount: state.accumulatedRewards.length,
+    remainingExtraRewardSlots: Math.max(
+      0,
+      DUNGEON_REWARD_BLUEPRINT_LIMIT - state.accumulatedRewards.length,
+    ),
     endDisposition,
   };
 }

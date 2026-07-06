@@ -3,6 +3,16 @@ import { calculateDungeonExp } from '@shared/engine/cultivation/ExpBudgetCalcula
 import { describe, expect, it, vi } from 'vitest';
 import type { PlayerInfo } from '../types';
 import { RewardFactory } from './RewardFactory';
+import { QUALITY_VALUES } from '@shared/types/constants';
+
+function materialRank(input: Parameters<typeof RewardFactory.materialize>[0][number]) {
+  const [reward] = RewardFactory.materialize([input], '筑基', 'S', 0);
+  return (reward.data as Material).rank;
+}
+
+function qualityIndex(rank: Material['rank']) {
+  return QUALITY_VALUES.indexOf(rank);
+}
 
 describe('RewardFactory', () => {
   it('为副本产出的炼丹材料保留纯文本信息，不再写旧药性画像', () => {
@@ -268,5 +278,95 @@ describe('RewardFactory', () => {
     } finally {
       randomSpy.mockRestore();
     }
+  });
+
+  it('按材料稀有度分层生成品质，而不是让同副本材料同品质', () => {
+    const ranks = [20, 50, 80, 95].map((reward_score) =>
+      materialRank({
+        name: `评分${reward_score}灵材`,
+        description: '副本所得木属灵材。',
+        material_type: 'herb',
+        element: '木',
+        reward_score,
+      }),
+    );
+
+    expect(ranks).toEqual(['灵品', '灵品', '玄品', '真品']);
+  });
+
+  it('普通材料在高评价高危险副本中不会整体升到最高品质', () => {
+    const rewards = RewardFactory.materialize(
+      [
+        {
+          name: '普通灵草',
+          description: '常见灵草，药性完整但并无异象。',
+          material_type: 'herb',
+          element: '木',
+          reward_score: 20,
+        },
+        {
+          name: '正品矿晶',
+          description: '可用的矿晶，灵性尚足。',
+          material_type: 'ore',
+          element: '金',
+          reward_score: 50,
+        },
+      ],
+      '筑基',
+      'S',
+      100,
+    );
+
+    const ranks = rewards.map((reward) => (reward.data as Material).rank);
+
+    expect(ranks).toEqual(['灵品', '灵品']);
+    expect(ranks).not.toContain('真品');
+  });
+
+  it('稀有材料在无随机品质影响下稳定高于普通材料', () => {
+    const randomSpy = vi.spyOn(Math, 'random');
+    randomSpy.mockReturnValueOnce(0).mockReturnValueOnce(0.99);
+
+    try {
+      const ordinaryRank = materialRank({
+        name: '普通灵草',
+        description: '常见灵草，药性完整但并无异象。',
+        material_type: 'herb',
+        element: '木',
+        reward_score: 50,
+      });
+      const rareRank = materialRank({
+        name: '洞府核心灵髓',
+        description: '洞府灵脉核心凝结的一滴灵髓。',
+        material_type: 'tcdb',
+        element: '水',
+        reward_score: 95,
+      });
+
+      expect(qualityIndex(rareRank)).toBeGreaterThan(
+        qualityIndex(ordinaryRank),
+      );
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
+  it('缺失 reward_score 的旧蓝图按 50 分处理', () => {
+    const missingScoreRank = materialRank({
+      name: '旧版灵草',
+      description: '旧存档中缺少稀有度评分的灵草。',
+      material_type: 'herb',
+      element: '木',
+    });
+    const normalScoreRank = materialRank({
+      name: '新版灵草',
+      description: '带有标准稀有度评分的灵草。',
+      material_type: 'herb',
+      element: '木',
+      reward_score: 50,
+    });
+
+    expect(missingScoreRank).toBe(normalScoreRank);
+    expect(missingScoreRank).toBe('灵品');
   });
 });

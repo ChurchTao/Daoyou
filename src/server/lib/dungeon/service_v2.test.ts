@@ -393,6 +393,16 @@ function createSettlement() {
   };
 }
 
+function createRewardBlueprint(name: string, reward_score: number) {
+  return {
+    name,
+    description: `${name}的描述`,
+    material_type: 'herb' as const,
+    element: '木' as const,
+    reward_score,
+  };
+}
+
 function createEmptySettlement() {
   return {
     ending_narrative: '你狼狈退出秘境，此行并无实际收获。',
@@ -1396,6 +1406,66 @@ describe('DungeonService looting continuation', () => {
     expect(archiveSpy).toHaveBeenCalledWith(
       state,
       emptySettlement,
+      result.realGains,
+    );
+  });
+
+  it('normalizes overfull accumulated rewards before settlement payout', async () => {
+    const service = new DungeonService();
+    const state = createDungeonState('easy-map');
+    state.status = 'SETTLING';
+    state.accumulatedRewards = [
+      createRewardBlueprint('一号灵草', 10),
+      createRewardBlueprint('二号灵草', 20),
+      createRewardBlueprint('三号灵草', 30),
+      createRewardBlueprint('四号灵草', 40),
+      createRewardBlueprint('五号灵草', 50),
+      createRewardBlueprint('六号灵草', 60),
+    ];
+    const overfullSettlement = {
+      ending_narrative: '你带着秘境所得离去。',
+      settlement: {
+        reward_tier: 'S' as const,
+        reward_blueprints: [
+          ...state.accumulatedRewards,
+          createRewardBlueprint('额外灵草', 90),
+        ],
+        performance_tags: ['收获颇丰'],
+      },
+    };
+    vi.spyOn(service, 'saveState').mockResolvedValue();
+    const archiveSpy = vi.spyOn(service, 'archiveDungeon').mockResolvedValue();
+    vi.mocked(objectMock).mockResolvedValueOnce({
+      object: overfullSettlement,
+    } as Awaited<ReturnType<typeof objectMock>>);
+
+    const result = await service.settleDungeon(state);
+    const objectOptions = vi.mocked(objectMock).mock.calls[0]?.[2];
+
+    expect(DungeonSettlementSchema.safeParse(overfullSettlement).success).toBe(
+      false,
+    );
+    expect(objectOptions?.schema.safeParse(overfullSettlement).success).toBe(
+      true,
+    );
+    expect(result.settlement?.settlement.reward_blueprints).toHaveLength(5);
+    expect(
+      result.settlement?.settlement.reward_blueprints.map((item) => item.name),
+    ).toEqual(['二号灵草', '三号灵草', '四号灵草', '五号灵草', '六号灵草']);
+    expect(DungeonSettlementSchema.safeParse(result.settlement).success).toBe(
+      true,
+    );
+    expect(renderPrompt).toHaveBeenCalledWith(
+      'dungeon-settlement',
+      expect.objectContaining({
+        settlementContextJson: expect.stringContaining(
+          '"remainingExtraRewardSlots":0',
+        ),
+      }),
+    );
+    expect(archiveSpy).toHaveBeenCalledWith(
+      state,
+      result.settlement,
       result.realGains,
     );
   });
