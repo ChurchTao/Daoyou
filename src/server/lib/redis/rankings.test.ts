@@ -78,20 +78,26 @@ vi.mock('./index', () => ({
 
 vi.mock('@server/lib/services/cultivatorService', () => ({
   getCultivatorBasicsByIdsUnsafe: vi.fn(async (ids: string[]) =>
-    ids.map((id) => ({
-      id,
-      name: id,
-      title: null,
-      age: 30,
-      lifespan: 120,
-      realm: id === 'qi-1' ? '炼气' : '筑基',
-      realm_stage: '初期',
-      origin: '散修',
-      gender: '男',
-      personality: null,
-      background: null,
-      updatedAt: new Date('2026-06-10T00:00:00.000Z'),
-    })),
+    ids
+      .filter((id) => id !== 'missing-1')
+      .map((id) => ({
+        id,
+        name: id,
+        title: null,
+        age: 30,
+        lifespan: 120,
+        realm: id.startsWith('qi-')
+          ? '炼气'
+          : id.startsWith('golden-') || id === 'cultivator-1'
+            ? '金丹'
+            : '筑基',
+        realm_stage: '初期',
+        origin: '散修',
+        gender: '男',
+        personality: null,
+        background: null,
+        updatedAt: new Date('2026-06-10T00:00:00.000Z'),
+      })),
   ),
 }));
 
@@ -147,6 +153,40 @@ describe('ranking redis helpers', () => {
     await expect(getCultivatorRank('炼气', 'cultivator-1')).resolves.toBeNull();
     await expect(getCultivatorRank('筑基', 'cultivator-1')).resolves.toBeNull();
     await expect(getCultivatorRank('金丹', 'cultivator-1')).resolves.toBe(1);
+  });
+
+  it('compacts old realm scores after breakthrough removal', async () => {
+    await addToRanking('炼气', 'qi-1', 'user-1', 1);
+    await addToRanking('炼气', 'qi-2', 'user-2', 2);
+    await addToRanking('炼气', 'qi-3', 'user-3', 3);
+
+    await removeFromAllRankingRealmsExcept('qi-1', '筑基');
+
+    expect([...(sortedSets.get('golden_rank:list:炼气') ?? new Map())]).toEqual([
+      ['qi-2', 1],
+      ['qi-3', 2],
+    ]);
+    await expect(getRankingList('炼气')).resolves.toMatchObject([
+      { id: 'qi-2', rank: 1 },
+      { id: 'qi-3', rank: 2 },
+    ]);
+  });
+
+  it('prunes stale members before displaying or settling rankings', async () => {
+    await addToRanking('炼气', 'qi-1', 'user-1', 1);
+    await addToRanking('炼气', 'foundation-1', 'user-2', 2);
+    await addToRanking('炼气', 'missing-1', 'user-3', 3);
+    await addToRanking('炼气', 'qi-2', 'user-4', 4);
+
+    await expect(getRankingList('炼气')).resolves.toMatchObject([
+      { id: 'qi-1', rank: 1 },
+      { id: 'qi-2', rank: 2 },
+    ]);
+    await expect(getTopRankingCultivatorIds('炼气')).resolves.toEqual([
+      'qi-1',
+      'qi-2',
+    ]);
+    await expect(getCultivatorRank('炼气', 'foundation-1')).resolves.toBeNull();
   });
 
   it('adds an unranked cultivator to the tail when the ranking has vacancies', async () => {

@@ -62,6 +62,63 @@ async function getRankingOrder(
   }));
 }
 
+async function compactRankingScores(realm: RealmType): Promise<void> {
+  const rankingKey = getRankingListKey(realm);
+  const members = (await redis.zrange(
+    rankingKey,
+    0,
+    MAX_RANKING_SIZE - 1,
+  )) as string[];
+
+  if (members.length === 0) return;
+
+  const pipeline = redis.pipeline();
+  members.forEach((cultivatorId, index) => {
+    pipeline.zadd(rankingKey, index + 1, cultivatorId);
+  });
+  await pipeline.exec();
+  await redis.zremrangebyrank(rankingKey, MAX_RANKING_SIZE, -1);
+}
+
+async function getHydratedRankingOrder(
+  realm: RealmType,
+): Promise<Array<{ record: CultivatorBasic; rank: number }>> {
+  const order = await getRankingOrder(realm);
+  const ids = order.map((item) => item.cultivatorId);
+  const cultivators = await getCultivatorBasicsByIdsUnsafe(ids);
+  const map = new Map(cultivators.map((item) => [item.id, item]));
+  const validRecords: CultivatorBasic[] = [];
+  const staleIds: string[] = [];
+
+  for (const entry of order) {
+    const record = map.get(entry.cultivatorId);
+    if (!record || record.realm !== realm) {
+      staleIds.push(entry.cultivatorId);
+      continue;
+    }
+
+    validRecords.push(record);
+  }
+
+  const rankingKey = getRankingListKey(realm);
+  const pipeline = redis.pipeline();
+  for (const cultivatorId of staleIds) {
+    pipeline.zrem(rankingKey, cultivatorId);
+  }
+  validRecords.forEach((record, index) => {
+    pipeline.zadd(rankingKey, index + 1, record.id);
+  });
+  if (staleIds.length > 0 || validRecords.length > 0) {
+    await pipeline.exec();
+    await redis.zremrangebyrank(rankingKey, MAX_RANKING_SIZE, -1);
+  }
+
+  return validRecords.map((record, index) => ({
+    record,
+    rank: index + 1,
+  }));
+}
+
 /**
  * 获取排行榜前 N 名 ID（按名次升序）
  */
@@ -71,26 +128,19 @@ export async function getTopRankingCultivatorIds(
 ): Promise<string[]> {
   const safeLimit = Math.max(0, Math.min(limit, MAX_RANKING_SIZE));
   if (safeLimit === 0) return [];
-  return (await redis.zrange(
-    getRankingListKey(realm),
-    0,
-    safeLimit - 1,
-  )) as string[];
+  const order = await getHydratedRankingOrder(realm);
+  return order.slice(0, safeLimit).map((entry) => entry.record.id);
 }
 
 /**
  * 获取排行榜列表（回表查询最新数据）
  */
 export async function getRankingList(realm: RealmType): Promise<RankingItem[]> {
-  const order = await getRankingOrder(realm);
-  const ids = order.map((item) => item.cultivatorId);
-  const cultivators = await getCultivatorBasicsByIdsUnsafe(ids);
-  const map = new Map(cultivators.map((item) => [item.id, item]));
+  const order = await getHydratedRankingOrder(realm);
 
   const items: RankingItem[] = [];
   for (const entry of order) {
-    const record = map.get(entry.cultivatorId);
-    if (!record) continue;
+    const record = entry.record;
 
     items.push({
       id: record.id,
@@ -124,9 +174,9 @@ export async function getCultivatorRank(
   realm: RealmType,
   cultivatorId: string,
 ): Promise<number | null> {
-  // Upstash Redis: zrank(key, member) 返回 number | null
-  const rank = await redis.zrank(getRankingListKey(realm), cultivatorId);
-  return rank !== null ? rank + 1 : null; // zrank返回0-based索引，需要+1
+  const order = await getHydratedRankingOrder(realm);
+  const index = order.findIndex((entry) => entry.record.id === cultivatorId);
+  return index >= 0 ? index + 1 : null;
 }
 
 /**
@@ -390,6 +440,7 @@ export async function removeFromRanking(
   cultivatorId: string,
 ): Promise<void> {
   await redis.zrem(getRankingListKey(realm), cultivatorId);
+  await compactRankingScores(realm);
   // 兼容旧数据，清理遗留哈希
   const infoKey = `${LEGACY_CULTIVATOR_INFO_PREFIX}${cultivatorId}`;
   await redis.del(infoKey);
@@ -400,13 +451,16 @@ export async function removeFromAllRankingRealmsExcept(
   currentRealm: RealmType,
 ): Promise<void> {
   const pipeline = redis.pipeline();
+  const removedRealms: RealmType[] = [];
   for (const realm of REALM_VALUES) {
     if (realm === currentRealm) continue;
     pipeline.zrem(getRankingListKey(realm), cultivatorId);
+    removedRealms.push(realm);
   }
   pipeline.zrem(LEGACY_RANKING_LIST_KEY, cultivatorId);
   pipeline.del(`${LEGACY_CULTIVATOR_INFO_PREFIX}${cultivatorId}`);
   await pipeline.exec();
+  await Promise.all(removedRealms.map((realm) => compactRankingScores(realm)));
 }
 
 /**
