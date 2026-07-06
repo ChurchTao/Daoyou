@@ -1,6 +1,7 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import { getExecutor } from '@server/lib/drizzle/db';
 import {
+  cultivators,
   cultivatorStateVersions,
   playerStateEvents,
 } from '@server/lib/drizzle/schema';
@@ -39,6 +40,20 @@ function domainVersionsFromRow(
   };
 }
 
+function assertPlayerStateDomain(
+  domain: unknown,
+): asserts domain is PlayerStateDomain {
+  if (!PLAYER_STATE_DOMAINS.includes(domain as PlayerStateDomain)) {
+    throw new Error(`未知的玩家状态领域: ${String(domain)}`);
+  }
+}
+
+function assertPlayerStateDomains(domains: readonly unknown[]): void {
+  for (const domain of domains) {
+    assertPlayerStateDomain(domain);
+  }
+}
+
 export function mapPlayerStateEventRow(
   row: PlayerStateEventRow,
 ): PlayerStateEvent {
@@ -54,6 +69,22 @@ export function mapPlayerStateEventRow(
     source: row.source,
     createdAt: row.createdAt.toISOString(),
   };
+}
+
+export async function lockCultivatorForStateMutation(
+  tx: DbTransaction,
+  cultivatorId: string,
+): Promise<void> {
+  const [row] = await tx
+    .select({ id: cultivators.id })
+    .from(cultivators)
+    .where(eq(cultivators.id, cultivatorId))
+    .for('update')
+    .limit(1);
+
+  if (!row) {
+    throw new Error('角色不存在');
+  }
 }
 
 export async function getOrCreateStateVersion(
@@ -92,9 +123,8 @@ export async function bumpStateVersions(
   globalVersion: number;
   domainVersions: PlayerStateDomainVersions;
 }> {
-  const uniqueDomains = Array.from(
-    new Set(domains.filter((domain) => PLAYER_STATE_DOMAINS.includes(domain))),
-  );
+  assertPlayerStateDomains(domains);
+  const uniqueDomains = Array.from(new Set(domains));
   const insertValues: typeof cultivatorStateVersions.$inferInsert = {
     cultivatorId,
     globalVersion: 1,
@@ -151,22 +181,30 @@ export async function insertStateEvents(
     return [];
   }
 
+  assertPlayerStateDomains(input.events.map((event) => event.domain));
+  const eventRows = input.events.map((event) => {
+    const domainVersion = input.domainVersions[event.domain];
+    if (typeof domainVersion !== 'number') {
+      throw new Error(`缺少玩家状态领域版本: ${event.domain}`);
+    }
+
+    return {
+      userId: input.userId,
+      cultivatorId: input.cultivatorId,
+      globalVersion: input.globalVersion,
+      domainVersion,
+      domain: event.domain,
+      eventType: event.eventType,
+      patch: event.patch ?? {},
+      invalidates: event.invalidates ?? [],
+      source: event.source,
+      requestId: event.requestId ?? null,
+    };
+  });
+
   const rows = await tx
     .insert(playerStateEvents)
-    .values(
-      input.events.map((event) => ({
-        userId: input.userId,
-        cultivatorId: input.cultivatorId,
-        globalVersion: input.globalVersion,
-        domainVersion: input.domainVersions[event.domain] ?? input.globalVersion,
-        domain: event.domain,
-        eventType: event.eventType,
-        patch: event.patch ?? {},
-        invalidates: event.invalidates ?? [],
-        source: event.source,
-        requestId: event.requestId ?? null,
-      })),
-    )
+    .values(eventRows)
     .returning();
 
   return rows.map(mapPlayerStateEventRow);

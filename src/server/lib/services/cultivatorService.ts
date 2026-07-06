@@ -826,6 +826,11 @@ export async function createCultivator(
     const cultivatorRecord = cultivatorResult[0];
     const cultivatorId = cultivatorRecord.id;
 
+    await tx
+      .insert(schema.cultivatorStateVersions)
+      .values({ cultivatorId })
+      .onConflictDoNothing();
+
     // 2. 创建灵根
     if (cultivator.spiritual_roots.length > 0) {
       const spiritualRootCount = cultivator.spiritual_roots.length;

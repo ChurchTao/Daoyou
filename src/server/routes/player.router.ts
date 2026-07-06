@@ -1,10 +1,7 @@
-import { getExecutor } from '@server/lib/drizzle/db';
-import { mails } from '@server/lib/drizzle/schema';
 import {
   getValidatedJson,
   requireActiveCultivator,
   requireActiveCultivatorRef,
-  requireUser,
   validateJson,
 } from '@server/lib/hono/middleware';
 import { listStateEventsAfter } from '@server/lib/repositories/playerStateRepository';
@@ -18,14 +15,8 @@ import {
 } from '@server/lib/services/PlayerStateMutationService';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
-  buildCultivatorRuntime,
-  getPlayerLoadoutByCultivatorId,
-  getPlayerProfileCultivatorsByUserId,
-  hasDeadCultivator,
   updateCultivatorGameSettings,
 } from '@server/lib/services/cultivatorService';
-import { getCultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import type { PlayerActiveResponse } from '@shared/contracts/player';
 import type {
   PlayerStateEventsResponse,
   PlayerStateEvent,
@@ -39,7 +30,6 @@ import {
   CultivatorGameSettingsSchema,
   normalizeCultivatorGameSettings,
 } from '@shared/types/gameSettings';
-import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -48,63 +38,6 @@ const PLAYER_STATE_EVENT_PAGE_LIMIT = 200;
 
 const UpdatePlayerSettingsSchema = z.object({
   gameSettings: CultivatorGameSettingsSchema,
-});
-
-// TODO(cleanup:player-state-websocket): remove this legacy aggregate endpoint
-// after any external callers migrate to GET /api/player/state. The React app no
-// longer calls /api/player/active for the main character snapshot.
-router.get('/active', requireUser(), async (c) => {
-  const user = c.get('user');
-  if (!user) {
-    return c.json({ success: false, error: '未授权访问' }, 401);
-  }
-
-  const cultivators = await getPlayerProfileCultivatorsByUserId(user.id);
-  const hasDead = await hasDeadCultivator(user.id);
-  const cultivatorViews = await Promise.all(
-    cultivators.map(async (cultivator) => {
-      const loadout = await getPlayerLoadoutByCultivatorId(cultivator.id!);
-      return {
-        cultivator,
-        display: getCultivatorDisplaySnapshot(
-          buildCultivatorRuntime(cultivator, loadout),
-        ),
-        loadout,
-      };
-    }),
-  );
-  const activeCultivator = cultivatorViews[0] ?? null;
-  const activeCultivatorId = activeCultivator?.cultivator.id;
-
-  let unreadMailCount = 0;
-  if (activeCultivatorId) {
-    const result = await getExecutor()
-      .select({ count: sql<number>`count(*)` })
-      .from(mails)
-      .where(
-        and(
-          eq(mails.cultivatorId, activeCultivatorId),
-          eq(mails.isRead, false),
-        ),
-      );
-
-    unreadMailCount = Number(result[0]?.count ?? 0);
-  }
-
-  const payload: PlayerActiveResponse = {
-    success: true,
-    data: {
-      activeCultivator,
-      cultivators: cultivatorViews,
-      unreadMailCount,
-    },
-    meta: {
-      hasActive: cultivatorViews.length > 0,
-      hasDead,
-    },
-  };
-
-  return c.json(payload);
 });
 
 router.get('/state', requireActiveCultivatorRef(), async (c) => {

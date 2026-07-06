@@ -17,39 +17,6 @@ export type PlayerProfileCultivator = Omit<
   'inventory' | 'skills' | 'cultivations' | 'equipped'
 >;
 
-/**
- * @deprecated Legacy /api/player/active shape. Main game UI should read the
- * versioned snapshot from /api/player/state plus WebSocket player-state events.
- */
-export type PlayerCultivatorView = {
-  cultivator: PlayerProfileCultivator;
-  display: CultivatorDisplaySnapshot;
-  loadout: PlayerLoadout;
-};
-
-/**
- * @deprecated Legacy /api/player/active payload. Prefer PlayerStateSnapshotData.
- */
-export type PlayerActiveData = {
-  activeCultivator: PlayerCultivatorView | null;
-  cultivators: PlayerCultivatorView[];
-  unreadMailCount: number;
-};
-
-/**
- * @deprecated Legacy /api/player/active metadata. Prefer PlayerStateSnapshotData.
- */
-export type PlayerActiveMeta = {
-  hasActive: boolean;
-  hasDead: boolean;
-};
-
-/**
- * @deprecated Legacy /api/player/active response. The React app no longer uses
- * this route for character state after the WebSocket state migration.
- */
-export type PlayerActiveResponse = ApiSuccess<PlayerActiveData, PlayerActiveMeta>;
-
 export const PLAYER_STATE_DOMAINS = [
   'profile',
   'condition',

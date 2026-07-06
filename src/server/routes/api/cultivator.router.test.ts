@@ -25,6 +25,17 @@ vi.mock('@server/lib/drizzle/db', () => ({
   getExecutor: vi.fn(),
 }));
 
+vi.mock('@server/lib/repositories/playerStateRepository', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@server/lib/repositories/playerStateRepository')
+    >();
+  return {
+    ...actual,
+    lockCultivatorForStateMutation: vi.fn(),
+  };
+});
+
 vi.mock('@server/lib/hono/middleware', () => ({
   requireUser: () => async (context: any, next: () => Promise<void>) => {
     context.set('user', { id: 'user-1' });

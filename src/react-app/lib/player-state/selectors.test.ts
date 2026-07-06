@@ -1,4 +1,3 @@
-import type { PlayerCultivatorView } from '@shared/contracts/player';
 import type { Cultivator } from '@shared/types/cultivator';
 import { describe, expect, it } from 'vitest';
 import type { PlayerStateStoreData } from './store';
@@ -63,7 +62,7 @@ function createCultivator(overrides: Partial<Cultivator> = {}): Cultivator {
   };
 }
 
-function createCultivatorView(): PlayerCultivatorView {
+function createCultivatorView(): NonNullable<PlayerStateStoreData['snapshot']['profile']> {
   return {
     cultivator: createCultivator(),
     display: {
