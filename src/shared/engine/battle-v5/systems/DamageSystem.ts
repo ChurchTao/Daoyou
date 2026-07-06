@@ -12,7 +12,12 @@ import {
   SkillCastEvent,
   UnitDeadEvent,
 } from '../core/events';
-import { AttributeType, DamageSource, DamageType } from '../core/types';
+import {
+  AttributeType,
+  type DamageComponent,
+  DamageSource,
+  DamageType,
+} from '../core/types';
 import { markDamageDealt } from '../core/runtimeState';
 import { calculateSpiritualRootDamageMultiplier } from './spiritualRootResonance';
 
@@ -184,8 +189,11 @@ export class DamageSystem {
 
     // ===== ② 应用减法防御（10%保底伤害） =====
     const preMitigationDamage = event.finalDamage;
-    const reducedDamage = preMitigationDamage - effectiveDef;
-    event.finalDamage = Math.max(preMitigationDamage * 0.1, reducedDamage);
+    const { normalDamage, defenseBypassDamage } =
+      this._resolveMitigationBreakdown(event, preMitigationDamage);
+    const reducedDamage = normalDamage - effectiveDef;
+    event.finalDamage =
+      Math.max(normalDamage * 0.1, reducedDamage) + defenseBypassDamage;
 
     // ===== ③ 同乘区加算（增伤/减伤）=====
     // NOTE: 将百分比增减伤放在减防后、暴击判定前，保证增伤不会被减法防御无意削弱。
@@ -274,6 +282,37 @@ export class DamageSystem {
     }
 
     return DamageType.PHYSICAL; // 默认物理伤害
+  }
+
+  private _resolveMitigationBreakdown(
+    event: DamageRequestEvent,
+    preMitigationDamage: number,
+  ): { normalDamage: number; defenseBypassDamage: number } {
+    const components = event.damageComponents?.filter(
+      (component): component is DamageComponent =>
+        Number.isFinite(component.amount) && component.amount > 0,
+    );
+    if (!components?.length) {
+      return { normalDamage: preMitigationDamage, defenseBypassDamage: 0 };
+    }
+
+    const componentTotal = components.reduce(
+      (sum, component) => sum + component.amount,
+      0,
+    );
+    if (componentTotal <= 0) {
+      return { normalDamage: preMitigationDamage, defenseBypassDamage: 0 };
+    }
+
+    const scale = preMitigationDamage / componentTotal;
+    const defenseBypassDamage = components
+      .filter((component) => component.mitigation === 'bypass_defense')
+      .reduce((sum, component) => sum + component.amount * scale, 0);
+
+    return {
+      normalDamage: Math.max(0, preMitigationDamage - defenseBypassDamage),
+      defenseBypassDamage,
+    };
   }
 
   private _getRealmDamageMultiplier(event: DamageRequestEvent): number {

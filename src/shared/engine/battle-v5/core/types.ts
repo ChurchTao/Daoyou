@@ -114,6 +114,14 @@ export enum DamageSource {
   REFLECT = 'reflect',
 }
 
+export type DamageMitigationMode = 'normal' | 'bypass_defense';
+
+export interface DamageComponent {
+  readonly kind: string;
+  readonly amount: number;
+  readonly mitigation: DamageMitigationMode;
+}
+
 // ===== BUFF类型 =====
 export enum BuffType {
   BUFF = 'buff',

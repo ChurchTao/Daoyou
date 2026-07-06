@@ -15,6 +15,7 @@ import {
   ControlResistEvent,
   DamageRequestEvent,
   DamageTakenEvent,
+  EventPriorityLevel,
   HitCheckEvent,
   SkillCastEvent,
   SkillPreCastEvent,
@@ -477,6 +478,92 @@ describe('DamageSystem direct mitigation', () => {
     expect(receivedRequests).toHaveLength(1);
     expect(receivedRequests[0].damageSource).toBe(DamageSource.DIRECT);
     expect(receivedRequests[0].finalDamage).toBeLessThan(100);
+
+    damageSystem.destroy();
+  });
+
+  it('target max hp damage bypasses subtractive defense as a separate component', () => {
+    const damageSystem = new DamageSystem();
+    const attacker = new Unit('attacker', '攻击者', {});
+    const defender = new Unit('defender', '防御者', {});
+
+    defender.attributes.addModifier({
+      id: 'def_bonus',
+      attrType: AttributeType.DEF,
+      type: ModifierType.FIXED,
+      value: 200,
+      source: 'test',
+    });
+    defender.updateDerivedStats();
+
+    const hpRatioDamage = Math.round(defender.getMaxHp() * 0.1);
+    const event: DamageRequestEvent = {
+      type: 'DamageRequestEvent',
+      timestamp: Date.now(),
+      caster: attacker,
+      target: defender,
+      damageSource: DamageSource.DIRECT,
+      damageType: DamageType.PHYSICAL,
+      baseDamage: 100 + hpRatioDamage,
+      finalDamage: 100 + hpRatioDamage,
+      damageComponents: [
+        { kind: 'base', amount: 100, mitigation: 'normal' },
+        {
+          kind: 'targetMaxHpRatio',
+          amount: hpRatioDamage,
+          mitigation: 'bypass_defense',
+        },
+      ],
+    };
+
+    vi.spyOn(Math, 'random')
+      .mockReturnValueOnce(0.99)
+      .mockReturnValueOnce(0.5);
+
+    EventBus.instance.publish(event);
+
+    expect(event.finalDamage).toBe(10 + hpRatioDamage);
+
+    damageSystem.destroy();
+  });
+
+  it('damage effects preserve target max hp ratio as a defense-bypass component', () => {
+    const damageSystem = new DamageSystem();
+    const attacker = new Unit('attacker', '攻击者', {});
+    const defender = new Unit('defender', '防御者', {});
+    const requests: DamageRequestEvent[] = [];
+
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push({ ...event, damageComponents: event.damageComponents });
+      },
+      EventPriorityLevel.DAMAGE_REQUEST + 1,
+    );
+
+    vi.spyOn(Math, 'random')
+      .mockReturnValueOnce(0.99)
+      .mockReturnValueOnce(0.5);
+
+    new DamageEffect({
+      value: {
+        base: 40,
+        targetMaxHpRatio: 0.1,
+      },
+    }).execute({
+      caster: attacker,
+      target: defender,
+    });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0].damageComponents).toEqual([
+      { kind: 'base', amount: 40, mitigation: 'normal' },
+      {
+        kind: 'targetMaxHpRatio',
+        amount: defender.getMaxHp() * 0.1,
+        mitigation: 'bypass_defense',
+      },
+    ]);
 
     damageSystem.destroy();
   });

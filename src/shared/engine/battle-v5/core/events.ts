@@ -22,7 +22,12 @@ import { Ability } from '../abilities/Ability';
 import { Buff } from '../buffs/Buff';
 import { Unit } from '../units/Unit';
 import type { TagPath } from '@shared/engine/shared/tag-domain';
-import { CombatEvent, DamageSource, DamageType } from './types';
+import {
+  CombatEvent,
+  type DamageComponent,
+  DamageSource,
+  DamageType,
+} from './types';
 
 // ===== 事件优先级枚举 =====
 // 数值越大优先级越高，越先执行
@@ -133,6 +138,7 @@ export interface DamageRequestEvent extends CombatEvent {
   buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
   damageSource?: DamageSource;
   damageType?: DamageType;
+  damageComponents?: DamageComponent[];
   baseDamage: number; // 基础伤害（未修正）
   finalDamage: number; // 最终伤害（可被增伤修正）
   // 同乘区加算桶：同一次伤害事件内累加，统一在 DamageSystem 中一次结算

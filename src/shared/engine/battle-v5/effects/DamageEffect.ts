@@ -2,7 +2,12 @@ import { DamageParams } from '../core/configs';
 import { executeEffectConfigs } from '../core/effectExecutor';
 import { EventBus } from '../core/EventBus';
 import { DamageRequestEvent } from '../core/events';
-import { AttributeType, DamageSource, DamageType } from '../core/types';
+import {
+  AttributeType,
+  type DamageComponent,
+  DamageSource,
+  DamageType,
+} from '../core/types';
 import {
   clearMemory,
   consumeAbilityTransform,
@@ -31,7 +36,13 @@ export class DamageEffect extends GameplayEffect {
     const resolvedCaster = buff?.getSource() ?? caster;
 
     // 使用统一计算器计算基础伤害（传入 target 以支持 targetMaxHpRatio）
-    let damage = ValueCalculator.calculate(this.params.value, resolvedCaster, target);
+    const damageResult = ValueCalculator.calculateDetailed(
+      this.params.value,
+      resolvedCaster,
+      target,
+    );
+    let damage = damageResult.total;
+    const damageComponents: DamageComponent[] = [...damageResult.components];
     const activeTransform =
       ability instanceof ActiveSkill
         ? getActiveAbilityTransform(ability)
@@ -45,7 +56,15 @@ export class DamageEffect extends GameplayEffect {
     if (bonusDamageMemory) {
       const memory = readMemory(caster, bonusDamageMemory.key);
       if (memory.amount > 0) {
-        damage += Math.round(memory.amount * (bonusDamageMemory.ratio ?? 1));
+        const memoryDamage = Math.round(
+          memory.amount * (bonusDamageMemory.ratio ?? 1),
+        );
+        damage += memoryDamage;
+        damageComponents.push({
+          kind: `memory:${bonusDamageMemory.key}`,
+          amount: memoryDamage,
+          mitigation: 'normal',
+        });
         if (bonusDamageMemory.consume !== false) {
           clearMemory(caster, bonusDamageMemory.key);
         }
@@ -57,7 +76,16 @@ export class DamageEffect extends GameplayEffect {
       buff.stackRule === StackRule.STACK_LAYER &&
       buff.tags.hasTag(GameplayTags.BUFF.DOT.ROOT)
     ) {
-      damage *= buff.getLayer();
+      const layer = buff.getLayer();
+      damage *= layer;
+      damageComponents.splice(
+        0,
+        damageComponents.length,
+        ...damageComponents.map((component) => ({
+          ...component,
+          amount: component.amount * layer,
+        })),
+      );
     }
 
     if (damage <= 0) return;
@@ -80,6 +108,7 @@ export class DamageEffect extends GameplayEffect {
       damageType:
         this.params.damageType ??
         (transform?.trueDamage ? DamageType.TRUE : this.inferDamageType(buff)),
+      damageComponents,
       baseDamage: damage,
       finalDamage: damage, // 初始终伤等于基伤，由后续系统修正
       isCritical: transform?.forceCritical ? true : undefined,
