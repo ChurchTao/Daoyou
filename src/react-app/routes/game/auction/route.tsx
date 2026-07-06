@@ -17,6 +17,8 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkBadge,
   InkButton,
+  InkDialog,
+  InkDialogState,
   InkInput,
   InkList,
   InkNotice,
@@ -93,6 +95,7 @@ type AuctionListPayload = {
 
 const PAGE_SIZE = 10;
 const SPIRIT_STONES_INFO = getGameConceptInfo('spirit_stones');
+const HIGH_VALUE_PURCHASE_CONFIRM_THRESHOLD = 100_000;
 
 const TYPE_TABS: Array<{ label: string; value: AuctionTypeFilter }> = [
   { label: '全部', value: 'all' },
@@ -182,6 +185,8 @@ export default function AuctionPage() {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showListModal, setShowListModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ItemDetailPayload | null>(null);
+  const [buyConfirmDialog, setBuyConfirmDialog] =
+    useState<InkDialogState | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   const activeTab = normalizeScope(searchParams.get('tab'));
@@ -393,20 +398,7 @@ export default function AuctionPage() {
     });
   };
 
-  const handleBuy = async (listing: AuctionListing) => {
-    if (!cultivator) {
-      pushToast({ message: '请先登录', tone: 'warning' });
-      return;
-    }
-    if (cultivator.spirit_stones < listing.price) {
-      pushToast({ message: '囊中羞涩，灵石不足', tone: 'warning' });
-      return;
-    }
-    if (listing.sellerId === cultivator.id) {
-      pushToast({ message: '无法购买自己寄售的物品', tone: 'warning' });
-      return;
-    }
-
+  const executeBuy = async (listing: AuctionListing) => {
     setBuyingId(listing.id);
     try {
       const result = await mutate<{ message: string }>(
@@ -424,6 +416,44 @@ export default function AuctionPage() {
     } finally {
       setBuyingId(null);
     }
+  };
+
+  const handleBuy = async (listing: AuctionListing) => {
+    if (!cultivator) {
+      pushToast({ message: '请先登录', tone: 'warning' });
+      return;
+    }
+    if (cultivator.spirit_stones < listing.price) {
+      pushToast({ message: '囊中羞涩，灵石不足', tone: 'warning' });
+      return;
+    }
+    if (listing.sellerId === cultivator.id) {
+      pushToast({ message: '无法购买自己寄售的物品', tone: 'warning' });
+      return;
+    }
+    if (listing.price > HIGH_VALUE_PURCHASE_CONFIRM_THRESHOLD) {
+      setBuyConfirmDialog({
+        id: `auction-buy-${listing.id}`,
+        title: '高额交易确认',
+        content: (
+          <div className="space-y-2 text-sm leading-7">
+            <p>确定购入「{listing.itemName}」吗？</p>
+            <p className="text-gold font-bold">
+              将消耗：{SPIRIT_STONES_INFO.icon} {listing.price}{' '}
+              {SPIRIT_STONES_INFO.label}
+            </p>
+          </div>
+        ),
+        confirmLabel: '确认购入',
+        cancelLabel: '再看看',
+        onConfirm: async () => {
+          await executeBuy(listing);
+        },
+      });
+      return;
+    }
+
+    await executeBuy(listing);
   };
 
   const handleCancel = async (listing: AuctionListing) => {
@@ -885,6 +915,10 @@ export default function AuctionPage() {
         onClose={() => setSelectedItem(null)}
         item={selectedItem}
         viewerRealm={cultivator?.realm}
+      />
+      <InkDialog
+        dialog={buyConfirmDialog}
+        onClose={() => setBuyConfirmDialog(null)}
       />
     </GameSceneFrame>
   );

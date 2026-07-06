@@ -42,6 +42,7 @@ type MarketListing = Material & {
 
 const DEFAULT_NODE_ID = 'TN_YUE_01';
 const SPIRIT_STONES_INFO = getGameConceptInfo('spirit_stones');
+const HIGH_VALUE_PURCHASE_CONFIRM_THRESHOLD = 100_000;
 
 const LAYER_OPTIONS: Array<{ label: string; value: MarketLayer }> = [
   { label: '凡市', value: 'common' },
@@ -129,6 +130,8 @@ export default function MarketPage() {
   const [isBatchBuying, setIsBatchBuying] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
   const [switchDialog, setSwitchDialog] = useState<InkDialogState | null>(null);
+  const [buyConfirmDialog, setBuyConfirmDialog] =
+    useState<InkDialogState | null>(null);
   const [batchBuyDialog, setBatchBuyDialog] = useState<InkDialogState | null>(
     null,
   );
@@ -256,19 +259,8 @@ export default function MarketPage() {
     searchParams,
   ]);
 
-  const handleBuy = async (item: MarketListing) => {
+  const executeBuy = async (item: MarketListing) => {
     if (!cultivator) return;
-    if (!access.allowed) {
-      pushToast({
-        message: access.reason || '当前层不可进入',
-        tone: 'warning',
-      });
-      return;
-    }
-    if (cultivator.spirit_stones < item.price) {
-      pushToast({ message: '囊中羞涩，灵石不足', tone: 'warning' });
-      return;
-    }
 
     setBuyingId(item.id);
     try {
@@ -291,6 +283,44 @@ export default function MarketPage() {
     } finally {
       setBuyingId(null);
     }
+  };
+
+  const handleBuy = async (item: MarketListing) => {
+    if (!cultivator) return;
+    if (!access.allowed) {
+      pushToast({
+        message: access.reason || '当前层不可进入',
+        tone: 'warning',
+      });
+      return;
+    }
+    if (cultivator.spirit_stones < item.price) {
+      pushToast({ message: '囊中羞涩，灵石不足', tone: 'warning' });
+      return;
+    }
+    if (item.price > HIGH_VALUE_PURCHASE_CONFIRM_THRESHOLD) {
+      setBuyConfirmDialog({
+        id: `market-buy-${item.id}`,
+        title: '高额交易确认',
+        content: (
+          <div className="space-y-2 text-sm leading-7">
+            <p>确定购入「{item.name}」吗？</p>
+            <p className="text-gold font-bold">
+              将消耗：{SPIRIT_STONES_INFO.icon} {item.price}{' '}
+              {SPIRIT_STONES_INFO.label}
+            </p>
+          </div>
+        ),
+        confirmLabel: '确认购入',
+        cancelLabel: '再看看',
+        onConfirm: async () => {
+          await executeBuy(item);
+        },
+      });
+      return;
+    }
+
+    await executeBuy(item);
   };
 
   const toggleSelect = (id: string) => {
@@ -691,6 +721,10 @@ export default function MarketPage() {
       <InkDialog
         dialog={batchBuyDialog}
         onClose={() => setBatchBuyDialog(null)}
+      />
+      <InkDialog
+        dialog={buyConfirmDialog}
+        onClose={() => setBuyConfirmDialog(null)}
       />
       <InkDialog
         dialog={switchDialog}
