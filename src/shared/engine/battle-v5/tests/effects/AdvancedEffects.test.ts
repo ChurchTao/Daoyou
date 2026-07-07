@@ -1,13 +1,7 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { GameplayTags } from '@shared/engine/shared/tag-domain';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { Buff, StackRule } from '../../buffs/Buff';
-import {
-  AbilityType,
-  AttributeType,
-  BuffType,
-  DamageType,
-  ModifierType,
-} from '../../core/types';
 import { EventBus } from '../../core/EventBus';
 import {
   ActionPostEvent,
@@ -21,15 +15,24 @@ import {
   RoundPreEvent,
   ShieldBreakEvent,
 } from '../../core/events';
+import { markDamageDealt, readMemory } from '../../core/runtimeState';
+import {
+  AbilityType,
+  AttributeType,
+  BuffType,
+  DamageSource,
+  DamageType,
+  ModifierType,
+} from '../../core/types';
 import {
   AbilityLockEffect,
   AbilityTransformEffect,
   BuffCopyEffect,
   BuffLayerModifyEffect,
   ConsumeStatusTriggerEffect,
+  DamageDeferEffect,
   DamageMemoryEffect,
   DelayedEffect,
-  DamageDeferEffect,
   ElementHistoryEffect,
   HpSacrificeDamageEffect,
   NextHitRuleEffect,
@@ -38,9 +41,7 @@ import {
 import { DamageEffect } from '../../effects/DamageEffect';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { BuffFactory } from '../../factories/BuffFactory';
-import { markDamageDealt, readMemory } from '../../core/runtimeState';
 import { Unit } from '../../units/Unit';
-import { GameplayTags } from '@shared/engine/shared/tag-domain';
 
 function createUnit(id: string): Unit {
   return new Unit(id, id, {
@@ -72,9 +73,12 @@ describe('Advanced battle effects', () => {
     target.buffs.addBuff(poison, caster);
 
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
 
     new ConsumeStatusTriggerEffect({
       match: { tags: [GameplayTags.BUFF.DOT.POISON] },
@@ -83,7 +87,11 @@ describe('Advanced battle effects', () => {
         {
           type: 'damage',
           params: {
-            value: { base: 20, attribute: AttributeType.MAGIC_ATK, coefficient: 0 },
+            value: {
+              base: 20,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
           },
         },
       ],
@@ -108,9 +116,12 @@ describe('Advanced battle effects', () => {
     poison.setLayer(3);
     target.buffs.addBuff(poison, caster);
     const mechanics: MechanicLogEvent[] = [];
-    EventBus.instance.subscribe<MechanicLogEvent>('MechanicLogEvent', (event) => {
-      mechanics.push(event);
-    });
+    EventBus.instance.subscribe<MechanicLogEvent>(
+      'MechanicLogEvent',
+      (event) => {
+        mechanics.push(event);
+      },
+    );
 
     new ConsumeStatusTriggerEffect({
       match: { tags: [GameplayTags.BUFF.DOT.POISON] },
@@ -130,9 +141,12 @@ describe('Advanced battle effects', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
 
     new DelayedEffect({
       id: 'delay_test',
@@ -142,7 +156,11 @@ describe('Advanced battle effects', () => {
         {
           type: 'damage',
           params: {
-            value: { base: 30, attribute: AttributeType.MAGIC_ATK, coefficient: 0 },
+            value: {
+              base: 30,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
           },
         },
       ],
@@ -166,9 +184,12 @@ describe('Advanced battle effects', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
 
     new DelayedEffect({
       id: 'delay_cancel_test',
@@ -178,7 +199,11 @@ describe('Advanced battle effects', () => {
         {
           type: 'damage',
           params: {
-            value: { base: 30, attribute: AttributeType.MAGIC_ATK, coefficient: 0 },
+            value: {
+              base: 30,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
           },
         },
       ],
@@ -196,7 +221,11 @@ describe('Advanced battle effects', () => {
         {
           type: 'damage',
           params: {
-            value: { base: 40, attribute: AttributeType.MAGIC_ATK, coefficient: 0 },
+            value: {
+              base: 40,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
           },
         },
       ],
@@ -211,9 +240,12 @@ describe('Advanced battle effects', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
 
     new DelayedEffect({
       id: 'delay_memory_test',
@@ -314,6 +346,51 @@ describe('Advanced battle effects', () => {
     expect(target.getCurrentShield()).toBe(40);
   });
 
+  it('damage memory can include shield absorption in damage taken amount', () => {
+    const caster = createUnit('caster');
+    const target = createUnit('target');
+    const requests: DamageRequestEvent[] = [];
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
+
+    new DamageMemoryEffect({
+      key: 'shielded_reflect',
+      mode: 'release',
+      ratio: 0.5,
+      releaseAs: 'reflect',
+      target: 'target',
+      includeShieldAbsorbed: true,
+    }).execute({
+      caster,
+      target,
+      triggerEvent: {
+        type: 'DamageTakenEvent',
+        timestamp: Date.now(),
+        caster,
+        target,
+        damageTaken: 80,
+        shieldAbsorbed: 120,
+        beforeHp: target.getCurrentHp(),
+        remainHp: target.getCurrentHp() - 80,
+        isLethal: false,
+      } satisfies DamageTakenEvent,
+    });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      caster: target,
+      target: caster,
+      damageSource: DamageSource.REFLECT,
+      damageType: DamageType.TRUE,
+      baseDamage: 100,
+      finalDamage: 100,
+    });
+  });
+
   it('damage memory maxStoredValue scales with runtime max HP', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
@@ -354,9 +431,12 @@ describe('Advanced battle effects', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
 
     new DamageMemoryEffect({
       key: 'shield_break',
@@ -387,9 +467,12 @@ describe('Advanced battle effects', () => {
     const owner = createUnit('owner');
     const attacker = createUnit('attacker');
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
 
     const createReflectPassive = (slug: string) =>
       AbilityFactory.create({
@@ -450,15 +533,24 @@ describe('Advanced battle effects', () => {
   it('buff layer modify removes a buff at zero layers and scales child effects by previous layers', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
-    const mark = new Buff('mark', '印记', BuffType.DEBUFF, 3, StackRule.STACK_LAYER);
+    const mark = new Buff(
+      'mark',
+      '印记',
+      BuffType.DEBUFF,
+      3,
+      StackRule.STACK_LAYER,
+    );
     mark.tags.addTags([GameplayTags.BUFF.ELEMENT.THUNDER]);
     mark.setLayer(2);
     target.buffs.addBuff(mark, caster);
 
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
 
     new BuffLayerModifyEffect({
       match: { id: 'mark' },
@@ -468,7 +560,11 @@ describe('Advanced battle effects', () => {
         {
           type: 'damage',
           params: {
-            value: { base: 10, attribute: AttributeType.MAGIC_ATK, coefficient: 0 },
+            value: {
+              base: 10,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
           },
         },
       ],
@@ -482,13 +578,28 @@ describe('Advanced battle effects', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
     const applied: BuffAppliedEvent[] = [];
-    EventBus.instance.subscribe<BuffAppliedEvent>('BuffAppliedEvent', (event) => {
-      applied.push(event);
-    });
+    EventBus.instance.subscribe<BuffAppliedEvent>(
+      'BuffAppliedEvent',
+      (event) => {
+        applied.push(event);
+      },
+    );
 
-    const first = new Buff('thunder_mark_log', '雷印', BuffType.DEBUFF, 3, StackRule.STACK_LAYER);
+    const first = new Buff(
+      'thunder_mark_log',
+      '雷印',
+      BuffType.DEBUFF,
+      3,
+      StackRule.STACK_LAYER,
+    );
     first.tags.addTags([GameplayTags.BUFF.ELEMENT.THUNDER]);
-    const second = new Buff('thunder_mark_log', '雷印', BuffType.DEBUFF, 3, StackRule.STACK_LAYER);
+    const second = new Buff(
+      'thunder_mark_log',
+      '雷印',
+      BuffType.DEBUFF,
+      3,
+      StackRule.STACK_LAYER,
+    );
     second.tags.addTags([GameplayTags.BUFF.ELEMENT.THUNDER]);
 
     target.buffs.addBuff(first, caster);
@@ -513,7 +624,11 @@ describe('Advanced battle effects', () => {
         {
           type: 'damage',
           params: {
-            value: { base: 10, attribute: AttributeType.MAGIC_ATK, coefficient: 0 },
+            value: {
+              base: 10,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
           },
         },
       ],
@@ -521,9 +636,12 @@ describe('Advanced battle effects', () => {
     caster.abilities.addAbility(skill);
 
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
 
     new AbilityTransformEffect({
       id: 'next_true_crit',
@@ -548,8 +666,20 @@ describe('Advanced battle effects', () => {
   it('ability transform is consumed at skill level and applies across all damage effects once', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
-    const debuffA = new Buff('debuff_a', '甲咒', BuffType.DEBUFF, 2, StackRule.OVERRIDE);
-    const debuffB = new Buff('debuff_b', '乙咒', BuffType.DEBUFF, 2, StackRule.OVERRIDE);
+    const debuffA = new Buff(
+      'debuff_a',
+      '甲咒',
+      BuffType.DEBUFF,
+      2,
+      StackRule.OVERRIDE,
+    );
+    const debuffB = new Buff(
+      'debuff_b',
+      '乙咒',
+      BuffType.DEBUFF,
+      2,
+      StackRule.OVERRIDE,
+    );
     debuffA.tags.addTags([GameplayTags.BUFF.TYPE.DEBUFF]);
     debuffB.tags.addTags([GameplayTags.BUFF.TYPE.DEBUFF]);
     target.buffs.addBuff(debuffA, caster);
@@ -567,13 +697,21 @@ describe('Advanced battle effects', () => {
         {
           type: 'damage',
           params: {
-            value: { base: 10, attribute: AttributeType.MAGIC_ATK, coefficient: 0 },
+            value: {
+              base: 10,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
           },
         },
         {
           type: 'damage',
           params: {
-            value: { base: 12, attribute: AttributeType.MAGIC_ATK, coefficient: 0 },
+            value: {
+              base: 12,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
           },
         },
       ],
@@ -581,9 +719,12 @@ describe('Advanced battle effects', () => {
     caster.abilities.addAbility(skill);
 
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
 
     new AbilityTransformEffect({
       id: 'skill_level_transform',
@@ -639,7 +780,13 @@ describe('Advanced battle effects', () => {
   it('buff copy can copy an incoming debuff back to the event source', () => {
     const source = createUnit('source');
     const owner = createUnit('owner');
-    const incoming = new Buff('curse', '咒', BuffType.DEBUFF, 2, StackRule.OVERRIDE);
+    const incoming = new Buff(
+      'curse',
+      '咒',
+      BuffType.DEBUFF,
+      2,
+      StackRule.OVERRIDE,
+    );
     incoming.tags.addTags([GameplayTags.BUFF.TYPE.DEBUFF]);
 
     const event: BuffAddEvent = {
@@ -662,7 +809,13 @@ describe('Advanced battle effects', () => {
   it('buff copy can replay the latest dispelled matching debuff', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
-    const curse = new Buff('old_curse', '旧咒', BuffType.DEBUFF, 2, StackRule.OVERRIDE);
+    const curse = new Buff(
+      'old_curse',
+      '旧咒',
+      BuffType.DEBUFF,
+      2,
+      StackRule.OVERRIDE,
+    );
     curse.tags.addTags([GameplayTags.BUFF.TYPE.DEBUFF]);
     target.buffs.addBuff(curse, caster);
     target.buffs.removeBuffDispel('old_curse');
@@ -679,7 +832,13 @@ describe('Advanced battle effects', () => {
   it('buff copy replayRemoved ignores active buffs and only replays dispelled history', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
-    const activeCurse = new Buff('active_curse', '现咒', BuffType.DEBUFF, 2, StackRule.OVERRIDE);
+    const activeCurse = new Buff(
+      'active_curse',
+      '现咒',
+      BuffType.DEBUFF,
+      2,
+      StackRule.OVERRIDE,
+    );
     activeCurse.tags.addTags([GameplayTags.BUFF.TYPE.DEBUFF]);
     target.buffs.addBuff(activeCurse, caster);
 
@@ -714,7 +873,9 @@ describe('Advanced battle effects', () => {
       replayRemoved: true,
     }).execute({ caster, target });
 
-    const replayed = target.buffs.getAllBuffs().find((buff) => buff.id === 'layered_curse');
+    const replayed = target.buffs
+      .getAllBuffs()
+      .find((buff) => buff.id === 'layered_curse');
     expect(replayed?.getLayer()).toBe(3);
     expect(replayed?.getDuration()).toBe(3);
   });
@@ -732,16 +893,38 @@ describe('Advanced battle effects', () => {
       effect.execute({ caster: owner, target: owner, triggerEvent: event });
     });
 
-    const first = new Buff('first_blessing', '初佑', BuffType.BUFF, 2, StackRule.OVERRIDE);
+    const first = new Buff(
+      'first_blessing',
+      '初佑',
+      BuffType.BUFF,
+      2,
+      StackRule.OVERRIDE,
+    );
     first.tags.addTags([GameplayTags.BUFF.TYPE.BUFF]);
-    const second = new Buff('second_blessing', '再佑', BuffType.BUFF, 2, StackRule.OVERRIDE);
+    const second = new Buff(
+      'second_blessing',
+      '再佑',
+      BuffType.BUFF,
+      2,
+      StackRule.OVERRIDE,
+    );
     second.tags.addTags([GameplayTags.BUFF.TYPE.BUFF]);
 
     owner.buffs.addBuff(first, owner);
     owner.buffs.addBuff(second, owner);
 
-    expect(owner.buffs.getAllBuffs().find((buff) => buff.id === 'first_blessing')?.getMaxDuration()).toBe(3);
-    expect(owner.buffs.getAllBuffs().find((buff) => buff.id === 'second_blessing')?.getMaxDuration()).toBe(2);
+    expect(
+      owner.buffs
+        .getAllBuffs()
+        .find((buff) => buff.id === 'first_blessing')
+        ?.getMaxDuration(),
+    ).toBe(3);
+    expect(
+      owner.buffs
+        .getAllBuffs()
+        .find((buff) => buff.id === 'second_blessing')
+        ?.getMaxDuration(),
+    ).toBe(2);
   });
 
   it('buff copy recursion guard is scoped to the receiving unit runtime state', () => {
@@ -783,7 +966,13 @@ describe('Advanced battle effects', () => {
       });
     });
 
-    const blessing = new Buff('shared_blessing', '同名赐福', BuffType.BUFF, 2, StackRule.OVERRIDE);
+    const blessing = new Buff(
+      'shared_blessing',
+      '同名赐福',
+      BuffType.BUFF,
+      2,
+      StackRule.OVERRIDE,
+    );
     blessing.tags.addTags([GameplayTags.BUFF.TYPE.BUFF]);
     battleOneTarget.buffs.addBuff(blessing, battleOneOwner);
 
@@ -806,7 +995,11 @@ describe('Advanced battle effects', () => {
         {
           type: 'damage',
           params: {
-            value: { base: 10, attribute: AttributeType.MAGIC_ATK, coefficient: 0 },
+            value: {
+              base: 10,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
           },
         },
       ],
@@ -814,11 +1007,17 @@ describe('Advanced battle effects', () => {
     caster.abilities.addAbility(skill);
 
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
 
-    new NextHitRuleEffect({ forceCritical: true, triggers: 1 }).execute({ caster, target });
+    new NextHitRuleEffect({ forceCritical: true, triggers: 1 }).execute({
+      caster,
+      target,
+    });
     new DamageEffect({
       value: { base: 10, attribute: AttributeType.MAGIC_ATK, coefficient: 0 },
     }).execute({ caster, target, ability: skill });
@@ -830,9 +1029,12 @@ describe('Advanced battle effects', () => {
     const owner = createUnit('owner');
     const target = createUnit('target');
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
 
     const counter = new TurnStateCounterEffect({
       key: 'idle',
@@ -842,7 +1044,11 @@ describe('Advanced battle effects', () => {
         {
           type: 'damage',
           params: {
-            value: { base: 10, attribute: AttributeType.MAGIC_ATK, coefficient: 0 },
+            value: {
+              base: 10,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
           },
         },
       ],
@@ -882,9 +1088,12 @@ describe('Advanced battle effects', () => {
         effects: [],
       });
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
     const effect = new ElementHistoryEffect({
       key: 'elements',
       threshold: 3,
@@ -892,17 +1101,37 @@ describe('Advanced battle effects', () => {
         {
           type: 'damage',
           params: {
-            value: { base: 10, attribute: AttributeType.MAGIC_ATK, coefficient: 0 },
+            value: {
+              base: 10,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
           },
         },
       ],
     });
 
-    effect.execute({ caster, target, ability: createSkill('fire', GameplayTags.ABILITY.ELEMENT.FIRE) });
-    effect.execute({ caster, target, ability: createSkill('fire2', GameplayTags.ABILITY.ELEMENT.FIRE) });
-    effect.execute({ caster, target, ability: createSkill('ice', GameplayTags.ABILITY.ELEMENT.ICE) });
+    effect.execute({
+      caster,
+      target,
+      ability: createSkill('fire', GameplayTags.ABILITY.ELEMENT.FIRE),
+    });
+    effect.execute({
+      caster,
+      target,
+      ability: createSkill('fire2', GameplayTags.ABILITY.ELEMENT.FIRE),
+    });
+    effect.execute({
+      caster,
+      target,
+      ability: createSkill('ice', GameplayTags.ABILITY.ELEMENT.ICE),
+    });
     expect(requests).toHaveLength(0);
-    effect.execute({ caster, target, ability: createSkill('thunder', GameplayTags.ABILITY.ELEMENT.THUNDER) });
+    effect.execute({
+      caster,
+      target,
+      ability: createSkill('thunder', GameplayTags.ABILITY.ELEMENT.THUNDER),
+    });
     expect(requests).toHaveLength(1);
   });
 
@@ -925,7 +1154,9 @@ describe('Advanced battle effects', () => {
     }).execute({ caster: defender, target: defender, triggerEvent: event });
 
     expect(event.finalDamage).toBe(Math.round(defender.getMaxHp() * 0.15));
-    expect(defender.buffs.getAllBuffs().some((buff) => buff.name === '延迟伤害')).toBe(true);
+    expect(
+      defender.buffs.getAllBuffs().some((buff) => buff.name === '延迟伤害'),
+    ).toBe(true);
   });
 
   it('damage defer creates distinct delayed buffs under the same timestamp', () => {
@@ -945,13 +1176,22 @@ describe('Advanced battle effects', () => {
       delayTurns: 2,
     });
 
-    effect.execute({ caster: defender, target: defender, triggerEvent: createEvent() });
-    effect.execute({ caster: defender, target: defender, triggerEvent: createEvent() });
+    effect.execute({
+      caster: defender,
+      target: defender,
+      triggerEvent: createEvent(),
+    });
+    effect.execute({
+      caster: defender,
+      target: defender,
+      triggerEvent: createEvent(),
+    });
 
-    expect(defender.buffs.getAllBuffIds().filter((id) => id.startsWith('deferred_damage_'))).toEqual([
-      'deferred_damage_1',
-      'deferred_damage_2',
-    ]);
+    expect(
+      defender.buffs
+        .getAllBuffIds()
+        .filter((id) => id.startsWith('deferred_damage_')),
+    ).toEqual(['deferred_damage_1', 'deferred_damage_2']);
   });
 
   it('ability lock increases cooldown on the highest-cooldown matching skills and logs it', () => {
@@ -970,7 +1210,13 @@ describe('Advanced battle effects', () => {
       effects: [
         {
           type: 'damage',
-          params: { value: { base: 10, attribute: AttributeType.MAGIC_ATK, coefficient: 0 } },
+          params: {
+            value: {
+              base: 10,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
+          },
         },
       ],
     }) as ActiveSkill;
@@ -987,18 +1233,30 @@ describe('Advanced battle effects', () => {
       effects: [
         {
           type: 'damage',
-          params: { value: { base: 10, attribute: AttributeType.MAGIC_ATK, coefficient: 0 } },
+          params: {
+            value: {
+              base: 10,
+              attribute: AttributeType.MAGIC_ATK,
+              coefficient: 0,
+            },
+          },
         },
       ],
     }) as ActiveSkill;
     target.abilities.addAbility(low);
     target.abilities.addAbility(high);
     const cooldownEvents: CooldownModifyEvent[] = [];
-    EventBus.instance.subscribe<CooldownModifyEvent>('CooldownModifyEvent', (event) => {
-      cooldownEvents.push(event);
-    });
+    EventBus.instance.subscribe<CooldownModifyEvent>(
+      'CooldownModifyEvent',
+      (event) => {
+        cooldownEvents.push(event);
+      },
+    );
 
-    new AbilityLockEffect({ rounds: 1, maxCount: 1 }).execute({ caster, target });
+    new AbilityLockEffect({ rounds: 1, maxCount: 1 }).execute({
+      caster,
+      target,
+    });
 
     expect(high.currentCooldown).toBe(1);
     expect(low.currentCooldown).toBe(0);
@@ -1011,12 +1269,18 @@ describe('Advanced battle effects', () => {
     const target = createUnit('target');
     const mechanics: MechanicLogEvent[] = [];
     const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<MechanicLogEvent>('MechanicLogEvent', (event) => {
-      mechanics.push(event);
-    });
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      requests.push(event);
-    });
+    EventBus.instance.subscribe<MechanicLogEvent>(
+      'MechanicLogEvent',
+      (event) => {
+        mechanics.push(event);
+      },
+    );
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        requests.push(event);
+      },
+    );
 
     new HpSacrificeDamageEffect({
       hpRatio: 0.1,
@@ -1030,6 +1294,8 @@ describe('Advanced battle effects', () => {
       value: Math.round(caster.getMaxHp() * 0.1),
     });
     expect(requests).toHaveLength(1);
-    expect(requests[0].baseDamage).toBe(Math.round((mechanics[0].value ?? 0) * 2));
+    expect(requests[0].baseDamage).toBe(
+      Math.round((mechanics[0].value ?? 0) * 2),
+    );
   });
 });

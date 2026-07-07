@@ -586,7 +586,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'reflect',
       conditions: [{ type: 'chance', params: { value: 0.3 } }],
       params: {
-        ratio: { base: 0.12, scale: 'quality', coefficient: 0.06 },
+        ratio: { base: 0.1, scale: 'quality', coefficient: 0.045 },
       },
     },
     listenerSpec: {
@@ -1477,7 +1477,12 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         },
       ],
       params: {
-        absorbRatio: { base: 0.25, scale: 'quality', coefficient: 0.03, max: 0.46 },
+        absorbRatio: {
+          base: 0.25,
+          scale: 'quality',
+          coefficient: 0.03,
+          max: 0.46,
+        },
       },
     },
     listenerSpec: {
@@ -1601,7 +1606,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'reflect',
       conditions: [{ type: 'is_critical', params: {} }],
       params: {
-        ratio: { base: 0.12, scale: 'quality', coefficient: 0.07 },
+        ratio: { base: 0.1, scale: 'quality', coefficient: 0.05 },
       },
     },
     listenerSpec: {

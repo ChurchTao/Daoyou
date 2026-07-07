@@ -10,12 +10,7 @@ import {
 import { ScalableValue } from './ValueCalculator';
 
 export type AbilitySelectionIntent =
-  | 'damage'
-  | 'heal_hp'
-  | 'restore_mp'
-  | 'control'
-  | 'buff'
-  | 'defensive';
+  'damage' | 'heal_hp' | 'restore_mp' | 'control' | 'buff' | 'defensive';
 
 export interface AbilitySelectionProfile {
   intents?: AbilitySelectionIntent[];
@@ -211,6 +206,7 @@ export interface DamageMemoryParams {
   target?: 'caster' | 'target';
   maxStored?: number;
   maxStoredValue?: ScalableValue;
+  includeShieldAbsorbed?: boolean;
   consume?: boolean;
 }
 
@@ -389,10 +385,7 @@ export type ListenerScope =
  * 上下文映射源
  */
 export type ListenerContextSource =
-  | 'owner'
-  | 'event.caster'
-  | 'event.target'
-  | 'event.source';
+  'owner' | 'event.caster' | 'event.target' | 'event.source';
 
 /**
  * 监听器上下文映射

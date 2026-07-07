@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import type { EffectConfig } from '@shared/engine/battle-v5/core/configs';
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
 import { composeProductFromAffixIds } from '@shared/engine/creation-v2/composeProductFromAffixIds';
 import { projectAbilityConfig } from '@shared/engine/creation-v2/models/AbilityProjection';
@@ -8,7 +8,7 @@ import {
 } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
 import type { CreationProductType } from '@shared/engine/creation-v2/types';
 import type { ElementType, EquipmentSlot } from '@shared/types/constants';
-import type { EffectConfig } from '@shared/engine/battle-v5/core/configs';
+import { describe, expect, it } from 'vitest';
 
 interface AdvancedAffixCase {
   affixId: string;
@@ -19,22 +19,90 @@ interface AdvancedAffixCase {
 }
 
 const ADVANCED_AFFIX_CASES: AdvancedAffixCase[] = [
-  { affixId: 'skill-rare-life-for-fire', productType: 'skill', element: '火', coreAffixId: 'skill-core-damage-fire' },
-  { affixId: 'skill-rare-frost-burial', productType: 'skill', element: '冰', coreAffixId: 'skill-core-damage-ice' },
-  { affixId: 'skill-variant-thunder-pact', productType: 'skill', element: '雷', coreAffixId: 'skill-core-damage-thunder' },
-  { affixId: 'skill-rare-poison-gu-return', productType: 'skill', element: '木', coreAffixId: 'skill-core-damage-wood' },
-  { affixId: 'skill-rare-blood-ink-talisman', productType: 'skill', element: '火', coreAffixId: 'skill-core-damage-fire' },
-  { affixId: 'skill-variant-wind-exchange-step', productType: 'skill', element: '风', coreAffixId: 'skill-core-damage-wind' },
-  { affixId: 'skill-variant-cut-meridian', productType: 'skill', element: '金', coreAffixId: 'skill-core-damage' },
-  { affixId: 'skill-rare-old-dream-rekindle', productType: 'skill', element: '水', coreAffixId: 'skill-core-damage-water' },
-  { affixId: 'gongfa-secret-causality-scripture', productType: 'gongfa', element: '水' },
-  { affixId: 'gongfa-secret-myriad-unity', productType: 'gongfa', element: '土' },
-  { affixId: 'gongfa-school-reverse-cultivation', productType: 'gongfa', element: '火' },
-  { affixId: 'gongfa-secret-three-breath-sword', productType: 'gongfa', element: '金' },
-  { affixId: 'gongfa-secret-heaven-jealous-root', productType: 'gongfa', element: '雷' },
-  { affixId: 'gongfa-secret-leakless-body', productType: 'gongfa', element: '土' },
+  {
+    affixId: 'skill-rare-life-for-fire',
+    productType: 'skill',
+    element: '火',
+    coreAffixId: 'skill-core-damage-fire',
+  },
+  {
+    affixId: 'skill-rare-frost-burial',
+    productType: 'skill',
+    element: '冰',
+    coreAffixId: 'skill-core-damage-ice',
+  },
+  {
+    affixId: 'skill-variant-thunder-pact',
+    productType: 'skill',
+    element: '雷',
+    coreAffixId: 'skill-core-damage-thunder',
+  },
+  {
+    affixId: 'skill-rare-poison-gu-return',
+    productType: 'skill',
+    element: '木',
+    coreAffixId: 'skill-core-damage-wood',
+  },
+  {
+    affixId: 'skill-rare-blood-ink-talisman',
+    productType: 'skill',
+    element: '火',
+    coreAffixId: 'skill-core-damage-fire',
+  },
+  {
+    affixId: 'skill-variant-wind-exchange-step',
+    productType: 'skill',
+    element: '风',
+    coreAffixId: 'skill-core-damage-wind',
+  },
+  {
+    affixId: 'skill-variant-cut-meridian',
+    productType: 'skill',
+    element: '金',
+    coreAffixId: 'skill-core-damage',
+  },
+  {
+    affixId: 'skill-rare-old-dream-rekindle',
+    productType: 'skill',
+    element: '水',
+    coreAffixId: 'skill-core-damage-water',
+  },
+  {
+    affixId: 'gongfa-secret-causality-scripture',
+    productType: 'gongfa',
+    element: '水',
+  },
+  {
+    affixId: 'gongfa-secret-myriad-unity',
+    productType: 'gongfa',
+    element: '土',
+  },
+  {
+    affixId: 'gongfa-school-reverse-cultivation',
+    productType: 'gongfa',
+    element: '火',
+  },
+  {
+    affixId: 'gongfa-secret-three-breath-sword',
+    productType: 'gongfa',
+    element: '金',
+  },
+  {
+    affixId: 'gongfa-secret-heaven-jealous-root',
+    productType: 'gongfa',
+    element: '雷',
+  },
+  {
+    affixId: 'gongfa-secret-leakless-body',
+    productType: 'gongfa',
+    element: '土',
+  },
   { affixId: 'gongfa-secret-void-step', productType: 'gongfa', element: '风' },
-  { affixId: 'gongfa-school-borrowed-law-returned', productType: 'gongfa', element: '木' },
+  {
+    affixId: 'gongfa-school-borrowed-law-returned',
+    productType: 'gongfa',
+    element: '木',
+  },
   {
     affixId: 'artifact-treasure-karma-mirror',
     productType: 'artifact',
@@ -210,7 +278,9 @@ describe('advanced affix projection and rehydrate', () => {
       const abilityConfig = projectAbilityConfig(rehydrated);
 
       expect(() => AbilityFactory.create(abilityConfig)).not.toThrow();
-      expect(abilityConfig.effects?.length ?? abilityConfig.listeners?.length ?? 0).toBeGreaterThan(0);
+      expect(
+        abilityConfig.effects?.length ?? abilityConfig.listeners?.length ?? 0,
+      ).toBeGreaterThan(0);
     },
   );
 
@@ -224,8 +294,11 @@ describe('advanced affix projection and rehydrate', () => {
       affixIds: ['artifact-treasure-thunder-devour-bottle'],
     });
     const abilityConfig = projectAbilityConfig(product);
-    const effects = abilityConfig.listeners?.flatMap((listener) => listener.effects) ?? [];
-    const sequence = effects.find((effect) => effect.type === 'effect_sequence');
+    const effects =
+      abilityConfig.listeners?.flatMap((listener) => listener.effects) ?? [];
+    const sequence = effects.find(
+      (effect) => effect.type === 'effect_sequence',
+    );
 
     expect(sequence).toBeDefined();
     expect(sequence?.params.effects.map((effect) => effect.type)).toEqual([
@@ -243,7 +316,10 @@ describe('advanced affix projection and rehydrate', () => {
   });
 
   it('weapon artifact affixes project to their intended offensive listener effects', () => {
-    const projectWeaponAffix = (affixId: string, element: ElementType = '金') => {
+    const projectWeaponAffix = (
+      affixId: string,
+      element: ElementType = '金',
+    ) => {
       const product = composeProductFromAffixIds({
         productType: 'artifact',
         element,
@@ -328,6 +404,9 @@ describe('advanced affix projection and rehydrate', () => {
     });
     expect(effect).toMatchObject({
       type: 'damage_memory',
+      params: {
+        includeShieldAbsorbed: true,
+      },
       globalUnique: {
         key: 'gongfa-secret-causality-scripture',
         label: '因果经',
@@ -381,7 +460,8 @@ describe('advanced affix projection and rehydrate', () => {
     });
 
     expect(
-      projectArtifactAffix('artifact-armor-stone-cocoon', 'armor').listeners?.[0],
+      projectArtifactAffix('artifact-armor-stone-cocoon', 'armor')
+        .listeners?.[0],
     ).toMatchObject({
       eventType: 'DamageTakenEvent',
       scope: 'owner_as_target',
@@ -476,7 +556,9 @@ describe('advanced affix projection and rehydrate', () => {
       affixIds: ['artifact-treasure-calamity-coin'],
     });
     const abilityConfig = projectAbilityConfig(product);
-    const effect = abilityConfig.listeners?.flatMap((listener) => listener.effects)[0];
+    const effect = abilityConfig.listeners?.flatMap(
+      (listener) => listener.effects,
+    )[0];
 
     expect(effect).toMatchObject({
       type: 'effect_sequence',
@@ -495,7 +577,9 @@ describe('advanced affix projection and rehydrate', () => {
         affixIds: ['artifact-treasure-calamity-coin'],
       });
       const abilityConfig = projectAbilityConfig(product);
-      const effect = abilityConfig.listeners?.flatMap((listener) => listener.effects)[0];
+      const effect = abilityConfig.listeners?.flatMap(
+        (listener) => listener.effects,
+      )[0];
       if (effect?.type !== 'effect_sequence') {
         throw new Error('calamity coin did not project an effect sequence');
       }
@@ -519,12 +603,17 @@ describe('advanced affix projection and rehydrate', () => {
 
     expect(lowRecord).toMatchObject({ type: 'damage_memory' });
     expect(highRecord).toMatchObject({ type: 'damage_memory' });
-    expect(lowRecord.params.maxStoredValue?.targetMaxHpRatio).toBeGreaterThan(1);
+    expect(lowRecord.params.maxStoredValue?.targetMaxHpRatio).toBeGreaterThan(
+      1,
+    );
     expect(highRecord.params.maxStoredValue?.targetMaxHpRatio).toBeGreaterThan(
       lowRecord.params.maxStoredValue?.targetMaxHpRatio ?? 0,
     );
 
-    if (lowDelayed.type !== 'delayed_effect' || highDelayed.type !== 'delayed_effect') {
+    if (
+      lowDelayed.type !== 'delayed_effect' ||
+      highDelayed.type !== 'delayed_effect'
+    ) {
       throw new Error('calamity debt did not project delayed effects');
     }
     const lowRelease = lowDelayed.params.effects[0];
@@ -548,15 +637,21 @@ describe('advanced affix projection and rehydrate', () => {
         effect.type === 'apply_buff' &&
         effect.params.buffConfig.id === 'thunder_mark',
     );
-    const thunderDamage = thunderApply?.params.buffConfig.listeners?.[0]?.effects
-      .flatMap((effect) =>
-        effect.type === 'consume_status_trigger' ? effect.params.effects : [],
-      )
-      .find((effect) => effect.type === 'damage');
-    const thunderTrigger = thunderApply?.params.buffConfig.listeners?.[0]?.effects.find(
-      (effect): effect is Extract<EffectConfig, { type: 'consume_status_trigger' }> =>
-        effect.type === 'consume_status_trigger',
-    );
+    const thunderDamage =
+      thunderApply?.params.buffConfig.listeners?.[0]?.effects
+        .flatMap((effect) =>
+          effect.type === 'consume_status_trigger' ? effect.params.effects : [],
+        )
+        .find((effect) => effect.type === 'damage');
+    const thunderTrigger =
+      thunderApply?.params.buffConfig.listeners?.[0]?.effects.find(
+        (
+          effect,
+        ): effect is Extract<
+          EffectConfig,
+          { type: 'consume_status_trigger' }
+        > => effect.type === 'consume_status_trigger',
+      );
 
     expect(thunderDamage).toBeDefined();
     expect(thunderTrigger?.conditions).toEqual([
@@ -564,7 +659,9 @@ describe('advanced affix projection and rehydrate', () => {
     ]);
     expect(thunderDamage?.params.value.base).toBeUndefined();
     expect(thunderDamage?.params.value.coefficient).toEqual(expect.any(Number));
-    expect(thunderDamage?.params.value.targetMaxHpRatio).toEqual(expect.any(Number));
+    expect(thunderDamage?.params.value.targetMaxHpRatio).toEqual(
+      expect.any(Number),
+    );
 
     const heavenRoot = composeProductFromAffixIds({
       productType: 'gongfa',
@@ -576,16 +673,20 @@ describe('advanced affix projection and rehydrate', () => {
     const heavenConfig = projectAbilityConfig(heavenRoot);
     const heavenApply = heavenConfig.listeners
       ?.flatMap((listener) => listener.effects)
-      .find((effect): effect is Extract<EffectConfig, { type: 'apply_buff' }> =>
-        effect.type === 'apply_buff',
+      .find(
+        (effect): effect is Extract<EffectConfig, { type: 'apply_buff' }> =>
+          effect.type === 'apply_buff',
       );
-    const heavenDamage = heavenApply?.params.buffConfig.listeners?.[0]?.effects.find(
-      (effect) => effect.type === 'damage',
-    );
+    const heavenDamage =
+      heavenApply?.params.buffConfig.listeners?.[0]?.effects.find(
+        (effect) => effect.type === 'damage',
+      );
 
     expect(heavenDamage).toBeDefined();
     expect(heavenDamage?.params.value.base).toBeUndefined();
-    expect(heavenDamage?.params.value.targetMaxHpRatio).toEqual(expect.any(Number));
+    expect(heavenDamage?.params.value.targetMaxHpRatio).toEqual(
+      expect.any(Number),
+    );
   });
 
   it('projects shield break and target max MP scaling into battle config', () => {
@@ -598,7 +699,9 @@ describe('advanced affix projection and rehydrate', () => {
       affixIds: ['artifact-treasure-returning-ruin-pearl'],
     });
     const ruinConfig = projectAbilityConfig(ruinPearl);
-    const ruinEffect = ruinConfig.listeners?.flatMap((listener) => listener.effects)[0];
+    const ruinEffect = ruinConfig.listeners?.flatMap(
+      (listener) => listener.effects,
+    )[0];
     expect(ruinEffect).toMatchObject({
       type: 'damage_memory',
       params: {
@@ -615,10 +718,13 @@ describe('advanced affix projection and rehydrate', () => {
       affixIds: ['skill-core-damage', 'skill-variant-cut-meridian'],
     });
     const cutConfig = projectAbilityConfig(cutMeridian);
-    const sequence = cutConfig.effects?.find((effect) => effect.type === 'effect_sequence');
-    const manaBurn = sequence?.type === 'effect_sequence'
-      ? sequence.params.effects.find((effect) => effect.type === 'mana_burn')
-      : undefined;
+    const sequence = cutConfig.effects?.find(
+      (effect) => effect.type === 'effect_sequence',
+    );
+    const manaBurn =
+      sequence?.type === 'effect_sequence'
+        ? sequence.params.effects.find((effect) => effect.type === 'mana_burn')
+        : undefined;
     expect(manaBurn?.params.value.targetMaxMpRatio).toEqual(expect.any(Number));
   });
 });

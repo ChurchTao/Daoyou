@@ -2,8 +2,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { ArtifactListCard } from './ArtifactListCard';
 import { AbilityListCard } from './AbilityListCard';
+import { AffixChip } from './AffixChip';
+import { AffixInlineList } from './AffixInlineList';
 import { getProductShowcaseProps } from './productShowcase';
-import type { ProductDisplayModel } from './abilityDisplay';
+import type { AffixView, ProductDisplayModel } from './abilityDisplay';
 
 function createProduct(
   overrides: Partial<ProductDisplayModel> = {},
@@ -17,6 +19,26 @@ function createProduct(
     affixes: [],
     modifiers: [],
     description: '引火成术。',
+    ...overrides,
+  };
+}
+
+function createAffix(overrides: Partial<AffixView> = {}): AffixView {
+  return {
+    id: 'gongfa-secret-causality-scripture',
+    name: '因果经',
+    bodyText: '回合开始时，提高自身法术强度（全局唯一）',
+    conditionTexts: [],
+    effectText: '提高自身法术强度',
+    buffDetails: [],
+    damageTypeLabels: [],
+    tagLabels: [],
+    mechanicNotes: [],
+    globalUniqueText: '全局唯一：因果经',
+    rarityTone: 'legendary',
+    rarity: 'legendary',
+    isPerfect: false,
+    tags: [],
     ...overrides,
   };
 }
@@ -118,5 +140,19 @@ describe('score mark integration', () => {
     const props = getProductShowcaseProps(createProduct({ score: 0 }));
 
     expect(props.cornerMeta).toBeUndefined();
+  });
+
+  it('keeps global unique text in the affix description without title badges', () => {
+    const affix = createAffix();
+    const chipHtml = renderToStaticMarkup(<AffixChip affix={affix} />);
+    const inlineHtml = renderToStaticMarkup(
+      <AffixInlineList affixes={[affix]} />,
+    );
+
+    expect(chipHtml).toContain('（全局唯一）');
+    expect(chipHtml).not.toContain('>唯一<');
+    expect(chipHtml).not.toContain('title="全局唯一');
+    expect(inlineHtml).not.toContain('>唯一<');
+    expect(inlineHtml).not.toContain('title="全局唯一');
   });
 });

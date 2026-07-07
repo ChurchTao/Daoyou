@@ -14,7 +14,12 @@ import {
 } from '@shared/engine/shared/tag-domain';
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import { AttributeType, BuffType, ModifierType, StackRule } from '../../contracts/battle';
+import {
+  AttributeType,
+  BuffType,
+  ModifierType,
+  StackRule,
+} from '../../contracts/battle';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import { AffixDefinition } from '../types';
 import { qualityScaledCoefficient } from './utils';
@@ -1542,11 +1547,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   {
     id: 'gongfa-secret-causality-scripture',
     displayName: '因果经',
-    displayDescription: '受击时记录伤害，并按比例以真伤返还',
+    displayDescription: '受击时记录气血与护盾承伤，并按比例以真伤返还',
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_DIVINE, CreationTags.MATERIAL.SEMANTIC_TIME],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.SEMANTIC_TIME,
+      ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 6,
@@ -1573,6 +1581,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         },
         releaseAs: 'reflect',
         target: 'target',
+        includeShieldAbsorbed: true,
       },
     },
     listenerSpec: {
@@ -1590,7 +1599,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_FORMATION],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_FORMATION,
+      ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 6,
@@ -1628,9 +1640,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'rare',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_BLOOD, CreationTags.MATERIAL.SEMANTIC_MANUAL],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+        CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      ],
     },
-    selectionMeta: { gongfa: { role: 'support', archetype: 'reverse-cultivation' } },
+    selectionMeta: {
+      gongfa: { role: 'support', archetype: 'reverse-cultivation' },
+    },
     weight: 12,
     energyCost: 28,
     applicableTo: ['gongfa'],
@@ -1657,7 +1674,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.SEMANTIC_MANUAL],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+        CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 6,
@@ -1702,7 +1722,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_DIVINE, CreationTags.MATERIAL.SEMANTIC_THUNDER],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 6,
@@ -1749,7 +1772,12 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
                 },
                 {
                   type: 'buff_layer_modify',
-                  conditions: [{ type: 'buff_layer_at_least', params: { id: 'heaven_jealousy', value: 5 } }],
+                  conditions: [
+                    {
+                      type: 'buff_layer_at_least',
+                      params: { id: 'heaven_jealousy', value: 5 },
+                    },
+                  ],
                   params: {
                     match: { id: 'heaven_jealousy' },
                     operation: 'clear',
@@ -1792,7 +1820,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.SEMANTIC_DIVINE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+      ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 6,
@@ -1816,7 +1847,16 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
               scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
               priority: CREATION_LISTENER_PRIORITIES.damageApply,
               effects: [
-                { type: 'damage_immunity', params: { tags: [GameplayTags.ABILITY.CHANNEL.MAGIC, GameplayTags.ABILITY.CHANNEL.PHYSICAL, GameplayTags.ABILITY.CHANNEL.TRUE] } },
+                {
+                  type: 'damage_immunity',
+                  params: {
+                    tags: [
+                      GameplayTags.ABILITY.CHANNEL.MAGIC,
+                      GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+                      GameplayTags.ABILITY.CHANNEL.TRUE,
+                    ],
+                  },
+                },
                 {
                   type: 'buff_layer_modify',
                   params: {
@@ -1844,7 +1884,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'legendary',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_SPACE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WIND,
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+      ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 6,
@@ -1869,7 +1912,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     slot: 'modifier',
     rarity: 'rare',
     match: {
-      any: [CreationTags.MATERIAL.SEMANTIC_LIFE, CreationTags.MATERIAL.SEMANTIC_MANUAL],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+        CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      ],
     },
     selectionMeta: { gongfa: { role: 'support', archetype: 'heal-convert' } },
     weight: 12,

@@ -2,6 +2,8 @@
  * affixes/types.ts: 词缀（Affix）相关类型定义与常量。
  * 包含可缩放参数、词缀模板、监听器规格与 AffixDefinition 等。
  */
+import { TargetPolicyConfig } from '@shared/engine/battle-v5/abilities/TargetPolicy';
+import type { DamageType } from '@shared/engine/battle-v5/core/types';
 import { EquipmentSlot } from '@shared/types/constants';
 import {
   AttributeType,
@@ -16,12 +18,14 @@ import {
   ListenerScope,
   ModifierType,
 } from '../contracts/battle';
-import type { CreationTagSignalSource } from '../types';
-import type { AffixRarity, AffixSlot, CreationProductType } from '../types';
-import type { AffixSelectionMeta } from '../types';
+import type {
+  AffixRarity,
+  AffixSelectionMeta,
+  AffixSlot,
+  CreationProductType,
+  CreationTagSignalSource,
+} from '../types';
 import type { ExclusiveGroup } from './exclusiveGroups';
-import { TargetPolicyConfig } from '@shared/engine/battle-v5/abilities/TargetPolicy';
-import type { DamageType } from '@shared/engine/battle-v5/core/types';
 
 export type { AffixRarity, AffixSlot } from '../types';
 
@@ -76,7 +80,9 @@ export interface AffixScalableValue {
 }
 
 export type AffixBuffConfig = Omit<BuffConfig, 'listeners'> & {
-  listeners?: Array<Omit<ListenerConfig, 'effects'> & { effects: AffixEffectTemplate[] }>;
+  listeners?: Array<
+    Omit<ListenerConfig, 'effects'> & { effects: AffixEffectTemplate[] }
+  >;
 };
 
 /**
@@ -184,6 +190,7 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
           target?: 'caster' | 'target';
           maxStored?: ScalableParam;
           maxStoredValue?: AffixScalableValue;
+          includeShieldAbsorbed?: boolean;
           consume?: boolean;
         };
       }

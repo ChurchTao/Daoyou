@@ -11,8 +11,8 @@ import { clearMemory, readMemory, rememberAmount } from '../core/runtimeState';
 import { DamageSource, DamageType } from '../core/types';
 import { ValueCalculator } from '../core/ValueCalculator';
 import { EffectRegistry } from '../factories/EffectRegistry';
-import { EffectContext, GameplayEffect } from './Effect';
 import { publishMechanicLog } from './advancedEffectUtils';
+import { EffectContext, GameplayEffect } from './Effect';
 
 export class DamageMemoryEffect extends GameplayEffect {
   constructor(private params: DamageMemoryParams) {
@@ -20,7 +20,8 @@ export class DamageMemoryEffect extends GameplayEffect {
   }
 
   execute(context: EffectContext): void {
-    const owner = this.params.target === 'target' ? context.target : context.caster;
+    const owner =
+      this.params.target === 'target' ? context.target : context.caster;
     if (this.params.mode === 'clear') {
       clearMemory(owner, this.params.key);
       return;
@@ -29,7 +30,12 @@ export class DamageMemoryEffect extends GameplayEffect {
     if (this.params.mode === 'record') {
       const amount = this.getRecordAmount(context);
       if (amount > 0) {
-        rememberAmount(owner, this.params.key, amount, this.resolveMaxStored(context, owner));
+        rememberAmount(
+          owner,
+          this.params.key,
+          amount,
+          this.resolveMaxStored(context, owner),
+        );
         publishMechanicLog({
           mechanic: 'memory_record',
           source: context.caster,
@@ -76,13 +82,23 @@ export class DamageMemoryEffect extends GameplayEffect {
         if (context.triggerEvent?.type === 'DamageTakenEvent') {
           const attacker = (context.triggerEvent as DamageTakenEvent).caster;
           if (attacker?.isAlive()) {
-            this.publishDamage(context.target, attacker, amount, DamageSource.REFLECT);
+            this.publishDamage(
+              context.target,
+              attacker,
+              amount,
+              DamageSource.REFLECT,
+            );
           }
         }
         break;
       case 'damage':
       default:
-        this.publishDamage(context.caster, context.target, amount, DamageSource.DIRECT);
+        this.publishDamage(
+          context.caster,
+          context.target,
+          amount,
+          DamageSource.DIRECT,
+        );
         break;
     }
 
@@ -127,7 +143,10 @@ export class DamageMemoryEffect extends GameplayEffect {
     if (this.params.event === 'shield' && event.type === 'ShieldEvent') {
       return (event as ShieldEvent).shieldAmount;
     }
-    if (this.params.event === 'shield_break' && event.type === 'ShieldBreakEvent') {
+    if (
+      this.params.event === 'shield_break' &&
+      event.type === 'ShieldBreakEvent'
+    ) {
       return (event as ShieldBreakEvent).brokenShieldAmount;
     }
     if (event.type !== 'DamageTakenEvent') return 0;
@@ -135,16 +154,25 @@ export class DamageMemoryEffect extends GameplayEffect {
     if (this.params.event === 'critical_taken' && !damageEvent.isCritical) {
       return 0;
     }
-    if (this.params.event === 'damage_dealt' && damageEvent.caster !== context.caster) {
+    if (
+      this.params.event === 'damage_dealt' &&
+      damageEvent.caster !== context.caster
+    ) {
       return 0;
     }
     if (
-      (this.params.event === 'damage_taken' || this.params.event === 'critical_taken') &&
+      (this.params.event === 'damage_taken' ||
+        this.params.event === 'critical_taken') &&
       damageEvent.target !== context.target
     ) {
       return 0;
     }
-    return damageEvent.damageTaken;
+    return (
+      damageEvent.damageTaken +
+      (this.params.includeShieldAbsorbed
+        ? (damageEvent.shieldAbsorbed ?? 0)
+        : 0)
+    );
   }
 
   private resolveMaxStored(

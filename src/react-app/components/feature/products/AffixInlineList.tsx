@@ -28,14 +28,6 @@ function AffixInlineToken({ affix }: { affix: AffixView }) {
         >
           {affix.name}
         </span>
-        {affix.globalUniqueText && (
-          <span
-            className="ml-1 rounded border border-current/30 px-1 text-[10px] leading-4"
-            title={affix.globalUniqueText}
-          >
-            唯一
-          </span>
-        )}
         {affix.isPerfect && (
           <span
             aria-hidden="true"

@@ -8,8 +8,8 @@ import {
 } from '../contracts/battle';
 import { RolledAffix } from '../types';
 import {
-  AffixEffectTemplate,
   AffixBuffConfig,
+  AffixEffectTemplate,
   AffixScalableValue,
   ScalableParam,
   ScalableValueV2,
@@ -344,7 +344,9 @@ export class AffixEffectTranslator {
             ...(template.params.releaseAs
               ? { releaseAs: template.params.releaseAs }
               : {}),
-            ...(template.params.target ? { target: template.params.target } : {}),
+            ...(template.params.target
+              ? { target: template.params.target }
+              : {}),
             ...(template.params.maxStored !== undefined
               ? {
                   maxStored: this.resolveParam(
@@ -362,6 +364,9 @@ export class AffixEffectTranslator {
                     multiplier,
                   ),
                 }
+              : {}),
+            ...(template.params.includeShieldAbsorbed !== undefined
+              ? { includeShieldAbsorbed: template.params.includeShieldAbsorbed }
               : {}),
             ...(template.params.consume !== undefined
               ? { consume: template.params.consume }
@@ -479,7 +484,9 @@ export class AffixEffectTranslator {
           params: {
             rounds: Math.max(
               1,
-              Math.round(this.resolveParam(template.params.rounds, qualityOrder, 1)),
+              Math.round(
+                this.resolveParam(template.params.rounds, qualityOrder, 1),
+              ),
             ),
             ...(template.params.tags ? { tags: template.params.tags } : {}),
             ...(template.params.maxCount !== undefined
@@ -500,7 +507,9 @@ export class AffixEffectTranslator {
           params: {
             ...(template.params.id ? { id: template.params.id } : {}),
             ...(template.params.match ? { match: template.params.match } : {}),
-            ...(template.params.target ? { target: template.params.target } : {}),
+            ...(template.params.target
+              ? { target: template.params.target }
+              : {}),
             ...(template.params.durationDelta !== undefined
               ? {
                   durationDelta: this.resolveParam(
