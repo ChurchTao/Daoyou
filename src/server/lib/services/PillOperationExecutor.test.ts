@@ -277,7 +277,7 @@ describe('PillOperationExecutor toxicity and quota rules', () => {
       withBodyCultivationTrack({
         condition: createCondition(0),
         realm: 'iron_bone',
-        skin: { level: 14, progress: 1490 },
+        skin: { level: 14, progress: 1070 },
       }),
     );
     const pill = createPill('tempering', [
@@ -294,7 +294,7 @@ describe('PillOperationExecutor toxicity and quota rules', () => {
       withBodyCultivationTrack({
         condition: createCondition(0),
         realm: 'iron_bone',
-        skin: { level: 14, progress: 1490 },
+        skin: { level: 14, progress: 1070 },
       }),
     );
     const pill = createPill('tempering', [
@@ -316,7 +316,7 @@ describe('PillOperationExecutor toxicity and quota rules', () => {
       ...createCondition(0),
       tracks: {
         ...createCondition(0).tracks,
-        marrowWash: { level: 0, progress: 90 },
+        marrowWash: { level: 0, progress: 110 },
       },
     });
     cultivator.spiritual_roots = [
@@ -370,7 +370,7 @@ describe('PillOperationExecutor toxicity and quota rules', () => {
       ...createCondition(0),
       tracks: {
         ...createCondition(0).tracks,
-        marrowWash: { level: 9, progress: 990 },
+        marrowWash: { level: 9, progress: 650 },
       },
     });
     cultivator.realm = '炼气';
@@ -388,7 +388,7 @@ describe('PillOperationExecutor toxicity and quota rules', () => {
       ...createCondition(0),
       tracks: {
         ...createCondition(0).tracks,
-        marrowWash: { level: 9, progress: 990 },
+        marrowWash: { level: 9, progress: 650 },
       },
     });
     cultivator.realm = '炼气';

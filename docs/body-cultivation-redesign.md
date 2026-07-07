@@ -12,7 +12,7 @@
 
 当前炼体实现存在三个根本问题。
 
-第一，炼体奖励直接写入 `Cultivator.attributes`。当前 `TrackConfigRegistry` 中，五条炼体轨道升级后分别给 `vitality / spirit / wisdom / speed / willpower +1`，阈值为 `100 * (level + 1)`。这让炼体和境界突破成长竞争同一组基础属性。
+第一，炼体奖励直接写入 `Cultivator.attributes`。早期 `TrackConfigRegistry` 中，五条炼体轨道升级后分别给 `vitality / spirit / wisdom / speed / willpower +1`，阈值为 `100 * (level + 1)`。这让炼体和境界突破成长竞争同一组基础属性。当前实现已改为新五轨派生效果，炼体五轨升级阈值为 `100 + 70 * level`。
 
 第二，收益数值没有独立乘区。境界阶段属性上限随大境界快速增长，`+1` 基础属性在中后期会迅速变得不可感知。更严重的是，突破成长本身也会增加基础属性，玩家很难区分“这是突破成长”还是“之前炼体积累的长期收益”。
 

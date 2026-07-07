@@ -34,7 +34,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export function getMarrowWashThresholdByLevel(level: number): number {
-  return 100 * (Math.max(0, Math.floor(level)) + 1);
+  return 120 + 60 * Math.max(0, Math.floor(level));
 }
 
 export function getMarrowWashLevelCapByCultivationRealm(

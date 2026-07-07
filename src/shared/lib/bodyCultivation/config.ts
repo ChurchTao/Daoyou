@@ -176,7 +176,7 @@ export function createEmptyProgressTrack(): ConditionProgressTrack {
 }
 
 export function getBodyCultivationThresholdByLevel(level: number): number {
-  return 100 * (Math.max(0, Math.floor(level)) + 1);
+  return 100 + 70 * Math.max(0, Math.floor(level));
 }
 
 export function getNextBodyCultivationRealm(

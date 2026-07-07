@@ -664,6 +664,11 @@ export interface TrackConfig {
 - `tempering.willpower` 升级：永久增加 `attributes.willpower`
 - `marrow_wash` 升级：永久强化灵根强度，规则由 `MarrowWashRewardConfig` 控制
 
+当前经验阈值：
+
+- 炼体五轨：`threshold(level) = 100 + 70 * level`
+- 洗髓：`threshold(level) = 120 + 60 * level`
+
 ### 14.4 设计原则
 
 - 丹药不再“吃下去立刻 +1 属性”。

@@ -9,6 +9,7 @@ import {
   isBodyCultivationTrackPath,
   isLegacyTemperingTrackPath,
 } from './bodyCultivation/config';
+import { getMarrowWashThresholdByLevel } from './marrowWash';
 
 export type TrackReward =
   | {
@@ -76,7 +77,7 @@ const trackConfigs = {
     key: 'marrow_wash',
     name: '洗髓',
     shortDesc: '升级后获得 1 点自由属性点，破限后强化后天灵根强度',
-    thresholdByLevel: (level) => 100 * (level + 1),
+    thresholdByLevel: getMarrowWashThresholdByLevel,
     reward: {
       kind: 'none',
     },
