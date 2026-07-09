@@ -2391,24 +2391,20 @@ export async function replaceSpiritualRoots(
   );
 }
 
-export async function increaseSpiritualRootMarrowWashBonus(
+export async function setSpiritualRootMarrowWashBonus(
   userId: string,
   cultivatorId: string,
-  amount: number,
+  targetBonus: number,
   tx?: DbTransaction,
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const delta = Math.max(0, Math.floor(amount));
-  if (delta <= 0) {
-    return;
-  }
-
+  const bonus = Math.max(0, Math.floor(targetBonus));
   const dbInstance = getExecutor(tx);
   await dbInstance
     .update(schema.spiritualRoots)
     .set({
-      marrowWashBonus: sql`least(${schema.spiritualRoots.marrowWashBonus} + ${delta}, greatest(0, ${SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP} - ${schema.spiritualRoots.strength}))`,
+      marrowWashBonus: sql`least(${bonus}, greatest(0, ${SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP} - ${schema.spiritualRoots.strength}))`,
     })
     .where(eq(schema.spiritualRoots.cultivatorId, cultivatorId));
 }

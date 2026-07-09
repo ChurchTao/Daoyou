@@ -211,7 +211,7 @@ vi.mock('@server/lib/services/cultivatorService', () => {
     getCultivatorMaterials: vi.fn(),
     getLastDeadCultivatorSummary: vi.fn(),
     getPaginatedInventoryByType: vi.fn(),
-    increaseSpiritualRootMarrowWashBonus: vi.fn(),
+    setSpiritualRootMarrowWashBonus: vi.fn(),
     updateCultivationExp: vi.fn(),
     updateCultivator: vi.fn(),
     updateLastYieldAt: vi.fn(),
@@ -277,7 +277,7 @@ import {
   consumeConsumableById,
   consumeMaterialById,
   getCultivatorById,
-  increaseSpiritualRootMarrowWashBonus,
+  setSpiritualRootMarrowWashBonus,
   updateCultivationExp,
   updateCultivator,
   updateSpiritStones,
@@ -324,8 +324,8 @@ const addBreakthroughHistoryEntryMock =
   addBreakthroughHistoryEntry as unknown as Mock;
 const addRetreatRecordMock = addRetreatRecord as unknown as Mock;
 const getCultivatorByIdMock = getCultivatorById as unknown as Mock;
-const increaseSpiritualRootMarrowWashBonusMock =
-  increaseSpiritualRootMarrowWashBonus as unknown as Mock;
+const setSpiritualRootMarrowWashBonusMock =
+  setSpiritualRootMarrowWashBonus as unknown as Mock;
 const updateCultivatorMock = updateCultivator as unknown as Mock;
 const updateCultivationExpMock = updateCultivationExp as unknown as Mock;
 const updateSpiritStonesMock = updateSpiritStones as unknown as Mock;
@@ -2672,15 +2672,15 @@ describe('cultivator marrow wash routes', () => {
       {
         element: '木',
         strength: 119,
-        baseStrength: 95,
-        marrowWashBonus: 24,
+        baseStrength: 119,
+        marrowWashBonus: 0,
         grade: '真灵根',
       },
       {
         element: '火',
         strength: 120,
-        baseStrength: 100,
-        marrowWashBonus: 20,
+        baseStrength: 120,
+        marrowWashBonus: 0,
         grade: '真灵根',
       },
     ];
@@ -2750,14 +2750,14 @@ describe('cultivator marrow wash routes', () => {
           {
             element: '木',
             strength: 120,
-            baseStrength: 95,
-            marrowWashBonus: 25,
+            baseStrength: 119,
+            marrowWashBonus: 1,
           },
           {
             element: '火',
             strength: 120,
-            baseStrength: 100,
-            marrowWashBonus: 20,
+            baseStrength: 120,
+            marrowWashBonus: 0,
           },
         ],
       },
@@ -2780,7 +2780,7 @@ describe('cultivator marrow wash routes', () => {
       },
       expect.any(Object),
     );
-    expect(increaseSpiritualRootMarrowWashBonusMock).toHaveBeenCalledWith(
+    expect(setSpiritualRootMarrowWashBonusMock).toHaveBeenCalledWith(
       'user-1',
       'cultivator-1',
       1,
@@ -2790,6 +2790,130 @@ describe('cultivator marrow wash routes', () => {
       expect.objectContaining({
         actionInstanceId: expect.any(String),
       }),
+    );
+  });
+
+  it('checks marrow wash eligibility against the locked transaction state', async () => {
+    const staleCultivator = createCultivator();
+    staleCultivator.realm = '筑基';
+    staleCultivator.condition = {
+      ...staleCultivator.condition!,
+      tracks: {
+        ...staleCultivator.condition!.tracks,
+        marrowWash: {
+          version: 1,
+          level: 9,
+          progress: 0,
+          realm: 0,
+          breakthroughs: 0,
+        },
+      },
+    };
+
+    const lockedCultivator = createCultivator();
+    lockedCultivator.realm = '筑基';
+    lockedCultivator.condition = {
+      ...lockedCultivator.condition!,
+      tracks: {
+        ...lockedCultivator.condition!.tracks,
+        marrowWash: {
+          version: 1,
+          level: 10,
+          progress: 0,
+          realm: 0,
+          breakthroughs: 0,
+        },
+      },
+    };
+    lockedCultivator.spiritual_roots = [
+      {
+        element: '木',
+        strength: 100,
+        baseStrength: 100,
+        marrowWashBonus: 0,
+        grade: '真灵根',
+      },
+    ];
+    getCultivatorByIdMock.mockImplementationOnce(
+      async (_userId, _cultivatorId, tx) =>
+        tx ? lockedCultivator : staleCultivator,
+    );
+    reserveQiMock.mockResolvedValueOnce({
+      success: true,
+      action: 'marrow_wash_breakthrough',
+      actionInstanceId: 'qi-action-1',
+      qiBefore: 100,
+      qiAfter: 80,
+      consumed: 20,
+    });
+    updateCultivatorMock.mockImplementationOnce(
+      async (_cultivatorId, patch) => ({
+        ...lockedCultivator,
+        ...patch,
+      }),
+    );
+    const txMock = mockStateOnlyTransaction({
+      versionRow: createStateVersionRow({
+        conditionVersion: 1,
+        profileVersion: 1,
+        currencyVersion: 1,
+      }),
+      eventRows: createStateEventRows([
+        {
+          domain: 'condition',
+          eventType: 'condition.marrow_wash.breakthrough',
+          source: 'marrow_wash_breakthrough',
+        },
+        {
+          domain: 'profile',
+          eventType: 'profile.spiritual_roots.marrow_wash_bonus',
+          source: 'marrow_wash_breakthrough',
+        },
+        {
+          domain: 'currency',
+          eventType: 'currency.qi.spent',
+          source: 'marrow_wash_breakthrough',
+        },
+      ]),
+    });
+
+    const response = await createApp().request(
+      '/api/cultivator/marrow-wash/breakthrough',
+      { method: 'POST' },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        condition: {
+          tracks: {
+            marrowWash: {
+              realm: 1,
+              breakthroughs: 1,
+            },
+          },
+        },
+        spiritual_roots: [
+          {
+            element: '木',
+            strength: 101,
+            baseStrength: 100,
+            marrowWashBonus: 1,
+          },
+        ],
+      },
+    });
+    expect(getCultivatorByIdMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      txMock,
+    );
+    expect(setSpiritualRootMarrowWashBonusMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      1,
+      txMock,
     );
   });
 
@@ -2833,7 +2957,7 @@ describe('cultivator marrow wash routes', () => {
       action: 'marrow_wash_breakthrough',
     });
     expect(updateCultivatorMock).not.toHaveBeenCalled();
-    expect(increaseSpiritualRootMarrowWashBonusMock).not.toHaveBeenCalled();
+    expect(setSpiritualRootMarrowWashBonusMock).not.toHaveBeenCalled();
   });
 
   it('rejects marrow wash breakthrough before the level threshold', async () => {

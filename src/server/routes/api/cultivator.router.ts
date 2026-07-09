@@ -82,7 +82,7 @@ import {
   getLastDeadCultivatorSummary,
   getPaginatedInventoryByType,
   getPlayerRuntimeCultivatorById,
-  increaseSpiritualRootMarrowWashBonus,
+  setSpiritualRootMarrowWashBonus,
   updateCultivationExp,
   updateCultivator,
   updateSpiritStones,
@@ -1045,44 +1045,44 @@ router.post(
       return c.json({ success: false, error: '未授权访问' }, 401);
     }
 
-    const cultivator = await getPlayerRuntimeCultivatorById(
-      user.id,
-      activeCultivator.id,
-    );
-    if (!cultivator) {
-      return c.json({ success: false, error: '角色不存在' }, 404);
-    }
-
     try {
-      const result = breakthroughMarrowWash(cultivator.condition, {
-        cultivatorRealm: cultivator.realm,
-      });
       const actionInstanceId = randomUUID();
       let qiAfter: number | null = null;
-
-      const nextRoots = cultivator.spiritual_roots.map((root) => {
-        const baseStrength = root.baseStrength ?? root.strength;
-        const currentBonus = root.marrowWashBonus ?? 0;
-        const nextBonus = Math.min(
-          currentBonus + 1,
-          Math.max(0, SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP - baseStrength),
-        );
-        return {
-          ...root,
-          baseStrength,
-          marrowWashBonus: nextBonus,
-          strength: Math.min(
-            SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
-            baseStrength + nextBonus,
-          ),
-        };
-      });
 
       const committed = await commitPlayerStateMutation({
         userId: user.id,
         cultivatorId: activeCultivator.id,
         source: 'marrow_wash_breakthrough',
         run: async (tx) => {
+          const cultivator = await getPlayerRuntimeCultivatorById(
+            user.id,
+            activeCultivator.id,
+            tx,
+          );
+          if (!cultivator) {
+            throw new Error('角色不存在');
+          }
+
+          const result = breakthroughMarrowWash(cultivator.condition, {
+            cultivatorRealm: cultivator.realm,
+          });
+          const nextRoots = cultivator.spiritual_roots.map((root) => {
+            const baseStrength = root.baseStrength ?? root.strength;
+            const nextBonus = Math.min(
+              result.toRealm,
+              Math.max(0, SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP - baseStrength),
+            );
+            return {
+              ...root,
+              baseStrength,
+              marrowWashBonus: nextBonus,
+              strength: Math.min(
+                SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
+                baseStrength + nextBonus,
+              ),
+            };
+          });
+
           const qiReservation = await QiService.reserveQi({
             cultivatorId: activeCultivator.id,
             action: 'marrow_wash_breakthrough',
@@ -1112,10 +1112,10 @@ router.post(
             throw new Error('更新角色数据失败');
           }
 
-          await increaseSpiritualRootMarrowWashBonus(
+          await setSpiritualRootMarrowWashBonus(
             user.id,
             activeCultivator.id,
-            1,
+            result.toRealm,
             tx,
           );
           await QiService.commitReservation({
@@ -1164,12 +1164,13 @@ router.post(
       const qiResponse = qiErrorResponse(c, error);
       if (qiResponse) return qiResponse;
 
+      const message = error instanceof Error ? error.message : '洗髓破限失败';
       return c.json(
         {
           success: false,
-          error: error instanceof Error ? error.message : '洗髓破限失败',
+          error: message,
         },
-        400,
+        message === '角色不存在' ? 404 : 400,
       );
     }
   },
