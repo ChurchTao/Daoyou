@@ -87,6 +87,27 @@ function createCondition(hp: number, mp = 100): CultivatorCondition {
   };
 }
 
+function withBodyCultivation(condition: CultivatorCondition): CultivatorCondition {
+  return {
+    ...condition,
+    tracks: {
+      ...condition.tracks,
+      bodyCultivation: {
+        version: 1,
+        realm: 'dao_body',
+        milestones: {},
+        tracks: {
+          skin: { level: 30, progress: 0 },
+          sinew_bone: { level: 30, progress: 0 },
+          organs: { level: 30, progress: 0 },
+          qi_blood: { level: 30, progress: 0 },
+          primordial_spirit: { level: 30, progress: 0 },
+        },
+      },
+    },
+  };
+}
+
 describe('ConditionService resource max snapshots', () => {
   it('preserves legacy full-health semantics when loadout raises runtime max', () => {
     const bare = createCultivator();
@@ -148,5 +169,67 @@ describe('ConditionService resource max snapshots', () => {
       current: runtimeMax.maxHp,
       max: runtimeMax.maxHp,
     });
+  });
+});
+
+describe('ConditionService body cultivation boundaries', () => {
+  it('does not apply body cultivation to natural recovery', () => {
+    const now = new Date('2026-07-01T01:00:00.000Z');
+    const bodyCondition = withBodyCultivation(createCondition(0, 0));
+    const cultivator = createCultivator(bodyCondition);
+    const maxResources = ConditionService.getMaxResources(cultivator, bodyCondition);
+    const body = ConditionService.tickNaturalRecovery(
+      cultivator,
+      bodyCondition,
+      now,
+    );
+
+    expect(body.resources.hp.current).toBe(
+      Math.floor(maxResources.maxHp * 0.28),
+    );
+    expect(body.resources.mp.current).toBe(
+      Math.floor(maxResources.maxMp * 0.38),
+    );
+  });
+
+  it('does not apply body cultivation mitigation to external resource loss', () => {
+    const condition = withBodyCultivation(createCondition(1000, 800));
+    const preview = ConditionService.previewExternalResourceLoss(
+      createCultivator(condition),
+      condition,
+      {
+        hpPercent: 0.1,
+        mpPercent: 0.1,
+      },
+    );
+
+    expect(preview.hpLoss).toBe(preview.rawHpLoss);
+    expect(preview.mpLoss).toBe(preview.rawMpLoss);
+    expect(preview.preventedHpLoss).toBe(0);
+    expect(preview.preventedMpLoss).toBe(0);
+    expect(preview.triggerTexts).toEqual([]);
+  });
+
+  it('does not apply body cultivation defeat protection after battle', () => {
+    const condition = withBodyCultivation(createCondition(1000, 800));
+    const settled = ConditionService.applyBattleOutcome(
+      createCultivator(condition),
+      condition,
+      {} as any,
+      'persistent_pve',
+      true,
+      new Date('2026-07-01T01:00:00.000Z'),
+    );
+
+    expect(settled.resources.hp.current).toBe(1);
+    expect(settled.resources.mp.current).toBe(0);
+    expect(settled.statuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'near_death' }),
+      ]),
+    );
+    expect(settled.statuses.some((status) => status.key === 'major_wound')).toBe(
+      false,
+    );
   });
 });

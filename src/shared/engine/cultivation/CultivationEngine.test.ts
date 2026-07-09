@@ -335,7 +335,7 @@ describe('CultivationEngine cultivation boost', () => {
     expect(result.cultivator.cultivation_progress?.inner_demon).toBe(false);
   });
 
-  it('uses body cultivation to reduce failed breakthrough pressure without changing success chance', () => {
+  it('does not use body cultivation to reduce failed breakthrough pressure', () => {
     const baseCultivator = createCultivator();
     baseCultivator.realm_stage = '圆满';
     baseCultivator.cultivation_progress!.cultivation_exp = 80_000;
@@ -361,18 +361,16 @@ describe('CultivationEngine cultivation boost', () => {
     );
 
     expect(body.summary.chance).toBe(base.summary.chance);
-    expect(body.summary.exp_lost ?? 0).toBeLessThan(base.summary.exp_lost ?? 0);
-    expect(Math.abs(body.summary.insight_change)).toBeLessThan(
-      Math.abs(base.summary.insight_change),
-    );
+    expect(body.summary.exp_lost).toBe(base.summary.exp_lost);
+    expect(body.summary.insight_change).toBe(base.summary.insight_change);
     expect(
       body.cultivator.cultivation_progress?.deviation_risk ?? 0,
-    ).toBeLessThan(base.cultivator.cultivation_progress?.deviation_risk ?? 0);
+    ).toBe(base.cultivator.cultivation_progress?.deviation_risk ?? 0);
     expect(base.cultivator.cultivation_progress?.inner_demon).toBe(true);
-    expect(body.cultivator.cultivation_progress?.inner_demon).toBe(false);
+    expect(body.cultivator.cultivation_progress?.inner_demon).toBe(true);
   });
 
-  it('applies dao-body breakthrough pressure carrying without changing success chance', () => {
+  it('does not apply dao-body breakthrough pressure carrying', () => {
     const dharmaBodyCultivator = withBodyCultivation(createCultivator(), {
       realm: 'dharma_body',
       skin: 25,
@@ -407,15 +405,13 @@ describe('CultivationEngine cultivation boost', () => {
     );
 
     expect(daoBody.summary.chance).toBe(dharmaBody.summary.chance);
-    expect(daoBody.summary.exp_lost ?? 0).toBeLessThan(
-      dharmaBody.summary.exp_lost ?? 0,
-    );
-    expect(Math.abs(daoBody.summary.insight_change)).toBeLessThan(
-      Math.abs(dharmaBody.summary.insight_change),
+    expect(daoBody.summary.exp_lost).toBe(dharmaBody.summary.exp_lost);
+    expect(daoBody.summary.insight_change).toBe(
+      dharmaBody.summary.insight_change,
     );
     expect(
       daoBody.cultivator.cultivation_progress?.deviation_risk ?? 0,
-    ).toBeLessThan(
+    ).toBe(
       dharmaBody.cultivator.cultivation_progress?.deviation_risk ?? 0,
     );
   });

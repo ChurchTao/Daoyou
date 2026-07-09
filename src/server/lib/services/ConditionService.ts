@@ -21,9 +21,6 @@ import {
 } from '@shared/lib/bodyCultivation/breakthrough';
 import {
   getBodyCultivationBattleInitHooks,
-  getBodyCultivationBattleSettleHooks,
-  getBodyCultivationExternalResourceLossHooks,
-  getBodyCultivationNaturalRecoveryMultiplier,
 } from '@shared/lib/bodyCultivation/effects';
 import { PILL_TOXICITY_CAP } from '@shared/config/consumableSystem';
 import { normalizeMarrowWashState } from '@shared/lib/marrowWash';
@@ -509,12 +506,9 @@ export const ConditionService = {
       fateContext.toxicityPenaltyMultiplier,
     );
     const statusMultiplier = getNaturalRecoveryStatusMultiplier(condition, now);
-    const bodyCultivationMultiplier =
-      getBodyCultivationNaturalRecoveryMultiplier(condition);
     const recoveryFactor =
       toxicityMultiplier *
       statusMultiplier *
-      bodyCultivationMultiplier *
       fateContext.naturalRecoveryMultiplier;
     const hpRecover = Math.floor(
       maxHp * NATURAL_RECOVERY_CONFIG.hpPerHour * elapsedHours * recoveryFactor,
@@ -593,25 +587,14 @@ export const ConditionService = {
   ): ExternalResourceLossPreview {
     const condition = this.normalizeCondition(cultivator, conditionInput);
     const { maxHp, maxMp } = this.getMaxResources(cultivator, condition);
-    const bodyHooks = getBodyCultivationExternalResourceLossHooks(condition);
     const rawHpLossValue =
       maxHp * (options.hpPercent ?? 0) + (options.hpFlat ?? 0);
     const rawMpLossValue =
       maxMp * (options.mpPercent ?? 0) + (options.mpFlat ?? 0);
-    const hpLoss = Math.floor(rawHpLossValue * bodyHooks.hpLossMultiplier);
-    const mpLoss = Math.floor(rawMpLossValue * bodyHooks.mpLossMultiplier);
+    const hpLoss = Math.floor(rawHpLossValue);
+    const mpLoss = Math.floor(rawMpLossValue);
     const rawHpLoss = Math.floor(rawHpLossValue);
     const rawMpLoss = Math.floor(rawMpLossValue);
-    const preventedHpLoss = Math.max(0, rawHpLoss - hpLoss);
-    const preventedMpLoss = Math.max(0, rawMpLoss - mpLoss);
-    const triggerTexts: string[] = [];
-
-    if (preventedHpLoss > 0) {
-      triggerTexts.push(`肉身炼体生效：外护与承压降低气血损耗 ${preventedHpLoss} 点`);
-    }
-    if (preventedMpLoss > 0) {
-      triggerTexts.push(`肉身炼体生效：气血与元神稳住灵力损耗 ${preventedMpLoss} 点`);
-    }
 
     return {
       maxHp,
@@ -620,11 +603,11 @@ export const ConditionService = {
       rawMpLoss,
       hpLoss,
       mpLoss,
-      preventedHpLoss,
-      preventedMpLoss,
-      hpLossMultiplier: bodyHooks.hpLossMultiplier,
-      mpLossMultiplier: bodyHooks.mpLossMultiplier,
-      triggerTexts,
+      preventedHpLoss: 0,
+      preventedMpLoss: 0,
+      hpLossMultiplier: 1,
+      mpLossMultiplier: 1,
+      triggerTexts: [],
     };
   },
 
@@ -666,9 +649,6 @@ export const ConditionService = {
     const condition = this.tickNaturalRecovery(cultivator, conditionInput, now);
     const { maxHp } = this.getMaxResources(cultivator, condition);
     const battleInitHooks = getBodyCultivationBattleInitHooks(condition);
-    const startingShield = Math.floor(
-      maxHp * battleInitHooks.startingShieldPercent,
-    );
 
     return {
       player: {
@@ -681,7 +661,6 @@ export const ConditionService = {
             mode: 'absolute',
             value: condition.resources.mp.current,
           },
-          ...(startingShield > 0 ? { shield: startingShield } : {}),
         },
         statusRefs: toBattleStatusRefs(condition.statuses, now),
         startingBuffs: battleInitHooks.startingBuffs.map((buff) => ({
@@ -706,24 +685,15 @@ export const ConditionService = {
 
     const condition = this.tickNaturalRecovery(cultivator, conditionInput, now);
     const { maxHp, maxMp } = this.getMaxResources(cultivator, condition);
-    const bodyHooks = getBodyCultivationBattleSettleHooks(condition);
 
     if (didLose) {
-      const defeatProtection = bodyHooks.defeatProtection;
       return {
         ...condition,
         resources: {
-          hp: { current: defeatProtection?.hpFloor ?? 1, max: maxHp },
+          hp: { current: 1, max: maxHp },
           mp: { current: 0, max: maxMp },
         },
-        statuses: defeatProtection
-          ? setBattleWoundStatus(
-              condition.statuses,
-              defeatProtection.woundStatus,
-              0,
-              now,
-            )
-          : setMinimumWoundStatus(condition.statuses, 'near_death', now),
+        statuses: setMinimumWoundStatus(condition.statuses, 'near_death', now),
         timestamps: {
           ...condition.timestamps,
           lastBattleAt: now.toISOString(),
@@ -741,32 +711,22 @@ export const ConditionService = {
       statuses = setBattleWoundStatus(
         statuses,
         'major_wound',
-        bodyHooks.woundDowngradeSteps,
+        0,
         now,
       );
     } else if (hpRatio <= 0.35) {
       statuses = setBattleWoundStatus(
         statuses,
         'minor_wound',
-        bodyHooks.woundDowngradeSteps,
+        0,
         now,
       );
     }
-    const settledHp =
-      hpRatio > 0 &&
-      hpRatio < 0.5 &&
-      bodyHooks.lowHpRecoveryPercent > 0
-        ? clamp(
-            currentHp + Math.floor(maxHp * bodyHooks.lowHpRecoveryPercent),
-            0,
-            maxHp,
-          )
-        : currentHp;
 
     return {
       ...condition,
       resources: {
-        hp: { current: settledHp, max: maxHp },
+        hp: { current: currentHp, max: maxHp },
         mp: { current: currentMp, max: maxMp },
       },
       statuses,

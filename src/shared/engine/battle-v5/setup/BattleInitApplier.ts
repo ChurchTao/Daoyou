@@ -170,23 +170,14 @@ function mergeBodyCultivationInit(
       buff,
       source: 'self' as const,
     }));
-  const bodyShield =
-    spec?.resourceState?.shield === undefined && hooks.startingShieldPercent > 0
-      ? ({ mode: 'percent', value: hooks.startingShieldPercent } as const)
-      : undefined;
 
-  if (!bodyStartingBuffs.length && !bodyShield) {
+  if (!bodyStartingBuffs.length) {
     return spec;
   }
 
   return {
     ...spec,
-    resourceState: bodyShield
-      ? {
-          ...spec?.resourceState,
-          shield: bodyShield,
-        }
-      : spec?.resourceState,
+    resourceState: spec?.resourceState,
     startingBuffs: [
       ...(spec?.startingBuffs ?? []),
       ...bodyStartingBuffs,

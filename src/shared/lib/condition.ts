@@ -10,7 +10,6 @@ import {
   createDefaultBodyCultivationState,
   normalizeBodyCultivationState,
 } from './bodyCultivation/normalize';
-import { getBodyCultivationNaturalRecoveryMultiplier } from './bodyCultivation/effects';
 import { PILL_TOXICITY_CAP } from '@shared/config/consumableSystem';
 
 export interface PillToxicityStage {
@@ -163,8 +162,6 @@ export function getNaturalRecoveryEstimate(options: {
     conditionInput,
     now,
   );
-  const bodyCultivationMultiplier =
-    getBodyCultivationNaturalRecoveryMultiplier(conditionInput);
   const basePerHour =
     resource === 'hp'
       ? NATURAL_RECOVERY_CONFIG.hpPerHour
@@ -174,7 +171,6 @@ export function getNaturalRecoveryEstimate(options: {
     basePerHour *
     toxicityMultiplier *
     statusMultiplier *
-    bodyCultivationMultiplier *
     Math.max(0, naturalRecoveryMultiplier);
 
   if (perHour <= 0) {

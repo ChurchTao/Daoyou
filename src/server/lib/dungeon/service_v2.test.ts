@@ -750,22 +750,6 @@ describe('DungeonService action recovery', () => {
       userId: 'user-1',
       updatedAt: new Date(),
     });
-    vi.mocked(ConditionService.previewExternalResourceLoss).mockReturnValueOnce({
-      maxHp: 1_000,
-      maxMp: 800,
-      rawHpLoss: 200,
-      rawMpLoss: 120,
-      hpLoss: 180,
-      mpLoss: 108,
-      preventedHpLoss: 20,
-      preventedMpLoss: 12,
-      hpLossMultiplier: 0.9,
-      mpLossMultiplier: 0.9,
-      triggerTexts: [
-        '肉身炼体生效：外护与承压降低气血损耗 20 点',
-        '肉身炼体生效：气血与元神稳住灵力损耗 12 点',
-      ],
-    });
     vi.mocked(ConditionService.applyExternalResourceLoss).mockReturnValueOnce(
       nextCondition,
     );
@@ -794,43 +778,15 @@ describe('DungeonService action recovery', () => {
             costs: [
               {
                 type: 'hp_loss',
-                metadata: {
-                  bodyCultivation: {
-                    eventType: 'generic',
-                    preventedLoss: 20,
-                    track: 'skin',
-                    trackLabel: '皮肤',
-                    triggerText:
-                      '肉身炼体生效：外护与承压降低气血损耗 20 点',
-                  },
-                },
               },
               {
                 type: 'mp_loss',
-                metadata: {
-                  bodyCultivation: {
-                    eventType: 'generic',
-                    preventedLoss: 12,
-                    track: 'primordial_spirit',
-                    trackLabel: '元神',
-                    triggerText:
-                      '肉身炼体生效：气血与元神稳住灵力损耗 12 点',
-                  },
-                },
               },
             ],
           },
         ],
       },
     });
-    expect(ConditionService.previewExternalResourceLoss).toHaveBeenCalledWith(
-      player,
-      player.condition,
-      {
-        hpPercent: 0.2,
-        mpPercent: 0.15,
-      },
-    );
     expect(ConditionService.applyExternalResourceLoss).toHaveBeenCalledWith(
       player,
       player.condition,
@@ -846,7 +802,7 @@ describe('DungeonService action recovery', () => {
     );
   });
 
-  it('previews body cultivation resource-loss feedback on generated dungeon options', async () => {
+  it('previews raw resource loss on generated dungeon options without body cultivation metadata', async () => {
     const service = new DungeonService();
     const state = createDungeonState('easy-map');
     state.currentOptions = [
@@ -879,16 +835,13 @@ describe('DungeonService action recovery', () => {
         maxMp: 800,
         rawHpLoss: 100,
         rawMpLoss: 80,
-        hpLoss: 90,
-        mpLoss: 72,
-        preventedHpLoss: 10,
-        preventedMpLoss: 8,
-        hpLossMultiplier: 0.9,
-        mpLossMultiplier: 0.9,
-        triggerTexts: [
-          '肉身炼体生效：外护与承压降低气血损耗 10 点',
-          '肉身炼体生效：气血与元神稳住灵力损耗 8 点',
-        ],
+        hpLoss: 100,
+        mpLoss: 80,
+        preventedHpLoss: 0,
+        preventedMpLoss: 0,
+        hpLossMultiplier: 1,
+        mpLossMultiplier: 1,
+        triggerTexts: [],
       })
       .mockReturnValueOnce({
         maxHp: 1_000,
@@ -950,32 +903,16 @@ describe('DungeonService action recovery', () => {
         type: 'hp_loss',
         value: 0.1,
         metadata: {
-          bodyCultivation: {
-            rawLoss: 100,
-            actualLoss: 90,
-            preventedLoss: 10,
-            multiplier: 0.9,
-            eventType: 'erosion',
-            track: 'skin',
-            trackLabel: '皮肤',
-            triggerText: '皮肤生效：降低外邪侵蚀，已抵消 10 点气血损耗',
-          },
+          rawLoss: 100,
+          actualLoss: 100,
         },
       },
       {
         type: 'mp_loss',
         value: 0.1,
         metadata: {
-          bodyCultivation: {
-            rawLoss: 80,
-            actualLoss: 72,
-            preventedLoss: 8,
-            multiplier: 0.9,
-            eventType: 'spirit_intrusion',
-            track: 'primordial_spirit',
-            trackLabel: '元神',
-            triggerText: '元神生效：降低神魂侵蚀，已抵消 8 点灵力损耗',
-          },
+          rawLoss: 80,
+          actualLoss: 80,
         },
       },
     ]);

@@ -287,8 +287,8 @@ describe('BattleInitApplier', () => {
 
     const { playerUnit, opponentUnit } = createBattleUnitsWithInit(player, opponent);
 
-    expect(playerUnit.getCurrentShield()).toBeGreaterThan(0);
-    expect(opponentUnit.getCurrentShield()).toBeGreaterThan(0);
+    expect(playerUnit.getCurrentShield()).toBe(0);
+    expect(opponentUnit.getCurrentShield()).toBe(0);
     expect(
       playerUnit.buffs
         .getAllBuffs()
@@ -301,7 +301,7 @@ describe('BattleInitApplier', () => {
     ).toBe(true);
   });
 
-  test('肉身入场效果不会覆盖显式护盾或重复同名 buff', () => {
+  test('肉身入场效果不会重复同名 buff', () => {
     const player = createCultivator('player', '道友');
     const opponent = createCultivator('opponent', '对手');
     player.condition = createBodyCultivationCondition({

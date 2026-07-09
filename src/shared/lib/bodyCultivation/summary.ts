@@ -80,14 +80,11 @@ function getEffectTexts(key: BodyCultivationTrackKey, level: number): string[] {
       return [
         `气血上限 +${formatPercent(clamp(level * 0.008, 0, 1.1))}`,
         `暴击伤害减免 +${formatPercent(clamp(level * 0.008, 0, 0.5))}`,
-        `自然恢复 +${formatPercent(clamp(level * 0.006, 0, 0.75))}`,
-        `突破失败修为损失 -${formatPercent(clamp(level * 0.006, 0, 0.42))}`,
       ];
     case 'organs':
       return [
         `物攻 +${formatPercent(clamp(level * 0.005, 0, 0.35))}`,
         `法攻 +${formatPercent(clamp(level * 0.004, 0, 0.3))}`,
-        `秘境气血损耗 -${formatPercent(clamp(level * 0.002, 0, 0.3))}`,
         ...(level >= 5
           ? [
               `首次高耗蓝技能回蓝 ${formatPercent(
@@ -100,15 +97,11 @@ function getEffectTexts(key: BodyCultivationTrackKey, level: number): string[] {
       return [
         `气血上限 +${formatPercent(clamp(level * 0.012, 0, 1.1))}`,
         `治疗效果 +${formatPercent(clamp(level * 0.004, 0, 0.25))}`,
-        `自然恢复 +${formatPercent(clamp(level * 0.008, 0, 0.75))}`,
-        `突破失败感悟损失 -${formatPercent(clamp(level * 0.004, 0, 0.32))}`,
       ];
     case 'primordial_spirit':
       return [
         `控制抗性 +${formatPercent(clamp(level * 0.008, 0, 0.45))}`,
         `抗暴 +${formatPercent(clamp(level * 0.005, 0, 0.3))}`,
-        `心魔概率 -${formatPercent(clamp(level * 0.004, 0, 0.38))}`,
-        `秘境灵力损耗 -${formatPercent(clamp(level * 0.003, 0, 0.2))}`,
       ];
   }
 }

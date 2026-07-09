@@ -6,9 +6,6 @@ import {
 } from '@shared/engine/battle-v5/core/types';
 import {
   getBodyCultivationBattleInitHooks,
-  getBodyCultivationBattleSettleHooks,
-  getBodyCultivationBreakthroughPressureHooks,
-  getBodyCultivationDungeonEventFeedback,
 } from './effects';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 
@@ -60,54 +57,6 @@ function createCondition(args: {
     timestamps: {},
   };
 }
-
-describe('body cultivation dungeon event feedback', () => {
-  it('maps dungeon erosion text to skin feedback', () => {
-    expect(
-      getBodyCultivationDungeonEventFeedback({
-        contextText: '毒瘴雾气侵蚀皮膜，寒煞沿经络渗入。',
-        resource: 'hp',
-        preventedLoss: 18,
-      }),
-    ).toEqual({
-      eventType: 'erosion',
-      track: 'skin',
-      trackLabel: '皮肤',
-      triggerText: '皮肤生效：降低外邪侵蚀，已抵消 18 点气血损耗',
-    });
-  });
-
-  it('maps dungeon illusion text to primordial-spirit feedback', () => {
-    expect(
-      getBodyCultivationDungeonEventFeedback({
-        contextText: '幻境牵动识海，似有残魂试图夺舍。',
-        resource: 'mp',
-        preventedLoss: 9,
-      }),
-    ).toEqual({
-      eventType: 'spirit_intrusion',
-      track: 'primordial_spirit',
-      trackLabel: '元神',
-      triggerText: '元神生效：降低神魂侵蚀，已抵消 9 点灵力损耗',
-    });
-  });
-
-  it('keeps existing generic trigger text when no event keyword is present', () => {
-    expect(
-      getBodyCultivationDungeonEventFeedback({
-        contextText: '普通禁制抽走部分灵力。',
-        resource: 'mp',
-        preventedLoss: 7,
-        fallbackTriggerText: '肉身炼体生效：气血与元神稳住灵力损耗 7 点',
-      }),
-    ).toEqual({
-      eventType: 'generic',
-      track: 'primordial_spirit',
-      trackLabel: '元神',
-      triggerText: '肉身炼体生效：气血与元神稳住灵力损耗 7 点',
-    });
-  });
-});
 
 describe('body cultivation battle init hooks', () => {
   it('adds skin direct-damage reduction as a battle-init listener', () => {
@@ -231,7 +180,87 @@ describe('body cultivation battle init hooks', () => {
     });
   });
 
-  it('opens golden-body burn-blood only when realm and all tracks are ready', () => {
+  it('opens bronze-skin guard for the first three rounds', () => {
+    expect(
+      getBodyCultivationBattleInitHooks(
+        createCondition({
+          realm: 'mortal_body',
+        }),
+      ).startingBuffs.some(
+        (buff) => buff.id === 'body_cultivation_bronze_skin_guard',
+      ),
+    ).toBe(false);
+
+    const hooks = getBodyCultivationBattleInitHooks(
+      createCondition({
+        realm: 'bronze_skin',
+      }),
+    );
+    const guard = hooks.startingBuffs.find(
+      (buff) => buff.id === 'body_cultivation_bronze_skin_guard',
+    );
+
+    expect(guard).toMatchObject({
+      name: '铜皮·护体',
+      duration: 3,
+      listeners: [
+        expect.objectContaining({
+          eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+          effects: [
+            expect.objectContaining({
+              type: 'percent_damage_modifier',
+              params: {
+                mode: 'reduce',
+                value: 0.1,
+                cap: 0.1,
+              },
+            }),
+          ],
+        }),
+      ],
+    });
+  });
+
+  it('opens iron-bone crit modifiers as a permanent battle buff', () => {
+    expect(
+      getBodyCultivationBattleInitHooks(
+        createCondition({
+          realm: 'bronze_skin',
+        }),
+      ).startingBuffs.some(
+        (buff) => buff.id === 'body_cultivation_iron_bone_crit',
+      ),
+    ).toBe(false);
+
+    const hooks = getBodyCultivationBattleInitHooks(
+      createCondition({
+        realm: 'iron_bone',
+      }),
+    );
+
+    expect(
+      hooks.startingBuffs.find(
+        (buff) => buff.id === 'body_cultivation_iron_bone_crit',
+      ),
+    ).toMatchObject({
+      name: '铁骨·战骨',
+      duration: -1,
+      modifiers: [
+        {
+          attrType: AttributeType.CRIT_RATE,
+          type: ModifierType.FIXED,
+          value: 0.08,
+        },
+        {
+          attrType: AttributeType.CRIT_DAMAGE_MULT,
+          type: ModifierType.FIXED,
+          value: 0.16,
+        },
+      ],
+    });
+  });
+
+  it('opens golden-body burn-blood with an immediate hp recovery', () => {
     expect(
       getBodyCultivationBattleInitHooks(
         createCondition({
@@ -241,19 +270,6 @@ describe('body cultivation battle init hooks', () => {
           organs: 10,
           qiBlood: 10,
           primordialSpirit: 10,
-        }),
-      ).startingBuffs.some((buff) => buff.id === 'body_cultivation_golden_body_burn_blood'),
-    ).toBe(false);
-
-    expect(
-      getBodyCultivationBattleInitHooks(
-        createCondition({
-          realm: 'golden_body',
-          skin: 10,
-          sinewBone: 10,
-          organs: 10,
-          qiBlood: 10,
-          primordialSpirit: 9,
         }),
       ).startingBuffs.some((buff) => buff.id === 'body_cultivation_golden_body_burn_blood'),
     ).toBe(false);
@@ -279,6 +295,12 @@ describe('body cultivation battle init hooks', () => {
           eventType: 'DamageTakenEvent',
           effects: [
             expect.objectContaining({
+              type: 'heal',
+              params: {
+                value: { targetMaxHpRatio: 0.15 },
+              },
+            }),
+            expect.objectContaining({
               type: 'apply_buff',
               params: expect.objectContaining({
                 buffConfig: expect.objectContaining({
@@ -299,6 +321,59 @@ describe('body cultivation battle init hooks', () => {
                 }),
               }),
             }),
+          ],
+        }),
+      ],
+    });
+  });
+
+  it('opens jade-marrow death prevention and debuff dispel', () => {
+    expect(
+      getBodyCultivationBattleInitHooks(
+        createCondition({
+          realm: 'iron_bone',
+        }),
+      ).startingBuffs.some(
+        (buff) => buff.id === 'body_cultivation_jade_marrow_death_prevent',
+      ),
+    ).toBe(false);
+
+    const hooks = getBodyCultivationBattleInitHooks(
+      createCondition({
+        realm: 'jade_marrow',
+      }),
+    );
+    const jadeBuff = hooks.startingBuffs.find(
+      (buff) => buff.id === 'body_cultivation_jade_marrow_death_prevent',
+    );
+
+    expect(jadeBuff).toMatchObject({
+      name: '玉髓·不灭骨',
+      listeners: [
+        expect.objectContaining({
+          eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+          effects: [
+            {
+              type: 'death_prevent',
+              params: {},
+            },
+            {
+              type: 'dispel',
+              conditions: [
+                {
+                  type: 'is_lethal',
+                  params: {},
+                },
+                {
+                  type: 'debuff_count_at_least',
+                  params: { value: 1 },
+                },
+              ],
+              params: {
+                targetTag: GameplayTags.BUFF.TYPE.DEBUFF,
+                maxCount: 99,
+              },
+            },
           ],
         }),
       ],
@@ -347,75 +422,46 @@ describe('body cultivation battle init hooks', () => {
       ),
     ).toBe(true);
   });
-});
 
-describe('body cultivation battle settle hooks', () => {
-  it('opens jade-marrow defeat protection only when the carrying tracks are ready', () => {
+  it('opens dao-body direct damage reduction as a permanent battle buff', () => {
     expect(
-      getBodyCultivationBattleSettleHooks(
+      getBodyCultivationBattleInitHooks(
         createCondition({
-          realm: 'iron_bone',
-          sinewBone: 12,
-          qiBlood: 10,
+          realm: 'dharma_body',
         }),
-      ).defeatProtection,
-    ).toBeNull();
+      ).startingBuffs.some(
+        (buff) => buff.id === 'body_cultivation_dao_body_damage_reduction',
+      ),
+    ).toBe(false);
 
-    expect(
-      getBodyCultivationBattleSettleHooks(
-        createCondition({
-          realm: 'jade_marrow',
-          sinewBone: 11,
-          qiBlood: 10,
-        }),
-      ).defeatProtection,
-    ).toBeNull();
-
-    expect(
-      getBodyCultivationBattleSettleHooks(
-        createCondition({
-          realm: 'jade_marrow',
-          sinewBone: 12,
-          qiBlood: 10,
-        }),
-      ).defeatProtection,
-    ).toEqual({
-      hpFloor: 1,
-      woundStatus: 'major_wound',
-    });
-  });
-});
-
-describe('body cultivation breakthrough pressure hooks', () => {
-  it('adds dao-body pressure carrying on top of track-level mitigation', () => {
-    const dharmaBody = getBodyCultivationBreakthroughPressureHooks(
-      createCondition({
-        realm: 'dharma_body',
-        sinewBone: 25,
-        qiBlood: 25,
-        primordialSpirit: 25,
-      }),
-    );
-    const daoBody = getBodyCultivationBreakthroughPressureHooks(
+    const hooks = getBodyCultivationBattleInitHooks(
       createCondition({
         realm: 'dao_body',
-        sinewBone: 25,
-        qiBlood: 25,
-        primordialSpirit: 25,
       }),
     );
 
-    expect(daoBody.expLossMultiplier).toBeLessThan(
-      dharmaBody.expLossMultiplier,
-    );
-    expect(daoBody.insightLossMultiplier).toBeLessThan(
-      dharmaBody.insightLossMultiplier,
-    );
-    expect(daoBody.deviationGainMultiplier).toBeLessThan(
-      dharmaBody.deviationGainMultiplier,
-    );
-    expect(daoBody.innerDemonChanceMultiplier).toBeLessThan(
-      dharmaBody.innerDemonChanceMultiplier,
-    );
+    expect(
+      hooks.startingBuffs.find(
+        (buff) => buff.id === 'body_cultivation_dao_body_damage_reduction',
+      ),
+    ).toMatchObject({
+      name: '道体·万劫不坏',
+      duration: -1,
+      listeners: [
+        expect.objectContaining({
+          eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+          effects: [
+            expect.objectContaining({
+              type: 'percent_damage_modifier',
+              params: {
+                mode: 'reduce',
+                value: 0.2,
+                cap: 0.2,
+              },
+            }),
+          ],
+        }),
+      ],
+    });
   });
 });

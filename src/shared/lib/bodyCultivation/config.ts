@@ -32,27 +32,27 @@ export const BODY_TRACK_LABELS = {
   skin: {
     name: '炼体·皮肤',
     layerName: '防御与减伤',
-    shortDesc: '物防、法防、受到伤害',
+    shortDesc: '物防、法防、受到直接伤害',
   },
   sinew_bone: {
     name: '炼体·筋骨',
     layerName: '气血与抗暴',
-    shortDesc: '气血上限、暴击减伤、自然恢复',
+    shortDesc: '气血上限、暴击减伤',
   },
   organs: {
     name: '炼体·脏腑',
     layerName: '攻击与回蓝',
-    shortDesc: '物攻、法攻、高耗蓝技能回蓝',
+    shortDesc: '物攻、法攻、战斗回蓝',
   },
   qi_blood: {
     name: '炼体·气血',
     layerName: '气血与治疗',
-    shortDesc: '气血上限、治疗效果、自然恢复',
+    shortDesc: '气血上限、治疗效果',
   },
   primordial_spirit: {
     name: '炼体·元神',
     layerName: '控制与抗暴',
-    shortDesc: '控制抗性、抗暴、心魔概率',
+    shortDesc: '控制抗性、抗暴',
   },
 } as const satisfies Record<
   BodyCultivationTrackKey,
@@ -110,7 +110,7 @@ export const BODY_CULTIVATION_REALM_REQUIREMENTS = {
     totalLevel: 12,
     requiredAnyTracks: { count: 3, minLevel: 3 },
     softTrackCap: 10,
-    unlockText: '开启环境侵蚀减免',
+    unlockText: '开局3回合受到直接伤害降低10%',
   },
   iron_bone: {
     realm: 'iron_bone',
@@ -122,7 +122,7 @@ export const BODY_CULTIVATION_REALM_REQUIREMENTS = {
       skin: 6,
     },
     softTrackCap: 15,
-    unlockText: '开启战后伤势降级',
+    unlockText: '常驻暴击率与暴击伤害提升',
   },
   jade_marrow: {
     realm: 'jade_marrow',
@@ -134,7 +134,7 @@ export const BODY_CULTIVATION_REALM_REQUIREMENTS = {
       qi_blood: 10,
     },
     softTrackCap: 22,
-    unlockText: '开启濒死保护',
+    unlockText: '濒死保护并驱散负面状态',
   },
   golden_body: {
     realm: 'golden_body',
@@ -143,7 +143,7 @@ export const BODY_CULTIVATION_REALM_REQUIREMENTS = {
     totalLevel: 90,
     minAllTracksLevel: 10,
     softTrackCap: 30,
-    unlockText: '开启燃血爆发',
+    unlockText: '低血燃血爆发并恢复气血',
   },
   dharma_body: {
     realm: 'dharma_body',
@@ -164,7 +164,7 @@ export const BODY_CULTIVATION_REALM_REQUIREMENTS = {
     totalLevel: 220,
     minAllTracksLevel: 25,
     softTrackCap: 55,
-    unlockText: '降低渡劫时的损失与风险',
+    unlockText: '常驻最终伤害减免20%',
   },
 } as const satisfies Record<
   BodyCultivationRealm,

@@ -92,182 +92,8 @@ export function buildBodyCultivationAttributeModifiers(
   ].filter((modifier) => modifier.value > 0);
 }
 
-export function getBodyCultivationNaturalRecoveryMultiplier(
-  condition: CultivatorCondition | undefined,
-): number {
-  const sinewBone = getLevel(condition, 'sinew_bone');
-  const qiBlood = getLevel(condition, 'qi_blood');
-
-  return clamp(1 + sinewBone * 0.006 + qiBlood * 0.008, 1, 1.75);
-}
-
-export interface BodyCultivationBattleSettleHooks {
-  lowHpRecoveryPercent: number;
-  woundDowngradeSteps: number;
-  defeatProtection: {
-    hpFloor: number;
-    woundStatus: 'major_wound';
-  } | null;
-}
-
 export interface BodyCultivationBattleInitHooks {
-  startingShieldPercent: number;
   startingBuffs: BuffConfig[];
-}
-
-export interface BodyCultivationExternalResourceLossHooks {
-  hpLossMultiplier: number;
-  mpLossMultiplier: number;
-}
-
-export interface BodyCultivationBreakthroughPressureHooks {
-  expLossMultiplier: number;
-  insightLossMultiplier: number;
-  deviationGainMultiplier: number;
-  innerDemonChanceMultiplier: number;
-}
-
-export type BodyCultivationDungeonEventType =
-  | 'erosion'
-  | 'impact'
-  | 'elemental_overload'
-  | 'attrition'
-  | 'spirit_intrusion'
-  | 'generic';
-
-export interface BodyCultivationDungeonEventFeedback {
-  eventType: BodyCultivationDungeonEventType;
-  track: BodyCultivationTrackKey;
-  trackLabel: string;
-  triggerText: string;
-}
-
-interface DungeonEventRule {
-  eventType: Exclude<BodyCultivationDungeonEventType, 'generic'>;
-  track: BodyCultivationTrackKey;
-  trackLabel: string;
-  keywords: readonly string[];
-  format(resourceLabel: string, preventedLoss: number): string;
-}
-
-const DUNGEON_EVENT_RULES: readonly DungeonEventRule[] = [
-  {
-    eventType: 'spirit_intrusion',
-    track: 'primordial_spirit',
-    trackLabel: '元神',
-    keywords: [
-      '幻境',
-      '幻术',
-      '魅惑',
-      '夺舍',
-      '心魔',
-      '神魂',
-      '魂魄',
-      '识海',
-      'spirit',
-      'soul',
-      'illusion',
-      'charm',
-    ],
-    format: (resourceLabel, preventedLoss) =>
-      `元神生效：降低神魂侵蚀，已抵消 ${preventedLoss} 点${resourceLabel}损耗`,
-  },
-  {
-    eventType: 'erosion',
-    track: 'skin',
-    trackLabel: '皮肤',
-    keywords: [
-      '瘴',
-      '毒',
-      '毒雾',
-      '腐蚀',
-      '侵蚀',
-      '寒煞',
-      '魔气',
-      '外邪',
-      'poison',
-      'miasma',
-      'corrosion',
-      'erosion',
-    ],
-    format: (resourceLabel, preventedLoss) =>
-      `皮肤生效：降低外邪侵蚀，已抵消 ${preventedLoss} 点${resourceLabel}损耗`,
-  },
-  {
-    eventType: 'impact',
-    track: 'sinew_bone',
-    trackLabel: '筋骨',
-    keywords: [
-      '坠落',
-      '跌落',
-      '重压',
-      '地磁',
-      '崩塌',
-      '撞击',
-      '硬抗',
-      '机关',
-      '骨',
-      'fall',
-      'gravity',
-      'impact',
-      'collapse',
-    ],
-    format: (resourceLabel, preventedLoss) =>
-      `筋骨生效：降低冲击重压，已抵消 ${preventedLoss} 点${resourceLabel}损耗`,
-  },
-  {
-    eventType: 'elemental_overload',
-    track: 'organs',
-    trackLabel: '脏腑',
-    keywords: [
-      '火毒',
-      '真火',
-      '雷火',
-      '五行',
-      '冲突',
-      '内息',
-      '爆发',
-      '灼烧',
-      '焚',
-      'fire',
-      'elemental',
-      'overload',
-    ],
-    format: (resourceLabel, preventedLoss) =>
-      `脏腑生效：降低五行反噬，已抵消 ${preventedLoss} 点${resourceLabel}损耗`,
-  },
-  {
-    eventType: 'attrition',
-    track: 'qi_blood',
-    trackLabel: '气血',
-    keywords: [
-      '连续',
-      '久战',
-      '低血',
-      '失血',
-      '枯竭',
-      '疲惫',
-      '疲劳',
-      '续航',
-      'attrition',
-      'fatigue',
-      'exhaustion',
-    ],
-    format: (resourceLabel, preventedLoss) =>
-      `气血生效：降低连续作战消耗，已抵消 ${preventedLoss} 点${resourceLabel}损耗`,
-  },
-];
-
-function getLowestBodyCultivationTrackLevel(
-  state: ReturnType<typeof normalizeBodyCultivationState>,
-): number {
-  return Math.min(
-    state.tracks.skin.level,
-    state.tracks.sinew_bone.level,
-    state.tracks.organs.level,
-    state.tracks.qi_blood.level,
-    state.tracks.primordial_spirit.level,
-  );
 }
 
 function buildSkinDamageReductionBuff(skinLevel: number): BuffConfig | null {
@@ -455,6 +281,13 @@ function buildGoldenBodyBurnBloodBuff(organsLevel: number): BuffConfig {
         },
         effects: [
           {
+            type: 'heal',
+            conditions: triggerConditions,
+            params: {
+              value: { targetMaxHpRatio: 0.15 },
+            },
+          },
+          {
             type: 'apply_buff',
             conditions: triggerConditions,
             params: {
@@ -506,6 +339,59 @@ function buildGoldenBodyBurnBloodBuff(organsLevel: number): BuffConfig {
   };
 }
 
+function buildBronzeSkinGuardBuff(): BuffConfig {
+  return {
+    id: 'body_cultivation_bronze_skin_guard',
+    name: '铜皮·护体',
+    type: BuffType.BUFF,
+    duration: 3,
+    stackRule: 'override',
+    listeners: [
+      {
+        eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+        scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+        priority: 30,
+        guard: {
+          requireOwnerAlive: true,
+          skipReflectSource: true,
+        },
+        effects: [
+          {
+            type: 'percent_damage_modifier',
+            params: {
+              mode: 'reduce',
+              value: 0.1,
+              cap: 0.1,
+            },
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function buildIronBoneCritBuff(): BuffConfig {
+  return {
+    id: 'body_cultivation_iron_bone_crit',
+    name: '铁骨·战骨',
+    type: BuffType.BUFF,
+    duration: -1,
+    stackRule: 'override',
+    modifiers: [
+      {
+        attrType: AttributeType.CRIT_RATE,
+        type: ModifierType.FIXED,
+        value: 0.08,
+      },
+      {
+        attrType: AttributeType.CRIT_DAMAGE_MULT,
+        type: ModifierType.FIXED,
+        value: 0.16,
+      },
+    ],
+  };
+}
+
 function buildDharmaBodyControlResistanceBuff(): BuffConfig {
   return {
     id: 'body_cultivation_dharma_body_control_resistance',
@@ -523,86 +409,34 @@ function buildDharmaBodyControlResistanceBuff(): BuffConfig {
   };
 }
 
-function includesAnyKeyword(text: string, keywords: readonly string[]): boolean {
-  return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
-}
-
-export function getBodyCultivationDungeonEventFeedback(options: {
-  contextText?: string;
-  resource: 'hp' | 'mp';
-  preventedLoss: number;
-  fallbackTriggerText?: string;
-}): BodyCultivationDungeonEventFeedback | null {
-  const preventedLoss = Math.max(0, Math.floor(options.preventedLoss));
-  if (preventedLoss <= 0) return null;
-
-  const resourceLabel = options.resource === 'hp' ? '气血' : '灵力';
-  const text = (options.contextText ?? '').toLowerCase();
-  const preferredRules =
-    options.resource === 'hp'
-      ? DUNGEON_EVENT_RULES.filter(
-          (item) => item.eventType !== 'spirit_intrusion',
-        )
-      : DUNGEON_EVENT_RULES.filter(
-          (item) => item.eventType === 'spirit_intrusion',
-        );
-  const fallbackRules =
-    options.resource === 'hp'
-      ? DUNGEON_EVENT_RULES
-      : DUNGEON_EVENT_RULES.filter(
-          (item) => item.eventType !== 'spirit_intrusion',
-        );
-  const rule =
-    preferredRules.find((item) => includesAnyKeyword(text, item.keywords)) ??
-    fallbackRules.find((item) => includesAnyKeyword(text, item.keywords));
-
-  if (rule) {
-    return {
-      eventType: rule.eventType,
-      track: rule.track,
-      trackLabel: rule.trackLabel,
-      triggerText: rule.format(resourceLabel, preventedLoss),
-    };
-  }
-
+function buildDaoBodyDamageReductionBuff(): BuffConfig {
   return {
-    eventType: 'generic',
-    track: options.resource === 'hp' ? 'skin' : 'primordial_spirit',
-    trackLabel: options.resource === 'hp' ? '皮肤' : '元神',
-    triggerText:
-      options.fallbackTriggerText ??
-      `肉身炼体生效：已抵消 ${preventedLoss} 点${resourceLabel}损耗`,
-  };
-}
-
-export function getBodyCultivationBattleSettleHooks(
-  condition: CultivatorCondition | undefined,
-): BodyCultivationBattleSettleHooks {
-  const state = normalizeBodyCultivationState(condition);
-  const skin = state.tracks.skin.level;
-  const sinewBone = state.tracks.sinew_bone.level;
-  const qiBlood = state.tracks.qi_blood.level;
-  const hasJadeMarrowProtection =
-    isBodyRealmAtLeast(state.realm, 'jade_marrow') &&
-    sinewBone >= 12 &&
-    qiBlood >= 10;
-
-  return {
-    lowHpRecoveryPercent: clamp(
-      Math.floor(sinewBone / 5) * 0.03 + Math.floor(qiBlood / 5) * 0.02,
-      0,
-      0.25,
-    ),
-    woundDowngradeSteps:
-      skin >= 10 || sinewBone >= 10
-        ? 1
-        : 0,
-    defeatProtection: hasJadeMarrowProtection
-      ? {
-          hpFloor: 1,
-          woundStatus: 'major_wound',
-        }
-      : null,
+    id: 'body_cultivation_dao_body_damage_reduction',
+    name: '道体·万劫不坏',
+    type: BuffType.BUFF,
+    duration: -1,
+    stackRule: 'override',
+    listeners: [
+      {
+        eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+        scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+        priority: 35,
+        guard: {
+          requireOwnerAlive: true,
+          skipReflectSource: true,
+        },
+        effects: [
+          {
+            type: 'percent_damage_modifier',
+            params: {
+              mode: 'reduce',
+              value: 0.2,
+              cap: 0.2,
+            },
+          },
+        ],
+      },
+    ],
   };
 }
 
@@ -611,20 +445,17 @@ export function getBodyCultivationBattleInitHooks(
 ): BodyCultivationBattleInitHooks {
   const state = normalizeBodyCultivationState(condition);
   const skin = state.tracks.skin.level;
-  const sinewBone = state.tracks.sinew_bone.level;
   const organs = state.tracks.organs.level;
-  const qiBlood = state.tracks.qi_blood.level;
-  const hasJadeMarrowProtection =
-    isBodyRealmAtLeast(state.realm, 'jade_marrow') &&
-    sinewBone >= 12 &&
-    qiBlood >= 10;
+  const hasBronzeSkinGuard = isBodyRealmAtLeast(state.realm, 'bronze_skin');
+  const hasIronBoneCrit = isBodyRealmAtLeast(state.realm, 'iron_bone');
+  const hasJadeMarrowProtection = isBodyRealmAtLeast(state.realm, 'jade_marrow');
   const hasGoldenBodyBurnBlood =
-    isBodyRealmAtLeast(state.realm, 'golden_body') &&
-    getLowestBodyCultivationTrackLevel(state) >= 10;
+    isBodyRealmAtLeast(state.realm, 'golden_body');
   const hasDharmaBodyControlResistance = isBodyRealmAtLeast(
     state.realm,
     'dharma_body',
   );
+  const hasDaoBodyDamageReduction = isBodyRealmAtLeast(state.realm, 'dao_body');
   const startingBuffs: BuffConfig[] = [];
   const skinDamageReductionBuff = buildSkinDamageReductionBuff(skin);
   const skinErosionDurationBuff = buildSkinErosionDurationBuff(skin);
@@ -638,6 +469,14 @@ export function getBodyCultivationBattleInitHooks(
   }
   if (organsSkillRefundBuff) {
     startingBuffs.push(organsSkillRefundBuff);
+  }
+
+  if (hasBronzeSkinGuard) {
+    startingBuffs.push(buildBronzeSkinGuardBuff());
+  }
+
+  if (hasIronBoneCrit) {
+    startingBuffs.push(buildIronBoneCritBuff());
   }
 
   if (hasJadeMarrowProtection) {
@@ -662,6 +501,23 @@ export function getBodyCultivationBattleInitHooks(
               type: 'death_prevent',
               params: {},
             },
+            {
+              type: 'dispel',
+              conditions: [
+                {
+                  type: 'is_lethal',
+                  params: {},
+                },
+                {
+                  type: 'debuff_count_at_least',
+                  params: { value: 1 },
+                },
+              ],
+              params: {
+                targetTag: GameplayTags.BUFF.TYPE.DEBUFF,
+                maxCount: 99,
+              },
+            },
           ],
         },
       ],
@@ -676,67 +532,11 @@ export function getBodyCultivationBattleInitHooks(
     startingBuffs.push(buildDharmaBodyControlResistanceBuff());
   }
 
+  if (hasDaoBodyDamageReduction) {
+    startingBuffs.push(buildDaoBodyDamageReductionBuff());
+  }
+
   return {
-    startingShieldPercent: clamp(Math.floor(skin / 5) * 0.02, 0, 0.2),
     startingBuffs,
-  };
-}
-
-export function getBodyCultivationExternalResourceLossHooks(
-  condition: CultivatorCondition | undefined,
-): BodyCultivationExternalResourceLossHooks {
-  const skin = getLevel(condition, 'skin');
-  const sinewBone = getLevel(condition, 'sinew_bone');
-  const organs = getLevel(condition, 'organs');
-  const qiBlood = getLevel(condition, 'qi_blood');
-  const primordialSpirit = getLevel(condition, 'primordial_spirit');
-
-  return {
-    hpLossMultiplier: clamp(
-      1 - skin * 0.003 - sinewBone * 0.003 - organs * 0.002,
-      0.7,
-      1,
-    ),
-    mpLossMultiplier: clamp(
-      1 - qiBlood * 0.002 - primordialSpirit * 0.003,
-      0.8,
-      1,
-    ),
-  };
-}
-
-export function getBodyCultivationBreakthroughPressureHooks(
-  condition: CultivatorCondition | undefined,
-): BodyCultivationBreakthroughPressureHooks {
-  const state = normalizeBodyCultivationState(condition);
-  const sinewBone = state.tracks.sinew_bone.level;
-  const qiBlood = state.tracks.qi_blood.level;
-  const primordialSpirit = state.tracks.primordial_spirit.level;
-  const daoBodyPressureMultiplier = isBodyRealmAtLeast(state.realm, 'dao_body')
-    ? 0.9
-    : 1;
-
-  return {
-    expLossMultiplier: clamp(
-      (1 - sinewBone * 0.006) * daoBodyPressureMultiplier,
-      0.58,
-      1,
-    ),
-    insightLossMultiplier: clamp(
-      (1 - qiBlood * 0.004) * daoBodyPressureMultiplier,
-      0.68,
-      1,
-    ),
-    deviationGainMultiplier: clamp(
-      (1 - sinewBone * 0.004 - qiBlood * 0.003) *
-        daoBodyPressureMultiplier,
-      0.62,
-      1,
-    ),
-    innerDemonChanceMultiplier: clamp(
-      (1 - primordialSpirit * 0.004) * daoBodyPressureMultiplier,
-      0.62,
-      1,
-    ),
   };
 }
