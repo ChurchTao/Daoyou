@@ -262,6 +262,46 @@ describe('normalizeBodyCultivationState', () => {
     expect(result.state.breakthrough).toBeUndefined();
   });
 
+  it('allows dharma body to reach the existing dao body total-level requirement', () => {
+    const condition = createLegacyCondition();
+    condition.tracks.bodyCultivation = {
+      version: 1,
+      realm: 'dharma_body',
+      tracks: {
+        skin: { level: 45, progress: 0 },
+        sinew_bone: { level: 45, progress: 0 },
+        organs: { level: 45, progress: 0 },
+        qi_blood: { level: 45, progress: 0 },
+        primordial_spirit: { level: 40, progress: 0 },
+      },
+      milestones: {},
+    };
+
+    const summary = getBodyCultivationSummary(condition, {
+      cultivatorRealm: '合体',
+    });
+    const preview = previewBodyCultivationRealmBreakthrough(condition, {
+      cultivatorRealm: '合体',
+    });
+    const result = breakthroughBodyCultivationRealm(condition, {
+      cultivatorRealm: '合体',
+    }, () => 0);
+
+    expect(summary.totalLevel).toBe(220);
+    expect(summary.nextRealm?.requirements).toEqual(
+      expect.arrayContaining([
+        { label: '总炼体 Lv.220/220', met: true },
+      ]),
+    );
+    expect(preview).toMatchObject({
+      currentRealm: 'dharma_body',
+      nextRealm: 'dao_body',
+      canAttempt: true,
+    });
+    expect(result.success).toBe(true);
+    expect(result.state.realm).toBe('dao_body');
+  });
+
   it('rejects body realm breakthrough without mutating the input state', () => {
     const condition = createLegacyCondition();
     condition.tracks.bodyCultivation = {

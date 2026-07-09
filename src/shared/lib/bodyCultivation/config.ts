@@ -154,8 +154,8 @@ export const BODY_CULTIVATION_REALM_REQUIREMENTS = {
       organs: 18,
       primordial_spirit: 18,
     },
-    softTrackCap: 40,
-    unlockText: '开启肉身神通承载',
+    softTrackCap: 45,
+    unlockText: '开局控制抗性提升',
   },
   dao_body: {
     realm: 'dao_body',

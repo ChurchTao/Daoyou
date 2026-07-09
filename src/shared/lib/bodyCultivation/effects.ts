@@ -506,6 +506,23 @@ function buildGoldenBodyBurnBloodBuff(organsLevel: number): BuffConfig {
   };
 }
 
+function buildDharmaBodyControlResistanceBuff(): BuffConfig {
+  return {
+    id: 'body_cultivation_dharma_body_control_resistance',
+    name: '法身·神识定境',
+    type: BuffType.BUFF,
+    duration: 2,
+    stackRule: 'override',
+    modifiers: [
+      {
+        attrType: AttributeType.CONTROL_RESISTANCE,
+        type: ModifierType.FIXED,
+        value: 1,
+      },
+    ],
+  };
+}
+
 function includesAnyKeyword(text: string, keywords: readonly string[]): boolean {
   return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
 }
@@ -604,6 +621,10 @@ export function getBodyCultivationBattleInitHooks(
   const hasGoldenBodyBurnBlood =
     isBodyRealmAtLeast(state.realm, 'golden_body') &&
     getLowestBodyCultivationTrackLevel(state) >= 10;
+  const hasDharmaBodyControlResistance = isBodyRealmAtLeast(
+    state.realm,
+    'dharma_body',
+  );
   const startingBuffs: BuffConfig[] = [];
   const skinDamageReductionBuff = buildSkinDamageReductionBuff(skin);
   const skinErosionDurationBuff = buildSkinErosionDurationBuff(skin);
@@ -649,6 +670,10 @@ export function getBodyCultivationBattleInitHooks(
 
   if (hasGoldenBodyBurnBlood) {
     startingBuffs.push(buildGoldenBodyBurnBloodBuff(organs));
+  }
+
+  if (hasDharmaBodyControlResistance) {
+    startingBuffs.push(buildDharmaBodyControlResistanceBuff());
   }
 
   return {

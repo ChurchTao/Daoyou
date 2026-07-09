@@ -311,6 +311,45 @@ describe('PillOperationExecutor toxicity and quota rules', () => {
     });
   });
 
+  it('allows dharma body pills to land exactly on the raised track cap', () => {
+    const cultivator = createCultivator(
+      withBodyCultivationTrack({
+        condition: createCondition(0),
+        realm: 'dharma_body',
+        skin: { level: 44, progress: 3170 },
+      }),
+    );
+    const pill = createPill('tempering', [
+      { type: 'advance_track', track: 'body.skin', value: 10 },
+    ]);
+
+    const result = PillOperationExecutor.execute(cultivator, pill, NOW);
+
+    expect(
+      result.cultivator.condition?.tracks.bodyCultivation?.tracks.skin,
+    ).toEqual({
+      level: 45,
+      progress: 0,
+    });
+  });
+
+  it('rejects dharma body pills when their progress would exceed the raised track cap', () => {
+    const cultivator = createCultivator(
+      withBodyCultivationTrack({
+        condition: createCondition(0),
+        realm: 'dharma_body',
+        skin: { level: 44, progress: 3170 },
+      }),
+    );
+    const pill = createPill('tempering', [
+      { type: 'advance_track', track: 'body.skin', value: 11 },
+    ]);
+
+    expect(() => PillOperationExecutor.execute(cultivator, pill, NOW)).toThrow(
+      '单轨上限 Lv.45',
+    );
+  });
+
   it('marrow-wash pills grant free attribute points on level up without changing roots', () => {
     const cultivator = createCultivator({
       ...createCondition(0),

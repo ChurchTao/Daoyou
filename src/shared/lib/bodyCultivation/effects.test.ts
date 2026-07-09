@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { CultivatorCondition } from '@shared/types/condition';
 import {
+  AttributeType,
+  ModifierType,
+} from '@shared/engine/battle-v5/core/types';
+import {
   getBodyCultivationBattleInitHooks,
   getBodyCultivationBattleSettleHooks,
   getBodyCultivationBreakthroughPressureHooks,
@@ -117,6 +121,9 @@ describe('body cultivation battle init hooks', () => {
     const skinBuff = hooks.startingBuffs.find(
       (buff) => buff.id === 'body_cultivation_skin_damage_reduction',
     );
+    const damageReductionEffect = skinBuff?.listeners?.[0]?.effects?.find(
+      (effect) => effect.type === 'percent_damage_modifier',
+    );
 
     expect(skinBuff).toMatchObject({
       name: '皮肤·外膜护体',
@@ -135,9 +142,7 @@ describe('body cultivation battle init hooks', () => {
         }),
       ],
     });
-    expect(
-      skinBuff?.listeners?.[0]?.effects[0]?.params.value,
-    ).toBeCloseTo(0.072);
+    expect(damageReductionEffect?.params.value).toBeCloseTo(0.072);
   });
 
   it('adds skin erosion duration reduction as a battle-init listener', () => {
@@ -298,6 +303,49 @@ describe('body cultivation battle init hooks', () => {
         }),
       ],
     });
+  });
+
+  it('opens dharma-body control resistance for the first two rounds', () => {
+    expect(
+      getBodyCultivationBattleInitHooks(
+        createCondition({
+          realm: 'golden_body',
+        }),
+      ).startingBuffs.some(
+        (buff) => buff.id === 'body_cultivation_dharma_body_control_resistance',
+      ),
+    ).toBe(false);
+
+    const dharmaHooks = getBodyCultivationBattleInitHooks(
+      createCondition({
+        realm: 'dharma_body',
+      }),
+    );
+    const daoHooks = getBodyCultivationBattleInitHooks(
+      createCondition({
+        realm: 'dao_body',
+      }),
+    );
+    const dharmaBuff = dharmaHooks.startingBuffs.find(
+      (buff) => buff.id === 'body_cultivation_dharma_body_control_resistance',
+    );
+
+    expect(dharmaBuff).toMatchObject({
+      name: '法身·神识定境',
+      duration: 2,
+      modifiers: [
+        {
+          attrType: AttributeType.CONTROL_RESISTANCE,
+          type: ModifierType.FIXED,
+          value: 1,
+        },
+      ],
+    });
+    expect(
+      daoHooks.startingBuffs.some(
+        (buff) => buff.id === 'body_cultivation_dharma_body_control_resistance',
+      ),
+    ).toBe(true);
   });
 });
 
