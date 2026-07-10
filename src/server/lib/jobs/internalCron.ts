@@ -20,7 +20,7 @@ import {
 } from '@server/lib/services/MailService';
 import { runMarketRefreshJob } from '@server/lib/services/MarketScheduler';
 import {
-  generateRandomMaterialLibraryEntries,
+  generateDailyMarketMaterialLibraryEntries,
   ITEM_LIBRARY_SYSTEM_USER_ID,
 } from '@server/lib/services/MaterialLibraryService';
 import { commitPlayerStateMutation } from '@server/lib/services/PlayerStateMutationService';
@@ -361,7 +361,7 @@ export async function runMaterialLibraryDailyGenerationJob(): Promise<CronJobRes
         };
       }
 
-      const items = await generateRandomMaterialLibraryEntries({
+      const items = await generateDailyMarketMaterialLibraryEntries({
         count: settings.count,
         userId: ITEM_LIBRARY_SYSTEM_USER_ID,
         source: 'daily_cron',

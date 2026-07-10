@@ -25,6 +25,7 @@ import {
   getRegionFlavor,
   getRegionProfile,
   isMarketNodeEnabled,
+  BLACK_MARKET_HIGH_TIER_MIN,
   MARKET_STALE_RETRY_MS,
   resolveLayerConfig,
   validateLayerAccess,
@@ -72,6 +73,9 @@ const IDENTIFY_LOCK_PREFIX = 'market:identify:lock';
 const MYSTERY_PREFIX = 'market:mystery';
 const MARKET_CACHE_WAIT_MS = 150;
 const MARKET_CACHE_WAIT_RETRIES = 3;
+const MYSTERY_PRICE_NOISE_MIN = 0.2;
+const MYSTERY_PRICE_NOISE_MAX = 3.0;
+const NORMAL_MARKET_MIN_PRICE_FACTOR = 0.95;
 
 // ─── 类型 ───
 
@@ -177,10 +181,13 @@ function rollDisguiseRank() {
 /**
  * 按权重随机选取品质（限定在 rankRange 内）
  */
-function rollQualityInRange(rankRange: {
-  min: Quality;
-  max: Quality;
-}): Quality {
+function rollQualityInRange(
+  rankRange: {
+    min: Quality;
+    max: Quality;
+  },
+  qualityWeights?: Partial<Record<Quality, number>>,
+): Quality {
   const minOrder = QUALITY_ORDER[rankRange.min];
   const maxOrder = QUALITY_ORDER[rankRange.max];
   const candidates: { quality: Quality; weight: number }[] = [];
@@ -190,7 +197,10 @@ function rollQualityInRange(rankRange: {
     number,
   ][]) {
     if (order >= minOrder && order <= maxOrder) {
-      candidates.push({ quality, weight: QUALITY_CHANCE_MAP[quality] ?? 0.01 });
+      candidates.push({
+        quality,
+        weight: qualityWeights?.[quality] ?? QUALITY_CHANCE_MAP[quality] ?? 0.01,
+      });
     }
   }
 
@@ -201,6 +211,27 @@ function rollQualityInRange(rankRange: {
     if (roll <= 0) return c.quality;
   }
   return candidates[candidates.length - 1].quality;
+}
+
+function isQualityAtLeast(quality: Quality, minQuality: Quality): boolean {
+  return QUALITY_ORDER[quality] >= QUALITY_ORDER[minQuality];
+}
+
+function rollHighTierQuality(layerConfig: ResolvedLayerConfig): Quality | null {
+  const highTierMinOrder = Math.max(
+    QUALITY_ORDER[layerConfig.rankRange.min],
+    QUALITY_ORDER[BLACK_MARKET_HIGH_TIER_MIN],
+  );
+  const highTierMaxOrder = QUALITY_ORDER[layerConfig.rankRange.max];
+  if (highTierMinOrder > highTierMaxOrder) return null;
+
+  return rollQualityInRange(
+    {
+      min: getQualityByOrder(highTierMinOrder),
+      max: getQualityByOrder(highTierMaxOrder),
+    },
+    layerConfig.qualityWeights,
+  );
 }
 
 /**
@@ -236,15 +267,27 @@ function weightedPickType(profile: RegionProfile): MaterialType {
  * 计算价格：基础价 × 类型倍率 × 地域修正 × 随机波动
  */
 function computePrice(
+  layer: MarketLayer,
   rank: Quality,
   type: MaterialType,
   priceModifier: { min: number; max: number },
 ): number {
   const base = BASE_PRICES[rank];
   const typeMultiplier = TYPE_MULTIPLIERS[type] ?? 1.0;
-  const regionFactor =
+  const rolledRegionFactor =
     priceModifier.min + Math.random() * (priceModifier.max - priceModifier.min);
+  const regionFactor =
+    layer === 'black'
+      ? rolledRegionFactor
+      : Math.max(rolledRegionFactor, NORMAL_MARKET_MIN_PRICE_FACTOR);
   return Math.max(1, Math.floor(base * typeMultiplier * regionFactor));
+}
+
+function rollMysteryPriceNoiseMultiplier(): number {
+  return (
+    MYSTERY_PRICE_NOISE_MIN +
+    Math.random() * (MYSTERY_PRICE_NOISE_MAX - MYSTERY_PRICE_NOISE_MIN)
+  );
 }
 
 function getQualityByOrder(order: number): Quality {
@@ -371,7 +414,7 @@ function applyMysteryLayer(
 
     const mask = buildMysteryMask(item.type);
     const disguiseRank = rollDisguiseRank();
-    const noisyMultiplier = 0.1 + Math.random() * 2.2;
+    const noisyMultiplier = rollMysteryPriceNoiseMultiplier();
     const disguisedPrice = Math.max(
       1,
       Math.floor(item.price * noisyMultiplier),
@@ -615,7 +658,7 @@ function generateFromPresets(
     if (!pool || pool.length === 0) continue;
 
     const preset = pool[Math.floor(Math.random() * pool.length)];
-    const price = computePrice(rank, type, profile.priceModifier);
+    const price = computePrice(layer, rank, type, profile.priceModifier);
 
     listings.push({
       id: crypto.randomUUID(),
@@ -633,6 +676,87 @@ function generateFromPresets(
   }
 
   return listings;
+}
+
+function buildMarketSampleRequests(
+  layer: MarketLayer,
+  profile: RegionProfile,
+  layerConfig: ResolvedLayerConfig,
+): MaterialLibrarySampleRequest[] {
+  const picks: Array<{ materialType: MaterialType; quality: Quality }> = [];
+  for (let i = 0; i < layerConfig.count; i++) {
+    picks.push({
+      materialType: weightedPickType(profile),
+      quality: rollQualityInRange(
+        layerConfig.rankRange,
+        layerConfig.qualityWeights,
+      ),
+    });
+  }
+
+  if (layer === 'black' && layerConfig.minHighTierCount) {
+    const targetHighTierCount = Math.min(
+      layerConfig.minHighTierCount,
+      picks.length,
+    );
+    let highTierCount = picks.filter((pick) =>
+      isQualityAtLeast(pick.quality, BLACK_MARKET_HIGH_TIER_MIN),
+    ).length;
+
+    for (let i = highTierCount; i < targetHighTierCount; i++) {
+      const replacementQuality = rollHighTierQuality(layerConfig);
+      if (!replacementQuality) break;
+
+      const replaceIndex = picks.findIndex(
+        (pick) => !isQualityAtLeast(pick.quality, BLACK_MARKET_HIGH_TIER_MIN),
+      );
+      if (replaceIndex < 0) break;
+
+      picks[replaceIndex] = {
+        ...picks[replaceIndex],
+        quality: replacementQuality,
+      };
+      highTierCount += 1;
+    }
+  }
+
+  const requests = new Map<string, MaterialLibrarySampleRequest>();
+  for (const pick of picks) {
+    const key = `${pick.materialType}:${pick.quality}`;
+    const current = requests.get(key);
+    requests.set(key, {
+      materialType: pick.materialType,
+      quality: pick.quality,
+      count: (current?.count ?? 0) + 1,
+    });
+  }
+
+  return Array.from(requests.values());
+}
+
+function warnMaterialLibraryShortage(args: {
+  nodeId: string;
+  layer: MarketLayer;
+  shortages: Array<{
+    type: MaterialType;
+    quality: Quality;
+    requested: number;
+    actual: number;
+  }>;
+  requested: number;
+  actual: number;
+}) {
+  if (args.shortages.length === 0) return;
+
+  console.warn('[market] material library shortage', {
+    nodeId: args.nodeId,
+    layer: args.layer,
+    requested: args.requested,
+    actual: args.actual,
+    noPresetFallback: !canUsePresetFallback(args.layer),
+    noLlmGeneration: true,
+    shortages: args.shortages,
+  });
 }
 
 function buildListingFromLibraryMaterial(args: {
@@ -653,6 +777,7 @@ function buildListingFromLibraryMaterial(args: {
     details: args.material.details ?? {},
     quantity: 1,
     price: computePrice(
+      args.layer,
       args.material.rank,
       args.material.type,
       args.priceModifier,
@@ -667,29 +792,28 @@ async function generateFromMaterialLibrary(
   layerConfig: ResolvedLayerConfig,
   options: { warnShortage: boolean },
 ): Promise<InternalMarketListing[]> {
-  const requests = new Map<string, MaterialLibrarySampleRequest>();
-  for (let i = 0; i < layerConfig.count; i++) {
-    const materialType = weightedPickType(profile);
-    const quality = rollQualityInRange(layerConfig.rankRange);
-    const key = `${materialType}:${quality}`;
-    const current = requests.get(key);
-    requests.set(key, {
-      materialType,
-      quality,
-      count: (current?.count ?? 0) + 1,
-    });
-  }
+  const requests = buildMarketSampleRequests(layer, profile, layerConfig);
 
   const sampled = await sampleMaterialLibraryEntries(
-    Array.from(requests.values()),
+    requests,
   );
   const listings: InternalMarketListing[] = [];
-  for (const [key, request] of requests) {
+  const shortages: Array<{
+    type: MaterialType;
+    quality: Quality;
+    requested: number;
+    actual: number;
+  }> = [];
+  for (const request of requests) {
+    const key = `${request.materialType}:${request.quality}`;
     const entries = sampled.get(key) ?? [];
     if (options.warnShortage && entries.length < request.count) {
-      console.warn(
-        `[market] 未配置道具库或材料候选不足 ${nodeId}:${layer}:${key} requested=${request.count} actual=${entries.length}`,
-      );
+      shortages.push({
+        type: request.materialType,
+        quality: request.quality,
+        requested: request.count,
+        actual: entries.length,
+      });
     }
     for (const entry of entries.slice(0, request.count)) {
       listings.push(
@@ -701,6 +825,16 @@ async function generateFromMaterialLibrary(
         }),
       );
     }
+  }
+
+  if (options.warnShortage) {
+    warnMaterialLibraryShortage({
+      nodeId,
+      layer,
+      shortages,
+      requested: layerConfig.count,
+      actual: listings.length,
+    });
   }
 
   return listings.slice(0, layerConfig.count);
@@ -733,12 +867,6 @@ async function generateListings(
       count: layerConfig.count - listings.length,
     });
     listings = [...listings, ...fallback];
-  }
-
-  if (!allowPresetFallback && listings.length < layerConfig.count) {
-    console.warn(
-      `[market] 未配置道具库或材料候选不足 ${nodeId}:${layer} requested=${layerConfig.count} actual=${listings.length}，本轮不触发 LLM，返回空缺货架。`,
-    );
   }
 
   // 黑市应用神秘层
@@ -1422,3 +1550,11 @@ export async function preGenerateNextCycle(nodeId: string, layer: MarketLayer) {
   if (exists) return;
   await generateAndCache(nodeId, layer, nextCycle);
 }
+
+export const __marketServiceTestHooks = {
+  applyMysteryLayer,
+  buildMarketSampleRequests,
+  computePrice,
+  generateListings,
+  rollMysteryPriceNoiseMultiplier,
+};

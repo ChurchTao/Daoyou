@@ -21,6 +21,15 @@ import mapData from '../../data/map.json';
 export const MARKET_STALE_RETRY_MS = 15000;
 export const MYSTERY_MAPPING_TTL_SEC = 72 * 60 * 60;
 export const DEFAULT_BLACK_MYSTERY_CHANCE = 0.7;
+export const BLACK_MARKET_MIN_HIGH_TIER_COUNT = 2;
+export const BLACK_MARKET_HIGH_TIER_MIN: Quality = '地品';
+export const BLACK_MARKET_QUALITY_WEIGHTS: Partial<Record<Quality, number>> = {
+  真品: 45,
+  地品: 25,
+  天品: 17,
+  仙品: 9,
+  神品: 4,
+};
 
 const FALLBACK_NODE_ID = 'TN_YUE_01';
 
@@ -29,6 +38,8 @@ type LayerConfig = {
   rankRange: { min: Quality; max: Quality };
   access: MarketAccessRule;
   mysteryChance?: number;
+  qualityWeights?: Partial<Record<Quality, number>>;
+  minHighTierCount?: number;
 };
 
 export interface MarketProfileHint {
@@ -72,9 +83,11 @@ export const MARKET_LAYER_CONFIG: Record<MarketLayer, LayerConfig> = {
   },
   black: {
     count: MARKET_ITEM_COUNT,
-    rankRange: { min: '灵品', max: '仙品' },
+    rankRange: { min: '真品', max: '神品' },
     access: { minRealm: '筑基' },
     mysteryChance: DEFAULT_BLACK_MYSTERY_CHANCE,
+    qualityWeights: BLACK_MARKET_QUALITY_WEIGHTS,
+    minHighTierCount: BLACK_MARKET_MIN_HIGH_TIER_COUNT,
   },
 };
 
@@ -221,12 +234,15 @@ function getPriceTendency(profile: RegionProfile): string {
   return '行价平稳，偶有珍货浮动。';
 }
 
-function getLayerHints(profile: RegionProfile): string[] {
+function getLayerHints(profile: RegionProfile, layer: MarketLayer): string[] {
   const hints: string[] = [];
   const blackOverride = profile.layerOverrides.black;
   const heavenOverride = profile.layerOverrides.heaven;
   const treasureOverride = profile.layerOverrides.treasure;
 
+  if (layer === 'black') {
+    hints.push('黑市疑货多，价格浮动大，高阶材料概率更高。');
+  }
   if (blackOverride?.mysteryChance) {
     hints.push('黑市疑货更多，适合赌眼力。');
   }
@@ -262,7 +278,7 @@ export function getMarketProfileHint(
     signatureTags: profile.signatureTags,
     dominantMaterialTypes: getDominantMarketMaterialTypes(nodeId),
     priceTendency: getPriceTendency(profile),
-    layerHints: getLayerHints(profile),
+    layerHints: getLayerHints(profile, layer),
   };
 }
 
@@ -323,6 +339,9 @@ export function resolveLayerConfig(
     count: regionOverride?.count ?? base.count,
     rankRange: regionOverride?.rankRange ?? base.rankRange,
     mysteryChance: regionOverride?.mysteryChance ?? base.mysteryChance,
+    qualityWeights: regionOverride?.qualityWeights ?? base.qualityWeights,
+    minHighTierCount:
+      regionOverride?.minHighTierCount ?? base.minHighTierCount,
     access: base.access,
   };
 }

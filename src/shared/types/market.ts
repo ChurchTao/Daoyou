@@ -38,6 +38,8 @@ export interface RegionProfileLayerOverride {
   count?: number;
   rankRange?: { min: Quality; max: Quality };
   mysteryChance?: number;
+  qualityWeights?: Partial<Record<Quality, number>>;
+  minHighTierCount?: number;
 }
 
 export interface RegionProfile {
@@ -52,6 +54,8 @@ export interface ResolvedLayerConfig {
   count: number;
   rankRange: { min: Quality; max: Quality };
   mysteryChance?: number;
+  qualityWeights?: Partial<Record<Quality, number>>;
+  minHighTierCount?: number;
   access: MarketAccessRule;
 }
 

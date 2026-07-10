@@ -8,7 +8,7 @@ const {
   pruneExpiredDataMock,
   prunePlayerStateEventsOlderThanMock,
   getItemLibraryDailyMaterialGenerationSettingsMock,
-  generateRandomMaterialLibraryEntriesMock,
+  generateDailyMarketMaterialLibraryEntriesMock,
   redisMock,
   transactionMock,
 } = vi.hoisted(() => {
@@ -44,7 +44,7 @@ const {
     sendMailMock: vi.fn(),
     transactionMock: tx,
     getItemLibraryDailyMaterialGenerationSettingsMock: vi.fn(),
-    generateRandomMaterialLibraryEntriesMock: vi.fn(),
+    generateDailyMarketMaterialLibraryEntriesMock: vi.fn(),
   };
 });
 
@@ -97,7 +97,8 @@ vi.mock('@server/lib/services/MarketScheduler', () => ({
 
 vi.mock('@server/lib/services/MaterialLibraryService', () => ({
   ITEM_LIBRARY_SYSTEM_USER_ID: '00000000-0000-4000-8000-000000000000',
-  generateRandomMaterialLibraryEntries: generateRandomMaterialLibraryEntriesMock,
+  generateDailyMarketMaterialLibraryEntries:
+    generateDailyMarketMaterialLibraryEntriesMock,
 }));
 
 vi.mock('@server/lib/tower/enemySets', () => ({
@@ -125,7 +126,7 @@ describe('internal cron jobs', () => {
       enabled: true,
       count: 20,
     });
-    generateRandomMaterialLibraryEntriesMock.mockResolvedValue(
+    generateDailyMarketMaterialLibraryEntriesMock.mockResolvedValue(
       Array.from({ length: 20 }, (_, index) => ({ id: `item-${index}` })),
     );
     sendMailMock.mockImplementation(async (cultivatorId: string) => ({
@@ -204,7 +205,7 @@ describe('internal cron jobs', () => {
     });
   });
 
-  it('generates daily random materials with default settings', async () => {
+  it('generates daily market material library entries with default settings', async () => {
     await expect(runMaterialLibraryDailyGenerationJob()).resolves.toEqual({
       success: true,
       processed: 20,
@@ -214,7 +215,7 @@ describe('internal cron jobs', () => {
     expect(getItemLibraryDailyMaterialGenerationSettingsMock).toHaveBeenCalledTimes(
       1,
     );
-    expect(generateRandomMaterialLibraryEntriesMock).toHaveBeenCalledWith(
+    expect(generateDailyMarketMaterialLibraryEntriesMock).toHaveBeenCalledWith(
       expect.objectContaining({
         count: 20,
         userId: '00000000-0000-4000-8000-000000000000',
@@ -223,7 +224,7 @@ describe('internal cron jobs', () => {
     );
   });
 
-  it('skips daily random material generation when disabled', async () => {
+  it('skips daily material generation when disabled', async () => {
     getItemLibraryDailyMaterialGenerationSettingsMock.mockResolvedValueOnce({
       enabled: false,
       count: 20,
@@ -236,15 +237,15 @@ describe('internal cron jobs', () => {
       reason: 'disabled',
     });
 
-    expect(generateRandomMaterialLibraryEntriesMock).not.toHaveBeenCalled();
+    expect(generateDailyMarketMaterialLibraryEntriesMock).not.toHaveBeenCalled();
   });
 
-  it('uses the configured daily random material count', async () => {
+  it('uses the configured daily market material count', async () => {
     getItemLibraryDailyMaterialGenerationSettingsMock.mockResolvedValueOnce({
       enabled: true,
       count: 7,
     });
-    generateRandomMaterialLibraryEntriesMock.mockResolvedValueOnce(
+    generateDailyMarketMaterialLibraryEntriesMock.mockResolvedValueOnce(
       Array.from({ length: 7 }, (_, index) => ({ id: `item-${index}` })),
     );
 
@@ -254,12 +255,12 @@ describe('internal cron jobs', () => {
       skipped: false,
     });
 
-    expect(generateRandomMaterialLibraryEntriesMock).toHaveBeenCalledWith(
+    expect(generateDailyMarketMaterialLibraryEntriesMock).toHaveBeenCalledWith(
       expect.objectContaining({ count: 7 }),
     );
   });
 
-  it('skips daily random material generation when another instance holds the lock', async () => {
+  it('skips daily material generation when another instance holds the lock', async () => {
     redisMock.set.mockResolvedValueOnce(null);
 
     await expect(runMaterialLibraryDailyGenerationJob()).resolves.toEqual({
@@ -270,7 +271,7 @@ describe('internal cron jobs', () => {
     });
 
     expect(getItemLibraryDailyMaterialGenerationSettingsMock).not.toHaveBeenCalled();
-    expect(generateRandomMaterialLibraryEntriesMock).not.toHaveBeenCalled();
+    expect(generateDailyMarketMaterialLibraryEntriesMock).not.toHaveBeenCalled();
   });
 
   it('settles weekly rank rewards as reputation mail and emits mail events', async () => {

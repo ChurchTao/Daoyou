@@ -82,6 +82,108 @@ function normalizePositiveCount(countValue: number) {
   return Math.max(0, Math.floor(Number.isFinite(countValue) ? countValue : 0));
 }
 
+const DAILY_MARKET_QUALITY_WEIGHTS: Array<{
+  quality: Quality;
+  weight: number;
+}> = [
+  { quality: '真品', weight: 45 },
+  { quality: '地品', weight: 25 },
+  { quality: '天品', weight: 17 },
+  { quality: '仙品', weight: 9 },
+  { quality: '神品', weight: 4 },
+];
+
+const DAILY_MARKET_TYPE_WEIGHTS: Array<{
+  materialType: MaterialType;
+  weight: number;
+}> = [
+  { materialType: 'tcdb', weight: 5 },
+  { materialType: 'aux', weight: 4 },
+  { materialType: 'gongfa_manual', weight: 4 },
+  { materialType: 'skill_manual', weight: 4 },
+  { materialType: 'herb', weight: 1 },
+  { materialType: 'ore', weight: 1 },
+  { materialType: 'monster', weight: 1 },
+];
+
+function allocateWeightedCounts<T extends string>(
+  totalCount: number,
+  weightedItems: Array<{ value: T; weight: number }>,
+): Array<{ value: T; count: number }> {
+  const totalWeight = weightedItems.reduce((sum, item) => sum + item.weight, 0);
+  const raw = weightedItems.map((item) => {
+    const exact = totalWeight > 0 ? (totalCount * item.weight) / totalWeight : 0;
+    return {
+      value: item.value,
+      count: Math.floor(exact),
+      remainder: exact - Math.floor(exact),
+    };
+  });
+  let assigned = raw.reduce((sum, item) => sum + item.count, 0);
+  const byRemainder = [...raw].sort((a, b) => b.remainder - a.remainder);
+
+  for (const item of byRemainder) {
+    if (assigned >= totalCount) break;
+    item.count += 1;
+    assigned += 1;
+  }
+
+  return raw.map((item) => ({
+    value: item.value,
+    count: item.count,
+  }));
+}
+
+function expandWeightedSlots<T extends string>(
+  totalCount: number,
+  weightedItems: Array<{ value: T; weight: number }>,
+): T[] {
+  return allocateWeightedCounts(totalCount, weightedItems).flatMap((item) =>
+    Array.from({ length: item.count }, () => item.value),
+  );
+}
+
+export function buildDailyMarketMaterialGenerationPlan(input: {
+  count: number;
+  seed: string;
+  status?: ItemLibraryMaterialGenerateInput['status'];
+}): ItemLibraryMaterialGenerateInput[] {
+  const count = normalizePositiveCount(input.count);
+  if (count <= 0) return [];
+
+  const qualitySlots = expandWeightedSlots(
+    count,
+    DAILY_MARKET_QUALITY_WEIGHTS.map((item) => ({
+      value: item.quality,
+      weight: item.weight,
+    })),
+  );
+  const typeSlots = expandWeightedSlots(
+    count,
+    DAILY_MARKET_TYPE_WEIGHTS.map((item) => ({
+      value: item.materialType,
+      weight: item.weight,
+    })),
+  );
+  const groups = new Map<string, ItemLibraryMaterialGenerateInput>();
+
+  for (let i = 0; i < count; i++) {
+    const materialType = typeSlots[i] ?? 'tcdb';
+    const quality = qualitySlots[i] ?? '真品';
+    const key = `${materialType}:${quality}`;
+    const current = groups.get(key);
+    groups.set(key, {
+      count: (current?.count ?? 0) + 1,
+      materialType,
+      quality,
+      status: input.status ?? 'published',
+      seed: `${input.seed}:${key}`,
+    });
+  }
+
+  return Array.from(groups.values());
+}
+
 function materialEntryToWrite(entry: ItemLibraryEntry): Material {
   const material = toMaterialEntry(entry);
   return {
@@ -213,6 +315,32 @@ export async function generateRandomMaterialLibraryEntries(input: {
 
   const rows = await getExecutor().insert(itemLibrary).values(values).returning();
   return rows.map(parseRow);
+}
+
+export async function generateDailyMarketMaterialLibraryEntries(input: {
+  count: number;
+  userId: string;
+  source: string;
+  seed?: string;
+}): Promise<ItemLibraryEntry[]> {
+  const seed =
+    input.seed ?? `daily_market:${input.source}:${new Date().toISOString()}`;
+  const plan = buildDailyMarketMaterialGenerationPlan({
+    count: input.count,
+    seed,
+    status: 'published',
+  });
+  const generated: ItemLibraryEntry[] = [];
+
+  for (const request of plan) {
+    const entries = await generateMaterialLibraryEntries({
+      request,
+      userId: input.userId,
+    });
+    generated.push(...entries);
+  }
+
+  return generated;
 }
 
 async function sampleExactMaterialEntries(

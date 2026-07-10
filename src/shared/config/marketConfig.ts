@@ -7,8 +7,8 @@ export const RECYCLE_PRICE_PROFILE = 'conservative' as const;
 // MaterialGenerator 生产价格波动区间：base * typeMultiplier * [0.8, 1.2]
 export const PRODUCE_PRICE_FACTOR_MIN = 0.8;
 export const PRODUCE_PRICE_FACTOR_MAX = 1.2;
-// 回收价封顶：必须低于生产最低系数 0.8
-export const RECYCLE_PRICE_FACTOR_CAP = 0.79;
+// 回收价封顶：低于普通市场安全价下限 0.95 经最强命格折扣 0.65 后的价格
+export const RECYCLE_PRICE_FACTOR_CAP = 0.6;
 
 // 低品回收锚定系数（乘以 anchorPrice）
 export const LOW_TIER_ANCHOR_FACTOR: Record<'凡品' | '灵品' | '玄品', number> = {
