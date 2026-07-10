@@ -2989,6 +2989,39 @@ describe('cultivator marrow wash routes', () => {
     });
     expect(reserveQiMock).not.toHaveBeenCalled();
   });
+
+  it('rejects dirty repeated marrow wash breakthrough state before reserving qi', async () => {
+    const cultivator = createCultivator();
+    cultivator.realm = '筑基';
+    cultivator.condition = {
+      ...cultivator.condition!,
+      tracks: {
+        ...cultivator.condition!.tracks,
+        marrowWash: {
+          version: 1,
+          level: 11,
+          progress: 0,
+          realm: 1,
+          breakthroughs: 0,
+        },
+      },
+    };
+    getCultivatorByIdMock.mockResolvedValueOnce(cultivator);
+
+    const response = await createApp().request(
+      '/api/cultivator/marrow-wash/breakthrough',
+      { method: 'POST' },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: '洗髓等级不足，达到 Lv.20 后方可破限。',
+    });
+    expect(reserveQiMock).not.toHaveBeenCalled();
+    expect(updateCultivatorMock).not.toHaveBeenCalled();
+    expect(setSpiritualRootMarrowWashBonusMock).not.toHaveBeenCalled();
+  });
 });
 
 describe('cultivator mail state sync route', () => {

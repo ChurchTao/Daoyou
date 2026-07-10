@@ -53,11 +53,14 @@ export function normalizeMarrowWashState(
     0,
     Math.floor(level / MARROW_WASH_BREAKTHROUGH_LEVEL_STEP) - 1,
   );
+  const rawBreakthroughs = Math.max(0, Math.floor(raw?.breakthroughs ?? 0));
+  const rawRealm = Math.max(0, Math.floor(raw?.realm ?? 0));
   const breakthroughs = Math.max(
-    0,
-    Math.floor(raw?.breakthroughs ?? inferredBreakthroughs),
+    rawBreakthroughs,
+    rawRealm,
+    inferredBreakthroughs,
   );
-  const realm = Math.max(0, Math.floor(raw?.realm ?? breakthroughs));
+  const realm = breakthroughs;
 
   return {
     version: 1,
@@ -130,6 +133,10 @@ export function breakthroughMarrowWash(
   }
 
   const toRealm = state.breakthroughs + 1;
+  if (toRealm <= state.realm) {
+    throw new Error('洗髓破限状态异常，请刷新后重试。');
+  }
+
   return {
     condition: {
       ...conditionInput,

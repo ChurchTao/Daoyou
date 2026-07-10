@@ -158,11 +158,13 @@ function setTrackState(
   progress: number,
 ): CultivatorCondition {
   if (track === 'marrow_wash') {
+    const state = normalizeMarrowWashState(condition);
     return {
       ...condition,
       tracks: {
         ...condition.tracks,
         marrowWash: {
+          ...state,
           level,
           progress,
         },

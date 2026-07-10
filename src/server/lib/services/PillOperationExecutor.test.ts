@@ -1,5 +1,6 @@
 import { PILL_TOXICITY_CAP } from '@shared/config/consumableSystem';
 import { resolveLiveExpCap } from '@server/utils/cultivationUtils';
+import { getMarrowWashSummary } from '@shared/lib/marrowWash';
 import type {
   BodyCultivationRealm,
   CultivatorCondition,
@@ -442,5 +443,43 @@ describe('PillOperationExecutor toxicity and quota rules', () => {
       progress: 0,
     });
     expect(result.cultivator.unallocated_attribute_points).toBe(1);
+  });
+
+  it('preserves marrow-wash breakthrough state when pills advance progress after a breakthrough', () => {
+    const cultivator = createCultivator({
+      ...createCondition(0),
+      tracks: {
+        ...createCondition(0).tracks,
+        marrowWash: {
+          version: 1,
+          level: 10,
+          progress: 0,
+          realm: 1,
+          breakthroughs: 1,
+        },
+      },
+    });
+    const pill = createPill('marrow_wash', [
+      { type: 'advance_track', track: 'marrow_wash', value: 720 },
+    ]);
+
+    const result = PillOperationExecutor.execute(cultivator, pill, NOW);
+    const marrowWash = result.cultivator.condition?.tracks.marrowWash;
+
+    expect(marrowWash).toMatchObject({
+      version: 1,
+      level: 11,
+      progress: 0,
+      realm: 1,
+      breakthroughs: 1,
+    });
+    expect(
+      getMarrowWashSummary(result.cultivator.condition, {
+        cultivatorRealm: result.cultivator.realm,
+      }),
+    ).toMatchObject({
+      nextBreakthroughLevel: 20,
+      canBreakthrough: false,
+    });
   });
 });

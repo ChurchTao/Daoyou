@@ -1,4 +1,8 @@
-import { getExecutor } from '@server/lib/drizzle/db';
+import {
+  getExecutor,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
@@ -28,7 +32,6 @@ import { PillOperationExecutor } from './PillOperationExecutor';
 import { QiService } from './QiService';
 import { mapConsumableRow } from './consumablePersistence';
 import { randomUUID } from 'crypto';
-import type { DbTransaction } from '@server/lib/drizzle/db';
 import {
   AttributeResetService,
   withAttributeResetLock,
@@ -37,8 +40,10 @@ import {
 async function loadOwnedConsumable(
   cultivatorId: string,
   consumableId: string,
+  executor?: DbExecutor | DbTransaction,
 ): Promise<Consumable | null> {
-  const rows = await getExecutor()
+  const q = executor ?? getExecutor();
+  const rows = await q
     .select()
     .from(schema.consumables)
     .where(
@@ -89,12 +94,20 @@ export const ConsumableUseEngine = {
     message: string;
     consumable: Consumable;
   }> {
-    const cultivator = await getPlayerRuntimeCultivatorById(userId, cultivatorId);
+    const cultivator = await getPlayerRuntimeCultivatorById(
+      userId,
+      cultivatorId,
+      options.tx,
+    );
     if (!cultivator) {
       throw new Error('角色不存在或无权限操作。');
     }
 
-    const consumable = await loadOwnedConsumable(cultivatorId, consumableId);
+    const consumable = await loadOwnedConsumable(
+      cultivatorId,
+      consumableId,
+      options.tx,
+    );
     if (!consumable) {
       throw new Error('该消耗品不存在或已耗尽。');
     }
