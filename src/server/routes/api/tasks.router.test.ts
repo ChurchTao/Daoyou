@@ -60,9 +60,14 @@ function createApp() {
 }
 
 function mockTaskClaimTransaction(unreadMailCount: number) {
-  const selectWhere = vi.fn().mockResolvedValue([{ count: unreadMailCount }]);
-  const from = vi.fn(() => ({ where: selectWhere }));
-  const select = vi.fn(() => ({ from }));
+  let selectCall = 0;
+  const select = vi.fn(() => {
+    selectCall += 1;
+    if (selectCall === 1) {
+      return { from: () => ({ where: () => ({ for: () => ({ limit: async () => [{ id: 'cultivator-1' }] }) }) }) };
+    }
+    return { from: () => ({ where: async () => [{ count: unreadMailCount }] }) };
+  });
   const versionRow = {
     cultivatorId: 'cultivator-1',
     globalVersion: 1,
@@ -73,6 +78,7 @@ function mockTaskClaimTransaction(unreadMailCount: number) {
     loadoutVersion: 0,
     mailVersion: 1,
     tasksVersion: 1,
+    sectVersion: 0,
     updatedAt: new Date('2026-06-10T00:00:00.000Z'),
   };
   const eventRows = [
@@ -82,6 +88,7 @@ function mockTaskClaimTransaction(unreadMailCount: number) {
       userId: 'user-1',
       globalVersion: 1,
       domain: 'tasks',
+      domainVersion: 1,
       eventType: 'tasks.reward_claimed',
       patch: {},
       invalidates: ['tasks'],
@@ -225,6 +232,7 @@ describe('tasks router', () => {
             cultivatorId: 'cultivator-1',
             globalVersion: 1,
             domain: 'tasks',
+            domainVersion: 1,
             eventType: 'tasks.reward_claimed',
             patch: {},
             invalidates: ['tasks'],

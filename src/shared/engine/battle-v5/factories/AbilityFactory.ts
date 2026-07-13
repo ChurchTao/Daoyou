@@ -54,6 +54,7 @@ export class AbilityFactory {
           : TargetPolicy.default(),
         selectionProfile:
           config.selectionProfile ?? this.inferSelectionProfile(config),
+        castConditions: config.castConditions,
       });
 
           skill.tags.addTags(abilityTags);

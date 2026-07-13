@@ -1,5 +1,6 @@
 import { AbilityId, AbilityType } from '../core/types';
-import type { AbilitySelectionProfile } from '../core/configs';
+import type { AbilitySelectionProfile, ConditionConfig } from '../core/configs';
+import { checkConditions } from '../core/conditionEvaluator';
 import {
   beginAbilityTransform,
   endAbilityTransform,
@@ -29,6 +30,7 @@ export interface ActiveSkillConfig {
   baseDamage?: number;
   damageCoefficient?: number;
   selectionProfile?: AbilitySelectionProfile;
+  castConditions?: ConditionConfig[];
 }
 
 /**
@@ -50,6 +52,7 @@ export abstract class ActiveSkill extends Ability {
   // 目标策略
   readonly targetPolicy: TargetPolicy;
   readonly selectionProfile?: AbilitySelectionProfile;
+  readonly castConditions: ConditionConfig[];
 
   constructor(id: AbilityId, name: string, config: ActiveSkillConfig = {}) {
     super(id, name, AbilityType.ACTIVE_SKILL);
@@ -73,6 +76,7 @@ export abstract class ActiveSkill extends Ability {
     // 初始化目标策略
     this.targetPolicy = config.targetPolicy ?? TargetPolicy.default();
     this.selectionProfile = config.selectionProfile;
+    this.castConditions = config.castConditions ?? [];
   }
 
   // ===== 冷却管理 =====
@@ -163,6 +167,7 @@ export abstract class ActiveSkill extends Ability {
     for (const cost of this._resourceCosts) {
       switch (cost.type) {
         case 'mp':
+          if (transform?.freeManaCost) break;
           if (transform?.mpCostToHp) {
             if (caster.getCurrentHp() <= cost.amount) return false;
             break;
@@ -185,6 +190,7 @@ export abstract class ActiveSkill extends Ability {
     for (const cost of this._resourceCosts) {
       switch (cost.type) {
         case 'mp':
+          if (transform?.freeManaCost) break;
           if (transform?.mpCostToHp) {
             caster.takeDamage(cost.amount);
           } else {
@@ -214,6 +220,13 @@ export abstract class ActiveSkill extends Ability {
     // 资源检查
     const caster = this.getOwner() ?? context.caster;
     if (!this.hasEnoughResources(caster)) return false;
+    if (
+      this.castConditions.length > 0 &&
+      !checkConditions(
+        { caster, target: context.target, ability: this },
+        this.castConditions,
+      )
+    ) return false;
 
     return true;
   }

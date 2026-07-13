@@ -149,6 +149,7 @@ export interface MechanicEntryData {
     | 'damage_defer'
     | 'hp_sacrifice'
     | 'buff_layer'
+    | 'combat_resource'
     | 'status_spread';
   targetName: string;
   sourceName?: string;

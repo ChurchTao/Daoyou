@@ -163,6 +163,12 @@ export interface UnitSnapshot {
   currentMp: number;
   maxMp: number;
   buffs: BuffId[];
+  combatResources: Array<{
+    id: string;
+    name: string;
+    current: number;
+    max: number;
+  }>;
   isAlive: boolean;
   hpPercent: number;
   mpPercent: number;

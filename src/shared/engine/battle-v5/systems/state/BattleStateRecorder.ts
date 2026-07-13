@@ -132,6 +132,7 @@ export class BattleStateRecorder {
       attrs: this._buildAttrs(unit),
       baseAttrs: this._buildAttrs(unit, true),
       buffs: this._buildBuffs(unit),
+      combatResources: unit.combatResources.snapshots(),
       cooldowns: this._buildCooldowns(unit),
       canAct:
         unit.isAlive() &&
@@ -289,6 +290,24 @@ export class BattleStateRecorder {
     if (buffsRemoved.length > 0) delta.buffsRemoved = buffsRemoved;
     if (buffsUpdated.length > 0) delta.buffsUpdated = buffsUpdated;
 
+    const previousResourceMap = new Map(
+      prev.combatResources.map((resource) => [resource.id, resource]),
+    );
+    const combatResourcesChanged = curr.combatResources
+      .filter(
+        (resource) =>
+          previousResourceMap.get(resource.id)?.current !== resource.current,
+      )
+      .map((resource) => ({
+        id: resource.id,
+        name: resource.name,
+        from: previousResourceMap.get(resource.id)?.current ?? 0,
+        to: resource.current,
+      }));
+    if (combatResourcesChanged.length > 0) {
+      delta.combatResourcesChanged = combatResourcesChanged;
+    }
+
     const prevCDMap = new Map(prev.cooldowns.map((c) => [c.skillId, c]));
     const cooldownsChanged = curr.cooldowns
       .filter((c) => {
@@ -324,6 +343,7 @@ export class BattleStateRecorder {
       delta.buffsAdded?.length ||
       delta.buffsRemoved?.length ||
       delta.buffsUpdated?.length ||
+      delta.combatResourcesChanged?.length ||
       delta.cooldownsChanged?.length ||
       delta.canActChanged ||
       delta.aliveChanged

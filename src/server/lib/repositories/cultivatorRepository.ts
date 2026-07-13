@@ -3,6 +3,8 @@ import type { CreationProductRecord } from '@server/lib/repositories/creationPro
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import * as schema from '@server/lib/drizzle/schema';
 import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
+import { loadCultivatorSectState } from './sectRepository';
+import type { CultivatorSectState } from '@shared/engine/sect';
 
 export type CultivatorRecord = typeof schema.cultivators.$inferSelect;
 export type SpiritualRootRecord = typeof schema.spiritualRoots.$inferSelect;
@@ -24,6 +26,7 @@ export interface CultivatorRelations {
   creationProducts: CreationProductRecord[];
   consumables: ConsumableRecord[];
   materials: MaterialRecord[];
+  sect?: CultivatorSectState;
 }
 
 export async function loadCultivatorRelations(
@@ -51,12 +54,15 @@ export async function loadCultivatorRelations(
     .from(schema.materials)
     .where(eq(schema.materials.cultivatorId, cultivatorId));
 
+  const sect = await loadCultivatorSectState(cultivatorId, q);
+
   return {
     spiritualRoots,
     preHeavenFates,
     creationProducts,
     consumables,
     materials,
+    sect,
   };
 }
 

@@ -25,6 +25,11 @@ import type {
 import type { MailAttachment } from '@shared/types/mail';
 import type { TowerPreparedEnemy } from '@shared/lib/tower';
 import type { PlayerStateDomain } from '@shared/contracts/player';
+import type {
+  LingxiaoAbilityId,
+  SectPathId,
+  SectTacticId,
+} from '@shared/engine/sect';
 
 // ===== 新一代修仙游戏数据库 Schema =====
 // 基于 basic.md 中的新 Cultivator 模型设计
@@ -42,6 +47,8 @@ export const cultivators = pgTable(
     personality: text('personality'),
     background: text('background'),
     prompt: text('prompt').notNull(), // 用户原始输入
+    playerRace: varchar('player_race', { length: 32 }).notNull().default('human'),
+    raceNarrative: text('race_narrative'),
 
     // 境界相关
     realm: varchar('realm', { length: 20 }).notNull(), // 炼气 | 筑基 | 金丹 | ...
@@ -157,11 +164,93 @@ export const cultivatorStateVersions = pgTable(
     tasksVersion: bigint('tasks_version', { mode: 'number' })
       .notNull()
       .default(0),
+    sectVersion: bigint('sect_version', { mode: 'number' })
+      .notNull()
+      .default(0),
     updatedAt: timestamp('updated_at')
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
+);
+
+export const sectMemberships = pgTable(
+  'wanjiedaoyou_sect_memberships',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    sectId: varchar('sect_id', { length: 64 }).notNull(),
+    status: varchar('status', { length: 16 }).notNull().default('prospect'),
+    experiencedAt: timestamp('experienced_at'),
+    joinedAt: timestamp('joined_at'),
+    pathId: varchar('path_id', { length: 64 }).$type<SectPathId>(),
+    contribution: integer('contribution').notNull().default(0),
+    tacticId: varchar('tactic_id', { length: 32 }).$type<SectTacticId>().notNull().default('steady'),
+    activeMeridianSlot: integer('active_meridian_slot').notNull().default(1),
+    configVersion: integer('config_version').notNull().default(1),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex('sect_memberships_cultivator_unique').on(table.cultivatorId),
+    index('sect_memberships_sect_status_idx').on(table.sectId, table.status),
+  ],
+);
+
+export const sectMethodProgress = pgTable(
+  'wanjiedaoyou_sect_method_progress',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    membershipId: uuid('membership_id').references(() => sectMemberships.id, { onDelete: 'cascade' }).notNull(),
+    methodId: varchar('method_id', { length: 64 }).notNull(),
+    level: integer('level').notNull().default(0),
+    updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [uniqueIndex('sect_method_membership_method_unique').on(table.membershipId, table.methodId)],
+);
+
+export const sectMeridianLoadouts = pgTable(
+  'wanjiedaoyou_sect_meridian_loadouts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    membershipId: uuid('membership_id').references(() => sectMemberships.id, { onDelete: 'cascade' }).notNull(),
+    slot: integer('slot').notNull(),
+    nodeIds: jsonb('node_ids').$type<string[]>().notNull().default([]),
+    version: integer('version').notNull().default(1),
+    updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [uniqueIndex('sect_meridian_membership_slot_unique').on(table.membershipId, table.slot)],
+);
+
+export const sectAbilityLoadouts = pgTable(
+  'wanjiedaoyou_sect_ability_loadouts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    membershipId: uuid('membership_id').references(() => sectMemberships.id, { onDelete: 'cascade' }).notNull(),
+    slot: integer('slot').notNull(),
+    abilityId: varchar('ability_id', { length: 64 }).$type<LingxiaoAbilityId>().notNull(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex('sect_ability_membership_slot_unique').on(table.membershipId, table.slot),
+    uniqueIndex('sect_ability_membership_ability_unique').on(table.membershipId, table.abilityId),
+  ],
+);
+
+export const sectDailyCommissions = pgTable(
+  'wanjiedaoyou_sect_daily_commissions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    membershipId: uuid('membership_id').references(() => sectMemberships.id, { onDelete: 'cascade' }).notNull(),
+    dateKey: varchar('date_key', { length: 10 }).notNull(),
+    completionType: varchar('completion_type', { length: 16 }).notNull(),
+    completedAt: timestamp('completed_at').notNull(),
+    claimedAt: timestamp('claimed_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex('sect_commission_membership_date_unique').on(table.membershipId, table.dateKey)],
 );
 
 export const playerStateEvents = pgTable(

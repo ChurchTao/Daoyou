@@ -71,6 +71,12 @@ export interface UnitStateSnapshot {
   attrs: AttrsStateView;
   baseAttrs: AttrsStateView;
   buffs: BuffStateView[];
+  combatResources: Array<{
+    id: string;
+    name: string;
+    current: number;
+    max: number;
+  }>;
   cooldowns: CooldownStateView[];
   /** 是否可行动（存活且未被控制）*/
   canAct: boolean;
@@ -96,6 +102,12 @@ export interface UnitStateDelta {
     layerChange?: number;
     /** 正数=续时，负数=消耗 */
     remainingChange?: number;
+  }>;
+  combatResourcesChanged?: Array<{
+    id: string;
+    name: string;
+    from: number;
+    to: number;
   }>;
   cooldownsChanged?: Array<{
     skillId: string;

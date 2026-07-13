@@ -168,6 +168,7 @@ export class BuffContainer {
     switch (newBuff.stackRule) {
       case StackRule.STACK_LAYER:
         existing.addLayer(1);
+        existing.refreshToDuration(newBuff.getMaxDuration());
         if (source) {
           existing.setSource(source);
         }

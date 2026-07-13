@@ -7,6 +7,7 @@ import {
   type BattleAbilityStrategyWeights,
 } from '@shared/types/gameSettings';
 import type { AbilitySelectionIntent } from '../core/configs';
+import { checkConditions } from '../core/conditionEvaluator';
 import { BuffType } from '../core/types';
 import { Unit } from '../units/Unit';
 import { ActiveSkill } from './ActiveSkill';
@@ -128,6 +129,18 @@ export class DefaultAbilitySelectionStrategy implements AbilitySelectionStrategy
     const caster = context.caster;
     const target = candidate.target;
     let score = candidate.ability.priority;
+
+    for (const rule of candidate.ability.selectionProfile?.rules ?? []) {
+      if (
+        checkConditions(
+          { caster, target, ability: candidate.ability },
+          rule.conditions,
+        )
+      ) {
+        if (rule.disqualify) return null;
+        score += rule.scoreDelta ?? 0;
+      }
+    }
 
     if (intents.includes('heal_hp')) {
       const hpPercent = caster.getHpPercent();

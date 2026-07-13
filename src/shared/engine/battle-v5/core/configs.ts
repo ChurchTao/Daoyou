@@ -14,6 +14,13 @@ export type AbilitySelectionIntent =
 
 export interface AbilitySelectionProfile {
   intents?: AbilitySelectionIntent[];
+  rules?: AbilitySelectionRule[];
+}
+
+export interface AbilitySelectionRule {
+  conditions: ConditionConfig[];
+  scoreDelta?: number;
+  disqualify?: boolean;
 }
 
 /**
@@ -38,6 +45,8 @@ export interface ConditionConfig {
     | 'damage_type_is'
     | 'shield_absorbed_at_least'
     | 'resource_compare'
+    | 'combat_resource_at_least'
+    | 'combat_resource_below'
     | 'chance'
     | 'is_critical'
     | 'is_lethal';
@@ -53,6 +62,7 @@ export interface ConditionConfig {
     op?: 'gt' | 'gte' | 'lt' | 'lte';
     right?: 'caster' | 'target';
     damageType?: DamageType;
+    resourceId?: string;
   };
 }
 
@@ -74,6 +84,7 @@ export interface BaseEffectConfig {
 export interface DamageParams {
   value: ScalableValue;
   damageType?: DamageType;
+  bypassDefense?: boolean;
 }
 
 /**
@@ -171,6 +182,7 @@ export interface ConsumeStatusTriggerParams {
   match: BuffMatchParams;
   consume?: 'one' | 'all' | number;
   effects: EffectConfig[];
+  scaleEffectsByLayer?: boolean;
 }
 
 export interface DelayedEffectParams {
@@ -218,6 +230,15 @@ export interface BuffLayerModifyParams {
   scaleEffectsByLayer?: boolean;
 }
 
+export interface CombatResourceModifyParams {
+  resourceId: string;
+  operation: 'add' | 'subtract' | 'set' | 'consume_all';
+  amount?: number;
+  target?: 'caster' | 'target';
+  effects?: EffectConfig[];
+  scaleEffectsByAmount?: boolean;
+}
+
 export interface AbilityTransformParams {
   id: string;
   triggers?: number;
@@ -225,6 +246,7 @@ export interface AbilityTransformParams {
   trueDamage?: boolean;
   addDispel?: DispelParams;
   mpCostToHp?: boolean;
+  freeManaCost?: boolean;
   cooldownModify?: number;
   forceCritical?: boolean;
   bonusDamageMemory?: {
@@ -353,6 +375,7 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'delayed_effect'; params: DelayedEffectParams }
     | { type: 'damage_memory'; params: DamageMemoryParams }
     | { type: 'buff_layer_modify'; params: BuffLayerModifyParams }
+    | { type: 'combat_resource_modify'; params: CombatResourceModifyParams }
     | { type: 'ability_transform'; params: AbilityTransformParams }
     | { type: 'hp_sacrifice_damage'; params: HpSacrificeDamageParams }
     | { type: 'ability_lock'; params: AbilityLockParams }
@@ -469,6 +492,7 @@ export interface BuffConfig {
   type: BuffType;
   duration: number; // -1 为永久
   stackRule: StackRule;
+  maxLayers?: number;
   tags?: string[]; // Buff 自身的标签
   statusTags?: string[]; // 附加给宿主的标签
   /**
@@ -504,6 +528,7 @@ export interface AbilityConfig {
   };
 
   selectionProfile?: AbilitySelectionProfile;
+  castConditions?: ConditionConfig[];
 
   /**
    * 主动效果链 (主动技能执行时触发)

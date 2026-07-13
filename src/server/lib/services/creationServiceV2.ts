@@ -44,6 +44,7 @@ import { cultivators, materials } from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
+import { loadCultivatorSectState } from '@server/lib/repositories/sectRepository';
 import type {
   ElementType,
   EquipmentSlot,
@@ -663,6 +664,9 @@ export async function processCreation(
         );
         row.isEquipped =
           effectiveLimit !== null && equippedCount < effectiveLimit;
+        if (productType === 'skill' && (await loadCultivatorSectState(cultivatorId, tx))?.status === 'active') {
+          row.isEquipped = false;
+        }
       }
 
       if (needsReplace) {
@@ -809,6 +813,9 @@ export async function confirmCreation(
       row.isEquipped =
         replacedWasEquipped ||
         (effectiveLimit !== null && equippedCount < effectiveLimit);
+      if (productType === 'skill' && (await loadCultivatorSectState(cultivatorId, tx))?.status === 'active') {
+        row.isEquipped = false;
+      }
     }
 
     const record = await creationProductRepository.insert(row, tx);

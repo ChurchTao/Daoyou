@@ -14,6 +14,7 @@ import {
 } from '../core/types';
 import type { AbilityConfig } from '../core/configs';
 import { Unit } from '../units/Unit';
+import { projectLingxiaoCombat } from '@shared/engine/sect';
 
 const ATTRIBUTE_MAP = {
   spirit: AttributeType.SPIRIT,
@@ -62,7 +63,11 @@ export function createCombatUnitFromCultivator(
     realmRank: getRealmStageRank(cultivator.realm, cultivator.realm_stage),
   });
 
-  for (const skill of cultivator.skills ?? []) {
+  const sectProjection = cultivator.sect
+    ? projectLingxiaoCombat({ sect: cultivator.sect, realm: cultivator.realm })
+    : null;
+
+  for (const skill of sectProjection ? [] : (cultivator.skills ?? [])) {
     if (!skill.abilityConfig) continue;
     unit.abilities.addAbility(AbilityFactory.create(skill.abilityConfig));
   }
@@ -106,6 +111,25 @@ export function createCombatUnitFromCultivator(
   }
 
   mountBodyCultivationModifiers(unit, cultivator);
+
+  if (sectProjection) {
+    for (const resource of sectProjection.resources) {
+      unit.combatResources.define(resource);
+    }
+    if (sectProjection.defaultAttack) {
+      unit.abilities.setDefaultAttack(AbilityFactory.create(sectProjection.defaultAttack));
+    }
+    for (const ability of sectProjection.abilities) {
+      unit.abilities.addAbility(AbilityFactory.create(ability));
+    }
+    for (const [index, modifier] of sectProjection.passiveModifiers.entries()) {
+      unit.attributes.addModifier({
+        id: `sect:lingxiao:method:${modifier.attrType}:${index}`,
+        ...modifier,
+        source: { sourceType: 'sect', carrierId: cultivator.sect?.membershipId },
+      });
+    }
+  }
 
   unit.updateDerivedStats();
   return unit;

@@ -196,6 +196,7 @@ export class BattleEngineV5 {
       );
 
       if (!actor.isAlive()) continue;
+      actor.combatResources.beginAction();
       // ===== 控制状态检查 =====
       // 禁行动：包括紧傅标签（向后兼容）和新式 NO_ACTION 标签
       const controlTag = this.getSkipControlTag(actor);
@@ -206,7 +207,7 @@ export class BattleEngineV5 {
           unit: actor,
           controlTag,
         });
-        this.finalizeActorTurn(actor);
+        this.finalizeActorTurn(actor, true);
         continue;
       }
       // 设置当前出手单位
@@ -231,7 +232,7 @@ export class BattleEngineV5 {
       // 清除当前出手单位
       this._stateMachine.clearCurrentCaster();
 
-      this.finalizeActorTurn(actor);
+      this.finalizeActorTurn(actor, false);
     }
   }
 
@@ -247,13 +248,14 @@ export class BattleEngineV5 {
     return null;
   }
 
-  private finalizeActorTurn(actor: Unit): void {
+  private finalizeActorTurn(actor: Unit, controlledSkip = false): void {
     // 发布行动后置事件（Buff 过期处理阶段开始）
     this._eventBus.publish<ActionPostEvent>({
       type: 'ActionPostEvent',
       timestamp: Date.now(),
       caster: actor,
     });
+    actor.combatResources.finishAction(controlledSkip, actor.getCurrentShield() > 0);
 
     // 处理 Buff 过期
     this.processBuffs(actor);

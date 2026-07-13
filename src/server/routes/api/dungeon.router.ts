@@ -24,6 +24,7 @@ import {
   toPlayerStateMutationResponse,
   type StateChangeDescriptor,
 } from '@server/lib/services/PlayerStateMutationService';
+import { SectCommissionService } from '@server/lib/services/SectCommissionService';
 import { hasCultivatorRecoveryPill } from '@server/lib/repositories/cultivatorRepository';
 import {
   buildCultivatorRuntime,
@@ -233,15 +234,20 @@ async function commitDungeonResponse<T>(args: {
       if (persist) {
         await persist(tx);
       }
+      const commissionCompleted = args.includeTasks
+        ? await SectCommissionService.recordEvent(args.cultivatorId, 'dungeon', tx)
+        : false;
       const after = await readDungeonPlayerState(tx, args.cultivatorId);
+      const changes = buildDungeonStateChanges({
+        before,
+        after,
+        result: responseResult,
+        includeTasks: args.includeTasks,
+      });
+      if (commissionCompleted) changes.push({ domain: 'sect', eventType: 'sect.commission_completed' });
       return {
         result: responseResult,
-        changes: buildDungeonStateChanges({
-          before,
-          after,
-          result: responseResult,
-          includeTasks: args.includeTasks,
-        }),
+        changes,
       };
     },
   });

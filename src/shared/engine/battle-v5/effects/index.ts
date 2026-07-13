@@ -16,3 +16,4 @@ export * from './DamageImmunityEffect';
 export * from './TagTriggerEffect';
 export * from './PercentDamageModifierEffect';
 export * from './AdvancedEffects';
+export * from './CombatResourceModifyEffect';

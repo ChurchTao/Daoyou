@@ -15,6 +15,7 @@ export interface PendingAbilityTransform {
   trueDamage?: boolean;
   addDispel?: EffectConfig;
   mpCostToHp?: boolean;
+  freeManaCost?: boolean;
   cooldownModify?: number;
   forceCritical?: boolean;
   bonusDamageMemory?: {

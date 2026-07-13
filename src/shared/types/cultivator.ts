@@ -5,6 +5,7 @@ import type { AttributeModifierConfig } from '@shared/engine/battle-v5/core/conf
 import type { ConsumableSpec } from '@shared/types/consumable';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { CultivatorGameSettings } from '@shared/types/gameSettings';
+import type { CultivatorSectState, PlayerRaceId } from '@shared/engine/sect/types';
 import type {
   ConsumableType,
   ElementType,
@@ -266,6 +267,12 @@ export interface Cultivator {
   name: string;
   title?: string | null;
   gender: GenderType;
+  /** 玩家种族；与敌人 EnemyRace 分离。 */
+  playerRace?: PlayerRaceId;
+  raceNarrative?: string;
+  /** 仅战斗/玩家状态组装时挂载，不写入 cultivators JSON。 */
+  sect?: CultivatorSectState;
+  /** 敌人和旧战斗草稿仍使用该字段。 */
   race?: EnemyRace;
   origin?: string;
   personality?: string;

@@ -204,6 +204,18 @@ export function evaluateCondition(
           return leftValue > rightValue;
       }
     }
+    case 'combat_resource_at_least':
+      return !!(
+        scopedUnit &&
+        cond.params.resourceId &&
+        scopedUnit.combatResources.getCurrent(cond.params.resourceId) >= threshold
+      );
+    case 'combat_resource_below':
+      return !!(
+        scopedUnit &&
+        cond.params.resourceId &&
+        scopedUnit.combatResources.getCurrent(cond.params.resourceId) < threshold
+      );
     case 'chance':
       return Math.random() < threshold;
     case 'is_critical': {

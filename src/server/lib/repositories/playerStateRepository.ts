@@ -24,6 +24,7 @@ const VERSION_COLUMNS = {
   loadout: 'loadoutVersion',
   mail: 'mailVersion',
   tasks: 'tasksVersion',
+  sect: 'sectVersion',
 } satisfies Record<PlayerStateDomain, string>;
 
 function domainVersionsFromRow(
@@ -37,6 +38,7 @@ function domainVersionsFromRow(
     loadout: row.loadoutVersion,
     mail: row.mailVersion,
     tasks: row.tasksVersion,
+    sect: row.sectVersion,
   };
 }
 

@@ -370,6 +370,9 @@ export class DamageSystem {
     const actualHpDamage = Math.max(0, beforeHp - target.getCurrentHp());
     if (remainingDamage > 0) {
       markDamageDealt(caster);
+      if (damageEvent.damageSource === DamageSource.DIRECT) {
+        caster?.combatResources.markDirectDamageDealt();
+      }
     }
 
     // 发布受击事件（包含护盾抵扣和技能/暴击信息）

@@ -5,6 +5,7 @@ import { AttributeType, UnitId, UnitSnapshot } from '../core/types';
 import { AbilityContainer } from './AbilityContainer';
 import { AttributeSet } from './AttributeSet';
 import { BuffContainer } from './BuffContainer';
+import { CombatResourceContainer } from './CombatResourceContainer';
 
 interface UnitRuntimeMeta {
   spiritualRoots: SpiritualRoot[];
@@ -19,6 +20,7 @@ export class Unit {
   readonly attributes: AttributeSet;
   readonly abilities: AbilityContainer;
   readonly buffs: BuffContainer;
+  readonly combatResources: CombatResourceContainer;
   readonly tags: GameplayTagContainer;
 
   private currentHp: number;
@@ -40,6 +42,7 @@ export class Unit {
       attributes?: AttributeSet;
       abilities?: AbilityContainer;
       buffs?: BuffContainer;
+      combatResources?: CombatResourceContainer;
     },
   ) {
     this.id = id;
@@ -48,6 +51,8 @@ export class Unit {
     this.attributes = options?.attributes ?? new AttributeSet(baseAttrs);
     this.abilities = options?.abilities ?? new AbilityContainer(this);
     this.buffs = options?.buffs ?? new BuffContainer(this);
+    this.combatResources =
+      options?.combatResources ?? new CombatResourceContainer();
 
     // Initialize tag container
     this.tags = new GameplayTagContainer();
@@ -170,6 +175,7 @@ export class Unit {
     const clonedAttributes = this.attributes.clone();
     const clonedAbilities = this.abilities.clone(tempUnit);
     const clonedBuffs = this.buffs.clone(tempUnit);
+    const clonedCombatResources = this.combatResources.clone();
 
     // Now create the final unit with the cloned containers
     const clone = new Unit(
@@ -180,6 +186,7 @@ export class Unit {
         attributes: clonedAttributes,
         abilities: clonedAbilities,
         buffs: clonedBuffs,
+        combatResources: clonedCombatResources,
       },
     );
 
@@ -208,6 +215,7 @@ export class Unit {
       currentMp: this.currentMp,
       maxMp: this.maxMp,
       buffs: this.buffs.getAllBuffIds(),
+      combatResources: this.combatResources.snapshots(),
       isAlive: this.isAlive(),
       hpPercent: this.getHpPercent(),
       mpPercent: this.getMpPercent(),

@@ -41,10 +41,11 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
       detail: 'consumed',
     });
 
-    executeEffectConfigs(
-      this.params.effects.length > 0 ? this.params.effects : delayedEffects ?? [],
-      context,
-    );
+    const effects = this.params.effects.length > 0 ? this.params.effects : delayedEffects ?? [];
+    const repeats = this.params.scaleEffectsByLayer ? consumedLayers : 1;
+    for (let index = 0; index < repeats; index += 1) {
+      executeEffectConfigs(effects, context);
+    }
   }
 }
 

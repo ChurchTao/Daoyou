@@ -317,6 +317,17 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="sect"
+              lazy={lazyRoute(() => import('@app/routes/game/sect/route'))}
+              handle={scene(
+                {
+                  id: 'sect',
+                  summary: '拜山问剑、研习心法、择定剑脉并承接宗门委托。',
+                },
+                '凌霄剑宗',
+              )}
+            />
+            <Route
               path="techniques"
               lazy={lazyRoute(
                 () => import('@app/routes/game/techniques/route'),

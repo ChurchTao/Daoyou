@@ -220,6 +220,15 @@ export class AbilityContainer {
     return this._defaultAttack;
   }
 
+  setDefaultAttack(ability: Ability): void {
+    if (this._defaultAttack) {
+      this._defaultAttack.setActive(false);
+    }
+    this._defaultAttack = ability;
+    this._defaultAttack.setOwner(this._owner);
+    this._defaultAttack.setActive(true);
+  }
+
   /**
    * 更新所有技能的冷却时间
    */
@@ -299,6 +308,9 @@ export class AbilityContainer {
       clonedContainer._abilities.set(clonedAbility.id, clonedAbility);
       clonedAbility.setOwner(owner);
       clonedAbility.setActive(true);
+    }
+    if (this._defaultAttack) {
+      clonedContainer.setDefaultAttack(this._defaultAttack.clone());
     }
 
     return clonedContainer;

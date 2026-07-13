@@ -79,6 +79,7 @@ import { toArtifactFromProduct } from './creationProductArtifactSupport';
 import { FateEngine } from './FateEngine';
 import { addMaterialStackToInventory } from './materialInventory';
 import { sanitizeMaterialDetails } from './materialDetailsPrivacy';
+import { loadCultivatorSectState } from '@server/lib/repositories/sectRepository';
 
 const emptyEquipped: EquippedItems = {
   weapon: null,
@@ -254,7 +255,7 @@ function mapLoadoutFromProducts(
 
 function buildProfileCultivator(
   cultivatorRecord: CultivatorRecord,
-  relations: Pick<CultivatorRelations, 'spiritualRoots' | 'preHeavenFates'>,
+  relations: Pick<CultivatorRelations, 'spiritualRoots' | 'preHeavenFates' | 'sect'>,
 ): PlayerProfileCultivator {
   const spiritual_roots = mapSpiritualRoots(relations.spiritualRoots);
   const pre_heaven_fates = mapPreHeavenFates(relations.preHeavenFates);
@@ -268,6 +269,9 @@ function buildProfileCultivator(
     personality: cultivatorRecord.personality || undefined,
     background: cultivatorRecord.background || undefined,
     prompt: cultivatorRecord.prompt,
+    playerRace: cultivatorRecord.playerRace as Cultivator['playerRace'],
+    raceNarrative: cultivatorRecord.raceNarrative ?? undefined,
+    sect: relations.sect,
     realm: cultivatorRecord.realm as RealmType,
     realm_stage: cultivatorRecord.realm_stage as RealmStage,
     age: cultivatorRecord.age,
@@ -516,6 +520,9 @@ async function assembleCultivatorFromRelations(
     personality: cultivatorRecord.personality || undefined,
     background: cultivatorRecord.background || undefined,
     prompt: cultivatorRecord.prompt,
+    playerRace: cultivatorRecord.playerRace as Cultivator['playerRace'],
+    raceNarrative: cultivatorRecord.raceNarrative ?? undefined,
+    sect: relations.sect,
     realm: cultivatorRecord.realm as RealmType,
     realm_stage: cultivatorRecord.realm_stage as RealmStage,
     age: cultivatorRecord.age,
@@ -803,6 +810,8 @@ export async function createCultivator(
         personality: cultivator.personality || null,
         background: cultivator.background || null,
         prompt: cultivator.prompt || '',
+        playerRace: 'human',
+        raceNarrative: cultivator.raceNarrative ?? '人身近道，百法皆可参悟。',
         realm: cultivator.realm,
         realm_stage: cultivator.realm_stage,
         age: cultivator.age,
@@ -981,7 +990,7 @@ export async function getPlayerProfileCultivatorById(
     return null;
   }
 
-  const [spiritualRoots, preHeavenFates] = await Promise.all([
+  const [spiritualRoots, preHeavenFates, sect] = await Promise.all([
     q
       .select()
       .from(schema.spiritualRoots)
@@ -990,11 +999,13 @@ export async function getPlayerProfileCultivatorById(
       .select()
       .from(schema.preHeavenFates)
       .where(eq(schema.preHeavenFates.cultivatorId, cultivatorId)),
+    loadCultivatorSectState(cultivatorId, q),
   ]);
 
   return buildProfileCultivator(cultivatorRecord, {
     spiritualRoots,
     preHeavenFates,
+    sect,
   });
 }
 

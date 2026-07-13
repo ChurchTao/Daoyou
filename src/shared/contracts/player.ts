@@ -4,6 +4,7 @@ import type {
   Cultivator,
   CultivationProgress,
 } from '@shared/types/cultivator';
+import type { CultivatorSectState } from '@shared/engine/sect';
 
 export type PlayerLoadout = {
   skills: Cultivator['skills'];
@@ -25,6 +26,7 @@ export const PLAYER_STATE_DOMAINS = [
   'loadout',
   'mail',
   'tasks',
+  'sect',
 ] as const;
 
 export type PlayerStateDomain = (typeof PLAYER_STATE_DOMAINS)[number];
@@ -83,6 +85,7 @@ export type PlayerStateSnapshot = {
     activeCount: number;
     claimableCount: number;
   };
+  sect: CultivatorSectState | null;
 };
 
 export type PlayerStateSnapshotData = {

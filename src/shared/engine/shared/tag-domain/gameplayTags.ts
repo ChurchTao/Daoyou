@@ -37,6 +37,7 @@ export const GameplayTags = {
       SHOCKED: 'Status.Shocked',
       BODY_BURN_BLOOD_TRIGGERED: 'Status.BodyCultivation.BurnBloodTriggered',
       BODY_ORGANS_SKILL_REFUNDED: 'Status.BodyCultivation.OrgansSkillRefunded',
+      SWORD_MARKED: 'Status.Sect.Lingxiao.SwordMarked',
     },
     CATEGORY: {
       BUFF: 'Status.Buff',
@@ -83,6 +84,18 @@ export const GameplayTags = {
       PASSIVE: 'Ability.Kind.Passive',
       ARTIFACT: 'Ability.Kind.Artifact',
       GONGFA: 'Ability.Kind.GongFa',
+      SECT: 'Ability.Kind.Sect',
+    },
+    SECT: {
+      ROOT: 'Ability.Sect',
+      LINGXIAO: 'Ability.Sect.Lingxiao',
+      SWIFT_SWORD: 'Ability.Sect.Lingxiao.SwiftSword',
+      GENERATOR: 'Ability.Sect.Role.Generator',
+      COMBO: 'Ability.Sect.Role.Combo',
+      FINISHER: 'Ability.Sect.Role.Finisher',
+      DEFENSIVE: 'Ability.Sect.Role.Defensive',
+      PLAIN_SWORD: 'Ability.Sect.Lingxiao.PlainSword',
+      GUIDING_SWORD: 'Ability.Sect.Lingxiao.GuidingSword',
     },
     ELEMENT: {
       ROOT: 'Ability.Element',
@@ -130,6 +143,11 @@ export const GameplayTags = {
       THUNDER: 'Buff.Element.Thunder',
       POISON: 'Buff.Element.Poison',
     },
+    SECT: {
+      ROOT: 'Buff.Sect',
+      SWORD_MARK: 'Buff.Sect.Lingxiao.SwordMark',
+      RETURNING_SWALLOW: 'Buff.Sect.Lingxiao.ReturningSwallow',
+    },
   },
 
   // ===== 战斗特性域 =====
@@ -169,6 +187,7 @@ export const GameplayTags = {
     ROUND_PRE: 'RoundPreEvent',
     SKILL_PRE_CAST: 'SkillPreCastEvent',
     SKILL_CAST: 'SkillCastEvent',
+    DODGE: 'DodgeEvent',
     BUFF_ADD: 'BuffAddEvent',
     DEATH_PREVENT: 'DeathPreventEvent',
   },

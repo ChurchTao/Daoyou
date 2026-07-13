@@ -91,6 +91,12 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '📖 所修神通',
       },
       {
+        id: 'sect',
+        sceneLabel: '宗门',
+        href: '/game/sect',
+        expandedDockLabel: '⛰️ 宗门',
+      },
+      {
         id: 'training-room',
         sceneLabel: '练功房',
         href: '/game/training-room',

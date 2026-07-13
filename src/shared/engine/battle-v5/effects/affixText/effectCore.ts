@@ -173,6 +173,11 @@ export function describeEffectCore(
       return `${action}状态 ${Math.abs(effect.params.rounds)} 回合`;
     }
 
+    case 'combat_resource_modify':
+      return effect.params.operation === 'consume_all'
+        ? '消耗全部战斗资源'
+        : `${effect.params.operation === 'add' ? '获得' : '调整'} ${Math.abs(effect.params.amount ?? 0)} 点战斗资源`;
+
     default: {
       const exhaustive: never = effect;
       return (exhaustive as EffectConfig).type;

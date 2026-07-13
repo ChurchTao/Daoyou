@@ -138,6 +138,18 @@ function UnitSummary({
         percent={unit.mp.percent}
         tone="mp"
       />
+      {unit.combatResources.map((resource) => (
+        <div key={resource.id} className="flex items-center gap-2 text-[11px] leading-4">
+          <span className="text-ink-secondary w-7 shrink-0">{resource.name}</span>
+          <div className="bg-ink/10 h-1.5 min-w-0 flex-1 overflow-hidden">
+            <div
+              className="bg-battle-gold-soft h-full transition-all duration-300"
+              style={{ width: `${resource.max > 0 ? (resource.current / resource.max) * 100 : 0}%` }}
+            />
+          </div>
+          <span className="text-ink-secondary tabular-nums">{resource.current}/{resource.max}</span>
+        </div>
+      ))}
     </div>
   );
 }

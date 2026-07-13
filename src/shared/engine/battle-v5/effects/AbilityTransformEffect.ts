@@ -19,6 +19,7 @@ export class AbilityTransformEffect extends GameplayEffect {
         ? { type: 'dispel', params: this.params.addDispel }
         : undefined,
       mpCostToHp: this.params.mpCostToHp,
+      freeManaCost: this.params.freeManaCost,
       cooldownModify: this.params.cooldownModify,
       forceCritical: this.params.forceCritical,
       bonusDamageMemory: this.params.bonusDamageMemory,

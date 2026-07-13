@@ -352,6 +352,7 @@ export interface MechanicLogEvent extends CombatEvent {
     | 'damage_defer'
     | 'hp_sacrifice'
     | 'buff_layer'
+    | 'combat_resource'
     | 'status_spread';
   target: Unit;
   source?: Unit;

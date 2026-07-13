@@ -43,6 +43,16 @@ export class DamageEffect extends GameplayEffect {
     );
     let damage = damageResult.total;
     const damageComponents: DamageComponent[] = [...damageResult.components];
+    if (this.params.bypassDefense) {
+      damageComponents.splice(
+        0,
+        damageComponents.length,
+        ...damageComponents.map((component) => ({
+          ...component,
+          mitigation: 'bypass_defense' as const,
+        })),
+      );
+    }
     const activeTransform =
       ability instanceof ActiveSkill
         ? getActiveAbilityTransform(ability)
