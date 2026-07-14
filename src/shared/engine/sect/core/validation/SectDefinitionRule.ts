@@ -1,0 +1,218 @@
+import type {
+  SectDefinition,
+  SectMeridianLayer,
+  SectPathDefinition,
+} from '../domain';
+import type { SectModule } from '../plugin';
+import type { ValidationRule } from './ValidationPipeline';
+
+const EXPECTED_LAYERS: SectMeridianLayer[] = [1, 2, 3, 4, 5, 'ultimate'];
+
+function duplicateIds(values: readonly string[]): string[] {
+  const seen = new Set<string>();
+  return values.filter((value) => {
+    if (seen.has(value)) return true;
+    seen.add(value);
+    return false;
+  });
+}
+
+function assertNonEmptyIds(label: string, values: readonly string[]): void {
+  if (values.some((value) => !value.trim())) {
+    throw new Error(`${label} ID不能为空`);
+  }
+}
+
+function assertRequirements(
+  label: string,
+  requiredMethods: Record<string, number> | undefined,
+): void {
+  for (const [methodId, level] of Object.entries(requiredMethods ?? {})) {
+    if (!methodId.trim() || !Number.isInteger(level) || level < 0) {
+      throw new Error(`${label}心法前置无效: ${methodId}`);
+    }
+  }
+}
+
+function validatePath(path: SectPathDefinition, definition: SectDefinition) {
+  const nodeIds = path.nodes.map((node) => node.id);
+  assertNonEmptyIds(`流派 ${path.id} 节点`, nodeIds);
+  const duplicates = duplicateIds(nodeIds);
+  if (duplicates.length) {
+    throw new Error(`流派 ${path.id} 存在重复节点: ${duplicates.join(', ')}`);
+  }
+  for (const layer of EXPECTED_LAYERS) {
+    const count = path.nodes.filter((node) => node.layer === layer).length;
+    if (count !== 3) {
+      throw new Error(`流派 ${path.id} 的 ${String(layer)} 层必须恰有3个节点`);
+    }
+  }
+  if (!path.tactics.some((tactic) => tactic.id === path.defaultTacticId)) {
+    throw new Error(`流派 ${path.id} 默认战术不存在`);
+  }
+  const tacticIds = path.tactics.map((tactic) => tactic.id);
+  assertNonEmptyIds(`流派 ${path.id} 战术`, tacticIds);
+  if (duplicateIds(tacticIds).length) {
+    throw new Error(`流派 ${path.id} 存在重复战术ID`);
+  }
+  const methodIds = new Set(definition.methods.map((method) => method.id));
+  for (const node of path.nodes) {
+    if ((node.minRealm === undefined) !== (node.minRealmStage === undefined)) {
+      throw new Error(`节点 ${node.id} 的境界前置必须同时提供境界和阶段`);
+    }
+    if (
+      node.minPathLevel !== undefined &&
+      (!Number.isInteger(node.minPathLevel) || node.minPathLevel < 0)
+    ) {
+      throw new Error(`节点 ${node.id} 的流派等级前置无效`);
+    }
+    assertRequirements(`节点 ${node.id} `, node.requiredMethods);
+    for (const requiredId of Object.keys(node.requiredMethods ?? {})) {
+      if (!methodIds.has(requiredId)) {
+        throw new Error(`节点 ${node.id} 引用了未知心法 ${requiredId}`);
+      }
+    }
+  }
+}
+
+/** 只校验可序列化定义，不接触运行时实现。 */
+export class SectDefinitionRule implements ValidationRule<SectModule> {
+  validate(module: SectModule): void {
+    const definition = module.definition;
+    if (!definition.id.trim()) throw new Error('宗门ID不能为空');
+    if (
+      !Number.isInteger(definition.configVersion) ||
+      definition.configVersion < 1
+    ) {
+      throw new Error(`宗门 ${definition.id} 配置版本必须为正整数`);
+    }
+    if (!definition.raceIds.length || duplicateIds(definition.raceIds).length) {
+      throw new Error(`宗门 ${definition.id} 的准入种族必须存在且唯一`);
+    }
+    if (!definition.trial.name.trim() || !definition.trial.description.trim()) {
+      throw new Error(`宗门 ${definition.id} 必须提供可展示的试炼定义`);
+    }
+    if (definition.methods.length !== 6) {
+      throw new Error(`宗门 ${definition.id} 必须定义6本基础心法`);
+    }
+    const slots = definition.methods
+      .map((method) => method.slot)
+      .sort((a, b) => a - b);
+    if (slots.join(',') !== '1,2,3,4,5,6') {
+      throw new Error(`宗门 ${definition.id} 的心法槽位必须为1至6且不重复`);
+    }
+
+    const methodIds = definition.methods.map((method) => method.id);
+    const abilityIds = definition.abilities.map((ability) => ability.id);
+    const milestoneIds = definition.methods.flatMap((method) =>
+      method.milestones.map((milestone) => milestone.id),
+    );
+    assertNonEmptyIds(`宗门 ${definition.id} 心法`, methodIds);
+    assertNonEmptyIds(`宗门 ${definition.id} 法术`, abilityIds);
+    assertNonEmptyIds(`宗门 ${definition.id} 里程碑`, milestoneIds);
+    if (duplicateIds(methodIds).length)
+      throw new Error(`宗门 ${definition.id} 存在重复心法ID`);
+    if (duplicateIds(abilityIds).length)
+      throw new Error(`宗门 ${definition.id} 存在重复法术ID`);
+    if (duplicateIds(milestoneIds).length)
+      throw new Error(`宗门 ${definition.id} 存在重复里程碑ID`);
+    const methodSet = new Set(methodIds);
+    const abilitySet = new Set(abilityIds);
+
+    for (const method of definition.methods) {
+      if (
+        !definition.abilities.some((ability) => ability.methodId === method.id)
+      ) {
+        throw new Error(`心法 ${method.id} 必须至少拥有一个基础法术`);
+      }
+      for (const milestone of method.milestones) {
+        if (!Number.isInteger(milestone.level) || milestone.level < 0) {
+          throw new Error(`里程碑 ${milestone.id} 等级无效`);
+        }
+        if (
+          (milestone.minRealm === undefined) !==
+          (milestone.minRealmStage === undefined)
+        ) {
+          throw new Error(
+            `里程碑 ${milestone.id} 的境界前置必须同时提供境界和阶段`,
+          );
+        }
+        assertRequirements(
+          `里程碑 ${milestone.id} `,
+          milestone.requiredMethods,
+        );
+        if (milestone.abilityId && !abilitySet.has(milestone.abilityId)) {
+          throw new Error(
+            `心法 ${method.id} 引用了未知法术 ${milestone.abilityId}`,
+          );
+        }
+        for (const requiredId of Object.keys(milestone.requiredMethods ?? {})) {
+          if (!methodSet.has(requiredId)) {
+            throw new Error(
+              `里程碑 ${milestone.id} 引用了未知心法 ${requiredId}`,
+            );
+          }
+        }
+      }
+    }
+    for (const ability of definition.abilities) {
+      if (!methodSet.has(ability.methodId)) {
+        throw new Error(
+          `法术 ${ability.id} 引用了未知心法 ${ability.methodId}`,
+        );
+      }
+      if (!Number.isInteger(ability.unlockLevel) || ability.unlockLevel < 0) {
+        throw new Error(`法术 ${ability.id} 解锁等级无效`);
+      }
+    }
+
+    const pathIds = definition.paths.map((path) => path.id);
+    const allNodeIds = definition.paths.flatMap((path) =>
+      path.nodes.map((node) => node.id),
+    );
+    const allTacticIds = definition.paths.flatMap((path) =>
+      path.tactics.map((tactic) => tactic.id),
+    );
+    if (duplicateIds(pathIds).length)
+      throw new Error(`宗门 ${definition.id} 存在重复流派ID`);
+    if (duplicateIds(allNodeIds).length)
+      throw new Error(`宗门 ${definition.id} 存在跨流派重复节点ID`);
+    if (duplicateIds(allTacticIds).length)
+      throw new Error(`宗门 ${definition.id} 存在跨流派重复战术ID`);
+    for (const path of definition.paths) validatePath(path, definition);
+
+    for (const [methodId, level] of Object.entries(
+      definition.onboarding.initialMethods,
+    )) {
+      if (!methodSet.has(methodId))
+        throw new Error(`入宗配置引用未知心法 ${methodId}`);
+      if (!Number.isInteger(level) || level < 0)
+        throw new Error(`入宗配置心法等级无效: ${methodId}`);
+    }
+    if (
+      !Number.isInteger(definition.onboarding.initialContribution) ||
+      definition.onboarding.initialContribution < 0
+    ) {
+      throw new Error(`宗门 ${definition.id} 入宗贡献无效`);
+    }
+    const loadoutIds = definition.onboarding.initialAbilityLoadout.filter(
+      (id): id is string => id !== null,
+    );
+    if (new Set(loadoutIds).size !== loadoutIds.length)
+      throw new Error('入宗配置神通不可重复');
+    for (const abilityId of loadoutIds) {
+      const ability = definition.abilities.find(
+        (entry) => entry.id === abilityId,
+      );
+      if (!ability) throw new Error(`入宗配置引用未知法术 ${abilityId}`);
+      if (!ability.occupiesActiveSlot)
+        throw new Error(`入宗配置包含非主动槽法术 ${abilityId}`);
+      if (
+        (definition.onboarding.initialMethods[ability.methodId] ?? 0) <
+        ability.unlockLevel
+      ) {
+        throw new Error(`入宗配置包含未解锁法术 ${abilityId}`);
+      }
+    }
+  }
+}

@@ -1,0 +1,74 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const root = resolve(process.cwd(), 'src/shared/engine/sect');
+
+function sourceFiles(directory: string): string[] {
+  return readdirSync(directory).flatMap((name) => {
+    const path = join(directory, name);
+    return statSync(path).isDirectory()
+      ? sourceFiles(path)
+      : /\.(ts|tsx)$/.test(name)
+        ? [path]
+        : [];
+  });
+}
+
+describe('宗门插件架构守卫', () => {
+  it('根目录只保留公共入口、说明和分层目录', () => {
+    expect(readdirSync(root).sort()).toEqual(
+      ['README.md', 'content', 'core', 'index.ts', 'testing'].sort(),
+    );
+  });
+
+  it('通用核心不依赖具体宗门、流派、节点或内容目录', () => {
+    for (const file of sourceFiles(join(root, 'core')).filter(
+      (path) => !path.includes('/tests/'),
+    )) {
+      const source = readFileSync(file, 'utf8');
+      const label = relative(root, file);
+      expect(source, label).not.toMatch(
+        /lingxiao|swift-sword|heavy-sword|fixture-sect/,
+      );
+      expect(source, label).not.toMatch(/from ['"][^'"]*content/);
+      expect(source, label).not.toContain('paths[0]');
+    }
+    const publicEntry = readFileSync(join(root, 'index.ts'), 'utf8');
+    expect(publicEntry).not.toMatch(
+      /lingxiao|(?:export|import)[^\n]*from ['"]\.\/content/,
+    );
+  });
+
+  it('流派基础编译器不按节点ID集中分派', () => {
+    for (const file of [
+      join(root, 'content/lingxiao/paths/swift/variants.ts'),
+      join(root, 'content/lingxiao/paths/heavy/variants.ts'),
+    ]) {
+      const source = readFileSync(file, 'utf8');
+      expect(source, relative(root, file)).not.toMatch(/nodes\.has\s*\(/);
+      expect(source, relative(root, file)).not.toMatch(
+        /if\s*\([^)]*(swift-|heavy-)/,
+      );
+    }
+  });
+
+  it('测试宗门不会进入生产组合根', () => {
+    const production = readFileSync(
+      join(root, 'content/productionRuntime.ts'),
+      'utf8',
+    );
+    expect(production).not.toMatch(/fixture|testing/);
+  });
+
+  it('旧内容兼容Facade已经删除', () => {
+    for (const name of [
+      'lingxiao.ts',
+      'combatProjection.ts',
+      'selectionStrategy.ts',
+      'catalog.ts',
+    ]) {
+      expect(readdirSync(root)).not.toContain(name);
+    }
+  });
+});

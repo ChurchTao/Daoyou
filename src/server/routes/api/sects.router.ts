@@ -27,10 +27,10 @@ import {
 import {
   getSectMethodLevelCap,
   listUnlockedAbilityIds,
-  productionSectRuntime,
   type CultivatorSectState,
   type SectRuntime,
 } from '@shared/engine/sect';
+import { productionSectRuntime } from '@shared/engine/sect/content';
 import { simulateBattleV5 } from '@shared/lib/battle/simulateBattleV5';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { Hono, type Context } from 'hono';

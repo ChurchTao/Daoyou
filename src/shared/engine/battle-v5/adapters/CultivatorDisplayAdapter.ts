@@ -5,7 +5,8 @@ import {
   scaleArtifactMainPanelFixedModifiers,
 } from '@shared/engine/shared/artifactRealmScaling';
 import { buildBodyCultivationAttributeModifiers } from '@shared/lib/bodyCultivation/effects';
-import { projectSectMethodModifiers, sectRegistry } from '@shared/engine/sect';
+import { projectSectMethodModifiers } from '@shared/engine/sect';
+import { sectRegistry } from '@shared/engine/sect/content';
 import type { AttributeModifierConfig } from '../core/configs';
 import { AttributeType, ModifierType, type AttributeModifier, type UnitId } from '../core/types';
 import type { AttrsStateView } from '../systems/state/types';

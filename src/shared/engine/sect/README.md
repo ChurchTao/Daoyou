@@ -1,64 +1,75 @@
-# Sect Architecture
+# 宗门系统架构
 
-宗门系统采用 **Registry + Facade + Strategy + Template Method + Repository** 的组合架构。共享内核只认识接口和字符串 ID；具体宗门、流派和节点内容不能进入通用分派逻辑。
+宗门系统采用“注册表 + 运行时门面 + 构建器 + 插件流水线 + 策略”的组合架构。通用核心只认识稳定字符串 ID 和插件契约，任何具体宗门、流派、节点都只能存在于 `content`。
 
-## Runtime flow
+## 目录职责
+
+- `core/domain`：序列化定义、持久化状态、编译结果和上下文值对象。
+- `core/plugin`：`BaseSectModule`、`BaseSectPathModule`、节点插件和准入、试炼策略契约。
+- `core/authoring`：宗门神通、战斗效果、法力消耗和战术候选构造器。
+- `core/compilation`：`SectBuildBuilder` 和统一编译导演 `SectCompiler`。
+- `core/progression`：六层经脉、等级上限、成本和解锁规则。
+- `core/validation`：定义、组合、编译契约和持久化状态校验流水线。
+- `core/runtime`：`SectRegistry` 与客户端、服务端共用的 `SectRuntimeFacade`。
+- `core/presentation`：心法收益、里程碑和四槽装配等纯展示逻辑。
+- `content/productionRuntime.ts`：生产模块唯一组合根。
+- `content/lingxiao`：凌霄基础传承和快剑、重剑两个流派插件。
+- `testing/fixtures`：不会进入生产目录的扩展性宗门。
+
+根目录只保留本说明、公共 `index.ts` 和上述分层目录。通用能力从 `@shared/engine/sect` 导入；生产运行时从 `@shared/engine/sect/content` 导入。
+
+## 编译流程
 
 ```text
 CultivatorSectState
-  -> SectRuntimeFacade (统一校验入口)
-  -> SectRegistry (按 sectId 分派模块)
-  -> SectCompiler (编译基础宗门)
-  -> SectPathModule (编译当前流派变体)
-  -> SectNodeContribution[] (按层级与定义顺序合成)
+  -> SectRuntimeFacade
+  -> SectRegistry.require(sectId)
+  -> BaseSectModule.createBaseBuilder
+  -> BaseSectPathModule.compileVariants
+  -> SectNodePlugin.apply（按层级和声明顺序）
+  -> SectBuildBuilder.build
+  -> AbilityFactory 契约校验
   -> SectCompiledBuild
-       -> battle-v5 projection
-       -> ResolvedSectAbility presentation
+       -> battle-v5 战斗投影
+       -> ResolvedSectAbility 展示投影
 ```
 
-战斗和 UI 必须消费同一个 `SectCompiledBuild`。禁止在 UI、Service 或 battle adapter 中重新解释流派倍率、资源或节点效果。
+战斗和页面详情必须读取同一个 `SectCompiledBuild`。Service、Repository、API、UI 和 battle adapter 不得重新解释宗门资源、倍率或节点效果。
 
-## Directory ownership
+## 对象与模式
 
-- `types.ts`：纯领域契约、持久化状态和插件接口。
-- `compiler.ts`：编译导演；只负责稳定顺序、贡献合成和最终展示归一化。
-- `pathModule.ts`：流派插件模板方法，将确定性快照转换为受控节点贡献。
-- `registry.ts`：模块注册、契约验证和持久化结构验证。
-- `runtimeFactory.ts`：客户端与服务端共用的运行时 Facade。
-- `catalog.ts`：唯一生产模块目录。
-- `progression.ts`：通用升级、解锁与经脉门槛规则。
-- `guide.ts`：纯展示辅助逻辑，不包含宗门内容分支。
-- `methodModifiers.ts`：心法固定属性投影。
-- `content/lingxiao/definition.ts`：凌霄六心法、九个稳定基础法术和入宗定义。
-- `lingxiaoModule.ts`：凌霄组合根，只组装基础定义与流派模块。
-- `lingxiaoSwiftPath.ts` / `lingxiaoHeavyPath.ts`：各自拥有定义、节点、编译器和策略入口。
-- `content/lingxiao/combat/`：按基础、快剑、重剑拆分的 battle-v5 内容编译器。
-- `content/lingxiao/strategy/`：流派独立的自动战术策略。
-- `combatProjection.ts`、`selectionStrategy.ts`、`lingxiao.ts`：稳定公共导出面，不承载实现。
-- `testing/`：不会进入生产目录的扩展性夹具。
+- `SectRegistry` 使用注册表模式完成模块发现和 ID 分派。
+- `SectRuntimeFacade` 使用门面模式统一校验、编译、战斗投影和详情解析。
+- `BaseSectModule`、`BaseSectPathModule` 使用模板方法固定插件生命周期，并由流派模块自动生成序列化流派定义。
+- `SectBuildBuilder` 使用构建器模式提供受控修改面，节点不能直接共享可变 `AbilityConfig`。
+- `SectNodePlugin` 是定义与行为一体的装饰器；编译器将已选节点组成稳定流水线。
+- 战术、准入和试炼通过策略对象注入，通用层不根据内容 ID 选择实现。
+- 校验器使用组合规则流水线，分别检查定义、对象组合、运行时产物和持久化状态。
 
-## Extension rules
+设计模式只用于封装变化方向。纯定义和值对象继续使用 TypeScript 数据结构，不为形式上的“面向对象”制造空类。
 
-新增宗门：
+## 新增宗门
 
-1. 实现一个 `SectModule`，包含纯定义、基础编译、准入和试炼场景。
-2. 为每个流派提供独立 `SectPathModule`。
-3. 在 `catalog.ts` 注册宗门模块。
-4. 不修改 Compiler、Registry、Service、Repository、API、battle adapter 或 UI。
+1. 在 `content/<sect>` 定义六本心法、基础神通和稳定内容 ID。
+2. 继承 `BaseSectModule`，实现基础编译并注入准入策略、试炼工厂和流派模块。
+3. 每个流派继承 `BaseSectPathModule`，提供基础变体、战术策略和十八个节点插件。
+4. 节点使用 `ConfiguredSectNodePlugin` 或专用子类，将定义与 `apply` 行为放在一起。
+5. 在 `content/productionRuntime.ts` 注册正式宗门。除这个组合根外，不修改通用层。
 
-新增流派：
+## 新增流派或节点
 
-1. 继承 `DeterministicSectPathModule`。
-2. 在同一所有权目录定义流派、十八节点、变体编译和策略。
-3. 将实例加入所属宗门的 `paths` 组合表。
-4. 不在共享代码增加流派 ID 判断。
+- 新流派只新增所属目录并加入宗门构造参数，不修改 Compiler、Registry、Service、Repository、API 或 UI。
+- 新节点只新增一个节点插件并加入流派节点列表，不在流派基础编译器增加节点 ID 判断。
+- 多个节点修改同一组神通时，建立流派私有 Build Facade，用语义特征组合变化；禁止恢复 `nodes.has(id)` 中央分派。
+- 节点每次应用必须造成可观察的最终运行时变化，空实现会在注册时失败。
 
-## Invariants
+## 边界约束
 
-- 每宗门恰好六本心法，每本至少关联一个基础法术。
-- 每流派六层、每层三个节点；定义和行为必须一一对应。
-- 节点只能产生受控 `SectNodeContribution`，空实现无法注册。
-- 四个主动槽固定、不可重复、只能装配已解锁主动法术。
-- 每流派独立保存等级、战术和三套经脉方案；只能激活一个流派。
-- 未注册 ID、非法状态和未知 `configVersion` 必须明确失败，禁止内容回退。
-- 运行时标签只能由 `GameplayTags` 构造。
+- 每个宗门固定六本心法，每本至少拥有一个基础神通。
+- 每个流派固定六层、每层三个节点；定义和行为由同一个节点对象提供。
+- 四个主动槽固定、不可重复，只能装配已解锁主动神通。
+- 每个流派独立保存等级、战术和三套经脉方案，只能激活一个流派。
+- 未注册 ID、未知配置版本和非法持久化状态必须明确失败。
+- battle-v5 运行时标签只能通过 `GameplayTags` 生成。
+- `core` 禁止依赖 `content`，生产内容禁止回流到通用入口。
+- 宗门代码的架构注释、业务原因和扩展约束统一使用中文。

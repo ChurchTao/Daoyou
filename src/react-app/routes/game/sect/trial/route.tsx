@@ -5,7 +5,7 @@ import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResu
 import { GameImmersiveLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
 import { startSectTrialOnce } from '@app/lib/sect/sectClient';
-import { sectRegistry } from '@shared/engine/sect';
+import { sectRegistry } from '@shared/engine/sect/content';
 import type { BattleRecord } from '@shared/types/battle';
 import { Suspense, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';

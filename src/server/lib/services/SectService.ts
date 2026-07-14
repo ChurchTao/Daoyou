@@ -12,13 +12,13 @@ import {
   getSectMethodTrainingCost,
   isAbilityUnlocked,
   listUnlockedAbilityIds,
-  productionSectRuntime,
   validateMeridianNodeIds,
   type CultivatorSectState,
   type SectAbilitySlots,
   type SectAdmissionContext,
   type SectRuntime,
 } from '@shared/engine/sect';
+import { productionSectRuntime } from '@shared/engine/sect/content';
 import type { Cultivator } from '@shared/types/cultivator';
 
 export type SectErrorCode =

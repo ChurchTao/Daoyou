@@ -2,7 +2,10 @@ import {
   AttributeType,
   ModifierType,
 } from '@shared/engine/battle-v5/core/types';
-import type { PlayerRaceDefinition, SectDefinition } from '../../types';
+import type {
+  PlayerRaceDefinition,
+  SectDefinitionWithoutPaths,
+} from '../../core';
 import { LINGXIAO_SECT_ID } from './ids';
 
 export const HUMAN_RACE: PlayerRaceDefinition = {
@@ -10,7 +13,7 @@ export const HUMAN_RACE: PlayerRaceDefinition = {
   name: '人族',
   description: '生于尘世而善悟百法，诸道皆可问、诸门皆可入。',
 };
-export const LINGXIAO_BASE_DEFINITION: Omit<SectDefinition, 'paths'> = {
+export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
   id: LINGXIAO_SECT_ID,
   name: '凌霄剑宗',
   description: '拜山问剑，研习六卷心法，于快重二道中自定剑途。',

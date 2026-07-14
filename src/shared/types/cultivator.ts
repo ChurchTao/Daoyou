@@ -4,7 +4,7 @@ import type { AbilityConfig } from '@shared/engine/creation-v2/contracts/battle'
 import type { AttributeModifierConfig } from '@shared/engine/battle-v5/core/configs';
 import type { ConsumableSpec } from '@shared/types/consumable';
 import type { CultivatorCondition } from '@shared/types/condition';
-import type { CultivatorSectState, PlayerRaceId } from '@shared/engine/sect/types';
+import type { CultivatorSectState, PlayerRaceId } from '@shared/engine/sect';
 import type {
   ConsumableType,
   ElementType,

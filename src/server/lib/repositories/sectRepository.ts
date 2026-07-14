@@ -10,12 +10,12 @@ import {
   sectPathProgress,
 } from '@server/lib/drizzle/schema';
 import {
-  productionSectRuntime,
   type CultivatorSectState,
   type SectAbilitySlots,
   type SectDefinition,
   type SectRuntime,
 } from '@shared/engine/sect';
+import { productionSectRuntime } from '@shared/engine/sect/content';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { and, eq, sql } from 'drizzle-orm';
 

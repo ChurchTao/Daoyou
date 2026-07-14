@@ -14,10 +14,8 @@ import {
 } from '../core/types';
 import type { AbilityConfig } from '../core/configs';
 import { Unit } from '../units/Unit';
-import {
-  createSectAbilitySelectionStrategy,
-  projectSectCombat,
-} from '@shared/engine/sect';
+import { createSectAbilitySelectionStrategy } from '@shared/engine/sect';
+import { projectSectCombat } from '@shared/engine/sect/content';
 
 const ATTRIBUTE_MAP = {
   spirit: AttributeType.SPIRIT,

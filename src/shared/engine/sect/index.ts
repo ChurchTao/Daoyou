@@ -1,13 +1,2 @@
-export * from './catalog';
-export * from './combatProjection';
-export * from './compiler';
-export * from './guide';
-export * from './lingxiao';
-export * from './methodModifiers';
-export * from './pathModule';
-export * from './progression';
-export * from './registry';
-export * from './runtime';
-export * from './runtimeFactory';
-export * from './selectionStrategy';
-export * from './types';
+/** 宗门通用内核入口；具体宗门与生产目录从 `./content` 导入。 */
+export * from './core';

@@ -13,10 +13,10 @@ import { fetchSectCurrent } from '@app/lib/sect/sectClient';
 import type { SectCurrentData } from '@shared/contracts/sect';
 import {
   createAbilitySlots,
-  resolveSectAbility,
   type CultivatorSectState,
   type SectAbilitySlots,
 } from '@shared/engine/sect';
+import { resolveSectAbility } from '@shared/engine/sect/content';
 import { useEffect, useMemo, useState } from 'react';
 
 const EMPTY_SLOTS: SectAbilitySlots = [null, null, null, null];

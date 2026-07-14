@@ -11,10 +11,10 @@ import {
   describeMethodBenefit,
   getSectMethodTrainingCost,
   resolveMethodMilestones,
-  resolveSectAbility,
   type SectAbilityRole,
   type SectHeartMethodDefinition,
 } from '@shared/engine/sect';
+import { resolveSectAbility } from '@shared/engine/sect/content';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { useState } from 'react';
 import { sectJsonRequest, type SectAction } from './types';
