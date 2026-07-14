@@ -19,6 +19,7 @@ export class CombatResourceModifyEffect extends GameplayEffect {
         unit.combatResources.modify(
           this.params.resourceId,
           Math.max(0, this.params.amount ?? 1),
+          { caster: context.caster, ability: context.ability, operation: 'add' },
         );
         amount = unit.combatResources.getCurrent(this.params.resourceId) - before;
         break;
@@ -26,14 +27,23 @@ export class CombatResourceModifyEffect extends GameplayEffect {
         amount = unit.combatResources.consume(
           this.params.resourceId,
           Math.max(0, this.params.amount ?? 1),
+          { caster: context.caster, ability: context.ability, operation: 'subtract' },
         );
         break;
       case 'set':
-        unit.combatResources.set(this.params.resourceId, this.params.amount ?? 0);
+        unit.combatResources.set(this.params.resourceId, this.params.amount ?? 0, {
+          caster: context.caster,
+          ability: context.ability,
+          operation: 'set',
+        });
         amount = Math.abs(unit.combatResources.getCurrent(this.params.resourceId) - before);
         break;
       case 'consume_all':
-        amount = unit.combatResources.consume(this.params.resourceId, 'all');
+        amount = unit.combatResources.consume(this.params.resourceId, 'all', {
+          caster: context.caster,
+          ability: context.ability,
+          operation: 'consume_all',
+        });
         break;
     }
 

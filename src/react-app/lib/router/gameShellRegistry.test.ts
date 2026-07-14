@@ -44,7 +44,7 @@ describe('game shell registry', () => {
     expect(resolveGameShellKind('/game/battle/challenge')).toBe('combat');
     expect(resolveGameShellKind('/game/battle/battle-1')).toBe('combat');
     expect(resolveGameShellKind('/game/bet-battle/challenge')).toBe('combat');
-    expect(resolveGameShellKind('/game/sect/trial')).toBe('combat');
+    expect(resolveGameShellKind('/game/sect/trial/lingxiao')).toBe('combat');
     expect(resolveGameShellKind('/game/map')).toBe('map');
     expect(resolveGameShellKind('/game/dungeon')).toBe('dungeon');
     expect(resolveGameShellKind('/game/dungeon/history')).toBe('viewport');

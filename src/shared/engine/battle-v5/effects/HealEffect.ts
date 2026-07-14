@@ -15,7 +15,8 @@ export class HealEffect extends GameplayEffect {
   }
 
   execute(context: EffectContext): void {
-    const { caster, target, ability, buff } = context;
+    const { caster, ability, buff } = context;
+    const target = this.params.recipient === 'caster' ? caster : context.target;
 
     // 使用统一计算器计算基础治疗值
     const baseHeal = ValueCalculator.calculate(this.params.value, caster, target);

@@ -1,6 +1,8 @@
-import { ListenerConfig, ListenerContextMapping, ListenerScope } from './configs';
+import { ConditionConfig, ListenerConfig, ListenerContextMapping, ListenerScope } from './configs';
 import { CombatEvent } from './types';
 import { Unit } from '../units/Unit';
+import { getBattleRuntimeState } from './runtimeState';
+import { checkConditions } from './conditionEvaluator';
 
 export interface ListenerRuntimeConfig {
   id: string;
@@ -13,6 +15,11 @@ export interface ListenerRuntimeConfig {
     allowLethalWindow: boolean;
     skipReflectSource: boolean;
   };
+  budget?: {
+    maxTriggers: number;
+    reset: 'buff_lifetime' | 'action' | 'round' | 'battle';
+  };
+  conditions?: ConditionConfig[];
 }
 
 export interface ResolvedListenerContext {
@@ -25,11 +32,12 @@ function getEventParticipant(event: CombatEvent, key: 'caster' | 'target' | 'sou
     caster?: Unit;
     target?: Unit;
     source?: Unit;
+    unit?: Unit;
   };
   if (key === 'caster') {
     return eventAny.caster ?? eventAny.source;
   }
-  return eventAny[key];
+  return eventAny[key] ?? eventAny.unit;
 }
 
 function getDefaultScope(eventType: string): ListenerScope {
@@ -92,6 +100,16 @@ export function buildListenerRuntimeConfig(config: ListenerConfig): ListenerRunt
       allowLethalWindow: config.guard?.allowLethalWindow ?? false,
       skipReflectSource: config.guard?.skipReflectSource ?? false,
     },
+    budget: config.budget
+      ? {
+          maxTriggers: Math.max(0, Math.trunc(config.budget.maxTriggers)),
+          reset: config.budget.reset,
+        }
+      : undefined,
+    conditions: config.conditions?.map((condition) => ({
+      ...condition,
+      params: { ...condition.params },
+    })),
   };
 }
 
@@ -153,6 +171,7 @@ export function shouldExecuteListener(
   owner: Unit,
   event: CombatEvent,
   runtime: ListenerRuntimeConfig,
+  source?: object,
 ): boolean {
   if (!matchesListenerScope(owner, event, runtime.scope)) {
     return false;
@@ -171,5 +190,53 @@ export function shouldExecuteListener(
     }
   }
 
+  if (runtime.conditions?.length) {
+    const resolved = resolveListenerContext(owner, event, runtime.mapping);
+    if (!checkConditions({
+      caster: resolved.caster,
+      target: resolved.target,
+      triggerEvent: event,
+    }, runtime.conditions)) return false;
+  }
+
+  if (!claimListenerTrigger(owner, runtime, source)) {
+    return false;
+  }
+
+  return true;
+}
+
+const lifecycleBudgets = new WeakMap<object, Map<string, number>>();
+
+function claimListenerTrigger(
+  owner: Unit,
+  runtime: ListenerRuntimeConfig,
+  source?: object,
+): boolean {
+  const budget = runtime.budget;
+  if (!budget) return true;
+  if (budget.maxTriggers <= 0) return false;
+
+  if (budget.reset === 'buff_lifetime') {
+    const lifetimeOwner = source ?? runtime;
+    const counters = lifecycleBudgets.get(lifetimeOwner) ?? new Map<string, number>();
+    const count = counters.get(runtime.id) ?? 0;
+    if (count >= budget.maxTriggers) return false;
+    counters.set(runtime.id, count + 1);
+    lifecycleBudgets.set(lifetimeOwner, counters);
+    return true;
+  }
+
+  const state = getBattleRuntimeState(owner);
+  const token = budget.reset === 'action'
+    ? state.actionSequence
+    : budget.reset === 'round'
+      ? state.round
+      : 0;
+  const key = `${runtime.id}:${budget.reset}`;
+  const current = state.listenerTriggerBudgets.get(key);
+  const count = current?.token === token ? current.count : 0;
+  if (count >= budget.maxTriggers) return false;
+  state.listenerTriggerBudgets.set(key, { token, count: count + 1 });
   return true;
 }

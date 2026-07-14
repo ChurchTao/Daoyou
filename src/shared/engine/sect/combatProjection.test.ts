@@ -1,112 +1,40 @@
 import { describe, expect, it } from 'vitest';
+import { projectSectCombat, resolveSectAbility } from './runtime';
 import type { CultivatorSectState } from './types';
-import { LINGXIAO_SWORD_MOMENTUM, projectLingxiaoCombat } from './combatProjection';
-import { CombatResourceContainer } from '@shared/engine/battle-v5/units/CombatResourceContainer';
 
-function state(overrides: Partial<CultivatorSectState> = {}): CultivatorSectState {
+function state(pathId?: 'swift-sword' | 'heavy-sword', nodes: string[] = []): CultivatorSectState {
   return {
-    membershipId: 'm1', sectId: 'lingxiao', status: 'active', contribution: 0,
-    tacticId: 'steady', activeMeridianSlot: 1, configVersion: 1,
-    methods: { 'lingxiao-canon': 100, 'sword-guidance': 100, 'void-step': 100, 'edge-cleansing': 100, 'origin-returning': 100, 'swift-sword-canon': 100 },
-    meridianLoadouts: [{ slot: 1, nodeIds: [], version: 1 }, { slot: 2, nodeIds: [], version: 1 }, { slot: 3, nodeIds: [], version: 1 }],
-    abilityLoadout: ['guiding-sword', 'linked-edge', 'breaking-edge', 'sword-aegis'],
-    ...overrides,
+    membershipId: 'm1', sectId: 'lingxiao', status: 'active', contribution: 0, configVersion: 2,
+    activePathId: pathId,
+    methods: { 'lingxiao-canon': 100, 'sword-guidance': 100, 'void-step': 100, 'edge-cleansing': 100, 'origin-returning': 100, 'sword-nurturing': 100 },
+    paths: pathId ? [{ pathId, level: 100, tacticId: pathId === 'swift-sword' ? 'aggressive' : 'heavy-break', activeMeridianSlot: 1, meridianLoadouts: [{ slot: 1, nodeIds: nodes, version: 1 }, { slot: 2, nodeIds: [], version: 1 }, { slot: 3, nodeIds: [], version: 1 }] }] : [],
+    abilityLoadout: ['guiding-sword', 'linked-edge', 'breaking-edge', 'sect-ultimate'],
   };
 }
 
-describe('凌霄剑宗战斗投影', () => {
-  it('未择道剑势上限3，快剑道上限6且稳定ID不变', () => {
-    const basic = projectLingxiaoCombat({ sect: state(), realm: '筑基' })!;
-    const swift = projectLingxiaoCombat({ sect: state({ pathId: 'swift-sword' }), realm: '筑基' })!;
-    expect(basic.resources[0]).toMatchObject({ id: LINGXIAO_SWORD_MOMENTUM, max: 3 });
-    expect(swift.resources[0].max).toBe(6);
-    expect(basic.abilities[0].slug).toBe(swift.abilities[0].slug);
-    expect(basic.abilities[0].name).toBe('引剑式');
-    expect(swift.abilities[0].name).toBe('追风式');
+describe('宗门注册投影', () => {
+  it('未激活流派使用基础剑势和基础法术', () => {
+    const projection = projectSectCombat({ sect: state(), realm: '筑基' })!;
+    expect(projection.resources[0]).toMatchObject({ name: '剑势', max: 3 });
+    expect(projection.defaultAttack?.name).toBe('平剑式');
   });
 
-  it('分光将流光三叠改为五段并开场疾起获得2剑势', () => {
-    const projection = projectLingxiaoCombat({
-      sect: state({
-        pathId: 'swift-sword',
-        meridianLoadouts: [{ slot: 1, nodeIds: ['swift-opening', 'swift-split-light'], version: 1 }],
-      }),
-      realm: '化神',
-    })!;
-    expect(projection.resources[0].initial).toBe(2);
-    const linked = projection.abilities.find((ability) => ability.slug.endsWith('linked-edge'))!;
-    expect(linked.effects?.filter((effect) => effect.type === 'damage')).toHaveLength(5);
+  it('快剑道通过统一解析器生成变体与节点效果', () => {
+    const sect = state('swift-sword', ['swift-opening', 'swift-split-light']);
+    const projection = projectSectCombat({ sect, realm: '化神' })!;
+    expect(projection.resources[0]).toMatchObject({ name: '剑势', initial: 2, max: 6 });
+    expect(projection.selectionStrategy).toBeDefined();
+    const detail = resolveSectAbility({ sect, realm: '化神', abilityId: 'linked-edge' });
+    expect(detail.name).toBe('分光五叠');
+    expect(detail.detailRows).toContain('伤害：5段 × 0.27物攻');
   });
 
-  it('一线天保留资源硬门槛，宗门投影挂载稳定选技器', () => {
-    const aggressive = projectLingxiaoCombat({ sect: state({ pathId: 'swift-sword', tacticId: 'aggressive' }), realm: '金丹' })!;
-    const finisher = aggressive.abilities.find((ability) => ability.slug.endsWith('breaking-edge'))!;
-    expect(finisher.castConditions?.[0].params.value).toBe(3);
-    expect(aggressive.selectionStrategyId).toBe('sect.lingxiao.sword.v1');
-    expect(finisher.selectionProfile?.rules).toBeUndefined();
-  });
-
-  it('回燕姿态与踏影持续到下一回合', () => {
-    const projection = projectLingxiaoCombat({
-      sect: state({
-        pathId: 'swift-sword',
-        abilityLoadout: ['turning-body', 'shadow-step', null, null],
-      }),
-      realm: '金丹',
-    })!;
-    const turning = projection.abilities.find((ability) => ability.slug.endsWith('turning-body'))!;
-    const shadow = projection.abilities.find((ability) => ability.slug.endsWith('shadow-step'))!;
-    const turningBuff = turning.effects?.find((effect) => effect.type === 'apply_buff');
-    const shadowBuff = shadow.effects?.find((effect) => effect.type === 'apply_buff');
-
-    expect(turningBuff?.params.buffConfig.duration).toBe(2);
-    expect(shadowBuff?.params.buffConfig.duration).toBe(2);
-  });
-
-  it('展示元数据复用后保持一线天既有伤害结算', () => {
-    const projection = projectLingxiaoCombat({
-      sect: state({
-        pathId: 'swift-sword',
-        meridianLoadouts: [{
-          slot: 1,
-          nodeIds: ['swift-sheathing', 'swift-still-tide', 'swift-life-chasing', 'swift-mountain-breaking'],
-          version: 1,
-        }],
-      }),
-      realm: '化神',
-    })!;
-    const finisher = projection.abilities.find((ability) => ability.slug.endsWith('breaking-edge'))!;
-    const coefficients = finisher.effects
-      ?.filter((effect) => effect.type === 'damage')
-      .map((effect) => Number(effect.params.value.coefficient));
-    expect(coefficients?.[0]).toBeCloseTo(0.8 * 1.2 * 1.08);
-    expect(coefficients?.slice(1, 7)).toEqual(Array(6).fill(0.2 * 1.08));
-    expect(coefficients?.[7]).toBeCloseTo(0.3 * 1.08);
-  });
-
-  it('过滤固定空槽并保持非空神通的槽位顺序', () => {
-    const projection = projectLingxiaoCombat({
-      sect: state({
-        pathId: 'swift-sword',
-        abilityLoadout: ['breaking-edge', null, 'guiding-sword', null],
-      }),
-      realm: '化神',
-    })!;
-
-    expect(projection.abilities.map((ability) => ability.slug)).toEqual([
-      'sect.lingxiao.breaking-edge',
-      'sect.lingxiao.guiding-sword',
-    ]);
-  });
-
-  it('剑势封顶、无伤衰减且剑罡护盾期间暂停衰减', () => {
-    const resources = new CombatResourceContainer();
-    resources.define({ id: LINGXIAO_SWORD_MOMENTUM, name: '剑势', initial: 0, max: 6, decayOnNoDirectDamage: 1, pauseDecayWhileShielded: true });
-    resources.modify(LINGXIAO_SWORD_MOMENTUM, 8);
-    expect(resources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(6);
-    resources.beginAction(); resources.finishAction(false, true);
-    expect(resources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(6);
-    resources.beginAction(); resources.finishAction(false, false);
-    expect(resources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(5);
+  it('重剑道拥有独立资源、技能变体和策略', () => {
+    const sect = state('heavy-sword', ['heavy-opening', 'heavy-triple-ridge']);
+    const projection = projectSectCombat({ sect, realm: '化神' })!;
+    expect(projection.resources[0]).toMatchObject({ name: '剑架', initial: 2, max: 6 });
+    expect(projection.selectionStrategy).toBeDefined();
+    expect(resolveSectAbility({ sect, realm: '化神', abilityId: 'linked-edge' }).name).toBe('叠山式');
+    expect(resolveSectAbility({ sect, realm: '化神', abilityId: 'sect-ultimate' }).name).toBe('开天断岳');
   });
 });

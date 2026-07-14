@@ -19,6 +19,7 @@ import {
 } from './systems/state/types';
 import { VictorySystem } from './systems/VictorySystem';
 import { Unit } from './units/Unit';
+import { beginRuntimeAction, setRuntimeRound } from './core/runtimeState';
 
 export interface BattleResult {
   winner: string;
@@ -127,6 +128,8 @@ export class BattleEngineV5 {
   private executeTurn(): void {
     const context = this.getContext();
     context.turn++;
+    setRuntimeRound(this._player, context.turn);
+    setRuntimeRound(this._opponent, context.turn);
 
     // 检查回合上限
     if (context.turn > context.maxTurns) {
@@ -179,6 +182,7 @@ export class BattleEngineV5 {
     const units = this.getSortedUnits();
 
     for (const actor of units) {
+      beginRuntimeAction(actor);
       // 发布行动前事件（DOT / 持续效果在此触发）
       this._eventBus.publish<ActionPreEvent>({
         type: 'ActionPreEvent',

@@ -1,4 +1,15 @@
-import type { CombatResourceDefinition } from '@shared/engine/sect/types';
+import type { CombatResourceDefinition } from '../core/configs';
+import type { Ability } from '../abilities/Ability';
+import { EventBus } from '../core/EventBus';
+import type { CombatResourceChangeEvent } from '../core/events';
+import { readRuntimeCounter } from '../core/runtimeState';
+import type { Unit } from './Unit';
+
+interface CombatResourceChangeSource {
+  caster?: Unit;
+  ability?: Ability;
+  operation?: CombatResourceChangeEvent['operation'];
+}
 
 export interface CombatResourceSnapshot {
   id: string;
@@ -14,6 +25,11 @@ interface CombatResourceRuntime extends CombatResourceDefinition {
 export class CombatResourceContainer {
   private readonly resources = new Map<string, CombatResourceRuntime>();
   private dealtDirectDamageThisAction = false;
+  private owner?: Unit;
+
+  bindOwner(owner: Unit): void {
+    this.owner = owner;
+  }
 
   define(definition: CombatResourceDefinition): void {
     const max = Math.max(0, Math.floor(definition.max));
@@ -33,30 +49,44 @@ export class CombatResourceContainer {
     return this.resources.get(id)?.max ?? 0;
   }
 
-  modify(id: string, delta: number): number {
+  modify(id: string, delta: number, source?: CombatResourceChangeSource): number {
     const resource = this.resources.get(id);
     if (!resource) return 0;
+    const before = resource.current;
+    const requested = Math.trunc(delta);
     resource.current = Math.max(
       0,
-      Math.min(resource.max, resource.current + Math.trunc(delta)),
+      Math.min(resource.max, resource.current + requested),
     );
+    this.publishChange(resource, before, requested, source);
     return resource.current;
   }
 
-  set(id: string, value: number): number {
+  set(id: string, value: number, source?: CombatResourceChangeSource): number {
     const resource = this.resources.get(id);
     if (!resource) return 0;
+    const before = resource.current;
     resource.current = Math.max(0, Math.min(resource.max, Math.trunc(value)));
+    this.publishChange(resource, before, Math.trunc(value) - before, {
+      ...source,
+      operation: source?.operation ?? 'set',
+    });
     return resource.current;
   }
 
-  consume(id: string, amount: number | 'all'): number {
+  consume(id: string, amount: number | 'all', source?: CombatResourceChangeSource): number {
     const resource = this.resources.get(id);
     if (!resource) return 0;
+    const before = resource.current;
     const consumed = amount === 'all'
       ? resource.current
       : Math.min(resource.current, Math.max(0, Math.trunc(amount)));
     resource.current -= consumed;
+    const requested = -(amount === 'all' ? before : Math.max(0, Math.trunc(amount)));
+    this.publishChange(resource, before, requested, {
+      ...source,
+      operation: source?.operation ?? (amount === 'all' ? 'consume_all' : 'subtract'),
+    });
     return consumed;
   }
 
@@ -72,11 +102,41 @@ export class CombatResourceContainer {
     if (this.dealtDirectDamageThisAction) return;
     for (const resource of this.resources.values()) {
       if (hasShield && resource.pauseDecayWhileShielded) continue;
+      if (
+        this.owner &&
+        resource.pauseDecayWhenCounterAtLeast &&
+        readRuntimeCounter(this.owner, resource.pauseDecayWhenCounterAtLeast.key) >=
+          resource.pauseDecayWhenCounterAtLeast.value
+      ) continue;
       const decay = controlledSkip
         ? resource.decayOnControlledSkip ?? resource.decayOnNoDirectDamage ?? 0
         : resource.decayOnNoDirectDamage ?? 0;
-      if (decay > 0) this.modify(resource.id, -decay);
+      if (decay > 0) this.modify(resource.id, -decay, { operation: 'decay' });
     }
+  }
+
+  private publishChange(
+    resource: CombatResourceRuntime,
+    before: number,
+    requested: number,
+    source?: CombatResourceChangeSource,
+  ): void {
+    if (!this.owner || requested === 0) return;
+    const applied = resource.current - before;
+    EventBus.instance.publish<CombatResourceChangeEvent>({
+      type: 'CombatResourceChangeEvent',
+      timestamp: Date.now(),
+      target: this.owner,
+      caster: source?.caster,
+      ability: source?.ability,
+      resourceId: resource.id,
+      operation: source?.operation ?? (requested > 0 ? 'add' : 'subtract'),
+      requested,
+      applied,
+      overflow: requested > 0 ? Math.max(0, requested - applied) : 0,
+      before,
+      after: resource.current,
+    });
   }
 
   snapshots(): CombatResourceSnapshot[] {

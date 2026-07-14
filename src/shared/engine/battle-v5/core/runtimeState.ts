@@ -37,6 +37,9 @@ export interface BattleRuntimeState {
   dealtDamageSinceLastCheck: boolean;
   removedBuffs: Buff[];
   elementHistories: Map<string, Set<string>>;
+  actionSequence: number;
+  round: number;
+  listenerTriggerBudgets: Map<string, { token: number; count: number }>;
 }
 
 const unitState = new WeakMap<Unit, BattleRuntimeState>();
@@ -57,10 +60,35 @@ export function getBattleRuntimeState(unit: Unit): BattleRuntimeState {
       dealtDamageSinceLastCheck: false,
       removedBuffs: [],
       elementHistories: new Map(),
+      actionSequence: 0,
+      round: 0,
+      listenerTriggerBudgets: new Map(),
     };
     unitState.set(unit, state);
   }
   return state;
+}
+
+export function beginRuntimeAction(unit: Unit): void {
+  getBattleRuntimeState(unit).actionSequence += 1;
+}
+
+export function setRuntimeRound(unit: Unit, round: number): void {
+  getBattleRuntimeState(unit).round = Math.max(0, Math.trunc(round));
+}
+
+export function readRuntimeCounter(unit: Unit, key: string): number {
+  return getBattleRuntimeState(unit).counters.get(key) ?? 0;
+}
+
+export function writeRuntimeCounter(unit: Unit, key: string, value: number): number {
+  const normalized = Number.isFinite(value) ? Math.trunc(value) : 0;
+  if (normalized === 0) {
+    getBattleRuntimeState(unit).counters.delete(key);
+    return 0;
+  }
+  getBattleRuntimeState(unit).counters.set(key, normalized);
+  return normalized;
 }
 
 export function rememberAmount(

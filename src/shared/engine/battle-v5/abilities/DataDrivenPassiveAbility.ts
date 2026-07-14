@@ -113,7 +113,7 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
     const owner = this.getOwner();
     if (!owner) return;
 
-    if (!shouldExecuteListener(owner, event, runtime)) {
+    if (!shouldExecuteListener(owner, event, runtime, this)) {
       return;
     }
 
@@ -145,6 +145,13 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
           ...listener.runtime,
           mapping: { ...listener.runtime.mapping },
           guard: { ...listener.runtime.guard },
+          budget: listener.runtime.budget
+            ? { ...listener.runtime.budget }
+            : undefined,
+          conditions: listener.runtime.conditions?.map((condition) => ({
+            ...condition,
+            params: { ...condition.params },
+          })),
         },
         [...listener.effects],
       );

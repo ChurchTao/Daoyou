@@ -6,25 +6,21 @@ import {
   sectMemberships,
   sectMeridianLoadouts,
   sectMethodProgress,
+  sectPathProgress,
 } from '@server/lib/drizzle/schema';
-import type {
-  CultivatorSectState,
-  LingxiaoAbilityId,
-  LingxiaoMethodId,
-  SectAbilitySlots,
-  SectTacticId,
+import {
+  sectRegistry,
+  type CultivatorSectState,
+  type SectAbilitySlots,
+  type SectDefinition,
 } from '@shared/engine/sect';
 import { and, eq, sql } from 'drizzle-orm';
 
 export type SectMembershipRow = typeof sectMemberships.$inferSelect;
 
-export function hydrateSectAbilitySlots(
-  rows: Array<{ slot: number; abilityId: LingxiaoAbilityId }>,
-): SectAbilitySlots {
+export function hydrateSectAbilitySlots(rows: Array<{ slot: number; abilityId: string }>): SectAbilitySlots {
   const slots: SectAbilitySlots = [null, null, null, null];
-  for (const row of rows) {
-    if (row.slot >= 1 && row.slot <= 4) slots[row.slot - 1] = row.abilityId;
-  }
+  for (const row of rows) if (row.slot >= 1 && row.slot <= 4) slots[row.slot - 1] = row.abilityId;
   return slots;
 }
 
@@ -33,8 +29,66 @@ export async function findMembership(
   q: DbExecutor | DbTransaction,
 ): Promise<SectMembershipRow | null> {
   const [row] = await q.select().from(sectMemberships)
-    .where(eq(sectMemberships.cultivatorId, cultivatorId)).limit(1);
+    .where(and(eq(sectMemberships.cultivatorId, cultivatorId), eq(sectMemberships.status, 'active')))
+    .limit(1);
   return row ?? null;
+}
+
+export async function findMembershipForSect(
+  cultivatorId: string,
+  sectId: string,
+  q: DbExecutor | DbTransaction,
+): Promise<SectMembershipRow | null> {
+  const [row] = await q.select().from(sectMemberships)
+    .where(and(eq(sectMemberships.cultivatorId, cultivatorId), eq(sectMemberships.sectId, sectId)))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function listMemberships(cultivatorId: string, q: DbExecutor | DbTransaction) {
+  return q.select().from(sectMemberships).where(eq(sectMemberships.cultivatorId, cultivatorId));
+}
+
+async function hydrateMembership(
+  membership: SectMembershipRow,
+  q: DbExecutor | DbTransaction,
+): Promise<CultivatorSectState> {
+  const methods = await q.select().from(sectMethodProgress).where(eq(sectMethodProgress.membershipId, membership.id));
+  const pathRows = await q.select().from(sectPathProgress).where(eq(sectPathProgress.membershipId, membership.id));
+  const meridians = await q.select().from(sectMeridianLoadouts).where(eq(sectMeridianLoadouts.membershipId, membership.id));
+  const abilities = await q.select().from(sectAbilityLoadouts).where(eq(sectAbilityLoadouts.membershipId, membership.id));
+  const state: CultivatorSectState = {
+    membershipId: membership.id,
+    sectId: membership.sectId,
+    status: membership.status as CultivatorSectState['status'],
+    experiencedAt: membership.experiencedAt?.toISOString(),
+    joinedAt: membership.joinedAt?.toISOString(),
+    activePathId: membership.activePathId ?? undefined,
+    contribution: membership.contribution,
+    configVersion: membership.configVersion,
+    methods: Object.fromEntries(methods.map((row) => [row.methodId, row.level])),
+    paths: pathRows.map((path) => ({
+      pathId: path.pathId,
+      level: path.level,
+      tacticId: path.tacticId,
+      activeMeridianSlot: path.activeMeridianSlot as 1 | 2 | 3,
+      meridianLoadouts: meridians
+        .filter((loadout) => loadout.pathId === path.pathId)
+        .map((loadout) => ({ slot: loadout.slot as 1 | 2 | 3, nodeIds: loadout.nodeIds, version: loadout.version }))
+        .sort((a, b) => a.slot - b.slot),
+    })),
+    abilityLoadout: hydrateSectAbilitySlots(abilities),
+  };
+  try {
+    sectRegistry.validateState(state);
+  } catch (error) {
+    console.error(
+      `[sect-repository] persisted sect state is invalid: membership=${membership.id} sect=${membership.sectId} version=${membership.configVersion}`,
+      error,
+    );
+    throw error;
+  }
+  return state;
 }
 
 export async function loadCultivatorSectState(
@@ -42,64 +96,78 @@ export async function loadCultivatorSectState(
   q: DbExecutor | DbTransaction,
 ): Promise<CultivatorSectState | undefined> {
   const membership = await findMembership(cultivatorId, q);
-  if (!membership) return undefined;
-  // A Drizzle transaction uses one checked-out pg client. Starting these reads
-  // concurrently on that client triggers pg's "client is already executing a
-  // query" deprecation warning and will stop working in pg 9.
-  const methods = await q.select().from(sectMethodProgress)
-    .where(eq(sectMethodProgress.membershipId, membership.id));
-  const meridians = await q.select().from(sectMeridianLoadouts)
-    .where(eq(sectMeridianLoadouts.membershipId, membership.id));
-  const abilities = await q.select().from(sectAbilityLoadouts)
-    .where(eq(sectAbilityLoadouts.membershipId, membership.id));
-  return {
-    membershipId: membership.id,
-    sectId: 'lingxiao',
-    status: membership.status as CultivatorSectState['status'],
-    experiencedAt: membership.experiencedAt?.toISOString(),
-    joinedAt: membership.joinedAt?.toISOString(),
-    pathId: membership.pathId ?? undefined,
-    contribution: membership.contribution,
-    tacticId: membership.tacticId,
-    activeMeridianSlot: membership.activeMeridianSlot as 1 | 2 | 3,
-    configVersion: membership.configVersion,
-    methods: Object.fromEntries(methods.map((row) => [row.methodId, row.level])),
-    meridianLoadouts: meridians
-      .map((row) => ({ slot: row.slot as 1 | 2 | 3, nodeIds: row.nodeIds, version: row.version }))
-      .sort((a, b) => a.slot - b.slot),
-    abilityLoadout: hydrateSectAbilitySlots(abilities),
-  };
+  return membership ? hydrateMembership(membership, q) : undefined;
 }
 
-export async function recordExperience(cultivatorId: string, tx: DbTransaction): Promise<SectMembershipRow> {
+export async function loadCultivatorSectStateForSect(
+  cultivatorId: string,
+  sectId: string,
+  q: DbExecutor | DbTransaction,
+): Promise<CultivatorSectState | undefined> {
+  const membership = await findMembershipForSect(cultivatorId, sectId, q);
+  return membership ? hydrateMembership(membership, q) : undefined;
+}
+
+export async function recordExperience(
+  cultivatorId: string,
+  sectId: string,
+  configVersion: number,
+  tx: DbTransaction,
+): Promise<SectMembershipRow> {
   const [row] = await tx.insert(sectMemberships).values({
-    cultivatorId, sectId: 'lingxiao', status: 'prospect', experiencedAt: new Date(),
+    cultivatorId, sectId, status: 'prospect', experiencedAt: new Date(), configVersion,
   }).onConflictDoUpdate({
-    target: sectMemberships.cultivatorId,
-    set: { experiencedAt: new Date(), updatedAt: new Date() },
+    target: [sectMemberships.cultivatorId, sectMemberships.sectId],
+    set: { experiencedAt: new Date(), updatedAt: new Date(), configVersion },
   }).returning();
   return row;
 }
 
-export async function activateMembership(membershipId: string, tx: DbTransaction): Promise<void> {
+export async function activateMembership(
+  membershipId: string,
+  definition: SectDefinition,
+  tx: DbTransaction,
+): Promise<void> {
   await tx.update(sectMemberships).set({
-    status: 'active', joinedAt: new Date(), contribution: 30, tacticId: 'steady',
-    activeMeridianSlot: 1, configVersion: 1,
+    status: 'active', joinedAt: new Date(), contribution: definition.onboarding.initialContribution,
+    activePathId: null, configVersion: definition.configVersion,
   }).where(and(eq(sectMemberships.id, membershipId), eq(sectMemberships.status, 'prospect')));
-  await tx.insert(sectMethodProgress).values([
-    { membershipId, methodId: 'lingxiao-canon', level: 5 },
-    { membershipId, methodId: 'sword-guidance', level: 5 },
-  ]).onConflictDoNothing();
-  await tx.insert(sectMeridianLoadouts).values([1, 2, 3].map((slot) => ({ membershipId, slot, nodeIds: [] }))).onConflictDoNothing();
-  await tx.insert(sectAbilityLoadouts).values({ membershipId, slot: 1, abilityId: 'guiding-sword' }).onConflictDoNothing();
-  await tx.update(creationProducts).set({ isEquipped: false })
-    .where(and(eq(creationProducts.cultivatorId, (await tx.select({ cultivatorId: sectMemberships.cultivatorId }).from(sectMemberships).where(eq(sectMemberships.id, membershipId)).limit(1))[0].cultivatorId), eq(creationProducts.productType, 'skill')));
+  const initialMethods = Object.entries(definition.onboarding.initialMethods).map(([methodId, level]) => ({ membershipId, methodId, level }));
+  if (initialMethods.length) await tx.insert(sectMethodProgress).values(initialMethods).onConflictDoNothing();
+  const initialAbilities = definition.onboarding.initialAbilityLoadout.flatMap((abilityId, index) => abilityId ? [{ membershipId, slot: index + 1, abilityId }] : []);
+  if (initialAbilities.length) await tx.insert(sectAbilityLoadouts).values(initialAbilities).onConflictDoNothing();
+  const [membership] = await tx.select({ cultivatorId: sectMemberships.cultivatorId }).from(sectMemberships).where(eq(sectMemberships.id, membershipId)).limit(1);
+  if (membership) {
+    await tx.update(creationProducts).set({ isEquipped: false })
+      .where(and(eq(creationProducts.cultivatorId, membership.cultivatorId), eq(creationProducts.productType, 'skill')));
+  }
 }
 
-export async function setMethodLevel(membershipId: string, methodId: LingxiaoMethodId, level: number, tx: DbTransaction): Promise<void> {
+export async function setMethodLevel(membershipId: string, methodId: string, level: number, tx: DbTransaction): Promise<void> {
   await tx.insert(sectMethodProgress).values({ membershipId, methodId, level }).onConflictDoUpdate({
     target: [sectMethodProgress.membershipId, sectMethodProgress.methodId], set: { level, updatedAt: new Date() },
   });
+}
+
+export async function enrollPath(membershipId: string, pathId: string, tacticId: string, tx: DbTransaction): Promise<boolean> {
+  const rows = await tx.insert(sectPathProgress).values({ membershipId, pathId, level: 0, tacticId, activeMeridianSlot: 1 })
+    .onConflictDoNothing().returning({ id: sectPathProgress.id });
+  if (!rows.length) return false;
+  await tx.insert(sectMeridianLoadouts).values([1, 2, 3].map((slot) => ({ membershipId, pathId, slot, nodeIds: [] }))).onConflictDoNothing();
+  return true;
+}
+
+export async function setPathLevel(membershipId: string, pathId: string, level: number, tx: DbTransaction): Promise<void> {
+  await tx.update(sectPathProgress).set({ level, updatedAt: new Date() })
+    .where(and(eq(sectPathProgress.membershipId, membershipId), eq(sectPathProgress.pathId, pathId)));
+}
+
+export async function activatePath(membershipId: string, pathId: string, tx: DbTransaction): Promise<boolean> {
+  const learned = await tx.select({ id: sectPathProgress.id }).from(sectPathProgress)
+    .where(and(eq(sectPathProgress.membershipId, membershipId), eq(sectPathProgress.pathId, pathId))).limit(1);
+  if (!learned.length) return false;
+  await tx.update(sectMemberships).set({ activePathId: pathId, updatedAt: new Date() }).where(eq(sectMemberships.id, membershipId));
+  return true;
 }
 
 export async function spendContribution(membershipId: string, amount: number, tx: DbTransaction): Promise<boolean> {
@@ -108,33 +176,27 @@ export async function spendContribution(membershipId: string, amount: number, tx
   return rows.length === 1;
 }
 
-export async function selectSwiftPath(membershipId: string, tx: DbTransaction): Promise<boolean> {
-  const rows = await tx.update(sectMemberships).set({ pathId: 'swift-sword' })
-    .where(and(eq(sectMemberships.id, membershipId), sql`${sectMemberships.pathId} is null`)).returning({ id: sectMemberships.id });
-  return rows.length === 1;
-}
-
-export async function replaceMeridianLoadout(membershipId: string, slot: number, nodeIds: string[], tx: DbTransaction): Promise<void> {
-  await tx.insert(sectMeridianLoadouts).values({ membershipId, slot, nodeIds }).onConflictDoUpdate({
-    target: [sectMeridianLoadouts.membershipId, sectMeridianLoadouts.slot],
+export async function replaceMeridianLoadout(membershipId: string, pathId: string, slot: number, nodeIds: string[], tx: DbTransaction): Promise<void> {
+  await tx.insert(sectMeridianLoadouts).values({ membershipId, pathId, slot, nodeIds }).onConflictDoUpdate({
+    target: [sectMeridianLoadouts.membershipId, sectMeridianLoadouts.pathId, sectMeridianLoadouts.slot],
     set: { nodeIds, version: sql`${sectMeridianLoadouts.version} + 1`, updatedAt: new Date() },
   });
 }
 
-export async function activateMeridianLoadout(membershipId: string, slot: number, tx: DbTransaction): Promise<void> {
-  await tx.update(sectMemberships).set({ activeMeridianSlot: slot }).where(eq(sectMemberships.id, membershipId));
+export async function activateMeridianLoadout(membershipId: string, pathId: string, slot: number, tx: DbTransaction): Promise<void> {
+  await tx.update(sectPathProgress).set({ activeMeridianSlot: slot, updatedAt: new Date() })
+    .where(and(eq(sectPathProgress.membershipId, membershipId), eq(sectPathProgress.pathId, pathId)));
 }
 
 export async function replaceAbilityLoadout(membershipId: string, abilitySlots: SectAbilitySlots, tx: DbTransaction): Promise<void> {
   await tx.delete(sectAbilityLoadouts).where(eq(sectAbilityLoadouts.membershipId, membershipId));
-  const values = abilitySlots.flatMap((abilityId, index) => abilityId
-    ? [{ membershipId, slot: index + 1, abilityId }]
-    : []);
+  const values = abilitySlots.flatMap((abilityId, index) => abilityId ? [{ membershipId, slot: index + 1, abilityId }] : []);
   if (values.length) await tx.insert(sectAbilityLoadouts).values(values);
 }
 
-export async function setTactic(membershipId: string, tacticId: SectTacticId, tx: DbTransaction): Promise<void> {
-  await tx.update(sectMemberships).set({ tacticId }).where(eq(sectMemberships.id, membershipId));
+export async function setPathTactic(membershipId: string, pathId: string, tacticId: string, tx: DbTransaction): Promise<void> {
+  await tx.update(sectPathProgress).set({ tacticId, updatedAt: new Date() })
+    .where(and(eq(sectPathProgress.membershipId, membershipId), eq(sectPathProgress.pathId, pathId)));
 }
 
 export async function insertCommissionCompletion(args: { membershipId: string; dateKey: string; completionType: string }, tx: DbTransaction): Promise<boolean> {

@@ -1,45 +1,19 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { startSectTrialOnce } from './sectClient';
 
-vi.mock('@app/lib/player-state/store', () => ({
-  consumePlayerStateMutation: vi.fn(async (response: Response) => {
-    const payload = await response.json();
-    return payload.data;
-  }),
-}));
+describe('startSectTrialOnce', () => {
+  beforeEach(() => vi.restoreAllMocks());
 
-import { startLingxiaoExperienceOnce } from './sectClient';
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
-describe('startLingxiaoExperienceOnce', () => {
-  it('dedupes concurrent trial requests triggered by StrictMode effects', async () => {
-    const payload = {
+  it('按宗门去重 StrictMode 并发试炼请求', async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({
       success: true,
-      data: { sect: { membershipId: 'trial' }, battle: { turns: 1 } },
-      state: {},
-    };
-    const fetchMock = vi.fn(async () =>
-      new Response(JSON.stringify(payload), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    );
+      data: { sect: { sectId: 'lingxiao' }, battle: {} },
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     vi.stubGlobal('fetch', fetchMock);
-
-    const [first, second] = await Promise.all([
-      startLingxiaoExperienceOnce(),
-      startLingxiaoExperienceOnce(),
-    ]);
-
+    await Promise.all([startSectTrialOnce('lingxiao'), startSectTrialOnce('lingxiao')]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith('/api/sects/lingxiao/experience', {
-      method: 'POST',
-    });
-    expect(second).toBe(first);
-
-    await startLingxiaoExperienceOnce();
+    expect(fetchMock).toHaveBeenCalledWith('/api/sects/lingxiao/trial', { method: 'POST' });
+    await startSectTrialOnce('lingxiao');
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

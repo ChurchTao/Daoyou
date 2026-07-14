@@ -104,7 +104,7 @@ export class DataDrivenBuff extends Buff {
   ): void {
     if (!this._owner) return; // 仅检查是否存在，不检查存活，以便处理免死逻辑
 
-    if (!shouldExecuteListener(this._owner, event, runtime)) {
+    if (!shouldExecuteListener(this._owner, event, runtime, this)) {
       return;
     }
 
@@ -151,6 +151,13 @@ export class DataDrivenBuff extends Buff {
           ...listener.runtime,
           mapping: { ...listener.runtime.mapping },
           guard: { ...listener.runtime.guard },
+          budget: listener.runtime.budget
+            ? { ...listener.runtime.budget }
+            : undefined,
+          conditions: listener.runtime.conditions?.map((condition) => ({
+            ...condition,
+            params: { ...condition.params },
+          })),
         },
         [...listener.effects],
       );

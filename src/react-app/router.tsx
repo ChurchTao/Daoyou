@@ -322,9 +322,9 @@ export const router = createBrowserRouter(
               handle={scene(
                 {
                   id: 'sect',
-                  summary: '拜山问剑、研习心法、择定剑脉并承接宗门委托。',
+                  summary: '拜访诸宗、研习心法、选择流派并承接宗门委托。',
                 },
-                '凌霄剑宗',
+                '宗门',
               )}
             />
             <Route
@@ -336,7 +336,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'sect-abilities',
                   presentation: 'workflow',
-                  summary: '查阅并配置凌霄剑宗神通、主动栏与自动战术。',
+                  summary: '查阅并配置当前宗门神通、主动栏与流派战术。',
                 },
                 '宗门神通',
               )}
@@ -716,7 +716,7 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
-              path="sect/trial"
+              path="sect/trial/:sectId"
               lazy={lazyRoute(
                 () => import('@app/routes/game/sect/trial/route'),
               )}
@@ -726,7 +726,7 @@ export const router = createBrowserRouter(
                   chrome: 'immersive',
                   dock: 'hidden',
                 },
-                '山门试剑',
+                '入门试法',
               )}
             />
           </Route>

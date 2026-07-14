@@ -25,10 +25,10 @@ vi.mock('@server/lib/services/SectService', () => {
     constructor(public code: string, message: string, public status = 409) { super(message); }
   }
   return { SectError, SectService: {
-    getState: getStateMock, join: joinMock,
-    recordExperience: vi.fn(), trainMethod: vi.fn(), selectSwiftPath: vi.fn(),
+    getState: getStateMock, getStateForSect: vi.fn(), listDefinitions: vi.fn(() => []), listMemberships: vi.fn(() => []), join: joinMock,
+    recordExperience: vi.fn(), trainMethod: vi.fn(), enrollPath: vi.fn(), trainPath: vi.fn(), activatePath: vi.fn(),
     setMeridianLoadout: vi.fn(), activateMeridianLoadout: vi.fn(),
-    setAbilityLoadout: setAbilityLoadoutMock, setTactic: vi.fn(),
+    setAbilityLoadout: setAbilityLoadoutMock, setPathTactic: vi.fn(),
   } };
 });
 vi.mock('@server/lib/services/SectCommissionService', () => ({
@@ -48,9 +48,9 @@ import sectsRouter from './sects.router';
 
 const activeSect = {
   membershipId: 'm1', sectId: 'lingxiao', status: 'active', contribution: 30,
-  tacticId: 'steady', activeMeridianSlot: 1, configVersion: 1,
+  configVersion: 2, activePathId: 'swift-sword',
   methods: { 'lingxiao-canon': 5, 'sword-guidance': 5 },
-  meridianLoadouts: [{ slot: 1, nodeIds: [], version: 1 }], abilityLoadout: ['guiding-sword', null, null, null],
+  paths: [{ pathId: 'swift-sword', level: 0, tacticId: 'aggressive', activeMeridianSlot: 1, meridianLoadouts: [{ slot: 1, nodeIds: [], version: 1 }] }], abilityLoadout: ['guiding-sword', null, null, null],
 };
 
 describe('sects router', () => {
@@ -78,7 +78,7 @@ describe('sects router', () => {
     setAbilityLoadoutMock.mockResolvedValue({ ...activeSect, abilityLoadout: slots });
 
     const response = await new Hono().route('/api/sects', sectsRouter).request(
-      '/api/sects/ability-loadout',
+      '/api/sects/current/ability-loadout',
       {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -88,5 +88,24 @@ describe('sects router', () => {
 
     expect(response.status).toBe(200);
     expect(setAbilityLoadoutMock).toHaveBeenCalledWith('cultivator-1', slots, expect.anything());
+  });
+
+  it('returns 400 for an unregistered sect id', async () => {
+    const response = await new Hono().route('/api/sects', sectsRouter).request(
+      '/api/sects/not-registered',
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      code: 'SECT_UNKNOWN',
+    });
+  });
+
+  it('does not expose removed Lingxiao-specific endpoints', async () => {
+    const app = new Hono().route('/api/sects', sectsRouter);
+
+    expect((await app.request('/api/sects/lingxiao/experience', { method: 'POST' })).status).toBe(404);
+    expect((await app.request('/api/sects/paths/swift-sword/select', { method: 'POST' })).status).toBe(404);
   });
 });

@@ -178,6 +178,11 @@ export function describeEffectCore(
         ? '消耗全部战斗资源'
         : `${effect.params.operation === 'add' ? '获得' : '调整'} ${Math.abs(effect.params.amount ?? 0)} 点战斗资源`;
 
+    case 'runtime_counter_modify':
+      return effect.params.operation === 'reset'
+        ? '重置战斗计数'
+        : `${effect.params.operation === 'add' ? '增加' : '调整'}战斗计数`;
+
     default: {
       const exhaustive: never = effect;
       return (exhaustive as EffectConfig).type;

@@ -1,37 +1,27 @@
-import type { AbilityConfig, AttributeModifierConfig } from '@shared/engine/battle-v5/core/configs';
+import type { AbilitySelectionStrategy } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
+import type {
+  AbilityConfig,
+  AttributeModifierConfig,
+  CombatResourceDefinition,
+} from '@shared/engine/battle-v5/core/configs';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 
 export type PlayerRaceId = 'human';
-export type SectId = 'lingxiao';
-export type SectPathId = 'swift-sword';
+export type SectId = string;
+export type SectMethodId = string;
+export type SectAbilityId = string;
+export type SectPathId = string;
+export type SectNodeId = string;
+export type SectTacticId = string;
 export type SectMembershipStatus = 'prospect' | 'active';
-export type SectTacticId = 'aggressive' | 'steady' | 'counter';
-export type SectSelectionStrategyId = 'sect.lingxiao.sword.v1';
-export type SectAbilityRole = 'generator' | 'combo' | 'defensive' | 'finisher';
-
-export type LingxiaoMethodId =
-  | 'lingxiao-canon'
-  | 'sword-guidance'
-  | 'void-step'
-  | 'edge-cleansing'
-  | 'origin-returning'
-  | 'swift-sword-canon';
-
-export type LingxiaoAbilityId =
-  | 'plain-sword'
-  | 'guiding-sword'
-  | 'linked-edge'
-  | 'turning-body'
-  | 'breaking-edge'
-  | 'sword-aegis'
-  | 'shadow-step'
-  | 'instant-traceless';
+export type SectAbilityRole = 'generator' | 'combo' | 'defensive' | 'finisher' | 'utility';
+export type SectMeridianLayer = 1 | 2 | 3 | 4 | 5 | 'ultimate';
 
 export type SectAbilitySlots = [
-  LingxiaoAbilityId | null,
-  LingxiaoAbilityId | null,
-  LingxiaoAbilityId | null,
-  LingxiaoAbilityId | null,
+  SectAbilityId | null,
+  SectAbilityId | null,
+  SectAbilityId | null,
+  SectAbilityId | null,
 ];
 
 export interface PlayerRaceDefinition {
@@ -40,80 +30,49 @@ export interface PlayerRaceDefinition {
   description: string;
 }
 
-export interface SectHeartMethodDefinition {
-  id: LingxiaoMethodId;
-  name: string;
-  description: string;
-  parentMethodId?: LingxiaoMethodId;
-  modifierPerLevel?: AttributeModifierConfig;
-  swiftTemplateMultiplierPerLevel?: number;
-  perLevelDescription?: string;
-  milestones: SectMethodMilestoneDefinition[];
+export interface SectRequirementDefinition {
+  minRealm?: RealmType;
+  minRealmStage?: RealmStage;
+  minPathLevel?: number;
+  requiredMethods?: Record<SectMethodId, number>;
 }
 
-export interface SectMethodMilestoneDefinition {
+export interface SectMethodMilestoneDefinition extends SectRequirementDefinition {
   id: string;
   level: number;
   name: string;
   description: string;
-  abilityId?: LingxiaoAbilityId;
-  minRealm?: RealmType;
-  minRealmStage?: RealmStage;
-  requiredPathId?: SectPathId;
-  requiredMethods?: Partial<Record<LingxiaoMethodId, number>>;
+  abilityId?: SectAbilityId;
 }
 
-export interface SectAbilityEffectDefinition {
-  damageCoefficient?: number;
-  momentumDamageCoefficient?: number;
-  swordMarkDamageCoefficient?: number;
-  lowHpBonusCoefficient?: number;
-  hits?: number;
-  momentumGain?: number;
-  momentumRequired?: number;
-  consumesAllMomentum?: boolean;
-  swordMarkLayers?: number;
-  consumesSwordMarks?: boolean;
-  shieldCoefficient?: number;
-  counterCoefficient?: number;
-  speedBonus?: number;
-  forcedCritical?: boolean;
+export interface SectHeartMethodDefinition {
+  id: SectMethodId;
+  slot: 1 | 2 | 3 | 4 | 5 | 6;
+  name: string;
+  description: string;
+  isPrimary?: boolean;
+  modifierPerLevel?: AttributeModifierConfig;
+  perLevelDescription?: string;
+  milestones: SectMethodMilestoneDefinition[];
 }
 
 export interface SectAbilityDefinition {
-  id: LingxiaoAbilityId;
+  id: SectAbilityId;
+  methodId: SectMethodId;
   baseName: string;
-  swiftName?: string;
   description: string;
-  unlock: {
-    methodId: LingxiaoMethodId;
-    level: number;
-    pathId?: SectPathId;
-    primaryMethodLevel?: number;
-  };
+  unlockLevel: number;
   occupiesActiveSlot: boolean;
   role: SectAbilityRole;
   manaWeight: number;
   cooldown: number;
-  baseEffect: SectAbilityEffectDefinition;
-  swiftEffect?: SectAbilityEffectDefinition;
 }
 
-export interface SectMeridianNodeDefinition {
-  id: string;
-  layer: 1 | 2 | 3 | 4 | 5 | 'ultimate';
+export interface SectMeridianNodeDefinition extends SectRequirementDefinition {
+  id: SectNodeId;
+  layer: SectMeridianLayer;
   name: string;
   description: string;
-  minRealm: RealmType;
-  minRealmStage: RealmStage;
-  requiredMethods?: Partial<Record<LingxiaoMethodId, number>>;
-}
-
-export interface SectPathDefinition {
-  id: SectPathId;
-  name: string;
-  description: string;
-  nodes: SectMeridianNodeDefinition[];
 }
 
 export interface SectTacticPreset {
@@ -122,21 +81,50 @@ export interface SectTacticPreset {
   description: string;
 }
 
+export interface SectPathDefinition {
+  id: SectPathId;
+  name: string;
+  description: string;
+  multiplierPerLevel: number;
+  defaultTacticId: SectTacticId;
+  nodes: SectMeridianNodeDefinition[];
+  tactics: SectTacticPreset[];
+}
+
+export interface SectOnboardingDefinition {
+  initialContribution: number;
+  initialMethods: Record<SectMethodId, number>;
+  initialAbilityLoadout: SectAbilitySlots;
+}
+
 export interface SectDefinition {
   id: SectId;
   name: string;
+  description: string;
+  trial: {
+    name: string;
+    description: string;
+  };
   raceIds: PlayerRaceId[];
   configVersion: number;
   methods: SectHeartMethodDefinition[];
   abilities: SectAbilityDefinition[];
   paths: SectPathDefinition[];
-  tactics: SectTacticPreset[];
+  onboarding: SectOnboardingDefinition;
 }
 
 export interface SectMeridianLoadoutState {
   slot: 1 | 2 | 3;
-  nodeIds: string[];
+  nodeIds: SectNodeId[];
   version: number;
+}
+
+export interface CultivatorSectPathState {
+  pathId: SectPathId;
+  level: number;
+  tacticId: SectTacticId;
+  activeMeridianSlot: 1 | 2 | 3;
+  meridianLoadouts: SectMeridianLoadoutState[];
 }
 
 export interface CultivatorSectState {
@@ -145,31 +133,19 @@ export interface CultivatorSectState {
   status: SectMembershipStatus;
   experiencedAt?: string;
   joinedAt?: string;
-  pathId?: SectPathId;
+  activePathId?: SectPathId;
   contribution: number;
-  tacticId: SectTacticId;
-  activeMeridianSlot: 1 | 2 | 3;
   configVersion: number;
-  methods: Partial<Record<LingxiaoMethodId, number>>;
-  meridianLoadouts: SectMeridianLoadoutState[];
+  methods: Partial<Record<SectMethodId, number>>;
+  paths: CultivatorSectPathState[];
   abilityLoadout: SectAbilitySlots;
 }
 
 export interface SectMethodModifierProjection {
-  methodId: LingxiaoMethodId;
+  methodId: SectMethodId;
   methodName: string;
   level: number;
   modifiers: AttributeModifierConfig[];
-}
-
-export interface CombatResourceDefinition {
-  id: string;
-  name: string;
-  initial: number;
-  max: number;
-  decayOnNoDirectDamage?: number;
-  decayOnControlledSkip?: number;
-  pauseDecayWhileShielded?: boolean;
 }
 
 export interface SectCombatProjection {
@@ -177,6 +153,51 @@ export interface SectCombatProjection {
   abilities: AbilityConfig[];
   methodModifiers: SectMethodModifierProjection[];
   resources: CombatResourceDefinition[];
-  selectionStrategyId: SectSelectionStrategyId;
-  tacticId: SectTacticId;
+  selectionStrategy?: AbilitySelectionStrategy;
+}
+
+export interface ResolvedSectAbility {
+  id: SectAbilityId;
+  name: string;
+  baseName: string;
+  role: SectAbilityRole;
+  summary: string;
+  unlocked: boolean;
+  unlockRequirements: string[];
+  manaCost: number;
+  cooldown: number;
+  detailRows: string[];
+  notes: string[];
+  config: AbilityConfig;
+}
+
+export interface SectProjectionContext {
+  sect: CultivatorSectState;
+  realm: RealmType;
+}
+
+export interface SectAbilityResolveContext extends SectProjectionContext {
+  abilityId: SectAbilityId;
+}
+
+export interface SectTrialPreset {
+  methods: Record<SectMethodId, number>;
+  abilityLoadout: SectAbilitySlots;
+  opponentName: string;
+}
+
+export interface SectPathModule {
+  definition: SectPathDefinition;
+  behaviorIds: readonly SectNodeId[];
+  projectCombat(context: SectProjectionContext): SectCombatProjection | null;
+  resolveAbility(context: SectAbilityResolveContext): ResolvedSectAbility;
+  createSelectionStrategy(tacticId: SectTacticId): AbilitySelectionStrategy;
+}
+
+export interface SectModule {
+  definition: SectDefinition;
+  paths: Record<SectPathId, SectPathModule>;
+  trial: SectTrialPreset;
+  projectCombat(context: SectProjectionContext): SectCombatProjection | null;
+  resolveAbility(context: SectAbilityResolveContext): ResolvedSectAbility;
 }

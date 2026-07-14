@@ -12,6 +12,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import type {
   AlchemyFormulaBlueprint,
   AlchemyFormulaMastery,
@@ -25,11 +26,6 @@ import type {
 import type { MailAttachment } from '@shared/types/mail';
 import type { TowerPreparedEnemy } from '@shared/lib/tower';
 import type { PlayerStateDomain } from '@shared/contracts/player';
-import type {
-  LingxiaoAbilityId,
-  SectPathId,
-  SectTacticId,
-} from '@shared/engine/sect';
 
 // ===== 新一代修仙游戏数据库 Schema =====
 // 基于 basic.md 中的新 Cultivator 模型设计
@@ -185,16 +181,15 @@ export const sectMemberships = pgTable(
     status: varchar('status', { length: 16 }).notNull().default('prospect'),
     experiencedAt: timestamp('experienced_at'),
     joinedAt: timestamp('joined_at'),
-    pathId: varchar('path_id', { length: 64 }).$type<SectPathId>(),
+    activePathId: varchar('active_path_id', { length: 64 }),
     contribution: integer('contribution').notNull().default(0),
-    tacticId: varchar('tactic_id', { length: 32 }).$type<SectTacticId>().notNull().default('steady'),
-    activeMeridianSlot: integer('active_meridian_slot').notNull().default(1),
-    configVersion: integer('config_version').notNull().default(1),
+    configVersion: integer('config_version').notNull().default(2),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
   },
   (table) => [
-    uniqueIndex('sect_memberships_cultivator_unique').on(table.cultivatorId),
+    uniqueIndex('sect_memberships_cultivator_sect_unique').on(table.cultivatorId, table.sectId),
+    uniqueIndex('sect_memberships_active_cultivator_unique').on(table.cultivatorId).where(sql`${table.status} = 'active'`),
     index('sect_memberships_sect_status_idx').on(table.sectId, table.status),
   ],
 );
@@ -211,17 +206,32 @@ export const sectMethodProgress = pgTable(
   (table) => [uniqueIndex('sect_method_membership_method_unique').on(table.membershipId, table.methodId)],
 );
 
+export const sectPathProgress = pgTable(
+  'wanjiedaoyou_sect_path_progress',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    membershipId: uuid('membership_id').references(() => sectMemberships.id, { onDelete: 'cascade' }).notNull(),
+    pathId: varchar('path_id', { length: 64 }).notNull(),
+    level: integer('level').notNull().default(0),
+    tacticId: varchar('tactic_id', { length: 32 }).notNull(),
+    activeMeridianSlot: integer('active_meridian_slot').notNull().default(1),
+    updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [uniqueIndex('sect_path_membership_path_unique').on(table.membershipId, table.pathId)],
+);
+
 export const sectMeridianLoadouts = pgTable(
   'wanjiedaoyou_sect_meridian_loadouts',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     membershipId: uuid('membership_id').references(() => sectMemberships.id, { onDelete: 'cascade' }).notNull(),
+    pathId: varchar('path_id', { length: 64 }).notNull().default(""),
     slot: integer('slot').notNull(),
     nodeIds: jsonb('node_ids').$type<string[]>().notNull().default([]),
     version: integer('version').notNull().default(1),
     updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
   },
-  (table) => [uniqueIndex('sect_meridian_membership_slot_unique').on(table.membershipId, table.slot)],
+  (table) => [uniqueIndex('sect_meridian_membership_path_slot_unique').on(table.membershipId, table.pathId, table.slot)],
 );
 
 export const sectAbilityLoadouts = pgTable(
@@ -230,7 +240,7 @@ export const sectAbilityLoadouts = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     membershipId: uuid('membership_id').references(() => sectMemberships.id, { onDelete: 'cascade' }).notNull(),
     slot: integer('slot').notNull(),
-    abilityId: varchar('ability_id', { length: 64 }).$type<LingxiaoAbilityId>().notNull(),
+    abilityId: varchar('ability_id', { length: 64 }).notNull(),
     updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
   },
   (table) => [

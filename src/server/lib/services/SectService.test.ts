@@ -19,9 +19,8 @@ const tx = {} as DbTransaction;
 function activeSect(): CultivatorSectState {
   return {
     membershipId: 'member-1', sectId: 'lingxiao', status: 'active', contribution: 0,
-    tacticId: 'steady', activeMeridianSlot: 1, configVersion: 1,
+    configVersion: 2, paths: [],
     methods: { 'lingxiao-canon': 30, 'sword-guidance': 30, 'void-step': 30 },
-    meridianLoadouts: [],
     abilityLoadout: ['guiding-sword', 'linked-edge', 'turning-body', null],
   };
 }

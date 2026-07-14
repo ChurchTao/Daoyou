@@ -23,6 +23,20 @@ export interface AbilitySelectionRule {
   disqualify?: boolean;
 }
 
+export interface CombatResourceDefinition {
+  id: string;
+  name: string;
+  initial: number;
+  max: number;
+  decayOnNoDirectDamage?: number;
+  decayOnControlledSkip?: number;
+  pauseDecayWhileShielded?: boolean;
+  pauseDecayWhenCounterAtLeast?: {
+    key: string;
+    value: number;
+  };
+}
+
 /**
  * 效果执行条件配置
  */
@@ -43,12 +57,16 @@ export interface ConditionConfig {
     | 'buff_layer_at_least'
     | 'debuff_count_at_least'
     | 'damage_type_is'
+    | 'damage_source_is'
     | 'shield_absorbed_at_least'
     | 'resource_compare'
     | 'combat_resource_at_least'
     | 'combat_resource_below'
+    | 'runtime_counter_compare'
+    | 'combat_resource_change'
     | 'chance'
     | 'is_critical'
+    | 'is_hit'
     | 'is_lethal';
   params: {
     tag?: string;
@@ -62,7 +80,11 @@ export interface ConditionConfig {
     op?: 'gt' | 'gte' | 'lt' | 'lte';
     right?: 'caster' | 'target';
     damageType?: DamageType;
+    damageSource?: 'direct' | 'reflect';
     resourceId?: string;
+    key?: string;
+    operation?: 'add' | 'subtract' | 'set' | 'consume_all';
+    eventField?: 'requested' | 'applied' | 'overflow';
   };
 }
 
@@ -93,6 +115,7 @@ export interface DamageParams {
 export interface HealParams {
   value: ScalableValue;
   target?: 'hp' | 'mp';
+  recipient?: 'caster' | 'target';
 }
 
 /**
@@ -126,6 +149,7 @@ export interface DispelParams {
  */
 export interface ShieldParams {
   value: ScalableValue;
+  target?: 'caster' | 'target';
 }
 
 /**
@@ -310,6 +334,18 @@ export interface TurnStateCounterParams {
   resetOnTrigger?: boolean;
 }
 
+export interface RuntimeCounterModifyParams {
+  key: string;
+  operation: 'add' | 'subtract' | 'set' | 'reset';
+  amount?: number;
+  amountFromEvent?: 'requested' | 'applied' | 'overflow';
+  target?: 'caster' | 'target';
+  min?: number;
+  max?: number;
+  effects?: EffectConfig[];
+  scaleEffectsByAmount?: boolean;
+}
+
 export interface ElementHistoryParams {
   key: string;
   threshold: number;
@@ -385,6 +421,7 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'next_hit_rule'; params: NextHitRuleParams }
     | { type: 'dynamic_scalar'; params: DynamicScalarParams }
     | { type: 'turn_state_counter'; params: TurnStateCounterParams }
+    | { type: 'runtime_counter_modify'; params: RuntimeCounterModifyParams }
     | { type: 'element_history'; params: ElementHistoryParams }
     | { type: 'effect_sequence'; params: EffectSequenceParams }
     | { type: 'percent_damage_modifier'; params: PercentDamageModifierParams }
@@ -436,6 +473,11 @@ export interface ListenerGuardConfig {
   skipReflectSource?: boolean;
 }
 
+export interface ListenerTriggerBudgetConfig {
+  maxTriggers: number;
+  reset: 'buff_lifetime' | 'action' | 'round' | 'battle';
+}
+
 /**
  * 事件监听器配置 (用于 Buff 和被动技能)
  */
@@ -465,6 +507,10 @@ export interface ListenerConfig {
    * 执行守卫
    */
   guard?: ListenerGuardConfig;
+  /** 限制监听器在指定生命周期窗口内的触发次数。 */
+  budget?: ListenerTriggerBudgetConfig;
+  /** 在消费触发预算前判定的事件条件。 */
+  conditions?: ConditionConfig[];
   /**
    * 触发时执行的效果链
    */

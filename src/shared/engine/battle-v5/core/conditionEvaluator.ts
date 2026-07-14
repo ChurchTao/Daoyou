@@ -3,7 +3,8 @@ import { EffectContext } from '../effects';
 import { Unit } from '../units/Unit';
 import { ConditionConfig } from './configs';
 import { DamageEvent, DamageRequestEvent, DamageTakenEvent } from './events';
-import { BuffType, DamageType } from './types';
+import { BuffType, DamageSource, DamageType } from './types';
+import { readRuntimeCounter } from './runtimeState';
 
 
 function getScopedUnit(context: EffectContext, scope?: 'caster' | 'target') {
@@ -183,6 +184,10 @@ export function evaluateCondition(
       if (!expected) return false;
       return getDamageTypeFromTriggerEvent(context.triggerEvent) === expected;
     }
+    case 'damage_source_is': {
+      const event = context.triggerEvent as { damageSource?: DamageSource } | undefined;
+      return event?.damageSource === cond.params.damageSource;
+    }
     case 'shield_absorbed_at_least':
       return (getShieldAbsorbedFromTriggerEvent(context.triggerEvent) ?? 0) >= threshold;
     case 'resource_compare': {
@@ -216,12 +221,49 @@ export function evaluateCondition(
         cond.params.resourceId &&
         scopedUnit.combatResources.getCurrent(cond.params.resourceId) < threshold
       );
+    case 'runtime_counter_compare': {
+      if (!scopedUnit || !cond.params.key) return false;
+      const value = readRuntimeCounter(scopedUnit, cond.params.key);
+      switch (cond.params.op ?? 'gte') {
+        case 'gt': return value > threshold;
+        case 'lt': return value < threshold;
+        case 'lte': return value <= threshold;
+        case 'gte':
+        default: return value >= threshold;
+      }
+    }
+    case 'combat_resource_change': {
+      const event = context.triggerEvent as {
+        type?: string;
+        resourceId?: string;
+        operation?: string;
+        requested?: number;
+        applied?: number;
+        overflow?: number;
+      } | undefined;
+      if (event?.type !== 'CombatResourceChangeEvent') return false;
+      if (cond.params.resourceId && event.resourceId !== cond.params.resourceId) return false;
+      if (cond.params.operation && event.operation !== cond.params.operation) return false;
+      const field = cond.params.eventField ?? 'applied';
+      const value = event[field] ?? 0;
+      switch (cond.params.op ?? 'gte') {
+        case 'gt': return value > threshold;
+        case 'lt': return value < threshold;
+        case 'lte': return value <= threshold;
+        case 'gte':
+        default: return value >= threshold;
+      }
+    }
     case 'chance':
       return Math.random() < threshold;
     case 'is_critical': {
       // scope 用于语义校验：'caster' 表示"我暴击了"，'target' 表示"我被暴击了"
       // 运行时都读取 triggerEvent.isCritical，因为暴击是事件级属性
       return getIsCriticalFromTriggerEvent(context.triggerEvent);
+    }
+    case 'is_hit': {
+      const event = context.triggerEvent as { isHit?: boolean } | undefined;
+      return event?.isHit === true;
     }
     case 'is_lethal':
       return getIsLethalFromTriggerEvent(context.triggerEvent);

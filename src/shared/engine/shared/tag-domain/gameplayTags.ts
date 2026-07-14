@@ -37,7 +37,10 @@ export const GameplayTags = {
       SHOCKED: 'Status.Shocked',
       BODY_BURN_BLOOD_TRIGGERED: 'Status.BodyCultivation.BurnBloodTriggered',
       BODY_ORGANS_SKILL_REFUNDED: 'Status.BodyCultivation.OrgansSkillRefunded',
-      SWORD_MARKED: 'Status.Sect.Lingxiao.SwordMarked',
+    },
+    SECT: {
+      ROOT: 'Status.Sect',
+      state: (sectId: string, stateId: string) => `Status.Sect.${sectId}.${stateId}`,
     },
     CATEGORY: {
       BUFF: 'Status.Buff',
@@ -88,14 +91,13 @@ export const GameplayTags = {
     },
     SECT: {
       ROOT: 'Ability.Sect',
-      LINGXIAO: 'Ability.Sect.Lingxiao',
-      SWIFT_SWORD: 'Ability.Sect.Lingxiao.SwiftSword',
+      namespace: (sectId: string) => `Ability.Sect.${sectId}`,
+      path: (sectId: string, pathId: string) => `Ability.Sect.${sectId}.Path.${pathId}`,
+      ability: (sectId: string, abilityId: string) => `Ability.Sect.${sectId}.Ability.${abilityId}`,
       GENERATOR: 'Ability.Sect.Role.Generator',
       COMBO: 'Ability.Sect.Role.Combo',
       FINISHER: 'Ability.Sect.Role.Finisher',
       DEFENSIVE: 'Ability.Sect.Role.Defensive',
-      PLAIN_SWORD: 'Ability.Sect.Lingxiao.PlainSword',
-      GUIDING_SWORD: 'Ability.Sect.Lingxiao.GuidingSword',
     },
     ELEMENT: {
       ROOT: 'Ability.Element',
@@ -145,8 +147,7 @@ export const GameplayTags = {
     },
     SECT: {
       ROOT: 'Buff.Sect',
-      SWORD_MARK: 'Buff.Sect.Lingxiao.SwordMark',
-      RETURNING_SWALLOW: 'Buff.Sect.Lingxiao.ReturningSwallow',
+      namespace: (sectId: string, buffId: string) => `Buff.Sect.${sectId}.${buffId}`,
     },
   },
 
@@ -181,15 +182,19 @@ export const GameplayTags = {
   // ===== 事件域：值需与 CombatEvent.type 对齐 =====
   EVENT: {
     ACTION_PRE: 'ActionPreEvent',
+    ACTION_POST: 'ActionPostEvent',
     DAMAGE_TAKEN: 'DamageTakenEvent',
     DAMAGE_REQUEST: 'DamageRequestEvent',
     DAMAGE: 'DamageEvent',
     ROUND_PRE: 'RoundPreEvent',
+    ROUND_START: 'RoundStartEvent',
     SKILL_PRE_CAST: 'SkillPreCastEvent',
     SKILL_CAST: 'SkillCastEvent',
     DODGE: 'DodgeEvent',
     BUFF_ADD: 'BuffAddEvent',
     DEATH_PREVENT: 'DeathPreventEvent',
+    CONTROLLED_SKIP: 'ControlledSkipEvent',
+    COMBAT_RESOURCE_CHANGE: 'CombatResourceChangeEvent',
   },
 
   // ===== 监听器作用域 =====

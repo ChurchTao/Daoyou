@@ -5,154 +5,101 @@ import type {
   AbilitySelectionStrategy,
 } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import { AttributeType } from '@shared/engine/battle-v5/core/types';
-import type { SectCombatProjection, SectTacticId } from './types';
 import {
+  LINGXIAO_ARMOR_REND_BUFF,
+  LINGXIAO_HEAVY_GUARD_BUFF,
+  LINGXIAO_HEAVY_POSTURE,
   LINGXIAO_RETURNING_SWALLOW_BUFF,
   LINGXIAO_SHADOW_STEP_BUFF,
   LINGXIAO_SWORD_MARK_BUFF,
   LINGXIAO_SWORD_MOMENTUM,
 } from './combatProjection';
+import { HEAVY_SWORD_PATH_ID, SWIFT_SWORD_PATH_ID } from './lingxiao';
+import type { SectCombatProjection, SectTacticId } from './types';
 
-const ABILITY_SLUG = {
-  guiding: 'sect.lingxiao.guiding-sword',
-  linked: 'sect.lingxiao.linked-edge',
-  turning: 'sect.lingxiao.turning-body',
-  breaking: 'sect.lingxiao.breaking-edge',
-  aegis: 'sect.lingxiao.sword-aegis',
-  shadow: 'sect.lingxiao.shadow-step',
-  instant: 'sect.lingxiao.instant-traceless',
-} as const;
+const slug = (abilityId: string) => `sect.lingxiao.${abilityId}`;
 
-const CONDITIONAL_ONLY_ABILITIES = new Set<string>([
-  ABILITY_SLUG.aegis,
-  ABILITY_SLUG.turning,
-  ABILITY_SLUG.breaking,
-  ABILITY_SLUG.instant,
-]);
-
-const TACTIC_THRESHOLDS: Record<
-  SectTacticId,
-  { finisher: number; aegisHp: number; turningHp: number }
-> = {
-  aggressive: { finisher: 3, aegisHp: 0.25, turningHp: 0.35 },
-  steady: { finisher: 6, aegisHp: 0.4, turningHp: 0.55 },
-  counter: { finisher: 5, aegisHp: 0.45, turningHp: 0.7 },
-};
-
-function findCandidate(
-  candidates: AbilitySelectionCandidate[],
-  abilityId: string,
-): AbilitySelectionCandidate | undefined {
-  return candidates.find((candidate) => candidate.ability.id === abilityId);
+function find(candidates: AbilitySelectionCandidate[], abilityId: string) {
+  return candidates.find((candidate) => candidate.ability.id === slug(abilityId));
 }
 
-function toResult(
-  candidate: AbilitySelectionCandidate | undefined,
-  score: number,
-): AbilitySelectionResult | null {
-  if (!candidate) return null;
-  return {
-    ability: candidate.ability,
-    target: candidate.target,
-    score,
-  };
+function result(candidate: AbilitySelectionCandidate | undefined, score: number): AbilitySelectionResult | null {
+  return candidate ? { ability: candidate.ability, target: candidate.target, score } : null;
 }
 
-export class LingxiaoSwordSelectionStrategy implements AbilitySelectionStrategy {
+export class LingxiaoSwiftSelectionStrategy implements AbilitySelectionStrategy {
   constructor(private readonly tacticId: SectTacticId) {}
 
   select(context: AbilitySelectionContext): AbilitySelectionResult | null {
     const { caster, opponent, candidates } = context;
-    if (!opponent || candidates.length === 0) return null;
-
-    const thresholds = TACTIC_THRESHOLDS[this.tacticId];
+    if (!opponent || !candidates.length) return null;
+    const thresholds = this.tacticId === 'aggressive'
+      ? { finisher: 3, aegis: 0.25, turning: 0.35 }
+      : this.tacticId === 'counter'
+        ? { finisher: 5, aegis: 0.45, turning: 0.7 }
+        : { finisher: 6, aegis: 0.4, turning: 0.55 };
     const momentum = caster.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM);
-    const resourceMax = caster.combatResources.getMax(LINGXIAO_SWORD_MOMENTUM);
-    const finisherThreshold = Math.min(thresholds.finisher, resourceMax || thresholds.finisher);
-    const hasSwordMark = opponent.buffs.getAllBuffIds().includes(LINGXIAO_SWORD_MARK_BUFF);
-    const hasReturningSwallow = caster.buffs
-      .getAllBuffIds()
-      .includes(LINGXIAO_RETURNING_SWALLOW_BUFF);
-    const hasShadowStep = caster.buffs
-      .getAllBuffIds()
-      .includes(LINGXIAO_SHADOW_STEP_BUFF);
-
-    const aegis = findCandidate(candidates, ABILITY_SLUG.aegis);
-    if (
-      aegis &&
-      caster.getCurrentShield() <= 0 &&
-      caster.getHpPercent() < thresholds.aegisHp
-    ) {
-      return toResult(aegis, 600);
+    const hasMark = opponent.buffs.getAllBuffIds().includes(LINGXIAO_SWORD_MARK_BUFF);
+    const aegis = find(candidates, 'sword-aegis');
+    if (aegis && caster.getCurrentShield() <= 0 && caster.getHpPercent() < thresholds.aegis) return result(aegis, 600);
+    const turning = find(candidates, 'turning-body');
+    if (turning && !caster.buffs.getAllBuffIds().includes(LINGXIAO_RETURNING_SWALLOW_BUFF) && caster.getHpPercent() < thresholds.turning) return result(turning, 550);
+    const breaking = find(candidates, 'breaking-edge');
+    const ultimate = find(candidates, 'sect-ultimate');
+    if (momentum >= thresholds.finisher) {
+      if (opponent.getHpPercent() < 0.25 && breaking) return result(breaking, 500);
+      if (momentum >= 6 && ultimate && !hasMark) return result(ultimate, 460);
+      if (breaking) return result(breaking, 450);
+      if (ultimate) return result(ultimate, 440);
     }
-
-    const turning = findCandidate(candidates, ABILITY_SLUG.turning);
-    if (
-      turning &&
-      !hasReturningSwallow &&
-      caster.getHpPercent() < thresholds.turningHp
-    ) {
-      return toResult(turning, 550);
-    }
-
-    const breaking = findCandidate(candidates, ABILITY_SLUG.breaking);
-    const instant = findCandidate(candidates, ABILITY_SLUG.instant);
-    const canFinish = momentum >= finisherThreshold;
-
-    if (canFinish && opponent.getHpPercent() < 0.25 && breaking) {
-      return toResult(breaking, 500);
-    }
-
-    if (canFinish) {
-      if (momentum >= 6 && breaking && instant) {
-        return hasSwordMark
-          ? toResult(breaking, 450)
-          : toResult(instant, 450);
-      }
-      if (breaking) return toResult(breaking, 440);
-      if (instant) return toResult(instant, 440);
-    }
-
-    const linked = findCandidate(candidates, ABILITY_SLUG.linked);
-    if (momentum < finisherThreshold && !hasSwordMark && linked) {
-      return toResult(linked, 350);
-    }
-
-    const guiding = findCandidate(candidates, ABILITY_SLUG.guiding);
-    const shadow = findCandidate(candidates, ABILITY_SLUG.shadow);
-    const isSlowerOrEqual =
-      caster.attributes.getValue(AttributeType.SPEED) <=
-      opponent.attributes.getValue(AttributeType.SPEED);
-    const shouldPrepareShadow =
-      shadow &&
-      !hasShadowStep &&
-      isSlowerOrEqual &&
-      momentum <= 2 &&
-      (this.tacticId === 'counter' ||
-        (this.tacticId === 'steady' && !guiding && !linked));
-
-    if (shouldPrepareShadow) {
-      return toResult(shadow, 300);
-    }
-
-    if (guiding) return toResult(guiding, 250);
-    if (linked) return toResult(linked, 240);
-    if (shadow) return toResult(shadow, 230);
-
-    const fallback = candidates.find(
-      (candidate) => !CONDITIONAL_ONLY_ABILITIES.has(candidate.ability.id),
-    );
-    return toResult(fallback, 100);
+    const linked = find(candidates, 'linked-edge');
+    if (!hasMark && linked) return result(linked, 350);
+    const guiding = find(candidates, 'guiding-sword');
+    const shadow = find(candidates, 'shadow-step');
+    const shouldShadow = shadow
+      && !caster.buffs.getAllBuffIds().includes(LINGXIAO_SHADOW_STEP_BUFF)
+      && caster.attributes.getValue(AttributeType.SPEED) <= opponent.attributes.getValue(AttributeType.SPEED)
+      && momentum <= 2;
+    if (shouldShadow) return result(shadow, 300);
+    return result(guiding ?? linked ?? shadow ?? candidates[0], 100);
   }
 }
 
-export function createSectAbilitySelectionStrategy(
-  projection: SectCombatProjection,
-): AbilitySelectionStrategy | null {
-  switch (projection.selectionStrategyId) {
-    case 'sect.lingxiao.sword.v1':
-      return new LingxiaoSwordSelectionStrategy(projection.tacticId);
-    default:
-      return null;
+export class LingxiaoHeavySelectionStrategy implements AbilitySelectionStrategy {
+  constructor(private readonly tacticId: SectTacticId) {}
+
+  select(context: AbilitySelectionContext): AbilitySelectionResult | null {
+    const { caster, opponent, candidates } = context;
+    if (!opponent || !candidates.length) return null;
+    const posture = caster.combatResources.getCurrent(LINGXIAO_HEAVY_POSTURE);
+    const hasRend = opponent.buffs.getAllBuffIds().includes(LINGXIAO_ARMOR_REND_BUFF);
+    const guardThreshold = this.tacticId === 'heavy-guard' ? 0.7 : 0.45;
+    const aegisThreshold = this.tacticId === 'heavy-guard' ? 0.55 : 0.35;
+    const finisherThreshold = this.tacticId === 'heavy-break' ? 3 : this.tacticId === 'heavy-guard' ? 5 : 6;
+    const turning = find(candidates, 'turning-body');
+    const aegis = find(candidates, 'sword-aegis');
+    if (this.tacticId === 'heavy-guard' && aegis && caster.getCurrentShield() <= 0 && caster.getHpPercent() < aegisThreshold) return result(aegis, 620);
+    if (turning && caster.getHpPercent() < guardThreshold && !caster.buffs.getAllBuffIds().includes(LINGXIAO_HEAVY_GUARD_BUFF)) return result(turning, 600);
+    if (aegis && caster.getCurrentShield() <= 0 && caster.getHpPercent() < aegisThreshold) return result(aegis, 580);
+    const ultimate = find(candidates, 'sect-ultimate');
+    if (posture >= 6 && ultimate) return result(ultimate, 520);
+    const breaking = find(candidates, 'breaking-edge');
+    const linked = find(candidates, 'linked-edge');
+    if (this.tacticId === 'heavy-break' && opponent.getHpPercent() < 0.25 && posture >= finisherThreshold && breaking) return result(breaking, 510);
+    if (!hasRend && linked) return result(linked, 380);
+    if (posture >= finisherThreshold && breaking) return result(breaking, opponent.getHpPercent() < 0.25 ? 510 : 470);
+    const nurturing = find(candidates, 'nurturing-sword');
+    if (nurturing && caster.getHpPercent() < 0.4) return result(nurturing, 360);
+    return result(find(candidates, 'guiding-sword') ?? linked ?? candidates[0], 100);
   }
+}
+
+export function createLingxiaoSelectionStrategy(pathId: string | undefined, tacticId: string | undefined): AbilitySelectionStrategy | undefined {
+  if (pathId === SWIFT_SWORD_PATH_ID) return new LingxiaoSwiftSelectionStrategy(tacticId ?? 'aggressive');
+  if (pathId === HEAVY_SWORD_PATH_ID) return new LingxiaoHeavySelectionStrategy(tacticId ?? 'heavy-break');
+  return undefined;
+}
+
+export function createSectAbilitySelectionStrategy(projection: SectCombatProjection): AbilitySelectionStrategy | null {
+  return projection.selectionStrategy ?? null;
 }

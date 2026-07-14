@@ -26,7 +26,7 @@ export class SectCommissionService {
 
   static async claim(cultivatorId: string, realm: RealmType, tx: DbTransaction) {
     const membership = await sectRepository.findMembership(cultivatorId, tx);
-    if (!membership || membership.status !== 'active') throw new SectError('SECT_TRIAL_REQUIRED', '尚未拜入凌霄剑宗');
+    if (!membership || membership.status !== 'active') throw new SectError('SECT_TRIAL_REQUIRED', '尚未拜入宗门');
     const dateKey = getShanghaiDateKey();
     const reward = 30 + 10 * REALM_ORDER[realm];
     if (!(await sectRepository.claimCommission(membership.id, dateKey, reward, tx))) throw new SectError('SECT_COMMISSION_ALREADY_CLAIMED', '今日委托未完成或奖励已领取');

@@ -16,7 +16,7 @@ import type { AbilityConfig } from '../core/configs';
 import { Unit } from '../units/Unit';
 import {
   createSectAbilitySelectionStrategy,
-  projectLingxiaoCombat,
+  projectSectCombat,
 } from '@shared/engine/sect';
 
 const ATTRIBUTE_MAP = {
@@ -67,7 +67,7 @@ export function createCombatUnitFromCultivator(
   });
 
   const sectProjection = cultivator.sect
-    ? projectLingxiaoCombat({ sect: cultivator.sect, realm: cultivator.realm })
+    ? projectSectCombat({ sect: cultivator.sect, realm: cultivator.realm })
     : null;
 
   for (const skill of sectProjection ? [] : (cultivator.skills ?? [])) {

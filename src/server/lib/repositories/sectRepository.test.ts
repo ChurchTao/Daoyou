@@ -4,6 +4,7 @@ import {
   sectMemberships,
   sectMeridianLoadouts,
   sectMethodProgress,
+  sectPathProgress,
 } from '@server/lib/drizzle/schema';
 import { describe, expect, it, vi } from 'vitest';
 import { hydrateSectAbilitySlots, loadCultivatorSectState, replaceAbilityLoadout } from './sectRepository';
@@ -17,16 +18,16 @@ describe('loadCultivatorSectState', () => {
       [sectMemberships, [{
         id: 'membership-1',
         cultivatorId: 'cultivator-1',
-        status: 'prospect',
+        sectId: 'lingxiao',
+        status: 'active',
         experiencedAt: new Date('2026-07-13T00:00:00.000Z'),
         joinedAt: null,
-        pathId: null,
+        activePathId: null,
         contribution: 0,
-        tacticId: 'steady',
-        activeMeridianSlot: 1,
-        configVersion: 1,
+        configVersion: 2,
       }]],
       [sectMethodProgress, []],
+      [sectPathProgress, []],
       [sectMeridianLoadouts, []],
       [sectAbilityLoadouts, []],
     ]);

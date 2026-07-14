@@ -247,6 +247,24 @@ export interface ResourceDrainEvent extends CombatEvent {
   amount: number;
 }
 
+// ===== 自定义战斗资源变化事件 =====
+export interface CombatResourceChangeEvent extends CombatEvent {
+  type: 'CombatResourceChangeEvent';
+  target: Unit;
+  caster?: Unit;
+  ability?: Ability;
+  resourceId: string;
+  operation: 'add' | 'subtract' | 'set' | 'consume_all' | 'decay';
+  /** 请求变化量；增加为正，减少为负。 */
+  requested: number;
+  /** 实际变化量；增加为正，减少为负。 */
+  applied: number;
+  /** 因资源上限未能应用的正向变化量。 */
+  overflow: number;
+  before: number;
+  after: number;
+}
+
 // ===== 驱散应用事件 =====
 export interface DispelEvent extends CombatEvent {
   type: 'DispelEvent';

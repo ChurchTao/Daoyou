@@ -53,6 +53,7 @@ export class Unit {
     this.buffs = options?.buffs ?? new BuffContainer(this);
     this.combatResources =
       options?.combatResources ?? new CombatResourceContainer();
+    this.combatResources.bindOwner(this);
 
     // Initialize tag container
     this.tags = new GameplayTagContainer();

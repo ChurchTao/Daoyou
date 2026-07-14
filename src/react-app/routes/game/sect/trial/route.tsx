@@ -4,13 +4,16 @@ import { useBattlePlaybackState } from '@app/components/feature/battle/useBattle
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
 import { GameImmersiveLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
-import { startLingxiaoExperienceOnce } from '@app/lib/sect/sectClient';
+import { startSectTrialOnce } from '@app/lib/sect/sectClient';
+import { sectRegistry } from '@shared/engine/sect';
 import type { BattleRecord } from '@shared/types/battle';
 import { Suspense, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 
-function LingxiaoTrialPageContent() {
+function SectTrialPageContent() {
   const navigate = useNavigate();
+  const { sectId = '' } = useParams();
+  const definition = sectRegistry.get(sectId)?.definition;
   const [battleResult, setBattleResult] = useState<BattleRecord>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -25,13 +28,14 @@ function LingxiaoTrialPageContent() {
       setError(undefined);
 
       try {
-        const result = await startLingxiaoExperienceOnce();
+        if (!definition) throw new Error('未知宗门');
+        const result = await startSectTrialOnce(definition.id);
         if (!cancelled) {
           setBattleResult(result.battle);
         }
       } catch (reason) {
         if (!cancelled) {
-          setError(reason instanceof Error ? reason.message : '山门试剑推演失败');
+          setError(reason instanceof Error ? reason.message : '山门试炼推演失败');
         }
       } finally {
         if (!cancelled) {
@@ -44,7 +48,7 @@ function LingxiaoTrialPageContent() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [definition]);
 
   if (error) {
     return (
@@ -59,8 +63,8 @@ function LingxiaoTrialPageContent() {
 
   return (
     <BattlePageLayout
-      title="凌霄剑宗 · 山门试剑"
-      subtitle="借木剑习基础剑式，胜负皆记作完成。"
+      title={`${definition?.name ?? '宗门'} · ${definition?.trial.name ?? '入门试炼'}`}
+      subtitle={definition?.trial.description ?? '完成宗门试炼后即可返回山门。'}
       variant="immersive-battle"
       loading={loading}
       battleResult={battleResult}
@@ -78,7 +82,7 @@ function LingxiaoTrialPageContent() {
         key={`sect-trial-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
         dialogKey={`sect-trial-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
         open={!!battleResult && playback.isPlaybackFinished}
-        title={isWin ? '试剑得胜' : '试剑完成'}
+        title={isWin ? `${definition?.trial.name ?? '试炼'}得胜` : `${definition?.trial.name ?? '试炼'}完成`}
         confirmLabel="返回山门"
         cancelLabel="重看战局"
         onConfirm={() => navigate('/game/sect')}
@@ -86,8 +90,8 @@ function LingxiaoTrialPageContent() {
         content={
           <p className="leading-8">
             {isWin
-              ? '木人剑势已破，执事为你记下了这场试剑。'
-              : '胜负不论，执事已确认你完成基础剑术体验，可以回山门拜师。'}
+              ? `${definition?.name ?? '宗门'}执事已为你记下这场胜绩。`
+              : `胜负不论，${definition?.name ?? '宗门'}执事已确认你完成入门体验，可以回山门拜师。`}
           </p>
         }
       />
@@ -95,10 +99,10 @@ function LingxiaoTrialPageContent() {
   );
 }
 
-export default function LingxiaoTrialPage() {
+export default function SectTrialPage() {
   return (
     <Suspense fallback={<GameImmersiveLoading message="山门战局推演中……" />}>
-      <LingxiaoTrialPageContent />
+      <SectTrialPageContent />
     </Suspense>
   );
 }

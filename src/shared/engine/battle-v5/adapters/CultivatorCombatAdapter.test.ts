@@ -111,9 +111,9 @@ describe('CultivatorCombatAdapter', () => {
     cultivator.attributes.speed = 100;
     const sect = {
       membershipId: 'member-1', sectId: 'lingxiao', status: 'active', contribution: 0,
-      tacticId: 'steady', activeMeridianSlot: 1, configVersion: 1,
+      configVersion: 2,
       methods: { 'lingxiao-canon': 100 },
-      meridianLoadouts: [{ slot: 1, nodeIds: [], version: 1 }],
+      paths: [],
       abilityLoadout: [null, null, null, null],
     } satisfies NonNullable<Cultivator['sect']>;
     const baselineCultivator = createCultivatorFixture();
@@ -150,18 +150,15 @@ describe('CultivatorCombatAdapter', () => {
       membershipId: 'member-1',
       sectId: 'lingxiao',
       status: 'active',
-      pathId: 'swift-sword',
+      activePathId: 'swift-sword',
       contribution: 0,
-      tacticId: 'aggressive',
-      activeMeridianSlot: 1,
-      configVersion: 1,
+      configVersion: 2,
       methods: {
         'lingxiao-canon': 100,
         'sword-guidance': 100,
         'edge-cleansing': 100,
-        'swift-sword-canon': 100,
       },
-      meridianLoadouts: [{ slot: 1, nodeIds: [], version: 1 }],
+      paths: [{ pathId: 'swift-sword', level: 100, tacticId: 'aggressive', activeMeridianSlot: 1, meridianLoadouts: [{ slot: 1, nodeIds: [], version: 1 }, { slot: 2, nodeIds: [], version: 1 }, { slot: 3, nodeIds: [], version: 1 }] }],
       abilityLoadout: [
         'guiding-sword',
         'linked-edge',

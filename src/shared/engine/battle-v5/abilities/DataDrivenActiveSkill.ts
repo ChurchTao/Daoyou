@@ -116,7 +116,7 @@ export class DataDrivenActiveSkill extends ActiveSkill {
       return;
     }
 
-    if (!shouldExecuteListener(owner, event, runtime)) {
+    if (!shouldExecuteListener(owner, event, runtime, this)) {
       return;
     }
 
@@ -147,6 +147,13 @@ export class DataDrivenActiveSkill extends ActiveSkill {
           ...listener.runtime,
           mapping: { ...listener.runtime.mapping },
           guard: { ...listener.runtime.guard },
+          budget: listener.runtime.budget
+            ? { ...listener.runtime.budget }
+            : undefined,
+          conditions: listener.runtime.conditions?.map((condition) => ({
+            ...condition,
+            params: { ...condition.params },
+          })),
         },
         [...listener.effects],
       );

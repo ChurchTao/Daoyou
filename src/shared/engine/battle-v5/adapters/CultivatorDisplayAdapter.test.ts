@@ -100,11 +100,9 @@ describe('CultivatorDisplayAdapter', () => {
       sectId: 'lingxiao',
       status: 'active',
       contribution: 0,
-      tacticId: 'steady',
-      activeMeridianSlot: 1,
-      configVersion: 1,
+      configVersion: 2,
       methods: { 'lingxiao-canon': 100 },
-      meridianLoadouts: [{ slot: 1, nodeIds: [], version: 1 }],
+      paths: [],
       abilityLoadout: [null, null, null, null],
     } satisfies NonNullable<Cultivator['sect']>;
     const withoutSect = createCultivatorFixture();
