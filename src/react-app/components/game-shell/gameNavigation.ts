@@ -91,6 +91,12 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '📖 所修神通',
       },
       {
+        id: 'sect-abilities',
+        sceneLabel: '宗门神通',
+        href: '/game/sect/abilities',
+        expandedDockLabel: '🗡️ 宗门神通',
+      },
+      {
         id: 'sect',
         sceneLabel: '宗门',
         href: '/game/sect',
@@ -268,6 +274,10 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'task-challenge',
         sceneLabel: '破境试炼',
+      },
+      {
+        id: 'sect-trial',
+        sceneLabel: '山门试剑',
       },
       {
         id: 'bet-battle-challenge',

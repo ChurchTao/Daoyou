@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { REALM_STAGE_VALUES, REALM_VALUES } from '@shared/types/constants';
 import {
   getSectMethodLevelCap,
+  getMinimumRealmStageForMethodLevel,
   getSectMethodTrainingCost,
   validateMeridianNodeIds,
 } from './progression';
@@ -13,6 +14,7 @@ describe('凌霄剑宗心法与经脉进度', () => {
     );
     expect(caps).toEqual(Array.from({ length: 36 }, (_, index) => (index + 1) * 5));
     expect(caps.at(-1)).toBe(180);
+    expect(getMinimumRealmStageForMethodLevel(70)).toEqual({ realm: '元婴', stage: '中期' });
   });
 
   it('逐级累计贡献与灵石成本', () => {

@@ -328,6 +328,20 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="sect/abilities"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/sect/abilities/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'sect-abilities',
+                  presentation: 'workflow',
+                  summary: '查阅并配置凌霄剑宗神通、主动栏与自动战术。',
+                },
+                '宗门神通',
+              )}
+            />
+            <Route
               path="techniques"
               lazy={lazyRoute(
                 () => import('@app/routes/game/techniques/route'),
@@ -699,6 +713,20 @@ export const router = createBrowserRouter(
                   dock: 'hidden',
                 },
                 '破境试炼',
+              )}
+            />
+            <Route
+              path="sect/trial"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/sect/trial/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'sect-trial',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '山门试剑',
               )}
             />
           </Route>

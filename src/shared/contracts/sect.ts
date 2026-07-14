@@ -5,7 +5,9 @@ import { z } from 'zod';
 
 export const SectMethodTrainRequestSchema = z.object({ targetLevel: z.number().int().positive() });
 export const SectMeridianLoadoutRequestSchema = z.object({ nodeIds: z.array(z.string()).max(6) });
-export const SectAbilityLoadoutRequestSchema = z.object({ abilityIds: z.array(z.string()).max(4) });
+export const SectAbilityLoadoutRequestSchema = z.object({
+  abilityIds: z.array(z.string().nullable()).length(4),
+});
 export const SectTacticRequestSchema = z.object({ tacticId: z.enum(['aggressive', 'steady', 'counter']) });
 
 export type SectCurrentData = {

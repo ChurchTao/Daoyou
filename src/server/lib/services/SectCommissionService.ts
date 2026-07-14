@@ -30,6 +30,10 @@ export class SectCommissionService {
     const dateKey = getShanghaiDateKey();
     const reward = 30 + 10 * REALM_ORDER[realm];
     if (!(await sectRepository.claimCommission(membership.id, dateKey, reward, tx))) throw new SectError('SECT_COMMISSION_ALREADY_CLAIMED', '今日委托未完成或奖励已领取');
-    return { reward, dateKey };
+    return {
+      reward,
+      dateKey,
+      sect: await sectRepository.loadCultivatorSectState(cultivatorId, tx),
+    };
   }
 }

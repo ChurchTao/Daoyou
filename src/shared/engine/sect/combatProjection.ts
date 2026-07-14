@@ -12,8 +12,9 @@ import {
   ModifierType,
 } from '@shared/engine/battle-v5/core/types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
-import { REALM_ORDER, type RealmType } from '@shared/types/constants';
-import { LINGXIAO_METHOD_BY_ID } from './lingxiao';
+import type { RealmType } from '@shared/types/constants';
+import { projectLingxiaoAbilityDetail } from './guide';
+import { projectSectMethodModifiers } from './methodModifiers';
 import { isAbilityUnlocked } from './progression';
 import type {
   CultivatorSectState,
@@ -158,45 +159,49 @@ export function projectLingxiaoCombat(args: {
   const nodes = new Set(
     sect.meridianLoadouts.find((loadout) => loadout.slot === sect.activeMeridianSlot)?.nodeIds ?? [],
   );
-  const templateMultiplier = swift
-    ? 1 + (sect.methods['swift-sword-canon'] ?? 0) * 0.0008
-    : 1;
-  const coefficient = (value: number) => value * templateMultiplier;
-  const baseMana = 8 + 4 * REALM_ORDER[args.realm];
-  const mana = (weight: number) => Math.round(baseMana * weight);
+  const detail = (abilityId: LingxiaoAbilityId) =>
+    projectLingxiaoAbilityDetail({ abilityId, sect, realm: args.realm });
+  const plain = detail('plain-sword');
+  const guiding = detail('guiding-sword');
+  const linked = detail('linked-edge');
+  const turning = detail('turning-body');
+  const breaking = detail('breaking-edge');
+  const aegis = detail('sword-aegis');
+  const shadow = detail('shadow-step');
+  const instant = detail('instant-traceless');
 
   const defaultAttack: AbilityConfig = {
     slug: 'sect.lingxiao.plain-sword',
-    name: '平剑式',
+    name: plain.name,
     type: AbilityType.ACTIVE_SKILL,
     tags: [...PHYSICAL_SECT_TAGS, GameplayTags.ABILITY.SECT.GENERATOR, GameplayTags.ABILITY.SECT.PLAIN_SWORD],
     targetPolicy: { team: 'enemy', scope: 'single' },
-    effects: [damage(coefficient(0.8)), momentum(1)],
+    effects: [damage(plain.effect.damageCoefficient ?? 0), momentum(plain.effect.momentumGain ?? 0)],
   };
 
   const configs: Record<Exclude<LingxiaoAbilityId, 'plain-sword'>, AbilityConfig> = {
     'guiding-sword': active({
-      id: 'guiding-sword', name: swift ? '追风式' : '引剑式', mpCost: mana(1), cooldown: 0,
+      id: 'guiding-sword', name: guiding.name, mpCost: guiding.manaCost, cooldown: guiding.cooldown,
       role: 'generator', tactic: sect.tacticId,
       extraTags: [GameplayTags.ABILITY.SECT.GUIDING_SWORD],
-      effects: [damage(coefficient(swift ? 0.9 : 0.85)), momentum(swift ? 2 : 1)],
+      effects: [damage(guiding.effect.damageCoefficient ?? 0), momentum(guiding.effect.momentumGain ?? 0)],
     }),
     'linked-edge': active({
-      id: 'linked-edge', name: swift ? '流光三叠' : '连锋式', mpCost: mana(1.5), cooldown: 2,
+      id: 'linked-edge', name: linked.name, mpCost: linked.manaCost, cooldown: linked.cooldown,
       role: 'combo', tactic: sect.tacticId,
       effects: [
-        ...Array.from({ length: nodes.has('swift-split-light') ? 5 : 3 }, () =>
-          damage(coefficient(nodes.has('swift-split-light') ? 0.27 : 0.42))),
-        momentum(nodes.has('swift-split-light') ? 3 : 2),
+        ...Array.from({ length: linked.effect.hits ?? 1 }, () =>
+          damage(linked.effect.damageCoefficient ?? 0)),
+        momentum(linked.effect.momentumGain ?? 0),
         swordMark(),
         ...(nodes.has('swift-stacking-waves') ? [{ type: 'cooldown_modify' as const, params: { cdModifyValue: -1, tags: [GameplayTags.ABILITY.SECT.GENERATOR], maxCount: 1 } }] : []),
         ...(nodes.has('swift-linked-city') ? [{ type: 'cooldown_modify' as const, params: { cdModifyValue: -1, tags: [GameplayTags.ABILITY.SECT.SWIFT_SWORD] } }] : []),
       ],
     }),
     'turning-body': active({
-      id: 'turning-body', name: swift ? '回燕式' : '回身式', mpCost: mana(1.25), cooldown: 3,
+      id: 'turning-body', name: turning.name, mpCost: turning.manaCost, cooldown: turning.cooldown,
       role: 'defensive', tactic: sect.tacticId, targetTeam: 'enemy',
-      effects: [damage(coefficient(0.65)), {
+      effects: [damage(turning.effect.damageCoefficient ?? 0), {
         type: 'apply_buff', params: { target: 'caster', buffConfig: {
           id: 'sect.lingxiao.returning-swallow', name: '回燕姿态', description: '提高闪避，闪避后可伺机反击。',
           type: BuffType.BUFF, duration: 1, stackRule: StackRule.REFRESH_DURATION,
@@ -209,65 +214,65 @@ export function projectLingxiaoCombat(args: {
             priority: 0,
             mapping: { caster: 'owner', target: 'event.caster' },
             effects: [
-              damage(coefficient(nodes.has('swift-returning-swallow') ? 0.825 : 0.55)),
-              momentum(1),
+              damage(turning.effect.counterCoefficient ?? 0),
+              momentum(turning.effect.momentumGain ?? 0),
               ...(nodes.has('swift-returning-swallow') || nodes.has('swift-unending-wind') ? [swordMark()] : []),
-              ...(nodes.has('swift-unending-wind') ? [{ type: 'shield' as const, params: { value: { attribute: AttributeType.ATK, coefficient: 0.4 } } }] : []),
+              ...(turning.effect.shieldCoefficient ? [{ type: 'shield' as const, params: { value: { attribute: AttributeType.ATK, coefficient: turning.effect.shieldCoefficient } } }] : []),
             ],
           }],
         } },
       }],
     }),
     'breaking-edge': active({
-      id: 'breaking-edge', name: swift ? '一线天' : '破锋式', mpCost: mana(1.75),
-      cooldown: nodes.has('swift-shadow-line') ? 3 : 2, role: 'finisher', tactic: sect.tacticId,
-      castConditions: [{ type: 'combat_resource_at_least', params: { resourceId: LINGXIAO_SWORD_MOMENTUM, value: nodes.has('swift-shadow-line') ? 6 : 3, scope: 'caster' } }],
+      id: 'breaking-edge', name: breaking.name, mpCost: breaking.manaCost,
+      cooldown: breaking.cooldown, role: 'finisher', tactic: sect.tacticId,
+      castConditions: [{ type: 'combat_resource_at_least', params: { resourceId: LINGXIAO_SWORD_MOMENTUM, value: breaking.effect.momentumRequired ?? 3, scope: 'caster' } }],
       effects: [
-        ...(nodes.has('swift-shadow-line') ? [{ type: 'next_hit_rule' as const, params: { forceCritical: true, triggers: 1 } }] : []),
-        damage(coefficient((nodes.has('swift-shadow-line') ? 2.5 : nodes.has('swift-sheathing') ? 0.8 : 1) * (nodes.has('swift-still-tide') ? 1.2 : 1))),
-        ...(nodes.has('swift-shadow-line') ? [] : Array.from({ length: 6 }, (_, index) => damage(coefficient(0.25 * (nodes.has('swift-sheathing') ? 0.8 : 1)), [{
+        ...(breaking.effect.forcedCritical ? [{ type: 'next_hit_rule' as const, params: { forceCritical: true, triggers: 1 } }] : []),
+        damage(breaking.effect.damageCoefficient ?? 0),
+        ...(nodes.has('swift-shadow-line') ? [] : Array.from({ length: 6 }, (_, index) => damage(breaking.effect.momentumDamageCoefficient ?? 0, [{
           type: 'combat_resource_at_least', params: { resourceId: LINGXIAO_SWORD_MOMENTUM, value: index + 1, scope: 'caster' },
         }]))),
-        ...(nodes.has('swift-life-chasing') ? [damage(coefficient(nodes.has('swift-shadow-line') ? 0.75 : 0.3), [{ type: 'hp_below', params: { value: 0.25, scope: 'target' } }])] : []),
+        ...(breaking.effect.lowHpBonusCoefficient ? [damage(breaking.effect.lowHpBonusCoefficient, [{ type: 'hp_below', params: { value: 0.25, scope: 'target' } }])] : []),
         ...([{
           type: 'consume_status_trigger' as const,
-          params: { match: { id: LINGXIAO_SWORD_MARK_BUFF }, consume: 'all' as const, scaleEffectsByLayer: true, effects: [{ type: 'damage' as const, params: { value: { attribute: AttributeType.ATK, coefficient: nodes.has('swift-mountain-breaking') ? 0.18 : 0.1 }, damageType: DamageType.PHYSICAL, bypassDefense: true } }] },
+          params: { match: { id: LINGXIAO_SWORD_MARK_BUFF }, consume: 'all' as const, scaleEffectsByLayer: true, effects: [{ type: 'damage' as const, params: { value: { attribute: AttributeType.ATK, coefficient: breaking.effect.swordMarkDamageCoefficient ?? 0.1 }, damageType: DamageType.PHYSICAL, bypassDefense: true } }] },
         } as EffectConfig]),
         consumeMomentum(),
         ...(nodes.has('swift-sheathing') ? [momentum(1), { type: 'shield' as const, params: { value: { attribute: AttributeType.ATK, coefficient: 0.5 } } }] : []),
         ...(nodes.has('swift-retained-force') ? [momentum(2)] : []),
-        ...(nodes.has('swift-endless-flow') ? [damage(coefficient(0.6)), momentum(1)] : []),
+        ...(nodes.has('swift-endless-flow') ? [damage(0.6 * (1 + (sect.methods['swift-sword-canon'] ?? 0) * 0.0008)), momentum(1)] : []),
         ...(nodes.has('swift-gapless') ? [{ type: 'ability_transform' as const, params: { id: 'sect.lingxiao.gapless', triggers: 1, appliesToTags: [GameplayTags.ABILITY.SECT.GUIDING_SWORD], freeManaCost: true } }] : []),
       ],
     }),
     'sword-aegis': active({
-      id: 'sword-aegis', name: '剑罡护体', mpCost: mana(1.5), cooldown: 3,
+      id: 'sword-aegis', name: aegis.name, mpCost: aegis.manaCost, cooldown: aegis.cooldown,
       role: 'defensive', tactic: sect.tacticId,
-      effects: [{ type: 'shield', params: { value: { attribute: AttributeType.ATK, coefficient: 0.6 } } }],
+      effects: [{ type: 'shield', params: { value: { attribute: AttributeType.ATK, coefficient: aegis.effect.shieldCoefficient ?? 0 } } }],
     }),
     'shadow-step': active({
-      id: 'shadow-step', name: '踏影', mpCost: mana(1), cooldown: 2,
+      id: 'shadow-step', name: shadow.name, mpCost: shadow.manaCost, cooldown: shadow.cooldown,
       role: 'generator', tactic: sect.tacticId,
-      effects: [damage(coefficient(0.55)), { type: 'apply_buff', params: { target: 'caster', buffConfig: {
+      effects: [damage(shadow.effect.damageCoefficient ?? 0), { type: 'apply_buff', params: { target: 'caster', buffConfig: {
         id: 'sect.lingxiao.shadow-step', name: '踏影', type: BuffType.BUFF, duration: 1,
         stackRule: StackRule.REFRESH_DURATION, tags: [GameplayTags.BUFF.TYPE.BUFF],
-        modifiers: [{ attrType: AttributeType.SPEED, type: ModifierType.ADD, value: 0.1 }],
+        modifiers: [{ attrType: AttributeType.SPEED, type: ModifierType.ADD, value: shadow.effect.speedBonus ?? 0 }],
       } } }],
     }),
     'instant-traceless': active({
-      id: 'instant-traceless', name: '刹那无痕', mpCost: mana(2.5), cooldown: 4,
+      id: 'instant-traceless', name: instant.name, mpCost: instant.manaCost, cooldown: instant.cooldown,
       role: 'finisher', tactic: sect.tacticId,
-      castConditions: [{ type: 'combat_resource_at_least', params: { resourceId: LINGXIAO_SWORD_MOMENTUM, value: 6, scope: 'caster' } }],
+      castConditions: [{ type: 'combat_resource_at_least', params: { resourceId: LINGXIAO_SWORD_MOMENTUM, value: instant.effect.momentumRequired ?? 6, scope: 'caster' } }],
       effects: [
-        ...Array.from({ length: 6 }, () => damage(coefficient(0.4))),
+        ...Array.from({ length: instant.effect.hits ?? 1 }, () => damage(instant.effect.damageCoefficient ?? 0)),
         ...(nodes.has('swift-linked-city') ? [{ type: 'cooldown_modify' as const, params: { cdModifyValue: -1, tags: [GameplayTags.ABILITY.SECT.SWIFT_SWORD] } }] : []),
-        consumeMomentum(), momentum(1),
+        consumeMomentum(), momentum(instant.effect.momentumGain ?? 0),
       ],
     }),
   };
 
   const abilities = sect.abilityLoadout
-    .filter((id): id is Exclude<LingxiaoAbilityId, 'plain-sword'> => id !== 'plain-sword' && isAbilityUnlocked(id, sect))
+    .filter((id): id is Exclude<LingxiaoAbilityId, 'plain-sword'> => id !== null && id !== 'plain-sword' && isAbilityUnlocked(id, sect))
     .map((id) => configs[id]);
 
   if (nodes.has('swift-probing-edge')) {
@@ -299,15 +304,10 @@ export function projectLingxiaoCombat(args: {
     });
   }
 
-  const passiveModifiers = Array.from(LINGXIAO_METHOD_BY_ID.values()).flatMap((method) => {
-    if (!method.modifierPerLevel) return [];
-    return [{ ...method.modifierPerLevel, value: method.modifierPerLevel.value * (sect.methods[method.id] ?? 0) }];
-  });
-
   return {
     defaultAttack,
     abilities,
-    passiveModifiers,
+    methodModifiers: projectSectMethodModifiers(sect),
     resources: [{
       id: LINGXIAO_SWORD_MOMENTUM,
       name: '剑势',

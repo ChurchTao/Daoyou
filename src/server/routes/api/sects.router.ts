@@ -51,15 +51,18 @@ router.post('/lingxiao/experience', requireActiveCultivator(), async (c) => {
       contribution: 0, tacticId: 'steady', activeMeridianSlot: 1, configVersion: 1,
       methods: { 'lingxiao-canon': 10, 'sword-guidance': 10 },
       meridianLoadouts: [{ slot: 1, nodeIds: [], version: 1 }, { slot: 2, nodeIds: [], version: 1 }, { slot: 3, nodeIds: [], version: 1 }],
-      abilityLoadout: ['guiding-sword', 'linked-edge'],
+      abilityLoadout: ['guiding-sword', 'linked-edge', null, null],
     };
     const trainee: Cultivator = { ...runtimeCultivator, sect: borrowedSect, skills: [] };
     const opponent: Cultivator = { ...trainee, id: `${cultivator.id}-wooden`, name: '凌霄试剑木人', sect: undefined, skills: [] };
     const battle = simulateBattleV5(trainee, opponent);
-    const committed = await commitPlayerStateMutation({ userId: user.id, cultivatorId: cultivator.id, source: 'sect_experience', run: async (tx) => ({
-      result: { sect: await SectService.recordExperience(cultivator.id!, tx), battle },
-      changes: [{ domain: 'sect', eventType: 'sect.experienced', patch: { sectId: 'lingxiao' } }],
-    }) });
+    const committed = await commitPlayerStateMutation({ userId: user.id, cultivatorId: cultivator.id, source: 'sect_experience', run: async (tx) => {
+      const sect = await SectService.recordExperience(cultivator.id!, tx);
+      return {
+        result: { sect, battle },
+        changes: [{ domain: 'sect' as const, eventType: 'sect.experienced', patch: { sect } }],
+      };
+    } });
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) { return failure(c, error); }
 });
@@ -68,13 +71,13 @@ router.post('/lingxiao/join', requireActiveCultivator(), async (c) => {
   const user = c.get('user'); const cultivator = c.get('cultivator');
   if (!user || !cultivator?.id) return c.json({ success: false, error: '当前没有活跃角色' }, 404);
   try {
-    const committed = await commitPlayerStateMutation({ userId: user.id, cultivatorId: cultivator.id, source: 'sect_join', run: async (tx) => ({
-      result: { sect: await SectService.join(cultivator.id!, tx) },
-      changes: [
-        { domain: 'sect', eventType: 'sect.joined', invalidates: ['profile'] },
-        { domain: 'loadout', eventType: 'sect.created_skills_unequipped' },
-      ],
-    }) });
+    const committed = await commitPlayerStateMutation({ userId: user.id, cultivatorId: cultivator.id, source: 'sect_join', run: async (tx) => {
+      const sect = await SectService.join(cultivator.id!, tx);
+      return { result: { sect }, changes: [
+        { domain: 'sect' as const, eventType: 'sect.joined', patch: { sect }, invalidates: ['profile' as const] },
+        { domain: 'loadout' as const, eventType: 'sect.created_skills_unequipped' },
+      ] };
+    } });
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) { return failure(c, error); }
 });
@@ -84,10 +87,13 @@ router.post('/methods/:methodId/train', requireActiveCultivator(), validateJson(
   if (!user || !cultivator?.id) return c.json({ success: false, error: '当前没有活跃角色' }, 404);
   try {
     const body = getValidatedJson<{ targetLevel: number }>(c);
-    const committed = await commitPlayerStateMutation({ userId: user.id, cultivatorId: cultivator.id, source: 'sect_method_train', run: async (tx) => ({
-      result: await SectService.trainMethod({ cultivatorId: cultivator.id!, methodId: c.req.param('methodId'), targetLevel: body.targetLevel }, tx),
-      changes: [{ domain: 'sect', eventType: 'sect.method_trained' }, { domain: 'currency', eventType: 'sect.method_cost_paid' }],
-    }) });
+    const committed = await commitPlayerStateMutation({ userId: user.id, cultivatorId: cultivator.id, source: 'sect_method_train', run: async (tx) => {
+      const result = await SectService.trainMethod({ cultivatorId: cultivator.id!, methodId: c.req.param('methodId'), targetLevel: body.targetLevel }, tx);
+      return { result, changes: [
+        { domain: 'sect' as const, eventType: 'sect.method_trained', patch: { sect: result.sect } },
+        { domain: 'currency' as const, eventType: 'sect.method_cost_paid' },
+      ] };
+    } });
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) { return failure(c, error); }
 });
@@ -100,7 +106,7 @@ router.put('/meridian-loadouts/:slot', requireActiveCultivator(), validateJson(S
 });
 router.post('/meridian-loadouts/:slot/activate', requireActiveCultivator(), async (c) => mutateSect(c, 'sect_meridian_activate', (id, tx) => SectService.activateMeridianLoadout(id, Number(c.req.param('slot')), tx), 'sect.meridian_activated'));
 router.put('/ability-loadout', requireActiveCultivator(), validateJson(SectAbilityLoadoutRequestSchema), async (c) => {
-  const body = getValidatedJson<{ abilityIds: string[] }>(c);
+  const body = getValidatedJson<{ abilityIds: Array<string | null> }>(c);
   return mutateSect(c, 'sect_ability_loadout', (id, tx) => SectService.setAbilityLoadout(id, body.abilityIds, tx), 'sect.ability_loadout_updated', true);
 });
 router.put('/tactic', requireActiveCultivator(), validateJson(SectTacticRequestSchema), async (c) => {
@@ -128,10 +134,13 @@ router.post('/commissions/claim', requireActiveCultivator(), async (c) => {
   const user = c.get('user'); const cultivator = c.get('cultivator');
   if (!user || !cultivator?.id) return c.json({ success: false, error: '当前没有活跃角色' }, 404);
   try {
-    const committed = await commitPlayerStateMutation({ userId: user.id, cultivatorId: cultivator.id, source: 'sect_commission_claim', run: async (tx) => ({
-      result: await SectCommissionService.claim(cultivator.id!, cultivator.realm as RealmType, tx),
-      changes: [{ domain: 'sect', eventType: 'sect.commission_claimed' }],
-    }) });
+    const committed = await commitPlayerStateMutation({ userId: user.id, cultivatorId: cultivator.id, source: 'sect_commission_claim', run: async (tx) => {
+      const result = await SectCommissionService.claim(cultivator.id!, cultivator.realm as RealmType, tx);
+      return {
+        result,
+        changes: [{ domain: 'sect' as const, eventType: 'sect.commission_claimed', patch: { sect: result.sect } }],
+      };
+    } });
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) { return failure(c, error); }
 });
@@ -140,10 +149,13 @@ async function mutateSect(c: Context<AppEnv>, source: string, run: (cultivatorId
   const user = c.get('user'); const cultivator = c.get('cultivator');
   if (!user || !cultivator?.id) return c.json({ success: false, error: '当前没有活跃角色' }, 404);
   try {
-    const committed = await commitPlayerStateMutation({ userId: user.id, cultivatorId: cultivator.id, source, run: async (tx) => ({
-      result: { sect: await run(cultivator.id, tx) },
-      changes: [{ domain: 'sect', eventType }, ...(loadout ? [{ domain: 'loadout' as const, eventType: 'sect.ability_loadout_changed' }] : [])],
-    }) });
+    const committed = await commitPlayerStateMutation({ userId: user.id, cultivatorId: cultivator.id, source, run: async (tx) => {
+      const sect = await run(cultivator.id, tx);
+      return {
+        result: { sect },
+        changes: [{ domain: 'sect' as const, eventType, patch: { sect } }, ...(loadout ? [{ domain: 'loadout' as const, eventType: 'sect.ability_loadout_changed' }] : [])],
+      };
+    } });
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) { return failure(c, error); }
 }

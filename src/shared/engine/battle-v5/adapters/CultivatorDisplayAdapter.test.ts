@@ -92,6 +92,45 @@ describe('CultivatorDisplayAdapter', () => {
     expect(unit.getMaxMp()).toBe(383);
   });
 
+  it('mounts sect method modifiers with the same final values used in combat', () => {
+    const cultivator = createCultivatorFixture();
+    cultivator.attributes.speed = 100;
+    const sect = {
+      membershipId: 'member-1',
+      sectId: 'lingxiao',
+      status: 'active',
+      contribution: 0,
+      tacticId: 'steady',
+      activeMeridianSlot: 1,
+      configVersion: 1,
+      methods: { 'lingxiao-canon': 100 },
+      meridianLoadouts: [{ slot: 1, nodeIds: [], version: 1 }],
+      abilityLoadout: [null, null, null, null],
+    } satisfies NonNullable<Cultivator['sect']>;
+    const withoutSect = createCultivatorFixture();
+    withoutSect.attributes.speed = 100;
+    const baseline = createDisplayUnitFromCultivator(withoutSect);
+    const project = (methods: NonNullable<Cultivator['sect']>['methods']) => {
+      cultivator.sect = { ...sect, methods };
+      return createDisplayUnitFromCultivator(cultivator);
+    };
+    const sword = project({ 'lingxiao-canon': 100, 'sword-guidance': 100 });
+    const voidStep = project({ 'lingxiao-canon': 100, 'void-step': 100 });
+    const cleansing = project({ 'lingxiao-canon': 100, 'edge-cleansing': 100 });
+    const returning = project({ 'lingxiao-canon': 100, 'origin-returning': 100 });
+
+    expect(sword.attributes.getValue(AttributeType.ATK)).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.ATK) * 1.05,
+    );
+    expect(voidStep.attributes.getValue(AttributeType.SPEED)).toBe(104);
+    expect(cleansing.attributes.getValue(AttributeType.ACCURACY)).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.ACCURACY) + 0.02,
+    );
+    expect(returning.attributes.getValue(AttributeType.MAX_MP)).toBeCloseTo(
+      Math.floor(baseline.attributes.getValue(AttributeType.MAX_MP) * 1.05),
+    );
+  });
+
   it('maps Unit values back to cultivator display attributes', () => {
     const { finalAttributes } = getCultivatorDisplayAttributes(
       createCultivatorFixture(),

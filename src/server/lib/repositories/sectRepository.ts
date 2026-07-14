@@ -11,11 +11,22 @@ import type {
   CultivatorSectState,
   LingxiaoAbilityId,
   LingxiaoMethodId,
+  SectAbilitySlots,
   SectTacticId,
 } from '@shared/engine/sect';
 import { and, eq, sql } from 'drizzle-orm';
 
 export type SectMembershipRow = typeof sectMemberships.$inferSelect;
+
+export function hydrateSectAbilitySlots(
+  rows: Array<{ slot: number; abilityId: LingxiaoAbilityId }>,
+): SectAbilitySlots {
+  const slots: SectAbilitySlots = [null, null, null, null];
+  for (const row of rows) {
+    if (row.slot >= 1 && row.slot <= 4) slots[row.slot - 1] = row.abilityId;
+  }
+  return slots;
+}
 
 export async function findMembership(
   cultivatorId: string,
@@ -32,11 +43,15 @@ export async function loadCultivatorSectState(
 ): Promise<CultivatorSectState | undefined> {
   const membership = await findMembership(cultivatorId, q);
   if (!membership) return undefined;
-  const [methods, meridians, abilities] = await Promise.all([
-    q.select().from(sectMethodProgress).where(eq(sectMethodProgress.membershipId, membership.id)),
-    q.select().from(sectMeridianLoadouts).where(eq(sectMeridianLoadouts.membershipId, membership.id)),
-    q.select().from(sectAbilityLoadouts).where(eq(sectAbilityLoadouts.membershipId, membership.id)),
-  ]);
+  // A Drizzle transaction uses one checked-out pg client. Starting these reads
+  // concurrently on that client triggers pg's "client is already executing a
+  // query" deprecation warning and will stop working in pg 9.
+  const methods = await q.select().from(sectMethodProgress)
+    .where(eq(sectMethodProgress.membershipId, membership.id));
+  const meridians = await q.select().from(sectMeridianLoadouts)
+    .where(eq(sectMeridianLoadouts.membershipId, membership.id));
+  const abilities = await q.select().from(sectAbilityLoadouts)
+    .where(eq(sectAbilityLoadouts.membershipId, membership.id));
   return {
     membershipId: membership.id,
     sectId: 'lingxiao',
@@ -52,7 +67,7 @@ export async function loadCultivatorSectState(
     meridianLoadouts: meridians
       .map((row) => ({ slot: row.slot as 1 | 2 | 3, nodeIds: row.nodeIds, version: row.version }))
       .sort((a, b) => a.slot - b.slot),
-    abilityLoadout: abilities.sort((a, b) => a.slot - b.slot).map((row) => row.abilityId),
+    abilityLoadout: hydrateSectAbilitySlots(abilities),
   };
 }
 
@@ -110,9 +125,12 @@ export async function activateMeridianLoadout(membershipId: string, slot: number
   await tx.update(sectMemberships).set({ activeMeridianSlot: slot }).where(eq(sectMemberships.id, membershipId));
 }
 
-export async function replaceAbilityLoadout(membershipId: string, abilityIds: LingxiaoAbilityId[], tx: DbTransaction): Promise<void> {
+export async function replaceAbilityLoadout(membershipId: string, abilitySlots: SectAbilitySlots, tx: DbTransaction): Promise<void> {
   await tx.delete(sectAbilityLoadouts).where(eq(sectAbilityLoadouts.membershipId, membershipId));
-  if (abilityIds.length) await tx.insert(sectAbilityLoadouts).values(abilityIds.map((abilityId, index) => ({ membershipId, slot: index + 1, abilityId })));
+  const values = abilitySlots.flatMap((abilityId, index) => abilityId
+    ? [{ membershipId, slot: index + 1, abilityId }]
+    : []);
+  if (values.length) await tx.insert(sectAbilityLoadouts).values(values);
 }
 
 export async function setTactic(membershipId: string, tacticId: SectTacticId, tx: DbTransaction): Promise<void> {

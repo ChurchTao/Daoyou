@@ -130,6 +130,24 @@ afterEach(() => {
 });
 
 describe('PlayerStateStore', () => {
+  it('applies latest sect state from mutation events', () => {
+    const store = new PlayerStateStore();
+    const sect = {
+      membershipId: 'member-1', sectId: 'lingxiao' as const, status: 'active' as const,
+      contribution: 20, tacticId: 'steady' as const, activeMeridianSlot: 1 as const,
+      configVersion: 1, methods: { 'sword-guidance': 25 },
+      meridianLoadouts: [], abilityLoadout: [null, null, null, null] as [null, null, null, null],
+    };
+
+    store.applyEvents([createEvent({
+      domain: 'sect',
+      eventType: 'sect.method_trained',
+      patch: { sect },
+    })]);
+
+    expect(store.getSnapshot().snapshot.sect).toEqual(sect);
+  });
+
   it('applies all events from one transaction when they share a global version', () => {
     const store = new PlayerStateStore();
 

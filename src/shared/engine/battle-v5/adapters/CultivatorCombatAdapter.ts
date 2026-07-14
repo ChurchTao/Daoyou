@@ -122,12 +122,14 @@ export function createCombatUnitFromCultivator(
     for (const ability of sectProjection.abilities) {
       unit.abilities.addAbility(AbilityFactory.create(ability));
     }
-    for (const [index, modifier] of sectProjection.passiveModifiers.entries()) {
-      unit.attributes.addModifier({
-        id: `sect:lingxiao:method:${modifier.attrType}:${index}`,
-        ...modifier,
-        source: { sourceType: 'sect', carrierId: cultivator.sect?.membershipId },
-      });
+    for (const method of sectProjection.methodModifiers) {
+      for (const [index, modifier] of method.modifiers.entries()) {
+        unit.attributes.addModifier({
+          id: `sect-method:${method.methodId}:${modifier.attrType}:${index}`,
+          ...modifier,
+          source: { sourceType: 'sectMethod', carrierId: method.methodId },
+        });
+      }
     }
   }
 

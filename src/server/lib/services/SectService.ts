@@ -5,6 +5,8 @@ import {
   LINGXIAO_ABILITY_BY_ID,
   LINGXIAO_METHOD_BY_ID,
   assertMethodTrainingTarget,
+  createAbilitySlots,
+  fillFirstEmptyAbilitySlots,
   getSectMethodTrainingCost,
   isAbilityUnlocked,
   listUnlockedAbilityIds,
@@ -12,6 +14,7 @@ import {
   type CultivatorSectState,
   type LingxiaoAbilityId,
   type LingxiaoMethodId,
+  type SectAbilitySlots,
   type SectTacticId,
 } from '@shared/engine/sect';
 import { REALM_ORDER, type RealmStage, type RealmType } from '@shared/types/constants';
@@ -73,12 +76,8 @@ export class SectService {
     await sectRepository.setMethodLevel(sect.membershipId, methodId, args.targetLevel, tx);
     const trainedSect = await requireActive(args.cultivatorId, tx);
     const unlocked = listUnlockedAbilityIds(trainedSect).filter((id) => LINGXIAO_ABILITY_BY_ID.get(id)?.occupiesActiveSlot);
-    const nextLoadout = [...trainedSect.abilityLoadout];
-    for (const abilityId of unlocked) {
-      if (nextLoadout.length >= 4) break;
-      if (!nextLoadout.includes(abilityId)) nextLoadout.push(abilityId);
-    }
-    if (nextLoadout.length !== trainedSect.abilityLoadout.length) {
+    const nextLoadout = fillFirstEmptyAbilitySlots(trainedSect.abilityLoadout, unlocked);
+    if (nextLoadout.some((abilityId, index) => abilityId !== trainedSect.abilityLoadout[index])) {
       await sectRepository.replaceAbilityLoadout(trainedSect.membershipId, nextLoadout, tx);
     }
     return { sect: (await requireActive(args.cultivatorId, tx)), methodId, targetLevel: args.targetLevel, cost };
@@ -112,13 +111,15 @@ export class SectService {
     return requireActive(cultivatorId, tx);
   }
 
-  static async setAbilityLoadout(cultivatorId: string, rawIds: string[], tx: DbTransaction) {
+  static async setAbilityLoadout(cultivatorId: string, rawSlots: Array<string | null>, tx: DbTransaction) {
     const sect = await requireActive(cultivatorId, tx);
-    const ids = rawIds as LingxiaoAbilityId[];
-    if (ids.length > 4 || new Set(ids).size !== ids.length || ids.some((id) => id === 'plain-sword' || !LINGXIAO_ABILITY_BY_ID.has(id) || !isAbilityUnlocked(id, sect))) throw new SectError('SECT_INVALID_LOADOUT', '神通栏包含重复、未解锁或非宗门神通', 400);
-    const unlockedActives = listUnlockedAbilityIds(sect).filter((id) => LINGXIAO_ABILITY_BY_ID.get(id)?.occupiesActiveSlot);
-    if (unlockedActives.length >= 4 && ids.length !== 4) throw new SectError('SECT_INVALID_LOADOUT', '已解锁四门神通后必须装满四栏', 400);
-    await sectRepository.replaceAbilityLoadout(sect.membershipId, ids, tx);
+    if (rawSlots.length !== 4) throw new SectError('SECT_INVALID_LOADOUT', '神通栏必须包含四个固定槽位', 400);
+    const ids = rawSlots.filter((id): id is string => id !== null);
+    if (new Set(ids).size !== ids.length || ids.some((id) => id === 'plain-sword' || !LINGXIAO_ABILITY_BY_ID.has(id as LingxiaoAbilityId) || !isAbilityUnlocked(id as LingxiaoAbilityId, sect))) {
+      throw new SectError('SECT_INVALID_LOADOUT', '神通栏包含重复、未解锁或非宗门神通', 400);
+    }
+    const slots = createAbilitySlots(rawSlots as SectAbilitySlots);
+    await sectRepository.replaceAbilityLoadout(sect.membershipId, slots, tx);
     return requireActive(cultivatorId, tx);
   }
 

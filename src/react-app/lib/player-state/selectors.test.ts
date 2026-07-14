@@ -135,6 +135,27 @@ function createStoreState(
 }
 
 describe('player state selectors', () => {
+  it('prefers the latest sect snapshot and immediately recalculates display attributes', () => {
+    const cultivatorView = createCultivatorView();
+    cultivatorView.cultivator.sect = {
+      membershipId: 'member-1', sectId: 'lingxiao', status: 'active', contribution: 20,
+      tacticId: 'steady', activeMeridianSlot: 1, configVersion: 1,
+      methods: { 'lingxiao-canon': 5, 'sword-guidance': 5 },
+      meridianLoadouts: [], abilityLoadout: [null, null, null, null],
+    };
+    const latestSect = {
+      ...cultivatorView.cultivator.sect,
+      methods: { 'lingxiao-canon': 100, 'sword-guidance': 100 },
+    };
+    const staleState = createStoreState({ snapshot: { profile: cultivatorView } });
+    const latestState = createStoreState({ snapshot: { profile: cultivatorView, sect: latestSect } });
+
+    expect(selectActiveCultivatorProfile(latestState)?.sect).toEqual(latestSect);
+    expect(selectCultivatorDisplay(latestState)!.attrs.atk).toBeGreaterThan(
+      selectCultivatorDisplay(staleState)!.attrs.atk,
+    );
+  });
+
   it('derives display resources from patched condition instead of stale profile display', () => {
     const cultivatorView = createCultivatorView();
     const nextCondition = {

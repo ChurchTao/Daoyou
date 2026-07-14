@@ -1,10 +1,22 @@
 import { getRealmStageRank } from '@shared/config/realmProgression';
-import { REALM_ORDER, REALM_STAGE_VALUES, type RealmStage, type RealmType } from '@shared/types/constants';
+import { REALM_ORDER, REALM_STAGE_VALUES, REALM_VALUES, type RealmStage, type RealmType } from '@shared/types/constants';
 import { LINGXIAO_ABILITY_BY_ID, LINGXIAO_METHOD_BY_ID, LINGXIAO_NODE_BY_ID } from './lingxiao';
 import type { CultivatorSectState, LingxiaoAbilityId, LingxiaoMethodId } from './types';
 
 export function getSectMethodLevelCap(realm: RealmType, stage: RealmStage): number {
   return (getRealmStageRank(realm, stage) + 1) * 5;
+}
+
+export function getMinimumRealmStageForMethodLevel(level: number): {
+  realm: RealmType;
+  stage: RealmStage;
+} {
+  for (const realm of REALM_VALUES) {
+    for (const stage of REALM_STAGE_VALUES) {
+      if (getSectMethodLevelCap(realm, stage) >= level) return { realm, stage };
+    }
+  }
+  return { realm: '渡劫', stage: '圆满' };
 }
 
 export function getSectMethodTrainingCost(fromLevel: number, targetLevel: number) {

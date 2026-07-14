@@ -6,6 +6,7 @@ export type SectId = 'lingxiao';
 export type SectPathId = 'swift-sword';
 export type SectMembershipStatus = 'prospect' | 'active';
 export type SectTacticId = 'aggressive' | 'steady' | 'counter';
+export type SectAbilityRole = 'generator' | 'combo' | 'defensive' | 'finisher';
 
 export type LingxiaoMethodId =
   | 'lingxiao-canon'
@@ -25,6 +26,13 @@ export type LingxiaoAbilityId =
   | 'shadow-step'
   | 'instant-traceless';
 
+export type SectAbilitySlots = [
+  LingxiaoAbilityId | null,
+  LingxiaoAbilityId | null,
+  LingxiaoAbilityId | null,
+  LingxiaoAbilityId | null,
+];
+
 export interface PlayerRaceDefinition {
   id: PlayerRaceId;
   name: string;
@@ -38,6 +46,37 @@ export interface SectHeartMethodDefinition {
   parentMethodId?: LingxiaoMethodId;
   modifierPerLevel?: AttributeModifierConfig;
   swiftTemplateMultiplierPerLevel?: number;
+  perLevelDescription?: string;
+  milestones: SectMethodMilestoneDefinition[];
+}
+
+export interface SectMethodMilestoneDefinition {
+  id: string;
+  level: number;
+  name: string;
+  description: string;
+  abilityId?: LingxiaoAbilityId;
+  minRealm?: RealmType;
+  minRealmStage?: RealmStage;
+  requiredPathId?: SectPathId;
+  requiredMethods?: Partial<Record<LingxiaoMethodId, number>>;
+}
+
+export interface SectAbilityEffectDefinition {
+  damageCoefficient?: number;
+  momentumDamageCoefficient?: number;
+  swordMarkDamageCoefficient?: number;
+  lowHpBonusCoefficient?: number;
+  hits?: number;
+  momentumGain?: number;
+  momentumRequired?: number;
+  consumesAllMomentum?: boolean;
+  swordMarkLayers?: number;
+  consumesSwordMarks?: boolean;
+  shieldCoefficient?: number;
+  counterCoefficient?: number;
+  speedBonus?: number;
+  forcedCritical?: boolean;
 }
 
 export interface SectAbilityDefinition {
@@ -52,6 +91,11 @@ export interface SectAbilityDefinition {
     primaryMethodLevel?: number;
   };
   occupiesActiveSlot: boolean;
+  role: SectAbilityRole;
+  manaWeight: number;
+  cooldown: number;
+  baseEffect: SectAbilityEffectDefinition;
+  swiftEffect?: SectAbilityEffectDefinition;
 }
 
 export interface SectMeridianNodeDefinition {
@@ -107,7 +151,14 @@ export interface CultivatorSectState {
   configVersion: number;
   methods: Partial<Record<LingxiaoMethodId, number>>;
   meridianLoadouts: SectMeridianLoadoutState[];
-  abilityLoadout: LingxiaoAbilityId[];
+  abilityLoadout: SectAbilitySlots;
+}
+
+export interface SectMethodModifierProjection {
+  methodId: LingxiaoMethodId;
+  methodName: string;
+  level: number;
+  modifiers: AttributeModifierConfig[];
 }
 
 export interface CombatResourceDefinition {
@@ -123,7 +174,7 @@ export interface CombatResourceDefinition {
 export interface SectCombatProjection {
   defaultAttack?: AbilityConfig;
   abilities: AbilityConfig[];
-  passiveModifiers: AttributeModifierConfig[];
+  methodModifiers: SectMethodModifierProjection[];
   resources: CombatResourceDefinition[];
   tacticId: SectTacticId;
 }

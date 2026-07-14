@@ -225,6 +225,32 @@ body {
   animation: fade-in 0.5s ease-out;
 }
 
+@keyframes ink-detail-drawer-up {
+  from { opacity: 0; transform: translateY(1.5rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ink-detail-drawer-left {
+  from { opacity: 0; transform: translateX(1.5rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.ink-detail-drawer {
+  animation: ink-detail-drawer-up 180ms ease-out;
+}
+
+@media (min-width: 768px) {
+  .ink-detail-drawer {
+    animation-name: ink-detail-drawer-left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ink-detail-drawer {
+    animation: none;
+  }
+}
+
 @keyframes auth-announcement-marquee {
   from {
     transform: translateX(0);

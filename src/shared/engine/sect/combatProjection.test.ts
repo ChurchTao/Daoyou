@@ -47,6 +47,42 @@ describe('凌霄剑宗战斗投影', () => {
     expect(getFinisher(steady).selectionProfile?.rules?.[0].conditions[0].params.value).toBe(6);
   });
 
+  it('展示元数据复用后保持一线天既有伤害结算', () => {
+    const projection = projectLingxiaoCombat({
+      sect: state({
+        pathId: 'swift-sword',
+        meridianLoadouts: [{
+          slot: 1,
+          nodeIds: ['swift-sheathing', 'swift-still-tide', 'swift-life-chasing', 'swift-mountain-breaking'],
+          version: 1,
+        }],
+      }),
+      realm: '化神',
+    })!;
+    const finisher = projection.abilities.find((ability) => ability.slug.endsWith('breaking-edge'))!;
+    const coefficients = finisher.effects
+      ?.filter((effect) => effect.type === 'damage')
+      .map((effect) => Number(effect.params.value.coefficient));
+    expect(coefficients?.[0]).toBeCloseTo(0.8 * 1.2 * 1.08);
+    expect(coefficients?.slice(1, 7)).toEqual(Array(6).fill(0.2 * 1.08));
+    expect(coefficients?.[7]).toBeCloseTo(0.3 * 1.08);
+  });
+
+  it('过滤固定空槽并保持非空神通的槽位顺序', () => {
+    const projection = projectLingxiaoCombat({
+      sect: state({
+        pathId: 'swift-sword',
+        abilityLoadout: ['breaking-edge', null, 'guiding-sword', null],
+      }),
+      realm: '化神',
+    })!;
+
+    expect(projection.abilities.map((ability) => ability.slug)).toEqual([
+      'sect.lingxiao.breaking-edge',
+      'sect.lingxiao.guiding-sword',
+    ]);
+  });
+
   it('剑势封顶、无伤衰减且剑罡护盾期间暂停衰减', () => {
     const resources = new CombatResourceContainer();
     resources.define({ id: LINGXIAO_SWORD_MOMENTUM, name: '剑势', initial: 0, max: 6, decayOnNoDirectDamage: 1, pauseDecayWhileShielded: true });

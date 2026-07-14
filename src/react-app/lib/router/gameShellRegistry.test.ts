@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { resolveGameShellKind } from './gameShellRegistry';
 
@@ -28,6 +29,7 @@ describe('game shell registry', () => {
     expect(resolveGameShellKind('/game/reincarnate')).toBe('genesis');
     expect(resolveGameShellKind('/game')).toBe('viewport');
     expect(resolveGameShellKind('/game/inventory')).toBe('viewport');
+    expect(resolveGameShellKind('/game/sect/abilities')).toBe('viewport');
     expect(resolveGameShellKind('/game/cultivator/attributes')).toBe(
       'viewport',
     );
@@ -42,6 +44,7 @@ describe('game shell registry', () => {
     expect(resolveGameShellKind('/game/battle/challenge')).toBe('combat');
     expect(resolveGameShellKind('/game/battle/battle-1')).toBe('combat');
     expect(resolveGameShellKind('/game/bet-battle/challenge')).toBe('combat');
+    expect(resolveGameShellKind('/game/sect/trial')).toBe('combat');
     expect(resolveGameShellKind('/game/map')).toBe('map');
     expect(resolveGameShellKind('/game/dungeon')).toBe('dungeon');
     expect(resolveGameShellKind('/game/dungeon/history')).toBe('viewport');
@@ -51,6 +54,13 @@ describe('game shell registry', () => {
     expect(hasRipgrepMatches('InkPageShell', 'src/react-app/routes/game')).toBe(
       false,
     );
+  });
+
+  it('registers the sect abilities route without replacing creation skills', () => {
+    const source = readFileSync('src/react-app/router.tsx', 'utf8');
+    expect(source).toContain('path="sect/abilities"');
+    expect(source).toContain("id: 'sect-abilities'");
+    expect(source).toContain("path=\"skills\"");
   });
 
   it('removes deprecated game navigation and immersive bridge leftovers', () => {
