@@ -1,31 +1,65 @@
+import type { RealmType } from '@shared/types/constants';
 import { SectCompiler } from './compiler';
 import { createSectRegistry, type SectRegistry } from './registry';
-import type { CultivatorSectState, ResolvedSectAbility, SectCombatProjection, SectModule } from './types';
-import type { RealmType } from '@shared/types/constants';
+import type {
+  CultivatorSectState,
+  ResolvedSectAbility,
+  SectCombatProjection,
+  SectModule,
+} from './types';
 
 export interface SectRuntime {
   registry: SectRegistry;
   compiler: SectCompiler;
-  projectCombat(args: { sect: CultivatorSectState; realm: RealmType }): SectCombatProjection | null;
-  resolveAbility(args: { sect: CultivatorSectState; realm: RealmType; abilityId: string }): ResolvedSectAbility;
+  projectCombat(args: {
+    sect: CultivatorSectState;
+    realm: RealmType;
+  }): SectCombatProjection | null;
+  resolveAbility(args: {
+    sect: CultivatorSectState;
+    realm: RealmType;
+    abilityId: string;
+  }): ResolvedSectAbility;
   validateState(state: CultivatorSectState): void;
 }
 
-export function createSectRuntime(modules: readonly SectModule[]): SectRuntime {
-  const registry = createSectRegistry(modules);
-  const compiler = new SectCompiler();
-  return {
-    registry,
-    compiler,
-    projectCombat(args) {
-      registry.validateState(args.sect);
-      return compiler.projectCombat(registry.require(args.sect.sectId), args);
-    },
-    resolveAbility(args) {
-      registry.validateState(args.sect);
-      return compiler.resolveAbility(registry.require(args.sect.sectId), args);
-    },
-    validateState(state) { registry.validateState(state); },
-  };
+/** Facade over registry dispatch, validation and deterministic compilation. */
+export class SectRuntimeFacade implements SectRuntime {
+  readonly registry: SectRegistry;
+  readonly compiler = new SectCompiler();
+
+  constructor(modules: readonly SectModule[]) {
+    this.registry = createSectRegistry(modules);
+  }
+
+  projectCombat(args: {
+    sect: CultivatorSectState;
+    realm: RealmType;
+  }): SectCombatProjection | null {
+    this.validateState(args.sect);
+    return this.compiler.projectCombat(
+      this.registry.require(args.sect.sectId),
+      args,
+    );
+  }
+
+  resolveAbility(args: {
+    sect: CultivatorSectState;
+    realm: RealmType;
+    abilityId: string;
+  }): ResolvedSectAbility {
+    this.validateState(args.sect);
+    return this.compiler.resolveAbility(
+      this.registry.require(args.sect.sectId),
+      args,
+    );
+  }
+
+  validateState(state: CultivatorSectState): void {
+    this.registry.validateState(state);
+  }
 }
 
+export function createSectRuntime(modules: readonly SectModule[]): SectRuntime {
+  return new SectRuntimeFacade(modules);
+}

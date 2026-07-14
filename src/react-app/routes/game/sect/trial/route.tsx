@@ -35,7 +35,9 @@ function SectTrialPageContent() {
         }
       } catch (reason) {
         if (!cancelled) {
-          setError(reason instanceof Error ? reason.message : '山门试炼推演失败');
+          setError(
+            reason instanceof Error ? reason.message : '山门试炼推演失败',
+          );
         }
       } finally {
         if (!cancelled) {
@@ -53,8 +55,8 @@ function SectTrialPageContent() {
   if (error) {
     return (
       <div className="flex h-full items-center justify-center px-4 py-20">
-        <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.92)] max-w-md border border-dashed px-5 py-5 text-center">
-          <p className="mb-4 text-crimson">{error}</p>
+        <div className="border-battle-rule-strong max-w-md border border-dashed bg-[rgba(248,243,230,0.92)] px-5 py-5 text-center">
+          <p className="text-crimson mb-4">{error}</p>
           <InkButton onClick={() => navigate('/game/sect')}>返回山门</InkButton>
         </div>
       </div>
@@ -82,7 +84,11 @@ function SectTrialPageContent() {
         key={`sect-trial-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
         dialogKey={`sect-trial-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
         open={!!battleResult && playback.isPlaybackFinished}
-        title={isWin ? `${definition?.trial.name ?? '试炼'}得胜` : `${definition?.trial.name ?? '试炼'}完成`}
+        title={
+          isWin
+            ? `${definition?.trial.name ?? '试炼'}得胜`
+            : `${definition?.trial.name ?? '试炼'}完成`
+        }
         confirmLabel="返回山门"
         cancelLabel="重看战局"
         onConfirm={() => navigate('/game/sect')}

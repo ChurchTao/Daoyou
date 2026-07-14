@@ -5,7 +5,10 @@ import { describe, expect, it } from 'vitest';
 const genericFiles = [
   'src/shared/engine/sect/types.ts',
   'src/shared/engine/sect/compiler.ts',
+  'src/shared/engine/sect/pathModule.ts',
   'src/shared/engine/sect/registry.ts',
+  'src/shared/engine/sect/validation/SectModuleValidator.ts',
+  'src/shared/engine/sect/validation/SectStateValidator.ts',
   'src/shared/engine/sect/runtime.ts',
   'src/shared/engine/sect/runtimeFactory.ts',
   'src/server/lib/services/SectService.ts',
@@ -20,14 +23,33 @@ describe('宗门插件架构守卫', () => {
   it('通用层不引用任何生产宗门、流派或测试宗门ID', () => {
     for (const file of genericFiles) {
       const source = readFileSync(resolve(process.cwd(), file), 'utf8');
-      expect(source, file).not.toMatch(/lingxiao|swift-sword|heavy-sword|fixture-sect/);
+      expect(source, file).not.toMatch(
+        /lingxiao|swift-sword|heavy-sword|fixture-sect/,
+      );
+      expect(source, file).not.toContain('paths[0]');
     }
   });
 
   it('测试宗门没有注册进生产目录', () => {
-    const catalog = readFileSync(resolve(process.cwd(), 'src/shared/engine/sect/catalog.ts'), 'utf8');
+    const catalog = readFileSync(
+      resolve(process.cwd(), 'src/shared/engine/sect/catalog.ts'),
+      'utf8',
+    );
     expect(catalog).not.toContain('FIXTURE_SECT_MODULE');
     expect(catalog).not.toContain('fixture-sect');
   });
-});
 
+  it('公共兼容文件只导出内容，不重新承载流派实现', () => {
+    for (const file of [
+      'src/shared/engine/sect/combatProjection.ts',
+      'src/shared/engine/sect/selectionStrategy.ts',
+      'src/shared/engine/sect/lingxiao.ts',
+    ]) {
+      const source = readFileSync(resolve(process.cwd(), file), 'utf8');
+      expect(source.split('\n').length, file).toBeLessThan(20);
+      expect(source, file).not.toMatch(
+        /nodes\.has\(|switch\s*\(|if\s*\([^)]*pathId/,
+      );
+    }
+  });
+});

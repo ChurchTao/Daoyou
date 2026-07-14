@@ -1,8 +1,8 @@
-import { compileLingxiaoBase } from './combatProjection';
-import { LINGXIAO_SECT } from './lingxiao';
+import { compileLingxiaoBase } from './content/lingxiao/combat/shared';
+import { LINGXIAO_BASE_DEFINITION } from './content/lingxiao/definition';
 import { LINGXIAO_HEAVY_PATH_MODULE } from './lingxiaoHeavyPath';
 import { LINGXIAO_SWIFT_PATH_MODULE } from './lingxiaoSwiftPath';
-import type { CultivatorSectState, SectModule } from './types';
+import type { CultivatorSectState, SectDefinition, SectModule } from './types';
 
 const LINGXIAO_TRIAL = {
   methods: { 'lingxiao-canon': 10, 'sword-guidance': 10 },
@@ -10,6 +10,15 @@ const LINGXIAO_TRIAL = {
   opponentName: '凌霄试剑木人',
 };
 
+export const LINGXIAO_SECT: SectDefinition = {
+  ...LINGXIAO_BASE_DEFINITION,
+  paths: [
+    LINGXIAO_SWIFT_PATH_MODULE.definition,
+    LINGXIAO_HEAVY_PATH_MODULE.definition,
+  ],
+};
+
+/** Composition Root for Lingxiao; no path-specific runtime branching belongs here. */
 export const LINGXIAO_MODULE: SectModule = {
   definition: LINGXIAO_SECT,
   paths: {

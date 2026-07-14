@@ -15,8 +15,11 @@ export type SectPathId = string;
 export type SectNodeId = string;
 export type SectTacticId = string;
 export type SectMembershipStatus = 'prospect' | 'active';
-export type SectAbilityRole = 'generator' | 'combo' | 'defensive' | 'finisher' | 'utility';
+export type SectAbilityRole =
+  'generator' | 'combo' | 'defensive' | 'finisher' | 'utility';
 export type SectMeridianLayer = 1 | 2 | 3 | 4 | 5 | 'ultimate';
+
+// ---------- Serializable content definitions ----------
 
 export type SectAbilitySlots = [
   SectAbilityId | null,
@@ -142,6 +145,8 @@ export interface CultivatorSectState {
   abilityLoadout: SectAbilitySlots;
 }
 
+// ---------- Compiled runtime and presentation ----------
+
 export interface SectMethodModifierProjection {
   methodId: SectMethodId;
   methodName: string;
@@ -199,6 +204,8 @@ export interface SectTrialScenario {
 
 export interface SectCompiledAbility {
   config: AbilityConfig;
+  /** Optional content-authored summary; compiler derives one from final rows when omitted. */
+  summary?: string;
   detailRows: string[];
   notes: string[];
 }
@@ -212,12 +219,18 @@ export interface SectCompiledBuild {
 
 export interface SectNodeBehaviorContext extends SectProjectionContext {
   path: CultivatorSectPathState;
+  /** Original sect build before any path variant or node is applied. */
+  sectBaseBuild: Readonly<SectCompiledBuild>;
   activeNodeIds: ReadonlySet<SectNodeId>;
 }
 
 export type SectNodeContributionOperation =
   | { type: 'set_default_ability'; abilityId: SectAbilityId }
-  | { type: 'set_ability'; abilityId: SectAbilityId; ability: SectCompiledAbility }
+  | {
+      type: 'set_ability';
+      abilityId: SectAbilityId;
+      ability: SectCompiledAbility;
+    }
   | { type: 'set_resources'; resources: CombatResourceDefinition[] }
   | { type: 'set_passives'; passives: AbilityConfig[] };
 
@@ -226,8 +239,13 @@ export interface SectNodeContribution {
 }
 
 export interface SectNodeBehavior {
-  contribute(context: SectNodeBehaviorContext, build: Readonly<SectCompiledBuild>): SectNodeContribution;
+  contribute(
+    context: SectNodeBehaviorContext,
+    build: Readonly<SectCompiledBuild>,
+  ): SectNodeContribution;
 }
+
+// ---------- Plugin contracts ----------
 
 export interface SectAbilityResolveContext extends SectProjectionContext {
   abilityId: SectAbilityId;
@@ -235,7 +253,10 @@ export interface SectAbilityResolveContext extends SectProjectionContext {
 
 export interface SectPathModule {
   definition: SectPathDefinition;
-  compileVariants(context: SectProjectionContext & { path: CultivatorSectPathState }, base: SectCompiledBuild): SectCompiledBuild;
+  compileVariants(
+    context: SectProjectionContext & { path: CultivatorSectPathState },
+    base: SectCompiledBuild,
+  ): SectCompiledBuild;
   nodeBehaviors: Record<SectNodeId, SectNodeBehavior>;
   createSelectionStrategy(tacticId: SectTacticId): AbilitySelectionStrategy;
 }

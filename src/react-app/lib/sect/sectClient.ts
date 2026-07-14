@@ -12,7 +12,8 @@ const experienceRequests = new Map<string, Promise<SectExperienceData>>();
 async function fetchData<T>(url: string): Promise<T> {
   const response = await fetch(url);
   const payload = await response.json();
-  if (!response.ok || !payload?.success) throw new Error(payload?.error ?? '宗门卷宗读取失败');
+  if (!response.ok || !payload?.success)
+    throw new Error(payload?.error ?? '宗门卷宗读取失败');
   return payload.data as T;
 }
 
@@ -29,14 +30,21 @@ export function fetchSectDetail(sectId: string): Promise<SectDetailData> {
 }
 
 async function startSectTrial(sectId: string): Promise<SectExperienceData> {
-  const response = await fetch(`/api/sects/${encodeURIComponent(sectId)}/trial`, { method: 'POST' });
+  const response = await fetch(
+    `/api/sects/${encodeURIComponent(sectId)}/trial`,
+    { method: 'POST' },
+  );
   return consumePlayerStateMutation<SectExperienceData>(response);
 }
 
-export function startSectTrialOnce(sectId: string): Promise<SectExperienceData> {
+export function startSectTrialOnce(
+  sectId: string,
+): Promise<SectExperienceData> {
   const current = experienceRequests.get(sectId);
   if (current) return current;
-  const request = startSectTrial(sectId).finally(() => experienceRequests.delete(sectId));
+  const request = startSectTrial(sectId).finally(() =>
+    experienceRequests.delete(sectId),
+  );
   experienceRequests.set(sectId, request);
   return request;
 }
