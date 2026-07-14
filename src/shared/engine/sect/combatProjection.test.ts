@@ -38,13 +38,29 @@ describe('凌霄剑宗战斗投影', () => {
     expect(linked.effects?.filter((effect) => effect.type === 'damage')).toHaveLength(5);
   });
 
-  it('一线天具有资源硬门槛，急攻与稳势评分阈值不同', () => {
+  it('一线天保留资源硬门槛，宗门投影挂载稳定选技器', () => {
     const aggressive = projectLingxiaoCombat({ sect: state({ pathId: 'swift-sword', tacticId: 'aggressive' }), realm: '金丹' })!;
-    const steady = projectLingxiaoCombat({ sect: state({ pathId: 'swift-sword', tacticId: 'steady' }), realm: '金丹' })!;
-    const getFinisher = (projection: typeof aggressive) => projection.abilities.find((ability) => ability.slug.endsWith('breaking-edge'))!;
-    expect(getFinisher(aggressive).castConditions?.[0].params.value).toBe(3);
-    expect(getFinisher(aggressive).selectionProfile?.rules?.[0].conditions[0].params.value).toBe(3);
-    expect(getFinisher(steady).selectionProfile?.rules?.[0].conditions[0].params.value).toBe(6);
+    const finisher = aggressive.abilities.find((ability) => ability.slug.endsWith('breaking-edge'))!;
+    expect(finisher.castConditions?.[0].params.value).toBe(3);
+    expect(aggressive.selectionStrategyId).toBe('sect.lingxiao.sword.v1');
+    expect(finisher.selectionProfile?.rules).toBeUndefined();
+  });
+
+  it('回燕姿态与踏影持续到下一回合', () => {
+    const projection = projectLingxiaoCombat({
+      sect: state({
+        pathId: 'swift-sword',
+        abilityLoadout: ['turning-body', 'shadow-step', null, null],
+      }),
+      realm: '金丹',
+    })!;
+    const turning = projection.abilities.find((ability) => ability.slug.endsWith('turning-body'))!;
+    const shadow = projection.abilities.find((ability) => ability.slug.endsWith('shadow-step'))!;
+    const turningBuff = turning.effects?.find((effect) => effect.type === 'apply_buff');
+    const shadowBuff = shadow.effects?.find((effect) => effect.type === 'apply_buff');
+
+    expect(turningBuff?.params.buffConfig.duration).toBe(2);
+    expect(shadowBuff?.params.buffConfig.duration).toBe(2);
   });
 
   it('展示元数据复用后保持一线天既有伤害结算', () => {

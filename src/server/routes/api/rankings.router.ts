@@ -32,7 +32,6 @@ import { TaskService } from '@server/lib/services/TaskService';
 import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { projectAbilityConfig } from '@shared/engine/creation-v2/models/AbilityProjection';
 import { rehydrateStoredProductModel } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
-import { withPlayerAbilityStrategySettings } from '@shared/lib/battle/abilityStrategyInit';
 import {
   getConsumableTypeLabel,
   getCreationProductTypeLabel,
@@ -649,10 +648,7 @@ challengeRouter.post(
       const battleResult = simulateBattleV5(
         challengerRecord.cultivator,
         targetRecord.cultivator,
-        withPlayerAbilityStrategySettings(
-          createFullResourcePvpBattleInit(),
-          challengerRecord.cultivator,
-        ),
+        createFullResourcePvpBattleInit(),
       );
 
       const isWin = battleResult.winner.id === challenger.id;

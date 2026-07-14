@@ -29,7 +29,6 @@ import { ConditionService } from '@server/lib/services/ConditionService';
 import { MailService, type MailAttachment } from '@server/lib/services/MailService';
 import type { PlayerInfo } from '@server/lib/dungeon/types';
 import { buildTowerBattleInit, applyTowerBattleOutcome } from './battleInit';
-import { withPlayerAbilityStrategySettings } from '@shared/lib/battle/abilityStrategyInit';
 import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { towerEnemySetService } from './enemySets';
 import { getTowerLeaderboard, updateTowerWeeklyRecord } from './leaderboard';
@@ -626,10 +625,7 @@ export class TowerService {
     const battleResult = simulateBattleV5(
       cultivatorBundle.cultivator,
       payload.enemyObject,
-      withPlayerAbilityStrategySettings(
-        battleInit,
-        cultivatorBundle.cultivator,
-      ),
+      battleInit,
     );
 
     const isWin = battleResult.winner.id === cultivatorId;

@@ -14,7 +14,10 @@ import {
 } from '../core/types';
 import type { AbilityConfig } from '../core/configs';
 import { Unit } from '../units/Unit';
-import { projectLingxiaoCombat } from '@shared/engine/sect';
+import {
+  createSectAbilitySelectionStrategy,
+  projectLingxiaoCombat,
+} from '@shared/engine/sect';
 
 const ATTRIBUTE_MAP = {
   spirit: AttributeType.SPIRIT,
@@ -121,6 +124,10 @@ export function createCombatUnitFromCultivator(
     }
     for (const ability of sectProjection.abilities) {
       unit.abilities.addAbility(AbilityFactory.create(ability));
+    }
+    const selectionStrategy = createSectAbilitySelectionStrategy(sectProjection);
+    if (selectionStrategy) {
+      unit.abilities.setSelectionStrategy(selectionStrategy);
     }
     for (const method of sectProjection.methodModifiers) {
       for (const [index, modifier] of method.modifiers.entries()) {

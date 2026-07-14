@@ -41,7 +41,6 @@ import { ServerEnemyCopyProvider } from '../services/ServerEnemyCopyProvider';
 import { TaskService } from '../services/TaskService';
 import { ConditionService } from '../services/ConditionService';
 import { buildDungeonBattleInit } from './battleInit';
-import { withPlayerAbilityStrategySettings } from '@shared/lib/battle/abilityStrategyInit';
 import {
   buildDungeonRoundLlmContext,
   buildDungeonSettlementLlmContext,
@@ -1456,16 +1455,13 @@ export class DungeonService {
     const battleResult = simulateBattleV5(
       cultivatorBundle.cultivator,
       enemyObject,
-      withPlayerAbilityStrategySettings(
-        {
-          ...session.battleInit,
-          player: {
-            ...session.battleInit?.player,
-            ...buildDungeonBattleInit(cultivatorBundle.cultivator).player,
-          },
+      {
+        ...session.battleInit,
+        player: {
+          ...session.battleInit?.player,
+          ...buildDungeonBattleInit(cultivatorBundle.cultivator).player,
         },
-        cultivatorBundle.cultivator,
-      ),
+      },
     );
 
     try {

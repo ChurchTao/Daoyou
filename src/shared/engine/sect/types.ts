@@ -6,6 +6,7 @@ export type SectId = 'lingxiao';
 export type SectPathId = 'swift-sword';
 export type SectMembershipStatus = 'prospect' | 'active';
 export type SectTacticId = 'aggressive' | 'steady' | 'counter';
+export type SectSelectionStrategyId = 'sect.lingxiao.sword.v1';
 export type SectAbilityRole = 'generator' | 'combo' | 'defensive' | 'finisher';
 
 export type LingxiaoMethodId =
@@ -176,5 +177,6 @@ export interface SectCombatProjection {
   abilities: AbilityConfig[];
   methodModifiers: SectMethodModifierProjection[];
   resources: CombatResourceDefinition[];
+  selectionStrategyId: SectSelectionStrategyId;
   tacticId: SectTacticId;
 }

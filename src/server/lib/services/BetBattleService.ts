@@ -6,7 +6,6 @@ import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,
 } from '@shared/config/temporaryRestrictions';
-import { withPlayerAbilityStrategySettings } from '@shared/lib/battle/abilityStrategyInit';
 import type { Cultivator } from '@shared/types/cultivator';
 import { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
@@ -685,7 +684,6 @@ export async function challengeBetBattle(
     const battleResult = simulateBattleV5(
       challengerBundle.cultivator,
       creatorBundle.cultivator,
-      withPlayerAbilityStrategySettings(undefined, challengerBundle.cultivator),
     );
     const winnerId =
       battleResult.winner.id === input.challengerId

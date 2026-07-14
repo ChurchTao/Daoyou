@@ -1,7 +1,10 @@
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { getArtifactWearerRealmFactor } from '@shared/engine/shared/artifactRealmScaling';
 import type { Cultivator } from '@shared/types/cultivator';
+import { EventBus } from '../core/EventBus';
+import type { ActionEvent, SkillPreCastEvent } from '../core/events';
 import { AbilityType, AttributeType, ModifierType } from '../core/types';
+import { Unit } from '../units/Unit';
 import { createCombatUnitFromCultivator } from './CultivatorCombatAdapter';
 
 function createCultivatorFixture(): Cultivator {
@@ -135,6 +138,56 @@ describe('CultivatorCombatAdapter', () => {
     expect(returning.attributes.getValue(AttributeType.MAX_MP)).toBeCloseTo(
       Math.floor(baseline.attributes.getValue(AttributeType.MAX_MP) * 1.05),
     );
+  });
+
+  it('mounts the sect selection strategy instead of the generic strategy', () => {
+    const eventBus = EventBus.instance;
+    eventBus.reset();
+    const cultivator = createCultivatorFixture();
+    cultivator.realm = '化神';
+    cultivator.realm_stage = '初期';
+    cultivator.sect = {
+      membershipId: 'member-1',
+      sectId: 'lingxiao',
+      status: 'active',
+      pathId: 'swift-sword',
+      contribution: 0,
+      tacticId: 'aggressive',
+      activeMeridianSlot: 1,
+      configVersion: 1,
+      methods: {
+        'lingxiao-canon': 100,
+        'sword-guidance': 100,
+        'edge-cleansing': 100,
+        'swift-sword-canon': 100,
+      },
+      meridianLoadouts: [{ slot: 1, nodeIds: [], version: 1 }],
+      abilityLoadout: [
+        'guiding-sword',
+        'linked-edge',
+        'breaking-edge',
+        null,
+      ],
+    };
+    const unit = createCombatUnitFromCultivator(cultivator);
+    const opponent = new Unit('opponent', '木桩', {
+      [AttributeType.VITALITY]: 100,
+    });
+    unit.abilities.setDefaultTarget(opponent);
+
+    let selectedAbilityId: string | null = null;
+    eventBus.subscribe<SkillPreCastEvent>('SkillPreCastEvent', (event) => {
+      if (event.caster === unit) selectedAbilityId = event.ability.id;
+    });
+    eventBus.publish<ActionEvent>({
+      type: 'ActionEvent',
+      timestamp: Date.now(),
+      caster: unit,
+    });
+
+    expect(selectedAbilityId).toBe('sect.lingxiao.linked-edge');
+    unit.abilities.destroy();
+    eventBus.reset();
   });
 
   it('mounts body cultivation modifiers in combat units', () => {

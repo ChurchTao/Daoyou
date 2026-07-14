@@ -1,7 +1,6 @@
 import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import type {
   AbilityConfig,
-  AbilitySelectionRule,
   EffectConfig,
 } from '@shared/engine/battle-v5/core/configs';
 import {
@@ -20,11 +19,12 @@ import type {
   CultivatorSectState,
   LingxiaoAbilityId,
   SectCombatProjection,
-  SectTacticId,
 } from './types';
 
 export const LINGXIAO_SWORD_MOMENTUM = 'sect.lingxiao.sword-momentum';
 export const LINGXIAO_SWORD_MARK_BUFF = 'sect.lingxiao.sword-mark';
+export const LINGXIAO_RETURNING_SWALLOW_BUFF = 'sect.lingxiao.returning-swallow';
+export const LINGXIAO_SHADOW_STEP_BUFF = 'sect.lingxiao.shadow-step';
 
 const PHYSICAL_SECT_TAGS = [
   GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -80,38 +80,6 @@ function swordMark(): EffectConfig {
   };
 }
 
-function tacticRules(tactic: SectTacticId, role: 'generator' | 'combo' | 'finisher' | 'defensive'): AbilitySelectionRule[] {
-  const rules: AbilitySelectionRule[] = [];
-  if (role === 'finisher') {
-    const threshold = tactic === 'aggressive' ? 3 : tactic === 'counter' ? 5 : 6;
-    rules.push({
-      conditions: [{ type: 'combat_resource_below', params: { resourceId: LINGXIAO_SWORD_MOMENTUM, value: threshold, scope: 'caster' } }],
-      scoreDelta: -120,
-    });
-    rules.push({
-      conditions: [{ type: 'hp_below', params: { value: 0.25, scope: 'target' } }],
-      scoreDelta: tactic === 'aggressive' ? 180 : 80,
-    });
-  }
-  if (role === 'defensive') {
-    rules.push({
-      conditions: [{ type: 'hp_below', params: { value: tactic === 'counter' ? 0.7 : 0.4, scope: 'caster' } }],
-      scoreDelta: tactic === 'aggressive' ? 10 : 130,
-    });
-    rules.push({
-      conditions: [{ type: 'hp_above', params: { value: tactic === 'counter' ? 0.7 : 0.65, scope: 'caster' } }],
-      scoreDelta: -80,
-    });
-  }
-  if (role === 'generator') {
-    rules.push({
-      conditions: [{ type: 'combat_resource_below', params: { resourceId: LINGXIAO_SWORD_MOMENTUM, value: tactic === 'aggressive' ? 3 : 6, scope: 'caster' } }],
-      scoreDelta: 55,
-    });
-  }
-  return rules;
-}
-
 function active(args: {
   id: LingxiaoAbilityId;
   name: string;
@@ -119,7 +87,6 @@ function active(args: {
   cooldown: number;
   effects: EffectConfig[];
   role: 'generator' | 'combo' | 'finisher' | 'defensive';
-  tactic: SectTacticId;
   castConditions?: AbilityConfig['castConditions'];
   targetTeam?: 'enemy' | 'self';
   extraTags?: string[];
@@ -142,7 +109,6 @@ function active(args: {
     targetPolicy: { team: args.targetTeam ?? (args.role === 'defensive' ? 'self' : 'enemy'), scope: 'single' },
     selectionProfile: {
       intents: args.role === 'defensive' ? ['defensive'] : ['damage'],
-      rules: tacticRules(args.tactic, args.role),
     },
     castConditions: args.castConditions,
     effects: args.effects,
@@ -182,13 +148,13 @@ export function projectLingxiaoCombat(args: {
   const configs: Record<Exclude<LingxiaoAbilityId, 'plain-sword'>, AbilityConfig> = {
     'guiding-sword': active({
       id: 'guiding-sword', name: guiding.name, mpCost: guiding.manaCost, cooldown: guiding.cooldown,
-      role: 'generator', tactic: sect.tacticId,
+      role: 'generator',
       extraTags: [GameplayTags.ABILITY.SECT.GUIDING_SWORD],
       effects: [damage(guiding.effect.damageCoefficient ?? 0), momentum(guiding.effect.momentumGain ?? 0)],
     }),
     'linked-edge': active({
       id: 'linked-edge', name: linked.name, mpCost: linked.manaCost, cooldown: linked.cooldown,
-      role: 'combo', tactic: sect.tacticId,
+      role: 'combo',
       effects: [
         ...Array.from({ length: linked.effect.hits ?? 1 }, () =>
           damage(linked.effect.damageCoefficient ?? 0)),
@@ -200,11 +166,11 @@ export function projectLingxiaoCombat(args: {
     }),
     'turning-body': active({
       id: 'turning-body', name: turning.name, mpCost: turning.manaCost, cooldown: turning.cooldown,
-      role: 'defensive', tactic: sect.tacticId, targetTeam: 'enemy',
+      role: 'defensive', targetTeam: 'enemy',
       effects: [damage(turning.effect.damageCoefficient ?? 0), {
         type: 'apply_buff', params: { target: 'caster', buffConfig: {
-          id: 'sect.lingxiao.returning-swallow', name: '回燕姿态', description: '提高闪避，闪避后可伺机反击。',
-          type: BuffType.BUFF, duration: 1, stackRule: StackRule.REFRESH_DURATION,
+          id: LINGXIAO_RETURNING_SWALLOW_BUFF, name: '回燕姿态', description: '提高闪避，闪避后可伺机反击。',
+          type: BuffType.BUFF, duration: 2, stackRule: StackRule.REFRESH_DURATION,
           tags: [GameplayTags.BUFF.TYPE.BUFF, GameplayTags.BUFF.SECT.RETURNING_SWALLOW],
           modifiers: [{ attrType: AttributeType.EVASION_RATE, type: ModifierType.FIXED, value: 0.08 }],
           listeners: [{
@@ -225,7 +191,7 @@ export function projectLingxiaoCombat(args: {
     }),
     'breaking-edge': active({
       id: 'breaking-edge', name: breaking.name, mpCost: breaking.manaCost,
-      cooldown: breaking.cooldown, role: 'finisher', tactic: sect.tacticId,
+      cooldown: breaking.cooldown, role: 'finisher',
       castConditions: [{ type: 'combat_resource_at_least', params: { resourceId: LINGXIAO_SWORD_MOMENTUM, value: breaking.effect.momentumRequired ?? 3, scope: 'caster' } }],
       effects: [
         ...(breaking.effect.forcedCritical ? [{ type: 'next_hit_rule' as const, params: { forceCritical: true, triggers: 1 } }] : []),
@@ -247,21 +213,21 @@ export function projectLingxiaoCombat(args: {
     }),
     'sword-aegis': active({
       id: 'sword-aegis', name: aegis.name, mpCost: aegis.manaCost, cooldown: aegis.cooldown,
-      role: 'defensive', tactic: sect.tacticId,
+      role: 'defensive',
       effects: [{ type: 'shield', params: { value: { attribute: AttributeType.ATK, coefficient: aegis.effect.shieldCoefficient ?? 0 } } }],
     }),
     'shadow-step': active({
       id: 'shadow-step', name: shadow.name, mpCost: shadow.manaCost, cooldown: shadow.cooldown,
-      role: 'generator', tactic: sect.tacticId,
+      role: 'generator',
       effects: [damage(shadow.effect.damageCoefficient ?? 0), { type: 'apply_buff', params: { target: 'caster', buffConfig: {
-        id: 'sect.lingxiao.shadow-step', name: '踏影', type: BuffType.BUFF, duration: 1,
+        id: LINGXIAO_SHADOW_STEP_BUFF, name: '踏影', type: BuffType.BUFF, duration: 2,
         stackRule: StackRule.REFRESH_DURATION, tags: [GameplayTags.BUFF.TYPE.BUFF],
         modifiers: [{ attrType: AttributeType.SPEED, type: ModifierType.ADD, value: shadow.effect.speedBonus ?? 0 }],
       } } }],
     }),
     'instant-traceless': active({
       id: 'instant-traceless', name: instant.name, mpCost: instant.manaCost, cooldown: instant.cooldown,
-      role: 'finisher', tactic: sect.tacticId,
+      role: 'finisher',
       castConditions: [{ type: 'combat_resource_at_least', params: { resourceId: LINGXIAO_SWORD_MOMENTUM, value: instant.effect.momentumRequired ?? 6, scope: 'caster' } }],
       effects: [
         ...Array.from({ length: instant.effect.hits ?? 1 }, () => damage(instant.effect.damageCoefficient ?? 0)),
@@ -317,6 +283,7 @@ export function projectLingxiaoCombat(args: {
       decayOnControlledSkip: nodes.has('swift-guarded-edge') ? 0 : 1,
       pauseDecayWhileShielded: true,
     }],
+    selectionStrategyId: 'sect.lingxiao.sword.v1',
     tacticId: sect.tacticId,
   };
 }

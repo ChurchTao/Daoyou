@@ -6,7 +6,6 @@ import { BuffFactory } from '../../factories/BuffFactory';
 import { createBattleUnitsWithInit } from '../../setup/BattleInitApplier';
 import { EventBus } from '../../core/EventBus';
 import {
-  ActionEvent,
   DamageRequestEvent,
   DeathPreventEvent,
   SkillPreCastEvent,
@@ -96,30 +95,6 @@ function createBodyCultivationCondition(
       totalRecoveredMp: 0,
     },
   };
-}
-
-class InitHealSkill extends ActiveSkill {
-  constructor() {
-    super('init_heal_skill' as AbilityId, '初始化治疗', {
-      targetPolicy: TargetPolicy.self(),
-      priority: 100,
-      selectionProfile: { intents: ['heal_hp'] },
-    });
-    this.tags.addTags([GameplayTags.ABILITY.FUNCTION.HEAL]);
-  }
-  protected executeSkill(): void {}
-}
-
-class InitDamageSkill extends ActiveSkill {
-  constructor() {
-    super('init_damage_skill' as AbilityId, '初始化伤害', {
-      targetPolicy: TargetPolicy.default(),
-      priority: 50,
-      selectionProfile: { intents: ['damage'] },
-    });
-    this.tags.addTags([GameplayTags.ABILITY.FUNCTION.DAMAGE]);
-  }
-  protected executeSkill(): void {}
 }
 
 class HighCostSkill extends ActiveSkill {
@@ -816,47 +791,4 @@ describe('BattleInitApplier', () => {
     eventBus.reset();
   });
 
-  test('selectionStrategySettings 会注入玩家技能选择策略', () => {
-    const eventBus = EventBus.instance;
-    eventBus.reset();
-
-    const player = createCultivator('player', '道友');
-    const opponent = createCultivator('dummy', '木桩');
-    const { playerUnit, opponentUnit } = createBattleUnitsWithInit(
-      player,
-      opponent,
-      {
-        player: {
-          resourceState: {
-            hp: { mode: 'percent', value: 0.65 },
-          },
-          selectionStrategySettings: {
-            version: 1,
-            mode: 'conservative',
-            healHpSkipThreshold: 0.9,
-            emergencyHealHpThreshold: 0.7,
-            restoreMpSkipThreshold: 0.75,
-            avoidRepeatControl: true,
-          },
-        },
-      },
-    );
-    playerUnit.abilities.setDefaultTarget(opponentUnit);
-    playerUnit.abilities.addAbility(new InitHealSkill());
-    playerUnit.abilities.addAbility(new InitDamageSkill());
-
-    let capturedAbilityId: string | null = null;
-    eventBus.subscribe<SkillPreCastEvent>('SkillPreCastEvent', (event) => {
-      capturedAbilityId = event.ability.id;
-    });
-
-    eventBus.publish<ActionEvent>({
-      type: 'ActionEvent',
-      timestamp: Date.now(),
-      caster: playerUnit,
-    });
-
-    expect(capturedAbilityId).toBe('init_heal_skill');
-    eventBus.reset();
-  });
 });

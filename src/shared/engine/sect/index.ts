@@ -4,3 +4,4 @@ export * from './progression';
 export * from './combatProjection';
 export * from './guide';
 export * from './methodModifiers';
+export * from './selectionStrategy';
