@@ -5,6 +5,7 @@ import type {
   CombatResourceDefinition,
 } from '@shared/engine/battle-v5/core/configs';
 import type { RealmStage, RealmType } from '@shared/types/constants';
+import type { Cultivator } from '@shared/types/cultivator';
 
 export type PlayerRaceId = 'human';
 export type SectId = string;
@@ -85,7 +86,7 @@ export interface SectPathDefinition {
   id: SectPathId;
   name: string;
   description: string;
-  multiplierPerLevel: number;
+  levelBenefitDescription: string;
   defaultTacticId: SectTacticId;
   nodes: SectMeridianNodeDefinition[];
   tactics: SectTacticPreset[];
@@ -176,28 +177,73 @@ export interface SectProjectionContext {
   realm: RealmType;
 }
 
+export interface SectAdmissionContext {
+  playerRace: PlayerRaceId;
+  realm: RealmType;
+  stage: RealmStage;
+}
+
+export interface SectAdmissionResult {
+  allowed: boolean;
+  reason?: string;
+}
+
+export interface SectTrialContext {
+  cultivator: Cultivator;
+}
+
+export interface SectTrialScenario {
+  trainee: Cultivator;
+  opponent: Cultivator;
+}
+
+export interface SectCompiledAbility {
+  config: AbilityConfig;
+  detailRows: string[];
+  notes: string[];
+}
+
+export interface SectCompiledBuild {
+  defaultAbilityId: SectAbilityId;
+  abilities: Record<SectAbilityId, SectCompiledAbility>;
+  resources: CombatResourceDefinition[];
+  passives: AbilityConfig[];
+}
+
+export interface SectNodeBehaviorContext extends SectProjectionContext {
+  path: CultivatorSectPathState;
+  activeNodeIds: ReadonlySet<SectNodeId>;
+}
+
+export type SectNodeContributionOperation =
+  | { type: 'set_default_ability'; abilityId: SectAbilityId }
+  | { type: 'set_ability'; abilityId: SectAbilityId; ability: SectCompiledAbility }
+  | { type: 'set_resources'; resources: CombatResourceDefinition[] }
+  | { type: 'set_passives'; passives: AbilityConfig[] };
+
+export interface SectNodeContribution {
+  operations: SectNodeContributionOperation[];
+}
+
+export interface SectNodeBehavior {
+  contribute(context: SectNodeBehaviorContext, build: Readonly<SectCompiledBuild>): SectNodeContribution;
+}
+
 export interface SectAbilityResolveContext extends SectProjectionContext {
   abilityId: SectAbilityId;
 }
 
-export interface SectTrialPreset {
-  methods: Record<SectMethodId, number>;
-  abilityLoadout: SectAbilitySlots;
-  opponentName: string;
-}
-
 export interface SectPathModule {
   definition: SectPathDefinition;
-  behaviorIds: readonly SectNodeId[];
-  projectCombat(context: SectProjectionContext): SectCombatProjection | null;
-  resolveAbility(context: SectAbilityResolveContext): ResolvedSectAbility;
+  compileVariants(context: SectProjectionContext & { path: CultivatorSectPathState }, base: SectCompiledBuild): SectCompiledBuild;
+  nodeBehaviors: Record<SectNodeId, SectNodeBehavior>;
   createSelectionStrategy(tacticId: SectTacticId): AbilitySelectionStrategy;
 }
 
 export interface SectModule {
   definition: SectDefinition;
   paths: Record<SectPathId, SectPathModule>;
-  trial: SectTrialPreset;
-  projectCombat(context: SectProjectionContext): SectCombatProjection | null;
-  resolveAbility(context: SectAbilityResolveContext): ResolvedSectAbility;
+  compileBase(context: SectProjectionContext): SectCompiledBuild;
+  checkAdmission(context: SectAdmissionContext): SectAdmissionResult;
+  createTrialScenario(context: SectTrialContext): SectTrialScenario;
 }

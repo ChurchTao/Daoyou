@@ -77,7 +77,7 @@ export const SWIFT_SWORD_PATH: SectPathDefinition = {
   id: SWIFT_SWORD_PATH_ID,
   name: '快剑道',
   description: '抢先积势、连锋留痕、择机收束。',
-  multiplierPerLevel: 0.0008,
+  levelBenefitDescription: '每级提高快剑变体伤害、反击与护盾倍率0.08%。',
   defaultTacticId: 'aggressive',
   nodes: SWIFT_NODES,
   tactics: [
@@ -91,7 +91,7 @@ export const HEAVY_SWORD_PATH: SectPathDefinition = {
   id: HEAVY_SWORD_PATH_ID,
   name: '重剑道',
   description: '以架承势、裂甲压阵、聚力破岳。',
-  multiplierPerLevel: 0.0008,
+  levelBenefitDescription: '每级提高重剑变体伤害、反击与护盾倍率0.08%。',
   defaultTacticId: 'heavy-break',
   nodes: HEAVY_NODES,
   tactics: [

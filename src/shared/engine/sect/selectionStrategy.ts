@@ -14,7 +14,6 @@ import {
   LINGXIAO_SWORD_MARK_BUFF,
   LINGXIAO_SWORD_MOMENTUM,
 } from './combatProjection';
-import { HEAVY_SWORD_PATH_ID, SWIFT_SWORD_PATH_ID } from './lingxiao';
 import type { SectCombatProjection, SectTacticId } from './types';
 
 const slug = (abilityId: string) => `sect.lingxiao.${abilityId}`;
@@ -92,12 +91,6 @@ export class LingxiaoHeavySelectionStrategy implements AbilitySelectionStrategy 
     if (nurturing && caster.getHpPercent() < 0.4) return result(nurturing, 360);
     return result(find(candidates, 'guiding-sword') ?? linked ?? candidates[0], 100);
   }
-}
-
-export function createLingxiaoSelectionStrategy(pathId: string | undefined, tacticId: string | undefined): AbilitySelectionStrategy | undefined {
-  if (pathId === SWIFT_SWORD_PATH_ID) return new LingxiaoSwiftSelectionStrategy(tacticId ?? 'aggressive');
-  if (pathId === HEAVY_SWORD_PATH_ID) return new LingxiaoHeavySelectionStrategy(tacticId ?? 'heavy-break');
-  return undefined;
 }
 
 export function createSectAbilitySelectionStrategy(projection: SectCombatProjection): AbilitySelectionStrategy | null {

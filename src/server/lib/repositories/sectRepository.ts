@@ -1,6 +1,7 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import {
   creationProducts,
+  cultivators,
   sectAbilityLoadouts,
   sectDailyCommissions,
   sectMemberships,
@@ -9,14 +10,43 @@ import {
   sectPathProgress,
 } from '@server/lib/drizzle/schema';
 import {
-  sectRegistry,
+  productionSectRuntime,
   type CultivatorSectState,
   type SectAbilitySlots,
   type SectDefinition,
+  type SectRuntime,
 } from '@shared/engine/sect';
+import type { RealmStage, RealmType } from '@shared/types/constants';
 import { and, eq, sql } from 'drizzle-orm';
 
 export type SectMembershipRow = typeof sectMemberships.$inferSelect;
+
+export interface SectCultivatorProgress {
+  realm: RealmType;
+  stage: RealmStage;
+  stones: number;
+  playerRace: 'human';
+}
+
+export async function loadSectCultivatorProgress(
+  cultivatorId: string,
+  q: DbExecutor | DbTransaction,
+): Promise<SectCultivatorProgress | null> {
+  const [cultivator] = await q.select({
+    realm: cultivators.realm,
+    stage: cultivators.realm_stage,
+    stones: cultivators.spirit_stones,
+    playerRace: cultivators.playerRace,
+  }).from(cultivators).where(eq(cultivators.id, cultivatorId)).limit(1);
+  return cultivator ? cultivator as SectCultivatorProgress : null;
+}
+
+export async function spendSpiritStones(cultivatorId: string, amount: number, tx: DbTransaction): Promise<boolean> {
+  const rows = await tx.update(cultivators).set({ spirit_stones: sql`${cultivators.spirit_stones} - ${amount}` })
+    .where(and(eq(cultivators.id, cultivatorId), sql`${cultivators.spirit_stones} >= ${amount}`))
+    .returning({ id: cultivators.id });
+  return rows.length === 1;
+}
 
 export function hydrateSectAbilitySlots(rows: Array<{ slot: number; abilityId: string }>): SectAbilitySlots {
   const slots: SectAbilitySlots = [null, null, null, null];
@@ -52,6 +82,7 @@ export async function listMemberships(cultivatorId: string, q: DbExecutor | DbTr
 async function hydrateMembership(
   membership: SectMembershipRow,
   q: DbExecutor | DbTransaction,
+  runtime: SectRuntime,
 ): Promise<CultivatorSectState> {
   const methods = await q.select().from(sectMethodProgress).where(eq(sectMethodProgress.membershipId, membership.id));
   const pathRows = await q.select().from(sectPathProgress).where(eq(sectPathProgress.membershipId, membership.id));
@@ -80,7 +111,7 @@ async function hydrateMembership(
     abilityLoadout: hydrateSectAbilitySlots(abilities),
   };
   try {
-    sectRegistry.validateState(state);
+    runtime.validateState(state);
   } catch (error) {
     console.error(
       `[sect-repository] persisted sect state is invalid: membership=${membership.id} sect=${membership.sectId} version=${membership.configVersion}`,
@@ -94,18 +125,20 @@ async function hydrateMembership(
 export async function loadCultivatorSectState(
   cultivatorId: string,
   q: DbExecutor | DbTransaction,
+  runtime: SectRuntime = productionSectRuntime,
 ): Promise<CultivatorSectState | undefined> {
   const membership = await findMembership(cultivatorId, q);
-  return membership ? hydrateMembership(membership, q) : undefined;
+  return membership ? hydrateMembership(membership, q, runtime) : undefined;
 }
 
 export async function loadCultivatorSectStateForSect(
   cultivatorId: string,
   sectId: string,
   q: DbExecutor | DbTransaction,
+  runtime: SectRuntime = productionSectRuntime,
 ): Promise<CultivatorSectState | undefined> {
   const membership = await findMembershipForSect(cultivatorId, sectId, q);
-  return membership ? hydrateMembership(membership, q) : undefined;
+  return membership ? hydrateMembership(membership, q, runtime) : undefined;
 }
 
 export async function recordExperience(
@@ -217,3 +250,34 @@ export async function findCommission(membershipId: string, dateKey: string, q: D
   const [row] = await q.select().from(sectDailyCommissions).where(and(eq(sectDailyCommissions.membershipId, membershipId), eq(sectDailyCommissions.dateKey, dateKey))).limit(1);
   return row ?? null;
 }
+
+export function createSectRepository(runtime: SectRuntime = productionSectRuntime) {
+  return {
+    loadCultivatorProgress: loadSectCultivatorProgress,
+    spendSpiritStones,
+    findMembership,
+    findMembershipForSect,
+    listMemberships,
+    loadCultivatorSectState: (cultivatorId: string, q: DbExecutor | DbTransaction) =>
+      loadCultivatorSectState(cultivatorId, q, runtime),
+    loadCultivatorSectStateForSect: (cultivatorId: string, sectId: string, q: DbExecutor | DbTransaction) =>
+      loadCultivatorSectStateForSect(cultivatorId, sectId, q, runtime),
+    recordExperience,
+    activateMembership,
+    setMethodLevel,
+    enrollPath,
+    setPathLevel,
+    activatePath,
+    spendContribution,
+    replaceMeridianLoadout,
+    activateMeridianLoadout,
+    replaceAbilityLoadout,
+    setPathTactic,
+    insertCommissionCompletion,
+    claimCommission,
+    findCommission,
+  };
+}
+
+export type SectRepositoryPort = ReturnType<typeof createSectRepository>;
+export const postgresSectRepository = createSectRepository();

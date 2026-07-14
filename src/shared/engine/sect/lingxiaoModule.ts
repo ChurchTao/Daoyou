@@ -1,44 +1,47 @@
-import { projectLingxiaoCombat, resolveLingxiaoAbility } from './combatProjection';
-import { HEAVY_NODES, HEAVY_SWORD_PATH, LINGXIAO_SECT, SWIFT_NODES, SWIFT_SWORD_PATH } from './lingxiao';
-import { LingxiaoHeavySelectionStrategy, LingxiaoSwiftSelectionStrategy } from './selectionStrategy';
-import type { SectModule } from './types';
+import { compileLingxiaoBase } from './combatProjection';
+import { LINGXIAO_SECT } from './lingxiao';
+import { LINGXIAO_HEAVY_PATH_MODULE } from './lingxiaoHeavyPath';
+import { LINGXIAO_SWIFT_PATH_MODULE } from './lingxiaoSwiftPath';
+import type { CultivatorSectState, SectModule } from './types';
+
+const LINGXIAO_TRIAL = {
+  methods: { 'lingxiao-canon': 10, 'sword-guidance': 10 },
+  abilityLoadout: ['guiding-sword', 'linked-edge', null, null] as const,
+  opponentName: '凌霄试剑木人',
+};
 
 export const LINGXIAO_MODULE: SectModule = {
   definition: LINGXIAO_SECT,
   paths: {
-    [SWIFT_SWORD_PATH.id]: {
-      definition: SWIFT_SWORD_PATH,
-      behaviorIds: SWIFT_NODES.map((node) => node.id),
-      projectCombat: projectLingxiaoCombat,
-      resolveAbility: resolveLingxiaoAbility,
-      createSelectionStrategy: (tacticId) => new LingxiaoSwiftSelectionStrategy(tacticId),
-    },
-    [HEAVY_SWORD_PATH.id]: {
-      definition: HEAVY_SWORD_PATH,
-      behaviorIds: HEAVY_NODES.map((node) => node.id),
-      projectCombat: projectLingxiaoCombat,
-      resolveAbility: resolveLingxiaoAbility,
-      createSelectionStrategy: (tacticId) => new LingxiaoHeavySelectionStrategy(tacticId),
-    },
+    [LINGXIAO_SWIFT_PATH_MODULE.definition.id]: LINGXIAO_SWIFT_PATH_MODULE,
+    [LINGXIAO_HEAVY_PATH_MODULE.definition.id]: LINGXIAO_HEAVY_PATH_MODULE,
   },
-  trial: {
-    methods: { 'lingxiao-canon': 10, 'sword-guidance': 10 },
-    abilityLoadout: ['guiding-sword', 'linked-edge', null, null],
-    opponentName: '凌霄试剑木人',
+  compileBase: compileLingxiaoBase,
+  checkAdmission(context) {
+    return LINGXIAO_SECT.raceIds.includes(context.playerRace)
+      ? { allowed: true }
+      : { allowed: false, reason: '当前种族无法拜入凌霄剑宗' };
   },
-  projectCombat(context) {
-    const path = context.sect.paths.find((entry) => entry.pathId === context.sect.activePathId);
-    const pathModule = path ? this.paths[path.pathId] : undefined;
-    const projection = pathModule?.projectCombat(context) ?? projectLingxiaoCombat(context);
-    if (!projection) return null;
-    if (path && pathModule) {
-      projection.selectionStrategy = pathModule.createSelectionStrategy(path.tacticId);
-    }
-    return projection;
-  },
-  resolveAbility(context) {
-    const path = context.sect.paths.find((entry) => entry.pathId === context.sect.activePathId);
-    return (path ? this.paths[path.pathId]?.resolveAbility(context) : undefined)
-      ?? resolveLingxiaoAbility(context);
+  createTrialScenario({ cultivator }) {
+    const borrowedSect: CultivatorSectState = {
+      membershipId: 'trial',
+      sectId: LINGXIAO_SECT.id,
+      status: 'active',
+      contribution: 0,
+      configVersion: LINGXIAO_SECT.configVersion,
+      methods: { ...LINGXIAO_TRIAL.methods },
+      paths: [],
+      abilityLoadout: [...LINGXIAO_TRIAL.abilityLoadout],
+    };
+    return {
+      trainee: { ...cultivator, sect: borrowedSect, skills: [] },
+      opponent: {
+        ...cultivator,
+        id: `${cultivator.id ?? 'cultivator'}-${LINGXIAO_SECT.id}-trial`,
+        name: LINGXIAO_TRIAL.opponentName,
+        sect: undefined,
+        skills: [],
+      },
+    };
   },
 };

@@ -7,6 +7,8 @@ import {
   sectPathProgress,
 } from '@server/lib/drizzle/schema';
 import { describe, expect, it, vi } from 'vitest';
+import { createSectRuntime } from '@shared/engine/sect';
+import { FIXTURE_SECT_MODULE } from '@shared/engine/sect/testing/fixtureSect';
 import { hydrateSectAbilitySlots, loadCultivatorSectState, replaceAbilityLoadout } from './sectRepository';
 
 describe('loadCultivatorSectState', () => {
@@ -62,6 +64,40 @@ describe('loadCultivatorSectState', () => {
       experiencedAt: '2026-07-13T00:00:00.000Z',
     });
     expect(maxActiveQueries).toBe(1);
+  });
+
+  it('hydrates an isolated second sect through its injected runtime validator', async () => {
+    const rowsByTable = new Map<unknown, unknown[]>([
+      [sectMemberships, [{
+        id: 'fixture-membership', cultivatorId: 'cultivator-1', sectId: 'fixture-sect', status: 'active',
+        experiencedAt: null, joinedAt: null, activePathId: null, contribution: 30, configVersion: 1,
+      }]],
+      [sectMethodProgress, [
+        { methodId: 'fixture-method-1', level: 1 },
+        { methodId: 'fixture-method-2', level: 1 },
+      ]],
+      [sectPathProgress, []],
+      [sectMeridianLoadouts, []],
+      [sectAbilityLoadouts, [{ slot: 1, abilityId: 'fixture-ability-2' }]],
+    ]);
+    const tx = {
+      select: () => ({
+        from: (table: unknown) => {
+          const query = {
+            where: () => query,
+            limit: () => query,
+            then: (resolve: (value: unknown[]) => unknown) => Promise.resolve(rowsByTable.get(table) ?? []).then(resolve),
+          };
+          return query;
+        },
+      }),
+    } as unknown as DbTransaction;
+
+    const runtime = createSectRuntime([FIXTURE_SECT_MODULE]);
+    await expect(loadCultivatorSectState('cultivator-1', tx, runtime)).resolves.toMatchObject({
+      sectId: 'fixture-sect',
+      abilityLoadout: ['fixture-ability-2', null, null, null],
+    });
   });
 });
 

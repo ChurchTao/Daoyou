@@ -5,21 +5,14 @@ import { AbilityType, AttributeType, BuffType, DamageSource, DamageType, Modifie
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { REALM_ORDER, type RealmType } from '@shared/types/constants';
 import {
-  HEAVY_SWORD_PATH_ID,
-  LINGXIAO_ABILITY_BY_ID,
-  LINGXIAO_SECT,
   LINGXIAO_SECT_ID,
-  SWIFT_SWORD_PATH_ID,
 } from './lingxiao';
-import { projectSectMethodModifiers } from './methodModifiers';
-import { isAbilityUnlocked } from './progression';
 import type {
   CultivatorSectPathState,
   CultivatorSectState,
-  ResolvedSectAbility,
-  SectAbilityId,
   SectAbilityRole,
-  SectCombatProjection,
+  SectCompiledBuild,
+  SectProjectionContext,
 } from './types';
 
 export const LINGXIAO_SWORD_MOMENTUM = 'sect.lingxiao.sword-momentum';
@@ -46,7 +39,7 @@ const HEAVY_LINKED_MOUNTAINS = 'sect.lingxiao.heavy.linked-mountains';
 const HEAVY_ECHO_COOLDOWN = 'sect.lingxiao.heavy.echo-cooldown';
 const DAMAGE_MODIFIER_PRIORITY = EventPriorityLevel.DAMAGE_REQUEST + 1;
 
-interface BuiltAbility {
+export interface BuiltAbility {
   config: AbilityConfig;
   detailRows: string[];
   notes: string[];
@@ -224,20 +217,11 @@ function active(args: {
   };
 }
 
-function activePath(sect: CultivatorSectState): CultivatorSectPathState | undefined {
-  return sect.paths.find((path) => path.pathId === sect.activePathId);
-}
-
-function activeNodes(pathState: CultivatorSectPathState | undefined): Set<string> {
-  if (!pathState) return new Set();
-  return new Set(pathState.meridianLoadouts.find((loadout) => loadout.slot === pathState.activeMeridianSlot)?.nodeIds ?? []);
-}
-
 function manaCost(realm: RealmType, weight: number): number {
   return Math.round((8 + 4 * REALM_ORDER[realm]) * weight);
 }
 
-function baseAbilities(sect: CultivatorSectState, realm: RealmType): Record<string, BuiltAbility> {
+export function baseAbilities(sect: CultivatorSectState, realm: RealmType): Record<string, BuiltAbility> {
   const resourceId = LINGXIAO_SWORD_MOMENTUM;
   return {
     'plain-sword': {
@@ -427,14 +411,6 @@ function buildHeavy(sect: CultivatorSectState, realm: RealmType, path: Cultivato
   return built;
 }
 
-function buildAll(sect: CultivatorSectState, realm: RealmType): { abilities: Record<string, BuiltAbility>; path?: CultivatorSectPathState; nodes: Set<string> } {
-  const path = activePath(sect);
-  const nodes = activeNodes(path);
-  if (path?.pathId === SWIFT_SWORD_PATH_ID) return { abilities: buildSwift(sect, realm, path, nodes), path, nodes };
-  if (path?.pathId === HEAVY_SWORD_PATH_ID) return { abilities: buildHeavy(sect, realm, path, nodes), path, nodes };
-  return { abilities: baseAbilities(sect, realm), path, nodes };
-}
-
 function passive(slug: string, name: string, pathId: string, listeners: NonNullable<AbilityConfig['listeners']>): AbilityConfig {
   return {
     slug,
@@ -445,35 +421,34 @@ function passive(slug: string, name: string, pathId: string, listeners: NonNulla
   };
 }
 
-function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<string>): AbilityConfig[] {
-  if (!path) return [];
-  const values: AbilityConfig[] = [];
-  const isSwift = path.pathId === SWIFT_SWORD_PATH_ID;
-  const resourceId = isSwift ? LINGXIAO_SWORD_MOMENTUM : LINGXIAO_HEAVY_POSTURE;
-  const finisherTag = GameplayTags.ABILITY.SECT.FINISHER;
-  const generatorTag = GameplayTags.ABILITY.SECT.GENERATOR;
+type AddPassive = (id: string, name: string, listeners: NonNullable<AbilityConfig['listeners']>) => void;
 
-  const addPassive = (
-    id: string,
-    name: string,
-    listeners: NonNullable<AbilityConfig['listeners']>,
-  ) => values.push(passive(`sect.lingxiao.${id}`, name, path.pathId, listeners));
-
-  const probingId = isSwift ? 'swift-probing-edge' : 'heavy-testing-frame';
+function addCommonNodePassives(args: {
+  nodes: Set<string>;
+  resourceId: string;
+  probingId: string;
+  probingName: string;
+  probingStatus: EffectConfig;
+  hiddenId: string;
+  hiddenName: string;
+  borrowedId: string;
+  borrowedName: string;
+  addPassive: AddPassive;
+}) {
+  const { nodes, resourceId, probingId, probingName, probingStatus, hiddenId, hiddenName, borrowedId, borrowedName, addPassive } = args;
   if (nodes.has(probingId)) {
-    addPassive(probingId, isSwift ? '试锋' : '试架', [{
+    addPassive(probingId, probingName, [{
       id: `sect.lingxiao.${probingId}.counter`, eventType: GameplayTags.EVENT.SKILL_CAST, scope: GameplayTags.SCOPE.OWNER_AS_CASTER, priority: 0,
       mapping: { caster: 'owner', target: 'event.target' },
       effects: [{ type: 'turn_state_counter', conditions: [
         { type: 'ability_has_tag', params: { tag: GameplayTags.ABILITY.SECT.ability(LINGXIAO_SECT_ID, 'plain-sword') } },
         { type: 'is_hit', params: {} },
-      ], params: { key: `sect.lingxiao.${probingId}`, event: 'damage_dealt', threshold: 2, resetOnTrigger: true, effects: [resource(resourceId, 1), isSwift ? swordMark() : armorRend()] } }],
+      ], params: { key: `sect.lingxiao.${probingId}`, event: 'damage_dealt', threshold: 2, resetOnTrigger: true, effects: [resource(resourceId, 1), probingStatus] } }],
     }]);
   }
 
-  const hiddenId = isSwift ? 'swift-hidden-edge' : 'heavy-hidden-weight';
   if (nodes.has(hiddenId)) {
-    addPassive(hiddenId, isSwift ? '藏锋' : '藏重', [{
+    addPassive(hiddenId, hiddenName, [{
       id: `sect.lingxiao.${hiddenId}.first-hit`,
       eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
@@ -488,9 +463,8 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
     }]);
   }
 
-  const borrowedId = isSwift ? 'swift-borrowed-force' : 'heavy-borrowed-weight';
   if (nodes.has(borrowedId)) {
-    addPassive(borrowedId, isSwift ? '借势' : '借重', [{
+    addPassive(borrowedId, borrowedName, [{
       id: `sect.lingxiao.${borrowedId}.damage`, eventType: GameplayTags.EVENT.DAMAGE_TAKEN, scope: GameplayTags.SCOPE.OWNER_AS_TARGET, priority: 0,
       mapping: { caster: 'owner', target: 'owner' },
       budget: { maxTriggers: 1, reset: 'round' },
@@ -498,8 +472,23 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
       effects: [resource(resourceId, 1)],
     }]);
   }
+}
 
-  if (isSwift && nodes.has('swift-opening')) {
+function swiftNodePassives(path: CultivatorSectPathState, nodes: Set<string>): AbilityConfig[] {
+  const values: AbilityConfig[] = [];
+  const resourceId = LINGXIAO_SWORD_MOMENTUM;
+  const finisherTag = GameplayTags.ABILITY.SECT.FINISHER;
+  const generatorTag = GameplayTags.ABILITY.SECT.GENERATOR;
+  const addPassive: AddPassive = (id, name, listeners) =>
+    values.push(passive(`sect.lingxiao.${id}`, name, path.pathId, listeners));
+  addCommonNodePassives({
+    nodes, resourceId,
+    probingId: 'swift-probing-edge', probingName: '试锋', probingStatus: swordMark(),
+    hiddenId: 'swift-hidden-edge', hiddenName: '藏锋',
+    borrowedId: 'swift-borrowed-force', borrowedName: '借势', addPassive,
+  });
+
+  if (nodes.has('swift-opening')) {
     addPassive('swift-opening', '疾起', [{
       id: 'sect.lingxiao.swift-opening.speed',
       eventType: 'BattleInitEvent',
@@ -514,7 +503,7 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
     }]);
   }
 
-  if (isSwift && nodes.has('swift-retained-force')) {
+  if (nodes.has('swift-retained-force')) {
     addPassive('swift-retained-force', '留势', [{
       id: 'sect.lingxiao.swift-retained-force.overflow',
       eventType: GameplayTags.EVENT.COMBAT_RESOURCE_CHANGE,
@@ -528,7 +517,7 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
     }]);
   }
 
-  if (isSwift && nodes.has('swift-guarded-edge')) {
+  if (nodes.has('swift-guarded-edge')) {
     addPassive('swift-guarded-edge', '守锋', [
       {
         id: 'sect.lingxiao.swift-guarded-edge.skip', eventType: GameplayTags.EVENT.CONTROLLED_SKIP, scope: GameplayTags.SCOPE.OWNER_AS_ACTOR, priority: 0,
@@ -544,7 +533,7 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
     ]);
   }
 
-  if (isSwift && nodes.has('swift-gapless')) {
+  if (nodes.has('swift-gapless')) {
     addPassive('swift-gapless', '无隙', [{
       id: 'sect.lingxiao.swift-gapless.bonus', eventType: GameplayTags.EVENT.COMBAT_RESOURCE_CHANGE, scope: GameplayTags.SCOPE.OWNER_AS_TARGET, priority: 0,
       mapping: { caster: 'owner', target: 'owner' }, effects: [counter(SWIFT_GAPLESS, 'reset', {
@@ -554,7 +543,7 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
     }]);
   }
 
-  if (isSwift && (nodes.has('swift-still-tide') || nodes.has('swift-life-chasing'))) {
+  if (nodes.has('swift-still-tide') || nodes.has('swift-life-chasing')) {
     const listeners: NonNullable<AbilityConfig['listeners']> = [];
     if (nodes.has('swift-still-tide')) {
       listeners.push(
@@ -581,7 +570,7 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
     addPassive('swift-finisher-modifiers', '快剑收束', listeners);
   }
 
-  if (isSwift && (nodes.has('swift-linked-city') || nodes.has('swift-endless-flow'))) {
+  if (nodes.has('swift-linked-city') || nodes.has('swift-endless-flow')) {
     addPassive('swift-round-counters', '剑流轮转', [{
       id: 'sect.lingxiao.swift-round-counters.reset', eventType: GameplayTags.EVENT.ROUND_START, scope: GameplayTags.SCOPE.GLOBAL, priority: 0,
       mapping: { caster: 'owner', target: 'owner' }, effects: [
@@ -591,7 +580,24 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
     }]);
   }
 
-  if (!isSwift && nodes.has('heavy-retained-frame')) {
+  return values;
+}
+
+function heavyNodePassives(path: CultivatorSectPathState, nodes: Set<string>): AbilityConfig[] {
+  const values: AbilityConfig[] = [];
+  const resourceId = LINGXIAO_HEAVY_POSTURE;
+  const finisherTag = GameplayTags.ABILITY.SECT.FINISHER;
+  const generatorTag = GameplayTags.ABILITY.SECT.GENERATOR;
+  const addPassive: AddPassive = (id, name, listeners) =>
+    values.push(passive(`sect.lingxiao.${id}`, name, path.pathId, listeners));
+  addCommonNodePassives({
+    nodes, resourceId,
+    probingId: 'heavy-testing-frame', probingName: '试架', probingStatus: armorRend(),
+    hiddenId: 'heavy-hidden-weight', hiddenName: '藏重',
+    borrowedId: 'heavy-borrowed-weight', borrowedName: '借重', addPassive,
+  });
+
+  if (nodes.has('heavy-retained-frame')) {
     addPassive('heavy-retained-frame', '留架', [
       {
         id: 'sect.lingxiao.heavy-retained-frame.reset', eventType: GameplayTags.EVENT.ACTION_PRE, scope: GameplayTags.SCOPE.GLOBAL, priority: 1,
@@ -608,7 +614,7 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
     ]);
   }
 
-  if (!isSwift && nodes.has('heavy-unmoved')) {
+  if (nodes.has('heavy-unmoved')) {
     addPassive('heavy-unmoved', '不移', [
       {
         id: 'sect.lingxiao.heavy-unmoved.skip', eventType: GameplayTags.EVENT.CONTROLLED_SKIP, scope: GameplayTags.SCOPE.OWNER_AS_ACTOR, priority: 0,
@@ -624,7 +630,7 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
     ]);
   }
 
-  if (!isSwift && nodes.has('heavy-linked-mountains')) {
+  if (nodes.has('heavy-linked-mountains')) {
     addPassive('heavy-linked-mountains', '连山', [{
       id: 'sect.lingxiao.heavy-linked-mountains.bonus', eventType: GameplayTags.EVENT.COMBAT_RESOURCE_CHANGE, scope: GameplayTags.SCOPE.OWNER_AS_TARGET, priority: 0,
       mapping: { caster: 'owner', target: 'owner' }, effects: [counter(HEAVY_LINKED_MOUNTAINS, 'reset', {
@@ -634,7 +640,7 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
     }]);
   }
 
-  if (!isSwift && (nodes.has('heavy-steady-mountain') || nodes.has('heavy-ending-life'))) {
+  if (nodes.has('heavy-steady-mountain') || nodes.has('heavy-ending-life')) {
     const listeners: NonNullable<AbilityConfig['listeners']> = [];
     if (nodes.has('heavy-steady-mountain')) {
       listeners.push(
@@ -669,7 +675,7 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
     addPassive('heavy-finisher-modifiers', '重剑收束', listeners);
   }
 
-  if (!isSwift && (nodes.has('heavy-aftershock') || nodes.has('heavy-mountain-river-echo'))) {
+  if (nodes.has('heavy-aftershock') || nodes.has('heavy-mountain-river-echo')) {
     addPassive('heavy-round-counters', '山势轮转', [{
       id: 'sect.lingxiao.heavy-round-counters.reset', eventType: GameplayTags.EVENT.ROUND_START, scope: GameplayTags.SCOPE.GLOBAL, priority: 0,
       mapping: { caster: 'owner', target: 'owner' }, effects: [
@@ -681,56 +687,58 @@ function nodePassives(path: CultivatorSectPathState | undefined, nodes: Set<stri
   return values;
 }
 
-export function projectLingxiaoCombat(args: { sect: CultivatorSectState; realm: RealmType }): SectCombatProjection | null {
-  const { sect } = args;
-  if (sect.status !== 'active' || sect.sectId !== LINGXIAO_SECT_ID) return null;
-  const { abilities: built, path, nodes } = buildAll(sect, args.realm);
-  const defaultAttack = built['plain-sword'].config;
-  const abilities = sect.abilityLoadout
-    .filter((id): id is string => id !== null && id !== 'plain-sword' && isAbilityUnlocked(LINGXIAO_SECT, id, sect))
-    .map((id) => built[id]?.config)
-    .filter((config): config is AbilityConfig => Boolean(config));
-  abilities.push(...nodePassives(path, nodes));
+export function compileLingxiaoBase(context: SectProjectionContext): SectCompiledBuild {
   return {
-    defaultAttack,
-    abilities,
-    methodModifiers: projectSectMethodModifiers(sect, LINGXIAO_SECT),
-    resources: path?.pathId === HEAVY_SWORD_PATH_ID
-      ? [{ id: LINGXIAO_HEAVY_POSTURE, name: '剑架', initial: nodes.has('heavy-opening') ? 2 : 0, max: 6 }]
-      : [{
-          id: LINGXIAO_SWORD_MOMENTUM,
-          name: '剑势',
-          initial: nodes.has('swift-opening') ? 2 : 0,
-          max: path ? 6 : 3,
-          decayOnNoDirectDamage: 1,
-          decayOnControlledSkip: nodes.has('swift-guarded-edge') ? 0 : 1,
-          pauseDecayWhileShielded: true,
-          pauseDecayWhenCounterAtLeast: nodes.has('swift-still-tide')
-            ? { key: SWIFT_IDLE_ACTIONS, value: 2 }
-            : undefined,
-        }],
+    defaultAbilityId: 'plain-sword',
+    abilities: baseAbilities(context.sect, context.realm),
+    resources: [{
+      id: LINGXIAO_SWORD_MOMENTUM,
+      name: '剑势',
+      initial: 0,
+      max: 3,
+      decayOnNoDirectDamage: 1,
+      decayOnControlledSkip: 1,
+      pauseDecayWhileShielded: true,
+    }],
+    passives: [],
   };
 }
 
-export function resolveLingxiaoAbility(args: { abilityId: SectAbilityId; sect: CultivatorSectState; realm: RealmType }): ResolvedSectAbility {
-  const definition = LINGXIAO_ABILITY_BY_ID.get(args.abilityId);
-  if (!definition) throw new Error(`未知凌霄神通: ${args.abilityId}`);
-  const { abilities } = buildAll(args.sect, args.realm);
-  const built = abilities[args.abilityId];
-  if (!built) throw new Error(`凌霄神通未能投影: ${args.abilityId}`);
-  const minimumRealm = definition.unlockLevel > 0 ? `${definition.unlockLevel}级` : '';
+export function compileLingxiaoSwift(
+  context: SectProjectionContext,
+  path: CultivatorSectPathState,
+  nodes: ReadonlySet<string>,
+): SectCompiledBuild {
+  const nodeSet = new Set(nodes);
   return {
-    id: definition.id,
-    name: built.config.name,
-    baseName: definition.baseName,
-    role: definition.role,
-    summary: definition.description,
-    unlocked: isAbilityUnlocked(LINGXIAO_SECT, definition.id, args.sect),
-    unlockRequirements: [`${LINGXIAO_SECT.methods.find((method) => method.id === definition.methodId)?.name}${minimumRealm}`],
-    manaCost: built.config.mpCost ?? 0,
-    cooldown: built.config.cooldown ?? 0,
-    detailRows: built.detailRows,
-    notes: built.notes,
-    config: built.config,
+    defaultAbilityId: 'plain-sword',
+    abilities: buildSwift(context.sect, context.realm, path, nodeSet),
+    resources: [{
+      id: LINGXIAO_SWORD_MOMENTUM,
+      name: '剑势',
+      initial: nodeSet.has('swift-opening') ? 2 : 0,
+      max: 6,
+      decayOnNoDirectDamage: 1,
+      decayOnControlledSkip: nodeSet.has('swift-guarded-edge') ? 0 : 1,
+      pauseDecayWhileShielded: true,
+      pauseDecayWhenCounterAtLeast: nodeSet.has('swift-still-tide')
+        ? { key: SWIFT_IDLE_ACTIONS, value: 2 }
+        : undefined,
+    }],
+    passives: swiftNodePassives(path, nodeSet),
+  };
+}
+
+export function compileLingxiaoHeavy(
+  context: SectProjectionContext,
+  path: CultivatorSectPathState,
+  nodes: ReadonlySet<string>,
+): SectCompiledBuild {
+  const nodeSet = new Set(nodes);
+  return {
+    defaultAbilityId: 'plain-sword',
+    abilities: buildHeavy(context.sect, context.realm, path, nodeSet),
+    resources: [{ id: LINGXIAO_HEAVY_POSTURE, name: '剑架', initial: nodeSet.has('heavy-opening') ? 2 : 0, max: 6 }],
+    passives: heavyNodePassives(path, nodeSet),
   };
 }

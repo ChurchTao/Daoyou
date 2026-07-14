@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { productionSectRuntime } from './catalog';
+import { LINGXIAO_MODULE } from './lingxiaoModule';
 import { projectSectCombat, resolveSectAbility } from './runtime';
 import type { CultivatorSectState } from './types';
 
@@ -36,5 +38,40 @@ describe('宗门注册投影', () => {
     expect(projection.selectionStrategy).toBeDefined();
     expect(resolveSectAbility({ sect, realm: '化神', abilityId: 'linked-edge' }).name).toBe('叠山式');
     expect(resolveSectAbility({ sect, realm: '化神', abilityId: 'sect-ultimate' }).name).toBe('开天断岳');
+  });
+
+  it('快剑与重剑的三十六个节点都产生可观察的独立编译结果', () => {
+    for (const path of LINGXIAO_MODULE.definition.paths) {
+      const pathId = path.id as 'swift-sword' | 'heavy-sword';
+      const baseline = JSON.stringify(productionSectRuntime.compiler.compile(
+        LINGXIAO_MODULE,
+        { sect: state(pathId), realm: '化神' },
+      ));
+      for (const node of path.nodes) {
+        const compiled = productionSectRuntime.compiler.compile(
+          LINGXIAO_MODULE,
+          { sect: state(pathId, [node.id]), realm: '化神' },
+        );
+        expect(JSON.stringify(compiled), node.id).not.toBe(baseline);
+      }
+    }
+  });
+
+  it.each([
+    ['swift-sword', {
+      'plain-sword': '平剑式', 'guiding-sword': '追风式', 'linked-edge': '流光三叠',
+      'turning-body': '回燕式', 'breaking-edge': '一线天', 'sword-aegis': '剑罡护体',
+      'shadow-step': '踏影', 'sect-ultimate': '刹那无痕', 'nurturing-sword': '剑息养锋',
+    }],
+    ['heavy-sword', {
+      'plain-sword': '沉锋式', 'guiding-sword': '提岳式', 'linked-edge': '叠山式',
+      'turning-body': '横岳式', 'breaking-edge': '破岳式', 'sword-aegis': '镇山剑罡',
+      'shadow-step': '踏岳式', 'sect-ultimate': '开天断岳', 'nurturing-sword': '抱剑养锋',
+    }],
+  ] as const)('%s 独立编译九个稳定基础法术变体', (pathId, expectedNames) => {
+    const sect = state(pathId);
+    for (const [abilityId, name] of Object.entries(expectedNames)) {
+      expect(resolveSectAbility({ sect, realm: '化神', abilityId }).name).toBe(name);
+    }
   });
 });

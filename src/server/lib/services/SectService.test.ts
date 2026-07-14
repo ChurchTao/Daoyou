@@ -10,6 +10,10 @@ const { loadSectMock, replaceAbilityLoadoutMock } = vi.hoisted(() => ({
 vi.mock('@server/lib/repositories/sectRepository', () => ({
   loadCultivatorSectState: loadSectMock,
   replaceAbilityLoadout: replaceAbilityLoadoutMock,
+  postgresSectRepository: {
+    loadCultivatorSectState: loadSectMock,
+    replaceAbilityLoadout: replaceAbilityLoadoutMock,
+  },
 }));
 
 import { SectService } from './SectService';

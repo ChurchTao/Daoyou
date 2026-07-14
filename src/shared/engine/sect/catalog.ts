@@ -1,4 +1,5 @@
 import { LINGXIAO_MODULE } from './lingxiaoModule';
-import { createSectRegistry } from './registry';
+import { createSectRuntime } from './runtimeFactory';
 
-export const sectRegistry = createSectRegistry([LINGXIAO_MODULE]);
+export const productionSectRuntime = createSectRuntime([LINGXIAO_MODULE]);
+export const sectRegistry = productionSectRuntime.registry;

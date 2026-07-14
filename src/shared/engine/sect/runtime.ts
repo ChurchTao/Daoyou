@@ -1,21 +1,8 @@
-import { sectRegistry } from './catalog';
-import type { CultivatorSectState, ResolvedSectAbility, SectCombatProjection } from './types';
+import { productionSectRuntime } from './catalog';
+import type { CultivatorSectState } from './types';
 import type { RealmType } from '@shared/types/constants';
+export { createSectRuntime, type SectRuntime } from './runtimeFactory';
 
-export function projectSectCombat(args: { sect: CultivatorSectState; realm: RealmType }): SectCombatProjection | null {
-  sectRegistry.validateState(args.sect);
-  return sectRegistry.require(args.sect.sectId).projectCombat(args);
-}
-
-export function resolveSectAbility(args: {
-  sect: CultivatorSectState;
-  realm: RealmType;
-  abilityId: string;
-}): ResolvedSectAbility {
-  sectRegistry.validateState(args.sect);
-  return sectRegistry.require(args.sect.sectId).resolveAbility(args);
-}
-
-export function validateSectState(state: CultivatorSectState): void {
-  sectRegistry.validateState(state);
-}
+export const projectSectCombat = (args: { sect: CultivatorSectState; realm: RealmType }) => productionSectRuntime.projectCombat(args);
+export const resolveSectAbility = (args: { sect: CultivatorSectState; realm: RealmType; abilityId: string }) => productionSectRuntime.resolveAbility(args);
+export const validateSectState = (state: CultivatorSectState) => productionSectRuntime.validateState(state);
