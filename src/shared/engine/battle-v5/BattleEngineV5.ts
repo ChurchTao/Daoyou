@@ -5,6 +5,7 @@ import {
   ActionPostEvent,
   ActionPreEvent,
   ControlledSkipEvent,
+  SkillPreCastEvent,
 } from './core/events';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { AttributeType, CombatPhase } from './core/types';
@@ -19,7 +20,15 @@ import {
 } from './systems/state/types';
 import { VictorySystem } from './systems/VictorySystem';
 import { Unit } from './units/Unit';
-import { beginRuntimeAction, setRuntimeRound } from './core/runtimeState';
+import {
+  beginRuntimeAction,
+  consumeQueuedAction,
+  consumeSkippedAction,
+  setRuntimeRound,
+  shouldTickBuffDuration,
+} from './core/runtimeState';
+import { AbilityFactory } from './factories/AbilityFactory';
+import { executeEffectConfigs } from './core/effectExecutor';
 
 export interface BattleResult {
   winner: string;
@@ -204,7 +213,16 @@ export class BattleEngineV5 {
       // ===== 控制状态检查 =====
       // 禁行动：包括紧傅标签（向后兼容）和新式 NO_ACTION 标签
       const controlTag = this.getSkipControlTag(actor);
+      const skippedAction = consumeSkippedAction(actor);
       if (controlTag) {
+        // 控制会取消正在等待的后发攻击；若同时处于调息，只消耗这一次行动。
+        const cancelledQueue = consumeQueuedAction(actor);
+        if (cancelledQueue?.cancelEffects.length) {
+          executeEffectConfigs(cancelledQueue.cancelEffects, {
+            caster: actor,
+            target: actor,
+          });
+        }
         this._eventBus.publish<ControlledSkipEvent>({
           type: 'ControlledSkipEvent',
           timestamp: Date.now(),
@@ -212,6 +230,10 @@ export class BattleEngineV5 {
           controlTag,
         });
         this.finalizeActorTurn(actor, true);
+        continue;
+      }
+      if (skippedAction) {
+        this.finalizeActorTurn(actor, false);
         continue;
       }
       // 设置当前出手单位
@@ -223,12 +245,25 @@ export class BattleEngineV5 {
         actor.abilities.setDefaultTarget(target);
       }
 
-      // 发布行动事件，触发整个技能流程
-      this._eventBus.publish<ActionEvent>({
-        type: 'ActionEvent',
-        timestamp: Date.now(),
-        caster: actor,
-      });
+      const queuedAction = consumeQueuedAction(actor);
+      if (queuedAction && target.isAlive()) {
+        const queuedAbility = AbilityFactory.create(queuedAction.ability);
+        this._eventBus.publish<SkillPreCastEvent>({
+          type: 'SkillPreCastEvent',
+          timestamp: Date.now(),
+          caster: actor,
+          target,
+          ability: queuedAbility,
+          isInterrupted: false,
+        });
+      } else {
+        // 发布行动事件，触发整个技能流程
+        this._eventBus.publish<ActionEvent>({
+          type: 'ActionEvent',
+          timestamp: Date.now(),
+          caster: actor,
+        });
+      }
 
       // 清除默认目标
       actor.abilities.clearDefaultTarget();
@@ -283,6 +318,7 @@ export class BattleEngineV5 {
   private processBuffs(unit: Unit): void {
     const buffs = unit.buffs.getAllBuffs();
     for (const buff of buffs) {
+      if (!shouldTickBuffDuration(unit, buff)) continue;
       buff.tickDuration();
       if (buff.isExpired()) {
         unit.buffs.removeBuffExpired(buff.id);

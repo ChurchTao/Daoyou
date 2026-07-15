@@ -7,49 +7,24 @@ import { heavySwordBuild } from '../HeavySwordBuildFacade';
 
 export const HEAVY_ULTIMATE_NODES = [
   createLingxiaoNode(
-    {
-      id: 'heavy-heaven-cleaving',
-      layerId: 'ultimate',
-      name: '开天',
-      description: '开天断岳提高至3.5物攻、无视防御且冷却增加1回合。',
-    },
+    { id: 'heavy-heaven-cleaving', layerId: 'ultimate', name: '开天', description: '6势时总倍率提高至4.00，30%穿防，冷却增加1回合。' },
     (_context, builder) => heavySwordBuild(builder).enable('heavenCleaving'),
   ),
   createLingxiaoNode(
-    {
-      id: 'heavy-immovable-mountain',
-      layerId: 'ultimate',
-      name: '不动如山',
-      description: '镇山剑罡护盾提高50%，护盾存在时每次姿态可反击一次。',
-    },
+    { id: 'heavy-immovable-mountain', layerId: 'ultimate', name: '不动如山', description: '山河守心额外给予1.00物攻护盾，持续期间每回合可反击0.60物攻一次。' },
     (_context, builder) => heavySwordBuild(builder).enable('immovableMountain'),
   ),
   createLingxiaoNode(
-    {
-      id: 'heavy-mountain-river-echo',
-      layerId: 'ultimate',
-      name: '山河回响',
-      description: '收束后恢复气血并获得护盾，每3回合一次。',
-    },
+    { id: 'heavy-mountain-river-echo', layerId: 'ultimate', name: '山河回响', description: '收束后恢复5%最大气血并获得0.80物攻护盾，每3回合一次。' },
     (context, builder) => {
       heavySwordBuild(builder).enable('mountainRiverEcho');
       addLingxiaoPassive(context, builder, {
-        id: 'heavy-mountain-river-echo-round',
-        name: '山河回响',
-        listeners: [
-          {
-            id: 'sect.lingxiao.heavy-mountain-river-echo-round.tick',
-            eventType: GameplayTags.EVENT.ROUND_START,
-            scope: GameplayTags.SCOPE.GLOBAL,
-            priority: 0,
-            mapping: { caster: 'owner', target: 'owner' },
-            effects: [
-              sectEffects.modifyCounter(HEAVY_ECHO_COOLDOWN, 'subtract', {
-                amount: 1,
-              }),
-            ],
-          },
-        ],
+        id: 'heavy-mountain-river-echo', name: '山河回响', listeners: [{
+          id: 'sect.lingxiao.heavy.echo.tick', eventType: GameplayTags.EVENT.ROUND_START,
+          scope: GameplayTags.SCOPE.GLOBAL, priority: 0,
+          mapping: { caster: 'owner', target: 'owner' },
+          effects: [sectEffects.modifyCounter(HEAVY_ECHO_COOLDOWN, 'subtract', { amount: 1 })],
+        }],
       });
     },
   ),

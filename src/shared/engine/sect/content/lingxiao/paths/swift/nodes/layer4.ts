@@ -9,8 +9,8 @@ export const SWIFT_LAYER_4_NODES = [
     {
       id: 'swift-mountain-breaking',
       layerId: '4',
-      name: '破岳一线',
-      description: '一线天消费剑痕产生无视防御的附加物理伤害。',
+      name: '破妄',
+      description: '刹那无痕消费剑痕，每层追加0.18物攻穿防伤害。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('mountainBreaking'),
   ),
@@ -18,13 +18,13 @@ export const SWIFT_LAYER_4_NODES = [
     {
       id: 'swift-life-chasing',
       layerId: '4',
-      name: '追命一线',
-      description: '目标气血低于25%时收束伤害提高30%。',
+      name: '追命',
+      description: '目标气血低于25%时收束伤害提高25%。',
     },
     (context, builder) =>
       addLingxiaoPassive(context, builder, {
         id: 'swift-life-chasing',
-        name: '追命一线',
+        name: '追命',
         listeners: [
           {
             id: 'sect.lingxiao.swift-life-chasing.damage',
@@ -35,7 +35,7 @@ export const SWIFT_LAYER_4_NODES = [
             effects: [
               {
                 type: 'percent_damage_modifier',
-                params: { mode: 'increase', value: 0.3 },
+                params: { mode: 'increase', value: 0.25 },
                 conditions: [
                   {
                     type: 'ability_has_tag',
@@ -56,8 +56,8 @@ export const SWIFT_LAYER_4_NODES = [
     {
       id: 'swift-sheathing',
       layerId: '4',
-      name: '归鞘一线',
-      description: '收束伤害降低20%，返还1点剑势并获得护盾。',
+      name: '归鞘',
+      description: '收束伤害降低15%，返还1点剑势并获得0.50物攻护盾。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('sheathing'),
   ),

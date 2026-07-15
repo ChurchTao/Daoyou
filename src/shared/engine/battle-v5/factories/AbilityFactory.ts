@@ -67,6 +67,13 @@ export class AbilityFactory {
         });
       }
 
+      if (config.castEffects) {
+        config.castEffects.forEach((effCfg) => {
+          const effect = this.createEffect(effCfg);
+          if (effect) skill.addCastEffect(effect);
+        });
+      }
+
       if (config.listeners) {
         config.listeners.forEach((listener) => {
           this.assertListenerContract(listener);
@@ -202,6 +209,7 @@ export class AbilityFactory {
   } {
     const queue: EffectConfig[] = [
       ...(config.effects ?? []),
+      ...(config.castEffects ?? []),
       ...(config.listeners?.flatMap((listener) => listener.effects) ?? []),
     ];
     const damageChannels = new Set<'magic' | 'physical' | 'true'>();
@@ -241,6 +249,17 @@ export class AbilityFactory {
           break;
         }
 
+        case 'resource_scaled_damage':
+          hasDamage = true;
+          damageChannels.add(
+            effect.params.damageType === DamageType.TRUE
+              ? 'true'
+              : effect.params.damageType === DamageType.MAGICAL
+                ? 'magic'
+                : 'physical',
+          );
+          break;
+
         case 'tag_trigger':
           if (effect.params.effects && effect.params.effects.length > 0) {
             queue.push(...effect.params.effects);
@@ -258,7 +277,12 @@ export class AbilityFactory {
             hasHeal = true;
           } else if (effect.params.releaseAs !== 'shield') {
             hasDamage = true;
-            damageChannels.add('true');
+            damageChannels.add(
+              effect.params.releaseAs === 'counter' ||
+                effect.params.releaseAs === 'follow_up'
+                ? 'physical'
+                : 'true',
+            );
           }
           break;
 
@@ -302,6 +326,7 @@ export class AbilityFactory {
     const intents = new Set<NonNullable<AbilitySelectionProfile['intents']>[number]>();
     const effects = [
       ...(config.effects ?? []),
+      ...(config.castEffects ?? []),
       ...(config.listeners?.flatMap((listener) => listener.effects) ?? []),
     ];
 
@@ -317,6 +342,7 @@ export class AbilityFactory {
 
       switch (effect.type) {
         case 'damage':
+        case 'resource_scaled_damage':
         case 'tag_trigger':
         case 'hp_sacrifice_damage':
           intents.add('damage');

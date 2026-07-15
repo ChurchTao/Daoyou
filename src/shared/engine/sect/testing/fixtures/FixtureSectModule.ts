@@ -67,6 +67,7 @@ const baseDefinition: SectDefinitionWithoutPaths = {
   description: '仅用于验证宗门横向扩展。',
   raceIds: ['human'],
   configVersion: 1,
+  combatResource: { id: 'fixture.resource', name: '专注', max: 18 },
   trial: { name: '样例试炼', description: '验证模块试炼场景。' },
   methods,
   abilities,
@@ -132,14 +133,16 @@ const firstPath = new FixturePathModule(
     id: 'fixture-first-path',
     name: '第一流派',
     description: '第一测试流派',
+    minRealm: '筑基',
+    minRealmStage: '初期',
     layers: layers.map((layer) => ({ ...layer })),
     defaultTacticId: 'fixture-first-tactic',
     tactics: [
       { id: 'fixture-first-tactic', name: '第一战术', description: '测试战术' },
     ],
   },
-  'fixture-first-resource',
-  '第一资源',
+  'fixture.resource',
+  '专注',
   'fixture-first',
 );
 
@@ -148,6 +151,8 @@ const secondPath = new FixturePathModule(
     id: 'fixture-second-path',
     name: '第二流派',
     description: '第二测试流派',
+    minRealm: '筑基',
+    minRealmStage: '初期',
     layers: layers.map((layer) => ({ ...layer })),
     defaultTacticId: 'fixture-second-tactic',
     tactics: [
@@ -158,8 +163,8 @@ const secondPath = new FixturePathModule(
       },
     ],
   },
-  'fixture-second-resource',
-  '第二资源',
+  'fixture.resource',
+  '专注',
   'fixture-second',
 );
 
@@ -213,6 +218,12 @@ class FixtureSectModule extends BaseSectModule {
         }),
       );
     }
+    builder.setResource({
+      id: this.definition.combatResource.id,
+      name: this.definition.combatResource.name,
+      initial: 0,
+      max: this.definition.combatResource.max,
+    });
   }
 }
 

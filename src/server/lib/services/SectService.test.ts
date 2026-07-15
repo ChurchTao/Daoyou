@@ -32,7 +32,7 @@ function activeSect(): CultivatorSectState {
     sectId: 'lingxiao',
     status: 'active',
     contribution: 0,
-    configVersion: 3,
+    configVersion: 4,
     paths: [],
     methods: { 'lingxiao-canon': 30, 'sword-guidance': 30, 'void-step': 30 },
     abilityLoadout: ['guiding-sword', 'linked-edge', 'turning-body', null],
@@ -82,14 +82,16 @@ describe('SectService.unlockPathLayer', () => {
     cultivationExp: number;
     comprehensionInsight: number;
     stones: number;
+    realm?: '炼气' | '筑基';
+    stage?: '初期';
   }) {
     let state = fixtureSectState();
     const spendTrainingResources = vi.fn(async () => true);
     const repository = {
       loadCultivatorSectState: vi.fn(async () => state),
       loadCultivatorProgress: vi.fn(async () => ({
-        realm: '筑基',
-        stage: '初期',
+        realm: resources.realm ?? '筑基',
+        stage: resources.stage ?? '初期',
         playerRace: 'human',
         ...resources,
       })),
@@ -181,5 +183,26 @@ describe('SectService.unlockPathLayer', () => {
       spiritStones: 20,
     });
     expect(getState().activePathId).toBe('fixture-first-path');
+  });
+
+  it('rejects learning a path before 筑基初期 even with sufficient resources', async () => {
+    const { service, spendTrainingResources } = setupProgress({
+      cultivationExp: 100,
+      comprehensionInsight: 100,
+      stones: 100,
+      realm: '炼气',
+      stage: '初期',
+    });
+    await expect(
+      service.unlockPathLayer(
+        {
+          cultivatorId: 'fixture-cultivator',
+          pathId: 'fixture-first-path',
+          layerId: 'foundation',
+        },
+        tx,
+      ),
+    ).rejects.toMatchObject({ code: 'SECT_REALM_GATE' });
+    expect(spendTrainingResources).not.toHaveBeenCalled();
   });
 });

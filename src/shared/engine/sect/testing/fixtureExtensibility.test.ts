@@ -56,7 +56,7 @@ describe('第二宗门扩展闭环', () => {
                 },
                 (context, builder) => {
                   builder.updateResource(
-                    'fixture-third-resource',
+                    'fixture.resource',
                     (resource) => ({
                       ...resource,
                       initial: context.activeNodeIds.size,
@@ -72,8 +72,8 @@ describe('第二宗门扩展闭环', () => {
         builder: SectBuildBuilder,
       ): void {
         builder.clearResources().setResource({
-          id: 'fixture-third-resource',
-          name: '第三资源',
+          id: 'fixture.resource',
+          name: '专注',
           initial: 0,
           max: 18,
         });
@@ -134,7 +134,7 @@ describe('第二宗门扩展闭环', () => {
     ];
     const projection = runtime.projectCombat({ sect: state, realm: '筑基' });
     expect(projection?.resources[0]).toMatchObject({
-      id: 'fixture-second-resource',
+      id: 'fixture.resource',
       initial: 1,
     });
     expect(projection?.selectionStrategy).toBeDefined();
@@ -157,6 +157,10 @@ describe('第二宗门扩展闭环', () => {
       },
     ];
     const repository = {
+      loadCultivatorProgress: vi.fn(async () => ({
+        realm: '筑基', stage: '初期', stones: 0, cultivationExp: 0,
+        comprehensionInsight: 0, playerRace: 'human',
+      })),
       loadCultivatorSectState: vi.fn(async () => state),
       listMemberships: vi.fn(async () => [
         { sectId: state.sectId, status: state.status },
@@ -382,7 +386,7 @@ describe('第二宗门扩展闭环', () => {
     ]);
     expect(
       runtime.projectCombat({ sect: state!, realm: '筑基' })?.resources[0].id,
-    ).toBe('fixture-second-resource');
+    ).toBe('fixture.resource');
   });
 
   it('直接请求试炼时仍执行模块准入策略', () => {

@@ -18,7 +18,7 @@ export const SWIFT_LAYER_5_NODES = [
       id: 'swift-gapless',
       layerId: '5',
       name: '无隙',
-      description: '收束后下一次追风式不耗法力并额外获得1点剑势。',
+      description: '收束后下一次追风引不耗法力并额外获得1点剑势。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('gapless');

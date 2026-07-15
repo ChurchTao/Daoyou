@@ -139,6 +139,8 @@ export interface DamageRequestEvent extends CombatEvent {
   damageSource?: DamageSource;
   damageType?: DamageType;
   damageComponents?: DamageComponent[];
+  /** 强制暴击；仍由 DamageSystem 读取施法者暴击倍率。 */
+  forceCritical?: boolean;
   baseDamage: number; // 基础伤害（未修正）
   finalDamage: number; // 最终伤害（可被增伤修正）
   // 同乘区加算桶：同一次伤害事件内累加，统一在 DamageSystem 中一次结算
@@ -225,6 +227,7 @@ export interface ShieldBreakEvent extends CombatEvent {
   buff?: Buff;
   brokenShieldAmount: number;
   overflowDamage: number;
+  damageSource?: DamageSource;
 }
 
 // ===== 冷却修改事件 =====

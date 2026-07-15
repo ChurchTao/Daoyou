@@ -109,7 +109,7 @@ const activeSect = {
   sectId: 'lingxiao',
   status: 'active',
   contribution: 30,
-  configVersion: 3,
+  configVersion: 4,
   activePathId: 'swift-sword',
   methods: { 'lingxiao-canon': 5, 'sword-guidance': 5 },
   paths: [

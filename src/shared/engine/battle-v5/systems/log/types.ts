@@ -29,7 +29,7 @@ export interface DamageEntryData {
   isCritical: boolean;
   targetName: string;
   sourceBuff?: string;
-  damageSource?: 'direct' | 'reflect';
+  damageSource?: 'direct' | 'reflect' | 'counter' | 'follow_up';
   reflectSourceName?: string;
   shieldAbsorbed?: number;
   remainShield?: number;

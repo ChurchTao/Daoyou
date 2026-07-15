@@ -86,6 +86,8 @@ export interface SectPathDefinition {
   id: SectPathId;
   name: string;
   description: string;
+  minRealm: RealmType;
+  minRealmStage: RealmStage;
   defaultTacticId: SectTacticId;
   layers: SectPathLayerDefinition[];
   nodes: SectMeridianNodeDefinition[];
@@ -110,6 +112,7 @@ export interface SectDefinition {
   trial: { name: string; description: string };
   raceIds: PlayerRaceId[];
   configVersion: number;
+  combatResource: { id: string; name: string; max: number };
   methods: SectHeartMethodDefinition[];
   abilities: SectAbilityDefinition[];
   paths: SectPathDefinition[];

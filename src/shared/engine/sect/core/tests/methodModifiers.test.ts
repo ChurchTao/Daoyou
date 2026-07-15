@@ -11,7 +11,7 @@ const state: CultivatorSectState = {
   sectId: 'lingxiao',
   status: 'active',
   contribution: 0,
-  configVersion: 3,
+  configVersion: 4,
   methods: { 'sword-guidance': 100, 'sword-nurturing': 100 },
   paths: [],
   abilityLoadout: [null, null, null, null],

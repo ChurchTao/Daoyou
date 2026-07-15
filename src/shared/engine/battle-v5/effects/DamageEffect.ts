@@ -112,16 +112,21 @@ export class DamageEffect extends GameplayEffect {
       ability,
       buff, // 传递 buff
       damageSource:
-        context.triggerEvent?.type === 'DamageTakenEvent'
+        this.params.damageSource ??
+        (context.triggerEvent?.type === 'DamageTakenEvent'
           ? DamageSource.REFLECT
-          : DamageSource.DIRECT,
+          : DamageSource.DIRECT),
       damageType:
         this.params.damageType ??
         (transform?.trueDamage ? DamageType.TRUE : this.inferDamageType(buff)),
       damageComponents,
       baseDamage: damage,
       finalDamage: damage, // 初始终伤等于基伤，由后续系统修正
-      isCritical: transform?.forceCritical ? true : undefined,
+      forceCritical: this.params.forceCritical || transform?.forceCritical,
+      isCritical:
+        this.params.forceCritical || transform?.forceCritical
+          ? true
+          : undefined,
     });
 
     if (transform?.addDispel && !transform.addDispelApplied) {

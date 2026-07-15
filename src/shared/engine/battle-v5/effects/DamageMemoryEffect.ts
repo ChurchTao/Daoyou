@@ -91,6 +91,12 @@ export class DamageMemoryEffect extends GameplayEffect {
           }
         }
         break;
+      case 'counter':
+        this.publishDamage(context.caster, context.target, amount, DamageSource.COUNTER);
+        break;
+      case 'follow_up':
+        this.publishDamage(context.caster, context.target, amount, DamageSource.FOLLOW_UP);
+        break;
       case 'damage':
       default:
         this.publishDamage(
@@ -128,7 +134,23 @@ export class DamageMemoryEffect extends GameplayEffect {
       caster,
       target,
       damageSource,
-      damageType: DamageType.TRUE,
+      damageType:
+        damageSource === DamageSource.COUNTER ||
+        damageSource === DamageSource.FOLLOW_UP
+          ? DamageType.PHYSICAL
+          : DamageType.TRUE,
+      damageComponents: [
+        {
+          kind: 'memory',
+          amount,
+          mitigation:
+            damageSource === DamageSource.COUNTER ||
+            damageSource === DamageSource.FOLLOW_UP
+              ? 'normal'
+              : 'bypass_defense',
+          defenseScale: 1,
+        },
+      ],
       baseDamage: amount,
       finalDamage: amount,
     });
@@ -151,6 +173,9 @@ export class DamageMemoryEffect extends GameplayEffect {
     }
     if (event.type !== 'DamageTakenEvent') return 0;
     const damageEvent = event as DamageTakenEvent;
+    if (this.params.event === 'shield_absorbed') {
+      return damageEvent.shieldAbsorbed ?? 0;
+    }
     if (this.params.event === 'critical_taken' && !damageEvent.isCritical) {
       return 0;
     }

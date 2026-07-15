@@ -67,6 +67,7 @@ export class SectCompiler {
     }
 
     const build = this.finalizePresentation(module.definition, builder.build());
+    this.assertCombatResourceContract(module.definition, build);
     this.assertAbilityContracts(build);
     return build;
   }
@@ -177,5 +178,25 @@ export class SectCompiler {
       AbilityFactory.create(ability.config);
     }
     for (const passive of build.passives) AbilityFactory.create(passive);
+  }
+
+  private assertCombatResourceContract(
+    definition: SectDefinition,
+    build: SectCompiledBuild,
+  ): void {
+    const expected = definition.combatResource;
+    if (build.resources.length !== 1) {
+      throw new Error(`宗门 ${definition.id} 编译结果必须且只能包含一个战斗资源`);
+    }
+    const actual = build.resources[0];
+    if (
+      actual.id !== expected.id ||
+      actual.name !== expected.name ||
+      actual.max !== expected.max
+    ) {
+      throw new Error(
+        `宗门 ${definition.id} 流派不得修改战斗资源ID、名称或上限`,
+      );
+    }
   }
 }

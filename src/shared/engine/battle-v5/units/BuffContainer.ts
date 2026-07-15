@@ -7,7 +7,7 @@ import {
   BuffRemovedEvent,
 } from '../core/events';
 import { EventBus } from '../core/EventBus';
-import { rememberRemovedBuff } from '../core/runtimeState';
+import { markBuffAppliedAtCurrentAction, rememberRemovedBuff } from '../core/runtimeState';
 
 /**
  * BuffContainer - Buff 容器
@@ -48,6 +48,7 @@ export class BuffContainer {
     if (existing) {
       const appliedBuff = this._applyStackRule(existing, buff, source);
       if (appliedBuff) {
+        markBuffAppliedAtCurrentAction(this._owner, appliedBuff);
         this._publishAppliedEvent(appliedBuff, source);
       }
       return;
@@ -66,6 +67,7 @@ export class BuffContainer {
 
     // 3.3 调用激活方法（子类在此订阅事件、添加标签等）
     buff.onActivate();
+    markBuffAppliedAtCurrentAction(this._owner, buff);
 
     // 3.4 更新派生属性
     this._owner.updateDerivedStats();

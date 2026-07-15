@@ -5,7 +5,8 @@ import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { LINGXIAO_SECT_ID } from '../ids';
 
 export const LINGXIAO_SWORD_MOMENTUM = 'sect.lingxiao.sword-momentum';
-export const LINGXIAO_HEAVY_POSTURE = 'sect.lingxiao.heavy-posture';
+/** @deprecated 重剑与快剑统一使用宗门剑势。 */
+export const LINGXIAO_HEAVY_POSTURE = LINGXIAO_SWORD_MOMENTUM;
 export const LINGXIAO_SWORD_MARK_BUFF = 'sect.lingxiao.sword-mark';
 export const LINGXIAO_ARMOR_REND_BUFF = 'sect.lingxiao.armor-rend';
 export const LINGXIAO_RETURNING_SWALLOW_BUFF =
@@ -63,7 +64,7 @@ export function createArmorRend(): EffectConfig {
       buffConfig: {
         id: LINGXIAO_ARMOR_REND_BUFF,
         name: '裂甲',
-        description: '重剑震裂护体气机，可被破岳式利用。',
+        description: '重剑震裂护体气机。',
         type: BuffType.DEBUFF,
         duration: 2,
         stackRule: StackRule.STACK_LAYER,

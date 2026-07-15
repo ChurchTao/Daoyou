@@ -15,6 +15,7 @@ import {
   type SectPathLayerDefinition,
 } from '@shared/engine/sect';
 import type { RealmStage, RealmType } from '@shared/types/constants';
+import { getRealmStageRank } from '@shared/config/realmProgression';
 import { useState } from 'react';
 import { sectJsonRequest, type SectAction } from './types';
 
@@ -99,6 +100,20 @@ function PathPanel({
     )?.nodeIds ?? [],
   );
   const [showUnlock, setShowUnlock] = useState(false);
+  const realmLocked =
+    getRealmStageRank(realm, stage) <
+    getRealmStageRank(path.minRealm, path.minRealmStage);
+  if (realmLocked) {
+    return (
+      <InkCard>
+        <strong>{path.name}</strong>
+        <p className="text-ink-secondary mt-2 text-sm leading-6">
+          {path.description}
+        </p>
+        <p className="text-crimson mt-3 text-sm">筑基初期后可参悟</p>
+      </InkCard>
+    );
+  }
   const progress = getPathProgress({
     path,
     unlockedLayerIds: state?.unlockedLayerIds ?? [],

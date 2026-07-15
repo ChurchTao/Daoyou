@@ -6,6 +6,7 @@ import {
   resolveSectAbility,
 } from '../..';
 import type { CultivatorSectState } from '../../../core';
+import { listUnlockedAbilityIds } from '../../../core';
 
 function state(
   pathId?: 'swift-sword' | 'heavy-sword',
@@ -16,7 +17,7 @@ function state(
     sectId: 'lingxiao',
     status: 'active',
     contribution: 0,
-    configVersion: 3,
+    configVersion: 4,
     activePathId: pathId,
     methods: {
       'lingxiao-canon': 100,
@@ -51,6 +52,17 @@ function state(
 }
 
 describe('宗门注册投影', () => {
+  it('炼气初期心法上限可解锁除绝式外全部基础神通，10级开放万剑归一', () => {
+    const early = state();
+    early.methods = Object.fromEntries(
+      Object.keys(early.methods).map((methodId) => [methodId, 5]),
+    );
+    expect(listUnlockedAbilityIds(LINGXIAO_MODULE.definition, early)).toHaveLength(8);
+    expect(listUnlockedAbilityIds(LINGXIAO_MODULE.definition, early)).not.toContain('sect-ultimate');
+    early.methods['lingxiao-canon'] = 10;
+    expect(listUnlockedAbilityIds(LINGXIAO_MODULE.definition, early)).toContain('sect-ultimate');
+  });
+
   it('凌霄两条流派各自保持六层且每层三个节点', () => {
     for (const path of LINGXIAO_MODULE.definition.paths) {
       expect(path.layers).toHaveLength(6);
@@ -64,8 +76,8 @@ describe('宗门注册投影', () => {
 
   it('未激活流派使用基础剑势和基础法术', () => {
     const projection = projectSectCombat({ sect: state(), realm: '筑基' })!;
-    expect(projection.resources[0]).toMatchObject({ name: '剑势', max: 3 });
-    expect(projection.defaultAttack?.name).toBe('平剑式');
+    expect(projection.resources[0]).toMatchObject({ id: 'sect.lingxiao.sword-momentum', name: '剑势', max: 6 });
+    expect(projection.defaultAttack?.name).toBe('问锋');
   });
 
   it('快剑道通过统一解析器生成变体与节点效果', () => {
@@ -82,9 +94,9 @@ describe('宗门注册投影', () => {
       realm: '化神',
       abilityId: 'linked-edge',
     });
-    expect(detail.name).toBe('分光五叠');
-    expect(detail.summary).toContain('5段 × 0.27物攻');
-    expect(detail.detailRows).toContain('伤害：5段 × 0.27物攻');
+    expect(detail.name).toBe('分光七叠');
+    expect(detail.summary).toContain('7段 × 0.27');
+    expect(detail.detailRows).toContain('伤害：7段 × 0.27物攻');
     expect(
       projection.abilities.find(
         (ability) => ability.slug === detail.config.slug,
@@ -92,11 +104,12 @@ describe('宗门注册投影', () => {
     ).toEqual(detail.config);
   });
 
-  it('重剑道拥有独立资源、技能变体和策略', () => {
+  it('重剑道沿用宗门剑势并生成独立技能变体和策略', () => {
     const sect = state('heavy-sword', ['heavy-opening', 'heavy-triple-ridge']);
     const projection = projectSectCombat({ sect, realm: '化神' })!;
     expect(projection.resources[0]).toMatchObject({
-      name: '剑架',
+      id: 'sect.lingxiao.sword-momentum',
+      name: '剑势',
       initial: 2,
       max: 6,
     });
@@ -104,11 +117,11 @@ describe('宗门注册投影', () => {
     expect(
       resolveSectAbility({ sect, realm: '化神', abilityId: 'linked-edge' })
         .name,
-    ).toBe('叠山式');
+    ).toBe('一剑沉山');
     expect(
       resolveSectAbility({ sect, realm: '化神', abilityId: 'sect-ultimate' })
         .name,
-    ).toBe('开天断岳');
+    ).toBe('开天一线');
   });
 
   it('快剑与重剑的三十六个节点都产生可观察的独立编译结果', () => {
@@ -153,29 +166,29 @@ describe('宗门注册投影', () => {
     [
       'swift-sword',
       {
-        'plain-sword': '平剑式',
-        'guiding-sword': '追风式',
-        'linked-edge': '流光三叠',
-        'turning-body': '回燕式',
-        'breaking-edge': '一线天',
-        'sword-aegis': '剑罡护体',
-        'shadow-step': '踏影',
+        'plain-sword': '流光问锋',
+        'guiding-sword': '追风引',
+        'linked-edge': '流光五叠',
+        'turning-body': '回燕',
+        'breaking-edge': '一线破妄',
+        'sword-aegis': '流风护心',
+        'shadow-step': '无痕步',
         'sect-ultimate': '刹那无痕',
-        'nurturing-sword': '剑息养锋',
+        'nurturing-sword': '剑走轻灵',
       },
     ],
     [
       'heavy-sword',
       {
-        'plain-sword': '沉锋式',
-        'guiding-sword': '提岳式',
-        'linked-edge': '叠山式',
-        'turning-body': '横岳式',
-        'breaking-edge': '破岳式',
-        'sword-aegis': '镇山剑罡',
-        'shadow-step': '踏岳式',
-        'sect-ultimate': '开天断岳',
-        'nurturing-sword': '抱剑养锋',
+        'plain-sword': '负岳问锋',
+        'guiding-sword': '擎岳引',
+        'linked-edge': '一剑沉山',
+        'turning-body': '不动藏锋',
+        'breaking-edge': '撼山破障',
+        'sword-aegis': '山河守心',
+        'shadow-step': '镇岳步',
+        'sect-ultimate': '开天一线',
+        'nurturing-sword': '重意无锋',
       },
     ],
   ] as const)('%s 独立编译九个稳定基础法术变体', (pathId, expectedNames) => {

@@ -100,7 +100,7 @@ describe('CultivatorDisplayAdapter', () => {
       sectId: 'lingxiao',
       status: 'active',
       contribution: 0,
-      configVersion: 3,
+      configVersion: 4,
       methods: { 'lingxiao-canon': 100 },
       paths: [],
       abilityLoadout: [null, null, null, null],

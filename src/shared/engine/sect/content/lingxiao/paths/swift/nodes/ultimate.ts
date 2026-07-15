@@ -10,14 +10,14 @@ export const SWIFT_ULTIMATE_NODES = [
     {
       id: 'swift-endless-flow',
       layerId: 'ultimate',
-      name: '无间剑流',
+      name: '无间',
       description: '收束后追加0.6物攻追击并获得1点剑势，每3回合一次。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('endlessFlow');
       addLingxiaoPassive(context, builder, {
         id: 'swift-endless-flow-round',
-        name: '无间剑流',
+        name: '无间',
         listeners: [
           {
             id: 'sect.lingxiao.swift-endless-flow-round.tick',
@@ -39,8 +39,8 @@ export const SWIFT_ULTIMATE_NODES = [
     {
       id: 'swift-shadow-line',
       layerId: 'ultimate',
-      name: '绝影一线',
-      description: '一线天改为满6剑势强击，强制暴击且冷却增加1回合。',
+      name: '绝影',
+      description: '6势收束全部段必定暴击，冷却增加1回合。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('shadowLine'),
   ),
@@ -48,8 +48,8 @@ export const SWIFT_ULTIMATE_NODES = [
     {
       id: 'swift-unending-wind',
       layerId: 'ultimate',
-      name: '回风不息',
-      description: '回燕反击施加剑痕并获得护盾，每次姿态最多一次。',
+      name: '回风',
+      description: '每次回燕姿态首次闪避获得0.40物攻护盾并留1层剑痕。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('unendingWind'),
   ),

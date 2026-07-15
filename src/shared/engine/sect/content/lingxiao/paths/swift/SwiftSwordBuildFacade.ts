@@ -53,7 +53,6 @@ export class SwiftSwordBuildFacade {
       max: 6,
       decayOnNoDirectDamage: 1,
       decayOnControlledSkip: this.features.guardedEdge ? 0 : 1,
-      pauseDecayWhileShielded: true,
       pauseDecayWhenCounterAtLeast: this.features.stillTide
         ? { key: SWIFT_IDLE_ACTIONS, value: 2 }
         : undefined,

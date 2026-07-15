@@ -557,7 +557,7 @@ describe('DamageSystem direct mitigation', () => {
 
     expect(requests).toHaveLength(1);
     expect(requests[0].damageComponents).toEqual([
-      { kind: 'base', amount: 40, mitigation: 'normal' },
+      { kind: 'base', amount: 40, mitigation: 'normal', defenseScale: 1 },
       {
         kind: 'targetMaxHpRatio',
         amount: defender.getMaxHp() * 0.1,

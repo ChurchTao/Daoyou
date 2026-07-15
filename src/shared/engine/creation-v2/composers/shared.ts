@@ -83,7 +83,7 @@ export function buildCreationListenerGuard(
 
   return {
     ...guard,
-    skipReflectSource: true,
+    skipSecondaryDamageSource: true,
   };
 }
 

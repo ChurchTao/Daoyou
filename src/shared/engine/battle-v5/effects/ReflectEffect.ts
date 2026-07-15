@@ -24,8 +24,12 @@ export class ReflectEffect extends GameplayEffect {
 
     const damageTakenEvent = triggerEvent as DamageTakenEvent;
 
-    // 反伤不应再次触发反伤，否则双方都有反伤时会形成链式回弹。
-    if (damageTakenEvent.damageSource === 'reflect') {
+    // 二次伤害不再触发反伤，避免反伤、反击、追击之间形成闭环。
+    if (
+      damageTakenEvent.damageSource === DamageSource.REFLECT ||
+      damageTakenEvent.damageSource === DamageSource.COUNTER ||
+      damageTakenEvent.damageSource === DamageSource.FOLLOW_UP
+    ) {
       return;
     }
 

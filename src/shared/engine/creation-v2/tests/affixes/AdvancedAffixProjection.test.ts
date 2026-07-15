@@ -335,7 +335,7 @@ describe('advanced affix projection and rehydrate', () => {
     expect(bloodDrinker.listeners?.[0]).toMatchObject({
       eventType: 'DamageTakenEvent',
       scope: 'owner_as_caster',
-      guard: { skipReflectSource: true },
+      guard: { skipSecondaryDamageSource: true },
       effects: [{ type: 'resource_drain' }],
     });
 
@@ -351,7 +351,7 @@ describe('advanced affix projection and rehydrate', () => {
     expect(spiritBreakingAwl.listeners?.[0]).toMatchObject({
       eventType: 'DamageTakenEvent',
       scope: 'owner_as_caster',
-      guard: { skipReflectSource: true },
+      guard: { skipSecondaryDamageSource: true },
       effects: [{ type: 'mana_burn' }],
     });
 
@@ -361,7 +361,7 @@ describe('advanced affix projection and rehydrate', () => {
     expect(banBreakingEdge.listeners?.[0]).toMatchObject({
       eventType: 'DamageTakenEvent',
       scope: 'owner_as_caster',
-      guard: { skipReflectSource: true },
+      guard: { skipSecondaryDamageSource: true },
       effects: [{ type: 'dispel' }],
     });
 
@@ -380,7 +380,7 @@ describe('advanced affix projection and rehydrate', () => {
     expect(soulFallingNail.listeners?.[0]).toMatchObject({
       eventType: 'DamageTakenEvent',
       scope: 'owner_as_caster',
-      guard: { skipReflectSource: true },
+      guard: { skipSecondaryDamageSource: true },
       effects: [{ type: 'ability_lock' }],
     });
   });
@@ -400,7 +400,7 @@ describe('advanced affix projection and rehydrate', () => {
     expect(listener).toMatchObject({
       eventType: 'DamageTakenEvent',
       scope: 'owner_as_target',
-      guard: { skipReflectSource: true },
+      guard: { skipSecondaryDamageSource: true },
     });
     expect(effect).toMatchObject({
       type: 'damage_memory',

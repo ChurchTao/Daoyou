@@ -14,6 +14,7 @@ export interface ListenerRuntimeConfig {
     requireOwnerAlive: boolean;
     allowLethalWindow: boolean;
     skipReflectSource: boolean;
+    skipSecondaryDamageSource: boolean;
   };
   budget?: {
     maxTriggers: number;
@@ -99,6 +100,7 @@ export function buildListenerRuntimeConfig(config: ListenerConfig): ListenerRunt
       requireOwnerAlive: config.guard?.requireOwnerAlive ?? true,
       allowLethalWindow: config.guard?.allowLethalWindow ?? false,
       skipReflectSource: config.guard?.skipReflectSource ?? false,
+      skipSecondaryDamageSource: config.guard?.skipSecondaryDamageSource ?? false,
     },
     budget: config.budget
       ? {
@@ -180,6 +182,13 @@ export function shouldExecuteListener(
   if (runtime.guard.skipReflectSource) {
     const damageSource = (event as unknown as { damageSource?: string }).damageSource;
     if (damageSource === 'reflect') {
+      return false;
+    }
+  }
+
+  if (runtime.guard.skipSecondaryDamageSource) {
+    const damageSource = (event as unknown as { damageSource?: string }).damageSource;
+    if (damageSource === 'reflect' || damageSource === 'counter' || damageSource === 'follow_up') {
       return false;
     }
   }

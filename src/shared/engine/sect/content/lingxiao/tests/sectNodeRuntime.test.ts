@@ -27,7 +27,7 @@ function sectState(
     sectId: 'lingxiao',
     status: 'active',
     contribution: 0,
-    configVersion: 3,
+    configVersion: 4,
     activePathId: pathId,
     methods: {
       'lingxiao-canon': 100,
@@ -91,28 +91,20 @@ describe('凌霄经脉运行时语义', () => {
   beforeEach(() => EventBus.instance.reset());
   afterEach(() => EventBus.instance.reset());
 
-  it('留势只记录实际溢出且在下一次收束后返还', () => {
+  it('留痕使流光五叠施加两层剑痕', () => {
     const { owner, enemy } = install('swift-sword', ['swift-retained-force']);
-    owner.combatResources.set(LINGXIAO_SWORD_MOMENTUM, 5);
-    owner.combatResources.modify(LINGXIAO_SWORD_MOMENTUM, 3);
-
-    const finisher = owner.abilities.getAbility(
-      'sect.lingxiao.breaking-edge',
-    ) as ActiveSkill;
-    finisher.execute({ caster: owner, target: enemy });
-
-    expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(2);
+    const linked = owner.abilities.getAbility('sect.lingxiao.linked-edge') as ActiveSkill;
+    linked.execute({ caster: owner, target: enemy });
+    expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === 'sect.lingxiao.sword-mark')?.getLayer()).toBe(2);
   });
 
-  it('留架每次行动最多把2点实际溢出转换为护盾', () => {
-    const { owner } = install('heavy-sword', ['heavy-retained-frame']);
-    owner.combatResources.set(LINGXIAO_HEAVY_POSTURE, 6);
-    owner.combatResources.modify(LINGXIAO_HEAVY_POSTURE, 3);
-    const firstShield = owner.getCurrentShield();
-    owner.combatResources.modify(LINGXIAO_HEAVY_POSTURE, 3);
-
-    expect(firstShield).toBeGreaterThan(0);
-    expect(owner.getCurrentShield()).toBe(firstShield);
+  it('守心把蓄力取消补偿编译为0.60物攻护盾', () => {
+    const { sect } = install('heavy-sword', ['heavy-retained-frame']);
+    const ability = resolveSectAbility({ sect, realm: '化神', abilityId: 'turning-body' }).config;
+    const queue = ability.castEffects?.find((effect) => effect.type === 'queue_action');
+    expect(queue?.type === 'queue_action' ? queue.params.cancelEffects : []).toContainEqual(
+      expect.objectContaining({ type: 'shield' }),
+    );
   });
 
   it('回风不息的附加护盾每次回燕姿态最多触发一次', () => {
@@ -146,7 +138,7 @@ describe('凌霄经脉运行时语义', () => {
 
     expect(firstShield).toBeGreaterThan(0);
     expect(owner.getCurrentShield()).toBe(firstShield);
-    expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(2);
+    expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(1);
   });
 
   it('静潮在连续两个自身行动未收束后暂停衰减并强化下一次收束', () => {
@@ -168,7 +160,7 @@ describe('凌霄经脉运行时语义', () => {
     expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(2);
 
     const finisher = AbilityFactory.create(
-      resolveSectAbility({ sect, realm: '化神', abilityId: 'breaking-edge' })
+      resolveSectAbility({ sect, realm: '化神', abilityId: 'sect-ultimate' })
         .config,
     );
     const request: DamageRequestEvent = {
@@ -187,7 +179,7 @@ describe('凌霄经脉运行时语义', () => {
     expect(request.damageIncreasePctBucket).toBeCloseTo(0.2);
   });
 
-  it('藏重只降低整场战斗第一次直接伤害并获得3点剑架', () => {
+  it('承锋只降低整场战斗第一次直接伤害并获得2点剑势', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const { owner, enemy } = install('heavy-sword', ['heavy-hidden-weight']);
     const damageSystem = new DamageSystem();
@@ -207,14 +199,14 @@ describe('凌霄经脉运行时语义', () => {
     EventBus.instance.publish(first);
     EventBus.instance.publish(second);
 
-    expect(first.damageReductionPctBucket).toBeCloseTo(0.1);
+    expect(first.damageReductionPctBucket).toBeCloseTo(0.15);
     expect(second.damageReductionPctBucket).toBeUndefined();
     expect(first.finalDamage).toBeLessThan(second.finalDamage);
-    expect(owner.combatResources.getCurrent(LINGXIAO_HEAVY_POSTURE)).toBe(3);
+    expect(owner.combatResources.getCurrent(LINGXIAO_HEAVY_POSTURE)).toBe(2);
     damageSystem.destroy();
   });
 
-  it('横岳式把护盾施加给施法者而不是敌方目标', () => {
+  it('不动藏锋把减伤与后发登记给施法者而不立即攻击目标', () => {
     const { sect, owner, enemy } = install('heavy-sword', []);
     const turning = AbilityFactory.create(
       resolveSectAbility({ sect, realm: '化神', abilityId: 'turning-body' })
@@ -223,7 +215,8 @@ describe('凌霄经脉运行时语义', () => {
 
     turning.execute({ caster: owner, target: enemy });
 
-    expect(owner.getCurrentShield()).toBeGreaterThan(0);
+    expect(owner.buffs.getAllBuffIds()).toContain('sect.lingxiao.heavy.hidden-edge');
+    expect(owner.getCurrentShield()).toBe(0);
     expect(enemy.getCurrentShield()).toBe(0);
   });
 });

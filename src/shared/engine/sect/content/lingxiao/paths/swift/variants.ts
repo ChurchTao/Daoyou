@@ -1,11 +1,10 @@
 import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
-import type {
-  AbilityConfig,
-  EffectConfig,
-} from '@shared/engine/battle-v5/core/configs';
+import type { AbilityConfig, EffectConfig } from '@shared/engine/battle-v5/core/configs';
 import {
   AttributeType,
   BuffType,
+  DamageSource,
+  DamageType,
   ModifierType,
 } from '@shared/engine/battle-v5/core/types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
@@ -24,7 +23,6 @@ import { LINGXIAO_SECT_ID } from '../../ids';
 import {
   createSwordMark,
   LINGXIAO_RETURNING_SWALLOW_BUFF,
-  LINGXIAO_SHADOW_STEP_BUFF,
   LINGXIAO_SWORD_MARK_BUFF,
   LINGXIAO_SWORD_MOMENTUM,
   SWIFT_ENDLESS_COOLDOWN,
@@ -32,18 +30,7 @@ import {
   SWIFT_GAPLESS,
   SWIFT_IDLE_ACTIONS,
   SWIFT_LINKED_CITY_ROUND,
-  SWIFT_RETAINED_FORCE,
 } from '../../shared/LingxiaoMechanics';
-
-const damage = sectEffects.physicalDamage.bind(sectEffects);
-const healMaxHp = sectEffects.healMaxHp.bind(sectEffects);
-const shield = sectEffects.shieldByAttack.bind(sectEffects);
-const resource = sectEffects.modifyResource.bind(sectEffects);
-const consumeResource = sectEffects.consumeResource.bind(sectEffects);
-const counter = sectEffects.modifyCounter.bind(sectEffects);
-const counterCondition = sectEffects.counterCondition.bind(sectEffects);
-const swordMark = createSwordMark;
-const manaCost = calculateSectManaCost;
 
 export interface SwiftSwordFeatures {
   opening: boolean;
@@ -79,7 +66,47 @@ export const EMPTY_SWIFT_FEATURES: SwiftSwordFeatures = {
   unendingWind: false,
 };
 
-// 快剑基础变体只解释语义特征，不识别任何经脉节点 ID。
+const damage = (
+  coefficient: number,
+  conditions?: EffectConfig['conditions'],
+  bypassDefense = false,
+  damageSource: DamageSource = DamageSource.DIRECT,
+  forceCritical = false,
+): EffectConfig => ({
+  type: 'damage',
+  params: {
+    value: { attribute: AttributeType.ATK, coefficient },
+    damageType: DamageType.PHYSICAL,
+    bypassDefense,
+    damageSource,
+    forceCritical,
+  },
+  conditions,
+});
+
+const selfBuff = (
+  id: string,
+  name: string,
+  duration: number,
+  modifiers: NonNullable<NonNullable<AbilityConfig['modifiers']>>,
+  listeners?: NonNullable<AbilityConfig['listeners']>,
+): EffectConfig => ({
+  type: 'apply_buff',
+  params: {
+    target: 'caster',
+    buffConfig: {
+      id,
+      name,
+      type: BuffType.BUFF,
+      duration,
+      stackRule: StackRule.REFRESH_DURATION,
+      tags: [GameplayTags.BUFF.TYPE.BUFF],
+      modifiers,
+      listeners,
+    },
+  },
+});
+
 export function buildSwiftAbilities(
   baseBuild: Readonly<SectCompiledBuild>,
   realm: RealmType,
@@ -87,414 +114,218 @@ export function buildSwiftAbilities(
   features: SwiftSwordFeatures,
 ): Record<string, SectCompiledAbility> {
   const built = { ...baseBuild.abilities };
-  const abilityFactory = new SectAbilityFactory(LINGXIAO_SECT_ID, realm);
+  const factory = new SectAbilityFactory(LINGXIAO_SECT_ID, realm);
+  const resourceId = LINGXIAO_SWORD_MOMENTUM;
   const active = (args: {
     id: string;
     name: string;
-    mpCost: number;
+    manaWeight: number;
     cooldown: number;
     role: SectAbilityRole;
     effects: EffectConfig[];
-    pathId?: string;
     castConditions?: AbilityConfig['castConditions'];
     targetTeam?: 'enemy' | 'self';
-    heal?: boolean;
     extraTags?: string[];
-  }) => {
-    const definition = LINGXIAO_BASE_DEFINITION.abilities.find(
-      (ability) => ability.id === args.id,
-    );
-    if (!definition) throw new Error(`凌霄神通未定义: ${args.id}`);
-    return abilityFactory.active({
+  }): SectCompiledAbility => {
+    const definition = LINGXIAO_BASE_DEFINITION.abilities.find((entry) => entry.id === args.id)!;
+    return factory.active({
       ...args,
       definition,
+      pathId: path.pathId,
+      mpCost: calculateSectManaCost(realm, args.manaWeight),
       detailRows: [],
-    }).config;
+    });
   };
-  const id = LINGXIAO_SWORD_MOMENTUM;
-  const linkedHits = features.splitLight ? 5 : 3;
-  const linkedCoefficient = features.splitLight ? 0.27 : 0.42;
-  const linkedCity = features.linkedCity
-    ? [
-        counter(SWIFT_LINKED_CITY_ROUND, 'add', {
+
+  built['plain-sword'] = active({
+    id: 'plain-sword', name: '流光问锋', manaWeight: 0, cooldown: 0, role: 'generator',
+    effects: [damage(0.75), sectEffects.modifyResource(resourceId, 1)],
+  });
+
+  built['guiding-sword'] = active({
+    id: 'guiding-sword', name: '追风引', manaWeight: 1, cooldown: 0, role: 'generator',
+    effects: [
+      damage(0.9),
+      sectEffects.modifyResource(resourceId, 2),
+      damage(0.3, [{
+        type: 'attribute_compare',
+        params: { attribute: AttributeType.SPEED, left: 'caster', right: 'target', op: 'gt' },
+      }], false, DamageSource.FOLLOW_UP),
+    ],
+  });
+
+  const hits = features.splitLight ? 7 : 5;
+  const hitCoefficient = features.splitLight ? 0.27 : 0.34;
+  built['linked-edge'] = active({
+    id: 'linked-edge', name: features.splitLight ? '分光七叠' : '流光五叠', manaWeight: 1.5, cooldown: 2, role: 'combo',
+    effects: [
+      ...Array.from({ length: hits }, () => damage(hitCoefficient)),
+      sectEffects.modifyResource(resourceId, features.splitLight ? 3 : 2),
+      createSwordMark(),
+      ...(features.retainedForce ? [createSwordMark()] : []),
+      ...(features.stackingWaves ? [{
+        type: 'cooldown_modify' as const,
+        params: { cdModifyValue: -1, target: 'caster' as const, includeCurrent: true, tags: [GameplayTags.ABILITY.SECT.ability(LINGXIAO_SECT_ID, 'linked-edge')] },
+      }] : []),
+      ...(features.linkedCity ? [{
+        type: 'runtime_counter_modify' as const,
+        params: {
+          key: SWIFT_LINKED_CITY_ROUND,
+          operation: 'add' as const,
+          amount: 1,
           max: 1,
+          effects: [{
+            type: 'cooldown_modify' as const,
+            params: { cdModifyValue: -1, target: 'caster' as const, tags: [GameplayTags.ABILITY.SECT.path(LINGXIAO_SECT_ID, path.pathId)] },
+          }],
+        },
+      }] : []),
+    ],
+  });
+
+  built['turning-body'] = active({
+    id: 'turning-body', name: '回燕', manaWeight: 1.25, cooldown: 3, role: 'defensive',
+    effects: [
+      damage(0.6),
+      selfBuff(
+        LINGXIAO_RETURNING_SWALLOW_BUFF,
+        '回燕姿态',
+        2,
+        [{ attrType: AttributeType.EVASION_RATE, type: ModifierType.FIXED, value: 0.08 }],
+        [{
+          id: 'sect.lingxiao.swift.returning-swallow',
+          eventType: GameplayTags.EVENT.DODGE,
+          scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+          priority: 0,
+          mapping: { caster: 'owner', target: 'event.caster' },
+          budget: { maxTriggers: 1, reset: 'buff_lifetime' },
           effects: [
-            {
-              type: 'cooldown_modify',
-              params: {
-                cdModifyValue: -1,
-                tags: [
-                  GameplayTags.ABILITY.SECT.path(LINGXIAO_SECT_ID, path.pathId),
-                ],
-              },
-            },
+            damage(features.returningSwallow ? 0.9 : 0.6, undefined, false, DamageSource.COUNTER),
+            sectEffects.modifyResource(resourceId, 1),
+            ...(features.returningSwallow || features.unendingWind ? [createSwordMark()] : []),
+            ...(features.unendingWind ? [sectEffects.shieldByAttack(0.4, undefined, 'caster')] : []),
           ],
-        }),
-      ]
-    : [];
-  const finisherTail = (): EffectConfig[] => [
-    ...(features.retainedForce
-      ? [
-          counter(SWIFT_RETAINED_FORCE, 'reset', {
-            scaleEffectsByAmount: true,
-            effects: [resource(id, 1)],
-          }),
-        ]
-      : []),
-    ...(features.endlessFlow
-      ? [
-          counter(SWIFT_ENDLESS_COOLDOWN, 'set', {
-            amount: 3,
-            conditions: [counterCondition(SWIFT_ENDLESS_COOLDOWN, 'lt', 1)],
-            effects: [damage(0.6), resource(id, 1)],
-          }),
-        ]
-      : []),
-    ...(features.gapless
-      ? [
-          {
-            type: 'ability_transform' as const,
-            params: {
-              id: 'sect.lingxiao.gapless',
-              triggers: 1,
-              appliesToTags: [
-                GameplayTags.ABILITY.SECT.ability(
-                  LINGXIAO_SECT_ID,
-                  'guiding-sword',
-                ),
-              ],
-              freeManaCost: true,
-            },
-          },
-          counter(SWIFT_GAPLESS, 'set', { amount: 1 }),
-        ]
-      : []),
-    counter(SWIFT_FINISHER_ACTION, 'set', { amount: 1 }),
-    counter(SWIFT_IDLE_ACTIONS, 'reset'),
-  ];
-  built['plain-sword'] = {
-    config: active({
-      id: 'plain-sword',
-      name: '平剑式',
-      mpCost: 0,
-      cooldown: 0,
-      role: 'generator',
-      pathId: path.pathId,
-      effects: [damage(0.8), resource(id, 1)],
-    }),
-    detailRows: ['伤害：0.80物攻', '剑势：获得1点'],
-    notes: [],
-  };
-  built['guiding-sword'] = {
-    config: active({
-      id: 'guiding-sword',
-      name: '追风式',
-      mpCost: manaCost(realm, 1),
-      cooldown: 0,
-      role: 'generator',
-      pathId: path.pathId,
-      effects: [damage(0.9), resource(id, 2)],
-    }),
-    detailRows: ['伤害：0.90物攻', '剑势：获得2点'],
-    notes: [],
-  };
-  built['linked-edge'] = {
-    config: active({
-      id: 'linked-edge',
-      name: features.splitLight ? '分光五叠' : '流光三叠',
-      mpCost: manaCost(realm, 1.5),
-      cooldown: 2,
-      role: 'combo',
-      pathId: path.pathId,
-      effects: [
-        ...Array.from({ length: linkedHits }, () => damage(linkedCoefficient)),
-        resource(id, features.splitLight ? 3 : 2),
-        swordMark(),
-        ...(features.stackingWaves
-          ? [
-              {
-                type: 'cooldown_modify' as const,
-                params: {
-                  cdModifyValue: -1,
-                  tags: [GameplayTags.ABILITY.SECT.GENERATOR],
-                  maxCount: 1,
-                },
-              },
-            ]
-          : []),
-        ...linkedCity,
-      ],
-    }),
-    detailRows: [
-      `伤害：${linkedHits}段 × ${linkedCoefficient.toFixed(2)}物攻`,
-      `剑势：获得${features.splitLight ? 3 : 2}点`,
-      '剑痕：施加1层',
+        }],
+      ),
     ],
-    notes: features.stackingWaves ? ['叠浪：完整命中后减少产势技能冷却。'] : [],
-  };
-  const counterDamage = features.returningSwallow ? 0.825 : 0.55;
-  built['turning-body'] = {
-    config: active({
-      id: 'turning-body',
-      name: '回燕式',
-      mpCost: manaCost(realm, 1.25),
-      cooldown: 3,
-      role: 'defensive',
-      pathId: path.pathId,
-      effects: [
-        damage(0.65),
-        {
-          type: 'apply_buff',
-          params: {
-            target: 'caster',
-            buffConfig: {
-              id: LINGXIAO_RETURNING_SWALLOW_BUFF,
-              name: '回燕姿态',
-              description: '闪避后反击。',
-              type: BuffType.BUFF,
-              duration: 2,
-              stackRule: StackRule.REFRESH_DURATION,
-              tags: [
-                GameplayTags.BUFF.TYPE.BUFF,
-                GameplayTags.BUFF.SECT.namespace(
-                  LINGXIAO_SECT_ID,
-                  'ReturningSwallow',
-                ),
-              ],
-              modifiers: [
-                {
-                  attrType: AttributeType.EVASION_RATE,
-                  type: ModifierType.FIXED,
-                  value: 0.08,
-                },
-              ],
-              listeners: [
-                {
-                  id: 'sect.lingxiao.returning-swallow-counter',
-                  eventType: GameplayTags.EVENT.DODGE,
-                  scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-                  priority: 0,
-                  mapping: { caster: 'owner', target: 'event.caster' },
-                  effects: [
-                    damage(counterDamage),
-                    resource(id, 1),
-                    ...(features.returningSwallow ? [swordMark()] : []),
-                  ],
-                },
-                ...(features.unendingWind
-                  ? [
-                      ...(!features.returningSwallow
-                        ? [
-                            {
-                              id: 'sect.lingxiao.unending-wind.mark',
-                              eventType: GameplayTags.EVENT.DODGE,
-                              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-                              priority: -1,
-                              mapping: {
-                                caster: 'owner' as const,
-                                target: 'event.caster' as const,
-                              },
-                              budget: {
-                                maxTriggers: 1,
-                                reset: 'buff_lifetime' as const,
-                              },
-                              effects: [swordMark()],
-                            },
-                          ]
-                        : []),
-                      {
-                        id: 'sect.lingxiao.unending-wind.shield',
-                        eventType: GameplayTags.EVENT.DODGE,
-                        scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-                        priority: -1,
-                        mapping: {
-                          caster: 'owner' as const,
-                          target: 'owner' as const,
-                        },
-                        budget: {
-                          maxTriggers: 1,
-                          reset: 'buff_lifetime' as const,
-                        },
-                        effects: [shield(0.4)],
-                      },
-                    ]
-                  : []),
-              ],
-            },
-          },
-        },
+  });
+
+  built['shadow-step'] = active({
+    id: 'shadow-step', name: '无痕步', manaWeight: 1, cooldown: 4, role: 'defensive', targetTeam: 'self',
+    effects: [selfBuff(
+      'sect.lingxiao.swift.traceless-step',
+      '无痕步',
+      2,
+      [
+        { attrType: AttributeType.SPEED, type: ModifierType.ADD, value: 0.15 },
+        { attrType: AttributeType.EVASION_RATE, type: ModifierType.FIXED, value: 0.1 },
       ],
-    }),
-    detailRows: [
-      '伤害：0.65物攻',
-      `反击：${counterDamage.toFixed(2)}物攻`,
-      '剑势：反击获得1点',
+      [{
+        id: 'sect.lingxiao.swift.traceless-step.dodge',
+        eventType: GameplayTags.EVENT.DODGE,
+        scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+        priority: 0,
+        mapping: { caster: 'owner', target: 'owner' },
+        budget: { maxTriggers: 1, reset: 'buff_lifetime' },
+        effects: [sectEffects.modifyResource(resourceId, 1)],
+      }],
+    )],
+  });
+
+  built['breaking-edge'] = active({
+    id: 'breaking-edge', name: '一线破妄', manaWeight: 1.5, cooldown: 3, role: 'utility',
+    effects: [
+      damage(1.15),
+      { type: 'dispel', params: { targetTag: GameplayTags.BUFF.TYPE.BUFF, maxCount: 1 } },
     ],
-    notes: [],
-  };
-  const shadowLine = features.shadowLine;
-  const sheathing = features.sheathing;
-  const base = shadowLine ? 2.5 : sheathing ? 0.8 : 1;
-  const perMomentum = sheathing ? 0.2 : 0.25;
-  const breakingEffects: EffectConfig[] = [
-    ...(shadowLine
-      ? [
-          {
-            type: 'next_hit_rule' as const,
-            params: { forceCritical: true, triggers: 1 },
-          },
-        ]
-      : []),
-    damage(base),
-    ...(!shadowLine
-      ? Array.from({ length: 6 }, (_, index) =>
-          damage(perMomentum, [
-            {
-              type: 'combat_resource_at_least',
-              params: { resourceId: id, value: index + 1, scope: 'caster' },
-            },
-          ]),
-        )
-      : []),
-    {
-      type: 'consume_status_trigger',
-      params: {
-        match: { id: LINGXIAO_SWORD_MARK_BUFF },
-        consume: 'all',
-        scaleEffectsByLayer: true,
-        effects: [
-          damage(
-            features.mountainBreaking ? 0.18 : 0.1,
-            undefined,
-            features.mountainBreaking,
-          ),
-        ],
-      },
-    },
-    consumeResource(id),
-    ...(sheathing ? [resource(id, 1), shield(0.5, undefined, 'caster')] : []),
-    ...finisherTail(),
-  ];
-  built['breaking-edge'] = {
-    config: active({
-      id: 'breaking-edge',
-      name: '一线天',
-      mpCost: manaCost(realm, 1.75),
-      cooldown: 2 + (shadowLine ? 1 : 0),
-      role: 'finisher',
-      pathId: path.pathId,
-      castConditions: [
-        {
-          type: 'combat_resource_at_least',
-          params: {
-            resourceId: id,
-            value: shadowLine ? 6 : 3,
-            scope: 'caster',
-          },
+  });
+
+  built['sword-aegis'] = active({
+    id: 'sword-aegis', name: '流风护心', manaWeight: 1.25, cooldown: 5, role: 'defensive', targetTeam: 'self',
+    effects: [selfBuff('sect.lingxiao.swift.wind-heart', '流风护心', 3, [
+      { attrType: AttributeType.MAGIC_DEF, type: ModifierType.ADD, value: 0.2 },
+      { attrType: AttributeType.EVASION_RATE, type: ModifierType.FIXED, value: 0.05 },
+    ])],
+  });
+
+  built['nurturing-sword'] = active({
+    id: 'nurturing-sword', name: '剑走轻灵', manaWeight: 1.5, cooldown: 5, role: 'defensive', targetTeam: 'self',
+    effects: [selfBuff('sect.lingxiao.swift.light-sword', '剑走轻灵', 3, [
+      { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.12 },
+      { attrType: AttributeType.SPEED, type: ModifierType.ADD, value: 0.12 },
+    ])],
+  });
+
+  const sheathingScale = features.sheathing ? 0.85 : 1;
+  built['sect-ultimate'] = active({
+    id: 'sect-ultimate', name: '刹那无痕', manaWeight: 2.5, cooldown: 4 + (features.shadowLine ? 1 : 0), role: 'finisher',
+    castConditions: [{ type: 'combat_resource_at_least', params: { resourceId, value: features.shadowLine ? 6 : 3, scope: 'caster' } }],
+    effects: [
+      damage(0.4 * sheathingScale, undefined, false, DamageSource.DIRECT, features.shadowLine),
+      ...Array.from({ length: 6 }, (_, index) => damage(
+        0.42 * sheathingScale,
+        [{ type: 'combat_resource_at_least', params: { resourceId, value: index + 1, scope: 'caster' } }],
+        false,
+        DamageSource.DIRECT,
+        features.shadowLine,
+      )),
+      sectEffects.consumeResource(resourceId),
+      ...(features.mountainBreaking ? [{
+        type: 'consume_status_trigger' as const,
+        params: {
+          match: { id: LINGXIAO_SWORD_MARK_BUFF },
+          consume: 'all' as const,
+          scaleEffectsByLayer: true,
+          effects: [damage(0.18, undefined, true)],
         },
-      ],
-      effects: breakingEffects,
-    }),
-    detailRows: [
-      `伤害：${base.toFixed(2)}物攻`,
-      `释放：至少${shadowLine ? 6 : 3}点剑势`,
-      '释放后：消耗全部剑势与剑痕',
+      }] : []),
+      ...(features.sheathing ? [
+        sectEffects.modifyResource(resourceId, 1),
+        sectEffects.shieldByAttack(0.5, undefined, 'caster'),
+      ] : []),
+      ...(features.gapless ? [{
+        type: 'ability_transform' as const,
+        params: {
+          id: SWIFT_GAPLESS,
+          triggers: 1,
+          appliesToTags: [GameplayTags.ABILITY.SECT.ability(LINGXIAO_SECT_ID, 'guiding-sword')],
+          freeManaCost: true,
+        },
+      }, sectEffects.modifyCounter(SWIFT_GAPLESS, 'set', { amount: 1 })] : []),
+      ...(features.endlessFlow ? [{
+        type: 'runtime_counter_modify' as const,
+        conditions: [{ type: 'runtime_counter_compare' as const, params: { key: SWIFT_ENDLESS_COOLDOWN, op: 'lt' as const, value: 1, scope: 'caster' as const } }],
+        params: {
+          key: SWIFT_ENDLESS_COOLDOWN,
+          operation: 'set' as const,
+          amount: 3,
+          effects: [damage(0.6, undefined, false, DamageSource.FOLLOW_UP), sectEffects.modifyResource(resourceId, 1)],
+        },
+      }] : []),
+      sectEffects.modifyCounter(SWIFT_FINISHER_ACTION, 'set', { amount: 1 }),
+      sectEffects.modifyCounter(SWIFT_IDLE_ACTIONS, 'reset'),
     ],
-    notes: [],
-  };
-  built['sword-aegis'] = {
-    config: active({
-      id: 'sword-aegis',
-      name: '剑罡护体',
-      mpCost: manaCost(realm, 1.5),
-      cooldown: 3,
-      role: 'defensive',
-      targetTeam: 'self',
-      pathId: path.pathId,
-      effects: [shield(0.6)],
-    }),
-    detailRows: ['护盾：0.60物攻'],
-    notes: [],
-  };
-  built['shadow-step'] = {
-    config: active({
-      id: 'shadow-step',
-      name: '踏影',
-      mpCost: manaCost(realm, 1),
-      cooldown: 2,
-      role: 'generator',
-      pathId: path.pathId,
-      effects: [
-        damage(0.55),
-        {
-          type: 'apply_buff',
-          params: {
-            target: 'caster',
-            buffConfig: {
-              id: LINGXIAO_SHADOW_STEP_BUFF,
-              name: '踏影',
-              type: BuffType.BUFF,
-              duration: 2,
-              stackRule: StackRule.REFRESH_DURATION,
-              tags: [GameplayTags.BUFF.TYPE.BUFF],
-              modifiers: [
-                {
-                  attrType: AttributeType.SPEED,
-                  type: ModifierType.ADD,
-                  value: 0.1,
-                },
-              ],
-            },
-          },
-        },
-      ],
-    }),
-    detailRows: ['伤害：0.55物攻', '身法：提高10%'],
-    notes: [],
-  };
-  built['sect-ultimate'] = {
-    config: active({
-      id: 'sect-ultimate',
-      name: '刹那无痕',
-      mpCost: manaCost(realm, 2.5),
-      cooldown: 4,
-      role: 'finisher',
-      pathId: path.pathId,
-      castConditions: [
-        {
-          type: 'combat_resource_at_least',
-          params: { resourceId: id, value: 6, scope: 'caster' },
-        },
-      ],
-      effects: [
-        ...Array.from({ length: 6 }, () => damage(0.4)),
-        consumeResource(id),
-        resource(id, 1),
-        ...linkedCity,
-        ...finisherTail(),
-      ],
-    }),
-    detailRows: [
-      '伤害：6段 × 0.40物攻',
-      '释放：6点剑势',
-      '完整命中返还1点剑势',
-    ],
-    notes: [],
-  };
-  built['nurturing-sword'] = {
-    config: active({
-      id: 'nurturing-sword',
-      name: '剑息养锋',
-      mpCost: manaCost(realm, 1.5),
-      cooldown: 4,
-      role: 'utility',
-      targetTeam: 'self',
-      pathId: path.pathId,
-      heal: true,
-      effects: [healMaxHp(0.08), shield(0.35), resource(id, 2)],
-    }),
-    detailRows: ['恢复：8%最大气血', '护盾：0.35物攻', '剑势：获得2点'],
-    notes: [],
-  };
+  });
+
+  for (const [id, ability] of Object.entries(built)) {
+    if (ability.detailRows.length === 0) {
+      ability.detailRows = describeSwiftAbility(id, features);
+    }
+  }
   return built;
+}
+
+function describeSwiftAbility(id: string, features: SwiftSwordFeatures): string[] {
+  const rows: Record<string, string[]> = {
+    'plain-sword': ['伤害：0.75物攻', '剑势：命中获得1点'],
+    'guiding-sword': ['伤害：0.90物攻', '剑势：命中获得2点', '追击：身法高于目标时追加0.30物攻'],
+    'linked-edge': [`伤害：${features.splitLight ? '7段 × 0.27' : '5段 × 0.34'}物攻`, `剑势：命中获得${features.splitLight ? 3 : 2}点`, `剑痕：施加${features.retainedForce ? 2 : 1}层`],
+    'turning-body': ['伤害：0.60物攻', '姿态：闪避提高8个百分点', `反击：首次闪避造成${features.returningSwallow ? '0.90' : '0.60'}物攻并获得1剑势`],
+    'shadow-step': ['身法：提高15%', '闪避：提高10个百分点', '持续：未来2次自身行动', '首次闪避：获得1剑势'],
+    'breaking-edge': ['伤害：1.15物攻', '破妄：驱散1个正面状态'],
+    'sword-aegis': ['法术防御：提高20%', '闪避：提高5个百分点', '持续：未来3次自身行动'],
+    'nurturing-sword': ['物理攻击：提高12%', '身法：提高12%', '持续：未来3次自身行动'],
+    'sect-ultimate': ['伤害：0.40物攻 + 每点剑势追加一段0.42物攻', '释放：至少3点剑势', '释放后：消耗全部剑势'],
+  };
+  return rows[id] ?? [];
 }

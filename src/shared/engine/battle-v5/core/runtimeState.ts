@@ -1,6 +1,6 @@
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import { Buff } from '../buffs/Buff';
-import { EffectConfig } from './configs';
+import { AbilityConfig, EffectConfig } from './configs';
 import { Unit } from '../units/Unit';
 
 export interface DamageMemoryEntry {
@@ -40,11 +40,14 @@ export interface BattleRuntimeState {
   actionSequence: number;
   round: number;
   listenerTriggerBudgets: Map<string, { token: number; count: number }>;
+  skippedActions: Array<{ reason: string }>;
+  queuedAction?: { ability: AbilityConfig; cancelEffects: EffectConfig[] };
 }
 
 const unitState = new WeakMap<Unit, BattleRuntimeState>();
 const delayedBuffEffects = new WeakMap<Buff, EffectConfig[]>();
 const activeAbilityTransforms = new WeakMap<ActiveSkill, PendingAbilityTransform>();
+const buffAppliedAtAction = new WeakMap<Buff, number>();
 
 export function getBattleRuntimeState(unit: Unit): BattleRuntimeState {
   let state = unitState.get(unit);
@@ -63,10 +66,47 @@ export function getBattleRuntimeState(unit: Unit): BattleRuntimeState {
       actionSequence: 0,
       round: 0,
       listenerTriggerBudgets: new Map(),
+      skippedActions: [],
     };
     unitState.set(unit, state);
   }
   return state;
+}
+
+export function queueSkippedActions(unit: Unit, count: number, reason: string): void {
+  const state = getBattleRuntimeState(unit);
+  for (let i = 0; i < Math.max(0, Math.trunc(count)); i++) {
+    state.skippedActions.push({ reason });
+  }
+}
+
+export function consumeSkippedAction(unit: Unit): { reason: string } | undefined {
+  return getBattleRuntimeState(unit).skippedActions.shift();
+}
+
+export function setQueuedAction(
+  unit: Unit,
+  ability: AbilityConfig,
+  cancelEffects: EffectConfig[] = [],
+): void {
+  getBattleRuntimeState(unit).queuedAction = { ability, cancelEffects };
+}
+
+export function consumeQueuedAction(
+  unit: Unit,
+): { ability: AbilityConfig; cancelEffects: EffectConfig[] } | undefined {
+  const state = getBattleRuntimeState(unit);
+  const queued = state.queuedAction;
+  state.queuedAction = undefined;
+  return queued;
+}
+
+export function markBuffAppliedAtCurrentAction(unit: Unit, buff: Buff): void {
+  buffAppliedAtAction.set(buff, getBattleRuntimeState(unit).actionSequence);
+}
+
+export function shouldTickBuffDuration(unit: Unit, buff: Buff): boolean {
+  return buffAppliedAtAction.get(buff) !== getBattleRuntimeState(unit).actionSequence;
 }
 
 export function beginRuntimeAction(unit: Unit): void {

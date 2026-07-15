@@ -1,17 +1,18 @@
 import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
-import type {
-  AbilityConfig,
-  EffectConfig,
-} from '@shared/engine/battle-v5/core/configs';
+import type { AbilityConfig, EffectConfig } from '@shared/engine/battle-v5/core/configs';
+import { EventPriorityLevel } from '@shared/engine/battle-v5/core/events';
 import {
   AttributeType,
   BuffType,
+  DamageSource,
+  DamageType,
   ModifierType,
 } from '@shared/engine/battle-v5/core/types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import type { RealmType } from '@shared/types/constants';
 import {
   calculateSectManaCost,
+  DIRECT_DAMAGE_CONDITION,
   SectAbilityFactory,
   sectEffects,
   type CultivatorSectPathState,
@@ -22,39 +23,18 @@ import {
 import { LINGXIAO_BASE_DEFINITION } from '../../definition';
 import { LINGXIAO_SECT_ID } from '../../ids';
 import {
-  createArmorRend,
-  HEAVY_AFTERSHOCK_ROUND,
   HEAVY_ECHO_COOLDOWN,
-  HEAVY_FINISHER_ACTION,
-  HEAVY_IDLE_ACTIONS,
-  HEAVY_LINKED_MOUNTAINS,
-  LINGXIAO_ARMOR_REND_BUFF,
-  LINGXIAO_HEAVY_GUARD_BUFF,
-  LINGXIAO_HEAVY_POSTURE,
+  LINGXIAO_SWORD_MOMENTUM,
 } from '../../shared/LingxiaoMechanics';
-
-const damage = sectEffects.physicalDamage.bind(sectEffects);
-const healMaxHp = sectEffects.healMaxHp.bind(sectEffects);
-const shield = sectEffects.shieldByAttack.bind(sectEffects);
-const resource = sectEffects.modifyResource.bind(sectEffects);
-const consumeResource = sectEffects.consumeResource.bind(sectEffects);
-const counter = sectEffects.modifyCounter.bind(sectEffects);
-const counterCondition = sectEffects.counterCondition.bind(sectEffects);
-const armorRend = createArmorRend;
-const manaCost = calculateSectManaCost;
 
 export interface HeavySwordFeatures {
   opening: boolean;
-  tripleRidge: boolean;
-  shatteringArmor: boolean;
-  retainedFrame: boolean;
-  crossingPass: boolean;
-  unmoved: boolean;
-  rendingMountain: boolean;
+  chargedReduction: boolean;
+  chargedStrike: boolean;
+  chargedFailShield: boolean;
+  mountainGate: boolean;
   returningPeak: boolean;
-  aftershock: boolean;
-  linkedMountains: boolean;
-  steadyMountain: boolean;
+  rendingMountain: boolean;
   heavenCleaving: boolean;
   immovableMountain: boolean;
   mountainRiverEcho: boolean;
@@ -62,22 +42,65 @@ export interface HeavySwordFeatures {
 
 export const EMPTY_HEAVY_FEATURES: HeavySwordFeatures = {
   opening: false,
-  tripleRidge: false,
-  shatteringArmor: false,
-  retainedFrame: false,
-  crossingPass: false,
-  unmoved: false,
-  rendingMountain: false,
+  chargedReduction: false,
+  chargedStrike: false,
+  chargedFailShield: false,
+  mountainGate: false,
   returningPeak: false,
-  aftershock: false,
-  linkedMountains: false,
-  steadyMountain: false,
+  rendingMountain: false,
   heavenCleaving: false,
   immovableMountain: false,
   mountainRiverEcho: false,
 };
 
-// 重剑基础变体只解释语义特征，不识别任何经脉节点 ID。
+const damage = (
+  coefficient: number,
+  damageSource: DamageSource = DamageSource.DIRECT,
+  conditions?: EffectConfig['conditions'],
+): EffectConfig => ({
+  type: 'damage',
+  params: {
+    value: { attribute: AttributeType.ATK, coefficient },
+    damageType: DamageType.PHYSICAL,
+    damageSource,
+  },
+  conditions,
+});
+
+const selfBuff = (
+  id: string,
+  name: string,
+  duration: number,
+  modifiers: NonNullable<AbilityConfig['modifiers']>,
+  listeners?: NonNullable<AbilityConfig['listeners']>,
+): EffectConfig => ({
+  type: 'apply_buff',
+  params: {
+    target: 'caster',
+    buffConfig: {
+      id,
+      name,
+      type: BuffType.BUFF,
+      duration,
+      stackRule: StackRule.REFRESH_DURATION,
+      tags: [GameplayTags.BUFF.TYPE.BUFF],
+      modifiers,
+      listeners,
+    },
+  },
+});
+
+const reductionListeners = (value: number) => [{
+  id: `sect.lingxiao.heavy.reduction.${value}`,
+  eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+  scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+  priority: EventPriorityLevel.DAMAGE_REQUEST + 1,
+  mapping: { caster: 'owner' as const, target: 'owner' as const },
+  guard: { skipSecondaryDamageSource: true },
+  conditions: [DIRECT_DAMAGE_CONDITION],
+  effects: [{ type: 'percent_damage_modifier' as const, params: { mode: 'reduce' as const, value } }],
+}];
+
 export function buildHeavyAbilities(
   baseBuild: Readonly<SectCompiledBuild>,
   realm: RealmType,
@@ -85,377 +108,178 @@ export function buildHeavyAbilities(
   features: HeavySwordFeatures,
 ): Record<string, SectCompiledAbility> {
   const built = { ...baseBuild.abilities };
-  const abilityFactory = new SectAbilityFactory(LINGXIAO_SECT_ID, realm);
+  const factory = new SectAbilityFactory(LINGXIAO_SECT_ID, realm);
+  const resourceId = LINGXIAO_SWORD_MOMENTUM;
   const active = (args: {
     id: string;
     name: string;
-    mpCost: number;
+    manaWeight: number;
     cooldown: number;
     role: SectAbilityRole;
     effects: EffectConfig[];
-    pathId?: string;
+    castEffects?: EffectConfig[];
     castConditions?: AbilityConfig['castConditions'];
     targetTeam?: 'enemy' | 'self';
-    heal?: boolean;
-    extraTags?: string[];
-  }) => {
-    const definition = LINGXIAO_BASE_DEFINITION.abilities.find(
-      (ability) => ability.id === args.id,
-    );
-    if (!definition) throw new Error(`凌霄神通未定义: ${args.id}`);
-    return abilityFactory.active({
+  }): SectCompiledAbility => {
+    const definition = LINGXIAO_BASE_DEFINITION.abilities.find((entry) => entry.id === args.id)!;
+    return factory.active({
       ...args,
       definition,
+      pathId: path.pathId,
+      mpCost: calculateSectManaCost(realm, args.manaWeight),
       detailRows: [],
-    }).config;
+    });
   };
-  const id = LINGXIAO_HEAVY_POSTURE;
-  const linkedHits = features.tripleRidge ? 3 : 2;
-  const linkedCoefficient = features.tripleRidge ? 0.5 : 0.6;
-  const finisherTail = (): EffectConfig[] => [
-    ...(features.aftershock
-      ? [
-          counter(HEAVY_AFTERSHOCK_ROUND, 'add', {
-            max: 1,
-            effects: [
-              {
-                type: 'delayed_effect',
-                params: {
-                  id: 'sect.lingxiao.heavy-aftershock',
-                  name: '余震',
-                  delayTurns: 1,
-                  effects: [damage(0.6)],
-                },
-              },
-            ],
-          }),
-        ]
-      : []),
-    ...(features.linkedMountains
-      ? [
-          {
-            type: 'ability_transform' as const,
-            params: {
-              id: 'sect.lingxiao.linked-mountains',
-              triggers: 1,
-              appliesToTags: [GameplayTags.ABILITY.SECT.GENERATOR],
-              freeManaCost: true,
-            },
-          },
-          counter(HEAVY_LINKED_MOUNTAINS, 'set', { amount: 1 }),
-        ]
-      : []),
-    ...(features.mountainRiverEcho
-      ? [
-          counter(HEAVY_ECHO_COOLDOWN, 'set', {
-            amount: 3,
-            conditions: [counterCondition(HEAVY_ECHO_COOLDOWN, 'lt', 1)],
-            effects: [
-              healMaxHp(0.05, 'caster'),
-              shield(0.8, undefined, 'caster'),
-            ],
-          }),
-        ]
-      : []),
-    counter(HEAVY_FINISHER_ACTION, 'set', { amount: 1 }),
-    counter(HEAVY_IDLE_ACTIONS, 'reset'),
-  ];
-  built['plain-sword'] = {
-    config: active({
-      id: 'plain-sword',
-      name: '沉锋式',
-      mpCost: 0,
-      cooldown: 0,
-      role: 'generator',
-      pathId: path.pathId,
-      effects: [damage(0.9), resource(id, 1)],
-    }),
-    detailRows: ['伤害：0.90物攻', '剑架：获得1点'],
-    notes: [],
-  };
-  built['guiding-sword'] = {
-    config: active({
-      id: 'guiding-sword',
-      name: '提岳式',
-      mpCost: manaCost(realm, 1),
-      cooldown: 1,
-      role: 'generator',
-      pathId: path.pathId,
-      effects: [damage(1.15), resource(id, 2)],
-    }),
-    detailRows: ['伤害：1.15物攻', '剑架：获得2点'],
-    notes: [],
-  };
-  built['linked-edge'] = {
-    config: active({
-      id: 'linked-edge',
-      name: '叠山式',
-      mpCost: manaCost(realm, 1.5),
-      cooldown: 2,
-      role: 'combo',
-      pathId: path.pathId,
-      extraTags: [GameplayTags.ABILITY.SECT.GENERATOR],
-      effects: [
-        ...Array.from({ length: linkedHits }, () => damage(linkedCoefficient)),
-        resource(id, features.tripleRidge ? 3 : 2),
-        armorRend(),
-        ...(features.shatteringArmor ? [armorRend()] : []),
-      ],
-    }),
-    detailRows: [
-      `伤害：${linkedHits}段 × ${linkedCoefficient.toFixed(2)}物攻`,
-      `剑架：获得${features.tripleRidge ? 3 : 2}点`,
-      `裂甲：施加${features.shatteringArmor ? 2 : 1}层`,
-    ],
-    notes: [],
-  };
-  const counterDamage = 0.7 * (features.crossingPass ? 1.5 : 1);
-  const guardShield = 0.45 * (features.crossingPass ? 1.5 : 1);
-  built['turning-body'] = {
-    config: active({
-      id: 'turning-body',
-      name: '横岳式',
-      mpCost: manaCost(realm, 1.25),
-      cooldown: 3,
-      role: 'defensive',
-      pathId: path.pathId,
-      effects: [
-        damage(0.6),
-        shield(guardShield, undefined, 'caster'),
-        {
-          type: 'apply_buff',
-          params: {
-            target: 'caster',
-            buffConfig: {
-              id: LINGXIAO_HEAVY_GUARD_BUFF,
-              name: '横岳姿态',
-              type: BuffType.BUFF,
-              duration: 2,
-              stackRule: StackRule.REFRESH_DURATION,
-              tags: [GameplayTags.BUFF.TYPE.BUFF],
-              listeners: [
-                {
-                  id: 'sect.lingxiao.heavy-guard-counter',
-                  eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-                  scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-                  priority: 0,
-                  mapping: { caster: 'owner', target: 'event.caster' },
-                  budget: { maxTriggers: 1, reset: 'buff_lifetime' },
-                  effects: [
-                    damage(counterDamage),
-                    resource(id, 1),
-                    ...(features.crossingPass ? [armorRend()] : []),
-                  ],
-                },
-              ],
-            },
-          },
+
+  built['plain-sword'] = active({
+    id: 'plain-sword', name: '负岳问锋', manaWeight: 0, cooldown: 0, role: 'generator',
+    effects: [damage(0.9), sectEffects.modifyResource(resourceId, 1)],
+  });
+  built['guiding-sword'] = active({
+    id: 'guiding-sword', name: '擎岳引', manaWeight: 1, cooldown: 2, role: 'generator',
+    effects: [damage(1.05), sectEffects.modifyResource(resourceId, 2), sectEffects.shieldByAttack(0.2, undefined, 'caster')],
+  });
+  built['linked-edge'] = active({
+    id: 'linked-edge', name: '一剑沉山', manaWeight: 1.5, cooldown: 3, role: 'combo',
+    effects: [damage(1.55), sectEffects.modifyResource(resourceId, 1), sectEffects.shieldByAttack(0.35, undefined, 'caster')],
+  });
+  built['turning-body'] = active({
+    id: 'turning-body', name: '不动藏锋', manaWeight: 1.25, cooldown: 3, role: 'defensive',
+    effects: [],
+    castEffects: [
+      selfBuff('sect.lingxiao.heavy.hidden-edge', '不动藏锋', 1, [], reductionListeners(features.chargedReduction ? 0.4 : 0.3)),
+      {
+        type: 'queue_action',
+        params: {
+          id: 'sect.lingxiao.heavy.thunder-strike',
+          name: '听雷沉山',
+          tags: [
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+            GameplayTags.ABILITY.KIND.SECT,
+            GameplayTags.ABILITY.SECT.namespace(LINGXIAO_SECT_ID),
+            GameplayTags.ABILITY.SECT.path(LINGXIAO_SECT_ID, path.pathId),
+            GameplayTags.ABILITY.SECT.ability(LINGXIAO_SECT_ID, 'turning-body'),
+            GameplayTags.ABILITY.SECT.COMBO,
+            GameplayTags.ABILITY.TARGET.SINGLE,
+          ],
+          effects: [
+            damage(features.chargedStrike ? 3.1 : 2.6),
+            sectEffects.modifyResource(resourceId, 2),
+          ],
+          cancelEffects: features.chargedFailShield
+            ? [sectEffects.shieldByAttack(0.6, undefined, 'caster')]
+            : [],
         },
-      ],
-    }),
-    detailRows: [
-      '伤害：0.60物攻',
-      `护盾：${guardShield.toFixed(2)}物攻`,
-      `反击：${counterDamage.toFixed(2)}物攻`,
-    ],
-    notes: [],
-  };
-  const heaven = features.heavenCleaving;
-  built['sect-ultimate'] = {
-    config: active({
-      id: 'sect-ultimate',
-      name: '开天断岳',
-      mpCost: manaCost(realm, 2.5),
-      cooldown: 4 + (heaven ? 1 : 0),
-      role: 'finisher',
-      pathId: path.pathId,
-      castConditions: [
-        {
-          type: 'combat_resource_at_least',
-          params: { resourceId: id, value: 6, scope: 'caster' },
-        },
-      ],
-      effects: [
-        damage(heaven ? 3.5 : 3, undefined, heaven),
-        consumeResource(id),
-        ...finisherTail(),
-      ],
-    }),
-    detailRows: [
-      `伤害：${heaven ? '3.50' : '3.00'}物攻`,
-      '释放：6点剑架',
-      ...(heaven ? ['特殊：无视防御'] : []),
-    ],
-    notes: [],
-  };
-  const returning = features.returningPeak;
-  const finisherBase = 1.1 * (returning ? 0.8 : 1);
-  const perPosture = 0.3 * (returning ? 0.8 : 1);
-  const finisherEffects: EffectConfig[] = [
-    damage(finisherBase),
-    ...Array.from({ length: 6 }, (_, index) =>
-      damage(perPosture, [
-        {
-          type: 'combat_resource_at_least',
-          params: { resourceId: id, value: index + 1, scope: 'caster' },
-        },
-      ]),
-    ),
-    {
-      type: 'consume_status_trigger',
-      params: {
-        match: { id: LINGXIAO_ARMOR_REND_BUFF },
-        consume: 'all',
-        scaleEffectsByLayer: true,
-        effects: [
-          damage(
-            features.rendingMountain ? 0.18 : 0.1,
-            undefined,
-            features.rendingMountain,
-          ),
-        ],
       },
-    },
-    consumeResource(id),
-    ...(returning ? [resource(id, 2), shield(0.5, undefined, 'caster')] : []),
-    ...finisherTail(),
-  ];
-  built['breaking-edge'] = {
-    config: active({
-      id: 'breaking-edge',
-      name: '破岳式',
-      mpCost: manaCost(realm, 1.75),
-      cooldown: 2,
-      role: 'finisher',
-      pathId: path.pathId,
-      castConditions: [
-        {
-          type: 'combat_resource_at_least',
-          params: { resourceId: id, value: 3, scope: 'caster' },
-        },
-      ],
-      effects: finisherEffects,
-    }),
-    detailRows: [
-      `伤害：${finisherBase.toFixed(2)}物攻 + 每点剑架${perPosture.toFixed(2)}物攻`,
-      '释放：至少3点剑架',
-      '释放后：消耗全部剑架与裂甲',
     ],
-    notes: [],
-  };
-  const aegisScale = features.immovableMountain ? 1.5 : 1;
-  built['sword-aegis'] = {
-    config: active({
-      id: 'sword-aegis',
-      name: '镇山剑罡',
-      mpCost: manaCost(realm, 1.5),
-      cooldown: 3,
-      role: 'defensive',
-      targetTeam: 'self',
-      pathId: path.pathId,
-      extraTags: [GameplayTags.ABILITY.SECT.GENERATOR],
-      effects: [
-        shield(0.8 * aegisScale),
-        resource(id, 1),
-        ...(features.immovableMountain
-          ? [
-              {
-                type: 'apply_buff' as const,
-                params: {
-                  target: 'caster' as const,
-                  buffConfig: {
-                    id: 'sect.lingxiao.immovable-mountain',
-                    name: '不动如山',
-                    type: BuffType.BUFF,
-                    duration: 2,
-                    stackRule: StackRule.REFRESH_DURATION,
-                    tags: [GameplayTags.BUFF.TYPE.BUFF],
-                    listeners: [
-                      {
-                        id: 'sect.lingxiao.immovable-mountain.counter',
-                        eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-                        scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-                        priority: 0,
-                        mapping: {
-                          caster: 'owner' as const,
-                          target: 'event.caster' as const,
-                        },
-                        budget: {
-                          maxTriggers: 1,
-                          reset: 'buff_lifetime' as const,
-                        },
-                        effects: [
-                          damage(0.6, [
-                            {
-                              type: 'has_shield',
-                              params: { scope: 'caster', value: 0 },
-                            },
-                          ]),
-                        ],
-                      },
-                    ],
-                  },
-                },
-              },
-            ]
-          : []),
-      ],
-    }),
-    detailRows: [`护盾：${(0.8 * aegisScale).toFixed(2)}物攻`, '剑架：获得1点'],
-    notes: [],
-  };
-  built['shadow-step'] = {
-    config: active({
-      id: 'shadow-step',
-      name: '踏岳式',
-      mpCost: manaCost(realm, 1),
-      cooldown: 2,
-      role: 'generator',
-      pathId: path.pathId,
-      effects: [
-        damage(0.75),
-        resource(id, 1),
-        {
-          type: 'apply_buff',
-          params: {
-            target: 'caster',
-            buffConfig: {
-              id: 'sect.lingxiao.heavy-defense',
-              name: '踏岳守势',
-              type: BuffType.BUFF,
-              duration: 2,
-              stackRule: StackRule.REFRESH_DURATION,
-              tags: [GameplayTags.BUFF.TYPE.BUFF],
-              modifiers: [
-                {
-                  attrType: AttributeType.DEF,
-                  type: ModifierType.ADD,
-                  value: 0.1,
-                },
-              ],
-            },
-          },
+  });
+  built['shadow-step'] = active({
+    id: 'shadow-step', name: '镇岳步', manaWeight: 1, cooldown: 4, role: 'defensive', targetTeam: 'self',
+    effects: [
+      sectEffects.shieldByAttack(0.65 * (features.mountainGate ? 1.5 : 1), undefined, 'caster'),
+      selfBuff('sect.lingxiao.heavy.mountain-step', '镇岳步', 2, [
+        { attrType: AttributeType.DEF, type: ModifierType.ADD, value: 0.2 },
+      ]),
+      sectEffects.modifyResource(resourceId, 1),
+    ],
+  });
+  built['breaking-edge'] = active({
+    id: 'breaking-edge', name: '撼山破障', manaWeight: 1.5, cooldown: 3, role: 'utility',
+    effects: [damage(1.3), { type: 'dispel', params: { targetTag: GameplayTags.BUFF.TYPE.BUFF, maxCount: 1 } }],
+  });
+  built['sword-aegis'] = active({
+    id: 'sword-aegis', name: '山河守心', manaWeight: 1.25, cooldown: 5, role: 'defensive', targetTeam: 'self',
+    effects: [
+      ...(features.immovableMountain ? [sectEffects.shieldByAttack(1, undefined, 'caster')] : []),
+      selfBuff(
+        'sect.lingxiao.heavy.mountain-heart',
+        '山河守心',
+        3,
+        [{ attrType: AttributeType.MAGIC_DEF, type: ModifierType.ADD, value: 0.3 }],
+        [
+          ...reductionListeners(0.1),
+          ...(features.immovableMountain ? [{
+            id: 'sect.lingxiao.heavy.immovable.counter',
+            eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+            scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+            priority: 0,
+            mapping: { caster: 'owner' as const, target: 'event.caster' as const },
+            guard: { skipSecondaryDamageSource: true },
+            budget: { maxTriggers: 1, reset: 'round' as const },
+            conditions: [DIRECT_DAMAGE_CONDITION],
+            effects: [damage(0.6, DamageSource.COUNTER)],
+          }] : []),
+        ],
+      ),
+    ],
+  });
+  built['nurturing-sword'] = active({
+    id: 'nurturing-sword', name: '重意无锋', manaWeight: 1.5, cooldown: 5, role: 'defensive', targetTeam: 'self',
+    effects: [selfBuff('sect.lingxiao.heavy.weightless-edge', '重意无锋', 3, [
+      { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.1 },
+      { attrType: AttributeType.DEF, type: ModifierType.ADD, value: 0.2 },
+    ])],
+  });
+
+  const returnScale = features.returningPeak ? 0.85 : 1;
+  const heaven = features.heavenCleaving;
+  built['sect-ultimate'] = active({
+    id: 'sect-ultimate', name: '开天一线', manaWeight: 2.5, cooldown: 4 + (heaven ? 1 : 0), role: 'finisher',
+    castConditions: [{ type: 'combat_resource_at_least', params: { resourceId, value: heaven ? 6 : 3, scope: 'caster' } }],
+    effects: [
+      {
+        type: 'resource_scaled_damage',
+        params: {
+          resourceId,
+          baseCoefficient: (heaven ? 1.6 : 1.2) * returnScale,
+          coefficientPerPoint: 0.4 * returnScale,
+          minPoints: heaven ? 6 : 3,
+          maxPoints: 6,
+          consume: 'all',
+          bypassDefenseRatio: heaven ? 0.3 : features.rendingMountain ? 0.2 : 0,
+          damageSource: DamageSource.DIRECT,
         },
-      ],
-    }),
-    detailRows: ['伤害：0.75物攻', '剑架：获得1点', '防御：提高10%，持续2回合'],
-    notes: [],
-  };
-  built['nurturing-sword'] = {
-    config: active({
-      id: 'nurturing-sword',
-      name: '抱剑养锋',
-      mpCost: manaCost(realm, 1.5),
-      cooldown: 4,
-      role: 'utility',
-      targetTeam: 'self',
-      pathId: path.pathId,
-      heal: true,
-      extraTags: [GameplayTags.ABILITY.SECT.GENERATOR],
-      effects: [healMaxHp(0.08), shield(0.6), resource(id, 1)],
-    }),
-    detailRows: ['恢复：8%最大气血', '护盾：0.60物攻', '剑架：获得1点'],
-    notes: [],
-  };
+      },
+      ...(features.returningPeak ? [
+        sectEffects.modifyResource(resourceId, 2),
+        sectEffects.shieldByAttack(0.6, undefined, 'caster'),
+      ] : []),
+      ...(features.mountainRiverEcho ? [{
+        type: 'runtime_counter_modify' as const,
+        conditions: [{ type: 'runtime_counter_compare' as const, params: { key: HEAVY_ECHO_COOLDOWN, op: 'lt' as const, value: 1, scope: 'caster' as const } }],
+        params: {
+          key: HEAVY_ECHO_COOLDOWN,
+          operation: 'set' as const,
+          amount: 3,
+          effects: [sectEffects.healMaxHp(0.05, 'caster'), sectEffects.shieldByAttack(0.8, undefined, 'caster')],
+        },
+      }] : []),
+    ],
+  });
+
+  for (const [id, ability] of Object.entries(built)) {
+    if (ability.detailRows.length === 0) ability.detailRows = describeHeavyAbility(id, features);
+  }
   return built;
+}
+
+function describeHeavyAbility(id: string, features: HeavySwordFeatures): string[] {
+  const rows: Record<string, string[]> = {
+    'plain-sword': ['伤害：0.90物攻', '剑势：命中获得1点'],
+    'guiding-sword': ['伤害：1.05物攻', '剑势：命中获得2点', '护盾：0.20物攻'],
+    'linked-edge': ['伤害：单段1.55物攻', '剑势：命中获得1点', '护盾：0.35物攻'],
+    'turning-body': [`藏锋：直接承伤降低${features.chargedReduction ? 40 : 30}%`, `后发：下一行动造成${features.chargedStrike ? '3.10' : '2.60'}物攻并获得2剑势`, '受控：后发取消且不退还消耗与冷却'],
+    'shadow-step': [`护盾：${(0.65 * (features.mountainGate ? 1.5 : 1)).toFixed(2)}物攻`, '物理防御：提高20%', '持续：未来2次自身行动', '剑势：获得1点'],
+    'breaking-edge': ['伤害：1.30物攻', '破障：驱散1个正面状态'],
+    'sword-aegis': ['法术防御：提高30%', '直接承伤：降低10%', '持续：未来3次自身行动'],
+    'nurturing-sword': ['物理攻击：提高10%', '物理防御：提高20%', '持续：未来3次自身行动'],
+    'sect-ultimate': [heavenText(features), '释放：至少3点剑势', '释放后：消耗全部剑势'],
+  };
+  return rows[id] ?? [];
+}
+
+function heavenText(features: HeavySwordFeatures): string {
+  if (features.heavenCleaving) return '伤害：6势时单段4.00物攻，其中30%穿防';
+  return `伤害：单段1.20物攻 + 每点剑势0.40物攻${features.rendingMountain ? '，其中20%穿防' : ''}`;
 }

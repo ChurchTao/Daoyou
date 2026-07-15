@@ -1589,7 +1589,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
       mapping: { caster: 'event.caster', target: 'owner' },
-      guard: { skipReflectSource: true },
+      guard: { skipSecondaryDamageSource: true },
     },
   },
   {

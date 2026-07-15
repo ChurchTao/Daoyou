@@ -39,7 +39,7 @@ export class ValueCalculator {
     if (typeof value === 'number') {
       return {
         total: value,
-        components: [{ kind: 'base', amount: value, mitigation: 'normal' }],
+        components: [{ kind: 'base', amount: value, mitigation: 'normal', defenseScale: 1 }],
       };
     }
 
@@ -51,6 +51,7 @@ export class ValueCalculator {
         kind: 'base',
         amount: value.base,
         mitigation: 'normal',
+        defenseScale: value.attribute ? 0 : 1,
       });
     }
 
@@ -63,6 +64,7 @@ export class ValueCalculator {
         kind: `attribute:${value.attribute}`,
         amount,
         mitigation: 'normal',
+        defenseScale: coefficient,
       });
     }
     if (value.targetMaxHpRatio && target) {

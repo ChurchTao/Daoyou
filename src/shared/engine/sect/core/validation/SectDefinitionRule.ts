@@ -1,6 +1,7 @@
 import type { SectDefinition, SectPathDefinition } from '../domain';
 import type { SectModule } from '../plugin';
 import type { ValidationRule } from './ValidationPipeline';
+import { getRealmStageRank } from '@shared/config/realmProgression';
 
 function duplicateIds(values: readonly string[]): string[] {
   const seen = new Set<string>();
@@ -29,6 +30,9 @@ function assertRequirements(
 }
 
 function validatePath(path: SectPathDefinition, definition: SectDefinition) {
+  if (!path.minRealm || !path.minRealmStage) {
+    throw new Error(`流派 ${path.id} 必须声明境界门槛`);
+  }
   if (!path.layers.length) throw new Error(`流派 ${path.id} 必须至少定义一层`);
   const layerIds = path.layers.map((layer) => layer.id);
   assertNonEmptyIds(`流派 ${path.id} 层级`, layerIds);
@@ -46,6 +50,14 @@ function validatePath(path: SectPathDefinition, definition: SectDefinition) {
       (layer.minRealmStage === undefined)
     ) {
       throw new Error(`层级 ${layer.id} 的境界前置必须同时提供境界和阶段`);
+    }
+    if (
+      layer.minRealm &&
+      layer.minRealmStage &&
+      getRealmStageRank(layer.minRealm, layer.minRealmStage) <
+        getRealmStageRank(path.minRealm, path.minRealmStage)
+    ) {
+      throw new Error(`层级 ${layer.id} 不得早于所属流派境界门槛`);
     }
     assertRequirements(`层级 ${layer.id} `, layer.requiredMethods);
     for (const value of Object.values(layer.cost)) {
@@ -94,6 +106,14 @@ function validatePath(path: SectPathDefinition, definition: SectDefinition) {
 export class SectDefinitionRule implements ValidationRule<SectModule> {
   validate(module: SectModule): void {
     const definition = module.definition;
+    if (
+      !definition.combatResource.id.trim() ||
+      !definition.combatResource.name.trim() ||
+      !Number.isInteger(definition.combatResource.max) ||
+      definition.combatResource.max <= 0
+    ) {
+      throw new Error(`宗门 ${definition.id} 必须声明有效且唯一的战斗资源`);
+    }
     if (!definition.id.trim()) throw new Error('宗门ID不能为空');
     if (
       !Number.isInteger(definition.configVersion) ||

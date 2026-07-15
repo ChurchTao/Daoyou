@@ -34,7 +34,7 @@ describe('loadCultivatorSectState', () => {
             joinedAt: null,
             activePathId: null,
             contribution: 0,
-            configVersion: 3,
+            configVersion: 4,
           },
         ],
       ],

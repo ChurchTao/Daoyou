@@ -25,13 +25,13 @@ export const SWIFT_LAYER_3_NODES = [
     {
       id: 'swift-borrowed-force',
       layerId: '3',
-      name: '借势',
+      name: '借风',
       description: '每回合首次受到直接伤害时获得1点剑势。',
     },
     (context, builder) =>
       addBorrowedNodePassive(context, builder, {
         id: 'swift-borrowed-force',
-        name: '借势',
+        name: '借风',
         resourceId: LINGXIAO_SWORD_MOMENTUM,
       }),
   ),

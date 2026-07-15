@@ -14,24 +14,26 @@ import { LingxiaoHeavySelectionStrategy } from './strategy';
 const HEAVY_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
   id: HEAVY_SWORD_PATH_ID,
   name: '重剑道',
-  description: '以架承势、裂甲压阵、聚力破岳。',
+  description: '护盾承伤、藏锋后发、守中反击，以不工之剑开山。',
+  minRealm: '筑基',
+  minRealmStage: '初期',
   layers: [...STANDARD_PATH_LAYERS],
   defaultTacticId: 'heavy-break',
   tactics: [
     {
       id: 'heavy-break',
-      name: '破阵',
-      description: '三架即收，优先叠甲与斩杀。',
+      name: '后发',
+      description: '优先不动藏锋，围绕承伤与反击积蓄剑势。',
     },
     {
       id: 'heavy-full',
-      name: '镇岳',
-      description: '蓄满六架，以开天断岳破敌。',
+      name: '开天',
+      description: '优先积满六势，以开天一线完成单段爆发。',
     },
     {
       id: 'heavy-guard',
-      name: '守关',
-      description: '优先横剑与剑罡，五架以上再收束。',
+      name: '守山',
+      description: '优先镇岳步与山河守心，五势以上收束。',
     },
   ],
 };

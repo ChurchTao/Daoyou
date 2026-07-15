@@ -449,7 +449,7 @@ export class LogPresenter {
     for (const entry of entries) {
       const data = entry.data as {
         targetName?: string;
-        damageSource?: 'direct' | 'reflect';
+        damageSource?: 'direct' | 'reflect' | 'counter' | 'follow_up';
       };
 
       if (!data.targetName) {
@@ -476,7 +476,7 @@ export class LogPresenter {
     return entries.filter((entry) => {
       const data = entry.data as {
         targetName?: string;
-        damageSource?: 'direct' | 'reflect';
+        damageSource?: 'direct' | 'reflect' | 'counter' | 'follow_up';
         reflectSourceName?: string;
       };
 

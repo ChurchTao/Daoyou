@@ -15,22 +15,24 @@ const SWIFT_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
   id: SWIFT_SWORD_PATH_ID,
   name: '快剑道',
   description: '抢先积势、连锋留痕、择机收束。',
+  minRealm: '筑基',
+  minRealmStage: '初期',
   layers: [...STANDARD_PATH_LAYERS],
   defaultTacticId: 'aggressive',
   tactics: [
     {
       id: 'aggressive',
-      name: '急攻',
+      name: '追风',
       description: '三势即收，优先追击低血目标。',
     },
     {
       id: 'steady',
-      name: '稳势',
+      name: '连势',
       description: '尽量蓄满六势，再以完整倍率收束。',
     },
     {
       id: 'counter',
-      name: '回风',
+      name: '回燕',
       description: '优先回燕与剑罡，五势以上再收束。',
     },
   ],

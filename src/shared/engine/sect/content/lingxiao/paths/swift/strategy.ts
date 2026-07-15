@@ -6,68 +6,46 @@ import type {
 import { AttributeType } from '@shared/engine/battle-v5/core/types';
 import { SectStrategyCandidates, type SectTacticId } from '../../../../core';
 import { LINGXIAO_SECT_ID } from '../../ids';
-import {
-  LINGXIAO_RETURNING_SWALLOW_BUFF,
-  LINGXIAO_SHADOW_STEP_BUFF,
-  LINGXIAO_SWORD_MARK_BUFF,
-  LINGXIAO_SWORD_MOMENTUM,
-} from '../../shared/LingxiaoMechanics';
+import { LINGXIAO_RETURNING_SWALLOW_BUFF, LINGXIAO_SWORD_MOMENTUM } from '../../shared/LingxiaoMechanics';
 
 export class LingxiaoSwiftSelectionStrategy implements AbilitySelectionStrategy {
   constructor(private readonly tacticId: SectTacticId) {}
 
   select(context: AbilitySelectionContext): AbilitySelectionResult | null {
     const { caster, opponent, candidates } = context;
-    if (!opponent || !candidates.length) return null;
+    if (!opponent || candidates.length === 0) return null;
     const index = new SectStrategyCandidates(LINGXIAO_SECT_ID, candidates);
-    const thresholds =
-      this.tacticId === 'aggressive'
-        ? { finisher: 3, aegis: 0.25, turning: 0.35 }
-        : this.tacticId === 'counter'
-          ? { finisher: 5, aegis: 0.45, turning: 0.7 }
-          : { finisher: 6, aegis: 0.4, turning: 0.55 };
     const momentum = caster.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM);
-    const hasMark = opponent.buffs
-      .getAllBuffIds()
-      .includes(LINGXIAO_SWORD_MARK_BUFF);
-    const aegis = index.find('sword-aegis');
-    if (
-      aegis &&
-      caster.getCurrentShield() <= 0 &&
-      caster.getHpPercent() < thresholds.aegis
-    )
-      return index.resultForCandidate(aegis, 600);
+    const finisherThreshold = this.tacticId === 'aggressive' ? 3 : this.tacticId === 'counter' ? 5 : 6;
+    const buffs = new Set(caster.buffs.getAllBuffIds());
+
     const turning = index.find('turning-body');
-    if (
-      turning &&
-      !caster.buffs.getAllBuffIds().includes(LINGXIAO_RETURNING_SWALLOW_BUFF) &&
-      caster.getHpPercent() < thresholds.turning
-    )
-      return index.resultForCandidate(turning, 550);
-    const breaking = index.find('breaking-edge');
-    const ultimate = index.find('sect-ultimate');
-    if (momentum >= thresholds.finisher) {
-      if (opponent.getHpPercent() < 0.25 && breaking)
-        return index.resultForCandidate(breaking, 500);
-      if (momentum >= 6 && ultimate && !hasMark)
-        return index.resultForCandidate(ultimate, 460);
-      if (breaking) return index.resultForCandidate(breaking, 450);
-      if (ultimate) return index.resultForCandidate(ultimate, 440);
+    if (this.tacticId === 'counter' && turning && !buffs.has(LINGXIAO_RETURNING_SWALLOW_BUFF)) {
+      return index.resultForCandidate(turning, 620);
+    }
+    const heart = index.find('sword-aegis');
+    if (heart && !buffs.has('sect.lingxiao.swift.wind-heart') && caster.getHpPercent() < 0.6) {
+      return index.resultForCandidate(heart, 580);
+    }
+    const finisher = index.find('sect-ultimate');
+    if (finisher && momentum >= finisherThreshold) {
+      return index.resultForCandidate(finisher, opponent.getHpPercent() < 0.25 ? 560 : 500);
     }
     const linked = index.find('linked-edge');
-    if (!hasMark && linked) return index.resultForCandidate(linked, 350);
-    const guiding = index.find('guiding-sword');
-    const shadow = index.find('shadow-step');
-    const shouldShadow =
-      shadow &&
-      !caster.buffs.getAllBuffIds().includes(LINGXIAO_SHADOW_STEP_BUFF) &&
-      caster.attributes.getValue(AttributeType.SPEED) <=
-        opponent.attributes.getValue(AttributeType.SPEED) &&
-      momentum <= 2;
-    if (shouldShadow) return index.resultForCandidate(shadow, 300);
-    return index.resultForCandidate(
-      guiding ?? linked ?? shadow ?? candidates[0],
-      100,
-    );
+    if (linked) return index.resultForCandidate(linked, 400);
+
+    const lightBuff = index.find('nurturing-sword');
+    if (lightBuff && !buffs.has('sect.lingxiao.swift.light-sword')) {
+      return index.resultForCandidate(lightBuff, 340);
+    }
+    const step = index.find('shadow-step');
+    if (
+      step &&
+      !buffs.has('sect.lingxiao.swift.traceless-step') &&
+      caster.attributes.getValue(AttributeType.SPEED) <= opponent.attributes.getValue(AttributeType.SPEED)
+    ) {
+      return index.resultForCandidate(step, 320);
+    }
+    return index.resultForCandidate(index.find('guiding-sword') ?? candidates[0], 100);
   }
 }

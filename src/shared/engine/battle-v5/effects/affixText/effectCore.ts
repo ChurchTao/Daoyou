@@ -183,6 +183,15 @@ export function describeEffectCore(
         ? '重置战斗计数'
         : `${effect.params.operation === 'add' ? '增加' : '调整'}战斗计数`;
 
+    case 'skip_action':
+      return `调息 ${effect.params.count ?? 1} 次行动`;
+
+    case 'queue_action':
+      return `下一次行动发动「${effect.params.name}」`;
+
+    case 'resource_scaled_damage':
+      return `按战斗资源造成 ${formatAffixNumber(effect.params.baseCoefficient)} + 每点 ${formatAffixNumber(effect.params.coefficientPerPoint)} 倍单段伤害`;
+
     default: {
       const exhaustive: never = effect;
       return (exhaustive as EffectConfig).type;
@@ -205,6 +214,8 @@ function describeMemoryEvent(event?: string): string {
       return '护盾量';
     case 'shield_break':
       return '破盾量';
+    case 'shield_absorbed':
+      return '护盾承伤量';
     case 'critical_taken':
       return '受到暴击伤害';
     case 'damage_taken':

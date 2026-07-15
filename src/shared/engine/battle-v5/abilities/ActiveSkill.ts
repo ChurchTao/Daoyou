@@ -248,6 +248,8 @@ export abstract class ActiveSkill extends Ability {
 
     const activeTransform = beginAbilityTransform(context.caster, this);
     try {
+      // 施法承诺在 MP/CD 结算后必定执行，例如调息或登记后发攻击。
+      this.executeCastEffects(context.caster, context.target);
       if (context.shouldApplyEffects === false) {
         return;
       }
@@ -265,6 +267,11 @@ export abstract class ActiveSkill extends Ability {
    * 子类实现具体技能效果
    */
   protected abstract executeSkill(caster: Unit, target: Unit): void;
+
+  protected executeCastEffects(_caster: Unit, _target: Unit): void {
+    void _caster;
+    void _target;
+  }
 
   private normalizeCooldownValue(value: number): number {
     if (!Number.isFinite(value)) {

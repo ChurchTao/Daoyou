@@ -44,6 +44,7 @@ export interface ActiveSectAbilitySpec {
   mpCost?: number;
   cooldown?: number;
   effects: EffectConfig[];
+  castEffects?: EffectConfig[];
   pathId?: SectPathId;
   castConditions?: AbilityConfig['castConditions'];
   targetTeam?: 'enemy' | 'self';
@@ -64,7 +65,7 @@ export class SectAbilityFactory {
 
   active(spec: ActiveSectAbilitySpec): SectCompiledAbility {
     const role = spec.role ?? spec.definition.role;
-    const effectTree = [...spec.effects];
+    const effectTree = [...spec.effects, ...(spec.castEffects ?? [])];
     for (let index = 0; index < effectTree.length; index += 1) {
       const effect = effectTree[index];
       if ('effects' in effect.params && Array.isArray(effect.params.effects)) {
@@ -78,7 +79,9 @@ export class SectAbilityFactory {
         );
       }
     }
-    const hasDamage = effectTree.some((effect) => effect.type === 'damage');
+    const hasDamage = effectTree.some(
+      (effect) => effect.type === 'damage' || effect.type === 'resource_scaled_damage',
+    );
     const hasHeal =
       spec.heal || effectTree.some((effect) => effect.type === 'heal');
     const config: AbilityConfig = {
@@ -121,6 +124,7 @@ export class SectAbilityFactory {
       },
       castConditions: spec.castConditions,
       effects: spec.effects,
+      castEffects: spec.castEffects,
     };
     return {
       config,
@@ -136,11 +140,33 @@ export class SectAbilityFactory {
     pathId: SectPathId;
     listeners: NonNullable<AbilityConfig['listeners']>;
   }): AbilityConfig {
+    const effectQueue = args.listeners.flatMap((listener) => listener.effects);
+    for (let index = 0; index < effectQueue.length; index += 1) {
+      const effect = effectQueue[index];
+      if ('effects' in effect.params && Array.isArray(effect.params.effects)) {
+        effectQueue.push(...effect.params.effects);
+      }
+    }
+    const hasDamage = effectQueue.some(
+      (effect) =>
+        effect.type === 'damage' ||
+        effect.type === 'resource_scaled_damage' ||
+        (effect.type === 'damage_memory' &&
+          effect.params.mode === 'release' &&
+          effect.params.releaseAs !== 'heal' &&
+          effect.params.releaseAs !== 'shield'),
+    );
     return {
       slug: `sect.${this.sectId}.${args.id}`,
       name: args.name,
       type: AbilityType.PASSIVE_SKILL,
       tags: [
+        ...(hasDamage
+          ? [
+              GameplayTags.ABILITY.FUNCTION.DAMAGE,
+              GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+            ]
+          : []),
         GameplayTags.ABILITY.KIND.PASSIVE,
         GameplayTags.ABILITY.KIND.SECT,
         GameplayTags.ABILITY.SECT.namespace(this.sectId),

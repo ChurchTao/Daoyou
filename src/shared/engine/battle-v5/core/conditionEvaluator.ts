@@ -209,6 +209,20 @@ export function evaluateCondition(
           return leftValue > rightValue;
       }
     }
+    case 'attribute_compare': {
+      const left = getScopedUnit(context, cond.params.left);
+      const right = getScopedUnit(context, cond.params.right);
+      if (!left || !right || !cond.params.attribute) return false;
+      const leftValue = left.attributes.getValue(cond.params.attribute);
+      const rightValue = right.attributes.getValue(cond.params.attribute);
+      switch (cond.params.op ?? 'gt') {
+        case 'gte': return leftValue >= rightValue;
+        case 'lt': return leftValue < rightValue;
+        case 'lte': return leftValue <= rightValue;
+        case 'gt':
+        default: return leftValue > rightValue;
+      }
+    }
     case 'combat_resource_at_least':
       return !!(
         scopedUnit &&

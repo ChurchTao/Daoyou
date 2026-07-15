@@ -17,6 +17,7 @@ export class SectEffectFactory {
     coefficient: number,
     conditions?: EffectConfig['conditions'],
     bypassDefense = false,
+    damageSource: DamageSource = DamageSource.DIRECT,
   ): EffectConfig {
     return {
       type: 'damage',
@@ -24,6 +25,7 @@ export class SectEffectFactory {
         value: { attribute: AttributeType.ATK, coefficient },
         damageType: DamageType.PHYSICAL,
         bypassDefense,
+        damageSource,
       },
       conditions,
     };

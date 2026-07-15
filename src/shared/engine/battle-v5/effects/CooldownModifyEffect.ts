@@ -16,11 +16,12 @@ export class CooldownModifyEffect extends GameplayEffect {
 
   execute(context: EffectContext): void {
     const { target, caster, ability } = context;
-    const abilities = target.abilities.getAllAbilities();
+    const recipient = this.params.target === 'caster' ? caster : target;
+    const abilities = recipient.abilities.getAllAbilities();
     const matchedSkills = abilities.filter(
       (skill): skill is ActiveSkill =>
         skill instanceof ActiveSkill &&
-        ability !== skill &&
+        (this.params.includeCurrent || ability !== skill) &&
         (!this.params.tags || skill.tags.hasAnyTag(this.params.tags)),
     );
     const countToModify =
@@ -42,7 +43,7 @@ export class CooldownModifyEffect extends GameplayEffect {
         type: 'CooldownModifyEvent',
         timestamp: Date.now(),
         caster,
-        target,
+        target: recipient,
         ability,
         cdModifyValue: this.params.cdModifyValue,
         affectedAbilityName: skill.name,

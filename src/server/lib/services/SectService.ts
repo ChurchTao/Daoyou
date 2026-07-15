@@ -18,6 +18,8 @@ import {
 } from '@shared/engine/sect';
 import { productionSectRuntime } from '@shared/engine/sect/content';
 import type { Cultivator } from '@shared/types/cultivator';
+import { getRealmStageRank } from '@shared/config/realmProgression';
+import type { SectPathDefinition } from '@shared/engine/sect';
 
 export type SectErrorCode =
   | 'SECT_UNKNOWN'
@@ -97,6 +99,25 @@ export class SectApplicationService {
     readonly runtime: SectRuntime = productionSectRuntime,
     private readonly repository: SectRepositoryPort = postgresSectRepository,
   ) {}
+
+  private async assertPathRealm(
+    cultivatorId: string,
+    sect: CultivatorSectState,
+    path: SectPathDefinition,
+    q: DbExecutor | DbTransaction,
+  ): Promise<void> {
+    const cultivator = await getCultivatorProgress(this.repository, cultivatorId, q);
+    if (
+      getRealmStageRank(cultivator.realm, cultivator.stage) <
+      getRealmStageRank(path.minRealm, path.minRealmStage)
+    ) {
+      throw new SectError(
+        'SECT_REALM_GATE',
+        `${path.name}须达${path.minRealm}${path.minRealmStage}后方可参悟`,
+        400,
+      );
+    }
+  }
 
   private async assertAdmission(
     cultivatorId: string,
@@ -309,6 +330,7 @@ export class SectApplicationService {
       args.cultivatorId,
       tx,
     );
+    await this.assertPathRealm(args.cultivatorId, sect, path, tx);
     let layer;
     try {
       layer = module.progression.assertPathLayerUnlock({
@@ -373,6 +395,11 @@ export class SectApplicationService {
 
   async activatePath(cultivatorId: string, pathId: string, tx: DbTransaction) {
     const sect = await requireActive(this.repository, cultivatorId, tx);
+    const path = this.runtime.registry.require(sect.sectId).definition.paths.find(
+      (entry) => entry.id === pathId,
+    );
+    if (!path) throw new SectError('SECT_PATH_UNKNOWN', '未知流派', 400);
+    await this.assertPathRealm(cultivatorId, sect, path, tx);
     if (!(await this.repository.activatePath(sect.membershipId, pathId, tx))) {
       throw new SectError('SECT_PATH_NOT_LEARNED', '尚未习得该流派');
     }
@@ -394,6 +421,7 @@ export class SectApplicationService {
     const pathState = sect.paths.find((entry) => entry.pathId === pathId);
     if (!path || !pathState)
       throw new SectError('SECT_PATH_NOT_LEARNED', '尚未习得该流派');
+    await this.assertPathRealm(cultivatorId, sect, path, tx);
     let validated: string[];
     try {
       validated = validateMeridianNodeIds({
@@ -428,8 +456,12 @@ export class SectApplicationService {
     if (![1, 2, 3].includes(slot))
       throw new SectError('SECT_INVALID_MERIDIAN', '经脉方案槽无效', 400);
     const sect = await requireActive(this.repository, cultivatorId, tx);
-    if (!sect.paths.some((path) => path.pathId === pathId))
+    const path = this.runtime.registry.require(sect.sectId).definition.paths.find(
+      (entry) => entry.id === pathId,
+    );
+    if (!path || !sect.paths.some((entry) => entry.pathId === pathId))
       throw new SectError('SECT_PATH_NOT_LEARNED', '尚未习得该流派');
+    await this.assertPathRealm(cultivatorId, sect, path, tx);
     await this.repository.activateMeridianLoadout(
       sect.membershipId,
       pathId,
@@ -489,6 +521,7 @@ export class SectApplicationService {
       .definition.paths.find((entry) => entry.id === pathId);
     if (!path || !sect.paths.some((entry) => entry.pathId === pathId))
       throw new SectError('SECT_PATH_NOT_LEARNED', '尚未习得该流派');
+    await this.assertPathRealm(cultivatorId, sect, path, tx);
     if (!path.tactics.some((tactic) => tactic.id === tacticId))
       throw new SectError('SECT_PATH_UNKNOWN', '未知流派战术', 400);
     await this.repository.setPathTactic(

@@ -22,14 +22,14 @@ export const SWIFT_LAYER_1_NODES = [
     {
       id: 'swift-opening',
       layerId: '1',
-      name: '疾起',
+      name: '风起',
       description: '开场获得2点剑势，第一回合身法提高8%。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('opening');
       addLingxiaoPassive(context, builder, {
         id: 'swift-opening',
-        name: '疾起',
+        name: '风起',
         listeners: [
           {
             id: 'sect.lingxiao.swift-opening.speed',
@@ -45,7 +45,7 @@ export const SWIFT_LAYER_1_NODES = [
                   target: 'caster',
                   buffConfig: {
                     id: 'sect.lingxiao.swift-opening-speed',
-                    name: '疾起',
+                    name: '风起',
                     type: BuffType.BUFF,
                     duration: 1,
                     stackRule: StackRule.REFRESH_DURATION,
@@ -70,13 +70,13 @@ export const SWIFT_LAYER_1_NODES = [
     {
       id: 'swift-hidden-edge',
       layerId: '1',
-      name: '藏锋',
+      name: '敛锋',
       description: '首次受到直接伤害降低10%，并额外获得3点剑势。',
     },
     (context, builder) =>
       addHiddenNodePassive(context, builder, {
         id: 'swift-hidden-edge',
-        name: '藏锋',
+        name: '敛锋',
         resourceId: LINGXIAO_SWORD_MOMENTUM,
       }),
   ),
@@ -84,13 +84,13 @@ export const SWIFT_LAYER_1_NODES = [
     {
       id: 'swift-probing-edge',
       layerId: '1',
-      name: '试锋',
-      description: '平剑式每两次命中额外获得1点剑势并施加1层剑痕。',
+      name: '探虚',
+      description: '流光问锋每两次命中额外获得1点剑势并施加1层剑痕。',
     },
     (context, builder) =>
       addProbingNodePassive(context, builder, {
         id: 'swift-probing-edge',
-        name: '试锋',
+        name: '探虚',
         resourceId: LINGXIAO_SWORD_MOMENTUM,
         basicAbilityId: 'plain-sword',
         statusEffect: createSwordMark(),

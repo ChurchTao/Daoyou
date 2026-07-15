@@ -4,6 +4,7 @@ import {
   AttributeType,
   BuffType,
   DamageType,
+  DamageSource,
   ModifierType,
 } from './types';
 
@@ -60,6 +61,7 @@ export interface ConditionConfig {
     | 'damage_source_is'
     | 'shield_absorbed_at_least'
     | 'resource_compare'
+    | 'attribute_compare'
     | 'combat_resource_at_least'
     | 'combat_resource_below'
     | 'runtime_counter_compare'
@@ -76,11 +78,12 @@ export interface ConditionConfig {
     // hp/mp 条件也可使用该字段在 caster/target 间切换。
     scope?: 'caster' | 'target';
     resource?: 'hp' | 'mp';
+    attribute?: AttributeType;
     left?: 'caster' | 'target';
     op?: 'gt' | 'gte' | 'lt' | 'lte';
     right?: 'caster' | 'target';
     damageType?: DamageType;
-    damageSource?: 'direct' | 'reflect';
+    damageSource?: `${DamageSource}`;
     resourceId?: string;
     key?: string;
     operation?: 'add' | 'subtract' | 'set' | 'consume_all';
@@ -107,6 +110,8 @@ export interface DamageParams {
   value: ScalableValue;
   damageType?: DamageType;
   bypassDefense?: boolean;
+  damageSource?: DamageSource;
+  forceCritical?: boolean;
 }
 
 /**
@@ -180,6 +185,36 @@ export interface CooldownModifyParams {
   cdModifyValue: number;
   tags?: string[];
   maxCount?: number;
+  target?: 'caster' | 'target';
+  includeCurrent?: boolean;
+}
+
+export interface SkipActionParams {
+  count?: number;
+  reason: string;
+}
+
+export interface QueueActionParams {
+  id: string;
+  name: string;
+  effects: EffectConfig[];
+  tags: string[];
+  targetPolicy?: AbilityConfig['targetPolicy'];
+  cancelEffects?: EffectConfig[];
+}
+
+export interface ResourceScaledDamageParams {
+  resourceId: string;
+  baseCoefficient: number;
+  coefficientPerPoint: number;
+  minPoints?: number;
+  maxPoints?: number;
+  consume?: 'all' | number;
+  attribute?: AttributeType;
+  damageType?: DamageType;
+  bypassDefenseRatio?: number;
+  damageSource?: DamageSource;
+  forceCritical?: boolean;
 }
 
 export interface BuffDurationModifyParams {
@@ -236,9 +271,10 @@ export interface DamageMemoryParams {
     | 'heal'
     | 'shield'
     | 'critical_taken'
-    | 'shield_break';
+    | 'shield_break'
+    | 'shield_absorbed';
   ratio?: number;
-  releaseAs?: 'damage' | 'heal' | 'shield' | 'reflect';
+  releaseAs?: 'damage' | 'heal' | 'shield' | 'reflect' | 'counter' | 'follow_up';
   target?: 'caster' | 'target';
   maxStored?: number;
   maxStoredValue?: ScalableValue;
@@ -428,6 +464,9 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'death_prevent'; params: DeathPreventParams }
     | { type: 'buff_immunity'; params: BuffImmunityParams }
     | { type: 'damage_immunity'; params: DamageImmunityParams }
+    | { type: 'skip_action'; params: SkipActionParams }
+    | { type: 'queue_action'; params: QueueActionParams }
+    | { type: 'resource_scaled_damage'; params: ResourceScaledDamageParams }
   );
 
 // ===== Listener Contract =====
@@ -471,6 +510,8 @@ export interface ListenerGuardConfig {
    * 是否跳过反伤来源（damageSource === 'reflect'）
    */
   skipReflectSource?: boolean;
+  /** 跳过反伤、反击和追击等二次伤害，避免响应链递归。 */
+  skipSecondaryDamageSource?: boolean;
 }
 
 export interface ListenerTriggerBudgetConfig {
@@ -580,6 +621,9 @@ export interface AbilityConfig {
    * 主动效果链 (主动技能执行时触发)
    */
   effects?: EffectConfig[];
+
+  /** 消耗和冷却结算后必定执行，不受本次命中判定影响。 */
+  castEffects?: EffectConfig[];
 
   /**
    * 被动监听链 (被动技能专用)

@@ -112,6 +112,8 @@ export enum DamageType {
 export enum DamageSource {
   DIRECT = 'direct',
   REFLECT = 'reflect',
+  COUNTER = 'counter',
+  FOLLOW_UP = 'follow_up',
 }
 
 export type DamageMitigationMode = 'normal' | 'bypass_defense';
@@ -120,6 +122,8 @@ export interface DamageComponent {
   readonly kind: string;
   readonly amount: number;
   readonly mitigation: DamageMitigationMode;
+  /** 该分量应承担的防御倍率；属性倍率伤害等于技能段倍率。 */
+  readonly defenseScale?: number;
 }
 
 // ===== BUFF类型 =====

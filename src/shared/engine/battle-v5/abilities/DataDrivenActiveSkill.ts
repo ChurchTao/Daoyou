@@ -23,6 +23,7 @@ import { Unit } from '../units/Unit';
  */
 export class DataDrivenActiveSkill extends ActiveSkill {
   private _effects: GameplayEffect[] = [];
+  private _castEffects: GameplayEffect[] = [];
   private _instantiatedListeners: Array<{
     runtime: ListenerRuntimeConfig;
     effects: InstantiatedGameplayEffect[];
@@ -38,6 +39,10 @@ export class DataDrivenActiveSkill extends ActiveSkill {
    */
   addEffect(effect: GameplayEffect): void {
     this._effects.push(effect);
+  }
+
+  addCastEffect(effect: GameplayEffect): void {
+    this._castEffects.push(effect);
   }
 
   addInstantiatedListener(
@@ -100,6 +105,13 @@ export class DataDrivenActiveSkill extends ActiveSkill {
     }
   }
 
+  protected override executeCastEffects(caster: Unit, target: Unit): void {
+    const context: EffectContext = { caster, target, ability: this };
+    for (const effect of this._castEffects) {
+      effect.execute(context);
+    }
+  }
+
   private _executeInstantiatedEffects(
     runtime: ListenerRuntimeConfig,
     effects: InstantiatedGameplayEffect[],
@@ -141,6 +153,7 @@ export class DataDrivenActiveSkill extends ActiveSkill {
     // 注意：这里的效果链不需要特殊处理，因为它们是无状态的单例或由工厂动态创建
     // 如果效果有状态，则需要深度克隆
     cloned._effects = [...this._effects];
+    cloned._castEffects = [...this._castEffects];
     for (const listener of this._instantiatedListeners) {
       cloned.addInstantiatedListener(
         {

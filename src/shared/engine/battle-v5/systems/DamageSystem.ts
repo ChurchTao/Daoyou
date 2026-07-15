@@ -159,7 +159,11 @@ export class DamageSystem {
 
     // ===== ① 按伤害类型计算有效防御 =====
     let effectiveDef = 0;
-    if (event.damageSource === DamageSource.DIRECT) {
+    if (
+      event.damageSource === DamageSource.DIRECT ||
+      event.damageSource === DamageSource.COUNTER ||
+      event.damageSource === DamageSource.FOLLOW_UP
+    ) {
       if (damageType === DamageType.PHYSICAL) {
         const baseDef = target.attributes.getValue(AttributeType.DEF);
         const armorPen = Math.max(
@@ -189,9 +193,9 @@ export class DamageSystem {
 
     // ===== ② 应用减法防御（10%保底伤害） =====
     const preMitigationDamage = event.finalDamage;
-    const { normalDamage, defenseBypassDamage } =
+    const { normalDamage, defenseBypassDamage, defenseScale } =
       this._resolveMitigationBreakdown(event, preMitigationDamage);
-    const reducedDamage = normalDamage - effectiveDef;
+    const reducedDamage = normalDamage - effectiveDef * defenseScale;
     event.finalDamage =
       Math.max(normalDamage * 0.1, reducedDamage) + defenseBypassDamage;
 
@@ -209,9 +213,8 @@ export class DamageSystem {
     event.finalDamage *= calculateSpiritualRootDamageMultiplier(event);
 
     // ===== ⑥ 暴击判定（减伤后） =====
-    // 仅在非 DOT/反伤且有施法者时参与暴击；已由上层标记为暴击的不再重算
+    // 反击/追击与直接伤害一样可暴击；强制暴击仍应用施法者暴击倍率。
     if (
-      !event.isCritical &&
       event.caster &&
       event.damageSource !== DamageSource.REFLECT
     ) {
@@ -223,7 +226,7 @@ export class DamageSystem {
         0,
         Math.min(0.95, rawCritRate - critResist),
       );
-      if (Math.random() < effectiveCritRate) {
+      if (event.forceCritical || event.isCritical || Math.random() < effectiveCritRate) {
         event.isCritical = true;
         const baseCritMult = event.caster.attributes.getValue(
           AttributeType.CRIT_DAMAGE_MULT,
@@ -287,13 +290,13 @@ export class DamageSystem {
   private _resolveMitigationBreakdown(
     event: DamageRequestEvent,
     preMitigationDamage: number,
-  ): { normalDamage: number; defenseBypassDamage: number } {
+  ): { normalDamage: number; defenseBypassDamage: number; defenseScale: number } {
     const components = event.damageComponents?.filter(
       (component): component is DamageComponent =>
         Number.isFinite(component.amount) && component.amount > 0,
     );
     if (!components?.length) {
-      return { normalDamage: preMitigationDamage, defenseBypassDamage: 0 };
+      return { normalDamage: preMitigationDamage, defenseBypassDamage: 0, defenseScale: 1 };
     }
 
     const componentTotal = components.reduce(
@@ -301,17 +304,21 @@ export class DamageSystem {
       0,
     );
     if (componentTotal <= 0) {
-      return { normalDamage: preMitigationDamage, defenseBypassDamage: 0 };
+      return { normalDamage: preMitigationDamage, defenseBypassDamage: 0, defenseScale: 1 };
     }
 
     const scale = preMitigationDamage / componentTotal;
     const defenseBypassDamage = components
       .filter((component) => component.mitigation === 'bypass_defense')
       .reduce((sum, component) => sum + component.amount * scale, 0);
+    const defenseScale = components
+      .filter((component) => component.mitigation === 'normal')
+      .reduce((sum, component) => sum + Math.max(0, component.defenseScale ?? 0) * scale, 0);
 
     return {
       normalDamage: Math.max(0, preMitigationDamage - defenseBypassDamage),
       defenseBypassDamage,
+      defenseScale: defenseScale > 0 ? defenseScale : 1,
     };
   }
 
@@ -362,6 +369,7 @@ export class DamageSystem {
         buff,
         brokenShieldAmount: beforeShield,
         overflowDamage: remainingDamage,
+        damageSource: damageEvent.damageSource,
       });
     }
 
