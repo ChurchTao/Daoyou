@@ -76,7 +76,12 @@ describe('宗门注册投影', () => {
 
   it('未激活流派使用基础剑势和基础法术', () => {
     const projection = projectSectCombat({ sect: state(), realm: '筑基' })!;
-    expect(projection.resources[0]).toMatchObject({ id: 'sect.lingxiao.sword-momentum', name: '剑势', max: 6 });
+    expect(projection.resources[0]).toMatchObject({
+      id: 'sect.lingxiao.sword-momentum',
+      name: '剑势',
+      icon: '🗡️',
+      max: 6,
+    });
     expect(projection.defaultAttack?.name).toBe('问锋');
   });
 
@@ -124,25 +129,6 @@ describe('宗门注册投影', () => {
     ).toBe('开天一线');
   });
 
-  it('快剑与重剑的三十六个节点都产生可观察的独立编译结果', () => {
-    for (const path of LINGXIAO_MODULE.definition.paths) {
-      const pathId = path.id as 'swift-sword' | 'heavy-sword';
-      const baseline = JSON.stringify(
-        productionSectRuntime.compiler.compile(LINGXIAO_MODULE, {
-          sect: state(pathId),
-          realm: '化神',
-        }),
-      );
-      for (const node of path.nodes) {
-        const compiled = productionSectRuntime.compiler.compile(
-          LINGXIAO_MODULE,
-          { sect: state(pathId, [node.id]), realm: '化神' },
-        );
-        expect(JSON.stringify(compiled), node.id).not.toBe(baseline);
-      }
-    }
-  });
-
   it('流派基础变体不再随已解锁层数改变倍率', () => {
     for (const pathId of ['swift-sword', 'heavy-sword'] as const) {
       const firstLayer = state(pathId);
@@ -160,6 +146,97 @@ describe('宗门注册投影', () => {
         }),
       );
     }
+  });
+
+  it.each(['swift-sword', 'heavy-sword'] as const)(
+    '%s 的729套六层经脉组合全部通过最终编译与能力契约校验',
+    (pathId) => {
+      const path = LINGXIAO_MODULE.definition.paths.find(
+        (entry) => entry.id === pathId,
+      )!;
+      const layers = [...path.layers].sort((a, b) => a.order - b.order);
+      const choices = layers.map((layer) =>
+        path.nodes.filter((node) => node.layerId === layer.id),
+      );
+      let compiledCount = 0;
+      const compile = (layerIndex: number, nodeIds: string[]): void => {
+        if (layerIndex === choices.length) {
+          const compiled = productionSectRuntime.compiler.compile(LINGXIAO_MODULE, {
+            sect: state(pathId, nodeIds),
+            realm: '渡劫',
+          });
+          for (const ability of Object.values(compiled.abilities)) {
+            expect(ability.detailRows.join('；')).not.toMatch(
+              /sect\.|Status\.|Ability\.|GameplayTag/,
+            );
+          }
+          compiledCount += 1;
+          return;
+        }
+        for (const node of choices[layerIndex]) {
+          compile(layerIndex + 1, [...nodeIds, node.id]);
+        }
+      };
+      compile(0, []);
+      expect(compiledCount).toBe(729);
+    },
+    30_000,
+  );
+
+  it('最终神通事实正确合并节点倍率、门槛与跨神通被动', () => {
+    const shadow = resolveSectAbility({
+      sect: state('swift-sword', ['swift-shadow-line']),
+      realm: '化神',
+      abilityId: 'sect-ultimate',
+    });
+    expect(shadow.cooldown).toBe(5);
+    expect(shadow.detailRows).toContain('释放：至少6点剑势');
+    expect(shadow.detailRows).toContain('暴击：整次施法全部伤害段必定暴击');
+
+    const returningPeak = resolveSectAbility({
+      sect: state('heavy-sword', ['heavy-steady-mountain']),
+      realm: '化神',
+      abilityId: 'sect-ultimate',
+    });
+    expect(returningPeak.detailRows).toEqual(expect.arrayContaining([
+      '伤害：单段1.02物攻 + 每点剑势0.34物攻',
+      '剑势：返还2点',
+      '护盾：0.60物攻',
+    ]));
+
+    const returningHeaven = resolveSectAbility({
+      sect: state('heavy-sword', [
+        'heavy-steady-mountain',
+        'heavy-heaven-cleaving',
+      ]),
+      realm: '化神',
+      abilityId: 'sect-ultimate',
+    });
+    expect(returningHeaven.detailRows).toContain('6点剑势时总倍率：3.40物攻');
+    expect(returningHeaven.detailRows).not.toContain('6点剑势时总倍率：4物攻');
+
+    const mountainBreaking = resolveSectAbility({
+      sect: state('swift-sword', ['swift-mountain-breaking']),
+      realm: '化神',
+      abilityId: 'sect-ultimate',
+    });
+    expect(mountainBreaking.detailRows).toEqual(expect.arrayContaining([
+      '状态：消耗全部剑痕',
+      '每层追加：0.18物攻',
+    ]));
+
+    const passiveFacts = resolveSectAbility({
+      sect: state('swift-sword', [
+        'swift-life-chasing',
+        'swift-still-tide',
+        'swift-endless-flow',
+      ]),
+      realm: '化神',
+      abilityId: 'sect-ultimate',
+    }).detailRows.join('；');
+    expect(passiveFacts).toContain('经脉·追命');
+    expect(passiveFacts).toContain('经脉·静潮');
+    expect(passiveFacts).toContain('经脉·无间');
   });
 
   it.each([

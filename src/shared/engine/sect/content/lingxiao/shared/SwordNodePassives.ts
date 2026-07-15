@@ -19,10 +19,21 @@ function addPassive(
     listeners: NonNullable<
       import('@shared/engine/battle-v5/core/configs').AbilityConfig['listeners']
     >;
+    presentationModifiers?: Array<{
+      abilityId: string;
+      factRows: string[];
+    }>;
   },
 ): void {
   const factory = new SectAbilityFactory(LINGXIAO_SECT_ID, context.realm);
   builder.addPassive(factory.passive({ ...args, pathId: context.path.pathId }));
+  for (const modifier of args.presentationModifiers ?? []) {
+    builder.addAbilityPresentationModifier({
+      sourceId: args.id,
+      abilityId: modifier.abilityId,
+      factRows: modifier.factRows,
+    });
+  }
 }
 
 export function addProbingNodePassive(
@@ -75,6 +86,10 @@ export function addProbingNodePassive(
         ],
       },
     ],
+    presentationModifiers: [{
+      abilityId: args.basicAbilityId,
+      factRows: ['经脉·探虚：每两次命中额外获得1点剑势并施加1层剑痕'],
+    }],
   });
 }
 

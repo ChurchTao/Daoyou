@@ -10,6 +10,7 @@ import type {
 } from '../domain';
 import type { SectModule } from '../plugin';
 import { projectSectMethodModifiers } from '../presentation';
+import { describeSectAbilityConfig } from '../presentation';
 import { isAbilityUnlocked } from '../progression';
 
 function findActivePath(
@@ -159,13 +160,27 @@ export class SectCompiler {
             (entry) => entry.id === abilityId,
           );
           const derivedSummary = ability.detailRows.join('；').trim();
+          const configFacts = describeSectAbilityConfig(
+            ability.config,
+            build.resources,
+          );
+          const modifierFacts = (build.abilityPresentationModifiers ?? [])
+            .filter((modifier) => modifier.abilityId === abilityId)
+            .flatMap((modifier) => modifier.factRows);
+          const detailRows = Array.from(
+            new Set([...configFacts, ...modifierFacts].filter(Boolean)),
+          );
           return [
             abilityId,
             {
               ...ability,
+              detailRows,
               summary:
                 ability.summary ??
-                (derivedSummary || base?.description || ability.config.name),
+                (detailRows.join('；') ||
+                  derivedSummary ||
+                  base?.description ||
+                  ability.config.name),
             },
           ];
         }),
@@ -192,10 +207,11 @@ export class SectCompiler {
     if (
       actual.id !== expected.id ||
       actual.name !== expected.name ||
+      actual.icon !== expected.icon ||
       actual.max !== expected.max
     ) {
       throw new Error(
-        `宗门 ${definition.id} 流派不得修改战斗资源ID、名称或上限`,
+        `宗门 ${definition.id} 流派不得修改战斗资源ID、名称、图标或上限`,
       );
     }
   }

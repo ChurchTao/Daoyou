@@ -27,7 +27,8 @@ export class ResourceScaledDamageEffect extends GameplayEffect {
         kind: `attribute:${attribute}`,
         amount: amount * (1 - bypassRatio),
         mitigation: 'normal',
-        defenseScale: coefficient * (1 - bypassRatio),
+        attackBase: context.caster.attributes.getValue(attribute),
+        segmentMultiplier: coefficient * (1 - bypassRatio),
       });
     }
     if (bypassRatio > 0) {
@@ -35,7 +36,6 @@ export class ResourceScaledDamageEffect extends GameplayEffect {
         kind: `attribute:${attribute}:bypass`,
         amount: amount * bypassRatio,
         mitigation: 'bypass_defense',
-        defenseScale: 0,
       });
     }
 

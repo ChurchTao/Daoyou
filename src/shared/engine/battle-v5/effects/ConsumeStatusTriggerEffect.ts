@@ -35,8 +35,12 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
     publishMechanicLog({
       mechanic: 'buff_layer',
       source: context.caster,
+      ability: context.ability,
+      sourceBuff: context.buff,
       target: context.target,
       name: buff.name,
+      displayName: this.params.displayName ?? buff.name,
+      visibility: 'player',
       value: consumedLayers,
       detail: 'consumed',
     });

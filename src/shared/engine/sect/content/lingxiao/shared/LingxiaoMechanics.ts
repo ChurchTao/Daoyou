@@ -3,15 +3,14 @@ import type { EffectConfig } from '@shared/engine/battle-v5/core/configs';
 import { BuffType } from '@shared/engine/battle-v5/core/types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { LINGXIAO_SECT_ID } from '../ids';
+import { LINGXIAO_BASE_DEFINITION } from '../definition';
 
-export const LINGXIAO_SWORD_MOMENTUM = 'sect.lingxiao.sword-momentum';
-/** @deprecated 重剑与快剑统一使用宗门剑势。 */
-export const LINGXIAO_HEAVY_POSTURE = LINGXIAO_SWORD_MOMENTUM;
+export const LINGXIAO_SWORD_MOMENTUM =
+  LINGXIAO_BASE_DEFINITION.combatResource.id;
 export const LINGXIAO_SWORD_MARK_BUFF = 'sect.lingxiao.sword-mark';
 export const LINGXIAO_ARMOR_REND_BUFF = 'sect.lingxiao.armor-rend';
 export const LINGXIAO_RETURNING_SWALLOW_BUFF =
   'sect.lingxiao.returning-swallow';
-export const LINGXIAO_HEAVY_GUARD_BUFF = 'sect.lingxiao.heavy-guard';
 export const LINGXIAO_SHADOW_STEP_BUFF = 'sect.lingxiao.shadow-step';
 
 export const SWIFT_RETAINED_FORCE = 'sect.lingxiao.swift.retained-force';
@@ -22,8 +21,6 @@ export const SWIFT_LINKED_CITY_ROUND = 'sect.lingxiao.swift.linked-city-round';
 export const SWIFT_ENDLESS_COOLDOWN = 'sect.lingxiao.swift.endless-cooldown';
 export const SWIFT_GAPLESS = 'sect.lingxiao.swift.gapless';
 
-export const HEAVY_RETAINED_FRAME_ACTION =
-  'sect.lingxiao.heavy.retained-frame-action';
 export const HEAVY_UNMOVED_GUARD = 'sect.lingxiao.heavy.unmoved-guard';
 export const HEAVY_IDLE_ACTIONS = 'sect.lingxiao.heavy.idle-actions';
 export const HEAVY_FINISHER_ACTION = 'sect.lingxiao.heavy.finisher-action';

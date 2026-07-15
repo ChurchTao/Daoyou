@@ -9,11 +9,13 @@ interface CombatResourceChangeSource {
   caster?: Unit;
   ability?: Ability;
   operation?: CombatResourceChangeEvent['operation'];
+  reason?: CombatResourceChangeEvent['reason'];
 }
 
 export interface CombatResourceSnapshot {
   id: string;
   name: string;
+  icon?: string;
   current: number;
   max: number;
 }
@@ -130,7 +132,16 @@ export class CombatResourceContainer {
       caster: source?.caster,
       ability: source?.ability,
       resourceId: resource.id,
+      resourceName: resource.name,
+      resourceMax: resource.max,
       operation: source?.operation ?? (requested > 0 ? 'add' : 'subtract'),
+      reason:
+        source?.reason ??
+        (source?.operation === 'decay'
+          ? 'decay'
+          : requested > 0
+            ? 'gain'
+            : 'spend'),
       requested,
       applied,
       overflow: requested > 0 ? Math.max(0, requested - applied) : 0,
@@ -140,9 +151,10 @@ export class CombatResourceContainer {
   }
 
   snapshots(): CombatResourceSnapshot[] {
-    return Array.from(this.resources.values()).map(({ id, name, current, max }) => ({
+    return Array.from(this.resources.values()).map(({ id, name, icon, current, max }) => ({
       id,
       name,
+      icon,
       current,
       max,
     }));

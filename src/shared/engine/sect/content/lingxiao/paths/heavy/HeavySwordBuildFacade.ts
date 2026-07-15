@@ -44,11 +44,11 @@ export class HeavySwordBuildFacade {
         this.features,
       ),
     );
+    const resource = this.baseBuild.resources[0];
+    if (!resource) throw new Error('重剑构筑缺少宗门战斗资源');
     this.builder.clearResources().setResource({
-      id: LINGXIAO_SWORD_MOMENTUM,
-      name: '剑势',
+      ...resource,
       initial: this.features.opening ? 2 : 0,
-      max: 6,
     });
   }
 }

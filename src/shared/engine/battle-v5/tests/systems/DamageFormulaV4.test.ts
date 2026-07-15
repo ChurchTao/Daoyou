@@ -1,16 +1,21 @@
 import { EventBus } from '../../core/EventBus';
 import type { DamageRequestEvent } from '../../core/events';
 import {
+  AbilityType,
   AttributeType,
   DamageSource,
   DamageType,
   ModifierType,
 } from '../../core/types';
+import { rememberAmount } from '../../core/runtimeState';
+import { AbilityFactory } from '../../factories/AbilityFactory';
 import { DamageSystem } from '../../systems/DamageSystem';
 import { Unit } from '../../units/Unit';
 import { ReflectEffect } from '../../effects/ReflectEffect';
+import { ValueCalculator } from '../../core/ValueCalculator';
 import type { DamageTakenEvent } from '../../core/events';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { GameplayTags } from '@shared/engine/shared/tag-domain';
 
 function unit(id: string): Unit {
   return new Unit(id, id, {});
@@ -53,14 +58,14 @@ function request(args: {
         kind: 'normal',
         amount: args.amount * (1 - bypass),
         mitigation: 'normal',
-        defenseScale: args.defenseScale * (1 - bypass),
+        attackBase: args.amount / args.defenseScale,
+        segmentMultiplier: args.defenseScale * (1 - bypass),
       },
       ...(bypass > 0
         ? [{
             kind: 'bypass',
             amount: args.amount * bypass,
             mitigation: 'bypass_defense' as const,
-            defenseScale: 0,
           }]
         : []),
     ],
@@ -126,6 +131,86 @@ describe('V4攻防差后乘倍率', () => {
     expect(event.finalDamage).toBe(120);
   });
 
+  it('固定值与属性合并为明确攻击基数和段倍率', () => {
+    const caster = unit('caster');
+    fixed(caster, AttributeType.ATK, 100);
+    const result = ValueCalculator.calculateDetailed(
+      { base: 20, attribute: AttributeType.ATK, coefficient: 0.5 },
+      caster,
+    );
+    expect(result.total).toBe(70);
+    expect(result.components).toEqual([{
+      kind: `attribute:${AttributeType.ATK}`,
+      amount: 70,
+      mitigation: 'normal',
+      attackBase: 140,
+      segmentMultiplier: 0.5,
+    }]);
+  });
+
+  it('零属性倍率的固定值按纯固定伤害段处理', () => {
+    const caster = unit('caster');
+    const result = ValueCalculator.calculateDetailed(
+      { base: 80, attribute: AttributeType.ATK, coefficient: 0 },
+      caster,
+    );
+    expect(result.components).toEqual([{
+      kind: 'base',
+      amount: 80,
+      mitigation: 'normal',
+      attackBase: 80,
+      segmentMultiplier: 1,
+    }]);
+  });
+
+  it('记忆追加伤害并入所属伤害段攻击基数而非隐性免防', () => {
+    const caster = unit('caster');
+    const target = unit('target');
+    fixed(caster, AttributeType.ATK, 100);
+    fixed(target, AttributeType.DEF, 50);
+    rememberAmount(caster, 'test.memory', 100);
+    const ability = AbilityFactory.create({
+      slug: 'test.memory-strike',
+      name: '记忆一击',
+      type: AbilityType.ACTIVE_SKILL,
+      tags: [
+        GameplayTags.ABILITY.FUNCTION.DAMAGE,
+        GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+      ],
+      effects: [{
+        type: 'damage',
+        params: {
+          value: { attribute: AttributeType.ATK, coefficient: 0.5 },
+        },
+      }],
+    });
+    AbilityFactory.createEffect({
+      type: 'ability_transform',
+      params: {
+        id: 'test.memory-transform',
+        bonusDamageMemory: { key: 'test.memory', ratio: 1 },
+      },
+    })?.execute({ caster, target: caster });
+    let requestEvent: DamageRequestEvent | undefined;
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        if (event.ability?.id === ability.id) requestEvent = event;
+      },
+      -1_000,
+    );
+
+    ability.execute({ caster, target });
+
+    expect(requestEvent?.damageComponents).toEqual([
+      expect.objectContaining({
+        attackBase: 300,
+        segmentMultiplier: 0.5,
+      }),
+    ]);
+    expect(requestEvent?.finalDamage).toBe(125);
+  });
+
   it('反击正常扣防且强制暴击应用施法者暴击倍率', () => {
     const caster = unit('caster');
     const target = unit('target');
@@ -144,6 +229,29 @@ describe('V4攻防差后乘倍率', () => {
     expect(event.isCritical).toBe(true);
     expect(event.critMultiplier).toBe(expectedMultiplier);
     expect(event.finalDamage).toBe(Math.round(50 * expectedMultiplier));
+  });
+
+  it('直接伤害全部被护盾吸收时仍计为本行动已造成直接伤害', () => {
+    const caster = unit('caster');
+    const target = unit('target');
+    caster.combatResources.define({
+      id: 'test.momentum',
+      name: '剑势',
+      initial: 3,
+      max: 6,
+      decayOnNoDirectDamage: 1,
+    });
+    target.setShield(10_000);
+    const hpBefore = target.getCurrentHp();
+    caster.combatResources.beginAction();
+    EventBus.instance.publish(
+      request({ caster, target, amount: 100, defenseScale: 1 }),
+    );
+    caster.combatResources.finishAction(false, false);
+
+    expect(target.getCurrentHp()).toBe(hpBefore);
+    expect(target.getCurrentShield()).toBeLessThan(10_000);
+    expect(caster.combatResources.getCurrent('test.momentum')).toBe(3);
   });
 
   it.each([DamageSource.REFLECT, DamageSource.COUNTER, DamageSource.FOLLOW_UP])(

@@ -14,7 +14,7 @@ import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactor
 import { DamageSystem } from '@shared/engine/battle-v5/systems/DamageSystem';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LINGXIAO_HEAVY_POSTURE, LINGXIAO_SWORD_MOMENTUM } from '..';
+import { LINGXIAO_SWORD_MOMENTUM } from '..';
 import { projectSectCombat, resolveSectAbility } from '../..';
 import type { CultivatorSectState } from '../../../core';
 
@@ -98,13 +98,17 @@ describe('凌霄经脉运行时语义', () => {
     expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === 'sect.lingxiao.sword-mark')?.getLayer()).toBe(2);
   });
 
-  it('守心把蓄力取消补偿编译为0.60物攻护盾', () => {
+  it('守心在开始蓄势时立即获得0.60物攻护盾', () => {
     const { sect } = install('heavy-sword', ['heavy-retained-frame']);
     const ability = resolveSectAbility({ sect, realm: '化神', abilityId: 'turning-body' }).config;
-    const queue = ability.castEffects?.find((effect) => effect.type === 'queue_action');
-    expect(queue?.type === 'queue_action' ? queue.params.cancelEffects : []).toContainEqual(
+    expect(ability.castEffects).toContainEqual(
       expect.objectContaining({ type: 'shield' }),
     );
+    const queue = ability.castEffects?.find((effect) => effect.type === 'queue_action');
+    expect(queue?.type === 'queue_action' ? queue.params : undefined).toMatchObject({
+      interruptPolicy: 'uninterruptible',
+      hitPolicy: 'guaranteed',
+    });
   });
 
   it('回风不息的附加护盾每次回燕姿态最多触发一次', () => {
@@ -202,7 +206,7 @@ describe('凌霄经脉运行时语义', () => {
     expect(first.damageReductionPctBucket).toBeCloseTo(0.15);
     expect(second.damageReductionPctBucket).toBeUndefined();
     expect(first.finalDamage).toBeLessThan(second.finalDamage);
-    expect(owner.combatResources.getCurrent(LINGXIAO_HEAVY_POSTURE)).toBe(2);
+    expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(2);
     damageSystem.destroy();
   });
 

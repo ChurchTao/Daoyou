@@ -133,7 +133,6 @@ export function buildSwiftAbilities(
       definition,
       pathId: path.pathId,
       mpCost: calculateSectManaCost(realm, args.manaWeight),
-      detailRows: [],
     });
   };
 
@@ -274,13 +273,14 @@ export function buildSwiftAbilities(
         type: 'consume_status_trigger' as const,
         params: {
           match: { id: LINGXIAO_SWORD_MARK_BUFF },
+          displayName: '剑痕',
           consume: 'all' as const,
           scaleEffectsByLayer: true,
           effects: [damage(0.18, undefined, true)],
         },
       }] : []),
       ...(features.sheathing ? [
-        sectEffects.modifyResource(resourceId, 1),
+        sectEffects.modifyResource(resourceId, 1, undefined, 'refund'),
         sectEffects.shieldByAttack(0.5, undefined, 'caster'),
       ] : []),
       ...(features.gapless ? [{
@@ -307,25 +307,5 @@ export function buildSwiftAbilities(
     ],
   });
 
-  for (const [id, ability] of Object.entries(built)) {
-    if (ability.detailRows.length === 0) {
-      ability.detailRows = describeSwiftAbility(id, features);
-    }
-  }
   return built;
-}
-
-function describeSwiftAbility(id: string, features: SwiftSwordFeatures): string[] {
-  const rows: Record<string, string[]> = {
-    'plain-sword': ['伤害：0.75物攻', '剑势：命中获得1点'],
-    'guiding-sword': ['伤害：0.90物攻', '剑势：命中获得2点', '追击：身法高于目标时追加0.30物攻'],
-    'linked-edge': [`伤害：${features.splitLight ? '7段 × 0.27' : '5段 × 0.34'}物攻`, `剑势：命中获得${features.splitLight ? 3 : 2}点`, `剑痕：施加${features.retainedForce ? 2 : 1}层`],
-    'turning-body': ['伤害：0.60物攻', '姿态：闪避提高8个百分点', `反击：首次闪避造成${features.returningSwallow ? '0.90' : '0.60'}物攻并获得1剑势`],
-    'shadow-step': ['身法：提高15%', '闪避：提高10个百分点', '持续：未来2次自身行动', '首次闪避：获得1剑势'],
-    'breaking-edge': ['伤害：1.15物攻', '破妄：驱散1个正面状态'],
-    'sword-aegis': ['法术防御：提高20%', '闪避：提高5个百分点', '持续：未来3次自身行动'],
-    'nurturing-sword': ['物理攻击：提高12%', '身法：提高12%', '持续：未来3次自身行动'],
-    'sect-ultimate': ['伤害：0.40物攻 + 每点剑势追加一段0.42物攻', '释放：至少3点剑势', '释放后：消耗全部剑势'],
-  };
-  return rows[id] ?? [];
 }

@@ -112,7 +112,7 @@ export interface SectDefinition {
   trial: { name: string; description: string };
   raceIds: PlayerRaceId[];
   configVersion: number;
-  combatResource: { id: string; name: string; max: number };
+  combatResource: { id: string; name: string; icon?: string; max: number };
   methods: SectHeartMethodDefinition[];
   abilities: SectAbilityDefinition[];
   paths: SectPathDefinition[];

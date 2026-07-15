@@ -27,6 +27,8 @@ export interface AbilitySelectionRule {
 export interface CombatResourceDefinition {
   id: string;
   name: string;
+  /** 战斗状态栏使用的点阵图标；缺失时沿用进度条展示。 */
+  icon?: string;
   initial: number;
   max: number;
   decayOnNoDirectDamage?: number;
@@ -192,6 +194,7 @@ export interface CooldownModifyParams {
 export interface SkipActionParams {
   count?: number;
   reason: string;
+  name?: string;
 }
 
 export interface QueueActionParams {
@@ -200,6 +203,8 @@ export interface QueueActionParams {
   effects: EffectConfig[];
   tags: string[];
   targetPolicy?: AbilityConfig['targetPolicy'];
+  interruptPolicy?: 'normal' | 'uninterruptible';
+  hitPolicy?: 'normal' | 'guaranteed';
   cancelEffects?: EffectConfig[];
 }
 
@@ -227,6 +232,7 @@ export interface BuffDurationModifyParams {
  */
 export interface TagTriggerParams {
   triggerTag: string;
+  displayName?: string;
   damageRatio?: number;
   removeOnTrigger?: boolean;
   effects?: EffectConfig[];
@@ -239,6 +245,8 @@ export interface BuffMatchParams {
 
 export interface ConsumeStatusTriggerParams {
   match: BuffMatchParams;
+  /** 玩家可见的状态名称；展示层不得从内部ID推断。 */
+  displayName?: string;
   consume?: 'one' | 'all' | number;
   effects: EffectConfig[];
   scaleEffectsByLayer?: boolean;
@@ -297,6 +305,7 @@ export interface CombatResourceModifyParams {
   target?: 'caster' | 'target';
   effects?: EffectConfig[];
   scaleEffectsByAmount?: boolean;
+  reason?: 'gain' | 'spend' | 'refund';
 }
 
 export interface AbilityTransformParams {
@@ -578,6 +587,8 @@ export interface BuffConfig {
   description?: string;
   type: BuffType;
   duration: number; // -1 为永久
+  /** 内部计数/防重复 marker 可仅保留在调试日志。 */
+  logVisibility?: 'player' | 'debug';
   stackRule: StackRule;
   maxLayers?: number;
   tags?: string[]; // Buff 自身的标签

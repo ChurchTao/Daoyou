@@ -26,11 +26,10 @@ export class ResourceDrainEffect extends GameplayEffect {
 
     if (amount <= 0) return;
 
-    if (this.params.targetType === 'hp') {
-      caster.heal(amount);
-    } else {
-      caster.restoreMp(amount);
-    }
+    const appliedAmount = this.params.targetType === 'hp'
+      ? caster.heal(amount)
+      : caster.restoreMp(amount);
+    if (appliedAmount <= 0) return;
 
     // 发布资源夺取事件
     EventBus.instance.publish<ResourceDrainEvent>({
@@ -40,7 +39,7 @@ export class ResourceDrainEffect extends GameplayEffect {
       target,
       ability,
       drainType: this.params.targetType,
-      amount,
+      amount: appliedAmount,
     });
   }
 }

@@ -3,10 +3,7 @@ import type {
   SectCompiledBuild,
   SectPathCompileContext,
 } from '../../../../core';
-import {
-  LINGXIAO_SWORD_MOMENTUM,
-  SWIFT_IDLE_ACTIONS,
-} from '../../shared/LingxiaoMechanics';
+import { SWIFT_IDLE_ACTIONS } from '../../shared/LingxiaoMechanics';
 import {
   buildSwiftAbilities,
   EMPTY_SWIFT_FEATURES,
@@ -46,11 +43,11 @@ export class SwiftSwordBuildFacade {
         this.features,
       ),
     );
+    const resource = this.baseBuild.resources[0];
+    if (!resource) throw new Error('快剑构筑缺少宗门战斗资源');
     this.builder.clearResources().setResource({
-      id: LINGXIAO_SWORD_MOMENTUM,
-      name: '剑势',
+      ...resource,
       initial: this.features.opening ? 2 : 0,
-      max: 6,
       decayOnNoDirectDamage: 1,
       decayOnControlledSkip: this.features.guardedEdge ? 0 : 1,
       pauseDecayWhenCounterAtLeast: this.features.stillTide

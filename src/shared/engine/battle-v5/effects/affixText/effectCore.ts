@@ -187,7 +187,7 @@ export function describeEffectCore(
       return `调息 ${effect.params.count ?? 1} 次行动`;
 
     case 'queue_action':
-      return `下一次行动发动「${effect.params.name}」`;
+      return `下一次行动发动「${effect.params.name}」${effect.params.interruptPolicy === 'uninterruptible' ? '，除自身死亡外不可打断' : ''}${effect.params.hitPolicy === 'guaranteed' ? '，必然命中' : ''}`;
 
     case 'resource_scaled_damage':
       return `按战斗资源造成 ${formatAffixNumber(effect.params.baseCoefficient)} + 每点 ${formatAffixNumber(effect.params.coefficientPerPoint)} 倍单段伤害`;
@@ -270,12 +270,14 @@ function describeTransform(params: {
   cooldownModify?: number;
   forceCritical?: boolean;
   bonusDamageMemory?: { ratio?: number };
+  freeManaCost?: boolean;
 }): string {
   const parts = [
     params.trueDamage ? '转为真实伤害' : '',
     params.forceCritical ? '必定暴击' : '',
     params.addDispel ? '附带驱散' : '',
     params.mpCostToHp ? '法力消耗改为气血消耗' : '',
+    params.freeManaCost ? '不消耗法力' : '',
     params.cooldownModify !== undefined
       ? `冷却${params.cooldownModify >= 0 ? '增加' : '减少'} ${formatAffixNumber(Math.abs(params.cooldownModify))} 回合`
       : '',

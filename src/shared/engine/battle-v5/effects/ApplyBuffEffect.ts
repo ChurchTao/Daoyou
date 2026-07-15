@@ -84,7 +84,10 @@ export class ApplyBuffEffect extends GameplayEffect {
       }
     }
 
-    target.buffs.addBuff(buff, caster);
+    target.buffs.addBuff(buff, caster, {
+      ability: context.ability,
+      buff: context.buff,
+    });
   }
 }
 

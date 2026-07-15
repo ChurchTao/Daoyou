@@ -113,7 +113,7 @@ function buildSkinDamageReductionBuff(skinLevel: number): BuffConfig | null {
         priority: 25,
         guard: {
           requireOwnerAlive: true,
-          skipReflectSource: true,
+          skipSecondaryDamageSource: true,
         },
         effects: [
           {
@@ -231,6 +231,7 @@ function buildOrgansSkillRefundBuff(organsLevel: number): BuffConfig | null {
                 name: '脏腑·五气已回流',
                 type: BuffType.BUFF,
                 duration: -1,
+                logVisibility: 'debug',
                 stackRule: 'override',
                 statusTags: [
                   GameplayTags.STATUS.STATE.BODY_ORGANS_SKILL_REFUNDED,
@@ -277,7 +278,7 @@ function buildGoldenBodyBurnBloodBuff(organsLevel: number): BuffConfig {
         priority: 20,
         guard: {
           requireOwnerAlive: true,
-          skipReflectSource: true,
+          skipSecondaryDamageSource: true,
         },
         effects: [
           {
@@ -353,7 +354,7 @@ function buildBronzeSkinGuardBuff(): BuffConfig {
         priority: 30,
         guard: {
           requireOwnerAlive: true,
-          skipReflectSource: true,
+          skipSecondaryDamageSource: true,
         },
         effects: [
           {
@@ -423,7 +424,7 @@ function buildDaoBodyDamageReductionBuff(): BuffConfig {
         priority: 35,
         guard: {
           requireOwnerAlive: true,
-          skipReflectSource: true,
+          skipSecondaryDamageSource: true,
         },
         effects: [
           {
@@ -494,7 +495,7 @@ export function getBodyCultivationBattleInitHooks(
           guard: {
             requireOwnerAlive: false,
             allowLethalWindow: true,
-            skipReflectSource: true,
+            skipSecondaryDamageSource: true,
           },
           effects: [
             {

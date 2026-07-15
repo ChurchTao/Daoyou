@@ -39,6 +39,8 @@ export class DamageMemoryEffect extends GameplayEffect {
         publishMechanicLog({
           mechanic: 'memory_record',
           source: context.caster,
+          ability: context.ability,
+          sourceBuff: context.buff,
           target: owner,
           name: this.params.key,
           value: amount,
@@ -55,7 +57,8 @@ export class DamageMemoryEffect extends GameplayEffect {
 
     switch (this.params.releaseAs ?? 'damage') {
       case 'heal':
-        context.target.heal(amount);
+        {
+        const appliedAmount = context.target.heal(amount);
         EventBus.instance.publish<HealEvent>({
           type: 'HealEvent',
           timestamp: Date.now(),
@@ -64,9 +67,11 @@ export class DamageMemoryEffect extends GameplayEffect {
           ability: context.ability,
           buff: context.buff,
           healAmount: amount,
+          appliedAmount,
           healType: 'hp',
         });
         break;
+        }
       case 'shield':
         context.target.addShield(amount);
         EventBus.instance.publish<ShieldEvent>({
@@ -111,6 +116,8 @@ export class DamageMemoryEffect extends GameplayEffect {
     publishMechanicLog({
       mechanic: 'memory_release',
       source: context.caster,
+      ability: context.ability,
+      sourceBuff: context.buff,
       target: context.target,
       name: this.params.key,
       value: amount,
@@ -148,7 +155,10 @@ export class DamageMemoryEffect extends GameplayEffect {
             damageSource === DamageSource.FOLLOW_UP
               ? 'normal'
               : 'bypass_defense',
-          defenseScale: 1,
+          ...(damageSource === DamageSource.COUNTER ||
+          damageSource === DamageSource.FOLLOW_UP
+            ? { attackBase: amount, segmentMultiplier: 1 }
+            : {}),
         },
       ],
       baseDamage: amount,

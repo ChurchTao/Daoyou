@@ -50,7 +50,7 @@ export interface ActiveSectAbilitySpec {
   targetTeam?: 'enemy' | 'self';
   heal?: boolean;
   extraTags?: string[];
-  detailRows: string[];
+  detailRows?: string[];
   notes?: string[];
   summary?: string;
 }
@@ -128,7 +128,7 @@ export class SectAbilityFactory {
     };
     return {
       config,
-      detailRows: spec.detailRows,
+      detailRows: spec.detailRows ?? [],
       notes: spec.notes ?? [],
       summary: spec.summary,
     };

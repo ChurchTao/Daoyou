@@ -29,11 +29,9 @@ export class HealEffect extends GameplayEffect {
     const healAmount = Math.round(baseHeal * (1 + healAmplify));
 
     // 执行治疗逻辑
-    if (this.params.target === 'mp') {
-      target.restoreMp(healAmount);
-    } else {
-      target.heal(healAmount);
-    }
+    const appliedAmount = this.params.target === 'mp'
+      ? target.restoreMp(healAmount)
+      : target.heal(healAmount);
 
     // 发布治疗事件用于日志和触发
     EventBus.instance.publish<HealEvent>({
@@ -44,6 +42,7 @@ export class HealEffect extends GameplayEffect {
       ability,
       buff,
       healAmount,
+      appliedAmount,
       healType: this.params.target === 'mp' ? 'mp' : 'hp',
     });
   }

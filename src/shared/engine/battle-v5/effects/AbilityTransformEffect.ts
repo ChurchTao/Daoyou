@@ -27,6 +27,8 @@ export class AbilityTransformEffect extends GameplayEffect {
     publishMechanicLog({
       mechanic: 'ability_transform',
       source: context.caster,
+      ability: context.ability,
+      sourceBuff: context.buff,
       target: context.caster,
       name: this.params.id,
       value: this.params.triggers ?? 1,

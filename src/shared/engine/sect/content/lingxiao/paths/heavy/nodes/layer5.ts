@@ -22,6 +22,10 @@ export const HEAVY_LAYER_5_NODES = [
         ],
         effects: [{ type: 'percent_damage_modifier', params: { mode: 'increase', value: 0.25 } }],
       }],
+      presentationModifiers: [{
+        abilityId: 'sect-ultimate',
+        factRows: ['经脉·断命：目标气血低于25%时，收束伤害提高25%'],
+      }],
     }),
   ),
   createLingxiaoNode(

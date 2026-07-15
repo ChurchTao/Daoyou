@@ -16,6 +16,16 @@ export class SectRegistry {
     if (this.modules.has(module.definition.id)) {
       throw new Error(`宗门重复注册: ${module.definition.id}`);
     }
+    for (const registered of this.modules.values()) {
+      if (
+        registered.definition.combatResource.id ===
+        module.definition.combatResource.id
+      ) {
+        throw new Error(
+          `宗门战斗资源ID重复: ${module.definition.combatResource.id}`,
+        );
+      }
+    }
     this.modules.set(module.definition.id, module);
   }
 

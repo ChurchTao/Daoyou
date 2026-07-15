@@ -70,11 +70,29 @@ export class DamageEffect extends GameplayEffect {
           memory.amount * (bonusDamageMemory.ratio ?? 1),
         );
         damage += memoryDamage;
-        damageComponents.push({
-          kind: `memory:${bonusDamageMemory.key}`,
-          amount: memoryDamage,
-          mitigation: 'normal',
-        });
+        const normalIndex = damageComponents.findIndex(
+          (component) =>
+            component.mitigation === 'normal' &&
+            component.attackBase !== undefined &&
+            component.segmentMultiplier !== undefined,
+        );
+        if (normalIndex >= 0) {
+          const component = damageComponents[normalIndex];
+          const multiplier = component.segmentMultiplier ?? 1;
+          damageComponents[normalIndex] = {
+            ...component,
+            amount: component.amount + memoryDamage,
+            attackBase: (component.attackBase ?? 0) + memoryDamage / multiplier,
+          };
+        } else {
+          damageComponents.push({
+            kind: `memory:${bonusDamageMemory.key}`,
+            amount: memoryDamage,
+            mitigation: 'normal',
+            attackBase: memoryDamage,
+            segmentMultiplier: 1,
+          });
+        }
         if (bonusDamageMemory.consume !== false) {
           clearMemory(caster, bonusDamageMemory.key);
         }
@@ -94,6 +112,10 @@ export class DamageEffect extends GameplayEffect {
         ...damageComponents.map((component) => ({
           ...component,
           amount: component.amount * layer,
+          segmentMultiplier:
+            component.segmentMultiplier === undefined
+              ? undefined
+              : component.segmentMultiplier * layer,
         })),
       );
     }

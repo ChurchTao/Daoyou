@@ -2,6 +2,7 @@ import { EventBus } from '../../core/EventBus';
 import {
   ActionPreEvent,
   ActionPostEvent,
+  ActionStateEvent,
   BattleEndEvent,
   BattleInitEvent,
   BuffAppliedEvent,
@@ -9,6 +10,7 @@ import {
   BuffRemovedEvent,
   ControlResistEvent,
   ControlledSkipEvent,
+  CombatResourceChangeEvent,
   CooldownModifyEvent,
   DamageImmuneEvent,
   DamageTakenEvent,
@@ -28,6 +30,7 @@ import {
   TagTriggerEvent,
 } from '../../core/events';
 import { LogAggregator } from './LogAggregator';
+import type { LogSourceRef } from './types';
 
 /**
  * LogCollector 职责：监听 EventBus 事件，转换为结构化 LogEntry。
@@ -55,6 +58,29 @@ export class LogCollector {
         this._unitNames.set(e.player.id, e.player.name);
         this._unitNames.set(e.opponent.id, e.opponent.name);
         this._aggregator.beginSpan('battle_init', { turn: 0, actor: { id: e.player.id, name: e.player.name } });
+        for (const unit of [e.player, e.opponent]) {
+          for (const resource of unit.combatResources.snapshots()) {
+            if (resource.current <= 0) continue;
+            this._aggregator.addEntry({
+              id: this._generateId(),
+              type: 'resource_change',
+              data: {
+                targetName: unit.name,
+                resourceId: resource.id,
+                resourceName: resource.name,
+                resourceMax: resource.max,
+                operation: 'set',
+                requested: resource.current,
+                applied: resource.current,
+                overflow: 0,
+                before: 0,
+                after: resource.current,
+                isInitial: true,
+              },
+              timestamp: Date.now(),
+            });
+          }
+        }
       },
       highPriority,
     );
@@ -156,6 +182,12 @@ export class LogCollector {
           reflectSourceName: e.reflectSourceName,
           shieldAbsorbed: e.shieldAbsorbed,
           remainShield: e.remainShield,
+          damageType: e.damageType,
+          sourceUnitId: e.caster?.id,
+          sourceUnitName: e.caster?.name,
+          sourceAbilityId: e.ability?.id,
+          sourceAbilityName: e.ability?.name ?? e.buff?.name,
+          source: this._sourceRef(e.caster, e.ability, e.buff),
         },
         timestamp: Date.now(),
       });
@@ -179,7 +211,7 @@ export class LogCollector {
         id: this._generateId(),
         type: 'heal',
         data: {
-          value: Math.round(e.healAmount),
+          value: Math.round(e.appliedAmount ?? e.healAmount),
           remainHp: Math.round(e.target.getCurrentHp()),
           ...(healType === 'mp'
             ? { remainMp: Math.round(e.target.getCurrentMp()) }
@@ -187,6 +219,7 @@ export class LogCollector {
           targetName: e.target.name,
           sourceBuff: e.buff?.name,
           healType,
+          source: this._sourceRef(e.caster, e.ability, e.buff),
         },
         timestamp: Date.now(),
       });
@@ -200,6 +233,7 @@ export class LogCollector {
           value: Math.round(e.shieldAmount),
           remainShield: Math.round(e.target.getCurrentShield()),
           targetName: e.target.name,
+          source: this._sourceRef(e.caster, e.ability),
         },
         timestamp: Date.now(),
       });
@@ -233,6 +267,9 @@ export class LogCollector {
           targetName: e.target.name,
           layers: e.buff.getLayer(),
           duration: e.buff.getMaxDuration(),
+          durationUnit: 'owner_action',
+          visibility: e.buff.logVisibility,
+          source: this._sourceRef(e.source, e.ability, e.sourceBuff),
         },
         timestamp: Date.now(),
       });
@@ -332,6 +369,7 @@ export class LogCollector {
         data: {
           value: Math.round(e.burnAmount),
           targetName: e.target.name,
+          source: this._sourceRef(e.caster, e.ability),
         },
         timestamp: Date.now(),
       });
@@ -365,6 +403,7 @@ export class LogCollector {
             value: Math.round(e.amount),
             drainType: e.drainType,
             targetName: e.target.name,
+            source: this._sourceRef(e.caster, e.ability),
           },
           timestamp: Date.now(),
         });
@@ -389,6 +428,7 @@ export class LogCollector {
         type: 'tag_trigger',
         data: {
           tag: e.tag,
+          displayName: e.displayName,
           targetName: e.target.name,
         },
         timestamp: Date.now(),
@@ -416,9 +456,61 @@ export class LogCollector {
           mechanic: e.mechanic,
           targetName: e.target.name,
           sourceName: e.source?.name,
-          name: e.name,
+          name: this._safeDisplayName(e.displayName ?? e.name, '特殊机制'),
+          displayName: e.displayName
+            ? this._safeDisplayName(e.displayName, '特殊机制')
+            : undefined,
+          internalKey: e.internalKey ?? e.name,
           value: e.value,
           detail: e.detail,
+          visibility: e.visibility ?? (e.displayName ? 'player' : 'debug'),
+          source: this._sourceRef(e.source, e.ability, e.sourceBuff),
+        },
+        timestamp: Date.now(),
+      });
+    });
+
+    this._addHandler(
+      eventBus,
+      'CombatResourceChangeEvent',
+      (e: CombatResourceChangeEvent) => {
+        this._aggregator.addEntry({
+          id: this._generateId(),
+          type: 'resource_change',
+          data: {
+            targetName: e.target.name,
+            resourceId: e.resourceId,
+            resourceName: e.resourceName,
+            resourceMax: e.resourceMax,
+            operation: e.operation,
+            reason: e.reason,
+            requested: e.requested,
+            applied: e.applied,
+            overflow: e.overflow,
+            before: e.before,
+            after: e.after,
+            sourceAbilityId: e.ability?.id,
+            sourceAbilityName: e.ability?.name,
+            source: this._sourceRef(e.caster, e.ability),
+          },
+          timestamp: Date.now(),
+        });
+      },
+    );
+
+    this._addHandler(eventBus, 'ActionStateEvent', (e: ActionStateEvent) => {
+      this._aggregator.addEntry({
+        id: this._generateId(),
+        type: 'action_state',
+        data: {
+          unitName: e.unit.name,
+          stateType: e.stateType,
+          phase: e.phase,
+          name: e.name,
+          remainingActions: e.remainingActions,
+          sourceAbilityName: e.sourceAbility?.name,
+          abilityName: e.ability?.name,
+          reason: e.reason,
         },
         timestamp: Date.now(),
       });
@@ -445,5 +537,46 @@ export class LogCollector {
 
   private _generateId(): string {
     return `entry_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  }
+
+  private _safeDisplayName(value: string | undefined, fallback: string): string {
+    if (!value) return fallback;
+    if (
+      value.includes('.') ||
+      value.startsWith('sect_') ||
+      value.startsWith('sect-') ||
+      value.includes('_')
+    ) {
+      return fallback;
+    }
+    return value;
+  }
+
+  private _sourceRef(
+    unit: unknown,
+    ability?: { id: string; name: string },
+    buff?: { id: string; name: string },
+  ): LogSourceRef | undefined {
+    const source: LogSourceRef = {};
+    if (
+      unit &&
+      typeof unit === 'object' &&
+      'id' in unit &&
+      'name' in unit &&
+      'getCurrentHp' in unit
+    ) {
+      const candidate = unit as { id: string; name: string };
+      source.unitId = candidate.id;
+      source.unitName = candidate.name;
+    }
+    if (ability) {
+      source.abilityId = ability.id;
+      source.abilityName = ability.name;
+    }
+    if (buff) {
+      source.buffId = buff.id;
+      source.buffName = buff.name;
+    }
+    return Object.keys(source).length > 0 ? source : undefined;
   }
 }

@@ -122,6 +122,10 @@ export interface DamageComponent {
   readonly kind: string;
   readonly amount: number;
   readonly mitigation: DamageMitigationMode;
+  /** 防御结算前的攻击基数。新伤害段必须同时提供 attackBase 与 segmentMultiplier。 */
+  readonly attackBase?: number;
+  /** 防御结算后的段倍率。 */
+  readonly segmentMultiplier?: number;
   /** 该分量应承担的防御倍率；属性倍率伤害等于技能段倍率。 */
   readonly defenseScale?: number;
 }
@@ -170,6 +174,7 @@ export interface UnitSnapshot {
   combatResources: Array<{
     id: string;
     name: string;
+    icon?: string;
     current: number;
     max: number;
   }>;

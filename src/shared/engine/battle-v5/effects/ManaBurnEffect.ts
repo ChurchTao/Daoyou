@@ -24,6 +24,7 @@ export class ManaBurnEffect extends GameplayEffect {
 
     // 执行法力削减
     const actualBurned = target.takeMp(burnAmount);
+    if (actualBurned <= 0) return;
 
     // 发布焚元事件
     EventBus.instance.publish<ManaBurnEvent>({

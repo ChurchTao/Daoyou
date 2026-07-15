@@ -58,6 +58,10 @@ export const SWIFT_LAYER_5_NODES = [
             ],
           },
         ],
+        presentationModifiers: [{
+          abilityId: 'sect-ultimate',
+          factRows: ['经脉·无隙：收束后下一次《追风引》不消耗法力，并额外获得1点剑势'],
+        }],
       });
     },
   ),
@@ -86,6 +90,10 @@ export const SWIFT_LAYER_5_NODES = [
             ],
           },
         ],
+        presentationModifiers: [{
+          abilityId: 'linked-edge',
+          factRows: ['经脉·连城：多段完整命中时，其他快剑神通当前冷却-1，每回合一次'],
+        }],
       });
     },
   ),
@@ -144,6 +152,10 @@ export const SWIFT_LAYER_5_NODES = [
             ],
           },
         ],
+        presentationModifiers: [{
+          abilityId: 'sect-ultimate',
+          factRows: ['经脉·静潮：连续两次自身行动未收束后暂停剑势衰减，下一次收束伤害提高20%'],
+        }],
       });
     },
   ),

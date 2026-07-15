@@ -28,6 +28,13 @@ import {
   DamageSource,
   DamageType,
 } from './types';
+import type {
+  ActionHitPolicy,
+  ActionInterruptPolicy,
+  ActionStateAbilityView,
+  ActionStatePhase,
+  ActionStateType,
+} from './actionState';
 
 // ===== 事件优先级枚举 =====
 // 数值越大优先级越高，越先执行
@@ -77,6 +84,12 @@ export interface SkillPreCastEvent extends CombatEvent {
   target: Unit;
   ability: Ability;
   isInterrupted: boolean;
+  interruptPolicy?: ActionInterruptPolicy;
+  hitPolicy?: ActionHitPolicy;
+  queuedActionState?: {
+    name: string;
+    sourceAbility?: ActionStateAbilityView;
+  };
 }
 
 // ===== 技能打断事件 =====
@@ -94,6 +107,8 @@ export interface SkillCastEvent extends CombatEvent {
   caster: Unit;
   target: Unit;
   ability: Ability;
+  interruptPolicy?: ActionInterruptPolicy;
+  hitPolicy?: ActionHitPolicy;
   // 控制字段：由 DamageSystem 等系统在事件流转中填充
   isHit?: boolean; // 是否命中
   isDodged?: boolean; // 是否被闪避
@@ -109,6 +124,7 @@ export interface HitCheckEvent extends CombatEvent {
   isHit: boolean;
   isDodged: boolean;
   isResisted: boolean;
+  hitPolicy?: ActionHitPolicy;
 }
 
 export interface DodgeEvent extends CombatEvent {
@@ -198,6 +214,8 @@ export interface HealEvent extends CombatEvent {
   ability?: Ability;
   buff?: Buff; // 如果是 Buff 造成的治疗（如 HOT），记录来源 Buff
   healAmount: number;
+  /** 实际恢复量；旧事件缺失时回退到 healAmount。 */
+  appliedAmount?: number;
   healType?: 'hp' | 'mp'; // 默认 'hp'
 }
 
@@ -257,7 +275,10 @@ export interface CombatResourceChangeEvent extends CombatEvent {
   caster?: Unit;
   ability?: Ability;
   resourceId: string;
+  resourceName: string;
+  resourceMax: number;
   operation: 'add' | 'subtract' | 'set' | 'consume_all' | 'decay';
+  reason?: 'gain' | 'spend' | 'refund' | 'decay';
   /** 请求变化量；增加为正，减少为负。 */
   requested: number;
   /** 实际变化量；增加为正，减少为负。 */
@@ -283,6 +304,7 @@ export interface TagTriggerEvent extends CombatEvent {
   caster: Unit;
   target: Unit;
   ability?: Ability;
+  displayName?: string;
   tag: string;
 }
 
@@ -354,6 +376,8 @@ export interface BuffAppliedEvent extends CombatEvent {
   target: Unit;
   buff: Buff;
   source?: Unit | Ability | unknown; // 来源（施法者/技能）
+  ability?: Ability;
+  sourceBuff?: Buff;
 }
 
 // ===== BUFF 移除事件 =====
@@ -377,7 +401,12 @@ export interface MechanicLogEvent extends CombatEvent {
     | 'status_spread';
   target: Unit;
   source?: Unit;
+  ability?: Ability;
+  sourceBuff?: Buff;
   name: string;
+  displayName?: string;
+  visibility?: 'player' | 'debug';
+  internalKey?: string;
   value?: number;
   detail?: string;
 }
@@ -437,4 +466,16 @@ export interface ControlledSkipEvent extends CombatEvent {
   unit: Unit;
   /** 触发跳过的控制标签路径 */
   controlTag: string;
+}
+
+export interface ActionStateEvent extends CombatEvent {
+  type: 'ActionStateEvent';
+  unit: Unit;
+  stateType: ActionStateType;
+  phase: ActionStatePhase;
+  name: string;
+  remainingActions: number;
+  sourceAbility?: ActionStateAbilityView;
+  ability?: ActionStateAbilityView;
+  reason?: string;
 }

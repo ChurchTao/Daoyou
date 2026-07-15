@@ -19,7 +19,18 @@ export type LogEntryType =
   | 'skill_interrupt'
   | 'cooldown_modify'
   | 'control_skip'
+  | 'resource_change'
+  | 'action_state'
   | 'mechanic';
+
+export interface LogSourceRef {
+  unitId?: string;
+  unitName?: string;
+  abilityId?: string;
+  abilityName?: string;
+  buffId?: string;
+  buffName?: string;
+}
 
 // ===== Entry Data Interfaces =====
 export interface DamageEntryData {
@@ -33,6 +44,12 @@ export interface DamageEntryData {
   reflectSourceName?: string;
   shieldAbsorbed?: number;
   remainShield?: number;
+  damageType?: 'physical' | 'magical' | 'true' | 'dot';
+  sourceUnitId?: string;
+  sourceUnitName?: string;
+  sourceAbilityId?: string;
+  sourceAbilityName?: string;
+  source?: LogSourceRef;
 }
 
 export interface HealEntryData {
@@ -42,12 +59,14 @@ export interface HealEntryData {
   targetName: string;
   sourceBuff?: string;
   healType?: 'hp' | 'mp';
+  source?: LogSourceRef;
 }
 
 export interface ShieldEntryData {
   value: number;
   targetName: string;
   remainShield?: number;
+  source?: LogSourceRef;
 }
 
 export interface ManaShieldAbsorbEntryData {
@@ -63,6 +82,9 @@ export interface BuffApplyEntryData {
   targetName: string;
   layers?: number;
   duration: number;
+  durationUnit?: 'owner_action' | 'round';
+  visibility?: 'player' | 'debug';
+  source?: LogSourceRef;
 }
 
 export interface BuffRemoveEntryData {
@@ -99,12 +121,14 @@ export interface DeathEntryData {
 export interface ManaBurnEntryData {
   value: number;
   targetName: string;
+  source?: LogSourceRef;
 }
 
 export interface ResourceDrainEntryData {
   value: number;
   drainType: 'hp' | 'mp';
   targetName: string;
+  source?: LogSourceRef;
 }
 
 export interface DispelEntryData {
@@ -114,6 +138,7 @@ export interface DispelEntryData {
 
 export interface TagTriggerEntryData {
   tag: string;
+  displayName?: string;
   targetName: string;
 }
 
@@ -154,8 +179,41 @@ export interface MechanicEntryData {
   targetName: string;
   sourceName?: string;
   name: string;
+  displayName?: string;
+  internalKey?: string;
   value?: number;
   detail?: string;
+  visibility?: 'player' | 'debug';
+  source?: LogSourceRef;
+}
+
+export interface ResourceChangeEntryData {
+  targetName: string;
+  resourceId: string;
+  resourceName: string;
+  resourceMax: number;
+  operation: 'add' | 'subtract' | 'set' | 'consume_all' | 'decay';
+  reason?: 'gain' | 'spend' | 'refund' | 'decay';
+  requested: number;
+  applied: number;
+  overflow: number;
+  before: number;
+  after: number;
+  sourceAbilityId?: string;
+  sourceAbilityName?: string;
+  isInitial?: boolean;
+  source?: LogSourceRef;
+}
+
+export interface ActionStateEntryData {
+  unitName: string;
+  stateType: 'rest' | 'queued_action';
+  phase: 'entered' | 'triggered' | 'cancelled' | 'skipped';
+  name: string;
+  remainingActions: number;
+  sourceAbilityName?: string;
+  abilityName?: string;
+  reason?: string;
 }
 
 // ===== EntryDataMap =====
@@ -179,7 +237,36 @@ export interface EntryDataMap {
   skill_interrupt: SkillInterruptEntryData;
   cooldown_modify: CooldownModifyEntryData;
   control_skip: ControlSkipEntryData;
+  resource_change: ResourceChangeEntryData;
+  action_state: ActionStateEntryData;
   mechanic: MechanicEntryData;
+}
+
+export type PresentedLogPartKind =
+  | 'text'
+  | 'unit'
+  | 'ability'
+  | 'number'
+  | 'resource'
+  | 'buff'
+  | 'critical'
+  | 'status';
+
+export interface PresentedLogPart {
+  kind: PresentedLogPartKind;
+  text: string;
+}
+
+export interface PresentedLogLine {
+  role?:
+    | 'header'
+    | 'primary'
+    | 'trigger'
+    | 'secondary'
+    | 'resource'
+    | 'state'
+    | 'system';
+  parts: PresentedLogPart[];
 }
 
 // ===== LogEntry =====

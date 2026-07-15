@@ -2,7 +2,6 @@ import type { CombatResourceModifyParams } from '../core/configs';
 import { executeEffectConfigs } from '../core/effectExecutor';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { GameplayEffect, type EffectContext } from './Effect';
-import { publishMechanicLog } from './advancedEffectUtils';
 
 export class CombatResourceModifyEffect extends GameplayEffect {
   constructor(private readonly params: CombatResourceModifyParams) {
@@ -19,7 +18,12 @@ export class CombatResourceModifyEffect extends GameplayEffect {
         unit.combatResources.modify(
           this.params.resourceId,
           Math.max(0, this.params.amount ?? 1),
-          { caster: context.caster, ability: context.ability, operation: 'add' },
+          {
+            caster: context.caster,
+            ability: context.ability,
+            operation: 'add',
+            reason: this.params.reason,
+          },
         );
         amount = unit.combatResources.getCurrent(this.params.resourceId) - before;
         break;
@@ -27,7 +31,12 @@ export class CombatResourceModifyEffect extends GameplayEffect {
         amount = unit.combatResources.consume(
           this.params.resourceId,
           Math.max(0, this.params.amount ?? 1),
-          { caster: context.caster, ability: context.ability, operation: 'subtract' },
+          {
+            caster: context.caster,
+            ability: context.ability,
+            operation: 'subtract',
+            reason: this.params.reason,
+          },
         );
         break;
       case 'set':
@@ -35,6 +44,7 @@ export class CombatResourceModifyEffect extends GameplayEffect {
           caster: context.caster,
           ability: context.ability,
           operation: 'set',
+          reason: this.params.reason,
         });
         amount = Math.abs(unit.combatResources.getCurrent(this.params.resourceId) - before);
         break;
@@ -43,18 +53,10 @@ export class CombatResourceModifyEffect extends GameplayEffect {
           caster: context.caster,
           ability: context.ability,
           operation: 'consume_all',
+          reason: this.params.reason,
         });
         break;
     }
-
-    publishMechanicLog({
-      mechanic: 'combat_resource',
-      source: context.caster,
-      target: unit,
-      name: this.params.resourceId,
-      value: amount,
-      detail: this.params.operation,
-    });
 
     const repeat = this.params.scaleEffectsByAmount ? amount : amount > 0 ? 1 : 0;
     for (let index = 0; index < repeat; index += 1) {

@@ -118,8 +118,10 @@ export class Unit {
     this.setHp(this.currentHp - damage);
   }
 
-  heal(amount: number): void {
+  heal(amount: number): number {
+    const before = this.currentHp;
     this.setHp(this.currentHp + amount);
+    return this.currentHp - before;
   }
 
   consumeMp(amount: number): boolean {
@@ -148,8 +150,10 @@ export class Unit {
     return actualTaken;
   }
 
-  restoreMp(amount: number): void {
+  restoreMp(amount: number): number {
+    const before = this.currentMp;
     this.setMp(this.currentMp + amount);
+    return this.currentMp - before;
   }
 
   isAlive(): boolean {

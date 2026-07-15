@@ -31,7 +31,7 @@ export interface HeavySwordFeatures {
   opening: boolean;
   chargedReduction: boolean;
   chargedStrike: boolean;
-  chargedFailShield: boolean;
+  chargedGuardShield: boolean;
   mountainGate: boolean;
   returningPeak: boolean;
   rendingMountain: boolean;
@@ -44,7 +44,7 @@ export const EMPTY_HEAVY_FEATURES: HeavySwordFeatures = {
   opening: false,
   chargedReduction: false,
   chargedStrike: false,
-  chargedFailShield: false,
+  chargedGuardShield: false,
   mountainGate: false,
   returningPeak: false,
   rendingMountain: false,
@@ -127,7 +127,6 @@ export function buildHeavyAbilities(
       definition,
       pathId: path.pathId,
       mpCost: calculateSectManaCost(realm, args.manaWeight),
-      detailRows: [],
     });
   };
 
@@ -148,6 +147,9 @@ export function buildHeavyAbilities(
     effects: [],
     castEffects: [
       selfBuff('sect.lingxiao.heavy.hidden-edge', '不动藏锋', 1, [], reductionListeners(features.chargedReduction ? 0.4 : 0.3)),
+      ...(features.chargedGuardShield
+        ? [sectEffects.shieldByAttack(0.6, undefined, 'caster')]
+        : []),
       {
         type: 'queue_action',
         params: {
@@ -164,12 +166,11 @@ export function buildHeavyAbilities(
             GameplayTags.ABILITY.TARGET.SINGLE,
           ],
           effects: [
-            damage(features.chargedStrike ? 3.1 : 2.6),
+            damage(features.chargedStrike ? 2.7 : 2.2),
             sectEffects.modifyResource(resourceId, 2),
           ],
-          cancelEffects: features.chargedFailShield
-            ? [sectEffects.shieldByAttack(0.6, undefined, 'caster')]
-            : [],
+          interruptPolicy: 'uninterruptible',
+          hitPolicy: 'guaranteed',
         },
       },
     ],
@@ -242,7 +243,7 @@ export function buildHeavyAbilities(
         },
       },
       ...(features.returningPeak ? [
-        sectEffects.modifyResource(resourceId, 2),
+        sectEffects.modifyResource(resourceId, 2, undefined, 'refund'),
         sectEffects.shieldByAttack(0.6, undefined, 'caster'),
       ] : []),
       ...(features.mountainRiverEcho ? [{
@@ -258,28 +259,5 @@ export function buildHeavyAbilities(
     ],
   });
 
-  for (const [id, ability] of Object.entries(built)) {
-    if (ability.detailRows.length === 0) ability.detailRows = describeHeavyAbility(id, features);
-  }
   return built;
-}
-
-function describeHeavyAbility(id: string, features: HeavySwordFeatures): string[] {
-  const rows: Record<string, string[]> = {
-    'plain-sword': ['伤害：0.90物攻', '剑势：命中获得1点'],
-    'guiding-sword': ['伤害：1.05物攻', '剑势：命中获得2点', '护盾：0.20物攻'],
-    'linked-edge': ['伤害：单段1.55物攻', '剑势：命中获得1点', '护盾：0.35物攻'],
-    'turning-body': [`藏锋：直接承伤降低${features.chargedReduction ? 40 : 30}%`, `后发：下一行动造成${features.chargedStrike ? '3.10' : '2.60'}物攻并获得2剑势`, '受控：后发取消且不退还消耗与冷却'],
-    'shadow-step': [`护盾：${(0.65 * (features.mountainGate ? 1.5 : 1)).toFixed(2)}物攻`, '物理防御：提高20%', '持续：未来2次自身行动', '剑势：获得1点'],
-    'breaking-edge': ['伤害：1.30物攻', '破障：驱散1个正面状态'],
-    'sword-aegis': ['法术防御：提高30%', '直接承伤：降低10%', '持续：未来3次自身行动'],
-    'nurturing-sword': ['物理攻击：提高10%', '物理防御：提高20%', '持续：未来3次自身行动'],
-    'sect-ultimate': [heavenText(features), '释放：至少3点剑势', '释放后：消耗全部剑势'],
-  };
-  return rows[id] ?? [];
-}
-
-function heavenText(features: HeavySwordFeatures): string {
-  if (features.heavenCleaving) return '伤害：6势时单段4.00物攻，其中30%穿防';
-  return `伤害：单段1.20物攻 + 每点剑势0.40物攻${features.rendingMountain ? '，其中20%穿防' : ''}`;
 }

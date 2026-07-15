@@ -1,11 +1,17 @@
+import type { ActionStateView } from '../../core/actionState';
+
 // ===== Buff 状态视图 =====
 export interface BuffStateView {
   id: string;
   name: string;
   description?: string;
   type: 'buff' | 'debuff' | 'control';
+  /** 玩家界面可见性；旧战斗记录缺失时按 player 处理。 */
+  logVisibility?: 'player' | 'debug';
+  /** Buff 来源单位的显示名。 */
+  sourceName?: string;
   layers: number;
-  /** 剩余回合数；-1 表示永久 */
+  /** 剩余自身行动数；-1 表示永久 */
   remaining: number;
   isPermanent: boolean;
 }
@@ -74,10 +80,13 @@ export interface UnitStateSnapshot {
   combatResources: Array<{
     id: string;
     name: string;
+    icon?: string;
     current: number;
     max: number;
   }>;
   cooldowns: CooldownStateView[];
+  /** 调息、蓄势等独立行动状态；旧战斗记录可能缺失。 */
+  actionStates?: ActionStateView[];
   /** 是否可行动（存活且未被控制）*/
   canAct: boolean;
 }
@@ -92,7 +101,9 @@ export interface UnitStateDelta {
   shield?: { from: number; to: number; change: number };
   /** 仅包含发生变化的属性 */
   attrs?: Partial<Record<keyof AttrsStateView, { from: number; to: number }>>;
-  baseAttrs?: Partial<Record<keyof AttrsStateView, { from: number; to: number }>>;
+  baseAttrs?: Partial<
+    Record<keyof AttrsStateView, { from: number; to: number }>
+  >;
   buffsAdded?: BuffStateView[];
   buffsRemoved?: Array<{ id: string; name: string }>;
   buffsUpdated?: Array<{
@@ -115,16 +126,17 @@ export interface UnitStateDelta {
     from: number;
     to: number;
   }>;
+  actionStatesChanged?: {
+    from: ActionStateView[];
+    to: ActionStateView[];
+  };
   canActChanged?: { from: boolean; to: boolean };
   aliveChanged?: { from: boolean; to: boolean };
 }
 
 // ===== 状态帧类型 =====
 export type StateFramePhase =
-  | 'battle_init'
-  | 'action_pre'
-  | 'action_post'
-  | 'battle_end';
+  'battle_init' | 'action_pre' | 'action_post' | 'battle_end';
 
 // ===== 战斗状态帧 =====
 export interface BattleStateFrame {

@@ -31,11 +31,24 @@ export interface SectCompiledAbility {
   notes: string[];
 }
 
+/**
+ * 节点对既有神通的跨配置修正说明。
+ *
+ * 只用于无法从最终 AbilityConfig 反推的监听器语义；普通倍率、Buff、资源与
+ * 队列效果必须继续由 AbilityConfig 分析器生成。
+ */
+export interface AbilityPresentationModifier {
+  sourceId: string;
+  abilityId: SectAbilityId;
+  factRows: string[];
+}
+
 export interface SectCompiledBuild {
   defaultAbilityId: SectAbilityId;
   abilities: Record<SectAbilityId, SectCompiledAbility>;
   resources: CombatResourceDefinition[];
   passives: AbilityConfig[];
+  abilityPresentationModifiers?: AbilityPresentationModifier[];
 }
 
 export interface ResolvedSectAbility {

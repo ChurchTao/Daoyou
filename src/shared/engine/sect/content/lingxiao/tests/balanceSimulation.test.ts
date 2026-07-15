@@ -1,36 +1,103 @@
 import { BattleEngineV5 } from '@shared/engine/battle-v5/BattleEngineV5';
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
-import { AttributeType, AbilityType, ModifierType } from '@shared/engine/battle-v5/core/types';
+import { AbilityType, AttributeType } from '@shared/engine/battle-v5/core/types';
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
+import type { DamageEntryData } from '@shared/engine/battle-v5/systems/log/types';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
+import {
+  getRealmStageNaturalAttributeValue,
+  getRealmStageRank,
+  getRealmStageUnallocatedAttributeBudget,
+} from '@shared/config/realmProgression';
+import type { RealmStage, RealmType } from '@shared/types/constants';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { projectSectCombat } from '../..';
 import type { CultivatorSectState } from '../../../core';
 
 type PathId = 'swift-sword' | 'heavy-sword';
+type SwiftTactic = 'aggressive' | 'steady' | 'counter';
+type HeavyTactic = 'heavy-break' | 'heavy-full' | 'heavy-guard';
 
-const NODE_SET: Record<PathId, string[]> = {
-  'swift-sword': [
+const REALMS = [
+  { realm: '筑基', stage: '初期', layerCount: 1, realmIndex: 0, label: '筑基初期' },
+  { realm: '金丹', stage: '圆满', layerCount: 3, realmIndex: 1, label: '金丹圆满' },
+  { realm: '化神', stage: '圆满', layerCount: 6, realmIndex: 2, label: '化神圆满' },
+] as const satisfies ReadonlyArray<{
+  realm: RealmType;
+  stage: RealmStage;
+  layerCount: number;
+  realmIndex: number;
+  label: string;
+}>;
+
+const NODE_SET: Record<SwiftTactic | HeavyTactic, string[]> = {
+  aggressive: [
     'swift-opening',
     'swift-split-light',
     'swift-borrowed-force',
-    'swift-mountain-breaking',
-    'swift-linked-city',
+    'swift-life-chasing',
+    'swift-gapless',
     'swift-endless-flow',
   ],
-  'heavy-sword': [
+  steady: [
+    'swift-probing-edge',
+    'swift-retained-force',
+    'swift-guarded-edge',
+    'swift-mountain-breaking',
+    'swift-linked-city',
+    'swift-shadow-line',
+  ],
+  counter: [
+    'swift-hidden-edge',
+    'swift-stacking-waves',
+    'swift-returning-swallow',
+    'swift-sheathing',
+    'swift-still-tide',
+    'swift-unending-wind',
+  ],
+  'heavy-break': [
     'heavy-hidden-weight',
+    'heavy-shattering-armor',
+    'heavy-borrowed-weight',
+    'heavy-rending-mountain',
+    'heavy-linked-mountains',
+    'heavy-mountain-river-echo',
+  ],
+  'heavy-full': [
+    'heavy-opening',
     'heavy-triple-ridge',
     'heavy-crossing-pass',
     'heavy-ending-life',
     'heavy-aftershock',
+    'heavy-heaven-cleaving',
+  ],
+  'heavy-guard': [
+    'heavy-testing-frame',
+    'heavy-retained-frame',
+    'heavy-unmoved',
+    'heavy-returning-peak',
+    'heavy-steady-mountain',
     'heavy-immovable-mountain',
   ],
 };
 
-function sectState(pathId: PathId): CultivatorSectState {
+const LOADOUT: Record<SwiftTactic | HeavyTactic, string[]> = {
+  aggressive: ['guiding-sword', 'linked-edge', 'shadow-step', 'sect-ultimate'],
+  steady: ['guiding-sword', 'linked-edge', 'nurturing-sword', 'sect-ultimate'],
+  counter: ['turning-body', 'shadow-step', 'sword-aegis', 'sect-ultimate'],
+  'heavy-break': ['guiding-sword', 'turning-body', 'linked-edge', 'sect-ultimate'],
+  'heavy-full': ['guiding-sword', 'linked-edge', 'turning-body', 'sect-ultimate'],
+  'heavy-guard': ['shadow-step', 'sword-aegis', 'turning-body', 'sect-ultimate'],
+};
+
+function sectState(
+  pathId: PathId,
+  tacticId: SwiftTactic | HeavyTactic,
+  layerCount: number,
+): CultivatorSectState {
+  const layers = ['1', '2', '3', '4', '5', 'ultimate'].slice(0, layerCount);
   return {
-    membershipId: pathId,
+    membershipId: `${pathId}:${tacticId}`,
     sectId: 'lingxiao',
     status: 'active',
     contribution: 0,
@@ -46,48 +113,95 @@ function sectState(pathId: PathId): CultivatorSectState {
     },
     paths: [{
       pathId,
-      unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
-      tacticId: pathId === 'swift-sword' ? 'aggressive' : 'heavy-full',
+      unlockedLayerIds: layers,
+      tacticId,
       activeMeridianSlot: 1,
       meridianLoadouts: [
-        { slot: 1, nodeIds: NODE_SET[pathId], version: 1 },
+        { slot: 1, nodeIds: NODE_SET[tacticId].slice(0, layerCount), version: 1 },
         { slot: 2, nodeIds: [], version: 1 },
         { slot: 3, nodeIds: [], version: 1 },
       ],
     }],
-    abilityLoadout: pathId === 'swift-sword'
-      ? ['guiding-sword', 'linked-edge', 'shadow-step', 'sect-ultimate']
-      : ['guiding-sword', 'linked-edge', 'turning-body', 'sect-ultimate'],
+    abilityLoadout: [
+      LOADOUT[tacticId][0] ?? null,
+      LOADOUT[tacticId][1] ?? null,
+      LOADOUT[tacticId][2] ?? null,
+      LOADOUT[tacticId][3] ?? null,
+    ],
   };
 }
 
-function combatant(id: string, pathId: PathId): Unit {
-  const projection = projectSectCombat({ sect: sectState(pathId), realm: '化神' })!;
-  const unit = new Unit(id, id, {
-    [AttributeType.VITALITY]: 100,
-    [AttributeType.SPIRIT]: pathId === 'swift-sword' ? 60 : 100,
-    [AttributeType.WISDOM]: pathId === 'swift-sword' ? 140 : 100,
-    [AttributeType.SPEED]: 100,
-    [AttributeType.WILLPOWER]: 100,
+const ATTRIBUTES = [
+  AttributeType.VITALITY,
+  AttributeType.SPIRIT,
+  AttributeType.WISDOM,
+  AttributeType.SPEED,
+  AttributeType.WILLPOWER,
+] as const;
+
+const DISTRIBUTION: Record<PathId, readonly number[]> = {
+  'swift-sword': [0.3, 0.1, 0.15, 0.3, 0.15],
+  'heavy-sword': [0.3, 0.1, 0.15, 0.3, 0.15],
+};
+
+function combatant(args: {
+  id: string;
+  pathId: PathId;
+  tacticId: SwiftTactic | HeavyTactic;
+  realm: RealmType;
+  stage: RealmStage;
+  layerCount: number;
+}): Unit {
+  const state = sectState(args.pathId, args.tacticId, args.layerCount);
+  const projection = projectSectCombat({ sect: state, realm: args.realm })!;
+  const natural = getRealmStageNaturalAttributeValue(args.realm, args.stage);
+  const unallocated = getRealmStageUnallocatedAttributeBudget(args.realm, args.stage);
+  let assigned = 0;
+  const attributes = Object.fromEntries(
+    ATTRIBUTES.map((attribute, index) => {
+      const extra = index === ATTRIBUTES.length - 1
+        ? unallocated - assigned
+        : Math.floor(unallocated * DISTRIBUTION[args.pathId][index]);
+      assigned += extra;
+      return [attribute, natural + extra];
+    }),
+  );
+  const unit = new Unit(args.id, args.id, attributes);
+  unit.setRealmMeta({
+    realm: args.realm,
+    realmStage: args.stage,
+    realmRank: getRealmStageRank(args.realm, args.stage),
   });
-  unit.attributes.addModifier({
-    id: `${id}.benchmark-hp`,
-    attrType: AttributeType.MAX_HP,
-    type: ModifierType.OVERRIDE,
-    value: 4_000,
-    source: 'benchmark',
-  });
-  unit.updateDerivedStats();
-  unit.setHp(unit.getMaxHp());
   for (const resource of projection.resources) unit.combatResources.define(resource);
-  if (projection.defaultAttack) unit.abilities.setDefaultAttack(AbilityFactory.create(projection.defaultAttack));
+  if (projection.defaultAttack) {
+    unit.abilities.setDefaultAttack(AbilityFactory.create(projection.defaultAttack));
+  }
   for (const config of projection.abilities) {
     const ability = AbilityFactory.create(config);
-    if (ability.type === AbilityType.PASSIVE_SKILL || sectState(pathId).abilityLoadout.some((abilityId) => config.slug.endsWith(`.${abilityId}`))) {
+    if (
+      ability.type === AbilityType.PASSIVE_SKILL ||
+      state.abilityLoadout.some(
+        (abilityId) => abilityId && config.slug.endsWith(`.${abilityId}`),
+      )
+    ) {
       unit.abilities.addAbility(ability);
     }
   }
-  if (projection.selectionStrategy) unit.abilities.setSelectionStrategy(projection.selectionStrategy);
+  if (projection.selectionStrategy) {
+    unit.abilities.setSelectionStrategy(projection.selectionStrategy);
+  }
+  for (const method of projection.methodModifiers) {
+    for (const [index, modifier] of method.modifiers.entries()) {
+      unit.attributes.addModifier({
+        id: `method:${method.methodId}:${index}`,
+        ...modifier,
+        source: method.methodId,
+      });
+    }
+  }
+  unit.updateDerivedStats();
+  unit.setHp(unit.getMaxHp());
+  unit.setMp(unit.getMaxMp());
   return unit;
 }
 
@@ -99,34 +213,166 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-describe('凌霄V4固定种子平衡基准', () => {
+interface MatchResult {
+  swiftWinRate: number;
+  averageTurns: number;
+  drawRate: number;
+  swiftIdentityShare: number;
+  heavyIdentityShare: number;
+}
+
+function simulate(args: {
+  realm: RealmType;
+  stage: RealmStage;
+  layerCount: number;
+  swiftTactic: SwiftTactic;
+  heavyTactic: HeavyTactic;
+  seed: number;
+  samples?: number;
+}): MatchResult {
+  const samples = args.samples ?? 100;
+  vi.spyOn(Math, 'random').mockImplementation(seededRandom(args.seed));
+  let swiftWins = 0;
+  let draws = 0;
+  let turns = 0;
+  let swiftDamage = 0;
+  let swiftIdentityDamage = 0;
+  let heavyDamage = 0;
+  let heavyIdentityDamage = 0;
+
+  for (let index = 0; index < samples; index += 1) {
+    EventBus.instance.reset();
+    const swift = combatant({
+      id: `swift-${index}`,
+      pathId: 'swift-sword',
+      tacticId: args.swiftTactic,
+      realm: args.realm,
+      stage: args.stage,
+      layerCount: args.layerCount,
+    });
+    const heavy = combatant({
+      id: `heavy-${index}`,
+      pathId: 'heavy-sword',
+      tacticId: args.heavyTactic,
+      realm: args.realm,
+      stage: args.stage,
+      layerCount: args.layerCount,
+    });
+    const engine = index % 2 === 0
+      ? new BattleEngineV5(swift, heavy)
+      : new BattleEngineV5(heavy, swift);
+    const result = engine.execute();
+    if (result.winner.startsWith('swift-')) swiftWins += 1;
+    if (!result.winner) draws += 1;
+    turns += result.turns;
+
+    for (const span of result.logSpans ?? []) {
+      for (const entry of span.entries) {
+        if (entry.type !== 'damage') continue;
+        const damage = entry.data as DamageEntryData;
+        const sourceName = damage.sourceUnitName ?? span.actor?.name ?? '';
+        const abilityName = damage.sourceAbilityName ?? span.ability?.name ?? '';
+        if (sourceName.startsWith('swift-')) {
+          swiftDamage += damage.value;
+          if (
+            damage.damageSource === 'follow_up' ||
+            damage.damageSource === 'counter' ||
+            damage.sourceAbilityId?.endsWith('.linked-edge') ||
+            abilityName === '流光五叠' ||
+            abilityName === '分光七叠'
+          ) {
+            swiftIdentityDamage += damage.value;
+          }
+        } else if (sourceName.startsWith('heavy-')) {
+          heavyDamage += damage.value;
+          if (
+            damage.damageSource === 'counter' ||
+            damage.sourceAbilityId?.endsWith('.thunder-strike') ||
+            abilityName === '听雷沉山'
+          ) {
+            heavyIdentityDamage += damage.value;
+          }
+        }
+      }
+    }
+    engine.destroy();
+  }
+
+  vi.restoreAllMocks();
+  return {
+    swiftWinRate: swiftWins / samples,
+    averageTurns: turns / samples,
+    drawRate: draws / samples,
+    swiftIdentityShare: swiftDamage > 0 ? swiftIdentityDamage / swiftDamage : 0,
+    heavyIdentityShare: heavyDamage > 0 ? heavyIdentityDamage / heavyDamage : 0,
+  };
+}
+
+describe('凌霄V4.1三境界固定种子平衡矩阵', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     EventBus.instance.reset();
   });
 
-  it('化神圆满代表配置保持合理胜率和回合长度', () => {
-    vi.spyOn(Math, 'random').mockImplementation(seededRandom(0x4c58_5634));
-    let swiftWins = 0;
-    let turns = 0;
-    const samples = 100;
-    for (let index = 0; index < samples; index += 1) {
-      EventBus.instance.reset();
-      const swift = combatant(`swift-${index}`, 'swift-sword');
-      const heavy = combatant(`heavy-${index}`, 'heavy-sword');
-      const engine = index % 2 === 0
-        ? new BattleEngineV5(swift, heavy)
-        : new BattleEngineV5(heavy, swift);
-      const result = engine.execute();
-      if (result.winner.startsWith('swift-')) swiftWins += 1;
-      turns += result.turns;
-      engine.destroy();
-    }
-    const winRate = swiftWins / samples;
-    const averageTurns = turns / samples;
-    expect(winRate, `winRate=${winRate}, averageTurns=${averageTurns}`).toBeGreaterThanOrEqual(0.45);
-    expect(winRate).toBeLessThanOrEqual(0.55);
-    expect(averageTurns).toBeGreaterThanOrEqual(8);
-    expect(averageTurns).toBeLessThanOrEqual(12);
-  });
+  it.runIf(process.env.LINGXIAO_BALANCE_GATE === '1').each(REALMS)(
+    '$label 的三组代表对局与3×3战术矩阵满足验收范围',
+    ({ realm, stage, layerCount, realmIndex }) => {
+      const swiftTactics: SwiftTactic[] = ['aggressive', 'steady', 'counter'];
+      const heavyTactics: HeavyTactic[] = ['heavy-break', 'heavy-full', 'heavy-guard'];
+      const representative = new Set([
+        'aggressive:heavy-break',
+        'steady:heavy-full',
+        'counter:heavy-guard',
+      ]);
+      const failures: string[] = [];
+      const reports: string[] = [];
+      for (const [swiftIndex, swiftTactic] of swiftTactics.entries()) {
+        for (const [heavyIndex, heavyTactic] of heavyTactics.entries()) {
+          const result = simulate({
+            realm,
+            stage,
+            layerCount,
+            swiftTactic,
+            heavyTactic,
+            seed:
+              0x4c58_4100 +
+              realmIndex * 100 +
+              swiftIndex * 10 +
+              heavyIndex,
+          });
+          const label = `${realm}${stage} ${swiftTactic} vs ${heavyTactic}: ${JSON.stringify(result)}`;
+          reports.push(label);
+          const isRepresentative = representative.has(
+            `${swiftTactic}:${heavyTactic}`,
+          );
+          const minWinRate = isRepresentative ? 0.45 : 0.35;
+          const maxWinRate = isRepresentative ? 0.55 : 0.65;
+          if (
+            result.swiftWinRate < minWinRate ||
+            result.swiftWinRate > maxWinRate ||
+            result.drawRate > 0.05 ||
+            (isRepresentative &&
+              (result.averageTurns < 8 || result.averageTurns > 12))
+          ) {
+            failures.push(label);
+          }
+        }
+      }
+      expect(failures, reports.join('\n')).toEqual([]);
+    },
+    60_000,
+  );
+
+  it('化神代表对局的伤害构成保持快重差异', () => {
+    const result = simulate({
+      realm: '化神',
+      stage: '圆满',
+      layerCount: 6,
+      swiftTactic: 'aggressive',
+      heavyTactic: 'heavy-break',
+      seed: 0x4c58_4999,
+    });
+    expect(result.swiftIdentityShare).toBeGreaterThan(0.5);
+    expect(result.heavyIdentityShare).toBeGreaterThan(0.5);
+  }, 30_000);
 });

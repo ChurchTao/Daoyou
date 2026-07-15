@@ -38,11 +38,15 @@ describe('V4行动原语', () => {
 
     ability.execute({ caster, target, shouldApplyEffects: false });
 
-    expect(consumeSkippedAction(caster)).toEqual({ reason: '调息' });
+    expect(consumeSkippedAction(caster)).toMatchObject({
+      reason: '调息',
+      name: '调息',
+      sourceAbility: { id: 'resting-strike', name: '调息剑' },
+    });
     expect(caster.combatResources.getCurrent('momentum')).toBe(0);
   });
 
-  it('queue_action登记零消耗后发神通及受控取消补偿', () => {
+  it('queue_action登记零消耗、不可打断且必然命中的后发神通', () => {
     const caster = unit('caster');
     const target = unit('target');
     const effect = AbilityFactory.createEffect({
@@ -55,13 +59,18 @@ describe('V4行动原语', () => {
           GameplayTags.ABILITY.CHANNEL.PHYSICAL,
         ],
         effects: [{ type: 'damage', params: { value: { base: 10 } } }],
-        cancelEffects: [{ type: 'shield', params: { value: { base: 20 }, target: 'caster' } }],
+        interruptPolicy: 'uninterruptible',
+        hitPolicy: 'guaranteed',
       },
     });
     effect?.execute({ caster, target });
     const queued = consumeQueuedAction(caster);
     expect(queued?.ability).toMatchObject({ name: '后发', mpCost: 0, cooldown: 0 });
-    expect(queued?.cancelEffects).toHaveLength(1);
+    expect(queued).toMatchObject({
+      interruptPolicy: 'uninterruptible',
+      hitPolicy: 'guaranteed',
+      cancelEffects: [],
+    });
   });
 
   it('新施加Buff在施放行动不扣时长，从下一次自身行动开始计数', () => {

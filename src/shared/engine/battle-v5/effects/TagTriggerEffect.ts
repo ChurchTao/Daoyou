@@ -36,6 +36,7 @@ export class TagTriggerEffect extends GameplayEffect {
       target,
       ability,
       tag: this.params.triggerTag,
+      displayName: this.params.displayName,
     });
 
     if (this.params.effects && this.params.effects.length > 0) {

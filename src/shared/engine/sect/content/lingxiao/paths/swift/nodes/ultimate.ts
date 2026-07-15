@@ -32,6 +32,10 @@ export const SWIFT_ULTIMATE_NODES = [
             ],
           },
         ],
+        presentationModifiers: [{
+          abilityId: 'sect-ultimate',
+          factRows: ['经脉·无间：收束后追加0.60物攻追击并获得1点剑势，每3回合一次'],
+        }],
       });
     },
   ),

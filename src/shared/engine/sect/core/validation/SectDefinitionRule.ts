@@ -109,6 +109,8 @@ export class SectDefinitionRule implements ValidationRule<SectModule> {
     if (
       !definition.combatResource.id.trim() ||
       !definition.combatResource.name.trim() ||
+      (definition.combatResource.icon !== undefined &&
+        !definition.combatResource.icon.trim()) ||
       !Number.isInteger(definition.combatResource.max) ||
       definition.combatResource.max <= 0
     ) {

@@ -1,6 +1,12 @@
 // engine/battle-v5/systems/ActionExecutionSystem.ts
 import { EventBus } from '../core/EventBus';
-import { SkillPreCastEvent, SkillCastEvent, SkillInterruptEvent, EventPriorityLevel } from '../core/events';
+import {
+  ActionStateEvent,
+  SkillPreCastEvent,
+  SkillCastEvent,
+  SkillInterruptEvent,
+  EventPriorityLevel,
+} from '../core/events';
 
 /**
  * ActionExecutionSystem - 行动执行系统
@@ -39,7 +45,7 @@ export class ActionExecutionSystem {
    */
   private _onSkillPreCast(event: SkillPreCastEvent): void {
     // 检查是否被打断
-    if (event.isInterrupted) {
+    if (event.isInterrupted && event.interruptPolicy !== 'uninterruptible') {
       // 发布被打断事件
       EventBus.instance.publish<SkillInterruptEvent>({
         type: 'SkillInterruptEvent',
@@ -49,6 +55,20 @@ export class ActionExecutionSystem {
         ability: event.ability,
         reason: '施法被打断',
       });
+      if (event.queuedActionState) {
+        EventBus.instance.publish<ActionStateEvent>({
+          type: 'ActionStateEvent',
+          timestamp: Date.now(),
+          unit: event.caster,
+          stateType: 'queued_action',
+          phase: 'cancelled',
+          name: event.queuedActionState.name,
+          remainingActions: 0,
+          sourceAbility: event.queuedActionState.sourceAbility,
+          ability: { id: event.ability.id, name: event.ability.name },
+          reason: '施法被打断',
+        });
+      }
       return;
     }
 
@@ -59,9 +79,25 @@ export class ActionExecutionSystem {
       caster: event.caster,
       target: event.target,
       ability: event.ability,
+      interruptPolicy: event.interruptPolicy,
+      hitPolicy: event.hitPolicy,
     };
 
     EventBus.instance.publish(castEvent);
+
+    if (event.queuedActionState) {
+      EventBus.instance.publish<ActionStateEvent>({
+        type: 'ActionStateEvent',
+        timestamp: Date.now(),
+        unit: event.caster,
+        stateType: 'queued_action',
+        phase: 'triggered',
+        name: event.queuedActionState.name,
+        remainingActions: 0,
+        sourceAbility: event.queuedActionState.sourceAbility,
+        ability: { id: event.ability.id, name: event.ability.name },
+      });
+    }
 
     // 无论命中与否，技能都需要消耗资源并进入冷却；效果链是否执行由上下文决定。
     event.ability.execute({

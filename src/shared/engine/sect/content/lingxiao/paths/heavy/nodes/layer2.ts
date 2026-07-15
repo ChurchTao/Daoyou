@@ -7,11 +7,11 @@ export const HEAVY_LAYER_2_NODES = [
     (_context, builder) => heavySwordBuild(builder).enable('chargedReduction'),
   ),
   createLingxiaoNode(
-    { id: 'heavy-shattering-armor', layerId: '2', name: '听雷', description: '后发重击由2.60提高至3.10物攻。' },
+    { id: 'heavy-shattering-armor', layerId: '2', name: '听雷', description: '后发重击由2.20提高至2.70物攻。' },
     (_context, builder) => heavySwordBuild(builder).enable('chargedStrike'),
   ),
   createLingxiaoNode(
-    { id: 'heavy-retained-frame', layerId: '2', name: '守心', description: '蓄力被控制取消时获得0.60物攻护盾。' },
-    (_context, builder) => heavySwordBuild(builder).enable('chargedFailShield'),
+    { id: 'heavy-retained-frame', layerId: '2', name: '守心', description: '开始蓄势时获得0.60物攻护盾。' },
+    (_context, builder) => heavySwordBuild(builder).enable('chargedGuardShield'),
   ),
 ] as const;

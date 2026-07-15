@@ -205,8 +205,8 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
     console.log(result.logs);
 
     expect(result.logs[2]).toContain('对「不死者」造成');
-    expect(result.logs[2]).toContain('反弹');
-    expect(result.logs[2]).not.toContain('对「杀手」造成');
+    const reflectLine = result.logs.find((line) => line.includes('「不死者」反伤'));
+    expect(reflectLine).toContain('对「杀手」造成');
   });
 
   it('4. 验证【护盾与焚元】：纯粹分步验证', () => {

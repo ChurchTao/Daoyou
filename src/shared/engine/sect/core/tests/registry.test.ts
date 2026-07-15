@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ConfiguredSectNodePlugin,
   SectRegistry,
   type SectModule,
   type SectPathModule,
@@ -67,20 +66,25 @@ describe('宗门模块扩展契约', () => {
     expect(() => new SectRegistry([invalid])).toThrow('缺少节点插件');
   });
 
-  it('拒绝不改变编译结果的空节点插件', () => {
-    const path = FIXTURE_SECT_MODULE.paths.get('fixture-first-path')!;
-    const first = path.definition.nodes[0];
-    const nodes = new Map(path.nodes);
-    nodes.set(first.id, new ConfiguredSectNodePlugin(first, () => undefined));
-    const invalid = replacePath(path.definition.id, {
-      definition: path.definition,
-      nodes,
-      compileVariants: (context, builder) =>
-        path.compileVariants(context, builder),
-      createSelectionStrategy: (tacticId) =>
-        path.createSelectionStrategy(tacticId),
-    });
-    expect(() => new SectRegistry([invalid])).toThrow('运行时行为为空');
+  it('拒绝不同宗门复用同一战斗资源ID', () => {
+    const duplicateResourceModule: SectModule = {
+      definition: {
+        ...FIXTURE_SECT_MODULE.definition,
+        id: 'fixture-sect-two',
+        name: '第二测试宗门',
+      },
+      paths: FIXTURE_SECT_MODULE.paths,
+      createBaseBuilder: (context) =>
+        FIXTURE_SECT_MODULE.createBaseBuilder(context),
+      checkAdmission: (context) =>
+        FIXTURE_SECT_MODULE.checkAdmission(context),
+      createTrialScenario: (context) =>
+        FIXTURE_SECT_MODULE.createTrialScenario(context),
+    };
+    const registry = new SectRegistry([FIXTURE_SECT_MODULE]);
+    expect(() => registry.register(duplicateResourceModule)).toThrow(
+      '宗门战斗资源ID重复',
+    );
   });
 
   it('拒绝跨流派重复的节点和战术ID', () => {

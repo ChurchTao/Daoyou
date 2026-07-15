@@ -57,6 +57,7 @@ export class SectEffectFactory {
     resourceId: string,
     amount: number,
     conditions?: EffectConfig['conditions'],
+    reason?: 'gain' | 'spend' | 'refund',
   ): EffectConfig {
     return {
       type: 'combat_resource_modify',
@@ -64,6 +65,7 @@ export class SectEffectFactory {
         resourceId,
         operation: amount >= 0 ? 'add' : 'subtract',
         amount: Math.abs(amount),
+        reason,
       },
       conditions,
     };

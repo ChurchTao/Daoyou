@@ -73,6 +73,42 @@ describe('宗门插件架构守卫', () => {
     expect(production).not.toMatch(/fixture|testing/);
   });
 
+  it('凌霄内容不手写神通详情、旧资源别名或启动期组合穷举', () => {
+    const contentRoot = join(root, 'content/lingxiao');
+    for (const file of sourceFiles(contentRoot).filter(
+      (path) => !path.includes('/tests/'),
+    )) {
+      const source = readFileSync(file, 'utf8');
+      const label = relative(root, file);
+      expect(source, label).not.toContain('detailRows');
+      expect(source, label).not.toContain('LINGXIAO_HEAVY_POSTURE');
+    }
+    const compilationRule = readFileSync(
+      join(root, 'core/validation/SectCompilationRule.ts'),
+      'utf8',
+    );
+    expect(compilationRule).not.toMatch(/compileCombination|JSON\.stringify/);
+  });
+
+  it('战斗日志React组件不再使用HTML字符串注入', () => {
+    const combatLog = readFileSync(
+      resolve(
+        process.cwd(),
+        'src/react-app/components/feature/battle/v5/CombatActionLog.tsx',
+      ),
+      'utf8',
+    );
+    expect(combatLog).not.toContain('dangerouslySetInnerHTML');
+    const presenter = readFileSync(
+      resolve(
+        process.cwd(),
+        'src/shared/engine/battle-v5/systems/log/LogPresenter.ts',
+      ),
+      'utf8',
+    );
+    expect(presenter).not.toContain('tokenizeLine');
+  });
+
   it('旧内容兼容Facade已经删除', () => {
     for (const name of [
       'lingxiao.ts',

@@ -61,7 +61,7 @@ describe('LogPresenter 行动日志聚合', () => {
     ]);
 
     expect(presenter.formatSpan(span)).toEqual([
-      '「张三」施放《火球术》，对「李四」造成 1,280 点伤害并施加「灼烧」×2（2 回合）',
+      '「张三」施放《火球术》，对「李四」造成 1,280 点伤害并施加「灼烧」×2（未来2次自身行动）',
     ]);
   });
 
@@ -155,7 +155,7 @@ describe('LogPresenter 行动日志聚合', () => {
     ]);
   });
 
-  it('反伤应并入主目标行而不是拆成自伤目标行', () => {
+  it('反伤应作为同一行动块内的独立来源行', () => {
     const presenter = new LogPresenter();
     const span = createActionSpan([
       createEntry('damage', {
@@ -181,7 +181,8 @@ describe('LogPresenter 行动日志聚合', () => {
     span.ability = { id: 'basic_attack', name: '普攻' };
 
     expect(presenter.formatSpan(span)).toEqual([
-      '「张三」发起攻击，对「李四」造成 1,300 点伤害，「李四」触发免死效果，保住了性命！，反弹 38 点伤害给「张三」',
+      '「张三」发起攻击，对「李四」造成 1,300 点伤害，「李四」触发免死效果，保住了性命！',
+      '「李四」反伤，对「张三」造成38点伤害',
     ]);
   });
 
@@ -225,8 +226,9 @@ describe('LogPresenter 行动日志聚合', () => {
     ]);
 
     expect(presenter.formatSpan(span)).toEqual([
-      '「张三」施放《火球术》，对「李四」造成 100 点伤害',
-      '「张三」施放《火球术》，对「王五」造成 120 点伤害（暴击）！',
+      '「张三」施放《火球术》：',
+      '对「李四」造成 100 点伤害',
+      '对「王五」造成 120 点伤害（暴击）！',
     ]);
   });
 
@@ -308,8 +310,9 @@ describe('LogPresenter 行动日志聚合', () => {
     ]);
 
     expect(presenter.formatSpan(span)).toEqual([
-      '「张三」施放《火球术》，「李四」将 120 点伤害延后 2 回合结算',
-      '「张三」施放《火球术》，「张三」获得「下一击规则」强化，「张三」献祭 80 点气血',
+      '「张三」施放《火球术》：',
+      '「李四」将 120 点伤害延后 2 回合结算',
+      '「张三」获得「下一击规则」强化，「张三」献祭 80 点气血',
     ]);
   });
 

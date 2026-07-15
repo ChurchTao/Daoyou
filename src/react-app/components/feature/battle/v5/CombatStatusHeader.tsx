@@ -1,6 +1,6 @@
 import { InkButton } from '@app/components/ui/InkButton';
-import { cn } from '@shared/lib/cn';
 import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
+import { cn } from '@shared/lib/cn';
 import { getResourceLabel } from '@shared/lib/gameConceptDisplay';
 import { format } from 'd3-format';
 import {
@@ -12,15 +12,20 @@ import {
 } from 'react';
 
 import { CombatSkillBar } from './CombatSkillBar';
+import {
+  getCombatResourceDisplay,
+  getCompactStatusTags,
+} from './combatStatusPresentation';
 
 const fmtInt = format(',d');
-const fmtPct = format('.1f');
-const STATUS_DOCK_COLLAPSED_STORAGE_KEY =
-  'daoyou:battle-status-dock-collapsed';
+const STATUS_DOCK_COLLAPSED_STORAGE_KEY = 'daoyou:battle-status-dock-collapsed';
 const COMPACT_DOCK_MEDIA_QUERY = '(max-width: 767px)';
 
 function isCompactViewport() {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+  if (
+    typeof window === 'undefined' ||
+    typeof window.matchMedia !== 'function'
+  ) {
     return false;
   }
 
@@ -41,17 +46,6 @@ function readStoredDockCollapsed() {
   } catch {
     return true;
   }
-}
-
-function formatBuffLabel(buff: UnitStateSnapshot['buffs'][number]) {
-  const layers = buff.layers > 1 ? ` x${buff.layers}` : '';
-  const duration = buff.remaining === -1 ? '常驻' : `余${buff.remaining}`;
-  return `${buff.name}${layers} · ${duration}`;
-}
-
-function formatBuffTitle(buff: UnitStateSnapshot['buffs'][number]) {
-  const label = formatBuffLabel(buff);
-  return buff.description ? `${label}：${buff.description}` : label;
 }
 
 function ResourceRow({
@@ -80,7 +74,7 @@ function ResourceRow({
   return (
     <div className="space-y-0.5">
       <div className="flex items-center gap-1.5 text-[11px] leading-4 md:text-xs md:leading-5">
-        <span className="text-battle-muted shrink-0">{label}</span>
+        <span className="text-battle-muted w-7 shrink-0">{label}</span>
         <span className="text-ink min-w-0 flex-1 truncate text-right font-mono">
           {fmtInt(current)} / {fmtInt(max)}
           {shieldLabel}
@@ -105,13 +99,34 @@ function ResourceRow({
   );
 }
 
-function UnitSummary({
-  unit,
+function SummaryInfoRow({
+  label,
+  children,
+  title,
+  ariaLabel,
 }: {
-  unit: UnitStateSnapshot;
+  label: string;
+  children: ReactNode;
+  title?: string;
+  ariaLabel?: string;
 }) {
   return (
-    <div className="min-w-0 space-y-1">
+    <div
+      className="flex min-w-0 items-start gap-1.5 py-0.5 text-[11px] leading-4 md:text-xs md:leading-5"
+      title={title}
+      aria-label={ariaLabel}
+    >
+      <span className="text-battle-muted w-7 shrink-0">{label}</span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
+}
+
+function UnitSummary({ unit }: { unit: UnitStateSnapshot }) {
+  const statusTags = getCompactStatusTags(unit);
+
+  return (
+    <div className="min-w-0 space-y-1.5">
       <div className="flex min-w-0 items-center gap-1.5">
         <span className="font-heading text-ink min-w-0 flex-1 truncate text-xl leading-none">
           {unit.name}
@@ -138,18 +153,64 @@ function UnitSummary({
         percent={unit.mp.percent}
         tone="mp"
       />
-      {unit.combatResources.map((resource) => (
-        <div key={resource.id} className="flex items-center gap-2 text-[11px] leading-4">
-          <span className="text-ink-secondary w-7 shrink-0">{resource.name}</span>
-          <div className="bg-ink/10 h-1.5 min-w-0 flex-1 overflow-hidden">
-            <div
-              className="bg-battle-gold-soft h-full transition-all duration-300"
-              style={{ width: `${resource.max > 0 ? (resource.current / resource.max) * 100 : 0}%` }}
-            />
+      {unit.combatResources.map((resource) => {
+        const display = getCombatResourceDisplay(resource);
+        return (
+          <SummaryInfoRow
+            key={resource.id}
+            label={resource.name}
+            title={display.accessibleLabel}
+            ariaLabel={display.accessibleLabel}
+          >
+            {display.mode === 'pips' ? (
+              <span
+                className={cn(
+                  'whitespace-nowrap',
+                  resource.current > 0
+                    ? 'tracking-[0.08em]'
+                    : 'text-battle-muted',
+                )}
+              >
+                {display.value}
+              </span>
+            ) : (
+              <div className="flex min-w-0 items-center gap-1.5">
+                <div className="bg-ink/10 h-1.5 min-w-0 flex-1 overflow-hidden">
+                  <div
+                    className="bg-battle-gold-soft h-full transition-all duration-300"
+                    style={{
+                      width: `${resource.max > 0 ? (resource.current / resource.max) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+                <span className="text-ink-secondary tabular-nums">
+                  {display.value}
+                </span>
+              </div>
+            )}
+          </SummaryInfoRow>
+        );
+      })}
+      {statusTags.length > 0 && (
+        <SummaryInfoRow label="状态">
+          <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-1">
+            {statusTags.map((tag) => (
+              <span
+                key={tag.key}
+                title={tag.title}
+                className={cn(
+                  'whitespace-nowrap',
+                  tag.tone === 'buff' && 'text-teal',
+                  tag.tone === 'debuff' && 'text-crimson',
+                  tag.tone === 'default' && 'text-ink',
+                )}
+              >
+                {tag.label}
+              </span>
+            ))}
           </div>
-          <span className="text-ink-secondary tabular-nums">{resource.current}/{resource.max}</span>
-        </div>
-      ))}
+        </SummaryInfoRow>
+      )}
     </div>
   );
 }
@@ -199,23 +260,15 @@ export function CombatStatusHeader({
   const [isCollapsed, setIsCollapsed] = useState(() =>
     isCompactViewport() ? readStoredDockCollapsed() : false,
   );
-  const mainAtk = Math.max(player.attrs.atk || 0, player.attrs.magicAtk || 0);
-  const critRate = (player.attrs.critRate || 0) * 100;
-  const evasionRate = (player.attrs.evasionRate || 0) * 100;
-  const statusText =
-    player.buffs.length > 0
-      ? player.buffs.map((buff) => formatBuffLabel(buff)).join(' ｜ ')
-      : '无状态';
-  const statusTitle =
-    player.buffs.length > 0
-      ? player.buffs.map((buff) => formatBuffTitle(buff)).join('\n')
-      : undefined;
   const hasActions = onShowPlayerDetails || onShowOpponentDetails;
   const hasSkills = player.cooldowns.length > 0;
   const isDockCollapsed = isCompact && isCollapsed;
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
       return;
     }
 
@@ -364,39 +417,6 @@ export function CombatStatusHeader({
                     </button>
                   )}
                 </div>
-              </div>
-
-              <div className="battle-module flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] leading-5">
-                <span className="min-w-0 truncate">
-                  <span className="text-battle-muted">攻击</span>
-                  <span className="text-ink ml-1 font-mono">
-                    {fmtInt(mainAtk)}
-                  </span>
-                </span>
-                <span className="text-battle-muted">｜</span>
-                <span className="min-w-0 truncate">
-                  <span className="text-battle-muted">暴击</span>
-                  <span className="text-ink ml-1 font-mono">
-                    {fmtPct(critRate)}%
-                  </span>
-                </span>
-                <span className="text-battle-muted">｜</span>
-                <span className="min-w-0 truncate">
-                  <span className="text-battle-muted">闪避</span>
-                  <span className="text-ink ml-1 font-mono">
-                    {fmtPct(evasionRate)}%
-                  </span>
-                </span>
-              </div>
-
-              <div className="battle-module flex items-start gap-1.5 text-[13px] leading-5">
-                <span className="text-battle-muted shrink-0">状态</span>
-                <span
-                  className="text-ink block min-w-0 flex-1 truncate"
-                  title={statusTitle}
-                >
-                  {statusText}
-                </span>
               </div>
 
               {hasSkills && (

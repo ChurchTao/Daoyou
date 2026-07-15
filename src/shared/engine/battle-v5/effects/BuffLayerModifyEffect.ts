@@ -30,8 +30,12 @@ export class BuffLayerModifyEffect extends GameplayEffect {
       publishMechanicLog({
         mechanic: 'buff_layer',
         source: context.caster,
+        ability: context.ability,
+        sourceBuff: context.buff,
         target: context.target,
         name: buff.name,
+        displayName: buff.name,
+        visibility: 'player',
         value: before,
         detail: this.params.operation,
       });

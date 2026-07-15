@@ -90,10 +90,11 @@ export class DamageSystem {
       isHit: true,
       isDodged: false,
       isResisted: false,
+      hitPolicy: event.hitPolicy,
     };
 
-    // 关键修正：如果目标是自己，则跳过命中/闪避判定，直接命中
-    if (caster === target) {
+    // 自身技能与必然命中技能跳过命中/闪避随机判定。
+    if (caster === target || event.hitPolicy === 'guaranteed') {
       hitCheckEvent.isHit = true;
     } else {
       // ===== ① 身法闪避判定 =====
@@ -193,11 +194,11 @@ export class DamageSystem {
 
     // ===== ② 应用减法防御（10%保底伤害） =====
     const preMitigationDamage = event.finalDamage;
-    const { normalDamage, defenseBypassDamage, defenseScale } =
-      this._resolveMitigationBreakdown(event, preMitigationDamage);
-    const reducedDamage = normalDamage - effectiveDef * defenseScale;
-    event.finalDamage =
-      Math.max(normalDamage * 0.1, reducedDamage) + defenseBypassDamage;
+    event.finalDamage = this._applyDefense(
+      event,
+      preMitigationDamage,
+      effectiveDef,
+    );
 
     // ===== ③ 同乘区加算（增伤/减伤）=====
     // NOTE: 将百分比增减伤放在减防后、暴击判定前，保证增伤不会被减法防御无意削弱。
@@ -287,16 +288,17 @@ export class DamageSystem {
     return DamageType.PHYSICAL; // 默认物理伤害
   }
 
-  private _resolveMitigationBreakdown(
+  private _applyDefense(
     event: DamageRequestEvent,
     preMitigationDamage: number,
-  ): { normalDamage: number; defenseBypassDamage: number; defenseScale: number } {
+    effectiveDef: number,
+  ): number {
     const components = event.damageComponents?.filter(
       (component): component is DamageComponent =>
         Number.isFinite(component.amount) && component.amount > 0,
     );
     if (!components?.length) {
-      return { normalDamage: preMitigationDamage, defenseBypassDamage: 0, defenseScale: 1 };
+      return Math.max(preMitigationDamage * 0.1, preMitigationDamage - effectiveDef);
     }
 
     const componentTotal = components.reduce(
@@ -304,22 +306,39 @@ export class DamageSystem {
       0,
     );
     if (componentTotal <= 0) {
-      return { normalDamage: preMitigationDamage, defenseBypassDamage: 0, defenseScale: 1 };
+      return Math.max(preMitigationDamage * 0.1, preMitigationDamage - effectiveDef);
     }
 
     const scale = preMitigationDamage / componentTotal;
-    const defenseBypassDamage = components
-      .filter((component) => component.mitigation === 'bypass_defense')
-      .reduce((sum, component) => sum + component.amount * scale, 0);
-    const defenseScale = components
-      .filter((component) => component.mitigation === 'normal')
-      .reduce((sum, component) => sum + Math.max(0, component.defenseScale ?? 0) * scale, 0);
+    return components.reduce((sum, component) => {
+      if (component.mitigation === 'bypass_defense') {
+        return sum + component.amount * scale;
+      }
 
-    return {
-      normalDamage: Math.max(0, preMitigationDamage - defenseBypassDamage),
-      defenseBypassDamage,
-      defenseScale: defenseScale > 0 ? defenseScale : 1,
-    };
+      if (
+        component.attackBase !== undefined &&
+        component.segmentMultiplier !== undefined
+      ) {
+        const attackBase = Math.max(0, component.attackBase);
+        const multiplier = Math.max(0, component.segmentMultiplier) * scale;
+        const afterDefense = Math.max(
+          attackBase * 0.1,
+          attackBase - effectiveDef,
+        );
+        return sum + afterDefense * multiplier;
+      }
+
+      // 旧伤害事件兼容：历史生产方仍可读取 defenseScale，但新代码不得写入。
+      const legacyAmount = component.amount * scale;
+      const legacyDefenseScale = Math.max(
+        0,
+        component.defenseScale ?? 1,
+      ) * scale;
+      return sum + Math.max(
+        legacyAmount * 0.1,
+        legacyAmount - effectiveDef * legacyDefenseScale,
+      );
+    }, 0);
   }
 
   private _getRealmDamageMultiplier(event: DamageRequestEvent): number {
@@ -376,7 +395,7 @@ export class DamageSystem {
     // 2. 应用剩余伤害到气血
     target.takeDamage(remainingDamage);
     const actualHpDamage = Math.max(0, beforeHp - target.getCurrentHp());
-    if (remainingDamage > 0) {
+    if (actualHpDamage + absorbedAmount > 0) {
       markDamageDealt(caster);
       if (damageEvent.damageSource === DamageSource.DIRECT) {
         caster?.combatResources.markDirectDamageDealt();

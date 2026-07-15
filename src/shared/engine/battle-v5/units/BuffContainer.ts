@@ -7,6 +7,7 @@ import {
   BuffRemovedEvent,
 } from '../core/events';
 import { EventBus } from '../core/EventBus';
+import type { Ability } from '../abilities/Ability';
 import { markBuffAppliedAtCurrentAction, rememberRemovedBuff } from '../core/runtimeState';
 
 /**
@@ -30,7 +31,11 @@ export class BuffContainer {
    * @param buff 要添加的 Buff
    * @param source Buff 来源（通常是施法者），用于 DOT 伤害归属等
    */
-  addBuff(buff: Buff, source?: Unit): void {
+  addBuff(
+    buff: Buff,
+    source?: Unit,
+    origin?: { ability?: Ability; buff?: Buff },
+  ): void {
     // 1. 发布拦截事件
     const event: BuffAddEvent = {
       type: 'BuffAddEvent',
@@ -49,7 +54,7 @@ export class BuffContainer {
       const appliedBuff = this._applyStackRule(existing, buff, source);
       if (appliedBuff) {
         markBuffAppliedAtCurrentAction(this._owner, appliedBuff);
-        this._publishAppliedEvent(appliedBuff, source);
+        this._publishAppliedEvent(appliedBuff, source, origin);
       }
       return;
     }
@@ -73,7 +78,7 @@ export class BuffContainer {
     this._owner.updateDerivedStats();
 
     // 4. 发布应用成功事件
-    this._publishAppliedEvent(buff, source);
+    this._publishAppliedEvent(buff, source, origin);
   }
 
   /**
@@ -201,13 +206,19 @@ export class BuffContainer {
     return null;
   }
 
-  private _publishAppliedEvent(buff: Buff, source?: Unit): void {
+  private _publishAppliedEvent(
+    buff: Buff,
+    source?: Unit,
+    origin?: { ability?: Ability; buff?: Buff },
+  ): void {
     const appliedEvent: BuffAppliedEvent = {
       type: 'BuffAppliedEvent',
       timestamp: Date.now(),
       target: this._owner,
       buff,
       source,
+      ability: origin?.ability,
+      sourceBuff: origin?.buff,
     };
     EventBus.instance.publish(appliedEvent);
   }

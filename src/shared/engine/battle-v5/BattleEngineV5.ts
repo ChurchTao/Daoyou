@@ -4,6 +4,7 @@ import {
   ActionEvent,
   ActionPostEvent,
   ActionPreEvent,
+  ActionStateEvent,
   ControlledSkipEvent,
   SkillPreCastEvent,
 } from './core/events';
@@ -22,8 +23,10 @@ import { VictorySystem } from './systems/VictorySystem';
 import { Unit } from './units/Unit';
 import {
   beginRuntimeAction,
+  clearPendingActionStates,
   consumeQueuedAction,
   consumeSkippedAction,
+  peekQueuedAction,
   setRuntimeRound,
   shouldTickBuffDuration,
 } from './core/runtimeState';
@@ -165,6 +168,9 @@ export class BattleEngineV5 {
 
     // ACTION 阶段（执行行动）
     this.executeActionPhase();
+    for (const unit of [this._player, this._opponent]) {
+      if (!unit.isAlive()) clearPendingActionStates(unit);
+    }
 
     // ROUND_POST 阶段（回合后置结算）
     this._stateMachine.switchTo(CombatPhase.ROUND_POST);
@@ -208,33 +214,48 @@ export class BattleEngineV5 {
         this._logSystem.getActiveSpanId(),
       );
 
-      if (!actor.isAlive()) continue;
-      actor.combatResources.beginAction();
-      // ===== 控制状态检查 =====
-      // 禁行动：包括紧傅标签（向后兼容）和新式 NO_ACTION 标签
-      const controlTag = this.getSkipControlTag(actor);
-      const skippedAction = consumeSkippedAction(actor);
-      if (controlTag) {
-        // 控制会取消正在等待的后发攻击；若同时处于调息，只消耗这一次行动。
-        const cancelledQueue = consumeQueuedAction(actor);
-        if (cancelledQueue?.cancelEffects.length) {
-          executeEffectConfigs(cancelledQueue.cancelEffects, {
-            caster: actor,
-            target: actor,
-          });
-        }
-        this._eventBus.publish<ControlledSkipEvent>({
-          type: 'ControlledSkipEvent',
-          timestamp: Date.now(),
-          unit: actor,
-          controlTag,
-        });
-        this.finalizeActorTurn(actor, true);
+      if (!actor.isAlive()) {
+        clearPendingActionStates(actor);
         continue;
       }
-      if (skippedAction) {
-        this.finalizeActorTurn(actor, false);
-        continue;
+      actor.combatResources.beginAction();
+      const pendingQueue = peekQueuedAction(actor);
+      const hasUninterruptibleQueue =
+        pendingQueue?.interruptPolicy === 'uninterruptible';
+
+      // 不可打断后发优先于控制和调息；调息保留到下一次自身行动。
+      if (!hasUninterruptibleQueue) {
+        const controlTag = this.getSkipControlTag(actor);
+        const skippedAction = consumeSkippedAction(actor);
+        if (skippedAction) {
+          this._eventBus.publish<ActionStateEvent>({
+            type: 'ActionStateEvent',
+            timestamp: Date.now(),
+            unit: actor,
+            stateType: 'rest',
+            phase: 'skipped',
+            name: skippedAction.name,
+            remainingActions: 0,
+            sourceAbility: skippedAction.sourceAbility,
+            reason: skippedAction.reason,
+          });
+        }
+        if (controlTag) {
+          const cancelledQueue = consumeQueuedAction(actor);
+          this.cancelQueuedAction(actor, cancelledQueue, controlTag);
+          this._eventBus.publish<ControlledSkipEvent>({
+            type: 'ControlledSkipEvent',
+            timestamp: Date.now(),
+            unit: actor,
+            controlTag,
+          });
+          this.finalizeActorTurn(actor, true);
+          continue;
+        }
+        if (skippedAction) {
+          this.finalizeActorTurn(actor, false);
+          continue;
+        }
       }
       // 设置当前出手单位
       this._stateMachine.setCurrentCaster(actor);
@@ -245,7 +266,18 @@ export class BattleEngineV5 {
         actor.abilities.setDefaultTarget(target);
       }
 
-      const queuedAction = consumeQueuedAction(actor);
+      let queuedAction = consumeQueuedAction(actor);
+      if (
+        queuedAction?.interruptPolicy !== 'uninterruptible' &&
+        actor.tags.hasTag(GameplayTags.STATUS.CONTROL.NO_SKILL)
+      ) {
+        this.cancelQueuedAction(
+          actor,
+          queuedAction,
+          GameplayTags.STATUS.CONTROL.NO_SKILL,
+        );
+        queuedAction = undefined;
+      }
       if (queuedAction && target.isAlive()) {
         const queuedAbility = AbilityFactory.create(queuedAction.ability);
         this._eventBus.publish<SkillPreCastEvent>({
@@ -255,6 +287,12 @@ export class BattleEngineV5 {
           target,
           ability: queuedAbility,
           isInterrupted: false,
+          interruptPolicy: queuedAction.interruptPolicy,
+          hitPolicy: queuedAction.hitPolicy,
+          queuedActionState: {
+            name: '蓄势',
+            sourceAbility: queuedAction.sourceAbility,
+          },
         });
       } else {
         // 发布行动事件，触发整个技能流程
@@ -273,6 +311,35 @@ export class BattleEngineV5 {
 
       this.finalizeActorTurn(actor, false);
     }
+  }
+
+  private cancelQueuedAction(
+    actor: Unit,
+    queuedAction: ReturnType<typeof consumeQueuedAction>,
+    reason: string,
+  ): void {
+    if (!queuedAction) return;
+    if (queuedAction.cancelEffects.length) {
+      executeEffectConfigs(queuedAction.cancelEffects, {
+        caster: actor,
+        target: actor,
+      });
+    }
+    this._eventBus.publish<ActionStateEvent>({
+      type: 'ActionStateEvent',
+      timestamp: Date.now(),
+      unit: actor,
+      stateType: 'queued_action',
+      phase: 'cancelled',
+      name: '蓄势',
+      remainingActions: 0,
+      sourceAbility: queuedAction.sourceAbility,
+      ability: {
+        id: queuedAction.ability.slug,
+        name: queuedAction.ability.name,
+      },
+      reason,
+    });
   }
 
   private getSkipControlTag(actor: Unit): string | null {

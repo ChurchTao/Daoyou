@@ -31,8 +31,11 @@ export class DamageDeferEffect extends GameplayEffect {
     publishMechanicLog({
       mechanic: 'damage_defer',
       source: event.caster,
+      ability: event.ability,
       target: event.target,
       name: '延迟伤害',
+      displayName: '延迟伤害',
+      visibility: 'player',
       value: deferred,
       detail: `${this.params.delayTurns}`,
     });

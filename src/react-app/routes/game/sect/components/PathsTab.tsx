@@ -110,7 +110,9 @@ function PathPanel({
         <p className="text-ink-secondary mt-2 text-sm leading-6">
           {path.description}
         </p>
-        <p className="text-crimson mt-3 text-sm">筑基初期后可参悟</p>
+        <p className="text-crimson mt-3 text-sm">
+          {path.minRealm}{path.minRealmStage}后可参悟
+        </p>
       </InkCard>
     );
   }

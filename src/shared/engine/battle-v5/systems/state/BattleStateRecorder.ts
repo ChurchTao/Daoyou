@@ -1,8 +1,9 @@
 import { ActiveSkill } from '../../abilities/ActiveSkill';
+import type { Buff } from '../../buffs/Buff';
 import { DataDrivenBuff } from '../../buffs/DataDrivenBuff';
 import { GameplayTags } from '../../core';
+import { getActionStateViews, peekQueuedAction } from '../../core/runtimeState';
 import { AttributeType, BuffType } from '../../core/types';
-import type { Buff } from '../../buffs/Buff';
 import { describeBuffRuntimeSummaryText } from '../../effects/affixText/buffText';
 import { describeEffectCore } from '../../effects/affixText/effectCore';
 import { Unit } from '../../units/Unit';
@@ -134,20 +135,22 @@ export class BattleStateRecorder {
       buffs: this._buildBuffs(unit),
       combatResources: unit.combatResources.snapshots(),
       cooldowns: this._buildCooldowns(unit),
+      actionStates: getActionStateViews(unit),
       canAct:
         unit.isAlive() &&
-        !unit.tags.hasAnyTag([
-          GameplayTags.STATUS.CONTROL.NO_ACTION,
-          GameplayTags.STATUS.CONTROL.STUNNED,
-        ]),
+        (peekQueuedAction(unit)?.interruptPolicy === 'uninterruptible' ||
+          !unit.tags.hasAnyTag([
+            GameplayTags.STATUS.CONTROL.NO_ACTION,
+            GameplayTags.STATUS.CONTROL.STUNNED,
+          ])),
     };
   }
 
   private _buildAttrs(unit: Unit, useBase = false): AttrsStateView {
     const a = unit.attributes;
-    const getVal = (t: AttributeType) => 
+    const getVal = (t: AttributeType) =>
       useBase ? a.getBaseValue(t) : a.getValue(t);
-      
+
     return {
       spirit: getVal(AttributeType.SPIRIT),
       vitality: getVal(AttributeType.VITALITY),
@@ -180,6 +183,8 @@ export class BattleStateRecorder {
       name: buff.name,
       description: this._describeBuff(buff),
       type: buff.type as BuffType,
+      logVisibility: buff.logVisibility,
+      sourceName: buff.getSource()?.name,
       layers: buff.getLayer(),
       remaining: buff.isPermanent() ? -1 : buff.getDuration(),
       isPermanent: buff.isPermanent(),
@@ -188,7 +193,10 @@ export class BattleStateRecorder {
 
   private _describeBuff(buff: Buff): string | undefined {
     if (buff instanceof DataDrivenBuff) {
-      return describeBuffRuntimeSummaryText(buff.getConfig(), describeEffectCore);
+      return describeBuffRuntimeSummaryText(
+        buff.getConfig(),
+        describeEffectCore,
+      );
     }
 
     return buff.description;
@@ -254,9 +262,14 @@ export class BattleStateRecorder {
     const changedBaseAttrs: Partial<
       Record<keyof AttrsStateView, { from: number; to: number }>
     > = {};
-    for (const key of Object.keys(prev.baseAttrs) as Array<keyof AttrsStateView>) {
+    for (const key of Object.keys(prev.baseAttrs) as Array<
+      keyof AttrsStateView
+    >) {
       if (prev.baseAttrs[key] !== curr.baseAttrs[key]) {
-        changedBaseAttrs[key] = { from: prev.baseAttrs[key], to: curr.baseAttrs[key] };
+        changedBaseAttrs[key] = {
+          from: prev.baseAttrs[key],
+          to: curr.baseAttrs[key],
+        };
       }
     }
     if (Object.keys(changedBaseAttrs).length > 0) {
@@ -322,6 +335,16 @@ export class BattleStateRecorder {
       }));
     if (cooldownsChanged.length > 0) delta.cooldownsChanged = cooldownsChanged;
 
+    if (
+      JSON.stringify(prev.actionStates ?? []) !==
+      JSON.stringify(curr.actionStates ?? [])
+    ) {
+      delta.actionStatesChanged = {
+        from: prev.actionStates ?? [],
+        to: curr.actionStates ?? [],
+      };
+    }
+
     if (prev.canAct !== curr.canAct) {
       delta.canActChanged = { from: prev.canAct, to: curr.canAct };
     }
@@ -345,6 +368,7 @@ export class BattleStateRecorder {
       delta.buffsUpdated?.length ||
       delta.combatResourcesChanged?.length ||
       delta.cooldownsChanged?.length ||
+      delta.actionStatesChanged ||
       delta.canActChanged ||
       delta.aliveChanged
     );

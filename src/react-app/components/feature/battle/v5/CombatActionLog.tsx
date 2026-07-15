@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { cn } from '@shared/lib/cn';
 import { LogPresenter } from '@shared/engine/battle-v5/systems/log/LogPresenter';
 import type { LogSpan } from '@shared/engine/battle-v5/systems/log/types';
+import type { PresentedLogPart } from '@shared/engine/battle-v5/systems/log/types';
+import type { PresentedLogLine } from '@shared/engine/battle-v5/systems/log/types';
 
 interface CombatActionLogProps {
   spans: LogSpan[];
@@ -20,7 +22,7 @@ export function CombatActionLog({
       .map((span, originalIdx) => ({
         id: span.id,
         originalIdx,
-        lines: presenter.formatSpan(span),
+        lines: presenter.presentSpan(span),
       }))
       .filter((item) => item.lines.length > 0);
   }, [spans, presenter]);
@@ -92,9 +94,17 @@ export function CombatActionLog({
                         className={cn(
                           'text-sm leading-7 transition-colors md:text-base md:leading-8',
                           isActive ? 'text-ink' : 'text-battle-muted',
+                          lineClassName(line),
                         )}
                       >
-                        <span dangerouslySetInnerHTML={{ __html: line }} />
+                        {line.parts.map((part, partIndex) => (
+                          <span
+                            key={`${partIndex}-${part.text}`}
+                            className={partClassName(part)}
+                          >
+                            {part.text}
+                          </span>
+                        ))}
                       </p>
                     ))}
                   </div>
@@ -114,4 +124,33 @@ export function CombatActionLog({
       </div>
     </section>
   );
+}
+
+function lineClassName(line: PresentedLogLine): string | undefined {
+  switch (line.role) {
+    case 'trigger':
+    case 'secondary':
+    case 'resource':
+    case 'state':
+      return 'pl-2';
+    default:
+      return undefined;
+  }
+}
+
+function partClassName(part: PresentedLogPart): string | undefined {
+  switch (part.kind) {
+    case 'ability':
+      return 'text-crimson';
+    case 'number':
+      return 'font-mono tabular-nums text-ink';
+    case 'resource':
+      return 'text-battle-gold-soft';
+    case 'critical':
+      return 'text-crimson';
+    case 'status':
+      return 'text-teal';
+    default:
+      return undefined;
+  }
 }

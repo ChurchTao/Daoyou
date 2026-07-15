@@ -25,6 +25,10 @@ export const HEAVY_ULTIMATE_NODES = [
           mapping: { caster: 'owner', target: 'owner' },
           effects: [sectEffects.modifyCounter(HEAVY_ECHO_COOLDOWN, 'subtract', { amount: 1 })],
         }],
+        presentationModifiers: [{
+          abilityId: 'sect-ultimate',
+          factRows: ['经脉·山河回响：收束后恢复5%最大气血并获得0.80物攻护盾，每3回合一次'],
+        }],
       });
     },
   ),

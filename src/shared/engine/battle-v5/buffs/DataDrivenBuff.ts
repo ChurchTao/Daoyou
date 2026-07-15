@@ -36,6 +36,7 @@ export class DataDrivenBuff extends Buff {
       config.stackRule,
       config.description,
       config.maxLayers,
+      config.logVisibility,
     );
     this._config = config;
   }

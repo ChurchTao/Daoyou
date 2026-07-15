@@ -84,11 +84,9 @@ export function compileLingxiaoBase(
 
   active('plain-sword', {
     effects: [sectEffects.physicalDamage(0.8), sectEffects.modifyResource(resourceId, 1)],
-    detailRows: ['伤害：1段 × 0.80物攻', '剑势：命中获得1点'],
   });
   active('guiding-sword', {
     effects: [sectEffects.physicalDamage(0.95), sectEffects.modifyResource(resourceId, 2)],
-    detailRows: ['伤害：1段 × 0.95物攻', '剑势：命中获得2点'],
   });
   active('linked-edge', {
     effects: [
@@ -97,8 +95,10 @@ export function compileLingxiaoBase(
       sectEffects.physicalDamage(0.55),
       sectEffects.modifyResource(resourceId, 1),
     ],
-    castEffects: [{ type: 'skip_action', params: { count: 1, reason: '剑落星河·调息' } }],
-    detailRows: ['伤害：3段 × 0.55物攻', '剑势：命中获得1点', '调息：施放后下一次行动跳过'],
+    castEffects: [{
+      type: 'skip_action',
+      params: { count: 1, name: '调息', reason: '剑落星河·调息' },
+    }],
   });
   active('turning-body', {
     effects: [],
@@ -122,10 +122,11 @@ export function compileLingxiaoBase(
             sectEffects.physicalDamage(2.2),
             sectEffects.modifyResource(resourceId, 2),
           ],
+          interruptPolicy: 'uninterruptible',
+          hitPolicy: 'guaranteed',
         },
       },
     ],
-    detailRows: ['藏锋：直接承伤降低25%', '后发：下一行动造成2.20物攻', '剑势：后发命中获得2点', '受控：蓄力失败且不退还消耗与冷却'],
   });
   active('shadow-step', {
     targetTeam: 'self',
@@ -135,14 +136,12 @@ export function compileLingxiaoBase(
         { attrType: AttributeType.EVASION_RATE, type: ModifierType.FIXED, value: 0.08 },
       ]),
     ],
-    detailRows: ['身法：提高10%', '闪避：提高8个百分点', '持续：未来2次自身行动'],
   });
   active('breaking-edge', {
     effects: [
       sectEffects.physicalDamage(1.1),
       { type: 'dispel', params: { targetTag: GameplayTags.BUFF.TYPE.BUFF, maxCount: 1 } },
     ],
-    detailRows: ['伤害：1.10物攻', '破妄：驱散目标1个正面状态'],
   });
   active('sword-aegis', {
     targetTeam: 'self',
@@ -152,7 +151,6 @@ export function compileLingxiaoBase(
         { attrType: AttributeType.CONTROL_RESISTANCE, type: ModifierType.FIXED, value: 0.08 },
       ]),
     ],
-    detailRows: ['法术防御：提高25%', '控制抗性：提高8个百分点', '持续：未来3次自身行动'],
   });
   active('nurturing-sword', {
     targetTeam: 'self',
@@ -161,7 +159,6 @@ export function compileLingxiaoBase(
         { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.15 },
       ]),
     ],
-    detailRows: ['物理攻击：提高15%', '持续：未来3次自身行动', '同名状态：只刷新，不叠层'],
   });
   active('sect-ultimate', {
     castConditions: [{
@@ -180,13 +177,10 @@ export function compileLingxiaoBase(
         damageSource: DamageSource.DIRECT,
       },
     }],
-    detailRows: ['伤害：单段1.00物攻 + 每点剑势0.35物攻', '释放：至少3点剑势', '释放后：消耗全部剑势'],
   });
 
   builder.setResource({
-    id: resourceId,
-    name: '剑势',
+    ...LINGXIAO_BASE_DEFINITION.combatResource,
     initial: 0,
-    max: 6,
   });
 }

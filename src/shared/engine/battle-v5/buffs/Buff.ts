@@ -32,6 +32,7 @@ export class Buff {
   readonly name: string;
   readonly description?: string;
   readonly type: BuffType;
+  readonly logVisibility: 'player' | 'debug';
   private _duration: number;
   private _maxDuration: number;
 
@@ -63,10 +64,12 @@ export class Buff {
     stackRule: StackRule = StackRule.REFRESH_DURATION,
     description?: string,
     maxLayers?: number,
+    logVisibility: 'player' | 'debug' = 'player',
   ) {
     this.id = id;
     this.name = name;
     this.description = description;
+    this.logVisibility = logVisibility;
     this.type = type;
     this._maxDuration = duration;
     this._duration = duration;
@@ -272,6 +275,7 @@ export class Buff {
       this.stackRule,
       this.description,
       this.maxLayers,
+      this.logVisibility,
     );
     cloned.setDuration(this._duration);
     cloned.tags = this.tags.clone();

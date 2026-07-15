@@ -3,6 +3,7 @@ import type {
   CombatResourceDefinition,
 } from '@shared/engine/battle-v5/core/configs';
 import type {
+  AbilityPresentationModifier,
   SectAbilityId,
   SectCompiledAbility,
   SectCompiledBuild,
@@ -19,6 +20,7 @@ export class SectBuildBuilder {
   private readonly abilities = new Map<SectAbilityId, SectCompiledAbility>();
   private readonly resources = new Map<string, CombatResourceDefinition>();
   private readonly passives = new Map<string, AbilityConfig>();
+  private readonly abilityPresentationModifiers: AbilityPresentationModifier[] = [];
   private readonly extensions = new Map<symbol, unknown>();
 
   constructor(seed: SectCompiledBuild) {
@@ -26,6 +28,9 @@ export class SectBuildBuilder {
     this.replaceAbilities(seed.abilities);
     for (const resource of seed.resources) this.setResource(resource);
     for (const passive of seed.passives) this.addPassive(passive);
+    for (const modifier of seed.abilityPresentationModifiers ?? []) {
+      this.addAbilityPresentationModifier(modifier);
+    }
   }
 
   static from(seed: SectCompiledBuild): SectBuildBuilder {
@@ -96,6 +101,23 @@ export class SectBuildBuilder {
     return this;
   }
 
+  addAbilityPresentationModifier(
+    modifier: AbilityPresentationModifier,
+  ): this {
+    const key = `${modifier.sourceId}:${modifier.abilityId}`;
+    const existing = this.abilityPresentationModifiers.find(
+      (candidate) => `${candidate.sourceId}:${candidate.abilityId}` === key,
+    );
+    if (existing) {
+      existing.factRows = Array.from(
+        new Set([...existing.factRows, ...modifier.factRows]),
+      );
+    } else {
+      this.abilityPresentationModifiers.push(structuredClone(modifier));
+    }
+    return this;
+  }
+
   setExtension<T>(key: symbol, value: T): this {
     this.extensions.set(key, value);
     return this;
@@ -124,6 +146,9 @@ export class SectBuildBuilder {
       ),
       passives: Array.from(this.passives.values(), (passive) =>
         structuredClone(passive),
+      ),
+      abilityPresentationModifiers: structuredClone(
+        this.abilityPresentationModifiers,
       ),
     };
   }

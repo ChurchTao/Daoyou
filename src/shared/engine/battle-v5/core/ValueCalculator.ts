@@ -39,32 +39,49 @@ export class ValueCalculator {
     if (typeof value === 'number') {
       return {
         total: value,
-        components: [{ kind: 'base', amount: value, mitigation: 'normal', defenseScale: 1 }],
+        components: [{
+          kind: 'base',
+          amount: value,
+          mitigation: 'normal',
+          attackBase: value,
+          segmentMultiplier: 1,
+        }],
       };
     }
 
     const components: DamageComponent[] = [];
     let total = 0;
-    if (value.base) {
-      total += value.base;
-      components.push({
-        kind: 'base',
-        amount: value.base,
-        mitigation: 'normal',
-        defenseScale: value.attribute ? 0 : 1,
-      });
-    }
-
-    const coefficient = value.coefficient ?? 1.0; // 默认系数为 1.0
+    const base = value.base ?? 0;
+    const coefficient = value.coefficient ?? 1.0;
     if (value.attribute) {
       const attrValue = caster.attributes.getValue(value.attribute);
-      const amount = attrValue * coefficient;
+      const amount = base + attrValue * coefficient;
       total += amount;
+      if (coefficient > 0) {
+        components.push({
+          kind: `attribute:${value.attribute}`,
+          amount,
+          mitigation: 'normal',
+          attackBase: attrValue + base / coefficient,
+          segmentMultiplier: coefficient,
+        });
+      } else if (base > 0) {
+        components.push({
+          kind: 'base',
+          amount: base,
+          mitigation: 'normal',
+          attackBase: base,
+          segmentMultiplier: 1,
+        });
+      }
+    } else if (base) {
+      total += base;
       components.push({
-        kind: `attribute:${value.attribute}`,
-        amount,
+        kind: 'base',
+        amount: base,
         mitigation: 'normal',
-        defenseScale: coefficient,
+        attackBase: base,
+        segmentMultiplier: 1,
       });
     }
     if (value.targetMaxHpRatio && target) {

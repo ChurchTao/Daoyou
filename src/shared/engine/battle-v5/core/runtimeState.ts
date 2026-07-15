@@ -2,6 +2,26 @@ import { ActiveSkill } from '../abilities/ActiveSkill';
 import { Buff } from '../buffs/Buff';
 import { AbilityConfig, EffectConfig } from './configs';
 import { Unit } from '../units/Unit';
+import type {
+  ActionHitPolicy,
+  ActionInterruptPolicy,
+  ActionStateAbilityView,
+  ActionStateView,
+} from './actionState';
+
+export interface QueuedActionRuntime {
+  ability: AbilityConfig;
+  sourceAbility?: ActionStateAbilityView;
+  cancelEffects: EffectConfig[];
+  interruptPolicy: ActionInterruptPolicy;
+  hitPolicy: ActionHitPolicy;
+}
+
+interface SkippedActionRuntime {
+  name: string;
+  reason: string;
+  sourceAbility?: ActionStateAbilityView;
+}
 
 export interface DamageMemoryEntry {
   amount: number;
@@ -40,8 +60,8 @@ export interface BattleRuntimeState {
   actionSequence: number;
   round: number;
   listenerTriggerBudgets: Map<string, { token: number; count: number }>;
-  skippedActions: Array<{ reason: string }>;
-  queuedAction?: { ability: AbilityConfig; cancelEffects: EffectConfig[] };
+  skippedActions: SkippedActionRuntime[];
+  queuedAction?: QueuedActionRuntime;
 }
 
 const unitState = new WeakMap<Unit, BattleRuntimeState>();
@@ -73,32 +93,87 @@ export function getBattleRuntimeState(unit: Unit): BattleRuntimeState {
   return state;
 }
 
-export function queueSkippedActions(unit: Unit, count: number, reason: string): void {
+export function queueSkippedActions(
+  unit: Unit,
+  count: number,
+  reason: string,
+  name = '调息',
+  sourceAbility?: ActionStateAbilityView,
+): void {
   const state = getBattleRuntimeState(unit);
   for (let i = 0; i < Math.max(0, Math.trunc(count)); i++) {
-    state.skippedActions.push({ reason });
+    state.skippedActions.push({ reason, name, sourceAbility });
   }
 }
 
-export function consumeSkippedAction(unit: Unit): { reason: string } | undefined {
+export function consumeSkippedAction(unit: Unit): SkippedActionRuntime | undefined {
   return getBattleRuntimeState(unit).skippedActions.shift();
 }
 
 export function setQueuedAction(
   unit: Unit,
   ability: AbilityConfig,
-  cancelEffects: EffectConfig[] = [],
+  options: {
+    sourceAbility?: ActionStateAbilityView;
+    cancelEffects?: EffectConfig[];
+    interruptPolicy?: ActionInterruptPolicy;
+    hitPolicy?: ActionHitPolicy;
+  } = {},
 ): void {
-  getBattleRuntimeState(unit).queuedAction = { ability, cancelEffects };
+  getBattleRuntimeState(unit).queuedAction = {
+    ability,
+    sourceAbility: options.sourceAbility,
+    cancelEffects: options.cancelEffects ?? [],
+    interruptPolicy: options.interruptPolicy ?? 'normal',
+    hitPolicy: options.hitPolicy ?? 'normal',
+  };
 }
 
-export function consumeQueuedAction(
-  unit: Unit,
-): { ability: AbilityConfig; cancelEffects: EffectConfig[] } | undefined {
+export function peekQueuedAction(unit: Unit): QueuedActionRuntime | undefined {
+  return getBattleRuntimeState(unit).queuedAction;
+}
+
+export function consumeQueuedAction(unit: Unit): QueuedActionRuntime | undefined {
   const state = getBattleRuntimeState(unit);
   const queued = state.queuedAction;
   state.queuedAction = undefined;
   return queued;
+}
+
+export function clearPendingActionStates(unit: Unit): void {
+  const state = getBattleRuntimeState(unit);
+  state.skippedActions.length = 0;
+  state.queuedAction = undefined;
+}
+
+export function getActionStateViews(unit: Unit): ActionStateView[] {
+  if (!unit.isAlive()) return [];
+  const state = getBattleRuntimeState(unit);
+  const views: ActionStateView[] = [];
+  if (state.skippedActions.length > 0) {
+    const next = state.skippedActions[0];
+    views.push({
+      type: 'rest',
+      name: next.name,
+      remainingActions: state.skippedActions.length,
+      sourceAbility: next.sourceAbility,
+    });
+  }
+  if (state.queuedAction) {
+    views.push({
+      type: 'queued_action',
+      name: '蓄势',
+      remainingActions: 1,
+      sourceAbility: state.queuedAction.sourceAbility,
+      ability: {
+        id: state.queuedAction.ability.slug,
+        name: state.queuedAction.ability.name,
+      },
+      interruptPolicy: state.queuedAction.interruptPolicy,
+      hitPolicy: state.queuedAction.hitPolicy,
+    });
+  }
+  return views;
 }
 
 export function markBuffAppliedAtCurrentAction(unit: Unit, buff: Buff): void {

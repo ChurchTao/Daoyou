@@ -26,6 +26,7 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
   combatResource: {
     id: 'sect.lingxiao.sword-momentum',
     name: '剑势',
+    icon: '🗡️',
     max: 6,
   },
   methods: [

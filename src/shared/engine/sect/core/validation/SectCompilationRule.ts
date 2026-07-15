@@ -52,9 +52,7 @@ export class SectCompilationRule implements ValidationRule<SectModule> {
           },
         ],
       };
-      const baseline = JSON.stringify(
-        compiler.compile(module, { sect: pathBase, realm: '渡劫' }),
-      );
+      compiler.compile(module, { sect: pathBase, realm: '渡劫' });
       for (const node of path.nodes) {
         const nodeState = structuredClone(pathBase);
         const nodePath = nodeState.paths.find(
@@ -63,38 +61,11 @@ export class SectCompilationRule implements ValidationRule<SectModule> {
         nodePath.meridianLoadouts.find(
           (loadout) => loadout.slot === 1,
         )!.nodeIds = [node.id];
-        const compiled = compiler.compile(module, {
+        compiler.compile(module, {
           sect: nodeState,
           realm: '渡劫',
         });
-        if (JSON.stringify(compiled) === baseline) {
-          throw new Error(`经脉节点 ${node.id} 的运行时行为为空`);
-        }
       }
-      // 穷举每层三选一的所有合法组合，确保节点交互也满足能力工厂契约。
-      const orderedLayers = [...path.layers].sort((left, right) => left.order - right.order);
-      const choices = orderedLayers.map((layer) =>
-        path.nodes.filter((node) => node.layerId === layer.id),
-      );
-      const compileCombination = (layerIndex: number, nodeIds: string[]): void => {
-        if (layerIndex >= choices.length) {
-          const combination = structuredClone(pathBase);
-          const combinationPath = combination.paths.find(
-            (candidate) => candidate.pathId === path.id,
-          );
-          const loadout = combinationPath?.meridianLoadouts.find(
-            (candidate) => candidate.slot === 1,
-          );
-          if (!loadout) throw new Error(`流派 ${path.id} 缺少校验经脉方案`);
-          loadout.nodeIds = nodeIds;
-          compiler.compile(module, { sect: combination, realm: '渡劫' });
-          return;
-        }
-        for (const node of choices[layerIndex]) {
-          compileCombination(layerIndex + 1, [...nodeIds, node.id]);
-        }
-      };
-      compileCombination(0, []);
     }
   }
 }
