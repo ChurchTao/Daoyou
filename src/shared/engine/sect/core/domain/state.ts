@@ -4,6 +4,7 @@ import type {
   SectMethodId,
   SectNodeId,
   SectPathId,
+  SectPathLayerId,
   SectTacticId,
 } from './definitions';
 
@@ -23,7 +24,7 @@ export interface SectMeridianLoadoutState {
 
 export interface CultivatorSectPathState {
   pathId: SectPathId;
-  level: number;
+  unlockedLayerIds: SectPathLayerId[];
   tacticId: SectTacticId;
   activeMeridianSlot: 1 | 2 | 3;
   meridianLoadouts: SectMeridianLoadoutState[];

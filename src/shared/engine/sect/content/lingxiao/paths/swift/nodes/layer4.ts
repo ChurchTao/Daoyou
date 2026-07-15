@@ -8,7 +8,7 @@ export const SWIFT_LAYER_4_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-mountain-breaking',
-      layer: 4,
+      layerId: '4',
       name: '破岳一线',
       description: '一线天消费剑痕产生无视防御的附加物理伤害。',
     },
@@ -17,7 +17,7 @@ export const SWIFT_LAYER_4_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-life-chasing',
-      layer: 4,
+      layerId: '4',
       name: '追命一线',
       description: '目标气血低于25%时收束伤害提高30%。',
     },
@@ -55,7 +55,7 @@ export const SWIFT_LAYER_4_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-sheathing',
-      layer: 4,
+      layerId: '4',
       name: '归鞘一线',
       description: '收束伤害降低20%，返还1点剑势并获得护盾。',
     },

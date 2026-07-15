@@ -27,7 +27,7 @@ function sectState(
     sectId: 'lingxiao',
     status: 'active',
     contribution: 0,
-    configVersion: 2,
+    configVersion: 3,
     activePathId: pathId,
     methods: {
       'lingxiao-canon': 100,
@@ -40,7 +40,7 @@ function sectState(
     paths: [
       {
         pathId,
-        level: 100,
+        unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
         tacticId: pathId === 'swift-sword' ? 'aggressive' : 'heavy-break',
         activeMeridianSlot: 1,
         meridianLoadouts: [

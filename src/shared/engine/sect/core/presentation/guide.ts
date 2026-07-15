@@ -76,8 +76,11 @@ export function describeMethodBenefit(
   const value = method.modifierPerLevel.value * level * 100;
   const labels: Record<string, string> = {
     atk: '物理攻击',
+    def: '物理防御',
+    magicDef: '法术防御',
     speed: '身法',
     accuracy: '命中',
+    evasionRate: '闪避',
     maxHp: '气血上限',
     maxMp: '法力上限',
   };

@@ -3,37 +3,40 @@ import {
   getPathProgress,
   getSectMethodLevelCap,
   getSectMethodTrainingCost,
+  standardSectProgression,
   validateMeridianNodeIds,
 } from '..';
 import { HEAVY_SWORD_PATH, SWIFT_SWORD_PATH } from '../../content/lingxiao';
 
 describe('通用宗门成长', () => {
-  it('保持心法与流派共用的等级上限和成本曲线', () => {
+  it('按目标等级的最低境界阶段计算修为与灵石', () => {
     expect(getSectMethodLevelCap('筑基', '初期')).toBe(25);
     expect(getSectMethodTrainingCost(0, 1)).toEqual({
-      contribution: 1,
+      cultivationExp: 5,
+      comprehensionInsight: 0,
       spiritStones: 50,
+    });
+    expect(getSectMethodTrainingCost(4, 6)).toEqual({
+      cultivationExp: 11,
+      comprehensionInsight: 0,
+      spiritStones: 100,
     });
   });
 
-  it('经脉同时校验流派等级、境界和同层互斥', () => {
+  it('经脉只允许选择已解锁层且同层互斥', () => {
     expect(() =>
       validateMeridianNodeIds({
         path: SWIFT_SWORD_PATH,
         nodeIds: ['swift-opening'],
-        pathLevel: 4,
-        realm: '筑基',
-        stage: '初期',
+        unlockedLayerIds: [],
         methods: {},
       }),
-    ).toThrow('流派等级');
+    ).toThrow('尚未解锁');
     expect(() =>
       validateMeridianNodeIds({
         path: SWIFT_SWORD_PATH,
         nodeIds: ['swift-opening', 'swift-hidden-edge'],
-        pathLevel: 100,
-        realm: '化神',
-        stage: '圆满',
+        unlockedLayerIds: ['1'],
         methods: {},
       }),
     ).toThrow('只能选择一个节点');
@@ -41,30 +44,64 @@ describe('通用宗门成长', () => {
       validateMeridianNodeIds({
         path: HEAVY_SWORD_PATH,
         nodeIds: ['heavy-opening'],
-        pathLevel: 5,
-        realm: '筑基',
-        stage: '初期',
+        unlockedLayerIds: ['1'],
         methods: {},
       }),
     ).toEqual(['heavy-opening']);
   });
 
-  it('六层按统一等级和境界门槛开放', () => {
-    expect(
-      getPathProgress({
+  it('六层按顺序、境界和精确资源成本解锁', () => {
+    expect(HEAVY_SWORD_PATH.layers.map((layer) => layer.cost)).toEqual([
+      { cultivationExp: 950, comprehensionInsight: 10, spiritStones: 9_500 },
+      {
+        cultivationExp: 2_500,
+        comprehensionInsight: 15,
+        spiritStones: 25_000,
+      },
+      {
+        cultivationExp: 13_500,
+        comprehensionInsight: 20,
+        spiritStones: 135_000,
+      },
+      {
+        cultivationExp: 47_000,
+        comprehensionInsight: 25,
+        spiritStones: 470_000,
+      },
+      {
+        cultivationExp: 65_000,
+        comprehensionInsight: 30,
+        spiritStones: 650_000,
+      },
+      {
+        cultivationExp: 125_000,
+        comprehensionInsight: 40,
+        spiritStones: 1_250_000,
+      },
+    ]);
+    const progress = getPathProgress({
+      path: HEAVY_SWORD_PATH,
+      unlockedLayerIds: ['1', '2', '3', '4'],
+      realm: '化神',
+      stage: '中期',
+    });
+    expect(progress.unlockedLayers.map((layer) => layer.id)).toEqual([
+      '1',
+      '2',
+      '3',
+      '4',
+    ]);
+    expect(progress.nextLayer).toMatchObject({ id: '5' });
+    expect(progress.nextLayerAvailable).toBe(true);
+    expect(() =>
+      standardSectProgression.assertPathLayerUnlock({
         path: HEAVY_SWORD_PATH,
-        pathLevel: 70,
-        realm: '化神',
-        stage: '中期',
-      }).availableLayers,
-    ).toEqual([1, 2, 3, 4, 5]);
-    expect(
-      getPathProgress({
-        path: HEAVY_SWORD_PATH,
-        pathLevel: 100,
-        realm: '化神',
+        unlockedLayerIds: ['1'],
+        layerId: '3',
+        realm: '金丹',
         stage: '圆满',
-      }).ultimateAvailable,
-    ).toBe(true);
+        methods: {},
+      }),
+    ).toThrow('按顺序解锁');
   });
 });

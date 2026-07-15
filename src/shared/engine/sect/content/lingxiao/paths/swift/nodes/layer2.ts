@@ -12,7 +12,7 @@ export const SWIFT_LAYER_2_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-split-light',
-      layer: 2,
+      layerId: '2',
       name: '分光',
       description: '流光三叠改为五段，总倍率1.35并获得3点剑势。',
     },
@@ -21,7 +21,7 @@ export const SWIFT_LAYER_2_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-stacking-waves',
-      layer: 2,
+      layerId: '2',
       name: '叠浪',
       description: '流光三叠完整命中后，追风式冷却减少1回合。',
     },
@@ -30,7 +30,7 @@ export const SWIFT_LAYER_2_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-retained-force',
-      layer: 2,
+      layerId: '2',
       name: '留势',
       description: '溢出剑势最多记录2点，下一次收束后返还。',
     },

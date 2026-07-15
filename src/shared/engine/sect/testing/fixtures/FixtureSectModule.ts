@@ -16,7 +16,24 @@ import {
   type SectTrialScenarioFactory,
 } from '../../core';
 
-const layers = [1, 2, 3, 4, 5, 'ultimate'] as const;
+const layers = [
+  {
+    id: 'foundation',
+    order: 1,
+    label: '根基层',
+    minRealm: '筑基' as const,
+    minRealmStage: '初期' as const,
+    cost: { cultivationExp: 10, comprehensionInsight: 1, spiritStones: 20 },
+  },
+  {
+    id: 'mastery',
+    order: 2,
+    label: '精通层',
+    minRealm: '筑基' as const,
+    minRealmStage: '中期' as const,
+    cost: { cultivationExp: 20, comprehensionInsight: 2, spiritStones: 40 },
+  },
+] as const;
 const methods = Array.from({ length: 6 }, (_, index) => ({
   id: `fixture-method-${index + 1}`,
   slot: (index + 1) as 1 | 2 | 3 | 4 | 5 | 6,
@@ -66,12 +83,12 @@ function createFixtureNodes(prefix: string, resourceId: string) {
       { length: 3 },
       (_, index) =>
         new ConfiguredSectNodePlugin(
-          standardSectProgression.defineNode({
-            id: `${prefix}-${String(layer)}-${index + 1}`,
-            layer,
+          {
+            id: `${prefix}-${layer.id}-${index + 1}`,
+            layerId: layer.id,
             name: `${prefix}节点${index + 1}`,
             description: '改变测试资源初始值。',
-          }),
+          },
           (context, builder) => {
             builder.updateResource(resourceId, (resource) => ({
               ...resource,
@@ -115,7 +132,7 @@ const firstPath = new FixturePathModule(
     id: 'fixture-first-path',
     name: '第一流派',
     description: '第一测试流派',
-    levelBenefitDescription: '每级强化第一资源',
+    layers: layers.map((layer) => ({ ...layer })),
     defaultTacticId: 'fixture-first-tactic',
     tactics: [
       { id: 'fixture-first-tactic', name: '第一战术', description: '测试战术' },
@@ -131,7 +148,7 @@ const secondPath = new FixturePathModule(
     id: 'fixture-second-path',
     name: '第二流派',
     description: '第二测试流派',
-    levelBenefitDescription: '每级强化第二资源',
+    layers: layers.map((layer) => ({ ...layer })),
     defaultTacticId: 'fixture-second-tactic',
     tactics: [
       {
@@ -166,6 +183,7 @@ class FixtureSectModule extends BaseSectModule {
     super(
       baseDefinition,
       [firstPath, secondPath],
+      standardSectProgression,
       'fixture-ability-1',
       new AllowedRaceAdmissionPolicy(['human'], '种族不符'),
       new FixtureTrialFactory(),

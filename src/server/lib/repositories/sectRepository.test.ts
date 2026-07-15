@@ -13,6 +13,7 @@ import {
   hydrateSectAbilitySlots,
   loadCultivatorSectState,
   replaceAbilityLoadout,
+  spendTrainingResources,
 } from './sectRepository';
 
 describe('loadCultivatorSectState', () => {
@@ -33,7 +34,7 @@ describe('loadCultivatorSectState', () => {
             joinedAt: null,
             activePathId: null,
             contribution: 0,
-            configVersion: 2,
+            configVersion: 3,
           },
         ],
       ],
@@ -159,5 +160,36 @@ describe('宗门神通稀疏槽位', () => {
       { membershipId: 'membership-1', slot: 1, abilityId: 'guiding-sword' },
       { membershipId: 'membership-1', slot: 3, abilityId: 'turning-body' },
     ]);
+  });
+});
+
+describe('宗门研习资源扣除', () => {
+  it('uses one guarded cultivator update for all three resources', async () => {
+    const returning = vi.fn().mockResolvedValue([{ id: 'cultivator-1' }]);
+    const where = vi.fn(() => ({ returning }));
+    const set = vi.fn(() => ({ where }));
+    const update = vi.fn(() => ({ set }));
+    const tx = { update } as unknown as DbTransaction;
+
+    await expect(
+      spendTrainingResources(
+        'cultivator-1',
+        {
+          cultivationExp: 950,
+          comprehensionInsight: 10,
+          spiritStones: 9500,
+        },
+        tx,
+      ),
+    ).resolves.toBe(true);
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        spirit_stones: expect.anything(),
+        cultivation_progress: expect.anything(),
+      }),
+    );
+    expect(where).toHaveBeenCalledTimes(1);
   });
 });

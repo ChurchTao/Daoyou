@@ -13,7 +13,7 @@ export const HEAVY_LAYER_1_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-opening',
-      layer: 1,
+      layerId: '1',
       name: '开山',
       description: '开场获得2点剑架。',
     },
@@ -22,7 +22,7 @@ export const HEAVY_LAYER_1_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-hidden-weight',
-      layer: 1,
+      layerId: '1',
       name: '藏重',
       description: '首次受到直接伤害降低10%，并获得3点剑架。',
     },
@@ -36,7 +36,7 @@ export const HEAVY_LAYER_1_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-testing-frame',
-      layer: 1,
+      layerId: '1',
       name: '试架',
       description: '沉锋式每两次命中额外获得1点剑架并施加1层裂甲。',
     },

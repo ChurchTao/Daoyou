@@ -6,11 +6,13 @@ import type {
   SectCombatProjection,
 } from '../domain';
 import type { SectModule } from '../plugin';
+import type { SectProgressionPolicy } from '../progression';
 import { SectRegistry } from './SectRegistry';
 
 export interface SectRuntime {
   registry: SectRegistry;
   compiler: SectCompiler;
+  progressionFor(sectId: string): SectProgressionPolicy;
   projectCombat(args: {
     sect: CultivatorSectState;
     realm: RealmType;
@@ -30,6 +32,10 @@ export class SectRuntimeFacade implements SectRuntime {
 
   constructor(modules: readonly SectModule[]) {
     this.registry = new SectRegistry(modules);
+  }
+
+  progressionFor(sectId: string): SectProgressionPolicy {
+    return this.registry.require(sectId).progression;
   }
 
   projectCombat(args: {

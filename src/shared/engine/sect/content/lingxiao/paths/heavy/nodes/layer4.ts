@@ -8,7 +8,7 @@ export const HEAVY_LAYER_4_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-rending-mountain',
-      layer: 4,
+      layerId: '4',
       name: '裂岳',
       description: '破岳式消费裂甲时，每层追加0.18物攻无视防御伤害。',
     },
@@ -17,7 +17,7 @@ export const HEAVY_LAYER_4_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-ending-life',
-      layer: 4,
+      layerId: '4',
       name: '断命',
       description: '目标气血低于25%时收束伤害提高30%。',
     },
@@ -55,7 +55,7 @@ export const HEAVY_LAYER_4_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-returning-peak',
-      layer: 4,
+      layerId: '4',
       name: '回峰',
       description: '收束伤害降低20%，返还2点剑架并获得护盾。',
     },

@@ -39,6 +39,7 @@ export interface SectTrialScenarioFactory {
 export interface SectModule {
   readonly definition: SectDefinition;
   readonly paths: ReadonlyMap<string, SectPathModule>;
+  readonly progression: import('../progression').SectProgressionPolicy;
   createBaseBuilder(context: SectProjectionContext): SectBuildBuilder;
   checkAdmission(context: SectAdmissionContext): SectAdmissionResult;
   createTrialScenario(context: SectTrialContext): SectTrialScenario;

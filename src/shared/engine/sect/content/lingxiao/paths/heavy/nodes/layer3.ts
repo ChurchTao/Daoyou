@@ -19,7 +19,7 @@ export const HEAVY_LAYER_3_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-crossing-pass',
-      layer: 3,
+      layerId: '3',
       name: '横关',
       description: '横岳式护盾与反击提高50%，反击施加裂甲。',
     },
@@ -28,7 +28,7 @@ export const HEAVY_LAYER_3_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-borrowed-weight',
-      layer: 3,
+      layerId: '3',
       name: '借重',
       description: '每回合首次受到直接伤害时获得1点剑架。',
     },
@@ -42,7 +42,7 @@ export const HEAVY_LAYER_3_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-unmoved',
-      layer: 3,
+      layerId: '3',
       name: '不移',
       description: '受控跳过行动时获得1点剑架，并使下一次承伤降低10%。',
     },

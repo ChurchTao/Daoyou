@@ -1,12 +1,6 @@
-import type {
-  SectDefinition,
-  SectMeridianLayer,
-  SectPathDefinition,
-} from '../domain';
+import type { SectDefinition, SectPathDefinition } from '../domain';
 import type { SectModule } from '../plugin';
 import type { ValidationRule } from './ValidationPipeline';
-
-const EXPECTED_LAYERS: SectMeridianLayer[] = [1, 2, 3, 4, 5, 'ultimate'];
 
 function duplicateIds(values: readonly string[]): string[] {
   const seen = new Set<string>();
@@ -35,17 +29,39 @@ function assertRequirements(
 }
 
 function validatePath(path: SectPathDefinition, definition: SectDefinition) {
+  if (!path.layers.length) throw new Error(`流派 ${path.id} 必须至少定义一层`);
+  const layerIds = path.layers.map((layer) => layer.id);
+  assertNonEmptyIds(`流派 ${path.id} 层级`, layerIds);
+  if (duplicateIds(layerIds).length)
+    throw new Error(`流派 ${path.id} 存在重复层级ID`);
+  const orders = path.layers.map((layer) => layer.order).sort((a, b) => a - b);
+  if (orders.some((order, index) => order !== index + 1))
+    throw new Error(`流派 ${path.id} 层级顺序必须从1连续递增`);
+  const layerSet = new Set(layerIds);
+  for (const layer of path.layers) {
+    if (!layer.label.trim())
+      throw new Error(`流派 ${path.id} 层级名称不能为空`);
+    if (
+      (layer.minRealm === undefined) !==
+      (layer.minRealmStage === undefined)
+    ) {
+      throw new Error(`层级 ${layer.id} 的境界前置必须同时提供境界和阶段`);
+    }
+    assertRequirements(`层级 ${layer.id} `, layer.requiredMethods);
+    for (const value of Object.values(layer.cost)) {
+      if (!Number.isInteger(value) || value < 0)
+        throw new Error(`层级 ${layer.id} 的解锁费用无效`);
+    }
+  }
   const nodeIds = path.nodes.map((node) => node.id);
   assertNonEmptyIds(`流派 ${path.id} 节点`, nodeIds);
   const duplicates = duplicateIds(nodeIds);
   if (duplicates.length) {
     throw new Error(`流派 ${path.id} 存在重复节点: ${duplicates.join(', ')}`);
   }
-  for (const layer of EXPECTED_LAYERS) {
-    const count = path.nodes.filter((node) => node.layer === layer).length;
-    if (count !== 3) {
-      throw new Error(`流派 ${path.id} 的 ${String(layer)} 层必须恰有3个节点`);
-    }
+  for (const layerId of layerIds) {
+    if (!path.nodes.some((node) => node.layerId === layerId))
+      throw new Error(`流派 ${path.id} 的层级 ${layerId} 没有节点`);
   }
   if (!path.tactics.some((tactic) => tactic.id === path.defaultTacticId)) {
     throw new Error(`流派 ${path.id} 默认战术不存在`);
@@ -56,16 +72,15 @@ function validatePath(path: SectPathDefinition, definition: SectDefinition) {
     throw new Error(`流派 ${path.id} 存在重复战术ID`);
   }
   const methodIds = new Set(definition.methods.map((method) => method.id));
+  for (const layer of path.layers) {
+    for (const requiredId of Object.keys(layer.requiredMethods ?? {})) {
+      if (!methodIds.has(requiredId))
+        throw new Error(`层级 ${layer.id} 引用了未知心法 ${requiredId}`);
+    }
+  }
   for (const node of path.nodes) {
-    if ((node.minRealm === undefined) !== (node.minRealmStage === undefined)) {
-      throw new Error(`节点 ${node.id} 的境界前置必须同时提供境界和阶段`);
-    }
-    if (
-      node.minPathLevel !== undefined &&
-      (!Number.isInteger(node.minPathLevel) || node.minPathLevel < 0)
-    ) {
-      throw new Error(`节点 ${node.id} 的流派等级前置无效`);
-    }
+    if (!layerSet.has(node.layerId))
+      throw new Error(`节点 ${node.id} 引用了未知层级 ${node.layerId}`);
     assertRequirements(`节点 ${node.id} `, node.requiredMethods);
     for (const requiredId of Object.keys(node.requiredMethods ?? {})) {
       if (!methodIds.has(requiredId)) {

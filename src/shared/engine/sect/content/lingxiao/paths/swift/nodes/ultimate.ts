@@ -9,7 +9,7 @@ export const SWIFT_ULTIMATE_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-endless-flow',
-      layer: 'ultimate',
+      layerId: 'ultimate',
       name: '无间剑流',
       description: '收束后追加0.6物攻追击并获得1点剑势，每3回合一次。',
     },
@@ -38,7 +38,7 @@ export const SWIFT_ULTIMATE_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-shadow-line',
-      layer: 'ultimate',
+      layerId: 'ultimate',
       name: '绝影一线',
       description: '一线天改为满6剑势强击，强制暴击且冷却增加1回合。',
     },
@@ -47,7 +47,7 @@ export const SWIFT_ULTIMATE_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-unending-wind',
-      layer: 'ultimate',
+      layerId: 'ultimate',
       name: '回风不息',
       description: '回燕反击施加剑痕并获得护盾，每次姿态最多一次。',
     },

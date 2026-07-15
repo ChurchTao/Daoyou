@@ -39,7 +39,9 @@ export class SectCompilationRule implements ValidationRule<SectModule> {
         paths: [
           {
             pathId: path.id,
-            level: 100,
+            unlockedLayerIds: [...path.layers]
+              .sort((left, right) => left.order - right.order)
+              .map((layer) => layer.id),
             tacticId: path.defaultTacticId,
             activeMeridianSlot: 1,
             meridianLoadouts: [

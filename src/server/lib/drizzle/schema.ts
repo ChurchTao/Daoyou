@@ -1,6 +1,20 @@
+import type { PlayerStateDomain } from '@shared/contracts/player';
+import type {
+  ItemLibraryEditorConfig,
+  ItemLibraryPayload,
+} from '@shared/lib/itemLibrary';
+import type { TowerPreparedEnemy } from '@shared/lib/tower';
+import type {
+  AlchemyFormulaBlueprint,
+  AlchemyFormulaMastery,
+  AlchemyFormulaPattern,
+  PillFamily,
+} from '@shared/types/consumable';
+import type { MailAttachment } from '@shared/types/mail';
+import { sql } from 'drizzle-orm';
 import {
-  boolean,
   bigint,
+  boolean,
   doublePrecision,
   index,
   integer,
@@ -12,20 +26,6 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
-import type {
-  AlchemyFormulaBlueprint,
-  AlchemyFormulaMastery,
-  AlchemyFormulaPattern,
-  PillFamily,
-} from '@shared/types/consumable';
-import type {
-  ItemLibraryEditorConfig,
-  ItemLibraryPayload,
-} from '@shared/lib/itemLibrary';
-import type { MailAttachment } from '@shared/types/mail';
-import type { TowerPreparedEnemy } from '@shared/lib/tower';
-import type { PlayerStateDomain } from '@shared/contracts/player';
 
 // ===== 新一代修仙游戏数据库 Schema =====
 // 基于 basic.md 中的新 Cultivator 模型设计
@@ -43,7 +43,9 @@ export const cultivators = pgTable(
     personality: text('personality'),
     background: text('background'),
     prompt: text('prompt').notNull(), // 用户原始输入
-    playerRace: varchar('player_race', { length: 32 }).notNull().default('human'),
+    playerRace: varchar('player_race', { length: 32 })
+      .notNull()
+      .default('human'),
     raceNarrative: text('race_narrative'),
 
     // 境界相关
@@ -185,11 +187,19 @@ export const sectMemberships = pgTable(
     contribution: integer('contribution').notNull().default(0),
     configVersion: integer('config_version').notNull().default(2),
     createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
   },
   (table) => [
-    uniqueIndex('sect_memberships_cultivator_sect_unique').on(table.cultivatorId, table.sectId),
-    uniqueIndex('sect_memberships_active_cultivator_unique').on(table.cultivatorId).where(sql`${table.status} = 'active'`),
+    uniqueIndex('sect_memberships_cultivator_sect_unique').on(
+      table.cultivatorId,
+      table.sectId,
+    ),
+    uniqueIndex('sect_memberships_active_cultivator_unique')
+      .on(table.cultivatorId)
+      .where(sql`${table.status} = 'active'`),
     index('sect_memberships_sect_status_idx').on(table.sectId, table.status),
   ],
 );
@@ -198,54 +208,99 @@ export const sectMethodProgress = pgTable(
   'wanjiedaoyou_sect_method_progress',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    membershipId: uuid('membership_id').references(() => sectMemberships.id, { onDelete: 'cascade' }).notNull(),
+    membershipId: uuid('membership_id')
+      .references(() => sectMemberships.id, { onDelete: 'cascade' })
+      .notNull(),
     methodId: varchar('method_id', { length: 64 }).notNull(),
     level: integer('level').notNull().default(0),
-    updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
   },
-  (table) => [uniqueIndex('sect_method_membership_method_unique').on(table.membershipId, table.methodId)],
+  (table) => [
+    uniqueIndex('sect_method_membership_method_unique').on(
+      table.membershipId,
+      table.methodId,
+    ),
+  ],
 );
 
 export const sectPathProgress = pgTable(
   'wanjiedaoyou_sect_path_progress',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    membershipId: uuid('membership_id').references(() => sectMemberships.id, { onDelete: 'cascade' }).notNull(),
+    membershipId: uuid('membership_id')
+      .references(() => sectMemberships.id, { onDelete: 'cascade' })
+      .notNull(),
     pathId: varchar('path_id', { length: 64 }).notNull(),
-    level: integer('level').notNull().default(0),
+    unlockedLayerIds: jsonb('unlocked_layer_ids')
+      .$type<string[]>()
+      .notNull()
+      .default([]),
     tacticId: varchar('tactic_id', { length: 32 }).notNull(),
     activeMeridianSlot: integer('active_meridian_slot').notNull().default(1),
-    updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
   },
-  (table) => [uniqueIndex('sect_path_membership_path_unique').on(table.membershipId, table.pathId)],
+  (table) => [
+    uniqueIndex('sect_path_membership_path_unique').on(
+      table.membershipId,
+      table.pathId,
+    ),
+  ],
 );
 
 export const sectMeridianLoadouts = pgTable(
   'wanjiedaoyou_sect_meridian_loadouts',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    membershipId: uuid('membership_id').references(() => sectMemberships.id, { onDelete: 'cascade' }).notNull(),
-    pathId: varchar('path_id', { length: 64 }).notNull().default(""),
+    membershipId: uuid('membership_id')
+      .references(() => sectMemberships.id, { onDelete: 'cascade' })
+      .notNull(),
+    pathId: varchar('path_id', { length: 64 }).notNull().default(''),
     slot: integer('slot').notNull(),
     nodeIds: jsonb('node_ids').$type<string[]>().notNull().default([]),
     version: integer('version').notNull().default(1),
-    updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
   },
-  (table) => [uniqueIndex('sect_meridian_membership_path_slot_unique').on(table.membershipId, table.pathId, table.slot)],
+  (table) => [
+    uniqueIndex('sect_meridian_membership_path_slot_unique').on(
+      table.membershipId,
+      table.pathId,
+      table.slot,
+    ),
+  ],
 );
 
 export const sectAbilityLoadouts = pgTable(
   'wanjiedaoyou_sect_ability_loadouts',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    membershipId: uuid('membership_id').references(() => sectMemberships.id, { onDelete: 'cascade' }).notNull(),
+    membershipId: uuid('membership_id')
+      .references(() => sectMemberships.id, { onDelete: 'cascade' })
+      .notNull(),
     slot: integer('slot').notNull(),
     abilityId: varchar('ability_id', { length: 64 }).notNull(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
   },
   (table) => [
-    uniqueIndex('sect_ability_membership_slot_unique').on(table.membershipId, table.slot),
-    uniqueIndex('sect_ability_membership_ability_unique').on(table.membershipId, table.abilityId),
+    uniqueIndex('sect_ability_membership_slot_unique').on(
+      table.membershipId,
+      table.slot,
+    ),
+    uniqueIndex('sect_ability_membership_ability_unique').on(
+      table.membershipId,
+      table.abilityId,
+    ),
   ],
 );
 
@@ -253,14 +308,21 @@ export const sectDailyCommissions = pgTable(
   'wanjiedaoyou_sect_daily_commissions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    membershipId: uuid('membership_id').references(() => sectMemberships.id, { onDelete: 'cascade' }).notNull(),
+    membershipId: uuid('membership_id')
+      .references(() => sectMemberships.id, { onDelete: 'cascade' })
+      .notNull(),
     dateKey: varchar('date_key', { length: 10 }).notNull(),
     completionType: varchar('completion_type', { length: 16 }).notNull(),
     completedAt: timestamp('completed_at').notNull(),
     claimedAt: timestamp('claimed_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (table) => [uniqueIndex('sect_commission_membership_date_unique').on(table.membershipId, table.dateKey)],
+  (table) => [
+    uniqueIndex('sect_commission_membership_date_unique').on(
+      table.membershipId,
+      table.dateKey,
+    ),
+  ],
 );
 
 export const playerStateEvents = pgTable(
@@ -275,7 +337,9 @@ export const playerStateEvents = pgTable(
     userId: uuid('user_id').notNull(),
     globalVersion: bigint('global_version', { mode: 'number' }).notNull(),
     domainVersion: bigint('domain_version', { mode: 'number' }).notNull(),
-    domain: varchar('domain', { length: 32 }).$type<PlayerStateDomain>().notNull(),
+    domain: varchar('domain', { length: 32 })
+      .$type<PlayerStateDomain>()
+      .notNull(),
     eventType: varchar('event_type', { length: 96 }).notNull(),
     patch: jsonb('patch').notNull().default({}),
     invalidates: jsonb('invalidates')
@@ -807,7 +871,9 @@ export const reputationShopPurchases = pgTable(
     cultivatorId: uuid('cultivator_id')
       .notNull()
       .references(() => cultivators.id, { onDelete: 'cascade' }),
-    itemLibraryItemId: varchar('item_library_item_id', { length: 120 }).notNull(),
+    itemLibraryItemId: varchar('item_library_item_id', {
+      length: 120,
+    }).notNull(),
     quantity: integer('quantity').notNull(),
     reputationCost: integer('reputation_cost').notNull(),
     purchaseWeek: varchar('purchase_week', { length: 10 }).notNull(),
@@ -940,7 +1006,9 @@ export const auctionListings = pgTable(
     itemId: uuid('item_id').notNull(), // 原物品ID（引用），售出后可清理
     itemName: varchar('item_name', { length: 200 }).notNull().default(''),
     itemQuality: varchar('item_quality', { length: 20 }).notNull().default(''),
-    itemCategory: varchar('item_category', { length: 50 }).notNull().default(''),
+    itemCategory: varchar('item_category', { length: 50 })
+      .notNull()
+      .default(''),
 
     // 物品快照（完整数据，保证下架后仍能展示）
     itemSnapshot: jsonb('item_snapshot').notNull(),
@@ -948,7 +1016,9 @@ export const auctionListings = pgTable(
     // 价格与状态
     price: integer('price').notNull(), // 一口价（灵石）
     status: varchar('status', { length: 20 }).notNull().default('active'), // active | sold | expired | cancelled
-    visibility: varchar('visibility', { length: 20 }).notNull().default('public'), // public | private
+    visibility: varchar('visibility', { length: 20 })
+      .notNull()
+      .default('public'), // public | private
     targetCultivatorId: uuid('target_cultivator_id').references(
       () => cultivators.id,
       { onDelete: 'set null' },

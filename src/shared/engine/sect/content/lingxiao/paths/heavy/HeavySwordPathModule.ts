@@ -1,5 +1,6 @@
 import {
   BaseSectPathModule,
+  STANDARD_PATH_LAYERS,
   type SectBuildBuilder,
   type SectPathCompileContext,
   type SectPathDefinitionWithoutNodes,
@@ -14,7 +15,7 @@ const HEAVY_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
   id: HEAVY_SWORD_PATH_ID,
   name: '重剑道',
   description: '以架承势、裂甲压阵、聚力破岳。',
-  levelBenefitDescription: '每级提高重剑变体伤害、反击与护盾倍率0.08%。',
+  layers: [...STANDARD_PATH_LAYERS],
   defaultTacticId: 'heavy-break',
   tactics: [
     {

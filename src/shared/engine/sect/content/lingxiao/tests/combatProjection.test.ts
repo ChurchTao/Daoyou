@@ -16,7 +16,7 @@ function state(
     sectId: 'lingxiao',
     status: 'active',
     contribution: 0,
-    configVersion: 2,
+    configVersion: 3,
     activePathId: pathId,
     methods: {
       'lingxiao-canon': 100,
@@ -30,7 +30,7 @@ function state(
       ? [
           {
             pathId,
-            level: 100,
+            unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
             tacticId: pathId === 'swift-sword' ? 'aggressive' : 'heavy-break',
             activeMeridianSlot: 1,
             meridianLoadouts: [
@@ -51,6 +51,17 @@ function state(
 }
 
 describe('宗门注册投影', () => {
+  it('凌霄两条流派各自保持六层且每层三个节点', () => {
+    for (const path of LINGXIAO_MODULE.definition.paths) {
+      expect(path.layers).toHaveLength(6);
+      for (const layer of path.layers) {
+        expect(
+          path.nodes.filter((node) => node.layerId === layer.id),
+        ).toHaveLength(3);
+      }
+    }
+  });
+
   it('未激活流派使用基础剑势和基础法术', () => {
     const projection = projectSectCombat({ sect: state(), realm: '筑基' })!;
     expect(projection.resources[0]).toMatchObject({ name: '剑势', max: 3 });
@@ -116,6 +127,25 @@ describe('宗门注册投影', () => {
         );
         expect(JSON.stringify(compiled), node.id).not.toBe(baseline);
       }
+    }
+  });
+
+  it('流派基础变体不再随已解锁层数改变倍率', () => {
+    for (const pathId of ['swift-sword', 'heavy-sword'] as const) {
+      const firstLayer = state(pathId);
+      firstLayer.paths[0].unlockedLayerIds = ['1'];
+      const allLayers = state(pathId);
+      expect(
+        productionSectRuntime.compiler.compile(LINGXIAO_MODULE, {
+          sect: firstLayer,
+          realm: '化神',
+        }),
+      ).toEqual(
+        productionSectRuntime.compiler.compile(LINGXIAO_MODULE, {
+          sect: allLayers,
+          realm: '化神',
+        }),
+      );
     }
   });
 

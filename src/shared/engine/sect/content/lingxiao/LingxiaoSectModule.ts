@@ -1,6 +1,7 @@
 import {
   AllowedRaceAdmissionPolicy,
   BaseSectModule,
+  standardSectProgression,
   type CultivatorSectState,
   type SectBuildBuilder,
   type SectProjectionContext,
@@ -50,6 +51,7 @@ export class LingxiaoSectModule extends BaseSectModule {
     super(
       LINGXIAO_BASE_DEFINITION,
       [LINGXIAO_SWIFT_PATH_MODULE, LINGXIAO_HEAVY_PATH_MODULE],
+      standardSectProgression,
       'plain-sword',
       new AllowedRaceAdmissionPolicy(
         LINGXIAO_BASE_DEFINITION.raceIds,

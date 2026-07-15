@@ -21,7 +21,7 @@ export const SWIFT_LAYER_1_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-opening',
-      layer: 1,
+      layerId: '1',
       name: '疾起',
       description: '开场获得2点剑势，第一回合身法提高8%。',
     },
@@ -69,7 +69,7 @@ export const SWIFT_LAYER_1_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-hidden-edge',
-      layer: 1,
+      layerId: '1',
       name: '藏锋',
       description: '首次受到直接伤害降低10%，并额外获得3点剑势。',
     },
@@ -83,7 +83,7 @@ export const SWIFT_LAYER_1_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-probing-edge',
-      layer: 1,
+      layerId: '1',
       name: '试锋',
       description: '平剑式每两次命中额外获得1点剑势并施加1层剑痕。',
     },

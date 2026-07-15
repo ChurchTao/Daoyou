@@ -12,15 +12,6 @@ import type { SectModule } from '../plugin';
 import { projectSectMethodModifiers } from '../presentation';
 import { isAbilityUnlocked } from '../progression';
 
-const LAYER_ORDER = new Map<string, number>([
-  ['1', 1],
-  ['2', 2],
-  ['3', 3],
-  ['4', 4],
-  ['5', 5],
-  ['ultimate', 6],
-]);
-
 function findActivePath(
   context: SectProjectionContext,
 ): CultivatorSectPathState | undefined {
@@ -51,12 +42,16 @@ export class SectCompiler {
       pathModule.compileVariants({ ...context, path }, builder);
 
       const selected = new Set(selectedNodeIds(path));
+      const unlocked = new Set(path.unlockedLayerIds);
+      const layerOrder = new Map(
+        pathModule.definition.layers.map((layer) => [layer.id, layer.order]),
+      );
       const orderedNodes = pathModule.definition.nodes
-        .filter((node) => selected.has(node.id))
+        .filter((node) => selected.has(node.id) && unlocked.has(node.layerId))
         .sort(
           (left, right) =>
-            (LAYER_ORDER.get(String(left.layer)) ?? 99) -
-            (LAYER_ORDER.get(String(right.layer)) ?? 99),
+            (layerOrder.get(left.layerId) ?? 99) -
+            (layerOrder.get(right.layerId) ?? 99),
         );
       const applied = new Set<string>();
       for (const definition of orderedNodes) {

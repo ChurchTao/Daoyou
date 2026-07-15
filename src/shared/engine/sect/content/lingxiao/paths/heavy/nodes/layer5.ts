@@ -19,7 +19,7 @@ export const HEAVY_LAYER_5_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-aftershock',
-      layer: 5,
+      layerId: '5',
       name: '余震',
       description: '收束后延迟追加0.6物攻伤害，每回合最多一次。',
     },
@@ -46,7 +46,7 @@ export const HEAVY_LAYER_5_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-linked-mountains',
-      layer: 5,
+      layerId: '5',
       name: '连山',
       description: '收束后下一次产架技能不耗法力并额外获得1点剑架。',
     },
@@ -93,7 +93,7 @@ export const HEAVY_LAYER_5_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-steady-mountain',
-      layer: 5,
+      layerId: '5',
       name: '镇岳',
       description: '满剑架时承伤降低10%；连续两个行动未收束时强化下一次收束。',
     },

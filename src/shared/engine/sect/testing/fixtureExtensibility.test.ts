@@ -92,6 +92,7 @@ describe('第二宗门扩展闭环', () => {
         ...FIXTURE_SECT_MODULE.paths,
         [thirdPath.definition.id, thirdPath],
       ]),
+      progression: FIXTURE_SECT_MODULE.progression,
       createBaseBuilder: (context) =>
         FIXTURE_SECT_MODULE.createBaseBuilder(context),
       checkAdmission: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
@@ -117,11 +118,15 @@ describe('第二宗门扩展闭环', () => {
     state.paths = [
       {
         pathId: 'fixture-second-path',
-        level: 5,
+        unlockedLayerIds: ['foundation'],
         tacticId: 'fixture-second-tactic',
         activeMeridianSlot: 1,
         meridianLoadouts: [
-          { slot: 1, nodeIds: ['fixture-second-1-1'], version: 1 },
+          {
+            slot: 1,
+            nodeIds: ['fixture-second-foundation-1'],
+            version: 1,
+          },
           { slot: 2, nodeIds: [], version: 1 },
           { slot: 3, nodeIds: [], version: 1 },
         ],
@@ -141,7 +146,7 @@ describe('第二宗门扩展闭环', () => {
     state.paths = [
       {
         pathId: 'fixture-first-path',
-        level: 5,
+        unlockedLayerIds: ['foundation'],
         tacticId: 'fixture-first-tactic',
         activeMeridianSlot: 1,
         meridianLoadouts: [
@@ -201,6 +206,8 @@ describe('第二宗门扩展闭环', () => {
     let state: ReturnType<typeof fixtureSectState> | undefined;
     let experiencedAt: Date | undefined;
     let stones = 100_000;
+    let cultivationExp = 100_000;
+    let comprehensionInsight = 100;
     const membership = () =>
       state
         ? {
@@ -215,11 +222,20 @@ describe('第二宗门扩展闭环', () => {
         realm: '筑基',
         stage: '初期',
         stones,
+        cultivationExp,
+        comprehensionInsight,
         playerRace: 'human',
       })),
-      spendSpiritStones: vi.fn(async (_cultivatorId, amount) => {
-        if (stones < amount) return false;
-        stones -= amount;
+      spendTrainingResources: vi.fn(async (_cultivatorId, cost) => {
+        if (
+          stones < cost.spiritStones ||
+          cultivationExp < cost.cultivationExp ||
+          comprehensionInsight < cost.comprehensionInsight
+        )
+          return false;
+        stones -= cost.spiritStones;
+        cultivationExp -= cost.cultivationExp;
+        comprehensionInsight -= cost.comprehensionInsight;
         return true;
       }),
       findMembership: vi.fn(async () =>
@@ -254,28 +270,31 @@ describe('第二宗门扩展闭环', () => {
       setMethodLevel: vi.fn(async (_membershipId, methodId, level) => {
         state!.methods[methodId] = level;
       }),
-      spendContribution: vi.fn(async (_membershipId, amount) => {
-        if (state!.contribution < amount) return false;
-        state!.contribution -= amount;
+      createPathWithFirstLayer: vi.fn(
+        async (_membershipId, pathId, tacticId, layerId) => {
+          if (state!.paths.some((path) => path.pathId === pathId)) return false;
+          state!.paths.push({
+            pathId,
+            unlockedLayerIds: [layerId],
+            tacticId,
+            activeMeridianSlot: 1,
+            meridianLoadouts: [1, 2, 3].map((slot) => ({
+              slot: slot as 1 | 2 | 3,
+              nodeIds: [],
+              version: 1,
+            })),
+          });
+          return true;
+        },
+      ),
+      appendUnlockedPathLayer: vi.fn(async (_membershipId, pathId, layerId) => {
+        state!.paths
+          .find((path) => path.pathId === pathId)!
+          .unlockedLayerIds.push(layerId);
         return true;
       }),
-      enrollPath: vi.fn(async (_membershipId, pathId, tacticId) => {
-        if (state!.paths.some((path) => path.pathId === pathId)) return false;
-        state!.paths.push({
-          pathId,
-          level: 0,
-          tacticId,
-          activeMeridianSlot: 1,
-          meridianLoadouts: [1, 2, 3].map((slot) => ({
-            slot: slot as 1 | 2 | 3,
-            nodeIds: [],
-            version: 1,
-          })),
-        });
-        return true;
-      }),
-      setPathLevel: vi.fn(async (_membershipId, pathId, level) => {
-        state!.paths.find((path) => path.pathId === pathId)!.level = level;
+      activatePathIfNone: vi.fn(async (_membershipId, pathId) => {
+        state!.activePathId ??= pathId;
       }),
       activatePath: vi.fn(async (_membershipId, pathId) => {
         if (!state!.paths.some((path) => path.pathId === pathId)) return false;
@@ -317,12 +336,11 @@ describe('第二宗门扩展闭环', () => {
       },
       tx,
     );
-    await service.enrollPath(cultivator.id!, 'fixture-first-path', tx);
-    await service.trainPath(
+    await service.unlockPathLayer(
       {
         cultivatorId: cultivator.id!,
         pathId: 'fixture-first-path',
-        targetLevel: 5,
+        layerId: 'foundation',
       },
       tx,
     );
@@ -330,10 +348,17 @@ describe('第二宗门扩展闭环', () => {
       cultivator.id!,
       'fixture-first-path',
       1,
-      ['fixture-first-1-1'],
+      ['fixture-first-foundation-1'],
       tx,
     );
-    await service.enrollPath(cultivator.id!, 'fixture-second-path', tx);
+    await service.unlockPathLayer(
+      {
+        cultivatorId: cultivator.id!,
+        pathId: 'fixture-second-path',
+        layerId: 'foundation',
+      },
+      tx,
+    );
     await service.activatePath(cultivator.id!, 'fixture-second-path', tx);
     await service.setPathTactic(
       cultivator.id!,
@@ -353,7 +378,7 @@ describe('第二宗门扩展闭环', () => {
     });
     expect(state?.paths).toHaveLength(2);
     expect(state?.paths[0].meridianLoadouts[0].nodeIds).toEqual([
-      'fixture-first-1-1',
+      'fixture-first-foundation-1',
     ]);
     expect(
       runtime.projectCombat({ sect: state!, realm: '筑基' })?.resources[0].id,
@@ -364,6 +389,7 @@ describe('第二宗门扩展闭环', () => {
     const rejectedModule: SectModule = {
       definition: FIXTURE_SECT_MODULE.definition,
       paths: FIXTURE_SECT_MODULE.paths,
+      progression: FIXTURE_SECT_MODULE.progression,
       createBaseBuilder: (context) =>
         FIXTURE_SECT_MODULE.createBaseBuilder(context),
       checkAdmission: () => ({ allowed: false, reason: '样例拒绝原因' }),
@@ -396,13 +422,16 @@ describe('第二宗门扩展闭环', () => {
     meridian.paths = [
       {
         pathId: 'fixture-first-path',
-        level: 5,
+        unlockedLayerIds: ['foundation'],
         tacticId: 'fixture-first-tactic',
         activeMeridianSlot: 1,
         meridianLoadouts: [
           {
             slot: 1,
-            nodeIds: ['fixture-first-1-1', 'fixture-first-1-2'],
+            nodeIds: [
+              'fixture-first-foundation-1',
+              'fixture-first-foundation-2',
+            ],
             version: 1,
           },
           { slot: 2, nodeIds: [], version: 1 },

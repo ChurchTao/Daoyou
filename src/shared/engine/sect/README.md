@@ -8,7 +8,7 @@
 - `core/plugin`：`BaseSectModule`、`BaseSectPathModule`、节点插件和准入、试炼策略契约。
 - `core/authoring`：宗门神通、战斗效果、法力消耗和战术候选构造器。
 - `core/compilation`：`SectBuildBuilder` 和统一编译导演 `SectCompiler`。
-- `core/progression`：六层经脉、等级上限、成本和解锁规则。
+- `core/progression`：可注入成长策略、心法等级上限、成本和有序层解锁规则。
 - `core/validation`：定义、组合、编译契约和持久化状态校验流水线。
 - `core/runtime`：`SectRegistry` 与客户端、服务端共用的 `SectRuntimeFacade`。
 - `core/presentation`：心法收益、里程碑和四槽装配等纯展示逻辑。
@@ -51,8 +51,8 @@ CultivatorSectState
 ## 新增宗门
 
 1. 在 `content/<sect>` 定义六本心法、基础神通和稳定内容 ID。
-2. 继承 `BaseSectModule`，实现基础编译并注入准入策略、试炼工厂和流派模块。
-3. 每个流派继承 `BaseSectPathModule`，提供基础变体、战术策略和十八个节点插件。
+2. 继承 `BaseSectModule`，实现基础编译并注入成长、准入、试炼策略和流派模块。
+3. 每个流派继承 `BaseSectPathModule`，声明有序层、基础变体、战术策略和节点插件。
 4. 节点使用 `ConfiguredSectNodePlugin` 或专用子类，将定义与 `apply` 行为放在一起。
 5. 在 `content/productionRuntime.ts` 注册正式宗门。除这个组合根外，不修改通用层。
 
@@ -66,7 +66,8 @@ CultivatorSectState
 ## 边界约束
 
 - 每个宗门固定六本心法，每本至少拥有一个基础神通。
-- 每个流派固定六层、每层三个节点；定义和行为由同一个节点对象提供。
+- 流派层数与每层节点数由内容声明；层 ID、顺序和节点归属必须稳定且可校验。
+- 玩家只保存已按顺序解锁的层 ID；流派编译器不得从等级推导倍率或层级。
 - 四个主动槽固定、不可重复，只能装配已解锁主动神通。
 - 每个流派独立保存等级、战术和三套经脉方案，只能激活一个流派。
 - 未注册 ID、未知配置版本和非法持久化状态必须明确失败。

@@ -12,7 +12,7 @@ describe('通用宗门展示与装配', () => {
     const method = LINGXIAO_SECT.methods.find(
       (entry) => entry.id === 'sword-nurturing',
     )!;
-    expect(describeMethodBenefit(method, 100)).toContain('气血上限提高5%');
+    expect(describeMethodBenefit(method, 100)).toContain('物理防御提高5%');
   });
 
   it('固定四槽保留稀疏位置并避免重复', () => {

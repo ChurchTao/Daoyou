@@ -5,12 +5,14 @@ const {
   getStateMock,
   getTodayMock,
   joinMock,
+  unlockPathLayerMock,
   setAbilityLoadoutMock,
   listAvailableDefinitionsMock,
 } = vi.hoisted(() => ({
   getStateMock: vi.fn(),
   getTodayMock: vi.fn(),
   joinMock: vi.fn(),
+  unlockPathLayerMock: vi.fn(),
   setAbilityLoadoutMock: vi.fn(),
   listAvailableDefinitionsMock: vi.fn(),
 }));
@@ -58,8 +60,7 @@ vi.mock('@server/lib/services/SectService', () => {
       join: joinMock,
       recordExperience: vi.fn(),
       trainMethod: vi.fn(),
-      enrollPath: vi.fn(),
-      trainPath: vi.fn(),
+      unlockPathLayer: unlockPathLayerMock,
       activatePath: vi.fn(),
       setMeridianLoadout: vi.fn(),
       activateMeridianLoadout: vi.fn(),
@@ -108,13 +109,13 @@ const activeSect = {
   sectId: 'lingxiao',
   status: 'active',
   contribution: 30,
-  configVersion: 2,
+  configVersion: 3,
   activePathId: 'swift-sword',
   methods: { 'lingxiao-canon': 5, 'sword-guidance': 5 },
   paths: [
     {
       pathId: 'swift-sword',
-      level: 0,
+      unlockedLayerIds: ['1'],
       tacticId: 'aggressive',
       activeMeridianSlot: 1,
       meridianLoadouts: [{ slot: 1, nodeIds: [], version: 1 }],
@@ -215,6 +216,34 @@ describe('sects router', () => {
     );
   });
 
+  it('passes the requested path layer to the generic unlock service', async () => {
+    unlockPathLayerMock.mockResolvedValue({
+      sect: activeSect,
+      pathId: 'swift-sword',
+      layerId: '2',
+      cost: {
+        cultivationExp: 2500,
+        comprehensionInsight: 15,
+        spiritStones: 25000,
+      },
+    });
+    const response = await new Hono()
+      .route('/api/sects', sectsRouter)
+      .request('/api/sects/current/paths/swift-sword/layers/2/unlock', {
+        method: 'POST',
+      });
+
+    expect(response.status).toBe(200);
+    expect(unlockPathLayerMock).toHaveBeenCalledWith(
+      {
+        cultivatorId: 'cultivator-1',
+        pathId: 'swift-sword',
+        layerId: '2',
+      },
+      expect.anything(),
+    );
+  });
+
   it('returns 400 for an unregistered sect id', async () => {
     const response = await new Hono()
       .route('/api/sects', sectsRouter)
@@ -237,6 +266,20 @@ describe('sects router', () => {
     expect(
       (
         await app.request('/api/sects/paths/swift-sword/select', {
+          method: 'POST',
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await app.request('/api/sects/current/paths/swift-sword/enroll', {
+          method: 'POST',
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await app.request('/api/sects/current/paths/swift-sword/train', {
           method: 'POST',
         })
       ).status,

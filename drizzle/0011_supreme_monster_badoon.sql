@@ -1,0 +1,2 @@
+ALTER TABLE "wanjiedaoyou_sect_path_progress" ADD COLUMN "unlocked_layer_ids" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "wanjiedaoyou_sect_path_progress" DROP COLUMN "level";

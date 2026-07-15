@@ -9,6 +9,7 @@ import type {
   SectTrialContext,
   SectTrialScenario,
 } from '../domain';
+import type { SectProgressionPolicy } from '../progression';
 import type {
   SectAdmissionPolicy,
   SectModule,
@@ -24,6 +25,7 @@ export abstract class BaseSectModule implements SectModule {
   protected constructor(
     definition: SectDefinitionWithoutPaths,
     pathModules: readonly SectPathModule[],
+    readonly progression: SectProgressionPolicy,
     private readonly defaultAbilityId: SectAbilityId,
     private readonly admissionPolicy: SectAdmissionPolicy,
     private readonly trialScenarioFactory: SectTrialScenarioFactory,

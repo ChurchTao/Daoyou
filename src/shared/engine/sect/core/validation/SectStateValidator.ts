@@ -60,11 +60,26 @@ export class SectStateValidator {
         (candidate) => candidate.id === pathState.pathId,
       );
       if (!path) throw new Error(`未知流派进度: ${pathState.pathId}`);
-      if (!Number.isInteger(pathState.level) || pathState.level < 0)
-        throw new Error(`流派等级无效: ${pathState.pathId}`);
+      if (!Array.isArray(pathState.unlockedLayerIds))
+        throw new Error(`流派 ${pathState.pathId} 解锁层级结构无效`);
+      if (
+        new Set(pathState.unlockedLayerIds).size !==
+        pathState.unlockedLayerIds.length
+      )
+        throw new Error(`流派 ${pathState.pathId} 解锁层级不可重复`);
+      const orderedLayerIds = [...path.layers]
+        .sort((left, right) => left.order - right.order)
+        .map((layer) => layer.id);
+      const expectedPrefix = orderedLayerIds.slice(
+        0,
+        pathState.unlockedLayerIds.length,
+      );
+      if (expectedPrefix.join(',') !== pathState.unlockedLayerIds.join(','))
+        throw new Error(`流派 ${pathState.pathId} 层级必须按顺序解锁`);
       if (![1, 2, 3].includes(pathState.activeMeridianSlot))
         throw new Error(`流派 ${pathState.pathId} 当前经脉方案槽无效`);
       const nodeIds = new Set(path.nodes.map((node) => node.id));
+      const unlockedLayerIds = new Set(pathState.unlockedLayerIds);
       const tacticIds = new Set(path.tactics.map((tactic) => tactic.id));
       if (!tacticIds.has(pathState.tacticId))
         throw new Error(`未知流派战术: ${pathState.tacticId}`);
@@ -86,15 +101,12 @@ export class SectStateValidator {
         for (const nodeId of loadout.nodeIds) {
           if (!nodeIds.has(nodeId)) throw new Error(`未知经脉节点: ${nodeId}`);
           const node = path.nodes.find((entry) => entry.id === nodeId)!;
-          const layer = String(node.layer);
+          const layer = node.layerId;
           if (occupiedLayers.has(layer))
             throw new Error(`经脉第${layer}层只能选择一个节点`);
           occupiedLayers.add(layer);
-          if (
-            node.minPathLevel !== undefined &&
-            pathState.level < node.minPathLevel
-          )
-            throw new Error(`${node.name}尚未达到流派等级要求`);
+          if (!unlockedLayerIds.has(node.layerId))
+            throw new Error(`${node.name}所属层级尚未解锁`);
           for (const [methodId, level] of Object.entries(
             node.requiredMethods ?? {},
           )) {

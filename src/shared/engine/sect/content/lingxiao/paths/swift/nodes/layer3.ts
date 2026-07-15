@@ -15,7 +15,7 @@ export const SWIFT_LAYER_3_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-returning-swallow',
-      layer: 3,
+      layerId: '3',
       name: '回燕',
       description: '回燕反击倍率提高50%，反击命中施加1层剑痕。',
     },
@@ -24,7 +24,7 @@ export const SWIFT_LAYER_3_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-borrowed-force',
-      layer: 3,
+      layerId: '3',
       name: '借势',
       description: '每回合首次受到直接伤害时获得1点剑势。',
     },
@@ -38,7 +38,7 @@ export const SWIFT_LAYER_3_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-guarded-edge',
-      layer: 3,
+      layerId: '3',
       name: '守锋',
       description: '被控制跳过行动时剑势不衰减，控制结束后首次产势额外+1。',
     },

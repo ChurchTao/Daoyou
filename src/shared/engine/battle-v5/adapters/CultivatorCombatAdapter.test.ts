@@ -1,5 +1,5 @@
-import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { getArtifactWearerRealmFactor } from '@shared/engine/shared/artifactRealmScaling';
+import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import type { Cultivator } from '@shared/types/cultivator';
 import { EventBus } from '../core/EventBus';
 import type { ActionEvent, SkillPreCastEvent } from '../core/events';
@@ -77,12 +77,7 @@ function createCultivatorFixture(): Cultivator {
 describe('CultivatorCombatAdapter', () => {
   it('applies cross-realm decay only to main panel fixed modifiers', () => {
     const unit = createCombatUnitFromCultivator(createCultivatorFixture());
-    const factor = getArtifactWearerRealmFactor(
-      '金丹',
-      '圆满',
-      '炼气',
-      '初期',
-    );
+    const factor = getArtifactWearerRealmFactor('金丹', '圆满', '炼气', '初期');
 
     // 金丹圆满->炼气初期 uses inverse anchor/wearer factor.
     expect(unit.attributes.getValue(AttributeType.ATK)).toBeCloseTo(
@@ -110,8 +105,11 @@ describe('CultivatorCombatAdapter', () => {
     const cultivator = createCultivatorFixture();
     cultivator.attributes.speed = 100;
     const sect = {
-      membershipId: 'member-1', sectId: 'lingxiao', status: 'active', contribution: 0,
-      configVersion: 2,
+      membershipId: 'member-1',
+      sectId: 'lingxiao',
+      status: 'active',
+      contribution: 0,
+      configVersion: 3,
       methods: { 'lingxiao-canon': 100 },
       paths: [],
       abilityLoadout: [null, null, null, null],
@@ -126,17 +124,31 @@ describe('CultivatorCombatAdapter', () => {
     const sword = project({ 'lingxiao-canon': 100, 'sword-guidance': 100 });
     const voidStep = project({ 'lingxiao-canon': 100, 'void-step': 100 });
     const cleansing = project({ 'lingxiao-canon': 100, 'edge-cleansing': 100 });
-    const returning = project({ 'lingxiao-canon': 100, 'origin-returning': 100 });
+    const returning = project({
+      'lingxiao-canon': 100,
+      'origin-returning': 100,
+    });
+    const swordBody = project({
+      'lingxiao-canon': 100,
+      'sword-nurturing': 100,
+    });
 
     expect(sword.attributes.getValue(AttributeType.ATK)).toBeCloseTo(
       baseline.attributes.getValue(AttributeType.ATK) * 1.05,
     );
-    expect(voidStep.attributes.getValue(AttributeType.SPEED)).toBe(104);
+    expect(
+      voidStep.attributes.getValue(AttributeType.EVASION_RATE),
+    ).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.EVASION_RATE) + 0.02,
+    );
     expect(cleansing.attributes.getValue(AttributeType.ACCURACY)).toBeCloseTo(
       baseline.attributes.getValue(AttributeType.ACCURACY) + 0.02,
     );
-    expect(returning.attributes.getValue(AttributeType.MAX_MP)).toBeCloseTo(
-      Math.floor(baseline.attributes.getValue(AttributeType.MAX_MP) * 1.05),
+    expect(returning.attributes.getValue(AttributeType.MAGIC_DEF)).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.MAGIC_DEF) * 1.05,
+    );
+    expect(swordBody.attributes.getValue(AttributeType.DEF)).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.DEF) * 1.05,
     );
   });
 
@@ -152,19 +164,26 @@ describe('CultivatorCombatAdapter', () => {
       status: 'active',
       activePathId: 'swift-sword',
       contribution: 0,
-      configVersion: 2,
+      configVersion: 3,
       methods: {
         'lingxiao-canon': 100,
         'sword-guidance': 100,
         'edge-cleansing': 100,
       },
-      paths: [{ pathId: 'swift-sword', level: 100, tacticId: 'aggressive', activeMeridianSlot: 1, meridianLoadouts: [{ slot: 1, nodeIds: [], version: 1 }, { slot: 2, nodeIds: [], version: 1 }, { slot: 3, nodeIds: [], version: 1 }] }],
-      abilityLoadout: [
-        'guiding-sword',
-        'linked-edge',
-        'breaking-edge',
-        null,
+      paths: [
+        {
+          pathId: 'swift-sword',
+          unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
+          tacticId: 'aggressive',
+          activeMeridianSlot: 1,
+          meridianLoadouts: [
+            { slot: 1, nodeIds: [], version: 1 },
+            { slot: 2, nodeIds: [], version: 1 },
+            { slot: 3, nodeIds: [], version: 1 },
+          ],
+        },
       ],
+      abilityLoadout: ['guiding-sword', 'linked-edge', 'breaking-edge', null],
     };
     const unit = createCombatUnitFromCultivator(cultivator);
     const opponent = new Unit('opponent', '木桩', {
@@ -233,9 +252,8 @@ describe('CultivatorCombatAdapter', () => {
 
     expect(unit.attributes.getValue(AttributeType.VITALITY)).toBe(10);
     expect(unit.attributes.getValue(AttributeType.MAX_HP)).toBe(562);
-    expect(unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE)).toBeCloseTo(
-      0.0848,
-      6,
-    );
+    expect(
+      unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE),
+    ).toBeCloseTo(0.0848, 6);
   });
 });

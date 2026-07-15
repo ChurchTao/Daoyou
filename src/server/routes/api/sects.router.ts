@@ -21,11 +21,9 @@ import {
   SectAbilityLoadoutRequestSchema,
   SectMeridianLoadoutRequestSchema,
   SectMethodTrainRequestSchema,
-  SectPathTrainRequestSchema,
   SectTacticRequestSchema,
 } from '@shared/contracts/sect';
 import {
-  getSectMethodLevelCap,
   listUnlockedAbilityIds,
   type CultivatorSectState,
   type SectRuntime,
@@ -111,10 +109,14 @@ export function createSectsRouter(
         raceNarrative: cultivator.raceNarrative,
         definition,
         sect: sect ?? null,
-        methodLevelCap: getSectMethodLevelCap(
-          cultivator.realm as RealmType,
-          cultivator.realm_stage as RealmStage,
-        ),
+        methodLevelCap: sect
+          ? runtime
+              .progressionFor(sect.sectId)
+              .methodLevelCap(
+                cultivator.realm as RealmType,
+                cultivator.realm_stage as RealmStage,
+              )
+          : 0,
         knownAbilityIds:
           sect && definition ? listUnlockedAbilityIds(definition, sect) : [],
         commission,
@@ -141,10 +143,12 @@ export function createSectsRouter(
         data: {
           definition,
           sect: sect ?? null,
-          methodLevelCap: getSectMethodLevelCap(
-            cultivator.realm as RealmType,
-            cultivator.realm_stage as RealmStage,
-          ),
+          methodLevelCap: runtime
+            .progressionFor(definition.id)
+            .methodLevelCap(
+              cultivator.realm as RealmType,
+              cultivator.realm_stage as RealmStage,
+            ),
           knownAbilityIds: sect ? listUnlockedAbilityIds(definition, sect) : [],
         },
       });
@@ -243,10 +247,15 @@ export function createSectsRouter(
                   domain: 'sect' as const,
                   eventType: 'sect.method_trained',
                   patch: { sect: result.sect },
+                  invalidates: ['progress' as const, 'currency' as const],
                 },
                 {
                   domain: 'currency' as const,
                   eventType: 'sect.method_cost_paid',
+                },
+                {
+                  domain: 'progress' as const,
+                  eventType: 'sect.method_cultivation_paid',
                 },
               ],
             };
@@ -260,38 +269,24 @@ export function createSectsRouter(
   );
 
   router.post(
-    '/current/paths/:pathId/enroll',
+    '/current/paths/:pathId/layers/:layerId/unlock',
     requireActiveCultivator(),
-    async (c) =>
-      mutateSect(
-        c,
-        'sect_path_enroll',
-        (id, tx) => sectService.enrollPath(id, c.req.param('pathId'), tx),
-        'sect.path_enrolled',
-      ),
-  );
-
-  router.post(
-    '/current/paths/:pathId/train',
-    requireActiveCultivator(),
-    validateJson(SectPathTrainRequestSchema),
     async (c) => {
       const user = c.get('user');
       const cultivator = c.get('cultivator');
       if (!user || !cultivator?.id)
         return c.json({ success: false, error: '当前没有活跃角色' }, 404);
       try {
-        const body = getValidatedJson<{ targetLevel: number }>(c);
         const committed = await commitPlayerStateMutation({
           userId: user.id,
           cultivatorId: cultivator.id,
-          source: 'sect_path_train',
+          source: 'sect_path_layer_unlock',
           run: async (tx) => {
-            const result = await sectService.trainPath(
+            const result = await sectService.unlockPathLayer(
               {
                 cultivatorId: cultivator.id!,
                 pathId: c.req.param('pathId'),
-                targetLevel: body.targetLevel,
+                layerId: c.req.param('layerId'),
               },
               tx,
             );
@@ -300,12 +295,17 @@ export function createSectsRouter(
               changes: [
                 {
                   domain: 'sect' as const,
-                  eventType: 'sect.path_trained',
+                  eventType: 'sect.path_layer_unlocked',
                   patch: { sect: result.sect },
+                  invalidates: ['progress' as const, 'currency' as const],
                 },
                 {
                   domain: 'currency' as const,
                   eventType: 'sect.path_cost_paid',
+                },
+                {
+                  domain: 'progress' as const,
+                  eventType: 'sect.path_cultivation_paid',
                 },
               ],
             };

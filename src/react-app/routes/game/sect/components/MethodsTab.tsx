@@ -5,7 +5,7 @@ import {
   InkDetailDrawer,
   InkNotice,
 } from '@app/components/ui';
-import { useCultivatorCurrency } from '@app/lib/player-state/selectors';
+import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
 import type { SectCurrentData } from '@shared/contracts/sect';
 import {
   describeMethodBenefit,
@@ -32,7 +32,12 @@ function getMethodDisabledReason(args: {
   currentLevel: number;
   data: SectCurrentData;
   spiritStones: number;
-  cost: { contribution: number; spiritStones: number };
+  cultivationExp: number;
+  cost: {
+    cultivationExp: number;
+    comprehensionInsight: number;
+    spiritStones: number;
+  };
 }) {
   const targetLevel = args.currentLevel + 1;
   if (targetLevel > args.data.methodLevelCap) return '已达当前境界上限';
@@ -46,8 +51,7 @@ function getMethodDisabledReason(args: {
   ) {
     return `分卷不可超过${primary.name}`;
   }
-  if ((args.data.sect?.contribution ?? 0) < args.cost.contribution)
-    return '宗门贡献不足';
+  if (args.cultivationExp < args.cost.cultivationExp) return '修为不足';
   if (args.spiritStones < args.cost.spiritStones) return '灵石不足';
   return undefined;
 }
@@ -65,13 +69,14 @@ export function MethodsTab({
   realm: RealmType;
   stage: RealmStage;
 }) {
-  const currency = useCultivatorCurrency();
+  const cultivator = useActiveCultivatorProfile();
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
   if (!data.sect || !data.definition)
     return <InkNotice>拜师后方可研习宗门心法。</InkNotice>;
   const sect = data.sect;
   const definition = data.definition;
-  const spiritStones = currency?.spiritStones ?? 0;
+  const spiritStones = cultivator?.spirit_stones ?? 0;
+  const cultivationExp = cultivator?.cultivation_progress?.cultivation_exp ?? 0;
   const selectedMethod = selectedMethodId
     ? definition.methods.find((method) => method.id === selectedMethodId)
     : undefined;
@@ -86,6 +91,7 @@ export function MethodsTab({
         currentLevel: selectedLevel,
         data,
         spiritStones,
+        cultivationExp,
         cost: selectedCost,
       })
     : undefined;
@@ -102,28 +108,30 @@ export function MethodsTab({
   return (
     <>
       <div className="grid gap-3 md:grid-cols-2">
-        {definition.methods.map((method) => {
-          const level = sect.methods[method.id] ?? 0;
-          return (
-            <InkCard key={method.id} padding="none">
-              <button
-                type="button"
-                className="hover:bg-ink/4 w-full p-3 text-left transition-colors"
-                onClick={() => setSelectedMethodId(method.id)}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <strong>{method.name}</strong>
-                  <span className="text-crimson shrink-0 text-sm">
-                    {level} / {data.methodLevelCap}级
-                  </span>
-                </div>
-                <p className="text-ink-secondary mt-2 text-sm leading-6">
-                  {method.description}
-                </p>
-              </button>
-            </InkCard>
-          );
-        })}
+        {[...definition.methods]
+          .sort((left, right) => left.slot - right.slot)
+          .map((method) => {
+            const level = sect.methods[method.id] ?? 0;
+            return (
+              <InkCard key={method.id} padding="none">
+                <button
+                  type="button"
+                  className="hover:bg-ink/4 w-full p-3 text-left transition-colors"
+                  onClick={() => setSelectedMethodId(method.id)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <strong>{method.name}</strong>
+                    <span className="text-crimson shrink-0 text-sm">
+                      {level} / {data.methodLevelCap}级
+                    </span>
+                  </div>
+                  <p className="text-ink-secondary mt-2 text-sm leading-6">
+                    {method.description}
+                  </p>
+                </button>
+              </InkCard>
+            );
+          })}
       </div>
 
       <InkDetailDrawer
@@ -135,11 +143,11 @@ export function MethodsTab({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="text-sm leading-6">
                 <p>
-                  本次：{selectedCost.contribution}贡献 ·{' '}
+                  本次：{selectedCost.cultivationExp}修为 ·{' '}
                   {selectedCost.spiritStones}灵石
                 </p>
                 <p className="text-ink-secondary">
-                  持有：{sect.contribution}贡献 · {spiritStones}灵石
+                  持有：{cultivationExp}修为 · {spiritStones}灵石
                 </p>
                 {selectedDisabledReason ? (
                   <p className="text-crimson">{selectedDisabledReason}</p>

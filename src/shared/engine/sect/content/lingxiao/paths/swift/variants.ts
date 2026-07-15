@@ -111,7 +111,6 @@ export function buildSwiftAbilities(
       detailRows: [],
     }).config;
   };
-  const scale = 1 + path.level * 0.0008;
   const id = LINGXIAO_SWORD_MOMENTUM;
   const linkedHits = features.splitLight ? 5 : 3;
   const linkedCoefficient = features.splitLight ? 0.27 : 0.42;
@@ -147,7 +146,7 @@ export function buildSwiftAbilities(
           counter(SWIFT_ENDLESS_COOLDOWN, 'set', {
             amount: 3,
             conditions: [counterCondition(SWIFT_ENDLESS_COOLDOWN, 'lt', 1)],
-            effects: [damage(0.6 * scale), resource(id, 1)],
+            effects: [damage(0.6), resource(id, 1)],
           }),
         ]
       : []),
@@ -181,7 +180,7 @@ export function buildSwiftAbilities(
       cooldown: 0,
       role: 'generator',
       pathId: path.pathId,
-      effects: [damage(0.8 * scale), resource(id, 1)],
+      effects: [damage(0.8), resource(id, 1)],
     }),
     detailRows: ['伤害：0.80物攻', '剑势：获得1点'],
     notes: [],
@@ -194,7 +193,7 @@ export function buildSwiftAbilities(
       cooldown: 0,
       role: 'generator',
       pathId: path.pathId,
-      effects: [damage(0.9 * scale), resource(id, 2)],
+      effects: [damage(0.9), resource(id, 2)],
     }),
     detailRows: ['伤害：0.90物攻', '剑势：获得2点'],
     notes: [],
@@ -208,9 +207,7 @@ export function buildSwiftAbilities(
       role: 'combo',
       pathId: path.pathId,
       effects: [
-        ...Array.from({ length: linkedHits }, () =>
-          damage(linkedCoefficient * scale),
-        ),
+        ...Array.from({ length: linkedHits }, () => damage(linkedCoefficient)),
         resource(id, features.splitLight ? 3 : 2),
         swordMark(),
         ...(features.stackingWaves
@@ -235,7 +232,7 @@ export function buildSwiftAbilities(
     ],
     notes: features.stackingWaves ? ['叠浪：完整命中后减少产势技能冷却。'] : [],
   };
-  const counterDamage = (features.returningSwallow ? 0.825 : 0.55) * scale;
+  const counterDamage = features.returningSwallow ? 0.825 : 0.55;
   built['turning-body'] = {
     config: active({
       id: 'turning-body',
@@ -245,7 +242,7 @@ export function buildSwiftAbilities(
       role: 'defensive',
       pathId: path.pathId,
       effects: [
-        damage(0.65 * scale),
+        damage(0.65),
         {
           type: 'apply_buff',
           params: {
@@ -318,7 +315,7 @@ export function buildSwiftAbilities(
                           maxTriggers: 1,
                           reset: 'buff_lifetime' as const,
                         },
-                        effects: [shield(0.4 * scale)],
+                        effects: [shield(0.4)],
                       },
                     ]
                   : []),
@@ -337,8 +334,8 @@ export function buildSwiftAbilities(
   };
   const shadowLine = features.shadowLine;
   const sheathing = features.sheathing;
-  const base = (shadowLine ? 2.5 : sheathing ? 0.8 : 1) * scale;
-  const perMomentum = (sheathing ? 0.2 : 0.25) * scale;
+  const base = shadowLine ? 2.5 : sheathing ? 0.8 : 1;
+  const perMomentum = sheathing ? 0.2 : 0.25;
   const breakingEffects: EffectConfig[] = [
     ...(shadowLine
       ? [
@@ -367,7 +364,7 @@ export function buildSwiftAbilities(
         scaleEffectsByLayer: true,
         effects: [
           damage(
-            (features.mountainBreaking ? 0.18 : 0.1) * scale,
+            features.mountainBreaking ? 0.18 : 0.1,
             undefined,
             features.mountainBreaking,
           ),
@@ -428,7 +425,7 @@ export function buildSwiftAbilities(
       role: 'generator',
       pathId: path.pathId,
       effects: [
-        damage(0.55 * scale),
+        damage(0.55),
         {
           type: 'apply_buff',
           params: {
@@ -455,38 +452,35 @@ export function buildSwiftAbilities(
     detailRows: ['伤害：0.55物攻', '身法：提高10%'],
     notes: [],
   };
-  built['sect-ultimate'] =
-    path.level >= 70
-      ? {
-          config: active({
-            id: 'sect-ultimate',
-            name: '刹那无痕',
-            mpCost: manaCost(realm, 2.5),
-            cooldown: 4,
-            role: 'finisher',
-            pathId: path.pathId,
-            castConditions: [
-              {
-                type: 'combat_resource_at_least',
-                params: { resourceId: id, value: 6, scope: 'caster' },
-              },
-            ],
-            effects: [
-              ...Array.from({ length: 6 }, () => damage(0.4 * scale)),
-              consumeResource(id),
-              resource(id, 1),
-              ...linkedCity,
-              ...finisherTail(),
-            ],
-          }),
-          detailRows: [
-            '伤害：6段 × 0.40物攻',
-            '释放：6点剑势',
-            '完整命中返还1点剑势',
-          ],
-          notes: [],
-        }
-      : built['sect-ultimate'];
+  built['sect-ultimate'] = {
+    config: active({
+      id: 'sect-ultimate',
+      name: '刹那无痕',
+      mpCost: manaCost(realm, 2.5),
+      cooldown: 4,
+      role: 'finisher',
+      pathId: path.pathId,
+      castConditions: [
+        {
+          type: 'combat_resource_at_least',
+          params: { resourceId: id, value: 6, scope: 'caster' },
+        },
+      ],
+      effects: [
+        ...Array.from({ length: 6 }, () => damage(0.4)),
+        consumeResource(id),
+        resource(id, 1),
+        ...linkedCity,
+        ...finisherTail(),
+      ],
+    }),
+    detailRows: [
+      '伤害：6段 × 0.40物攻',
+      '释放：6点剑势',
+      '完整命中返还1点剑势',
+    ],
+    notes: [],
+  };
   built['nurturing-sword'] = {
     config: active({
       id: 'nurturing-sword',

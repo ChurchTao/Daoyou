@@ -50,6 +50,18 @@ describe('宗门插件架构守卫', () => {
       expect(source, relative(root, file)).not.toMatch(
         /if\s*\([^)]*(swift-|heavy-)/,
       );
+      expect(source, relative(root, file)).not.toContain('path.level');
+    }
+  });
+
+  it('通用核心不固定流派层数或每层节点数', () => {
+    for (const file of sourceFiles(join(root, 'core')).filter(
+      (path) => !path.includes('/tests/'),
+    )) {
+      const source = readFileSync(file, 'utf8');
+      expect(source, relative(root, file)).not.toMatch(
+        /EXPECTED_LAYERS|固定六层|必须恰有3个节点/,
+      );
     }
   });
 

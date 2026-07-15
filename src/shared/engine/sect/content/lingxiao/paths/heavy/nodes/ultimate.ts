@@ -9,7 +9,7 @@ export const HEAVY_ULTIMATE_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-heaven-cleaving',
-      layer: 'ultimate',
+      layerId: 'ultimate',
       name: '开天',
       description: '开天断岳提高至3.5物攻、无视防御且冷却增加1回合。',
     },
@@ -18,7 +18,7 @@ export const HEAVY_ULTIMATE_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-immovable-mountain',
-      layer: 'ultimate',
+      layerId: 'ultimate',
       name: '不动如山',
       description: '镇山剑罡护盾提高50%，护盾存在时每次姿态可反击一次。',
     },
@@ -27,7 +27,7 @@ export const HEAVY_ULTIMATE_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-mountain-river-echo',
-      layer: 'ultimate',
+      layerId: 'ultimate',
       name: '山河回响',
       description: '收束后恢复气血并获得护盾，每3回合一次。',
     },

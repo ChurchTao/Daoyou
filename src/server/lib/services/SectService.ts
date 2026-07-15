@@ -3,13 +3,10 @@ import {
   postgresSectRepository,
   type SectRepositoryPort,
 } from '@server/lib/repositories/sectRepository';
-import { getRealmStageRank } from '@shared/config/realmProgression';
 import {
   assertMethodTrainingTarget,
-  assertPathTrainingTarget,
   createAbilitySlots,
   fillFirstEmptyAbilitySlots,
-  getSectMethodTrainingCost,
   isAbilityUnlocked,
   listUnlockedAbilityIds,
   validateMeridianNodeIds,
@@ -17,6 +14,7 @@ import {
   type SectAbilitySlots,
   type SectAdmissionContext,
   type SectRuntime,
+  type SectTrainingCost,
 } from '@shared/engine/sect';
 import { productionSectRuntime } from '@shared/engine/sect/content';
 import type { Cultivator } from '@shared/types/cultivator';
@@ -67,29 +65,20 @@ async function getCultivatorProgress(
 }
 
 async function payTrainingCost(
-  sect: CultivatorSectState,
+  cultivator: Awaited<ReturnType<typeof getCultivatorProgress>>,
   cultivatorId: string,
-  fromLevel: number,
-  targetLevel: number,
+  cost: SectTrainingCost,
   tx: DbTransaction,
   repository: SectRepositoryPort,
 ) {
-  const cost = getSectMethodTrainingCost(fromLevel, targetLevel);
-  if (sect.contribution < cost.contribution)
-    throw new SectError('SECT_INSUFFICIENT_RESOURCES', '宗门贡献不足');
-  if (
-    !(await repository.spendContribution(
-      sect.membershipId,
-      cost.contribution,
-      tx,
-    ))
-  ) {
-    throw new SectError('SECT_INSUFFICIENT_RESOURCES', '宗门贡献不足');
-  }
-  if (
-    !(await repository.spendSpiritStones(cultivatorId, cost.spiritStones, tx))
-  ) {
+  if (cultivator.cultivationExp < cost.cultivationExp)
+    throw new SectError('SECT_INSUFFICIENT_RESOURCES', '修为不足');
+  if (cultivator.comprehensionInsight < cost.comprehensionInsight)
+    throw new SectError('SECT_INSUFFICIENT_RESOURCES', '道心感悟不足');
+  if (cultivator.stones < cost.spiritStones)
     throw new SectError('SECT_INSUFFICIENT_RESOURCES', '灵石不足');
+  if (!(await repository.spendTrainingResources(cultivatorId, cost, tx))) {
+    throw new SectError('SECT_INSUFFICIENT_RESOURCES', '研习所需资源不足');
   }
   return cost;
 }
@@ -235,7 +224,8 @@ export class SectApplicationService {
     tx: DbTransaction,
   ) {
     const sect = await requireActive(this.repository, args.cultivatorId, tx);
-    const definition = this.runtime.registry.require(sect.sectId).definition;
+    const module = this.runtime.registry.require(sect.sectId);
+    const definition = module.definition;
     const cultivator = await getCultivatorProgress(
       this.repository,
       args.cultivatorId,
@@ -248,8 +238,10 @@ export class SectApplicationService {
         methodId: args.methodId,
         currentLevel,
         targetLevel: args.targetLevel,
-        realm: cultivator.realm,
-        stage: cultivator.stage,
+        levelCap: module.progression.methodLevelCap(
+          cultivator.realm,
+          cultivator.stage,
+        ),
         methods: sect.methods,
       });
     } catch (error) {
@@ -259,11 +251,14 @@ export class SectApplicationService {
         400,
       );
     }
-    const cost = await payTrainingCost(
-      sect,
-      args.cultivatorId,
+    const cost = module.progression.methodTrainingCost(
       currentLevel,
       args.targetLevel,
+    );
+    await payTrainingCost(
+      cultivator,
+      args.cultivatorId,
+      cost,
       tx,
       this.repository,
     );
@@ -298,82 +293,81 @@ export class SectApplicationService {
     };
   }
 
-  async enrollPath(cultivatorId: string, pathId: string, tx: DbTransaction) {
-    const sect = await requireActive(this.repository, cultivatorId, tx);
-    const path = this.runtime.registry
-      .require(sect.sectId)
-      .definition.paths.find((entry) => entry.id === pathId);
-    if (!path) throw new SectError('SECT_PATH_UNKNOWN', '未知流派', 400);
-    const cultivator = await getCultivatorProgress(
-      this.repository,
-      cultivatorId,
-      tx,
-    );
-    if (
-      getRealmStageRank(cultivator.realm, cultivator.stage) <
-      getRealmStageRank('筑基', '初期')
-    ) {
-      throw new SectError('SECT_REALM_GATE', '筑基初期后方可研习流派');
-    }
-    if (
-      !(await this.repository.enrollPath(
-        sect.membershipId,
-        pathId,
-        path.defaultTacticId,
-        tx,
-      ))
-    ) {
-      throw new SectError('SECT_PATH_ALREADY_LEARNED', '该流派已经习得');
-    }
-    return requireActive(this.repository, cultivatorId, tx);
-  }
-
-  async trainPath(
-    args: { cultivatorId: string; pathId: string; targetLevel: number },
+  async unlockPathLayer(
+    args: { cultivatorId: string; pathId: string; layerId: string },
     tx: DbTransaction,
   ) {
     const sect = await requireActive(this.repository, args.cultivatorId, tx);
-    const pathState = sect.paths.find((path) => path.pathId === args.pathId);
-    if (!pathState)
-      throw new SectError('SECT_PATH_NOT_LEARNED', '尚未习得该流派');
+    const module = this.runtime.registry.require(sect.sectId);
+    const path = module.definition.paths.find(
+      (entry) => entry.id === args.pathId,
+    );
+    if (!path) throw new SectError('SECT_PATH_UNKNOWN', '未知流派', 400);
+    const pathState = sect.paths.find((entry) => entry.pathId === args.pathId);
     const cultivator = await getCultivatorProgress(
       this.repository,
       args.cultivatorId,
       tx,
     );
+    let layer;
     try {
-      assertPathTrainingTarget({
-        currentLevel: pathState.level,
-        targetLevel: args.targetLevel,
+      layer = module.progression.assertPathLayerUnlock({
+        path,
+        unlockedLayerIds: pathState?.unlockedLayerIds ?? [],
+        layerId: args.layerId,
         realm: cultivator.realm,
         stage: cultivator.stage,
+        methods: sect.methods,
       });
     } catch (error) {
       throw new SectError(
-        'SECT_METHOD_CAP',
-        error instanceof Error ? error.message : '流派等级受限',
+        'SECT_REALM_GATE',
+        error instanceof Error ? error.message : '流派层级受限',
         400,
       );
     }
-    const cost = await payTrainingCost(
-      sect,
+    await payTrainingCost(
+      cultivator,
       args.cultivatorId,
-      pathState.level,
-      args.targetLevel,
+      layer.cost,
       tx,
       this.repository,
     );
-    await this.repository.setPathLevel(
-      sect.membershipId,
-      args.pathId,
-      args.targetLevel,
-      tx,
-    );
+    if (pathState) {
+      if (
+        !(await this.repository.appendUnlockedPathLayer(
+          sect.membershipId,
+          args.pathId,
+          layer.id,
+          pathState.unlockedLayerIds.length,
+          tx,
+        ))
+      ) {
+        throw new SectError('SECT_REALM_GATE', '流派层级状态已变化，请重试');
+      }
+    } else {
+      if (
+        !(await this.repository.createPathWithFirstLayer(
+          sect.membershipId,
+          args.pathId,
+          path.defaultTacticId,
+          layer.id,
+          tx,
+        ))
+      ) {
+        throw new SectError('SECT_REALM_GATE', '流派已经习得，请重试');
+      }
+      await this.repository.activatePathIfNone(
+        sect.membershipId,
+        args.pathId,
+        tx,
+      );
+    }
     return {
       sect: await requireActive(this.repository, args.cultivatorId, tx),
       pathId: args.pathId,
-      targetLevel: args.targetLevel,
-      cost,
+      layerId: layer.id,
+      cost: layer.cost,
     };
   }
 
@@ -400,19 +394,12 @@ export class SectApplicationService {
     const pathState = sect.paths.find((entry) => entry.pathId === pathId);
     if (!path || !pathState)
       throw new SectError('SECT_PATH_NOT_LEARNED', '尚未习得该流派');
-    const cultivator = await getCultivatorProgress(
-      this.repository,
-      cultivatorId,
-      tx,
-    );
     let validated: string[];
     try {
       validated = validateMeridianNodeIds({
         path,
         nodeIds,
-        pathLevel: pathState.level,
-        realm: cultivator.realm,
-        stage: cultivator.stage,
+        unlockedLayerIds: pathState.unlockedLayerIds,
         methods: sect.methods,
       });
     } catch (error) {

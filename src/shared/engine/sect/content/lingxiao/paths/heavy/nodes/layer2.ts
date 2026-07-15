@@ -12,7 +12,7 @@ export const HEAVY_LAYER_2_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-triple-ridge',
-      layer: 2,
+      layerId: '2',
       name: '三叠岳',
       description: '叠山式改为三段，总倍率1.5并获得3点剑架。',
     },
@@ -21,7 +21,7 @@ export const HEAVY_LAYER_2_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-shattering-armor',
-      layer: 2,
+      layerId: '2',
       name: '碎甲',
       description: '叠山式改为施加2层裂甲。',
     },
@@ -30,7 +30,7 @@ export const HEAVY_LAYER_2_NODES = [
   createLingxiaoNode(
     {
       id: 'heavy-retained-frame',
-      layer: 2,
+      layerId: '2',
       name: '留架',
       description: '每次行动最多将2点溢出剑架转为护盾。',
     },
@@ -60,11 +60,7 @@ export const HEAVY_LAYER_2_NODES = [
                 amountFromEvent: 'overflow',
                 max: 2,
                 scaleEffectsByAmount: true,
-                effects: [
-                  sectEffects.shieldByAttack(
-                    0.15 * (1 + context.path.level * 0.0008),
-                  ),
-                ],
+                effects: [sectEffects.shieldByAttack(0.15)],
                 conditions: [
                   sectEffects.resourceChangeCondition(
                     LINGXIAO_HEAVY_POSTURE,

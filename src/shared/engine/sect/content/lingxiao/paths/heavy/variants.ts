@@ -109,7 +109,6 @@ export function buildHeavyAbilities(
       detailRows: [],
     }).config;
   };
-  const scale = 1 + path.level * 0.0008;
   const id = LINGXIAO_HEAVY_POSTURE;
   const linkedHits = features.tripleRidge ? 3 : 2;
   const linkedCoefficient = features.tripleRidge ? 0.5 : 0.6;
@@ -125,7 +124,7 @@ export function buildHeavyAbilities(
                   id: 'sect.lingxiao.heavy-aftershock',
                   name: '余震',
                   delayTurns: 1,
-                  effects: [damage(0.6 * scale)],
+                  effects: [damage(0.6)],
                 },
               },
             ],
@@ -153,7 +152,7 @@ export function buildHeavyAbilities(
             conditions: [counterCondition(HEAVY_ECHO_COOLDOWN, 'lt', 1)],
             effects: [
               healMaxHp(0.05, 'caster'),
-              shield(0.8 * scale, undefined, 'caster'),
+              shield(0.8, undefined, 'caster'),
             ],
           }),
         ]
@@ -169,7 +168,7 @@ export function buildHeavyAbilities(
       cooldown: 0,
       role: 'generator',
       pathId: path.pathId,
-      effects: [damage(0.9 * scale), resource(id, 1)],
+      effects: [damage(0.9), resource(id, 1)],
     }),
     detailRows: ['伤害：0.90物攻', '剑架：获得1点'],
     notes: [],
@@ -182,7 +181,7 @@ export function buildHeavyAbilities(
       cooldown: 1,
       role: 'generator',
       pathId: path.pathId,
-      effects: [damage(1.15 * scale), resource(id, 2)],
+      effects: [damage(1.15), resource(id, 2)],
     }),
     detailRows: ['伤害：1.15物攻', '剑架：获得2点'],
     notes: [],
@@ -197,9 +196,7 @@ export function buildHeavyAbilities(
       pathId: path.pathId,
       extraTags: [GameplayTags.ABILITY.SECT.GENERATOR],
       effects: [
-        ...Array.from({ length: linkedHits }, () =>
-          damage(linkedCoefficient * scale),
-        ),
+        ...Array.from({ length: linkedHits }, () => damage(linkedCoefficient)),
         resource(id, features.tripleRidge ? 3 : 2),
         armorRend(),
         ...(features.shatteringArmor ? [armorRend()] : []),
@@ -212,8 +209,8 @@ export function buildHeavyAbilities(
     ],
     notes: [],
   };
-  const counterDamage = 0.7 * scale * (features.crossingPass ? 1.5 : 1);
-  const guardShield = 0.45 * scale * (features.crossingPass ? 1.5 : 1);
+  const counterDamage = 0.7 * (features.crossingPass ? 1.5 : 1);
+  const guardShield = 0.45 * (features.crossingPass ? 1.5 : 1);
   built['turning-body'] = {
     config: active({
       id: 'turning-body',
@@ -223,7 +220,7 @@ export function buildHeavyAbilities(
       role: 'defensive',
       pathId: path.pathId,
       effects: [
-        damage(0.6 * scale),
+        damage(0.6),
         shield(guardShield, undefined, 'caster'),
         {
           type: 'apply_buff',
@@ -264,39 +261,36 @@ export function buildHeavyAbilities(
     notes: [],
   };
   const heaven = features.heavenCleaving;
-  built['sect-ultimate'] =
-    path.level >= 70
-      ? {
-          config: active({
-            id: 'sect-ultimate',
-            name: '开天断岳',
-            mpCost: manaCost(realm, 2.5),
-            cooldown: 4 + (heaven ? 1 : 0),
-            role: 'finisher',
-            pathId: path.pathId,
-            castConditions: [
-              {
-                type: 'combat_resource_at_least',
-                params: { resourceId: id, value: 6, scope: 'caster' },
-              },
-            ],
-            effects: [
-              damage((heaven ? 3.5 : 3) * scale, undefined, heaven),
-              consumeResource(id),
-              ...finisherTail(),
-            ],
-          }),
-          detailRows: [
-            `伤害：${heaven ? '3.50' : '3.00'}物攻`,
-            '释放：6点剑架',
-            ...(heaven ? ['特殊：无视防御'] : []),
-          ],
-          notes: [],
-        }
-      : built['sect-ultimate'];
+  built['sect-ultimate'] = {
+    config: active({
+      id: 'sect-ultimate',
+      name: '开天断岳',
+      mpCost: manaCost(realm, 2.5),
+      cooldown: 4 + (heaven ? 1 : 0),
+      role: 'finisher',
+      pathId: path.pathId,
+      castConditions: [
+        {
+          type: 'combat_resource_at_least',
+          params: { resourceId: id, value: 6, scope: 'caster' },
+        },
+      ],
+      effects: [
+        damage(heaven ? 3.5 : 3, undefined, heaven),
+        consumeResource(id),
+        ...finisherTail(),
+      ],
+    }),
+    detailRows: [
+      `伤害：${heaven ? '3.50' : '3.00'}物攻`,
+      '释放：6点剑架',
+      ...(heaven ? ['特殊：无视防御'] : []),
+    ],
+    notes: [],
+  };
   const returning = features.returningPeak;
-  const finisherBase = 1.1 * scale * (returning ? 0.8 : 1);
-  const perPosture = 0.3 * scale * (returning ? 0.8 : 1);
+  const finisherBase = 1.1 * (returning ? 0.8 : 1);
+  const perPosture = 0.3 * (returning ? 0.8 : 1);
   const finisherEffects: EffectConfig[] = [
     damage(finisherBase),
     ...Array.from({ length: 6 }, (_, index) =>
@@ -315,7 +309,7 @@ export function buildHeavyAbilities(
         scaleEffectsByLayer: true,
         effects: [
           damage(
-            (features.rendingMountain ? 0.18 : 0.1) * scale,
+            features.rendingMountain ? 0.18 : 0.1,
             undefined,
             features.rendingMountain,
           ),
@@ -361,7 +355,7 @@ export function buildHeavyAbilities(
       pathId: path.pathId,
       extraTags: [GameplayTags.ABILITY.SECT.GENERATOR],
       effects: [
-        shield(0.8 * scale * aegisScale),
+        shield(0.8 * aegisScale),
         resource(id, 1),
         ...(features.immovableMountain
           ? [
@@ -391,7 +385,7 @@ export function buildHeavyAbilities(
                           reset: 'buff_lifetime' as const,
                         },
                         effects: [
-                          damage(0.6 * scale, [
+                          damage(0.6, [
                             {
                               type: 'has_shield',
                               params: { scope: 'caster', value: 0 },
@@ -419,7 +413,7 @@ export function buildHeavyAbilities(
       role: 'generator',
       pathId: path.pathId,
       effects: [
-        damage(0.75 * scale),
+        damage(0.75),
         resource(id, 1),
         {
           type: 'apply_buff',
@@ -458,7 +452,7 @@ export function buildHeavyAbilities(
       pathId: path.pathId,
       heal: true,
       extraTags: [GameplayTags.ABILITY.SECT.GENERATOR],
-      effects: [healMaxHp(0.08), shield(0.6 * scale), resource(id, 1)],
+      effects: [healMaxHp(0.08), shield(0.6), resource(id, 1)],
     }),
     detailRows: ['恢复：8%最大气血', '护盾：0.60物攻', '剑架：获得1点'],
     notes: [],

@@ -14,9 +14,11 @@ import {
   type SectAbilitySlots,
   type SectDefinition,
   type SectRuntime,
+  type SectTrainingCost,
 } from '@shared/engine/sect';
 import { productionSectRuntime } from '@shared/engine/sect/content';
 import type { RealmStage, RealmType } from '@shared/types/constants';
+import type { CultivationProgress } from '@shared/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
 
 export type SectMembershipRow = typeof sectMemberships.$inferSelect;
@@ -25,6 +27,8 @@ export interface SectCultivatorProgress {
   realm: RealmType;
   stage: RealmStage;
   stones: number;
+  cultivationExp: number;
+  comprehensionInsight: number;
   playerRace: 'human';
 }
 
@@ -37,26 +41,52 @@ export async function loadSectCultivatorProgress(
       realm: cultivators.realm,
       stage: cultivators.realm_stage,
       stones: cultivators.spirit_stones,
+      cultivationProgress: cultivators.cultivation_progress,
       playerRace: cultivators.playerRace,
     })
     .from(cultivators)
     .where(eq(cultivators.id, cultivatorId))
     .limit(1);
-  return cultivator ? (cultivator as SectCultivatorProgress) : null;
+  if (!cultivator) return null;
+  const progress =
+    (cultivator.cultivationProgress as Partial<CultivationProgress> | null) ??
+    {};
+  return {
+    realm: cultivator.realm as RealmType,
+    stage: cultivator.stage as RealmStage,
+    stones: cultivator.stones,
+    cultivationExp: progress.cultivation_exp ?? 0,
+    comprehensionInsight: progress.comprehension_insight ?? 0,
+    playerRace: cultivator.playerRace as 'human',
+  };
 }
 
-export async function spendSpiritStones(
+export async function spendTrainingResources(
   cultivatorId: string,
-  amount: number,
+  cost: SectTrainingCost,
   tx: DbTransaction,
 ): Promise<boolean> {
+  const cultivationProgress = sql`COALESCE(${cultivators.cultivation_progress}, '{}'::jsonb)`;
   const rows = await tx
     .update(cultivators)
-    .set({ spirit_stones: sql`${cultivators.spirit_stones} - ${amount}` })
+    .set({
+      spirit_stones: sql`${cultivators.spirit_stones} - ${cost.spiritStones}`,
+      cultivation_progress: sql`jsonb_set(
+        jsonb_set(
+          ${cultivationProgress},
+          '{cultivation_exp}',
+          to_jsonb(COALESCE((${cultivators.cultivation_progress}->>'cultivation_exp')::int, 0) - ${cost.cultivationExp})
+        ),
+        '{comprehension_insight}',
+        to_jsonb(COALESCE((${cultivators.cultivation_progress}->>'comprehension_insight')::int, 0) - ${cost.comprehensionInsight})
+      )`,
+    })
     .where(
       and(
         eq(cultivators.id, cultivatorId),
-        sql`${cultivators.spirit_stones} >= ${amount}`,
+        sql`${cultivators.spirit_stones} >= ${cost.spiritStones}`,
+        sql`COALESCE((${cultivators.cultivation_progress}->>'cultivation_exp')::int, 0) >= ${cost.cultivationExp}`,
+        sql`COALESCE((${cultivators.cultivation_progress}->>'comprehension_insight')::int, 0) >= ${cost.comprehensionInsight}`,
       ),
     )
     .returning({ id: cultivators.id });
@@ -152,7 +182,7 @@ async function hydrateMembership(
     ),
     paths: pathRows.map((path) => ({
       pathId: path.pathId,
-      level: path.level,
+      unlockedLayerIds: path.unlockedLayerIds,
       tacticId: path.tacticId,
       activeMeridianSlot: path.activeMeridianSlot as 1 | 2 | 3,
       meridianLoadouts: meridians
@@ -290,15 +320,22 @@ export async function setMethodLevel(
     });
 }
 
-export async function enrollPath(
+export async function createPathWithFirstLayer(
   membershipId: string,
   pathId: string,
   tacticId: string,
+  layerId: string,
   tx: DbTransaction,
 ): Promise<boolean> {
   const rows = await tx
     .insert(sectPathProgress)
-    .values({ membershipId, pathId, level: 0, tacticId, activeMeridianSlot: 1 })
+    .values({
+      membershipId,
+      pathId,
+      unlockedLayerIds: [layerId],
+      tacticId,
+      activeMeridianSlot: 1,
+    })
     .onConflictDoNothing()
     .returning({ id: sectPathProgress.id });
   if (!rows.length) return false;
@@ -311,19 +348,42 @@ export async function enrollPath(
   return true;
 }
 
-export async function setPathLevel(
+export async function appendUnlockedPathLayer(
   membershipId: string,
   pathId: string,
-  level: number,
+  layerId: string,
+  expectedUnlockedCount: number,
   tx: DbTransaction,
-): Promise<void> {
-  await tx
+): Promise<boolean> {
+  const rows = await tx
     .update(sectPathProgress)
-    .set({ level, updatedAt: new Date() })
+    .set({
+      unlockedLayerIds: sql`${sectPathProgress.unlockedLayerIds} || jsonb_build_array(${layerId})`,
+      updatedAt: new Date(),
+    })
     .where(
       and(
         eq(sectPathProgress.membershipId, membershipId),
         eq(sectPathProgress.pathId, pathId),
+        sql`jsonb_array_length(${sectPathProgress.unlockedLayerIds}) = ${expectedUnlockedCount}`,
+      ),
+    )
+    .returning({ id: sectPathProgress.id });
+  return rows.length === 1;
+}
+
+export async function activatePathIfNone(
+  membershipId: string,
+  pathId: string,
+  tx: DbTransaction,
+): Promise<void> {
+  await tx
+    .update(sectMemberships)
+    .set({ activePathId: pathId, updatedAt: new Date() })
+    .where(
+      and(
+        eq(sectMemberships.id, membershipId),
+        sql`${sectMemberships.activePathId} is null`,
       ),
     );
 }
@@ -501,7 +561,7 @@ export function createSectRepository(
 ) {
   return {
     loadCultivatorProgress: loadSectCultivatorProgress,
-    spendSpiritStones,
+    spendTrainingResources,
     findMembership,
     findMembershipForSect,
     listMemberships,
@@ -517,8 +577,9 @@ export function createSectRepository(
     recordExperience,
     activateMembership,
     setMethodLevel,
-    enrollPath,
-    setPathLevel,
+    createPathWithFirstLayer,
+    appendUnlockedPathLayer,
+    activatePathIfNone,
     activatePath,
     spendContribution,
     replaceMeridianLoadout,

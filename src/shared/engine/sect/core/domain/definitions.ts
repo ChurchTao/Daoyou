@@ -6,11 +6,17 @@ export type SectId = string;
 export type SectMethodId = string;
 export type SectAbilityId = string;
 export type SectPathId = string;
+export type SectPathLayerId = string;
 export type SectNodeId = string;
 export type SectTacticId = string;
 export type SectAbilityRole =
   'generator' | 'combo' | 'defensive' | 'finisher' | 'utility';
-export type SectMeridianLayer = 1 | 2 | 3 | 4 | 5 | 'ultimate';
+
+export interface SectTrainingCost {
+  cultivationExp: number;
+  comprehensionInsight: number;
+  spiritStones: number;
+}
 
 export interface PlayerRaceDefinition {
   id: PlayerRaceId;
@@ -21,7 +27,6 @@ export interface PlayerRaceDefinition {
 export interface SectRequirementDefinition {
   minRealm?: RealmType;
   minRealmStage?: RealmStage;
-  minPathLevel?: number;
   requiredMethods?: Record<SectMethodId, number>;
 }
 
@@ -56,11 +61,19 @@ export interface SectAbilityDefinition {
   cooldown: number;
 }
 
-export interface SectMeridianNodeDefinition extends SectRequirementDefinition {
+export interface SectMeridianNodeDefinition {
   id: SectNodeId;
-  layer: SectMeridianLayer;
+  layerId: SectPathLayerId;
   name: string;
   description: string;
+  requiredMethods?: Record<SectMethodId, number>;
+}
+
+export interface SectPathLayerDefinition extends SectRequirementDefinition {
+  id: SectPathLayerId;
+  order: number;
+  label: string;
+  cost: SectTrainingCost;
 }
 
 export interface SectTacticPreset {
@@ -73,8 +86,8 @@ export interface SectPathDefinition {
   id: SectPathId;
   name: string;
   description: string;
-  levelBenefitDescription: string;
   defaultTacticId: SectTacticId;
+  layers: SectPathLayerDefinition[];
   nodes: SectMeridianNodeDefinition[];
   tactics: SectTacticPreset[];
 }

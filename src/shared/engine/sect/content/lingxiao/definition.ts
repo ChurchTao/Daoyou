@@ -22,14 +22,15 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
     description: '借宗门法器体验基础传承，胜负皆记作完成。',
   },
   raceIds: ['human'],
-  configVersion: 2,
+  configVersion: 3,
   methods: [
     {
       id: 'lingxiao-canon',
       slot: 1,
-      name: '《凌霄剑典》',
+      name: '《问剑篇》',
       isPrimary: true,
-      description: '凌霄剑宗总纲，统摄诸卷并承载宗门绝式。',
+      description:
+        '凌霄历代剑修问道所得之总纲，御剑、养意、驭势诸法皆由此而生。',
       perLevelDescription: '限制各基础分卷可研习的最高等级。',
       milestones: [
         {
@@ -50,9 +51,9 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
     },
     {
       id: 'sword-guidance',
-      slot: 2,
-      name: '《御剑纲要》',
-      description: '剑宗基础招式总录。',
+      slot: 3,
+      name: '《剑气凌霄》',
+      description: '炼一口浩然剑气，出则贯长空、摧坚阵，诸般剑式由此得其锋芒。',
       perLevelDescription: '每级提高0.05%物理攻击。',
       modifierPerLevel: {
         attrType: AttributeType.ATK,
@@ -78,14 +79,14 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
     },
     {
       id: 'void-step',
-      slot: 3,
+      slot: 4,
       name: '《凌虚步》',
-      description: '身随剑走，主回身与踏影。',
-      perLevelDescription: '每级提高0.04%身法。',
+      description: '以气御身，踏虚借势，身随剑影而动，来去不留形迹。',
+      perLevelDescription: '每级提高0.02个百分点闪避率。',
       modifierPerLevel: {
-        attrType: AttributeType.SPEED,
-        type: ModifierType.ADD,
-        value: 0.0004,
+        attrType: AttributeType.EVASION_RATE,
+        type: ModifierType.FIXED,
+        value: 0.0002,
       },
       milestones: [
         {
@@ -106,9 +107,9 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
     },
     {
       id: 'edge-cleansing',
-      slot: 4,
-      name: '《洗锋录》',
-      description: '洗去剑上滞意，观隙破锋。',
+      slot: 2,
+      name: '《观微剑意》',
+      description: '心静则照见毫末，意至则剑先敌动，虚实破绽皆无所遁形。',
       perLevelDescription: '每级提高0.02个百分点命中。',
       modifierPerLevel: {
         attrType: AttributeType.ACCURACY,
@@ -128,11 +129,11 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
     {
       id: 'origin-returning',
       slot: 5,
-      name: '《归元诀》',
-      description: '敛气归元，以剑罡护体。',
-      perLevelDescription: '每级提高0.05%法力上限。',
+      name: '《剑心通明》',
+      description: '澄心见性，万念不侵；剑心若明镜，诸般术法临身自见其隙。',
+      perLevelDescription: '每级提高0.05%法术防御。',
       modifierPerLevel: {
-        attrType: AttributeType.MAX_MP,
+        attrType: AttributeType.MAGIC_DEF,
         type: ModifierType.ADD,
         value: 0.0005,
       },
@@ -149,11 +150,11 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
     {
       id: 'sword-nurturing',
       slot: 6,
-      name: '《养剑诀》',
-      description: '以气血温养剑意，兼顾恢复与护持。',
-      perLevelDescription: '每级提高0.05%气血上限。',
+      name: '《不灭剑体》',
+      description: '以身为剑鞘，以筋骨承锋芒，千锤百炼而形神不摧。',
+      perLevelDescription: '每级提高0.05%物理防御。',
       modifierPerLevel: {
-        attrType: AttributeType.MAX_HP,
+        attrType: AttributeType.DEF,
         type: ModifierType.ADD,
         value: 0.0005,
       },

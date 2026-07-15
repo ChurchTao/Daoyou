@@ -16,7 +16,7 @@ export const SWIFT_LAYER_5_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-gapless',
-      layer: 5,
+      layerId: '5',
       name: '无隙',
       description: '收束后下一次追风式不耗法力并额外获得1点剑势。',
     },
@@ -64,7 +64,7 @@ export const SWIFT_LAYER_5_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-linked-city',
-      layer: 5,
+      layerId: '5',
       name: '连城',
       description:
         '多段技能完整命中时，其他快剑技能冷却减少1回合，每回合一次。',
@@ -92,7 +92,7 @@ export const SWIFT_LAYER_5_NODES = [
   createLingxiaoNode(
     {
       id: 'swift-still-tide',
-      layer: 5,
+      layerId: '5',
       name: '静潮',
       description: '连续两个自身行动未收束后暂停剑势衰减，下一次收束提高20%。',
     },
