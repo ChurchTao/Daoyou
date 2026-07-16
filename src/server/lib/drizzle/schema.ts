@@ -95,6 +95,31 @@ export const cultivators = pgTable(
   ],
 );
 
+export type AccountDeletionStatus = 'pending' | 'completed';
+
+// 账号注销留档：不关联 Better Auth 或角色外键，确保账号删除后仍可用于后续清理。
+export const accountDeletionRecords = pgTable(
+  'wanjiedaoyou_account_deletion_records',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull(),
+    cultivatorIds: uuid('cultivator_ids').array().notNull(),
+    status: varchar('status', { length: 20 })
+      .$type<AccountDeletionStatus>()
+      .notNull()
+      .default('pending'),
+    requestedAt: timestamp('requested_at').notNull().defaultNow(),
+    completedAt: timestamp('completed_at'),
+  },
+  (table) => [
+    uniqueIndex('account_deletion_records_user_uidx').on(table.userId),
+    index('account_deletion_records_status_requested_idx').on(
+      table.status,
+      table.requestedAt,
+    ),
+  ],
+);
+
 export const qiLogs = pgTable(
   'wanjiedaoyou_qi_logs',
   {

@@ -4,6 +4,10 @@ import { emailOTP } from 'better-auth/plugins/email-otp';
 import { sendViaSmtp } from '../admin/smtp';
 import { pgPool } from '../drizzle/db';
 import { getPublicWebOrigins } from '../http/origins';
+import {
+  markAccountDeletionCompleted,
+  recordPendingAccountDeletion,
+} from '../repositories/accountDeletionRepository';
 import { getCookieDomainConfig } from './cookieDomain';
 
 function getRequiredEnv(name: 'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL') {
@@ -119,6 +123,24 @@ export const auth = betterAuth({
       enabled: true,
       trustedProviders: ['github'],
       updateUserInfoOnLink: true,
+    },
+  },
+  user: {
+    deleteUser: {
+      enabled: true,
+      beforeDelete: async (user) => {
+        await recordPendingAccountDeletion(user.id);
+      },
+      afterDelete: async (user) => {
+        try {
+          await markAccountDeletionCompleted(user.id);
+        } catch (error) {
+          console.error('[auth] failed to finalize account deletion record', {
+            userId: user.id,
+            error,
+          });
+        }
+      },
     },
   },
   plugins: [
