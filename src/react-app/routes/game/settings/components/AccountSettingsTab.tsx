@@ -5,6 +5,11 @@ import { InkInput } from '@app/components/ui/InkInput';
 import type { AuthActionError } from '@app/lib/auth/authState';
 import { authClient } from '@app/lib/auth/client';
 import { toAuthActionError } from '@app/lib/auth/authState';
+import {
+  ACCOUNT_DELETION_CONFIRMATION,
+  clearAccountDeletionBrowserData,
+  isAccountDeletionConfirmation,
+} from '@app/lib/auth/accountDeletion';
 import type { AccountSetPasswordResponse } from '@shared/contracts/account';
 import type { ApiFailure } from '@shared/contracts/http';
 import { useEffect, useMemo, useState } from 'react';
@@ -55,6 +60,10 @@ export function AccountSettingsTab() {
   } | null>(null);
   const [logoutSubmitting, setLogoutSubmitting] = useState(false);
   const [logoutMessage, setLogoutMessage] = useState<string | null>(null);
+  const [deletionExpanded, setDeletionExpanded] = useState(false);
+  const [deletionConfirmation, setDeletionConfirmation] = useState('');
+  const [deletionSubmitting, setDeletionSubmitting] = useState(false);
+  const [deletionMessage, setDeletionMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -233,6 +242,49 @@ export function AccountSettingsTab() {
     });
   };
 
+  const handleDeleteAccount = async () => {
+    if (
+      deletionSubmitting ||
+      !isAccountDeletionConfirmation(deletionConfirmation)
+    ) {
+      return;
+    }
+
+    let didNavigate = false;
+    setDeletionSubmitting(true);
+    setDeletionMessage(null);
+
+    try {
+      const { error } = await authClient.deleteUser();
+      if (error) {
+        throw toAuthActionError(error);
+      }
+
+      clearAccountDeletionBrowserData();
+      pushToast({ message: '账号已注销', tone: 'success' });
+      didNavigate = true;
+      navigate('/login', { replace: true });
+    } catch (error) {
+      const message = toErrorMessage(
+        error as AuthActionError,
+        '账号注销失败，请稍后重试',
+      );
+      setDeletionMessage(message);
+      pushToast({ message, tone: 'danger' });
+    } finally {
+      if (!didNavigate) {
+        setDeletionSubmitting(false);
+      }
+    }
+  };
+
+  const cancelDeleteAccount = () => {
+    if (deletionSubmitting) return;
+    setDeletionExpanded(false);
+    setDeletionConfirmation('');
+    setDeletionMessage(null);
+  };
+
   return (
     <div className="space-y-6">
       <SettingsSection>
@@ -360,7 +412,7 @@ export function AccountSettingsTab() {
           <InkButton
             variant="primary"
             onClick={openLogoutConfirm}
-            disabled={logoutSubmitting}
+            disabled={logoutSubmitting || deletionSubmitting}
           >
             {logoutSubmitting ? '退出中...' : '退出登录'}
           </InkButton>
@@ -368,6 +420,63 @@ export function AccountSettingsTab() {
             <SettingsMessage type="error">{logoutMessage}</SettingsMessage>
           ) : null}
         </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="注销账号"
+        description="此操作无法撤销，请确认已了解注销后的影响。"
+      >
+        {deletionExpanded ? (
+          <div className="grid gap-4">
+            <div className="text-ink-secondary space-y-1 text-sm leading-6">
+              <p>当前账号会被永久注销，之后无法恢复。</p>
+              <p>即使使用同一邮箱重新注册，也不会自动找回原有角色。</p>
+            </div>
+
+            <InkInput
+              label={`输入“${ACCOUNT_DELETION_CONFIRMATION}”确认`}
+              placeholder={ACCOUNT_DELETION_CONFIRMATION}
+              value={deletionConfirmation}
+              onChange={setDeletionConfirmation}
+              disabled={deletionSubmitting}
+              size="sm"
+              labelClassName={settingsLabelClass}
+            />
+
+            <div className="flex flex-wrap items-center gap-3">
+              <InkButton
+                variant="primary"
+                onClick={handleDeleteAccount}
+                disabled={
+                  deletionSubmitting ||
+                  !isAccountDeletionConfirmation(deletionConfirmation)
+                }
+              >
+                {deletionSubmitting ? '注销中...' : '永久注销账号'}
+              </InkButton>
+              <InkButton
+                variant="secondary"
+                onClick={cancelDeleteAccount}
+                disabled={deletionSubmitting}
+              >
+                取消
+              </InkButton>
+              {deletionMessage ? (
+                <SettingsMessage type="error">
+                  {deletionMessage}
+                </SettingsMessage>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <InkButton
+            variant="primary"
+            onClick={() => setDeletionExpanded(true)}
+            disabled={logoutSubmitting || deletionSubmitting}
+          >
+            注销账号
+          </InkButton>
+        )}
       </SettingsSection>
     </div>
   );
