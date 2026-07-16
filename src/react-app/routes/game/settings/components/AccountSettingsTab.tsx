@@ -425,6 +425,7 @@ export function AccountSettingsTab() {
       <SettingsSection
         title="注销账号"
         description="此操作无法撤销，请确认已了解注销后的影响。"
+        className="border border-crimson/35 bg-crimson/8 px-4 pb-4"
       >
         {deletionExpanded ? (
           <div className="grid gap-4">
