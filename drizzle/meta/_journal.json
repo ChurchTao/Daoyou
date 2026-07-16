@@ -85,6 +85,13 @@
       "when": 1784089002931,
       "tag": "0011_supreme_monster_badoon",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1784168658491,
+      "tag": "0012_wild_joystick",
+      "breakpoints": true
     }
   ]
 }
