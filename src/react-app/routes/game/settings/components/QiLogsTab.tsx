@@ -23,6 +23,7 @@ const ACTION_LABELS: Record<string, string> = {
   qi_restore_medium: '中聚灵符',
   qi_restore_large: '大聚灵符',
   qi_restore_fill_to_max: '天地引气符',
+  market_identify: '神秘物品鉴定',
 };
 
 const STATUS_LABELS: Record<string, string> = {
