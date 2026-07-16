@@ -1,9 +1,14 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
-import { resolveApiUrl } from './lib/api/url';
-import { router } from './router';
 import './index.css';
+import { resolveApiUrl } from './lib/api/url';
+import { registerPreloadErrorRecovery } from './lib/appVersion';
+import { router } from './router';
+
+if (import.meta.env.PROD) {
+  registerPreloadErrorRecovery();
+}
 
 const originalFetch = window.fetch;
 window.fetch = async (input, init) => {
