@@ -12,7 +12,7 @@ const shieldHitConditions = [
 
 export const HEAVY_LAYER_4_NODES = [
   createLingxiaoNode(
-    { id: 'heavy-rending-mountain', layerId: '4', name: '横关', description: '有护盾时每回合首次直接承伤反击0.75物攻并获得1剑势。' },
+    { id: 'heavy-rending-mountain', layerId: '4', name: '横关', description: '每回合首次以护盾吸收直接伤害时，反击造成相当于75%物攻的伤害，并获得1点剑势。' },
     (context, builder) => addLingxiaoPassive(context, builder, {
       id: 'heavy-rending-mountain', name: '横关', listeners: [{
         id: 'sect.lingxiao.heavy.crossbar', eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
@@ -27,7 +27,7 @@ export const HEAVY_LAYER_4_NODES = [
     }),
   ),
   createLingxiaoNode(
-    { id: 'heavy-ending-life', layerId: '4', name: '借力', description: '返还本次护盾吸收量30%的伤害，上限0.90物攻。' },
+    { id: 'heavy-ending-life', layerId: '4', name: '借力', description: '返还本次护盾吸收量30%的伤害，反击伤害不超过相当于90%物攻。' },
     (context, builder) => addLingxiaoPassive(context, builder, {
       id: 'heavy-ending-life', name: '借力', listeners: [{
         id: 'sect.lingxiao.heavy.borrow-force', eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
@@ -54,7 +54,7 @@ export const HEAVY_LAYER_4_NODES = [
     }),
   ),
   createLingxiaoNode(
-    { id: 'heavy-returning-peak', layerId: '4', name: '震锋', description: '每回合首次直接承伤反击0.55物攻并驱散敌方1个正面状态。' },
+    { id: 'heavy-returning-peak', layerId: '4', name: '震锋', description: '每回合首次受到直接伤害时，反击造成相当于55%物攻的伤害，并驱散敌方1个正面状态。' },
     (context, builder) => addLingxiaoPassive(context, builder, {
       id: 'heavy-returning-peak', name: '震锋', listeners: [{
         id: 'sect.lingxiao.heavy.shocking-edge', eventType: GameplayTags.EVENT.DAMAGE_TAKEN,

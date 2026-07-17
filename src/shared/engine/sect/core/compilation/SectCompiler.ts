@@ -131,7 +131,7 @@ export class SectCompiler {
       name: built.config.name,
       baseName: definition.baseName,
       role: definition.role,
-      summary: built.summary ?? definition.description,
+      summary: definition.description,
       unlocked: isAbilityUnlocked(
         module.definition,
         definition.id,
@@ -159,7 +159,6 @@ export class SectCompiler {
           const base = definition.abilities.find(
             (entry) => entry.id === abilityId,
           );
-          const derivedSummary = ability.detailRows.join('；').trim();
           const configFacts = describeSectAbilityConfig(
             ability.config,
             build.resources,
@@ -175,12 +174,7 @@ export class SectCompiler {
             {
               ...ability,
               detailRows,
-              summary:
-                ability.summary ??
-                (detailRows.join('；') ||
-                  derivedSummary ||
-                  base?.description ||
-                  ability.config.name),
+              summary: base?.description ?? ability.summary ?? ability.config.name,
             },
           ];
         }),

@@ -91,14 +91,14 @@ describe('凌霄经脉运行时语义', () => {
   beforeEach(() => EventBus.instance.reset());
   afterEach(() => EventBus.instance.reset());
 
-  it('留痕使流光五叠施加两层剑痕', () => {
+  it('留痕使剑荡山河施加两层剑痕', () => {
     const { owner, enemy } = install('swift-sword', ['swift-retained-force']);
     const linked = owner.abilities.getAbility('sect.lingxiao.linked-edge') as ActiveSkill;
     linked.execute({ caster: owner, target: enemy });
     expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === 'sect.lingxiao.sword-mark')?.getLayer()).toBe(2);
   });
 
-  it('守心在开始蓄势时立即获得0.60物攻护盾', () => {
+  it('守心在开始蓄势时立即获得相当于60%物攻的护盾', () => {
     const { sect } = install('heavy-sword', ['heavy-retained-frame']);
     const ability = resolveSectAbility({ sect, realm: '化神', abilityId: 'turning-body' }).config;
     expect(ability.castEffects).toContainEqual(
@@ -111,7 +111,7 @@ describe('凌霄经脉运行时语义', () => {
     });
   });
 
-  it('回风不息的附加护盾每次回燕姿态最多触发一次', () => {
+  it('回风的附加护盾每次藏锋听雷持续期间最多触发一次', () => {
     const { sect, owner, enemy } = install('swift-sword', [
       'swift-unending-wind',
     ]);
@@ -210,7 +210,7 @@ describe('凌霄经脉运行时语义', () => {
     damageSystem.destroy();
   });
 
-  it('不动藏锋把减伤与后发登记给施法者而不立即攻击目标', () => {
+  it('藏锋听雷把减伤与后发登记给施法者而不立即攻击目标', () => {
     const { sect, owner, enemy } = install('heavy-sword', []);
     const turning = AbilityFactory.create(
       resolveSectAbility({ sect, realm: '化神', abilityId: 'turning-body' })

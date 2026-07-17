@@ -18,7 +18,7 @@ export const SWIFT_LAYER_5_NODES = [
       id: 'swift-gapless',
       layerId: '5',
       name: '无隙',
-      description: '收束后下一次追风引不耗法力并额外获得1点剑势。',
+      description: '施展《剑破万法》后，下一次《剑起沧澜》不消耗法力，并额外获得1点剑势。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('gapless');
@@ -60,7 +60,7 @@ export const SWIFT_LAYER_5_NODES = [
         ],
         presentationModifiers: [{
           abilityId: 'sect-ultimate',
-          factRows: ['经脉·无隙：收束后下一次《追风引》不消耗法力，并额外获得1点剑势'],
+          factRows: ['经脉·无隙：施展《剑破万法》后，下一次《剑起沧澜》不消耗法力，并额外获得1点剑势'],
         }],
       });
     },
@@ -71,7 +71,7 @@ export const SWIFT_LAYER_5_NODES = [
       layerId: '5',
       name: '连城',
       description:
-        '多段技能完整命中时，其他快剑技能冷却减少1回合，每回合一次。',
+        '施展《剑荡山河》后，其他快剑神通的当前冷却减少1回合，每回合最多触发一次。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('linkedCity');
@@ -92,7 +92,7 @@ export const SWIFT_LAYER_5_NODES = [
         ],
         presentationModifiers: [{
           abilityId: 'linked-edge',
-          factRows: ['经脉·连城：多段完整命中时，其他快剑神通当前冷却-1，每回合一次'],
+          factRows: ['经脉·连城：施展《剑荡山河》后，其他快剑神通的当前冷却减少1回合，每回合最多触发一次'],
         }],
       });
     },
@@ -102,7 +102,7 @@ export const SWIFT_LAYER_5_NODES = [
       id: 'swift-still-tide',
       layerId: '5',
       name: '静潮',
-      description: '连续两个自身行动未收束后暂停剑势衰减，下一次收束提高20%。',
+      description: '连续两次自身行动未施展《剑破万法》后，暂停剑势衰减；下一次《剑破万法》伤害提高20%。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('stillTide');
@@ -154,7 +154,7 @@ export const SWIFT_LAYER_5_NODES = [
         ],
         presentationModifiers: [{
           abilityId: 'sect-ultimate',
-          factRows: ['经脉·静潮：连续两次自身行动未收束后暂停剑势衰减，下一次收束伤害提高20%'],
+          factRows: ['经脉·静潮：连续两次自身行动未施展《剑破万法》后暂停剑势衰减；下一次《剑破万法》伤害提高20%'],
         }],
       });
     },

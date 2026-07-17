@@ -7,11 +7,11 @@ import { heavySwordBuild } from '../HeavySwordBuildFacade';
 
 export const HEAVY_LAYER_3_NODES = [
   createLingxiaoNode(
-    { id: 'heavy-crossing-pass', layerId: '3', name: '山门', description: '镇岳步护盾提高50%。' },
+    { id: 'heavy-crossing-pass', layerId: '3', name: '山门', description: '《踏雪无痕》提供的护盾提高50%。' },
     (_context, builder) => heavySwordBuild(builder).enable('mountainGate'),
   ),
   createLingxiaoNode(
-    { id: 'heavy-borrowed-weight', layerId: '3', name: '回澜', description: '护盾破裂时反击0.75物攻，每回合一次。' },
+    { id: 'heavy-borrowed-weight', layerId: '3', name: '回澜', description: '护盾破裂时，反击造成相当于75%物攻的伤害，每回合最多触发一次。' },
     (context, builder) => addLingxiaoPassive(context, builder, {
       id: 'heavy-borrowed-weight', name: '回澜', listeners: [{
         id: 'sect.lingxiao.heavy.returning-wave', eventType: 'ShieldBreakEvent',
@@ -23,7 +23,7 @@ export const HEAVY_LAYER_3_NODES = [
     }),
   ),
   createLingxiaoNode(
-    { id: 'heavy-unmoved', layerId: '3', name: '固守', description: '有护盾时直接承伤降低10%。' },
+    { id: 'heavy-unmoved', layerId: '3', name: '固守', description: '拥有护盾时，受到的直接伤害降低10%。' },
     (context, builder) => addLingxiaoPassive(context, builder, {
       id: 'heavy-unmoved', name: '固守', listeners: [{
         id: 'sect.lingxiao.heavy.solid-guard', eventType: GameplayTags.EVENT.DAMAGE_REQUEST,

@@ -6,11 +6,11 @@ import { heavySwordBuild } from '../HeavySwordBuildFacade';
 
 export const HEAVY_LAYER_5_NODES = [
   createLingxiaoNode(
-    { id: 'heavy-aftershock', layerId: '5', name: '裂岳', description: '开天一线总伤害的20%改为穿防伤害。' },
+    { id: 'heavy-aftershock', layerId: '5', name: '裂岳', description: '《剑破万法》获得20%穿防。' },
     (_context, builder) => heavySwordBuild(builder).enable('rendingMountain'),
   ),
   createLingxiaoNode(
-    { id: 'heavy-linked-mountains', layerId: '5', name: '断命', description: '目标气血低于25%时收束伤害提高25%。' },
+    { id: 'heavy-linked-mountains', layerId: '5', name: '断命', description: '目标气血低于25%时，《剑破万法》造成的伤害提高25%。' },
     (context, builder) => addLingxiaoPassive(context, builder, {
       id: 'heavy-linked-mountains', name: '断命', listeners: [{
         id: 'sect.lingxiao.heavy.life-ending', eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
@@ -24,12 +24,12 @@ export const HEAVY_LAYER_5_NODES = [
       }],
       presentationModifiers: [{
         abilityId: 'sect-ultimate',
-        factRows: ['经脉·断命：目标气血低于25%时，收束伤害提高25%'],
+        factRows: ['经脉·断命：目标气血低于25%时，《剑破万法》造成的伤害提高25%'],
       }],
     }),
   ),
   createLingxiaoNode(
-    { id: 'heavy-steady-mountain', layerId: '5', name: '回峰', description: '收束伤害降低15%，返还2剑势并获得0.60物攻护盾。' },
+    { id: 'heavy-steady-mountain', layerId: '5', name: '回峰', description: '《剑破万法》伤害降低15%，施展后返还2点剑势，并获得相当于60%物攻的护盾。' },
     (_context, builder) => heavySwordBuild(builder).enable('returningPeak'),
   ),
 ] as const;

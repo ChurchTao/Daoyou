@@ -11,7 +11,7 @@ export const SWIFT_ULTIMATE_NODES = [
       id: 'swift-endless-flow',
       layerId: 'ultimate',
       name: '无间',
-      description: '收束后追加0.6物攻追击并获得1点剑势，每3回合一次。',
+      description: '施展《剑破万法》后，追加相当于60%物攻的追击并获得1点剑势，每3回合最多触发一次。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('endlessFlow');
@@ -34,7 +34,7 @@ export const SWIFT_ULTIMATE_NODES = [
         ],
         presentationModifiers: [{
           abilityId: 'sect-ultimate',
-          factRows: ['经脉·无间：收束后追加0.60物攻追击并获得1点剑势，每3回合一次'],
+          factRows: ['经脉·无间：施展《剑破万法》后，追加相当于60%物攻的追击并获得1点剑势，每3回合最多触发一次'],
         }],
       });
     },
@@ -44,7 +44,7 @@ export const SWIFT_ULTIMATE_NODES = [
       id: 'swift-shadow-line',
       layerId: 'ultimate',
       name: '绝影',
-      description: '6势收束全部段必定暴击，冷却增加1回合。',
+      description: '以6点剑势施展《剑破万法》时，全部伤害段必定暴击，冷却增加1回合。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('shadowLine'),
   ),
@@ -53,7 +53,7 @@ export const SWIFT_ULTIMATE_NODES = [
       id: 'swift-unending-wind',
       layerId: 'ultimate',
       name: '回风',
-      description: '每次回燕姿态首次闪避获得0.40物攻护盾并留1层剑痕。',
+      description: '每次《藏锋听雷》持续期间首次闪避时，获得相当于40%物攻的护盾，并施加1层剑痕。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('unendingWind'),
   ),

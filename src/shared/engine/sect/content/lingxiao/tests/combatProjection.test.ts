@@ -52,7 +52,7 @@ function state(
 }
 
 describe('宗门注册投影', () => {
-  it('炼气初期心法上限可解锁除绝式外全部基础神通，10级开放万剑归一', () => {
+  it('炼气初期心法上限可解锁除绝式外全部基础神通，10级开放剑破万法', () => {
     const early = state();
     early.methods = Object.fromEntries(
       Object.keys(early.methods).map((methodId) => [methodId, 5]),
@@ -72,6 +72,16 @@ describe('宗门注册投影', () => {
         ).toHaveLength(3);
       }
     }
+    const swift = LINGXIAO_MODULE.definition.paths.find(
+      (path) => path.id === 'swift-sword',
+    )!;
+    const heavy = LINGXIAO_MODULE.definition.paths.find(
+      (path) => path.id === 'heavy-sword',
+    )!;
+    expect(swift.nodes.find((node) => node.id === 'swift-returning-swallow')?.name).toBe('燕返');
+    expect(swift.tactics.find((tactic) => tactic.id === 'counter')?.name).toBe('回燕');
+    expect(heavy.nodes.find((node) => node.id === 'heavy-heaven-cleaving')?.name).toBe('开天');
+    expect(heavy.tactics.find((tactic) => tactic.id === 'heavy-full')?.name).toBe('极势');
   });
 
   it('未激活流派使用基础剑势和基础法术', () => {
@@ -82,7 +92,7 @@ describe('宗门注册投影', () => {
       icon: '🗡️',
       max: 6,
     });
-    expect(projection.defaultAttack?.name).toBe('问锋');
+    expect(projection.defaultAttack?.name).toBe('基础剑式');
   });
 
   it('快剑道通过统一解析器生成变体与节点效果', () => {
@@ -99,9 +109,9 @@ describe('宗门注册投影', () => {
       realm: '化神',
       abilityId: 'linked-edge',
     });
-    expect(detail.name).toBe('分光七叠');
-    expect(detail.summary).toContain('7段 × 0.27');
-    expect(detail.detailRows).toContain('伤害：7段 × 0.27物攻');
+    expect(detail.name).toBe('剑荡山河');
+    expect(detail.summary).toBe('剑锋纵横，如长河奔涌；所过之处，山河亦为之震荡。');
+    expect(detail.detailRows).toContain('伤害：7段 × 27%物攻');
     expect(
       projection.abilities.find(
         (ability) => ability.slug === detail.config.slug,
@@ -122,11 +132,11 @@ describe('宗门注册投影', () => {
     expect(
       resolveSectAbility({ sect, realm: '化神', abilityId: 'linked-edge' })
         .name,
-    ).toBe('一剑沉山');
+    ).toBe('剑荡山河');
     expect(
       resolveSectAbility({ sect, realm: '化神', abilityId: 'sect-ultimate' })
         .name,
-    ).toBe('开天一线');
+    ).toBe('剑破万法');
   });
 
   it('流派基础变体不再随已解锁层数改变倍率', () => {
@@ -199,9 +209,9 @@ describe('宗门注册投影', () => {
       abilityId: 'sect-ultimate',
     });
     expect(returningPeak.detailRows).toEqual(expect.arrayContaining([
-      '伤害：单段1.02物攻 + 每点剑势0.34物攻',
+      '伤害：基础相当于102%物攻，每点剑势增加34%物攻',
       '剑势：返还2点',
-      '护盾：0.60物攻',
+      '护盾：相当于60%物攻',
     ]));
 
     const returningHeaven = resolveSectAbility({
@@ -212,8 +222,8 @@ describe('宗门注册投影', () => {
       realm: '化神',
       abilityId: 'sect-ultimate',
     });
-    expect(returningHeaven.detailRows).toContain('6点剑势时总倍率：3.40物攻');
-    expect(returningHeaven.detailRows).not.toContain('6点剑势时总倍率：4物攻');
+    expect(returningHeaven.detailRows).toContain('6点剑势时总倍率：340%物攻');
+    expect(returningHeaven.detailRows).not.toContain('6点剑势时总倍率：400%物攻');
 
     const mountainBreaking = resolveSectAbility({
       sect: state('swift-sword', ['swift-mountain-breaking']),
@@ -222,7 +232,7 @@ describe('宗门注册投影', () => {
     });
     expect(mountainBreaking.detailRows).toEqual(expect.arrayContaining([
       '状态：消耗全部剑痕',
-      '每层追加：0.18物攻',
+      '每层追加：相当于18%物攻',
     ]));
 
     const passiveFacts = resolveSectAbility({
@@ -239,41 +249,59 @@ describe('宗门注册投影', () => {
     expect(passiveFacts).toContain('经脉·无间');
   });
 
-  it.each([
-    [
-      'swift-sword',
-      {
-        'plain-sword': '流光问锋',
-        'guiding-sword': '追风引',
-        'linked-edge': '流光五叠',
-        'turning-body': '回燕',
-        'breaking-edge': '一线破妄',
-        'sword-aegis': '流风护心',
-        'shadow-step': '无痕步',
-        'sect-ultimate': '刹那无痕',
-        'nurturing-sword': '剑走轻灵',
-      },
-    ],
-    [
-      'heavy-sword',
-      {
-        'plain-sword': '负岳问锋',
-        'guiding-sword': '擎岳引',
-        'linked-edge': '一剑沉山',
-        'turning-body': '不动藏锋',
-        'breaking-edge': '撼山破障',
-        'sword-aegis': '山河守心',
-        'shadow-step': '镇岳步',
-        'sect-ultimate': '开天一线',
-        'nurturing-sword': '重意无锋',
-      },
-    ],
-  ] as const)('%s 独立编译九个稳定基础法术变体', (pathId, expectedNames) => {
-    const sect = state(pathId);
-    for (const [abilityId, name] of Object.entries(expectedNames)) {
-      expect(resolveSectAbility({ sect, realm: '化神', abilityId }).name).toBe(
-        name,
+  it.each([undefined, 'swift-sword', 'heavy-sword'] as const)(
+    '%s 始终使用九个统一神通名称与固定摘要',
+    (pathId) => {
+      const sect = state(pathId);
+      for (const definition of LINGXIAO_MODULE.definition.abilities) {
+        const detail = resolveSectAbility({
+          sect,
+          realm: '化神',
+          abilityId: definition.id,
+        });
+        expect(detail.name).toBe(definition.baseName);
+        expect(detail.summary).toBe(definition.description);
+      }
+    },
+  );
+
+  it.each(['swift-sword', 'heavy-sword'] as const)(
+    '%s 使用统一的神通姿态与增益名称',
+    (pathId) => {
+      const sect = state(pathId);
+      const expectedBuffNames = {
+        'turning-body': '藏锋听雷',
+        'shadow-step': '踏雪无痕',
+        'sword-aegis': '剑心通明',
+        'nurturing-sword': '人剑合一',
+      } as const;
+      for (const [abilityId, buffName] of Object.entries(expectedBuffNames)) {
+        const config = resolveSectAbility({
+          sect,
+          realm: '化神',
+          abilityId,
+        }).config;
+        const buff = [...(config.effects ?? []), ...(config.castEffects ?? [])]
+          .find((effect) => effect.type === 'apply_buff');
+        expect(buff?.type === 'apply_buff' ? buff.params.buffConfig.name : undefined)
+          .toBe(buffName);
+      }
+    },
+  );
+
+  it.each([undefined, 'heavy-sword'] as const)(
+    '%s 的藏锋听雷后发攻击统一名为听雷',
+    (pathId) => {
+      const config = resolveSectAbility({
+        sect: state(pathId),
+        realm: '化神',
+        abilityId: 'turning-body',
+      }).config;
+      const queued = config.castEffects?.find(
+        (effect) => effect.type === 'queue_action',
       );
-    }
-  });
+      expect(queued?.type === 'queue_action' ? queued.params.name : undefined)
+        .toBe('听雷');
+    },
+  );
 });

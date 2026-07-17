@@ -14,7 +14,7 @@ import { initializeSwiftSwordBuild } from './SwiftSwordBuildFacade';
 const SWIFT_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
   id: SWIFT_SWORD_PATH_ID,
   name: '快剑道',
-  description: '抢先积势、连锋留痕、择机收束。',
+  description: '剑随身走，势借风生；以连绵锋芒留下剑痕，于转瞬之间决胜。',
   minRealm: '筑基',
   minRealmStage: '初期',
   layers: [...STANDARD_PATH_LAYERS],
@@ -23,17 +23,17 @@ const SWIFT_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
     {
       id: 'aggressive',
       name: '追风',
-      description: '三势即收，优先追击低血目标。',
+      description: '剑势达到3点即可施展《剑破万法》，优先追击气血较低的目标。',
     },
     {
       id: 'steady',
       name: '连势',
-      description: '尽量蓄满六势，再以完整倍率收束。',
+      description: '尽量积蓄6点剑势，再以完整威力施展《剑破万法》。',
     },
     {
       id: 'counter',
       name: '回燕',
-      description: '优先回燕与剑罡，五势以上再收束。',
+      description: '优先施展《藏锋听雷》与《剑心通明》，剑势达到5点后再行收束。',
     },
   ],
 };

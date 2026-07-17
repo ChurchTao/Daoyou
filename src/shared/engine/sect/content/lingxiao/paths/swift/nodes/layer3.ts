@@ -16,8 +16,8 @@ export const SWIFT_LAYER_3_NODES = [
     {
       id: 'swift-returning-swallow',
       layerId: '3',
-      name: '回燕',
-      description: '回燕反击倍率提高50%，反击命中施加1层剑痕。',
+      name: '燕返',
+      description: '《藏锋听雷》的反击伤害由60%物攻提高至90%物攻，命中后施加1层剑痕。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('returningSwallow'),
   ),
@@ -26,7 +26,7 @@ export const SWIFT_LAYER_3_NODES = [
       id: 'swift-borrowed-force',
       layerId: '3',
       name: '借风',
-      description: '每回合首次受到直接伤害时获得1点剑势。',
+      description: '每回合首次受到直接伤害时，获得1点剑势。',
     },
     (context, builder) =>
       addBorrowedNodePassive(context, builder, {
@@ -40,7 +40,7 @@ export const SWIFT_LAYER_3_NODES = [
       id: 'swift-guarded-edge',
       layerId: '3',
       name: '守锋',
-      description: '被控制跳过行动时剑势不衰减，控制结束后首次产势额外+1。',
+      description: '被控制而跳过行动时剑势不衰减；下一次通过积势神通获得剑势时额外获得1点。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('guardedEdge');
@@ -89,7 +89,7 @@ export const SWIFT_LAYER_3_NODES = [
         ],
         presentationModifiers: [{
           abilityId: 'guiding-sword',
-          factRows: ['经脉·守锋：受控跳过行动时剑势不衰减，下一次产势额外+1'],
+          factRows: ['经脉·守锋：被控制而跳过行动时剑势不衰减；下一次通过积势神通获得剑势时额外获得1点'],
         }],
       });
     },

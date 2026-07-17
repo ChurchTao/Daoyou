@@ -54,7 +54,7 @@ describe('宗门心法属性投影', () => {
       ],
       [
         'origin-returning',
-        '《剑心通明》',
+      '《万法不侵》',
         AttributeType.MAGIC_DEF,
         ModifierType.ADD,
         0.0005,

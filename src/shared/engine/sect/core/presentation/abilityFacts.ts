@@ -19,7 +19,8 @@ const ATTRIBUTE_LABELS: Partial<Record<AttributeType, string>> = {
 };
 
 function number(value: number): string {
-  return Number(value.toFixed(2)).toFixed(value % 1 === 0 ? 0 : 2);
+  const rounded = Number(value.toFixed(2));
+  return rounded.toFixed(Number.isInteger(rounded) ? 0 : 2);
 }
 
 function percent(value: number): string {
@@ -38,7 +39,7 @@ function scalableValue(value: ScalableValue): string {
   if (value.base) parts.push(number(value.base));
   if (value.attribute) {
     const label = ATTRIBUTE_LABELS[value.attribute] ?? value.attribute;
-    parts.push(`${number(value.coefficient ?? 1)}${label}`);
+    parts.push(`${number((value.coefficient ?? 1) * 100)}%${label}`);
   }
   if (value.targetMaxHpRatio) parts.push(`${percent(value.targetMaxHpRatio)}目标最大气血`);
   if (value.targetMaxMpRatio) parts.push(`${percent(value.targetMaxMpRatio)}目标最大法力`);
@@ -96,7 +97,7 @@ function damageEffectsRow(
       ? resourceName(condition.params.resourceId, resources)
       : '战斗资源';
     return [
-      `伤害：基础${scalableValue(unconditional[0].params.value)}，每点${name}追加一段${scalableValue(resourceConditional[0].params.value)}`,
+      `伤害：基础相当于${scalableValue(unconditional[0].params.value)}，每点${name}追加一段相当于${scalableValue(resourceConditional[0].params.value)}`,
       ...(damageEffects.every((effect) => effect.params.forceCritical)
         ? ['暴击：整次施法全部伤害段必定暴击']
         : []),
@@ -115,7 +116,7 @@ function damageEffectsRow(
     return [
       damageEffects.length > 1
         ? `伤害：${damageEffects.length}段 × ${label}`
-        : `伤害：${label}`,
+        : `伤害：相当于${label}`,
       ...(damageEffects.every((effect) => effect.params.forceCritical)
         ? ['暴击：整次施法全部伤害段必定暴击']
         : []),
@@ -126,7 +127,7 @@ function damageEffectsRow(
   }
 
   return damageEffects.map(
-    (effect, index) => `伤害${index + 1}：${scalableValue(effect.params.value)}`,
+    (effect, index) => `伤害${index + 1}：相当于${scalableValue(effect.params.value)}`,
   );
 }
 
@@ -149,7 +150,7 @@ function describeEffect(
     case 'resource_scaled_damage': {
       const name = resourceName(effect.params.resourceId, resources);
       const rows = [
-        `伤害：单段${number(effect.params.baseCoefficient)}物攻 + 每点${name}${number(effect.params.coefficientPerPoint)}物攻`,
+        `伤害：基础相当于${number(effect.params.baseCoefficient * 100)}%物攻，每点${name}增加${number(effect.params.coefficientPerPoint * 100)}%物攻`,
         `释放：至少${effect.params.minPoints ?? 0}点${name}`,
       ];
       if ((effect.params.bypassDefenseRatio ?? 0) > 0) {
@@ -161,7 +162,7 @@ function describeEffect(
       ) {
         const points = effect.params.minPoints;
         rows.push(
-          `${points}点${name}时总倍率：${number(effect.params.baseCoefficient + effect.params.coefficientPerPoint * points)}物攻`,
+          `${points}点${name}时总倍率：${number((effect.params.baseCoefficient + effect.params.coefficientPerPoint * points) * 100)}%物攻`,
         );
       }
       if (effect.params.forceCritical) rows.push('暴击：整次施法必定暴击');
@@ -210,7 +211,7 @@ function describeEffect(
             );
           } else if (child.type === 'damage') {
             const source = child.params.damageSource === 'counter' ? '反击' : '追加伤害';
-            rows.push(`${source}：${scalableValue(child.params.value)}`);
+            rows.push(`${source}：相当于${scalableValue(child.params.value)}`);
           } else if (child.type === 'combat_resource_modify') {
             rows.push(...describeEffect(child, resources));
           }
@@ -219,7 +220,7 @@ function describeEffect(
       return rows;
     }
     case 'shield':
-      return [`护盾：${scalableValue(effect.params.value)}`];
+      return [`护盾：相当于${scalableValue(effect.params.value)}`];
     case 'dispel':
       return [`驱散：目标${effect.params.maxCount ?? 1}个正面状态`];
     case 'ability_transform':
@@ -247,7 +248,7 @@ function describeEffect(
             : child.params.damageSource === 'counter'
               ? '反击'
               : '追加伤害';
-          return [`${label}：${scalableValue(child.params.value)}`];
+          return [`${label}：相当于${scalableValue(child.params.value)}`];
         }
         return describeEffect(child, resources);
       });

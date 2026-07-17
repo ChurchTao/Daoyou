@@ -233,8 +233,7 @@ export function MethodsTab({
                       <p>{milestone.description}</p>
                       {abilityDefinition ? (
                         <p className="text-ink-secondary">
-                          定位：{roleLabels[abilityDefinition.role]} ·{' '}
-                          {abilityDefinition.description}
+                          定位：{roleLabels[abilityDefinition.role]}
                         </p>
                       ) : null}
                       {milestone.missingRequirements.length ? (

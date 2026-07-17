@@ -118,7 +118,6 @@ export function buildSwiftAbilities(
   const resourceId = LINGXIAO_SWORD_MOMENTUM;
   const active = (args: {
     id: string;
-    name: string;
     manaWeight: number;
     cooldown: number;
     role: SectAbilityRole;
@@ -137,12 +136,12 @@ export function buildSwiftAbilities(
   };
 
   built['plain-sword'] = active({
-    id: 'plain-sword', name: '流光问锋', manaWeight: 0, cooldown: 0, role: 'generator',
+    id: 'plain-sword', manaWeight: 0, cooldown: 0, role: 'generator',
     effects: [damage(0.75), sectEffects.modifyResource(resourceId, 1)],
   });
 
   built['guiding-sword'] = active({
-    id: 'guiding-sword', name: '追风引', manaWeight: 1, cooldown: 0, role: 'generator',
+    id: 'guiding-sword', manaWeight: 1, cooldown: 0, role: 'generator',
     effects: [
       damage(0.9),
       sectEffects.modifyResource(resourceId, 2),
@@ -156,7 +155,7 @@ export function buildSwiftAbilities(
   const hits = features.splitLight ? 7 : 5;
   const hitCoefficient = features.splitLight ? 0.27 : 0.34;
   built['linked-edge'] = active({
-    id: 'linked-edge', name: features.splitLight ? '分光七叠' : '流光五叠', manaWeight: 1.5, cooldown: 2, role: 'combo',
+    id: 'linked-edge', manaWeight: 1.5, cooldown: 2, role: 'combo',
     effects: [
       ...Array.from({ length: hits }, () => damage(hitCoefficient)),
       sectEffects.modifyResource(resourceId, features.splitLight ? 3 : 2),
@@ -183,12 +182,12 @@ export function buildSwiftAbilities(
   });
 
   built['turning-body'] = active({
-    id: 'turning-body', name: '回燕', manaWeight: 1.25, cooldown: 3, role: 'defensive',
+    id: 'turning-body', manaWeight: 1.25, cooldown: 3, role: 'defensive',
     effects: [
       damage(0.6),
       selfBuff(
         LINGXIAO_RETURNING_SWALLOW_BUFF,
-        '回燕姿态',
+        '藏锋听雷',
         2,
         [{ attrType: AttributeType.EVASION_RATE, type: ModifierType.FIXED, value: 0.08 }],
         [{
@@ -210,10 +209,10 @@ export function buildSwiftAbilities(
   });
 
   built['shadow-step'] = active({
-    id: 'shadow-step', name: '无痕步', manaWeight: 1, cooldown: 4, role: 'defensive', targetTeam: 'self',
+    id: 'shadow-step', manaWeight: 1, cooldown: 4, role: 'defensive', targetTeam: 'self',
     effects: [selfBuff(
       'sect.lingxiao.swift.traceless-step',
-      '无痕步',
+      '踏雪无痕',
       2,
       [
         { attrType: AttributeType.SPEED, type: ModifierType.ADD, value: 0.15 },
@@ -232,7 +231,7 @@ export function buildSwiftAbilities(
   });
 
   built['breaking-edge'] = active({
-    id: 'breaking-edge', name: '一线破妄', manaWeight: 1.5, cooldown: 3, role: 'utility',
+    id: 'breaking-edge', manaWeight: 1.5, cooldown: 3, role: 'utility',
     effects: [
       damage(1.15),
       { type: 'dispel', params: { targetTag: GameplayTags.BUFF.TYPE.BUFF, maxCount: 1 } },
@@ -240,16 +239,16 @@ export function buildSwiftAbilities(
   });
 
   built['sword-aegis'] = active({
-    id: 'sword-aegis', name: '流风护心', manaWeight: 1.25, cooldown: 5, role: 'defensive', targetTeam: 'self',
-    effects: [selfBuff('sect.lingxiao.swift.wind-heart', '流风护心', 3, [
+    id: 'sword-aegis', manaWeight: 1.25, cooldown: 5, role: 'defensive', targetTeam: 'self',
+    effects: [selfBuff('sect.lingxiao.swift.wind-heart', '剑心通明', 3, [
       { attrType: AttributeType.MAGIC_DEF, type: ModifierType.ADD, value: 0.2 },
       { attrType: AttributeType.EVASION_RATE, type: ModifierType.FIXED, value: 0.05 },
     ])],
   });
 
   built['nurturing-sword'] = active({
-    id: 'nurturing-sword', name: '剑走轻灵', manaWeight: 1.5, cooldown: 5, role: 'defensive', targetTeam: 'self',
-    effects: [selfBuff('sect.lingxiao.swift.light-sword', '剑走轻灵', 3, [
+    id: 'nurturing-sword', manaWeight: 1.5, cooldown: 5, role: 'defensive', targetTeam: 'self',
+    effects: [selfBuff('sect.lingxiao.swift.light-sword', '人剑合一', 3, [
       { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.12 },
       { attrType: AttributeType.SPEED, type: ModifierType.ADD, value: 0.12 },
     ])],
@@ -257,7 +256,7 @@ export function buildSwiftAbilities(
 
   const sheathingScale = features.sheathing ? 0.85 : 1;
   built['sect-ultimate'] = active({
-    id: 'sect-ultimate', name: '刹那无痕', manaWeight: 2.5, cooldown: 4 + (features.shadowLine ? 1 : 0), role: 'finisher',
+    id: 'sect-ultimate', manaWeight: 2.5, cooldown: 4 + (features.shadowLine ? 1 : 0), role: 'finisher',
     castConditions: [{ type: 'combat_resource_at_least', params: { resourceId, value: features.shadowLine ? 6 : 3, scope: 'caster' } }],
     effects: [
       damage(0.4 * sheathingScale, undefined, false, DamageSource.DIRECT, features.shadowLine),

@@ -36,7 +36,7 @@ export function createSwordMark(): EffectConfig {
       buffConfig: {
         id: LINGXIAO_SWORD_MARK_BUFF,
         name: '剑痕',
-        description: '快剑留下的剑痕，可被收束招式利用。',
+        description: '快剑留下的剑痕，可被《剑破万法》引动。',
         type: BuffType.DEBUFF,
         duration: 2,
         stackRule: StackRule.STACK_LAYER,

@@ -7,7 +7,7 @@ import { heavySwordBuild } from '../HeavySwordBuildFacade';
 
 export const HEAVY_LAYER_1_NODES = [
   createLingxiaoNode(
-    { id: 'heavy-opening', layerId: '1', name: '立地', description: '开场获得2剑势和0.35物攻护盾。' },
+    { id: 'heavy-opening', layerId: '1', name: '立地', description: '战斗开始时获得2点剑势，并获得相当于35%物攻的护盾。' },
     (context, builder) => {
       heavySwordBuild(builder).enable('opening');
       addLingxiaoPassive(context, builder, {
@@ -21,7 +21,7 @@ export const HEAVY_LAYER_1_NODES = [
     },
   ),
   createLingxiaoNode(
-    { id: 'heavy-hidden-weight', layerId: '1', name: '承锋', description: '首次直接承伤降低15%，并获得2剑势。' },
+    { id: 'heavy-hidden-weight', layerId: '1', name: '承锋', description: '本场战斗首次受到直接伤害时，该次伤害降低15%，并获得2点剑势。' },
     (context, builder) => addLingxiaoPassive(context, builder, {
       id: 'heavy-hidden-weight', name: '承锋', listeners: [{
         id: 'sect.lingxiao.heavy.bearing-edge', eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
@@ -36,7 +36,7 @@ export const HEAVY_LAYER_1_NODES = [
     }),
   ),
   createLingxiaoNode(
-    { id: 'heavy-testing-frame', layerId: '1', name: '守拙', description: '每回合首次护盾承伤额外获得1剑势。' },
+    { id: 'heavy-testing-frame', layerId: '1', name: '守拙', description: '每回合首次以护盾吸收直接伤害时，额外获得1点剑势。' },
     (context, builder) => addLingxiaoPassive(context, builder, {
       id: 'heavy-testing-frame', name: '守拙', listeners: [{
         id: 'sect.lingxiao.heavy.simple-guard', eventType: GameplayTags.EVENT.DAMAGE_TAKEN,

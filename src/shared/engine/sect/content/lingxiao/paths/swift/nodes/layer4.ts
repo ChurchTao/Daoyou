@@ -10,7 +10,7 @@ export const SWIFT_LAYER_4_NODES = [
       id: 'swift-mountain-breaking',
       layerId: '4',
       name: '破妄',
-      description: '刹那无痕消费剑痕，每层追加0.18物攻穿防伤害。',
+      description: '施展《剑破万法》时消耗全部剑痕；每消耗1层，追加一次相当于18%物攻且无视防御的伤害。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('mountainBreaking'),
   ),
@@ -19,7 +19,7 @@ export const SWIFT_LAYER_4_NODES = [
       id: 'swift-life-chasing',
       layerId: '4',
       name: '追命',
-      description: '目标气血低于25%时收束伤害提高25%。',
+      description: '目标气血低于25%时，《剑破万法》造成的伤害提高25%。',
     },
     (context, builder) =>
       addLingxiaoPassive(context, builder, {
@@ -52,7 +52,7 @@ export const SWIFT_LAYER_4_NODES = [
         ],
         presentationModifiers: [{
           abilityId: 'sect-ultimate',
-          factRows: ['经脉·追命：目标气血低于25%时，收束伤害提高25%'],
+          factRows: ['经脉·追命：目标气血低于25%时，《剑破万法》造成的伤害提高25%'],
         }],
       }),
   ),
@@ -61,7 +61,7 @@ export const SWIFT_LAYER_4_NODES = [
       id: 'swift-sheathing',
       layerId: '4',
       name: '归鞘',
-      description: '收束伤害降低15%，返还1点剑势并获得0.50物攻护盾。',
+      description: '《剑破万法》伤害降低15%，施展后返还1点剑势，并获得相当于50%物攻的护盾。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('sheathing'),
   ),

@@ -97,13 +97,13 @@ export function compileLingxiaoBase(
     ],
     castEffects: [{
       type: 'skip_action',
-      params: { count: 1, name: '调息', reason: '剑落星河·调息' },
+      params: { count: 1, name: '调息', reason: '剑荡山河·调息' },
     }],
   });
   active('turning-body', {
     effects: [],
     castEffects: [
-      selfBuff('sect.lingxiao.hidden-thunder-guard', '藏锋', 1, [], directReduction(0.25)),
+      selfBuff('sect.lingxiao.hidden-thunder-guard', '藏锋听雷', 1, [], directReduction(0.25)),
       {
         type: 'queue_action',
         params: {
@@ -131,7 +131,7 @@ export function compileLingxiaoBase(
   active('shadow-step', {
     targetTeam: 'self',
     effects: [
-      selfBuff('sect.lingxiao.traceless-step', '踏虚无痕', 2, [
+      selfBuff('sect.lingxiao.traceless-step', '踏雪无痕', 2, [
         { attrType: AttributeType.SPEED, type: ModifierType.ADD, value: 0.1 },
         { attrType: AttributeType.EVASION_RATE, type: ModifierType.FIXED, value: 0.08 },
       ]),
@@ -146,7 +146,7 @@ export function compileLingxiaoBase(
   active('sword-aegis', {
     targetTeam: 'self',
     effects: [
-      selfBuff('sect.lingxiao.clear-heart', '明心照剑', 3, [
+      selfBuff('sect.lingxiao.clear-heart', '剑心通明', 3, [
         { attrType: AttributeType.MAGIC_DEF, type: ModifierType.ADD, value: 0.25 },
         { attrType: AttributeType.CONTROL_RESISTANCE, type: ModifierType.FIXED, value: 0.08 },
       ]),
@@ -155,7 +155,7 @@ export function compileLingxiaoBase(
   active('nurturing-sword', {
     targetTeam: 'self',
     effects: [
-      selfBuff('sect.lingxiao.sword-intent', '剑意冲霄', 3, [
+      selfBuff('sect.lingxiao.sword-intent', '人剑合一', 3, [
         { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.15 },
       ]),
     ],

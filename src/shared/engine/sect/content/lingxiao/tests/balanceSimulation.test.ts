@@ -271,15 +271,12 @@ function simulate(args: {
         if (entry.type !== 'damage') continue;
         const damage = entry.data as DamageEntryData;
         const sourceName = damage.sourceUnitName ?? span.actor?.name ?? '';
-        const abilityName = damage.sourceAbilityName ?? span.ability?.name ?? '';
         if (sourceName.startsWith('swift-')) {
           swiftDamage += damage.value;
           if (
             damage.damageSource === 'follow_up' ||
             damage.damageSource === 'counter' ||
-            damage.sourceAbilityId?.endsWith('.linked-edge') ||
-            abilityName === '流光五叠' ||
-            abilityName === '分光七叠'
+            damage.sourceAbilityId?.endsWith('.linked-edge')
           ) {
             swiftIdentityDamage += damage.value;
           }
@@ -287,8 +284,7 @@ function simulate(args: {
           heavyDamage += damage.value;
           if (
             damage.damageSource === 'counter' ||
-            damage.sourceAbilityId?.endsWith('.thunder-strike') ||
-            abilityName === '听雷沉山'
+            damage.sourceAbilityId?.endsWith('.thunder-strike')
           ) {
             heavyIdentityDamage += damage.value;
           }

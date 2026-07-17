@@ -14,7 +14,7 @@ import { LingxiaoHeavySelectionStrategy } from './strategy';
 const HEAVY_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
   id: HEAVY_SWORD_PATH_ID,
   name: '重剑道',
-  description: '护盾承伤、藏锋后发、守中反击，以不工之剑开山。',
+  description: '以身立地，以剑镇岳；借护盾承势，于守中后发，一剑开山。',
   minRealm: '筑基',
   minRealmStage: '初期',
   layers: [...STANDARD_PATH_LAYERS],
@@ -23,17 +23,17 @@ const HEAVY_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
     {
       id: 'heavy-break',
       name: '后发',
-      description: '优先不动藏锋，围绕承伤与反击积蓄剑势。',
+      description: '优先施展《藏锋听雷》，围绕受到伤害与反击积蓄剑势，达到3点后即可收束。',
     },
     {
       id: 'heavy-full',
-      name: '开天',
-      description: '优先积满六势，以开天一线完成单段爆发。',
+      name: '极势',
+      description: '优先积蓄6点剑势，以《剑破万法》完成全力一击。',
     },
     {
       id: 'heavy-guard',
       name: '守山',
-      description: '优先镇岳步与山河守心，五势以上收束。',
+      description: '优先建立护盾并施展《剑心通明》，剑势达到5点后再行收束。',
     },
   ],
 };

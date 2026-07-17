@@ -112,7 +112,6 @@ export function buildHeavyAbilities(
   const resourceId = LINGXIAO_SWORD_MOMENTUM;
   const active = (args: {
     id: string;
-    name: string;
     manaWeight: number;
     cooldown: number;
     role: SectAbilityRole;
@@ -131,22 +130,22 @@ export function buildHeavyAbilities(
   };
 
   built['plain-sword'] = active({
-    id: 'plain-sword', name: '负岳问锋', manaWeight: 0, cooldown: 0, role: 'generator',
+    id: 'plain-sword', manaWeight: 0, cooldown: 0, role: 'generator',
     effects: [damage(0.9), sectEffects.modifyResource(resourceId, 1)],
   });
   built['guiding-sword'] = active({
-    id: 'guiding-sword', name: '擎岳引', manaWeight: 1, cooldown: 2, role: 'generator',
+    id: 'guiding-sword', manaWeight: 1, cooldown: 2, role: 'generator',
     effects: [damage(1.05), sectEffects.modifyResource(resourceId, 2), sectEffects.shieldByAttack(0.2, undefined, 'caster')],
   });
   built['linked-edge'] = active({
-    id: 'linked-edge', name: '一剑沉山', manaWeight: 1.5, cooldown: 3, role: 'combo',
+    id: 'linked-edge', manaWeight: 1.5, cooldown: 3, role: 'combo',
     effects: [damage(1.55), sectEffects.modifyResource(resourceId, 1), sectEffects.shieldByAttack(0.35, undefined, 'caster')],
   });
   built['turning-body'] = active({
-    id: 'turning-body', name: '不动藏锋', manaWeight: 1.25, cooldown: 3, role: 'defensive',
+    id: 'turning-body', manaWeight: 1.25, cooldown: 3, role: 'defensive',
     effects: [],
     castEffects: [
-      selfBuff('sect.lingxiao.heavy.hidden-edge', '不动藏锋', 1, [], reductionListeners(features.chargedReduction ? 0.4 : 0.3)),
+      selfBuff('sect.lingxiao.heavy.hidden-edge', '藏锋听雷', 1, [], reductionListeners(features.chargedReduction ? 0.4 : 0.3)),
       ...(features.chargedGuardShield
         ? [sectEffects.shieldByAttack(0.6, undefined, 'caster')]
         : []),
@@ -154,7 +153,7 @@ export function buildHeavyAbilities(
         type: 'queue_action',
         params: {
           id: 'sect.lingxiao.heavy.thunder-strike',
-          name: '听雷沉山',
+          name: '听雷',
           tags: [
             GameplayTags.ABILITY.FUNCTION.DAMAGE,
             GameplayTags.ABILITY.CHANNEL.PHYSICAL,
@@ -176,26 +175,26 @@ export function buildHeavyAbilities(
     ],
   });
   built['shadow-step'] = active({
-    id: 'shadow-step', name: '镇岳步', manaWeight: 1, cooldown: 4, role: 'defensive', targetTeam: 'self',
+    id: 'shadow-step', manaWeight: 1, cooldown: 4, role: 'defensive', targetTeam: 'self',
     effects: [
       sectEffects.shieldByAttack(0.65 * (features.mountainGate ? 1.5 : 1), undefined, 'caster'),
-      selfBuff('sect.lingxiao.heavy.mountain-step', '镇岳步', 2, [
+      selfBuff('sect.lingxiao.heavy.mountain-step', '踏雪无痕', 2, [
         { attrType: AttributeType.DEF, type: ModifierType.ADD, value: 0.2 },
       ]),
       sectEffects.modifyResource(resourceId, 1),
     ],
   });
   built['breaking-edge'] = active({
-    id: 'breaking-edge', name: '撼山破障', manaWeight: 1.5, cooldown: 3, role: 'utility',
+    id: 'breaking-edge', manaWeight: 1.5, cooldown: 3, role: 'utility',
     effects: [damage(1.3), { type: 'dispel', params: { targetTag: GameplayTags.BUFF.TYPE.BUFF, maxCount: 1 } }],
   });
   built['sword-aegis'] = active({
-    id: 'sword-aegis', name: '山河守心', manaWeight: 1.25, cooldown: 5, role: 'defensive', targetTeam: 'self',
+    id: 'sword-aegis', manaWeight: 1.25, cooldown: 5, role: 'defensive', targetTeam: 'self',
     effects: [
       ...(features.immovableMountain ? [sectEffects.shieldByAttack(1, undefined, 'caster')] : []),
       selfBuff(
         'sect.lingxiao.heavy.mountain-heart',
-        '山河守心',
+        '剑心通明',
         3,
         [{ attrType: AttributeType.MAGIC_DEF, type: ModifierType.ADD, value: 0.3 }],
         [
@@ -216,8 +215,8 @@ export function buildHeavyAbilities(
     ],
   });
   built['nurturing-sword'] = active({
-    id: 'nurturing-sword', name: '重意无锋', manaWeight: 1.5, cooldown: 5, role: 'defensive', targetTeam: 'self',
-    effects: [selfBuff('sect.lingxiao.heavy.weightless-edge', '重意无锋', 3, [
+    id: 'nurturing-sword', manaWeight: 1.5, cooldown: 5, role: 'defensive', targetTeam: 'self',
+    effects: [selfBuff('sect.lingxiao.heavy.weightless-edge', '人剑合一', 3, [
       { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.1 },
       { attrType: AttributeType.DEF, type: ModifierType.ADD, value: 0.2 },
     ])],
@@ -226,7 +225,7 @@ export function buildHeavyAbilities(
   const returnScale = features.returningPeak ? 0.85 : 1;
   const heaven = features.heavenCleaving;
   built['sect-ultimate'] = active({
-    id: 'sect-ultimate', name: '开天一线', manaWeight: 2.5, cooldown: 4 + (heaven ? 1 : 0), role: 'finisher',
+    id: 'sect-ultimate', manaWeight: 2.5, cooldown: 4 + (heaven ? 1 : 0), role: 'finisher',
     castConditions: [{ type: 'combat_resource_at_least', params: { resourceId, value: heaven ? 6 : 3, scope: 'caster' } }],
     effects: [
       {
