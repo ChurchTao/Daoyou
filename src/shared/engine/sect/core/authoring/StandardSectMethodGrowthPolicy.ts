@@ -13,6 +13,7 @@ import { consumeSectBuffMethodGrowth } from './SectMethodGrowthAuthoring';
 
 export interface SectMethodGrowthValues {
   level: number;
+  tier: number;
   magnitude: number;
   statusMagnitude: number;
   durationBonus: number;
@@ -31,11 +32,18 @@ export class StandardSectMethodGrowthPolicy {
       rawLevel === undefined || Number.isNaN(rawLevel) ? 1 : rawLevel;
     const level = Math.max(1, Math.min(180, Math.floor(normalized)));
     if (level === 180) {
-      return { level, magnitude: 1.5, statusMagnitude: 1.4, durationBonus: 3 };
+      return {
+        level,
+        tier: 6,
+        magnitude: 1.5,
+        statusMagnitude: 1.4,
+        durationBonus: 3,
+      };
     }
     if (level >= 150) {
       return {
         level,
+        tier: 5,
         magnitude: 1.4167,
         statusMagnitude: 1.3333,
         durationBonus: 2,
@@ -44,17 +52,25 @@ export class StandardSectMethodGrowthPolicy {
     if (level >= 120) {
       return {
         level,
+        tier: 4,
         magnitude: 1.3333,
         statusMagnitude: 1.2667,
         durationBonus: 2,
       };
     }
     if (level >= 90) {
-      return { level, magnitude: 1.25, statusMagnitude: 1.2, durationBonus: 1 };
+      return {
+        level,
+        tier: 3,
+        magnitude: 1.25,
+        statusMagnitude: 1.2,
+        durationBonus: 1,
+      };
     }
     if (level >= 60) {
       return {
         level,
+        tier: 2,
         magnitude: 1.1667,
         statusMagnitude: 1.1333,
         durationBonus: 1,
@@ -63,12 +79,19 @@ export class StandardSectMethodGrowthPolicy {
     if (level >= 30) {
       return {
         level,
+        tier: 1,
         magnitude: 1.0833,
         statusMagnitude: 1.0667,
         durationBonus: 0,
       };
     }
-    return { level, magnitude: 1, statusMagnitude: 1, durationBonus: 0 };
+    return {
+      level,
+      tier: 0,
+      magnitude: 1,
+      statusMagnitude: 1,
+      durationBonus: 0,
+    };
   }
 
   scaleMagnitude(value: number, rawLevel: number | undefined): number {
@@ -83,6 +106,10 @@ export class StandardSectMethodGrowthPolicy {
     return duration < 0
       ? duration
       : duration + this.resolve(rawLevel).durationBonus;
+  }
+
+  growCount(baseCount: number, rawLevel: number | undefined): number {
+    return Math.max(0, Math.floor(baseCount)) + this.resolve(rawLevel).tier;
   }
 
   projectAbility(
@@ -122,6 +149,29 @@ export class StandardSectMethodGrowthPolicy {
         ];
       }),
     );
+  }
+
+  /**
+   * 被动效果默认保持固定数值，只解析其内部显式声明的心法成长内容。
+   */
+  projectPassives(
+    passives: readonly import('@shared/engine/battle-v5/core/configs').AbilityConfig[],
+    methodLevels: Partial<Record<SectMethodId, number>>,
+  ): import('@shared/engine/battle-v5/core/configs').AbilityConfig[] {
+    const fixedGrowth = this.resolve(1);
+    return passives.map((passive) => {
+      const projected = structuredClone(passive);
+      projected.effects = projected.effects?.map((effect) =>
+        this.projectEffect(effect, fixedGrowth, methodLevels),
+      );
+      projected.castEffects = projected.castEffects?.map((effect) =>
+        this.projectEffect(effect, fixedGrowth, methodLevels),
+      );
+      projected.listeners = projected.listeners?.map((listener) =>
+        this.projectListener(listener, fixedGrowth, methodLevels),
+      );
+      return projected;
+    });
   }
 
   private projectEffect(

@@ -2,8 +2,16 @@ import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { sectEffects } from '../../../../../core';
 import { createLingxiaoNode } from '../../../shared/createLingxiaoNode';
 import { SWIFT_ENDLESS_COOLDOWN } from '../../../shared/LingxiaoMechanics';
+import {
+  growthMagnitude,
+  nodePercent,
+} from '../../../shared/LingxiaoNodeDescription';
 import { addLingxiaoPassive } from '../../../shared/SwordNodePassives';
 import { swiftSwordBuild } from '../SwiftSwordBuildFacade';
+import {
+  SWIFT_ENDLESS_FLOW_COEFFICIENT,
+  SWIFT_UNENDING_WIND_SHIELD_COEFFICIENT,
+} from '../variants';
 
 export const SWIFT_ULTIMATE_NODES = [
   createLingxiaoNode(
@@ -12,7 +20,7 @@ export const SWIFT_ULTIMATE_NODES = [
       layerId: 'ultimate',
       name: '无间',
       description:
-        '施展《剑破万法》后，追加相当于48%物攻的追击并获得1点剑势，每3回合最多触发一次。',
+        '施展《剑破万法》后，追加随《问剑篇》成长的追击并获得1点剑势，每3回合最多触发一次。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('endlessFlow');
@@ -41,6 +49,8 @@ export const SWIFT_ULTIMATE_NODES = [
         ],
       });
     },
+    (context) =>
+      `施展《剑破万法》后，追加相当于${nodePercent(growthMagnitude(context, 'lingxiao-canon', SWIFT_ENDLESS_FLOW_COEFFICIENT))}物攻的追击并获得1点剑势，每3回合最多触发一次。`,
   ),
   createLingxiaoNode(
     {
@@ -48,7 +58,7 @@ export const SWIFT_ULTIMATE_NODES = [
       layerId: 'ultimate',
       name: '绝影',
       description:
-        '以6点剑势施展《剑破万法》时，全部伤害段必定暴击，冷却增加1回合。',
+        '以6点剑势施展《剑破万法》时，总伤害降低15%，全部伤害段必定暴击，冷却增加1回合。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('shadowLine'),
   ),
@@ -58,8 +68,10 @@ export const SWIFT_ULTIMATE_NODES = [
       layerId: 'ultimate',
       name: '回风',
       description:
-        '每次《藏锋听雷》持续期间首次闪避时，获得相当于32%物攻的护盾，并施加1层剑痕。',
+        '每次《藏锋听雷》持续期间首次闪避时，获得随《凌虚步》成长的护盾，并施加1层剑痕。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('unendingWind'),
+    (context) =>
+      `每次《藏锋听雷》持续期间首次闪避时，获得相当于${nodePercent(growthMagnitude(context, 'void-step', SWIFT_UNENDING_WIND_SHIELD_COEFFICIENT))}物攻的护盾，并施加1层剑痕。`,
   ),
 ] as const;

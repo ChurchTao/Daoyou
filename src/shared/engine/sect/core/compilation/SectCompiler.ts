@@ -1,4 +1,5 @@
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
+import { standardSectMethodGrowthPolicy } from '../authoring';
 import type {
   CultivatorSectPathState,
   ResolvedSectAbility,
@@ -9,10 +10,11 @@ import type {
   SectProjectionContext,
 } from '../domain';
 import type { SectModule } from '../plugin';
-import { projectSectMethodModifiers } from '../presentation';
-import { describeSectAbilityConfig } from '../presentation';
+import {
+  describeSectAbilityConfig,
+  projectSectMethodModifiers,
+} from '../presentation';
 import { isAbilityUnlocked } from '../progression';
-import { standardSectMethodGrowthPolicy } from '../authoring';
 
 function findActivePath(
   context: SectProjectionContext,
@@ -74,6 +76,10 @@ export class SectCompiler {
       abilities: standardSectMethodGrowthPolicy.projectAbilities(
         module.definition,
         rawBuild.abilities,
+        context.sect.methods,
+      ),
+      passives: standardSectMethodGrowthPolicy.projectPassives(
+        rawBuild.passives,
         context.sect.methods,
       ),
     });
@@ -183,7 +189,8 @@ export class SectCompiler {
             {
               ...ability,
               detailRows,
-              summary: base?.description ?? ability.summary ?? ability.config.name,
+              summary:
+                base?.description ?? ability.summary ?? ability.config.name,
             },
           ];
         }),
@@ -204,7 +211,9 @@ export class SectCompiler {
   ): void {
     const expected = definition.combatResource;
     if (build.resources.length !== 1) {
-      throw new Error(`宗门 ${definition.id} 编译结果必须且只能包含一个战斗资源`);
+      throw new Error(
+        `宗门 ${definition.id} 编译结果必须且只能包含一个战斗资源`,
+      );
     }
     const actual = build.resources[0];
     if (

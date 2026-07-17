@@ -18,7 +18,8 @@ export const SWIFT_LAYER_5_NODES = [
       id: 'swift-gapless',
       layerId: '5',
       name: '无隙',
-      description: '施展《剑破万法》后，下一次《剑起沧澜》不消耗法力，并额外获得1点剑势。',
+      description:
+        '施展《剑破万法》后，下一次《剑起沧澜》不消耗法力，并额外获得1点剑势。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('gapless');
@@ -58,10 +59,14 @@ export const SWIFT_LAYER_5_NODES = [
             ],
           },
         ],
-        presentationModifiers: [{
-          abilityId: 'sect-ultimate',
-          factRows: ['参悟·无隙：施展《剑破万法》后，下一次《剑起沧澜》不消耗法力，并额外获得1点剑势'],
-        }],
+        presentationModifiers: [
+          {
+            abilityId: 'sect-ultimate',
+            factRows: [
+              '参悟·无隙：施展《剑破万法》后，下一次《剑起沧澜》不消耗法力，并额外获得1点剑势',
+            ],
+          },
+        ],
       });
     },
   ),
@@ -90,10 +95,14 @@ export const SWIFT_LAYER_5_NODES = [
             ],
           },
         ],
-        presentationModifiers: [{
-          abilityId: 'linked-edge',
-          factRows: ['参悟·连城：施展《剑荡山河》后，其他快剑神通的当前冷却减少1回合，每回合最多触发一次'],
-        }],
+        presentationModifiers: [
+          {
+            abilityId: 'linked-edge',
+            factRows: [
+              '参悟·连城：施展《剑荡山河》后，其他快剑神通的当前冷却减少1回合，每回合最多触发一次',
+            ],
+          },
+        ],
       });
     },
   ),
@@ -102,7 +111,8 @@ export const SWIFT_LAYER_5_NODES = [
       id: 'swift-still-tide',
       layerId: '5',
       name: '静潮',
-      description: '连续两次自身行动未施展《剑破万法》后，暂停剑势衰减；下一次《剑破万法》伤害提高20%。',
+      description:
+        '连续两次自身行动未施展《剑破万法》后，暂停剑势衰减；下一次《剑破万法》伤害提高15%。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('stillTide');
@@ -140,7 +150,7 @@ export const SWIFT_LAYER_5_NODES = [
             effects: [
               {
                 type: 'percent_damage_modifier',
-                params: { mode: 'increase', value: 0.2 },
+                params: { mode: 'increase', value: 0.15 },
                 conditions: [
                   {
                     type: 'ability_has_tag',
@@ -152,10 +162,14 @@ export const SWIFT_LAYER_5_NODES = [
             ],
           },
         ],
-        presentationModifiers: [{
-          abilityId: 'sect-ultimate',
-          factRows: ['参悟·静潮：连续两次自身行动未施展《剑破万法》后暂停剑势衰减；下一次《剑破万法》伤害提高20%'],
-        }],
+        presentationModifiers: [
+          {
+            abilityId: 'sect-ultimate',
+            factRows: [
+              '参悟·静潮：连续两次自身行动未施展《剑破万法》后暂停剑势衰减；下一次《剑破万法》伤害提高15%',
+            ],
+          },
+        ],
       });
     },
   ),

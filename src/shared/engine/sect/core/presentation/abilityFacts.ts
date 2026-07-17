@@ -430,7 +430,7 @@ function describeEffect(
       const nested = effect.params.effects ?? [];
       return [
         ...damageEffectsRow(nested, resources),
-        ...describeEffectList(nested, resources),
+        ...nested.flatMap((child) => describeEffect(child, resources)),
       ];
     }
     case 'cooldown_modify':
@@ -445,6 +445,7 @@ function describeEffect(
 function describeEffectList(
   effects: readonly EffectConfig[],
   resources: readonly CombatResourceDefinition[],
+  timing: 'hit' | 'cast',
 ): string[] {
   const rows: string[] = [];
   const handled = new Set<number>();
@@ -464,13 +465,49 @@ function describeEffectList(
             candidate.params.buffConfig.id === effect.params.buffConfig.id,
         );
       matches.forEach(({ candidateIndex }) => handled.add(candidateIndex));
-      rows.push(...describeEffect(effect, resources, matches.length));
+      rows.push(
+        ...applyEffectTiming(
+          effect,
+          describeEffect(effect, resources, matches.length),
+          timing,
+        ),
+      );
       return;
     }
     handled.add(index);
-    rows.push(...describeEffect(effect, resources));
+    rows.push(
+      ...applyEffectTiming(effect, describeEffect(effect, resources), timing),
+    );
   });
   return rows;
+}
+
+function applyEffectTiming(
+  effect: EffectConfig,
+  rows: readonly string[],
+  timing: 'hit' | 'cast',
+): string[] {
+  const timingLabel = timing === 'hit' ? '命中后' : '施展后';
+  return rows.map((row) => {
+    if (
+      row.startsWith('伤害：') ||
+      row.startsWith('暴击：') ||
+      row.startsWith('穿防：') ||
+      row.startsWith('施放条件：') ||
+      /点.+时总倍率：/.test(row)
+    ) {
+      return row;
+    }
+    if (effect.type === 'queue_action') {
+      if (row.startsWith('后发：') || row.startsWith('蓄势：除')) return row;
+      if (row.startsWith('蓄势：')) return `${timingLabel}：${row}`;
+      return `后发命中后：${row.replace(/^施放后：/, '')}`;
+    }
+    if (row.startsWith('施放后：')) {
+      return `${timingLabel}：${row.slice('施放后：'.length)}`;
+    }
+    return `${timingLabel}：${row}`;
+  });
 }
 
 export function describeSectAbilityConfig(
@@ -490,7 +527,13 @@ export function describeSectAbilityConfig(
     }
   }
   rows.push(...damageEffectsRow(config.effects ?? [], resources));
-  rows.push(...describeEffectList(config.effects ?? [], resources));
-  rows.push(...describeEffectList(config.castEffects ?? [], resources));
+  rows.push(
+    ...describeEffectList(
+      config.effects ?? [],
+      resources,
+      config.targetPolicy?.team === 'enemy' ? 'hit' : 'cast',
+    ),
+  );
+  rows.push(...describeEffectList(config.castEffects ?? [], resources, 'cast'));
   return Array.from(new Set(rows.filter(Boolean)));
 }

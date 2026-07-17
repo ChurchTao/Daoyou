@@ -6,10 +6,17 @@ import {
   SWIFT_GUARDED_EDGE,
 } from '../../../shared/LingxiaoMechanics';
 import {
+  growthDuration,
+  growthMagnitude,
+  growthStatusMagnitude,
+  nodePercent,
+} from '../../../shared/LingxiaoNodeDescription';
+import {
   addBorrowedNodePassive,
   addLingxiaoPassive,
 } from '../../../shared/SwordNodePassives';
 import { swiftSwordBuild } from '../SwiftSwordBuildFacade';
+import { SWIFT_RETURNING_SWALLOW_COUNTER_COEFFICIENT } from '../variants';
 
 export const SWIFT_LAYER_3_NODES = [
   createLingxiaoNode(
@@ -17,9 +24,12 @@ export const SWIFT_LAYER_3_NODES = [
       id: 'swift-returning-swallow',
       layerId: '3',
       name: '燕返',
-      description: '《藏锋听雷》的反击伤害由40%物攻提高至60%物攻，命中后施加1层剑痕。',
+      description:
+        '提高《藏锋听雷》的首次闪避反击伤害，命中后施加1层随《问剑篇》成长的剑痕。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('returningSwallow'),
+    (context) =>
+      `《藏锋听雷》的首次闪避反击造成相当于${nodePercent(growthMagnitude(context, 'void-step', SWIFT_RETURNING_SWALLOW_COUNTER_COEFFICIENT))}物攻的伤害；命中后施加1层剑痕，每层使目标受到的直接、反击和追击伤害提高${nodePercent(growthStatusMagnitude(context, 'lingxiao-canon', 0.02))}，持续目标未来${growthDuration(context, 'lingxiao-canon', 3)}次行动。`,
   ),
   createLingxiaoNode(
     {
@@ -40,7 +50,8 @@ export const SWIFT_LAYER_3_NODES = [
       id: 'swift-guarded-edge',
       layerId: '3',
       name: '守锋',
-      description: '被控制而跳过行动时剑势不衰减；下一次通过积势神通获得剑势时额外获得1点。',
+      description:
+        '被控制而跳过行动时剑势不衰减；下一次通过积势神通获得剑势时额外获得1点。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('guardedEdge');
@@ -87,10 +98,14 @@ export const SWIFT_LAYER_3_NODES = [
             ],
           },
         ],
-        presentationModifiers: [{
-          abilityId: 'guiding-sword',
-          factRows: ['参悟·守锋：被控制而跳过行动时剑势不衰减；下一次通过积势神通获得剑势时额外获得1点'],
-        }],
+        presentationModifiers: [
+          {
+            abilityId: 'guiding-sword',
+            factRows: [
+              '参悟·守锋：被控制而跳过行动时剑势不衰减；下一次通过积势神通获得剑势时额外获得1点',
+            ],
+          },
+        ],
       });
     },
   ),

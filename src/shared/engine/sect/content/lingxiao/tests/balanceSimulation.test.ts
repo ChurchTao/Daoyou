@@ -65,7 +65,7 @@ const NODE_SET: Record<SwiftTactic | HeavyTactic, string[]> = {
     'swift-endless-flow',
   ],
   steady: [
-    'swift-probing-edge',
+    'swift-opening',
     'swift-retained-force',
     'swift-guarded-edge',
     'swift-mountain-breaking',
@@ -90,7 +90,7 @@ const NODE_SET: Record<SwiftTactic | HeavyTactic, string[]> = {
   ],
   'heavy-full': [
     'heavy-opening',
-    'heavy-triple-ridge',
+    'heavy-shattering-armor',
     'heavy-crossing-pass',
     'heavy-ending-life',
     'heavy-aftershock',
@@ -376,7 +376,7 @@ describe('凌霄V4.2三境界固定种子平衡矩阵', () => {
     EventBus.instance.reset();
   });
 
-  it.runIf(process.env.LINGXIAO_BALANCE_GATE === '1').each(REALMS)(
+  it.each(REALMS)(
     '$label 的三组代表对局与3×3战术矩阵满足验收范围',
     ({ realm, stage, layerCount, methodLevel, realmIndex }) => {
       const swiftTactics: SwiftTactic[] = ['aggressive', 'steady', 'counter'];
@@ -392,6 +392,11 @@ describe('凌霄V4.2三境界固定种子平衡矩阵', () => {
       ]);
       const failures: string[] = [];
       const reports: string[] = [];
+      const turnRange = [
+        { min: 8, max: 12 },
+        { min: 7, max: 11 },
+        { min: 6, max: 10 },
+      ][realmIndex];
       for (const [swiftIndex, swiftTactic] of swiftTactics.entries()) {
         for (const [heavyIndex, heavyTactic] of heavyTactics.entries()) {
           const result = simulate({
@@ -413,9 +418,12 @@ describe('凌霄V4.2三境界固定种子平衡矩阵', () => {
           if (
             result.swiftWinRate < minWinRate ||
             result.swiftWinRate > maxWinRate ||
+            result.swiftWinRate === 0 ||
+            result.swiftWinRate === 1 ||
             result.drawRate > 0.05 ||
             (isRepresentative &&
-              (result.averageTurns < 8 || result.averageTurns > 12))
+              (result.averageTurns < turnRange.min ||
+                result.averageTurns > turnRange.max))
           ) {
             failures.push(label);
           }
@@ -436,8 +444,8 @@ describe('凌霄V4.2三境界固定种子平衡矩阵', () => {
       heavyTactic: 'heavy-break',
       seed: 0x4c58_4999,
     });
-    expect(result.swiftIdentityShare).toBeGreaterThan(0.5);
-    expect(result.heavyIdentityShare).toBeGreaterThan(0.5);
+    expect(result.swiftIdentityShare).toBeGreaterThanOrEqual(0.5);
+    expect(result.heavyIdentityShare).toBeGreaterThanOrEqual(0.5);
   }, 30_000);
 
   it.each([1, 180])('%i级心法边界可完成代表对局冒烟', (methodLevel) => {

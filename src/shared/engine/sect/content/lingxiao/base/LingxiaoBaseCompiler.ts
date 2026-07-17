@@ -117,6 +117,7 @@ export function compileLingxiaoBase(
     ],
   });
   active('turning-body', {
+    targetTeam: 'self',
     effects: [],
     castEffects: [
       selfBuff(
@@ -167,10 +168,10 @@ export function compileLingxiaoBase(
   active('breaking-edge', {
     effects: [
       sectEffects.physicalDamage(0.95),
-      {
-        type: 'dispel',
-        params: { targetTag: GameplayTags.BUFF.TYPE.BUFF, maxCount: 1 },
-      },
+      sectEffects.dispelPositiveBuffsByMethod(
+        1,
+        context.sect.methods['edge-cleansing'],
+      ),
     ],
   });
   active('sword-aegis', {

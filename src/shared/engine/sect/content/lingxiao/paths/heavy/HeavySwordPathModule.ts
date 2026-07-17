@@ -49,12 +49,14 @@ const HEAVY_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
     {
       id: 'heavy-full',
       name: '极势',
-      description: '优先积蓄剑势与至少2层裂甲，达到6点剑势后以《剑破万法》全力收束。',
+      description:
+        '4点剑势起且裂甲不足2层时，提前准备《藏锋听雷》；6点剑势但裂甲仍不足时先补甲，满足后以《剑破万法》收束。',
     },
     {
       id: 'heavy-guard',
       name: '守山',
-      description: '优先建立护盾并施展《剑心通明》，剑势达到5点后再行收束。',
+      description:
+        '无护盾时优先《踏雪无痕》；气血低于65%且《剑心通明》缺失时施展剑心；剑势达到5点后收束。',
     },
   ],
 };

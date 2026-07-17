@@ -335,9 +335,7 @@ function PathDrawer({
     />
   ) : meridianFooterAction === 'save' ? (
     <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-      <p className="text-crimson">
-        参悟方案{SLOT_NAMES[slot]}尚未保存。
-      </p>
+      <p className="text-crimson">参悟方案{SLOT_NAMES[slot]}尚未保存。</p>
       <InkButton
         variant="primary"
         disabled={busy}
@@ -547,7 +545,11 @@ function PathDrawer({
                               className={`flex h-full flex-col items-stretch justify-start p-3 text-left text-sm leading-6 ${selected ? 'bg-crimson/10 text-crimson' : 'bg-ink/5'} ${available ? '' : 'cursor-not-allowed opacity-50'}`}
                             >
                               <strong className="block">{node.name}</strong>
-                              <p className="mt-1">{node.description}</p>
+                              <p className="mt-1">
+                                {preview.nodes.find(
+                                  (previewNode) => previewNode.id === node.id,
+                                )?.description ?? node.description}
+                              </p>
                             </button>
                           );
                         })}

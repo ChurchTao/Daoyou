@@ -53,7 +53,7 @@ const SWIFT_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
       id: 'counter',
       name: '回燕',
       description:
-        '优先维持《藏锋听雷》与《踏雪无痕》，剑势达到5点后再行收束。',
+        '优先补《藏锋听雷》；身法不占优且《踏雪无痕》缺失时，先踏雪再施展《剑荡山河》；剑势达到5点后收束。',
     },
   ],
 };

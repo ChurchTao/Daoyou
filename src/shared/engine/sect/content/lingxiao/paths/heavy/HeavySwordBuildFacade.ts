@@ -1,11 +1,11 @@
+import { DamageSource } from '@shared/engine/battle-v5/core/types';
+import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import type {
   SectBuildBuilder,
   SectCompiledBuild,
   SectPathCompileContext,
 } from '../../../../core';
 import { SectAbilityFactory, sectEffects } from '../../../../core';
-import { GameplayTags } from '@shared/engine/shared/tag-domain';
-import { DamageSource } from '@shared/engine/battle-v5/core/types';
 import { LINGXIAO_SECT_ID } from '../../ids';
 import { LINGXIAO_SWORD_MOMENTUM } from '../../shared/LingxiaoMechanics';
 import {
@@ -41,6 +41,7 @@ export class HeavySwordBuildFacade {
         this.baseBuild,
         this.context.path,
         this.features,
+        this.context.sect.methods['edge-cleansing'],
       ),
     );
     const resource = this.baseBuild.resources[0];
@@ -59,25 +60,32 @@ export function initializeHeavySwordBuild(
   const facade = new HeavySwordBuildFacade(context, builder, builder.build());
   builder.setExtension(HEAVY_BUILD_FACADE, facade);
   const factory = new SectAbilityFactory(LINGXIAO_SECT_ID);
-  builder.addPassive(factory.passive({
-    id: 'heavy-shield-momentum',
-    name: '大巧不工',
-    pathId: context.path.pathId,
-    listeners: [{
-      id: 'sect.lingxiao.heavy.shield-momentum',
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: 0,
-      mapping: { caster: 'owner', target: 'owner' },
-      guard: { skipSecondaryDamageSource: true },
-      budget: { maxTriggers: 1, reset: 'round' },
-      conditions: [
-        { type: 'damage_source_is', params: { damageSource: DamageSource.DIRECT } },
-        { type: 'shield_absorbed_at_least', params: { value: 1 } },
+  builder.addPassive(
+    factory.passive({
+      id: 'heavy-shield-momentum',
+      name: '大巧不工',
+      pathId: context.path.pathId,
+      listeners: [
+        {
+          id: 'sect.lingxiao.heavy.shield-momentum',
+          eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+          scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+          priority: 0,
+          mapping: { caster: 'owner', target: 'owner' },
+          guard: { skipSecondaryDamageSource: true },
+          budget: { maxTriggers: 1, reset: 'round' },
+          conditions: [
+            {
+              type: 'damage_source_is',
+              params: { damageSource: DamageSource.DIRECT },
+            },
+            { type: 'shield_absorbed_at_least', params: { value: 1 } },
+          ],
+          effects: [sectEffects.modifyResource(LINGXIAO_SWORD_MOMENTUM, 1)],
+        },
       ],
-      effects: [sectEffects.modifyResource(LINGXIAO_SWORD_MOMENTUM, 1)],
-    }],
-  }));
+    }),
+  );
 }
 
 export function heavySwordBuild(

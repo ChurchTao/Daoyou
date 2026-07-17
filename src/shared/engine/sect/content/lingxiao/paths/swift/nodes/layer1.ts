@@ -11,6 +11,11 @@ import {
   createSwordMark,
 } from '../../../shared/LingxiaoMechanics';
 import {
+  growthDuration,
+  growthStatusMagnitude,
+  nodePercent,
+} from '../../../shared/LingxiaoNodeDescription';
+import {
   addHiddenNodePassive,
   addLingxiaoPassive,
   addProbingNodePassive,
@@ -71,7 +76,8 @@ export const SWIFT_LAYER_1_NODES = [
       id: 'swift-hidden-edge',
       layerId: '1',
       name: '敛锋',
-      description: '本场战斗首次受到直接伤害时，该次伤害降低10%，并获得3点剑势。',
+      description:
+        '本场战斗首次受到直接伤害时，该次伤害降低10%，并获得3点剑势。',
     },
     (context, builder) =>
       addHiddenNodePassive(context, builder, {
@@ -85,7 +91,8 @@ export const SWIFT_LAYER_1_NODES = [
       id: 'swift-probing-edge',
       layerId: '1',
       name: '探虚',
-      description: '《基础剑式》每累计命中2次，额外获得1点剑势，并施加1层剑痕。',
+      description:
+        '《基础剑式》每累计命中2次，额外获得1点剑势，并施加1层随《问剑篇》成长的剑痕。',
     },
     (context, builder) =>
       addProbingNodePassive(context, builder, {
@@ -95,5 +102,7 @@ export const SWIFT_LAYER_1_NODES = [
         basicAbilityId: 'plain-sword',
         statusEffect: createSwordMark(),
       }),
+    (context) =>
+      `《基础剑式》每累计命中2次，额外获得1点剑势，并施加1层剑痕；每层使目标受到的直接、反击和追击伤害提高${nodePercent(growthStatusMagnitude(context, 'lingxiao-canon', 0.02))}，持续目标未来${growthDuration(context, 'lingxiao-canon', 3)}次行动。`,
   ),
 ] as const;

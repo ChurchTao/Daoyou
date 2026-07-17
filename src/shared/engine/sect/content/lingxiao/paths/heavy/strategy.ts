@@ -19,10 +19,17 @@ export class LingxiaoHeavySelectionStrategy implements AbilitySelectionStrategy 
     const index = new SectStrategyCandidates(LINGXIAO_SECT_ID, candidates);
     const momentum = caster.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM);
     const buffs = new Set(caster.buffs.getAllBuffIds());
-    const finisherThreshold = this.tacticId === 'heavy-break' ? 3 : this.tacticId === 'heavy-guard' ? 5 : 6;
-    const armorRend = opponent.buffs.getAllBuffs().find(
-      (buff) => buff.id === LINGXIAO_ARMOR_REND_BUFF,
-    )?.getLayer() ?? 0;
+    const finisherThreshold =
+      this.tacticId === 'heavy-break'
+        ? 3
+        : this.tacticId === 'heavy-guard'
+          ? 5
+          : 6;
+    const armorRend =
+      opponent.buffs
+        .getAllBuffs()
+        .find((buff) => buff.id === LINGXIAO_ARMOR_REND_BUFF)
+        ?.getLayer() ?? 0;
 
     const mountainStep = index.find('shadow-step');
     if (
@@ -41,12 +48,29 @@ export class LingxiaoHeavySelectionStrategy implements AbilitySelectionStrategy 
     ) {
       return index.resultForCandidate(sinking, 660);
     }
+    const hidden = index.find('turning-body');
+    if (
+      this.tacticId === 'heavy-full' &&
+      momentum >= 4 &&
+      armorRend < 2 &&
+      hidden &&
+      !buffs.has('sect.lingxiao.heavy.hidden-edge')
+    ) {
+      return index.resultForCandidate(hidden, 650);
+    }
     const heart = index.find('sword-aegis');
-    if (heart && !buffs.has('sect.lingxiao.heavy.mountain-heart') && caster.getHpPercent() < 0.65) {
+    if (
+      heart &&
+      !buffs.has('sect.lingxiao.heavy.mountain-heart') &&
+      caster.getHpPercent() < 0.65
+    ) {
       return index.resultForCandidate(heart, 620);
     }
-    const hidden = index.find('turning-body');
-    if (hidden && this.tacticId === 'heavy-break' && !buffs.has('sect.lingxiao.heavy.hidden-edge')) {
+    if (
+      hidden &&
+      this.tacticId === 'heavy-break' &&
+      !buffs.has('sect.lingxiao.heavy.hidden-edge')
+    ) {
       return index.resultForCandidate(hidden, 590);
     }
     const finisher = index.find('sect-ultimate');
@@ -55,13 +79,19 @@ export class LingxiaoHeavySelectionStrategy implements AbilitySelectionStrategy 
       momentum >= finisherThreshold &&
       (this.tacticId !== 'heavy-full' || armorRend >= 2)
     ) {
-      return index.resultForCandidate(finisher, opponent.getHpPercent() < 0.25 ? 570 : 520);
+      return index.resultForCandidate(
+        finisher,
+        opponent.getHpPercent() < 0.25 ? 570 : 520,
+      );
     }
     const heavyIntent = index.find('nurturing-sword');
     if (heavyIntent && !buffs.has('sect.lingxiao.heavy.weightless-edge')) {
       return index.resultForCandidate(heavyIntent, 400);
     }
     if (sinking) return index.resultForCandidate(sinking, 360);
-    return index.resultForCandidate(index.find('guiding-sword') ?? candidates[0], 100);
+    return index.resultForCandidate(
+      index.find('guiding-sword') ?? candidates[0],
+      100,
+    );
   }
 }

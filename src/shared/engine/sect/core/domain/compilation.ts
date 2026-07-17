@@ -78,10 +78,17 @@ export interface ResolvedSectPathAbilityPreview {
   current?: ResolvedSectAbility;
 }
 
+export interface ResolvedSectNodePreview {
+  id: string;
+  name: string;
+  description: string;
+}
+
 export interface ResolvedSectPathPreview {
   pathId: string;
   learned: boolean;
   active: boolean;
   activeMeridianSlot?: 1 | 2 | 3;
+  nodes: ResolvedSectNodePreview[];
   abilities: ResolvedSectPathAbilityPreview[];
 }

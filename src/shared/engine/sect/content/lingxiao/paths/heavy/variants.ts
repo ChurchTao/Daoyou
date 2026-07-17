@@ -56,6 +56,17 @@ export const EMPTY_HEAVY_FEATURES: HeavySwordFeatures = {
   mountainRiverEcho: false,
 };
 
+export const HEAVY_CHARGED_REDUCTION = 0.32;
+export const HEAVY_CHARGED_STRIKE_COEFFICIENT = 2.08;
+export const HEAVY_CHARGED_GUARD_SHIELD_COEFFICIENT = 0.36;
+export const HEAVY_RETURNING_PEAK_SHIELD_COEFFICIENT = 0.36;
+export const HEAVY_IMMOVABLE_SHIELD_COEFFICIENT = 0.56;
+export const HEAVY_IMMOVABLE_COUNTER_COEFFICIENT = 0.36;
+export const HEAVY_HEAVEN_CLEAVING_TOTAL_COEFFICIENT = 2.8;
+export const HEAVY_FINISHER_COEFFICIENT_PER_MOMENTUM = 0.29;
+export const HEAVY_ECHO_HEAL_RATIO = 0.04;
+export const HEAVY_ECHO_SHIELD_COEFFICIENT = 0.64;
+
 const damage = (
   coefficient: number,
   damageSource: DamageSource = DamageSource.DIRECT,
@@ -119,6 +130,7 @@ export function buildHeavyAbilities(
   baseBuild: Readonly<SectCompiledBuild>,
   path: CultivatorSectPathState,
   features: HeavySwordFeatures,
+  edgeCleansingLevel?: number,
 ): Record<string, SectCompiledAbility> {
   const built = { ...baseBuild.abilities };
   const factory = new SectAbilityFactory(LINGXIAO_SECT_ID);
@@ -173,6 +185,7 @@ export function buildHeavyAbilities(
     id: 'turning-body',
     cooldown: 3,
     role: 'defensive',
+    targetTeam: 'self',
     effects: [],
     castEffects: [
       selfBuff(
@@ -180,11 +193,19 @@ export function buildHeavyAbilities(
         '藏锋听雷',
         1,
         [],
-        reductionListeners(features.chargedReduction ? 0.32 : 0.24),
+        reductionListeners(
+          features.chargedReduction ? HEAVY_CHARGED_REDUCTION : 0.24,
+        ),
         false,
       ),
       ...(features.chargedGuardShield
-        ? [sectEffects.shieldByAttack(0.48, undefined, 'caster')]
+        ? [
+            sectEffects.shieldByAttack(
+              HEAVY_CHARGED_GUARD_SHIELD_COEFFICIENT,
+              undefined,
+              'caster',
+            ),
+          ]
         : []),
       {
         type: 'queue_action',
@@ -202,7 +223,9 @@ export function buildHeavyAbilities(
             GameplayTags.ABILITY.TARGET.SINGLE,
           ],
           effects: [
-            damage(features.chargedStrike ? 2.08 : 1.76),
+            damage(
+              features.chargedStrike ? HEAVY_CHARGED_STRIKE_COEFFICIENT : 1.76,
+            ),
             ...createArmorRend(features.chargedStrike ? 2 : 1),
             sectEffects.modifyResource(resourceId, 2),
           ],
@@ -235,10 +258,7 @@ export function buildHeavyAbilities(
     role: 'utility',
     effects: [
       damage(1.04),
-      {
-        type: 'dispel',
-        params: { targetTag: GameplayTags.BUFF.TYPE.BUFF, maxCount: 1 },
-      },
+      sectEffects.dispelPositiveBuffsByMethod(1, edgeCleansingLevel),
     ],
   });
   built['sword-aegis'] = active({
@@ -248,7 +268,13 @@ export function buildHeavyAbilities(
     targetTeam: 'self',
     effects: [
       ...(features.immovableMountain
-        ? [sectEffects.shieldByAttack(0.8, undefined, 'caster')]
+        ? [
+            sectEffects.shieldByAttack(
+              HEAVY_IMMOVABLE_SHIELD_COEFFICIENT,
+              undefined,
+              'caster',
+            ),
+          ]
         : []),
       selfBuff(
         'sect.lingxiao.heavy.mountain-heart',
@@ -277,7 +303,12 @@ export function buildHeavyAbilities(
                   guard: { skipSecondaryDamageSource: true },
                   budget: { maxTriggers: 1, reset: 'round' as const },
                   conditions: [DIRECT_DAMAGE_CONDITION],
-                  effects: [damage(0.48, DamageSource.COUNTER)],
+                  effects: [
+                    damage(
+                      HEAVY_IMMOVABLE_COUNTER_COEFFICIENT,
+                      DamageSource.COUNTER,
+                    ),
+                  ],
                 },
               ]
             : []),
@@ -315,8 +346,13 @@ export function buildHeavyAbilities(
         type: 'resource_scaled_damage',
         params: {
           resourceId,
-          baseCoefficient: (heaven ? 1.06 : 0.88) * returnScale,
-          coefficientPerPoint: 0.29 * returnScale,
+          baseCoefficient:
+            (heaven
+              ? HEAVY_HEAVEN_CLEAVING_TOTAL_COEFFICIENT -
+                HEAVY_FINISHER_COEFFICIENT_PER_MOMENTUM * 6
+              : 0.88) * returnScale,
+          coefficientPerPoint:
+            HEAVY_FINISHER_COEFFICIENT_PER_MOMENTUM * returnScale,
           minPoints: heaven ? 6 : 3,
           maxPoints: 6,
           consume: 'all',
@@ -331,7 +367,11 @@ export function buildHeavyAbilities(
       ...(features.returningPeak
         ? [
             sectEffects.modifyResource(resourceId, 2, undefined, 'refund'),
-            sectEffects.shieldByAttack(0.48, undefined, 'caster'),
+            sectEffects.shieldByAttack(
+              HEAVY_RETURNING_PEAK_SHIELD_COEFFICIENT,
+              undefined,
+              'caster',
+            ),
           ]
         : []),
       ...(features.mountainRiverEcho
@@ -354,8 +394,12 @@ export function buildHeavyAbilities(
                 operation: 'set' as const,
                 amount: 3,
                 effects: [
-                  sectEffects.healMaxHp(0.04, 'caster'),
-                  sectEffects.shieldByAttack(0.64, undefined, 'caster'),
+                  sectEffects.healMaxHp(HEAVY_ECHO_HEAL_RATIO, 'caster'),
+                  sectEffects.shieldByAttack(
+                    HEAVY_ECHO_SHIELD_COEFFICIENT,
+                    undefined,
+                    'caster',
+                  ),
                 ],
               },
             },

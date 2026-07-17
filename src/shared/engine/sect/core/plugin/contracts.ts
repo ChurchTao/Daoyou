@@ -15,6 +15,7 @@ import type {
 
 export interface SectNodePlugin {
   readonly definition: import('../domain').SectMeridianNodeDefinition;
+  describe?(context: SectProjectionContext): string;
   apply(context: SectNodeApplyContext, builder: SectBuildBuilder): void;
 }
 

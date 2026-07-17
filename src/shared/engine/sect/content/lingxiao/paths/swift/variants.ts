@@ -68,6 +68,13 @@ export const EMPTY_SWIFT_FEATURES: SwiftSwordFeatures = {
   unendingWind: false,
 };
 
+export const SWIFT_SPLIT_LIGHT_HIT_COEFFICIENT = 0.21;
+export const SWIFT_RETURNING_SWALLOW_COUNTER_COEFFICIENT = 0.6;
+export const SWIFT_MOUNTAIN_BREAKING_COEFFICIENT = 0.12;
+export const SWIFT_SHEATHING_SHIELD_COEFFICIENT = 0.48;
+export const SWIFT_ENDLESS_FLOW_COEFFICIENT = 0.32;
+export const SWIFT_UNENDING_WIND_SHIELD_COEFFICIENT = 0.4;
+
 const damage = (
   coefficient: number,
   conditions?: EffectConfig['conditions'],
@@ -93,6 +100,7 @@ const selfBuff = (
   modifiers: NonNullable<NonNullable<AbilityConfig['modifiers']>>,
   listeners?: NonNullable<AbilityConfig['listeners']>,
   growsWithMethod = true,
+  stackRule: StackRule = StackRule.REFRESH_DURATION,
 ): EffectConfig => ({
   type: 'apply_buff',
   params: {
@@ -103,7 +111,7 @@ const selfBuff = (
         name,
         type: BuffType.BUFF,
         duration,
-        stackRule: StackRule.REFRESH_DURATION,
+        stackRule,
         tags: [GameplayTags.BUFF.TYPE.BUFF],
         modifiers,
         listeners,
@@ -117,6 +125,7 @@ export function buildSwiftAbilities(
   baseBuild: Readonly<SectCompiledBuild>,
   path: CultivatorSectPathState,
   features: SwiftSwordFeatures,
+  edgeCleansingLevel?: number,
 ): Record<string, SectCompiledAbility> {
   const built = { ...baseBuild.abilities };
   const factory = new SectAbilityFactory(LINGXIAO_SECT_ID);
@@ -174,7 +183,9 @@ export function buildSwiftAbilities(
   });
 
   const hits = features.splitLight ? 7 : 5;
-  const hitCoefficient = features.splitLight ? 0.23 : 0.29;
+  const hitCoefficient = features.splitLight
+    ? SWIFT_SPLIT_LIGHT_HIT_COEFFICIENT
+    : 0.29;
   built['linked-edge'] = active({
     id: 'linked-edge',
     cooldown: 2,
@@ -247,7 +258,7 @@ export function buildSwiftAbilities(
           {
             attrType: AttributeType.EVASION_RATE,
             type: ModifierType.FIXED,
-            value: 0.2,
+            value: 0.24,
           },
         ],
         [
@@ -260,7 +271,9 @@ export function buildSwiftAbilities(
             budget: { maxTriggers: 1, reset: 'buff_lifetime' },
             effects: [
               damage(
-                features.returningSwallow ? 0.6 : 0.4,
+                features.returningSwallow
+                  ? SWIFT_RETURNING_SWALLOW_COUNTER_COEFFICIENT
+                  : 0.4,
                 undefined,
                 false,
                 DamageSource.COUNTER,
@@ -270,11 +283,19 @@ export function buildSwiftAbilities(
                 ? [createSwordMark()]
                 : []),
               ...(features.unendingWind
-                ? [sectEffects.shieldByAttack(0.32, undefined, 'caster')]
+                ? [
+                    sectEffects.shieldByAttack(
+                      SWIFT_UNENDING_WIND_SHIELD_COEFFICIENT,
+                      undefined,
+                      'caster',
+                    ),
+                  ]
                 : []),
             ],
           },
         ],
+        true,
+        StackRule.OVERRIDE,
       ),
     ],
   });
@@ -312,6 +333,8 @@ export function buildSwiftAbilities(
             effects: [sectEffects.modifyResource(resourceId, 1)],
           },
         ],
+        true,
+        StackRule.OVERRIDE,
       ),
     ],
   });
@@ -322,10 +345,7 @@ export function buildSwiftAbilities(
     role: 'utility',
     effects: [
       damage(0.95),
-      {
-        type: 'dispel',
-        params: { targetTag: GameplayTags.BUFF.TYPE.BUFF, maxCount: 1 },
-      },
+      sectEffects.dispelPositiveBuffsByMethod(1, edgeCleansingLevel),
     ],
   });
 
@@ -363,7 +383,8 @@ export function buildSwiftAbilities(
     ],
   });
 
-  const sheathingScale = features.sheathing ? 0.85 : 1;
+  const finisherScale =
+    (features.sheathing ? 0.85 : 1) * (features.shadowLine ? 0.85 : 1);
   built['sect-ultimate'] = active({
     id: 'sect-ultimate',
     cooldown: 4 + (features.shadowLine ? 1 : 0),
@@ -380,7 +401,7 @@ export function buildSwiftAbilities(
     ],
     effects: [
       damage(
-        0.3 * sheathingScale,
+        0.3 * finisherScale,
         undefined,
         false,
         DamageSource.DIRECT,
@@ -388,7 +409,7 @@ export function buildSwiftAbilities(
       ),
       ...Array.from({ length: 6 }, (_, index) =>
         damage(
-          0.33 * sheathingScale,
+          0.33 * finisherScale,
           [
             {
               type: 'combat_resource_at_least',
@@ -410,15 +431,21 @@ export function buildSwiftAbilities(
                 displayName: '剑痕',
                 consume: 'all' as const,
                 scaleEffectsByLayer: true,
-                effects: [damage(0.144, undefined, true)],
+                effects: [
+                  damage(SWIFT_MOUNTAIN_BREAKING_COEFFICIENT, undefined, true),
+                ],
               },
             },
           ]
         : []),
       ...(features.sheathing
         ? [
-            sectEffects.modifyResource(resourceId, 1, undefined, 'refund'),
-            sectEffects.shieldByAttack(0.4, undefined, 'caster'),
+            sectEffects.modifyResource(resourceId, 2, undefined, 'refund'),
+            sectEffects.shieldByAttack(
+              SWIFT_SHEATHING_SHIELD_COEFFICIENT,
+              undefined,
+              'caster',
+            ),
           ]
         : []),
       ...(features.gapless
@@ -460,7 +487,12 @@ export function buildSwiftAbilities(
                 operation: 'set' as const,
                 amount: 3,
                 effects: [
-                  damage(0.48, undefined, false, DamageSource.FOLLOW_UP),
+                  damage(
+                    SWIFT_ENDLESS_FLOW_COEFFICIENT,
+                    undefined,
+                    false,
+                    DamageSource.FOLLOW_UP,
+                  ),
                   sectEffects.modifyResource(resourceId, 1),
                 ],
               },

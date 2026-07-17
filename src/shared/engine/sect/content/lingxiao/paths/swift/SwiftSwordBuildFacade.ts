@@ -40,6 +40,7 @@ export class SwiftSwordBuildFacade {
         this.baseBuild,
         this.context.path,
         this.features,
+        this.context.sect.methods['edge-cleansing'],
       ),
     );
     const resource = this.baseBuild.resources[0];

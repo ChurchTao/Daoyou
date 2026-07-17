@@ -1,18 +1,23 @@
 import type { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill';
+import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
 import type {
   ActionPostEvent,
   DamageRequestEvent,
   DodgeEvent,
 } from '@shared/engine/battle-v5/core/events';
+import { consumeQueuedAction } from '@shared/engine/battle-v5/core/runtimeState';
 import {
   AttributeType,
+  BuffType,
   DamageSource,
   DamageType,
 } from '@shared/engine/battle-v5/core/types';
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
+import { BuffFactory } from '@shared/engine/battle-v5/factories/BuffFactory';
 import { DamageSystem } from '@shared/engine/battle-v5/systems/DamageSystem';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
+import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LINGXIAO_SWORD_MOMENTUM } from '..';
 import { projectSectCombat, resolveSectAbility } from '../..';
@@ -93,19 +98,34 @@ describe('凌霄参悟运行时语义', () => {
 
   it('留痕使剑荡山河施加两层剑痕', () => {
     const { owner, enemy } = install('swift-sword', ['swift-retained-force']);
-    const linked = owner.abilities.getAbility('sect.lingxiao.linked-edge') as ActiveSkill;
+    const linked = owner.abilities.getAbility(
+      'sect.lingxiao.linked-edge',
+    ) as ActiveSkill;
     linked.execute({ caster: owner, target: enemy });
-    expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === 'sect.lingxiao.sword-mark')?.getLayer()).toBe(2);
+    expect(
+      enemy.buffs
+        .getAllBuffs()
+        .find((buff) => buff.id === 'sect.lingxiao.sword-mark')
+        ?.getLayer(),
+    ).toBe(2);
   });
 
-  it('守心在开始蓄势时立即获得相当于60%物攻的护盾', () => {
+  it('守心在开始蓄势时立即获得成长后的护盾', () => {
     const { sect } = install('heavy-sword', ['heavy-retained-frame']);
-    const ability = resolveSectAbility({ sect, realm: '化神', abilityId: 'turning-body' }).config;
+    const ability = resolveSectAbility({
+      sect,
+      realm: '化神',
+      abilityId: 'turning-body',
+    }).config;
     expect(ability.castEffects).toContainEqual(
       expect.objectContaining({ type: 'shield' }),
     );
-    const queue = ability.castEffects?.find((effect) => effect.type === 'queue_action');
-    expect(queue?.type === 'queue_action' ? queue.params : undefined).toMatchObject({
+    const queue = ability.castEffects?.find(
+      (effect) => effect.type === 'queue_action',
+    );
+    expect(
+      queue?.type === 'queue_action' ? queue.params : undefined,
+    ).toMatchObject({
       interruptPolicy: 'uninterruptible',
       hitPolicy: 'guaranteed',
     });
@@ -180,7 +200,7 @@ describe('凌霄参悟运行时语义', () => {
     };
     EventBus.instance.publish(request);
 
-    expect(request.damageIncreasePctBucket).toBeCloseTo(0.2);
+    expect(request.damageIncreasePctBucket).toBeCloseTo(0.15);
   });
 
   it('承锋只降低整场战斗第一次直接伤害并获得2点剑势', () => {
@@ -219,8 +239,139 @@ describe('凌霄参悟运行时语义', () => {
 
     turning.execute({ caster: owner, target: enemy });
 
-    expect(owner.buffs.getAllBuffIds()).toContain('sect.lingxiao.heavy.hidden-edge');
+    expect(owner.buffs.getAllBuffIds()).toContain(
+      'sect.lingxiao.heavy.hidden-edge',
+    );
     expect(owner.getCurrentShield()).toBe(0);
     expect(enemy.getCurrentShield()).toBe(0);
+  });
+
+  it('快剑藏锋未命中时整条普通效果链失效', () => {
+    const { sect, owner, enemy } = install('swift-sword', []);
+    const turning = AbilityFactory.create(
+      resolveSectAbility({ sect, realm: '化神', abilityId: 'turning-body' })
+        .config,
+    ) as ActiveSkill;
+    const hpBefore = enemy.getCurrentHp();
+
+    turning.execute({
+      caster: owner,
+      target: enemy,
+      shouldApplyEffects: false,
+    });
+
+    expect(enemy.getCurrentHp()).toBe(hpBefore);
+    expect(owner.buffs.getAllBuffIds()).not.toContain(
+      'sect.lingxiao.returning-swallow',
+    );
+    expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(0);
+  });
+
+  it('基础与重剑藏锋不依赖前置命中并正常登记后发', () => {
+    for (const pathId of ['heavy-sword'] as const) {
+      const { sect, owner, enemy } = install(pathId, []);
+      const turning = AbilityFactory.create(
+        resolveSectAbility({ sect, realm: '化神', abilityId: 'turning-body' })
+          .config,
+      ) as ActiveSkill;
+      turning.execute({
+        caster: owner,
+        target: enemy,
+        shouldApplyEffects: false,
+      });
+      expect(consumeQueuedAction(owner)?.ability.name).toBe('听雷');
+      expect(owner.buffs.getAllBuffIds()).toContain(
+        'sect.lingxiao.heavy.hidden-edge',
+      );
+    }
+
+    const sect = sectState('heavy-sword', []);
+    sect.activePathId = undefined;
+    sect.paths = [];
+    const projection = projectSectCombat({ sect, realm: '化神' })!;
+    const owner = combatUnit('base-owner');
+    const enemy = combatUnit('base-enemy');
+    for (const resource of projection.resources)
+      owner.combatResources.define(resource);
+    const turning = AbilityFactory.create(
+      resolveSectAbility({ sect, realm: '化神', abilityId: 'turning-body' })
+        .config,
+    ) as ActiveSkill;
+    turning.execute({
+      caster: owner,
+      target: enemy,
+      shouldApplyEffects: false,
+    });
+    expect(consumeQueuedAction(owner)?.ability.name).toBe('听雷');
+  });
+
+  it('重剑攻击未命中时不获得护盾和剑势，一剑破妄也不驱散', () => {
+    const { sect, owner, enemy } = install('heavy-sword', []);
+    for (const abilityId of ['guiding-sword', 'linked-edge']) {
+      const ability = AbilityFactory.create(
+        resolveSectAbility({ sect, realm: '化神', abilityId }).config,
+      ) as ActiveSkill;
+      ability.execute({
+        caster: owner,
+        target: enemy,
+        shouldApplyEffects: false,
+      });
+    }
+    expect(owner.getCurrentShield()).toBe(0);
+    expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(0);
+
+    enemy.buffs.addBuff(
+      BuffFactory.create({
+        id: 'test.positive',
+        name: '测试增益',
+        type: BuffType.BUFF,
+        duration: 3,
+        stackRule: StackRule.OVERRIDE,
+        tags: [GameplayTags.BUFF.TYPE.BUFF],
+      }),
+      enemy,
+    );
+    const breaking = AbilityFactory.create(
+      resolveSectAbility({ sect, realm: '化神', abilityId: 'breaking-edge' })
+        .config,
+    ) as ActiveSkill;
+    breaking.execute({
+      caster: owner,
+      target: enemy,
+      shouldApplyEffects: false,
+    });
+    expect(enemy.buffs.getAllBuffIds()).toContain('test.positive');
+  });
+
+  it('快剑姿态提前重施会替换旧修改器并重置首次闪避预算', () => {
+    for (const abilityId of ['turning-body', 'shadow-step']) {
+      const { sect, owner, enemy } = install('swift-sword', []);
+      const ability = AbilityFactory.create(
+        resolveSectAbility({ sect, realm: '化神', abilityId }).config,
+      ) as ActiveSkill;
+      const target = abilityId === 'shadow-step' ? owner : enemy;
+      const dodge = (): void =>
+        EventBus.instance.publish<DodgeEvent>({
+          type: 'DodgeEvent',
+          timestamp: Date.now(),
+          caster: enemy,
+          target: owner,
+          ability,
+        });
+
+      ability.execute({ caster: owner, target });
+      const modifiedEvasion = owner.attributes.getValue(
+        AttributeType.EVASION_RATE,
+      );
+      dodge();
+      expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(1);
+
+      ability.execute({ caster: owner, target });
+      expect(owner.attributes.getValue(AttributeType.EVASION_RATE)).toBeCloseTo(
+        modifiedEvasion,
+      );
+      dodge();
+      expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(2);
+    }
   });
 });

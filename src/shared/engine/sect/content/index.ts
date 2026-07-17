@@ -41,11 +41,12 @@ export const resolveSectPathPreview = (args: {
   realm: RealmType;
   pathId: string;
 }): ResolvedSectPathPreview => {
-  const definition = productionSectRuntime.registry.require(
-    args.sect.sectId,
-  ).definition;
+  const sectModule = productionSectRuntime.registry.require(args.sect.sectId);
+  const definition = sectModule.definition;
   const path = definition.paths.find((entry) => entry.id === args.pathId);
   if (!path) throw new Error(`未知宗门流派: ${args.pathId}`);
+  const pathModule = sectModule.paths.get(path.id);
+  if (!pathModule) throw new Error(`未知宗门流派模块: ${args.pathId}`);
   const learnedPath = args.sect.paths.find(
     (entry) => entry.pathId === args.pathId,
   );
@@ -74,6 +75,16 @@ export const resolveSectPathPreview = (args: {
     learned: Boolean(learnedPath),
     active: args.sect.activePathId === path.id,
     activeMeridianSlot: learnedPath?.activeMeridianSlot,
+    nodes: path.nodes.map((node) => {
+      const plugin = pathModule.nodes.get(node.id);
+      return {
+        id: node.id,
+        name: node.name,
+        description:
+          plugin?.describe?.({ sect: args.sect, realm: args.realm }) ??
+          node.description,
+      };
+    }),
     abilities: definition.abilities.map((ability) => {
       const baseline = productionSectRuntime.resolveAbility({
         sect: baselineState,
