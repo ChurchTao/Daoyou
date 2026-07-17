@@ -39,15 +39,6 @@ const methods = Array.from({ length: 6 }, (_, index) => ({
   slot: (index + 1) as 1 | 2 | 3 | 4 | 5 | 6,
   name: `样例心法${index + 1}`,
   description: '扩展契约测试心法。',
-  milestones: [
-    {
-      id: `fixture-milestone-${index + 1}`,
-      level: 1,
-      name: '初悟',
-      description: '解锁法术',
-      abilityId: `fixture-ability-${index + 1}`,
-    },
-  ],
 }));
 const abilities = methods.map((method, index) => ({
   id: `fixture-ability-${index + 1}`,
@@ -228,7 +219,6 @@ class FixtureSectModule extends BaseSectModule {
 }
 
 export const FIXTURE_SECT_MODULE = new FixtureSectModule();
-export const FIXTURE_SECT_DEFINITION = FIXTURE_SECT_MODULE.definition;
 
 export function fixtureSectState(): CultivatorSectState {
   return {

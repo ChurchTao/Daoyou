@@ -2,21 +2,13 @@ import {
   AttributeType,
   ModifierType,
 } from '@shared/engine/battle-v5/core/types';
-import type {
-  PlayerRaceDefinition,
-  SectDefinitionWithoutPaths,
-} from '../../core';
+import type { SectDefinitionWithoutPaths } from '../../core';
 import { LINGXIAO_SECT_ID } from './ids';
 
-export const HUMAN_RACE: PlayerRaceDefinition = {
-  id: 'human',
-  name: '人族',
-  description: '生于尘世而善悟百法，诸道皆可问、诸门皆可入。',
-};
 export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
   id: LINGXIAO_SECT_ID,
   name: '凌霄剑宗',
-  description: '拜山问剑，研习六卷心法，于快重二道中自定剑途。',
+  description: '拜山问剑，研习六卷心法，于快剑、重剑二道中自定剑途。',
   trial: {
     name: '入门试剑',
     description: '借宗门法器体验基础传承，胜负皆记作完成。',
@@ -38,22 +30,6 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       description:
         '凌霄历代剑修将平生问剑之悟尽录于此；六卷同源，诸般剑诀皆由一问而生。',
       perLevelDescription: '限制各基础分卷可研习的最高等级。',
-      milestones: [
-        {
-          id: 'canon-plain',
-          level: 1,
-          name: '基础剑式',
-          description: '一招一式皆循剑理，平实之中自有万般变化。',
-          abilityId: 'plain-sword',
-        },
-        {
-          id: 'canon-ultimate',
-          level: 10,
-          name: '剑破万法',
-          description: '一剑既出，诸法皆寂；万般玄妙，尽断于锋芒之前。',
-          abilityId: 'sect-ultimate',
-        },
-      ],
     },
     {
       id: 'sword-guidance',
@@ -66,22 +42,6 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
         type: ModifierType.ADD,
         value: 0.0005,
       },
-      milestones: [
-        {
-          id: 'sword-guiding',
-          level: 1,
-          name: '剑起沧澜',
-          description: '剑意初起如沧海生澜，一重未歇，一重又至。',
-          abilityId: 'guiding-sword',
-        },
-        {
-          id: 'sword-linked',
-          level: 5,
-          name: '剑荡山河',
-          description: '剑锋纵横，如长河奔涌；所过之处，山河亦为之震荡。',
-          abilityId: 'linked-edge',
-        },
-      ],
     },
     {
       id: 'void-step',
@@ -94,22 +54,6 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
         type: ModifierType.FIXED,
         value: 0.0002,
       },
-      milestones: [
-        {
-          id: 'void-turning',
-          level: 3,
-          name: '藏锋听雷',
-          description: '锋芒藏于静处，杀机伏于未发；剑出之时，恰似平地惊雷。',
-          abilityId: 'turning-body',
-        },
-        {
-          id: 'void-shadow',
-          level: 5,
-          name: '踏雪无痕',
-          description: '身随剑走，来去无迹；踏雪而过，不留半点尘痕。',
-          abilityId: 'shadow-step',
-        },
-      ],
     },
     {
       id: 'edge-cleansing',
@@ -122,15 +66,6 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
         type: ModifierType.FIXED,
         value: 0.0002,
       },
-      milestones: [
-        {
-          id: 'edge-breaking',
-          level: 3,
-          name: '一剑破妄',
-          description: '照见虚实，勘破迷障；一剑所向，诸般妄法无所遁形。',
-          abilityId: 'breaking-edge',
-        },
-      ],
     },
     {
       id: 'origin-returning',
@@ -143,15 +78,6 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
         type: ModifierType.ADD,
         value: 0.0005,
       },
-      milestones: [
-        {
-          id: 'origin-aegis',
-          level: 3,
-          name: '剑心通明',
-          description: '剑心澄澈，如明镜照世；万法临身，自见其隙。',
-          abilityId: 'sword-aegis',
-        },
-      ],
     },
     {
       id: 'sword-nurturing',
@@ -164,15 +90,6 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
         type: ModifierType.ADD,
         value: 0.0005,
       },
-      milestones: [
-        {
-          id: 'nurturing-sword',
-          level: 3,
-          name: '人剑合一',
-          description: '心与剑合，意与气通；人即是剑，剑亦由心。',
-          abilityId: 'nurturing-sword',
-        },
-      ],
     },
   ],
   abilities: [

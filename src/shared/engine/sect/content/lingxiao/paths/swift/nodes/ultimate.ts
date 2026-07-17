@@ -34,7 +34,7 @@ export const SWIFT_ULTIMATE_NODES = [
         ],
         presentationModifiers: [{
           abilityId: 'sect-ultimate',
-          factRows: ['经脉·无间：施展《剑破万法》后，追加相当于60%物攻的追击并获得1点剑势，每3回合最多触发一次'],
+          factRows: ['参悟·无间：施展《剑破万法》后，追加相当于60%物攻的追击并获得1点剑势，每3回合最多触发一次'],
         }],
       });
     },

@@ -52,7 +52,7 @@ export const SWIFT_LAYER_4_NODES = [
         ],
         presentationModifiers: [{
           abilityId: 'sect-ultimate',
-          factRows: ['经脉·追命：目标气血低于25%时，《剑破万法》造成的伤害提高25%'],
+          factRows: ['参悟·追命：目标气血低于25%时，《剑破万法》造成的伤害提高25%'],
         }],
       }),
   ),

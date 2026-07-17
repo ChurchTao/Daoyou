@@ -77,7 +77,7 @@ export class SectStateValidator {
       if (expectedPrefix.join(',') !== pathState.unlockedLayerIds.join(','))
         throw new Error(`流派 ${pathState.pathId} 层级必须按顺序解锁`);
       if (![1, 2, 3].includes(pathState.activeMeridianSlot))
-        throw new Error(`流派 ${pathState.pathId} 当前经脉方案槽无效`);
+        throw new Error(`流派 ${pathState.pathId} 当前参悟方案槽无效`);
       const nodeIds = new Set(path.nodes.map((node) => node.id));
       const unlockedLayerIds = new Set(pathState.unlockedLayerIds);
       const tacticIds = new Set(path.tactics.map((tactic) => tactic.id));
@@ -87,23 +87,23 @@ export class SectStateValidator {
         .map((loadout) => loadout.slot)
         .sort();
       if (slots.length !== 3 || slots.join(',') !== '1,2,3') {
-        throw new Error(`流派 ${pathState.pathId} 必须保存三套唯一经脉方案`);
+        throw new Error(`流派 ${pathState.pathId} 必须保存三套唯一参悟方案`);
       }
       if (!slots.includes(pathState.activeMeridianSlot)) {
-        throw new Error(`流派 ${pathState.pathId} 当前经脉方案不存在`);
+        throw new Error(`流派 ${pathState.pathId} 当前参悟方案不存在`);
       }
       for (const loadout of pathState.meridianLoadouts) {
         if (!Number.isInteger(loadout.version) || loadout.version < 1)
-          throw new Error('经脉方案版本必须为正整数');
+          throw new Error('参悟方案版本必须为正整数');
         if (new Set(loadout.nodeIds).size !== loadout.nodeIds.length)
-          throw new Error('经脉节点不可重复');
+          throw new Error('参悟节点不可重复');
         const occupiedLayers = new Set<string>();
         for (const nodeId of loadout.nodeIds) {
-          if (!nodeIds.has(nodeId)) throw new Error(`未知经脉节点: ${nodeId}`);
+          if (!nodeIds.has(nodeId)) throw new Error(`未知参悟节点: ${nodeId}`);
           const node = path.nodes.find((entry) => entry.id === nodeId)!;
           const layer = node.layerId;
           if (occupiedLayers.has(layer))
-            throw new Error(`经脉第${layer}层只能选择一个节点`);
+            throw new Error(`参悟第${layer}层只能选择一个节点`);
           occupiedLayers.add(layer);
           if (!unlockedLayerIds.has(node.layerId))
             throw new Error(`${node.name}所属层级尚未解锁`);

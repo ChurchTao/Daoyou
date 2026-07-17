@@ -4,6 +4,7 @@ import {
   productionSectRuntime,
   projectSectCombat,
   resolveSectAbility,
+  resolveSectPathPreview,
 } from '../..';
 import type { CultivatorSectState } from '../../../core';
 import { listUnlockedAbilityIds } from '../../../core';
@@ -57,15 +58,25 @@ describe('宗门注册投影', () => {
     early.methods = Object.fromEntries(
       Object.keys(early.methods).map((methodId) => [methodId, 5]),
     );
-    expect(listUnlockedAbilityIds(LINGXIAO_MODULE.definition, early)).toHaveLength(8);
-    expect(listUnlockedAbilityIds(LINGXIAO_MODULE.definition, early)).not.toContain('sect-ultimate');
+    expect(
+      listUnlockedAbilityIds(LINGXIAO_MODULE.definition, early),
+    ).toHaveLength(8);
+    expect(
+      listUnlockedAbilityIds(LINGXIAO_MODULE.definition, early),
+    ).not.toContain('sect-ultimate');
     early.methods['lingxiao-canon'] = 10;
-    expect(listUnlockedAbilityIds(LINGXIAO_MODULE.definition, early)).toContain('sect-ultimate');
+    expect(listUnlockedAbilityIds(LINGXIAO_MODULE.definition, early)).toContain(
+      'sect-ultimate',
+    );
   });
 
   it('凌霄两条流派各自保持六层且每层三个节点', () => {
     for (const path of LINGXIAO_MODULE.definition.paths) {
       expect(path.layers).toHaveLength(6);
+      expect(path.presentation?.highlights).toHaveLength(3);
+      expect(Object.keys(path.presentation?.abilityChanges ?? {})).toHaveLength(
+        9,
+      );
       for (const layer of path.layers) {
         expect(
           path.nodes.filter((node) => node.layerId === layer.id),
@@ -78,10 +89,26 @@ describe('宗门注册投影', () => {
     const heavy = LINGXIAO_MODULE.definition.paths.find(
       (path) => path.id === 'heavy-sword',
     )!;
-    expect(swift.nodes.find((node) => node.id === 'swift-returning-swallow')?.name).toBe('燕返');
-    expect(swift.tactics.find((tactic) => tactic.id === 'counter')?.name).toBe('回燕');
-    expect(heavy.nodes.find((node) => node.id === 'heavy-heaven-cleaving')?.name).toBe('开天');
-    expect(heavy.tactics.find((tactic) => tactic.id === 'heavy-full')?.name).toBe('极势');
+    expect(swift.name).toBe('疾风骤雨');
+    expect(swift.description).toBe(
+      '剑随疾风而起，锋如骤雨倾落；一痕未消，一痕又生，于连绵不绝之间决胜。',
+    );
+    expect(heavy.name).toBe('重剑无锋');
+    expect(heavy.description).toBe(
+      '重剑无锋，大巧不工；以身承势，以守养锋，待千钧尽聚，一剑自可开山。',
+    );
+    expect(
+      swift.nodes.find((node) => node.id === 'swift-returning-swallow')?.name,
+    ).toBe('燕返');
+    expect(swift.tactics.find((tactic) => tactic.id === 'counter')?.name).toBe(
+      '回燕',
+    );
+    expect(
+      heavy.nodes.find((node) => node.id === 'heavy-heaven-cleaving')?.name,
+    ).toBe('开天');
+    expect(
+      heavy.tactics.find((tactic) => tactic.id === 'heavy-full')?.name,
+    ).toBe('极势');
   });
 
   it('未激活流派使用基础剑势和基础法术', () => {
@@ -95,7 +122,7 @@ describe('宗门注册投影', () => {
     expect(projection.defaultAttack?.name).toBe('基础剑式');
   });
 
-  it('快剑道通过统一解析器生成变体与节点效果', () => {
+  it('疾风骤雨通过统一解析器生成变体与节点效果', () => {
     const sect = state('swift-sword', ['swift-opening', 'swift-split-light']);
     const projection = projectSectCombat({ sect, realm: '化神' })!;
     expect(projection.resources[0]).toMatchObject({
@@ -110,7 +137,9 @@ describe('宗门注册投影', () => {
       abilityId: 'linked-edge',
     });
     expect(detail.name).toBe('剑荡山河');
-    expect(detail.summary).toBe('剑锋纵横，如长河奔涌；所过之处，山河亦为之震荡。');
+    expect(detail.summary).toBe(
+      '剑锋纵横，如长河奔涌；所过之处，山河亦为之震荡。',
+    );
     expect(detail.detailRows).toContain('伤害：7段 × 27%物攻');
     expect(
       projection.abilities.find(
@@ -119,7 +148,7 @@ describe('宗门注册投影', () => {
     ).toEqual(detail.config);
   });
 
-  it('重剑道沿用宗门剑势并生成独立技能变体和策略', () => {
+  it('重剑无锋沿用宗门剑势并生成独立技能变体和策略', () => {
     const sect = state('heavy-sword', ['heavy-opening', 'heavy-triple-ridge']);
     const projection = projectSectCombat({ sect, realm: '化神' })!;
     expect(projection.resources[0]).toMatchObject({
@@ -159,7 +188,7 @@ describe('宗门注册投影', () => {
   });
 
   it.each(['swift-sword', 'heavy-sword'] as const)(
-    '%s 的729套六层经脉组合全部通过最终编译与能力契约校验',
+    '%s 的729套六层参悟组合全部通过最终编译与能力契约校验',
     (pathId) => {
       const path = LINGXIAO_MODULE.definition.paths.find(
         (entry) => entry.id === pathId,
@@ -171,10 +200,13 @@ describe('宗门注册投影', () => {
       let compiledCount = 0;
       const compile = (layerIndex: number, nodeIds: string[]): void => {
         if (layerIndex === choices.length) {
-          const compiled = productionSectRuntime.compiler.compile(LINGXIAO_MODULE, {
-            sect: state(pathId, nodeIds),
-            realm: '渡劫',
-          });
+          const compiled = productionSectRuntime.compiler.compile(
+            LINGXIAO_MODULE,
+            {
+              sect: state(pathId, nodeIds),
+              realm: '渡劫',
+            },
+          );
           for (const ability of Object.values(compiled.abilities)) {
             expect(ability.detailRows.join('；')).not.toMatch(
               /sect\.|Status\.|Ability\.|GameplayTag/,
@@ -200,7 +232,7 @@ describe('宗门注册投影', () => {
       abilityId: 'sect-ultimate',
     });
     expect(shadow.cooldown).toBe(5);
-    expect(shadow.detailRows).toContain('释放：至少6点剑势');
+    expect(shadow.detailRows).toContain('施放条件：至少6点剑势');
     expect(shadow.detailRows).toContain('暴击：整次施法全部伤害段必定暴击');
 
     const returningPeak = resolveSectAbility({
@@ -208,11 +240,13 @@ describe('宗门注册投影', () => {
       realm: '化神',
       abilityId: 'sect-ultimate',
     });
-    expect(returningPeak.detailRows).toEqual(expect.arrayContaining([
-      '伤害：基础相当于102%物攻，每点剑势增加34%物攻',
-      '剑势：返还2点',
-      '护盾：相当于60%物攻',
-    ]));
+    expect(returningPeak.detailRows).toEqual(
+      expect.arrayContaining([
+        '伤害：基础相当于102%物攻，每点剑势增加34%物攻',
+        '剑势：返还2点',
+        '护盾：相当于60%物攻',
+      ]),
+    );
 
     const returningHeaven = resolveSectAbility({
       sect: state('heavy-sword', [
@@ -223,17 +257,18 @@ describe('宗门注册投影', () => {
       abilityId: 'sect-ultimate',
     });
     expect(returningHeaven.detailRows).toContain('6点剑势时总倍率：340%物攻');
-    expect(returningHeaven.detailRows).not.toContain('6点剑势时总倍率：400%物攻');
+    expect(returningHeaven.detailRows).not.toContain(
+      '6点剑势时总倍率：400%物攻',
+    );
 
     const mountainBreaking = resolveSectAbility({
       sect: state('swift-sword', ['swift-mountain-breaking']),
       realm: '化神',
       abilityId: 'sect-ultimate',
     });
-    expect(mountainBreaking.detailRows).toEqual(expect.arrayContaining([
-      '状态：消耗全部剑痕',
-      '每层追加：相当于18%物攻',
-    ]));
+    expect(mountainBreaking.detailRows).toEqual(
+      expect.arrayContaining(['状态：消耗全部剑痕', '每层追加：相当于18%物攻']),
+    );
 
     const passiveFacts = resolveSectAbility({
       sect: state('swift-sword', [
@@ -244,9 +279,9 @@ describe('宗门注册投影', () => {
       realm: '化神',
       abilityId: 'sect-ultimate',
     }).detailRows.join('；');
-    expect(passiveFacts).toContain('经脉·追命');
-    expect(passiveFacts).toContain('经脉·静潮');
-    expect(passiveFacts).toContain('经脉·无间');
+    expect(passiveFacts).toContain('参悟·追命');
+    expect(passiveFacts).toContain('参悟·静潮');
+    expect(passiveFacts).toContain('参悟·无间');
   });
 
   it.each([undefined, 'swift-sword', 'heavy-sword'] as const)(
@@ -281,10 +316,13 @@ describe('宗门注册投影', () => {
           realm: '化神',
           abilityId,
         }).config;
-        const buff = [...(config.effects ?? []), ...(config.castEffects ?? [])]
-          .find((effect) => effect.type === 'apply_buff');
-        expect(buff?.type === 'apply_buff' ? buff.params.buffConfig.name : undefined)
-          .toBe(buffName);
+        const buff = [
+          ...(config.effects ?? []),
+          ...(config.castEffects ?? []),
+        ].find((effect) => effect.type === 'apply_buff');
+        expect(
+          buff?.type === 'apply_buff' ? buff.params.buffConfig.name : undefined,
+        ).toBe(buffName);
       }
     },
   );
@@ -300,8 +338,153 @@ describe('宗门注册投影', () => {
       const queued = config.castEffects?.find(
         (effect) => effect.type === 'queue_action',
       );
-      expect(queued?.type === 'queue_action' ? queued.params.name : undefined)
-        .toBe('听雷');
+      expect(
+        queued?.type === 'queue_action' ? queued.params.name : undefined,
+      ).toBe('听雷');
     },
   );
+
+  it('未习得流派也可预览且不会修改原宗门状态', () => {
+    const sect = state();
+    const before = structuredClone(sect);
+    const preview = resolveSectPathPreview({
+      sect,
+      realm: '化神',
+      pathId: 'swift-sword',
+    });
+
+    expect(preview.learned).toBe(false);
+    expect(preview.active).toBe(false);
+    expect(preview.abilities).toHaveLength(9);
+    expect(
+      preview.abilities.every((ability) => ability.changeSummary.length > 0),
+    ).toBe(true);
+    expect(
+      preview.abilities.find((ability) => ability.id === 'linked-edge')
+        ?.pathBase.detailRows,
+    ).toEqual(
+      expect.arrayContaining([
+        '伤害：5段 × 34%物攻',
+        '剑痕：向目标施加1层，持续目标未来2次行动',
+      ]),
+    );
+    expect(sect).toEqual(before);
+  });
+
+  it('流派预览区分基础变化与该流派当前参悟方案', () => {
+    const sect = state('swift-sword');
+    const heavy = state('heavy-sword', ['heavy-crossing-pass']).paths[0];
+    sect.paths.push(heavy);
+    const preview = resolveSectPathPreview({
+      sect,
+      realm: '化神',
+      pathId: 'heavy-sword',
+    });
+    const shadow = preview.abilities.find(
+      (ability) => ability.id === 'shadow-step',
+    )!;
+
+    expect(preview.learned).toBe(true);
+    expect(preview.active).toBe(false);
+    expect(preview.activeMeridianSlot).toBe(1);
+    expect(shadow.baseline.detailRows).not.toContain('护盾：相当于65%物攻');
+    expect(shadow.pathBase.detailRows).toContain('护盾：相当于65%物攻');
+    expect(shadow.pathBase.detailRows).not.toContain('护盾：相当于97.5%物攻');
+    expect(shadow.current?.detailRows).toContain('护盾：相当于97.5%物攻');
+  });
+
+  it('动态详情保留条件、目标、触发次数与统一术语', () => {
+    const swift = state('swift-sword');
+    expect(
+      resolveSectAbility({
+        sect: swift,
+        realm: '化神',
+        abilityId: 'guiding-sword',
+      }).detailRows,
+    ).toEqual(
+      expect.arrayContaining([
+        '伤害：相当于90%物攻',
+        '追击：自身身法高于目标时，追加相当于30%物攻',
+      ]),
+    );
+    expect(
+      resolveSectAbility({
+        sect: swift,
+        realm: '化神',
+        abilityId: 'turning-body',
+      }).detailRows,
+    ).toContain(
+      '触发：持续期间首次闪避时，反击造成相当于60%物攻的伤害，并获得1点剑势',
+    );
+    expect(
+      resolveSectAbility({
+        sect: swift,
+        realm: '化神',
+        abilityId: 'shadow-step',
+      }).detailRows,
+    ).toContain('触发：持续期间首次闪避时，获得1点剑势');
+    expect(
+      resolveSectAbility({
+        sect: swift,
+        realm: '化神',
+        abilityId: 'sect-ultimate',
+      }).detailRows,
+    ).toContain('施放后：消耗全部剑势');
+  });
+
+  it('动态详情聚合剑痕并完整描述节点触发效果', () => {
+    const swift = state('swift-sword', [
+      'swift-retained-force',
+      'swift-unending-wind',
+    ]);
+    expect(
+      resolveSectAbility({
+        sect: swift,
+        realm: '化神',
+        abilityId: 'linked-edge',
+      }).detailRows,
+    ).toContain('剑痕：向目标施加2层，持续目标未来2次行动');
+    expect(
+      resolveSectAbility({
+        sect: swift,
+        realm: '化神',
+        abilityId: 'turning-body',
+      }).detailRows,
+    ).toContain(
+      '触发：持续期间首次闪避时，反击造成相当于60%物攻的伤害、获得1点剑势、向目标施加1层剑痕，持续目标未来2次行动，并获得相当于40%物攻的护盾',
+    );
+
+    const heavy = state('heavy-sword', ['heavy-immovable-mountain']);
+    expect(
+      resolveSectAbility({
+        sect: heavy,
+        realm: '化神',
+        abilityId: 'sword-aegis',
+      }).detailRows,
+    ).toContain(
+      '触发：持续期间每回合首次受到直接伤害时，反击造成相当于60%物攻的伤害',
+    );
+  });
+
+  it('冷却、治疗与小数详情使用统一玩家文案', () => {
+    const stacking = state('swift-sword', ['swift-stacking-waves']);
+    expect(
+      resolveSectAbility({
+        sect: stacking,
+        realm: '化神',
+        abilityId: 'linked-edge',
+      }).detailRows,
+    ).toContain('冷却：当前冷却减少1回合');
+
+    const echo = state('heavy-sword', ['heavy-mountain-river-echo']);
+    const echoRows = resolveSectAbility({
+      sect: echo,
+      realm: '化神',
+      abilityId: 'sect-ultimate',
+    }).detailRows;
+    expect(echoRows).toContain(
+      '参悟·山河回响：施展《剑破万法》后恢复5%最大气血，并获得相当于80%物攻的护盾，每3回合最多触发一次',
+    );
+    expect(echoRows.join('；')).not.toContain('回复气血 目标气血');
+  });
 });

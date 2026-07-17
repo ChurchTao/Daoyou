@@ -27,7 +27,7 @@ export const HEAVY_ULTIMATE_NODES = [
         }],
         presentationModifiers: [{
           abilityId: 'sect-ultimate',
-          factRows: ['经脉·山河回响：施展《剑破万法》后恢复5%最大气血，并获得相当于80%物攻的护盾，每3回合最多触发一次'],
+          factRows: ['参悟·山河回响：施展《剑破万法》后恢复5%最大气血，并获得相当于80%物攻的护盾，每3回合最多触发一次'],
         }],
       });
     },

@@ -89,7 +89,7 @@ export const SWIFT_LAYER_3_NODES = [
         ],
         presentationModifiers: [{
           abilityId: 'guiding-sword',
-          factRows: ['经脉·守锋：被控制而跳过行动时剑势不衰减；下一次通过积势神通获得剑势时额外获得1点'],
+          factRows: ['参悟·守锋：被控制而跳过行动时剑势不衰减；下一次通过积势神通获得剑势时额外获得1点'],
         }],
       });
     },

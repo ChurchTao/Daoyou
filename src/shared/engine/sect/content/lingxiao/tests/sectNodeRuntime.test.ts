@@ -87,7 +87,7 @@ function install(pathId: 'swift-sword' | 'heavy-sword', nodes: string[]) {
   return { sect, projection, owner, enemy };
 }
 
-describe('凌霄经脉运行时语义', () => {
+describe('凌霄参悟运行时语义', () => {
   beforeEach(() => EventBus.instance.reset());
   afterEach(() => EventBus.instance.reset());
 

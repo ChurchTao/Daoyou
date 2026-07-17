@@ -205,7 +205,7 @@ describe('第二宗门扩展闭环', () => {
     ]);
   });
 
-  it('内存Repository可完成试炼记录、入宗、成长、双流派和经脉闭环', async () => {
+  it('内存Repository可完成试炼记录、入宗、成长、双流派和参悟闭环', async () => {
     const runtime = createSectRuntime([FIXTURE_SECT_MODULE]);
     let state: ReturnType<typeof fixtureSectState> | undefined;
     let experiencedAt: Date | undefined;

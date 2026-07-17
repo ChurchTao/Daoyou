@@ -18,24 +18,10 @@ export interface SectTrainingCost {
   spiritStones: number;
 }
 
-export interface PlayerRaceDefinition {
-  id: PlayerRaceId;
-  name: string;
-  description: string;
-}
-
 export interface SectRequirementDefinition {
   minRealm?: RealmType;
   minRealmStage?: RealmStage;
   requiredMethods?: Record<SectMethodId, number>;
-}
-
-export interface SectMethodMilestoneDefinition extends SectRequirementDefinition {
-  id: string;
-  level: number;
-  name: string;
-  description: string;
-  abilityId?: SectAbilityId;
 }
 
 export interface SectHeartMethodDefinition {
@@ -46,7 +32,6 @@ export interface SectHeartMethodDefinition {
   isPrimary?: boolean;
   modifierPerLevel?: AttributeModifierConfig;
   perLevelDescription?: string;
-  milestones: SectMethodMilestoneDefinition[];
 }
 
 export interface SectAbilityDefinition {
@@ -82,6 +67,11 @@ export interface SectTacticPreset {
   description: string;
 }
 
+export interface SectPathPresentation {
+  highlights: Array<{ name: string; description: string }>;
+  abilityChanges: Partial<Record<SectAbilityId, string>>;
+}
+
 export interface SectPathDefinition {
   id: SectPathId;
   name: string;
@@ -92,6 +82,7 @@ export interface SectPathDefinition {
   layers: SectPathLayerDefinition[];
   nodes: SectMeridianNodeDefinition[];
   tactics: SectTacticPreset[];
+  presentation?: SectPathPresentation;
 }
 
 export interface SectOnboardingDefinition {

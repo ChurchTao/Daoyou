@@ -23,7 +23,7 @@ describe('通用宗门成长', () => {
     });
   });
 
-  it('经脉只允许选择已解锁层且同层互斥', () => {
+  it('参悟只允许选择已解锁层且同层互斥', () => {
     expect(() =>
       validateMeridianNodeIds({
         path: SWIFT_SWORD_PATH,

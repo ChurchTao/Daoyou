@@ -8,24 +8,13 @@ import {
 import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
 import type { SectCurrentData } from '@shared/contracts/sect';
 import {
-  describeMethodBenefit,
   getSectMethodTrainingCost,
-  resolveMethodMilestones,
-  type SectAbilityRole,
   type SectHeartMethodDefinition,
 } from '@shared/engine/sect';
 import { resolveSectAbility } from '@shared/engine/sect/content';
-import type { RealmStage, RealmType } from '@shared/types/constants';
+import type { RealmType } from '@shared/types/constants';
 import { useState } from 'react';
 import { sectJsonRequest, type SectAction } from './types';
-
-const roleLabels: Record<SectAbilityRole, string> = {
-  generator: '积蓄',
-  combo: '连段',
-  defensive: '防守',
-  finisher: '收束',
-  utility: '辅助',
-};
 
 function getMethodDisabledReason(args: {
   method: SectHeartMethodDefinition;
@@ -61,13 +50,11 @@ export function MethodsTab({
   busy,
   action,
   realm,
-  stage,
 }: {
   data: SectCurrentData;
   busy: boolean;
   action: SectAction;
   realm: RealmType;
-  stage: RealmStage;
 }) {
   const cultivator = useActiveCultivatorProfile();
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
@@ -95,16 +82,18 @@ export function MethodsTab({
         cost: selectedCost,
       })
     : undefined;
-  const selectedMilestones = selectedMethod
-    ? resolveMethodMilestones({
-        definition,
-        methodId: selectedMethod.id,
-        sect,
-        realm,
-        stage,
-      })
+  const selectedAbilities = selectedMethod
+    ? definition.abilities
+        .filter((ability) => ability.methodId === selectedMethod.id)
+        .sort((left, right) => left.unlockLevel - right.unlockLevel)
+        .map((ability) =>
+          resolveSectAbility({
+            abilityId: ability.id,
+            sect,
+            realm,
+          }),
+        )
     : [];
-
   return (
     <>
       <div className="grid gap-3 md:grid-cols-2">
@@ -181,75 +170,37 @@ export function MethodsTab({
                   每级收益：
                   {selectedMethod.perLevelDescription ?? '提升宗门修习资格。'}
                 </p>
-                <p className="text-crimson">
-                  当前累计：
-                  {describeMethodBenefit(selectedMethod, selectedLevel)}
-                </p>
               </div>
             </section>
 
             <section>
-              <h3 className="mb-2 text-base font-semibold">修炼节点与神通</h3>
+              <h3 className="mb-2 text-base font-semibold">可悟神通</h3>
               <div className="space-y-3">
-                {selectedMilestones.map((milestone) => {
-                  const abilityDefinition = milestone.abilityId
-                    ? definition.abilities.find(
-                        (ability) => ability.id === milestone.abilityId,
-                      )
-                    : undefined;
-                  const abilityDetail = milestone.abilityId
-                    ? resolveSectAbility({
-                        abilityId: milestone.abilityId,
-                        sect,
-                        realm,
-                      })
-                    : undefined;
-                  const stateLabel =
-                    milestone.status === 'unlocked'
-                      ? '已解锁'
-                      : milestone.status === 'next'
-                        ? '下一节点'
-                        : '尚未达到';
-                  return (
-                    <div
-                      key={milestone.id}
-                      className="border-ink/15 border-b border-dashed pb-3 text-sm leading-6 last:border-b-0"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <strong>
-                          {milestone.level}级 ·{' '}
-                          {abilityDetail?.name ?? milestone.name}
-                        </strong>
-                        <span
-                          className={
-                            milestone.status === 'unlocked'
-                              ? 'text-crimson'
-                              : 'text-ink-secondary'
-                          }
-                        >
-                          {stateLabel}
-                        </span>
-                      </div>
-                      <p>{milestone.description}</p>
-                      {abilityDefinition ? (
-                        <p className="text-ink-secondary">
-                          定位：{roleLabels[abilityDefinition.role]}
-                        </p>
-                      ) : null}
-                      {milestone.missingRequirements.length ? (
-                        <p className="text-ink-secondary">
-                          尚需：{milestone.missingRequirements.join('、')}
-                        </p>
-                      ) : null}
-                      {abilityDetail ? (
-                        <SectAbilityDetails
-                          detail={abilityDetail}
-                          collapsible={false}
-                        />
-                      ) : null}
+                {selectedAbilities.map((ability) => (
+                  <div
+                    key={ability.id}
+                    className="border-ink/15 border-b border-dashed pb-3 text-sm leading-6 last:border-b-0"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <strong className="text-base">《{ability.name}》</strong>
+                      <span
+                        className={
+                          ability.unlocked
+                            ? 'text-crimson text-xs'
+                            : 'text-ink-secondary text-xs'
+                        }
+                      >
+                        {ability.unlocked ? '已解锁' : '尚未解锁'}
+                      </span>
                     </div>
-                  );
-                })}
+                    <p className="text-ink-secondary mt-1">{ability.summary}</p>
+                    <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 text-xs leading-5">
+                      <dt className="text-ink-secondary">解锁条件</dt>
+                      <dd>{ability.unlockRequirements.join('、')}</dd>
+                    </dl>
+                    <SectAbilityDetails detail={ability} />
+                  </div>
+                ))}
               </div>
             </section>
           </div>

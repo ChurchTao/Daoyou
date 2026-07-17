@@ -88,7 +88,7 @@ export function addProbingNodePassive(
     ],
     presentationModifiers: [{
       abilityId: args.basicAbilityId,
-      factRows: ['经脉·探虚：《基础剑式》每累计命中2次，额外获得1点剑势，并施加1层剑痕'],
+      factRows: ['参悟·探虚：《基础剑式》每累计命中2次，额外获得1点剑势，并施加1层剑痕'],
     }],
   });
 }

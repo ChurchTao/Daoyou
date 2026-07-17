@@ -3,7 +3,7 @@ import type { ResolvedSectAbility } from '@shared/engine/sect';
 function DetailRows({ detail }: { detail: ResolvedSectAbility }) {
   const rows = [
     detail.manaCost > 0 ? `法力：${detail.manaCost}` : '法力：不消耗',
-    `冷却：${detail.cooldown}回合`,
+    detail.cooldown > 0 ? `冷却：${detail.cooldown}回合` : '冷却：无',
     ...detail.detailRows,
   ];
   return (

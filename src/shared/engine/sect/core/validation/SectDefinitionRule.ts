@@ -1,7 +1,7 @@
+import { getRealmStageRank } from '@shared/config/realmProgression';
 import type { SectDefinition, SectPathDefinition } from '../domain';
 import type { SectModule } from '../plugin';
 import type { ValidationRule } from './ValidationPipeline';
-import { getRealmStageRank } from '@shared/config/realmProgression';
 
 function duplicateIds(values: readonly string[]): string[] {
   const seen = new Set<string>();
@@ -141,55 +141,19 @@ export class SectDefinitionRule implements ValidationRule<SectModule> {
 
     const methodIds = definition.methods.map((method) => method.id);
     const abilityIds = definition.abilities.map((ability) => ability.id);
-    const milestoneIds = definition.methods.flatMap((method) =>
-      method.milestones.map((milestone) => milestone.id),
-    );
     assertNonEmptyIds(`宗门 ${definition.id} 心法`, methodIds);
     assertNonEmptyIds(`宗门 ${definition.id} 法术`, abilityIds);
-    assertNonEmptyIds(`宗门 ${definition.id} 里程碑`, milestoneIds);
     if (duplicateIds(methodIds).length)
       throw new Error(`宗门 ${definition.id} 存在重复心法ID`);
     if (duplicateIds(abilityIds).length)
       throw new Error(`宗门 ${definition.id} 存在重复法术ID`);
-    if (duplicateIds(milestoneIds).length)
-      throw new Error(`宗门 ${definition.id} 存在重复里程碑ID`);
     const methodSet = new Set(methodIds);
-    const abilitySet = new Set(abilityIds);
 
     for (const method of definition.methods) {
       if (
         !definition.abilities.some((ability) => ability.methodId === method.id)
       ) {
         throw new Error(`心法 ${method.id} 必须至少拥有一个基础法术`);
-      }
-      for (const milestone of method.milestones) {
-        if (!Number.isInteger(milestone.level) || milestone.level < 0) {
-          throw new Error(`里程碑 ${milestone.id} 等级无效`);
-        }
-        if (
-          (milestone.minRealm === undefined) !==
-          (milestone.minRealmStage === undefined)
-        ) {
-          throw new Error(
-            `里程碑 ${milestone.id} 的境界前置必须同时提供境界和阶段`,
-          );
-        }
-        assertRequirements(
-          `里程碑 ${milestone.id} `,
-          milestone.requiredMethods,
-        );
-        if (milestone.abilityId && !abilitySet.has(milestone.abilityId)) {
-          throw new Error(
-            `心法 ${method.id} 引用了未知法术 ${milestone.abilityId}`,
-          );
-        }
-        for (const requiredId of Object.keys(milestone.requiredMethods ?? {})) {
-          if (!methodSet.has(requiredId)) {
-            throw new Error(
-              `里程碑 ${milestone.id} 引用了未知心法 ${requiredId}`,
-            );
-          }
-        }
       }
     }
     for (const ability of definition.abilities) {

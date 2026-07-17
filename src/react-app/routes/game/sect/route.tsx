@@ -117,7 +117,6 @@ export default function SectPage() {
             busy={busy}
             action={action}
             realm={cultivator?.realm ?? '炼气'}
-            stage={cultivator?.realm_stage ?? '初期'}
           />
         ) : null}
         {tab === 'paths' ? (

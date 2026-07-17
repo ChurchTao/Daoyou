@@ -51,7 +51,7 @@ describe('宗门模块扩展契约', () => {
     expect(build.abilities[build.defaultAbilityId]).toBeDefined();
   });
 
-  it('拒绝有定义但没有插件的经脉节点', () => {
+  it('拒绝有定义但没有插件的参悟节点', () => {
     const path = FIXTURE_SECT_MODULE.paths.get('fixture-first-path')!;
     const nodes = new Map(path.nodes);
     nodes.delete(path.definition.nodes[0].id);

@@ -11,7 +11,7 @@
 - `core/progression`：可注入成长策略、心法等级上限、成本和有序层解锁规则。
 - `core/validation`：定义、组合、编译契约和持久化状态校验流水线。
 - `core/runtime`：`SectRegistry` 与客户端、服务端共用的 `SectRuntimeFacade`。
-- `core/presentation`：心法收益、里程碑和四槽装配等纯展示逻辑。
+- `core/presentation`：神通效果说明、心法属性投影和四槽装配等纯逻辑。
 - `content/productionRuntime.ts`：生产模块唯一组合根。
 - `content/lingxiao`：凌霄基础传承和快剑、重剑两个流派插件。
 - `testing/fixtures`：不会进入生产目录的扩展性宗门。
@@ -69,7 +69,7 @@ CultivatorSectState
 - 流派层数与每层节点数由内容声明；层 ID、顺序和节点归属必须稳定且可校验。
 - 玩家只保存已按顺序解锁的层 ID；流派编译器不得从等级推导倍率或层级。
 - 四个主动槽固定、不可重复，只能装配已解锁主动神通。
-- 每个流派独立保存等级、战术和三套经脉方案，只能激活一个流派。
+- 每个流派独立保存等级、战术和三套参悟方案，只能激活一个流派。
 - 未注册 ID、未知配置版本和非法持久化状态必须明确失败。
 - battle-v5 运行时标签只能通过 `GameplayTags` 生成。
 - `core` 禁止依赖 `content`，生产内容禁止回流到通用入口。

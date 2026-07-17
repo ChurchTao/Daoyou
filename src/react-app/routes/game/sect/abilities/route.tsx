@@ -20,6 +20,7 @@ import { resolveSectAbility } from '@shared/engine/sect/content';
 import { useEffect, useMemo, useState } from 'react';
 
 const EMPTY_SLOTS: SectAbilitySlots = [null, null, null, null];
+const SLOT_NAMES = ['', '一', '二', '三'] as const;
 const json = (method: string, body: unknown): RequestInit => ({
   method,
   headers: { 'Content-Type': 'application/json' },
@@ -30,6 +31,7 @@ export default function SectAbilitiesPage() {
   const [data, setData] = useState<SectCurrentData>();
   const [draftSlots, setDraftSlots] = useState<SectAbilitySlots>(EMPTY_SLOTS);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [expandedAbilityId, setExpandedAbilityId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const cultivator = useActiveCultivatorProfile();
@@ -159,7 +161,7 @@ export default function SectAbilitiesPage() {
       title="【宗门神通】"
       description={
         definition
-          ? `查阅并配置${definition.name}的基础神通与当前流派变体。`
+          ? `查阅并配置${definition.name}神通，详情将按当前流派与参悟方案呈现。`
           : '拜入宗门后，可在此配置宗门神通。'
       }
       headerMeta={
@@ -185,10 +187,11 @@ export default function SectAbilitiesPage() {
         <>
           {defaultDetail ? (
             <InkCard>
-              <strong>{defaultDetail.name}</strong>
+              <strong>《{defaultDetail.name}》</strong>
               <span className="text-ink-secondary ml-2 text-sm">
                 默认神通 · 不占主动栏
               </span>
+              <p className="mt-2 text-sm leading-6">{defaultDetail.summary}</p>
               <SectAbilityDetails detail={defaultDetail} />
             </InkCard>
           ) : null}
@@ -293,39 +296,57 @@ export default function SectAbilitiesPage() {
               {activeDetails.map((detail) => {
                 const isSelected = selected.includes(detail.id);
                 const limitReached = selected.length >= 4 && !isSelected;
+                const expanded = expandedAbilityId === detail.id;
                 return (
-                  <button
-                    type="button"
+                  <div
                     key={detail.id}
-                    disabled={busy || !detail.unlocked || limitReached}
-                    onClick={() => toggle(detail.id)}
                     className={`border-ink/10 w-full border-l-2 p-3 text-left transition-colors ${
                       isSelected
                         ? 'border-l-crimson bg-crimson/10'
                         : 'bg-ink/4 border-l-transparent'
-                    } ${!detail.unlocked ? 'cursor-not-allowed opacity-55' : limitReached ? 'cursor-not-allowed opacity-65' : 'hover:bg-ink/7'}`}
+                    } ${!detail.unlocked ? 'opacity-70' : ''}`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <strong>《{detail.name}》</strong>
-                      <span
-                        className={
-                          isSelected
-                            ? 'text-crimson text-sm'
-                            : 'text-ink-secondary text-sm'
-                        }
-                      >
-                        {isSelected
-                          ? '✓ 已选'
-                          : detail.unlocked
-                            ? '未选'
-                            : '未解锁'}
+                      <div>
+                        <strong>《{detail.name}》</strong>
+                        <p className="mt-1 text-sm leading-6">{detail.summary}</p>
+                      </div>
+                      <span className={isSelected ? 'text-crimson text-sm' : 'text-ink-secondary text-sm'}>
+                        {isSelected ? '✓ 已选' : detail.unlocked ? '未选' : '未解锁'}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm leading-6">{detail.summary}</p>
                     <p className="text-ink-secondary mt-1 text-xs leading-5">
                       解锁条件：{detail.unlockRequirements.join('、')}
                     </p>
-                  </button>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <InkButton
+                        variant={isSelected ? 'secondary' : 'primary'}
+                        disabled={busy || !detail.unlocked || limitReached}
+                        onClick={() => toggle(detail.id)}
+                      >
+                        {isSelected ? '取消选择' : '选择神通'}
+                      </InkButton>
+                      <InkButton
+                        variant="secondary"
+                        onClick={() =>
+                          setExpandedAbilityId(expanded ? null : detail.id)
+                        }
+                      >
+                        {expanded ? '收起效果' : '查看当前效果'}
+                      </InkButton>
+                    </div>
+                    {expanded ? (
+                      <div className="mt-3">
+                        <p className="text-crimson text-xs">
+                          当前效果：{path?.name ?? '基础传承'}
+                          {pathState
+                            ? ` · 参悟方案${SLOT_NAMES[pathState.activeMeridianSlot]}`
+                            : ''}
+                        </p>
+                        <SectAbilityDetails detail={detail} collapsible={false} />
+                      </div>
+                    ) : null}
+                  </div>
                 );
               })}
             </div>

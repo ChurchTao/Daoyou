@@ -24,7 +24,7 @@ export const HEAVY_LAYER_5_NODES = [
       }],
       presentationModifiers: [{
         abilityId: 'sect-ultimate',
-        factRows: ['经脉·断命：目标气血低于25%时，《剑破万法》造成的伤害提高25%'],
+        factRows: ['参悟·断命：目标气血低于25%时，《剑破万法》造成的伤害提高25%'],
       }],
     }),
   ),

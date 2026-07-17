@@ -1,3 +1,3 @@
-export * from './guide';
-export * from './methodModifiers';
 export * from './abilityFacts';
+export * from './abilityLoadout';
+export * from './methodModifiers';

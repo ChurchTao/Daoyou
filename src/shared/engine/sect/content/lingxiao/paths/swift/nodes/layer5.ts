@@ -60,7 +60,7 @@ export const SWIFT_LAYER_5_NODES = [
         ],
         presentationModifiers: [{
           abilityId: 'sect-ultimate',
-          factRows: ['经脉·无隙：施展《剑破万法》后，下一次《剑起沧澜》不消耗法力，并额外获得1点剑势'],
+          factRows: ['参悟·无隙：施展《剑破万法》后，下一次《剑起沧澜》不消耗法力，并额外获得1点剑势'],
         }],
       });
     },
@@ -92,7 +92,7 @@ export const SWIFT_LAYER_5_NODES = [
         ],
         presentationModifiers: [{
           abilityId: 'linked-edge',
-          factRows: ['经脉·连城：施展《剑荡山河》后，其他快剑神通的当前冷却减少1回合，每回合最多触发一次'],
+          factRows: ['参悟·连城：施展《剑荡山河》后，其他快剑神通的当前冷却减少1回合，每回合最多触发一次'],
         }],
       });
     },
@@ -154,7 +154,7 @@ export const SWIFT_LAYER_5_NODES = [
         ],
         presentationModifiers: [{
           abilityId: 'sect-ultimate',
-          factRows: ['经脉·静潮：连续两次自身行动未施展《剑破万法》后暂停剑势衰减；下一次《剑破万法》伤害提高20%'],
+          factRows: ['参悟·静潮：连续两次自身行动未施展《剑破万法》后暂停剑势衰减；下一次《剑破万法》伤害提高20%'],
         }],
       });
     },

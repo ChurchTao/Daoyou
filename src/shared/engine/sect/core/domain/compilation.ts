@@ -65,3 +65,23 @@ export interface ResolvedSectAbility {
   notes: string[];
   config: AbilityConfig;
 }
+
+export interface ResolvedSectPathAbilityPreview {
+  id: SectAbilityId;
+  name: string;
+  summary: string;
+  changeSummary: string;
+  unlocked: boolean;
+  unlockRequirements: string[];
+  baseline: ResolvedSectAbility;
+  pathBase: ResolvedSectAbility;
+  current?: ResolvedSectAbility;
+}
+
+export interface ResolvedSectPathPreview {
+  pathId: string;
+  learned: boolean;
+  active: boolean;
+  activeMeridianSlot?: 1 | 2 | 3;
+  abilities: ResolvedSectPathAbilityPreview[];
+}

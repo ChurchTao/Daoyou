@@ -1,6 +1,6 @@
 import type { RealmType } from '@shared/types/constants';
 import type { Cultivator } from '@shared/types/cultivator';
-import type { PlayerRaceId, SectAbilityId } from './definitions';
+import type { PlayerRaceId } from './definitions';
 import type { CultivatorSectPathState, CultivatorSectState } from './state';
 
 export interface SectProjectionContext {
@@ -14,10 +14,6 @@ export interface SectPathCompileContext extends SectProjectionContext {
 
 export interface SectNodeApplyContext extends SectPathCompileContext {
   activeNodeIds: ReadonlySet<string>;
-}
-
-export interface SectAbilityResolveContext extends SectProjectionContext {
-  abilityId: SectAbilityId;
 }
 
 export interface SectAdmissionContext {

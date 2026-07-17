@@ -336,7 +336,8 @@ export const router = createBrowserRouter(
                 {
                   id: 'sect-abilities',
                   presentation: 'workflow',
-                  summary: '查阅并配置当前宗门神通、主动栏与流派战术。',
+                  summary:
+                    '查阅并配置凌霄剑宗神通，详情将按当前流派与参悟方案呈现。',
                 },
                 '宗门神通',
               )}

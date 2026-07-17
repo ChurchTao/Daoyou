@@ -331,7 +331,7 @@ const NODE_CASES = [
   })),
 ];
 
-describe('凌霄36经脉节点运行时矩阵', () => {
+describe('凌霄36参悟节点运行时矩阵', () => {
   afterEach(() => EventBus.instance.reset());
 
   it('节点清单保持快重各18个', () => {

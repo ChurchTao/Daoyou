@@ -58,7 +58,7 @@ export class SectCompiler {
       for (const definition of orderedNodes) {
         const plugin = pathModule.nodes.get(definition.id);
         if (!plugin)
-          throw new Error(`经脉节点 ${definition.id} 缺少运行时插件`);
+          throw new Error(`参悟节点 ${definition.id} 缺少运行时插件`);
         applied.add(definition.id);
         plugin.apply(
           { ...context, path, activeNodeIds: new Set(applied) },

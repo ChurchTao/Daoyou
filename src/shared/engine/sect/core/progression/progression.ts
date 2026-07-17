@@ -6,26 +6,13 @@ import type {
   SectMethodId,
   SectPathDefinition,
 } from '../domain';
-import {
-  STANDARD_PATH_LAYERS,
-  standardSectProgression,
-} from './StandardSectProgressionPolicy';
-
-/** 兼容展示层的标准层级导出；具体流派仍以自身 definition.layers 为准。 */
-export const SECT_MERIDIAN_STAGES = STANDARD_PATH_LAYERS;
+import { standardSectProgression } from './StandardSectProgressionPolicy';
 
 export function getSectMethodLevelCap(
   realm: RealmType,
   stage: RealmStage,
 ): number {
   return standardSectProgression.methodLevelCap(realm, stage);
-}
-
-export function getMinimumRealmStageForMethodLevel(level: number): {
-  realm: RealmType;
-  stage: RealmStage;
-} {
-  return standardSectProgression.minimumRealmStageForMethodLevel(level);
 }
 
 export function getSectMethodTrainingCost(
@@ -82,14 +69,14 @@ export function validateMeridianNodeIds(args: {
 }): string[] {
   const uniqueIds = Array.from(new Set(args.nodeIds));
   if (uniqueIds.length !== args.nodeIds.length)
-    throw new Error('经脉节点不可重复');
+    throw new Error('参悟节点不可重复');
   const unlockedLayers = new Set(args.unlockedLayerIds);
   const occupiedLayers = new Set<string>();
   for (const nodeId of uniqueIds) {
     const node = args.path.nodes.find((entry) => entry.id === nodeId);
-    if (!node) throw new Error(`未知经脉节点: ${nodeId}`);
+    if (!node) throw new Error(`未知参悟节点: ${nodeId}`);
     if (occupiedLayers.has(node.layerId))
-      throw new Error(`经脉${node.layerId}层只能选择一个节点`);
+      throw new Error(`参悟第${node.layerId}层只能选择一个节点`);
     occupiedLayers.add(node.layerId);
     if (!unlockedLayers.has(node.layerId))
       throw new Error(`${node.name}所属层级尚未解锁`);
