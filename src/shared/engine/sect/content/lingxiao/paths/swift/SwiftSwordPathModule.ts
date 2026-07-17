@@ -33,7 +33,7 @@ const SWIFT_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
       'linked-edge': '改为五段连击，获得更多剑势并施加剑痕，不再进入调息。',
       'turning-body': '改为先攻后守；短暂提高闪避，首次闪避时反击并积势。',
       'shadow-step': '进一步提高身法与闪避，首次闪避时额外积势。',
-      'breaking-edge': '略微提高攻击威力，保留驱散能力。',
+      'breaking-edge': '维持基础威力与驱散能力。',
       'sword-aegis': '降低部分法术防御，改以额外闪避替代控制抗性。',
       'nurturing-sword': '降低部分物攻增幅，同时提高身法。',
     },
@@ -47,13 +47,13 @@ const SWIFT_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
     {
       id: 'steady',
       name: '连势',
-      description: '尽量积蓄6点剑势，再以完整威力施展《剑破万法》。',
+      description: '剑痕不足2层时优先补痕，达到6点剑势且剑痕充足后收束。',
     },
     {
       id: 'counter',
       name: '回燕',
       description:
-        '优先施展《藏锋听雷》与《剑心通明》，剑势达到5点后再行收束。',
+        '优先维持《藏锋听雷》与《踏雪无痕》，剑势达到5点后再行收束。',
     },
   ],
 };

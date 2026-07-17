@@ -1,5 +1,8 @@
 import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
-import type { AbilityConfig, EffectConfig } from '@shared/engine/battle-v5/core/configs';
+import type {
+  AbilityConfig,
+  EffectConfig,
+} from '@shared/engine/battle-v5/core/configs';
 import { EventPriorityLevel } from '@shared/engine/battle-v5/core/events';
 import {
   AttributeType,
@@ -9,12 +12,11 @@ import {
   ModifierType,
 } from '@shared/engine/battle-v5/core/types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
-import type { RealmType } from '@shared/types/constants';
 import {
-  calculateSectManaCost,
   DIRECT_DAMAGE_CONDITION,
   SectAbilityFactory,
   sectEffects,
+  withSectBuffMethodGrowth,
   type CultivatorSectPathState,
   type SectAbilityRole,
   type SectCompiledAbility,
@@ -23,6 +25,7 @@ import {
 import { LINGXIAO_BASE_DEFINITION } from '../../definition';
 import { LINGXIAO_SECT_ID } from '../../ids';
 import {
+  createArmorRend,
   HEAVY_ECHO_COOLDOWN,
   LINGXIAO_SWORD_MOMENTUM,
 } from '../../shared/LingxiaoMechanics';
@@ -73,46 +76,55 @@ const selfBuff = (
   duration: number,
   modifiers: NonNullable<AbilityConfig['modifiers']>,
   listeners?: NonNullable<AbilityConfig['listeners']>,
+  growsWithMethod = true,
 ): EffectConfig => ({
   type: 'apply_buff',
   params: {
     target: 'caster',
-    buffConfig: {
-      id,
-      name,
-      type: BuffType.BUFF,
-      duration,
-      stackRule: StackRule.REFRESH_DURATION,
-      tags: [GameplayTags.BUFF.TYPE.BUFF],
-      modifiers,
-      listeners,
-    },
+    buffConfig: withSectBuffMethodGrowth(
+      {
+        id,
+        name,
+        type: BuffType.BUFF,
+        duration,
+        stackRule: StackRule.REFRESH_DURATION,
+        tags: [GameplayTags.BUFF.TYPE.BUFF],
+        modifiers,
+        listeners,
+      },
+      { duration: growsWithMethod },
+    ),
   },
 });
 
-const reductionListeners = (value: number) => [{
-  id: `sect.lingxiao.heavy.reduction.${value}`,
-  eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-  scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-  priority: EventPriorityLevel.DAMAGE_REQUEST + 1,
-  mapping: { caster: 'owner' as const, target: 'owner' as const },
-  guard: { skipSecondaryDamageSource: true },
-  conditions: [DIRECT_DAMAGE_CONDITION],
-  effects: [{ type: 'percent_damage_modifier' as const, params: { mode: 'reduce' as const, value } }],
-}];
+const reductionListeners = (value: number) => [
+  {
+    id: `sect.lingxiao.heavy.reduction.${value}`,
+    eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+    scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+    priority: EventPriorityLevel.DAMAGE_REQUEST + 1,
+    mapping: { caster: 'owner' as const, target: 'owner' as const },
+    guard: { skipSecondaryDamageSource: true },
+    conditions: [DIRECT_DAMAGE_CONDITION],
+    effects: [
+      {
+        type: 'percent_damage_modifier' as const,
+        params: { mode: 'reduce' as const, value },
+      },
+    ],
+  },
+];
 
 export function buildHeavyAbilities(
   baseBuild: Readonly<SectCompiledBuild>,
-  realm: RealmType,
   path: CultivatorSectPathState,
   features: HeavySwordFeatures,
 ): Record<string, SectCompiledAbility> {
   const built = { ...baseBuild.abilities };
-  const factory = new SectAbilityFactory(LINGXIAO_SECT_ID, realm);
+  const factory = new SectAbilityFactory(LINGXIAO_SECT_ID);
   const resourceId = LINGXIAO_SWORD_MOMENTUM;
   const active = (args: {
     id: string;
-    manaWeight: number;
     cooldown: number;
     role: SectAbilityRole;
     effects: EffectConfig[];
@@ -120,34 +132,59 @@ export function buildHeavyAbilities(
     castConditions?: AbilityConfig['castConditions'];
     targetTeam?: 'enemy' | 'self';
   }): SectCompiledAbility => {
-    const definition = LINGXIAO_BASE_DEFINITION.abilities.find((entry) => entry.id === args.id)!;
+    const definition = LINGXIAO_BASE_DEFINITION.abilities.find(
+      (entry) => entry.id === args.id,
+    )!;
     return factory.active({
       ...args,
       definition,
       pathId: path.pathId,
-      mpCost: calculateSectManaCost(realm, args.manaWeight),
     });
   };
 
   built['plain-sword'] = active({
-    id: 'plain-sword', manaWeight: 0, cooldown: 0, role: 'generator',
-    effects: [damage(0.9), sectEffects.modifyResource(resourceId, 1)],
+    id: 'plain-sword',
+    cooldown: 0,
+    role: 'generator',
+    effects: [damage(0.72), sectEffects.modifyResource(resourceId, 1)],
   });
   built['guiding-sword'] = active({
-    id: 'guiding-sword', manaWeight: 1, cooldown: 2, role: 'generator',
-    effects: [damage(1.05), sectEffects.modifyResource(resourceId, 2), sectEffects.shieldByAttack(0.2, undefined, 'caster')],
+    id: 'guiding-sword',
+    cooldown: 2,
+    role: 'generator',
+    effects: [
+      damage(0.84),
+      sectEffects.modifyResource(resourceId, 2),
+      sectEffects.shieldByAttack(0.16, undefined, 'caster'),
+    ],
   });
   built['linked-edge'] = active({
-    id: 'linked-edge', manaWeight: 1.5, cooldown: 3, role: 'combo',
-    effects: [damage(1.55), sectEffects.modifyResource(resourceId, 1), sectEffects.shieldByAttack(0.35, undefined, 'caster')],
+    id: 'linked-edge',
+    cooldown: 3,
+    role: 'combo',
+    effects: [
+      damage(1.24),
+      sectEffects.modifyResource(resourceId, 1),
+      sectEffects.shieldByAttack(0.28, undefined, 'caster'),
+      ...createArmorRend(),
+    ],
   });
   built['turning-body'] = active({
-    id: 'turning-body', manaWeight: 1.25, cooldown: 3, role: 'defensive',
+    id: 'turning-body',
+    cooldown: 3,
+    role: 'defensive',
     effects: [],
     castEffects: [
-      selfBuff('sect.lingxiao.heavy.hidden-edge', '藏锋听雷', 1, [], reductionListeners(features.chargedReduction ? 0.4 : 0.3)),
+      selfBuff(
+        'sect.lingxiao.heavy.hidden-edge',
+        '藏锋听雷',
+        1,
+        [],
+        reductionListeners(features.chargedReduction ? 0.32 : 0.24),
+        false,
+      ),
       ...(features.chargedGuardShield
-        ? [sectEffects.shieldByAttack(0.6, undefined, 'caster')]
+        ? [sectEffects.shieldByAttack(0.48, undefined, 'caster')]
         : []),
       {
         type: 'queue_action',
@@ -165,7 +202,8 @@ export function buildHeavyAbilities(
             GameplayTags.ABILITY.TARGET.SINGLE,
           ],
           effects: [
-            damage(features.chargedStrike ? 2.7 : 2.2),
+            damage(features.chargedStrike ? 2.08 : 1.76),
+            ...createArmorRend(features.chargedStrike ? 2 : 1),
             sectEffects.modifyResource(resourceId, 2),
           ],
           interruptPolicy: 'uninterruptible',
@@ -175,86 +213,154 @@ export function buildHeavyAbilities(
     ],
   });
   built['shadow-step'] = active({
-    id: 'shadow-step', manaWeight: 1, cooldown: 4, role: 'defensive', targetTeam: 'self',
+    id: 'shadow-step',
+    cooldown: 4,
+    role: 'defensive',
+    targetTeam: 'self',
     effects: [
-      sectEffects.shieldByAttack(0.65 * (features.mountainGate ? 1.5 : 1), undefined, 'caster'),
+      sectEffects.shieldByAttack(
+        0.52 * (features.mountainGate ? 1.5 : 1),
+        undefined,
+        'caster',
+      ),
       selfBuff('sect.lingxiao.heavy.mountain-step', '踏雪无痕', 2, [
-        { attrType: AttributeType.DEF, type: ModifierType.ADD, value: 0.2 },
+        { attrType: AttributeType.DEF, type: ModifierType.ADD, value: 0.16 },
       ]),
       sectEffects.modifyResource(resourceId, 1),
     ],
   });
   built['breaking-edge'] = active({
-    id: 'breaking-edge', manaWeight: 1.5, cooldown: 3, role: 'utility',
-    effects: [damage(1.3), { type: 'dispel', params: { targetTag: GameplayTags.BUFF.TYPE.BUFF, maxCount: 1 } }],
+    id: 'breaking-edge',
+    cooldown: 3,
+    role: 'utility',
+    effects: [
+      damage(1.04),
+      {
+        type: 'dispel',
+        params: { targetTag: GameplayTags.BUFF.TYPE.BUFF, maxCount: 1 },
+      },
+    ],
   });
   built['sword-aegis'] = active({
-    id: 'sword-aegis', manaWeight: 1.25, cooldown: 5, role: 'defensive', targetTeam: 'self',
+    id: 'sword-aegis',
+    cooldown: 5,
+    role: 'defensive',
+    targetTeam: 'self',
     effects: [
-      ...(features.immovableMountain ? [sectEffects.shieldByAttack(1, undefined, 'caster')] : []),
+      ...(features.immovableMountain
+        ? [sectEffects.shieldByAttack(0.8, undefined, 'caster')]
+        : []),
       selfBuff(
         'sect.lingxiao.heavy.mountain-heart',
         '剑心通明',
         3,
-        [{ attrType: AttributeType.MAGIC_DEF, type: ModifierType.ADD, value: 0.3 }],
         [
-          ...reductionListeners(0.1),
-          ...(features.immovableMountain ? [{
-            id: 'sect.lingxiao.heavy.immovable.counter',
-            eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-            scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-            priority: 0,
-            mapping: { caster: 'owner' as const, target: 'event.caster' as const },
-            guard: { skipSecondaryDamageSource: true },
-            budget: { maxTriggers: 1, reset: 'round' as const },
-            conditions: [DIRECT_DAMAGE_CONDITION],
-            effects: [damage(0.6, DamageSource.COUNTER)],
-          }] : []),
+          {
+            attrType: AttributeType.MAGIC_DEF,
+            type: ModifierType.ADD,
+            value: 0.24,
+          },
+        ],
+        [
+          ...reductionListeners(0.08),
+          ...(features.immovableMountain
+            ? [
+                {
+                  id: 'sect.lingxiao.heavy.immovable.counter',
+                  eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+                  scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+                  priority: 0,
+                  mapping: {
+                    caster: 'owner' as const,
+                    target: 'event.caster' as const,
+                  },
+                  guard: { skipSecondaryDamageSource: true },
+                  budget: { maxTriggers: 1, reset: 'round' as const },
+                  conditions: [DIRECT_DAMAGE_CONDITION],
+                  effects: [damage(0.48, DamageSource.COUNTER)],
+                },
+              ]
+            : []),
         ],
       ),
     ],
   });
   built['nurturing-sword'] = active({
-    id: 'nurturing-sword', manaWeight: 1.5, cooldown: 5, role: 'defensive', targetTeam: 'self',
-    effects: [selfBuff('sect.lingxiao.heavy.weightless-edge', '人剑合一', 3, [
-      { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.1 },
-      { attrType: AttributeType.DEF, type: ModifierType.ADD, value: 0.2 },
-    ])],
+    id: 'nurturing-sword',
+    cooldown: 5,
+    role: 'defensive',
+    targetTeam: 'self',
+    effects: [
+      selfBuff('sect.lingxiao.heavy.weightless-edge', '人剑合一', 3, [
+        { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.08 },
+        { attrType: AttributeType.DEF, type: ModifierType.ADD, value: 0.16 },
+      ]),
+    ],
   });
 
   const returnScale = features.returningPeak ? 0.85 : 1;
   const heaven = features.heavenCleaving;
   built['sect-ultimate'] = active({
-    id: 'sect-ultimate', manaWeight: 2.5, cooldown: 4 + (heaven ? 1 : 0), role: 'finisher',
-    castConditions: [{ type: 'combat_resource_at_least', params: { resourceId, value: heaven ? 6 : 3, scope: 'caster' } }],
+    id: 'sect-ultimate',
+    cooldown: 4 + (heaven ? 1 : 0),
+    role: 'finisher',
+    castConditions: [
+      {
+        type: 'combat_resource_at_least',
+        params: { resourceId, value: heaven ? 6 : 3, scope: 'caster' },
+      },
+    ],
     effects: [
       {
         type: 'resource_scaled_damage',
         params: {
           resourceId,
-          baseCoefficient: (heaven ? 1.6 : 1.2) * returnScale,
-          coefficientPerPoint: 0.4 * returnScale,
+          baseCoefficient: (heaven ? 1.06 : 0.88) * returnScale,
+          coefficientPerPoint: 0.29 * returnScale,
           minPoints: heaven ? 6 : 3,
           maxPoints: 6,
           consume: 'all',
-          bypassDefenseRatio: heaven ? 0.3 : features.rendingMountain ? 0.2 : 0,
+          bypassDefenseRatio: heaven
+            ? 0.2
+            : features.rendingMountain
+              ? 0.15
+              : 0,
           damageSource: DamageSource.DIRECT,
         },
       },
-      ...(features.returningPeak ? [
-        sectEffects.modifyResource(resourceId, 2, undefined, 'refund'),
-        sectEffects.shieldByAttack(0.6, undefined, 'caster'),
-      ] : []),
-      ...(features.mountainRiverEcho ? [{
-        type: 'runtime_counter_modify' as const,
-        conditions: [{ type: 'runtime_counter_compare' as const, params: { key: HEAVY_ECHO_COOLDOWN, op: 'lt' as const, value: 1, scope: 'caster' as const } }],
-        params: {
-          key: HEAVY_ECHO_COOLDOWN,
-          operation: 'set' as const,
-          amount: 3,
-          effects: [sectEffects.healMaxHp(0.05, 'caster'), sectEffects.shieldByAttack(0.8, undefined, 'caster')],
-        },
-      }] : []),
+      ...(features.returningPeak
+        ? [
+            sectEffects.modifyResource(resourceId, 2, undefined, 'refund'),
+            sectEffects.shieldByAttack(0.48, undefined, 'caster'),
+          ]
+        : []),
+      ...(features.mountainRiverEcho
+        ? [
+            {
+              type: 'runtime_counter_modify' as const,
+              conditions: [
+                {
+                  type: 'runtime_counter_compare' as const,
+                  params: {
+                    key: HEAVY_ECHO_COOLDOWN,
+                    op: 'lt' as const,
+                    value: 1,
+                    scope: 'caster' as const,
+                  },
+                },
+              ],
+              params: {
+                key: HEAVY_ECHO_COOLDOWN,
+                operation: 'set' as const,
+                amount: 3,
+                effects: [
+                  sectEffects.healMaxHp(0.04, 'caster'),
+                  sectEffects.shieldByAttack(0.64, undefined, 'caster'),
+                ],
+              },
+            },
+          ]
+        : []),
     ],
   });
 

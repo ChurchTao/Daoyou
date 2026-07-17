@@ -16,6 +16,7 @@ import {
   DIRECT_DAMAGE_CONDITION,
   SectAbilityFactory,
   sectEffects,
+  withSectBuffMethodGrowth,
   type SectBuildBuilder,
   type SectProjectionContext,
 } from '../../../core';
@@ -37,20 +38,24 @@ const selfBuff = (
   duration: number,
   modifiers: AttributeModifierConfig[],
   listeners?: ListenerConfig[],
+  growsWithMethod = true,
 ): EffectConfig => ({
   type: 'apply_buff',
   params: {
     target: 'caster',
-    buffConfig: {
-      id,
-      name,
-      type: BuffType.BUFF,
-      duration,
-      stackRule: StackRule.REFRESH_DURATION,
-      tags: [GameplayTags.BUFF.TYPE.BUFF],
-      modifiers,
-      listeners,
-    },
+    buffConfig: withSectBuffMethodGrowth(
+      {
+        id,
+        name,
+        type: BuffType.BUFF,
+        duration,
+        stackRule: StackRule.REFRESH_DURATION,
+        tags: [GameplayTags.BUFF.TYPE.BUFF],
+        modifiers,
+        listeners,
+      },
+      { duration: growsWithMethod },
+    ),
   },
 });
 
@@ -63,7 +68,9 @@ const directReduction = (value: number): ListenerConfig[] => [
     mapping: { caster: 'owner', target: 'owner' },
     guard: { skipSecondaryDamageSource: true },
     conditions: [DIRECT_DAMAGE_CONDITION],
-    effects: [{ type: 'percent_damage_modifier', params: { mode: 'reduce', value } }],
+    effects: [
+      { type: 'percent_damage_modifier', params: { mode: 'reduce', value } },
+    ],
   },
 ];
 
@@ -72,38 +79,54 @@ export function compileLingxiaoBase(
   context: SectProjectionContext,
   builder: SectBuildBuilder,
 ): void {
-  const factory = new SectAbilityFactory(LINGXIAO_SECT_ID, context.realm);
+  const factory = new SectAbilityFactory(LINGXIAO_SECT_ID);
   const resourceId = LINGXIAO_SWORD_MOMENTUM;
   const active = (
     abilityId: string,
     spec: Omit<Parameters<SectAbilityFactory['active']>[0], 'definition'>,
-  ) => builder.setAbility(
-    abilityId,
-    factory.active({ ...spec, definition: abilityDefinition(abilityId) }),
-  );
+  ) =>
+    builder.setAbility(
+      abilityId,
+      factory.active({ ...spec, definition: abilityDefinition(abilityId) }),
+    );
 
   active('plain-sword', {
-    effects: [sectEffects.physicalDamage(0.8), sectEffects.modifyResource(resourceId, 1)],
+    effects: [
+      sectEffects.physicalDamage(0.7),
+      sectEffects.modifyResource(resourceId, 1),
+    ],
   });
   active('guiding-sword', {
-    effects: [sectEffects.physicalDamage(0.95), sectEffects.modifyResource(resourceId, 2)],
+    effects: [
+      sectEffects.physicalDamage(0.82),
+      sectEffects.modifyResource(resourceId, 2),
+    ],
   });
   active('linked-edge', {
     effects: [
-      sectEffects.physicalDamage(0.55),
-      sectEffects.physicalDamage(0.55),
-      sectEffects.physicalDamage(0.55),
+      sectEffects.physicalDamage(0.47),
+      sectEffects.physicalDamage(0.47),
+      sectEffects.physicalDamage(0.47),
       sectEffects.modifyResource(resourceId, 1),
     ],
-    castEffects: [{
-      type: 'skip_action',
-      params: { count: 1, name: '调息', reason: '剑荡山河·调息' },
-    }],
+    castEffects: [
+      {
+        type: 'skip_action',
+        params: { count: 1, name: '调息', reason: '剑荡山河·调息' },
+      },
+    ],
   });
   active('turning-body', {
     effects: [],
     castEffects: [
-      selfBuff('sect.lingxiao.hidden-thunder-guard', '藏锋听雷', 1, [], directReduction(0.25)),
+      selfBuff(
+        'sect.lingxiao.hidden-thunder-guard',
+        '藏锋听雷',
+        1,
+        [],
+        directReduction(0.2),
+        false,
+      ),
       {
         type: 'queue_action',
         params: {
@@ -119,7 +142,7 @@ export function compileLingxiaoBase(
             GameplayTags.ABILITY.TARGET.SINGLE,
           ],
           effects: [
-            sectEffects.physicalDamage(2.2),
+            sectEffects.physicalDamage(1.8),
             sectEffects.modifyResource(resourceId, 2),
           ],
           interruptPolicy: 'uninterruptible',
@@ -132,23 +155,38 @@ export function compileLingxiaoBase(
     targetTeam: 'self',
     effects: [
       selfBuff('sect.lingxiao.traceless-step', '踏雪无痕', 2, [
-        { attrType: AttributeType.SPEED, type: ModifierType.ADD, value: 0.1 },
-        { attrType: AttributeType.EVASION_RATE, type: ModifierType.FIXED, value: 0.08 },
+        { attrType: AttributeType.SPEED, type: ModifierType.ADD, value: 0.08 },
+        {
+          attrType: AttributeType.EVASION_RATE,
+          type: ModifierType.FIXED,
+          value: 0.06,
+        },
       ]),
     ],
   });
   active('breaking-edge', {
     effects: [
-      sectEffects.physicalDamage(1.1),
-      { type: 'dispel', params: { targetTag: GameplayTags.BUFF.TYPE.BUFF, maxCount: 1 } },
+      sectEffects.physicalDamage(0.95),
+      {
+        type: 'dispel',
+        params: { targetTag: GameplayTags.BUFF.TYPE.BUFF, maxCount: 1 },
+      },
     ],
   });
   active('sword-aegis', {
     targetTeam: 'self',
     effects: [
       selfBuff('sect.lingxiao.clear-heart', '剑心通明', 3, [
-        { attrType: AttributeType.MAGIC_DEF, type: ModifierType.ADD, value: 0.25 },
-        { attrType: AttributeType.CONTROL_RESISTANCE, type: ModifierType.FIXED, value: 0.08 },
+        {
+          attrType: AttributeType.MAGIC_DEF,
+          type: ModifierType.ADD,
+          value: 0.2,
+        },
+        {
+          attrType: AttributeType.CONTROL_RESISTANCE,
+          type: ModifierType.FIXED,
+          value: 0.06,
+        },
       ]),
     ],
   });
@@ -156,27 +194,31 @@ export function compileLingxiaoBase(
     targetTeam: 'self',
     effects: [
       selfBuff('sect.lingxiao.sword-intent', '人剑合一', 3, [
-        { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.15 },
+        { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.12 },
       ]),
     ],
   });
   active('sect-ultimate', {
-    castConditions: [{
-      type: 'combat_resource_at_least',
-      params: { resourceId, value: 3, scope: 'caster' },
-    }],
-    effects: [{
-      type: 'resource_scaled_damage',
-      params: {
-        resourceId,
-        baseCoefficient: 1,
-        coefficientPerPoint: 0.35,
-        minPoints: 3,
-        maxPoints: 6,
-        consume: 'all',
-        damageSource: DamageSource.DIRECT,
+    castConditions: [
+      {
+        type: 'combat_resource_at_least',
+        params: { resourceId, value: 3, scope: 'caster' },
       },
-    }],
+    ],
+    effects: [
+      {
+        type: 'resource_scaled_damage',
+        params: {
+          resourceId,
+          baseCoefficient: 0.85,
+          coefficientPerPoint: 0.28,
+          minPoints: 3,
+          maxPoints: 6,
+          consume: 'all',
+          damageSource: DamageSource.DIRECT,
+        },
+      },
+    ],
   });
 
   builder.setResource({

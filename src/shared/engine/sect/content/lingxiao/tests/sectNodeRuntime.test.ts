@@ -161,7 +161,7 @@ describe('凌霄参悟运行时语义', () => {
     owner.combatResources.beginAction();
     actionPost();
     owner.combatResources.finishAction(false, false);
-    expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(2);
+    expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(3);
 
     const finisher = AbilityFactory.create(
       resolveSectAbility({ sect, realm: '化神', abilityId: 'sect-ultimate' })

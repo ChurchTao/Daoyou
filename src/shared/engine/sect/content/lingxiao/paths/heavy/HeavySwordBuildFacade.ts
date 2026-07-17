@@ -39,7 +39,6 @@ export class HeavySwordBuildFacade {
     this.builder.replaceAbilities(
       buildHeavyAbilities(
         this.baseBuild,
-        this.context.realm,
         this.context.path,
         this.features,
       ),
@@ -48,7 +47,7 @@ export class HeavySwordBuildFacade {
     if (!resource) throw new Error('重剑构筑缺少宗门战斗资源');
     this.builder.clearResources().setResource({
       ...resource,
-      initial: this.features.opening ? 2 : 0,
+      initial: this.features.opening ? 1 : 0,
     });
   }
 }
@@ -59,7 +58,7 @@ export function initializeHeavySwordBuild(
 ): void {
   const facade = new HeavySwordBuildFacade(context, builder, builder.build());
   builder.setExtension(HEAVY_BUILD_FACADE, facade);
-  const factory = new SectAbilityFactory(LINGXIAO_SECT_ID, context.realm);
+  const factory = new SectAbilityFactory(LINGXIAO_SECT_ID);
   builder.addPassive(factory.passive({
     id: 'heavy-shield-momentum',
     name: '大巧不工',

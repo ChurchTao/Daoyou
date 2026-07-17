@@ -25,7 +25,7 @@ function addPassive(
     }>;
   },
 ): void {
-  const factory = new SectAbilityFactory(LINGXIAO_SECT_ID, context.realm);
+  const factory = new SectAbilityFactory(LINGXIAO_SECT_ID);
   builder.addPassive(factory.passive({ ...args, pathId: context.path.pathId }));
   for (const modifier of args.presentationModifiers ?? []) {
     builder.addAbilityPresentationModifier({

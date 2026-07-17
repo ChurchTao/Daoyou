@@ -48,7 +48,7 @@ const abilities = methods.map((method, index) => ({
   unlockLevel: 1,
   occupiesActiveSlot: index > 0,
   role: 'generator' as const,
-  manaWeight: 0,
+  mpCost: 0,
   cooldown: 0,
 }));
 
@@ -190,7 +190,7 @@ class FixtureSectModule extends BaseSectModule {
     context: SectProjectionContext,
     builder: SectBuildBuilder,
   ): void {
-    const factory = new SectAbilityFactory(this.definition.id, context.realm);
+    const factory = new SectAbilityFactory(this.definition.id);
     for (const definition of this.definition.abilities) {
       builder.setAbility(
         definition.id,

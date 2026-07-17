@@ -1,6 +1,4 @@
 import { BuffConfig, GlobalUniqueConfig } from '../core/configs';
-import { BuffId, CombatEvent } from '../core/types';
-import { EffectContext, GameplayEffect } from '../effects/Effect';
 import {
   ListenerRuntimeConfig,
   resolveListenerContext,
@@ -10,6 +8,8 @@ import {
   claimGlobalUniqueEffect,
   releaseGlobalUniqueEffects,
 } from '../core/runtimeState';
+import { BuffId, CombatEvent } from '../core/types';
+import { EffectContext, GameplayEffect } from '../effects/Effect';
 import { Buff } from './Buff';
 
 /**
@@ -62,20 +62,44 @@ export class DataDrivenBuff extends Buff {
     }
 
     // 2. 应用属性修改器
-    if (this._config.modifiers) {
-      for (const mod of this._config.modifiers) {
-        this._owner.attributes.addModifier({
-          id: `${this.id}_${mod.attrType}_${Math.random().toString(36).substr(2, 5)}`,
-          attrType: mod.attrType,
-          type: mod.type,
-          value: mod.value,
-          source: this,
-        });
-      }
-    }
+    this._mountAttributeModifiers();
 
     // 3. 订阅动态事件
     this._setupEventListeners();
+  }
+
+  override onLayerChanged(): void {
+    if (!this._owner) return;
+    for (const [index, modifier] of (this._config.modifiers ?? []).entries()) {
+      if (!modifier.scaleByLayer) continue;
+      this._owner.attributes.removeModifier(this._attributeModifierId(index));
+      this._mountAttributeModifier(index);
+    }
+    this._owner.updateDerivedStats();
+  }
+
+  private _mountAttributeModifiers(): void {
+    if (!this._owner || !this._config.modifiers) return;
+    for (const [index] of this._config.modifiers.entries()) {
+      this._mountAttributeModifier(index);
+    }
+  }
+
+  private _mountAttributeModifier(index: number): void {
+    if (!this._owner) return;
+    const modifier = this._config.modifiers?.[index];
+    if (!modifier) return;
+    this._owner.attributes.addModifier({
+      id: this._attributeModifierId(index),
+      attrType: modifier.attrType,
+      type: modifier.type,
+      value: modifier.value * (modifier.scaleByLayer ? this.getLayer() : 1),
+      source: this,
+    });
+  }
+
+  private _attributeModifierId(index: number): string {
+    return `${this.id}:modifier:${index}`;
   }
 
   private _setupEventListeners(): void {
@@ -92,7 +116,8 @@ export class DataDrivenBuff extends Buff {
 
       this._subscribeEvent<CombatEvent>(
         listener.runtime.eventType,
-        (event) => this._executeEffects(listener.runtime, mountedEffects, event),
+        (event) =>
+          this._executeEffects(listener.runtime, mountedEffects, event),
         listener.runtime.priority,
       );
     }
@@ -109,7 +134,11 @@ export class DataDrivenBuff extends Buff {
       return;
     }
 
-    const resolved = resolveListenerContext(this._owner, event, runtime.mapping);
+    const resolved = resolveListenerContext(
+      this._owner,
+      event,
+      runtime.mapping,
+    );
 
     const context: EffectContext = {
       caster: resolved.caster,

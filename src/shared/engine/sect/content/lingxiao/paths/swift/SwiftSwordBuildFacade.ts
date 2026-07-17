@@ -38,7 +38,6 @@ export class SwiftSwordBuildFacade {
     this.builder.replaceAbilities(
       buildSwiftAbilities(
         this.baseBuild,
-        this.context.realm,
         this.context.path,
         this.features,
       ),
@@ -49,6 +48,7 @@ export class SwiftSwordBuildFacade {
       ...resource,
       initial: this.features.opening ? 2 : 0,
       decayOnNoDirectDamage: 1,
+      noDirectDamageActionsPerDecay: 2,
       decayOnControlledSkip: this.features.guardedEdge ? 0 : 1,
       pauseDecayWhenCounterAtLeast: this.features.stillTide
         ? { key: SWIFT_IDLE_ACTIONS, value: 2 }

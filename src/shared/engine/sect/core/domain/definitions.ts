@@ -42,7 +42,7 @@ export interface SectAbilityDefinition {
   unlockLevel: number;
   occupiesActiveSlot: boolean;
   role: SectAbilityRole;
-  manaWeight: number;
+  mpCost: number;
   cooldown: number;
 }
 

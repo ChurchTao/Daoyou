@@ -7,7 +7,7 @@ import { heavySwordBuild } from '../HeavySwordBuildFacade';
 
 export const HEAVY_LAYER_1_NODES = [
   createLingxiaoNode(
-    { id: 'heavy-opening', layerId: '1', name: '立地', description: '战斗开始时获得2点剑势，并获得相当于35%物攻的护盾。' },
+    { id: 'heavy-opening', layerId: '1', name: '立地', description: '战斗开始时获得1点剑势，并获得相当于35%物攻的护盾。' },
     (context, builder) => {
       heavySwordBuild(builder).enable('opening');
       addLingxiaoPassive(context, builder, {
@@ -36,14 +36,12 @@ export const HEAVY_LAYER_1_NODES = [
     }),
   ),
   createLingxiaoNode(
-    { id: 'heavy-testing-frame', layerId: '1', name: '守拙', description: '每回合首次以护盾吸收直接伤害时，额外获得1点剑势。' },
+    { id: 'heavy-testing-frame', layerId: '1', name: '守拙', description: '每回合首次护盾破裂时，额外获得1点剑势。' },
     (context, builder) => addLingxiaoPassive(context, builder, {
       id: 'heavy-testing-frame', name: '守拙', listeners: [{
-        id: 'sect.lingxiao.heavy.simple-guard', eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+        id: 'sect.lingxiao.heavy.simple-guard', eventType: 'ShieldBreakEvent',
         scope: GameplayTags.SCOPE.OWNER_AS_TARGET, priority: 0,
         mapping: { caster: 'owner', target: 'owner' }, budget: { maxTriggers: 1, reset: 'round' },
-        guard: { skipSecondaryDamageSource: true },
-        conditions: [DIRECT_DAMAGE_CONDITION, { type: 'shield_absorbed_at_least', params: { value: 1 } }],
         effects: [sectEffects.modifyResource(LINGXIAO_SWORD_MOMENTUM, 1)],
       }],
     }),

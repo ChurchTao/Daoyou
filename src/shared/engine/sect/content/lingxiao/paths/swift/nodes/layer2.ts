@@ -3,7 +3,7 @@ import { swiftSwordBuild } from '../SwiftSwordBuildFacade';
 
 export const SWIFT_LAYER_2_NODES = [
   createLingxiaoNode(
-    { id: 'swift-split-light', layerId: '2', name: '分光', description: '《剑荡山河》变为7段攻击，每段造成相当于27%物攻的伤害，并获得3点剑势。' },
+    { id: 'swift-split-light', layerId: '2', name: '分光', description: '《剑荡山河》变为7段攻击，每段造成相当于23%物攻的伤害，并获得3点剑势。' },
     (_context, builder) => swiftSwordBuild(builder).enable('splitLight'),
   ),
   createLingxiaoNode(

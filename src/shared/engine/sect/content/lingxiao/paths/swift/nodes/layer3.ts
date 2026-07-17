@@ -17,7 +17,7 @@ export const SWIFT_LAYER_3_NODES = [
       id: 'swift-returning-swallow',
       layerId: '3',
       name: '燕返',
-      description: '《藏锋听雷》的反击伤害由60%物攻提高至90%物攻，命中后施加1层剑痕。',
+      description: '《藏锋听雷》的反击伤害由40%物攻提高至60%物攻，命中后施加1层剑痕。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('returningSwallow'),
   ),

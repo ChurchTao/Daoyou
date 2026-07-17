@@ -4,7 +4,6 @@ import type {
 } from '@shared/engine/battle-v5/core/configs';
 import { AbilityType } from '@shared/engine/battle-v5/core/types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
-import { REALM_ORDER, type RealmType } from '@shared/types/constants';
 import type {
   SectAbilityDefinition,
   SectAbilityRole,
@@ -21,26 +20,10 @@ const ROLE_TAGS: Record<SectAbilityRole, string> = {
   utility: GameplayTags.ABILITY.SECT.DEFENSIVE,
 };
 
-export class StandardSectManaCostPolicy {
-  calculate(realm: RealmType, weight: number): number {
-    return Math.round((8 + 4 * REALM_ORDER[realm]) * weight);
-  }
-}
-
-const defaultManaCostPolicy = new StandardSectManaCostPolicy();
-
-export function calculateSectManaCost(
-  realm: RealmType,
-  weight: number,
-): number {
-  return defaultManaCostPolicy.calculate(realm, weight);
-}
-
 export interface ActiveSectAbilitySpec {
   definition: SectAbilityDefinition;
   name?: string;
   role?: SectAbilityRole;
-  manaWeight?: number;
   mpCost?: number;
   cooldown?: number;
   effects: EffectConfig[];
@@ -57,11 +40,7 @@ export interface ActiveSectAbilitySpec {
 
 /** 为单个宗门统一构造 slug、GameplayTag、法力和展示信息。 */
 export class SectAbilityFactory {
-  constructor(
-    private readonly sectId: SectId,
-    private readonly realm: RealmType,
-    private readonly manaCostPolicy = defaultManaCostPolicy,
-  ) {}
+  constructor(private readonly sectId: SectId) {}
 
   active(spec: ActiveSectAbilitySpec): SectCompiledAbility {
     const role = spec.role ?? spec.definition.role;
@@ -88,12 +67,7 @@ export class SectAbilityFactory {
       slug: `sect.${this.sectId}.${spec.definition.id}`,
       name: spec.name ?? spec.definition.baseName,
       type: AbilityType.ACTIVE_SKILL,
-      mpCost:
-        spec.mpCost ??
-        this.manaCostPolicy.calculate(
-          this.realm,
-          spec.manaWeight ?? spec.definition.manaWeight,
-        ),
+      mpCost: spec.mpCost ?? spec.definition.mpCost,
       cooldown: spec.cooldown ?? spec.definition.cooldown,
       tags: [
         ...(hasDamage

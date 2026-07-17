@@ -12,6 +12,7 @@ import type { SectModule } from '../plugin';
 import { projectSectMethodModifiers } from '../presentation';
 import { describeSectAbilityConfig } from '../presentation';
 import { isAbilityUnlocked } from '../progression';
+import { standardSectMethodGrowthPolicy } from '../authoring';
 
 function findActivePath(
   context: SectProjectionContext,
@@ -67,7 +68,15 @@ export class SectCompiler {
       }
     }
 
-    const build = this.finalizePresentation(module.definition, builder.build());
+    const rawBuild = builder.build();
+    const build = this.finalizePresentation(module.definition, {
+      ...rawBuild,
+      abilities: standardSectMethodGrowthPolicy.projectAbilities(
+        module.definition,
+        rawBuild.abilities,
+        context.sect.methods,
+      ),
+    });
     this.assertCombatResourceContract(module.definition, build);
     this.assertAbilityContracts(build);
     return build;

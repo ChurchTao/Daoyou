@@ -26,6 +26,7 @@ interface CombatResourceRuntime extends CombatResourceDefinition {
 
 export class CombatResourceContainer {
   private readonly resources = new Map<string, CombatResourceRuntime>();
+  private readonly noDirectDamageActionCounts = new Map<string, number>();
   private dealtDirectDamageThisAction = false;
   private owner?: Unit;
 
@@ -37,6 +38,7 @@ export class CombatResourceContainer {
     const max = Math.max(0, Math.floor(definition.max));
     const initial = Math.max(0, Math.min(max, Math.floor(definition.initial)));
     this.resources.set(definition.id, { ...definition, max, initial, current: initial });
+    this.noDirectDamageActionCounts.set(definition.id, 0);
   }
 
   has(id: string): boolean {
@@ -98,6 +100,9 @@ export class CombatResourceContainer {
 
   markDirectDamageDealt(): void {
     this.dealtDirectDamageThisAction = true;
+    for (const id of this.resources.keys()) {
+      this.noDirectDamageActionCounts.set(id, 0);
+    }
   }
 
   finishAction(controlledSkip = false, hasShield = false): void {
@@ -113,7 +118,25 @@ export class CombatResourceContainer {
       const decay = controlledSkip
         ? resource.decayOnControlledSkip ?? resource.decayOnNoDirectDamage ?? 0
         : resource.decayOnNoDirectDamage ?? 0;
-      if (decay > 0) this.modify(resource.id, -decay, { operation: 'decay' });
+      if (decay <= 0) continue;
+
+      if (controlledSkip) {
+        this.noDirectDamageActionCounts.set(resource.id, 0);
+        this.modify(resource.id, -decay, { operation: 'decay' });
+        continue;
+      }
+
+      const threshold = Math.max(
+        1,
+        Math.floor(resource.noDirectDamageActionsPerDecay ?? 1),
+      );
+      const count = (this.noDirectDamageActionCounts.get(resource.id) ?? 0) + 1;
+      if (count < threshold) {
+        this.noDirectDamageActionCounts.set(resource.id, count);
+        continue;
+      }
+      this.noDirectDamageActionCounts.set(resource.id, 0);
+      this.modify(resource.id, -decay, { operation: 'decay' });
     }
   }
 
@@ -165,6 +188,10 @@ export class CombatResourceContainer {
     for (const resource of this.resources.values()) {
       clone.define(resource);
       clone.set(resource.id, resource.current);
+      clone.noDirectDamageActionCounts.set(
+        resource.id,
+        this.noDirectDamageActionCounts.get(resource.id) ?? 0,
+      );
     }
     return clone;
   }

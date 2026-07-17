@@ -49,7 +49,7 @@ const HEAVY_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
     {
       id: 'heavy-full',
       name: '极势',
-      description: '优先积蓄6点剑势，以《剑破万法》完成全力一击。',
+      description: '优先积蓄剑势与至少2层裂甲，达到6点剑势后以《剑破万法》全力收束。',
     },
     {
       id: 'heavy-guard',

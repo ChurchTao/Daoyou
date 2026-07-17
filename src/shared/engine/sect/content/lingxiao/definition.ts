@@ -101,7 +101,7 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       unlockLevel: 1,
       occupiesActiveSlot: false,
       role: 'generator',
-      manaWeight: 0,
+      mpCost: 0,
       cooldown: 0,
     },
     {
@@ -112,7 +112,7 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       unlockLevel: 10,
       occupiesActiveSlot: true,
       role: 'finisher',
-      manaWeight: 2.5,
+      mpCost: 75,
       cooldown: 4,
     },
     {
@@ -123,7 +123,7 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       unlockLevel: 1,
       occupiesActiveSlot: true,
       role: 'generator',
-      manaWeight: 1,
+      mpCost: 30,
       cooldown: 0,
     },
     {
@@ -134,7 +134,7 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       unlockLevel: 5,
       occupiesActiveSlot: true,
       role: 'combo',
-      manaWeight: 1.5,
+      mpCost: 50,
       cooldown: 2,
     },
     {
@@ -145,7 +145,7 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       unlockLevel: 3,
       occupiesActiveSlot: true,
       role: 'defensive',
-      manaWeight: 1.25,
+      mpCost: 45,
       cooldown: 3,
     },
     {
@@ -156,7 +156,7 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       unlockLevel: 5,
       occupiesActiveSlot: true,
       role: 'generator',
-      manaWeight: 1,
+      mpCost: 40,
       cooldown: 4,
     },
     {
@@ -167,7 +167,7 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       unlockLevel: 3,
       occupiesActiveSlot: true,
       role: 'utility',
-      manaWeight: 1.5,
+      mpCost: 50,
       cooldown: 3,
     },
     {
@@ -178,7 +178,7 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       unlockLevel: 3,
       occupiesActiveSlot: true,
       role: 'defensive',
-      manaWeight: 1.25,
+      mpCost: 45,
       cooldown: 5,
     },
     {
@@ -189,7 +189,7 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       unlockLevel: 3,
       occupiesActiveSlot: true,
       role: 'defensive',
-      manaWeight: 1.5,
+      mpCost: 50,
       cooldown: 5,
     },
   ],

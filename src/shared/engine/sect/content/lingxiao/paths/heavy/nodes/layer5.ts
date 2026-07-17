@@ -6,7 +6,7 @@ import { heavySwordBuild } from '../HeavySwordBuildFacade';
 
 export const HEAVY_LAYER_5_NODES = [
   createLingxiaoNode(
-    { id: 'heavy-aftershock', layerId: '5', name: '裂岳', description: '《剑破万法》获得20%穿防。' },
+    { id: 'heavy-aftershock', layerId: '5', name: '裂岳', description: '《剑破万法》获得15%穿防。' },
     (_context, builder) => heavySwordBuild(builder).enable('rendingMountain'),
   ),
   createLingxiaoNode(
@@ -29,7 +29,7 @@ export const HEAVY_LAYER_5_NODES = [
     }),
   ),
   createLingxiaoNode(
-    { id: 'heavy-steady-mountain', layerId: '5', name: '回峰', description: '《剑破万法》伤害降低15%，施展后返还2点剑势，并获得相当于60%物攻的护盾。' },
+    { id: 'heavy-steady-mountain', layerId: '5', name: '回峰', description: '《剑破万法》伤害降低15%，施展后返还2点剑势，并获得相当于48%物攻的护盾。' },
     (_context, builder) => heavySwordBuild(builder).enable('returningPeak'),
   ),
 ] as const;

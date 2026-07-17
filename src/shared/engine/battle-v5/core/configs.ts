@@ -3,8 +3,8 @@ import {
   AbilityType,
   AttributeType,
   BuffType,
-  DamageType,
   DamageSource,
+  DamageType,
   ModifierType,
 } from './types';
 
@@ -32,6 +32,8 @@ export interface CombatResourceDefinition {
   initial: number;
   max: number;
   decayOnNoDirectDamage?: number;
+  /** 每连续多少次未造成直接伤害的行动触发一次衰减，默认 1。 */
+  noDirectDamageActionsPerDecay?: number;
   decayOnControlledSkip?: number;
   pauseDecayWhileShielded?: boolean;
   pauseDecayWhenCounterAtLeast?: {
@@ -282,7 +284,8 @@ export interface DamageMemoryParams {
     | 'shield_break'
     | 'shield_absorbed';
   ratio?: number;
-  releaseAs?: 'damage' | 'heal' | 'shield' | 'reflect' | 'counter' | 'follow_up';
+  releaseAs?:
+    'damage' | 'heal' | 'shield' | 'reflect' | 'counter' | 'follow_up';
   target?: 'caster' | 'target';
   maxStored?: number;
   maxStoredValue?: ScalableValue;
@@ -409,6 +412,10 @@ export interface PercentDamageModifierParams {
   mode: 'increase' | 'reduce';
   value: number;
   cap?: number;
+  /** 按产生监听器的 Buff 当前层数放大数值。 */
+  scaleByBuffLayer?: boolean;
+  allowedDamageSources?: DamageSource[];
+  excludedDamageTypes?: DamageType[];
 }
 
 /**
@@ -576,6 +583,8 @@ export interface AttributeModifierConfig {
   attrType: AttributeType;
   type: ModifierType;
   value: number;
+  /** 按 Buff 当前层数放大属性修改值。 */
+  scaleByLayer?: boolean;
 }
 
 /**

@@ -8,6 +8,7 @@ import type {
 } from '@shared/engine/battle-v5/core/configs';
 import {
   AttributeType,
+  DamageSource,
   ModifierType,
 } from '@shared/engine/battle-v5/core/types';
 import type { ScalableValue } from '@shared/engine/battle-v5/core/ValueCalculator';
@@ -21,6 +22,13 @@ const ATTRIBUTE_LABELS: Partial<Record<AttributeType, string>> = {
   [AttributeType.SPEED]: '身法',
   [AttributeType.EVASION_RATE]: '闪避',
   [AttributeType.CONTROL_RESISTANCE]: '控制抗性',
+};
+
+const DAMAGE_SOURCE_LABELS: Partial<Record<DamageSource, string>> = {
+  [DamageSource.DIRECT]: '直接',
+  [DamageSource.COUNTER]: '反击',
+  [DamageSource.FOLLOW_UP]: '追击',
+  [DamageSource.REFLECT]: '反伤',
 };
 
 function number(value: number): string {
@@ -97,9 +105,20 @@ function modifierText(modifier: AttributeModifierConfig): string {
     return `${label}+${number(modifier.value * 100)}个百分点`;
   }
   if (modifier.type === ModifierType.ADD) {
-    return `${label}+${percent(modifier.value)}`;
+    return `${label}${modifier.value >= 0 ? '+' : ''}${percent(modifier.value)}`;
   }
   return `${label}${modifier.value >= 0 ? '+' : ''}${number(modifier.value)}`;
+}
+
+function damageSourceScopeText(
+  sources: readonly DamageSource[] | undefined,
+): string {
+  if (!sources?.length) return '';
+  const labels = sources.map(
+    (source) => DAMAGE_SOURCE_LABELS[source] ?? source,
+  );
+  if (labels.length === 1) return labels[0];
+  return `${labels.slice(0, -1).join('、')}和${labels[labels.length - 1]}`;
 }
 
 function damageEffectsRow(
@@ -339,9 +358,29 @@ function describeEffect(
     case 'apply_buff': {
       const buff = effect.params.buffConfig;
       if (effect.params.target === 'target') {
-        return [
+        const rows = [
           `${buff.name}：向目标施加${stackCount}层${buff.duration >= 0 ? `，持续目标未来${buff.duration}次行动` : ''}`,
         ];
+        if (buff.maxLayers) rows.push(`${buff.name}：最多${buff.maxLayers}层`);
+        for (const modifier of buff.modifiers ?? []) {
+          if (modifier.scaleByLayer)
+            rows.push(`每层：${modifierText(modifier)}`);
+        }
+        for (const listener of buff.listeners ?? []) {
+          for (const child of listener.effects) {
+            if (
+              child.type === 'percent_damage_modifier' &&
+              child.params.scaleByBuffLayer
+            ) {
+              rows.push(
+                child.params.mode === 'increase'
+                  ? `每层：受到的${damageSourceScopeText(child.params.allowedDamageSources)}伤害提高${percent(child.params.value)}`
+                  : `每层：受到的伤害降低${percent(child.params.value)}`,
+              );
+            }
+          }
+        }
+        return rows;
       }
       const modifiers = buff.modifiers?.map(modifierText) ?? [];
       const rows =
@@ -387,8 +426,13 @@ function describeEffect(
         ...childRows,
       ];
     }
-    case 'runtime_counter_modify':
-      return [];
+    case 'runtime_counter_modify': {
+      const nested = effect.params.effects ?? [];
+      return [
+        ...damageEffectsRow(nested, resources),
+        ...describeEffectList(nested, resources),
+      ];
+    }
     case 'cooldown_modify':
       return effect.params.cdModifyValue < 0
         ? [`冷却：当前冷却减少${Math.abs(effect.params.cdModifyValue)}回合`]

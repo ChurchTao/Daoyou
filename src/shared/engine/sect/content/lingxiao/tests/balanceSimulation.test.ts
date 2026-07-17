@@ -1,14 +1,17 @@
-import { BattleEngineV5 } from '@shared/engine/battle-v5/BattleEngineV5';
-import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
-import { AbilityType, AttributeType } from '@shared/engine/battle-v5/core/types';
-import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
-import type { DamageEntryData } from '@shared/engine/battle-v5/systems/log/types';
-import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import {
   getRealmStageNaturalAttributeValue,
   getRealmStageRank,
   getRealmStageUnallocatedAttributeBudget,
 } from '@shared/config/realmProgression';
+import { BattleEngineV5 } from '@shared/engine/battle-v5/BattleEngineV5';
+import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
+import {
+  AbilityType,
+  AttributeType,
+} from '@shared/engine/battle-v5/core/types';
+import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
+import type { DamageEntryData } from '@shared/engine/battle-v5/systems/log/types';
+import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { projectSectCombat } from '../..';
@@ -19,13 +22,35 @@ type SwiftTactic = 'aggressive' | 'steady' | 'counter';
 type HeavyTactic = 'heavy-break' | 'heavy-full' | 'heavy-guard';
 
 const REALMS = [
-  { realm: '筑基', stage: '初期', layerCount: 1, realmIndex: 0, label: '筑基初期' },
-  { realm: '金丹', stage: '圆满', layerCount: 3, realmIndex: 1, label: '金丹圆满' },
-  { realm: '化神', stage: '圆满', layerCount: 6, realmIndex: 2, label: '化神圆满' },
+  {
+    realm: '筑基',
+    stage: '初期',
+    layerCount: 1,
+    methodLevel: 25,
+    realmIndex: 0,
+    label: '筑基初期',
+  },
+  {
+    realm: '金丹',
+    stage: '圆满',
+    layerCount: 3,
+    methodLevel: 60,
+    realmIndex: 1,
+    label: '金丹圆满',
+  },
+  {
+    realm: '化神',
+    stage: '圆满',
+    layerCount: 6,
+    methodLevel: 100,
+    realmIndex: 2,
+    label: '化神圆满',
+  },
 ] as const satisfies ReadonlyArray<{
   realm: RealmType;
   stage: RealmStage;
   layerCount: number;
+  methodLevel: number;
   realmIndex: number;
   label: string;
 }>;
@@ -49,7 +74,7 @@ const NODE_SET: Record<SwiftTactic | HeavyTactic, string[]> = {
   ],
   counter: [
     'swift-hidden-edge',
-    'swift-stacking-waves',
+    'swift-retained-force',
     'swift-returning-swallow',
     'swift-sheathing',
     'swift-still-tide',
@@ -84,18 +109,36 @@ const NODE_SET: Record<SwiftTactic | HeavyTactic, string[]> = {
 const LOADOUT: Record<SwiftTactic | HeavyTactic, string[]> = {
   aggressive: ['guiding-sword', 'linked-edge', 'shadow-step', 'sect-ultimate'],
   steady: ['guiding-sword', 'linked-edge', 'nurturing-sword', 'sect-ultimate'],
-  counter: ['turning-body', 'shadow-step', 'sword-aegis', 'sect-ultimate'],
-  'heavy-break': ['guiding-sword', 'turning-body', 'linked-edge', 'sect-ultimate'],
-  'heavy-full': ['guiding-sword', 'linked-edge', 'turning-body', 'sect-ultimate'],
-  'heavy-guard': ['shadow-step', 'sword-aegis', 'turning-body', 'sect-ultimate'],
+  counter: ['linked-edge', 'turning-body', 'shadow-step', 'sect-ultimate'],
+  'heavy-break': [
+    'guiding-sword',
+    'turning-body',
+    'linked-edge',
+    'sect-ultimate',
+  ],
+  'heavy-full': [
+    'guiding-sword',
+    'linked-edge',
+    'turning-body',
+    'sect-ultimate',
+  ],
+  'heavy-guard': [
+    'shadow-step',
+    'sword-aegis',
+    'turning-body',
+    'sect-ultimate',
+  ],
 };
 
 function sectState(
   pathId: PathId,
   tacticId: SwiftTactic | HeavyTactic,
   layerCount: number,
+  methodLevel: number,
 ): CultivatorSectState {
   const layers = ['1', '2', '3', '4', '5', 'ultimate'].slice(0, layerCount);
+  const loadout =
+    methodLevel < 5 ? ['guiding-sword', null, null, null] : LOADOUT[tacticId];
   return {
     membershipId: `${pathId}:${tacticId}`,
     sectId: 'lingxiao',
@@ -104,29 +147,35 @@ function sectState(
     configVersion: 4,
     activePathId: pathId,
     methods: {
-      'lingxiao-canon': 60,
-      'sword-guidance': 60,
-      'void-step': 60,
-      'edge-cleansing': 60,
-      'origin-returning': 60,
-      'sword-nurturing': 60,
+      'lingxiao-canon': methodLevel,
+      'sword-guidance': methodLevel,
+      'void-step': methodLevel,
+      'edge-cleansing': methodLevel,
+      'origin-returning': methodLevel,
+      'sword-nurturing': methodLevel,
     },
-    paths: [{
-      pathId,
-      unlockedLayerIds: layers,
-      tacticId,
-      activeMeridianSlot: 1,
-      meridianLoadouts: [
-        { slot: 1, nodeIds: NODE_SET[tacticId].slice(0, layerCount), version: 1 },
-        { slot: 2, nodeIds: [], version: 1 },
-        { slot: 3, nodeIds: [], version: 1 },
-      ],
-    }],
+    paths: [
+      {
+        pathId,
+        unlockedLayerIds: layers,
+        tacticId,
+        activeMeridianSlot: 1,
+        meridianLoadouts: [
+          {
+            slot: 1,
+            nodeIds: NODE_SET[tacticId].slice(0, layerCount),
+            version: 1,
+          },
+          { slot: 2, nodeIds: [], version: 1 },
+          { slot: 3, nodeIds: [], version: 1 },
+        ],
+      },
+    ],
     abilityLoadout: [
-      LOADOUT[tacticId][0] ?? null,
-      LOADOUT[tacticId][1] ?? null,
-      LOADOUT[tacticId][2] ?? null,
-      LOADOUT[tacticId][3] ?? null,
+      loadout[0] ?? null,
+      loadout[1] ?? null,
+      loadout[2] ?? null,
+      loadout[3] ?? null,
     ],
   };
 }
@@ -151,17 +200,27 @@ function combatant(args: {
   realm: RealmType;
   stage: RealmStage;
   layerCount: number;
+  methodLevel: number;
 }): Unit {
-  const state = sectState(args.pathId, args.tacticId, args.layerCount);
+  const state = sectState(
+    args.pathId,
+    args.tacticId,
+    args.layerCount,
+    args.methodLevel,
+  );
   const projection = projectSectCombat({ sect: state, realm: args.realm })!;
   const natural = getRealmStageNaturalAttributeValue(args.realm, args.stage);
-  const unallocated = getRealmStageUnallocatedAttributeBudget(args.realm, args.stage);
+  const unallocated = getRealmStageUnallocatedAttributeBudget(
+    args.realm,
+    args.stage,
+  );
   let assigned = 0;
   const attributes = Object.fromEntries(
     ATTRIBUTES.map((attribute, index) => {
-      const extra = index === ATTRIBUTES.length - 1
-        ? unallocated - assigned
-        : Math.floor(unallocated * DISTRIBUTION[args.pathId][index]);
+      const extra =
+        index === ATTRIBUTES.length - 1
+          ? unallocated - assigned
+          : Math.floor(unallocated * DISTRIBUTION[args.pathId][index]);
       assigned += extra;
       return [attribute, natural + extra];
     }),
@@ -172,9 +231,12 @@ function combatant(args: {
     realmStage: args.stage,
     realmRank: getRealmStageRank(args.realm, args.stage),
   });
-  for (const resource of projection.resources) unit.combatResources.define(resource);
+  for (const resource of projection.resources)
+    unit.combatResources.define(resource);
   if (projection.defaultAttack) {
-    unit.abilities.setDefaultAttack(AbilityFactory.create(projection.defaultAttack));
+    unit.abilities.setDefaultAttack(
+      AbilityFactory.create(projection.defaultAttack),
+    );
   }
   for (const config of projection.abilities) {
     const ability = AbilityFactory.create(config);
@@ -225,6 +287,7 @@ function simulate(args: {
   realm: RealmType;
   stage: RealmStage;
   layerCount: number;
+  methodLevel: number;
   swiftTactic: SwiftTactic;
   heavyTactic: HeavyTactic;
   seed: number;
@@ -249,6 +312,7 @@ function simulate(args: {
       realm: args.realm,
       stage: args.stage,
       layerCount: args.layerCount,
+      methodLevel: args.methodLevel,
     });
     const heavy = combatant({
       id: `heavy-${index}`,
@@ -257,10 +321,12 @@ function simulate(args: {
       realm: args.realm,
       stage: args.stage,
       layerCount: args.layerCount,
+      methodLevel: args.methodLevel,
     });
-    const engine = index % 2 === 0
-      ? new BattleEngineV5(swift, heavy)
-      : new BattleEngineV5(heavy, swift);
+    const engine =
+      index % 2 === 0
+        ? new BattleEngineV5(swift, heavy)
+        : new BattleEngineV5(heavy, swift);
     const result = engine.execute();
     if (result.winner.startsWith('swift-')) swiftWins += 1;
     if (!result.winner) draws += 1;
@@ -304,7 +370,7 @@ function simulate(args: {
   };
 }
 
-describe('凌霄V4.1三境界固定种子平衡矩阵', () => {
+describe('凌霄V4.2三境界固定种子平衡矩阵', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     EventBus.instance.reset();
@@ -312,9 +378,13 @@ describe('凌霄V4.1三境界固定种子平衡矩阵', () => {
 
   it.runIf(process.env.LINGXIAO_BALANCE_GATE === '1').each(REALMS)(
     '$label 的三组代表对局与3×3战术矩阵满足验收范围',
-    ({ realm, stage, layerCount, realmIndex }) => {
+    ({ realm, stage, layerCount, methodLevel, realmIndex }) => {
       const swiftTactics: SwiftTactic[] = ['aggressive', 'steady', 'counter'];
-      const heavyTactics: HeavyTactic[] = ['heavy-break', 'heavy-full', 'heavy-guard'];
+      const heavyTactics: HeavyTactic[] = [
+        'heavy-break',
+        'heavy-full',
+        'heavy-guard',
+      ];
       const representative = new Set([
         'aggressive:heavy-break',
         'steady:heavy-full',
@@ -328,13 +398,10 @@ describe('凌霄V4.1三境界固定种子平衡矩阵', () => {
             realm,
             stage,
             layerCount,
+            methodLevel,
             swiftTactic,
             heavyTactic,
-            seed:
-              0x4c58_4100 +
-              realmIndex * 100 +
-              swiftIndex * 10 +
-              heavyIndex,
+            seed: 0x4c58_4100 + realmIndex * 100 + swiftIndex * 10 + heavyIndex,
           });
           const label = `${realm}${stage} ${swiftTactic} vs ${heavyTactic}: ${JSON.stringify(result)}`;
           reports.push(label);
@@ -364,6 +431,7 @@ describe('凌霄V4.1三境界固定种子平衡矩阵', () => {
       realm: '化神',
       stage: '圆满',
       layerCount: 6,
+      methodLevel: 100,
       swiftTactic: 'aggressive',
       heavyTactic: 'heavy-break',
       seed: 0x4c58_4999,
@@ -371,4 +439,21 @@ describe('凌霄V4.1三境界固定种子平衡矩阵', () => {
     expect(result.swiftIdentityShare).toBeGreaterThan(0.5);
     expect(result.heavyIdentityShare).toBeGreaterThan(0.5);
   }, 30_000);
+
+  it.each([1, 180])('%i级心法边界可完成代表对局冒烟', (methodLevel) => {
+    const result = simulate({
+      realm: methodLevel === 1 ? '筑基' : '渡劫',
+      stage: methodLevel === 1 ? '初期' : '圆满',
+      layerCount: methodLevel === 1 ? 1 : 6,
+      methodLevel,
+      swiftTactic: 'counter',
+      heavyTactic: 'heavy-guard',
+      seed: 0x4c58_4200 + methodLevel,
+      samples: 5,
+    });
+    expect(result.drawRate).toBeLessThan(1);
+    expect(result.swiftWinRate).toBeGreaterThanOrEqual(0);
+    expect(result.swiftWinRate).toBeLessThanOrEqual(1);
+    expect(result.averageTurns).toBeGreaterThan(0);
+  });
 });

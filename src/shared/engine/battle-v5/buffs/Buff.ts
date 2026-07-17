@@ -122,21 +122,28 @@ export class Buff {
    * @param layers 增加的层数，默认为 1
    */
   addLayer(layers: number = 1): void {
+    const previous = this._layer;
     this._layer = Math.min(
       this.maxLayers ?? Number.POSITIVE_INFINITY,
       this._layer + layers,
     );
+    if (this._layer !== previous) this.onLayerChanged();
   }
 
   /**
    * 设置层数
    */
   setLayer(layer: number): void {
+    const previous = this._layer;
     this._layer = Math.max(
       1,
       Math.min(this.maxLayers ?? Number.POSITIVE_INFINITY, layer),
     );
+    if (this._layer !== previous) this.onLayerChanged();
   }
+
+  /** Buff 层数变化钩子，供依赖层数的运行时效果重新挂载。 */
+  onLayerChanged(): void {}
 
   /**
    * Buff 激活时的初始化（GAS 模式）
