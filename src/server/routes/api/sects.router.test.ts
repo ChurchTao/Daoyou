@@ -36,8 +36,43 @@ vi.mock('@server/lib/hono/middleware', () => {
       await next();
     },
     getValidatedJson: (context: any) => context.get('validatedJson'),
+    validateQuery: () => async (_context: any, next: () => Promise<void>) => {
+      await next();
+    },
+    getValidatedQuery: () => ({ page: 1, pageSize: 20 }),
   };
 });
+vi.mock('@server/lib/services/SectOrganizationService', () => ({
+  SectOrganizationService: {
+    getOverview: vi.fn(async () => ({
+      facilities: [],
+      project: null,
+      methodLevelCap: 20,
+      realmMethodLevelCap: 25,
+      stipend: {
+        weekKey: '2026-07-13',
+        claimed: false,
+        spiritStones: 500,
+        herbQuantity: 1,
+        bonusRewards: [],
+      },
+      nextRank: 'outer',
+      promotionMissing: [],
+    })),
+    getTasks: vi.fn(),
+    getShop: vi.fn(),
+    getConstruction: vi.fn(),
+    listMembers: vi.fn(),
+    acceptDaily: vi.fn(),
+    completeSweep: vi.fn(),
+    submitTaskItem: vi.fn(),
+    challengeTask: vi.fn(),
+    promote: vi.fn(),
+    purchaseShopItem: vi.fn(),
+    donate: vi.fn(),
+    claimStipend: vi.fn(),
+  },
+}));
 vi.mock('@server/lib/services/SectService', () => {
   class SectError extends Error {
     constructor(
@@ -127,7 +162,7 @@ const activeSect = {
 describe('sects router', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('returns current race, membership, cap and commission', async () => {
+  it('returns current race, membership and organization overview', async () => {
     getStateMock.mockResolvedValue(activeSect);
     getTodayMock.mockResolvedValue({ dateKey: '2026-07-13' });
     const response = await new Hono()
@@ -138,9 +173,9 @@ describe('sects router', () => {
       success: true,
       data: {
         playerRace: 'human',
-        methodLevelCap: 25,
+        methodLevelCap: 20,
         sect: { status: 'active' },
-        commission: { dateKey: '2026-07-13' },
+        overview: { nextRank: 'outer' },
       },
     });
   });

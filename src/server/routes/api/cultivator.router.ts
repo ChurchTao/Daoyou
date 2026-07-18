@@ -120,6 +120,7 @@ import {
   attemptBreakthrough,
   performCultivation,
 } from '@shared/engine/cultivation/CultivationEngine';
+import { SectOrganizationService } from '@server/lib/services/SectOrganizationService';
 import { MaterialGenerator } from '@shared/engine/material/creation/MaterialGenerator';
 import type { GeneratedMaterial } from '@shared/engine/material/creation/types';
 import { resourceEngine } from '@shared/engine/resource/ResourceEngine';
@@ -1705,7 +1706,12 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
       }
 
       const cultivateQiActionInstanceId = randomUUID();
-      const result = performCultivation(cultivator, years);
+      const sectBonuses = await SectOrganizationService.getFacilityBonuses(
+        cultivatorId,
+      );
+      const result = performCultivation(cultivator, years, Math.random, {
+        retreatExpMultiplier: sectBonuses.retreatMultiplier,
+      });
 
       let streamResult: RetreatResultData = {
         summary: result.summary,

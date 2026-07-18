@@ -25,6 +25,16 @@ vi.mock('@server/lib/drizzle/db', () => ({
   getExecutor: vi.fn(),
 }));
 
+vi.mock('@server/lib/services/SectOrganizationService', () => ({
+  SectOrganizationService: {
+    getFacilityBonuses: vi.fn(async () => ({
+      retreatMultiplier: 1,
+      craftDiscount: 0,
+      archiveLevel: 1,
+    })),
+  },
+}));
+
 vi.mock('@server/lib/repositories/playerStateRepository', async (importOriginal) => {
   const actual =
     await importOriginal<

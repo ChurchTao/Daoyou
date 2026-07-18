@@ -1,9 +1,4 @@
 import { SectAbilityDetails } from '@app/components/feature/sect/SectAbilityDetails';
-import {
-  GameSceneFrame,
-  GameSceneLoading,
-  GameSceneNote,
-} from '@app/components/game-shell';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkCard, InkNotice } from '@app/components/ui';
@@ -18,6 +13,7 @@ import {
 } from '@shared/engine/sect';
 import { resolveSectAbility } from '@shared/engine/sect/content';
 import { useEffect, useMemo, useState } from 'react';
+import { SectPageLoading, SectScene } from '../components/SectScene';
 
 const EMPTY_SLOTS: SectAbilitySlots = [null, null, null, null];
 const SLOT_NAMES = ['', '一', '二', '三'] as const;
@@ -155,18 +151,17 @@ export default function SectAbilitiesPage() {
   };
 
   if (!data && !error)
-    return <GameSceneLoading message="宗门神通卷徐徐展开……" />;
+    return <SectPageLoading message="演武台阵纹徐徐亮起……" />;
   return (
-    <GameSceneFrame
-      title="【宗门神通】"
+    <SectScene
+      title="演武台"
       description={
         definition
-          ? `查阅并配置${definition.name}神通，详情将按当前流派与参悟方案呈现。`
-          : '拜入宗门后，可在此配置宗门神通。'
+          ? `演武场中央阵纹已启，${definition.name}神通将在当前流派与参悟方案下显化威能。`
+          : '阵台尚静。拜入宗门后，方可在此配置宗门神通。'
       }
-      headerMeta={
-        error ? <GameSceneNote tone="danger">{error}</GameSceneNote> : undefined
-      }
+      error={error}
+      mood="arena"
       aside={
         definition ? (
           <div className="space-y-2 text-sm leading-7">
@@ -181,6 +176,7 @@ export default function SectAbilitiesPage() {
         ) : undefined
       }
     >
+      <div className="rounded-full border border-red-950/10 bg-white/20 p-2 sm:p-4">
       {!sect || !definition ? (
         <InkNotice>尚未拜入宗门。</InkNotice>
       ) : (
@@ -353,6 +349,7 @@ export default function SectAbilitiesPage() {
           </InkModal>
         </>
       )}
-    </GameSceneFrame>
+      </div>
+    </SectScene>
   );
 }

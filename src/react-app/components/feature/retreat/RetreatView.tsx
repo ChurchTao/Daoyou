@@ -12,15 +12,16 @@ import type { TaskInstance } from '@shared/types/task';
 import {
   useRetreatViewModel,
   type CultivationProgressData,
-} from '../hooks/useRetreatViewModel';
+} from './useRetreatViewModel';
 import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
 import { RetreatResultModal } from './RetreatResultModal';
 import { cn } from '@shared/lib/utils';
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import type {
   RetreatBuffTag,
   RetreatEfficiencyModel,
-} from '../lib/retreatEfficiency';
+} from './retreatEfficiency';
 
 const COMPREHENSION_LABEL = getGameConceptLabel('comprehension_insight');
 
@@ -128,9 +129,11 @@ function RetreatSummaryEntry({
 function RetreatBuffTags({
   tags,
   emptyHint,
+  showShortcuts = true,
 }: {
   tags: RetreatBuffTag[];
   emptyHint?: string | null;
+  showShortcuts?: boolean;
 }) {
   if (tags.length === 0 && !emptyHint) return null;
 
@@ -154,12 +157,12 @@ function RetreatBuffTags({
         <span className="text-ink-secondary inline-flex items-center gap-1.5 text-xs leading-5">
           <span aria-hidden="true">🌿</span>
           <span>{emptyHint}</span>
-          <InkButton href="/game/inventory" variant="ghost">
-            背包
-          </InkButton>
-          <InkButton href="/game/craft/alchemy" variant="ghost">
-            炼丹
-          </InkButton>
+          {showShortcuts ? (
+            <>
+              <InkButton href="/game/inventory" variant="ghost">背包</InkButton>
+              <InkButton href="/game/craft/alchemy" variant="ghost">炼丹</InkButton>
+            </>
+          ) : null}
         </span>
       ) : null}
     </div>
@@ -247,6 +250,7 @@ function RetreatCultivationPanel({
   retreatLoading,
   onRetreatYearsChange,
   onRetreat,
+  showShortcuts,
 }: {
   isMajorBreakthrough: boolean;
   majorBreakthroughBlocked: boolean;
@@ -256,6 +260,7 @@ function RetreatCultivationPanel({
   retreatLoading: boolean;
   onRetreatYearsChange: (value: string) => void;
   onRetreat: () => Promise<void>;
+  showShortcuts: boolean;
 }) {
   return (
     <div className="border-ink/10 bg-bgpaper/70 space-y-5 border border-dashed px-4 py-4 md:px-5">
@@ -281,6 +286,7 @@ function RetreatCultivationPanel({
         <RetreatBuffTags
           tags={retreatEfficiency?.retreatTags ?? []}
           emptyHint={retreatEfficiency?.emptyHint}
+          showShortcuts={showShortcuts}
         />
       </div>
 
@@ -397,8 +403,16 @@ function BreakthroughPanel({
   );
 }
 
-export function RetreatView() {
+export type RetreatViewProps = {
+  sectContext?: {
+    facilityLevel: number;
+    experienceBonusPercent: number;
+  };
+};
+
+export function RetreatView({ sectContext }: RetreatViewProps) {
   const [activeTab, setActiveTab] = useState<RetreatSceneTab>('retreat');
+  const navigate = useNavigate();
   const {
     cultivator,
     isLoading,
@@ -429,6 +443,12 @@ export function RetreatView() {
   } = useRetreatViewModel();
   const shouldHoldResultShell =
     !cultivator && retreatResultOpen && Boolean(retreatResult?.depleted);
+  const headerMeta = sectContext || note ? (
+    <div className="space-y-3">
+      {sectContext ? <InkButton onClick={() => navigate('/game/sect')} variant="secondary">返回宗门总视图</InkButton> : null}
+      {note ? <GameSceneNote><p className="text-sm leading-7">{note}</p></GameSceneNote> : null}
+    </div>
+  ) : undefined;
 
   if (isLoading && !cultivator && !shouldHoldResultShell) {
     return (
@@ -442,14 +462,8 @@ export function RetreatView() {
     if (shouldHoldResultShell) {
       return (
         <GameSceneFrame
-          title="静室修行"
-          headerMeta={
-            note ? (
-              <GameSceneNote>
-                <p className="text-sm leading-7">{note}</p>
-              </GameSceneNote>
-            ) : undefined
-          }
+          title={sectContext ? '宗门修炼室' : '静室修行'}
+          headerMeta={headerMeta}
         >
           <GameSceneSection>
             <div className="border-ink/10 bg-bgpaper/70 border border-dashed px-4 py-4 text-sm leading-7">
@@ -464,6 +478,7 @@ export function RetreatView() {
             celebrationTick={celebrationTick}
             onClose={closeRetreatResult}
             onGoReincarnate={handleGoReincarnate}
+            allowAttributeNavigation={!sectContext}
           />
         </GameSceneFrame>
       );
@@ -499,14 +514,11 @@ export function RetreatView() {
 
   return (
     <GameSceneFrame
-      title="静室修行"
-      headerMeta={
-        note ? (
-          <GameSceneNote>
-            <p className="text-sm leading-7">{note}</p>
-          </GameSceneNote>
-        ) : undefined
-      }
+      title={sectContext ? '宗门修炼室' : '静室修行'}
+      description={sectContext ? '聚灵阵纹绕蒲团缓缓流转，静香已燃；定下闭关年数，宗门灵气会在结算时自然汇入。' : undefined}
+      headerMeta={headerMeta}
+      aside={sectContext ? <div className="space-y-2 text-sm leading-7"><p>修炼室等级：{sectContext.facilityLevel}级</p><p>闭关修为加成：+{sectContext.experienceBonusPercent}%</p></div> : undefined}
+      contentClassName={sectContext ? 'bg-[radial-gradient(circle_at_50%_18%,rgba(64,148,135,0.16)_0_10%,transparent_11%_25%,rgba(64,148,135,0.08)_26%_27%,transparent_28%),linear-gradient(180deg,rgba(205,228,215,0.22),transparent_55%)] px-3 py-4 sm:px-5' : undefined}
     >
       <GameSceneSection
         title="静室所行"
@@ -542,6 +554,7 @@ export function RetreatView() {
               retreatLoading={retreatLoading}
               onRetreatYearsChange={handleRetreatYearsChange}
               onRetreat={handleRetreat}
+              showShortcuts={!sectContext}
             />
           ) : (
             <BreakthroughPanel
@@ -605,6 +618,7 @@ export function RetreatView() {
         celebrationTick={celebrationTick}
         onClose={closeRetreatResult}
         onGoReincarnate={handleGoReincarnate}
+        allowAttributeNavigation={!sectContext}
       />
     </GameSceneFrame>
   );

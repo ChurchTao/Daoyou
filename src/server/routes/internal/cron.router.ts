@@ -6,6 +6,7 @@ import {
   runMaterialLibraryDailyGenerationJob,
   runPlayerStateEventsCleanupJob,
   runRankRewardsJob,
+  runSectConstructionWeeklyJob,
   runTowerEnemySetRefreshJob,
 } from '@server/lib/jobs/internalCron';
 import type { AppEnv } from '@server/lib/hono/types';
@@ -70,6 +71,10 @@ router.get('/bet-battle-expire', (c) =>
 
 router.get('/rank-rewards', (c) =>
   handleCronRequest(c.req.raw, runRankRewardsJob),
+);
+
+router.get('/sect-construction-weekly', (c) =>
+  handleCronRequest(c.req.raw, runSectConstructionWeeklyJob),
 );
 
 router.get('/market-refresh', (c) =>

@@ -20,30 +20,11 @@ import { productionSectRuntime } from '@shared/engine/sect/content';
 import type { Cultivator } from '@shared/types/cultivator';
 import { getRealmStageRank } from '@shared/config/realmProgression';
 import type { SectPathDefinition } from '@shared/engine/sect';
-
-export type SectErrorCode =
-  | 'SECT_UNKNOWN'
-  | 'SECT_TRIAL_REQUIRED'
-  | 'SECT_ALREADY_JOINED'
-  | 'SECT_REALM_GATE'
-  | 'SECT_METHOD_CAP'
-  | 'SECT_PATH_UNKNOWN'
-  | 'SECT_PATH_NOT_LEARNED'
-  | 'SECT_PATH_ALREADY_LEARNED'
-  | 'SECT_INSUFFICIENT_RESOURCES'
-  | 'SECT_INVALID_MERIDIAN'
-  | 'SECT_INVALID_LOADOUT'
-  | 'SECT_COMMISSION_ALREADY_CLAIMED';
-
-export class SectError extends Error {
-  constructor(
-    public readonly code: SectErrorCode,
-    message: string,
-    public readonly status = 409,
-  ) {
-    super(message);
-  }
-}
+import { getEffectiveSectMethodLevelCap } from '@shared/engine/sect';
+import { ensureSectFacilities } from '@server/lib/repositories/sectOrganizationRepository';
+import { getSectFacilityBonuses } from './SectFacilityService';
+export { SectError, type SectErrorCode } from './SectError';
+import { SectError } from './SectError';
 
 async function requireActive(
   repository: SectRepositoryPort,
@@ -237,6 +218,8 @@ export class SectApplicationService {
       module.definition,
       tx,
     );
+    if (this.repository === postgresSectRepository)
+      await ensureSectFacilities(sectId, tx);
     return (await this.repository.loadCultivatorSectState(cultivatorId, tx))!;
   }
 
@@ -253,16 +236,25 @@ export class SectApplicationService {
       tx,
     );
     const currentLevel = sect.methods[args.methodId] ?? 0;
+    const realmCap = module.progression.methodLevelCap(
+      cultivator.realm,
+      cultivator.stage,
+    );
+    const organization =
+      this.repository === postgresSectRepository
+        ? await getSectFacilityBonuses(args.cultivatorId, tx)
+        : { retreatMultiplier: 1, craftDiscount: 0, archiveLevel: 1 };
     try {
       assertMethodTrainingTarget({
         definition,
         methodId: args.methodId,
         currentLevel,
         targetLevel: args.targetLevel,
-        levelCap: module.progression.methodLevelCap(
-          cultivator.realm,
-          cultivator.stage,
-        ),
+        levelCap: getEffectiveSectMethodLevelCap({
+          realmCap,
+          rank: sect.discipleRank ?? 'registered',
+          archiveLevel: organization.archiveLevel,
+        }),
         methods: sect.methods,
       });
     } catch (error) {

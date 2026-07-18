@@ -23,11 +23,11 @@ import {
   type ReincarnateContextData,
   consumeRetreatStream,
   isSuccessfulBreakthrough,
-} from '../lib/retreatStream';
+} from './retreatStream';
 import {
   buildRetreatEfficiencyModel,
   type RetreatEfficiencyModel,
-} from '../lib/retreatEfficiency';
+} from './retreatEfficiency';
 
 export interface CultivationProgressData {
   cultivation_exp: number;

@@ -30,6 +30,11 @@ describe('game shell registry', () => {
     expect(resolveGameShellKind('/game')).toBe('viewport');
     expect(resolveGameShellKind('/game/inventory')).toBe('viewport');
     expect(resolveGameShellKind('/game/sect/abilities')).toBe('viewport');
+    expect(resolveGameShellKind('/game/sect/hall')).toBe('viewport');
+    expect(resolveGameShellKind('/game/sect/archive/methods')).toBe('viewport');
+    expect(resolveGameShellKind('/game/sect/enlightenment-cliff')).toBe('viewport');
+    expect(resolveGameShellKind('/game/sect/alchemy')).toBe('viewport');
+    expect(resolveGameShellKind('/game/sect/industries')).toBe('viewport');
     expect(resolveGameShellKind('/game/cultivator/attributes')).toBe(
       'viewport',
     );
@@ -59,6 +64,15 @@ describe('game shell registry', () => {
   it('registers the sect abilities route without replacing creation skills', () => {
     const source = readFileSync('src/react-app/router.tsx', 'utf8');
     expect(source).toContain('path="sect/abilities"');
+    expect(source).toContain('path="sect/archive/abilities"');
+    expect(source).toContain('path="sect/arena"');
+    expect(source).toContain('path="sect/enlightenment-cliff"');
+    expect(source).toContain('path="sect/alchemy"');
+    expect(source).toContain('path="sect/refinery"');
+    expect(source).toContain('path="sect/spirit-vein"');
+    expect(source).toContain('path="sect/herb-garden"');
+    expect(source).toContain('path="sect/affairs"');
+    expect(source).toContain('path="sect/industries"');
     expect(source).toContain("id: 'sect-abilities'");
     expect(source).toContain("path=\"skills\"");
   });

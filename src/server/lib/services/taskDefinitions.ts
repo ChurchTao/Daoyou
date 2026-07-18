@@ -1074,7 +1074,7 @@ export function getBreakthroughTaskDefinitionByTransition(
 }
 
 export function getDailyTaskDefinitions() {
-  return dailyDefinitions;
+  return [] as DailyTaskDefinition[];
 }
 
 export function getTutorialTaskDefinitions() {

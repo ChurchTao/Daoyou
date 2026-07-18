@@ -56,6 +56,7 @@ import type { Material, PreHeavenFate } from '@shared/types/cultivator';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { getPlayerRuntimeCultivatorByIdUnsafe } from './cultivatorService';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
+import { SectOrganizationService } from './SectOrganizationService';
 
 /**
  * processCreation 时的玩家侧可选入参。
@@ -509,13 +510,21 @@ export async function processCreation(
     );
     const resourceType =
       productType === 'artifact' ? 'spiritStone' : 'comprehension';
-    const costAmount = calculateFateAdjustedCraftCost(
+    const baseCostAmount = calculateFateAdjustedCraftCost(
       highestMaterialRank,
       resourceType,
       resourceType === 'spiritStone'
         ? getRefineSpiritStoneMultiplier(fateContext)
         : fateContext.enlightenmentInsightMultiplier,
     );
+    const costAmount =
+      resourceType === 'spiritStone'
+        ? await SectOrganizationService.applyCraftDiscount(
+            cultivatorId,
+            baseCostAmount,
+            q,
+          )
+        : baseCostAmount;
 
     // 校验资源是否充足
     if (resourceType === 'spiritStone') {
@@ -875,23 +884,30 @@ function extractAffixSummary(
 }
 
 /** 造物消耗预估（供 GET /api/craft 使用） */
-export function estimateCost(
+export async function estimateCost(
   selectedMaterials: Array<{ rank: Quality }>,
   craftType: string,
   fates: PreHeavenFate[] = [],
-): { spiritStones?: number; comprehension?: number } {
+  cultivatorId?: string,
+): Promise<{ spiritStones?: number; comprehension?: number }> {
   const productType = getCreationProductTypeFromCraftType(craftType);
   if (!productType) return {};
 
   const highestMaterialRank = calculateHighestMaterialRank(selectedMaterials);
   const fateContext = evaluateFateContext(fates);
   if (productType === 'artifact') {
+    const baseCost = calculateFateAdjustedCraftCost(
+      highestMaterialRank,
+      'spiritStone',
+      getRefineSpiritStoneMultiplier(fateContext),
+    );
     return {
-      spiritStones: calculateFateAdjustedCraftCost(
-        highestMaterialRank,
-        'spiritStone',
-        getRefineSpiritStoneMultiplier(fateContext),
-      ),
+      spiritStones: cultivatorId
+        ? await SectOrganizationService.applyCraftDiscount(
+            cultivatorId,
+            baseCost,
+          )
+        : baseCost,
     };
   }
 

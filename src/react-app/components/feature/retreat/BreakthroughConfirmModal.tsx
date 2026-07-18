@@ -1,7 +1,7 @@
 import { InkModal } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
 import { format } from 'd3-format';
-import type { BreakthroughChancePreviewData } from '../hooks/useRetreatViewModel';
+import type { BreakthroughChancePreviewData } from './useRetreatViewModel';
 
 interface BreakthroughConfirmModalProps {
   isOpen: boolean;

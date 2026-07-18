@@ -92,6 +92,13 @@
       "when": 1784168658491,
       "tag": "0012_wild_joystick",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1784387087618,
+      "tag": "0013_lively_living_tribunal",
+      "breakpoints": true
     }
   ]
 }

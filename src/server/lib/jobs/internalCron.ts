@@ -7,6 +7,7 @@ import { cultivators, mails } from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { getTopRankingCultivatorIds } from '@server/lib/redis/rankings';
 import { prunePlayerStateEventsOlderThan } from '@server/lib/repositories/playerStateRepository';
+import { listActiveSectIds } from '@server/lib/repositories/sectOrganizationRepository';
 import {
   pruneExpiredData,
   type ExpiredDataCleanupResult,
@@ -24,6 +25,7 @@ import {
   ITEM_LIBRARY_SYSTEM_USER_ID,
 } from '@server/lib/services/MaterialLibraryService';
 import { commitPlayerStateMutation } from '@server/lib/services/PlayerStateMutationService';
+import { SectOrganizationService } from '@server/lib/services/SectOrganizationService';
 import { towerEnemySetService } from '@server/lib/tower/enemySets';
 import { RANKING_REWARDS, REALM_VALUES } from '@shared/types/constants';
 import { and, eq, sql } from 'drizzle-orm';
@@ -38,6 +40,7 @@ const PLAYER_STATE_EVENTS_CLEANUP_LOCK_KEY =
 const EXPIRED_DATA_CLEANUP_LOCK_KEY = 'cron:expired-data-cleanup:lock';
 const MATERIAL_LIBRARY_DAILY_GENERATION_LOCK_KEY =
   'cron:material-library-daily-generation:lock';
+const SECT_CONSTRUCTION_WEEKLY_LOCK_KEY = 'cron:sect-construction-weekly:lock';
 const RANK_REWARD_SETTLED_PREFIX = 'golden_rank:weekly_rewards:settled:';
 const LOCK_TTL_SECONDS = 15 * 60;
 const TOWER_ENEMY_SETS_LOCK_TTL_SECONDS = 2 * 60 * 60;
@@ -344,6 +347,32 @@ export async function runMarketRefreshCronJob(): Promise<CronJobResult> {
       skipped: result.skipped,
     };
   });
+}
+
+export async function runSectConstructionWeeklyJob(): Promise<CronJobResult> {
+  return withJobLock(
+    'sect-construction-weekly',
+    SECT_CONSTRUCTION_WEEKLY_LOCK_KEY,
+    async () => {
+      if (!isSettlementMondayCN()) {
+        return {
+          success: true,
+          processed: 0,
+          skipped: true,
+          reason: 'not_monday_cn',
+        };
+      }
+      const q = getExecutor();
+      const sectIds = await listActiveSectIds(q);
+      for (const sectId of sectIds)
+        await SectOrganizationService.ensureWeeklyProject(sectId, q);
+      return {
+        success: true,
+        processed: sectIds.length,
+        skipped: false,
+      };
+    },
+  );
 }
 
 export async function runMaterialLibraryDailyGenerationJob(): Promise<CronJobResult> {

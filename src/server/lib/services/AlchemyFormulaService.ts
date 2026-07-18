@@ -96,6 +96,7 @@ import {
   getPlayerRuntimeCultivatorByIdUnsafe,
 } from './cultivatorService';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
+import { SectOrganizationService } from './SectOrganizationService';
 
 const DISCOVERY_TTL_SECONDS = 600;
 const FORMULA_ANALYSIS_TTL_SECONDS = 600;
@@ -1315,9 +1316,13 @@ export async function previewFormulaCraft(
   const highestMaterialRank = calculateHighestMaterialRank(
     rows as Array<{ rank: Quality }>,
   );
-  const spiritStones = scaleFateAdjustedValue(
+  const baseSpiritStones = scaleFateAdjustedValue(
     calculateCraftCost(highestMaterialRank, 'spiritStone'),
     getAlchemySpiritStoneMultiplier(evaluateFateContext(fates)),
+  );
+  const spiritStones = await SectOrganizationService.applyCraftDiscount(
+    cultivatorId,
+    baseSpiritStones,
   );
 
   return {
@@ -1412,11 +1417,16 @@ export async function craftFromFormula(
     const highestMaterialRank = calculateHighestMaterialRank(
       selectedMaterials as Array<{ rank: Quality }>,
     );
-    const cost = scaleFateAdjustedValue(
+    const baseCost = scaleFateAdjustedValue(
       calculateCraftCost(highestMaterialRank, 'spiritStone'),
       getAlchemySpiritStoneMultiplier(
         evaluateFateContext(fullCultivator?.cultivator.pre_heaven_fates ?? []),
       ),
+    );
+    const cost = await SectOrganizationService.applyCraftDiscount(
+      cultivatorId,
+      baseCost,
+      options.tx ?? getExecutor(),
     );
     if ((cultivator.spirit_stones ?? 0) < cost) {
       throw new AlchemyServiceError(`灵石不足，需要 ${cost} 枚`);

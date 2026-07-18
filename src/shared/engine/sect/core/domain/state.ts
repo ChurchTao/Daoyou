@@ -7,6 +7,7 @@ import type {
   SectPathLayerId,
   SectTacticId,
 } from './definitions';
+import type { SectDiscipleRank, SectOffice } from './organization';
 
 export type SectMembershipStatus = 'prospect' | 'active';
 export type SectAbilitySlots = [
@@ -38,6 +39,9 @@ export interface CultivatorSectState {
   joinedAt?: string;
   activePathId?: SectPathId;
   contribution: number;
+  discipleRank?: SectDiscipleRank;
+  office?: SectOffice;
+  promotedAt?: string;
   configVersion: number;
   methods: Partial<Record<SectMethodId, number>>;
   paths: CultivatorSectPathState[];

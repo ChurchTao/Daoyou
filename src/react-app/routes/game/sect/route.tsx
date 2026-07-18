@@ -4,34 +4,29 @@ import {
   GameSceneNote,
 } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { InkTabs } from '@app/components/ui';
-import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
+import { InkButton } from '@app/components/ui';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { fetchSectCatalog, fetchSectCurrent } from '@app/lib/sect/sectClient';
 import type { SectCatalogData, SectCurrentData } from '@shared/contracts/sect';
-import type { CultivatorSectState } from '@shared/engine/sect';
-import { useCallback, useEffect, useState } from 'react';
-import { CommissionsTab } from './components/CommissionsTab';
+import {
+  SECT_FACILITY_LABELS,
+  SECT_RANK_LABELS,
+  type CultivatorSectState,
+} from '@shared/engine/sect';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
+import { useNavigate } from 'react-router';
 import { GateTab } from './components/GateTab';
-import { MethodsTab } from './components/MethodsTab';
-import { PathsTab } from './components/PathsTab';
-
-const tabs = [
-  { value: 'gate', label: '山门' },
-  { value: 'methods', label: '心法' },
-  { value: 'paths', label: '流派' },
-  { value: 'commissions', label: '委托' },
-];
+import { SECT_MAP_HOTSPOTS } from './mapConfig';
 
 export default function SectPage() {
   const [catalog, setCatalog] = useState<SectCatalogData>();
   const [data, setData] = useState<SectCurrentData>();
-  const [tab, setTab] = useState('gate');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const { mutate } = usePlayerStateActions();
   const { pushToast } = useInkUI();
-  const cultivator = useActiveCultivatorProfile();
+  const navigate = useNavigate();
 
   const reload = useCallback(async () => {
     const [nextCatalog, nextData] = await Promise.all([
@@ -43,24 +38,15 @@ export default function SectPage() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
     void Promise.all([fetchSectCatalog(), fetchSectCurrent()])
       .then(([nextCatalog, nextData]) => {
-        if (!cancelled) {
-          setCatalog(nextCatalog);
-          setData(nextData);
-        }
+        setCatalog(nextCatalog);
+        setData(nextData);
       })
-      .catch((reason) => {
-        if (!cancelled)
-          setError(
-            reason instanceof Error ? reason.message : '宗门卷宗读取失败',
-          );
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [reload]);
+      .catch((reason) =>
+        setError(reason instanceof Error ? reason.message : '宗门卷宗读取失败'),
+      );
+  }, []);
 
   const action = useCallback(
     async (url: string, init: RequestInit) => {
@@ -68,7 +54,7 @@ export default function SectPage() {
       try {
         await mutate<{ sect: CultivatorSectState }>(fetch(url, init));
         await reload();
-        pushToast({ message: '宗门事务已办妥', tone: 'success' });
+        pushToast({ message: '拜师礼成，宗门舆图已开启', tone: 'success' });
       } catch (reason) {
         pushToast({
           message: reason instanceof Error ? reason.message : '宗门事务失败',
@@ -81,57 +67,93 @@ export default function SectPage() {
     [mutate, pushToast, reload],
   );
 
+  const facilities = useMemo(
+    () => new Map(data?.overview?.facilities.map((item) => [item.key, item])),
+    [data?.overview?.facilities],
+  );
+
   if (!catalog || !data)
     return <GameSceneLoading message="山门云阶渐次显现……" />;
 
-  const definition = data.definition;
-  const sect = data.sect;
+  if (!data.sect || !data.definition) {
+    return (
+      <GameSceneFrame
+        title="【诸宗山门】"
+        description="诸宗传承各有所长，可先试其法，再择一门而入。"
+        headerMeta={error ? <GameSceneNote tone="danger">{error}</GameSceneNote> : undefined}
+      >
+        <GateTab catalog={catalog} busy={busy} action={action} />
+      </GameSceneFrame>
+    );
+  }
+
+  const rank = data.sect.discipleRank ?? 'registered';
   return (
     <GameSceneFrame
-      title={definition ? `【${definition.name}】` : '【诸宗山门】'}
-      description={
-        definition?.description ??
-        '诸宗传承各有所长，可先试其法，再择一门而入。'
-      }
-      headerMeta={
-        error ? <GameSceneNote tone="danger">{error}</GameSceneNote> : undefined
-      }
+      title={`【${data.definition.name}舆图】`}
+      description="云海诸峰各司其职。择一处落下遁光，进入对应设施办理宗门事务。"
       aside={
         <div className="space-y-2 text-sm leading-7">
-          <p>
-            种族：{catalog.playerRace === 'human' ? '人族' : catalog.playerRace}
-          </p>
-          <p>身份：{sect ? `${definition?.name ?? '宗门'}弟子` : '山外散修'}</p>
-          {sect ? <p>贡献：{sect.contribution}</p> : null}
+          <p>身份：{SECT_RANK_LABELS[rank]}</p>
+          <p>贡献：{data.sect.contribution}</p>
+          <p>本周工程：{data.overview?.project ? `${SECT_FACILITY_LABELS[data.overview.project.facilityKey]}升至 ${data.overview.project.targetLevel} 级` : '长老议定中'}</p>
         </div>
       }
+      contentClassName="lg:max-w-none"
     >
-      <InkTabs items={tabs} activeValue={tab} onChange={setTab} />
-      <div className="mt-4">
-        {tab === 'gate' ? (
-          <GateTab catalog={catalog} busy={busy} action={action} />
-        ) : null}
-        {tab === 'methods' ? (
-          <MethodsTab
-            data={data}
-            busy={busy}
-            action={action}
-            realm={cultivator?.realm ?? '炼气'}
-          />
-        ) : null}
-        {tab === 'paths' ? (
-          <PathsTab
-            data={data}
-            busy={busy}
-            action={action}
-            realm={cultivator?.realm ?? '炼气'}
-            stage={cultivator?.realm_stage ?? '初期'}
-          />
-        ) : null}
-        {tab === 'commissions' ? (
-          <CommissionsTab data={data} busy={busy} action={action} />
-        ) : null}
-      </div>
+      <p className="text-ink-secondary text-sm">拖动舆图巡览群峰，滚轮或双指可缩放；聚焦设施即可查看其职司。</p>
+
+      <TransformWrapper
+        initialScale={1}
+        minScale={1}
+        maxScale={3}
+        centerOnInit
+        limitToBounds
+        wheel={{ step: 0.16 }}
+        panning={{ velocityDisabled: true }}
+      >
+        {({ zoomIn, zoomOut, resetTransform }) => (
+          <div className="border-ink/20 relative overflow-hidden border bg-[#e9e1cf] shadow-inner">
+            <div className="absolute top-3 right-3 z-20 flex gap-1 bg-[rgba(247,241,224,0.88)] px-2 py-1 shadow-md backdrop-blur-sm" aria-label="宗门地图缩放控件">
+              <InkButton onClick={() => zoomOut()} className="focus-visible:outline-crimson focus-visible:outline-2">缩小</InkButton>
+              <InkButton onClick={() => zoomIn()} className="focus-visible:outline-crimson focus-visible:outline-2">放大</InkButton>
+              <InkButton onClick={() => resetTransform()} className="focus-visible:outline-crimson focus-visible:outline-2">复位</InkButton>
+            </div>
+            <TransformComponent
+              wrapperClass="!w-full !h-auto aspect-[1672/941] cursor-grab active:cursor-grabbing"
+              contentClass="!w-full !h-full"
+            >
+              <div className="relative aspect-[1672/941] w-full">
+                <img
+                  src="/assets/sect/lingxiao-map.webp"
+                  alt="凌霄剑宗群峰、楼阁、灵脉矿场与药田的水墨鸟瞰图"
+                  className="pointer-events-none block h-full w-full select-none object-cover"
+                  draggable={false}
+                />
+                {SECT_MAP_HOTSPOTS.map((spot) => {
+                  const facility = spot.facility ? facilities.get(spot.facility) : undefined;
+                  const disabled = spot.locked || !spot.route;
+                  return (
+                    <button
+                      key={spot.id}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => {
+                        if (spot.route) navigate(spot.route);
+                      }}
+                      style={{ left: spot.left, top: spot.top }}
+                      className={`group absolute -translate-x-1/2 -translate-y-1/2 rounded-sm border px-2.5 py-1.5 text-center shadow-[0_3px_14px_rgba(26,20,15,0.28)] backdrop-blur-sm transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 ${disabled ? 'border-ink/25 bg-ink/70 cursor-not-allowed text-white/70 focus-visible:outline-white' : 'border-crimson/40 bg-[rgba(250,245,230,0.9)] hover:z-10 hover:-translate-y-[55%] hover:border-crimson focus-visible:outline-crimson'}`}
+                    >
+                      <strong className="block whitespace-nowrap text-xs sm:text-sm">{spot.label}{facility && facility.key !== 'formation' ? ` · ${facility.level}级` : ''}</strong>
+                      <span className="block max-h-0 overflow-hidden whitespace-nowrap text-[10px] opacity-0 transition-all group-hover:max-h-5 group-hover:opacity-75 group-focus-visible:max-h-5 group-focus-visible:opacity-75 sm:text-[11px]">{spot.note}{spot.locked ? ' · 锁定' : ''}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </TransformComponent>
+          </div>
+        )}
+      </TransformWrapper>
     </GameSceneFrame>
   );
 }

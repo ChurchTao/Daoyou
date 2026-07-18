@@ -1307,13 +1307,14 @@ async function syncCultivatorTasksWithContext(
   const tasks = await Promise.all(
     records.map((record) => syncTaskRecord(context, record, options)),
   );
+  const visibleTasks = tasks.filter((task) => task.category !== 'daily');
 
   if (!options.hideCompletedBreakthrough) {
-    return tasks;
+    return visibleTasks;
   }
 
   const currentMajorDefinition = getCurrentMajorDefinition(context);
-  return tasks.filter(
+  return visibleTasks.filter(
     (task) =>
       !(
         task.category === 'breakthrough_major' &&
@@ -1518,11 +1519,7 @@ export const TaskService = {
 
     for (const originalRecord of records) {
       const definition = getTaskDefinition(originalRecord.definitionId);
-      if (
-        !definition ||
-        (!isDailyTaskDefinition(definition) &&
-          !isTutorialTaskDefinition(definition))
-      ) {
+      if (!definition || !isTutorialTaskDefinition(definition)) {
         continue;
       }
 

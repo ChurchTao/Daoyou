@@ -1,4 +1,10 @@
-import type { CultivatorSectState, SectDefinition } from '@shared/engine/sect';
+import type {
+  CultivatorSectState,
+  SectConstructionProjectState,
+  SectDefinition,
+  SectDiscipleRank,
+  SectFacilityState,
+} from '@shared/engine/sect';
 import type { BattleRecord } from '@shared/types/battle';
 import { z } from 'zod';
 import type { PlayerStateMutationResponse } from './player';
@@ -16,6 +22,154 @@ export const SectAbilityLoadoutRequestSchema = z.object({
 export const SectTacticRequestSchema = z.object({
   tacticId: z.string().min(1).max(32),
 });
+export const SectDailyAcceptRequestSchema = z.object({
+  taskId: z.enum(['gate_sweep', 'mine_patrol', 'pill_delivery', 'artifact_delivery']),
+});
+export const SectTaskSubmitRequestSchema = z.object({
+  itemId: z.string().uuid(),
+  quantity: z.number().int().positive().max(99).default(1),
+});
+export const SectSweepCompleteRequestSchema = z.object({
+  moves: z.array(z.number().int().min(0).max(8)).min(3).max(12),
+});
+export const SectShopPurchaseRequestSchema = z.object({
+  itemId: z.string().min(1).max(64),
+  quantity: z.number().int().positive().max(10).default(1),
+  requestId: z.string().min(8).max(128).optional(),
+});
+export const SectDonationRequestSchema = z.object({
+  demandId: z.string().min(1).max(64),
+  itemId: z.string().uuid().optional(),
+  quantity: z.number().int().positive().max(9999).default(1),
+  requestId: z.string().min(8).max(128).optional(),
+});
+export const SectMembersQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+export type SectTaskId =
+  | 'gate_sweep'
+  | 'mine_patrol'
+  | 'pill_delivery'
+  | 'artifact_delivery'
+  | 'weekly_diligence'
+  | 'weekly_tournament'
+  | 'weekly_bounty'
+  | 'elder_trial';
+
+export interface SectTaskOffer {
+  id: SectTaskId;
+  name: string;
+  description: string;
+  kind: 'daily' | 'weekly' | 'promotion';
+  requiredRank: SectDiscipleRank;
+  contributionReward: number;
+  action: 'sweep' | 'battle' | 'submit_pill' | 'submit_artifact' | 'progress';
+  available: boolean;
+  unavailableReason?: string;
+}
+
+export interface SectTaskRecordData {
+  id: string;
+  taskId: SectTaskId;
+  kind: 'daily' | 'weekly' | 'promotion';
+  periodKey: string;
+  status: 'active' | 'completed';
+  progress: number;
+  target: number;
+  completedAt?: string;
+  payload?: Record<string, unknown>;
+}
+
+export interface SectTasksData {
+  dateKey: string;
+  weekKey: string;
+  dailyOffers: SectTaskOffer[];
+  dailyTask: SectTaskRecordData | null;
+  weeklyTasks: SectTaskRecordData[];
+  promotionTask: SectTaskRecordData | null;
+}
+
+export interface SectShopItemData {
+  id: string;
+  name: string;
+  description: string;
+  requiredRank: SectDiscipleRank;
+  price: number;
+  stock: number;
+  purchased: number;
+  kind: 'material' | 'pill';
+  rotating: boolean;
+}
+
+export interface SectShopData {
+  weekKey: string;
+  contribution: number;
+  items: SectShopItemData[];
+}
+
+export interface SectDonationDemandData {
+  id: string;
+  name: string;
+  description: string;
+  kind: 'spirit_stones' | 'material' | 'pill' | 'artifact';
+  quantity: number;
+  contribution: number;
+  constructionPoints: number;
+  minQuality?: string;
+  pillFamily?: string;
+}
+
+export interface SectOverviewData {
+  sect: CultivatorSectState;
+  facilities: SectFacilityState[];
+  project: SectConstructionProjectState | null;
+  methodLevelCap: number;
+  realmMethodLevelCap: number;
+  stipend: {
+    weekKey: string;
+    claimed: boolean;
+    spiritStones: number;
+    herbQuantity: number;
+    bonusRewards: string[];
+  };
+  nextRank: SectDiscipleRank | null;
+  promotionMissing: string[];
+}
+
+export interface SectConstructionData {
+  facilities: SectFacilityState[];
+  project: SectConstructionProjectState | null;
+  demands: SectDonationDemandData[];
+  donatedContributionToday: number;
+  dailyContributionCap: number;
+  recentActivity: Array<{
+    id: string;
+    memberName: string;
+    demandId: string;
+    contribution: number;
+    constructionPoints: number;
+    createdAt: string;
+  }>;
+}
+
+export interface SectMemberData {
+  cultivatorId: string;
+  name: string;
+  realm: string;
+  realmStage: string;
+  discipleRank: SectDiscipleRank;
+  office: CultivatorSectState['office'];
+  joinedAt?: string;
+}
+
+export interface SectMembersData {
+  items: SectMemberData[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
 
 export type SectCatalogEntry = {
   definition: SectDefinition;
@@ -37,12 +191,8 @@ export type SectCurrentData = {
   sect: CultivatorSectState | null;
   methodLevelCap: number;
   knownAbilityIds: string[];
-  commission: {
-    dateKey: string;
-    completionType?: string;
-    completedAt?: string;
-    claimedAt?: string;
-  };
+  overview?: SectOverviewData | null;
+  commission?: never;
 };
 
 export type SectDetailData = {

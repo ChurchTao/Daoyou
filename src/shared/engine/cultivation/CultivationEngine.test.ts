@@ -150,6 +150,17 @@ function withBodyCultivation(
 }
 
 describe('CultivationEngine cultivation boost', () => {
+  it('applies an external retreat multiplier exactly once', () => {
+    const base = performCultivation(createCultivator(), 10, () => 0.5);
+    const boosted = performCultivation(createCultivator(), 10, () => 0.5, {
+      retreatExpMultiplier: 1.1,
+    });
+
+    expect(boosted.summary.exp_gained).toBe(
+      Math.floor(base.summary.exp_gained * 1.1),
+    );
+  });
+
   it('applies cultivation boost to retreat exp once and then consumes it', () => {
     const base = performCultivation(createCultivator(), 10, () => 0.5);
     const boosted = performCultivation(

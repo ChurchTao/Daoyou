@@ -155,6 +155,7 @@ export function performCultivation(
   rawCultivator: Cultivator,
   years: number,
   rng: () => number = Math.random,
+  modifiers: { retreatExpMultiplier?: number } = {},
 ): CultivationResult {
   if (years <= 0) {
     throw new Error('闭关年限必须大于0');
@@ -179,6 +180,7 @@ export function performCultivation(
     Math.floor(
       expResult.exp_gained *
         fateContext.retreatExpMultiplier *
+        Math.max(1, modifiers.retreatExpMultiplier ?? 1) *
         getCultivationBoostRetreatMultiplier(cultivator.condition),
     ),
   );

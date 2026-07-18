@@ -51,7 +51,6 @@ import type {
 } from '@shared/types/rankings';
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { Hono } from 'hono';
-import { SectCommissionService } from '@server/lib/services/SectCommissionService';
 import { z } from 'zod';
 
 const ChallengeSchema = z.object({
@@ -699,10 +698,6 @@ challengeRouter.post(
             'ranking_challenge_battled',
             { tx },
           );
-          const commissionCompleted = typeof (tx as { select?: unknown }).select === 'function'
-            ? await SectCommissionService.recordEvent(cultivatorId, 'ranking', tx)
-            : false;
-
           return {
             result: {
               type: 'battle_result' as const,
@@ -723,7 +718,6 @@ challengeRouter.post(
                 eventType: 'tasks.ranking.challenge_battled',
                 invalidates: ['tasks'],
               },
-              ...(commissionCompleted ? [{ domain: 'sect' as const, eventType: 'sect.commission_completed' }] : []),
             ],
           };
         },

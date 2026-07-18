@@ -4,6 +4,11 @@ import type {
   SectCurrentData,
   SectDetailData,
   SectExperienceResponse,
+  SectConstructionData,
+  SectMembersData,
+  SectOverviewData,
+  SectShopData,
+  SectTasksData,
 } from '@shared/contracts/sect';
 
 type SectExperienceData = SectExperienceResponse['data'];
@@ -23,6 +28,27 @@ export function fetchSectCatalog(): Promise<SectCatalogData> {
 
 export function fetchSectCurrent(): Promise<SectCurrentData> {
   return fetchData('/api/sects/current');
+}
+
+export function fetchSectOverview(): Promise<SectOverviewData> {
+  return fetchData('/api/sects/current/overview');
+}
+
+export function fetchSectTasks(): Promise<SectTasksData> {
+  return fetchData('/api/sects/current/tasks');
+}
+
+export function fetchSectShop(): Promise<SectShopData> {
+  return fetchData('/api/sects/current/shop');
+}
+
+export function fetchSectConstruction(): Promise<SectConstructionData> {
+  return fetchData('/api/sects/current/construction');
+}
+
+export function fetchSectMembers(page = 1, pageSize = 20): Promise<SectMembersData> {
+  const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  return fetchData(`/api/sects/current/members?${query.toString()}`);
 }
 
 export function fetchSectDetail(sectId: string): Promise<SectDetailData> {

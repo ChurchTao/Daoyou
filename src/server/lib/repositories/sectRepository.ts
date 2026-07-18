@@ -176,6 +176,9 @@ async function hydrateMembership(
     joinedAt: membership.joinedAt?.toISOString(),
     activePathId: membership.activePathId ?? undefined,
     contribution: membership.contribution,
+    discipleRank: membership.discipleRank as CultivatorSectState['discipleRank'],
+    office: membership.office as CultivatorSectState['office'],
+    promotedAt: membership.promotedAt?.toISOString(),
     configVersion: membership.configVersion,
     methods: Object.fromEntries(
       methods.map((row) => [row.methodId, row.level]),

@@ -11,6 +11,8 @@ const {
   generateDailyMarketMaterialLibraryEntriesMock,
   redisMock,
   transactionMock,
+  listActiveSectIdsMock,
+  ensureWeeklyProjectMock,
 } = vi.hoisted(() => {
   const tx = {
     select: vi.fn(),
@@ -45,6 +47,8 @@ const {
     transactionMock: tx,
     getItemLibraryDailyMaterialGenerationSettingsMock: vi.fn(),
     generateDailyMarketMaterialLibraryEntriesMock: vi.fn(),
+    listActiveSectIdsMock: vi.fn(),
+    ensureWeeklyProjectMock: vi.fn(),
   };
 });
 
@@ -62,6 +66,16 @@ vi.mock('@server/lib/redis/rankings', () => ({
 
 vi.mock('@server/lib/repositories/playerStateRepository', () => ({
   prunePlayerStateEventsOlderThan: prunePlayerStateEventsOlderThanMock,
+}));
+
+vi.mock('@server/lib/repositories/sectOrganizationRepository', () => ({
+  listActiveSectIds: listActiveSectIdsMock,
+}));
+
+vi.mock('@server/lib/services/SectOrganizationService', () => ({
+  SectOrganizationService: {
+    ensureWeeklyProject: ensureWeeklyProjectMock,
+  },
 }));
 
 vi.mock('@server/lib/repositories/retentionRepository', () => ({
@@ -112,6 +126,7 @@ import {
   runMaterialLibraryDailyGenerationJob,
   runPlayerStateEventsCleanupJob,
   runRankRewardsJob,
+  runSectConstructionWeeklyJob,
 } from './internalCron';
 
 describe('internal cron jobs', () => {
@@ -132,6 +147,7 @@ describe('internal cron jobs', () => {
     sendMailMock.mockImplementation(async (cultivatorId: string) => ({
       id: `mail-${cultivatorId}`,
     }));
+    listActiveSectIdsMock.mockResolvedValue(['lingxiao']);
     transactionMock.select.mockReturnValue({
       from: vi.fn(() => ({
         where: vi.fn(async () => [{ count: 1 }]),
@@ -146,6 +162,20 @@ describe('internal cron jobs', () => {
         })),
       })),
     });
+  });
+
+  it('opens or continues one shared sect project on Monday in Shanghai', async () => {
+    const result = await runSectConstructionWeeklyJob();
+
+    expect(result).toMatchObject({
+      success: true,
+      processed: 1,
+      skipped: false,
+    });
+    expect(ensureWeeklyProjectMock).toHaveBeenCalledWith(
+      'lingxiao',
+      expect.anything(),
+    );
   });
 
   afterEach(() => {

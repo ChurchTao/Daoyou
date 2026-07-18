@@ -10,7 +10,7 @@ import type { Attributes } from '@shared/types/cultivator';
 import { getAttributeInfo } from '@shared/lib/gameConceptDisplay';
 import { format } from 'd3-format';
 import { useMemo } from 'react';
-import { isSuccessfulBreakthrough } from '../lib/retreatStream';
+import { isSuccessfulBreakthrough } from './retreatStream';
 
 const COMPREHENSION_LABEL = getGameConceptLabel('comprehension_insight');
 
@@ -21,6 +21,7 @@ interface RetreatResultModalProps {
   celebrationTick: number;
   onClose: () => void;
   onGoReincarnate: () => void;
+  allowAttributeNavigation?: boolean;
 }
 
 export function RetreatResultModal({
@@ -30,6 +31,7 @@ export function RetreatResultModal({
   celebrationTick,
   onClose,
   onGoReincarnate,
+  allowAttributeNavigation = true,
 }: RetreatResultModalProps) {
   if (!retreatResult) {
     return null;
@@ -60,7 +62,7 @@ export function RetreatResultModal({
         className="max-w-2xl"
         footer={
           <div className="flex w-full flex-wrap gap-3">
-            {canGoAllocateAttributes ? (
+            {canGoAllocateAttributes && allowAttributeNavigation ? (
               <InkButton
                 href="/game/cultivator/attributes"
                 variant="secondary"
@@ -73,7 +75,7 @@ export function RetreatResultModal({
               variant="primary"
               onClick={retreatResult.depleted ? onGoReincarnate : onClose}
               disabled={isStreaming}
-              className={canGoAllocateAttributes ? 'w-full sm:w-auto' : 'w-full'}
+              className={canGoAllocateAttributes && allowAttributeNavigation ? 'w-full sm:w-auto' : 'w-full'}
             >
               {primaryLabel}
             </InkButton>
