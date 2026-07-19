@@ -56,7 +56,7 @@ import type { Material, PreHeavenFate } from '@shared/types/cultivator';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { getPlayerRuntimeCultivatorByIdUnsafe } from './cultivatorService';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
-import { SectOrganizationService } from './SectOrganizationService';
+import { sectOrganizationFacade } from './sect-organization';
 
 /**
  * processCreation 时的玩家侧可选入参。
@@ -519,7 +519,7 @@ export async function processCreation(
     );
     const costAmount =
       resourceType === 'spiritStone'
-        ? await SectOrganizationService.applyCraftDiscount(
+        ? await sectOrganizationFacade.applyCraftDiscount(
             cultivatorId,
             baseCostAmount,
             q,
@@ -903,7 +903,7 @@ export async function estimateCost(
     );
     return {
       spiritStones: cultivatorId
-        ? await SectOrganizationService.applyCraftDiscount(
+        ? await sectOrganizationFacade.applyCraftDiscount(
             cultivatorId,
             baseCost,
           )

@@ -1,7 +1,11 @@
 import { AlchemyScene } from '@app/components/feature/craft/AlchemyScene';
-import { SectPageLoading, useSectCurrentData } from '../components/SectScene';
+import { SectPageLoading, SectPermissionBoundary, useSectCurrentData } from '../components/SectScene';
 
 export default function SectAlchemyPage() {
+  return <SectPermissionBoundary permission="scene.alchemy" title="丹房"><SectAlchemyBody /></SectPermissionBoundary>;
+}
+
+function SectAlchemyBody() {
   const { data } = useSectCurrentData();
   if (!data) return <SectPageLoading message="丹房灵焰正在温炉……" />;
 

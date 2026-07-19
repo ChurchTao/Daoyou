@@ -25,8 +25,8 @@ vi.mock('@server/lib/drizzle/db', () => ({
   getExecutor: vi.fn(),
 }));
 
-vi.mock('@server/lib/services/SectOrganizationService', () => ({
-  SectOrganizationService: {
+vi.mock('@server/lib/services/sect-organization', () => ({
+  sectOrganizationFacade: {
     getFacilityBonuses: vi.fn(async () => ({
       retreatMultiplier: 1,
       craftDiscount: 0,

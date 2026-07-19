@@ -56,6 +56,7 @@ export type PlayerStateMutationMeta = {
   globalVersion: number;
   domainVersions: Partial<PlayerStateDomainVersions>;
   events: PlayerStateEvent[];
+  replayed?: boolean;
 };
 
 export type PlayerStateMutationResponse<TData> = {

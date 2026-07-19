@@ -1,5 +1,6 @@
 import type { AbilitySelectionStrategy } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import type { SectBuildBuilder } from '../compilation';
+import type { SectOrganizationModule } from '../organization';
 import type {
   SectAdmissionContext,
   SectAdmissionResult,
@@ -41,6 +42,7 @@ export interface SectModule {
   readonly definition: SectDefinition;
   readonly paths: ReadonlyMap<string, SectPathModule>;
   readonly progression: import('../progression').SectProgressionPolicy;
+  readonly organization: SectOrganizationModule;
   createBaseBuilder(context: SectProjectionContext): SectBuildBuilder;
   checkAdmission(context: SectAdmissionContext): SectAdmissionResult;
   createTrialScenario(context: SectTrialContext): SectTrialScenario;

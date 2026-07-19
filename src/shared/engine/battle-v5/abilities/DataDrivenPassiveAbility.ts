@@ -1,4 +1,5 @@
 import { PassiveAbility } from './PassiveAbility';
+import { battleRandom } from '../core/BattleRandom';
 import { AbilityId, AttributeModifier, CombatEvent } from '../core/types';
 import { AttributeModifierConfig, GlobalUniqueConfig } from '../core/configs';
 import {
@@ -50,7 +51,7 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
     if (owner) {
       for (const modifier of this._modifiers) {
         const mountedModifier: AttributeModifier = {
-          id: `${this.id}_${modifier.attrType}_${Math.random().toString(36).substr(2, 5)}`,
+          id: `${this.id}_${modifier.attrType}_${battleRandom().toString(36).substr(2, 5)}`,
           attrType: modifier.attrType,
           type: modifier.type,
           value: modifier.value,

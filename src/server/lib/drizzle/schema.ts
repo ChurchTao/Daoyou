@@ -569,6 +569,29 @@ export const playerStateEvents = pgTable(
   ],
 );
 
+export const playerMutationRequests = pgTable(
+  'wanjiedaoyou_player_mutation_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    source: varchar('source', { length: 96 }).notNull(),
+    requestId: varchar('request_id', { length: 128 }).notNull(),
+    requestFingerprint: varchar('request_fingerprint', { length: 128 }).notNull(),
+    result: jsonb('result').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('player_mutation_requests_scope_unique').on(
+      table.cultivatorId,
+      table.source,
+      table.requestId,
+    ),
+    index('player_mutation_requests_created_idx').on(table.createdAt),
+  ],
+);
+
 // 灵根表（1对多）
 export const spiritualRoots = pgTable(
   'wanjiedaoyou_spiritual_roots',

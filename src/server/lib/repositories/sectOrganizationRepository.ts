@@ -332,6 +332,19 @@ export async function completeSectTaskRecord(
   return row ?? null;
 }
 
+export async function updateSectTaskPayload(
+  id: string,
+  payload: Record<string, unknown>,
+  tx: DbTransaction,
+) {
+  const [row] = await tx
+    .update(sectTaskRecords)
+    .set({ payload, updatedAt: new Date() })
+    .where(and(eq(sectTaskRecords.id, id), eq(sectTaskRecords.status, 'active')))
+    .returning();
+  return row ?? null;
+}
+
 export async function upsertSectTaskProgress(
   input: {
     membershipId: string;

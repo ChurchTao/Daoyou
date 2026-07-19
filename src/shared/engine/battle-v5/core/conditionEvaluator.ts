@@ -269,7 +269,7 @@ export function evaluateCondition(
       }
     }
     case 'chance':
-      return Math.random() < threshold;
+      return battleRandom() < threshold;
     case 'is_critical': {
       // scope 用于语义校验：'caster' 表示"我暴击了"，'target' 表示"我被暴击了"
       // 运行时都读取 triggerEvent.isCritical，因为暴击是事件级属性
@@ -295,3 +295,4 @@ export function checkConditions(
   }
   return true;
 }
+import { battleRandom } from './BattleRandom';

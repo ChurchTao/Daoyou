@@ -4,6 +4,8 @@ import type {
   SectDefinition,
   SectDiscipleRank,
   SectFacilityState,
+  SectPermission,
+  SectPermissionState,
 } from '@shared/engine/sect';
 import type { BattleRecord } from '@shared/types/battle';
 import { z } from 'zod';
@@ -23,40 +25,43 @@ export const SectTacticRequestSchema = z.object({
   tacticId: z.string().min(1).max(32),
 });
 export const SectDailyAcceptRequestSchema = z.object({
-  taskId: z.enum(['gate_sweep', 'mine_patrol', 'pill_delivery', 'artifact_delivery']),
+  taskId: z.string().min(1).max(64),
 });
 export const SectTaskSubmitRequestSchema = z.object({
   itemId: z.string().uuid(),
   quantity: z.number().int().positive().max(99).default(1),
 });
 export const SectSweepCompleteRequestSchema = z.object({
-  moves: z.array(z.number().int().min(0).max(8)).min(3).max(12),
+  sessionId: z.string().uuid(),
+  rulesVersion: z.number().int().positive(),
+  segments: z
+    .array(
+      z.object({
+        ticks: z.number().int().min(1).max(1_200),
+        direction: z.number().int().min(0).max(7).nullable(),
+        sweeping: z.boolean(),
+      }),
+    )
+    .min(1)
+    .max(600),
 });
 export const SectShopPurchaseRequestSchema = z.object({
   itemId: z.string().min(1).max(64),
   quantity: z.number().int().positive().max(10).default(1),
-  requestId: z.string().min(8).max(128).optional(),
 });
 export const SectDonationRequestSchema = z.object({
   demandId: z.string().min(1).max(64),
   itemId: z.string().uuid().optional(),
   quantity: z.number().int().positive().max(9999).default(1),
-  requestId: z.string().min(8).max(128).optional(),
 });
+export const SectIdempotencyKeySchema = z.string().uuid();
 export const SectMembersQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(20),
 });
 
-export type SectTaskId =
-  | 'gate_sweep'
-  | 'mine_patrol'
-  | 'pill_delivery'
-  | 'artifact_delivery'
-  | 'weekly_diligence'
-  | 'weekly_tournament'
-  | 'weekly_bounty'
-  | 'elder_trial';
+/** Opaque identifier supplied by the active sect's task catalog. */
+export type SectTaskId = string;
 
 export interface SectTaskOffer {
   id: SectTaskId;
@@ -65,7 +70,13 @@ export interface SectTaskOffer {
   kind: 'daily' | 'weekly' | 'promotion';
   requiredRank: SectDiscipleRank;
   contributionReward: number;
-  action: 'sweep' | 'battle' | 'submit_pill' | 'submit_artifact' | 'progress';
+  action:
+    | 'sweep'
+    | 'battle'
+    | 'submit_pill'
+    | 'submit_artifact'
+    | 'submit_material'
+    | 'progress';
   available: boolean;
   unavailableReason?: string;
 }
@@ -90,6 +101,26 @@ export interface SectTasksData {
   weeklyTasks: SectTaskRecordData[];
   promotionTask: SectTaskRecordData | null;
 }
+
+export interface SectTaskChallengeData {
+  task: SectTaskRecordData;
+  battle: BattleRecord;
+  won: boolean;
+  challengeTitle: string;
+  rewardGranted: boolean;
+}
+
+export interface SectSweepSessionData {
+  sessionId: string;
+  seed: string;
+  rulesVersion: number;
+  tickRate: number;
+  maxTicks: number;
+  expiresAt: string;
+}
+
+export type SectTaskChallengeResponse =
+  PlayerStateMutationResponse<SectTaskChallengeData>;
 
 export interface SectShopItemData {
   id: string;
@@ -136,6 +167,7 @@ export interface SectOverviewData {
   };
   nextRank: SectDiscipleRank | null;
   promotionMissing: string[];
+  permissions: Record<SectPermission, SectPermissionState>;
 }
 
 export interface SectConstructionData {

@@ -4,6 +4,7 @@ import { ApplyBuffParams } from '../core/configs';
 import { BuffFactory } from '../factories/BuffFactory';
 import { AttributeType, BuffType } from '../core/types';
 import { EventBus } from '../core/EventBus';
+import { battleRandom } from '../core/BattleRandom';
 import { ControlResistEvent } from '../core/events';
 import { getRealmEffectChanceMultiplier } from '@shared/config/realmProgression';
 
@@ -44,7 +45,7 @@ export class ApplyBuffEffect extends GameplayEffect {
     if (resolvedChance <= 0) {
       return;
     }
-    if (resolvedChance < 1 && Math.random() > resolvedChance) {
+    if (resolvedChance < 1 && battleRandom() > resolvedChance) {
       return;
     }
 
@@ -58,7 +59,7 @@ export class ApplyBuffEffect extends GameplayEffect {
       const controlHit = caster.attributes.getValue(AttributeType.CONTROL_HIT);
       const resistChance = Math.max(0, (controlResistance - controlHit) * 100);
 
-      if (Math.random() * 100 < resistChance) {
+      if (battleRandom() * 100 < resistChance) {
         EventBus.instance.publish<ControlResistEvent>({
           type: 'ControlResistEvent',
           timestamp: Date.now(),

@@ -1,4 +1,5 @@
 import { EventBus } from '../../core/EventBus';
+import { battleRandom } from '../../core/BattleRandom';
 import {
   ActionPreEvent,
   ActionPostEvent,
@@ -536,7 +537,7 @@ export class LogCollector {
   }
 
   private _generateId(): string {
-    return `entry_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    return `entry_${Date.now()}_${battleRandom().toString(36).substring(2, 11)}`;
   }
 
   private _safeDisplayName(value: string | undefined, fallback: string): string {

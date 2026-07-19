@@ -96,7 +96,7 @@ import {
   getPlayerRuntimeCultivatorByIdUnsafe,
 } from './cultivatorService';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
-import { SectOrganizationService } from './SectOrganizationService';
+import { sectOrganizationFacade } from './sect-organization';
 
 const DISCOVERY_TTL_SECONDS = 600;
 const FORMULA_ANALYSIS_TTL_SECONDS = 600;
@@ -1320,7 +1320,7 @@ export async function previewFormulaCraft(
     calculateCraftCost(highestMaterialRank, 'spiritStone'),
     getAlchemySpiritStoneMultiplier(evaluateFateContext(fates)),
   );
-  const spiritStones = await SectOrganizationService.applyCraftDiscount(
+  const spiritStones = await sectOrganizationFacade.applyCraftDiscount(
     cultivatorId,
     baseSpiritStones,
   );
@@ -1423,7 +1423,7 @@ export async function craftFromFormula(
         evaluateFateContext(fullCultivator?.cultivator.pre_heaven_fates ?? []),
       ),
     );
-    const cost = await SectOrganizationService.applyCraftDiscount(
+    const cost = await sectOrganizationFacade.applyCraftDiscount(
       cultivatorId,
       baseCost,
       options.tx ?? getExecutor(),

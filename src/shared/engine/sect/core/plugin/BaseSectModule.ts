@@ -10,6 +10,7 @@ import type {
   SectTrialScenario,
 } from '../domain';
 import type { SectProgressionPolicy } from '../progression';
+import type { SectOrganizationModule } from '../organization';
 import type {
   SectAdmissionPolicy,
   SectModule,
@@ -26,6 +27,7 @@ export abstract class BaseSectModule implements SectModule {
     definition: SectDefinitionWithoutPaths,
     pathModules: readonly SectPathModule[],
     readonly progression: SectProgressionPolicy,
+    readonly organization: SectOrganizationModule,
     private readonly defaultAbilityId: SectAbilityId,
     private readonly admissionPolicy: SectAdmissionPolicy,
     private readonly trialScenarioFactory: SectTrialScenarioFactory,

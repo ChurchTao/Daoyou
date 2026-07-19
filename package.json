@@ -38,6 +38,7 @@
     "hono": "4.12.27",
     "ioredis": "^5.11.1",
     "jsonrepair": "^3.14.1",
+    "littlejsengine": "^1.18.21",
     "nodemailer": "^9.0.3",
     "pg": "^8.22.0",
     "react": "19.2.7",

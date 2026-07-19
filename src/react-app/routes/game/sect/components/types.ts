@@ -5,6 +5,9 @@ export const sectJsonRequest = (
   body?: unknown,
 ): RequestInit => ({
   method,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+    'Idempotency-Key': crypto.randomUUID(),
+  },
   ...(body === undefined ? {} : { body: JSON.stringify(body) }),
 });

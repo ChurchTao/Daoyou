@@ -22,6 +22,7 @@
         "hono": "4.12.27",
         "ioredis": "^5.11.1",
         "jsonrepair": "^3.14.1",
+        "littlejsengine": "^1.18.21",
         "nodemailer": "^9.0.3",
         "pg": "^8.22.0",
         "react": "19.2.7",
@@ -597,6 +598,8 @@
     "lightningcss-win32-arm64-msvc": ["lightningcss-win32-arm64-msvc@1.32.0", "https://registry.npmmirror.com/lightningcss-win32-arm64-msvc/-/lightningcss-win32-arm64-msvc-1.32.0.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-8SbC8BR40pS6baCM8sbtYDSwEVQd4JlFTOlaD3gWGHfThTcABnNDBda6eTZeqbofalIJhFx0qKzgHJmcPTnGdw=="],
 
     "lightningcss-win32-x64-msvc": ["lightningcss-win32-x64-msvc@1.32.0", "https://registry.npmmirror.com/lightningcss-win32-x64-msvc/-/lightningcss-win32-x64-msvc-1.32.0.tgz", { "os": "win32", "cpu": "x64" }, "sha512-Amq9B/SoZYdDi1kFrojnoqPLxYhQ4Wo5XiL8EVJrVsB8ARoC1PWW6VGtT0WKCemjy8aC+louJnjS7U18x3b06Q=="],
+
+    "littlejsengine": ["littlejsengine@1.18.21", "https://registry.npmmirror.com/littlejsengine/-/littlejsengine-1.18.21.tgz", {}, "sha512-gR9Xemof1RrmnGl7bfvKGzlbww3DiB2ovHRFspOCR0rXVgCGt2UVU6LlscFboOoyD+xc5kmuv6UwK0+O/qqHxg=="],
 
     "locate-path": ["locate-path@6.0.0", "https://registry.npmmirror.com/locate-path/-/locate-path-6.0.0.tgz", { "dependencies": { "p-locate": "^5.0.0" } }, "sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw=="],
 

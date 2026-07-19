@@ -4,6 +4,7 @@ import {
   BaseSectModule,
   BaseSectPathModule,
   ConfiguredSectNodePlugin,
+  StandardSectPermissionPolicy,
   SectAbilityFactory,
   standardSectProgression,
   type CultivatorSectState,
@@ -12,9 +13,105 @@ import {
   type SectPathCompileContext,
   type SectPathDefinitionWithoutNodes,
   type SectProjectionContext,
+  type SectOrganizationModule,
   type SectTrialContext,
   type SectTrialScenarioFactory,
 } from '../../core';
+
+const fixtureOrganization: SectOrganizationModule = {
+  permissions: new StandardSectPermissionPolicy({
+    'scene.hall': 'registered',
+    'scene.affairs': 'registered',
+    'scene.archive': 'registered',
+    'scene.enlightenment_cliff': 'registered',
+    'scene.arena': 'registered',
+    'scene.treasury': 'registered',
+    'scene.industries': 'outer',
+    'scene.cultivation_room': 'outer',
+    'scene.alchemy': 'inner',
+    'scene.refinery': 'inner',
+    'scene.spirit_vein': 'registered',
+    'scene.herb_garden': 'registered',
+    'scene.cave': 'inner',
+    'scene.gate': 'registered',
+    'scene.formation': 'true',
+    'task.pill_delivery': 'outer',
+    'task.artifact_delivery': 'inner',
+    'task.elder_trial': 'inner',
+    'benefit.cultivation_room': 'outer',
+    'benefit.workshop': 'inner',
+  }),
+  ranks: {
+    stipendBase: () => 1,
+    methodLevelCap: () => 7,
+    requirement: (rank) => ({
+      rank,
+      minRealm: rank === 'true' ? '金丹' : rank === 'inner' ? '筑基' : '炼气',
+      contribution: rank === 'true' ? 30 : rank === 'inner' ? 20 : 10,
+    }),
+  },
+  tasks: {
+    listDaily: () => [
+      {
+        id: 'fixture_patrol',
+        name: '夹具巡山',
+        description: '仅用于验证内容模块替换。',
+        kind: 'daily',
+        requiredRank: 'registered',
+        contributionReward: 3,
+        executor: 'battle',
+        target: 1,
+      },
+    ],
+    listWeekly: () => [],
+    get: (id) =>
+      id === 'fixture_patrol'
+        ? {
+            id,
+            name: '夹具巡山',
+            description: '仅用于验证内容模块替换。',
+            kind: 'daily',
+            requiredRank: 'registered',
+            contributionReward: 3,
+            executor: 'battle',
+            target: 1,
+          }
+        : undefined,
+    findByRole: () => undefined,
+  },
+  economy: {
+    donationDailyCap: 1,
+    shopItems: () => [
+      {
+        id: 'fixture_herb',
+        requiredRank: 'registered',
+        price: 1,
+        stock: 1,
+        rotating: false,
+        grant: {
+          kind: 'material',
+          name: '夹具灵草',
+          type: 'herb',
+          quality: '凡品',
+          description: '夹具商品',
+        },
+      },
+    ],
+    donationDemands: () => [],
+    stipendBase: () => 1,
+    stipendRewards: () => ({
+      herbName: '样例灵草',
+      herbQuality: '凡品',
+      herbQuantity: 1,
+      bonusRewards: [],
+    }),
+  },
+  construction: {
+    facilityPriority: ['archive'] as const,
+    projectBaseTarget: () => 1,
+  },
+  battles: { get: () => undefined },
+};
 
 const layers = [
   {
@@ -180,6 +277,7 @@ class FixtureSectModule extends BaseSectModule {
       baseDefinition,
       [firstPath, secondPath],
       standardSectProgression,
+      fixtureOrganization,
       'fixture-ability-1',
       new AllowedRaceAdmissionPolicy(['human'], '种族不符'),
       new FixtureTrialFactory(),

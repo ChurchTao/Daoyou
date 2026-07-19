@@ -93,6 +93,7 @@ describe('第二宗门扩展闭环', () => {
         [thirdPath.definition.id, thirdPath],
       ]),
       progression: FIXTURE_SECT_MODULE.progression,
+      organization: FIXTURE_SECT_MODULE.organization,
       createBaseBuilder: (context) =>
         FIXTURE_SECT_MODULE.createBaseBuilder(context),
       checkAdmission: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
@@ -112,6 +113,15 @@ describe('第二宗门扩展闭环', () => {
       runtime.registry.require('fixture-sect').definition.paths,
     ).toHaveLength(2);
     expect(productionSectRuntime.registry.get('fixture-sect')).toBeUndefined();
+    expect(FIXTURE_SECT_MODULE.organization.tasks.listDaily()[0]?.id).toBe(
+      'fixture_patrol',
+    );
+    expect(FIXTURE_SECT_MODULE.organization.economy.shopItems('any')[0]?.id).toBe(
+      'fixture_herb',
+    );
+    expect(FIXTURE_SECT_MODULE.organization.construction.facilityPriority).toEqual([
+      'archive',
+    ]);
 
     const state = fixtureSectState();
     state.activePathId = 'fixture-second-path';

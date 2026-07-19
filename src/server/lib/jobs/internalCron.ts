@@ -6,7 +6,10 @@ import {
 import { cultivators, mails } from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { getTopRankingCultivatorIds } from '@server/lib/redis/rankings';
-import { prunePlayerStateEventsOlderThan } from '@server/lib/repositories/playerStateRepository';
+import {
+  prunePlayerMutationRequestsOlderThan,
+  prunePlayerStateEventsOlderThan,
+} from '@server/lib/repositories/playerStateRepository';
 import { listActiveSectIds } from '@server/lib/repositories/sectOrganizationRepository';
 import {
   pruneExpiredData,
@@ -25,7 +28,7 @@ import {
   ITEM_LIBRARY_SYSTEM_USER_ID,
 } from '@server/lib/services/MaterialLibraryService';
 import { commitPlayerStateMutation } from '@server/lib/services/PlayerStateMutationService';
-import { SectOrganizationService } from '@server/lib/services/SectOrganizationService';
+import { sectOrganizationFacade } from '@server/lib/services/sect-organization';
 import { towerEnemySetService } from '@server/lib/tower/enemySets';
 import { RANKING_REWARDS, REALM_VALUES } from '@shared/types/constants';
 import { and, eq, sql } from 'drizzle-orm';
@@ -47,6 +50,7 @@ const TOWER_ENEMY_SETS_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const MATERIAL_LIBRARY_DAILY_GENERATION_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const SETTLED_TTL_SECONDS = 7 * 24 * 60 * 60;
 const PLAYER_STATE_EVENT_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
+const PLAYER_MUTATION_REQUEST_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const MAIL_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 const QI_LOG_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 const DUNGEON_HISTORY_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -365,7 +369,7 @@ export async function runSectConstructionWeeklyJob(): Promise<CronJobResult> {
       const q = getExecutor();
       const sectIds = await listActiveSectIds(q);
       for (const sectId of sectIds)
-        await SectOrganizationService.ensureWeeklyProject(sectId, q);
+        await sectOrganizationFacade.construction.ensureWeeklyProject(sectId, q);
       return {
         success: true,
         processed: sectIds.length,
@@ -451,10 +455,16 @@ export async function runPlayerStateEventsCleanupJob(): Promise<CronJobResult> {
     PLAYER_STATE_EVENTS_CLEANUP_LOCK_KEY,
     async () => {
       const cutoff = new Date(Date.now() - PLAYER_STATE_EVENT_RETENTION_MS);
-      const processed = await prunePlayerStateEventsOlderThan(cutoff);
+      const mutationCutoff = new Date(
+        Date.now() - PLAYER_MUTATION_REQUEST_RETENTION_MS,
+      );
+      const [events, requests] = await Promise.all([
+        prunePlayerStateEventsOlderThan(cutoff),
+        prunePlayerMutationRequestsOlderThan(mutationCutoff),
+      ]);
       return {
         success: true,
-        processed,
+        processed: events + requests,
         skipped: false,
       };
     },

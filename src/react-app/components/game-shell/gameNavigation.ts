@@ -115,6 +115,7 @@ export const gameDockGroups: GameNavGroup[] = [
       { id: 'sect-herb-garden', sceneLabel: '宗门药田' },
       { id: 'sect-cave', sceneLabel: '宗门洞府' },
       { id: 'sect-gate', sceneLabel: '宗门山门' },
+      { id: 'sect-task-battle', sceneLabel: '宗门战局' },
       {
         id: 'training-room',
         sceneLabel: '练功房',

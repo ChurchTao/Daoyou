@@ -69,7 +69,29 @@ async function payTrainingCost(
 export interface SectServiceDependencies {
   runtime?: SectRuntime;
   repository?: SectRepositoryPort;
+  organization?: SectOrganizationIntegrationPort;
 }
+
+export interface SectOrganizationIntegrationPort {
+  ensureFacilities(sectId: string, tx: DbTransaction): Promise<void>;
+  getFacilityBonuses(
+    cultivatorId: string,
+    q: DbExecutor | DbTransaction,
+  ): Promise<{ archiveLevel: number }>;
+}
+
+const isolatedOrganizationIntegration: SectOrganizationIntegrationPort = {
+  ensureFacilities: async () => undefined,
+  getFacilityBonuses: async () => ({ archiveLevel: 1 }),
+};
+
+const postgresOrganizationIntegration: SectOrganizationIntegrationPort = {
+  ensureFacilities: async (sectId, tx) => {
+    await ensureSectFacilities(sectId, tx);
+  },
+  getFacilityBonuses: async (cultivatorId, q) =>
+    getSectFacilityBonuses(cultivatorId, q),
+};
 
 /**
  * Application Service: orchestrates transactions and domain operations only.
@@ -79,6 +101,8 @@ export class SectApplicationService {
   constructor(
     readonly runtime: SectRuntime = productionSectRuntime,
     private readonly repository: SectRepositoryPort = postgresSectRepository,
+    private readonly organization: SectOrganizationIntegrationPort =
+      isolatedOrganizationIntegration,
   ) {}
 
   private async assertPathRealm(
@@ -218,8 +242,7 @@ export class SectApplicationService {
       module.definition,
       tx,
     );
-    if (this.repository === postgresSectRepository)
-      await ensureSectFacilities(sectId, tx);
+    await this.organization.ensureFacilities(sectId, tx);
     return (await this.repository.loadCultivatorSectState(cultivatorId, tx))!;
   }
 
@@ -240,10 +263,10 @@ export class SectApplicationService {
       cultivator.realm,
       cultivator.stage,
     );
-    const organization =
-      this.repository === postgresSectRepository
-        ? await getSectFacilityBonuses(args.cultivatorId, tx)
-        : { retreatMultiplier: 1, craftDiscount: 0, archiveLevel: 1 };
+    const organization = await this.organization.getFacilityBonuses(
+      args.cultivatorId,
+      tx,
+    );
     try {
       assertMethodTrainingTarget({
         definition,
@@ -254,6 +277,9 @@ export class SectApplicationService {
           realmCap,
           rank: sect.discipleRank ?? 'registered',
           archiveLevel: organization.archiveLevel,
+          rankCap: module.organization.ranks.methodLevelCap(
+            sect.discipleRank ?? 'registered',
+          ),
         }),
         methods: sect.methods,
       });
@@ -532,6 +558,10 @@ export function createSectService(
   return new SectApplicationService(
     dependencies.runtime,
     dependencies.repository,
+    dependencies.organization ??
+      (dependencies.repository
+        ? isolatedOrganizationIntegration
+        : postgresOrganizationIntegration),
   );
 }
 

@@ -119,11 +119,12 @@ export function getEffectiveSectMethodLevelCap(args: {
   realmCap: number;
   rank: SectDiscipleRank;
   archiveLevel: number;
+  rankCap?: number;
 }): number {
   const archiveLevel = Math.max(1, Math.min(5, Math.floor(args.archiveLevel)));
   return Math.min(
     args.realmCap,
-    SECT_RANK_METHOD_CAP[args.rank],
+    args.rankCap ?? SECT_RANK_METHOD_CAP[args.rank],
     SECT_ARCHIVE_METHOD_CAP[archiveLevel],
   );
 }

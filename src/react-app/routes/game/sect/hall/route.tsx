@@ -1,47 +1,39 @@
 import { InkButton, InkCard, InkNotice } from '@app/components/ui';
 import {
+  fetchSectCurrent,
   fetchSectMembers,
   fetchSectOverview,
 } from '@app/lib/sect/sectClient';
-import type { SectMembersData, SectOverviewData } from '@shared/contracts/sect';
 import {
   SECT_FACILITY_LABELS,
   SECT_RANK_LABELS,
 } from '@shared/engine/sect';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import {
   postJson,
   rankLabel,
   SectPageLoading,
+  SectQueryError,
   SectScene,
-  useSectCurrentData,
   useSectMutation,
+  useSectQuery,
 } from '../components/SectScene';
 
 export default function SectHallPage() {
-  const { data, error, reload: reloadCurrent } = useSectCurrentData();
-  const [overview, setOverview] = useState<SectOverviewData>();
-  const [members, setMembers] = useState<SectMembersData>();
-  const reload = useCallback(async () => {
-    await reloadCurrent();
-    const [nextOverview, nextMembers] = await Promise.all([
-      fetchSectOverview(),
-      fetchSectMembers(),
+  const loader = useCallback(async (signal: AbortSignal) => {
+    const [current, overview, members] = await Promise.all([
+      fetchSectCurrent(signal),
+      fetchSectOverview(signal),
+      fetchSectMembers(1, 20, signal),
     ]);
-    setOverview(nextOverview);
-    setMembers(nextMembers);
-  }, [reloadCurrent]);
-  useEffect(() => {
-    void Promise.all([fetchSectOverview(), fetchSectMembers()]).then(
-      ([nextOverview, nextMembers]) => {
-        setOverview(nextOverview);
-        setMembers(nextMembers);
-      },
-    );
+    return { current, overview, members };
   }, []);
+  const { data: query, error, reload, retry } = useSectQuery(loader);
   const { busy, run } = useSectMutation(reload);
 
-  if (!data || !overview || !members) return <SectPageLoading />;
+  if (error) return <SectQueryError error={error} retry={() => void retry()} />;
+  if (!query) return <SectPageLoading />;
+  const { current: data, overview, members } = query;
   const sect = data.sect;
   if (!sect) return <SectScene title="宗门大殿" description="正式入宗后方可入殿。"><InkNotice>尚未拜入宗门。</InkNotice></SectScene>;
   const rank = sect.discipleRank ?? 'registered';

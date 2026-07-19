@@ -6,16 +6,18 @@ import {
 import { fetchSectConstruction } from '@app/lib/sect/sectClient';
 import type { SectConstructionData, SectDonationDemandData } from '@shared/contracts/sect';
 import { SECT_FACILITY_LABELS } from '@shared/engine/sect';
-import { useCallback, useEffect, useState } from 'react';
-import { postJson, SectPageLoading, SectScene, useSectMutation } from '../components/SectScene';
+import { useCallback, useState } from 'react';
+import { postJson, SectPageLoading, SectPermissionBoundary, SectQueryError, SectScene, useSectMutation, useSectQuery } from '../components/SectScene';
 
 export default function SectIndustriesPage() {
-  const [data, setData] = useState<SectConstructionData>();
-  const reload = useCallback(async () => setData(await fetchSectConstruction()), []);
-  useEffect(() => {
-    void fetchSectConstruction().then(setData);
-  }, []);
+  return <SectPermissionBoundary permission="scene.industries" title="百业院"><SectIndustriesBody /></SectPermissionBoundary>;
+}
+
+function SectIndustriesBody() {
+  const loader = useCallback((signal: AbortSignal) => fetchSectConstruction(signal), []);
+  const { data, error, reload, retry } = useSectQuery<SectConstructionData>(loader);
   const { busy, run } = useSectMutation(reload);
+  if (error) return <SectQueryError error={error} retry={() => void retry()} />;
   if (!data) return <SectPageLoading message="百业院正在汇总建设账册……" />;
   return (
     <SectScene title="百业院" description="梁木、阵图与工程长卷铺满案台，长老已圈定本周工事；宗门所需物资皆按清单入册。" mood="industries" aside={<div className="space-y-2 text-sm leading-7"><p>今日建设贡献：{data.donatedContributionToday} / {data.dailyContributionCap}</p><p>剩余额度：{Math.max(0, data.dailyContributionCap - data.donatedContributionToday)}</p></div>}>
@@ -59,5 +61,5 @@ function DonationCard({ demand, busy, capRemaining, run }: { demand: SectDonatio
         ? products.artifacts.filter((item): item is typeof item & { id: string } => Boolean(item.id) && !item.isEquipped).map((item) => ({ id: item.id, label: `${item.name} · ${item.quality}` }))
         : [];
   const needsItem = demand.kind !== 'spirit_stones';
-  return <InkCard><div className="flex items-start justify-between gap-3"><strong>{demand.name}</strong><span className="text-crimson text-sm">+{demand.contribution} 贡献</span></div><p className="text-ink-secondary mt-2 text-sm leading-6">{demand.description}</p><p className="mt-2 text-xs">同时增加 {demand.constructionPoints} 建设点</p>{needsItem ? <InkSelect className="mt-3" label="选择捐献物" value={itemId} onChange={setItemId}><option value="">请选择</option>{options.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</InkSelect> : null}<InkButton variant="primary" disabled={busy || capRemaining < demand.contribution || (needsItem && !itemId)} onClick={() => void run('/api/sects/current/construction/donate', postJson({ demandId: demand.id, itemId: itemId || undefined, quantity: 1, requestId: crypto.randomUUID() }), '建设捐献已入账')}>{capRemaining < demand.contribution ? '今日额度不足' : '捐献一份'}</InkButton></InkCard>;
+  return <InkCard><div className="flex items-start justify-between gap-3"><strong>{demand.name}</strong><span className="text-crimson text-sm">+{demand.contribution} 贡献</span></div><p className="text-ink-secondary mt-2 text-sm leading-6">{demand.description}</p><p className="mt-2 text-xs">同时增加 {demand.constructionPoints} 建设点</p>{needsItem ? <InkSelect className="mt-3" label="选择捐献物" value={itemId} onChange={setItemId}><option value="">请选择</option>{options.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</InkSelect> : null}<InkButton variant="primary" disabled={busy || capRemaining < demand.contribution || (needsItem && !itemId)} onClick={() => void run('/api/sects/current/construction/donate', postJson({ demandId: demand.id, itemId: itemId || undefined, quantity: 1 }), '建设捐献已入账')}>{capRemaining < demand.contribution ? '今日额度不足' : '捐献一份'}</InkButton></InkCard>;
 }

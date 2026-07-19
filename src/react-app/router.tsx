@@ -819,6 +819,20 @@ export const router = createBrowserRouter(
                 '入门试法',
               )}
             />
+            <Route
+              path="sect/tasks/:taskId/battle"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/sect/task-battle/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'sect-task-battle',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '宗门战局',
+              )}
+            />
           </Route>
 
           <Route element={<GameMapLayout />}>

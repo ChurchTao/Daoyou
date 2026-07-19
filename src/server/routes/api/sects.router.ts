@@ -1,4 +1,5 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
+import { createHash } from 'node:crypto';
 import { getExecutor } from '@server/lib/drizzle/db';
 import {
   getValidatedJson,
@@ -10,9 +11,10 @@ import {
 import type { AppEnv } from '@server/lib/hono/types';
 import {
   commitPlayerStateMutation,
+  PlayerStateIdempotencyError,
   toPlayerStateMutationResponse,
 } from '@server/lib/services/PlayerStateMutationService';
-import { SectOrganizationService } from '@server/lib/services/SectOrganizationService';
+import { sectOrganizationFacade } from '@server/lib/services/sect-organization';
 import {
   SectError,
   SectService,
@@ -24,6 +26,7 @@ import {
   SectDailyAcceptRequestSchema,
   SectDonationRequestSchema,
   SectMembersQuerySchema,
+  SectIdempotencyKeySchema,
   SectMeridianLoadoutRequestSchema,
   SectMethodTrainRequestSchema,
   SectShopPurchaseRequestSchema,
@@ -42,11 +45,44 @@ import { simulateBattleV5 } from '@shared/lib/battle/simulateBattleV5';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { Hono, type Context } from 'hono';
 
+function canonicalize(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalize).join(',')}]`;
+  if (value && typeof value === 'object')
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalize(item)}`)
+      .join(',')}}`;
+  return JSON.stringify(value);
+}
+
+function requireIdempotency(c: Context<AppEnv>, source: string, payload: unknown) {
+  const parsed = SectIdempotencyKeySchema.safeParse(
+    c.req.header('Idempotency-Key'),
+  );
+  if (!parsed.success)
+    throw new SectError(
+      'SECT_ORGANIZATION_INVALID',
+      '缺少有效的 Idempotency-Key 请求头',
+      400,
+    );
+  return {
+    key: parsed.data,
+    fingerprint: createHash('sha256')
+      .update(`${source}:${c.req.method}:${c.req.path}:${canonicalize(payload)}`)
+      .digest('hex'),
+  };
+}
+
 function failure(c: Context<AppEnv>, error: unknown) {
+  if (error instanceof PlayerStateIdempotencyError)
+    return c.json(
+      { success: false as const, error: error.message, code: error.code },
+      409,
+    );
   if (error instanceof SectError)
     return c.json(
       { success: false as const, error: error.message, code: error.code },
-      error.status as 400 | 409,
+      error.status as 400 | 403 | 409,
     );
   console.error('[sects]', error);
   return c.json({ success: false as const, error: '宗门事务处理失败' }, 500);
@@ -116,7 +152,7 @@ export function createSectsRouter(
           )
       : 0;
     const overview = sect
-      ? await SectOrganizationService.getOverview(
+      ? await sectOrganizationFacade.membership.getOverview(
           {
             id: cultivator.id,
             realm: cultivator.realm as RealmType,
@@ -156,7 +192,7 @@ export function createSectsRouter(
         );
       return c.json({
         success: true,
-        data: await SectOrganizationService.getOverview(
+        data: await sectOrganizationFacade.membership.getOverview(
           {
             id: cultivator.id,
             realm: cultivator.realm as RealmType,
@@ -178,7 +214,7 @@ export function createSectsRouter(
     try {
       return c.json({
         success: true,
-        data: await SectOrganizationService.getTasks(cultivator.id),
+        data: await sectOrganizationFacade.tasks.getTasks(cultivator.id),
       });
     } catch (error) {
       return failure(c, error);
@@ -192,7 +228,7 @@ export function createSectsRouter(
     try {
       return c.json({
         success: true,
-        data: await SectOrganizationService.getShop(cultivator.id),
+        data: await sectOrganizationFacade.economy.getShop(cultivator.id),
       });
     } catch (error) {
       return failure(c, error);
@@ -206,7 +242,7 @@ export function createSectsRouter(
     try {
       return c.json({
         success: true,
-        data: await SectOrganizationService.getConstruction(cultivator.id),
+        data: await sectOrganizationFacade.construction.getConstruction(cultivator.id),
       });
     } catch (error) {
       return failure(c, error);
@@ -225,7 +261,7 @@ export function createSectsRouter(
         const query = getValidatedQuery<{ page: number; pageSize: number }>(c);
         return c.json({
           success: true,
-          data: await SectOrganizationService.listMembers(
+          data: await sectOrganizationFacade.membership.listMembers(
             cultivator.id,
             query.page,
             query.pageSize,
@@ -250,6 +286,7 @@ export function createSectsRouter(
       eventType: string;
       invalidates?: Array<'sect' | 'tasks' | 'loadout' | 'currency' | 'progress'>;
     }>,
+    fingerprintPayload: unknown = null,
   ) => {
     const user = c.get('user');
     const cultivator = c.get('cultivator');
@@ -260,7 +297,8 @@ export function createSectsRouter(
         userId: user.id,
         cultivatorId: cultivator.id,
         source,
-        requestId: c.req.header('x-request-id'),
+        idempotency: requireIdempotency(c, source, fingerprintPayload),
+        allowEmpty: changes.length === 0,
         run: async (tx) => ({
           result: await run({
             userId: user.id,
@@ -286,10 +324,25 @@ export function createSectsRouter(
         c,
         'sect_daily_accept',
         ({ cultivatorId, tx }) =>
-          SectOrganizationService.acceptDaily(cultivatorId, body.taskId, tx),
+          sectOrganizationFacade.tasks.acceptDaily(cultivatorId, body.taskId, tx),
         [{ domain: 'tasks', eventType: 'sect.task_accepted' }],
+        body,
       );
     },
+  );
+
+  router.post(
+    '/current/tasks/gate_sweep/start',
+    requireActiveCultivator(),
+    async (c) =>
+      organizationMutation(
+        c,
+        'sect_gate_sweep_start',
+        ({ cultivatorId, tx }) =>
+          sectOrganizationFacade.tasks.startSweep(cultivatorId, tx),
+        [],
+        {},
+      ),
   );
 
   router.post(
@@ -297,15 +350,23 @@ export function createSectsRouter(
     requireActiveCultivator(),
     validateJson(SectSweepCompleteRequestSchema),
     async (c) => {
-      const body = getValidatedJson<{ moves: number[] }>(c);
+      const body = getValidatedJson<{
+        sessionId: string;
+        rulesVersion: number;
+        segments: Array<{
+          ticks: number;
+          direction: number | null;
+          sweeping: boolean;
+        }>;
+      }>(c);
       return organizationMutation(
         c,
         'sect_gate_sweep',
         ({ userId, cultivatorId, tx }) =>
-          SectOrganizationService.completeSweep(
+          sectOrganizationFacade.tasks.completeSweep(
             userId,
             cultivatorId,
-            body.moves,
+            body,
             tx,
           ),
         [
@@ -318,6 +379,7 @@ export function createSectsRouter(
           { domain: 'currency', eventType: 'sect.daily_stones_earned' },
           { domain: 'progress', eventType: 'sect.daily_cultivation_earned' },
         ],
+        body,
       );
     },
   );
@@ -332,7 +394,7 @@ export function createSectsRouter(
         c,
         'sect_task_submit',
         ({ userId, cultivatorId, tx }) =>
-          SectOrganizationService.submitTaskItem(
+          sectOrganizationFacade.tasks.submitTaskItem(
             userId,
             cultivatorId,
             c.req.param('taskId') as SectTaskId,
@@ -349,6 +411,7 @@ export function createSectsRouter(
           { domain: 'sect', eventType: 'sect.contribution_earned' },
           { domain: 'loadout', eventType: 'sect.task_item_consumed' },
         ],
+        { taskId: c.req.param('taskId'), ...body },
       );
     },
   );
@@ -361,11 +424,12 @@ export function createSectsRouter(
         c,
         'sect_task_challenge',
         ({ userId, cultivatorId, tx }) =>
-          SectOrganizationService.challengeTask(
+          sectOrganizationFacade.tasks.challengeTask(
             userId,
             cultivatorId,
             c.req.param('taskId') as SectTaskId,
             tx,
+            c.req.header('Idempotency-Key'),
           ),
         [
           {
@@ -375,6 +439,7 @@ export function createSectsRouter(
           },
           { domain: 'sect', eventType: 'sect.contribution_maybe_earned' },
         ],
+        { taskId: c.req.param('taskId') },
       ),
   );
 
@@ -384,7 +449,7 @@ export function createSectsRouter(
       'sect_promotion',
       ({ cultivatorId, tx }) => {
         const cultivator = c.get('cultivator')!;
-        return SectOrganizationService.promote(
+        return sectOrganizationFacade.membership.promote(
           {
             id: cultivatorId,
             realm: cultivator.realm as RealmType,
@@ -394,6 +459,7 @@ export function createSectsRouter(
         );
       },
       [{ domain: 'sect', eventType: 'sect.promoted' }],
+      null,
     ),
   );
 
@@ -405,18 +471,16 @@ export function createSectsRouter(
       const body = getValidatedJson<{
         itemId: string;
         quantity: number;
-        requestId?: string;
       }>(c);
       return organizationMutation(
         c,
         'sect_shop_purchase',
         ({ userId, cultivatorId, tx }) =>
-          SectOrganizationService.purchaseShopItem(
+          sectOrganizationFacade.economy.purchaseShopItem(
             userId,
             cultivatorId,
             body.itemId,
             body.quantity,
-            body.requestId,
             tx,
           ),
         [
@@ -427,6 +491,7 @@ export function createSectsRouter(
           },
           { domain: 'loadout', eventType: 'sect.shop_item_granted' },
         ],
+        body,
       );
     },
   );
@@ -440,13 +505,16 @@ export function createSectsRouter(
         demandId: string;
         itemId?: string;
         quantity: number;
-        requestId?: string;
       }>(c);
       return organizationMutation(
         c,
         'sect_construction_donate',
         ({ cultivatorId, tx }) =>
-          SectOrganizationService.donate(cultivatorId, body, tx),
+          sectOrganizationFacade.construction.donate(
+            cultivatorId,
+            body,
+            tx,
+          ),
         [
           {
             domain: 'sect',
@@ -456,6 +524,7 @@ export function createSectsRouter(
           { domain: 'loadout', eventType: 'sect.donation_item_consumed' },
           { domain: 'currency', eventType: 'sect.donation_currency_changed' },
         ],
+        body,
       );
     },
   );
@@ -465,7 +534,7 @@ export function createSectsRouter(
       c,
       'sect_stipend_claim',
       ({ userId, cultivatorId, tx }) =>
-        SectOrganizationService.claimStipend(userId, cultivatorId, tx),
+        sectOrganizationFacade.economy.claimStipend(userId, cultivatorId, tx),
       [
         {
           domain: 'sect',
@@ -475,6 +544,7 @@ export function createSectsRouter(
         { domain: 'loadout', eventType: 'sect.stipend_items_granted' },
         { domain: 'currency', eventType: 'sect.stipend_stones_granted' },
       ],
+      null,
     ),
   );
 
@@ -535,6 +605,9 @@ export function createSectsRouter(
         userId: user.id,
         cultivatorId: cultivator.id,
         source: 'sect_trial',
+        idempotency: requireIdempotency(c, 'sect_trial', {
+          sectId: module.definition.id,
+        }),
         run: async (tx) => {
           const sect = await sectService.recordExperience(
             cultivator.id!,
@@ -585,6 +658,10 @@ export function createSectsRouter(
           userId: user.id,
           cultivatorId: cultivator.id,
           source: 'sect_method_train',
+          idempotency: requireIdempotency(c, 'sect_method_train', {
+            methodId: c.req.param('methodId'),
+            ...body,
+          }),
           run: async (tx) => {
             const result = await sectService.trainMethod(
               {
@@ -635,6 +712,10 @@ export function createSectsRouter(
           userId: user.id,
           cultivatorId: cultivator.id,
           source: 'sect_path_layer_unlock',
+          idempotency: requireIdempotency(c, 'sect_path_layer_unlock', {
+            pathId: c.req.param('pathId'),
+            layerId: c.req.param('layerId'),
+          }),
           run: async (tx) => {
             const result = await sectService.unlockPathLayer(
               {
@@ -702,6 +783,8 @@ export function createSectsRouter(
             tx,
           ),
         'sect.meridian_updated',
+        false,
+        body,
       );
     },
   );
@@ -736,6 +819,7 @@ export function createSectsRouter(
         (id, tx) => sectService.setAbilityLoadout(id, body.abilityIds, tx),
         'sect.ability_loadout_updated',
         true,
+        body,
       );
     },
   );
@@ -757,6 +841,8 @@ export function createSectsRouter(
             tx,
           ),
         'sect.tactic_updated',
+        false,
+        body,
       );
     },
   );
@@ -773,6 +859,7 @@ async function mutateSect(
   ) => Promise<CultivatorSectState>,
   eventType: string,
   loadout = false,
+  fingerprintPayload: unknown = null,
 ) {
   const user = c.get('user');
   const cultivator = c.get('cultivator');
@@ -783,6 +870,7 @@ async function mutateSect(
       userId: user.id,
       cultivatorId: cultivator.id,
       source,
+      idempotency: requireIdempotency(c, source, fingerprintPayload),
       run: async (tx) => {
         const sect = await run(cultivator.id!, tx);
         return {

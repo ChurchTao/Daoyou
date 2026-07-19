@@ -61,7 +61,7 @@ import {
   getPlayerRuntimeCultivatorByIdUnsafe,
 } from './cultivatorService';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
-import { SectOrganizationService } from './SectOrganizationService';
+import { sectOrganizationFacade } from './sect-organization';
 
 export { synthesizeAlchemyFromPlan as synthesizeAlchemy } from './AlchemyRecipeRules';
 export { AlchemyServiceError } from './AlchemyServiceError';
@@ -352,7 +352,7 @@ export async function previewAlchemySelection(
         getAlchemySpiritStoneMultiplier(fateContext),
       )
     : 0;
-  const spiritStones = await SectOrganizationService.applyCraftDiscount(
+  const spiritStones = await sectOrganizationFacade.applyCraftDiscount(
     cultivatorId,
     baseSpiritStones,
   );
@@ -420,7 +420,7 @@ export function createAlchemyService(
           calculateCraftCost(highestMaterialRank, 'spiritStone'),
           getAlchemySpiritStoneMultiplier(fateContext),
         );
-        const cost = await SectOrganizationService.applyCraftDiscount(
+        const cost = await sectOrganizationFacade.applyCraftDiscount(
           cultivatorId,
           baseCost,
           options.tx ?? getExecutor(),

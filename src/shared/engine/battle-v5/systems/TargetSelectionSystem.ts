@@ -1,6 +1,7 @@
 // engine/battle-v5/systems/TargetSelectionSystem.ts
 
 import { EventBus } from '../core/EventBus';
+import { battleRandom } from '../core/BattleRandom';
 import { Unit } from '../units/Unit';
 import { TargetPolicy, TargetFilter } from '../abilities/TargetPolicy';
 import { AttributeType } from '../core';
@@ -123,7 +124,7 @@ export class TargetSelectionSystem {
       case 'single':
         return units.slice(0, 1);
       case 'random': {
-        const shuffled = [...units].sort(() => Math.random() - 0.5);
+        const shuffled = [...units].sort(() => battleRandom() - 0.5);
         return shuffled.slice(0, 1);
       }
       case 'aoe':

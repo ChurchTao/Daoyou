@@ -13,6 +13,7 @@ import { compileLingxiaoBase } from './base/LingxiaoBaseCompiler';
 import { LINGXIAO_BASE_DEFINITION } from './definition';
 import { LINGXIAO_HEAVY_PATH_MODULE } from './paths/heavy/HeavySwordPathModule';
 import { LINGXIAO_SWIFT_PATH_MODULE } from './paths/swift/SwiftSwordPathModule';
+import { LINGXIAO_ORGANIZATION } from './organization/LingxiaoOrganizationModule';
 
 const LINGXIAO_TRIAL = {
   methods: { 'lingxiao-canon': 10, 'sword-guidance': 10 },
@@ -52,6 +53,7 @@ export class LingxiaoSectModule extends BaseSectModule {
       LINGXIAO_BASE_DEFINITION,
       [LINGXIAO_SWIFT_PATH_MODULE, LINGXIAO_HEAVY_PATH_MODULE],
       standardSectProgression,
+      LINGXIAO_ORGANIZATION,
       'plain-sword',
       new AllowedRaceAdmissionPolicy(
         LINGXIAO_BASE_DEFINITION.raceIds,

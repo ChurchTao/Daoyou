@@ -32,6 +32,7 @@ import {
 } from './core/runtimeState';
 import { AbilityFactory } from './factories/AbilityFactory';
 import { executeEffectConfigs } from './core/effectExecutor';
+import { battleRandom } from './core/BattleRandom';
 
 export interface BattleResult {
   winner: string;
@@ -403,7 +404,7 @@ export class BattleEngineV5 {
         const speedA = a.attributes.getValue(AttributeType.SPEED);
         const speedB = b.attributes.getValue(AttributeType.SPEED);
         if (speedA === speedB) {
-          return Math.random() - 0.5;
+          return battleRandom() - 0.5;
         }
         return speedB - speedA;
       });

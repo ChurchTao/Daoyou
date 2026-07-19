@@ -1,7 +1,9 @@
 import { db, type DbTransaction } from '@server/lib/drizzle/db';
 import {
   bumpStateVersions,
+  findPlayerMutationRequest,
   getOrCreateStateVersion,
+  insertPlayerMutationRequest,
   insertStateEvents,
   lockCultivatorForStateMutation,
 } from '@server/lib/repositories/playerStateRepository';
@@ -23,11 +25,20 @@ export type StateChangeDescriptor = {
   invalidates?: PlayerStateDomain[];
 };
 
+export class PlayerStateIdempotencyError extends Error {
+  readonly code = 'IDEMPOTENCY_KEY_REUSED';
+  readonly status = 409;
+}
+
 export async function commitPlayerStateMutation<T>(args: {
   userId: string;
   cultivatorId: string;
   source: string;
   requestId?: string | null;
+  idempotency?: {
+    key: string;
+    fingerprint: string;
+  };
   allowEmpty?: boolean;
   run: (tx: DbTransaction) => Promise<{
     result: T;
@@ -41,12 +52,39 @@ export async function commitPlayerStateMutation<T>(args: {
     db().transaction(async (tx) => {
       await lockCultivatorForStateMutation(tx, args.cultivatorId);
 
+      if (args.idempotency) {
+        const existing = await findPlayerMutationRequest(
+          args.cultivatorId,
+          args.source,
+          args.idempotency.key,
+          tx,
+        );
+        if (existing) {
+          if (existing.requestFingerprint !== args.idempotency.fingerprint) {
+            throw new PlayerStateIdempotencyError(
+              '同一幂等键不能用于不同的宗门事务',
+            );
+          }
+          const version = await getOrCreateStateVersion(args.cultivatorId, tx);
+          return {
+            result: existing.result as T,
+            state: {
+              cultivatorId: args.cultivatorId,
+              globalVersion: version.globalVersion,
+              domainVersions: {},
+              events: [],
+              replayed: true,
+            },
+          };
+        }
+      }
+
       const { result, changes } = await args.run(tx);
 
       if (changes.length === 0) {
         if (args.allowEmpty) {
           const version = await getOrCreateStateVersion(args.cultivatorId, tx);
-          return {
+          const committed = {
             result,
             state: {
               cultivatorId: args.cultivatorId,
@@ -55,6 +93,18 @@ export async function commitPlayerStateMutation<T>(args: {
               events: [],
             },
           };
+          if (args.idempotency)
+            await insertPlayerMutationRequest(
+              {
+                cultivatorId: args.cultivatorId,
+                source: args.source,
+                requestId: args.idempotency.key,
+                requestFingerprint: args.idempotency.fingerprint,
+                result,
+              },
+              tx,
+            );
+          return committed;
         }
         throw new Error('玩家状态写操作缺少状态变更描述');
       }
@@ -72,11 +122,11 @@ export async function commitPlayerStateMutation<T>(args: {
         events: changes.map((change) => ({
           ...change,
           source: args.source,
-          requestId: args.requestId ?? null,
+          requestId: args.requestId ?? args.idempotency?.key ?? null,
         })),
       });
 
-      return {
+      const committed = {
         result,
         state: {
           cultivatorId: args.cultivatorId,
@@ -88,6 +138,18 @@ export async function commitPlayerStateMutation<T>(args: {
           events,
         },
       };
+      if (args.idempotency)
+        await insertPlayerMutationRequest(
+          {
+            cultivatorId: args.cultivatorId,
+            source: args.source,
+            requestId: args.idempotency.key,
+            requestFingerprint: args.idempotency.fingerprint,
+            result,
+          },
+          tx,
+        );
+      return committed;
     }),
   );
 

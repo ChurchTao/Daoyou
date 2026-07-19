@@ -7,6 +7,7 @@ const {
   sendMailMock,
   pruneExpiredDataMock,
   prunePlayerStateEventsOlderThanMock,
+  prunePlayerMutationRequestsOlderThanMock,
   getItemLibraryDailyMaterialGenerationSettingsMock,
   generateDailyMarketMaterialLibraryEntriesMock,
   redisMock,
@@ -38,6 +39,7 @@ const {
     }),
     pruneExpiredDataMock: vi.fn(),
     prunePlayerStateEventsOlderThanMock: vi.fn(),
+    prunePlayerMutationRequestsOlderThanMock: vi.fn().mockResolvedValue(0),
     redisMock: {
       set: vi.fn(),
       eval: vi.fn(),
@@ -66,15 +68,16 @@ vi.mock('@server/lib/redis/rankings', () => ({
 
 vi.mock('@server/lib/repositories/playerStateRepository', () => ({
   prunePlayerStateEventsOlderThan: prunePlayerStateEventsOlderThanMock,
+  prunePlayerMutationRequestsOlderThan: prunePlayerMutationRequestsOlderThanMock,
 }));
 
 vi.mock('@server/lib/repositories/sectOrganizationRepository', () => ({
   listActiveSectIds: listActiveSectIdsMock,
 }));
 
-vi.mock('@server/lib/services/SectOrganizationService', () => ({
-  SectOrganizationService: {
-    ensureWeeklyProject: ensureWeeklyProjectMock,
+vi.mock('@server/lib/services/sect-organization', () => ({
+  sectOrganizationFacade: {
+    construction: { ensureWeeklyProject: ensureWeeklyProjectMock },
   },
 }));
 

@@ -19,7 +19,10 @@ const EMPTY_SLOTS: SectAbilitySlots = [null, null, null, null];
 const SLOT_NAMES = ['', '一', '二', '三'] as const;
 const json = (method: string, body: unknown): RequestInit => ({
   method,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+    'Idempotency-Key': crypto.randomUUID(),
+  },
   body: JSON.stringify(body),
 });
 

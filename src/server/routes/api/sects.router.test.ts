@@ -42,8 +42,9 @@ vi.mock('@server/lib/hono/middleware', () => {
     getValidatedQuery: () => ({ page: 1, pageSize: 20 }),
   };
 });
-vi.mock('@server/lib/services/SectOrganizationService', () => ({
-  SectOrganizationService: {
+vi.mock('@server/lib/services/sect-organization', () => ({
+  sectOrganizationFacade: {
+    membership: {
     getOverview: vi.fn(async () => ({
       facilities: [],
       project: null,
@@ -59,18 +60,26 @@ vi.mock('@server/lib/services/SectOrganizationService', () => ({
       nextRank: 'outer',
       promotionMissing: [],
     })),
-    getTasks: vi.fn(),
-    getShop: vi.fn(),
-    getConstruction: vi.fn(),
     listMembers: vi.fn(),
+    promote: vi.fn(),
+    },
+    tasks: {
+    getTasks: vi.fn(),
     acceptDaily: vi.fn(),
+    startSweep: vi.fn(),
     completeSweep: vi.fn(),
     submitTaskItem: vi.fn(),
     challengeTask: vi.fn(),
-    promote: vi.fn(),
+    },
+    economy: {
+    getShop: vi.fn(),
     purchaseShopItem: vi.fn(),
-    donate: vi.fn(),
     claimStipend: vi.fn(),
+    },
+    construction: {
+    getConstruction: vi.fn(),
+    donate: vi.fn(),
+    },
   },
 }));
 vi.mock('@server/lib/services/SectService', () => {
@@ -118,6 +127,7 @@ vi.mock('@shared/lib/battle/simulateBattleV5', () => ({
   simulateBattleV5: vi.fn(),
 }));
 vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
+  PlayerStateIdempotencyError: class PlayerStateIdempotencyError extends Error {},
   commitPlayerStateMutation: vi.fn(async (args) => {
     const value = await args.run({});
     return {
@@ -219,7 +229,10 @@ describe('sects router', () => {
     joinMock.mockResolvedValue(activeSect);
     const response = await new Hono()
       .route('/api/sects', sectsRouter)
-      .request('/api/sects/lingxiao/join', { method: 'POST' });
+      .request('/api/sects/lingxiao/join', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': '00000000-0000-4000-8000-000000000001' },
+      });
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       success: true,
@@ -239,7 +252,10 @@ describe('sects router', () => {
       .route('/api/sects', sectsRouter)
       .request('/api/sects/current/ability-loadout', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': '00000000-0000-4000-8000-000000000002',
+        },
         body: JSON.stringify({ abilityIds: slots }),
       });
 
@@ -266,6 +282,7 @@ describe('sects router', () => {
       .route('/api/sects', sectsRouter)
       .request('/api/sects/current/paths/swift-sword/layers/2/unlock', {
         method: 'POST',
+        headers: { 'Idempotency-Key': '00000000-0000-4000-8000-000000000003' },
       });
 
     expect(response.status).toBe(200);
@@ -277,6 +294,19 @@ describe('sects router', () => {
       },
       expect.anything(),
     );
+  });
+
+  it('requires an idempotency key on every sect write', async () => {
+    joinMock.mockResolvedValue(activeSect);
+    const response = await new Hono()
+      .route('/api/sects', sectsRouter)
+      .request('/api/sects/lingxiao/join', { method: 'POST' });
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: '缺少有效的 Idempotency-Key 请求头',
+    });
+    expect(joinMock).not.toHaveBeenCalled();
   });
 
   it('returns 400 for an unregistered sect id', async () => {

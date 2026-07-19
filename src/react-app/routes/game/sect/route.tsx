@@ -1,52 +1,39 @@
 import {
   GameSceneFrame,
   GameSceneLoading,
-  GameSceneNote,
 } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { fetchSectCatalog, fetchSectCurrent } from '@app/lib/sect/sectClient';
-import type { SectCatalogData, SectCurrentData } from '@shared/contracts/sect';
 import {
   SECT_FACILITY_LABELS,
   SECT_RANK_LABELS,
   type CultivatorSectState,
 } from '@shared/engine/sect';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 import { useNavigate } from 'react-router';
 import { GateTab } from './components/GateTab';
+import { SectQueryError, useSectQuery } from './components/SectScene';
 import { SECT_MAP_HOTSPOTS } from './mapConfig';
 
 export default function SectPage() {
-  const [catalog, setCatalog] = useState<SectCatalogData>();
-  const [data, setData] = useState<SectCurrentData>();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
   const { mutate } = usePlayerStateActions();
   const { pushToast } = useInkUI();
   const navigate = useNavigate();
 
-  const reload = useCallback(async () => {
-    const [nextCatalog, nextData] = await Promise.all([
-      fetchSectCatalog(),
-      fetchSectCurrent(),
+  const loader = useCallback(async (signal: AbortSignal) => {
+    const [catalog, data] = await Promise.all([
+      fetchSectCatalog(signal),
+      fetchSectCurrent(signal),
     ]);
-    setCatalog(nextCatalog);
-    setData(nextData);
+    return { catalog, data };
   }, []);
-
-  useEffect(() => {
-    void Promise.all([fetchSectCatalog(), fetchSectCurrent()])
-      .then(([nextCatalog, nextData]) => {
-        setCatalog(nextCatalog);
-        setData(nextData);
-      })
-      .catch((reason) =>
-        setError(reason instanceof Error ? reason.message : '宗门卷宗读取失败'),
-      );
-  }, []);
+  const { data: query, error, reload, retry } = useSectQuery(loader);
+  const catalog = query?.catalog;
+  const data = query?.data;
 
   const action = useCallback(
     async (url: string, init: RequestInit) => {
@@ -72,6 +59,7 @@ export default function SectPage() {
     [data?.overview?.facilities],
   );
 
+  if (error) return <SectQueryError error={error} retry={() => void retry()} />;
   if (!catalog || !data)
     return <GameSceneLoading message="山门云阶渐次显现……" />;
 
@@ -80,7 +68,6 @@ export default function SectPage() {
       <GameSceneFrame
         title="【诸宗山门】"
         description="诸宗传承各有所长，可先试其法，再择一门而入。"
-        headerMeta={error ? <GameSceneNote tone="danger">{error}</GameSceneNote> : undefined}
       >
         <GateTab catalog={catalog} busy={busy} action={action} />
       </GameSceneFrame>
@@ -132,7 +119,10 @@ export default function SectPage() {
                 />
                 {SECT_MAP_HOTSPOTS.map((spot) => {
                   const facility = spot.facility ? facilities.get(spot.facility) : undefined;
-                  const disabled = spot.locked || !spot.route;
+                  const access = spot.permission
+                    ? data.overview?.permissions?.[spot.permission]
+                    : undefined;
+                  const disabled = spot.locked || !spot.route || access?.granted === false;
                   return (
                     <button
                       key={spot.id}
@@ -145,7 +135,7 @@ export default function SectPage() {
                       className={`group absolute -translate-x-1/2 -translate-y-1/2 rounded-sm border px-2.5 py-1.5 text-center shadow-[0_3px_14px_rgba(26,20,15,0.28)] backdrop-blur-sm transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 ${disabled ? 'border-ink/25 bg-ink/70 cursor-not-allowed text-white/70 focus-visible:outline-white' : 'border-crimson/40 bg-[rgba(250,245,230,0.9)] hover:z-10 hover:-translate-y-[55%] hover:border-crimson focus-visible:outline-crimson'}`}
                     >
                       <strong className="block whitespace-nowrap text-xs sm:text-sm">{spot.label}{facility && facility.key !== 'formation' ? ` · ${facility.level}级` : ''}</strong>
-                      <span className="block max-h-0 overflow-hidden whitespace-nowrap text-[10px] opacity-0 transition-all group-hover:max-h-5 group-hover:opacity-75 group-focus-visible:max-h-5 group-focus-visible:opacity-75 sm:text-[11px]">{spot.note}{spot.locked ? ' · 锁定' : ''}</span>
+                      <span className="block max-h-0 overflow-hidden whitespace-nowrap text-[10px] opacity-0 transition-all group-hover:max-h-5 group-hover:opacity-75 group-focus-visible:max-h-5 group-focus-visible:opacity-75 sm:text-[11px]">{access?.granted === false ? access.reason : spot.note}{spot.locked ? ' · 锁定' : ''}</span>
                     </button>
                   );
                 })}

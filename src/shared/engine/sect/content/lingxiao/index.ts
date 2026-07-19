@@ -1,6 +1,7 @@
 export * from './definition';
 export * from './ids';
 export * from './LingxiaoSectModule';
+export * from './organization/LingxiaoOrganizationModule';
 export * from './paths/heavy/HeavySwordPathModule';
 export * from './paths/heavy/strategy';
 export * from './paths/swift/strategy';

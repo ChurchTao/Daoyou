@@ -3,6 +3,7 @@ import { CombatEvent } from './types';
 import { Unit } from '../units/Unit';
 import { getBattleRuntimeState } from './runtimeState';
 import { checkConditions } from './conditionEvaluator';
+import { battleRandom } from './BattleRandom';
 
 export interface ListenerRuntimeConfig {
   id: string;
@@ -91,7 +92,7 @@ export function buildListenerRuntimeConfig(config: ListenerConfig): ListenerRunt
   const scope = config.scope ?? getDefaultScope(config.eventType);
 
   return {
-    id: config.id ?? `${config.eventType}_${Math.random().toString(36).slice(2, 8)}`,
+    id: config.id ?? `${config.eventType}_${battleRandom().toString(36).slice(2, 8)}`,
     eventType: config.eventType,
     scope,
     priority: config.priority,

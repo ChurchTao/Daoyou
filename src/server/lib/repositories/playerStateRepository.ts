@@ -3,6 +3,7 @@ import { getExecutor } from '@server/lib/drizzle/db';
 import {
   cultivators,
   cultivatorStateVersions,
+  playerMutationRequests,
   playerStateEvents,
 } from '@server/lib/drizzle/schema';
 import {
@@ -11,7 +12,7 @@ import {
   type PlayerStateDomainVersions,
   type PlayerStateEvent,
 } from '@shared/contracts/player';
-import { asc, eq, lt, sql } from 'drizzle-orm';
+import { and, asc, eq, lt, sql } from 'drizzle-orm';
 
 type StateVersionRow = typeof cultivatorStateVersions.$inferSelect;
 type PlayerStateEventRow = typeof playerStateEvents.$inferSelect;
@@ -210,6 +211,54 @@ export async function insertStateEvents(
     .returning();
 
   return rows.map(mapPlayerStateEventRow);
+}
+
+export async function findPlayerMutationRequest(
+  cultivatorId: string,
+  source: string,
+  requestId: string,
+  q: DbExecutor | DbTransaction = getExecutor(),
+) {
+  const [row] = await q
+    .select()
+    .from(playerMutationRequests)
+    .where(
+      and(
+        eq(playerMutationRequests.cultivatorId, cultivatorId),
+        eq(playerMutationRequests.source, source),
+        eq(playerMutationRequests.requestId, requestId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+export async function insertPlayerMutationRequest(
+  input: {
+    cultivatorId: string;
+    source: string;
+    requestId: string;
+    requestFingerprint: string;
+    result: unknown;
+  },
+  tx: DbTransaction,
+) {
+  const [row] = await tx
+    .insert(playerMutationRequests)
+    .values(input)
+    .returning();
+  return row;
+}
+
+export async function prunePlayerMutationRequestsOlderThan(
+  cutoff: Date,
+  q: DbExecutor | DbTransaction = getExecutor(),
+): Promise<number> {
+  const deleted = await q
+    .delete(playerMutationRequests)
+    .where(lt(playerMutationRequests.createdAt, cutoff))
+    .returning({ id: playerMutationRequests.id });
+  return deleted.length;
 }
 
 export async function listStateEventsAfter(

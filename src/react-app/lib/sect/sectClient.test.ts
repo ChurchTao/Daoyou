@@ -23,6 +23,7 @@ describe('startSectTrialOnce', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith('/api/sects/lingxiao/trial', {
       method: 'POST',
+      headers: { 'Idempotency-Key': expect.any(String) },
     });
     await startSectTrialOnce('lingxiao');
     expect(fetchMock).toHaveBeenCalledTimes(2);

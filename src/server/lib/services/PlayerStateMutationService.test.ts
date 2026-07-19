@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   getOrCreateStateVersion: vi.fn(),
   bumpStateVersions: vi.fn(),
   insertStateEvents: vi.fn(),
+  findPlayerMutationRequest: vi.fn(),
+  insertPlayerMutationRequest: vi.fn(),
   publishPlayerStateEvents: vi.fn(),
 }));
 
@@ -20,13 +22,18 @@ vi.mock('@server/lib/repositories/playerStateRepository', () => ({
   getOrCreateStateVersion: mocks.getOrCreateStateVersion,
   bumpStateVersions: mocks.bumpStateVersions,
   insertStateEvents: mocks.insertStateEvents,
+  findPlayerMutationRequest: mocks.findPlayerMutationRequest,
+  insertPlayerMutationRequest: mocks.insertPlayerMutationRequest,
 }));
 
 vi.mock('@server/lib/services/playerStateBroadcaster', () => ({
   publishPlayerStateEvents: mocks.publishPlayerStateEvents,
 }));
 
-import { commitPlayerStateMutation } from './PlayerStateMutationService';
+import {
+  commitPlayerStateMutation,
+  PlayerStateIdempotencyError,
+} from './PlayerStateMutationService';
 
 function createDomainVersions(overrides: Record<string, number> = {}) {
   return {
@@ -69,6 +76,8 @@ describe('commitPlayerStateMutation', () => {
         createdAt: '2026-07-06T00:00:00.000Z',
       },
     ]);
+    mocks.findPlayerMutationRequest.mockResolvedValue(null);
+    mocks.insertPlayerMutationRequest.mockResolvedValue({ id: 'request-1' });
   });
 
   it('locks the cultivator before business writes, version bump, and event insert', async () => {
@@ -212,6 +221,77 @@ describe('commitPlayerStateMutation', () => {
     ).rejects.toThrow(businessError);
 
     expect(mocks.transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.publishPlayerStateEvents).not.toHaveBeenCalled();
+  });
+
+  it('stores the first idempotent result in the same transaction', async () => {
+    const tx = { id: 'tx' };
+    mocks.transaction.mockImplementationOnce(async (callback) => callback(tx));
+    const run = vi.fn(async () => ({
+      result: { contribution: 25 },
+      changes: [{ domain: 'sect' as const, eventType: 'sect.reward' }],
+    }));
+
+    const committed = await commitPlayerStateMutation({
+      userId: 'user-1',
+      cultivatorId: 'cultivator-1',
+      source: 'sect_task',
+      idempotency: { key: 'request-1', fingerprint: 'fingerprint-1' },
+      run,
+    });
+
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(mocks.insertPlayerMutationRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cultivatorId: 'cultivator-1',
+        source: 'sect_task',
+        requestId: 'request-1',
+        requestFingerprint: 'fingerprint-1',
+        result: { contribution: 25 },
+      }),
+      tx,
+    );
+    expect(committed.state.replayed).toBeUndefined();
+  });
+
+  it('replays the first result without executing or broadcasting again', async () => {
+    mocks.findPlayerMutationRequest.mockResolvedValueOnce({
+      requestFingerprint: 'fingerprint-1',
+      result: { contribution: 25 },
+    });
+    const run = vi.fn();
+
+    const committed = await commitPlayerStateMutation({
+      userId: 'user-1',
+      cultivatorId: 'cultivator-1',
+      source: 'sect_task',
+      idempotency: { key: 'request-1', fingerprint: 'fingerprint-1' },
+      run,
+    });
+
+    expect(committed.result).toEqual({ contribution: 25 });
+    expect(committed.state.replayed).toBe(true);
+    expect(run).not.toHaveBeenCalled();
+    expect(mocks.bumpStateVersions).not.toHaveBeenCalled();
+    expect(mocks.insertStateEvents).not.toHaveBeenCalled();
+    expect(mocks.publishPlayerStateEvents).not.toHaveBeenCalled();
+  });
+
+  it('rejects reuse of an idempotency key with another fingerprint', async () => {
+    mocks.findPlayerMutationRequest.mockResolvedValueOnce({
+      requestFingerprint: 'fingerprint-1',
+      result: { contribution: 25 },
+    });
+
+    await expect(
+      commitPlayerStateMutation({
+        userId: 'user-1',
+        cultivatorId: 'cultivator-1',
+        source: 'sect_task',
+        idempotency: { key: 'request-1', fingerprint: 'fingerprint-2' },
+        run: vi.fn(),
+      }),
+    ).rejects.toBeInstanceOf(PlayerStateIdempotencyError);
     expect(mocks.publishPlayerStateEvents).not.toHaveBeenCalled();
   });
 });

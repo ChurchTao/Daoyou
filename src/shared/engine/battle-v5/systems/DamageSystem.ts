@@ -1,4 +1,5 @@
 import { EventBus } from '../core/EventBus';
+import { battleRandom } from '../core/BattleRandom';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { getRealmDamagePressureMultiplier } from '@shared/config/realmProgression';
 import {
@@ -107,7 +108,7 @@ export class DamageSystem {
         3,
         Math.min(45, (evasionRate - accuracy) * 100),
       );
-      if (Math.random() * 100 < dodgeChance) {
+      if (battleRandom() * 100 < dodgeChance) {
         hitCheckEvent.isDodged = true;
         hitCheckEvent.isHit = false;
       }
@@ -227,7 +228,7 @@ export class DamageSystem {
         0,
         Math.min(0.95, rawCritRate - critResist),
       );
-      if (event.forceCritical || event.isCritical || Math.random() < effectiveCritRate) {
+      if (event.forceCritical || event.isCritical || battleRandom() < effectiveCritRate) {
         event.isCritical = true;
         const baseCritMult = event.caster.attributes.getValue(
           AttributeType.CRIT_DAMAGE_MULT,
@@ -241,7 +242,7 @@ export class DamageSystem {
     }
 
     // ===== ⑦ 随机浮动 (0.9 ~ 1.1，降低纯数值比拼的确定性) =====
-    const randomFactor = 0.9 + Math.random() * 0.2;
+    const randomFactor = 0.9 + battleRandom() * 0.2;
     event.finalDamage = event.finalDamage * randomFactor;
 
     // ===== ⑧ 最小伤害保证（避免0伤害）并四舍五入 =====
