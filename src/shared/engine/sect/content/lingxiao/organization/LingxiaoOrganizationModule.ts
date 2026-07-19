@@ -1,128 +1,196 @@
 import type { PillSpec } from '@shared/types/consumable';
 import {
-  StandardSectPermissionPolicy,
+  StandardSectCapabilityPolicy,
+  SECT_CRAFT_CONTEXTS,
   type SectBattleScenarioCatalog,
-  type SectBattleScenarioDefinition,
+  type SectBenefitPolicy,
   type SectConstructionPolicy,
+  type SectCraftContextKey,
   type SectDonationDemandDefinition,
   type SectEconomyPolicy,
+  type SectOpponentFactory,
   type SectOrganizationModule,
   type SectOrganizationTaskId,
   type SectRankPolicy,
+  type SectRewardGrantDefinition,
   type SectShopDefinition,
   type SectTaskCatalog,
   type SectTaskDefinition,
 } from '../../../core';
 import type { SectDiscipleRank, SectRankRequirement } from '../../../core';
 
-const permissions = new StandardSectPermissionPolicy({
-  'scene.hall': 'registered',
-  'scene.affairs': 'registered',
-  'scene.archive': 'registered',
-  'scene.enlightenment_cliff': 'registered',
-  'scene.arena': 'registered',
-  'scene.treasury': 'outer',
-  'scene.industries': 'outer',
-  'scene.cultivation_room': 'outer',
-  'scene.alchemy': 'inner',
-  'scene.refinery': 'inner',
-  'scene.spirit_vein': 'registered',
-  'scene.herb_garden': 'registered',
-  'scene.cave': 'inner',
-  'scene.gate': 'registered',
-  'scene.formation': 'true',
-  'task.pill_delivery': 'outer',
-  'task.artifact_delivery': 'inner',
-  'task.elder_trial': 'inner',
-  'benefit.cultivation_room': 'outer',
-  'benefit.workshop': 'inner',
-}, new Set(['scene.formation']));
+const capabilities = new StandardSectCapabilityPolicy({
+  'sect.hall.view': 'registered',
+  'sect.tasks.use': 'registered',
+  'sect.archive.use': 'registered',
+  'sect.enlightenment.use': 'registered',
+  'sect.arena.use': 'registered',
+  'sect.shop.use': 'outer',
+  'sect.construction.view': 'outer',
+  'sect.construction.donate': 'outer',
+  'sect.facility.cultivation.use': 'outer',
+  'sect.facility.alchemy.use': 'inner',
+  'sect.facility.refinery.use': 'inner',
+  'sect.spirit_vein.view': 'registered',
+  'sect.herb_garden.view': 'registered',
+  'sect.cave.view': 'inner',
+  'sect.gate.view': 'registered',
+  'sect.formation.view': 'true',
+  'sect.task.pill_delivery.accept': 'outer',
+  'sect.task.artifact_delivery.accept': 'inner',
+  'sect.task.elder_trial.challenge': 'inner',
+}, new Set(['sect.formation.view']));
+
+function taskPresentation(
+  title: string,
+  description: string,
+  contribution: number,
+  renderer: string,
+  actionLabel: string,
+) {
+  return {
+    title,
+    description,
+    rewardSummary: contribution > 0 ? `${contribution} 宗门贡献` : '晋升资格',
+    renderer,
+    actionLabel,
+  };
+}
+
+const bountyAvailability = {
+  executorKeys: ['sect.battle', 'sect.delivery.material'] as const,
+  resolve({ weekKey }: { weekKey: string }) {
+    const seed = [...weekKey].reduce(
+      (sum, char) => sum * 31 + char.charCodeAt(0),
+      0,
+    );
+    const battle = Math.abs(seed) % 2 === 0;
+    return {
+      executorKey: battle ? 'sect.battle' : 'sect.delivery.material',
+      parameters: battle
+        ? { mode: 'battle' }
+        : { mode: 'material', minQuality: '玄品', quantity: 2 },
+    };
+  },
+};
+
+function taskCompletion(
+  contribution: number,
+  kind: SectTaskDefinition['kind'],
+) {
+  return [
+    ...(contribution > 0
+      ? [{
+          strategy: 'sect.settlement.contribution',
+          input: {
+            amount: contribution,
+            reason: kind === 'daily' ? 'daily_task' : 'weekly_task',
+          },
+        }]
+      : []),
+    ...(kind === 'daily'
+      ? [
+          {
+            strategy: 'sect.settlement.realm-daily-reward',
+            input: { difficulty: 'easy' },
+          },
+          {
+            strategy: 'sect.settlement.progress-signal',
+            input: { source: 'sect.task.daily.completed', amount: 1 },
+          },
+        ]
+      : []),
+  ] as const;
+}
 
 const tasks: readonly SectTaskDefinition[] = [
   {
     id: 'gate_sweep',
-    name: '清扫山门',
-    description: '循落叶纹路清理云阶，完成一轮山门勤务。',
     kind: 'daily',
-    requiredRank: 'registered',
+    requiredCapability: 'sect.tasks.use',
     contributionReward: 25,
-    executor: 'sweep',
+    executorKey: 'sect.sweep',
+    completion: taskCompletion(25, 'daily'),
+    presentation: taskPresentation('清扫山门', '循落叶纹路清理云阶，完成一轮山门勤务。', 25, 'sect.action.sweep', '进入云阶清扫'),
     target: 1,
   },
   {
     id: 'mine_patrol',
-    name: '巡视矿场',
-    description: '前往宗门矿脉驱逐侵扰妖兽。',
     kind: 'daily',
-    requiredRank: 'registered',
+    requiredCapability: 'sect.tasks.use',
     contributionReward: 30,
-    executor: 'battle',
+    executorKey: 'sect.battle',
+    completion: taskCompletion(30, 'daily'),
+    presentation: taskPresentation('巡视矿场', '前往宗门矿脉驱逐侵扰妖兽。', 30, 'sect.action.battle', '前往迎战'),
     target: 1,
   },
   {
     id: 'pill_delivery',
-    name: '丹药委托',
-    description: '提交一枚有效丹药，补充宗门日常储备。',
     kind: 'daily',
-    requiredRank: 'outer',
+    requiredCapability: 'sect.task.pill_delivery.accept',
     contributionReward: 35,
-    executor: 'submit_pill',
+    executorKey: 'sect.delivery.pill',
+    completion: taskCompletion(35, 'daily'),
+    presentation: taskPresentation('丹药委托', '提交一枚有效丹药，补充宗门日常储备。', 35, 'sect.action.item-delivery', '确认交付'),
     target: 1,
   },
   {
     id: 'artifact_delivery',
-    name: '法宝委托',
-    description: '提交一件未装备的凡品以上法宝，交由宗门统一调度。',
     kind: 'daily',
-    requiredRank: 'inner',
+    requiredCapability: 'sect.task.artifact_delivery.accept',
     contributionReward: 45,
-    executor: 'submit_artifact',
+    executorKey: 'sect.delivery.artifact',
+    completion: taskCompletion(45, 'daily'),
+    presentation: taskPresentation('法宝委托', '提交一件未装备的凡品以上法宝，交由宗门统一调度。', 45, 'sect.action.item-delivery', '确认交付'),
     target: 1,
   },
   {
     id: 'weekly_diligence',
-    name: '勤务周录',
-    description: '一周完成五次宗门日常。',
     kind: 'weekly',
-    requiredRank: 'registered',
+    requiredCapability: 'sect.tasks.use',
     contributionReward: 20,
-    executor: 'progress',
-    completionRole: 'weekly_diligence',
+    executorKey: 'sect.progress',
+    completion: taskCompletion(20, 'weekly'),
+    presentation: taskPresentation('勤务周录', '一周完成五次宗门日常。', 20, 'sect.action.progress', '查看进度'),
+    completionTags: ['weekly.diligence'],
+    progress: {
+      strategy: 'sect.progress.completed-daily',
+      source: 'sect.task.daily.completed',
+    },
     target: 5,
   },
   {
     id: 'weekly_tournament',
-    name: '宗门小比',
-    description: '在试剑傀儡前验证本周修行。',
     kind: 'weekly',
-    requiredRank: 'registered',
+    requiredCapability: 'sect.tasks.use',
     contributionReward: 40,
-    executor: 'battle',
-    completionRole: 'promotion_tournament',
+    executorKey: 'sect.battle',
+    completion: taskCompletion(40, 'weekly'),
+    presentation: taskPresentation('宗门小比', '在试剑傀儡前验证本周修行。', 40, 'sect.action.battle', '参加小比'),
+    completionTags: ['promotion.tournament'],
     target: 1,
   },
   {
     id: 'weekly_bounty',
-    name: '悬赏令',
-    description: '追缉叛徒残影或交付稀有材料。',
     kind: 'weekly',
-    requiredRank: 'registered',
+    requiredCapability: 'sect.tasks.use',
     contributionReward: 60,
-    executor: 'battle',
-    alternateExecutor: 'submit_material',
-    rotation: 'battle_material',
-    completionRole: 'promotion_bounty',
+    executorKey: 'sect.battle',
+    completion: taskCompletion(60, 'weekly'),
+    presentation: taskPresentation('悬赏令', '追缉叛徒残影或交付稀有材料。', 60, 'sect.action.battle', '执行悬赏'),
+    availability: bountyAvailability,
+    completionTags: ['promotion.bounty'],
     target: 1,
   },
   {
     id: 'elder_trial',
-    name: '长老试炼',
-    description: '击败传功长老剑影，取得真传资格。',
     kind: 'promotion',
-    requiredRank: 'inner',
+    requiredCapability: 'sect.task.elder_trial.challenge',
     contributionReward: 0,
-    executor: 'battle',
-    completionRole: 'promotion_elder_trial',
+    executorKey: 'sect.battle',
+    completion: taskCompletion(0, 'promotion'),
+    presentation: taskPresentation('长老试炼', '击败传功长老剑影，取得真传资格。', 0, 'sect.action.battle', '挑战长老试炼'),
+    completionTags: ['promotion.elder_trial'],
     target: 1,
   },
 ];
@@ -138,12 +206,16 @@ class LingxiaoTaskCatalog implements SectTaskCatalog {
     return tasks.filter((task) => task.kind === 'weekly');
   }
 
+  listPromotion(): readonly SectTaskDefinition[] {
+    return tasks.filter((task) => task.kind === 'promotion');
+  }
+
   get(id: SectOrganizationTaskId): SectTaskDefinition | undefined {
     return this.byId.get(id);
   }
 
-  findByRole(role: NonNullable<SectTaskDefinition['completionRole']>) {
-    return tasks.find((task) => task.completionRole === role);
+  findByCompletionTag(tag: string) {
+    return tasks.find((task) => task.completionTags?.includes(tag));
   }
 }
 
@@ -326,34 +398,59 @@ class LingxiaoEconomyPolicy implements SectEconomyPolicy {
     ];
   }
 
-  stipendBase(rank: Parameters<SectRankPolicy['stipendBase']>[0]): number {
+  stipendBase(rank: SectDiscipleRank): number {
     return { registered: 500, outer: 1500, inner: 4000, true: 10000 }[rank];
   }
 
   stipendRewards(
-    rank: Parameters<SectRankPolicy['stipendBase']>[0],
+    rank: SectDiscipleRank,
     gardenLevel: number,
-  ) {
+  ): readonly SectRewardGrantDefinition[] {
     const outerPill = shopItems.find(
       (item) => item.id === 'outer_recovery_pill',
     )?.grant;
-    return {
-      herbName: rank === 'true' ? '凌霄灵蕴草' : '宗门灵草',
-      herbQuality: rank === 'true' ? ('真品' as const) : ('凡品' as const),
-      herbQuantity: gardenLevel + (rank === 'inner' ? 3 : 0),
-      bonusRewards: [
-        ...(rank === 'outer' ? ['基础回气丹 ×1'] : []),
-        ...(rank === 'inner' ? ['内门基础材料 ×3'] : []),
-        ...(rank === 'true' ? ['真品凌霄灵蕴草'] : []),
-      ],
+    return [
+      {
+        quantity: gardenLevel,
+        grant: {
+          kind: 'material',
+          name: rank === 'true' ? '凌霄灵蕴草' : '宗门灵草',
+          type: 'herb',
+          quality: rank === 'true' ? '真品' : '凡品',
+          element: '木',
+          description: '宗门药田按周分发的修行灵草。',
+        },
+      },
       ...(rank === 'outer' && outerPill?.kind === 'pill'
-        ? { bonusPill: outerPill }
-        : {}),
-    };
+        ? [{ quantity: 1, grant: outerPill }]
+        : []),
+      ...(rank === 'inner'
+        ? [{
+            quantity: 3,
+            grant: {
+              kind: 'material',
+              name: '百炼铁木',
+              type: 'aux' as const,
+              quality: '玄品' as const,
+              element: '木',
+              description: '内门周俸配发的基础丹器材料。',
+            },
+          }]
+        : []),
+    ];
   }
 }
 
 class LingxiaoConstructionPolicy implements SectConstructionPolicy {
+  readonly facilities = [
+    { key: 'archive', initialLevel: 1, maxLevel: 5, upgradeable: true },
+    { key: 'cultivation_room', initialLevel: 1, maxLevel: 5, upgradeable: true },
+    { key: 'workshop', initialLevel: 1, maxLevel: 5, upgradeable: true },
+    { key: 'spirit_vein', initialLevel: 1, maxLevel: 5, upgradeable: true },
+    { key: 'herb_garden', initialLevel: 1, maxLevel: 5, upgradeable: true },
+    { key: 'formation', initialLevel: 0, maxLevel: 0, upgradeable: false },
+  ] as const;
+
   readonly facilityPriority = [
     'archive',
     'cultivation_room',
@@ -365,56 +462,73 @@ class LingxiaoConstructionPolicy implements SectConstructionPolicy {
   projectBaseTarget(targetLevel: number): number {
     return { 2: 250, 3: 500, 4: 900, 5: 1500 }[targetLevel] ?? 1500;
   }
+
+  nextProject(levels: ReadonlyMap<string, number>) {
+    const candidate = [...this.facilityPriority]
+      .filter((key) => {
+        const facility = this.facilities.find((item) => item.key === key)!;
+        return (levels.get(key) ?? facility.initialLevel) < facility.maxLevel;
+      })
+      .sort((left, right) => {
+        const levelDiff = (levels.get(left) ?? 1) - (levels.get(right) ?? 1);
+        return levelDiff || this.facilityPriority.indexOf(left) - this.facilityPriority.indexOf(right);
+      })[0];
+    return candidate
+      ? { facilityKey: candidate, targetLevel: (levels.get(candidate) ?? 1) + 1 }
+      : null;
+  }
 }
 
-const battleScenarios: readonly SectBattleScenarioDefinition[] = [
-  {
-    taskId: 'mine_patrol',
-    kind: 'scaled_npc',
-    opponentName: '矿脉侵扰妖兽',
-    title: '矿场巡视',
-    attributeMultiplier: 0.75,
-  },
-  {
-    taskId: 'weekly_tournament',
-    kind: 'scaled_npc',
-    opponentName: '同门试剑傀儡',
-    title: '宗门小比',
-    attributeMultiplier: 0.95,
-  },
-  {
-    taskId: 'weekly_bounty',
-    kind: 'member_mirror',
-    opponentName: '叛徒残影',
-    title: '悬赏残影战',
-    attributeMultiplier: 1,
-    fallback: {
-      kind: 'scaled_npc',
-      opponentName: '无名叛徒残影',
-      title: '悬赏残影战',
-      attributeMultiplier: 1,
+function opponentFactory(options: {
+  title: string;
+  name: string;
+  multiplier: number;
+  prefersMemberMirror?: boolean;
+}): SectOpponentFactory {
+  return {
+    prefersMemberMirror: options.prefersMemberMirror ?? false,
+    create({ player, mirror, opponentId }) {
+      const source = options.prefersMemberMirror && mirror ? mirror : player;
+      const opponent = structuredClone(source);
+      opponent.id = opponentId;
+      opponent.name = options.prefersMemberMirror && !mirror ? `无名${options.name}` : options.name;
+      opponent.title = '宗门试炼残影';
+      opponent.attributes = {
+        vitality: Math.max(1, Math.floor(source.attributes.vitality * options.multiplier)),
+        spirit: Math.max(1, Math.floor(source.attributes.spirit * options.multiplier)),
+        wisdom: Math.max(1, Math.floor(source.attributes.wisdom * options.multiplier)),
+        speed: Math.max(1, Math.floor(source.attributes.speed * options.multiplier)),
+        willpower: Math.max(1, Math.floor(source.attributes.willpower * options.multiplier)),
+      };
+      if (!mirror) {
+        opponent.sect = undefined;
+        opponent.skills = [];
+        opponent.cultivations = [];
+        opponent.inventory = { ...opponent.inventory, artifacts: [] };
+      }
+      return { opponent, title: options.title };
     },
-  },
-  {
-    taskId: 'elder_trial',
-    kind: 'elder_projection',
-    opponentName: '传功长老剑影',
-    title: '长老试炼',
-    attributeMultiplier: 1.05,
-  },
-];
+  };
+}
+
+const battleScenarios = new Map<string, SectOpponentFactory>([
+  ['mine_patrol', opponentFactory({ title: '矿场巡视', name: '矿脉侵扰妖兽', multiplier: 0.75 })],
+  ['weekly_tournament', opponentFactory({ title: '宗门小比', name: '同门试剑傀儡', multiplier: 0.95 })],
+  ['weekly_bounty', opponentFactory({ title: '悬赏残影战', name: '叛徒残影', multiplier: 1, prefersMemberMirror: true })],
+  ['elder_trial', opponentFactory({ title: '长老试炼', name: '传功长老剑影', multiplier: 1.05 })],
+]);
 
 class LingxiaoBattleScenarioCatalog implements SectBattleScenarioCatalog {
-  get(taskId: SectOrganizationTaskId): SectBattleScenarioDefinition | undefined {
-    return battleScenarios.find((scenario) => scenario.taskId === taskId);
+  get(taskId: SectOrganizationTaskId): SectOpponentFactory | undefined {
+    return battleScenarios.get(taskId);
   }
 }
 
 const economy = new LingxiaoEconomyPolicy();
 
 class LingxiaoRankPolicy implements SectRankPolicy {
-  stipendBase(rank: Parameters<SectRankPolicy['stipendBase']>[0]): number {
-    return economy.stipendBase(rank);
+  nextRank(rank: SectDiscipleRank): SectDiscipleRank | null {
+    return ({ registered: 'outer', outer: 'inner', inner: 'true', true: null } as const)[rank];
   }
 
   methodLevelCap(rank: SectDiscipleRank): number {
@@ -440,27 +554,76 @@ class LingxiaoRankPolicy implements SectRankPolicy {
         rank: 'inner',
         minRealm: '筑基',
         contribution: 500,
-        requiresTournament: true,
+        requiredTaskTags: [
+          { tag: 'promotion.tournament', label: '完成一次宗门小比' },
+        ],
       },
       true: {
         rank: 'true',
         minRealm: '金丹',
         contribution: 3000,
-        requiresBounty: true,
-        requiresElderTrial: true,
+        requiredTaskTags: [
+          { tag: 'promotion.bounty', label: '完成一次悬赏令' },
+          { tag: 'promotion.elder_trial', label: '通过长老试炼' },
+        ],
       },
     };
     return requirements[rank];
   }
 }
 
+class LingxiaoBenefitPolicy implements SectBenefitPolicy {
+  archiveLevel(levels: ReadonlyMap<string, number>): number {
+    return levels.get('archive') ?? 1;
+  }
+
+  methodLevelCap(levels: ReadonlyMap<string, number>): number {
+    const level = Math.max(1, Math.min(5, Math.floor(this.archiveLevel(levels))));
+    return [0, 20, 40, 60, 80, 100][level] ?? 20;
+  }
+
+  gardenLevel(levels: ReadonlyMap<string, number>): number {
+    return levels.get('herb_garden') ?? 1;
+  }
+
+  retreatMultiplier(levels: ReadonlyMap<string, number>): number {
+    const level = levels.get('cultivation_room') ?? 1;
+    return 1 + Math.max(0, Math.min(5, Math.floor(level))) * 0.02;
+  }
+
+  craftDiscount(
+    craftContext: SectCraftContextKey,
+    levels: ReadonlyMap<string, number>,
+    rank: SectDiscipleRank,
+  ) {
+    const level = levels.get('workshop') ?? 1;
+    return {
+      capability:
+        craftContext === SECT_CRAFT_CONTEXTS.refinery
+          ? 'sect.facility.refinery.use'
+          : 'sect.facility.alchemy.use',
+      discount: Math.min(
+        0.2,
+        Math.max(0, Math.min(5, Math.floor(level))) * 0.02 +
+          (rank === 'true' ? 0.1 : 0),
+      ),
+    };
+  }
+
+  stipendMultiplier(levels: ReadonlyMap<string, number>): number {
+    const level = levels.get('spirit_vein') ?? 1;
+    return 1 + Math.max(0, Math.min(5, Math.floor(level))) * 0.05;
+  }
+}
+
 export class LingxiaoOrganizationModule implements SectOrganizationModule {
-  readonly permissions = permissions;
+  readonly capabilities = capabilities;
   readonly ranks = new LingxiaoRankPolicy();
   readonly tasks = new LingxiaoTaskCatalog();
   readonly economy = economy;
   readonly construction = new LingxiaoConstructionPolicy();
   readonly battles = new LingxiaoBattleScenarioCatalog();
+  readonly benefits = new LingxiaoBenefitPolicy();
 }
 
 export const LINGXIAO_ORGANIZATION = new LingxiaoOrganizationModule();

@@ -1,102 +1,115 @@
 import type { PillSpec } from '@shared/types/consumable';
 import type { Quality } from '@shared/types/constants';
+import type { Cultivator } from '@shared/types/cultivator';
 import type {
   SectDiscipleRank,
   SectRankRequirement,
-  UpgradeableSectFacilityKey,
 } from '../domain/organization';
 
-export const SECT_PERMISSIONS = [
-  'scene.hall',
-  'scene.affairs',
-  'scene.archive',
-  'scene.enlightenment_cliff',
-  'scene.arena',
-  'scene.treasury',
-  'scene.industries',
-  'scene.cultivation_room',
-  'scene.alchemy',
-  'scene.refinery',
-  'scene.spirit_vein',
-  'scene.herb_garden',
-  'scene.cave',
-  'scene.gate',
-  'scene.formation',
-  'task.pill_delivery',
-  'task.artifact_delivery',
-  'task.elder_trial',
-  'benefit.cultivation_room',
-  'benefit.workshop',
-] as const;
-
-export type SectPermission = (typeof SECT_PERMISSIONS)[number];
+export type SectCapabilityKey = string;
+/** @deprecated Use SectCapabilityKey. */
+export type SectPermission = SectCapabilityKey;
 
 export interface SectPermissionState {
   granted: boolean;
-  requiredRank: SectDiscipleRank;
+  requiredRank?: SectDiscipleRank;
   reason?: string;
+  reasonCode?: 'rank_locked' | 'version_locked' | 'content_locked';
 }
 
-export interface SectPermissionPolicy {
-  minimumRank(permission: SectPermission): SectDiscipleRank;
-  allows(rank: SectDiscipleRank, permission: SectPermission): boolean;
-  snapshot(rank: SectDiscipleRank): Record<SectPermission, SectPermissionState>;
+export interface SectCapabilityPolicy {
+  keys(): readonly SectCapabilityKey[];
+  minimumRank(permission: SectCapabilityKey): SectDiscipleRank | undefined;
+  allows(rank: SectDiscipleRank, permission: SectCapabilityKey): boolean;
+  snapshot(rank: SectDiscipleRank): Record<SectCapabilityKey, SectPermissionState>;
 }
 
 /** Opaque content identifier owned by each concrete sect module. */
 export type SectOrganizationTaskId = string;
 
-export type SectTaskExecutorKind =
-  | 'sweep'
-  | 'battle'
-  | 'submit_pill'
-  | 'submit_artifact'
-  | 'submit_material'
-  | 'progress';
+export type SectTaskExecutorKey = string;
 
-export type SectTaskCompletionRole =
-  | 'weekly_diligence'
-  | 'promotion_tournament'
-  | 'promotion_bounty'
-  | 'promotion_elder_trial';
+export const SECT_CRAFT_CONTEXTS = {
+  alchemy: 'sect.craft.alchemy',
+  refinery: 'sect.craft.refinery',
+} as const;
+export type SectCraftContextKey =
+  (typeof SECT_CRAFT_CONTEXTS)[keyof typeof SECT_CRAFT_CONTEXTS];
+
+export interface SectTaskPresentationDefinition {
+  title: string;
+  description: string;
+  rewardSummary: string;
+  renderer: string;
+  actionLabel: string;
+}
+
+export interface SectTaskAvailabilityContext {
+  dateKey: string;
+  weekKey: string;
+}
+
+export interface SectTaskAvailabilityDecision {
+  executorKey: SectTaskExecutorKey;
+  parameters?: Record<string, unknown>;
+}
+
+export interface SectTaskAvailabilityPolicy {
+  /** Every executor this policy may resolve to; used for fail-fast plugin validation. */
+  readonly executorKeys: readonly SectTaskExecutorKey[];
+  resolve(context: SectTaskAvailabilityContext): SectTaskAvailabilityDecision;
+}
+
+export interface SectTaskCompletionRule {
+  /** Open strategy key implemented by an application plugin. */
+  strategy: string;
+  input?: Record<string, unknown>;
+}
+
+export interface SectTaskProgressDefinition {
+  /** Open progress strategy key implemented by an application plugin. */
+  strategy: string;
+  /** Signal emitted by completion settlement rules. */
+  source: string;
+}
 
 export interface SectTaskDefinition {
   id: SectOrganizationTaskId;
-  name: string;
-  description: string;
   kind: 'daily' | 'weekly' | 'promotion';
-  requiredRank: SectDiscipleRank;
+  requiredCapability: SectCapabilityKey;
   contributionReward: number;
-  executor: SectTaskExecutorKind;
-  alternateExecutor?: SectTaskExecutorKind;
-  rotation?: 'battle_material';
-  completionRole?: SectTaskCompletionRole;
+  executorKey: SectTaskExecutorKey;
+  presentation: SectTaskPresentationDefinition;
+  availability?: SectTaskAvailabilityPolicy;
+  completion: readonly SectTaskCompletionRule[];
+  completionTags?: readonly string[];
+  progress?: SectTaskProgressDefinition;
   target: number;
 }
 
 export interface SectTaskCatalog {
   listDaily(): readonly SectTaskDefinition[];
   listWeekly(): readonly SectTaskDefinition[];
+  listPromotion(): readonly SectTaskDefinition[];
   get(id: SectOrganizationTaskId): SectTaskDefinition | undefined;
-  findByRole(role: SectTaskCompletionRole): SectTaskDefinition | undefined;
+  findByCompletionTag(tag: string): SectTaskDefinition | undefined;
 }
 
-export type SectShopGrant =
-  | {
-      kind: 'material';
-      name: string;
-      type: 'herb' | 'ore' | 'aux';
-      quality: Quality;
-      element?: string;
-      description: string;
-    }
-  | {
-      kind: 'pill';
-      name: string;
-      quality: Quality;
-      description: string;
-      spec: PillSpec;
-    };
+export interface SectShopGrant {
+  kind: string;
+  name: string;
+  quality?: Quality;
+  description: string;
+  type?: 'herb' | 'ore' | 'aux';
+  element?: string;
+  spec?: PillSpec;
+  [key: string]: unknown;
+}
+
+export interface SectRewardGrantDefinition {
+  quantity: number;
+  grant: SectShopGrant;
+}
 
 export interface SectShopDefinition {
   id: string;
@@ -111,7 +124,7 @@ export interface SectDonationDemandDefinition {
   id: string;
   name: string;
   description: string;
-  kind: 'spirit_stones' | 'material' | 'pill' | 'artifact';
+  kind: string;
   quantity: number;
   contribution: number;
   constructionPoints: number;
@@ -127,51 +140,76 @@ export interface SectEconomyPolicy {
     dateKey: string,
   ): readonly SectDonationDemandDefinition[];
   stipendBase(rank: SectDiscipleRank): number;
-  stipendRewards(rank: SectDiscipleRank, gardenLevel: number): {
-    herbName: string;
-    herbQuality: Quality;
-    herbQuantity: number;
-    bonusRewards: readonly string[];
-    bonusPill?: Extract<SectShopGrant, { kind: 'pill' }>;
-  };
+  stipendRewards(
+    rank: SectDiscipleRank,
+    gardenLevel: number,
+  ): readonly SectRewardGrantDefinition[];
 }
 
 export interface SectConstructionPolicy {
-  readonly facilityPriority: readonly UpgradeableSectFacilityKey[];
+  readonly facilities: readonly {
+    key: string;
+    initialLevel: number;
+    maxLevel: number;
+    upgradeable: boolean;
+  }[];
+  readonly facilityPriority: readonly string[];
   projectBaseTarget(targetLevel: number): number;
+  nextProject(
+    levels: ReadonlyMap<string, number>,
+  ): { facilityKey: string; targetLevel: number } | null;
 }
 
-export type SectBattleScenarioKind =
-  | 'scaled_npc'
-  | 'member_mirror'
-  | 'elder_projection';
+export interface SectOpponentFactoryContext {
+  player: Cultivator;
+  mirror: Cultivator | null;
+  opponentId: string;
+}
 
-export interface SectBattleScenarioDefinition {
-  taskId: SectOrganizationTaskId;
-  kind: SectBattleScenarioKind;
-  opponentName: string;
+export interface SectOpponentFactoryResult {
+  opponent: Cultivator;
   title: string;
-  attributeMultiplier: number;
-  fallback?: Omit<SectBattleScenarioDefinition, 'taskId' | 'fallback'>;
+}
+
+export interface SectOpponentFactory {
+  readonly prefersMemberMirror: boolean;
+  create(context: SectOpponentFactoryContext): SectOpponentFactoryResult;
 }
 
 export interface SectBattleScenarioCatalog {
-  get(taskId: SectOrganizationTaskId): SectBattleScenarioDefinition | undefined;
+  get(taskId: SectOrganizationTaskId): SectOpponentFactory | undefined;
 }
 
 export interface SectRankPolicy {
-  stipendBase(rank: SectDiscipleRank): number;
+  nextRank(rank: SectDiscipleRank): SectDiscipleRank | null;
   methodLevelCap(rank: SectDiscipleRank): number;
   requirement(
     rank: Exclude<SectDiscipleRank, 'registered'>,
   ): SectRankRequirement;
 }
 
+export interface SectBenefitPolicy {
+  archiveLevel(levels: ReadonlyMap<string, number>): number;
+  methodLevelCap(levels: ReadonlyMap<string, number>): number;
+  gardenLevel(levels: ReadonlyMap<string, number>): number;
+  retreatMultiplier(
+    levels: ReadonlyMap<string, number>,
+    rank: SectDiscipleRank,
+  ): number;
+  craftDiscount(
+    craftContext: SectCraftContextKey,
+    levels: ReadonlyMap<string, number>,
+    rank: SectDiscipleRank,
+  ): { capability: SectCapabilityKey; discount: number };
+  stipendMultiplier(levels: ReadonlyMap<string, number>): number;
+}
+
 export interface SectOrganizationModule {
-  readonly permissions: SectPermissionPolicy;
+  readonly capabilities: SectCapabilityPolicy;
   readonly ranks: SectRankPolicy;
   readonly tasks: SectTaskCatalog;
   readonly economy: SectEconomyPolicy;
   readonly construction: SectConstructionPolicy;
   readonly battles: SectBattleScenarioCatalog;
+  readonly benefits: SectBenefitPolicy;
 }

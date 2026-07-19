@@ -11,17 +11,8 @@ export const SECT_DISCIPLE_RANKS = [
 export type SectDiscipleRank = (typeof SECT_DISCIPLE_RANKS)[number];
 export type SectOffice = 'none' | 'steward' | 'protector' | 'elder';
 
-export const SECT_FACILITY_KEYS = [
-  'archive',
-  'cultivation_room',
-  'workshop',
-  'spirit_vein',
-  'herb_garden',
-  'formation',
-] as const;
-
-export type SectFacilityKey = (typeof SECT_FACILITY_KEYS)[number];
-export type UpgradeableSectFacilityKey = Exclude<SectFacilityKey, 'formation'>;
+export type SectFacilityKey = string;
+export type UpgradeableSectFacilityKey = string;
 
 export const SECT_RANK_ORDER: Record<SectDiscipleRank, number> = {
   registered: 0,
@@ -44,17 +35,6 @@ export const SECT_RANK_METHOD_CAP: Record<SectDiscipleRank, number> = {
   true: Number.MAX_SAFE_INTEGER,
 };
 
-export const SECT_ARCHIVE_METHOD_CAP = [0, 20, 40, 60, 80, 100] as const;
-
-export const SECT_FACILITY_LABELS: Record<SectFacilityKey, string> = {
-  archive: '藏经阁',
-  cultivation_room: '修炼室',
-  workshop: '丹器坊',
-  spirit_vein: '灵脉',
-  herb_garden: '药田',
-  formation: '护山大阵',
-};
-
 export interface SectFacilityState {
   key: SectFacilityKey;
   level: number;
@@ -64,7 +44,7 @@ export interface SectFacilityState {
 export interface SectConstructionProjectState {
   id: string;
   sectId: string;
-  facilityKey: UpgradeableSectFacilityKey;
+  facilityKey: string;
   targetLevel: number;
   progress: number;
   target: number;
@@ -78,35 +58,8 @@ export interface SectRankRequirement {
   minRealm: RealmType;
   contribution: number;
   dailyCompletions?: number;
-  requiresTournament?: boolean;
-  requiresBounty?: boolean;
-  requiresElderTrial?: boolean;
+  requiredTaskTags?: readonly { tag: string; label: string }[];
 }
-
-export const SECT_RANK_REQUIREMENTS: Record<
-  Exclude<SectDiscipleRank, 'registered'>,
-  SectRankRequirement
-> = {
-  outer: {
-    rank: 'outer',
-    minRealm: '炼气',
-    contribution: 100,
-    dailyCompletions: 3,
-  },
-  inner: {
-    rank: 'inner',
-    minRealm: '筑基',
-    contribution: 500,
-    requiresTournament: true,
-  },
-  true: {
-    rank: 'true',
-    minRealm: '金丹',
-    contribution: 3000,
-    requiresBounty: true,
-    requiresElderTrial: true,
-  },
-};
 
 export function hasSectRank(
   actual: SectDiscipleRank,
@@ -118,14 +71,13 @@ export function hasSectRank(
 export function getEffectiveSectMethodLevelCap(args: {
   realmCap: number;
   rank: SectDiscipleRank;
-  archiveLevel: number;
+  facilityCap: number;
   rankCap?: number;
 }): number {
-  const archiveLevel = Math.max(1, Math.min(5, Math.floor(args.archiveLevel)));
   return Math.min(
     args.realmCap,
     args.rankCap ?? SECT_RANK_METHOD_CAP[args.rank],
-    SECT_ARCHIVE_METHOD_CAP[archiveLevel],
+    args.facilityCap,
   );
 }
 
@@ -138,33 +90,4 @@ export function realmMeetsSectRank(
     getRealmStageRank(realm, stage) >=
     getRealmStageRank(requiredRealm, '初期')
   );
-}
-
-export function getSectFacilityBonus(
-  key: SectFacilityKey,
-  level: number,
-): number {
-  const safeLevel = Math.max(0, Math.min(5, Math.floor(level)));
-  switch (key) {
-    case 'cultivation_room':
-    case 'workshop':
-      return safeLevel * 0.02;
-    case 'spirit_vein':
-      return safeLevel * 0.05;
-    case 'herb_garden':
-      return safeLevel;
-    case 'archive':
-      return SECT_ARCHIVE_METHOD_CAP[safeLevel] ?? 0;
-    case 'formation':
-      return 0;
-  }
-}
-
-export function getSectCraftDiscount(
-  rank: SectDiscipleRank,
-  workshopLevel: number,
-): number {
-  const facilityDiscount = getSectFacilityBonus('workshop', workshopLevel);
-  const rankDiscount = rank === 'true' ? 0.1 : 0;
-  return Math.min(0.2, facilityDiscount + rankDiscount);
 }

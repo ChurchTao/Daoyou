@@ -1,17 +1,15 @@
 import { InkButton, InkCard } from '@app/components/ui';
+import { useSectResourceQuery } from '@app/components/feature/sect/SectQueryProvider';
 import { fetchSectShop } from '@app/lib/sect/sectClient';
-import type { SectShopData } from '@shared/contracts/sect';
 import { SECT_RANK_LABELS } from '@shared/engine/sect';
-import { useCallback } from 'react';
-import { postJson, SectPageLoading, SectPermissionBoundary, SectQueryError, SectScene, useSectMutation, useSectQuery } from '../components/SectScene';
+import { postJson, SectPageLoading, SectPermissionBoundary, SectQueryError, SectScene, useSectMutation } from '../components/SectScene';
 
 export default function SectTreasuryPage() {
-  return <SectPermissionBoundary permission="scene.treasury" title="宗门宝库"><SectTreasuryBody /></SectPermissionBoundary>;
+  return <SectPermissionBoundary permission="sect.shop.use" title="宗门宝库"><SectTreasuryBody /></SectPermissionBoundary>;
 }
 
 function SectTreasuryBody() {
-  const loader = useCallback((signal: AbortSignal) => fetchSectShop(signal), []);
-  const { data: shop, error, reload, retry } = useSectQuery<SectShopData>(loader);
+  const { data: shop, error, reload, retry } = useSectResourceQuery('shop', fetchSectShop);
   const { busy, run } = useSectMutation(reload);
   if (error) return <SectQueryError error={error} retry={() => void retry()} />;
   if (!shop) return <SectPageLoading message="宝库执事正在清点本周库存……" />;

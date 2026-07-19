@@ -44,10 +44,12 @@ export async function fetchJsonCached<T>(
     return cached.data as T;
   }
 
-  const inflight = inflightCache.get(key);
-  if (inflight) {
-    return inflight as Promise<T>;
-  }
+  // A signal belongs to one caller's lifecycle. Sharing that request would let
+  // one unmount abort unrelated consumers, so signal-bound callers dedupe at
+  // their own query layer instead.
+  const sharesInflightRequest = !init.signal;
+  const inflight = sharesInflightRequest ? inflightCache.get(key) : undefined;
+  if (inflight) return inflight as Promise<T>;
 
   const request = fetch(input, init)
     .then(async (res) => {
@@ -63,10 +65,10 @@ export async function fetchJsonCached<T>(
       return json as T;
     })
     .finally(() => {
-      inflightCache.delete(key);
+      if (sharesInflightRequest) inflightCache.delete(key);
     });
 
-  inflightCache.set(key, request);
+  if (sharesInflightRequest) inflightCache.set(key, request);
   return request as Promise<T>;
 }
 

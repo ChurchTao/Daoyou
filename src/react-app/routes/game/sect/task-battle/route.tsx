@@ -5,7 +5,7 @@ import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResu
 import { GameImmersiveLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui';
 import { startSectTaskBattleOnce } from '@app/lib/sect/sectClient';
-import type { SectTaskChallengeData } from '@shared/contracts/sect';
+import type { SectBattleOutcomeData } from '@shared/contracts/sect';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
@@ -14,7 +14,7 @@ export default function SectTaskBattlePage() {
   const { taskId } = useParams();
   const [searchParams] = useSearchParams();
   const attemptId = searchParams.get('attemptId');
-  const [result, setResult] = useState<SectTaskChallengeData>();
+  const [result, setResult] = useState<SectBattleOutcomeData>();
   const [error, setError] = useState<string>();
   const parameterError = !taskId || !attemptId ? '缺少宗门战斗标识' : undefined;
   const playback = useBattlePlaybackState(result?.battle);

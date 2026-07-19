@@ -8,6 +8,7 @@ const {
   unlockPathLayerMock,
   setAbilityLoadoutMock,
   listAvailableDefinitionsMock,
+  taskActionMock,
 } = vi.hoisted(() => ({
   getStateMock: vi.fn(),
   getTodayMock: vi.fn(),
@@ -15,6 +16,7 @@ const {
   unlockPathLayerMock: vi.fn(),
   setAbilityLoadoutMock: vi.fn(),
   listAvailableDefinitionsMock: vi.fn(),
+  taskActionMock: vi.fn(),
 }));
 
 vi.mock('@server/lib/drizzle/db', () => ({ getExecutor: vi.fn(() => ({})) }));
@@ -54,8 +56,14 @@ vi.mock('@server/lib/services/sect-organization', () => ({
         weekKey: '2026-07-13',
         claimed: false,
         spiritStones: 500,
-        herbQuantity: 1,
-        bonusRewards: [],
+        rewards: [
+          {
+            kind: 'material',
+            name: '宗门灵草',
+            quantity: 1,
+            summary: '宗门灵草 ×1',
+          },
+        ],
       },
       nextRank: 'outer',
       promotionMissing: [],
@@ -64,12 +72,8 @@ vi.mock('@server/lib/services/sect-organization', () => ({
     promote: vi.fn(),
     },
     tasks: {
-    getTasks: vi.fn(),
-    acceptDaily: vi.fn(),
-    startSweep: vi.fn(),
-    completeSweep: vi.fn(),
-    submitTaskItem: vi.fn(),
-    challengeTask: vi.fn(),
+      queries: { execute: vi.fn() },
+      actions: { execute: taskActionMock },
     },
     economy: {
     getShop: vi.fn(),
@@ -147,6 +151,7 @@ vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
   })),
 }));
 
+import type { SectServiceInstance } from '@server/lib/services/SectService';
 import sectsRouter, { createSectsRouter } from './sects.router';
 
 const activeSect = {
@@ -208,7 +213,9 @@ describe('sects router', () => {
       listMemberships: vi.fn(async () => []),
       listAvailableDefinitions: vi.fn(() => []),
     };
-    const router = createSectsRouter({ sectService: injected as never });
+    const router = createSectsRouter({
+      sectService: injected as unknown as SectServiceInstance,
+    });
     const response = await new Hono()
       .route('/api/sects', router)
       .request('/api/sects/catalog');
@@ -309,6 +316,32 @@ describe('sects router', () => {
     expect(joinMock).not.toHaveBeenCalled();
   });
 
+  it('dispatches arbitrary registered task actions through the generic endpoint', async () => {
+    taskActionMock.mockResolvedValue({
+      task: { definitionId: 'fixture-task', state: 'completed' },
+      outcome: { renderer: 'fixture.outcome', data: { ok: true } },
+    });
+    const response = await new Hono()
+      .route('/api/sects', sectsRouter)
+      .request('/api/sects/current/tasks/fixture-task/actions/finish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': '00000000-0000-4000-8000-000000000004',
+        },
+        body: JSON.stringify({ input: { value: 1 } }),
+      });
+    expect(response.status).toBe(200);
+    expect(taskActionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskId: 'fixture-task',
+        actionKey: 'finish',
+        input: { value: 1 },
+      }),
+      expect.anything(),
+    );
+  });
+
   it('returns 400 for an unregistered sect id', async () => {
     const response = await new Hono()
       .route('/api/sects', sectsRouter)
@@ -349,5 +382,12 @@ describe('sects router', () => {
         })
       ).status,
     ).toBe(404);
+    for (const path of [
+      '/api/sects/current/tasks/daily/accept',
+      '/api/sects/current/tasks/gate_sweep/start',
+      '/api/sects/current/tasks/gate_sweep/complete',
+      '/api/sects/current/tasks/fixture-task/challenge',
+    ])
+      expect((await app.request(path, { method: 'POST' })).status).toBe(404);
   });
 });

@@ -120,7 +120,7 @@ describe('第二宗门扩展闭环', () => {
       'fixture_herb',
     );
     expect(FIXTURE_SECT_MODULE.organization.construction.facilityPriority).toEqual([
-      'archive',
+      'fixture_observatory',
     ]);
 
     const state = fixtureSectState();

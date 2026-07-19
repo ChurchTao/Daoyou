@@ -1,12 +1,13 @@
 import { AlchemyScene } from '@app/components/feature/craft/AlchemyScene';
-import { SectPageLoading, SectPermissionBoundary, useSectCurrentData } from '../components/SectScene';
+import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
+import { SectPageLoading, SectPermissionBoundary } from '../components/SectScene';
 
 export default function SectAlchemyPage() {
-  return <SectPermissionBoundary permission="scene.alchemy" title="丹房"><SectAlchemyBody /></SectPermissionBoundary>;
+  return <SectPermissionBoundary permission="sect.facility.alchemy.use" title="丹房"><SectAlchemyBody /></SectPermissionBoundary>;
 }
 
 function SectAlchemyBody() {
-  const { data } = useSectCurrentData();
+  const { data } = useSectCurrentQuery();
   if (!data) return <SectPageLoading message="丹房灵焰正在温炉……" />;
 
   const level = data.overview?.facilities.find((item) => item.key === 'workshop')?.level ?? 1;

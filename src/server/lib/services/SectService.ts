@@ -73,21 +73,25 @@ export interface SectServiceDependencies {
 }
 
 export interface SectOrganizationIntegrationPort {
-  ensureFacilities(sectId: string, tx: DbTransaction): Promise<void>;
+  ensureFacilities(
+    sectId: string,
+    facilities: readonly { key: string; initialLevel: number }[],
+    tx: DbTransaction,
+  ): Promise<void>;
   getFacilityBonuses(
     cultivatorId: string,
     q: DbExecutor | DbTransaction,
-  ): Promise<{ archiveLevel: number }>;
+  ): Promise<{ methodLevelCap: number }>;
 }
 
 const isolatedOrganizationIntegration: SectOrganizationIntegrationPort = {
   ensureFacilities: async () => undefined,
-  getFacilityBonuses: async () => ({ archiveLevel: 1 }),
+  getFacilityBonuses: async () => ({ methodLevelCap: 20 }),
 };
 
 const postgresOrganizationIntegration: SectOrganizationIntegrationPort = {
-  ensureFacilities: async (sectId, tx) => {
-    await ensureSectFacilities(sectId, tx);
+  ensureFacilities: async (sectId, facilities, tx) => {
+    await ensureSectFacilities(sectId, facilities, tx);
   },
   getFacilityBonuses: async (cultivatorId, q) =>
     getSectFacilityBonuses(cultivatorId, q),
@@ -242,7 +246,11 @@ export class SectApplicationService {
       module.definition,
       tx,
     );
-    await this.organization.ensureFacilities(sectId, tx);
+    await this.organization.ensureFacilities(
+      sectId,
+      module.organization.construction.facilities,
+      tx,
+    );
     return (await this.repository.loadCultivatorSectState(cultivatorId, tx))!;
   }
 
@@ -276,7 +284,7 @@ export class SectApplicationService {
         levelCap: getEffectiveSectMethodLevelCap({
           realmCap,
           rank: sect.discipleRank ?? 'registered',
-          archiveLevel: organization.archiveLevel,
+          facilityCap: organization.methodLevelCap,
           rankCap: module.organization.ranks.methodLevelCap(
             sect.discipleRank ?? 'registered',
           ),

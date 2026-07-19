@@ -4,7 +4,7 @@ import {
   BaseSectModule,
   BaseSectPathModule,
   ConfiguredSectNodePlugin,
-  StandardSectPermissionPolicy,
+  StandardSectCapabilityPolicy,
   SectAbilityFactory,
   standardSectProgression,
   type CultivatorSectState,
@@ -19,30 +19,27 @@ import {
 } from '../../core';
 
 const fixtureOrganization: SectOrganizationModule = {
-  permissions: new StandardSectPermissionPolicy({
-    'scene.hall': 'registered',
-    'scene.affairs': 'registered',
-    'scene.archive': 'registered',
-    'scene.enlightenment_cliff': 'registered',
-    'scene.arena': 'registered',
-    'scene.treasury': 'registered',
-    'scene.industries': 'outer',
-    'scene.cultivation_room': 'outer',
-    'scene.alchemy': 'inner',
-    'scene.refinery': 'inner',
-    'scene.spirit_vein': 'registered',
-    'scene.herb_garden': 'registered',
-    'scene.cave': 'inner',
-    'scene.gate': 'registered',
-    'scene.formation': 'true',
-    'task.pill_delivery': 'outer',
-    'task.artifact_delivery': 'inner',
-    'task.elder_trial': 'inner',
-    'benefit.cultivation_room': 'outer',
-    'benefit.workshop': 'inner',
+  capabilities: new StandardSectCapabilityPolicy({
+    'sect.hall.view': 'registered',
+    'sect.tasks.use': 'registered',
+    'sect.archive.use': 'registered',
+    'sect.enlightenment.use': 'registered',
+    'sect.arena.use': 'registered',
+    'sect.shop.use': 'registered',
+    'sect.construction.view': 'outer',
+    'sect.construction.donate': 'outer',
+    'sect.facility.cultivation.use': 'outer',
+    'sect.facility.alchemy.use': 'inner',
+    'sect.facility.refinery.use': 'inner',
+    'sect.spirit_vein.view': 'registered',
+    'sect.herb_garden.view': 'registered',
+    'sect.cave.view': 'inner',
+    'sect.gate.view': 'registered',
+    'sect.formation.view': 'true',
   }),
   ranks: {
-    stipendBase: () => 1,
+    nextRank: (rank) =>
+      ({ registered: 'outer', outer: 'inner', inner: 'true', true: null } as const)[rank],
     methodLevelCap: () => 7,
     requirement: (rank) => ({
       rank,
@@ -54,30 +51,53 @@ const fixtureOrganization: SectOrganizationModule = {
     listDaily: () => [
       {
         id: 'fixture_patrol',
-        name: '夹具巡山',
-        description: '仅用于验证内容模块替换。',
         kind: 'daily',
-        requiredRank: 'registered',
+        requiredCapability: 'sect.tasks.use',
         contributionReward: 3,
-        executor: 'battle',
+        executorKey: 'fixture.battle',
+        completion: [
+          {
+            strategy: 'fixture.settlement.contribution',
+            input: { amount: 3, reason: 'fixture_task' },
+          },
+        ],
+        presentation: {
+          title: '夹具巡山',
+          description: '仅用于验证内容模块替换。',
+          rewardSummary: '3 宗门贡献',
+          renderer: 'fixture.action.battle',
+          actionLabel: '开始巡山',
+        },
         target: 1,
       },
     ],
     listWeekly: () => [],
+    listPromotion: () => [],
     get: (id) =>
       id === 'fixture_patrol'
         ? {
             id,
-            name: '夹具巡山',
-            description: '仅用于验证内容模块替换。',
             kind: 'daily',
-            requiredRank: 'registered',
+            requiredCapability: 'sect.tasks.use',
             contributionReward: 3,
-            executor: 'battle',
+            executorKey: 'fixture.battle',
+            completion: [
+              {
+                strategy: 'fixture.settlement.contribution',
+                input: { amount: 3, reason: 'fixture_task' },
+              },
+            ],
+            presentation: {
+              title: '夹具巡山',
+              description: '仅用于验证内容模块替换。',
+              rewardSummary: '3 宗门贡献',
+              renderer: 'fixture.action.battle',
+              actionLabel: '开始巡山',
+            },
             target: 1,
           }
         : undefined,
-    findByRole: () => undefined,
+    findByCompletionTag: () => undefined,
   },
   economy: {
     donationDailyCap: 1,
@@ -89,7 +109,7 @@ const fixtureOrganization: SectOrganizationModule = {
         stock: 1,
         rotating: false,
         grant: {
-          kind: 'material',
+          kind: 'fixture.material',
           name: '夹具灵草',
           type: 'herb',
           quality: '凡品',
@@ -97,20 +117,55 @@ const fixtureOrganization: SectOrganizationModule = {
         },
       },
     ],
-    donationDemands: () => [],
+    donationDemands: () => [
+      {
+        id: 'fixture_stones',
+        name: '夹具星砂资粮',
+        description: '提交一份灵石以校验可扩展捐献。',
+        kind: 'fixture.spirit_stones',
+        quantity: 1,
+        contribution: 1,
+        constructionPoints: 1,
+      },
+    ],
     stipendBase: () => 1,
-    stipendRewards: () => ({
-      herbName: '样例灵草',
-      herbQuality: '凡品',
-      herbQuantity: 1,
-      bonusRewards: [],
-    }),
+    stipendRewards: () => [{
+      quantity: 1,
+      grant: {
+        kind: 'fixture.material',
+        name: '样例灵草',
+        type: 'herb',
+        quality: '凡品',
+        description: '夹具周俸灵草',
+      },
+    }],
   },
   construction: {
-    facilityPriority: ['archive'] as const,
+    facilities: [
+      { key: 'fixture_observatory', initialLevel: 1, maxLevel: 3, upgradeable: true },
+    ],
+    facilityPriority: ['fixture_observatory'] as const,
     projectBaseTarget: () => 1,
+    nextProject: (levels) =>
+      (levels.get('fixture_observatory') ?? 1) < 3
+        ? {
+            facilityKey: 'fixture_observatory',
+            targetLevel: (levels.get('fixture_observatory') ?? 1) + 1,
+          }
+        : null,
   },
   battles: { get: () => undefined },
+  benefits: {
+    archiveLevel: (levels) => levels.get('fixture_observatory') ?? 1,
+    methodLevelCap: () => 7,
+    gardenLevel: (levels) => levels.get('herb_garden') ?? 1,
+    retreatMultiplier: () => 1,
+    craftDiscount: () => ({
+      capability: 'sect.facility.alchemy.use',
+      discount: 0,
+    }),
+    stipendMultiplier: () => 1,
+  },
 };
 
 const layers = [

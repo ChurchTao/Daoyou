@@ -3,11 +3,12 @@ import {
   GameSceneLoading,
 } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { useSectCurrentQuery, useSectResourceQuery } from '@app/components/feature/sect/SectQueryProvider';
 import { InkButton } from '@app/components/ui';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
-import { fetchSectCatalog, fetchSectCurrent } from '@app/lib/sect/sectClient';
+import { fetchSectCatalog } from '@app/lib/sect/sectClient';
+import { getSectFacilityLabel, getSectPresentation } from '@app/lib/sect/sectPresentation';
 import {
-  SECT_FACILITY_LABELS,
   SECT_RANK_LABELS,
   type CultivatorSectState,
 } from '@shared/engine/sect';
@@ -15,8 +16,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 import { useNavigate } from 'react-router';
 import { GateTab } from './components/GateTab';
-import { SectQueryError, useSectQuery } from './components/SectScene';
-import { SECT_MAP_HOTSPOTS } from './mapConfig';
+import { SectQueryError } from './components/SectScene';
 
 export default function SectPage() {
   const [busy, setBusy] = useState(false);
@@ -24,23 +24,17 @@ export default function SectPage() {
   const { pushToast } = useInkUI();
   const navigate = useNavigate();
 
-  const loader = useCallback(async (signal: AbortSignal) => {
-    const [catalog, data] = await Promise.all([
-      fetchSectCatalog(signal),
-      fetchSectCurrent(signal),
-    ]);
-    return { catalog, data };
-  }, []);
-  const { data: query, error, reload, retry } = useSectQuery(loader);
-  const catalog = query?.catalog;
-  const data = query?.data;
+  const { data: catalog, error: catalogError, reload, retry } = useSectResourceQuery('catalog', fetchSectCatalog);
+  const current = useSectCurrentQuery();
+  const data = current.data;
+  const error = catalogError ?? current.error;
 
   const action = useCallback(
     async (url: string, init: RequestInit) => {
       setBusy(true);
       try {
         await mutate<{ sect: CultivatorSectState }>(fetch(url, init));
-        await reload();
+        await Promise.all([reload(), current.invalidate()]);
         pushToast({ message: '拜师礼成，宗门舆图已开启', tone: 'success' });
       } catch (reason) {
         pushToast({
@@ -51,7 +45,7 @@ export default function SectPage() {
         setBusy(false);
       }
     },
-    [mutate, pushToast, reload],
+    [current, mutate, pushToast, reload],
   );
 
   const facilities = useMemo(
@@ -59,7 +53,13 @@ export default function SectPage() {
     [data?.overview?.facilities],
   );
 
-  if (error) return <SectQueryError error={error} retry={() => void retry()} />;
+  if (error)
+    return (
+      <SectQueryError
+        error={error}
+        retry={() => void Promise.all([retry(), current.retry()])}
+      />
+    );
   if (!catalog || !data)
     return <GameSceneLoading message="山门云阶渐次显现……" />;
 
@@ -75,6 +75,7 @@ export default function SectPage() {
   }
 
   const rank = data.sect.discipleRank ?? 'registered';
+  const presentation = getSectPresentation(data.definition.id);
   return (
     <GameSceneFrame
       title={`【${data.definition.name}舆图】`}
@@ -83,7 +84,7 @@ export default function SectPage() {
         <div className="space-y-2 text-sm leading-7">
           <p>身份：{SECT_RANK_LABELS[rank]}</p>
           <p>贡献：{data.sect.contribution}</p>
-          <p>本周工程：{data.overview?.project ? `${SECT_FACILITY_LABELS[data.overview.project.facilityKey]}升至 ${data.overview.project.targetLevel} 级` : '长老议定中'}</p>
+          <p>本周工程：{data.overview?.project ? `${getSectFacilityLabel(data.definition!.id, data.overview.project.facilityKey)}升至 ${data.overview.project.targetLevel} 级` : '长老议定中'}</p>
         </div>
       }
       contentClassName="lg:max-w-none"
@@ -112,12 +113,12 @@ export default function SectPage() {
             >
               <div className="relative aspect-[1672/941] w-full">
                 <img
-                  src="/assets/sect/lingxiao-map.webp"
-                  alt="凌霄剑宗群峰、楼阁、灵脉矿场与药田的水墨鸟瞰图"
+                  src={presentation.mapImage}
+                  alt={presentation.mapAlt}
                   className="pointer-events-none block h-full w-full select-none object-cover"
                   draggable={false}
                 />
-                {SECT_MAP_HOTSPOTS.map((spot) => {
+                {presentation.hotspots.map((spot) => {
                   const facility = spot.facility ? facilities.get(spot.facility) : undefined;
                   const access = spot.permission
                     ? data.overview?.permissions?.[spot.permission]
@@ -134,7 +135,7 @@ export default function SectPage() {
                       style={{ left: spot.left, top: spot.top }}
                       className={`group absolute -translate-x-1/2 -translate-y-1/2 rounded-sm border px-2.5 py-1.5 text-center shadow-[0_3px_14px_rgba(26,20,15,0.28)] backdrop-blur-sm transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 ${disabled ? 'border-ink/25 bg-ink/70 cursor-not-allowed text-white/70 focus-visible:outline-white' : 'border-crimson/40 bg-[rgba(250,245,230,0.9)] hover:z-10 hover:-translate-y-[55%] hover:border-crimson focus-visible:outline-crimson'}`}
                     >
-                      <strong className="block whitespace-nowrap text-xs sm:text-sm">{spot.label}{facility && facility.key !== 'formation' ? ` · ${facility.level}级` : ''}</strong>
+                      <strong className="block whitespace-nowrap text-xs sm:text-sm">{spot.label}{facility && !spot.locked ? ` · ${facility.level}级` : ''}</strong>
                       <span className="block max-h-0 overflow-hidden whitespace-nowrap text-[10px] opacity-0 transition-all group-hover:max-h-5 group-hover:opacity-75 group-focus-visible:max-h-5 group-focus-visible:opacity-75 sm:text-[11px]">{access?.granted === false ? access.reason : spot.note}{spot.locked ? ' · 锁定' : ''}</span>
                     </button>
                   );

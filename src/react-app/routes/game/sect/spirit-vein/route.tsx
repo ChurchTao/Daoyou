@@ -1,7 +1,8 @@
-import { SectPageLoading, SectScene, useSectCurrentData } from '../components/SectScene';
+import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
+import { SectPageLoading, SectScene } from '../components/SectScene';
 
 export default function SectSpiritVeinPage() {
-  const { data, error } = useSectCurrentData();
+  const { data, error } = useSectCurrentQuery();
   if (!data) return <SectPageLoading message="矿道深处灵辉渐明……" />;
 
   const facility = data.overview?.facilities.find((item) => item.key === 'spirit_vein');

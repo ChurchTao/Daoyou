@@ -6,12 +6,11 @@ import {
 } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui';
+import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
-import { fetchSectCurrent } from '@app/lib/sect/sectClient';
-import type { SectCurrentData } from '@shared/contracts/sect';
-import { SECT_RANK_LABELS, type SectDiscipleRank, type SectPermission } from '@shared/engine/sect';
+import { SECT_RANK_LABELS, type SectCapabilityKey, type SectDiscipleRank } from '@shared/engine/sect';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 export type SectSceneMood =
@@ -47,61 +46,6 @@ const moodStyles: Record<SectSceneMood, { surface: string; emblem: string }> = {
   gate: { surface: 'border-sky-950/15 bg-[linear-gradient(180deg,rgba(214,229,226,0.88),rgba(239,227,198,0.6)),repeating-linear-gradient(90deg,transparent_0_80px,rgba(48,72,70,0.05)_80px_81px)]', emblem: '山' },
 };
 
-export function useSectCurrentData() {
-  const [data, setData] = useState<SectCurrentData>();
-  const [error, setError] = useState<string>();
-  const reload = useCallback(async () => {
-    try {
-      setData(await fetchSectCurrent());
-      setError(undefined);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '宗门卷宗读取失败');
-    }
-  }, []);
-  useEffect(() => {
-    void fetchSectCurrent().then(setData).catch((reason) => {
-      setError(reason instanceof Error ? reason.message : '宗门卷宗读取失败');
-    });
-  }, []);
-  return { data, error, reload, setData };
-}
-
-export function useSectQuery<T>(loader: (signal: AbortSignal) => Promise<T>) {
-  const [data, setData] = useState<T>();
-  const [error, setError] = useState<string>();
-  const [loading, setLoading] = useState(true);
-  const requestRef = useRef<AbortController | undefined>(undefined);
-  const reload = useCallback(async () => {
-    requestRef.current?.abort();
-    const controller = new AbortController();
-    requestRef.current = controller;
-    setLoading(true);
-    setError(undefined);
-    try {
-      const next = await loader(controller.signal);
-      if (!controller.signal.aborted) setData(next);
-      return next;
-    } catch (reason) {
-      if (controller.signal.aborted) return undefined;
-      setError(reason instanceof Error ? reason.message : '宗门卷宗读取失败');
-      return undefined;
-    } finally {
-      if (!controller.signal.aborted) setLoading(false);
-    }
-  }, [loader]);
-  useEffect(() => {
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (!cancelled) void reload();
-    });
-    return () => {
-      cancelled = true;
-      requestRef.current?.abort();
-    };
-  }, [reload]);
-  return { data, error, loading, retry: reload, reload, setData };
-}
-
 export function SectQueryError({ error, retry }: { error: string; retry: () => void }) {
   return (
     <GameSceneFrame title="【宗门卷宗暂不可用】" description="传讯玉符未能接通宗门执事，可重新尝试读取。">
@@ -116,12 +60,11 @@ export function SectPermissionBoundary({
   title,
   children,
 }: {
-  permission: SectPermission;
+  permission: SectCapabilityKey;
   title: string;
   children: ReactNode;
 }) {
-  const loader = useCallback((signal: AbortSignal) => fetchSectCurrent(signal), []);
-  const { data, error, retry } = useSectQuery(loader);
+  const { data, error, retry } = useSectCurrentQuery();
   if (error) return <SectQueryError error={error} retry={() => void retry()} />;
   if (!data) return <SectPageLoading message="弟子令牌正在核验……" />;
   const access = data.overview?.permissions[permission];
@@ -143,12 +86,15 @@ export function useSectMutation(onDone?: () => Promise<unknown> | unknown) {
   const [busy, setBusy] = useState(false);
   const { mutate } = usePlayerStateActions();
   const { pushToast } = useInkUI();
+  const sectQuery = useSectCurrentQuery();
+  const invalidateSect = sectQuery.invalidate;
   const run = useCallback(
     async <T,>(url: string, init: RequestInit, successMessage: string) => {
       setBusy(true);
       try {
         const result = await mutate<T>(fetch(url, init));
         await onDone?.();
+        await invalidateSect();
         pushToast({ message: successMessage, tone: 'success' });
         return result;
       } catch (reason) {
@@ -161,7 +107,7 @@ export function useSectMutation(onDone?: () => Promise<unknown> | unknown) {
         setBusy(false);
       }
     },
-    [mutate, onDone, pushToast],
+    [invalidateSect, mutate, onDone, pushToast],
   );
   return { busy, run };
 }
@@ -182,6 +128,7 @@ export function SectScene({
   mood?: SectSceneMood;
 }) {
   const navigate = useNavigate();
+  const sectQuery = useSectCurrentQuery();
   const atmosphere = moodStyles[mood];
   return (
     <GameSceneFrame
@@ -197,7 +144,9 @@ export function SectScene({
         <span aria-hidden="true" className="text-ink/5 pointer-events-none absolute -top-8 right-4 -z-10 text-[9rem] leading-none select-none sm:text-[13rem]">{atmosphere.emblem}</span>
         <div className="relative mb-5 flex items-center justify-between border-b border-current/10 pb-3">
           <InkButton onClick={() => navigate('/game/sect')} variant="secondary">返回宗门总视图</InkButton>
-          <span aria-hidden="true" className="text-ink-secondary/50 text-xs tracking-[0.35em]">凌霄门中</span>
+          <span aria-hidden="true" className="text-ink-secondary/50 text-xs tracking-[0.35em]">
+            {sectQuery.data?.definition?.name ?? '宗门内景'}
+          </span>
         </div>
         <div className="relative space-y-6">{children}</div>
       </div>

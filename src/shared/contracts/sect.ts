@@ -4,7 +4,6 @@ import type {
   SectDefinition,
   SectDiscipleRank,
   SectFacilityState,
-  SectPermission,
   SectPermissionState,
 } from '@shared/engine/sect';
 import type { BattleRecord } from '@shared/types/battle';
@@ -24,26 +23,8 @@ export const SectAbilityLoadoutRequestSchema = z.object({
 export const SectTacticRequestSchema = z.object({
   tacticId: z.string().min(1).max(32),
 });
-export const SectDailyAcceptRequestSchema = z.object({
-  taskId: z.string().min(1).max(64),
-});
-export const SectTaskSubmitRequestSchema = z.object({
-  itemId: z.string().uuid(),
-  quantity: z.number().int().positive().max(99).default(1),
-});
-export const SectSweepCompleteRequestSchema = z.object({
-  sessionId: z.string().uuid(),
-  rulesVersion: z.number().int().positive(),
-  segments: z
-    .array(
-      z.object({
-        ticks: z.number().int().min(1).max(1_200),
-        direction: z.number().int().min(0).max(7).nullable(),
-        sweeping: z.boolean(),
-      }),
-    )
-    .min(1)
-    .max(600),
+export const SectTaskActionRequestSchema = z.object({
+  input: z.record(z.string(), z.unknown()).default({}),
 });
 export const SectShopPurchaseRequestSchema = z.object({
   itemId: z.string().min(1).max(64),
@@ -63,51 +44,42 @@ export const SectMembersQuerySchema = z.object({
 /** Opaque identifier supplied by the active sect's task catalog. */
 export type SectTaskId = string;
 
-export interface SectTaskOffer {
-  id: SectTaskId;
-  name: string;
-  description: string;
-  kind: 'daily' | 'weekly' | 'promotion';
-  requiredRank: SectDiscipleRank;
-  contributionReward: number;
-  action:
-    | 'sweep'
-    | 'battle'
-    | 'submit_pill'
-    | 'submit_artifact'
-    | 'submit_material'
-    | 'progress';
-  available: boolean;
-  unavailableReason?: string;
-}
-
-export interface SectTaskRecordData {
+export interface SectTaskViewData {
   id: string;
-  taskId: SectTaskId;
+  definitionId: SectTaskId;
   kind: 'daily' | 'weekly' | 'promotion';
+  state: 'offered' | 'active' | 'completed' | 'locked';
   periodKey: string;
-  status: 'active' | 'completed';
-  progress: number;
-  target: number;
-  completedAt?: string;
-  payload?: Record<string, unknown>;
+  progress: { current: number; target: number };
+  presentation: {
+    title: string;
+    description: string;
+    contributionReward: number;
+    rewardSummary: string;
+  };
+  actions: Array<{
+    key: string;
+    renderer: string;
+    label: string;
+    enabled: boolean;
+    disabledReason?: string;
+    parameters?: Record<string, unknown>;
+  }>;
 }
 
 export interface SectTasksData {
   dateKey: string;
   weekKey: string;
-  dailyOffers: SectTaskOffer[];
-  dailyTask: SectTaskRecordData | null;
-  weeklyTasks: SectTaskRecordData[];
-  promotionTask: SectTaskRecordData | null;
+  sections: {
+    daily: SectTaskViewData[];
+    weekly: SectTaskViewData[];
+    promotion: SectTaskViewData[];
+  };
 }
 
-export interface SectTaskChallengeData {
-  task: SectTaskRecordData;
-  battle: BattleRecord;
-  won: boolean;
-  challengeTitle: string;
-  rewardGranted: boolean;
+export interface SectTaskActionOutcome {
+  renderer: string;
+  data: Record<string, unknown>;
 }
 
 export interface SectSweepSessionData {
@@ -119,8 +91,19 @@ export interface SectSweepSessionData {
   expiresAt: string;
 }
 
-export type SectTaskChallengeResponse =
-  PlayerStateMutationResponse<SectTaskChallengeData>;
+export interface SectTaskActionData {
+  task: SectTaskViewData;
+  outcome: SectTaskActionOutcome;
+}
+
+export interface SectBattleOutcomeData {
+  battle: BattleRecord;
+  won: boolean;
+  challengeTitle: string;
+  rewardGranted: boolean;
+}
+
+export type SectTaskActionResponse = PlayerStateMutationResponse<SectTaskActionData>;
 
 export interface SectShopItemData {
   id: string;
@@ -130,7 +113,7 @@ export interface SectShopItemData {
   price: number;
   stock: number;
   purchased: number;
-  kind: 'material' | 'pill';
+  kind: string;
   rotating: boolean;
 }
 
@@ -140,11 +123,18 @@ export interface SectShopData {
   items: SectShopItemData[];
 }
 
+export interface SectRewardGrantData {
+  kind: string;
+  name: string;
+  quantity: number;
+  summary: string;
+}
+
 export interface SectDonationDemandData {
   id: string;
   name: string;
   description: string;
-  kind: 'spirit_stones' | 'material' | 'pill' | 'artifact';
+  kind: string;
   quantity: number;
   contribution: number;
   constructionPoints: number;
@@ -162,12 +152,11 @@ export interface SectOverviewData {
     weekKey: string;
     claimed: boolean;
     spiritStones: number;
-    herbQuantity: number;
-    bonusRewards: string[];
+    rewards: SectRewardGrantData[];
   };
   nextRank: SectDiscipleRank | null;
   promotionMissing: string[];
-  permissions: Record<SectPermission, SectPermissionState>;
+  permissions: Record<string, SectPermissionState>;
 }
 
 export interface SectConstructionData {

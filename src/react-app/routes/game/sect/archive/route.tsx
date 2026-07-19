@@ -1,14 +1,14 @@
 import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
+import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
 import { MethodsTab } from '../components/MethodsTab';
 import {
   SectPageLoading,
   SectScene,
-  useSectCurrentData,
   useSectMutation,
 } from '../components/SectScene';
 
 export default function SectArchivePage() {
-  const { data, error, reload } = useSectCurrentData();
+  const { data, error, invalidate: reload } = useSectCurrentQuery();
   const cultivator = useActiveCultivatorProfile();
   const { busy, run } = useSectMutation(reload);
 

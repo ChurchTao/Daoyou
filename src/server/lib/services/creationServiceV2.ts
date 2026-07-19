@@ -522,6 +522,7 @@ export async function processCreation(
         ? await sectOrganizationFacade.applyCraftDiscount(
             cultivatorId,
             baseCostAmount,
+            'sect.craft.refinery',
             q,
           )
         : baseCostAmount;
@@ -906,6 +907,7 @@ export async function estimateCost(
         ? await sectOrganizationFacade.applyCraftDiscount(
             cultivatorId,
             baseCost,
+            'sect.craft.refinery',
           )
         : baseCost,
     };

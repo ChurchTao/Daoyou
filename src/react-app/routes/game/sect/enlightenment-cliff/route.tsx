@@ -1,14 +1,14 @@
 import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
+import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
 import { PathsTab } from '../components/PathsTab';
 import {
   SectPageLoading,
   SectScene,
-  useSectCurrentData,
   useSectMutation,
 } from '../components/SectScene';
 
 export default function SectEnlightenmentCliffPage() {
-  const { data, error, reload } = useSectCurrentData();
+  const { data, error, invalidate: reload } = useSectCurrentQuery();
   const cultivator = useActiveCultivatorProfile();
   const { busy, run } = useSectMutation(reload);
 

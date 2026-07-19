@@ -9,6 +9,7 @@ import {
   WorldChatFeedProvider,
 } from '@app/components/feature/world-chat/useWorldChatFeedModel';
 import { InkButton } from '@app/components/ui/InkButton';
+import { SectQueryProvider } from '@app/components/feature/sect/SectQueryProvider';
 import { PlayerProvider } from '@app/lib/player/PlayerProvider';
 import {
   useActiveCultivatorProfile,
@@ -317,18 +318,20 @@ export function GameViewportLayout() {
   return (
     <div className="bg-paper min-h-[100svh]" style={viewportStyle}>
       <WorldChatFeedProvider>
-        <div className="flex min-h-[100svh] flex-col">
-          <GameTopHud snapshot={hud} />
-          <main
-            className="min-h-0 flex-1"
-            style={{
-              paddingBottom: 'var(--game-bottom-offset)',
-              scrollPaddingBottom: 'var(--game-bottom-offset)',
-            }}
-          >
-            <Outlet />
-          </main>
-        </div>
+        <SectQueryProvider>
+          <div className="flex min-h-[100svh] flex-col">
+            <GameTopHud snapshot={hud} />
+            <main
+              className="min-h-0 flex-1"
+              style={{
+                paddingBottom: 'var(--game-bottom-offset)',
+                scrollPaddingBottom: 'var(--game-bottom-offset)',
+              }}
+            >
+              <Outlet />
+            </main>
+          </div>
+        </SectQueryProvider>
         <RealtimeConnectionToasts />
         <div ref={bottomChromeRef} className="fixed inset-x-0 bottom-0 z-40">
           <WorldChatPreviewBar />

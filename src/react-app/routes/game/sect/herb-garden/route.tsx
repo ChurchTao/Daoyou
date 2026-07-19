@@ -1,9 +1,10 @@
-import { SectPageLoading, SectScene, useSectCurrentData } from '../components/SectScene';
+import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
+import { SectPageLoading, SectScene } from '../components/SectScene';
 
 const herbStages = ['新畦初醒', '灵苗成行', '药香盈陌', '四时不歇', '百草丰登'] as const;
 
 export default function SectHerbGardenPage() {
-  const { data, error } = useSectCurrentData();
+  const { data, error } = useSectCurrentQuery();
   if (!data) return <SectPageLoading message="药田晨雾正在散去……" />;
 
   const facility = data.overview?.facilities.find((item) => item.key === 'herb_garden');

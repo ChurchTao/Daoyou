@@ -1,4 +1,9 @@
 import { consumePlayerStateMutation } from '@app/lib/player-state/store';
+import { fetchJsonCached } from '@app/lib/client/requestCache';
+import {
+  decodeSectTaskOutcome,
+  readBattleOutcome,
+} from '@app/components/feature/sect/sectTaskOutcomeRegistry';
 import type {
   SectCatalogData,
   SectCurrentData,
@@ -9,17 +14,21 @@ import type {
   SectOverviewData,
   SectShopData,
   SectTasksData,
-  SectTaskChallengeData,
+  SectBattleOutcomeData,
+  SectTaskActionData,
 } from '@shared/contracts/sect';
 
 type SectExperienceData = SectExperienceResponse['data'];
 const experienceRequests = new Map<string, Promise<SectExperienceData>>();
-const taskBattleRequests = new Map<string, Promise<SectTaskChallengeData>>();
+const taskBattleRequests = new Map<string, Promise<SectBattleOutcomeData>>();
 
 async function fetchData<T>(url: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(url, { signal });
-  const payload = await response.json();
-  if (!response.ok || !payload?.success)
+  const payload = await fetchJsonCached<{
+    success: boolean;
+    data?: T;
+    error?: string;
+  }>(url, { key: `sect:${url}`, signal });
+  if (!payload?.success)
     throw new Error(payload?.error ?? '宗门卷宗读取失败');
   return payload.data as T;
 }
@@ -80,18 +89,29 @@ export function startSectTrialOnce(
 export function startSectTaskBattleOnce(
   taskId: string,
   attemptId: string,
-): Promise<SectTaskChallengeData> {
+): Promise<SectBattleOutcomeData> {
   const key = `${taskId}:${attemptId}`;
   const current = taskBattleRequests.get(key);
   if (current) return current;
   const request = fetch(
-    `/api/sects/current/tasks/${encodeURIComponent(taskId)}/challenge`,
+    `/api/sects/current/tasks/${encodeURIComponent(taskId)}/actions/execute`,
     {
       method: 'POST',
-      headers: { 'Idempotency-Key': attemptId },
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': attemptId,
+      },
+      body: JSON.stringify({ input: {} }),
     },
   )
-    .then((response) => consumePlayerStateMutation<SectTaskChallengeData>(response))
+    .then((response) => consumePlayerStateMutation<SectTaskActionData>(response))
+    .then((result) => {
+      const decoded = decodeSectTaskOutcome(result.outcome);
+      if (!decoded.ok) throw new Error(decoded.error);
+      const battle = readBattleOutcome(decoded.value);
+      if (!battle) throw new Error('宗门战斗结果类型不匹配');
+      return battle;
+    })
     .finally(() => taskBattleRequests.delete(key));
   taskBattleRequests.set(key, request);
   return request;

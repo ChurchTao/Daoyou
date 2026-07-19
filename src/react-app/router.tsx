@@ -61,6 +61,11 @@ export const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<App />} errorElement={<RootRouteErrorBoundary />}>
       <Route index lazy={lazyRoute(() => import('@app/routes/index/route'))} />
+      <Route
+        path="/sect-sweep-runtime"
+        lazy={lazyRoute(() => import('@app/routes/sect-sweep-runtime/route'))}
+        handle={title('云阶扫叶')}
+      />
 
       <Route
         id={AUTH_LAYOUT_ROUTE_ID}

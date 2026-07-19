@@ -29,7 +29,9 @@ import {
 } from '@server/lib/services/MaterialLibraryService';
 import { commitPlayerStateMutation } from '@server/lib/services/PlayerStateMutationService';
 import { sectOrganizationFacade } from '@server/lib/services/sect-organization';
+import { createPostgresSectConstructionContext } from '@server/lib/services/sect-organization/PostgresSectOrganizationAdapters';
 import { towerEnemySetService } from '@server/lib/tower/enemySets';
+import { productionSectRuntime } from '@shared/engine/sect/content';
 import { RANKING_REWARDS, REALM_VALUES } from '@shared/types/constants';
 import { and, eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -369,7 +371,10 @@ export async function runSectConstructionWeeklyJob(): Promise<CronJobResult> {
       const q = getExecutor();
       const sectIds = await listActiveSectIds(q);
       for (const sectId of sectIds)
-        await sectOrganizationFacade.construction.ensureWeeklyProject(sectId, q);
+        await sectOrganizationFacade.construction.ensureWeeklyProject(
+          sectId,
+          createPostgresSectConstructionContext({ q, runtime: productionSectRuntime }),
+        );
       return {
         success: true,
         processed: sectIds.length,

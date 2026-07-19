@@ -1323,6 +1323,7 @@ export async function previewFormulaCraft(
   const spiritStones = await sectOrganizationFacade.applyCraftDiscount(
     cultivatorId,
     baseSpiritStones,
+    'sect.craft.alchemy',
   );
 
   return {
@@ -1426,6 +1427,7 @@ export async function craftFromFormula(
     const cost = await sectOrganizationFacade.applyCraftDiscount(
       cultivatorId,
       baseCost,
+      'sect.craft.alchemy',
       options.tx ?? getExecutor(),
     );
     if ((cultivator.spirit_stones ?? 0) < cost) {

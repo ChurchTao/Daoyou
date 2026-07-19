@@ -1,2 +1,4 @@
 export * from './contracts';
-export * from './StandardSectPermissionPolicy';
+export * from './domain';
+export * from './specifications';
+export * from './StandardSectCapabilityPolicy';

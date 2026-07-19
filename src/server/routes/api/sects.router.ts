@@ -16,6 +16,13 @@ import {
 } from '@server/lib/services/PlayerStateMutationService';
 import { sectOrganizationFacade } from '@server/lib/services/sect-organization';
 import {
+  createPostgresSectConstructionContext,
+  createPostgresSectCommandContext,
+  createPostgresSectEconomyContext,
+  createPostgresSectMembershipContext,
+  createPostgresSectQueryContext,
+} from '@server/lib/services/sect-organization/PostgresSectOrganizationAdapters';
+import {
   SectError,
   SectService,
   type SectServiceInstance,
@@ -23,17 +30,14 @@ import {
 import { getPlayerRuntimeCultivatorById } from '@server/lib/services/cultivatorService';
 import {
   SectAbilityLoadoutRequestSchema,
-  SectDailyAcceptRequestSchema,
   SectDonationRequestSchema,
   SectMembersQuerySchema,
   SectIdempotencyKeySchema,
   SectMeridianLoadoutRequestSchema,
   SectMethodTrainRequestSchema,
   SectShopPurchaseRequestSchema,
-  SectSweepCompleteRequestSchema,
-  SectTaskSubmitRequestSchema,
+  SectTaskActionRequestSchema,
   SectTacticRequestSchema,
-  type SectTaskId,
 } from '@shared/contracts/sect';
 import {
   listUnlockedAbilityIds,
@@ -159,7 +163,7 @@ export function createSectsRouter(
             realm_stage: cultivator.realm_stage as RealmStage,
           },
           realmMethodLevelCap,
-          getExecutor(),
+          createPostgresSectMembershipContext({ q: getExecutor(), runtime }),
         )
       : null;
     return c.json({
@@ -199,7 +203,7 @@ export function createSectsRouter(
             realm_stage: cultivator.realm_stage as RealmStage,
           },
           realmCap,
-          getExecutor(),
+          createPostgresSectMembershipContext({ q: getExecutor(), runtime }),
         ),
       });
     } catch (error) {
@@ -214,7 +218,13 @@ export function createSectsRouter(
     try {
       return c.json({
         success: true,
-        data: await sectOrganizationFacade.tasks.getTasks(cultivator.id),
+        data: await sectOrganizationFacade.tasks.queries.execute(
+          cultivator.id,
+          createPostgresSectQueryContext({
+            q: getExecutor(),
+            runtime,
+          }),
+        ),
       });
     } catch (error) {
       return failure(c, error);
@@ -228,7 +238,10 @@ export function createSectsRouter(
     try {
       return c.json({
         success: true,
-        data: await sectOrganizationFacade.economy.getShop(cultivator.id),
+        data: await sectOrganizationFacade.economy.getShop(
+          cultivator.id,
+          createPostgresSectEconomyContext({ q: getExecutor(), runtime }),
+        ),
       });
     } catch (error) {
       return failure(c, error);
@@ -242,7 +255,10 @@ export function createSectsRouter(
     try {
       return c.json({
         success: true,
-        data: await sectOrganizationFacade.construction.getConstruction(cultivator.id),
+        data: await sectOrganizationFacade.construction.getConstruction(
+          cultivator.id,
+          createPostgresSectConstructionContext({ q: getExecutor(), runtime }),
+        ),
       });
     } catch (error) {
       return failure(c, error);
@@ -265,6 +281,7 @@ export function createSectsRouter(
             cultivator.id,
             query.page,
             query.pageSize,
+            createPostgresSectMembershipContext({ q: getExecutor(), runtime }),
           ),
         });
       } catch (error) {
@@ -315,132 +332,41 @@ export function createSectsRouter(
   };
 
   router.post(
-    '/current/tasks/daily/accept',
+    '/current/tasks/:taskId/actions/:actionKey',
     requireActiveCultivator(),
-    validateJson(SectDailyAcceptRequestSchema),
+    validateJson(SectTaskActionRequestSchema),
     async (c) => {
-      const body = getValidatedJson<{ taskId: SectTaskId }>(c);
+      const body = getValidatedJson<{ input: Record<string, unknown> }>(c);
+      const requestId = c.req.header('Idempotency-Key') ?? '';
       return organizationMutation(
         c,
-        'sect_daily_accept',
-        ({ cultivatorId, tx }) =>
-          sectOrganizationFacade.tasks.acceptDaily(cultivatorId, body.taskId, tx),
-        [{ domain: 'tasks', eventType: 'sect.task_accepted' }],
-        body,
-      );
-    },
-  );
-
-  router.post(
-    '/current/tasks/gate_sweep/start',
-    requireActiveCultivator(),
-    async (c) =>
-      organizationMutation(
-        c,
-        'sect_gate_sweep_start',
-        ({ cultivatorId, tx }) =>
-          sectOrganizationFacade.tasks.startSweep(cultivatorId, tx),
-        [],
-        {},
-      ),
-  );
-
-  router.post(
-    '/current/tasks/gate_sweep/complete',
-    requireActiveCultivator(),
-    validateJson(SectSweepCompleteRequestSchema),
-    async (c) => {
-      const body = getValidatedJson<{
-        sessionId: string;
-        rulesVersion: number;
-        segments: Array<{
-          ticks: number;
-          direction: number | null;
-          sweeping: boolean;
-        }>;
-      }>(c);
-      return organizationMutation(
-        c,
-        'sect_gate_sweep',
+        'sect_task_action',
         ({ userId, cultivatorId, tx }) =>
-          sectOrganizationFacade.tasks.completeSweep(
-            userId,
-            cultivatorId,
-            body,
-            tx,
+          sectOrganizationFacade.tasks.actions.execute(
+            {
+              userId,
+              cultivatorId,
+              taskId: c.req.param('taskId'),
+              actionKey: c.req.param('actionKey'),
+              requestId,
+              input: body.input,
+            },
+            createPostgresSectCommandContext({ tx, runtime, userId }),
           ),
         [
           {
             domain: 'tasks',
-            eventType: 'sect.daily_completed',
-            invalidates: ['sect', 'currency', 'progress'],
-          },
-          { domain: 'sect', eventType: 'sect.contribution_earned' },
-          { domain: 'currency', eventType: 'sect.daily_stones_earned' },
-          { domain: 'progress', eventType: 'sect.daily_cultivation_earned' },
-        ],
-        body,
-      );
-    },
-  );
-
-  router.post(
-    '/current/tasks/:taskId/submit',
-    requireActiveCultivator(),
-    validateJson(SectTaskSubmitRequestSchema),
-    async (c) => {
-      const body = getValidatedJson<{ itemId: string; quantity: number }>(c);
-      return organizationMutation(
-        c,
-        'sect_task_submit',
-        ({ userId, cultivatorId, tx }) =>
-          sectOrganizationFacade.tasks.submitTaskItem(
-            userId,
-            cultivatorId,
-            c.req.param('taskId') as SectTaskId,
-            body.itemId,
-            body.quantity,
-            tx,
-          ),
-        [
-          {
-            domain: 'tasks',
-            eventType: 'sect.task_submitted',
+            eventType: 'sect.task_action',
             invalidates: ['sect', 'loadout', 'currency', 'progress'],
           },
-          { domain: 'sect', eventType: 'sect.contribution_earned' },
-          { domain: 'loadout', eventType: 'sect.task_item_consumed' },
         ],
-        { taskId: c.req.param('taskId'), ...body },
+        {
+          taskId: c.req.param('taskId'),
+          actionKey: c.req.param('actionKey'),
+          input: body.input,
+        },
       );
     },
-  );
-
-  router.post(
-    '/current/tasks/:taskId/challenge',
-    requireActiveCultivator(),
-    async (c) =>
-      organizationMutation(
-        c,
-        'sect_task_challenge',
-        ({ userId, cultivatorId, tx }) =>
-          sectOrganizationFacade.tasks.challengeTask(
-            userId,
-            cultivatorId,
-            c.req.param('taskId') as SectTaskId,
-            tx,
-            c.req.header('Idempotency-Key'),
-          ),
-        [
-          {
-            domain: 'tasks',
-            eventType: 'sect.task_challenged',
-            invalidates: ['sect', 'currency', 'progress'],
-          },
-          { domain: 'sect', eventType: 'sect.contribution_maybe_earned' },
-        ],
-        { taskId: c.req.param('taskId') },
-      ),
   );
 
   router.post('/current/promotion', requireActiveCultivator(), async (c) =>
@@ -455,7 +381,7 @@ export function createSectsRouter(
             realm: cultivator.realm as RealmType,
             realm_stage: cultivator.realm_stage as RealmStage,
           },
-          tx,
+          createPostgresSectMembershipContext({ q: tx, runtime }),
         );
       },
       [{ domain: 'sect', eventType: 'sect.promoted' }],
@@ -481,7 +407,7 @@ export function createSectsRouter(
             cultivatorId,
             body.itemId,
             body.quantity,
-            tx,
+            createPostgresSectEconomyContext({ q: tx, runtime, userId }),
           ),
         [
           {
@@ -513,7 +439,7 @@ export function createSectsRouter(
           sectOrganizationFacade.construction.donate(
             cultivatorId,
             body,
-            tx,
+            createPostgresSectConstructionContext({ q: tx, runtime }),
           ),
         [
           {
@@ -534,7 +460,11 @@ export function createSectsRouter(
       c,
       'sect_stipend_claim',
       ({ userId, cultivatorId, tx }) =>
-        sectOrganizationFacade.economy.claimStipend(userId, cultivatorId, tx),
+        sectOrganizationFacade.economy.claimStipend(
+          userId,
+          cultivatorId,
+          createPostgresSectEconomyContext({ q: tx, runtime, userId }),
+        ),
       [
         {
           domain: 'sect',

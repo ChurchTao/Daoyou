@@ -29,7 +29,10 @@ vi.mock('@server/lib/services/sect-organization', () => ({
   sectOrganizationFacade: {
     getFacilityBonuses: vi.fn(async () => ({
       retreatMultiplier: 1,
-      craftDiscount: 0,
+      craftDiscounts: {
+        'sect.craft.alchemy': 0,
+        'sect.craft.refinery': 0,
+      },
       archiveLevel: 1,
     })),
   },

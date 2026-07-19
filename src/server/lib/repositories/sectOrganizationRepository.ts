@@ -15,28 +15,24 @@ import {
 } from '@server/lib/drizzle/schema';
 import type {
   SectDiscipleRank,
-  SectFacilityKey,
   SectOffice,
-  UpgradeableSectFacilityKey,
 } from '@shared/engine/sect';
 import { and, asc, count, desc, eq, gte, sql } from 'drizzle-orm';
 
-const INITIAL_FACILITIES: SectFacilityKey[] = [
-  'archive',
-  'cultivation_room',
-  'workshop',
-  'spirit_vein',
-  'herb_garden',
-  'formation',
-];
-
 export async function ensureSectFacilities(
   sectId: string,
+  facilities: readonly { key: string; initialLevel: number }[],
   q: DbExecutor | DbTransaction,
 ) {
   await q
     .insert(sectFacilities)
-    .values(INITIAL_FACILITIES.map((facilityKey) => ({ sectId, facilityKey })))
+    .values(
+      facilities.map((facility) => ({
+        sectId,
+        facilityKey: facility.key,
+        level: facility.initialLevel,
+      })),
+    )
     .onConflictDoNothing();
 }
 
@@ -76,6 +72,24 @@ export async function findActiveSectProject(
   return row ?? null;
 }
 
+export async function lockActiveSectProject(
+  sectId: string,
+  tx: DbTransaction,
+) {
+  const [row] = await tx
+    .select()
+    .from(sectConstructionProjects)
+    .where(
+      and(
+        eq(sectConstructionProjects.sectId, sectId),
+        eq(sectConstructionProjects.status, 'active'),
+      ),
+    )
+    .limit(1)
+    .for('update');
+  return row ?? null;
+}
+
 export async function findLatestCompletedSectProject(
   sectId: string,
   q: DbExecutor | DbTransaction,
@@ -97,7 +111,7 @@ export async function findLatestCompletedSectProject(
 export async function createSectProject(
   input: {
     sectId: string;
-    facilityKey: UpgradeableSectFacilityKey;
+    facilityKey: string;
     targetLevel: number;
     target: number;
     startedWeekKey: string;
@@ -127,15 +141,15 @@ export async function countRecentlyActiveSectMembers(
   return Number(row?.value ?? 0);
 }
 
-export async function advanceSectProject(
+export async function saveSectProjectProgress(
   projectId: string,
-  points: number,
+  progress: number,
   tx: DbTransaction,
 ) {
-  const [advanced] = await tx
+  const [row] = await tx
     .update(sectConstructionProjects)
     .set({
-      progress: sql`LEAST(${sectConstructionProjects.target}, ${sectConstructionProjects.progress} + ${points})`,
+      progress,
       updatedAt: new Date(),
     })
     .where(
@@ -145,12 +159,17 @@ export async function advanceSectProject(
       ),
     )
     .returning();
-  if (!advanced) return null;
-  if (advanced.progress < advanced.target) return advanced;
+  return row ?? null;
+}
 
-  const [completed] = await tx
+export async function completeSectProject(
+  projectId: string,
+  completedAt: Date,
+  tx: DbTransaction,
+) {
+  const [row] = await tx
     .update(sectConstructionProjects)
-    .set({ status: 'completed', completedAt: new Date(), updatedAt: new Date() })
+    .set({ status: 'completed', completedAt, updatedAt: completedAt })
     .where(
       and(
         eq(sectConstructionProjects.id, projectId),
@@ -158,19 +177,27 @@ export async function advanceSectProject(
       ),
     )
     .returning();
-  if (completed) {
-    await tx
-      .update(sectFacilities)
-      .set({ level: completed.targetLevel, updatedAt: new Date() })
-      .where(
-        and(
-          eq(sectFacilities.sectId, completed.sectId),
-          eq(sectFacilities.facilityKey, completed.facilityKey),
-          sql`${sectFacilities.level} < ${completed.targetLevel}`,
-        ),
-      );
-  }
-  return completed ?? advanced;
+  return row ?? null;
+}
+
+export async function upgradeSectFacility(
+  sectId: string,
+  facilityKey: string,
+  level: number,
+  tx: DbTransaction,
+) {
+  const [row] = await tx
+    .update(sectFacilities)
+    .set({ level, updatedAt: new Date() })
+    .where(
+      and(
+        eq(sectFacilities.sectId, sectId),
+        eq(sectFacilities.facilityKey, facilityKey),
+        sql`${sectFacilities.level} < ${level}`,
+      ),
+    )
+    .returning();
+  return row ?? null;
 }
 
 export async function addSectContribution(
@@ -353,11 +380,11 @@ export async function upsertSectTaskProgress(
     periodKey: string;
     progress: number;
     target: number;
+    completed: boolean;
     payload?: Record<string, unknown>;
   },
   tx: DbTransaction,
 ) {
-  const completed = input.progress >= input.target;
   const [row] = await tx
     .insert(sectTaskRecords)
     .values({
@@ -367,8 +394,8 @@ export async function upsertSectTaskProgress(
       periodKey: input.periodKey,
       progress: input.progress,
       payload: input.payload ?? { target: input.target },
-      status: completed ? 'completed' : 'active',
-      completedAt: completed ? new Date() : null,
+      status: input.completed ? 'completed' : 'active',
+      completedAt: input.completed ? new Date() : null,
     })
     .onConflictDoUpdate({
       target: [
@@ -379,8 +406,8 @@ export async function upsertSectTaskProgress(
       set: {
         progress: input.progress,
         payload: input.payload ?? { target: input.target },
-        status: completed ? 'completed' : 'active',
-        completedAt: completed ? new Date() : null,
+        status: input.completed ? 'completed' : 'active',
+        completedAt: input.completed ? new Date() : null,
         updatedAt: new Date(),
       },
     })

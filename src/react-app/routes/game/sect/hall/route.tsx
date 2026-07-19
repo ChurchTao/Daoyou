@@ -1,14 +1,10 @@
 import { InkButton, InkCard, InkNotice } from '@app/components/ui';
+import { useSectCurrentQuery, useSectResourceQuery } from '@app/components/feature/sect/SectQueryProvider';
+import { fetchSectMembers } from '@app/lib/sect/sectClient';
+import { getSectFacilityLabel } from '@app/lib/sect/sectPresentation';
 import {
-  fetchSectCurrent,
-  fetchSectMembers,
-  fetchSectOverview,
-} from '@app/lib/sect/sectClient';
-import {
-  SECT_FACILITY_LABELS,
   SECT_RANK_LABELS,
 } from '@shared/engine/sect';
-import { useCallback } from 'react';
 import {
   postJson,
   rankLabel,
@@ -16,26 +12,35 @@ import {
   SectQueryError,
   SectScene,
   useSectMutation,
-  useSectQuery,
 } from '../components/SectScene';
 
-export default function SectHallPage() {
-  const loader = useCallback(async (signal: AbortSignal) => {
-    const [current, overview, members] = await Promise.all([
-      fetchSectCurrent(signal),
-      fetchSectOverview(signal),
-      fetchSectMembers(1, 20, signal),
-    ]);
-    return { current, overview, members };
-  }, []);
-  const { data: query, error, reload, retry } = useSectQuery(loader);
-  const { busy, run } = useSectMutation(reload);
+const fetchFirstSectMembersPage = (signal: AbortSignal) =>
+  fetchSectMembers(1, 20, signal);
 
-  if (error) return <SectQueryError error={error} retry={() => void retry()} />;
-  if (!query) return <SectPageLoading />;
-  const { current: data, overview, members } = query;
+export default function SectHallPage() {
+  const current = useSectCurrentQuery();
+  const membersQuery = useSectResourceQuery(
+    'members:1:20',
+    fetchFirstSectMembersPage,
+  );
+  const { busy, run } = useSectMutation(membersQuery.reload);
+
+  const error = current.error ?? membersQuery.error;
+  if (error)
+    return (
+      <SectQueryError
+        error={error}
+        retry={() => void (current.error ? current.retry() : membersQuery.retry())}
+      />
+    );
+  if (!current.data || !membersQuery.data) return <SectPageLoading />;
+  const data = current.data;
+  const overview = data.overview;
+  const members = membersQuery.data;
   const sect = data.sect;
   if (!sect) return <SectScene title="宗门大殿" description="正式入宗后方可入殿。"><InkNotice>尚未拜入宗门。</InkNotice></SectScene>;
+  if (!overview)
+    return <SectScene title="宗门大殿" description="身份玉牒尚未归档。"><InkNotice>宗门概览暂不可用。</InkNotice></SectScene>;
   const rank = sect.discipleRank ?? 'registered';
   return (
     <SectScene
@@ -72,8 +77,16 @@ export default function SectHallPage() {
         <InkCard>
           <p className="text-ink-secondary text-xs tracking-widest">本周俸禄</p>
           <strong className="mt-2 block text-xl">{overview.stipend.spiritStones.toLocaleString()} 灵石</strong>
-          <p className="mt-2 text-sm">药田灵草 {overview.stipend.herbQuantity} 份</p>
-          {overview.stipend.bonusRewards.map((reward) => <p key={reward} className="text-ink-secondary mt-1 text-xs">{reward}</p>)}
+          {overview.stipend.rewards
+            .filter((reward) => reward.kind !== 'spirit_stones')
+            .map((reward) => (
+              <p
+                key={`${reward.kind}:${reward.name}`}
+                className="text-ink-secondary mt-1 text-xs"
+              >
+                {reward.summary}
+              </p>
+            ))}
           <p className="text-ink-secondary mt-1 text-xs">周次 {overview.stipend.weekKey}</p>
           <InkButton
             variant="primary"
@@ -88,7 +101,7 @@ export default function SectHallPage() {
           <p className="text-ink-secondary text-xs tracking-widest">长老工程</p>
           {overview.project ? (
             <>
-              <strong className="mt-2 block text-xl">{SECT_FACILITY_LABELS[overview.project.facilityKey]} · {overview.project.targetLevel}级</strong>
+              <strong className="mt-2 block text-xl">{getSectFacilityLabel(data.definition!.id, overview.project.facilityKey)} · {overview.project.targetLevel}级</strong>
               <p className="mt-2 text-sm">{overview.project.progress.toLocaleString()} / {overview.project.target.toLocaleString()} 建设点</p>
               <div className="bg-ink/10 mt-3 h-1.5 overflow-hidden"><div className="bg-crimson h-full" style={{ width: `${Math.min(100, (overview.project.progress / overview.project.target) * 100)}%` }} /></div>
             </>

@@ -355,6 +355,7 @@ export async function previewAlchemySelection(
   const spiritStones = await sectOrganizationFacade.applyCraftDiscount(
     cultivatorId,
     baseSpiritStones,
+    'sect.craft.alchemy',
   );
 
   const validation = buildSelectionValidation(rows, materialQuantities);
@@ -423,6 +424,7 @@ export function createAlchemyService(
         const cost = await sectOrganizationFacade.applyCraftDiscount(
           cultivatorId,
           baseCost,
+          'sect.craft.alchemy',
           options.tx ?? getExecutor(),
         );
 
