@@ -15,7 +15,12 @@ import {
   GetSectTasksQueryHandler,
   ProcessSectTaskCompletionHandler,
 } from './SectTaskApplicationService';
-import { createPostgresSectBenefitContext } from './PostgresSectOrganizationAdapters';
+import {
+  createPostgresSectAdmissionRepository,
+  createPostgresSectBenefitContext,
+  createPostgresSectTraditionRepository,
+  createPostgresSectTrainingResourceGateway,
+} from './PostgresSectOrganizationAdapters';
 import {
   composeSectOrganizationPlugins,
   CORE_SECT_ORGANIZATION_PLUGIN,
@@ -61,6 +66,30 @@ export const sectOrganizationFacade = {
   tasks: application.tasks,
   economy: application.economy,
   construction: application.construction,
+  admission(
+    q: DbExecutor | DbTransaction = getExecutor(),
+    runtime = productionSectRuntime,
+  ) {
+    const resources = createPostgresSectTrainingResourceGateway({
+      q,
+      runtime,
+    });
+    return application.createAdmission({
+      runtime,
+      repository: createPostgresSectAdmissionRepository({ q, runtime }),
+      resources,
+    });
+  },
+  tradition(
+    q: DbExecutor | DbTransaction = getExecutor(),
+    runtime = productionSectRuntime,
+  ) {
+    return application.createTradition({
+      runtime,
+      repository: createPostgresSectTraditionRepository({ q, runtime }),
+      resources: createPostgresSectTrainingResourceGateway({ q, runtime }),
+    });
+  },
   getFacilityBonuses(
     cultivatorId: string,
     q: DbExecutor | DbTransaction = getExecutor(),

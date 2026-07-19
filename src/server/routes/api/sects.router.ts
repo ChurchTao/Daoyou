@@ -22,11 +22,7 @@ import {
   createPostgresSectMembershipContext,
   createPostgresSectQueryContext,
 } from '@server/lib/services/sect-organization/PostgresSectOrganizationAdapters';
-import {
-  SectError,
-  SectService,
-  type SectServiceInstance,
-} from '@server/lib/services/SectService';
+import { SectError } from '@server/lib/services/SectError';
 import { getPlayerRuntimeCultivatorById } from '@server/lib/services/cultivatorService';
 import {
   SectAbilityLoadoutRequestSchema,
@@ -94,23 +90,27 @@ function failure(c: Context<AppEnv>, error: unknown) {
 
 export function createSectsRouter(
   dependencies: {
-    sectService?: SectServiceInstance;
+    organizationFacade?: Pick<
+      typeof sectOrganizationFacade,
+      'admission' | 'tradition'
+    >;
     runtime?: SectRuntime;
   } = {},
 ) {
   const router = new Hono<AppEnv>();
-  const sectService = dependencies.sectService ?? SectService;
-  const runtime =
-    dependencies.runtime ?? sectService.runtime ?? productionSectRuntime;
+  const organizationFacade = dependencies.organizationFacade ?? sectOrganizationFacade;
+  const runtime = dependencies.runtime ?? productionSectRuntime;
+  const admission = (q: Parameters<typeof organizationFacade.admission>[0]) =>
+    organizationFacade.admission(q, runtime);
+  const tradition = (q: Parameters<typeof organizationFacade.tradition>[0]) =>
+    organizationFacade.tradition(q, runtime);
 
   router.get('/catalog', requireActiveCultivator(), async (c) => {
     const cultivator = c.get('cultivator');
     if (!cultivator?.id)
       return c.json({ success: false, error: '当前没有活跃角色' }, 404);
-    const memberships = await sectService.listMemberships(
-      cultivator.id,
-      getExecutor(),
-    );
+    const admissionService = admission(getExecutor());
+    const memberships = await admissionService.listMemberships(cultivator.id);
     const bySect = new Map(
       memberships.map((membership) => [membership.sectId, membership]),
     );
@@ -119,7 +119,7 @@ export function createSectsRouter(
       data: {
         playerRace: cultivator.playerRace ?? 'human',
         raceNarrative: cultivator.raceNarrative,
-        sects: sectService
+        sects: admissionService
           .listAvailableDefinitions({
             playerRace: (cultivator.playerRace ?? 'human') as 'human',
             realm: cultivator.realm as RealmType,
@@ -143,7 +143,7 @@ export function createSectsRouter(
     const cultivator = c.get('cultivator');
     if (!cultivator?.id)
       return c.json({ success: false, error: '当前没有活跃角色' }, 404);
-    const sect = await sectService.getState(cultivator.id, getExecutor());
+    const sect = await tradition(getExecutor()).getState(cultivator.id);
     const definition = sect
       ? runtime.registry.require(sect.sectId).definition
       : null;
@@ -176,6 +176,7 @@ export function createSectsRouter(
         methodLevelCap: overview?.methodLevelCap ?? 0,
         knownAbilityIds:
           sect && definition ? listUnlockedAbilityIds(definition, sect) : [],
+        benefits: overview?.benefits,
         overview,
       },
     });
@@ -186,7 +187,7 @@ export function createSectsRouter(
     if (!cultivator?.id)
       return c.json({ success: false, error: '当前没有活跃角色' }, 404);
     try {
-      const sect = await sectService.getState(cultivator.id, getExecutor());
+      const sect = await tradition(getExecutor()).getState(cultivator.id);
       if (!sect) throw new SectError('SECT_TRIAL_REQUIRED', '尚未拜入宗门');
       const realmCap = runtime
         .progressionFor(sect.sectId)
@@ -487,10 +488,9 @@ export function createSectsRouter(
         c.req.param('sectId'),
       )?.definition;
       if (!definition) throw new SectError('SECT_UNKNOWN', '未知宗门', 400);
-      const sect = await sectService.getStateForSect(
+      const sect = await tradition(getExecutor()).getStateForSect(
         cultivator.id,
         definition.id,
-        getExecutor(),
       );
       return c.json({
         success: true,
@@ -526,7 +526,7 @@ export function createSectsRouter(
       );
       if (!runtimeCultivator)
         return c.json({ success: false, error: '当前没有活跃角色' }, 404);
-      const { trainee, opponent } = sectService.createTrialScenario(
+      const { trainee, opponent } = admission(getExecutor()).createTrialScenario(
         module.definition.id,
         runtimeCultivator,
       );
@@ -539,10 +539,9 @@ export function createSectsRouter(
           sectId: module.definition.id,
         }),
         run: async (tx) => {
-          const sect = await sectService.recordExperience(
+          const sect = await admission(tx).recordExperience(
             cultivator.id!,
             module.definition.id,
-            tx,
           );
           return {
             result: { sect, battle },
@@ -567,7 +566,7 @@ export function createSectsRouter(
     return mutateSect(
       c,
       'sect_join',
-      (id, tx) => sectService.join(id, sectId, tx),
+      (id, tx) => admission(tx).join(id, sectId),
       'sect.joined',
       true,
     );
@@ -593,13 +592,12 @@ export function createSectsRouter(
             ...body,
           }),
           run: async (tx) => {
-            const result = await sectService.trainMethod(
+            const result = await tradition(tx).trainMethod(
               {
                 cultivatorId: cultivator.id!,
                 methodId: c.req.param('methodId'),
                 targetLevel: body.targetLevel,
               },
-              tx,
             );
             return {
               result,
@@ -647,13 +645,12 @@ export function createSectsRouter(
             layerId: c.req.param('layerId'),
           }),
           run: async (tx) => {
-            const result = await sectService.unlockPathLayer(
+            const result = await tradition(tx).unlockPathLayer(
               {
                 cultivatorId: cultivator.id!,
                 pathId: c.req.param('pathId'),
                 layerId: c.req.param('layerId'),
               },
-              tx,
             );
             return {
               result,
@@ -690,7 +687,7 @@ export function createSectsRouter(
       mutateSect(
         c,
         'sect_path_activate',
-        (id, tx) => sectService.activatePath(id, c.req.param('pathId'), tx),
+        (id, tx) => tradition(tx).activatePath(id, c.req.param('pathId')),
         'sect.path_activated',
       ),
   );
@@ -705,12 +702,11 @@ export function createSectsRouter(
         c,
         'sect_meridian_update',
         (id, tx) =>
-          sectService.setMeridianLoadout(
+          tradition(tx).setMeridianLoadout(
             id,
             c.req.param('pathId'),
             Number(c.req.param('slot')),
             body.nodeIds,
-            tx,
           ),
         'sect.meridian_updated',
         false,
@@ -727,11 +723,10 @@ export function createSectsRouter(
         c,
         'sect_meridian_activate',
         (id, tx) =>
-          sectService.activateMeridianLoadout(
+          tradition(tx).activateMeridianLoadout(
             id,
             c.req.param('pathId'),
             Number(c.req.param('slot')),
-            tx,
           ),
         'sect.meridian_activated',
       ),
@@ -746,7 +741,7 @@ export function createSectsRouter(
       return mutateSect(
         c,
         'sect_ability_loadout',
-        (id, tx) => sectService.setAbilityLoadout(id, body.abilityIds, tx),
+        (id, tx) => tradition(tx).setAbilityLoadout(id, body.abilityIds),
         'sect.ability_loadout_updated',
         true,
         body,
@@ -764,11 +759,10 @@ export function createSectsRouter(
         c,
         'sect_tactic',
         (id, tx) =>
-          sectService.setPathTactic(
+          tradition(tx).setPathTactic(
             id,
             c.req.param('pathId'),
             body.tacticId,
-            tx,
           ),
         'sect.tactic_updated',
         false,

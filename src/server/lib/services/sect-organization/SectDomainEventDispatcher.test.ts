@@ -1,40 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
+  defineSectDomainEventHandler,
   SectDomainEventDispatcher,
-  type SectDomainEventDispatchContext,
   type SectDomainEventHandlerContribution,
 } from './SectDomainEventDispatcher';
 
-function dispatchContext(): SectDomainEventDispatchContext {
-  return {
-    scope: 'membership',
-    command: {
-      clock: {
-        now: () => new Date('2026-07-19T00:00:00.000Z'),
-        dateKey: () => '2026-07-19',
-        weekKey: () => '2026-W29',
-      },
-      modules: {
-        require: () => {
-          throw new Error('not used');
-        },
-      },
-      facilities: { list: async () => [] },
-      economy: { hasClaimedStipend: async () => false },
-      construction: { findActiveProject: async () => null },
-      memberships: {
-        findByCultivator: async () => null,
-        countCompletedDailyTasks: async () => 0,
-        hasCompletedTask: async () => false,
-        loadState: async () => undefined,
-        listMembers: async () => ({ rows: [], total: 0 }),
-        promote: async () => true,
-      },
-    },
-  };
-}
-
 describe('SectDomainEventDispatcher', () => {
+  it('rejects events without a registered handler', async () => {
+    await expect(
+      new SectDomainEventDispatcher([]).dispatch([{
+          type: 'SectMembershipPromoted',
+          membershipId: 'membership-1',
+          rank: 'outer',
+        }]),
+    ).rejects.toThrow('SectMembershipPromoted');
+  });
+
   it('processes handlers in registration order and derived events in FIFO order', async () => {
     const calls: string[] = [];
     const handlers: SectDomainEventHandlerContribution[] = [
@@ -64,15 +45,12 @@ describe('SectDomainEventDispatcher', () => {
         },
       },
     ];
-    await new SectDomainEventDispatcher(handlers).dispatch(
-      [{
+    await new SectDomainEventDispatcher(handlers).dispatch([{
         type: 'SectTaskProgressSignaled',
         membershipId: 'membership-1',
         source: 'test',
         amount: 1,
-      }],
-      dispatchContext(),
-    );
+      }]);
     expect(calls).toEqual(['progress:first', 'progress:second', 'contribution']);
   });
 
@@ -92,35 +70,27 @@ describe('SectDomainEventDispatcher', () => {
       },
     ];
     await expect(
-      new SectDomainEventDispatcher(handlers).dispatch(
-        [{
+      new SectDomainEventDispatcher(handlers).dispatch([{
           type: 'SectContributionSpent',
           membershipId: 'membership-1',
           amount: 1,
           reason: 'test',
           referenceId: 'event-1',
-        }],
-        dispatchContext(),
-      ),
+        }]),
     ).rejects.toThrow('settlement failed');
   });
 
   it('rejects recursive event chains beyond the transaction limit', async () => {
-    const handler: SectDomainEventHandlerContribution = {
-      eventType: 'SectContributionGranted',
-      handle: (event) => [event],
-    };
+    const handler: SectDomainEventHandlerContribution =
+      defineSectDomainEventHandler('SectContributionGranted', (event) => [event]);
     await expect(
-      new SectDomainEventDispatcher([handler], 3).dispatch(
-        [{
+      new SectDomainEventDispatcher([handler], 3).dispatch([{
           type: 'SectContributionGranted',
           membershipId: 'membership-1',
           amount: 1,
           reason: 'test',
           referenceId: 'event-1',
-        }],
-        dispatchContext(),
-      ),
+        }]),
     ).rejects.toThrow('单次宗门事务事件超过 3 个');
   });
 });

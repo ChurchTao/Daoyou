@@ -3,6 +3,7 @@ import type {
   SectConstructionProjectState,
   SectDefinition,
   SectDiscipleRank,
+  SectBenefitSnapshot,
   SectFacilityState,
   SectPermissionState,
 } from '@shared/engine/sect';
@@ -157,6 +158,7 @@ export interface SectOverviewData {
   nextRank: SectDiscipleRank | null;
   promotionMissing: string[];
   permissions: Record<string, SectPermissionState>;
+  benefits: SectBenefitSnapshot;
 }
 
 export interface SectConstructionData {
@@ -212,6 +214,7 @@ export type SectCurrentData = {
   sect: CultivatorSectState | null;
   methodLevelCap: number;
   knownAbilityIds: string[];
+  benefits?: SectBenefitSnapshot;
   overview?: SectOverviewData | null;
   commission?: never;
 };

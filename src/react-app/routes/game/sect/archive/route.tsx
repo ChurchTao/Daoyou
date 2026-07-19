@@ -3,11 +3,20 @@ import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvi
 import { MethodsTab } from '../components/MethodsTab';
 import {
   SectPageLoading,
+  SectPermissionBoundary,
   SectScene,
   useSectMutation,
 } from '../components/SectScene';
 
 export default function SectArchivePage() {
+  return (
+    <SectPermissionBoundary permission="sect.archive.use" title="藏经阁">
+      <SectArchiveBody />
+    </SectPermissionBoundary>
+  );
+}
+
+function SectArchiveBody() {
   const { data, error, invalidate: reload } = useSectCurrentQuery();
   const cultivator = useActiveCultivatorProfile();
   const { busy, run } = useSectMutation(reload);

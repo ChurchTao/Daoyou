@@ -5,8 +5,9 @@ import {
 } from '@shared/engine/sect';
 import type { SectBenefitService } from './SectBenefitService';
 import type { SectDonationSpecificationRegistry } from './EconomyStrategies';
-import type { SectDomainEventDispatcher } from './SectDomainEventDispatcher';
+import type { SectDomainEventDispatcherFactory } from './SectDomainEventDispatcher';
 import {
+  assertDeclaredDonationKind,
   mapFacilities,
   mapProject,
   organizationError,
@@ -22,7 +23,7 @@ export class SectConstructionApplicationService {
   constructor(
     private readonly benefits: SectBenefitService,
     private readonly donationSpecifications: SectDonationSpecificationRegistry,
-    private readonly events: SectDomainEventDispatcher,
+    private readonly events: SectDomainEventDispatcherFactory,
   ) {}
 
   private async ensureCurrentProject(
@@ -83,12 +84,15 @@ export class SectConstructionApplicationService {
     );
     const dateKey = context.clock.dateKey();
     const organization = organizationFor(context.modules, membership.sectId);
+    const demands = [...organization.economy.donationDemands(membership.sectId, dateKey)];
+    for (const demand of demands)
+      assertDeclaredDonationKind(organization, demand.kind);
     return {
       facilities: mapFacilities(await context.facilities.list(membership.sectId)),
       project: mapProject(
         await context.construction.findActiveProject(membership.sectId),
       ),
-      demands: [...organization.economy.donationDemands(membership.sectId, dateKey)],
+      demands,
       donatedContributionToday: await context.construction.donatedContribution(
         membership.id,
         dateKey,
@@ -120,6 +124,7 @@ export class SectConstructionApplicationService {
       .donationDemands(membership.sectId, dateKey)
       .find((item) => item.id === input.demandId);
     if (!demand) organizationError('今日没有这项宗门需求', 400);
+    assertDeclaredDonationKind(organization, demand.kind);
     let offer: SectDonationOffer;
     try {
       offer = SectDonationOffer.quote({
@@ -141,6 +146,16 @@ export class SectConstructionApplicationService {
         `每日建设贡献上限为 ${organization.economy.donationDailyCap}`,
         400,
       );
+    const itemSnapshot = await this.donationSpecifications.require(demand.kind).consume({
+      cultivatorId,
+      itemId: input.itemId,
+      units: offer.units,
+      itemQuantity: offer.itemQuantity,
+      demand,
+      inventory: context.inventory,
+      economy: context.economy,
+    });
+    const donationId = context.ids.next();
     const aggregate = SectConstructionProject.rehydrate({
       id: projectRecord.id,
       sectId: projectRecord.sectId,
@@ -154,27 +169,10 @@ export class SectConstructionApplicationService {
       membership.id,
       offer.contribution,
       offer.constructionPoints,
+      { donationId, dateKey, demand, itemSnapshot },
     );
-    const itemSnapshot = await this.donationSpecifications.require(demand.kind).consume({
-      cultivatorId,
-      itemId: input.itemId,
-      units: offer.units,
-      itemQuantity: offer.itemQuantity,
-      demand,
-      inventory: context.inventory,
-      economy: context.economy,
-    });
 
-    const state: { donationId?: string } = {};
-    await this.events.dispatch(aggregate.pullEvents(), {
-      scope: 'construction',
-      dateKey,
-      demand,
-      itemSnapshot,
-      state,
-      command: context,
-    });
-    if (!state.donationId) organizationError('捐献未能写入');
+    await this.events.forConstruction(context).dispatch(aggregate.pullEvents());
     return this.getConstruction(cultivatorId, context);
   }
 }

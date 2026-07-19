@@ -8,6 +8,7 @@ import {
 import type { SectBenefitService } from './SectBenefitService';
 import type { SectRewardGrantStrategyRegistry } from './EconomyStrategies';
 import {
+  assertDeclaredRewardKind,
   mapFacilities,
   organizationError,
   organizationFor,
@@ -15,7 +16,7 @@ import {
   requireMembership,
   stipendRewardView,
 } from './applicationSupport';
-import type { SectDomainEventDispatcher } from './SectDomainEventDispatcher';
+import type { SectDomainEventDispatcherFactory } from './SectDomainEventDispatcher';
 import type {
   SectEconomyCommandContext,
   SectEconomyQueryContext,
@@ -26,7 +27,7 @@ export class SectEconomyApplicationService {
   constructor(
     private readonly benefits: SectBenefitService,
     private readonly rewardStrategies: SectRewardGrantStrategyRegistry,
-    private readonly events: SectDomainEventDispatcher,
+    private readonly events: SectDomainEventDispatcherFactory,
   ) {}
 
   async getShop(cultivatorId: string, context: SectEconomyQueryContext) {
@@ -34,10 +35,9 @@ export class SectEconomyApplicationService {
     this.benefits.assertPermission(membership, 'sect.shop.use', context.modules);
     const weekKey = context.clock.weekKey();
     const items: SectShopItemData[] = [];
-    for (const item of organizationFor(
-      context.modules,
-      membership.sectId,
-    ).economy.shopItems(weekKey)) {
+    const organization = organizationFor(context.modules, membership.sectId);
+    for (const item of organization.economy.shopItems(weekKey)) {
+      assertDeclaredRewardKind(organization, item.grant.kind);
       if (!hasSectRank(membership.discipleRank, item.requiredRank)) continue;
       items.push({
         id: item.id,
@@ -68,10 +68,11 @@ export class SectEconomyApplicationService {
     const membership = await requireMembership(cultivatorId, context.memberships);
     this.benefits.assertPermission(membership, 'sect.shop.use', context.modules);
     const weekKey = context.clock.weekKey();
-    const item = organizationFor(context.modules, membership.sectId)
-      .economy.shopItems(weekKey)
+    const organization = organizationFor(context.modules, membership.sectId);
+    const item = organization.economy.shopItems(weekKey)
       .find((entry) => entry.id === itemId);
     if (!item) organizationError('本周宝库没有该物品', 400);
+    assertDeclaredRewardKind(organization, item.grant.kind);
     if (!hasSectRank(membership.discipleRank, item.requiredRank))
       organizationError('弟子职阶不足', 400);
     const purchased = await context.economy.purchasedQuantity(
@@ -136,10 +137,7 @@ export class SectEconomyApplicationService {
     } catch {
       organizationError('宗门贡献不足', 400);
     }
-    await this.events.dispatch(aggregate.pullEvents(), {
-      scope: 'shop',
-      command: context,
-    });
+    await this.events.forShop(context).dispatch(aggregate.pullEvents());
   }
 
   async claimStipend(
@@ -148,6 +146,7 @@ export class SectEconomyApplicationService {
     context: SectEconomyCommandContext,
   ) {
     const membership = await requireMembership(cultivatorId, context.memberships);
+    this.benefits.assertPermission(membership, 'sect.hall.view', context.modules);
     await context.facilities.ensure(membership.sectId);
     const facilities = mapFacilities(await context.facilities.list(membership.sectId));
     const facilityLevels = new Map(
@@ -166,17 +165,15 @@ export class SectEconomyApplicationService {
       claimed: await context.economy.hasClaimedStipend(membership.id, weekKey),
     });
     try {
-      claim.claim(weekKey);
+      claim.claim(weekKey, quote);
     } catch {
       organizationError('本周俸禄已经领取');
     }
-    await this.events.dispatch(claim.pullEvents(), {
-      scope: 'stipend',
+    await this.events.forStipend({
       userId,
       cultivatorId,
-      quote,
       command: context,
-    });
+    }).dispatch(claim.pullEvents());
     return {
       weekKey,
       rewards: quote.rewards.map(stipendRewardView),

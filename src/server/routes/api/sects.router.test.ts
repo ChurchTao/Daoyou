@@ -46,6 +46,27 @@ vi.mock('@server/lib/hono/middleware', () => {
 });
 vi.mock('@server/lib/services/sect-organization', () => ({
   sectOrganizationFacade: {
+    admission: vi.fn(() => ({
+      getState: getStateMock,
+      getStateForSect: vi.fn(),
+      listDefinitions: vi.fn(() => []),
+      listAvailableDefinitions: listAvailableDefinitionsMock,
+      listMemberships: vi.fn(() => []),
+      createTrialScenario: vi.fn(),
+      join: joinMock,
+      recordExperience: vi.fn(),
+    })),
+    tradition: vi.fn(() => ({
+      getState: getStateMock,
+      getStateForSect: vi.fn(),
+      trainMethod: vi.fn(),
+      unlockPathLayer: unlockPathLayerMock,
+      activatePath: vi.fn(),
+      setMeridianLoadout: vi.fn(),
+      activateMeridianLoadout: vi.fn(),
+      setAbilityLoadout: setAbilityLoadoutMock,
+      setPathTactic: vi.fn(),
+    })),
     membership: {
     getOverview: vi.fn(async () => ({
       facilities: [],
@@ -86,37 +107,6 @@ vi.mock('@server/lib/services/sect-organization', () => ({
     },
   },
 }));
-vi.mock('@server/lib/services/SectService', () => {
-  class SectError extends Error {
-    constructor(
-      public code: string,
-      message: string,
-      public status = 409,
-    ) {
-      super(message);
-    }
-  }
-  return {
-    SectError,
-    SectService: {
-      getState: getStateMock,
-      getStateForSect: vi.fn(),
-      listDefinitions: vi.fn(() => []),
-      listAvailableDefinitions: listAvailableDefinitionsMock,
-      listMemberships: vi.fn(() => []),
-      createTrialScenario: vi.fn(),
-      join: joinMock,
-      recordExperience: vi.fn(),
-      trainMethod: vi.fn(),
-      unlockPathLayer: unlockPathLayerMock,
-      activatePath: vi.fn(),
-      setMeridianLoadout: vi.fn(),
-      activateMeridianLoadout: vi.fn(),
-      setAbilityLoadout: setAbilityLoadoutMock,
-      setPathTactic: vi.fn(),
-    },
-  };
-});
 vi.mock('@server/lib/services/SectCommissionService', () => ({
   SectCommissionService: {
     getToday: getTodayMock,
@@ -151,7 +141,6 @@ vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
   })),
 }));
 
-import type { SectServiceInstance } from '@server/lib/services/SectService';
 import sectsRouter, { createSectsRouter } from './sects.router';
 
 const activeSect = {
@@ -208,24 +197,25 @@ describe('sects router', () => {
     });
   });
 
-  it('路由工厂使用注入的宗门Service而非生产单例', async () => {
-    const injected = {
+  it('路由工厂使用注入的事务服务工厂而非生产单例', async () => {
+    const admission = {
       listMemberships: vi.fn(async () => []),
       listAvailableDefinitions: vi.fn(() => []),
     };
+    const injected = {
+      admission: vi.fn(() => admission),
+      tradition: vi.fn(),
+    };
     const router = createSectsRouter({
-      sectService: injected as unknown as SectServiceInstance,
+      organizationFacade: injected as never,
     });
     const response = await new Hono()
       .route('/api/sects', router)
       .request('/api/sects/catalog');
 
     expect(response.status).toBe(200);
-    expect(injected.listMemberships).toHaveBeenCalledWith(
-      'cultivator-1',
-      expect.anything(),
-    );
-    expect(injected.listAvailableDefinitions).toHaveBeenCalledWith({
+    expect(admission.listMemberships).toHaveBeenCalledWith('cultivator-1');
+    expect(admission.listAvailableDefinitions).toHaveBeenCalledWith({
       playerRace: 'human',
       realm: '筑基',
       stage: '初期',
@@ -267,11 +257,7 @@ describe('sects router', () => {
       });
 
     expect(response.status).toBe(200);
-    expect(setAbilityLoadoutMock).toHaveBeenCalledWith(
-      'cultivator-1',
-      slots,
-      expect.anything(),
-    );
+    expect(setAbilityLoadoutMock).toHaveBeenCalledWith('cultivator-1', slots);
   });
 
   it('passes the requested path layer to the generic unlock service', async () => {
@@ -299,7 +285,6 @@ describe('sects router', () => {
         pathId: 'swift-sword',
         layerId: '2',
       },
-      expect.anything(),
     );
   });
 

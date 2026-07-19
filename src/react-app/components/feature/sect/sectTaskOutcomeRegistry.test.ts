@@ -46,5 +46,19 @@ describe('sect task outcome registry', () => {
       ok: false,
       error: '宗门任务结果格式无效：sect.outcome.sweep-session',
     });
+    expect(
+      decodeSectTaskOutcome({
+        renderer: 'sect.outcome.battle',
+        data: {
+          battle: {},
+          won: true,
+          challengeTitle: '无效战局',
+          rewardGranted: true,
+        },
+      }),
+    ).toEqual({
+      ok: false,
+      error: '宗门任务结果格式无效：sect.outcome.battle',
+    });
   });
 });

@@ -12,24 +12,24 @@ import type { SectTaskExecutor } from '../task-executors/SectTaskExecutor';
 const fixtureInput = z.object({ pass: z.literal(true) });
 
 const fixtureExecutor: SectTaskExecutor<z.infer<typeof fixtureInput>> = {
-  key: 'fixture.battle',
+  key: 'fixture-sect.battle',
   inputSchema: (actionKey) =>
     actionKey === 'finish' ? fixtureInput : z.never(),
   requiredCapability: (definition) => definition.requiredCapability,
   prepareAcceptance: (definition) => ({ target: definition.target }),
   actions: (definition) => [{
     key: 'finish',
-    renderer: definition.presentation.renderer,
+    renderer: 'fixture-sect.action.battle',
     label: definition.presentation.actionLabel,
   }],
   execute: async (_actionKey, _context, input) => ({
     completed: input.pass,
-    outcome: { renderer: 'fixture.outcome', data: { pass: input.pass } },
+    outcome: { renderer: 'fixture-sect.outcome', data: { pass: input.pass } },
   }),
 };
 
 class FixtureMaterialRewardStrategy implements SectRewardGrantStrategy {
-  readonly key = 'fixture.material';
+  readonly key = 'fixture-sect.material';
 
   async grant(context: Parameters<SectRewardGrantStrategy['grant']>[0]) {
     if (!context.grant.type || !context.grant.quality)
@@ -47,7 +47,7 @@ class FixtureMaterialRewardStrategy implements SectRewardGrantStrategy {
 }
 
 class FixtureSpiritStoneDonation implements SectDonationSpecification {
-  readonly key = 'fixture.spirit_stones';
+  readonly key = 'fixture-sect.spirit-stones';
 
   async consume(context: Parameters<SectDonationSpecification['consume']>[0]) {
     if (
@@ -70,7 +70,7 @@ export const FIXTURE_SECT_ORGANIZATION_PLUGIN: SectOrganizationPluginManifest = 
   executors: [() => fixtureExecutor],
   settlements: [
     () => new ContributionTaskSettlementStrategy(
-      'fixture.settlement.contribution',
+      'fixture-sect.settlement.contribution',
     ),
   ],
   rewardGrants: [() => new FixtureMaterialRewardStrategy()],

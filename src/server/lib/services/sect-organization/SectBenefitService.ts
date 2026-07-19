@@ -5,16 +5,20 @@ import {
   type SectDiscipleRank,
   type SectOrganizationModule,
 } from '@shared/engine/sect';
-import { SectError } from '../SectError';
 import type {
   SectBenefitQueryContext,
   SectMembershipRecord,
   SectModuleResolver,
 } from './ports';
+import { SectCapabilityAuthorizer } from './SectCapabilityAuthorizer';
 
 type BenefitMembership = Pick<SectMembershipRecord, 'sectId' | 'discipleRank'>;
 
 export class SectBenefitService {
+  constructor(
+    private readonly authorizer = new SectCapabilityAuthorizer(),
+  ) {}
+
   permissionSnapshot(
     membership: BenefitMembership,
     modules: SectModuleResolver,
@@ -29,11 +33,7 @@ export class SectBenefitService {
     capability: SectCapabilityKey,
     modules: SectModuleResolver,
   ): void {
-    this.assertOrganizationPermission(
-      modules.require(membership.sectId),
-      membership.discipleRank,
-      capability,
-    );
+    this.authorizer.assert(membership, capability, modules);
   }
 
   assertOrganizationPermission(
@@ -41,13 +41,7 @@ export class SectBenefitService {
     rank: SectDiscipleRank,
     capability: SectCapabilityKey,
   ): void {
-    if (organization.capabilities.allows(rank, capability)) return;
-    const state = organization.capabilities.snapshot(rank)[capability];
-    throw new SectError(
-      'SECT_ORGANIZATION_INVALID',
-      state?.reason ?? '当前弟子职阶尚无此权限',
-      403,
-    );
+    this.authorizer.assertOrganization(organization, rank, capability);
   }
 
   async getBonuses(cultivatorId: string, context: SectBenefitQueryContext) {
@@ -61,35 +55,46 @@ export class SectBenefitService {
         },
         archiveLevel: 1,
         methodLevelCap: 20,
+        facilityEffects: {},
       };
     const facilities = await context.facilities.list(membership.sectId);
     const levels = new Map(
       facilities.map((item) => [item.facilityKey, item.level]),
     );
-    const organization = context.modules.require(membership.sectId);
+    return this.snapshotForMembership(membership, levels, context.modules);
+  }
+
+  snapshotForMembership(
+    membership: BenefitMembership,
+    levels: ReadonlyMap<string, number>,
+    modules: SectModuleResolver,
+  ) {
+    const organization = modules.require(membership.sectId);
     const rank = membership.discipleRank;
+    const snapshot = organization.benefits.snapshot(levels, rank);
+    const retreatGranted = organization.capabilities.allows(
+      rank,
+      'sect.facility.cultivation.use',
+    );
+    const craftDiscounts = Object.fromEntries(
+      Object.values(SECT_CRAFT_CONTEXTS).map((craftContext) => {
+        const benefit = organization.benefits.craftDiscount(
+          craftContext,
+          levels,
+          rank,
+        );
+        return [
+          craftContext,
+          organization.capabilities.allows(rank, benefit.capability)
+            ? snapshot.craftDiscounts[craftContext] ?? 0
+            : 0,
+        ];
+      }),
+    ) as Record<SectCraftContextKey, number>;
     return {
-      retreatMultiplier: organization.capabilities.allows(
-        rank,
-        'sect.facility.cultivation.use',
-      )
-        ? organization.benefits.retreatMultiplier(levels, rank)
-        : 1,
-      craftDiscounts: Object.fromEntries(
-        Object.values(SECT_CRAFT_CONTEXTS).map((craftContext) => {
-          const benefit = organization.benefits.craftDiscount(
-            craftContext,
-            levels,
-            rank,
-          );
-          return [
-            craftContext,
-            organization.capabilities.allows(rank, benefit.capability)
-              ? benefit.discount
-              : 0,
-          ];
-        }),
-      ) as Record<SectCraftContextKey, number>,
+      retreatMultiplier: retreatGranted ? snapshot.retreatMultiplier : 1,
+      craftDiscounts,
+      facilityEffects: snapshot.facilityEffects,
       archiveLevel: organization.benefits.archiveLevel(levels),
       methodLevelCap: organization.benefits.methodLevelCap(levels),
     };

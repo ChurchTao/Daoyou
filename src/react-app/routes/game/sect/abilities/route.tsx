@@ -1,19 +1,18 @@
 import { SectAbilityDetails } from '@app/components/feature/sect/SectAbilityDetails';
+import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkCard, InkNotice } from '@app/components/ui';
 import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
-import { fetchSectCurrent } from '@app/lib/sect/sectClient';
-import type { SectCurrentData } from '@shared/contracts/sect';
 import {
   createAbilitySlots,
   type CultivatorSectState,
   type SectAbilitySlots,
 } from '@shared/engine/sect';
 import { resolveSectAbility } from '@shared/engine/sect/content';
-import { useEffect, useMemo, useState } from 'react';
-import { SectPageLoading, SectScene } from '../components/SectScene';
+import { useMemo, useState } from 'react';
+import { SectPageLoading, SectPermissionBoundary, SectScene } from '../components/SectScene';
 
 const EMPTY_SLOTS: SectAbilitySlots = [null, null, null, null];
 const SLOT_NAMES = ['', '一', '二', '三'] as const;
@@ -27,35 +26,24 @@ const json = (method: string, body: unknown): RequestInit => ({
 });
 
 export default function SectAbilitiesPage() {
-  const [data, setData] = useState<SectCurrentData>();
-  const [draftSlots, setDraftSlots] = useState<SectAbilitySlots>(EMPTY_SLOTS);
+  return (
+    <SectPermissionBoundary permission="sect.arena.use" title="演武台">
+      <SectAbilitiesBody />
+    </SectPermissionBoundary>
+  );
+}
+
+function SectAbilitiesBody() {
+  const { data, error, setData } = useSectCurrentQuery();
+  const [draftSlots, setDraftSlots] = useState<SectAbilitySlots>(() =>
+    createAbilitySlots(data?.sect?.abilityLoadout ?? []),
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [expandedAbilityId, setExpandedAbilityId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
   const cultivator = useActiveCultivatorProfile();
   const { mutate } = usePlayerStateActions();
   const { pushToast } = useInkUI();
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchSectCurrent()
-      .then((next) => {
-        if (!cancelled) {
-          setData(next);
-          setDraftSlots(createAbilitySlots(next.sect?.abilityLoadout ?? []));
-        }
-      })
-      .catch((reason) => {
-        if (!cancelled)
-          setError(
-            reason instanceof Error ? reason.message : '宗门神通读取失败',
-          );
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const realm = cultivator?.realm ?? '炼气';
   const sect = data?.sect;
@@ -99,9 +87,7 @@ export default function SectAbilitiesPage() {
           json('PUT', { abilityIds: draftSlots }),
         ),
       );
-      setData((current) =>
-        current ? { ...current, sect: result.sect } : current,
-      );
+      if (data) setData({ ...data, sect: result.sect });
       setDraftSlots(createAbilitySlots(result.sect.abilityLoadout));
       pushToast({ message: '宗门神通配置已保存', tone: 'success' });
     } catch (reason) {
@@ -139,9 +125,7 @@ export default function SectAbilitiesPage() {
           json('PUT', { tacticId }),
         ),
       );
-      setData((current) =>
-        current ? { ...current, sect: result.sect } : current,
-      );
+      if (data) setData({ ...data, sect: result.sect });
       pushToast({ message: '自动战术已切换', tone: 'success' });
     } catch (reason) {
       pushToast({

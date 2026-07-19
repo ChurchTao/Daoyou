@@ -2,6 +2,17 @@ import { isPillSpec } from '@shared/lib/consumables';
 import type { ConsumableSpec } from '@shared/types/consumable';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { RealmStage, RealmType } from '@shared/types/constants';
+import type {
+  CultivatorSectState,
+  SectAbilitySlots,
+  SectDefinition,
+} from '../domain';
+import {
+  assertMethodTrainingTarget,
+  isAbilityUnlocked,
+  validateMeridianNodeIds,
+} from '../progression/progression';
+import { createAbilitySlots } from '../presentation/abilityLoadout';
 import {
   realmMeetsSectRank,
   type SectRankRequirement,
@@ -103,5 +114,47 @@ export class MaterialDeliverySpecification
       violations.push('材料品质不足');
     if (candidate.quantity < requirement.quantity) violations.push('材料数量不足');
     return violations;
+  }
+}
+
+export class MethodTrainingSpecification {
+  assert(
+    candidate: Parameters<typeof assertMethodTrainingTarget>[0],
+  ): void {
+    assertMethodTrainingTarget(candidate);
+  }
+}
+
+export class MeridianLoadoutSpecification {
+  validate(
+    candidate: Parameters<typeof validateMeridianNodeIds>[0],
+  ): string[] {
+    return validateMeridianNodeIds(candidate);
+  }
+}
+
+export class AbilityLoadoutSpecification {
+  validate(
+    definition: SectDefinition,
+    sect: CultivatorSectState,
+    rawSlots: Array<string | null>,
+  ): SectAbilitySlots {
+    if (rawSlots.length !== 4)
+      throw new Error('神通栏必须包含四个固定槽位');
+    const slots = createAbilitySlots(rawSlots as SectAbilitySlots);
+    const ids = slots.filter((id): id is string => id !== null);
+    if (new Set(ids).size !== ids.length)
+      throw new Error('神通栏不能包含重复神通');
+    if (
+      ids.some((id) => {
+        const ability = definition.abilities.find((entry) => entry.id === id);
+        return (
+          !ability?.occupiesActiveSlot ||
+          !isAbilityUnlocked(definition, id, sect)
+        );
+      })
+    )
+      throw new Error('神通栏包含未解锁或非宗门神通');
+    return slots;
   }
 }

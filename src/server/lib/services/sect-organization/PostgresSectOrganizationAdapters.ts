@@ -24,6 +24,9 @@ import type {
   SectMembershipCommandContext,
   SectMembershipRepository,
   SectQueryContext,
+  SectAdmissionRepository,
+  SectTraditionRepository,
+  SectTrainingResourceGateway,
 } from './ports';
 import { getSectDateKey, getSectWeekKey } from './SectOrganizationClock';
 
@@ -64,6 +67,109 @@ export const cryptoSectIdGenerator: IdGenerator = {
 function moduleResolver(runtime: SectRuntime) {
   return {
     require: (sectId: string) => runtime.registry.require(sectId).organization,
+  };
+}
+
+function requireTransaction(q: DbExecutor | DbTransaction): DbTransaction {
+  if (!('rollback' in q))
+    throw new Error('宗门写操作必须使用事务绑定 Adapter');
+  return q;
+}
+
+function stateAdapter(
+  q: DbExecutor | DbTransaction,
+  runtime: SectRuntime,
+) {
+  return {
+    load: (cultivatorId: string) =>
+      memberships.loadCultivatorSectState(cultivatorId, q, runtime),
+    loadForSect: (cultivatorId: string, sectId: string) =>
+      memberships.loadCultivatorSectStateForSect(cultivatorId, sectId, q, runtime),
+    listMemberships: (cultivatorId: string) =>
+      memberships.listMemberships(cultivatorId, q),
+  };
+}
+
+export function createPostgresSectAdmissionRepository(args: {
+  q: DbExecutor | DbTransaction;
+  runtime: SectRuntime;
+}): SectAdmissionRepository {
+  const { q, runtime } = args;
+  return {
+    ...stateAdapter(q, runtime),
+    findActiveMembership: (cultivatorId) => memberships.findMembership(cultivatorId, q),
+    findMembershipForSect: (cultivatorId, sectId) =>
+      memberships.findMembershipForSect(cultivatorId, sectId, q),
+    async recordExperience(cultivatorId, sectId, configVersion) {
+      await memberships.recordExperience(
+        cultivatorId,
+        sectId,
+        configVersion,
+        requireTransaction(q),
+      );
+    },
+    activateMembership: (membershipId, definition) =>
+      memberships.activateMembership(membershipId, definition, requireTransaction(q)),
+    ensureFacilities: (sectId, facilities) =>
+      organization.ensureSectFacilities(sectId, facilities, requireTransaction(q)),
+  };
+}
+
+export function createPostgresSectTraditionRepository(args: {
+  q: DbExecutor | DbTransaction;
+  runtime: SectRuntime;
+}): SectTraditionRepository {
+  const { q, runtime } = args;
+  const tx = () => requireTransaction(q);
+  return {
+    ...stateAdapter(q, runtime),
+    setMethodLevel: (membershipId, methodId, level) =>
+      memberships.setMethodLevel(membershipId, methodId, level, tx()),
+    createPathWithFirstLayer: (membershipId, pathId, tacticId, layerId) =>
+      memberships.createPathWithFirstLayer(membershipId, pathId, tacticId, layerId, tx()),
+    appendUnlockedPathLayer: (membershipId, pathId, layerId, expectedCount) =>
+      memberships.appendUnlockedPathLayer(
+        membershipId,
+        pathId,
+        layerId,
+        expectedCount,
+        tx(),
+      ),
+    activatePathIfNone: (membershipId, pathId) =>
+      memberships.activatePathIfNone(membershipId, pathId, tx()),
+    activatePath: (membershipId, pathId) =>
+      memberships.activatePath(membershipId, pathId, tx()),
+    replaceMeridianLoadout: (membershipId, pathId, slot, nodeIds) =>
+      memberships.replaceMeridianLoadout(membershipId, pathId, slot, nodeIds, tx()),
+    activateMeridianLoadout: (membershipId, pathId, slot) =>
+      memberships.activateMeridianLoadout(membershipId, pathId, slot, tx()),
+    replaceAbilityLoadout: (membershipId, slots) =>
+      memberships.replaceAbilityLoadout(membershipId, slots, tx()),
+    setPathTactic: (membershipId, pathId, tacticId) =>
+      memberships.setPathTactic(membershipId, pathId, tacticId, tx()),
+  };
+}
+
+export function createPostgresSectTrainingResourceGateway(args: {
+  q: DbExecutor | DbTransaction;
+  runtime: SectRuntime;
+}): SectTrainingResourceGateway {
+  const { q, runtime } = args;
+  return {
+    load: (cultivatorId) => memberships.loadSectCultivatorProgress(cultivatorId, q),
+    spend: (cultivatorId, cost) =>
+      memberships.spendTrainingResources(cultivatorId, cost, requireTransaction(q)),
+    async methodLevelCap(cultivatorId) {
+      const state = await memberships.loadCultivatorSectState(cultivatorId, q, runtime);
+      if (!state) return 20;
+      const levels = new Map(
+        (await organization.listSectFacilities(state.sectId, q)).map((row) => [
+          row.facilityKey,
+          row.level,
+        ]),
+      );
+      return runtime.registry.require(state.sectId).organization.benefits.methodLevelCap(levels);
+    },
   };
 }
 
@@ -277,6 +383,7 @@ function constructionAdapter(q: DbExecutor | DbTransaction) {
     donatedContribution: (membershipId: string, dateKey: string) =>
       organization.sumSectDonationContributionForDate(membershipId, dateKey, q),
     async recordDonation(input: {
+      id: string;
       membershipId: string;
       projectId: string;
       dateKey: string;
@@ -352,6 +459,7 @@ export function createPostgresSectConstructionContext(args: {
   q: DbExecutor | DbTransaction;
   runtime: SectRuntime;
   clock?: Clock;
+  ids?: IdGenerator;
 }): SectConstructionCommandContext {
   return {
     memberships: membershipAdapter(args.q),
@@ -361,6 +469,7 @@ export function createPostgresSectConstructionContext(args: {
     inventory: inventoryAdapter(args.q),
     modules: moduleResolver(args.runtime),
     clock: args.clock ?? systemSectClock,
+    ids: args.ids ?? cryptoSectIdGenerator,
   };
 }
 

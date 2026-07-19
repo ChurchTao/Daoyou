@@ -1,8 +1,16 @@
 import { InkCard, InkNotice } from '@app/components/ui';
 import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
-import { SectPageLoading, SectScene } from '../components/SectScene';
+import { SectPageLoading, SectPermissionBoundary, SectScene } from '../components/SectScene';
 
 export default function SectGatePage() {
+  return (
+    <SectPermissionBoundary permission="sect.gate.view" title="山门">
+      <SectGateBody />
+    </SectPermissionBoundary>
+  );
+}
+
+function SectGateBody() {
   const { data, error } = useSectCurrentQuery();
   if (!data) return <SectPageLoading message="山门晨钟穿过云海……" />;
   const project = data.overview?.project;

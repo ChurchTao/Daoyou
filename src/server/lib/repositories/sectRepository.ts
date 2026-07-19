@@ -3,7 +3,6 @@ import {
   creationProducts,
   cultivators,
   sectAbilityLoadouts,
-  sectDailyCommissions,
   sectMemberships,
   sectMeridianLoadouts,
   sectMethodProgress,
@@ -504,61 +503,6 @@ export async function setPathTactic(
     );
 }
 
-export async function insertCommissionCompletion(
-  args: { membershipId: string; dateKey: string; completionType: string },
-  tx: DbTransaction,
-): Promise<boolean> {
-  const rows = await tx
-    .insert(sectDailyCommissions)
-    .values({ ...args, completedAt: new Date() })
-    .onConflictDoNothing()
-    .returning({ id: sectDailyCommissions.id });
-  return rows.length === 1;
-}
-
-export async function claimCommission(
-  membershipId: string,
-  dateKey: string,
-  reward: number,
-  tx: DbTransaction,
-): Promise<boolean> {
-  const rows = await tx
-    .update(sectDailyCommissions)
-    .set({ claimedAt: new Date() })
-    .where(
-      and(
-        eq(sectDailyCommissions.membershipId, membershipId),
-        eq(sectDailyCommissions.dateKey, dateKey),
-        sql`${sectDailyCommissions.claimedAt} is null`,
-      ),
-    )
-    .returning({ id: sectDailyCommissions.id });
-  if (!rows.length) return false;
-  await tx
-    .update(sectMemberships)
-    .set({ contribution: sql`${sectMemberships.contribution} + ${reward}` })
-    .where(eq(sectMemberships.id, membershipId));
-  return true;
-}
-
-export async function findCommission(
-  membershipId: string,
-  dateKey: string,
-  q: DbExecutor | DbTransaction,
-) {
-  const [row] = await q
-    .select()
-    .from(sectDailyCommissions)
-    .where(
-      and(
-        eq(sectDailyCommissions.membershipId, membershipId),
-        eq(sectDailyCommissions.dateKey, dateKey),
-      ),
-    )
-    .limit(1);
-  return row ?? null;
-}
-
 export function createSectRepository(
   runtime: SectRuntime = productionSectRuntime,
 ) {
@@ -589,9 +533,6 @@ export function createSectRepository(
     activateMeridianLoadout,
     replaceAbilityLoadout,
     setPathTactic,
-    insertCommissionCompletion,
-    claimCommission,
-    findCommission,
   };
 }
 

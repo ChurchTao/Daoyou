@@ -8,7 +8,7 @@ import {
   type SectTaskDefinition,
 } from '@shared/engine/sect';
 import { SectError } from '../SectError';
-import type { SectDomainEventDispatcher } from './SectDomainEventDispatcher';
+import type { SectDomainEventDispatcherFactory } from './SectDomainEventDispatcher';
 import type {
   SectCommandContext,
   SectMembershipRecord,
@@ -20,6 +20,7 @@ import type {
   SectTaskExecutorRegistry,
 } from './task-executors/SectTaskExecutor';
 import type { SectTaskProgressRegistry } from './SectTaskSettlement';
+import { SectCapabilityAuthorizer } from './SectCapabilityAuthorizer';
 
 function invalid(message: string, status = 409): never {
   throw new SectError('SECT_ORGANIZATION_INVALID', message, status);
@@ -38,12 +39,21 @@ function resolvedExecution(
   definition: SectTaskDefinition,
   context: Pick<SectQueryContext, 'clock'>,
 ) {
-  return (
+  const execution = (
     definition.availability?.resolve({
       dateKey: context.clock.dateKey(),
       weekKey: context.clock.weekKey(),
     }) ?? { executorKey: definition.executorKey }
   );
+  if (
+    definition.availability &&
+    !definition.availability.executorKeys.includes(execution.executorKey)
+  )
+    invalid(
+      `任务 ${definition.id} 返回未声明的执行器：${execution.executorKey}`,
+      500,
+    );
+  return execution;
 }
 
 function syntheticRecord(
@@ -123,6 +133,7 @@ export class GetSectTasksQueryHandler {
   constructor(
     private readonly executors: SectTaskExecutorRegistry,
     private readonly progress: SectTaskProgressRegistry,
+    private readonly authorizer = new SectCapabilityAuthorizer(),
   ) {}
 
   async execute(
@@ -131,6 +142,11 @@ export class GetSectTasksQueryHandler {
   ): Promise<SectTasksData> {
     const membership = await requireMembership(cultivatorId, context);
     const organization = context.modules.require(membership.sectId);
+    this.authorizer.assertOrganization(
+      organization,
+      membership.discipleRank,
+      'sect.tasks.use',
+    );
     const records = await context.tasks.list(membership.id);
     const dateKey = context.clock.dateKey();
     const weekKey = context.clock.weekKey();
@@ -207,7 +223,7 @@ export class GetSectTasksQueryHandler {
 }
 
 export class ProcessSectTaskCompletionHandler {
-  constructor(private readonly events: SectDomainEventDispatcher) {}
+  constructor(private readonly events: SectDomainEventDispatcherFactory) {}
 
   async execute(args: {
     userId: string;
@@ -231,13 +247,12 @@ export class ProcessSectTaskCompletionHandler {
     const completed = await args.context.tasks.complete(args.record.id, args.definition.target);
     if (!completed) invalid('该宗门任务已经完成');
 
-    await this.events.dispatch(aggregate.pullEvents(), {
-      scope: 'task',
+    await this.events.forTask({
       userId: args.userId,
       cultivatorId: args.cultivatorId,
       membership: args.membership,
       command: args.context,
-    });
+    }).dispatch(aggregate.pullEvents());
     return completed;
   }
 }
@@ -246,6 +261,7 @@ export class ExecuteSectTaskActionHandler {
   constructor(
     private readonly executors: SectTaskExecutorRegistry,
     private readonly completion: ProcessSectTaskCompletionHandler,
+    private readonly authorizer = new SectCapabilityAuthorizer(),
   ) {}
 
   async execute(
@@ -266,12 +282,11 @@ export class ExecuteSectTaskActionHandler {
     const execution = resolvedExecution(definition, context);
     const executor = this.executors.require(execution.executorKey);
     const capability = executor.requiredCapability(definition);
-    if (!organization.capabilities.allows(membership.discipleRank, capability))
-      invalid(
-        organization.capabilities.snapshot(membership.discipleRank)[capability]?.reason ??
-          '当前弟子职阶尚不能执行该委托',
-        403,
-      );
+    this.authorizer.assertOrganization(
+      organization,
+      membership.discipleRank,
+      capability,
+    );
     const periodKey = taskPeriodKey(definition, context);
 
     if (command.actionKey === 'accept') {

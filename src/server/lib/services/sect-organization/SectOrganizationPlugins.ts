@@ -14,7 +14,6 @@ import {
 } from './EconomyStrategies';
 import {
   createStandardSectDomainEventDispatcher,
-  type SectDomainEventHandlerContribution,
 } from './SectDomainEventDispatcher';
 import {
   CompletedDailyTaskProgressStrategy,
@@ -45,7 +44,6 @@ export interface SectOrganizationPluginManifest {
   readonly progress?: readonly (() => SectTaskProgressStrategy)[];
   readonly rewardGrants?: readonly (() => SectRewardGrantStrategy)[];
   readonly donations?: readonly (() => SectDonationSpecification)[];
-  readonly eventHandlers?: readonly SectDomainEventHandlerContribution[];
 }
 
 export const CORE_SECT_ORGANIZATION_PLUGIN: SectOrganizationPluginManifest = {
@@ -94,6 +92,16 @@ function allTasks(organization: SectOrganizationModule) {
   ];
 }
 
+function assertContributionNamespace(
+  sectId: string,
+  key: string,
+  label: string,
+): void {
+  const prefix = sectId === '*' ? 'sect.' : `${sectId}.`;
+  if (!key.startsWith(prefix))
+    throw new Error(`${label} ${key} 必须使用 ${prefix} 命名空间`);
+}
+
 export function composeSectOrganizationPlugins(args: {
   organizations: readonly { sectId: string; organization: SectOrganizationModule }[];
   manifests: readonly SectOrganizationPluginManifest[];
@@ -111,33 +119,43 @@ export function composeSectOrganizationPlugins(args: {
     if (!manifests.has(sectId))
       throw new Error(`宗门缺少服务端插件：${sectId}`);
 
-  const contributions = args.manifests.flatMap((manifest) => manifest.executors ?? []);
-  const settlementContributions = args.manifests.flatMap(
-    (manifest) => manifest.settlements ?? [],
+  const contributions = args.manifests.flatMap((manifest) =>
+    (manifest.executors ?? []).map((create) => ({ manifest, value: create() })),
   );
-  const progressContributions = args.manifests.flatMap(
-    (manifest) => manifest.progress ?? [],
+  const settlementContributions = args.manifests.flatMap((manifest) =>
+    (manifest.settlements ?? []).map((create) => ({ manifest, value: create() })),
   );
-  const rewardContributions = args.manifests.flatMap(
-    (manifest) => manifest.rewardGrants ?? [],
+  const progressContributions = args.manifests.flatMap((manifest) =>
+    (manifest.progress ?? []).map((create) => ({ manifest, value: create() })),
   );
-  const donationContributions = args.manifests.flatMap(
-    (manifest) => manifest.donations ?? [],
+  const rewardContributions = args.manifests.flatMap((manifest) =>
+    (manifest.rewardGrants ?? []).map((create) => ({ manifest, value: create() })),
   );
+  const donationContributions = args.manifests.flatMap((manifest) =>
+    (manifest.donations ?? []).map((create) => ({ manifest, value: create() })),
+  );
+  for (const { manifest, value } of [
+    ...contributions,
+    ...settlementContributions,
+    ...progressContributions,
+    ...rewardContributions,
+    ...donationContributions,
+  ])
+    assertContributionNamespace(manifest.sectId, value.key, '宗门插件 key');
   const executors = new SectTaskExecutorRegistry(
-    contributions.map((create) => create()),
+    contributions.map(({ value }) => value),
   );
   const settlements = new SectTaskSettlementRegistry(
-    settlementContributions.map((create) => create()),
+    settlementContributions.map(({ value }) => value),
   );
   const progress = new SectTaskProgressRegistry(
-    progressContributions.map((create) => create()),
+    progressContributions.map(({ value }) => value),
   );
   const rewardGrants = new SectRewardGrantStrategyRegistry(
-    rewardContributions.map((create) => create()),
+    rewardContributions.map(({ value }) => value),
   );
   const donations = new SectDonationSpecificationRegistry(
-    donationContributions.map((create) => create()),
+    donationContributions.map(({ value }) => value),
   );
 
   for (const { sectId, organization } of args.organizations) {
@@ -159,20 +177,12 @@ export function composeSectOrganizationPlugins(args: {
           `宗门 ${sectId} 的任务 ${task.id} 缺少进度策略：${task.progress.strategy}`,
         );
     }
-    for (const weekKey of ['validation-even', 'validation-odd'])
-      for (const item of organization.economy.shopItems(weekKey))
-        if (!rewardGrants.has(item.grant.kind))
-          throw new Error(`宗门 ${sectId} 的商品 ${item.id} 缺少奖励策略：${item.grant.kind}`);
-    for (const dateKey of ['2026-01-01', '2026-01-02'])
-      for (const demand of organization.economy.donationDemands(sectId, dateKey))
-        if (!donations.has(demand.kind))
-          throw new Error(`宗门 ${sectId} 的需求 ${demand.id} 缺少捐献策略：${demand.kind}`);
-    for (const rank of ['registered', 'outer', 'inner', 'true'] as const)
-      for (const reward of organization.economy.stipendRewards(rank, 5))
-        if (!rewardGrants.has(reward.grant.kind))
-          throw new Error(
-            `宗门 ${sectId} 的 ${rank} 周俸缺少奖励策略：${reward.grant.kind}`,
-          );
+    for (const kind of new Set(organization.economy.rewardGrantKinds))
+      if (!rewardGrants.has(kind))
+        throw new Error(`宗门 ${sectId} 缺少奖励策略：${kind}`);
+    for (const kind of new Set(organization.economy.donationKinds))
+      if (!donations.has(kind))
+        throw new Error(`宗门 ${sectId} 缺少捐献策略：${kind}`);
   }
 
   return {
@@ -185,9 +195,6 @@ export function composeSectOrganizationPlugins(args: {
       settlements,
       progress,
       rewards: rewardGrants,
-      contributions: args.manifests.flatMap(
-        (manifest) => manifest.eventHandlers ?? [],
-      ),
     }),
   };
 }

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 describe('sect sweep iframe lifecycle boundary', () => {
   it('isolates each session and validates the message envelope', () => {
     const overlay = readFileSync(
-      'src/react-app/routes/game/sect/affairs/SweepGameOverlay.tsx',
+      'src/react-app/components/feature/sect/SweepGameOverlay.tsx',
       'utf8',
     );
     const runtime = readFileSync(

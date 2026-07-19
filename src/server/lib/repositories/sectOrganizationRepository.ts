@@ -705,6 +705,7 @@ export async function sumSectDonationContributionForDate(
 
 export async function insertSectDonation(
   input: {
+    id: string;
     membershipId: string;
     projectId: string;
     dateKey: string;

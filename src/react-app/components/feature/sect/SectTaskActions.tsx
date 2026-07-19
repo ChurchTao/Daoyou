@@ -3,29 +3,19 @@ import {
   useInventorySnapshot,
   useProductsSnapshot,
 } from '@app/lib/player-state/selectors';
-import type {
-  SectTaskActionData,
-  SectTaskViewData,
-} from '@shared/contracts/sect';
+import type { SectTaskViewData } from '@shared/contracts/sect';
 import { useMemo, useState } from 'react';
+import { useSectTaskInteraction } from './SectTaskInteractionProvider';
 
 export type SectTaskViewAction = SectTaskViewData['actions'][number];
 
 export interface SectTaskActionRendererProps {
   task: SectTaskViewData;
   action: SectTaskViewAction;
-  busy: boolean;
-  execute: (
-    task: SectTaskViewData,
-    action: SectTaskViewAction,
-    input: Record<string, unknown>,
-    message: string,
-  ) => Promise<SectTaskActionData | undefined>;
-  startBattle: (task: SectTaskViewData) => void;
-  startSweep: (task: SectTaskViewData) => void;
 }
 
-export function AcceptAction({ task, action, busy, execute }: SectTaskActionRendererProps) {
+export function AcceptAction({ task, action }: SectTaskActionRendererProps) {
+  const { busy, execute } = useSectTaskInteraction();
   return (
     <InkButton
       variant="primary"
@@ -37,24 +27,32 @@ export function AcceptAction({ task, action, busy, execute }: SectTaskActionRend
   );
 }
 
-export function BattleAction({ task, action, busy, startBattle }: SectTaskActionRendererProps) {
+export function BattleAction({ task, action }: SectTaskActionRendererProps) {
+  const { busy, navigate } = useSectTaskInteraction();
   return (
     <InkButton
       variant="primary"
       disabled={busy || !action.enabled}
-      onClick={() => startBattle(task)}
+      onClick={() =>
+        navigate(
+          `/game/sect/tasks/${encodeURIComponent(task.definitionId)}/battle?attemptId=${crypto.randomUUID()}`,
+        )
+      }
     >
       {action.enabled ? action.label : action.disabledReason ?? '尚未解锁'}
     </InkButton>
   );
 }
 
-export function SweepAction({ task, action, busy, startSweep }: SectTaskActionRendererProps) {
+export function SweepAction({ task, action }: SectTaskActionRendererProps) {
+  const { busy, execute } = useSectTaskInteraction();
   return (
     <InkButton
       variant="primary"
       disabled={busy || !action.enabled}
-      onClick={() => startSweep(task)}
+      onClick={() =>
+        void execute(task, action, {}, `「${task.presentation.title}」清扫场已开启`)
+      }
     >
       {action.enabled ? action.label : action.disabledReason ?? '尚未解锁'}
     </InkButton>
@@ -62,6 +60,7 @@ export function SweepAction({ task, action, busy, startSweep }: SectTaskActionRe
 }
 
 export function ItemDeliveryAction(props: SectTaskActionRendererProps) {
+  const { busy, execute } = useSectTaskInteraction();
   const inventory = useInventorySnapshot();
   const products = useProductsSnapshot();
   const [itemId, setItemId] = useState('');
@@ -97,9 +96,9 @@ export function ItemDeliveryAction(props: SectTaskActionRendererProps) {
       </InkSelect>
       <InkButton
         variant="primary"
-        disabled={props.busy || !props.action.enabled || !itemId}
+        disabled={busy || !props.action.enabled || !itemId}
         onClick={() =>
-          void props.execute(
+          void execute(
             props.task,
             props.action,
             { itemId, quantity },

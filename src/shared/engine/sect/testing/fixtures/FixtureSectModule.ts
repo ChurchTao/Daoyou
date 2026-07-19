@@ -54,10 +54,10 @@ const fixtureOrganization: SectOrganizationModule = {
         kind: 'daily',
         requiredCapability: 'sect.tasks.use',
         contributionReward: 3,
-        executorKey: 'fixture.battle',
+        executorKey: 'fixture-sect.battle',
         completion: [
           {
-            strategy: 'fixture.settlement.contribution',
+            strategy: 'fixture-sect.settlement.contribution',
             input: { amount: 3, reason: 'fixture_task' },
           },
         ],
@@ -65,7 +65,6 @@ const fixtureOrganization: SectOrganizationModule = {
           title: '夹具巡山',
           description: '仅用于验证内容模块替换。',
           rewardSummary: '3 宗门贡献',
-          renderer: 'fixture.action.battle',
           actionLabel: '开始巡山',
         },
         target: 1,
@@ -80,10 +79,10 @@ const fixtureOrganization: SectOrganizationModule = {
             kind: 'daily',
             requiredCapability: 'sect.tasks.use',
             contributionReward: 3,
-            executorKey: 'fixture.battle',
+            executorKey: 'fixture-sect.battle',
             completion: [
               {
-                strategy: 'fixture.settlement.contribution',
+                strategy: 'fixture-sect.settlement.contribution',
                 input: { amount: 3, reason: 'fixture_task' },
               },
             ],
@@ -91,7 +90,6 @@ const fixtureOrganization: SectOrganizationModule = {
               title: '夹具巡山',
               description: '仅用于验证内容模块替换。',
               rewardSummary: '3 宗门贡献',
-              renderer: 'fixture.action.battle',
               actionLabel: '开始巡山',
             },
             target: 1,
@@ -101,6 +99,8 @@ const fixtureOrganization: SectOrganizationModule = {
   },
   economy: {
     donationDailyCap: 1,
+    rewardGrantKinds: ['sect.reward.spirit-stones', 'fixture-sect.material'] as const,
+    donationKinds: ['fixture-sect.spirit-stones'] as const,
     shopItems: () => [
       {
         id: 'fixture_herb',
@@ -109,7 +109,7 @@ const fixtureOrganization: SectOrganizationModule = {
         stock: 1,
         rotating: false,
         grant: {
-          kind: 'fixture.material',
+          kind: 'fixture-sect.material',
           name: '夹具灵草',
           type: 'herb',
           quality: '凡品',
@@ -122,7 +122,7 @@ const fixtureOrganization: SectOrganizationModule = {
         id: 'fixture_stones',
         name: '夹具星砂资粮',
         description: '提交一份灵石以校验可扩展捐献。',
-        kind: 'fixture.spirit_stones',
+        kind: 'fixture-sect.spirit-stones',
         quantity: 1,
         contribution: 1,
         constructionPoints: 1,
@@ -132,7 +132,7 @@ const fixtureOrganization: SectOrganizationModule = {
     stipendRewards: () => [{
       quantity: 1,
       grant: {
-        kind: 'fixture.material',
+        kind: 'fixture-sect.material',
         name: '样例灵草',
         type: 'herb',
         quality: '凡品',
@@ -156,6 +156,14 @@ const fixtureOrganization: SectOrganizationModule = {
   },
   battles: { get: () => undefined },
   benefits: {
+    snapshot: () => ({
+      retreatMultiplier: 1,
+      craftDiscounts: {
+        'sect.craft.alchemy': 0,
+        'sect.craft.refinery': 0,
+      },
+      facilityEffects: {},
+    }),
     archiveLevel: (levels) => levels.get('fixture_observatory') ?? 1,
     methodLevelCap: () => 7,
     gardenLevel: (levels) => levels.get('herb_garden') ?? 1,

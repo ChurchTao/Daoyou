@@ -3,11 +3,20 @@ import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvi
 import { PathsTab } from '../components/PathsTab';
 import {
   SectPageLoading,
+  SectPermissionBoundary,
   SectScene,
   useSectMutation,
 } from '../components/SectScene';
 
 export default function SectEnlightenmentCliffPage() {
+  return (
+    <SectPermissionBoundary permission="sect.enlightenment.use" title="悟道崖">
+      <SectEnlightenmentCliffBody />
+    </SectPermissionBoundary>
+  );
+}
+
+function SectEnlightenmentCliffBody() {
   const { data, error, invalidate: reload } = useSectCurrentQuery();
   const cultivator = useActiveCultivatorProfile();
   const { busy, run } = useSectMutation(reload);

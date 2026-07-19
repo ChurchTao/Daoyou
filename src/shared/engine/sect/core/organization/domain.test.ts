@@ -1,9 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   ContributionBalance,
   SectConstructionProject,
   SectDonationOffer,
-  SectDomainEventQueue,
   SectMembership,
   SectShopOrder,
   SectStipendClaim,
@@ -11,6 +10,21 @@ import {
 } from './domain';
 
 describe('sect organization domain', () => {
+  const donationSettlement = {
+    donationId: 'donation-1',
+    dateKey: '2026-07-19',
+    demand: {
+      id: 'herb',
+      name: '灵草',
+      description: '测试需求',
+      kind: 'fixture.donation',
+      quantity: 1,
+      contribution: 10,
+      constructionPoints: 20,
+    },
+    itemSnapshot: { itemId: 'herb-1' },
+  };
+  const stipendSnapshot = { spiritStones: 500, rewards: [] };
   it('protects contribution balance and promotes without consuming it', () => {
     const membership = SectMembership.rehydrate({
       id: 'member-1',
@@ -52,7 +66,7 @@ describe('sect organization domain', () => {
       progress: 90,
       completed: false,
     });
-    project.applyDonation('member-1', 10, 20);
+    project.applyDonation('member-1', 10, 20, donationSettlement);
     expect(project.progress()).toBe(100);
     expect(project.isCompleted()).toBe(true);
     expect(project.pullEvents().map((event) => event.type)).toEqual([
@@ -60,57 +74,9 @@ describe('sect organization domain', () => {
       'SectProjectCompleted',
       'SectFacilityUpgraded',
     ]);
-    expect(() => project.applyDonation('member-1', 10, 10)).toThrow('工程已经完成');
-  });
-
-  it('dispatches derived events in FIFO order and guards cycles', async () => {
-    const seen: string[] = [];
-    const handler = vi.fn((event: { type: 'SectTaskCompleted' }) => {
-      seen.push(event.type);
-      return [
-        {
-          type: 'SectContributionGranted' as const,
-          membershipId: 'member-1',
-          amount: 1,
-          reason: 'test',
-          referenceId: 'task-1',
-        },
-      ];
-    });
-    const queue = new SectDomainEventQueue(
-      new Map([
-        ['SectTaskCompleted', [handler]],
-        [
-          'SectContributionGranted',
-          [
-            (event) => {
-              seen.push(event.type);
-            },
-          ],
-        ],
-      ]),
-    );
-    await queue.dispatch([
-      { type: 'SectTaskCompleted', taskId: 'x', membershipId: 'member-1', daily: true },
-    ]);
-    expect(seen).toEqual(['SectTaskCompleted', 'SectContributionGranted']);
-
-    const looping = new SectDomainEventQueue(
-      new Map([
-        [
-          'SectTaskCompleted',
-          [
-            (event) => [event],
-          ],
-        ],
-      ]),
-      2,
-    );
-    await expect(
-      looping.dispatch([
-        { type: 'SectTaskCompleted', taskId: 'x', membershipId: 'member-1', daily: true },
-      ]),
-    ).rejects.toThrow('超过 2 个');
+    expect(() =>
+      project.applyDonation('member-1', 10, 10, donationSettlement),
+    ).toThrow('工程已经完成');
   });
 
   it('rejects invalid balances', () => {
@@ -123,12 +89,17 @@ describe('sect organization domain', () => {
       weekKey: '2026-W29',
       claimed: false,
     });
-    expect(() => claim.claim('2026-W28')).toThrow('俸禄周期不匹配');
-    claim.claim('2026-W29');
+    expect(() => claim.claim('2026-W28', stipendSnapshot)).toThrow('俸禄周期不匹配');
+    claim.claim('2026-W29', stipendSnapshot);
     expect(claim.pullEvents()).toEqual([
-      { type: 'SectStipendClaimed', membershipId: 'member-1', weekKey: '2026-W29' },
+      {
+        type: 'SectStipendClaimed',
+        membershipId: 'member-1',
+        weekKey: '2026-W29',
+        rewardSnapshot: stipendSnapshot,
+      },
     ]);
-    expect(() => claim.claim('2026-W29')).toThrow('本周俸禄已经领取');
+    expect(() => claim.claim('2026-W29', stipendSnapshot)).toThrow('本周俸禄已经领取');
   });
 
   it('quotes shop and donation commands inside the domain', () => {

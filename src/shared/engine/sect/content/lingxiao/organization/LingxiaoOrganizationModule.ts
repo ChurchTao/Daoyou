@@ -1,5 +1,10 @@
 import type { PillSpec } from '@shared/types/consumable';
 import {
+  getRealmStageAttributeBudget,
+  getRealmStageRank,
+} from '@shared/config/realmProgression';
+import type { Attributes, Cultivator } from '@shared/types/cultivator';
+import {
   StandardSectCapabilityPolicy,
   SECT_CRAFT_CONTEXTS,
   type SectBattleScenarioCatalog,
@@ -45,14 +50,12 @@ function taskPresentation(
   title: string,
   description: string,
   contribution: number,
-  renderer: string,
   actionLabel: string,
 ) {
   return {
     title,
     description,
     rewardSummary: contribution > 0 ? `${contribution} 宗门贡献` : '晋升资格',
-    renderer,
     actionLabel,
   };
 }
@@ -111,7 +114,7 @@ const tasks: readonly SectTaskDefinition[] = [
     contributionReward: 25,
     executorKey: 'sect.sweep',
     completion: taskCompletion(25, 'daily'),
-    presentation: taskPresentation('清扫山门', '循落叶纹路清理云阶，完成一轮山门勤务。', 25, 'sect.action.sweep', '进入云阶清扫'),
+    presentation: taskPresentation('清扫山门', '循落叶纹路清理云阶，完成一轮山门勤务。', 25, '进入云阶清扫'),
     target: 1,
   },
   {
@@ -121,7 +124,7 @@ const tasks: readonly SectTaskDefinition[] = [
     contributionReward: 30,
     executorKey: 'sect.battle',
     completion: taskCompletion(30, 'daily'),
-    presentation: taskPresentation('巡视矿场', '前往宗门矿脉驱逐侵扰妖兽。', 30, 'sect.action.battle', '前往迎战'),
+    presentation: taskPresentation('巡视矿场', '前往宗门矿脉驱逐侵扰妖兽。', 30, '前往迎战'),
     target: 1,
   },
   {
@@ -131,7 +134,7 @@ const tasks: readonly SectTaskDefinition[] = [
     contributionReward: 35,
     executorKey: 'sect.delivery.pill',
     completion: taskCompletion(35, 'daily'),
-    presentation: taskPresentation('丹药委托', '提交一枚有效丹药，补充宗门日常储备。', 35, 'sect.action.item-delivery', '确认交付'),
+    presentation: taskPresentation('丹药委托', '提交一枚有效丹药，补充宗门日常储备。', 35, '确认交付'),
     target: 1,
   },
   {
@@ -141,7 +144,7 @@ const tasks: readonly SectTaskDefinition[] = [
     contributionReward: 45,
     executorKey: 'sect.delivery.artifact',
     completion: taskCompletion(45, 'daily'),
-    presentation: taskPresentation('法宝委托', '提交一件未装备的凡品以上法宝，交由宗门统一调度。', 45, 'sect.action.item-delivery', '确认交付'),
+    presentation: taskPresentation('法宝委托', '提交一件未装备的凡品以上法宝，交由宗门统一调度。', 45, '确认交付'),
     target: 1,
   },
   {
@@ -151,7 +154,7 @@ const tasks: readonly SectTaskDefinition[] = [
     contributionReward: 20,
     executorKey: 'sect.progress',
     completion: taskCompletion(20, 'weekly'),
-    presentation: taskPresentation('勤务周录', '一周完成五次宗门日常。', 20, 'sect.action.progress', '查看进度'),
+    presentation: taskPresentation('勤务周录', '一周完成五次宗门日常。', 20, '查看进度'),
     completionTags: ['weekly.diligence'],
     progress: {
       strategy: 'sect.progress.completed-daily',
@@ -166,7 +169,7 @@ const tasks: readonly SectTaskDefinition[] = [
     contributionReward: 40,
     executorKey: 'sect.battle',
     completion: taskCompletion(40, 'weekly'),
-    presentation: taskPresentation('宗门小比', '在试剑傀儡前验证本周修行。', 40, 'sect.action.battle', '参加小比'),
+    presentation: taskPresentation('宗门小比', '在试剑傀儡前验证本周修行。', 40, '参加小比'),
     completionTags: ['promotion.tournament'],
     target: 1,
   },
@@ -177,7 +180,7 @@ const tasks: readonly SectTaskDefinition[] = [
     contributionReward: 60,
     executorKey: 'sect.battle',
     completion: taskCompletion(60, 'weekly'),
-    presentation: taskPresentation('悬赏令', '追缉叛徒残影或交付稀有材料。', 60, 'sect.action.battle', '执行悬赏'),
+    presentation: taskPresentation('悬赏令', '追缉叛徒残影或交付稀有材料。', 60, '执行悬赏'),
     availability: bountyAvailability,
     completionTags: ['promotion.bounty'],
     target: 1,
@@ -189,7 +192,7 @@ const tasks: readonly SectTaskDefinition[] = [
     contributionReward: 0,
     executorKey: 'sect.battle',
     completion: taskCompletion(0, 'promotion'),
-    presentation: taskPresentation('长老试炼', '击败传功长老剑影，取得真传资格。', 0, 'sect.action.battle', '挑战长老试炼'),
+    presentation: taskPresentation('长老试炼', '击败传功长老剑影，取得真传资格。', 0, '挑战长老试炼'),
     completionTags: ['promotion.elder_trial'],
     target: 1,
   },
@@ -252,7 +255,7 @@ const shopItems: readonly SectShopDefinition[] = [
     stock: 8,
     rotating: false,
     grant: {
-      kind: 'material',
+      kind: 'sect.reward.material',
       name: '青露草',
       type: 'herb',
       quality: '凡品',
@@ -267,7 +270,7 @@ const shopItems: readonly SectShopDefinition[] = [
     stock: 3,
     rotating: false,
     grant: {
-      kind: 'pill',
+      kind: 'sect.reward.pill',
       name: '宗门回气丹',
       quality: '凡品',
       description: '宗门制式回气丹，可恢复少量法力。',
@@ -281,7 +284,7 @@ const shopItems: readonly SectShopDefinition[] = [
     stock: 5,
     rotating: false,
     grant: {
-      kind: 'material',
+      kind: 'sect.reward.material',
       name: '百炼铁木',
       type: 'aux',
       quality: '玄品',
@@ -296,7 +299,7 @@ const shopItems: readonly SectShopDefinition[] = [
     stock: 2,
     rotating: true,
     grant: {
-      kind: 'pill',
+      kind: 'sect.reward.pill',
       name: '玉髓回春丹',
       quality: '玄品',
       description: '内门储备的疗伤丹药。',
@@ -310,7 +313,7 @@ const shopItems: readonly SectShopDefinition[] = [
     stock: 2,
     rotating: true,
     grant: {
-      kind: 'material',
+      kind: 'sect.reward.material',
       name: '凌霄云铁',
       type: 'ore',
       quality: '真品',
@@ -325,7 +328,7 @@ const shopItems: readonly SectShopDefinition[] = [
     stock: 1,
     rotating: true,
     grant: {
-      kind: 'pill',
+      kind: 'sect.reward.pill',
       name: '凌霄蕴神丹',
       quality: '真品',
       description: '真传弟子方可兑换的高阶回气丹。',
@@ -336,6 +339,17 @@ const shopItems: readonly SectShopDefinition[] = [
 
 class LingxiaoEconomyPolicy implements SectEconomyPolicy {
   readonly donationDailyCap = 60;
+  readonly rewardGrantKinds = [
+    'sect.reward.spirit-stones',
+    'sect.reward.material',
+    'sect.reward.pill',
+  ] as const;
+  readonly donationKinds = [
+    'sect.donation.spirit-stones',
+    'sect.donation.material',
+    'sect.donation.pill',
+    'sect.donation.artifact',
+  ] as const;
 
   shopItems(weekKey: string): readonly SectShopDefinition[] {
     const rotating = shopItems.filter((item) => item.rotating);
@@ -358,7 +372,7 @@ class LingxiaoEconomyPolicy implements SectEconomyPolicy {
         id: 'spirit_stones',
         name: '修缮灵石',
         description: '提交 1000 灵石用于阵纹与工料周转。',
-        kind: 'spirit_stones',
+        kind: 'sect.donation.spirit-stones',
         quantity: 1000,
         contribution: 10,
         constructionPoints: 10,
@@ -367,7 +381,7 @@ class LingxiaoEconomyPolicy implements SectEconomyPolicy {
         id: 'herb_bundle',
         name: '灵草束',
         description: '提交两份凡品以上灵草。',
-        kind: 'material',
+        kind: 'sect.donation.material',
         quantity: 2,
         contribution: 15,
         constructionPoints: 15,
@@ -378,7 +392,7 @@ class LingxiaoEconomyPolicy implements SectEconomyPolicy {
             id: 'artifact_supply',
             name: '备用法宝',
             description: '提交一件未装备的凡品以上法宝。',
-            kind: 'artifact',
+            kind: 'sect.donation.artifact',
             quantity: 1,
             contribution: 40,
             constructionPoints: 40,
@@ -388,7 +402,7 @@ class LingxiaoEconomyPolicy implements SectEconomyPolicy {
             id: 'pill_supply',
             name: '丹药补给',
             description: `提交一枚凡品以上${seed % 4 === 1 ? '疗伤类' : '回气类'}有效丹药。`,
-            kind: 'pill',
+            kind: 'sect.donation.pill',
             quantity: 1,
             contribution: 25,
             constructionPoints: 25,
@@ -413,7 +427,7 @@ class LingxiaoEconomyPolicy implements SectEconomyPolicy {
       {
         quantity: gardenLevel,
         grant: {
-          kind: 'material',
+          kind: 'sect.reward.material',
           name: rank === 'true' ? '凌霄灵蕴草' : '宗门灵草',
           type: 'herb',
           quality: rank === 'true' ? '真品' : '凡品',
@@ -421,14 +435,14 @@ class LingxiaoEconomyPolicy implements SectEconomyPolicy {
           description: '宗门药田按周分发的修行灵草。',
         },
       },
-      ...(rank === 'outer' && outerPill?.kind === 'pill'
+      ...(rank === 'outer' && outerPill?.kind === 'sect.reward.pill'
         ? [{ quantity: 1, grant: outerPill }]
         : []),
       ...(rank === 'inner'
         ? [{
             quantity: 3,
             grant: {
-              kind: 'material',
+              kind: 'sect.reward.material',
               name: '百炼铁木',
               type: 'aux' as const,
               quality: '玄品' as const,
@@ -488,27 +502,88 @@ function opponentFactory(options: {
   return {
     prefersMemberMirror: options.prefersMemberMirror ?? false,
     create({ player, mirror, opponentId }) {
-      const source = options.prefersMemberMirror && mirror ? mirror : player;
-      const opponent = structuredClone(source);
-      opponent.id = opponentId;
-      opponent.name = options.prefersMemberMirror && !mirror ? `无名${options.name}` : options.name;
-      opponent.title = '宗门试炼残影';
-      opponent.attributes = {
-        vitality: Math.max(1, Math.floor(source.attributes.vitality * options.multiplier)),
-        spirit: Math.max(1, Math.floor(source.attributes.spirit * options.multiplier)),
-        wisdom: Math.max(1, Math.floor(source.attributes.wisdom * options.multiplier)),
-        speed: Math.max(1, Math.floor(source.attributes.speed * options.multiplier)),
-        willpower: Math.max(1, Math.floor(source.attributes.willpower * options.multiplier)),
-      };
-      if (!mirror) {
-        opponent.sect = undefined;
-        opponent.skills = [];
-        opponent.cultivations = [];
-        opponent.inventory = { ...opponent.inventory, artifacts: [] };
-      }
+      const opponent = options.prefersMemberMirror && mirror
+        ? createMirrorOpponent(mirror, opponentId, options.name, options.multiplier)
+        : createRealmNpcOpponent(
+            player,
+            opponentId,
+            options.prefersMemberMirror ? `无名${options.name}` : options.name,
+            options.multiplier,
+          );
       return { opponent, title: options.title };
     },
   };
+}
+
+const ATTRIBUTE_KEYS = [
+  'vitality',
+  'spirit',
+  'wisdom',
+  'speed',
+  'willpower',
+] as const;
+
+function scaledRealmAttributes(
+  player: Pick<Cultivator, 'realm' | 'realm_stage'>,
+  multiplier: number,
+): Attributes {
+  const budget = getRealmStageAttributeBudget(player.realm, player.realm_stage);
+  const base = Math.floor(budget / ATTRIBUTE_KEYS.length);
+  const remainder = budget % ATTRIBUTE_KEYS.length;
+  return Object.fromEntries(
+    ATTRIBUTE_KEYS.map((key, index) => [
+      key,
+      Math.max(1, Math.floor((base + (index < remainder ? 1 : 0)) * multiplier)),
+    ]),
+  ) as unknown as Attributes;
+}
+
+function createRealmNpcOpponent(
+  player: Pick<Cultivator, 'realm' | 'realm_stage'>,
+  opponentId: string,
+  name: string,
+  multiplier: number,
+): Cultivator {
+  const realmRank = getRealmStageRank(player.realm, player.realm_stage);
+  return {
+    id: opponentId,
+    name,
+    title: '宗门试炼残影',
+    gender: '男',
+    race: '人族',
+    realm: player.realm,
+    realm_stage: player.realm_stage,
+    age: 24 + realmRank * 12,
+    lifespan: 120 + realmRank * 45,
+    attributes: scaledRealmAttributes(player, multiplier),
+    unallocated_attribute_points: 0,
+    spiritual_roots: [],
+    pre_heaven_fates: [],
+    cultivations: [],
+    skills: [],
+    inventory: { artifacts: [], consumables: [], materials: [] },
+    equipped: { weapon: null, armor: null, accessory: null },
+    spirit_stones: 0,
+  };
+}
+
+function createMirrorOpponent(
+  source: Cultivator,
+  opponentId: string,
+  name: string,
+  multiplier: number,
+): Cultivator {
+  const opponent = structuredClone(source);
+  opponent.id = opponentId;
+  opponent.name = name;
+  opponent.title = '宗门试炼残影';
+  opponent.attributes = Object.fromEntries(
+    ATTRIBUTE_KEYS.map((key) => [
+      key,
+      Math.max(1, Math.floor(source.attributes[key] * multiplier)),
+    ]),
+  ) as unknown as Attributes;
+  return opponent;
 }
 
 const battleScenarios = new Map<string, SectOpponentFactory>([
@@ -573,6 +648,72 @@ class LingxiaoRankPolicy implements SectRankPolicy {
 }
 
 class LingxiaoBenefitPolicy implements SectBenefitPolicy {
+  snapshot(
+    levels: ReadonlyMap<string, number>,
+    rank: SectDiscipleRank,
+  ) {
+    const cultivationLevel = this.level(levels, 'cultivation_room');
+    const workshopLevel = this.level(levels, 'workshop');
+    const spiritVeinLevel = this.level(levels, 'spirit_vein');
+    const herbGardenLevel = this.level(levels, 'herb_garden');
+    const alchemy = this.craftDiscount(SECT_CRAFT_CONTEXTS.alchemy, levels, rank).discount;
+    const refinery = this.craftDiscount(SECT_CRAFT_CONTEXTS.refinery, levels, rank).discount;
+    const retreatMultiplier = this.retreatMultiplier(levels);
+    return {
+      retreatMultiplier,
+      craftDiscounts: {
+        [SECT_CRAFT_CONTEXTS.alchemy]: alchemy,
+        [SECT_CRAFT_CONTEXTS.refinery]: refinery,
+      },
+      facilityEffects: {
+        cultivation_room: {
+          renderer: 'sect.benefit.retreat',
+          summary: `闭关修为提高 ${Math.round((retreatMultiplier - 1) * 100)}%`,
+          metrics: [
+            { key: 'level', label: '修炼室等级', value: cultivationLevel, format: 'number' as const },
+            { key: 'retreat_bonus', label: '闭关修为加成', value: cultivationLevel * 0.02, format: 'percent' as const },
+          ],
+        },
+        alchemy: {
+          renderer: 'sect.benefit.craft',
+          summary: `炼丹灵石消耗减免 ${Math.round(alchemy * 100)}%`,
+          metrics: [
+            { key: 'level', label: '丹器坊等级', value: workshopLevel, format: 'number' as const },
+            { key: 'discount', label: '炼丹灵石减免', value: alchemy, format: 'percent' as const },
+          ],
+        },
+        refinery: {
+          renderer: 'sect.benefit.craft',
+          summary: `炼器灵石消耗减免 ${Math.round(refinery * 100)}%`,
+          metrics: [
+            { key: 'level', label: '丹器坊等级', value: workshopLevel, format: 'number' as const },
+            { key: 'discount', label: '炼器灵石减免', value: refinery, format: 'percent' as const },
+          ],
+        },
+        spirit_vein: {
+          renderer: 'sect.benefit.stipend',
+          summary: `周俸灵石提高 ${spiritVeinLevel * 5}%`,
+          metrics: [
+            { key: 'level', label: '灵脉等级', value: spiritVeinLevel, format: 'number' as const },
+            { key: 'stipend_bonus', label: '俸禄灵石加成', value: spiritVeinLevel * 0.05, format: 'percent' as const },
+          ],
+        },
+        herb_garden: {
+          renderer: 'sect.benefit.herbs',
+          summary: `每周产出 ${herbGardenLevel} 份基础灵草`,
+          metrics: [
+            { key: 'level', label: '药田等级', value: herbGardenLevel, format: 'number' as const },
+            { key: 'weekly_herbs', label: '每周基础灵草', value: herbGardenLevel, format: 'number' as const },
+          ],
+        },
+      },
+    };
+  }
+
+  private level(levels: ReadonlyMap<string, number>, key: string): number {
+    return Math.max(1, Math.min(5, Math.floor(levels.get(key) ?? 1)));
+  }
+
   archiveLevel(levels: ReadonlyMap<string, number>): number {
     return levels.get('archive') ?? 1;
   }
@@ -587,8 +728,7 @@ class LingxiaoBenefitPolicy implements SectBenefitPolicy {
   }
 
   retreatMultiplier(levels: ReadonlyMap<string, number>): number {
-    const level = levels.get('cultivation_room') ?? 1;
-    return 1 + Math.max(0, Math.min(5, Math.floor(level))) * 0.02;
+    return 1 + this.level(levels, 'cultivation_room') * 0.02;
   }
 
   craftDiscount(
@@ -596,7 +736,7 @@ class LingxiaoBenefitPolicy implements SectBenefitPolicy {
     levels: ReadonlyMap<string, number>,
     rank: SectDiscipleRank,
   ) {
-    const level = levels.get('workshop') ?? 1;
+    const level = this.level(levels, 'workshop');
     return {
       capability:
         craftContext === SECT_CRAFT_CONTEXTS.refinery
@@ -604,15 +744,14 @@ class LingxiaoBenefitPolicy implements SectBenefitPolicy {
           : 'sect.facility.alchemy.use',
       discount: Math.min(
         0.2,
-        Math.max(0, Math.min(5, Math.floor(level))) * 0.02 +
+        level * 0.02 +
           (rank === 'true' ? 0.1 : 0),
       ),
     };
   }
 
   stipendMultiplier(levels: ReadonlyMap<string, number>): number {
-    const level = levels.get('spirit_vein') ?? 1;
-    return 1 + Math.max(0, Math.min(5, Math.floor(level))) * 0.05;
+    return 1 + this.level(levels, 'spirit_vein') * 0.05;
   }
 }
 

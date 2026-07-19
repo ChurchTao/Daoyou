@@ -15,7 +15,7 @@ import {
   requireMembership,
   stipendRewardView,
 } from './applicationSupport';
-import type { SectDomainEventDispatcher } from './SectDomainEventDispatcher';
+import type { SectDomainEventDispatcherFactory } from './SectDomainEventDispatcher';
 import type {
   SectMembershipCommandContext,
   SectMembershipQueryContext,
@@ -25,7 +25,7 @@ import type {
 export class SectMembershipApplicationService {
   constructor(
     private readonly benefits: SectBenefitService,
-    private readonly events: SectDomainEventDispatcher,
+    private readonly events: SectDomainEventDispatcherFactory,
   ) {}
 
   private async getPromotionMissing(
@@ -87,6 +87,11 @@ export class SectMembershipApplicationService {
       rank,
       facilityLevels,
     );
+    const benefitSnapshot = this.benefits.snapshotForMembership(
+      membership,
+      facilityLevels,
+      context.modules,
+    );
     return {
       sect,
       facilities,
@@ -112,6 +117,11 @@ export class SectMembershipApplicationService {
         context,
       ),
       permissions: this.benefits.permissionSnapshot(membership, context.modules),
+      benefits: {
+        retreatMultiplier: benefitSnapshot.retreatMultiplier,
+        craftDiscounts: benefitSnapshot.craftDiscounts,
+        facilityEffects: benefitSnapshot.facilityEffects,
+      },
     };
   }
 
@@ -120,6 +130,7 @@ export class SectMembershipApplicationService {
     context: SectMembershipCommandContext,
   ) {
     const membership = await requireMembership(cultivator.id!, context.memberships);
+    this.benefits.assertPermission(membership, 'sect.hall.view', context.modules);
     const target = organizationFor(context.modules, membership.sectId).ranks.nextRank(
       membership.discipleRank,
     );
@@ -141,10 +152,7 @@ export class SectMembershipApplicationService {
     );
     if (!evaluation.allowed) organizationError(`尚需：${missing.join('、')}`, 400);
     aggregate.promote(target, evaluation);
-    await this.events.dispatch(aggregate.pullEvents(), {
-      scope: 'membership',
-      command: context,
-    });
+    await this.events.forMembership(context).dispatch(aggregate.pullEvents());
     return context.memberships.loadState(cultivator.id!);
   }
 
@@ -155,6 +163,7 @@ export class SectMembershipApplicationService {
     context: SectMembershipQueryContext,
   ) {
     const membership = await requireMembership(cultivatorId, context.memberships);
+    this.benefits.assertPermission(membership, 'sect.hall.view', context.modules);
     const result = await context.memberships.listMembers(
       membership.sectId,
       page,

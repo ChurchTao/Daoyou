@@ -11,6 +11,9 @@ import type {
   CultivatorSectState,
   SectOffice,
   SectOrganizationModule,
+  SectDefinition,
+  SectAbilitySlots,
+  SectTrainingCost,
 } from '@shared/engine/sect';
 
 export interface Clock {
@@ -21,6 +24,72 @@ export interface Clock {
 
 export interface IdGenerator {
   next(): string;
+}
+
+export interface SectAdmissionMembershipRecord {
+  id: string;
+  sectId: string;
+  status: string;
+  experiencedAt: Date | null;
+}
+
+export interface SectStateRepository {
+  load(cultivatorId: string): Promise<CultivatorSectState | undefined>;
+  loadForSect(cultivatorId: string, sectId: string): Promise<CultivatorSectState | undefined>;
+  listMemberships(cultivatorId: string): Promise<readonly SectAdmissionMembershipRecord[]>;
+}
+
+export interface SectAdmissionRepository extends SectStateRepository {
+  findActiveMembership(cultivatorId: string): Promise<SectAdmissionMembershipRecord | null>;
+  findMembershipForSect(cultivatorId: string, sectId: string): Promise<SectAdmissionMembershipRecord | null>;
+  recordExperience(cultivatorId: string, sectId: string, configVersion: number): Promise<void>;
+  activateMembership(membershipId: string, definition: SectDefinition): Promise<void>;
+  ensureFacilities(
+    sectId: string,
+    facilities: readonly { key: string; initialLevel: number }[],
+  ): Promise<void>;
+}
+
+export interface SectTrainingResourceSnapshot {
+  realm: RealmType;
+  stage: RealmStage;
+  stones: number;
+  cultivationExp: number;
+  comprehensionInsight: number;
+  playerRace: 'human';
+}
+
+export interface SectTrainingResourceGateway {
+  load(cultivatorId: string): Promise<SectTrainingResourceSnapshot | null>;
+  spend(cultivatorId: string, cost: SectTrainingCost): Promise<boolean>;
+  methodLevelCap(cultivatorId: string): Promise<number>;
+}
+
+export interface SectTraditionRepository extends SectStateRepository {
+  setMethodLevel(membershipId: string, methodId: string, level: number): Promise<void>;
+  createPathWithFirstLayer(
+    membershipId: string,
+    pathId: string,
+    tacticId: string,
+    layerId: string,
+  ): Promise<boolean>;
+  appendUnlockedPathLayer(
+    membershipId: string,
+    pathId: string,
+    layerId: string,
+    expectedUnlockedCount: number,
+  ): Promise<boolean>;
+  activatePathIfNone(membershipId: string, pathId: string): Promise<void>;
+  activatePath(membershipId: string, pathId: string): Promise<boolean>;
+  replaceMeridianLoadout(
+    membershipId: string,
+    pathId: string,
+    slot: number,
+    nodeIds: string[],
+  ): Promise<void>;
+  activateMeridianLoadout(membershipId: string, pathId: string, slot: number): Promise<void>;
+  replaceAbilityLoadout(membershipId: string, slots: SectAbilitySlots): Promise<void>;
+  setPathTactic(membershipId: string, pathId: string, tacticId: string): Promise<void>;
 }
 
 export interface SectMembershipRecord {
@@ -262,6 +331,7 @@ export interface SectConstructionRepository extends SectConstructionReadReposito
   ): Promise<SectConstructionProjectRecord | null>;
   upgradeFacility(sectId: string, facilityKey: string, level: number): Promise<boolean>;
   recordDonation(input: {
+    id: string;
     membershipId: string;
     projectId: string;
     dateKey: string;
@@ -342,6 +412,7 @@ export interface SectConstructionCommandContext extends SectConstructionQueryCon
   construction: SectConstructionRepository;
   economy: Pick<SectEconomyRepository, 'spendSpiritStones'>;
   inventory: SectInventoryGateway;
+  ids: IdGenerator;
 }
 
 export interface SectBenefitQueryContext {

@@ -3,6 +3,10 @@ import {
   SECT_RANK_ORDER,
   type SectDiscipleRank,
 } from '../domain/organization';
+import type {
+  SectDonationDemandDefinition,
+  SectRewardGrantDefinition,
+} from './contracts';
 
 export type SectDomainEvent =
   | {
@@ -18,10 +22,29 @@ export type SectDomainEvent =
   | { type: 'SectSpiritStonesGranted'; cultivatorId: string; amount: number }
   | { type: 'SectCultivationExpGranted'; userId: string; cultivatorId: string; amount: number }
   | { type: 'SectMembershipPromoted'; membershipId: string; rank: SectDiscipleRank }
-  | { type: 'SectDonationAccepted'; membershipId: string; projectId: string; contribution: number; constructionPoints: number; projectProgress: number }
+  | {
+      type: 'SectDonationAccepted';
+      donationId: string;
+      membershipId: string;
+      projectId: string;
+      dateKey: string;
+      demand: SectDonationDemandDefinition;
+      itemSnapshot: Record<string, unknown>;
+      contribution: number;
+      constructionPoints: number;
+      projectProgress: number;
+    }
   | { type: 'SectProjectCompleted'; projectId: string; facilityKey: string; targetLevel: number }
   | { type: 'SectFacilityUpgraded'; sectId: string; facilityKey: string; level: number }
-  | { type: 'SectStipendClaimed'; membershipId: string; weekKey: string };
+  | {
+      type: 'SectStipendClaimed';
+      membershipId: string;
+      weekKey: string;
+      rewardSnapshot: {
+        spiritStones: number;
+        rewards: readonly SectRewardGrantDefinition[];
+      };
+    };
 
 export class SectDomainError extends Error {
   constructor(message: string) {
@@ -349,7 +372,17 @@ export class SectConstructionProject {
     return this.completed;
   }
 
-  applyDonation(membershipId: string, contribution: number, points: number): void {
+  applyDonation(
+    membershipId: string,
+    contribution: number,
+    points: number,
+    settlement: {
+      donationId: string;
+      dateKey: string;
+      demand: SectDonationDemandDefinition;
+      itemSnapshot: Record<string, unknown>;
+    },
+  ): void {
     if (this.completed) throw new SectDomainError('工程已经完成');
     if (!Number.isSafeInteger(points) || points <= 0)
       throw new SectDomainError('建设点数必须是正整数');
@@ -358,8 +391,12 @@ export class SectConstructionProject {
     this.progressValue = Math.min(this.target, this.progressValue + points);
     this.events.push({
       type: 'SectDonationAccepted',
+      donationId: settlement.donationId,
       membershipId,
       projectId: this.id,
+      dateKey: settlement.dateKey,
+      demand: settlement.demand,
+      itemSnapshot: settlement.itemSnapshot,
       contribution,
       constructionPoints: points,
       projectProgress: this.progressValue,
@@ -405,7 +442,13 @@ export class SectStipendClaim {
     return new SectStipendClaim(input.membershipId, input.weekKey, input.claimed);
   }
 
-  claim(periodKey: string): void {
+  claim(
+    periodKey: string,
+    rewardSnapshot: {
+      spiritStones: number;
+      rewards: readonly SectRewardGrantDefinition[];
+    },
+  ): void {
     if (periodKey !== this.weekKey) throw new SectDomainError('俸禄周期不匹配');
     if (this.claimed) throw new SectDomainError('本周俸禄已经领取');
     this.claimed = true;
@@ -413,6 +456,7 @@ export class SectStipendClaim {
       type: 'SectStipendClaimed',
       membershipId: this.membershipId,
       weekKey: this.weekKey,
+      rewardSnapshot,
     });
   }
 
@@ -489,30 +533,5 @@ export class SectDonationOffer {
       input.contributionPerUnit * input.units,
       input.constructionPointsPerUnit * input.units,
     );
-  }
-}
-
-export type SectDomainEventHandler = (
-  event: SectDomainEvent,
-) => void | readonly SectDomainEvent[] | Promise<void | readonly SectDomainEvent[]>;
-
-export class SectDomainEventQueue {
-  constructor(
-    private readonly handlers: ReadonlyMap<SectDomainEvent['type'], readonly SectDomainEventHandler[]>,
-    private readonly limit = 64,
-  ) {}
-
-  async dispatch(initial: readonly SectDomainEvent[]): Promise<void> {
-    const queue = [...initial];
-    let processed = 0;
-    while (queue.length > 0) {
-      if (++processed > this.limit)
-        throw new SectDomainError(`单次宗门事务事件超过 ${this.limit} 个`);
-      const event = queue.shift()!;
-      for (const handler of this.handlers.get(event.type) ?? []) {
-        const derived = await handler(event);
-        if (derived) queue.push(...derived);
-      }
-    }
   }
 }

@@ -16,18 +16,36 @@ import {
   type SweepInputSegment,
 } from '@shared/engine/sect';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { postJson } from '../components/SectScene';
+
+const postJson = (
+  body: unknown,
+  idempotencyKey: string = crypto.randomUUID(),
+): RequestInit => ({
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Idempotency-Key': idempotencyKey,
+  },
+  body: JSON.stringify(body),
+});
 
 interface SweepGameOverlayProps {
   task: SectTaskViewData;
+  initialSession?: SectSweepSessionData;
   close: () => void;
   onCompleted: () => Promise<unknown> | unknown;
   run: <T>(url: string, init: RequestInit, message: string) => Promise<T | undefined>;
 }
 
-export function SweepGameOverlay({ task, close, onCompleted, run }: SweepGameOverlayProps) {
+export function SweepGameOverlay({
+  task,
+  initialSession,
+  close,
+  onCompleted,
+  run,
+}: SweepGameOverlayProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [session, setSession] = useState<SectSweepSessionData>();
+  const [session, setSession] = useState<SectSweepSessionData | undefined>(initialSession);
   const [state, setState] = useState<SweepGameState>();
   const [starting, setStarting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -67,6 +85,7 @@ export function SweepGameOverlay({ task, close, onCompleted, run }: SweepGameOve
   }, [run, task.definitionId]);
 
   useEffect(() => {
+    if (initialSession) return;
     let cancelled = false;
     queueMicrotask(() => {
       if (!cancelled) void start();
@@ -74,7 +93,7 @@ export function SweepGameOverlay({ task, close, onCompleted, run }: SweepGameOve
     return () => {
       cancelled = true;
     };
-  }, [start]);
+  }, [initialSession, start]);
 
   const complete = useCallback(
     async (trace: SweepInputSegment[]) => {

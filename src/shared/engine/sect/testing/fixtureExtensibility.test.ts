@@ -1,6 +1,6 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
 import type { SectRepositoryPort } from '@server/lib/repositories/sectRepository';
-import { createSectService } from '@server/lib/services/SectService';
+import { createSectTestApplication } from '@server/lib/services/sect-organization/testing/createSectTestApplication';
 import type { Cultivator } from '@shared/types/cultivator';
 import { describe, expect, it, vi } from 'vitest';
 import { productionSectRuntime } from '../content';
@@ -183,7 +183,7 @@ describe('第二宗门扩展闭环', () => {
         return true;
       }),
     } as unknown as SectRepositoryPort;
-    const service = createSectService({ runtime, repository });
+    const service = createSectTestApplication({ runtime, repository });
 
     expect(
       service.listAvailableDefinitions({
@@ -337,7 +337,7 @@ describe('第二宗门扩展闭环', () => {
           tacticId;
       }),
     } as unknown as SectRepositoryPort;
-    const service = createSectService({ runtime, repository });
+    const service = createSectTestApplication({ runtime, repository });
     const tx = {} as DbTransaction;
 
     await service.recordExperience(cultivator.id!, 'fixture-sect', tx);
@@ -411,7 +411,7 @@ describe('第二宗门扩展闭环', () => {
         FIXTURE_SECT_MODULE.createTrialScenario(context),
     };
     const runtime = createSectRuntime([rejectedModule]);
-    const service = createSectService({
+    const service = createSectTestApplication({
       runtime,
       repository: {} as SectRepositoryPort,
     });

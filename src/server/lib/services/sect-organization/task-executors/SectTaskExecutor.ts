@@ -121,7 +121,7 @@ export class SweepGameTaskExecutor extends BaseTaskExecutor<Record<string, unkno
     return [
       {
         key: 'start',
-        renderer: definition.presentation.renderer,
+        renderer: 'sect.action.sweep',
         label: definition.presentation.actionLabel,
       },
     ];
@@ -204,7 +204,7 @@ export class BattleTaskExecutor extends BaseTaskExecutor<Record<string, unknown>
     return [
       {
         key: 'execute',
-        renderer: definition.presentation.renderer,
+        renderer: 'sect.action.battle',
         label: definition.presentation.actionLabel,
       },
     ];
@@ -265,7 +265,7 @@ abstract class DeliveryTaskExecutor extends BaseTaskExecutor<DeliveryInput> {
     return [
       {
         key: 'execute',
-        renderer: definition.presentation.renderer,
+        renderer: 'sect.action.item-delivery',
         label: definition.presentation.actionLabel,
         parameters: { ...record.payload, itemKind: this.itemKind },
       },

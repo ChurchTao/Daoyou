@@ -110,10 +110,34 @@ describe('sect organization architecture', () => {
 
   it('removes the legacy transaction workflow', () => {
     expect(
+      existsSync(
+        fileURLToPath(new URL('../SectService.ts', import.meta.url)),
+      ),
+    ).toBe(false);
+    expect(
       existsSync(fileURLToPath(new URL('./SectTaskWorkflow.ts', import.meta.url))),
     ).toBe(false);
     expect(
       existsSync(fileURLToPath(new URL('./SectOrganizationSupport.ts', import.meta.url))),
     ).toBe(false);
+    expect(
+      existsSync(
+        fileURLToPath(
+          new URL(
+            '../../../../shared/engine/sect/core/organization/SectDomainEventQueue.ts',
+            import.meta.url,
+          ),
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it('binds event handlers to commands instead of passing scope unions', () => {
+    const source = readFileSync(
+      fileURLToPath(new URL('./SectDomainEventDispatcher.ts', import.meta.url)),
+      'utf8',
+    );
+    expect(source).not.toContain('SectDomainEventDispatchContext');
+    expect(source).not.toMatch(/scope:\s*'(task|membership|shop|stipend|construction)'/);
   });
 });

@@ -1,5 +1,6 @@
 import { AlchemyScene } from '@app/components/feature/craft/AlchemyScene';
 import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
+import { getSectBenefitMetric } from '@app/lib/sect/sectPresentation';
 import { SectPageLoading, SectPermissionBoundary } from '../components/SectScene';
 
 export default function SectAlchemyPage() {
@@ -10,8 +11,9 @@ function SectAlchemyBody() {
   const { data } = useSectCurrentQuery();
   if (!data) return <SectPageLoading message="丹房灵焰正在温炉……" />;
 
-  const level = data.overview?.facilities.find((item) => item.key === 'workshop')?.level ?? 1;
-  const rankDiscount = data.sect?.discipleRank === 'true' ? 10 : 0;
+  const effect = (data.benefits ?? data.overview?.benefits)?.facilityEffects.alchemy;
+  const level = getSectBenefitMetric(effect, 'level', 1);
+  const discountPercent = getSectBenefitMetric(effect, 'discount') * 100;
 
-  return <AlchemyScene sectContext={{ facilityLevel: level, discountPercent: Math.min(20, level * 2 + rankDiscount) }} />;
+  return <AlchemyScene sectContext={{ facilityLevel: level, discountPercent }} />;
 }

@@ -1,13 +1,22 @@
 import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
-import { SectPageLoading, SectScene } from '../components/SectScene';
+import { getSectBenefitMetric } from '@app/lib/sect/sectPresentation';
+import { SectPageLoading, SectPermissionBoundary, SectScene } from '../components/SectScene';
 
 export default function SectSpiritVeinPage() {
+  return (
+    <SectPermissionBoundary permission="sect.spirit_vein.view" title="灵脉矿场">
+      <SectSpiritVeinBody />
+    </SectPermissionBoundary>
+  );
+}
+
+function SectSpiritVeinBody() {
   const { data, error } = useSectCurrentQuery();
   if (!data) return <SectPageLoading message="矿道深处灵辉渐明……" />;
 
-  const facility = data.overview?.facilities.find((item) => item.key === 'spirit_vein');
-  const level = facility?.level ?? 1;
-  const bonus = level * 5;
+  const effect = (data.benefits ?? data.overview?.benefits)?.facilityEffects.spirit_vein;
+  const level = getSectBenefitMetric(effect, 'level', 1);
+  const bonus = getSectBenefitMetric(effect, 'stipend_bonus') * 100;
 
   return (
     <SectScene

@@ -1,4 +1,6 @@
 export * from './SectBenefitService';
+export * from './SectAdmissionApplicationService';
+export * from './SectTraditionApplicationService';
 export * from './SectConstructionApplicationService';
 export * from './SectEconomyApplicationService';
 export * from './SectMembershipApplicationService';

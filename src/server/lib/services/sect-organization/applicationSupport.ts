@@ -34,6 +34,22 @@ export function organizationFor(
   return modules.require(sectId);
 }
 
+export function assertDeclaredRewardKind(
+  organization: SectOrganizationModule,
+  kind: string,
+): void {
+  if (!organization.economy.rewardGrantKinds.includes(kind))
+    organizationError(`宗门经济策略返回未声明的奖励类型：${kind}`, 500);
+}
+
+export function assertDeclaredDonationKind(
+  organization: SectOrganizationModule,
+  kind: string,
+): void {
+  if (!organization.economy.donationKinds.includes(kind))
+    organizationError(`宗门经济策略返回未声明的捐献类型：${kind}`, 500);
+}
+
 export function mapFacilities(rows: readonly SectFacilityRecord[]): SectFacilityState[] {
   return rows.map((row) => ({
     key: row.facilityKey,
@@ -67,22 +83,25 @@ export function quoteSectStipend(
     organization.economy.stipendBase(rank) *
       organization.benefits.stipendMultiplier(facilityLevels),
   );
+  const rewards = [
+    {
+      quantity: spiritStones,
+      grant: {
+          kind: 'sect.reward.spirit-stones',
+        name: '灵石',
+        description: '宗门按弟子职阶与灵脉等级发放的周俸。',
+      },
+    },
+    ...organization.economy.stipendRewards(
+      rank,
+      organization.benefits.gardenLevel(facilityLevels),
+    ),
+  ];
+  for (const reward of rewards)
+    assertDeclaredRewardKind(organization, reward.grant.kind);
   return {
     spiritStones,
-    rewards: [
-      {
-        quantity: spiritStones,
-        grant: {
-          kind: 'spirit_stones',
-          name: '灵石',
-          description: '宗门按弟子职阶与灵脉等级发放的周俸。',
-        },
-      },
-      ...organization.economy.stipendRewards(
-        rank,
-        organization.benefits.gardenLevel(facilityLevels),
-      ),
-    ],
+    rewards,
   };
 }
 

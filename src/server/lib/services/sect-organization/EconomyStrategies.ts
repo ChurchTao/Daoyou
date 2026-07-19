@@ -55,7 +55,7 @@ export class SectRewardGrantStrategyRegistry {
 }
 
 export class SpiritStoneRewardGrantStrategy implements SectRewardGrantStrategy {
-  readonly key = 'spirit_stones';
+  readonly key = 'sect.reward.spirit-stones';
 
   async grant(context: SectRewardGrantContext): Promise<void> {
     if (context.grant.kind !== this.key)
@@ -68,7 +68,7 @@ export class SpiritStoneRewardGrantStrategy implements SectRewardGrantStrategy {
 }
 
 export class MaterialRewardGrantStrategy implements SectRewardGrantStrategy {
-  readonly key = 'material';
+  readonly key = 'sect.reward.material';
 
   async grant(context: SectRewardGrantContext): Promise<void> {
     if (
@@ -90,7 +90,7 @@ export class MaterialRewardGrantStrategy implements SectRewardGrantStrategy {
 }
 
 export class PillRewardGrantStrategy implements SectRewardGrantStrategy {
-  readonly key = 'pill';
+  readonly key = 'sect.reward.pill';
 
   async grant(context: SectRewardGrantContext): Promise<void> {
     if (
@@ -151,7 +151,7 @@ export class SectDonationSpecificationRegistry {
 }
 
 export class SpiritStoneDonationSpecification implements SectDonationSpecification {
-  readonly key = 'spirit_stones';
+  readonly key = 'sect.donation.spirit-stones';
 
   async consume(context: SectDonationExecutionContext) {
     const amount = context.itemQuantity;
@@ -162,7 +162,7 @@ export class SpiritStoneDonationSpecification implements SectDonationSpecificati
 }
 
 export class MaterialDonationSpecification implements SectDonationSpecification {
-  readonly key = 'material';
+  readonly key = 'sect.donation.material';
   private readonly specification = new MaterialDeliverySpecification();
 
   async consume(context: SectDonationExecutionContext) {
@@ -182,7 +182,7 @@ export class MaterialDonationSpecification implements SectDonationSpecification 
 }
 
 export class PillDonationSpecification implements SectDonationSpecification {
-  readonly key = 'pill';
+  readonly key = 'sect.donation.pill';
   private readonly specification = new PillDeliverySpecification();
 
   async consume(context: SectDonationExecutionContext) {
@@ -203,7 +203,7 @@ export class PillDonationSpecification implements SectDonationSpecification {
 }
 
 export class ArtifactDonationSpecification implements SectDonationSpecification {
-  readonly key = 'artifact';
+  readonly key = 'sect.donation.artifact';
   private readonly specification = new ArtifactDeliverySpecification();
 
   async consume(context: SectDonationExecutionContext) {

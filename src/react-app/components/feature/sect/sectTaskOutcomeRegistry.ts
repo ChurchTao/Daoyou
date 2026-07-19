@@ -1,6 +1,7 @@
 import { sectPresentationRegistry } from '@app/lib/sect/presentation/compositionRoot';
 import type { SectTaskActionOutcome } from '@shared/contracts/sect';
 import type { ZodType } from 'zod';
+import { createElement } from 'react';
 
 export {
   readBattleOutcome,
@@ -14,10 +15,21 @@ export type {
 export function registerSectTaskOutcome<T>(
   renderer: string,
   schema: ZodType<T>,
+  component: import('react').ComponentType<
+    import('@app/lib/sect/presentation/core/registry').SectOutcomeRendererProps<T>
+  >,
 ): void {
   sectPresentationRegistry().register({
     sectId: '*',
-    outcomes: [{ key: renderer, schema }],
+    outcomes: [{
+      key: renderer,
+      schema,
+      renderer: (props) =>
+        createElement(component, {
+          task: props.task,
+          data: props.data as T,
+        }),
+    }],
   });
 }
 

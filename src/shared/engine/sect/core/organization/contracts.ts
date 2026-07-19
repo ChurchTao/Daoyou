@@ -40,7 +40,6 @@ export interface SectTaskPresentationDefinition {
   title: string;
   description: string;
   rewardSummary: string;
-  renderer: string;
   actionLabel: string;
 }
 
@@ -134,6 +133,10 @@ export interface SectDonationDemandDefinition {
 
 export interface SectEconomyPolicy {
   readonly donationDailyCap: number;
+  /** Exhaustive reward strategy kinds this policy may emit. */
+  readonly rewardGrantKinds: readonly string[];
+  /** Exhaustive donation specification kinds this policy may emit. */
+  readonly donationKinds: readonly string[];
   shopItems(weekKey: string): readonly SectShopDefinition[];
   donationDemands(
     sectId: string,
@@ -188,7 +191,30 @@ export interface SectRankPolicy {
   ): SectRankRequirement;
 }
 
+export interface SectBenefitMetric {
+  key: string;
+  label: string;
+  value: number | string;
+  format: 'percent' | 'number' | 'text';
+}
+
+export interface SectFacilityEffectSnapshot {
+  renderer: string;
+  summary: string;
+  metrics: readonly SectBenefitMetric[];
+}
+
+export interface SectBenefitSnapshot {
+  retreatMultiplier: number;
+  craftDiscounts: Record<string, number>;
+  facilityEffects: Record<string, SectFacilityEffectSnapshot>;
+}
+
 export interface SectBenefitPolicy {
+  snapshot(
+    levels: ReadonlyMap<string, number>,
+    rank: SectDiscipleRank,
+  ): SectBenefitSnapshot;
   archiveLevel(levels: ReadonlyMap<string, number>): number;
   methodLevelCap(levels: ReadonlyMap<string, number>): number;
   gardenLevel(levels: ReadonlyMap<string, number>): number;

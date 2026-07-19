@@ -1,5 +1,8 @@
 import type { SectCapabilityKey } from '@shared/engine/sect';
-import type { SectTaskActionOutcome } from '@shared/contracts/sect';
+import type {
+  SectTaskActionOutcome,
+  SectTaskViewData,
+} from '@shared/contracts/sect';
 import type { ComponentType } from 'react';
 import type { ZodType } from 'zod';
 import type { SectTaskActionRendererProps } from '@app/components/feature/sect/SectTaskActions';
@@ -33,6 +36,12 @@ export interface SectActionRendererContribution {
 export interface SectOutcomeContribution<T = unknown> {
   key: string;
   schema: ZodType<T>;
+  renderer: ComponentType<SectOutcomeRendererProps<unknown>>;
+}
+
+export interface SectOutcomeRendererProps<T> {
+  task: SectTaskViewData;
+  data: T;
 }
 
 export interface SectPresentationPluginManifest {
@@ -57,7 +66,7 @@ export class SectPresentationRegistry {
     string,
     ComponentType<SectTaskActionRendererProps>
   >();
-  private readonly outcomes = new Map<string, ZodType>();
+  private readonly outcomes = new Map<string, SectOutcomeContribution>();
 
   register(manifest: SectPresentationPluginManifest): void {
     if (manifest.presentation) {
@@ -75,7 +84,7 @@ export class SectPresentationRegistry {
     for (const contribution of manifest.outcomes ?? []) {
       if (this.outcomes.has(contribution.key))
         throw new Error(`宗门任务结果展示器重复注册：${contribution.key}`);
-      this.outcomes.set(contribution.key, contribution.schema);
+      this.outcomes.set(contribution.key, contribution);
     }
   }
 
@@ -97,11 +106,15 @@ export class SectPresentationRegistry {
     return this.outcomes.has(key);
   }
 
+  outcome(key: string): SectOutcomeContribution | undefined {
+    return this.outcomes.get(key);
+  }
+
   decode(outcome: SectTaskActionOutcome): SectOutcomeDecodeResult {
-    const schema = this.outcomes.get(outcome.renderer);
-    if (!schema)
+    const contribution = this.outcomes.get(outcome.renderer);
+    if (!contribution)
       return { ok: false, error: `暂不支持此任务结果：${outcome.renderer}` };
-    const parsed = schema.safeParse(outcome.data);
+    const parsed = contribution.schema.safeParse(outcome.data);
     if (!parsed.success)
       return { ok: false, error: `宗门任务结果格式无效：${outcome.renderer}` };
     return {

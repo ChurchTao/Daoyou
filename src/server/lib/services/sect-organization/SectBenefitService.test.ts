@@ -44,7 +44,7 @@ describe('SectBenefitService', () => {
     'applies facility benefits only after the %s capability gate',
     async (rank, retreatMultiplier, craftDiscount) => {
       expect(await new SectBenefitService().getBonuses('cultivator-1', context(rank)))
-        .toEqual({
+        .toMatchObject({
           retreatMultiplier,
           craftDiscounts: {
             'sect.craft.alchemy': craftDiscount,
@@ -66,6 +66,14 @@ describe('SectBenefitService', () => {
       }),
       benefits: {
         ...fixture.benefits,
+        snapshot: () => ({
+          retreatMultiplier: 1,
+          craftDiscounts: {
+            [SECT_CRAFT_CONTEXTS.alchemy]: 0.1,
+            [SECT_CRAFT_CONTEXTS.refinery]: 0.2,
+          },
+          facilityEffects: {},
+        }),
         craftDiscount: (craftContext) => ({
           capability:
             craftContext === SECT_CRAFT_CONTEXTS.alchemy

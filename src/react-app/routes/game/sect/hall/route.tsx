@@ -9,6 +9,7 @@ import {
   postJson,
   rankLabel,
   SectPageLoading,
+  SectPermissionBoundary,
   SectQueryError,
   SectScene,
   useSectMutation,
@@ -18,6 +19,14 @@ const fetchFirstSectMembersPage = (signal: AbortSignal) =>
   fetchSectMembers(1, 20, signal);
 
 export default function SectHallPage() {
+  return (
+    <SectPermissionBoundary permission="sect.hall.view" title="宗门大殿">
+      <SectHallBody />
+    </SectPermissionBoundary>
+  );
+}
+
+function SectHallBody() {
   const current = useSectCurrentQuery();
   const membersQuery = useSectResourceQuery(
     'members:1:20',
@@ -78,7 +87,7 @@ export default function SectHallPage() {
           <p className="text-ink-secondary text-xs tracking-widest">本周俸禄</p>
           <strong className="mt-2 block text-xl">{overview.stipend.spiritStones.toLocaleString()} 灵石</strong>
           {overview.stipend.rewards
-            .filter((reward) => reward.kind !== 'spirit_stones')
+            .filter((reward) => reward.kind !== 'sect.reward.spirit-stones')
             .map((reward) => (
               <p
                 key={`${reward.kind}:${reward.name}`}

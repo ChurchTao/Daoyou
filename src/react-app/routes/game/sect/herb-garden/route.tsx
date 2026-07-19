@@ -1,14 +1,24 @@
 import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
-import { SectPageLoading, SectScene } from '../components/SectScene';
+import { getSectBenefitMetric } from '@app/lib/sect/sectPresentation';
+import { SectPageLoading, SectPermissionBoundary, SectScene } from '../components/SectScene';
 
 const herbStages = ['新畦初醒', '灵苗成行', '药香盈陌', '四时不歇', '百草丰登'] as const;
 
 export default function SectHerbGardenPage() {
+  return (
+    <SectPermissionBoundary permission="sect.herb_garden.view" title="宗门药田">
+      <SectHerbGardenBody />
+    </SectPermissionBoundary>
+  );
+}
+
+function SectHerbGardenBody() {
   const { data, error } = useSectCurrentQuery();
   if (!data) return <SectPageLoading message="药田晨雾正在散去……" />;
 
-  const facility = data.overview?.facilities.find((item) => item.key === 'herb_garden');
-  const level = facility?.level ?? 1;
+  const effect = (data.benefits ?? data.overview?.benefits)?.facilityEffects.herb_garden;
+  const level = getSectBenefitMetric(effect, 'level', 1);
+  const weeklyHerbs = getSectBenefitMetric(effect, 'weekly_herbs', 1);
 
   return (
     <SectScene
@@ -16,7 +26,7 @@ export default function SectHerbGardenPage() {
       description="层层药畦顺山势铺开，灵泉沿石渠润过根须；成熟灵草将在周俸中交到弟子手中。"
       error={error}
       mood="garden"
-      aside={<div className="space-y-2 text-sm leading-7"><p>药田等级：{level}级</p><p>每周基础灵草：{level}份</p></div>}
+      aside={<div className="space-y-2 text-sm leading-7"><p>药田等级：{level}级</p><p>每周基础灵草：{weeklyHerbs}份</p></div>}
     >
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <section className="flex min-h-64 flex-col justify-center border-y border-emerald-950/15 bg-white/25 px-6 py-7">

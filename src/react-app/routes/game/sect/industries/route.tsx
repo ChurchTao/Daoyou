@@ -60,13 +60,13 @@ function DonationCard({ demand, busy, capRemaining, run }: { demand: SectDonatio
   const inventory = useInventorySnapshot();
   const products = useProductsSnapshot();
   const [itemId, setItemId] = useState('');
-  const options = demand.kind === 'material'
+  const options = demand.kind === 'sect.donation.material'
     ? inventory.materials.filter((item): item is typeof item & { id: string } => Boolean(item.id)).map((item) => ({ id: item.id, label: `${item.name} · ${item.rank} · ${item.quantity}份` }))
-    : demand.kind === 'pill'
+    : demand.kind === 'sect.donation.pill'
       ? inventory.consumables.filter((item): item is typeof item & { id: string } => Boolean(item.id)).map((item) => ({ id: item.id, label: `${item.name} · ${item.quality} · ${item.quantity}枚` }))
-      : demand.kind === 'artifact'
+      : demand.kind === 'sect.donation.artifact'
         ? products.artifacts.filter((item): item is typeof item & { id: string } => Boolean(item.id) && !item.isEquipped).map((item) => ({ id: item.id, label: `${item.name} · ${item.quality}` }))
         : [];
-  const needsItem = demand.kind !== 'spirit_stones';
+  const needsItem = demand.kind !== 'sect.donation.spirit-stones';
   return <InkCard><div className="flex items-start justify-between gap-3"><strong>{demand.name}</strong><span className="text-crimson text-sm">+{demand.contribution} 贡献</span></div><p className="text-ink-secondary mt-2 text-sm leading-6">{demand.description}</p><p className="mt-2 text-xs">同时增加 {demand.constructionPoints} 建设点</p>{needsItem ? <InkSelect className="mt-3" label="选择捐献物" value={itemId} onChange={setItemId}><option value="">请选择</option>{options.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</InkSelect> : null}<InkButton variant="primary" disabled={busy || capRemaining < demand.contribution || (needsItem && !itemId)} onClick={() => void run('/api/sects/current/construction/donate', postJson({ demandId: demand.id, itemId: itemId || undefined, quantity: 1 }), '建设捐献已入账')}>{capRemaining < demand.contribution ? '今日额度不足' : '捐献一份'}</InkButton></InkCard>;
 }

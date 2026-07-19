@@ -1,3 +1,4 @@
+import type { SectOrganizationModule } from '@shared/engine/sect';
 import { FIXTURE_SECT_MODULE } from '@shared/engine/sect/testing/fixtures/FixtureSectModule';
 import { describe, expect, it, vi } from 'vitest';
 import { SectBenefitService } from './SectBenefitService';
@@ -34,6 +35,89 @@ const plugins = composeSectOrganizationPlugins({
 });
 
 describe('fixture sect organization extensions', () => {
+  it('rejects undeclared reward and donation kinds emitted by dynamic policies', async () => {
+    const memberships = {
+      findByCultivator: async () => ({
+        id: 'membership-1',
+        sectId: 'fixture-sect',
+        cultivatorId: 'cultivator-1',
+        discipleRank: 'outer' as const,
+        contribution: 30,
+      }),
+      countCompletedDailyTasks: async () => 0,
+      hasCompletedTask: async () => false,
+    };
+    const badShop: SectOrganizationModule = {
+      ...FIXTURE_SECT_MODULE.organization,
+      economy: {
+        ...FIXTURE_SECT_MODULE.organization.economy,
+        shopItems: () => [{
+          id: 'undeclared',
+          requiredRank: 'registered',
+          price: 1,
+          stock: 1,
+          rotating: false,
+          grant: {
+            kind: 'fixture-sect.undeclared-reward',
+            name: '未声明奖励',
+            description: '仅用于验证运行时防线。',
+          },
+        }],
+      },
+    };
+    await expect(
+      new SectEconomyApplicationService(
+        new SectBenefitService(),
+        plugins.rewardGrants,
+        plugins.events,
+      ).getShop('cultivator-1', {
+        clock,
+        modules: { require: () => badShop },
+        memberships,
+        facilities: { list: async () => [] },
+        economy: {
+          purchasedQuantity: async () => 0,
+          hasClaimedStipend: async () => false,
+        },
+      }),
+    ).rejects.toThrow('返回未声明的奖励类型');
+
+    const badDonation: SectOrganizationModule = {
+      ...FIXTURE_SECT_MODULE.organization,
+      economy: {
+        ...FIXTURE_SECT_MODULE.organization.economy,
+        donationDemands: () => [{
+          id: 'undeclared',
+          name: '未声明需求',
+          description: '仅用于验证运行时防线。',
+          kind: 'fixture-sect.undeclared-donation',
+          quantity: 1,
+          contribution: 1,
+          constructionPoints: 1,
+        }],
+      },
+    };
+    await expect(
+      new SectConstructionApplicationService(
+        new SectBenefitService(),
+        plugins.donations,
+        plugins.events,
+      ).getConstruction('cultivator-1', {
+        clock,
+        modules: { require: () => badDonation },
+        memberships,
+        facilities: { list: async () => [] },
+        construction: {
+          findActiveProject: async () => null,
+          findLatestCompletedProject: async () => null,
+          countRecentlyActiveMembers: async () => 1,
+          donatedContribution: async () => 0,
+          listRecentDonations: async () => [],
+        },
+      }),
+    ).rejects.toThrow('返回未声明的捐献类型');
+  });
+
   it('purchases a custom product through the real economy application service', async () => {
     let purchased = 0;
     const grantMaterial = vi.fn(async () => undefined);
@@ -98,6 +182,7 @@ describe('fixture sect organization extensions', () => {
     const grantContribution = vi.fn(async () => undefined);
     const context: SectConstructionCommandContext = {
       clock,
+      ids: { next: () => 'donation-1' },
       modules,
       memberships: {
         findByCultivator: async () => ({
@@ -274,14 +359,14 @@ describe('fixture sect organization extensions', () => {
 
     expect(claimed.rewards).toEqual(overview.stipend.rewards);
     expect(claimed.rewards).toEqual([
-      { kind: 'spirit_stones', name: '灵石', quantity: 1, summary: '灵石 ×1' },
-      { kind: 'fixture.material', name: '样例灵草', quantity: 1, summary: '样例灵草 ×1' },
+      { kind: 'sect.reward.spirit-stones', name: '灵石', quantity: 1, summary: '灵石 ×1' },
+      { kind: 'fixture-sect.material', name: '样例灵草', quantity: 1, summary: '样例灵草 ×1' },
     ]);
     expect(recordStipendClaim).toHaveBeenCalledWith(expect.objectContaining({
       spiritStones: 1,
       rewards: [
-        expect.objectContaining({ quantity: 1, grant: expect.objectContaining({ kind: 'spirit_stones' }) }),
-        expect.objectContaining({ quantity: 1, grant: expect.objectContaining({ kind: 'fixture.material' }) }),
+        expect.objectContaining({ quantity: 1, grant: expect.objectContaining({ kind: 'sect.reward.spirit-stones' }) }),
+        expect.objectContaining({ quantity: 1, grant: expect.objectContaining({ kind: 'fixture-sect.material' }) }),
       ],
     }));
     expect(grantSpiritStones).toHaveBeenCalledWith('cultivator-1', 1);

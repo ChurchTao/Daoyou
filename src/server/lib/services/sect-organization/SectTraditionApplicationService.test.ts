@@ -1,7 +1,10 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
 import type { SectRepositoryPort } from '@server/lib/repositories/sectRepository';
-import type { CultivatorSectState } from '@shared/engine/sect';
-import { createSectRuntime } from '@shared/engine/sect';
+import type { CultivatorSectState, SectModule } from '@shared/engine/sect';
+import {
+  createSectRuntime,
+  StandardSectCapabilityPolicy,
+} from '@shared/engine/sect';
 import {
   FIXTURE_SECT_MODULE,
   fixtureSectState,
@@ -22,9 +25,22 @@ vi.mock('@server/lib/repositories/sectRepository', () => ({
   },
 }));
 
-import { createSectService, SectService } from './SectService';
+import {
+  createSectTestApplication,
+} from './testing/createSectTestApplication';
+import { productionSectRuntime } from '@shared/engine/sect/content';
+import { postgresSectRepository } from '@server/lib/repositories/sectRepository';
+import { SectTraditionApplicationService } from './SectTraditionApplicationService';
+import type {
+  SectTraditionRepository,
+  SectTrainingResourceGateway,
+} from './ports';
 
 const tx = {} as DbTransaction;
+const traditionApplication = createSectTestApplication({
+  runtime: productionSectRuntime,
+  repository: postgresSectRepository,
+});
 
 function activeSect(): CultivatorSectState {
   return {
@@ -39,7 +55,7 @@ function activeSect(): CultivatorSectState {
   };
 }
 
-describe('SectService.setAbilityLoadout', () => {
+describe('SectTraditionApplicationService.setAbilityLoadout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     loadSectMock.mockResolvedValue(activeSect());
@@ -47,7 +63,7 @@ describe('SectService.setAbilityLoadout', () => {
 
   it('accepts sparse fixed slots and preserves their positions', async () => {
     await expect(
-      SectService.setAbilityLoadout(
+      traditionApplication.setAbilityLoadout(
         'cultivator-1',
         ['guiding-sword', null, 'turning-body', null],
         tx,
@@ -70,14 +86,14 @@ describe('SectService.setAbilityLoadout', () => {
     'rejects invalid, duplicate, default or locked slots: %j',
     async (slots) => {
       await expect(
-        SectService.setAbilityLoadout('cultivator-1', slots, tx),
+        traditionApplication.setAbilityLoadout('cultivator-1', slots, tx),
       ).rejects.toMatchObject({ code: 'SECT_INVALID_LOADOUT' });
       expect(replaceAbilityLoadoutMock).not.toHaveBeenCalled();
     },
   );
 });
 
-describe('SectService.unlockPathLayer', () => {
+describe('SectTraditionApplicationService.unlockPathLayer', () => {
   function setupProgress(resources: {
     cultivationExp: number;
     comprehensionInsight: number;
@@ -122,7 +138,7 @@ describe('SectService.unlockPathLayer', () => {
       }),
     } as unknown as SectRepositoryPort;
     return {
-      service: createSectService({
+      service: createSectTestApplication({
         runtime: createSectRuntime([FIXTURE_SECT_MODULE]),
         repository,
       }),
@@ -204,5 +220,77 @@ describe('SectService.unlockPathLayer', () => {
       ),
     ).rejects.toMatchObject({ code: 'SECT_REALM_GATE' });
     expect(spendTrainingResources).not.toHaveBeenCalled();
+  });
+});
+
+describe('SectTraditionApplicationService capability boundary', () => {
+  it('rejects archive, enlightenment and arena commands before spending or saving', async () => {
+    const deniedOrganization = {
+      ...FIXTURE_SECT_MODULE.organization,
+      capabilities: new StandardSectCapabilityPolicy(
+        Object.fromEntries(
+          FIXTURE_SECT_MODULE.organization.capabilities
+            .keys()
+            .map((key) => [key, 'outer' as const]),
+        ),
+      ),
+    };
+    const deniedModule = new Proxy(FIXTURE_SECT_MODULE, {
+      get(target, property, receiver) {
+        if (property === 'organization') return deniedOrganization;
+        return Reflect.get(target, property, receiver);
+      },
+    }) as SectModule;
+    const state = fixtureSectState();
+    const save = vi.fn(async () => undefined);
+    const repository: SectTraditionRepository = {
+      load: async () => state,
+      loadForSect: async () => state,
+      listMemberships: async () => [],
+      setMethodLevel: save,
+      createPathWithFirstLayer: async () => true,
+      appendUnlockedPathLayer: async () => true,
+      activatePathIfNone: save,
+      activatePath: async () => true,
+      replaceMeridianLoadout: save,
+      activateMeridianLoadout: save,
+      replaceAbilityLoadout: save,
+      setPathTactic: save,
+    };
+    const spend = vi.fn(async () => true);
+    const resources: SectTrainingResourceGateway = {
+      load: async () => ({
+        realm: '筑基',
+        stage: '初期',
+        playerRace: 'human',
+        stones: 999,
+        cultivationExp: 999,
+        comprehensionInsight: 999,
+      }),
+      spend,
+      methodLevelCap: async () => 100,
+    };
+    const service = new SectTraditionApplicationService(
+      createSectRuntime([deniedModule]),
+      repository,
+      resources,
+    );
+
+    await expect(service.trainMethod({
+      cultivatorId: 'fixture-cultivator',
+      methodId: 'fixture-method-1',
+      targetLevel: 2,
+    })).rejects.toMatchObject({ status: 403 });
+    await expect(service.unlockPathLayer({
+      cultivatorId: 'fixture-cultivator',
+      pathId: 'fixture-first-path',
+      layerId: 'foundation',
+    })).rejects.toMatchObject({ status: 403 });
+    await expect(service.setAbilityLoadout(
+      'fixture-cultivator',
+      ['fixture-ability-2', null, null, null],
+    )).rejects.toMatchObject({ status: 403 });
+    expect(spend).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
   });
 });

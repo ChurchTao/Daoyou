@@ -1,5 +1,33 @@
 import { describe, expect, it } from 'vitest';
+import type { Cultivator } from '@shared/types/cultivator';
 import { LINGXIAO_ORGANIZATION } from './LingxiaoOrganizationModule';
+
+function playerFixture(overrides: Partial<Cultivator> = {}): Cultivator {
+  return {
+    id: 'player',
+    name: '玩家',
+    gender: '女',
+    realm: '筑基',
+    realm_stage: '中期',
+    age: 88,
+    lifespan: 300,
+    attributes: {
+      vitality: 99,
+      spirit: 12,
+      wisdom: 43,
+      speed: 71,
+      willpower: 26,
+    },
+    spiritual_roots: [{ element: '雷', strength: 100 }],
+    pre_heaven_fates: [{ name: '玩家命格' }],
+    cultivations: [],
+    skills: [],
+    inventory: { artifacts: [], consumables: [], materials: [] },
+    equipped: { weapon: null, armor: null, accessory: null },
+    spirit_stones: 0,
+    ...overrides,
+  };
+}
 
 describe('LingxiaoOrganizationModule', () => {
   it('centralizes V1 facility permissions by disciple rank', () => {
@@ -62,5 +90,49 @@ describe('LingxiaoOrganizationModule', () => {
       discount: 0.2,
     });
     expect(LINGXIAO_ORGANIZATION.benefits.stipendMultiplier(levels)).toBe(1.25);
+  });
+
+  it('rotates the weekly bounty between battle and material delivery', () => {
+    const bounty = LINGXIAO_ORGANIZATION.tasks.get('weekly_bounty');
+    expect(bounty?.availability?.resolve({
+      dateKey: '2026-07-12',
+      weekKey: '2026-W28',
+    }).executorKey).toBe('sect.battle');
+    expect(bounty?.availability?.resolve({
+      dateKey: '2026-07-19',
+      weekKey: '2026-W29',
+    })).toEqual({
+      executorKey: 'sect.delivery.material',
+      parameters: { mode: 'material', minQuality: '玄品', quantity: 2 },
+    });
+  });
+
+  it('builds realm NPCs without copying the current player loadout or attributes', () => {
+    const factory = LINGXIAO_ORGANIZATION.battles.get('weekly_bounty');
+    const first = factory?.create({
+      player: playerFixture(),
+      mirror: null,
+      opponentId: 'npc-1',
+    }).opponent;
+    const second = factory?.create({
+      player: playerFixture({
+        attributes: {
+          vitality: 1,
+          spirit: 200,
+          wisdom: 1,
+          speed: 200,
+          willpower: 1,
+        },
+        pre_heaven_fates: [{ name: '另一命格' }],
+      }),
+      mirror: null,
+      opponentId: 'npc-1',
+    }).opponent;
+
+    expect(first).toEqual(second);
+    expect(first?.name).toBe('无名叛徒残影');
+    expect(first?.pre_heaven_fates).toEqual([]);
+    expect(first?.inventory.artifacts).toEqual([]);
+    expect(first?.spiritual_roots).toEqual([]);
   });
 });

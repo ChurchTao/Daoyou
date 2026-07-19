@@ -1,9 +1,5 @@
 import { consumePlayerStateMutation } from '@app/lib/player-state/store';
 import { fetchJsonCached } from '@app/lib/client/requestCache';
-import {
-  decodeSectTaskOutcome,
-  readBattleOutcome,
-} from '@app/components/feature/sect/sectTaskOutcomeRegistry';
 import type {
   SectCatalogData,
   SectCurrentData,
@@ -14,13 +10,12 @@ import type {
   SectOverviewData,
   SectShopData,
   SectTasksData,
-  SectBattleOutcomeData,
   SectTaskActionData,
 } from '@shared/contracts/sect';
 
 type SectExperienceData = SectExperienceResponse['data'];
 const experienceRequests = new Map<string, Promise<SectExperienceData>>();
-const taskBattleRequests = new Map<string, Promise<SectBattleOutcomeData>>();
+const taskBattleRequests = new Map<string, Promise<SectTaskActionData>>();
 
 async function fetchData<T>(url: string, signal?: AbortSignal): Promise<T> {
   const payload = await fetchJsonCached<{
@@ -89,7 +84,7 @@ export function startSectTrialOnce(
 export function startSectTaskBattleOnce(
   taskId: string,
   attemptId: string,
-): Promise<SectBattleOutcomeData> {
+): Promise<SectTaskActionData> {
   const key = `${taskId}:${attemptId}`;
   const current = taskBattleRequests.get(key);
   if (current) return current;
@@ -103,15 +98,7 @@ export function startSectTaskBattleOnce(
       },
       body: JSON.stringify({ input: {} }),
     },
-  )
-    .then((response) => consumePlayerStateMutation<SectTaskActionData>(response))
-    .then((result) => {
-      const decoded = decodeSectTaskOutcome(result.outcome);
-      if (!decoded.ok) throw new Error(decoded.error);
-      const battle = readBattleOutcome(decoded.value);
-      if (!battle) throw new Error('宗门战斗结果类型不匹配');
-      return battle;
-    })
+  ).then((response) => consumePlayerStateMutation<SectTaskActionData>(response))
     .finally(() => taskBattleRequests.delete(key));
   taskBattleRequests.set(key, request);
   return request;

@@ -1,3 +1,6 @@
+import {
+  type SectOrganizationModule,
+} from '@shared/engine/sect';
 import { FIXTURE_SECT_MODULE } from '@shared/engine/sect/testing/fixtures/FixtureSectModule';
 import { describe, expect, it } from 'vitest';
 import {
@@ -12,7 +15,9 @@ import {
 } from './SectOrganizationPlugins';
 import { FIXTURE_SECT_ORGANIZATION_PLUGIN } from './testing/FixtureSectOrganizationPlugin';
 
-function fixtureContext() {
+function fixtureContext(
+  organization: SectOrganizationModule = FIXTURE_SECT_MODULE.organization,
+) {
   const records: SectTaskRecord[] = [];
   const contributions: number[] = [];
   let sequence = 0;
@@ -84,7 +89,7 @@ function fixtureContext() {
     dateKey: () => '2026-07-19',
     weekKey: () => '2026-W29',
   };
-  const modules = { require: () => FIXTURE_SECT_MODULE.organization };
+  const modules = { require: () => organization };
   const context: SectCommandContext = {
     memberships,
     tasks,
@@ -182,7 +187,7 @@ describe('sect task handlers', () => {
       context,
     );
     expect(completed.task.state).toBe('completed');
-    expect(completed.outcome).toEqual({ renderer: 'fixture.outcome', data: { pass: true } });
+    expect(completed.outcome).toEqual({ renderer: 'fixture-sect.outcome', data: { pass: true } });
     expect(records).toHaveLength(1);
     expect(contributions).toEqual([3]);
   });
@@ -232,7 +237,7 @@ describe('sect task handlers', () => {
           { ...FIXTURE_SECT_ORGANIZATION_PLUGIN, executors: [] },
         ],
       }),
-    ).toThrow('任务 fixture_patrol 缺少执行器：fixture.battle');
+    ).toThrow('任务 fixture_patrol 缺少执行器：fixture-sect.battle');
   });
 
   it('rejects duplicate sect plugin manifests', () => {
@@ -249,5 +254,96 @@ describe('sect task handlers', () => {
         ],
       }),
     ).toThrow('宗门服务端插件重复注册：fixture-sect');
+  });
+
+  it('rejects contribution keys outside their plugin namespace', () => {
+    const createExecutor = FIXTURE_SECT_ORGANIZATION_PLUGIN.executors![0];
+    expect(() =>
+      composeSectOrganizationPlugins({
+        organizations: [{
+          sectId: 'fixture-sect',
+          organization: FIXTURE_SECT_MODULE.organization,
+        }],
+        manifests: [
+          CORE_SECT_ORGANIZATION_PLUGIN,
+          {
+            ...FIXTURE_SECT_ORGANIZATION_PLUGIN,
+            executors: [() => ({ ...createExecutor(), key: 'foreign.battle' })],
+          },
+        ],
+      }),
+    ).toThrow('必须使用 fixture-sect. 命名空间');
+  });
+
+  it('requires every declared economy kind to have a registered strategy', () => {
+    const organization: SectOrganizationModule = {
+      ...FIXTURE_SECT_MODULE.organization,
+      economy: {
+        ...FIXTURE_SECT_MODULE.organization.economy,
+        rewardGrantKinds: [
+          ...FIXTURE_SECT_MODULE.organization.economy.rewardGrantKinds,
+          'fixture-sect.missing-reward',
+        ],
+        donationKinds: [
+          ...FIXTURE_SECT_MODULE.organization.economy.donationKinds,
+          'fixture-sect.missing-donation',
+        ],
+      },
+    };
+    expect(() =>
+      composeSectOrganizationPlugins({
+        organizations: [{ sectId: 'fixture-sect', organization }],
+        manifests: [
+          CORE_SECT_ORGANIZATION_PLUGIN,
+          FIXTURE_SECT_ORGANIZATION_PLUGIN,
+        ],
+      }),
+    ).toThrow('缺少奖励策略：fixture-sect.missing-reward');
+    const donationOnly: SectOrganizationModule = {
+      ...organization,
+      economy: {
+        ...organization.economy,
+        rewardGrantKinds: FIXTURE_SECT_MODULE.organization.economy.rewardGrantKinds,
+      },
+    };
+    expect(() =>
+      composeSectOrganizationPlugins({
+        organizations: [{ sectId: 'fixture-sect', organization: donationOnly }],
+        manifests: [
+          CORE_SECT_ORGANIZATION_PLUGIN,
+          FIXTURE_SECT_ORGANIZATION_PLUGIN,
+        ],
+      }),
+    ).toThrow('缺少捐献策略：fixture-sect.missing-donation');
+  });
+
+  it('rejects an availability policy that emits an undeclared executor', async () => {
+    const task = {
+      ...FIXTURE_SECT_MODULE.organization.tasks.listDaily()[0]!,
+      availability: {
+        executorKeys: ['fixture-sect.battle'],
+        resolve: () => ({ executorKey: 'fixture-sect.dynamic-unknown' }),
+      },
+    };
+    const organization: SectOrganizationModule = {
+      ...FIXTURE_SECT_MODULE.organization,
+      tasks: {
+        ...FIXTURE_SECT_MODULE.organization.tasks,
+        listDaily: () => [task],
+        get: (id) => id === task.id ? task : undefined,
+      },
+    };
+    const { context } = fixtureContext(organization);
+    const plugins = composeSectOrganizationPlugins({
+      organizations: [{ sectId: 'fixture-sect', organization }],
+      manifests: [
+        CORE_SECT_ORGANIZATION_PLUGIN,
+        FIXTURE_SECT_ORGANIZATION_PLUGIN,
+      ],
+    });
+    await expect(
+      new GetSectTasksQueryHandler(plugins.executors, plugins.progress)
+        .execute('cultivator-1', context),
+    ).rejects.toThrow('返回未声明的执行器：fixture-sect.dynamic-unknown');
   });
 });
