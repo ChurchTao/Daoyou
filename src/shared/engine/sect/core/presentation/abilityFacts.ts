@@ -102,7 +102,7 @@ function modifierText(modifier: AttributeModifierConfig): string {
       modifier.attrType,
     )
   ) {
-    return `${label}+${number(modifier.value * 100)}个百分点`;
+    return `${label}+${number(modifier.value * 100)}%`;
   }
   if (modifier.type === ModifierType.ADD) {
     return `${label}${modifier.value >= 0 ? '+' : ''}${percent(modifier.value)}`;
@@ -515,6 +515,16 @@ export function describeSectAbilityConfig(
   resources: readonly CombatResourceDefinition[],
 ): string[] {
   const rows: string[] = [];
+  const variantRows = config.variants?.map((variant) => {
+    const cost = variant.costs?.find((entry) => entry.resource === 'hp');
+    const costText = cost && cost.mode !== 'flat'
+      ? `${number(cost.ratio * 100)}%当前气血`
+      : cost?.mode === 'flat'
+        ? `${cost.amount}气血`
+        : '沿用基础消耗';
+    return `形态「${variant.name}」：${costText}`;
+  }) ?? [];
+  rows.push(...variantRows);
   for (const condition of config.castConditions ?? []) {
     if (
       condition.type === 'combat_resource_at_least' &&
@@ -526,7 +536,11 @@ export function describeSectAbilityConfig(
       );
     }
   }
-  rows.push(...damageEffectsRow(config.effects ?? [], resources));
+  const allEffects = [
+    ...(config.effects ?? []),
+    ...(config.variants?.flatMap((variant) => variant.effects ?? []) ?? []),
+  ];
+  rows.push(...damageEffectsRow(allEffects, resources));
   rows.push(
     ...describeEffectList(
       config.effects ?? [],

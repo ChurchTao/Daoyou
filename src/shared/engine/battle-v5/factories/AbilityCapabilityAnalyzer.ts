@@ -47,12 +47,16 @@ export function analyzeAbilityCapabilities(
   config: Pick<
     AbilityConfig,
     'effects' | 'castEffects' | 'listeners' | 'tags' | 'slug'
-  >,
+  > & Pick<AbilityConfig, 'variants'>,
 ): AbilityCapabilitySummary {
   const queue: EffectConfig[] = [
     ...(config.effects ?? []),
     ...(config.castEffects ?? []),
     ...(config.listeners?.flatMap((listener) => listener.effects) ?? []),
+    ...(config.variants?.flatMap((variant) => [
+      ...(variant.effects ?? []),
+      ...(variant.castEffects ?? []),
+    ]) ?? []),
   ];
   const damageChannels = new Set<AbilityDamageChannel>();
   const intents = new Set<

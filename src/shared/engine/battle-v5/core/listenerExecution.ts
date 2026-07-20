@@ -19,7 +19,7 @@ export interface ListenerRuntimeConfig {
   };
   budget?: {
     maxTriggers: number;
-    reset: 'buff_lifetime' | 'action' | 'round' | 'battle';
+    reset: 'buff_lifetime' | 'action' | 'source_action' | 'round' | 'battle';
   };
   conditions?: ConditionConfig[];
 }
@@ -189,7 +189,12 @@ export function shouldExecuteListener(
 
   if (runtime.guard.skipSecondaryDamageSource) {
     const damageSource = (event as unknown as { damageSource?: string }).damageSource;
-    if (damageSource === 'reflect' || damageSource === 'counter' || damageSource === 'follow_up') {
+    if (
+      damageSource === 'reflect' ||
+      damageSource === 'counter' ||
+      damageSource === 'follow_up' ||
+      damageSource === 'delayed'
+    ) {
       return false;
     }
   }
@@ -209,7 +214,7 @@ export function shouldExecuteListener(
     }, runtime.conditions)) return false;
   }
 
-  if (!claimListenerTrigger(owner, runtime, source)) {
+  if (!claimListenerTrigger(owner, event, runtime, source)) {
     return false;
   }
 
@@ -220,6 +225,7 @@ const lifecycleBudgets = new WeakMap<object, Map<string, number>>();
 
 function claimListenerTrigger(
   owner: Unit,
+  event: CombatEvent,
   runtime: ListenerRuntimeConfig,
   source?: object,
 ): boolean {
@@ -237,8 +243,11 @@ function claimListenerTrigger(
     return true;
   }
 
-  const state = getBattleRuntimeState(owner);
-  const token = budget.reset === 'action'
+  const budgetOwner = budget.reset === 'source_action'
+    ? getEventParticipant(event, 'caster') ?? owner
+    : owner;
+  const state = getBattleRuntimeState(budgetOwner);
+  const token = budget.reset === 'action' || budget.reset === 'source_action'
     ? state.actionSequence
     : budget.reset === 'round'
       ? state.round

@@ -1,6 +1,7 @@
 import type { AbilitySelectionStrategy } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import type {
   AbilityConfig,
+  AbilityCostConfig,
   CombatResourceDefinition,
 } from '@shared/engine/battle-v5/core/configs';
 import type {
@@ -58,6 +59,8 @@ export interface ResolvedSectAbility {
   unlocked: boolean;
   unlockRequirements: string[];
   manaCost: number;
+  costs: AbilityCostConfig[];
+  costText: string;
   cooldown: number;
   detailRows: string[];
   notes: string[];

@@ -60,6 +60,7 @@ function getUnlockDisabledReason(args: {
 function abilitySignature(detail: ResolvedSectAbility): string {
   return JSON.stringify({
     manaCost: detail.manaCost,
+    costs: detail.costs,
     cooldown: detail.cooldown,
     detailRows: detail.detailRows,
     notes: detail.notes,

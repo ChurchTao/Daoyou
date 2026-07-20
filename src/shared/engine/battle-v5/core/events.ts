@@ -115,6 +115,19 @@ export interface SkillCastEvent extends CombatEvent {
   isResisted?: boolean; // 是否被抵抗
 }
 
+export interface AbilityCostPaidEvent extends CombatEvent {
+  type: 'AbilityCostPaidEvent';
+  caster: Unit;
+  ability: Ability;
+  beforeHp: number;
+  afterHp: number;
+  beforeMp: number;
+  afterMp: number;
+  hpPaid: number;
+  mpPaid: number;
+  crossedHpRatios: number[];
+}
+
 // ===== 命中判定事件 =====
 export interface HitCheckEvent extends CombatEvent {
   type: 'HitCheckEvent';

@@ -212,6 +212,10 @@ export class BattleStateRecorder {
         current: skill.currentCooldown,
         max: skill.maxCooldown,
         mpCost: skill.manaCost,
+        costs: skill.costConfigs.map((cost, index) => ({
+          ...cost,
+          resolvedAmount: skill.resourceCosts[index]?.amount ?? 0,
+        })),
       }));
   }
 

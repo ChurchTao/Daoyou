@@ -1,4 +1,4 @@
-export type ActionStateType = 'rest' | 'queued_action';
+export type ActionStateType = 'rest' | 'queued_action' | 'ability_mode';
 export type ActionStatePhase = 'entered' | 'triggered' | 'cancelled' | 'skipped';
 export type ActionInterruptPolicy = 'normal' | 'uninterruptible';
 export type ActionHitPolicy = 'normal' | 'guaranteed';
@@ -16,5 +16,5 @@ export interface ActionStateView {
   ability?: ActionStateAbilityView;
   interruptPolicy?: ActionInterruptPolicy;
   hitPolicy?: ActionHitPolicy;
+  phase?: number;
 }
-

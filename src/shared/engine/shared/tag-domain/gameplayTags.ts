@@ -94,6 +94,7 @@ export const GameplayTags = {
       namespace: (sectId: string) => `Ability.Sect.${sectId}`,
       path: (sectId: string, pathId: string) => `Ability.Sect.${sectId}.Path.${pathId}`,
       ability: (sectId: string, abilityId: string) => `Ability.Sect.${sectId}.Ability.${abilityId}`,
+      mechanic: (sectId: string, mechanicId: string) => `Ability.Sect.${sectId}.Mechanic.${mechanicId}`,
       GENERATOR: 'Ability.Sect.Role.Generator',
       COMBO: 'Ability.Sect.Role.Combo',
       FINISHER: 'Ability.Sect.Role.Finisher',
@@ -196,6 +197,7 @@ export const GameplayTags = {
     DEATH_PREVENT: 'DeathPreventEvent',
     CONTROLLED_SKIP: 'ControlledSkipEvent',
     COMBAT_RESOURCE_CHANGE: 'CombatResourceChangeEvent',
+    ABILITY_COST_PAID: 'AbilityCostPaidEvent',
   },
 
   // ===== 监听器作用域 =====

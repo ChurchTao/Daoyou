@@ -40,7 +40,7 @@ export interface DamageEntryData {
   isCritical: boolean;
   targetName: string;
   sourceBuff?: string;
-  damageSource?: 'direct' | 'reflect' | 'counter' | 'follow_up';
+  damageSource?: 'direct' | 'reflect' | 'counter' | 'follow_up' | 'delayed';
   reflectSourceName?: string;
   shieldAbsorbed?: number;
   remainShield?: number;
@@ -207,7 +207,7 @@ export interface ResourceChangeEntryData {
 
 export interface ActionStateEntryData {
   unitName: string;
-  stateType: 'rest' | 'queued_action';
+  stateType: 'rest' | 'queued_action' | 'ability_mode';
   phase: 'entered' | 'triggered' | 'cancelled' | 'skipped';
   name: string;
   remainingActions: number;

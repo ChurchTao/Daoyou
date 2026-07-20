@@ -46,6 +46,7 @@ export class ActionExecutionSystem {
   private _onSkillPreCast(event: SkillPreCastEvent): void {
     // 检查是否被打断
     if (event.isInterrupted && event.interruptPolicy !== 'uninterruptible') {
+      event.ability.cancelPreparedCast();
       // 发布被打断事件
       EventBus.instance.publish<SkillInterruptEvent>({
         type: 'SkillInterruptEvent',

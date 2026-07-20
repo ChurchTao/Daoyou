@@ -11,7 +11,8 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
   }
 
   execute(context: EffectContext): void {
-    const matched = findMatchingBuffs(context.target, this.params.match);
+    const unit = this.params.target === 'caster' ? context.caster : context.target;
+    const matched = findMatchingBuffs(unit, this.params.match);
     const buff = matched[0];
     if (!buff) return;
 
@@ -26,10 +27,10 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
             typeof consume === 'number' ? Math.max(1, consume) : 1,
           );
     if (consume === 'all') {
-      context.target.buffs.setBuffLayer(buff.id, 0);
+      unit.buffs.setBuffLayer(buff.id, 0);
     } else {
       const layers = typeof consume === 'number' ? consume : 1;
-      context.target.buffs.modifyBuffLayer(buff.id, -Math.max(1, layers));
+      unit.buffs.modifyBuffLayer(buff.id, -Math.max(1, layers));
     }
 
     publishMechanicLog({
@@ -37,7 +38,7 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
       source: context.caster,
       ability: context.ability,
       sourceBuff: context.buff,
-      target: context.target,
+      target: unit,
       name: buff.name,
       displayName: this.params.displayName ?? buff.name,
       visibility: 'player',

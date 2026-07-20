@@ -10,20 +10,21 @@ export class BuffLayerModifyEffect extends GameplayEffect {
   }
 
   execute(context: EffectContext): void {
-    for (const buff of findMatchingBuffs(context.target, this.params.match)) {
+    const unit = this.params.target === 'caster' ? context.caster : context.target;
+    for (const buff of findMatchingBuffs(unit, this.params.match)) {
       const before = buff.getLayer();
       switch (this.params.operation) {
         case 'add':
-          context.target.buffs.modifyBuffLayer(buff.id, Math.max(1, this.params.layers ?? 1));
+          unit.buffs.modifyBuffLayer(buff.id, Math.max(1, this.params.layers ?? 1));
           break;
         case 'subtract':
-          context.target.buffs.modifyBuffLayer(buff.id, -Math.max(1, this.params.layers ?? 1));
+          unit.buffs.modifyBuffLayer(buff.id, -Math.max(1, this.params.layers ?? 1));
           break;
         case 'clear':
-          context.target.buffs.setBuffLayer(buff.id, 0);
+          unit.buffs.setBuffLayer(buff.id, 0);
           break;
         case 'set':
-          context.target.buffs.setBuffLayer(buff.id, this.params.layers ?? 1);
+          unit.buffs.setBuffLayer(buff.id, this.params.layers ?? 1);
           break;
       }
 
@@ -32,7 +33,7 @@ export class BuffLayerModifyEffect extends GameplayEffect {
         source: context.caster,
         ability: context.ability,
         sourceBuff: context.buff,
-        target: context.target,
+        target: unit,
         name: buff.name,
         displayName: buff.name,
         visibility: 'player',

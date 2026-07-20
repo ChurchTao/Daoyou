@@ -192,6 +192,22 @@ export function describeEffectCore(
     case 'resource_scaled_damage':
       return `按战斗资源造成 ${formatAffixNumber(effect.params.baseCoefficient)} + 每点 ${formatAffixNumber(effect.params.coefficientPerPoint)} 倍单段伤害`;
 
+    case 'ability_mode':
+      return effect.params.operation === 'set'
+        ? `进入「${effect.params.displayName ?? effect.params.mode ?? '战斗形态'}」`
+        : effect.params.operation === 'advance'
+          ? '推进战斗形态'
+          : '结束战斗形态';
+
+    case 'status_transfer':
+      return `${effect.params.operation === 'move' ? '转移' : '移除'}${effect.params.status === 'positive' ? '增益' : '减益'}状态`;
+
+    case 'lifesteal':
+      return `直接伤害吸血 ${formatAffixPercent(effect.params.ratio)}`;
+
+    case 'damage_cap':
+      return `单次伤害不超过最大气血 ${formatAffixPercent(effect.params.maxHpRatio)}`;
+
     default: {
       const exhaustive: never = effect;
       return (exhaustive as EffectConfig).type;
@@ -218,6 +234,8 @@ function describeMemoryEvent(event?: string): string {
       return '护盾承伤量';
     case 'critical_taken':
       return '受到暴击伤害';
+    case 'ability_cost_paid':
+      return '支付气血';
     case 'damage_taken':
     default:
       return '受到伤害';

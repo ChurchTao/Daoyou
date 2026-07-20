@@ -62,6 +62,17 @@ export interface BattleRuntimeState {
   listenerTriggerBudgets: Map<string, { token: number; count: number }>;
   skippedActions: SkippedActionRuntime[];
   queuedAction?: QueuedActionRuntime;
+  abilityModes: Map<string, AbilityModeRuntime>;
+  actionAmounts: Map<string, { action: number; amount: number }>;
+}
+
+export interface AbilityModeRuntime {
+  key: string;
+  mode: string;
+  phase: number;
+  remainingUses: number;
+  displayName: string;
+  firstAbilityId?: string;
 }
 
 const unitState = new WeakMap<Unit, BattleRuntimeState>();
@@ -87,6 +98,8 @@ export function getBattleRuntimeState(unit: Unit): BattleRuntimeState {
       round: 0,
       listenerTriggerBudgets: new Map(),
       skippedActions: [],
+      abilityModes: new Map(),
+      actionAmounts: new Map(),
     };
     unitState.set(unit, state);
   }
@@ -173,7 +186,63 @@ export function getActionStateViews(unit: Unit): ActionStateView[] {
       hitPolicy: state.queuedAction.hitPolicy,
     });
   }
+  for (const mode of state.abilityModes.values()) {
+    views.push({
+      type: 'ability_mode',
+      name: mode.displayName,
+      remainingActions: mode.remainingUses,
+      phase: mode.phase,
+    });
+  }
   return views;
+}
+
+export function readAbilityMode(unit: Unit, key: string): AbilityModeRuntime | undefined {
+  return getBattleRuntimeState(unit).abilityModes.get(key);
+}
+
+export function setAbilityMode(unit: Unit, mode: AbilityModeRuntime): void {
+  getBattleRuntimeState(unit).abilityModes.set(mode.key, { ...mode });
+}
+
+export function advanceAbilityMode(
+  unit: Unit,
+  key: string,
+  abilityId?: string,
+): AbilityModeRuntime | undefined {
+  const state = getBattleRuntimeState(unit);
+  const current = state.abilityModes.get(key);
+  if (!current) return undefined;
+  const next = {
+    ...current,
+    phase: current.phase + 1,
+    remainingUses: Math.max(0, current.remainingUses - 1),
+    firstAbilityId: current.firstAbilityId ?? abilityId,
+  };
+  if (next.remainingUses <= 0) {
+    state.abilityModes.delete(key);
+    return undefined;
+  }
+  state.abilityModes.set(key, next);
+  return next;
+}
+
+export function clearAbilityMode(unit: Unit, key: string): void {
+  getBattleRuntimeState(unit).abilityModes.delete(key);
+}
+
+export function claimActionAmount(
+  unit: Unit,
+  key: string,
+  requested: number,
+  cap: number,
+): number {
+  const state = getBattleRuntimeState(unit);
+  const current = state.actionAmounts.get(key);
+  const used = current?.action === state.actionSequence ? current.amount : 0;
+  const applied = Math.max(0, Math.min(requested, cap - used));
+  state.actionAmounts.set(key, { action: state.actionSequence, amount: used + applied });
+  return applied;
 }
 
 export function markBuffAppliedAtCurrentAction(unit: Unit, buff: Buff): void {
@@ -232,6 +301,16 @@ export function readMemory(unit: Unit, key: string): DamageMemoryEntry {
 
 export function clearMemory(unit: Unit, key: string): void {
   getBattleRuntimeState(unit).memories.delete(key);
+}
+
+export function consumeMemoryRatio(unit: Unit, key: string, ratio: number): void {
+  const state = getBattleRuntimeState(unit);
+  const memory = state.memories.get(key);
+  if (!memory) return;
+  const consumed = Math.max(0, Math.min(1, ratio));
+  memory.amount = Math.max(0, memory.amount * (1 - consumed));
+  memory.count = memory.amount > 0 ? memory.count : 0;
+  if (memory.amount <= 0) state.memories.delete(key);
 }
 
 export function claimGlobalUniqueEffect(

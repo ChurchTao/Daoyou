@@ -122,6 +122,36 @@ describe('battle runtime primitives', () => {
     expect(owner.combatResources.getCurrent('tempo')).toBe(2);
   });
 
+  it('can scope a listener budget to the enemy source action', () => {
+    const owner = unit('owner');
+    const attacker = unit('attacker');
+    owner.combatResources.define({ id: 'karma', name: '业痕', initial: 0, max: 6 });
+    owner.abilities.addAbility(AbilityFactory.create({
+      slug: 'source-action-passive', name: '敌方行动预算',
+      type: AbilityType.PASSIVE_SKILL,
+      tags: [GameplayTags.ABILITY.KIND.PASSIVE],
+      listeners: [{
+        id: 'source-action-listener', eventType: 'DamageTakenEvent',
+        scope: 'owner_as_target', priority: 0,
+        mapping: { caster: 'owner', target: 'owner' },
+        budget: { maxTriggers: 1, reset: 'source_action' },
+        effects: [{ type: 'combat_resource_modify', params: { resourceId: 'karma', operation: 'add', amount: 1 } }],
+      }],
+    }));
+    const hit = () => EventBus.instance.publish<DamageTakenEvent>({
+      type: 'DamageTakenEvent', timestamp: Date.now(), caster: attacker, target: owner,
+      damageSource: DamageSource.DIRECT, damageTaken: 1,
+      beforeHp: owner.getCurrentHp(), remainHp: owner.getCurrentHp(), isLethal: false,
+    });
+
+    beginRuntimeAction(attacker);
+    hit();
+    hit();
+    beginRuntimeAction(attacker);
+    hit();
+    expect(owner.combatResources.getCurrent('karma')).toBe(2);
+  });
+
   it('modifies, caps and releases generic runtime counters', () => {
     const owner = unit('owner');
     owner.combatResources.define({ id: 'focus', name: '专注', initial: 5, max: 6 });

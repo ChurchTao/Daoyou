@@ -38,7 +38,7 @@ export interface AbilityContext {
  */
 export class Ability {
   readonly id: AbilityId;
-  readonly name: string;
+  private readonly _baseName: string;
   readonly type: AbilityType;
 
   // 核心属性
@@ -57,10 +57,24 @@ export class Ability {
 
   constructor(id: AbilityId, name: string, type: AbilityType) {
     this.id = id;
-    this.name = name;
+    this._baseName = name;
     this.type = type;
     this.tags = new GameplayTagContainer();
   }
+
+  get name(): string {
+    return this._baseName;
+  }
+
+  get runtimeVariantId(): string | undefined {
+    return undefined;
+  }
+
+  prepareCast(_context: AbilityContext): void {
+    void _context;
+  }
+
+  cancelPreparedCast(): void {}
 
   // ===== 所有者管理 =====
 

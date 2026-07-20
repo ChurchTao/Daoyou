@@ -175,11 +175,26 @@ export class SectCompiler {
       ),
       unlockRequirements,
       manaCost: built.config.mpCost ?? 0,
+      costs: structuredClone(built.config.costs ?? []),
+      costText: this.describeCosts(built.config),
       cooldown: built.config.cooldown ?? 0,
       detailRows: built.detailRows,
       notes: built.notes,
       config: built.config,
     };
+  }
+
+  private describeCosts(config: import('@shared/engine/battle-v5/core/configs').AbilityConfig): string {
+    const costs = config.costs ?? [];
+    if (costs.length === 0) {
+      return (config.mpCost ?? 0) > 0 ? `法力：${config.mpCost}` : '不消耗战斗资源';
+    }
+    return costs.map((cost) => {
+      if (cost.mode !== 'flat') {
+        return `当前气血：${Number((cost.ratio * 100).toFixed(2))}%`;
+      }
+      return `${cost.resource === 'hp' ? '气血' : '法力'}：${cost.amount}`;
+    }).join('；');
   }
 
   private describeUnlock(

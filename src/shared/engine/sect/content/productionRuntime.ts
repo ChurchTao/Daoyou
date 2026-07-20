@@ -6,6 +6,7 @@ import {
   type SectPresentationTheme,
 } from '../core';
 import { LINGXIAO_MODULE, LINGXIAO_SECT_PRESENTATION } from './lingxiao';
+import { WUXIANG_MODULE, WUXIANG_SECT_PRESENTATION } from './wuxiang';
 
 export interface ProductionSectEntry {
   module: SectModule;
@@ -30,6 +31,10 @@ export const PRODUCTION_SECTS = createProductionSectCatalog([
   {
     module: LINGXIAO_MODULE,
     presentation: LINGXIAO_SECT_PRESENTATION,
+  },
+  {
+    module: WUXIANG_MODULE,
+    presentation: WUXIANG_SECT_PRESENTATION,
   },
 ]);
 

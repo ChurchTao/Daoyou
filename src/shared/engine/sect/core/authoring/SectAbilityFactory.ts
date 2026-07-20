@@ -27,6 +27,8 @@ export interface ActiveSectAbilitySpec {
   name?: string;
   role?: SectAbilityRole;
   mpCost?: number;
+  costs?: AbilityConfig['costs'];
+  variants?: AbilityConfig['variants'];
   cooldown?: number;
   effects: EffectConfig[];
   castEffects?: EffectConfig[];
@@ -50,6 +52,7 @@ export class SectAbilityFactory {
     const capabilities = analyzeAbilityCapabilities({
       effects: spec.effects,
       castEffects: spec.castEffects,
+      variants: spec.variants,
       slug: spec.definition.id,
     });
     const selectionProfile =
@@ -64,6 +67,7 @@ export class SectAbilityFactory {
       name: spec.name ?? spec.definition.baseName,
       type: AbilityType.ACTIVE_SKILL,
       mpCost: spec.mpCost ?? spec.definition.mpCost,
+      costs: spec.costs ?? spec.definition.costs,
       cooldown: spec.cooldown ?? spec.definition.cooldown,
       tags: [
         ...(capabilities.hasDamage
@@ -98,6 +102,7 @@ export class SectAbilityFactory {
       targetPolicy,
       selectionProfile,
       castConditions: spec.castConditions,
+      variants: spec.variants,
       effects: spec.effects,
       castEffects: spec.castEffects,
     };

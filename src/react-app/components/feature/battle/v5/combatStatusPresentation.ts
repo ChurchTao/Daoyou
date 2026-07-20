@@ -14,6 +14,9 @@ export interface CompactStatusTag {
 }
 
 export function formatCompactActionState(state: ActionState): string {
+  if (state.type === 'ability_mode') {
+    return `[${state.name}·${state.remainingActions}]`;
+  }
   if (state.type === 'rest') {
     return `[调息·${state.remainingActions}]`;
   }
@@ -21,6 +24,9 @@ export function formatCompactActionState(state: ActionState): string {
 }
 
 export function formatActionStateTitle(state: ActionState): string {
+  if (state.type === 'ability_mode') {
+    return `${state.name}；余${state.remainingActions}门神通${state.phase ? `；第${state.phase}式` : ''}。`;
+  }
   const source = state.sourceAbility?.name ?? '战斗效果';
   if (state.type === 'rest') {
     return `调息·余${state.remainingActions}次行动；来源：${source}；下一次自身行动跳过。`;

@@ -1,4 +1,5 @@
 import type { AttributeModifierConfig } from '@shared/engine/battle-v5/core/configs';
+import type { AbilityCostConfig } from '@shared/engine/battle-v5/core/configs';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 
 export type PlayerRaceId = 'human';
@@ -53,13 +54,15 @@ interface SectAbilityDefinitionBase {
 export interface SectDefaultAbilityDefinition
   extends SectAbilityDefinitionBase {
   kind: 'default';
-  mpCost: number;
+  mpCost?: number;
+  costs?: AbilityCostConfig[];
   cooldown: number;
 }
 
 export interface SectActiveAbilityDefinition extends SectAbilityDefinitionBase {
   kind: 'active';
-  mpCost: number;
+  mpCost?: number;
+  costs?: AbilityCostConfig[];
   cooldown: number;
 }
 

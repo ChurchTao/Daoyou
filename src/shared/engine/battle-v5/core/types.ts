@@ -114,6 +114,7 @@ export enum DamageSource {
   REFLECT = 'reflect',
   COUNTER = 'counter',
   FOLLOW_UP = 'follow_up',
+  DELAYED = 'delayed',
 }
 
 export type DamageMitigationMode = 'normal' | 'bypass_defense';

@@ -1,6 +1,7 @@
 import { Ability } from '../abilities/Ability';
 import { DataDrivenActiveSkill } from '../abilities/DataDrivenActiveSkill';
 import { DataDrivenPassiveAbility } from '../abilities/DataDrivenPassiveAbility';
+import { DynamicDataDrivenActiveSkill } from '../abilities/DynamicDataDrivenActiveSkill';
 import { TargetPolicy } from '../abilities/TargetPolicy';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { AbilityConfig, EffectConfig, ListenerConfig } from '../core/configs';
@@ -40,9 +41,30 @@ export class AbilityFactory {
 
     // 1. 处理主动技能
     if (config.type === AbilityType.ACTIVE_SKILL) {
+      if (config.variants?.length) {
+        const skill = new DynamicDataDrivenActiveSkill(id, name, {
+          mpCost: config.mpCost ?? 0,
+          hpCost: config.hpCost ?? 0,
+          costs: config.costs,
+          cooldown: config.cooldown ?? 0,
+          priority: config.priority ?? 0,
+          targetPolicy: config.targetPolicy
+            ? new TargetPolicy(config.targetPolicy)
+            : TargetPolicy.default(),
+          selectionProfile:
+            config.selectionProfile ?? analyzeAbilityCapabilities(config).selectionProfile,
+          castConditions: config.castConditions,
+          effects: config.effects,
+          castEffects: config.castEffects,
+          variants: config.variants,
+        });
+        skill.tags.addTags(abilityTags);
+        return skill;
+      }
       const skill = new DataDrivenActiveSkill(id, name, {
         mpCost: config.mpCost ?? 0,
         hpCost: config.hpCost ?? 0,
+        costs: config.costs,
         cooldown: config.cooldown ?? 0,
         priority: config.priority ?? 0,
         targetPolicy: config.targetPolicy

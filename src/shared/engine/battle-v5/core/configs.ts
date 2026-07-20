@@ -24,6 +24,30 @@ export interface AbilitySelectionRule {
   disqualify?: boolean;
 }
 
+export type AbilityCostConfig =
+  | { resource: 'mp' | 'hp'; mode: 'flat'; amount: number; retain?: number }
+  | {
+      resource: 'hp';
+      mode: 'current_hp_ratio' | 'current_percent';
+      ratio: number;
+      minimum?: number;
+      retain?: number;
+    };
+
+export interface AbilityVariantConfig {
+  id: string;
+  name: string;
+  description?: string;
+  priority: number;
+  conditions: ConditionConfig[];
+  costs?: AbilityCostConfig[];
+  targetPolicy?: AbilityConfig['targetPolicy'];
+  selectionProfile?: AbilitySelectionProfile;
+  castConditions?: ConditionConfig[];
+  effects?: EffectConfig[];
+  castEffects?: EffectConfig[];
+}
+
 export interface CombatResourceDefinition {
   id: string;
   name: string;
@@ -51,6 +75,7 @@ export interface ConditionConfig {
     | 'has_not_tag'
     | 'has_tag_on'
     | 'ability_has_tag'
+    | 'ability_has_exact_tag'
     | 'ability_has_not_tag'
     | 'hp_above'
     | 'hp_below'
@@ -60,6 +85,7 @@ export interface ConditionConfig {
     | 'has_shield'
     | 'buff_count_at_least'
     | 'buff_layer_at_least'
+    | 'buff_layer_below'
     | 'debuff_count_at_least'
     | 'damage_type_is'
     | 'damage_source_is'
@@ -69,6 +95,10 @@ export interface ConditionConfig {
     | 'combat_resource_at_least'
     | 'combat_resource_below'
     | 'runtime_counter_compare'
+    | 'ability_mode_is'
+    | 'ability_mode_ability_differs'
+    | 'ability_variant_is'
+    | 'ability_cost_crossed'
     | 'combat_resource_change'
     | 'chance'
     | 'is_critical'
@@ -90,6 +120,9 @@ export interface ConditionConfig {
     damageSource?: `${DamageSource}`;
     resourceId?: string;
     key?: string;
+    mode?: string;
+    phase?: number;
+    variantId?: string;
     operation?: 'add' | 'subtract' | 'set' | 'consume_all';
     eventField?: 'requested' | 'applied' | 'overflow';
   };
@@ -173,6 +206,9 @@ export interface MagicShieldParams {
  */
 export interface ReflectParams {
   ratio: number;
+  ratioPerLayer?: number;
+  layerBuffId?: string;
+  maxHpRatioPerAction?: number;
 }
 
 /**
@@ -252,6 +288,7 @@ export interface ConsumeStatusTriggerParams {
   consume?: 'one' | 'all' | number;
   effects: EffectConfig[];
   scaleEffectsByLayer?: boolean;
+  target?: 'caster' | 'target';
 }
 
 export interface DelayedEffectParams {
@@ -282,7 +319,8 @@ export interface DamageMemoryParams {
     | 'shield'
     | 'critical_taken'
     | 'shield_break'
-    | 'shield_absorbed';
+    | 'shield_absorbed'
+    | 'ability_cost_paid';
   ratio?: number;
   releaseAs?:
     'damage' | 'heal' | 'shield' | 'reflect' | 'counter' | 'follow_up';
@@ -291,6 +329,8 @@ export interface DamageMemoryParams {
   maxStoredValue?: ScalableValue;
   includeShieldAbsorbed?: boolean;
   consume?: boolean;
+  /** 释放后仅消费这部分记忆；1为全部，0.5为保留一半。 */
+  consumeRatio?: number;
 }
 
 export interface BuffLayerModifyParams {
@@ -299,6 +339,7 @@ export interface BuffLayerModifyParams {
   layers?: number;
   effects?: EffectConfig[];
   scaleEffectsByLayer?: boolean;
+  target?: 'caster' | 'target';
 }
 
 export interface CombatResourceModifyParams {
@@ -358,6 +399,10 @@ export interface DamageDeferParams {
   ratio: number;
   delayTurns: number;
   thresholdMaxHpRatio?: number;
+  memory?: {
+    key: string;
+    maxStoredValue?: ScalableValue;
+  };
 }
 
 export interface NextHitRuleParams {
@@ -403,6 +448,36 @@ export interface ElementHistoryParams {
 
 export interface EffectSequenceParams {
   effects: EffectConfig[];
+}
+
+export interface AbilityModeParams {
+  key: string;
+  operation: 'set' | 'advance' | 'clear';
+  mode?: string;
+  phase?: number;
+  remainingUses?: number;
+  displayName?: string;
+}
+
+export interface StatusTransferParams {
+  operation: 'move' | 'remove';
+  from: 'caster' | 'target';
+  to?: 'caster' | 'target';
+  status: 'positive' | 'negative';
+  maxCount?: number;
+  effects?: EffectConfig[];
+  fallbackEffects?: EffectConfig[];
+}
+
+export interface LifestealParams {
+  ratio: number;
+  maxHpRatioPerAction: number;
+  variantIds?: string[];
+}
+
+export interface DamageCapParams {
+  maxHpRatio: number;
+  deferOverflowTurns?: number;
 }
 
 /**
@@ -476,6 +551,10 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'runtime_counter_modify'; params: RuntimeCounterModifyParams }
     | { type: 'element_history'; params: ElementHistoryParams }
     | { type: 'effect_sequence'; params: EffectSequenceParams }
+    | { type: 'ability_mode'; params: AbilityModeParams }
+    | { type: 'status_transfer'; params: StatusTransferParams }
+    | { type: 'lifesteal'; params: LifestealParams }
+    | { type: 'damage_cap'; params: DamageCapParams }
     | { type: 'percent_damage_modifier'; params: PercentDamageModifierParams }
     | { type: 'death_prevent'; params: DeathPreventParams }
     | { type: 'buff_immunity'; params: BuffImmunityParams }
@@ -532,7 +611,7 @@ export interface ListenerGuardConfig {
 
 export interface ListenerTriggerBudgetConfig {
   maxTriggers: number;
-  reset: 'buff_lifetime' | 'action' | 'round' | 'battle';
+  reset: 'buff_lifetime' | 'action' | 'source_action' | 'round' | 'battle';
 }
 
 /**
@@ -624,6 +703,7 @@ export interface AbilityConfig {
   // 资源与消耗
   mpCost?: number;
   hpCost?: number;
+  costs?: AbilityCostConfig[];
   cooldown?: number;
   priority?: number;
 
@@ -636,6 +716,9 @@ export interface AbilityConfig {
 
   selectionProfile?: AbilitySelectionProfile;
   castConditions?: ConditionConfig[];
+
+  /** 按运行时状态选取的完整技能形态；高 priority 优先。 */
+  variants?: AbilityVariantConfig[];
 
   /**
    * 主动效果链 (主动技能执行时触发)

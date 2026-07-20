@@ -3,11 +3,17 @@ import { EventBus } from '../core/EventBus';
 import {
   DamageRequestEvent,
   DamageTakenEvent,
+  AbilityCostPaidEvent,
   HealEvent,
   ShieldBreakEvent,
   ShieldEvent,
 } from '../core/events';
-import { clearMemory, readMemory, rememberAmount } from '../core/runtimeState';
+import {
+  clearMemory,
+  consumeMemoryRatio,
+  readMemory,
+  rememberAmount,
+} from '../core/runtimeState';
 import { DamageSource, DamageType } from '../core/types';
 import { ValueCalculator } from '../core/ValueCalculator';
 import { EffectRegistry } from '../factories/EffectRegistry';
@@ -125,7 +131,11 @@ export class DamageMemoryEffect extends GameplayEffect {
     });
 
     if (this.params.consume !== false) {
-      clearMemory(owner, this.params.key);
+      if (this.params.consumeRatio !== undefined) {
+        consumeMemoryRatio(owner, this.params.key, this.params.consumeRatio);
+      } else {
+        clearMemory(owner, this.params.key);
+      }
     }
   }
 
@@ -169,6 +179,12 @@ export class DamageMemoryEffect extends GameplayEffect {
   private getRecordAmount(context: EffectContext): number {
     const event = context.triggerEvent;
     if (!event) return 0;
+    if (
+      this.params.event === 'ability_cost_paid' &&
+      event.type === 'AbilityCostPaidEvent'
+    ) {
+      return (event as AbilityCostPaidEvent).hpPaid;
+    }
     if (this.params.event === 'heal' && event.type === 'HealEvent') {
       return (event as HealEvent).healAmount;
     }

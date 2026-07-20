@@ -17,13 +17,21 @@ export function CombatSkillBar({ unit }: Props) {
       <div className="grid grid-cols-2 gap-1.5">
         {unit.cooldowns.map((skill) => {
           const isOnCooldown = skill.current > 0;
-          const isLowMp = unit.mp.current < skill.mpCost;
+          const hpCost = skill.costs?.find((cost) => cost.resource === 'hp');
+          const mpCost = skill.costs?.find((cost) => cost.resource === 'mp');
+          const resolvedMpCost = mpCost?.resolvedAmount ?? skill.mpCost;
+          const isLowMp = unit.mp.current < resolvedMpCost;
+          const isLowHp = hpCost ? unit.hp.current <= hpCost.resolvedAmount : false;
           const stateLabel = isOnCooldown
             ? `CD ${skill.current}`
-            : isLowMp
-              ? '缺灵'
+            : isLowMp || isLowHp
+              ? isLowHp ? '血竭' : '缺灵'
               : '可用';
-          const costLabel = skill.mpCost > 0 ? `耗 ${fmtInt(skill.mpCost)}` : '免耗';
+          const costLabel = hpCost
+            ? `血 ${fmtInt(hpCost.resolvedAmount)}`
+            : resolvedMpCost > 0
+              ? `灵 ${fmtInt(resolvedMpCost)}`
+              : '免耗';
 
           return (
             <div

@@ -5,6 +5,7 @@ import { ConditionConfig } from './configs';
 import { DamageEvent, DamageRequestEvent, DamageTakenEvent } from './events';
 import { BuffType, DamageSource, DamageType } from './types';
 import { readRuntimeCounter } from './runtimeState';
+import { readAbilityMode } from './runtimeState';
 
 
 function getScopedUnit(context: EffectContext, scope?: 'caster' | 'target') {
@@ -139,6 +140,11 @@ export function evaluateCondition(
       if (!abilityTags || !cond.params.tag) return false;
       return abilityTags.hasTag(cond.params.tag);
     }
+    case 'ability_has_exact_tag': {
+      const abilityTags = getAbilityTags(context);
+      if (!abilityTags || !cond.params.tag) return false;
+      return abilityTags.getTags().includes(cond.params.tag);
+    }
     case 'ability_has_not_tag': {
       const abilityTags = getAbilityTags(context);
       if (!cond.params.tag) return true;
@@ -170,6 +176,16 @@ export function evaluateCondition(
             (cond.params.tag ? buff.tags.hasTag(cond.params.tag) : true) &&
             buff.getLayer() >= threshold,
         ) >= 1
+      );
+    case 'buff_layer_below':
+      return (
+        countBuffs(
+          scopedUnit,
+          (buff) =>
+            (cond.params.id ? buff.id === cond.params.id : true) &&
+            (cond.params.tag ? buff.tags.hasTag(cond.params.tag) : true) &&
+            buff.getLayer() >= threshold,
+        ) === 0
       );
     case 'debuff_count_at_least':
       return (
@@ -245,6 +261,34 @@ export function evaluateCondition(
         case 'gte':
         default: return value >= threshold;
       }
+    }
+    case 'ability_mode_is': {
+      if (!scopedUnit || !cond.params.key || !cond.params.mode) return false;
+      const mode = readAbilityMode(scopedUnit, cond.params.key);
+      if (cond.params.mode === 'none') return mode === undefined;
+      return (
+        mode?.mode === cond.params.mode &&
+        (cond.params.phase === undefined || mode.phase === cond.params.phase)
+      );
+    }
+    case 'ability_mode_ability_differs': {
+      if (!scopedUnit || !cond.params.key || !context.ability) return false;
+      const mode = readAbilityMode(scopedUnit, cond.params.key);
+      return !!mode?.firstAbilityId && mode.firstAbilityId !== context.ability.id;
+    }
+    case 'ability_variant_is': {
+      const ability = (() => {
+        const event = context.triggerEvent as { ability?: { runtimeVariantId?: string } } | undefined;
+        return event?.ability ?? context.ability;
+      })();
+      return ability?.runtimeVariantId === cond.params.variantId;
+    }
+    case 'ability_cost_crossed': {
+      const event = context.triggerEvent as { type?: string; crossedHpRatios?: number[] } | undefined;
+      return (
+        event?.type === 'AbilityCostPaidEvent' &&
+        event.crossedHpRatios?.includes(cond.params.value ?? -1) === true
+      );
     }
     case 'combat_resource_change': {
       const event = context.triggerEvent as {

@@ -1,6 +1,12 @@
 import { AbilityId, AbilityType } from '../core/types';
-import type { AbilitySelectionProfile, ConditionConfig } from '../core/configs';
+import type {
+  AbilityCostConfig,
+  AbilitySelectionProfile,
+  ConditionConfig,
+} from '../core/configs';
 import { checkConditions } from '../core/conditionEvaluator';
+import { EventBus } from '../core/EventBus';
+import type { AbilityCostPaidEvent } from '../core/events';
 import {
   beginAbilityTransform,
   endAbilityTransform,
@@ -16,6 +22,8 @@ import { TargetPolicy } from './TargetPolicy';
 export interface ResourceCost {
   type: 'mp' | 'hp' | 'rage' | 'energy';
   amount: number;
+  mode?: AbilityCostConfig['mode'];
+  retain?: number;
 }
 
 /**
@@ -24,6 +32,7 @@ export interface ResourceCost {
 export interface ActiveSkillConfig {
   mpCost?: number;
   hpCost?: number;
+  costs?: AbilityCostConfig[];
   cooldown?: number;
   priority?: number;
   targetPolicy?: TargetPolicy;
@@ -46,13 +55,10 @@ export abstract class ActiveSkill extends Ability {
   private _cooldown: number = 0;
   private _maxCooldown: number = 0;
 
-  // 资源消耗
-  private _resourceCosts: ResourceCost[] = [];
-
   // 目标策略
-  readonly targetPolicy: TargetPolicy;
-  readonly selectionProfile?: AbilitySelectionProfile;
-  readonly castConditions: ConditionConfig[];
+  private readonly _targetPolicy: TargetPolicy;
+  private readonly _selectionProfile?: AbilitySelectionProfile;
+  private readonly _castConditions: ConditionConfig[];
 
   constructor(id: AbilityId, name: string, config: ActiveSkillConfig = {}) {
     super(id, name, AbilityType.ACTIVE_SKILL);
@@ -61,11 +67,15 @@ export abstract class ActiveSkill extends Ability {
     this._maxCooldown = this.normalizeCooldownValue(config.cooldown ?? 0);
 
     // 初始化资源消耗
-    if (config.mpCost) {
-      this._resourceCosts.push({ type: 'mp', amount: config.mpCost });
-    }
-    if (config.hpCost) {
-      this._resourceCosts.push({ type: 'hp', amount: config.hpCost });
+    if (config.costs?.length) {
+      this._costConfigs = config.costs.map((cost) => ({ ...cost }));
+    } else {
+      if (config.mpCost) {
+        this._costConfigs.push({ resource: 'mp', mode: 'flat', amount: config.mpCost });
+      }
+      if (config.hpCost) {
+        this._costConfigs.push({ resource: 'hp', mode: 'flat', amount: config.hpCost });
+      }
     }
 
     // 初始化优先级
@@ -74,9 +84,28 @@ export abstract class ActiveSkill extends Ability {
     }
 
     // 初始化目标策略
-    this.targetPolicy = config.targetPolicy ?? TargetPolicy.default();
-    this.selectionProfile = config.selectionProfile;
-    this.castConditions = config.castConditions ?? [];
+    this._targetPolicy = config.targetPolicy ?? TargetPolicy.default();
+    this._selectionProfile = config.selectionProfile;
+    this._castConditions = config.castConditions ?? [];
+  }
+
+  private _costConfigs: AbilityCostConfig[] = [];
+
+  get targetPolicy(): TargetPolicy {
+    return this._targetPolicy;
+  }
+
+  get selectionProfile(): AbilitySelectionProfile | undefined {
+    return this._selectionProfile;
+  }
+
+  get castConditions(): ConditionConfig[] {
+    return this._castConditions;
+  }
+
+  protected getCostConfigs(_caster: Unit): AbilityCostConfig[] {
+    void _caster;
+    return this._costConfigs;
   }
 
   // ===== 冷却管理 =====
@@ -136,26 +165,41 @@ export abstract class ActiveSkill extends Ability {
   // ===== 资源消耗 =====
 
   get resourceCosts(): ResourceCost[] {
-    return [...this._resourceCosts];
+    const owner = this.getOwner();
+    if (owner) return this.resolveCosts(owner);
+    return this._costConfigs.flatMap((cost) =>
+      cost.mode === 'flat'
+        ? [{ type: cost.resource, amount: Math.max(0, Math.ceil(cost.amount)), mode: cost.mode }]
+        : [],
+    );
+  }
+
+  get costConfigs(): AbilityCostConfig[] {
+    const owner = this.getOwner();
+    return (owner ? this.getCostConfigs(owner) : this._costConfigs).map((cost) => ({ ...cost }));
   }
 
   // 兼容旧 API - 获取法力消耗
   get manaCost(): number {
-    const mpCost = this._resourceCosts.find((c) => c.type === 'mp');
+    const mpCost = this.resourceCosts.find((c) => c.type === 'mp');
     return mpCost?.amount ?? 0;
   }
 
   // 兼容旧 API - 设置法力消耗
   setManaCost(value: number): void {
-    const existingIndex = this._resourceCosts.findIndex((c) => c.type === 'mp');
+    const existingIndex = this._costConfigs.findIndex((cost) => cost.resource === 'mp');
     if (existingIndex >= 0) {
       if (value === 0) {
-        this._resourceCosts.splice(existingIndex, 1);
+        this._costConfigs.splice(existingIndex, 1);
       } else {
-        this._resourceCosts[existingIndex].amount = value;
+        this._costConfigs[existingIndex] = {
+          resource: 'mp',
+          mode: 'flat',
+          amount: value,
+        };
       }
     } else if (value > 0) {
-      this._resourceCosts.push({ type: 'mp', amount: value });
+      this._costConfigs.push({ resource: 'mp', mode: 'flat', amount: value });
     }
   }
 
@@ -164,22 +208,30 @@ export abstract class ActiveSkill extends Ability {
    */
   hasEnoughResources(caster: Unit): boolean {
     const transform = peekAbilityTransform(caster, this);
-    for (const cost of this._resourceCosts) {
+    let hpRequired = 0;
+    let hpRetain = 0;
+    let mpRequired = 0;
+    for (const cost of this.resolveCosts(caster)) {
       switch (cost.type) {
         case 'mp':
           if (transform?.freeManaCost) break;
           if (transform?.mpCostToHp) {
-            if (caster.getCurrentHp() <= cost.amount) return false;
+            hpRequired += cost.amount;
+            hpRetain = Math.max(hpRetain, cost.retain ?? 1);
             break;
           }
-          if (caster.getCurrentMp() < cost.amount) return false;
+          mpRequired += cost.amount;
           break;
         case 'hp':
-          if (caster.getCurrentHp() <= cost.amount) return false;
+          hpRequired += cost.amount;
+          hpRetain = Math.max(hpRetain, cost.retain ?? 1);
           break;
       }
     }
-    return true;
+    return (
+      caster.getCurrentMp() >= mpRequired &&
+      caster.getCurrentHp() - hpRequired >= hpRetain
+    );
   }
 
   /**
@@ -187,21 +239,63 @@ export abstract class ActiveSkill extends Ability {
    */
   consumeResources(caster: Unit): void {
     const transform = peekAbilityTransform(caster, this);
-    for (const cost of this._resourceCosts) {
+    const costs = this.resolveCosts(caster);
+    const beforeHp = caster.getCurrentHp();
+    const beforeMp = caster.getCurrentMp();
+    for (const cost of costs) {
       switch (cost.type) {
         case 'mp':
           if (transform?.freeManaCost) break;
           if (transform?.mpCostToHp) {
-            caster.takeDamage(cost.amount);
+            caster.setHp(caster.getCurrentHp() - cost.amount);
           } else {
             caster.consumeMp(cost.amount);
           }
           break;
         case 'hp':
-          caster.takeDamage(cost.amount);
+          caster.setHp(caster.getCurrentHp() - cost.amount);
           break;
       }
     }
+    const afterHp = caster.getCurrentHp();
+    const afterMp = caster.getCurrentMp();
+    const beforeRatio = caster.getMaxHp() > 0 ? beforeHp / caster.getMaxHp() : 0;
+    const afterRatio = caster.getMaxHp() > 0 ? afterHp / caster.getMaxHp() : 0;
+    const crossedHpRatios = [0.7, 0.45, 0.25].filter(
+      (ratio) => beforeRatio >= ratio && afterRatio < ratio,
+    );
+    EventBus.instance.publish<AbilityCostPaidEvent>({
+      type: 'AbilityCostPaidEvent',
+      timestamp: Date.now(),
+      caster,
+      ability: this,
+      beforeHp,
+      afterHp,
+      beforeMp,
+      afterMp,
+      hpPaid: beforeHp - afterHp,
+      mpPaid: beforeMp - afterMp,
+      crossedHpRatios,
+    });
+  }
+
+  private resolveCosts(caster: Unit): ResourceCost[] {
+    return this.getCostConfigs(caster).map((cost) => {
+      if (cost.mode === 'flat') {
+        return {
+          type: cost.resource,
+          amount: Math.max(0, Math.ceil(cost.amount)),
+          mode: cost.mode,
+          retain: cost.retain,
+        };
+      }
+      return {
+        type: 'hp' as const,
+        amount: Math.max(cost.minimum ?? 1, Math.ceil(caster.getCurrentHp() * cost.ratio)),
+        mode: cost.mode,
+        retain: cost.retain ?? 1,
+      };
+    });
   }
 
   // ===== 核心方法重写 =====
@@ -260,8 +354,11 @@ export abstract class ActiveSkill extends Ability {
       if (activeTransform) {
         endAbilityTransform(this);
       }
+      this.onCastFinished();
     }
   }
+
+  protected onCastFinished(): void {}
 
   /**
    * 子类实现具体技能效果
@@ -286,7 +383,7 @@ export abstract class ActiveSkill extends Ability {
   override clone(): ActiveSkill {
     const cloned = super.clone() as ActiveSkill;
     cloned._maxCooldown = this._maxCooldown;
-    cloned._resourceCosts = [...this._resourceCosts];
+    cloned._costConfigs = this._costConfigs.map((cost) => ({ ...cost }));
     return cloned;
   }
 }

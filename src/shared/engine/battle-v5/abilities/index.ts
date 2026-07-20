@@ -7,4 +7,5 @@ export {
   type AbilitySelectionStrategy,
 } from './AbilitySelectionStrategy';
 export { ActiveSkill } from './ActiveSkill';
+export { DynamicDataDrivenActiveSkill } from './DynamicDataDrivenActiveSkill';
 export { PassiveAbility } from './PassiveAbility';

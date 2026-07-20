@@ -130,6 +130,15 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
     projected.config.listeners = projected.config.listeners?.map((listener) =>
       this.projectListener(listener, growth, methodLevels),
     );
+    projected.config.variants = projected.config.variants?.map((variant) => ({
+      ...variant,
+      effects: variant.effects?.map((effect) =>
+        this.projectEffect(effect, growth, methodLevels),
+      ),
+      castEffects: variant.castEffects?.map((effect) =>
+        this.projectEffect(effect, growth, methodLevels),
+      ),
+    }));
     return projected;
   }
 
@@ -261,6 +270,10 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
       case 'damage_immunity':
       case 'skip_action':
       case 'queue_action':
+      case 'ability_mode':
+      case 'status_transfer':
+      case 'lifesteal':
+      case 'damage_cap':
         break;
       default:
         assertNeverEffect(projected);

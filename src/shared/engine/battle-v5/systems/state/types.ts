@@ -1,4 +1,5 @@
 import type { ActionStateView } from '../../core/actionState';
+import type { AbilityCostConfig } from '../../core/configs';
 
 // ===== Buff 状态视图 =====
 export interface BuffStateView {
@@ -26,6 +27,7 @@ export interface CooldownStateView {
   max: number;
   /** 灵力消耗 */
   mpCost: number;
+  costs?: Array<AbilityCostConfig & { resolvedAmount: number }>;
 }
 
 // ===== 属性状态视图 =====

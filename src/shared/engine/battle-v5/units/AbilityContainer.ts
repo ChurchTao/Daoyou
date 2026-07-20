@@ -33,6 +33,7 @@ export class AbilityContainer {
   private _owner: Unit;
   private _defaultTarget: Unit | null = null;
   private _defaultAttack: Ability | null = null;
+  private _fallbackBasicAttack: Ability | null = null;
   private _selectionStrategy: AbilitySelectionStrategy =
     new DefaultAbilitySelectionStrategy();
   private _handlers: Map<string, (event: unknown) => void> = new Map();
@@ -147,7 +148,12 @@ export class AbilityContainer {
       opponent !== this._owner &&
       opponent.isAlive()
     ) {
-      this._prepareCast(this._getDefaultAttack(), opponent);
+      const defaultAttack = this._getDefaultAttack();
+      const context = { caster: this._owner, target: opponent };
+      this._prepareCast(
+        defaultAttack.canTrigger(context) ? defaultAttack : this._getFallbackBasicAttack(),
+        opponent,
+      );
     } else {
       EventBus.instance.publish<ControlledSkipEvent>({
         type: 'ControlledSkipEvent',
@@ -183,6 +189,7 @@ export class AbilityContainer {
    * 准备施法：发布施法前摇事件
    */
   private _prepareCast(ability: Ability, target: Unit): void {
+    ability.prepareCast({ caster: this._owner, target });
     EventBus.instance.publish<SkillPreCastEvent>({
       type: 'SkillPreCastEvent',
       timestamp: Date.now(),
@@ -218,6 +225,15 @@ export class AbilityContainer {
       this._defaultAttack.setActive(true);
     }
     return this._defaultAttack;
+  }
+
+  private _getFallbackBasicAttack(): Ability {
+    if (!this._fallbackBasicAttack) {
+      this._fallbackBasicAttack = new BasicAttack();
+      this._fallbackBasicAttack.setOwner(this._owner);
+      this._fallbackBasicAttack.setActive(true);
+    }
+    return this._fallbackBasicAttack;
   }
 
   setDefaultAttack(ability: Ability): void {

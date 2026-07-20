@@ -204,7 +204,10 @@ export class DamageSystem {
     // ===== ③ 同乘区加算（增伤/减伤）=====
     // NOTE: 将百分比增减伤放在减防后、暴击判定前，保证增伤不会被减法防御无意削弱。
     const increasePct = Math.max(0, event.damageIncreasePctBucket ?? 0);
-    const reductionPct = Math.max(0, event.damageReductionPctBucket ?? 0);
+    const reductionPct = Math.min(
+      0.7,
+      Math.max(0, event.damageReductionPctBucket ?? 0),
+    );
     const damageMultiplier = Math.max(0, 1 + increasePct - reductionPct);
     event.finalDamage *= damageMultiplier;
 
