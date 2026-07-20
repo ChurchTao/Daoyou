@@ -6,9 +6,9 @@ import {
   StandardSectCapabilityPolicy,
 } from '@shared/engine/sect';
 import {
-  FIXTURE_SECT_MODULE,
-  fixtureSectState,
-} from '@shared/engine/sect/testing/fixtures/FixtureSectModule';
+  CUSTOM_ECONOMY_FIXTURE_SECT_MODULE as FIXTURE_SECT_MODULE,
+} from '@shared/engine/sect/testing/fixtures/CustomEconomyFixtureSectModule';
+import { fixtureSectState } from '@shared/engine/sect/testing/fixtures/FixtureSectModule';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { loadSectMock, replaceAbilityLoadoutMock } = vi.hoisted(() => ({

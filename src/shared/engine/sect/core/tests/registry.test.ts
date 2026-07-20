@@ -11,14 +11,16 @@ function replacePath(pathId: string, replacement: SectPathModule): SectModule {
   paths.set(pathId, {
     definition: replacement.definition,
     nodes: replacement.nodes,
-    compileVariants: (context, builder) =>
-      replacement.compileVariants(context, builder),
+    compile: (context, builder) => replacement.compile(context, builder),
     createSelectionStrategy: (tacticId) =>
       replacement.createSelectionStrategy(tacticId),
   });
   return {
     definition: FIXTURE_SECT_MODULE.definition,
     paths,
+    progression: FIXTURE_SECT_MODULE.progression,
+    methodGrowth: FIXTURE_SECT_MODULE.methodGrowth,
+    organization: FIXTURE_SECT_MODULE.organization,
     createBaseBuilder: (context) =>
       FIXTURE_SECT_MODULE.createBaseBuilder(context),
     checkAdmission: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
@@ -46,9 +48,13 @@ describe('宗门模块扩展契约', () => {
           abilityLoadout: [null, null, null, null],
         },
         realm: '炼气',
+        methodGrowth: module.methodGrowth,
       })
       .build();
-    expect(build.abilities[build.defaultAbilityId]).toBeDefined();
+    const defaultId = module.definition.abilities.find(
+      (ability) => ability.kind === 'default',
+    )!.id;
+    expect(build.abilities[defaultId]).toBeDefined();
   });
 
   it('拒绝有定义但没有插件的参悟节点', () => {
@@ -58,8 +64,7 @@ describe('宗门模块扩展契约', () => {
     const invalid = replacePath(path.definition.id, {
       definition: path.definition,
       nodes,
-      compileVariants: (context, builder) =>
-        path.compileVariants(context, builder),
+      compile: (context, builder) => path.compile(context, builder),
       createSelectionStrategy: (tacticId) =>
         path.createSelectionStrategy(tacticId),
     });
@@ -74,6 +79,9 @@ describe('宗门模块扩展契约', () => {
         name: '第二测试宗门',
       },
       paths: FIXTURE_SECT_MODULE.paths,
+      progression: FIXTURE_SECT_MODULE.progression,
+      methodGrowth: FIXTURE_SECT_MODULE.methodGrowth,
+      organization: FIXTURE_SECT_MODULE.organization,
       createBaseBuilder: (context) =>
         FIXTURE_SECT_MODULE.createBaseBuilder(context),
       checkAdmission: (context) =>

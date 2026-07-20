@@ -16,6 +16,7 @@ function addPassive(
   args: {
     id: string;
     name: string;
+    role?: import('../../../core').SectAbilityRole;
     listeners: NonNullable<
       import('@shared/engine/battle-v5/core/configs').AbilityConfig['listeners']
     >;
@@ -26,7 +27,22 @@ function addPassive(
   },
 ): void {
   const factory = new SectAbilityFactory(LINGXIAO_SECT_ID);
-  builder.addPassive(factory.passive({ ...args, pathId: context.path.pathId }));
+  builder.setAbility(
+    args.id,
+    factory.passive({
+      definition: {
+        id: args.id,
+        kind: 'passive',
+        baseName: args.name,
+        description: args.name,
+        role: args.role ?? 'utility',
+        unlock: { type: 'always' },
+        visibility: 'internal',
+      },
+      listeners: args.listeners,
+      pathId: context.path.pathId,
+    }),
+  );
   for (const modifier of args.presentationModifiers ?? []) {
     builder.addAbilityPresentationModifier({
       sourceId: args.id,

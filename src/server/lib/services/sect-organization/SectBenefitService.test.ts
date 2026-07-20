@@ -5,7 +5,7 @@ import {
   type SectDiscipleRank,
   type SectOrganizationModule,
 } from '@shared/engine/sect';
-import { FIXTURE_SECT_MODULE } from '@shared/engine/sect/testing/fixtures/FixtureSectModule';
+import { CUSTOM_ECONOMY_FIXTURE_SECT_MODULE as FIXTURE_SECT_MODULE } from '@shared/engine/sect/testing/fixtures/CustomEconomyFixtureSectModule';
 import { describe, expect, it } from 'vitest';
 import { SectBenefitService } from './SectBenefitService';
 import type { SectBenefitQueryContext } from './ports';

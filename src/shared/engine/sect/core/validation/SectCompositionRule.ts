@@ -4,6 +4,9 @@ import type { ValidationRule } from './ValidationPipeline';
 /** 校验序列化定义与对象插件树是否来自同一组合根。 */
 export class SectCompositionRule implements ValidationRule<SectModule> {
   validate(module: SectModule): void {
+    if (!module.progression || !module.methodGrowth || !module.organization) {
+      throw new Error(`宗门 ${module.definition.id} 缺少标准领域策略`);
+    }
     const definedPathIds = new Set(
       module.definition.paths.map((path) => path.id),
     );

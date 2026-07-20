@@ -1,7 +1,4 @@
-import type {
-  AbilityConfig,
-  CombatResourceDefinition,
-} from '@shared/engine/battle-v5/core/configs';
+import type { CombatResourceDefinition } from '@shared/engine/battle-v5/core/configs';
 import type {
   AbilityPresentationModifier,
   SectAbilityId,
@@ -16,18 +13,14 @@ import type {
  * 从而避免节点之间共享并意外改写同一个 AbilityConfig 引用。
  */
 export class SectBuildBuilder {
-  private defaultAbilityId: SectAbilityId;
   private readonly abilities = new Map<SectAbilityId, SectCompiledAbility>();
   private readonly resources = new Map<string, CombatResourceDefinition>();
-  private readonly passives = new Map<string, AbilityConfig>();
   private readonly abilityPresentationModifiers: AbilityPresentationModifier[] = [];
   private readonly extensions = new Map<symbol, unknown>();
 
   constructor(seed: SectCompiledBuild) {
-    this.defaultAbilityId = seed.defaultAbilityId;
     this.replaceAbilities(seed.abilities);
     for (const resource of seed.resources) this.setResource(resource);
-    for (const passive of seed.passives) this.addPassive(passive);
     for (const modifier of seed.abilityPresentationModifiers ?? []) {
       this.addAbilityPresentationModifier(modifier);
     }
@@ -35,11 +28,6 @@ export class SectBuildBuilder {
 
   static from(seed: SectCompiledBuild): SectBuildBuilder {
     return new SectBuildBuilder(seed);
-  }
-
-  setDefaultAbility(abilityId: SectAbilityId): this {
-    this.defaultAbilityId = abilityId;
-    return this;
   }
 
   setAbility(abilityId: SectAbilityId, ability: SectCompiledAbility): this {
@@ -93,14 +81,6 @@ export class SectBuildBuilder {
     return this;
   }
 
-  addPassive(passive: AbilityConfig): this {
-    if (this.passives.has(passive.slug)) {
-      throw new Error(`宗门被动监听器重复注册: ${passive.slug}`);
-    }
-    this.passives.set(passive.slug, structuredClone(passive));
-    return this;
-  }
-
   addAbilityPresentationModifier(
     modifier: AbilityPresentationModifier,
   ): this {
@@ -130,11 +110,7 @@ export class SectBuildBuilder {
   }
 
   build(): SectCompiledBuild {
-    if (!this.abilities.has(this.defaultAbilityId)) {
-      throw new Error(`默认攻击未注册: ${this.defaultAbilityId}`);
-    }
     return {
-      defaultAbilityId: this.defaultAbilityId,
       abilities: Object.fromEntries(
         Array.from(this.abilities, ([id, ability]) => [
           id,
@@ -143,9 +119,6 @@ export class SectBuildBuilder {
       ),
       resources: Array.from(this.resources.values(), (resource) =>
         structuredClone(resource),
-      ),
-      passives: Array.from(this.passives.values(), (passive) =>
-        structuredClone(passive),
       ),
       abilityPresentationModifiers: structuredClone(
         this.abilityPresentationModifiers,

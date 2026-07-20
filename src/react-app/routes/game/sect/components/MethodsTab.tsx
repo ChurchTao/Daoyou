@@ -9,9 +9,10 @@ import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
 import type { SectCurrentData } from '@shared/contracts/sect';
 import {
   getSectMethodTrainingCost,
+  isListedSectAbility,
   type SectHeartMethodDefinition,
 } from '@shared/engine/sect';
-import { resolveSectAbility } from '@shared/engine/sect/content';
+import { resolveSectAbilities } from '@shared/engine/sect/content';
 import type { RealmType } from '@shared/types/constants';
 import { useState } from 'react';
 import { sectJsonRequest, type SectAction } from './types';
@@ -82,16 +83,24 @@ export function MethodsTab({
         cost: selectedCost,
       })
     : undefined;
+  const resolvedAbilities = resolveSectAbilities({ sect, realm });
   const selectedAbilities = selectedMethod
     ? definition.abilities
-        .filter((ability) => ability.methodId === selectedMethod.id)
-        .sort((left, right) => left.unlockLevel - right.unlockLevel)
+        .filter(
+          (ability) =>
+            isListedSectAbility(ability) &&
+            ability.unlock.type === 'method' &&
+            ability.unlock.methodId === selectedMethod.id,
+        )
+        .sort((left, right) =>
+          left.unlock.type === 'method' && right.unlock.type === 'method'
+            ? left.unlock.level - right.unlock.level
+            : 0,
+        )
         .map((ability) =>
-          resolveSectAbility({
-            abilityId: ability.id,
-            sect,
-            realm,
-          }),
+          resolvedAbilities.find(
+            (resolved) => resolved.id === ability.id,
+          )!,
         )
     : [];
   return (

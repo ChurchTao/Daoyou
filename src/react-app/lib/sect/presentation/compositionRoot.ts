@@ -5,8 +5,9 @@ import {
   type SectPresentationPluginManifest,
 } from './core/registry';
 import { LINGXIAO_PRESENTATION_PLUGIN } from './lingxiao/module';
+import { PRODUCTION_SECT_IDS } from '@shared/engine/sect/content/productionRuntime';
 
-const registry = new SectPresentationRegistry();
+const registry = new SectPresentationRegistry(PRODUCTION_SECT_IDS);
 let initialized = false;
 
 export function initializeSectPresentationPlugins(

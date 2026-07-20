@@ -179,9 +179,10 @@ describe('StandardSectMethodGrowthPolicy', () => {
       ],
     };
 
-    const [projected] = policy.projectPassives([passive], {
-      'fixture-method': 180,
-    });
+    const projected = policy.projectAbilityWithoutMethod(
+      { config: passive, detailRows: [], notes: [] },
+      { 'fixture-method': 180 },
+    ).config;
     expect(projected.listeners?.[0].effects[0]).toMatchObject({
       params: { value: { coefficient: 0.4 } },
     });

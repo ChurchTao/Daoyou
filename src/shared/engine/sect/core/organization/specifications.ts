@@ -2,10 +2,11 @@ import { isPillSpec } from '@shared/lib/consumables';
 import type { ConsumableSpec } from '@shared/types/consumable';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { RealmStage, RealmType } from '@shared/types/constants';
-import type {
-  CultivatorSectState,
-  SectAbilitySlots,
-  SectDefinition,
+import {
+  StandardSectRules,
+  type CultivatorSectState,
+  type SectAbilitySlots,
+  type SectDefinition,
 } from '../domain';
 import {
   assertMethodTrainingTarget,
@@ -139,7 +140,7 @@ export class AbilityLoadoutSpecification {
     sect: CultivatorSectState,
     rawSlots: Array<string | null>,
   ): SectAbilitySlots {
-    if (rawSlots.length !== 4)
+    if (rawSlots.length !== StandardSectRules.activeAbilitySlotCount)
       throw new Error('神通栏必须包含四个固定槽位');
     const slots = createAbilitySlots(rawSlots as SectAbilitySlots);
     const ids = slots.filter((id): id is string => id !== null);
@@ -149,7 +150,7 @@ export class AbilityLoadoutSpecification {
       ids.some((id) => {
         const ability = definition.abilities.find((entry) => entry.id === id);
         return (
-          !ability?.occupiesActiveSlot ||
+          ability?.kind !== 'active' ||
           !isAbilityUnlocked(definition, id, sect)
         );
       })

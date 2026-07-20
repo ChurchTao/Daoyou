@@ -131,6 +131,7 @@ export function buildHeavyAbilities(
   path: CultivatorSectPathState,
   features: HeavySwordFeatures,
   edgeCleansingLevel?: number,
+  methodGrowth?: import('../../../../core').SectMethodGrowthPolicy,
 ): Record<string, SectCompiledAbility> {
   const built = { ...baseBuild.abilities };
   const factory = new SectAbilityFactory(LINGXIAO_SECT_ID);
@@ -142,11 +143,11 @@ export function buildHeavyAbilities(
     effects: EffectConfig[];
     castEffects?: EffectConfig[];
     castConditions?: AbilityConfig['castConditions'];
-    targetTeam?: 'enemy' | 'self';
+    targetPolicy?: AbilityConfig['targetPolicy'];
   }): SectCompiledAbility => {
     const definition = LINGXIAO_BASE_DEFINITION.abilities.find(
-      (entry) => entry.id === args.id,
-    )!;
+      (entry) => entry.id === args.id && entry.kind !== 'passive',
+    ) as Exclude<(typeof LINGXIAO_BASE_DEFINITION.abilities)[number], { kind: 'passive' }>;
     return factory.active({
       ...args,
       definition,
@@ -185,7 +186,7 @@ export function buildHeavyAbilities(
     id: 'turning-body',
     cooldown: 3,
     role: 'defensive',
-    targetTeam: 'self',
+    targetPolicy: { team: 'self', scope: 'single' },
     effects: [],
     castEffects: [
       selfBuff(
@@ -239,7 +240,7 @@ export function buildHeavyAbilities(
     id: 'shadow-step',
     cooldown: 4,
     role: 'defensive',
-    targetTeam: 'self',
+    targetPolicy: { team: 'self', scope: 'single' },
     effects: [
       sectEffects.shieldByAttack(
         0.52 * (features.mountainGate ? 1.5 : 1),
@@ -258,14 +259,14 @@ export function buildHeavyAbilities(
     role: 'utility',
     effects: [
       damage(1.04),
-      sectEffects.dispelPositiveBuffsByMethod(1, edgeCleansingLevel),
+      sectEffects.dispelPositiveBuffsByMethod(1, edgeCleansingLevel, methodGrowth!),
     ],
   });
   built['sword-aegis'] = active({
     id: 'sword-aegis',
     cooldown: 5,
     role: 'defensive',
-    targetTeam: 'self',
+    targetPolicy: { team: 'self', scope: 'single' },
     effects: [
       ...(features.immovableMountain
         ? [
@@ -320,7 +321,7 @@ export function buildHeavyAbilities(
     id: 'nurturing-sword',
     cooldown: 5,
     role: 'defensive',
-    targetTeam: 'self',
+    targetPolicy: { team: 'self', scope: 'single' },
     effects: [
       selfBuff('sect.lingxiao.heavy.weightless-edge', '人剑合一', 3, [
         { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.08 },

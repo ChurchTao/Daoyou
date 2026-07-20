@@ -28,7 +28,8 @@ const abilityDefinition = (abilityId: string) => {
   const definition = LINGXIAO_BASE_DEFINITION.abilities.find(
     (ability) => ability.id === abilityId,
   );
-  if (!definition) throw new Error(`凌霄基础神通未定义: ${abilityId}`);
+  if (!definition || definition.kind === 'passive')
+    throw new Error(`凌霄基础主动神通未定义: ${abilityId}`);
   return definition;
 };
 
@@ -117,7 +118,7 @@ export function compileLingxiaoBase(
     ],
   });
   active('turning-body', {
-    targetTeam: 'self',
+    targetPolicy: { team: 'self', scope: 'single' },
     effects: [],
     castEffects: [
       selfBuff(
@@ -153,7 +154,7 @@ export function compileLingxiaoBase(
     ],
   });
   active('shadow-step', {
-    targetTeam: 'self',
+    targetPolicy: { team: 'self', scope: 'single' },
     effects: [
       selfBuff('sect.lingxiao.traceless-step', '踏雪无痕', 2, [
         { attrType: AttributeType.SPEED, type: ModifierType.ADD, value: 0.08 },
@@ -171,11 +172,12 @@ export function compileLingxiaoBase(
       sectEffects.dispelPositiveBuffsByMethod(
         1,
         context.sect.methods['edge-cleansing'],
+        context.methodGrowth,
       ),
     ],
   });
   active('sword-aegis', {
-    targetTeam: 'self',
+    targetPolicy: { team: 'self', scope: 'single' },
     effects: [
       selfBuff('sect.lingxiao.clear-heart', '剑心通明', 3, [
         {
@@ -192,7 +194,7 @@ export function compileLingxiaoBase(
     ],
   });
   active('nurturing-sword', {
-    targetTeam: 'self',
+    targetPolicy: { team: 'self', scope: 'single' },
     effects: [
       selfBuff('sect.lingxiao.sword-intent', '人剑合一', 3, [
         { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.12 },

@@ -3,6 +3,7 @@ import type {
   SectCompiledBuild,
   SectPathCompileContext,
 } from '../../../../core';
+import { AbilityType } from '@shared/engine/battle-v5/core/types';
 import { SWIFT_IDLE_ACTIONS } from '../../shared/LingxiaoMechanics';
 import {
   buildSwiftAbilities,
@@ -25,24 +26,28 @@ export class SwiftSwordBuildFacade {
     private readonly context: SectPathCompileContext,
     private readonly builder: SectBuildBuilder,
     private readonly baseBuild: SectCompiledBuild,
-  ) {
-    this.refresh();
-  }
+  ) {}
 
   enable(feature: keyof SwiftSwordFeatures): void {
     this.features[feature] = true;
-    this.refresh();
   }
 
-  private refresh(): void {
-    this.builder.replaceAbilities(
-      buildSwiftAbilities(
+  finalize(): void {
+    const dynamicPassives = Object.fromEntries(
+      Object.entries(this.builder.build().abilities).filter(
+        ([, ability]) => ability.config.type === AbilityType.PASSIVE_SKILL,
+      ),
+    );
+    this.builder.replaceAbilities({
+      ...buildSwiftAbilities(
         this.baseBuild,
         this.context.path,
         this.features,
         this.context.sect.methods['edge-cleansing'],
+        this.context.methodGrowth,
       ),
-    );
+      ...dynamicPassives,
+    });
     const resource = this.baseBuild.resources[0];
     if (!resource) throw new Error('快剑构筑缺少宗门战斗资源');
     this.builder.clearResources().setResource({

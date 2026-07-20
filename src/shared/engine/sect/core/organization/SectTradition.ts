@@ -1,7 +1,8 @@
-import type {
-  CultivatorSectState,
-  SectAbilitySlots,
-} from '../domain/state';
+import {
+  StandardSectRules,
+  type CultivatorSectState,
+  type SectAbilitySlots,
+} from '../domain';
 import { SectDomainError } from './domain';
 
 /**
@@ -35,8 +36,8 @@ export class SectTradition {
         unlockedLayerIds: [],
         tacticId: defaultTacticId,
         activeMeridianSlot: 1,
-        meridianLoadouts: [1, 2, 3].map((slot) => ({
-          slot: slot as 1 | 2 | 3,
+        meridianLoadouts: StandardSectRules.meridianLoadoutSlots.map((slot) => ({
+          slot,
           nodeIds: [],
           version: 1,
         })),
@@ -76,7 +77,8 @@ export class SectTradition {
   }
 
   setAbilityLoadout(slots: SectAbilitySlots): void {
-    if (slots.length !== 4) throw new SectDomainError('神通栏必须包含四个固定槽位');
+    if (slots.length !== StandardSectRules.activeAbilitySlotCount)
+      throw new SectDomainError('神通栏必须包含四个固定槽位');
     const selected = slots.filter((id): id is string => id !== null);
     if (new Set(selected).size !== selected.length)
       throw new SectDomainError('神通栏不能包含重复神通');

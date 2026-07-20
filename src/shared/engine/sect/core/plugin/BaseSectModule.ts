@@ -1,6 +1,5 @@
 import { SectBuildBuilder } from '../compilation';
 import type {
-  SectAbilityId,
   SectAdmissionContext,
   SectAdmissionResult,
   SectDefinition,
@@ -8,6 +7,7 @@ import type {
   SectProjectionContext,
   SectTrialContext,
   SectTrialScenario,
+  SectMethodGrowthPolicy,
 } from '../domain';
 import type { SectProgressionPolicy } from '../progression';
 import type { SectOrganizationModule } from '../organization';
@@ -27,8 +27,8 @@ export abstract class BaseSectModule implements SectModule {
     definition: SectDefinitionWithoutPaths,
     pathModules: readonly SectPathModule[],
     readonly progression: SectProgressionPolicy,
+    readonly methodGrowth: SectMethodGrowthPolicy,
     readonly organization: SectOrganizationModule,
-    private readonly defaultAbilityId: SectAbilityId,
     private readonly admissionPolicy: SectAdmissionPolicy,
     private readonly trialScenarioFactory: SectTrialScenarioFactory,
   ) {
@@ -43,10 +43,8 @@ export abstract class BaseSectModule implements SectModule {
 
   createBaseBuilder(context: SectProjectionContext): SectBuildBuilder {
     const builder = SectBuildBuilder.from({
-      defaultAbilityId: this.defaultAbilityId,
       abilities: {},
       resources: [],
-      passives: [],
     });
     this.compileBase(context, builder);
     return builder;

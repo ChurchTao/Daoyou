@@ -1,10 +1,10 @@
-import type { SectAbilityId, SectAbilitySlots } from '../domain';
+import { StandardSectRules, type SectAbilityId, type SectAbilitySlots } from '../domain';
 
 export function createAbilitySlots(
   loadout: readonly (SectAbilityId | null)[],
 ): SectAbilitySlots {
   return Array.from(
-    { length: 4 },
+    { length: StandardSectRules.activeAbilitySlotCount },
     (_, index) => loadout[index] ?? null,
   ) as SectAbilitySlots;
 }

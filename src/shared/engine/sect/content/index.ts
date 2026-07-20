@@ -1,8 +1,9 @@
 import type { RealmType } from '@shared/types/constants';
-import type {
+import {
   CultivatorSectPathState,
   CultivatorSectState,
   ResolvedSectPathPreview,
+  isListedSectAbility,
 } from '../core';
 import { productionSectRuntime } from './productionRuntime';
 
@@ -18,6 +19,11 @@ export const resolveSectAbility = (args: {
   realm: RealmType;
   abilityId: string;
 }) => productionSectRuntime.resolveAbility(args);
+
+export const resolveSectAbilities = (args: {
+  sect: CultivatorSectState;
+  realm: RealmType;
+}) => productionSectRuntime.resolveAbilities(args);
 
 function emptyPathState(
   pathId: string,
@@ -85,24 +91,25 @@ export const resolveSectPathPreview = (args: {
           node.description,
       };
     }),
-    abilities: definition.abilities.map((ability) => {
-      const baseline = productionSectRuntime.resolveAbility({
-        sect: baselineState,
-        realm: args.realm,
-        abilityId: ability.id,
-      });
-      const pathBase = productionSectRuntime.resolveAbility({
-        sect: pathBaseState,
-        realm: args.realm,
-        abilityId: ability.id,
-      });
-      const current = currentState
-        ? productionSectRuntime.resolveAbility({
-            sect: currentState,
-            realm: args.realm,
-            abilityId: ability.id,
-          })
+    abilities: (() => {
+      const baselineById = new Map(
+        productionSectRuntime.resolveAbilities({ sect: baselineState, realm: args.realm })
+          .map((ability) => [ability.id, ability]),
+      );
+      const pathBaseById = new Map(
+        productionSectRuntime.resolveAbilities({ sect: pathBaseState, realm: args.realm })
+          .map((ability) => [ability.id, ability]),
+      );
+      const currentById = currentState
+        ? new Map(
+            productionSectRuntime.resolveAbilities({ sect: currentState, realm: args.realm })
+              .map((ability) => [ability.id, ability]),
+          )
         : undefined;
+      return definition.abilities.filter(isListedSectAbility).map((ability) => {
+      const baseline = baselineById.get(ability.id)!;
+      const pathBase = pathBaseById.get(ability.id)!;
+      const current = currentById?.get(ability.id);
       return {
         id: ability.id,
         name: ability.baseName,
@@ -115,6 +122,7 @@ export const resolveSectPathPreview = (args: {
         pathBase,
         current,
       };
-    }),
+      });
+    })(),
   };
 };

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { LINGXIAO_MODULE } from '..';
 import {
   productionSectRuntime,
@@ -8,6 +8,8 @@ import {
 } from '../..';
 import type { CultivatorSectState } from '../../../core';
 import { listUnlockedAbilityIds } from '../../../core';
+import { HeavySwordBuildFacade } from '../paths/heavy/HeavySwordBuildFacade';
+import { SwiftSwordBuildFacade } from '../paths/swift/SwiftSwordBuildFacade';
 
 function state(
   pathId?: 'swift-sword' | 'heavy-sword',
@@ -339,9 +341,6 @@ describe('宗门注册投影', () => {
               '__sectMethodGrowth',
             );
           }
-          for (const passive of compiled.passives) {
-            expect(JSON.stringify(passive)).not.toContain('__sectMethodGrowth');
-          }
           compiledCount += 1;
           return;
         }
@@ -368,9 +367,9 @@ describe('宗门注册投影', () => {
         sect,
         realm: '化神',
       });
-      const probing = compiled.passives.find((passive) =>
-        passive.slug.endsWith('.swift-probing-edge'),
-      );
+      const probing = Object.values(compiled.abilities).find((ability) =>
+        ability.config.slug.endsWith('.swift-probing-edge'),
+      )?.config;
       const swordMark = findObjectById(probing, 'sect.lingxiao.sword-mark');
       expect(swordMark?.duration).toBe(duration);
       expect(JSON.stringify(swordMark?.listeners)).toContain(
@@ -544,7 +543,9 @@ describe('宗门注册投影', () => {
     '%s 始终使用九个统一神通名称与固定摘要',
     (pathId) => {
       const sect = state(pathId);
-      for (const definition of LINGXIAO_MODULE.definition.abilities) {
+      for (const definition of LINGXIAO_MODULE.definition.abilities.filter(
+        (ability) => ability.visibility !== 'internal',
+      )) {
         const detail = resolveSectAbility({
           sect,
           realm: '化神',
@@ -653,6 +654,43 @@ describe('宗门注册投影', () => {
     expect(shadow.current?.detailRows).toContain(
       '施展后：护盾：相当于97.5%物攻',
     );
+  });
+
+  it('流派预览只编译 baseline、pathBase 和 current 三个状态', () => {
+    const compile = vi.spyOn(productionSectRuntime.compiler, 'compile');
+
+    resolveSectPathPreview({
+      sect: state('swift-sword', [
+        'swift-opening',
+        'swift-split-light',
+        'swift-returning-swallow',
+      ]),
+      realm: '化神',
+      pathId: 'swift-sword',
+    });
+
+    expect(compile).toHaveBeenCalledTimes(3);
+    compile.mockRestore();
+  });
+
+  it.each([
+    {
+      pathId: 'swift-sword' as const,
+      nodes: ['swift-opening', 'swift-split-light', 'swift-returning-swallow'],
+      facade: SwiftSwordBuildFacade,
+    },
+    {
+      pathId: 'heavy-sword' as const,
+      nodes: ['heavy-opening', 'heavy-triple-ridge', 'heavy-crossing-pass'],
+      facade: HeavySwordBuildFacade,
+    },
+  ])('$pathId 每次构筑只 finalize 一次', ({ pathId, nodes, facade }) => {
+    const finalize = vi.spyOn(facade.prototype, 'finalize');
+
+    projectSectCombat({ sect: state(pathId, nodes), realm: '化神' });
+
+    expect(finalize).toHaveBeenCalledTimes(1);
+    finalize.mockRestore();
   });
 
   it('动态详情保留条件、目标、触发次数与统一术语', () => {

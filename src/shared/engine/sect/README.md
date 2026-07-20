@@ -25,7 +25,7 @@ CultivatorSectState
   -> SectRuntimeFacade
   -> SectRegistry.require(sectId)
   -> BaseSectModule.createBaseBuilder
-  -> BaseSectPathModule.compileVariants
+  -> BaseSectPathModule.compile
   -> SectNodePlugin.apply（按层级和声明顺序）
   -> SectBuildBuilder.build
   -> AbilityFactory 契约校验
@@ -40,7 +40,8 @@ CultivatorSectState
 
 - `SectRegistry` 使用注册表模式完成模块发现和 ID 分派。
 - `SectRuntimeFacade` 使用门面模式统一校验、编译、战斗投影和详情解析。
-- `BaseSectModule`、`BaseSectPathModule` 使用模板方法固定插件生命周期，并由流派模块自动生成序列化流派定义。
+- `StandardSectModule` 是普通宗门聚合根，自动注入成长、组织、准入和试炼策略；`BaseSectModule` 只留给确需替换核心规则的特殊宗门。
+- `BaseSectPathModule` 使用模板方法固定初始化、逐层应用节点和统一 finalize 生命周期，并由流派模块自动生成序列化流派定义。
 - `SectBuildBuilder` 使用构建器模式提供受控修改面，节点不能直接共享可变 `AbilityConfig`。
 - `SectNodePlugin` 是定义与行为一体的装饰器；编译器将已选节点组成稳定流水线。
 - 战术、准入和试炼通过策略对象注入，通用层不根据内容 ID 选择实现。
@@ -51,10 +52,12 @@ CultivatorSectState
 ## 新增宗门
 
 1. 在 `content/<sect>` 定义六本心法、基础神通和稳定内容 ID。
-2. 继承 `BaseSectModule`，实现基础编译并注入成长、准入、试炼策略和流派模块。
+2. 继承 `StandardSectModule`，实现基础能力编译并注入流派模块；普通宗门不自行实现组织、成长、准入或试炼流程。
 3. 每个流派继承 `BaseSectPathModule`，声明有序层、基础变体、战术策略和节点插件。
 4. 节点使用 `ConfiguredSectNodePlugin` 或专用子类，将定义与 `apply` 行为放在一起。
 5. 在 `content/productionRuntime.ts` 注册正式宗门。除这个组合根外，不修改通用层。
+
+完整目录模板、能力联合类型和注册步骤见 [`docs/sect-authoring-guide.md`](../../../../docs/sect-authoring-guide.md)。
 
 ## 新增流派或节点
 
@@ -72,5 +75,6 @@ CultivatorSectState
 - 每个流派独立保存等级、战术和三套参悟方案，只能激活一个流派。
 - 未注册 ID、未知配置版本和非法持久化状态必须明确失败。
 - battle-v5 运行时标签只能通过 `GameplayTags` 生成。
+- 普通宗门不得复制组织模块，不得绕过 `SectAbilityFactory`/battle-v5 `AbilityFactory`，不得在流派编译器中按节点 ID 集中分派。
 - `core` 禁止依赖 `content`，生产内容禁止回流到通用入口。
 - 宗门代码的架构注释、业务原因和扩展约束统一使用中文。

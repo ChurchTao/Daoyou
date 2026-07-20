@@ -12,6 +12,13 @@ export type SectTacticId = string;
 export type SectAbilityRole =
   'generator' | 'combo' | 'defensive' | 'finisher' | 'utility';
 
+export type SectAbilityVisibility = 'listed' | 'internal';
+
+export type SectAbilityUnlock =
+  | { type: 'method'; methodId: SectMethodId; level: number }
+  | { type: 'active_path'; pathId: SectPathId }
+  | { type: 'always' };
+
 export interface SectTrainingCost {
   cultivationExp: number;
   comprehensionInsight: number;
@@ -34,16 +41,54 @@ export interface SectHeartMethodDefinition {
   perLevelDescription?: string;
 }
 
-export interface SectAbilityDefinition {
+interface SectAbilityDefinitionBase {
   id: SectAbilityId;
-  methodId: SectMethodId;
   baseName: string;
   description: string;
-  unlockLevel: number;
-  occupiesActiveSlot: boolean;
   role: SectAbilityRole;
+  unlock: SectAbilityUnlock;
+  visibility?: SectAbilityVisibility;
+}
+
+export interface SectDefaultAbilityDefinition
+  extends SectAbilityDefinitionBase {
+  kind: 'default';
   mpCost: number;
   cooldown: number;
+}
+
+export interface SectActiveAbilityDefinition extends SectAbilityDefinitionBase {
+  kind: 'active';
+  mpCost: number;
+  cooldown: number;
+}
+
+export interface SectPassiveAbilityDefinition
+  extends SectAbilityDefinitionBase {
+  kind: 'passive';
+}
+
+export type SectAbilityDefinition =
+  | SectDefaultAbilityDefinition
+  | SectActiveAbilityDefinition
+  | SectPassiveAbilityDefinition;
+
+export function sectAbilityMethodId(
+  ability: SectAbilityDefinition,
+): SectMethodId | undefined {
+  return ability.unlock.type === 'method' ? ability.unlock.methodId : undefined;
+}
+
+export function sectAbilityUnlockLevel(
+  ability: SectAbilityDefinition,
+): number {
+  return ability.unlock.type === 'method' ? ability.unlock.level : 0;
+}
+
+export function isListedSectAbility(
+  ability: SectAbilityDefinition,
+): boolean {
+  return ability.visibility !== 'internal';
 }
 
 export interface SectMeridianNodeDefinition {

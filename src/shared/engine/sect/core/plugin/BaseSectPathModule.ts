@@ -29,10 +29,52 @@ export abstract class BaseSectPathModule implements SectPathModule {
     };
   }
 
-  abstract compileVariants(
+  compile(
+    context: SectPathCompileContext,
+    builder: SectBuildBuilder,
+  ): void {
+    this.initializeBuild(context, builder);
+    const selected = new Set(
+      context.path.meridianLoadouts.find(
+        (loadout) => loadout.slot === context.path.activeMeridianSlot,
+      )?.nodeIds ?? [],
+    );
+    const unlocked = new Set(context.path.unlockedLayerIds);
+    const layerOrder = new Map(
+      this.definition.layers.map((layer) => [layer.id, layer.order]),
+    );
+    const orderedNodes = this.definition.nodes
+      .filter((node) => selected.has(node.id) && unlocked.has(node.layerId))
+      .sort(
+        (left, right) =>
+          (layerOrder.get(left.layerId) ?? 99) -
+          (layerOrder.get(right.layerId) ?? 99),
+      );
+    const applied = new Set<string>();
+    for (const definition of orderedNodes) {
+      const plugin = this.nodes.get(definition.id);
+      if (!plugin) throw new Error(`参悟节点 ${definition.id} 缺少运行时插件`);
+      applied.add(definition.id);
+      plugin.apply(
+        { ...context, activeNodeIds: new Set(applied) },
+        builder,
+      );
+    }
+    this.finalizeBuild(context, builder);
+  }
+
+  protected abstract initializeBuild(
     context: SectPathCompileContext,
     builder: SectBuildBuilder,
   ): void;
+
+  protected finalizeBuild(
+    _context: SectPathCompileContext,
+    _builder: SectBuildBuilder,
+  ): void {
+    void _context;
+    void _builder;
+  }
 
   abstract createSelectionStrategy(
     tacticId: SectTacticId,

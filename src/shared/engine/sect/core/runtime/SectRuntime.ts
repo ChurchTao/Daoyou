@@ -22,6 +22,10 @@ export interface SectRuntime {
     realm: RealmType;
     abilityId: string;
   }): ResolvedSectAbility;
+  resolveAbilities(args: {
+    sect: CultivatorSectState;
+    realm: RealmType;
+  }): ResolvedSectAbility[];
   validateState(state: CultivatorSectState): void;
 }
 
@@ -56,6 +60,17 @@ export class SectRuntimeFacade implements SectRuntime {
   }): ResolvedSectAbility {
     this.validateState(args.sect);
     return this.compiler.resolveAbility(
+      this.registry.require(args.sect.sectId),
+      args,
+    );
+  }
+
+  resolveAbilities(args: {
+    sect: CultivatorSectState;
+    realm: RealmType;
+  }): ResolvedSectAbility[] {
+    this.validateState(args.sect);
+    return this.compiler.resolveAbilities(
       this.registry.require(args.sect.sectId),
       args,
     );

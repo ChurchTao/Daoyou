@@ -114,14 +114,14 @@ function runtimeFingerprint(pathId: PathId, nodeId?: string): RuntimeFingerprint
   enemy.setHp(Math.floor(enemy.getMaxHp() * 0.2));
   owner.setHp(Math.floor(owner.getMaxHp() * 0.5));
   for (const resource of projection.resources) owner.combatResources.define(resource);
+  const defaultId = LINGXIAO_MODULE.definition.abilities.find(
+    (ability) => ability.kind === 'default',
+  )!.id;
   owner.abilities.setDefaultAttack(
-    AbilityFactory.create(projection.abilities[projection.defaultAbilityId].config),
+    AbilityFactory.create(projection.abilities[defaultId].config),
   );
   for (const ability of Object.values(projection.abilities)) {
     owner.abilities.addAbility(AbilityFactory.create(ability.config));
-  }
-  for (const passive of projection.passives) {
-    owner.abilities.addAbility(AbilityFactory.create(passive));
   }
   const initialResource = owner.combatResources.getCurrent(
     LINGXIAO_SWORD_MOMENTUM,

@@ -6,7 +6,7 @@ import {
   DamageType,
 } from '@shared/engine/battle-v5/core/types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
-import { standardSectMethodGrowthPolicy } from './StandardSectMethodGrowthPolicy';
+import type { SectMethodGrowthPolicy } from '../domain';
 
 export const DIRECT_DAMAGE_CONDITION = {
   type: 'damage_source_is' as const,
@@ -83,12 +83,13 @@ export class SectEffectFactory {
   dispelPositiveBuffsByMethod(
     baseCount: number,
     methodLevel: number | undefined,
+    methodGrowth: SectMethodGrowthPolicy,
   ): EffectConfig {
     return {
       type: 'dispel',
       params: {
         targetTag: GameplayTags.BUFF.TYPE.BUFF,
-        maxCount: standardSectMethodGrowthPolicy.growCount(
+        maxCount: methodGrowth.growCount(
           baseCount,
           methodLevel,
         ),

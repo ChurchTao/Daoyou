@@ -98,6 +98,7 @@ export const GameplayTags = {
       COMBO: 'Ability.Sect.Role.Combo',
       FINISHER: 'Ability.Sect.Role.Finisher',
       DEFENSIVE: 'Ability.Sect.Role.Defensive',
+      UTILITY: 'Ability.Sect.Role.Utility',
     },
     ELEMENT: {
       ROOT: 'Ability.Element',

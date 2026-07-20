@@ -49,7 +49,14 @@ export function isAbilityUnlocked(
 ): boolean {
   const ability = definition.abilities.find((entry) => entry.id === abilityId);
   if (!ability || sect.status !== 'active') return false;
-  return (sect.methods[ability.methodId] ?? 0) >= ability.unlockLevel;
+  switch (ability.unlock.type) {
+    case 'always':
+      return true;
+    case 'active_path':
+      return sect.activePathId === ability.unlock.pathId;
+    case 'method':
+      return (sect.methods[ability.unlock.methodId] ?? 0) >= ability.unlock.level;
+  }
 }
 
 export function listUnlockedAbilityIds(

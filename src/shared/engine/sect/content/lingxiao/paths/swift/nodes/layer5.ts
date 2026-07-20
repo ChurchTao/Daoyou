@@ -81,7 +81,7 @@ export const SWIFT_LAYER_5_NODES = [
     (context, builder) => {
       swiftSwordBuild(builder).enable('linkedCity');
       addLingxiaoPassive(context, builder, {
-        id: 'swift-linked-city-round',
+        id: 'swift-linked-city',
         name: '连城',
         listeners: [
           {

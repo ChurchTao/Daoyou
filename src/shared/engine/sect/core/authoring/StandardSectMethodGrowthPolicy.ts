@@ -8,7 +8,9 @@ import type {
   SectCompiledAbility,
   SectDefinition,
   SectMethodId,
+  SectMethodGrowthPolicy,
 } from '../domain';
+import { sectAbilityMethodId } from '../domain';
 import { consumeSectBuffMethodGrowth } from './SectMethodGrowthAuthoring';
 
 export interface SectMethodGrowthValues {
@@ -26,7 +28,7 @@ function assertNeverEffect(effect: never): never {
 }
 
 /** 宗门神通的标准 1–180 级投影策略。 */
-export class StandardSectMethodGrowthPolicy {
+export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
   resolve(rawLevel: number | undefined): SectMethodGrowthValues {
     const normalized =
       rawLevel === undefined || Number.isNaN(rawLevel) ? 1 : rawLevel;
@@ -125,6 +127,9 @@ export class StandardSectMethodGrowthPolicy {
     projected.config.castEffects = projected.config.castEffects?.map((effect) =>
       this.projectEffect(effect, growth, methodLevels),
     );
+    projected.config.listeners = projected.config.listeners?.map((listener) =>
+      this.projectListener(listener, growth, methodLevels),
+    );
     return projected;
   }
 
@@ -138,12 +143,20 @@ export class StandardSectMethodGrowthPolicy {
         const abilityDefinition = definition.abilities.find(
           (entry) => entry.id === abilityId,
         );
-        if (!abilityDefinition) return [abilityId, ability];
+        const methodId = abilityDefinition
+          ? sectAbilityMethodId(abilityDefinition)
+          : undefined;
+        if (!methodId) {
+          return [
+            abilityId,
+            this.projectAbilityWithoutMethod(ability, methodLevels),
+          ];
+        }
         return [
           abilityId,
           this.projectAbility(
             ability,
-            abilityDefinition.methodId,
+            methodId,
             methodLevels,
           ),
         ];
@@ -151,27 +164,22 @@ export class StandardSectMethodGrowthPolicy {
     );
   }
 
-  /**
-   * 被动效果默认保持固定数值，只解析其内部显式声明的心法成长内容。
-   */
-  projectPassives(
-    passives: readonly import('@shared/engine/battle-v5/core/configs').AbilityConfig[],
+  projectAbilityWithoutMethod(
+    ability: SectCompiledAbility,
     methodLevels: Partial<Record<SectMethodId, number>>,
-  ): import('@shared/engine/battle-v5/core/configs').AbilityConfig[] {
+  ): SectCompiledAbility {
+    const projected = structuredClone(ability);
     const fixedGrowth = this.resolve(1);
-    return passives.map((passive) => {
-      const projected = structuredClone(passive);
-      projected.effects = projected.effects?.map((effect) =>
-        this.projectEffect(effect, fixedGrowth, methodLevels),
-      );
-      projected.castEffects = projected.castEffects?.map((effect) =>
-        this.projectEffect(effect, fixedGrowth, methodLevels),
-      );
-      projected.listeners = projected.listeners?.map((listener) =>
-        this.projectListener(listener, fixedGrowth, methodLevels),
-      );
-      return projected;
-    });
+    projected.config.effects = projected.config.effects?.map((effect) =>
+      this.projectEffect(effect, fixedGrowth, methodLevels),
+    );
+    projected.config.castEffects = projected.config.castEffects?.map((effect) =>
+      this.projectEffect(effect, fixedGrowth, methodLevels),
+    );
+    projected.config.listeners = projected.config.listeners?.map((listener) =>
+      this.projectListener(listener, fixedGrowth, methodLevels),
+    );
+    return projected;
   }
 
   private projectEffect(

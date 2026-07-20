@@ -1,5 +1,6 @@
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
-import { standardSectMethodGrowthPolicy } from '../authoring';
+import { AbilityType } from '@shared/engine/battle-v5/core/types';
+import { StandardSectRules } from '../domain';
 import type {
   CultivatorSectPathState,
   ResolvedSectAbility,
@@ -8,6 +9,7 @@ import type {
   SectCompiledBuild,
   SectDefinition,
   SectProjectionContext,
+  SectProjectionInput,
 } from '../domain';
 import type { SectModule } from '../plugin';
 import {
@@ -17,18 +19,10 @@ import {
 import { isAbilityUnlocked } from '../progression';
 
 function findActivePath(
-  context: SectProjectionContext,
+  context: SectProjectionInput,
 ): CultivatorSectPathState | undefined {
   return context.sect.paths.find(
     (path) => path.pathId === context.sect.activePathId,
-  );
-}
-
-function selectedNodeIds(path: CultivatorSectPathState): string[] {
-  return (
-    path.meridianLoadouts.find(
-      (loadout) => loadout.slot === path.activeMeridianSlot,
-    )?.nodeIds ?? []
   );
 }
 
@@ -36,61 +30,38 @@ function selectedNodeIds(path: CultivatorSectPathState): string[] {
 export class SectCompiler {
   compile(
     module: SectModule,
-    context: SectProjectionContext,
+    input: SectProjectionInput,
   ): SectCompiledBuild {
+    const context: SectProjectionContext = {
+      ...input,
+      methodGrowth: module.methodGrowth,
+    };
     const builder = module.createBaseBuilder(context);
     const path = findActivePath(context);
     if (path) {
       const pathModule = module.paths.get(path.pathId);
       if (!pathModule) throw new Error(`流派 ${path.pathId} 未注册运行时模块`);
-      pathModule.compileVariants({ ...context, path }, builder);
-
-      const selected = new Set(selectedNodeIds(path));
-      const unlocked = new Set(path.unlockedLayerIds);
-      const layerOrder = new Map(
-        pathModule.definition.layers.map((layer) => [layer.id, layer.order]),
-      );
-      const orderedNodes = pathModule.definition.nodes
-        .filter((node) => selected.has(node.id) && unlocked.has(node.layerId))
-        .sort(
-          (left, right) =>
-            (layerOrder.get(left.layerId) ?? 99) -
-            (layerOrder.get(right.layerId) ?? 99),
-        );
-      const applied = new Set<string>();
-      for (const definition of orderedNodes) {
-        const plugin = pathModule.nodes.get(definition.id);
-        if (!plugin)
-          throw new Error(`参悟节点 ${definition.id} 缺少运行时插件`);
-        applied.add(definition.id);
-        plugin.apply(
-          { ...context, path, activeNodeIds: new Set(applied) },
-          builder,
-        );
-      }
+      pathModule.compile({ ...context, path }, builder);
     }
 
     const rawBuild = builder.build();
     const build = this.finalizePresentation(module.definition, {
       ...rawBuild,
-      abilities: standardSectMethodGrowthPolicy.projectAbilities(
+      abilities: module.methodGrowth.projectAbilities(
         module.definition,
         rawBuild.abilities,
         context.sect.methods,
       ),
-      passives: standardSectMethodGrowthPolicy.projectPassives(
-        rawBuild.passives,
-        context.sect.methods,
-      ),
     });
     this.assertCombatResourceContract(module.definition, build);
+    this.assertDefinitionContracts(module.definition, context, build);
     this.assertAbilityContracts(build);
     return build;
   }
 
   projectCombat(
     module: SectModule,
-    context: SectProjectionContext,
+    context: SectProjectionInput,
   ): SectCombatProjection | null {
     if (
       context.sect.status !== 'active' ||
@@ -105,16 +76,28 @@ export class SectCompiler {
       .filter(
         (id): id is string =>
           id !== null &&
-          id !== build.defaultAbilityId &&
           isAbilityUnlocked(module.definition, id, context.sect),
       )
       .map((id) => build.abilities[id]?.config)
       .filter((config): config is NonNullable<typeof config> =>
         Boolean(config),
       );
-    abilities.push(...build.passives);
+    abilities.push(
+      ...Object.entries(build.abilities)
+        .filter(([id, ability]) => {
+          if (ability.config.type !== AbilityType.PASSIVE_SKILL) return false;
+          const definition = module.definition.abilities.find((entry) => entry.id === id);
+          return !definition || isAbilityUnlocked(module.definition, id, context.sect);
+        })
+        .map(([, ability]) => ability.config),
+    );
+    const defaultDefinition = module.definition.abilities.find(
+      (ability) => ability.kind === 'default',
+    );
     return {
-      defaultAttack: build.abilities[build.defaultAbilityId]?.config,
+      defaultAttack: defaultDefinition
+        ? build.abilities[defaultDefinition.id]?.config
+        : undefined,
       abilities,
       methodModifiers: projectSectMethodModifiers(
         context.sect,
@@ -130,17 +113,41 @@ export class SectCompiler {
 
   resolveAbility(
     module: SectModule,
-    context: SectProjectionContext & { abilityId: SectAbilityId },
+    context: SectProjectionInput & { abilityId: SectAbilityId },
   ): ResolvedSectAbility {
     const definition = module.definition.abilities.find(
       (ability) => ability.id === context.abilityId,
     );
     if (!definition) throw new Error(`未知宗门神通: ${context.abilityId}`);
     const built = this.compile(module, context).abilities[context.abilityId];
-    if (!built) throw new Error(`宗门神通未能投影: ${context.abilityId}`);
-    const method = module.definition.methods.find(
-      (entry) => entry.id === definition.methodId,
-    );
+    return this.resolveCompiledAbility(module, context, definition, built);
+  }
+
+  resolveAbilities(
+    module: SectModule,
+    context: SectProjectionInput,
+  ): ResolvedSectAbility[] {
+    const build = this.compile(module, context);
+    return module.definition.abilities
+      .filter((definition) => Boolean(build.abilities[definition.id]))
+      .map((definition) =>
+        this.resolveCompiledAbility(
+          module,
+          context,
+          definition,
+          build.abilities[definition.id],
+        ),
+      );
+  }
+
+  private resolveCompiledAbility(
+    module: SectModule,
+    context: SectProjectionInput,
+    definition: SectDefinition['abilities'][number],
+    built: SectCompiledBuild['abilities'][string] | undefined,
+  ): ResolvedSectAbility {
+    if (!built) throw new Error(`宗门神通未能投影: ${definition.id}`);
+    const unlockRequirements = this.describeUnlock(module.definition, definition);
     return {
       id: definition.id,
       name: built.config.name,
@@ -152,15 +159,34 @@ export class SectCompiler {
         definition.id,
         context.sect,
       ),
-      unlockRequirements: [
-        `${method?.name ?? definition.methodId}${definition.unlockLevel}级`,
-      ],
+      unlockRequirements,
       manaCost: built.config.mpCost ?? 0,
       cooldown: built.config.cooldown ?? 0,
       detailRows: built.detailRows,
       notes: built.notes,
       config: built.config,
     };
+  }
+
+  private describeUnlock(
+    definition: SectDefinition,
+    ability: SectDefinition['abilities'][number],
+  ): string[] {
+    const unlock = ability.unlock;
+    switch (unlock.type) {
+      case 'always':
+        return [];
+      case 'active_path': {
+        const path = definition.paths.find((entry) => entry.id === unlock.pathId);
+        return [`激活${path?.name ?? unlock.pathId}流派`];
+      }
+      case 'method': {
+        const method = definition.methods.find(
+          (entry) => entry.id === unlock.methodId,
+        );
+        return [`${method?.name ?? unlock.methodId}${unlock.level}级`];
+      }
+    }
   }
 
   private finalizePresentation(
@@ -202,7 +228,42 @@ export class SectCompiler {
     for (const ability of Object.values(build.abilities)) {
       AbilityFactory.create(ability.config);
     }
-    for (const passive of build.passives) AbilityFactory.create(passive);
+  }
+
+  private assertDefinitionContracts(
+    definition: SectDefinition,
+    context: SectProjectionContext,
+    build: SectCompiledBuild,
+  ): void {
+    const path = findActivePath(context);
+    const selectedNodeIds = new Set(
+      path?.meridianLoadouts.find(
+        (loadout) => loadout.slot === path.activeMeridianSlot,
+      )?.nodeIds ?? [],
+    );
+    const definedAbilityIds = new Set(
+      definition.abilities.map((ability) => ability.id),
+    );
+    for (const abilityId of Object.keys(build.abilities)) {
+      if (!definedAbilityIds.has(abilityId) && !selectedNodeIds.has(abilityId)) {
+        throw new Error(`宗门 ${definition.id} 编译出未定义能力 ${abilityId}`);
+      }
+    }
+
+    for (const ability of definition.abilities) {
+      const shouldExist =
+        ability.unlock.type !== 'active_path' ||
+        ability.unlock.pathId === path?.pathId;
+      const compiled = build.abilities[ability.id];
+      if (shouldExist && !compiled) {
+        throw new Error(`宗门能力 ${ability.id} 缺少编译产物`);
+      }
+      if (!compiled) continue;
+      const passive = compiled.config.type === AbilityType.PASSIVE_SKILL;
+      if ((ability.kind === 'passive') !== passive) {
+        throw new Error(`宗门能力 ${ability.id} 的定义类型与编译产物不一致`);
+      }
+    }
   }
 
   private assertCombatResourceContract(
@@ -210,7 +271,7 @@ export class SectCompiler {
     build: SectCompiledBuild,
   ): void {
     const expected = definition.combatResource;
-    if (build.resources.length !== 1) {
+    if (build.resources.length !== StandardSectRules.combatResourceCount) {
       throw new Error(
         `宗门 ${definition.id} 编译结果必须且只能包含一个战斗资源`,
       );

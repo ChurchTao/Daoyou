@@ -25,7 +25,7 @@ export const SWIFT_ULTIMATE_NODES = [
     (context, builder) => {
       swiftSwordBuild(builder).enable('endlessFlow');
       addLingxiaoPassive(context, builder, {
-        id: 'swift-endless-flow-round',
+        id: 'swift-endless-flow',
         name: '无间',
         listeners: [
           {

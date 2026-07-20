@@ -9,6 +9,7 @@ import type {
   SectPathCompileContext,
   SectPathDefinition,
   SectProjectionContext,
+  SectProjectionInput,
   SectTacticId,
   SectTrialContext,
   SectTrialScenario,
@@ -16,14 +17,14 @@ import type {
 
 export interface SectNodePlugin {
   readonly definition: import('../domain').SectMeridianNodeDefinition;
-  describe?(context: SectProjectionContext): string;
+  describe?(context: SectProjectionInput): string;
   apply(context: SectNodeApplyContext, builder: SectBuildBuilder): void;
 }
 
 export interface SectPathModule {
   readonly definition: SectPathDefinition;
   readonly nodes: ReadonlyMap<string, SectNodePlugin>;
-  compileVariants(
+  compile(
     context: SectPathCompileContext,
     builder: SectBuildBuilder,
   ): void;
@@ -42,6 +43,7 @@ export interface SectModule {
   readonly definition: SectDefinition;
   readonly paths: ReadonlyMap<string, SectPathModule>;
   readonly progression: import('../progression').SectProgressionPolicy;
+  readonly methodGrowth: import('../domain').SectMethodGrowthPolicy;
   readonly organization: SectOrganizationModule;
   createBaseBuilder(context: SectProjectionContext): SectBuildBuilder;
   checkAdmission(context: SectAdmissionContext): SectAdmissionResult;

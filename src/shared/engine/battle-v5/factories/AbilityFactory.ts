@@ -3,16 +3,12 @@ import { DataDrivenActiveSkill } from '../abilities/DataDrivenActiveSkill';
 import { DataDrivenPassiveAbility } from '../abilities/DataDrivenPassiveAbility';
 import { TargetPolicy } from '../abilities/TargetPolicy';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
-import {
-  AbilityConfig,
-  AbilitySelectionProfile,
-  EffectConfig,
-  ListenerConfig,
-} from '../core/configs';
+import { AbilityConfig, EffectConfig, ListenerConfig } from '../core/configs';
 import { buildListenerRuntimeConfig } from '../core/listenerExecution';
-import { AbilityId, AbilityType, AttributeType, BuffType, DamageType } from '../core/types';
+import { AbilityId, AbilityType } from '../core/types';
 import { GameplayEffect } from '../effects/Effect';
 import { EffectRegistry } from './EffectRegistry';
+import { analyzeAbilityCapabilities } from './AbilityCapabilityAnalyzer';
 
 // 统一加载所有效果以触发它们的自我注册 (Side-effects loading)
 import '../effects';
@@ -53,7 +49,7 @@ export class AbilityFactory {
           ? new TargetPolicy(config.targetPolicy)
           : TargetPolicy.default(),
         selectionProfile:
-          config.selectionProfile ?? this.inferSelectionProfile(config),
+          config.selectionProfile ?? analyzeAbilityCapabilities(config).selectionProfile,
         castConditions: config.castConditions,
       });
 
@@ -145,7 +141,7 @@ export class AbilityFactory {
     }
 
     const tagSet = new Set(tags);
-    const capabilities = this.summarizeAbilityCapabilities(config);
+    const capabilities = analyzeAbilityCapabilities(config);
 
     if (
       capabilities.hasDamage &&
@@ -201,207 +197,4 @@ export class AbilityFactory {
     }
   }
 
-  private static summarizeAbilityCapabilities(config: AbilityConfig): {
-    hasDamage: boolean;
-    hasHeal: boolean;
-    hasControl: boolean;
-    damageChannels: Set<'magic' | 'physical' | 'true'>;
-  } {
-    const queue: EffectConfig[] = [
-      ...(config.effects ?? []),
-      ...(config.castEffects ?? []),
-      ...(config.listeners?.flatMap((listener) => listener.effects) ?? []),
-    ];
-    const damageChannels = new Set<'magic' | 'physical' | 'true'>();
-    let hasDamage = false;
-    let hasHeal = false;
-    let hasControl = false;
-
-    for (const effect of queue) {
-      if ('effects' in effect.params && Array.isArray(effect.params.effects)) {
-        queue.push(...effect.params.effects);
-      }
-      switch (effect.type) {
-        case 'damage': {
-          hasDamage = true;
-
-          if (effect.params.damageType === DamageType.TRUE) {
-            damageChannels.add('true');
-            break;
-          }
-
-          const attribute = effect.params.value.attribute;
-          if (
-            attribute === AttributeType.MAGIC_ATK ||
-            attribute === AttributeType.MAGIC_DEF
-          ) {
-            damageChannels.add('magic');
-          } else if (
-            attribute === AttributeType.ATK ||
-            attribute === AttributeType.DEF
-          ) {
-            damageChannels.add('physical');
-          } else {
-            throw new Error(
-              `[AbilityFactory] damage effect on ${config.slug} is missing a supported damage attribute`,
-            );
-          }
-          break;
-        }
-
-        case 'resource_scaled_damage':
-          hasDamage = true;
-          damageChannels.add(
-            effect.params.damageType === DamageType.TRUE
-              ? 'true'
-              : effect.params.damageType === DamageType.MAGICAL
-                ? 'magic'
-                : 'physical',
-          );
-          break;
-
-        case 'tag_trigger':
-          if (effect.params.effects && effect.params.effects.length > 0) {
-            queue.push(...effect.params.effects);
-          } else {
-            hasDamage = true;
-            damageChannels.add('magic');
-          }
-          break;
-
-        case 'damage_memory':
-          if (effect.type === 'damage_memory' && effect.params.mode !== 'release') {
-            break;
-          }
-          if (effect.params.releaseAs === 'heal') {
-            hasHeal = true;
-          } else if (effect.params.releaseAs !== 'shield') {
-            hasDamage = true;
-            damageChannels.add(
-              effect.params.releaseAs === 'counter' ||
-                effect.params.releaseAs === 'follow_up'
-                ? 'physical'
-                : 'true',
-            );
-          }
-          break;
-
-        case 'hp_sacrifice_damage':
-          hasDamage = true;
-          damageChannels.add('magic');
-          break;
-
-        case 'heal':
-          hasHeal = true;
-          break;
-
-        case 'apply_buff':
-          if (effect.params.buffConfig.type === BuffType.CONTROL) {
-            hasControl = true;
-          }
-          break;
-
-        default:
-          break;
-      }
-    }
-
-    if (damageChannels.has('magic') && damageChannels.has('physical')) {
-      throw new Error(
-        `[AbilityFactory] ability ${config.slug} mixes multiple damage channels`,
-      );
-    }
-
-    return {
-      hasDamage,
-      hasHeal,
-      hasControl,
-      damageChannels,
-    };
-  }
-
-  private static inferSelectionProfile(
-    config: AbilityConfig,
-  ): AbilitySelectionProfile | undefined {
-    const intents = new Set<NonNullable<AbilitySelectionProfile['intents']>[number]>();
-    const effects = [
-      ...(config.effects ?? []),
-      ...(config.castEffects ?? []),
-      ...(config.listeners?.flatMap((listener) => listener.effects) ?? []),
-    ];
-
-    for (const effect of effects) {
-      if ('effects' in effect.params && Array.isArray(effect.params.effects)) {
-        effects.push(...effect.params.effects);
-      }
-      if (effect.type === 'apply_buff') {
-        effects.push(
-          ...(effect.params.buffConfig.listeners?.flatMap((listener) => listener.effects) ?? []),
-        );
-      }
-
-      switch (effect.type) {
-        case 'damage':
-        case 'resource_scaled_damage':
-        case 'tag_trigger':
-        case 'hp_sacrifice_damage':
-          intents.add('damage');
-          break;
-        case 'damage_memory':
-          if (effect.params.mode === 'release') {
-            if (effect.params.releaseAs === 'heal') {
-              intents.add('heal_hp');
-            } else if (effect.params.releaseAs === 'shield') {
-              intents.add('defensive');
-            } else {
-              intents.add('damage');
-            }
-          }
-          break;
-        case 'heal':
-          intents.add(effect.params.target === 'mp' ? 'restore_mp' : 'heal_hp');
-          break;
-        case 'shield':
-        case 'magic_shield':
-        case 'death_prevent':
-        case 'damage_defer':
-          intents.add('defensive');
-          break;
-        case 'ability_lock':
-          intents.add('control');
-          break;
-        case 'ability_transform':
-        case 'next_hit_rule':
-        case 'buff_copy':
-          intents.add('buff');
-          break;
-        case 'apply_buff':
-          intents.add(
-            effect.params.buffConfig.type === BuffType.CONTROL
-              ? 'control'
-              : 'buff',
-          );
-          break;
-        default:
-          break;
-      }
-    }
-
-    if (intents.size === 0) {
-      if (config.tags?.includes(GameplayTags.ABILITY.FUNCTION.HEAL)) {
-        intents.add('heal_hp');
-      }
-      if (config.tags?.includes(GameplayTags.ABILITY.FUNCTION.CONTROL)) {
-        intents.add('control');
-      }
-      if (config.tags?.includes(GameplayTags.ABILITY.FUNCTION.DAMAGE)) {
-        intents.add('damage');
-      }
-      if (config.tags?.includes(GameplayTags.ABILITY.FUNCTION.BUFF)) {
-        intents.add('buff');
-      }
-    }
-
-    return intents.size > 0 ? { intents: Array.from(intents) } : undefined;
-  }
 }

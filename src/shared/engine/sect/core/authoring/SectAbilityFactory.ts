@@ -1,7 +1,9 @@
 import type {
   AbilityConfig,
+  AbilitySelectionProfile,
   EffectConfig,
 } from '@shared/engine/battle-v5/core/configs';
+import { analyzeAbilityCapabilities } from '@shared/engine/battle-v5/factories/AbilityCapabilityAnalyzer';
 import { AbilityType } from '@shared/engine/battle-v5/core/types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import type {
@@ -17,11 +19,11 @@ const ROLE_TAGS: Record<SectAbilityRole, string> = {
   combo: GameplayTags.ABILITY.SECT.COMBO,
   defensive: GameplayTags.ABILITY.SECT.DEFENSIVE,
   finisher: GameplayTags.ABILITY.SECT.FINISHER,
-  utility: GameplayTags.ABILITY.SECT.DEFENSIVE,
+  utility: GameplayTags.ABILITY.SECT.UTILITY,
 };
 
 export interface ActiveSectAbilitySpec {
-  definition: SectAbilityDefinition;
+  definition: Extract<SectAbilityDefinition, { kind: 'default' | 'active' }>;
   name?: string;
   role?: SectAbilityRole;
   mpCost?: number;
@@ -30,8 +32,8 @@ export interface ActiveSectAbilitySpec {
   castEffects?: EffectConfig[];
   pathId?: SectPathId;
   castConditions?: AbilityConfig['castConditions'];
-  targetTeam?: 'enemy' | 'self';
-  heal?: boolean;
+  targetPolicy?: AbilityConfig['targetPolicy'];
+  selectionProfile?: AbilitySelectionProfile;
   extraTags?: string[];
   detailRows?: string[];
   notes?: string[];
@@ -44,25 +46,23 @@ export class SectAbilityFactory {
 
   active(spec: ActiveSectAbilitySpec): SectCompiledAbility {
     const role = spec.role ?? spec.definition.role;
-    const effectTree = [...spec.effects, ...(spec.castEffects ?? [])];
-    for (let index = 0; index < effectTree.length; index += 1) {
-      const effect = effectTree[index];
-      if ('effects' in effect.params && Array.isArray(effect.params.effects)) {
-        effectTree.push(...effect.params.effects);
-      }
-      if (effect.type === 'apply_buff') {
-        effectTree.push(
-          ...(effect.params.buffConfig.listeners?.flatMap(
-            (listener) => listener.effects,
-          ) ?? []),
-        );
-      }
-    }
-    const hasDamage = effectTree.some(
-      (effect) => effect.type === 'damage' || effect.type === 'resource_scaled_damage',
-    );
-    const hasHeal =
-      spec.heal || effectTree.some((effect) => effect.type === 'heal');
+    const targetPolicy = spec.targetPolicy ?? {
+      team: 'enemy',
+      scope: 'single',
+    };
+    const capabilities = analyzeAbilityCapabilities({
+      effects: spec.effects,
+      castEffects: spec.castEffects,
+      slug: spec.definition.id,
+    });
+    const roleSelectionProfile: AbilitySelectionProfile = {
+      intents:
+        role === 'defensive'
+          ? ['defensive']
+          : role === 'utility'
+            ? ['heal_hp', 'defensive']
+            : ['damage'],
+    };
     const config: AbilityConfig = {
       slug: `sect.${this.sectId}.${spec.definition.id}`,
       name: spec.name ?? spec.definition.baseName,
@@ -70,13 +70,19 @@ export class SectAbilityFactory {
       mpCost: spec.mpCost ?? spec.definition.mpCost,
       cooldown: spec.cooldown ?? spec.definition.cooldown,
       tags: [
-        ...(hasDamage
-          ? [
-              GameplayTags.ABILITY.FUNCTION.DAMAGE,
-              GameplayTags.ABILITY.CHANNEL.PHYSICAL,
-            ]
+        ...(capabilities.hasDamage ? [GameplayTags.ABILITY.FUNCTION.DAMAGE] : []),
+        ...(capabilities.hasHeal ? [GameplayTags.ABILITY.FUNCTION.HEAL] : []),
+        ...(capabilities.hasControl ? [GameplayTags.ABILITY.FUNCTION.CONTROL] : []),
+        ...(capabilities.hasBuff ? [GameplayTags.ABILITY.FUNCTION.BUFF] : []),
+        ...(capabilities.damageChannels.has('physical')
+          ? [GameplayTags.ABILITY.CHANNEL.PHYSICAL]
           : []),
-        ...(hasHeal ? [GameplayTags.ABILITY.FUNCTION.HEAL] : []),
+        ...(capabilities.damageChannels.has('magic')
+          ? [GameplayTags.ABILITY.CHANNEL.MAGIC]
+          : []),
+        ...(capabilities.damageChannels.has('true')
+          ? [GameplayTags.ABILITY.CHANNEL.TRUE]
+          : []),
         GameplayTags.ABILITY.KIND.SECT,
         GameplayTags.ABILITY.SECT.namespace(this.sectId),
         ...(spec.pathId
@@ -85,17 +91,12 @@ export class SectAbilityFactory {
         GameplayTags.ABILITY.SECT.ability(this.sectId, spec.definition.id),
         ROLE_TAGS[role],
         ...(spec.extraTags ?? []),
-        GameplayTags.ABILITY.TARGET.SINGLE,
+        targetPolicy.scope === 'single'
+          ? GameplayTags.ABILITY.TARGET.SINGLE
+          : GameplayTags.ABILITY.TARGET.AOE,
       ],
-      targetPolicy: { team: spec.targetTeam ?? 'enemy', scope: 'single' },
-      selectionProfile: {
-        intents:
-          role === 'utility'
-            ? ['heal_hp', 'defensive']
-            : role === 'defensive'
-              ? ['defensive']
-              : ['damage'],
-      },
+      targetPolicy,
+      selectionProfile: spec.selectionProfile ?? roleSelectionProfile,
       castConditions: spec.castConditions,
       effects: spec.effects,
       castEffects: spec.castEffects,
@@ -109,44 +110,55 @@ export class SectAbilityFactory {
   }
 
   passive(args: {
-    id: string;
-    name: string;
-    pathId: SectPathId;
-    listeners: NonNullable<AbilityConfig['listeners']>;
-  }): AbilityConfig {
-    const effectQueue = args.listeners.flatMap((listener) => listener.effects);
-    for (let index = 0; index < effectQueue.length; index += 1) {
-      const effect = effectQueue[index];
-      if ('effects' in effect.params && Array.isArray(effect.params.effects)) {
-        effectQueue.push(...effect.params.effects);
-      }
-    }
-    const hasDamage = effectQueue.some(
-      (effect) =>
-        effect.type === 'damage' ||
-        effect.type === 'resource_scaled_damage' ||
-        (effect.type === 'damage_memory' &&
-          effect.params.mode === 'release' &&
-          effect.params.releaseAs !== 'heal' &&
-          effect.params.releaseAs !== 'shield'),
-    );
-    return {
-      slug: `sect.${this.sectId}.${args.id}`,
-      name: args.name,
+    definition: Extract<SectAbilityDefinition, { kind: 'passive' }>;
+    name?: string;
+    pathId?: SectPathId;
+    listeners?: NonNullable<AbilityConfig['listeners']>;
+    modifiers?: AbilityConfig['modifiers'];
+    extraTags?: string[];
+    detailRows?: string[];
+    notes?: string[];
+  }): SectCompiledAbility {
+    const capabilities = analyzeAbilityCapabilities({
+      listeners: args.listeners ?? [],
+      slug: args.definition.id,
+    });
+    const config: AbilityConfig = {
+      slug: `sect.${this.sectId}.${args.definition.id}`,
+      name: args.name ?? args.definition.baseName,
       type: AbilityType.PASSIVE_SKILL,
       tags: [
-        ...(hasDamage
-          ? [
-              GameplayTags.ABILITY.FUNCTION.DAMAGE,
-              GameplayTags.ABILITY.CHANNEL.PHYSICAL,
-            ]
+        ...(capabilities.hasDamage ? [GameplayTags.ABILITY.FUNCTION.DAMAGE] : []),
+        ...(capabilities.hasHeal ? [GameplayTags.ABILITY.FUNCTION.HEAL] : []),
+        ...(capabilities.hasControl ? [GameplayTags.ABILITY.FUNCTION.CONTROL] : []),
+        ...(capabilities.hasBuff ? [GameplayTags.ABILITY.FUNCTION.BUFF] : []),
+        ...(capabilities.damageChannels.has('physical')
+          ? [GameplayTags.ABILITY.CHANNEL.PHYSICAL]
+          : []),
+        ...(capabilities.damageChannels.has('magic')
+          ? [GameplayTags.ABILITY.CHANNEL.MAGIC]
+          : []),
+        ...(capabilities.damageChannels.has('true')
+          ? [GameplayTags.ABILITY.CHANNEL.TRUE]
           : []),
         GameplayTags.ABILITY.KIND.PASSIVE,
         GameplayTags.ABILITY.KIND.SECT,
         GameplayTags.ABILITY.SECT.namespace(this.sectId),
-        GameplayTags.ABILITY.SECT.path(this.sectId, args.pathId),
+        ...(args.pathId
+          ? [GameplayTags.ABILITY.SECT.path(this.sectId, args.pathId)]
+          : []),
+        GameplayTags.ABILITY.SECT.ability(this.sectId, args.definition.id),
+        ROLE_TAGS[args.definition.role],
+        ...(args.extraTags ?? []),
       ],
       listeners: args.listeners,
+      modifiers: args.modifiers,
+    };
+    return {
+      config,
+      detailRows: args.detailRows ?? [],
+      notes: args.notes ?? [],
+      summary: args.definition.description,
     };
   }
 }

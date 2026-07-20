@@ -9,7 +9,7 @@ import {
 import { SWIFT_SWORD_PATH_ID } from '../../ids';
 import { SWIFT_SWORD_NODES } from './nodes';
 import { LingxiaoSwiftSelectionStrategy } from './strategy';
-import { initializeSwiftSwordBuild } from './SwiftSwordBuildFacade';
+import { initializeSwiftSwordBuild, swiftSwordBuild } from './SwiftSwordBuildFacade';
 
 const SWIFT_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
   id: SWIFT_SWORD_PATH_ID,
@@ -63,11 +63,18 @@ export class SwiftSwordPathModule extends BaseSectPathModule {
     super(SWIFT_SWORD_DEFINITION, SWIFT_SWORD_NODES);
   }
 
-  compileVariants(
+  protected initializeBuild(
     context: SectPathCompileContext,
     builder: SectBuildBuilder,
   ): void {
     initializeSwiftSwordBuild(context, builder);
+  }
+
+  protected finalizeBuild(
+    _context: SectPathCompileContext,
+    builder: SectBuildBuilder,
+  ): void {
+    swiftSwordBuild(builder).finalize();
   }
 
   createSelectionStrategy(tacticId: SectTacticId) {

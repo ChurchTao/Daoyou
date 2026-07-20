@@ -1,5 +1,5 @@
 import { SectCompiler } from '../compilation';
-import type { CultivatorSectState } from '../domain';
+import { StandardSectRules, type CultivatorSectState } from '../domain';
 import type { SectModule } from '../plugin';
 import type { ValidationRule } from './ValidationPipeline';
 
@@ -12,8 +12,8 @@ export class SectCompilationRule implements ValidationRule<SectModule> {
       definition.methods.map((method) => [method.id, 100]),
     );
     const equipped = definition.abilities
-      .filter((ability) => ability.occupiesActiveSlot)
-      .slice(0, 4)
+      .filter((ability) => ability.kind === 'active')
+      .slice(0, StandardSectRules.activeAbilitySlotCount)
       .map((ability) => ability.id);
     const baseState: CultivatorSectState = {
       membershipId: `registry-validation:${definition.id}`,
@@ -23,12 +23,10 @@ export class SectCompilationRule implements ValidationRule<SectModule> {
       configVersion: definition.configVersion,
       methods,
       paths: [],
-      abilityLoadout: [
-        equipped[0] ?? null,
-        equipped[1] ?? null,
-        equipped[2] ?? null,
-        equipped[3] ?? null,
-      ],
+      abilityLoadout: Array.from(
+        { length: StandardSectRules.activeAbilitySlotCount },
+        (_, index) => equipped[index] ?? null,
+      ) as CultivatorSectState['abilityLoadout'],
     };
     compiler.compile(module, { sect: baseState, realm: '渡劫' });
 
@@ -44,11 +42,9 @@ export class SectCompilationRule implements ValidationRule<SectModule> {
               .map((layer) => layer.id),
             tacticId: path.defaultTacticId,
             activeMeridianSlot: 1,
-            meridianLoadouts: [
-              { slot: 1, nodeIds: [], version: 1 },
-              { slot: 2, nodeIds: [], version: 1 },
-              { slot: 3, nodeIds: [], version: 1 },
-            ],
+            meridianLoadouts: StandardSectRules.meridianLoadoutSlots.map(
+              (slot) => ({ slot, nodeIds: [], version: 1 }),
+            ),
           },
         ],
       };
@@ -65,6 +61,30 @@ export class SectCompilationRule implements ValidationRule<SectModule> {
           sect: nodeState,
           realm: '渡劫',
         });
+      }
+
+      const firstByLayer = path.layers
+        .sort((left, right) => left.order - right.order)
+        .map((layer) => path.nodes.find((node) => node.layerId === layer.id))
+        .filter((node): node is NonNullable<typeof node> => Boolean(node));
+      const compileNodes = (nodeIds: string[]) => {
+        const state = structuredClone(pathBase);
+        const statePath = state.paths.find((entry) => entry.pathId === path.id)!;
+        const loadout = statePath.meridianLoadouts.find((entry) => entry.slot === 1)!;
+        loadout.nodeIds = nodeIds;
+        compiler.compile(module, { sect: state, realm: '渡劫' });
+      };
+      compileNodes(firstByLayer.map((node) => node.id));
+      for (const layer of path.layers) {
+        for (const replacement of path.nodes.filter(
+          (node) => node.layerId === layer.id,
+        )) {
+          compileNodes(
+            firstByLayer.map((node) =>
+              node.layerId === layer.id ? replacement.id : node.id,
+            ),
+          );
+        }
       }
     }
   }

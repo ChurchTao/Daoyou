@@ -126,6 +126,7 @@ export function buildSwiftAbilities(
   path: CultivatorSectPathState,
   features: SwiftSwordFeatures,
   edgeCleansingLevel?: number,
+  methodGrowth?: import('../../../../core').SectMethodGrowthPolicy,
 ): Record<string, SectCompiledAbility> {
   const built = { ...baseBuild.abilities };
   const factory = new SectAbilityFactory(LINGXIAO_SECT_ID);
@@ -136,12 +137,12 @@ export function buildSwiftAbilities(
     role: SectAbilityRole;
     effects: EffectConfig[];
     castConditions?: AbilityConfig['castConditions'];
-    targetTeam?: 'enemy' | 'self';
+    targetPolicy?: AbilityConfig['targetPolicy'];
     extraTags?: string[];
   }): SectCompiledAbility => {
     const definition = LINGXIAO_BASE_DEFINITION.abilities.find(
-      (entry) => entry.id === args.id,
-    )!;
+      (entry) => entry.id === args.id && entry.kind !== 'passive',
+    ) as Exclude<(typeof LINGXIAO_BASE_DEFINITION.abilities)[number], { kind: 'passive' }>;
     return factory.active({
       ...args,
       definition,
@@ -304,7 +305,7 @@ export function buildSwiftAbilities(
     id: 'shadow-step',
     cooldown: 4,
     role: 'defensive',
-    targetTeam: 'self',
+    targetPolicy: { team: 'self', scope: 'single' },
     effects: [
       selfBuff(
         'sect.lingxiao.swift.traceless-step',
@@ -345,7 +346,7 @@ export function buildSwiftAbilities(
     role: 'utility',
     effects: [
       damage(0.95),
-      sectEffects.dispelPositiveBuffsByMethod(1, edgeCleansingLevel),
+      sectEffects.dispelPositiveBuffsByMethod(1, edgeCleansingLevel, methodGrowth!),
     ],
   });
 
@@ -353,7 +354,7 @@ export function buildSwiftAbilities(
     id: 'sword-aegis',
     cooldown: 5,
     role: 'defensive',
-    targetTeam: 'self',
+    targetPolicy: { team: 'self', scope: 'single' },
     effects: [
       selfBuff('sect.lingxiao.swift.wind-heart', '剑心通明', 3, [
         {
@@ -374,7 +375,7 @@ export function buildSwiftAbilities(
     id: 'nurturing-sword',
     cooldown: 5,
     role: 'defensive',
-    targetTeam: 'self',
+    targetPolicy: { team: 'self', scope: 'single' },
     effects: [
       selfBuff('sect.lingxiao.swift.light-sword', '人剑合一', 3, [
         { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.1 },

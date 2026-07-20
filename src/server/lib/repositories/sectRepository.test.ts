@@ -7,7 +7,7 @@ import {
   sectPathProgress,
 } from '@server/lib/drizzle/schema';
 import { createSectRuntime } from '@shared/engine/sect';
-import { FIXTURE_SECT_MODULE } from '@shared/engine/sect/testing/fixtures/FixtureSectModule';
+import { CUSTOM_ECONOMY_FIXTURE_SECT_MODULE as FIXTURE_SECT_MODULE } from '@shared/engine/sect/testing/fixtures/CustomEconomyFixtureSectModule';
 import { describe, expect, it, vi } from 'vitest';
 import {
   hydrateSectAbilitySlots,

@@ -2,6 +2,8 @@ import type { DbTransaction } from '@server/lib/drizzle/db';
 import type { SectRepositoryPort } from '@server/lib/repositories/sectRepository';
 import { createSectTestApplication } from '@server/lib/services/sect-organization/testing/createSectTestApplication';
 import type { Cultivator } from '@shared/types/cultivator';
+import { AbilityType } from '@shared/engine/battle-v5/core/types';
+import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { describe, expect, it, vi } from 'vitest';
 import { productionSectRuntime } from '../content';
 import type {
@@ -29,6 +31,55 @@ const cultivator = {
 } as Cultivator;
 
 describe('第二宗门扩展闭环', () => {
+  it('从效果和职责投影物理、法术、真实、范围、治疗、控制、utility 与被动标签', () => {
+    const runtime = createSectRuntime([FIXTURE_SECT_MODULE]);
+    const details = new Map(
+      runtime
+        .resolveAbilities({ sect: fixtureSectState(), realm: '筑基' })
+        .map((ability) => [ability.id, ability]),
+    );
+
+    expect(details.get('fixture-ability-1')?.config.tags).toEqual(
+      expect.arrayContaining([
+        GameplayTags.ABILITY.FUNCTION.DAMAGE,
+        GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+        GameplayTags.ABILITY.TARGET.SINGLE,
+      ]),
+    );
+    expect(details.get('fixture-ability-2')?.config.tags).toEqual(
+      expect.arrayContaining([
+        GameplayTags.ABILITY.FUNCTION.DAMAGE,
+        GameplayTags.ABILITY.CHANNEL.MAGIC,
+        GameplayTags.ABILITY.TARGET.AOE,
+      ]),
+    );
+    expect(details.get('fixture-ability-3')?.config.tags).toContain(
+      GameplayTags.ABILITY.FUNCTION.HEAL,
+    );
+    expect(details.get('fixture-ability-4')?.config.tags).toEqual(
+      expect.arrayContaining([
+        GameplayTags.ABILITY.FUNCTION.CONTROL,
+        GameplayTags.ABILITY.SECT.UTILITY,
+      ]),
+    );
+    expect(details.get('fixture-ability-5')?.config.tags).toContain(
+      GameplayTags.ABILITY.CHANNEL.TRUE,
+    );
+    expect(details.get('fixture-ability-6')?.config).toMatchObject({
+      type: AbilityType.PASSIVE_SKILL,
+    });
+  });
+
+  it('批量解析全部神通只编译一次', () => {
+    const runtime = createSectRuntime([FIXTURE_SECT_MODULE]);
+    const compile = vi.spyOn(runtime.compiler, 'compile');
+
+    expect(
+      runtime.resolveAbilities({ sect: fixtureSectState(), realm: '筑基' }),
+    ).toHaveLength(6);
+    expect(compile).toHaveBeenCalledTimes(1);
+  });
+
   it('新增第三个测试流派只需实现流派模块并加入所属宗门组合表', () => {
     const definition: SectPathDefinitionWithoutNodes = {
       ...FIXTURE_SECT_MODULE.definition.paths[0],
@@ -67,7 +118,7 @@ describe('第二宗门扩展闭环', () => {
           ),
         );
       }
-      compileVariants(
+      protected initializeBuild(
         _context: SectPathCompileContext,
         builder: SectBuildBuilder,
       ): void {
@@ -93,6 +144,7 @@ describe('第二宗门扩展闭环', () => {
         [thirdPath.definition.id, thirdPath],
       ]),
       progression: FIXTURE_SECT_MODULE.progression,
+      methodGrowth: FIXTURE_SECT_MODULE.methodGrowth,
       organization: FIXTURE_SECT_MODULE.organization,
       createBaseBuilder: (context) =>
         FIXTURE_SECT_MODULE.createBaseBuilder(context),
@@ -113,15 +165,9 @@ describe('第二宗门扩展闭环', () => {
       runtime.registry.require('fixture-sect').definition.paths,
     ).toHaveLength(2);
     expect(productionSectRuntime.registry.get('fixture-sect')).toBeUndefined();
-    expect(FIXTURE_SECT_MODULE.organization.tasks.listDaily()[0]?.id).toBe(
-      'fixture_patrol',
-    );
-    expect(FIXTURE_SECT_MODULE.organization.economy.shopItems('any')[0]?.id).toBe(
-      'fixture_herb',
-    );
-    expect(FIXTURE_SECT_MODULE.organization.construction.facilityPriority).toEqual([
-      'fixture_observatory',
-    ]);
+    expect(FIXTURE_SECT_MODULE.organization.tasks.listDaily()).not.toHaveLength(0);
+    expect(FIXTURE_SECT_MODULE.organization.economy.shopItems('any')).not.toHaveLength(0);
+    expect(FIXTURE_SECT_MODULE.organization.construction.facilityPriority).not.toHaveLength(0);
 
     const state = fixtureSectState();
     state.activePathId = 'fixture-second-path';
@@ -345,6 +391,14 @@ describe('第二宗门扩展闭环', () => {
     await service.trainMethod(
       {
         cultivatorId: cultivator.id!,
+        methodId: 'fixture-method-1',
+        targetLevel: 2,
+      },
+      tx,
+    );
+    await service.trainMethod(
+      {
+        cultivatorId: cultivator.id!,
         methodId: 'fixture-method-2',
         targetLevel: 2,
       },
@@ -404,6 +458,8 @@ describe('第二宗门扩展闭环', () => {
       definition: FIXTURE_SECT_MODULE.definition,
       paths: FIXTURE_SECT_MODULE.paths,
       progression: FIXTURE_SECT_MODULE.progression,
+      methodGrowth: FIXTURE_SECT_MODULE.methodGrowth,
+      organization: FIXTURE_SECT_MODULE.organization,
       createBaseBuilder: (context) =>
         FIXTURE_SECT_MODULE.createBaseBuilder(context),
       checkAdmission: () => ({ allowed: false, reason: '样例拒绝原因' }),

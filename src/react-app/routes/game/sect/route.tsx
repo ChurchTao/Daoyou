@@ -89,9 +89,12 @@ export default function SectPage() {
       }
       contentClassName="lg:max-w-none"
     >
-      <p className="text-ink-secondary text-sm">拖动舆图巡览群峰，滚轮或双指可缩放；聚焦设施即可查看其职司。</p>
-
-      <TransformWrapper
+      {presentation.mapImage ? (
+        <>
+          <p className="text-ink-secondary text-sm">
+            拖动舆图巡览群峰，滚轮或双指可缩放；聚焦设施即可查看其职司。
+          </p>
+          <TransformWrapper
         initialScale={1}
         minScale={1}
         maxScale={3}
@@ -144,7 +147,38 @@ export default function SectPage() {
             </TransformComponent>
           </div>
         )}
-      </TransformWrapper>
+          </TransformWrapper>
+        </>
+      ) : (
+        <div className="grid gap-px border border-ink/15 bg-ink/10 sm:grid-cols-2 lg:grid-cols-3">
+          {presentation.hotspots.map((spot) => {
+            const facility = spot.facility
+              ? facilities.get(spot.facility)
+              : undefined;
+            const access = spot.permission
+              ? data.overview?.permissions?.[spot.permission]
+              : undefined;
+            const disabled = spot.locked || !spot.route || access?.granted === false;
+            return (
+              <button
+                key={spot.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => spot.route && navigate(spot.route)}
+                className="bg-paper/90 min-h-24 p-4 text-left transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <strong>
+                  {spot.label}
+                  {facility ? ` · ${facility.level}级` : ''}
+                </strong>
+                <p className="text-ink-secondary mt-2 text-sm">
+                  {access?.granted === false ? access.reason : spot.note}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </GameSceneFrame>
   );
 }

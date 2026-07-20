@@ -1,4 +1,4 @@
-import type { CultivatorSectState } from '../domain';
+import { StandardSectRules, type CultivatorSectState } from '../domain';
 import type { SectModule } from '../plugin';
 import { isAbilityUnlocked } from '../progression';
 
@@ -30,7 +30,7 @@ export class SectStateValidator {
     }
     if (
       !Array.isArray(state.abilityLoadout) ||
-      state.abilityLoadout.length !== 4
+      state.abilityLoadout.length !== StandardSectRules.activeAbilitySlotCount
     )
       throw new Error('宗门神通栏必须包含四个固定槽位');
     const loadoutIds = state.abilityLoadout.filter(
@@ -43,7 +43,7 @@ export class SectStateValidator {
       const ability = module.definition.abilities.find(
         (entry) => entry.id === id,
       );
-      if (!ability?.occupiesActiveSlot)
+      if (ability?.kind !== 'active')
         throw new Error(`非主动法术不可装配: ${id}`);
       if (!isAbilityUnlocked(module.definition, id, state))
         throw new Error(`未解锁宗门法术不可装配: ${id}`);
@@ -76,7 +76,7 @@ export class SectStateValidator {
       );
       if (expectedPrefix.join(',') !== pathState.unlockedLayerIds.join(','))
         throw new Error(`流派 ${pathState.pathId} 层级必须按顺序解锁`);
-      if (![1, 2, 3].includes(pathState.activeMeridianSlot))
+      if (!StandardSectRules.meridianLoadoutSlots.includes(pathState.activeMeridianSlot))
         throw new Error(`流派 ${pathState.pathId} 当前参悟方案槽无效`);
       const nodeIds = new Set(path.nodes.map((node) => node.id));
       const unlockedLayerIds = new Set(pathState.unlockedLayerIds);
@@ -86,7 +86,10 @@ export class SectStateValidator {
       const slots = pathState.meridianLoadouts
         .map((loadout) => loadout.slot)
         .sort();
-      if (slots.length !== 3 || slots.join(',') !== '1,2,3') {
+      if (
+        slots.length !== StandardSectRules.meridianLoadoutSlots.length ||
+        slots.join(',') !== StandardSectRules.meridianLoadoutSlots.join(',')
+      ) {
         throw new Error(`流派 ${pathState.pathId} 必须保存三套唯一参悟方案`);
       }
       if (!slots.includes(pathState.activeMeridianSlot)) {

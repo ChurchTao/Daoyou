@@ -7,7 +7,7 @@ import {
   type SectTacticId,
 } from '../../../../core';
 import { HEAVY_SWORD_PATH_ID } from '../../ids';
-import { initializeHeavySwordBuild } from './HeavySwordBuildFacade';
+import { heavySwordBuild, initializeHeavySwordBuild } from './HeavySwordBuildFacade';
 import { HEAVY_SWORD_NODES } from './nodes';
 import { LingxiaoHeavySelectionStrategy } from './strategy';
 
@@ -66,11 +66,18 @@ export class HeavySwordPathModule extends BaseSectPathModule {
     super(HEAVY_SWORD_DEFINITION, HEAVY_SWORD_NODES);
   }
 
-  compileVariants(
+  protected initializeBuild(
     context: SectPathCompileContext,
     builder: SectBuildBuilder,
   ): void {
     initializeHeavySwordBuild(context, builder);
+  }
+
+  protected finalizeBuild(
+    _context: SectPathCompileContext,
+    builder: SectBuildBuilder,
+  ): void {
+    heavySwordBuild(builder).finalize();
   }
 
   createSelectionStrategy(tacticId: SectTacticId) {

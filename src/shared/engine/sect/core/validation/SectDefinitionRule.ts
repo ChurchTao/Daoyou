@@ -1,5 +1,10 @@
 import { getRealmStageRank } from '@shared/config/realmProgression';
-import type { SectDefinition, SectPathDefinition } from '../domain';
+import {
+  StandardSectRules,
+  sectAbilityMethodId,
+  type SectDefinition,
+  type SectPathDefinition,
+} from '../domain';
 import type { SectModule } from '../plugin';
 import type { ValidationRule } from './ValidationPipeline';
 
@@ -129,13 +134,13 @@ export class SectDefinitionRule implements ValidationRule<SectModule> {
     if (!definition.trial.name.trim() || !definition.trial.description.trim()) {
       throw new Error(`宗门 ${definition.id} 必须提供可展示的试炼定义`);
     }
-    if (definition.methods.length !== 6) {
-      throw new Error(`宗门 ${definition.id} 必须定义6本基础心法`);
+    if (definition.methods.length !== StandardSectRules.methodCount) {
+      throw new Error(`宗门 ${definition.id} 必须定义${StandardSectRules.methodCount}本基础心法`);
     }
     const slots = definition.methods
       .map((method) => method.slot)
       .sort((a, b) => a - b);
-    if (slots.join(',') !== '1,2,3,4,5,6') {
+    if (slots.join(',') !== StandardSectRules.methodSlots.join(',')) {
       throw new Error(`宗门 ${definition.id} 的心法槽位必须为1至6且不重复`);
     }
 
@@ -148,22 +153,28 @@ export class SectDefinitionRule implements ValidationRule<SectModule> {
     if (duplicateIds(abilityIds).length)
       throw new Error(`宗门 ${definition.id} 存在重复法术ID`);
     const methodSet = new Set(methodIds);
+    if (definition.methods.filter((method) => method.isPrimary).length !== 1) {
+      throw new Error(`宗门 ${definition.id} 必须且只能声明一本主心法`);
+    }
+    if (definition.abilities.filter((ability) => ability.kind === 'default').length !== 1) {
+      throw new Error(`宗门 ${definition.id} 必须且只能声明一个默认能力`);
+    }
 
     for (const method of definition.methods) {
       if (
-        !definition.abilities.some((ability) => ability.methodId === method.id)
+        !definition.abilities.some((ability) => sectAbilityMethodId(ability) === method.id)
       ) {
         throw new Error(`心法 ${method.id} 必须至少拥有一个基础法术`);
       }
     }
     for (const ability of definition.abilities) {
-      if (!methodSet.has(ability.methodId)) {
-        throw new Error(
-          `法术 ${ability.id} 引用了未知心法 ${ability.methodId}`,
-        );
-      }
-      if (!Number.isInteger(ability.unlockLevel) || ability.unlockLevel < 0) {
-        throw new Error(`法术 ${ability.id} 解锁等级无效`);
+      if (ability.unlock.type === 'method') {
+        if (!methodSet.has(ability.unlock.methodId)) {
+          throw new Error(`法术 ${ability.id} 引用了未知心法 ${ability.unlock.methodId}`);
+        }
+        if (!Number.isInteger(ability.unlock.level) || ability.unlock.level < 0) {
+          throw new Error(`法术 ${ability.id} 解锁等级无效`);
+        }
       }
     }
 
@@ -181,6 +192,15 @@ export class SectDefinitionRule implements ValidationRule<SectModule> {
     if (duplicateIds(allTacticIds).length)
       throw new Error(`宗门 ${definition.id} 存在跨流派重复战术ID`);
     for (const path of definition.paths) validatePath(path, definition);
+    const pathSet = new Set(pathIds);
+    for (const ability of definition.abilities) {
+      if (
+        ability.unlock.type === 'active_path' &&
+        !pathSet.has(ability.unlock.pathId)
+      ) {
+        throw new Error(`法术 ${ability.id} 引用了未知流派 ${ability.unlock.pathId}`);
+      }
+    }
 
     for (const [methodId, level] of Object.entries(
       definition.onboarding.initialMethods,
@@ -206,12 +226,11 @@ export class SectDefinitionRule implements ValidationRule<SectModule> {
         (entry) => entry.id === abilityId,
       );
       if (!ability) throw new Error(`入宗配置引用未知法术 ${abilityId}`);
-      if (!ability.occupiesActiveSlot)
+      if (ability.kind !== 'active')
         throw new Error(`入宗配置包含非主动槽法术 ${abilityId}`);
-      if (
-        (definition.onboarding.initialMethods[ability.methodId] ?? 0) <
-        ability.unlockLevel
-      ) {
+      if (ability.unlock.type === 'method' &&
+        (definition.onboarding.initialMethods[ability.unlock.methodId] ?? 0) <
+          ability.unlock.level) {
         throw new Error(`入宗配置包含未解锁法术 ${abilityId}`);
       }
     }

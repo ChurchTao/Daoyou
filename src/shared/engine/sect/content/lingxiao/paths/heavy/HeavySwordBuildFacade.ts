@@ -1,4 +1,5 @@
 import { DamageSource } from '@shared/engine/battle-v5/core/types';
+import { AbilityType } from '@shared/engine/battle-v5/core/types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import type {
   SectBuildBuilder,
@@ -7,6 +8,7 @@ import type {
 } from '../../../../core';
 import { SectAbilityFactory, sectEffects } from '../../../../core';
 import { LINGXIAO_SECT_ID } from '../../ids';
+import { LINGXIAO_BASE_DEFINITION } from '../../definition';
 import { LINGXIAO_SWORD_MOMENTUM } from '../../shared/LingxiaoMechanics';
 import {
   buildHeavyAbilities,
@@ -26,24 +28,28 @@ export class HeavySwordBuildFacade {
     private readonly context: SectPathCompileContext,
     private readonly builder: SectBuildBuilder,
     private readonly baseBuild: SectCompiledBuild,
-  ) {
-    this.refresh();
-  }
+  ) {}
 
   enable(feature: keyof HeavySwordFeatures): void {
     this.features[feature] = true;
-    this.refresh();
   }
 
-  private refresh(): void {
-    this.builder.replaceAbilities(
-      buildHeavyAbilities(
+  finalize(): void {
+    const dynamicPassives = Object.fromEntries(
+      Object.entries(this.builder.build().abilities).filter(
+        ([, ability]) => ability.config.type === AbilityType.PASSIVE_SKILL,
+      ),
+    );
+    this.builder.replaceAbilities({
+      ...buildHeavyAbilities(
         this.baseBuild,
         this.context.path,
         this.features,
         this.context.sect.methods['edge-cleansing'],
+        this.context.methodGrowth,
       ),
-    );
+      ...dynamicPassives,
+    });
     const resource = this.baseBuild.resources[0];
     if (!resource) throw new Error('重剑构筑缺少宗门战斗资源');
     this.builder.clearResources().setResource({
@@ -60,10 +66,15 @@ export function initializeHeavySwordBuild(
   const facade = new HeavySwordBuildFacade(context, builder, builder.build());
   builder.setExtension(HEAVY_BUILD_FACADE, facade);
   const factory = new SectAbilityFactory(LINGXIAO_SECT_ID);
-  builder.addPassive(
+  builder.setAbility(
+    'heavy-shield-momentum',
     factory.passive({
-      id: 'heavy-shield-momentum',
-      name: '大巧不工',
+      definition: LINGXIAO_BASE_DEFINITION.abilities.find(
+        (ability) => ability.id === 'heavy-shield-momentum',
+      ) as Extract<
+        (typeof LINGXIAO_BASE_DEFINITION.abilities)[number],
+        { kind: 'passive' }
+      >,
       pathId: context.path.pathId,
       listeners: [
         {

@@ -25,7 +25,6 @@ import {
   composeSectOrganizationPlugins,
   CORE_SECT_ORGANIZATION_PLUGIN,
 } from './SectOrganizationPlugins';
-import { LINGXIAO_SECT_ORGANIZATION_PLUGIN } from './plugins/lingxiao/LingxiaoSectOrganizationPlugin';
 
 const benefits = new SectBenefitService();
 const plugins = composeSectOrganizationPlugins({
@@ -33,10 +32,7 @@ const plugins = composeSectOrganizationPlugins({
     sectId: definition.id,
     organization: productionSectRuntime.registry.require(definition.id).organization,
   })),
-  manifests: [
-    CORE_SECT_ORGANIZATION_PLUGIN,
-    LINGXIAO_SECT_ORGANIZATION_PLUGIN,
-  ],
+  manifests: [CORE_SECT_ORGANIZATION_PLUGIN],
 });
 
 const application = new SectOrganizationFacade({

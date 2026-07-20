@@ -7,10 +7,11 @@ import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import {
   createAbilitySlots,
+  isListedSectAbility,
   type CultivatorSectState,
   type SectAbilitySlots,
 } from '@shared/engine/sect';
-import { resolveSectAbility } from '@shared/engine/sect/content';
+import { resolveSectAbilities } from '@shared/engine/sect/content';
 import { useMemo, useState } from 'react';
 import { SectPageLoading, SectPermissionBoundary, SectScene } from '../components/SectScene';
 
@@ -51,21 +52,23 @@ function SectAbilitiesBody() {
   const details = useMemo(
     () =>
       sect && definition
-        ? definition.abilities.map((ability) =>
-            resolveSectAbility({ abilityId: ability.id, sect, realm }),
-          )
+        ? resolveSectAbilities({ sect, realm })
         : [],
     [definition, realm, sect],
   );
   const activeDetails = details.filter(
     (detail) =>
-      definition?.abilities.find((ability) => ability.id === detail.id)
-        ?.occupiesActiveSlot,
+      definition?.abilities.some(
+        (ability) =>
+          ability.id === detail.id &&
+          ability.kind === 'active' &&
+          isListedSectAbility(ability),
+      ),
   );
   const defaultDetail = details.find(
     (detail) =>
-      !definition?.abilities.find((ability) => ability.id === detail.id)
-        ?.occupiesActiveSlot,
+      definition?.abilities.find((ability) => ability.id === detail.id)
+        ?.kind === 'default',
   );
   const selected = draftSlots.filter((id): id is string => id !== null);
   const serverSlots = sect?.abilityLoadout ?? EMPTY_SLOTS;
@@ -164,10 +167,10 @@ function SectAbilitiesBody() {
       }
     >
       <div className="rounded-full border border-red-950/10 bg-white/20 p-2 sm:p-4">
-      {!sect || !definition ? (
-        <InkNotice>尚未拜入宗门。</InkNotice>
-      ) : (
-        <>
+        {!sect || !definition ? (
+          <InkNotice>尚未拜入宗门。</InkNotice>
+        ) : (
+          <>
           {defaultDetail ? (
             <InkCard>
               <strong>《{defaultDetail.name}》</strong>
@@ -334,8 +337,8 @@ function SectAbilitiesBody() {
               })}
             </div>
           </InkModal>
-        </>
-      )}
+          </>
+        )}
       </div>
     </SectScene>
   );

@@ -44,10 +44,8 @@ export interface AbilityPresentationModifier {
 }
 
 export interface SectCompiledBuild {
-  defaultAbilityId: SectAbilityId;
   abilities: Record<SectAbilityId, SectCompiledAbility>;
   resources: CombatResourceDefinition[];
-  passives: AbilityConfig[];
   abilityPresentationModifiers?: AbilityPresentationModifier[];
 }
 

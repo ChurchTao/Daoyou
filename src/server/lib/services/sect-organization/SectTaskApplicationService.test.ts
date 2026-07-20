@@ -1,7 +1,8 @@
 import {
+  StandardSectOrganizationModule,
   type SectOrganizationModule,
 } from '@shared/engine/sect';
-import { FIXTURE_SECT_MODULE } from '@shared/engine/sect/testing/fixtures/FixtureSectModule';
+import { CUSTOM_ECONOMY_FIXTURE_SECT_MODULE as FIXTURE_SECT_MODULE } from '@shared/engine/sect/testing/fixtures/CustomEconomyFixtureSectModule';
 import { describe, expect, it } from 'vitest';
 import {
   ExecuteSectTaskActionHandler,
@@ -213,16 +214,16 @@ describe('sect task handlers', () => {
     ).toThrow('宗门任务执行器重复注册');
   });
 
-  it('fails fast when a content module has no matching server plugin', () => {
+  it('standard organization needs no empty sect-specific server plugin', () => {
     expect(() =>
       composeSectOrganizationPlugins({
         organizations: [{
           sectId: 'fixture-sect',
-          organization: FIXTURE_SECT_MODULE.organization,
+          organization: new StandardSectOrganizationModule(),
         }],
         manifests: [CORE_SECT_ORGANIZATION_PLUGIN],
       }),
-    ).toThrow('宗门缺少服务端插件：fixture-sect');
+    ).not.toThrow();
   });
 
   it('fails fast when a plugin does not contribute its declared executor', () => {
@@ -254,6 +255,23 @@ describe('sect task handlers', () => {
         ],
       }),
     ).toThrow('宗门服务端插件重复注册：fixture-sect');
+  });
+
+  it('rejects a sect plugin without a registered content module', () => {
+    expect(() =>
+      composeSectOrganizationPlugins({
+        organizations: [
+          {
+            sectId: 'fixture-sect',
+            organization: FIXTURE_SECT_MODULE.organization,
+          },
+        ],
+        manifests: [
+          CORE_SECT_ORGANIZATION_PLUGIN,
+          { sectId: 'missing-sect' },
+        ],
+      }),
+    ).toThrow('宗门服务端插件没有对应内容模块：missing-sect');
   });
 
   it('rejects contribution keys outside their plugin namespace', () => {

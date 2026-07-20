@@ -115,10 +115,6 @@ export function composeSectOrganizationPlugins(args: {
       throw new Error(`宗门服务端插件没有对应内容模块：${manifest.sectId}`);
     manifests.set(manifest.sectId, manifest);
   }
-  for (const sectId of knownSects)
-    if (!manifests.has(sectId))
-      throw new Error(`宗门缺少服务端插件：${sectId}`);
-
   const contributions = args.manifests.flatMap((manifest) =>
     (manifest.executors ?? []).map((create) => ({ manifest, value: create() })),
   );

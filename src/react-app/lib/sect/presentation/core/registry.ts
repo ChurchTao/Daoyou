@@ -21,8 +21,8 @@ export type SectMapHotspot = {
 
 export interface SectPresentationModule {
   sectId: string;
-  mapImage: string;
-  mapAlt: string;
+  mapImage?: string;
+  mapAlt?: string;
   facilityLabels: Readonly<Record<string, string>>;
   lockedFacilities: readonly string[];
   hotspots: readonly SectMapHotspot[];
@@ -68,7 +68,12 @@ export class SectPresentationRegistry {
   >();
   private readonly outcomes = new Map<string, SectOutcomeContribution>();
 
+  constructor(private readonly knownSectIds: readonly string[]) {}
+
   register(manifest: SectPresentationPluginManifest): void {
+    if (manifest.sectId !== '*' && !this.knownSectIds.includes(manifest.sectId)) {
+      throw new Error(`宗门展示插件没有对应内容模块：${manifest.sectId}`);
+    }
     if (manifest.presentation) {
       if (manifest.presentation.sectId !== manifest.sectId)
         throw new Error(`宗门展示插件标识不一致：${manifest.sectId}`);
@@ -89,9 +94,8 @@ export class SectPresentationRegistry {
   }
 
   presentation(sectId: string): SectPresentationModule {
-    const presentation = this.presentations.get(sectId);
-    if (!presentation) throw new Error(`宗门尚未注册展示模块：${sectId}`);
-    return presentation;
+    if (!this.knownSectIds.includes(sectId)) throw new Error(`未知宗门：${sectId}`);
+    return this.presentations.get(sectId) ?? createGenericSectPresentation(sectId);
   }
 
   action(key: string) {
@@ -122,4 +126,39 @@ export class SectPresentationRegistry {
       value: { renderer: outcome.renderer, data: parsed.data },
     };
   }
+}
+
+const GENERIC_FACILITY_LABELS = {
+  archive: '传承阁',
+  cultivation_room: '修炼室',
+  workshop: '丹器坊',
+  spirit_vein: '灵脉',
+  herb_garden: '药田',
+  formation: '护宗大阵',
+} as const;
+
+const GENERIC_HOTSPOTS: readonly SectMapHotspot[] = [
+  { id: 'hall', label: '宗门大殿', route: '/game/sect/hall', permission: 'sect.hall.view', left: '0', top: '0', note: '身份、晋升与周俸' },
+  { id: 'archive', label: '传承阁', route: '/game/sect/archive', facility: 'archive', permission: 'sect.archive.use', left: '0', top: '0', note: '心法研习' },
+  { id: 'enlightenment', label: '悟道处', route: '/game/sect/enlightenment-cliff', permission: 'sect.enlightenment.use', left: '0', top: '0', note: '流派与经脉' },
+  { id: 'arena', label: '演武场', route: '/game/sect/arena', permission: 'sect.arena.use', left: '0', top: '0', note: '神通与战术' },
+  { id: 'affairs', label: '事务堂', route: '/game/sect/affairs', permission: 'sect.tasks.use', left: '0', top: '0', note: '日常、周常与悬赏' },
+  { id: 'treasury', label: '宗门宝库', route: '/game/sect/treasury', permission: 'sect.shop.use', left: '0', top: '0', note: '贡献兑换' },
+  { id: 'industries', label: '建设院', route: '/game/sect/industries', permission: 'sect.construction.view', left: '0', top: '0', note: '宗门共建' },
+  { id: 'cultivation', label: '修炼室', route: '/game/sect/cultivation-room', facility: 'cultivation_room', permission: 'sect.facility.cultivation.use', left: '0', top: '0', note: '聚灵闭关' },
+  { id: 'alchemy', label: '丹房', route: '/game/sect/alchemy', facility: 'workshop', permission: 'sect.facility.alchemy.use', left: '0', top: '0', note: '炼制丹药' },
+  { id: 'refinery', label: '器坊', route: '/game/sect/refinery', facility: 'workshop', permission: 'sect.facility.refinery.use', left: '0', top: '0', note: '炼制法器' },
+  { id: 'vein', label: '灵脉', route: '/game/sect/spirit-vein', facility: 'spirit_vein', permission: 'sect.spirit_vein.view', left: '0', top: '0', note: '俸禄加成' },
+  { id: 'garden', label: '药田', route: '/game/sect/herb-garden', facility: 'herb_garden', permission: 'sect.herb_garden.view', left: '0', top: '0', note: '每周灵草产出' },
+  { id: 'gate', label: '山门', route: '/game/sect/gate', permission: 'sect.gate.view', left: '0', top: '0', note: '宗门动态' },
+  { id: 'cave', label: '弟子居所', route: '/game/sect/cave', permission: 'sect.cave.view', left: '0', top: '0', note: '内门弟子居所' },
+];
+
+function createGenericSectPresentation(sectId: string): SectPresentationModule {
+  return {
+    sectId,
+    facilityLabels: GENERIC_FACILITY_LABELS,
+    lockedFacilities: ['formation'],
+    hotspots: GENERIC_HOTSPOTS,
+  };
 }

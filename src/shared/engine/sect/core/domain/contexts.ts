@@ -3,9 +3,13 @@ import type { Cultivator } from '@shared/types/cultivator';
 import type { PlayerRaceId } from './definitions';
 import type { CultivatorSectPathState, CultivatorSectState } from './state';
 
-export interface SectProjectionContext {
+export interface SectProjectionInput {
   sect: CultivatorSectState;
   realm: RealmType;
+}
+
+export interface SectProjectionContext extends SectProjectionInput {
+  methodGrowth: import('./methodGrowth').SectMethodGrowthPolicy;
 }
 
 export interface SectPathCompileContext extends SectProjectionContext {

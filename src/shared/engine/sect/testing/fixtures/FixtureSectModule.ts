@@ -1,180 +1,23 @@
-import { AttributeType, DamageType } from '@shared/engine/battle-v5/core/types';
+import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import {
-  AllowedRaceAdmissionPolicy,
-  BaseSectModule,
+  AttributeType,
+  BuffType,
+  DamageType,
+  ModifierType,
+} from '@shared/engine/battle-v5/core/types';
+import {
+  StandardSectModule,
   BaseSectPathModule,
   ConfiguredSectNodePlugin,
-  StandardSectCapabilityPolicy,
   SectAbilityFactory,
-  standardSectProgression,
   type CultivatorSectState,
   type SectBuildBuilder,
   type SectDefinitionWithoutPaths,
+  type SectAbilityDefinition,
   type SectPathCompileContext,
   type SectPathDefinitionWithoutNodes,
   type SectProjectionContext,
-  type SectOrganizationModule,
-  type SectTrialContext,
-  type SectTrialScenarioFactory,
 } from '../../core';
-
-const fixtureOrganization: SectOrganizationModule = {
-  capabilities: new StandardSectCapabilityPolicy({
-    'sect.hall.view': 'registered',
-    'sect.tasks.use': 'registered',
-    'sect.archive.use': 'registered',
-    'sect.enlightenment.use': 'registered',
-    'sect.arena.use': 'registered',
-    'sect.shop.use': 'registered',
-    'sect.construction.view': 'outer',
-    'sect.construction.donate': 'outer',
-    'sect.facility.cultivation.use': 'outer',
-    'sect.facility.alchemy.use': 'inner',
-    'sect.facility.refinery.use': 'inner',
-    'sect.spirit_vein.view': 'registered',
-    'sect.herb_garden.view': 'registered',
-    'sect.cave.view': 'inner',
-    'sect.gate.view': 'registered',
-    'sect.formation.view': 'true',
-  }),
-  ranks: {
-    nextRank: (rank) =>
-      ({ registered: 'outer', outer: 'inner', inner: 'true', true: null } as const)[rank],
-    methodLevelCap: () => 7,
-    requirement: (rank) => ({
-      rank,
-      minRealm: rank === 'true' ? '金丹' : rank === 'inner' ? '筑基' : '炼气',
-      contribution: rank === 'true' ? 30 : rank === 'inner' ? 20 : 10,
-    }),
-  },
-  tasks: {
-    listDaily: () => [
-      {
-        id: 'fixture_patrol',
-        kind: 'daily',
-        requiredCapability: 'sect.tasks.use',
-        contributionReward: 3,
-        executorKey: 'fixture-sect.battle',
-        completion: [
-          {
-            strategy: 'fixture-sect.settlement.contribution',
-            input: { amount: 3, reason: 'fixture_task' },
-          },
-        ],
-        presentation: {
-          title: '夹具巡山',
-          description: '仅用于验证内容模块替换。',
-          rewardSummary: '3 宗门贡献',
-          actionLabel: '开始巡山',
-        },
-        target: 1,
-      },
-    ],
-    listWeekly: () => [],
-    listPromotion: () => [],
-    get: (id) =>
-      id === 'fixture_patrol'
-        ? {
-            id,
-            kind: 'daily',
-            requiredCapability: 'sect.tasks.use',
-            contributionReward: 3,
-            executorKey: 'fixture-sect.battle',
-            completion: [
-              {
-                strategy: 'fixture-sect.settlement.contribution',
-                input: { amount: 3, reason: 'fixture_task' },
-              },
-            ],
-            presentation: {
-              title: '夹具巡山',
-              description: '仅用于验证内容模块替换。',
-              rewardSummary: '3 宗门贡献',
-              actionLabel: '开始巡山',
-            },
-            target: 1,
-          }
-        : undefined,
-    findByCompletionTag: () => undefined,
-  },
-  economy: {
-    donationDailyCap: 1,
-    rewardGrantKinds: ['sect.reward.spirit-stones', 'fixture-sect.material'] as const,
-    donationKinds: ['fixture-sect.spirit-stones'] as const,
-    shopItems: () => [
-      {
-        id: 'fixture_herb',
-        requiredRank: 'registered',
-        price: 1,
-        stock: 1,
-        rotating: false,
-        grant: {
-          kind: 'fixture-sect.material',
-          name: '夹具灵草',
-          type: 'herb',
-          quality: '凡品',
-          description: '夹具商品',
-        },
-      },
-    ],
-    donationDemands: () => [
-      {
-        id: 'fixture_stones',
-        name: '夹具星砂资粮',
-        description: '提交一份灵石以校验可扩展捐献。',
-        kind: 'fixture-sect.spirit-stones',
-        quantity: 1,
-        contribution: 1,
-        constructionPoints: 1,
-      },
-    ],
-    stipendBase: () => 1,
-    stipendRewards: () => [{
-      quantity: 1,
-      grant: {
-        kind: 'fixture-sect.material',
-        name: '样例灵草',
-        type: 'herb',
-        quality: '凡品',
-        description: '夹具周俸灵草',
-      },
-    }],
-  },
-  construction: {
-    facilities: [
-      { key: 'fixture_observatory', initialLevel: 1, maxLevel: 3, upgradeable: true },
-    ],
-    facilityPriority: ['fixture_observatory'] as const,
-    projectBaseTarget: () => 1,
-    nextProject: (levels) =>
-      (levels.get('fixture_observatory') ?? 1) < 3
-        ? {
-            facilityKey: 'fixture_observatory',
-            targetLevel: (levels.get('fixture_observatory') ?? 1) + 1,
-          }
-        : null,
-  },
-  battles: { get: () => undefined },
-  benefits: {
-    snapshot: () => ({
-      retreatMultiplier: 1,
-      craftDiscounts: {
-        'sect.craft.alchemy': 0,
-        'sect.craft.refinery': 0,
-      },
-      facilityEffects: {},
-    }),
-    archiveLevel: (levels) => levels.get('fixture_observatory') ?? 1,
-    methodLevelCap: () => 7,
-    gardenLevel: (levels) => levels.get('herb_garden') ?? 1,
-    retreatMultiplier: () => 1,
-    craftDiscount: () => ({
-      capability: 'sect.facility.alchemy.use',
-      discount: 0,
-    }),
-    stipendMultiplier: () => 1,
-  },
-};
 
 const layers = [
   {
@@ -199,18 +42,29 @@ const methods = Array.from({ length: 6 }, (_, index) => ({
   slot: (index + 1) as 1 | 2 | 3 | 4 | 5 | 6,
   name: `样例心法${index + 1}`,
   description: '扩展契约测试心法。',
+  isPrimary: index === 0,
 }));
-const abilities = methods.map((method, index) => ({
-  id: `fixture-ability-${index + 1}`,
-  methodId: method.id,
-  baseName: `样例法术${index + 1}`,
-  description: '扩展契约测试法术。',
-  unlockLevel: 1,
-  occupiesActiveSlot: index > 0,
-  role: 'generator' as const,
-  mpCost: 0,
-  cooldown: 0,
-}));
+const abilities: SectAbilityDefinition[] = methods.map((method, index) =>
+  index === 5
+    ? {
+        id: 'fixture-ability-6',
+        kind: 'passive',
+        baseName: '星辉护体',
+        description: '常驻提升少量法术防御。',
+        unlock: { type: 'method', methodId: method.id, level: 1 },
+        role: 'defensive',
+      }
+    : {
+        id: `fixture-ability-${index + 1}`,
+        kind: index === 0 ? 'default' : 'active',
+        baseName: `样例法术${index + 1}`,
+        description: '扩展契约测试法术。',
+        unlock: { type: 'method', methodId: method.id, level: 1 },
+        role: index === 2 ? 'defensive' : index === 3 ? 'utility' : 'generator',
+        mpCost: index === 0 ? 0 : 10,
+        cooldown: index === 0 ? 0 : 1,
+      },
+);
 
 const baseDefinition: SectDefinitionWithoutPaths = {
   id: 'fixture-sect',
@@ -262,7 +116,7 @@ class FixturePathModule extends BaseSectPathModule {
     super(definition, createFixtureNodes(prefix, resourceId));
   }
 
-  compileVariants(
+  protected initializeBuild(
     _context: SectPathCompileContext,
     builder: SectBuildBuilder,
   ): void {
@@ -319,63 +173,105 @@ const secondPath = new FixturePathModule(
   'fixture-second',
 );
 
-class FixtureTrialFactory implements SectTrialScenarioFactory {
-  create({ cultivator }: SectTrialContext) {
-    return {
-      trainee: { ...cultivator, sect: fixtureSectState(), skills: [] },
-      opponent: {
-        ...cultivator,
-        id: 'fixture-opponent',
-        name: '样例木人',
-        sect: undefined,
-        skills: [],
-      },
-    };
+function compileFixtureBase(
+  definitionRoot: SectDefinitionWithoutPaths & { paths?: never },
+  _context: SectProjectionContext,
+  builder: SectBuildBuilder,
+): void {
+  const factory = new SectAbilityFactory(definitionRoot.id);
+  for (const definition of definitionRoot.abilities) {
+    if (definition.kind === 'passive') {
+      builder.setAbility(
+        definition.id,
+        factory.passive({
+          definition,
+          modifiers: [
+            {
+              attrType: AttributeType.MAGIC_DEF,
+              type: ModifierType.ADD,
+              value: 0.05,
+            },
+          ],
+        }),
+      );
+      continue;
+    }
+    const idParts = definition.id.split('-');
+    const index = Number(idParts[idParts.length - 1]);
+    const effects =
+      index === 2
+        ? [{
+            type: 'damage' as const,
+            params: {
+              value: { attribute: AttributeType.MAGIC_ATK, coefficient: 1 },
+              damageType: DamageType.MAGICAL,
+            },
+          }]
+        : index === 3
+          ? [{
+              type: 'heal' as const,
+              params: {
+                value: { targetMaxHpRatio: 0.1 },
+                target: 'hp' as const,
+                recipient: 'caster' as const,
+              },
+            }]
+          : index === 4
+            ? [{
+                type: 'apply_buff' as const,
+                params: {
+                  target: 'target' as const,
+                  buffConfig: {
+                    id: 'fixture.control',
+                    name: '定身',
+                    type: BuffType.CONTROL,
+                    duration: 1,
+                    stackRule: StackRule.REFRESH_DURATION,
+                  },
+                },
+              }]
+            : [{
+                type: 'damage' as const,
+                params: {
+                  value: { attribute: AttributeType.ATK, coefficient: 1 },
+                  damageType: index === 5 ? DamageType.TRUE : DamageType.PHYSICAL,
+                },
+              }];
+    builder.setAbility(
+      definition.id,
+      factory.active({
+        definition,
+        detailRows: ['伤害：1.00物攻'],
+        targetPolicy:
+          index === 2
+            ? { team: 'enemy', scope: 'aoe', maxTargets: 3 }
+            : index === 3
+              ? { team: 'self', scope: 'single' }
+              : undefined,
+        effects,
+      }),
+    );
   }
+  builder.setResource({
+    id: definitionRoot.combatResource.id,
+    name: definitionRoot.combatResource.name,
+    initial: 0,
+    max: definitionRoot.combatResource.max,
+  });
 }
 
-class FixtureSectModule extends BaseSectModule {
+class FixtureSectModule extends StandardSectModule {
   constructor() {
-    super(
-      baseDefinition,
-      [firstPath, secondPath],
-      standardSectProgression,
-      fixtureOrganization,
-      'fixture-ability-1',
-      new AllowedRaceAdmissionPolicy(['human'], '种族不符'),
-      new FixtureTrialFactory(),
-    );
+    super(baseDefinition, [firstPath, secondPath], {
+      trialOpponentName: '样例木人',
+    });
   }
 
   protected compileBase(
     context: SectProjectionContext,
     builder: SectBuildBuilder,
   ): void {
-    const factory = new SectAbilityFactory(this.definition.id);
-    for (const definition of this.definition.abilities) {
-      builder.setAbility(
-        definition.id,
-        factory.active({
-          definition,
-          detailRows: ['伤害：1.00物攻'],
-          effects: [
-            {
-              type: 'damage',
-              params: {
-                value: { attribute: AttributeType.ATK, coefficient: 1 },
-                damageType: DamageType.PHYSICAL,
-              },
-            },
-          ],
-        }),
-      );
-    }
-    builder.setResource({
-      id: this.definition.combatResource.id,
-      name: this.definition.combatResource.name,
-      initial: 0,
-      max: this.definition.combatResource.max,
-    });
+    compileFixtureBase(baseDefinition, context, builder);
   }
 }
 

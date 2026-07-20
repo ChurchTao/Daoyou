@@ -97,7 +97,7 @@ export class SectTraditionApplicationService {
     );
     const trained = await this.requireActive(args.cultivatorId);
     const unlocked = listUnlockedAbilityIds(module.definition, trained).filter(
-      (id) => module.definition.abilities.find((ability) => ability.id === id)?.occupiesActiveSlot,
+      (id) => module.definition.abilities.find((ability) => ability.id === id)?.kind === 'active',
     );
     const nextLoadout = fillFirstEmptyAbilitySlots(trained.abilityLoadout, unlocked);
     if (nextLoadout.some((id, index) => id !== trained.abilityLoadout[index]))
