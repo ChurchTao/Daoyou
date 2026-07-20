@@ -7,7 +7,15 @@ import {
 } from '../core';
 import { productionSectRuntime } from './productionRuntime';
 
-export { productionSectRuntime, sectRegistry } from './productionRuntime';
+export {
+  PRODUCTION_SECTS,
+  PRODUCTION_SECT_IDS,
+  PRODUCTION_SECT_PRESENTATIONS,
+  createProductionSectCatalog,
+  productionSectRuntime,
+  sectRegistry,
+  type ProductionSectEntry,
+} from './productionRuntime';
 
 export const projectSectCombat = (args: {
   sect: CultivatorSectState;
@@ -93,35 +101,39 @@ export const resolveSectPathPreview = (args: {
     }),
     abilities: (() => {
       const baselineById = new Map(
-        productionSectRuntime.resolveAbilities({ sect: baselineState, realm: args.realm })
+        productionSectRuntime
+          .resolveAbilities({ sect: baselineState, realm: args.realm })
           .map((ability) => [ability.id, ability]),
       );
       const pathBaseById = new Map(
-        productionSectRuntime.resolveAbilities({ sect: pathBaseState, realm: args.realm })
+        productionSectRuntime
+          .resolveAbilities({ sect: pathBaseState, realm: args.realm })
           .map((ability) => [ability.id, ability]),
       );
       const currentById = currentState
         ? new Map(
-            productionSectRuntime.resolveAbilities({ sect: currentState, realm: args.realm })
+            productionSectRuntime
+              .resolveAbilities({ sect: currentState, realm: args.realm })
               .map((ability) => [ability.id, ability]),
           )
         : undefined;
       return definition.abilities.filter(isListedSectAbility).map((ability) => {
-      const baseline = baselineById.get(ability.id)!;
-      const pathBase = pathBaseById.get(ability.id)!;
-      const current = currentById?.get(ability.id);
-      return {
-        id: ability.id,
-        name: ability.baseName,
-        summary: ability.description,
-        changeSummary:
-          path.presentation?.abilityChanges[ability.id] ?? '查看流派效果变化。',
-        unlocked: pathBase.unlocked,
-        unlockRequirements: pathBase.unlockRequirements,
-        baseline,
-        pathBase,
-        current,
-      };
+        const baseline = baselineById.get(ability.id)!;
+        const pathBase = pathBaseById.get(ability.id)!;
+        const current = currentById?.get(ability.id);
+        return {
+          id: ability.id,
+          name: ability.baseName,
+          summary: ability.description,
+          changeSummary:
+            path.presentation?.abilityChanges[ability.id] ??
+            '查看流派效果变化。',
+          unlocked: pathBase.unlocked,
+          unlockRequirements: pathBase.unlockRequirements,
+          baseline,
+          pathBase,
+          current,
+        };
       });
     })(),
   };

@@ -1,7 +1,7 @@
+import { useSectResourceQuery } from '@app/components/feature/sect/SectQueryProvider';
 import { SectTaskActionRenderer } from '@app/components/feature/sect/SectTaskActionRenderer';
 import { SectTaskInteractionProvider } from '@app/components/feature/sect/SectTaskInteractionProvider';
 import { SectTaskOutcomeHost } from '@app/components/feature/sect/SectTaskOutcomeHost';
-import { useSectResourceQuery } from '@app/components/feature/sect/SectQueryProvider';
 import { InkCard, InkNotice } from '@app/components/ui';
 import { fetchSectTasks } from '@app/lib/sect/sectClient';
 import type { SectTaskViewData } from '@shared/contracts/sect';
@@ -14,23 +14,27 @@ import {
 
 export default function SectAffairsPage() {
   return (
-    <SectPermissionBoundary permission="sect.tasks.use" title="执事堂">
+    <SectPermissionBoundary permission="sect.tasks.use" sceneKey="affairs">
       <SectAffairsBody />
     </SectPermissionBoundary>
   );
 }
 
 function SectAffairsBody() {
-  const { data: tasks, error, reload, retry } = useSectResourceQuery('tasks', fetchSectTasks);
+  const {
+    data: tasks,
+    error,
+    reload,
+    retry,
+  } = useSectResourceQuery('tasks', fetchSectTasks);
 
   if (error) return <SectQueryError error={error} retry={() => void retry()} />;
-  if (!tasks) return <SectPageLoading message="执事正整理今日委托……" />;
+  if (!tasks) return <SectPageLoading sceneKey="affairs" />;
 
   return (
     <SectTaskInteractionProvider refreshTasks={reload}>
       <SectScene
-        title="执事堂"
-        description="木榜上新令墨迹未干，今日差事、周录与晋升试炼各有封签；择下一令，便不可在当日更换。"
+        sceneKey="affairs"
         mood="affairs"
         aside={
           <div className="space-y-2 text-sm leading-7">
@@ -60,23 +64,26 @@ function TaskSection({
       <h2 className="text-lg font-semibold">{title}</h2>
       <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {tasks.map((task) => (
-          <TaskCard key={`${task.periodKey}:${task.definitionId}`} task={task} />
+          <TaskCard
+            key={`${task.periodKey}:${task.definitionId}`}
+            task={task}
+          />
         ))}
       </div>
     </section>
   );
 }
 
-function TaskCard({
-  task,
-}: {
-  task: SectTaskViewData;
-}) {
+function TaskCard({ task }: { task: SectTaskViewData }) {
   return (
-    <InkCard highlighted={task.state === 'active' || task.state === 'completed'}>
+    <InkCard
+      highlighted={task.state === 'active' || task.state === 'completed'}
+    >
       <div className="flex items-start justify-between gap-3">
         <strong>{task.presentation.title}</strong>
-        <span className="text-crimson text-sm">{task.presentation.rewardSummary}</span>
+        <span className="text-crimson text-sm">
+          {task.presentation.rewardSummary}
+        </span>
       </div>
       <p className="text-ink-secondary mt-2 text-sm leading-6">
         {task.presentation.description}
@@ -99,7 +106,9 @@ function TaskCard({
           ))}
         </div>
       ) : (
-        <p className="text-ink-secondary mt-3 text-sm">进度会随宗门勤务自动更新。</p>
+        <p className="text-ink-secondary mt-3 text-sm">
+          进度会随宗门勤务自动更新。
+        </p>
       )}
     </InkCard>
   );

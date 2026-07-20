@@ -1,4 +1,5 @@
 import { SectAbilityDetails } from '@app/components/feature/sect/SectAbilityDetails';
+import { useSectPresentation } from '@app/components/feature/sect/SectQueryProvider';
 import {
   InkButton,
   InkCard,
@@ -12,6 +13,7 @@ import type { SectCurrentData } from '@shared/contracts/sect';
 import {
   getPathProgress,
   isMeridianLayerAvailable,
+  StandardSectRules,
   type CultivatorSectPathState,
   type CultivatorSectState,
   type ResolvedSectAbility,
@@ -34,11 +36,6 @@ import {
 import { sectJsonRequest, type SectAction } from './types';
 
 type DrawerTab = 'changes' | 'meridians';
-const SLOT_NAMES: Record<MeridianSlot, string> = {
-  1: '一',
-  2: '二',
-  3: '三',
-};
 
 function getUnlockDisabledReason(args: {
   layer: SectPathLayerDefinition | null;
@@ -48,7 +45,7 @@ function getUnlockDisabledReason(args: {
   comprehensionInsight: number;
   spiritStones: number;
 }) {
-  if (!args.layer) return '六层皆已参悟';
+  if (!args.layer) return '全部层级皆已参悟';
   if (!args.nextLayerAvailable)
     return args.missingRequirements.length
       ? `尚需：${args.missingRequirements.join('、')}`
@@ -179,6 +176,8 @@ function PathDrawer({
   stage: RealmStage;
   onClose: () => void;
 }) {
+  const presentation = useSectPresentation();
+  const terms = presentation.terms;
   const cultivator = useActiveCultivatorProfile();
   const [tab, setTab] = useState<DrawerTab>('changes');
   const [expandedAbilityId, setExpandedAbilityId] = useState<string | null>(
@@ -279,7 +278,9 @@ function PathDrawer({
 
   const footer = discardConfirm ? (
     <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-      <p className="text-crimson">参悟方案尚未保存，是否放弃本次修改？</p>
+      <p className="text-crimson">
+        {terms.meridianLoadout}尚未保存，是否放弃本次修改？
+      </p>
       <div className="flex gap-2">
         <InkButton onClick={() => setDiscardConfirm(false)}>继续编辑</InkButton>
         <InkButton variant="primary" onClick={onClose}>
@@ -335,18 +336,21 @@ function PathDrawer({
     />
   ) : meridianFooterAction === 'save' ? (
     <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-      <p className="text-crimson">参悟方案{SLOT_NAMES[slot]}尚未保存。</p>
+      <p className="text-crimson">
+        {terms.meridianLoadout}
+        {slot}尚未保存。
+      </p>
       <InkButton
         variant="primary"
         disabled={busy}
         onClick={() => void saveDraft()}
       >
-        {busy ? '保存中' : '保存参悟方案'}
+        {busy ? '保存中' : `保存${terms.meridianLoadout}`}
       </InkButton>
     </div>
   ) : meridianFooterAction === 'resolve-dirty' ? (
     <p className="text-crimson text-sm">
-      其他参悟方案有未保存修改，请先保存参悟方案。
+      其他{terms.meridianLoadout}有未保存修改，请先保存。
     </p>
   ) : meridianFooterAction === 'activate' ? (
     <div className="flex justify-end">
@@ -365,7 +369,8 @@ function PathDrawer({
     </div>
   ) : (
     <p className="text-crimson text-sm">
-      参悟方案{SLOT_NAMES[slot]} · 当前方案
+      {terms.meridianLoadout}
+      {slot} · 当前方案
     </p>
   );
 
@@ -378,8 +383,8 @@ function PathDrawer({
     >
       <InkTabs
         items={[
-          { value: 'changes', label: '剑路变化' },
-          { value: 'meridians', label: '剑道参悟' },
+          { value: 'changes', label: terms.pathChanges },
+          { value: 'meridians', label: terms.meridianPractice },
         ]}
         activeValue={tab}
         onChange={(value) => {
@@ -411,7 +416,9 @@ function PathDrawer({
           </section>
 
           <section>
-            <h3 className="mb-2 text-base font-semibold">九门神通变化</h3>
+            <h3 className="mb-2 text-base font-semibold">
+              {preview.abilities.length}门{terms.abilityChanges}
+            </h3>
             <div className="space-y-2">
               {preview.abilities.map((ability) => {
                 const expanded = expandedAbilityId === ability.id;
@@ -455,7 +462,7 @@ function PathDrawer({
                         />
                         {showCurrent && ability.current ? (
                           <AbilityComparisonBlock
-                            title={`当前参悟方案${preview.activeMeridianSlot ? SLOT_NAMES[preview.activeMeridianSlot] : ''}`}
+                            title={`当前${terms.meridianLoadout}${preview.activeMeridianSlot ?? ''}`}
                             detail={ability.current}
                             className="md:col-span-2"
                           />
@@ -492,15 +499,17 @@ function PathDrawer({
                   : ''}
               </p>
             ) : (
-              <p className="text-crimson mt-1">六层皆已参悟</p>
+              <p className="text-crimson mt-1">
+                {path.layers.length}层皆已参悟
+              </p>
             )}
           </section>
 
           {state ? (
             <InkTabs
-              items={([1, 2, 3] as MeridianSlot[]).map((value) => ({
+              items={StandardSectRules.meridianLoadoutSlots.map((value) => ({
                 value: String(value),
-                label: `参悟方案${SLOT_NAMES[value]}${state.activeMeridianSlot === value ? ' · 当前' : ''}${isMeridianDraftDirty(drafts, saved, value) ? ' · 未保存' : ''}`,
+                label: `${terms.meridianLoadout}${value}${state.activeMeridianSlot === value ? ' · 当前' : ''}${isMeridianDraftDirty(drafts, saved, value) ? ' · 未保存' : ''}`,
               }))}
               activeValue={String(slot)}
               onChange={(value) => setSlot(Number(value) as MeridianSlot)}

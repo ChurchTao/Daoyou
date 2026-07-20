@@ -8,6 +8,7 @@ import {
   MaterialSelectionModal,
   SelectedMaterialsWithDose,
 } from '@app/components/feature/creation';
+import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
 import {
   GameSceneAsideSection,
   GameSceneFrame,
@@ -17,9 +18,6 @@ import {
 } from '@app/components/game-shell';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import {
-  useQiActionConfirm,
-} from '@app/components/feature/cultivator/useQiActionConfirm';
 import {
   InkActionGroup,
   InkBadge,
@@ -32,11 +30,9 @@ import {
   ItemShowcaseModal,
   type InkDialogState,
 } from '@app/components/ui';
-import {
-  STARTER_ALCHEMY_PROMPT,
-} from '@app/lib/alchemy/starterAlchemy';
-import { usePlayerStateView } from '@app/lib/player-state/selectors';
+import { STARTER_ALCHEMY_PROMPT } from '@app/lib/alchemy/starterAlchemy';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { findNextTutorialTask } from '@app/lib/tasks/taskClient';
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
@@ -425,13 +421,13 @@ export function AlchemyFormulaAnalysisModal({
           <div className="border-ink/10 bg-ink/5 grid gap-3 border border-dashed p-3 sm:grid-cols-2">
             <div>
               <div className="text-ink-secondary text-xs">预计成丹</div>
-              <div className="text-wood text-2xl font-bold leading-9">
+              <div className="text-wood text-2xl leading-9 font-bold">
                 {analysis.batchProfile.yieldQuantity} 枚
               </div>
             </div>
             <div>
               <div className="text-ink-secondary text-xs">配伍</div>
-              <div className="font-semibold leading-7">
+              <div className="leading-7 font-semibold">
                 {getBatchTierLabel(analysis.batchProfile.compoundTier)}
               </div>
               <div className="text-ink-secondary text-xs leading-5">
@@ -457,13 +453,15 @@ export function AlchemyFormulaAnalysisModal({
                 key={judgment.materialId}
                 className="border-ink/10 flex flex-wrap items-center gap-2 border px-3 py-2"
               >
-                <InkBadge tone={getFormulaFitBandTone(
-                  judgment.verdict === 'core'
-                    ? 'aligned'
-                    : judgment.verdict === 'usable'
-                      ? 'degraded'
-                      : 'poor',
-                )}>
+                <InkBadge
+                  tone={getFormulaFitBandTone(
+                    judgment.verdict === 'core'
+                      ? 'aligned'
+                      : judgment.verdict === 'usable'
+                        ? 'degraded'
+                        : 'poor',
+                  )}
+                >
                   {judgment.verdict === 'core'
                     ? '主材'
                     : judgment.verdict === 'usable'
@@ -526,7 +524,7 @@ export function AlchemyFormulaListItem({
       <div className="space-y-3">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="font-semibold leading-6">{formula.name}</span>
+            <span className="leading-6 font-semibold">{formula.name}</span>
             <InkBadge tone="default">
               {getPillFamilyLabel(formula.family)}
             </InkBadge>
@@ -848,6 +846,8 @@ export type AlchemySceneProps = {
   sectContext?: {
     facilityLevel: number;
     discountPercent: number;
+    facilityLabel: string;
+    scene: import('@shared/engine/sect').SectScenePresentation;
   };
 };
 
@@ -897,11 +897,10 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
   const [formulaAnalysisError, setFormulaAnalysisError] = useState<
     string | null
   >(null);
-  const [analysisCooldownRemaining, setAnalysisCooldownRemaining] =
-    useState(0);
-  const [analysisExpiresAfterMs, setAnalysisExpiresAfterMs] = useState<number | null>(
-    null,
-  );
+  const [analysisCooldownRemaining, setAnalysisCooldownRemaining] = useState(0);
+  const [analysisExpiresAfterMs, setAnalysisExpiresAfterMs] = useState<
+    number | null
+  >(null);
   const [formulas, setFormulas] = useState<AlchemyFormula[]>([]);
   const [selectedFormulaSnapshot, setSelectedFormulaSnapshot] =
     useState<AlchemyFormula | null>(null);
@@ -922,7 +921,8 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
     () =>
       selectedFormulaSnapshot?.id === selectedFormulaId
         ? selectedFormulaSnapshot
-        : (formulas.find((formula) => formula.id === selectedFormulaId) ?? null),
+        : (formulas.find((formula) => formula.id === selectedFormulaId) ??
+          null),
     [formulas, selectedFormulaId, selectedFormulaSnapshot],
   );
   const nextTutorialTask = useMemo(() => findNextTutorialTask(tasks), [tasks]);
@@ -1002,9 +1002,7 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
     }
   }, [currentFormulaSelectionKey]);
 
-  const loadFormulas = async (options?: {
-    page?: number;
-  }) => {
+  const loadFormulas = async (options?: { page?: number }) => {
     if (!cultivatorId) {
       return;
     }
@@ -1023,7 +1021,9 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
       if (formulaFamilyFilter !== 'all') {
         params.set('family', formulaFamilyFilter);
       }
-      const response = await fetch(`/api/alchemy/formulas?${params.toString()}`);
+      const response = await fetch(
+        `/api/alchemy/formulas?${params.toString()}`,
+      );
       const result: FormulaListResponse = await response.json();
 
       if (!response.ok || !result.success || !result.data) {
@@ -1068,7 +1068,9 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
         if (formulaFamilyFilter !== 'all') {
           params.set('family', formulaFamilyFilter);
         }
-        const response = await fetch(`/api/alchemy/formulas?${params.toString()}`);
+        const response = await fetch(
+          `/api/alchemy/formulas?${params.toString()}`,
+        );
         const result: FormulaListResponse = await response.json();
 
         if (cancelled) return;
@@ -1299,13 +1301,13 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
   const displayCanAfford = canAfford;
   const isFormulaMode = activeMode === 'formula';
   const displayBatchPreview = isFormulaMode ? batchPreview : null;
-  const displayPreviewWarnings =
-    isFormulaMode ? (displayValidation?.warnings ?? []) : [];
+  const displayPreviewWarnings = isFormulaMode
+    ? (displayValidation?.warnings ?? [])
+    : [];
   const qiCost = isFormulaMode
     ? QI_ACTION_COSTS.alchemy_formula
     : QI_ACTION_COSTS.alchemy_improvised;
-  const hasCraftableFormulaAnalysis =
-    !!formulaAnalysis?.analysisId;
+  const hasCraftableFormulaAnalysis = !!formulaAnalysis?.analysisId;
   const canAnalyzeFormula =
     !isSubmitting &&
     !isAnalyzingFormula &&
@@ -1325,18 +1327,19 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
     estimatedSpiritStones !== null &&
     displayCanAfford &&
     displayValidation?.valid !== false;
-  const canChooseMaterials = !isSubmitting && (!isFormulaMode || !!selectedFormulaId);
+  const canChooseMaterials =
+    !isSubmitting && (!isFormulaMode || !!selectedFormulaId);
   const formulaPrimaryButtonLabel = isSubmitting
     ? '丹火炼中……'
     : isAnalyzingFormula
       ? '推演中……'
       : !formulaAnalysis?.analysisId
-      ? analysisCooldownRemaining > 0
-        ? `${analysisCooldownRemaining} 秒后可再推演`
-        : '推演药路'
-      : formulaAnalysis.fitBand === 'poor'
-        ? '强行开炉'
-        : '依方成丹';
+        ? analysisCooldownRemaining > 0
+          ? `${analysisCooldownRemaining} 秒后可再推演`
+          : '推演药路'
+        : formulaAnalysis.fitBand === 'poor'
+          ? '强行开炉'
+          : '依方成丹';
 
   const handleAnalyzeFormula = async () => {
     if (!cultivator) {
@@ -1355,7 +1358,11 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
       pushToast({ message: '炉前验材尚未完成。', tone: 'warning' });
       return;
     }
-    if (previewError || displayValidation?.valid === false || !displayCanAfford) {
+    if (
+      previewError ||
+      displayValidation?.valid === false ||
+      !displayCanAfford
+    ) {
       pushToast({ message: '请先让这一炉通过验材。', tone: 'warning' });
       return;
     }
@@ -1397,7 +1404,9 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
 
       if (!result.data.valid) {
         clearFormulaAnalysis();
-        setFormulaAnalysisError(result.data.staticBlockingReason || '当前炉材未通过炉前验材。');
+        setFormulaAnalysisError(
+          result.data.staticBlockingReason || '当前炉材未通过炉前验材。',
+        );
         return;
       }
 
@@ -1478,7 +1487,9 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
         setIsDiscoveryModalOpen(false);
 
         try {
-          const result = await mutate<NonNullable<AlchemyCraftResponse['data']>>(
+          const result = await mutate<
+            NonNullable<AlchemyCraftResponse['data']>
+          >(
             fetch('/api/craft', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1512,7 +1523,10 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
           clearFormulaAnalysis();
           setMaterialsRefreshKey((prev) => prev + 1);
         } catch (error) {
-          if (error instanceof Error && error.message.includes('请先推演药路')) {
+          if (
+            error instanceof Error &&
+            error.message.includes('请先推演药路')
+          ) {
             clearFormulaAnalysis({ keepError: true });
             setFormulaAnalysisError(error.message);
           }
@@ -1696,11 +1710,30 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
 
   return (
     <GameSceneFrame
-      title={sectContext ? '【宗门丹房】' : '【炼丹房】'}
-      description={sectContext ? '赤铜丹炉吞吐灵焰，药柜沿墙依性归置；投下灵材、定住丹意，便可在此守候成丹。' : '丹意引炉，药性成形。左侧专心排布材料与炉法，右侧始终盯着丹方、灵石消耗与当前炉况。'}
+      title={sectContext ? `【${sectContext.scene.title}】` : '【炼丹房】'}
+      description={
+        sectContext
+          ? sectContext.scene.description
+          : '丹意引炉，药性成形。左侧专心排布材料与炉法，右侧始终盯着丹方、灵石消耗与当前炉况。'
+      }
+      identityOverride={
+        sectContext
+          ? {
+              label: sectContext.scene.title,
+              summary: sectContext.scene.description,
+            }
+          : undefined
+      }
       headerMeta={
         <div className="space-y-3">
-          {sectContext ? <InkButton onClick={() => navigate('/game/sect')} variant="secondary">返回宗门总视图</InkButton> : null}
+          {sectContext ? (
+            <InkButton
+              onClick={() => navigate('/game/sect')}
+              variant="secondary"
+            >
+              返回宗门总视图
+            </InkButton>
+          ) : null}
           {note ? (
             <GameSceneNote>
               <p className="text-sm leading-7">{note}</p>
@@ -1723,9 +1756,11 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
       aside={
         <>
           {sectContext ? (
-            <GameSceneAsideSection title="宗门丹火">
+            <GameSceneAsideSection title={sectContext.scene.title}>
               <div className="space-y-2 text-sm leading-7">
-                <p>丹器坊等级：{sectContext.facilityLevel}级</p>
+                <p>
+                  {sectContext.facilityLabel}等级：{sectContext.facilityLevel}级
+                </p>
                 <p>当前灵石减免：{sectContext.discountPercent}%</p>
               </div>
             </GameSceneAsideSection>
@@ -1795,7 +1830,9 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
             ) : activeMode === 'formula' ? (
               <p>请先选定丹方，再投入灵材。</p>
             ) : (
-              <p>请投入灵材并注入丹意，炉火会顺着材料药性与这缕心意凝成丹形。</p>
+              <p>
+                请投入灵材并注入丹意，炉火会顺着材料药性与这缕心意凝成丹形。
+              </p>
             )}
             {previewError ? (
               <p className="text-crimson mt-2">{previewError}</p>
@@ -1808,7 +1845,11 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
           </GameSceneAsideSection>
         </>
       }
-      contentClassName={sectContext ? 'bg-[radial-gradient(circle_at_50%_100%,rgba(190,65,18,0.16),transparent_32%),linear-gradient(145deg,rgba(184,124,54,0.08),transparent_46%)] px-3 py-4 sm:px-5' : undefined}
+      contentClassName={
+        sectContext
+          ? 'bg-[radial-gradient(circle_at_50%_100%,rgba(190,65,18,0.16),transparent_32%),linear-gradient(145deg,rgba(184,124,54,0.08),transparent_46%)] px-3 py-4 sm:px-5'
+          : undefined
+      }
     >
       <GameSceneTabs
         items={[
@@ -1835,7 +1876,8 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
                 <InkNotice tone="info">
                   <div className="space-y-3">
                     <span>
-                      药路已推演：{getFormulaFitBandLabel(formulaAnalysis.fitBand)}
+                      药路已推演：
+                      {getFormulaFitBandLabel(formulaAnalysis.fitBand)}
                       ，合方程度 {Math.round(formulaAnalysis.fitScore * 100)}%。
                     </span>
                     {formulaAnalysis.batchProfile ? (
@@ -1867,9 +1909,7 @@ export function AlchemyScene({ sectContext }: AlchemySceneProps) {
             </div>
           ) : (
             <div className="space-y-3">
-              <InkNotice tone="info">
-                先选定一份丹方，再安排炉材。
-              </InkNotice>
+              <InkNotice tone="info">先选定一份丹方，再安排炉材。</InkNotice>
               <InkButton
                 variant="primary"
                 onClick={() => setIsFormulaSelectionModalOpen(true)}

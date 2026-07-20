@@ -1,5 +1,8 @@
 import { SectAbilityDetails } from '@app/components/feature/sect/SectAbilityDetails';
-import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
+import {
+  useSectCurrentQuery,
+  useSectPresentation,
+} from '@app/components/feature/sect/SectQueryProvider';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkCard, InkNotice } from '@app/components/ui';
@@ -8,15 +11,19 @@ import { usePlayerStateActions } from '@app/lib/player-state/store';
 import {
   createAbilitySlots,
   isListedSectAbility,
+  StandardSectRules,
   type CultivatorSectState,
   type SectAbilitySlots,
 } from '@shared/engine/sect';
 import { resolveSectAbilities } from '@shared/engine/sect/content';
 import { useMemo, useState } from 'react';
-import { SectPageLoading, SectPermissionBoundary, SectScene } from '../components/SectScene';
+import {
+  SectPageLoading,
+  SectPermissionBoundary,
+  SectScene,
+} from '../components/SectScene';
 
-const EMPTY_SLOTS: SectAbilitySlots = [null, null, null, null];
-const SLOT_NAMES = ['', '一', '二', '三'] as const;
+const EMPTY_SLOTS: SectAbilitySlots = createAbilitySlots([]);
 const json = (method: string, body: unknown): RequestInit => ({
   method,
   headers: {
@@ -28,7 +35,7 @@ const json = (method: string, body: unknown): RequestInit => ({
 
 export default function SectAbilitiesPage() {
   return (
-    <SectPermissionBoundary permission="sect.arena.use" title="演武台">
+    <SectPermissionBoundary permission="sect.arena.use" sceneKey="arena">
       <SectAbilitiesBody />
     </SectPermissionBoundary>
   );
@@ -36,11 +43,14 @@ export default function SectAbilitiesPage() {
 
 function SectAbilitiesBody() {
   const { data, error, setData } = useSectCurrentQuery();
+  const presentation = useSectPresentation();
   const [draftSlots, setDraftSlots] = useState<SectAbilitySlots>(() =>
     createAbilitySlots(data?.sect?.abilityLoadout ?? []),
   );
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [expandedAbilityId, setExpandedAbilityId] = useState<string | null>(null);
+  const [expandedAbilityId, setExpandedAbilityId] = useState<string | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   const cultivator = useActiveCultivatorProfile();
   const { mutate } = usePlayerStateActions();
@@ -50,20 +60,16 @@ function SectAbilitiesBody() {
   const sect = data?.sect;
   const definition = data?.definition;
   const details = useMemo(
-    () =>
-      sect && definition
-        ? resolveSectAbilities({ sect, realm })
-        : [],
+    () => (sect && definition ? resolveSectAbilities({ sect, realm }) : []),
     [definition, realm, sect],
   );
-  const activeDetails = details.filter(
-    (detail) =>
-      definition?.abilities.some(
-        (ability) =>
-          ability.id === detail.id &&
-          ability.kind === 'active' &&
-          isListedSectAbility(ability),
-      ),
+  const activeDetails = details.filter((detail) =>
+    definition?.abilities.some(
+      (ability) =>
+        ability.id === detail.id &&
+        ability.kind === 'active' &&
+        isListedSectAbility(ability),
+    ),
   );
   const defaultDetail = details.find(
     (detail) =>
@@ -111,8 +117,11 @@ function SectAbilitiesBody() {
       );
       return;
     }
-    if (selected.length >= 4) {
-      pushToast({ message: '最多选择四门宗门神通', tone: 'danger' });
+    if (selected.length >= StandardSectRules.activeAbilitySlotCount) {
+      pushToast({
+        message: `最多选择${StandardSectRules.activeAbilitySlotCount}门宗门神通`,
+        tone: 'danger',
+      });
       return;
     }
     setDraftSlots(createAbilitySlots([...selected, abilityId]));
@@ -140,16 +149,10 @@ function SectAbilitiesBody() {
     }
   };
 
-  if (!data && !error)
-    return <SectPageLoading message="演武台阵纹徐徐亮起……" />;
+  if (!data && !error) return <SectPageLoading sceneKey="arena" />;
   return (
     <SectScene
-      title="演武台"
-      description={
-        definition
-          ? `演武场中央阵纹已启，${definition.name}神通将在当前流派与参悟方案下显化威能。`
-          : '阵台尚静。拜入宗门后，方可在此配置宗门神通。'
-      }
+      sceneKey="arena"
       error={error}
       mood="arena"
       aside={
@@ -171,172 +174,196 @@ function SectAbilitiesBody() {
           <InkNotice>尚未拜入宗门。</InkNotice>
         ) : (
           <>
-          {defaultDetail ? (
-            <InkCard>
-              <strong>《{defaultDetail.name}》</strong>
-              <span className="text-ink-secondary ml-2 text-sm">
-                默认神通 · 不占主动栏
-              </span>
-              <p className="mt-2 text-sm leading-6">{defaultDetail.summary}</p>
-              <SectAbilityDetails detail={defaultDetail} />
-            </InkCard>
-          ) : null}
-          <InkCard className="mt-3">
-            <h3 className="text-lg font-semibold">四个主动栏</h3>
-            <p className="text-ink-secondary mt-1 text-sm">
-              从神通卷中快捷选择至多四门，确认后统一保存配置。
-            </p>
-            <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-              {draftSlots.map((abilityId, index) => {
-                const detail = abilityId
-                  ? details.find((item) => item.id === abilityId)
-                  : undefined;
-                return (
-                  <div
-                    key={index}
-                    className="bg-ink/5 min-h-20 p-3 text-left text-sm"
-                  >
-                    <span className="block text-xs tracking-wider">
-                      槽位 {index + 1}
-                    </span>
-                    <strong className="mt-1 block">
-                      {detail?.name ?? '空槽'}
-                    </strong>
-                    {abilityId ? (
-                      <InkButton
-                        variant="secondary"
-                        disabled={busy}
-                        className="mt-1 px-0 text-sm"
-                        onClick={() => toggle(abilityId)}
-                      >
-                        移除
-                      </InkButton>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <InkButton
-                disabled={busy || selected.length === 0}
-                onClick={() => setDraftSlots(EMPTY_SLOTS)}
-              >
-                清空全部
-              </InkButton>
-              <InkButton disabled={busy} onClick={() => setPickerOpen(true)}>
-                选择神通
-              </InkButton>
-              <InkButton
-                variant="primary"
-                disabled={busy || !changed}
-                onClick={() => void save()}
-              >
-                {busy ? '保存中' : '保存配置'}
-              </InkButton>
-              {changed ? (
-                <span className="text-crimson text-sm">配置尚未保存</span>
-              ) : null}
-            </div>
-          </InkCard>
-          {path && pathState ? (
-            <InkCard className="mt-4">
-              <h3 className="font-semibold">自动战术</h3>
-              <div className="mt-2 grid gap-2 md:grid-cols-3">
-                {path.tactics.map((tactic) => (
-                  <button
-                    type="button"
-                    key={tactic.id}
-                    disabled={busy}
-                    onClick={() => void setTactic(tactic.id)}
-                    className={`p-3 text-left text-sm leading-6 ${pathState.tacticId === tactic.id ? 'bg-crimson/10 text-crimson' : 'bg-ink/5'}`}
-                  >
-                    <strong>{tactic.name}</strong>
-                    <br />
-                    {tactic.description}
-                  </button>
-                ))}
-              </div>
-            </InkCard>
-          ) : null}
-
-          <InkModal
-            isOpen={pickerOpen}
-            onClose={() => setPickerOpen(false)}
-            title="选择宗门神通"
-            className="max-w-3xl"
-            footer={
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-ink-secondary text-sm">
-                  已选 {selected.length} / 4
+            {defaultDetail ? (
+              <InkCard>
+                <strong>《{defaultDetail.name}》</strong>
+                <span className="text-ink-secondary ml-2 text-sm">
+                  默认神通 · 不占主动栏
                 </span>
+                <p className="mt-2 text-sm leading-6">
+                  {defaultDetail.summary}
+                </p>
+                <SectAbilityDetails detail={defaultDetail} />
+              </InkCard>
+            ) : null}
+            <InkCard className="mt-3">
+              <h3 className="text-lg font-semibold">
+                {StandardSectRules.activeAbilitySlotCount}个主动栏
+              </h3>
+              <p className="text-ink-secondary mt-1 text-sm">
+                从神通卷中快捷选择至多
+                {StandardSectRules.activeAbilitySlotCount}
+                门，确认后统一保存配置。
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+                {draftSlots.map((abilityId, index) => {
+                  const detail = abilityId
+                    ? details.find((item) => item.id === abilityId)
+                    : undefined;
+                  return (
+                    <div
+                      key={index}
+                      className="bg-ink/5 min-h-20 p-3 text-left text-sm"
+                    >
+                      <span className="block text-xs tracking-wider">
+                        槽位 {index + 1}
+                      </span>
+                      <strong className="mt-1 block">
+                        {detail?.name ?? '空槽'}
+                      </strong>
+                      {abilityId ? (
+                        <InkButton
+                          variant="secondary"
+                          disabled={busy}
+                          className="mt-1 px-0 text-sm"
+                          onClick={() => toggle(abilityId)}
+                        >
+                          移除
+                        </InkButton>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <InkButton
+                  disabled={busy || selected.length === 0}
+                  onClick={() => setDraftSlots(EMPTY_SLOTS)}
+                >
+                  清空全部
+                </InkButton>
+                <InkButton disabled={busy} onClick={() => setPickerOpen(true)}>
+                  选择神通
+                </InkButton>
                 <InkButton
                   variant="primary"
-                  onClick={() => setPickerOpen(false)}
+                  disabled={busy || !changed}
+                  onClick={() => void save()}
                 >
-                  完成选择
+                  {busy ? '保存中' : '保存配置'}
                 </InkButton>
+                {changed ? (
+                  <span className="text-crimson text-sm">配置尚未保存</span>
+                ) : null}
               </div>
-            }
-          >
-            <div className="space-y-2">
-              {activeDetails.map((detail) => {
-                const isSelected = selected.includes(detail.id);
-                const limitReached = selected.length >= 4 && !isSelected;
-                const expanded = expandedAbilityId === detail.id;
-                return (
-                  <div
-                    key={detail.id}
-                    className={`border-ink/10 w-full border-l-2 p-3 text-left transition-colors ${
-                      isSelected
-                        ? 'border-l-crimson bg-crimson/10'
-                        : 'bg-ink/4 border-l-transparent'
-                    } ${!detail.unlocked ? 'opacity-70' : ''}`}
+            </InkCard>
+            {path && pathState ? (
+              <InkCard className="mt-4">
+                <h3 className="font-semibold">自动战术</h3>
+                <div className="mt-2 grid gap-2 md:grid-cols-3">
+                  {path.tactics.map((tactic) => (
+                    <button
+                      type="button"
+                      key={tactic.id}
+                      disabled={busy}
+                      onClick={() => void setTactic(tactic.id)}
+                      className={`p-3 text-left text-sm leading-6 ${pathState.tacticId === tactic.id ? 'bg-crimson/10 text-crimson' : 'bg-ink/5'}`}
+                    >
+                      <strong>{tactic.name}</strong>
+                      <br />
+                      {tactic.description}
+                    </button>
+                  ))}
+                </div>
+              </InkCard>
+            ) : null}
+
+            <InkModal
+              isOpen={pickerOpen}
+              onClose={() => setPickerOpen(false)}
+              title="选择宗门神通"
+              className="max-w-3xl"
+              footer={
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-ink-secondary text-sm">
+                    已选 {selected.length} /{' '}
+                    {StandardSectRules.activeAbilitySlotCount}
+                  </span>
+                  <InkButton
+                    variant="primary"
+                    onClick={() => setPickerOpen(false)}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <strong>《{detail.name}》</strong>
-                        <p className="mt-1 text-sm leading-6">{detail.summary}</p>
+                    完成选择
+                  </InkButton>
+                </div>
+              }
+            >
+              <div className="space-y-2">
+                {activeDetails.map((detail) => {
+                  const isSelected = selected.includes(detail.id);
+                  const limitReached =
+                    selected.length >=
+                      StandardSectRules.activeAbilitySlotCount && !isSelected;
+                  const expanded = expandedAbilityId === detail.id;
+                  return (
+                    <div
+                      key={detail.id}
+                      className={`border-ink/10 w-full border-l-2 p-3 text-left transition-colors ${
+                        isSelected
+                          ? 'border-l-crimson bg-crimson/10'
+                          : 'bg-ink/4 border-l-transparent'
+                      } ${!detail.unlocked ? 'opacity-70' : ''}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <strong>《{detail.name}》</strong>
+                          <p className="mt-1 text-sm leading-6">
+                            {detail.summary}
+                          </p>
+                        </div>
+                        <span
+                          className={
+                            isSelected
+                              ? 'text-crimson text-sm'
+                              : 'text-ink-secondary text-sm'
+                          }
+                        >
+                          {isSelected
+                            ? '✓ 已选'
+                            : detail.unlocked
+                              ? '未选'
+                              : '未解锁'}
+                        </span>
                       </div>
-                      <span className={isSelected ? 'text-crimson text-sm' : 'text-ink-secondary text-sm'}>
-                        {isSelected ? '✓ 已选' : detail.unlocked ? '未选' : '未解锁'}
-                      </span>
-                    </div>
-                    <p className="text-ink-secondary mt-1 text-xs leading-5">
-                      解锁条件：{detail.unlockRequirements.join('、')}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <InkButton
-                        variant={isSelected ? 'secondary' : 'primary'}
-                        disabled={busy || !detail.unlocked || limitReached}
-                        onClick={() => toggle(detail.id)}
-                      >
-                        {isSelected ? '取消选择' : '选择神通'}
-                      </InkButton>
-                      <InkButton
-                        variant="secondary"
-                        onClick={() =>
-                          setExpandedAbilityId(expanded ? null : detail.id)
-                        }
-                      >
-                        {expanded ? '收起效果' : '查看当前效果'}
-                      </InkButton>
-                    </div>
-                    {expanded ? (
-                      <div className="mt-3">
-                        <p className="text-crimson text-xs">
-                          当前效果：{path?.name ?? '基础传承'}
-                          {pathState
-                            ? ` · 参悟方案${SLOT_NAMES[pathState.activeMeridianSlot]}`
-                            : ''}
-                        </p>
-                        <SectAbilityDetails detail={detail} collapsible={false} />
+                      <p className="text-ink-secondary mt-1 text-xs leading-5">
+                        解锁条件：{detail.unlockRequirements.join('、')}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <InkButton
+                          variant={isSelected ? 'secondary' : 'primary'}
+                          disabled={busy || !detail.unlocked || limitReached}
+                          onClick={() => toggle(detail.id)}
+                        >
+                          {isSelected ? '取消选择' : '选择神通'}
+                        </InkButton>
+                        <InkButton
+                          variant="secondary"
+                          onClick={() =>
+                            setExpandedAbilityId(expanded ? null : detail.id)
+                          }
+                        >
+                          {expanded ? '收起效果' : '查看当前效果'}
+                        </InkButton>
                       </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          </InkModal>
+                      {expanded ? (
+                        <div className="mt-3">
+                          <p className="text-crimson text-xs">
+                            当前效果：{path?.name ?? '基础传承'}
+                            {pathState
+                              ? ` · ${presentation.terms.meridianLoadout}${pathState.activeMeridianSlot}`
+                              : ''}
+                          </p>
+                          <SectAbilityDetails
+                            detail={detail}
+                            collapsible={false}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </InkModal>
           </>
         )}
       </div>

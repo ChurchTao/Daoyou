@@ -1,14 +1,16 @@
-import type {
+import {
   CultivatorSectPathState,
   SectPathDefinition,
+  StandardSectRules,
+  type SectMeridianLoadoutState,
 } from '@shared/engine/sect';
 
-export type MeridianSlot = 1 | 2 | 3;
+export type MeridianSlot = SectMeridianLoadoutState['slot'];
 export type MeridianDrafts = Record<MeridianSlot, string[]>;
 export type MeridianFooterAction =
   'save' | 'resolve-dirty' | 'activate' | 'current';
 
-const SLOTS: MeridianSlot[] = [1, 2, 3];
+const SLOTS: readonly MeridianSlot[] = StandardSectRules.meridianLoadoutSlots;
 
 export function createMeridianDrafts(
   state?: CultivatorSectPathState,

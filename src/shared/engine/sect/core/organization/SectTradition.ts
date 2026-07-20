@@ -28,7 +28,11 @@ export class SectTradition {
     this.state.methods[methodId] = level;
   }
 
-  unlockPathLayer(pathId: string, layerId: string, defaultTacticId: string): void {
+  unlockPathLayer(
+    pathId: string,
+    layerId: string,
+    defaultTacticId: string,
+  ): void {
     let path = this.state.paths.find((entry) => entry.pathId === pathId);
     if (!path) {
       path = {
@@ -36,11 +40,13 @@ export class SectTradition {
         unlockedLayerIds: [],
         tacticId: defaultTacticId,
         activeMeridianSlot: 1,
-        meridianLoadouts: StandardSectRules.meridianLoadoutSlots.map((slot) => ({
-          slot,
-          nodeIds: [],
-          version: 1,
-        })),
+        meridianLoadouts: StandardSectRules.meridianLoadoutSlots.map(
+          (slot) => ({
+            slot,
+            nodeIds: [],
+            version: 1,
+          }),
+        ),
       };
       this.state.paths.push(path);
       this.state.activePathId ??= pathId;
@@ -58,7 +64,11 @@ export class SectTradition {
   setMeridianLoadout(pathId: string, slot: 1 | 2 | 3, nodeIds: string[]): void {
     const path = this.requirePath(pathId);
     const current = path.meridianLoadouts.find((entry) => entry.slot === slot);
-    const next = { slot, nodeIds: [...nodeIds], version: (current?.version ?? 0) + 1 };
+    const next = {
+      slot,
+      nodeIds: [...nodeIds],
+      version: (current?.version ?? 0) + 1,
+    };
     path.meridianLoadouts = [
       ...path.meridianLoadouts.filter((entry) => entry.slot !== slot),
       next,
@@ -78,7 +88,9 @@ export class SectTradition {
 
   setAbilityLoadout(slots: SectAbilitySlots): void {
     if (slots.length !== StandardSectRules.activeAbilitySlotCount)
-      throw new SectDomainError('神通栏必须包含四个固定槽位');
+      throw new SectDomainError(
+        `神通栏必须包含${StandardSectRules.activeAbilitySlotCount}个固定槽位`,
+      );
     const selected = slots.filter((id): id is string => id !== null);
     if (new Set(selected).size !== selected.length)
       throw new SectDomainError('神通栏不能包含重复神通');

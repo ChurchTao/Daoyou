@@ -1,8 +1,8 @@
-import { InkButton, InkNotice } from '@app/components/ui';
 import {
   decodeSectTaskOutcome,
   readSweepSessionOutcome,
 } from '@app/components/feature/sect/sectTaskOutcomeRegistry';
+import { InkButton, InkNotice } from '@app/components/ui';
 import type {
   SectSweepSessionData,
   SectTaskActionData,
@@ -34,7 +34,11 @@ interface SweepGameOverlayProps {
   initialSession?: SectSweepSessionData;
   close: () => void;
   onCompleted: () => Promise<unknown> | unknown;
-  run: <T>(url: string, init: RequestInit, message: string) => Promise<T | undefined>;
+  run: <T>(
+    url: string,
+    init: RequestInit,
+    message: string,
+  ) => Promise<T | undefined>;
 }
 
 export function SweepGameOverlay({
@@ -45,7 +49,9 @@ export function SweepGameOverlay({
   run,
 }: SweepGameOverlayProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [session, setSession] = useState<SectSweepSessionData | undefined>(initialSession);
+  const [session, setSession] = useState<SectSweepSessionData | undefined>(
+    initialSession,
+  );
   const [state, setState] = useState<SweepGameState>();
   const [starting, setStarting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -61,7 +67,7 @@ export function SweepGameOverlay({
       const result = await run<SectTaskActionData>(
         `/api/sects/current/tasks/${encodeURIComponent(task.definitionId)}/actions/start`,
         postJson({ input: {} }),
-        '云阶清扫场已开启',
+        `「${task.presentation.title}」勤务场已开启`,
       );
       if (!result) return;
       const decoded = decodeSectTaskOutcome(result.outcome);
@@ -82,7 +88,7 @@ export function SweepGameOverlay({
     } finally {
       setStarting(false);
     }
-  }, [run, task.definitionId]);
+  }, [run, task.definitionId, task.presentation.title]);
 
   useEffect(() => {
     if (initialSession) return;
@@ -105,14 +111,16 @@ export function SweepGameOverlay({
         const result = await run<SectTaskActionData>(
           `/api/sects/current/tasks/${encodeURIComponent(task.definitionId)}/actions/complete`,
           postJson(
-            { input: {
+            {
+              input: {
                 sessionId: session.sessionId,
                 rulesVersion: session.rulesVersion,
                 segments: trace,
-              } },
+              },
+            },
             session.sessionId,
           ),
-          '山门清扫完成',
+          `「${task.presentation.title}」已完成`,
         );
         if (result) {
           await onCompleted();
@@ -127,7 +135,14 @@ export function SweepGameOverlay({
         setSubmitting(false);
       }
     },
-    [close, onCompleted, run, session, task.definitionId],
+    [
+      close,
+      onCompleted,
+      run,
+      session,
+      task.definitionId,
+      task.presentation.title,
+    ],
   );
 
   useEffect(() => {
@@ -177,27 +192,39 @@ export function SweepGameOverlay({
     0,
     Math.ceil((SWEEP_MAX_TICKS - (state?.tick ?? 0)) / SWEEP_TICK_RATE),
   );
-  const timedOut = state?.tick === SWEEP_MAX_TICKS && state.cleared < SWEEP_LEAF_COUNT;
+  const timedOut =
+    state?.tick === SWEEP_MAX_TICKS && state.cleared < SWEEP_LEAF_COUNT;
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-stone-950/95 p-2 text-stone-50 sm:p-5" role="dialog" aria-modal="true" aria-label="清扫山门小游戏">
+    <div
+      className="fixed inset-0 z-[100] flex flex-col bg-stone-950/95 p-2 text-stone-50 sm:p-5"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${task.presentation.title}小游戏`}
+    >
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 border-b border-white/15 pb-3">
         <div>
-          <h2 className="font-serif text-xl">云阶扫叶</h2>
-          <p className="text-xs text-stone-300">WASD / 方向键移动，空格挥帚；移动端使用下方控件。</p>
+          <h2 className="font-serif text-xl">{task.presentation.title}</h2>
+          <p className="text-xs text-stone-300">
+            WASD / 方向键移动，空格挥帚；移动端使用下方控件。
+          </p>
         </div>
         <div className="flex items-center gap-4 text-sm tabular-nums">
-          <span>落叶 {state?.cleared ?? 0}/{SWEEP_LEAF_COUNT}</span>
+          <span>
+            落叶 {state?.cleared ?? 0}/{SWEEP_LEAF_COUNT}
+          </span>
           <span>连扫 {state?.maxCombo ?? 0}</span>
           <span>余时 {remainingSeconds}s</span>
-          <InkButton variant="secondary" onClick={close} disabled={submitting}>退出</InkButton>
+          <InkButton variant="secondary" onClick={close} disabled={submitting}>
+            退出
+          </InkButton>
         </div>
       </header>
       <div className="relative mx-auto mt-3 min-h-0 w-full max-w-6xl flex-1 overflow-hidden rounded-sm border border-white/15 bg-stone-900 shadow-2xl">
         {session ? (
           <iframe
             ref={iframeRef}
-            title="云阶扫叶游戏画布"
+            title={`${task.presentation.title}游戏画布`}
             className="absolute inset-0 h-full w-full border-0"
             sandbox="allow-scripts allow-same-origin"
             src={`/sect-sweep-runtime?${new URLSearchParams({
@@ -207,8 +234,16 @@ export function SweepGameOverlay({
             }).toString()}`}
           />
         ) : null}
-        {starting ? <div className="absolute inset-0 grid place-items-center bg-stone-950/70">执事正在布置云阶……</div> : null}
-        {submitting ? <div className="absolute inset-0 grid place-items-center bg-stone-950/70">正在验收清扫轨迹……</div> : null}
+        {starting ? (
+          <div className="absolute inset-0 grid place-items-center bg-stone-950/70">
+            勤务场正在布置……
+          </div>
+        ) : null}
+        {submitting ? (
+          <div className="absolute inset-0 grid place-items-center bg-stone-950/70">
+            正在验收清扫轨迹……
+          </div>
+        ) : null}
         {operationError && !starting && !submitting ? (
           <div className="absolute inset-0 grid place-items-center bg-stone-950/80 p-6 text-center">
             <InkNotice>
@@ -220,7 +255,7 @@ export function SweepGameOverlay({
         {timedOut ? (
           <div className="absolute inset-0 grid place-items-center bg-stone-950/75 p-6 text-center">
             <InkNotice>
-              晨钟已过，云阶仍有落叶。此次不会消耗今日委托。
+              时限已过，场内仍有落叶。此次不会消耗今日委托。
               <InkButton onClick={() => void start()}>重新清扫</InkButton>
             </InkNotice>
           </div>
@@ -247,26 +282,38 @@ function MobileControls({
     <div className="mx-auto mt-3 flex w-full max-w-6xl items-end justify-between sm:hidden">
       <div className="grid w-36 grid-cols-3 gap-1" aria-label="移动方向">
         {directions.map((direction, index) =>
-          direction === null ? <span key={index} /> : (
+          direction === null ? (
+            <span key={index} />
+          ) : (
             <button
               key={direction}
               type="button"
               className="aspect-square rounded-full border border-white/20 bg-white/10 text-lg active:bg-white/30"
-              onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); setHeldDirection(direction); }}
+              onPointerDown={(event) => {
+                event.currentTarget.setPointerCapture(event.pointerId);
+                setHeldDirection(direction);
+              }}
               onPointerUp={() => setHeldDirection(null)}
               onPointerCancel={() => setHeldDirection(null)}
               aria-label={`方向 ${direction}`}
-            >{['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'][direction]}</button>
+            >
+              {['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'][direction]}
+            </button>
           ),
         )}
       </div>
       <button
         type="button"
         className="h-24 w-24 rounded-full border-2 border-amber-200/50 bg-amber-800/40 font-serif text-lg active:bg-amber-700/70"
-        onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); setSweeping(true); }}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          setSweeping(true);
+        }}
         onPointerUp={() => setSweeping(false)}
         onPointerCancel={() => setSweeping(false)}
-      >挥帚</button>
+      >
+        挥帚
+      </button>
     </div>
   );
 }

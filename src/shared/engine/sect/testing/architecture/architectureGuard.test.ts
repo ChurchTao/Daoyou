@@ -88,4 +88,24 @@ describe('宗门插件架构守卫', () => {
     );
     expect(compilationRule).not.toMatch(/compileCombination|JSON\.stringify/);
   });
+
+  it('通用宗门前端不依赖具体宗门或固定内容数量', () => {
+    const frontendRoots = [
+      resolve(process.cwd(), 'src/react-app/routes/game/sect'),
+      resolve(process.cwd(), 'src/react-app/components/feature/sect'),
+      resolve(process.cwd(), 'src/react-app/lib/sect'),
+    ];
+    for (const file of frontendRoots
+      .flatMap(sourceFiles)
+      .filter((path) => !/\.test\.(ts|tsx)$/.test(path))) {
+      const source = readFileSync(file, 'utf8');
+      const label = relative(process.cwd(), file);
+      expect(source, label).not.toMatch(
+        /lingxiao|凌霄|剑道|剑路|剑痕|九门|六层|藏经阁|悟道崖|演武台|执事堂|百业院|云阶扫叶/,
+      );
+      expect(source, label).not.toMatch(
+        /presentation\/lingxiao|\[null, null, null, null\]|\[1, 2, 3\]/,
+      );
+    }
+  });
 });

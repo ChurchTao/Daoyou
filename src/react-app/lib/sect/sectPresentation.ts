@@ -1,18 +1,21 @@
-import {
-  registerSectPresentation,
-  sectPresentationRegistry,
-} from './presentation/compositionRoot';
 import type { SectFacilityEffectSnapshot } from '@shared/engine/sect';
+import {
+  PRODUCTION_SECT_IDS,
+  PRODUCTION_SECT_PRESENTATIONS,
+} from '@shared/engine/sect/content';
 
-export { registerSectPresentation };
-export { SECT_MAP_HOTSPOTS } from './presentation/lingxiao/module';
 export type {
+  ResolvedSectPresentation,
   SectMapHotspot,
-  SectPresentationModule,
-} from './presentation/core/registry';
+  SectPresentationTheme,
+  SectSceneKey,
+} from '@shared/engine/sect';
 
 export function getSectPresentation(sectId: string) {
-  return sectPresentationRegistry().presentation(sectId);
+  if (!PRODUCTION_SECT_IDS.includes(sectId)) {
+    throw new Error(`未知宗门：${sectId}`);
+  }
+  return PRODUCTION_SECT_PRESENTATIONS[sectId];
 }
 
 export function getSectFacilityLabel(

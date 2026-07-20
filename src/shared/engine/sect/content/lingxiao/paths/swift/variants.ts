@@ -137,12 +137,15 @@ export function buildSwiftAbilities(
     role: SectAbilityRole;
     effects: EffectConfig[];
     castConditions?: AbilityConfig['castConditions'];
-    targetPolicy?: AbilityConfig['targetPolicy'];
+    targetPolicy: NonNullable<AbilityConfig['targetPolicy']>;
     extraTags?: string[];
   }): SectCompiledAbility => {
     const definition = LINGXIAO_BASE_DEFINITION.abilities.find(
       (entry) => entry.id === args.id && entry.kind !== 'passive',
-    ) as Exclude<(typeof LINGXIAO_BASE_DEFINITION.abilities)[number], { kind: 'passive' }>;
+    ) as Exclude<
+      (typeof LINGXIAO_BASE_DEFINITION.abilities)[number],
+      { kind: 'passive' }
+    >;
     return factory.active({
       ...args,
       definition,
@@ -154,6 +157,7 @@ export function buildSwiftAbilities(
     id: 'plain-sword',
     cooldown: 0,
     role: 'generator',
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [damage(0.65), sectEffects.modifyResource(resourceId, 1)],
   });
 
@@ -161,6 +165,7 @@ export function buildSwiftAbilities(
     id: 'guiding-sword',
     cooldown: 0,
     role: 'generator',
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [
       damage(0.78),
       sectEffects.modifyResource(resourceId, 2),
@@ -191,6 +196,7 @@ export function buildSwiftAbilities(
     id: 'linked-edge',
     cooldown: 2,
     role: 'combo',
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [
       ...Array.from({ length: hits }, () => damage(hitCoefficient)),
       sectEffects.modifyResource(resourceId, features.splitLight ? 3 : 2),
@@ -249,6 +255,7 @@ export function buildSwiftAbilities(
     id: 'turning-body',
     cooldown: 3,
     role: 'defensive',
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [
       damage(0.3),
       selfBuff(
@@ -344,9 +351,14 @@ export function buildSwiftAbilities(
     id: 'breaking-edge',
     cooldown: 3,
     role: 'utility',
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [
       damage(0.95),
-      sectEffects.dispelPositiveBuffsByMethod(1, edgeCleansingLevel, methodGrowth!),
+      sectEffects.dispelPositiveBuffsByMethod(
+        1,
+        edgeCleansingLevel,
+        methodGrowth!,
+      ),
     ],
   });
 
@@ -390,6 +402,7 @@ export function buildSwiftAbilities(
     id: 'sect-ultimate',
     cooldown: 4 + (features.shadowLine ? 1 : 0),
     role: 'finisher',
+    targetPolicy: { team: 'enemy', scope: 'single' },
     castConditions: [
       {
         type: 'combat_resource_at_least',

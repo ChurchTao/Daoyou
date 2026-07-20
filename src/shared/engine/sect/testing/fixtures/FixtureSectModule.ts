@@ -6,14 +6,14 @@ import {
   ModifierType,
 } from '@shared/engine/battle-v5/core/types';
 import {
-  StandardSectModule,
   BaseSectPathModule,
   ConfiguredSectNodePlugin,
   SectAbilityFactory,
+  StandardSectModule,
   type CultivatorSectState,
+  type SectAbilityDefinition,
   type SectBuildBuilder,
   type SectDefinitionWithoutPaths,
-  type SectAbilityDefinition,
   type SectPathCompileContext,
   type SectPathDefinitionWithoutNodes,
   type SectProjectionContext,
@@ -35,6 +35,46 @@ const layers = [
     minRealm: '筑基' as const,
     minRealmStage: '中期' as const,
     cost: { cultivationExp: 20, comprehensionInsight: 2, spiritStones: 40 },
+  },
+  {
+    id: 'refinement',
+    order: 3,
+    label: '精炼层',
+    minRealm: '筑基' as const,
+    minRealmStage: '初期' as const,
+    cost: { cultivationExp: 30, comprehensionInsight: 3, spiritStones: 60 },
+  },
+  {
+    id: 'resonance',
+    order: 4,
+    label: '共鸣层',
+    minRealm: '筑基' as const,
+    minRealmStage: '初期' as const,
+    cost: { cultivationExp: 40, comprehensionInsight: 4, spiritStones: 80 },
+  },
+  {
+    id: 'domain',
+    order: 5,
+    label: '领域层',
+    minRealm: '筑基' as const,
+    minRealmStage: '初期' as const,
+    cost: { cultivationExp: 50, comprehensionInsight: 5, spiritStones: 100 },
+  },
+  {
+    id: 'ascension',
+    order: 6,
+    label: '升华层',
+    minRealm: '筑基' as const,
+    minRealmStage: '初期' as const,
+    cost: { cultivationExp: 60, comprehensionInsight: 6, spiritStones: 120 },
+  },
+  {
+    id: 'transcendence',
+    order: 7,
+    label: '超越层',
+    minRealm: '筑基' as const,
+    minRealmStage: '初期' as const,
+    cost: { cultivationExp: 70, comprehensionInsight: 7, spiritStones: 140 },
   },
 ] as const;
 const methods = Array.from({ length: 6 }, (_, index) => ({
@@ -200,43 +240,52 @@ function compileFixtureBase(
     const index = Number(idParts[idParts.length - 1]);
     const effects =
       index === 2
-        ? [{
-            type: 'damage' as const,
-            params: {
-              value: { attribute: AttributeType.MAGIC_ATK, coefficient: 1 },
-              damageType: DamageType.MAGICAL,
-            },
-          }]
-        : index === 3
-          ? [{
-              type: 'heal' as const,
+        ? [
+            {
+              type: 'damage' as const,
               params: {
-                value: { targetMaxHpRatio: 0.1 },
-                target: 'hp' as const,
-                recipient: 'caster' as const,
+                value: { attribute: AttributeType.MAGIC_ATK, coefficient: 1 },
+                damageType: DamageType.MAGICAL,
               },
-            }]
-          : index === 4
-            ? [{
-                type: 'apply_buff' as const,
+            },
+          ]
+        : index === 3
+          ? [
+              {
+                type: 'heal' as const,
                 params: {
-                  target: 'target' as const,
-                  buffConfig: {
-                    id: 'fixture.control',
-                    name: '定身',
-                    type: BuffType.CONTROL,
-                    duration: 1,
-                    stackRule: StackRule.REFRESH_DURATION,
+                  value: { targetMaxHpRatio: 0.1 },
+                  target: 'hp' as const,
+                  recipient: 'caster' as const,
+                },
+              },
+            ]
+          : index === 4
+            ? [
+                {
+                  type: 'apply_buff' as const,
+                  params: {
+                    target: 'target' as const,
+                    buffConfig: {
+                      id: 'fixture.control',
+                      name: '定身',
+                      type: BuffType.CONTROL,
+                      duration: 1,
+                      stackRule: StackRule.REFRESH_DURATION,
+                    },
                   },
                 },
-              }]
-            : [{
-                type: 'damage' as const,
-                params: {
-                  value: { attribute: AttributeType.ATK, coefficient: 1 },
-                  damageType: index === 5 ? DamageType.TRUE : DamageType.PHYSICAL,
+              ]
+            : [
+                {
+                  type: 'damage' as const,
+                  params: {
+                    value: { attribute: AttributeType.ATK, coefficient: 1 },
+                    damageType:
+                      index === 5 ? DamageType.TRUE : DamageType.PHYSICAL,
+                  },
                 },
-              }];
+              ];
     builder.setAbility(
       definition.id,
       factory.active({
@@ -247,7 +296,7 @@ function compileFixtureBase(
             ? { team: 'enemy', scope: 'aoe', maxTargets: 3 }
             : index === 3
               ? { team: 'self', scope: 'single' }
-              : undefined,
+              : { team: 'enemy', scope: 'single' },
         effects,
       }),
     );

@@ -3,8 +3,8 @@ import type {
   AbilitySelectionProfile,
   EffectConfig,
 } from '@shared/engine/battle-v5/core/configs';
-import { analyzeAbilityCapabilities } from '@shared/engine/battle-v5/factories/AbilityCapabilityAnalyzer';
 import { AbilityType } from '@shared/engine/battle-v5/core/types';
+import { analyzeAbilityCapabilities } from '@shared/engine/battle-v5/factories/AbilityCapabilityAnalyzer';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import type {
   SectAbilityDefinition,
@@ -32,7 +32,7 @@ export interface ActiveSectAbilitySpec {
   castEffects?: EffectConfig[];
   pathId?: SectPathId;
   castConditions?: AbilityConfig['castConditions'];
-  targetPolicy?: AbilityConfig['targetPolicy'];
+  targetPolicy: NonNullable<AbilityConfig['targetPolicy']>;
   selectionProfile?: AbilitySelectionProfile;
   extraTags?: string[];
   detailRows?: string[];
@@ -46,23 +46,19 @@ export class SectAbilityFactory {
 
   active(spec: ActiveSectAbilitySpec): SectCompiledAbility {
     const role = spec.role ?? spec.definition.role;
-    const targetPolicy = spec.targetPolicy ?? {
-      team: 'enemy',
-      scope: 'single',
-    };
+    const targetPolicy = spec.targetPolicy;
     const capabilities = analyzeAbilityCapabilities({
       effects: spec.effects,
       castEffects: spec.castEffects,
       slug: spec.definition.id,
     });
-    const roleSelectionProfile: AbilitySelectionProfile = {
-      intents:
-        role === 'defensive'
-          ? ['defensive']
-          : role === 'utility'
-            ? ['heal_hp', 'defensive']
-            : ['damage'],
-    };
+    const selectionProfile =
+      spec.selectionProfile ?? capabilities.selectionProfile;
+    if (!selectionProfile) {
+      throw new Error(
+        `宗门能力 ${spec.definition.id} 无法从效果推导 AI 意图，必须显式声明 selectionProfile`,
+      );
+    }
     const config: AbilityConfig = {
       slug: `sect.${this.sectId}.${spec.definition.id}`,
       name: spec.name ?? spec.definition.baseName,
@@ -70,9 +66,13 @@ export class SectAbilityFactory {
       mpCost: spec.mpCost ?? spec.definition.mpCost,
       cooldown: spec.cooldown ?? spec.definition.cooldown,
       tags: [
-        ...(capabilities.hasDamage ? [GameplayTags.ABILITY.FUNCTION.DAMAGE] : []),
+        ...(capabilities.hasDamage
+          ? [GameplayTags.ABILITY.FUNCTION.DAMAGE]
+          : []),
         ...(capabilities.hasHeal ? [GameplayTags.ABILITY.FUNCTION.HEAL] : []),
-        ...(capabilities.hasControl ? [GameplayTags.ABILITY.FUNCTION.CONTROL] : []),
+        ...(capabilities.hasControl
+          ? [GameplayTags.ABILITY.FUNCTION.CONTROL]
+          : []),
         ...(capabilities.hasBuff ? [GameplayTags.ABILITY.FUNCTION.BUFF] : []),
         ...(capabilities.damageChannels.has('physical')
           ? [GameplayTags.ABILITY.CHANNEL.PHYSICAL]
@@ -96,7 +96,7 @@ export class SectAbilityFactory {
           : GameplayTags.ABILITY.TARGET.AOE,
       ],
       targetPolicy,
-      selectionProfile: spec.selectionProfile ?? roleSelectionProfile,
+      selectionProfile,
       castConditions: spec.castConditions,
       effects: spec.effects,
       castEffects: spec.castEffects,
@@ -128,9 +128,13 @@ export class SectAbilityFactory {
       name: args.name ?? args.definition.baseName,
       type: AbilityType.PASSIVE_SKILL,
       tags: [
-        ...(capabilities.hasDamage ? [GameplayTags.ABILITY.FUNCTION.DAMAGE] : []),
+        ...(capabilities.hasDamage
+          ? [GameplayTags.ABILITY.FUNCTION.DAMAGE]
+          : []),
         ...(capabilities.hasHeal ? [GameplayTags.ABILITY.FUNCTION.HEAL] : []),
-        ...(capabilities.hasControl ? [GameplayTags.ABILITY.FUNCTION.CONTROL] : []),
+        ...(capabilities.hasControl
+          ? [GameplayTags.ABILITY.FUNCTION.CONTROL]
+          : []),
         ...(capabilities.hasBuff ? [GameplayTags.ABILITY.FUNCTION.BUFF] : []),
         ...(capabilities.damageChannels.has('physical')
           ? [GameplayTags.ABILITY.CHANNEL.PHYSICAL]

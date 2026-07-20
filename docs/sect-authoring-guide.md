@@ -13,7 +13,8 @@ src/shared/engine/sect/content/<sect-id>/
   paths/<path-id>/<PathName>PathModule.ts
   paths/<path-id>/nodes/*.ts
   paths/<path-id>/variants.ts
-  organization/theme.ts        # 可选，仅换文案和称谓
+  organization/theme.ts        # 可选，仅换任务和组织称谓
+  presentation.ts              # 可选，纯数据前端主题
 ```
 
 ## 稳定 ID 与标准规则
@@ -74,18 +75,22 @@ builder.setAbility(
   new SectAbilityFactory(definition.id).active({
     definition: activeDefinition,
     targetPolicy: { team: 'enemy', scope: 'aoe', maxTargets: 3 },
-    effects: [{
-      type: 'damage',
-      params: {
-        value: { attribute: AttributeType.MAGIC_ATK, coefficient: 1.2 },
-        damageType: DamageType.MAGICAL,
+    effects: [
+      {
+        type: 'damage',
+        params: {
+          value: { attribute: AttributeType.MAGIC_ATK, coefficient: 1.2 },
+          damageType: DamageType.MAGICAL,
+        },
       },
-    }],
+    ],
   }),
 );
 ```
 
-复杂技能可以显式覆盖 `targetPolicy` 和 `selectionProfile`。需要心法成长的效果从 `SectProjectionContext.methodGrowth` 取得策略，不直接导入标准成长单例。
+`targetPolicy` 对所有主动和默认能力必填，作者必须明确敌方、友方、自身以及单体、范围或随机目标。目标标签只从该策略推导。AI 意图默认从效果分析器的 `capabilities.selectionProfile` 推导，治疗会得到 `heal_hp`，控制会得到 `control`；显式 `selectionProfile` 优先。`role` 只生成宗门职责标签，不参与 AI 意图猜测。纯资源或分析器无法识别的复杂能力必须显式提供 `selectionProfile`，否则注册失败。
+
+默认能力可以使用 `always` 或心法解锁，但不能依赖激活流派。入宗心法和试炼心法都必须解锁默认能力；自定义试炼神通栏仍须满足标准主动槽结构。
 
 ## 流派与节点
 
@@ -93,11 +98,17 @@ builder.setAbility(
 
 ```ts
 class EmberPathModule extends BaseSectPathModule {
-  protected initializeBuild(context: SectPathCompileContext, builder: SectBuildBuilder) {
+  protected initializeBuild(
+    context: SectPathCompileContext,
+    builder: SectBuildBuilder,
+  ) {
     initializeEmberBuild(context, builder);
   }
 
-  protected finalizeBuild(_context: SectPathCompileContext, builder: SectBuildBuilder) {
+  protected finalizeBuild(
+    _context: SectPathCompileContext,
+    builder: SectBuildBuilder,
+  ) {
     emberBuild(builder).finalize();
   }
 
@@ -121,7 +132,10 @@ export class EmberSectModule extends StandardSectModule {
     });
   }
 
-  protected compileBase(context: SectProjectionContext, builder: SectBuildBuilder) {
+  protected compileBase(
+    context: SectProjectionContext,
+    builder: SectBuildBuilder,
+  ) {
     compileEmberBase(context, builder);
   }
 }
@@ -129,9 +143,48 @@ export class EmberSectModule extends StandardSectModule {
 
 主题只能覆盖任务文案、商品奖励展示、敌人名称和设施称谓，不能替换普通宗门的核心流程策略。不提供主题时使用通用组织展示。
 
-最后只在 `src/shared/engine/sect/content/productionRuntime.ts` 的 `PRODUCTION_SECT_MODULES` 中加入模块一次。它是 Runtime、服务端已知宗门和前端插件校验的宗门 ID 真相。
+## 可选前端主题
 
-标准宗门不需要空服务端 manifest，也不需要专属地图。只有新增自定义执行器、结算、奖励或捐献类型时才注册服务端插件；只有需要专属地图时才注册前端展示插件。插件必须引用生产目录中的已知宗门 ID。
+普通宗门不提供主题也会获得完整的中性场景、设施导航、加载文案和术语。需要换皮时，在内容目录导出纯数据 `SectPresentationTheme`：
+
+```ts
+export const EMBER_PRESENTATION: SectPresentationTheme = {
+  sectId: 'ember-sect',
+  map: {
+    image: '/assets/sect/ember-map.webp',
+    alt: '赤霄宗设施舆图',
+    // 自定义地图必须整体提供热点；数组不会与默认热点逐项合并。
+    hotspots: EMBER_MAP_HOTSPOTS,
+  },
+  facilityLabels: { archive: '火藏阁', workshop: '炎工坊' },
+  scenes: {
+    archive: {
+      title: '火藏阁',
+      description: '历代火法依卷次陈列。',
+      loadingText: '火纹卷册正在展开……',
+    },
+  },
+  terms: {
+    pathChanges: '火脉变化',
+    meridianPractice: '炎路参悟',
+    abilityChanges: '术式变化',
+  },
+};
+```
+
+对象字段按键覆盖默认值，热点数组整体替换。空字符串、主题宗门 ID 不一致、重复热点和缺少替代文本或热点的自定义地图会在启动时失败。
+
+最后只在 `src/shared/engine/sect/content/productionRuntime.ts` 的 `PRODUCTION_SECTS` 中加入一个条目：
+
+```ts
+export const PRODUCTION_SECTS = createProductionSectCatalog([
+  { module: EMBER_MODULE, presentation: EMBER_PRESENTATION },
+]);
+```
+
+该目录同时是 Runtime、服务端已知宗门、标准组织玩法和前端展示的宗门 ID 真相。没有前端主题时只写 `{ module: EMBER_MODULE }`。
+
+标准宗门不需要空服务端 manifest、前端文件或专属地图。只有新增自定义执行器、结算、奖励、捐献类型或特殊任务 React 交互时才注册额外插件；插件必须引用生产目录中的已知宗门 ID。普通页面、地图和设施展示不使用插件注册。
 
 ## 禁止事项
 
@@ -141,6 +194,8 @@ export class EmberSectModule extends StandardSectModule {
 - 不在页面逐个调用单能力编译，使用 Runtime 批量解析。
 - 不在流派编译器按节点 ID 集中分派。
 - 不手写运行时 GameplayTag。
+- 不修改宗门路由页面、导航或共享组件来适配新宗门；展示差异只能进入 `SectPresentationTheme`。
+- 不在前端写具体宗门 ID、固定神通数量或固定流派层数。
 
 ## 验证
 

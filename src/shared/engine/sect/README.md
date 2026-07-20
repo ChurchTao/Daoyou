@@ -11,8 +11,8 @@
 - `core/progression`：可注入成长策略、心法等级上限、成本和有序层解锁规则。
 - `core/validation`：定义、组合、编译契约和持久化状态校验流水线。
 - `core/runtime`：`SectRegistry` 与客户端、服务端共用的 `SectRuntimeFacade`。
-- `core/presentation`：神通效果说明、心法属性投影和四槽装配等纯逻辑。
-- `content/productionRuntime.ts`：生产模块唯一组合根。
+- `core/presentation`：神通效果说明、心法属性投影、四槽装配和完整宗门展示主题等纯逻辑。
+- `content/productionRuntime.ts`：领域模块与可选前端主题的唯一生产组合根。
 - `content/lingxiao`：凌霄基础传承和快剑、重剑两个流派插件。
 - `testing/fixtures`：不会进入生产目录的扩展性宗门。
 
@@ -55,7 +55,7 @@ CultivatorSectState
 2. 继承 `StandardSectModule`，实现基础能力编译并注入流派模块；普通宗门不自行实现组织、成长、准入或试炼流程。
 3. 每个流派继承 `BaseSectPathModule`，声明有序层、基础变体、战术策略和节点插件。
 4. 节点使用 `ConfiguredSectNodePlugin` 或专用子类，将定义与 `apply` 行为放在一起。
-5. 在 `content/productionRuntime.ts` 注册正式宗门。除这个组合根外，不修改通用层。
+5. 可选定义纯数据 `SectPresentationTheme`，然后在 `content/productionRuntime.ts` 的 `PRODUCTION_SECTS` 注册一个条目。除这个组合根外，不修改服务端、前端页面或导航。
 
 完整目录模板、能力联合类型和注册步骤见 [`docs/sect-authoring-guide.md`](../../../../docs/sect-authoring-guide.md)。
 
@@ -76,5 +76,6 @@ CultivatorSectState
 - 未注册 ID、未知配置版本和非法持久化状态必须明确失败。
 - battle-v5 运行时标签只能通过 `GameplayTags` 生成。
 - 普通宗门不得复制组织模块，不得绕过 `SectAbilityFactory`/battle-v5 `AbilityFactory`，不得在流派编译器中按节点 ID 集中分派。
+- 普通宗门不得修改宗门路由页面；展示差异只能通过生产目录中的纯数据主题注入。
 - `core` 禁止依赖 `content`，生产内容禁止回流到通用入口。
 - 宗门代码的架构注释、业务原因和扩展约束统一使用中文。

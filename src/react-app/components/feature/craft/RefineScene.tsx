@@ -5,6 +5,7 @@ import {
   SelectedMaterialsWithDose,
   type CreationProductResultRecord,
 } from '@app/components/feature/creation';
+import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
 import {
   GameSceneAsideSection,
   GameSceneFrame,
@@ -18,22 +19,21 @@ import {
   InkIdentifyCelebration,
   InkNotice,
 } from '@app/components/ui';
-import {
-  useQiActionConfirm,
-} from '@app/components/feature/cultivator/useQiActionConfirm';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
 import { getAllowedMaterialTypesForCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
-import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
-import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { EquipmentSlot } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 const CRAFT_TYPE = 'refine' as const;
-const ALLOWED_MATERIAL_TYPES = [...getAllowedMaterialTypesForCraftType(CRAFT_TYPE)];
+const ALLOWED_MATERIAL_TYPES = [
+  ...getAllowedMaterialTypesForCraftType(CRAFT_TYPE),
+];
 const MAX_MATERIALS = CREATION_INPUT_CONSTRAINTS.maxMaterialKinds;
 const MIN_DOSE = CREATION_INPUT_CONSTRAINTS.minQuantityPerMaterial;
 const MAX_DOSE = CREATION_INPUT_CONSTRAINTS.maxQuantityPerMaterial;
@@ -64,6 +64,8 @@ export type RefineSceneProps = {
   sectContext?: {
     facilityLevel: number;
     discountPercent: number;
+    facilityLabel: string;
+    scene: import('@shared/engine/sect').SectScenePresentation;
   };
 };
 
@@ -268,29 +270,56 @@ export function RefineScene({ sectContext }: RefineSceneProps) {
   return (
     <GameSceneFrame
       variant="workflow"
-      title={sectContext ? '【宗门器坊】' : '【炼器室】'}
-      description={sectContext ? '地火自山腹引入锻台，冷铁与灵材依次落位；选定器型后即可在此开炉成器。' : '千锤百炼，法宝天成。保留原有炼器业务流，只把当前投入、资源判断与去向压缩进统一工作流壳。'}
+      title={sectContext ? `【${sectContext.scene.title}】` : '【炼器室】'}
+      description={
+        sectContext
+          ? sectContext.scene.description
+          : '千锤百炼，法宝天成。保留原有炼器业务流，只把当前投入、资源判断与去向压缩进统一工作流壳。'
+      }
+      identityOverride={
+        sectContext
+          ? {
+              label: sectContext.scene.title,
+              summary: sectContext.scene.description,
+            }
+          : undefined
+      }
       headerMeta={
         sectContext || note ? (
           <div className="space-y-3">
-            {sectContext ? <InkButton onClick={() => navigate('/game/sect')} variant="secondary">返回宗门总视图</InkButton> : null}
-            {note ? <GameSceneNote><p className="text-sm leading-7">{note}</p></GameSceneNote> : null}
+            {sectContext ? (
+              <InkButton
+                onClick={() => navigate('/game/sect')}
+                variant="secondary"
+              >
+                返回宗门总视图
+              </InkButton>
+            ) : null}
+            {note ? (
+              <GameSceneNote>
+                <p className="text-sm leading-7">{note}</p>
+              </GameSceneNote>
+            ) : null}
           </div>
         ) : undefined
       }
       aside={
         <>
           {sectContext ? (
-            <GameSceneAsideSection title="宗门地火">
+            <GameSceneAsideSection title={sectContext.scene.title}>
               <div className="space-y-2 text-sm leading-7">
-                <p>丹器坊等级：{sectContext.facilityLevel}级</p>
+                <p>
+                  {sectContext.facilityLabel}等级：{sectContext.facilityLevel}级
+                </p>
                 <p>当前灵石减免：{sectContext.discountPercent}%</p>
               </div>
             </GameSceneAsideSection>
           ) : null}
           <GameSceneAsideSection title="炼制摘要">
             <div className="space-y-2 text-sm leading-7">
-              <p>已投入灵材：{selectedMaterialIds.length} / {MAX_MATERIALS}</p>
+              <p>
+                已投入灵材：{selectedMaterialIds.length} / {MAX_MATERIALS}
+              </p>
               <p>目标槽位：{requestedSlot ? '已选定' : '尚未指定'}</p>
               <p>预计灵石：{displayEstimatedCost?.spiritStones ?? 0}</p>
             </div>
@@ -310,7 +339,11 @@ export function RefineScene({ sectContext }: RefineSceneProps) {
           />
         </>
       }
-      contentClassName={sectContext ? 'bg-[radial-gradient(circle_at_82%_8%,rgba(130,54,27,0.14),transparent_26%),linear-gradient(135deg,rgba(52,59,60,0.08),transparent_44%)] px-3 py-4 sm:px-5' : undefined}
+      contentClassName={
+        sectContext
+          ? 'bg-[radial-gradient(circle_at_82%_8%,rgba(130,54,27,0.14),transparent_26%),linear-gradient(135deg,rgba(52,59,60,0.08),transparent_44%)] px-3 py-4 sm:px-5'
+          : undefined
+      }
     >
       <GameSceneSection title="器型与意念">
         <CreationIntentPanel
@@ -369,7 +402,9 @@ export function RefineScene({ sectContext }: RefineSceneProps) {
         )}
 
         {displayValidation?.blockingReason && (
-          <InkNotice tone="warning">{displayValidation.blockingReason}</InkNotice>
+          <InkNotice tone="warning">
+            {displayValidation.blockingReason}
+          </InkNotice>
         )}
       </GameSceneSection>
 

@@ -1,6 +1,5 @@
-import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
 import { AbilityType } from '@shared/engine/battle-v5/core/types';
-import { StandardSectRules } from '../domain';
+import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
 import type {
   CultivatorSectPathState,
   ResolvedSectAbility,
@@ -11,6 +10,7 @@ import type {
   SectProjectionContext,
   SectProjectionInput,
 } from '../domain';
+import { StandardSectRules } from '../domain';
 import type { SectModule } from '../plugin';
 import {
   describeSectAbilityConfig,
@@ -28,10 +28,7 @@ function findActivePath(
 
 /** 统一编排基础宗门、流派变体和节点装饰器流水线。 */
 export class SectCompiler {
-  compile(
-    module: SectModule,
-    input: SectProjectionInput,
-  ): SectCompiledBuild {
+  compile(module: SectModule, input: SectProjectionInput): SectCompiledBuild {
     const context: SectProjectionContext = {
       ...input,
       methodGrowth: module.methodGrowth,
@@ -75,8 +72,7 @@ export class SectCompiler {
     const abilities = context.sect.abilityLoadout
       .filter(
         (id): id is string =>
-          id !== null &&
-          isAbilityUnlocked(module.definition, id, context.sect),
+          id !== null && isAbilityUnlocked(module.definition, id, context.sect),
       )
       .map((id) => build.abilities[id]?.config)
       .filter((config): config is NonNullable<typeof config> =>
@@ -86,18 +82,33 @@ export class SectCompiler {
       ...Object.entries(build.abilities)
         .filter(([id, ability]) => {
           if (ability.config.type !== AbilityType.PASSIVE_SKILL) return false;
-          const definition = module.definition.abilities.find((entry) => entry.id === id);
-          return !definition || isAbilityUnlocked(module.definition, id, context.sect);
+          const definition = module.definition.abilities.find(
+            (entry) => entry.id === id,
+          );
+          return (
+            !definition ||
+            isAbilityUnlocked(module.definition, id, context.sect)
+          );
         })
         .map(([, ability]) => ability.config),
     );
     const defaultDefinition = module.definition.abilities.find(
       (ability) => ability.kind === 'default',
     );
+    if (
+      !defaultDefinition ||
+      !isAbilityUnlocked(module.definition, defaultDefinition.id, context.sect)
+    ) {
+      throw new Error(`活动宗门 ${module.definition.id} 没有已解锁的默认能力`);
+    }
+    const defaultAttack = build.abilities[defaultDefinition.id]?.config;
+    if (!defaultAttack) {
+      throw new Error(
+        `活动宗门 ${module.definition.id} 的默认能力缺少编译产物`,
+      );
+    }
     return {
-      defaultAttack: defaultDefinition
-        ? build.abilities[defaultDefinition.id]?.config
-        : undefined,
+      defaultAttack,
       abilities,
       methodModifiers: projectSectMethodModifiers(
         context.sect,
@@ -147,7 +158,10 @@ export class SectCompiler {
     built: SectCompiledBuild['abilities'][string] | undefined,
   ): ResolvedSectAbility {
     if (!built) throw new Error(`宗门神通未能投影: ${definition.id}`);
-    const unlockRequirements = this.describeUnlock(module.definition, definition);
+    const unlockRequirements = this.describeUnlock(
+      module.definition,
+      definition,
+    );
     return {
       id: definition.id,
       name: built.config.name,
@@ -177,7 +191,9 @@ export class SectCompiler {
       case 'always':
         return [];
       case 'active_path': {
-        const path = definition.paths.find((entry) => entry.id === unlock.pathId);
+        const path = definition.paths.find(
+          (entry) => entry.id === unlock.pathId,
+        );
         return [`激活${path?.name ?? unlock.pathId}流派`];
       }
       case 'method': {
@@ -245,7 +261,10 @@ export class SectCompiler {
       definition.abilities.map((ability) => ability.id),
     );
     for (const abilityId of Object.keys(build.abilities)) {
-      if (!definedAbilityIds.has(abilityId) && !selectedNodeIds.has(abilityId)) {
+      if (
+        !definedAbilityIds.has(abilityId) &&
+        !selectedNodeIds.has(abilityId)
+      ) {
         throw new Error(`宗门 ${definition.id} 编译出未定义能力 ${abilityId}`);
       }
     }

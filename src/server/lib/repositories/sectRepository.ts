@@ -9,6 +9,8 @@ import {
   sectPathProgress,
 } from '@server/lib/drizzle/schema';
 import {
+  createAbilitySlots,
+  StandardSectRules,
   type CultivatorSectState,
   type SectAbilitySlots,
   type SectDefinition,
@@ -95,9 +97,11 @@ export async function spendTrainingResources(
 export function hydrateSectAbilitySlots(
   rows: Array<{ slot: number; abilityId: string }>,
 ): SectAbilitySlots {
-  const slots: SectAbilitySlots = [null, null, null, null];
+  const slots: SectAbilitySlots = createAbilitySlots([]);
   for (const row of rows)
-    if (row.slot >= 1 && row.slot <= 4) slots[row.slot - 1] = row.abilityId;
+    if (row.slot >= 1 && row.slot <= StandardSectRules.activeAbilitySlotCount) {
+      slots[row.slot - 1] = row.abilityId;
+    }
   return slots;
 }
 
@@ -175,7 +179,8 @@ async function hydrateMembership(
     joinedAt: membership.joinedAt?.toISOString(),
     activePathId: membership.activePathId ?? undefined,
     contribution: membership.contribution,
-    discipleRank: membership.discipleRank as CultivatorSectState['discipleRank'],
+    discipleRank:
+      membership.discipleRank as CultivatorSectState['discipleRank'],
     office: membership.office as CultivatorSectState['office'],
     promotedAt: membership.promotedAt?.toISOString(),
     configVersion: membership.configVersion,
@@ -344,7 +349,12 @@ export async function createPathWithFirstLayer(
   await tx
     .insert(sectMeridianLoadouts)
     .values(
-      [1, 2, 3].map((slot) => ({ membershipId, pathId, slot, nodeIds: [] })),
+      StandardSectRules.meridianLoadoutSlots.map((slot) => ({
+        membershipId,
+        pathId,
+        slot,
+        nodeIds: [],
+      })),
     )
     .onConflictDoNothing();
   return true;

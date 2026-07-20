@@ -5,6 +5,7 @@ import type {
   SectTrialContext,
   SectTrialScenario,
 } from '../domain';
+import { StandardSectRules } from '../domain';
 import {
   StandardSectOrganizationModule,
   type SectOrganizationTheme,
@@ -27,8 +28,73 @@ class StandardSectTrialScenarioFactory implements SectTrialScenarioFactory {
     private readonly definition: SectDefinitionWithoutPaths,
     private readonly opponentName: string,
     private readonly methods = definition.onboarding.initialMethods,
-    private readonly abilityLoadout = definition.onboarding.initialAbilityLoadout,
-  ) {}
+    private readonly abilityLoadout = definition.onboarding
+      .initialAbilityLoadout,
+  ) {
+    if (
+      this.abilityLoadout.length !== StandardSectRules.activeAbilitySlotCount
+    ) {
+      throw new Error(
+        `宗门 ${definition.id} 试炼神通栏必须包含${StandardSectRules.activeAbilitySlotCount}个固定槽位`,
+      );
+    }
+    for (const [methodId, level] of Object.entries(this.methods)) {
+      if (!definition.methods.some((method) => method.id === methodId)) {
+        throw new Error(
+          `宗门 ${definition.id} 试炼配置引用未知心法 ${methodId}`,
+        );
+      }
+      if (!Number.isInteger(level) || level < 0) {
+        throw new Error(`宗门 ${definition.id} 试炼心法等级无效: ${methodId}`);
+      }
+    }
+    const equipped = this.abilityLoadout.filter(
+      (abilityId): abilityId is string => abilityId !== null,
+    );
+    if (new Set(equipped).size !== equipped.length) {
+      throw new Error(`宗门 ${definition.id} 试炼神通不可重复`);
+    }
+    for (const abilityId of equipped) {
+      const ability = definition.abilities.find(
+        (entry) => entry.id === abilityId,
+      );
+      if (!ability) {
+        throw new Error(
+          `宗门 ${definition.id} 试炼配置引用未知能力 ${abilityId}`,
+        );
+      }
+      if (ability.kind !== 'active') {
+        throw new Error(
+          `宗门 ${definition.id} 试炼配置包含非主动能力 ${abilityId}`,
+        );
+      }
+      if (
+        ability.unlock.type === 'method' &&
+        (this.methods[ability.unlock.methodId] ?? 0) < ability.unlock.level
+      ) {
+        throw new Error(
+          `宗门 ${definition.id} 试炼配置包含未解锁能力 ${abilityId}`,
+        );
+      }
+      if (ability.unlock.type === 'active_path') {
+        throw new Error(
+          `宗门 ${definition.id} 试炼配置不得装配流派能力 ${abilityId}`,
+        );
+      }
+    }
+    const defaultAbility = definition.abilities.find(
+      (ability) => ability.kind === 'default',
+    );
+    if (
+      !defaultAbility ||
+      (defaultAbility.unlock.type === 'method' &&
+        (this.methods[defaultAbility.unlock.methodId] ?? 0) <
+          defaultAbility.unlock.level) ||
+      defaultAbility.unlock.type === 'active_path'
+    ) {
+      throw new Error(`宗门 ${definition.id} 试炼心法配置未解锁默认能力`);
+    }
+  }
 
   create({ cultivator }: SectTrialContext): SectTrialScenario {
     const borrowedSect: CultivatorSectState = {

@@ -92,18 +92,21 @@ export function compileLingxiaoBase(
     );
 
   active('plain-sword', {
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [
       sectEffects.physicalDamage(0.7),
       sectEffects.modifyResource(resourceId, 1),
     ],
   });
   active('guiding-sword', {
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [
       sectEffects.physicalDamage(0.82),
       sectEffects.modifyResource(resourceId, 2),
     ],
   });
   active('linked-edge', {
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [
       sectEffects.physicalDamage(0.47),
       sectEffects.physicalDamage(0.47),
@@ -167,6 +170,7 @@ export function compileLingxiaoBase(
     ],
   });
   active('breaking-edge', {
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [
       sectEffects.physicalDamage(0.95),
       sectEffects.dispelPositiveBuffsByMethod(
@@ -202,6 +206,7 @@ export function compileLingxiaoBase(
     ],
   });
   active('sect-ultimate', {
+    targetPolicy: { team: 'enemy', scope: 'single' },
     castConditions: [
       {
         type: 'combat_resource_at_least',

@@ -1,20 +1,16 @@
-import { GameBottomDock } from '@app/components/game-shell/GameBottomDock';
-import { RealtimeConnectionToasts } from '@app/components/game-shell/RealtimeConnectionToasts';
-import { GameTopHud } from '@app/components/game-shell/GameTopHud';
-import { useGameHudModel } from '@app/components/game-shell/useGameHudModel';
-import {
-  WorldChatPreviewBar,
-} from '@app/components/feature/world-chat/WorldChatPreviewBar';
-import {
-  WorldChatFeedProvider,
-} from '@app/components/feature/world-chat/useWorldChatFeedModel';
-import { InkButton } from '@app/components/ui/InkButton';
 import { SectQueryProvider } from '@app/components/feature/sect/SectQueryProvider';
-import { PlayerProvider } from '@app/lib/player/PlayerProvider';
+import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
+import { WorldChatFeedProvider } from '@app/components/feature/world-chat/useWorldChatFeedModel';
+import { GameBottomDock } from '@app/components/game-shell/GameBottomDock';
+import { GameTopHud } from '@app/components/game-shell/GameTopHud';
+import { RealtimeConnectionToasts } from '@app/components/game-shell/RealtimeConnectionToasts';
+import { useGameHudModel } from '@app/components/game-shell/useGameHudModel';
+import { InkButton } from '@app/components/ui/InkButton';
 import {
   useActiveCultivatorProfile,
   usePlayerStateStatus,
 } from '@app/lib/player-state/selectors';
+import { PlayerProvider } from '@app/lib/player/PlayerProvider';
 import {
   resolveGameScene,
   resolveRouteTitle,
@@ -22,10 +18,6 @@ import {
 } from '@app/lib/router/routeTitle';
 import { DungeonSceneProvider } from '@app/routes/game/dungeon/dungeonScene';
 import { useResolvedDungeonScene } from '@app/routes/game/dungeon/dungeonSceneContext';
-import {
-  SpecialSceneProvider,
-  useSpecialSceneBackOverride,
-} from './special-scene';
 import {
   useCallback,
   useEffect,
@@ -35,12 +27,11 @@ import {
   type CSSProperties,
   type RefObject,
 } from 'react';
+import { Outlet, useLocation, useMatches, useNavigate } from 'react-router';
 import {
-  Outlet,
-  useLocation,
-  useMatches,
-  useNavigate,
-} from 'react-router';
+  SpecialSceneProvider,
+  useSpecialSceneBackOverride,
+} from './special-scene';
 
 type SpecialBackAction =
   | {
@@ -204,7 +195,9 @@ function useResolvedSpecialScene() {
   };
 }
 
-function useSpecialSceneBackActionState(descriptor: SpecialSceneDescriptor | null) {
+function useSpecialSceneBackActionState(
+  descriptor: SpecialSceneDescriptor | null,
+) {
   const navigate = useNavigate();
   const backOverride = useSpecialSceneBackOverride();
 
@@ -254,12 +247,12 @@ function MapSceneChrome() {
         <button
           type="button"
           onClick={onBack}
-          className="border-battle-rule-strong bg-[rgba(248,243,230,0.94)] text-battle-muted hover:text-crimson border border-dashed px-3 py-2 text-sm transition shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm"
+          className="border-battle-rule-strong text-battle-muted hover:text-crimson border border-dashed bg-[rgba(248,243,230,0.94)] px-3 py-2 text-sm shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm transition"
         >
           [{label}]
         </button>
       </div>
-      <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.94)] pointer-events-auto border border-dashed px-4 py-2 text-right shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm">
+      <div className="border-battle-rule-strong pointer-events-auto border border-dashed bg-[rgba(248,243,230,0.94)] px-4 py-2 text-right shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm">
         <div className="text-ink font-semibold">{descriptor.sceneLabel}</div>
         <div className="text-battle-muted text-xs tracking-[0.12em]">
           人界·全图 · {intentLabel}
@@ -364,7 +357,9 @@ function GameCombatLayoutBody() {
 export function GameCombatLayout() {
   return (
     <SpecialSceneProvider>
-      <GameCombatLayoutBody />
+      <SectQueryProvider>
+        <GameCombatLayoutBody />
+      </SectQueryProvider>
     </SpecialSceneProvider>
   );
 }
@@ -399,7 +394,9 @@ interface GenesisSceneDescriptor {
   };
 }
 
-function resolveGenesisSceneDescriptor(pathname: string): GenesisSceneDescriptor {
+function resolveGenesisSceneDescriptor(
+  pathname: string,
+): GenesisSceneDescriptor {
   if (pathname === '/game/reincarnate') {
     return {
       sceneLabel: '转世重修',
@@ -442,7 +439,9 @@ function GameGenesisLayoutBody() {
               <div className="text-battle-muted text-[0.66rem] tracking-[0.18em]">
                 入道宿主
               </div>
-              <div className="text-ink mt-1 text-lg leading-6">{routeTitle}</div>
+              <div className="text-ink mt-1 text-lg leading-6">
+                {routeTitle}
+              </div>
               <div className="text-battle-muted mt-1 text-sm leading-6">
                 {descriptor.subtitle}
               </div>
@@ -562,10 +561,7 @@ function GameDungeonLayoutBody() {
     >
       <div className="relative h-full overflow-hidden">
         {!isImmersiveBattleScene && (
-          <DungeonSceneChrome
-            chromeRef={chromeRef}
-            isScrolled={isScrolled}
-          />
+          <DungeonSceneChrome chromeRef={chromeRef} isScrolled={isScrolled} />
         )}
         <main
           ref={mainRef}

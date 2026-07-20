@@ -1,5 +1,5 @@
-import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
 import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
+import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
 import { PathsTab } from '../components/PathsTab';
 import {
   SectPageLoading,
@@ -10,7 +10,10 @@ import {
 
 export default function SectEnlightenmentCliffPage() {
   return (
-    <SectPermissionBoundary permission="sect.enlightenment.use" title="悟道崖">
+    <SectPermissionBoundary
+      permission="sect.enlightenment.use"
+      sceneKey="paths"
+    >
       <SectEnlightenmentCliffBody />
     </SectPermissionBoundary>
   );
@@ -21,17 +24,15 @@ function SectEnlightenmentCliffBody() {
   const cultivator = useActiveCultivatorProfile();
   const { busy, run } = useSectMutation(reload);
 
-  if (!data) return <SectPageLoading message="崖间云气正在散开……" />;
+  if (!data) return <SectPageLoading sceneKey="paths" />;
 
   return (
-    <SectScene
-      title="悟道崖"
-      description="罡风掠过历代剑痕，每一道石刻皆通向不同道途；择定流派后，沿经脉继续参悟。"
-      error={error}
-      mood="cliff"
-    >
+    <SectScene sceneKey="paths" error={error} mood="cliff">
       <div className="relative border-l-2 border-sky-900/15 bg-white/25 px-4 py-5 sm:px-7">
-        <span aria-hidden="true" className="absolute top-0 bottom-0 left-3 border-l border-dashed border-sky-950/10" />
+        <span
+          aria-hidden="true"
+          className="absolute top-0 bottom-0 left-3 border-l border-dashed border-sky-950/10"
+        />
         <PathsTab
           data={data}
           busy={busy}

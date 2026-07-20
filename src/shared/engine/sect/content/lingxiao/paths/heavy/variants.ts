@@ -143,11 +143,14 @@ export function buildHeavyAbilities(
     effects: EffectConfig[];
     castEffects?: EffectConfig[];
     castConditions?: AbilityConfig['castConditions'];
-    targetPolicy?: AbilityConfig['targetPolicy'];
+    targetPolicy: NonNullable<AbilityConfig['targetPolicy']>;
   }): SectCompiledAbility => {
     const definition = LINGXIAO_BASE_DEFINITION.abilities.find(
       (entry) => entry.id === args.id && entry.kind !== 'passive',
-    ) as Exclude<(typeof LINGXIAO_BASE_DEFINITION.abilities)[number], { kind: 'passive' }>;
+    ) as Exclude<
+      (typeof LINGXIAO_BASE_DEFINITION.abilities)[number],
+      { kind: 'passive' }
+    >;
     return factory.active({
       ...args,
       definition,
@@ -159,12 +162,14 @@ export function buildHeavyAbilities(
     id: 'plain-sword',
     cooldown: 0,
     role: 'generator',
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [damage(0.72), sectEffects.modifyResource(resourceId, 1)],
   });
   built['guiding-sword'] = active({
     id: 'guiding-sword',
     cooldown: 2,
     role: 'generator',
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [
       damage(0.84),
       sectEffects.modifyResource(resourceId, 2),
@@ -175,6 +180,7 @@ export function buildHeavyAbilities(
     id: 'linked-edge',
     cooldown: 3,
     role: 'combo',
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [
       damage(1.24),
       sectEffects.modifyResource(resourceId, 1),
@@ -257,9 +263,14 @@ export function buildHeavyAbilities(
     id: 'breaking-edge',
     cooldown: 3,
     role: 'utility',
+    targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [
       damage(1.04),
-      sectEffects.dispelPositiveBuffsByMethod(1, edgeCleansingLevel, methodGrowth!),
+      sectEffects.dispelPositiveBuffsByMethod(
+        1,
+        edgeCleansingLevel,
+        methodGrowth!,
+      ),
     ],
   });
   built['sword-aegis'] = active({
@@ -336,6 +347,7 @@ export function buildHeavyAbilities(
     id: 'sect-ultimate',
     cooldown: 4 + (heaven ? 1 : 0),
     role: 'finisher',
+    targetPolicy: { team: 'enemy', scope: 'single' },
     castConditions: [
       {
         type: 'combat_resource_at_least',

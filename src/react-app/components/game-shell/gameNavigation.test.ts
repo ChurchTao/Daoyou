@@ -75,7 +75,7 @@ describe('game navigation dock groups', () => {
     );
     expect(getGameSceneMeta('sect-abilities')).toMatchObject({
       id: 'sect-abilities',
-      label: '演武台',
+      label: '宗门演武',
       group: 'cultivation',
     });
     expect(expandedIds).toContain('sect-abilities');

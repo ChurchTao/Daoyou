@@ -1,12 +1,13 @@
 import type {
   CultivatorSectState,
+  SectBenefitSnapshot,
   SectConstructionProjectState,
   SectDefinition,
   SectDiscipleRank,
-  SectBenefitSnapshot,
   SectFacilityState,
   SectPermissionState,
 } from '@shared/engine/sect';
+import { StandardSectRules } from '@shared/engine/sect';
 import type { BattleRecord } from '@shared/types/battle';
 import { z } from 'zod';
 import type { PlayerStateMutationResponse } from './player';
@@ -16,10 +17,14 @@ export const SectLevelTrainRequestSchema = z.object({
 });
 export const SectMethodTrainRequestSchema = SectLevelTrainRequestSchema;
 export const SectMeridianLoadoutRequestSchema = z.object({
-  nodeIds: z.array(z.string().min(1).max(64)).max(6),
+  nodeIds: z
+    .array(z.string().min(1).max(64))
+    .max(StandardSectRules.meridianNodeTransportLimit),
 });
 export const SectAbilityLoadoutRequestSchema = z.object({
-  abilityIds: z.array(z.string().min(1).max(64).nullable()).length(4),
+  abilityIds: z
+    .array(z.string().min(1).max(64).nullable())
+    .length(StandardSectRules.activeAbilitySlotCount),
 });
 export const SectTacticRequestSchema = z.object({
   tacticId: z.string().min(1).max(32),
@@ -104,7 +109,8 @@ export interface SectBattleOutcomeData {
   rewardGranted: boolean;
 }
 
-export type SectTaskActionResponse = PlayerStateMutationResponse<SectTaskActionData>;
+export type SectTaskActionResponse =
+  PlayerStateMutationResponse<SectTaskActionData>;
 
 export interface SectShopItemData {
   id: string;

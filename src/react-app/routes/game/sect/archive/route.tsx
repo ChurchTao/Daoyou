@@ -1,5 +1,5 @@
-import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
 import { useSectCurrentQuery } from '@app/components/feature/sect/SectQueryProvider';
+import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
 import { MethodsTab } from '../components/MethodsTab';
 import {
   SectPageLoading,
@@ -10,7 +10,7 @@ import {
 
 export default function SectArchivePage() {
   return (
-    <SectPermissionBoundary permission="sect.archive.use" title="藏经阁">
+    <SectPermissionBoundary permission="sect.archive.use" sceneKey="archive">
       <SectArchiveBody />
     </SectPermissionBoundary>
   );
@@ -21,18 +21,20 @@ function SectArchiveBody() {
   const cultivator = useActiveCultivatorProfile();
   const { busy, run } = useSectMutation(reload);
 
-  if (!data) return <SectPageLoading message="藏经阁卷帙正在归架……" />;
+  if (!data) return <SectPageLoading sceneKey="archive" />;
 
   return (
     <SectScene
-      title="藏经阁"
-      description="檀木长架沿墙而立，心法卷轴依传承次第展开；在此逐卷研习，不必再穿行别阁。"
+      sceneKey="archive"
       error={error}
       mood="archive"
       aside={
         <div className="space-y-2 text-sm leading-7">
           <p>当前心法上限：{data.methodLevelCap}级</p>
-          <p>境界上限：{data.overview?.realmMethodLevelCap ?? data.methodLevelCap}级</p>
+          <p>
+            境界上限：
+            {data.overview?.realmMethodLevelCap ?? data.methodLevelCap}级
+          </p>
         </div>
       }
     >

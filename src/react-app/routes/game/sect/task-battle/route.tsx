@@ -1,7 +1,9 @@
+import { useSectPresentation } from '@app/components/feature/sect/SectQueryProvider';
 import { decodeSectTaskOutcome } from '@app/components/feature/sect/sectTaskOutcomeRegistry';
 import { GameImmersiveLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui';
-import { sectPresentationRegistry } from '@app/lib/sect/presentation/compositionRoot';
+import { formatDocumentTitle } from '@app/lib/router/routeTitle';
+import { sectTaskRendererRegistry } from '@app/lib/sect/presentation/compositionRoot';
 import { startSectTaskBattleOnce } from '@app/lib/sect/sectClient';
 import type { SectTaskActionData } from '@shared/contracts/sect';
 import { createElement, useEffect, useState } from 'react';
@@ -10,13 +12,15 @@ import { SectPermissionBoundary } from '../components/SectScene';
 
 export default function SectTaskBattlePage() {
   return (
-    <SectPermissionBoundary permission="sect.tasks.use" title="宗门战局">
+    <SectPermissionBoundary permission="sect.tasks.use" sceneKey="taskBattle">
       <SectTaskBattleBody />
     </SectPermissionBoundary>
   );
 }
 
 function SectTaskBattleBody() {
+  const presentation = useSectPresentation();
+  const scene = presentation.scenes.taskBattle;
   const navigate = useNavigate();
   const { taskId } = useParams();
   const [searchParams] = useSearchParams();
@@ -34,7 +38,9 @@ function SectTaskBattleBody() {
       })
       .catch((reason) => {
         if (!cancelled)
-          setError(reason instanceof Error ? reason.message : '宗门战局推演失败');
+          setError(
+            reason instanceof Error ? reason.message : '宗门战局推演失败',
+          );
       });
     return () => {
       cancelled = true;
@@ -43,37 +49,54 @@ function SectTaskBattleBody() {
 
   if (error || parameterError)
     return (
-      <div className="flex h-full items-center justify-center px-4 py-20">
-        <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.92)] max-w-md border border-dashed px-5 py-5 text-center">
-          <p className="mb-4 text-crimson">{error ?? parameterError}</p>
-          <InkButton onClick={() => navigate('/game/sect/affairs')}>
-            返回执事堂
-          </InkButton>
+      <>
+        <title>{formatDocumentTitle(scene.title)}</title>
+        <div className="flex h-full items-center justify-center px-4 py-20">
+          <div className="border-battle-rule-strong max-w-md border border-dashed bg-[rgba(248,243,230,0.92)] px-5 py-5 text-center">
+            <p className="text-crimson mb-4">{error ?? parameterError}</p>
+            <InkButton onClick={() => navigate('/game/sect/affairs')}>
+              {presentation.terms.returnToAffairs}
+            </InkButton>
+          </div>
         </div>
-      </div>
+      </>
     );
 
-  if (!result) return <GameImmersiveLoading message="宗门战局推演中……" />;
+  if (!result)
+    return (
+      <>
+        <title>{formatDocumentTitle(scene.title)}</title>
+        <GameImmersiveLoading message={scene.loadingText} />
+      </>
+    );
 
   const decoded = decodeSectTaskOutcome(result.outcome);
   const contribution = decoded.ok
-    ? sectPresentationRegistry().outcome(decoded.value.renderer)
+    ? sectTaskRendererRegistry().outcome(decoded.value.renderer)
     : undefined;
   if (!decoded.ok || !contribution)
     return (
-      <div className="flex h-full items-center justify-center px-4 py-20">
-        <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.92)] max-w-md border border-dashed px-5 py-5 text-center">
-          <p className="mb-4 text-crimson">
-            {decoded.ok ? '暂不支持此宗门战斗结果' : decoded.error}
-          </p>
-          <InkButton onClick={() => navigate('/game/sect/affairs')}>
-            返回执事堂
-          </InkButton>
+      <>
+        <title>{formatDocumentTitle(scene.title)}</title>
+        <div className="flex h-full items-center justify-center px-4 py-20">
+          <div className="border-battle-rule-strong max-w-md border border-dashed bg-[rgba(248,243,230,0.92)] px-5 py-5 text-center">
+            <p className="text-crimson mb-4">
+              {decoded.ok ? '暂不支持此宗门战斗结果' : decoded.error}
+            </p>
+            <InkButton onClick={() => navigate('/game/sect/affairs')}>
+              {presentation.terms.returnToAffairs}
+            </InkButton>
+          </div>
         </div>
-      </div>
+      </>
     );
-  return createElement(contribution.renderer, {
-    task: result.task,
-    data: decoded.value.data,
-  });
+  return (
+    <>
+      <title>{formatDocumentTitle(scene.title)}</title>
+      {createElement(contribution.renderer, {
+        task: result.task,
+        data: decoded.value.data,
+      })}
+    </>
+  );
 }

@@ -1,7 +1,7 @@
-import { sectPresentationRegistry } from '@app/lib/sect/presentation/compositionRoot';
+import { sectTaskRendererRegistry } from '@app/lib/sect/presentation/compositionRoot';
 import type { SectTaskActionOutcome } from '@shared/contracts/sect';
-import type { ZodType } from 'zod';
 import { createElement } from 'react';
+import type { ZodType } from 'zod';
 
 export {
   readBattleOutcome,
@@ -19,24 +19,26 @@ export function registerSectTaskOutcome<T>(
     import('@app/lib/sect/presentation/core/registry').SectOutcomeRendererProps<T>
   >,
 ): void {
-  sectPresentationRegistry().register({
+  sectTaskRendererRegistry().register({
     sectId: '*',
-    outcomes: [{
-      key: renderer,
-      schema,
-      renderer: (props) =>
-        createElement(component, {
-          task: props.task,
-          data: props.data as T,
-        }),
-    }],
+    outcomes: [
+      {
+        key: renderer,
+        schema,
+        renderer: (props) =>
+          createElement(component, {
+            task: props.task,
+            data: props.data as T,
+          }),
+      },
+    ],
   });
 }
 
 export function decodeSectTaskOutcome(outcome: SectTaskActionOutcome) {
-  return sectPresentationRegistry().decode(outcome);
+  return sectTaskRendererRegistry().decode(outcome);
 }
 
 export function hasSectTaskOutcomeRenderer(renderer: string): boolean {
-  return sectPresentationRegistry().hasOutcome(renderer);
+  return sectTaskRendererRegistry().hasOutcome(renderer);
 }

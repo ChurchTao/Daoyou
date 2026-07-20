@@ -32,7 +32,9 @@ export class SectStateValidator {
       !Array.isArray(state.abilityLoadout) ||
       state.abilityLoadout.length !== StandardSectRules.activeAbilitySlotCount
     )
-      throw new Error('宗门神通栏必须包含四个固定槽位');
+      throw new Error(
+        `宗门神通栏必须包含${StandardSectRules.activeAbilitySlotCount}个固定槽位`,
+      );
     const loadoutIds = state.abilityLoadout.filter(
       (id): id is string => id !== null,
     );
@@ -76,7 +78,11 @@ export class SectStateValidator {
       );
       if (expectedPrefix.join(',') !== pathState.unlockedLayerIds.join(','))
         throw new Error(`流派 ${pathState.pathId} 层级必须按顺序解锁`);
-      if (!StandardSectRules.meridianLoadoutSlots.includes(pathState.activeMeridianSlot))
+      if (
+        !StandardSectRules.meridianLoadoutSlots.includes(
+          pathState.activeMeridianSlot,
+        )
+      )
         throw new Error(`流派 ${pathState.pathId} 当前参悟方案槽无效`);
       const nodeIds = new Set(path.nodes.map((node) => node.id));
       const unlockedLayerIds = new Set(pathState.unlockedLayerIds);
@@ -90,7 +96,9 @@ export class SectStateValidator {
         slots.length !== StandardSectRules.meridianLoadoutSlots.length ||
         slots.join(',') !== StandardSectRules.meridianLoadoutSlots.join(',')
       ) {
-        throw new Error(`流派 ${pathState.pathId} 必须保存三套唯一参悟方案`);
+        throw new Error(
+          `流派 ${pathState.pathId} 必须保存${StandardSectRules.meridianLoadoutSlots.length}套唯一参悟方案`,
+        );
       }
       if (!slots.includes(pathState.activeMeridianSlot)) {
         throw new Error(`流派 ${pathState.pathId} 当前参悟方案不存在`);

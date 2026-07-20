@@ -9,19 +9,19 @@ import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { TaskInstance } from '@shared/types/task';
 
-import {
-  useRetreatViewModel,
-  type CultivationProgressData,
-} from './useRetreatViewModel';
-import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
-import { RetreatResultModal } from './RetreatResultModal';
 import { cn } from '@shared/lib/utils';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
 import type {
   RetreatBuffTag,
   RetreatEfficiencyModel,
 } from './retreatEfficiency';
+import { RetreatResultModal } from './RetreatResultModal';
+import {
+  useRetreatViewModel,
+  type CultivationProgressData,
+} from './useRetreatViewModel';
 
 const COMPREHENSION_LABEL = getGameConceptLabel('comprehension_insight');
 
@@ -31,11 +31,17 @@ function BreakthroughLabel({
   type: 'forced' | 'normal' | 'perfect' | null;
 }) {
   if (!type) return null;
-  return <span className={cn([
-    type === 'perfect' && 'text-red-500',
-    type === 'normal' && 'text-blue-500',
-    type === 'forced' && 'text-green-500',
-  ])}>{getBreakthroughTypeText(type)}</span>
+  return (
+    <span
+      className={cn([
+        type === 'perfect' && 'text-red-500',
+        type === 'normal' && 'text-blue-500',
+        type === 'forced' && 'text-green-500',
+      ])}
+    >
+      {getBreakthroughTypeText(type)}
+    </span>
+  );
 }
 
 function getBreakthroughTypeText(type: 'forced' | 'normal' | 'perfect' | null) {
@@ -159,8 +165,12 @@ function RetreatBuffTags({
           <span>{emptyHint}</span>
           {showShortcuts ? (
             <>
-              <InkButton href="/game/inventory" variant="ghost">背包</InkButton>
-              <InkButton href="/game/craft/alchemy" variant="ghost">炼丹</InkButton>
+              <InkButton href="/game/inventory" variant="ghost">
+                背包
+              </InkButton>
+              <InkButton href="/game/craft/alchemy" variant="ghost">
+                炼丹
+              </InkButton>
             </>
           ) : null}
         </span>
@@ -407,6 +417,8 @@ export type RetreatViewProps = {
   sectContext?: {
     facilityLevel: number;
     experienceBonusPercent: number;
+    facilityLabel: string;
+    scene: import('@shared/engine/sect').SectScenePresentation;
   };
 };
 
@@ -443,12 +455,21 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
   } = useRetreatViewModel();
   const shouldHoldResultShell =
     !cultivator && retreatResultOpen && Boolean(retreatResult?.depleted);
-  const headerMeta = sectContext || note ? (
-    <div className="space-y-3">
-      {sectContext ? <InkButton onClick={() => navigate('/game/sect')} variant="secondary">返回宗门总视图</InkButton> : null}
-      {note ? <GameSceneNote><p className="text-sm leading-7">{note}</p></GameSceneNote> : null}
-    </div>
-  ) : undefined;
+  const headerMeta =
+    sectContext || note ? (
+      <div className="space-y-3">
+        {sectContext ? (
+          <InkButton onClick={() => navigate('/game/sect')} variant="secondary">
+            返回宗门总视图
+          </InkButton>
+        ) : null}
+        {note ? (
+          <GameSceneNote>
+            <p className="text-sm leading-7">{note}</p>
+          </GameSceneNote>
+        ) : null}
+      </div>
+    ) : undefined;
 
   if (isLoading && !cultivator && !shouldHoldResultShell) {
     return (
@@ -462,7 +483,15 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
     if (shouldHoldResultShell) {
       return (
         <GameSceneFrame
-          title={sectContext ? '宗门修炼室' : '静室修行'}
+          title={sectContext ? sectContext.scene.title : '静室修行'}
+          identityOverride={
+            sectContext
+              ? {
+                  label: sectContext.scene.title,
+                  summary: sectContext.scene.description,
+                }
+              : undefined
+          }
           headerMeta={headerMeta}
         >
           <GameSceneSection>
@@ -514,11 +543,32 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
 
   return (
     <GameSceneFrame
-      title={sectContext ? '宗门修炼室' : '静室修行'}
-      description={sectContext ? '聚灵阵纹绕蒲团缓缓流转，静香已燃；定下闭关年数，宗门灵气会在结算时自然汇入。' : undefined}
+      title={sectContext ? sectContext.scene.title : '静室修行'}
+      description={sectContext ? sectContext.scene.description : undefined}
+      identityOverride={
+        sectContext
+          ? {
+              label: sectContext.scene.title,
+              summary: sectContext.scene.description,
+            }
+          : undefined
+      }
       headerMeta={headerMeta}
-      aside={sectContext ? <div className="space-y-2 text-sm leading-7"><p>修炼室等级：{sectContext.facilityLevel}级</p><p>闭关修为加成：+{sectContext.experienceBonusPercent}%</p></div> : undefined}
-      contentClassName={sectContext ? 'bg-[radial-gradient(circle_at_50%_18%,rgba(64,148,135,0.16)_0_10%,transparent_11%_25%,rgba(64,148,135,0.08)_26%_27%,transparent_28%),linear-gradient(180deg,rgba(205,228,215,0.22),transparent_55%)] px-3 py-4 sm:px-5' : undefined}
+      aside={
+        sectContext ? (
+          <div className="space-y-2 text-sm leading-7">
+            <p>
+              {sectContext.facilityLabel}等级：{sectContext.facilityLevel}级
+            </p>
+            <p>闭关修为加成：+{sectContext.experienceBonusPercent}%</p>
+          </div>
+        ) : undefined
+      }
+      contentClassName={
+        sectContext
+          ? 'bg-[radial-gradient(circle_at_50%_18%,rgba(64,148,135,0.16)_0_10%,transparent_11%_25%,rgba(64,148,135,0.08)_26%_27%,transparent_28%),linear-gradient(180deg,rgba(205,228,215,0.22),transparent_55%)] px-3 py-4 sm:px-5'
+          : undefined
+      }
     >
       <GameSceneSection
         title="静室所行"

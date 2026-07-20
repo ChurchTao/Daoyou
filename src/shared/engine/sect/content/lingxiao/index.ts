@@ -6,4 +6,5 @@ export * from './paths/heavy/HeavySwordPathModule';
 export * from './paths/heavy/strategy';
 export * from './paths/swift/strategy';
 export * from './paths/swift/SwiftSwordPathModule';
+export * from './presentation';
 export * from './shared/LingxiaoMechanics';

@@ -1,11 +1,12 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
 import type { SectRepositoryPort } from '@server/lib/repositories/sectRepository';
 import { createSectTestApplication } from '@server/lib/services/sect-organization/testing/createSectTestApplication';
-import type { Cultivator } from '@shared/types/cultivator';
 import { AbilityType } from '@shared/engine/battle-v5/core/types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
+import type { Cultivator } from '@shared/types/cultivator';
 import { describe, expect, it, vi } from 'vitest';
 import { productionSectRuntime } from '../content';
+import { createProductionSectCatalog } from '../content/productionRuntime';
 import type {
   SectBuildBuilder,
   SectModule,
@@ -15,6 +16,8 @@ import type {
 import {
   BaseSectPathModule,
   ConfiguredSectNodePlugin,
+  SectAbilityFactory,
+  StandardSectRules,
   createSectRuntime,
 } from '../core';
 import {
@@ -56,18 +59,86 @@ describe('第二宗门扩展闭环', () => {
     expect(details.get('fixture-ability-3')?.config.tags).toContain(
       GameplayTags.ABILITY.FUNCTION.HEAL,
     );
+    expect(
+      details.get('fixture-ability-3')?.config.selectionProfile?.intents,
+    ).toContain('heal_hp');
     expect(details.get('fixture-ability-4')?.config.tags).toEqual(
       expect.arrayContaining([
         GameplayTags.ABILITY.FUNCTION.CONTROL,
         GameplayTags.ABILITY.SECT.UTILITY,
       ]),
     );
+    expect(
+      details.get('fixture-ability-4')?.config.selectionProfile?.intents,
+    ).toContain('control');
     expect(details.get('fixture-ability-5')?.config.tags).toContain(
       GameplayTags.ABILITY.CHANNEL.TRUE,
     );
     expect(details.get('fixture-ability-6')?.config).toMatchObject({
       type: AbilityType.PASSIVE_SKILL,
     });
+  });
+
+  it('显式 AI 意图优先，无法推导时要求作者声明', () => {
+    const definition = FIXTURE_SECT_MODULE.definition.abilities.find(
+      (ability) =>
+        ability.id === 'fixture-ability-2' && ability.kind === 'active',
+    );
+    if (!definition || definition.kind !== 'active')
+      throw new Error('测试能力缺失');
+    const factory = new SectAbilityFactory('fixture-sect');
+    const override = factory.active({
+      definition,
+      targetPolicy: { team: 'self', scope: 'single' },
+      selectionProfile: { intents: ['defensive'] },
+      effects: [],
+    });
+    expect(override.config.selectionProfile?.intents).toEqual(['defensive']);
+    expect(() =>
+      factory.active({
+        definition,
+        targetPolicy: { team: 'self', scope: 'single' },
+        effects: [],
+      }),
+    ).toThrow('必须显式声明 selectionProfile');
+  });
+
+  it('未解锁默认能力不能进入战斗投影', () => {
+    const runtime = createSectRuntime([FIXTURE_SECT_MODULE]);
+    const state = fixtureSectState();
+    state.methods['fixture-method-1'] = 0;
+    expect(() => runtime.projectCombat({ sect: state, realm: '筑基' })).toThrow(
+      '没有已解锁的默认能力',
+    );
+  });
+
+  it('单一生产目录项同时提供领域模块和完整展示主题', () => {
+    const catalog = createProductionSectCatalog([
+      {
+        module: FIXTURE_SECT_MODULE,
+        presentation: {
+          sectId: 'fixture-sect',
+          scenes: { arena: { title: '星轨演法台' } },
+        },
+      },
+    ]);
+    expect(catalog).toHaveLength(1);
+    expect(catalog[0].module.definition.id).toBe('fixture-sect');
+    expect(catalog[0].presentation?.scenes?.arena?.title).toBe('星轨演法台');
+    expect(() =>
+      createProductionSectCatalog([
+        { module: FIXTURE_SECT_MODULE },
+        { module: FIXTURE_SECT_MODULE },
+      ]),
+    ).toThrow('重复宗门 ID');
+    expect(() =>
+      createProductionSectCatalog([
+        {
+          module: FIXTURE_SECT_MODULE,
+          presentation: { sectId: 'another-sect' },
+        },
+      ]),
+    ).toThrow('标识不一致');
   });
 
   it('批量解析全部神通只编译一次', () => {
@@ -106,13 +177,10 @@ describe('第二宗门扩展闭环', () => {
                   id: node.id.replace('fixture-first', 'fixture-third'),
                 },
                 (context, builder) => {
-                  builder.updateResource(
-                    'fixture.resource',
-                    (resource) => ({
-                      ...resource,
-                      initial: context.activeNodeIds.size,
-                    }),
-                  );
+                  builder.updateResource('fixture.resource', (resource) => ({
+                    ...resource,
+                    initial: context.activeNodeIds.size,
+                  }));
                 },
               ),
           ),
@@ -165,9 +233,15 @@ describe('第二宗门扩展闭环', () => {
       runtime.registry.require('fixture-sect').definition.paths,
     ).toHaveLength(2);
     expect(productionSectRuntime.registry.get('fixture-sect')).toBeUndefined();
-    expect(FIXTURE_SECT_MODULE.organization.tasks.listDaily()).not.toHaveLength(0);
-    expect(FIXTURE_SECT_MODULE.organization.economy.shopItems('any')).not.toHaveLength(0);
-    expect(FIXTURE_SECT_MODULE.organization.construction.facilityPriority).not.toHaveLength(0);
+    expect(FIXTURE_SECT_MODULE.organization.tasks.listDaily()).not.toHaveLength(
+      0,
+    );
+    expect(
+      FIXTURE_SECT_MODULE.organization.economy.shopItems('any'),
+    ).not.toHaveLength(0);
+    expect(
+      FIXTURE_SECT_MODULE.organization.construction.facilityPriority,
+    ).not.toHaveLength(0);
 
     const state = fixtureSectState();
     state.activePathId = 'fixture-second-path';
@@ -214,8 +288,12 @@ describe('第二宗门扩展闭环', () => {
     ];
     const repository = {
       loadCultivatorProgress: vi.fn(async () => ({
-        realm: '筑基', stage: '初期', stones: 0, cultivationExp: 0,
-        comprehensionInsight: 0, playerRace: 'human',
+        realm: '筑基',
+        stage: '初期',
+        stones: 0,
+        cultivationExp: 0,
+        comprehensionInsight: 0,
+        playerRace: 'human',
       })),
       loadCultivatorSectState: vi.fn(async () => state),
       listMemberships: vi.fn(async () => [
@@ -280,7 +358,7 @@ describe('第二宗门扩展闭环', () => {
     const repository = {
       loadCultivatorProgress: vi.fn(async () => ({
         realm: '筑基',
-        stage: '初期',
+        stage: '中期',
         stones,
         cultivationExp,
         comprehensionInsight,
@@ -419,6 +497,30 @@ describe('第二宗门扩展闭环', () => {
       ['fixture-first-foundation-1'],
       tx,
     );
+    const sevenLayerPath = FIXTURE_SECT_MODULE.definition.paths.find(
+      (path) => path.id === 'fixture-first-path',
+    )!;
+    for (const layer of sevenLayerPath.layers.slice(1)) {
+      await service.unlockPathLayer(
+        {
+          cultivatorId: cultivator.id!,
+          pathId: sevenLayerPath.id,
+          layerId: layer.id,
+        },
+        tx,
+      );
+    }
+    const sevenLayerNodes = sevenLayerPath.layers.map(
+      (layer) =>
+        sevenLayerPath.nodes.find((node) => node.layerId === layer.id)!.id,
+    );
+    await service.setMeridianLoadout(
+      cultivator.id!,
+      sevenLayerPath.id,
+      1,
+      sevenLayerNodes,
+      tx,
+    );
     await service.unlockPathLayer(
       {
         cultivatorId: cultivator.id!,
@@ -445,9 +547,10 @@ describe('第二宗门扩展闭环', () => {
       activePathId: 'fixture-second-path',
     });
     expect(state?.paths).toHaveLength(2);
-    expect(state?.paths[0].meridianLoadouts[0].nodeIds).toEqual([
-      'fixture-first-foundation-1',
-    ]);
+    expect(state?.paths[0].unlockedLayerIds).toHaveLength(7);
+    expect(state?.paths[0].meridianLoadouts[0].nodeIds).toEqual(
+      sevenLayerNodes,
+    );
     expect(
       runtime.projectCombat({ sect: state!, realm: '筑基' })?.resources[0].id,
     ).toBe('fixture.resource');
@@ -510,5 +613,38 @@ describe('第二宗门扩展闭环', () => {
       },
     ];
     expect(() => runtime.validateState(meridian)).toThrow('只能选择一个节点');
+  });
+
+  it('七层流派可保存完整参悟方案并进入战斗投影', () => {
+    const runtime = createSectRuntime([FIXTURE_SECT_MODULE]);
+    const state = fixtureSectState();
+    const path = FIXTURE_SECT_MODULE.definition.paths[0];
+    expect(path.layers).toHaveLength(7);
+    state.activePathId = path.id;
+    state.paths = [
+      {
+        pathId: path.id,
+        unlockedLayerIds: path.layers.map((layer) => layer.id),
+        tacticId: path.defaultTacticId,
+        activeMeridianSlot: StandardSectRules.meridianLoadoutSlots[0],
+        meridianLoadouts: StandardSectRules.meridianLoadoutSlots.map(
+          (slot) => ({
+            slot,
+            nodeIds:
+              slot === StandardSectRules.meridianLoadoutSlots[0]
+                ? path.layers.map(
+                    (layer) =>
+                      path.nodes.find((node) => node.layerId === layer.id)!.id,
+                  )
+                : [],
+            version: 1,
+          }),
+        ),
+      },
+    ];
+    expect(() => runtime.validateState(state)).not.toThrow();
+    expect(
+      runtime.projectCombat({ sect: state, realm: '筑基' }),
+    ).not.toBeNull();
   });
 });

@@ -3,14 +3,15 @@ import { BattlePlaybackPanel } from '@app/components/feature/battle/BattlePlayba
 import { useBattlePlaybackState } from '@app/components/feature/battle/useBattlePlaybackState';
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
 import { InkButton, InkNotice } from '@app/components/ui';
+import type { SectOutcomeRendererProps } from '@app/lib/sect/presentation/core/registry';
 import type {
   SectBattleOutcomeData,
   SectSweepSessionData,
 } from '@shared/contracts/sect';
-import type { SectOutcomeRendererProps } from '@app/lib/sect/presentation/core/registry';
-import { SweepGameOverlay } from './SweepGameOverlay';
-import { useSectTaskInteraction } from './SectTaskInteractionProvider';
 import { useNavigate, useSearchParams } from 'react-router';
+import { useSectPresentation } from './SectQueryProvider';
+import { useSectTaskInteraction } from './SectTaskInteractionProvider';
+import { SweepGameOverlay } from './SweepGameOverlay';
 
 export function SweepSessionOutcome({
   task,
@@ -34,12 +35,18 @@ export function CompletedOutcome() {
   return (
     <InkNotice className="mt-4">
       宗门卷宗已经更新。
-      <InkButton variant="secondary" onClick={clearOutcome}>收起结果</InkButton>
+      <InkButton variant="secondary" onClick={clearOutcome}>
+        收起结果
+      </InkButton>
     </InkNotice>
   );
 }
 
-export function BattleOutcome({ task, data }: SectOutcomeRendererProps<unknown>) {
+export function BattleOutcome({
+  task,
+  data,
+}: SectOutcomeRendererProps<unknown>) {
+  const presentation = useSectPresentation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const attemptId = searchParams.get('attemptId') ?? 'unknown';
@@ -53,7 +60,7 @@ export function BattleOutcome({ task, data }: SectOutcomeRendererProps<unknown>)
   return (
     <BattlePageLayout
       title={battle.challengeTitle}
-      subtitle="执事封签已启，胜负与战功皆以此局为准。"
+      subtitle="任务封签已启，胜负与战功皆以此局为准。"
       variant="immersive-battle"
       battleResult={battle.battle}
     >
@@ -61,7 +68,7 @@ export function BattleOutcome({ task, data }: SectOutcomeRendererProps<unknown>)
         battleResult={battle.battle}
         playback={playback}
         statusAction={{
-          label: '返回执事堂',
+          label: presentation.terms.returnToAffairs,
           onClick: () => navigate('/game/sect/affairs'),
         }}
       />
@@ -70,7 +77,7 @@ export function BattleOutcome({ task, data }: SectOutcomeRendererProps<unknown>)
         dialogKey={`sect-task-${attemptId}`}
         open={playback.isPlaybackFinished}
         title={battle.won ? '宗门战局得胜' : '宗门战局失利'}
-        confirmLabel="返回执事堂"
+        confirmLabel={presentation.terms.returnToAffairs}
         cancelLabel={battle.won ? '重看战局' : '重新挑战'}
         onConfirm={() => navigate('/game/sect/affairs')}
         onCancel={battle.won ? playback.reset : retry}
@@ -78,7 +85,7 @@ export function BattleOutcome({ task, data }: SectOutcomeRendererProps<unknown>)
           <p className="leading-8">
             {battle.won
               ? battle.rewardGranted
-                ? '执事已将胜绩与贡献记入宗门卷宗。'
+                ? '胜绩与贡献已经记入宗门卷宗。'
                 : '胜绩已经记入宗门卷宗。'
               : '此战未能压过残影，任务仍然保留，可整顿后再次挑战。'}
           </p>

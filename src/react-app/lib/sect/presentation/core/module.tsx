@@ -4,20 +4,20 @@ import {
   ItemDeliveryAction,
   SweepAction,
 } from '@app/components/feature/sect/SectTaskActions';
-import type {
-  SectBattleOutcomeData,
-  SectSweepSessionData,
-} from '@shared/contracts/sect';
-import type { BattleRecord } from '@shared/types/battle';
 import {
   BattleOutcome,
   CompletedOutcome,
   SweepSessionOutcome,
 } from '@app/components/feature/sect/SectTaskOutcomeRenderers';
+import type {
+  SectBattleOutcomeData,
+  SectSweepSessionData,
+} from '@shared/contracts/sect';
+import type { BattleRecord } from '@shared/types/battle';
 import { z } from 'zod';
 import type {
   DecodedSectTaskOutcome,
-  SectPresentationPluginManifest,
+  SectTaskRendererPluginManifest,
 } from './registry';
 
 const sweepSessionSchema = z.object({
@@ -29,35 +29,45 @@ const sweepSessionSchema = z.object({
   expiresAt: z.string(),
 });
 
-const battleUnitSchema = z.object({ id: z.string(), name: z.string() }).passthrough();
-const battleResourceSchema = z.object({
-  current: z.number(),
-  max: z.number(),
-  percent: z.number(),
-}).passthrough();
-const battleSnapshotSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  alive: z.boolean(),
-  hp: battleResourceSchema,
-  mp: battleResourceSchema,
-}).passthrough();
-const battleRecordEnvelopeSchema = z.object({
-  winner: battleUnitSchema,
-  loser: battleUnitSchema,
-  logs: z.array(z.string()),
-  turns: z.number().int().nonnegative(),
-  player: z.string(),
-  opponent: z.string(),
-  logSpans: z.array(z.unknown()),
-  stateTimeline: z.object({
-    frames: z.array(z.unknown()),
-    unitIds: z.array(z.string()),
-    unitNames: z.record(z.string(), z.string()),
-  }).passthrough(),
-  winnerSnapshot: battleSnapshotSchema,
-  loserSnapshot: battleSnapshotSchema.optional(),
-}).passthrough();
+const battleUnitSchema = z
+  .object({ id: z.string(), name: z.string() })
+  .passthrough();
+const battleResourceSchema = z
+  .object({
+    current: z.number(),
+    max: z.number(),
+    percent: z.number(),
+  })
+  .passthrough();
+const battleSnapshotSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    alive: z.boolean(),
+    hp: battleResourceSchema,
+    mp: battleResourceSchema,
+  })
+  .passthrough();
+const battleRecordEnvelopeSchema = z
+  .object({
+    winner: battleUnitSchema,
+    loser: battleUnitSchema,
+    logs: z.array(z.string()),
+    turns: z.number().int().nonnegative(),
+    player: z.string(),
+    opponent: z.string(),
+    logSpans: z.array(z.unknown()),
+    stateTimeline: z
+      .object({
+        frames: z.array(z.unknown()),
+        unitIds: z.array(z.string()),
+        unitNames: z.record(z.string(), z.string()),
+      })
+      .passthrough(),
+    winnerSnapshot: battleSnapshotSchema,
+    loserSnapshot: battleSnapshotSchema.optional(),
+  })
+  .passthrough();
 const battleRecordSchema = z.custom<BattleRecord>(
   (value) => battleRecordEnvelopeSchema.safeParse(value).success,
 );
@@ -68,7 +78,7 @@ const battleOutcomeSchema = z.object({
   rewardGranted: z.boolean(),
 });
 
-export const CORE_SECT_PRESENTATION_PLUGIN: SectPresentationPluginManifest = {
+export const CORE_SECT_TASK_RENDERER_PLUGIN: SectTaskRendererPluginManifest = {
   sectId: '*',
   actions: [
     { key: 'sect.action.accept', renderer: AcceptAction },
