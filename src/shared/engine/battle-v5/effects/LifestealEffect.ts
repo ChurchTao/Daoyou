@@ -16,11 +16,6 @@ export class LifestealEffect extends GameplayEffect {
     if (context.triggerEvent?.type !== 'DamageTakenEvent') return;
     const event = context.triggerEvent as DamageTakenEvent;
     if (event.caster !== context.caster || event.damageSource !== DamageSource.DIRECT) return;
-    if (
-      this.params.variantIds?.length &&
-      (!event.ability?.runtimeVariantId ||
-        !this.params.variantIds.includes(event.ability.runtimeVariantId))
-    ) return;
     const requested = Math.round(event.damageTaken * this.params.ratio);
     const amount = claimActionAmount(
       context.caster,

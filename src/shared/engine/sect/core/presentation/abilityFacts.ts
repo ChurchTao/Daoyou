@@ -252,7 +252,7 @@ function listenerChildText(
         ? `向目标施加1层${effect.params.buffConfig.name}${effect.params.buffConfig.duration >= 0 ? `，持续目标未来${effect.params.buffConfig.duration}次行动` : ''}`
         : `获得《${effect.params.buffConfig.name}》`;
     case 'dispel':
-      return `驱散目标${effect.params.maxCount ?? 1}个正面状态`;
+      return dispelActionText(effect.params);
     case 'percent_damage_modifier':
       return effect.params.mode === 'reduce'
         ? `受到的直接伤害降低${percent(effect.params.value)}`
@@ -260,6 +260,30 @@ function listenerChildText(
     default:
       return describeEffectCore(effect);
   }
+}
+
+function dispelActionText(
+  params: Extract<EffectConfig, { type: 'dispel' }>['params'],
+): string {
+  const subject = params.recipient === 'caster' ? '自身' : '目标';
+  const count = params.maxCount ?? 1;
+  if (params.status === 'negative') {
+    return `净化${subject}${count}个负面状态`;
+  }
+  if (params.status === 'positive' || (!params.status && params.recipient !== 'caster')) {
+    return `驱散${subject}${count}个正面状态`;
+  }
+  return `移除${subject}${count}个匹配状态`;
+}
+
+function nestedEffectRows(
+  effects: readonly EffectConfig[],
+  resources: readonly CombatResourceDefinition[],
+): string[] {
+  return [
+    ...damageEffectsRow(effects, resources),
+    ...effects.flatMap((effect) => describeEffect(effect, resources)),
+  ];
 }
 
 function listenerRows(
@@ -407,8 +431,16 @@ function describeEffect(
       }
       return [describeEffectCore(effect)];
     }
-    case 'dispel':
-      return [`驱散：目标${effect.params.maxCount ?? 1}个正面状态`];
+    case 'dispel': {
+      const action = dispelActionText(effect.params);
+      return [
+        `${effect.params.status === 'negative' ? '净化' : effect.params.status === 'positive' || effect.params.recipient !== 'caster' ? '驱散' : '移除'}：${action.replace(/^(净化|驱散|移除)/, '')}`,
+        ...nestedEffectRows(effect.params.effects ?? [], resources)
+          .map((row) => `成功后：${row}`),
+        ...nestedEffectRows(effect.params.fallbackEffects ?? [], resources)
+          .map((row) => `无可移除状态时：${row}`),
+      ];
+    }
     case 'ability_transform':
       return [describeEffectCore(effect)];
     case 'consume_status_trigger': {
@@ -515,16 +547,17 @@ export function describeSectAbilityConfig(
   resources: readonly CombatResourceDefinition[],
 ): string[] {
   const rows: string[] = [];
-  const variantRows = config.variants?.map((variant) => {
-    const cost = variant.costs?.find((entry) => entry.resource === 'hp');
-    const costText = cost && cost.mode !== 'flat'
-      ? `${number(cost.ratio * 100)}%当前气血`
-      : cost?.mode === 'flat'
-        ? `${cost.amount}气血`
-        : '沿用基础消耗';
-    return `形态「${variant.name}」：${costText}`;
-  }) ?? [];
-  rows.push(...variantRows);
+  const layers = config.effectLayers ?? [];
+  const isLayered = layers.length > 0;
+  const formName = (layerId: string): string =>
+    layerId === 'demon'
+      ? '魔相'
+      : layerId === 'formless'
+        ? '无相'
+        : layerId;
+  rows.push(...(config.effectPlans?.map((plan) =>
+    `效果计划「${plan.name}」：${['佛相', ...plan.layerIds.map(formName)].join(' + ')}`,
+  ) ?? []));
   for (const condition of config.castConditions ?? []) {
     if (
       condition.type === 'combat_resource_at_least' &&
@@ -536,18 +569,36 @@ export function describeSectAbilityConfig(
       );
     }
   }
-  const allEffects = [
-    ...(config.effects ?? []),
-    ...(config.variants?.flatMap((variant) => variant.effects ?? []) ?? []),
+  const baseTiming = config.targetPolicy?.team === 'enemy' ? 'hit' : 'cast';
+  const baseEffectRows = [
+    ...damageEffectsRow(config.effects ?? [], resources),
+    ...describeEffectList(config.effects ?? [], resources, baseTiming),
   ];
-  rows.push(...damageEffectsRow(allEffects, resources));
-  rows.push(
-    ...describeEffectList(
-      config.effects ?? [],
-      resources,
-      config.targetPolicy?.team === 'enemy' ? 'hit' : 'cast',
-    ),
-  );
+  rows.push(...(isLayered
+    ? baseEffectRows.map((row) => `佛相主体：${row}`)
+    : baseEffectRows));
+  const baseCompletionRows = [
+    ...damageEffectsRow(config.completionEffects ?? [], resources),
+    ...describeEffectList(config.completionEffects ?? [], resources, 'cast'),
+  ];
+  rows.push(...(isLayered
+    ? baseCompletionRows.map((row) => `佛相完成：${row}`)
+    : baseCompletionRows));
+  for (const layer of layers) {
+    const label = layer.id === 'demon'
+      ? '魔相追加'
+      : layer.id === 'formless'
+        ? '无相追加'
+        : `追加层 ${layer.id}`;
+    rows.push(...[
+      ...damageEffectsRow(layer.effects ?? [], resources),
+      ...describeEffectList(layer.effects ?? [], resources, baseTiming),
+    ].map((row) => `${label}：${row}`));
+    rows.push(...[
+      ...damageEffectsRow(layer.completionEffects ?? [], resources),
+      ...describeEffectList(layer.completionEffects ?? [], resources, 'cast'),
+    ].map((row) => `${label}完成：${row}`));
+  }
   rows.push(...describeEffectList(config.castEffects ?? [], resources, 'cast'));
   return Array.from(new Set(rows.filter(Boolean)));
 }

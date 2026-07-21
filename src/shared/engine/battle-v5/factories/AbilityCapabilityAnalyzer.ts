@@ -35,10 +35,12 @@ function channelForDamage(effect: Extract<EffectConfig, { type: 'damage' }>) {
 function nestedEffects(effect: EffectConfig): EffectConfig[] {
   const params = effect.params as {
     effects?: EffectConfig[];
+    fallbackEffects?: EffectConfig[];
     cancelEffects?: EffectConfig[];
   };
   return [
     ...(params.effects ?? []),
+    ...(params.fallbackEffects ?? []),
     ...(params.cancelEffects ?? []),
   ];
 }
@@ -46,17 +48,18 @@ function nestedEffects(effect: EffectConfig): EffectConfig[] {
 export function analyzeAbilityCapabilities(
   config: Pick<
     AbilityConfig,
-    'effects' | 'castEffects' | 'listeners' | 'tags' | 'slug'
-  > & Pick<AbilityConfig, 'variants'>,
+    'effects' | 'completionEffects' | 'effectLayers' | 'castEffects' | 'listeners' | 'tags' | 'slug'
+  >,
 ): AbilityCapabilitySummary {
   const queue: EffectConfig[] = [
     ...(config.effects ?? []),
+    ...(config.completionEffects ?? []),
+    ...(config.effectLayers?.flatMap((layer) => [
+      ...(layer.effects ?? []),
+      ...(layer.completionEffects ?? []),
+    ]) ?? []),
     ...(config.castEffects ?? []),
     ...(config.listeners?.flatMap((listener) => listener.effects) ?? []),
-    ...(config.variants?.flatMap((variant) => [
-      ...(variant.effects ?? []),
-      ...(variant.castEffects ?? []),
-    ]) ?? []),
   ];
   const damageChannels = new Set<AbilityDamageChannel>();
   const intents = new Set<

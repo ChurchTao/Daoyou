@@ -22,6 +22,4 @@ export * from './SkipActionEffect';
 export * from './QueueActionEffect';
 export * from './ResourceScaledDamageEffect';
 export * from './AbilityModeEffect';
-export * from './StatusTransferEffect';
 export * from './LifestealEffect';
-export * from './DamageCapEffect';

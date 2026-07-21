@@ -25,7 +25,7 @@ export function formatCompactActionState(state: ActionState): string {
 
 export function formatActionStateTitle(state: ActionState): string {
   if (state.type === 'ability_mode') {
-    return `${state.name}；余${state.remainingActions}门神通${state.phase ? `；第${state.phase}式` : ''}。`;
+    return `${state.name}；余${state.remainingActions}门神通。`;
   }
   const source = state.sourceAbility?.name ?? '战斗效果';
   if (state.type === 'rest') {

@@ -124,21 +124,24 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
     projected.config.effects = projected.config.effects?.map((effect) =>
       this.projectEffect(effect, growth, methodLevels),
     );
+    projected.config.completionEffects = projected.config.completionEffects?.map((effect) =>
+      this.projectEffect(effect, growth, methodLevels),
+    );
+    projected.config.effectLayers = projected.config.effectLayers?.map((layer) => ({
+      ...layer,
+      effects: layer.effects?.map((effect) =>
+        this.projectEffect(effect, growth, methodLevels),
+      ),
+      completionEffects: layer.completionEffects?.map((effect) =>
+        this.projectEffect(effect, growth, methodLevels),
+      ),
+    }));
     projected.config.castEffects = projected.config.castEffects?.map((effect) =>
       this.projectEffect(effect, growth, methodLevels),
     );
     projected.config.listeners = projected.config.listeners?.map((listener) =>
       this.projectListener(listener, growth, methodLevels),
     );
-    projected.config.variants = projected.config.variants?.map((variant) => ({
-      ...variant,
-      effects: variant.effects?.map((effect) =>
-        this.projectEffect(effect, growth, methodLevels),
-      ),
-      castEffects: variant.castEffects?.map((effect) =>
-        this.projectEffect(effect, growth, methodLevels),
-      ),
-    }));
     return projected;
   }
 
@@ -182,6 +185,18 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
     projected.config.effects = projected.config.effects?.map((effect) =>
       this.projectEffect(effect, fixedGrowth, methodLevels),
     );
+    projected.config.completionEffects = projected.config.completionEffects?.map((effect) =>
+      this.projectEffect(effect, fixedGrowth, methodLevels),
+    );
+    projected.config.effectLayers = projected.config.effectLayers?.map((layer) => ({
+      ...layer,
+      effects: layer.effects?.map((effect) =>
+        this.projectEffect(effect, fixedGrowth, methodLevels),
+      ),
+      completionEffects: layer.completionEffects?.map((effect) =>
+        this.projectEffect(effect, fixedGrowth, methodLevels),
+      ),
+    }));
     projected.config.castEffects = projected.config.castEffects?.map((effect) =>
       this.projectEffect(effect, fixedGrowth, methodLevels),
     );
@@ -271,9 +286,7 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
       case 'skip_action':
       case 'queue_action':
       case 'ability_mode':
-      case 'status_transfer':
       case 'lifesteal':
-      case 'damage_cap':
         break;
       default:
         assertNeverEffect(projected);
@@ -281,10 +294,16 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
 
     const params = projected.params as {
       effects?: EffectConfig[];
+      fallbackEffects?: EffectConfig[];
       cancelEffects?: EffectConfig[];
     };
     if (params.effects) {
       params.effects = params.effects.map((nested) =>
+        this.projectEffect(nested, growth, methodLevels),
+      );
+    }
+    if (params.fallbackEffects) {
+      params.fallbackEffects = params.fallbackEffects.map((nested) =>
         this.projectEffect(nested, growth, methodLevels),
       );
     }

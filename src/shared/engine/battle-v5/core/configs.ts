@@ -25,27 +25,42 @@ export interface AbilitySelectionRule {
 }
 
 export type AbilityCostConfig =
-  | { resource: 'mp' | 'hp'; mode: 'flat'; amount: number; retain?: number }
+  | {
+      resource: 'mp' | 'hp';
+      mode: 'flat';
+      amount: number;
+      retain?: number;
+      conditions?: ConditionConfig[];
+    }
   | {
       resource: 'hp';
       mode: 'current_hp_ratio' | 'current_percent';
       ratio: number;
       minimum?: number;
       retain?: number;
+      conditions?: ConditionConfig[];
     };
 
-export interface AbilityVariantConfig {
+/**
+ * 技能的追加效果层。基础 effects/completionEffects 为 A，计划只能按 ID 追加层。
+ */
+export interface AbilityEffectLayerConfig {
+  id: string;
+  effects?: EffectConfig[];
+  completionEffects?: EffectConfig[];
+}
+
+/**
+ * 受限的运行时效果计划：只改变展示与启用层，不得覆盖目标、费用或 AI 意图。
+ */
+export interface AbilityEffectPlanConfig {
   id: string;
   name: string;
   description?: string;
   priority: number;
   conditions: ConditionConfig[];
-  costs?: AbilityCostConfig[];
-  targetPolicy?: AbilityConfig['targetPolicy'];
-  selectionProfile?: AbilitySelectionProfile;
-  castConditions?: ConditionConfig[];
-  effects?: EffectConfig[];
-  castEffects?: EffectConfig[];
+  layerIds: string[];
+  consumeModeKey?: string;
 }
 
 export interface CombatResourceDefinition {
@@ -96,8 +111,6 @@ export interface ConditionConfig {
     | 'combat_resource_below'
     | 'runtime_counter_compare'
     | 'ability_mode_is'
-    | 'ability_mode_ability_differs'
-    | 'ability_variant_is'
     | 'ability_cost_crossed'
     | 'combat_resource_change'
     | 'chance'
@@ -121,8 +134,7 @@ export interface ConditionConfig {
     resourceId?: string;
     key?: string;
     mode?: string;
-    phase?: number;
-    variantId?: string;
+    remainingUses?: number;
     timing?: 'live' | 'cast';
     operation?: 'add' | 'subtract' | 'set' | 'consume_all';
     eventField?: 'requested' | 'applied' | 'overflow';
@@ -194,6 +206,14 @@ export interface ResourceDrainParams {
 export interface DispelParams {
   targetTag?: string;
   maxCount?: number;
+  /** 缺省为 target；用于自净化而不改变技能目标策略。 */
+  recipient?: 'caster' | 'target';
+  /** 缺省不区分；positive=增益，negative=减益或控制。 */
+  status?: 'positive' | 'negative';
+  /** 至少成功移除一个状态后执行一次。 */
+  effects?: EffectConfig[];
+  /** 没有合法状态可移除时执行一次。 */
+  fallbackEffects?: EffectConfig[];
 }
 
 /**
@@ -297,9 +317,9 @@ export interface ConsumeStatusTriggerParams {
   displayName?: string;
   consume?: 'one' | 'all' | number;
   effects: EffectConfig[];
+  /** 状态不存在时执行一次；用于显式降级，不改变消费语义。 */
+  fallbackEffects?: EffectConfig[];
   scaleEffectsByLayer?: boolean;
-  /** 按实际消费层数缩放数值强度，次数、目标数和状态操作仍只执行一次。 */
-  scaleNumericEffectsByLayer?: boolean;
   target?: 'caster' | 'target';
 }
 
@@ -331,8 +351,7 @@ export interface DamageMemoryParams {
     | 'shield'
     | 'critical_taken'
     | 'shield_break'
-    | 'shield_absorbed'
-    | 'ability_cost_paid';
+    | 'shield_absorbed';
   ratio?: number;
   releaseAs?:
     'damage' | 'heal' | 'shield' | 'reflect' | 'counter' | 'follow_up';
@@ -341,10 +360,6 @@ export interface DamageMemoryParams {
   maxStoredValue?: ScalableValue;
   includeShieldAbsorbed?: boolean;
   consume?: boolean;
-  /** 释放后仅消费这部分记忆；1为全部，0.5为保留一半。 */
-  consumeRatio?: number;
-  /** 单次释放的最终记忆量上限。 */
-  maxReleaseValue?: ScalableValue;
 }
 
 export interface BuffLayerModifyParams {
@@ -468,32 +483,15 @@ export interface AbilityModeParams {
   key: string;
   operation: 'set' | 'advance' | 'clear';
   mode?: string;
-  phase?: number;
   remainingUses?: number;
   displayName?: string;
   /** 形态清除时一并移除的状态。 */
   cleanupBuffIds?: string[];
 }
 
-export interface StatusTransferParams {
-  operation: 'move' | 'remove';
-  from: 'caster' | 'target';
-  to?: 'caster' | 'target';
-  status: 'positive' | 'negative';
-  maxCount?: number;
-  effects?: EffectConfig[];
-  fallbackEffects?: EffectConfig[];
-}
-
 export interface LifestealParams {
   ratio: number;
   maxHpRatioPerAction: number;
-  variantIds?: string[];
-}
-
-export interface DamageCapParams {
-  maxHpRatio: number;
-  deferOverflowTurns?: number;
 }
 
 /**
@@ -568,9 +566,7 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'element_history'; params: ElementHistoryParams }
     | { type: 'effect_sequence'; params: EffectSequenceParams }
     | { type: 'ability_mode'; params: AbilityModeParams }
-    | { type: 'status_transfer'; params: StatusTransferParams }
     | { type: 'lifesteal'; params: LifestealParams }
-    | { type: 'damage_cap'; params: DamageCapParams }
     | { type: 'percent_damage_modifier'; params: PercentDamageModifierParams }
     | { type: 'death_prevent'; params: DeathPreventParams }
     | { type: 'buff_immunity'; params: BuffImmunityParams }
@@ -736,13 +732,19 @@ export interface AbilityConfig {
   selectionProfile?: AbilitySelectionProfile;
   castConditions?: ConditionConfig[];
 
-  /** 按运行时状态选取的完整技能形态；高 priority 优先。 */
-  variants?: AbilityVariantConfig[];
-
   /**
    * 主动效果链 (主动技能执行时触发)
    */
   effects?: EffectConfig[];
+
+  /** 所有主效果层结算完成后执行；合法 no-op 不阻止该阶段。 */
+  completionEffects?: EffectConfig[];
+
+  /** 只能由 effectPlans 追加的效果层。 */
+  effectLayers?: AbilityEffectLayerConfig[];
+
+  /** 按运行时条件选择一个计划；未命中时仅执行基础效果。 */
+  effectPlans?: AbilityEffectPlanConfig[];
 
   /** 消耗和冷却结算后必定执行，不受本次命中判定影响。 */
   castEffects?: EffectConfig[];

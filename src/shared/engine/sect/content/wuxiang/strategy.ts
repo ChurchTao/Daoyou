@@ -41,9 +41,10 @@ export class WuxiangMirrorSelectionStrategy extends WuxiangSelectionStrategy {
     const karma = context.caster.buffs.getAllBuffs()
       .find((buff) => buff.id === WUXIANG_KARMA_BUFF)?.getLayer() ?? 0;
     if (mode?.mode === 'demon') {
-      return this.result(context, mode.phase === 1
-        ? ['observe-calamity', 'blood-tide', 'five-skandhas', 'three-knocks']
-        : ['three-knocks', 'five-skandhas', 'flower-heart', 'reed-crossing'], 720);
+      const priorities = this.tacticId === 'guard'
+        ? ['observe-calamity', 'reed-crossing', 'blood-tide', 'three-knocks']
+        : ['three-knocks', 'flower-heart', 'five-skandhas', 'observe-calamity'];
+      return this.result(context, priorities, 720);
     }
     if (mode?.mode === 'formless') {
       return this.result(context, ['three-knocks', 'flower-heart', 'observe-calamity', 'blood-tide'], 760);
@@ -67,12 +68,14 @@ export class WuxiangDemonSelectionStrategy extends WuxiangSelectionStrategy {
     const war = context.caster.combatResources.getCurrent(WUXIANG_WAR_INTENT);
     const hp = context.caster.getHpPercent();
     if (mode?.mode === 'demon') {
-      return this.result(context, mode.phase === 1
-        ? ['blood-tide', 'observe-calamity', 'five-skandhas', 'flower-heart']
-        : ['three-knocks', 'reed-crossing', 'flower-heart', 'five-skandhas'], 720);
+      return this.result(context, hp < 0.3
+        ? ['reed-crossing', 'observe-calamity', 'blood-tide', 'five-skandhas']
+        : ['three-knocks', 'flower-heart', 'blood-tide', 'observe-calamity'], 720);
     }
     if (mode?.mode === 'formless') {
-      return this.result(context, ['blood-tide', 'three-knocks', 'reed-crossing', 'flower-heart'], 760);
+      return this.result(context, hp < 0.3
+        ? ['reed-crossing', 'three-knocks', 'flower-heart', 'observe-calamity']
+        : ['three-knocks', 'flower-heart', 'blood-tide', 'observe-calamity'], 760);
     }
     const shouldTurn = this.tacticId === 'trial-fire'
       ? war >= 3 && hp < 0.6

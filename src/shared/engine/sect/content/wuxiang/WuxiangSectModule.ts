@@ -1,5 +1,5 @@
 import { StandardSectModule, type SectBuildBuilder, type SectProjectionContext } from '../../core';
-import { compileWuxiangBase } from './compiler';
+import { compileWuxiangBase } from './shared/compiler';
 import { WUXIANG_BASE_DEFINITION } from './definition';
 import { WUXIANG_ORGANIZATION_THEME } from './organization';
 import { WUXIANG_DEMON_PATH_MODULE, WUXIANG_MIRROR_PATH_MODULE } from './paths';

@@ -281,7 +281,12 @@ export abstract class ActiveSkill extends Ability {
   }
 
   private resolveCosts(caster: Unit): ResourceCost[] {
-    return this.getCostConfigs(caster).map((cost) => {
+    return this.getCostConfigs(caster).filter((cost) =>
+      !cost.conditions?.length || checkConditions(
+        { caster, target: caster, ability: this },
+        cost.conditions,
+      ),
+    ).map((cost) => {
       if (cost.mode === 'flat') {
         return {
           type: cost.resource,
@@ -332,7 +337,7 @@ export abstract class ActiveSkill extends Ability {
     const casterMp = context.caster.getCurrentMp();
     const targetHp = context.target.getCurrentHp();
     this._castSnapshot = Object.freeze({
-      variantId: this.runtimeVariantId,
+      planId: this.runtimePlanId,
       target: context.target,
       targetId: context.target.id,
       selectionProfile: this.selectionProfile,
@@ -391,11 +396,6 @@ export abstract class ActiveSkill extends Ability {
       casterHpRatioAfterCost: afterRatio,
       casterMpBeforeCost: payment.beforeMp,
       casterMpAfterCost: payment.afterMp,
-      targetHpBeforeEffects: target.getCurrentHp(),
-      targetHpRatioBeforeEffects:
-        target.getMaxHp() > 0
-          ? target.getCurrentHp() / target.getMaxHp()
-          : 0,
     });
     EventBus.instance.publish<AbilityCostPaidEvent>({
       type: 'AbilityCostPaidEvent',

@@ -3,14 +3,12 @@ import { EventBus } from '../core/EventBus';
 import {
   DamageRequestEvent,
   DamageTakenEvent,
-  AbilityCostPaidEvent,
   HealEvent,
   ShieldBreakEvent,
   ShieldEvent,
 } from '../core/events';
 import {
   clearMemory,
-  consumeMemoryRatio,
   readMemory,
   rememberAmount,
 } from '../core/runtimeState';
@@ -58,21 +56,7 @@ export class DamageMemoryEffect extends GameplayEffect {
     const memory = readMemory(owner, this.params.key);
     const storedAmount =
       memory.amount > 0 ? memory.amount : this.getRecordAmount(context);
-    const consumeRatio = this.params.consume === false
-      ? 1
-      : Math.max(0, Math.min(1, this.params.consumeRatio ?? 1));
-    const sourceAmount = storedAmount * consumeRatio;
-    const releaseCap = this.params.maxReleaseValue
-      ? ValueCalculator.calculate(
-          this.params.maxReleaseValue,
-          context.caster,
-          context.target,
-        )
-      : Number.POSITIVE_INFINITY;
-    const amount = Math.min(
-      releaseCap,
-      Math.round(sourceAmount * (this.params.ratio ?? 1)),
-    );
+    const amount = Math.round(storedAmount * (this.params.ratio ?? 1));
     if (amount <= 0) return;
 
     switch (this.params.releaseAs ?? 'damage') {
@@ -145,11 +129,7 @@ export class DamageMemoryEffect extends GameplayEffect {
     });
 
     if (this.params.consume !== false) {
-      if (this.params.consumeRatio !== undefined) {
-        consumeMemoryRatio(owner, this.params.key, this.params.consumeRatio);
-      } else {
-        clearMemory(owner, this.params.key);
-      }
+      clearMemory(owner, this.params.key);
     }
   }
 
@@ -193,12 +173,6 @@ export class DamageMemoryEffect extends GameplayEffect {
   private getRecordAmount(context: EffectContext): number {
     const event = context.triggerEvent;
     if (!event) return 0;
-    if (
-      this.params.event === 'ability_cost_paid' &&
-      event.type === 'AbilityCostPaidEvent'
-    ) {
-      return (event as AbilityCostPaidEvent).hpPaid;
-    }
     if (this.params.event === 'heal' && event.type === 'HealEvent') {
       return (event as HealEvent).healAmount;
     }

@@ -211,6 +211,7 @@ export class BattleStateRecorder {
       .map((skill) => ({
         skillId: skill.id,
         skillName: skill.name,
+        runtimePlanId: skill.runtimePlanId,
         description: skill.description,
         current: skill.currentCooldown,
         max: skill.maxCooldown,

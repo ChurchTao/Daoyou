@@ -1,7 +1,7 @@
 import { Ability } from '../abilities/Ability';
 import { DataDrivenActiveSkill } from '../abilities/DataDrivenActiveSkill';
 import { DataDrivenPassiveAbility } from '../abilities/DataDrivenPassiveAbility';
-import { DynamicDataDrivenActiveSkill } from '../abilities/DynamicDataDrivenActiveSkill';
+import { LayeredDataDrivenActiveSkill } from '../abilities/LayeredDataDrivenActiveSkill';
 import { TargetPolicy } from '../abilities/TargetPolicy';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { AbilityConfig, EffectConfig, ListenerConfig } from '../core/configs';
@@ -10,6 +10,7 @@ import { AbilityId, AbilityType } from '../core/types';
 import { GameplayEffect } from '../effects/Effect';
 import { EffectRegistry } from './EffectRegistry';
 import { analyzeAbilityCapabilities } from './AbilityCapabilityAnalyzer';
+import { validateAbilityEffectPlans } from '../core/abilityEffectPlan';
 
 // 统一加载所有效果以触发它们的自我注册 (Side-effects loading)
 import '../effects';
@@ -35,14 +36,19 @@ export class AbilityFactory {
    * 根据配置创建技能实例
    */
   static create(config: AbilityConfig): Ability {
+    validateAbilityEffectPlans(config);
     const id = config.slug as AbilityId;
     const name = config.name;
     const abilityTags = this.validateAbilityTags(config);
 
     // 1. 处理主动技能
     if (config.type === AbilityType.ACTIVE_SKILL) {
-      if (config.variants?.length) {
-        const skill = new DynamicDataDrivenActiveSkill(id, name, {
+      if (
+        config.completionEffects?.length ||
+        config.effectLayers?.length ||
+        config.effectPlans?.length
+      ) {
+        const skill = new LayeredDataDrivenActiveSkill(id, name, {
           description: config.description,
           mpCost: config.mpCost ?? 0,
           hpCost: config.hpCost ?? 0,
@@ -56,8 +62,10 @@ export class AbilityFactory {
             config.selectionProfile ?? analyzeAbilityCapabilities(config).selectionProfile,
           castConditions: config.castConditions,
           effects: config.effects,
+          completionEffects: config.completionEffects,
           castEffects: config.castEffects,
-          variants: config.variants,
+          effectLayers: config.effectLayers,
+          effectPlans: config.effectPlans,
         });
         skill.tags.addTags(abilityTags);
         return skill;

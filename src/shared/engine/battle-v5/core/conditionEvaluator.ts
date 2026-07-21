@@ -281,20 +281,9 @@ export function evaluateCondition(
       if (cond.params.mode === 'none') return mode === undefined;
       return (
         mode?.mode === cond.params.mode &&
-        (cond.params.phase === undefined || mode.phase === cond.params.phase)
+        (cond.params.remainingUses === undefined ||
+          mode.remainingUses === cond.params.remainingUses)
       );
-    }
-    case 'ability_mode_ability_differs': {
-      if (!scopedUnit || !cond.params.key || !context.ability) return false;
-      const mode = readAbilityMode(scopedUnit, cond.params.key);
-      return !!mode?.firstAbilityId && mode.firstAbilityId !== context.ability.id;
-    }
-    case 'ability_variant_is': {
-      const ability = (() => {
-        const event = context.triggerEvent as { ability?: { runtimeVariantId?: string } } | undefined;
-        return event?.ability ?? context.ability;
-      })();
-      return ability?.runtimeVariantId === cond.params.variantId;
     }
     case 'ability_cost_crossed': {
       const event = context.triggerEvent as {

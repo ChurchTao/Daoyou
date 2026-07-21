@@ -28,7 +28,9 @@ export interface ActiveSectAbilitySpec {
   role?: SectAbilityRole;
   mpCost?: number;
   costs?: AbilityConfig['costs'];
-  variants?: AbilityConfig['variants'];
+  completionEffects?: AbilityConfig['completionEffects'];
+  effectLayers?: AbilityConfig['effectLayers'];
+  effectPlans?: AbilityConfig['effectPlans'];
   cooldown?: number;
   effects: EffectConfig[];
   castEffects?: EffectConfig[];
@@ -51,8 +53,9 @@ export class SectAbilityFactory {
     const targetPolicy = spec.targetPolicy;
     const capabilities = analyzeAbilityCapabilities({
       effects: spec.effects,
+      completionEffects: spec.completionEffects,
+      effectLayers: spec.effectLayers,
       castEffects: spec.castEffects,
-      variants: spec.variants,
       slug: spec.definition.id,
     });
     const selectionProfile =
@@ -103,8 +106,10 @@ export class SectAbilityFactory {
       targetPolicy,
       selectionProfile,
       castConditions: spec.castConditions,
-      variants: spec.variants,
       effects: spec.effects,
+      completionEffects: spec.completionEffects,
+      effectLayers: spec.effectLayers,
+      effectPlans: spec.effectPlans,
       castEffects: spec.castEffects,
     };
     return {

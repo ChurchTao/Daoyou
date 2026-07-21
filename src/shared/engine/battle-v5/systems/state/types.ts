@@ -21,6 +21,8 @@ export interface BuffStateView {
 export interface CooldownStateView {
   skillId: string;
   skillName: string;
+  /** 当前效果计划；基础计划不存在时省略。 */
+  runtimePlanId?: string;
   description?: string;
   /** 当前剩余冷却回合；0 = 可用 */
   current: number;

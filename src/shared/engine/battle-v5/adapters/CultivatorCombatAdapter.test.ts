@@ -266,7 +266,7 @@ describe('CultivatorCombatAdapter', () => {
     baseline.realm_stage = '圆满';
     baseline.sect = {
       membershipId: 'wuxiang-member', sectId: 'wuxiang', status: 'active',
-      contribution: 0, configVersion: 1, activePathId: 'demon-crossing',
+      contribution: 0, configVersion: 2, activePathId: 'demon-crossing',
       methods: {
         'wuxiang-canon': 5, 'blood-lotus': 3, 'white-bone': 3,
         'wrathful-ming': 3, 'six-senses': 3, 'reed-crossing-method': 3,

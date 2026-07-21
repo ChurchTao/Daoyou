@@ -18,7 +18,7 @@ export interface AbilityContext {
 }
 
 export interface AbilityCastSnapshot {
-  readonly variantId?: string;
+  readonly planId?: string;
   readonly target: Unit;
   readonly targetId: string;
   readonly selectionProfile?: AbilitySelectionProfile;
@@ -93,7 +93,7 @@ export class Ability {
     return this._baseDescription;
   }
 
-  get runtimeVariantId(): string | undefined {
+  get runtimePlanId(): string | undefined {
     return undefined;
   }
 

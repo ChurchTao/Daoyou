@@ -2,11 +2,7 @@ import type { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill
 import { BasicAttack } from '@shared/engine/battle-v5/abilities/BasicAttack';
 import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
-import type {
-  AbilityCostPaidEvent,
-  DamageRequestEvent,
-  DamageTakenEvent,
-} from '@shared/engine/battle-v5/core/events';
+import type { DamageRequestEvent, DamageTakenEvent } from '@shared/engine/battle-v5/core/events';
 import {
   beginRuntimeAction,
   clearAbilityMode,
@@ -21,19 +17,35 @@ import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { projectSectCombat, resolveSectAbility } from '../..';
 import type { CultivatorSectState } from '../../../core';
-import { WUXIANG_FORM_MODE, WUXIANG_KARMA_BUFF, WUXIANG_WAR_INTENT } from '..';
+import {
+  WUXIANG_FORM_MODE,
+  WUXIANG_KARMA_BUFF,
+  WUXIANG_WAR_INTENT,
+} from '..';
 
-function state(pathId: 'mirror-karma' | 'demon-crossing', nodes: string[] = []): CultivatorSectState {
+type PathId = 'mirror-karma' | 'demon-crossing';
+
+function state(pathId: PathId, nodes: string[] = []): CultivatorSectState {
   return {
-    membershipId: 'runtime', sectId: 'wuxiang', status: 'active', contribution: 0,
-    configVersion: 1, activePathId: pathId,
+    membershipId: 'runtime',
+    sectId: 'wuxiang',
+    status: 'active',
+    contribution: 0,
+    configVersion: 2,
+    activePathId: pathId,
     methods: {
-      'wuxiang-canon': 5, 'blood-lotus': 3, 'white-bone': 3,
-      'wrathful-ming': 3, 'six-senses': 3, 'reed-crossing-method': 3,
+      'wuxiang-canon': 5,
+      'blood-lotus': 3,
+      'white-bone': 3,
+      'wrathful-ming': 3,
+      'six-senses': 3,
+      'reed-crossing-method': 3,
     },
     paths: [{
-      pathId, unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
-      tacticId: pathId === 'mirror-karma' ? 'guard' : 'trial-fire', activeMeridianSlot: 1,
+      pathId,
+      unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
+      tacticId: pathId === 'mirror-karma' ? 'guard' : 'trial-fire',
+      activeMeridianSlot: 1,
       meridianLoadouts: [
         { slot: 1, nodeIds: nodes, version: 1 },
         { slot: 2, nodeIds: [], version: 1 },
@@ -46,21 +58,32 @@ function state(pathId: 'mirror-karma' | 'demon-crossing', nodes: string[] = []):
 
 function unit(id: string): Unit {
   return new Unit(id, id, {
-    [AttributeType.VITALITY]: 100, [AttributeType.SPIRIT]: 100,
-    [AttributeType.WISDOM]: 100, [AttributeType.SPEED]: 100,
+    [AttributeType.VITALITY]: 100,
+    [AttributeType.SPIRIT]: 100,
+    [AttributeType.WISDOM]: 100,
+    [AttributeType.SPEED]: 100,
     [AttributeType.WILLPOWER]: 100,
   });
 }
 
-function install(pathId: 'mirror-karma' | 'demon-crossing', nodes: string[] = []) {
+function install(pathId: PathId, nodes: string[] = []) {
   const projection = projectSectCombat({ sect: state(pathId, nodes), realm: '化神' })!;
   const owner = unit('owner');
   const enemy = unit('enemy');
   for (const resource of projection.resources) owner.combatResources.define(resource);
   const defaultAttack = AbilityFactory.create(projection.defaultAttack!) as ActiveSkill;
   owner.abilities.setDefaultAttack(defaultAttack);
-  for (const config of projection.abilities) owner.abilities.addAbility(AbilityFactory.create(config));
-  const skill = (id: string) => owner.abilities.getAbility(`sect.wuxiang.${id}`) as ActiveSkill;
+  for (const config of projection.abilities) {
+    owner.abilities.addAbility(AbilityFactory.create(config));
+  }
+  const skill = (id: string) => {
+    const installed = owner.abilities.getAbility(`sect.wuxiang.${id}`);
+    if (installed) return installed as ActiveSkill;
+    const config = resolveSectAbility({ sect: state(pathId, nodes), realm: '化神', abilityId: id }).config;
+    const created = AbilityFactory.create(config) as ActiveSkill;
+    owner.abilities.addAbility(created);
+    return created;
+  };
   return { owner, enemy, defaultAttack, skill };
 }
 
@@ -69,353 +92,450 @@ function cast(skill: ActiveSkill, caster: Unit, target: Unit, hit = true) {
   skill.execute({ caster, target, shouldApplyEffects: hit });
 }
 
+function damageSegments(skill: ActiveSkill, action: () => void): number[] {
+  const segments: number[] = [];
+  const handler = EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
+    if (event.ability !== skill) return;
+    const segment = event.damageComponents?.find((component) =>
+      component.segmentMultiplier !== undefined)?.segmentMultiplier;
+    if (segment !== undefined) segments.push(segment);
+  });
+  action();
+  EventBus.instance.unsubscribe('DamageRequestEvent', handler);
+  return segments;
+}
+
+function addLayeredBuff(
+  target: Unit,
+  id: string,
+  name: string,
+  type: BuffType,
+  layers: number,
+): void {
+  const template = BuffFactory.create({
+    id,
+    name,
+    type,
+    duration: 4,
+    stackRule: StackRule.STACK_LAYER,
+    maxLayers: Math.max(layers, 1),
+  });
+  for (let index = 0; index < layers; index += 1) {
+    target.buffs.addBuff(index === 0 ? template : template.clone(), target);
+  }
+}
+
 describe('无相禅宗三相循环', () => {
   beforeEach(() => EventBus.instance.reset());
   afterEach(() => EventBus.instance.reset());
 
-  it('魔相只推进成功的两门宗门神通，期间停止获得战意', () => {
+  it('3至5点战意进入两次魔相；未命中和非宗门技能都不消费次数', () => {
     const { owner, enemy, defaultAttack, skill } = install('demon-crossing');
     owner.combatResources.modify(WUXIANG_WAR_INTENT, 3);
     cast(skill('turn-form'), owner, owner);
-    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ mode: 'demon', phase: 1, remainingUses: 2 });
+    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({
+      mode: 'demon',
+      remainingUses: 2,
+    });
     expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(0);
 
     cast(defaultAttack, owner, enemy, false);
-    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ phase: 1, remainingUses: 2 });
-    expect(owner.buffs.getAllBuffs().some((buff) => buff.name === '入魔')).toBe(true);
-    const fist = new BasicAttack();
-    fist.setOwner(owner);
-    fist.setActive(true);
-    cast(fist, owner, enemy);
-    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ phase: 1, remainingUses: 2 });
-    expect(owner.buffs.getAllBuffs().some((buff) => buff.name === '入魔')).toBe(true);
+    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ remainingUses: 2 });
+    const ordinaryAttack = new BasicAttack();
+    ordinaryAttack.setOwner(owner);
+    ordinaryAttack.setActive(true);
+    cast(ordinaryAttack, owner, enemy);
+    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ remainingUses: 2 });
+
     cast(defaultAttack, owner, enemy);
-    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ phase: 2, remainingUses: 1 });
-    expect(owner.buffs.getAllBuffs().some((buff) => buff.name === '入魔')).toBe(false);
-    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(0);
+    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ remainingUses: 1 });
     cast(skill('three-knocks'), owner, enemy);
     expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toBeUndefined();
     expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(0);
   });
 
-  it('明镜佛相只在宗门神通成功结算后获得战意', () => {
-    const { owner, enemy, defaultAttack } = install('mirror-karma');
-    cast(defaultAttack, owner, enemy, false);
-    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(0);
-    cast(defaultAttack, owner, enemy, true);
-    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(1);
-  });
-
-  it('明镜魔相停止业痕、战意与即时反伤', () => {
-    const { owner, enemy, skill } = install('mirror-karma');
-    owner.combatResources.modify(WUXIANG_WAR_INTENT, 3);
-    cast(skill('turn-form'), owner, owner);
-    const reflected: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      if (event.damageSource === DamageSource.REFLECT) reflected.push(event);
-    });
-
-    beginRuntimeAction(enemy);
-    EventBus.instance.publish<DamageTakenEvent>({
-      type: 'DamageTakenEvent', timestamp: Date.now(), caster: enemy, target: owner,
-      damageSource: DamageSource.DIRECT, damageType: DamageType.PHYSICAL,
-      damageTaken: 100, beforeHp: owner.getCurrentHp(), remainHp: owner.getCurrentHp(),
-      isLethal: false,
-    });
-
-    expect(owner.buffs.getAllBuffs().find((buff) => buff.id === WUXIANG_KARMA_BUFF)).toBeUndefined();
-    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(0);
-    expect(reflected).toHaveLength(0);
-  });
-
-  it('明镜进入魔相后遗留业门不会自动反伤或消耗', () => {
-    const { owner, enemy, skill } = install('mirror-karma');
-    owner.combatResources.modify(WUXIANG_WAR_INTENT, 3);
-    cast(skill('three-knocks'), owner, enemy);
-    const doorId = 'sect.wuxiang.mirror.karma-door';
-    expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === doorId)?.getLayer()).toBe(3);
-    cast(skill('turn-form'), owner, owner);
-    const reflected: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      if (event.damageSource === DamageSource.REFLECT) reflected.push(event);
-    });
-
-    EventBus.instance.publish<DamageTakenEvent>({
-      type: 'DamageTakenEvent', timestamp: Date.now(), caster: enemy, target: owner,
-      damageSource: DamageSource.DIRECT, damageType: DamageType.PHYSICAL,
-      damageTaken: 100, beforeHp: owner.getCurrentHp(), remainHp: owner.getCurrentHp(),
-      isLethal: false,
-    });
-
-    expect(reflected).toHaveLength(0);
-    expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === doorId)?.getLayer()).toBe(3);
-  });
-
-  it('焚尽五蕴默认入魔只转移1个减益，五蕴作薪提高至3个', () => {
-    const execute = (nodes: string[]) => {
-      const sect = state('demon-crossing', nodes);
-      const owner = unit(`owner-${nodes.length}`);
-      const enemy = unit(`enemy-${nodes.length}`);
-      const config = resolveSectAbility({ sect, realm: '化神', abilityId: 'five-skandhas' }).config;
-      const skill = AbilityFactory.create(config) as ActiveSkill;
-      skill.setOwner(owner);
-      skill.setActive(true);
-      setAbilityMode(owner, {
-        key: WUXIANG_FORM_MODE, mode: 'demon', phase: 1,
-        remainingUses: 2, displayName: '魔相',
-      });
-      for (let index = 0; index < 3; index += 1) {
-        owner.buffs.addBuff(BuffFactory.create({
-          id: `negative-${index}`, name: `减益${index}`, type: BuffType.DEBUFF,
-          duration: 3, stackRule: StackRule.OVERRIDE,
-        }), enemy);
-      }
-      cast(skill, owner, enemy);
-      return enemy.buffs.getAllBuffs().filter((buff) => buff.type === BuffType.DEBUFF).length;
-    };
-
-    expect(execute([])).toBe(1);
-    expect(execute(['demon-skandhas-fuel'])).toBe(3);
-  });
-
-  it('万业同门按实际消费两层业痕递归强化业门引爆', () => {
-    const { owner, enemy, skill } = install('mirror-karma', ['mirror-all-karma']);
-    const knocks = skill('three-knocks');
-    cast(knocks, owner, enemy);
-    knocks.resetCooldown();
-    setAbilityMode(owner, {
-      key: WUXIANG_FORM_MODE, mode: 'demon', phase: 2,
-      remainingUses: 1, displayName: '魔相·现报',
-    });
-    const karma = BuffFactory.create({
-      id: WUXIANG_KARMA_BUFF, name: '业痕', type: BuffType.BUFF,
-      duration: -1, stackRule: StackRule.STACK_LAYER, maxLayers: 3,
-    });
-    owner.buffs.addBuff(karma, owner);
-    owner.buffs.addBuff(karma.clone(), owner);
-    const segments: number[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-      const segment = event.damageComponents?.find((component) =>
-        component.segmentMultiplier !== undefined)?.segmentMultiplier;
-      if (event.caster === owner && segment !== undefined) segments.push(segment);
-    });
-
-    cast(knocks, owner, enemy);
-
-    expect(segments).toEqual([0.75, 0.64, 0.64, 0.64]);
-    expect(owner.buffs.getAllBuffIds()).not.toContain(WUXIANG_KARMA_BUFF);
-  });
-
-  it('6点战意优先进入无相且只消费下一门神通一次', () => {
+  it('6点战意优先进入一次无相，下一门神通执行 A+B+C 后恢复佛相', () => {
     const { owner, enemy, defaultAttack, skill } = install('mirror-karma');
     owner.combatResources.modify(WUXIANG_WAR_INTENT, 6);
     expect(skill('turn-form').name).toBe('一念无间');
     cast(skill('turn-form'), owner, owner);
-    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ mode: 'formless', remainingUses: 1 });
+    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({
+      mode: 'formless',
+      remainingUses: 1,
+    });
     expect(defaultAttack.name).toBe('心花两忘');
+
     cast(defaultAttack, owner, enemy);
+
     expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toBeUndefined();
     expect(defaultAttack.name).toBe('拈花叩心');
-    expect(owner.buffs.getAllBuffs().find((buff) => buff.id === WUXIANG_KARMA_BUFF)?.getLayer()).toBe(1);
-  });
-
-  it('默认神通进入战斗快照，并显示当前变体名称与实时气血成本', () => {
-    const { owner, skill } = install('mirror-karma');
-    owner.combatResources.modify(WUXIANG_WAR_INTENT, 6);
-    cast(skill('turn-form'), owner, owner);
-    const recorder = new BattleStateRecorder();
-    recorder.record('battle_init', 0, [owner]);
-    const cooldowns = recorder.getFrames()[0].units[owner.id].cooldowns;
-    const defaultSkill = cooldowns.find((entry) => entry.skillId === 'sect.wuxiang.flower-heart');
-
-    expect(defaultSkill?.skillName).toBe('心花两忘');
-    expect(defaultSkill?.description).toContain('设戒');
-    expect(defaultSkill?.costs?.[0]).toMatchObject({
-      resource: 'hp', mode: 'current_hp_ratio', ratio: 0.08,
-      resolvedAmount: Math.ceil(owner.getCurrentHp() * 0.08),
-    });
-  });
-
-  it('魔心的70%气血线只奖励一次，治疗后重复跨越不再获益', () => {
-    const { owner, skill } = install('demon-crossing');
-    const blood = skill('blood-tide');
-    const startingHp = Math.floor(owner.getMaxHp() * 0.71);
-    owner.setHp(startingHp);
-    cast(blood, owner, owner);
-    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(2);
-
-    owner.setHp(startingHp);
-    blood.resetCooldown();
-    cast(blood, owner, owner);
-    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(3);
-  });
-
-  it('身坏心明在佛相低气血时实时生效，治疗或进入任一非佛相后立即移除', () => {
-    const { owner, enemy, skill } = install('demon-crossing', ['demon-body-breaks']);
-    const buffId = 'sect.wuxiang.demon.body-breaks';
-    owner.setHp(Math.floor(owner.getMaxHp() * 0.25));
-    expect(owner.buffs.getAllBuffIds()).toContain(buffId);
-
-    owner.heal(Math.floor(owner.getMaxHp() * 0.5));
-    expect(owner.buffs.getAllBuffIds()).not.toContain(buffId);
-
-    owner.setHp(Math.floor(owner.getMaxHp() * 0.25));
-    owner.combatResources.modify(WUXIANG_WAR_INTENT, 3);
-    cast(skill('turn-form'), owner, owner);
-    expect(owner.buffs.getAllBuffIds()).not.toContain(buffId);
-
-    clearAbilityMode(owner, WUXIANG_FORM_MODE);
-    owner.setHp(Math.floor(owner.getMaxHp() * 0.25));
-    expect(owner.buffs.getAllBuffIds()).toContain(buffId);
-    owner.combatResources.modify(WUXIANG_WAR_INTENT, 6);
-    cast(skill('turn-form'), owner, owner);
-    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ mode: 'formless' });
-    expect(owner.buffs.getAllBuffIds()).not.toContain(buffId);
-  });
-
-  it.each([
-    ['mirror-karma', 'mirror-vow-body'],
-    ['demon-crossing', 'demon-blood-oil'],
-  ] as const)('%s每轮首次佛相成本提高2个百分点且只多得1战意', (pathId, nodeId) => {
-    const { owner, enemy, defaultAttack } = install(pathId, [nodeId]);
-    const paid: AbilityCostPaidEvent[] = [];
-    EventBus.instance.subscribe<AbilityCostPaidEvent>('AbilityCostPaidEvent', (event) => {
-      if (event.ability === defaultAttack) paid.push(event);
-    });
-
-    const firstHp = owner.getCurrentHp();
-    cast(defaultAttack, owner, enemy);
-    const secondHp = owner.getCurrentHp();
-    cast(defaultAttack, owner, enemy);
-
-    const baseCost = pathId === 'mirror-karma' ? 0.05 : 0.06;
-    expect(paid.map((event) => event.hpPaid)).toEqual([
-      Math.ceil(firstHp * (baseCost + 0.02)),
-      Math.ceil(secondHp * baseCost),
-    ]);
-    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(3);
-
-    EventBus.instance.publish({ type: 'RoundStartEvent', timestamp: Date.now(), turn: 2 });
-    const nextRoundHp = owner.getCurrentHp();
-    cast(defaultAttack, owner, enemy);
-    expect(paid[2].hpPaid).toBe(Math.ceil(nextRoundHp * (baseCost + 0.02)));
-    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(5);
-  });
-
-  it('镜中留客每轮只为首次直接受击额外留下1层业痕', () => {
-    const { owner, enemy } = install('mirror-karma', ['mirror-guest-in-mirror']);
-    const hit = () => EventBus.instance.publish<DamageTakenEvent>({
-      type: 'DamageTakenEvent', timestamp: Date.now(), caster: enemy, target: owner,
-      damageSource: DamageSource.DIRECT, damageType: DamageType.PHYSICAL,
-      damageTaken: 100, beforeHp: owner.getCurrentHp(), remainHp: owner.getCurrentHp(),
-      isLethal: false,
-    });
-
-    beginRuntimeAction(enemy);
-    hit();
-    expect(owner.buffs.getAllBuffs().find((buff) => buff.id === WUXIANG_KARMA_BUFF)?.getLayer()).toBe(2);
-    owner.buffs.removeBuff(WUXIANG_KARMA_BUFF);
-    beginRuntimeAction(enemy);
-    hit();
-    expect(owner.buffs.getAllBuffs().find((buff) => buff.id === WUXIANG_KARMA_BUFF)?.getLayer()).toBe(1);
-  });
-
-  it('两门同渡只在第二门使用不同神通时将冻结气血成本减半', () => {
-    const { owner, enemy, defaultAttack, skill } = install('demon-crossing', ['demon-two-gates']);
-    setAbilityMode(owner, {
-      key: WUXIANG_FORM_MODE, mode: 'demon', phase: 1,
-      remainingUses: 2, displayName: '魔相·入魔式',
-    });
-    cast(defaultAttack, owner, enemy);
-    const beforeDifferent = owner.getCurrentHp();
-    const knocks = skill('three-knocks');
-    cast(knocks, owner, enemy);
-    expect(beforeDifferent - owner.getCurrentHp()).toBe(Math.ceil(beforeDifferent * 0.04));
-
-    setAbilityMode(owner, {
-      key: WUXIANG_FORM_MODE, mode: 'demon', phase: 1,
-      remainingUses: 2, displayName: '魔相·入魔式',
-    });
-    cast(defaultAttack, owner, enemy);
-    const beforeSame = owner.getCurrentHp();
-    cast(defaultAttack, owner, enemy);
-    expect(beforeSame - owner.getCurrentHp()).toBe(Math.ceil(beforeSame * 0.05));
-  });
-
-  it('渡后留舟令下一门佛相成本减半且不产生战意', () => {
-    const { owner, enemy, defaultAttack } = install('demon-crossing', ['demon-leave-boat']);
-    setAbilityMode(owner, {
-      key: WUXIANG_FORM_MODE, mode: 'demon', phase: 2,
-      remainingUses: 1, displayName: '魔相·渡厄式',
-    });
-    cast(defaultAttack, owner, enemy);
-    const beforeBuddha = owner.getCurrentHp();
-    cast(defaultAttack, owner, enemy);
-
-    expect(beforeBuddha - owner.getCurrentHp()).toBe(Math.ceil(beforeBuddha * 0.03));
     expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(0);
-    expect(owner.buffs.getAllBuffIds()).not.toContain('sect.wuxiang.demon.leave-boat');
+    expect(owner.buffs.getAllBuffs().find((buff) => buff.id === WUXIANG_KARMA_BUFF)?.getLayer())
+      .toBe(1);
   });
 
-  it('回首彼岸只在每次转相的渡厄结算后低血恢复5%', () => {
-    const { owner, enemy, defaultAttack } = install('demon-crossing', ['demon-look-back']);
-    const maxHp = owner.getMaxHp();
-    owner.setHp(Math.floor(maxHp * 0.19));
-    const finish = () => {
-      setAbilityMode(owner, {
-        key: WUXIANG_FORM_MODE, mode: 'demon', phase: 2,
-        remainingUses: 1, displayName: '魔相·渡厄式',
-      });
-      const before = owner.getCurrentHp();
-      cast(defaultAttack, owner, enemy);
-      return { before, after: owner.getCurrentHp() };
-    };
-
-    const first = finish();
-    expect(first.after).toBe(first.before - Math.ceil(first.before * 0.05) + Math.round(maxHp * 0.05));
-    const beforeBuddha = owner.getCurrentHp();
-    cast(defaultAttack, owner, enemy);
-    expect(owner.getCurrentHp()).toBe(beforeBuddha - Math.ceil(beforeBuddha * 0.06));
-
-    owner.setHp(Math.floor(maxHp * 0.19));
-    const second = finish();
-    expect(second.after).toBe(second.before - Math.ceil(second.before * 0.05) + Math.round(maxHp * 0.05));
-  });
-
-  it('来去一念在无相后返还2战意，下一门佛相增加3个百分点气血成本', () => {
-    const { owner, enemy, defaultAttack } = install('mirror-karma', ['mirror-return-thought']);
-    setAbilityMode(owner, {
-      key: WUXIANG_FORM_MODE, mode: 'formless', phase: 1,
-      remainingUses: 1, displayName: '无相待发',
+  it('施法准备后改变形态，不会改变已冻结的本次效果计划', () => {
+    const { owner, enemy, defaultAttack } = install('mirror-karma');
+    const requests: DamageRequestEvent[] = [];
+    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
+      if (event.ability === defaultAttack) requests.push(event);
     });
-    cast(defaultAttack, owner, enemy);
-    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(2);
+    const karma = BuffFactory.create({
+      id: WUXIANG_KARMA_BUFF,
+      name: '业痕',
+      type: BuffType.BUFF,
+      duration: -1,
+      stackRule: StackRule.STACK_LAYER,
+      maxLayers: 3,
+    });
+    owner.buffs.addBuff(karma, owner);
+    setAbilityMode(owner, {
+      key: WUXIANG_FORM_MODE,
+      mode: 'demon',
+      remainingUses: 2,
+      displayName: '魔相',
+    });
+    defaultAttack.prepareCast({ caster: owner, target: enemy });
+    clearAbilityMode(owner, WUXIANG_FORM_MODE);
 
-    const beforeBuddha = owner.getCurrentHp();
-    cast(defaultAttack, owner, enemy);
-    expect(beforeBuddha - owner.getCurrentHp()).toBe(Math.ceil(beforeBuddha * 0.08));
-    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(3);
+    defaultAttack.execute({ caster: owner, target: enemy });
+
+    expect(requests.length).toBeGreaterThan(1);
+    expect(owner.buffs.getAllBuffIds()).not.toContain(WUXIANG_KARMA_BUFF);
   });
 
-  it('明镜只响应敌方直接伤害，并按敌方行动共享反伤上限', () => {
+  it('明镜魔相没有业痕时只跳过 B 的消费后效果，A 与完成效果仍完整结算', () => {
+    const { owner, enemy, defaultAttack } = install('mirror-karma');
+    setAbilityMode(owner, {
+      key: WUXIANG_FORM_MODE,
+      mode: 'demon',
+      remainingUses: 2,
+      displayName: '魔相',
+    });
+
+    const segments = damageSegments(defaultAttack, () =>
+      cast(defaultAttack, owner, enemy));
+
+    expect(segments).toEqual([0.6]);
+    expect(enemy.buffs.getAllBuffIds()).toContain('sect.wuxiang.mirror.heart-vow');
+    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ remainingUses: 1 });
+  });
+
+  it('免费现报不被当作实际消费，不触发照还来处治疗', () => {
+    const { owner, enemy, skill } = install('mirror-karma', [
+      'mirror-back-demon',
+      'mirror-return-source',
+    ]);
+    owner.setHp(Math.floor(owner.getMaxHp() * 0.5));
+    owner.combatResources.modify(WUXIANG_WAR_INTENT, 3);
+    const beforeTurn = owner.getCurrentHp();
+    cast(skill('turn-form'), owner, owner);
+    const afterTurn = beforeTurn - Math.ceil(beforeTurn * 0.04);
+    expect(owner.getCurrentHp()).toBe(afterTurn);
+
+    cast(skill('flower-heart'), owner, enemy);
+
+    expect(owner.getCurrentHp()).toBe(afterTurn - Math.ceil(afterTurn * 0.05));
+  });
+
+  it('倒叩先原子消费旧业门，随后佛相完成效果再留下全新的业门', () => {
+    const { owner, enemy, skill } = install('mirror-karma');
+    addLayeredBuff(enemy, 'sect.wuxiang.mirror.karma-door', '旧业门', BuffType.DEBUFF, 2);
+    addLayeredBuff(owner, WUXIANG_KARMA_BUFF, '业痕', BuffType.BUFF, 1);
+    setAbilityMode(owner, {
+      key: WUXIANG_FORM_MODE,
+      mode: 'formless',
+      remainingUses: 1,
+      displayName: '无相',
+    });
+    const threeKnocks = skill('three-knocks');
+
+    const segments = damageSegments(threeKnocks, () =>
+      cast(threeKnocks, owner, enemy));
+
+    expect(segments).toEqual([0.28, 0.28, 0.28, 0.25, 0.25, 0.35]);
+    expect(enemy.buffs.getAllBuffs().find(
+      (buff) => buff.id === 'sect.wuxiang.mirror.karma-door',
+    )?.getLayer()).toBe(3);
+  });
+
+  it('无相观劫的两次直接减伤都生效，并各自触发一次魔相反击', () => {
+    const { owner, enemy, skill } = install('mirror-karma');
+    addLayeredBuff(owner, WUXIANG_KARMA_BUFF, '业痕', BuffType.BUFF, 1);
+    setAbilityMode(owner, {
+      key: WUXIANG_FORM_MODE,
+      mode: 'formless',
+      remainingUses: 1,
+      displayName: '无相',
+    });
+    cast(skill('observe-calamity'), owner, owner);
+
+    const counters: DamageRequestEvent[] = [];
+    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
+      if (event.damageSource === DamageSource.COUNTER) counters.push(event);
+    });
+    const reductions: number[] = [];
+    for (let hit = 0; hit < 2; hit += 1) {
+      const request: DamageRequestEvent = {
+        type: 'DamageRequestEvent',
+        timestamp: Date.now(),
+        caster: enemy,
+        target: owner,
+        damageSource: DamageSource.DIRECT,
+        damageType: DamageType.PHYSICAL,
+        baseDamage: 100,
+        finalDamage: 100,
+      };
+      EventBus.instance.publish(request);
+      reductions.push(request.damageReductionPctBucket ?? 0);
+      EventBus.instance.publish<DamageTakenEvent>({
+        type: 'DamageTakenEvent',
+        timestamp: Date.now(),
+        caster: enemy,
+        target: owner,
+        damageSource: DamageSource.DIRECT,
+        damageType: DamageType.PHYSICAL,
+        damageTaken: 65,
+        beforeHp: owner.getCurrentHp(),
+        remainHp: owner.getCurrentHp(),
+        isLethal: false,
+      });
+    }
+
+    expect(reductions).toEqual([0.35, 0.35]);
+    expect(counters).toHaveLength(2);
+    expect(counters.map((event) => event.damageComponents?.[0]?.segmentMultiplier))
+      .toEqual([0.45, 0.45]);
+  });
+
+  it('净化没有可选目标仍是合法结算，并消费一次魔相', () => {
+    const { owner, skill } = install('demon-crossing');
+    setAbilityMode(owner, {
+      key: WUXIANG_FORM_MODE,
+      mode: 'demon',
+      remainingUses: 2,
+      displayName: '魔相',
+    });
+
+    cast(skill('five-skandhas'), owner, owner);
+
+    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ remainingUses: 1 });
+  });
+
+  it('明镜仅在佛相响应敌方直接伤害，并按敌方行动首次受击留下业痕', () => {
     const { owner, enemy } = install('mirror-karma');
     const reflected: DamageRequestEvent[] = [];
     EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
       if (event.damageSource === DamageSource.REFLECT) reflected.push(event);
     });
     const hit = (source: DamageSource) => EventBus.instance.publish<DamageTakenEvent>({
-      type: 'DamageTakenEvent', timestamp: Date.now(), caster: enemy, target: owner,
-      damageSource: source, damageType: DamageType.PHYSICAL,
-      damageTaken: owner.getMaxHp(), beforeHp: owner.getCurrentHp(),
-      remainHp: owner.getCurrentHp(), isLethal: false,
+      type: 'DamageTakenEvent',
+      timestamp: Date.now(),
+      caster: enemy,
+      target: owner,
+      damageSource: source,
+      damageType: DamageType.PHYSICAL,
+      damageTaken: 100,
+      beforeHp: owner.getCurrentHp(),
+      remainHp: owner.getCurrentHp(),
+      isLethal: false,
     });
 
     beginRuntimeAction(enemy);
     hit(DamageSource.DIRECT);
     hit(DamageSource.DIRECT);
     hit(DamageSource.FOLLOW_UP);
-    expect(owner.buffs.getAllBuffs().find((buff) => buff.id === WUXIANG_KARMA_BUFF)?.getLayer()).toBe(1);
-    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(1);
-    expect(reflected.reduce((sum, event) => sum + event.finalDamage, 0)).toBe(Math.round(owner.getMaxHp() * 0.12));
+    expect(owner.buffs.getAllBuffs().find((buff) => buff.id === WUXIANG_KARMA_BUFF)?.getLayer())
+      .toBe(1);
+    expect(reflected).toHaveLength(2);
+
+    setAbilityMode(owner, {
+      key: WUXIANG_FORM_MODE,
+      mode: 'demon',
+      remainingUses: 2,
+      displayName: '魔相',
+    });
+    beginRuntimeAction(enemy);
+    hit(DamageSource.DIRECT);
+    expect(owner.buffs.getAllBuffs().find((buff) => buff.id === WUXIANG_KARMA_BUFF)?.getLayer())
+      .toBe(1);
+    expect(reflected).toHaveLength(2);
+  });
+
+  it('万业同门让无相明确尝试消费第二层业痕，不使用递归数值缩放', () => {
+    const { owner, enemy, defaultAttack } = install('mirror-karma', ['mirror-all-karma']);
+    const karma = BuffFactory.create({
+      id: WUXIANG_KARMA_BUFF,
+      name: '业痕',
+      type: BuffType.BUFF,
+      duration: -1,
+      stackRule: StackRule.STACK_LAYER,
+      maxLayers: 3,
+    });
+    owner.buffs.addBuff(karma, owner);
+    owner.buffs.addBuff(karma.clone(), owner);
+    setAbilityMode(owner, {
+      key: WUXIANG_FORM_MODE,
+      mode: 'formless',
+      remainingUses: 1,
+      displayName: '无相',
+    });
+    const segments: number[] = [];
+    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
+      if (event.ability !== defaultAttack) return;
+      const segment = event.damageComponents?.find((component) =>
+        component.segmentMultiplier !== undefined)?.segmentMultiplier;
+      if (segment !== undefined) segments.push(segment);
+    });
+
+    cast(defaultAttack, owner, enemy);
+
+    expect(segments).toEqual([0.6, 0.35, 0.3, 0.6]);
+    expect(owner.buffs.getAllBuffs().find((buff) => buff.id === WUXIANG_KARMA_BUFF)?.getLayer())
+      .toBe(1);
+  });
+
+  it('第二岸苦在魔相每门恢复一次，在无相 A+B+C 中也只恢复一次', () => {
+    const execute = (mode: 'demon' | 'formless') => {
+      const { owner, enemy, defaultAttack } = install('demon-crossing', ['demon-second-shore']);
+      owner.setHp(Math.floor(owner.getMaxHp() * 0.5));
+      setAbilityMode(owner, {
+        key: WUXIANG_FORM_MODE,
+        mode,
+        remainingUses: mode === 'demon' ? 2 : 1,
+        displayName: mode,
+      });
+      const before = owner.getCurrentHp();
+      cast(defaultAttack, owner, enemy);
+      const cost = Math.ceil(before * 0.06);
+      return owner.getCurrentHp() - (before - cost);
+    };
+
+    expect(execute('demon')).toBe(Math.round(unit('sample').getMaxHp() * 0.025));
+    expect(execute('formless')).toBe(Math.round(unit('sample').getMaxHp() * 0.025));
+  });
+
+  it('三叩低血强化读取支付气血成本后的施法快照', () => {
+    const executeAt = (hpRatio: number) => {
+      const { owner, enemy, skill } = install('demon-crossing');
+      owner.setHp(Math.floor(owner.getMaxHp() * hpRatio));
+      const knocks = skill('three-knocks');
+      return damageSegments(knocks, () => cast(knocks, owner, enemy));
+    };
+
+    expect(executeAt(0.50)).toEqual([0.25, 0.25, 0.25]);
+    expect(executeAt(0.48)).toEqual([0.25, 0.25, 0.25, 0.25]);
+  });
+
+  it('连续两次魔相使用同一 B，不存在第一门与第二门分支', () => {
+    const { owner, enemy, defaultAttack } = install('demon-crossing');
+    setAbilityMode(owner, {
+      key: WUXIANG_FORM_MODE,
+      mode: 'demon',
+      remainingUses: 2,
+      displayName: '魔相',
+    });
+
+    const first = damageSegments(defaultAttack, () => cast(defaultAttack, owner, enemy));
+    const second = damageSegments(defaultAttack, () => cast(defaultAttack, owner, enemy));
+
+    expect(first).toEqual([0.6, 0.35]);
+    expect(second).toEqual([0.6, 0.35]);
+    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toBeUndefined();
+  });
+
+  it('渡厄吸血按宗门直接伤害标签触发，防御神通不会误触发吸血', () => {
+    const { owner, enemy, skill } = install('demon-crossing');
+    owner.setHp(Math.floor(owner.getMaxHp() * 0.4));
+    owner.combatResources.modify(WUXIANG_WAR_INTENT, 3);
+    cast(skill('turn-form'), owner, owner);
+
+    const flower = skill('flower-heart');
+    const beforeAttack = owner.getCurrentHp();
+    EventBus.instance.publish<DamageTakenEvent>({
+      type: 'DamageTakenEvent',
+      timestamp: Date.now(),
+      caster: owner,
+      target: enemy,
+      ability: flower,
+      damageSource: DamageSource.DIRECT,
+      damageType: DamageType.PHYSICAL,
+      damageTaken: 100,
+      beforeHp: enemy.getCurrentHp() + 100,
+      remainHp: enemy.getCurrentHp(),
+      isLethal: false,
+    });
+    expect(owner.getCurrentHp()).toBe(beforeAttack + 25);
+
+    const beforeDefense = owner.getCurrentHp();
+    cast(skill('blood-tide'), owner, owner);
+    expect(owner.getCurrentHp()).toBe(beforeDefense - Math.ceil(beforeDefense * 0.14));
+  });
+
+  it('低血节点只响应宗门神通气血成本跨线，且每场只触发一次', () => {
+    const { owner, enemy, defaultAttack } = install('demon-crossing', ['demon-three-shores']);
+    const maxHp = owner.getMaxHp();
+    owner.setHp(Math.floor(maxHp * 0.36));
+
+    cast(defaultAttack, owner, enemy);
+    expect(owner.getCurrentShield()).toBe(Math.round(maxHp * 0.08));
+
+    owner.setHp(Math.floor(maxHp * 0.36));
+    cast(defaultAttack, owner, enemy);
+    expect(owner.getCurrentShield()).toBe(Math.round(maxHp * 0.08));
+  });
+
+  it.each([
+    {
+      node: 'demon-body-breaks',
+      ratio: 0.31,
+      buffId: 'sect.wuxiang.demon.body-breaks-guard',
+    },
+    {
+      node: 'demon-blood-empty',
+      ratio: 0.26,
+      buffId: undefined,
+    },
+  ])('$node 仅在气血成本首次跨线时触发一次', ({ node, ratio, buffId }) => {
+    const { owner, enemy, defaultAttack } = install('demon-crossing', [node]);
+    const maxHp = owner.getMaxHp();
+    owner.setHp(Math.floor(maxHp * ratio));
+    const before = owner.getCurrentHp();
+    cast(defaultAttack, owner, enemy);
+    const paid = Math.ceil(before * 0.06);
+    if (buffId) {
+      expect(owner.buffs.getAllBuffIds()).toContain(buffId);
+    } else {
+      expect(owner.getCurrentHp()).toBe(before - paid + Math.round(maxHp * 0.05));
+    }
+
+    owner.setHp(Math.floor(maxHp * ratio));
+    cast(defaultAttack, owner, enemy);
+    if (buffId) {
+      expect(owner.buffs.getAllBuffs().filter((buff) => buff.id === buffId)).toHaveLength(1);
+    } else {
+      expect(owner.getCurrentHp()).toBe(
+        Math.floor(maxHp * ratio) - Math.ceil(Math.floor(maxHp * ratio) * 0.06),
+      );
+    }
+  });
+
+  it('技能状态快照显示当前计划名称和稳定的实时气血成本', () => {
+    const { owner, skill } = install('mirror-karma');
+    owner.combatResources.modify(WUXIANG_WAR_INTENT, 6);
+    cast(skill('turn-form'), owner, owner);
+    const recorder = new BattleStateRecorder();
+    recorder.record('battle_init', 0, [owner]);
+    const defaultSkill = recorder.getFrames()[0].units[owner.id].cooldowns
+      .find((entry) => entry.skillId === 'sect.wuxiang.flower-heart');
+
+    expect(defaultSkill?.skillName).toBe('心花两忘');
+    expect(defaultSkill?.runtimePlanId).toBe('formless');
+    expect(defaultSkill?.costs?.[0]).toMatchObject({
+      resource: 'hp',
+      mode: 'current_hp_ratio',
+      ratio: 0.05,
+      resolvedAmount: Math.ceil(owner.getCurrentHp() * 0.05),
+    });
   });
 });

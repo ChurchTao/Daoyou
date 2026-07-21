@@ -1,24 +1,21 @@
 import type { ConsumeStatusTriggerParams } from '../core/configs';
 import { executeEffectConfigs } from '../core/effectExecutor';
-import { scaleEffectNumericStrength } from '../core/effectStrengthScaler';
 import { getDelayedBuffEffects } from '../core/runtimeState';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { EffectContext, GameplayEffect } from './Effect';
 import { findMatchingBuffs, publishMechanicLog } from './advancedEffectUtils';
 
 export class ConsumeStatusTriggerEffect extends GameplayEffect {
-  constructor(private params: ConsumeStatusTriggerParams) {
-    super();
-    if (params.scaleEffectsByLayer && params.scaleNumericEffectsByLayer) {
-      throw new Error('consume_status_trigger不能同时按层重复效果并缩放数值强度');
-    }
-  }
+  constructor(private params: ConsumeStatusTriggerParams) { super(); }
 
   execute(context: EffectContext): void {
     const unit = this.params.target === 'caster' ? context.caster : context.target;
     const matched = findMatchingBuffs(unit, this.params.match);
     const buff = matched[0];
-    if (!buff) return;
+    if (!buff) {
+      executeEffectConfigs(this.params.fallbackEffects ?? [], context);
+      return;
+    }
 
     const consume = this.params.consume ?? 'one';
     const beforeLayer = buff.getLayer();
@@ -53,13 +50,9 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
     const configuredEffects = this.params.effects.length > 0
       ? this.params.effects
       : delayedEffects ?? [];
-    const effects = this.params.scaleNumericEffectsByLayer
-      ? configuredEffects.map((effect) =>
-          scaleEffectNumericStrength(effect, consumedLayers))
-      : configuredEffects;
     const repeats = this.params.scaleEffectsByLayer ? consumedLayers : 1;
     for (let index = 0; index < repeats; index += 1) {
-      executeEffectConfigs(effects, context);
+      executeEffectConfigs(configuredEffects, context);
     }
   }
 }

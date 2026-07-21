@@ -16,5 +16,4 @@ export interface ActionStateView {
   ability?: ActionStateAbilityView;
   interruptPolicy?: ActionInterruptPolicy;
   hitPolicy?: ActionHitPolicy;
-  phase?: number;
 }
