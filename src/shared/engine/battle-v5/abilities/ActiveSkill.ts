@@ -20,10 +20,17 @@ import { TargetPolicy } from './TargetPolicy';
  * 资源消耗配置
  */
 export interface ResourceCost {
-  type: 'mp' | 'hp' | 'rage' | 'energy';
+  type: AbilityCostConfig['resource'];
   amount: number;
   mode?: AbilityCostConfig['mode'];
   retain?: number;
+}
+
+interface AbilityCostPayment {
+  readonly beforeHp: number;
+  readonly afterHp: number;
+  readonly beforeMp: number;
+  readonly afterMp: number;
 }
 
 /**
@@ -91,8 +98,6 @@ export abstract class ActiveSkill extends Ability {
   }
 
   private _costConfigs: AbilityCostConfig[] = [];
-  private _preparedCosts?: ResourceCost[];
-  private _preparedTarget?: Unit;
   private _castSnapshot?: AbilityCastSnapshot;
 
   get targetPolicy(): TargetPolicy {
@@ -169,6 +174,7 @@ export abstract class ActiveSkill extends Ability {
   // ===== 资源消耗 =====
 
   get resourceCosts(): ResourceCost[] {
+    if (this._castSnapshot) return this._castSnapshot.costs.map((cost) => ({ ...cost }));
     const owner = this.getOwner();
     if (owner) return this.resolveCosts(owner);
     return this._costConfigs.flatMap((cost) =>
@@ -215,7 +221,7 @@ export abstract class ActiveSkill extends Ability {
     let hpRequired = 0;
     let hpRetain = 0;
     let mpRequired = 0;
-    for (const cost of this._preparedCosts ?? this.resolveCosts(caster)) {
+    for (const cost of this._castSnapshot?.costs ?? this.resolveCosts(caster)) {
       switch (cost.type) {
         case 'mp':
           if (transform?.freeManaCost) break;
@@ -241,46 +247,37 @@ export abstract class ActiveSkill extends Ability {
   /**
    * 消耗资源
    */
-  consumeResources(caster: Unit): void {
+  private consumeResources(caster: Unit): AbilityCostPayment {
     const transform = peekAbilityTransform(caster, this);
-    const costs = this._preparedCosts ?? this.resolveCosts(caster);
+    const costs = this._castSnapshot?.costs ?? this.resolveCosts(caster);
     const beforeHp = caster.getCurrentHp();
     const beforeMp = caster.getCurrentMp();
+    let hpPaid = 0;
+    let mpPaid = 0;
     for (const cost of costs) {
       switch (cost.type) {
         case 'mp':
           if (transform?.freeManaCost) break;
           if (transform?.mpCostToHp) {
-            caster.setHp(caster.getCurrentHp() - cost.amount);
+            hpPaid += cost.amount;
           } else {
-            caster.consumeMp(cost.amount);
+            mpPaid += cost.amount;
           }
           break;
         case 'hp':
-          caster.setHp(caster.getCurrentHp() - cost.amount);
+          hpPaid += cost.amount;
           break;
       }
     }
-    const afterHp = caster.getCurrentHp();
-    const afterMp = caster.getCurrentMp();
-    const beforeRatio = caster.getMaxHp() > 0 ? beforeHp / caster.getMaxHp() : 0;
-    const afterRatio = caster.getMaxHp() > 0 ? afterHp / caster.getMaxHp() : 0;
-    const crossedHpRatios = [0.7, 0.45, 0.25].filter(
-      (ratio) => beforeRatio >= ratio && afterRatio < ratio,
-    );
-    EventBus.instance.publish<AbilityCostPaidEvent>({
-      type: 'AbilityCostPaidEvent',
-      timestamp: Date.now(),
-      caster,
-      ability: this,
+    const payment = Object.freeze({
       beforeHp,
-      afterHp,
+      afterHp: Math.max(0, beforeHp - hpPaid),
       beforeMp,
-      afterMp,
-      hpPaid: beforeHp - afterHp,
-      mpPaid: beforeMp - afterMp,
-      crossedHpRatios,
+      afterMp: Math.max(0, beforeMp - mpPaid),
     });
+    if (mpPaid > 0) caster.consumeMp(mpPaid);
+    if (hpPaid > 0) caster.setHp(payment.afterHp, 'ability_cost');
+    return payment;
   }
 
   private resolveCosts(caster: Unit): ResourceCost[] {
@@ -330,18 +327,34 @@ export abstract class ActiveSkill extends Ability {
   }
 
   override prepareCast(context: AbilityContext): void {
-    this._preparedCosts = this.resolveCosts(context.caster);
-    this._preparedTarget = context.target;
+    const costs = this.resolveCosts(context.caster);
+    const casterHp = context.caster.getCurrentHp();
+    const casterMp = context.caster.getCurrentMp();
+    const targetHp = context.target.getCurrentHp();
+    this._castSnapshot = Object.freeze({
+      variantId: this.runtimeVariantId,
+      target: context.target,
+      targetId: context.target.id,
+      selectionProfile: this.selectionProfile,
+      costs: Object.freeze(costs.map((cost) => Object.freeze({ ...cost }))),
+      casterHpBeforeCost: casterHp,
+      casterHpAfterCost: casterHp,
+      casterHpRatioAfterCost:
+        context.caster.getMaxHp() > 0 ? casterHp / context.caster.getMaxHp() : 0,
+      casterMpBeforeCost: casterMp,
+      casterMpAfterCost: casterMp,
+      targetHpBeforeEffects: targetHp,
+      targetHpRatioBeforeEffects:
+        context.target.getMaxHp() > 0 ? targetHp / context.target.getMaxHp() : 0,
+    });
   }
 
   override cancelPreparedCast(): void {
-    this._preparedCosts = undefined;
-    this._preparedTarget = undefined;
     this._castSnapshot = undefined;
   }
 
   get preparedTarget(): Unit | undefined {
-    return this._preparedTarget;
+    return this._castSnapshot?.target;
   }
 
   canExecutePreparedCast(caster: Unit): boolean {
@@ -357,27 +370,47 @@ export abstract class ActiveSkill extends Ability {
    * 负责资源消耗、冷却启动、效果执行
    */
   override execute(context: AbilityContext): void {
+    if (!this._castSnapshot) this.prepareCast(context);
     if (!this.canExecutePreparedCast(context.caster)) {
       this.cancelPreparedCast();
       return;
     }
-    const beforeCostHp = context.caster.getCurrentHp();
-    const target = this._preparedTarget ?? context.target;
+    const target = this._castSnapshot?.target ?? context.target;
     // 消耗资源
-    this.consumeResources(context.caster);
-    const afterCostHp = context.caster.getCurrentHp();
-    this._castSnapshot = {
-      variantId: this.runtimeVariantId,
-      casterHpBeforeCost: beforeCostHp,
-      casterHpAfterCost: afterCostHp,
-      casterHpRatioAfterCost:
-        context.caster.getMaxHp() > 0 ? afterCostHp / context.caster.getMaxHp() : 0,
+    const payment = this.consumeResources(context.caster);
+    const beforeRatio = context.caster.getMaxHp() > 0
+      ? payment.beforeHp / context.caster.getMaxHp()
+      : 0;
+    const afterRatio = context.caster.getMaxHp() > 0
+      ? payment.afterHp / context.caster.getMaxHp()
+      : 0;
+    this._castSnapshot = Object.freeze({
+      ...this._castSnapshot!,
+      casterHpBeforeCost: payment.beforeHp,
+      casterHpAfterCost: payment.afterHp,
+      casterHpRatioAfterCost: afterRatio,
+      casterMpBeforeCost: payment.beforeMp,
+      casterMpAfterCost: payment.afterMp,
       targetHpBeforeEffects: target.getCurrentHp(),
       targetHpRatioBeforeEffects:
         target.getMaxHp() > 0
           ? target.getCurrentHp() / target.getMaxHp()
           : 0,
-    };
+    });
+    EventBus.instance.publish<AbilityCostPaidEvent>({
+      type: 'AbilityCostPaidEvent',
+      timestamp: Date.now(),
+      caster: context.caster,
+      ability: this,
+      beforeHp: payment.beforeHp,
+      afterHp: payment.afterHp,
+      beforeMp: payment.beforeMp,
+      afterMp: payment.afterMp,
+      hpPaid: payment.beforeHp - payment.afterHp,
+      mpPaid: payment.beforeMp - payment.afterMp,
+      beforeHpRatio: beforeRatio,
+      afterHpRatio: afterRatio,
+    });
 
     // 启动冷却
     this.startCooldown();
@@ -401,8 +434,6 @@ export abstract class ActiveSkill extends Ability {
         endAbilityTransform(this);
       }
       this.onCastFinished();
-      this._preparedCosts = undefined;
-      this._preparedTarget = undefined;
       this._castSnapshot = undefined;
     }
   }
@@ -433,8 +464,6 @@ export abstract class ActiveSkill extends Ability {
     const cloned = super.clone() as ActiveSkill;
     cloned._maxCooldown = this._maxCooldown;
     cloned._costConfigs = this._costConfigs.map((cost) => ({ ...cost }));
-    cloned._preparedCosts = undefined;
-    cloned._preparedTarget = undefined;
     cloned._castSnapshot = undefined;
     return cloned;
   }

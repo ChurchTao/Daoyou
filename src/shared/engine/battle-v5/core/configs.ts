@@ -151,8 +151,14 @@ export interface DamageParams {
   damageSource?: DamageSource;
   forceCritical?: boolean;
   forceCriticalConditions?: ConditionConfig[];
-  /** 按首段效果前目标已损气血线性追加物攻系数。 */
-  targetMissingHpAtkCoefficientCap?: number;
+  dynamicScalars?: DamageDynamicScalarConfig[];
+}
+
+export interface DamageDynamicScalarConfig {
+  source: 'target_missing_hp_ratio';
+  attribute: AttributeType;
+  coefficientCap: number;
+  timing?: 'live' | 'cast';
 }
 
 /**

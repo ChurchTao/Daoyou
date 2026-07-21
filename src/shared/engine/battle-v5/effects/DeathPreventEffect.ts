@@ -37,7 +37,7 @@ export class DeathPreventEffect extends GameplayEffect {
           ),
         );
       }
-      target.setHp(hpFloor); // 将气血设置为 hpFloor，避免死亡
+      target.setHp(hpFloor, 'death_prevent'); // 将气血设置为 hpFloor，避免死亡
       runtimeState.deathPreventTriggers.add(sourceKey);
 
       // 发布免死事件

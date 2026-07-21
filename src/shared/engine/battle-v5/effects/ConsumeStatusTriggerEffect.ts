@@ -1,10 +1,6 @@
-import type {
-  BuffConfig,
-  ConsumeStatusTriggerParams,
-  EffectConfig,
-} from '../core/configs';
-import type { ScalableValue } from '../core/ValueCalculator';
+import type { ConsumeStatusTriggerParams } from '../core/configs';
 import { executeEffectConfigs } from '../core/effectExecutor';
+import { scaleEffectNumericStrength } from '../core/effectStrengthScaler';
 import { getDelayedBuffEffects } from '../core/runtimeState';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { EffectContext, GameplayEffect } from './Effect';
@@ -13,6 +9,9 @@ import { findMatchingBuffs, publishMechanicLog } from './advancedEffectUtils';
 export class ConsumeStatusTriggerEffect extends GameplayEffect {
   constructor(private params: ConsumeStatusTriggerParams) {
     super();
+    if (params.scaleEffectsByLayer && params.scaleNumericEffectsByLayer) {
+      throw new Error('consume_status_trigger不能同时按层重复效果并缩放数值强度');
+    }
   }
 
   execute(context: EffectContext): void {
@@ -55,140 +54,13 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
       ? this.params.effects
       : delayedEffects ?? [];
     const effects = this.params.scaleNumericEffectsByLayer
-      ? configuredEffects.map((effect) => scaleEffectStrength(effect, consumedLayers))
+      ? configuredEffects.map((effect) =>
+          scaleEffectNumericStrength(effect, consumedLayers))
       : configuredEffects;
     const repeats = this.params.scaleEffectsByLayer ? consumedLayers : 1;
     for (let index = 0; index < repeats; index += 1) {
       executeEffectConfigs(effects, context);
     }
-  }
-}
-
-function scaleValue(value: ScalableValue, scale: number): ScalableValue {
-  return {
-    ...value,
-    base: value.base === undefined ? undefined : value.base * scale,
-    coefficient: value.coefficient === undefined
-      ? undefined
-      : value.coefficient * scale,
-    targetMaxHpRatio: value.targetMaxHpRatio === undefined
-      ? undefined
-      : value.targetMaxHpRatio * scale,
-    targetMaxMpRatio: value.targetMaxMpRatio === undefined
-      ? undefined
-      : value.targetMaxMpRatio * scale,
-  };
-}
-
-function scaleBuff(config: BuffConfig, scale: number): BuffConfig {
-  return {
-    ...config,
-    modifiers: config.modifiers?.map((modifier) => ({
-      ...modifier,
-      value: modifier.value * scale,
-    })),
-    listeners: config.listeners?.map((listener) => ({
-      ...listener,
-      effects: listener.effects.map((effect) => scaleEffectStrength(effect, scale)),
-    })),
-  };
-}
-
-/** 缩放条款数值而不复制驱散、转移、封招或目标数量等离散行为。 */
-function scaleEffectStrength(effect: EffectConfig, scale: number): EffectConfig {
-  switch (effect.type) {
-    case 'damage':
-      return {
-        ...effect,
-        params: {
-          ...effect.params,
-          value: scaleValue(effect.params.value, scale),
-          targetMissingHpAtkCoefficientCap:
-            effect.params.targetMissingHpAtkCoefficientCap === undefined
-              ? undefined
-              : effect.params.targetMissingHpAtkCoefficientCap * scale,
-        },
-      };
-    case 'heal':
-    case 'shield':
-    case 'mana_burn':
-      return {
-        ...effect,
-        params: { ...effect.params, value: scaleValue(effect.params.value, scale) },
-      } as EffectConfig;
-    case 'apply_buff':
-      return {
-        ...effect,
-        params: {
-          ...effect.params,
-          buffConfig: scaleBuff(effect.params.buffConfig, scale),
-        },
-      };
-    case 'reflect':
-      return {
-        ...effect,
-        params: {
-          ...effect.params,
-          ratio: effect.params.ratio * scale,
-          ratioPerLayer: effect.params.ratioPerLayer === undefined
-            ? undefined
-            : effect.params.ratioPerLayer * scale,
-        },
-      };
-    case 'percent_damage_modifier':
-      return {
-        ...effect,
-        params: { ...effect.params, value: effect.params.value * scale },
-      };
-    case 'damage_memory':
-      return {
-        ...effect,
-        params: {
-          ...effect.params,
-          ratio: effect.params.ratio === undefined ? undefined : effect.params.ratio * scale,
-          maxReleaseValue: effect.params.maxReleaseValue
-            ? scaleValue(effect.params.maxReleaseValue, scale)
-            : undefined,
-        },
-      };
-    case 'damage_defer':
-      return {
-        ...effect,
-        params: { ...effect.params, ratio: effect.params.ratio * scale },
-      };
-    case 'lifesteal':
-      return {
-        ...effect,
-        params: { ...effect.params, ratio: effect.params.ratio * scale },
-      };
-    case 'status_transfer':
-      return {
-        ...effect,
-        params: {
-          ...effect.params,
-          effects: effect.params.effects?.map((child) => scaleEffectStrength(child, scale)),
-          fallbackEffects: effect.params.fallbackEffects?.map((child) =>
-            scaleEffectStrength(child, scale)),
-        },
-      };
-    case 'effect_sequence':
-      return {
-        ...effect,
-        params: {
-          ...effect.params,
-          effects: effect.params.effects.map((child) => scaleEffectStrength(child, scale)),
-        },
-      };
-    case 'delayed_effect':
-      return {
-        ...effect,
-        params: {
-          ...effect.params,
-          effects: effect.params.effects.map((child) => scaleEffectStrength(child, scale)),
-        },
-      };
-    default:
-      return effect;
   }
 }
 

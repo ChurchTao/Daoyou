@@ -151,7 +151,7 @@ export class AbilityContainer {
       const defaultAttack = this._getDefaultAttack();
       const context = { caster: this._owner, target: opponent };
       this._prepareCast(
-        defaultAttack.canTrigger(context) ? defaultAttack : this._getFallbackBasicAttack(),
+        defaultAttack.canTrigger(context) ? defaultAttack : this.getFallbackBasicAttack(),
         opponent,
       );
     } else {
@@ -232,7 +232,7 @@ export class AbilityContainer {
     return this._defaultAttack;
   }
 
-  private _getFallbackBasicAttack(): Ability {
+  getFallbackBasicAttack(): Ability {
     if (!this._fallbackBasicAttack) {
       this._fallbackBasicAttack = new BasicAttack();
       this._fallbackBasicAttack.setOwner(this._owner);

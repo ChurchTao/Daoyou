@@ -136,6 +136,36 @@ describe('无相禅宗战斗投影', () => {
     expect(completeSkandhas.filter((effect) => effect.type === 'status_transfer')).toHaveLength(2);
   });
 
+  it('现报无迟同步强化无相式中的现报伤害组成', () => {
+    const noform = (abilityId: string) => resolveSectAbility({
+      sect: state('mirror-karma', ['mirror-fast-fruit']), realm: '化神', abilityId,
+    }).config.variants!.find((entry) => entry.id === `mirror.formless.${abilityId}`)!;
+    const directCoefficient = (abilityId: string) => {
+      const damage = noform(abilityId).effects!.find((effect) => effect.type === 'damage');
+      return damage?.type === 'damage' ? damage.params.value.coefficient : undefined;
+    };
+    const knocks = noform('three-knocks').effects!.find((effect) =>
+      effect.type === 'consume_status_trigger');
+    const observeDemon = resolveSectAbility({
+      sect: state('mirror-karma', ['mirror-fast-fruit']),
+      realm: '化神',
+      abilityId: 'observe-calamity',
+    }).config.variants!.find((entry) => entry.id === 'mirror.demon.1.observe-calamity')!;
+    const observePresentSegments = observeDemon.effects!
+      .filter((effect) => effect.type === 'consume_status_trigger')
+      .flatMap((effect) => effect.type === 'consume_status_trigger'
+        ? effect.params.effects.filter((child) => child.type === 'damage')
+        : [])
+      .map((effect) => effect.type === 'damage' ? effect.params.value.coefficient : undefined);
+
+    expect(directCoefficient('flower-heart')).toBe(1.3);
+    expect(directCoefficient('observe-calamity')).toBe(1.55);
+    expect(knocks?.type === 'consume_status_trigger'
+      ? knocks.params.effects[0]
+      : undefined).toMatchObject({ type: 'damage', params: { value: { coefficient: 0.65 } } });
+    expect(observePresentSegments).toEqual([0.42, 0.42, 0.42]);
+  });
+
   it('转相在3至5战意显示魔相入身，6战意显示一念无间并占用行动', () => {
     const detail = resolveSectAbility({ sect: state('mirror-karma'), realm: '化神', abilityId: 'turn-form' });
     expect(detail.config.variants?.map((variant) => variant.name)).toEqual(['一念无间', '魔相入身']);
@@ -194,7 +224,7 @@ describe('无相禅宗战斗投影', () => {
       'demon-first-thought': [{ id: 'demon.entry.three-knocks', effects: [{ type: 'damage', params: { value: { coefficient: 0.5175 } } }] }],
       'demon-second-shore': [{ id: 'demon.finish.three-knocks', effects: [{ type: 'damage', params: { value: { coefficient: 0.96 } } }] }, { id: 'sect.wuxiang.demon.blood-finish-lifesteal', effects: [{ params: { ratio: 0.23 } }] }],
       'demon-two-gates': [{ id: 'demon.finish.flower-heart.different', costs: [{ ratio: 0.025 }] }],
-      'demon-body-breaks': [{ id: 'sect.wuxiang.demon.body-breaks.damage' }, { id: 'sect.wuxiang.demon.body-breaks.heal' }, { attrType: 'controlResistance', value: 0.3 }],
+      'demon-body-breaks': [{ id: 'sect.wuxiang.demon.body-breaks.hp', eventType: 'HpChangedEvent' }, { attrType: 'controlResistance', value: 0.3 }],
       'demon-blood-empty': [{ id: 'sect.wuxiang.demon.threshold.0.25', effects: [{ type: 'shield', params: { value: { targetMaxHpRatio: 0.06 } } }] }],
       'demon-leave-boat': [{ id: 'demon.buddha.leave-boat.flower-heart', costs: [{ ratio: 0.03 }] }],
       'demon-one-furnace': [{ id: 'demon.formless.three-knocks', effects: [{ type: 'damage', params: { value: { coefficient: 0.8 } } }] }],

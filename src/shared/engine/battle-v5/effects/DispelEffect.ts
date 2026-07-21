@@ -21,21 +21,25 @@ export class DispelEffect extends GameplayEffect {
     const matchBuffs = this.params.targetTag
       ? buffs.filter((b) => b.tags.hasTag(this.params.targetTag!))
       : buffs;
+    const removableBuffs = matchBuffs.filter((buff) => buff.dispelPolicy === 'normal');
 
-    if (matchBuffs.length === 0) return;
+    if (removableBuffs.length === 0) return;
 
     // 确定移除数量
     const countToRemove = Math.min(
-      matchBuffs.length,
+      removableBuffs.length,
       this.params.maxCount || 1,
     );
     const removedBuffNames: string[] = [];
 
     // 执行移除
     for (let i = 0; i < countToRemove; i++) {
-      removedBuffNames.push(matchBuffs[i].name);
-      target.buffs.removeBuffDispel(matchBuffs[i].id);
+      if (target.buffs.removeBuffDispel(removableBuffs[i].id)) {
+        removedBuffNames.push(removableBuffs[i].name);
+      }
     }
+
+    if (removedBuffNames.length === 0) return;
 
     // 发布驱散事件
     EventBus.instance.publish<DispelEvent>({

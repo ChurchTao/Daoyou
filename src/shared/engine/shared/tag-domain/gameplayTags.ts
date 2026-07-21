@@ -198,6 +198,7 @@ export const GameplayTags = {
     CONTROLLED_SKIP: 'ControlledSkipEvent',
     COMBAT_RESOURCE_CHANGE: 'CombatResourceChangeEvent',
     ABILITY_COST_PAID: 'AbilityCostPaidEvent',
+    HP_CHANGED: 'HpChangedEvent',
   },
 
   // ===== 监听器作用域 =====

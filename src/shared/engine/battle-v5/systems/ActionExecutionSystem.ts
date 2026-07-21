@@ -8,7 +8,6 @@ import {
   EventPriorityLevel,
 } from '../core/events';
 import { ActiveSkill } from '../abilities/ActiveSkill';
-import { BasicAttack } from '../abilities/BasicAttack';
 
 /**
  * ActionExecutionSystem - 行动执行系统
@@ -86,9 +85,7 @@ export class ActionExecutionSystem {
       if (!fallbackTarget || fallbackTarget === event.caster || !fallbackTarget.isAlive()) {
         return;
       }
-      const fallback = new BasicAttack();
-      fallback.setOwner(event.caster);
-      fallback.setActive(true);
+      const fallback = event.caster.abilities.getFallbackBasicAttack();
       fallback.prepareCast({ caster: event.caster, target: fallbackTarget });
       ability = fallback;
       target = fallbackTarget;

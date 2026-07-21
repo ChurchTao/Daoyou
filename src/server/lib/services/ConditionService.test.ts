@@ -232,4 +232,19 @@ describe('ConditionService body cultivation boundaries', () => {
       false,
     );
   });
+
+  it('persists the exact post-cast hp snapshot for wuxiang self-cost in persistent pve', () => {
+    const condition = withBodyCultivation(createCondition(1000, 800));
+    const settled = ConditionService.applyBattleOutcome(
+      createCultivator(condition),
+      condition,
+      { hp: { current: 777 }, mp: { current: 123 } } as any,
+      'persistent_pve',
+      false,
+      new Date('2026-07-01T01:00:00.000Z'),
+    );
+
+    expect(settled.resources.hp.current).toBe(777);
+    expect(settled.resources.mp.current).toBe(123);
+  });
 });

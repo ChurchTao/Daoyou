@@ -126,7 +126,17 @@ export interface AbilityCostPaidEvent extends CombatEvent {
   afterMp: number;
   hpPaid: number;
   mpPaid: number;
-  crossedHpRatios: number[];
+  beforeHpRatio: number;
+  afterHpRatio: number;
+}
+
+export interface HpChangedEvent extends CombatEvent {
+  type: 'HpChangedEvent';
+  unit: Unit;
+  beforeHp: number;
+  afterHp: number;
+  delta: number;
+  reason: 'set' | 'damage' | 'heal' | 'ability_cost' | 'death_prevent' | 'initialization';
 }
 
 // ===== 命中判定事件 =====

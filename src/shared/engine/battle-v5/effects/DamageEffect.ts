@@ -44,20 +44,21 @@ export class DamageEffect extends GameplayEffect {
     );
     let damage = damageResult.total;
     const damageComponents: DamageComponent[] = [...damageResult.components];
-    if ((this.params.targetMissingHpAtkCoefficientCap ?? 0) > 0) {
-      const targetHpRatio = context.castSnapshot?.targetHpRatioBeforeEffects
-        ?? target.getHpPercent();
-      const coefficient = Math.max(0, 1 - targetHpRatio)
-        * (this.params.targetMissingHpAtkCoefficientCap ?? 0);
-      const attack = resolvedCaster.attributes.getValue(AttributeType.ATK);
-      const amount = attack * coefficient;
+    for (const scalar of this.params.dynamicScalars ?? []) {
+      if (scalar.source !== 'target_missing_hp_ratio') continue;
+      const targetHpRatio = scalar.timing === 'live'
+        ? target.getHpPercent()
+        : context.castSnapshot?.targetHpRatioBeforeEffects ?? target.getHpPercent();
+      const coefficient = Math.max(0, 1 - targetHpRatio) * scalar.coefficientCap;
+      const attributeValue = resolvedCaster.attributes.getValue(scalar.attribute);
+      const amount = attributeValue * coefficient;
       damage += amount;
       if (amount > 0) {
         damageComponents.push({
-          kind: 'target_missing_hp',
+          kind: `target_missing_hp:${scalar.attribute}`,
           amount,
           mitigation: 'normal',
-          attackBase: attack,
+          attackBase: attributeValue,
           segmentMultiplier: coefficient,
         });
       }

@@ -142,6 +142,7 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
           GameplayTags.ABILITY.CHANNEL.PHYSICAL,
         ],
         targetPolicy: { team: 'enemy', scope: 'single' },
+        hitPolicy: 'guaranteed',
         effects: [
           {
             type: 'damage',

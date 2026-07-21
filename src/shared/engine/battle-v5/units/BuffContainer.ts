@@ -88,8 +88,11 @@ export class BuffContainer {
     this._removeBuffWithReason(buffId, 'manual');
   }
 
-  removeBuffDispel(buffId: BuffId): void {
+  removeBuffDispel(buffId: BuffId): boolean {
+    const buff = this._buffs.get(buffId);
+    if (!buff || buff.dispelPolicy !== 'normal') return false;
     this._removeBuffWithReason(buffId, 'dispel');
+    return true;
   }
 
   modifyBuffLayer(buffId: BuffId, delta: number): number {

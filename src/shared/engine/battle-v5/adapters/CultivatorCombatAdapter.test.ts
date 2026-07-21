@@ -5,6 +5,7 @@ import { EventBus } from '../core/EventBus';
 import type { ActionEvent, SkillPreCastEvent } from '../core/events';
 import { AbilityType, AttributeType, ModifierType } from '../core/types';
 import { Unit } from '../units/Unit';
+import { ActiveSkill } from '../abilities/ActiveSkill';
 import { createCombatUnitFromCultivator } from './CultivatorCombatAdapter';
 
 function createCultivatorFixture(): Cultivator {
@@ -255,5 +256,74 @@ describe('CultivatorCombatAdapter', () => {
     expect(
       unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE),
     ).toBeCloseTo(0.0848, 6);
+  });
+
+  it('keeps wuxiang ability projection identical with or without body cultivation', () => {
+    const baseline = createCultivatorFixture();
+    baseline.inventory.artifacts = [];
+    baseline.equipped.accessory = null;
+    baseline.realm = '化神';
+    baseline.realm_stage = '圆满';
+    baseline.sect = {
+      membershipId: 'wuxiang-member', sectId: 'wuxiang', status: 'active',
+      contribution: 0, configVersion: 1, activePathId: 'demon-crossing',
+      methods: {
+        'wuxiang-canon': 5, 'blood-lotus': 3, 'white-bone': 3,
+        'wrathful-ming': 3, 'six-senses': 3, 'reed-crossing-method': 3,
+      },
+      paths: [{
+        pathId: 'demon-crossing', unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
+        tacticId: 'trial-fire', activeMeridianSlot: 1,
+        meridianLoadouts: [
+          { slot: 1, nodeIds: ['demon-bone-tide', 'demon-one-furnace'], version: 1 },
+          { slot: 2, nodeIds: [], version: 1 },
+          { slot: 3, nodeIds: [], version: 1 },
+        ],
+      }],
+      abilityLoadout: ['turn-form', 'blood-tide', 'three-knocks', 'observe-calamity'],
+    };
+    const body = structuredClone(baseline);
+    body.condition = {
+      version: 1,
+      resources: { hp: { current: 1 }, mp: { current: 1 } },
+      gauges: { pillToxicity: 0 },
+      tracks: {
+        bodyCultivation: {
+          version: 1, realm: 'mortal_body',
+          tracks: {
+            skin: { level: 10, progress: 0 }, sinew_bone: { level: 10, progress: 0 },
+            organs: { level: 10, progress: 0 }, qi_blood: { level: 10, progress: 0 },
+            primordial_spirit: { level: 10, progress: 0 },
+          },
+          milestones: {},
+        },
+        tempering: {
+          vitality: { level: 0, progress: 0 }, spirit: { level: 0, progress: 0 },
+          wisdom: { level: 0, progress: 0 }, speed: { level: 0, progress: 0 },
+          willpower: { level: 0, progress: 0 },
+        },
+        marrowWash: { level: 0, progress: 0 },
+      },
+      counters: {
+        longTermPillUsesByRealm: {}, cultivationPillUsesByRealm: {}, longevityPillUsesByRealm: {},
+      },
+      statuses: [], timestamps: {},
+    };
+    const describeAbilities = (cultivator: Cultivator) => {
+      const unit = createCombatUnitFromCultivator(cultivator);
+      const abilities = [
+        unit.abilities.getDefaultAttackForSnapshot(),
+        ...unit.abilities.getAllAbilities(),
+      ].filter((ability) => ability !== null);
+      return abilities.map((ability) => ({
+        id: ability.id,
+        name: ability.name,
+        tags: ability.tags.getTags().sort(),
+        cooldown: ability instanceof ActiveSkill ? ability.maxCooldown : undefined,
+        costs: ability instanceof ActiveSkill ? ability.costConfigs : undefined,
+      }));
+    };
+
+    expect(describeAbilities(body)).toEqual(describeAbilities(baseline));
   });
 });

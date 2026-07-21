@@ -8,6 +8,7 @@ import type {
   ListenerConfig,
 } from '@shared/engine/battle-v5/core/configs';
 import { EventPriorityLevel } from '@shared/engine/battle-v5/core/events';
+import { scaleEffectListNumericStrength } from '@shared/engine/battle-v5/core/effectStrengthScaler';
 import {
   AttributeType,
   BuffType,
@@ -296,7 +297,10 @@ function mirrorGuardBuff(reduction: number): EffectConfig {
       priority: 0,
       mapping: { caster: 'event.caster', target: 'owner' },
       guard: { skipSecondaryDamageSource: true },
-      conditions: [{ type: 'damage_source_is', params: { damageSource: DamageSource.DIRECT } }],
+      conditions: [
+        { type: 'damage_source_is', params: { damageSource: DamageSource.DIRECT } },
+        { ...modeCondition('none'), params: { ...modeCondition('none').params, scope: 'target' } },
+      ],
       effects: [{ type: 'reflect', params: { ratio: 0.1 } }],
     },
   ]));
@@ -420,7 +424,10 @@ function karmaDoor(layers: number): EffectConfig[] {
       priority: 0,
       mapping: { caster: 'event.target', target: 'owner' },
       guard: { skipSecondaryDamageSource: true },
-      conditions: [{ type: 'damage_source_is', params: { damageSource: DamageSource.DIRECT } }],
+      conditions: [
+        { type: 'damage_source_is', params: { damageSource: DamageSource.DIRECT } },
+        modeCondition('none'),
+      ],
       effects: [
         physical(0.12, undefined, false, DamageSource.REFLECT),
         {
@@ -464,6 +471,7 @@ function mirrorVariants(
     cost: number,
     baseEffects: EffectConfig[],
     presentEffects: EffectConfig[],
+    targetPolicy?: AbilityVariantConfig['targetPolicy'],
   ) => {
     for (const [index, condition] of phaseConditions.entries()) {
       const phase = index + 1;
@@ -474,6 +482,7 @@ function mirrorVariants(
         priority: 210 - index,
         conditions: [condition],
         costs: hpCost(cost),
+        targetPolicy,
         effects: [
           ...baseEffects,
           ...(features.has('mirror-back-demon') && phase === 1
@@ -483,9 +492,9 @@ function mirrorVariants(
           advanceMode,
         ],
         selectionProfile: {
-          intents: [...baseEffects, ...presentEffects].some(
-            (effect) => effect.type === 'damage',
-          ) ? ['damage'] : ['defensive'],
+          intents: targetPolicy?.team === 'self'
+            ? ['defensive']
+            : ['damage'],
         },
       });
     }
@@ -513,6 +522,11 @@ function mirrorVariants(
         : []),
       advanceMode,
     ],
+    selectionProfile: {
+      intents: targetPolicy?.team === 'self'
+        ? ['defensive']
+        : ['damage'],
+    },
   });
 
   switch (id) {
@@ -522,10 +536,11 @@ function mirrorVariants(
         params: { rounds: 1, tags: [GameplayTags.ABILITY.FUNCTION.DAMAGE], maxCount: 1 },
       }];
       addDemon('花落问罪', 0.05, [physical(0.75)], enhanced);
-      addNoform('心花两忘', 0.08, [physical(1.1), qingHeartVow(features.has('mirror-loud-flower') ? 0.18 : 0.1), enhanced[1]]);
+      addNoform('心花两忘', 0.08, [physical(1.1 + presentBonus), qingHeartVow(features.has('mirror-loud-flower') ? 0.18 : 0.1), enhanced[1]]);
       variants.push({
         id: 'mirror.buddha.flower-heart', name: '拈花叩心', priority: 0, conditions: [], costs: hpCost(0.05),
         effects: [physical(0.6), qingHeartVow(features.has('mirror-loud-flower') ? 0.18 : 0.1), gainWar()],
+        selectionProfile: { intents: ['damage'] },
       });
       break;
     }
@@ -554,15 +569,15 @@ function mirrorVariants(
         },
       }];
       addDemon('业门倒叩', 0.07, [physical(0.75)], detonate);
-      addNoform('门内无人', 0.11, [...karmaDoor(3), { ...detonate[0], params: { ...detonate[0].params, effects: [physical(0.45)] } }]);
-      variants.push({ id: 'mirror.buddha.three-knocks', name: '三叩业门', priority: 0, conditions: [], costs: hpCost(0.07), effects: [physical(0.28), physical(0.28), physical(0.28), ...karmaDoor(doorLayers), gainWar()] });
+      addNoform('门内无人', 0.11, [...karmaDoor(3), { ...detonate[0], params: { ...detonate[0].params, effects: [physical(0.45 + presentBonus)] } }]);
+      variants.push({ id: 'mirror.buddha.three-knocks', name: '三叩业门', priority: 0, conditions: [], costs: hpCost(0.07), effects: [physical(0.28), physical(0.28), physical(0.28), ...karmaDoor(doorLayers), gainWar()], selectionProfile: { intents: ['damage'] } });
       break;
     }
     case 'observe-calamity': {
       const guard = mirrorGuardBuff(features.has('mirror-see-guest') ? 0.5 : 0.35);
-      const hitBonus = [1, 2, 3].map((hits) => physical(0.22 + presentBonus / 3, [{ type: 'runtime_counter_compare', params: { scope: 'caster', key: 'sect.wuxiang.mirror.hits', value: hits, op: 'gte' } }]));
+      const hitBonus = [1, 2, 3].map((hits) => physical(0.22 + presentBonus, [{ type: 'runtime_counter_compare', params: { scope: 'caster', key: 'sect.wuxiang.mirror.hits', value: hits, op: 'gte' } }]));
       addDemon('开眼见劫', 0.06, [physical(0.8)], hitBonus);
-      addNoform('劫相俱寂', 0.12, [physical(1.35), guard], { team: 'enemy', scope: 'single' });
+      addNoform('劫相俱寂', 0.12, [physical(1.35 + presentBonus), guard], { team: 'enemy', scope: 'single' });
       variants.push({ id: 'mirror.buddha.observe-calamity', name: '闭目观劫', priority: 0, conditions: [], costs: hpCost(0.1), targetPolicy: { team: 'self', scope: 'single' }, effects: [guard, gainWar()], selectionProfile: { intents: ['defensive'] } });
       break;
     }
@@ -581,12 +596,12 @@ function mirrorVariants(
       };
       addDemon('五蕴还照', 0.06, [physical(0.75)], [{ type: 'status_transfer', params: { operation: 'move', from: 'caster', to: 'target', status: 'negative', maxCount: 1, fallbackEffects: [physical(0.3 + presentBonus)] } }]);
       addNoform('五蕴皆空', 0.09, [physical(0.95), { type: 'status_transfer', params: { operation: 'remove', from: 'target', status: 'positive', maxCount: 1 } }, { type: 'status_transfer', params: { operation: 'remove', from: 'caster', status: 'negative', maxCount: 1 } }]);
-      variants.push({ id: 'mirror.buddha.five-skandhas', name: '照见五蕴', priority: 0, conditions: [], costs: hpCost(0.06), effects: [physical(0.5), convert, gainWar()] });
+      variants.push({ id: 'mirror.buddha.five-skandhas', name: '照见五蕴', priority: 0, conditions: [], costs: hpCost(0.06), effects: [physical(0.5), convert, gainWar()], selectionProfile: { intents: ['damage'] } });
       break;
     }
     case 'reed-crossing': {
       const cap = features.has('mirror-carry-karma') ? 0.25 : 0.3;
-      addDemon('一苇倒渡', 0.07, [], [redirectBuff(0.5)]);
+      addDemon('一苇倒渡', 0.07, [], [redirectBuff(0.5)], { team: 'self', scope: 'single' });
       addNoform('此岸非岸', 0.11, [damageCapBuff('sect.wuxiang.mirror.shore', '彼岸', cap), redirectBuff(0.5)], { team: 'self', scope: 'single' });
       variants.push({ id: 'mirror.buddha.reed-crossing', name: '一苇横江', priority: 0, conditions: [], costs: hpCost(0.08), targetPolicy: { team: 'self', scope: 'single' }, effects: [damageCapBuff('sect.wuxiang.mirror.shore', '彼岸', cap), gainWar()], selectionProfile: { intents: ['defensive'] } });
       break;
@@ -649,6 +664,8 @@ function demonVariants(
   const entryScale = features.has('demon-first-thought') ? 1.15 : 1;
   const finishScale = features.has('demon-second-shore') ? 1.2 : 1;
   const fullNoform = features.has('demon-one-furnace') ? 1 : 0.8;
+  const scaleClause = (effects: EffectConfig[], multiplier: number) =>
+    scaleEffectListNumericStrength(effects, multiplier);
   const variants: AbilityVariantConfig[] = [];
   const bodyBreaksSync: EffectConfig[] = features.has('demon-body-breaks')
     ? [
@@ -704,6 +721,7 @@ function demonVariants(
       {
         id: noformId, name: args.noformName, priority: 300,
         conditions: [modeCondition('formless')], costs: hpCost(args.noformCost),
+        selectionProfile: { intents: ['damage'] },
         effects: [
           ...args.noform,
           ...(features.has('demon-look-back')
@@ -719,6 +737,7 @@ function demonVariants(
       {
         id: secondId, name: args.demonName, priority: 220,
         conditions: [modeCondition('demon', 2)], costs: hpCost(args.demonCost),
+        selectionProfile: { intents: ['damage'] },
         effects: [
           ...args.base,
           ...args.finish,
@@ -739,6 +758,7 @@ function demonVariants(
       {
         id: firstId, name: args.demonName, priority: 210,
         conditions: [modeCondition('demon', 1)], costs: hpCost(args.demonCost),
+        selectionProfile: { intents: ['damage'] },
         effects: [
           ...args.base,
           ...args.entry,
@@ -750,7 +770,12 @@ function demonVariants(
       {
         id: `demon.buddha.${id}`, name: WUXIANG_BASE_DEFINITION.abilities.find((ability) => ability.id === id)!.baseName,
         priority: 0, conditions: [], costs: hpCost(args.buddha.cost), targetPolicy: args.buddha.target,
-        effects: args.buddha.effects, selectionProfile: args.buddha.intents,
+        effects: args.buddha.effects,
+        selectionProfile: args.buddha.intents ?? (
+          args.buddha.effects.some((effect) => effect.type === 'damage')
+            ? { intents: ['damage'] }
+            : undefined
+        ),
       },
     );
     if (features.has('demon-two-gates')) {
@@ -770,7 +795,6 @@ function demonVariants(
       }
     }
   };
-  const scaled = (coefficient: number, scale: number, force = false) => physical(coefficient * scale, undefined, force);
   switch (id) {
     case 'flower-heart': {
       const gapBonus = features.has('demon-flower-inward') ? 0.25 : 0.15;
@@ -798,14 +822,15 @@ function demonVariants(
           tags: [GameplayTags.BUFF.TYPE.DEBUFF],
         },
       ));
-      const finishFlower = (scale: number): EffectConfig[] => [
+      const entryFlower = [gap(gapBonus), gap(gapBonus)];
+      const finishFlower: EffectConfig[] = [
         {
           type: 'consume_status_trigger',
           params: {
             match: { id: 'sect.wuxiang.demon.heart-gap' },
             displayName: '心隙',
             consume: 'all',
-            effects: [physical(0.2 * scale)],
+            effects: [physical(0.2)],
             scaleEffectsByLayer: true,
             target: 'target',
           },
@@ -816,58 +841,57 @@ function demonVariants(
             value: { attribute: AttributeType.ATK, coefficient: 0 },
             damageType: DamageType.PHYSICAL,
             damageSource: DamageSource.DIRECT,
-            targetMissingHpAtkCoefficientCap: 0.4 * scale,
+            dynamicScalars: [{
+              source: 'target_missing_hp_ratio',
+              attribute: AttributeType.ATK,
+              coefficientCap: 0.4,
+              timing: 'cast',
+            }],
           },
         },
       ];
       add({
         buddha: { cost: 0.06, effects: [physical(0.6), gap(gapBonus)] }, demonName: '摘心问魔', demonCost: 0.05,
-        base: [physical(0.95)], entry: [gap(gapBonus * entryScale), gap(gapBonus * entryScale)],
-        finish: finishFlower(finishScale),
+        base: [physical(0.95)], entry: scaleClause(entryFlower, entryScale),
+        finish: scaleClause(finishFlower, finishScale),
         noformName: '心魔两忘', noformCost: 0.09,
         noform: [
-          physical(0.95 * fullNoform),
-          gap(gapBonus * entryScale * fullNoform),
-          gap(gapBonus * entryScale * fullNoform),
-          ...finishFlower(finishScale * fullNoform),
+          ...scaleClause([physical(0.95)], fullNoform),
+          ...scaleClause(entryFlower, entryScale * fullNoform),
+          ...scaleClause(finishFlower, finishScale * fullNoform),
         ],
       });
       break;
     }
     case 'blood-tide': {
       const ratio = features.has('demon-no-return-tide') ? 2.5 : 2;
-      const release = (
-        scale: number,
-        consumeRatio: number,
-        maxCoefficient: number,
-      ): EffectConfig => ({
+      const release = (consumeRatio: number, maxCoefficient: number): EffectConfig => ({
         type: 'damage_memory',
         params: {
           key: WUXIANG_BLOOD_TIDE_MEMORY,
           mode: 'release',
-          ratio: ratio * scale,
+          ratio,
           releaseAs: 'follow_up',
           target: 'caster',
           consume: true,
           consumeRatio,
           maxReleaseValue: {
             attribute: AttributeType.ATK,
-            coefficient: maxCoefficient * scale,
+            coefficient: maxCoefficient,
           },
         },
       });
       add({
         buddha: { cost: 0.14, effects: [], target: { team: 'self', scope: 'single' }, intents: { intents: ['buff'] } },
         demonName: '血海倒悬', demonCost: 0.07, base: [physical(0.7)],
-        entry: [release(entryScale, 0.5, 1.1)],
-        finish: [release(finishScale, 1, 1.1)],
+        entry: scaleClause([release(0.5, 1.1)], entryScale),
+        finish: scaleClause([release(1, 1.1)], finishScale),
         noformName: '血海无涯', noformCost: 0.16,
         noform: [
-          physical(0.7 * fullNoform),
-          release(
-            fullNoform * ((entryScale + finishScale) / 2),
-            1,
-            1.4,
+          ...scaleClause([physical(0.7)], fullNoform),
+          ...scaleClause(
+            scaleClause([release(1, 1.4)], (entryScale + finishScale) / 2),
+            fullNoform,
           ),
         ],
       });
@@ -875,28 +899,22 @@ function demonVariants(
     }
     case 'three-knocks': {
       const threshold = features.has('demon-third-outside') ? 0.55 : 0.45;
+      const finishKnock: EffectConfig = {
+        ...physical(0.8),
+        params: {
+          ...(physical(0.8) as Extract<EffectConfig, { type: 'damage' }>).params,
+          forceCriticalConditions: [{ type: 'hp_below', params: { scope: 'caster', value: 0.35, timing: 'cast' } }],
+        },
+      } as EffectConfig;
       add({
         buddha: { cost: 0.09, effects: [physical(0.25), physical(0.25), physical(0.25), physical(0.25, [{ type: 'hp_below', params: { scope: 'caster', value: threshold, timing: 'cast' } }])] },
         demonName: '三叩魔关', demonCost: 0.08, base: [physical(0.4), physical(0.4)],
-        entry: [scaled(0.45, entryScale)],
-        finish: [{
-          ...scaled(0.8, finishScale),
-          params: {
-            ...(scaled(0.8, finishScale) as Extract<EffectConfig, { type: 'damage' }>).params,
-            forceCriticalConditions: [{ type: 'hp_below', params: { scope: 'caster', value: 0.35, timing: 'cast' } }],
-          },
-        } as EffectConfig],
+        entry: scaleClause([physical(0.45)], entryScale),
+        finish: scaleClause([finishKnock], finishScale),
         noformName: '业门无生', noformCost: 0.13,
         noform: [
-          physical(0.45 * entryScale * fullNoform),
-          physical(0.45 * entryScale * fullNoform),
-          {
-            ...physical(0.8 * finishScale * fullNoform),
-            params: {
-              ...(physical(0.8 * finishScale * fullNoform) as Extract<EffectConfig, { type: 'damage' }>).params,
-              forceCriticalConditions: [{ type: 'hp_below', params: { scope: 'caster', value: 0.35, timing: 'cast' } }],
-            },
-          } as EffectConfig,
+          ...scaleClause([physical(0.45), physical(0.45)], entryScale * fullNoform),
+          ...scaleClause([finishKnock], finishScale * fullNoform),
         ],
       });
       break;
@@ -922,38 +940,45 @@ function demonVariants(
       }]));
       add({
         buddha: { cost: 0.11, effects: [deferBuff(defer)], target: { team: 'self', scope: 'single' }, intents: { intents: ['defensive'] } },
-        demonName: '开眼见魔', demonCost: 0.06, base: [physical(0.65)], entry: [deferBuff(defer * entryScale)],
-        finish: [{
+        demonName: '开眼见魔', demonCost: 0.06, base: [physical(0.65)], entry: scaleClause([deferBuff(defer)], entryScale),
+        finish: scaleClause([{
           type: 'damage_memory',
           params: {
             key: DEMON_CALAMITY_DEBT,
             mode: 'release',
-            ratio: 0.8 * finishScale,
+            ratio: 0.8,
             releaseAs: 'follow_up',
             target: 'caster',
             consume: false,
           },
-        }], noformName: '劫火自明', noformCost: 0.12,
+        }], finishScale), noformName: '劫火自明', noformCost: 0.12,
         noform: [
-          physical(0.65 * fullNoform),
-          {
+          ...scaleClause([physical(0.65)], fullNoform),
+          ...scaleClause([{
             type: 'damage_memory',
-            params: { key: DEMON_VIRTUAL_DEBT, mode: 'release', ratio: finishScale * fullNoform, releaseAs: 'follow_up', target: 'caster', consume: true },
-          },
-          deferBuff(defer * entryScale * fullNoform),
+            params: { key: DEMON_VIRTUAL_DEBT, mode: 'release', ratio: 1, releaseAs: 'follow_up', target: 'caster', consume: true },
+          }], finishScale * fullNoform),
+          ...scaleClause([deferBuff(defer)], entryScale * fullNoform),
         ],
       });
       break;
     }
     case 'five-skandhas': {
-      const max = features.has('demon-skandhas-fuel') ? 3 : 2;
+      const entryMax = features.has('demon-skandhas-fuel') ? 3 : 1;
+      const finishMax = features.has('demon-skandhas-fuel') ? 3 : 2;
+      const entrySkandhas: EffectConfig[] = [{ type: 'status_transfer', params: { operation: 'move', from: 'caster', to: 'target', status: 'negative', maxCount: entryMax } }];
+      const finishSkandhas: EffectConfig[] = [{ type: 'status_transfer', params: { operation: 'remove', from: 'target', status: 'negative', maxCount: finishMax, effects: [physical(0.3)] } }];
       add({
         buddha: { cost: 0.07, effects: [{ type: 'status_transfer', params: { operation: 'remove', from: 'caster', status: 'negative', maxCount: 1, effects: [gainWar()] } }], target: { team: 'self', scope: 'single' }, intents: { intents: ['buff'] } },
         demonName: '焚尽五蕴', demonCost: 0.06, base: [physical(0.7)],
-        entry: [{ type: 'status_transfer', params: { operation: 'move', from: 'caster', to: 'target', status: 'negative', maxCount: max } }],
-        finish: [{ type: 'status_transfer', params: { operation: 'remove', from: 'target', status: 'negative', maxCount: max, effects: [scaled(0.3, finishScale)] } }],
+        entry: scaleClause(entrySkandhas, entryScale),
+        finish: scaleClause(finishSkandhas, finishScale),
         noformName: '蕴空身在', noformCost: 0.1,
-        noform: [physical(0.7 * fullNoform), { type: 'status_transfer', params: { operation: 'move', from: 'caster', to: 'target', status: 'negative', maxCount: max } }, { type: 'status_transfer', params: { operation: 'remove', from: 'target', status: 'negative', maxCount: max, effects: [physical(0.3 * finishScale * fullNoform)] } }],
+        noform: [
+          ...scaleClause([physical(0.7)], fullNoform),
+          ...scaleClause(entrySkandhas, entryScale * fullNoform),
+          ...scaleClause(finishSkandhas, finishScale * fullNoform),
+        ],
       });
       break;
     }
@@ -965,19 +990,19 @@ function demonVariants(
         params: { scope: 'caster', value: 0.3, timing: 'cast' },
       }];
       const lowFinish = [
-        physical(0.55 * finishScale, lowCondition),
-        { ...healMaxHp(0.03 * finishScale), conditions: lowCondition } as EffectConfig,
+        physical(0.55, lowCondition),
+        { ...healMaxHp(0.03), conditions: lowCondition } as EffectConfig,
       ];
       add({
         buddha: { cost: 0.1, effects: [cap], target: { team: 'self', scope: 'single' }, intents: { intents: ['defensive'] } },
-        demonName: '一苇渡厄', demonCost: 0.06, base: [physical(1)], entry: [directReductionBuff(DEMON_REED_GUARD, '渡厄', 0.25 * entryScale)],
-        finish: lowFinish,
+        demonName: '一苇渡厄', demonCost: 0.06, base: [physical(1)], entry: scaleClause([directReductionBuff(DEMON_REED_GUARD, '渡厄', 0.25)], entryScale),
+        finish: scaleClause(lowFinish, finishScale),
         noformName: '苦海无舟', noformCost: 0.12,
         noform: [
-          physical(1 * fullNoform),
-          physical(0.5 * finishScale * fullNoform, lowCondition),
+          ...scaleClause([physical(1)], fullNoform),
+          ...scaleClause([physical(0.5, lowCondition)], finishScale * fullNoform),
           selfBuff(buff('sect.wuxiang.demon.formless-control', '无舟', 1, [], { statusTags: [GameplayTags.STATUS.IMMUNE.CONTROL] })),
-          { ...healMaxHp(0.03 * finishScale * fullNoform), conditions: lowCondition } as EffectConfig,
+          ...scaleClause([{ ...healMaxHp(0.03), conditions: lowCondition } as EffectConfig], finishScale * fullNoform),
         ],
       });
       break;
@@ -1062,7 +1087,13 @@ function transformVariants(pathId: SectPathId, features: WuxiangFeatures): Abili
       description: '消耗全部战意，令下一门宗门神通化为无相式。',
       conditions: [{ type: 'combat_resource_at_least', params: { scope: 'caster', resourceId: WUXIANG_WAR_INTENT, value: 6 } }],
       costs: hpCost(0.08), targetPolicy: { team: 'self', scope: 'single' }, selectionProfile: { intents: ['buff'] },
-      castEffects: [spendWar('all'), { type: 'ability_mode', params: { key: WUXIANG_FORM_MODE, operation: 'set', mode: 'formless', phase: 1, remainingUses: 1, displayName: '无相待发' } }],
+      castEffects: [
+        spendWar('all'),
+        { type: 'ability_mode', params: { key: WUXIANG_FORM_MODE, operation: 'set', mode: 'formless', phase: 1, remainingUses: 1, displayName: '无相待发' } },
+        ...(!isMirror && features.has('demon-body-breaks')
+          ? [clearBuff(DEMON_BODY_BREAKS_BUFF)]
+          : []),
+      ],
     },
     {
       id: `${pathId}.turn.demon`, name: '魔相入身', priority: 200,
@@ -1169,6 +1200,7 @@ function mirrorPassive(features: WuxiangFeatures): SectCompiledAbility {
 function demonPassive(features: WuxiangFeatures): SectCompiledAbility {
   const factory = new SectAbilityFactory(WUXIANG_SECT_ID);
   const definition = WUXIANG_BASE_DEFINITION.abilities.find((entry) => entry.id === 'demon-core' && entry.kind === 'passive')! as Extract<(typeof WUXIANG_BASE_DEFINITION.abilities)[number], { kind: 'passive' }>;
+  const finishScale = features.has('demon-second-shore') ? 1.2 : 1;
   const demonVariantIds = WUXIANG_TECHNIQUE_IDS.flatMap((abilityId) => [
     `demon.entry.${abilityId}`,
     `demon.finish.${abilityId}`,
@@ -1292,7 +1324,7 @@ function demonPassive(features: WuxiangFeatures): SectCompiledAbility {
       effects: [{
         type: 'lifesteal',
         params: {
-          ratio: features.has('demon-second-shore') ? 0.23 : 0.15,
+          ratio: Number((0.4 * finishScale - 0.25).toFixed(6)),
           maxHpRatioPerAction: features.has('demon-no-gap') ? 0.12 : 0.08,
           variantIds: ['demon.finish.blood-tide', 'demon.finish.blood-tide.different'],
         },
@@ -1300,18 +1332,8 @@ function demonPassive(features: WuxiangFeatures): SectCompiledAbility {
     },
     ...(features.has('demon-body-breaks') ? [
       bodyBreaksListener(
-        'sect.wuxiang.demon.body-breaks.cost',
-        GameplayTags.EVENT.ABILITY_COST_PAID,
-        GameplayTags.SCOPE.OWNER_AS_CASTER,
-      ),
-      bodyBreaksListener(
-        'sect.wuxiang.demon.body-breaks.damage',
-        GameplayTags.EVENT.DAMAGE_TAKEN,
-        GameplayTags.SCOPE.OWNER_AS_TARGET,
-      ),
-      bodyBreaksListener(
-        'sect.wuxiang.demon.body-breaks.heal',
-        'HealEvent',
+        'sect.wuxiang.demon.body-breaks.hp',
+        GameplayTags.EVENT.HP_CHANGED,
         GameplayTags.SCOPE.OWNER_AS_TARGET,
       ),
       bodyBreaksListener(

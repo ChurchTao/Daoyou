@@ -142,7 +142,7 @@ function applyResourceState(
   const resolvedMp = resolveCurrentResource(resourceState.mp, unit.getMaxMp());
 
   if (typeof resolvedHp === 'number') {
-    unit.setHp(resolvedHp);
+    unit.setHp(resolvedHp, 'initialization');
   }
 
   if (typeof resolvedMp === 'number') {

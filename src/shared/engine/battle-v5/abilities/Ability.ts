@@ -1,3 +1,4 @@
+import type { AbilityCostConfig, AbilitySelectionProfile } from '../core/configs';
 import { AbilityId, AbilityType, CombatEvent } from '../core/types';
 
 export type { AbilityId };
@@ -17,12 +18,23 @@ export interface AbilityContext {
 }
 
 export interface AbilityCastSnapshot {
-  variantId?: string;
-  casterHpBeforeCost: number;
-  casterHpAfterCost: number;
-  casterHpRatioAfterCost: number;
-  targetHpBeforeEffects: number;
-  targetHpRatioBeforeEffects: number;
+  readonly variantId?: string;
+  readonly target: Unit;
+  readonly targetId: string;
+  readonly selectionProfile?: AbilitySelectionProfile;
+  readonly costs: ReadonlyArray<Readonly<{
+    type: AbilityCostConfig['resource'];
+    amount: number;
+    mode?: AbilityCostConfig['mode'];
+    retain?: number;
+  }>>;
+  readonly casterHpBeforeCost: number;
+  readonly casterHpAfterCost: number;
+  readonly casterHpRatioAfterCost: number;
+  readonly casterMpBeforeCost: number;
+  readonly casterMpAfterCost: number;
+  readonly targetHpBeforeEffects: number;
+  readonly targetHpRatioBeforeEffects: number;
 }
 
 /**

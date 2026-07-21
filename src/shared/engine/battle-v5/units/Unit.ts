@@ -6,6 +6,10 @@ import { AbilityContainer } from './AbilityContainer';
 import { AttributeSet } from './AttributeSet';
 import { BuffContainer } from './BuffContainer';
 import { CombatResourceContainer } from './CombatResourceContainer';
+import { EventBus } from '../core/EventBus';
+import type { HpChangedEvent } from '../core/events';
+
+export type HpChangeReason = HpChangedEvent['reason'];
 
 interface UnitRuntimeMeta {
   spiritualRoots: SpiritualRoot[];
@@ -81,8 +85,20 @@ export class Unit {
     this.currentShield += Math.round(amount);
   }
 
-  setHp(amount: number): void {
-    this.currentHp = Math.max(0, Math.min(this.maxHp, amount));
+  setHp(amount: number, reason: HpChangeReason = 'set'): void {
+    const beforeHp = this.currentHp;
+    const afterHp = Math.max(0, Math.min(this.maxHp, amount));
+    if (afterHp === beforeHp) return;
+    this.currentHp = afterHp;
+    EventBus.instance.publish<HpChangedEvent>({
+      type: 'HpChangedEvent',
+      timestamp: Date.now(),
+      unit: this,
+      beforeHp,
+      afterHp,
+      delta: afterHp - beforeHp,
+      reason,
+    });
   }
 
   setMp(amount: number): void {
@@ -115,12 +131,12 @@ export class Unit {
       console.warn(`Unit.takeDamage: 负数输入 ${damage}，应使用 heal() 方法`);
       damage = 0;
     }
-    this.setHp(this.currentHp - damage);
+    this.setHp(this.currentHp - damage, 'damage');
   }
 
   heal(amount: number): number {
     const before = this.currentHp;
-    this.setHp(this.currentHp + amount);
+    this.setHp(this.currentHp + amount, 'heal');
     return this.currentHp - before;
   }
 

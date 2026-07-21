@@ -297,10 +297,17 @@ export function evaluateCondition(
       return ability?.runtimeVariantId === cond.params.variantId;
     }
     case 'ability_cost_crossed': {
-      const event = context.triggerEvent as { type?: string; crossedHpRatios?: number[] } | undefined;
+      const event = context.triggerEvent as {
+        type?: string;
+        beforeHpRatio?: number;
+        afterHpRatio?: number;
+      } | undefined;
+      const ratio = cond.params.value;
       return (
         event?.type === 'AbilityCostPaidEvent' &&
-        event.crossedHpRatios?.includes(cond.params.value ?? -1) === true
+        ratio !== undefined &&
+        (event.beforeHpRatio ?? -1) >= ratio &&
+        (event.afterHpRatio ?? 1) < ratio
       );
     }
     case 'combat_resource_change': {

@@ -29,7 +29,7 @@ export class StatusTransferEffect extends GameplayEffect {
     for (const buff of selected) {
       const moved = buff.clone();
       const source = buff.getSource();
-      from.buffs.removeBuffDispel(buff.id);
+      if (!from.buffs.removeBuffDispel(buff.id)) continue;
       if (this.params.operation === 'move' && to) {
         to.buffs.addBuff(moved, source ?? undefined, { ability: context.ability });
       }

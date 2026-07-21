@@ -4,10 +4,13 @@ import type { ActiveSkill } from '../../abilities/ActiveSkill';
 import { StackRule } from '../../buffs/Buff';
 import { TargetPolicy } from '../../abilities/TargetPolicy';
 import { EventBus } from '../../core/EventBus';
+import { checkConditions } from '../../core/conditionEvaluator';
+import { scaleEffectNumericStrength } from '../../core/effectStrengthScaler';
 import type {
   AbilityCostPaidEvent,
   DamageRequestEvent,
   DamageTakenEvent,
+  HpChangedEvent,
   SkillCastEvent,
   SkillPreCastEvent,
 } from '../../core/events';
@@ -62,6 +65,40 @@ describe('气血成本与动态技能变体', () => {
     expect(skill.canTrigger({ caster, target })).toBe(false);
   });
 
+  it('任意配置气血线直接读取成本事件前后比例', () => {
+    const caster = unit('caster');
+    const target = unit('target');
+    const event = {
+      type: 'AbilityCostPaidEvent', timestamp: Date.now(), caster,
+      ability: AbilityFactory.create({
+        slug: 'threshold-source', name: '阈值来源', type: AbilityType.ACTIVE_SKILL,
+        tags: [GameplayTags.ABILITY.KIND.SKILL, GameplayTags.ABILITY.FUNCTION.BUFF],
+      }),
+      beforeHp: 650, afterHp: 620, beforeMp: 0, afterMp: 0,
+      hpPaid: 30, mpPaid: 0, beforeHpRatio: 0.65, afterHpRatio: 0.62,
+    } satisfies AbilityCostPaidEvent;
+
+    expect(checkConditions({ caster, target, triggerEvent: event }, [{
+      type: 'ability_cost_crossed', params: { value: 0.63 },
+    }])).toBe(true);
+    expect(checkConditions({ caster, target, triggerEvent: event }, [{
+      type: 'ability_cost_crossed', params: { value: 0.7 },
+    }])).toBe(false);
+  });
+
+  it('所有气血写入路径发布统一变化事件并保留原因', () => {
+    const caster = unit('caster');
+    const events: HpChangedEvent[] = [];
+    EventBus.instance.subscribe<HpChangedEvent>('HpChangedEvent', (event) => events.push(event));
+
+    caster.takeDamage(10);
+    caster.heal(4);
+    caster.setHp(caster.getCurrentHp() - 3, 'ability_cost');
+
+    expect(events.map((event) => event.reason)).toEqual(['damage', 'heal', 'ability_cost']);
+    expect(events.map((event) => event.delta)).toEqual([-10, 4, -3]);
+  });
+
   it('气血成本是原子支付，不发布受击事件也不进入伤害管道', () => {
     const caster = unit('caster');
     const skill = AbilityFactory.create({
@@ -96,7 +133,12 @@ describe('气血成本与动态技能变体', () => {
           value: { attribute: AttributeType.ATK, coefficient: 0.6 },
           damageType: DamageType.PHYSICAL,
           damageSource: DamageSource.DIRECT,
-          targetMissingHpAtkCoefficientCap: 0.4,
+          dynamicScalars: [{
+            source: 'target_missing_hp_ratio',
+            attribute: AttributeType.ATK,
+            coefficientCap: 0.4,
+            timing: 'cast',
+          }],
         },
       }],
     }) as ActiveSkill;
@@ -110,7 +152,7 @@ describe('气血成本与动态技能变体', () => {
     expect(requests).toHaveLength(1);
     expect(requests[0].baseDamage).toBeCloseTo(Math.round(attack * 0.6) + attack * 0.2, 5);
     expect(requests[0].damageComponents).toContainEqual(expect.objectContaining({
-      kind: 'target_missing_hp',
+      kind: `target_missing_hp:${AttributeType.ATK}`,
       segmentMultiplier: 0.2,
     }));
   });
@@ -146,6 +188,9 @@ describe('气血成本与动态技能变体', () => {
     skill.setOwner(caster);
     let request: DamageRequestEvent | undefined;
     EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => { request = event; });
+    EventBus.instance.subscribe<AbilityCostPaidEvent>('AbilityCostPaidEvent', () => {
+      caster.heal(Math.round(caster.getMaxHp() * 0.2));
+    });
 
     skill.prepareCast({ caster, target });
     skill.execute({ caster, target });
@@ -179,7 +224,7 @@ describe('气血成本与动态技能变体', () => {
           tags: [GameplayTags.ABILITY.KIND.SKILL, GameplayTags.ABILITY.FUNCTION.BUFF],
         }),
         beforeHp: 200, afterHp: 100, beforeMp: 0, afterMp: 0,
-        hpPaid: 100, mpPaid: 0, crossedHpRatios: [],
+        hpPaid: 100, mpPaid: 0, beforeHpRatio: 1, afterHpRatio: 0.5,
       },
     });
     const requests: DamageRequestEvent[] = [];
@@ -229,6 +274,99 @@ describe('气血成本与动态技能变体', () => {
     const moved = target.buffs.getAllBuffs().find((buff) => buff.type === BuffType.DEBUFF);
     expect(moved?.getSource()).toBe(originalSource);
     expect(moved?.getDuration()).toBe(3);
+  });
+
+  it('数值缩放递归进入嵌套消费效果，离散消费次数保持一次', () => {
+    const caster = unit('caster');
+    const target = unit('target');
+    const addLayered = (unit: Unit, id: string, layers: number) => {
+      const marker = BuffFactory.create({
+        id, name: id, type: BuffType.BUFF, duration: -1,
+        stackRule: StackRule.STACK_LAYER, maxLayers: layers,
+      });
+      for (let index = 0; index < layers; index += 1) unit.buffs.addBuff(marker.clone(), unit);
+    };
+    addLayered(caster, 'outer', 2);
+    addLayered(target, 'inner', 3);
+    const effect = AbilityFactory.createEffect({
+      type: 'consume_status_trigger',
+      params: {
+        match: { id: 'outer' }, consume: 2, target: 'caster',
+        scaleNumericEffectsByLayer: true,
+        effects: [{
+          type: 'consume_status_trigger',
+          params: {
+            match: { id: 'inner' }, consume: 'all', target: 'target',
+            scaleEffectsByLayer: true,
+            effects: [{ type: 'damage', params: { value: { attribute: AttributeType.ATK, coefficient: 0.2 } } }],
+          },
+        }],
+      },
+    })!;
+    const requests: DamageRequestEvent[] = [];
+    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => requests.push(event));
+
+    effect.execute({ caster, target });
+
+    expect(requests).toHaveLength(3);
+    expect(requests.every((event) =>
+      event.damageComponents?.some((component) => component.segmentMultiplier === 0.4),
+    )).toBe(true);
+    expect(target.buffs.getAllBuffIds()).not.toContain('inner');
+  });
+
+  it('同一消费效果禁止同时重复次数与缩放数值', () => {
+    expect(() => AbilityFactory.createEffect({
+      type: 'consume_status_trigger',
+      params: {
+        match: { id: 'marker' }, consume: 'all', effects: [],
+        scaleEffectsByLayer: true, scaleNumericEffectsByLayer: true,
+      },
+    })).toThrow('不能同时');
+  });
+
+  it('数值越低越强的伤害上限按反方向缩放', () => {
+    const scaled = scaleEffectNumericStrength({
+      type: 'damage_cap', params: { maxHpRatio: 0.3, deferOverflowTurns: 1 },
+    }, 1.2);
+    expect(scaled.type).toBe('damage_cap');
+    if (scaled.type === 'damage_cap') expect(scaled.params.maxHpRatio).toBeCloseTo(0.25);
+  });
+
+  it('数值缩放强化吸血与共享上限，但不缩放冷却回合等离散语义', () => {
+    const lifesteal = scaleEffectNumericStrength({
+      type: 'lifesteal', params: { ratio: 0.25, maxHpRatioPerAction: 0.08 },
+    }, 1.2);
+    expect(lifesteal).toMatchObject({
+      type: 'lifesteal', params: { ratio: 0.3, maxHpRatioPerAction: 0.096 },
+    });
+
+    const cooldown = scaleEffectNumericStrength({
+      type: 'cooldown_modify', params: { cdModifyValue: -2 },
+    }, 1.2);
+    expect(cooldown).toEqual({ type: 'cooldown_modify', params: { cdModifyValue: -2 } });
+  });
+
+  it('protected状态拒绝普通驱散但仍可由机制主动清理', () => {
+    const caster = unit('caster');
+    const target = unit('target');
+    target.buffs.addBuff(BuffFactory.create({
+      id: 'normal', name: '普通', type: BuffType.BUFF, duration: 2,
+      stackRule: StackRule.OVERRIDE,
+    }), caster);
+    target.buffs.addBuff(BuffFactory.create({
+      id: 'protected', name: '保护', type: BuffType.BUFF, duration: -1,
+      stackRule: StackRule.OVERRIDE, dispelPolicy: 'protected',
+    }), caster);
+    const dispel = AbilityFactory.createEffect({
+      type: 'dispel', params: { maxCount: 2 },
+    })!;
+
+    dispel.execute({ caster, target });
+    expect(target.buffs.getAllBuffIds()).toEqual(['protected']);
+    expect(target.buffs.removeBuffDispel('protected')).toBe(false);
+    target.buffs.removeBuff('protected');
+    expect(target.buffs.getAllBuffIds()).toHaveLength(0);
   });
 
   it('正式执行前资源变化会取消原承诺并改用无标签徒手攻击', () => {
@@ -355,7 +493,7 @@ describe('气血成本与动态技能变体', () => {
     const system = new DamageSystem();
     const before = target.getCurrentHp();
     EventBus.instance.publish({
-      type: 'DamageRequestEvent', timestamp: Date.now(), caster, target,
+      type: 'DamageRequestEvent', timestamp: Date.now(), target,
       damageSource: DamageSource.DIRECT, damageType: DamageType.TRUE,
       baseDamage: 1000, finalDamage: 1000, damageReductionPctBucket: 2,
     });
