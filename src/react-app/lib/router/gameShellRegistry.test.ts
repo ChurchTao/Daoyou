@@ -50,6 +50,9 @@ describe('game shell registry', () => {
     expect(resolveGameShellKind('/game/battle/battle-1')).toBe('combat');
     expect(resolveGameShellKind('/game/bet-battle/challenge')).toBe('combat');
     expect(resolveGameShellKind('/game/sect/trial/lingxiao')).toBe('combat');
+    expect(resolveGameShellKind('/game/sect/tasks/daily-battle/battle')).toBe(
+      'combat',
+    );
     expect(resolveGameShellKind('/game/map')).toBe('map');
     expect(resolveGameShellKind('/game/dungeon')).toBe('dungeon');
     expect(resolveGameShellKind('/game/dungeon/history')).toBe('viewport');
@@ -75,6 +78,20 @@ describe('game shell registry', () => {
     expect(source).toContain('path="sect/industries"');
     expect(source).toContain("id: 'sect-abilities'");
     expect(source).toContain("path=\"skills\"");
+  });
+
+  it('keeps sect query state above every active-player game shell', () => {
+    const source = readFileSync(
+      'src/react-app/layouts/game-layout.tsx',
+      'utf8',
+    );
+    const playerLayout = source.slice(
+      source.indexOf('export function PlayerProviderLayout()'),
+    );
+
+    expect(playerLayout).toContain('<SectQueryProvider>');
+    expect(playerLayout).toContain('<PlayerShell />');
+    expect(source.match(/<SectQueryProvider>/g)).toHaveLength(1);
   });
 
   it('removes deprecated game navigation and immersive bridge leftovers', () => {

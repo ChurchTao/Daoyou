@@ -311,20 +311,18 @@ export function GameViewportLayout() {
   return (
     <div className="bg-paper min-h-[100svh]" style={viewportStyle}>
       <WorldChatFeedProvider>
-        <SectQueryProvider>
-          <div className="flex min-h-[100svh] flex-col">
-            <GameTopHud snapshot={hud} />
-            <main
-              className="min-h-0 flex-1"
-              style={{
-                paddingBottom: 'var(--game-bottom-offset)',
-                scrollPaddingBottom: 'var(--game-bottom-offset)',
-              }}
-            >
-              <Outlet />
-            </main>
-          </div>
-        </SectQueryProvider>
+        <div className="flex min-h-[100svh] flex-col">
+          <GameTopHud snapshot={hud} />
+          <main
+            className="min-h-0 flex-1"
+            style={{
+              paddingBottom: 'var(--game-bottom-offset)',
+              scrollPaddingBottom: 'var(--game-bottom-offset)',
+            }}
+          >
+            <Outlet />
+          </main>
+        </div>
         <RealtimeConnectionToasts />
         <div ref={bottomChromeRef} className="fixed inset-x-0 bottom-0 z-40">
           <WorldChatPreviewBar />
@@ -357,9 +355,7 @@ function GameCombatLayoutBody() {
 export function GameCombatLayout() {
   return (
     <SpecialSceneProvider>
-      <SectQueryProvider>
-        <GameCombatLayoutBody />
-      </SectQueryProvider>
+      <GameCombatLayoutBody />
     </SpecialSceneProvider>
   );
 }
@@ -598,7 +594,9 @@ export default function GameLayout() {
 export function PlayerProviderLayout() {
   return (
     <PlayerProvider>
-      <PlayerShell />
+      <SectQueryProvider>
+        <PlayerShell />
+      </SectQueryProvider>
     </PlayerProvider>
   );
 }
