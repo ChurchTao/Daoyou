@@ -28,7 +28,7 @@ export const SWIFT_LAYER_1_NODES = [
       id: 'swift-opening',
       layerId: '1',
       name: '风起',
-      description: '战斗开始时获得2点剑势；首回合身法提高8%。',
+      description: '战斗开始时获得2点剑意；首回合身法提高8%。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('opening');
@@ -77,7 +77,7 @@ export const SWIFT_LAYER_1_NODES = [
       layerId: '1',
       name: '敛锋',
       description:
-        '本场战斗首次受到直接伤害时，该次伤害降低10%，并获得3点剑势。',
+        '本场战斗首次受到直接伤害时，该次伤害降低10%，并获得3点剑意。',
     },
     (context, builder) =>
       addHiddenNodePassive(context, builder, {
@@ -92,7 +92,7 @@ export const SWIFT_LAYER_1_NODES = [
       layerId: '1',
       name: '探虚',
       description:
-        '《基础剑式》每累计命中2次，额外获得1点剑势，并施加1层随《问剑篇》成长的剑痕。',
+        '《问剑式》每累计命中2次，额外获得1点剑意，并施加1层随《红尘剑录》成长的剑痕。',
     },
     (context, builder) =>
       addProbingNodePassive(context, builder, {
@@ -103,6 +103,6 @@ export const SWIFT_LAYER_1_NODES = [
         statusEffect: createSwordMark(),
       }),
     (context) =>
-      `《基础剑式》每累计命中2次，额外获得1点剑势，并施加1层剑痕；每层使目标受到的直接、反击和追击伤害提高${nodePercent(growthStatusMagnitude(context, 'lingxiao-canon', 0.02))}，持续目标未来${growthDuration(context, 'lingxiao-canon', 3)}次行动。`,
+      `《问剑式》每累计命中2次，额外获得1点剑意，并施加1层剑痕；每层使目标受到的直接、反击和追击伤害提高${nodePercent(growthStatusMagnitude(context, 'lingxiao-canon', 0.02))}，持续目标未来${growthDuration(context, 'lingxiao-canon', 3)}次行动。`,
   ),
 ] as const;

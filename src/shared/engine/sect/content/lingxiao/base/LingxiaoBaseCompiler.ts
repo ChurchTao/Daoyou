@@ -29,7 +29,7 @@ const abilityDefinition = (abilityId: string) => {
     (ability) => ability.id === abilityId,
   );
   if (!definition || definition.kind === 'passive')
-    throw new Error(`凌霄基础主动神通未定义: ${abilityId}`);
+    throw new Error(`红尘剑宗基础主动神通未定义: ${abilityId}`);
   return definition;
 };
 

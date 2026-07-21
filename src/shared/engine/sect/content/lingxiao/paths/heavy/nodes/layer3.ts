@@ -18,7 +18,7 @@ export const HEAVY_LAYER_3_NODES = [
     {
       id: 'heavy-crossing-pass',
       layerId: '3',
-      name: '山门',
+      name: '镇关',
       description: '《踏雪无痕》提供的护盾提高50%。',
     },
     (_context, builder) => heavySwordBuild(builder).enable('mountainGate'),

@@ -24,11 +24,11 @@ export const HEAVY_ULTIMATE_NODES = [
       layerId: 'ultimate',
       name: '开天',
       description:
-        '《剑破万法》改为仅可在6点剑势时施展，提高随《问剑篇》成长的总倍率并获得20%穿防；冷却增加1回合。',
+        '《此剑平生》改为仅可在6点剑意时施展，提高随《红尘剑录》成长的总倍率并获得20%穿防；冷却增加1回合。',
     },
     (_context, builder) => heavySwordBuild(builder).enable('heavenCleaving'),
     (context) =>
-      `《剑破万法》仅可在6点剑势时施展，当前总倍率为${nodePercent(growthMagnitude(context, 'lingxiao-canon', HEAVY_HEAVEN_CLEAVING_TOTAL_COEFFICIENT))}物攻，并获得20%穿防；冷却增加1回合。`,
+      `《此剑平生》仅可在6点剑意时施展，当前总倍率为${nodePercent(growthMagnitude(context, 'lingxiao-canon', HEAVY_HEAVEN_CLEAVING_TOTAL_COEFFICIENT))}物攻，并获得20%穿防；冷却增加1回合。`,
   ),
   createLingxiaoNode(
     {
@@ -48,7 +48,7 @@ export const HEAVY_ULTIMATE_NODES = [
       layerId: 'ultimate',
       name: '山河回响',
       description:
-        '施展《剑破万法》后恢复气血并获得随《问剑篇》成长的护盾，每3回合最多触发一次。',
+        '施展《此剑平生》后恢复气血并获得随《红尘剑录》成长的护盾，每3回合最多触发一次。',
     },
     (context, builder) => {
       heavySwordBuild(builder).enable('mountainRiverEcho');
@@ -78,6 +78,6 @@ export const HEAVY_ULTIMATE_NODES = [
       });
     },
     (context) =>
-      `施展《剑破万法》后恢复${nodePercent(growthMagnitude(context, 'lingxiao-canon', HEAVY_ECHO_HEAL_RATIO))}最大气血，并获得相当于${nodePercent(growthMagnitude(context, 'lingxiao-canon', HEAVY_ECHO_SHIELD_COEFFICIENT))}物攻的护盾，每3回合最多触发一次。`,
+      `施展《此剑平生》后恢复${nodePercent(growthMagnitude(context, 'lingxiao-canon', HEAVY_ECHO_HEAL_RATIO))}最大气血，并获得相当于${nodePercent(growthMagnitude(context, 'lingxiao-canon', HEAVY_ECHO_SHIELD_COEFFICIENT))}物攻的护盾，每3回合最多触发一次。`,
   ),
 ] as const;

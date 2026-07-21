@@ -70,17 +70,19 @@ function sectState(pathId: PathId, nodeId?: string): CultivatorSectState {
       'origin-returning': 100,
       'sword-nurturing': 100,
     },
-    paths: [{
-      pathId,
-      unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
-      tacticId: pathId === 'swift-sword' ? 'aggressive' : 'heavy-break',
-      activeMeridianSlot: 1,
-      meridianLoadouts: [
-        { slot: 1, nodeIds: nodeId ? [nodeId] : [], version: 1 },
-        { slot: 2, nodeIds: [], version: 1 },
-        { slot: 3, nodeIds: [], version: 1 },
-      ],
-    }],
+    paths: [
+      {
+        pathId,
+        unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
+        tacticId: pathId === 'swift-sword' ? 'aggressive' : 'heavy-break',
+        activeMeridianSlot: 1,
+        meridianLoadouts: [
+          { slot: 1, nodeIds: nodeId ? [nodeId] : [], version: 1 },
+          { slot: 2, nodeIds: [], version: 1 },
+          { slot: 3, nodeIds: [], version: 1 },
+        ],
+      },
+    ],
     abilityLoadout: [
       'guiding-sword',
       'linked-edge',
@@ -103,17 +105,21 @@ function unit(id: string): Unit {
   return result;
 }
 
-function runtimeFingerprint(pathId: PathId, nodeId?: string): RuntimeFingerprint {
+function runtimeFingerprint(
+  pathId: PathId,
+  nodeId?: string,
+): RuntimeFingerprint {
   EventBus.instance.reset();
-  const projection = productionSectRuntime.compiler.compile(
-    LINGXIAO_MODULE,
-    { sect: sectState(pathId, nodeId), realm: '化神' },
-  );
+  const projection = productionSectRuntime.compiler.compile(LINGXIAO_MODULE, {
+    sect: sectState(pathId, nodeId),
+    realm: '化神',
+  });
   const owner = unit('owner');
   const enemy = unit('enemy');
   enemy.setHp(Math.floor(enemy.getMaxHp() * 0.2));
   owner.setHp(Math.floor(owner.getMaxHp() * 0.5));
-  for (const resource of projection.resources) owner.combatResources.define(resource);
+  for (const resource of projection.resources)
+    owner.combatResources.define(resource);
   const defaultId = LINGXIAO_MODULE.definition.abilities.find(
     (ability) => ability.kind === 'default',
   )!.id;
@@ -148,37 +154,68 @@ function runtimeFingerprint(pathId: PathId, nodeId?: string): RuntimeFingerprint
     abilityCooldowns: [],
   };
   const bus = EventBus.instance;
-  bus.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
-    trace.damage.push([
-      event.caster?.id,
-      event.target.id,
-      event.damageSource,
-      Math.round(event.baseDamage * 100) / 100,
-      event.forceCritical ? 'crit' : '',
-      Math.round((event.damageReductionPctBucket ?? 0) * 100),
-      Math.round((event.damageIncreasePctBucket ?? 0) * 100),
-      (event.damageComponents ?? [])
-        .map((component) => `${component.mitigation}:${Math.round(component.amount * 100) / 100}`)
-        .join(','),
-    ].join('|'));
-  }, -1_000);
-  bus.subscribe<CombatResourceChangeEvent>('CombatResourceChangeEvent', (event) => {
-    trace.resources.push(
-      `${event.operation}:${event.reason}:${event.applied}:${event.after}`,
-    );
-  }, -1_000);
-  bus.subscribe<ShieldEvent>('ShieldEvent', (event) => {
-    trace.shields.push(Math.round(event.shieldAmount));
-  }, -1_000);
-  bus.subscribe<HealEvent>('HealEvent', (event) => {
-    trace.heals.push(Math.round(event.healAmount));
-  }, -1_000);
-  bus.subscribe<BuffAppliedEvent>('BuffAppliedEvent', (event) => {
-    trace.buffs.push(`${event.buff.name}:${event.buff.getMaxDuration()}`);
-  }, -1_000);
-  bus.subscribe<CooldownModifyEvent>('CooldownModifyEvent', (event) => {
-    trace.cooldowns.push(`${event.affectedAbilityName}:${event.cdModifyValue}`);
-  }, -1_000);
+  bus.subscribe<DamageRequestEvent>(
+    'DamageRequestEvent',
+    (event) => {
+      trace.damage.push(
+        [
+          event.caster?.id,
+          event.target.id,
+          event.damageSource,
+          Math.round(event.baseDamage * 100) / 100,
+          event.forceCritical ? 'crit' : '',
+          Math.round((event.damageReductionPctBucket ?? 0) * 100),
+          Math.round((event.damageIncreasePctBucket ?? 0) * 100),
+          (event.damageComponents ?? [])
+            .map(
+              (component) =>
+                `${component.mitigation}:${Math.round(component.amount * 100) / 100}`,
+            )
+            .join(','),
+        ].join('|'),
+      );
+    },
+    -1_000,
+  );
+  bus.subscribe<CombatResourceChangeEvent>(
+    'CombatResourceChangeEvent',
+    (event) => {
+      trace.resources.push(
+        `${event.operation}:${event.reason}:${event.applied}:${event.after}`,
+      );
+    },
+    -1_000,
+  );
+  bus.subscribe<ShieldEvent>(
+    'ShieldEvent',
+    (event) => {
+      trace.shields.push(Math.round(event.shieldAmount));
+    },
+    -1_000,
+  );
+  bus.subscribe<HealEvent>(
+    'HealEvent',
+    (event) => {
+      trace.heals.push(Math.round(event.healAmount));
+    },
+    -1_000,
+  );
+  bus.subscribe<BuffAppliedEvent>(
+    'BuffAppliedEvent',
+    (event) => {
+      trace.buffs.push(`${event.buff.name}:${event.buff.getMaxDuration()}`);
+    },
+    -1_000,
+  );
+  bus.subscribe<CooldownModifyEvent>(
+    'CooldownModifyEvent',
+    (event) => {
+      trace.cooldowns.push(
+        `${event.affectedAbilityName}:${event.cdModifyValue}`,
+      );
+    },
+    -1_000,
+  );
 
   const enemyAttack = AbilityFactory.create({
     slug: 'runtime.enemy.attack',
@@ -312,7 +349,9 @@ function runtimeFingerprint(pathId: PathId, nodeId?: string): RuntimeFingerprint
   trace.finalHp = owner.getCurrentHp();
   trace.abilityCooldowns = owner.abilities
     .getAllAbilities()
-    .filter((ability): ability is ActiveSkill => 'getCurrentCooldown' in ability)
+    .filter(
+      (ability): ability is ActiveSkill => 'getCurrentCooldown' in ability,
+    )
     .map((ability) => `${ability.name}:${ability.getCurrentCooldown()}`)
     .sort();
   return trace;
@@ -331,7 +370,7 @@ const NODE_CASES = [
   })),
 ];
 
-describe('凌霄36参悟节点运行时矩阵', () => {
+describe('红尘剑宗36参悟节点运行时矩阵', () => {
   afterEach(() => EventBus.instance.reset());
 
   it('节点清单保持快重各18个', () => {

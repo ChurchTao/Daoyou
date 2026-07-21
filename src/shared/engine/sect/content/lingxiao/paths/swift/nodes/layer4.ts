@@ -19,18 +19,18 @@ export const SWIFT_LAYER_4_NODES = [
       layerId: '4',
       name: '破妄',
       description:
-        '施展《剑破万法》时消耗全部剑痕；每消耗1层，追加一次随《问剑篇》成长且无视防御的伤害。',
+        '施展《此剑平生》时消耗全部剑痕；每消耗1层，追加一次随《红尘剑录》成长且无视防御的伤害。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('mountainBreaking'),
     (context) =>
-      `施展《剑破万法》时消耗目标全部剑痕；每消耗1层，追加相当于${nodePercent(growthMagnitude(context, 'lingxiao-canon', SWIFT_MOUNTAIN_BREAKING_COEFFICIENT))}物攻且无视防御的伤害。`,
+      `施展《此剑平生》时消耗目标全部剑痕；每消耗1层，追加相当于${nodePercent(growthMagnitude(context, 'lingxiao-canon', SWIFT_MOUNTAIN_BREAKING_COEFFICIENT))}物攻且无视防御的伤害。`,
   ),
   createLingxiaoNode(
     {
       id: 'swift-life-chasing',
       layerId: '4',
       name: '追命',
-      description: '目标气血低于25%时，《剑破万法》造成的伤害提高15%。',
+      description: '目标气血低于25%时，《此剑平生》造成的伤害提高15%。',
     },
     (context, builder) =>
       addLingxiaoPassive(context, builder, {
@@ -65,7 +65,7 @@ export const SWIFT_LAYER_4_NODES = [
           {
             abilityId: 'sect-ultimate',
             factRows: [
-              '参悟·追命：目标气血低于25%时，《剑破万法》造成的伤害提高15%',
+              '参悟·追命：目标气血低于25%时，《此剑平生》造成的伤害提高15%',
             ],
           },
         ],
@@ -77,10 +77,10 @@ export const SWIFT_LAYER_4_NODES = [
       layerId: '4',
       name: '归鞘',
       description:
-        '《剑破万法》伤害降低15%，施展后返还2点剑势，并获得随《问剑篇》成长的护盾。',
+        '《此剑平生》伤害降低15%，施展后返还2点剑意，并获得随《红尘剑录》成长的护盾。剑有出时，也应有归处。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('sheathing'),
     (context) =>
-      `《剑破万法》伤害降低15%；施展后返还2点剑势，并获得相当于${nodePercent(growthMagnitude(context, 'lingxiao-canon', SWIFT_SHEATHING_SHIELD_COEFFICIENT))}物攻的护盾。`,
+      `《此剑平生》伤害降低15%；施展后返还2点剑意，并获得相当于${nodePercent(growthMagnitude(context, 'lingxiao-canon', SWIFT_SHEATHING_SHIELD_COEFFICIENT))}物攻的护盾。剑有出时，也应有归处。`,
   ),
 ] as const;

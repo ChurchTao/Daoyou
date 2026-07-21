@@ -92,7 +92,7 @@ function install(pathId: 'swift-sword' | 'heavy-sword', nodes: string[]) {
   return { sect, projection, owner, enemy };
 }
 
-describe('凌霄参悟运行时语义', () => {
+describe('红尘剑宗参悟运行时语义', () => {
   beforeEach(() => EventBus.instance.reset());
   afterEach(() => EventBus.instance.reset());
 
@@ -203,7 +203,7 @@ describe('凌霄参悟运行时语义', () => {
     expect(request.damageIncreasePctBucket).toBeCloseTo(0.15);
   });
 
-  it('承锋只降低整场战斗第一次直接伤害并获得2点剑势', () => {
+  it('承锋只降低整场战斗第一次直接伤害并获得2点剑意', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const { owner, enemy } = install('heavy-sword', ['heavy-hidden-weight']);
     const damageSystem = new DamageSystem();
@@ -305,7 +305,7 @@ describe('凌霄参悟运行时语义', () => {
     expect(consumeQueuedAction(owner)?.ability.name).toBe('听雷');
   });
 
-  it('重剑攻击未命中时不获得护盾和剑势，一剑破妄也不驱散', () => {
+  it('重剑攻击未命中时不获得护盾和剑意，一剑破妄也不驱散', () => {
     const { sect, owner, enemy } = install('heavy-sword', []);
     for (const abilityId of ['guiding-sword', 'linked-edge']) {
       const ability = AbilityFactory.create(

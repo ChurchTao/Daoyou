@@ -25,7 +25,7 @@ export const SWIFT_LAYER_3_NODES = [
       layerId: '3',
       name: '燕返',
       description:
-        '提高《藏锋听雷》的首次闪避反击伤害，命中后施加1层随《问剑篇》成长的剑痕。',
+        '提高《藏锋听雷》的首次闪避反击伤害，命中后施加1层随《红尘剑录》成长的剑痕。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('returningSwallow'),
     (context) =>
@@ -36,7 +36,7 @@ export const SWIFT_LAYER_3_NODES = [
       id: 'swift-borrowed-force',
       layerId: '3',
       name: '借风',
-      description: '每回合首次受到直接伤害时，获得1点剑势。',
+      description: '每回合首次受到直接伤害时，获得1点剑意。',
     },
     (context, builder) =>
       addBorrowedNodePassive(context, builder, {
@@ -51,7 +51,7 @@ export const SWIFT_LAYER_3_NODES = [
       layerId: '3',
       name: '守锋',
       description:
-        '被控制而跳过行动时剑势不衰减；下一次通过积势神通获得剑势时额外获得1点。',
+        '被控制而跳过行动时剑意不衰减；下一次通过积势神通获得剑意时额外获得1点。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('guardedEdge');
@@ -102,7 +102,7 @@ export const SWIFT_LAYER_3_NODES = [
           {
             abilityId: 'guiding-sword',
             factRows: [
-              '参悟·守锋：被控制而跳过行动时剑势不衰减；下一次通过积势神通获得剑势时额外获得1点',
+              '参悟·守锋：被控制而跳过行动时剑意不衰减；下一次通过积势神通获得剑意时额外获得1点',
             ],
           },
         ],

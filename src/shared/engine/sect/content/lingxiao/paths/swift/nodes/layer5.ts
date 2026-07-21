@@ -19,7 +19,7 @@ export const SWIFT_LAYER_5_NODES = [
       layerId: '5',
       name: '无隙',
       description:
-        '施展《剑破万法》后，下一次《剑起沧澜》不消耗法力，并额外获得1点剑势。',
+        '施展《此剑平生》后，下一次《剑起沧澜》不消耗法力，并额外获得1点剑意。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('gapless');
@@ -63,7 +63,7 @@ export const SWIFT_LAYER_5_NODES = [
           {
             abilityId: 'sect-ultimate',
             factRows: [
-              '参悟·无隙：施展《剑破万法》后，下一次《剑起沧澜》不消耗法力，并额外获得1点剑势',
+              '参悟·无隙：施展《此剑平生》后，下一次《剑起沧澜》不消耗法力，并额外获得1点剑意',
             ],
           },
         ],
@@ -112,7 +112,7 @@ export const SWIFT_LAYER_5_NODES = [
       layerId: '5',
       name: '静潮',
       description:
-        '连续两次自身行动未施展《剑破万法》后，暂停剑势衰减；下一次《剑破万法》伤害提高15%。',
+        '连续两次自身行动未施展《此剑平生》后，暂停剑意衰减；下一次《此剑平生》伤害提高15%。',
     },
     (context, builder) => {
       swiftSwordBuild(builder).enable('stillTide');
@@ -166,7 +166,7 @@ export const SWIFT_LAYER_5_NODES = [
           {
             abilityId: 'sect-ultimate',
             factRows: [
-              '参悟·静潮：连续两次自身行动未施展《剑破万法》后暂停剑势衰减；下一次《剑破万法》伤害提高15%',
+              '参悟·静潮：连续两次自身行动未施展《此剑平生》后暂停剑意衰减；下一次《此剑平生》伤害提高15%',
             ],
           },
         ],

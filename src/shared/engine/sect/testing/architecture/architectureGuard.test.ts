@@ -73,7 +73,7 @@ describe('宗门插件架构守卫', () => {
     expect(production).not.toMatch(/fixture|testing/);
   });
 
-  it('凌霄内容不手写神通详情或启动期组合穷举', () => {
+  it('红尘剑宗内容不手写神通详情或启动期组合穷举', () => {
     const contentRoot = join(root, 'content/lingxiao');
     for (const file of sourceFiles(contentRoot).filter(
       (path) => !path.includes('/tests/'),
@@ -101,7 +101,7 @@ describe('宗门插件架构守卫', () => {
       const source = readFileSync(file, 'utf8');
       const label = relative(process.cwd(), file);
       expect(source, label).not.toMatch(
-        /lingxiao|凌霄|剑道|剑路|剑痕|九门|六层|藏经阁|悟道崖|演武台|执事堂|百业院|云阶扫叶/,
+        /lingxiao|凌霄|红尘剑宗|剑道|剑路|剑痕|九门|六层|藏经阁|剑录阁|悟道崖|照影崖|演武台|试剑台|执事堂|百业院|云阶扫叶|山阶扫叶/,
       );
       expect(source, label).not.toMatch(
         /presentation\/lingxiao|\[null, null, null, null\]|\[1, 2, 3\]/,

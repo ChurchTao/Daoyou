@@ -39,7 +39,7 @@ export function createSwordMark(): EffectConfig {
           id: LINGXIAO_SWORD_MARK_BUFF,
           name: '剑痕',
           description:
-            '每层使受到的直接、反击和追击伤害提高，可被《剑破万法》引动。',
+            '每层使受到的直接、反击和追击伤害提高，可被《此剑平生》引动。',
           type: BuffType.DEBUFF,
           duration: 3,
           stackRule: StackRule.STACK_LAYER,

@@ -23,7 +23,7 @@ export const HEAVY_LAYER_4_NODES = [
       layerId: '4',
       name: '横关',
       description:
-        '每回合首次以护盾吸收直接伤害时，反击造成相当于55%物攻的伤害，并获得1点剑势。',
+        '每回合首次以护盾吸收直接伤害时，反击造成相当于55%物攻的伤害，并获得1点剑意。',
     },
     (context, builder) =>
       addLingxiaoPassive(context, builder, {

@@ -82,7 +82,7 @@ function findObjectById(
 }
 
 describe('宗门注册投影', () => {
-  it('九个神通跨境界保持固定蓝耗且基础剑式始终免费', () => {
+  it('九个神通跨境界保持固定蓝耗且问剑式始终免费', () => {
     const expected = new Map([
       ['plain-sword', 0],
       ['guiding-sword', 30],
@@ -179,7 +179,7 @@ describe('宗门注册投影', () => {
     }
   });
 
-  it('炼气初期心法上限可解锁除绝式外全部基础神通，10级开放剑破万法', () => {
+  it('炼气初期心法上限可解锁除绝式外全部基础神通，10级开放此剑平生', () => {
     const early = state();
     early.methods = Object.fromEntries(
       Object.keys(early.methods).map((methodId) => [methodId, 5]),
@@ -196,7 +196,7 @@ describe('宗门注册投影', () => {
     );
   });
 
-  it('凌霄两条流派各自保持六层且每层三个节点', () => {
+  it('红尘剑宗两条流派各自保持六层且每层三个节点', () => {
     for (const path of LINGXIAO_MODULE.definition.paths) {
       expect(path.layers).toHaveLength(6);
       expect(path.presentation?.highlights).toHaveLength(3);
@@ -215,13 +215,13 @@ describe('宗门注册投影', () => {
     const heavy = LINGXIAO_MODULE.definition.paths.find(
       (path) => path.id === 'heavy-sword',
     )!;
-    expect(swift.name).toBe('疾风骤雨');
+    expect(swift.name).toBe('照影游尘');
     expect(swift.description).toBe(
-      '剑随疾风而起，锋如骤雨倾落；一痕未消，一痕又生，于连绵不绝之间决胜。',
+      '剑随身走，身随势变；以迅疾剑式连缀攻势，在交锋之间留下剑痕，最终将诸般剑影收束于《此剑平生》。',
     );
-    expect(heavy.name).toBe('重剑无锋');
+    expect(heavy.name).toBe('守拙藏锋');
     expect(heavy.description).toBe(
-      '重剑无锋，大巧不工；以身承势，以守养锋，待千钧尽聚，一剑自可开山。',
+      '重剑不争一时之快，以身承势，以守养锋；剑意未足时稳住自身，剑意既成后，以一剑决定胜负。',
     );
     expect(
       swift.nodes.find((node) => node.id === 'swift-returning-swallow')?.name,
@@ -237,22 +237,22 @@ describe('宗门注册投影', () => {
     ).toBe('极势');
   });
 
-  it('未激活流派使用基础剑势和基础法术', () => {
+  it('未激活流派使用基础剑意和基础法术', () => {
     const projection = projectSectCombat({ sect: state(), realm: '筑基' })!;
     expect(projection.resources[0]).toMatchObject({
       id: 'sect.lingxiao.sword-momentum',
-      name: '剑势',
+      name: '剑意',
       icon: '🗡️',
       max: 6,
     });
-    expect(projection.defaultAttack?.name).toBe('基础剑式');
+    expect(projection.defaultAttack?.name).toBe('问剑式');
   });
 
-  it('疾风骤雨通过统一解析器生成变体与节点效果', () => {
+  it('照影游尘通过统一解析器生成变体与节点效果', () => {
     const sect = state('swift-sword', ['swift-opening', 'swift-split-light']);
     const projection = projectSectCombat({ sect, realm: '化神' })!;
     expect(projection.resources[0]).toMatchObject({
-      name: '剑势',
+      name: '剑意',
       initial: 2,
       max: 6,
     });
@@ -263,9 +263,7 @@ describe('宗门注册投影', () => {
       abilityId: 'linked-edge',
     });
     expect(detail.name).toBe('剑荡山河');
-    expect(detail.summary).toBe(
-      '剑锋纵横，如长河奔涌；所过之处，山河亦为之震荡。',
-    );
+    expect(detail.summary).toBe('剑锋纵横，数势相连；前剑未尽，后剑已越其锋。');
     expect(detail.detailRows).toContain('伤害：7段 × 26.25%物攻');
     expect(
       projection.abilities.find(
@@ -274,12 +272,12 @@ describe('宗门注册投影', () => {
     ).toEqual(detail.config);
   });
 
-  it('重剑无锋沿用宗门剑势并生成独立技能变体和策略', () => {
+  it('守拙藏锋沿用宗门剑意并生成独立技能变体和策略', () => {
     const sect = state('heavy-sword', ['heavy-opening', 'heavy-triple-ridge']);
     const projection = projectSectCombat({ sect, realm: '化神' })!;
     expect(projection.resources[0]).toMatchObject({
       id: 'sect.lingxiao.sword-momentum',
-      name: '剑势',
+      name: '剑意',
       initial: 1,
       max: 6,
     });
@@ -291,7 +289,7 @@ describe('宗门注册投影', () => {
     expect(
       resolveSectAbility({ sect, realm: '化神', abilityId: 'sect-ultimate' })
         .name,
-    ).toBe('剑破万法');
+    ).toBe('此剑平生');
   });
 
   it('流派基础变体不再随已解锁层数改变倍率', () => {
@@ -482,7 +480,7 @@ describe('宗门注册投影', () => {
       abilityId: 'sect-ultimate',
     });
     expect(shadow.cooldown).toBe(5);
-    expect(shadow.detailRows).toContain('施放条件：至少6点剑势');
+    expect(shadow.detailRows).toContain('施放条件：至少6点剑意');
     expect(shadow.detailRows).toContain('暴击：整次施法全部伤害段必定暴击');
 
     const returningPeak = resolveSectAbility({
@@ -492,8 +490,8 @@ describe('宗门注册投影', () => {
     });
     expect(returningPeak.detailRows).toEqual(
       expect.arrayContaining([
-        '伤害：基础相当于93.5%物攻，每点剑势增加30.81%物攻',
-        '命中后：剑势：返还2点',
+        '伤害：基础相当于93.5%物攻，每点剑意增加30.81%物攻',
+        '命中后：剑意：返还2点',
         '命中后：护盾：相当于45%物攻',
       ]),
     );
@@ -507,10 +505,10 @@ describe('宗门注册投影', () => {
       abilityId: 'sect-ultimate',
     });
     expect(returningHeaven.detailRows).toContain(
-      '6点剑势时总倍率：297.49%物攻',
+      '6点剑意时总倍率：297.49%物攻',
     );
     expect(returningHeaven.detailRows).not.toContain(
-      '6点剑势时总倍率：400%物攻',
+      '6点剑意时总倍率：400%物攻',
     );
 
     const mountainBreaking = resolveSectAbility({
@@ -714,7 +712,7 @@ describe('宗门注册投影', () => {
         abilityId: 'turning-body',
       }).detailRows,
     ).toContain(
-      '命中后：触发：持续期间首次闪避时，反击造成相当于50%物攻的伤害，并获得1点剑势',
+      '命中后：触发：持续期间首次闪避时，反击造成相当于50%物攻的伤害，并获得1点剑意',
     );
     expect(
       resolveSectAbility({
@@ -722,14 +720,14 @@ describe('宗门注册投影', () => {
         realm: '化神',
         abilityId: 'shadow-step',
       }).detailRows,
-    ).toContain('施展后：触发：持续期间首次闪避时，获得1点剑势');
+    ).toContain('施展后：触发：持续期间首次闪避时，获得1点剑意');
     expect(
       resolveSectAbility({
         sect: swift,
         realm: '化神',
         abilityId: 'sect-ultimate',
       }).detailRows,
-    ).toContain('命中后：消耗全部剑势');
+    ).toContain('命中后：消耗全部剑意');
   });
 
   it('动态详情聚合剑痕并完整描述节点触发效果', () => {
@@ -760,7 +758,7 @@ describe('宗门注册投影', () => {
         abilityId: 'turning-body',
       }).detailRows,
     ).toContain(
-      '命中后：触发：持续期间首次闪避时，反击造成相当于50%物攻的伤害、获得1点剑势、向目标施加1层剑痕，持续目标未来4次行动，并获得相当于50%物攻的护盾',
+      '命中后：触发：持续期间首次闪避时，反击造成相当于50%物攻的伤害、获得1点剑意、向目标施加1层剑痕，持续目标未来4次行动，并获得相当于50%物攻的护盾',
     );
 
     const heavy = state('heavy-sword', ['heavy-immovable-mountain']);

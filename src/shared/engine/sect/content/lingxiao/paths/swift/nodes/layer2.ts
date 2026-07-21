@@ -13,11 +13,11 @@ export const SWIFT_LAYER_2_NODES = [
       layerId: '2',
       name: '分光',
       description:
-        '《剑荡山河》变为7段攻击并获得3点剑势；每段伤害随《剑气凌霄》成长。',
+        '《剑荡山河》变为7段攻击并获得3点剑意；每段伤害随《剑气长歌》成长。',
     },
     (_context, builder) => swiftSwordBuild(builder).enable('splitLight'),
     (context) =>
-      `《剑荡山河》变为7段攻击，每段造成相当于${nodePercent(growthMagnitude(context, 'sword-guidance', SWIFT_SPLIT_LIGHT_HIT_COEFFICIENT))}物攻的伤害，并获得3点剑势。`,
+      `《剑荡山河》变为7段攻击，每段造成相当于${nodePercent(growthMagnitude(context, 'sword-guidance', SWIFT_SPLIT_LIGHT_HIT_COEFFICIENT))}物攻的伤害，并获得3点剑意。`,
   ),
   createLingxiaoNode(
     {

@@ -18,7 +18,7 @@ const state: CultivatorSectState = {
 };
 
 describe('宗门心法属性投影', () => {
-  it('凌霄六本心法使用稳定ID映射新的名称与属性', () => {
+  it('红尘剑宗六本心法使用稳定ID映射新的名称与属性', () => {
     expect(
       [...LINGXIAO_SECT.methods]
         .sort((left, right) => left.slot - right.slot)
@@ -30,7 +30,7 @@ describe('宗门心法属性投影', () => {
           method.modifierPerLevel?.value ?? null,
         ]),
     ).toEqual([
-      ['lingxiao-canon', '《问剑篇》', null, null, null],
+      ['lingxiao-canon', '《红尘剑录》', null, null, null],
       [
         'edge-cleansing',
         '《观微剑意》',
@@ -40,7 +40,7 @@ describe('宗门心法属性投影', () => {
       ],
       [
         'sword-guidance',
-        '《剑气凌霄》',
+        '《剑气长歌》',
         AttributeType.ATK,
         ModifierType.ADD,
         0.0005,
@@ -54,7 +54,7 @@ describe('宗门心法属性投影', () => {
       ],
       [
         'origin-returning',
-      '《万法不侵》',
+        '《澄心剑诀》',
         AttributeType.MAGIC_DEF,
         ModifierType.ADD,
         0.0005,

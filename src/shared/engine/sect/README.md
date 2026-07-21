@@ -13,7 +13,7 @@
 - `core/runtime`：`SectRegistry` 与客户端、服务端共用的 `SectRuntimeFacade`。
 - `core/presentation`：神通效果说明、心法属性投影、四槽装配和完整宗门展示主题等纯逻辑。
 - `content/productionRuntime.ts`：领域模块与可选前端主题的唯一生产组合根。
-- `content/lingxiao`：凌霄基础传承和快剑、重剑两个流派插件。
+- `content/lingxiao`：保留 `lingxiao` 稳定 ID 的红尘剑宗传承，以及快剑、重剑两个流派插件。
 - `testing/fixtures`：不会进入生产目录的扩展性宗门。
 
 根目录只保留本说明、公共 `index.ts` 和上述分层目录。通用能力从 `@shared/engine/sect` 导入；生产运行时从 `@shared/engine/sect/content` 导入。

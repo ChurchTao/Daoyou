@@ -209,8 +209,8 @@ C：无相追加层
 
 ### 6.4 稳定目标策略
 
-| 道途 | 神通 | 固定目标 |
-|---|---|---|
+| 道途 | 神通     | 固定目标 |
+| ---- | -------- | -------- |
 | 明镜 | 拈花叩心 | 敌方单体 |
 | 明镜 | 血海听潮 | 自身单体 |
 | 明镜 | 三叩业门 | 敌方单体 |
@@ -424,7 +424,7 @@ export interface AbilityModeRuntime {
 ### 9.2 六本心法
 
 | ID | 名称 | 最终描述 | 每级效果 |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `wuxiang-canon` | 《无相真解》 | 观色身诸相皆无定相，于一念之间容佛、容魔，亦容无相。 | 限制各分卷可研习的最高等级 |
 | `blood-lotus` | 《血海生莲》 | 血海不净，莲亦由此而生；知其污浊，方能借之渡身。 | 每级提高0.05%最大气血 |
 | `white-bone` | 《白骨照身》 | 去皮肉浮相，见白骨本真；以朽坏之身承受来力。 | 每级提高0.05%物理防御 |
@@ -435,7 +435,7 @@ export interface AbilityModeRuntime {
 ### 9.3 七门可见神通基础描述
 
 | ID | 名称 | 最终基础描述 |
-|---|---|---|
+| --- | --- | --- |
 | `flower-heart` | 拈花叩心 | 指间拈花，叩问的却是敌我同一颗心。佛相立其因，魔相照其果，无相令因果同现。 |
 | `blood-tide` | 血海听潮 | 不拒血海来潮，先听清每一道苦声从何处生，再于回澜时借势渡身。 |
 | `three-knocks` | 三叩业门 | 一叩问因，二叩问果，三叩之后，门内门外皆由一念开合。 |
@@ -510,7 +510,7 @@ export interface AbilityModeRuntime {
 ### 11.4 战术预设
 
 | ID | 名称 | 最终描述 |
-|---|---|---|
+| --- | --- | --- |
 | `guard` | 守镜 | 优先保持3层业痕与防守状态；达到5点战意后入魔，优先使用防御神通维持血线。 |
 | `present` | 现报 | 至少1层业痕且达到3点战意便入魔，优先使用可即时消费业痕的攻击神通。 |
 | `formless` | 无相 | 原则上积满6点战意再显无相；低于35%气血且已有3点战意时允许提前入魔自救。 |
@@ -750,7 +750,7 @@ export interface AbilityModeRuntime {
 ## 13. 明镜 18 节点最终文案与机制
 
 | 层 | ID | 名称 | 当前机制 | v2 最终描述 | 实现边界 |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | 1 | `mirror-vow-body` | 戒由身起 | 每轮首次佛相成本+2%，额外+1战意 | 所有佛相神通气血成本提高1个百分点；成功施展后获得2%最大气血护盾。 | 固定成本修正与固定护盾；不维护每轮技能变体 |
 | 1 | `mirror-guest-in-mirror` | 镜中留客 | 每轮首次直接受击额外1业痕 | 每轮首次受到敌方直接伤害时，额外获得1层业痕。 | 使用 listener round budget |
 | 1 | `mirror-fruit-in-time` | 果不逾时 | 反伤行动总上限12%→16% | 每层业痕提供的佛相反伤比例由3%提高至4%。 | 显式改被动系数；取消行动总预算 |
@@ -799,7 +799,7 @@ export interface AbilityModeRuntime {
 ### 14.4 战术预设
 
 | ID | 名称 | 最终描述 |
-|---|---|---|
+| --- | --- | --- |
 | `trial-fire` | 试火 | 达到3点战意且低于60%气血时入魔，优先防御神通与吸血窗口，避免继续无保护沉血。 |
 | `sink-boat` | 沉舟 | 尽量积至5点战意并主动压至45%气血以下，入魔后优先连续使用攻击神通收束。 |
 | `one-thought` | 一念 | 优先积满6点战意使用无相；低于25%气血时允许以3点战意提前入魔自救。 |
@@ -1028,7 +1028,7 @@ export interface AbilityModeRuntime {
 ## 16. 魔心 18 节点最终文案与机制
 
 | 层 | ID | 名称 | 当前机制 | v2 最终描述 | 实现边界 |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | 1 | `demon-blood-oil` | 血作灯油 | 每轮首次佛相成本+2%，额外+1战意 | 所有佛相神通气血成本提高1个百分点；成功施展后获得2%最大气血护盾。 | 固定成本与护盾；不复制每轮首次变体 |
 | 1 | `demon-three-shores` | 三岸留痕 | 首次跨越70/45/25%各得2%护盾 | 每场战斗首次因自身神通成本降至35%气血以下时，获得8%最大气血护盾。 | 单阈值、单计数器 |
 | 1 | `demon-bone-tide` | 潮伏骨中 | 血潮记忆上限15%→22% | 血海听潮获得的基础护盾由10%提高至15%最大气血。 | 修改 A 参数；删除记忆 |
@@ -1053,7 +1053,7 @@ export interface AbilityModeRuntime {
 ### 17.1 明镜照业
 
 | 神通 | 最终能力变化文案 |
-|---|---|
+| --- | --- |
 | 拈花叩心 | 佛相立下叩心戒；魔相消费业痕追加问罪与封招；无相再添一击并重新留下业痕。 |
 | 血海听潮 | 佛相提供护盾与听潮减伤；魔相消费业痕恢复并登记受击反击；无相额外加厚护盾。 |
 | 三叩业门 | 佛相三击并在结算末尾留下新业门；魔相消费业痕并引爆此前的旧业门；无相再追加一记无相之击。 |
@@ -1065,7 +1065,7 @@ export interface AbilityModeRuntime {
 ### 17.2 魔心渡厄
 
 | 神通 | 最终能力变化文案 |
-|---|---|
+| --- | --- |
 | 拈花叩心 | 佛相伤敌并留下心隙；魔相追加摘心一击与第二层心隙；无相按目标已损气血收束。 |
 | 血海听潮 | 佛相重血换取护盾与下一击强化；魔相加厚护盾并令血潮命中回血；无相立即回生并强化血潮。 |
 | 三叩业门 | 佛相三击并在低血强化第三击；魔相追加第四击；无相在濒危时追加必定暴击的无生一击。 |
@@ -1130,14 +1130,14 @@ export interface AbilityModeRuntime {
 ### 19.1 保留
 
 | 机制 | 决策 | 原因 |
-|---|---|---|
+| --- | --- | --- |
 | 当前气血比例成本 | 保留 | 无相核心代价，且已是通用 `AbilityCostConfig` |
 | 原子气血支付与 `AbilityCostPaidEvent` | 保留 | 阈值节点需要可靠的支付前后快照 |
 | 施法快照 | 保留并扩展 | 分层计划必须在施法开始冻结 |
 | `ability_mode` 基础运行态 | 保留并简化 | 可复用于姿态、充能与有限次数强化 |
 | `ability_mode_is` 条件 | 保留 | 计划选择需要 |
-| `consume_status_trigger` 基础消费/重复 | 保留 | creation-v2 与凌霄仍有生产消费者 |
-| `damage_memory` 基础记录/释放 | 保留 | 凌霄和 creation-v2 仍使用 |
+| `consume_status_trigger` 基础消费/重复 | 保留 | creation-v2 与红尘剑宗仍有生产消费者 |
+| `damage_memory` 基础记录/释放 | 保留 | 红尘剑宗和 creation-v2 仍使用 |
 | `damage_defer` | 保留 | creation-v2 仍使用；无相不再使用 |
 | listener trigger budget | 保留 | 每轮首次、Buff 生命周期触发次数是通用能力 |
 | `damage_taken_at_least` 等事件条件 | 若已存在则保留 | 属于简单通用事件判断，不编码无相语义 |
@@ -1145,7 +1145,7 @@ export interface AbilityModeRuntime {
 ### 19.2 通用演进
 
 | 机制 | 调整 |
-|---|---|
+| --- | --- |
 | 技能效果层 | 新增 `AbilityEffectLayerConfig` |
 | 技能效果计划 | 新增受限的 `AbilityEffectPlanConfig` |
 | 完成效果 | 新增 `completionEffects`；`executeSkill` 进入后，主效果链正常返回即按层执行，不追踪单个 Effect 是否改值 |
@@ -1160,7 +1160,7 @@ export interface AbilityModeRuntime {
 以下项目在无相迁移完成且全仓确认无其他生产消费者后删除：
 
 | 项目 | 清理内容 |
-|---|---|
+| --- | --- |
 | 完整 `AbilityVariantConfig` 覆盖能力 | 删除变体级 costs、targetPolicy、selectionProfile、castConditions 与全量 effects 替换 |
 | `ability_mode_ability_differs` | 删除配置联合、条件求值和测试 |
 | `ability_variant_is` | 删除配置联合、条件求值和测试 |
@@ -1168,7 +1168,7 @@ export interface AbilityModeRuntime {
 | `AbilityModeRuntime.firstAbilityId` | 删除字段；`advanceAbilityMode` 不再接收/记录 ability ID，并删除技能差异条件 |
 | `status_transfer` | 删除 Effect、配置、注册、文案、成长策略分支和专属测试；普通净化/驱散使用既有 Effect |
 | `damage_cap` | 删除 Effect、配置、注册、文案、成长策略分支和专属测试；无相改为护盾与百分比减伤 |
-| `scaleNumericEffectsByLayer` | 从 `ConsumeStatusTriggerParams` 删除；保留 creation-v2/凌霄使用的 `scaleEffectsByLayer` 重复语义 |
+| `scaleNumericEffectsByLayer` | 从 `ConsumeStatusTriggerParams` 删除；保留 creation-v2/红尘剑宗使用的 `scaleEffectsByLayer` 重复语义 |
 | `effectStrengthScaler.ts` | 删除整文件与全部测试；无相节点改为显式字段 |
 | `lifesteal.variantIds` | 删除运行时计划 ID 白名单；改按宗门机制标签和当前 mode 匹配 |
 | Wuxiang 气血成本记忆 | 删除 `WUXIANG_BLOOD_TIDE_MEMORY` 与相关记录/释放监听 |
@@ -1223,7 +1223,7 @@ src/shared/engine/sect/content/wuxiang/
 ```ts
 mirror.flowerHeart.setVowReduction(0.18);
 mirror.threeKnocks.setDoorLayers(4);
-mirror.form.setDemonReduction(0.30);
+mirror.form.setDemonReduction(0.3);
 mirror.formless.appendReturnWar(2);
 
 demon.flowerHeart.setHeartGapBonus(0.25);

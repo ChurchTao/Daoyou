@@ -66,42 +66,42 @@ vi.mock('@server/lib/services/sect-organization', () => ({
       setPathTactic: vi.fn(),
     })),
     membership: {
-    getOverview: vi.fn(async () => ({
-      facilities: [],
-      project: null,
-      methodLevelCap: 20,
-      realmMethodLevelCap: 25,
-      stipend: {
-        weekKey: '2026-07-13',
-        claimed: false,
-        spiritStones: 500,
-        rewards: [
-          {
-            kind: 'material',
-            name: '宗门灵草',
-            quantity: 1,
-            summary: '宗门灵草 ×1',
-          },
-        ],
-      },
-      nextRank: 'outer',
-      promotionMissing: [],
-    })),
-    listMembers: vi.fn(),
-    promote: vi.fn(),
+      getOverview: vi.fn(async () => ({
+        facilities: [],
+        project: null,
+        methodLevelCap: 20,
+        realmMethodLevelCap: 25,
+        stipend: {
+          weekKey: '2026-07-13',
+          claimed: false,
+          spiritStones: 500,
+          rewards: [
+            {
+              kind: 'material',
+              name: '宗门灵草',
+              quantity: 1,
+              summary: '宗门灵草 ×1',
+            },
+          ],
+        },
+        nextRank: 'outer',
+        promotionMissing: [],
+      })),
+      listMembers: vi.fn(),
+      promote: vi.fn(),
     },
     tasks: {
       queries: { execute: vi.fn() },
       actions: { execute: taskActionMock },
     },
     economy: {
-    getShop: vi.fn(),
-    purchaseShopItem: vi.fn(),
-    claimStipend: vi.fn(),
+      getShop: vi.fn(),
+      purchaseShopItem: vi.fn(),
+      claimStipend: vi.fn(),
     },
     construction: {
-    getConstruction: vi.fn(),
-    donate: vi.fn(),
+      getConstruction: vi.fn(),
+      donate: vi.fn(),
     },
   },
 }));
@@ -184,7 +184,7 @@ describe('sects router', () => {
 
   it('catalog delegates admission filtering to the injected sect service', async () => {
     listAvailableDefinitionsMock.mockReturnValue([
-      { id: 'lingxiao', name: '凌霄剑宗', description: '云海问剑' },
+      { id: 'lingxiao', name: '红尘剑宗', description: '人间问剑' },
     ]);
     const response = await new Hono()
       .route('/api/sects', sectsRouter)
@@ -198,9 +198,7 @@ describe('sects router', () => {
     await expect(response.json()).resolves.toEqual({
       success: true,
       data: {
-        sects: [
-          { id: 'lingxiao', name: '凌霄剑宗', description: '云海问剑' },
-        ],
+        sects: [{ id: 'lingxiao', name: '红尘剑宗', description: '人间问剑' }],
       },
     });
   });
@@ -285,13 +283,11 @@ describe('sects router', () => {
       });
 
     expect(response.status).toBe(200);
-    expect(unlockPathLayerMock).toHaveBeenCalledWith(
-      {
-        cultivatorId: 'cultivator-1',
-        pathId: 'swift-sword',
-        layerId: '2',
-      },
-    );
+    expect(unlockPathLayerMock).toHaveBeenCalledWith({
+      cultivatorId: 'cultivator-1',
+      pathId: 'swift-sword',
+      layerId: '2',
+    });
   });
 
   it('requires an idempotency key on every sect write', async () => {

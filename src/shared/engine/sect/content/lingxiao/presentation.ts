@@ -4,57 +4,65 @@ import { LINGXIAO_SECT_ID } from './ids';
 export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
   sectId: LINGXIAO_SECT_ID,
   onboarding: {
-    summary: '问剑于云海群峰，在迅疾如风与沉稳如岳之间，走出自己的剑路。',
-    traits: ['御剑问道', '轻重由心', '攻守皆可'],
+    summary:
+      '从红尘中学剑，以平生所见养成剑意，在照影游尘与守拙藏锋之间走出自己的剑路。',
+    traits: ['入世问剑', '快重由心', '此剑平生'],
     script: {
       id: 'lingxiao-onboarding',
-      title: '凌霄问剑',
+      title: '人间问剑',
       theme: 'steel',
       backdrop: {
         src: '/assets/sect/onboarding/lingxiao.webp',
-        alt: '云海群峰间，一条刻有剑痕的长阶通向凌霄剑宗山门',
+        alt: '红尘剑宗山门朝向山下城郭，负剑弟子沿石阶往来于山门与人间',
       },
       acts: [
         {
-          id: 'cloud-stair',
-          title: '云阶问剑',
-          scene: '凌霄山门 · 云阶',
-          body: '云海在脚下翻涌，石阶尽头没有迎客的鼓乐，只有一道剑痕从山门直上峰顶。守门弟子将一柄未开锋的铁剑递到你面前。',
-          speaker: '守门弟子：“上山之前，先问自己为何握剑。”',
-          backgroundPosition: '50% 45%',
+          id: 'downhill-gate',
+          title: '山下之门',
+          scene: '红尘剑宗 · 山门',
+          body: '山门立在半山，门外石阶没有隐入云海，而是一路通向炊烟初起的城郭。有人衣衫整肃，正负剑下山；也有人带着满身风尘，从长路归来。',
+          speaker:
+            '守门弟子：“上山学剑，下山用剑。红尘剑宗的路，从来要走两遍。”',
+          backgroundPosition: '58% 46%',
           tone: 'mist',
         },
         {
-          id: 'wind-and-mountain',
-          title: '风与山',
-          scene: '凌霄剑宗 · 演武坪',
-          body: '一侧剑光先于人影掠过，快得像春雷破云；另一侧剑锋缓缓落下，石台却随之低鸣。这里不替你规定剑该多快、多重，只教你让每一剑都合乎本心。',
-          backgroundPosition: '58% 42%',
+          id: 'ask-the-sword',
+          title: '先问其剑',
+          scene: '红尘剑宗 · 问剑堂',
+          body: '传功长老没有命你劈开试剑石，只从旧架上取下一柄寻常铁剑，横放在你面前。剑锋不见灵光，剑鞘上却留着许多经年磨痕。',
+          speaker: '传功长老：“剑能斩什么，不难。难的是你要知道，什么不该斩。”',
+          backgroundPosition: '30% 52%',
           tone: 'steel',
         },
         {
-          id: 'one-question',
-          title: '诸卷同源',
-          scene: '凌霄剑宗 · 藏经阁',
-          body: '数卷旧册围着一盏青灯展开。它们不是互不相干的道路，而是同一声“问剑”的不同回答：如何出剑，如何藏锋，如何在万法之前守住剑心。',
-          backgroundPosition: '46% 38%',
+          id: 'sword-record',
+          title: '红尘剑录',
+          scene: '红尘剑宗 · 剑录阁',
+          body: '旧卷中既有剑招，也夹着地名、人名、残缺书信与未能兑现的约定。许多段落只有寥寥数笔，却被后来者反复翻阅。',
+          speaker:
+            '守阁长老：“剑法可以传，平生不可照抄。前人的答案，只能替你问出自己的问题。”',
+          backgroundPosition: '72% 38%',
           tone: 'stillness',
         },
         {
-          id: 'life-among-peaks',
-          title: '群峰日常',
-          scene: '凌霄剑宗 · 云海诸峰',
-          body: '晨钟后，有人去悟道崖看前人剑痕，有人去执事堂接下山差事，也有人在丹房与器坊守候炉火。剑宗不是一座只为斗法存在的山门；你会在这里修行，也会与同门一同把群峰撑起来。',
-          backgroundPosition: '38% 48%',
+          id: 'two-sword-paths',
+          title: '两道剑途',
+          scene: '红尘剑宗 · 照影崖',
+          body: '崖前剑影一快一重。快剑连绵，转瞬已在石壁留下数道剑痕；重剑静立，直至来势逼近，才以后发一击震开尘土。',
+          speaker:
+            '传功长老：“照影游尘，见招而变；守拙藏锋，承势而决。剑路不同，最后问的却是同一件事。”',
+          backgroundPosition: '42% 44%',
           tone: 'mist',
         },
         {
-          id: 'sword-register',
-          title: '名入剑册',
-          scene: '凌霄剑宗 · 问剑殿前',
-          body: '长老合上剑册。云上钟声随之响起，山门在翻涌的雾色里为你留出一步。',
-          speaker: '传功长老：“凌霄不问你今日能斩多远，只问来日风雪压身时，你是否还肯出这一剑。”',
-          backgroundPosition: '52% 32%',
+          id: 'one-life-one-sword',
+          title: '此剑平生',
+          scene: '红尘剑宗 · 弟子名册前',
+          body: '你的名字被写入弟子名册，《红尘剑录》中属于你的那一页仍然空白。长老合上旧卷，将那柄铁剑连同剑鞘一并交到你手中。',
+          speaker:
+            '传功长老：“今日不必写。等你真正明白为何出剑，再回来落这一笔。”',
+          backgroundPosition: '54% 35%',
           tone: 'steel',
         },
       ],
@@ -62,11 +70,11 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
   },
   map: {
     image: '/assets/sect/lingxiao-map.webp',
-    alt: '凌霄剑宗群峰、楼阁、灵脉矿场与药田的水墨鸟瞰图',
+    alt: '红尘剑宗殿阁、试剑台、工坊、矿场与药田沿山路连接山下城郭的水墨鸟瞰图',
     hotspots: [
       {
         id: 'hall',
-        label: '宗门大殿',
+        label: '问剑堂',
         route: '/game/sect/hall',
         permission: 'sect.hall.view',
         left: '46%',
@@ -75,7 +83,7 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
       },
       {
         id: 'archive',
-        label: '藏经阁',
+        label: '剑录阁',
         route: '/game/sect/archive',
         facility: 'archive',
         permission: 'sect.archive.use',
@@ -85,7 +93,7 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
       },
       {
         id: 'cliff',
-        label: '悟道崖',
+        label: '照影崖',
         route: '/game/sect/enlightenment-cliff',
         permission: 'sect.enlightenment.use',
         left: '88%',
@@ -94,7 +102,7 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
       },
       {
         id: 'arena',
-        label: '演武台',
+        label: '试剑台',
         route: '/game/sect/arena',
         permission: 'sect.arena.use',
         left: '57%',
@@ -130,7 +138,7 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
       },
       {
         id: 'cultivation',
-        label: '修炼室',
+        label: '养剑室',
         route: '/game/sect/cultivation-room',
         facility: 'cultivation_room',
         permission: 'sect.facility.cultivation.use',
@@ -150,7 +158,7 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
       },
       {
         id: 'refinery',
-        label: '器坊',
+        label: '铸剑坊',
         route: '/game/sect/refinery',
         facility: 'workshop',
         permission: 'sect.facility.refinery.use',
@@ -209,8 +217,8 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
     ],
   },
   facilityLabels: {
-    archive: '藏经阁',
-    cultivation_room: '修炼室',
+    archive: '剑录阁',
+    cultivation_room: '养剑室',
     workshop: '丹器坊',
     spirit_vein: '灵脉',
     herb_garden: '药田',
@@ -219,15 +227,15 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
   lockedFacilities: ['formation'],
   scenes: {
     map: {
-      title: '凌霄剑宗舆图',
+      title: '红尘剑宗舆图',
       description:
-        '云海诸峰各司其职。择一处落下遁光，进入对应设施办理宗门事务。',
-      loadingText: '山门云阶渐次显现……',
+        '殿阁沿山势铺开，主路穿过山门直通城郭。择一处前往，继续今日的宗门事务。',
+      loadingText: '山路与诸院渐次显现……',
     },
     hall: {
-      title: '宗门大殿',
+      title: '问剑堂',
       description:
-        '长阶尽处殿门洞开，身份玉牒、俸禄名册与同门长卷皆由录事在此核验。',
+        '堂中不设试剑石，只悬历代门人的旧剑与归宗名册；身份玉牒、俸禄名册皆由录事在此核验。',
     },
     affairs: {
       title: '执事堂',
@@ -236,22 +244,22 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
       loadingText: '执事正整理今日委托……',
     },
     archive: {
-      title: '藏经阁',
+      title: '剑录阁',
       description:
-        '檀木长架沿墙而立，心法卷轴依传承次第展开；在此逐卷研习，不必再穿行别阁。',
-      loadingText: '藏经阁卷帙正在归架……',
+        '檀木长架上既有六卷心法，也收着历代弟子的行剑手记；在此逐卷研习，不必再穿行别阁。',
+      loadingText: '剑录阁卷帙正在归架……',
     },
     paths: {
-      title: '悟道崖',
+      title: '照影崖',
       description:
-        '罡风掠过历代剑痕，每一道石刻皆通向不同道途；择定流派后，沿经脉继续参悟。',
-      loadingText: '崖间云气正在散开……',
+        '崖壁遍布历代门人留下的试剑痕迹，快重二道皆由此分流；择定道途后，沿经脉继续参悟。',
+      loadingText: '崖前剑影正在散开……',
     },
     arena: {
-      title: '演武台',
+      title: '试剑台',
       description:
         '演武场中央阵纹已启，宗门神通将在当前流派与参悟方案下显化威能。',
-      loadingText: '演武台阵纹徐徐亮起……',
+      loadingText: '试剑台阵纹徐徐亮起……',
     },
     treasury: {
       title: '宗门宝库',
@@ -266,7 +274,7 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
       loadingText: '百业院正在汇总建设账册……',
     },
     cultivation: {
-      title: '修炼室',
+      title: '养剑室',
       description:
         '聚灵阵纹绕蒲团缓缓流转，静香已燃；定下闭关年数，宗门灵气会在结算时自然汇入。',
       loadingText: '聚灵阵正在汇拢灵气……',
@@ -278,10 +286,10 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
       loadingText: '丹房灵焰正在温炉……',
     },
     refinery: {
-      title: '器坊',
+      title: '铸剑坊',
       description:
         '地火自山腹引入锻台，冷铁与灵材依次落位；选定器型后即可在此开炉成器。',
-      loadingText: '器坊地火正在升温……',
+      loadingText: '铸剑坊地火正在升温……',
     },
     spiritVein: {
       title: '灵脉矿场',
@@ -298,8 +306,8 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
     gate: {
       title: '山门',
       description:
-        '云阶自群峰之间垂落，守门弟子在晨钟后换过值守；今日宗门内外动静都写在门侧木牌上。',
-      loadingText: '山门晨钟穿过云海……',
+        '石阶从门外一路通往山下城郭，守门弟子在晨钟后换过值守；今日宗门内外动静都写在门侧木牌上。',
+      loadingText: '山门晨钟沿石阶传来……',
     },
     cave: {
       title: '私人洞府',
@@ -314,7 +322,7 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
     meridianLoadout: '参悟方案',
     abilityChanges: '神通变化',
     returnToAffairs: '返回执事堂',
-    sweepActivity: '云阶扫叶',
-    sweepCanvasLabel: '云阶扫叶游戏画布',
+    sweepActivity: '山阶扫叶',
+    sweepCanvasLabel: '山阶扫叶游戏画布',
   },
 };
