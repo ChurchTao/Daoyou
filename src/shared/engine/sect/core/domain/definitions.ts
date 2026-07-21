@@ -148,7 +148,6 @@ export interface SectDefinition {
   id: SectId;
   name: string;
   description: string;
-  trial: { name: string; description: string };
   raceIds: PlayerRaceId[];
   configVersion: number;
   combatResource: { id: string; name: string; icon?: string; max: number };

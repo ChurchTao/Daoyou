@@ -7,8 +7,8 @@ import type {
   SectFacilityState,
   SectPermissionState,
 } from '@shared/engine/sect';
-import { StandardSectRules } from '@shared/engine/sect';
 import type { BattleRecord } from '@shared/types/battle';
+import { StandardSectRules } from '@shared/engine/sect';
 import { z } from 'zod';
 import type { PlayerStateMutationResponse } from './player';
 
@@ -201,16 +201,13 @@ export interface SectMembersData {
 }
 
 export type SectCatalogEntry = {
-  definition: SectDefinition;
-  status?: CultivatorSectState['status'];
-  experiencedAt?: string;
+  id: string;
+  name: string;
+  description: string;
 };
 
 export type SectCatalogData = {
-  playerRace: 'human';
-  raceNarrative?: string;
   sects: SectCatalogEntry[];
-  activeSectId?: string;
 };
 
 export type SectCurrentData = {
@@ -232,10 +229,6 @@ export type SectDetailData = {
   knownAbilityIds: string[];
 };
 
-export type SectExperienceResponse = PlayerStateMutationResponse<{
-  sect: CultivatorSectState;
-  battle: BattleRecord;
-}>;
 export type SectMutationResponse = PlayerStateMutationResponse<{
   sect: CultivatorSectState;
 }>;

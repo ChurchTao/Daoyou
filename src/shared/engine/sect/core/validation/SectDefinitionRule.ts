@@ -136,9 +136,6 @@ export class SectDefinitionRule implements ValidationRule<SectModule> {
     if (!definition.raceIds.length || duplicateIds(definition.raceIds).length) {
       throw new Error(`宗门 ${definition.id} 的准入种族必须存在且唯一`);
     }
-    if (!definition.trial.name.trim() || !definition.trial.description.trim()) {
-      throw new Error(`宗门 ${definition.id} 必须提供可展示的试炼定义`);
-    }
     if (definition.methods.length !== StandardSectRules.methodCount) {
       throw new Error(
         `宗门 ${definition.id} 必须定义${StandardSectRules.methodCount}本基础心法`,

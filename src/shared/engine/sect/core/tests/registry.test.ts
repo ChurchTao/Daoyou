@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   SectRegistry,
-  StandardSectModule,
-  type SectBuildBuilder,
   type SectModule,
   type SectPathModule,
-  type SectProjectionContext,
 } from '..';
 import { FIXTURE_SECT_MODULE } from '../../testing/fixtures/FixtureSectModule';
 
@@ -27,8 +24,6 @@ function replacePath(pathId: string, replacement: SectPathModule): SectModule {
     createBaseBuilder: (context) =>
       FIXTURE_SECT_MODULE.createBaseBuilder(context),
     checkAdmission: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
-    createTrialScenario: (context) =>
-      FIXTURE_SECT_MODULE.createTrialScenario(context),
   };
 }
 
@@ -88,8 +83,6 @@ describe('宗门模块扩展契约', () => {
       createBaseBuilder: (context) =>
         FIXTURE_SECT_MODULE.createBaseBuilder(context),
       checkAdmission: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
-      createTrialScenario: (context) =>
-        FIXTURE_SECT_MODULE.createTrialScenario(context),
     };
     const registry = new SectRegistry([FIXTURE_SECT_MODULE]);
     expect(() => registry.register(duplicateResourceModule)).toThrow(
@@ -123,7 +116,7 @@ describe('宗门模块扩展契约', () => {
     ).toThrow('跨流派重复战术ID');
   });
 
-  it('拒绝未解锁默认能力的入宗和试炼配置', () => {
+  it('拒绝未解锁默认能力的入宗配置', () => {
     const onboardingDefinition = structuredClone(
       FIXTURE_SECT_MODULE.definition,
     );
@@ -135,20 +128,5 @@ describe('宗门模块扩展契约', () => {
         ]),
     ).toThrow('未解锁默认能力');
 
-    const { paths: _paths, ...definition } = FIXTURE_SECT_MODULE.definition;
-    class InvalidTrialSect extends StandardSectModule {
-      constructor() {
-        super(definition, [...FIXTURE_SECT_MODULE.paths.values()], {
-          trialMethods: { 'fixture-method-1': 0 },
-          trialAbilityLoadout: [null, null, null, null],
-        });
-      }
-
-      protected compileBase(
-        _context: SectProjectionContext,
-        _builder: SectBuildBuilder,
-      ): void {}
-    }
-    expect(() => new InvalidTrialSect()).toThrow('试炼心法配置未解锁默认能力');
   });
 });

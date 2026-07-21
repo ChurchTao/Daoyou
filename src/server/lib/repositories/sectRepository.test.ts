@@ -75,7 +75,6 @@ describe('loadCultivatorSectState', () => {
       loadCultivatorSectState('cultivator-1', tx),
     ).resolves.toMatchObject({
       membershipId: 'membership-1',
-      experiencedAt: '2026-07-13T00:00:00.000Z',
     });
     expect(maxActiveQueries).toBe(1);
   });

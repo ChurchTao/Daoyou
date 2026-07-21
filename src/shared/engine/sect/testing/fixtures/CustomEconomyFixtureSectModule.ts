@@ -204,9 +204,6 @@ class CustomEconomyFixtureSectModule extends BaseSectModule {
       {
         check: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
       },
-      {
-        create: (context) => FIXTURE_SECT_MODULE.createTrialScenario(context),
-      },
     );
   }
 

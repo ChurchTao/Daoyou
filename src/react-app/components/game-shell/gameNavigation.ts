@@ -102,6 +102,7 @@ export const gameDockGroups: GameNavGroup[] = [
         href: '/game/sect',
         expandedDockLabel: '⛰️ 宗门',
       },
+      { id: 'sect-onboarding', sceneLabel: '诸宗山门' },
       { id: 'sect-hall', sceneLabel: '宗门大殿' },
       { id: 'sect-affairs', sceneLabel: '宗门事务' },
       { id: 'sect-archive', sceneLabel: '宗门传承' },
@@ -288,10 +289,6 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'task-challenge',
         sceneLabel: '破境试炼',
-      },
-      {
-        id: 'sect-trial',
-        sceneLabel: '山门试炼',
       },
       {
         id: 'bet-battle-challenge',

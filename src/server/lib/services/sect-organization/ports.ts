@@ -30,7 +30,6 @@ export interface SectAdmissionMembershipRecord {
   id: string;
   sectId: string;
   status: string;
-  experiencedAt: Date | null;
 }
 
 export interface SectStateRepository {
@@ -42,7 +41,11 @@ export interface SectStateRepository {
 export interface SectAdmissionRepository extends SectStateRepository {
   findActiveMembership(cultivatorId: string): Promise<SectAdmissionMembershipRecord | null>;
   findMembershipForSect(cultivatorId: string, sectId: string): Promise<SectAdmissionMembershipRecord | null>;
-  recordExperience(cultivatorId: string, sectId: string, configVersion: number): Promise<void>;
+  ensureMembershipCandidate(
+    cultivatorId: string,
+    sectId: string,
+    configVersion: number,
+  ): Promise<SectAdmissionMembershipRecord>;
   activateMembership(membershipId: string, definition: SectDefinition): Promise<void>;
   ensureFacilities(
     sectId: string,

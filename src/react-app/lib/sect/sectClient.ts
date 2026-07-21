@@ -4,7 +4,6 @@ import type {
   SectCatalogData,
   SectCurrentData,
   SectDetailData,
-  SectExperienceResponse,
   SectConstructionData,
   SectMembersData,
   SectOverviewData,
@@ -13,8 +12,6 @@ import type {
   SectTaskActionData,
 } from '@shared/contracts/sect';
 
-type SectExperienceData = SectExperienceResponse['data'];
-const experienceRequests = new Map<string, Promise<SectExperienceData>>();
 const taskBattleRequests = new Map<string, Promise<SectTaskActionData>>();
 
 async function fetchData<T>(url: string, signal?: AbortSignal): Promise<T> {
@@ -59,26 +56,6 @@ export function fetchSectMembers(page = 1, pageSize = 20, signal?: AbortSignal):
 
 export function fetchSectDetail(sectId: string): Promise<SectDetailData> {
   return fetchData(`/api/sects/${encodeURIComponent(sectId)}`);
-}
-
-async function startSectTrial(sectId: string): Promise<SectExperienceData> {
-  const response = await fetch(
-    `/api/sects/${encodeURIComponent(sectId)}/trial`,
-    { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID() } },
-  );
-  return consumePlayerStateMutation<SectExperienceData>(response);
-}
-
-export function startSectTrialOnce(
-  sectId: string,
-): Promise<SectExperienceData> {
-  const current = experienceRequests.get(sectId);
-  if (current) return current;
-  const request = startSectTrial(sectId).finally(() =>
-    experienceRequests.delete(sectId),
-  );
-  experienceRequests.set(sectId, request);
-  return request;
 }
 
 export function startSectTaskBattleOnce(

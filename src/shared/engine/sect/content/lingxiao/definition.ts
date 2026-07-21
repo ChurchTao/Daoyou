@@ -9,10 +9,6 @@ export const LINGXIAO_BASE_DEFINITION: SectDefinitionWithoutPaths = {
   id: LINGXIAO_SECT_ID,
   name: '凌霄剑宗',
   description: '拜山问剑，研习六卷心法，于快剑、重剑二道中自定剑途。',
-  trial: {
-    name: '入门试剑',
-    description: '借宗门法器体验基础传承，胜负皆记作完成。',
-  },
   raceIds: ['human'],
   configVersion: 4,
   combatResource: {

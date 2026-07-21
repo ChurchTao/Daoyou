@@ -175,7 +175,6 @@ async function hydrateMembership(
     membershipId: membership.id,
     sectId: membership.sectId,
     status: membership.status as CultivatorSectState['status'],
-    experiencedAt: membership.experiencedAt?.toISOString(),
     joinedAt: membership.joinedAt?.toISOString(),
     activePathId: membership.activePathId ?? undefined,
     contribution: membership.contribution,
@@ -234,7 +233,7 @@ export async function loadCultivatorSectStateForSect(
   return membership ? hydrateMembership(membership, q, runtime) : undefined;
 }
 
-export async function recordExperience(
+export async function ensureMembershipCandidate(
   cultivatorId: string,
   sectId: string,
   configVersion: number,
@@ -246,12 +245,11 @@ export async function recordExperience(
       cultivatorId,
       sectId,
       status: 'prospect',
-      experiencedAt: new Date(),
       configVersion,
     })
     .onConflictDoUpdate({
       target: [sectMemberships.cultivatorId, sectMemberships.sectId],
-      set: { experiencedAt: new Date(), updatedAt: new Date(), configVersion },
+      set: { updatedAt: new Date(), configVersion },
     })
     .returning();
   return row;
@@ -531,7 +529,7 @@ export function createSectRepository(
       sectId: string,
       q: DbExecutor | DbTransaction,
     ) => loadCultivatorSectStateForSect(cultivatorId, sectId, q, runtime),
-    recordExperience,
+    ensureMembershipCandidate,
     activateMembership,
     setMethodLevel,
     createPathWithFirstLayer,

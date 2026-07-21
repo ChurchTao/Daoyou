@@ -217,8 +217,6 @@ describe('第二宗门扩展闭环', () => {
       createBaseBuilder: (context) =>
         FIXTURE_SECT_MODULE.createBaseBuilder(context),
       checkAdmission: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
-      createTrialScenario: (context) =>
-        FIXTURE_SECT_MODULE.createTrialScenario(context),
     };
     const runtime = createSectRuntime([module]);
 
@@ -316,9 +314,6 @@ describe('第二宗门扩展闭环', () => {
         stage: '初期',
       })[0].id,
     ).toBe('fixture-sect');
-    expect(
-      service.createTrialScenario('fixture-sect', cultivator).opponent.name,
-    ).toBe('样例木人');
     await service.activatePath(
       'fixture-cultivator',
       'fixture-first-path',
@@ -339,10 +334,9 @@ describe('第二宗门扩展闭环', () => {
     ]);
   });
 
-  it('内存Repository可完成试炼记录、入宗、成长、双流派和参悟闭环', async () => {
+  it('内存Repository可完成直接入宗、成长、双流派和参悟闭环', async () => {
     const runtime = createSectRuntime([FIXTURE_SECT_MODULE]);
     let state: ReturnType<typeof fixtureSectState> | undefined;
-    let experiencedAt: Date | undefined;
     let stones = 100_000;
     let cultivationExp = 100_000;
     let comprehensionInsight = 100;
@@ -352,7 +346,6 @@ describe('第二宗门扩展闭环', () => {
             id: state.membershipId,
             sectId: state.sectId,
             status: state.status,
-            experiencedAt,
           }
         : null;
     const repository = {
@@ -385,12 +378,10 @@ describe('第二宗门扩展闭环', () => {
         state?.status === 'active' ? state : undefined,
       ),
       loadCultivatorSectStateForSect: vi.fn(async () => state),
-      recordExperience: vi.fn(async () => {
-        experiencedAt = new Date();
+      ensureMembershipCandidate: vi.fn(async () => {
         state = {
           ...fixtureSectState(),
           status: 'prospect',
-          experiencedAt: experiencedAt.toISOString(),
           methods: {},
           abilityLoadout: [null, null, null, null],
         };
@@ -464,7 +455,6 @@ describe('第二宗门扩展闭环', () => {
     const service = createSectTestApplication({ runtime, repository });
     const tx = {} as DbTransaction;
 
-    await service.recordExperience(cultivator.id!, 'fixture-sect', tx);
     await service.join(cultivator.id!, 'fixture-sect', tx);
     await service.trainMethod(
       {
@@ -556,7 +546,7 @@ describe('第二宗门扩展闭环', () => {
     ).toBe('fixture.resource');
   });
 
-  it('直接请求试炼时仍执行模块准入策略', () => {
+  it('直接入宗时仍执行模块准入策略', async () => {
     const rejectedModule: SectModule = {
       definition: FIXTURE_SECT_MODULE.definition,
       paths: FIXTURE_SECT_MODULE.paths,
@@ -566,17 +556,24 @@ describe('第二宗门扩展闭环', () => {
       createBaseBuilder: (context) =>
         FIXTURE_SECT_MODULE.createBaseBuilder(context),
       checkAdmission: () => ({ allowed: false, reason: '样例拒绝原因' }),
-      createTrialScenario: (context) =>
-        FIXTURE_SECT_MODULE.createTrialScenario(context),
     };
     const runtime = createSectRuntime([rejectedModule]);
     const service = createSectTestApplication({
       runtime,
-      repository: {} as SectRepositoryPort,
+      repository: {
+        loadCultivatorProgress: vi.fn(async () => ({
+          realm: '炼气',
+          stage: '初期',
+          stones: 0,
+          cultivationExp: 0,
+          comprehensionInsight: 0,
+          playerRace: 'human',
+        })),
+      } as unknown as SectRepositoryPort,
     });
-    expect(() =>
-      service.createTrialScenario('fixture-sect', cultivator),
-    ).toThrow('样例拒绝原因');
+    await expect(
+      service.join('fixture-cultivator', 'fixture-sect', {} as DbTransaction),
+    ).rejects.toThrow('样例拒绝原因');
   });
 
   it('拒绝重复装配和同层多节点的非法持久化状态', () => {

@@ -23,7 +23,6 @@ import {
   createPostgresSectQueryContext,
 } from '@server/lib/services/sect-organization/PostgresSectOrganizationAdapters';
 import { SectError } from '@server/lib/services/SectError';
-import { getPlayerRuntimeCultivatorById } from '@server/lib/services/cultivatorService';
 import {
   SectAbilityLoadoutRequestSchema,
   SectDonationRequestSchema,
@@ -41,7 +40,6 @@ import {
   type SectRuntime,
 } from '@shared/engine/sect';
 import { productionSectRuntime } from '@shared/engine/sect/content';
-import { simulateBattleV5 } from '@shared/lib/battle/simulateBattleV5';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { Hono, type Context } from 'hono';
 
@@ -110,31 +108,16 @@ export function createSectsRouter(
     if (!cultivator?.id)
       return c.json({ success: false, error: '当前没有活跃角色' }, 404);
     const admissionService = admission(getExecutor());
-    const memberships = await admissionService.listMemberships(cultivator.id);
-    const bySect = new Map(
-      memberships.map((membership) => [membership.sectId, membership]),
-    );
     return c.json({
       success: true,
       data: {
-        playerRace: cultivator.playerRace ?? 'human',
-        raceNarrative: cultivator.raceNarrative,
         sects: admissionService
           .listAvailableDefinitions({
             playerRace: (cultivator.playerRace ?? 'human') as 'human',
             realm: cultivator.realm as RealmType,
             stage: cultivator.realm_stage as RealmStage,
           })
-          .map((definition) => ({
-            definition,
-            status: bySect.get(definition.id)?.status,
-            experiencedAt: bySect
-              .get(definition.id)
-              ?.experiencedAt?.toISOString(),
-          })),
-        activeSectId: memberships.find(
-          (membership) => membership.status === 'active',
-        )?.sectId,
+          .map(({ id, name, description }) => ({ id, name, description })),
       },
     });
   });
@@ -188,7 +171,8 @@ export function createSectsRouter(
       return c.json({ success: false, error: '当前没有活跃角色' }, 404);
     try {
       const sect = await tradition(getExecutor()).getState(cultivator.id);
-      if (!sect) throw new SectError('SECT_TRIAL_REQUIRED', '尚未拜入宗门');
+      if (!sect)
+        throw new SectError('SECT_MEMBERSHIP_REQUIRED', '尚未拜入宗门');
       const realmCap = runtime
         .progressionFor(sect.sectId)
         .methodLevelCap(
@@ -506,56 +490,6 @@ export function createSectsRouter(
           knownAbilityIds: sect ? listUnlockedAbilityIds(definition, sect) : [],
         },
       });
-    } catch (error) {
-      return failure(c, error);
-    }
-  });
-
-  router.post('/:sectId/trial', requireActiveCultivator(), async (c) => {
-    const user = c.get('user');
-    const cultivator = c.get('cultivator');
-    if (!user || !cultivator?.id)
-      return c.json({ success: false, error: '当前没有活跃角色' }, 404);
-    try {
-      const module = runtime.registry.get(c.req.param('sectId'));
-      if (!module) throw new SectError('SECT_UNKNOWN', '未知宗门', 400);
-      const runtimeCultivator = await getPlayerRuntimeCultivatorById(
-        user.id,
-        cultivator.id,
-        getExecutor(),
-      );
-      if (!runtimeCultivator)
-        return c.json({ success: false, error: '当前没有活跃角色' }, 404);
-      const { trainee, opponent } = admission(getExecutor()).createTrialScenario(
-        module.definition.id,
-        runtimeCultivator,
-      );
-      const battle = simulateBattleV5(trainee, opponent);
-      const committed = await commitPlayerStateMutation({
-        userId: user.id,
-        cultivatorId: cultivator.id,
-        source: 'sect_trial',
-        idempotency: requireIdempotency(c, 'sect_trial', {
-          sectId: module.definition.id,
-        }),
-        run: async (tx) => {
-          const sect = await admission(tx).recordExperience(
-            cultivator.id!,
-            module.definition.id,
-          );
-          return {
-            result: { sect, battle },
-            changes: [
-              {
-                domain: 'sect' as const,
-                eventType: 'sect.experienced',
-                patch: { sect },
-              },
-            ],
-          };
-        },
-      });
-      return c.json(toPlayerStateMutationResponse(committed));
     } catch (error) {
       return failure(c, error);
     }

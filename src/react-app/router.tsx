@@ -5,6 +5,7 @@ import {
   GameDungeonLayout,
   GameGenesisLayout,
   GameMapLayout,
+  GameNarrativeLayout,
   GameViewportLayout,
   PlayerProviderLayout,
 } from '@app/layouts/game-layout';
@@ -131,6 +132,23 @@ export const router = createBrowserRouter(
         </Route>
 
         <Route element={<PlayerProviderLayout />}>
+          <Route element={<GameNarrativeLayout />}>
+            <Route
+              path="sect/onboarding"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/sect/onboarding/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'sect-onboarding',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '诸宗山门',
+              )}
+            />
+          </Route>
+
           <Route element={<GameViewportLayout />}>
             <Route
               index
@@ -962,20 +980,6 @@ export const router = createBrowserRouter(
                   dock: 'hidden',
                 },
                 '破境试炼',
-              )}
-            />
-            <Route
-              path="sect/trial/:sectId"
-              lazy={lazyRoute(
-                () => import('@app/routes/game/sect/trial/route'),
-              )}
-              handle={scene(
-                {
-                  id: 'sect-trial',
-                  chrome: 'immersive',
-                  dock: 'hidden',
-                },
-                '入门试法',
               )}
             />
             <Route

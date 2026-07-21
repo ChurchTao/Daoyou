@@ -3,6 +3,63 @@ import { LINGXIAO_SECT_ID } from './ids';
 
 export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
   sectId: LINGXIAO_SECT_ID,
+  onboarding: {
+    summary: '问剑于云海群峰，在迅疾如风与沉稳如岳之间，走出自己的剑路。',
+    traits: ['御剑问道', '轻重由心', '攻守皆可'],
+    script: {
+      id: 'lingxiao-onboarding',
+      title: '凌霄问剑',
+      theme: 'steel',
+      backdrop: {
+        src: '/assets/sect/onboarding/lingxiao.webp',
+        alt: '云海群峰间，一条刻有剑痕的长阶通向凌霄剑宗山门',
+      },
+      acts: [
+        {
+          id: 'cloud-stair',
+          title: '云阶问剑',
+          scene: '凌霄山门 · 云阶',
+          body: '云海在脚下翻涌，石阶尽头没有迎客的鼓乐，只有一道剑痕从山门直上峰顶。守门弟子将一柄未开锋的铁剑递到你面前。',
+          speaker: '守门弟子：“上山之前，先问自己为何握剑。”',
+          backgroundPosition: '50% 45%',
+          tone: 'mist',
+        },
+        {
+          id: 'wind-and-mountain',
+          title: '风与山',
+          scene: '凌霄剑宗 · 演武坪',
+          body: '一侧剑光先于人影掠过，快得像春雷破云；另一侧剑锋缓缓落下，石台却随之低鸣。这里不替你规定剑该多快、多重，只教你让每一剑都合乎本心。',
+          backgroundPosition: '58% 42%',
+          tone: 'steel',
+        },
+        {
+          id: 'one-question',
+          title: '诸卷同源',
+          scene: '凌霄剑宗 · 藏经阁',
+          body: '数卷旧册围着一盏青灯展开。它们不是互不相干的道路，而是同一声“问剑”的不同回答：如何出剑，如何藏锋，如何在万法之前守住剑心。',
+          backgroundPosition: '46% 38%',
+          tone: 'stillness',
+        },
+        {
+          id: 'life-among-peaks',
+          title: '群峰日常',
+          scene: '凌霄剑宗 · 云海诸峰',
+          body: '晨钟后，有人去悟道崖看前人剑痕，有人去执事堂接下山差事，也有人在丹房与器坊守候炉火。剑宗不是一座只为斗法存在的山门；你会在这里修行，也会与同门一同把群峰撑起来。',
+          backgroundPosition: '38% 48%',
+          tone: 'mist',
+        },
+        {
+          id: 'sword-register',
+          title: '名入剑册',
+          scene: '凌霄剑宗 · 问剑殿前',
+          body: '长老合上剑册。云上钟声随之响起，山门在翻涌的雾色里为你留出一步。',
+          speaker: '传功长老：“凌霄不问你今日能斩多远，只问来日风雪压身时，你是否还肯出这一剑。”',
+          backgroundPosition: '52% 32%',
+          tone: 'steel',
+        },
+      ],
+    },
+  },
   map: {
     image: '/assets/sect/lingxiao-map.webp',
     alt: '凌霄剑宗群峰、楼阁、灵脉矿场与药田的水墨鸟瞰图',

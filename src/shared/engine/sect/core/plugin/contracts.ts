@@ -11,8 +11,6 @@ import type {
   SectProjectionContext,
   SectProjectionInput,
   SectTacticId,
-  SectTrialContext,
-  SectTrialScenario,
 } from '../domain';
 
 export interface SectNodePlugin {
@@ -35,10 +33,6 @@ export interface SectAdmissionPolicy {
   check(context: SectAdmissionContext): SectAdmissionResult;
 }
 
-export interface SectTrialScenarioFactory {
-  create(context: SectTrialContext): SectTrialScenario;
-}
-
 export interface SectModule {
   readonly definition: SectDefinition;
   readonly paths: ReadonlyMap<string, SectPathModule>;
@@ -47,5 +41,4 @@ export interface SectModule {
   readonly organization: SectOrganizationModule;
   createBaseBuilder(context: SectProjectionContext): SectBuildBuilder;
   checkAdmission(context: SectAdmissionContext): SectAdmissionResult;
-  createTrialScenario(context: SectTrialContext): SectTrialScenario;
 }

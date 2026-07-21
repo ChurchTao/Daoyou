@@ -1,5 +1,6 @@
 export type GameShellKind =
   | 'genesis'
+  | 'narrative'
   | 'viewport'
   | 'combat'
   | 'map'
@@ -10,12 +11,15 @@ export function resolveGameShellKind(pathname: string): GameShellKind | null {
     return 'genesis';
   }
 
+  if (pathname === '/game/sect/onboarding') {
+    return 'narrative';
+  }
+
   if (
     pathname === '/game/battle' ||
     pathname === '/game/battle/challenge' ||
     /^\/game\/battle\/[^/]+$/.test(pathname) ||
     pathname === '/game/bet-battle/challenge' ||
-    /^\/game\/sect\/trial\/[^/]+$/.test(pathname) ||
     /^\/game\/sect\/tasks\/[^/]+\/battle$/.test(pathname) ||
     pathname === '/game/training-room'
   ) {

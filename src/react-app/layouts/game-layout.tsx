@@ -1,4 +1,5 @@
 import { SectQueryProvider } from '@app/components/feature/sect/SectQueryProvider';
+import { NarrativePerformanceLoading } from '@app/components/feature/narrative/NarrativePerformanceLoading';
 import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
 import { WorldChatFeedProvider } from '@app/components/feature/world-chat/useWorldChatFeedModel';
 import { GameBottomDock } from '@app/components/game-shell/GameBottomDock';
@@ -11,6 +12,8 @@ import {
   usePlayerStateStatus,
 } from '@app/lib/player-state/selectors';
 import { PlayerProvider } from '@app/lib/player/PlayerProvider';
+import { usePlayerState } from '@app/lib/player-state/store';
+import { resolveSectOnboardingRedirect } from '@app/lib/router/sectOnboardingGuard';
 import {
   resolveGameScene,
   resolveRouteTitle,
@@ -27,7 +30,13 @@ import {
   type CSSProperties,
   type RefObject,
 } from 'react';
-import { Outlet, useLocation, useMatches, useNavigate } from 'react-router';
+import {
+  Navigate,
+  Outlet,
+  useLocation,
+  useMatches,
+  useNavigate,
+} from 'react-router';
 import {
   SpecialSceneProvider,
   useSpecialSceneBackOverride,
@@ -61,6 +70,11 @@ function LoadingScreen({ message }: { message: string }) {
 function PlayerShell() {
   const cultivator = useActiveCultivatorProfile();
   const { note, hasActiveCultivator, isLoading } = usePlayerStateStatus();
+  const location = useLocation();
+  const sectLoaded = usePlayerState((state) =>
+    Object.prototype.hasOwnProperty.call(state.snapshot, 'sect'),
+  );
+  const activeSect = usePlayerState((state) => state.snapshot.sect);
 
   if (isLoading && !cultivator && !hasActiveCultivator) {
     return <LoadingScreen message="正在推演命盘……" />;
@@ -91,6 +105,25 @@ function PlayerShell() {
         </div>
       </div>
     );
+  }
+
+  const sectState = !sectLoaded
+    ? 'loading'
+    : activeSect
+      ? 'joined'
+      : 'none';
+  const redirect = resolveSectOnboardingRedirect(
+    location.pathname,
+    hasActiveCultivator,
+    sectState,
+  );
+
+  if (sectState === 'loading') {
+    return <NarrativePerformanceLoading message="正在辨认山门玉牒……" />;
+  }
+
+  if (redirect) {
+    return <Navigate to={redirect} replace />;
   }
 
   return (
@@ -357,6 +390,16 @@ export function GameCombatLayout() {
     <SpecialSceneProvider>
       <GameCombatLayoutBody />
     </SpecialSceneProvider>
+  );
+}
+
+export function GameNarrativeLayout() {
+  return (
+    <div className="min-h-[100svh] overflow-hidden bg-[#111713]">
+      <main className="min-h-[100svh]">
+        <Outlet />
+      </main>
+    </div>
   );
 }
 

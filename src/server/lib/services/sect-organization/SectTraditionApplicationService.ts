@@ -301,7 +301,7 @@ export class SectTraditionApplicationService {
   private async requireActive(cultivatorId: string) {
     const sect = await this.repository.load(cultivatorId);
     if (!sect || sect.status !== 'active')
-      throw new SectError('SECT_TRIAL_REQUIRED', '尚未拜入宗门');
+      throw new SectError('SECT_MEMBERSHIP_REQUIRED', '尚未拜入宗门');
     return sect;
   }
 

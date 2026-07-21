@@ -14,6 +14,64 @@ const hotspot = (
 
 export const WUXIANG_SECT_PRESENTATION: SectPresentationTheme = {
   sectId: WUXIANG_SECT_ID,
+  onboarding: {
+    summary: '把色身视作道场，在佛相、魔相与无相之间照见苦、承受苦、横渡苦。',
+    traits: ['佛魔同修', '以身渡厄', '临危转念'],
+    script: {
+      id: 'wuxiang-onboarding',
+      title: '无相照身',
+      theme: 'ember',
+      backdrop: {
+        src: '/assets/sect/onboarding/wuxiang.webp',
+        alt: '黑白双峰与血莲池之间，一座未合圆环形山门立在雾中',
+      },
+      acts: [
+        {
+          id: 'nondual-gate',
+          title: '不二门',
+          scene: '无相禅宗 · 不二门',
+          body: '山门没有门扇，门额只留着一道未合的圆。钟声越过黑白双峰，也越过山间那片暗红莲池；知客僧向你合掌。',
+          speaker: '知客僧：“不必先证明清净，肯照见自己，便可入门。”',
+          backgroundPosition: '52% 40%',
+          tone: 'stillness',
+        },
+        {
+          id: 'bronze-mirror',
+          title: '铜镜照身',
+          scene: '无相禅宗 · 旧镜前',
+          body: '旧铜镜里没有佛光，也没有魔影，只有一路跋涉至此的你。灯火照过衣上的尘，也照过每一道尚未说出口的迟疑。',
+          speaker: '知客僧：“你怕的是痛苦，还是那个会在痛苦里变得陌生的自己？”',
+          backgroundPosition: '72% 56%',
+          tone: 'stillness',
+        },
+        {
+          id: 'buddha-and-demon',
+          title: '佛与魔',
+          scene: '无相禅宗 · 问身场',
+          body: '白衣门人迎着来势，把因果稳稳留在身前；红衣门人踏进险境，以自身作舟，强渡将倾的一刻。这里的佛与魔不是善恶两张面具，而是面对苦难时都要付诸本心的选择。',
+          backgroundPosition: '40% 48%',
+          tone: 'ember',
+        },
+        {
+          id: 'body-as-dojo',
+          title: '色身道场',
+          scene: '无相禅宗 · 诸院',
+          body: '药师从血莲池采露，火供院的锤声慢而不绝，面壁窟里有人静坐到天明。无相门人不厌弃身体，也不纵容欲念；皮囊会痛、会倦、会留下痕迹，正因如此，它才是最诚实的道场。',
+          backgroundPosition: '30% 58%',
+          tone: 'mist',
+        },
+        {
+          id: 'unfinished-circle',
+          title: '圆未合',
+          scene: '无相禅宗 · 名牒前',
+          body: '知客僧在你的名牒旁落下一点墨。钟声再起，那道未完的圆仿佛正等你迈入其中。',
+          speaker: '知客僧：“能见诸苦，不必逃；能借诸苦，不可欺心。最后这一笔，由你自己来合。”',
+          backgroundPosition: '52% 35%',
+          tone: 'ember',
+        },
+      ],
+    },
+  },
   map: {
     image: '/assets/sect/wuxiang-map.webp',
     alt: '无相禅宗黑白双峰、血池、佛窟与诸院落的水墨鸟瞰图',

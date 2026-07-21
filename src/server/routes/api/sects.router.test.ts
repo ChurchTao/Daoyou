@@ -52,9 +52,7 @@ vi.mock('@server/lib/services/sect-organization', () => ({
       listDefinitions: vi.fn(() => []),
       listAvailableDefinitions: listAvailableDefinitionsMock,
       listMemberships: vi.fn(() => []),
-      createTrialScenario: vi.fn(),
       join: joinMock,
-      recordExperience: vi.fn(),
     })),
     tradition: vi.fn(() => ({
       getState: getStateMock,
@@ -185,7 +183,9 @@ describe('sects router', () => {
   });
 
   it('catalog delegates admission filtering to the injected sect service', async () => {
-    listAvailableDefinitionsMock.mockReturnValue([]);
+    listAvailableDefinitionsMock.mockReturnValue([
+      { id: 'lingxiao', name: '凌霄剑宗', description: '云海问剑' },
+    ]);
     const response = await new Hono()
       .route('/api/sects', sectsRouter)
       .request('/api/sects/catalog');
@@ -195,11 +195,18 @@ describe('sects router', () => {
       realm: '筑基',
       stage: '初期',
     });
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      data: {
+        sects: [
+          { id: 'lingxiao', name: '凌霄剑宗', description: '云海问剑' },
+        ],
+      },
+    });
   });
 
   it('路由工厂使用注入的事务服务工厂而非生产单例', async () => {
     const admission = {
-      listMemberships: vi.fn(async () => []),
       listAvailableDefinitions: vi.fn(() => []),
     };
     const injected = {
@@ -214,7 +221,6 @@ describe('sects router', () => {
       .request('/api/sects/catalog');
 
     expect(response.status).toBe(200);
-    expect(admission.listMemberships).toHaveBeenCalledWith('cultivator-1');
     expect(admission.listAvailableDefinitions).toHaveBeenCalledWith({
       playerRace: 'human',
       realm: '筑基',
@@ -344,6 +350,10 @@ describe('sects router', () => {
 
     expect(
       (await app.request('/api/sects/lingxiao/experience', { method: 'POST' }))
+        .status,
+    ).toBe(404);
+    expect(
+      (await app.request('/api/sects/lingxiao/trial', { method: 'POST' }))
         .status,
     ).toBe(404);
     expect(

@@ -5,8 +5,6 @@ import type {
   SectDefinition,
   SectDefinitionWithoutPaths,
   SectProjectionContext,
-  SectTrialContext,
-  SectTrialScenario,
   SectMethodGrowthPolicy,
 } from '../domain';
 import type { SectProgressionPolicy } from '../progression';
@@ -15,7 +13,6 @@ import type {
   SectAdmissionPolicy,
   SectModule,
   SectPathModule,
-  SectTrialScenarioFactory,
 } from './contracts';
 
 /** 宗门组合根基类：完整定义由基础定义和流派模块自动汇总。 */
@@ -30,7 +27,6 @@ export abstract class BaseSectModule implements SectModule {
     readonly methodGrowth: SectMethodGrowthPolicy,
     readonly organization: SectOrganizationModule,
     private readonly admissionPolicy: SectAdmissionPolicy,
-    private readonly trialScenarioFactory: SectTrialScenarioFactory,
   ) {
     this.paths = new Map(
       pathModules.map((module) => [module.definition.id, module]),
@@ -52,10 +48,6 @@ export abstract class BaseSectModule implements SectModule {
 
   checkAdmission(context: SectAdmissionContext): SectAdmissionResult {
     return this.admissionPolicy.check(context);
-  }
-
-  createTrialScenario(context: SectTrialContext): SectTrialScenario {
-    return this.trialScenarioFactory.create(context);
   }
 
   protected abstract compileBase(

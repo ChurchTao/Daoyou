@@ -363,10 +363,9 @@ export default function CreatePage() {
         throw new Error(saveResult.error || '保存角色失败');
       }
 
-      // 保存成功，跳转到首页
-      pushToast({ message: '道友真形已落地，速回主界。', tone: 'success' });
+      pushToast({ message: '道友真形已落地，山门正在云外相候。', tone: 'success' });
       await refresh();
-      navigate('/game');
+      navigate('/game/sect/onboarding', { replace: true });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : '保存角色失败，请检查控制台';

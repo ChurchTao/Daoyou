@@ -1,6 +1,6 @@
 # 宗门内容接入指南
 
-普通宗门共享任务、晋升、设施、经济、建设、收益、准入和试炼流程，只定义身份、六本心法、神通、流派与参悟节点。完整参考实现位于 `src/shared/engine/sect/testing/fixtures/FixtureSectModule.ts`，且不会进入生产目录。
+普通宗门共享入门文戏、任务、晋升、设施、经济、建设、收益和准入流程，只定义身份、六本心法、神通、流派、参悟节点与玩家可见的入门演出。完整参考实现位于 `src/shared/engine/sect/testing/fixtures/FixtureSectModule.ts`，且不会进入生产目录。
 
 ## 目录模板
 
@@ -14,7 +14,7 @@ src/shared/engine/sect/content/<sect-id>/
   paths/<path-id>/nodes/*.ts
   paths/<path-id>/variants.ts
   organization/theme.ts        # 可选，仅换任务和组织称谓
-  presentation.ts              # 可选，纯数据前端主题
+  presentation.ts              # 生产宗门必填入门演出，可继续覆盖前端主题
 ```
 
 ## 稳定 ID 与标准规则
@@ -90,7 +90,13 @@ builder.setAbility(
 
 `targetPolicy` 对所有主动和默认能力必填，作者必须明确敌方、友方、自身以及单体、范围或随机目标。目标标签只从该策略推导。AI 意图默认从效果分析器的 `capabilities.selectionProfile` 推导，治疗会得到 `heal_hp`，控制会得到 `control`；显式 `selectionProfile` 优先。`role` 只生成宗门职责标签，不参与 AI 意图猜测。纯资源或分析器无法识别的复杂能力必须显式提供 `selectionProfile`，否则注册失败。
 
-默认能力可以使用 `always` 或心法解锁，但不能依赖激活流派。入宗心法和试炼心法都必须解锁默认能力；自定义试炼神通栏仍须满足标准主动槽结构。
+默认能力可以使用 `always` 或心法解锁，但不能依赖激活流派。入宗心法必须解锁默认能力。
+
+## 入门演出
+
+生产宗门在 `SectPresentationTheme.onboarding` 中提供玩家摘要、三个特色词和 `NarrativePerformanceScript`。脚本按幕声明场景、正文、可选人物台词与背景焦点；通用演出舞台负责显字、前后切幕和终幕拜师。
+
+入门文案只使用世界内语言，不展示等级、倍率、冷却、消耗、配置、构筑或其他实现术语。主视觉必须是无文字的本地资源，并提供替代文本；加入宗门仍由服务端准入策略和幂等事务兜底，不以浏览器演出状态作为安全边界。
 
 ## 流派与节点
 

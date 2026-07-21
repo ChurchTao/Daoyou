@@ -12,10 +12,6 @@ export const WUXIANG_BASE_DEFINITION: SectDefinitionWithoutPaths = {
   name: '无相禅宗',
   description:
     '此宗不避魔心，不弃色身。门人以皮囊为道场，以气血燃业火；佛法用来照见诸苦，魔功用来横渡诸苦。',
-  trial: {
-    name: '照身问心',
-    description: '在佛灯与血池之间守住一念，胜负皆记作完成。',
-  },
   raceIds: ['human'],
   configVersion: 2,
   combatResource: {

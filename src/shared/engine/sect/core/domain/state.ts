@@ -35,7 +35,6 @@ export interface CultivatorSectState {
   membershipId: string;
   sectId: SectId;
   status: SectMembershipStatus;
-  experiencedAt?: string;
   joinedAt?: string;
   activePathId?: SectPathId;
   contribution: number;

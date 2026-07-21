@@ -1,5 +1,4 @@
 import type { RealmType } from '@shared/types/constants';
-import type { Cultivator } from '@shared/types/cultivator';
 import type { PlayerRaceId } from './definitions';
 import type { CultivatorSectPathState, CultivatorSectState } from './state';
 
@@ -29,13 +28,4 @@ export interface SectAdmissionContext {
 export interface SectAdmissionResult {
   allowed: boolean;
   reason?: string;
-}
-
-export interface SectTrialContext {
-  cultivator: Cultivator;
-}
-
-export interface SectTrialScenario {
-  trainee: Cultivator;
-  opponent: Cultivator;
 }

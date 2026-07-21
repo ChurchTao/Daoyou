@@ -113,7 +113,6 @@ const baseDefinition: SectDefinitionWithoutPaths = {
   raceIds: ['human'],
   configVersion: 1,
   combatResource: { id: 'fixture.resource', name: '专注', max: 18 },
-  trial: { name: '样例试炼', description: '验证模块试炼场景。' },
   methods,
   abilities,
   onboarding: {
@@ -311,9 +310,7 @@ function compileFixtureBase(
 
 class FixtureSectModule extends StandardSectModule {
   constructor() {
-    super(baseDefinition, [firstPath, secondPath], {
-      trialOpponentName: '样例木人',
-    });
+    super(baseDefinition, [firstPath, secondPath]);
   }
 
   protected compileBase(

@@ -27,6 +27,7 @@ describe('game shell registry', () => {
   it('resolves shell ownership for migrated game routes', () => {
     expect(resolveGameShellKind('/game/create')).toBe('genesis');
     expect(resolveGameShellKind('/game/reincarnate')).toBe('genesis');
+    expect(resolveGameShellKind('/game/sect/onboarding')).toBe('narrative');
     expect(resolveGameShellKind('/game')).toBe('viewport');
     expect(resolveGameShellKind('/game/inventory')).toBe('viewport');
     expect(resolveGameShellKind('/game/sect/abilities')).toBe('viewport');
@@ -49,7 +50,6 @@ describe('game shell registry', () => {
     expect(resolveGameShellKind('/game/battle/challenge')).toBe('combat');
     expect(resolveGameShellKind('/game/battle/battle-1')).toBe('combat');
     expect(resolveGameShellKind('/game/bet-battle/challenge')).toBe('combat');
-    expect(resolveGameShellKind('/game/sect/trial/lingxiao')).toBe('combat');
     expect(resolveGameShellKind('/game/sect/tasks/daily-battle/battle')).toBe(
       'combat',
     );
@@ -77,7 +77,19 @@ describe('game shell registry', () => {
     expect(source).toContain('path="sect/affairs"');
     expect(source).toContain('path="sect/industries"');
     expect(source).toContain("id: 'sect-abilities'");
+    expect(source).toContain('path="sect/onboarding"');
+    expect(source).not.toContain('path="sect/trial/:sectId"');
     expect(source).toContain("path=\"skills\"");
+  });
+
+  it('sends a newly created cultivator to the sect narrative', () => {
+    const source = readFileSync(
+      'src/react-app/routes/game/create/route.tsx',
+      'utf8',
+    );
+    expect(source).toContain(
+      "navigate('/game/sect/onboarding', { replace: true })",
+    );
   });
 
   it('keeps sect query state above every active-player game shell', () => {

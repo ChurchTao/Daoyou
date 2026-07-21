@@ -33,8 +33,8 @@ export function createSectTestApplication(args: {
         findActiveMembership: (cultivatorId) => args.repository.findMembership(cultivatorId, q),
         findMembershipForSect: (cultivatorId, sectId) =>
           args.repository.findMembershipForSect(cultivatorId, sectId, q),
-        async recordExperience(cultivatorId, sectId, configVersion) {
-          await args.repository.recordExperience(
+        ensureMembershipCandidate(cultivatorId, sectId, configVersion) {
+          return args.repository.ensureMembershipCandidate(
             cultivatorId,
             sectId,
             configVersion,
@@ -100,10 +100,6 @@ export function createSectTestApplication(args: {
   return {
     listAvailableDefinitions: (context: Parameters<SectAdmissionApplicationService['listAvailableDefinitions']>[0]) =>
       bind({} as DbExecutor).admission.listAvailableDefinitions(context),
-    createTrialScenario: (...input: Parameters<SectAdmissionApplicationService['createTrialScenario']>) =>
-      bind({} as DbExecutor).admission.createTrialScenario(...input),
-    recordExperience: (cultivatorId: string, sectId: string, tx: DbTransaction) =>
-      bind(tx).admission.recordExperience(cultivatorId, sectId),
     join: (cultivatorId: string, sectId: string, tx: DbTransaction) =>
       bind(tx).admission.join(cultivatorId, sectId),
     trainMethod: (input: Parameters<SectTraditionApplicationService['trainMethod']>[0], tx: DbTransaction) =>

@@ -100,8 +100,8 @@ export function createPostgresSectAdmissionRepository(args: {
     findActiveMembership: (cultivatorId) => memberships.findMembership(cultivatorId, q),
     findMembershipForSect: (cultivatorId, sectId) =>
       memberships.findMembershipForSect(cultivatorId, sectId, q),
-    async recordExperience(cultivatorId, sectId, configVersion) {
-      await memberships.recordExperience(
+    ensureMembershipCandidate(cultivatorId, sectId, configVersion) {
+      return memberships.ensureMembershipCandidate(
         cultivatorId,
         sectId,
         configVersion,

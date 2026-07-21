@@ -2,7 +2,6 @@ import type {
   SectAdmissionContext,
   SectRuntime,
 } from '@shared/engine/sect';
-import type { Cultivator } from '@shared/types/cultivator';
 import { SectError } from '../SectError';
 import type {
   SectAdmissionRepository,
@@ -29,21 +28,6 @@ export class SectAdmissionApplicationService {
       );
   }
 
-  createTrialScenario(sectId: string, cultivator: Cultivator) {
-    const module = this.requireModule(sectId);
-    const admission = module.checkAdmission({
-      playerRace: cultivator.playerRace ?? 'human',
-      realm: cultivator.realm,
-      stage: cultivator.realm_stage,
-    });
-    if (!admission.allowed)
-      throw new SectError(
-        'SECT_REALM_GATE',
-        admission.reason ?? '不符合宗门准入条件',
-      );
-    return module.createTrialScenario({ cultivator });
-  }
-
   listMemberships(cultivatorId: string) {
     return this.repository.listMemberships(cultivatorId);
   }
@@ -57,22 +41,6 @@ export class SectAdmissionApplicationService {
     return this.repository.loadForSect(cultivatorId, sectId);
   }
 
-  async recordExperience(cultivatorId: string, sectId: string) {
-    const module = await this.assertAdmission(cultivatorId, sectId);
-    const active = await this.repository.findActiveMembership(cultivatorId);
-    if (active)
-      throw new SectError(
-        'SECT_ALREADY_JOINED',
-        `已经是${this.runtime.registry.require(active.sectId).definition.name}弟子`,
-      );
-    await this.repository.recordExperience(
-      cultivatorId,
-      sectId,
-      module.definition.configVersion,
-    );
-    return (await this.repository.loadForSect(cultivatorId, sectId))!;
-  }
-
   async join(cultivatorId: string, sectId: string) {
     const module = await this.assertAdmission(cultivatorId, sectId);
     const active = await this.repository.findActiveMembership(cultivatorId);
@@ -81,10 +49,14 @@ export class SectAdmissionApplicationService {
         'SECT_ALREADY_JOINED',
         `已经是${this.runtime.registry.require(active.sectId).definition.name}弟子`,
       );
-    const prospect = await this.repository.findMembershipForSect(cultivatorId, sectId);
-    if (!prospect?.experiencedAt)
-      throw new SectError('SECT_TRIAL_REQUIRED', '须先完成该宗门入门试炼');
-    await this.repository.activateMembership(prospect.id, module.definition);
+    const candidate =
+      (await this.repository.findMembershipForSect(cultivatorId, sectId)) ??
+      (await this.repository.ensureMembershipCandidate(
+        cultivatorId,
+        sectId,
+        module.definition.configVersion,
+      ));
+    await this.repository.activateMembership(candidate.id, module.definition);
     await this.repository.ensureFacilities(
       sectId,
       module.organization.construction.facilities,

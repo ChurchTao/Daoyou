@@ -221,6 +221,15 @@ body {
   }
 }
 
+@keyframes narrative-drift {
+  from {
+    transform: scale(1.03);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.5s ease-out;
 }

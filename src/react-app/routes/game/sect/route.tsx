@@ -4,9 +4,7 @@ import {
   useSectResourceQuery,
 } from '@app/components/feature/sect/SectQueryProvider';
 import { GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
-import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui';
-import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { formatDocumentTitle } from '@app/lib/router/routeTitle';
 import { fetchSectCatalog } from '@app/lib/sect/sectClient';
 import {
@@ -15,49 +13,24 @@ import {
 } from '@app/lib/sect/sectPresentation';
 import {
   SECT_RANK_LABELS,
-  type CultivatorSectState,
 } from '@shared/engine/sect';
-import { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useMemo } from 'react';
+import { Navigate, useNavigate } from 'react-router';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
-import { GateTab } from './components/GateTab';
 import { SectQueryError } from './components/SectScene';
 
 export default function SectPage() {
-  const [busy, setBusy] = useState(false);
-  const { mutate } = usePlayerStateActions();
-  const { pushToast } = useInkUI();
   const navigate = useNavigate();
 
   const {
     data: catalog,
     error: catalogError,
-    reload,
     retry,
   } = useSectResourceQuery('catalog', fetchSectCatalog);
   const current = useSectCurrentQuery();
   const currentPresentation = useSectPresentation();
   const data = current.data;
   const error = catalogError ?? current.error;
-
-  const action = useCallback(
-    async (url: string, init: RequestInit) => {
-      setBusy(true);
-      try {
-        await mutate<{ sect: CultivatorSectState }>(fetch(url, init));
-        await Promise.all([reload(), current.invalidate()]);
-        pushToast({ message: '拜师礼成，宗门舆图已开启', tone: 'success' });
-      } catch (reason) {
-        pushToast({
-          message: reason instanceof Error ? reason.message : '宗门事务失败',
-          tone: 'danger',
-        });
-      } finally {
-        setBusy(false);
-      }
-    },
-    [current, mutate, pushToast, reload],
-  );
 
   const facilities = useMemo(
     () => new Map(data?.overview?.facilities.map((item) => [item.key, item])),
@@ -77,14 +50,7 @@ export default function SectPage() {
     );
 
   if (!data.sect || !data.definition) {
-    return (
-      <GameSceneFrame
-        title="【诸宗山门】"
-        description="诸宗传承各有所长，可先试其法，再择一门而入。"
-      >
-        <GateTab catalog={catalog} busy={busy} action={action} />
-      </GameSceneFrame>
-    );
+    return <Navigate to="/game/sect/onboarding" replace />;
   }
 
   const rank = data.sect.discipleRank ?? 'registered';
