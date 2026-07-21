@@ -519,7 +519,7 @@ describe('宗门注册投影', () => {
     expect(mountainBreaking.detailRows).toEqual(
       expect.arrayContaining([
         '命中后：状态：消耗全部剑痕',
-        '命中后：每层追加：相当于15%物攻',
+        '命中后：每消耗1层剑痕，额外造成相当于15%物攻的伤害',
       ]),
     );
 

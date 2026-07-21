@@ -131,6 +131,28 @@ function damageEffectsRow(
   );
   if (damageEffects.length === 0) return [];
 
+  if (damageEffects.length === 1) {
+    const dynamic = damageEffects[0].params.dynamicScalars?.find(
+      (scalar) => scalar.source === 'target_missing_hp_ratio',
+    );
+    if (dynamic) {
+      const attribute =
+        ATTRIBUTE_LABELS[dynamic.attribute] ?? dynamic.attribute;
+      const base = scalableValue(damageEffects[0].params.value);
+      const hasBase =
+        (damageEffects[0].params.value.base ?? 0) !== 0 ||
+        (damageEffects[0].params.value.attribute !== undefined &&
+          (damageEffects[0].params.value.coefficient ?? 1) !== 0) ||
+        (damageEffects[0].params.value.targetMaxHpRatio ?? 0) !== 0 ||
+        (damageEffects[0].params.value.targetMaxMpRatio ?? 0) !== 0;
+      return [
+        !hasBase
+          ? `伤害：根据目标已损气血提高，最高相当于${number(dynamic.coefficientCap * 100)}%${attribute}`
+          : `伤害：基础相当于${base}，并根据目标已损气血提高，最高额外增加${number(dynamic.coefficientCap * 100)}%${attribute}`,
+      ];
+    }
+  }
+
   const unconditional = damageEffects.filter(
     (effect) => !effect.conditions?.length,
   );
@@ -247,6 +269,11 @@ function listenerChildText(
     }
     case 'shield':
       return `获得相当于${scalableValue(effect.params.value)}的护盾`;
+    case 'heal':
+      return effect.params.target === 'hp' &&
+        effect.params.value.targetMaxHpRatio
+        ? `恢复${percent(effect.params.value.targetMaxHpRatio)}最大气血`
+        : describeEffectCore(effect);
     case 'apply_buff':
       return effect.params.target === 'target'
         ? `向目标施加1层${effect.params.buffConfig.name}${effect.params.buffConfig.duration >= 0 ? `，持续目标未来${effect.params.buffConfig.duration}次行动` : ''}`
@@ -257,6 +284,12 @@ function listenerChildText(
       return effect.params.mode === 'reduce'
         ? `受到的直接伤害降低${percent(effect.params.value)}`
         : `造成的伤害提高${percent(effect.params.value)}`;
+    case 'runtime_counter_modify':
+      return '';
+    case 'buff_layer_modify':
+      return effect.params.operation === 'clear'
+        ? ''
+        : describeEffectCore(effect);
     default:
       return describeEffectCore(effect);
   }
@@ -270,7 +303,10 @@ function dispelActionText(
   if (params.status === 'negative') {
     return `净化${subject}${count}个负面状态`;
   }
-  if (params.status === 'positive' || (!params.status && params.recipient !== 'caster')) {
+  if (
+    params.status === 'positive' ||
+    (!params.status && params.recipient !== 'caster')
+  ) {
     return `驱散${subject}${count}个正面状态`;
   }
   return `移除${subject}${count}个匹配状态`;
@@ -303,9 +339,9 @@ function listenerRows(
     ];
   }
   const trigger = listenerTrigger(listener);
-  const effects = listener.effects.map((effect) =>
-    listenerChildText(effect, resources),
-  );
+  const effects = listener.effects
+    .map((effect) => listenerChildText(effect, resources))
+    .filter(Boolean);
   return effects.length
     ? [`触发：${trigger ? `${trigger}，` : ''}${joinEffects(effects)}`]
     : [];
@@ -435,10 +471,12 @@ function describeEffect(
       const action = dispelActionText(effect.params);
       return [
         `${effect.params.status === 'negative' ? '净化' : effect.params.status === 'positive' || effect.params.recipient !== 'caster' ? '驱散' : '移除'}：${action.replace(/^(净化|驱散|移除)/, '')}`,
-        ...nestedEffectRows(effect.params.effects ?? [], resources)
-          .map((row) => `成功后：${row}`),
-        ...nestedEffectRows(effect.params.fallbackEffects ?? [], resources)
-          .map((row) => `无可移除状态时：${row}`),
+        ...nestedEffectRows(effect.params.effects ?? [], resources).map(
+          (row) => `成功后：${row}`,
+        ),
+        ...nestedEffectRows(effect.params.fallbackEffects ?? [], resources).map(
+          (row) => `无可移除状态时：${row}`,
+        ),
       ];
     }
     case 'ability_transform':
@@ -450,13 +488,16 @@ function describeEffect(
           : typeof effect.params.consume === 'number'
             ? `${effect.params.consume}层`
             : '1层';
+      const displayName = effect.params.displayName ?? '匹配状态';
       const childRows = damageEffectsRow(effect.params.effects, resources).map(
-        (row) => row.replace(/^伤害：/, '每层追加：'),
+        (row) => {
+          const damage = row.match(/^伤害：(.+)$/);
+          return damage
+            ? `每消耗1层${displayName}，额外造成${damage[1]}的伤害`
+            : `每层${displayName}：${row}`;
+        },
       );
-      return [
-        `状态：消耗${consume}${effect.params.displayName ?? '匹配状态'}`,
-        ...childRows,
-      ];
+      return [`状态：消耗${consume}${displayName}`, ...childRows];
     }
     case 'runtime_counter_modify': {
       const nested = effect.params.effects ?? [];
@@ -465,6 +506,10 @@ function describeEffect(
         ...nested.flatMap((child) => describeEffect(child, resources)),
       ];
     }
+    case 'buff_layer_modify':
+      return effect.params.operation === 'clear'
+        ? []
+        : [describeEffectCore(effect)];
     case 'cooldown_modify':
       return effect.params.cdModifyValue < 0
         ? [`冷却：当前冷却减少${Math.abs(effect.params.cdModifyValue)}回合`]
@@ -542,6 +587,55 @@ function applyEffectTiming(
   });
 }
 
+function layeredEffectRow(
+  form: '佛相' | '魔相' | '无相' | string,
+  row: string,
+): string {
+  const subject = form === '佛相' ? form : `${form}显化时`;
+  const isAdditional = form !== '佛相';
+  const damage = row.match(
+    /^伤害：((?:相当于|基础相当于|根据目标已损气血|\d+段 ×).+)$/,
+  );
+  if (damage) {
+    return `${subject}：${isAdditional ? '额外' : ''}造成${damage[1]}的伤害`;
+  }
+  const shield = row.match(/^护盾：(.+)$/);
+  if (shield) {
+    return `${subject}：获得${shield[1].replace('目标最大气血', '自身最大气血')}的护盾`;
+  }
+
+  const timed = row.match(/^(命中后|施展后)：(.+)$/);
+  if (!timed) return `${subject}：${row}`;
+
+  let detail = timed[2]
+    .replace(/^状态：/, '')
+    .replace(/^(净化|驱散)：/, '$1')
+    .replace(/^成功后：状态：/, '成功后，')
+    .replace(/^成功后：/, '成功后，')
+    .replace(/^无可移除状态时：状态：/, '无可移除状态时，')
+    .replace(/^无可移除状态时：/, '无可移除状态时，')
+    .replace(/^触发：/, '')
+    .replace(/^承伤：/, '')
+    .replace(/^持续：/, '持续')
+    .replace(/^恢复：/, '恢复')
+    .replace(/^护盾：相当于/, '获得相当于')
+    .replace(
+      /^无可移除状态时，([^：]+)：向目标施加(\d+)层/,
+      '无可移除状态时，向目标施加$2层《$1》',
+    )
+    .replace(/^([^：]+)：向目标施加(\d+)层/, '向目标施加$2层《$1》')
+    .replace(/，([^：，]+)：向目标施加(\d+)层/, '，向目标施加$2层《$1》')
+    .split('目标最大气血')
+    .join('自身最大气血');
+  const resourceChange = detail.match(
+    /^(成功后，|无可移除状态时，)?([^：]+)：(获得|消耗)(\d+)点$/,
+  );
+  if (resourceChange) {
+    detail = `${resourceChange[1] ?? ''}${resourceChange[3]}${resourceChange[4]}点${resourceChange[2]}`;
+  }
+  return `${subject}·${timed[1]}：${detail}`;
+}
+
 export function describeSectAbilityConfig(
   config: AbilityConfig,
   resources: readonly CombatResourceDefinition[],
@@ -550,14 +644,18 @@ export function describeSectAbilityConfig(
   const layers = config.effectLayers ?? [];
   const isLayered = layers.length > 0;
   const formName = (layerId: string): string =>
-    layerId === 'demon'
-      ? '魔相'
-      : layerId === 'formless'
-        ? '无相'
-        : layerId;
-  rows.push(...(config.effectPlans?.map((plan) =>
-    `效果计划「${plan.name}」：${['佛相', ...plan.layerIds.map(formName)].join(' + ')}`,
-  ) ?? []));
+    layerId === 'demon' ? '魔相' : layerId === 'formless' ? '无相' : layerId;
+  rows.push(
+    ...[...(config.effectPlans ?? [])]
+      .sort((left, right) => left.layerIds.length - right.layerIds.length)
+      .map((plan) => {
+        const form =
+          plan.id === 'demon' || plan.id === 'formless'
+            ? formName(plan.id)
+            : formName(plan.layerIds[plan.layerIds.length - 1] ?? plan.id);
+        return `${form}变化《${plan.name}》：${plan.description ?? '显化此相时，招式随之变化。'}`;
+      }),
+  );
   for (const condition of config.castConditions ?? []) {
     if (
       condition.type === 'combat_resource_at_least' &&
@@ -574,30 +672,34 @@ export function describeSectAbilityConfig(
     ...damageEffectsRow(config.effects ?? [], resources),
     ...describeEffectList(config.effects ?? [], resources, baseTiming),
   ];
-  rows.push(...(isLayered
-    ? baseEffectRows.map((row) => `佛相主体：${row}`)
-    : baseEffectRows));
+  rows.push(
+    ...(isLayered
+      ? baseEffectRows.map((row) => layeredEffectRow('佛相', row))
+      : baseEffectRows),
+  );
   const baseCompletionRows = [
     ...damageEffectsRow(config.completionEffects ?? [], resources),
     ...describeEffectList(config.completionEffects ?? [], resources, 'cast'),
   ];
-  rows.push(...(isLayered
-    ? baseCompletionRows.map((row) => `佛相完成：${row}`)
-    : baseCompletionRows));
+  rows.push(
+    ...(isLayered
+      ? baseCompletionRows.map((row) => layeredEffectRow('佛相', row))
+      : baseCompletionRows),
+  );
   for (const layer of layers) {
-    const label = layer.id === 'demon'
-      ? '魔相追加'
-      : layer.id === 'formless'
-        ? '无相追加'
-        : `追加层 ${layer.id}`;
-    rows.push(...[
-      ...damageEffectsRow(layer.effects ?? [], resources),
-      ...describeEffectList(layer.effects ?? [], resources, baseTiming),
-    ].map((row) => `${label}：${row}`));
-    rows.push(...[
-      ...damageEffectsRow(layer.completionEffects ?? [], resources),
-      ...describeEffectList(layer.completionEffects ?? [], resources, 'cast'),
-    ].map((row) => `${label}完成：${row}`));
+    const label = formName(layer.id);
+    rows.push(
+      ...[
+        ...damageEffectsRow(layer.effects ?? [], resources),
+        ...describeEffectList(layer.effects ?? [], resources, baseTiming),
+      ].map((row) => layeredEffectRow(label, row)),
+    );
+    rows.push(
+      ...[
+        ...damageEffectsRow(layer.completionEffects ?? [], resources),
+        ...describeEffectList(layer.completionEffects ?? [], resources, 'cast'),
+      ].map((row) => layeredEffectRow(label, row)),
+    );
   }
   rows.push(...describeEffectList(config.castEffects ?? [], resources, 'cast'));
   return Array.from(new Set(rows.filter(Boolean)));
