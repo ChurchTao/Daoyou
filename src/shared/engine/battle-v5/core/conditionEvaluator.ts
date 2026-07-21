@@ -20,7 +20,10 @@ function getAbilityTagsFromTriggerEvent(triggerEvent: unknown) {
 
   const eventLike = triggerEvent as {
     ability?: {
-      tags?: { hasTag: (tag: string) => boolean };
+      tags?: {
+        hasTag: (tag: string) => boolean;
+        getTags: () => string[];
+      };
     };
   };
 
@@ -122,6 +125,12 @@ export function evaluateCondition(
 ): boolean {
   const scopedUnit = getScopedUnit(context, cond.params.scope);
   const threshold = cond.params.value ?? 0;
+  const snapshotHpRatio = (() => {
+    if (cond.params.timing !== 'cast' || !context.castSnapshot) return undefined;
+    return cond.params.scope === 'caster'
+      ? context.castSnapshot.casterHpRatioAfterCost
+      : context.castSnapshot.targetHpRatioBeforeEffects;
+  })();
 
   switch (cond.type) {
     case 'has_tag':
@@ -152,9 +161,13 @@ export function evaluateCondition(
       return !abilityTags.hasTag(cond.params.tag);
     }
     case 'hp_above':
-      return !!scopedUnit && scopedUnit.getCurrentHp() / scopedUnit.getMaxHp() > threshold;
+      return snapshotHpRatio !== undefined
+        ? snapshotHpRatio > threshold
+        : !!scopedUnit && scopedUnit.getCurrentHp() / scopedUnit.getMaxHp() > threshold;
     case 'hp_below':
-      return !!scopedUnit && scopedUnit.getCurrentHp() / scopedUnit.getMaxHp() < threshold;
+      return snapshotHpRatio !== undefined
+        ? snapshotHpRatio < threshold
+        : !!scopedUnit && scopedUnit.getCurrentHp() / scopedUnit.getMaxHp() < threshold;
     case 'mp_above':
       return !!scopedUnit && scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() > threshold;
     case 'mp_below':

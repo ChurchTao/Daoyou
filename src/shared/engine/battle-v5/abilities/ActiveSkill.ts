@@ -13,7 +13,7 @@ import {
   peekAbilityTransform,
 } from '../core/runtimeState';
 import { Unit } from '../units/Unit';
-import { Ability, AbilityContext } from './Ability';
+import { Ability, AbilityContext, type AbilityCastSnapshot } from './Ability';
 import { TargetPolicy } from './TargetPolicy';
 
 /**
@@ -30,6 +30,7 @@ export interface ResourceCost {
  * 主动技能配置
  */
 export interface ActiveSkillConfig {
+  description?: string;
   mpCost?: number;
   hpCost?: number;
   costs?: AbilityCostConfig[];
@@ -61,7 +62,7 @@ export abstract class ActiveSkill extends Ability {
   private readonly _castConditions: ConditionConfig[];
 
   constructor(id: AbilityId, name: string, config: ActiveSkillConfig = {}) {
-    super(id, name, AbilityType.ACTIVE_SKILL);
+    super(id, name, AbilityType.ACTIVE_SKILL, config.description);
 
     // 初始化冷却
     this._maxCooldown = this.normalizeCooldownValue(config.cooldown ?? 0);
@@ -90,6 +91,9 @@ export abstract class ActiveSkill extends Ability {
   }
 
   private _costConfigs: AbilityCostConfig[] = [];
+  private _preparedCosts?: ResourceCost[];
+  private _preparedTarget?: Unit;
+  private _castSnapshot?: AbilityCastSnapshot;
 
   get targetPolicy(): TargetPolicy {
     return this._targetPolicy;
@@ -211,7 +215,7 @@ export abstract class ActiveSkill extends Ability {
     let hpRequired = 0;
     let hpRetain = 0;
     let mpRequired = 0;
-    for (const cost of this.resolveCosts(caster)) {
+    for (const cost of this._preparedCosts ?? this.resolveCosts(caster)) {
       switch (cost.type) {
         case 'mp':
           if (transform?.freeManaCost) break;
@@ -239,7 +243,7 @@ export abstract class ActiveSkill extends Ability {
    */
   consumeResources(caster: Unit): void {
     const transform = peekAbilityTransform(caster, this);
-    const costs = this.resolveCosts(caster);
+    const costs = this._preparedCosts ?? this.resolveCosts(caster);
     const beforeHp = caster.getCurrentHp();
     const beforeMp = caster.getCurrentMp();
     for (const cost of costs) {
@@ -325,13 +329,55 @@ export abstract class ActiveSkill extends Ability {
     return true;
   }
 
+  override prepareCast(context: AbilityContext): void {
+    this._preparedCosts = this.resolveCosts(context.caster);
+    this._preparedTarget = context.target;
+  }
+
+  override cancelPreparedCast(): void {
+    this._preparedCosts = undefined;
+    this._preparedTarget = undefined;
+    this._castSnapshot = undefined;
+  }
+
+  get preparedTarget(): Unit | undefined {
+    return this._preparedTarget;
+  }
+
+  canExecutePreparedCast(caster: Unit): boolean {
+    return this.hasEnoughResources(caster);
+  }
+
+  protected get castSnapshot(): AbilityCastSnapshot | undefined {
+    return this._castSnapshot;
+  }
+
   /**
    * 执行技能
    * 负责资源消耗、冷却启动、效果执行
    */
   override execute(context: AbilityContext): void {
+    if (!this.canExecutePreparedCast(context.caster)) {
+      this.cancelPreparedCast();
+      return;
+    }
+    const beforeCostHp = context.caster.getCurrentHp();
+    const target = this._preparedTarget ?? context.target;
     // 消耗资源
     this.consumeResources(context.caster);
+    const afterCostHp = context.caster.getCurrentHp();
+    this._castSnapshot = {
+      variantId: this.runtimeVariantId,
+      casterHpBeforeCost: beforeCostHp,
+      casterHpAfterCost: afterCostHp,
+      casterHpRatioAfterCost:
+        context.caster.getMaxHp() > 0 ? afterCostHp / context.caster.getMaxHp() : 0,
+      targetHpBeforeEffects: target.getCurrentHp(),
+      targetHpRatioBeforeEffects:
+        target.getMaxHp() > 0
+          ? target.getCurrentHp() / target.getMaxHp()
+          : 0,
+    };
 
     // 启动冷却
     this.startCooldown();
@@ -343,18 +389,21 @@ export abstract class ActiveSkill extends Ability {
     const activeTransform = beginAbilityTransform(context.caster, this);
     try {
       // 施法承诺在 MP/CD 结算后必定执行，例如调息或登记后发攻击。
-      this.executeCastEffects(context.caster, context.target);
+      this.executeCastEffects(context.caster, target);
       if (context.shouldApplyEffects === false) {
         return;
       }
 
       // 执行技能效果（子类实现）
-      this.executeSkill(context.caster, context.target);
+      this.executeSkill(context.caster, target);
     } finally {
       if (activeTransform) {
         endAbilityTransform(this);
       }
       this.onCastFinished();
+      this._preparedCosts = undefined;
+      this._preparedTarget = undefined;
+      this._castSnapshot = undefined;
     }
   }
 
@@ -384,6 +433,9 @@ export abstract class ActiveSkill extends Ability {
     const cloned = super.clone() as ActiveSkill;
     cloned._maxCooldown = this._maxCooldown;
     cloned._costConfigs = this._costConfigs.map((cost) => ({ ...cost }));
+    cloned._preparedCosts = undefined;
+    cloned._preparedTarget = undefined;
+    cloned._castSnapshot = undefined;
     return cloned;
   }
 }

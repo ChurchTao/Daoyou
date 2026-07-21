@@ -82,6 +82,7 @@ export interface SkillPreCastEvent extends CombatEvent {
   type: 'SkillPreCastEvent';
   caster: Unit;
   target: Unit;
+  fallbackTarget?: Unit;
   ability: Ability;
   isInterrupted: boolean;
   interruptPolicy?: ActionInterruptPolicy;

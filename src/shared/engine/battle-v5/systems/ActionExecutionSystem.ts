@@ -7,6 +7,8 @@ import {
   SkillInterruptEvent,
   EventPriorityLevel,
 } from '../core/events';
+import { ActiveSkill } from '../abilities/ActiveSkill';
+import { BasicAttack } from '../abilities/BasicAttack';
 
 /**
  * ActionExecutionSystem - 行动执行系统
@@ -73,13 +75,34 @@ export class ActionExecutionSystem {
       return;
     }
 
+    let ability = event.ability;
+    let target = event.target;
+    if (
+      ability instanceof ActiveSkill &&
+      !ability.canExecutePreparedCast(event.caster)
+    ) {
+      ability.cancelPreparedCast();
+      const fallbackTarget = event.fallbackTarget;
+      if (!fallbackTarget || fallbackTarget === event.caster || !fallbackTarget.isAlive()) {
+        return;
+      }
+      const fallback = new BasicAttack();
+      fallback.setOwner(event.caster);
+      fallback.setActive(true);
+      fallback.prepareCast({ caster: event.caster, target: fallbackTarget });
+      ability = fallback;
+      target = fallbackTarget;
+    } else if (ability instanceof ActiveSkill && ability.preparedTarget) {
+      target = ability.preparedTarget;
+    }
+
     // 未被打断，发布技能释放事件
     const castEvent: SkillCastEvent = {
       type: 'SkillCastEvent',
       timestamp: Date.now(),
       caster: event.caster,
-      target: event.target,
-      ability: event.ability,
+      target,
+      ability,
       interruptPolicy: event.interruptPolicy,
       hitPolicy: event.hitPolicy,
     };
@@ -96,14 +119,14 @@ export class ActionExecutionSystem {
         name: event.queuedActionState.name,
         remainingActions: 0,
         sourceAbility: event.queuedActionState.sourceAbility,
-        ability: { id: event.ability.id, name: event.ability.name },
+        ability: { id: ability.id, name: ability.name },
       });
     }
 
     // 无论命中与否，技能都需要消耗资源并进入冷却；效果链是否执行由上下文决定。
-    event.ability.execute({
+    ability.execute({
       caster: event.caster,
-      target: event.target,
+      target,
       shouldApplyEffects: castEvent.isHit !== false,
     });
   }

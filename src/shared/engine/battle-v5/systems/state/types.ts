@@ -21,6 +21,7 @@ export interface BuffStateView {
 export interface CooldownStateView {
   skillId: string;
   skillName: string;
+  description?: string;
   /** 当前剩余冷却回合；0 = 可用 */
   current: number;
   /** 技能最大冷却回合 */

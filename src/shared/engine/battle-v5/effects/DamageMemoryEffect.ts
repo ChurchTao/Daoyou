@@ -56,9 +56,23 @@ export class DamageMemoryEffect extends GameplayEffect {
     }
 
     const memory = readMemory(owner, this.params.key);
-    const sourceAmount =
+    const storedAmount =
       memory.amount > 0 ? memory.amount : this.getRecordAmount(context);
-    const amount = Math.round(sourceAmount * (this.params.ratio ?? 1));
+    const consumeRatio = this.params.consume === false
+      ? 1
+      : Math.max(0, Math.min(1, this.params.consumeRatio ?? 1));
+    const sourceAmount = storedAmount * consumeRatio;
+    const releaseCap = this.params.maxReleaseValue
+      ? ValueCalculator.calculate(
+          this.params.maxReleaseValue,
+          context.caster,
+          context.target,
+        )
+      : Number.POSITIVE_INFINITY;
+    const amount = Math.min(
+      releaseCap,
+      Math.round(sourceAmount * (this.params.ratio ?? 1)),
+    );
     if (amount <= 0) return;
 
     switch (this.params.releaseAs ?? 'damage') {

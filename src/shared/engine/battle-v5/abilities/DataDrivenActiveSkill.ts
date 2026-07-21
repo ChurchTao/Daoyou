@@ -97,6 +97,7 @@ export class DataDrivenActiveSkill extends ActiveSkill {
       caster,
       target,
       ability: this,
+      castSnapshot: this.castSnapshot,
     };
 
     // 依次执行效果链
@@ -106,7 +107,12 @@ export class DataDrivenActiveSkill extends ActiveSkill {
   }
 
   protected override executeCastEffects(caster: Unit, target: Unit): void {
-    const context: EffectContext = { caster, target, ability: this };
+    const context: EffectContext = {
+      caster,
+      target,
+      ability: this,
+      castSnapshot: this.castSnapshot,
+    };
     for (const effect of this._castEffects) {
       effect.execute(context);
     }

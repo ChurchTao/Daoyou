@@ -73,6 +73,7 @@ export interface AbilityModeRuntime {
   remainingUses: number;
   displayName: string;
   firstAbilityId?: string;
+  cleanupBuffIds?: string[];
 }
 
 const unitState = new WeakMap<Unit, BattleRuntimeState>();
@@ -221,6 +222,9 @@ export function advanceAbilityMode(
   };
   if (next.remainingUses <= 0) {
     state.abilityModes.delete(key);
+    for (const buffId of next.cleanupBuffIds ?? []) {
+      unit.buffs.removeBuff(buffId);
+    }
     return undefined;
   }
   state.abilityModes.set(key, next);
@@ -228,7 +232,12 @@ export function advanceAbilityMode(
 }
 
 export function clearAbilityMode(unit: Unit, key: string): void {
-  getBattleRuntimeState(unit).abilityModes.delete(key);
+  const state = getBattleRuntimeState(unit);
+  const mode = state.abilityModes.get(key);
+  state.abilityModes.delete(key);
+  for (const buffId of mode?.cleanupBuffIds ?? []) {
+    unit.buffs.removeBuff(buffId);
+  }
 }
 
 export function claimActionAmount(

@@ -21,6 +21,7 @@ import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { StackRule } from '../buffs/Buff';
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import { EffectContext, GameplayEffect } from './Effect';
+import { checkConditions } from '../core/conditionEvaluator';
 
 /**
  * 伤害原子效果
@@ -43,6 +44,24 @@ export class DamageEffect extends GameplayEffect {
     );
     let damage = damageResult.total;
     const damageComponents: DamageComponent[] = [...damageResult.components];
+    if ((this.params.targetMissingHpAtkCoefficientCap ?? 0) > 0) {
+      const targetHpRatio = context.castSnapshot?.targetHpRatioBeforeEffects
+        ?? target.getHpPercent();
+      const coefficient = Math.max(0, 1 - targetHpRatio)
+        * (this.params.targetMissingHpAtkCoefficientCap ?? 0);
+      const attack = resolvedCaster.attributes.getValue(AttributeType.ATK);
+      const amount = attack * coefficient;
+      damage += amount;
+      if (amount > 0) {
+        damageComponents.push({
+          kind: 'target_missing_hp',
+          amount,
+          mitigation: 'normal',
+          attackBase: attack,
+          segmentMultiplier: coefficient,
+        });
+      }
+    }
     if (this.params.bypassDefense) {
       damageComponents.splice(
         0,
@@ -126,6 +145,12 @@ export class DamageEffect extends GameplayEffect {
     }
 
     // 发布伤害请求事件
+    const conditionCritical =
+      this.params.forceCriticalConditions?.length
+        ? checkConditions(context, this.params.forceCriticalConditions)
+        : false;
+    const forceCritical =
+      this.params.forceCritical || transform?.forceCritical || conditionCritical;
     EventBus.instance.publish<DamageRequestEvent>({
       type: 'DamageRequestEvent',
       timestamp: Date.now(),
@@ -144,11 +169,8 @@ export class DamageEffect extends GameplayEffect {
       damageComponents,
       baseDamage: damage,
       finalDamage: damage, // 初始终伤等于基伤，由后续系统修正
-      forceCritical: this.params.forceCritical || transform?.forceCritical,
-      isCritical:
-        this.params.forceCritical || transform?.forceCritical
-          ? true
-          : undefined,
+      forceCritical,
+      isCritical: forceCritical ? true : undefined,
     });
 
     if (transform?.addDispel && !transform.addDispelApplied) {

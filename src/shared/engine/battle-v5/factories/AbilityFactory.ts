@@ -43,6 +43,7 @@ export class AbilityFactory {
     if (config.type === AbilityType.ACTIVE_SKILL) {
       if (config.variants?.length) {
         const skill = new DynamicDataDrivenActiveSkill(id, name, {
+          description: config.description,
           mpCost: config.mpCost ?? 0,
           hpCost: config.hpCost ?? 0,
           costs: config.costs,
@@ -62,6 +63,7 @@ export class AbilityFactory {
         return skill;
       }
       const skill = new DataDrivenActiveSkill(id, name, {
+        description: config.description,
         mpCost: config.mpCost ?? 0,
         hpCost: config.hpCost ?? 0,
         costs: config.costs,

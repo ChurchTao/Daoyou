@@ -26,6 +26,9 @@ export class AbilityModeEffect extends GameplayEffect {
         phase: Math.max(1, Math.trunc(this.params.phase ?? 1)),
         remainingUses: Math.max(1, Math.trunc(this.params.remainingUses ?? 1)),
         displayName: this.params.displayName ?? this.params.mode,
+        cleanupBuffIds: this.params.cleanupBuffIds
+          ? [...this.params.cleanupBuffIds]
+          : undefined,
       });
     }
     publishMechanicLog({

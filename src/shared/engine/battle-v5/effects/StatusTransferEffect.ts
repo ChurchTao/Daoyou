@@ -15,9 +15,10 @@ export class StatusTransferEffect extends GameplayEffect {
     const from = this.unit(context, this.params.from);
     const to = this.params.to ? this.unit(context, this.params.to) : undefined;
     const matches = from.buffs.getAllBuffs().filter((buff) =>
-      this.params.status === 'positive'
+      buff.dispelPolicy === 'normal' &&
+      (this.params.status === 'positive'
         ? buff.type === BuffType.BUFF
-        : buff.type === BuffType.DEBUFF || buff.type === BuffType.CONTROL,
+        : buff.type === BuffType.DEBUFF || buff.type === BuffType.CONTROL),
     );
     const max = Math.max(1, Math.trunc(this.params.maxCount ?? 1));
     const selected = matches.slice(0, max);
@@ -27,9 +28,10 @@ export class StatusTransferEffect extends GameplayEffect {
     }
     for (const buff of selected) {
       const moved = buff.clone();
-      from.buffs.removeBuff(buff.id);
+      const source = buff.getSource();
+      from.buffs.removeBuffDispel(buff.id);
       if (this.params.operation === 'move' && to) {
-        to.buffs.addBuff(moved, context.caster, { ability: context.ability });
+        to.buffs.addBuff(moved, source ?? undefined, { ability: context.ability });
       }
       executeEffectConfigs(this.params.effects ?? [], context);
     }

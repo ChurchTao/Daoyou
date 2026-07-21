@@ -16,6 +16,15 @@ export interface AbilityContext {
   shouldApplyEffects?: boolean;
 }
 
+export interface AbilityCastSnapshot {
+  variantId?: string;
+  casterHpBeforeCost: number;
+  casterHpAfterCost: number;
+  casterHpRatioAfterCost: number;
+  targetHpBeforeEffects: number;
+  targetHpRatioBeforeEffects: number;
+}
+
 /**
  * Ability 基类 - 遵循 GAS 设计原则
  *
@@ -39,6 +48,7 @@ export interface AbilityContext {
 export class Ability {
   readonly id: AbilityId;
   private readonly _baseName: string;
+  private readonly _baseDescription?: string;
   readonly type: AbilityType;
 
   // 核心属性
@@ -55,15 +65,20 @@ export class Ability {
     handler: EventHandler;
   }> = [];
 
-  constructor(id: AbilityId, name: string, type: AbilityType) {
+  constructor(id: AbilityId, name: string, type: AbilityType, description?: string) {
     this.id = id;
     this._baseName = name;
+    this._baseDescription = description;
     this.type = type;
     this.tags = new GameplayTagContainer();
   }
 
   get name(): string {
     return this._baseName;
+  }
+
+  get description(): string | undefined {
+    return this._baseDescription;
   }
 
   get runtimeVariantId(): string | undefined {
@@ -180,7 +195,7 @@ export class Ability {
    * 注意：不复制 owner 和 active 状态
    */
   clone(): Ability {
-    const cloned = new Ability(this.id, this.name, this.type);
+    const cloned = new Ability(this.id, this.name, this.type, this.description);
     cloned._priority = this._priority;
     cloned.tags.addTags(this.tags.getTags());
     return cloned;

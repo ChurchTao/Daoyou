@@ -65,6 +65,7 @@ export class SectAbilityFactory {
     const config: AbilityConfig = {
       slug: `sect.${this.sectId}.${spec.definition.id}`,
       name: spec.name ?? spec.definition.baseName,
+      description: spec.definition.description,
       type: AbilityType.ACTIVE_SKILL,
       mpCost: spec.mpCost ?? spec.definition.mpCost,
       costs: spec.costs ?? spec.definition.costs,
@@ -131,6 +132,7 @@ export class SectAbilityFactory {
     const config: AbilityConfig = {
       slug: `sect.${this.sectId}.${args.definition.id}`,
       name: args.name ?? args.definition.baseName,
+      description: args.definition.description,
       type: AbilityType.PASSIVE_SKILL,
       tags: [
         ...(capabilities.hasDamage

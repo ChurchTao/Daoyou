@@ -203,12 +203,15 @@ export class BattleStateRecorder {
   }
 
   private _buildCooldowns(unit: Unit): CooldownStateView[] {
-    return unit.abilities
-      .getAllAbilities()
+    const abilities = unit.abilities.getAllAbilities();
+    const defaultAttack = unit.abilities.getDefaultAttackForSnapshot();
+    if (defaultAttack && !abilities.includes(defaultAttack)) abilities.unshift(defaultAttack);
+    return abilities
       .filter((a): a is ActiveSkill => a instanceof ActiveSkill)
       .map((skill) => ({
         skillId: skill.id,
         skillName: skill.name,
+        description: skill.description,
         current: skill.currentCooldown,
         max: skill.maxCooldown,
         mpCost: skill.manaCost,

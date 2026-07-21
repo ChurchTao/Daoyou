@@ -48,6 +48,10 @@ export class DynamicDataDrivenActiveSkill extends ActiveSkill {
     return this.currentVariant()?.name ?? super.name;
   }
 
+  override get description(): string | undefined {
+    return this.currentVariant()?.description ?? super.description;
+  }
+
   override get runtimeVariantId(): string | undefined {
     return this.currentVariant()?.id;
   }
@@ -67,10 +71,12 @@ export class DynamicDataDrivenActiveSkill extends ActiveSkill {
 
   override prepareCast(context: AbilityContext): void {
     this.preparedVariant = this.resolveVariant(context.caster, context.target);
+    super.prepareCast(context);
   }
 
   override cancelPreparedCast(): void {
     this.preparedVariant = undefined;
+    super.cancelPreparedCast();
   }
 
   protected override getCostConfigs(caster: Unit): AbilityCostConfig[] {
@@ -84,6 +90,7 @@ export class DynamicDataDrivenActiveSkill extends ActiveSkill {
       caster,
       target,
       ability: this,
+      castSnapshot: this.castSnapshot,
     });
   }
 
@@ -91,7 +98,7 @@ export class DynamicDataDrivenActiveSkill extends ActiveSkill {
     const variant = this.preparedVariant ?? this.resolveVariant(caster, target);
     executeEffectConfigs(
       variant?.castEffects ?? this.baseCastEffects,
-      { caster, target, ability: this },
+      { caster, target, ability: this, castSnapshot: this.castSnapshot },
     );
   }
 
@@ -101,6 +108,7 @@ export class DynamicDataDrivenActiveSkill extends ActiveSkill {
 
   override clone(): DynamicDataDrivenActiveSkill {
     const cloned = new DynamicDataDrivenActiveSkill(this.id, super.name, {
+      description: super.description,
       costs: this.baseCosts,
       cooldown: this.maxCooldown,
       priority: this.priority,

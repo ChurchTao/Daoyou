@@ -123,6 +123,7 @@ export interface ConditionConfig {
     mode?: string;
     phase?: number;
     variantId?: string;
+    timing?: 'live' | 'cast';
     operation?: 'add' | 'subtract' | 'set' | 'consume_all';
     eventField?: 'requested' | 'applied' | 'overflow';
   };
@@ -149,6 +150,9 @@ export interface DamageParams {
   bypassDefense?: boolean;
   damageSource?: DamageSource;
   forceCritical?: boolean;
+  forceCriticalConditions?: ConditionConfig[];
+  /** 按首段效果前目标已损气血线性追加物攻系数。 */
+  targetMissingHpAtkCoefficientCap?: number;
 }
 
 /**
@@ -288,6 +292,8 @@ export interface ConsumeStatusTriggerParams {
   consume?: 'one' | 'all' | number;
   effects: EffectConfig[];
   scaleEffectsByLayer?: boolean;
+  /** 按实际消费层数缩放数值强度，次数、目标数和状态操作仍只执行一次。 */
+  scaleNumericEffectsByLayer?: boolean;
   target?: 'caster' | 'target';
 }
 
@@ -331,6 +337,8 @@ export interface DamageMemoryParams {
   consume?: boolean;
   /** 释放后仅消费这部分记忆；1为全部，0.5为保留一半。 */
   consumeRatio?: number;
+  /** 单次释放的最终记忆量上限。 */
+  maxReleaseValue?: ScalableValue;
 }
 
 export interface BuffLayerModifyParams {
@@ -457,6 +465,8 @@ export interface AbilityModeParams {
   phase?: number;
   remainingUses?: number;
   displayName?: string;
+  /** 形态清除时一并移除的状态。 */
+  cleanupBuffIds?: string[];
 }
 
 export interface StatusTransferParams {
@@ -679,6 +689,8 @@ export interface BuffConfig {
   logVisibility?: 'player' | 'debug';
   stackRule: StackRule;
   maxLayers?: number;
+  /** 默认状态可被驱散、转移；protected 状态只能由自身机制移除。 */
+  dispelPolicy?: 'normal' | 'protected';
   tags?: string[]; // Buff 自身的标签
   statusTags?: string[]; // 附加给宿主的标签
   /**
@@ -697,6 +709,7 @@ export interface BuffConfig {
 export interface AbilityConfig {
   slug: string;
   name: string;
+  description?: string;
   type: AbilityType;
   tags?: string[];
 

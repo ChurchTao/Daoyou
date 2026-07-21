@@ -195,6 +195,7 @@ export class AbilityContainer {
       timestamp: Date.now(),
       caster: this._owner,
       target,
+      fallbackTarget: this._getDefaultTarget() ?? undefined,
       ability,
       isInterrupted: false,
     });
@@ -224,6 +225,10 @@ export class AbilityContainer {
       this._defaultAttack.setOwner(this._owner);
       this._defaultAttack.setActive(true);
     }
+    return this._defaultAttack;
+  }
+
+  getDefaultAttackForSnapshot(): Ability | null {
     return this._defaultAttack;
   }
 
