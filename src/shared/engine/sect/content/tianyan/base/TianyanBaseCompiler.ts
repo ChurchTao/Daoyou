@@ -42,6 +42,7 @@ import {
   TIANYAN_SECRET_ART,
   TIANYAN_SECT_ID,
   TIANYAN_SHATTER_COOLDOWN,
+  TIANYAN_STRATEGY_ELEMENT_HISTORY,
   TIANYAN_TECHNIQUE,
   type TianyanLandingAbilityId,
 } from '../ids';
@@ -52,6 +53,7 @@ import {
 import {
   TIANYAN_ELEMENTS,
   TIANYAN_ELEMENT_ABILITY_TAGS,
+  TIANYAN_LANDING_BASE_DAMAGE,
   TIANYAN_ELEMENT_NAMES,
   getTianyanReaction,
   nextGeneratingElement,
@@ -884,7 +886,7 @@ function commonReactionPrelude(
   effects.push({
     type: 'element_history',
     params: {
-      key: 'sect.tianyan.strategy.recent-elements',
+      key: TIANYAN_STRATEGY_ELEMENT_HISTORY,
       threshold: 3,
       effects: [],
     },
@@ -1232,7 +1234,7 @@ function compileLandingAbility(
         mismatchImmunityTag,
       ],
       selectionProfile: { intents: ['damage'] },
-      detailRows: [
+      notes: [
         `落印术·${TIANYAN_ELEMENT_NAMES[spec.element]}`,
         `法印持续：${settings.sealDuration}回合`,
       ],
@@ -1331,6 +1333,7 @@ function compileUtilityAbilities(
       ],
       extraTags: [innerArtTag, TIANYAN_ELEMENT_ABILITY_TAGS.wood],
       selectionProfile: { intents: ['heal_hp'] },
+      notes: ['内景法·木'],
     }),
   );
 
@@ -1367,6 +1370,7 @@ function compileUtilityAbilities(
       ],
       extraTags: [innerArtTag, TIANYAN_ELEMENT_ABILITY_TAGS.fire],
       selectionProfile: { intents: ['buff'] },
+      notes: ['内景法·火'],
     }),
   );
 
@@ -1395,6 +1399,7 @@ function compileUtilityAbilities(
       ],
       extraTags: [innerArtTag, TIANYAN_ELEMENT_ABILITY_TAGS.earth],
       selectionProfile: { intents: ['defensive'] },
+      notes: ['内景法·土'],
     }),
   );
 
@@ -1429,6 +1434,7 @@ function compileUtilityAbilities(
       ],
       extraTags: [innerArtTag, TIANYAN_ELEMENT_ABILITY_TAGS.water],
       selectionProfile: { intents: ['restore_mp', 'buff'] },
+      notes: ['内景法·水'],
     }),
   );
 }
@@ -1487,6 +1493,7 @@ function compileSecrets(
       })),
       extraTags: [secretArtTag],
       selectionProfile: { intents: ['buff'] },
+      notes: ['天衍秘法'],
     }),
   );
 
@@ -1546,6 +1553,7 @@ function compileSecrets(
       })),
       extraTags: [secretArtTag],
       selectionProfile: { intents: ['buff', 'heal_hp', 'restore_mp'] },
+      notes: ['天衍秘法'],
     }),
   );
 }
@@ -1777,7 +1785,7 @@ const LANDING_SPECS: LandingSpec[] = [
   {
     id: 'verdant-pulse',
     element: 'wood',
-    coefficient: 0.68,
+    coefficient: TIANYAN_LANDING_BASE_DAMAGE['verdant-pulse'],
     baseEffects: (_reaction, settings) => [
       healHp(
         0.03 * settings.woodHealingMultiplier,
@@ -1789,7 +1797,7 @@ const LANDING_SPECS: LandingSpec[] = [
   {
     id: 'flowing-flame',
     element: 'fire',
-    coefficient: 0.82,
+    coefficient: TIANYAN_LANDING_BASE_DAMAGE['flowing-flame'],
     baseEffects: () => [
       targetBuff(periodicDamageBuff(TIANYAN_BURN, '灼烧', 0.16, 'fire')),
     ],
@@ -1797,7 +1805,7 @@ const LANDING_SPECS: LandingSpec[] = [
   {
     id: 'earth-bearing-seal',
     element: 'earth',
-    coefficient: 0.62,
+    coefficient: TIANYAN_LANDING_BASE_DAMAGE['earth-bearing-seal'],
     baseEffects: (_reaction, settings) => [
       shieldMagic(0.32, undefined, settings.loadoutMultiplier),
     ],
@@ -1805,7 +1813,7 @@ const LANDING_SPECS: LandingSpec[] = [
   {
     id: 'metal-cloud-cutter',
     element: 'metal',
-    coefficient: 0.88,
+    coefficient: TIANYAN_LANDING_BASE_DAMAGE['metal-cloud-cutter'],
     baseEffects: () => [
       targetBuff(
         buff('sect.tianyan.metal-cut', '破锋', BuffType.DEBUFF, 2, {
@@ -1822,7 +1830,7 @@ const LANDING_SPECS: LandingSpec[] = [
   {
     id: 'white-star-breaker',
     element: 'metal',
-    coefficient: 0.50,
+    coefficient: TIANYAN_LANDING_BASE_DAMAGE['white-star-breaker'],
     baseEffects: () => [
       { type: 'dispel', params: { maxCount: 1, status: 'positive' } },
     ],
@@ -1830,7 +1838,7 @@ const LANDING_SPECS: LandingSpec[] = [
   {
     id: 'dark-water-return',
     element: 'water',
-    coefficient: 0.72,
+    coefficient: TIANYAN_LANDING_BASE_DAMAGE['dark-water-return'],
     baseEffects: (reaction, settings) => {
       if (reaction?.id !== 'cold-spring') {
         return [

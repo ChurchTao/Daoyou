@@ -11,6 +11,7 @@ import { resolveSectAbility } from '../..';
 import {
   TIANYAN_HETU_PATH_ID,
   TIANYAN_LUOSHU_PATH_ID,
+  TIANYAN_STRATEGY_ELEMENT_HISTORY,
 } from '../ids';
 import {
   TIANYAN_HETU_PATH_MODULE,
@@ -107,7 +108,7 @@ describe('天衍六套自动战术', () => {
     );
     rememberElement(
       battle.caster,
-      'sect.tianyan.strategy.recent-elements',
+      TIANYAN_STRATEGY_ELEMENT_HISTORY,
       GameplayTags.ABILITY.ELEMENT.WATER,
     );
 
@@ -211,6 +212,23 @@ describe('天衍六套自动战术', () => {
     expect(selectedId(result)).toBe('shift-palace');
   });
 
+  it('锁机未装配土金落印术时不为空转法印，改用当前合法反应', () => {
+    const battle = context(TIANYAN_LUOSHU_PATH_ID, [
+      'shift-palace',
+      'flowing-flame',
+    ]);
+    battle.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal('wood', 2)),
+      battle.caster,
+    );
+
+    const result = TIANYAN_LUOSHU_PATH_MODULE
+      .createSelectionStrategy('lock-meridian')
+      .select(battle);
+
+    expect(selectedId(result)).toBe('flowing-flame');
+  });
+
   it('断局只在实际可触发的反应中比较伤害，不误选无反应技能', () => {
     const battle = context(TIANYAN_LUOSHU_PATH_ID, [
       'metal-cloud-cutter',
@@ -226,5 +244,22 @@ describe('天衍六套自动战术', () => {
       .select(battle);
 
     expect(selectedId(result)).toBe('earth-bearing-seal');
+  });
+
+  it('断局在水印下选择预期伤害更高的滋荣而非泥沼', () => {
+    const battle = context(TIANYAN_LUOSHU_PATH_ID, [
+      'earth-bearing-seal',
+      'verdant-pulse',
+    ]);
+    battle.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal('water', 2)),
+      battle.caster,
+    );
+
+    const result = TIANYAN_LUOSHU_PATH_MODULE
+      .createSelectionStrategy('decisive-derivation')
+      .select(battle);
+
+    expect(selectedId(result)).toBe('verdant-pulse');
   });
 });

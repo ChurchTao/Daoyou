@@ -203,4 +203,18 @@ describe('天衍圣地战斗投影', () => {
       ability.id as (typeof TIANYAN_VISIBLE_ABILITY_IDS)[number],
     ))).toHaveLength(13);
   });
+
+  it('技能详情区分落印术、内景法与天衍秘法', () => {
+    const sect = tianyanState(TIANYAN_HETU_PATH_ID);
+    const notes = (abilityId: string) =>
+      resolveSectAbility({ sect, realm: '化神', abilityId }).notes;
+
+    expect(notes('verdant-pulse')).toContain('落印术·木');
+    expect(notes('myriad-wood-renewal')).toContain('内景法·木');
+    expect(notes('lotus-in-fire')).toContain('内景法·火');
+    expect(notes('boundless-earth')).toContain('内景法·土');
+    expect(notes('heavenly-river-cleansing')).toContain('内景法·水');
+    expect(notes('shift-palace')).toContain('天衍秘法');
+    expect(notes('five-qi-repository')).toContain('天衍秘法');
+  });
 });

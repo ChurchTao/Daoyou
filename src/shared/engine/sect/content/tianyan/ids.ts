@@ -53,6 +53,8 @@ export const TIANYAN_CHAIN_CONTROL = 'sect.tianyan.chain-control';
 export const TIANYAN_FIRST_CHANGE = 'sect.tianyan.first-change';
 export const TIANYAN_SHATTER_COOLDOWN = 'sect.tianyan.shatter-cooldown';
 export const TIANYAN_DISPEL_TRUTH_COOLDOWN = 'sect.tianyan.dispel-truth-cooldown';
+export const TIANYAN_STRATEGY_ELEMENT_HISTORY =
+  'sect.tianyan.strategy.recent-elements';
 
 export const TIANYAN_TECHNIQUE = 'landing-technique';
 export const TIANYAN_INNER_ART = 'inner-art';

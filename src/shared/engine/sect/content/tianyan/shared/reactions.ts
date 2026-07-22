@@ -1,4 +1,8 @@
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
+import {
+  TIANYAN_SECT_ID,
+  type TianyanLandingAbilityId,
+} from '../ids';
 
 export const TIANYAN_ELEMENTS = [
   'wood',
@@ -51,6 +55,18 @@ export const TIANYAN_ELEMENT_ABILITY_TAGS: Record<TianyanElement, string> = {
   water: GameplayTags.ABILITY.ELEMENT.WATER,
 };
 
+export const TIANYAN_LANDING_BASE_DAMAGE: Record<
+  TianyanLandingAbilityId,
+  number
+> = {
+  'verdant-pulse': 0.68,
+  'flowing-flame': 0.82,
+  'earth-bearing-seal': 0.62,
+  'metal-cloud-cutter': 0.88,
+  'white-star-breaker': 0.50,
+  'dark-water-return': 0.72,
+};
+
 export const TIANYAN_ELEMENT_BUFF_TAGS: Record<TianyanElement, string> = {
   wood: GameplayTags.BUFF.ELEMENT.WOOD,
   fire: GameplayTags.BUFF.ELEMENT.FIRE,
@@ -60,15 +76,15 @@ export const TIANYAN_ELEMENT_BUFF_TAGS: Record<TianyanElement, string> = {
 };
 
 export const TIANYAN_SEAL_STATE_TAGS: Record<TianyanElement, string> = {
-  wood: GameplayTags.STATUS.SECT.state('tianyan', 'ElementSeal.Wood'),
-  fire: GameplayTags.STATUS.SECT.state('tianyan', 'ElementSeal.Fire'),
-  earth: GameplayTags.STATUS.SECT.state('tianyan', 'ElementSeal.Earth'),
-  metal: GameplayTags.STATUS.SECT.state('tianyan', 'ElementSeal.Metal'),
-  water: GameplayTags.STATUS.SECT.state('tianyan', 'ElementSeal.Water'),
+  wood: GameplayTags.STATUS.SECT.state(TIANYAN_SECT_ID, 'ElementSeal.Wood'),
+  fire: GameplayTags.STATUS.SECT.state(TIANYAN_SECT_ID, 'ElementSeal.Fire'),
+  earth: GameplayTags.STATUS.SECT.state(TIANYAN_SECT_ID, 'ElementSeal.Earth'),
+  metal: GameplayTags.STATUS.SECT.state(TIANYAN_SECT_ID, 'ElementSeal.Metal'),
+  water: GameplayTags.STATUS.SECT.state(TIANYAN_SECT_ID, 'ElementSeal.Water'),
 };
 
 export const TIANYAN_ANY_SEAL_STATE_TAG = GameplayTags.STATUS.SECT.state(
-  'tianyan',
+  TIANYAN_SECT_ID,
   'ElementSeal',
 );
 

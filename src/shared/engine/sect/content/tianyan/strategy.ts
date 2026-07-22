@@ -7,9 +7,14 @@ import { BuffType } from '@shared/engine/battle-v5/core/types';
 import { readElementHistory } from '@shared/engine/battle-v5/core/runtimeState';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { SectStrategyCandidates, type SectTacticId } from '../../core';
-import { TIANYAN_SECT_ID } from './ids';
 import {
+  TIANYAN_SECT_ID,
+  TIANYAN_STRATEGY_ELEMENT_HISTORY,
+} from './ids';
+import {
+  TIANYAN_ELEMENT_ABILITY_TAGS,
   TIANYAN_ELEMENTS,
+  TIANYAN_LANDING_BASE_DAMAGE,
   TIANYAN_SEAL_STATE_TAGS,
   getTianyanReaction,
   type TianyanElement,
@@ -22,16 +27,6 @@ const ABILITY_ELEMENTS: Partial<Record<string, TianyanElement>> = {
   'metal-cloud-cutter': 'metal',
   'white-star-breaker': 'metal',
   'dark-water-return': 'water',
-};
-
-const STRATEGY_ELEMENT_HISTORY = 'sect.tianyan.strategy.recent-elements';
-
-const ELEMENT_TAGS: Record<TianyanElement, string> = {
-  wood: GameplayTags.ABILITY.ELEMENT.WOOD,
-  fire: GameplayTags.ABILITY.ELEMENT.FIRE,
-  earth: GameplayTags.ABILITY.ELEMENT.EARTH,
-  metal: GameplayTags.ABILITY.ELEMENT.METAL,
-  water: GameplayTags.ABILITY.ELEMENT.WATER,
 };
 
 function contentAbilityId(runtimeId: string): string {
@@ -75,6 +70,21 @@ function abilityIdsByReaction(
       return kind === 'any' || reaction.kind === kind ? id : undefined;
     })
     .filter((id): id is string => Boolean(id));
+}
+
+function expectedReactionDamage(
+  abilityId: string,
+  seal: TianyanElement,
+): number {
+  const element = ABILITY_ELEMENTS[abilityId];
+  const base = TIANYAN_LANDING_BASE_DAMAGE[
+    abilityId as keyof typeof TIANYAN_LANDING_BASE_DAMAGE
+  ];
+  if (!element || base === undefined) return 0;
+  const reaction = getTianyanReaction(seal, element);
+  return base * (
+    1 + (reaction.mainDamageBonus ?? reaction.followUpRatio ?? 0)
+  );
 }
 
 abstract class TianyanSelectionStrategy implements AbilitySelectionStrategy {
@@ -164,11 +174,13 @@ export class HetuSelectionStrategy extends TianyanSelectionStrategy {
       if (reactions.length > 0) {
         const recentElements = readElementHistory(
           context.caster,
-          STRATEGY_ELEMENT_HISTORY,
+          TIANYAN_STRATEGY_ELEMENT_HISTORY,
         );
         const missingElementReactions = reactions.filter((id) => {
           const element = ABILITY_ELEMENTS[id];
-          return element ? !recentElements.has(ELEMENT_TAGS[element]) : false;
+          return element
+            ? !recentElements.has(TIANYAN_ELEMENT_ABILITY_TAGS[element])
+            : false;
         });
         if (missingElementReactions.length > 0) {
           return this.pick(context, missingElementReactions, 740);
@@ -204,7 +216,13 @@ export class LuoshuSelectionStrategy extends TianyanSelectionStrategy {
         id === 'earth-bearing-seal',
       );
       if (!controlImmune && lock.length > 0) return this.pick(context, lock, 780);
-      if (currentSeal(context)) {
+      const hasControlLanding = context.candidates.some((candidate) => {
+        const id = contentAbilityId(candidate.ability.id);
+        return id === 'earth-bearing-seal' ||
+          id === 'metal-cloud-cutter' ||
+          id === 'white-star-breaker';
+      });
+      if (currentSeal(context) && hasControlLanding) {
         return this.pick(context, ['shift-palace', ...anyReaction], 720);
       }
     }
@@ -224,17 +242,22 @@ export class LuoshuSelectionStrategy extends TianyanSelectionStrategy {
     }
     if (this.tacticId === 'decisive-derivation') {
       if (anyReaction.length > 0) {
-        const expectedDamageOrder = [
-          'metal-cloud-cutter',
-          'flowing-flame',
-          'dark-water-return',
-          'earth-bearing-seal',
-          'verdant-pulse',
-          'white-star-breaker',
-        ].filter((id) => anyReaction.includes(id));
+        const seal = currentSeal(context)!;
+        const expectedDamageOrder = anyReaction
+          .map((id, order) => ({
+            id,
+            order,
+            damage: expectedReactionDamage(id, seal),
+          }))
+          .sort((left, right) =>
+            right.damage - left.damage ||
+            left.order - right.order ||
+            left.id.localeCompare(right.id),
+          )
+          .map(({ id }) => id);
         return this.pick(
           context,
-          [...expectedDamageOrder, ...anyReaction],
+          expectedDamageOrder,
           760,
         );
       }
