@@ -155,6 +155,10 @@ export class DamageSystem {
    * ⑦ 最小伤害保证 + 四舍五入
    */
   private _onDamageRequest(event: DamageRequestEvent): void {
+    if (!event.target.isAlive()) {
+      return;
+    }
+
     const { target } = event;
 
     const damageType = this._resolveDamageType(event);
@@ -456,7 +460,7 @@ export class DamageSystem {
 
     // 最终判定：在所有 DamageTakenEvent 监听器执行完后，重新检查存活状态
     // 如果免死效果生效，target.currentHp 会变为 1，从而跳过此处的阵亡发布
-    if (target.getCurrentHp() <= 0) {
+    if (beforeHp > 0 && target.getCurrentHp() <= 0) {
       EventBus.instance.publish<UnitDeadEvent>({
         type: 'UnitDeadEvent',
         timestamp: Date.now(),

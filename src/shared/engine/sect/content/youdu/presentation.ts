@@ -82,6 +82,7 @@ export const YOUDU_SECT_PRESENTATION: SectPresentationTheme = {
   },
   facilityLabels: {
     archive: '三魂阁', cultivation_room: '返照室', workshop: '镇铁炉',
+    alchemy: '还魂药庐', refinery: '镇铁炉',
     spirit_vein: '黑水阴脉', herb_garden: '彼岸圃', formation: '万魂归窍阵',
   },
   lockedFacilities: ['formation'],
@@ -106,4 +107,3 @@ export const YOUDU_SECT_PRESENTATION: SectPresentationTheme = {
     sweepActivity: '巡灯照影', sweepCanvasLabel: '巡灯照影游戏画布',
   },
 };
-

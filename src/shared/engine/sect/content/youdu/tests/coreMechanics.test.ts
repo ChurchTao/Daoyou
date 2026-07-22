@@ -3,7 +3,9 @@ import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
 import type {
   DamageRequestEvent,
   ResourceDrainEvent,
+  UnitDeadEvent,
 } from '@shared/engine/battle-v5/core/events';
+import { EventPriorityLevel } from '@shared/engine/battle-v5/core/events';
 import {
   beginRuntimeAction,
   shouldTickBuffDuration,
@@ -78,6 +80,36 @@ function setOverride(owner: Unit, attrType: AttributeType, value: number): void 
     source: 'test',
   });
   owner.updateDerivedStats();
+}
+
+function addBuffImmunity(owner: Unit, tags: string[]): void {
+  owner.abilities.addAbility(AbilityFactory.create({
+    slug: `test.buff-immunity.${owner.id}.${tags.join('.')}`,
+    name: '测试状态免疫',
+    type: AbilityType.PASSIVE_SKILL,
+    tags: [GameplayTags.ABILITY.KIND.PASSIVE],
+    listeners: [{
+      eventType: GameplayTags.EVENT.BUFF_ADD,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: 1_000,
+      effects: [{ type: 'buff_immunity', params: { tags } }],
+    }],
+  }));
+}
+
+function addDamageImmunity(owner: Unit, tags: string[]): void {
+  owner.abilities.addAbility(AbilityFactory.create({
+    slug: `test.damage-immunity.${owner.id}.${tags.join('.')}`,
+    name: '测试伤害免疫',
+    type: AbilityType.PASSIVE_SKILL,
+    tags: [GameplayTags.ABILITY.KIND.PASSIVE],
+    listeners: [{
+      eventType: GameplayTags.EVENT.DAMAGE,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: EventPriorityLevel.DAMAGE_APPLY,
+      effects: [{ type: 'damage_immunity', params: { tags } }],
+    }],
+  }));
 }
 
 describe('幽都核心机制实际结算', () => {
@@ -352,6 +384,119 @@ describe('幽都核心机制实际结算', () => {
     expect(youdu.buffs.getAllBuffIds()).toContain('test.control.no-skill');
   });
 
+  it('通用减益免疫阻止蚀魂与忘川，控制免疫只阻止失魂和镇魂钉', () => {
+    const debuffCaster = unit('debuff-caster');
+    const debuffTarget = unit('debuff-target');
+    addBuffImmunity(debuffTarget, [GameplayTags.BUFF.TYPE.DEBUFF]);
+
+    ability('one-sigh').execute({ caster: debuffCaster, target: debuffTarget });
+    ability('forgetful-river-tide').execute({
+      caster: debuffCaster,
+      target: debuffTarget,
+    });
+
+    expect(erosion(debuffTarget)).toBeUndefined();
+    expect(debuffTarget.buffs.getAllBuffIds()).not.toContain(
+      YOUDU_FORGETFUL_RIVER,
+    );
+
+    const controlCaster = unit('control-caster');
+    const controlTarget = unit('control-target');
+    addBuffImmunity(controlTarget, [GameplayTags.BUFF.TYPE.CONTROL]);
+    setOverride(controlCaster, AttributeType.CONTROL_HIT, 1);
+    setOverride(controlTarget, AttributeType.CONTROL_RESISTANCE, 0);
+    ability('one-sigh').execute({ caster: controlCaster, target: controlTarget });
+    ability('soul-severing-call').execute({
+      caster: controlCaster,
+      target: controlTarget,
+    });
+    ability('one-sigh').execute({ caster: controlCaster, target: controlTarget });
+    expect(erosion(controlTarget)?.getLayer()).toBe(4);
+
+    ability('pin-soul').execute({ caster: controlCaster, target: controlTarget });
+
+    expect(erosion(controlTarget)).toBeDefined();
+    expect(controlTarget.buffs.getAllBuffIds()).not.toContain(YOUDU_SOUL_LOST);
+    expect(controlTarget.buffs.getAllBuffIds()).not.toContain(
+      'sect.youdu.soul-pinning-nail',
+    );
+  });
+
+  it('先定其形按成功命中而非实际伤害触发，闪避不会消耗次数', () => {
+    const system = new DamageSystem();
+    const caster = unit('caster');
+    const target = unit('target');
+    const nodes = ['decree-fix-form-first'];
+    installRuntime(caster, 'decree', nodes);
+    ability('reveal-shadow', 'decree', nodes).execute({ caster, target });
+    const sever = ability('soul-severing-call', 'decree', nodes);
+
+    EventBus.instance.publish({
+      type: 'HitCheckEvent',
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability: sever,
+      isHit: false,
+      isDodged: true,
+      isResisted: false,
+    });
+    expect(erosion(target)).toBeUndefined();
+
+    EventBus.instance.publish({
+      type: 'HitCheckEvent',
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability: sever,
+      isHit: true,
+      isDodged: false,
+      isResisted: false,
+    });
+    expect(erosion(target)?.getLayer()).toBe(1);
+
+    EventBus.instance.publish({
+      type: 'HitCheckEvent',
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability: sever,
+      isHit: true,
+      isDodged: false,
+      isResisted: false,
+    });
+    expect(erosion(target)?.getLayer()).toBe(1);
+
+    addDamageImmunity(target, [GameplayTags.ABILITY.CHANNEL.TRUE]);
+    const beforeHp = target.getCurrentHp();
+    sever.execute({ caster, target });
+    expect(target.getCurrentHp()).toBe(beforeHp);
+    expect(erosion(target)?.getLayer()).toBe(3);
+    system.destroy();
+  });
+
+  it('幽都铁律同时提高五层失魂的控制命中', () => {
+    const run = (nodes: string[]) => {
+      const caster = unit(`caster-${nodes.length}`);
+      const target = unit(`target-${nodes.length}`);
+      setOverride(caster, AttributeType.CONTROL_HIT, 0);
+      setOverride(target, AttributeType.CONTROL_RESISTANCE, 0.6);
+      const sigh = ability('one-sigh', 'decree', nodes);
+      for (let index = 0; index < 5; index += 1) {
+        sigh.execute({ caster, target });
+      }
+      return target;
+    };
+
+    const withoutNode = run([]);
+    expect(withoutNode.buffs.getAllBuffIds()).not.toContain(YOUDU_SOUL_LOST);
+    expect(erosion(withoutNode)?.getLayer()).toBe(3);
+
+    const withNode = run(['decree-iron-law']);
+    expect(withNode.buffs.getAllBuffIds()).toContain(YOUDU_SOUL_LOST);
+    expect(erosion(withNode)?.getLayer()).toBe(5);
+  });
+
   it('镇魂控制被抵抗时保留伤害与蚀魂，但不产生镇魂钉禁疗', () => {
     const caster = unit('caster');
     const target = unit('target');
@@ -417,6 +562,26 @@ describe('幽都核心机制实际结算', () => {
     ]);
     expect(requests[1]).toMatchObject({ canCrit: false, canLifesteal: false });
     expect(erosion(target)?.getLayer()).toBe(2);
+  });
+
+  it('混合伤害首段致死时只发布一次死亡事件', () => {
+    const system = new DamageSystem();
+    const caster = unit('caster');
+    const target = unit('target');
+    const deaths: UnitDeadEvent[] = [];
+    target.setHp(1);
+    EventBus.instance.subscribe<UnitDeadEvent>(
+      'UnitDeadEvent',
+      (event) => deaths.push(event),
+      -1_000,
+    );
+
+    ability('seize-soul').execute({ caster, target });
+
+    expect(target.isAlive()).toBe(false);
+    expect(deaths).toHaveLength(1);
+    expect(deaths[0]).toMatchObject({ unit: target, killer: caster });
+    system.destroy();
   });
 
   it('法术伤害回蓝只响应混合技能的术伤包，魂伤仍不可暴击与吸血', () => {

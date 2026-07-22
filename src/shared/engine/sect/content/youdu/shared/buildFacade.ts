@@ -34,7 +34,7 @@ export interface YouduBuildSettings {
   heartSoulFireGain: number;
   pinHighLayerSlow: boolean;
   lostResistPenalty: boolean;
-  pinControlHitBonus: number;
+  highLayerControlHitBonus: number;
   lostAfterPenalty: boolean;
   heartShield: boolean;
   oneNameOneJudgment: boolean;
@@ -78,7 +78,7 @@ export function createYouduBuildSettings(pathId?: SectPathId): YouduBuildSetting
     heartSoulFireGain: pathId === 'decree' ? 1 : 0,
     pinHighLayerSlow: false,
     lostResistPenalty: false,
-    pinControlHitBonus: 0,
+    highLayerControlHitBonus: 0,
     lostAfterPenalty: false,
     heartShield: false,
     oneNameOneJudgment: false,
@@ -133,7 +133,7 @@ export class DecreeBuildFacade {
   deepenHeartReflection(): void { this.settings.heartSoulFireGain = 2; }
   enableFourGatesSlow(): void { this.settings.pinHighLayerSlow = true; }
   enableMeasuredPunishment(): void { this.settings.lostResistPenalty = true; }
-  enforceIronLaw(): void { this.settings.pinControlHitBonus = 0.15; }
+  enforceIronLaw(): void { this.settings.highLayerControlHitBonus = 0.15; }
   enableFiveSoulsPenalty(): void { this.settings.lostAfterPenalty = true; }
   enableReturningBarrier(): void { this.settings.heartShield = true; }
   enableOneNameJudgment(): void { this.settings.oneNameOneJudgment = true; }
@@ -141,4 +141,3 @@ export class DecreeBuildFacade {
   severSevenInches(): void { this.settings.finishPerLayerCoefficient = 0.25; }
   enableNameInYoudu(): void { this.settings.nameInYoudu = true; }
 }
-

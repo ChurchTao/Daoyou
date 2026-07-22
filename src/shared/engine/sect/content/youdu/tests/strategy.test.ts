@@ -10,10 +10,14 @@ import { describe, expect, it } from 'vitest';
 import { resolveSectAbility } from '../..';
 import {
   YOUDU_FORGETFUL_RIVER,
+  YOUDU_SHADOW_REVEALED,
   YOUDU_SOUL_EROSION,
   YOUDU_SOUL_FIRE,
 } from '..';
-import { YouduTideSelectionStrategy } from '../strategy';
+import {
+  YouduDecreeSelectionStrategy,
+  YouduTideSelectionStrategy,
+} from '../strategy';
 import { youduState } from './testState';
 
 function unit(id: string): Unit {
@@ -49,6 +53,8 @@ function addTargetState(target: Unit, erosionLayers: number): void {
 function selectionContext(
   abilityIds: string[],
   erosionLayers: number,
+  pathId: 'tide' | 'decree' = 'tide',
+  withShadow = false,
 ): AbilitySelectionContext {
   const caster = unit('caster');
   const opponent = unit('opponent');
@@ -59,12 +65,21 @@ function selectionContext(
     max: 3,
   });
   addTargetState(opponent, erosionLayers);
+  if (withShadow) {
+    opponent.buffs.addBuff(BuffFactory.create({
+      id: YOUDU_SHADOW_REVEALED,
+      name: '照影',
+      type: BuffType.DEBUFF,
+      duration: 3,
+      stackRule: StackRule.REFRESH_DURATION,
+    }));
+  }
   return {
     caster,
     opponent,
     candidates: abilityIds.map((abilityId, order) => ({
       ability: AbilityFactory.create(resolveSectAbility({
-        sect: youduState('tide'),
+        sect: youduState(pathId),
         realm: '化神',
         abilityId,
       }).config) as ActiveSkill,
@@ -91,6 +106,34 @@ function addHealingAbility(opponent: Unit, cooldown: number): ActiveSkill {
   opponent.abilities.addAbility(heal);
   if (cooldown > 0) heal.startCooldown();
   return heal;
+}
+
+function addControlAbility(opponent: Unit, cooldown: number): ActiveSkill {
+  const control = AbilityFactory.create({
+    slug: `test.control.${cooldown}`,
+    name: '测试控制',
+    type: AbilityType.ACTIVE_SKILL,
+    cooldown,
+    targetPolicy: { team: 'enemy', scope: 'single' },
+    selectionProfile: { intents: ['control'] },
+    tags: [GameplayTags.ABILITY.FUNCTION.CONTROL],
+    effects: [{
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: `test.control.buff.${cooldown}`,
+          name: '测试控制状态',
+          type: BuffType.CONTROL,
+          duration: 1,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.CONTROL],
+        },
+      },
+    }],
+  }) as ActiveSkill;
+  opponent.abilities.addAbility(control);
+  if (cooldown > 0) control.startCooldown();
+  return control;
 }
 
 describe('幽都自动战术', () => {
@@ -128,6 +171,70 @@ describe('幽都自动战术', () => {
     withShadow.caster.combatResources.set(YOUDU_SOUL_FIRE, 3);
     expect(strategy.select(withShadow)?.ability.id).toBe(
       'sect.youdu.soul-shall-not-return',
+    );
+  });
+
+  it('钉法者先补照影，并在敌方控制或治疗进入关键窗口时镇魂', () => {
+    const strategy = new YouduDecreeSelectionStrategy('pin-the-caster');
+    const withoutShadow = selectionContext(
+      ['reveal-shadow', 'soul-severing-call', 'pin-soul'],
+      3,
+      'decree',
+    );
+    expect(strategy.select(withoutShadow)?.ability.id).toBe(
+      'sect.youdu.reveal-shadow',
+    );
+
+    const context = selectionContext(
+      ['soul-severing-call', 'pin-soul'],
+      3,
+      'decree',
+      true,
+    );
+    const control = addControlAbility(context.opponent!, 2);
+    expect(strategy.select(context)?.ability.id).toBe(
+      'sect.youdu.soul-severing-call',
+    );
+    control.tickCooldown();
+    expect(strategy.select(context)?.ability.id).toBe('sect.youdu.pin-soul');
+  });
+
+  it('钉法者在无关键窗口的四层击杀线优先终结', () => {
+    const strategy = new YouduDecreeSelectionStrategy('pin-the-caster');
+    const context = selectionContext(
+      ['pin-soul', 'soul-shall-not-return'],
+      4,
+      'decree',
+      true,
+    );
+    context.caster.combatResources.set(YOUDU_SOUL_FIRE, 3);
+
+    expect(strategy.select(context)?.ability.id).toBe(
+      'sect.youdu.soul-shall-not-return',
+    );
+  });
+
+  it('四层判决立即终结，取其第五则优先叠到五层', () => {
+    const judge = new YouduDecreeSelectionStrategy('judge-at-four');
+    const judgeContext = selectionContext(
+      ['soul-shall-not-return', 'pin-soul'],
+      4,
+      'decree',
+      true,
+    );
+    expect(judge.select(judgeContext)?.ability.id).toBe(
+      'sect.youdu.soul-shall-not-return',
+    );
+
+    const fifth = new YouduDecreeSelectionStrategy('take-the-fifth');
+    const fifthContext = selectionContext(
+      ['soul-severing-call', 'soul-shall-not-return'],
+      4,
+      'decree',
+      true,
+    );
+    expect(fifth.select(fifthContext)?.ability.id).toBe(
+      'sect.youdu.soul-severing-call',
     );
   });
 });

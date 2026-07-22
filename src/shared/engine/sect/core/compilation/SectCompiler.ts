@@ -238,10 +238,11 @@ export class SectCompiler {
           const modifierFacts = (build.abilityPresentationModifiers ?? [])
             .filter((modifier) => modifier.abilityId === abilityId)
             .flatMap((modifier) => modifier.factRows);
+          const authoredFacts = ability.detailRows ?? [];
           const detailRows = Array.from(
             new Set([
-              ...(ability.detailRows ?? []),
-              ...configFacts,
+              ...authoredFacts,
+              ...(authoredFacts.length === 0 ? configFacts : []),
               ...modifierFacts,
             ].filter(Boolean)),
           );

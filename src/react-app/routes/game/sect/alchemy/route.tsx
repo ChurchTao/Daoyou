@@ -39,7 +39,9 @@ function SectAlchemyBody() {
         sectContext={{
           facilityLevel: level,
           discountPercent,
-          facilityLabel: presentation.facilityLabels.workshop,
+          facilityLabel:
+            presentation.facilityLabels.alchemy ??
+            presentation.facilityLabels.workshop,
           scene,
         }}
       />

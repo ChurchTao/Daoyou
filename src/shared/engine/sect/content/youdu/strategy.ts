@@ -31,6 +31,18 @@ function hasImminentHealing(context: AbilitySelectionContext): boolean {
   ) ?? false;
 }
 
+function hasImminentControlOrHealing(
+  context: AbilitySelectionContext,
+): boolean {
+  return context.opponent?.abilities.getAllAbilities().some(
+    (ability) =>
+      ability instanceof ActiveSkill &&
+      ability.currentCooldown <= 1 &&
+      (ability.selectionProfile?.intents?.includes('control') ||
+        ability.selectionProfile?.intents?.includes('heal_hp')),
+  ) ?? false;
+}
+
 abstract class YouduSelectionStrategy implements AbilitySelectionStrategy {
   constructor(protected readonly tacticId: SectTacticId) {}
   abstract select(context: AbilitySelectionContext): AbilitySelectionResult | null;
@@ -106,9 +118,18 @@ export class YouduDecreeSelectionStrategy extends YouduSelectionStrategy {
     const erosion = layer(context);
     const hasShadow = hasBuff(context, YOUDU_SHADOW_REVEALED);
     const fire = context.caster.combatResources.getCurrent(YOUDU_SOUL_FIRE);
+    const targetHp = context.opponent?.getHpPercent() ?? 1;
 
-    if (this.tacticId === 'pin-the-caster' && !hasShadow) {
-      return this.pick(context, ['reveal-shadow', 'soul-severing-call'], 800);
+    if (this.tacticId === 'pin-the-caster') {
+      if (!hasShadow) {
+        return this.pick(context, ['reveal-shadow', 'soul-severing-call'], 800);
+      }
+      if (hasImminentControlOrHealing(context)) {
+        return this.pick(context, ['pin-soul', 'soul-severing-call'], 810);
+      }
+      if (erosion >= 4 && (fire >= 3 || targetHp < 0.45)) {
+        return this.pick(context, ['soul-shall-not-return', 'pin-soul'], 820);
+      }
     }
     if (this.tacticId === 'judge-at-four' && erosion >= 4) {
       return this.pick(context, ['soul-shall-not-return', 'pin-soul'], 820);

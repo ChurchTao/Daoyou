@@ -52,6 +52,7 @@ function getDefaultScope(eventType: string): ListenerScope {
       return 'owner_as_actor';
     case 'SkillCastEvent':
     case 'SkillPreCastEvent':
+    case 'HitCheckEvent':
     case 'DamageRequestEvent':
       return 'owner_as_caster';
     case 'RoundPreEvent':

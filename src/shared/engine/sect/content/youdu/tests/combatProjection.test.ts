@@ -60,6 +60,10 @@ describe('幽都战斗与展示投影', () => {
     expect(YOUDU_SECT_PRESENTATION.map?.hotspots).toHaveLength(15);
     expect(YOUDU_SECT_PRESENTATION.map?.hotspots?.find((spot) => spot.id === 'formation'))
       .toMatchObject({ locked: true, facility: 'formation' });
+    expect(YOUDU_SECT_PRESENTATION.facilityLabels).toMatchObject({
+      alchemy: '还魂药庐',
+      refinery: '镇铁炉',
+    });
   });
 
   it.each([YOUDU_TIDE_PATH_ID, YOUDU_DECREE_PATH_ID])(
@@ -72,6 +76,9 @@ describe('幽都战斗与展示投影', () => {
         id: YOUDU_SOUL_FIRE, name: '魂火', icon: '◈', initial: 0, max: 3,
       }]);
       expect(projection.selectionStrategy).toBeDefined();
+      expect(projection.abilities.map((ability) => ability.slug)).not.toContain(
+        `sect.youdu.${pathId}-runtime`,
+      );
     },
   );
 
@@ -128,6 +135,11 @@ describe('幽都战斗与展示投影', () => {
       realm: '化神',
       abilityId: 'youdu-runtime',
     }).detailRows.join('；');
+    const slowPin = resolveSectAbility({
+      sect: youduState(YOUDU_DECREE_PATH_ID, ['decree-four-gates-closed']),
+      realm: '化神',
+      abilityId: 'pin-soul',
+    }).detailRows.join('；');
 
     expect(sever).toContain('施法前至少3层蚀魂时魂伤提高70%');
     expect(sever).toContain('命中后增加2层蚀魂');
@@ -136,10 +148,42 @@ describe('幽都战斗与展示投影', () => {
     expect(seize).toContain('术伤与魂伤各0.22 × 法术攻击');
     expect(pin).toContain('命中后增加2层蚀魂');
     expect(pin).toContain('本次控制命中提高15%');
+    expect(pin).toContain('受到的气血治疗降低100%');
+    expect(slowPin).toContain('目标速度降低20%');
     expect(heart).toContain('控制抗性 +40%');
     expect([sever, seize, pin].join('；')).not.toMatch(
       /佛相|sever-high|sever-low|pin-high|pin-low/,
     );
+  });
+
+  it('终结与忘川详情完整展示节点条件，且不生成无条件或重复事实', () => {
+    const finish = resolveSectAbility({
+      sect: youduState(YOUDU_DECREE_PATH_ID, [
+        'decree-one-name-one-judgment',
+        'decree-name-in-youdu',
+      ]),
+      realm: '化神',
+      abilityId: 'soul-shall-not-return',
+    }).detailRows.join('；');
+    const forget = resolveSectAbility({
+      sect: youduState(YOUDU_TIDE_PATH_ID, [
+        'tide-black-water',
+        'tide-no-return-current',
+      ]),
+      realm: '化神',
+      abilityId: 'forgetful-river-tide',
+    }).detailRows.join('；');
+
+    expect(finish).toContain('目标至少4层蚀魂');
+    expect(finish).toContain('受到的气血治疗降低80%');
+    expect(finish).toContain('速度降低30%');
+    expect(finish).toContain('目标每场首次进入4层时获得标记');
+    expect(finish).toContain('目标气血低于20%');
+    expect(finish).toContain('每场一次');
+    expect(finish).not.toContain('伤害：相当于70%法攻');
+    expect(finish).not.toContain('施展后：魂火：获得3点');
+    expect(forget).toContain('忘川期间速度降低8%');
+    expect(forget).toContain('至少4层蚀魂时持续魂伤额外提高30%');
   });
 
   it('蚀魂详情展示完整五层曲线、逐层驱散且不出现零值占位', () => {

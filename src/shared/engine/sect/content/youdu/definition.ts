@@ -4,10 +4,8 @@ import {
 } from '@shared/engine/battle-v5/core/types';
 import type { SectDefinitionWithoutPaths } from '../../core';
 import {
-  YOUDU_DECREE_PATH_ID,
   YOUDU_SECT_ID,
   YOUDU_SOUL_FIRE,
-  YOUDU_TIDE_PATH_ID,
 } from './ids';
 
 export const YOUDU_BASE_DEFINITION: SectDefinitionWithoutPaths = {
@@ -140,16 +138,6 @@ export const YOUDU_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       id: 'youdu-runtime', kind: 'passive', baseName: '心死神活',
       description: '常驻控制韧性，并在每场第一次受控后自行解脱。', role: 'defensive',
       unlock: { type: 'method', methodId: 'dead-heart-living-spirit', level: 1 }, visibility: 'internal',
-    },
-    {
-      id: 'tide-runtime', kind: 'passive', baseName: '长夜回潮',
-      description: '忘川在深蚀之魂上回潮，并从有效潮伤中收拢魂火。', role: 'combo',
-      unlock: { type: 'active_path', pathId: YOUDU_TIDE_PATH_ID }, visibility: 'internal',
-    },
-    {
-      id: 'decree-runtime', kind: 'passive', baseName: '司命断章',
-      description: '以照影定名，以镇魄断章，将层数化为裁断。', role: 'finisher',
-      unlock: { type: 'active_path', pathId: YOUDU_DECREE_PATH_ID }, visibility: 'internal',
     },
   ],
   onboarding: {

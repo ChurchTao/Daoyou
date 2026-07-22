@@ -90,6 +90,46 @@ function percentage(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+function debuffTags(...tags: string[]): string[] {
+  return [GameplayTags.BUFF.TYPE.DEBUFF, ...tags];
+}
+
+function controlTags(...tags: string[]): string[] {
+  return [
+    GameplayTags.BUFF.TYPE.DEBUFF,
+    GameplayTags.BUFF.TYPE.CONTROL,
+    ...tags,
+  ];
+}
+
+function layerCurveDetail(label: string, values: readonly number[]): string {
+  const groups: Array<{ start: number; end: number; value: number }> = [];
+  values.forEach((value, index) => {
+    const layer = index + 1;
+    const previous = groups[groups.length - 1];
+    if (previous?.value === value) {
+      previous.end = layer;
+    } else {
+      groups.push({ start: layer, end: layer, value });
+    }
+  });
+  return `${label}：${groups.map(({ start, end, value }) => {
+    const range = start === end ? `${start}层` : `${start}～${end}层`;
+    return `${range}${percentage(value)}`;
+  }).join('，')}`;
+}
+
+function erosionDetailRows(settings: YouduBuildSettings): string[] {
+  return [
+    layerCurveDetail(
+      '物攻、法攻、物防、法防、身法',
+      settings.erosionAttributeCurve,
+    ),
+    layerCurveDetail('受治疗削弱', settings.erosionHealCurve),
+    '普通驱散每次只移除1层蚀魂',
+  ];
+}
+
 function soulFireDetail(settings: YouduBuildSettings): string {
   return `拥有3点魂火时：本次魂伤提高${percentage(settings.soulFireBonus)}，伤害后消耗全部魂火`;
 }
@@ -227,6 +267,7 @@ function temporaryPenalty(
     type: BuffType.DEBUFF,
     duration: 1,
     stackRule: StackRule.REFRESH_DURATION,
+    tags: debuffTags(),
     modifiers: [
       { attrType: AttributeType.ATK, type: ModifierType.ADD, value: attack },
       { attrType: AttributeType.MAGIC_ATK, type: ModifierType.ADD, value: attack },
@@ -278,10 +319,10 @@ function soulLostBuff(settings: YouduBuildSettings): BuffConfig {
     duration: 1,
     stackRule: StackRule.IGNORE,
     dispelPolicy: 'protected',
-    tags: [
+    tags: controlTags(
       lostTag,
       GameplayTags.STATUS.CONTROL.NO_ACTION,
-    ],
+    ),
     statusTags: [GameplayTags.STATUS.CONTROL.NO_ACTION],
     modifiers: [{
       attrType: AttributeType.HEAL_RECEIVED_REDUCTION,
@@ -337,7 +378,7 @@ function forgetfulRiverBuff(settings: YouduBuildSettings): BuffConfig {
     type: BuffType.DEBUFF,
     duration: settings.forgetDuration,
     stackRule: StackRule.REFRESH_DURATION,
-    tags: [forgetTag, GameplayTags.BUFF.DOT.ROOT],
+    tags: debuffTags(forgetTag, GameplayTags.BUFF.DOT.ROOT),
     statusTags: [stateTag('forgetful-river')],
     modifiers: [
       {
@@ -470,6 +511,7 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
         condition('has_not_tag', { scope: 'target', tag: returningTag }),
       ],
       effects: [applyBuff(soulLostBuff(settings), 'target', {
+        controlHitBonus: settings.highLayerControlHitBonus,
         onResistEffects: convergeLostSoul(settings, 'resist'),
       })],
     },
@@ -654,7 +696,7 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
     stackRule: StackRule.STACK_LAYER,
     maxLayers: 5,
     dispelMode: 'one_layer',
-    tags: [erosionTag],
+    tags: debuffTags(erosionTag),
     statusTags: [stateTag('soul-erosion')],
     modifiers: [
       ...[
@@ -695,7 +737,7 @@ function noReturnBuff(settings: YouduBuildSettings): BuffConfig {
     type: BuffType.DEBUFF,
     duration: 2,
     stackRule: StackRule.REFRESH_DURATION,
-    tags: [noReturnTag],
+    tags: debuffTags(noReturnTag),
     statusTags: [stateTag('no-return')],
     modifiers: [
       {
@@ -721,7 +763,7 @@ function shadowBuff(settings: YouduBuildSettings): BuffConfig {
     type: BuffType.DEBUFF,
     duration: settings.shadowDuration,
     stackRule: StackRule.REFRESH_DURATION,
-    tags: [buffTag('shadow-revealed')],
+    tags: debuffTags(buffTag('shadow-revealed')),
     statusTags: [shadowTag],
     modifiers: [{
       attrType: AttributeType.EVASION_RATE,
@@ -740,7 +782,10 @@ function pinBuff(duration: number): BuffConfig {
     type: BuffType.CONTROL,
     duration,
     stackRule: StackRule.REFRESH_DURATION,
-    tags: [buffTag('soul-pinning-nail'), GameplayTags.STATUS.CONTROL.NO_SKILL],
+    tags: controlTags(
+      buffTag('soul-pinning-nail'),
+      GameplayTags.STATUS.CONTROL.NO_SKILL,
+    ),
     statusTags: [GameplayTags.STATUS.CONTROL.NO_SKILL],
     modifiers: [{
       attrType: AttributeType.HEAL_RECEIVED_REDUCTION,
@@ -873,17 +918,17 @@ function compileRuntime(
   if (settings.firstShadowExtraLayer) {
     listeners.push({
       id: 'sect.youdu.first-shadow-extra-layer',
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.HIT_CHECK,
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: EventPriorityLevel.DAMAGE_TAKEN,
+      priority: EventPriorityLevel.POST_SETTLE,
       mapping: { caster: 'owner', target: 'event.target' },
       budget: { maxTriggers: 1, reset: 'battle' },
       conditions: [
+        condition('is_hit', {}),
         condition('ability_has_tag', {
           tag: GameplayTags.ABILITY.SECT.namespace(YOUDU_SECT_ID),
         }),
         condition('has_tag', { scope: 'target', tag: shadowTag }),
-        condition('damage_source_is', { damageSource: DamageSource.DIRECT }),
       ],
       effects: [applyErosion(1, settings)],
     });
@@ -899,19 +944,21 @@ function compileRuntime(
     listeners,
     detailRows: [
       `控制抗性 +${percentage(0.30 + settings.extraControlResistance)}`,
-      '本场首次成功受控后立即解除',
+      '本场首次成功受控后立即解除，并短暂免疫同类控制',
+      ...(settings.heartSoulFireGain > 0
+        ? [
+            `首次解控时获得${settings.heartSoulFireGain}点魂火；每回合首次成功抵抗控制时获得1点魂火`,
+          ]
+        : []),
+      ...(settings.heartShield
+        ? ['首次解控后获得10%最大气血护盾']
+        : []),
+      ...(settings.firstShadowExtraLayer
+        ? ['每场首次命中照影目标的幽都神通额外增加1层蚀魂']
+        : []),
     ],
   }));
 
-  for (const id of ['tide-runtime', 'decree-runtime'] as const) {
-    const passive = definition(id);
-    if (passive.kind !== 'passive') throw new Error(`${id}定义错误`);
-    builder.setAbility(id, factory.passive({
-      definition: passive,
-      pathId: settings.pathId,
-      listeners: [],
-    }));
-  }
 }
 
 function consumeSoulFire(): EffectConfig {
@@ -956,6 +1003,7 @@ function compileAbilities(
         ? [`目标有忘川时伤害提高${percentage(settings.sighForgetBonus)}`]
         : []),
       '命中后增加1层蚀魂',
+      ...erosionDetailRows(settings),
     ],
   }));
 
@@ -1043,6 +1091,19 @@ function compileAbilities(
       `${settings.forgetDirectCoefficient.toFixed(2)} × 法术攻击（魂伤）`,
       `忘川持续${settings.forgetDuration}回合，每次行动前造成${coefficient(settings.forgetDotCoefficient)} × 法术攻击（魂伤）`,
       `受治疗效果额外降低${Math.round(settings.forgetHealReduction * 100)}%`,
+      ...(settings.forgetSpeedReduction < 0
+        ? [`忘川期间速度降低${percentage(-settings.forgetSpeedReduction)}`]
+        : []),
+      ...(settings.forgetHighLayerBonus > 0
+        ? [`至少3层蚀魂时持续魂伤提高${percentage(settings.forgetHighLayerBonus)}`]
+        : []),
+      ...(settings.forgetFourLayerBonus > 0
+        ? [`至少4层蚀魂时持续魂伤额外提高${percentage(settings.forgetFourLayerBonus)}`]
+        : []),
+      ...(settings.crossingEcho
+        ? ['每回合首次对至少4层目标结算忘川时，追加0.12 × 法术攻击魂伤']
+        : []),
+      '命中后增加1层蚀魂',
     ],
   }));
 
@@ -1054,6 +1115,7 @@ function compileAbilities(
     type: BuffType.DEBUFF,
     duration: settings.seizeDuration,
     stackRule: StackRule.REFRESH_DURATION,
+    tags: debuffTags(),
     modifiers: [
       { attrType: AttributeType.ATK, type: ModifierType.ADD, value: -0.20 },
       { attrType: AttributeType.MAGIC_ATK, type: ModifierType.ADD, value: -0.20 },
@@ -1091,7 +1153,7 @@ function compileAbilities(
   const pinHighEffects: EffectConfig[] = [
     {
       ...applyBuff(pinBuff(2), 'target', {
-        controlHitBonus: settings.pinControlHitBonus,
+        controlHitBonus: settings.highLayerControlHitBonus,
       }),
       conditions: [condition('hp_above', { scope: 'target', value: 0 })],
     },
@@ -1103,6 +1165,7 @@ function compileAbilities(
             type: BuffType.DEBUFF,
             duration: 2,
             stackRule: StackRule.REFRESH_DURATION,
+            tags: debuffTags(),
             modifiers: [{
               attrType: AttributeType.SPEED,
               type: ModifierType.ADD,
@@ -1157,7 +1220,11 @@ function compileAbilities(
     detailRows: [
       `术伤与魂伤各${coefficient(0.20 * settings.mixedDamageMultiplier)} × 法术攻击`,
       '命中后增加2层蚀魂',
-      `封印1回合；施法前至少4层时延长至2回合${settings.pinControlHitBonus > 0 ? `，本次控制命中提高${percentage(settings.pinControlHitBonus)}` : ''}`,
+      `封印1回合；施法前至少4层时延长至2回合${settings.highLayerControlHitBonus > 0 ? `，本次控制命中提高${percentage(settings.highLayerControlHitBonus)}` : ''}`,
+      '镇魂钉期间无法施展主动技能，且受到的气血治疗降低100%',
+      ...(settings.pinHighLayerSlow
+        ? ['施法前至少4层时，目标速度降低20%，持续2回合']
+        : []),
       soulFireDetail(settings),
     ],
   }));
@@ -1252,8 +1319,19 @@ function compileAbilities(
     extraTags: [soulDamageTag, soulFireConsumerTag],
     detailRows: [
       `(${settings.finishBaseCoefficient.toFixed(2)} + ${settings.finishPerLayerCoefficient.toFixed(2)} × 蚀魂层数) × 法术攻击（魂伤）`,
+      '施放条件：目标至少4层蚀魂',
       settings.finishRetainedLayers > 0 ? '结算后保留2层蚀魂' : '伤害后清除全部蚀魂',
       '施加不归2回合',
+      `不归期间受到的气血治疗降低80%，速度降低${percentage(-settings.noReturnSpeedReduction)}`,
+      ...(settings.finishAddsForget
+        ? [`结算后施加忘川，持续${settings.forgetDuration}回合`]
+        : []),
+      ...(settings.oneNameOneJudgment
+        ? ['目标每场首次进入4层时获得标记；下一次终结命中后返还20点已支付法力并消耗标记']
+        : []),
+      ...(settings.nameInYoudu
+        ? ['结算后若目标气血低于20%，获得3点魂火并减少2回合冷却，每场一次']
+        : []),
       soulFireDetail(settings),
     ],
   }));

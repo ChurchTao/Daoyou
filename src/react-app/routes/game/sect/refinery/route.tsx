@@ -39,7 +39,9 @@ function SectRefineryBody() {
         sectContext={{
           facilityLevel: level,
           discountPercent,
-          facilityLabel: presentation.facilityLabels.workshop,
+          facilityLabel:
+            presentation.facilityLabels.refinery ??
+            presentation.facilityLabels.workshop,
           scene,
         }}
       />

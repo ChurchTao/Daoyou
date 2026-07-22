@@ -28,7 +28,7 @@ export const YOUDU_DECREE_NODES = [
   node('decree-dead-heart-counter', '3', '心寂反照', '心死神活首次解控触发时获得2点魂火。', (f) => f.deepenHeartReflection()),
   node('decree-four-gates-closed', '4', '四门皆闭', '镇魂命中施法前至少4层目标时，令其速度降低20%两回合。', (f) => f.enableFourGatesSlow()),
   node('decree-punishment-measured', '4', '魂刑有度', '失魂被抵抗时，目标攻击与速度仍降低20%一回合。', (f) => f.enableMeasuredPunishment()),
-  node('decree-iron-law', '4', '幽都铁律', '对至少4层目标施加镇魂时，控制命中提高15个百分点。', (f) => f.enforceIronLaw()),
+  node('decree-iron-law', '4', '幽都铁律', '对至少4层蚀魂目标施加控制时，控制命中提高15个百分点。', (f) => f.enforceIronLaw()),
   node('decree-five-souls-scattered', '5', '五魄俱散', '目标从失魂回落后，攻击额外降低15%一回合。', (f) => f.enableFiveSoulsPenalty()),
   node('decree-returning-barrier', '5', '神归有垣', '心死神活首次解控后，获得10%最大气血护盾。', (f) => f.enableReturningBarrier()),
   node('decree-one-name-one-judgment', '5', '一名一判', '目标首次进入4层后获得标记；下一次终结命中返还20法力。', (f) => f.enableOneNameJudgment()),
@@ -36,4 +36,3 @@ export const YOUDU_DECREE_NODES = [
   node('decree-seven-inch-severance', 'ultimate', '七寸断魂', '魂兮不归每层追加魂伤由0.20提高到0.25。', (f) => f.severSevenInches()),
   node('decree-name-in-youdu', 'ultimate', '名落幽都', '终结后目标低于20%气血时获得3魂火并返还2回合冷却，每场一次。', (f) => f.enableNameInYoudu()),
 ] as const;
-

@@ -24,6 +24,7 @@ const ATTRIBUTE_LABELS: Partial<Record<AttributeType, string>> = {
   [AttributeType.SPEED]: '身法',
   [AttributeType.EVASION_RATE]: '闪避',
   [AttributeType.CONTROL_RESISTANCE]: '控制抗性',
+  [AttributeType.HEAL_RECEIVED_REDUCTION]: '受治疗削弱',
 };
 
 const DAMAGE_SOURCE_LABELS: Partial<Record<DamageSource, string>> = {
@@ -87,6 +88,13 @@ function conditionText(
   ) {
     return `目标状态层数${condition.type === 'buff_layer_at_least' ? '至少' : '少于'}${condition.params.value}层`;
   }
+  if (
+    (condition.type === 'hp_above' || condition.type === 'hp_below') &&
+    condition.params.value !== undefined
+  ) {
+    const subject = condition.params.scope === 'caster' ? '自身' : '目标';
+    return `${subject}气血${condition.type === 'hp_below' ? '低于' : '高于'}${percent(condition.params.value)}`;
+  }
   return '';
 }
 
@@ -135,6 +143,9 @@ function modifierText(modifier: AttributeModifierConfig): string {
   if (modifier.type === ModifierType.ADD) {
     return `${label}${modifier.value >= 0 ? '+' : ''}${percent(modifier.value)}`;
   }
+  if (modifier.attrType === AttributeType.HEAL_RECEIVED_REDUCTION) {
+    return `${label}${modifier.value >= 0 ? '+' : ''}${percent(modifier.value)}`;
+  }
   return `${label}${modifier.value >= 0 ? '+' : ''}${number(modifier.value)}`;
 }
 
@@ -160,6 +171,16 @@ function damageEffectsRow(
   if (damageEffects.length === 0) return [];
 
   if (damageEffects.length === 1) {
+    const layerScalar = damageEffects[0].params.buffLayerScalar;
+    if (layerScalar) {
+      const attribute = ATTRIBUTE_LABELS[layerScalar.attribute] ?? layerScalar.attribute;
+      const range = layerScalar.maxLayers === undefined
+        ? `${layerScalar.minLayers ?? 0}层以上`
+        : `${layerScalar.minLayers ?? 0}～${layerScalar.maxLayers}层`;
+      return [
+        `伤害：基础相当于${scalableValue(damageEffects[0].params.value)}，每层目标状态追加${number(layerScalar.coefficientPerLayer * 100)}%${attribute}（${range}）`,
+      ];
+    }
     const dynamic = damageEffects[0].params.dynamicScalars?.find(
       (scalar) => scalar.source === 'target_missing_hp_ratio',
     );
@@ -453,6 +474,8 @@ function describeEffect(
         for (const modifier of buff.modifiers ?? []) {
           if (modifier.scaleByLayer)
             rows.push(`每层：${modifierText(modifier)}`);
+          else if (!modifier.valueByLayer)
+            rows.push(`${buff.name}：${modifierText(modifier)}`);
         }
         rows.push(...formatBuffValueByLayerModifiers(buff.modifiers ?? []));
         if (buff.dispelMode === 'one_layer') {

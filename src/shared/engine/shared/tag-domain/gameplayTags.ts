@@ -197,6 +197,7 @@ export const GameplayTags = {
     ROUND_START: 'RoundStartEvent',
     SKILL_PRE_CAST: 'SkillPreCastEvent',
     SKILL_CAST: 'SkillCastEvent',
+    HIT_CHECK: 'HitCheckEvent',
     DODGE: 'DodgeEvent',
     BUFF_ADD: 'BuffAddEvent',
     BUFF_APPLIED: 'BuffAppliedEvent',
