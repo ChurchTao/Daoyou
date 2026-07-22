@@ -36,7 +36,7 @@ export class BuffLayerModifyEffect extends GameplayEffect {
         target: unit,
         name: buff.name,
         displayName: buff.name,
-        visibility: 'player',
+        visibility: this.params.logVisibility ?? 'player',
         value: before,
         detail: this.params.operation,
       });

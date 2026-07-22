@@ -192,8 +192,9 @@ export class DefaultAbilitySelectionStrategy implements AbilitySelectionStrategy
       .getAllBuffs()
       .some(
         (buff) =>
-          buff.type === BuffType.CONTROL ||
-          buff.tags.hasTag(GameplayTags.BUFF.TYPE.CONTROL),
+          buff.countsAsStatus &&
+          (buff.type === BuffType.CONTROL ||
+            buff.tags.hasTag(GameplayTags.BUFF.TYPE.CONTROL)),
       );
   }
 }

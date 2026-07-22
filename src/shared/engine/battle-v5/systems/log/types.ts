@@ -32,6 +32,23 @@ export interface LogSourceRef {
   buffName?: string;
 }
 
+export interface LogCauseRef {
+  kind: 'ability' | 'buff' | 'mechanic';
+  id: string;
+  displayName: string;
+}
+
+export interface LogDisplayRef {
+  id: string;
+  displayName: string;
+}
+
+export interface MechanicTriggerBasisRef {
+  left: LogDisplayRef;
+  relation: LogDisplayRef;
+  right: LogDisplayRef;
+}
+
 // ===== Entry Data Interfaces =====
 export interface DamageEntryData {
   value: number;
@@ -50,6 +67,7 @@ export interface DamageEntryData {
   sourceAbilityId?: string;
   sourceAbilityName?: string;
   source?: LogSourceRef;
+  cause?: LogCauseRef;
 }
 
 export interface HealEntryData {
@@ -175,7 +193,9 @@ export interface MechanicEntryData {
     | 'hp_sacrifice'
     | 'buff_layer'
     | 'combat_resource'
-    | 'status_spread';
+    | 'status_spread'
+    | 'named_trigger'
+    | 'status_transition';
   targetName: string;
   sourceName?: string;
   name: string;
@@ -183,6 +203,9 @@ export interface MechanicEntryData {
   internalKey?: string;
   value?: number;
   detail?: string;
+  operation?: 'apply' | 'refresh' | 'replace' | 'consume';
+  previousDisplayName?: string;
+  triggerBasis?: MechanicTriggerBasisRef;
   visibility?: 'player' | 'debug';
   source?: LogSourceRef;
 }

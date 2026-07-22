@@ -31,7 +31,7 @@ import {
   TagTriggerEvent,
 } from '../../core/events';
 import { LogAggregator } from './LogAggregator';
-import type { LogSourceRef } from './types';
+import type { LogCauseRef, LogSourceRef } from './types';
 
 /**
  * LogCollector 职责：监听 EventBus 事件，转换为结构化 LogEntry。
@@ -189,6 +189,7 @@ export class LogCollector {
           sourceAbilityId: e.ability?.id,
           sourceAbilityName: e.ability?.name ?? e.buff?.name,
           source: this._sourceRef(e.caster, e.ability, e.buff),
+          cause: this._causeRef(e.cause),
         },
         timestamp: Date.now(),
       });
@@ -464,6 +465,35 @@ export class LogCollector {
           internalKey: e.internalKey ?? e.name,
           value: e.value,
           detail: e.detail,
+          operation: e.operation,
+          previousDisplayName: e.previousDisplayName
+            ? this._safeDisplayName(e.previousDisplayName, '原状态')
+            : undefined,
+          triggerBasis: e.triggerBasis
+            ? {
+                left: {
+                  id: e.triggerBasis.left.id,
+                  displayName: this._safeDisplayName(
+                    e.triggerBasis.left.displayName,
+                    '原状态',
+                  ),
+                },
+                relation: {
+                  id: e.triggerBasis.relation.id,
+                  displayName: this._safeDisplayName(
+                    e.triggerBasis.relation.displayName,
+                    '交互',
+                  ),
+                },
+                right: {
+                  id: e.triggerBasis.right.id,
+                  displayName: this._safeDisplayName(
+                    e.triggerBasis.right.displayName,
+                    '新效果',
+                  ),
+                },
+              }
+            : undefined,
           visibility: e.visibility ?? (e.displayName ? 'player' : 'debug'),
           source: this._sourceRef(e.source, e.ability, e.sourceBuff),
         },
@@ -579,5 +609,16 @@ export class LogCollector {
       source.buffName = buff.name;
     }
     return Object.keys(source).length > 0 ? source : undefined;
+  }
+
+  private _causeRef(
+    cause: { kind: 'ability' | 'buff' | 'mechanic'; id: string; displayName: string } | undefined,
+  ): LogCauseRef | undefined {
+    if (!cause) return undefined;
+    return {
+      kind: cause.kind,
+      id: cause.id,
+      displayName: this._safeDisplayName(cause.displayName, '特殊机制'),
+    };
   }
 }

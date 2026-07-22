@@ -442,6 +442,9 @@ function describeFormula(effect: EffectConfig): string | undefined {
     case 'turn_state_counter':
     case 'element_history':
     case 'effect_sequence':
+    case 'refund_paid_cost':
+    case 'buff_periodic_settlement':
+    case 'mechanic_log':
       return undefined;
   }
 }

@@ -7,6 +7,7 @@ import { EventBus } from '../core/EventBus';
 import { battleRandom } from '../core/BattleRandom';
 import { ControlResistEvent } from '../core/events';
 import { getRealmEffectChanceMultiplier } from '@shared/config/realmProgression';
+import { executeEffectConfigs } from '../core/effectExecutor';
 
 function clampChance(value: number): number {
   return Math.max(0, Math.min(1, value));
@@ -68,6 +69,7 @@ export class ApplyBuffEffect extends GameplayEffect {
           ability: context.ability,
           buff,
         });
+        executeEffectConfigs(this.params.onResistEffects ?? [], context);
         return;
       }
     }

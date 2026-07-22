@@ -159,6 +159,12 @@ export class DamageSystem {
 
     const damageType = this._resolveDamageType(event);
 
+    if (event.calculationMode === 'resolved_final') {
+      event.finalDamage = Math.max(1, Math.round(event.finalDamage));
+      this._applyResolvedDamage(event, damageType);
+      return;
+    }
+
     // ===== ① 按伤害类型计算有效防御 =====
     let effectiveDef = 0;
     if (
@@ -251,6 +257,13 @@ export class DamageSystem {
     // ===== ⑧ 最小伤害保证（避免0伤害）并四舍五入 =====
     event.finalDamage = Math.max(1, Math.round(event.finalDamage));
 
+    this._applyResolvedDamage(event, damageType);
+  }
+
+  private _applyResolvedDamage(
+    event: DamageRequestEvent,
+    damageType: DamageType,
+  ): void {
     // 发布伤害应用事件（供护盾/无敌效果订阅）
     const damageEvent: DamageEvent = {
       type: 'DamageEvent',
@@ -261,6 +274,9 @@ export class DamageSystem {
       buff: event.buff,
       damageSource: event.damageSource,
       damageType,
+      calculationMode: event.calculationMode,
+      cause: event.cause,
+      damageTags: event.damageTags,
       finalDamage: event.finalDamage,
       isCritical: event.isCritical,
       critMultiplier: event.critMultiplier,
@@ -417,6 +433,9 @@ export class DamageSystem {
       buff, // 传递 buff
       damageSource: damageEvent.damageSource,
       damageType: damageEvent.damageType,
+      calculationMode: damageEvent.calculationMode,
+      cause: damageEvent.cause,
+      damageTags: damageEvent.damageTags,
       reflectSourceName:
         damageEvent.damageSource === DamageSource.REFLECT
           ? caster?.name

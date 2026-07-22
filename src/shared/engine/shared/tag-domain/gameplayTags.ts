@@ -81,6 +81,11 @@ export const GameplayTags = {
       PHYSICAL: 'Ability.Channel.Physical',
       TRUE: 'Ability.Channel.True',
     },
+    MECHANIC: {
+      ROOT: 'Ability.Mechanic',
+      IGNORE_SPIRITUAL_ROOT_MISMATCH:
+        'Ability.Mechanic.IgnoreSpiritualRootMismatch',
+    },
     KIND: {
       ROOT: 'Ability.Kind',
       SKILL: 'Ability.Kind.Skill',

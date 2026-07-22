@@ -18,6 +18,7 @@ export class PercentDamageModifierEffect extends GameplayEffect {
     if (!triggerEvent || triggerEvent.type !== 'DamageRequestEvent') return;
 
     const damageRequestEvent = triggerEvent as DamageRequestEvent;
+    if (damageRequestEvent.calculationMode === 'resolved_final') return;
     if (damageRequestEvent.damageSource === DamageSource.REFLECT) return;
     if (
       this.params.allowedDamageSources &&

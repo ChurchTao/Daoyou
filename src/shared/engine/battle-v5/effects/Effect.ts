@@ -1,6 +1,6 @@
 import { Ability, type AbilityCastSnapshot } from '../abilities/Ability';
 import { Buff } from '../buffs/Buff';
-import { CombatEvent } from '../core/types';
+import { CombatEvent, type LogCauseRef } from '../core/types';
 import { Unit } from '../units/Unit';
 
 /**
@@ -12,6 +12,7 @@ export interface EffectContext {
   ability?: Ability;
   buff?: Buff;
   castSnapshot?: AbilityCastSnapshot;
+  damageCause?: LogCauseRef;
   /**
    * 触发此效果的事件（可选）
    * 用于支持吸血、反伤、根据受击伤害触发的效果等

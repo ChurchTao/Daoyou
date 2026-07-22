@@ -25,6 +25,9 @@ import type { TagPath } from '@shared/engine/shared/tag-domain';
 import {
   CombatEvent,
   type DamageComponent,
+  type DamageCalculationMode,
+  type LogCauseRef,
+  type MechanicTriggerBasisRef,
   DamageSource,
   DamageType,
 } from './types';
@@ -178,6 +181,9 @@ export interface DamageRequestEvent extends CombatEvent {
   buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
   damageSource?: DamageSource;
   damageType?: DamageType;
+  calculationMode?: DamageCalculationMode;
+  cause?: LogCauseRef;
+  damageTags?: string[];
   damageComponents?: DamageComponent[];
   /** 强制暴击；仍由 DamageSystem 读取施法者暴击倍率。 */
   forceCritical?: boolean;
@@ -202,6 +208,9 @@ export interface DamageEvent extends CombatEvent {
   buff?: Buff; // 新增：记录来源 Buff
   damageSource?: DamageSource;
   damageType?: DamageType;
+  calculationMode?: DamageCalculationMode;
+  cause?: LogCauseRef;
+  damageTags?: string[];
   finalDamage: number;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率
@@ -350,6 +359,9 @@ export interface DamageTakenEvent extends CombatEvent {
   buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
   damageSource?: DamageSource;
   damageType?: DamageType;
+  calculationMode?: DamageCalculationMode;
+  cause?: LogCauseRef;
+  damageTags?: string[];
   reflectSourceName?: string;
   damageTaken: number;
   beforeHp: number;
@@ -422,7 +434,9 @@ export interface MechanicLogEvent extends CombatEvent {
     | 'hp_sacrifice'
     | 'buff_layer'
     | 'combat_resource'
-    | 'status_spread';
+    | 'status_spread'
+    | 'named_trigger'
+    | 'status_transition';
   target: Unit;
   source?: Unit;
   ability?: Ability;
@@ -433,6 +447,9 @@ export interface MechanicLogEvent extends CombatEvent {
   internalKey?: string;
   value?: number;
   detail?: string;
+  operation?: 'apply' | 'refresh' | 'replace' | 'consume';
+  previousDisplayName?: string;
+  triggerBasis?: MechanicTriggerBasisRef;
 }
 
 // ===== BUFF 免疫拦截事件 =====

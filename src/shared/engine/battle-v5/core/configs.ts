@@ -5,6 +5,8 @@ import {
   BuffType,
   DamageSource,
   DamageType,
+  type LogCauseRef,
+  type MechanicTriggerBasisRef,
   ModifierType,
 } from './types';
 
@@ -92,6 +94,7 @@ export interface ConditionConfig {
     | 'ability_has_tag'
     | 'ability_has_exact_tag'
     | 'ability_has_not_tag'
+    | 'source_has_tag'
     | 'hp_above'
     | 'hp_below'
     | 'mp_above'
@@ -160,7 +163,10 @@ export interface DamageParams {
   value: ScalableValue;
   damageType?: DamageType;
   bypassDefense?: boolean;
+  /** 仅令指定比例的伤害分量绕过防御，0～1。 */
+  bypassDefenseRatio?: number;
   damageSource?: DamageSource;
+  cause?: LogCauseRef;
   forceCritical?: boolean;
   forceCriticalConditions?: ConditionConfig[];
   dynamicScalars?: DamageDynamicScalarConfig[];
@@ -170,6 +176,8 @@ export interface DamageDynamicScalarConfig {
   source: 'target_missing_hp_ratio';
   attribute: AttributeType;
   coefficientCap: number;
+  /** 目标已损气血比例严格高于该阈值后才启用；缺省不设阈值。 */
+  minMissingHpRatio?: number;
   timing?: 'live' | 'cast';
 }
 
@@ -189,6 +197,8 @@ export interface ApplyBuffParams {
   buffConfig: BuffConfig;
   chance?: number;
   target?: 'caster' | 'target';
+  /** 仅在控制抗性判定抵抗时执行；Buff 免疫不会触发。 */
+  onResistEffects?: EffectConfig[];
 }
 
 /**
@@ -354,7 +364,10 @@ export interface DamageMemoryParams {
     | 'shield_absorbed';
   ratio?: number;
   releaseAs?:
-    'damage' | 'heal' | 'shield' | 'reflect' | 'counter' | 'follow_up';
+    'damage' | 'heal' | 'shield' | 'reflect' | 'counter' | 'follow_up' | 'resolved_follow_up';
+  damageType?: DamageType;
+  damageTags?: string[];
+  cause?: LogCauseRef;
   target?: 'caster' | 'target';
   maxStored?: number;
   maxStoredValue?: ScalableValue;
@@ -369,6 +382,7 @@ export interface BuffLayerModifyParams {
   effects?: EffectConfig[];
   scaleEffectsByLayer?: boolean;
   target?: 'caster' | 'target';
+  logVisibility?: 'player' | 'debug';
 }
 
 export interface CombatResourceModifyParams {
@@ -379,6 +393,30 @@ export interface CombatResourceModifyParams {
   effects?: EffectConfig[];
   scaleEffectsByAmount?: boolean;
   reason?: 'gain' | 'spend' | 'refund';
+}
+
+export interface RefundPaidCostParams {
+  ratio: number;
+  resource?: 'mp';
+}
+
+export interface BuffPeriodicSettlementParams {
+  match: BuffMatchParams;
+  mode: 'once_keep_duration' | 'remaining_remove';
+  target?: 'caster' | 'target';
+  source?: 'caster' | 'any';
+  cause?: LogCauseRef;
+}
+
+export interface MechanicLogParams {
+  mechanic: 'named_trigger' | 'status_transition';
+  displayName: string;
+  internalKey: string;
+  target?: 'caster' | 'target';
+  visibility?: 'player' | 'debug';
+  operation?: 'apply' | 'refresh' | 'replace' | 'consume';
+  previousDisplayName?: string;
+  triggerBasis?: MechanicTriggerBasisRef;
 }
 
 export interface AbilityTransformParams {
@@ -551,6 +589,9 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'consume_status_trigger'; params: ConsumeStatusTriggerParams }
     | { type: 'delayed_effect'; params: DelayedEffectParams }
     | { type: 'damage_memory'; params: DamageMemoryParams }
+    | { type: 'refund_paid_cost'; params: RefundPaidCostParams }
+    | { type: 'buff_periodic_settlement'; params: BuffPeriodicSettlementParams }
+    | { type: 'mechanic_log'; params: MechanicLogParams }
     | { type: 'buff_layer_modify'; params: BuffLayerModifyParams }
     | { type: 'combat_resource_modify'; params: CombatResourceModifyParams }
     | { type: 'ability_transform'; params: AbilityTransformParams }
@@ -693,6 +734,8 @@ export interface BuffConfig {
   maxLayers?: number;
   /** 默认状态可被驱散、转移；protected 状态只能由自身机制移除。 */
   dispelPolicy?: 'normal' | 'protected';
+  /** 是否计入普通增益、减益或控制数量，默认 true。 */
+  countsAsStatus?: boolean;
   tags?: string[]; // Buff 自身的标签
   statusTags?: string[]; // 附加给宿主的标签
   /**
@@ -703,6 +746,8 @@ export interface BuffConfig {
    * 逻辑监听链 (EDA 核心)
    */
   listeners?: ListenerConfig[];
+  /** 供通用手动结算效果复用的原始周期效果。 */
+  manualSettlementEffects?: EffectConfig[];
 }
 
 /**

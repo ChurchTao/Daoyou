@@ -49,7 +49,12 @@ export class DamageEffect extends GameplayEffect {
       const targetHpRatio = scalar.timing === 'live'
         ? target.getHpPercent()
         : context.castSnapshot?.targetHpRatioBeforeEffects ?? target.getHpPercent();
-      const coefficient = Math.max(0, 1 - targetHpRatio) * scalar.coefficientCap;
+      const missingHpRatio = Math.max(0, 1 - targetHpRatio);
+      if (
+        scalar.minMissingHpRatio !== undefined &&
+        missingHpRatio <= Math.max(0, scalar.minMissingHpRatio) + 1e-9
+      ) continue;
+      const coefficient = missingHpRatio * scalar.coefficientCap;
       const attributeValue = resolvedCaster.attributes.getValue(scalar.attribute);
       const amount = attributeValue * coefficient;
       damage += amount;
@@ -63,15 +68,33 @@ export class DamageEffect extends GameplayEffect {
         });
       }
     }
-    if (this.params.bypassDefense) {
-      damageComponents.splice(
-        0,
-        damageComponents.length,
-        ...damageComponents.map((component) => ({
-          ...component,
-          mitigation: 'bypass_defense' as const,
-        })),
-      );
+    const bypassDefenseRatio = this.params.bypassDefense
+      ? 1
+      : Math.max(0, Math.min(1, this.params.bypassDefenseRatio ?? 0));
+    if (bypassDefenseRatio > 0) {
+      const splitComponents: DamageComponent[] = [];
+      for (const component of damageComponents) {
+        if (component.mitigation === 'bypass_defense') {
+          splitComponents.push(component);
+          continue;
+        }
+        if (bypassDefenseRatio < 1) {
+          splitComponents.push({
+            ...component,
+            amount: component.amount * (1 - bypassDefenseRatio),
+            segmentMultiplier:
+              component.segmentMultiplier === undefined
+                ? undefined
+                : component.segmentMultiplier * (1 - bypassDefenseRatio),
+          });
+        }
+        splitComponents.push({
+          kind: `${component.kind}:bypass`,
+          amount: component.amount * bypassDefenseRatio,
+          mitigation: 'bypass_defense',
+        });
+      }
+      damageComponents.splice(0, damageComponents.length, ...splitComponents);
     }
     const activeTransform =
       ability instanceof ActiveSkill
@@ -167,6 +190,7 @@ export class DamageEffect extends GameplayEffect {
       damageType:
         this.params.damageType ??
         (transform?.trueDamage ? DamageType.TRUE : this.inferDamageType(buff)),
+      cause: this.params.cause ?? context.damageCause,
       damageComponents,
       baseDamage: damage,
       finalDamage: damage, // 初始终伤等于基伤，由后续系统修正

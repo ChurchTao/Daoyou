@@ -1,0 +1,128 @@
+import type { SectMapHotspot, SectPresentationTheme } from '../../core';
+import { TIANYAN_SECT_ID } from './ids';
+
+const hotspot = (
+  id: string,
+  label: string,
+  left: string,
+  top: string,
+  route: string | undefined,
+  permission: SectMapHotspot['permission'],
+  note: string,
+  facility?: string,
+): SectMapHotspot => ({
+  id, label, left, top, route, permission, note, facility,
+});
+
+export const TIANYAN_SECT_PRESENTATION: SectPresentationTheme = {
+  sectId: TIANYAN_SECT_ID,
+  onboarding: {
+    summary: '以无色太初灵气推演五行，让前一法留下的余势决定后一法的变化。',
+    traits: ['五行推演', '法印衔术', '四法择局'],
+    script: {
+      id: 'tianyan-onboarding',
+      title: '天衍有缺',
+      theme: 'mist',
+      backdrop: {
+        src: '/assets/sect/onboarding/tianyan.webp',
+        alt: '雨后中宫演法台上，一名新弟子沿石阶走向等候在五行汇流地刻前的执教，五峰殿宇隐于云雾',
+      },
+      acts: [
+        {
+          id: 'five-peaks-above-clouds',
+          title: '云上五峰',
+          scene: '天衍圣地 · 观象阶',
+          body: '石阶越过云海，五座外峰渐次显出轮廓。玄水自墨青山壁流入药圃，木架与药篓沿廊桥送往暗朱炉院；窑灰归入赭土，矿路再通向覆着白铜屋面的冷峰。所有去路都没有停在一峰，最终绕回雨后的中宫。',
+          speaker: '执教：“先看它们如何相接。记住，五行从来不是五座互不相干的院子。”',
+          backgroundPosition: '50% 38%',
+          tone: 'mist',
+        },
+        {
+          id: 'primordial-without-color',
+          title: '太初无色',
+          scene: '天衍圣地 · 中宫演法台',
+          body: '执教站在汇流地刻中央，抬手送出一线无色玄光。灵光越过湿润石面，只留下转瞬即逝的浅白痕迹；它没有火的炽烈，也没有金的锋响，更没有惊动地刻中缓缓流动的水。',
+          speaker: '执教：“这是太初。它不替你选择，所以也不会扰乱你已经留下的答案。”',
+          backgroundPosition: '50% 64%',
+          tone: 'stillness',
+        },
+        {
+          id: 'one-art-leaves-mark',
+          title: '一法留痕',
+          scene: '天衍圣地 · 五行地刻',
+          body: '木气先在傀儡胸前结成一枚青印。下一刻，火光沿印纹展开，不再只是一束直焰；余火映入雨水，沿石缝中原有的细流照亮了另一段去路。',
+          speaker: '执教：“第一法不是未完成的失败。它是在替第二法留下去处。”',
+          backgroundPosition: '72% 58%',
+          tone: 'ember',
+        },
+        {
+          id: 'the-escaped-one',
+          title: '遁去其一',
+          scene: '天衍圣地 · 五经阁前',
+          body: '五枚经简在案上依次展开，执教却只将四枚推到你面前。余下的一枚没有收走，只被放在灯影之外。',
+          speaker: '执教：“五行皆可学，临敌不可尽携。肯留下一个未知，才算真正开始推演。”',
+          backgroundPosition: '28% 42%',
+          tone: 'steel',
+        },
+        {
+          id: 'derivation-remains-open',
+          title: '天衍有缺',
+          scene: '天衍圣地 · 衍天殿',
+          body: '你走到执教面前，将本命灵气送入中宫汇流地刻。灵光先随浅水掠过根须，又映过远处炉火与赭色泥沙，最后在白铜冷光中卸去原有偏向，归入一条从未走过的无色经路。五峰没有同时显威，只在云雾之间依次传来回应。',
+          speaker: '掌教：“天机从不因推演而失去变化。今日入门，愿你知其可为，也知其不可尽为。”',
+          backgroundPosition: '50% 56%',
+          tone: 'mist',
+        },
+      ],
+    },
+  },
+  map: {
+    image: '/assets/sect/tianyan-map.webp',
+    alt: '天衍圣地五峰环绕中宫，水脉、药圃、炉院、土台与矿路首尾相接的云海舆图',
+    hotspots: [
+      hotspot('hall', '衍天殿', '50%', '41%', '/game/sect/hall', 'sect.hall.view', '身份 · 晋升 · 周俸'),
+      hotspot('archive', '五经阁', '29%', '22%', '/game/sect/archive', 'sect.archive.use', '六卷心法', 'archive'),
+      hotspot('cliff', '河洛台', '66%', '22%', '/game/sect/enlightenment-cliff', 'sect.enlightenment.use', '道途 · 参悟'),
+      hotspot('arena', '中宫演法台', '50%', '49%', '/game/sect/arena', 'sect.arena.use', '神通 · 战术'),
+      hotspot('affairs', '司算院', '58%', '47%', '/game/sect/affairs', 'sect.tasks.use', '日常 · 周常 · 悬赏'),
+      hotspot('treasury', '天衡库', '35%', '67%', '/game/sect/treasury', 'sect.shop.use', '贡献兑换'),
+      hotspot('industries', '营造司', '80%', '60%', '/game/sect/industries', 'sect.construction.view', '宗门共建'),
+      hotspot('cultivation', '太初静室', '15%', '57%', '/game/sect/cultivation-room', 'sect.facility.cultivation.use', '聚灵闭关', 'cultivation_room'),
+      hotspot('alchemy', '青华丹院', '30%', '29%', '/game/sect/alchemy', 'sect.facility.alchemy.use', '灵草炼丹', 'workshop'),
+      hotspot('refinery', '太白铸府', '35%', '75%', '/game/sect/refinery', 'sect.facility.refinery.use', '五金炼器', 'workshop'),
+      hotspot('vein', '坤元地脉', '82%', '54%', '/game/sect/spirit-vein', 'sect.spirit_vein.view', '灵石俸禄加成', 'spirit_vein'),
+      hotspot('garden', '长生圃', '26%', '15%', '/game/sect/herb-garden', 'sect.herb_garden.view', '每周灵草产出', 'herb_garden'),
+      hotspot('gate', '观象门', '50%', '88%', '/game/sect/gate', 'sect.gate.view', '宗门动态'),
+      hotspot('cave', '云衡洞府', '13%', '50%', '/game/sect/cave', 'sect.cave.view', '内门弟子居所'),
+      {
+        id: 'formation', label: '五峰归流阵眼', left: '50%', top: '53%',
+        permission: 'sect.formation.view', note: '宗门战后续开放', facility: 'formation', locked: true,
+      },
+    ],
+  },
+  facilityLabels: {
+    archive: '五经阁', cultivation_room: '太初静室', workshop: '太白铸府',
+    spirit_vein: '坤元地脉', herb_garden: '长生圃', formation: '五峰归流阵眼',
+  },
+  lockedFacilities: ['formation'],
+  scenes: {
+    map: { title: '天衍圣地舆图', description: '五峰环绕中宫，水脉、药圃、炉院、土台与矿路首尾相接；诸峰各有所长，却始终在同一轮推演中运转。', loadingText: '五峰水脉正在归流中宫……' },
+    hall: { title: '衍天殿', description: '大殿不悬天命判词，只陈历代推演中被事实改写的旧卷。身份玉牒与周俸名册置于中宫汇流地刻之后，雨水沿殿前石槽缓缓分入五峰。' },
+    affairs: { title: '司算院', description: '新差事依时辰、地脉与人手写入长卷；执事会标出已知条件，却从不替接取者写下唯一答案。' },
+    archive: { title: '五经阁', description: '六卷真经分藏于中央与五行书架。卷册之间留有大量空白，供后来者记录术法相接时出现的新变化。' },
+    paths: { title: '河洛台', description: '河图刻流，洛书定位。两条道途同观五行，一条顺势成图，一条移宫断局。' },
+    arena: { title: '中宫演法台', description: '五道地刻汇于圆台。弟子在此更换神通、校验法印，也复盘每一次被错误次序覆盖的余势。' },
+    cultivation: { title: '太初静室', description: '静室内没有五色阵光，只留一线无色灵气。门人需先让本命之气安静下来，才能重走太初衍脉。' },
+    alchemy: { title: '青华丹院', description: '木架、活水与温炉依次相连。药师记录的不只是药性，也包括采时、火候和前一炉留下的余温。' },
+    refinery: { title: '太白铸府', description: '金石在炉火与水渠之间往复，锤下每一道锋面都有明确去处；废料也会归入下一炉，而非弃在山外。' },
+    spiritVein: { title: '坤元地脉', description: '山腹地脉托住五峰阵基。厚土不显于天际，却决定廊桥、水渠与炉道能否在云雨之后仍守住原位。' },
+    herbGarden: { title: '长生圃', description: '灵草依水位与日照分层种植。圃中没有永远固定的田垄，每一季都会按照观象记录重新调整。' },
+    gate: { title: '观象门', description: '山门正对云海，门侧刻着历年天象与实际结果。偏差没有被抹去，反而比准确的预言保存得更久。' },
+    cave: { title: '云衡洞府', description: '洞府散在玄冥、青华二峰之间。每处门前都嵌一片集露白铜，清晨水痕会留下不同走向，提醒主人今日的判断也会随明日天光改变。' },
+  },
+  terms: {
+    pathChanges: '河洛变化', meridianPractice: '天衍参悟', meridianLoadout: '推演方案',
+    abilityChanges: '神通衍变', returnToAffairs: '返回司算院', sweepActivity: '校正地刻',
+    sweepCanvasLabel: '天衍地刻校正游戏画布',
+  },
+};

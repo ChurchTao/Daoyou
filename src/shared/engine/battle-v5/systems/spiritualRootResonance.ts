@@ -1,4 +1,7 @@
-import { ELEMENT_TO_RUNTIME_ABILITY_TAG } from '@shared/engine/shared/tag-domain';
+import {
+  ELEMENT_TO_RUNTIME_ABILITY_TAG,
+  GameplayTags,
+} from '@shared/engine/shared/tag-domain';
 import type { ElementType } from '@shared/types/constants';
 import type { DamageRequestEvent } from '../core/events';
 import { DamageSource } from '../core/types';
@@ -55,6 +58,17 @@ export function calculateSpiritualRootDamageMultiplier(
 
   if (strongestMatchedStrength >= 0) {
     return 1 + strongestMatchedStrength * SPIRITUAL_ROOT_DAMAGE_MATCH_PER_STRENGTH;
+  }
+
+  const ignoresMismatch =
+    event.ability?.tags.hasTag(
+      GameplayTags.ABILITY.MECHANIC.IGNORE_SPIRITUAL_ROOT_MISMATCH,
+    ) ||
+    event.buff?.tags.hasTag(
+      GameplayTags.ABILITY.MECHANIC.IGNORE_SPIRITUAL_ROOT_MISMATCH,
+    );
+  if (ignoresMismatch) {
+    return 1;
   }
 
   return SPIRITUAL_ROOT_DAMAGE_MISMATCH_MULTIPLIER;

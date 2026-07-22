@@ -92,6 +92,7 @@ export class DamageMemoryEffect extends GameplayEffect {
           const attacker = (context.triggerEvent as DamageTakenEvent).caster;
           if (attacker?.isAlive()) {
             this.publishDamage(
+              context,
               context.target,
               attacker,
               amount,
@@ -101,14 +102,31 @@ export class DamageMemoryEffect extends GameplayEffect {
         }
         break;
       case 'counter':
-        this.publishDamage(context.caster, context.target, amount, DamageSource.COUNTER);
+        this.publishDamage(
+          context,
+          context.caster,
+          context.target,
+          amount,
+          DamageSource.COUNTER,
+        );
         break;
       case 'follow_up':
-        this.publishDamage(context.caster, context.target, amount, DamageSource.FOLLOW_UP);
+        this.publishDamage(context, context.caster, context.target, amount, DamageSource.FOLLOW_UP);
+        break;
+      case 'resolved_follow_up':
+        this.publishDamage(
+          context,
+          context.caster,
+          context.target,
+          amount,
+          DamageSource.FOLLOW_UP,
+          true,
+        );
         break;
       case 'damage':
       default:
         this.publishDamage(
+          context,
           context.caster,
           context.target,
           amount,
@@ -134,33 +152,46 @@ export class DamageMemoryEffect extends GameplayEffect {
   }
 
   private publishDamage(
+    context: EffectContext,
     caster: EffectContext['caster'],
     target: EffectContext['target'],
     amount: number,
     damageSource: DamageSource,
+    resolvedFinal = false,
   ): void {
+    if (!target.isAlive()) return;
     EventBus.instance.publish<DamageRequestEvent>({
       type: 'DamageRequestEvent',
       timestamp: Date.now(),
       caster,
       target,
+      ability: context.ability,
+      buff: context.buff,
       damageSource,
-      damageType:
+      damageType: this.params.damageType ?? (
         damageSource === DamageSource.COUNTER ||
         damageSource === DamageSource.FOLLOW_UP
           ? DamageType.PHYSICAL
-          : DamageType.TRUE,
+          : DamageType.TRUE
+      ),
+      calculationMode: resolvedFinal ? 'resolved_final' : 'standard',
+      cause: this.params.cause ?? context.damageCause,
+      damageTags: this.params.damageTags,
       damageComponents: [
         {
           kind: 'memory',
           amount,
           mitigation:
-            damageSource === DamageSource.COUNTER ||
-            damageSource === DamageSource.FOLLOW_UP
+            !resolvedFinal && (
+              damageSource === DamageSource.COUNTER ||
+              damageSource === DamageSource.FOLLOW_UP
+            )
               ? 'normal'
               : 'bypass_defense',
-          ...(damageSource === DamageSource.COUNTER ||
-          damageSource === DamageSource.FOLLOW_UP
+          ...(!resolvedFinal && (
+            damageSource === DamageSource.COUNTER ||
+            damageSource === DamageSource.FOLLOW_UP
+          )
             ? { attackBase: amount, segmentMultiplier: 1 }
             : {}),
         },

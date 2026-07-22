@@ -117,6 +117,31 @@ export enum DamageSource {
   DELAYED = 'delayed',
 }
 
+/**
+ * 数值结果的结构化触发原因。
+ * source 表示谁造成结果；cause 表示哪项能力、状态或机制令结果发生。
+ */
+export interface LogCauseRef {
+  kind: 'ability' | 'buff' | 'mechanic';
+  id: string;
+  displayName: string;
+}
+
+/** 机制触发条件中的安全展示原子；id 仅供结构化视图使用。 */
+export interface LogDisplayRef {
+  id: string;
+  displayName: string;
+}
+
+/** 通用的“左项与右项形成某种关系”触发依据。 */
+export interface MechanicTriggerBasisRef {
+  left: LogDisplayRef;
+  relation: LogDisplayRef;
+  right: LogDisplayRef;
+}
+
+export type DamageCalculationMode = 'standard' | 'resolved_final';
+
 export type DamageMitigationMode = 'normal' | 'bypass_defense';
 
 export interface DamageComponent {

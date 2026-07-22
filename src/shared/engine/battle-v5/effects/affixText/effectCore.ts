@@ -202,6 +202,17 @@ export function describeEffectCore(
     case 'lifesteal':
       return `直接伤害吸血 ${formatAffixPercent(effect.params.ratio)}`;
 
+    case 'refund_paid_cost':
+      return `返还本次实际支付法力的 ${formatAffixPercent(effect.params.ratio)}`;
+
+    case 'buff_periodic_settlement':
+      return effect.params.mode === 'remaining_remove'
+        ? `立即结算并移除${describeBuffMatch(effect.params.match)}`
+        : `令${describeBuffMatch(effect.params.match)}立即额外结算一次`;
+
+    case 'mechanic_log':
+      return `触发「${effect.params.displayName}」`;
+
     default: {
       const exhaustive: never = effect;
       return (exhaustive as EffectConfig).type;

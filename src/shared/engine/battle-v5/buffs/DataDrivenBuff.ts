@@ -38,6 +38,7 @@ export class DataDrivenBuff extends Buff {
       config.maxLayers,
       config.logVisibility,
       config.dispelPolicy,
+      config.countsAsStatus ?? true,
     );
     this._config = config;
   }

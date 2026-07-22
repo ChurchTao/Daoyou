@@ -37,11 +37,13 @@ function nestedEffects(effect: EffectConfig): EffectConfig[] {
     effects?: EffectConfig[];
     fallbackEffects?: EffectConfig[];
     cancelEffects?: EffectConfig[];
+    onResistEffects?: EffectConfig[];
   };
   return [
     ...(params.effects ?? []),
     ...(params.fallbackEffects ?? []),
     ...(params.cancelEffects ?? []),
+    ...(params.onResistEffects ?? []),
   ];
 }
 
@@ -107,10 +109,13 @@ export function analyzeAbilityCapabilities(
         } else {
           hasDamage = true;
           damageChannels.add(
-            effect.params.releaseAs === 'counter' ||
-              effect.params.releaseAs === 'follow_up'
-              ? 'physical'
-              : 'true',
+            effect.params.damageType === DamageType.MAGICAL
+              ? 'magic'
+              : effect.params.damageType === DamageType.PHYSICAL ||
+                  effect.params.releaseAs === 'counter' ||
+                  effect.params.releaseAs === 'follow_up'
+                ? 'physical'
+                : 'true',
           );
           intents.add('damage');
         }

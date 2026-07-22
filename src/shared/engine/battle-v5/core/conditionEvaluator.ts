@@ -34,6 +34,14 @@ function getAbilityTags(context: EffectContext) {
   return getAbilityTagsFromTriggerEvent(context.triggerEvent) ?? context.ability?.tags;
 }
 
+function sourceHasTag(context: EffectContext, tag: string): boolean {
+  if (getAbilityTags(context)?.hasTag(tag)) return true;
+  const triggerBuff = context.triggerEvent && typeof context.triggerEvent === 'object'
+    ? (context.triggerEvent as { buff?: Buff }).buff
+    : undefined;
+  return triggerBuff?.tags.hasTag(tag) ?? context.buff?.tags.hasTag(tag) ?? false;
+}
+
 function getAbilityMpCost(context: EffectContext): number {
   const ability = (() => {
     if (
@@ -111,12 +119,16 @@ function getIsLethalFromTriggerEvent(triggerEvent: unknown): boolean {
 function countBuffs(
   unit: Unit | undefined,
   predicate: (buff: Buff) => boolean,
+  countsAsStatusOnly: boolean = true,
 ): number {
   if (!unit?.buffs) {
     return 0;
   }
 
-  return unit.buffs.getAllBuffs().filter(predicate).length;
+  return unit.buffs
+    .getAllBuffs()
+    .filter((buff) => !countsAsStatusOnly || buff.countsAsStatus)
+    .filter(predicate).length;
 }
 
 export function evaluateCondition(
@@ -160,6 +172,8 @@ export function evaluateCondition(
       if (!abilityTags) return true;
       return !abilityTags.hasTag(cond.params.tag);
     }
+    case 'source_has_tag':
+      return cond.params.tag ? sourceHasTag(context, cond.params.tag) : false;
     case 'hp_above':
       return snapshotHpRatio !== undefined
         ? snapshotHpRatio > threshold
@@ -188,6 +202,7 @@ export function evaluateCondition(
             (cond.params.id ? buff.id === cond.params.id : true) &&
             (cond.params.tag ? buff.tags.hasTag(cond.params.tag) : true) &&
             buff.getLayer() >= threshold,
+          false,
         ) >= 1
       );
     case 'buff_layer_below':
@@ -198,6 +213,7 @@ export function evaluateCondition(
             (cond.params.id ? buff.id === cond.params.id : true) &&
             (cond.params.tag ? buff.tags.hasTag(cond.params.tag) : true) &&
             buff.getLayer() >= threshold,
+          false,
         ) === 0
       );
     case 'debuff_count_at_least':

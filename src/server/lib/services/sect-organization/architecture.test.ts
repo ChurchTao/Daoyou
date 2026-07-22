@@ -1,12 +1,22 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 function imports(path: string): string[] {
   const source = readFileSync(path, 'utf8');
-  return ts.preProcessFile(source, true, true).importedFiles.map((item) => item.fileName);
+  const specifiers = new Set<string>();
+  const patterns = [
+    /\b(?:import|export)\s+(?:type\s+)?(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g,
+    /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+  ];
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      if (match[1]) specifiers.add(match[1]);
+    }
+  }
+  return [...specifiers];
 }
 
 const sourceRoot = fileURLToPath(new URL('../../../../', import.meta.url));

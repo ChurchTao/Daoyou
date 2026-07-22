@@ -268,6 +268,9 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
       case 'consume_status_trigger':
       case 'delayed_effect':
       case 'damage_memory':
+      case 'refund_paid_cost':
+      case 'buff_periodic_settlement':
+      case 'mechanic_log':
       case 'buff_layer_modify':
       case 'combat_resource_modify':
       case 'ability_transform':
@@ -296,6 +299,7 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
       effects?: EffectConfig[];
       fallbackEffects?: EffectConfig[];
       cancelEffects?: EffectConfig[];
+      onResistEffects?: EffectConfig[];
     };
     if (params.effects) {
       params.effects = params.effects.map((nested) =>
@@ -309,6 +313,11 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
     }
     if (params.cancelEffects) {
       params.cancelEffects = params.cancelEffects.map((nested) =>
+        this.projectEffect(nested, growth, methodLevels),
+      );
+    }
+    if (params.onResistEffects) {
+      params.onResistEffects = params.onResistEffects.map((nested) =>
         this.projectEffect(nested, growth, methodLevels),
       );
     }
@@ -334,6 +343,9 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
     }));
     projected.listeners = projected.listeners?.map((listener) =>
       this.projectListener(listener, growth, methodLevels),
+    );
+    projected.manualSettlementEffects = projected.manualSettlementEffects?.map(
+      (effect) => this.projectEffect(effect, growth, methodLevels),
     );
     return projected;
   }

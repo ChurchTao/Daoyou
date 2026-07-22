@@ -23,6 +23,206 @@ const createActionSpan = (entries: LogEntry[]): LogSpan => ({
 });
 
 describe('LogPresenter 行动日志聚合', () => {
+  it('具名机制可用结构化依据说明旧状态与新效果为何触发', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('mechanic', {
+        mechanic: 'named_trigger',
+        targetName: '李四',
+        sourceName: '张三',
+        name: '蒸发',
+        displayName: '蒸发',
+        internalKey: 'sect.tianyan.reaction.vaporize',
+        visibility: 'player',
+        triggerBasis: {
+          left: { id: 'seal.fire', displayName: '火印' },
+          relation: { id: 'reaction.overcome', displayName: '冲克' },
+          right: { id: 'element.water', displayName: '水术' },
+        },
+      }),
+    ]);
+
+    expect(presenter.formatSpan(span).join('\n')).toContain(
+      '「张三」因「李四」的「火印」与本次「水术」发生「冲克」，触发「蒸发」',
+    );
+    expect(presenter.formatSpan(span).join('\n')).not.toContain('seal.fire');
+  });
+
+  it('没有结构化依据的既有具名机制沿用普通触发格式', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('mechanic', {
+        mechanic: 'named_trigger',
+        targetName: '张三',
+        sourceName: '张三',
+        name: '洛书断局',
+        displayName: '洛书断局',
+        visibility: 'player',
+      }),
+    ]);
+
+    expect(presenter.formatSpan(span).join('\n')).toContain(
+      '「张三」触发「洛书断局」',
+    );
+  });
+
+  it.each([
+    ['apply', undefined, '「李四」获得「火印」'],
+    ['refresh', undefined, '「李四」的「火印」持续时间刷新'],
+    ['replace', '木印', '「李四」的「木印」转为「火印」'],
+    ['consume', undefined, '「李四」的「火印」被消耗'],
+  ] as const)('通用状态迁移按%s操作使用现有展示管道', (
+    operation,
+    previousDisplayName,
+    expected,
+  ) => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('mechanic', {
+        mechanic: 'status_transition',
+        targetName: '李四',
+        sourceName: '张三',
+        name: '火印',
+        displayName: '火印',
+        internalKey: `test.status.${operation}`,
+        visibility: 'player',
+        operation,
+        previousDisplayName,
+      }),
+    ]);
+
+    const text = presenter.formatSpan(span).join('\n');
+    expect(text).toContain(expected);
+    expect(text).not.toContain(`test.status.${operation}`);
+  });
+
+  it('带结构化原因的追伤应显示具体机制而非乘势追击', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('damage', {
+        value: 688,
+        beforeHp: 1000,
+        remainHp: 312,
+        isCritical: false,
+        targetName: '李四',
+        damageSource: 'follow_up',
+        sourceUnitId: 'a',
+        sourceUnitName: '张三',
+        cause: { kind: 'mechanic', id: 'reaction-vaporize', displayName: '蒸发' },
+      }),
+    ]);
+
+    expect(presenter.formatSpan(span)).toContain(
+      '「张三」因「蒸发」追加伤害，对「李四」造成688点伤害',
+    );
+  });
+
+  it.each([
+    '冲克·蒸发',
+    '冲克·泥沼',
+    '冲克·崩根',
+    '冲克·断脉',
+    '冲克·熔金',
+  ])('冲克追伤应逐项保留完整原因：%s', (displayName) => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('damage', {
+        value: 200,
+        beforeHp: 1000,
+        remainHp: 800,
+        isCritical: false,
+        targetName: '李四',
+        damageSource: 'follow_up',
+        sourceUnitId: 'a',
+        sourceUnitName: '张三',
+        cause: {
+          kind: 'mechanic',
+          id: `reaction-${displayName}`,
+          displayName,
+        },
+      }),
+    ]);
+
+    expect(presenter.formatSpan(span)).toContain(
+      `「张三」因「${displayName}」追加伤害，对「李四」造成200点伤害`,
+    );
+  });
+
+  it('无结构化原因的既有追伤应保留兼容文本', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('damage', {
+        value: 300,
+        beforeHp: 1000,
+        remainHp: 700,
+        isCritical: false,
+        targetName: '李四',
+        damageSource: 'follow_up',
+        sourceUnitId: 'a',
+        sourceUnitName: '张三',
+      }),
+    ]);
+
+    expect(presenter.formatSpan(span)).toContain(
+      '「张三」乘势追击，对「李四」造成300点伤害',
+    );
+  });
+
+  it('同行动不同原因的追伤不得合并', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      ...[
+        ['mud', '泥沼', 200],
+        ['luoshu', '洛书断局', 250],
+      ].map(([id, displayName, value]) =>
+        createEntry('damage', {
+          value: value as number,
+          beforeHp: 1000,
+          remainHp: 500,
+          isCritical: false,
+          targetName: '李四',
+          damageSource: 'follow_up' as const,
+          sourceUnitId: 'a',
+          sourceUnitName: '张三',
+          cause: {
+            kind: 'mechanic' as const,
+            id: id as string,
+            displayName: displayName as string,
+          },
+        }),
+      ),
+    ]);
+    const lines = presenter.formatSpan(span);
+
+    expect(lines).toContain('「张三」因「泥沼」追加伤害，对「李四」造成200点伤害');
+    expect(lines).toContain('「张三」因「洛书断局」追加伤害，对「李四」造成250点伤害');
+    expect(lines.join('\n')).not.toContain('450点');
+  });
+
+  it('行动内多次手动DOT应按Buff与原因聚合', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      ...[128, 128].map((value) =>
+        createEntry('damage', {
+          value,
+          beforeHp: 1000,
+          remainHp: 744,
+          isCritical: false,
+          targetName: '李四',
+          damageSource: 'delayed' as const,
+          sourceBuff: '灼烧',
+          sourceUnitId: 'a',
+          sourceUnitName: '张三',
+          cause: { kind: 'mechanic' as const, id: 'vaporize', displayName: '蒸发' },
+        }),
+      ),
+    ]);
+
+    expect(presenter.formatSpan(span)).toContain(
+      '「灼烧」受「蒸发」引动，对「李四」立即结算2次：128、128，合计256点持续伤害',
+    );
+  });
+
   it('普攻命中应输出完整伤害文本', () => {
     const presenter = new LogPresenter();
     const span = createActionSpan([

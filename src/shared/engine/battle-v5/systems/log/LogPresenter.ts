@@ -65,12 +65,22 @@ export class LogPresenter {
       (entry) =>
         entry.data.damageSource === 'follow_up' ||
         entry.data.damageSource === 'counter' ||
-        entry.data.damageSource === 'reflect',
+        entry.data.damageSource === 'reflect' ||
+        entry.data.damageSource === 'delayed',
     );
     const secondaryDamageIds = new Set(secondaryDamage.map((entry) => entry.id));
+    const standaloneMechanics = this.findEntries(visibleEntries, 'mechanic').filter(
+      (entry) =>
+        entry.data.mechanic === 'named_trigger' ||
+        entry.data.mechanic === 'status_transition',
+    );
+    const standaloneMechanicIds = new Set(
+      standaloneMechanics.map((entry) => entry.id),
+    );
     const outcomeEntries = visibleEntries.filter((entry) =>
       entry.type !== 'resource_change' &&
       entry.type !== 'action_state' &&
+      !standaloneMechanicIds.has(entry.id) &&
       !(entry.type === 'damage' && secondaryDamageIds.has(entry.id)) &&
       !this.isZeroOutcome(entry),
     );
@@ -112,6 +122,11 @@ export class LogPresenter {
       lines.push(this.line('primary', ...actionPrefix));
     }
 
+    for (const mechanic of standaloneMechanics) {
+      lines.push(
+        this.line('trigger', this.textPart(this.formatMechanic(mechanic))),
+      );
+    }
     lines.push(...this.presentTriggerOutcomes(triggerEntries, actorName));
     lines.push(...this.presentSecondaryDamage(secondaryDamage));
     for (const entry of resourceEntries) {
@@ -350,7 +365,7 @@ export class LogPresenter {
 
   private presentSecondaryDamage(entries: Array<LogEntry<'damage'>>): PresentedLogLine[] {
     const lines: PresentedLogLine[] = [];
-    for (const source of ['follow_up', 'counter', 'reflect'] as const) {
+    for (const source of ['follow_up', 'counter', 'reflect', 'delayed'] as const) {
       const sourceEntries = entries.filter((entry) => entry.data.damageSource === source);
       for (const text of this.formatSecondaryDamageLines(sourceEntries, source)) {
         lines.push(this.line('secondary', this.textPart(text)));
@@ -921,6 +936,7 @@ export class LogPresenter {
 
   private formatMechanic(entry: LogEntry<'mechanic'>): string {
     const target = this.formatName(entry.data.targetName);
+    const source = this.formatName(entry.data.sourceName ?? entry.data.targetName);
     const mechanicName = this.formatMechanicName(entry.data.name);
     const value = entry.data.value !== undefined
       ? this.formatNumber(Math.round(entry.data.value))
@@ -943,6 +959,29 @@ export class LogPresenter {
         return entry.data.detail === 'no_target'
           ? `${target}没有可扩散目标`
           : `${target}扩散「${mechanicName}」`;
+      case 'named_trigger':
+        if (entry.data.triggerBasis) {
+          const basis = entry.data.triggerBasis;
+          return `${source}因${target}的「${this.formatMechanicName(basis.left.displayName)}」与本次「${this.formatMechanicName(basis.right.displayName)}」发生「${this.formatMechanicName(basis.relation.displayName)}」，触发「${mechanicName}」`;
+        }
+        return `${source}触发「${mechanicName}」`;
+      case 'status_transition': {
+        const previous = entry.data.previousDisplayName
+          ? this.formatMechanicName(entry.data.previousDisplayName)
+          : undefined;
+        switch (entry.data.operation) {
+          case 'apply':
+            return `${target}获得「${mechanicName}」`;
+          case 'refresh':
+            return `${target}的「${mechanicName}」持续时间刷新`;
+          case 'replace':
+            return `${target}的「${previous ?? '原状态'}」转为「${mechanicName}」`;
+          case 'consume':
+            return `${target}的「${mechanicName}」被消耗`;
+          default:
+            return `${target}的状态变为「${mechanicName}」`;
+        }
+      }
       default:
         return `${target}触发「${mechanicName}」`;
     }
@@ -959,7 +998,7 @@ export class LogPresenter {
 
   private formatSecondaryDamageLines(
     entries: Array<LogEntry<'damage'>>,
-    source: 'follow_up' | 'counter' | 'reflect',
+    source: 'follow_up' | 'counter' | 'reflect' | 'delayed',
   ): string[] {
     if (entries.length === 0) return [];
     const groups = new Map<string, Array<LogEntry<'damage'>>>();
@@ -968,6 +1007,9 @@ export class LogPresenter {
         entry.data.sourceUnitId ?? entry.data.sourceUnitName ?? 'unknown',
         entry.data.sourceAbilityId ?? entry.data.sourceAbilityName ?? source,
         entry.data.targetName,
+        entry.data.sourceBuff ?? '',
+        entry.data.cause?.kind ?? '',
+        entry.data.cause?.id ?? '',
       ].join('|');
       const group = groups.get(key) ?? [];
       group.push(entry);
@@ -994,11 +1036,25 @@ export class LogPresenter {
         : '';
 
       if (source === 'follow_up') {
+        if (first.data.cause) {
+          return `${sourceName}因「${first.data.cause.displayName}」追加伤害，对${targetName}造成${damageText}${shieldText}`;
+        }
         return `${sourceName}乘势追击，对${targetName}造成${damageText}${shieldText}`;
       }
       if (source === 'counter') {
         const trigger = abilityName ? `触发「${abilityName}」反击` : '发动反击';
         return `${sourceName}${trigger}，对${targetName}造成${damageText}${shieldText}`;
+      }
+      if (source === 'delayed') {
+        const buffName = first.data.sourceBuff ?? '持续效果';
+        const causeName = first.data.cause?.displayName;
+        if (causeName) {
+          const settlement = group.length > 1
+            ? `立即结算${group.length}次：${group.map((entry) => this.formatDamageSegment(entry)).join('、')}，合计${this.formatNumber(totalDamage)}点持续伤害`
+            : `立即造成${damageText.replace('点伤害', '点持续伤害')}`;
+          return `「${buffName}」受「${causeName}」引动，对${targetName}${settlement}`;
+        }
+        return `「${buffName}」对${targetName}造成${damageText}${shieldText}`;
       }
       return `${sourceName}反伤，对${targetName}造成${damageText}${shieldText}`;
     });

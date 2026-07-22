@@ -131,6 +131,29 @@ describe('V4攻防差后乘倍率', () => {
     expect(event.finalDamage).toBe(120);
   });
 
+  it('resolved_final 固定终值跳过防御、增减伤、暴击与随机浮动', () => {
+    const caster = unit('caster');
+    const target = unit('target');
+    fixed(target, AttributeType.MAGIC_DEF, 9999);
+    fixed(caster, AttributeType.CRIT_RATE, 1);
+    const event = request({
+      caster,
+      target,
+      amount: 200,
+      defenseScale: 1,
+      damageType: DamageType.MAGICAL,
+      damageSource: DamageSource.FOLLOW_UP,
+      forceCritical: true,
+    });
+    event.calculationMode = 'resolved_final';
+    event.damageIncreasePctBucket = 10;
+
+    EventBus.instance.publish(event);
+
+    expect(event.finalDamage).toBe(200);
+    expect(event.isCritical).toBeUndefined();
+  });
+
   it('固定值与属性合并为明确攻击基数和段倍率', () => {
     const caster = unit('caster');
     fixed(caster, AttributeType.ATK, 100);
