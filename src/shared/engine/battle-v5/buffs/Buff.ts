@@ -35,6 +35,7 @@ export class Buff {
   readonly logVisibility: 'player' | 'debug';
   readonly statusVisibility: 'player' | 'hidden';
   readonly dispelPolicy: 'normal' | 'protected';
+  readonly dispelMode: 'whole' | 'one_layer';
   readonly countsAsStatus: boolean;
   private _duration: number;
   private _maxDuration: number;
@@ -73,6 +74,7 @@ export class Buff {
     countsAsStatus: boolean = true,
     statusVisibility?: 'player' | 'hidden',
     stackPriority: number = 0,
+    dispelMode: 'whole' | 'one_layer' = 'whole',
   ) {
     this.id = id;
     this.name = name;
@@ -82,6 +84,7 @@ export class Buff {
       logVisibility === 'debug' ? 'hidden' : 'player'
     );
     this.dispelPolicy = dispelPolicy;
+    this.dispelMode = dispelMode;
     this.countsAsStatus = countsAsStatus;
     this.type = type;
     this._maxDuration = duration;
@@ -301,6 +304,7 @@ export class Buff {
       this.countsAsStatus,
       this.statusVisibility,
       this.stackPriority,
+      this.dispelMode,
     );
     cloned.setDuration(this._duration);
     cloned.tags = this.tags.clone();

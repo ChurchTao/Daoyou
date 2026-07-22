@@ -3,6 +3,7 @@ import { join, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), 'src/shared/engine/sect');
+const battleRoot = resolve(process.cwd(), 'src/shared/engine/battle-v5');
 
 function sourceFiles(directory: string): string[] {
   return readdirSync(directory).flatMap((name) => {
@@ -38,6 +39,16 @@ describe('宗门插件架构守卫', () => {
     expect(publicEntry).not.toMatch(
       /lingxiao|(?:export|import)[^\n]*from ['"]\.\/content/,
     );
+  });
+
+  it('battle-v5 通用引擎不依赖幽都宗门或其内容 ID', () => {
+    for (const file of sourceFiles(battleRoot).filter(
+      (path) => !path.includes('/tests/'),
+    )) {
+      const source = readFileSync(file, 'utf8');
+      const label = relative(process.cwd(), file);
+      expect(source, label).not.toMatch(/youdu|幽都|sect\.youdu/i);
+    }
   });
 
   it('流派基础编译器不按节点ID集中分派', () => {

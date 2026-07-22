@@ -17,6 +17,7 @@ export const PERCENTAGE_ATTRIBUTE_TYPES = new Set<AttributeType>([
   AttributeType.CRIT_DAMAGE_REDUCTION,
   AttributeType.ACCURACY,
   AttributeType.HEAL_AMPLIFY,
+  AttributeType.HEAL_RECEIVED_REDUCTION,
 ]);
 
 export function isPercentageAttributeType(attrType: AttributeType): boolean {

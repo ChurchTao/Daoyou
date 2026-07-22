@@ -52,6 +52,7 @@ export class ApplyBuffEffect extends GameplayEffect {
 
     // 创建 Buff 实例并添加到目标
     const buff = buffPreview;
+    buff.setLayer(Math.max(1, Math.trunc(this.params.layers ?? 1)));
 
     if (buff.type === BuffType.CONTROL && isHostile) {
       const controlResistance = target.attributes.getValue(

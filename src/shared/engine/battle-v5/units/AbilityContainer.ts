@@ -195,6 +195,7 @@ export class AbilityContainer {
       fallbackTarget: this._getDefaultTarget() ?? undefined,
       ability,
       isInterrupted: false,
+      hitPolicy: ability instanceof ActiveSkill ? ability.hitPolicy : 'normal',
     });
   }
 

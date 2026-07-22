@@ -48,6 +48,8 @@ export type AbilityCostConfig =
  */
 export interface AbilityEffectLayerConfig {
   id: string;
+  /** 玩家可见的分支名称；缺省时展示层根据计划条件生成中性描述。 */
+  displayName?: string;
   effects?: EffectConfig[];
   completionEffects?: EffectConfig[];
 }
@@ -108,6 +110,7 @@ export interface ConditionConfig {
     | 'damage_type_is'
     | 'damage_source_is'
     | 'shield_absorbed_at_least'
+    | 'damage_taken_at_least'
     | 'resource_compare'
     | 'attribute_compare'
     | 'combat_resource_at_least'
@@ -116,6 +119,8 @@ export interface ConditionConfig {
     | 'ability_mode_is'
     | 'ability_cost_crossed'
     | 'combat_resource_change'
+    | 'buff_layer_change'
+    | 'buff_removed_reason_is'
     | 'chance'
     | 'is_critical'
     | 'is_hit'
@@ -140,7 +145,14 @@ export interface ConditionConfig {
     remainingUses?: number;
     timing?: 'live' | 'cast';
     operation?: 'add' | 'subtract' | 'set' | 'consume_all';
-    eventField?: 'requested' | 'applied' | 'overflow';
+    eventField?:
+      | 'requested'
+      | 'applied'
+      | 'overflow'
+      | 'previousLayer'
+      | 'currentLayer'
+      | 'delta';
+    reason?: 'apply' | 'stack' | 'effect' | 'dispel' | 'manual' | 'expired' | 'replace';
   };
 }
 
@@ -169,6 +181,18 @@ export interface DamageParams {
   cause?: LogCauseRef;
   forceCritical?: boolean;
   forceCriticalConditions?: ConditionConfig[];
+  /** 是否允许暴击，缺省为 true。 */
+  canCrit?: boolean;
+  /** 是否允许本次伤害触发吸血，缺省为 true。 */
+  canLifesteal?: boolean;
+  /** 按目标匹配状态的当前层数追加属性倍率，仍只产生一个伤害请求。 */
+  buffLayerScalar?: {
+    match: BuffMatchParams;
+    attribute: AttributeType;
+    coefficientPerLayer: number;
+    minLayers?: number;
+    maxLayers?: number;
+  };
   dynamicScalars?: DamageDynamicScalarConfig[];
 }
 
@@ -196,6 +220,8 @@ export interface HealParams {
 export interface ApplyBuffParams {
   buffConfig: BuffConfig;
   chance?: number;
+  /** 初次施加或叠层时一次增加的层数，缺省为 1。 */
+  layers?: number;
   target?: 'caster' | 'target';
   /** 仅参与本次控制抗性判定，不修改施法者的全局控制命中。 */
   controlHitBonus?: number;
@@ -719,6 +745,8 @@ export interface AttributeModifierConfig {
   value: number;
   /** 按 Buff 当前层数放大属性修改值。 */
   scaleByLayer?: boolean;
+  /** 非线性完整层级值；下标 0 对应 1 层，超过长度沿用末项。 */
+  valueByLayer?: readonly number[];
 }
 
 /**
@@ -738,6 +766,8 @@ export interface BuffConfig {
   /** 同 ID 刷新型 Buff 的效果强度；更高值替换较低值，缺省为 0。 */
   stackPriority?: number;
   maxLayers?: number;
+  /** 缺省整项驱散；one_layer 令一次普通驱散只移除一层。 */
+  dispelMode?: 'whole' | 'one_layer';
   /** 默认状态可被驱散、转移；protected 状态只能由自身机制移除。 */
   dispelPolicy?: 'normal' | 'protected';
   /** 是否计入普通增益、减益或控制数量，默认 true。 */
@@ -779,6 +809,8 @@ export interface AbilityConfig {
     scope: 'single' | 'aoe' | 'random';
     maxTargets?: number;
   };
+  /** 主动技能命中策略；缺省使用标准命中。 */
+  hitPolicy?: 'normal' | 'guaranteed';
 
   selectionProfile?: AbilitySelectionProfile;
   castConditions?: ConditionConfig[];
@@ -793,6 +825,9 @@ export interface AbilityConfig {
 
   /** 只能由 effectPlans 追加的效果层。 */
   effectLayers?: AbilityEffectLayerConfig[];
+
+  /** 分层技能基础效果的玩家可见名称。 */
+  baseEffectDisplayName?: string;
 
   /** 按运行时条件选择一个计划；未命中时仅执行基础效果。 */
   effectPlans?: AbilityEffectPlanConfig[];

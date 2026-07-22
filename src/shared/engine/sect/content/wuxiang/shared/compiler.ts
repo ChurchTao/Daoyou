@@ -430,11 +430,13 @@ function layeredAbility(spec: LayeredAbilitySpec): SectCompiledAbility {
   const layers: AbilityEffectLayerConfig[] = [
     {
       id: 'demon',
+      displayName: '魔相显化时',
       effects: spec.demonEffects,
       completionEffects: spec.demonCompletionEffects,
     },
     {
       id: 'formless',
+      displayName: '无相显化时',
       effects: spec.formlessEffects,
       completionEffects: spec.formlessCompletionEffects,
     },
@@ -475,6 +477,7 @@ function layeredAbility(spec: LayeredAbilitySpec): SectCompiledAbility {
     targetPolicy: { team: spec.target, scope: 'single' },
     effects: spec.effects,
     completionEffects: buddhistCompletion,
+    baseEffectDisplayName: '佛相',
     effectLayers: layers,
     effectPlans: plans,
     extraTags: [techniqueTag],
@@ -1034,9 +1037,10 @@ function turnForm(
       },
     ],
     effects: [],
+    baseEffectDisplayName: '佛相',
     effectLayers: [
-      { id: 'demon', effects: demonEffects },
-      { id: 'formless', effects: formlessEffects },
+      { id: 'demon', displayName: '魔相显化时', effects: demonEffects },
+      { id: 'formless', displayName: '无相显化时', effects: formlessEffects },
     ],
     effectPlans: [
       {

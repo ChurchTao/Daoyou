@@ -86,12 +86,9 @@ function applyStartingBuffs(
   for (const entry of spec.startingBuffs) {
     const buff = BuffFactory.create(entry.buff);
     const source = entry.source === 'opponent' ? counterpart : unit;
-    unit.buffs.addBuff(buff, source);
-
     const targetLayers = Math.max(1, Math.floor(entry.stacks ?? 1));
-    if (targetLayers > 1) {
-      buff.setLayer(targetLayers);
-    }
+    buff.setLayer(targetLayers);
+    unit.buffs.addBuff(buff, source);
 
     if (!buff.isPermanent()) {
       buff.refreshToDuration(entry.buff.duration);

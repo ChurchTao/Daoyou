@@ -1206,6 +1206,9 @@ function compileLandingAbility(
   const branchEntries = [undefined, ...TIANYAN_ELEMENTS] as const;
   const layers: AbilityEffectLayerConfig[] = branchEntries.map((oldSeal) => ({
     id: oldSeal ? `old-${oldSeal}` : 'no-seal',
+    displayName: oldSeal
+      ? `目标带有${TIANYAN_ELEMENT_NAMES[oldSeal]}印时`
+      : '目标没有法印时',
     effects: buildLandingBranch(spec, oldSeal, settings, context),
   }));
   const plans: AbilityEffectPlanConfig[] = branchEntries.map((oldSeal, index) => ({
@@ -1455,6 +1458,7 @@ function compileSecrets(
     const incoming = nextGeneratingElement(oldSeal, settings.shiftSteps);
     return {
       id: `shift-${oldSeal}`,
+      displayName: `目标带有${TIANYAN_ELEMENT_NAMES[oldSeal]}印时`,
       effects: [
         applySealEffect(incoming, settings.sealDuration),
         sealTransitionLog(incoming, 'replace', oldSeal),
@@ -1528,6 +1532,7 @@ function compileSecrets(
   };
   const repositoryLayers: AbilityEffectLayerConfig[] = TIANYAN_ELEMENTS.map((oldSeal) => ({
     id: `repository-${oldSeal}`,
+    displayName: `目标带有${TIANYAN_ELEMENT_NAMES[oldSeal]}印时`,
     effects: [
       clearSealEffect(),
       sealConsumeLog(oldSeal),

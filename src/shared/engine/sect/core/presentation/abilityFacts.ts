@@ -1,5 +1,6 @@
 import type {
   AbilityConfig,
+  AbilityEffectLayerConfig,
   AttributeModifierConfig,
   CombatResourceDefinition,
   ConditionConfig,
@@ -13,6 +14,7 @@ import {
 } from '@shared/engine/battle-v5/core/types';
 import type { ScalableValue } from '@shared/engine/battle-v5/core/ValueCalculator';
 import { describeEffectCore } from '@shared/engine/battle-v5/effects/affixText/effectCore';
+import { formatBuffValueByLayerModifiers } from '@shared/engine/battle-v5/effects/affixText/buffText';
 
 const ATTRIBUTE_LABELS: Partial<Record<AttributeType, string>> = {
   [AttributeType.ATK]: '物攻',
@@ -35,7 +37,10 @@ function number(value: number): string {
   return String(Number(value.toFixed(2)));
 }
 
-function conditionText(condition: ConditionConfig): string {
+function conditionText(
+  condition: ConditionConfig,
+  resources: readonly CombatResourceDefinition[] = [],
+): string {
   if (
     condition.type === 'attribute_compare' &&
     condition.params.attribute &&
@@ -58,6 +63,29 @@ function conditionText(condition: ConditionConfig): string {
     condition.params.damageSource === 'direct'
   ) {
     return '受到直接伤害';
+  }
+  if (
+    condition.type === 'combat_resource_at_least' &&
+    condition.params.resourceId &&
+    condition.params.value !== undefined
+  ) {
+    return `拥有${condition.params.value}点${resourceName(condition.params.resourceId, resources)}`;
+  }
+  if (condition.type === 'damage_type_is' && condition.params.damageType) {
+    const labels = {
+      physical: '物理伤害',
+      magical: '法术伤害',
+      true: '真实伤害',
+      dot: '持续伤害',
+    } as const;
+    return labels[condition.params.damageType];
+  }
+  if (
+    (condition.type === 'buff_layer_at_least' ||
+      condition.type === 'buff_layer_below') &&
+    condition.params.value !== undefined
+  ) {
+    return `目标状态层数${condition.type === 'buff_layer_at_least' ? '至少' : '少于'}${condition.params.value}层`;
   }
   return '';
 }
@@ -214,7 +242,7 @@ function damageEffectsRow(
   ).length;
   return damageEffects.flatMap((effect, index) => {
     const condition = effect.conditions
-      ?.map(conditionText)
+      ?.map((candidate) => conditionText(candidate, resources))
       .filter(Boolean)
       .join('且');
     const source = effect.params.damageSource === 'follow_up' ? '追击' : '伤害';
@@ -426,6 +454,10 @@ function describeEffect(
           if (modifier.scaleByLayer)
             rows.push(`每层：${modifierText(modifier)}`);
         }
+        rows.push(...formatBuffValueByLayerModifiers(buff.modifiers ?? []));
+        if (buff.dispelMode === 'one_layer') {
+          rows.push('普通驱散每次只移除1层');
+        }
         for (const listener of buff.listeners ?? []) {
           for (const child of listener.effects) {
             if (
@@ -542,21 +574,53 @@ function describeEffectList(
             candidate.params.buffConfig.id === effect.params.buffConfig.id,
         );
       matches.forEach(({ candidateIndex }) => handled.add(candidateIndex));
+      const stackCount = matches.reduce(
+        (total, { candidate }) =>
+          total +
+          (candidate.type === 'apply_buff' ? candidate.params.layers ?? 1 : 0),
+        0,
+      );
       rows.push(
-        ...applyEffectTiming(
+        ...applyEffectConditions(
           effect,
-          describeEffect(effect, resources, matches.length),
-          timing,
+          applyEffectTiming(
+            effect,
+            describeEffect(effect, resources, stackCount),
+            timing,
+          ),
+          resources,
         ),
       );
       return;
     }
     handled.add(index);
     rows.push(
-      ...applyEffectTiming(effect, describeEffect(effect, resources), timing),
+      ...applyEffectConditions(
+        effect,
+        applyEffectTiming(effect, describeEffect(effect, resources), timing),
+        resources,
+      ),
     );
   });
   return rows;
+}
+
+function applyEffectConditions(
+  effect: EffectConfig,
+  rows: readonly string[],
+  resources: readonly CombatResourceDefinition[],
+): string[] {
+  const conditions = effect.conditions
+    ?.map((condition) => conditionText(condition, resources))
+    .filter(Boolean)
+    .join('且');
+  if (!conditions) return [...rows];
+  return rows.map((row) => {
+    const timed = row.match(/^(命中后|施展后)：(.+)$/);
+    return timed
+      ? `${conditions}时：${timed[1]}${timed[2]}`
+      : `${conditions}时：${row}`;
+  });
 }
 
 function applyEffectTiming(
@@ -588,11 +652,10 @@ function applyEffectTiming(
 }
 
 function layeredEffectRow(
-  form: '佛相' | '魔相' | '无相' | string,
+  subject: string,
   row: string,
+  isAdditional: boolean,
 ): string {
-  const subject = form === '佛相' ? form : `${form}显化时`;
-  const isAdditional = form !== '佛相';
   const damage = row.match(
     /^伤害：((?:相当于|基础相当于|根据目标已损气血|\d+段 ×).+)$/,
   );
@@ -642,18 +705,29 @@ export function describeSectAbilityConfig(
 ): string[] {
   const rows: string[] = [];
   const layers = config.effectLayers ?? [];
+  const plans = config.effectPlans ?? [];
   const isLayered = layers.length > 0;
-  const formName = (layerId: string): string =>
-    layerId === 'demon' ? '魔相' : layerId === 'formless' ? '无相' : layerId;
+  const layerName = (layer: AbilityEffectLayerConfig): string => {
+    if (layer.displayName) return layer.displayName;
+    const plan = plans.find((candidate) => candidate.layerIds.includes(layer.id));
+    const conditions = plan?.conditions
+      .map((condition) => conditionText(condition, resources))
+      .filter(Boolean)
+      .join('且');
+    return conditions ? `${conditions}时` : '满足分支条件时';
+  };
   rows.push(
-    ...[...(config.effectPlans ?? [])]
+    ...[...plans]
       .sort((left, right) => left.layerIds.length - right.layerIds.length)
-      .map((plan) => {
-        const form =
-          plan.id === 'demon' || plan.id === 'formless'
-            ? formName(plan.id)
-            : formName(plan.layerIds[plan.layerIds.length - 1] ?? plan.id);
-        return `${form}变化《${plan.name}》：${plan.description ?? '显化此相时，招式随之变化。'}`;
+      .flatMap((plan) => {
+        if (!plan.description) return [];
+        const layer = layers.find(
+          (candidate) => candidate.id === plan.layerIds[plan.layerIds.length - 1],
+        );
+        const label = (layer ? layerName(layer) : '条件分支')
+          .replace(/时$/, '')
+          .replace(/显化$/, '');
+        return [`${label}变化《${plan.name}》：${plan.description}`];
       }),
   );
   for (const condition of config.castConditions ?? []) {
@@ -672,9 +746,12 @@ export function describeSectAbilityConfig(
     ...damageEffectsRow(config.effects ?? [], resources),
     ...describeEffectList(config.effects ?? [], resources, baseTiming),
   ];
+  const hasBaseDamage = config.effects?.some((effect) => effect.type === 'damage') ?? false;
   rows.push(
     ...(isLayered
-      ? baseEffectRows.map((row) => layeredEffectRow('佛相', row))
+      ? baseEffectRows.map((row) =>
+          layeredEffectRow(config.baseEffectDisplayName ?? '基础效果', row, false),
+        )
       : baseEffectRows),
   );
   const baseCompletionRows = [
@@ -683,22 +760,24 @@ export function describeSectAbilityConfig(
   ];
   rows.push(
     ...(isLayered
-      ? baseCompletionRows.map((row) => layeredEffectRow('佛相', row))
+      ? baseCompletionRows.map((row) =>
+          layeredEffectRow(config.baseEffectDisplayName ?? '基础效果', row, false),
+        )
       : baseCompletionRows),
   );
   for (const layer of layers) {
-    const label = formName(layer.id);
+    const label = layerName(layer);
     rows.push(
       ...[
         ...damageEffectsRow(layer.effects ?? [], resources),
         ...describeEffectList(layer.effects ?? [], resources, baseTiming),
-      ].map((row) => layeredEffectRow(label, row)),
+      ].map((row) => layeredEffectRow(label, row, hasBaseDamage)),
     );
     rows.push(
       ...[
         ...damageEffectsRow(layer.completionEffects ?? [], resources),
         ...describeEffectList(layer.completionEffects ?? [], resources, 'cast'),
-      ].map((row) => layeredEffectRow(label, row)),
+      ].map((row) => layeredEffectRow(label, row, hasBaseDamage)),
     );
   }
   rows.push(...describeEffectList(config.castEffects ?? [], resources, 'cast'));

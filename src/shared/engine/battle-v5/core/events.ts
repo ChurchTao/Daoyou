@@ -187,6 +187,8 @@ export interface DamageRequestEvent extends CombatEvent {
   damageComponents?: DamageComponent[];
   /** 强制暴击；仍由 DamageSystem 读取施法者暴击倍率。 */
   forceCritical?: boolean;
+  canCrit?: boolean;
+  canLifesteal?: boolean;
   baseDamage: number; // 基础伤害（未修正）
   finalDamage: number; // 最终伤害（可被增伤修正）
   // 同乘区加算桶：同一次伤害事件内累加，统一在 DamageSystem 中一次结算
@@ -214,6 +216,7 @@ export interface DamageEvent extends CombatEvent {
   finalDamage: number;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率
+  canLifesteal?: boolean;
 }
 
 // ===== 法力护盾抵扣事件 =====
@@ -371,6 +374,7 @@ export interface DamageTakenEvent extends CombatEvent {
   isLethal: boolean;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率
+  canLifesteal?: boolean;
 }
 
 // ===== 单元死亡事件 =====
@@ -414,6 +418,21 @@ export interface BuffAppliedEvent extends CombatEvent {
   source?: Unit | Ability | unknown; // 来源（施法者/技能）
   ability?: Ability;
   sourceBuff?: Buff;
+}
+
+export type BuffLayerChangeReason = 'apply' | 'stack' | 'effect' | 'dispel';
+
+/** BuffContainer 统一出口发布的状态层数变化事件。 */
+export interface BuffLayerChangedEvent extends CombatEvent {
+  type: 'BuffLayerChangedEvent';
+  target: Unit;
+  buff: Buff;
+  source?: Unit;
+  ability?: Ability;
+  previousLayer: number;
+  currentLayer: number;
+  delta: number;
+  reason: BuffLayerChangeReason;
 }
 
 // ===== BUFF 移除事件 =====

@@ -4,6 +4,8 @@ import { Buff, StackRule } from '../buffs/Buff';
 import {
   BuffAddEvent,
   BuffAppliedEvent,
+  BuffLayerChangedEvent,
+  type BuffLayerChangeReason,
   BuffRemovedEvent,
 } from '../core/events';
 import { EventBus } from '../core/EventBus';
@@ -51,8 +53,17 @@ export class BuffContainer {
     // 2. 堆叠规则处理
     const existing = this._buffs.get(buff.id);
     if (existing) {
+      const previousLayer = existing.getLayer();
       const appliedBuff = this._applyStackRule(existing, buff, source);
       if (appliedBuff) {
+        this._publishLayerChanged(
+          appliedBuff,
+          previousLayer,
+          appliedBuff.getLayer(),
+          'stack',
+          source,
+          origin,
+        );
         markBuffAppliedAtCurrentAction(this._owner, appliedBuff);
         this._publishAppliedEvent(appliedBuff, source, origin);
       }
@@ -72,6 +83,14 @@ export class BuffContainer {
 
     // 3.3 调用激活方法（子类在此订阅事件、添加标签等）
     buff.onActivate();
+    this._publishLayerChanged(
+      buff,
+      0,
+      buff.getLayer(),
+      'apply',
+      source,
+      origin,
+    );
     markBuffAppliedAtCurrentAction(this._owner, buff);
 
     // 3.4 更新派生属性
@@ -88,37 +107,106 @@ export class BuffContainer {
     this._removeBuffWithReason(buffId, 'manual');
   }
 
-  removeBuffDispel(buffId: BuffId): boolean {
+  removeBuffDispel(
+    buffId: BuffId,
+    origin?: { source?: Unit; ability?: Ability },
+  ): boolean {
     const buff = this._buffs.get(buffId);
     if (!buff || buff.dispelPolicy !== 'normal') return false;
+    if (buff.dispelMode === 'one_layer' && buff.getLayer() > 1) {
+      const previousLayer = buff.getLayer();
+      buff.setLayer(previousLayer - 1);
+      this._publishLayerChanged(
+        buff,
+        previousLayer,
+        buff.getLayer(),
+        'dispel',
+        origin?.source,
+        origin,
+      );
+      this._owner.updateDerivedStats();
+      return true;
+    }
+    this._publishLayerChanged(
+      buff,
+      buff.getLayer(),
+      0,
+      'dispel',
+      origin?.source,
+      origin,
+    );
     this._removeBuffWithReason(buffId, 'dispel');
     return true;
   }
 
-  modifyBuffLayer(buffId: BuffId, delta: number): number {
+  modifyBuffLayer(
+    buffId: BuffId,
+    delta: number,
+    origin?: { source?: Unit; ability?: Ability; buff?: Buff },
+  ): number {
     const buff = this._buffs.get(buffId);
     if (!buff) return 0;
 
+    const previousLayer = buff.getLayer();
     const nextLayer = buff.getLayer() + delta;
     if (nextLayer <= 0) {
+      this._publishLayerChanged(
+        buff,
+        previousLayer,
+        0,
+        'effect',
+        origin?.source,
+        origin,
+      );
       this._removeBuffWithReason(buffId, 'manual');
       return 0;
     }
 
     buff.setLayer(nextLayer);
-    return nextLayer;
+    this._publishLayerChanged(
+      buff,
+      previousLayer,
+      buff.getLayer(),
+      'effect',
+      origin?.source,
+      origin,
+    );
+    this._owner.updateDerivedStats();
+    return buff.getLayer();
   }
 
-  setBuffLayer(buffId: BuffId, layer: number): number {
+  setBuffLayer(
+    buffId: BuffId,
+    layer: number,
+    origin?: { source?: Unit; ability?: Ability; buff?: Buff },
+  ): number {
     const buff = this._buffs.get(buffId);
     if (!buff) return 0;
 
+    const previousLayer = buff.getLayer();
     if (layer <= 0) {
+      this._publishLayerChanged(
+        buff,
+        previousLayer,
+        0,
+        'effect',
+        origin?.source,
+        origin,
+      );
       this._removeBuffWithReason(buffId, 'manual');
       return 0;
     }
 
     buff.setLayer(layer);
+    this._publishLayerChanged(
+      buff,
+      previousLayer,
+      buff.getLayer(),
+      'effect',
+      origin?.source,
+      origin,
+    );
+    this._owner.updateDerivedStats();
     return buff.getLayer();
   }
 
@@ -177,7 +265,7 @@ export class BuffContainer {
   private _applyStackRule(existing: Buff, newBuff: Buff, source?: Unit): Buff | null {
     switch (newBuff.stackRule) {
       case StackRule.STACK_LAYER:
-        existing.addLayer(1);
+        existing.addLayer(newBuff.getLayer());
         existing.refreshToDuration(newBuff.getMaxDuration());
         if (source) {
           existing.setSource(source);
@@ -231,6 +319,29 @@ export class BuffContainer {
       sourceBuff: origin?.buff,
     };
     EventBus.instance.publish(appliedEvent);
+  }
+
+  private _publishLayerChanged(
+    buff: Buff,
+    previousLayer: number,
+    currentLayer: number,
+    reason: BuffLayerChangeReason,
+    source?: Unit,
+    origin?: { ability?: Ability; buff?: Buff },
+  ): void {
+    if (previousLayer === currentLayer) return;
+    EventBus.instance.publish<BuffLayerChangedEvent>({
+      type: 'BuffLayerChangedEvent',
+      timestamp: Date.now(),
+      target: this._owner,
+      buff,
+      source,
+      ability: origin?.ability,
+      previousLayer,
+      currentLayer,
+      delta: currentLayer - previousLayer,
+      reason,
+    });
   }
 
   clone(owner: Unit): BuffContainer {

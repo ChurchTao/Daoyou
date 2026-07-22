@@ -227,6 +227,7 @@ export class DamageSystem {
     // 反击/追击与直接伤害一样可暴击；强制暴击仍应用施法者暴击倍率。
     if (
       event.caster &&
+      event.canCrit !== false &&
       event.damageSource !== DamageSource.REFLECT
     ) {
       const rawCritRate = event.caster.attributes.getValue(
@@ -280,6 +281,7 @@ export class DamageSystem {
       finalDamage: event.finalDamage,
       isCritical: event.isCritical,
       critMultiplier: event.critMultiplier,
+      canLifesteal: event.canLifesteal,
     };
 
     EventBus.instance.publish(damageEvent);
@@ -384,6 +386,7 @@ export class DamageSystem {
       buff,
       isCritical,
       critMultiplier,
+      canLifesteal,
     } = damageEvent;
 
     if (finalDamage <= 0) {
@@ -448,6 +451,7 @@ export class DamageSystem {
       isLethal: target.getCurrentHp() <= 0,
       isCritical,
       critMultiplier,
+      canLifesteal,
     });
 
     // 最终判定：在所有 DamageTakenEvent 监听器执行完后，重新检查存活状态

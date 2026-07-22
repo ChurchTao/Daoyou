@@ -6,6 +6,7 @@ import { BuffFactory } from '../../factories/BuffFactory';
 import { createBattleUnitsWithInit } from '../../setup/BattleInitApplier';
 import { EventBus } from '../../core/EventBus';
 import {
+  BuffLayerChangedEvent,
   DamageRequestEvent,
   DeathPreventEvent,
   SkillPreCastEvent,
@@ -109,6 +110,44 @@ class HighCostSkill extends ActiveSkill {
 }
 
 describe('BattleInitApplier', () => {
+  test('多层入场 Buff 以一次 0→N 层事件完成初始化', () => {
+    EventBus.instance.reset();
+    const events: BuffLayerChangedEvent[] = [];
+    EventBus.instance.subscribe<BuffLayerChangedEvent>(
+      'BuffLayerChangedEvent',
+      (event) => events.push(event),
+    );
+    const player = createCultivator('player', '道友');
+    const opponent = createCultivator('opponent', '对手');
+
+    const { playerUnit } = createBattleUnitsWithInit(player, opponent, {
+      player: {
+        startingBuffs: [{
+          source: 'self',
+          stacks: 4,
+          buff: {
+            id: 'test.layered-starting-buff',
+            name: '多层入场状态',
+            type: BuffType.BUFF,
+            duration: 3,
+            stackRule: StackRule.STACK_LAYER,
+            maxLayers: 5,
+          },
+        }],
+      },
+    });
+
+    expect(playerUnit.buffs.getAllBuffs().find((buff) =>
+      buff.id === 'test.layered-starting-buff')?.getLayer()).toBe(4);
+    expect(events.filter((event) => event.buff.id === 'test.layered-starting-buff'))
+      .toEqual([expect.objectContaining({
+        previousLayer: 0,
+        currentLayer: 4,
+        delta: 4,
+        reason: 'apply',
+      })]);
+  });
+
   test('MAX_HP 初始化 modifier 在 buff 触发派生刷新后仍保持有效', () => {
     const player = createCultivator('player', '道友');
     const opponent = createCultivator('dummy', '木桩');

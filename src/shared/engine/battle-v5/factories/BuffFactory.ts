@@ -25,6 +25,14 @@ export class BuffFactory {
    * 根据配置创建 BUFF 实例
    */
   static create(config: BuffConfig): Buff {
+    for (const modifier of config.modifiers ?? []) {
+      if (modifier.scaleByLayer && modifier.valueByLayer) {
+        throw new Error(`Buff ${config.id} 的 scaleByLayer 与 valueByLayer 不能同时配置`);
+      }
+      if (modifier.valueByLayer && modifier.valueByLayer.length === 0) {
+        throw new Error(`Buff ${config.id} 的 valueByLayer 不能为空数组`);
+      }
+    }
     const buff = new DataDrivenBuff(config);
 
     // 1. 注入 Buff 自身标签

@@ -29,6 +29,7 @@ export interface ActiveSectAbilitySpec {
   mpCost?: number;
   costs?: AbilityConfig['costs'];
   completionEffects?: AbilityConfig['completionEffects'];
+  baseEffectDisplayName?: AbilityConfig['baseEffectDisplayName'];
   effectLayers?: AbilityConfig['effectLayers'];
   effectPlans?: AbilityConfig['effectPlans'];
   cooldown?: number;
@@ -37,6 +38,7 @@ export interface ActiveSectAbilitySpec {
   pathId?: SectPathId;
   castConditions?: AbilityConfig['castConditions'];
   targetPolicy: NonNullable<AbilityConfig['targetPolicy']>;
+  hitPolicy?: AbilityConfig['hitPolicy'];
   selectionProfile?: AbilitySelectionProfile;
   extraTags?: string[];
   detailRows?: string[];
@@ -104,10 +106,12 @@ export class SectAbilityFactory {
           : GameplayTags.ABILITY.TARGET.AOE,
       ],
       targetPolicy,
+      hitPolicy: spec.hitPolicy,
       selectionProfile,
       castConditions: spec.castConditions,
       effects: spec.effects,
       completionEffects: spec.completionEffects,
+      baseEffectDisplayName: spec.baseEffectDisplayName,
       effectLayers: spec.effectLayers,
       effectPlans: spec.effectPlans,
       castEffects: spec.castEffects,

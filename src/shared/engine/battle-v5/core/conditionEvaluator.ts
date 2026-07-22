@@ -235,6 +235,10 @@ export function evaluateCondition(
     }
     case 'shield_absorbed_at_least':
       return (getShieldAbsorbedFromTriggerEvent(context.triggerEvent) ?? 0) >= threshold;
+    case 'damage_taken_at_least': {
+      const event = context.triggerEvent as { damageTaken?: number } | undefined;
+      return (event?.damageTaken ?? 0) >= threshold;
+    }
     case 'resource_compare': {
       const left = getScopedUnit(context, cond.params.left);
       const right = getScopedUnit(context, cond.params.right);
@@ -327,7 +331,10 @@ export function evaluateCondition(
       if (event?.type !== 'CombatResourceChangeEvent') return false;
       if (cond.params.resourceId && event.resourceId !== cond.params.resourceId) return false;
       if (cond.params.operation && event.operation !== cond.params.operation) return false;
-      const field = cond.params.eventField ?? 'applied';
+      const field = (
+        cond.params.eventField === 'requested' ||
+        cond.params.eventField === 'overflow'
+      ) ? cond.params.eventField : 'applied';
       const value = event[field] ?? 0;
       switch (cond.params.op ?? 'gte') {
         case 'gt': return value > threshold;
@@ -336,6 +343,43 @@ export function evaluateCondition(
         case 'gte':
         default: return value >= threshold;
       }
+    }
+    case 'buff_layer_change': {
+      const event = context.triggerEvent as {
+        type?: string;
+        buff?: Buff;
+        previousLayer?: number;
+        currentLayer?: number;
+        delta?: number;
+        reason?: string;
+      } | undefined;
+      if (event?.type !== 'BuffLayerChangedEvent' || !event.buff) return false;
+      if (cond.params.id && event.buff.id !== cond.params.id) return false;
+      if (cond.params.tag && !event.buff.tags.hasTag(cond.params.tag)) return false;
+      if (cond.params.reason && event.reason !== cond.params.reason) return false;
+      const field = cond.params.eventField ?? 'delta';
+      if (field !== 'previousLayer' && field !== 'currentLayer' && field !== 'delta') {
+        return false;
+      }
+      const value = event[field] ?? 0;
+      switch (cond.params.op ?? 'gte') {
+        case 'gt': return value > threshold;
+        case 'lt': return value < threshold;
+        case 'lte': return value <= threshold;
+        case 'gte':
+        default: return value >= threshold;
+      }
+    }
+    case 'buff_removed_reason_is': {
+      const event = context.triggerEvent as {
+        type?: string;
+        buff?: Buff;
+        reason?: string;
+      } | undefined;
+      if (event?.type !== 'BuffRemovedEvent' || !event.buff) return false;
+      if (cond.params.id && event.buff.id !== cond.params.id) return false;
+      if (cond.params.tag && !event.buff.tags.hasTag(cond.params.tag)) return false;
+      return !cond.params.reason || event.reason === cond.params.reason;
     }
     case 'chance':
       return battleRandom() < threshold;

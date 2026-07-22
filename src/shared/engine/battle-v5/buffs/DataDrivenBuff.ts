@@ -41,6 +41,7 @@ export class DataDrivenBuff extends Buff {
       config.countsAsStatus ?? true,
       config.statusVisibility,
       config.stackPriority,
+      config.dispelMode,
     );
     this._config = config;
   }
@@ -75,7 +76,7 @@ export class DataDrivenBuff extends Buff {
   override onLayerChanged(): void {
     if (!this._owner) return;
     for (const [index, modifier] of (this._config.modifiers ?? []).entries()) {
-      if (!modifier.scaleByLayer) continue;
+      if (!modifier.scaleByLayer && !modifier.valueByLayer) continue;
       this._owner.attributes.removeModifier(this._attributeModifierId(index));
       this._mountAttributeModifier(index);
     }
@@ -97,9 +98,20 @@ export class DataDrivenBuff extends Buff {
       id: this._attributeModifierId(index),
       attrType: modifier.attrType,
       type: modifier.type,
-      value: modifier.value * (modifier.scaleByLayer ? this.getLayer() : 1),
+      value: this._modifierValue(modifier),
       source: this,
     });
+  }
+
+  private _modifierValue(
+    modifier: NonNullable<BuffConfig['modifiers']>[number],
+  ): number {
+    if (modifier.valueByLayer?.length) {
+      return modifier.valueByLayer[
+        Math.min(this.getLayer(), modifier.valueByLayer.length) - 1
+      ];
+    }
+    return modifier.value * (modifier.scaleByLayer ? this.getLayer() : 1);
   }
 
   private _attributeModifierId(index: number): string {

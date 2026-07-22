@@ -45,7 +45,10 @@ export class DispelEffect extends GameplayEffect {
 
     // 执行移除
     for (let i = 0; i < countToRemove; i++) {
-      if (target.buffs.removeBuffDispel(removableBuffs[i].id)) {
+      if (target.buffs.removeBuffDispel(removableBuffs[i].id, {
+        source: caster,
+        ability,
+      })) {
         removedBuffNames.push(removableBuffs[i].name);
       }
     }

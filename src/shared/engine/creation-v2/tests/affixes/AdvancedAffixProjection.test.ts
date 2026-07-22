@@ -342,6 +342,10 @@ describe('advanced affix projection and rehydrate', () => {
     const soulSiphon = projectWeaponAffix('artifact-weapon-soul-siphon', '水');
     expect(soulSiphon.listeners?.[0]?.effects[0]).toMatchObject({
       type: 'resource_drain',
+      conditions: [{
+        type: 'damage_type_is',
+        params: { damageType: 'magical' },
+      }],
       params: { targetType: 'mp' },
     });
 

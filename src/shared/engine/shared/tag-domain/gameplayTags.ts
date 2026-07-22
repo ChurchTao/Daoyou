@@ -199,11 +199,17 @@ export const GameplayTags = {
     SKILL_CAST: 'SkillCastEvent',
     DODGE: 'DodgeEvent',
     BUFF_ADD: 'BuffAddEvent',
+    BUFF_APPLIED: 'BuffAppliedEvent',
+    BUFF_REMOVED: 'BuffRemovedEvent',
+    BUFF_IMMUNE: 'BuffImmuneEvent',
+    BUFF_LAYER_CHANGED: 'BuffLayerChangedEvent',
+    CONTROL_RESIST: 'ControlResistEvent',
     DEATH_PREVENT: 'DeathPreventEvent',
     CONTROLLED_SKIP: 'ControlledSkipEvent',
     COMBAT_RESOURCE_CHANGE: 'CombatResourceChangeEvent',
     ABILITY_COST_PAID: 'AbilityCostPaidEvent',
     HP_CHANGED: 'HpChangedEvent',
+    UNIT_DEAD: 'UnitDeadEvent',
   },
 
   // ===== 监听器作用域 =====

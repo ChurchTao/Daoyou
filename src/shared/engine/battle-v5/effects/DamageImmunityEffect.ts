@@ -25,16 +25,8 @@ export class DamageImmunityEffect extends GameplayEffect {
       return;
     }
 
-    const matchedTag = this.params.tags.find(
-      (tag) =>
-        event.ability?.tags.hasTag(tag) ||
-        event.buff?.tags.hasTag(tag) ||
-        (tag === GameplayTags.ABILITY.CHANNEL.TRUE &&
-          event.damageType === DamageType.TRUE) ||
-        (tag === GameplayTags.ABILITY.CHANNEL.MAGIC &&
-          event.damageType === DamageType.MAGICAL) ||
-        (tag === GameplayTags.ABILITY.CHANNEL.PHYSICAL &&
-          event.damageType === DamageType.PHYSICAL),
+    const matchedTag = this.params.tags.find((tag) =>
+      matchesDamageTag(event, tag),
     );
     if (!matchedTag) {
       return;
@@ -54,6 +46,25 @@ export class DamageImmunityEffect extends GameplayEffect {
       matchedTag,
     });
   }
+}
+
+function matchesDamageTag(event: DamageEvent, tag: string): boolean {
+  if (tag === GameplayTags.ABILITY.CHANNEL.MAGIC) {
+    return event.damageType === DamageType.MAGICAL;
+  }
+  if (tag === GameplayTags.ABILITY.CHANNEL.TRUE) {
+    return event.damageType === DamageType.TRUE;
+  }
+  if (tag === GameplayTags.ABILITY.CHANNEL.PHYSICAL) {
+    return event.damageType === DamageType.PHYSICAL;
+  }
+
+  return (
+    event.ability?.tags.hasTag(tag) ||
+    event.buff?.tags.hasTag(tag) ||
+    event.damageTags?.includes(tag) ||
+    false
+  );
 }
 
 EffectRegistry.getInstance().register(

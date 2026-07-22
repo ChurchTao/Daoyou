@@ -61,6 +61,7 @@ export class AbilityFactory {
           selectionProfile:
             config.selectionProfile ?? analyzeAbilityCapabilities(config).selectionProfile,
           castConditions: config.castConditions,
+          hitPolicy: config.hitPolicy,
           effects: config.effects,
           completionEffects: config.completionEffects,
           castEffects: config.castEffects,
@@ -83,6 +84,7 @@ export class AbilityFactory {
         selectionProfile:
           config.selectionProfile ?? analyzeAbilityCapabilities(config).selectionProfile,
         castConditions: config.castConditions,
+        hitPolicy: config.hitPolicy,
       });
 
           skill.tags.addTags(abilityTags);

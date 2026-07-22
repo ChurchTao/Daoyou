@@ -4,6 +4,7 @@ import type {
   EffectConfig,
   ListenerConfig,
 } from '../../core/configs';
+import { isPercentageAttributeType } from '../../core/attributeMeta';
 import { ModifierType } from '../../core/types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { attrLabel } from './attributes';
@@ -106,8 +107,48 @@ export function formatBuffModifier(mod: AttributeModifierConfig): string {
     case ModifierType.BASE:
     case ModifierType.FIXED:
     default:
-      return `${label} ${sign}${formatAffixNumber(abs)}`;
+      return isPercentageAttributeType(mod.attrType)
+        ? `${label} ${sign}${formatAffixPercent(abs)}`
+        : `${label} ${sign}${formatAffixNumber(abs)}`;
   }
+}
+
+export function formatBuffValueByLayerModifiers(
+  modifiers: readonly AttributeModifierConfig[],
+): string[] {
+  const grouped = new Map<string, AttributeModifierConfig[]>();
+  for (const modifier of modifiers) {
+    if (!modifier.valueByLayer?.length) continue;
+    const key = `${modifier.type}:${modifier.valueByLayer.join(',')}:${modifierUsesPercent(modifier)}`;
+    const group = grouped.get(key) ?? [];
+    group.push(modifier);
+    grouped.set(key, group);
+  }
+
+  return [...grouped.values()].map((group) => {
+    const labels = group.map((modifier) => attrLabel(modifier.attrType)).join('、');
+    const curve = group[0].valueByLayer ?? [];
+    const parts: string[] = [];
+    for (let start = 0; start < curve.length;) {
+      let end = start;
+      while (end + 1 < curve.length && curve[end + 1] === curve[start]) end += 1;
+      const layer = start === end ? `${start + 1}层` : `${start + 1}～${end + 1}层`;
+      const value = modifierUsesPercent(group[0])
+        ? formatAffixPercent(curve[start])
+        : formatAffixNumber(curve[start]);
+      parts.push(`${layer}${value}`);
+      start = end + 1;
+    }
+    return `${labels}：${parts.join('，')}`;
+  });
+}
+
+function modifierUsesPercent(modifier: AttributeModifierConfig): boolean {
+  return (
+    modifier.type === ModifierType.ADD ||
+    (modifier.type === ModifierType.FIXED &&
+      isPercentageAttributeType(modifier.attrType))
+  );
 }
 
 export function describeBuffListenerInline(
@@ -159,7 +200,11 @@ export function describeBuffRuntimeSummary(
   return [
     buff.description ?? '',
     ...describeBuffStatusEffects(buff),
-    ...(buff.modifiers ?? []).map(formatBuffModifier),
+    ...(buff.modifiers ?? [])
+      .filter((modifier) => !modifier.valueByLayer?.length)
+      .map(formatBuffModifier),
+    ...formatBuffValueByLayerModifiers(buff.modifiers ?? []),
+    buff.dispelMode === 'one_layer' ? '普通驱散每次只移除1层' : '',
     ...(buff.listeners ?? []).map((listener) =>
       describeBuffListenerInline(listener, buff.tags, buff.stackRule, describeEffect),
     ),

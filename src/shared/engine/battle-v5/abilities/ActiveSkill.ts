@@ -48,6 +48,7 @@ export interface ActiveSkillConfig {
   damageCoefficient?: number;
   selectionProfile?: AbilitySelectionProfile;
   castConditions?: ConditionConfig[];
+  hitPolicy?: 'normal' | 'guaranteed';
 }
 
 /**
@@ -67,6 +68,7 @@ export abstract class ActiveSkill extends Ability {
   private readonly _targetPolicy: TargetPolicy;
   private readonly _selectionProfile?: AbilitySelectionProfile;
   private readonly _castConditions: ConditionConfig[];
+  private readonly _hitPolicy: 'normal' | 'guaranteed';
 
   constructor(id: AbilityId, name: string, config: ActiveSkillConfig = {}) {
     super(id, name, AbilityType.ACTIVE_SKILL, config.description);
@@ -95,6 +97,7 @@ export abstract class ActiveSkill extends Ability {
     this._targetPolicy = config.targetPolicy ?? TargetPolicy.default();
     this._selectionProfile = config.selectionProfile;
     this._castConditions = config.castConditions ?? [];
+    this._hitPolicy = config.hitPolicy ?? 'normal';
   }
 
   private _costConfigs: AbilityCostConfig[] = [];
@@ -110,6 +113,10 @@ export abstract class ActiveSkill extends Ability {
 
   get castConditions(): ConditionConfig[] {
     return this._castConditions;
+  }
+
+  get hitPolicy(): 'normal' | 'guaranteed' {
+    return this._hitPolicy;
   }
 
   protected getCostConfigs(_caster: Unit): AbilityCostConfig[] {

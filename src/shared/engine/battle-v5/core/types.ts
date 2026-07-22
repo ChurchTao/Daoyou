@@ -51,6 +51,7 @@ export enum AttributeType {
   CRIT_RESIST = 'critResist',                    // 暴击韧性：降低对手暴击率 (0~1)
   CRIT_DAMAGE_REDUCTION = 'critDamageReduction', // 暴击减伤：降低受到暴击倍率 (0~0.5)
   HEAL_AMPLIFY = 'healAmplify',                  // 治疗增强 (≥0)
+  HEAL_RECEIVED_REDUCTION = 'healReceivedReduction', // 受到的气血治疗削弱 (0~1)
 }
 
 // ===== 属性修改器类型（6阶段）=====

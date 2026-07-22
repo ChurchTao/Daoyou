@@ -101,6 +101,7 @@ export class LayeredDataDrivenActiveSkill extends ActiveSkill {
       targetPolicy: super.targetPolicy,
       selectionProfile: super.selectionProfile,
       castConditions: super.castConditions,
+      hitPolicy: super.hitPolicy,
       effects: this.baseEffects,
       completionEffects: this.baseCompletionEffects,
       castEffects: this.baseCastEffects,

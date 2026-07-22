@@ -18,7 +18,11 @@ export class ManaBurnEffect extends GameplayEffect {
     const { caster, target, ability } = context;
 
     // 使用统一计算器计算削减量
-    const burnAmount = ValueCalculator.calculate(this.params.value, caster);
+    const burnAmount = ValueCalculator.calculate(
+      this.params.value,
+      caster,
+      target,
+    );
 
     if (burnAmount <= 0) return;
 

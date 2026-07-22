@@ -802,8 +802,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'resource_drain',
       conditions: [
         {
-          type: 'ability_has_tag',
-          params: { tag: GameplayTags.ABILITY.CHANNEL.MAGIC },
+          type: 'damage_type_is',
+          params: { damageType: DamageType.MAGICAL },
         },
       ],
       params: {

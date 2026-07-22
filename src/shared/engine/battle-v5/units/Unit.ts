@@ -136,7 +136,15 @@ export class Unit {
 
   heal(amount: number): number {
     const before = this.currentHp;
-    this.setHp(this.currentHp + amount, 'heal');
+    const reduction = Math.max(
+      0,
+      Math.min(
+        1,
+        this.attributes.getValue(AttributeType.HEAL_RECEIVED_REDUCTION),
+      ),
+    );
+    const received = Math.round(Math.max(0, amount) * (1 - reduction));
+    this.setHp(this.currentHp + received, 'heal');
     return this.currentHp - before;
   }
 

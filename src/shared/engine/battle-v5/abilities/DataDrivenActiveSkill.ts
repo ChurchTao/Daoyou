@@ -155,9 +155,18 @@ export class DataDrivenActiveSkill extends ActiveSkill {
    * 克隆技能实例，同时克隆所有效果
    */
   override clone(): DataDrivenActiveSkill {
-    const cloned = super.clone() as DataDrivenActiveSkill;
-    // 注意：这里的效果链不需要特殊处理，因为它们是无状态的单例或由工厂动态创建
-    // 如果效果有状态，则需要深度克隆
+    const cloned = new DataDrivenActiveSkill(this.id, this.name, {
+      description: this.description,
+      costs: this.costConfigs,
+      cooldown: this.maxCooldown,
+      priority: this.priority,
+      targetPolicy: this.targetPolicy,
+      selectionProfile: this.selectionProfile,
+      castConditions: this.castConditions,
+      hitPolicy: this.hitPolicy,
+    });
+    cloned.tags.addTags(this.tags.getTags());
+    if (this.currentCooldown > 0) cloned.modifyCooldown(this.currentCooldown);
     cloned._effects = [...this._effects];
     cloned._castEffects = [...this._castEffects];
     for (const listener of this._instantiatedListeners) {

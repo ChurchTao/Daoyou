@@ -68,6 +68,36 @@ export class DamageEffect extends GameplayEffect {
         });
       }
     }
+    const layerScalar = this.params.buffLayerScalar;
+    if (layerScalar) {
+      const matchingBuff = target.buffs.getAllBuffs().find((candidate) =>
+        (!layerScalar.match.id || candidate.id === layerScalar.match.id) &&
+        (!layerScalar.match.tags?.length ||
+          layerScalar.match.tags.every((tag) => candidate.tags.hasTag(tag)))
+      );
+      const rawLayers = matchingBuff?.getLayer() ?? 0;
+      const layers = Math.min(
+        layerScalar.maxLayers ?? Number.POSITIVE_INFINITY,
+        rawLayers,
+      );
+      if (layers >= (layerScalar.minLayers ?? 0)) {
+        const attributeValue = resolvedCaster.attributes.getValue(
+          layerScalar.attribute,
+        );
+        const coefficient = layerScalar.coefficientPerLayer * layers;
+        const amount = attributeValue * coefficient;
+        damage += amount;
+        if (amount > 0) {
+          damageComponents.push({
+            kind: `buff_layer:${matchingBuff?.id ?? 'none'}`,
+            amount,
+            mitigation: 'normal',
+            attackBase: attributeValue,
+            segmentMultiplier: coefficient,
+          });
+        }
+      }
+    }
     const bypassDefenseRatio = this.params.bypassDefense
       ? 1
       : Math.max(0, Math.min(1, this.params.bypassDefenseRatio ?? 0));
@@ -173,8 +203,9 @@ export class DamageEffect extends GameplayEffect {
       this.params.forceCriticalConditions?.length
         ? checkConditions(context, this.params.forceCriticalConditions)
         : false;
-    const forceCritical =
-      this.params.forceCritical || transform?.forceCritical || conditionCritical;
+    const forceCritical = this.params.canCrit === false
+      ? false
+      : this.params.forceCritical || transform?.forceCritical || conditionCritical;
     EventBus.instance.publish<DamageRequestEvent>({
       type: 'DamageRequestEvent',
       timestamp: Date.now(),
@@ -195,6 +226,8 @@ export class DamageEffect extends GameplayEffect {
       baseDamage: damage,
       finalDamage: damage, // 初始终伤等于基伤，由后续系统修正
       forceCritical,
+      canCrit: this.params.canCrit ?? true,
+      canLifesteal: this.params.canLifesteal ?? true,
       isCritical: forceCritical ? true : undefined,
     });
 
