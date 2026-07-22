@@ -197,6 +197,8 @@ export interface ApplyBuffParams {
   buffConfig: BuffConfig;
   chance?: number;
   target?: 'caster' | 'target';
+  /** 仅参与本次控制抗性判定，不修改施法者的全局控制命中。 */
+  controlHitBonus?: number;
   /** 仅在控制抗性判定抵抗时执行；Buff 免疫不会触发。 */
   onResistEffects?: EffectConfig[];
 }
@@ -730,7 +732,11 @@ export interface BuffConfig {
   duration: number; // -1 为永久
   /** 内部计数/防重复 marker 可仅保留在调试日志。 */
   logVisibility?: 'player' | 'debug';
+  /** 状态栏可见性；缺省时沿用日志可见性以保持兼容。 */
+  statusVisibility?: 'player' | 'hidden';
   stackRule: StackRule;
+  /** 同 ID 刷新型 Buff 的效果强度；更高值替换较低值，缺省为 0。 */
+  stackPriority?: number;
   maxLayers?: number;
   /** 默认状态可被驱散、转移；protected 状态只能由自身机制移除。 */
   dispelPolicy?: 'normal' | 'protected';

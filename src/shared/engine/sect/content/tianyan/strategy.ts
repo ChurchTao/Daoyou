@@ -4,6 +4,7 @@ import type {
   AbilitySelectionStrategy,
 } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import { BuffType } from '@shared/engine/battle-v5/core/types';
+import { readElementHistory } from '@shared/engine/battle-v5/core/runtimeState';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { SectStrategyCandidates, type SectTacticId } from '../../core';
 import { TIANYAN_SECT_ID } from './ids';
@@ -21,6 +22,16 @@ const ABILITY_ELEMENTS: Partial<Record<string, TianyanElement>> = {
   'metal-cloud-cutter': 'metal',
   'white-star-breaker': 'metal',
   'dark-water-return': 'water',
+};
+
+const STRATEGY_ELEMENT_HISTORY = 'sect.tianyan.strategy.recent-elements';
+
+const ELEMENT_TAGS: Record<TianyanElement, string> = {
+  wood: GameplayTags.ABILITY.ELEMENT.WOOD,
+  fire: GameplayTags.ABILITY.ELEMENT.FIRE,
+  earth: GameplayTags.ABILITY.ELEMENT.EARTH,
+  metal: GameplayTags.ABILITY.ELEMENT.METAL,
+  water: GameplayTags.ABILITY.ELEMENT.WATER,
 };
 
 function contentAbilityId(runtimeId: string): string {
@@ -78,14 +89,40 @@ abstract class TianyanSelectionStrategy implements AbilitySelectionStrategy {
     priorities: readonly string[],
     score = 600,
   ): AbilitySelectionResult | null {
+    const prioritized = this.pickAvailable(context, priorities, score);
+    if (prioritized) return prioritized;
+    const fallback = context.candidates[0];
+    return fallback
+      ? { ability: fallback.ability, target: fallback.target, score: 100 }
+      : null;
+  }
+
+  protected pickAvailable(
+    context: AbilitySelectionContext,
+    priorities: readonly string[],
+    score: number,
+  ): AbilitySelectionResult | null {
     const index = new SectStrategyCandidates(TIANYAN_SECT_ID, context.candidates);
     for (const id of priorities) {
       const result = index.result(id, score);
       if (result) return result;
     }
-    const fallback = context.candidates[0];
-    return fallback
-      ? { ability: fallback.ability, target: fallback.target, score: 100 }
+    return null;
+  }
+
+  protected lowestCostLanding(
+    context: AbilitySelectionContext,
+    score: number,
+  ): AbilitySelectionResult | null {
+    const candidate = context.candidates
+      .filter((entry) => Boolean(ABILITY_ELEMENTS[contentAbilityId(entry.ability.id)]))
+      .sort((left, right) =>
+        left.ability.manaCost - right.ability.manaCost ||
+        left.order - right.order ||
+        left.ability.id.localeCompare(right.ability.id),
+      )[0];
+    return candidate
+      ? { ability: candidate.ability, target: candidate.target, score }
       : null;
   }
 
@@ -104,18 +141,42 @@ export class HetuSelectionStrategy extends TianyanSelectionStrategy {
     const reactions = this.reactionPriorities(context, 'any');
     if (this.tacticId === 'nourish-origin') {
       if (hp < 0.60) {
-        return this.pick(
+        const recovery = this.pickAvailable(
           context,
-          ['myriad-wood-renewal', 'boundless-earth', ...reactions],
+          ['myriad-wood-renewal', 'boundless-earth'],
           760,
         );
+        if (recovery) return recovery;
       }
       if (mp < 0.35) {
-        return this.pick(
+        const recovery = this.pickAvailable(
           context,
-          ['heavenly-river-cleansing', 'five-qi-repository', ...reactions],
+          [
+            'heavenly-river-cleansing',
+            ...(currentSeal(context) === 'water' ? ['five-qi-repository'] : []),
+          ],
           750,
         );
+        if (recovery) return recovery;
+      }
+    }
+    if (this.tacticId === 'small-cycle') {
+      if (reactions.length > 0) {
+        const recentElements = readElementHistory(
+          context.caster,
+          STRATEGY_ELEMENT_HISTORY,
+        );
+        const missingElementReactions = reactions.filter((id) => {
+          const element = ABILITY_ELEMENTS[id];
+          return element ? !recentElements.has(ELEMENT_TAGS[element]) : false;
+        });
+        if (missingElementReactions.length > 0) {
+          return this.pick(context, missingElementReactions, 740);
+        }
+      }
+      if (!currentSeal(context)) {
+        const landing = this.lowestCostLanding(context, 700);
+        if (landing) return landing;
       }
     }
     if (this.tacticId === 'unbroken-flow' && currentSeal(context) && reactions.length === 0) {
@@ -177,10 +238,16 @@ export class LuoshuSelectionStrategy extends TianyanSelectionStrategy {
           760,
         );
       }
-      if (currentSeal(context)) {
+      const seal = currentSeal(context);
+      if (seal) {
+        const repositoryFirst =
+          (seal === 'water' && context.caster.getMpPercent() < 0.35) ||
+          (seal === 'wood' && context.caster.getHpPercent() < 0.60);
         return this.pick(
           context,
-          ['shift-palace', 'five-qi-repository', 'primordial-ray'],
+          repositoryFirst
+            ? ['five-qi-repository', 'shift-palace', 'primordial-ray']
+            : ['shift-palace', 'five-qi-repository', 'primordial-ray'],
           700,
         );
       }

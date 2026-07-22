@@ -79,6 +79,29 @@ describe('BattleStateRecorder buff display', () => {
       'debug',
     );
   });
+
+  it('records status visibility independently from log visibility', () => {
+    const unit = new Unit('unit', '测试者', {});
+    unit.buffs.addBuff(
+      BuffFactory.create({
+        id: 'visible-debug-status',
+        name: '可见机制状态',
+        type: BuffType.BUFF,
+        duration: 2,
+        stackRule: StackRule.REFRESH_DURATION,
+        logVisibility: 'debug',
+        statusVisibility: 'player',
+      }),
+    );
+
+    const recorder = new BattleStateRecorder();
+    recorder.record('battle_init', 0, [unit]);
+
+    expect(recorder.getFrames()[0].units.unit.buffs[0]).toMatchObject({
+      logVisibility: 'debug',
+      statusVisibility: 'player',
+    });
+  });
 });
 
 describe('BattleStateRecorder action states', () => {

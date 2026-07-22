@@ -185,6 +185,9 @@ export class BuffContainer {
         return existing;
 
       case StackRule.REFRESH_DURATION:
+        if (newBuff.stackPriority > existing.stackPriority) {
+          return this._replaceBuff(existing, newBuff, source);
+        }
         existing.refreshToDuration(newBuff.getMaxDuration());
         if (source) {
           existing.setSource(source);
@@ -192,21 +195,25 @@ export class BuffContainer {
         return existing;
 
       case StackRule.OVERRIDE:
-        existing.onDeactivate();
-        this._buffs.set(existing.id, newBuff);
-        newBuff.setOwner(this._owner);
-        if (source) {
-          newBuff.setSource(source);
-        }
-        newBuff.onActivate();
-        this._owner.updateDerivedStats();
-        return newBuff;
+        return this._replaceBuff(existing, newBuff, source);
 
       case StackRule.IGNORE:
         return null;
     }
 
     return null;
+  }
+
+  private _replaceBuff(existing: Buff, newBuff: Buff, source?: Unit): Buff {
+    existing.onDeactivate('replace');
+    this._buffs.set(existing.id, newBuff);
+    newBuff.setOwner(this._owner);
+    if (source) {
+      newBuff.setSource(source);
+    }
+    newBuff.onActivate();
+    this._owner.updateDerivedStats();
+    return newBuff;
   }
 
   private _publishAppliedEvent(

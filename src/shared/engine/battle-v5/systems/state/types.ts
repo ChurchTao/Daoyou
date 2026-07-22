@@ -7,8 +7,10 @@ export interface BuffStateView {
   name: string;
   description?: string;
   type: 'buff' | 'debuff' | 'control';
-  /** 玩家界面可见性；旧战斗记录缺失时按 player 处理。 */
+  /** 玩家日志可见性；旧战斗记录缺失时按 player 处理。 */
   logVisibility?: 'player' | 'debug';
+  /** 状态栏可见性；旧战斗记录缺失时回退到日志可见性。 */
+  statusVisibility?: 'player' | 'hidden';
   /** Buff 来源单位的显示名。 */
   sourceName?: string;
   layers: number;

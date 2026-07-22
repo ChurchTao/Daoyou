@@ -48,6 +48,7 @@ function formatBuffStatusTitle(buff: BuffState): string {
 }
 
 export function isPlayerVisibleBuff(buff: BuffState): boolean {
+  if (buff.statusVisibility) return buff.statusVisibility === 'player';
   return buff.logVisibility !== 'debug';
 }
 

@@ -458,6 +458,10 @@ export function rememberElement(unit: Unit, key: string, elementTag: string): nu
   return history.size;
 }
 
+export function readElementHistory(unit: Unit, key: string): ReadonlySet<string> {
+  return new Set(getBattleRuntimeState(unit).elementHistories.get(key) ?? []);
+}
+
 export function clearElementHistory(unit: Unit, key: string): void {
   getBattleRuntimeState(unit).elementHistories.delete(key);
 }

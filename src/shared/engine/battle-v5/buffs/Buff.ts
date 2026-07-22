@@ -33,6 +33,7 @@ export class Buff {
   readonly description?: string;
   readonly type: BuffType;
   readonly logVisibility: 'player' | 'debug';
+  readonly statusVisibility: 'player' | 'hidden';
   readonly dispelPolicy: 'normal' | 'protected';
   readonly countsAsStatus: boolean;
   private _duration: number;
@@ -41,6 +42,7 @@ export class Buff {
   // GAS 核心：标签和堆叠规则
   tags: GameplayTagContainer;
   readonly stackRule: StackRule;
+  readonly stackPriority: number;
   readonly maxLayers?: number;
 
   // GAS 核心：owner 引用，用于事件订阅
@@ -69,17 +71,23 @@ export class Buff {
     logVisibility: 'player' | 'debug' = 'player',
     dispelPolicy: 'normal' | 'protected' = 'normal',
     countsAsStatus: boolean = true,
+    statusVisibility?: 'player' | 'hidden',
+    stackPriority: number = 0,
   ) {
     this.id = id;
     this.name = name;
     this.description = description;
     this.logVisibility = logVisibility;
+    this.statusVisibility = statusVisibility ?? (
+      logVisibility === 'debug' ? 'hidden' : 'player'
+    );
     this.dispelPolicy = dispelPolicy;
     this.countsAsStatus = countsAsStatus;
     this.type = type;
     this._maxDuration = duration;
     this._duration = duration;
     this.stackRule = stackRule;
+    this.stackPriority = stackPriority;
     this.maxLayers = maxLayers;
 
     // 初始化标签容器
@@ -291,6 +299,8 @@ export class Buff {
       this.logVisibility,
       this.dispelPolicy,
       this.countsAsStatus,
+      this.statusVisibility,
+      this.stackPriority,
     );
     cloned.setDuration(this._duration);
     cloned.tags = this.tags.clone();

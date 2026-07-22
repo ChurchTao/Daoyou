@@ -131,6 +131,39 @@ describe('天衍所需通用 battle-v5 扩展', () => {
     expect(caster.buffs.getAllBuffIds()).not.toContain('test.protected-seal');
   });
 
+  it('单次控制效果可追加控制命中且不修改施法者全局属性', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.1);
+    const caster = unit('caster');
+    const target = unit('target');
+    target.attributes.addModifier({
+      id: 'control-resistance',
+      attrType: AttributeType.CONTROL_RESISTANCE,
+      type: ModifierType.OVERRIDE,
+      value: 0.5,
+      source: 'test',
+    });
+    target.updateDerivedStats();
+    const before = caster.attributes.getValue(AttributeType.CONTROL_HIT);
+
+    EffectRegistry.getInstance().create({
+      type: 'apply_buff',
+      params: {
+        controlHitBonus: 0.5,
+        target: 'target',
+        buffConfig: {
+          id: 'test.scoped-control',
+          name: '定身',
+          type: BuffType.CONTROL,
+          duration: 1,
+          stackRule: StackRule.REFRESH_DURATION,
+        },
+      },
+    })?.execute({ caster, target });
+
+    expect(target.buffs.getAllBuffIds()).toContain('test.scoped-control');
+    expect(caster.attributes.getValue(AttributeType.CONTROL_HIT)).toBe(before);
+  });
+
   it('按施法快照返还实际支付法力', () => {
     const caster = unit('caster');
     const target = unit('target');

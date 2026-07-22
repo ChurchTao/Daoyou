@@ -156,4 +156,34 @@ describe('战斗状态紧凑展示', () => {
       expect.objectContaining({ label: '[旧记录增益·2]', tone: 'buff' }),
     ]);
   });
+
+  it('状态展示可独立于调试日志显式开放', () => {
+    expect(
+      getCompactStatusTags({
+        buffs: [
+          {
+            id: 'sect.tianyan.element-seal',
+            name: '火印',
+            type: 'buff',
+            layers: 1,
+            remaining: 2,
+            isPermanent: false,
+            logVisibility: 'debug',
+            statusVisibility: 'player',
+          },
+          {
+            id: 'internal-marker',
+            name: '内部标记',
+            type: 'buff',
+            layers: 1,
+            remaining: 2,
+            isPermanent: false,
+            logVisibility: 'debug',
+          },
+        ],
+      }),
+    ).toEqual([
+      expect.objectContaining({ label: '[火印·2]', tone: 'buff' }),
+    ]);
+  });
 });

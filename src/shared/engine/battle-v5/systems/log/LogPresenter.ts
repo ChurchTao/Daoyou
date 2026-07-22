@@ -66,16 +66,17 @@ export class LogPresenter {
         entry.data.damageSource === 'follow_up' ||
         entry.data.damageSource === 'counter' ||
         entry.data.damageSource === 'reflect' ||
-        entry.data.damageSource === 'delayed',
+        (entry.data.damageSource === 'delayed' && Boolean(entry.data.cause)),
     );
     const secondaryDamageIds = new Set(secondaryDamage.map((entry) => entry.id));
-    const standaloneMechanics = this.findEntries(visibleEntries, 'mechanic').filter(
-      (entry) =>
-        entry.data.mechanic === 'named_trigger' ||
-        entry.data.mechanic === 'status_transition',
+    const namedTriggers = this.findEntries(visibleEntries, 'mechanic').filter(
+      (entry) => entry.data.mechanic === 'named_trigger',
+    );
+    const statusTransitions = this.findEntries(visibleEntries, 'mechanic').filter(
+      (entry) => entry.data.mechanic === 'status_transition',
     );
     const standaloneMechanicIds = new Set(
-      standaloneMechanics.map((entry) => entry.id),
+      [...namedTriggers, ...statusTransitions].map((entry) => entry.id),
     );
     const outcomeEntries = visibleEntries.filter((entry) =>
       entry.type !== 'resource_change' &&
@@ -122,13 +123,18 @@ export class LogPresenter {
       lines.push(this.line('primary', ...actionPrefix));
     }
 
-    for (const mechanic of standaloneMechanics) {
+    for (const mechanic of namedTriggers) {
       lines.push(
         this.line('trigger', this.textPart(this.formatMechanic(mechanic))),
       );
     }
     lines.push(...this.presentTriggerOutcomes(triggerEntries, actorName));
     lines.push(...this.presentSecondaryDamage(secondaryDamage));
+    for (const mechanic of statusTransitions) {
+      lines.push(
+        this.line('trigger', this.textPart(this.formatMechanic(mechanic))),
+      );
+    }
     for (const entry of resourceEntries) {
       lines.push(this.resourceChangeLine(entry));
     }

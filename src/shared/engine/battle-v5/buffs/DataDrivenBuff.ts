@@ -39,6 +39,8 @@ export class DataDrivenBuff extends Buff {
       config.logVisibility,
       config.dispelPolicy,
       config.countsAsStatus ?? true,
+      config.statusVisibility,
+      config.stackPriority,
     );
     this._config = config;
   }
@@ -154,7 +156,9 @@ export class DataDrivenBuff extends Buff {
     }
   }
 
-  override onDeactivate(): void {
+  override onDeactivate(
+    reason?: 'manual' | 'expired' | 'dispel' | 'replace',
+  ): void {
     if (this._owner) {
       // 1. 移除宿主标签
       if (this._config.statusTags) {
@@ -166,7 +170,7 @@ export class DataDrivenBuff extends Buff {
       releaseGlobalUniqueEffects(this._owner, this);
     }
 
-    super.onDeactivate();
+    super.onDeactivate(reason);
   }
 
   override clone(): DataDrivenBuff {

@@ -184,6 +184,7 @@ export class BattleStateRecorder {
       description: this._describeBuff(buff),
       type: buff.type as BuffType,
       logVisibility: buff.logVisibility,
+      statusVisibility: buff.statusVisibility,
       sourceName: buff.getSource()?.name,
       layers: buff.getLayer(),
       remaining: buff.isPermanent() ? -1 : buff.getDuration(),

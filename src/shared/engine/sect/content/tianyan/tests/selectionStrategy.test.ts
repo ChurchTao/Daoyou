@@ -5,6 +5,7 @@ import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactor
 import { BuffFactory } from '@shared/engine/battle-v5/factories/BuffFactory';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
+import { rememberElement } from '@shared/engine/battle-v5/core/runtimeState';
 import { describe, expect, it } from 'vitest';
 import { resolveSectAbility } from '../..';
 import {
@@ -82,6 +83,41 @@ describe('天衍六套自动战术', () => {
     expect(selectedId(result)).toBe('dark-water-return');
   });
 
+  it('小周天无印时选择实际法力消耗最低的落印术', () => {
+    const battle = context(TIANYAN_HETU_PATH_ID, [
+      'white-star-breaker',
+      'metal-cloud-cutter',
+    ]);
+
+    const result = TIANYAN_HETU_PATH_MODULE
+      .createSelectionStrategy('small-cycle')
+      .select(battle);
+
+    expect(selectedId(result)).toBe('metal-cloud-cutter');
+  });
+
+  it('小周天优先补全本轮尚未使用的反应元素', () => {
+    const battle = context(TIANYAN_HETU_PATH_ID, [
+      'dark-water-return',
+      'earth-bearing-seal',
+    ]);
+    battle.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal('fire', 2)),
+      battle.caster,
+    );
+    rememberElement(
+      battle.caster,
+      'sect.tianyan.strategy.recent-elements',
+      GameplayTags.ABILITY.ELEMENT.WATER,
+    );
+
+    const result = TIANYAN_HETU_PATH_MODULE
+      .createSelectionStrategy('small-cycle')
+      .select(battle);
+
+    expect(selectedId(result)).toBe('earth-bearing-seal');
+  });
+
   it('不绝在无合法反应且没有移宫时使用太初玄光保留法印', () => {
     const battle = context(TIANYAN_HETU_PATH_ID, [
       'metal-cloud-cutter',
@@ -111,6 +147,24 @@ describe('天衍六套自动战术', () => {
       .select(battle);
 
     expect(selectedId(result)).toBe('myriad-wood-renewal');
+  });
+
+  it('养元在低法且目标不是水印时不误用五气归藏', () => {
+    const battle = context(TIANYAN_HETU_PATH_ID, [
+      'five-qi-repository',
+      'dark-water-return',
+    ]);
+    battle.caster.consumeMp(Math.floor(battle.caster.getMaxMp() * 0.8));
+    battle.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal('fire', 2)),
+      battle.caster,
+    );
+
+    const result = TIANYAN_HETU_PATH_MODULE
+      .createSelectionStrategy('nourish-origin')
+      .select(battle);
+
+    expect(selectedId(result)).toBe('dark-water-return');
   });
 
   it('破阵仅在太白破阵本身能冲克时根据可驱散增益提高其优先级', () => {

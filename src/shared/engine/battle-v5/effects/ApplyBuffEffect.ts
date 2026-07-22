@@ -57,7 +57,9 @@ export class ApplyBuffEffect extends GameplayEffect {
       const controlResistance = target.attributes.getValue(
         AttributeType.CONTROL_RESISTANCE,
       );
-      const controlHit = caster.attributes.getValue(AttributeType.CONTROL_HIT);
+      const controlHit =
+        caster.attributes.getValue(AttributeType.CONTROL_HIT) +
+        (this.params.controlHitBonus ?? 0);
       const resistChance = Math.max(0, (controlResistance - controlHit) * 100);
 
       if (battleRandom() * 100 < resistChance) {

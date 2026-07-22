@@ -155,13 +155,14 @@ const targetBuff = (
   buffConfig: BuffConfig,
   conditions?: ConditionConfig[],
   onResistEffects?: EffectConfig[],
+  controlHitBonus?: number,
 ): EffectConfig => ({
   type: 'apply_buff',
   conditions: [
     condition('hp_above', { scope: 'target', value: 0 }),
     ...(conditions ?? []),
   ],
-  params: { target: 'target', buffConfig, onResistEffects },
+  params: { target: 'target', buffConfig, onResistEffects, controlHitBonus },
 });
 
 const healHp = (
@@ -272,6 +273,7 @@ function periodicDamageBuff(
 
 function slowBuff(id: string, value: number, duration: number): BuffConfig {
   return buff(id, '迟滞', BuffType.DEBUFF, duration, {
+    stackPriority: value,
     modifiers: [
       { attrType: AttributeType.SPEED, type: ModifierType.ADD, value: -value },
     ],
@@ -645,11 +647,13 @@ function reactionEffects(
           }),
           undefined,
           [resist],
+          settings.controlHitBonus || undefined,
         ),
       ];
     }
     case 'root-collapse': {
       const basic = buff('sect.tianyan.root-collapse', '崩根', BuffType.DEBUFF, 2, {
+        stackPriority: settings.rootCollapseMagicDefReduction * valueBonus,
         modifiers: [
           {
             attrType: AttributeType.MAGIC_DEF,
@@ -664,6 +668,7 @@ function reactionEffects(
         BuffType.DEBUFF,
         2,
         {
+          stackPriority: enhancedDebuff(settings.rootCollapseMagicDefReduction),
           modifiers: [
             {
               attrType: AttributeType.MAGIC_DEF,
@@ -696,12 +701,14 @@ function reactionEffects(
           }),
           undefined,
           [resist],
+          settings.controlHitBonus || undefined,
         ),
       ];
     }
     case 'melt-metal': {
       const make = (value: number) =>
         buff('sect.tianyan.melt-metal', '熔金', BuffType.DEBUFF, 2, {
+          stackPriority: value,
           modifiers: [
             { attrType: AttributeType.ATK, type: ModifierType.ADD, value: -value },
             { attrType: AttributeType.MAGIC_ATK, type: ModifierType.ADD, value: -value },
@@ -874,6 +881,14 @@ function commonReactionPrelude(
   settings: TianyanBuildSettings,
 ): EffectConfig[] {
   const effects: EffectConfig[] = [gainDerivation()];
+  effects.push({
+    type: 'element_history',
+    params: {
+      key: 'sect.tianyan.strategy.recent-elements',
+      threshold: 3,
+      effects: [],
+    },
+  });
   if (settings.innerOuter) {
     effects.push({
       type: 'buff_layer_modify',
@@ -1752,15 +1767,6 @@ function compileRuntimePassives(
       factory.passive({
         definition: luoshu,
         pathId: TIANYAN_LUOSHU_PATH_ID,
-        modifiers: settings.controlHitBonus > 0
-          ? [
-              {
-                attrType: AttributeType.CONTROL_HIT,
-                type: ModifierType.FIXED,
-                value: settings.controlHitBonus,
-              },
-            ]
-          : undefined,
         extraTags: [GameplayTags.ABILITY.SECT.mechanic(TIANYAN_SECT_ID, 'luoshu-break')],
       }),
     );

@@ -26,6 +26,7 @@ export function createElementSeal(
     type: BuffType.BUFF,
     duration,
     logVisibility: 'debug',
+    statusVisibility: 'player',
     stackRule: StackRule.OVERRIDE,
     dispelPolicy: 'protected',
     countsAsStatus: false,

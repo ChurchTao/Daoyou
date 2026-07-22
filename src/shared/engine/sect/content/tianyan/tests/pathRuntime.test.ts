@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AttributeType } from '@shared/engine/battle-v5/core/types';
 import { projectSectCombat, resolveSectAbility } from '../..';
 import {
   TIANYAN_HETU_PATH_ID,
@@ -39,7 +40,7 @@ describe('天衍双道途与36参悟节点', () => {
     expect(JSON.stringify(fire)).toContain('河图周天');
   });
 
-  it('洛书节点能按契约改变移宫费用、反应比例与控制命中', () => {
+  it('洛书节点能按契约改变移宫费用、反应比例与指定控制命中', () => {
     const sect = tianyanState(TIANYAN_LUOSHU_PATH_ID, [
       'luoshu-observe-gap',
       'luoshu-fast-shift',
@@ -57,11 +58,40 @@ describe('天衍双道途与36参悟节点', () => {
     const runtime = projection.abilities.find(
       (ability) => ability.slug === 'sect.tianyan.luoshu-runtime',
     );
-    expect(runtime?.modifiers).toContainEqual(
-      expect.objectContaining({ value: 0.15 }),
+    expect(runtime?.modifiers ?? []).not.toContainEqual(
+      expect.objectContaining({ attrType: AttributeType.CONTROL_HIT }),
     );
+    const earth = resolveSectAbility({
+      sect, realm: '化神', abilityId: 'earth-bearing-seal',
+    }).config;
+    const whiteStar = resolveSectAbility({
+      sect, realm: '化神', abilityId: 'white-star-breaker',
+    }).config;
+    expect(JSON.stringify(earth)).toContain('"controlHitBonus":0.15');
+    expect(JSON.stringify(whiteStar)).toContain('"controlHitBonus":0.15');
     expect(JSON.stringify(resolveSectAbility({
       sect, realm: '化神', abilityId: 'dark-water-return',
     }).config)).toContain('0.95');
+  });
+
+  it('同ID天衍削弱携带强度优先级，强效果可替换弱效果', () => {
+    const sect = tianyanState(TIANYAN_LUOSHU_PATH_ID);
+    const water = resolveSectAbility({
+      sect,
+      realm: '化神',
+      abilityId: 'dark-water-return',
+    }).config;
+    const priorities = water.effectLayers
+      ?.flatMap((layer) => layer.effects)
+      .flatMap((effect) =>
+        effect.type === 'apply_buff' &&
+        effect.params.buffConfig.id === 'sect.tianyan.water-slow'
+          ? [effect.params.buffConfig.stackPriority]
+          : [],
+      )
+      .filter((value): value is number => value !== undefined) ?? [];
+
+    expect(priorities).toContain(0.15);
+    expect(Math.max(...priorities)).toBeGreaterThan(0.15);
   });
 });

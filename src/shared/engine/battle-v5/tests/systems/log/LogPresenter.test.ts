@@ -223,6 +223,77 @@ describe('LogPresenter 行动日志聚合', () => {
     );
   });
 
+  it('自然DOT仍沿用行动前的状态发作文案', () => {
+    const presenter = new LogPresenter();
+    const span: LogSpan = {
+      ...createActionSpan([]),
+      type: 'action_pre',
+      actor: { id: 'b', name: '李四' },
+      ability: undefined,
+      entries: [
+        createEntry('damage', {
+          value: 128,
+          beforeHp: 1000,
+          remainHp: 872,
+          isCritical: false,
+          targetName: '李四',
+          damageSource: 'delayed',
+          sourceBuff: '灼烧',
+          sourceUnitId: 'a',
+          sourceUnitName: '张三',
+        }),
+      ],
+    };
+
+    expect(presenter.formatSpan(span)).toEqual([
+      '「李四」身上的「灼烧」发作，造成 128 点伤害',
+    ]);
+  });
+
+  it('反应日志按触发、追伤、法印迁移的因果顺序展示', () => {
+    const presenter = new LogPresenter();
+    const lines = presenter.formatSpan(createActionSpan([
+      createEntry('mechanic', {
+        mechanic: 'named_trigger',
+        targetName: '李四',
+        sourceName: '张三',
+        name: '蒸发',
+        displayName: '蒸发',
+        internalKey: 'sect.tianyan.reaction.vaporize',
+        visibility: 'player',
+      }),
+      createEntry('damage', {
+        value: 688,
+        beforeHp: 1000,
+        remainHp: 312,
+        isCritical: false,
+        targetName: '李四',
+        damageSource: 'follow_up',
+        sourceUnitId: 'a',
+        sourceUnitName: '张三',
+        cause: { kind: 'mechanic', id: 'vaporize', displayName: '蒸发' },
+      }),
+      createEntry('mechanic', {
+        mechanic: 'status_transition',
+        targetName: '李四',
+        sourceName: '张三',
+        name: '水印',
+        displayName: '水印',
+        internalKey: 'sect.tianyan.element-seal.replace',
+        visibility: 'player',
+        operation: 'replace',
+        previousDisplayName: '火印',
+      }),
+    ]));
+
+    const triggerIndex = lines.findIndex((line) => line.includes('触发「蒸发」'));
+    const damageIndex = lines.findIndex((line) => line.includes('因「蒸发」追加伤害'));
+    const transitionIndex = lines.findIndex((line) => line.includes('转为「水印」'));
+    expect(triggerIndex).toBeGreaterThanOrEqual(0);
+    expect(damageIndex).toBeGreaterThan(triggerIndex);
+    expect(transitionIndex).toBeGreaterThan(damageIndex);
+  });
+
   it('普攻命中应输出完整伤害文本', () => {
     const presenter = new LogPresenter();
     const span = createActionSpan([
