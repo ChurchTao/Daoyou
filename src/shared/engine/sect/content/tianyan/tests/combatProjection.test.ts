@@ -217,4 +217,13 @@ describe('天衍圣地战斗投影', () => {
     expect(notes('shift-palace')).toContain('天衍秘法');
     expect(notes('five-qi-repository')).toContain('天衍秘法');
   });
+
+  it('技能详情不暴露仅用于保护死亡目标的存活条件', () => {
+    const details = resolveSectAbilities({
+      sect: tianyanState(TIANYAN_HETU_PATH_ID),
+      realm: '化神',
+    }).flatMap((ability) => ability.detailRows).join('；');
+
+    expect(details).not.toContain('气血高于0%');
+  });
 });

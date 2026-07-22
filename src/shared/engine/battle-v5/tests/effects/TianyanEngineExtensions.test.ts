@@ -2,19 +2,16 @@ import { Ability } from '../../abilities/Ability';
 import { StackRule } from '../../buffs/Buff';
 import { checkConditions } from '../../core/conditionEvaluator';
 import { EventBus } from '../../core/EventBus';
-import type { DamageTakenEvent, HealEvent } from '../../core/events';
+import type { HealEvent } from '../../core/events';
 import {
   AbilityType,
   AttributeType,
   BuffType,
-  DamageSource,
-  DamageType,
   ModifierType,
 } from '../../core/types';
 import { BuffFactory } from '../../factories/BuffFactory';
 import { EffectRegistry } from '../../factories/EffectRegistry';
 import { BuffCopyEffect } from '../../effects/BuffCopyEffect';
-import { DamageSystem } from '../../systems/DamageSystem';
 import { calculateSpiritualRootDamageMultiplier } from '../../systems/spiritualRootResonance';
 import { Unit } from '../../units/Unit';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
@@ -196,57 +193,4 @@ describe('天衍所需通用 battle-v5 扩展', () => {
     expect(events.at(-1)).toMatchObject({ healAmount: 10, healType: 'mp' });
   });
 
-  it('手动结算按原Buff和原施术者执行，remaining_remove 结算剩余次数后移除', () => {
-    const system = new DamageSystem();
-    const caster = unit('caster');
-    const target = unit('target');
-    caster.attributes.addModifier({
-      id: 'magic-atk',
-      attrType: AttributeType.MAGIC_ATK,
-      type: ModifierType.OVERRIDE,
-      value: 100,
-      source: 'test',
-    });
-    caster.updateDerivedStats();
-    const burn = BuffFactory.create({
-      id: 'test.burn',
-      name: '灼烧',
-      type: BuffType.DEBUFF,
-      duration: 2,
-      stackRule: StackRule.REFRESH_DURATION,
-      tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.DOT.BURN],
-      manualSettlementEffects: [{
-        type: 'damage',
-        params: {
-          value: { attribute: AttributeType.MAGIC_ATK, coefficient: 0.1 },
-          damageType: DamageType.DOT,
-          damageSource: DamageSource.DELAYED,
-        },
-      }],
-    });
-    target.buffs.addBuff(burn, caster);
-    const taken: DamageTakenEvent[] = [];
-    EventBus.instance.subscribe<DamageTakenEvent>(
-      'DamageTakenEvent',
-      (event) => taken.push(event),
-      -1_000,
-    );
-
-    EffectRegistry.getInstance().create({
-      type: 'buff_periodic_settlement',
-      params: {
-        match: { id: 'test.burn' },
-        mode: 'remaining_remove',
-        source: 'caster',
-        cause: { kind: 'mechanic', id: 'vaporize', displayName: '蒸发' },
-      },
-    })?.execute({ caster, target });
-
-    expect(taken).toHaveLength(2);
-    expect(taken.every((event) => event.buff?.name === '灼烧')).toBe(true);
-    expect(taken.every((event) => event.caster === caster)).toBe(true);
-    expect(taken.every((event) => event.cause?.displayName === '蒸发')).toBe(true);
-    expect(target.buffs.getAllBuffIds()).not.toContain('test.burn');
-    system.destroy();
-  });
 });

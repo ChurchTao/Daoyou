@@ -63,6 +63,13 @@ function ability(): SectCompiledAbility {
           },
         },
       ],
+      completionEffects: [{
+        type: 'damage',
+        params: {
+          value: { attribute: AttributeType.ATK, coefficient: 0.5 },
+          damageType: DamageType.PHYSICAL,
+        },
+      }],
     },
     detailRows: [],
     notes: [],
@@ -127,6 +134,9 @@ describe('StandardSectMethodGrowthPolicy', () => {
     });
     expect(once.config.effects?.[2]).toMatchObject({
       params: { buffConfig: { duration: 1 } },
+    });
+    expect(once.config.completionEffects?.[0]).toMatchObject({
+      params: { value: { coefficient: 0.75 } },
     });
     expect(JSON.stringify(once.config)).not.toContain('__sectMethodGrowth');
   });

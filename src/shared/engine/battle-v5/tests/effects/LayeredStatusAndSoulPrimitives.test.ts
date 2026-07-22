@@ -159,7 +159,7 @@ describe('通用分层状态与伤害行为原语', () => {
     expect(unit.restoreMp(100)).toBe(100);
   });
 
-  it('不可暴击伤害在满暴击率下仍不暴击，按 Buff 层数缩放仍只发布一个请求', () => {
+  it('不可暴击伤害在满暴击率下仍不暴击，且只发布一个请求', () => {
     const system = new DamageSystem();
     const caster = new Unit('caster', '施术者', {});
     const target = new Unit('target', '目标', {});
@@ -170,16 +170,6 @@ describe('通用分层状态与伤害行为原语', () => {
       value: 1,
       source: 'test',
     });
-    const marker = BuffFactory.create({
-      id: 'test.scalar-marker',
-      name: '层数标记',
-      type: BuffType.DEBUFF,
-      duration: 3,
-      stackRule: StackRule.STACK_LAYER,
-      maxLayers: 5,
-    });
-    marker.setLayer(4);
-    target.buffs.addBuff(marker, caster);
     const requests: DamageRequestEvent[] = [];
     EventBus.instance.subscribe<DamageRequestEvent>(
       'DamageRequestEvent',
@@ -187,8 +177,8 @@ describe('通用分层状态与伤害行为原语', () => {
       -1_000,
     );
     const ability = AbilityFactory.create({
-      slug: 'test.layer-scalar-damage',
-      name: '逐层伤害',
+      slug: 'test.non-critical-damage',
+      name: '不可暴击伤害',
       type: AbilityType.ACTIVE_SKILL,
       tags: damageTags,
       effects: [{
@@ -199,11 +189,6 @@ describe('通用分层状态与伤害行为原语', () => {
           damageSource: DamageSource.DIRECT,
           canCrit: false,
           canLifesteal: false,
-          buffLayerScalar: {
-            match: { id: marker.id },
-            attribute: AttributeType.MAGIC_ATK,
-            coefficientPerLayer: 0.2,
-          },
         },
       }],
     });
@@ -212,7 +197,7 @@ describe('通用分层状态与伤害行为原语', () => {
 
     expect(requests).toHaveLength(1);
     expect(requests[0].baseDamage).toBeCloseTo(
-      caster.attributes.getValue(AttributeType.MAGIC_ATK) * 1.5,
+      caster.attributes.getValue(AttributeType.MAGIC_ATK) * 0.7,
     );
     expect(requests[0].isCritical).not.toBe(true);
     expect(requests[0].canLifesteal).toBe(false);

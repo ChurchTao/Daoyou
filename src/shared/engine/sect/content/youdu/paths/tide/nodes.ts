@@ -26,7 +26,7 @@ export const YOUDU_TIDE_NODES = [
   node('tide-three-souls-far', '3', '三魂皆远', '蚀魂3层与4层的攻防速削弱提高到10%与15%。', (f) => f.deepenAttributeCurve()),
   node('tide-herbs-fail', '3', '药石难入', '蚀魂3层与4层的受治疗削弱提高到40%与60%。', (f) => f.deepenHealCurve()),
   node('tide-crossing-echo', '3', '渡口回声', '每回合第一次对至少4层目标结算忘川时，追加0.12倍法攻魂伤。', (f) => f.enableCrossingEcho()),
-  node('tide-no-return-current', '4', '江流不返', '忘川对至少4层目标造成的魂伤额外提高30%。', (f) => f.empowerFourLayerForget()),
+  node('tide-no-return-current', '4', '江流不返', '忘川对至少4层目标造成的持续魂伤总计提高30%。', (f) => f.empowerFourLayerForget()),
   node('tide-cleanse-toll', '4', '洗魂有价', '敌人驱散蚀魂层数后受到0.12倍法攻魂伤，每次行动最多一次。', (f) => f.enableCleanseToll()),
   node('tide-shoreless', '4', '两岸俱失', '不归的速度降低由30%提高到40%。', (f) => f.deepenNoReturnSlow()),
   node('tide-hundred-ghosts', '5', '百鬼同哭', '每场第一次尝试施加失魂时，对当前目标追加0.30倍法攻魂伤。', (f) => f.enableHundredGhosts()),
@@ -36,4 +36,3 @@ export const YOUDU_TIDE_NODES = [
   node('tide-lament-deepens', 'ultimate', '楚些成悲', '魂兮不归每层追加魂伤由0.20提高到0.24。', (f) => f.deepenLament()),
   node('tide-burial-current', 'ultimate', '黑潮送行', '魂兮不归结算后给目标施加2回合忘川。', (f) => f.enableBurialCurrent()),
 ] as const;
-

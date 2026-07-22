@@ -6,16 +6,24 @@ import {
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
 import type {
   BuffAppliedEvent,
+  BuffImmuneEvent,
   CombatResourceChangeEvent,
   DamageTakenEvent,
+  DispelEvent,
+  HealEvent,
+  ShieldEvent,
   SkillCastEvent,
 } from '@shared/engine/battle-v5/core/events';
 import {
+  AbilityType,
   AttributeType,
+  BuffType,
   DamageSource,
   DamageType,
   ModifierType,
 } from '@shared/engine/battle-v5/core/types';
+import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
+import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -55,6 +63,28 @@ interface SimulationMetrics {
   basicAttackRate: number;
   delayedSoulDamageRate: number;
   controlRate: number;
+}
+
+type CounterplayScenario =
+  | 'healing'
+  | 'control'
+  | 'cleanse'
+  | 'shield'
+  | 'debuff-immunity'
+  | 'fast-attack';
+
+interface CounterplayMetrics {
+  scenario: CounterplayScenario;
+  winner: string;
+  turns: number;
+  healingEvents: number;
+  suppressedHealing: number;
+  controlApplications: number;
+  dispels: number;
+  shields: number;
+  shieldAbsorbed: number;
+  debuffImmunities: number;
+  maxErosionLayer: number;
 }
 
 const TARGET_HP = {
@@ -136,16 +166,244 @@ function unit(id: string): Unit {
   });
 }
 
+function installProjection(player: Unit, spec: BuildSpec): void {
+  const sect = youduState(spec.pathId, spec.nodes, spec.loadout);
+  const path = sect.paths.find((entry) => entry.pathId === spec.pathId);
+  if (path) path.tacticId = spec.tacticId;
+  const projection = projectSectCombat({ sect, realm: '化神' })!;
+  for (const resource of projection.resources) player.combatResources.define(resource);
+  if (projection.defaultAttack) {
+    player.abilities.setDefaultAttack(AbilityFactory.create(projection.defaultAttack));
+  }
+  for (const ability of projection.abilities) {
+    player.abilities.addAbility(AbilityFactory.create(ability));
+  }
+  if (projection.selectionStrategy) {
+    player.abilities.setSelectionStrategy(projection.selectionStrategy);
+  }
+}
+
+function installCounterplay(opponent: Unit, scenario: CounterplayScenario): void {
+  const addActive = (config: Parameters<typeof AbilityFactory.create>[0]) => {
+    opponent.abilities.addAbility(AbilityFactory.create(config));
+  };
+
+  if (scenario === 'healing') {
+    addActive({
+      slug: 'simulation.healing',
+      name: '回春术',
+      type: AbilityType.ACTIVE_SKILL,
+      tags: [GameplayTags.ABILITY.KIND.SKILL, GameplayTags.ABILITY.FUNCTION.HEAL],
+      cooldown: 2,
+      priority: 80,
+      targetPolicy: { team: 'self', scope: 'single' },
+      selectionProfile: { intents: ['heal_hp'] },
+      effects: [{
+        type: 'heal',
+        params: { value: { targetMaxHpRatio: 0.28 }, recipient: 'caster' },
+      }],
+    });
+  }
+
+  if (scenario === 'control') {
+    addActive({
+      slug: 'simulation.control',
+      name: '封灵印',
+      type: AbilityType.ACTIVE_SKILL,
+      tags: [
+        GameplayTags.ABILITY.KIND.SKILL,
+        GameplayTags.ABILITY.FUNCTION.CONTROL,
+      ],
+      cooldown: 2,
+      priority: 80,
+      targetPolicy: { team: 'enemy', scope: 'single' },
+      selectionProfile: { intents: ['control'] },
+      effects: [{
+        type: 'apply_buff',
+        params: {
+          buffConfig: {
+            id: 'simulation.control.no-skill',
+            name: '封灵',
+            type: BuffType.CONTROL,
+            duration: 1,
+            stackRule: StackRule.REFRESH_DURATION,
+            tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.TYPE.CONTROL],
+            statusTags: [GameplayTags.STATUS.CONTROL.NO_SKILL],
+          },
+        },
+      }],
+    });
+  }
+
+  if (scenario === 'cleanse') {
+    addActive({
+      slug: 'simulation.cleanse',
+      name: '澄心诀',
+      type: AbilityType.ACTIVE_SKILL,
+      tags: [GameplayTags.ABILITY.KIND.SKILL, GameplayTags.ABILITY.FUNCTION.BUFF],
+      cooldown: 2,
+      priority: 90,
+      targetPolicy: { team: 'self', scope: 'single' },
+      selectionProfile: { intents: ['buff'] },
+      effects: [{
+        type: 'dispel',
+        params: { status: 'negative', recipient: 'caster', maxCount: 1 },
+      }],
+    });
+  }
+
+  if (scenario === 'shield') {
+    addActive({
+      slug: 'simulation.shield',
+      name: '玄甲护身',
+      type: AbilityType.ACTIVE_SKILL,
+      tags: [GameplayTags.ABILITY.KIND.SKILL, GameplayTags.ABILITY.FUNCTION.BUFF],
+      cooldown: 3,
+      priority: 70,
+      targetPolicy: { team: 'self', scope: 'single' },
+      selectionProfile: { intents: ['defensive'] },
+      effects: [{
+        type: 'shield',
+        params: { value: { base: 900 }, target: 'caster' },
+      }],
+    });
+  }
+
+  if (scenario === 'debuff-immunity') {
+    opponent.abilities.addAbility(AbilityFactory.create({
+      slug: 'simulation.debuff-immunity',
+      name: '万法不侵',
+      type: AbilityType.PASSIVE_SKILL,
+      tags: [GameplayTags.ABILITY.KIND.PASSIVE],
+      listeners: [{
+        id: 'simulation.debuff-immunity.listener',
+        eventType: GameplayTags.EVENT.BUFF_ADD,
+        scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+        priority: 40,
+        effects: [{
+          type: 'buff_immunity',
+          params: { tags: [GameplayTags.BUFF.TYPE.DEBUFF] },
+        }],
+      }],
+    }));
+  }
+
+  if (scenario === 'fast-attack') {
+    opponent.attributes.addModifier({
+      id: 'simulation-fast-speed',
+      attrType: AttributeType.SPEED,
+      type: ModifierType.OVERRIDE,
+      value: 300,
+      source: 'simulation',
+    });
+    opponent.updateDerivedStats();
+    addActive({
+      slug: 'simulation.fast-attack',
+      name: '破阵连袭',
+      type: AbilityType.ACTIVE_SKILL,
+      tags: [
+        GameplayTags.ABILITY.KIND.SKILL,
+        GameplayTags.ABILITY.FUNCTION.DAMAGE,
+        GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+      ],
+      priority: 100,
+      targetPolicy: { team: 'enemy', scope: 'single' },
+      selectionProfile: { intents: ['damage'] },
+      effects: [{
+        type: 'damage',
+        params: {
+          value: { attribute: AttributeType.ATK, coefficient: 4 },
+          damageType: DamageType.PHYSICAL,
+        },
+      }],
+    });
+  }
+}
+
+function simulateCounterplay(
+  spec: BuildSpec,
+  scenario: CounterplayScenario,
+): CounterplayMetrics {
+  EventBus.instance.reset();
+  const player = unit(`youdu-${scenario}`);
+  const opponent = unit(`counterplay-${scenario}`);
+  opponent.attributes.addModifier({
+    id: `simulation-counterplay-hp-${scenario}`,
+    attrType: AttributeType.MAX_HP,
+    type: ModifierType.OVERRIDE,
+    value: TARGET_HP.medium,
+    source: 'simulation',
+  });
+  opponent.updateDerivedStats();
+  opponent.setHp(opponent.getMaxHp());
+  installProjection(player, spec);
+  installCounterplay(opponent, scenario);
+
+  const metrics: CounterplayMetrics = {
+    scenario,
+    winner: '',
+    turns: 0,
+    healingEvents: 0,
+    suppressedHealing: 0,
+    controlApplications: 0,
+    dispels: 0,
+    shields: 0,
+    shieldAbsorbed: 0,
+    debuffImmunities: 0,
+    maxErosionLayer: 0,
+  };
+  EventBus.instance.subscribe<HealEvent>('HealEvent', (event) => {
+    if (event.target !== opponent || event.healType === 'mp') return;
+    metrics.healingEvents += 1;
+    metrics.suppressedHealing += event.healAmount - (event.appliedAmount ?? event.healAmount);
+  }, -1_000);
+  EventBus.instance.subscribe<BuffAppliedEvent>('BuffAppliedEvent', (event) => {
+    if (event.target === player && event.buff.id === 'simulation.control.no-skill') {
+      metrics.controlApplications += 1;
+    }
+    if (event.target === opponent && event.buff.id === 'sect.youdu.soul-erosion') {
+      metrics.maxErosionLayer = Math.max(metrics.maxErosionLayer, event.buff.getLayer());
+    }
+  }, -1_000);
+  EventBus.instance.subscribe<DispelEvent>('DispelEvent', (event) => {
+    if (event.target === opponent && event.removedBuffNames.includes('蚀魂')) {
+      metrics.dispels += 1;
+    }
+  }, -1_000);
+  EventBus.instance.subscribe<ShieldEvent>('ShieldEvent', (event) => {
+    if (event.target === opponent) metrics.shields += 1;
+  }, -1_000);
+  EventBus.instance.subscribe<DamageTakenEvent>('DamageTakenEvent', (event) => {
+    if (event.target !== opponent) return;
+    metrics.shieldAbsorbed += event.shieldAbsorbed ?? 0;
+    const erosion = opponent.buffs.getAllBuffs().find(
+      (buff) => buff.id === 'sect.youdu.soul-erosion',
+    );
+    metrics.maxErosionLayer = Math.max(metrics.maxErosionLayer, erosion?.getLayer() ?? 0);
+  }, -1_000);
+  EventBus.instance.subscribe<BuffImmuneEvent>('BuffImmuneEvent', (event) => {
+    if (event.target === opponent && event.buff.id === 'sect.youdu.soul-erosion') {
+      metrics.debuffImmunities += 1;
+    }
+  }, -1_000);
+
+  const engine = new BattleEngineV5(player, opponent);
+  const result = withBattleRandomSource(
+    new SeededBattleRandomSource(`youdu-counterplay-${scenario}`),
+    () => engine.execute(),
+  );
+  engine.destroy();
+  metrics.winner = result.winner;
+  metrics.turns = result.turns;
+  return metrics;
+}
+
 function simulate(
   spec: BuildSpec,
   length: keyof typeof TARGET_HP,
   seed: string,
 ): SimulationMetrics {
   EventBus.instance.reset();
-  const sect = youduState(spec.pathId, spec.nodes, spec.loadout);
-  const path = sect.paths.find((entry) => entry.pathId === spec.pathId);
-  if (path) path.tacticId = spec.tacticId;
-  const projection = projectSectCombat({ sect, realm: '化神' })!;
   const player = unit('youdu-player');
   const opponent = unit('training-puppet');
   opponent.attributes.addModifier({
@@ -158,16 +416,7 @@ function simulate(
   opponent.updateDerivedStats();
   opponent.setHp(opponent.getMaxHp());
 
-  for (const resource of projection.resources) player.combatResources.define(resource);
-  if (projection.defaultAttack) {
-    player.abilities.setDefaultAttack(AbilityFactory.create(projection.defaultAttack));
-  }
-  for (const ability of projection.abilities) {
-    player.abilities.addAbility(AbilityFactory.create(ability));
-  }
-  if (projection.selectionStrategy) {
-    player.abilities.setSelectionStrategy(projection.selectionStrategy);
-  }
+  installProjection(player, spec);
 
   let actions = 0;
   let basicAttacks = 0;
@@ -302,5 +551,41 @@ describe('幽都固定种子短中长战平衡契约', () => {
     const second = simulate(build, 'medium', 'youdu-deterministic');
 
     expect(second).toEqual(first);
+  });
+
+  it('治疗、控制、净化、护盾、减益免疫与快攻均进入确定性反制样本', () => {
+    const build = (id: string) => BUILDS.find((entry) => entry.id === id)!;
+    const results = [
+      simulateCounterplay(build('healer-drown'), 'healing'),
+      simulateCounterplay(build('pin-the-caster'), 'control'),
+      simulateCounterplay(build('tide-cycle'), 'cleanse'),
+      simulateCounterplay(build('judge-at-four'), 'shield'),
+      simulateCounterplay(build('tide-cycle'), 'debuff-immunity'),
+      simulateCounterplay(build('long-night'), 'fast-attack'),
+    ];
+
+    expect(results).toHaveLength(6);
+    expect(results.find((entry) => entry.scenario === 'healing')).toMatchObject({
+      healingEvents: expect.any(Number),
+    });
+    expect(results.find((entry) => entry.scenario === 'healing')!.healingEvents)
+      .toBeGreaterThan(0);
+    expect(results.find((entry) => entry.scenario === 'healing')!.suppressedHealing)
+      .toBeGreaterThan(0);
+    expect(results.find((entry) => entry.scenario === 'control')!.controlApplications)
+      .toBeGreaterThan(0);
+    expect(results.find((entry) => entry.scenario === 'cleanse')!.dispels)
+      .toBeGreaterThan(0);
+    expect(results.find((entry) => entry.scenario === 'shield')!.shields)
+      .toBeGreaterThan(0);
+    expect(results.find((entry) => entry.scenario === 'shield')!.shieldAbsorbed)
+      .toBeGreaterThan(0);
+    expect(results.find((entry) => entry.scenario === 'debuff-immunity')!.debuffImmunities)
+      .toBeGreaterThan(0);
+    expect(results.find((entry) => entry.scenario === 'debuff-immunity')!.maxErosionLayer)
+      .toBe(0);
+    const fastAttack = results.find((entry) => entry.scenario === 'fast-attack')!;
+    expect(fastAttack.winner).toBe('counterplay-fast-attack');
+    expect(fastAttack.turns).toBeLessThanOrEqual(3);
   });
 });

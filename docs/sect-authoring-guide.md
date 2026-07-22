@@ -192,6 +192,25 @@ export const PRODUCTION_SECTS = createProductionSectCatalog([
 
 标准宗门不需要空服务端 manifest、前端文件或专属地图。只有新增自定义执行器、结算、奖励、捐献类型或特殊任务 React 交互时才注册额外插件；插件必须引用生产目录中的已知宗门 ID。普通页面、地图和设施展示不使用插件注册。
 
+## battle-v5 边界与原语准入
+
+battle-v5 只理解伤害、治疗、Buff、层数、资源、命中、行动、事件、条件和监听预算等通用战斗事实。宗门语义、节点开关、元素组合、展示颜色和复杂效果编排必须留在 `content/<sect-id>`，并在编译期产出标准 `AbilityConfig`、`BuffConfig` 和有限个 effect plan。
+
+当运行时只存在少量离散分支时，优先编译固定 plan。例如“目标四层或五层时使用不同终结系数”应生成两个固定伤害层，并在施法准备阶段按通用层数条件选定；不要让 DamageEffect 读取任意状态的实时层数。不同历史状态优先使用内容层隐藏 Buff marker 与通用 runtime counter；展示差异只进入内容展示数据或既有结构化 `cause`，不得穿透伤害事件与 React 样式字段。
+
+任何新增 battle-v5 原语的设计稿必须逐项回答：
+
+1. 现有 Effect、Listener 和 Condition 为什么不能组合完成？
+2. 为什么不能在宗门编译期展开为有限个固定 plan？
+3. 为什么不能用隐藏 Buff、`GameplayTags` 或通用 counter 表达？
+4. 可接受的近似效果是什么，为什么仍不能满足？
+5. 是否已有第二个独立生产消费者？
+6. 默认值是否严格保持已有内容行为？
+7. 是否有完全不引用宗门 ID 的原子测试？
+8. 是否穿透 DamageSystem、Unit、行动流、胜负、持久化或展示层？
+
+已有两个独立生产消费者，或修复明确的全局战斗不变量时，才可考虑增加通用原语。只有一个宗门且存在近似组合方案时，应采用内容层组合；涉及单位模型、目标、胜负、持久化或伤害主管道时必须单独立项。“未来可能复用”不能单独作为准入理由。
+
 ## 禁止事项
 
 - 不复制 `StandardSectOrganizationModule`，不替换普通宗门核心组织策略。
@@ -202,6 +221,7 @@ export const PRODUCTION_SECTS = createProductionSectCatalog([
 - 不手写运行时 GameplayTag。
 - 不修改宗门路由页面、导航或共享组件来适配新宗门；展示差异只能进入 `SectPresentationTheme`。
 - 不在前端写具体宗门 ID、固定神通数量或固定流派层数。
+- 不为单个宗门增加同义的能力生命周期阶段、动态读取其他 Buff 内部配置的效果或伤害展示色字段。
 
 ## 验证
 

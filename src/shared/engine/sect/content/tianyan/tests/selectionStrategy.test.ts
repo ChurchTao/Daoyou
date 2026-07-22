@@ -5,19 +5,18 @@ import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactor
 import { BuffFactory } from '@shared/engine/battle-v5/factories/BuffFactory';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
-import { rememberElement } from '@shared/engine/battle-v5/core/runtimeState';
 import { describe, expect, it } from 'vitest';
 import { resolveSectAbility } from '../..';
 import {
   TIANYAN_HETU_PATH_ID,
   TIANYAN_LUOSHU_PATH_ID,
-  TIANYAN_STRATEGY_ELEMENT_HISTORY,
 } from '../ids';
 import {
   TIANYAN_HETU_PATH_MODULE,
   TIANYAN_LUOSHU_PATH_MODULE,
 } from '../paths';
 import { createElementSeal } from '../shared/seals';
+import { tianyanReactionElementMarkerTag } from '../shared/reactions';
 import { tianyanState, type TianyanPathId } from './testState';
 
 function unit(id: string): Unit {
@@ -106,10 +105,17 @@ describe('天衍六套自动战术', () => {
       BuffFactory.create(createElementSeal('fire', 2)),
       battle.caster,
     );
-    rememberElement(
+    battle.caster.buffs.addBuff(
+      BuffFactory.create({
+        id: 'sect.tianyan.element-history.water',
+        name: '水行已用',
+        type: BuffType.BUFF,
+        duration: -1,
+        stackRule: 'override',
+        statusTags: [tianyanReactionElementMarkerTag('water')],
+        countsAsStatus: false,
+      }),
       battle.caster,
-      TIANYAN_STRATEGY_ELEMENT_HISTORY,
-      GameplayTags.ABILITY.ELEMENT.WATER,
     );
 
     const result = TIANYAN_HETU_PATH_MODULE

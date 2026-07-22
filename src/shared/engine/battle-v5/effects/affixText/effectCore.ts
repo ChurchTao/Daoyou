@@ -162,9 +162,6 @@ export function describeEffectCore(
     case 'turn_state_counter':
       return `累计 ${effect.params.threshold} 次${effect.params.event === 'no_damage_dealt' ? '未造成伤害' : '造成伤害'}后${describeChildren(effect.params.effects)}`;
 
-    case 'element_history':
-      return `集齐 ${effect.params.threshold} 种元素后${describeChildren(effect.params.effects)}`;
-
     case 'effect_sequence':
       return describeChildren(effect.params.effects);
 
@@ -181,7 +178,7 @@ export function describeEffectCore(
     case 'runtime_counter_modify':
       return effect.params.operation === 'reset'
         ? '重置战斗计数'
-        : `${effect.params.operation === 'add' ? '增加' : '调整'}战斗计数`;
+        : `${effect.params.operation === 'add' ? '增加' : '调整'}战斗计数${effect.params.effects?.length ? `并${describeChildren(effect.params.effects)}` : ''}`;
 
     case 'skip_action':
       return `调息 ${effect.params.count ?? 1} 次行动`;
@@ -204,11 +201,6 @@ export function describeEffectCore(
 
     case 'refund_paid_cost':
       return `返还本次实际支付法力的 ${formatAffixPercent(effect.params.ratio)}`;
-
-    case 'buff_periodic_settlement':
-      return effect.params.mode === 'remaining_remove'
-        ? `立即结算并移除${describeBuffMatch(effect.params.match)}`
-        : `令${describeBuffMatch(effect.params.match)}立即额外结算一次`;
 
     case 'mechanic_log':
       return `触发「${effect.params.displayName}」`;

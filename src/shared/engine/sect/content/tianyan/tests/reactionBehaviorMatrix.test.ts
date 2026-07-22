@@ -51,7 +51,9 @@ describe('天衍十种反应配置矩阵', () => {
         noSealCoefficient(abilityId) * multiplier,
         8,
       );
-      expect(effects.filter((effect) => effect.type === 'damage')).toHaveLength(2);
+      expect(effects.filter((effect) =>
+        effect.type === 'damage' && effect.params.damageSource === 'direct',
+      )).toHaveLength(2);
       expect(effects).toContainEqual(
         expect.objectContaining({
           type: 'mechanic_log',
@@ -73,12 +75,16 @@ describe('天衍十种反应配置矩阵', () => {
     });
   });
 
-  it('燎原只手动结算当前目标的新灼烧一次，不包含扩散效果', () => {
+  it('燎原追加一次固定灼烧系数伤害，不包含扩散效果', () => {
     const effects = layerEffects('flowing-flame', 'wood');
     expect(effects).toContainEqual(
       expect.objectContaining({
-        type: 'buff_periodic_settlement',
-        params: expect.objectContaining({ mode: 'once_keep_duration' }),
+        type: 'damage',
+        params: expect.objectContaining({
+          value: expect.objectContaining({ coefficient: 0.16 }),
+          damageSource: 'follow_up',
+          cause: expect.objectContaining({ id: 'sect.tianyan.reaction.wildfire' }),
+        }),
       }),
     );
     expect(effects.some((effect) => effect.type === 'status_spread')).toBe(false);
@@ -141,17 +147,21 @@ describe('天衍十种反应配置矩阵', () => {
     });
   });
 
-  it('蒸发只结算并移除同施术者来源的灼烧，不匹配熔岩', () => {
-    const settle = layerEffects('dark-water-return', 'fire').find(
-      (effect) => effect.type === 'buff_periodic_settlement',
-    );
-    expect(settle).toMatchObject({
-      type: 'buff_periodic_settlement',
-      params: {
+  it('蒸发按灼烧一层/两层生成互斥固定伤害并只清除灼烧', () => {
+    const effects = layerEffects('dark-water-return', 'fire');
+    const settlements = effects.filter((effect) =>
+      effect.type === 'damage' &&
+      effect.params.cause?.id === 'sect.tianyan.reaction.vaporize');
+    expect(settlements.map((effect) =>
+      effect.type === 'damage' ? effect.params.value.coefficient : undefined,
+    )).toEqual([0.32, 0.16]);
+    expect(effects).toContainEqual(expect.objectContaining({
+      type: 'buff_layer_modify',
+      params: expect.objectContaining({
         match: { id: 'sect.tianyan.burn' },
-        mode: 'remaining_remove',
-        source: 'caster',
-      },
-    });
+        operation: 'clear',
+      }),
+    }));
+    expect(JSON.stringify(effects)).not.toContain('sect.tianyan.lava');
   });
 });

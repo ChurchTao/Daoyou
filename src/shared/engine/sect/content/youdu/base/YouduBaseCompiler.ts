@@ -48,6 +48,10 @@ const soulFireConsumerTag = GameplayTags.ABILITY.SECT.mechanic(
   YOUDU_SECT_ID,
   'soul-fire-consumer',
 );
+const erosionGeneratorTag = GameplayTags.ABILITY.SECT.mechanic(
+  YOUDU_SECT_ID,
+  'erosion-generator',
+);
 
 const YOUDU_LAYER_PRIORITY = {
   RETURNING_CLAMP: 1_000,
@@ -68,6 +72,8 @@ const shadowTag = stateTag('shadow-revealed');
 const heartUsedTag = stateTag('heart-dead-used');
 const judgmentTag = stateTag('one-name-judgment');
 const nameInYouduUsedTag = stateTag('name-in-youdu-used');
+const firstShadowPendingTag = stateTag('first-shadow-pending');
+const firstShadowPendingId = 'sect.youdu.first-shadow-pending';
 
 function definition(id: string) {
   const result = YOUDU_BASE_DEFINITION.abilities.find((ability) => ability.id === id);
@@ -280,7 +286,7 @@ function temporaryPenalty(
 
 function convergeLostSoul(
   settings: YouduBuildSettings,
-  branch: 'success' | 'resist' | 'other',
+  branch: 'skipped' | 'resisted' | 'immune' | 'released',
 ): EffectConfig[] {
   return [
     {
@@ -292,7 +298,7 @@ function convergeLostSoul(
       },
     },
     applyBuff(returningSoulBuff()),
-    ...(branch === 'resist' && settings.lostResistPenalty
+    ...(branch === 'resisted' && settings.lostResistPenalty
       ? [applyBuff(temporaryPenalty(
           'sect.youdu.measured-punishment',
           '魂刑有度',
@@ -300,7 +306,7 @@ function convergeLostSoul(
           -0.20,
         ))]
       : []),
-    ...(branch === 'success' && settings.lostAfterPenalty
+    ...((branch === 'skipped' || branch === 'released') && settings.lostAfterPenalty
       ? [applyBuff(temporaryPenalty(
           'sect.youdu.five-souls-penalty',
           '五魄俱散',
@@ -335,7 +341,7 @@ function soulLostBuff(settings: YouduBuildSettings): BuffConfig {
       scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
       priority: EventPriorityLevel.POST_SETTLE,
       mapping: { caster: 'owner', target: 'owner' },
-      effects: convergeLostSoul(settings, 'success'),
+      effects: convergeLostSoul(settings, 'skipped'),
     }, deathCleanupListener(YOUDU_SOUL_LOST)],
   };
 }
@@ -394,7 +400,6 @@ function forgetfulRiverBuff(settings: YouduBuildSettings): BuffConfig {
           }]
         : []),
     ],
-    manualSettlementEffects: damageEffects,
     listeners: [
       {
         id: 'sect.youdu.forgetful-river-dot',
@@ -446,12 +451,16 @@ function forgetfulRiverBuff(settings: YouduBuildSettings): BuffConfig {
 function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
   const listeners: ListenerConfig[] = [
     {
-      id: 'sect.youdu.erosion-gain-soul-fire',
+      id: 'sect.youdu.erosion-gain-soul-fire.normal',
       eventType: GameplayTags.EVENT.BUFF_LAYER_CHANGED,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: YOUDU_LAYER_PRIORITY.SOUL_FIRE_GAIN,
       mapping: { caster: 'event.source', target: 'owner' },
-      budget: { maxTriggers: 1, reset: 'source_action' },
+      budget: {
+        maxTriggers: 1,
+        reset: 'source_action',
+        group: 'sect.youdu.erosion-gain-soul-fire',
+      },
       conditions: [
         condition('buff_layer_change', {
           tag: erosionTag, eventField: 'delta', op: 'gt', value: 0,
@@ -461,12 +470,16 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
       effects: [gainSoulFire()],
     },
     {
-      id: 'sect.youdu.erosion-gain-soul-fire',
+      id: 'sect.youdu.erosion-gain-soul-fire.returning',
       eventType: GameplayTags.EVENT.BUFF_LAYER_CHANGED,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: YOUDU_LAYER_PRIORITY.SOUL_FIRE_GAIN,
       mapping: { caster: 'event.source', target: 'owner' },
-      budget: { maxTriggers: 1, reset: 'source_action' },
+      budget: {
+        maxTriggers: 1,
+        reset: 'source_action',
+        group: 'sect.youdu.erosion-gain-soul-fire',
+      },
       conditions: [
         condition('buff_layer_change', {
           tag: erosionTag, eventField: 'delta', op: 'gt', value: 0,
@@ -512,7 +525,7 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
       ],
       effects: [applyBuff(soulLostBuff(settings), 'target', {
         controlHitBonus: settings.highLayerControlHitBonus,
-        onResistEffects: convergeLostSoul(settings, 'resist'),
+        onResistEffects: convergeLostSoul(settings, 'resisted'),
       })],
     },
     {
@@ -522,7 +535,7 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
       priority: YOUDU_LAYER_PRIORITY.SOUL_LOST,
       mapping: { caster: 'owner', target: 'owner' },
       conditions: [condition('source_has_tag', { tag: lostTag })],
-      effects: convergeLostSoul(settings, 'other'),
+      effects: convergeLostSoul(settings, 'immune'),
     },
     {
       id: 'sect.youdu.erosion-soul-lost-manual-remove',
@@ -533,7 +546,7 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
       conditions: [condition('buff_removed_reason_is', {
         tag: lostTag, reason: 'manual',
       })],
-      effects: convergeLostSoul(settings, 'other'),
+      effects: convergeLostSoul(settings, 'released'),
     },
     {
       id: 'sect.youdu.shadow-vulnerability',
@@ -559,6 +572,7 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
         mapping: { caster: 'event.caster', target: 'owner' },
         conditions: [
           condition('damage_type_is', { damageType: DamageType.TRUE }),
+          condition('ability_has_tag', { tag: soulDamageTag }),
           condition('ability_has_tag', {
             tag: GameplayTags.ABILITY.SECT.path(YOUDU_SECT_ID, 'decree'),
           }),
@@ -579,6 +593,7 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
         mapping: { caster: 'event.caster', target: 'owner' },
         conditions: [
           condition('damage_type_is', { damageType: DamageType.TRUE }),
+          condition('ability_has_tag', { tag: soulDamageTag }),
           condition('ability_has_tag', {
             tag: GameplayTags.ABILITY.SECT.path(YOUDU_SECT_ID, 'decree'),
           }),
@@ -727,6 +742,29 @@ function applyErosion(layers: number, settings: YouduBuildSettings): EffectConfi
     ...applyBuff(soulErosionBuff(settings), 'target', { layers }),
     conditions: [condition('hp_above', { scope: 'target', value: 0 })],
   };
+}
+
+function firstShadowCompletionEffects(settings: YouduBuildSettings): EffectConfig[] {
+  if (!settings.firstShadowExtraLayer) return [];
+  const extraErosion = applyErosion(1, settings);
+  return [
+    {
+      ...extraErosion,
+      conditions: [
+        ...(extraErosion.conditions ?? []),
+        condition('has_tag', { scope: 'caster', tag: firstShadowPendingTag }),
+      ],
+    },
+    {
+      type: 'buff_layer_modify',
+      params: {
+        match: { id: firstShadowPendingId },
+        operation: 'clear',
+        target: 'caster',
+        logVisibility: 'debug',
+      },
+    },
+  ];
 }
 
 function noReturnBuff(settings: YouduBuildSettings): BuffConfig {
@@ -886,18 +924,22 @@ function compileRuntime(
     }],
   });
   if (settings.pathId === 'decree') {
-    for (const controlTag of [
+    for (const [index, controlTag] of [
       GameplayTags.STATUS.CONTROL.NO_ACTION,
       GameplayTags.STATUS.CONTROL.NO_SKILL,
       GameplayTags.STATUS.CONTROL.NO_BASIC,
-    ]) {
+    ].entries()) {
       listeners.push({
-        id: 'sect.youdu.decree-control-response-fire',
+        id: `sect.youdu.decree-control-response-fire.applied.${index}`,
         eventType: GameplayTags.EVENT.BUFF_APPLIED,
         scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
         priority: EventPriorityLevel.BUFF_INTERCEPT + 1,
         mapping: { caster: 'owner', target: 'owner' },
-        budget: { maxTriggers: 1, reset: 'round' },
+        budget: {
+          maxTriggers: 1,
+          reset: 'round',
+          group: 'sect.youdu.decree-control-response-fire',
+        },
         conditions: [
           condition('has_not_tag', { scope: 'caster', tag: heartUsedTag }),
           condition('source_has_tag', { tag: controlTag }),
@@ -906,12 +948,16 @@ function compileRuntime(
       });
     }
     listeners.push({
-      id: 'sect.youdu.decree-control-response-fire',
+      id: 'sect.youdu.decree-control-response-fire.resisted',
       eventType: GameplayTags.EVENT.CONTROL_RESIST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: EventPriorityLevel.POST_SETTLE,
       mapping: { caster: 'owner', target: 'owner' },
-      budget: { maxTriggers: 1, reset: 'round' },
+      budget: {
+        maxTriggers: 1,
+        reset: 'round',
+        group: 'sect.youdu.decree-control-response-fire',
+      },
       effects: [gainSoulFire()],
     });
   }
@@ -925,12 +971,14 @@ function compileRuntime(
       budget: { maxTriggers: 1, reset: 'battle' },
       conditions: [
         condition('is_hit', {}),
-        condition('ability_has_tag', {
-          tag: GameplayTags.ABILITY.SECT.namespace(YOUDU_SECT_ID),
-        }),
+        condition('ability_has_exact_tag', { tag: erosionGeneratorTag }),
         condition('has_tag', { scope: 'target', tag: shadowTag }),
       ],
-      effects: [applyErosion(1, settings)],
+      effects: [applyBuff(hiddenMarker(
+        firstShadowPendingId,
+        '先定其形·待结算',
+        firstShadowPendingTag,
+      ), 'caster')],
     });
   }
   builder.setAbility('youdu-runtime', factory.passive({
@@ -954,7 +1002,19 @@ function compileRuntime(
         ? ['首次解控后获得10%最大气血护盾']
         : []),
       ...(settings.firstShadowExtraLayer
-        ? ['每场首次命中照影目标的幽都神通额外增加1层蚀魂']
+        ? ['每场首次命中照影目标的幽都铺层神通额外增加1层蚀魂']
+        : []),
+      ...(settings.pathId === 'tide'
+        ? ['每回合首次忘川有效伤害获得1点魂火']
+        : []),
+      ...(settings.pathId === 'decree'
+        ? [`目标蚀魂3层及以上时，自身直接魂伤提高${percentage(settings.decreeDirectSoulBonus)}`]
+        : []),
+      ...(settings.lostResistPenalty
+        ? ['失魂被抵抗时，目标攻击与速度降低20%，持续1回合']
+        : []),
+      ...(settings.lostAfterPenalty
+        ? ['失魂结束或被主动解除时，目标攻击降低15%，持续1回合']
         : []),
     ],
   }));
@@ -995,8 +1055,12 @@ function compileAbilities(
         ...magicalDamage(0.65),
         conditions: [condition('has_not_tag', { scope: 'target', tag: stateTag('forgetful-river') })],
       },
-      applyErosion(1, settings),
     ],
+    completionEffects: [
+      applyErosion(1, settings),
+      ...firstShadowCompletionEffects(settings),
+    ],
+    extraTags: [erosionGeneratorTag],
     detailRows: [
       `${coefficient(0.65)} × 法术攻击（术伤）`,
       ...(settings.sighForgetBonus > 0
@@ -1004,6 +1068,18 @@ function compileAbilities(
         : []),
       '命中后增加1层蚀魂',
       ...erosionDetailRows(settings),
+      ...(settings.cleanseToll
+        ? ['敌人驱散蚀魂后受到0.12 × 法术攻击魂伤，每次行动最多一次']
+        : []),
+      ...(settings.hundredGhosts
+        ? ['每场首次尝试施加失魂时追加0.30 × 法术攻击魂伤']
+        : []),
+      ...(settings.dreamInvasion
+        ? ['失魂触发时刷新忘川持续时间']
+        : []),
+      ...(settings.lastFerry
+        ? ['带有忘川的目标进入5层时失去10%最大法力']
+        : []),
     ],
   }));
 
@@ -1042,10 +1118,14 @@ function compileAbilities(
     pathId: settings.pathId,
     targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [],
-    completionEffects: [consumeSoulFire(), applyErosion(2, settings)],
+    completionEffects: [
+      consumeSoulFire(),
+      applyErosion(2, settings),
+      ...firstShadowCompletionEffects(settings),
+    ],
     effectLayers: severLayers,
     effectPlans: severPlans,
-    extraTags: [soulDamageTag, soulFireConsumerTag],
+    extraTags: [soulDamageTag, soulFireConsumerTag, erosionGeneratorTag],
     selectionProfile: { intents: ['damage'] },
     detailRows: [
       `${coefficient(0.52)} × 法术攻击（魂伤）`,
@@ -1062,13 +1142,17 @@ function compileAbilities(
     pathId: settings.pathId,
     targetPolicy: { team: 'enemy', scope: 'single' },
     hitPolicy: 'guaranteed',
-    effects: [applyBuff(shadowBuff(settings))],
+    effects: [],
+    completionEffects: [applyBuff(shadowBuff(settings))],
     selectionProfile: { intents: ['buff'] },
     detailRows: [
       '本技能必然命中',
       `持续${settings.shadowDuration}回合`,
       '目标闪避属性按零计算，仍保留最低闪避',
-      `每层蚀魂使其受到伤害提高${percentage(0.02 + settings.decreeShadowLayerBonus)}`,
+      '每层蚀魂使其受到的所有伤害提高2%',
+      ...(settings.decreeShadowLayerBonus > 0
+        ? [`每层蚀魂使自身魂伤额外提高${percentage(settings.decreeShadowLayerBonus)}`]
+        : []),
     ],
   }));
 
@@ -1080,13 +1164,16 @@ function compileAbilities(
     targetPolicy: { team: 'enemy', scope: 'single' },
     effects: [
       soulDamage(settings.forgetDirectCoefficient),
+    ],
+    completionEffects: [
       applyErosion(1, settings),
+      ...firstShadowCompletionEffects(settings),
       {
         ...applyBuff(forgetfulRiverBuff(settings)),
         conditions: [condition('hp_above', { scope: 'target', value: 0 })],
       },
     ],
-    extraTags: [soulDamageTag],
+    extraTags: [soulDamageTag, erosionGeneratorTag],
     detailRows: [
       `${settings.forgetDirectCoefficient.toFixed(2)} × 法术攻击（魂伤）`,
       `忘川持续${settings.forgetDuration}回合，每次行动前造成${coefficient(settings.forgetDotCoefficient)} × 法术攻击（魂伤）`,
@@ -1098,12 +1185,15 @@ function compileAbilities(
         ? [`至少3层蚀魂时持续魂伤提高${percentage(settings.forgetHighLayerBonus)}`]
         : []),
       ...(settings.forgetFourLayerBonus > 0
-        ? [`至少4层蚀魂时持续魂伤额外提高${percentage(settings.forgetFourLayerBonus)}`]
+        ? [`至少4层蚀魂时持续魂伤总计提高${percentage(settings.forgetHighLayerBonus + settings.forgetFourLayerBonus)}`]
         : []),
       ...(settings.crossingEcho
         ? ['每回合首次对至少4层目标结算忘川时，追加0.12 × 法术攻击魂伤']
         : []),
       '命中后增加1层蚀魂',
+      ...(settings.pathId === 'tide'
+        ? ['每回合首次忘川造成有效伤害时获得1点魂火']
+        : []),
     ],
   }));
 
@@ -1129,13 +1219,16 @@ function compileAbilities(
       magicalDamage(0.20 * settings.mixedDamageMultiplier),
       soulDamage(0.20 * settings.mixedDamageMultiplier),
       consumeSoulFire(),
+    ],
+    completionEffects: [
       applyErosion(2, settings),
+      ...firstShadowCompletionEffects(settings),
       {
         ...applyBuff(seizeReduction),
         conditions: [condition('hp_above', { scope: 'target', value: 0 })],
       },
     ],
-    extraTags: [soulDamageTag, soulFireConsumerTag],
+    extraTags: [soulDamageTag, soulFireConsumerTag, erosionGeneratorTag],
     detailRows: [
       `术伤与魂伤各${coefficient(0.20 * settings.mixedDamageMultiplier)} × 法术攻击`,
       '命中后增加2层蚀魂',
@@ -1185,18 +1278,21 @@ function compileAbilities(
       magicalDamage(0.20 * settings.mixedDamageMultiplier),
       soulDamage(0.20 * settings.mixedDamageMultiplier),
       consumeSoulFire(),
+    ],
+    completionEffects: [
       applyErosion(2, settings),
+      ...firstShadowCompletionEffects(settings),
     ],
     effectLayers: [
       {
         id: 'pin-low',
         displayName: '目标施法前少于4层蚀魂时',
-        effects: [pinLow],
+        completionEffects: [pinLow],
       },
       {
         id: 'pin-high',
         displayName: '目标施法前至少4层蚀魂时',
-        effects: pinHighEffects,
+        completionEffects: pinHighEffects,
       },
     ],
     effectPlans: [
@@ -1215,7 +1311,7 @@ function compileAbilities(
         layerIds: ['pin-low'],
       },
     ],
-    extraTags: [soulDamageTag, soulFireConsumerTag],
+    extraTags: [soulDamageTag, soulFireConsumerTag, erosionGeneratorTag],
     selectionProfile: { intents: ['damage', 'control'] },
     detailRows: [
       `术伤与魂伤各${coefficient(0.20 * settings.mixedDamageMultiplier)} × 法术攻击`,
@@ -1299,6 +1395,10 @@ function compileAbilities(
       },
     );
   }
+  const finishAtFour =
+    settings.finishBaseCoefficient + settings.finishPerLayerCoefficient * 4;
+  const finishAtFive =
+    settings.finishBaseCoefficient + settings.finishPerLayerCoefficient * 5;
   builder.setAbility('soul-shall-not-return', factory.active({
     definition: finish,
     pathId: settings.pathId,
@@ -1306,15 +1406,50 @@ function compileAbilities(
     castConditions: [condition('buff_layer_at_least', {
       id: YOUDU_SOUL_EROSION, scope: 'target', value: 4,
     })],
-    effects: [soulDamage(settings.finishBaseCoefficient, {
-      buffLayerScalar: {
-        match: { id: YOUDU_SOUL_EROSION },
-        attribute: AttributeType.MAGIC_ATK,
-        coefficientPerLayer: settings.finishPerLayerCoefficient,
-        minLayers: 4,
-        maxLayers: 5,
+    effects: [],
+    effectLayers: [
+      {
+        id: 'finish-four',
+        displayName: '目标施法前有4层蚀魂时',
+        effects: [soulDamage(finishAtFour)],
       },
-    })],
+      {
+        id: 'finish-five',
+        displayName: '目标施法前有5层蚀魂时',
+        effects: [soulDamage(finishAtFive)],
+      },
+    ],
+    effectPlans: [
+      {
+        id: 'finish-five',
+        name: finish.baseName,
+        priority: 20,
+        conditions: [condition('buff_layer_at_least', {
+          id: YOUDU_SOUL_EROSION,
+          scope: 'target',
+          value: 5,
+        })],
+        layerIds: ['finish-five'],
+      },
+      {
+        id: 'finish-four',
+        name: finish.baseName,
+        priority: 10,
+        conditions: [
+          condition('buff_layer_at_least', {
+            id: YOUDU_SOUL_EROSION,
+            scope: 'target',
+            value: 4,
+          }),
+          condition('buff_layer_below', {
+            id: YOUDU_SOUL_EROSION,
+            scope: 'target',
+            value: 5,
+          }),
+        ],
+        layerIds: ['finish-four'],
+      },
+    ],
     completionEffects: finishCompletion,
     extraTags: [soulDamageTag, soulFireConsumerTag],
     detailRows: [

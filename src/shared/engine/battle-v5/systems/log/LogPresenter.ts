@@ -544,7 +544,9 @@ export class LogPresenter {
   }
 
   private damageSegmentParts(entry: LogEntry<'damage'>): PresentedLogPart[] {
-    const parts: PresentedLogPart[] = [this.numberPart(entry.data.value)];
+    const parts: PresentedLogPart[] = [
+      this.numberPart(entry.data.value),
+    ];
     if ((entry.data.shieldAbsorbed ?? 0) > 0) {
       parts.push(
         this.textPart('（护盾吸收'),

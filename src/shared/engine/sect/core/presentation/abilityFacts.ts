@@ -42,6 +42,9 @@ function conditionText(
   condition: ConditionConfig,
   resources: readonly CombatResourceDefinition[] = [],
 ): string {
+  if (condition.type === 'hp_above' && condition.params.value === 0) {
+    return '';
+  }
   if (
     condition.type === 'attribute_compare' &&
     condition.params.attribute &&
@@ -171,16 +174,6 @@ function damageEffectsRow(
   if (damageEffects.length === 0) return [];
 
   if (damageEffects.length === 1) {
-    const layerScalar = damageEffects[0].params.buffLayerScalar;
-    if (layerScalar) {
-      const attribute = ATTRIBUTE_LABELS[layerScalar.attribute] ?? layerScalar.attribute;
-      const range = layerScalar.maxLayers === undefined
-        ? `${layerScalar.minLayers ?? 0}层以上`
-        : `${layerScalar.minLayers ?? 0}～${layerScalar.maxLayers}层`;
-      return [
-        `伤害：基础相当于${scalableValue(damageEffects[0].params.value)}，每层目标状态追加${number(layerScalar.coefficientPerLayer * 100)}%${attribute}（${range}）`,
-      ];
-    }
     const dynamic = damageEffects[0].params.dynamicScalars?.find(
       (scalar) => scalar.source === 'target_missing_hp_ratio',
     );
@@ -777,6 +770,15 @@ export function describeSectAbilityConfig(
         )
       : baseEffectRows),
   );
+  for (const layer of layers) {
+    const label = layerName(layer);
+    rows.push(
+      ...[
+        ...damageEffectsRow(layer.effects ?? [], resources),
+        ...describeEffectList(layer.effects ?? [], resources, baseTiming),
+      ].map((row) => layeredEffectRow(label, row, hasBaseDamage)),
+    );
+  }
   const baseCompletionRows = [
     ...damageEffectsRow(config.completionEffects ?? [], resources),
     ...describeEffectList(config.completionEffects ?? [], resources, 'cast'),
@@ -790,12 +792,6 @@ export function describeSectAbilityConfig(
   );
   for (const layer of layers) {
     const label = layerName(layer);
-    rows.push(
-      ...[
-        ...damageEffectsRow(layer.effects ?? [], resources),
-        ...describeEffectList(layer.effects ?? [], resources, baseTiming),
-      ].map((row) => layeredEffectRow(label, row, hasBaseDamage)),
-    );
     rows.push(
       ...[
         ...damageEffectsRow(layer.completionEffects ?? [], resources),

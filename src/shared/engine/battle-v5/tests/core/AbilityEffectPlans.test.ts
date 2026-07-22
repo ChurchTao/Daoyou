@@ -48,7 +48,7 @@ function layeredConfig(): AbilityConfig {
     targetPolicy: { team: 'enemy', scope: 'single' },
     selectionProfile: { intents: ['buff'] },
     effects: [marker('a-main')],
-    completionEffects: [marker('a-done')],
+    completionEffects: [marker('completed-first'), marker('a-done')],
     effectLayers: [
       { id: 'demon', effects: [marker('b-main')], completionEffects: [marker('b-done')] },
       { id: 'formless', effects: [marker('c-main')], completionEffects: [marker('c-done')] },
@@ -73,9 +73,9 @@ describe('技能效果层与计划', () => {
   afterEach(() => EventBus.instance.reset());
 
   it.each([
-    ['buddha', undefined, ['a-main', 'a-done']],
-    ['demon', 'demon', ['a-main', 'b-main', 'a-done', 'b-done']],
-    ['formless', 'formless', ['a-main', 'b-main', 'c-main', 'a-done', 'b-done', 'c-done']],
+    ['buddha', undefined, ['a-main', 'completed-first', 'a-done']],
+    ['demon', 'demon', ['a-main', 'b-main', 'completed-first', 'a-done', 'b-done']],
+    ['formless', 'formless', ['a-main', 'b-main', 'c-main', 'completed-first', 'a-done', 'b-done', 'c-done']],
   ] as const)('%s 依次执行固定 A、追加层和完成效果', (_label, mode, expected) => {
     const caster = unit('caster');
     const target = unit('target');
@@ -134,7 +134,7 @@ describe('技能效果层与计划', () => {
     expect(clone.runtimePlanId).toBeUndefined();
     skill.execute({ caster, target });
     expect(caster.buffs.getAllBuffIds()).toEqual([
-      'a-main', 'b-main', 'c-main', 'a-done', 'b-done', 'c-done',
+      'a-main', 'b-main', 'c-main', 'completed-first', 'a-done', 'b-done', 'c-done',
     ]);
     expect(readAbilityMode(caster, 'form')).toMatchObject({ mode: 'demon', remainingUses: 1 });
   });

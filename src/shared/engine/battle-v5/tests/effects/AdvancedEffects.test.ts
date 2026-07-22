@@ -33,7 +33,6 @@ import {
   DamageDeferEffect,
   DamageMemoryEffect,
   DelayedEffect,
-  ElementHistoryEffect,
   HpSacrificeDamageEffect,
   NextHitRuleEffect,
   TurnStateCounterEffect,
@@ -1069,69 +1068,6 @@ describe('Advanced battle effects', () => {
 
     expect(requests).toHaveLength(0);
     counter.execute({ caster: owner, target });
-    expect(requests).toHaveLength(1);
-  });
-
-  it('element history triggers only after distinct ability elements', () => {
-    const caster = createUnit('caster');
-    const target = createUnit('target');
-    const createSkill = (id: string, element: string) =>
-      AbilityFactory.create({
-        slug: id,
-        name: id,
-        type: AbilityType.ACTIVE_SKILL,
-        tags: [
-          GameplayTags.ABILITY.FUNCTION.DAMAGE,
-          GameplayTags.ABILITY.CHANNEL.MAGIC,
-          element,
-        ],
-        effects: [],
-      });
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
-      (event) => {
-        requests.push(event);
-      },
-    );
-    const effect = new ElementHistoryEffect({
-      key: 'elements',
-      threshold: 3,
-      effects: [
-        {
-          type: 'damage',
-          params: {
-            value: {
-              base: 10,
-              attribute: AttributeType.MAGIC_ATK,
-              coefficient: 0,
-            },
-          },
-        },
-      ],
-    });
-
-    effect.execute({
-      caster,
-      target,
-      ability: createSkill('fire', GameplayTags.ABILITY.ELEMENT.FIRE),
-    });
-    effect.execute({
-      caster,
-      target,
-      ability: createSkill('fire2', GameplayTags.ABILITY.ELEMENT.FIRE),
-    });
-    effect.execute({
-      caster,
-      target,
-      ability: createSkill('ice', GameplayTags.ABILITY.ELEMENT.ICE),
-    });
-    expect(requests).toHaveLength(0);
-    effect.execute({
-      caster,
-      target,
-      ability: createSkill('thunder', GameplayTags.ABILITY.ELEMENT.THUNDER),
-    });
     expect(requests).toHaveLength(1);
   });
 

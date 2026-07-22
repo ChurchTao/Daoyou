@@ -269,7 +269,6 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
       case 'delayed_effect':
       case 'damage_memory':
       case 'refund_paid_cost':
-      case 'buff_periodic_settlement':
       case 'mechanic_log':
       case 'buff_layer_modify':
       case 'combat_resource_modify':
@@ -281,7 +280,6 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
       case 'next_hit_rule':
       case 'turn_state_counter':
       case 'runtime_counter_modify':
-      case 'element_history':
       case 'effect_sequence':
       case 'death_prevent':
       case 'buff_immunity':
@@ -343,9 +341,6 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
     }));
     projected.listeners = projected.listeners?.map((listener) =>
       this.projectListener(listener, growth, methodLevels),
-    );
-    projected.manualSettlementEffects = projected.manualSettlementEffects?.map(
-      (effect) => this.projectEffect(effect, growth, methodLevels),
     );
     return projected;
   }

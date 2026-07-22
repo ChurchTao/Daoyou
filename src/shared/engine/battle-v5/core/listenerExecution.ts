@@ -20,6 +20,7 @@ export interface ListenerRuntimeConfig {
   budget?: {
     maxTriggers: number;
     reset: 'buff_lifetime' | 'action' | 'source_action' | 'round' | 'battle';
+    group?: string;
   };
   conditions?: ConditionConfig[];
 }
@@ -108,6 +109,7 @@ export function buildListenerRuntimeConfig(config: ListenerConfig): ListenerRunt
       ? {
           maxTriggers: Math.max(0, Math.trunc(config.budget.maxTriggers)),
           reset: config.budget.reset,
+          group: config.budget.group,
         }
       : undefined,
     conditions: config.conditions?.map((condition) => ({
@@ -237,9 +239,10 @@ function claimListenerTrigger(
   if (budget.reset === 'buff_lifetime') {
     const lifetimeOwner = source ?? runtime;
     const counters = lifecycleBudgets.get(lifetimeOwner) ?? new Map<string, number>();
-    const count = counters.get(runtime.id) ?? 0;
+    const budgetKey = budget.group ?? runtime.id;
+    const count = counters.get(budgetKey) ?? 0;
     if (count >= budget.maxTriggers) return false;
-    counters.set(runtime.id, count + 1);
+    counters.set(budgetKey, count + 1);
     lifecycleBudgets.set(lifetimeOwner, counters);
     return true;
   }
@@ -253,7 +256,7 @@ function claimListenerTrigger(
     : budget.reset === 'round'
       ? state.round
       : 0;
-  const key = `${runtime.id}:${budget.reset}`;
+  const key = `${budget.group ?? runtime.id}:${budget.reset}`;
   const current = state.listenerTriggerBudgets.get(key);
   const count = current?.token === token ? current.count : 0;
   if (count >= budget.maxTriggers) return false;

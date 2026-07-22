@@ -53,10 +53,12 @@ import {
 import {
   TIANYAN_ELEMENTS,
   TIANYAN_ELEMENT_ABILITY_TAGS,
+  TIANYAN_REACTION_ELEMENT_BUFF_TAG,
   TIANYAN_LANDING_BASE_DAMAGE,
   TIANYAN_ELEMENT_NAMES,
   getTianyanReaction,
   nextGeneratingElement,
+  tianyanReactionElementMarkerTag,
   type TianyanElement,
   type TianyanReactionDefinition,
 } from '../shared/reactions';
@@ -167,6 +169,19 @@ const targetBuff = (
   params: { target: 'target', buffConfig, onResistEffects, controlHitBonus },
 });
 
+const targetLayeredBuff = (
+  buffConfig: BuffConfig,
+  layers: number,
+  conditions?: ConditionConfig[],
+): EffectConfig => {
+  const effect = targetBuff(buffConfig, conditions);
+  if (effect.type !== 'apply_buff') return effect;
+  return {
+    ...effect,
+    params: { ...effect.params, layers },
+  };
+};
+
 const healHp = (
   ratio: number,
   conditions?: ConditionConfig[],
@@ -238,6 +253,7 @@ function periodicDamageBuff(
   coefficient: number,
   element: TianyanElement,
 ): BuffConfig {
+  const isLayeredBurn = id === TIANYAN_BURN;
   const periodic: EffectConfig = {
     type: 'damage',
     params: {
@@ -259,6 +275,8 @@ function periodicDamageBuff(
     statusTags: element === 'fire' && id === TIANYAN_BURN
       ? [GameplayTags.STATUS.STATE.BURNED]
       : undefined,
+    stackRule: isLayeredBurn ? StackRule.STACK_LAYER : StackRule.REFRESH_DURATION,
+    maxLayers: isLayeredBurn ? 2 : undefined,
     listeners: [
       {
         id: `${id}.periodic`,
@@ -266,10 +284,23 @@ function periodicDamageBuff(
         scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
         priority: EventPriorityLevel.ACTION_TRIGGER,
         mapping: { caster: 'owner', target: 'owner' },
-        effects: [periodic],
+        effects: [
+          periodic,
+          ...(isLayeredBurn
+            ? [{
+                type: 'buff_layer_modify',
+                params: {
+                  match: { id },
+                  operation: 'subtract',
+                  layers: 1,
+                  target: 'target',
+                  logVisibility: 'debug',
+                },
+              } satisfies EffectConfig]
+            : []),
+        ],
       },
     ],
-    manualSettlementEffects: [periodic],
   });
 }
 
@@ -573,13 +604,12 @@ function reactionEffects(
       case 'wildfire':
         return [
           {
-            type: 'buff_periodic_settlement',
+            type: 'damage',
             conditions: [condition('hp_above', { scope: 'target', value: 0 })],
             params: {
-              match: { id: TIANYAN_BURN },
-              mode: 'once_keep_duration',
-              target: 'target',
-              source: 'caster',
+              value: { attribute: AttributeType.MAGIC_ATK, coefficient: 0.16 },
+              damageType: DamageType.DOT,
+              damageSource: DamageSource.FOLLOW_UP,
               cause: {
                 kind: 'mechanic',
                 id: 'sect.tianyan.reaction.wildfire',
@@ -617,18 +647,59 @@ function reactionEffects(
       return [
         followUp(reaction, settings.vaporizeRatio),
         {
-          type: 'buff_periodic_settlement',
-          conditions: [condition('hp_above', { scope: 'target', value: 0 })],
+          type: 'damage',
+          conditions: [
+            condition('hp_above', { scope: 'target', value: 0 }),
+            condition('buff_layer_at_least', {
+              id: TIANYAN_BURN,
+              scope: 'target',
+              value: 2,
+            }),
+          ],
           params: {
-            match: { id: TIANYAN_BURN },
-            mode: 'remaining_remove',
-            target: 'target',
-            source: 'caster',
+            value: { attribute: AttributeType.MAGIC_ATK, coefficient: 0.32 },
+            damageType: DamageType.DOT,
+            damageSource: DamageSource.FOLLOW_UP,
             cause: {
               kind: 'mechanic',
               id: 'sect.tianyan.reaction.vaporize',
               displayName: '蒸发',
             },
+          },
+        },
+        {
+          type: 'damage',
+          conditions: [
+            condition('hp_above', { scope: 'target', value: 0 }),
+            condition('buff_layer_at_least', {
+              id: TIANYAN_BURN,
+              scope: 'target',
+              value: 1,
+            }),
+            condition('buff_layer_below', {
+              id: TIANYAN_BURN,
+              scope: 'target',
+              value: 2,
+            }),
+          ],
+          params: {
+            value: { attribute: AttributeType.MAGIC_ATK, coefficient: 0.16 },
+            damageType: DamageType.DOT,
+            damageSource: DamageSource.FOLLOW_UP,
+            cause: {
+              kind: 'mechanic',
+              id: 'sect.tianyan.reaction.vaporize',
+              displayName: '蒸发',
+            },
+          },
+        },
+        {
+          type: 'buff_layer_modify',
+          params: {
+            match: { id: TIANYAN_BURN },
+            operation: 'clear',
+            target: 'target',
+            logVisibility: 'debug',
           },
         },
       ];
@@ -883,12 +954,76 @@ function commonReactionPrelude(
   settings: TianyanBuildSettings,
 ): EffectConfig[] {
   const effects: EffectConfig[] = [gainDerivation()];
+  const markerTag = tianyanReactionElementMarkerTag(reaction.incoming);
+  const thresholdReached = condition('runtime_counter_compare', {
+    scope: 'caster',
+    key: TIANYAN_STRATEGY_ELEMENT_HISTORY,
+    op: 'gte',
+    value: 3,
+  });
+  const thresholdEffects: EffectConfig[] = settings.threeTalents
+    ? [selfBuff(
+        oneUseDamageBuff(
+          'sect.tianyan.three-talents-damage',
+          '三才合契',
+          GameplayTags.STATUS.SECT.state(TIANYAN_SECT_ID, 'ThreeTalents'),
+          0.20,
+        ),
+        [thresholdReached],
+      )]
+    : [];
   effects.push({
-    type: 'element_history',
+    type: 'runtime_counter_modify',
+    conditions: [condition('has_not_tag', { scope: 'caster', tag: markerTag })],
     params: {
       key: TIANYAN_STRATEGY_ELEMENT_HISTORY,
-      threshold: 3,
-      effects: [],
+      operation: 'add',
+      amount: 1,
+      max: 3,
+      target: 'caster',
+      effects: [
+        selfBuff(buff(
+          `sect.tianyan.element-history.${reaction.incoming}`,
+          `${TIANYAN_ELEMENT_NAMES[reaction.incoming]}行已用`,
+          BuffType.BUFF,
+          -1,
+          {
+            tags: [
+              GameplayTags.BUFF.TYPE.BUFF,
+              TIANYAN_REACTION_ELEMENT_BUFF_TAG,
+              GameplayTags.BUFF.SECT.namespace(
+                TIANYAN_SECT_ID,
+                `element-history.${reaction.incoming}`,
+              ),
+            ],
+            statusTags: [markerTag],
+            logVisibility: 'debug',
+            statusVisibility: 'hidden',
+            countsAsStatus: false,
+            dispelPolicy: 'protected',
+          },
+        )),
+        ...thresholdEffects,
+        {
+          type: 'buff_layer_modify',
+          conditions: [thresholdReached],
+          params: {
+            match: { tags: [TIANYAN_REACTION_ELEMENT_BUFF_TAG] },
+            operation: 'clear',
+            target: 'caster',
+            logVisibility: 'debug',
+          },
+        },
+        {
+          type: 'runtime_counter_modify',
+          conditions: [thresholdReached],
+          params: {
+            key: TIANYAN_STRATEGY_ELEMENT_HISTORY,
+            operation: 'reset',
+            target: 'caster',
+          },
+        },
+      ],
     },
   });
   if (settings.innerOuter) {
@@ -900,25 +1035,6 @@ function commonReactionPrelude(
         target: 'caster',
         logVisibility: 'debug',
         effects: [gainDerivation()],
-      },
-    });
-  }
-  if (settings.threeTalents) {
-    effects.push({
-      type: 'element_history',
-      params: {
-        key: 'sect.tianyan.hetu.three-talents',
-        threshold: 3,
-        effects: [
-          selfBuff(
-            oneUseDamageBuff(
-              'sect.tianyan.three-talents-damage',
-              '三才合契',
-              GameplayTags.STATUS.SECT.state(TIANYAN_SECT_ID, 'ThreeTalents'),
-              0.20,
-            ),
-          ),
-        ],
       },
     });
   }
@@ -1804,7 +1920,10 @@ const LANDING_SPECS: LandingSpec[] = [
     element: 'fire',
     coefficient: TIANYAN_LANDING_BASE_DAMAGE['flowing-flame'],
     baseEffects: () => [
-      targetBuff(periodicDamageBuff(TIANYAN_BURN, '灼烧', 0.16, 'fire')),
+      targetLayeredBuff(
+        periodicDamageBuff(TIANYAN_BURN, '灼烧', 0.16, 'fire'),
+        2,
+      ),
     ],
   },
   {

@@ -14,6 +14,7 @@ import {
   YOUDU_TIDE_PATH_ID,
   YOUDU_VISIBLE_ABILITY_IDS,
 } from '..';
+import { YOUDU_ORGANIZATION_THEME } from '../organization';
 import { youduState } from './testState';
 
 describe('幽都战斗与展示投影', () => {
@@ -183,7 +184,7 @@ describe('幽都战斗与展示投影', () => {
     expect(finish).not.toContain('伤害：相当于70%法攻');
     expect(finish).not.toContain('施展后：魂火：获得3点');
     expect(forget).toContain('忘川期间速度降低8%');
-    expect(forget).toContain('至少4层蚀魂时持续魂伤额外提高30%');
+    expect(forget).toContain('至少4层蚀魂时持续魂伤总计提高30%');
   });
 
   it('蚀魂详情展示完整五层曲线、逐层驱散且不出现零值占位', () => {
@@ -201,5 +202,78 @@ describe('幽都战斗与展示投影', () => {
     );
     expect(sigh).toContain('普通驱散每次只移除1层');
     expect(sigh).not.toContain('+0');
+  });
+
+  it('照影分别说明通用承伤与敕魂魂伤增幅，不合并成错误倍率', () => {
+    const shadow = resolveSectAbility({
+      sect: youduState(YOUDU_DECREE_PATH_ID),
+      realm: '化神',
+      abilityId: 'reveal-shadow',
+    }).detailRows.join('；');
+
+    expect(shadow).toContain('所有伤害提高2%');
+    expect(shadow).toContain('自身魂伤额外提高1%');
+    expect(shadow).not.toContain('受到伤害提高3%');
+  });
+
+  it('手写详情完整列出幽都运行时与五层节点效果', () => {
+    const decree = youduState(YOUDU_DECREE_PATH_ID, [
+      'decree-punishment-measured',
+      'decree-five-souls-scattered',
+    ]);
+    const tideRuntime = resolveSectAbility({
+      sect: youduState(YOUDU_TIDE_PATH_ID),
+      realm: '化神',
+      abilityId: 'youdu-runtime',
+    }).detailRows.join('；');
+    const tideSigh = [
+      'tide-cleanse-toll',
+      'tide-hundred-ghosts',
+      'tide-dream-invasion',
+      'tide-last-ferry',
+    ].flatMap((nodeId) => resolveSectAbility({
+      sect: youduState(YOUDU_TIDE_PATH_ID, [nodeId]),
+      realm: '化神',
+      abilityId: 'one-sigh',
+    }).detailRows).join('；');
+    const decreeRuntime = resolveSectAbility({
+      sect: decree, realm: '化神', abilityId: 'youdu-runtime',
+    }).detailRows.join('；');
+
+    expect(tideRuntime).toContain('每回合首次忘川有效伤害获得1点魂火');
+    expect(tideSigh).toContain('驱散蚀魂后受到0.12 × 法术攻击魂伤');
+    expect(tideSigh).toContain('首次尝试施加失魂时追加0.30 × 法术攻击魂伤');
+    expect(tideSigh).toContain('失魂触发时刷新忘川持续时间');
+    expect(tideSigh).toContain('带有忘川的目标进入5层时失去10%最大法力');
+    expect(decreeRuntime).toContain('3层及以上时，自身直接魂伤提高10%');
+    expect(decreeRuntime).toContain('失魂被抵抗时，目标攻击与速度降低20%');
+    expect(decreeRuntime).toContain('失魂结束或被主动解除时，目标攻击降低15%');
+  });
+
+  it('运行时 listener ID 唯一，共享触发次数只通过预算组表达', () => {
+    const projection = projectSectCombat({
+      sect: youduState(YOUDU_DECREE_PATH_ID),
+      realm: '化神',
+    })!;
+    const listeners = projection.abilities.flatMap((ability) => ability.listeners ?? []);
+    const ids = listeners.map((listener) => listener.id).filter(Boolean);
+
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(listeners.filter((listener) =>
+      listener.budget?.group === 'sect.youdu.decree-control-response-fire'
+    )).toHaveLength(4);
+  });
+
+  it('组织主题覆盖全部任务、战斗对手、商店奖励与设施称谓', () => {
+    expect(Object.keys(YOUDU_ORGANIZATION_THEME.taskPresentation ?? {})).toHaveLength(8);
+    expect(Object.keys(YOUDU_ORGANIZATION_THEME.opponents ?? {})).toHaveLength(4);
+    expect(Object.keys(YOUDU_ORGANIZATION_THEME.shopGrants ?? {})).toHaveLength(6);
+    expect(YOUDU_ORGANIZATION_THEME.facilityNames).toMatchObject({
+      archive: '三魂阁',
+      cultivation_room: '返照室',
+      workshop: '镇铁炉',
+      spirit_vein: '黑水阴脉',
+      herb_garden: '返照香圃',
+    });
   });
 });

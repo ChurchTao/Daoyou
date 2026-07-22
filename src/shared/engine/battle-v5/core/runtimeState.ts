@@ -56,7 +56,6 @@ export interface BattleRuntimeState {
   sequences: Map<string, number>;
   dealtDamageSinceLastCheck: boolean;
   removedBuffs: Buff[];
-  elementHistories: Map<string, Set<string>>;
   actionSequence: number;
   round: number;
   listenerTriggerBudgets: Map<string, { token: number; count: number }>;
@@ -92,7 +91,6 @@ export function getBattleRuntimeState(unit: Unit): BattleRuntimeState {
       sequences: new Map(),
       dealtDamageSinceLastCheck: false,
       removedBuffs: [],
-      elementHistories: new Map(),
       actionSequence: 0,
       round: 0,
       listenerTriggerBudgets: new Map(),
@@ -448,20 +446,4 @@ export function rememberRemovedBuff(unit: Unit, buff: Buff): void {
 
 export function readRecentRemovedBuff(unit: Unit, predicate: (buff: Buff) => boolean): Buff | undefined {
   return getBattleRuntimeState(unit).removedBuffs.find(predicate);
-}
-
-export function rememberElement(unit: Unit, key: string, elementTag: string): number {
-  const state = getBattleRuntimeState(unit);
-  const history = state.elementHistories.get(key) ?? new Set<string>();
-  history.add(elementTag);
-  state.elementHistories.set(key, history);
-  return history.size;
-}
-
-export function readElementHistory(unit: Unit, key: string): ReadonlySet<string> {
-  return new Set(getBattleRuntimeState(unit).elementHistories.get(key) ?? []);
-}
-
-export function clearElementHistory(unit: Unit, key: string): void {
-  getBattleRuntimeState(unit).elementHistories.delete(key);
 }

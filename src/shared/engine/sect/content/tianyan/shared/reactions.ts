@@ -55,6 +55,16 @@ export const TIANYAN_ELEMENT_ABILITY_TAGS: Record<TianyanElement, string> = {
   water: GameplayTags.ABILITY.ELEMENT.WATER,
 };
 
+export const TIANYAN_REACTION_ELEMENT_BUFF_TAG =
+  GameplayTags.BUFF.SECT.namespace(TIANYAN_SECT_ID, 'element-history');
+
+export const tianyanReactionElementMarkerTag = (
+  element: TianyanElement,
+): string => GameplayTags.STATUS.SECT.state(
+  TIANYAN_SECT_ID,
+  `ReactionElement.${element}`,
+);
+
 export const TIANYAN_LANDING_BASE_DAMAGE: Record<
   TianyanLandingAbilityId,
   number

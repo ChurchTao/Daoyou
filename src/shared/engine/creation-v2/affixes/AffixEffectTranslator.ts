@@ -598,19 +598,33 @@ export class AffixEffectTranslator {
           },
         };
 
-      case 'element_history':
+      case 'runtime_counter_modify':
         return {
-          type: 'element_history',
+          type: 'runtime_counter_modify',
           params: {
             key: template.params.key,
-            threshold: template.params.threshold,
-            effects: this.resolveEffectList(
-              template.params.effects,
-              qualityOrder,
-              multiplier,
-            ),
-            ...(template.params.resetOnTrigger !== undefined
-              ? { resetOnTrigger: template.params.resetOnTrigger }
+            operation: template.params.operation,
+            ...(template.params.amount !== undefined
+              ? { amount: template.params.amount }
+              : {}),
+            ...(template.params.min !== undefined
+              ? { min: template.params.min }
+              : {}),
+            ...(template.params.max !== undefined
+              ? { max: template.params.max }
+              : {}),
+            ...(template.params.target !== undefined
+              ? { target: template.params.target }
+              : {}),
+            ...(template.params.effects !== undefined
+              ? { effects: this.resolveEffectList(
+                  template.params.effects,
+                  qualityOrder,
+                  multiplier,
+                ) }
+              : {}),
+            ...(template.params.scaleEffectsByAmount !== undefined
+              ? { scaleEffectsByAmount: template.params.scaleEffectsByAmount }
               : {}),
           },
         };

@@ -4,6 +4,17 @@ import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), 'src/shared/engine/sect');
 const battleRoot = resolve(process.cwd(), 'src/shared/engine/battle-v5');
+const battleUiRoot = resolve(
+  process.cwd(),
+  'src/react-app/components/feature/battle/v5',
+);
+
+const productionSectTerms =
+  /lingxiao|红尘剑宗|凌霄|wuxiang|无相|tianyan|天衍|youdu|幽都|sect\.(?:lingxiao|wuxiang|tianyan|youdu)/i;
+const removedBattleExtensions =
+  /postDamageEffects|DamageDisplayMetadata|buffLayerScalar|ElementHistory|element_history|elementHistories|BuffPeriodicSettlement|buff_periodic_settlement|manualSettlementEffects/;
+const forbiddenBattleDependency =
+  /from ['"][^'"]*(?:engine\/sect\/content|sect\/content|react-app)[^'"]*['"]/;
 
 function sourceFiles(directory: string): string[] {
   return readdirSync(directory).flatMap((name) => {
@@ -23,32 +34,70 @@ describe('宗门插件架构守卫', () => {
     );
   });
 
-  it('通用核心不依赖具体宗门、流派、节点或内容目录', () => {
+  it('sect/core 不依赖具体生产宗门、流派、节点或内容目录', () => {
     for (const file of sourceFiles(join(root, 'core')).filter(
       (path) => !path.includes('/tests/'),
     )) {
       const source = readFileSync(file, 'utf8');
       const label = relative(root, file);
-      expect(source, label).not.toMatch(
-        /lingxiao|swift-sword|heavy-sword|fixture-sect/,
-      );
+      expect(source, label).not.toMatch(productionSectTerms);
+      expect(source, label).not.toMatch(/swift-sword|heavy-sword|fixture-sect/);
       expect(source, label).not.toMatch(/from ['"][^'"]*content/);
       expect(source, label).not.toContain('paths[0]');
     }
     const publicEntry = readFileSync(join(root, 'index.ts'), 'utf8');
+    expect(publicEntry).not.toMatch(productionSectTerms);
     expect(publicEntry).not.toMatch(
-      /lingxiao|(?:export|import)[^\n]*from ['"]\.\/content/,
+      /(?:export|import)[^\n]*from ['"]\.\/content/,
     );
   });
 
-  it('battle-v5 通用引擎不依赖幽都宗门或其内容 ID', () => {
+  it('battle-v5 非适配器核心不依赖任何生产宗门、宗门内容或 React', () => {
     for (const file of sourceFiles(battleRoot).filter(
-      (path) => !path.includes('/tests/'),
+      (path) => !path.includes('/tests/') && !path.includes('/adapters/'),
     )) {
       const source = readFileSync(file, 'utf8');
       const label = relative(process.cwd(), file);
-      expect(source, label).not.toMatch(/youdu|幽都|sect\.youdu/i);
+      expect(source, label).not.toMatch(productionSectTerms);
+      expect(source, label).not.toMatch(forbiddenBattleDependency);
     }
+  });
+
+  it('通用战斗 UI 不包含具体生产宗门或宗门主题分支', () => {
+    for (const file of sourceFiles(battleUiRoot).filter(
+      (path) => !/\.test\.(ts|tsx)$/.test(path),
+    )) {
+      const source = readFileSync(file, 'utf8');
+      expect(source, relative(process.cwd(), file)).not.toMatch(
+        productionSectTerms,
+      );
+    }
+  });
+
+  it('已退出的单宗门战斗扩展不会重新进入生产源码', () => {
+    const productionRoots = [
+      battleRoot,
+      join(root, 'core'),
+      join(root, 'content'),
+      battleUiRoot,
+    ];
+    for (const file of productionRoots
+      .flatMap(sourceFiles)
+      .filter((path) => !/\.(?:test|spec)\.(ts|tsx)$/.test(path))) {
+      const source = readFileSync(file, 'utf8');
+      expect(source, relative(process.cwd(), file)).not.toMatch(
+        removedBattleExtensions,
+      );
+    }
+  });
+
+  it('架构关键词守卫能识别四宗门、非法依赖和退出接口', () => {
+    expect('sect.youdu.soul').toMatch(productionSectTerms);
+    expect('天衍反应').toMatch(productionSectTerms);
+    expect("from '@shared/engine/sect/content/tianyan'").toMatch(
+      forbiddenBattleDependency,
+    );
+    expect('manualSettlementEffects').toMatch(removedBattleExtensions);
   });
 
   it('流派基础编译器不按节点ID集中分派', () => {

@@ -4,19 +4,17 @@ import type {
   AbilitySelectionStrategy,
 } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import { BuffType } from '@shared/engine/battle-v5/core/types';
-import { readElementHistory } from '@shared/engine/battle-v5/core/runtimeState';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { SectStrategyCandidates, type SectTacticId } from '../../core';
 import {
   TIANYAN_SECT_ID,
-  TIANYAN_STRATEGY_ELEMENT_HISTORY,
 } from './ids';
 import {
-  TIANYAN_ELEMENT_ABILITY_TAGS,
   TIANYAN_ELEMENTS,
   TIANYAN_LANDING_BASE_DAMAGE,
   TIANYAN_SEAL_STATE_TAGS,
   getTianyanReaction,
+  tianyanReactionElementMarkerTag,
   type TianyanElement,
 } from './shared/reactions';
 
@@ -172,14 +170,10 @@ export class HetuSelectionStrategy extends TianyanSelectionStrategy {
     }
     if (this.tacticId === 'small-cycle') {
       if (reactions.length > 0) {
-        const recentElements = readElementHistory(
-          context.caster,
-          TIANYAN_STRATEGY_ELEMENT_HISTORY,
-        );
         const missingElementReactions = reactions.filter((id) => {
           const element = ABILITY_ELEMENTS[id];
           return element
-            ? !recentElements.has(TIANYAN_ELEMENT_ABILITY_TAGS[element])
+            ? !context.caster.tags.hasTag(tianyanReactionElementMarkerTag(element))
             : false;
         });
         if (missingElementReactions.length > 0) {

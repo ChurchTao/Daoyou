@@ -384,6 +384,22 @@ describe('幽都核心机制实际结算', () => {
     expect(youdu.buffs.getAllBuffIds()).toContain('test.control.no-skill');
   });
 
+  it('心死神活主动解除失魂时触发五魄俱散', () => {
+    const nodes = ['decree-five-souls-scattered'];
+    const caster = unit('caster');
+    const target = unit('target');
+    installRuntime(target);
+    setOverride(caster, AttributeType.CONTROL_HIT, 1);
+    setOverride(target, AttributeType.CONTROL_RESISTANCE, 0);
+    const sigh = ability('one-sigh', 'decree', nodes);
+
+    for (let index = 0; index < 5; index += 1) sigh.execute({ caster, target });
+
+    expect(target.buffs.getAllBuffIds()).not.toContain(YOUDU_SOUL_LOST);
+    expect(target.buffs.getAllBuffIds()).toContain('sect.youdu.five-souls-penalty');
+    expect(erosion(target)?.getLayer()).toBe(3);
+  });
+
   it('通用减益免疫阻止蚀魂与忘川，控制免疫只阻止失魂和镇魂钉', () => {
     const debuffCaster = unit('debuff-caster');
     const debuffTarget = unit('debuff-target');
@@ -422,14 +438,25 @@ describe('幽都核心机制实际结算', () => {
     );
   });
 
-  it('先定其形按成功命中而非实际伤害触发，闪避不会消耗次数', () => {
+  it('先定其形在本次伤害后加层，且闪避不会消耗次数', () => {
     const system = new DamageSystem();
     const caster = unit('caster');
     const target = unit('target');
     const nodes = ['decree-fix-form-first'];
     installRuntime(caster, 'decree', nodes);
     ability('reveal-shadow', 'decree', nodes).execute({ caster, target });
+    ability('one-sigh', 'decree', nodes).execute({ caster, target });
+    ability('one-sigh', 'decree', nodes).execute({ caster, target });
+    expect(erosion(target)?.getLayer()).toBe(2);
     const sever = ability('soul-severing-call', 'decree', nodes);
+    let soulRequest: DamageRequestEvent | undefined;
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        if (event.damageType === DamageType.TRUE) soulRequest = event;
+      },
+      -1_000,
+    );
 
     EventBus.instance.publish({
       type: 'HitCheckEvent',
@@ -441,7 +468,7 @@ describe('幽都核心机制实际结算', () => {
       isDodged: true,
       isResisted: false,
     });
-    expect(erosion(target)).toBeUndefined();
+    expect(erosion(target)?.getLayer()).toBe(2);
 
     EventBus.instance.publish({
       type: 'HitCheckEvent',
@@ -453,25 +480,41 @@ describe('幽都核心机制实际结算', () => {
       isDodged: false,
       isResisted: false,
     });
-    expect(erosion(target)?.getLayer()).toBe(1);
-
-    EventBus.instance.publish({
-      type: 'HitCheckEvent',
-      timestamp: Date.now(),
-      caster,
-      target,
-      ability: sever,
-      isHit: true,
-      isDodged: false,
-      isResisted: false,
-    });
-    expect(erosion(target)?.getLayer()).toBe(1);
-
-    addDamageImmunity(target, [GameplayTags.ABILITY.CHANNEL.TRUE]);
-    const beforeHp = target.getCurrentHp();
     sever.execute({ caster, target });
-    expect(target.getCurrentHp()).toBe(beforeHp);
-    expect(erosion(target)?.getLayer()).toBe(3);
+
+    expect(soulRequest?.damageIncreasePctBucket).toBeCloseTo(0.06);
+    expect(erosion(target)?.getLayer()).toBe(5);
+    system.destroy();
+  });
+
+  it('先定其形不会被照影或魂兮不归消费，也不会在终结清层后留下孤立失魂', () => {
+    const system = new DamageSystem();
+    const nodes = ['decree-fix-form-first'];
+    const caster = unit('caster');
+    const target = unit('target');
+    installRuntime(caster, 'decree', nodes);
+    const sigh = ability('one-sigh', 'decree', nodes);
+
+    for (let index = 0; index < 4; index += 1) sigh.execute({ caster, target });
+    expect(erosion(target)?.getLayer()).toBe(4);
+
+    ability('reveal-shadow', 'decree', nodes).execute({ caster, target });
+    const finish = ability('soul-shall-not-return', 'decree', nodes);
+    EventBus.instance.publish({
+      type: 'HitCheckEvent',
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability: finish,
+      isHit: true,
+      isDodged: false,
+      isResisted: false,
+    });
+    finish.execute({ caster, target });
+
+    expect(erosion(target)).toBeUndefined();
+    expect(target.buffs.getAllBuffIds()).not.toContain(YOUDU_SOUL_LOST);
+    expect(caster.buffs.getAllBuffIds()).not.toContain('sect.youdu.first-shadow-pending');
     system.destroy();
   });
 
@@ -569,19 +612,64 @@ describe('幽都核心机制实际结算', () => {
     const caster = unit('caster');
     const target = unit('target');
     const deaths: UnitDeadEvent[] = [];
+    const requests: DamageRequestEvent[] = [];
     target.setHp(1);
     EventBus.instance.subscribe<UnitDeadEvent>(
       'UnitDeadEvent',
       (event) => deaths.push(event),
       -1_000,
     );
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => requests.push(event),
+      -1_000,
+    );
 
     ability('seize-soul').execute({ caster, target });
 
     expect(target.isAlive()).toBe(false);
+    expect(requests).toHaveLength(1);
     expect(deaths).toHaveLength(1);
     expect(deaths[0]).toMatchObject({ unit: target, killer: caster });
     system.destroy();
+  });
+
+  it('敕魂的直接魂伤增幅只识别带魂伤机制标签的真实伤害', () => {
+    const caster = unit('caster');
+    const target = unit('target');
+    const nodes: string[] = [];
+    for (let index = 0; index < 3; index += 1) {
+      ability('one-sigh', 'decree', nodes).execute({ caster, target });
+    }
+    const fake = AbilityFactory.create({
+      slug: 'test.decree-true-damage',
+      name: '非魂伤真实伤害',
+      type: AbilityType.ACTIVE_SKILL,
+      tags: [
+        GameplayTags.ABILITY.KIND.SKILL,
+        GameplayTags.ABILITY.FUNCTION.DAMAGE,
+        GameplayTags.ABILITY.CHANNEL.TRUE,
+        GameplayTags.ABILITY.SECT.path('youdu', 'decree'),
+      ],
+      targetPolicy: { team: 'enemy', scope: 'single' },
+      selectionProfile: { intents: ['damage'] },
+      effects: [{
+        type: 'damage',
+        params: { value: { base: 10 }, damageType: DamageType.TRUE },
+      }],
+    });
+    let request: DamageRequestEvent | undefined;
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => {
+        if (event.ability === fake) request = event;
+      },
+      -1_000,
+    );
+
+    fake.execute({ caster, target });
+
+    expect(request?.damageIncreasePctBucket ?? 0).toBe(0);
   });
 
   it('法术伤害回蓝只响应混合技能的术伤包，魂伤仍不可暴击与吸血', () => {
@@ -627,7 +715,10 @@ describe('幽都核心机制实际结算', () => {
     expect(requests.filter((event) => event.damageType === DamageType.MAGICAL))
       .toHaveLength(1);
     expect(requests.find((event) => event.damageType === DamageType.TRUE))
-      .toMatchObject({ canCrit: false, canLifesteal: false });
+      .toMatchObject({
+        canCrit: false,
+        canLifesteal: false,
+      });
     system.destroy();
   });
 
@@ -673,7 +764,7 @@ describe('幽都核心机制实际结算', () => {
     ability('soul-shall-not-return').execute({ caster, target });
 
     const expected = Math.round(
-      caster.attributes.getValue(AttributeType.MAGIC_ATK) * 1.5 * 1.08,
+      Math.round(caster.attributes.getValue(AttributeType.MAGIC_ATK) * 1.5) * 1.08,
     );
     expect(before - target.getCurrentHp()).toBe(expected);
     expect(target.buffs.getAllBuffIds()).not.toContain(YOUDU_SOUL_EROSION);

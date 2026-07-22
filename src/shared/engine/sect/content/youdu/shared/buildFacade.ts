@@ -109,7 +109,7 @@ export class TideBuildFacade {
     this.settings.erosionHealCurve = [0, 0.15, 0.40, 0.60, 1];
   }
   enableCrossingEcho(): void { this.settings.crossingEcho = true; }
-  empowerFourLayerForget(): void { this.settings.forgetFourLayerBonus = 0.30; }
+  empowerFourLayerForget(): void { this.settings.forgetFourLayerBonus = 0.10; }
   enableCleanseToll(): void { this.settings.cleanseToll = true; }
   deepenNoReturnSlow(): void { this.settings.noReturnSpeedReduction = -0.40; }
   enableHundredGhosts(): void { this.settings.hundredGhosts = true; }

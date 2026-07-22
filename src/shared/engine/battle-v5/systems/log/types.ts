@@ -1,3 +1,4 @@
+
 // ===== LogEntryType =====
 export type LogEntryType =
   | 'damage'

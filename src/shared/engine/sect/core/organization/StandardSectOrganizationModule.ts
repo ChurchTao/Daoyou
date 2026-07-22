@@ -451,7 +451,7 @@ class StandardSectEconomyPolicy implements SectEconomyPolicy {
           name:
             rank === 'true'
               ? (this.theme.stipendGrantNames?.trueHerb ?? '真传灵蕴草')
-              : '宗门灵草',
+              : (this.theme.stipendGrantNames?.herb ?? '宗门灵草'),
           type: 'herb',
           quality: rank === 'true' ? '真品' : '凡品',
           element: '木',
@@ -466,7 +466,7 @@ class StandardSectEconomyPolicy implements SectEconomyPolicy {
             quantity: 3,
             grant: {
               kind: 'sect.reward.material',
-              name: '百炼铁木',
+              name: this.theme.stipendGrantNames?.innerMaterial ?? '百炼铁木',
               type: 'aux' as const,
               quality: '玄品' as const,
               element: '木',
@@ -806,7 +806,11 @@ export interface SectOrganizationTheme {
   shopGrants?: Partial<Record<string, Partial<SectShopDefinition['grant']>>>;
   opponents?: Partial<Record<string, { title?: string; name?: string }>>;
   facilityNames?: Partial<Record<string, string>>;
-  stipendGrantNames?: { trueHerb?: string };
+  stipendGrantNames?: {
+    herb?: string;
+    trueHerb?: string;
+    innerMaterial?: string;
+  };
 }
 
 export class StandardSectOrganizationModule implements SectOrganizationModule {

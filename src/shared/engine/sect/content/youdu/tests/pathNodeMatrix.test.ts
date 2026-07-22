@@ -22,19 +22,26 @@ function runtimeFingerprint(pathId: YouduPathId, nodes: string[]): string {
 
 describe('幽都36参悟节点编译矩阵', () => {
   const finisherCoefficients = (pathId?: YouduPathId, nodes: string[] = []) => {
-    const damage = resolveSectAbility({
+    const config = resolveSectAbility({
       sect: youduState(pathId, nodes),
       realm: '化神',
       abilityId: 'soul-shall-not-return',
-    }).config.effects?.find((effect) => effect.type === 'damage');
-    if (damage?.type !== 'damage' || !damage.params.buffLayerScalar) {
+    }).config;
+    const coefficient = (layerId: string) => {
+      const damage = config.effectLayers
+        ?.find((layer) => layer.id === layerId)
+        ?.effects?.find((effect) => effect.type === 'damage');
+      if (damage?.type !== 'damage') {
+        throw new Error(`幽都终结伤害层 ${layerId} 缺失`);
+      }
+      return damage.params.value.coefficient ?? 0;
+    };
+    if (!config.effectPlans?.some((plan) => plan.id === 'finish-five')) {
       throw new Error('幽都终结伤害配置缺失');
     }
-    const base = damage.params.value.coefficient ?? 0;
-    const perLayer = damage.params.buffLayerScalar.coefficientPerLayer;
     return {
-      four: base + perLayer * 4,
-      five: base + perLayer * 5,
+      four: coefficient('finish-four'),
+      five: coefficient('finish-five'),
     };
   };
 
@@ -63,16 +70,21 @@ describe('幽都36参悟节点编译矩阵', () => {
     const direct = forget.effects?.find((effect) => effect.type === 'damage');
     expect(direct?.type === 'damage' && direct.params.value.coefficient)
       .toBeCloseTo(0.184);
-    const forgetBuff = forget.effects?.find((effect) =>
+    const forgetBuff = forget.completionEffects?.find((effect) =>
       effect.type === 'apply_buff' && effect.params.buffConfig.id === 'sect.youdu.forgetful-river');
     expect(forgetBuff?.type === 'apply_buff' && forgetBuff.params.buffConfig.duration).toBe(3);
 
     const finish = resolveSectAbility({
       sect: state, realm: '化神', abilityId: 'soul-shall-not-return',
     }).config;
-    const damage = finish.effects?.find((effect) => effect.type === 'damage');
-    expect(damage?.type === 'damage' && damage.params.buffLayerScalar?.coefficientPerLayer)
-      .toBe(0.24);
+    const finishFour = finish.effectLayers?.find((layer) => layer.id === 'finish-four')
+      ?.effects?.find((effect) => effect.type === 'damage');
+    const finishFive = finish.effectLayers?.find((layer) => layer.id === 'finish-five')
+      ?.effects?.find((effect) => effect.type === 'damage');
+    expect(finishFour?.type === 'damage' && finishFour.params.value.coefficient)
+      .toBe(1.66);
+    expect(finishFive?.type === 'damage' && finishFive.params.value.coefficient)
+      .toBe(1.9);
   });
 
   it('镇魄司命代表完整方案落实混合增伤、法力、抗性、控制与终结强化', () => {
@@ -98,14 +110,15 @@ describe('幽都36参悟节点编译矩阵', () => {
     }).config;
     expect(pin.mpCost).toBe(45);
     const highPin = pin.effectLayers?.find((layer) => layer.id === 'pin-high')
-      ?.effects?.find((effect) => effect.type === 'apply_buff');
+      ?.completionEffects?.find((effect) => effect.type === 'apply_buff');
     expect(highPin?.type === 'apply_buff' && highPin.params.controlHitBonus).toBe(0.15);
 
     const finish = resolveSectAbility({
       sect: state, realm: '化神', abilityId: 'soul-shall-not-return',
     }).config;
-    const damage = finish.effects?.find((effect) => effect.type === 'damage');
-    expect(damage?.type === 'damage' && damage.params.value.coefficient).toBe(0.85);
+    const damage = finish.effectLayers?.find((layer) => layer.id === 'finish-four')
+      ?.effects?.find((effect) => effect.type === 'damage');
+    expect(damage?.type === 'damage' && damage.params.value.coefficient).toBe(1.65);
   });
 
   it('基础与终极节点终结倍率保持在明确理论边界内', () => {

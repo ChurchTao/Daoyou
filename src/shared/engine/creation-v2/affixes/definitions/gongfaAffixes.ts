@@ -1595,7 +1595,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   {
     id: 'gongfa-secret-myriad-unity',
     displayName: '万象归一',
-    displayDescription: '连续运转后，使下一次神通转为真实伤害',
+    displayDescription: '连续运转三次后，使下一次神通转为真实伤害',
     slot: 'modifier',
     rarity: 'legendary',
     match: {
@@ -1610,17 +1610,45 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     applicableTo: ['gongfa'],
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
     effectTemplate: {
-      type: 'element_history',
+      type: 'runtime_counter_modify',
       params: {
         key: 'myriad_unity',
-        threshold: 3,
+        operation: 'add',
+        amount: 1,
+        max: 3,
         effects: [
           {
             type: 'ability_transform',
+            conditions: [{
+              type: 'runtime_counter_compare',
+              params: {
+                scope: 'caster',
+                key: 'myriad_unity',
+                op: 'gte',
+                value: 3,
+              },
+            }],
             params: {
               id: 'myriad_unity_true_damage',
               triggers: 1,
               trueDamage: true,
+            },
+          },
+          {
+            type: 'runtime_counter_modify',
+            conditions: [{
+              type: 'runtime_counter_compare',
+              params: {
+                scope: 'caster',
+                key: 'myriad_unity',
+                op: 'gte',
+                value: 3,
+              },
+            }],
+            params: {
+              key: 'myriad_unity',
+              operation: 'reset',
+              target: 'caster',
             },
           },
         ],

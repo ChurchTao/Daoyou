@@ -104,6 +104,37 @@ describe('V4.2战斗日志归组', () => {
     expect(text.match(/剑势/g)).toHaveLength(1);
   });
 
+  it('同一技能的不同伤害包使用中性分段日志', () => {
+    const span = action([
+      entry('damage', {
+        value: 120,
+        beforeHp: 1_000,
+        remainHp: 880,
+        isCritical: false,
+        targetName: '木桩',
+        damageSource: 'direct',
+      }),
+      entry('damage', {
+        value: 180,
+        beforeHp: 880,
+        remainHp: 700,
+        isCritical: false,
+        targetName: '木桩',
+        damageSource: 'direct',
+      }),
+    ]);
+
+    expect(new LogPresenter().formatSpan(span)).toEqual([
+      '「魁星士」施放《剑落星河》，对「木桩」连续命中2段：',
+      '120、180，合计300点气血伤害',
+    ]);
+    const parts = new LogPresenter().presentSpan(span)[1].parts;
+    expect(parts).toEqual(expect.arrayContaining([
+      { kind: 'number', text: '120' },
+      { kind: 'number', text: '180' },
+    ]));
+  });
+
   it('调息跳过显示行动者', () => {
     const span: LogSpan = {
       id: 'rest-v42',

@@ -88,6 +88,50 @@ describe('battle runtime primitives', () => {
     expect(owner.combatResources.getCurrent('guard')).toBe(2);
   });
 
+  it('shares a budget group without reusing listener IDs', () => {
+    const owner = unit('owner');
+    const attacker = unit('attacker');
+    owner.combatResources.define({ id: 'guard', name: '守势', initial: 0, max: 6 });
+    const sharedBudget = {
+      maxTriggers: 1,
+      reset: 'round' as const,
+      group: 'shared-control-response',
+    };
+    owner.abilities.addAbility(AbilityFactory.create({
+      slug: 'group-budget-passive',
+      name: '共享预算',
+      type: AbilityType.PASSIVE_SKILL,
+      tags: [GameplayTags.ABILITY.KIND.PASSIVE],
+      listeners: ['first', 'second'].map((suffix) => ({
+        id: `group-budget-listener-${suffix}`,
+        eventType: 'DamageTakenEvent',
+        scope: 'owner_as_target' as const,
+        priority: 0,
+        mapping: { caster: 'owner' as const, target: 'owner' as const },
+        budget: sharedBudget,
+        effects: [{
+          type: 'combat_resource_modify' as const,
+          params: { resourceId: 'guard', operation: 'add' as const, amount: 1 },
+        }],
+      })),
+    }));
+
+    setRuntimeRound(owner, 1);
+    EventBus.instance.publish<DamageTakenEvent>({
+      type: 'DamageTakenEvent',
+      timestamp: Date.now(),
+      caster: attacker,
+      target: owner,
+      damageSource: DamageSource.DIRECT,
+      damageTaken: 1,
+      beforeHp: owner.getCurrentHp(),
+      remainHp: owner.getCurrentHp(),
+      isLethal: false,
+    });
+
+    expect(owner.combatResources.getCurrent('guard')).toBe(1);
+  });
+
   it('resets action-scoped listener budgets when the owner starts a new action', () => {
     const owner = unit('owner');
     const attacker = unit('attacker');

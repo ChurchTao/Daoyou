@@ -185,14 +185,6 @@ export interface DamageParams {
   canCrit?: boolean;
   /** 是否允许本次伤害触发吸血，缺省为 true。 */
   canLifesteal?: boolean;
-  /** 按目标匹配状态的当前层数追加属性倍率，仍只产生一个伤害请求。 */
-  buffLayerScalar?: {
-    match: BuffMatchParams;
-    attribute: AttributeType;
-    coefficientPerLayer: number;
-    minLayers?: number;
-    maxLayers?: number;
-  };
   dynamicScalars?: DamageDynamicScalarConfig[];
 }
 
@@ -428,14 +420,6 @@ export interface RefundPaidCostParams {
   resource?: 'mp';
 }
 
-export interface BuffPeriodicSettlementParams {
-  match: BuffMatchParams;
-  mode: 'once_keep_duration' | 'remaining_remove';
-  target?: 'caster' | 'target';
-  source?: 'caster' | 'any';
-  cause?: LogCauseRef;
-}
-
 export interface MechanicLogParams {
   mechanic: 'named_trigger' | 'status_transition';
   displayName: string;
@@ -534,13 +518,6 @@ export interface RuntimeCounterModifyParams {
   scaleEffectsByAmount?: boolean;
 }
 
-export interface ElementHistoryParams {
-  key: string;
-  threshold: number;
-  effects: EffectConfig[];
-  resetOnTrigger?: boolean;
-}
-
 export interface EffectSequenceParams {
   effects: EffectConfig[];
 }
@@ -618,7 +595,6 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'delayed_effect'; params: DelayedEffectParams }
     | { type: 'damage_memory'; params: DamageMemoryParams }
     | { type: 'refund_paid_cost'; params: RefundPaidCostParams }
-    | { type: 'buff_periodic_settlement'; params: BuffPeriodicSettlementParams }
     | { type: 'mechanic_log'; params: MechanicLogParams }
     | { type: 'buff_layer_modify'; params: BuffLayerModifyParams }
     | { type: 'combat_resource_modify'; params: CombatResourceModifyParams }
@@ -632,7 +608,6 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'dynamic_scalar'; params: DynamicScalarParams }
     | { type: 'turn_state_counter'; params: TurnStateCounterParams }
     | { type: 'runtime_counter_modify'; params: RuntimeCounterModifyParams }
-    | { type: 'element_history'; params: ElementHistoryParams }
     | { type: 'effect_sequence'; params: EffectSequenceParams }
     | { type: 'ability_mode'; params: AbilityModeParams }
     | { type: 'lifesteal'; params: LifestealParams }
@@ -693,6 +668,8 @@ export interface ListenerGuardConfig {
 export interface ListenerTriggerBudgetConfig {
   maxTriggers: number;
   reset: 'buff_lifetime' | 'action' | 'source_action' | 'round' | 'battle';
+  /** 多个唯一监听器共享同一触发预算时使用；缺省按监听器 ID 独立计数。 */
+  group?: string;
 }
 
 /**
@@ -782,8 +759,6 @@ export interface BuffConfig {
    * 逻辑监听链 (EDA 核心)
    */
   listeners?: ListenerConfig[];
-  /** 供通用手动结算效果复用的原始周期效果。 */
-  manualSettlementEffects?: EffectConfig[];
 }
 
 /**

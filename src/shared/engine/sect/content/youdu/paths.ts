@@ -38,7 +38,7 @@ const tideDefinition: SectPathDefinitionWithoutNodes = {
       { name: '余烬不散', description: '终结之后仍可保留下一轮铺垫。' },
     ],
     abilityChanges: {
-      'forgetful-river-tide': '忘川在至少3层蚀魂目标上提高20%魂伤，并能从每回合首次有效潮伤中获得魂火。',
+      'forgetful-river-tide': '忘川在至少3层蚀魂目标上提高20%持续魂伤，并能从每回合首次有效潮伤中获得魂火。',
       'soul-shall-not-return': '节点可强化逐层魂伤、保留蚀魂或在终结后续接忘川。',
     },
   },
@@ -96,4 +96,3 @@ class DecreePathModule extends BaseSectPathModule {
 
 export const YOUDU_TIDE_PATH_MODULE = new TidePathModule();
 export const YOUDU_DECREE_PATH_MODULE = new DecreePathModule();
-

@@ -10,7 +10,10 @@ import type {
   MechanicLogEvent,
   SkillCastEvent,
 } from '@shared/engine/battle-v5/core/events';
-import { beginRuntimeAction } from '@shared/engine/battle-v5/core/runtimeState';
+import {
+  beginRuntimeAction,
+  readRuntimeCounter,
+} from '@shared/engine/battle-v5/core/runtimeState';
 import {
   AbilityType,
   AttributeType,
@@ -25,10 +28,16 @@ import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { projectSectCombat, resolveSectAbility } from '../..';
-import { TIANYAN_DERIVATION, TIANYAN_ELEMENT_SEAL } from '../ids';
 import {
+  TIANYAN_DERIVATION,
+  TIANYAN_ELEMENT_SEAL,
+  TIANYAN_STRATEGY_ELEMENT_HISTORY,
+} from '../ids';
+import {
+  TIANYAN_REACTION_ELEMENT_BUFF_TAG,
   TIANYAN_REACTION_MATRIX,
   TIANYAN_SEAL_STATE_TAGS,
+  tianyanReactionElementMarkerTag,
 } from '../shared/reactions';
 import { createElementSeal } from '../shared/seals';
 import { tianyanState } from './testState';
@@ -171,7 +180,7 @@ describe('天衍落印术与反应实际结算', () => {
     },
   );
 
-  it('木印遇火术触发燎原，换为火印并令新灼烧立即额外结算一次', () => {
+  it('木印遇火术触发燎原，追加固定灼烧伤害且保留两层自然跳数', () => {
     const { owner, enemy, skill } = setup();
     enemy.buffs.addBuff(BuffFactory.create(createElementSeal('wood', 2)), owner);
     const damages: DamageTakenEvent[] = [];
@@ -187,9 +196,59 @@ describe('天衍落印术与反应实际结算', () => {
     expect(enemy.tags.hasTag(TIANYAN_SEAL_STATE_TAGS.fire)).toBe(true);
     expect(enemy.tags.hasTag(TIANYAN_SEAL_STATE_TAGS.wood)).toBe(false);
     expect(damages.filter((event) => event.damageSource === DamageSource.DIRECT)).toHaveLength(1);
-    expect(damages.filter((event) => event.damageSource === DamageSource.DELAYED)).toHaveLength(1);
-    expect(damages.find((event) => event.damageSource === DamageSource.DELAYED)?.cause)
+    expect(damages.filter((event) => event.damageSource === DamageSource.FOLLOW_UP)).toHaveLength(1);
+    expect(damages.find((event) => event.damageSource === DamageSource.FOLLOW_UP)?.cause)
       .toMatchObject({ displayName: '燎原' });
+    const burn = () => enemy.buffs.getAllBuffs().find((candidate) =>
+      candidate.id === 'sect.tianyan.burn');
+    expect(burn()?.getLayer()).toBe(2);
+
+    EventBus.instance.publish<ActionPreEvent>({
+      type: 'ActionPreEvent',
+      timestamp: Date.now(),
+      caster: enemy,
+    });
+    expect(burn()?.getLayer()).toBe(1);
+    EventBus.instance.publish<ActionPreEvent>({
+      type: 'ActionPreEvent',
+      timestamp: Date.now(),
+      caster: enemy,
+    });
+    expect(burn()).toBeUndefined();
+  });
+
+  it.each([
+    [1, 0.16],
+    [2, 0.32],
+  ] as const)('蒸发按剩余%i层灼烧追加固定系数%s并清除灼烧', (layers, coefficient) => {
+    const { owner, enemy, skill } = setup('luoshu-control');
+    cast(skill('flowing-flame'), owner, enemy);
+    if (layers === 1) {
+      EventBus.instance.publish<ActionPreEvent>({
+        type: 'ActionPreEvent',
+        timestamp: Date.now(),
+        caster: enemy,
+      });
+    }
+    const requests: Array<{ baseDamage: number; cause?: { id: string } }> = [];
+    EventBus.instance.subscribe(
+      'DamageRequestEvent',
+      (event) => {
+        const request = event as { baseDamage: number; cause?: { id: string } };
+        if (request.cause?.id === 'sect.tianyan.reaction.vaporize') {
+          requests.push(request);
+        }
+      },
+      -1_000,
+    );
+
+    cast(skill('dark-water-return'), owner, enemy);
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0].baseDamage).toBe(Math.round(
+      owner.attributes.getValue(AttributeType.MAGIC_ATK) * coefficient,
+    ));
+    expect(enemy.buffs.getAllBuffIds()).not.toContain('sect.tianyan.burn');
   });
 
   it('火印遇水术触发蒸发，追加固定终值追伤并明确归因为冲克·蒸发', () => {
@@ -226,6 +285,38 @@ describe('天衍落印术与反应实际结算', () => {
       enemy.buffs.getAllBuffs().find((buff) => buff.id === TIANYAN_ELEMENT_SEAL)
         ?.getDuration(),
     ).toBe(2);
+  });
+
+  it('反应元素使用隐藏标记去重，第三种元素后清空通用计数和全部标记', () => {
+    const { owner, enemy, skill } = setup();
+    const setSeal = (element: 'wood' | 'fire' | 'water') => {
+      enemy.buffs.addBuff(BuffFactory.create(createElementSeal(element, 2)), owner);
+    };
+
+    setSeal('wood');
+    cast(skill('flowing-flame'), owner, enemy);
+    const fireMarker = owner.buffs.getAllBuffs().find((candidate) =>
+      candidate.tags.hasTag(TIANYAN_REACTION_ELEMENT_BUFF_TAG));
+    expect(readRuntimeCounter(owner, TIANYAN_STRATEGY_ELEMENT_HISTORY)).toBe(1);
+    expect(owner.tags.hasTag(tianyanReactionElementMarkerTag('fire'))).toBe(true);
+    expect(fireMarker).toMatchObject({
+      countsAsStatus: false,
+      dispelPolicy: 'protected',
+      statusVisibility: 'hidden',
+      logVisibility: 'debug',
+    });
+
+    setSeal('wood');
+    cast(skill('flowing-flame'), owner, enemy);
+    expect(readRuntimeCounter(owner, TIANYAN_STRATEGY_ELEMENT_HISTORY)).toBe(1);
+
+    cast(skill('dark-water-return'), owner, enemy);
+    expect(readRuntimeCounter(owner, TIANYAN_STRATEGY_ELEMENT_HISTORY)).toBe(2);
+    cast(skill('earth-bearing-seal'), owner, enemy);
+
+    expect(readRuntimeCounter(owner, TIANYAN_STRATEGY_ELEMENT_HISTORY)).toBe(0);
+    expect(owner.buffs.getAllBuffs().some((candidate) =>
+      candidate.tags.hasTag(TIANYAN_REACTION_ELEMENT_BUFF_TAG))).toBe(false);
   });
 
   it('无反应覆盖法印但不产生追伤和衍数', () => {
@@ -388,13 +479,15 @@ describe('天衍落印术与反应实际结算', () => {
     expect(owner.buffs.getAllBuffIds()).toContain('sect.tianyan.river-mind');
   });
 
-  it('蒸发实际结算自身灼烧全部剩余跳数并移除灼烧', () => {
+  it('蒸发将两层灼烧近似兑现为一次固定追伤并移除灼烧', () => {
     const { owner, enemy, skill } = setup('luoshu-control');
-    const delayed: DamageTakenEvent[] = [];
+    const settlements: DamageTakenEvent[] = [];
     EventBus.instance.subscribe<DamageTakenEvent>(
       'DamageTakenEvent',
       (event) => {
-        if (event.damageSource === DamageSource.DELAYED) delayed.push(event);
+        if (event.cause?.id === 'sect.tianyan.reaction.vaporize') {
+          settlements.push(event);
+        }
       },
       -1_000,
     );
@@ -408,8 +501,11 @@ describe('天衍落印术与反应实际结算', () => {
 
     cast(skill('dark-water-return'), owner, enemy);
 
-    expect(delayed).toHaveLength(2);
-    expect(delayed.every((event) => event.cause?.displayName === '蒸发')).toBe(true);
+    expect(settlements).toHaveLength(1);
+    expect(settlements[0]).toMatchObject({
+      damageSource: DamageSource.FOLLOW_UP,
+      cause: { displayName: '蒸发' },
+    });
     expect(enemy.buffs.getAllBuffIds()).not.toContain('sect.tianyan.burn');
   });
 

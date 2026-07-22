@@ -34,6 +34,7 @@ export class DamageEffect extends GameplayEffect {
 
   execute(context: EffectContext): void {
     const { caster, target, ability, buff } = context;
+    if (!target.isAlive()) return;
     const resolvedCaster = buff?.getSource() ?? caster;
 
     // 使用统一计算器计算基础伤害（传入 target 以支持 targetMaxHpRatio）
@@ -66,36 +67,6 @@ export class DamageEffect extends GameplayEffect {
           attackBase: attributeValue,
           segmentMultiplier: coefficient,
         });
-      }
-    }
-    const layerScalar = this.params.buffLayerScalar;
-    if (layerScalar) {
-      const matchingBuff = target.buffs.getAllBuffs().find((candidate) =>
-        (!layerScalar.match.id || candidate.id === layerScalar.match.id) &&
-        (!layerScalar.match.tags?.length ||
-          layerScalar.match.tags.every((tag) => candidate.tags.hasTag(tag)))
-      );
-      const rawLayers = matchingBuff?.getLayer() ?? 0;
-      const layers = Math.min(
-        layerScalar.maxLayers ?? Number.POSITIVE_INFINITY,
-        rawLayers,
-      );
-      if (layers >= (layerScalar.minLayers ?? 0)) {
-        const attributeValue = resolvedCaster.attributes.getValue(
-          layerScalar.attribute,
-        );
-        const coefficient = layerScalar.coefficientPerLayer * layers;
-        const amount = attributeValue * coefficient;
-        damage += amount;
-        if (amount > 0) {
-          damageComponents.push({
-            kind: `buff_layer:${matchingBuff?.id ?? 'none'}`,
-            amount,
-            mitigation: 'normal',
-            attackBase: attributeValue,
-            segmentMultiplier: coefficient,
-          });
-        }
       }
     }
     const bypassDefenseRatio = this.params.bypassDefense
