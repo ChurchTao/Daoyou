@@ -53,7 +53,6 @@ import {
   TIANYAN_ELEMENTS,
   TIANYAN_ELEMENT_ABILITY_TAGS,
   TIANYAN_ELEMENT_NAMES,
-  TIANYAN_SEAL_STATE_TAGS,
   getTianyanReaction,
   nextGeneratingElement,
   type TianyanElement,
@@ -1785,7 +1784,7 @@ const LANDING_SPECS: LandingSpec[] = [
     id: 'flowing-flame',
     element: 'fire',
     coefficient: 0.82,
-    baseEffects: (_reaction, settings) => [
+    baseEffects: () => [
       targetBuff(periodicDamageBuff(TIANYAN_BURN, '灼烧', 0.16, 'fire')),
     ],
   },

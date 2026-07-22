@@ -62,7 +62,7 @@ export function EmailBroadcastForm() {
       return;
     }
 
-    let payload = {};
+    let payload: unknown;
     try {
       payload = JSON.parse(payloadText || '{}');
     } catch {

@@ -505,7 +505,6 @@ function assertBodyCultivationPillTrackCaps(
       const needed = threshold - progress;
       if (remaining < needed) {
         progress += remaining;
-        remaining = 0;
         break;
       }
 
@@ -562,7 +561,6 @@ function assertMarrowWashPillTrackCaps(
       const needed = threshold - progress;
       if (remaining < needed) {
         progress += remaining;
-        remaining = 0;
         break;
       }
 

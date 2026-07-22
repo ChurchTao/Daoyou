@@ -307,7 +307,7 @@ export function attemptBreakthrough(
   let naturalAttributeGrowth = 0;
   let attributePointReward = 0;
   let historyEntry: BreakthroughHistoryEntry | undefined;
-  let insight_change = 0;
+  let insight_change: number;
   let exp_lost = 0;
   const isMajorBreakthrough = nextStage.realm !== fromRealm;
   const protectMeridiansStatus = getActiveStatus(

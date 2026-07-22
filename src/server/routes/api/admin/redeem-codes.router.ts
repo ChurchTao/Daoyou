@@ -184,7 +184,7 @@ router.post('/', requireAdmin(), async (c) => {
   const manualCode = parsed.data.code
     ? normalizeRedeemCode(parsed.data.code)
     : '';
-  let rewardAttachments: MailAttachment[] = [];
+  let rewardAttachments: MailAttachment[];
 
   try {
     const itemLibraryEntries = await findPublishedItemLibraryForSelections(

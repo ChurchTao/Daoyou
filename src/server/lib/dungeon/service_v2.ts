@@ -2220,7 +2220,7 @@ export class DungeonService {
   async getState(cultivatorId: string) {
     const key = getDungeonKey(cultivatorId);
     const run = await this.loadActiveRun(cultivatorId);
-    let state: DungeonState | null = null;
+    let state: DungeonState | null;
     if (run) {
       state = run.runState as DungeonState;
       state.runId = run.id;

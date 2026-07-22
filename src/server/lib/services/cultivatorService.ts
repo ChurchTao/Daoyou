@@ -1637,7 +1637,7 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
   const multiplier = sortOrder === 'asc' ? 1 : -1;
 
   const sortedMaterialRows = [...materialRows].sort((a, b) => {
-    let result = 0;
+    let result: number;
     switch (sortBy) {
       case 'rank': {
         result =

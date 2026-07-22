@@ -12,7 +12,6 @@ import {
   AffixEffectTemplate,
   AffixScalableValue,
   ScalableParam,
-  ScalableValueV2,
   SCALE_MODE,
 } from './types';
 
@@ -801,16 +800,12 @@ export class AffixEffectTranslator {
     qualityOrder: number,
     multiplier: number = 1.0,
   ): number {
-    let baseValue = 0;
-    if (typeof param === 'number') {
-      baseValue = param;
-    } else {
-      const sv = param as ScalableValueV2;
-      baseValue =
-        sv.scale === SCALE_MODE.NONE
-          ? sv.base
-          : sv.base + qualityOrder * sv.coefficient;
-    }
+    const baseValue =
+      typeof param === 'number'
+        ? param
+        : param.scale === SCALE_MODE.NONE
+          ? param.base
+          : param.base + qualityOrder * param.coefficient;
 
     const resolved = baseValue * multiplier;
     if (typeof param === 'number') {

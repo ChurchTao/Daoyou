@@ -1588,7 +1588,7 @@ router.post('/redeem-code/claim', requireActiveCultivator(), async (c) => {
           throw new RedeemClaimError('该兑换码你已使用过');
         }
 
-        let rewardAttachments: MailAttachment[] = [];
+        let rewardAttachments: MailAttachment[];
         try {
           rewardAttachments = resolveRedeemCodeRewardAttachments(redeemCode);
         } catch (error) {

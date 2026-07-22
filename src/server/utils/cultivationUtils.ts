@@ -247,7 +247,7 @@ export function calculateCultivationExp(
     randomFactor;
 
   // 8. 顿悟加成：修为翻倍 + 感悟值
-  let insight_gained = 0;
+  let insight_gained: number;
   if (epiphany_triggered) {
     exp_gained *= EPIPHANY_EXP_MULTIPLIER;
     insight_gained = Math.floor(EPIPHANY_INSIGHT_MIN + rng() * EPIPHANY_INSIGHT_RANGE);

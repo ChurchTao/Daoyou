@@ -102,14 +102,11 @@ export class AbilityContainer {
 
         const activeSkill = ability as ActiveSkill;
 
-        let resolvedTarget: Unit | null = null;
         const policy = activeSkill.targetPolicy;
-
-        if (policy.team === 'self' || policy.team === 'ally') {
-          resolvedTarget = this._owner;
-        } else {
-          resolvedTarget = opponent;
-        }
+        const resolvedTarget =
+          policy.team === 'self' || policy.team === 'ally'
+            ? this._owner
+            : opponent;
 
         if (!resolvedTarget || !resolvedTarget.isAlive()) {
           continue;

@@ -70,7 +70,7 @@ export function GameMailBroadcastForm() {
       return;
     }
 
-    let payload = {};
+    let payload: unknown;
     try {
       payload = JSON.parse(payloadText || '{}');
     } catch {

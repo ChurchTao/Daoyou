@@ -535,7 +535,7 @@ async function previewMaterialSell(
 
   let mode: SellMode;
   let appraisal: HighTierAppraisal | undefined;
-  let items: SellPreviewItem[] = [];
+  let items: SellPreviewItem[];
 
   if (highTier.length === 1) {
     const material = highTier[0];
@@ -642,7 +642,7 @@ async function previewArtifactSell(
 
   let mode: SellMode;
   let appraisal: HighTierAppraisal | undefined;
-  let targetArtifacts: Artifact[] = [];
+  let targetArtifacts: Artifact[];
 
   if (highTier.length === 1) {
     mode = 'high_single';
