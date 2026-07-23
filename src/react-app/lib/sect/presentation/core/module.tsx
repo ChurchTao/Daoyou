@@ -24,8 +24,6 @@ const sweepSessionSchema = z.object({
   sessionId: z.string(),
   seed: z.string(),
   rulesVersion: z.number(),
-  tickRate: z.number(),
-  maxTicks: z.number(),
   expiresAt: z.string(),
 });
 

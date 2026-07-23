@@ -4,6 +4,7 @@ import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { Buff, StackRule } from '../../buffs/Buff';
 import { EventBus } from '../../core/EventBus';
 import {
+  ActionStateEvent,
   ActionPostEvent,
   BuffAddEvent,
   BuffAppliedEvent,
@@ -15,7 +16,11 @@ import {
   RoundPreEvent,
   ShieldBreakEvent,
 } from '../../core/events';
-import { markDamageDealt, readMemory } from '../../core/runtimeState';
+import {
+  markDamageDealt,
+  readAbilityMode,
+  readMemory,
+} from '../../core/runtimeState';
 import {
   AbilityType,
   AttributeType,
@@ -38,6 +43,7 @@ import {
   TurnStateCounterEffect,
 } from '../../effects/AdvancedEffects';
 import { DamageEffect } from '../../effects/DamageEffect';
+import { AbilityModeEffect } from '../../effects/AbilityModeEffect';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { BuffFactory } from '../../factories/BuffFactory';
 import { Unit } from '../../units/Unit';
@@ -55,6 +61,54 @@ function createUnit(id: string): Unit {
 describe('Advanced battle effects', () => {
   beforeEach(() => {
     EventBus.instance.reset();
+  });
+
+  it('ability mode publishes a structured action state event', () => {
+    const caster = createUnit('caster');
+    const ability = AbilityFactory.create({
+      slug: 'mode-entry',
+      name: '形态技能',
+      type: AbilityType.ACTIVE_SKILL,
+      tags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+      effects: [],
+    });
+    const states: ActionStateEvent[] = [];
+    const mechanics: MechanicLogEvent[] = [];
+    EventBus.instance.subscribe<ActionStateEvent>(
+      'ActionStateEvent',
+      (event) => states.push(event),
+    );
+    EventBus.instance.subscribe<MechanicLogEvent>(
+      'MechanicLogEvent',
+      (event) => mechanics.push(event),
+    );
+
+    new AbilityModeEffect({
+      key: 'combat-form',
+      operation: 'set',
+      mode: 'guard',
+      displayName: '守势',
+      remainingUses: 2,
+    }).execute({ caster, target: caster, ability });
+
+    expect(readAbilityMode(caster, 'combat-form')).toMatchObject({
+      mode: 'guard',
+      displayName: '守势',
+      remainingUses: 2,
+    });
+    expect(states).toHaveLength(1);
+    expect(states[0]).toMatchObject({
+      unit: caster,
+      stateType: 'ability_mode',
+      phase: 'entered',
+      name: '守势',
+      remainingActions: 2,
+      sourceAbility: {
+        id: 'mode-entry',
+        name: '形态技能',
+      },
+    });
+    expect(mechanics).toHaveLength(0);
   });
 
   it('consumes matching status layers and executes child effects', () => {

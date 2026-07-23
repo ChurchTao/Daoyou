@@ -3,12 +3,12 @@ import {
   ArtifactDeliverySpecification,
   MaterialDeliverySpecification,
   PillDeliverySpecification,
-  SWEEP_MAX_TICKS,
+  SWEEP_DIRECTIONS,
+  SWEEP_MAX_MOVES,
   SWEEP_RULES_VERSION,
-  SWEEP_TICK_RATE,
-  simulateSweepTrace,
+  simulateSweepMoves,
   type SectTaskDefinition,
-  type SweepInputSegment,
+  type SweepDirection,
 } from '@shared/engine/sect';
 import type { Quality } from '@shared/types/constants';
 import { z, type ZodType } from 'zod';
@@ -71,16 +71,7 @@ const deliveryInput = z.object({
 const sweepCompleteInput = z.object({
   sessionId: z.string().uuid(),
   rulesVersion: z.number().int().positive(),
-  segments: z
-    .array(
-      z.object({
-        ticks: z.number().int().min(1).max(SWEEP_MAX_TICKS),
-        direction: z.number().int().min(0).max(7).nullable(),
-        sweeping: z.boolean(),
-      }),
-    )
-    .min(1)
-    .max(600),
+  moves: z.array(z.enum(SWEEP_DIRECTIONS)).min(1).max(SWEEP_MAX_MOVES),
 });
 
 abstract class BaseTaskExecutor<TInput = unknown> implements SectTaskExecutor<TInput> {
@@ -156,8 +147,6 @@ export class SweepGameTaskExecutor extends BaseTaskExecutor<Record<string, unkno
             sessionId,
             seed,
             rulesVersion: SWEEP_RULES_VERSION,
-            tickRate: SWEEP_TICK_RATE,
-            maxTicks: SWEEP_MAX_TICKS,
             expiresAt: expiresAt.toISOString(),
           },
         },
@@ -176,18 +165,19 @@ export class SweepGameTaskExecutor extends BaseTaskExecutor<Record<string, unkno
     const now = context.ports.clock.now();
     if (typeof session.expiresAt !== 'string' || new Date(session.expiresAt) < now)
       invalid('清扫场次已过期，请重新开始');
-    if (typeof session.startedAt !== 'string' || typeof session.seed !== 'string')
+    if (typeof session.seed !== 'string')
       invalid('清扫场次数据缺失');
-    const segments = completeInput.segments as SweepInputSegment[];
-    const submittedTicks = segments.reduce((sum, segment) => sum + segment.ticks, 0);
-    const elapsedTicks = Math.floor(
-      (now.getTime() - new Date(session.startedAt).getTime()) / (1_000 / SWEEP_TICK_RATE),
+    const simulation = simulateSweepMoves(
+      session.seed,
+      completeInput.moves as SweepDirection[],
     );
-    if (submittedTicks > elapsedTicks + SWEEP_TICK_RATE * 2)
-      invalid('清扫轨迹时长与实际场次不符');
-    const simulation = simulateSweepTrace(session.seed, segments);
-    if (!simulation.success)
-      invalid(simulation.reason === 'timeout' ? '清扫已超时，可重新挑战' : '云阶尚有落叶未清理干净');
+    if (!simulation.success) {
+      if (simulation.reason === 'leaves_remaining')
+        invalid('云阶尚有落叶未清理干净');
+      if (simulation.reason === 'not_at_end')
+        invalid('尚未抵达山门终点');
+      invalid('清扫路线无效，请重新挑战');
+    }
     return {
       completed: true,
       outcome: { renderer: 'sect.outcome.completed', data: { success: true } },

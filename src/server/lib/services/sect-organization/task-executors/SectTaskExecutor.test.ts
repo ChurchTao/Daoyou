@@ -1,9 +1,15 @@
-import type { SectTaskDefinition } from '@shared/engine/sect';
+import {
+  createSweepMaze,
+  sweepDirectionsForPath,
+  SWEEP_RULES_VERSION,
+  type SectTaskDefinition,
+} from '@shared/engine/sect';
 import { describe, expect, it } from 'vitest';
 import {
   BattleTaskExecutor,
   MaterialDeliveryTaskExecutor,
   SweepGameTaskExecutor,
+  type SectTaskExecutionContext,
 } from './SectTaskExecutor';
 
 const definition: SectTaskDefinition = {
@@ -47,5 +53,79 @@ describe('SectTaskExecutor action presentation', () => {
     expect(new SweepGameTaskExecutor().actions(definition)[0]?.renderer).toBe(
       'sect.action.sweep',
     );
+  });
+
+  it('starts and deterministically validates a version two sweep session', async () => {
+    const executor = new SweepGameTaskExecutor();
+    const sessionId = '22222222-2222-4222-8222-222222222222';
+    let now = new Date('2026-07-22T10:00:00.000Z');
+    const context = {
+      userId: 'user',
+      cultivatorId: 'cultivator',
+      requestId: 'request',
+      membership: { id: 'membership', sectId: 'fixture-sect' },
+      record,
+      definition,
+      ports: {
+        ids: { next: () => sessionId },
+        clock: { now: () => now },
+      },
+    } as unknown as SectTaskExecutionContext;
+
+    const started = await executor.execute('start', context, {});
+    expect(started).toMatchObject({
+      completed: false,
+      outcome: {
+        renderer: 'sect.outcome.sweep-session',
+        data: { sessionId, rulesVersion: SWEEP_RULES_VERSION },
+      },
+    });
+    const seed = `${record.id}:${sessionId}`;
+    const moves = sweepDirectionsForPath(createSweepMaze(seed).solution);
+    const completionContext = {
+      ...context,
+      record: { ...record, payload: started.payload },
+    } as SectTaskExecutionContext;
+    await expect(
+      executor.execute('complete', completionContext, {
+        sessionId,
+        rulesVersion: SWEEP_RULES_VERSION,
+        moves,
+      }),
+    ).resolves.toMatchObject({ completed: true });
+
+    now = new Date('2026-07-22T10:11:00.000Z');
+    await expect(
+      executor.execute('complete', completionContext, {
+        sessionId,
+        rulesVersion: SWEEP_RULES_VERSION,
+        moves,
+      }),
+    ).rejects.toThrow('清扫场次已过期');
+  });
+
+  it('accepts only bounded four-direction sweep move payloads', () => {
+    const schema = new SweepGameTaskExecutor().inputSchema('complete');
+    expect(
+      schema.safeParse({
+        sessionId: '22222222-2222-4222-8222-222222222222',
+        rulesVersion: SWEEP_RULES_VERSION,
+        moves: ['up', 'right'],
+      }).success,
+    ).toBe(true);
+    expect(
+      schema.safeParse({
+        sessionId: '22222222-2222-4222-8222-222222222222',
+        rulesVersion: SWEEP_RULES_VERSION,
+        segments: [{ direction: 0, ticks: 1, sweeping: true }],
+      }).success,
+    ).toBe(false);
+    expect(
+      schema.safeParse({
+        sessionId: '22222222-2222-4222-8222-222222222222',
+        rulesVersion: SWEEP_RULES_VERSION,
+        moves: ['diagonal'],
+      }).success,
+    ).toBe(false);
   });
 });

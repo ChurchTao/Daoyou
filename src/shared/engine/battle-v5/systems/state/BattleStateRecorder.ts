@@ -188,6 +188,7 @@ export class BattleStateRecorder {
       sourceName: buff.getSource()?.name,
       layers: buff.getLayer(),
       remaining: buff.isPermanent() ? -1 : buff.getDuration(),
+      durationUnit: 'owner_action',
       isPermanent: buff.isPermanent(),
     }));
   }

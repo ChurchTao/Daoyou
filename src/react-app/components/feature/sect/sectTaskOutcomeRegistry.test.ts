@@ -12,9 +12,7 @@ describe('sect task outcome registry', () => {
       data: {
         sessionId: 'session',
         seed: 'seed',
-        rulesVersion: 1,
-        tickRate: 20,
-        maxTicks: 1200,
+        rulesVersion: 2,
         expiresAt: '2026-01-01T00:00:00.000Z',
       },
     });
@@ -22,7 +20,7 @@ describe('sect task outcome registry', () => {
       ok: true,
       value: {
         renderer: 'sect.outcome.sweep-session',
-        data: { sessionId: 'session', tickRate: 20 },
+        data: { sessionId: 'session', expiresAt: '2026-01-01T00:00:00.000Z' },
       },
     });
   });

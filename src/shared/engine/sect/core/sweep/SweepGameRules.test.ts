@@ -1,59 +1,112 @@
 import { describe, expect, it } from 'vitest';
 import {
   createSweepGameState,
-  simulateSweepTrace,
+  createSweepMaze,
+  simulateSweepMoves,
+  stepSweepGame,
+  sweepDirectionsForPath,
+  SWEEP_GRID_COLUMNS,
+  SWEEP_GRID_ROWS,
   SWEEP_LEAF_COUNT,
-  type SweepInputSegment,
+  SWEEP_MAX_MOVES,
+  type SweepCell,
+  type SweepMaze,
 } from './SweepGameRules';
 
-function lawnmowerTrace(): SweepInputSegment[] {
-  const trace: SweepInputSegment[] = [
-    { ticks: 48, direction: 6, sweeping: true },
-  ];
-  for (let row = 0; row < 5; row += 1) {
-    trace.push({ ticks: 12, direction: 0, sweeping: true });
-    trace.push({ ticks: 104, direction: row % 2 === 0 ? 2 : 6, sweeping: true });
-  }
-  return trace;
+const key = (cell: SweepCell) => `${cell.x}:${cell.y}`;
+
+function edgeCount(maze: SweepMaze) {
+  return maze.cells.reduce((sum, cell) => sum + cell.passages.length, 0) / 2;
+}
+
+function isBoundary(cell: SweepCell) {
+  return (
+    cell.x === 0 ||
+    cell.y === 0 ||
+    cell.x === SWEEP_GRID_COLUMNS - 1 ||
+    cell.y === SWEEP_GRID_ROWS - 1
+  );
 }
 
 describe('SweepGameRules', () => {
-  it('generates the same eighteen leaves for the same seed', () => {
-    const left = createSweepGameState('sect:date:session');
-    const right = createSweepGameState('sect:date:session');
-    expect(left.leaves).toHaveLength(SWEEP_LEAF_COUNT);
-    expect(right.leaves).toEqual(left.leaves);
+  it('generates the same perfect maze, endpoints, and leaves for the same seed', () => {
+    const left = createSweepMaze('sect:date:session');
+    const right = createSweepMaze('sect:date:session');
+
+    expect(right).toEqual(left);
+    expect(left.cells).toHaveLength(SWEEP_GRID_COLUMNS * SWEEP_GRID_ROWS);
+    expect(edgeCount(left)).toBe(left.cells.length - 1);
+    expect(left.solution).toHaveLength(new Set(left.solution.map(key)).size);
   });
 
-  it('replays a valid compressed input trace to a successful result', () => {
-    const result = simulateSweepTrace('sweep-success', lawnmowerTrace());
+  it('chooses boundary endpoints and places twelve unique leaves on their path', () => {
+    const maze = createSweepMaze('leaf-placement');
+    const solutionKeys = new Set(maze.solution.map(key));
+    const leafKeys = maze.leaves.map(key);
+
+    expect(isBoundary(maze.start)).toBe(true);
+    expect(isBoundary(maze.end)).toBe(true);
+    expect(maze.leaves).toHaveLength(SWEEP_LEAF_COUNT);
+    expect(new Set(leafKeys).size).toBe(SWEEP_LEAF_COUNT);
+    expect(leafKeys).not.toContain(key(maze.start));
+    expect(leafKeys).not.toContain(key(maze.end));
+    expect(leafKeys.every((leaf) => solutionKeys.has(leaf))).toBe(true);
+  });
+
+  it('replays the unique solution to collect every leaf and reach the end', () => {
+    const state = createSweepGameState('sweep-success');
+    const moves = sweepDirectionsForPath(state.maze.solution);
+    const result = simulateSweepMoves('sweep-success', moves);
+
     expect(result.success).toBe(true);
-    expect(result.state.cleared).toBe(SWEEP_LEAF_COUNT);
+    expect(result.state.completed).toBe(true);
+    expect(result.state.collectedLeaves).toHaveLength(SWEEP_LEAF_COUNT);
+    expect(result.state.player).toEqual(result.state.maze.end);
   });
 
-  it('rejects malformed directions and oversized traces', () => {
+  it('blocks walls and visited cells during local play', () => {
+    const state = createSweepGameState('blocked-moves');
+    const startCell = state.maze.cells.find(
+      (cell) => cell.x === state.player.x && cell.y === state.player.y,
+    )!;
+    const wall = ['up', 'right', 'down', 'left'].find(
+      (direction) => !startCell.passages.includes(direction as never),
+    ) as 'up' | 'right' | 'down' | 'left';
+    const forward = startCell.passages[0]!;
+    const moved = stepSweepGame(state, forward);
+
+    expect(stepSweepGame(state, wall)).toMatchObject({ moved: false, reason: 'wall' });
+    expect(moved.moved).toBe(true);
+    const reverse = { up: 'down', right: 'left', down: 'up', left: 'right' }[
+      forward
+    ] as 'up' | 'right' | 'down' | 'left';
+    expect(stepSweepGame(moved.state, reverse)).toMatchObject({
+      moved: false,
+      reason: 'visited',
+    });
+  });
+
+  it('rejects illegal, repeated, oversized, and incomplete server traces', () => {
+    const state = createSweepGameState('server-validation');
+    const first = sweepDirectionsForPath(state.maze.solution)[0]!;
+    const reverse = { up: 'down', right: 'left', down: 'up', left: 'right' }[
+      first
+    ] as 'up' | 'right' | 'down' | 'left';
+
+    expect(simulateSweepMoves('server-validation', ['diagonal']).reason).toBe(
+      'invalid_move',
+    );
+    expect(simulateSweepMoves('server-validation', [first, reverse]).reason).toBe(
+      'revisited_cell',
+    );
     expect(
-      simulateSweepTrace('invalid', [
-        { ticks: 1, direction: 8, sweeping: false },
-      ]).reason,
-    ).toBe('invalid_trace');
-    expect(
-      simulateSweepTrace(
-        'oversized',
-        Array.from({ length: 601 }, () => ({
-          ticks: 1,
-          direction: null,
-          sweeping: false,
-        })),
+      simulateSweepMoves(
+        'server-validation',
+        Array.from({ length: SWEEP_MAX_MOVES + 1 }, () => first),
       ).reason,
-    ).toBe('too_many_segments');
-  });
-
-  it('does not accept a trace that leaves debris behind', () => {
-    const result = simulateSweepTrace('incomplete', [
-      { ticks: 10, direction: 0, sweeping: false },
-    ]);
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('leaves_remaining');
+    ).toBe('too_many_moves');
+    expect(simulateSweepMoves('server-validation', [first]).reason).toBe(
+      'leaves_remaining',
+    );
   });
 });

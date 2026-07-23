@@ -80,12 +80,16 @@ describe('V4.2战斗日志归组', () => {
         source,
       }),
       entry('action_state', {
+        unitId: 'actor',
         unitName: '魁星士',
         stateType: 'rest',
         phase: 'entered',
         name: '调息',
         remainingActions: 1,
-        sourceAbilityName: '剑落星河',
+        sourceAbility: {
+          id: 'falling-stars',
+          name: '剑落星河',
+        },
       }),
     ]);
 
@@ -142,6 +146,7 @@ describe('V4.2战斗日志归组', () => {
       turn: 2,
       actor: { id: 'actor', name: '魁星士' },
       entries: [entry('action_state', {
+        unitId: 'actor',
         unitName: '魁星士',
         stateType: 'rest',
         phase: 'skipped',
@@ -177,7 +182,6 @@ describe('V4.2战斗日志归组', () => {
         remainMp: 900,
         targetName: '魁星士',
         healType: 'mp',
-        sourceBuff: '脏腑·五气回流',
         source: {
           unitId: 'actor',
           unitName: '魁星士',
@@ -186,10 +190,13 @@ describe('V4.2战斗日志归组', () => {
         },
       }),
       entry('buff_apply', {
+        buffId: 'body_cultivation_organs_skill_refund_marker',
         buffName: '脏腑·五气已回流',
         buffType: 'buff',
+        targetId: 'actor',
         targetName: '魁星士',
         duration: -1,
+        durationUnit: 'owner_action',
         visibility: 'debug',
       }),
       entry('mechanic', {

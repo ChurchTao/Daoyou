@@ -92,8 +92,6 @@ export interface SectSweepSessionData {
   sessionId: string;
   seed: string;
   rulesVersion: number;
-  tickRate: number;
-  maxTicks: number;
   expiresAt: string;
 }
 

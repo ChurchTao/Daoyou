@@ -38,6 +38,13 @@ describe('战斗状态紧凑展示', () => {
   it('行动状态使用无边框方括号文案', () => {
     expect(
       formatCompactActionState({
+        type: 'ability_mode',
+        name: '魔相·止观',
+        remainingActions: 2,
+      }),
+    ).toBe('「魔相·止观」（2回合）');
+    expect(
+      formatCompactActionState({
         type: 'rest',
         name: '调息',
         remainingActions: 1,
@@ -78,6 +85,7 @@ describe('战斗状态紧凑展示', () => {
             type: 'buff',
             layers: 1,
             remaining: 3,
+            durationUnit: 'owner_action',
             isPermanent: false,
             sourceName: '魁星士',
           },
@@ -87,6 +95,7 @@ describe('战斗状态紧凑展示', () => {
             type: 'control',
             layers: 1,
             remaining: 1,
+            durationUnit: 'owner_action',
             isPermanent: false,
           },
           {
@@ -95,6 +104,7 @@ describe('战斗状态紧凑展示', () => {
             type: 'debuff',
             layers: 2,
             remaining: 2,
+            durationUnit: 'owner_action',
             isPermanent: false,
           },
           {
@@ -103,6 +113,7 @@ describe('战斗状态紧凑展示', () => {
             type: 'buff',
             layers: 2,
             remaining: 3,
+            durationUnit: 'owner_action',
             isPermanent: false,
           },
         ],
@@ -110,18 +121,48 @@ describe('战斗状态紧凑展示', () => {
     ).toEqual([
       expect.objectContaining({ label: '[调息·1]', tone: 'default' }),
       expect.objectContaining({ label: '[蓄势·听雷沉山]', tone: 'default' }),
-      expect.objectContaining({ label: '[眩晕·1]', tone: 'debuff' }),
-      expect.objectContaining({ label: '[破甲×2·2]', tone: 'debuff' }),
+      expect.objectContaining({ label: '「眩晕」（1回合）', tone: 'debuff' }),
+      expect.objectContaining({ label: '「破甲×2」（2回合）', tone: 'debuff' }),
       expect.objectContaining({
-        label: '[剑意冲霄·3]',
+        label: '「剑意冲霄」（3回合）',
         tone: 'buff',
         title: '剑意冲霄 · 余3次自身行动；来源：魁星士；物攻提高。',
       }),
-      expect.objectContaining({ label: '[剑痕×2·3]', tone: 'buff' }),
+      expect.objectContaining({ label: '「剑痕×2」（3回合）', tone: 'buff' }),
     ]);
   });
 
-  it('顶部隐藏常驻与调试状态，旧快照缺少可见性时仍展示', () => {
+  it('按持续时间单位区分自身行动与整轮', () => {
+    expect(
+      getCompactStatusTags({
+        buffs: [
+          {
+            id: 'owner-action',
+            name: '凝神',
+            type: 'buff',
+            layers: 1,
+            remaining: 2,
+            durationUnit: 'owner_action',
+            isPermanent: false,
+          },
+          {
+            id: 'round',
+            name: '天时',
+            type: 'buff',
+            layers: 1,
+            remaining: 2,
+            durationUnit: 'round',
+            isPermanent: false,
+          },
+        ],
+      }),
+    ).toEqual([
+      expect.objectContaining({ label: '「凝神」（2回合）' }),
+      expect.objectContaining({ label: '「天时」（2轮）' }),
+    ]);
+  });
+
+  it('顶部隐藏常驻与调试状态，普通临时状态正常展示', () => {
     expect(
       getCompactStatusTags({
         buffs: [
@@ -131,6 +172,7 @@ describe('战斗状态紧凑展示', () => {
             type: 'buff',
             layers: 1,
             remaining: -1,
+            durationUnit: 'owner_action',
             isPermanent: true,
           },
           {
@@ -139,21 +181,23 @@ describe('战斗状态紧凑展示', () => {
             type: 'buff',
             layers: 1,
             remaining: 2,
+            durationUnit: 'owner_action',
             isPermanent: false,
             logVisibility: 'debug',
           },
           {
-            id: 'legacy-buff',
-            name: '旧记录增益',
+            id: 'normal-buff',
+            name: '普通增益',
             type: 'buff',
             layers: 1,
             remaining: 2,
+            durationUnit: 'owner_action',
             isPermanent: false,
           },
         ],
       }),
     ).toEqual([
-      expect.objectContaining({ label: '[旧记录增益·2]', tone: 'buff' }),
+      expect.objectContaining({ label: '「普通增益」（2回合）', tone: 'buff' }),
     ]);
   });
 
@@ -167,6 +211,7 @@ describe('战斗状态紧凑展示', () => {
             type: 'buff',
             layers: 1,
             remaining: 2,
+            durationUnit: 'owner_action',
             isPermanent: false,
             logVisibility: 'debug',
             statusVisibility: 'player',
@@ -177,13 +222,14 @@ describe('战斗状态紧凑展示', () => {
             type: 'buff',
             layers: 1,
             remaining: 2,
+            durationUnit: 'owner_action',
             isPermanent: false,
             logVisibility: 'debug',
           },
         ],
       }),
     ).toEqual([
-      expect.objectContaining({ label: '[火印·2]', tone: 'buff' }),
+      expect.objectContaining({ label: '「火印」（2回合）', tone: 'buff' }),
     ]);
   });
 });

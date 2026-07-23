@@ -1,22 +1,24 @@
 import {
+  attachSweepPhaser,
+  type SweepPhaserController,
+} from '@app/routes/game/sect/affairs/SweepPhaserRuntime';
+import {
+  isSweepDirection,
   SWEEP_RULES_VERSION,
-  type SweepGameState,
-  type SweepInputSegment,
+  type SweepDirection,
+  type SweepGameProgress,
 } from '@shared/engine/sect';
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
-import {
-  attachSweepLittleJs,
-  setSweepVirtualInput,
-} from '@app/routes/game/sect/affairs/SweepLittleJsRuntime';
 
 type ParentMessage = {
-  type: 'sect-sweep:input';
+  type: 'sect-sweep:move' | 'sect-sweep:reset';
   sessionId: string;
   rulesVersion: number;
-  direction: number | null;
-  sweeping: boolean;
+  direction?: SweepDirection;
 };
+
+type RuntimeData = SweepGameProgress | SweepDirection[] | string;
 
 export default function SectSweepRuntimePage() {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -27,17 +29,11 @@ export default function SectSweepRuntimePage() {
 
   useEffect(() => {
     const root = rootRef.current;
-    if (
-      !root ||
-      !sessionId ||
-      !seed ||
-      rulesVersion !== SWEEP_RULES_VERSION
-    )
+    if (!root || !sessionId || !seed || rulesVersion !== SWEEP_RULES_VERSION)
       return;
     const origin = window.location.origin;
-    let dispose: (() => void) | undefined;
-    let cancelled = false;
-    const post = (type: string, data: SweepGameState | SweepInputSegment[]) =>
+    let controller: SweepPhaserController | undefined;
+    const post = (type: string, data: RuntimeData) =>
       window.parent.postMessage(
         { type, sessionId, rulesVersion, data },
         origin,
@@ -46,28 +42,32 @@ export default function SectSweepRuntimePage() {
       if (
         event.origin !== origin ||
         event.source !== window.parent ||
-        event.data?.type !== 'sect-sweep:input' ||
-        event.data.sessionId !== sessionId ||
-        event.data.rulesVersion !== rulesVersion
+        event.data?.sessionId !== sessionId ||
+        event.data?.rulesVersion !== rulesVersion
       )
         return;
-      setSweepVirtualInput(event.data.direction, event.data.sweeping);
+      if (event.data.type === 'sect-sweep:reset') {
+        controller?.reset();
+        return;
+      }
+      if (
+        event.data.type === 'sect-sweep:move' &&
+        isSweepDirection(event.data.direction)
+      )
+        controller?.move(event.data.direction);
     };
     window.addEventListener('message', onMessage);
-    void attachSweepLittleJs({
+    controller = attachSweepPhaser({
       root,
       seed,
       onState: (state) => post('sect-sweep:state', state),
-      onSuccess: (trace) => post('sect-sweep:success', trace),
-    }).then((cleanup) => {
-      if (cancelled) cleanup();
-      else dispose = cleanup;
+      onSuccess: (moves) => post('sect-sweep:success', moves),
+      onError: (message) => post('sect-sweep:error', message),
     });
     return () => {
-      cancelled = true;
       window.removeEventListener('message', onMessage);
-      setSweepVirtualInput(null, false);
-      dispose?.();
+      controller?.destroy();
+      controller = undefined;
     };
   }, [rulesVersion, seed, sessionId]);
 

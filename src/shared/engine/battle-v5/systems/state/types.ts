@@ -14,8 +14,9 @@ export interface BuffStateView {
   /** Buff 来源单位的显示名。 */
   sourceName?: string;
   layers: number;
-  /** 剩余自身行动数；-1 表示永久 */
+  /** 剩余持续单位数；-1 表示永久 */
   remaining: number;
+  durationUnit: 'owner_action' | 'round';
   isPermanent: boolean;
 }
 

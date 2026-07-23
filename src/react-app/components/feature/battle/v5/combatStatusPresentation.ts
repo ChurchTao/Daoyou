@@ -15,7 +15,7 @@ export interface CompactStatusTag {
 
 export function formatCompactActionState(state: ActionState): string {
   if (state.type === 'ability_mode') {
-    return `[${state.name}·${state.remainingActions}]`;
+    return `「${state.name}」（${state.remainingActions}回合）`;
   }
   if (state.type === 'rest') {
     return `[调息·${state.remainingActions}]`;
@@ -36,12 +36,18 @@ export function formatActionStateTitle(state: ActionState): string {
 
 function formatCompactBuffStatus(buff: BuffState): string {
   const layers = buff.layers > 1 ? `×${buff.layers}` : '';
-  return `[${buff.name}${layers}·${buff.remaining}]`;
+  const duration = buff.durationUnit === 'owner_action'
+    ? `${buff.remaining}回合`
+    : `${buff.remaining}轮`;
+  return `「${buff.name}${layers}」（${duration}）`;
 }
 
 function formatBuffStatusTitle(buff: BuffState): string {
   const layers = buff.layers > 1 ? `×${buff.layers}` : '';
-  const details = [`${buff.name}${layers} · 余${buff.remaining}次自身行动`];
+  const remaining = buff.durationUnit === 'owner_action'
+    ? `余${buff.remaining}次自身行动`
+    : `余${buff.remaining}轮`;
+  const details = [`${buff.name}${layers} · ${remaining}`];
   if (buff.sourceName) details.push(`来源：${buff.sourceName}`);
   if (buff.description) details.push(buff.description);
   return details.join('；');

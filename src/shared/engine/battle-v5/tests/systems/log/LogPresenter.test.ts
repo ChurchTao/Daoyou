@@ -106,8 +106,7 @@ describe('LogPresenter 行动日志聚合', () => {
         isCritical: false,
         targetName: '李四',
         damageSource: 'follow_up',
-        sourceUnitId: 'a',
-        sourceUnitName: '张三',
+        source: { unitId: 'a', unitName: '张三' },
         cause: { kind: 'mechanic', id: 'reaction-vaporize', displayName: '蒸发' },
       }),
     ]);
@@ -133,8 +132,7 @@ describe('LogPresenter 行动日志聚合', () => {
         isCritical: false,
         targetName: '李四',
         damageSource: 'follow_up',
-        sourceUnitId: 'a',
-        sourceUnitName: '张三',
+        source: { unitId: 'a', unitName: '张三' },
         cause: {
           kind: 'mechanic',
           id: `reaction-${displayName}`,
@@ -148,7 +146,7 @@ describe('LogPresenter 行动日志聚合', () => {
     );
   });
 
-  it('无结构化原因的既有追伤应保留兼容文本', () => {
+  it('无结构化原因的追伤使用通用文本', () => {
     const presenter = new LogPresenter();
     const span = createActionSpan([
       createEntry('damage', {
@@ -158,8 +156,7 @@ describe('LogPresenter 行动日志聚合', () => {
         isCritical: false,
         targetName: '李四',
         damageSource: 'follow_up',
-        sourceUnitId: 'a',
-        sourceUnitName: '张三',
+        source: { unitId: 'a', unitName: '张三' },
       }),
     ]);
 
@@ -182,8 +179,7 @@ describe('LogPresenter 行动日志聚合', () => {
           isCritical: false,
           targetName: '李四',
           damageSource: 'follow_up' as const,
-          sourceUnitId: 'a',
-          sourceUnitName: '张三',
+          source: { unitId: 'a', unitName: '张三' },
           cause: {
             kind: 'mechanic' as const,
             id: id as string,
@@ -210,9 +206,12 @@ describe('LogPresenter 行动日志聚合', () => {
           isCritical: false,
           targetName: '李四',
           damageSource: 'delayed' as const,
-          sourceBuff: '灼烧',
-          sourceUnitId: 'a',
-          sourceUnitName: '张三',
+          source: {
+            unitId: 'a',
+            unitName: '张三',
+            buffId: 'burn',
+            buffName: '灼烧',
+          },
           cause: { kind: 'mechanic' as const, id: 'vaporize', displayName: '蒸发' },
         }),
       ),
@@ -238,9 +237,12 @@ describe('LogPresenter 行动日志聚合', () => {
           isCritical: false,
           targetName: '李四',
           damageSource: 'delayed',
-          sourceBuff: '灼烧',
-          sourceUnitId: 'a',
-          sourceUnitName: '张三',
+          source: {
+            unitId: 'a',
+            unitName: '张三',
+            buffId: 'burn',
+            buffName: '灼烧',
+          },
         }),
       ],
     };
@@ -269,8 +271,7 @@ describe('LogPresenter 行动日志聚合', () => {
         isCritical: false,
         targetName: '李四',
         damageSource: 'follow_up',
-        sourceUnitId: 'a',
-        sourceUnitName: '张三',
+        source: { unitId: 'a', unitName: '张三' },
         cause: { kind: 'mechanic', id: 'vaporize', displayName: '蒸发' },
       }),
       createEntry('mechanic', {
@@ -323,16 +324,169 @@ describe('LogPresenter 行动日志聚合', () => {
         beforeHp: 0
       }),
       createEntry('buff_apply', {
+        buffId: 'burn',
         buffName: '灼烧',
         buffType: 'debuff',
+        targetId: 'b',
         targetName: '李四',
         layers: 2,
         duration: 2,
+        durationUnit: 'owner_action',
       }),
     ]);
 
     expect(presenter.formatSpan(span)).toEqual([
       '「张三」施放《火球术》，对「李四」造成 1,280 点伤害并施加「灼烧」×2（未来2次自身行动）',
+    ]);
+  });
+
+  it('同一技能连续叠加同名状态时只展示最终层数', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      ...[672, 703, 663].map((value) =>
+        createEntry('damage', {
+          value,
+          remainHp: 10_000,
+          isCritical: false,
+          targetName: '李四',
+          beforeHp: 12_038,
+        }),
+      ),
+      ...[1, 2, 3].map((layers) =>
+        createEntry('buff_apply', {
+          buffId: 'status.stack',
+          buffName: '业门',
+          buffType: 'debuff',
+          targetId: 'b',
+          targetName: '李四',
+          layers,
+          duration: 4,
+          durationUnit: 'owner_action',
+        }),
+      ),
+    ]);
+    span.ability = { id: 'three-knocks', name: '三叩业门' };
+
+    expect(presenter.formatSpan(span)).toEqual([
+      '「张三」施放《三叩业门》，对「李四」连续命中3段：',
+      '672、703、663，合计2,038点气血伤害并施加「业门」×3（未来4次自身行动）',
+    ]);
+  });
+
+  it('同名但不同 ID 的状态保持独立展示', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('buff_apply', {
+        buffId: 'status.fire.outer',
+        buffName: '灼烧',
+        buffType: 'debuff',
+        targetId: 'b',
+        targetName: '李四',
+        layers: 1,
+        duration: 2,
+        durationUnit: 'owner_action',
+      }),
+      createEntry('buff_apply', {
+        buffId: 'status.fire.inner',
+        buffName: '灼烧',
+        buffType: 'debuff',
+        targetId: 'b',
+        targetName: '李四',
+        layers: 2,
+        duration: 3,
+        durationUnit: 'owner_action',
+      }),
+    ]);
+
+    expect(presenter.formatSpan(span)).toEqual([
+      '「张三」施放《火球术》，对「李四」施加「灼烧」（未来2次自身行动）、「灼烧」×2（未来3次自身行动）',
+    ]);
+  });
+
+  it('纯状态层数变化不进入玩家日志，反击结果仍保留', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('damage', {
+        value: 1,
+        remainHp: 999,
+        isCritical: false,
+        targetName: '李四',
+        beforeHp: 1_000,
+      }),
+      createEntry('mechanic', {
+        mechanic: 'buff_layer',
+        targetName: '张三',
+        sourceName: '李四',
+        name: '业门',
+        displayName: '业门',
+        visibility: 'player',
+        source: { unitName: '李四', buffName: '业门' },
+      }),
+      createEntry('damage', {
+        value: 326,
+        remainHp: 674,
+        isCritical: false,
+        targetName: '张三',
+        beforeHp: 1_000,
+        damageSource: 'counter',
+        source: {
+          unitName: '李四',
+          abilityName: '业门',
+        },
+      }),
+    ]);
+    span.ability = { id: 'basic_attack', name: '普攻' };
+
+    expect(presenter.formatSpan(span)).toEqual([
+      '「张三」发起攻击，对「李四」造成 1 点伤害',
+      '「李四」触发「业门」反击，对「张三」造成326点伤害',
+    ]);
+  });
+
+  it('形态技能先展示施法效果，再独立展示进入形态', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('buff_apply', {
+        buffId: 'status.guard',
+        buffName: '止观',
+        buffType: 'buff',
+        targetId: 'a',
+        targetName: '张三',
+        duration: -1,
+        durationUnit: 'owner_action',
+      }),
+      createEntry('action_state', {
+        unitId: 'a',
+        unitName: '张三',
+        stateType: 'ability_mode',
+        phase: 'entered',
+        name: '魔相·止观',
+        remainingActions: 2,
+        sourceAbility: {
+          id: 'turn-form',
+          name: '魔相入身',
+        },
+      }),
+      createEntry('resource_change', {
+        targetName: '张三',
+        resourceId: 'sect.wuxiang.war-intent',
+        resourceName: '心念',
+        resourceMax: 6,
+        operation: 'subtract',
+        reason: 'spend',
+        requested: -3,
+        applied: -3,
+        overflow: 0,
+        before: 3,
+        after: 0,
+      }),
+    ]);
+    span.ability = { id: 'turn-form', name: '魔相入身' };
+
+    expect(presenter.formatSpan(span)).toEqual([
+      '「张三」施放《魔相入身》，对「张三」施加「止观」（永久）',
+      '「张三」进入「魔相·止观」',
+      '消耗3点心念（0/6）',
     ]);
   });
 

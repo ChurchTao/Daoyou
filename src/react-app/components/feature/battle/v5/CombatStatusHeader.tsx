@@ -193,7 +193,7 @@ function UnitSummary({ unit }: { unit: UnitStateSnapshot }) {
       })}
       {statusTags.length > 0 && (
         <SummaryInfoRow label="状态">
-          <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-1">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
             {statusTags.map((tag) => (
               <span
                 key={tag.key}
@@ -202,7 +202,7 @@ function UnitSummary({ unit }: { unit: UnitStateSnapshot }) {
                   'whitespace-nowrap',
                   tag.tone === 'buff' && 'text-teal',
                   tag.tone === 'debuff' && 'text-crimson',
-                  tag.tone === 'default' && 'text-ink',
+                  tag.tone === 'default' && 'text-ink-secondary',
                 )}
               >
                 {tag.label}

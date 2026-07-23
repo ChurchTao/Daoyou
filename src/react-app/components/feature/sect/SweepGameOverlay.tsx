@@ -9,11 +9,8 @@ import type {
   SectTaskViewData,
 } from '@shared/contracts/sect';
 import {
-  SWEEP_LEAF_COUNT,
-  SWEEP_MAX_TICKS,
-  SWEEP_TICK_RATE,
-  type SweepGameState,
-  type SweepInputSegment,
+  type SweepDirection,
+  type SweepGameProgress,
 } from '@shared/engine/sect';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -52,7 +49,7 @@ export function SweepGameOverlay({
   const [session, setSession] = useState<SectSweepSessionData | undefined>(
     initialSession,
   );
-  const [state, setState] = useState<SweepGameState>();
+  const [state, setState] = useState<SweepGameProgress>();
   const [starting, setStarting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [operationError, setOperationError] = useState<string>();
@@ -102,7 +99,7 @@ export function SweepGameOverlay({
   }, [initialSession, start]);
 
   const complete = useCallback(
-    async (trace: SweepInputSegment[]) => {
+    async (moves: SweepDirection[]) => {
       if (!session || completedRef.current) return;
       completedRef.current = true;
       setSubmitting(true);
@@ -115,7 +112,7 @@ export function SweepGameOverlay({
               input: {
                 sessionId: session.sessionId,
                 rulesVersion: session.rulesVersion,
-                segments: trace,
+                moves,
               },
             },
             session.sessionId,
@@ -152,7 +149,7 @@ export function SweepGameOverlay({
         type?: string;
         sessionId?: string;
         rulesVersion?: number;
-        data?: SweepGameState | SweepInputSegment[];
+        data?: SweepGameProgress | SweepDirection[] | string;
       }>,
     ) => {
       if (
@@ -163,24 +160,25 @@ export function SweepGameOverlay({
       )
         return;
       if (event.data.type === 'sect-sweep:state')
-        setState(event.data.data as SweepGameState);
+        setState(event.data.data as SweepGameProgress);
       if (event.data.type === 'sect-sweep:success')
-        void complete(event.data.data as SweepInputSegment[]);
+        void complete(event.data.data as SweepDirection[]);
+      if (event.data.type === 'sect-sweep:error')
+        setOperationError(String(event.data.data));
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
   }, [complete, session]);
 
-  const sendVirtualInput = useCallback(
-    (direction: number | null, sweeping: boolean) => {
+  const sendMove = useCallback(
+    (direction: SweepDirection) => {
       if (!session) return;
       iframeRef.current?.contentWindow?.postMessage(
         {
-          type: 'sect-sweep:input',
+          type: 'sect-sweep:move',
           sessionId: session.sessionId,
           rulesVersion: session.rulesVersion,
           direction,
-          sweeping,
         },
         window.location.origin,
       );
@@ -188,12 +186,39 @@ export function SweepGameOverlay({
     [session],
   );
 
-  const remainingSeconds = Math.max(
-    0,
-    Math.ceil((SWEEP_MAX_TICKS - (state?.tick ?? 0)) / SWEEP_TICK_RATE),
-  );
-  const timedOut =
-    state?.tick === SWEEP_MAX_TICKS && state.cleared < SWEEP_LEAF_COUNT;
+  const reset = useCallback(() => {
+    if (!session || submitting) return;
+    completedRef.current = false;
+    setOperationError(undefined);
+    iframeRef.current?.contentWindow?.postMessage(
+      {
+        type: 'sect-sweep:reset',
+        sessionId: session.sessionId,
+        rulesVersion: session.rulesVersion,
+      },
+      window.location.origin,
+    );
+  }, [session, submitting]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const direction = {
+        ArrowUp: 'up',
+        KeyW: 'up',
+        ArrowRight: 'right',
+        KeyD: 'right',
+        ArrowDown: 'down',
+        KeyS: 'down',
+        ArrowLeft: 'left',
+        KeyA: 'left',
+      }[event.code] as SweepDirection | undefined;
+      if (!direction || event.repeat) return;
+      event.preventDefault();
+      sendMove(direction);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [sendMove]);
 
   return (
     <div
@@ -202,25 +227,31 @@ export function SweepGameOverlay({
       aria-modal="true"
       aria-label={`${task.presentation.title}小游戏`}
     >
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 border-b border-white/15 pb-3">
+      <header className="mx-auto flex w-full max-w-6xl flex-wrap items-start justify-between gap-3 border-b border-white/15 pb-3 sm:items-center">
         <div>
           <h2 className="font-serif text-xl">{task.presentation.title}</h2>
           <p className="text-xs text-stone-300">
-            WASD / 方向键移动，空格挥帚；移动端使用下方控件。
+            逐格走过山门，落叶会自动清扫；已经走过的格子不可返回。
           </p>
         </div>
-        <div className="flex items-center gap-4 text-sm tabular-nums">
+        <div className="flex flex-wrap items-center justify-end gap-3 text-sm tabular-nums sm:gap-4">
           <span>
-            落叶 {state?.cleared ?? 0}/{SWEEP_LEAF_COUNT}
+            落叶 {state?.cleared ?? 0}/{state?.totalLeaves ?? 12}
           </span>
-          <span>连扫 {state?.maxCombo ?? 0}</span>
-          <span>余时 {remainingSeconds}s</span>
+          <span>步数 {state?.steps ?? 0}</span>
+          <InkButton
+            variant="secondary"
+            onClick={reset}
+            disabled={!session || starting || submitting}
+          >
+            重走
+          </InkButton>
           <InkButton variant="secondary" onClick={close} disabled={submitting}>
             退出
           </InkButton>
         </div>
       </header>
-      <div className="relative mx-auto mt-3 min-h-0 w-full max-w-6xl flex-1 overflow-hidden rounded-sm border border-white/15 bg-stone-900 shadow-2xl">
+      <div className="relative mx-auto mt-3 aspect-[25/14] min-h-0 w-full max-w-6xl flex-none overflow-hidden rounded-sm border border-white/15 bg-stone-900 shadow-2xl sm:aspect-auto sm:flex-1">
         {session ? (
           <iframe
             ref={iframeRef}
@@ -252,35 +283,33 @@ export function SweepGameOverlay({
             </InkNotice>
           </div>
         ) : null}
-        {timedOut ? (
-          <div className="absolute inset-0 grid place-items-center bg-stone-950/75 p-6 text-center">
-            <InkNotice>
-              时限已过，场内仍有落叶。此次不会消耗今日委托。
-              <InkButton onClick={() => void start()}>重新清扫</InkButton>
-            </InkNotice>
-          </div>
-        ) : null}
       </div>
-      <MobileControls onInput={sendVirtualInput} />
+      <MobileControls onMove={sendMove} />
     </div>
   );
 }
 
-function MobileControls({
-  onInput,
-}: {
-  onInput: (direction: number | null, sweeping: boolean) => void;
-}) {
-  const directions = [7, 0, 1, 6, null, 2, 5, 4, 3] as const;
-  const [heldDirection, setHeldDirection] = useState<number | null>(null);
-  const [sweeping, setSweeping] = useState(false);
-  useEffect(() => {
-    onInput(heldDirection, sweeping);
-    return () => onInput(null, false);
-  }, [heldDirection, onInput, sweeping]);
+function MobileControls({ onMove }: { onMove: (direction: SweepDirection) => void }) {
+  const directions = [
+    null,
+    'up',
+    null,
+    'left',
+    null,
+    'right',
+    null,
+    'down',
+    null,
+  ] as const;
+  const labels: Record<SweepDirection, string> = {
+    up: '↑',
+    right: '→',
+    down: '↓',
+    left: '←',
+  };
   return (
-    <div className="mx-auto mt-3 flex w-full max-w-6xl items-end justify-between sm:hidden">
-      <div className="grid w-36 grid-cols-3 gap-1" aria-label="移动方向">
+    <div className="mx-auto mt-3 flex w-full max-w-6xl justify-center sm:hidden">
+      <div className="grid w-40 grid-cols-3 gap-1" aria-label="移动方向">
         {directions.map((direction, index) =>
           direction === null ? (
             <span key={index} />
@@ -289,31 +318,14 @@ function MobileControls({
               key={direction}
               type="button"
               className="aspect-square rounded-full border border-white/20 bg-white/10 text-lg active:bg-white/30"
-              onPointerDown={(event) => {
-                event.currentTarget.setPointerCapture(event.pointerId);
-                setHeldDirection(direction);
-              }}
-              onPointerUp={() => setHeldDirection(null)}
-              onPointerCancel={() => setHeldDirection(null)}
-              aria-label={`方向 ${direction}`}
+              onClick={() => onMove(direction)}
+              aria-label={`向${{ up: '上', right: '右', down: '下', left: '左' }[direction]}移动`}
             >
-              {['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'][direction]}
+              {labels[direction]}
             </button>
           ),
         )}
       </div>
-      <button
-        type="button"
-        className="h-24 w-24 rounded-full border-2 border-amber-200/50 bg-amber-800/40 font-serif text-lg active:bg-amber-700/70"
-        onPointerDown={(event) => {
-          event.currentTarget.setPointerCapture(event.pointerId);
-          setSweeping(true);
-        }}
-        onPointerUp={() => setSweeping(false)}
-        onPointerCancel={() => setSweeping(false)}
-      >
-        挥帚
-      </button>
     </div>
   );
 }

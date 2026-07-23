@@ -38,16 +38,25 @@ describe('sect map configuration', () => {
     ).toBe(true);
   });
 
-  it('uses the router and a unified transform canvas instead of native anchors', () => {
-    const source = readFileSync(
+  it('uses a focused map component with quiet, selectable hotspots', () => {
+    const routeSource = readFileSync(
       'src/react-app/routes/game/sect/route.tsx',
       'utf8',
     );
-    expect(source).toContain('useNavigate');
-    expect(source).toContain('TransformWrapper');
-    expect(source).toContain('TransformComponent');
-    expect(source).not.toContain('<a');
-    expect(source).not.toContain('设施名录');
+    const mapSource = readFileSync(
+      'src/react-app/routes/game/sect/components/SectMap.tsx',
+      'utf8',
+    );
+
+    expect(routeSource).toContain('useNavigate');
+    expect(routeSource).toContain('<SectMap');
+    expect(routeSource).not.toContain('<a');
+    expect(mapSource).toContain('TransformWrapper');
+    expect(mapSource).toContain('TransformComponent');
+    expect(mapSource).toContain('KeepScale');
+    expect(mapSource).toContain('设施名录');
+    expect(mapSource).toContain('aria-pressed={selected}');
+    expect(mapSource).not.toContain('disabled={state.locked}');
   });
 
   it('keeps legacy routes as replace redirects', () => {

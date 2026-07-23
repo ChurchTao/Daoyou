@@ -4,13 +4,16 @@ import {
   DamageEntryData,
   LogEntry,
   LogEntryType,
-  LogSourceRef,
   LogSpan,
   PresentedLogLine,
   PresentedLogPart,
 } from './types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { getResourceText } from '@shared/lib/gameConceptDisplay';
+import {
+  getLogEntrySource,
+  reduceActionLog,
+} from './ActionLogReducer';
 
 /**
  * 控制标签 → 战报状态描述（基于行动完全被压制的场景）
@@ -54,43 +57,16 @@ export class LogPresenter {
   private presentAction(span: LogSpan): PresentedLogLine[] {
     const actorName = span.actor?.name ?? '未知';
     const actionPrefix = this.actionPrefixParts(actorName, span.ability);
-    const visibleEntries = span.entries.filter((entry) => {
-      if (entry.type !== 'buff_apply' && entry.type !== 'mechanic') return true;
-      return (entry.data as { visibility?: 'player' | 'debug' }).visibility !== 'debug';
-    });
-    const resourceEntries = this.findEntries(visibleEntries, 'resource_change')
-      .filter((entry) => !entry.data.isInitial);
-    const actionStateEntries = this.findEntries(visibleEntries, 'action_state');
-    const secondaryDamage = this.findEntries(visibleEntries, 'damage').filter(
-      (entry) =>
-        entry.data.damageSource === 'follow_up' ||
-        entry.data.damageSource === 'counter' ||
-        entry.data.damageSource === 'reflect' ||
-        (entry.data.damageSource === 'delayed' && Boolean(entry.data.cause)),
-    );
-    const secondaryDamageIds = new Set(secondaryDamage.map((entry) => entry.id));
-    const namedTriggers = this.findEntries(visibleEntries, 'mechanic').filter(
-      (entry) => entry.data.mechanic === 'named_trigger',
-    );
-    const statusTransitions = this.findEntries(visibleEntries, 'mechanic').filter(
-      (entry) => entry.data.mechanic === 'status_transition',
-    );
-    const standaloneMechanicIds = new Set(
-      [...namedTriggers, ...statusTransitions].map((entry) => entry.id),
-    );
-    const outcomeEntries = visibleEntries.filter((entry) =>
-      entry.type !== 'resource_change' &&
-      entry.type !== 'action_state' &&
-      !standaloneMechanicIds.has(entry.id) &&
-      !(entry.type === 'damage' && secondaryDamageIds.has(entry.id)) &&
-      !this.isZeroOutcome(entry),
-    );
-    const triggerEntries = outcomeEntries.filter((entry) =>
-      this.isTriggeredOutcome(entry, span),
-    );
-    const primaryEntries = outcomeEntries.filter(
-      (entry) => !triggerEntries.includes(entry),
-    );
+    const {
+      primaryEntries,
+      triggerEntries,
+      secondaryDamage,
+      namedTriggers,
+      statusTransitions,
+      abilityModeStates,
+      deferredActionStates,
+      resourceEntries,
+    } = reduceActionLog(span);
     const targets = this.extractPrimaryTargets(primaryEntries);
     const lines: PresentedLogLine[] = [];
 
@@ -123,6 +99,10 @@ export class LogPresenter {
       lines.push(this.line('primary', ...actionPrefix));
     }
 
+    for (const entry of abilityModeStates) {
+      const stateLine = this.actionStateLine(entry, true);
+      if (stateLine) lines.push(stateLine);
+    }
     for (const mechanic of namedTriggers) {
       lines.push(
         this.line('trigger', this.textPart(this.formatMechanic(mechanic))),
@@ -138,7 +118,7 @@ export class LogPresenter {
     for (const entry of resourceEntries) {
       lines.push(this.resourceChangeLine(entry));
     }
-    for (const entry of actionStateEntries) {
+    for (const entry of deferredActionStates) {
       const stateLine = this.actionStateLine(entry, false);
       if (stateLine) lines.push(stateLine);
     }
@@ -305,7 +285,7 @@ export class LogPresenter {
     const lines: PresentedLogLine[] = [];
     for (const group of groups) {
       const first = group[0];
-      const source = this.getEntrySource(first);
+      const source = getLogEntrySource(first);
       const targetName = this.entryTargetName(first) ?? fallbackActorName;
       const prefix: PresentedLogPart[] = [
         this.unitPart(source?.unitName ?? targetName),
@@ -418,7 +398,7 @@ export class LogPresenter {
   ): Array<Array<LogEntry<T>>> {
     const groups = new Map<string, Array<LogEntry<T>>>();
     for (const entry of entries.filter((item) => item.data.value > 0)) {
-      const source = this.getEntrySource(entry);
+      const source = getLogEntrySource(entry);
       const drainType = entry.type === 'resource_drain'
         ? (entry.data as LogEntry<'resource_drain'>['data']).drainType
         : 'mp';
@@ -438,7 +418,7 @@ export class LogPresenter {
   private groupBySource(entries: LogEntry[]): LogEntry[][] {
     const groups = new Map<string, LogEntry[]>();
     for (const entry of entries) {
-      const source = this.getEntrySource(entry);
+      const source = getLogEntrySource(entry);
       const key = [
         source?.buffId ?? source?.buffName ?? '',
         source?.abilityId ?? source?.abilityName ?? '',
@@ -491,56 +471,6 @@ export class LogPresenter {
   private entryTargetName(entry: LogEntry): string | undefined {
     const data = entry.data as { targetName?: string; unitName?: string };
     return data.targetName ?? data.unitName;
-  }
-
-  private isZeroOutcome(entry: LogEntry): boolean {
-    if (
-      entry.type === 'heal' ||
-      entry.type === 'mana_burn' ||
-      entry.type === 'resource_drain' ||
-      entry.type === 'shield'
-    ) {
-      return (entry.data as { value: number }).value <= 0;
-    }
-    return false;
-  }
-
-  private isTriggeredOutcome(entry: LogEntry, span: LogSpan): boolean {
-    const source = this.getEntrySource(entry);
-    if (source?.buffId || source?.buffName) return true;
-    return Boolean(
-      source?.abilityId &&
-      span.ability?.id &&
-      source.abilityId !== span.ability.id,
-    );
-  }
-
-  private getEntrySource(entry: LogEntry): LogSourceRef | undefined {
-    const data = entry.data as {
-      source?: LogSourceRef;
-      sourceUnitId?: string;
-      sourceUnitName?: string;
-      sourceAbilityId?: string;
-      sourceAbilityName?: string;
-      sourceBuff?: string;
-    };
-    if (data.source) return data.source;
-    if (
-      data.sourceUnitId ||
-      data.sourceUnitName ||
-      data.sourceAbilityId ||
-      data.sourceAbilityName ||
-      data.sourceBuff
-    ) {
-      return {
-        unitId: data.sourceUnitId,
-        unitName: data.sourceUnitName,
-        abilityId: data.sourceAbilityId,
-        abilityName: data.sourceAbilityName,
-        buffName: data.sourceBuff,
-      };
-    }
-    return undefined;
   }
 
   private damageSegmentParts(entry: LogEntry<'damage'>): PresentedLogPart[] {
@@ -729,6 +659,15 @@ export class LogPresenter {
   ): PresentedLogLine | undefined {
     const data = entry.data;
     const unit = includeUnit ? [this.unitPart(data.unitName)] : [];
+    if (data.stateType === 'ability_mode') {
+      if (data.phase !== 'entered') return undefined;
+      return this.line(
+        'state',
+        ...unit,
+        this.textPart('进入'),
+        this.statusPart(`「${data.name}」`),
+      );
+    }
     if (data.stateType === 'rest') {
       if (data.phase === 'entered') {
         return this.line(
@@ -750,7 +689,7 @@ export class LogPresenter {
       }
       return undefined;
     }
-    const abilityName = data.abilityName ?? '后发神通';
+    const abilityName = data.ability?.name ?? '后发神通';
     if (data.phase === 'entered') {
       return this.line(
         'state',
@@ -1011,11 +950,15 @@ export class LogPresenter {
     if (entries.length === 0) return [];
     const groups = new Map<string, Array<LogEntry<'damage'>>>();
     for (const entry of entries) {
+      const entrySource = getLogEntrySource(entry);
       const key = [
-        entry.data.sourceUnitId ?? entry.data.sourceUnitName ?? 'unknown',
-        entry.data.sourceAbilityId ?? entry.data.sourceAbilityName ?? source,
+        entrySource?.unitId ?? entrySource?.unitName ?? 'unknown',
+        entrySource?.abilityId ??
+          entrySource?.abilityName ??
+          entrySource?.buffId ??
+          entrySource?.buffName ??
+          source,
         entry.data.targetName,
-        entry.data.sourceBuff ?? '',
         entry.data.cause?.kind ?? '',
         entry.data.cause?.id ?? '',
       ].join('|');
@@ -1026,11 +969,12 @@ export class LogPresenter {
 
     return Array.from(groups.values()).map((group) => {
       const first = group[0];
+      const firstSource = getLogEntrySource(first);
       const sourceName = this.formatName(
-        first.data.sourceUnitName ?? first.data.reflectSourceName ?? '未知',
+        firstSource?.unitName ?? first.data.reflectSourceName ?? '未知',
       );
       const targetName = this.formatName(first.data.targetName);
-      const abilityName = first.data.sourceAbilityName;
+      const abilityName = firstSource?.abilityName ?? firstSource?.buffName;
       const totalDamage = group.reduce((sum, entry) => sum + entry.data.value, 0);
       const totalShield = group.reduce(
         (sum, entry) => sum + (entry.data.shieldAbsorbed ?? 0),
@@ -1054,7 +998,7 @@ export class LogPresenter {
         return `${sourceName}${trigger}，对${targetName}造成${damageText}${shieldText}`;
       }
       if (source === 'delayed') {
-        const buffName = first.data.sourceBuff ?? '持续效果';
+        const buffName = firstSource?.buffName ?? '持续效果';
         const causeName = first.data.cause?.displayName;
         if (causeName) {
           const settlement = group.length > 1
@@ -1103,6 +1047,10 @@ export class LogPresenter {
   ): string | undefined {
     const data = entry.data;
     const unit = includeUnit ? `${this.formatName(data.unitName)}` : '';
+    if (data.stateType === 'ability_mode') {
+      if (data.phase !== 'entered') return undefined;
+      return `${unit}进入「${data.name}」`;
+    }
     if (data.stateType === 'rest') {
       if (data.phase === 'entered') return `${unit}进入「调息」，下一次行动跳过`;
       if (data.phase === 'skipped') {
@@ -1110,7 +1058,7 @@ export class LogPresenter {
       }
       return undefined;
     }
-    const abilityName = data.abilityName ?? '后发神通';
+    const abilityName = data.ability?.name ?? '后发神通';
     if (data.phase === 'entered') {
       return `${unit}开始蓄势，下一行动将发动${this.formatSkill(abilityName)}`;
     }
@@ -1144,8 +1092,11 @@ export class LogPresenter {
     damage: LogEntry<'damage'> | undefined,
     heal: LogEntry<'heal'> | undefined,
   ): string | undefined {
-    if (damage?.data.sourceBuff) {
-      let result = `${actor}身上的「${damage.data.sourceBuff}」发作`;
+    const damageBuffName = damage
+      ? getLogEntrySource(damage)?.buffName
+      : undefined;
+    if (damage && damageBuffName) {
+      let result = `${actor}身上的「${damageBuffName}」发作`;
       result += `，造成 ${this.formatNumber(damage.data.value)} 点伤害`;
 
       if (damage.data.shieldAbsorbed && damage.data.shieldAbsorbed > 0) {
@@ -1159,9 +1110,10 @@ export class LogPresenter {
       return result;
     }
 
-    if (heal?.data.sourceBuff) {
+    const healBuffName = heal ? getLogEntrySource(heal)?.buffName : undefined;
+    if (heal && healBuffName) {
       const resourceLabel = getResourceText(heal.data.healType ?? 'hp');
-      return `${actor}身上的「${heal.data.sourceBuff}」生效，恢复 ${this.formatNumber(heal.data.value)} 点${resourceLabel}`;
+      return `${actor}身上的「${healBuffName}」生效，恢复 ${this.formatNumber(heal.data.value)} 点${resourceLabel}`;
     }
 
     return undefined;

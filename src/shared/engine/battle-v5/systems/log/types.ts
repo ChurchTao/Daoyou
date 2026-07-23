@@ -1,4 +1,10 @@
 
+import type {
+  ActionStateAbilityView,
+  ActionStatePhase,
+  ActionStateType,
+} from '../../core/actionState';
+
 // ===== LogEntryType =====
 export type LogEntryType =
   | 'damage'
@@ -57,16 +63,11 @@ export interface DamageEntryData {
   remainHp: number;
   isCritical: boolean;
   targetName: string;
-  sourceBuff?: string;
   damageSource?: 'direct' | 'reflect' | 'counter' | 'follow_up' | 'delayed';
   reflectSourceName?: string;
   shieldAbsorbed?: number;
   remainShield?: number;
   damageType?: 'physical' | 'magical' | 'true' | 'dot';
-  sourceUnitId?: string;
-  sourceUnitName?: string;
-  sourceAbilityId?: string;
-  sourceAbilityName?: string;
   source?: LogSourceRef;
   cause?: LogCauseRef;
 }
@@ -76,7 +77,6 @@ export interface HealEntryData {
   remainHp: number;
   remainMp?: number;
   targetName: string;
-  sourceBuff?: string;
   healType?: 'hp' | 'mp';
   source?: LogSourceRef;
 }
@@ -96,12 +96,14 @@ export interface ManaShieldAbsorbEntryData {
 }
 
 export interface BuffApplyEntryData {
+  buffId: string;
   buffName: string;
   buffType: 'buff' | 'debuff' | 'control';
+  targetId: string;
   targetName: string;
   layers?: number;
   duration: number;
-  durationUnit?: 'owner_action' | 'round';
+  durationUnit: 'owner_action' | 'round';
   visibility?: 'player' | 'debug';
   source?: LogSourceRef;
 }
@@ -223,20 +225,19 @@ export interface ResourceChangeEntryData {
   overflow: number;
   before: number;
   after: number;
-  sourceAbilityId?: string;
-  sourceAbilityName?: string;
   isInitial?: boolean;
   source?: LogSourceRef;
 }
 
 export interface ActionStateEntryData {
+  unitId: string;
   unitName: string;
-  stateType: 'rest' | 'queued_action' | 'ability_mode';
-  phase: 'entered' | 'triggered' | 'cancelled' | 'skipped';
+  stateType: ActionStateType;
+  phase: ActionStatePhase;
   name: string;
   remainingActions: number;
-  sourceAbilityName?: string;
-  abilityName?: string;
+  sourceAbility?: ActionStateAbilityView;
+  ability?: ActionStateAbilityView;
   reason?: string;
 }
 
