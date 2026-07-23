@@ -56,6 +56,15 @@ describe('sect map configuration', () => {
     expect(mapSource).toContain('KeepScale');
     expect(mapSource).toContain('设施名录');
     expect(mapSource).toContain('aria-pressed={selected}');
+    expect(mapSource).toContain('minScale={1}');
+    expect(mapSource).not.toContain('centerZoomedOut');
+    expect(mapSource).toContain('FacilityMarkerGlyph');
+    expect(mapSource).not.toContain('rotate-45');
+    expect(mapSource).toContain('size-[18px]');
+    expect(mapSource).toContain('scale-[1.08]');
+    expect(mapSource).toContain('AVAILABLE_MARKER_STYLE');
+    expect(mapSource).not.toContain('rounded-full bg-current');
+    expect(mapSource).not.toContain('opacity-0 group-hover:opacity-100');
     expect(mapSource).not.toContain('disabled={state.locked}');
   });
 

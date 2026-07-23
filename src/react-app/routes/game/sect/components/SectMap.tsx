@@ -35,6 +35,31 @@ interface MapControlButtonProps extends Pick<
   children: ReactNode;
 }
 
+const MAP_LABEL_STYLE = {
+  textShadow:
+    '-1px -1px 0 rgba(250, 245, 230, 0.95), 1px -1px 0 rgba(250, 245, 230, 0.95), -1px 1px 0 rgba(250, 245, 230, 0.95), 1px 1px 0 rgba(250, 245, 230, 0.95), 0 2px 4px rgba(26, 20, 15, 0.35)',
+} as const;
+
+const AVAILABLE_MARKER_STYLE = {
+  background:
+    'radial-gradient(circle at 30% 22%, rgba(255,235,229,0.96) 0%, rgba(255,210,198,0.56) 9%, transparent 27%), linear-gradient(145deg, #d86b5c 0%, #a93e34 34%, #76221e 68%, #4a110f 100%)',
+  boxShadow:
+    'inset 0 1px 1px rgba(255,255,255,0.46), inset 0 -2px 3px rgba(46,8,6,0.48), 0 1px 3px rgba(26,20,15,0.42)',
+} as const;
+
+const SELECTED_MARKER_STYLE = {
+  ...AVAILABLE_MARKER_STYLE,
+  boxShadow:
+    'inset 0 1px 1px rgba(255,255,255,0.48), inset 0 -2px 3px rgba(46,8,6,0.42), 0 0 0 2px rgba(250,245,230,0.88), 0 0 0 4px rgba(145,36,28,0.3), 0 2px 5px rgba(26,20,15,0.4)',
+} as const;
+
+const LOCKED_MARKER_STYLE = {
+  background:
+    'radial-gradient(circle at 32% 26%, #8c8177 0%, #5f554d 38%, #332b27 100%)',
+  boxShadow:
+    'inset 0 1px 1px rgba(255,255,255,0.22), inset 0 -2px 3px rgba(12,9,7,0.42), 0 1px 3px rgba(26,20,15,0.36)',
+} as const;
+
 function MapControlButton({ label, children, onClick }: MapControlButtonProps) {
   return (
     <button
@@ -103,7 +128,7 @@ function LockIcon() {
   return (
     <svg
       viewBox="0 0 20 20"
-      className="size-3.5"
+      className="size-2.5"
       aria-hidden="true"
       fill="none"
       stroke="currentColor"
@@ -130,6 +155,41 @@ function CloseIcon() {
     >
       <path d="m5.5 5.5 9 9m0-9-9 9" />
     </svg>
+  );
+}
+
+function FacilityMarkerGlyph({
+  locked,
+  selected = false,
+}: {
+  locked: boolean;
+  selected?: boolean;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      style={
+        locked
+          ? LOCKED_MARKER_STYLE
+          : selected
+            ? SELECTED_MARKER_STYLE
+            : AVAILABLE_MARKER_STYLE
+      }
+      className={cn(
+        'relative flex size-[18px] shrink-0 transform-gpu items-center justify-center rounded-full border transition duration-150',
+        locked
+          ? 'border-paper/30 text-paper/75 group-hover:border-paper/45 group-hover:scale-105'
+          : selected
+            ? 'border-paper/90 text-paper'
+            : 'border-paper/65 text-paper/95 group-hover:border-paper/90 group-hover:scale-105',
+      )}
+    >
+      {locked ? (
+        <span className="relative z-10 flex items-center justify-center">
+          <LockIcon />
+        </span>
+      ) : null}
+    </span>
   );
 }
 
@@ -220,10 +280,9 @@ export function SectMap({
       <TransformWrapper
         ref={transformRef}
         initialScale={1}
-        minScale={0.72}
+        minScale={1}
         maxScale={3}
         centerOnInit
-        centerZoomedOut
         limitToBounds
         wheel={{ step: 0.16 }}
         panning={{
@@ -304,41 +363,21 @@ export function SectMap({
                               aria-label={`${spot.label}${level ? `，${level}级` : ''}${state.locked ? '，未开放' : ''}`}
                               onClick={() => setSelectedId(spot.id)}
                               className={cn(
-                                'sect-map-marker group focus-visible:outline-crimson relative flex size-11 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2',
+                                'sect-map-marker group focus-visible:outline-crimson relative flex size-11 transform-gpu items-center justify-center rounded-full transition-transform duration-150 focus-visible:outline-2 focus-visible:outline-offset-2',
+                                selected ? 'z-20 scale-[1.08]' : '',
                               )}
                             >
-                              <span
-                                aria-hidden="true"
-                                className={cn(
-                                  'absolute size-7 rotate-45 rounded-[3px] border shadow-[0_2px_8px_rgba(26,20,15,0.18)] backdrop-blur-[1px] transition',
-                                  state.locked
-                                    ? 'border-paper/30 bg-ink/65 text-paper/80'
-                                    : selected
-                                      ? 'border-crimson bg-paper text-crimson shadow-[0_3px_12px_rgba(118,32,24,0.25)]'
-                                      : 'border-ink/35 bg-paper/75 text-ink-secondary hover:border-crimson/60 hover:bg-paper',
-                                )}
+                              <FacilityMarkerGlyph
+                                locked={state.locked}
+                                selected={selected}
                               />
                               <span
-                                aria-hidden="true"
+                                style={MAP_LABEL_STYLE}
                                 className={cn(
-                                  'relative z-10 flex items-center justify-center',
+                                  'pointer-events-none absolute top-[34px] left-1/2 z-20 -translate-x-1/2 px-1 py-0.5 text-[11px] leading-4 font-semibold tracking-[0.08em] whitespace-nowrap',
                                   state.locked
-                                    ? 'text-paper/75'
-                                    : 'text-crimson/80',
-                                )}
-                              >
-                                {state.locked ? (
-                                  <LockIcon />
-                                ) : (
-                                  <span className="block size-1.5 rounded-full bg-current" />
-                                )}
-                              </span>
-                              <span
-                                className={cn(
-                                  'bg-paper/92 text-ink pointer-events-none absolute top-10 left-1/2 z-20 -translate-x-1/2 border-b border-dashed px-2 py-1 text-xs leading-5 whitespace-nowrap shadow-sm transition-opacity',
-                                  selected
-                                    ? 'border-crimson/35 opacity-100'
-                                    : 'border-ink/20 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
+                                    ? 'text-ink-secondary'
+                                    : 'text-crimson',
                                 )}
                               >
                                 {spot.label}
@@ -414,25 +453,9 @@ export function SectMap({
                     key={spot.id}
                     type="button"
                     onClick={() => selectFromList(spot)}
-                    className="hover:bg-ink/5 focus-visible:outline-crimson flex w-full items-center gap-3 px-1 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+                    className="hover:bg-ink/5 focus-visible:outline-crimson group flex w-full items-center gap-3 px-1 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
                   >
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        'flex size-7 shrink-0 rotate-45 items-center justify-center rounded-[3px] border',
-                        state.locked
-                          ? 'border-ink/25 bg-ink/55 text-paper/80'
-                          : 'border-crimson/25 bg-paper text-crimson/75',
-                      )}
-                    >
-                      <span className="-rotate-45">
-                        {state.locked ? (
-                          <LockIcon />
-                        ) : (
-                          <span className="block size-1.5 rounded-full bg-current" />
-                        )}
-                      </span>
-                    </span>
+                    <FacilityMarkerGlyph locked={state.locked} />
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-baseline gap-x-2">
                         <strong className="text-sm">{spot.label}</strong>
