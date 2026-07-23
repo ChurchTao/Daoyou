@@ -1,3 +1,6 @@
+import { GameplayTags } from '@shared/engine/shared/tag-domain';
+import { getResourceText } from '@shared/lib/gameConceptDisplay';
+import { getLogEntrySource, reduceActionLog } from './ActionLogReducer';
 import {
   CombatLogAIView,
   CombatLogSummary,
@@ -7,20 +10,15 @@ import {
   LogSpan,
   PresentedLogLine,
   PresentedLogPart,
+  PresentedLogTone,
 } from './types';
-import { GameplayTags } from '@shared/engine/shared/tag-domain';
-import { getResourceText } from '@shared/lib/gameConceptDisplay';
-import {
-  getLogEntrySource,
-  reduceActionLog,
-} from './ActionLogReducer';
 
 /**
  * 控制标签 → 战报状态描述（基于行动完全被压制的场景）
  * 仅处理 ControlledSkipEvent 可携带的标签（NO_ACTION / STUNNED）
  */
 const CONTROL_TAG_DESC: Readonly<Record<string, string>> = {
-  [GameplayTags.STATUS.CONTROL.STUNNED]:   '陷入眩晕',
+  [GameplayTags.STATUS.CONTROL.STUNNED]: '陷入眩晕',
   [GameplayTags.STATUS.CONTROL.NO_ACTION]: '失去行动力',
 };
 
@@ -48,10 +46,222 @@ export class LogPresenter {
     if (span.type === 'action') {
       return this.presentAction(span);
     }
-    return this.formatSpanText(span).map((line) => ({
-      role: this.roleForSpan(span),
-      parts: [{ kind: 'text', text: line }],
-    }));
+    return this.presentNonActionSpan(span);
+  }
+
+  private presentNonActionSpan(span: LogSpan): PresentedLogLine[] {
+    if (span.entries.length === 0) {
+      switch (span.type) {
+        case 'battle_init':
+          return [this.line('system', this.textPart('【战斗开始】'))];
+        case 'battle_end':
+          return [
+            this.line(
+              'system',
+              this.textPart('【战斗结束】'),
+              this.unitPart(span.actor?.name ?? '未知'),
+              this.textPart(' 获胜！', 'fatal', 'strong'),
+            ),
+          ];
+        case 'round_start':
+          return [
+            this.line(
+              'system',
+              this.textPart('【第 '),
+              this.rawNumberPart(String(span.turn), 'secondary'),
+              this.textPart(' 回合】'),
+            ),
+          ];
+        default:
+          return [];
+      }
+    }
+
+    switch (span.type) {
+      case 'battle_init':
+        return this.presentBattleInit(span);
+      case 'battle_end':
+        return [
+          this.line(
+            'system',
+            this.textPart('【战斗结束】'),
+            this.unitPart(span.actor?.name ?? '未知'),
+            this.textPart(' 获胜！', 'fatal', 'strong'),
+          ),
+        ];
+      case 'round_start':
+        return this.presentRoundStart(span);
+      case 'action_pre':
+        return this.presentActionPre(span);
+      case 'action_after':
+        return this.presentActionAfter(span);
+      default:
+        return [];
+    }
+  }
+
+  private presentBattleInit(span: LogSpan): PresentedLogLine[] {
+    const lines = [this.line('system', this.textPart('【战斗开始】'))];
+    for (const entry of this.findEntries(span.entries, 'resource_change')) {
+      if (!entry.data.isInitial || entry.data.after <= 0) continue;
+      lines.push(
+        this.line(
+          'system',
+          this.unitPart(entry.data.targetName),
+          this.textPart('以'),
+          this.numberPart(entry.data.after, 'resource'),
+          this.textPart('点'),
+          this.resourcePart(entry.data.resourceName),
+          this.textPart('进入战斗'),
+        ),
+      );
+    }
+    return lines;
+  }
+
+  private presentRoundStart(span: LogSpan): PresentedLogLine[] {
+    const lines = [
+      this.line(
+        'system',
+        this.textPart('【第 '),
+        this.rawNumberPart(String(span.turn), 'secondary'),
+        this.textPart(' 回合】'),
+      ),
+    ];
+    for (const entry of this.findEntries(span.entries, 'heal')) {
+      lines.push(
+        this.line(
+          'system',
+          this.unitPart(entry.data.targetName),
+          this.textPart('恢复 '),
+          this.numberPart(entry.data.value, 'positive'),
+          this.textPart(` 点${getResourceText(entry.data.healType ?? 'hp')}`),
+        ),
+      );
+    }
+    for (const entry of this.findEntries(span.entries, 'dispel')) {
+      lines.push(
+        this.line(
+          'system',
+          this.unitPart(entry.data.targetName),
+          this.textPart('驱散了', 'defense'),
+          ...this.quotedBuffParts(entry.data.buffs),
+        ),
+      );
+    }
+    return lines;
+  }
+
+  private presentActionAfter(span: LogSpan): PresentedLogLine[] {
+    const lines: PresentedLogLine[] = [];
+    const expiredEntries = this.findEntries(span.entries, 'buff_remove').filter(
+      (entry) => entry.data.reason === 'expired',
+    );
+    if (expiredEntries.length > 0) {
+      lines.push(
+        this.line(
+          'secondary',
+          this.unitPart(expiredEntries[0].data.targetName),
+          this.textPart('身上的'),
+          ...this.quotedBuffParts(
+            expiredEntries.map((entry) => entry.data.buffName),
+          ),
+          this.textPart('时效已过', 'secondary'),
+        ),
+      );
+    }
+    for (const entry of this.findEntries(
+      span.entries,
+      'resource_change',
+    ).filter((item) => !item.data.isInitial)) {
+      lines.push(this.line('secondary', ...this.resourceChangeParts(entry)));
+    }
+    return lines;
+  }
+
+  private presentActionPre(span: LogSpan): PresentedLogLine[] {
+    const actorName = span.actor?.name ?? '未知';
+    const entries = span.entries;
+    const damage = this.findEntry(entries, 'damage');
+    const heal = this.findEntry(entries, 'heal');
+    const controlSkip = this.findEntry(entries, 'control_skip');
+    const lines: PresentedLogLine[] = [];
+
+    const damageBuffName = damage
+      ? getLogEntrySource(damage)?.buffName
+      : undefined;
+    const healBuffName = heal ? getLogEntrySource(heal)?.buffName : undefined;
+
+    if (damage && damageBuffName) {
+      const parts: PresentedLogPart[] = [
+        this.unitPart(actorName),
+        this.textPart('身上的'),
+        this.buffPart(damageBuffName, 'debuff'),
+        this.textPart('发作，造成 '),
+        this.numberPart(
+          damage.data.value,
+          this.damageTone(damage.data.damageType),
+        ),
+        this.textPart(' 点伤害'),
+      ];
+      if ((damage.data.shieldAbsorbed ?? 0) > 0) {
+        parts.push(
+          this.textPart('（抵扣护盾 '),
+          this.numberPart(
+            Math.round(damage.data.shieldAbsorbed ?? 0),
+            'shield',
+          ),
+          this.textPart(' 点）'),
+        );
+      }
+      const death = this.findEntry(entries, 'death');
+      if (death?.data.targetName === actorName) {
+        parts.push(
+          this.textPart('，'),
+          this.unitPart(actorName),
+          this.textPart('被击败！', 'fatal', 'strong'),
+        );
+      }
+      lines.push(this.line('state', ...parts));
+    } else if (heal && healBuffName) {
+      lines.push(
+        this.line(
+          'state',
+          this.unitPart(actorName),
+          this.textPart('身上的'),
+          this.buffPart(healBuffName, 'buff'),
+          this.textPart('生效，恢复 '),
+          this.numberPart(heal.data.value, 'positive'),
+          this.textPart(` 点${getResourceText(heal.data.healType ?? 'hp')}`),
+        ),
+      );
+    }
+
+    for (const entry of this.findEntries(entries, 'action_state')) {
+      const stateLine = this.actionStateLine(entry, false);
+      if (stateLine) lines.push(stateLine);
+    }
+    if (controlSkip) {
+      lines.push(
+        this.line(
+          'state',
+          this.unitPart(actorName),
+          this.textPart(
+            `${getControlDesc(controlSkip.data.controlTag)}，本回合无法行动`,
+            'control',
+            'strong',
+          ),
+        ),
+      );
+    }
+    if (lines.length > 0) return lines;
+    return [
+      this.line(
+        'state',
+        this.unitPart(actorName),
+        this.textPart(' 持续效果触发'),
+      ),
+    ];
   }
 
   private presentAction(span: LogSpan): PresentedLogLine[] {
@@ -72,14 +282,20 @@ export class LogPresenter {
 
     if (targets.length === 1) {
       const targetLines = this.presentTargetOutcomes(
-        primaryEntries.filter((entry) => this.entryBelongsToTarget(entry, targets[0])),
+        primaryEntries.filter((entry) =>
+          this.entryBelongsToTarget(entry, targets[0]),
+        ),
         targets[0],
       );
       if (targetLines.length > 0) {
         targetLines[0] = {
           ...targetLines[0],
           role: 'primary',
-          parts: [...actionPrefix, this.textPart('，'), ...targetLines[0].parts],
+          parts: [
+            ...actionPrefix,
+            this.textPart('，'),
+            ...targetLines[0].parts,
+          ],
         };
         lines.push(...targetLines);
       } else {
@@ -90,7 +306,9 @@ export class LogPresenter {
       for (const target of targets) {
         lines.push(
           ...this.presentTargetOutcomes(
-            primaryEntries.filter((entry) => this.entryBelongsToTarget(entry, target)),
+            primaryEntries.filter((entry) =>
+              this.entryBelongsToTarget(entry, target),
+            ),
             target,
           ),
         );
@@ -104,16 +322,12 @@ export class LogPresenter {
       if (stateLine) lines.push(stateLine);
     }
     for (const mechanic of namedTriggers) {
-      lines.push(
-        this.line('trigger', this.textPart(this.formatMechanic(mechanic))),
-      );
+      lines.push(this.line('trigger', ...this.mechanicParts(mechanic)));
     }
     lines.push(...this.presentTriggerOutcomes(triggerEntries, actorName));
     lines.push(...this.presentSecondaryDamage(secondaryDamage));
     for (const mechanic of statusTransitions) {
-      lines.push(
-        this.line('trigger', this.textPart(this.formatMechanic(mechanic))),
-      );
+      lines.push(this.line('trigger', ...this.mechanicParts(mechanic)));
     }
     for (const entry of resourceEntries) {
       lines.push(this.resourceChangeLine(entry));
@@ -132,7 +346,8 @@ export class LogPresenter {
   ): PresentedLogLine[] {
     const lines: PresentedLogLine[] = [];
     const directDamage = this.findEntries(entries, 'damage').filter(
-      (entry) => !entry.data.damageSource || entry.data.damageSource === 'direct',
+      (entry) =>
+        !entry.data.damageSource || entry.data.damageSource === 'direct',
     );
     const buffs = this.findEntries(entries, 'buff_apply').filter(
       (entry) => entry.data.visibility !== 'debug',
@@ -147,48 +362,68 @@ export class LogPresenter {
     const interrupt = this.findEntry(entries, 'skill_interrupt');
 
     if (dodge) {
-      return [this.line(
-        'primary',
-        this.textPart('被'),
-        this.unitPart(targetName),
-        this.textPart('闪避了！'),
-      )];
+      return [
+        this.line(
+          'primary',
+          this.textPart('被'),
+          this.unitPart(targetName),
+          this.textPart('闪避了！', 'defense', 'strong'),
+        ),
+      ];
     }
     if (interrupt) {
-      return [this.line(
-        'primary',
-        this.textPart('打断了'),
-        this.unitPart(interrupt.data.targetName),
-        this.textPart('的'),
-        this.abilityPart(interrupt.data.skillName),
-        this.textPart('！'),
-      )];
+      return [
+        this.line(
+          'primary',
+          this.textPart('打断了', 'negative', 'strong'),
+          this.unitPart(interrupt.data.targetName),
+          this.textPart('的'),
+          this.abilityPart(interrupt.data.skillName),
+          this.textPart('！'),
+        ),
+      ];
     }
-    if (resist.length > 0 && entries.every((entry) => entry.type === 'resist')) {
-      return [this.line(
-        'primary',
-        this.textPart('被'),
-        this.unitPart(targetName),
-        this.textPart('抵抗了！'),
-      )];
+    if (
+      resist.length > 0 &&
+      entries.every((entry) => entry.type === 'resist')
+    ) {
+      return [
+        this.line(
+          'primary',
+          this.textPart('被'),
+          this.unitPart(targetName),
+          this.textPart('抵抗了！', 'defense', 'strong'),
+        ),
+      ];
     }
 
     if (directDamage.length > 1) {
-      lines.push(this.line(
-        'primary',
-        this.textPart('对'),
-        this.unitPart(targetName),
-        this.textPart(`连续命中${directDamage.length}段：`),
-      ));
+      lines.push(
+        this.line(
+          'primary',
+          this.textPart('对'),
+          this.unitPart(targetName),
+          this.textPart('连续命中'),
+          this.rawNumberPart(String(directDamage.length), 'secondary'),
+          this.textPart('段：'),
+        ),
+      );
       const detailParts: PresentedLogPart[] = [];
       directDamage.forEach((entry, index) => {
         if (index > 0) detailParts.push(this.textPart('、'));
         detailParts.push(...this.damageSegmentParts(entry));
       });
-      const totalDamage = directDamage.reduce((sum, entry) => sum + entry.data.value, 0);
+      const totalDamage = directDamage.reduce(
+        (sum, entry) => sum + entry.data.value,
+        0,
+      );
       detailParts.push(
         this.textPart('，合计'),
-        this.numberPart(totalDamage),
+        this.numberPart(
+          totalDamage,
+          this.groupDamageTone(directDamage),
+          'strong',
+        ),
         this.textPart('点气血伤害'),
       );
       const totalShield = directDamage.reduce(
@@ -198,11 +433,17 @@ export class LogPresenter {
       if (totalShield > 0) {
         detailParts.push(
           this.textPart('，护盾共吸收'),
-          this.numberPart(Math.round(totalShield)),
+          this.numberPart(Math.round(totalShield), 'shield'),
           this.textPart('点'),
         );
       }
-      this.appendDamageResultParts(detailParts, targetName, buffs, deathPrevent, death);
+      this.appendDamageResultParts(
+        detailParts,
+        targetName,
+        buffs,
+        deathPrevent,
+        death,
+      );
       lines.push(this.line('primary', ...detailParts));
     } else if (directDamage.length === 1 || damageImmune.length > 0) {
       const damage = directDamage[0];
@@ -210,34 +451,53 @@ export class LogPresenter {
         this.textPart('对'),
         this.unitPart(targetName),
         this.textPart('造成 '),
-        this.numberPart(damage?.data.value ?? 0),
+        this.numberPart(
+          damage?.data.value ?? 0,
+          this.damageTone(damage?.data.damageType),
+        ),
         this.textPart(' 点伤害'),
       ];
       if (damage?.data.isCritical) {
-        parts.push(this.textPart('（'), this.criticalPart(), this.textPart('）！'));
+        parts.push(
+          this.textPart('（'),
+          this.criticalPart(),
+          this.textPart('）！'),
+        );
       }
       const absorbed = damage?.data.shieldAbsorbed ?? 0;
       if (absorbed > 0) {
         parts.push(
           this.textPart('（抵扣护盾 '),
-          this.numberPart(Math.round(absorbed)),
-          this.textPart(damage?.data.remainShield === 0 ? ' 点，护盾已破碎）' : ' 点）'),
+          this.numberPart(Math.round(absorbed), 'shield'),
+          this.textPart(' 点'),
+          ...(damage?.data.remainShield === 0
+            ? [this.textPart('，护盾已破碎', 'fatal', 'strong')]
+            : []),
+          this.textPart('）'),
         );
       }
-      this.appendDamageResultParts(parts, targetName, buffs, deathPrevent, death);
+      this.appendDamageResultParts(
+        parts,
+        targetName,
+        buffs,
+        deathPrevent,
+        death,
+      );
       if (damageImmune.length > 0) {
         parts.push(
           this.textPart('，'),
           this.unitPart(targetName),
-          this.textPart('免疫了此次伤害'),
+          this.textPart('免疫了此次伤害', 'defense', 'strong'),
         );
       }
       if (buffImmune.length > 0) {
         parts.push(
           this.textPart('，'),
           this.unitPart(targetName),
-          this.textPart('免疫了'),
-          ...this.quotedBuffParts(buffImmune.map((entry) => entry.data.buffName)),
+          this.textPart('免疫了', 'defense', 'strong'),
+          ...this.quotedBuffParts(
+            buffImmune.map((entry) => entry.data.buffName),
+          ),
         );
       }
       if (manaShield.length > 0) {
@@ -253,9 +513,9 @@ export class LogPresenter {
           this.textPart('，'),
           this.unitPart(targetName),
           this.textPart('以法力化解 '),
-          this.numberPart(absorbedDamage),
+          this.numberPart(absorbedDamage, 'shield'),
           this.textPart(' 点伤害（消耗 '),
-          this.numberPart(mpConsumed),
+          this.numberPart(mpConsumed, 'negative'),
           this.textPart(' 点法力）'),
         );
       }
@@ -263,17 +523,24 @@ export class LogPresenter {
         parts.push(
           this.textPart('，'),
           this.unitPart(targetName),
-          this.textPart('抵抗了控制效果'),
+          this.textPart('抵抗了控制效果', 'defense', 'strong'),
         );
       }
       lines.push(this.line('primary', ...parts));
     } else {
       const resultParts = this.nonDamageOutcomeParts(entries, targetName);
-      if (resultParts.length > 0) lines.push(this.line('primary', ...resultParts));
+      if (resultParts.length > 0)
+        lines.push(this.line('primary', ...resultParts));
     }
 
-    lines.push(...this.presentManaBurns(this.findEntries(entries, 'mana_burn')));
-    lines.push(...this.presentResourceDrains(this.findEntries(entries, 'resource_drain')));
+    lines.push(
+      ...this.presentManaBurns(this.findEntries(entries, 'mana_burn')),
+    );
+    lines.push(
+      ...this.presentResourceDrains(
+        this.findEntries(entries, 'resource_drain'),
+      ),
+    );
     return lines;
   }
 
@@ -304,8 +571,12 @@ export class LogPresenter {
         );
       }
 
-      const heals = this.findEntries(group, 'heal').filter((entry) => entry.data.value > 0);
-      const shields = this.findEntries(group, 'shield').filter((entry) => entry.data.value > 0);
+      const heals = this.findEntries(group, 'heal').filter(
+        (entry) => entry.data.value > 0,
+      );
+      const shields = this.findEntries(group, 'shield').filter(
+        (entry) => entry.data.value > 0,
+      );
       const buffs = this.findEntries(group, 'buff_apply').filter(
         (entry) => entry.data.visibility !== 'debug',
       );
@@ -317,7 +588,10 @@ export class LogPresenter {
         const healType = heals[0].data.healType ?? 'hp';
         result.push(
           this.textPart('恢复'),
-          this.numberPart(heals.reduce((sum, entry) => sum + entry.data.value, 0)),
+          this.numberPart(
+            heals.reduce((sum, entry) => sum + entry.data.value, 0),
+            'positive',
+          ),
           this.textPart(`点${getResourceText(healType)}`),
         );
       }
@@ -325,36 +599,55 @@ export class LogPresenter {
         if (result.length > 0) result.push(this.textPart('，'));
         result.push(
           this.textPart('获得'),
-          this.numberPart(shields.reduce((sum, entry) => sum + entry.data.value, 0)),
+          this.numberPart(
+            shields.reduce((sum, entry) => sum + entry.data.value, 0),
+            'shield',
+          ),
           this.textPart('点护盾'),
         );
       }
       if (buffs.length > 0) {
         if (result.length > 0) result.push(this.textPart('，并'));
-        result.push(
-          this.textPart('获得'),
-          ...this.buffApplyParts(buffs),
-        );
+        result.push(this.textPart('获得'), ...this.buffApplyParts(buffs));
       }
       for (const mechanic of mechanics) {
         if (result.length > 0) result.push(this.textPart('，'));
-        result.push(this.textPart(this.formatMechanic(mechanic)));
+        result.push(...this.mechanicParts(mechanic));
       }
       if (result.length > 0) {
         lines.push(this.line('trigger', ...prefix, ...result));
       }
-      lines.push(...this.presentManaBurns(this.findEntries(group, 'mana_burn'), 'trigger'));
-      lines.push(...this.presentResourceDrains(this.findEntries(group, 'resource_drain'), 'trigger'));
+      lines.push(
+        ...this.presentManaBurns(
+          this.findEntries(group, 'mana_burn'),
+          'trigger',
+        ),
+      );
+      lines.push(
+        ...this.presentResourceDrains(
+          this.findEntries(group, 'resource_drain'),
+          'trigger',
+        ),
+      );
     }
     return lines;
   }
 
-  private presentSecondaryDamage(entries: Array<LogEntry<'damage'>>): PresentedLogLine[] {
+  private presentSecondaryDamage(
+    entries: Array<LogEntry<'damage'>>,
+  ): PresentedLogLine[] {
     const lines: PresentedLogLine[] = [];
-    for (const source of ['follow_up', 'counter', 'reflect', 'delayed'] as const) {
-      const sourceEntries = entries.filter((entry) => entry.data.damageSource === source);
-      for (const text of this.formatSecondaryDamageLines(sourceEntries, source)) {
-        lines.push(this.line('secondary', this.textPart(text)));
+    for (const source of [
+      'follow_up',
+      'counter',
+      'reflect',
+      'delayed',
+    ] as const) {
+      const sourceEntries = entries.filter(
+        (entry) => entry.data.damageSource === source,
+      );
+      for (const parts of this.secondaryDamageParts(sourceEntries, source)) {
+        lines.push(this.line('secondary', ...parts));
       }
     }
     return lines;
@@ -370,7 +663,7 @@ export class LogPresenter {
         role,
         this.textPart(group.length > 1 ? '共削减' : '削减'),
         this.unitPart(group[0].data.targetName),
-        this.numberPart(total),
+        this.numberPart(total, 'negative'),
         this.textPart('点法力'),
       );
     });
@@ -387,7 +680,7 @@ export class LogPresenter {
         this.textPart('从'),
         this.unitPart(group[0].data.targetName),
         this.textPart(group.length > 1 ? '身上共吸取' : '身上吸取'),
-        this.numberPart(total),
+        this.numberPart(total, 'negative'),
         this.textPart(`点${getResourceText(group[0].data.drainType)}`),
       );
     });
@@ -399,9 +692,10 @@ export class LogPresenter {
     const groups = new Map<string, Array<LogEntry<T>>>();
     for (const entry of entries.filter((item) => item.data.value > 0)) {
       const source = getLogEntrySource(entry);
-      const drainType = entry.type === 'resource_drain'
-        ? (entry.data as LogEntry<'resource_drain'>['data']).drainType
-        : 'mp';
+      const drainType =
+        entry.type === 'resource_drain'
+          ? (entry.data as LogEntry<'resource_drain'>['data']).drainType
+          : 'mp';
       const key = [
         source?.buffId ?? source?.buffName ?? '',
         source?.abilityId ?? source?.abilityName ?? '',
@@ -453,12 +747,14 @@ export class LogPresenter {
       if (
         entry.type === 'damage' &&
         (entry.data as DamageEntryData).damageSource === 'reflect'
-      ) continue;
+      )
+        continue;
       if (
         entry.type === 'resource_change' ||
         entry.type === 'action_state' ||
         entry.type === 'control_skip'
-      ) continue;
+      )
+        continue;
       targets.add(target);
     }
     return Array.from(targets);
@@ -475,12 +771,12 @@ export class LogPresenter {
 
   private damageSegmentParts(entry: LogEntry<'damage'>): PresentedLogPart[] {
     const parts: PresentedLogPart[] = [
-      this.numberPart(entry.data.value),
+      this.numberPart(entry.data.value, this.damageTone(entry.data.damageType)),
     ];
     if ((entry.data.shieldAbsorbed ?? 0) > 0) {
       parts.push(
         this.textPart('（护盾吸收'),
-        this.numberPart(Math.round(entry.data.shieldAbsorbed ?? 0)),
+        this.numberPart(Math.round(entry.data.shieldAbsorbed ?? 0), 'shield'),
         this.textPart('）'),
       );
     }
@@ -504,13 +800,13 @@ export class LogPresenter {
       parts.push(
         this.textPart('，'),
         this.unitPart(deathPrevent.data.targetName),
-        this.textPart('触发免死效果，保住了性命！'),
+        this.textPart('触发免死效果，保住了性命！', 'defense', 'strong'),
       );
     } else if (death) {
       parts.push(
         this.textPart('，'),
         this.unitPart(death.data.targetName ?? targetName),
-        this.textPart('被击败！'),
+        this.textPart('被击败！', 'fatal', 'strong'),
       );
     }
   }
@@ -524,8 +820,12 @@ export class LogPresenter {
       if (parts.length > 0) parts.push(this.textPart('，'));
       parts.push(...clause);
     };
-    const heals = this.findEntries(entries, 'heal').filter((entry) => entry.data.value > 0);
-    const shields = this.findEntries(entries, 'shield').filter((entry) => entry.data.value > 0);
+    const heals = this.findEntries(entries, 'heal').filter(
+      (entry) => entry.data.value > 0,
+    );
+    const shields = this.findEntries(entries, 'shield').filter(
+      (entry) => entry.data.value > 0,
+    );
     const buffs = this.findEntries(entries, 'buff_apply').filter(
       (entry) => entry.data.visibility !== 'debug',
     );
@@ -546,7 +846,10 @@ export class LogPresenter {
         this.textPart('为'),
         this.unitPart(targetName),
         this.textPart('恢复 '),
-        this.numberPart(matching.reduce((sum, entry) => sum + entry.data.value, 0)),
+        this.numberPart(
+          matching.reduce((sum, entry) => sum + entry.data.value, 0),
+          'positive',
+        ),
         this.textPart(` 点${getResourceText(healType)}`),
       );
     }
@@ -555,7 +858,10 @@ export class LogPresenter {
         this.textPart('为'),
         this.unitPart(targetName),
         this.textPart('施加 '),
-        this.numberPart(shields.reduce((sum, entry) => sum + entry.data.value, 0)),
+        this.numberPart(
+          shields.reduce((sum, entry) => sum + entry.data.value, 0),
+          'shield',
+        ),
         this.textPart(' 点护盾'),
       );
     }
@@ -573,12 +879,12 @@ export class LogPresenter {
         this.unitPart(targetName),
         this.textPart('施加的'),
         ...this.quotedBuffParts(buffImmune.map((entry) => entry.data.buffName)),
-        this.textPart('被免疫了'),
+        this.textPart('被免疫了', 'defense', 'strong'),
       );
     }
     for (const dispel of dispels) {
       appendClause(
-        this.textPart('清除了'),
+        this.textPart('清除了', 'defense'),
         this.unitPart(dispel.data.targetName),
         this.textPart('身上的'),
         ...this.quotedBuffParts(dispel.data.buffs),
@@ -592,7 +898,10 @@ export class LogPresenter {
         this.textPart('的'),
         this.abilityPart(cooldown.data.affectedSkillName),
         this.textPart(`冷却${action}`),
-        this.numberPart(Math.abs(cooldown.data.value)),
+        this.numberPart(
+          Math.abs(cooldown.data.value),
+          cooldown.data.value > 0 ? 'negative' : 'positive',
+        ),
         this.textPart('回合'),
       );
     }
@@ -601,11 +910,11 @@ export class LogPresenter {
         this.textPart('触发了'),
         this.unitPart(tag.data.targetName),
         this.textPart('身上的'),
-        this.buffPart(tag.data.displayName ?? '特殊标记'),
+        this.buffPart(tag.data.displayName ?? '特殊标记', 'mechanic'),
       );
     }
     for (const mechanic of mechanics) {
-      appendClause(this.textPart(this.formatMechanic(mechanic)));
+      appendClause(...this.mechanicParts(mechanic));
     }
     return parts;
   }
@@ -616,14 +925,16 @@ export class LogPresenter {
     const parts: PresentedLogPart[] = [];
     entries.forEach((entry, index) => {
       if (index > 0) parts.push(this.textPart('、'));
-      parts.push(this.buffPart(entry.data.buffName));
+      parts.push(this.buffPart(entry.data.buffName, entry.data.buffType));
       if ((entry.data.layers ?? 1) > 1) {
-        parts.push(this.textPart('×'), this.numberPart(entry.data.layers ?? 1));
+        parts.push(
+          this.textPart('×'),
+          this.numberPart(entry.data.layers ?? 1, 'secondary'),
+        );
       }
-      parts.push(this.textPart(this.formatDuration(
-        entry.data.duration,
-        entry.data.durationUnit,
-      )));
+      parts.push(
+        ...this.durationParts(entry.data.duration, entry.data.durationUnit),
+      );
     });
     return parts;
   }
@@ -632,7 +943,7 @@ export class LogPresenter {
     const parts: PresentedLogPart[] = [];
     names.forEach((name, index) => {
       if (index > 0) parts.push(this.textPart('、'));
-      parts.push(this.buffPart(name));
+      parts.push(this.buffPart(name, 'secondary'));
     });
     return parts;
   }
@@ -640,17 +951,7 @@ export class LogPresenter {
   private resourceChangeLine(
     entry: LogEntry<'resource_change'>,
   ): PresentedLogLine {
-    const text = this.formatResourceChange(entry);
-    const resourceIndex = text.indexOf(entry.data.resourceName);
-    if (resourceIndex < 0) {
-      return this.line('resource', this.textPart(text));
-    }
-    return this.line(
-      'resource',
-      this.textPart(text.slice(0, resourceIndex)),
-      this.resourcePart(entry.data.resourceName),
-      this.textPart(text.slice(resourceIndex + entry.data.resourceName.length)),
-    );
+    return this.line('resource', ...this.resourceChangeParts(entry));
   }
 
   private actionStateLine(
@@ -710,15 +1011,14 @@ export class LogPresenter {
       );
     }
     if (data.phase === 'cancelled') {
-      return this.line('state', ...unit, this.statusPart('蓄势'), this.textPart('取消'));
+      return this.line(
+        'state',
+        ...unit,
+        this.statusPart('蓄势'),
+        this.textPart('取消'),
+      );
     }
     return undefined;
-  }
-
-  private roleForSpan(span: LogSpan): PresentedLogLine['role'] {
-    if (span.type === 'action_pre') return 'state';
-    if (span.type === 'action_after') return 'secondary';
-    return 'system';
   }
 
   private line(
@@ -728,225 +1028,250 @@ export class LogPresenter {
     return { role, parts };
   }
 
-  private textPart(text: string): PresentedLogPart {
-    return { kind: 'text', text };
+  private textPart(
+    text: string,
+    tone?: PresentedLogTone,
+    emphasis?: PresentedLogPart['emphasis'],
+  ): PresentedLogPart {
+    return {
+      kind: 'text',
+      text,
+      ...(tone ? { tone } : {}),
+      ...(emphasis ? { emphasis } : {}),
+    };
   }
 
   private unitPart(name: string): PresentedLogPart {
-    return { kind: 'unit', text: this.formatName(name) };
+    return { kind: 'unit', text: this.formatName(name), tone: 'neutral' };
   }
 
   private abilityPart(name: string): PresentedLogPart {
-    return { kind: 'ability', text: this.formatSkill(name) };
+    return {
+      kind: 'ability',
+      text: this.formatSkill(name),
+      tone: 'ability',
+    };
   }
 
-  private numberPart(value: number): PresentedLogPart {
-    return { kind: 'number', text: this.formatNumber(value) };
+  private numberPart(
+    value: number,
+    tone?: PresentedLogTone,
+    emphasis?: PresentedLogPart['emphasis'],
+  ): PresentedLogPart {
+    return {
+      kind: 'number',
+      text: this.formatNumber(value),
+      ...(tone ? { tone } : {}),
+      ...(emphasis ? { emphasis } : {}),
+    };
+  }
+
+  private rawNumberPart(
+    value: string,
+    tone: PresentedLogTone = 'secondary',
+  ): PresentedLogPart {
+    return { kind: 'number', text: value, tone };
   }
 
   private resourcePart(name: string): PresentedLogPart {
-    return { kind: 'resource', text: name };
+    return { kind: 'resource', text: name, tone: 'resource' };
   }
 
-  private buffPart(name: string): PresentedLogPart {
-    return { kind: 'buff', text: `「${name}」` };
+  private buffPart(
+    name: string,
+    tone:
+      'buff' | 'debuff' | 'control' | 'mechanic' | 'secondary' = 'secondary',
+  ): PresentedLogPart {
+    return { kind: 'buff', text: `「${name}」`, tone };
   }
 
   private criticalPart(): PresentedLogPart {
-    return { kind: 'critical', text: '暴击' };
+    return {
+      kind: 'critical',
+      text: '暴击',
+      tone: 'critical',
+      emphasis: 'strong',
+    };
   }
 
   private statusPart(text: string): PresentedLogPart {
-    return { kind: 'status', text };
+    return { kind: 'status', text, tone: 'control' };
   }
 
-  private formatSpanText(span: LogSpan): string[] {
-    if (span.entries.length === 0) {
-      return this.formatEmptySpan(span);
-    }
-
-    switch (span.type) {
-      case 'battle_init':
-        return this.formatBattleInit(span);
-      case 'battle_end':
-        return this.formatBattleEnd(span);
-      case 'round_start':
-        return this.formatRoundStart(span);
-      case 'action_pre':
-        return this.formatActionPre(span);
-      case 'action_after':
-        return this.formatActionAfter(span);
+  private damageTone(
+    damageType: DamageEntryData['damageType'],
+  ): PresentedLogTone {
+    switch (damageType) {
+      case 'physical':
+        return 'damage-physical';
+      case 'magical':
+        return 'damage-magical';
+      case 'true':
+        return 'damage-true';
+      case 'dot':
+        return 'damage-dot';
       default:
-        return [];
+        return 'damage-generic';
     }
   }
 
-  private formatEmptySpan(span: LogSpan): string[] {
-    switch (span.type) {
-      case 'battle_init':
-        return ['【战斗开始】'];
-      case 'battle_end':
-        return [`【战斗结束】${this.formatName(span.actor?.name ?? '未知')} 获胜！`];
-      case 'round_start':
-        return [`【第 ${span.turn} 回合】`];
-      case 'action_after':
-        return [];
-      default:
-        return [];
-    }
-  }
-
-  private formatBattleInit(span: LogSpan): string[] {
-    const lines = ['【战斗开始】'];
-    for (const entry of this.findEntries(span.entries, 'resource_change')) {
-      if (!entry.data.isInitial || entry.data.after <= 0) continue;
-      lines.push(
-        `${this.formatName(entry.data.targetName)}以${this.formatNumber(entry.data.after)}点${entry.data.resourceName}进入战斗`,
-      );
-    }
-    return lines;
-  }
-
-  private formatBattleEnd(span: LogSpan): string[] {
-    const winner = this.formatName(span.actor?.name ?? '未知');
-    return [`【战斗结束】${winner} 获胜！`];
-  }
-
-  private formatRoundStart(span: LogSpan): string[] {
-    const lines: string[] = [`【第 ${span.turn} 回合】`];
-
-    const healEntries = this.findEntries(span.entries, 'heal');
-    for (const entry of healEntries) {
-      const resourceLabel = getResourceText(entry.data.healType ?? 'hp');
-      lines.push(
-        `${this.formatName(entry.data.targetName)}恢复 ${this.formatNumber(entry.data.value)} 点${resourceLabel}`,
-      );
-    }
-
-    const dispelEntries = this.findEntries(span.entries, 'dispel');
-    for (const entry of dispelEntries) {
-      const buffNames = this.formatQuotedList(entry.data.buffs);
-      lines.push(
-        `${this.formatName(entry.data.targetName)}驱散了${buffNames}`,
-      );
-    }
-
-    return lines;
-  }
-
-  private formatActionAfter(span: LogSpan): string[] {
-    const expiredEntries = this.findEntries(span.entries, 'buff_remove').filter(
-      (e) => e.data.reason === 'expired',
+  private groupDamageTone(
+    entries: Array<LogEntry<'damage'>>,
+  ): PresentedLogTone {
+    const tones = new Set(
+      entries.map((entry) => this.damageTone(entry.data.damageType)),
     );
-    const resourceLines = this.findEntries(span.entries, 'resource_change')
-      .filter((entry) => !entry.data.isInitial)
-      .map((entry) => this.formatResourceChange(entry));
-    if (expiredEntries.length === 0) return resourceLines;
-
-    // processBuffs 只处理当前行动者的 buff，所有过期条目实质属于同一单位
-    const targetName = this.formatName(expiredEntries[0].data.targetName);
-    const buffNames = this.formatQuotedList(expiredEntries.map((e) => e.data.buffName));
-    return [`${targetName}身上的${buffNames}时效已过`, ...resourceLines];
+    return tones.size === 1 ? Array.from(tones)[0] : 'damage-generic';
   }
 
-  private formatActionPre(span: LogSpan): string[] {
-    const actorName = span.actor?.name ?? '未知';
-    const actor = this.formatName(actorName);
-    const entries = span.entries;
-
-    const damage = this.findEntry(entries, 'damage');
-    const heal = this.findEntry(entries, 'heal');
-    const controlSkip = this.findEntry(entries, 'control_skip');
-    const actionStateLines = this.findEntries(entries, 'action_state')
-      .map((entry) => this.formatActionState(entry))
-      .filter((line): line is string => Boolean(line));
-
-    // 持续效果文本（DOT / HOT），可能与控制文本同帧出现
-    const dotHotText = this._buildDotHotText(actor, actorName, span, damage, heal);
-
-    // 控制跳过文本
-    if (controlSkip) {
-      const controlDesc = getControlDesc(controlSkip.data.controlTag);
-      const controlText = `${actor}${controlDesc}，本回合无法行动`;
-      // 若同回合有 DOT/HOT，先描述持续效果再描述控制结果
-      return [
-        ...(dotHotText ? [dotHotText] : []),
-        ...actionStateLines,
-        controlText,
-      ];
+  private durationParts(
+    duration: number,
+    unit: 'owner_action' | 'round' = 'owner_action',
+  ): PresentedLogPart[] {
+    if (duration < 0) {
+      return [this.textPart('（永久）', 'secondary')];
     }
-
-    if (dotHotText) return [dotHotText, ...actionStateLines];
-    if (actionStateLines.length > 0) return actionStateLines;
-    return [`${actor} 持续效果触发`];
+    return unit === 'owner_action'
+      ? [
+          this.textPart('（未来', 'secondary'),
+          this.rawNumberPart(String(duration), 'secondary'),
+          this.textPart('次自身行动）', 'secondary'),
+        ]
+      : [
+          this.textPart('（', 'secondary'),
+          this.rawNumberPart(String(duration), 'secondary'),
+          this.textPart('回合）', 'secondary'),
+        ];
   }
 
-  private formatMechanic(entry: LogEntry<'mechanic'>): string {
-    const target = this.formatName(entry.data.targetName);
-    const source = this.formatName(entry.data.sourceName ?? entry.data.targetName);
+  private mechanicParts(entry: LogEntry<'mechanic'>): PresentedLogPart[] {
+    const target = this.unitPart(entry.data.targetName);
+    const source = this.unitPart(
+      entry.data.sourceName ?? entry.data.targetName,
+    );
     const mechanicName = this.formatMechanicName(entry.data.name);
-    const value = entry.data.value !== undefined
-      ? this.formatNumber(Math.round(entry.data.value))
-      : undefined;
+    const value =
+      entry.data.value !== undefined
+        ? this.numberPart(Math.round(entry.data.value), 'mechanic')
+        : undefined;
+    const mechanic = (name: string) =>
+      this.buffPart(this.formatMechanicName(name), 'mechanic');
 
     switch (entry.data.mechanic) {
       case 'memory_record':
-        return `${target}记录「${mechanicName}」${value ?? ''}`;
+        return [
+          target,
+          this.textPart('记录'),
+          mechanic(mechanicName),
+          ...(value ? [value] : []),
+        ];
       case 'memory_release':
-        return `${target}释放「${mechanicName}」${value ?? ''}`;
+        return [
+          target,
+          this.textPart('释放'),
+          mechanic(mechanicName),
+          ...(value ? [value] : []),
+        ];
       case 'ability_transform':
-        return `${target}获得「${mechanicName}」强化`;
+        return [
+          target,
+          this.textPart('获得'),
+          mechanic(mechanicName),
+          this.textPart('强化'),
+        ];
       case 'damage_defer':
-        return `${target}将 ${value ?? 0} 点伤害延后 ${entry.data.detail ?? '?'} 回合结算`;
+        return [
+          target,
+          this.textPart('将 '),
+          value ?? this.numberPart(0, 'mechanic'),
+          this.textPart(' 点伤害延后 '),
+          this.rawNumberPart(entry.data.detail ?? '?'),
+          this.textPart(' 回合结算'),
+        ];
       case 'hp_sacrifice':
-        return `${target}献祭 ${value ?? 0} 点气血`;
+        return [
+          target,
+          this.textPart('献祭 '),
+          entry.data.value !== undefined
+            ? this.numberPart(Math.round(entry.data.value), 'negative')
+            : this.numberPart(0, 'negative'),
+          this.textPart(' 点气血'),
+        ];
       case 'buff_layer':
-        return `${target}调整「${entry.data.name}」层数`;
+        return [
+          target,
+          this.textPart('调整'),
+          mechanic(entry.data.name),
+          this.textPart('层数'),
+        ];
       case 'status_spread':
         return entry.data.detail === 'no_target'
-          ? `${target}没有可扩散目标`
-          : `${target}扩散「${mechanicName}」`;
+          ? [target, this.textPart('没有可扩散目标')]
+          : [target, this.textPart('扩散'), mechanic(mechanicName)];
       case 'named_trigger':
         if (entry.data.triggerBasis) {
           const basis = entry.data.triggerBasis;
-          return `${source}因${target}的「${this.formatMechanicName(basis.left.displayName)}」与本次「${this.formatMechanicName(basis.right.displayName)}」发生「${this.formatMechanicName(basis.relation.displayName)}」，触发「${mechanicName}」`;
+          return [
+            source,
+            this.textPart('因'),
+            target,
+            this.textPart('的'),
+            mechanic(basis.left.displayName),
+            this.textPart('与本次'),
+            mechanic(basis.right.displayName),
+            this.textPart('发生'),
+            mechanic(basis.relation.displayName),
+            this.textPart('，触发'),
+            mechanic(mechanicName),
+          ];
         }
-        return `${source}触发「${mechanicName}」`;
+        return [source, this.textPart('触发'), mechanic(mechanicName)];
       case 'status_transition': {
         const previous = entry.data.previousDisplayName
           ? this.formatMechanicName(entry.data.previousDisplayName)
           : undefined;
         switch (entry.data.operation) {
           case 'apply':
-            return `${target}获得「${mechanicName}」`;
+            return [target, this.textPart('获得'), mechanic(mechanicName)];
           case 'refresh':
-            return `${target}的「${mechanicName}」持续时间刷新`;
+            return [
+              target,
+              this.textPart('的'),
+              mechanic(mechanicName),
+              this.textPart('持续时间刷新'),
+            ];
           case 'replace':
-            return `${target}的「${previous ?? '原状态'}」转为「${mechanicName}」`;
+            return [
+              target,
+              this.textPart('的'),
+              mechanic(previous ?? '原状态'),
+              this.textPart('转为'),
+              mechanic(mechanicName),
+            ];
           case 'consume':
-            return `${target}的「${mechanicName}」被消耗`;
+            return [
+              target,
+              this.textPart('的'),
+              mechanic(mechanicName),
+              this.textPart('被消耗', 'negative'),
+            ];
           default:
-            return `${target}的状态变为「${mechanicName}」`;
+            return [
+              target,
+              this.textPart('的状态变为'),
+              mechanic(mechanicName),
+            ];
         }
       }
       default:
-        return `${target}触发「${mechanicName}」`;
+        return [target, this.textPart('触发'), mechanic(mechanicName)];
     }
   }
 
-  private formatDamageSegment(entry: LogEntry<'damage'>): string {
-    let text = this.formatNumber(entry.data.value);
-    if ((entry.data.shieldAbsorbed ?? 0) > 0) {
-      text += `（护盾吸收${this.formatNumber(Math.round(entry.data.shieldAbsorbed ?? 0))}）`;
-    }
-    if (entry.data.isCritical) text += '（暴击）';
-    return text;
-  }
-
-  private formatSecondaryDamageLines(
+  private secondaryDamageParts(
     entries: Array<LogEntry<'damage'>>,
     source: 'follow_up' | 'counter' | 'reflect' | 'delayed',
-  ): string[] {
+  ): PresentedLogPart[][] {
     if (entries.length === 0) return [];
     const groups = new Map<string, Array<LogEntry<'damage'>>>();
     for (const entry of entries) {
@@ -967,108 +1292,201 @@ export class LogPresenter {
       groups.set(key, group);
     }
 
-    return Array.from(groups.values()).map((group) => {
+    return Array.from(groups.values()).map((group): PresentedLogPart[] => {
       const first = group[0];
       const firstSource = getLogEntrySource(first);
-      const sourceName = this.formatName(
-        firstSource?.unitName ?? first.data.reflectSourceName ?? '未知',
-      );
-      const targetName = this.formatName(first.data.targetName);
+      const sourceName =
+        firstSource?.unitName ?? first.data.reflectSourceName ?? '未知';
       const abilityName = firstSource?.abilityName ?? firstSource?.buffName;
-      const totalDamage = group.reduce((sum, entry) => sum + entry.data.value, 0);
+      const totalDamage = group.reduce(
+        (sum, entry) => sum + entry.data.value,
+        0,
+      );
       const totalShield = group.reduce(
         (sum, entry) => sum + (entry.data.shieldAbsorbed ?? 0),
         0,
       );
-      const damageText = group.length > 1
-        ? `${group.map((entry) => this.formatDamageSegment(entry)).join('、')}，合计${this.formatNumber(totalDamage)}点伤害`
-        : `${this.formatDamageSegment(first)}点伤害`;
-      const shieldText = totalShield > 0 && group.length > 1
-        ? `，护盾共吸收${this.formatNumber(Math.round(totalShield))}点`
-        : '';
+      const damageParts: PresentedLogPart[] = [];
+      group.forEach((entry, index) => {
+        if (index > 0) damageParts.push(this.textPart('、'));
+        damageParts.push(...this.damageSegmentParts(entry));
+      });
+      if (group.length > 1) {
+        damageParts.push(
+          this.textPart('，合计'),
+          this.numberPart(totalDamage, this.groupDamageTone(group), 'strong'),
+          this.textPart(
+            source === 'delayed' && first.data.cause ? '点持续伤害' : '点伤害',
+          ),
+        );
+      } else {
+        damageParts.push(
+          this.textPart(
+            source === 'delayed' && first.data.cause ? '点持续伤害' : '点伤害',
+          ),
+        );
+      }
+      if (totalShield > 0 && group.length > 1) {
+        damageParts.push(
+          this.textPart('，护盾共吸收'),
+          this.numberPart(Math.round(totalShield), 'shield'),
+          this.textPart('点'),
+        );
+      }
 
       if (source === 'follow_up') {
         if (first.data.cause) {
-          return `${sourceName}因「${first.data.cause.displayName}」追加伤害，对${targetName}造成${damageText}${shieldText}`;
+          return [
+            this.unitPart(sourceName),
+            this.textPart('因'),
+            this.buffPart(first.data.cause.displayName, 'mechanic'),
+            this.textPart('追加伤害，对'),
+            this.unitPart(first.data.targetName),
+            this.textPart('造成'),
+            ...damageParts,
+          ];
         }
-        return `${sourceName}乘势追击，对${targetName}造成${damageText}${shieldText}`;
+        return [
+          this.unitPart(sourceName),
+          this.textPart('乘势追击，对', 'mechanic'),
+          this.unitPart(first.data.targetName),
+          this.textPart('造成'),
+          ...damageParts,
+        ];
       }
       if (source === 'counter') {
-        const trigger = abilityName ? `触发「${abilityName}」反击` : '发动反击';
-        return `${sourceName}${trigger}，对${targetName}造成${damageText}${shieldText}`;
+        return [
+          this.unitPart(sourceName),
+          ...(abilityName
+            ? [
+                this.textPart('触发'),
+                this.buffPart(
+                  abilityName,
+                  firstSource?.abilityName ? 'mechanic' : 'secondary',
+                ),
+                this.textPart('反击', 'mechanic'),
+              ]
+            : [this.textPart('发动反击', 'mechanic')]),
+          this.textPart('，对'),
+          this.unitPart(first.data.targetName),
+          this.textPart('造成'),
+          ...damageParts,
+        ];
       }
       if (source === 'delayed') {
         const buffName = firstSource?.buffName ?? '持续效果';
         const causeName = first.data.cause?.displayName;
         if (causeName) {
-          const settlement = group.length > 1
-            ? `立即结算${group.length}次：${group.map((entry) => this.formatDamageSegment(entry)).join('、')}，合计${this.formatNumber(totalDamage)}点持续伤害`
-            : `立即造成${damageText.replace('点伤害', '点持续伤害')}`;
-          return `「${buffName}」受「${causeName}」引动，对${targetName}${settlement}`;
+          return [
+            this.buffPart(buffName, 'debuff'),
+            this.textPart('受'),
+            this.buffPart(causeName, 'mechanic'),
+            this.textPart('引动，对'),
+            this.unitPart(first.data.targetName),
+            ...(group.length > 1
+              ? [
+                  this.textPart('立即结算'),
+                  this.rawNumberPart(String(group.length), 'secondary'),
+                  this.textPart('次：'),
+                ]
+              : [this.textPart('立即造成')]),
+            ...damageParts,
+          ];
         }
-        return `「${buffName}」对${targetName}造成${damageText}${shieldText}`;
+        return [
+          this.buffPart(buffName, 'debuff'),
+          this.textPart('对'),
+          this.unitPart(first.data.targetName),
+          this.textPart('造成'),
+          ...damageParts,
+        ];
       }
-      return `${sourceName}反伤，对${targetName}造成${damageText}${shieldText}`;
+      return [
+        this.unitPart(sourceName),
+        this.textPart('反伤，对', 'mechanic'),
+        this.unitPart(first.data.targetName),
+        this.textPart('造成'),
+        ...damageParts,
+      ];
     });
   }
 
-  private formatResourceChange(entry: LogEntry<'resource_change'>): string {
+  private resourceStateParts(
+    data: LogEntry<'resource_change'>['data'],
+    overflow = 0,
+  ): PresentedLogPart[] {
+    return [
+      this.textPart('（'),
+      this.rawNumberPart(String(data.after), 'resource'),
+      this.textPart('/'),
+      this.rawNumberPart(String(data.resourceMax), 'resource'),
+      ...(overflow > 0
+        ? [
+            this.textPart('，溢出'),
+            this.numberPart(overflow, 'resource'),
+            this.textPart('点'),
+          ]
+        : []),
+      this.textPart('）'),
+    ];
+  }
+
+  private resourceChangeParts(
+    entry: LogEntry<'resource_change'>,
+  ): PresentedLogPart[] {
     const data = entry.data;
     const applied = Math.abs(data.applied);
     const requested = Math.abs(data.requested);
-    const state = `${data.after}/${data.resourceMax}`;
     if (data.operation === 'decay') {
-      return `${data.resourceName}自然衰减${this.formatNumber(applied)}点（${state}）`;
+      return [
+        this.resourcePart(data.resourceName),
+        this.textPart('自然衰减'),
+        this.numberPart(applied, 'negative'),
+        this.textPart('点'),
+        ...this.resourceStateParts(data),
+      ];
     }
     if (data.operation === 'consume_all' || data.operation === 'subtract') {
-      return `消耗${this.formatNumber(applied)}点${data.resourceName}（${state}）`;
+      return [
+        this.textPart('消耗'),
+        this.numberPart(applied, 'negative'),
+        this.textPart('点'),
+        this.resourcePart(data.resourceName),
+        ...this.resourceStateParts(data),
+      ];
     }
     if (data.operation === 'set') {
-      return `${data.resourceName}调整为${this.formatNumber(data.after)}点（${state}）`;
+      return [
+        this.resourcePart(data.resourceName),
+        this.textPart('调整为'),
+        this.numberPart(data.after, 'resource'),
+        this.textPart('点'),
+        ...this.resourceStateParts(data),
+      ];
     }
     if (applied === 0 && data.overflow > 0) {
-      return `${data.resourceName}已满（${state}，溢出${this.formatNumber(data.overflow)}点）`;
+      return [
+        this.resourcePart(data.resourceName),
+        this.textPart('已满'),
+        ...this.resourceStateParts(data, data.overflow),
+      ];
     }
     if (data.reason === 'refund') {
-      const overflow = data.overflow > 0
-        ? `，溢出${this.formatNumber(data.overflow)}点`
-        : '';
-      return `返还${this.formatNumber(applied)}点${data.resourceName}（${state}${overflow}）`;
+      return [
+        this.textPart('返还'),
+        this.numberPart(applied, 'positive'),
+        this.textPart('点'),
+        this.resourcePart(data.resourceName),
+        ...this.resourceStateParts(data, data.overflow),
+      ];
     }
-    const overflow = data.overflow > 0
-      ? `，溢出${this.formatNumber(data.overflow)}点`
-      : '';
-    return `获得${this.formatNumber(applied || requested)}点${data.resourceName}（${state}${overflow}）`;
-  }
-
-  private formatActionState(
-    entry: LogEntry<'action_state'>,
-    includeUnit = false,
-  ): string | undefined {
-    const data = entry.data;
-    const unit = includeUnit ? `${this.formatName(data.unitName)}` : '';
-    if (data.stateType === 'ability_mode') {
-      if (data.phase !== 'entered') return undefined;
-      return `${unit}进入「${data.name}」`;
-    }
-    if (data.stateType === 'rest') {
-      if (data.phase === 'entered') return `${unit}进入「调息」，下一次行动跳过`;
-      if (data.phase === 'skipped') {
-        return `${this.formatName(data.unitName)}因调息跳过本次行动`;
-      }
-      return undefined;
-    }
-    const abilityName = data.ability?.name ?? '后发神通';
-    if (data.phase === 'entered') {
-      return `${unit}开始蓄势，下一行动将发动${this.formatSkill(abilityName)}`;
-    }
-    if (data.phase === 'triggered') {
-      return `${unit}蓄势完成，发动${this.formatSkill(abilityName)}`;
-    }
-    if (data.phase === 'cancelled') {
-      return `${unit}蓄势取消`;
-    }
-    return undefined;
+    return [
+      this.textPart('获得'),
+      this.numberPart(applied || requested, 'positive'),
+      this.textPart('点'),
+      this.resourcePart(data.resourceName),
+      ...this.resourceStateParts(data, data.overflow),
+    ];
   }
 
   private formatMechanicName(name: string): string {
@@ -1085,40 +1503,6 @@ export class LogPresenter {
     return labels[name] ?? name;
   }
 
-  private _buildDotHotText(
-    actor: string,
-    actorName: string,
-    span: LogSpan,
-    damage: LogEntry<'damage'> | undefined,
-    heal: LogEntry<'heal'> | undefined,
-  ): string | undefined {
-    const damageBuffName = damage
-      ? getLogEntrySource(damage)?.buffName
-      : undefined;
-    if (damage && damageBuffName) {
-      let result = `${actor}身上的「${damageBuffName}」发作`;
-      result += `，造成 ${this.formatNumber(damage.data.value)} 点伤害`;
-
-      if (damage.data.shieldAbsorbed && damage.data.shieldAbsorbed > 0) {
-        result += `（抵扣护盾 ${this.formatNumber(Math.round(damage.data.shieldAbsorbed))} 点）`;
-      }
-
-      const death = this.findEntry(span.entries, 'death');
-      if (death && death.data.targetName === actorName) {
-        result += `，${actor}被击败！`;
-      }
-      return result;
-    }
-
-    const healBuffName = heal ? getLogEntrySource(heal)?.buffName : undefined;
-    if (heal && healBuffName) {
-      const resourceLabel = getResourceText(heal.data.healType ?? 'hp');
-      return `${actor}身上的「${healBuffName}」生效，恢复 ${this.formatNumber(heal.data.value)} 点${resourceLabel}`;
-    }
-
-    return undefined;
-  }
-
   private findEntry<T extends LogEntryType>(
     entries: LogEntry[],
     type: T,
@@ -1131,22 +1515,6 @@ export class LogPresenter {
     type: T,
   ): LogEntry<T>[] {
     return entries.filter((e) => e.type === type) as LogEntry<T>[];
-  }
-
-  private formatDuration(
-    duration: number,
-    unit: 'owner_action' | 'round' = 'owner_action',
-  ): string {
-    if (duration < 0) {
-      return '（永久）';
-    }
-    return unit === 'owner_action'
-      ? `（未来${duration}次自身行动）`
-      : `（${duration}回合）`;
-  }
-
-  private formatQuotedList(items: string[]): string {
-    return items.map((item) => `「${item}」`).join('、');
   }
 
   private formatName(name: string): string {

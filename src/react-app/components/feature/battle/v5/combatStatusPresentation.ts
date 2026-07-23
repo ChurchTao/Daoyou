@@ -4,19 +4,9 @@ type ActionState = NonNullable<UnitStateSnapshot['actionStates']>[number];
 type CombatResource = UnitStateSnapshot['combatResources'][number];
 type BuffState = UnitStateSnapshot['buffs'][number];
 
-const COMBAT_RESOURCE_PRESENTATION: Record<
-  string,
-  { icon: string; iconStyle?: { filter: string } }
-> = {
-  'sect.wuxiang.war-intent': { icon: '👹' },
-  'sect.tianyan.derivation': {
-    icon: '✨',
-    iconStyle: { filter: 'hue-rotate(220deg)' },
-  },
-  'sect.youdu.soul-fire': {
-    icon: '🔥',
-    iconStyle: { filter: 'hue-rotate(180deg)' },
-  },
+const COMBAT_RESOURCE_ICON_FILTERS: Readonly<Record<string, string>> = {
+  '✨': 'hue-rotate(220deg)',
+  '🔥': 'hue-rotate(180deg)',
 };
 
 export type CompactStatusTone = 'default' | 'buff' | 'debuff';
@@ -116,14 +106,14 @@ export function getCombatResourceDisplay(resource: CombatResource): {
   iconStyle?: { filter: string };
 } {
   const accessibleLabel = `${resource.name}${resource.current}/${resource.max}`;
-  const presentation = COMBAT_RESOURCE_PRESENTATION[resource.id];
-  const icon = presentation?.icon ?? resource.icon;
+  const icon = resource.icon;
   if (icon) {
+    const filter = COMBAT_RESOURCE_ICON_FILTERS[icon];
     return {
       mode: 'pips',
       value: resource.current > 0 ? icon.repeat(resource.current) : '无',
       accessibleLabel,
-      ...(presentation?.iconStyle ? { iconStyle: presentation.iconStyle } : {}),
+      ...(filter ? { iconStyle: { filter } } : {}),
     };
   }
   return {

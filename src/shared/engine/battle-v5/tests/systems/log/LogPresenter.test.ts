@@ -71,30 +71,29 @@ describe('LogPresenter 行动日志聚合', () => {
     ['refresh', undefined, '「李四」的「火印」持续时间刷新'],
     ['replace', '木印', '「李四」的「木印」转为「火印」'],
     ['consume', undefined, '「李四」的「火印」被消耗'],
-  ] as const)('通用状态迁移按%s操作使用现有展示管道', (
-    operation,
-    previousDisplayName,
-    expected,
-  ) => {
-    const presenter = new LogPresenter();
-    const span = createActionSpan([
-      createEntry('mechanic', {
-        mechanic: 'status_transition',
-        targetName: '李四',
-        sourceName: '张三',
-        name: '火印',
-        displayName: '火印',
-        internalKey: `test.status.${operation}`,
-        visibility: 'player',
-        operation,
-        previousDisplayName,
-      }),
-    ]);
+  ] as const)(
+    '通用状态迁移按%s操作使用现有展示管道',
+    (operation, previousDisplayName, expected) => {
+      const presenter = new LogPresenter();
+      const span = createActionSpan([
+        createEntry('mechanic', {
+          mechanic: 'status_transition',
+          targetName: '李四',
+          sourceName: '张三',
+          name: '火印',
+          displayName: '火印',
+          internalKey: `test.status.${operation}`,
+          visibility: 'player',
+          operation,
+          previousDisplayName,
+        }),
+      ]);
 
-    const text = presenter.formatSpan(span).join('\n');
-    expect(text).toContain(expected);
-    expect(text).not.toContain(`test.status.${operation}`);
-  });
+      const text = presenter.formatSpan(span).join('\n');
+      expect(text).toContain(expected);
+      expect(text).not.toContain(`test.status.${operation}`);
+    },
+  );
 
   it('带结构化原因的追伤应显示具体机制而非乘势追击', () => {
     const presenter = new LogPresenter();
@@ -107,7 +106,11 @@ describe('LogPresenter 行动日志聚合', () => {
         targetName: '李四',
         damageSource: 'follow_up',
         source: { unitId: 'a', unitName: '张三' },
-        cause: { kind: 'mechanic', id: 'reaction-vaporize', displayName: '蒸发' },
+        cause: {
+          kind: 'mechanic',
+          id: 'reaction-vaporize',
+          displayName: '蒸发',
+        },
       }),
     ]);
 
@@ -116,35 +119,32 @@ describe('LogPresenter 行动日志聚合', () => {
     );
   });
 
-  it.each([
-    '冲克·蒸发',
-    '冲克·泥沼',
-    '冲克·崩根',
-    '冲克·断脉',
-    '冲克·熔金',
-  ])('冲克追伤应逐项保留完整原因：%s', (displayName) => {
-    const presenter = new LogPresenter();
-    const span = createActionSpan([
-      createEntry('damage', {
-        value: 200,
-        beforeHp: 1000,
-        remainHp: 800,
-        isCritical: false,
-        targetName: '李四',
-        damageSource: 'follow_up',
-        source: { unitId: 'a', unitName: '张三' },
-        cause: {
-          kind: 'mechanic',
-          id: `reaction-${displayName}`,
-          displayName,
-        },
-      }),
-    ]);
+  it.each(['冲克·蒸发', '冲克·泥沼', '冲克·崩根', '冲克·断脉', '冲克·熔金'])(
+    '冲克追伤应逐项保留完整原因：%s',
+    (displayName) => {
+      const presenter = new LogPresenter();
+      const span = createActionSpan([
+        createEntry('damage', {
+          value: 200,
+          beforeHp: 1000,
+          remainHp: 800,
+          isCritical: false,
+          targetName: '李四',
+          damageSource: 'follow_up',
+          source: { unitId: 'a', unitName: '张三' },
+          cause: {
+            kind: 'mechanic',
+            id: `reaction-${displayName}`,
+            displayName,
+          },
+        }),
+      ]);
 
-    expect(presenter.formatSpan(span)).toContain(
-      `「张三」因「${displayName}」追加伤害，对「李四」造成200点伤害`,
-    );
-  });
+      expect(presenter.formatSpan(span)).toContain(
+        `「张三」因「${displayName}」追加伤害，对「李四」造成200点伤害`,
+      );
+    },
+  );
 
   it('无结构化原因的追伤使用通用文本', () => {
     const presenter = new LogPresenter();
@@ -190,8 +190,12 @@ describe('LogPresenter 行动日志聚合', () => {
     ]);
     const lines = presenter.formatSpan(span);
 
-    expect(lines).toContain('「张三」因「泥沼」追加伤害，对「李四」造成200点伤害');
-    expect(lines).toContain('「张三」因「洛书断局」追加伤害，对「李四」造成250点伤害');
+    expect(lines).toContain(
+      '「张三」因「泥沼」追加伤害，对「李四」造成200点伤害',
+    );
+    expect(lines).toContain(
+      '「张三」因「洛书断局」追加伤害，对「李四」造成250点伤害',
+    );
     expect(lines.join('\n')).not.toContain('450点');
   });
 
@@ -212,7 +216,11 @@ describe('LogPresenter 行动日志聚合', () => {
             buffId: 'burn',
             buffName: '灼烧',
           },
-          cause: { kind: 'mechanic' as const, id: 'vaporize', displayName: '蒸发' },
+          cause: {
+            kind: 'mechanic' as const,
+            id: 'vaporize',
+            displayName: '蒸发',
+          },
         }),
       ),
     ]);
@@ -254,42 +262,50 @@ describe('LogPresenter 行动日志聚合', () => {
 
   it('反应日志按触发、追伤、法印迁移的因果顺序展示', () => {
     const presenter = new LogPresenter();
-    const lines = presenter.formatSpan(createActionSpan([
-      createEntry('mechanic', {
-        mechanic: 'named_trigger',
-        targetName: '李四',
-        sourceName: '张三',
-        name: '蒸发',
-        displayName: '蒸发',
-        internalKey: 'sect.tianyan.reaction.vaporize',
-        visibility: 'player',
-      }),
-      createEntry('damage', {
-        value: 688,
-        beforeHp: 1000,
-        remainHp: 312,
-        isCritical: false,
-        targetName: '李四',
-        damageSource: 'follow_up',
-        source: { unitId: 'a', unitName: '张三' },
-        cause: { kind: 'mechanic', id: 'vaporize', displayName: '蒸发' },
-      }),
-      createEntry('mechanic', {
-        mechanic: 'status_transition',
-        targetName: '李四',
-        sourceName: '张三',
-        name: '水印',
-        displayName: '水印',
-        internalKey: 'sect.tianyan.element-seal.replace',
-        visibility: 'player',
-        operation: 'replace',
-        previousDisplayName: '火印',
-      }),
-    ]));
+    const lines = presenter.formatSpan(
+      createActionSpan([
+        createEntry('mechanic', {
+          mechanic: 'named_trigger',
+          targetName: '李四',
+          sourceName: '张三',
+          name: '蒸发',
+          displayName: '蒸发',
+          internalKey: 'sect.tianyan.reaction.vaporize',
+          visibility: 'player',
+        }),
+        createEntry('damage', {
+          value: 688,
+          beforeHp: 1000,
+          remainHp: 312,
+          isCritical: false,
+          targetName: '李四',
+          damageSource: 'follow_up',
+          source: { unitId: 'a', unitName: '张三' },
+          cause: { kind: 'mechanic', id: 'vaporize', displayName: '蒸发' },
+        }),
+        createEntry('mechanic', {
+          mechanic: 'status_transition',
+          targetName: '李四',
+          sourceName: '张三',
+          name: '水印',
+          displayName: '水印',
+          internalKey: 'sect.tianyan.element-seal.replace',
+          visibility: 'player',
+          operation: 'replace',
+          previousDisplayName: '火印',
+        }),
+      ]),
+    );
 
-    const triggerIndex = lines.findIndex((line) => line.includes('触发「蒸发」'));
-    const damageIndex = lines.findIndex((line) => line.includes('因「蒸发」追加伤害'));
-    const transitionIndex = lines.findIndex((line) => line.includes('转为「水印」'));
+    const triggerIndex = lines.findIndex((line) =>
+      line.includes('触发「蒸发」'),
+    );
+    const damageIndex = lines.findIndex((line) =>
+      line.includes('因「蒸发」追加伤害'),
+    );
+    const transitionIndex = lines.findIndex((line) =>
+      line.includes('转为「水印」'),
+    );
     expect(triggerIndex).toBeGreaterThanOrEqual(0);
     expect(damageIndex).toBeGreaterThan(triggerIndex);
     expect(transitionIndex).toBeGreaterThan(damageIndex);
@@ -303,7 +319,7 @@ describe('LogPresenter 行动日志聚合', () => {
         remainHp: 500,
         isCritical: false,
         targetName: '李四',
-        beforeHp: 0
+        beforeHp: 0,
       }),
     ]);
     span.ability = { id: 'basic_attack', name: '普攻' };
@@ -321,7 +337,7 @@ describe('LogPresenter 行动日志聚合', () => {
         remainHp: 420,
         isCritical: false,
         targetName: '李四',
-        beforeHp: 0
+        beforeHp: 0,
       }),
       createEntry('buff_apply', {
         buffId: 'burn',
@@ -563,7 +579,7 @@ describe('LogPresenter 行动日志聚合', () => {
         remainHp: 0,
         isCritical: false,
         targetName: '李四',
-        beforeHp: 0
+        beforeHp: 0,
       }),
       createEntry('death', {
         targetName: '李四',
@@ -590,14 +606,14 @@ describe('LogPresenter 行动日志聚合', () => {
         targetName: '张三',
         damageSource: 'reflect',
         reflectSourceName: '李四',
-        beforeHp: 0
+        beforeHp: 0,
       }),
       createEntry('damage', {
         value: 1300,
         remainHp: 1,
         isCritical: false,
         targetName: '李四',
-        beforeHp: 0
+        beforeHp: 0,
       }),
       createEntry('death_prevent', {
         targetName: '李四',
@@ -621,7 +637,7 @@ describe('LogPresenter 行动日志聚合', () => {
         targetName: '李四',
         shieldAbsorbed: 114,
         remainShield: 186,
-        beforeHp: 0
+        beforeHp: 0,
       }),
     ]);
     span.ability = { id: 'basic_attack', name: '普攻' };
@@ -639,14 +655,14 @@ describe('LogPresenter 行动日志聚合', () => {
         remainHp: 300,
         isCritical: false,
         targetName: '李四',
-        beforeHp: 0
+        beforeHp: 0,
       }),
       createEntry('damage', {
         value: 120,
         remainHp: 280,
         isCritical: true,
         targetName: '王五',
-        beforeHp: 0
+        beforeHp: 0,
       }),
     ]);
 
@@ -761,5 +777,239 @@ describe('LogPresenter 行动日志聚合', () => {
     const lines = presenter.formatSpan(span);
     expect(lines.join(' ')).toContain('劫债');
     expect(lines.join(' ')).not.toContain('calamity_debt');
+  });
+
+  it.each([
+    ['physical', 'damage-physical'],
+    ['magical', 'damage-magical'],
+    ['true', 'damage-true'],
+    ['dot', 'damage-dot'],
+  ] as const)('%s 伤害数字使用对应语义色', (damageType, tone) => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('damage', {
+        value: 512,
+        beforeHp: 1000,
+        remainHp: 488,
+        isCritical: damageType === 'magical',
+        targetName: '李四',
+        damageType,
+      }),
+    ]);
+
+    const parts = presenter.presentSpan(span).flatMap((line) => line.parts);
+    expect(parts).toContainEqual(
+      expect.objectContaining({ kind: 'number', text: '512', tone }),
+    );
+    if (damageType === 'magical') {
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          kind: 'critical',
+          text: '暴击',
+          tone: 'critical',
+          emphasis: 'strong',
+        }),
+      );
+    }
+  });
+
+  it('混合类型多段伤害保留各段色调并使用通用伤害色显示合计', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('damage', {
+        value: 300,
+        beforeHp: 1000,
+        remainHp: 700,
+        isCritical: false,
+        targetName: '李四',
+        damageType: 'physical',
+      }),
+      createEntry('damage', {
+        value: 400,
+        beforeHp: 700,
+        remainHp: 300,
+        isCritical: false,
+        targetName: '李四',
+        damageType: 'magical',
+      }),
+    ]);
+
+    const parts = presenter.presentSpan(span).flatMap((line) => line.parts);
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        kind: 'number',
+        text: '300',
+        tone: 'damage-physical',
+      }),
+    );
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        kind: 'number',
+        text: '400',
+        tone: 'damage-magical',
+      }),
+    );
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        kind: 'number',
+        text: '700',
+        tone: 'damage-generic',
+        emphasis: 'strong',
+      }),
+    );
+  });
+
+  it('追击和自然DOT保持结构化伤害色且纯文本不变', () => {
+    const presenter = new LogPresenter();
+    const followUp = createActionSpan([
+      createEntry('damage', {
+        value: 688,
+        beforeHp: 1000,
+        remainHp: 312,
+        isCritical: false,
+        targetName: '李四',
+        damageSource: 'follow_up',
+        damageType: 'magical',
+        source: { unitId: 'a', unitName: '张三' },
+        cause: {
+          kind: 'mechanic',
+          id: 'reaction-vaporize',
+          displayName: '蒸发',
+        },
+      }),
+    ]);
+    const dot: LogSpan = {
+      ...createActionSpan([]),
+      type: 'action_pre',
+      actor: { id: 'b', name: '李四' },
+      ability: undefined,
+      entries: [
+        createEntry('damage', {
+          value: 128,
+          beforeHp: 1000,
+          remainHp: 872,
+          isCritical: false,
+          targetName: '李四',
+          damageSource: 'delayed',
+          damageType: 'dot',
+          source: {
+            unitId: 'a',
+            unitName: '张三',
+            buffId: 'burn',
+            buffName: '灼烧',
+          },
+        }),
+      ],
+    };
+
+    expect(
+      presenter
+        .presentSpan(followUp)
+        .flatMap((line) => line.parts)
+        .find((part) => part.text === '688'),
+    ).toEqual(
+      expect.objectContaining({ kind: 'number', tone: 'damage-magical' }),
+    );
+    expect(
+      presenter
+        .presentSpan(dot)
+        .flatMap((line) => line.parts)
+        .find((part) => part.text === '128'),
+    ).toEqual(expect.objectContaining({ kind: 'number', tone: 'damage-dot' }));
+    expect(presenter.formatSpan(dot)).toEqual([
+      '「李四」身上的「灼烧」发作，造成 128 点伤害',
+    ]);
+  });
+
+  it('治疗、护盾、资源增减和状态名称使用操作语义色', () => {
+    const presenter = new LogPresenter();
+    const outcomeSpan = createActionSpan([
+      createEntry('heal', {
+        value: 240,
+        remainHp: 900,
+        targetName: '张三',
+        healType: 'hp',
+      }),
+      createEntry('shield', {
+        value: 180,
+        targetName: '张三',
+      }),
+      createEntry('buff_apply', {
+        buffId: 'guard',
+        buffName: '护体',
+        buffType: 'buff',
+        targetId: 'a',
+        targetName: '张三',
+        duration: 2,
+        durationUnit: 'owner_action',
+      }),
+      createEntry('buff_apply', {
+        buffId: 'burn',
+        buffName: '灼烧',
+        buffType: 'debuff',
+        targetId: 'a',
+        targetName: '张三',
+        duration: 2,
+        durationUnit: 'owner_action',
+      }),
+    ]);
+    const resourceSpan = createActionSpan([
+      createEntry('resource_change', {
+        targetName: '张三',
+        resourceId: 'sect.resource',
+        resourceName: '剑意',
+        resourceMax: 6,
+        operation: 'add',
+        reason: 'gain',
+        requested: 2,
+        applied: 2,
+        overflow: 0,
+        before: 1,
+        after: 3,
+      }),
+      createEntry('resource_change', {
+        targetName: '张三',
+        resourceId: 'sect.resource',
+        resourceName: '剑意',
+        resourceMax: 6,
+        operation: 'subtract',
+        reason: 'spend',
+        requested: -1,
+        applied: -1,
+        overflow: 0,
+        before: 3,
+        after: 2,
+      }),
+    ]);
+
+    const outcomeParts = presenter
+      .presentSpan(outcomeSpan)
+      .flatMap((line) => line.parts);
+    expect(outcomeParts).toContainEqual(
+      expect.objectContaining({ text: '240', tone: 'positive' }),
+    );
+    expect(outcomeParts).toContainEqual(
+      expect.objectContaining({ text: '180', tone: 'shield' }),
+    );
+    expect(outcomeParts).toContainEqual(
+      expect.objectContaining({ text: '「护体」', tone: 'buff' }),
+    );
+    expect(outcomeParts).toContainEqual(
+      expect.objectContaining({ text: '「灼烧」', tone: 'debuff' }),
+    );
+
+    const resourceParts = presenter
+      .presentSpan(resourceSpan)
+      .flatMap((line) => line.parts);
+    expect(resourceParts).toContainEqual(
+      expect.objectContaining({ text: '2', tone: 'positive' }),
+    );
+    expect(resourceParts).toContainEqual(
+      expect.objectContaining({ text: '1', tone: 'negative' }),
+    );
+    expect(resourceParts.filter((part) => part.text === '剑意')).toEqual([
+      expect.objectContaining({ tone: 'resource' }),
+      expect.objectContaining({ tone: 'resource' }),
+    ]);
   });
 });

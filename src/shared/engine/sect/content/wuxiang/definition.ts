@@ -20,7 +20,7 @@ export const WUXIANG_BASE_DEFINITION: SectDefinitionWithoutPaths = {
   combatResource: {
     id: WUXIANG_WAR_INTENT,
     name: '心念',
-    icon: '🔥',
+    icon: '👹',
     max: 6,
   },
   methods: [

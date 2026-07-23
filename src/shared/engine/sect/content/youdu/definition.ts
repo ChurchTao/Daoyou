@@ -18,7 +18,7 @@ export const YOUDU_BASE_DEFINITION: SectDefinitionWithoutPaths = {
   combatResource: {
     id: YOUDU_SOUL_FIRE,
     name: '魂火',
-    icon: '◈',
+    icon: '🔥',
     max: 3,
   },
   methods: [

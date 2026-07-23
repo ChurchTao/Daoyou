@@ -134,8 +134,16 @@ describe('V4.2战斗日志归组', () => {
     ]);
     const parts = new LogPresenter().presentSpan(span)[1].parts;
     expect(parts).toEqual(expect.arrayContaining([
-      { kind: 'number', text: '120' },
-      { kind: 'number', text: '180' },
+      expect.objectContaining({
+        kind: 'number',
+        text: '120',
+        tone: 'damage-generic',
+      }),
+      expect.objectContaining({
+        kind: 'number',
+        text: '180',
+        tone: 'damage-generic',
+      }),
     ]));
   });
 

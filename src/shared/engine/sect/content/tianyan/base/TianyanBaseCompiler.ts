@@ -2012,11 +2012,8 @@ export function compileTianyanBuild(
   compileSecrets(builder, factory, settings);
   compileRuntimePassives(builder, factory, settings);
   builder.setResource({
-    id: TIANYAN_DERIVATION,
-    name: '衍数',
-    icon: '✦',
+    ...TIANYAN_BASE_DEFINITION.combatResource,
     initial: settings.initialDerivation,
-    max: 3,
   });
 }
 

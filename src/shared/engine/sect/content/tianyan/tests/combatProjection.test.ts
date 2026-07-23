@@ -127,7 +127,7 @@ describe('天衍圣地战斗投影', () => {
       const projection = projectSectCombat({ sect, realm: '化神' });
       expect(projection).not.toBeNull();
       expect(projection?.resources).toEqual([
-        { id: 'sect.tianyan.derivation', name: '衍数', icon: '✦', initial: 0, max: 3 },
+        { id: 'sect.tianyan.derivation', name: '衍数', icon: '✨', initial: 0, max: 3 },
       ]);
       expect(projection?.selectionStrategy).toBeDefined();
     },

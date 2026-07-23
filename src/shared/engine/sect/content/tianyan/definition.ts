@@ -20,7 +20,7 @@ export const TIANYAN_BASE_DEFINITION: SectDefinitionWithoutPaths = {
   combatResource: {
     id: TIANYAN_DERIVATION,
     name: '衍数',
-    icon: '✦',
+    icon: '✨',
     max: 3,
   },
   methods: [

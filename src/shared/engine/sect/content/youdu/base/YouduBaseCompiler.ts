@@ -1478,11 +1478,8 @@ export function compileYouduBuild(
   settings: YouduBuildSettings,
 ): void {
   builder.setResource({
-    id: YOUDU_SOUL_FIRE,
-    name: '魂火',
-    icon: '◈',
+    ...YOUDU_BASE_DEFINITION.combatResource,
     initial: 0,
-    max: 3,
   });
   compileAbilities(builder, settings);
   compileRuntime(builder, settings);

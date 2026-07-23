@@ -1,4 +1,3 @@
-
 import type {
   ActionStateAbilityView,
   ActionStatePhase,
@@ -277,9 +276,32 @@ export type PresentedLogPartKind =
   | 'critical'
   | 'status';
 
+export type PresentedLogTone =
+  | 'neutral'
+  | 'secondary'
+  | 'ability'
+  | 'damage-generic'
+  | 'damage-physical'
+  | 'damage-magical'
+  | 'damage-true'
+  | 'damage-dot'
+  | 'positive'
+  | 'negative'
+  | 'shield'
+  | 'resource'
+  | 'buff'
+  | 'debuff'
+  | 'control'
+  | 'mechanic'
+  | 'defense'
+  | 'critical'
+  | 'fatal';
+
 export interface PresentedLogPart {
   kind: PresentedLogPartKind;
   text: string;
+  tone?: PresentedLogTone;
+  emphasis?: 'normal' | 'strong';
 }
 
 export interface PresentedLogLine {

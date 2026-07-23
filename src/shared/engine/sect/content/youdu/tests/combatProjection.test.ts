@@ -74,7 +74,7 @@ describe('幽都战斗与展示投影', () => {
       expect(() => new SectStateValidator().validate(YOUDU_MODULE, state)).not.toThrow();
       const projection = projectSectCombat({ sect: state, realm: '化神' })!;
       expect(projection.resources).toEqual([{
-        id: YOUDU_SOUL_FIRE, name: '魂火', icon: '◈', initial: 0, max: 3,
+        id: YOUDU_SOUL_FIRE, name: '魂火', icon: '🔥', initial: 0, max: 3,
       }]);
       expect(projection.selectionStrategy).toBeDefined();
       expect(projection.abilities.map((ability) => ability.slug)).not.toContain(

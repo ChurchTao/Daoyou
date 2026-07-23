@@ -43,6 +43,25 @@
   --color-battle-crimson-soft: rgba(193, 18, 31, 0.08);
   --color-battle-teal-soft: rgba(74, 124, 89, 0.08);
   --color-battle-gold-soft: rgba(239, 191, 4, 0.58);
+  --color-resource-hp: #c1121f;
+  --color-resource-mp: #1685a9;
+  --color-battle-log-ability: #8f2433;
+  --color-battle-log-damage-generic: #9f2f3f;
+  --color-battle-log-damage-physical: #b4232f;
+  --color-battle-log-damage-magical: #12657f;
+  --color-battle-log-damage-true: #9200ff;
+  --color-battle-log-damage-dot: #8a4b18;
+  --color-battle-log-positive: #2f6f4e;
+  --color-battle-log-negative: #9f2f3f;
+  --color-battle-log-shield: #376a63;
+  --color-battle-log-resource: #765200;
+  --color-battle-log-buff: #2f6f4e;
+  --color-battle-log-debuff: #9f2f3f;
+  --color-battle-log-control: #5a4a42;
+  --color-battle-log-mechanic: #765200;
+  --color-battle-log-defense: #376a63;
+  --color-battle-log-critical: #7a1020;
+  --color-battle-log-fatal: #7a1020;
 
   /* 品阶色板 */
   --color-tier-fan: #758a99;
@@ -235,13 +254,25 @@ body {
 }
 
 @keyframes ink-detail-drawer-up {
-  from { opacity: 0; transform: translateY(1.5rem); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes ink-detail-drawer-left {
-  from { opacity: 0; transform: translateX(1.5rem); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .ink-detail-drawer {

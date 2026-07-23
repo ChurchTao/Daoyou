@@ -84,7 +84,7 @@ function ResourceRow({
         <div
           className={cn(
             'h-full transition-all duration-500 ease-out',
-            tone === 'hp' ? 'bg-crimson' : 'bg-teal',
+            tone === 'hp' ? 'bg-resource-hp' : 'bg-resource-mp',
           )}
           style={{ width: `${percent}%` }}
         />

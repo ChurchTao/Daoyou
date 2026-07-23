@@ -1,19 +1,18 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { cn } from '@shared/lib/cn';
 import { LogPresenter } from '@shared/engine/battle-v5/systems/log/LogPresenter';
-import type { LogSpan } from '@shared/engine/battle-v5/systems/log/types';
-import type { PresentedLogPart } from '@shared/engine/battle-v5/systems/log/types';
-import type { PresentedLogLine } from '@shared/engine/battle-v5/systems/log/types';
+import type {
+  LogSpan,
+  PresentedLogLine,
+} from '@shared/engine/battle-v5/systems/log/types';
+import { cn } from '@shared/lib/cn';
+import { useEffect, useMemo, useRef } from 'react';
+import { getCombatLogPartClassName } from './combatLogPresentation';
 
 interface CombatActionLogProps {
   spans: LogSpan[];
   currentIndex: number;
 }
 
-export function CombatActionLog({
-  spans,
-  currentIndex,
-}: CombatActionLogProps) {
+export function CombatActionLog({ spans, currentIndex }: CombatActionLogProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const presenter = useMemo(() => new LogPresenter(), []);
 
@@ -75,7 +74,10 @@ export function CombatActionLog({
               <div
                 key={item.id}
                 data-span-id={item.id}
-                className={cn('px-1 py-1', isActive && 'bg-battle-crimson-soft')}
+                className={cn(
+                  'px-1 py-1',
+                  isActive && 'bg-battle-crimson-soft',
+                )}
               >
                 <div className="grid grid-cols-[1rem_minmax(0,1fr)] items-start gap-x-2.5">
                   <span
@@ -100,7 +102,7 @@ export function CombatActionLog({
                         {line.parts.map((part, partIndex) => (
                           <span
                             key={`${partIndex}-${part.text}`}
-                            className={partClassName(part)}
+                            className={getCombatLogPartClassName(part)}
                           >
                             {part.text}
                           </span>
@@ -133,23 +135,6 @@ function lineClassName(line: PresentedLogLine): string | undefined {
     case 'resource':
     case 'state':
       return 'pl-2';
-    default:
-      return undefined;
-  }
-}
-
-function partClassName(part: PresentedLogPart): string | undefined {
-  switch (part.kind) {
-    case 'ability':
-      return 'text-crimson';
-    case 'number':
-      return 'font-mono tabular-nums text-ink';
-    case 'resource':
-      return 'text-battle-gold-soft';
-    case 'critical':
-      return 'text-crimson';
-    case 'status':
-      return 'text-teal';
     default:
       return undefined;
   }
