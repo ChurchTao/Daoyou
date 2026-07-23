@@ -10,8 +10,9 @@ const hotspot = (
   permission: SectMapHotspot['permission'],
   note: string,
   facility?: string,
+  visitor?: SectMapHotspot['visitor'],
 ): SectMapHotspot => ({
-  id, label, left, top, route, permission, note, facility,
+  id, label, left, top, route, permission, note, facility, visitor,
 });
 
 export const TIANYAN_SECT_PRESENTATION: SectPresentationTheme = {
@@ -92,11 +93,16 @@ export const TIANYAN_SECT_PRESENTATION: SectPresentationTheme = {
       hotspot('refinery', '太白铸府', '35%', '75%', '/game/sect/refinery', 'sect.facility.refinery.use', '五金炼器', 'workshop'),
       hotspot('vein', '坤元地脉', '82%', '54%', '/game/sect/spirit-vein', 'sect.spirit_vein.view', '灵石俸禄加成', 'spirit_vein'),
       hotspot('garden', '长生圃', '26%', '15%', '/game/sect/herb-garden', 'sect.herb_garden.view', '每周灵草产出', 'herb_garden'),
-      hotspot('gate', '观象门', '50%', '88%', '/game/sect/gate', 'sect.gate.view', '宗门动态'),
+      hotspot('gate', '观象门', '50%', '88%', '/game/sect/gate', 'sect.gate.view', '宗门动态', undefined, {
+        description: '观象门正对云海，外客可在门侧石刻前递交名帖，等待执教回应。',
+      }),
       hotspot('cave', '云衡洞府', '13%', '50%', '/game/sect/cave', 'sect.cave.view', '内门弟子居所'),
       {
         id: 'formation', label: '五峰归流阵眼', left: '50%', top: '53%',
         permission: 'sect.formation.view', note: '宗门战后续开放', facility: 'formation', locked: true,
+        visitor: {
+          description: '五峰灵机经水脉、炉院与矿路汇入中宫，外客可观其势，不得踏入阵眼。',
+        },
       },
     ],
   },

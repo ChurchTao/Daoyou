@@ -1,7 +1,7 @@
+import { resolveClosestSectMapHotspot } from '@app/components/feature/sect/sectMapHitTest';
 import { PRODUCTION_SECT_PRESENTATIONS } from '@shared/engine/sect/content';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { resolveClosestSectMapHotspot } from './components/sectMapHitTest';
 
 const SECT_MAP_HOTSPOTS = PRODUCTION_SECT_PRESENTATIONS.lingxiao.map.hotspots;
 
@@ -45,7 +45,7 @@ describe('sect map configuration', () => {
       'utf8',
     );
     const mapSource = readFileSync(
-      'src/react-app/routes/game/sect/components/SectMap.tsx',
+      'src/react-app/components/feature/sect/SectMap.tsx',
       'utf8',
     );
 
@@ -68,6 +68,23 @@ describe('sect map configuration', () => {
     expect(mapSource).not.toContain('rounded-full bg-current');
     expect(mapSource).not.toContain('opacity-0 group-hover:opacity-100');
     expect(mapSource).not.toContain('disabled={state.locked}');
+  });
+
+  it('keeps foreign visits read-only and independent from member overview data', () => {
+    const visitSource = readFileSync(
+      'src/react-app/routes/game/sect/visit/route.tsx',
+      'utf8',
+    );
+
+    expect(visitSource).toContain('mode="visitor"');
+    expect(visitSource).toContain('fetchSectDetail');
+    expect(visitSource).not.toContain('useSectCurrentQuery');
+    expect(visitSource).not.toContain('overview');
+    expect(visitSource).not.toContain('permissions=');
+    expect(visitSource).not.toContain('facilities=');
+    expect(visitSource).toContain(
+      'navigate(worldMapHref, { replace: true })',
+    );
   });
 
   it('resolves overlapping hotspot hit areas by pointer proximity', () => {

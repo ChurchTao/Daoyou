@@ -170,6 +170,7 @@ function UnitSummary({ unit }: { unit: UnitStateSnapshot }) {
                     ? 'tracking-[0.08em]'
                     : 'text-battle-muted',
                 )}
+                style={display.iconStyle}
               >
                 {display.value}
               </span>

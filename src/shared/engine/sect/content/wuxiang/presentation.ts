@@ -10,6 +10,7 @@ const hotspot = (
   permission: SectMapHotspot['permission'],
   note: string,
   facility?: string,
+  visitor?: SectMapHotspot['visitor'],
 ): SectMapHotspot => ({
   id,
   label,
@@ -19,6 +20,7 @@ const hotspot = (
   permission,
   note,
   facility,
+  visitor,
 });
 
 export const WUXIANG_SECT_PRESENTATION: SectPresentationTheme = {
@@ -208,6 +210,10 @@ export const WUXIANG_SECT_PRESENTATION: SectPresentationTheme = {
         '/game/sect/gate',
         'sect.gate.view',
         '宗门动态',
+        undefined,
+        {
+          description: '不二门没有门扇，知客僧在未合圆环下为外客验明拜帖。',
+        },
       ),
       hotspot(
         'cave',
@@ -227,6 +233,10 @@ export const WUXIANG_SECT_PRESENTATION: SectPresentationTheme = {
         note: '宗门战后续开放',
         facility: 'formation',
         locked: true,
+        visitor: {
+          description:
+            '黑白双峰与血莲池共同构成阵势，来客立于界外，只能看见未合圆环缓慢转动。',
+        },
       },
     ],
   },

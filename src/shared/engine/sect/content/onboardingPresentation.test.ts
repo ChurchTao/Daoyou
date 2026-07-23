@@ -32,4 +32,20 @@ describe('production sect onboarding presentations', () => {
       expect(existsSync(join(process.cwd(), 'public', assetPath!))).toBe(true);
     }
   });
+
+  it('exposes only the gate and formation to foreign visitors', () => {
+    for (const presentation of Object.values(PRODUCTION_SECT_PRESENTATIONS)) {
+      const visitorHotspots = presentation.map.hotspots
+        .filter((hotspot) => hotspot.visitor)
+        .map((hotspot) => hotspot.id)
+        .sort();
+
+      expect(visitorHotspots).toEqual(['formation', 'gate']);
+      expect(
+        presentation.map.hotspots
+          .filter((hotspot) => hotspot.visitor)
+          .every((hotspot) => hotspot.visitor!.description.trim().length > 0),
+      ).toBe(true);
+    }
+  });
 });

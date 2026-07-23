@@ -1,14 +1,34 @@
-import { MapNode, MapNodeDetail, type MapNodeDetailAction, MapSatellite, } from '@app/components/feature/map';
 import {
-  getAllMapNodes, getAllSatelliteNodes, getMapNode, type MapNodeInfo, } from '@shared/lib/game/mapSystem';
+  MapNode,
+  MapNodeDetail,
+  MapSatellite,
+  MapSectLandmark,
+  SectLandmarkDetail,
+} from '@app/components/feature/map';
+import { usePlayerState } from '@app/lib/player-state/store';
+import {
+  getAllMapNodes,
+  getAllSatelliteNodes,
+  getAllSectLandmarks,
+  getMapNode,
+  getWorldMapLocation,
+  type MapNodeInfo,
+  type SectLandmark,
+  type WorldMapLocation,
+} from '@shared/lib/game/mapSystem';
 import { useMemo, useState } from 'react';
-import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 import { useNavigate, useSearchParams } from 'react-router';
+import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
+import {
+  buildNodeActions,
+  buildSectLandmarkActions,
+  resolveMapIntent,
+} from './mapActions';
 
 const MAP_WIDTH = 3056;
 const MAP_HEIGHT = 2143;
 
-const getInitPosition = (targetNode?: MapNodeInfo | null) => {
+const getInitPosition = (targetNode?: WorldMapLocation | null) => {
   if (typeof window === 'undefined') return { x: -2382, y: -1224 };
   if (targetNode) {
     return {
@@ -22,71 +42,25 @@ const getInitPosition = (targetNode?: MapNodeInfo | null) => {
     : { x: -1318, y: -1262 };
 };
 
-type MapIntent = 'market' | 'dungeon';
-
 type ManualNodeSelection = {
   nodeId: string | null;
   requestedNodeId: string | null;
 };
 
-type NodeActionContext = {
-  selectedNodeId: string;
-  isMainNode: boolean;
-  marketEnabled: boolean;
-};
-
-function buildNodeActions(
-  intent: MapIntent,
-  ctx: NodeActionContext,
-  navigate: (path: string) => void,
-): MapNodeDetailAction[] {
-  const builders: Record<MapIntent, (input: NodeActionContext) => MapNodeDetailAction[]> = {
-    dungeon: ({ selectedNodeId: id, isMainNode }) => {
-      // 只有卫星节点可以进行副本挑战
-      if (isMainNode) return [];
-      return [
-        {
-          key: 'enter-dungeon',
-          label: '前往历练',
-          variant: 'primary',
-          onClick: () => navigate(`/game/dungeon?nodeId=${id}`),
-        },
-      ];
-    },
-    market: ({ selectedNodeId: id, isMainNode, marketEnabled }) => {
-      const actions: MapNodeDetailAction[] = [];
-
-      // 只有卫星节点可以进行副本挑战
-      if (!isMainNode) {
-        actions.push({
-          key: 'enter-dungeon',
-          label: '前往历练',
-          variant: 'secondary',
-          onClick: () => navigate(`/game/dungeon?nodeId=${id}`),
-        });
-      }
-
-      // 需求约束：只有主节点且已开放坊市时才展示按钮
-      if (isMainNode && marketEnabled) {
-        actions.unshift({
-          key: 'enter-market',
-          label: '进入坊市',
-          variant: 'primary',
-          onClick: () => navigate(`/game/market?nodeId=${id}&layer=common`),
-        });
-      }
-      return actions;
-    },
-  };
-
-  return builders[intent](ctx);
+function isSectLandmark(location: WorldMapLocation): location is SectLandmark {
+  return 'kind' in location && location.kind === 'sect';
 }
 
 export default function MapPage() {
   const navigate = useNavigate();
+  const activeSectId = usePlayerState(
+    (state) => state.snapshot.sect?.sectId ?? null,
+  );
   const [searchParams] = useSearchParams();
   const requestedNodeId = searchParams.get('nodeId');
-  const requestedNode = requestedNodeId ? (getMapNode(requestedNodeId) ?? null) : null;
+  const requestedNode = requestedNodeId
+    ? (getWorldMapLocation(requestedNodeId) ?? null)
+    : null;
   const [manualSelection, setManualSelection] =
     useState<ManualNodeSelection | null>(null);
   const selectedNodeId =
@@ -94,13 +68,13 @@ export default function MapPage() {
       ? manualSelection.nodeId
       : (requestedNode?.id ?? null);
   const initPosition = getInitPosition(requestedNode);
-  const intent: MapIntent =
-    searchParams.get('intent') === 'market' ? 'market' : 'dungeon';
+  const intent = resolveMapIntent(searchParams.get('intent'));
 
   const allNodes = getAllMapNodes();
   const allSatellites = getAllSatelliteNodes();
-  const selectedNode: MapNodeInfo | null = selectedNodeId
-    ? (getMapNode(selectedNodeId) ?? null)
+  const allSectLandmarks = getAllSectLandmarks();
+  const selectedNode: WorldMapLocation | null = selectedNodeId
+    ? (getWorldMapLocation(selectedNodeId) ?? null)
     : null;
 
   const handleNodeClick = (id: string) => {
@@ -114,6 +88,12 @@ export default function MapPage() {
         marketEnabled: false,
       };
     }
+    if (isSectLandmark(selectedNode)) {
+      return {
+        isMainNode: false,
+        marketEnabled: false,
+      };
+    }
     const isMainNode = 'region' in selectedNode;
     return {
       isMainNode,
@@ -122,7 +102,9 @@ export default function MapPage() {
   }, [selectedNode, selectedNodeId]);
 
   const nodeActions = useMemo(() => {
-    if (!selectedNodeId) return [];
+    if (!selectedNodeId || !selectedNode || isSectLandmark(selectedNode)) {
+      return [];
+    }
     return buildNodeActions(
       intent,
       {
@@ -137,8 +119,17 @@ export default function MapPage() {
     nodeContext.isMainNode,
     nodeContext.marketEnabled,
     navigate,
+    selectedNode,
     selectedNodeId,
   ]);
+  const sectLandmarkActions = useMemo(() => {
+    if (!selectedNode || !isSectLandmark(selectedNode)) return [];
+    return buildSectLandmarkActions(
+      selectedNode.sect_id,
+      activeSectId,
+      (path) => navigate(path),
+    );
+  }, [activeSectId, navigate, selectedNode]);
 
   return (
     <div className="relative h-full overflow-hidden">
@@ -226,18 +217,37 @@ export default function MapPage() {
                   onClick={handleNodeClick}
                 />
               ))}
+
+              {allSectLandmarks.map((landmark) => (
+                <MapSectLandmark
+                  key={landmark.id}
+                  id={landmark.id}
+                  name={landmark.name}
+                  x={landmark.x}
+                  y={landmark.y}
+                  emphasized={intent === 'sect'}
+                  selected={selectedNodeId === landmark.id}
+                  onClick={handleNodeClick}
+                />
+              ))}
             </div>
           </TransformComponent>
         </TransformWrapper>
       </div>
 
-      {selectedNode && (
+      {selectedNode && isSectLandmark(selectedNode) ? (
+        <SectLandmarkDetail
+          landmark={selectedNode}
+          onClose={() => setManualSelection({ nodeId: null, requestedNodeId })}
+          actions={sectLandmarkActions}
+        />
+      ) : selectedNode ? (
         <MapNodeDetail
-          node={selectedNode}
+          node={selectedNode as MapNodeInfo}
           onClose={() => setManualSelection({ nodeId: null, requestedNodeId })}
           actions={nodeActions}
         />
-      )}
+      ) : null}
     </div>
   );
 }

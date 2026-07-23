@@ -7,29 +7,50 @@ describe('sect onboarding guard', () => {
     expect(resolveSectOnboardingRedirect('/game', false, 'none')).toBeNull();
   });
 
-  it('forces sectless cultivators into onboarding from home and deep links', () => {
+  it('forces sectless cultivators into the sect world map from unrelated routes', () => {
     expect(resolveSectOnboardingRedirect('/game', true, 'none')).toBe(
-      '/game/sect/onboarding',
+      '/game/map?intent=sect',
     );
-    expect(
-      resolveSectOnboardingRedirect('/game/inventory', true, 'none'),
-    ).toBe('/game/sect/onboarding');
-    expect(
-      resolveSectOnboardingRedirect('/game/sect/onboarding', true, 'none'),
-    ).toBeNull();
+    expect(resolveSectOnboardingRedirect('/game/inventory', true, 'none')).toBe(
+      '/game/map?intent=sect',
+    );
   });
 
-  it('sends existing members away from onboarding', () => {
+  it('allows sectless cultivators to select, inspect, and visit sects', () => {
+    expect(
+      resolveSectOnboardingRedirect('/game/map', true, 'none', '?intent=sect'),
+    ).toBeNull();
+    expect(
+      resolveSectOnboardingRedirect(
+        '/game/sect/onboarding',
+        true,
+        'none',
+        '?sectId=lingxiao',
+      ),
+    ).toBeNull();
+    expect(
+      resolveSectOnboardingRedirect('/game/sect/lingxiao/visit', true, 'none'),
+    ).toBeNull();
+    expect(
+      resolveSectOnboardingRedirect('/game/sect/onboarding', true, 'none'),
+    ).toBe('/game/map?intent=sect');
+  });
+
+  it('only sends existing members away from unscoped onboarding', () => {
     expect(
       resolveSectOnboardingRedirect('/game/sect/onboarding', true, 'joined'),
     ).toBe('/game/sect');
     expect(
+      resolveSectOnboardingRedirect('/game/sect/onboarding/', true, 'joined'),
+    ).toBe('/game/sect');
+    expect(
       resolveSectOnboardingRedirect(
-        '/game/sect/onboarding/',
+        '/game/sect/onboarding',
         true,
         'joined',
+        '?sectId=youdu',
       ),
-    ).toBe('/game/sect');
+    ).toBeNull();
     expect(resolveSectOnboardingRedirect('/game', true, 'joined')).toBeNull();
   });
 });

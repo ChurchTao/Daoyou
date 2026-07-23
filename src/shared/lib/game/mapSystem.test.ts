@@ -1,3 +1,4 @@
+import { PRODUCTION_SECT_IDS } from '@shared/engine/sect/content';
 import { describe, expect, it } from 'vitest';
 import type { DungeonDifficultyTier, MapNodeInfo } from './mapSystem';
 import {
@@ -5,14 +6,16 @@ import {
   clampDungeonEnemyRealmStage,
   getAllMapNodes,
   getAllSatelliteNodes,
+  getAllSectLandmarks,
   getDungeonRewardBonus,
+  getMapNode,
+  getSectLandmark,
+  getSectLandmarkBySectId,
   resolveDungeonEnemyDifficulty,
   resolveDungeonMapConfig,
 } from './mapSystem';
 
-function createNode(
-  difficulty?: DungeonDifficultyTier,
-): MapNodeInfo {
+function createNode(difficulty?: DungeonDifficultyTier): MapNodeInfo {
   return {
     id: 'test-node',
     name: '测试秘境',
@@ -116,7 +119,9 @@ describe('resolveDungeonMapConfig', () => {
     const satelliteNodes = getAllSatelliteNodes();
 
     // 只有卫星节点需要 dungeon_config
-    expect(satelliteNodes.every((node) => node.dungeon_config?.difficulty)).toBe(true);
+    expect(
+      satelliteNodes.every((node) => node.dungeon_config?.difficulty),
+    ).toBe(true);
 
     // 主节点不应有 dungeon_config（副本仅限卫星节点）
     const mainNodes = getAllMapNodes();
@@ -138,5 +143,40 @@ describe('resolveDungeonMapConfig', () => {
         satelliteNodes.find((node) => node.id === 'SAT_DJ_02')!,
       ).difficultyLabel,
     ).toBe('绝境');
+  });
+
+  it('connects every production sect to one valid world-map landmark', () => {
+    const landmarks = getAllSectLandmarks();
+    const mainNodeIds = new Set(getAllMapNodes().map((node) => node.id));
+    const expectedParents = {
+      lingxiao: 'TN_YW_01',
+      tianyan: 'DJ_KW_01',
+      wuxiang: 'DJ_SOUTH_01',
+      youdu: 'DJ_VOID_01',
+    };
+
+    expect(landmarks).toHaveLength(PRODUCTION_SECT_IDS.length);
+    expect(new Set(landmarks.map((landmark) => landmark.id)).size).toBe(
+      landmarks.length,
+    );
+    expect([...landmarks.map((landmark) => landmark.sect_id)].sort()).toEqual(
+      [...PRODUCTION_SECT_IDS].sort(),
+    );
+    expect(
+      landmarks.every((landmark) => mainNodeIds.has(landmark.parent_id)),
+    ).toBe(true);
+    expect(
+      Object.fromEntries(
+        landmarks.map((landmark) => [landmark.sect_id, landmark.parent_id]),
+      ),
+    ).toEqual(expectedParents);
+  });
+
+  it('keeps sect landmarks separate from dungeon nodes', () => {
+    const landmark = getSectLandmark('SECT_LINGXIAO');
+
+    expect(landmark?.sect_id).toBe('lingxiao');
+    expect(getSectLandmarkBySectId('lingxiao')).toEqual(landmark);
+    expect(getMapNode('SECT_LINGXIAO')).toBeUndefined();
   });
 });

@@ -4,6 +4,21 @@ type ActionState = NonNullable<UnitStateSnapshot['actionStates']>[number];
 type CombatResource = UnitStateSnapshot['combatResources'][number];
 type BuffState = UnitStateSnapshot['buffs'][number];
 
+const COMBAT_RESOURCE_PRESENTATION: Record<
+  string,
+  { icon: string; iconStyle?: { filter: string } }
+> = {
+  'sect.wuxiang.war-intent': { icon: '👹' },
+  'sect.tianyan.derivation': {
+    icon: '✨',
+    iconStyle: { filter: 'hue-rotate(220deg)' },
+  },
+  'sect.youdu.soul-fire': {
+    icon: '🔥',
+    iconStyle: { filter: 'hue-rotate(180deg)' },
+  },
+};
+
 export type CompactStatusTone = 'default' | 'buff' | 'debuff';
 
 export interface CompactStatusTag {
@@ -36,17 +51,19 @@ export function formatActionStateTitle(state: ActionState): string {
 
 function formatCompactBuffStatus(buff: BuffState): string {
   const layers = buff.layers > 1 ? `×${buff.layers}` : '';
-  const duration = buff.durationUnit === 'owner_action'
-    ? `${buff.remaining}回合`
-    : `${buff.remaining}轮`;
+  const duration =
+    buff.durationUnit === 'owner_action'
+      ? `${buff.remaining}回合`
+      : `${buff.remaining}轮`;
   return `「${buff.name}${layers}」（${duration}）`;
 }
 
 function formatBuffStatusTitle(buff: BuffState): string {
   const layers = buff.layers > 1 ? `×${buff.layers}` : '';
-  const remaining = buff.durationUnit === 'owner_action'
-    ? `余${buff.remaining}次自身行动`
-    : `余${buff.remaining}轮`;
+  const remaining =
+    buff.durationUnit === 'owner_action'
+      ? `余${buff.remaining}次自身行动`
+      : `余${buff.remaining}轮`;
   const details = [`${buff.name}${layers} · ${remaining}`];
   if (buff.sourceName) details.push(`来源：${buff.sourceName}`);
   if (buff.description) details.push(buff.description);
@@ -96,14 +113,17 @@ export function getCombatResourceDisplay(resource: CombatResource): {
   mode: 'pips' | 'bar';
   value: string;
   accessibleLabel: string;
+  iconStyle?: { filter: string };
 } {
   const accessibleLabel = `${resource.name}${resource.current}/${resource.max}`;
-  if (resource.icon) {
+  const presentation = COMBAT_RESOURCE_PRESENTATION[resource.id];
+  const icon = presentation?.icon ?? resource.icon;
+  if (icon) {
     return {
       mode: 'pips',
-      value:
-        resource.current > 0 ? resource.icon.repeat(resource.current) : '无',
+      value: resource.current > 0 ? icon.repeat(resource.current) : '无',
       accessibleLabel,
+      ...(presentation?.iconStyle ? { iconStyle: presentation.iconStyle } : {}),
     };
   }
   return {

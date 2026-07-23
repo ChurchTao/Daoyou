@@ -1,5 +1,5 @@
-import type { SectCapabilityKey } from '../organization/contracts';
 import type { NarrativePerformanceScript } from '@shared/types/narrative';
+import type { SectCapabilityKey } from '../organization/contracts';
 
 export type SectSceneKey =
   | 'map'
@@ -29,6 +29,9 @@ export interface SectMapHotspot {
   top: string;
   note: string;
   locked?: boolean;
+  visitor?: {
+    description: string;
+  };
 }
 
 export interface SectScenePresentation {

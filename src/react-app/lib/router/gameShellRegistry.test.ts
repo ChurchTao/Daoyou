@@ -33,7 +33,9 @@ describe('game shell registry', () => {
     expect(resolveGameShellKind('/game/sect/abilities')).toBe('viewport');
     expect(resolveGameShellKind('/game/sect/hall')).toBe('viewport');
     expect(resolveGameShellKind('/game/sect/archive/methods')).toBe('viewport');
-    expect(resolveGameShellKind('/game/sect/enlightenment-cliff')).toBe('viewport');
+    expect(resolveGameShellKind('/game/sect/enlightenment-cliff')).toBe(
+      'viewport',
+    );
     expect(resolveGameShellKind('/game/sect/alchemy')).toBe('viewport');
     expect(resolveGameShellKind('/game/sect/industries')).toBe('viewport');
     expect(resolveGameShellKind('/game/cultivator/attributes')).toBe(
@@ -54,6 +56,7 @@ describe('game shell registry', () => {
       'combat',
     );
     expect(resolveGameShellKind('/game/map')).toBe('map');
+    expect(resolveGameShellKind('/game/sect/youdu/visit')).toBe('map');
     expect(resolveGameShellKind('/game/dungeon')).toBe('dungeon');
     expect(resolveGameShellKind('/game/dungeon/history')).toBe('viewport');
   });
@@ -78,17 +81,19 @@ describe('game shell registry', () => {
     expect(source).toContain('path="sect/industries"');
     expect(source).toContain("id: 'sect-abilities'");
     expect(source).toContain('path="sect/onboarding"');
+    expect(source).toContain('path="sect/:sectId/visit"');
+    expect(source).toContain("id: 'sect-visit'");
     expect(source).not.toContain('path="sect/trial/:sectId"');
-    expect(source).toContain("path=\"skills\"");
+    expect(source).toContain('path="skills"');
   });
 
-  it('sends a newly created cultivator to the sect narrative', () => {
+  it('sends a newly created cultivator to the sect world map', () => {
     const source = readFileSync(
       'src/react-app/routes/game/create/route.tsx',
       'utf8',
     );
     expect(source).toContain(
-      "navigate('/game/sect/onboarding', { replace: true })",
+      "navigate('/game/map?intent=sect', { replace: true })",
     );
   });
 

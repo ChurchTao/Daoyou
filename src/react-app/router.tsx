@@ -16,6 +16,7 @@ import type {
   GameSceneHandle,
   RouteTitleResolver,
 } from '@app/lib/router/routeTitle';
+import { resolveSectVisitTitle } from '@app/lib/router/routeTitle';
 import {
   createBrowserRouter,
   createRoutesFromElements,
@@ -56,7 +57,13 @@ const scene = (
 const mapTitle: RouteTitleResolver = ({ searchParams }) =>
   searchParams.get('intent') === 'market'
     ? '修仙界地图 · 坊市选址'
-    : '修仙界地图 · 历练选址';
+    : searchParams.get('intent') === 'sect'
+      ? '修仙界地图 · 诸宗山门'
+      : '修仙界地图 · 历练选址';
+
+const sectVisitTitle: RouteTitleResolver = ({ params }) => {
+  return resolveSectVisitTitle(params.sectId);
+};
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -1009,6 +1016,20 @@ export const router = createBrowserRouter(
                   dock: 'hidden',
                 },
                 mapTitle,
+              )}
+            />
+            <Route
+              path="sect/:sectId/visit"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/sect/visit/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'sect-visit',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                sectVisitTitle,
               )}
             />
           </Route>

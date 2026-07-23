@@ -2,24 +2,22 @@ import type { Params, UIMatch } from 'react-router';
 
 export const APP_TITLE = '万界道友';
 
+const SECT_VISIT_TITLES: Readonly<Record<string, string>> = {
+  lingxiao: '红尘剑宗舆图',
+  wuxiang: '无相禅宗舆图',
+  tianyan: '天衍圣地舆图',
+  youdu: '幽都舆图',
+};
+
 export type GameSceneGroup =
-  | 'cultivation'
-  | 'craft'
-  | 'trade'
-  | 'message'
-  | 'combat'
-  | 'service';
+  'cultivation' | 'craft' | 'trade' | 'message' | 'combat' | 'service';
 
 export type GameSceneChrome = 'standard' | 'immersive';
 
 export type GameSceneDockMode = 'core' | 'expanded' | 'hidden';
 
 export type GameScenePresentation =
-  | 'hub'
-  | 'workflow'
-  | 'archive'
-  | 'service'
-  | 'immersive';
+  'hub' | 'workflow' | 'archive' | 'service' | 'immersive';
 
 export interface GameSceneHandle {
   id: string;
@@ -63,6 +61,11 @@ export function formatDocumentTitle(title?: string | null) {
   }
 
   return `${trimmedTitle} | ${APP_TITLE}`;
+}
+
+export function resolveSectVisitTitle(sectId?: string): string {
+  const title = sectId ? SECT_VISIT_TITLES[sectId] : undefined;
+  return title ? `${title} · 访宗` : '访宗舆图';
 }
 
 function resolveHandleTitle(

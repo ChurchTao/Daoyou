@@ -1,3 +1,4 @@
+import { SectMap } from '@app/components/feature/sect/SectMap';
 import {
   useSectCurrentQuery,
   useSectPresentation,
@@ -13,7 +14,6 @@ import {
 import { SECT_RANK_LABELS } from '@shared/engine/sect';
 import { useMemo } from 'react';
 import { Navigate, useNavigate } from 'react-router';
-import { SectMap } from './components/SectMap';
 import { SectQueryError } from './components/SectScene';
 
 export default function SectPage() {

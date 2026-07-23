@@ -1,5 +1,5 @@
-import { SectQueryProvider } from '@app/components/feature/sect/SectQueryProvider';
 import { NarrativePerformanceLoading } from '@app/components/feature/narrative/NarrativePerformanceLoading';
+import { SectQueryProvider } from '@app/components/feature/sect/SectQueryProvider';
 import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
 import { WorldChatFeedProvider } from '@app/components/feature/world-chat/useWorldChatFeedModel';
 import { GameBottomDock } from '@app/components/game-shell/GameBottomDock';
@@ -11,14 +11,18 @@ import {
   useActiveCultivatorProfile,
   usePlayerStateStatus,
 } from '@app/lib/player-state/selectors';
-import { PlayerProvider } from '@app/lib/player/PlayerProvider';
 import { usePlayerState } from '@app/lib/player-state/store';
-import { resolveSectOnboardingRedirect } from '@app/lib/router/sectOnboardingGuard';
+import { PlayerProvider } from '@app/lib/player/PlayerProvider';
+import {
+  resolveMapCloseNavigation,
+  type SpecialBackNavigation,
+} from '@app/lib/router/mapCloseNavigation';
 import {
   resolveGameScene,
   resolveRouteTitle,
   type GameSceneHandle,
 } from '@app/lib/router/routeTitle';
+import { resolveSectOnboardingRedirect } from '@app/lib/router/sectOnboardingGuard';
 import { DungeonSceneProvider } from '@app/routes/game/dungeon/dungeonScene';
 import { useResolvedDungeonScene } from '@app/routes/game/dungeon/dungeonSceneContext';
 import {
@@ -42,17 +46,9 @@ import {
   useSpecialSceneBackOverride,
 } from './special-scene';
 
-type SpecialBackAction =
-  | {
-      type: 'path';
-      label: string;
-      href: string;
-    }
-  | {
-      type: 'history-or-path';
-      label: string;
-      fallbackHref: string;
-    };
+type SpecialBackAction = SpecialBackNavigation & {
+  label: string;
+};
 
 interface SpecialSceneDescriptor {
   sceneLabel: string;
@@ -107,15 +103,12 @@ function PlayerShell() {
     );
   }
 
-  const sectState = !sectLoaded
-    ? 'loading'
-    : activeSect
-      ? 'joined'
-      : 'none';
+  const sectState = !sectLoaded ? 'loading' : activeSect ? 'joined' : 'none';
   const redirect = resolveSectOnboardingRedirect(
     location.pathname,
     hasActiveCultivator,
     sectState,
+    location.search,
   );
 
   if (sectState === 'loading') {
@@ -135,6 +128,7 @@ function PlayerShell() {
 
 function resolveSpecialSceneDescriptor(
   pathname: string,
+  search: string,
   scene: GameSceneHandle | null,
 ): SpecialSceneDescriptor | null {
   if (!scene || scene.chrome !== 'immersive') {
@@ -145,9 +139,20 @@ function resolveSpecialSceneDescriptor(
     return {
       sceneLabel: scene.label,
       backAction: {
-        type: 'history-or-path',
         label: '关闭地图',
-        fallbackHref: '/game',
+        ...resolveMapCloseNavigation(search),
+      },
+    };
+  }
+
+  if (/^\/game\/sect\/[^/]+\/visit$/.test(pathname)) {
+    return {
+      sceneLabel: scene.label,
+      backAction: {
+        type: 'path',
+        label: '返回大世界',
+        href: '/game/map?intent=sect',
+        replace: true,
       },
     };
   }
@@ -216,8 +221,9 @@ function useResolvedSpecialScene() {
   const scene = resolveGameScene(matches);
   const routeTitle = resolveRouteTitle(matches, location);
   const descriptor = useMemo(
-    () => resolveSpecialSceneDescriptor(location.pathname, scene),
-    [location.pathname, scene],
+    () =>
+      resolveSpecialSceneDescriptor(location.pathname, location.search, scene),
+    [location.pathname, location.search, scene],
   );
 
   return {
@@ -253,7 +259,9 @@ function useSpecialSceneBackActionState(
       return;
     }
 
-    navigate(descriptor.backAction.href);
+    navigate(descriptor.backAction.href, {
+      replace: descriptor.backAction.replace,
+    });
   };
 
   return {
@@ -263,7 +271,7 @@ function useSpecialSceneBackActionState(
 }
 
 function MapSceneChrome() {
-  const { descriptor, location } = useResolvedSpecialScene();
+  const { descriptor, location, routeTitle } = useResolvedSpecialScene();
   const { label, onBack } = useSpecialSceneBackActionState(descriptor);
 
   if (!descriptor) {
@@ -271,8 +279,16 @@ function MapSceneChrome() {
   }
 
   const searchParams = new URLSearchParams(location.search);
+  const isSectVisit = /^\/game\/sect\/[^/]+\/visit$/.test(location.pathname);
   const intentLabel =
-    searchParams.get('intent') === 'market' ? '坊市选址' : '历练选址';
+    searchParams.get('intent') === 'market'
+      ? '坊市选址'
+      : searchParams.get('intent') === 'sect'
+        ? '诸宗山门'
+        : '历练选址';
+  const contextLabel = isSectVisit
+    ? '人界 · 访宗舆图'
+    : `人界 · 全图 · ${intentLabel}`;
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between px-3 pt-[calc(env(safe-area-inset-top)+0.65rem)] md:px-5">
@@ -286,9 +302,9 @@ function MapSceneChrome() {
         </button>
       </div>
       <div className="border-battle-rule-strong pointer-events-auto border border-dashed bg-[rgba(248,243,230,0.94)] px-4 py-2 text-right shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm">
-        <div className="text-ink font-semibold">{descriptor.sceneLabel}</div>
+        <div className="text-ink font-semibold">{routeTitle}</div>
         <div className="text-battle-muted text-xs tracking-[0.12em]">
-          人界·全图 · {intentLabel}
+          {contextLabel}
         </div>
       </div>
     </div>

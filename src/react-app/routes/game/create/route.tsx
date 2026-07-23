@@ -34,8 +34,10 @@ import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapter
 import { AttributeType } from '@shared/engine/battle-v5/core/types';
 import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
 import { cn } from '@shared/lib/cn';
-import { getGameConceptIcon } from '@shared/lib/gameConceptDisplay';
-import { getResourceLabel } from '@shared/lib/gameConceptDisplay';
+import {
+  getGameConceptIcon,
+  getResourceLabel,
+} from '@shared/lib/gameConceptDisplay';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -176,8 +178,7 @@ export default function CreatePage() {
       try {
         const response = await fetch('/api/generate-character/quota');
         const result = (await response.json()) as
-          | CharacterGenerationQuotaResponse
-          | { success: false; error?: string };
+          CharacterGenerationQuotaResponse | { success: false; error?: string };
 
         if (!response.ok || !result.success) {
           throw new Error(
@@ -363,9 +364,12 @@ export default function CreatePage() {
         throw new Error(saveResult.error || '保存角色失败');
       }
 
-      pushToast({ message: '道友真形已落地，山门正在云外相候。', tone: 'success' });
+      pushToast({
+        message: '道友真形已落地，山门正在云外相候。',
+        tone: 'success',
+      });
       await refresh();
-      navigate('/game/sect/onboarding', { replace: true });
+      navigate('/game/map?intent=sect', { replace: true });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : '保存角色失败，请检查控制台';

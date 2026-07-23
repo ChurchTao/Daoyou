@@ -35,6 +35,48 @@ describe('战斗状态紧凑展示', () => {
     });
   });
 
+  it.each([
+    {
+      id: 'sect.wuxiang.war-intent',
+      name: '心念',
+      icon: '🔥',
+      expectedValue: '👹👹',
+      expectedStyle: undefined,
+    },
+    {
+      id: 'sect.tianyan.derivation',
+      name: '衍数',
+      icon: '✦',
+      expectedValue: '✨✨',
+      expectedStyle: { filter: 'hue-rotate(220deg)' },
+    },
+    {
+      id: 'sect.youdu.soul-fire',
+      name: '魂火',
+      icon: '◈',
+      expectedValue: '🔥🔥',
+      expectedStyle: { filter: 'hue-rotate(180deg)' },
+    },
+  ])(
+    '$name 使用战斗详情专属图标与样式',
+    ({ id, name, icon, expectedValue, expectedStyle }) => {
+      expect(
+        getCombatResourceDisplay({
+          id,
+          name,
+          icon,
+          current: 2,
+          max: 6,
+        }),
+      ).toEqual({
+        mode: 'pips',
+        value: expectedValue,
+        accessibleLabel: `${name}2/6`,
+        ...(expectedStyle ? { iconStyle: expectedStyle } : {}),
+      });
+    },
+  );
+
   it('行动状态使用无边框方括号文案', () => {
     expect(
       formatCompactActionState({

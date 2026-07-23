@@ -194,6 +194,9 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
         left: '48%',
         top: '77%',
         note: '宗门动态',
+        visitor: {
+          description: '山门外的石阶直通城郭，守门弟子会为外客登记来意与拜帖。',
+        },
       },
       {
         id: 'cave',
@@ -213,6 +216,10 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
         top: '8%',
         note: '宗门战后续开放',
         locked: true,
+        visitor: {
+          description:
+            '剑痕沿群峰与山路首尾相接，外客只能在阵外看见偶尔掠过云层的锋光。',
+        },
       },
     ],
   },

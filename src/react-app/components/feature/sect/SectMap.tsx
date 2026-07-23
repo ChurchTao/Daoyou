@@ -19,14 +19,16 @@ import {
   type ReactZoomPanPinchContentRef,
 } from 'react-zoom-pan-pinch';
 import { resolveClosestSectMapHotspot } from './sectMapHitTest';
+import { resolveSectMapHotspotState, type SectMapMode } from './sectMapState';
 
 interface SectMapProps {
   image: string;
   alt: string;
   hotspots: readonly SectMapHotspot[];
-  facilities: ReadonlyMap<string, SectFacilityState>;
+  mode?: SectMapMode;
+  facilities?: ReadonlyMap<string, SectFacilityState>;
   permissions?: Readonly<Record<string, SectPermissionState>>;
-  onNavigate(route: string): void;
+  onNavigate?(route: string): void;
 }
 
 interface MapControlButtonProps extends Pick<
@@ -195,27 +197,12 @@ function FacilityMarkerGlyph({
   );
 }
 
-function getHotspotState(
-  spot: SectMapHotspot,
-  facilities: ReadonlyMap<string, SectFacilityState>,
-  permissions?: Readonly<Record<string, SectPermissionState>>,
-) {
-  const facility = spot.facility ? facilities.get(spot.facility) : undefined;
-  const access = spot.permission ? permissions?.[spot.permission] : undefined;
-  const locked = spot.locked || !spot.route || access?.granted === false;
-
-  return {
-    facility,
-    locked,
-    reason: access?.granted === false ? access.reason : undefined,
-  };
-}
-
 export function SectMap({
   image,
   alt,
   hotspots,
-  facilities,
+  mode = 'member',
+  facilities = new Map(),
   permissions,
   onNavigate,
 }: SectMapProps) {
@@ -225,10 +212,17 @@ export function SectMap({
   const selectedSpot =
     hotspots.find((hotspot) => hotspot.id === selectedId) ?? null;
   const selectedState = selectedSpot
-    ? getHotspotState(selectedSpot, facilities, permissions)
+    ? resolveSectMapHotspotState(selectedSpot, mode, facilities, permissions)
     : null;
 
   const selectFromList = (spot: SectMapHotspot) => {
+    const state = resolveSectMapHotspotState(
+      spot,
+      mode,
+      facilities,
+      permissions,
+    );
+    if (!state.selectable) return;
     setSelectedId(spot.id);
     setMobileView('map');
     window.requestAnimationFrame(() => {
@@ -260,6 +254,13 @@ export function SectMap({
       { width: canvasRect.width, height: canvasRect.height },
     );
     if (!closest) return;
+    const state = resolveSectMapHotspotState(
+      closest,
+      mode,
+      facilities,
+      permissions,
+    );
+    if (!state.selectable) return;
 
     event.stopPropagation();
     setSelectedId(closest.id);
@@ -269,7 +270,9 @@ export function SectMap({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-ink-secondary hidden text-sm md:block">
-          拖动或缩放舆图，点选设施查看职司。
+          {mode === 'visitor'
+            ? '拖动或缩放舆图，可在山门与护山阵法外驻足查看。'
+            : '拖动或缩放舆图，点选设施查看职司。'}
         </p>
         <div
           className="border-ink/15 flex border-b border-dashed md:hidden"
@@ -371,8 +374,9 @@ export function SectMap({
                       draggable={false}
                     />
                     {hotspots.map((spot) => {
-                      const state = getHotspotState(
+                      const state = resolveSectMapHotspotState(
                         spot,
+                        mode,
                         facilities,
                         permissions,
                       );
@@ -389,12 +393,17 @@ export function SectMap({
                             <button
                               id={`sect-map-hotspot-${spot.id}`}
                               type="button"
+                              disabled={!state.selectable}
                               aria-pressed={selected}
                               aria-label={`${spot.label}${level ? `，${level}级` : ''}${state.locked ? '，未开放' : ''}`}
-                              onClick={() => setSelectedId(spot.id)}
+                              onClick={() => {
+                                if (state.selectable) setSelectedId(spot.id);
+                              }}
                               className={cn(
                                 'sect-map-marker group focus-visible:outline-crimson relative flex size-7 transform-gpu items-center justify-center rounded-full transition-transform duration-150 focus-visible:outline-2 focus-visible:outline-offset-2',
                                 selected ? 'z-20 scale-[1.08]' : '',
+                                !state.selectable &&
+                                  'cursor-not-allowed opacity-55',
                               )}
                             >
                               <FacilityMarkerGlyph
@@ -456,7 +465,10 @@ export function SectMap({
                       <CloseIcon />
                     </button>
                   </div>
-                  {!selectedState.locked && selectedSpot.route ? (
+                  {mode === 'member' &&
+                  !selectedState.locked &&
+                  selectedSpot.route &&
+                  onNavigate ? (
                     <div className="mt-1.5">
                       <InkButton
                         variant="primary"
@@ -477,13 +489,24 @@ export function SectMap({
               )}
             >
               {hotspots.map((spot) => {
-                const state = getHotspotState(spot, facilities, permissions);
+                const state = resolveSectMapHotspotState(
+                  spot,
+                  mode,
+                  facilities,
+                  permissions,
+                );
                 return (
                   <button
                     key={spot.id}
                     type="button"
+                    disabled={!state.selectable}
                     onClick={() => selectFromList(spot)}
-                    className="hover:bg-ink/5 focus-visible:outline-crimson group flex w-full items-center gap-3 px-1 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+                    className={cn(
+                      'focus-visible:outline-crimson group flex w-full items-center gap-3 px-1 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
+                      state.selectable
+                        ? 'hover:bg-ink/5'
+                        : 'cursor-not-allowed opacity-55',
+                    )}
                   >
                     <FacilityMarkerGlyph locked={state.locked} />
                     <span className="min-w-0 flex-1">
@@ -504,12 +527,14 @@ export function SectMap({
                         {state.reason ?? spot.note}
                       </span>
                     </span>
-                    <span
-                      aria-hidden="true"
-                      className="text-ink-secondary pr-1 text-sm"
-                    >
-                      →
-                    </span>
+                    {state.selectable ? (
+                      <span
+                        aria-hidden="true"
+                        className="text-ink-secondary pr-1 text-sm"
+                      >
+                        →
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}

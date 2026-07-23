@@ -10,7 +10,8 @@ const hotspot = (
   permission: SectMapHotspot['permission'],
   note: string,
   facility?: string,
-): SectMapHotspot => ({ id, label, left, top, route, permission, note, facility });
+  visitor?: SectMapHotspot['visitor'],
+): SectMapHotspot => ({ id, label, left, top, route, permission, note, facility, visitor });
 
 export const YOUDU_SECT_PRESENTATION: SectPresentationTheme = {
   sectId: YOUDU_SECT_ID,
@@ -72,11 +73,16 @@ export const YOUDU_SECT_PRESENTATION: SectPresentationTheme = {
       hotspot('refinery', '镇铁炉', '82%', '71%', '/game/sect/refinery', 'sect.facility.refinery.use', '炼器', 'workshop'),
       hotspot('vein', '黑水阴脉', '90%', '44%', '/game/sect/spirit-vein', 'sect.spirit_vein.view', '灵石收益', 'spirit_vein'),
       hotspot('garden', '彼岸圃', '70%', '37%', '/game/sect/herb-garden', 'sect.herb_garden.view', '灵草产出', 'herb_garden'),
-      hotspot('gate', '无日关', '49%', '87%', '/game/sect/gate', 'sect.gate.view', '宗门动态'),
+      hotspot('gate', '无日关', '49%', '87%', '/game/sect/gate', 'sect.gate.view', '宗门动态', undefined, {
+        description: '三盏魂灯在无日关外照出访客影子，守关人只接下姓名与来意相符的拜帖。',
+      }),
       hotspot('cave', '寄魂庐', '88%', '31%', '/game/sect/cave', 'sect.cave.view', '弟子居所'),
       {
         id: 'formation', label: '万魂归窍阵', left: '79%', top: '14%',
         permission: 'sect.formation.view', note: '宗门战后续开放', facility: 'formation', locked: true,
+        visitor: {
+          description: '黑水与魂灯牵引归路，外客只能在灯外辨认阵纹，不能越过无日关。',
+        },
       },
     ],
   },
