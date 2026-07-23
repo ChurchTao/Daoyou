@@ -1,6 +1,7 @@
 import { PRODUCTION_SECT_PRESENTATIONS } from '@shared/engine/sect/content';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { resolveClosestSectMapHotspot } from './components/sectMapHitTest';
 
 const SECT_MAP_HOTSPOTS = PRODUCTION_SECT_PRESENTATIONS.lingxiao.map.hotspots;
 
@@ -61,11 +62,32 @@ describe('sect map configuration', () => {
     expect(mapSource).toContain('FacilityMarkerGlyph');
     expect(mapSource).not.toContain('rotate-45');
     expect(mapSource).toContain('size-[18px]');
+    expect(mapSource).toContain('relative flex size-7');
     expect(mapSource).toContain('scale-[1.08]');
     expect(mapSource).toContain('AVAILABLE_MARKER_STYLE');
     expect(mapSource).not.toContain('rounded-full bg-current');
     expect(mapSource).not.toContain('opacity-0 group-hover:opacity-100');
     expect(mapSource).not.toContain('disabled={state.locked}');
+  });
+
+  it('resolves overlapping hotspot hit areas by pointer proximity', () => {
+    const hotspots = PRODUCTION_SECT_PRESENTATIONS.tianyan.map.hotspots;
+    const canvas = { width: 760, height: 427 };
+
+    expect(
+      resolveClosestSectMapHotspot(
+        hotspots,
+        { x: canvas.width * 0.5, y: canvas.height * 0.49 },
+        canvas,
+      )?.id,
+    ).toBe('arena');
+    expect(
+      resolveClosestSectMapHotspot(
+        hotspots,
+        { x: canvas.width * 0.5, y: canvas.height * 0.53 },
+        canvas,
+      )?.id,
+    ).toBe('formation');
   });
 
   it('keeps legacy routes as replace redirects', () => {

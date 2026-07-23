@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
   type ButtonHTMLAttributes,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from 'react';
 import {
@@ -17,6 +18,7 @@ import {
   TransformWrapper,
   type ReactZoomPanPinchContentRef,
 } from 'react-zoom-pan-pinch';
+import { resolveClosestSectMapHotspot } from './sectMapHitTest';
 
 interface SectMapProps {
   image: string;
@@ -238,6 +240,31 @@ export function SectMap({
     });
   };
 
+  const handleHotspotClickCapture = (
+    event: ReactMouseEvent<HTMLDivElement>,
+  ) => {
+    if (
+      event.detail === 0 ||
+      !(event.target instanceof Element) ||
+      !event.target.closest('.sect-map-marker')
+    )
+      return;
+
+    const canvasRect = event.currentTarget.getBoundingClientRect();
+    const closest = resolveClosestSectMapHotspot(
+      hotspots,
+      {
+        x: event.clientX - canvasRect.left,
+        y: event.clientY - canvasRect.top,
+      },
+      { width: canvasRect.width, height: canvasRect.height },
+    );
+    if (!closest) return;
+
+    event.stopPropagation();
+    setSelectedId(closest.id);
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
@@ -333,7 +360,10 @@ export function SectMap({
                   wrapperClass="!w-full !h-[min(56svh,427px)] !min-h-[320px] md:!h-auto md:!min-h-0 md:aspect-[1672/941] cursor-grab active:cursor-grabbing"
                   contentClass="!w-max !h-max md:!w-full md:!h-full"
                 >
-                  <div className="relative aspect-[1672/941] w-[760px] md:w-full">
+                  <div
+                    className="relative aspect-[1672/941] w-[760px] md:w-full"
+                    onClickCapture={handleHotspotClickCapture}
+                  >
                     <img
                       src={image}
                       alt={alt}
@@ -363,7 +393,7 @@ export function SectMap({
                               aria-label={`${spot.label}${level ? `，${level}级` : ''}${state.locked ? '，未开放' : ''}`}
                               onClick={() => setSelectedId(spot.id)}
                               className={cn(
-                                'sect-map-marker group focus-visible:outline-crimson relative flex size-11 transform-gpu items-center justify-center rounded-full transition-transform duration-150 focus-visible:outline-2 focus-visible:outline-offset-2',
+                                'sect-map-marker group focus-visible:outline-crimson relative flex size-7 transform-gpu items-center justify-center rounded-full transition-transform duration-150 focus-visible:outline-2 focus-visible:outline-offset-2',
                                 selected ? 'z-20 scale-[1.08]' : '',
                               )}
                             >
@@ -374,7 +404,7 @@ export function SectMap({
                               <span
                                 style={MAP_LABEL_STYLE}
                                 className={cn(
-                                  'pointer-events-none absolute top-[34px] left-1/2 z-20 -translate-x-1/2 px-1 py-0.5 text-[11px] leading-4 font-semibold tracking-[0.08em] whitespace-nowrap',
+                                  'pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 translate-y-[13px] px-1 py-0.5 text-[11px] leading-4 font-semibold tracking-[0.08em] whitespace-nowrap',
                                   state.locked
                                     ? 'text-ink-secondary'
                                     : 'text-crimson',
