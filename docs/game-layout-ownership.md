@@ -4,6 +4,7 @@
 - `GameGenesisLayout`：`/game/create`、`/game/reincarnate`
 - `GameNarrativeLayout`：`/game/sect/onboarding` 等无 HUD、无全局导航的分幕演出
 - `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft*`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/auction`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`、`/game/bet-battle`
+- `GameActivityLayout`：`/game/sect/gate/sweep` 等无 HUD、无全局导航的全屏互动玩法
 - `GameCombatLayout`：`/game/battle`、`/game/battle/challenge`、`/game/battle/:id`、`/game/bet-battle/challenge`、`/game/training-room`、宗门任务战斗
 - `GameMapLayout`：`/game/map`
 - `GameDungeonLayout`：`/game/dungeon`

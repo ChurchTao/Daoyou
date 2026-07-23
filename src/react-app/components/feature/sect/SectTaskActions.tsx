@@ -44,15 +44,13 @@ export function BattleAction({ task, action }: SectTaskActionRendererProps) {
   );
 }
 
-export function SweepAction({ task, action }: SectTaskActionRendererProps) {
-  const { busy, execute } = useSectTaskInteraction();
+export function SweepEntryAction({ action }: SectTaskActionRendererProps) {
+  const { busy, navigate } = useSectTaskInteraction();
   return (
     <InkButton
       variant="primary"
       disabled={busy || !action.enabled}
-      onClick={() =>
-        void execute(task, action, {}, `「${task.presentation.title}」清扫场已开启`)
-      }
+      onClick={() => navigate('/game/sect/gate')}
     >
       {action.enabled ? action.label : action.disabledReason ?? '尚未解锁'}
     </InkButton>

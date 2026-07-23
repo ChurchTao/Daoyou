@@ -28,6 +28,7 @@ describe('game shell registry', () => {
     expect(resolveGameShellKind('/game/create')).toBe('genesis');
     expect(resolveGameShellKind('/game/reincarnate')).toBe('genesis');
     expect(resolveGameShellKind('/game/sect/onboarding')).toBe('narrative');
+    expect(resolveGameShellKind('/game/sect/gate/sweep')).toBe('activity');
     expect(resolveGameShellKind('/game')).toBe('viewport');
     expect(resolveGameShellKind('/game/inventory')).toBe('viewport');
     expect(resolveGameShellKind('/game/sect/abilities')).toBe('viewport');
@@ -78,11 +79,14 @@ describe('game shell registry', () => {
     expect(source).toContain('path="sect/spirit-vein"');
     expect(source).toContain('path="sect/herb-garden"');
     expect(source).toContain('path="sect/affairs"');
+    expect(source).toContain('path="sect/gate/sweep"');
     expect(source).toContain('path="sect/industries"');
     expect(source).toContain("id: 'sect-abilities'");
     expect(source).toContain('path="sect/onboarding"');
     expect(source).toContain('path="sect/:sectId/visit"');
     expect(source).toContain("id: 'sect-visit'");
+    expect(source).toContain("id: 'sect-gate-sweep'");
+    expect(source).not.toContain('path="/sect-sweep-runtime"');
     expect(source).not.toContain('path="sect/trial/:sectId"');
     expect(source).toContain('path="skills"');
   });

@@ -1,26 +1,36 @@
-export const SWEEP_RULES_VERSION = 2;
-export const SWEEP_GRID_COLUMNS = 13;
-export const SWEEP_GRID_ROWS = 7;
-export const SWEEP_LEAF_COUNT = 12;
+export const SWEEP_RULES_VERSION = 3;
+export const SWEEP_GRID_COLUMNS = 7;
+export const SWEEP_GRID_ROWS = 5;
+export const SWEEP_BLOCKED_COUNT = 9;
+export const SWEEP_LEAF_COUNT = 4;
 export const SWEEP_MAX_MOVES = SWEEP_GRID_COLUMNS * SWEEP_GRID_ROWS - 1;
-export const SWEEP_BOARD = { width: 1_000, height: 560 } as const;
+export const SWEEP_CANVAS = { width: 1_120, height: 630 } as const;
+
+const SWEEP_MIN_SOLUTION_MOVES = 14;
+const SWEEP_MIN_SOLUTION_TURNS = 5;
+const SWEEP_MIN_DECISION_POINTS = 3;
+const SWEEP_GENERATION_ATTEMPTS = 128;
+const SWEEP_SOLVER_NODE_LIMIT = 80_000;
 
 export const SWEEP_DIRECTIONS = ['up', 'right', 'down', 'left'] as const;
 export type SweepDirection = (typeof SWEEP_DIRECTIONS)[number];
+export type SweepCellKind = 'passable' | 'blocked';
+export type SweepGamePhase = 'playing' | 'failed' | 'completed';
+export type SweepFailureReason = 'end_too_early' | 'dead_end';
 
 export interface SweepCell {
   x: number;
   y: number;
 }
 
-export interface SweepMazeCell extends SweepCell {
-  passages: SweepDirection[];
+export interface SweepBoardCell extends SweepCell {
+  kind: SweepCellKind;
 }
 
-export interface SweepMaze {
+export interface SweepBoard {
   columns: number;
   rows: number;
-  cells: SweepMazeCell[];
+  cells: SweepBoardCell[];
   start: SweepCell;
   end: SweepCell;
   leaves: SweepCell[];
@@ -28,12 +38,13 @@ export interface SweepMaze {
 }
 
 export interface SweepGameState {
-  maze: SweepMaze;
+  board: SweepBoard;
   player: SweepCell;
   visited: SweepCell[];
   collectedLeaves: SweepCell[];
   moves: SweepDirection[];
-  completed: boolean;
+  phase: SweepGamePhase;
+  failureReason?: SweepFailureReason;
 }
 
 export interface SweepGameProgress {
@@ -42,10 +53,12 @@ export interface SweepGameProgress {
   cleared: number;
   totalLeaves: number;
   steps: number;
+  phase: SweepGamePhase;
+  failureReason?: SweepFailureReason;
   completed: boolean;
 }
 
-export type SweepMoveBlockReason = 'wall' | 'visited' | 'completed';
+export type SweepMoveBlockReason = 'blocked' | 'visited' | 'finished';
 
 export interface SweepMoveResult {
   state: SweepGameState;
@@ -60,6 +73,8 @@ export interface SweepSimulationResult {
     | 'too_many_moves'
     | 'invalid_move'
     | 'revisited_cell'
+    | 'end_too_early'
+    | 'dead_end'
     | 'leaves_remaining'
     | 'not_at_end';
 }
@@ -69,13 +84,6 @@ const DIRECTION_VECTORS: Record<SweepDirection, SweepCell> = {
   right: { x: 1, y: 0 },
   down: { x: 0, y: 1 },
   left: { x: -1, y: 0 },
-};
-
-const OPPOSITE_DIRECTION: Record<SweepDirection, SweepDirection> = {
-  up: 'down',
-  right: 'left',
-  down: 'up',
-  left: 'right',
 };
 
 function hashSeed(seed: string): number {
@@ -105,14 +113,17 @@ function sameCell(left: SweepCell, right: SweepCell): boolean {
   return left.x === right.x && left.y === right.y;
 }
 
-function cellIndex(cell: SweepCell): number {
-  return cell.y * SWEEP_GRID_COLUMNS + cell.x;
+function inBounds(cell: SweepCell): boolean {
+  return (
+    cell.x >= 0 &&
+    cell.x < SWEEP_GRID_COLUMNS &&
+    cell.y >= 0 &&
+    cell.y < SWEEP_GRID_ROWS
+  );
 }
 
-function getCell(cells: readonly SweepMazeCell[], cell: SweepCell): SweepMazeCell {
-  const found = cells[cellIndex(cell)];
-  if (!found) throw new Error('清扫迷宫格子不存在');
-  return found;
+function cellIndex(cell: SweepCell): number {
+  return cell.y * SWEEP_GRID_COLUMNS + cell.x;
 }
 
 function destination(cell: SweepCell, direction: SweepDirection): SweepCell {
@@ -129,6 +140,10 @@ function isBoundaryCell(cell: SweepCell): boolean {
   );
 }
 
+function manhattan(left: SweepCell, right: SweepCell): number {
+  return Math.abs(left.x - right.x) + Math.abs(left.y - right.y);
+}
+
 function shuffled<T>(items: readonly T[], random: () => number): T[] {
   const result = [...items];
   for (let index = result.length - 1; index > 0; index -= 1) {
@@ -138,132 +153,254 @@ function shuffled<T>(items: readonly T[], random: () => number): T[] {
   return result;
 }
 
-function mazeDistances(maze: { cells: readonly SweepMazeCell[] }, start: SweepCell) {
-  const distances = new Map<string, number>([[cellKey(start), 0]]);
-  const parents = new Map<string, SweepCell>();
-  const queue: SweepCell[] = [{ ...start }];
-  for (let cursor = 0; cursor < queue.length; cursor += 1) {
-    const current = queue[cursor]!;
-    const distance = distances.get(cellKey(current))!;
-    for (const direction of getCell(maze.cells, current).passages) {
-      const next = destination(current, direction);
-      const key = cellKey(next);
-      if (distances.has(key)) continue;
-      distances.set(key, distance + 1);
-      parents.set(key, current);
-      queue.push(next);
-    }
-  }
-  return { distances, parents };
-}
-
-function pathBetween(
-  maze: { cells: readonly SweepMazeCell[] },
-  start: SweepCell,
-  end: SweepCell,
-) {
-  const { parents } = mazeDistances(maze, start);
-  const path: SweepCell[] = [{ ...end }];
-  while (!sameCell(path[0]!, start)) {
-    const parent = parents.get(cellKey(path[0]!));
-    if (!parent) throw new Error('清扫迷宫起终点不连通');
-    path.unshift({ ...parent });
-  }
-  return path;
-}
-
-function farthestBoundaryPair(cells: readonly SweepMazeCell[]) {
-  const boundary = cells.filter(isBoundaryCell);
-  let bestStart = boundary[0]!;
-  let bestEnd = boundary[1]!;
-  let bestDistance = -1;
-  for (let leftIndex = 0; leftIndex < boundary.length - 1; leftIndex += 1) {
-    const start = boundary[leftIndex]!;
-    const { distances } = mazeDistances({ cells }, start);
-    for (let rightIndex = leftIndex + 1; rightIndex < boundary.length; rightIndex += 1) {
-      const end = boundary[rightIndex]!;
-      const distance = distances.get(cellKey(end)) ?? -1;
-      if (distance > bestDistance) {
-        bestStart = start;
-        bestEnd = end;
-        bestDistance = distance;
-      }
-    }
-  }
-  return {
-    start: { x: bestStart.x, y: bestStart.y },
-    end: { x: bestEnd.x, y: bestEnd.y },
-  };
-}
-
-export function isSweepDirection(value: unknown): value is SweepDirection {
-  return typeof value === 'string' && SWEEP_DIRECTIONS.includes(value as SweepDirection);
-}
-
-export function createSweepMaze(seed: string): SweepMaze {
-  const random = randomSequence(seed);
-  const cells: SweepMazeCell[] = Array.from(
+function allCells(): SweepCell[] {
+  return Array.from(
     { length: SWEEP_GRID_COLUMNS * SWEEP_GRID_ROWS },
     (_, index) => ({
       x: index % SWEEP_GRID_COLUMNS,
       y: Math.floor(index / SWEEP_GRID_COLUMNS),
-      passages: [],
     }),
   );
-  const first = cells[Math.floor(random() * cells.length)]!;
-  const visited = new Set<string>([cellKey(first)]);
-  const stack: SweepMazeCell[] = [first];
+}
 
-  while (stack.length > 0) {
-    const current = stack[stack.length - 1]!;
-    const candidates = shuffled(SWEEP_DIRECTIONS, random)
-      .map((direction) => ({ direction, next: destination(current, direction) }))
-      .filter(
-        ({ next }) =>
-          next.x >= 0 &&
-          next.x < SWEEP_GRID_COLUMNS &&
-          next.y >= 0 &&
-          next.y < SWEEP_GRID_ROWS &&
-          !visited.has(cellKey(next)),
+function isPassable(board: Pick<SweepBoard, 'cells'>, cell: SweepCell): boolean {
+  return inBounds(cell) && board.cells[cellIndex(cell)]?.kind === 'passable';
+}
+
+function passableNeighbors(
+  board: Pick<SweepBoard, 'cells'>,
+  cell: SweepCell,
+): Array<{ direction: SweepDirection; cell: SweepCell }> {
+  return SWEEP_DIRECTIONS.map((direction) => ({
+    direction,
+    cell: destination(cell, direction),
+  })).filter((candidate) => isPassable(board, candidate.cell));
+}
+
+function leafMaskAt(leaves: readonly SweepCell[], cell: SweepCell): number {
+  const index = leaves.findIndex((leaf) => sameCell(leaf, cell));
+  return index < 0 ? 0 : 1 << index;
+}
+
+function solveSweepBoard(
+  board: Omit<SweepBoard, 'solution'>,
+  random: () => number,
+): SweepCell[] | undefined {
+  const targetLeafMask = (1 << board.leaves.length) - 1;
+  const visited = Array.from({ length: board.cells.length }, () => false);
+  const path: SweepCell[] = [{ ...board.start }];
+  visited[cellIndex(board.start)] = true;
+  let visitedNodes = 0;
+
+  const visit = (
+    current: SweepCell,
+    collectedLeafMask: number,
+    previousDirection: SweepDirection | undefined,
+    turns: number,
+    decisionPoints: number,
+  ): boolean => {
+    visitedNodes += 1;
+    if (visitedNodes > SWEEP_SOLVER_NODE_LIMIT) return false;
+
+    if (sameCell(current, board.end)) {
+      return (
+        collectedLeafMask === targetLeafMask &&
+        path.length - 1 >= SWEEP_MIN_SOLUTION_MOVES &&
+        turns >= SWEEP_MIN_SOLUTION_TURNS &&
+        decisionPoints >= SWEEP_MIN_DECISION_POINTS
       );
-    const candidate = candidates[0];
-    if (!candidate) {
-      stack.pop();
-      continue;
     }
-    const next = getCell(cells, candidate.next);
-    current.passages.push(candidate.direction);
-    next.passages.push(OPPOSITE_DIRECTION[candidate.direction]);
-    visited.add(cellKey(next));
-    stack.push(next);
-  }
 
-  const { start, end } = farthestBoundaryPair(cells);
-  const solution = pathBetween({ cells }, start, end);
-  const leafCandidates = shuffled(solution.slice(1, -1), random);
-  if (leafCandidates.length < SWEEP_LEAF_COUNT)
-    throw new Error('清扫迷宫正路不足以放置落叶');
+    const candidates = passableNeighbors(board, current).filter(
+      ({ cell }) => !visited[cellIndex(cell)],
+    );
+    const nextDecisionPoints =
+      decisionPoints + (candidates.length >= 2 ? 1 : 0);
+    const ranked = candidates
+      .map((candidate) => {
+        const nextLeafMask =
+          collectedLeafMask | leafMaskAt(board.leaves, candidate.cell);
+        const reachesEnd = sameCell(candidate.cell, board.end);
+        const endAllowed = nextLeafMask === targetLeafMask;
+        const nearestLeafDistance = board.leaves.reduce((distance, leaf, index) => {
+          if ((nextLeafMask & (1 << index)) !== 0) return distance;
+          return Math.min(distance, manhattan(candidate.cell, leaf));
+        }, Number.POSITIVE_INFINITY);
+        return {
+          ...candidate,
+          nextLeafMask,
+          score:
+            (leafMaskAt(board.leaves, candidate.cell) ? 100 : 0) +
+            (reachesEnd && endAllowed ? 60 : 0) -
+            (reachesEnd && !endAllowed ? 10_000 : 0) -
+            (Number.isFinite(nearestLeafDistance) ? nearestLeafDistance : 0) +
+            random(),
+        };
+      })
+      .sort((left, right) => right.score - left.score);
 
+    for (const candidate of ranked) {
+      if (sameCell(candidate.cell, board.end) && candidate.nextLeafMask !== targetLeafMask)
+        continue;
+      const index = cellIndex(candidate.cell);
+      visited[index] = true;
+      path.push(candidate.cell);
+      const nextTurns =
+        previousDirection && previousDirection !== candidate.direction
+          ? turns + 1
+          : turns;
+      if (
+        visit(
+          candidate.cell,
+          candidate.nextLeafMask,
+          candidate.direction,
+          nextTurns,
+          nextDecisionPoints,
+        )
+      )
+        return true;
+      path.pop();
+      visited[index] = false;
+    }
+    return false;
+  };
+
+  return visit(board.start, 0, undefined, 0, 0)
+    ? path.map((cell) => ({ ...cell }))
+    : undefined;
+}
+
+function createCandidateBoard(random: () => number): SweepBoard | undefined {
+  const cells = allCells();
+  const boundary = shuffled(cells.filter(isBoundaryCell), random);
+  const start = boundary[0]!;
+  const end = boundary.find(
+    (cell) => !sameCell(cell, start) && manhattan(cell, start) >= 6,
+  );
+  if (!end) return undefined;
+
+  const blocked = new Set(
+    shuffled(
+      cells.filter(
+        (cell) => !sameCell(cell, start) && !sameCell(cell, end),
+      ),
+      random,
+    )
+      .slice(0, SWEEP_BLOCKED_COUNT)
+      .map(cellKey),
+  );
+  const boardCells: SweepBoardCell[] = cells.map((cell) => ({
+    ...cell,
+    kind: blocked.has(cellKey(cell)) ? 'blocked' : 'passable',
+  }));
+  const leaves = shuffled(
+    boardCells.filter(
+      (cell) =>
+        cell.kind === 'passable' &&
+        !sameCell(cell, start) &&
+        !sameCell(cell, end),
+    ),
+    random,
+  )
+    .slice(0, SWEEP_LEAF_COUNT)
+    .map(({ x, y }) => ({ x, y }));
+  const partial = {
+    columns: SWEEP_GRID_COLUMNS,
+    rows: SWEEP_GRID_ROWS,
+    cells: boardCells,
+    start: { ...start },
+    end: { ...end },
+    leaves,
+  };
+  const solution = solveSweepBoard(partial, random);
+  return solution ? { ...partial, solution } : undefined;
+}
+
+function fallbackBoard(): SweepBoard {
+  const solution: SweepCell[] = [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 2, y: 0 },
+    { x: 2, y: 1 },
+    { x: 1, y: 1 },
+    { x: 0, y: 1 },
+    { x: 0, y: 2 },
+    { x: 1, y: 2 },
+    { x: 2, y: 2 },
+    { x: 3, y: 2 },
+    { x: 3, y: 1 },
+    { x: 4, y: 1 },
+    { x: 4, y: 0 },
+    { x: 5, y: 0 },
+    { x: 6, y: 0 },
+    { x: 6, y: 1 },
+    { x: 6, y: 2 },
+    { x: 5, y: 2 },
+    { x: 5, y: 3 },
+    { x: 6, y: 3 },
+    { x: 6, y: 4 },
+  ];
+  const blocked = new Set([
+    '3:0',
+    '5:1',
+    '0:3',
+    '0:4',
+    '2:3',
+    '4:3',
+    '1:4',
+    '3:4',
+    '5:4',
+  ]);
   return {
     columns: SWEEP_GRID_COLUMNS,
     rows: SWEEP_GRID_ROWS,
-    cells,
-    start,
-    end,
-    leaves: leafCandidates.slice(0, SWEEP_LEAF_COUNT).map((cell) => ({ ...cell })),
+    cells: allCells().map((cell) => ({
+      ...cell,
+      kind: blocked.has(cellKey(cell)) ? 'blocked' : 'passable',
+    })),
+    start: { ...solution[0]! },
+    end: { ...solution[solution.length - 1]! },
+    leaves: [solution[4]!, solution[8]!, solution[12]!, solution[17]!].map(
+      (cell) => ({ ...cell }),
+    ),
     solution,
   };
 }
 
+function availableMoves(state: SweepGameState): SweepDirection[] {
+  return passableNeighbors(state.board, state.player)
+    .filter(
+      ({ cell }) =>
+        !state.visited.some((visited) => sameCell(visited, cell)),
+    )
+    .map(({ direction }) => direction);
+}
+
+export function isSweepDirection(value: unknown): value is SweepDirection {
+  return (
+    typeof value === 'string' &&
+    SWEEP_DIRECTIONS.includes(value as SweepDirection)
+  );
+}
+
+export function createSweepBoard(seed: string): SweepBoard {
+  const random = randomSequence(seed);
+  for (let attempt = 0; attempt < SWEEP_GENERATION_ATTEMPTS; attempt += 1) {
+    const board = createCandidateBoard(random);
+    if (board) return board;
+  }
+  return fallbackBoard();
+}
+
 export function createSweepGameState(seed: string): SweepGameState {
-  const maze = createSweepMaze(seed);
+  const board = createSweepBoard(seed);
   return {
-    maze,
-    player: { ...maze.start },
-    visited: [{ ...maze.start }],
+    board,
+    player: { ...board.start },
+    visited: [{ ...board.start }],
     collectedLeaves: [],
     moves: [],
-    completed: false,
+    phase: 'playing',
   };
 }
 
@@ -272,9 +409,11 @@ export function sweepGameProgress(state: SweepGameState): SweepGameProgress {
     player: { ...state.player },
     visited: state.visited.map((cell) => ({ ...cell })),
     cleared: state.collectedLeaves.length,
-    totalLeaves: state.maze.leaves.length,
+    totalLeaves: state.board.leaves.length,
     steps: state.moves.length,
-    completed: state.completed,
+    phase: state.phase,
+    ...(state.failureReason ? { failureReason: state.failureReason } : {}),
+    completed: state.phase === 'completed',
   };
 }
 
@@ -282,33 +421,45 @@ export function stepSweepGame(
   state: SweepGameState,
   direction: SweepDirection,
 ): SweepMoveResult {
-  if (state.completed) return { state, moved: false, reason: 'completed' };
-  const current = getCell(state.maze.cells, state.player);
-  if (!current.passages.includes(direction))
-    return { state, moved: false, reason: 'wall' };
+  if (state.phase !== 'playing')
+    return { state, moved: false, reason: 'finished' };
   const nextPlayer = destination(state.player, direction);
+  if (!isPassable(state.board, nextPlayer))
+    return { state, moved: false, reason: 'blocked' };
   if (state.visited.some((cell) => sameCell(cell, nextPlayer)))
     return { state, moved: false, reason: 'visited' };
 
-  const collectedLeaves = state.maze.leaves.some(
-    (leaf) => sameCell(leaf, nextPlayer),
+  const collectedLeaves = state.board.leaves.some((leaf) =>
+    sameCell(leaf, nextPlayer),
   )
     ? [...state.collectedLeaves, { ...nextPlayer }]
     : state.collectedLeaves;
-  const completed =
-    sameCell(nextPlayer, state.maze.end) &&
-    collectedLeaves.length === state.maze.leaves.length;
-  return {
-    moved: true,
-    state: {
-      ...state,
-      player: nextPlayer,
-      visited: [...state.visited, nextPlayer],
-      collectedLeaves,
-      moves: [...state.moves, direction],
-      completed,
-    },
+  const reachedEnd = sameCell(nextPlayer, state.board.end);
+  const collectedAllLeaves =
+    collectedLeaves.length === state.board.leaves.length;
+  const movedState: SweepGameState = {
+    ...state,
+    player: nextPlayer,
+    visited: [...state.visited, nextPlayer],
+    collectedLeaves,
+    moves: [...state.moves, direction],
+    phase: reachedEnd
+      ? collectedAllLeaves
+        ? 'completed'
+        : 'failed'
+      : 'playing',
+    ...(reachedEnd && !collectedAllLeaves
+      ? { failureReason: 'end_too_early' as const }
+      : {}),
   };
+  if (
+    movedState.phase === 'playing' &&
+    availableMoves(movedState).length === 0
+  ) {
+    movedState.phase = 'failed';
+    movedState.failureReason = 'dead_end';
+  }
+  return { moved: true, state: movedState };
 }
 
 export function simulateSweepMoves(
@@ -326,29 +477,41 @@ export function simulateSweepMoves(
       return {
         state,
         success: false,
-        reason: result.reason === 'visited' ? 'revisited_cell' : 'invalid_move',
+        reason:
+          result.reason === 'visited' ? 'revisited_cell' : 'invalid_move',
       };
     state = result.state;
+    if (state.phase === 'failed')
+      return {
+        state,
+        success: false,
+        reason: state.failureReason ?? 'dead_end',
+      };
   }
-  if (state.completed) return { state, success: true };
+  if (state.phase === 'completed') return { state, success: true };
   return {
     state,
     success: false,
     reason:
-      state.collectedLeaves.length < state.maze.leaves.length
+      state.collectedLeaves.length < state.board.leaves.length
         ? 'leaves_remaining'
         : 'not_at_end',
   };
 }
 
-export function sweepDirectionsForPath(path: readonly SweepCell[]): SweepDirection[] {
+export function sweepDirectionsForPath(
+  path: readonly SweepCell[],
+): SweepDirection[] {
   const directions: SweepDirection[] = [];
   for (let index = 1; index < path.length; index += 1) {
     const previous = path[index - 1]!;
     const current = path[index]!;
     const direction = SWEEP_DIRECTIONS.find((candidate) => {
       const vector = DIRECTION_VECTORS[candidate];
-      return current.x - previous.x === vector.x && current.y - previous.y === vector.y;
+      return (
+        current.x - previous.x === vector.x &&
+        current.y - previous.y === vector.y
+      );
     });
     if (!direction) throw new Error('清扫路径包含非相邻格子');
     directions.push(direction);

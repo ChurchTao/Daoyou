@@ -6,27 +6,25 @@ import { InkButton, InkNotice } from '@app/components/ui';
 import type { SectOutcomeRendererProps } from '@app/lib/sect/presentation/core/registry';
 import type {
   SectBattleOutcomeData,
-  SectSweepSessionData,
 } from '@shared/contracts/sect';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useSectPresentation } from './SectQueryProvider';
 import { useSectTaskInteraction } from './SectTaskInteractionProvider';
-import { SweepGameOverlay } from './SweepGameOverlay';
 
 export function SweepSessionOutcome({
   task,
-  data,
 }: SectOutcomeRendererProps<unknown>) {
   const interaction = useSectTaskInteraction();
-  const session = data as SectSweepSessionData;
   return (
-    <SweepGameOverlay
-      task={task}
-      initialSession={session}
-      close={interaction.clearOutcome}
-      onCompleted={interaction.refreshTasks}
-      run={interaction.runRaw}
-    />
+    <InkNotice className="mt-4">
+      「{task.presentation.title}」勤务场已在山门开启。
+      <InkButton
+        variant="secondary"
+        onClick={() => interaction.navigate('/game/sect/gate/sweep')}
+      >
+        前往山门
+      </InkButton>
+    </InkNotice>
   );
 }
 

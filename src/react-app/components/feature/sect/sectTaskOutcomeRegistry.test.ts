@@ -12,7 +12,7 @@ describe('sect task outcome registry', () => {
       data: {
         sessionId: 'session',
         seed: 'seed',
-        rulesVersion: 2,
+        rulesVersion: 3,
         expiresAt: '2026-01-01T00:00:00.000Z',
       },
     });

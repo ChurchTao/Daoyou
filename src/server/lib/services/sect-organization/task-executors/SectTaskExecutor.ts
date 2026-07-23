@@ -111,8 +111,8 @@ export class SweepGameTaskExecutor extends BaseTaskExecutor<Record<string, unkno
   actions(definition: SectTaskDefinition): readonly SectTaskActionDescriptor[] {
     return [
       {
-        key: 'start',
-        renderer: 'sect.action.sweep',
+        key: 'enter',
+        renderer: 'sect.action.sweep-entry',
         label: definition.presentation.actionLabel,
       },
     ];
@@ -176,6 +176,10 @@ export class SweepGameTaskExecutor extends BaseTaskExecutor<Record<string, unkno
         invalid('云阶尚有落叶未清理干净');
       if (simulation.reason === 'not_at_end')
         invalid('尚未抵达山门终点');
+      if (simulation.reason === 'end_too_early')
+        invalid('尚未收齐落叶便踏入了终点');
+      if (simulation.reason === 'dead_end')
+        invalid('清扫路线已无路可走');
       invalid('清扫路线无效，请重新挑战');
     }
     return {

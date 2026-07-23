@@ -1,6 +1,7 @@
 import App, { RootRouteErrorBoundary } from '@app/App';
 import { getGameSceneMeta } from '@app/components/game-shell/gameNavigation';
 import {
+  GameActivityLayout,
   GameCombatLayout,
   GameDungeonLayout,
   GameGenesisLayout,
@@ -69,12 +70,6 @@ export const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<App />} errorElement={<RootRouteErrorBoundary />}>
       <Route index lazy={lazyRoute(() => import('@app/routes/index/route'))} />
-      <Route
-        path="/sect-sweep-runtime"
-        lazy={lazyRoute(() => import('@app/routes/sect-sweep-runtime/route'))}
-        handle={title('宗门勤务')}
-      />
-
       <Route
         id={AUTH_LAYOUT_ROUTE_ID}
         lazy={lazyRoute(() => import('@app/routes/auth/layout'))}
@@ -888,6 +883,23 @@ export const router = createBrowserRouter(
                   summary: '把平衡与体验问题留在此处。',
                 },
                 '意见反馈',
+              )}
+            />
+          </Route>
+
+          <Route element={<GameActivityLayout />}>
+            <Route
+              path="sect/gate/sweep"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/sect/gate/sweep/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'sect-gate-sweep',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '清扫山门',
               )}
             />
           </Route>

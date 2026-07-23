@@ -2,7 +2,7 @@ import {
   AcceptAction,
   BattleAction,
   ItemDeliveryAction,
-  SweepAction,
+  SweepEntryAction,
 } from '@app/components/feature/sect/SectTaskActions';
 import {
   BattleOutcome,
@@ -81,7 +81,7 @@ export const CORE_SECT_TASK_RENDERER_PLUGIN: SectTaskRendererPluginManifest = {
   actions: [
     { key: 'sect.action.accept', renderer: AcceptAction },
     { key: 'sect.action.battle', renderer: BattleAction },
-    { key: 'sect.action.sweep', renderer: SweepAction },
+    { key: 'sect.action.sweep-entry', renderer: SweepEntryAction },
     { key: 'sect.action.item-delivery', renderer: ItemDeliveryAction },
   ],
   outcomes: [

@@ -1,5 +1,5 @@
 import {
-  createSweepMaze,
+  createSweepBoard,
   sweepDirectionsForPath,
   SWEEP_RULES_VERSION,
   type SectTaskDefinition,
@@ -50,12 +50,13 @@ describe('SectTaskExecutor action presentation', () => {
       renderer: 'sect.action.item-delivery',
       parameters: { itemKind: 'material', quantity: 2, minQuality: '玄品' },
     });
-    expect(new SweepGameTaskExecutor().actions(definition)[0]?.renderer).toBe(
-      'sect.action.sweep',
-    );
+    expect(new SweepGameTaskExecutor().actions(definition)[0]).toMatchObject({
+      key: 'enter',
+      renderer: 'sect.action.sweep-entry',
+    });
   });
 
-  it('starts and deterministically validates a version two sweep session', async () => {
+  it('starts and deterministically validates a version three sweep session', async () => {
     const executor = new SweepGameTaskExecutor();
     const sessionId = '22222222-2222-4222-8222-222222222222';
     let now = new Date('2026-07-22T10:00:00.000Z');
@@ -81,7 +82,7 @@ describe('SectTaskExecutor action presentation', () => {
       },
     });
     const seed = `${record.id}:${sessionId}`;
-    const moves = sweepDirectionsForPath(createSweepMaze(seed).solution);
+    const moves = sweepDirectionsForPath(createSweepBoard(seed).solution);
     const completionContext = {
       ...context,
       record: { ...record, payload: started.payload },
@@ -93,6 +94,14 @@ describe('SectTaskExecutor action presentation', () => {
         moves,
       }),
     ).resolves.toMatchObject({ completed: true });
+
+    await expect(
+      executor.execute('complete', completionContext, {
+        sessionId,
+        rulesVersion: SWEEP_RULES_VERSION - 1,
+        moves,
+      }),
+    ).rejects.toThrow('清扫规则版本已更新');
 
     now = new Date('2026-07-22T10:11:00.000Z');
     await expect(

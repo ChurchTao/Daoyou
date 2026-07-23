@@ -1,5 +1,11 @@
 export type GameShellKind =
-  'genesis' | 'narrative' | 'viewport' | 'combat' | 'map' | 'dungeon';
+  | 'genesis'
+  | 'narrative'
+  | 'viewport'
+  | 'activity'
+  | 'combat'
+  | 'map'
+  | 'dungeon';
 
 export function resolveGameShellKind(pathname: string): GameShellKind | null {
   if (pathname === '/game/create' || pathname === '/game/reincarnate') {
@@ -8,6 +14,10 @@ export function resolveGameShellKind(pathname: string): GameShellKind | null {
 
   if (pathname === '/game/sect/onboarding') {
     return 'narrative';
+  }
+
+  if (pathname === '/game/sect/gate/sweep') {
+    return 'activity';
   }
 
   if (

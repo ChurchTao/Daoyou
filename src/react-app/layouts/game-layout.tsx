@@ -409,6 +409,16 @@ export function GameCombatLayout() {
   );
 }
 
+export function GameActivityLayout() {
+  return (
+    <div className="h-[100dvh] overflow-hidden bg-[#141918]">
+      <main className="h-full overflow-hidden">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
 export function GameNarrativeLayout() {
   return (
     <div className="min-h-[100svh] overflow-hidden bg-[#111713]">

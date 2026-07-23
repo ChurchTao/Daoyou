@@ -1,19 +1,24 @@
 import {
   createSweepGameState,
   stepSweepGame,
-  SWEEP_BOARD,
+  SWEEP_CANVAS,
+  SWEEP_GRID_COLUMNS,
+  SWEEP_GRID_ROWS,
   sweepGameProgress,
   type SweepCell,
   type SweepDirection,
   type SweepGameProgress,
+  type SweepGameState,
 } from '@shared/engine/sect';
 import * as Phaser from 'phaser';
 
-const CELL_SIZE = 48;
-const MAZE_WIDTH = 13 * CELL_SIZE;
-const MAZE_LEFT = (SWEEP_BOARD.width - MAZE_WIDTH) / 2;
-const MAZE_TOP = 128;
-const MOVE_DURATION = 120;
+const CELL_SIZE = 92;
+const CELL_GAP = 7;
+const BOARD_WIDTH = SWEEP_GRID_COLUMNS * CELL_SIZE;
+const BOARD_HEIGHT = SWEEP_GRID_ROWS * CELL_SIZE;
+const BOARD_LEFT = (SWEEP_CANVAS.width - BOARD_WIDTH) / 2;
+const BOARD_TOP = (SWEEP_CANVAS.height - BOARD_HEIGHT) / 2;
+const MOVE_DURATION = 105;
 const ATLAS_FRAME_SIZE = 256;
 
 const ATLAS_FRAMES = {
@@ -42,9 +47,15 @@ export interface SweepPhaserController {
 interface SweepPhaserArguments {
   root: HTMLElement;
   seed: string;
+  canvasLabel: string;
   onState: (state: SweepGameProgress) => void;
   onSuccess: (moves: SweepDirection[]) => void;
   onError: (message: string) => void;
+}
+
+interface QueuedMove {
+  direction: SweepDirection;
+  state: SweepGameState;
 }
 
 function cellKey(cell: SweepCell): string {
@@ -53,8 +64,8 @@ function cellKey(cell: SweepCell): string {
 
 function cellCenter(cell: SweepCell) {
   return {
-    x: MAZE_LEFT + cell.x * CELL_SIZE + CELL_SIZE / 2,
-    y: MAZE_TOP + cell.y * CELL_SIZE + CELL_SIZE / 2,
+    x: BOARD_LEFT + cell.x * CELL_SIZE + CELL_SIZE / 2,
+    y: BOARD_TOP + cell.y * CELL_SIZE + CELL_SIZE / 2,
   };
 }
 
@@ -62,10 +73,22 @@ function sameCell(left: SweepCell, right: SweepCell) {
   return left.x === right.x && left.y === right.y;
 }
 
+function directionBetween(
+  from: SweepCell,
+  to: SweepCell,
+): SweepDirection | undefined {
+  if (to.x === from.x && to.y === from.y - 1) return 'up';
+  if (to.x === from.x + 1 && to.y === from.y) return 'right';
+  if (to.x === from.x && to.y === from.y + 1) return 'down';
+  if (to.x === from.x - 1 && to.y === from.y) return 'left';
+  return undefined;
+}
+
 export function attachSweepPhaser(
   args: SweepPhaserArguments,
 ): SweepPhaserController {
   let state = createSweepGameState(args.seed);
+  let queuedState = state;
   let moveScene: ((direction: SweepDirection) => void) | undefined;
   let resetScene: (() => void) | undefined;
   let destroyed = false;
@@ -74,7 +97,9 @@ export function attachSweepPhaser(
     private player?: Phaser.GameObjects.Image;
     private leaves = new Map<string, Phaser.GameObjects.Image>();
     private visitedMarks = new Map<string, Phaser.GameObjects.Image>();
+    private moveQueue: QueuedMove[] = [];
     private animating = false;
+    private activePointerId?: number;
     private reportedSuccess = false;
 
     preload() {
@@ -92,37 +117,64 @@ export function attachSweepPhaser(
     }
 
     create() {
-      moveScene = (direction) => this.move(direction);
+      moveScene = (direction) => this.enqueueDirection(direction);
       resetScene = () => this.resetGame();
       this.add
         .image(
-          SWEEP_BOARD.width / 2,
-          SWEEP_BOARD.height / 2,
+          SWEEP_CANVAS.width / 2,
+          SWEEP_CANVAS.height / 2,
           'sweep-background',
         )
-        .setDisplaySize(SWEEP_BOARD.width, SWEEP_BOARD.height);
+        .setDisplaySize(SWEEP_CANVAS.width, SWEEP_CANVAS.height);
+      this.add
+        .rectangle(
+          SWEEP_CANVAS.width / 2,
+          SWEEP_CANVAS.height / 2,
+          SWEEP_CANVAS.width,
+          SWEEP_CANVAS.height,
+          0x171b1a,
+          0.22,
+        )
+        .setDepth(0.5);
       this.registerSpriteFrames();
-      this.drawMaze();
+      this.drawBoard();
       this.createLeaves();
       this.createPlayer();
       this.bindKeyboard();
+      this.bindPointerRelease();
       this.renderVisited();
       args.onState(sweepGameProgress(state));
+      const canvas = this.game.canvas;
+      canvas.setAttribute('aria-label', args.canvasLabel);
+      canvas.setAttribute('role', 'application');
     }
 
-    move(direction: SweepDirection) {
-      if (this.animating || state.completed) return;
-      const result = stepSweepGame(state, direction);
+    private enqueueDirection(direction: SweepDirection) {
+      if (queuedState.phase !== 'playing') return;
+      const result = stepSweepGame(queuedState, direction);
       if (!result.moved) {
-        this.blockedFeedback();
+        if (!this.animating && this.moveQueue.length === 0)
+          this.blockedFeedback();
         return;
       }
+      queuedState = result.state;
+      this.moveQueue.push({ direction, state: queuedState });
+      this.pumpQueue();
+    }
 
+    private enqueueCell(cell: SweepCell) {
+      const direction = directionBetween(queuedState.player, cell);
+      if (direction) this.enqueueDirection(direction);
+    }
+
+    private pumpQueue() {
+      if (this.animating) return;
+      const next = this.moveQueue.shift();
+      if (!next) return;
       const previous = state.player;
-      state = result.state;
-      const target = cellCenter(state.player);
+      const target = cellCenter(next.state.player);
       this.animating = true;
-      this.player?.setFlipX(state.player.x < previous.x);
+      this.player?.setFlipX(next.state.player.x < previous.x);
       this.tweens.add({
         targets: this.player,
         x: target.x,
@@ -131,29 +183,40 @@ export function attachSweepPhaser(
         ease: 'Sine.easeOut',
         onComplete: () => {
           this.animating = false;
+          state = next.state;
           this.collectLeafAtPlayer();
           this.renderVisited();
+          if (state.phase === 'failed')
+            this.player?.setTint(0xa94032);
           args.onState(sweepGameProgress(state));
-          if (state.completed && !this.reportedSuccess) {
+          if (state.phase === 'completed' && !this.reportedSuccess) {
             this.reportedSuccess = true;
             args.onSuccess([...state.moves]);
           }
+          this.pumpQueue();
         },
       });
     }
 
-    resetGame() {
-      if (this.animating && this.player) this.tweens.killTweensOf(this.player);
+    private resetGame() {
+      this.tweens.killAll();
+      this.moveQueue = [];
       this.animating = false;
       this.reportedSuccess = false;
+      this.activePointerId = undefined;
       state = createSweepGameState(args.seed);
+      queuedState = state;
       this.leaves.forEach((leaf) => leaf.destroy());
       this.leaves.clear();
       this.visitedMarks.forEach((mark) => mark.destroy());
       this.visitedMarks.clear();
       this.createLeaves();
       const start = cellCenter(state.player);
-      this.player?.setPosition(start.x, start.y).setFlipX(false).setAlpha(1);
+      this.player
+        ?.clearTint()
+        .setPosition(start.x, start.y)
+        .setFlipX(false)
+        .setAlpha(1);
       this.renderVisited();
       args.onState(sweepGameProgress(state));
     }
@@ -173,82 +236,72 @@ export function attachSweepPhaser(
       }
     }
 
-    private drawMaze() {
-      const wallSegments: Array<{
-        x1: number;
-        y1: number;
-        x2: number;
-        y2: number;
-      }> = [];
-      for (const cell of state.maze.cells) {
-        const left = MAZE_LEFT + cell.x * CELL_SIZE;
-        const top = MAZE_TOP + cell.y * CELL_SIZE;
-        if (!cell.passages.includes('up'))
-          wallSegments.push({
-            x1: left,
-            y1: top,
-            x2: left + CELL_SIZE,
-            y2: top,
-          });
-        if (!cell.passages.includes('left'))
-          wallSegments.push({
-            x1: left,
-            y1: top,
-            x2: left,
-            y2: top + CELL_SIZE,
-          });
-        if (cell.y === state.maze.rows - 1 && !cell.passages.includes('down'))
-          wallSegments.push({
-            x1: left,
-            y1: top + CELL_SIZE,
-            x2: left + CELL_SIZE,
-            y2: top + CELL_SIZE,
-          });
-        if (
-          cell.x === state.maze.columns - 1 &&
-          !cell.passages.includes('right')
-        )
-          wallSegments.push({
-            x1: left + CELL_SIZE,
-            y1: top,
-            x2: left + CELL_SIZE,
-            y2: top + CELL_SIZE,
-          });
+    private drawBoard() {
+      for (const cell of state.board.cells) {
+        const center = cellCenter(cell);
+        const size = CELL_SIZE - CELL_GAP;
+        const tile = this.add
+          .rectangle(
+            center.x,
+            center.y,
+            size,
+            size,
+            cell.kind === 'blocked' ? 0x17201f : 0xd9c9a2,
+            cell.kind === 'blocked' ? 0.82 : 0.88,
+          )
+          .setStrokeStyle(
+            cell.kind === 'blocked' ? 2 : 3,
+            cell.kind === 'blocked' ? 0x31413d : 0xf4ead2,
+            cell.kind === 'blocked' ? 0.8 : 0.72,
+          )
+          .setDepth(1);
+        if (cell.kind === 'blocked') {
+          const cross = this.add.graphics().setDepth(1.2);
+          cross.lineStyle(7, 0x0b1110, 0.72);
+          const inset = size * 0.26;
+          cross.lineBetween(
+            center.x - inset,
+            center.y - inset,
+            center.x + inset,
+            center.y + inset,
+          );
+          cross.lineBetween(
+            center.x + inset,
+            center.y - inset,
+            center.x - inset,
+            center.y + inset,
+          );
+          continue;
+        }
+        tile.setInteractive({ useHandCursor: true });
+        tile.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+          this.activePointerId = pointer.id;
+          this.enqueueCell(cell);
+        });
+        tile.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+          if (
+            pointer.isDown &&
+            this.activePointerId === pointer.id
+          )
+            this.enqueueCell(cell);
+        });
       }
 
-      const grooves = this.add.graphics().setDepth(2);
-      grooves.lineStyle(2, 0x574f43, 0.46);
-      wallSegments.forEach((wall) =>
-        grooves.lineBetween(wall.x1, wall.y1, wall.x2, wall.y2),
-      );
-
-      const highlights = this.add.graphics().setDepth(2);
-      highlights.lineStyle(1, 0xf8f2e7, 0.36);
-      wallSegments.forEach((wall) => {
-        const vertical = wall.x1 === wall.x2;
-        highlights.lineBetween(
-          wall.x1 + (vertical ? 1 : 0),
-          wall.y1 + (vertical ? 0 : 1),
-          wall.x2 + (vertical ? 1 : 0),
-          wall.y2 + (vertical ? 0 : 1),
-        );
-      });
-
-      this.drawMarker(state.maze.start, 'startSeal');
-      this.drawMarker(state.maze.end, 'endSeal');
+      this.drawMarker(state.board.start, 'startSeal');
+      this.drawMarker(state.board.end, 'endSeal');
     }
 
     private drawMarker(cell: SweepCell, frame: 'startSeal' | 'endSeal') {
       const center = cellCenter(cell);
       this.add
         .image(center.x, center.y, 'sweep-atlas', frame)
-        .setDisplaySize(40, 40)
-        .setAlpha(0.88)
-        .setDepth(2.5);
+        .setDisplaySize(70, 70)
+        .setAlpha(0.92)
+        .setDepth(2.6);
     }
 
     private createLeaves() {
-      state.maze.leaves.forEach((leaf, index) => {
+      state.board.leaves.forEach((leaf, index) => {
         const center = cellCenter(leaf);
         const image = this.add
           .image(
@@ -257,7 +310,7 @@ export function attachSweepPhaser(
             'sweep-atlas',
             index % 2 === 0 ? 'leafYellow' : 'leafRed',
           )
-          .setDisplaySize(31, 31)
+          .setDisplaySize(53, 53)
           .setAngle((index * 47) % 360)
           .setDepth(3);
         this.leaves.set(cellKey(leaf), image);
@@ -268,7 +321,7 @@ export function attachSweepPhaser(
       const start = cellCenter(state.player);
       this.player = this.add
         .image(start.x, start.y, 'sweep-atlas', 'player')
-        .setDisplaySize(58, 58)
+        .setDisplaySize(84, 84)
         .setDepth(5);
     }
 
@@ -280,18 +333,22 @@ export function attachSweepPhaser(
           const frame = SWEEP_MARK_FRAMES[(cell.x * 17 + cell.y * 31) % 3];
           const mark = this.add
             .image(center.x, center.y, 'sweep-atlas', frame)
-            .setDisplaySize(42, 42)
-            .setTint(0x776f61)
-            .setAlpha(0.25)
+            .setDisplaySize(72, 72)
+            .setTint(0x645b4d)
+            .setAlpha(0.32)
             .setAngle(((cell.x * 11 + cell.y * 7) % 15) - 7)
-            .setDepth(1);
+            .setDepth(2);
           this.visitedMarks.set(key, mark);
         }
       }
     }
 
     private collectLeafAtPlayer() {
-      if (!state.collectedLeaves.some((leaf) => sameCell(leaf, state.player)))
+      if (
+        !state.collectedLeaves.some((leaf) =>
+          sameCell(leaf, state.player),
+        )
+      )
         return;
       const leaf = this.leaves.get(cellKey(state.player));
       if (!leaf) return;
@@ -319,6 +376,7 @@ export function attachSweepPhaser(
         onComplete: () => {
           this.player?.setAngle(0);
           this.animating = false;
+          this.pumpQueue();
         },
       });
     }
@@ -340,11 +398,23 @@ export function attachSweepPhaser(
         const direction = directions[event.code];
         if (!direction || event.repeat) return;
         event.preventDefault();
-        this.move(direction);
+        this.enqueueDirection(direction);
       };
       keyboard.on('keydown', onKeyDown);
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
         keyboard.off('keydown', onKeyDown);
+      });
+    }
+
+    private bindPointerRelease() {
+      const release = () => {
+        this.activePointerId = undefined;
+      };
+      this.input.on('pointerup', release);
+      this.input.on('pointerupoutside', release);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+        this.input.off('pointerup', release);
+        this.input.off('pointerupoutside', release);
       });
     }
   }
@@ -352,15 +422,15 @@ export function attachSweepPhaser(
   const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
     parent: args.root,
-    width: SWEEP_BOARD.width,
-    height: SWEEP_BOARD.height,
-    backgroundColor: '#292524',
+    width: SWEEP_CANVAS.width,
+    height: SWEEP_CANVAS.height,
+    backgroundColor: '#171b1a',
     transparent: false,
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
-      width: SWEEP_BOARD.width,
-      height: SWEEP_BOARD.height,
+      width: SWEEP_CANVAS.width,
+      height: SWEEP_CANVAS.height,
     },
     scene: SweepScene,
   };
