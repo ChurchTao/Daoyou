@@ -214,6 +214,8 @@ describe('第二宗门扩展闭环', () => {
       progression: FIXTURE_SECT_MODULE.progression,
       methodGrowth: FIXTURE_SECT_MODULE.methodGrowth,
       organization: FIXTURE_SECT_MODULE.organization,
+      createBaseSelectionStrategy: () =>
+        FIXTURE_SECT_MODULE.createBaseSelectionStrategy(),
       createBaseBuilder: (context) =>
         FIXTURE_SECT_MODULE.createBaseBuilder(context),
       checkAdmission: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
@@ -553,6 +555,8 @@ describe('第二宗门扩展闭环', () => {
       progression: FIXTURE_SECT_MODULE.progression,
       methodGrowth: FIXTURE_SECT_MODULE.methodGrowth,
       organization: FIXTURE_SECT_MODULE.organization,
+      createBaseSelectionStrategy: () =>
+        FIXTURE_SECT_MODULE.createBaseSelectionStrategy(),
       createBaseBuilder: (context) =>
         FIXTURE_SECT_MODULE.createBaseBuilder(context),
       checkAdmission: () => ({ allowed: false, reason: '样例拒绝原因' }),

@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  SectRegistry,
-  type SectModule,
-  type SectPathModule,
-} from '..';
+import { SectRegistry, type SectModule, type SectPathModule } from '..';
 import { FIXTURE_SECT_MODULE } from '../../testing/fixtures/FixtureSectModule';
 
 function replacePath(pathId: string, replacement: SectPathModule): SectModule {
@@ -21,6 +17,8 @@ function replacePath(pathId: string, replacement: SectPathModule): SectModule {
     progression: FIXTURE_SECT_MODULE.progression,
     methodGrowth: FIXTURE_SECT_MODULE.methodGrowth,
     organization: FIXTURE_SECT_MODULE.organization,
+    createBaseSelectionStrategy: () =>
+      FIXTURE_SECT_MODULE.createBaseSelectionStrategy(),
     createBaseBuilder: (context) =>
       FIXTURE_SECT_MODULE.createBaseBuilder(context),
     checkAdmission: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
@@ -55,6 +53,28 @@ describe('宗门模块扩展契约', () => {
     expect(build.abilities[defaultId]).toBeDefined();
   });
 
+  it('拒绝没有有效基础施法策略的宗门模块', () => {
+    const invalid: SectModule = {
+      definition: FIXTURE_SECT_MODULE.definition,
+      paths: FIXTURE_SECT_MODULE.paths,
+      progression: FIXTURE_SECT_MODULE.progression,
+      methodGrowth: FIXTURE_SECT_MODULE.methodGrowth,
+      organization: FIXTURE_SECT_MODULE.organization,
+      createBaseSelectionStrategy: () => null as never,
+      createBaseBuilder: (context) =>
+        FIXTURE_SECT_MODULE.createBaseBuilder(context),
+      checkAdmission: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
+    };
+
+    expect(() => new SectRegistry([invalid])).toThrow('未实现基础施法策略');
+
+    const missing = { ...invalid } as Partial<SectModule>;
+    delete missing.createBaseSelectionStrategy;
+    expect(() => new SectRegistry([missing as SectModule])).toThrow(
+      '未实现基础施法策略',
+    );
+  });
+
   it('拒绝有定义但没有插件的参悟节点', () => {
     const path = FIXTURE_SECT_MODULE.paths.get('fixture-first-path')!;
     const nodes = new Map(path.nodes);
@@ -80,6 +100,8 @@ describe('宗门模块扩展契约', () => {
       progression: FIXTURE_SECT_MODULE.progression,
       methodGrowth: FIXTURE_SECT_MODULE.methodGrowth,
       organization: FIXTURE_SECT_MODULE.organization,
+      createBaseSelectionStrategy: () =>
+        FIXTURE_SECT_MODULE.createBaseSelectionStrategy(),
       createBaseBuilder: (context) =>
         FIXTURE_SECT_MODULE.createBaseBuilder(context),
       checkAdmission: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
@@ -127,6 +149,5 @@ describe('宗门模块扩展契约', () => {
           { ...FIXTURE_SECT_MODULE, definition: onboardingDefinition },
         ]),
     ).toThrow('未解锁默认能力');
-
   });
 });

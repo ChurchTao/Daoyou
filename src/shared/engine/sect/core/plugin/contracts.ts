@@ -1,6 +1,5 @@
 import type { AbilitySelectionStrategy } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import type { SectBuildBuilder } from '../compilation';
-import type { SectOrganizationModule } from '../organization';
 import type {
   SectAdmissionContext,
   SectAdmissionResult,
@@ -12,6 +11,7 @@ import type {
   SectProjectionInput,
   SectTacticId,
 } from '../domain';
+import type { SectOrganizationModule } from '../organization';
 
 export interface SectNodePlugin {
   readonly definition: import('../domain').SectMeridianNodeDefinition;
@@ -22,10 +22,7 @@ export interface SectNodePlugin {
 export interface SectPathModule {
   readonly definition: SectPathDefinition;
   readonly nodes: ReadonlyMap<string, SectNodePlugin>;
-  compile(
-    context: SectPathCompileContext,
-    builder: SectBuildBuilder,
-  ): void;
+  compile(context: SectPathCompileContext, builder: SectBuildBuilder): void;
   createSelectionStrategy(tacticId: SectTacticId): AbilitySelectionStrategy;
 }
 
@@ -39,6 +36,7 @@ export interface SectModule {
   readonly progression: import('../progression').SectProgressionPolicy;
   readonly methodGrowth: import('../domain').SectMethodGrowthPolicy;
   readonly organization: SectOrganizationModule;
+  createBaseSelectionStrategy(): AbilitySelectionStrategy;
   createBaseBuilder(context: SectProjectionContext): SectBuildBuilder;
   checkAdmission(context: SectAdmissionContext): SectAdmissionResult;
 }

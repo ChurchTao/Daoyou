@@ -6,10 +6,8 @@ import {
 import { compileTianyanBase } from './base/TianyanBaseCompiler';
 import { TIANYAN_BASE_DEFINITION } from './definition';
 import { TIANYAN_ORGANIZATION_THEME } from './organization';
-import {
-  TIANYAN_HETU_PATH_MODULE,
-  TIANYAN_LUOSHU_PATH_MODULE,
-} from './paths';
+import { TIANYAN_HETU_PATH_MODULE, TIANYAN_LUOSHU_PATH_MODULE } from './paths';
+import { TianyanBaseSelectionStrategy } from './strategy';
 
 export class TianyanSectModule extends StandardSectModule {
   constructor() {
@@ -25,6 +23,10 @@ export class TianyanSectModule extends StandardSectModule {
     builder: SectBuildBuilder,
   ): void {
     compileTianyanBase(context, builder);
+  }
+
+  createBaseSelectionStrategy() {
+    return new TianyanBaseSelectionStrategy();
   }
 }
 

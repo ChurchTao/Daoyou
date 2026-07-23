@@ -3,7 +3,9 @@ import type {
   AbilitySelectionResult,
   AbilitySelectionStrategy,
 } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
+import { DefaultAbilitySelectionStrategy } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill';
+import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { SectStrategyCandidates, type SectTacticId } from '../../core';
 import {
   YOUDU_FORGETFUL_RIVER,
@@ -14,8 +16,12 @@ import {
 } from './ids';
 
 function layer(context: AbilitySelectionContext): number {
-  return context.opponent?.buffs.getAllBuffs()
-    .find((buff) => buff.id === YOUDU_SOUL_EROSION)?.getLayer() ?? 0;
+  return (
+    context.opponent?.buffs
+      .getAllBuffs()
+      .find((buff) => buff.id === YOUDU_SOUL_EROSION)
+      ?.getLayer() ?? 0
+  );
 }
 
 function hasBuff(context: AbilitySelectionContext, id: string): boolean {
@@ -23,29 +29,39 @@ function hasBuff(context: AbilitySelectionContext, id: string): boolean {
 }
 
 function hasImminentHealing(context: AbilitySelectionContext): boolean {
-  return context.opponent?.abilities.getAllAbilities().some(
-    (ability) =>
-      ability instanceof ActiveSkill &&
-      ability.selectionProfile?.intents?.includes('heal_hp') &&
-      ability.currentCooldown <= 1,
-  ) ?? false;
+  return (
+    context.opponent?.abilities
+      .getAllAbilities()
+      .some(
+        (ability) =>
+          ability instanceof ActiveSkill &&
+          ability.selectionProfile?.intents?.includes('heal_hp') &&
+          ability.currentCooldown <= 1,
+      ) ?? false
+  );
 }
 
 function hasImminentControlOrHealing(
   context: AbilitySelectionContext,
 ): boolean {
-  return context.opponent?.abilities.getAllAbilities().some(
-    (ability) =>
-      ability instanceof ActiveSkill &&
-      ability.currentCooldown <= 1 &&
-      (ability.selectionProfile?.intents?.includes('control') ||
-        ability.selectionProfile?.intents?.includes('heal_hp')),
-  ) ?? false;
+  return (
+    context.opponent?.abilities
+      .getAllAbilities()
+      .some(
+        (ability) =>
+          ability instanceof ActiveSkill &&
+          ability.currentCooldown <= 1 &&
+          (ability.selectionProfile?.intents?.includes('control') ||
+            ability.selectionProfile?.intents?.includes('heal_hp')),
+      ) ?? false
+  );
 }
 
 abstract class YouduSelectionStrategy implements AbilitySelectionStrategy {
   constructor(protected readonly tacticId: SectTacticId) {}
-  abstract select(context: AbilitySelectionContext): AbilitySelectionResult | null;
+  abstract select(
+    context: AbilitySelectionContext,
+  ): AbilitySelectionResult | null;
 
   protected pick(
     context: AbilitySelectionContext,
@@ -77,6 +93,48 @@ abstract class YouduSelectionStrategy implements AbilitySelectionStrategy {
   }
 }
 
+export class YouduBaseSelectionStrategy extends YouduSelectionStrategy {
+  private readonly fallback = new DefaultAbilitySelectionStrategy();
+
+  constructor() {
+    super('base');
+  }
+
+  select(context: AbilitySelectionContext): AbilitySelectionResult | null {
+    const erosion = layer(context);
+
+    if (erosion >= 4) {
+      const finisher = this.pickOnly(context, ['soul-shall-not-return'], 850);
+      if (finisher) return finisher;
+    }
+
+    if (!hasBuff(context, YOUDU_FORGETFUL_RIVER)) {
+      const forget = this.pickOnly(context, ['forgetful-river-tide'], 780);
+      if (forget) return forget;
+    }
+
+    if (erosion >= 2 && !hasBuff(context, YOUDU_SHADOW_REVEALED)) {
+      const reveal = this.pickOnly(context, ['reveal-shadow'], 760);
+      if (reveal) return reveal;
+    }
+
+    if (
+      erosion >= 4 &&
+      !context.opponent?.tags.hasTag(GameplayTags.STATUS.IMMUNE.CONTROL)
+    ) {
+      const pin = this.pickOnly(context, ['pin-soul'], 740);
+      if (pin) return pin;
+    }
+
+    const generator = this.pickOnly(
+      context,
+      ['soul-severing-call', 'seize-soul'],
+      600,
+    );
+    return generator ?? this.fallback.select(context);
+  }
+}
+
 export class YouduTideSelectionStrategy extends YouduSelectionStrategy {
   select(context: AbilitySelectionContext): AbilitySelectionResult | null {
     const erosion = layer(context);
@@ -85,10 +143,18 @@ export class YouduTideSelectionStrategy extends YouduSelectionStrategy {
     const targetHp = context.opponent?.getHpPercent() ?? 1;
 
     if (!hasForget) {
-      return this.pick(context, ['forgetful-river-tide', 'soul-severing-call', 'one-sigh'], 780);
+      return this.pick(
+        context,
+        ['forgetful-river-tide', 'soul-severing-call', 'one-sigh'],
+        780,
+      );
     }
     if (erosion < 3) {
-      return this.pick(context, ['soul-severing-call', 'seize-soul', 'one-sigh'], 740);
+      return this.pick(
+        context,
+        ['soul-severing-call', 'seize-soul', 'one-sigh'],
+        740,
+      );
     }
     if (this.tacticId === 'healer-drown' && hasImminentHealing(context)) {
       return this.pick(
@@ -98,7 +164,7 @@ export class YouduTideSelectionStrategy extends YouduSelectionStrategy {
       );
     }
     if (this.tacticId === 'long-night') {
-      if (erosion >= 4 && (fire >= 3 || targetHp < 0.30)) {
+      if (erosion >= 4 && (fire >= 3 || targetHp < 0.3)) {
         return this.pick(context, ['soul-shall-not-return', 'pin-soul'], 790);
       }
       if (erosion >= 4) {
@@ -136,7 +202,11 @@ export class YouduDecreeSelectionStrategy extends YouduSelectionStrategy {
     }
     if (this.tacticId === 'take-the-fifth') {
       if (erosion < 5) {
-        return this.pick(context, ['soul-severing-call', 'seize-soul', 'pin-soul', 'one-sigh'], 760);
+        return this.pick(
+          context,
+          ['soul-severing-call', 'seize-soul', 'pin-soul', 'one-sigh'],
+          760,
+        );
       }
       return this.pick(context, ['pin-soul', 'soul-shall-not-return'], 700);
     }

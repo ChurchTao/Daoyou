@@ -32,17 +32,18 @@ const fixtureOrganization: SectOrganizationModule = {
   }),
   ranks: {
     nextRank: (rank) =>
-      ({
-        registered: 'outer',
-        outer: 'inner',
-        inner: 'true',
-        true: null,
-      } as const)[rank],
+      (
+        ({
+          registered: 'outer',
+          outer: 'inner',
+          inner: 'true',
+          true: null,
+        }) as const
+      )[rank],
     methodLevelCap: () => 7,
     requirement: (rank) => ({
       rank,
-      minRealm:
-        rank === 'true' ? '金丹' : rank === 'inner' ? '筑基' : '炼气',
+      minRealm: rank === 'true' ? '金丹' : rank === 'inner' ? '筑基' : '炼气',
       contribution: rank === 'true' ? 30 : rank === 'inner' ? 20 : 10,
     }),
   },
@@ -217,6 +218,10 @@ class CustomEconomyFixtureSectModule extends BaseSectModule {
     for (const modifier of build.abilityPresentationModifiers ?? []) {
       builder.addAbilityPresentationModifier(modifier);
     }
+  }
+
+  createBaseSelectionStrategy() {
+    return FIXTURE_SECT_MODULE.createBaseSelectionStrategy();
   }
 }
 

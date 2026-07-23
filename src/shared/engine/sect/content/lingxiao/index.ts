@@ -1,3 +1,4 @@
+export * from './base/LingxiaoBaseSelectionStrategy';
 export * from './definition';
 export * from './ids';
 export * from './LingxiaoSectModule';

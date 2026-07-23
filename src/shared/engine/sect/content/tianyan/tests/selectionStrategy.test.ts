@@ -1,22 +1,17 @@
-import type { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill';
 import type { AbilitySelectionCandidate } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
+import type { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill';
 import { AttributeType, BuffType } from '@shared/engine/battle-v5/core/types';
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
 import { BuffFactory } from '@shared/engine/battle-v5/factories/BuffFactory';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { describe, expect, it } from 'vitest';
-import { resolveSectAbility } from '../..';
-import {
-  TIANYAN_HETU_PATH_ID,
-  TIANYAN_LUOSHU_PATH_ID,
-} from '../ids';
-import {
-  TIANYAN_HETU_PATH_MODULE,
-  TIANYAN_LUOSHU_PATH_MODULE,
-} from '../paths';
-import { createElementSeal } from '../shared/seals';
+import { projectSectCombat, resolveSectAbility } from '../..';
+import { TIANYAN_HETU_PATH_ID, TIANYAN_LUOSHU_PATH_ID } from '../ids';
+import { TIANYAN_HETU_PATH_MODULE, TIANYAN_LUOSHU_PATH_MODULE } from '../paths';
 import { tianyanReactionElementMarkerTag } from '../shared/reactions';
+import { createElementSeal } from '../shared/seals';
+import { TianyanBaseSelectionStrategy } from '../strategy';
 import { tianyanState, type TianyanPathId } from './testState';
 
 function unit(id: string): Unit {
@@ -31,38 +26,115 @@ function unit(id: string): Unit {
   return result;
 }
 
-function context(pathId: TianyanPathId, abilityIds: string[]) {
+function context(pathId: TianyanPathId | undefined, abilityIds: string[]) {
   const sect = tianyanState(pathId);
   const caster = unit('owner');
   const opponent = unit('enemy');
-  const candidates: AbilitySelectionCandidate[] = abilityIds.map((abilityId, order) => {
-    const ability = AbilityFactory.create(
-      resolveSectAbility({ sect, realm: '化神', abilityId }).config,
-    ) as ActiveSkill;
-    ability.setOwner(caster);
-    ability.setActive(true);
-    return {
-      ability,
-      target: ability.targetPolicy.team === 'enemy' ? opponent : caster,
-      order,
-    };
-  });
+  const candidates: AbilitySelectionCandidate[] = abilityIds.map(
+    (abilityId, order) => {
+      const ability = AbilityFactory.create(
+        resolveSectAbility({ sect, realm: '化神', abilityId }).config,
+      ) as ActiveSkill;
+      ability.setOwner(caster);
+      ability.setActive(true);
+      return {
+        ability,
+        target: ability.targetPolicy.team === 'enemy' ? opponent : caster,
+        order,
+      };
+    },
+  );
   return { caster, opponent, candidates };
 }
 
-function selectedId(result: ReturnType<ReturnType<
-  typeof TIANYAN_HETU_PATH_MODULE.createSelectionStrategy
->['select']>): string | undefined {
+function selectedId(
+  result: ReturnType<
+    ReturnType<
+      typeof TIANYAN_HETU_PATH_MODULE.createSelectionStrategy
+    >['select']
+  >,
+): string | undefined {
   return result?.ability.id.replace('sect.tianyan.', '');
 }
+
+describe('天衍基础施法策略', () => {
+  const strategy = new TianyanBaseSelectionStrategy();
+
+  it('未选择流派时投影基础策略，无印时选择耗蓝最低的落印术', () => {
+    expect(
+      projectSectCombat({
+        sect: tianyanState(),
+        realm: '化神',
+      })?.selectionStrategy,
+    ).toBeInstanceOf(TianyanBaseSelectionStrategy);
+    const battle = context(undefined, ['flowing-flame', 'verdant-pulse']);
+
+    expect(selectedId(strategy.select(battle))).toBe('verdant-pulse');
+  });
+
+  it('有印时优先合法反应，不会继续施展同元素落印术', () => {
+    const battle = context(undefined, ['verdant-pulse', 'flowing-flame']);
+    battle.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal('wood', 2)),
+      battle.caster,
+    );
+
+    expect(selectedId(strategy.select(battle))).toBe('flowing-flame');
+  });
+
+  it('多个合法反应中优先本轮未使用的元素，再比较实际耗蓝', () => {
+    const battle = context(undefined, [
+      'dark-water-return',
+      'earth-bearing-seal',
+    ]);
+    battle.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal('fire', 2)),
+      battle.caster,
+    );
+    battle.caster.buffs.addBuff(
+      BuffFactory.create({
+        id: 'sect.tianyan.element-history.water',
+        name: '水行已用',
+        type: BuffType.BUFF,
+        duration: -1,
+        stackRule: 'override',
+        statusTags: [tianyanReactionElementMarkerTag('water')],
+        countsAsStatus: false,
+      }),
+      battle.caster,
+    );
+
+    expect(selectedId(strategy.select(battle))).toBe('earth-bearing-seal');
+  });
+
+  it('有印但没有合法反应时优先移宫，否则返回太初玄光', () => {
+    const shift = context(undefined, ['metal-cloud-cutter', 'shift-palace']);
+    shift.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal('water', 2)),
+      shift.caster,
+    );
+    expect(selectedId(strategy.select(shift))).toBe('shift-palace');
+
+    const wait = context(undefined, ['metal-cloud-cutter']);
+    wait.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal('water', 2)),
+      wait.caster,
+    );
+    expect(strategy.select(wait)).toBeNull();
+  });
+});
 
 describe('天衍六套自动战术', () => {
   it('双道途六套战术都能创建独立策略', () => {
     for (const tactic of TIANYAN_HETU_PATH_MODULE.definition.tactics) {
-      expect(TIANYAN_HETU_PATH_MODULE.createSelectionStrategy(tactic.id)).toBeDefined();
+      expect(
+        TIANYAN_HETU_PATH_MODULE.createSelectionStrategy(tactic.id),
+      ).toBeDefined();
     }
     for (const tactic of TIANYAN_LUOSHU_PATH_MODULE.definition.tactics) {
-      expect(TIANYAN_LUOSHU_PATH_MODULE.createSelectionStrategy(tactic.id)).toBeDefined();
+      expect(
+        TIANYAN_LUOSHU_PATH_MODULE.createSelectionStrategy(tactic.id),
+      ).toBeDefined();
     }
   });
 
@@ -76,9 +148,10 @@ describe('天衍六套自动战术', () => {
       battle.caster,
     );
 
-    const result = TIANYAN_HETU_PATH_MODULE
-      .createSelectionStrategy('small-cycle')
-      .select(battle);
+    const result =
+      TIANYAN_HETU_PATH_MODULE.createSelectionStrategy('small-cycle').select(
+        battle,
+      );
 
     expect(selectedId(result)).toBe('dark-water-return');
   });
@@ -89,9 +162,10 @@ describe('天衍六套自动战术', () => {
       'metal-cloud-cutter',
     ]);
 
-    const result = TIANYAN_HETU_PATH_MODULE
-      .createSelectionStrategy('small-cycle')
-      .select(battle);
+    const result =
+      TIANYAN_HETU_PATH_MODULE.createSelectionStrategy('small-cycle').select(
+        battle,
+      );
 
     expect(selectedId(result)).toBe('metal-cloud-cutter');
   });
@@ -118,9 +192,10 @@ describe('天衍六套自动战术', () => {
       battle.caster,
     );
 
-    const result = TIANYAN_HETU_PATH_MODULE
-      .createSelectionStrategy('small-cycle')
-      .select(battle);
+    const result =
+      TIANYAN_HETU_PATH_MODULE.createSelectionStrategy('small-cycle').select(
+        battle,
+      );
 
     expect(selectedId(result)).toBe('earth-bearing-seal');
   });
@@ -135,9 +210,10 @@ describe('天衍六套自动战术', () => {
       battle.caster,
     );
 
-    const result = TIANYAN_HETU_PATH_MODULE
-      .createSelectionStrategy('unbroken-flow')
-      .select(battle);
+    const result =
+      TIANYAN_HETU_PATH_MODULE.createSelectionStrategy('unbroken-flow').select(
+        battle,
+      );
 
     expect(selectedId(result)).toBe('primordial-ray');
   });
@@ -149,9 +225,10 @@ describe('天衍六套自动战术', () => {
     ]);
     battle.caster.setHp(Math.floor(battle.caster.getMaxHp() * 0.5));
 
-    const result = TIANYAN_HETU_PATH_MODULE
-      .createSelectionStrategy('nourish-origin')
-      .select(battle);
+    const result =
+      TIANYAN_HETU_PATH_MODULE.createSelectionStrategy('nourish-origin').select(
+        battle,
+      );
 
     expect(selectedId(result)).toBe('myriad-wood-renewal');
   });
@@ -167,9 +244,10 @@ describe('天衍六套自动战术', () => {
       battle.caster,
     );
 
-    const result = TIANYAN_HETU_PATH_MODULE
-      .createSelectionStrategy('nourish-origin')
-      .select(battle);
+    const result =
+      TIANYAN_HETU_PATH_MODULE.createSelectionStrategy('nourish-origin').select(
+        battle,
+      );
 
     expect(selectedId(result)).toBe('dark-water-return');
   });
@@ -193,9 +271,10 @@ describe('天衍六套自动战术', () => {
       battle.opponent,
     );
 
-    const result = TIANYAN_LUOSHU_PATH_MODULE
-      .createSelectionStrategy('break-pattern')
-      .select(battle);
+    const result =
+      TIANYAN_LUOSHU_PATH_MODULE.createSelectionStrategy(
+        'break-pattern',
+      ).select(battle);
 
     expect(selectedId(result)).toBe('white-star-breaker');
   });
@@ -211,9 +290,10 @@ describe('天衍六套自动战术', () => {
     );
     battle.opponent.tags.addTags([GameplayTags.STATUS.IMMUNE.CONTROL]);
 
-    const result = TIANYAN_LUOSHU_PATH_MODULE
-      .createSelectionStrategy('lock-meridian')
-      .select(battle);
+    const result =
+      TIANYAN_LUOSHU_PATH_MODULE.createSelectionStrategy(
+        'lock-meridian',
+      ).select(battle);
 
     expect(selectedId(result)).toBe('shift-palace');
   });
@@ -228,9 +308,10 @@ describe('天衍六套自动战术', () => {
       battle.caster,
     );
 
-    const result = TIANYAN_LUOSHU_PATH_MODULE
-      .createSelectionStrategy('lock-meridian')
-      .select(battle);
+    const result =
+      TIANYAN_LUOSHU_PATH_MODULE.createSelectionStrategy(
+        'lock-meridian',
+      ).select(battle);
 
     expect(selectedId(result)).toBe('flowing-flame');
   });
@@ -245,9 +326,9 @@ describe('天衍六套自动战术', () => {
       battle.caster,
     );
 
-    const result = TIANYAN_LUOSHU_PATH_MODULE
-      .createSelectionStrategy('decisive-derivation')
-      .select(battle);
+    const result = TIANYAN_LUOSHU_PATH_MODULE.createSelectionStrategy(
+      'decisive-derivation',
+    ).select(battle);
 
     expect(selectedId(result)).toBe('earth-bearing-seal');
   });
@@ -262,9 +343,9 @@ describe('天衍六套自动战术', () => {
       battle.caster,
     );
 
-    const result = TIANYAN_LUOSHU_PATH_MODULE
-      .createSelectionStrategy('decisive-derivation')
-      .select(battle);
+    const result = TIANYAN_LUOSHU_PATH_MODULE.createSelectionStrategy(
+      'decisive-derivation',
+    ).select(battle);
 
     expect(selectedId(result)).toBe('verdant-pulse');
   });

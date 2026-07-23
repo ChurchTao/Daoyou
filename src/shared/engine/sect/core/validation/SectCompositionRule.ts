@@ -7,6 +7,13 @@ export class SectCompositionRule implements ValidationRule<SectModule> {
     if (!module.progression || !module.methodGrowth || !module.organization) {
       throw new Error(`宗门 ${module.definition.id} 缺少标准领域策略`);
     }
+    if (typeof module.createBaseSelectionStrategy !== 'function') {
+      throw new Error(`宗门 ${module.definition.id} 未实现基础施法策略`);
+    }
+    const baseStrategy = module.createBaseSelectionStrategy();
+    if (!baseStrategy || typeof baseStrategy.select !== 'function') {
+      throw new Error(`宗门 ${module.definition.id} 未实现基础施法策略`);
+    }
     const definedPathIds = new Set(
       module.definition.paths.map((path) => path.id),
     );

@@ -118,7 +118,7 @@ export class SectCompiler {
       selectionStrategy:
         path && pathModule
           ? pathModule.createSelectionStrategy(path.tacticId)
-          : undefined,
+          : module.createBaseSelectionStrategy(),
     };
   }
 
@@ -184,17 +184,23 @@ export class SectCompiler {
     };
   }
 
-  private describeCosts(config: import('@shared/engine/battle-v5/core/configs').AbilityConfig): string {
+  private describeCosts(
+    config: import('@shared/engine/battle-v5/core/configs').AbilityConfig,
+  ): string {
     const costs = config.costs ?? [];
     if (costs.length === 0) {
-      return (config.mpCost ?? 0) > 0 ? `法力：${config.mpCost}` : '不消耗战斗资源';
+      return (config.mpCost ?? 0) > 0
+        ? `法力：${config.mpCost}`
+        : '不消耗战斗资源';
     }
-    return costs.map((cost) => {
-      if (cost.mode !== 'flat') {
-        return `当前气血：${Number((cost.ratio * 100).toFixed(2))}%`;
-      }
-      return `${cost.resource === 'hp' ? '气血' : '法力'}：${cost.amount}`;
-    }).join('；');
+    return costs
+      .map((cost) => {
+        if (cost.mode !== 'flat') {
+          return `当前气血：${Number((cost.ratio * 100).toFixed(2))}%`;
+        }
+        return `${cost.resource === 'hp' ? '气血' : '法力'}：${cost.amount}`;
+      })
+      .join('；');
   }
 
   private describeUnlock(
@@ -240,11 +246,13 @@ export class SectCompiler {
             .flatMap((modifier) => modifier.factRows);
           const authoredFacts = ability.detailRows ?? [];
           const detailRows = Array.from(
-            new Set([
-              ...authoredFacts,
-              ...(authoredFacts.length === 0 ? configFacts : []),
-              ...modifierFacts,
-            ].filter(Boolean)),
+            new Set(
+              [
+                ...authoredFacts,
+                ...(authoredFacts.length === 0 ? configFacts : []),
+                ...modifierFacts,
+              ].filter(Boolean),
+            ),
           );
           return [
             abilityId,

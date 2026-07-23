@@ -1,14 +1,15 @@
+import type { AbilitySelectionStrategy } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import { SectBuildBuilder } from '../compilation';
 import type {
   SectAdmissionContext,
   SectAdmissionResult,
   SectDefinition,
   SectDefinitionWithoutPaths,
-  SectProjectionContext,
   SectMethodGrowthPolicy,
+  SectProjectionContext,
 } from '../domain';
-import type { SectProgressionPolicy } from '../progression';
 import type { SectOrganizationModule } from '../organization';
+import type { SectProgressionPolicy } from '../progression';
 import type {
   SectAdmissionPolicy,
   SectModule,
@@ -49,6 +50,8 @@ export abstract class BaseSectModule implements SectModule {
   checkAdmission(context: SectAdmissionContext): SectAdmissionResult {
     return this.admissionPolicy.check(context);
   }
+
+  abstract createBaseSelectionStrategy(): AbilitySelectionStrategy;
 
   protected abstract compileBase(
     context: SectProjectionContext,

@@ -1,3 +1,4 @@
+import { DefaultAbilitySelectionStrategy } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import {
   AttributeType,
@@ -318,6 +319,10 @@ class FixtureSectModule extends StandardSectModule {
     builder: SectBuildBuilder,
   ): void {
     compileFixtureBase(baseDefinition, context, builder);
+  }
+
+  createBaseSelectionStrategy() {
+    return new DefaultAbilitySelectionStrategy();
   }
 }
 
