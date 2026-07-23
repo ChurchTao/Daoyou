@@ -1,12 +1,12 @@
 import {
-  decodeSectTaskOutcome,
-  readSweepSessionOutcome,
-} from '@app/components/feature/sect/sectTaskOutcomeRegistry';
-import {
   useSectCurrentQuery,
   useSectPresentation,
   useSectResourceQuery,
 } from '@app/components/feature/sect/SectQueryProvider';
+import {
+  decodeSectTaskOutcome,
+  readSweepSessionOutcome,
+} from '@app/components/feature/sect/sectTaskOutcomeRegistry';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
@@ -17,16 +17,8 @@ import type {
   SectTasksData,
   SectTaskViewData,
 } from '@shared/contracts/sect';
-import type {
-  SweepDirection,
-  SweepGameProgress,
-} from '@shared/engine/sect';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import type { SweepDirection, SweepGameProgress } from '@shared/engine/sect';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   attachSweepPhaser,
@@ -56,8 +48,7 @@ type ActiveSweepSession =
     };
 
 type SweepSettlement =
-  | { kind: 'practice' }
-  | { kind: 'reward'; rewardSummary: string };
+  { kind: 'practice' } | { kind: 'reward'; rewardSummary: string };
 
 function postJson(
   input: Record<string, unknown>,
@@ -171,19 +162,10 @@ export default function SectGateSweepPage() {
   );
 
   useEffect(() => {
-    if (
-      portraitBlocked ||
-      startedRef.current ||
-      (!taskData && !taskError)
-    )
+    if (portraitBlocked || startedRef.current || (!taskData && !taskError))
       return;
     void beginSession(taskData);
-  }, [
-    beginSession,
-    portraitBlocked,
-    taskData,
-    taskError,
-  ]);
+  }, [beginSession, portraitBlocked, taskData, taskError]);
 
   const complete = useCallback(
     async (moves: SweepDirection[]) => {
@@ -225,13 +207,7 @@ export default function SectGateSweepPage() {
         setSubmitting(false);
       }
     },
-    [
-      invalidateCurrent,
-      mutate,
-      pushToast,
-      reloadTasks,
-      session,
-    ],
+    [invalidateCurrent, mutate, pushToast, reloadTasks, session],
   );
 
   useEffect(() => {
@@ -251,12 +227,7 @@ export default function SectGateSweepPage() {
       if (controllerRef.current === controller)
         controllerRef.current = undefined;
     };
-  }, [
-    complete,
-    portraitBlocked,
-    presentation.terms.sweepCanvasLabel,
-    session,
-  ]);
+  }, [complete, portraitBlocked, presentation.terms.sweepCanvasLabel, session]);
 
   useEffect(
     () => () => {
@@ -299,12 +270,22 @@ export default function SectGateSweepPage() {
       className="fixed inset-0 isolate overflow-hidden bg-[#141918] text-stone-50"
       aria-label={`${presentation.terms.sweepActivity}小游戏`}
     >
+      <div
+        className="absolute -inset-8 scale-110 bg-cover bg-center opacity-55 blur-xl"
+        style={{
+          backgroundImage:
+            "url('/assets/sect/sweep/cloud-stair-courtyard.webp')",
+        }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-[#101513]/35" aria-hidden="true" />
+
       {!portraitBlocked ? (
         <div ref={rootRef} className="absolute inset-0" />
       ) : null}
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 px-[max(env(safe-area-inset-left),0.75rem)] pt-[max(env(safe-area-inset-top),0.75rem)] pr-[max(env(safe-area-inset-right),0.75rem)]">
-        <div className="pointer-events-auto rounded-full bg-black/55 px-4 py-2 text-sm shadow-lg backdrop-blur-sm">
+        <div className="pointer-events-auto rounded-full bg-[#18201c]/50 px-4 py-2 text-sm shadow-lg ring-1 ring-white/10 backdrop-blur-md">
           <span>
             落叶 {progress?.cleared ?? 0}/{progress?.totalLeaves ?? 4}
           </span>
@@ -316,7 +297,7 @@ export default function SectGateSweepPage() {
         <div className="pointer-events-auto flex gap-2">
           <button
             type="button"
-            className="rounded-full bg-black/55 px-4 py-2 text-sm shadow-lg backdrop-blur-sm transition hover:bg-black/75 disabled:opacity-50"
+            className="rounded-full bg-[#18201c]/50 px-4 py-2 text-sm shadow-lg ring-1 ring-white/10 backdrop-blur-md transition hover:bg-[#18201c]/75 disabled:opacity-50"
             onClick={reset}
             disabled={!session || submitting || starting}
           >
@@ -324,7 +305,7 @@ export default function SectGateSweepPage() {
           </button>
           <button
             type="button"
-            className="rounded-full bg-black/55 px-4 py-2 text-sm shadow-lg backdrop-blur-sm transition hover:bg-black/75 disabled:opacity-50"
+            className="rounded-full bg-[#18201c]/50 px-4 py-2 text-sm shadow-lg ring-1 ring-white/10 backdrop-blur-md transition hover:bg-[#18201c]/75 disabled:opacity-50"
             onClick={() => void exit()}
             disabled={submitting}
           >

@@ -11,13 +11,19 @@ import {
   type SweepGameState,
 } from '@shared/engine/sect';
 import * as Phaser from 'phaser';
+import {
+  SWEEP_BOARD_LEFT,
+  SWEEP_BOARD_TOP,
+  SWEEP_BOARD_WIDTH,
+  SWEEP_CELL_HEIGHT,
+  SWEEP_CELL_WIDTH,
+  SWEEP_OBSTACLE_FRAME_SIZE,
+  SWEEP_OBSTACLE_FRAMES,
+  sweepObstacleAngle,
+  sweepObstacleFrame,
+  sweepVisualCellCenter,
+} from './sweepVisualLayout';
 
-const CELL_SIZE = 92;
-const CELL_GAP = 7;
-const BOARD_WIDTH = SWEEP_GRID_COLUMNS * CELL_SIZE;
-const BOARD_HEIGHT = SWEEP_GRID_ROWS * CELL_SIZE;
-const BOARD_LEFT = (SWEEP_CANVAS.width - BOARD_WIDTH) / 2;
-const BOARD_TOP = (SWEEP_CANVAS.height - BOARD_HEIGHT) / 2;
 const MOVE_DURATION = 105;
 const ATLAS_FRAME_SIZE = 256;
 
@@ -62,13 +68,6 @@ function cellKey(cell: SweepCell): string {
   return `${cell.x}:${cell.y}`;
 }
 
-function cellCenter(cell: SweepCell) {
-  return {
-    x: BOARD_LEFT + cell.x * CELL_SIZE + CELL_SIZE / 2,
-    y: BOARD_TOP + cell.y * CELL_SIZE + CELL_SIZE / 2,
-  };
-}
-
 function sameCell(left: SweepCell, right: SweepCell) {
   return left.x === right.x && left.y === right.y;
 }
@@ -95,7 +94,8 @@ export function attachSweepPhaser(
 
   class SweepScene extends Phaser.Scene {
     private player?: Phaser.GameObjects.Image;
-    private leaves = new Map<string, Phaser.GameObjects.Image>();
+    private playerShadow?: Phaser.GameObjects.Ellipse;
+    private leaves = new Map<string, Phaser.GameObjects.Container>();
     private visitedMarks = new Map<string, Phaser.GameObjects.Image>();
     private moveQueue: QueuedMove[] = [];
     private animating = false;
@@ -114,6 +114,10 @@ export function attachSweepPhaser(
         '/assets/sect/sweep/cloud-stair-courtyard.webp',
       );
       this.load.image('sweep-atlas', '/assets/sect/sweep/sweep-atlas.webp');
+      this.load.image(
+        'sweep-obstacles',
+        '/assets/sect/sweep/sweep-obstacles.webp',
+      );
     }
 
     create() {
@@ -125,17 +129,8 @@ export function attachSweepPhaser(
           SWEEP_CANVAS.height / 2,
           'sweep-background',
         )
-        .setDisplaySize(SWEEP_CANVAS.width, SWEEP_CANVAS.height);
-      this.add
-        .rectangle(
-          SWEEP_CANVAS.width / 2,
-          SWEEP_CANVAS.height / 2,
-          SWEEP_CANVAS.width,
-          SWEEP_CANVAS.height,
-          0x171b1a,
-          0.22,
-        )
-        .setDepth(0.5);
+        .setDisplaySize(SWEEP_CANVAS.width, SWEEP_CANVAS.height)
+        .setDepth(0);
       this.registerSpriteFrames();
       this.drawBoard();
       this.createLeaves();
@@ -172,13 +167,20 @@ export function attachSweepPhaser(
       const next = this.moveQueue.shift();
       if (!next) return;
       const previous = state.player;
-      const target = cellCenter(next.state.player);
+      const target = sweepVisualCellCenter(next.state.player);
       this.animating = true;
       this.player?.setFlipX(next.state.player.x < previous.x);
       this.tweens.add({
+        targets: this.playerShadow,
+        x: target.x,
+        y: target.y + 13,
+        duration: MOVE_DURATION,
+        ease: 'Sine.easeOut',
+      });
+      this.tweens.add({
         targets: this.player,
         x: target.x,
-        y: target.y,
+        y: target.y - 4,
         duration: MOVE_DURATION,
         ease: 'Sine.easeOut',
         onComplete: () => {
@@ -186,8 +188,7 @@ export function attachSweepPhaser(
           state = next.state;
           this.collectLeafAtPlayer();
           this.renderVisited();
-          if (state.phase === 'failed')
-            this.player?.setTint(0xa94032);
+          if (state.phase === 'failed') this.player?.setTint(0xa94032);
           args.onState(sweepGameProgress(state));
           if (state.phase === 'completed' && !this.reportedSuccess) {
             this.reportedSuccess = true;
@@ -211,10 +212,11 @@ export function attachSweepPhaser(
       this.visitedMarks.forEach((mark) => mark.destroy());
       this.visitedMarks.clear();
       this.createLeaves();
-      const start = cellCenter(state.player);
+      const start = sweepVisualCellCenter(state.player);
+      this.playerShadow?.setPosition(start.x, start.y + 13).setAlpha(0.22);
       this.player
         ?.clearTint()
-        .setPosition(start.x, start.y)
+        .setPosition(start.x, start.y - 4)
         .setFlipX(false)
         .setAlpha(1);
       this.renderVisited();
@@ -234,55 +236,51 @@ export function attachSweepPhaser(
             ATLAS_FRAME_SIZE,
           );
       }
+
+      const obstacleTexture = this.textures.get('sweep-obstacles');
+      SWEEP_OBSTACLE_FRAMES.forEach((name, index) => {
+        if (!obstacleTexture.has(name))
+          obstacleTexture.add(
+            name,
+            0,
+            (index % 2) * SWEEP_OBSTACLE_FRAME_SIZE,
+            Math.floor(index / 2) * SWEEP_OBSTACLE_FRAME_SIZE,
+            SWEEP_OBSTACLE_FRAME_SIZE,
+            SWEEP_OBSTACLE_FRAME_SIZE,
+          );
+      });
     }
 
     private drawBoard() {
+      this.drawStoneGrid();
       for (const cell of state.board.cells) {
-        const center = cellCenter(cell);
-        const size = CELL_SIZE - CELL_GAP;
-        const tile = this.add
-          .rectangle(
-            center.x,
-            center.y,
-            size,
-            size,
-            cell.kind === 'blocked' ? 0x17201f : 0xd9c9a2,
-            cell.kind === 'blocked' ? 0.82 : 0.88,
-          )
-          .setStrokeStyle(
-            cell.kind === 'blocked' ? 2 : 3,
-            cell.kind === 'blocked' ? 0x31413d : 0xf4ead2,
-            cell.kind === 'blocked' ? 0.8 : 0.72,
-          )
-          .setDepth(1);
+        const center = sweepVisualCellCenter(cell);
         if (cell.kind === 'blocked') {
-          const cross = this.add.graphics().setDepth(1.2);
-          cross.lineStyle(7, 0x0b1110, 0.72);
-          const inset = size * 0.26;
-          cross.lineBetween(
-            center.x - inset,
-            center.y - inset,
-            center.x + inset,
-            center.y + inset,
-          );
-          cross.lineBetween(
-            center.x + inset,
-            center.y - inset,
-            center.x - inset,
-            center.y + inset,
-          );
+          this.add
+            .image(
+              center.x,
+              center.y,
+              'sweep-obstacles',
+              sweepObstacleFrame(cell),
+            )
+            .setDisplaySize(86, 74)
+            .setAngle(sweepObstacleAngle(cell))
+            .setFlipX((cell.x + cell.y) % 2 === 1)
+            .setAlpha(0.9)
+            .setDepth(1.4);
           continue;
         }
-        tile.setInteractive({ useHandCursor: true });
+
+        const tile = this.add
+          .zone(center.x, center.y, SWEEP_CELL_WIDTH, SWEEP_CELL_HEIGHT)
+          .setDepth(1)
+          .setInteractive({ useHandCursor: true });
         tile.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
           this.activePointerId = pointer.id;
           this.enqueueCell(cell);
         });
         tile.on('pointerover', (pointer: Phaser.Input.Pointer) => {
-          if (
-            pointer.isDown &&
-            this.activePointerId === pointer.id
-          )
+          if (pointer.isDown && this.activePointerId === pointer.id)
             this.enqueueCell(cell);
         });
       }
@@ -291,76 +289,107 @@ export function attachSweepPhaser(
       this.drawMarker(state.board.end, 'endSeal');
     }
 
+    private drawStoneGrid() {
+      const grid = this.add
+        .graphics()
+        .setDepth(0.8)
+        .setBlendMode(Phaser.BlendModes.MULTIPLY);
+      grid.lineStyle(1, 0x6e675a, 0.15);
+      for (let column = 1; column < SWEEP_GRID_COLUMNS; column += 1) {
+        const x = SWEEP_BOARD_LEFT + column * SWEEP_CELL_WIDTH;
+        grid.lineBetween(
+          x,
+          SWEEP_BOARD_TOP + 4,
+          x,
+          SWEEP_BOARD_TOP + SWEEP_GRID_ROWS * SWEEP_CELL_HEIGHT - 4,
+        );
+      }
+      for (let row = 1; row < SWEEP_GRID_ROWS; row += 1) {
+        const y = SWEEP_BOARD_TOP + row * SWEEP_CELL_HEIGHT;
+        grid.lineBetween(
+          SWEEP_BOARD_LEFT + 4,
+          y,
+          SWEEP_BOARD_LEFT + SWEEP_BOARD_WIDTH - 4,
+          y,
+        );
+      }
+    }
+
     private drawMarker(cell: SweepCell, frame: 'startSeal' | 'endSeal') {
-      const center = cellCenter(cell);
-      this.add
+      const center = sweepVisualCellCenter(cell);
+      const marker = this.add
         .image(center.x, center.y, 'sweep-atlas', frame)
-        .setDisplaySize(70, 70)
-        .setAlpha(0.92)
-        .setDepth(2.6);
+        .setDisplaySize(50, 40)
+        .setAlpha(frame === 'startSeal' ? 0.48 : 0.72)
+        .setDepth(1.8);
+      if (frame === 'startSeal')
+        marker.setBlendMode(Phaser.BlendModes.MULTIPLY);
     }
 
     private createLeaves() {
       state.board.leaves.forEach((leaf, index) => {
-        const center = cellCenter(leaf);
+        const center = sweepVisualCellCenter(leaf);
+        const shadow = this.add.ellipse(1, 5, 26, 10, 0x19201d, 0.2);
         const image = this.add
           .image(
-            center.x,
-            center.y,
+            0,
+            -2,
             'sweep-atlas',
             index % 2 === 0 ? 'leafYellow' : 'leafRed',
           )
-          .setDisplaySize(53, 53)
+          .setDisplaySize(36, 36);
+        const cluster = this.add
+          .container(center.x, center.y, [shadow, image])
           .setAngle((index * 47) % 360)
-          .setDepth(3);
-        this.leaves.set(cellKey(leaf), image);
+          .setDepth(2.8);
+        this.leaves.set(cellKey(leaf), cluster);
       });
     }
 
     private createPlayer() {
-      const start = cellCenter(state.player);
+      const start = sweepVisualCellCenter(state.player);
+      this.playerShadow = this.add
+        .ellipse(start.x, start.y + 13, 38, 15, 0x151b19, 0.22)
+        .setDepth(3.6);
       this.player = this.add
-        .image(start.x, start.y, 'sweep-atlas', 'player')
-        .setDisplaySize(84, 84)
-        .setDepth(5);
+        .image(start.x, start.y - 4, 'sweep-atlas', 'player')
+        .setDisplaySize(66, 66)
+        .setDepth(4);
     }
 
     private renderVisited() {
       for (const cell of state.visited) {
         const key = cellKey(cell);
         if (!this.visitedMarks.has(key)) {
-          const center = cellCenter(cell);
+          const center = sweepVisualCellCenter(cell);
           const frame = SWEEP_MARK_FRAMES[(cell.x * 17 + cell.y * 31) % 3];
           const mark = this.add
             .image(center.x, center.y, 'sweep-atlas', frame)
-            .setDisplaySize(72, 72)
-            .setTint(0x645b4d)
-            .setAlpha(0.32)
+            .setDisplaySize(58, 48)
+            .setTint(0x5f584d)
+            .setAlpha(0.25)
             .setAngle(((cell.x * 11 + cell.y * 7) % 15) - 7)
-            .setDepth(2);
+            .setBlendMode(Phaser.BlendModes.MULTIPLY)
+            .setDepth(2.1);
           this.visitedMarks.set(key, mark);
         }
       }
     }
 
     private collectLeafAtPlayer() {
-      if (
-        !state.collectedLeaves.some((leaf) =>
-          sameCell(leaf, state.player),
-        )
-      )
+      if (!state.collectedLeaves.some((leaf) => sameCell(leaf, state.player)))
         return;
-      const leaf = this.leaves.get(cellKey(state.player));
-      if (!leaf) return;
+      const cluster = this.leaves.get(cellKey(state.player));
+      if (!cluster) return;
       this.leaves.delete(cellKey(state.player));
       this.tweens.add({
-        targets: leaf,
+        targets: cluster,
         alpha: 0,
         scaleX: 0.1,
         scaleY: 0.1,
-        angle: leaf.angle + 80,
+        angle: cluster.angle + 80,
         duration: 150,
-        onComplete: () => leaf.destroy(),
+        onComplete: () => cluster.destroy(),
       });
     }
 
