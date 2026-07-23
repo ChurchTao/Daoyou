@@ -1,11 +1,11 @@
-import { AttributeType, ModifierType } from '../core/types';
 import { getArtifactWearerRealmFactor } from '@shared/engine/shared/artifactRealmScaling';
+import type { Cultivator } from '@shared/types/cultivator';
+import { AttributeType, ModifierType } from '../core/types';
 import {
   createDisplayUnitFromCultivator,
   getCultivatorDisplayAttributes,
   getCultivatorDisplaySnapshot,
 } from './CultivatorDisplayAdapter';
-import type { Cultivator } from '@shared/types/cultivator';
 
 function createCultivatorFixture(): Cultivator {
   return {
@@ -92,6 +92,57 @@ describe('CultivatorDisplayAdapter', () => {
     expect(unit.getMaxMp()).toBe(383);
   });
 
+  it('mounts sect method modifiers with the same final values used in combat', () => {
+    const cultivator = createCultivatorFixture();
+    cultivator.attributes.speed = 100;
+    const sect = {
+      membershipId: 'member-1',
+      sectId: 'lingxiao',
+      status: 'active',
+      contribution: 0,
+      configVersion: 4,
+      methods: { 'lingxiao-canon': 100 },
+      paths: [],
+      abilityLoadout: [null, null, null, null],
+    } satisfies NonNullable<Cultivator['sect']>;
+    const withoutSect = createCultivatorFixture();
+    withoutSect.attributes.speed = 100;
+    const baseline = createDisplayUnitFromCultivator(withoutSect);
+    const project = (methods: NonNullable<Cultivator['sect']>['methods']) => {
+      cultivator.sect = { ...sect, methods };
+      return createDisplayUnitFromCultivator(cultivator);
+    };
+    const sword = project({ 'lingxiao-canon': 100, 'sword-guidance': 100 });
+    const voidStep = project({ 'lingxiao-canon': 100, 'void-step': 100 });
+    const cleansing = project({ 'lingxiao-canon': 100, 'edge-cleansing': 100 });
+    const returning = project({
+      'lingxiao-canon': 100,
+      'origin-returning': 100,
+    });
+    const swordBody = project({
+      'lingxiao-canon': 100,
+      'sword-nurturing': 100,
+    });
+
+    expect(sword.attributes.getValue(AttributeType.ATK)).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.ATK) * 1.05,
+    );
+    expect(
+      voidStep.attributes.getValue(AttributeType.EVASION_RATE),
+    ).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.EVASION_RATE) + 0.02,
+    );
+    expect(cleansing.attributes.getValue(AttributeType.ACCURACY)).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.ACCURACY) + 0.02,
+    );
+    expect(returning.attributes.getValue(AttributeType.MAGIC_DEF)).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.MAGIC_DEF) * 1.05,
+    );
+    expect(swordBody.attributes.getValue(AttributeType.DEF)).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.DEF) * 1.05,
+    );
+  });
+
   it('maps Unit values back to cultivator display attributes', () => {
     const { finalAttributes } = getCultivatorDisplayAttributes(
       createCultivatorFixture(),
@@ -145,7 +196,8 @@ describe('CultivatorDisplayAdapter', () => {
       timestamps: {},
     };
 
-    const { attrs, finalAttributes } = getCultivatorDisplayAttributes(cultivator);
+    const { attrs, finalAttributes } =
+      getCultivatorDisplayAttributes(cultivator);
 
     expect(finalAttributes.vitality).toBe(15);
     expect(attrs.maxHp).toBe(652);
@@ -220,12 +272,7 @@ describe('CultivatorDisplayAdapter', () => {
     };
 
     const unit = createDisplayUnitFromCultivator(cultivator);
-    const factor = getArtifactWearerRealmFactor(
-      '金丹',
-      '圆满',
-      '炼气',
-      '初期',
-    );
+    const factor = getArtifactWearerRealmFactor('金丹', '圆满', '炼气', '初期');
 
     // 金丹圆满->炼气初期 uses inverse anchor/wearer factor.
     expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(

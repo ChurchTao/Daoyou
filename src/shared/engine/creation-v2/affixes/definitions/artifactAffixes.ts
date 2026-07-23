@@ -776,7 +776,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-      guard: { skipReflectSource: true },
+      guard: { skipSecondaryDamageSource: true },
     },
   },
   {
@@ -802,8 +802,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'resource_drain',
       conditions: [
         {
-          type: 'ability_has_tag',
-          params: { tag: GameplayTags.ABILITY.CHANNEL.MAGIC },
+          type: 'damage_type_is',
+          params: { damageType: DamageType.MAGICAL },
         },
       ],
       params: {
@@ -816,7 +816,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-      guard: { skipReflectSource: true },
+      guard: { skipSecondaryDamageSource: true },
     },
   },
   {
@@ -862,7 +862,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-      guard: { skipReflectSource: true },
+      guard: { skipSecondaryDamageSource: true },
     },
   },
   {
@@ -896,7 +896,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken + 1,
-      guard: { skipReflectSource: true },
+      guard: { skipSecondaryDamageSource: true },
     },
   },
   {
@@ -967,7 +967,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken + 2,
-      guard: { skipReflectSource: true },
+      guard: { skipSecondaryDamageSource: true },
     },
   },
 
@@ -1717,7 +1717,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken + 3,
       mapping: { caster: 'owner', target: 'event.caster' },
-      guard: { skipReflectSource: true },
+      guard: { skipSecondaryDamageSource: true },
     },
   },
   {

@@ -25,6 +25,7 @@ import reputationShopRouter from '@server/routes/api/reputation-shop.router';
 import saveCharacterRouter from '@server/routes/api/save-character.router';
 import tasksRouter from '@server/routes/api/tasks.router';
 import towerRouter from '@server/routes/api/tower.router';
+import sectsRouter from '@server/routes/api/sects.router';
 import worldChatRouter from '@server/routes/api/world-chat.router';
 import type { AppEnv } from '@server/lib/hono/types';
 import { getRedisHealthStatus } from '@server/lib/redis';
@@ -80,6 +81,7 @@ apiRouter.route('/reputation-shop', reputationShopRouter);
 apiRouter.route('/save-character', saveCharacterRouter);
 apiRouter.route('/tasks', tasksRouter);
 apiRouter.route('/tower', towerRouter);
+apiRouter.route('/sects', sectsRouter);
 apiRouter.route('/v2/products', productsRouter);
 apiRouter.route('/world-chat', worldChatRouter);
 

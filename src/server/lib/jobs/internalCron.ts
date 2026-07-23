@@ -6,7 +6,11 @@ import {
 import { cultivators, mails } from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { getTopRankingCultivatorIds } from '@server/lib/redis/rankings';
-import { prunePlayerStateEventsOlderThan } from '@server/lib/repositories/playerStateRepository';
+import {
+  prunePlayerMutationRequestsOlderThan,
+  prunePlayerStateEventsOlderThan,
+} from '@server/lib/repositories/playerStateRepository';
+import { listActiveSectIds } from '@server/lib/repositories/sectOrganizationRepository';
 import {
   pruneExpiredData,
   type ExpiredDataCleanupResult,
@@ -24,7 +28,10 @@ import {
   ITEM_LIBRARY_SYSTEM_USER_ID,
 } from '@server/lib/services/MaterialLibraryService';
 import { commitPlayerStateMutation } from '@server/lib/services/PlayerStateMutationService';
+import { sectOrganizationFacade } from '@server/lib/services/sect-organization';
+import { createPostgresSectConstructionContext } from '@server/lib/services/sect-organization/PostgresSectOrganizationAdapters';
 import { towerEnemySetService } from '@server/lib/tower/enemySets';
+import { productionSectRuntime } from '@shared/engine/sect/content';
 import { RANKING_REWARDS, REALM_VALUES } from '@shared/types/constants';
 import { and, eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -38,12 +45,14 @@ const PLAYER_STATE_EVENTS_CLEANUP_LOCK_KEY =
 const EXPIRED_DATA_CLEANUP_LOCK_KEY = 'cron:expired-data-cleanup:lock';
 const MATERIAL_LIBRARY_DAILY_GENERATION_LOCK_KEY =
   'cron:material-library-daily-generation:lock';
+const SECT_CONSTRUCTION_WEEKLY_LOCK_KEY = 'cron:sect-construction-weekly:lock';
 const RANK_REWARD_SETTLED_PREFIX = 'golden_rank:weekly_rewards:settled:';
 const LOCK_TTL_SECONDS = 15 * 60;
 const TOWER_ENEMY_SETS_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const MATERIAL_LIBRARY_DAILY_GENERATION_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const SETTLED_TTL_SECONDS = 7 * 24 * 60 * 60;
 const PLAYER_STATE_EVENT_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
+const PLAYER_MUTATION_REQUEST_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const MAIL_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 const QI_LOG_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 const DUNGEON_HISTORY_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -346,6 +355,35 @@ export async function runMarketRefreshCronJob(): Promise<CronJobResult> {
   });
 }
 
+export async function runSectConstructionWeeklyJob(): Promise<CronJobResult> {
+  return withJobLock(
+    'sect-construction-weekly',
+    SECT_CONSTRUCTION_WEEKLY_LOCK_KEY,
+    async () => {
+      if (!isSettlementMondayCN()) {
+        return {
+          success: true,
+          processed: 0,
+          skipped: true,
+          reason: 'not_monday_cn',
+        };
+      }
+      const q = getExecutor();
+      const sectIds = await listActiveSectIds(q);
+      for (const sectId of sectIds)
+        await sectOrganizationFacade.construction.ensureWeeklyProject(
+          sectId,
+          createPostgresSectConstructionContext({ q, runtime: productionSectRuntime }),
+        );
+      return {
+        success: true,
+        processed: sectIds.length,
+        skipped: false,
+      };
+    },
+  );
+}
+
 export async function runMaterialLibraryDailyGenerationJob(): Promise<CronJobResult> {
   return withJobLock(
     'material-library-daily-generation',
@@ -422,10 +460,16 @@ export async function runPlayerStateEventsCleanupJob(): Promise<CronJobResult> {
     PLAYER_STATE_EVENTS_CLEANUP_LOCK_KEY,
     async () => {
       const cutoff = new Date(Date.now() - PLAYER_STATE_EVENT_RETENTION_MS);
-      const processed = await prunePlayerStateEventsOlderThan(cutoff);
+      const mutationCutoff = new Date(
+        Date.now() - PLAYER_MUTATION_REQUEST_RETENTION_MS,
+      );
+      const [events, requests] = await Promise.all([
+        prunePlayerStateEventsOlderThan(cutoff),
+        prunePlayerMutationRequestsOlderThan(mutationCutoff),
+      ]);
       return {
         success: true,
-        processed,
+        processed: events + requests,
         skipped: false,
       };
     },

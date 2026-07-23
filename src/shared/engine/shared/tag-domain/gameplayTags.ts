@@ -38,6 +38,10 @@ export const GameplayTags = {
       BODY_BURN_BLOOD_TRIGGERED: 'Status.BodyCultivation.BurnBloodTriggered',
       BODY_ORGANS_SKILL_REFUNDED: 'Status.BodyCultivation.OrgansSkillRefunded',
     },
+    SECT: {
+      ROOT: 'Status.Sect',
+      state: (sectId: string, stateId: string) => `Status.Sect.${sectId}.${stateId}`,
+    },
     CATEGORY: {
       BUFF: 'Status.Buff',
       DEBUFF: 'Status.Debuff',
@@ -77,12 +81,30 @@ export const GameplayTags = {
       PHYSICAL: 'Ability.Channel.Physical',
       TRUE: 'Ability.Channel.True',
     },
+    MECHANIC: {
+      ROOT: 'Ability.Mechanic',
+      IGNORE_SPIRITUAL_ROOT_MISMATCH:
+        'Ability.Mechanic.IgnoreSpiritualRootMismatch',
+    },
     KIND: {
       ROOT: 'Ability.Kind',
       SKILL: 'Ability.Kind.Skill',
       PASSIVE: 'Ability.Kind.Passive',
       ARTIFACT: 'Ability.Kind.Artifact',
       GONGFA: 'Ability.Kind.GongFa',
+      SECT: 'Ability.Kind.Sect',
+    },
+    SECT: {
+      ROOT: 'Ability.Sect',
+      namespace: (sectId: string) => `Ability.Sect.${sectId}`,
+      path: (sectId: string, pathId: string) => `Ability.Sect.${sectId}.Path.${pathId}`,
+      ability: (sectId: string, abilityId: string) => `Ability.Sect.${sectId}.Ability.${abilityId}`,
+      mechanic: (sectId: string, mechanicId: string) => `Ability.Sect.${sectId}.Mechanic.${mechanicId}`,
+      GENERATOR: 'Ability.Sect.Role.Generator',
+      COMBO: 'Ability.Sect.Role.Combo',
+      FINISHER: 'Ability.Sect.Role.Finisher',
+      DEFENSIVE: 'Ability.Sect.Role.Defensive',
+      UTILITY: 'Ability.Sect.Role.Utility',
     },
     ELEMENT: {
       ROOT: 'Ability.Element',
@@ -130,6 +152,10 @@ export const GameplayTags = {
       THUNDER: 'Buff.Element.Thunder',
       POISON: 'Buff.Element.Poison',
     },
+    SECT: {
+      ROOT: 'Buff.Sect',
+      namespace: (sectId: string, buffId: string) => `Buff.Sect.${sectId}.${buffId}`,
+    },
   },
 
   // ===== 战斗特性域 =====
@@ -163,14 +189,28 @@ export const GameplayTags = {
   // ===== 事件域：值需与 CombatEvent.type 对齐 =====
   EVENT: {
     ACTION_PRE: 'ActionPreEvent',
+    ACTION_POST: 'ActionPostEvent',
     DAMAGE_TAKEN: 'DamageTakenEvent',
     DAMAGE_REQUEST: 'DamageRequestEvent',
     DAMAGE: 'DamageEvent',
     ROUND_PRE: 'RoundPreEvent',
+    ROUND_START: 'RoundStartEvent',
     SKILL_PRE_CAST: 'SkillPreCastEvent',
     SKILL_CAST: 'SkillCastEvent',
+    HIT_CHECK: 'HitCheckEvent',
+    DODGE: 'DodgeEvent',
     BUFF_ADD: 'BuffAddEvent',
+    BUFF_APPLIED: 'BuffAppliedEvent',
+    BUFF_REMOVED: 'BuffRemovedEvent',
+    BUFF_IMMUNE: 'BuffImmuneEvent',
+    BUFF_LAYER_CHANGED: 'BuffLayerChangedEvent',
+    CONTROL_RESIST: 'ControlResistEvent',
     DEATH_PREVENT: 'DeathPreventEvent',
+    CONTROLLED_SKIP: 'ControlledSkipEvent',
+    COMBAT_RESOURCE_CHANGE: 'CombatResourceChangeEvent',
+    ABILITY_COST_PAID: 'AbilityCostPaidEvent',
+    HP_CHANGED: 'HpChangedEvent',
+    UNIT_DEAD: 'UnitDeadEvent',
   },
 
   // ===== 监听器作用域 =====

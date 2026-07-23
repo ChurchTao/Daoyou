@@ -8,7 +8,6 @@ import { AbilityId, BuffType } from '../../core/types';
 import { TargetPolicy } from '../../abilities/TargetPolicy';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { Buff, StackRule } from '../../buffs/Buff';
-import { DefaultAbilitySelectionStrategy } from '../../abilities/AbilitySelectionStrategy';
 
 // 定义一个自增益技能
 class SelfBuffSkill extends ActiveSkill {
@@ -181,36 +180,6 @@ describe('AbilityContainer TargetPolicy 目标选择测试', () => {
     expect(capturedAbilityId).toBe('heal_skill');
   });
 
-  it('可通过策略配置提前使用治疗技能', () => {
-    owner.setHp(owner.getMaxHp() * 0.65);
-    container.setSelectionStrategy(
-      new DefaultAbilitySelectionStrategy({
-        version: 1,
-        mode: 'conservative',
-        healHpSkipThreshold: 0.9,
-        emergencyHealHpThreshold: 0.7,
-        restoreMpSkipThreshold: 0.75,
-        avoidRepeatControl: true,
-      }),
-    );
-    container.addAbility(new HealSkill());
-    container.addAbility(new DamageSkill());
-
-    let capturedAbilityId: string | null = null;
-
-    eventBus.subscribe<SkillPreCastEvent>('SkillPreCastEvent', (event) => {
-      capturedAbilityId = event.ability.id;
-    });
-
-    eventBus.publish<ActionEvent>({
-      type: 'ActionEvent',
-      timestamp: Date.now(),
-      caster: owner,
-    });
-
-    expect(capturedAbilityId).toBe('heal_skill');
-  });
-
   it('目标已有控制时不应重复选择控制技能', () => {
     const existingControl = new Buff(
       'existing_control' as AbilityId,
@@ -238,45 +207,6 @@ describe('AbilityContainer TargetPolicy 目标选择测试', () => {
     });
 
     expect(capturedAbilityId).toBe('damage_skill');
-  });
-
-  it('关闭重复控制规避后允许再次选择控制技能', () => {
-    const existingControl = new Buff(
-      'existing_control' as AbilityId,
-      '已有控制',
-      BuffType.CONTROL,
-      2,
-      StackRule.OVERRIDE,
-    );
-    existingControl.tags.addTags([GameplayTags.BUFF.TYPE.CONTROL]);
-    opponent.buffs.addBuff(existingControl, owner);
-
-    container.setSelectionStrategy(
-      new DefaultAbilitySelectionStrategy({
-        version: 1,
-        mode: 'balanced',
-        healHpSkipThreshold: 0.85,
-        emergencyHealHpThreshold: 0.35,
-        restoreMpSkipThreshold: 0.75,
-        avoidRepeatControl: false,
-      }),
-    );
-    container.addAbility(new ControlSkill());
-    container.addAbility(new DamageSkill());
-
-    let capturedAbilityId: string | null = null;
-
-    eventBus.subscribe<SkillPreCastEvent>('SkillPreCastEvent', (event) => {
-      capturedAbilityId = event.ability.id;
-    });
-
-    eventBus.publish<ActionEvent>({
-      type: 'ActionEvent',
-      timestamp: Date.now(),
-      caster: owner,
-    });
-
-    expect(capturedAbilityId).toBe('control_skill');
   });
 
   it('禁技时应跳过主动技能并回退到普攻', () => {

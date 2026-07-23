@@ -14,8 +14,12 @@ export class StatusSpreadEffect extends GameplayEffect {
     publishMechanicLog({
       mechanic: 'status_spread',
       source: context.caster,
+      ability: context.ability,
+      sourceBuff: context.buff,
       target: context.target,
       name: '状态扩散',
+      displayName: '状态扩散',
+      visibility: 'player',
       detail: 'no_target',
     });
   }

@@ -445,14 +445,20 @@ router.get('/', requireActiveCultivator(), async (c) => {
         materialIds,
         craftType,
       );
-      cost = estimateCost(
+      cost = await estimateCost(
         preview.materials as Array<{ rank: Quality }>,
         craftType,
         fateList,
+        cultivator.id,
       );
       validation = preview.validation;
     } else {
-      cost = estimateCost([{ rank: '凡品' }], craftType, fateList);
+      cost = await estimateCost(
+        [{ rank: '凡品' }],
+        craftType,
+        fateList,
+        cultivator.id,
+      );
     }
 
     if (cost.spiritStones !== undefined) {

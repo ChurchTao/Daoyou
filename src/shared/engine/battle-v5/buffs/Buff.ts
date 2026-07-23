@@ -32,12 +32,19 @@ export class Buff {
   readonly name: string;
   readonly description?: string;
   readonly type: BuffType;
+  readonly logVisibility: 'player' | 'debug';
+  readonly statusVisibility: 'player' | 'hidden';
+  readonly dispelPolicy: 'normal' | 'protected';
+  readonly dispelMode: 'whole' | 'one_layer';
+  readonly countsAsStatus: boolean;
   private _duration: number;
   private _maxDuration: number;
 
   // GAS 核心：标签和堆叠规则
   tags: GameplayTagContainer;
   readonly stackRule: StackRule;
+  readonly stackPriority: number;
+  readonly maxLayers?: number;
 
   // GAS 核心：owner 引用，用于事件订阅
   protected _owner: Unit | null = null;
@@ -61,14 +68,30 @@ export class Buff {
     duration: number,
     stackRule: StackRule = StackRule.REFRESH_DURATION,
     description?: string,
+    maxLayers?: number,
+    logVisibility: 'player' | 'debug' = 'player',
+    dispelPolicy: 'normal' | 'protected' = 'normal',
+    countsAsStatus: boolean = true,
+    statusVisibility?: 'player' | 'hidden',
+    stackPriority: number = 0,
+    dispelMode: 'whole' | 'one_layer' = 'whole',
   ) {
     this.id = id;
     this.name = name;
     this.description = description;
+    this.logVisibility = logVisibility;
+    this.statusVisibility = statusVisibility ?? (
+      logVisibility === 'debug' ? 'hidden' : 'player'
+    );
+    this.dispelPolicy = dispelPolicy;
+    this.dispelMode = dispelMode;
+    this.countsAsStatus = countsAsStatus;
     this.type = type;
     this._maxDuration = duration;
     this._duration = duration;
     this.stackRule = stackRule;
+    this.stackPriority = stackPriority;
+    this.maxLayers = maxLayers;
 
     // 初始化标签容器
     this.tags = new GameplayTagContainer();
@@ -116,15 +139,28 @@ export class Buff {
    * @param layers 增加的层数，默认为 1
    */
   addLayer(layers: number = 1): void {
-    this._layer += layers;
+    const previous = this._layer;
+    this._layer = Math.min(
+      this.maxLayers ?? Number.POSITIVE_INFINITY,
+      this._layer + layers,
+    );
+    if (this._layer !== previous) this.onLayerChanged();
   }
 
   /**
    * 设置层数
    */
   setLayer(layer: number): void {
-    this._layer = Math.max(1, layer);
+    const previous = this._layer;
+    this._layer = Math.max(
+      1,
+      Math.min(this.maxLayers ?? Number.POSITIVE_INFINITY, layer),
+    );
+    if (this._layer !== previous) this.onLayerChanged();
   }
+
+  /** Buff 层数变化钩子，供依赖层数的运行时效果重新挂载。 */
+  onLayerChanged(): void {}
 
   /**
    * Buff 激活时的初始化（GAS 模式）
@@ -262,6 +298,13 @@ export class Buff {
       this._maxDuration,
       this.stackRule,
       this.description,
+      this.maxLayers,
+      this.logVisibility,
+      this.dispelPolicy,
+      this.countsAsStatus,
+      this.statusVisibility,
+      this.stackPriority,
+      this.dispelMode,
     );
     cloned.setDuration(this._duration);
     cloned.tags = this.tags.clone();

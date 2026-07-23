@@ -19,8 +19,12 @@ export class NextHitRuleEffect extends GameplayEffect {
     publishMechanicLog({
       mechanic: 'ability_transform',
       source: context.caster,
+      ability: context.ability,
+      sourceBuff: context.buff,
       target: context.caster,
       name: '下一击规则',
+      displayName: '下一击规则',
+      visibility: 'player',
       value: this.params.triggers ?? 1,
     });
   }

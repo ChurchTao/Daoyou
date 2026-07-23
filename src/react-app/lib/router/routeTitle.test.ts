@@ -4,6 +4,7 @@ import {
   formatDocumentTitle,
   resolveGameScene,
   resolveRouteTitle,
+  resolveSectVisitTitle,
 } from './routeTitle';
 
 describe('route title helpers', () => {
@@ -54,6 +55,30 @@ describe('route title helpers', () => {
     );
 
     expect(title).toBe('修仙界地图 · 坊市选址');
+  });
+
+  it('resolves the sect-selection map title', () => {
+    const title = resolveRouteTitle(
+      [
+        {
+          params: {},
+          handle: {
+            title: ({ searchParams }: { searchParams: URLSearchParams }) =>
+              searchParams.get('intent') === 'sect'
+                ? '修仙界地图 · 诸宗山门'
+                : '修仙界地图 · 历练选址',
+          },
+        },
+      ] as never,
+      { pathname: '/game/map', search: '?intent=sect' },
+    );
+
+    expect(title).toBe('修仙界地图 · 诸宗山门');
+  });
+
+  it('resolves production sect names for visitor map titles', () => {
+    expect(resolveSectVisitTitle('youdu')).toBe('幽都舆图 · 访宗');
+    expect(resolveSectVisitTitle('unknown')).toBe('访宗舆图');
   });
 
   it('uses the route handle title for 404 pages', () => {

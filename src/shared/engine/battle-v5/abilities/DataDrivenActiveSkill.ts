@@ -23,6 +23,7 @@ import { Unit } from '../units/Unit';
  */
 export class DataDrivenActiveSkill extends ActiveSkill {
   private _effects: GameplayEffect[] = [];
+  private _castEffects: GameplayEffect[] = [];
   private _instantiatedListeners: Array<{
     runtime: ListenerRuntimeConfig;
     effects: InstantiatedGameplayEffect[];
@@ -38,6 +39,10 @@ export class DataDrivenActiveSkill extends ActiveSkill {
    */
   addEffect(effect: GameplayEffect): void {
     this._effects.push(effect);
+  }
+
+  addCastEffect(effect: GameplayEffect): void {
+    this._castEffects.push(effect);
   }
 
   addInstantiatedListener(
@@ -92,10 +97,23 @@ export class DataDrivenActiveSkill extends ActiveSkill {
       caster,
       target,
       ability: this,
+      castSnapshot: this.castSnapshot,
     };
 
     // 依次执行效果链
     for (const effect of this._effects) {
+      effect.execute(context);
+    }
+  }
+
+  protected override executeCastEffects(caster: Unit, target: Unit): void {
+    const context: EffectContext = {
+      caster,
+      target,
+      ability: this,
+      castSnapshot: this.castSnapshot,
+    };
+    for (const effect of this._castEffects) {
       effect.execute(context);
     }
   }
@@ -116,7 +134,7 @@ export class DataDrivenActiveSkill extends ActiveSkill {
       return;
     }
 
-    if (!shouldExecuteListener(owner, event, runtime)) {
+    if (!shouldExecuteListener(owner, event, runtime, this)) {
       return;
     }
 
@@ -137,16 +155,33 @@ export class DataDrivenActiveSkill extends ActiveSkill {
    * 克隆技能实例，同时克隆所有效果
    */
   override clone(): DataDrivenActiveSkill {
-    const cloned = super.clone() as DataDrivenActiveSkill;
-    // 注意：这里的效果链不需要特殊处理，因为它们是无状态的单例或由工厂动态创建
-    // 如果效果有状态，则需要深度克隆
+    const cloned = new DataDrivenActiveSkill(this.id, this.name, {
+      description: this.description,
+      costs: this.costConfigs,
+      cooldown: this.maxCooldown,
+      priority: this.priority,
+      targetPolicy: this.targetPolicy,
+      selectionProfile: this.selectionProfile,
+      castConditions: this.castConditions,
+      hitPolicy: this.hitPolicy,
+    });
+    cloned.tags.addTags(this.tags.getTags());
+    if (this.currentCooldown > 0) cloned.modifyCooldown(this.currentCooldown);
     cloned._effects = [...this._effects];
+    cloned._castEffects = [...this._castEffects];
     for (const listener of this._instantiatedListeners) {
       cloned.addInstantiatedListener(
         {
           ...listener.runtime,
           mapping: { ...listener.runtime.mapping },
           guard: { ...listener.runtime.guard },
+          budget: listener.runtime.budget
+            ? { ...listener.runtime.budget }
+            : undefined,
+          conditions: listener.runtime.conditions?.map((condition) => ({
+            ...condition,
+            params: { ...condition.params },
+          })),
         },
         [...listener.effects],
       );

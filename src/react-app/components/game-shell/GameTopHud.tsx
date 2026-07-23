@@ -35,9 +35,9 @@ function HudMeter({
   const barPercent = Math.max(0, Math.min(percent, 100));
   const toneClass =
     tone === 'hp'
-      ? 'bg-crimson'
+      ? 'bg-resource-hp'
       : tone === 'mp'
-        ? 'bg-[var(--color-tier-xuan)]'
+        ? 'bg-resource-mp'
         : tone === 'progress'
           ? 'bg-ink'
           : 'bg-wood';

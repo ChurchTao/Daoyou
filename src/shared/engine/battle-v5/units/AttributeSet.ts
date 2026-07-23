@@ -9,6 +9,7 @@ const EXTERNAL_SECONDARY_ATTRS = new Set<AttributeType>([
   AttributeType.CRIT_RESIST,
   AttributeType.CRIT_DAMAGE_REDUCTION,
   AttributeType.HEAL_AMPLIFY,
+  AttributeType.HEAL_RECEIVED_REDUCTION,
 ]);
 
 function curve(x: number, scale: number, cap: number): number {

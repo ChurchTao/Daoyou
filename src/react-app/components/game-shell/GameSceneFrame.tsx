@@ -4,10 +4,7 @@ import type { ReactNode } from 'react';
 import { useMatches } from 'react-router';
 import { getGameSceneGroupTitle } from './gameNavigation';
 import { resolveGameSceneFrameHeader } from './gameSceneFrameHeader';
-import {
-  GameSceneHelpButton,
-  type GameSceneHelp,
-} from './GameSceneSection';
+import { GameSceneHelpButton, type GameSceneHelp } from './GameSceneSection';
 
 export interface GameSceneFrameProps {
   title?: ReactNode;
@@ -17,6 +14,7 @@ export interface GameSceneFrameProps {
   children: ReactNode;
   variant?: 'default' | 'lite' | 'workflow';
   contentClassName?: string;
+  identityOverride?: { label: string; summary?: string };
 }
 
 export function GameSceneLoading({ message }: { message: string }) {
@@ -203,13 +201,14 @@ export function GameSceneFrame({
   children,
   variant = 'default',
   contentClassName,
+  identityOverride,
 }: GameSceneFrameProps) {
   const matches = useMatches();
   const scene = resolveGameScene(matches);
   const sceneGroup = scene?.group ? getGameSceneGroupTitle(scene.group) : null;
   const header = resolveGameSceneFrameHeader({
-    sceneLabel: scene?.label,
-    sceneSummary: scene?.summary,
+    sceneLabel: identityOverride?.label ?? scene?.label,
+    sceneSummary: identityOverride?.summary ?? scene?.summary,
     title,
     description,
   });

@@ -286,12 +286,16 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
         };
       }
     | {
-        type: 'element_history';
+        type: 'runtime_counter_modify';
         params: {
           key: string;
-          threshold: number;
-          effects: AffixEffectTemplate[];
-          resetOnTrigger?: boolean;
+          operation: 'add' | 'subtract' | 'set' | 'reset';
+          amount?: number;
+          min?: number;
+          max?: number;
+          target?: 'caster' | 'target';
+          effects?: AffixEffectTemplate[];
+          scaleEffectsByAmount?: boolean;
         };
       }
     | {

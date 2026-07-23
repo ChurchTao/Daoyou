@@ -7,6 +7,7 @@ import {
   getPlayerProfileCultivatorById,
 } from '@server/lib/services/cultivatorService';
 import { QiService } from '@server/lib/services/QiService';
+import { loadCultivatorSectState } from '@server/lib/repositories/sectRepository';
 import {
   PLAYER_STATE_DOMAINS,
   type PlayerStateDomain,
@@ -124,6 +125,10 @@ export async function buildPlayerStateSnapshot(args: {
 
   if (domainSet.has('tasks')) {
     snapshot.tasks = await getTaskSummary(args.cultivatorId, q);
+  }
+
+  if (domainSet.has('sect')) {
+    snapshot.sect = (await loadCultivatorSectState(args.cultivatorId, q)) ?? null;
   }
 
   return {

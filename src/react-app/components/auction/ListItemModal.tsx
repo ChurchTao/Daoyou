@@ -691,7 +691,7 @@ export function ListItemModal({
 
       return filtered.sort((a, b) => {
         const multiplier = consumableFilters.sortOrder === 'asc' ? 1 : -1;
-        let result = 0;
+        let result: number;
 
         if (consumableFilters.sortBy === 'name') {
           result = a.name.localeCompare(b.name, 'zh-CN');

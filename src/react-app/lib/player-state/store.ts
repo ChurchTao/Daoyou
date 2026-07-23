@@ -581,6 +581,10 @@ function applyEventPatch(
     next.progress = patch.progress as PlayerStateSnapshot['progress'];
   }
 
+  if (event.domain === 'sect' && Object.prototype.hasOwnProperty.call(patch, 'sect')) {
+    next.sect = patch.sect as PlayerStateSnapshot['sect'];
+  }
+
   if (event.domain === 'profile' && snapshot.profile) {
     const profilePatch = patch.profile as
       | Partial<PlayerStateSnapshot['profile']>

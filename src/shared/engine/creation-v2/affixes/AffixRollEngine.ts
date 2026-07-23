@@ -32,13 +32,11 @@ export class AffixRollEngine {
     const bias = Math.min(0.12, budget.effectiveTotal * energyBiasFactor);
 
     // 2. 生成基础效率分 (0.0 - 1.0)
-    let efficiency = 0;
-    if (distribution === 'normal') {
-      // 模拟正态分布：均值为 0.5 + bias，标准差为 0.16
-      efficiency = this.nextNormal(0.5 + bias, 0.16);
-    } else {
-      efficiency = this.rng() + bias;
-    }
+    // 模拟正态分布：均值为 0.5 + bias，标准差为 0.16
+    const efficiency =
+      distribution === 'normal'
+        ? this.nextNormal(0.5 + bias, 0.16)
+        : this.rng() + bias;
 
     // 3. 截断并归一化到 0 - 1 之间
     const rollEfficiency = Math.max(0, Math.min(1, efficiency));

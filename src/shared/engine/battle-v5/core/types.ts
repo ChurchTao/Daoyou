@@ -51,6 +51,7 @@ export enum AttributeType {
   CRIT_RESIST = 'critResist',                    // 暴击韧性：降低对手暴击率 (0~1)
   CRIT_DAMAGE_REDUCTION = 'critDamageReduction', // 暴击减伤：降低受到暴击倍率 (0~0.5)
   HEAL_AMPLIFY = 'healAmplify',                  // 治疗增强 (≥0)
+  HEAL_RECEIVED_REDUCTION = 'healReceivedReduction', // 受到的气血治疗削弱 (0~1)
 }
 
 // ===== 属性修改器类型（6阶段）=====
@@ -112,7 +113,35 @@ export enum DamageType {
 export enum DamageSource {
   DIRECT = 'direct',
   REFLECT = 'reflect',
+  COUNTER = 'counter',
+  FOLLOW_UP = 'follow_up',
+  DELAYED = 'delayed',
 }
+
+/**
+ * 数值结果的结构化触发原因。
+ * source 表示谁造成结果；cause 表示哪项能力、状态或机制令结果发生。
+ */
+export interface LogCauseRef {
+  kind: 'ability' | 'buff' | 'mechanic';
+  id: string;
+  displayName: string;
+}
+
+/** 机制触发条件中的安全展示原子；id 仅供结构化视图使用。 */
+export interface LogDisplayRef {
+  id: string;
+  displayName: string;
+}
+
+/** 通用的“左项与右项形成某种关系”触发依据。 */
+export interface MechanicTriggerBasisRef {
+  left: LogDisplayRef;
+  relation: LogDisplayRef;
+  right: LogDisplayRef;
+}
+
+export type DamageCalculationMode = 'standard' | 'resolved_final';
 
 export type DamageMitigationMode = 'normal' | 'bypass_defense';
 
@@ -120,6 +149,12 @@ export interface DamageComponent {
   readonly kind: string;
   readonly amount: number;
   readonly mitigation: DamageMitigationMode;
+  /** 防御结算前的攻击基数。新伤害段必须同时提供 attackBase 与 segmentMultiplier。 */
+  readonly attackBase?: number;
+  /** 防御结算后的段倍率。 */
+  readonly segmentMultiplier?: number;
+  /** 该分量应承担的防御倍率；属性倍率伤害等于技能段倍率。 */
+  readonly defenseScale?: number;
 }
 
 // ===== BUFF类型 =====
@@ -163,6 +198,13 @@ export interface UnitSnapshot {
   currentMp: number;
   maxMp: number;
   buffs: BuffId[];
+  combatResources: Array<{
+    id: string;
+    name: string;
+    icon?: string;
+    current: number;
+    max: number;
+  }>;
   isAlive: boolean;
   hpPercent: number;
   mpPercent: number;

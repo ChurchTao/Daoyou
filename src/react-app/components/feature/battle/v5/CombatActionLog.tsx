@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { cn } from '@shared/lib/cn';
 import { LogPresenter } from '@shared/engine/battle-v5/systems/log/LogPresenter';
-import type { LogSpan } from '@shared/engine/battle-v5/systems/log/types';
+import type {
+  LogSpan,
+  PresentedLogLine,
+} from '@shared/engine/battle-v5/systems/log/types';
+import { cn } from '@shared/lib/cn';
+import { useEffect, useMemo, useRef } from 'react';
+import { getCombatLogPartClassName } from './combatLogPresentation';
 
 interface CombatActionLogProps {
   spans: LogSpan[];
   currentIndex: number;
 }
 
-export function CombatActionLog({
-  spans,
-  currentIndex,
-}: CombatActionLogProps) {
+export function CombatActionLog({ spans, currentIndex }: CombatActionLogProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const presenter = useMemo(() => new LogPresenter(), []);
 
@@ -20,7 +21,7 @@ export function CombatActionLog({
       .map((span, originalIdx) => ({
         id: span.id,
         originalIdx,
-        lines: presenter.formatSpan(span),
+        lines: presenter.presentSpan(span),
       }))
       .filter((item) => item.lines.length > 0);
   }, [spans, presenter]);
@@ -73,7 +74,10 @@ export function CombatActionLog({
               <div
                 key={item.id}
                 data-span-id={item.id}
-                className={cn('px-1 py-1', isActive && 'bg-battle-crimson-soft')}
+                className={cn(
+                  'px-1 py-1',
+                  isActive && 'bg-battle-crimson-soft',
+                )}
               >
                 <div className="grid grid-cols-[1rem_minmax(0,1fr)] items-start gap-x-2.5">
                   <span
@@ -92,9 +96,17 @@ export function CombatActionLog({
                         className={cn(
                           'text-sm leading-7 transition-colors md:text-base md:leading-8',
                           isActive ? 'text-ink' : 'text-battle-muted',
+                          lineClassName(line),
                         )}
                       >
-                        <span dangerouslySetInnerHTML={{ __html: line }} />
+                        {line.parts.map((part, partIndex) => (
+                          <span
+                            key={`${partIndex}-${part.text}`}
+                            className={getCombatLogPartClassName(part)}
+                          >
+                            {part.text}
+                          </span>
+                        ))}
                       </p>
                     ))}
                   </div>
@@ -114,4 +126,16 @@ export function CombatActionLog({
       </div>
     </section>
   );
+}
+
+function lineClassName(line: PresentedLogLine): string | undefined {
+  switch (line.role) {
+    case 'trigger':
+    case 'secondary':
+    case 'resource':
+    case 'state':
+      return 'pl-2';
+    default:
+      return undefined;
+  }
 }

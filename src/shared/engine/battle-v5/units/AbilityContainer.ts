@@ -33,6 +33,7 @@ export class AbilityContainer {
   private _owner: Unit;
   private _defaultTarget: Unit | null = null;
   private _defaultAttack: Ability | null = null;
+  private _fallbackBasicAttack: Ability | null = null;
   private _selectionStrategy: AbilitySelectionStrategy =
     new DefaultAbilitySelectionStrategy();
   private _handlers: Map<string, (event: unknown) => void> = new Map();
@@ -101,14 +102,11 @@ export class AbilityContainer {
 
         const activeSkill = ability as ActiveSkill;
 
-        let resolvedTarget: Unit | null = null;
         const policy = activeSkill.targetPolicy;
-
-        if (policy.team === 'self' || policy.team === 'ally') {
-          resolvedTarget = this._owner;
-        } else {
-          resolvedTarget = opponent;
-        }
+        const resolvedTarget =
+          policy.team === 'self' || policy.team === 'ally'
+            ? this._owner
+            : opponent;
 
         if (!resolvedTarget || !resolvedTarget.isAlive()) {
           continue;
@@ -147,7 +145,12 @@ export class AbilityContainer {
       opponent !== this._owner &&
       opponent.isAlive()
     ) {
-      this._prepareCast(this._getDefaultAttack(), opponent);
+      const defaultAttack = this._getDefaultAttack();
+      const context = { caster: this._owner, target: opponent };
+      this._prepareCast(
+        defaultAttack.canTrigger(context) ? defaultAttack : this.getFallbackBasicAttack(),
+        opponent,
+      );
     } else {
       EventBus.instance.publish<ControlledSkipEvent>({
         type: 'ControlledSkipEvent',
@@ -183,13 +186,16 @@ export class AbilityContainer {
    * 准备施法：发布施法前摇事件
    */
   private _prepareCast(ability: Ability, target: Unit): void {
+    ability.prepareCast({ caster: this._owner, target });
     EventBus.instance.publish<SkillPreCastEvent>({
       type: 'SkillPreCastEvent',
       timestamp: Date.now(),
       caster: this._owner,
       target,
+      fallbackTarget: this._getDefaultTarget() ?? undefined,
       ability,
       isInterrupted: false,
+      hitPolicy: ability instanceof ActiveSkill ? ability.hitPolicy : 'normal',
     });
   }
 
@@ -218,6 +224,28 @@ export class AbilityContainer {
       this._defaultAttack.setActive(true);
     }
     return this._defaultAttack;
+  }
+
+  getDefaultAttackForSnapshot(): Ability | null {
+    return this._defaultAttack;
+  }
+
+  getFallbackBasicAttack(): Ability {
+    if (!this._fallbackBasicAttack) {
+      this._fallbackBasicAttack = new BasicAttack();
+      this._fallbackBasicAttack.setOwner(this._owner);
+      this._fallbackBasicAttack.setActive(true);
+    }
+    return this._fallbackBasicAttack;
+  }
+
+  setDefaultAttack(ability: Ability): void {
+    if (this._defaultAttack) {
+      this._defaultAttack.setActive(false);
+    }
+    this._defaultAttack = ability;
+    this._defaultAttack.setOwner(this._owner);
+    this._defaultAttack.setActive(true);
   }
 
   /**
@@ -299,6 +327,9 @@ export class AbilityContainer {
       clonedContainer._abilities.set(clonedAbility.id, clonedAbility);
       clonedAbility.setOwner(owner);
       clonedAbility.setActive(true);
+    }
+    if (this._defaultAttack) {
+      clonedContainer.setDefaultAttack(this._defaultAttack.clone());
     }
 
     return clonedContainer;

@@ -11,6 +11,8 @@ const elementPreferenceSchema = z
 
 // AI 只负责生成文本设定、灵根偏好和资质评分
 export const CultivatorAISchema = z.object({
+  player_race: z.literal('human').default('human').describe('玩家种族，首版固定为人族'),
+  race_narrative: z.string().min(4).max(120).default('人身近道，百法皆可参悟。').describe('种族判词'),
   name: z.string().min(2).max(4).describe('2-4字中文姓名'),
   gender: z.enum(GENDER_VALUES).describe('性别'),
   origin: z.string().min(2).max(40).describe('出身势力或地域'),
@@ -42,6 +44,7 @@ export function normalizeCultivatorAIData(
 ): CultivatorAIData {
   return CultivatorAISchema.parse({
     ...data,
+    player_race: 'human',
     element_preferences: Array.from(new Set(data.element_preferences)).slice(
       0,
       MAX_ELEMENT_PREFERENCES,

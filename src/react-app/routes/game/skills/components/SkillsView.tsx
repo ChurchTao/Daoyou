@@ -45,6 +45,7 @@ export function SkillsView() {
     craftTypes: ['create_skill'],
     enabled: Boolean(cultivator),
   });
+  const sectSkillLocked = cultivator?.sect?.status === 'active';
 
   if (isLoading && !cultivator) {
     return (
@@ -86,6 +87,9 @@ export function SkillsView() {
           pendingTypes={pendingCreations.pendingTypes}
           loading={pendingCreations.isLoading}
         />
+        {sectSkillLocked && (
+          <InkNotice>已拜入宗门：造物神通仍可收藏、推演与交易，但战斗神通栏仅可装配宗门神通。</InkNotice>
+        )}
         {!cultivator ? (
           <InkNotice>还未觉醒道身，何谈神通？先去首页觉醒吧。</InkNotice>
         ) : skills.length === 0 ? (
@@ -103,7 +107,7 @@ export function SkillsView() {
                       详情
                     </InkButton>
                     <InkButton
-                      disabled={pendingToggleId === skill.id}
+                      disabled={pendingToggleId === skill.id || sectSkillLocked}
                       onClick={() => toggleSkillEnabled(skill)}
                     >
                       {pendingToggleId === skill.id

@@ -1,16 +1,17 @@
-import { cn } from '@shared/lib/cn';
+import { InkModal } from '@app/components/layout/InkModal';
 import type {
   AttrsStateView,
   UnitStateSnapshot,
 } from '@shared/engine/battle-v5/systems/state/types';
+import { cn } from '@shared/lib/cn';
 import {
+  getAttributeInfo,
   getGameConceptLabel,
   getGameConceptVariantLabel,
+  getResourceText,
 } from '@shared/lib/gameConceptDisplay';
-import { getResourceText } from '@shared/lib/gameConceptDisplay';
-import { getAttributeInfo } from '@shared/lib/gameConceptDisplay';
-import { InkModal } from '@app/components/layout/InkModal';
 import { format } from 'd3-format';
+import { isPlayerVisibleBuff } from './combatStatusPresentation';
 
 interface Props {
   unit: UnitStateSnapshot | null;
@@ -54,7 +55,8 @@ const ATTR_LABELS: Partial<Record<keyof AttrsStateView, string>> = {
 
 function formatBuffLabel(buff: UnitStateSnapshot['buffs'][number]) {
   const layers = buff.layers > 1 ? ` x${buff.layers}` : '';
-  const duration = buff.remaining === -1 ? '常驻' : `余${buff.remaining}`;
+  const duration =
+    buff.remaining === -1 ? '常驻' : `余${buff.remaining}次自身行动`;
   return `${buff.name}${layers} · ${duration}`;
 }
 
@@ -65,6 +67,8 @@ function getBuffToneClass(buff: UnitStateSnapshot['buffs'][number]) {
 
 export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
   if (!unit) return null;
+
+  const visibleBuffs = unit.buffs.filter(isPlayerVisibleBuff);
 
   const renderAttr = (key: keyof AttrsStateView, isPercentage = false) => {
     const finalVal = unit.attrs[key] || 0;
@@ -77,7 +81,7 @@ export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
     return (
       <div
         key={key}
-        className="flex items-baseline justify-between gap-4 border-b border-dashed border-battle-faint py-1.5 text-sm last:border-b-0"
+        className="border-battle-faint flex items-baseline justify-between gap-4 border-b border-dashed py-1.5 text-sm last:border-b-0"
       >
         <span className="text-battle-muted">{ATTR_LABELS[key] || key}</span>
         <div className="text-ink flex items-baseline gap-1 font-mono">
@@ -86,11 +90,7 @@ export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
             {isPercentage && '%'}
           </span>
           {Math.abs(modifier) > 0.001 && (
-            <span
-              className={cn(
-                modifier > 0 ? 'text-teal' : 'text-crimson',
-              )}
-            >
+            <span className={cn(modifier > 0 ? 'text-teal' : 'text-crimson')}>
               {modifier > 0 ? '+' : ''}
               {displayMod}
               {isPercentage && '%'}
@@ -156,10 +156,37 @@ export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
         </section>
 
         <section>
+          <p className="battle-caption mb-2 text-xs">行动状态</p>
+          <div className="space-y-2 py-2 text-sm leading-6">
+            {(unit.actionStates ?? []).length > 0 ? (
+              (unit.actionStates ?? []).map((state) => (
+                <div
+                  key={`${state.type}:${state.ability?.id ?? state.name}`}
+                  className="space-y-0.5"
+                >
+                  <div className="text-teal font-medium">
+                    {state.type === 'rest'
+                      ? `调息 · 余${state.remainingActions}次行动`
+                      : `蓄势 · ${state.ability?.name ?? state.name}`}
+                  </div>
+                  <p className="text-battle-muted text-xs leading-5">
+                    {state.type === 'rest'
+                      ? `来源：${state.sourceAbility?.name ?? '战斗效果'}；下一次自身行动跳过。`
+                      : `来源：${state.sourceAbility?.name ?? '战斗效果'}；下一次自身行动发动${state.ability?.name ?? '后发神通'}。`}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <span className="text-battle-muted">无行动状态</span>
+            )}
+          </div>
+        </section>
+
+        <section>
           <p className="battle-caption mb-2 text-xs">状态效果</p>
           <div className="space-y-2 py-2 text-sm leading-6">
-            {unit.buffs.length > 0 ? (
-              unit.buffs.map((buff, index) => (
+            {visibleBuffs.length > 0 ? (
+              visibleBuffs.map((buff, index) => (
                 <div key={`${buff.id}:${index}`} className="space-y-0.5">
                   <div className={cn('font-medium', getBuffToneClass(buff))}>
                     {formatBuffLabel(buff)}

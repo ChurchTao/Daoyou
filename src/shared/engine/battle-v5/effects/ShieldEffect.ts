@@ -14,10 +14,11 @@ export class ShieldEffect extends GameplayEffect {
   }
 
   execute(context: EffectContext): void {
-    const { caster, target, ability } = context;
+    const { caster, ability } = context;
+    const target = this.params.target === 'caster' ? caster : context.target;
 
     // 使用统一计算器计算护盾值
-    const shieldAmount = ValueCalculator.calculate(this.params.value, caster);
+    const shieldAmount = ValueCalculator.calculate(this.params.value, caster, target);
 
     if (shieldAmount <= 0) return;
 

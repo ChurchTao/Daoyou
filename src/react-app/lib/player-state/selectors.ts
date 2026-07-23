@@ -72,6 +72,9 @@ export function selectActiveCultivatorProfile(
 
   return {
     ...cultivator,
+    sect: storeState.snapshot.sect !== undefined
+      ? storeState.snapshot.sect ?? undefined
+      : cultivator.sect,
     condition: storeState.snapshot.condition ?? cultivator.condition,
     cultivation_progress: cultivationProgress,
     spirit_stones:

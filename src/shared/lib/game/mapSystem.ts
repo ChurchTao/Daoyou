@@ -1,14 +1,10 @@
-import { REALM_ORDER, type RealmType } from '@shared/types/constants';
 import type { RealmStage } from '@shared/types/constants';
+import { REALM_ORDER, type RealmType } from '@shared/types/constants';
 import type { MarketLayer, RegionProfileKey } from '@shared/types/market';
 import mapData from '../../data/map.json';
 
 export type DungeonDifficultyTier =
-  | 'easy'
-  | 'normal'
-  | 'hard'
-  | 'elite'
-  | 'boss';
+  'easy' | 'normal' | 'hard' | 'elite' | 'boss';
 
 export interface NodeMarketConfig {
   enabled: boolean;
@@ -34,7 +30,10 @@ const DUNGEON_DIFFICULTY_PRESETS: Record<
   DungeonDifficultyTier,
   Pick<
     ResolvedDungeonMapConfig,
-    'difficultyLabel' | 'allowedEnemyRealmStages' | 'allowBossLoadout' | 'rewardBonus'
+    | 'difficultyLabel'
+    | 'allowedEnemyRealmStages'
+    | 'allowBossLoadout'
+    | 'rewardBonus'
   >
 > = {
   easy: {
@@ -119,9 +118,22 @@ export interface SatelliteNode {
   dungeon_config?: DungeonMapConfig;
 }
 
+export interface SectLandmark {
+  id: string;
+  kind: 'sect';
+  sect_id: string;
+  parent_id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  x: number;
+  y: number;
+}
+
 export interface MapData {
   world_name: string;
   map_nodes: MapNode[];
+  sect_landmarks: SectLandmark[];
   satellite_nodes: SatelliteNode[];
 }
 
@@ -138,6 +150,22 @@ export function getAllSatelliteNodes(): SatelliteNode[] {
   return worldData.satellite_nodes;
 }
 
+export function getAllSectLandmarks(): SectLandmark[] {
+  return worldData.sect_landmarks;
+}
+
+export function getSectLandmark(id: string): SectLandmark | undefined {
+  return worldData.sect_landmarks.find((landmark) => landmark.id === id);
+}
+
+export function getSectLandmarkBySectId(
+  sectId: string,
+): SectLandmark | undefined {
+  return worldData.sect_landmarks.find(
+    (landmark) => landmark.sect_id === sectId,
+  );
+}
+
 export function getMapNode(id: string): MapNode | SatelliteNode | undefined {
   const mainNode = worldData.map_nodes.find((n) => n.id === id);
   if (mainNode) return mainNode;
@@ -146,6 +174,12 @@ export function getMapNode(id: string): MapNode | SatelliteNode | undefined {
 
 export function isSatelliteNode(id: string): boolean {
   return worldData.satellite_nodes.some((n) => n.id === id);
+}
+
+export type WorldMapLocation = MapNodeInfo | SectLandmark;
+
+export function getWorldMapLocation(id: string): WorldMapLocation | undefined {
+  return getMapNode(id) ?? getSectLandmark(id);
 }
 
 export function getNodesByRegion(region: string): MapNode[] {

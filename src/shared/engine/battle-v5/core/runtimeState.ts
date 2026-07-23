@@ -1,7 +1,27 @@
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import { Buff } from '../buffs/Buff';
-import { EffectConfig } from './configs';
+import { AbilityConfig, EffectConfig } from './configs';
 import { Unit } from '../units/Unit';
+import type {
+  ActionHitPolicy,
+  ActionInterruptPolicy,
+  ActionStateAbilityView,
+  ActionStateView,
+} from './actionState';
+
+export interface QueuedActionRuntime {
+  ability: AbilityConfig;
+  sourceAbility?: ActionStateAbilityView;
+  cancelEffects: EffectConfig[];
+  interruptPolicy: ActionInterruptPolicy;
+  hitPolicy: ActionHitPolicy;
+}
+
+interface SkippedActionRuntime {
+  name: string;
+  reason: string;
+  sourceAbility?: ActionStateAbilityView;
+}
 
 export interface DamageMemoryEntry {
   amount: number;
@@ -15,6 +35,7 @@ export interface PendingAbilityTransform {
   trueDamage?: boolean;
   addDispel?: EffectConfig;
   mpCostToHp?: boolean;
+  freeManaCost?: boolean;
   cooldownModify?: number;
   forceCritical?: boolean;
   bonusDamageMemory?: {
@@ -35,12 +56,27 @@ export interface BattleRuntimeState {
   sequences: Map<string, number>;
   dealtDamageSinceLastCheck: boolean;
   removedBuffs: Buff[];
-  elementHistories: Map<string, Set<string>>;
+  actionSequence: number;
+  round: number;
+  listenerTriggerBudgets: Map<string, { token: number; count: number }>;
+  skippedActions: SkippedActionRuntime[];
+  queuedAction?: QueuedActionRuntime;
+  abilityModes: Map<string, AbilityModeRuntime>;
+  actionAmounts: Map<string, { action: number; amount: number }>;
+}
+
+export interface AbilityModeRuntime {
+  key: string;
+  mode: string;
+  remainingUses: number;
+  displayName: string;
+  cleanupBuffIds?: string[];
 }
 
 const unitState = new WeakMap<Unit, BattleRuntimeState>();
 const delayedBuffEffects = new WeakMap<Buff, EffectConfig[]>();
 const activeAbilityTransforms = new WeakMap<ActiveSkill, PendingAbilityTransform>();
+const buffAppliedAtAction = new WeakMap<Buff, number>();
 
 export function getBattleRuntimeState(unit: Unit): BattleRuntimeState {
   let state = unitState.get(unit);
@@ -55,11 +91,189 @@ export function getBattleRuntimeState(unit: Unit): BattleRuntimeState {
       sequences: new Map(),
       dealtDamageSinceLastCheck: false,
       removedBuffs: [],
-      elementHistories: new Map(),
+      actionSequence: 0,
+      round: 0,
+      listenerTriggerBudgets: new Map(),
+      skippedActions: [],
+      abilityModes: new Map(),
+      actionAmounts: new Map(),
     };
     unitState.set(unit, state);
   }
   return state;
+}
+
+export function queueSkippedActions(
+  unit: Unit,
+  count: number,
+  reason: string,
+  name = '调息',
+  sourceAbility?: ActionStateAbilityView,
+): void {
+  const state = getBattleRuntimeState(unit);
+  for (let i = 0; i < Math.max(0, Math.trunc(count)); i++) {
+    state.skippedActions.push({ reason, name, sourceAbility });
+  }
+}
+
+export function consumeSkippedAction(unit: Unit): SkippedActionRuntime | undefined {
+  return getBattleRuntimeState(unit).skippedActions.shift();
+}
+
+export function setQueuedAction(
+  unit: Unit,
+  ability: AbilityConfig,
+  options: {
+    sourceAbility?: ActionStateAbilityView;
+    cancelEffects?: EffectConfig[];
+    interruptPolicy?: ActionInterruptPolicy;
+    hitPolicy?: ActionHitPolicy;
+  } = {},
+): void {
+  getBattleRuntimeState(unit).queuedAction = {
+    ability,
+    sourceAbility: options.sourceAbility,
+    cancelEffects: options.cancelEffects ?? [],
+    interruptPolicy: options.interruptPolicy ?? 'normal',
+    hitPolicy: options.hitPolicy ?? 'normal',
+  };
+}
+
+export function peekQueuedAction(unit: Unit): QueuedActionRuntime | undefined {
+  return getBattleRuntimeState(unit).queuedAction;
+}
+
+export function consumeQueuedAction(unit: Unit): QueuedActionRuntime | undefined {
+  const state = getBattleRuntimeState(unit);
+  const queued = state.queuedAction;
+  state.queuedAction = undefined;
+  return queued;
+}
+
+export function clearPendingActionStates(unit: Unit): void {
+  const state = getBattleRuntimeState(unit);
+  state.skippedActions.length = 0;
+  state.queuedAction = undefined;
+}
+
+export function getActionStateViews(unit: Unit): ActionStateView[] {
+  if (!unit.isAlive()) return [];
+  const state = getBattleRuntimeState(unit);
+  const views: ActionStateView[] = [];
+  if (state.skippedActions.length > 0) {
+    const next = state.skippedActions[0];
+    views.push({
+      type: 'rest',
+      name: next.name,
+      remainingActions: state.skippedActions.length,
+      sourceAbility: next.sourceAbility,
+    });
+  }
+  if (state.queuedAction) {
+    views.push({
+      type: 'queued_action',
+      name: '蓄势',
+      remainingActions: 1,
+      sourceAbility: state.queuedAction.sourceAbility,
+      ability: {
+        id: state.queuedAction.ability.slug,
+        name: state.queuedAction.ability.name,
+      },
+      interruptPolicy: state.queuedAction.interruptPolicy,
+      hitPolicy: state.queuedAction.hitPolicy,
+    });
+  }
+  for (const mode of state.abilityModes.values()) {
+    views.push({
+      type: 'ability_mode',
+      name: mode.displayName,
+      remainingActions: mode.remainingUses,
+    });
+  }
+  return views;
+}
+
+export function readAbilityMode(unit: Unit, key: string): AbilityModeRuntime | undefined {
+  return getBattleRuntimeState(unit).abilityModes.get(key);
+}
+
+export function setAbilityMode(unit: Unit, mode: AbilityModeRuntime): void {
+  getBattleRuntimeState(unit).abilityModes.set(mode.key, { ...mode });
+}
+
+export function advanceAbilityMode(
+  unit: Unit,
+  key: string,
+): AbilityModeRuntime | undefined {
+  const state = getBattleRuntimeState(unit);
+  const current = state.abilityModes.get(key);
+  if (!current) return undefined;
+  const next = {
+    ...current,
+    remainingUses: Math.max(0, current.remainingUses - 1),
+  };
+  if (next.remainingUses <= 0) {
+    state.abilityModes.delete(key);
+    for (const buffId of next.cleanupBuffIds ?? []) {
+      unit.buffs.removeBuff(buffId);
+    }
+    return undefined;
+  }
+  state.abilityModes.set(key, next);
+  return next;
+}
+
+export function clearAbilityMode(unit: Unit, key: string): void {
+  const state = getBattleRuntimeState(unit);
+  const mode = state.abilityModes.get(key);
+  state.abilityModes.delete(key);
+  for (const buffId of mode?.cleanupBuffIds ?? []) {
+    unit.buffs.removeBuff(buffId);
+  }
+}
+
+export function claimActionAmount(
+  unit: Unit,
+  key: string,
+  requested: number,
+  cap: number,
+): number {
+  const state = getBattleRuntimeState(unit);
+  const current = state.actionAmounts.get(key);
+  const used = current?.action === state.actionSequence ? current.amount : 0;
+  const applied = Math.max(0, Math.min(requested, cap - used));
+  state.actionAmounts.set(key, { action: state.actionSequence, amount: used + applied });
+  return applied;
+}
+
+export function markBuffAppliedAtCurrentAction(unit: Unit, buff: Buff): void {
+  buffAppliedAtAction.set(buff, getBattleRuntimeState(unit).actionSequence);
+}
+
+export function shouldTickBuffDuration(unit: Unit, buff: Buff): boolean {
+  return buffAppliedAtAction.get(buff) !== getBattleRuntimeState(unit).actionSequence;
+}
+
+export function beginRuntimeAction(unit: Unit): void {
+  getBattleRuntimeState(unit).actionSequence += 1;
+}
+
+export function setRuntimeRound(unit: Unit, round: number): void {
+  getBattleRuntimeState(unit).round = Math.max(0, Math.trunc(round));
+}
+
+export function readRuntimeCounter(unit: Unit, key: string): number {
+  return getBattleRuntimeState(unit).counters.get(key) ?? 0;
+}
+
+export function writeRuntimeCounter(unit: Unit, key: string, value: number): number {
+  const normalized = Number.isFinite(value) ? Math.trunc(value) : 0;
+  if (normalized === 0) {
+    getBattleRuntimeState(unit).counters.delete(key);
+    return 0;
+  }
+  getBattleRuntimeState(unit).counters.set(key, normalized);
+  return normalized;
 }
 
 export function rememberAmount(
@@ -232,16 +446,4 @@ export function rememberRemovedBuff(unit: Unit, buff: Buff): void {
 
 export function readRecentRemovedBuff(unit: Unit, predicate: (buff: Buff) => boolean): Buff | undefined {
   return getBattleRuntimeState(unit).removedBuffs.find(predicate);
-}
-
-export function rememberElement(unit: Unit, key: string, elementTag: string): number {
-  const state = getBattleRuntimeState(unit);
-  const history = state.elementHistories.get(key) ?? new Set<string>();
-  history.add(elementTag);
-  state.elementHistories.set(key, history);
-  return history.size;
-}
-
-export function clearElementHistory(unit: Unit, key: string): void {
-  getBattleRuntimeState(unit).elementHistories.delete(key);
 }

@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { resolveGameShellKind } from './gameShellRegistry';
 
@@ -26,8 +27,18 @@ describe('game shell registry', () => {
   it('resolves shell ownership for migrated game routes', () => {
     expect(resolveGameShellKind('/game/create')).toBe('genesis');
     expect(resolveGameShellKind('/game/reincarnate')).toBe('genesis');
+    expect(resolveGameShellKind('/game/sect/onboarding')).toBe('narrative');
+    expect(resolveGameShellKind('/game/sect/gate/sweep')).toBe('activity');
     expect(resolveGameShellKind('/game')).toBe('viewport');
     expect(resolveGameShellKind('/game/inventory')).toBe('viewport');
+    expect(resolveGameShellKind('/game/sect/abilities')).toBe('viewport');
+    expect(resolveGameShellKind('/game/sect/hall')).toBe('viewport');
+    expect(resolveGameShellKind('/game/sect/archive/methods')).toBe('viewport');
+    expect(resolveGameShellKind('/game/sect/enlightenment-cliff')).toBe(
+      'viewport',
+    );
+    expect(resolveGameShellKind('/game/sect/alchemy')).toBe('viewport');
+    expect(resolveGameShellKind('/game/sect/industries')).toBe('viewport');
     expect(resolveGameShellKind('/game/cultivator/attributes')).toBe(
       'viewport',
     );
@@ -42,7 +53,11 @@ describe('game shell registry', () => {
     expect(resolveGameShellKind('/game/battle/challenge')).toBe('combat');
     expect(resolveGameShellKind('/game/battle/battle-1')).toBe('combat');
     expect(resolveGameShellKind('/game/bet-battle/challenge')).toBe('combat');
+    expect(resolveGameShellKind('/game/sect/tasks/daily-battle/battle')).toBe(
+      'combat',
+    );
     expect(resolveGameShellKind('/game/map')).toBe('map');
+    expect(resolveGameShellKind('/game/sect/youdu/visit')).toBe('map');
     expect(resolveGameShellKind('/game/dungeon')).toBe('dungeon');
     expect(resolveGameShellKind('/game/dungeon/history')).toBe('viewport');
   });
@@ -51,6 +66,53 @@ describe('game shell registry', () => {
     expect(hasRipgrepMatches('InkPageShell', 'src/react-app/routes/game')).toBe(
       false,
     );
+  });
+
+  it('registers the sect abilities route without replacing creation skills', () => {
+    const source = readFileSync('src/react-app/router.tsx', 'utf8');
+    expect(source).toContain('path="sect/abilities"');
+    expect(source).toContain('path="sect/archive/abilities"');
+    expect(source).toContain('path="sect/arena"');
+    expect(source).toContain('path="sect/enlightenment-cliff"');
+    expect(source).toContain('path="sect/alchemy"');
+    expect(source).toContain('path="sect/refinery"');
+    expect(source).toContain('path="sect/spirit-vein"');
+    expect(source).toContain('path="sect/herb-garden"');
+    expect(source).toContain('path="sect/affairs"');
+    expect(source).toContain('path="sect/gate/sweep"');
+    expect(source).toContain('path="sect/industries"');
+    expect(source).toContain("id: 'sect-abilities'");
+    expect(source).toContain('path="sect/onboarding"');
+    expect(source).toContain('path="sect/:sectId/visit"');
+    expect(source).toContain("id: 'sect-visit'");
+    expect(source).toContain("id: 'sect-gate-sweep'");
+    expect(source).not.toContain('path="/sect-sweep-runtime"');
+    expect(source).not.toContain('path="sect/trial/:sectId"');
+    expect(source).toContain('path="skills"');
+  });
+
+  it('sends a newly created cultivator to the sect world map', () => {
+    const source = readFileSync(
+      'src/react-app/routes/game/create/route.tsx',
+      'utf8',
+    );
+    expect(source).toContain(
+      "navigate('/game/map?intent=sect', { replace: true })",
+    );
+  });
+
+  it('keeps sect query state above every active-player game shell', () => {
+    const source = readFileSync(
+      'src/react-app/layouts/game-layout.tsx',
+      'utf8',
+    );
+    const playerLayout = source.slice(
+      source.indexOf('export function PlayerProviderLayout()'),
+    );
+
+    expect(playerLayout).toContain('<SectQueryProvider>');
+    expect(playerLayout).toContain('<PlayerShell />');
+    expect(source.match(/<SectQueryProvider>/g)).toHaveLength(1);
   });
 
   it('removes deprecated game navigation and immersive bridge leftovers', () => {

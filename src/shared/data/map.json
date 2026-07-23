@@ -241,6 +241,52 @@
       "y": 7
     }
   ],
+  "sect_landmarks": [
+    {
+      "id": "SECT_LINGXIAO",
+      "kind": "sect",
+      "sect_id": "lingxiao",
+      "parent_id": "TN_YW_01",
+      "name": "红尘剑宗",
+      "description": "山门立于城郭外的半山，门人负剑往来于红尘与山野之间。",
+      "tags": ["四大宗门", "入世问剑", "剑修"],
+      "x": 84,
+      "y": 74
+    },
+    {
+      "id": "SECT_TIANYAN",
+      "kind": "sect",
+      "sect_id": "tianyan",
+      "parent_id": "DJ_KW_01",
+      "name": "天衍圣地",
+      "description": "云上五峰环抱中宫，五行灵机沿山川院落周流不息。",
+      "tags": ["四大宗门", "五行推演", "云上圣地"],
+      "x": 50,
+      "y": 36
+    },
+    {
+      "id": "SECT_WUXIANG",
+      "kind": "sect",
+      "sect_id": "wuxiang",
+      "parent_id": "DJ_SOUTH_01",
+      "name": "无相禅宗",
+      "description": "黑白双峰隔着血莲池相望，不二门的未合圆环终年隐在雾中。",
+      "tags": ["四大宗门", "佛魔同修", "色身道场"],
+      "x": 66,
+      "y": 25
+    },
+    {
+      "id": "SECT_YOUDU",
+      "kind": "sect",
+      "sect_id": "youdu",
+      "parent_id": "DJ_VOID_01",
+      "name": "幽都",
+      "description": "黑水穿山而过，三盏魂灯在无日关外为来客照出归路。",
+      "tags": ["四大宗门", "三魂七魄", "黑水魂灯"],
+      "x": 13,
+      "y": 24
+    }
+  ],
   "satellite_nodes": [
     {
       "id": "SAT_TN_01",

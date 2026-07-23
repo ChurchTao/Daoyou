@@ -8,6 +8,7 @@ const {
   runMaterialLibraryDailyGenerationJobMock,
   runPlayerStateEventsCleanupJobMock,
   runRankRewardsJobMock,
+  runSectConstructionWeeklyJobMock,
   runTowerEnemySetRefreshJobMock,
 } = vi.hoisted(() => ({
   runAuctionExpireJobMock: vi.fn(),
@@ -17,6 +18,7 @@ const {
   runMaterialLibraryDailyGenerationJobMock: vi.fn(),
   runPlayerStateEventsCleanupJobMock: vi.fn(),
   runRankRewardsJobMock: vi.fn(),
+  runSectConstructionWeeklyJobMock: vi.fn(),
   runTowerEnemySetRefreshJobMock: vi.fn(),
 }));
 
@@ -29,6 +31,7 @@ vi.mock('@server/lib/jobs/internalCron', () => ({
     runMaterialLibraryDailyGenerationJobMock,
   runPlayerStateEventsCleanupJob: runPlayerStateEventsCleanupJobMock,
   runRankRewardsJob: runRankRewardsJobMock,
+  runSectConstructionWeeklyJob: runSectConstructionWeeklyJobMock,
   runTowerEnemySetRefreshJob: runTowerEnemySetRefreshJobMock,
 }));
 
@@ -55,6 +58,10 @@ describe('cron router', () => {
     ['/internal/cron/bet-battle-expire', runBetBattleExpireJobMock],
     ['/internal/cron/market-refresh', runMarketRefreshCronJobMock],
     ['/internal/cron/rank-rewards', runRankRewardsJobMock],
+    [
+      '/internal/cron/sect-construction-weekly',
+      runSectConstructionWeeklyJobMock,
+    ],
     ['/internal/cron/tower-enemy-sets', runTowerEnemySetRefreshJobMock],
     [
       '/internal/cron/player-state-events-cleanup',
@@ -101,6 +108,11 @@ describe('cron router', () => {
         skipped: false,
         settlementDate: '2026-05-15',
       },
+    ],
+    [
+      '/internal/cron/sect-construction-weekly',
+      runSectConstructionWeeklyJobMock,
+      { success: true, processed: 1, skipped: false },
     ],
     [
       '/internal/cron/tower-enemy-sets',

@@ -10,8 +10,26 @@ class TestBuff extends Buff {
   activatedCount = 0;
   deactivatedCount = 0;
 
-  constructor(id: string, name: string, stackRule: StackRule = StackRule.REFRESH_DURATION) {
-    super(id, name, BuffType.BUFF, 5, stackRule);
+  constructor(
+    id: string,
+    name: string,
+    stackRule: StackRule = StackRule.REFRESH_DURATION,
+    stackPriority = 0,
+  ) {
+    super(
+      id,
+      name,
+      BuffType.BUFF,
+      5,
+      stackRule,
+      undefined,
+      undefined,
+      'player',
+      'normal',
+      true,
+      undefined,
+      stackPriority,
+    );
   }
 
   onActivate(): void {
@@ -25,7 +43,12 @@ class TestBuff extends Buff {
   }
 
   clone(): TestBuff {
-    const cloned = new TestBuff(this.id, this.name, this.stackRule);
+    const cloned = new TestBuff(
+      this.id,
+      this.name,
+      this.stackRule,
+      this.stackPriority,
+    );
     cloned.activatedCount = this.activatedCount;
     cloned.deactivatedCount = this.deactivatedCount;
     return cloned;
@@ -73,6 +96,36 @@ describe('BuffContainer', () => {
     expect(container.getAllBuffs().length).toBe(1);
     expect(buff1.getDuration()).toBe(5); // 应该被刷新
     expect(buff1.activatedCount).toBe(1); // 不应该重新触发激活
+  });
+
+  test('REFRESH_DURATION 中更高优先级效果替换旧实例，较弱效果只刷新强效果', () => {
+    const weak = new TestBuff(
+      'test_priority',
+      '弱效果',
+      StackRule.REFRESH_DURATION,
+      10,
+    );
+    const strong = new TestBuff(
+      'test_priority',
+      '强效果',
+      StackRule.REFRESH_DURATION,
+      30,
+    );
+
+    container.addBuff(weak);
+    container.addBuff(strong);
+
+    expect(container.getAllBuffs()).toEqual([strong]);
+    expect(weak.deactivatedCount).toBe(1);
+    expect(strong.activatedCount).toBe(1);
+
+    strong.tickDuration();
+    container.addBuff(weak);
+
+    expect(container.getAllBuffs()).toEqual([strong]);
+    expect(strong.getDuration()).toBe(5);
+    expect(strong.deactivatedCount).toBe(0);
+    expect(weak.activatedCount).toBe(1);
   });
 
   test('堆叠规则：STACK_LAYER', () => {

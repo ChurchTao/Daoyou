@@ -55,10 +55,6 @@ import type {
   PreHeavenFate,
   RetreatRecord,
 } from '@shared/types/cultivator';
-import {
-  normalizeCultivatorGameSettings,
-  type CultivatorGameSettings,
-} from '@shared/types/gameSettings';
 import { and, desc, eq, inArray, notInArray, sql, type SQL } from 'drizzle-orm';
 import {
   getExecutor,
@@ -79,6 +75,7 @@ import { toArtifactFromProduct } from './creationProductArtifactSupport';
 import { FateEngine } from './FateEngine';
 import { addMaterialStackToInventory } from './materialInventory';
 import { sanitizeMaterialDetails } from './materialDetailsPrivacy';
+import { loadCultivatorSectState } from '@server/lib/repositories/sectRepository';
 
 const emptyEquipped: EquippedItems = {
   weapon: null,
@@ -254,7 +251,7 @@ function mapLoadoutFromProducts(
 
 function buildProfileCultivator(
   cultivatorRecord: CultivatorRecord,
-  relations: Pick<CultivatorRelations, 'spiritualRoots' | 'preHeavenFates'>,
+  relations: Pick<CultivatorRelations, 'spiritualRoots' | 'preHeavenFates' | 'sect'>,
 ): PlayerProfileCultivator {
   const spiritual_roots = mapSpiritualRoots(relations.spiritualRoots);
   const pre_heaven_fates = mapPreHeavenFates(relations.preHeavenFates);
@@ -268,6 +265,9 @@ function buildProfileCultivator(
     personality: cultivatorRecord.personality || undefined,
     background: cultivatorRecord.background || undefined,
     prompt: cultivatorRecord.prompt,
+    playerRace: cultivatorRecord.playerRace as Cultivator['playerRace'],
+    raceNarrative: cultivatorRecord.raceNarrative ?? undefined,
+    sect: relations.sect,
     realm: cultivatorRecord.realm as RealmType,
     realm_stage: cultivatorRecord.realm_stage as RealmStage,
     age: cultivatorRecord.age,
@@ -291,9 +291,6 @@ function buildProfileCultivator(
     reputation: cultivatorRecord.reputation,
     last_yield_at: cultivatorRecord.last_yield_at || new Date(),
     balance_notes: cultivatorRecord.balance_notes || undefined,
-    gameSettings: normalizeCultivatorGameSettings(
-      cultivatorRecord.gameSettings,
-    ),
     cultivation_progress: getOrInitCultivationProgress(
       cultivatorRecord.cultivation_progress as CultivationProgress,
       cultivatorRecord.realm as Cultivator['realm'],
@@ -516,6 +513,9 @@ async function assembleCultivatorFromRelations(
     personality: cultivatorRecord.personality || undefined,
     background: cultivatorRecord.background || undefined,
     prompt: cultivatorRecord.prompt,
+    playerRace: cultivatorRecord.playerRace as Cultivator['playerRace'],
+    raceNarrative: cultivatorRecord.raceNarrative ?? undefined,
+    sect: relations.sect,
     realm: cultivatorRecord.realm as RealmType,
     realm_stage: cultivatorRecord.realm_stage as RealmStage,
     age: cultivatorRecord.age,
@@ -547,9 +547,6 @@ async function assembleCultivatorFromRelations(
     reputation: cultivatorRecord.reputation,
     last_yield_at: cultivatorRecord.last_yield_at || new Date(),
     balance_notes: cultivatorRecord.balance_notes || undefined,
-    gameSettings: normalizeCultivatorGameSettings(
-      cultivatorRecord.gameSettings,
-    ),
     cultivation_progress: getOrInitCultivationProgress(
       cultivatorRecord.cultivation_progress as CultivationProgress,
       cultivatorRecord.realm as Cultivator['realm'],
@@ -596,9 +593,6 @@ async function assembleCultivatorFromRelations(
         reputation: cultivatorRecord.reputation,
         last_yield_at: cultivatorRecord.last_yield_at || new Date(),
         balance_notes: cultivatorRecord.balance_notes || undefined,
-        gameSettings: normalizeCultivatorGameSettings(
-          cultivatorRecord.gameSettings,
-        ),
         cultivation_progress: getOrInitCultivationProgress(
           cultivatorRecord.cultivation_progress as CultivationProgress,
           cultivatorRecord.realm as Cultivator['realm'],
@@ -710,9 +704,6 @@ export function createMinimalCultivator(
     reputation: cultivatorRecord.reputation,
     last_yield_at: cultivatorRecord.last_yield_at || new Date(),
     balance_notes: cultivatorRecord.balance_notes || undefined,
-    gameSettings: normalizeCultivatorGameSettings(
-      cultivatorRecord.gameSettings,
-    ),
     cultivation_progress: getOrInitCultivationProgress(
       cultivatorRecord.cultivation_progress as CultivationProgress,
       cultivatorRecord.realm as Cultivator['realm'],
@@ -765,9 +756,6 @@ export function createMinimalCultivator(
         reputation: cultivatorRecord.reputation,
         last_yield_at: cultivatorRecord.last_yield_at || new Date(),
         balance_notes: cultivatorRecord.balance_notes || undefined,
-        gameSettings: normalizeCultivatorGameSettings(
-          cultivatorRecord.gameSettings,
-        ),
         cultivation_progress: getOrInitCultivationProgress(
           cultivatorRecord.cultivation_progress as CultivationProgress,
           cultivatorRecord.realm as Cultivator['realm'],
@@ -803,6 +791,8 @@ export async function createCultivator(
         personality: cultivator.personality || null,
         background: cultivator.background || null,
         prompt: cultivator.prompt || '',
+        playerRace: 'human',
+        raceNarrative: cultivator.raceNarrative ?? '人身近道，百法皆可参悟。',
         realm: cultivator.realm,
         realm_stage: cultivator.realm_stage,
         age: cultivator.age,
@@ -981,7 +971,7 @@ export async function getPlayerProfileCultivatorById(
     return null;
   }
 
-  const [spiritualRoots, preHeavenFates] = await Promise.all([
+  const [spiritualRoots, preHeavenFates, sect] = await Promise.all([
     q
       .select()
       .from(schema.spiritualRoots)
@@ -990,11 +980,13 @@ export async function getPlayerProfileCultivatorById(
       .select()
       .from(schema.preHeavenFates)
       .where(eq(schema.preHeavenFates.cultivatorId, cultivatorId)),
+    loadCultivatorSectState(cultivatorId, q),
   ]);
 
   return buildProfileCultivator(cultivatorRecord, {
     spiritualRoots,
     preHeavenFates,
+    sect,
   });
 }
 
@@ -1281,7 +1273,6 @@ export async function updateCultivator(
       | 'status'
       | 'cultivation_progress'
       | 'condition'
-      | 'gameSettings'
     >
   >,
   executor?: DbExecutor | DbTransaction,
@@ -1325,34 +1316,12 @@ export async function updateCultivator(
   if (updates.condition !== undefined) {
     updateData.condition = (updates.condition as CultivatorCondition) ?? {};
   }
-  if (updates.gameSettings !== undefined) {
-    updateData.gameSettings = normalizeCultivatorGameSettings(
-      updates.gameSettings,
-    );
-  }
-
   await q
     .update(schema.cultivators)
     .set(updateData)
     .where(eq(schema.cultivators.id, cultivatorId));
   const res = await getPlayerRuntimeCultivatorByIdUnsafe(cultivatorId, q);
   return res?.cultivator || null;
-}
-
-export async function updateCultivatorGameSettings(
-  cultivatorId: string,
-  gameSettings: CultivatorGameSettings,
-  executor?: DbExecutor | DbTransaction,
-): Promise<CultivatorGameSettings> {
-  const normalized = normalizeCultivatorGameSettings(gameSettings);
-  const q = executor ?? getExecutor();
-
-  await q
-    .update(schema.cultivators)
-    .set({ gameSettings: normalized })
-    .where(eq(schema.cultivators.id, cultivatorId));
-
-  return normalized;
 }
 
 async function assertCultivatorOwnership(
@@ -1668,7 +1637,7 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
   const multiplier = sortOrder === 'asc' ? 1 : -1;
 
   const sortedMaterialRows = [...materialRows].sort((a, b) => {
-    let result = 0;
+    let result: number;
     switch (sortBy) {
       case 'rank': {
         result =

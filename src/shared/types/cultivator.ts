@@ -4,7 +4,7 @@ import type { AbilityConfig } from '@shared/engine/creation-v2/contracts/battle'
 import type { AttributeModifierConfig } from '@shared/engine/battle-v5/core/configs';
 import type { ConsumableSpec } from '@shared/types/consumable';
 import type { CultivatorCondition } from '@shared/types/condition';
-import type { CultivatorGameSettings } from '@shared/types/gameSettings';
+import type { CultivatorSectState, PlayerRaceId } from '@shared/engine/sect';
 import type {
   ConsumableType,
   ElementType,
@@ -266,6 +266,12 @@ export interface Cultivator {
   name: string;
   title?: string | null;
   gender: GenderType;
+  /** 玩家种族；与敌人 EnemyRace 分离。 */
+  playerRace?: PlayerRaceId;
+  raceNarrative?: string;
+  /** 仅战斗/玩家状态组装时挂载，不写入 cultivators JSON。 */
+  sect?: CultivatorSectState;
+  /** 敌人和旧战斗草稿仍使用该字段。 */
   race?: EnemyRace;
   origin?: string;
   personality?: string;
@@ -305,6 +311,4 @@ export interface Cultivator {
   // 角色当前状态（用于存储战斗/副本中产生的持久状态）
   condition?: CultivatorCondition;
 
-  // 当前角色的游戏偏好设置
-  gameSettings?: CultivatorGameSettings;
 }

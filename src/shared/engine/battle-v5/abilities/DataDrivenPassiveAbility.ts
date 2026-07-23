@@ -1,4 +1,5 @@
 import { PassiveAbility } from './PassiveAbility';
+import { battleRandom } from '../core/BattleRandom';
 import { AbilityId, AttributeModifier, CombatEvent } from '../core/types';
 import { AttributeModifierConfig, GlobalUniqueConfig } from '../core/configs';
 import {
@@ -50,7 +51,7 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
     if (owner) {
       for (const modifier of this._modifiers) {
         const mountedModifier: AttributeModifier = {
-          id: `${this.id}_${modifier.attrType}_${Math.random().toString(36).substr(2, 5)}`,
+          id: `${this.id}_${modifier.attrType}_${battleRandom().toString(36).substr(2, 5)}`,
           attrType: modifier.attrType,
           type: modifier.type,
           value: modifier.value,
@@ -113,7 +114,7 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
     const owner = this.getOwner();
     if (!owner) return;
 
-    if (!shouldExecuteListener(owner, event, runtime)) {
+    if (!shouldExecuteListener(owner, event, runtime, this)) {
       return;
     }
 
@@ -145,6 +146,13 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
           ...listener.runtime,
           mapping: { ...listener.runtime.mapping },
           guard: { ...listener.runtime.guard },
+          budget: listener.runtime.budget
+            ? { ...listener.runtime.budget }
+            : undefined,
+          conditions: listener.runtime.conditions?.map((condition) => ({
+            ...condition,
+            params: { ...condition.params },
+          })),
         },
         [...listener.effects],
       );

@@ -7,10 +7,13 @@ const {
   sendMailMock,
   pruneExpiredDataMock,
   prunePlayerStateEventsOlderThanMock,
+  prunePlayerMutationRequestsOlderThanMock,
   getItemLibraryDailyMaterialGenerationSettingsMock,
   generateDailyMarketMaterialLibraryEntriesMock,
   redisMock,
   transactionMock,
+  listActiveSectIdsMock,
+  ensureWeeklyProjectMock,
 } = vi.hoisted(() => {
   const tx = {
     select: vi.fn(),
@@ -36,6 +39,7 @@ const {
     }),
     pruneExpiredDataMock: vi.fn(),
     prunePlayerStateEventsOlderThanMock: vi.fn(),
+    prunePlayerMutationRequestsOlderThanMock: vi.fn().mockResolvedValue(0),
     redisMock: {
       set: vi.fn(),
       eval: vi.fn(),
@@ -45,6 +49,8 @@ const {
     transactionMock: tx,
     getItemLibraryDailyMaterialGenerationSettingsMock: vi.fn(),
     generateDailyMarketMaterialLibraryEntriesMock: vi.fn(),
+    listActiveSectIdsMock: vi.fn(),
+    ensureWeeklyProjectMock: vi.fn(),
   };
 });
 
@@ -62,6 +68,17 @@ vi.mock('@server/lib/redis/rankings', () => ({
 
 vi.mock('@server/lib/repositories/playerStateRepository', () => ({
   prunePlayerStateEventsOlderThan: prunePlayerStateEventsOlderThanMock,
+  prunePlayerMutationRequestsOlderThan: prunePlayerMutationRequestsOlderThanMock,
+}));
+
+vi.mock('@server/lib/repositories/sectOrganizationRepository', () => ({
+  listActiveSectIds: listActiveSectIdsMock,
+}));
+
+vi.mock('@server/lib/services/sect-organization', () => ({
+  sectOrganizationFacade: {
+    construction: { ensureWeeklyProject: ensureWeeklyProjectMock },
+  },
 }));
 
 vi.mock('@server/lib/repositories/retentionRepository', () => ({
@@ -112,6 +129,7 @@ import {
   runMaterialLibraryDailyGenerationJob,
   runPlayerStateEventsCleanupJob,
   runRankRewardsJob,
+  runSectConstructionWeeklyJob,
 } from './internalCron';
 
 describe('internal cron jobs', () => {
@@ -132,6 +150,7 @@ describe('internal cron jobs', () => {
     sendMailMock.mockImplementation(async (cultivatorId: string) => ({
       id: `mail-${cultivatorId}`,
     }));
+    listActiveSectIdsMock.mockResolvedValue(['lingxiao']);
     transactionMock.select.mockReturnValue({
       from: vi.fn(() => ({
         where: vi.fn(async () => [{ count: 1 }]),
@@ -146,6 +165,20 @@ describe('internal cron jobs', () => {
         })),
       })),
     });
+  });
+
+  it('opens or continues one shared sect project on Monday in Shanghai', async () => {
+    const result = await runSectConstructionWeeklyJob();
+
+    expect(result).toMatchObject({
+      success: true,
+      processed: 1,
+      skipped: false,
+    });
+    expect(ensureWeeklyProjectMock).toHaveBeenCalledWith(
+      'lingxiao',
+      expect.anything(),
+    );
   });
 
   afterEach(() => {

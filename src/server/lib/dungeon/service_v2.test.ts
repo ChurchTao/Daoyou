@@ -339,6 +339,7 @@ function createBattleSnapshot(input: {
       maxMp: 800,
     },
     buffs: [],
+    combatResources: [],
     cooldowns: [],
     canAct: input.hp > 0,
   };

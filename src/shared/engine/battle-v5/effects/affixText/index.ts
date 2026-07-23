@@ -440,8 +440,10 @@ function describeFormula(effect: EffectConfig): string | undefined {
     case 'next_hit_rule':
     case 'dynamic_scalar':
     case 'turn_state_counter':
-    case 'element_history':
+    case 'runtime_counter_modify':
     case 'effect_sequence':
+    case 'refund_paid_cost':
+    case 'mechanic_log':
       return undefined;
   }
 }
@@ -478,9 +480,10 @@ function collectBuffDetails(effect: EffectConfig): AffixBuffDetailView[] {
     case 'apply_buff':
       return [describeBuffDetail(effect.params.buffConfig, effect.params.chance)];
     case 'effect_sequence':
-    case 'element_history':
     case 'turn_state_counter':
       return effect.params.effects.flatMap(collectBuffDetails);
+    case 'runtime_counter_modify':
+      return effect.params.effects?.flatMap(collectBuffDetails) ?? [];
     case 'consume_status_trigger':
     case 'delayed_effect':
       return effect.params.effects.flatMap(collectBuffDetails);
@@ -604,8 +607,8 @@ function collectEffectTags(effect: EffectConfig): string[] {
       return effect.params.match?.tags ?? [];
     case 'turn_state_counter':
       return effect.params.effects.flatMap(collectEffectTags);
-    case 'element_history':
-      return effect.params.effects.flatMap(collectEffectTags);
+    case 'runtime_counter_modify':
+      return effect.params.effects?.flatMap(collectEffectTags) ?? [];
     case 'effect_sequence':
       return effect.params.effects.flatMap(collectEffectTags);
     case 'buff_immunity':

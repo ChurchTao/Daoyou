@@ -61,6 +61,7 @@ import {
   getPlayerRuntimeCultivatorByIdUnsafe,
 } from './cultivatorService';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
+import { sectOrganizationFacade } from './sect-organization';
 
 export { synthesizeAlchemyFromPlan as synthesizeAlchemy } from './AlchemyRecipeRules';
 export { AlchemyServiceError } from './AlchemyServiceError';
@@ -345,12 +346,17 @@ export async function previewAlchemySelection(
 
   const highestMaterialRank = pickHighestRank(rows);
   const fateContext = evaluateFateContext(fates);
-  const spiritStones = highestMaterialRank
+  const baseSpiritStones = highestMaterialRank
     ? scaleFateAdjustedValue(
         calculateCraftCost(highestMaterialRank, 'spiritStone'),
         getAlchemySpiritStoneMultiplier(fateContext),
       )
     : 0;
+  const spiritStones = await sectOrganizationFacade.applyCraftDiscount(
+    cultivatorId,
+    baseSpiritStones,
+    'sect.craft.alchemy',
+  );
 
   const validation = buildSelectionValidation(rows, materialQuantities);
   const preparedMaterials = validation.valid
@@ -411,9 +417,15 @@ export function createAlchemyService(
         const fateContext = evaluateFateContext(
           fullCultivator?.cultivator.pre_heaven_fates ?? [],
         );
-        const cost = scaleFateAdjustedValue(
+        const baseCost = scaleFateAdjustedValue(
           calculateCraftCost(highestMaterialRank, 'spiritStone'),
           getAlchemySpiritStoneMultiplier(fateContext),
+        );
+        const cost = await sectOrganizationFacade.applyCraftDiscount(
+          cultivatorId,
+          baseCost,
+          'sect.craft.alchemy',
+          options.tx ?? getExecutor(),
         );
 
         if ((cultivator.spirit_stones ?? 0) < cost) {

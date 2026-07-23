@@ -34,6 +34,7 @@ export {
 
 // Data-Driven System
 export { DataDrivenActiveSkill } from './abilities/DataDrivenActiveSkill';
+export { LayeredDataDrivenActiveSkill } from './abilities/LayeredDataDrivenActiveSkill';
 export { DataDrivenBuff } from './buffs/DataDrivenBuff';
 export { AbilityFactory } from './factories/AbilityFactory';
 export { BuffFactory } from './factories/BuffFactory';

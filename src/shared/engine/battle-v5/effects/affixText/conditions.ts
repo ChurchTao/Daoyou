@@ -118,6 +118,8 @@ function describeOne(
         : null;
     case 'ability_has_tag':
       return params.tag ? describeDamageTagCondition(params.tag, context) : null;
+    case 'source_has_tag':
+      return params.tag ? `来源具有「${labelGameplayTag(params.tag)}」时` : null;
     case 'ability_has_not_tag':
       return params.tag
         ? describeDamageTagCondition(params.tag, context, true)

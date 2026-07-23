@@ -234,14 +234,15 @@ async function commitDungeonResponse<T>(args: {
         await persist(tx);
       }
       const after = await readDungeonPlayerState(tx, args.cultivatorId);
+      const changes = buildDungeonStateChanges({
+        before,
+        after,
+        result: responseResult,
+        includeTasks: args.includeTasks,
+      });
       return {
         result: responseResult,
-        changes: buildDungeonStateChanges({
-          before,
-          after,
-          result: responseResult,
-          includeTasks: args.includeTasks,
-        }),
+        changes,
       };
     },
   });

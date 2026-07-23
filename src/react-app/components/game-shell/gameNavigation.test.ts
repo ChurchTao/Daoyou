@@ -68,4 +68,29 @@ describe('game navigation dock groups', () => {
     expect(coreIds).not.toContain('cultivator-attributes');
     expect(expandedIds).not.toContain('cultivator-attributes');
   });
+
+  it('registers sect abilities as a distinct cultivation entry', () => {
+    const expandedIds = getExpandedDockGroups().flatMap((group) =>
+      group.actions.map((action) => action.id),
+    );
+    expect(getGameSceneMeta('sect-abilities')).toMatchObject({
+      id: 'sect-abilities',
+      label: '宗门演武',
+      group: 'cultivation',
+    });
+    expect(expandedIds).toContain('sect-abilities');
+    expect(getGameSceneMeta('skills')?.label).toBe('所修神通');
+  });
+
+  it('registers the immersive gate sweep scene without a dock link', () => {
+    const expandedIds = getExpandedDockGroups().flatMap((group) =>
+      group.actions.map((action) => action.id),
+    );
+    expect(getGameSceneMeta('sect-gate-sweep')).toMatchObject({
+      id: 'sect-gate-sweep',
+      label: '清扫山门',
+      group: 'cultivation',
+    });
+    expect(expandedIds).not.toContain('sect-gate-sweep');
+  });
 });

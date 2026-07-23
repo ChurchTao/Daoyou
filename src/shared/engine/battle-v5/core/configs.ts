@@ -3,7 +3,10 @@ import {
   AbilityType,
   AttributeType,
   BuffType,
+  DamageSource,
   DamageType,
+  type LogCauseRef,
+  type MechanicTriggerBasisRef,
   ModifierType,
 } from './types';
 
@@ -14,6 +17,72 @@ export type AbilitySelectionIntent =
 
 export interface AbilitySelectionProfile {
   intents?: AbilitySelectionIntent[];
+  rules?: AbilitySelectionRule[];
+}
+
+export interface AbilitySelectionRule {
+  conditions: ConditionConfig[];
+  scoreDelta?: number;
+  disqualify?: boolean;
+}
+
+export type AbilityCostConfig =
+  | {
+      resource: 'mp' | 'hp';
+      mode: 'flat';
+      amount: number;
+      retain?: number;
+      conditions?: ConditionConfig[];
+    }
+  | {
+      resource: 'hp';
+      mode: 'current_hp_ratio' | 'current_percent';
+      ratio: number;
+      minimum?: number;
+      retain?: number;
+      conditions?: ConditionConfig[];
+    };
+
+/**
+ * 技能的追加效果层。基础 effects/completionEffects 为 A，计划只能按 ID 追加层。
+ */
+export interface AbilityEffectLayerConfig {
+  id: string;
+  /** 玩家可见的分支名称；缺省时展示层根据计划条件生成中性描述。 */
+  displayName?: string;
+  effects?: EffectConfig[];
+  completionEffects?: EffectConfig[];
+}
+
+/**
+ * 受限的运行时效果计划：只改变展示与启用层，不得覆盖目标、费用或 AI 意图。
+ */
+export interface AbilityEffectPlanConfig {
+  id: string;
+  name: string;
+  description?: string;
+  priority: number;
+  conditions: ConditionConfig[];
+  layerIds: string[];
+  consumeModeKey?: string;
+}
+
+export interface CombatResourceDefinition {
+  id: string;
+  name: string;
+  /** 战斗状态栏使用的点阵图标；缺失时沿用进度条展示。 */
+  icon?: string;
+  initial: number;
+  max: number;
+  decayOnNoDirectDamage?: number;
+  /** 每连续多少次未造成直接伤害的行动触发一次衰减，默认 1。 */
+  noDirectDamageActionsPerDecay?: number;
+  decayOnControlledSkip?: number;
+  pauseDecayWhileShielded?: boolean;
+  pauseDecayWhenCounterAtLeast?: {
+    key: string;
+    value: number;
+  };
 }
 
 /**
@@ -25,7 +94,9 @@ export interface ConditionConfig {
     | 'has_not_tag'
     | 'has_tag_on'
     | 'ability_has_tag'
+    | 'ability_has_exact_tag'
     | 'ability_has_not_tag'
+    | 'source_has_tag'
     | 'hp_above'
     | 'hp_below'
     | 'mp_above'
@@ -34,12 +105,25 @@ export interface ConditionConfig {
     | 'has_shield'
     | 'buff_count_at_least'
     | 'buff_layer_at_least'
+    | 'buff_layer_below'
     | 'debuff_count_at_least'
     | 'damage_type_is'
+    | 'damage_source_is'
     | 'shield_absorbed_at_least'
+    | 'damage_taken_at_least'
     | 'resource_compare'
+    | 'attribute_compare'
+    | 'combat_resource_at_least'
+    | 'combat_resource_below'
+    | 'runtime_counter_compare'
+    | 'ability_mode_is'
+    | 'ability_cost_crossed'
+    | 'combat_resource_change'
+    | 'buff_layer_change'
+    | 'buff_removed_reason_is'
     | 'chance'
     | 'is_critical'
+    | 'is_hit'
     | 'is_lethal';
   params: {
     tag?: string;
@@ -49,10 +133,26 @@ export interface ConditionConfig {
     // hp/mp 条件也可使用该字段在 caster/target 间切换。
     scope?: 'caster' | 'target';
     resource?: 'hp' | 'mp';
+    attribute?: AttributeType;
     left?: 'caster' | 'target';
     op?: 'gt' | 'gte' | 'lt' | 'lte';
     right?: 'caster' | 'target';
     damageType?: DamageType;
+    damageSource?: `${DamageSource}`;
+    resourceId?: string;
+    key?: string;
+    mode?: string;
+    remainingUses?: number;
+    timing?: 'live' | 'cast';
+    operation?: 'add' | 'subtract' | 'set' | 'consume_all';
+    eventField?:
+      | 'requested'
+      | 'applied'
+      | 'overflow'
+      | 'previousLayer'
+      | 'currentLayer'
+      | 'delta';
+    reason?: 'apply' | 'stack' | 'effect' | 'dispel' | 'manual' | 'expired' | 'replace';
   };
 }
 
@@ -74,6 +174,27 @@ export interface BaseEffectConfig {
 export interface DamageParams {
   value: ScalableValue;
   damageType?: DamageType;
+  bypassDefense?: boolean;
+  /** 仅令指定比例的伤害分量绕过防御，0～1。 */
+  bypassDefenseRatio?: number;
+  damageSource?: DamageSource;
+  cause?: LogCauseRef;
+  forceCritical?: boolean;
+  forceCriticalConditions?: ConditionConfig[];
+  /** 是否允许暴击，缺省为 true。 */
+  canCrit?: boolean;
+  /** 是否允许本次伤害触发吸血，缺省为 true。 */
+  canLifesteal?: boolean;
+  dynamicScalars?: DamageDynamicScalarConfig[];
+}
+
+export interface DamageDynamicScalarConfig {
+  source: 'target_missing_hp_ratio';
+  attribute: AttributeType;
+  coefficientCap: number;
+  /** 目标已损气血比例严格高于该阈值后才启用；缺省不设阈值。 */
+  minMissingHpRatio?: number;
+  timing?: 'live' | 'cast';
 }
 
 /**
@@ -82,6 +203,7 @@ export interface DamageParams {
 export interface HealParams {
   value: ScalableValue;
   target?: 'hp' | 'mp';
+  recipient?: 'caster' | 'target';
 }
 
 /**
@@ -90,7 +212,13 @@ export interface HealParams {
 export interface ApplyBuffParams {
   buffConfig: BuffConfig;
   chance?: number;
+  /** 初次施加或叠层时一次增加的层数，缺省为 1。 */
+  layers?: number;
   target?: 'caster' | 'target';
+  /** 仅参与本次控制抗性判定，不修改施法者的全局控制命中。 */
+  controlHitBonus?: number;
+  /** 仅在控制抗性判定抵抗时执行；Buff 免疫不会触发。 */
+  onResistEffects?: EffectConfig[];
 }
 
 /**
@@ -108,6 +236,14 @@ export interface ResourceDrainParams {
 export interface DispelParams {
   targetTag?: string;
   maxCount?: number;
+  /** 缺省为 target；用于自净化而不改变技能目标策略。 */
+  recipient?: 'caster' | 'target';
+  /** 缺省不区分；positive=增益，negative=减益或控制。 */
+  status?: 'positive' | 'negative';
+  /** 至少成功移除一个状态后执行一次。 */
+  effects?: EffectConfig[];
+  /** 没有合法状态可移除时执行一次。 */
+  fallbackEffects?: EffectConfig[];
 }
 
 /**
@@ -115,6 +251,7 @@ export interface DispelParams {
  */
 export interface ShieldParams {
   value: ScalableValue;
+  target?: 'caster' | 'target';
 }
 
 /**
@@ -129,6 +266,9 @@ export interface MagicShieldParams {
  */
 export interface ReflectParams {
   ratio: number;
+  ratioPerLayer?: number;
+  layerBuffId?: string;
+  maxHpRatioPerAction?: number;
 }
 
 /**
@@ -145,6 +285,39 @@ export interface CooldownModifyParams {
   cdModifyValue: number;
   tags?: string[];
   maxCount?: number;
+  target?: 'caster' | 'target';
+  includeCurrent?: boolean;
+}
+
+export interface SkipActionParams {
+  count?: number;
+  reason: string;
+  name?: string;
+}
+
+export interface QueueActionParams {
+  id: string;
+  name: string;
+  effects: EffectConfig[];
+  tags: string[];
+  targetPolicy?: AbilityConfig['targetPolicy'];
+  interruptPolicy?: 'normal' | 'uninterruptible';
+  hitPolicy?: 'normal' | 'guaranteed';
+  cancelEffects?: EffectConfig[];
+}
+
+export interface ResourceScaledDamageParams {
+  resourceId: string;
+  baseCoefficient: number;
+  coefficientPerPoint: number;
+  minPoints?: number;
+  maxPoints?: number;
+  consume?: 'all' | number;
+  attribute?: AttributeType;
+  damageType?: DamageType;
+  bypassDefenseRatio?: number;
+  damageSource?: DamageSource;
+  forceCritical?: boolean;
 }
 
 export interface BuffDurationModifyParams {
@@ -157,6 +330,7 @@ export interface BuffDurationModifyParams {
  */
 export interface TagTriggerParams {
   triggerTag: string;
+  displayName?: string;
   damageRatio?: number;
   removeOnTrigger?: boolean;
   effects?: EffectConfig[];
@@ -169,8 +343,14 @@ export interface BuffMatchParams {
 
 export interface ConsumeStatusTriggerParams {
   match: BuffMatchParams;
+  /** 玩家可见的状态名称；展示层不得从内部ID推断。 */
+  displayName?: string;
   consume?: 'one' | 'all' | number;
   effects: EffectConfig[];
+  /** 状态不存在时执行一次；用于显式降级，不改变消费语义。 */
+  fallbackEffects?: EffectConfig[];
+  scaleEffectsByLayer?: boolean;
+  target?: 'caster' | 'target';
 }
 
 export interface DelayedEffectParams {
@@ -200,9 +380,14 @@ export interface DamageMemoryParams {
     | 'heal'
     | 'shield'
     | 'critical_taken'
-    | 'shield_break';
+    | 'shield_break'
+    | 'shield_absorbed';
   ratio?: number;
-  releaseAs?: 'damage' | 'heal' | 'shield' | 'reflect';
+  releaseAs?:
+    'damage' | 'heal' | 'shield' | 'reflect' | 'counter' | 'follow_up' | 'resolved_follow_up';
+  damageType?: DamageType;
+  damageTags?: string[];
+  cause?: LogCauseRef;
   target?: 'caster' | 'target';
   maxStored?: number;
   maxStoredValue?: ScalableValue;
@@ -216,6 +401,34 @@ export interface BuffLayerModifyParams {
   layers?: number;
   effects?: EffectConfig[];
   scaleEffectsByLayer?: boolean;
+  target?: 'caster' | 'target';
+  logVisibility?: 'player' | 'debug';
+}
+
+export interface CombatResourceModifyParams {
+  resourceId: string;
+  operation: 'add' | 'subtract' | 'set' | 'consume_all';
+  amount?: number;
+  target?: 'caster' | 'target';
+  effects?: EffectConfig[];
+  scaleEffectsByAmount?: boolean;
+  reason?: 'gain' | 'spend' | 'refund';
+}
+
+export interface RefundPaidCostParams {
+  ratio: number;
+  resource?: 'mp';
+}
+
+export interface MechanicLogParams {
+  mechanic: 'named_trigger' | 'status_transition';
+  displayName: string;
+  internalKey: string;
+  target?: 'caster' | 'target';
+  visibility?: 'player' | 'debug';
+  operation?: 'apply' | 'refresh' | 'replace' | 'consume';
+  previousDisplayName?: string;
+  triggerBasis?: MechanicTriggerBasisRef;
 }
 
 export interface AbilityTransformParams {
@@ -225,6 +438,7 @@ export interface AbilityTransformParams {
   trueDamage?: boolean;
   addDispel?: DispelParams;
   mpCostToHp?: boolean;
+  freeManaCost?: boolean;
   cooldownModify?: number;
   forceCritical?: boolean;
   bonusDamageMemory?: {
@@ -264,6 +478,10 @@ export interface DamageDeferParams {
   ratio: number;
   delayTurns: number;
   thresholdMaxHpRatio?: number;
+  memory?: {
+    key: string;
+    maxStoredValue?: ScalableValue;
+  };
 }
 
 export interface NextHitRuleParams {
@@ -288,15 +506,35 @@ export interface TurnStateCounterParams {
   resetOnTrigger?: boolean;
 }
 
-export interface ElementHistoryParams {
+export interface RuntimeCounterModifyParams {
   key: string;
-  threshold: number;
-  effects: EffectConfig[];
-  resetOnTrigger?: boolean;
+  operation: 'add' | 'subtract' | 'set' | 'reset';
+  amount?: number;
+  amountFromEvent?: 'requested' | 'applied' | 'overflow';
+  target?: 'caster' | 'target';
+  min?: number;
+  max?: number;
+  effects?: EffectConfig[];
+  scaleEffectsByAmount?: boolean;
 }
 
 export interface EffectSequenceParams {
   effects: EffectConfig[];
+}
+
+export interface AbilityModeParams {
+  key: string;
+  operation: 'set' | 'advance' | 'clear';
+  mode?: string;
+  remainingUses?: number;
+  displayName?: string;
+  /** 形态清除时一并移除的状态。 */
+  cleanupBuffIds?: string[];
+}
+
+export interface LifestealParams {
+  ratio: number;
+  maxHpRatioPerAction: number;
 }
 
 /**
@@ -306,6 +544,10 @@ export interface PercentDamageModifierParams {
   mode: 'increase' | 'reduce';
   value: number;
   cap?: number;
+  /** 按产生监听器的 Buff 当前层数放大数值。 */
+  scaleByBuffLayer?: boolean;
+  allowedDamageSources?: DamageSource[];
+  excludedDamageTypes?: DamageType[];
 }
 
 /**
@@ -352,7 +594,10 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'consume_status_trigger'; params: ConsumeStatusTriggerParams }
     | { type: 'delayed_effect'; params: DelayedEffectParams }
     | { type: 'damage_memory'; params: DamageMemoryParams }
+    | { type: 'refund_paid_cost'; params: RefundPaidCostParams }
+    | { type: 'mechanic_log'; params: MechanicLogParams }
     | { type: 'buff_layer_modify'; params: BuffLayerModifyParams }
+    | { type: 'combat_resource_modify'; params: CombatResourceModifyParams }
     | { type: 'ability_transform'; params: AbilityTransformParams }
     | { type: 'hp_sacrifice_damage'; params: HpSacrificeDamageParams }
     | { type: 'ability_lock'; params: AbilityLockParams }
@@ -362,12 +607,17 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'next_hit_rule'; params: NextHitRuleParams }
     | { type: 'dynamic_scalar'; params: DynamicScalarParams }
     | { type: 'turn_state_counter'; params: TurnStateCounterParams }
-    | { type: 'element_history'; params: ElementHistoryParams }
+    | { type: 'runtime_counter_modify'; params: RuntimeCounterModifyParams }
     | { type: 'effect_sequence'; params: EffectSequenceParams }
+    | { type: 'ability_mode'; params: AbilityModeParams }
+    | { type: 'lifesteal'; params: LifestealParams }
     | { type: 'percent_damage_modifier'; params: PercentDamageModifierParams }
     | { type: 'death_prevent'; params: DeathPreventParams }
     | { type: 'buff_immunity'; params: BuffImmunityParams }
     | { type: 'damage_immunity'; params: DamageImmunityParams }
+    | { type: 'skip_action'; params: SkipActionParams }
+    | { type: 'queue_action'; params: QueueActionParams }
+    | { type: 'resource_scaled_damage'; params: ResourceScaledDamageParams }
   );
 
 // ===== Listener Contract =====
@@ -411,6 +661,15 @@ export interface ListenerGuardConfig {
    * 是否跳过反伤来源（damageSource === 'reflect'）
    */
   skipReflectSource?: boolean;
+  /** 跳过反伤、反击和追击等二次伤害，避免响应链递归。 */
+  skipSecondaryDamageSource?: boolean;
+}
+
+export interface ListenerTriggerBudgetConfig {
+  maxTriggers: number;
+  reset: 'buff_lifetime' | 'action' | 'source_action' | 'round' | 'battle';
+  /** 多个唯一监听器共享同一触发预算时使用；缺省按监听器 ID 独立计数。 */
+  group?: string;
 }
 
 /**
@@ -442,6 +701,10 @@ export interface ListenerConfig {
    * 执行守卫
    */
   guard?: ListenerGuardConfig;
+  /** 限制监听器在指定生命周期窗口内的触发次数。 */
+  budget?: ListenerTriggerBudgetConfig;
+  /** 在消费触发预算前判定的事件条件。 */
+  conditions?: ConditionConfig[];
   /**
    * 触发时执行的效果链
    */
@@ -457,6 +720,10 @@ export interface AttributeModifierConfig {
   attrType: AttributeType;
   type: ModifierType;
   value: number;
+  /** 按 Buff 当前层数放大属性修改值。 */
+  scaleByLayer?: boolean;
+  /** 非线性完整层级值；下标 0 对应 1 层，超过长度沿用末项。 */
+  valueByLayer?: readonly number[];
 }
 
 /**
@@ -468,7 +735,20 @@ export interface BuffConfig {
   description?: string;
   type: BuffType;
   duration: number; // -1 为永久
+  /** 内部计数/防重复 marker 可仅保留在调试日志。 */
+  logVisibility?: 'player' | 'debug';
+  /** 状态栏可见性；缺省时沿用日志可见性以保持兼容。 */
+  statusVisibility?: 'player' | 'hidden';
   stackRule: StackRule;
+  /** 同 ID 刷新型 Buff 的效果强度；更高值替换较低值，缺省为 0。 */
+  stackPriority?: number;
+  maxLayers?: number;
+  /** 缺省整项驱散；one_layer 令一次普通驱散只移除一层。 */
+  dispelMode?: 'whole' | 'one_layer';
+  /** 默认状态可被驱散、转移；protected 状态只能由自身机制移除。 */
+  dispelPolicy?: 'normal' | 'protected';
+  /** 是否计入普通增益、减益或控制数量，默认 true。 */
+  countsAsStatus?: boolean;
   tags?: string[]; // Buff 自身的标签
   statusTags?: string[]; // 附加给宿主的标签
   /**
@@ -487,12 +767,14 @@ export interface BuffConfig {
 export interface AbilityConfig {
   slug: string;
   name: string;
+  description?: string;
   type: AbilityType;
   tags?: string[];
 
   // 资源与消耗
   mpCost?: number;
   hpCost?: number;
+  costs?: AbilityCostConfig[];
   cooldown?: number;
   priority?: number;
 
@@ -502,13 +784,31 @@ export interface AbilityConfig {
     scope: 'single' | 'aoe' | 'random';
     maxTargets?: number;
   };
+  /** 主动技能命中策略；缺省使用标准命中。 */
+  hitPolicy?: 'normal' | 'guaranteed';
 
   selectionProfile?: AbilitySelectionProfile;
+  castConditions?: ConditionConfig[];
 
   /**
    * 主动效果链 (主动技能执行时触发)
    */
   effects?: EffectConfig[];
+
+  /** 所有主效果层结算完成后执行；合法 no-op 不阻止该阶段。 */
+  completionEffects?: EffectConfig[];
+
+  /** 只能由 effectPlans 追加的效果层。 */
+  effectLayers?: AbilityEffectLayerConfig[];
+
+  /** 分层技能基础效果的玩家可见名称。 */
+  baseEffectDisplayName?: string;
+
+  /** 按运行时条件选择一个计划；未命中时仅执行基础效果。 */
+  effectPlans?: AbilityEffectPlanConfig[];
+
+  /** 消耗和冷却结算后必定执行，不受本次命中判定影响。 */
+  castEffects?: EffectConfig[];
 
   /**
    * 被动监听链 (被动技能专用)

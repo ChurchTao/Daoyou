@@ -26,8 +26,12 @@ export class HpSacrificeDamageEffect extends GameplayEffect {
     publishMechanicLog({
       mechanic: 'hp_sacrifice',
       source: context.caster,
+      ability: context.ability,
+      sourceBuff: context.buff,
       target: context.caster,
       name: '气血献祭',
+      displayName: '气血献祭',
+      visibility: 'player',
       value: spend,
     });
     const damage = Math.round(spend * this.params.damagePerHp);

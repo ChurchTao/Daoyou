@@ -4,8 +4,10 @@ import { ApplyBuffParams } from '../core/configs';
 import { BuffFactory } from '../factories/BuffFactory';
 import { AttributeType, BuffType } from '../core/types';
 import { EventBus } from '../core/EventBus';
+import { battleRandom } from '../core/BattleRandom';
 import { ControlResistEvent } from '../core/events';
 import { getRealmEffectChanceMultiplier } from '@shared/config/realmProgression';
+import { executeEffectConfigs } from '../core/effectExecutor';
 
 function clampChance(value: number): number {
   return Math.max(0, Math.min(1, value));
@@ -44,21 +46,24 @@ export class ApplyBuffEffect extends GameplayEffect {
     if (resolvedChance <= 0) {
       return;
     }
-    if (resolvedChance < 1 && Math.random() > resolvedChance) {
+    if (resolvedChance < 1 && battleRandom() > resolvedChance) {
       return;
     }
 
     // 创建 Buff 实例并添加到目标
     const buff = buffPreview;
+    buff.setLayer(Math.max(1, Math.trunc(this.params.layers ?? 1)));
 
     if (buff.type === BuffType.CONTROL && isHostile) {
       const controlResistance = target.attributes.getValue(
         AttributeType.CONTROL_RESISTANCE,
       );
-      const controlHit = caster.attributes.getValue(AttributeType.CONTROL_HIT);
+      const controlHit =
+        caster.attributes.getValue(AttributeType.CONTROL_HIT) +
+        (this.params.controlHitBonus ?? 0);
       const resistChance = Math.max(0, (controlResistance - controlHit) * 100);
 
-      if (Math.random() * 100 < resistChance) {
+      if (battleRandom() * 100 < resistChance) {
         EventBus.instance.publish<ControlResistEvent>({
           type: 'ControlResistEvent',
           timestamp: Date.now(),
@@ -67,6 +72,7 @@ export class ApplyBuffEffect extends GameplayEffect {
           ability: context.ability,
           buff,
         });
+        executeEffectConfigs(this.params.onResistEffects ?? [], context);
         return;
       }
     }
@@ -84,7 +90,10 @@ export class ApplyBuffEffect extends GameplayEffect {
       }
     }
 
-    target.buffs.addBuff(buff, caster);
+    target.buffs.addBuff(buff, caster, {
+      ability: context.ability,
+      buff: context.buff,
+    });
   }
 }
 

@@ -18,9 +18,22 @@ export class PercentDamageModifierEffect extends GameplayEffect {
     if (!triggerEvent || triggerEvent.type !== 'DamageRequestEvent') return;
 
     const damageRequestEvent = triggerEvent as DamageRequestEvent;
+    if (damageRequestEvent.calculationMode === 'resolved_final') return;
     if (damageRequestEvent.damageSource === DamageSource.REFLECT) return;
+    if (
+      this.params.allowedDamageSources &&
+      (!damageRequestEvent.damageSource ||
+        !this.params.allowedDamageSources.includes(damageRequestEvent.damageSource))
+    ) return;
+    if (
+      damageRequestEvent.damageType &&
+      this.params.excludedDamageTypes?.includes(damageRequestEvent.damageType)
+    ) return;
 
-    const rawValue = Math.max(0, this.params.value);
+    const layerScale = this.params.scaleByBuffLayer
+      ? context.buff?.getLayer() ?? 1
+      : 1;
+    const rawValue = Math.max(0, this.params.value * layerScale);
     const value = this.params.cap
       ? Math.min(rawValue, this.params.cap)
       : rawValue;

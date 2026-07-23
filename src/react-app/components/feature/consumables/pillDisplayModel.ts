@@ -490,7 +490,6 @@ function advanceProgressPreview(args: {
     const needed = threshold - progress;
     if (remaining < needed) {
       progress += remaining;
-      remaining = 0;
       break;
     }
     remaining -= needed;

@@ -71,6 +71,8 @@ export class CharacterGenerator {
       origin: data.origin,
       personality: data.personality,
       background: data.background,
+      playerRace: 'human',
+      raceNarrative: data.race_narrative,
 
       realm: '炼气',
       realm_stage: '初期',

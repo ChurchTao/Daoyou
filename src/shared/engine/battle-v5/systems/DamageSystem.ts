@@ -1,4 +1,5 @@
 import { EventBus } from '../core/EventBus';
+import { battleRandom } from '../core/BattleRandom';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { getRealmDamagePressureMultiplier } from '@shared/config/realmProgression';
 import {
@@ -90,10 +91,11 @@ export class DamageSystem {
       isHit: true,
       isDodged: false,
       isResisted: false,
+      hitPolicy: event.hitPolicy,
     };
 
-    // 关键修正：如果目标是自己，则跳过命中/闪避判定，直接命中
-    if (caster === target) {
+    // 自身技能与必然命中技能跳过命中/闪避随机判定。
+    if (caster === target || event.hitPolicy === 'guaranteed') {
       hitCheckEvent.isHit = true;
     } else {
       // ===== ① 身法闪避判定 =====
@@ -106,7 +108,7 @@ export class DamageSystem {
         3,
         Math.min(45, (evasionRate - accuracy) * 100),
       );
-      if (Math.random() * 100 < dodgeChance) {
+      if (battleRandom() * 100 < dodgeChance) {
         hitCheckEvent.isDodged = true;
         hitCheckEvent.isHit = false;
       }
@@ -153,13 +155,27 @@ export class DamageSystem {
    * ⑦ 最小伤害保证 + 四舍五入
    */
   private _onDamageRequest(event: DamageRequestEvent): void {
+    if (!event.target.isAlive()) {
+      return;
+    }
+
     const { target } = event;
 
     const damageType = this._resolveDamageType(event);
 
+    if (event.calculationMode === 'resolved_final') {
+      event.finalDamage = Math.max(1, Math.round(event.finalDamage));
+      this._applyResolvedDamage(event, damageType);
+      return;
+    }
+
     // ===== ① 按伤害类型计算有效防御 =====
     let effectiveDef = 0;
-    if (event.damageSource === DamageSource.DIRECT) {
+    if (
+      event.damageSource === DamageSource.DIRECT ||
+      event.damageSource === DamageSource.COUNTER ||
+      event.damageSource === DamageSource.FOLLOW_UP
+    ) {
       if (damageType === DamageType.PHYSICAL) {
         const baseDef = target.attributes.getValue(AttributeType.DEF);
         const armorPen = Math.max(
@@ -189,16 +205,19 @@ export class DamageSystem {
 
     // ===== ② 应用减法防御（10%保底伤害） =====
     const preMitigationDamage = event.finalDamage;
-    const { normalDamage, defenseBypassDamage } =
-      this._resolveMitigationBreakdown(event, preMitigationDamage);
-    const reducedDamage = normalDamage - effectiveDef;
-    event.finalDamage =
-      Math.max(normalDamage * 0.1, reducedDamage) + defenseBypassDamage;
+    event.finalDamage = this._applyDefense(
+      event,
+      preMitigationDamage,
+      effectiveDef,
+    );
 
     // ===== ③ 同乘区加算（增伤/减伤）=====
     // NOTE: 将百分比增减伤放在减防后、暴击判定前，保证增伤不会被减法防御无意削弱。
     const increasePct = Math.max(0, event.damageIncreasePctBucket ?? 0);
-    const reductionPct = Math.max(0, event.damageReductionPctBucket ?? 0);
+    const reductionPct = Math.min(
+      0.7,
+      Math.max(0, event.damageReductionPctBucket ?? 0),
+    );
     const damageMultiplier = Math.max(0, 1 + increasePct - reductionPct);
     event.finalDamage *= damageMultiplier;
 
@@ -209,10 +228,10 @@ export class DamageSystem {
     event.finalDamage *= calculateSpiritualRootDamageMultiplier(event);
 
     // ===== ⑥ 暴击判定（减伤后） =====
-    // 仅在非 DOT/反伤且有施法者时参与暴击；已由上层标记为暴击的不再重算
+    // 反击/追击与直接伤害一样可暴击；强制暴击仍应用施法者暴击倍率。
     if (
-      !event.isCritical &&
       event.caster &&
+      event.canCrit !== false &&
       event.damageSource !== DamageSource.REFLECT
     ) {
       const rawCritRate = event.caster.attributes.getValue(
@@ -223,7 +242,7 @@ export class DamageSystem {
         0,
         Math.min(0.95, rawCritRate - critResist),
       );
-      if (Math.random() < effectiveCritRate) {
+      if (event.forceCritical || event.isCritical || battleRandom() < effectiveCritRate) {
         event.isCritical = true;
         const baseCritMult = event.caster.attributes.getValue(
           AttributeType.CRIT_DAMAGE_MULT,
@@ -237,12 +256,19 @@ export class DamageSystem {
     }
 
     // ===== ⑦ 随机浮动 (0.9 ~ 1.1，降低纯数值比拼的确定性) =====
-    const randomFactor = 0.9 + Math.random() * 0.2;
+    const randomFactor = 0.9 + battleRandom() * 0.2;
     event.finalDamage = event.finalDamage * randomFactor;
 
     // ===== ⑧ 最小伤害保证（避免0伤害）并四舍五入 =====
     event.finalDamage = Math.max(1, Math.round(event.finalDamage));
 
+    this._applyResolvedDamage(event, damageType);
+  }
+
+  private _applyResolvedDamage(
+    event: DamageRequestEvent,
+    damageType: DamageType,
+  ): void {
     // 发布伤害应用事件（供护盾/无敌效果订阅）
     const damageEvent: DamageEvent = {
       type: 'DamageEvent',
@@ -253,9 +279,13 @@ export class DamageSystem {
       buff: event.buff,
       damageSource: event.damageSource,
       damageType,
+      calculationMode: event.calculationMode,
+      cause: event.cause,
+      damageTags: event.damageTags,
       finalDamage: event.finalDamage,
       isCritical: event.isCritical,
       critMultiplier: event.critMultiplier,
+      canLifesteal: event.canLifesteal,
     };
 
     EventBus.instance.publish(damageEvent);
@@ -284,16 +314,17 @@ export class DamageSystem {
     return DamageType.PHYSICAL; // 默认物理伤害
   }
 
-  private _resolveMitigationBreakdown(
+  private _applyDefense(
     event: DamageRequestEvent,
     preMitigationDamage: number,
-  ): { normalDamage: number; defenseBypassDamage: number } {
+    effectiveDef: number,
+  ): number {
     const components = event.damageComponents?.filter(
       (component): component is DamageComponent =>
         Number.isFinite(component.amount) && component.amount > 0,
     );
     if (!components?.length) {
-      return { normalDamage: preMitigationDamage, defenseBypassDamage: 0 };
+      return Math.max(preMitigationDamage * 0.1, preMitigationDamage - effectiveDef);
     }
 
     const componentTotal = components.reduce(
@@ -301,18 +332,39 @@ export class DamageSystem {
       0,
     );
     if (componentTotal <= 0) {
-      return { normalDamage: preMitigationDamage, defenseBypassDamage: 0 };
+      return Math.max(preMitigationDamage * 0.1, preMitigationDamage - effectiveDef);
     }
 
     const scale = preMitigationDamage / componentTotal;
-    const defenseBypassDamage = components
-      .filter((component) => component.mitigation === 'bypass_defense')
-      .reduce((sum, component) => sum + component.amount * scale, 0);
+    return components.reduce((sum, component) => {
+      if (component.mitigation === 'bypass_defense') {
+        return sum + component.amount * scale;
+      }
 
-    return {
-      normalDamage: Math.max(0, preMitigationDamage - defenseBypassDamage),
-      defenseBypassDamage,
-    };
+      if (
+        component.attackBase !== undefined &&
+        component.segmentMultiplier !== undefined
+      ) {
+        const attackBase = Math.max(0, component.attackBase);
+        const multiplier = Math.max(0, component.segmentMultiplier) * scale;
+        const afterDefense = Math.max(
+          attackBase * 0.1,
+          attackBase - effectiveDef,
+        );
+        return sum + afterDefense * multiplier;
+      }
+
+      // 旧伤害事件兼容：历史生产方仍可读取 defenseScale，但新代码不得写入。
+      const legacyAmount = component.amount * scale;
+      const legacyDefenseScale = Math.max(
+        0,
+        component.defenseScale ?? 1,
+      ) * scale;
+      return sum + Math.max(
+        legacyAmount * 0.1,
+        legacyAmount - effectiveDef * legacyDefenseScale,
+      );
+    }, 0);
   }
 
   private _getRealmDamageMultiplier(event: DamageRequestEvent): number {
@@ -338,6 +390,7 @@ export class DamageSystem {
       buff,
       isCritical,
       critMultiplier,
+      canLifesteal,
     } = damageEvent;
 
     if (finalDamage <= 0) {
@@ -362,14 +415,18 @@ export class DamageSystem {
         buff,
         brokenShieldAmount: beforeShield,
         overflowDamage: remainingDamage,
+        damageSource: damageEvent.damageSource,
       });
     }
 
     // 2. 应用剩余伤害到气血
     target.takeDamage(remainingDamage);
     const actualHpDamage = Math.max(0, beforeHp - target.getCurrentHp());
-    if (remainingDamage > 0) {
+    if (actualHpDamage + absorbedAmount > 0) {
       markDamageDealt(caster);
+      if (damageEvent.damageSource === DamageSource.DIRECT) {
+        caster?.combatResources.markDirectDamageDealt();
+      }
     }
 
     // 发布受击事件（包含护盾抵扣和技能/暴击信息）
@@ -383,6 +440,9 @@ export class DamageSystem {
       buff, // 传递 buff
       damageSource: damageEvent.damageSource,
       damageType: damageEvent.damageType,
+      calculationMode: damageEvent.calculationMode,
+      cause: damageEvent.cause,
+      damageTags: damageEvent.damageTags,
       reflectSourceName:
         damageEvent.damageSource === DamageSource.REFLECT
           ? caster?.name
@@ -395,11 +455,12 @@ export class DamageSystem {
       isLethal: target.getCurrentHp() <= 0,
       isCritical,
       critMultiplier,
+      canLifesteal,
     });
 
     // 最终判定：在所有 DamageTakenEvent 监听器执行完后，重新检查存活状态
     // 如果免死效果生效，target.currentHp 会变为 1，从而跳过此处的阵亡发布
-    if (target.getCurrentHp() <= 0) {
+    if (beforeHp > 0 && target.getCurrentHp() <= 0) {
       EventBus.instance.publish<UnitDeadEvent>({
         type: 'UnitDeadEvent',
         timestamp: Date.now(),

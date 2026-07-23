@@ -11,5 +11,4 @@ export * from './DamageDeferEffect';
 export * from './NextHitRuleEffect';
 export * from './DynamicScalarEffect';
 export * from './TurnStateCounterEffect';
-export * from './ElementHistoryEffect';
 export * from './EffectSequenceEffect';

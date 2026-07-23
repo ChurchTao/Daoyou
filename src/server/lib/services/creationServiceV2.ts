@@ -44,6 +44,7 @@ import { cultivators, materials } from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
+import { loadCultivatorSectState } from '@server/lib/repositories/sectRepository';
 import type {
   ElementType,
   EquipmentSlot,
@@ -55,6 +56,7 @@ import type { Material, PreHeavenFate } from '@shared/types/cultivator';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { getPlayerRuntimeCultivatorByIdUnsafe } from './cultivatorService';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
+import { sectOrganizationFacade } from './sect-organization';
 
 /**
  * processCreation 时的玩家侧可选入参。
@@ -508,13 +510,22 @@ export async function processCreation(
     );
     const resourceType =
       productType === 'artifact' ? 'spiritStone' : 'comprehension';
-    const costAmount = calculateFateAdjustedCraftCost(
+    const baseCostAmount = calculateFateAdjustedCraftCost(
       highestMaterialRank,
       resourceType,
       resourceType === 'spiritStone'
         ? getRefineSpiritStoneMultiplier(fateContext)
         : fateContext.enlightenmentInsightMultiplier,
     );
+    const costAmount =
+      resourceType === 'spiritStone'
+        ? await sectOrganizationFacade.applyCraftDiscount(
+            cultivatorId,
+            baseCostAmount,
+            'sect.craft.refinery',
+            q,
+          )
+        : baseCostAmount;
 
     // 校验资源是否充足
     if (resourceType === 'spiritStone') {
@@ -663,6 +674,9 @@ export async function processCreation(
         );
         row.isEquipped =
           effectiveLimit !== null && equippedCount < effectiveLimit;
+        if (productType === 'skill' && (await loadCultivatorSectState(cultivatorId, tx))?.status === 'active') {
+          row.isEquipped = false;
+        }
       }
 
       if (needsReplace) {
@@ -809,6 +823,9 @@ export async function confirmCreation(
       row.isEquipped =
         replacedWasEquipped ||
         (effectiveLimit !== null && equippedCount < effectiveLimit);
+      if (productType === 'skill' && (await loadCultivatorSectState(cultivatorId, tx))?.status === 'active') {
+        row.isEquipped = false;
+      }
     }
 
     const record = await creationProductRepository.insert(row, tx);
@@ -868,23 +885,31 @@ function extractAffixSummary(
 }
 
 /** 造物消耗预估（供 GET /api/craft 使用） */
-export function estimateCost(
+export async function estimateCost(
   selectedMaterials: Array<{ rank: Quality }>,
   craftType: string,
   fates: PreHeavenFate[] = [],
-): { spiritStones?: number; comprehension?: number } {
+  cultivatorId?: string,
+): Promise<{ spiritStones?: number; comprehension?: number }> {
   const productType = getCreationProductTypeFromCraftType(craftType);
   if (!productType) return {};
 
   const highestMaterialRank = calculateHighestMaterialRank(selectedMaterials);
   const fateContext = evaluateFateContext(fates);
   if (productType === 'artifact') {
+    const baseCost = calculateFateAdjustedCraftCost(
+      highestMaterialRank,
+      'spiritStone',
+      getRefineSpiritStoneMultiplier(fateContext),
+    );
     return {
-      spiritStones: calculateFateAdjustedCraftCost(
-        highestMaterialRank,
-        'spiritStone',
-        getRefineSpiritStoneMultiplier(fateContext),
-      ),
+      spiritStones: cultivatorId
+        ? await sectOrganizationFacade.applyCraftDiscount(
+            cultivatorId,
+            baseCost,
+            'sect.craft.refinery',
+          )
+        : baseCost,
     };
   }
 

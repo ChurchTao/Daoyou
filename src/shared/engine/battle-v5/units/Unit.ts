@@ -5,6 +5,11 @@ import { AttributeType, UnitId, UnitSnapshot } from '../core/types';
 import { AbilityContainer } from './AbilityContainer';
 import { AttributeSet } from './AttributeSet';
 import { BuffContainer } from './BuffContainer';
+import { CombatResourceContainer } from './CombatResourceContainer';
+import { EventBus } from '../core/EventBus';
+import type { HpChangedEvent } from '../core/events';
+
+export type HpChangeReason = HpChangedEvent['reason'];
 
 interface UnitRuntimeMeta {
   spiritualRoots: SpiritualRoot[];
@@ -19,6 +24,7 @@ export class Unit {
   readonly attributes: AttributeSet;
   readonly abilities: AbilityContainer;
   readonly buffs: BuffContainer;
+  readonly combatResources: CombatResourceContainer;
   readonly tags: GameplayTagContainer;
 
   private currentHp: number;
@@ -40,6 +46,7 @@ export class Unit {
       attributes?: AttributeSet;
       abilities?: AbilityContainer;
       buffs?: BuffContainer;
+      combatResources?: CombatResourceContainer;
     },
   ) {
     this.id = id;
@@ -48,6 +55,9 @@ export class Unit {
     this.attributes = options?.attributes ?? new AttributeSet(baseAttrs);
     this.abilities = options?.abilities ?? new AbilityContainer(this);
     this.buffs = options?.buffs ?? new BuffContainer(this);
+    this.combatResources =
+      options?.combatResources ?? new CombatResourceContainer();
+    this.combatResources.bindOwner(this);
 
     // Initialize tag container
     this.tags = new GameplayTagContainer();
@@ -75,8 +85,20 @@ export class Unit {
     this.currentShield += Math.round(amount);
   }
 
-  setHp(amount: number): void {
-    this.currentHp = Math.max(0, Math.min(this.maxHp, amount));
+  setHp(amount: number, reason: HpChangeReason = 'set'): void {
+    const beforeHp = this.currentHp;
+    const afterHp = Math.max(0, Math.min(this.maxHp, amount));
+    if (afterHp === beforeHp) return;
+    this.currentHp = afterHp;
+    EventBus.instance.publish<HpChangedEvent>({
+      type: 'HpChangedEvent',
+      timestamp: Date.now(),
+      unit: this,
+      beforeHp,
+      afterHp,
+      delta: afterHp - beforeHp,
+      reason,
+    });
   }
 
   setMp(amount: number): void {
@@ -109,11 +131,21 @@ export class Unit {
       console.warn(`Unit.takeDamage: 负数输入 ${damage}，应使用 heal() 方法`);
       damage = 0;
     }
-    this.setHp(this.currentHp - damage);
+    this.setHp(this.currentHp - damage, 'damage');
   }
 
-  heal(amount: number): void {
-    this.setHp(this.currentHp + amount);
+  heal(amount: number): number {
+    const before = this.currentHp;
+    const reduction = Math.max(
+      0,
+      Math.min(
+        1,
+        this.attributes.getValue(AttributeType.HEAL_RECEIVED_REDUCTION),
+      ),
+    );
+    const received = Math.round(Math.max(0, amount) * (1 - reduction));
+    this.setHp(this.currentHp + received, 'heal');
+    return this.currentHp - before;
   }
 
   consumeMp(amount: number): boolean {
@@ -142,8 +174,10 @@ export class Unit {
     return actualTaken;
   }
 
-  restoreMp(amount: number): void {
+  restoreMp(amount: number): number {
+    const before = this.currentMp;
     this.setMp(this.currentMp + amount);
+    return this.currentMp - before;
   }
 
   isAlive(): boolean {
@@ -170,6 +204,7 @@ export class Unit {
     const clonedAttributes = this.attributes.clone();
     const clonedAbilities = this.abilities.clone(tempUnit);
     const clonedBuffs = this.buffs.clone(tempUnit);
+    const clonedCombatResources = this.combatResources.clone();
 
     // Now create the final unit with the cloned containers
     const clone = new Unit(
@@ -180,6 +215,7 @@ export class Unit {
         attributes: clonedAttributes,
         abilities: clonedAbilities,
         buffs: clonedBuffs,
+        combatResources: clonedCombatResources,
       },
     );
 
@@ -208,6 +244,7 @@ export class Unit {
       currentMp: this.currentMp,
       maxMp: this.maxMp,
       buffs: this.buffs.getAllBuffIds(),
+      combatResources: this.combatResources.snapshots(),
       isAlive: this.isAlive(),
       hpPercent: this.getHpPercent(),
       mpPercent: this.getMpPercent(),

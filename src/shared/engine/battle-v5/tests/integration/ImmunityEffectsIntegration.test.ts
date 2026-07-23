@@ -177,6 +177,51 @@ describe('免疫效果集成测试', () => {
     expect(damageEvent.finalDamage).toBe(0);
   });
 
+  it.each([
+    [GameplayTags.ABILITY.CHANNEL.MAGIC, DamageType.MAGICAL, DamageType.TRUE],
+    [GameplayTags.ABILITY.CHANNEL.TRUE, DamageType.TRUE, DamageType.MAGICAL],
+  ] as const)(
+    '混合伤害技能的 %s 免疫只匹配当前伤害包',
+    (immuneTag, blockedType, allowedType) => {
+      const attacker = createUnit(`attacker-${blockedType}`, '进攻者');
+      const defender = createUnit(`defender-${blockedType}`, '免疫者');
+      addPassiveDamageListener(defender, [
+        { type: 'damage_immunity', params: { tags: [immuneTag] } },
+      ]);
+      const mixedAbility = AbilityFactory.create({
+        slug: `mixed_${blockedType}`,
+        name: '术魂合击',
+        type: AbilityType.ACTIVE_SKILL,
+        tags: [
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+          GameplayTags.ABILITY.CHANNEL.TRUE,
+        ],
+        effects: [],
+      });
+
+      const blocked: DamageEvent = {
+        type: 'DamageEvent',
+        timestamp: Date.now(),
+        caster: attacker,
+        target: defender,
+        ability: mixedAbility,
+        damageType: blockedType,
+        finalDamage: 120,
+      };
+      const allowed: DamageEvent = {
+        ...blocked,
+        damageType: allowedType,
+        finalDamage: 120,
+      };
+
+      EventBus.instance.publish(blocked);
+      EventBus.instance.publish(allowed);
+
+      expect(blocked.finalDamage).toBe(0);
+      expect(allowed.finalDamage).toBe(120);
+    },
+  );
+
   it('伤害免疫应拦截命中来源 Buff 标签的伤害', () => {
     const attacker = createUnit('attacker', '进攻者');
     const defender = createUnit('defender', '免疫者');

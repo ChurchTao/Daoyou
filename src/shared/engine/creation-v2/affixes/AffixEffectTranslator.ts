@@ -12,7 +12,6 @@ import {
   AffixEffectTemplate,
   AffixScalableValue,
   ScalableParam,
-  ScalableValueV2,
   SCALE_MODE,
 } from './types';
 
@@ -599,19 +598,33 @@ export class AffixEffectTranslator {
           },
         };
 
-      case 'element_history':
+      case 'runtime_counter_modify':
         return {
-          type: 'element_history',
+          type: 'runtime_counter_modify',
           params: {
             key: template.params.key,
-            threshold: template.params.threshold,
-            effects: this.resolveEffectList(
-              template.params.effects,
-              qualityOrder,
-              multiplier,
-            ),
-            ...(template.params.resetOnTrigger !== undefined
-              ? { resetOnTrigger: template.params.resetOnTrigger }
+            operation: template.params.operation,
+            ...(template.params.amount !== undefined
+              ? { amount: template.params.amount }
+              : {}),
+            ...(template.params.min !== undefined
+              ? { min: template.params.min }
+              : {}),
+            ...(template.params.max !== undefined
+              ? { max: template.params.max }
+              : {}),
+            ...(template.params.target !== undefined
+              ? { target: template.params.target }
+              : {}),
+            ...(template.params.effects !== undefined
+              ? { effects: this.resolveEffectList(
+                  template.params.effects,
+                  qualityOrder,
+                  multiplier,
+                ) }
+              : {}),
+            ...(template.params.scaleEffectsByAmount !== undefined
+              ? { scaleEffectsByAmount: template.params.scaleEffectsByAmount }
               : {}),
           },
         };
@@ -801,16 +814,12 @@ export class AffixEffectTranslator {
     qualityOrder: number,
     multiplier: number = 1.0,
   ): number {
-    let baseValue = 0;
-    if (typeof param === 'number') {
-      baseValue = param;
-    } else {
-      const sv = param as ScalableValueV2;
-      baseValue =
-        sv.scale === SCALE_MODE.NONE
-          ? sv.base
-          : sv.base + qualityOrder * sv.coefficient;
-    }
+    const baseValue =
+      typeof param === 'number'
+        ? param
+        : param.scale === SCALE_MODE.NONE
+          ? param.base
+          : param.base + qualityOrder * param.coefficient;
 
     const resolved = baseValue * multiplier;
     if (typeof param === 'number') {

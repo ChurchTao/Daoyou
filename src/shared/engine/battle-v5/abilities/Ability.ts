@@ -1,3 +1,4 @@
+import type { AbilityCostConfig, AbilitySelectionProfile } from '../core/configs';
 import { AbilityId, AbilityType, CombatEvent } from '../core/types';
 
 export type { AbilityId };
@@ -14,6 +15,26 @@ export interface AbilityContext {
   caster: Unit;
   target: Unit;
   shouldApplyEffects?: boolean;
+}
+
+export interface AbilityCastSnapshot {
+  readonly planId?: string;
+  readonly target: Unit;
+  readonly targetId: string;
+  readonly selectionProfile?: AbilitySelectionProfile;
+  readonly costs: ReadonlyArray<Readonly<{
+    type: AbilityCostConfig['resource'];
+    amount: number;
+    mode?: AbilityCostConfig['mode'];
+    retain?: number;
+  }>>;
+  readonly casterHpBeforeCost: number;
+  readonly casterHpAfterCost: number;
+  readonly casterHpRatioAfterCost: number;
+  readonly casterMpBeforeCost: number;
+  readonly casterMpAfterCost: number;
+  readonly targetHpBeforeEffects: number;
+  readonly targetHpRatioBeforeEffects: number;
 }
 
 /**
@@ -38,7 +59,8 @@ export interface AbilityContext {
  */
 export class Ability {
   readonly id: AbilityId;
-  readonly name: string;
+  private readonly _baseName: string;
+  private readonly _baseDescription?: string;
   readonly type: AbilityType;
 
   // 核心属性
@@ -55,12 +77,31 @@ export class Ability {
     handler: EventHandler;
   }> = [];
 
-  constructor(id: AbilityId, name: string, type: AbilityType) {
+  constructor(id: AbilityId, name: string, type: AbilityType, description?: string) {
     this.id = id;
-    this.name = name;
+    this._baseName = name;
+    this._baseDescription = description;
     this.type = type;
     this.tags = new GameplayTagContainer();
   }
+
+  get name(): string {
+    return this._baseName;
+  }
+
+  get description(): string | undefined {
+    return this._baseDescription;
+  }
+
+  get runtimePlanId(): string | undefined {
+    return undefined;
+  }
+
+  prepareCast(_context: AbilityContext): void {
+    void _context;
+  }
+
+  cancelPreparedCast(): void {}
 
   // ===== 所有者管理 =====
 
@@ -166,7 +207,7 @@ export class Ability {
    * 注意：不复制 owner 和 active 状态
    */
   clone(): Ability {
-    const cloned = new Ability(this.id, this.name, this.type);
+    const cloned = new Ability(this.id, this.name, this.type, this.description);
     cloned._priority = this._priority;
     cloned.tags.addTags(this.tags.getTags());
     return cloned;

@@ -18,6 +18,10 @@ export {
   type InkDialogState,
 } from './InkDialog';
 export { InkDivider, type InkDividerProps } from './InkDivider';
+export {
+  InkDetailDrawer,
+  type InkDetailDrawerProps,
+} from './InkDetailDrawer';
 export { InkInput, type InkInputProps } from './InkInput';
 export {
   InkHorizontalScroll,

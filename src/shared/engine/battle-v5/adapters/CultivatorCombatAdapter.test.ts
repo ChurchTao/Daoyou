@@ -1,7 +1,11 @@
-import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { getArtifactWearerRealmFactor } from '@shared/engine/shared/artifactRealmScaling';
+import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import type { Cultivator } from '@shared/types/cultivator';
+import { EventBus } from '../core/EventBus';
+import type { ActionEvent, SkillPreCastEvent } from '../core/events';
 import { AbilityType, AttributeType, ModifierType } from '../core/types';
+import { Unit } from '../units/Unit';
+import { ActiveSkill } from '../abilities/ActiveSkill';
 import { createCombatUnitFromCultivator } from './CultivatorCombatAdapter';
 
 function createCultivatorFixture(): Cultivator {
@@ -74,12 +78,7 @@ function createCultivatorFixture(): Cultivator {
 describe('CultivatorCombatAdapter', () => {
   it('applies cross-realm decay only to main panel fixed modifiers', () => {
     const unit = createCombatUnitFromCultivator(createCultivatorFixture());
-    const factor = getArtifactWearerRealmFactor(
-      '金丹',
-      '圆满',
-      '炼气',
-      '初期',
-    );
+    const factor = getArtifactWearerRealmFactor('金丹', '圆满', '炼气', '初期');
 
     // 金丹圆满->炼气初期 uses inverse anchor/wearer factor.
     expect(unit.attributes.getValue(AttributeType.ATK)).toBeCloseTo(
@@ -101,6 +100,111 @@ describe('CultivatorCombatAdapter', () => {
       { element: '火', strength: 82, grade: '真灵根' },
     ]);
     expect(clone.getSpiritualRoots()).toEqual(unit.getSpiritualRoots());
+  });
+
+  it('uses the same sect method modifiers as the display adapter', () => {
+    const cultivator = createCultivatorFixture();
+    cultivator.attributes.speed = 100;
+    const sect = {
+      membershipId: 'member-1',
+      sectId: 'lingxiao',
+      status: 'active',
+      contribution: 0,
+      configVersion: 4,
+      methods: { 'lingxiao-canon': 100 },
+      paths: [],
+      abilityLoadout: [null, null, null, null],
+    } satisfies NonNullable<Cultivator['sect']>;
+    const baselineCultivator = createCultivatorFixture();
+    baselineCultivator.attributes.speed = 100;
+    const baseline = createCombatUnitFromCultivator(baselineCultivator);
+    const project = (methods: NonNullable<Cultivator['sect']>['methods']) => {
+      cultivator.sect = { ...sect, methods };
+      return createCombatUnitFromCultivator(cultivator);
+    };
+    const sword = project({ 'lingxiao-canon': 100, 'sword-guidance': 100 });
+    const voidStep = project({ 'lingxiao-canon': 100, 'void-step': 100 });
+    const cleansing = project({ 'lingxiao-canon': 100, 'edge-cleansing': 100 });
+    const returning = project({
+      'lingxiao-canon': 100,
+      'origin-returning': 100,
+    });
+    const swordBody = project({
+      'lingxiao-canon': 100,
+      'sword-nurturing': 100,
+    });
+
+    expect(sword.attributes.getValue(AttributeType.ATK)).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.ATK) * 1.05,
+    );
+    expect(
+      voidStep.attributes.getValue(AttributeType.EVASION_RATE),
+    ).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.EVASION_RATE) + 0.02,
+    );
+    expect(cleansing.attributes.getValue(AttributeType.ACCURACY)).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.ACCURACY) + 0.02,
+    );
+    expect(returning.attributes.getValue(AttributeType.MAGIC_DEF)).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.MAGIC_DEF) * 1.05,
+    );
+    expect(swordBody.attributes.getValue(AttributeType.DEF)).toBeCloseTo(
+      baseline.attributes.getValue(AttributeType.DEF) * 1.05,
+    );
+  });
+
+  it('mounts the sect selection strategy instead of the generic strategy', () => {
+    const eventBus = EventBus.instance;
+    eventBus.reset();
+    const cultivator = createCultivatorFixture();
+    cultivator.realm = '化神';
+    cultivator.realm_stage = '初期';
+    cultivator.sect = {
+      membershipId: 'member-1',
+      sectId: 'lingxiao',
+      status: 'active',
+      activePathId: 'swift-sword',
+      contribution: 0,
+      configVersion: 4,
+      methods: {
+        'lingxiao-canon': 100,
+        'sword-guidance': 100,
+        'edge-cleansing': 100,
+      },
+      paths: [
+        {
+          pathId: 'swift-sword',
+          unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
+          tacticId: 'aggressive',
+          activeMeridianSlot: 1,
+          meridianLoadouts: [
+            { slot: 1, nodeIds: [], version: 1 },
+            { slot: 2, nodeIds: [], version: 1 },
+            { slot: 3, nodeIds: [], version: 1 },
+          ],
+        },
+      ],
+      abilityLoadout: ['guiding-sword', 'linked-edge', 'breaking-edge', null],
+    };
+    const unit = createCombatUnitFromCultivator(cultivator);
+    const opponent = new Unit('opponent', '木桩', {
+      [AttributeType.VITALITY]: 100,
+    });
+    unit.abilities.setDefaultTarget(opponent);
+
+    let selectedAbilityId: string | null = null;
+    eventBus.subscribe<SkillPreCastEvent>('SkillPreCastEvent', (event) => {
+      if (event.caster === unit) selectedAbilityId = event.ability.id;
+    });
+    eventBus.publish<ActionEvent>({
+      type: 'ActionEvent',
+      timestamp: Date.now(),
+      caster: unit,
+    });
+
+    expect(selectedAbilityId).toBe('sect.lingxiao.linked-edge');
+    unit.abilities.destroy();
+    eventBus.reset();
   });
 
   it('mounts body cultivation modifiers in combat units', () => {
@@ -149,9 +253,77 @@ describe('CultivatorCombatAdapter', () => {
 
     expect(unit.attributes.getValue(AttributeType.VITALITY)).toBe(10);
     expect(unit.attributes.getValue(AttributeType.MAX_HP)).toBe(562);
-    expect(unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE)).toBeCloseTo(
-      0.0848,
-      6,
-    );
+    expect(
+      unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE),
+    ).toBeCloseTo(0.0848, 6);
+  });
+
+  it('keeps wuxiang ability projection identical with or without body cultivation', () => {
+    const baseline = createCultivatorFixture();
+    baseline.inventory.artifacts = [];
+    baseline.equipped.accessory = null;
+    baseline.realm = '化神';
+    baseline.realm_stage = '圆满';
+    baseline.sect = {
+      membershipId: 'wuxiang-member', sectId: 'wuxiang', status: 'active',
+      contribution: 0, configVersion: 2, activePathId: 'demon-crossing',
+      methods: {
+        'wuxiang-canon': 5, 'blood-lotus': 3, 'white-bone': 3,
+        'wrathful-ming': 3, 'six-senses': 3, 'reed-crossing-method': 3,
+      },
+      paths: [{
+        pathId: 'demon-crossing', unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
+        tacticId: 'trial-fire', activeMeridianSlot: 1,
+        meridianLoadouts: [
+          { slot: 1, nodeIds: ['demon-bone-tide', 'demon-one-furnace'], version: 1 },
+          { slot: 2, nodeIds: [], version: 1 },
+          { slot: 3, nodeIds: [], version: 1 },
+        ],
+      }],
+      abilityLoadout: ['turn-form', 'blood-tide', 'three-knocks', 'observe-calamity'],
+    };
+    const body = structuredClone(baseline);
+    body.condition = {
+      version: 1,
+      resources: { hp: { current: 1 }, mp: { current: 1 } },
+      gauges: { pillToxicity: 0 },
+      tracks: {
+        bodyCultivation: {
+          version: 1, realm: 'mortal_body',
+          tracks: {
+            skin: { level: 10, progress: 0 }, sinew_bone: { level: 10, progress: 0 },
+            organs: { level: 10, progress: 0 }, qi_blood: { level: 10, progress: 0 },
+            primordial_spirit: { level: 10, progress: 0 },
+          },
+          milestones: {},
+        },
+        tempering: {
+          vitality: { level: 0, progress: 0 }, spirit: { level: 0, progress: 0 },
+          wisdom: { level: 0, progress: 0 }, speed: { level: 0, progress: 0 },
+          willpower: { level: 0, progress: 0 },
+        },
+        marrowWash: { level: 0, progress: 0 },
+      },
+      counters: {
+        longTermPillUsesByRealm: {}, cultivationPillUsesByRealm: {}, longevityPillUsesByRealm: {},
+      },
+      statuses: [], timestamps: {},
+    };
+    const describeAbilities = (cultivator: Cultivator) => {
+      const unit = createCombatUnitFromCultivator(cultivator);
+      const abilities = [
+        unit.abilities.getDefaultAttackForSnapshot(),
+        ...unit.abilities.getAllAbilities(),
+      ].filter((ability) => ability !== null);
+      return abilities.map((ability) => ({
+        id: ability.id,
+        name: ability.name,
+        tags: ability.tags.getTags().sort(),
+        cooldown: ability instanceof ActiveSkill ? ability.maxCooldown : undefined,
+        costs: ability instanceof ActiveSkill ? ability.costConfigs : undefined,
+      }));
+    };
+
+    expect(describeAbilities(body)).toEqual(describeAbilities(baseline));
   });
 });

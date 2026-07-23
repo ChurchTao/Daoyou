@@ -647,7 +647,6 @@ export const ConditionService = {
     }
 
     const condition = this.tickNaturalRecovery(cultivator, conditionInput, now);
-    const { maxHp } = this.getMaxResources(cultivator, condition);
     const battleInitHooks = getBodyCultivationBattleInitHooks(condition);
 
     return {

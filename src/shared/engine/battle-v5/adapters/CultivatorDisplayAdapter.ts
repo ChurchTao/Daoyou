@@ -5,6 +5,8 @@ import {
   scaleArtifactMainPanelFixedModifiers,
 } from '@shared/engine/shared/artifactRealmScaling';
 import { buildBodyCultivationAttributeModifiers } from '@shared/lib/bodyCultivation/effects';
+import { projectSectMethodModifiers } from '@shared/engine/sect';
+import { sectRegistry } from '@shared/engine/sect/content';
 import type { AttributeModifierConfig } from '../core/configs';
 import { AttributeType, ModifierType, type AttributeModifier, type UnitId } from '../core/types';
 import type { AttrsStateView } from '../systems/state/types';
@@ -64,6 +66,16 @@ export function createDisplayUnitFromCultivator(
 
   for (const cultivation of cultivator.cultivations ?? []) {
     mountModifiers(unit, 'gongfa', cultivation);
+  }
+
+  for (const method of cultivator.sect
+    ? projectSectMethodModifiers(cultivator.sect, sectRegistry.require(cultivator.sect.sectId).definition)
+    : []) {
+    mountModifiers(unit, 'sect-method', {
+      id: method.methodId,
+      name: method.methodName,
+      attributeModifiers: method.modifiers,
+    });
   }
 
   const equippedIds = new Set(

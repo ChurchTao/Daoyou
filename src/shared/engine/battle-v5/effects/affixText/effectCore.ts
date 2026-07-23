@@ -162,9 +162,6 @@ export function describeEffectCore(
     case 'turn_state_counter':
       return `累计 ${effect.params.threshold} 次${effect.params.event === 'no_damage_dealt' ? '未造成伤害' : '造成伤害'}后${describeChildren(effect.params.effects)}`;
 
-    case 'element_history':
-      return `集齐 ${effect.params.threshold} 种元素后${describeChildren(effect.params.effects)}`;
-
     case 'effect_sequence':
       return describeChildren(effect.params.effects);
 
@@ -172,6 +169,41 @@ export function describeEffectCore(
       const action = effect.params.rounds >= 0 ? '延长' : '缩短';
       return `${action}状态 ${Math.abs(effect.params.rounds)} 回合`;
     }
+
+    case 'combat_resource_modify':
+      return effect.params.operation === 'consume_all'
+        ? '消耗全部战斗资源'
+        : `${effect.params.operation === 'add' ? '获得' : '调整'} ${Math.abs(effect.params.amount ?? 0)} 点战斗资源`;
+
+    case 'runtime_counter_modify':
+      return effect.params.operation === 'reset'
+        ? '重置战斗计数'
+        : `${effect.params.operation === 'add' ? '增加' : '调整'}战斗计数${effect.params.effects?.length ? `并${describeChildren(effect.params.effects)}` : ''}`;
+
+    case 'skip_action':
+      return `调息 ${effect.params.count ?? 1} 次行动`;
+
+    case 'queue_action':
+      return `下一次行动发动「${effect.params.name}」${effect.params.interruptPolicy === 'uninterruptible' ? '，除自身死亡外不可打断' : ''}${effect.params.hitPolicy === 'guaranteed' ? '，必然命中' : ''}`;
+
+    case 'resource_scaled_damage':
+      return `按战斗资源造成 ${formatAffixNumber(effect.params.baseCoefficient)} + 每点 ${formatAffixNumber(effect.params.coefficientPerPoint)} 倍单段伤害`;
+
+    case 'ability_mode':
+      return effect.params.operation === 'set'
+        ? `进入「${effect.params.displayName ?? effect.params.mode ?? '战斗形态'}」`
+        : effect.params.operation === 'advance'
+          ? '推进战斗形态'
+          : '结束战斗形态';
+
+    case 'lifesteal':
+      return `直接伤害吸血 ${formatAffixPercent(effect.params.ratio)}`;
+
+    case 'refund_paid_cost':
+      return `返还本次实际支付法力的 ${formatAffixPercent(effect.params.ratio)}`;
+
+    case 'mechanic_log':
+      return `触发「${effect.params.displayName}」`;
 
     default: {
       const exhaustive: never = effect;
@@ -195,6 +227,8 @@ function describeMemoryEvent(event?: string): string {
       return '护盾量';
     case 'shield_break':
       return '破盾量';
+    case 'shield_absorbed':
+      return '护盾承伤量';
     case 'critical_taken':
       return '受到暴击伤害';
     case 'damage_taken':
@@ -249,12 +283,14 @@ function describeTransform(params: {
   cooldownModify?: number;
   forceCritical?: boolean;
   bonusDamageMemory?: { ratio?: number };
+  freeManaCost?: boolean;
 }): string {
   const parts = [
     params.trueDamage ? '转为真实伤害' : '',
     params.forceCritical ? '必定暴击' : '',
     params.addDispel ? '附带驱散' : '',
     params.mpCostToHp ? '法力消耗改为气血消耗' : '',
+    params.freeManaCost ? '不消耗法力' : '',
     params.cooldownModify !== undefined
       ? `冷却${params.cooldownModify >= 0 ? '增加' : '减少'} ${formatAffixNumber(Math.abs(params.cooldownModify))} 回合`
       : '',

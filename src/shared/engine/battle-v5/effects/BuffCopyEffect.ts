@@ -34,7 +34,7 @@ export class BuffCopyEffect extends GameplayEffect {
           ? eventBuff
           : findMatchingBuffs(context.target, this.params.match)[0];
     }
-    if (!sourceBuff) return;
+    if (!sourceBuff || sourceBuff.dispelPolicy === 'protected') return;
 
     const triggerOwner = context.caster;
     const triggerKey = `buff_copy:${context.ability?.id ?? 'effect'}:${this.params.id ?? sourceBuff.id}`;

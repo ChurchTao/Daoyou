@@ -50,6 +50,7 @@ export const ATTR_LABELS: Record<AttributeType, string> = {
   ),
   [AttributeType.ACCURACY]: getGameConceptLabel('attribute_accuracy'),
   [AttributeType.HEAL_AMPLIFY]: getGameConceptLabel('attribute_heal_amplify'),
+  [AttributeType.HEAL_RECEIVED_REDUCTION]: '受治疗削弱',
 };
 
 export function attrLabel(attrType: AttributeType): string {

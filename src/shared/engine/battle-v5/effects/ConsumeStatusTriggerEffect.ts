@@ -1,4 +1,4 @@
-import { ConsumeStatusTriggerParams } from '../core/configs';
+import type { ConsumeStatusTriggerParams } from '../core/configs';
 import { executeEffectConfigs } from '../core/effectExecutor';
 import { getDelayedBuffEffects } from '../core/runtimeState';
 import { EffectRegistry } from '../factories/EffectRegistry';
@@ -6,14 +6,16 @@ import { EffectContext, GameplayEffect } from './Effect';
 import { findMatchingBuffs, publishMechanicLog } from './advancedEffectUtils';
 
 export class ConsumeStatusTriggerEffect extends GameplayEffect {
-  constructor(private params: ConsumeStatusTriggerParams) {
-    super();
-  }
+  constructor(private params: ConsumeStatusTriggerParams) { super(); }
 
   execute(context: EffectContext): void {
-    const matched = findMatchingBuffs(context.target, this.params.match);
+    const unit = this.params.target === 'caster' ? context.caster : context.target;
+    const matched = findMatchingBuffs(unit, this.params.match);
     const buff = matched[0];
-    if (!buff) return;
+    if (!buff) {
+      executeEffectConfigs(this.params.fallbackEffects ?? [], context);
+      return;
+    }
 
     const consume = this.params.consume ?? 'one';
     const beforeLayer = buff.getLayer();
@@ -26,25 +28,32 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
             typeof consume === 'number' ? Math.max(1, consume) : 1,
           );
     if (consume === 'all') {
-      context.target.buffs.setBuffLayer(buff.id, 0);
+      unit.buffs.setBuffLayer(buff.id, 0);
     } else {
       const layers = typeof consume === 'number' ? consume : 1;
-      context.target.buffs.modifyBuffLayer(buff.id, -Math.max(1, layers));
+      unit.buffs.modifyBuffLayer(buff.id, -Math.max(1, layers));
     }
 
     publishMechanicLog({
       mechanic: 'buff_layer',
       source: context.caster,
-      target: context.target,
+      ability: context.ability,
+      sourceBuff: context.buff,
+      target: unit,
       name: buff.name,
+      displayName: this.params.displayName ?? buff.name,
+      visibility: 'player',
       value: consumedLayers,
       detail: 'consumed',
     });
 
-    executeEffectConfigs(
-      this.params.effects.length > 0 ? this.params.effects : delayedEffects ?? [],
-      context,
-    );
+    const configuredEffects = this.params.effects.length > 0
+      ? this.params.effects
+      : delayedEffects ?? [];
+    const repeats = this.params.scaleEffectsByLayer ? consumedLayers : 1;
+    for (let index = 0; index < repeats; index += 1) {
+      executeEffectConfigs(configuredEffects, context);
+    }
   }
 }
 

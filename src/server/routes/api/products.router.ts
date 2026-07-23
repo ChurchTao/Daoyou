@@ -19,6 +19,7 @@ import { getCreationProductTypeLabel } from '@shared/lib/gameConceptDisplay';
 import type { ElementType } from '@shared/types/constants';
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { loadCultivatorSectState } from '@server/lib/repositories/sectRepository';
 
 const VALID_TYPES = new Set(['skill', 'gongfa', 'artifact']);
 const EquipSchema = z.object({
@@ -179,6 +180,16 @@ router.post('/equip', requireActiveCultivator(), async (c) => {
     });
     const response = toPlayerStateMutationResponse(committed);
     return c.json({ ...response, equipped: false });
+  }
+
+  if (productType === 'skill') {
+    const executor = c.get('executor');
+    const sect = executor
+      ? await loadCultivatorSectState(cultivator.id, executor)
+      : undefined;
+    if (sect?.status === 'active') {
+      return c.json({ success: false, error: '宗门弟子只能上阵宗门神通', code: 'SECT_SKILL_ONLY_LOADOUT' }, 409);
+    }
   }
 
   const maxEquipped =

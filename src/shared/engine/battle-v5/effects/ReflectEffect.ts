@@ -4,6 +4,7 @@ import { EventBus } from '../core/EventBus';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { ReflectParams } from '../core/configs';
 import { DamageSource } from '../core';
+import { claimActionAmount } from '../core/runtimeState';
 
 /**
  * 反伤原子效果
@@ -24,17 +25,36 @@ export class ReflectEffect extends GameplayEffect {
 
     const damageTakenEvent = triggerEvent as DamageTakenEvent;
 
-    // 反伤不应再次触发反伤，否则双方都有反伤时会形成链式回弹。
-    if (damageTakenEvent.damageSource === 'reflect') {
+    // 二次伤害不再触发反伤，避免反伤、反击、追击之间形成闭环。
+    if (
+      damageTakenEvent.damageSource === DamageSource.REFLECT ||
+      damageTakenEvent.damageSource === DamageSource.COUNTER ||
+      damageTakenEvent.damageSource === DamageSource.FOLLOW_UP ||
+      damageTakenEvent.damageSource === DamageSource.DELAYED
+    ) {
       return;
     }
 
-    const damageToReflect = Math.round(damageTakenEvent.damageTaken * this.params.ratio);
+    const layer = this.params.layerBuffId
+      ? target.buffs.getAllBuffs().find((buff) => buff.id === this.params.layerBuffId)?.getLayer() ?? 0
+      : 0;
+    const raw = Math.round(
+      damageTakenEvent.damageTaken *
+        (this.params.ratio + layer * (this.params.ratioPerLayer ?? 0)),
+    );
+    const attacker = damageTakenEvent.caster;
+    const damageToReflect = this.params.maxHpRatioPerAction
+      ? claimActionAmount(
+          attacker ?? target,
+          `reflect:${target.id}:${this.params.layerBuffId ?? 'generic'}`,
+          raw,
+          Math.round(target.getMaxHp() * this.params.maxHpRatioPerAction),
+        )
+      : raw;
 
     if (damageToReflect <= 0) return;
 
     // 给攻击者发送伤害请求
-    const attacker = damageTakenEvent.caster;
     if (attacker && attacker.isAlive()) {
       EventBus.instance.publish<DamageRequestEvent>({
         type: 'DamageRequestEvent',

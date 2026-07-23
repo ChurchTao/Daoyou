@@ -25,9 +25,19 @@ import type { TagPath } from '@shared/engine/shared/tag-domain';
 import {
   CombatEvent,
   type DamageComponent,
+  type DamageCalculationMode,
+  type LogCauseRef,
+  type MechanicTriggerBasisRef,
   DamageSource,
   DamageType,
 } from './types';
+import type {
+  ActionHitPolicy,
+  ActionInterruptPolicy,
+  ActionStateAbilityView,
+  ActionStatePhase,
+  ActionStateType,
+} from './actionState';
 
 // ===== 事件优先级枚举 =====
 // 数值越大优先级越高，越先执行
@@ -75,8 +85,15 @@ export interface SkillPreCastEvent extends CombatEvent {
   type: 'SkillPreCastEvent';
   caster: Unit;
   target: Unit;
+  fallbackTarget?: Unit;
   ability: Ability;
   isInterrupted: boolean;
+  interruptPolicy?: ActionInterruptPolicy;
+  hitPolicy?: ActionHitPolicy;
+  queuedActionState?: {
+    name: string;
+    sourceAbility?: ActionStateAbilityView;
+  };
 }
 
 // ===== 技能打断事件 =====
@@ -94,10 +111,35 @@ export interface SkillCastEvent extends CombatEvent {
   caster: Unit;
   target: Unit;
   ability: Ability;
+  interruptPolicy?: ActionInterruptPolicy;
+  hitPolicy?: ActionHitPolicy;
   // 控制字段：由 DamageSystem 等系统在事件流转中填充
   isHit?: boolean; // 是否命中
   isDodged?: boolean; // 是否被闪避
   isResisted?: boolean; // 是否被抵抗
+}
+
+export interface AbilityCostPaidEvent extends CombatEvent {
+  type: 'AbilityCostPaidEvent';
+  caster: Unit;
+  ability: Ability;
+  beforeHp: number;
+  afterHp: number;
+  beforeMp: number;
+  afterMp: number;
+  hpPaid: number;
+  mpPaid: number;
+  beforeHpRatio: number;
+  afterHpRatio: number;
+}
+
+export interface HpChangedEvent extends CombatEvent {
+  type: 'HpChangedEvent';
+  unit: Unit;
+  beforeHp: number;
+  afterHp: number;
+  delta: number;
+  reason: 'set' | 'damage' | 'heal' | 'ability_cost' | 'death_prevent' | 'initialization';
 }
 
 // ===== 命中判定事件 =====
@@ -109,6 +151,7 @@ export interface HitCheckEvent extends CombatEvent {
   isHit: boolean;
   isDodged: boolean;
   isResisted: boolean;
+  hitPolicy?: ActionHitPolicy;
 }
 
 export interface DodgeEvent extends CombatEvent {
@@ -138,7 +181,14 @@ export interface DamageRequestEvent extends CombatEvent {
   buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
   damageSource?: DamageSource;
   damageType?: DamageType;
+  calculationMode?: DamageCalculationMode;
+  cause?: LogCauseRef;
+  damageTags?: string[];
   damageComponents?: DamageComponent[];
+  /** 强制暴击；仍由 DamageSystem 读取施法者暴击倍率。 */
+  forceCritical?: boolean;
+  canCrit?: boolean;
+  canLifesteal?: boolean;
   baseDamage: number; // 基础伤害（未修正）
   finalDamage: number; // 最终伤害（可被增伤修正）
   // 同乘区加算桶：同一次伤害事件内累加，统一在 DamageSystem 中一次结算
@@ -160,9 +210,13 @@ export interface DamageEvent extends CombatEvent {
   buff?: Buff; // 新增：记录来源 Buff
   damageSource?: DamageSource;
   damageType?: DamageType;
+  calculationMode?: DamageCalculationMode;
+  cause?: LogCauseRef;
+  damageTags?: string[];
   finalDamage: number;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率
+  canLifesteal?: boolean;
 }
 
 // ===== 法力护盾抵扣事件 =====
@@ -196,6 +250,8 @@ export interface HealEvent extends CombatEvent {
   ability?: Ability;
   buff?: Buff; // 如果是 Buff 造成的治疗（如 HOT），记录来源 Buff
   healAmount: number;
+  /** 实际恢复量；旧事件缺失时回退到 healAmount。 */
+  appliedAmount?: number;
   healType?: 'hp' | 'mp'; // 默认 'hp'
 }
 
@@ -225,6 +281,7 @@ export interface ShieldBreakEvent extends CombatEvent {
   buff?: Buff;
   brokenShieldAmount: number;
   overflowDamage: number;
+  damageSource?: DamageSource;
 }
 
 // ===== 冷却修改事件 =====
@@ -247,6 +304,27 @@ export interface ResourceDrainEvent extends CombatEvent {
   amount: number;
 }
 
+// ===== 自定义战斗资源变化事件 =====
+export interface CombatResourceChangeEvent extends CombatEvent {
+  type: 'CombatResourceChangeEvent';
+  target: Unit;
+  caster?: Unit;
+  ability?: Ability;
+  resourceId: string;
+  resourceName: string;
+  resourceMax: number;
+  operation: 'add' | 'subtract' | 'set' | 'consume_all' | 'decay';
+  reason?: 'gain' | 'spend' | 'refund' | 'decay';
+  /** 请求变化量；增加为正，减少为负。 */
+  requested: number;
+  /** 实际变化量；增加为正，减少为负。 */
+  applied: number;
+  /** 因资源上限未能应用的正向变化量。 */
+  overflow: number;
+  before: number;
+  after: number;
+}
+
 // ===== 驱散应用事件 =====
 export interface DispelEvent extends CombatEvent {
   type: 'DispelEvent';
@@ -262,6 +340,7 @@ export interface TagTriggerEvent extends CombatEvent {
   caster: Unit;
   target: Unit;
   ability?: Ability;
+  displayName?: string;
   tag: string;
 }
 
@@ -283,6 +362,9 @@ export interface DamageTakenEvent extends CombatEvent {
   buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
   damageSource?: DamageSource;
   damageType?: DamageType;
+  calculationMode?: DamageCalculationMode;
+  cause?: LogCauseRef;
+  damageTags?: string[];
   reflectSourceName?: string;
   damageTaken: number;
   beforeHp: number;
@@ -292,6 +374,7 @@ export interface DamageTakenEvent extends CombatEvent {
   isLethal: boolean;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率
+  canLifesteal?: boolean;
 }
 
 // ===== 单元死亡事件 =====
@@ -333,6 +416,23 @@ export interface BuffAppliedEvent extends CombatEvent {
   target: Unit;
   buff: Buff;
   source?: Unit | Ability | unknown; // 来源（施法者/技能）
+  ability?: Ability;
+  sourceBuff?: Buff;
+}
+
+export type BuffLayerChangeReason = 'apply' | 'stack' | 'effect' | 'dispel';
+
+/** BuffContainer 统一出口发布的状态层数变化事件。 */
+export interface BuffLayerChangedEvent extends CombatEvent {
+  type: 'BuffLayerChangedEvent';
+  target: Unit;
+  buff: Buff;
+  source?: Unit;
+  ability?: Ability;
+  previousLayer: number;
+  currentLayer: number;
+  delta: number;
+  reason: BuffLayerChangeReason;
 }
 
 // ===== BUFF 移除事件 =====
@@ -352,12 +452,23 @@ export interface MechanicLogEvent extends CombatEvent {
     | 'damage_defer'
     | 'hp_sacrifice'
     | 'buff_layer'
-    | 'status_spread';
+    | 'combat_resource'
+    | 'status_spread'
+    | 'named_trigger'
+    | 'status_transition';
   target: Unit;
   source?: Unit;
+  ability?: Ability;
+  sourceBuff?: Buff;
   name: string;
+  displayName?: string;
+  visibility?: 'player' | 'debug';
+  internalKey?: string;
   value?: number;
   detail?: string;
+  operation?: 'apply' | 'refresh' | 'replace' | 'consume';
+  previousDisplayName?: string;
+  triggerBasis?: MechanicTriggerBasisRef;
 }
 
 // ===== BUFF 免疫拦截事件 =====
@@ -415,4 +526,16 @@ export interface ControlledSkipEvent extends CombatEvent {
   unit: Unit;
   /** 触发跳过的控制标签路径 */
   controlTag: string;
+}
+
+export interface ActionStateEvent extends CombatEvent {
+  type: 'ActionStateEvent';
+  unit: Unit;
+  stateType: ActionStateType;
+  phase: ActionStatePhase;
+  name: string;
+  remainingActions: number;
+  sourceAbility?: ActionStateAbilityView;
+  ability?: ActionStateAbilityView;
+  reason?: string;
 }

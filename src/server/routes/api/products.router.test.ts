@@ -70,6 +70,7 @@ function mockProductTransaction(eventType = 'loadout.equipped') {
     loadoutVersion: 1,
     mailVersion: 0,
     tasksVersion: 0,
+    sectVersion: 0,
     updatedAt: new Date('2026-06-10T00:00:00.000Z'),
   };
   const eventRows = [
@@ -79,6 +80,7 @@ function mockProductTransaction(eventType = 'loadout.equipped') {
       userId: 'user-1',
       globalVersion: 1,
       domain: 'loadout',
+      domainVersion: 1,
       eventType,
       patch: {},
       invalidates: ['loadout'],
@@ -97,7 +99,12 @@ function mockProductTransaction(eventType = 'loadout.equipped') {
     returning: insertReturning,
   }));
   const insert = vi.fn(() => ({ values }));
-  const txMock = { insert };
+  const selectLimit = vi.fn().mockResolvedValue([{ id: 'cultivator-1' }]);
+  const selectFor = vi.fn(() => ({ limit: selectLimit }));
+  const selectWhere = vi.fn(() => ({ for: selectFor }));
+  const selectFrom = vi.fn(() => ({ where: selectWhere }));
+  const select = vi.fn(() => ({ from: selectFrom }));
+  const txMock = { insert, select };
 
   dbMock.mockReturnValue({
     transaction: async (callback: (tx: typeof txMock) => Promise<unknown>) =>
@@ -217,6 +224,7 @@ describe('products router equip toggle', () => {
             cultivatorId: 'cultivator-1',
             globalVersion: 1,
             domain: 'loadout',
+            domainVersion: 1,
             eventType: 'loadout.equipped',
             patch: {},
             invalidates: ['loadout'],
@@ -273,6 +281,7 @@ describe('products router equip toggle', () => {
             cultivatorId: 'cultivator-1',
             globalVersion: 1,
             domain: 'loadout',
+            domainVersion: 1,
             eventType: 'loadout.equipped',
             patch: {},
             invalidates: ['loadout'],

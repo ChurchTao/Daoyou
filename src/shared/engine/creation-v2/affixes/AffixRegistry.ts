@@ -338,8 +338,8 @@ export class AffixRegistry {
         );
         return;
 
-      case 'element_history':
-        effect.params.effects.forEach((child, index) =>
+      case 'runtime_counter_modify':
+        effect.params.effects?.forEach((child, index) =>
           this.validateEffectTags(child, `${context}.params.effects[${index}]`),
         );
         return;
