@@ -222,6 +222,10 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🛖 修仙坊市',
       },
       {
+        id: 'black-market',
+        sceneLabel: '暗巷黑市',
+      },
+      {
         id: 'market-recycle',
         sceneLabel: '鉴宝回收',
         href: '/game/market/recycle',

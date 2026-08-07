@@ -23,6 +23,8 @@ export const redisLockKeys = {
   cron: (jobName: string) => `lock:cron:${jobName}`,
   marketGeneration: (nodeId: string, layer: number | string, cycle: string) =>
     `lock:market:generation:${nodeId}:${layer}:${cycle}`,
+  blackMarketSession: (sessionId: string) =>
+    `lock:black-market:session:${sessionId}`,
   dungeonCommand: (cultivatorId: string) =>
     `lock:dungeon:command:${cultivatorId}`,
 } as const;

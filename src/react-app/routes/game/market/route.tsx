@@ -54,7 +54,6 @@ const LAYER_OPTIONS: Array<{ label: string; value: MarketLayer }> = [
   { label: '凡市', value: 'common' },
   { label: '珍宝阁', value: 'treasure' },
   { label: '天宝殿', value: 'heaven' },
-  { label: '黑市', value: 'black' },
 ];
 
 const getLayerLabel = (layer: MarketLayer) =>
@@ -121,7 +120,7 @@ export default function MarketPage() {
   const nodeId = searchParams.get('nodeId') || DEFAULT_NODE_ID;
   const layer = (searchParams.get('layer') as MarketLayer | null) || 'common';
   const activeLayer = (
-    ['common', 'treasure', 'heaven', 'black'].includes(layer) ? layer : 'common'
+    ['common', 'treasure', 'heaven'].includes(layer) ? layer : 'common'
   ) as MarketLayer;
 
   const [listings, setListings] = useState<MarketListing[]>([]);
@@ -629,6 +628,19 @@ export default function MarketPage() {
           onChange={handleLayerChange}
           items={LAYER_OPTIONS}
         />
+        {currentSwitchOption?.allowedLayers.includes('black') ? (
+          <div className="border-ink/15 bg-ink/[0.025] flex flex-wrap items-center justify-between gap-3 border-l-2 px-4 py-3">
+            <p className="text-ink-secondary text-sm leading-6">
+              🌑 暗巷深处有人悄然开市，只肯当面谈价。
+            </p>
+            <InkButton
+              href={`/game/black-market?nodeId=${encodeURIComponent(nodeId)}`}
+              variant="primary"
+            >
+              前往黑市
+            </InkButton>
+          </div>
+        ) : null}
         {!access.allowed && (
           <InkNotice>{access.reason || '当前层不可进入'}</InkNotice>
         )}

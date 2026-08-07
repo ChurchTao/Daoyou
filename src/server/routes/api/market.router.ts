@@ -5,6 +5,10 @@ import {
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
+  confirmMarketSell,
+  purchaseMarketItems,
+} from '@server/lib/services/MarketApplicationService';
+import {
   MarketRecycleError,
   previewAllLowTierSell,
   previewSell,
@@ -15,16 +19,10 @@ import {
   resolveLayer,
   resolveNodeId,
 } from '@server/lib/services/MarketService';
-import {
-  confirmMarketSell,
-  purchaseMarketItems,
-} from '@server/lib/services/MarketApplicationService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
-import {
-  getPlayerPreHeavenFates,
-} from '@server/lib/services/cultivator/CultivatorProfileRepository';
-import type { PreHeavenFate } from '@shared/types/cultivator';
 import { readCultivatorRealm } from '@server/lib/services/cultivator/CultivatorFactsReader';
+import { getPlayerPreHeavenFates } from '@server/lib/services/cultivator/CultivatorProfileRepository';
+import type { PreHeavenFate } from '@shared/types/cultivator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -153,6 +151,9 @@ router.get('/:nodeId', requireActiveCultivatorRef(), async (c) => {
   try {
     const nodeId = resolveNodeId(c.req.param('nodeId'));
     const layer = resolveLayer(c.req.query('layer'));
+    if (layer === 'black') {
+      throw new MarketServiceError(410, '黑市已经移入暗巷，请从坊市入口前往');
+    }
     const [{ realm }, fates] = await Promise.all([
       readCultivatorRealm(cultivator.cultivatorId),
       loadMarketFates(cultivator),
@@ -186,6 +187,9 @@ router.post('/:nodeId/buy', requireActiveCultivatorRef(), async (c) => {
     const parsed = BuySchema.parse(await c.req.json());
     const nodeId = resolveNodeId(c.req.param('nodeId'));
     const layer = parsed.layer || resolveLayer(c.req.query('layer'));
+    if (layer === 'black') {
+      throw new MarketServiceError(410, '旧黑市交易已经关闭，请前往暗巷黑市');
+    }
     if (parsed.items && parsed.items.length > 0) {
       const committed = await purchaseMarketItems({
         actor: {

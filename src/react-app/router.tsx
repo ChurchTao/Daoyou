@@ -295,6 +295,20 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="black-market"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/black-market/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'black-market',
+                  presentation: 'workflow',
+                  summary: '辨货、问价，在有限线索里决定是否落子。',
+                },
+                '暗巷黑市',
+              )}
+            />
+            <Route
               path="mail"
               lazy={lazyRoute(() => import('@app/routes/game/mail/route'))}
               handle={scene(
