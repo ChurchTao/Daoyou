@@ -48,7 +48,7 @@ export class AbilityLockEffect extends GameplayEffect {
       });
       context.emit<CooldownModifyEvent>({
         type: 'CooldownModifyEvent',
-        timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
         caster: context.caster,
         target: context.target,
         ability: context.ability,

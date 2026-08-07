@@ -84,6 +84,8 @@ export interface SkillPreCastEvent extends CombatEvent {
   type: 'SkillPreCastEvent';
   caster: Unit;
   target: Unit;
+  /** Sealed team-cast targets. Absent for legacy single-target casts. */
+  targets?: Unit[];
   fallbackTarget?: Unit;
   ability: Ability;
   isInterrupted: boolean;

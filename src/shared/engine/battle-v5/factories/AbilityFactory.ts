@@ -69,6 +69,7 @@ export class AbilityFactory {
           effectPlans: config.effectPlans,
         });
         skill.tags.addTags(abilityTags);
+        skill.setSerializableConfig(config);
         return skill;
       }
       const skill = new DataDrivenActiveSkill(id, name, {
@@ -105,7 +106,7 @@ export class AbilityFactory {
       }
 
       if (config.listeners) {
-        config.listeners.forEach((listener) => {
+        config.listeners.forEach((listener, listenerIndex) => {
           this.assertListenerContract(listener);
           const effects = listener.effects
             .map((eff) => {
@@ -114,12 +115,16 @@ export class AbilityFactory {
             })
             .filter((e) => e !== null);
           skill.addInstantiatedListener(
-            buildListenerRuntimeConfig(listener),
+            buildListenerRuntimeConfig(
+              listener,
+              `${config.slug}:active:${listenerIndex}`,
+            ),
             effects,
           );
         });
       }
 
+      skill.setSerializableConfig(config);
       return skill;
     }
 
@@ -131,7 +136,7 @@ export class AbilityFactory {
 
       // 装配被动监听器
       if (config.listeners) {
-        config.listeners.forEach((listener) => {
+        config.listeners.forEach((listener, listenerIndex) => {
           this.assertListenerContract(listener);
           const effects = listener.effects
             .map((eff) => {
@@ -140,7 +145,10 @@ export class AbilityFactory {
             })
             .filter((e) => e !== null);
           ability.addInstantiatedListener(
-            buildListenerRuntimeConfig(listener),
+            buildListenerRuntimeConfig(
+              listener,
+              `${config.slug}:passive:${listenerIndex}`,
+            ),
             effects,
           );
         });
@@ -152,6 +160,7 @@ export class AbilityFactory {
         });
       }
 
+      ability.setSerializableConfig(config);
       return ability;
     }
 

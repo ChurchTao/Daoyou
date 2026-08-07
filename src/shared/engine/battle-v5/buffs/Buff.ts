@@ -1,7 +1,6 @@
 import { BuffId, BuffType } from '../core/types';
 import { Unit } from '../units/Unit';
 import { GameplayTagContainer } from '@shared/engine/shared/tag-domain';
-import { EventBus } from '../core/EventBus';
 import type { CombatAttributionV3 } from '../v3/origin';
 
 export type BuffDeactivateReason =
@@ -218,7 +217,7 @@ export class Buff {
       eventType,
       handler: wrappedHandler,
     });
-    EventBus.instance.subscribe(eventType, wrappedHandler, priority);
+    this._eventBus.subscribe(eventType, wrappedHandler, priority);
   }
 
   /**
@@ -232,7 +231,7 @@ export class Buff {
 
     for (const subscription of this._subscribedHandlers) {
       if (subscription.eventType === eventType) {
-        EventBus.instance.unsubscribe(subscription.eventType, subscription.handler);
+        this._eventBus.unsubscribe(subscription.eventType, subscription.handler);
       } else {
         remaining.push(subscription);
       }
@@ -246,9 +245,14 @@ export class Buff {
    */
   protected _unsubscribeAll(): void {
     for (const subscription of this._subscribedHandlers) {
-      EventBus.instance.unsubscribe(subscription.eventType, subscription.handler);
+      this._eventBus.unsubscribe(subscription.eventType, subscription.handler);
     }
     this._subscribedHandlers = [];
+  }
+
+  protected get _eventBus() {
+    if (!this._owner) throw new Error(`Buff ${this.id} must have an owner`);
+    return this._owner.runtime.events;
   }
 
   /**
@@ -279,6 +283,13 @@ export class Buff {
   refreshToDuration(duration: number): void {
     this._duration = duration;
     this._maxDuration = duration;
+  }
+
+  restoreDuration(current: number, maximum: number): void {
+    this._maxDuration = Math.trunc(maximum);
+    this._duration = this._maxDuration === -1
+      ? -1
+      : Math.max(0, Math.min(this._maxDuration, Math.trunc(current)));
   }
 
   /**

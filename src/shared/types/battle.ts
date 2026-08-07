@@ -9,6 +9,7 @@ import type {
   UnitStateSnapshot,
 } from '@shared/engine/battle-v5/systems/state/types';
 import type { BattleRecordV3 } from '@shared/engine/battle-v5/v3';
+import type { BattleRecordV4 } from '@shared/engine/battle-v5/v4';
 import type { Cultivator } from '@shared/types/cultivator';
 
 export type {
@@ -18,7 +19,7 @@ export type {
   ResourcePointState,
 };
 
-export type { BattleRecordV3 };
+export type { BattleRecordV3, BattleRecordV4 };
 
 export type BattleRecordType = 'challenge' | 'challenged' | 'normal';
 

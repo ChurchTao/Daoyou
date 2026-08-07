@@ -42,7 +42,7 @@ export class DamageImmunityEffect extends GameplayEffect {
 
     context.emit<DamageImmuneEvent>({
       type: 'DamageImmuneEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       caster: event.caster,
       target,
       ability: event.ability,

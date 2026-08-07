@@ -5,6 +5,13 @@ export {
 } from './core/CombatStateMachine';
 export { EventBus } from './core/EventBus';
 export * from './core/types';
+export { BattleRoster, type BattleTeam } from './core/BattleRoster';
+export { BattleRuntime } from './runtime/BattleRuntime';
+export {
+  LogicalBattleClock,
+  SystemBattleClock,
+  type BattleClock,
+} from './runtime/BattleClock';
 
 // Units
 export { AbilityContainer } from './units/AbilityContainer';
@@ -24,6 +31,11 @@ export { Buff } from './buffs/Buff';
 // Systems
 export { DamageSystem } from './systems/DamageSystem';
 export { VictorySystem, type VictoryResult } from './systems/VictorySystem';
+export { InitiativeSystem } from './systems/InitiativeSystem';
+export {
+  TeamVictorySystem,
+  type TeamVictoryResult,
+} from './systems/TeamVictorySystem';
 
 // Adapters
 export {
@@ -76,3 +88,7 @@ export {
 
 // Main Entry
 export { BattleEngineV5, type BattleResult } from './BattleEngineV5';
+export * from './v4';
+export * from './persistence';
+export * from './round';
+export * from './match';

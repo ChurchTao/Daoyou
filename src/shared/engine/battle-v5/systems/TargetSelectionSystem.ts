@@ -1,7 +1,5 @@
 // engine/battle-v5/systems/TargetSelectionSystem.ts
 
-import { EventBus } from '../core/EventBus';
-import { battleRandom } from '../core/BattleRandom';
 import { Unit } from '../units/Unit';
 import { TargetPolicy, TargetFilter } from '../abilities/TargetPolicy';
 import { AttributeType } from '../core';
@@ -41,16 +39,28 @@ export class TargetSelectionSystem {
     allUnits: Unit[]
   ): Unit[] {
     // 1. 根据队伍筛选
-    let candidates = this._filterByTeam(caster, policy.team, allUnits);
-
-    // 2. 过滤死亡单位
-    candidates = candidates.filter(u => u.isAlive());
-
-    // 3. 应用过滤器
-    candidates = this._applyFilters(candidates, policy.filters);
+    const candidates = this.getTargetCandidates(caster, policy, allUnits);
 
     // 4. 根据范围选择
-    return this._selectByScope(candidates, policy.scope, policy.maxTargets);
+    return this._selectByScope(
+      candidates,
+      policy.scope,
+      policy.maxTargets,
+      () => caster.runtime.random.next(),
+    );
+  }
+
+  getTargetCandidates(
+    caster: Unit,
+    policy: TargetPolicy,
+    allUnits: Unit[],
+  ): Unit[] {
+    return this._applyFilters(
+      this._filterByTeam(caster, policy.team, allUnits).filter((unit) =>
+        unit.isAlive(),
+      ),
+      policy.filters,
+    );
   }
 
   private _filterByTeam(
@@ -62,9 +72,11 @@ export class TargetSelectionSystem {
       case 'self':
         return [caster];
       case 'enemy':
-        return allUnits.filter(u => u !== caster);
+        return allUnits.filter((unit) => unit.teamId !== caster.teamId);
       case 'ally':
-        return allUnits.filter(u => u === caster);
+        return allUnits.filter(
+          (unit) => unit.teamId === caster.teamId && unit !== caster,
+        );
       case 'any':
         return allUnits;
       default:
@@ -118,13 +130,21 @@ export class TargetSelectionSystem {
   private _selectByScope(
     units: Unit[],
     scope: TargetPolicy['scope'],
-    maxTargets: number
+    maxTargets: number,
+    random: () => number,
   ): Unit[] {
     switch (scope) {
       case 'single':
         return units.slice(0, 1);
       case 'random': {
-        const shuffled = [...units].sort(() => battleRandom() - 0.5);
+        const shuffled = [...units];
+        for (let index = shuffled.length - 1; index > 0; index--) {
+          const swapIndex = Math.floor(random() * (index + 1));
+          [shuffled[index], shuffled[swapIndex]] = [
+            shuffled[swapIndex],
+            shuffled[index],
+          ];
+        }
         return shuffled.slice(0, 1);
       }
       case 'aoe':
@@ -138,9 +158,6 @@ export class TargetSelectionSystem {
    * 销毁系统
    */
   destroy(): void {
-    for (const [eventType, handler] of this._handlers) {
-      EventBus.instance.unsubscribe(eventType, handler);
-    }
     this._handlers.clear();
   }
 }

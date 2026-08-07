@@ -6,7 +6,9 @@
 - `DAOYOU_DOMAIN_EVENT_DLQ` 保存终止失败消息 30 天，最大占用 768 MiB。
 - `DAOYOU_BACKGROUND_COMMANDS` 使用 WorkQueue retention 保存 `daoyou.command.cron.>`，最大占用 384 MiB；一个 command 只由一个 Worker 实例成功处理。
 - `DAOYOU_BACKGROUND_COMMAND_DLQ` 保存后台 command 的终止失败消息，最大占用 128 MiB。
-- 四个 Stream 的上限合计为 3.75 GiB，为生产 NATS 的 `max_file_store: 5GB` 留出约 20% 的文件与元数据余量。
+- `DAOYOU_BATTLE_REPLAY_ARCHIVES` 使用 WorkQueue retention 保存结束对局的完整 `BattleReplayV1`，最大占用 512 MiB；`battle-replay-postgres-archiver-v1` 成功写入 PostgreSQL 后才 ACK。
+- `DAOYOU_BATTLE_REPLAY_ARCHIVE_DLQ` 只接收契约非法的回放消息，最大占用 128 MiB。PostgreSQL 暂不可用属于可恢复错误，原消息持续 NAK 重试，不进入 DLQ。
+- 六个 Stream 的上限合计约 4.4 GiB；生产 NATS 应配置至少 `max_file_store: 5GB`，并允许不小于 8 MiB 的 `max_payload`。
 - `daoyou.realtime.>` 使用 NATS Core，不进入 JetStream；用于资源变更、世界聊天和宗门聊天的跨实例实时广播。
 - 应用启动时以幂等方式校验并创建 Stream 和 durable consumer。
 - 业务事务将待发布消息写入通用 PostgreSQL 事务消息表 `wanjiedaoyou_transactional_messages`；领域事件只是当前消息类型之一。
@@ -14,6 +16,12 @@
 - 收到 JetStream PubAck 后标记 `published_at`；此后消息的持久化、投递状态、重试与消费进度由 JetStream 负责。
 - 消费者在同一 PostgreSQL 事务中写入通用消费幂等记录并更新业务数据，提交后才 ACK JetStream。
 - 单条事件处理失败 10 次后转入 DLQ；DLQ 发布失败时继续重试原事件。
+
+## 实时战斗回放归档
+
+在线战斗过程中 Redis 是唯一权威状态，PostgreSQL 不参与玩家 move、锁定、超时或结算路径。最终状态和回放素材先原子写入 Redis Hash，并把 match id 加入普通 Redis pending Set（不是 Redis Stream）。battle-server 的发布器从 pending Set 读取完整 `BattleReplayV1`，以 `matchId` 作为 `Nats-Msg-Id` 发布到 `daoyou.battle.replay.archive.v1`；收到 JetStream PubAck 后移除 pending 标记并给在线对局设置 30 分钟 TTL。
+
+应用侧 consumer 以 `matchId` 为 PostgreSQL 主键执行 `ON CONFLICT DO NOTHING`，因此 PostgreSQL 提交成功但 NATS ACK 丢失时的合法重复投递不会产生重复归档。归档表只保留稳定回放、参与者、引擎/规则版本和最终结果，不保存 boardgame.io metadata、credentials、draft intents、deadline、`_stateID` 或内部 move log。
 
 `wanjiedaoyou_local_transaction_messages` 是 BullMQ 时代“本地执行消息”的旧模型，已确认由迁移删除。新代码只使用通用事务消息表 `wanjiedaoyou_transactional_messages`。
 
@@ -96,6 +104,7 @@ docker compose -f docker-compose.nats.yml ps
 - Consumer 积压：查看 JetStream consumer 的 `num_pending`、 `num_ack_pending` 和 `num_redelivered`。
 - 毒消息：查看 `DAOYOU_DOMAIN_EVENT_DLQ`，subject 为 `daoyou.dead-letter.<consumer-name>`。
 - 后台命令失败：查看 `DAOYOU_BACKGROUND_COMMAND_DLQ`，subject 为 `daoyou.command-dead-letter.background-command-worker-v1`。
+- 回放归档积压：查看 `DAOYOU_BATTLE_REPLAY_ARCHIVES` 的 `battle-replay-postgres-archiver-v1` consumer；契约毒消息查看 `DAOYOU_BATTLE_REPLAY_ARCHIVE_DLQ`。
 - 手工重放前必须确认 `wanjiedaoyou_message_consumptions` 中对应消费记录是否仍存在；消费记录保留 30 天，长于主 Stream 的 14 天保留期。
 
 ## 事件演进规则

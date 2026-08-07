@@ -397,6 +397,12 @@ export class AttributeSet {
     this._attributes.forEach((attr) => attr.clearModifiers());
   }
 
+  getModifiers(): AttributeModifier[] {
+    return [...this._attributes.values()].flatMap((attribute) =>
+      attribute.getModifiers(),
+    );
+  }
+
   /**
    * Get all final attribute values as a record.
    * @returns Record mapping attribute types to their final values

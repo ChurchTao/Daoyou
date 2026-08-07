@@ -29,14 +29,14 @@ export class ActionExecutionSystem {
   private _handlers: Map<string, (event: SkillPreCastEvent) => void> =
     new Map();
 
-  constructor() {
+  constructor(private readonly eventBus: EventBus = EventBus.instance) {
     this._subscribeToEvents();
   }
 
   private _subscribeToEvents(): void {
     const preCastHandler = (event: SkillPreCastEvent) =>
       this._onSkillPreCast(event);
-    EventBus.instance.subscribe<SkillPreCastEvent>(
+    this.eventBus.subscribe<SkillPreCastEvent>(
       'SkillPreCastEvent',
       preCastHandler,
       EventPriorityLevel.SKILL_PRE_CAST,
@@ -61,7 +61,7 @@ export class ActionExecutionSystem {
         owner: { id: event.caster.id, name: event.caster.name },
         carrier: combatCarrierFromAbilityV3(event.ability),
       };
-      EventBus.instance.runInCausalContext(
+      this.eventBus.runInCausalContext(
         {
           origin: interruptedOrigin,
           trace: eventTrace,
@@ -75,9 +75,9 @@ export class ActionExecutionSystem {
             },
             { origin: interruptedOrigin, parentTrace: eventTrace },
           );
-          EventBus.instance.publish<SkillInterruptEvent>({
+          this.eventBus.publish<SkillInterruptEvent>({
             type: 'SkillInterruptEvent',
-            timestamp: Date.now(),
+            timestamp: event.caster.runtime.clock.now(),
             caster: event.caster,
             target: event.target,
             ability: event.ability,
@@ -96,9 +96,9 @@ export class ActionExecutionSystem {
               },
               { origin: interruptedOrigin, parentTrace: eventTrace },
             );
-            EventBus.instance.publish<ActionStateEvent>({
+            this.eventBus.publish<ActionStateEvent>({
               type: 'ActionStateEvent',
-              timestamp: Date.now(),
+              timestamp: event.caster.runtime.clock.now(),
               unit: event.caster,
               stateType: 'queued_action',
               phase: 'cancelled',
@@ -116,6 +116,7 @@ export class ActionExecutionSystem {
 
     let ability = event.ability;
     let target = event.target;
+    let targets = event.targets?.length ? [...event.targets] : [target];
     if (
       ability instanceof ActiveSkill &&
       !ability.canExecutePreparedCast(event.caster)
@@ -133,38 +134,40 @@ export class ActionExecutionSystem {
       fallback.prepareCast({ caster: event.caster, target: fallbackTarget });
       ability = fallback;
       target = fallbackTarget;
+      targets = [fallbackTarget];
     } else if (ability instanceof ActiveSkill && ability.preparedTarget) {
       target = ability.preparedTarget;
+      if (!event.targets?.length) targets = [target];
     }
-
-    // 未被打断，发布技能释放事件
-    const castEvent: SkillCastEvent = {
-      type: 'SkillCastEvent',
-      timestamp: Date.now(),
-      caster: event.caster,
-      target,
-      ability,
-      interruptPolicy: event.interruptPolicy,
-      hitPolicy: event.hitPolicy,
-    };
 
     const origin = {
       kind: 'owned' as const,
       owner: { id: event.caster.id, name: event.caster.name },
       carrier: combatCarrierFromAbilityV3(ability),
     };
-    const sequence = EventBus.instance.getCurrentSequence();
+    const sequence = this.eventBus.getCurrentSequence();
     if (sequence?.phase === 'action') {
       sequence.ability = { id: ability.id, name: ability.name };
     }
-    const publishedCast = EventBus.instance.runInCausalContext(
-      { origin, trace: eventTrace },
-      () => EventBus.instance.publish(castEvent),
-    );
-    const castTrace = publishedCast.trace;
+    const castEvents = targets.map((castTarget) => {
+      const castEvent: SkillCastEvent = {
+        type: 'SkillCastEvent',
+        timestamp: event.caster.runtime.clock.now(),
+        caster: event.caster,
+        target: castTarget,
+        ability,
+        interruptPolicy: event.interruptPolicy,
+        hitPolicy: event.hitPolicy,
+      };
+      return this.eventBus.runInCausalContext(
+        { origin, trace: eventTrace },
+        () => this.eventBus.publish(castEvent),
+      );
+    });
+    const castTrace = castEvents[0]?.trace;
     if (!castTrace) throw new Error('SkillCastEvent has no V3 trace');
 
-    EventBus.instance.runInCausalContext({ origin, trace: castTrace }, () => {
+    this.eventBus.runInCausalContext({ origin, trace: castTrace }, () => {
       if (event.queuedActionState) {
         new CombatResultEmitterV3().commit(
           event.caster,
@@ -178,9 +181,9 @@ export class ActionExecutionSystem {
           },
           { origin, parentTrace: castTrace },
         );
-        EventBus.instance.publish<ActionStateEvent>({
+        this.eventBus.publish<ActionStateEvent>({
           type: 'ActionStateEvent',
-          timestamp: Date.now(),
+          timestamp: event.caster.runtime.clock.now(),
           unit: event.caster,
           stateType: 'queued_action',
           phase: 'triggered',
@@ -191,11 +194,22 @@ export class ActionExecutionSystem {
         });
       }
 
-      ability.execute({
-        caster: event.caster,
-        target,
-        shouldApplyEffects: castEvent.isHit !== false,
-      });
+      if (ability instanceof ActiveSkill) {
+        ability.executeMultiple(
+          event.caster,
+          castEvents.map((castEvent) => ({
+            target: castEvent.target,
+            shouldApplyEffects: castEvent.isHit !== false,
+          })),
+        );
+      } else {
+        const castEvent = castEvents[0];
+        ability.execute({
+          caster: event.caster,
+          target,
+          shouldApplyEffects: castEvent?.isHit !== false,
+        });
+      }
     });
   }
 
@@ -204,7 +218,7 @@ export class ActionExecutionSystem {
    */
   destroy(): void {
     for (const [eventType, handler] of this._handlers) {
-      EventBus.instance.unsubscribe(eventType, handler);
+      this.eventBus.unsubscribe(eventType, handler);
     }
     this._handlers.clear();
   }

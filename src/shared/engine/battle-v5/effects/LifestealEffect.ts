@@ -35,7 +35,7 @@ export class LifestealEffect extends GameplayEffect {
     }
     context.emit<HealEvent>({
       type: 'HealEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       caster: context.caster,
       target: context.caster,
       ability: event.ability,

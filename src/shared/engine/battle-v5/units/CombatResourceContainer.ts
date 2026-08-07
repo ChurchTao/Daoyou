@@ -1,6 +1,5 @@
 import type { Ability } from '../abilities/Ability';
 import type { CombatResourceDefinition } from '../core/configs';
-import { EventBus } from '../core/EventBus';
 import type { CombatResourceChangeEvent } from '../core/events';
 import { readRuntimeCounter } from '../core/runtimeState';
 import { CombatResultEmitterV3 } from '../v3/CombatResultEmitterV3';
@@ -187,7 +186,7 @@ export class CombatResourceContainer {
         this.owner,
         CombatSystemSourceV3.RESOURCE_DECAY,
       ),
-      trace: EventBus.instance.reserveTrace(),
+      trace: this.owner.runtime.events.reserveTrace(),
       operation: 'decay',
     });
   }
@@ -217,12 +216,13 @@ export class CombatResourceContainer {
       },
       { origin: attribution.origin, parentTrace },
     );
-    EventBus.instance.runInCausalContext(
+    const runtime = owner.runtime;
+    runtime.events.runInCausalContext(
       { origin: attribution.origin, trace: parentTrace },
       () =>
-        EventBus.instance.publish<CombatResourceChangeEvent>({
+        runtime.events.publish<CombatResourceChangeEvent>({
           type: 'CombatResourceChangeEvent',
-          timestamp: Date.now(),
+          timestamp: runtime.clock.now(),
           target: owner,
           caster: source?.caster,
           ability: source?.ability,
@@ -256,6 +256,14 @@ export class CombatResourceContainer {
         max,
       }),
     );
+  }
+
+  exportDefinitions(): CombatResourceDefinition[] {
+    return [...this.resources.values()].map((resource) => {
+      const definition: Partial<CombatResourceRuntime> = { ...resource };
+      delete definition.current;
+      return definition as CombatResourceDefinition;
+    });
   }
 
   clone(): CombatResourceContainer {

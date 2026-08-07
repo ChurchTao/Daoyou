@@ -70,7 +70,7 @@ export class DamageMemoryEffect extends GameplayEffect {
         }
         narrativeContext.emit<HealEvent>({
           type: 'HealEvent',
-          timestamp: Date.now(),
+          timestamp: context.owner.runtime.clock.now(),
           caster: context.caster,
           target: context.target,
           ability: context.ability,
@@ -95,7 +95,7 @@ export class DamageMemoryEffect extends GameplayEffect {
         }
         narrativeContext.emit<ShieldEvent>({
           type: 'ShieldEvent',
-          timestamp: Date.now(),
+          timestamp: context.owner.runtime.clock.now(),
           caster: context.caster,
           target: context.target,
           ability: context.ability,
@@ -187,7 +187,7 @@ export class DamageMemoryEffect extends GameplayEffect {
     if (!target.isAlive()) return;
     context.emit<DamageRequestEvent>({
       type: 'DamageRequestEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       caster,
       target,
       ability: context.ability,

@@ -9,6 +9,7 @@ import type {
 } from '@shared/lib/itemLibrary';
 import type { TowerPreparedEnemy } from '@shared/lib/tower';
 import type { BattleRecordV3 } from '@shared/types/battle';
+import type { BattleReplayV1 } from '@shared/contracts/battleReplay';
 import type {
   AlchemyFormulaBlueprint,
   AlchemyFormulaMastery,
@@ -780,6 +781,32 @@ export const battleRecordsV3 = pgTable(
       table.createdAt,
     ),
     uniqueIndex('battle_records_v3_share_code_uidx').on(table.shareCode),
+  ],
+);
+
+// 在线对局结束后由 NATS 消费者异步写入；进行中状态只存在 Redis。
+export const battleReplayArchives = pgTable(
+  'wanjiedaoyou_battle_replay_archives',
+  {
+    matchId: varchar('match_id', { length: 120 }).primaryKey(),
+    replayVersion: varchar('replay_version', { length: 40 }).notNull(),
+    engineVersion: varchar('engine_version', { length: 40 }).notNull(),
+    rulesetVersion: varchar('ruleset_version', { length: 60 }).notNull(),
+    startedAt: timestamp('started_at').notNull(),
+    finishedAt: timestamp('finished_at').notNull(),
+    outcome: jsonb('outcome').$type<BattleReplayV1['outcome']>().notNull(),
+    participants: jsonb('participants')
+      .$type<BattleReplayV1['participants']>()
+      .notNull(),
+    replay: jsonb('replay').$type<BattleReplayV1>().notNull(),
+    archivedAt: timestamp('archived_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('battle_replay_archives_finished_idx').on(table.finishedAt),
+    index('battle_replay_archives_participants_gin_idx').using(
+      'gin',
+      table.participants,
+    ),
   ],
 );
 

@@ -1,0 +1,259 @@
+.realtime-battle-demo {
+  --arena-paper: #eee7d6;
+  --arena-ink: #2c1810;
+  --arena-muted: rgba(44, 24, 16, 0.58);
+  --arena-rule: rgba(44, 24, 16, 0.22);
+  --arena-crimson: #8f2433;
+  --arena-teal: #3f6b56;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--arena-ink);
+  background: var(--arena-paper);
+}
+
+.realtime-battle-demo__header {
+  position: relative;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  min-height: 64px;
+  padding: calc(env(safe-area-inset-top) + 0.55rem)
+    max(env(safe-area-inset-right), 1rem) 0.55rem
+    max(env(safe-area-inset-left), 1rem);
+  border-bottom: 1px solid var(--arena-rule);
+  background: rgba(238, 231, 214, 0.95);
+}
+
+.realtime-battle-demo__identity,
+.realtime-battle-demo__tools {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.realtime-battle-demo__tools {
+  justify-content: flex-end;
+}
+
+.realtime-battle-demo__title {
+  overflow: hidden;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.realtime-battle-demo__round {
+  text-align: center;
+}
+
+.realtime-battle-demo__round strong {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+}
+
+.realtime-battle-demo__round span {
+  display: block;
+  margin-top: 0.12rem;
+  color: var(--arena-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+}
+
+.realtime-battle-demo__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--arena-teal);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.realtime-battle-demo__live::before {
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 4px rgba(63, 107, 86, 0.1);
+  content: '';
+}
+
+.realtime-battle-demo__quiet-button {
+  border-bottom: 1px dashed var(--arena-rule);
+  padding: 0.25rem 0.15rem;
+  color: var(--arena-muted);
+  font-size: 0.75rem;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease;
+}
+
+.realtime-battle-demo__quiet-button:hover,
+.realtime-battle-demo__quiet-button:focus-visible {
+  border-color: var(--arena-crimson);
+  color: var(--arena-crimson);
+  outline: none;
+}
+
+.realtime-battle-demo__stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.realtime-battle-demo__canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.realtime-battle-demo__canvas canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: auto;
+}
+
+.realtime-battle-demo__focus {
+  pointer-events: none;
+  position: absolute;
+  right: max(env(safe-area-inset-right), 0.8rem);
+  bottom: 0.8rem;
+  z-index: 10;
+  min-width: 10.5rem;
+  padding: 0.55rem 0.7rem;
+  border-right: 2px solid var(--arena-crimson);
+  background: rgba(238, 231, 214, 0.78);
+  text-align: right;
+  backdrop-filter: blur(4px);
+}
+
+.realtime-battle-demo__focus-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+}
+
+.realtime-battle-demo__focus-state {
+  margin-top: 0.18rem;
+  color: var(--arena-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+.realtime-battle-demo__commands {
+  position: relative;
+  z-index: 20;
+  padding: 0.65rem max(env(safe-area-inset-right), 1rem)
+    calc(env(safe-area-inset-bottom) + 0.72rem)
+    max(env(safe-area-inset-left), 1rem);
+  border-top: 1px solid var(--arena-rule);
+  background: rgba(238, 231, 214, 0.97);
+}
+
+.realtime-battle-demo__command-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: 68rem;
+  margin: 0 auto;
+}
+
+.realtime-battle-demo__command {
+  position: relative;
+  min-width: 0;
+  padding: 0.55rem 0.9rem;
+  text-align: left;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.realtime-battle-demo__command + .realtime-battle-demo__command::before {
+  position: absolute;
+  top: 20%;
+  bottom: 20%;
+  left: 0;
+  border-left: 1px solid var(--arena-rule);
+  content: '';
+}
+
+.realtime-battle-demo__command:hover,
+.realtime-battle-demo__command:focus-visible {
+  background: rgba(143, 36, 51, 0.055);
+  color: var(--arena-crimson);
+  outline: none;
+}
+
+.realtime-battle-demo__command strong,
+.realtime-battle-demo__command span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.realtime-battle-demo__command strong {
+  font-size: clamp(0.84rem, 1.6vw, 1rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.realtime-battle-demo__command span {
+  margin-top: 0.2rem;
+  color: var(--arena-muted);
+  font-size: clamp(0.66rem, 1.2vw, 0.75rem);
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 720px) {
+  .realtime-battle-demo__header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.55rem;
+    min-height: 58px;
+  }
+
+  .realtime-battle-demo__round {
+    display: none;
+  }
+
+  .realtime-battle-demo__live {
+    display: none;
+  }
+
+  .realtime-battle-demo__command-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .realtime-battle-demo__command:nth-child(3)::before {
+    display: none;
+  }
+
+  .realtime-battle-demo__command:nth-child(n + 3) {
+    border-top: 1px solid var(--arena-rule);
+  }
+
+  .realtime-battle-demo__focus {
+    right: 0.55rem;
+    bottom: 0.55rem;
+    min-width: 8.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .realtime-battle-demo *,
+  .realtime-battle-demo *::before,
+  .realtime-battle-demo *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

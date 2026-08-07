@@ -40,7 +40,7 @@ export class BuffImmunityEffect extends GameplayEffect {
 
     context.emit<BuffImmuneEvent>({
       type: 'BuffImmuneEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       target,
       buff: event.buff,
       immuneTag: matchedTag,

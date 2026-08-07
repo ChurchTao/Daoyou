@@ -5,12 +5,21 @@ import type {
   ResolvedCombatSequenceScopeV3,
 } from '../v3/types';
 import { CombatEvent, EventPriority } from './types';
+import { SystemBattleClock, type BattleClock } from '../runtime/BattleClock';
 
 type EventHandler<T extends CombatEvent> = (event: T) => void;
 
 interface EventSubscriber {
   wrappedHandler: (event: CombatEvent) => void;
   priority: EventPriority;
+}
+
+export interface EventBusCursorV1 {
+  sequenceCounter: number;
+  eventCounter: number;
+  ordinalCounter: number;
+  resolutionCounter: number;
+  narrativeCauseCounter: number;
 }
 
 /**
@@ -44,7 +53,7 @@ export class EventBus {
   private _narrativeCauseCounter = 0;
   private readonly _maxHistorySize = EventBus.DEFAULT_MAX_HISTORY_SIZE;
 
-  private constructor() {}
+  constructor(public readonly clock: BattleClock = new SystemBattleClock()) {}
 
   /**
    * Subscribe to an event type with handler and optional priority
@@ -124,7 +133,7 @@ export class EventBus {
     const reservedTrace = event.trace;
     const eventId = reservedTrace?.eventId ?? this.nextEventId();
     const eventWithTimestamp = Object.assign(event, {
-      timestamp: event.timestamp ?? Date.now(),
+      timestamp: event.timestamp ?? this.clock.now(),
       trace: {
         eventId,
         sequenceId:
@@ -258,6 +267,35 @@ export class EventBus {
    */
   public clearHistory(): void {
     this._eventHistory = [];
+  }
+
+  public exportCursor(): EventBusCursorV1 {
+    if (this._sequenceStack.length || this._causalContextStack.length) {
+      throw new Error('EventBus cursor can only be exported at a quiescent boundary');
+    }
+    return {
+      sequenceCounter: this._sequenceCounter,
+      eventCounter: this._eventCounter,
+      ordinalCounter: this._ordinalCounter,
+      resolutionCounter: this._resolutionCounter,
+      narrativeCauseCounter: this._narrativeCauseCounter,
+    };
+  }
+
+  public restoreCursor(cursor: EventBusCursorV1): void {
+    if (this._eventHistory.length || this._sequenceStack.length || this._causalContextStack.length) {
+      throw new Error('EventBus cursor must be restored into a fresh bus');
+    }
+    for (const value of Object.values(cursor)) {
+      if (!Number.isSafeInteger(value) || value < 0) {
+        throw new Error('Invalid EventBus cursor');
+      }
+    }
+    this._sequenceCounter = cursor.sequenceCounter;
+    this._eventCounter = cursor.eventCounter;
+    this._ordinalCounter = cursor.ordinalCounter;
+    this._resolutionCounter = cursor.resolutionCounter;
+    this._narrativeCauseCounter = cursor.narrativeCauseCounter;
   }
 
   /**

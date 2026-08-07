@@ -48,7 +48,7 @@ export class MagicShieldEffect extends GameplayEffect {
 
     context.emit<ManaShieldAbsorbEvent>({
       type: 'ManaShieldAbsorbEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       caster: damageEvent.caster,
       target: damageEvent.target,
       ability: damageEvent.ability,

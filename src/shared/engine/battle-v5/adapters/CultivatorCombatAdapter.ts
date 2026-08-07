@@ -11,11 +11,14 @@ import {
   AttributeType,
   type AttributeModifier,
   type UnitId,
+  type TeamId,
+  type TeamSlot,
 } from '../core/types';
 import type { AbilityConfig } from '../core/configs';
 import { Unit } from '../units/Unit';
 import { createSectAbilitySelectionStrategy } from '@shared/engine/sect';
 import { projectSectCombat } from '@shared/engine/sect/content';
+import type { BattleRuntime } from '../runtime/BattleRuntime';
 
 export type CultivatorCombatInput = Pick<
   Cultivator,
@@ -68,6 +71,8 @@ function mountBodyCultivationModifiers(
 export function createCombatUnitFromCultivator(
   cultivator: CultivatorCombatInput,
   isMirror: boolean = false,
+  runtime?: BattleRuntime,
+  team?: { teamId: TeamId; slot: TeamSlot },
 ): Unit {
   const baseAttrs: Partial<Record<AttributeType, number>> = {};
 
@@ -78,7 +83,7 @@ export function createCombatUnitFromCultivator(
 
   const unitId = ((cultivator.id ?? cultivator.name) + (isMirror ? '_mirror' : '')) as UnitId;
   const unitName = isMirror ? `${cultivator.name}的镜像` : cultivator.name;
-  const unit = new Unit(unitId, unitName, baseAttrs);
+  const unit = new Unit(unitId, unitName, baseAttrs, { runtime, ...team });
   unit.setSpiritualRoots(cultivator.spiritual_roots ?? []);
   unit.setRealmMeta({
     realm: cultivator.realm,

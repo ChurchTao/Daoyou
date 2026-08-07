@@ -14,6 +14,7 @@ import type {
   PersistentCombatStatusV5,
   ResourcePointState,
 } from './types';
+import type { BattleRuntime } from '../runtime/BattleRuntime';
 
 const PRIMARY_ATTRIBUTE_TYPES = [
   AttributeType.VITALITY,
@@ -211,9 +212,16 @@ export function createBattleUnitsWithInit(
   player: CultivatorCombatInput,
   opponent: CultivatorCombatInput,
   config?: BattleInitConfigV5,
+  runtime?: BattleRuntime,
 ): { playerUnit: Unit; opponentUnit: Unit } {
-  const playerUnit = createCombatUnitFromCultivator(player);
-  const opponentUnit = createCombatUnitFromCultivator(opponent);
+  const playerUnit = createCombatUnitFromCultivator(player, false, runtime, {
+    teamId: 'player',
+    slot: 0,
+  });
+  const opponentUnit = createCombatUnitFromCultivator(opponent, false, runtime, {
+    teamId: 'opponent',
+    slot: 0,
+  });
   const mergedConfig: BattleInitConfigV5 = {
     ...config,
     player: mergeBodyCultivationInit(config?.player, player),

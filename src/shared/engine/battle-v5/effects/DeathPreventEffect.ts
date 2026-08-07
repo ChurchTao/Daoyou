@@ -49,7 +49,7 @@ export class DeathPreventEffect extends GameplayEffect {
       });
       context.emit<DeathPreventEvent>({
         type: 'DeathPreventEvent',
-        timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
         target,
         ability,
         sourceKey,

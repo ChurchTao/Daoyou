@@ -1,6 +1,5 @@
 import { Ability, type AbilityCastSnapshot } from '../abilities/Ability';
 import { Buff } from '../buffs/Buff';
-import { EventBus } from '../core/EventBus';
 import type { DamageTakenEvent } from '../core/events';
 import { CombatEvent, type LogCauseRef } from '../core/types';
 import { Unit } from '../units/Unit';
@@ -46,7 +45,7 @@ export class EffectExecutionContextV3 {
     const trace =
       input.trace ??
       input.triggerEvent?.trace ??
-      EventBus.instance.getCurrentTrace();
+      input.owner.runtime.events.getCurrentTrace();
     if (!trace) {
       throw new Error('EffectExecutionContextV3 requires an explicit trace');
     }
@@ -121,9 +120,9 @@ export class EffectExecutionContextV3 {
   }
 
   emit<T extends CombatEvent>(event: T): T {
-    return EventBus.instance.runInCausalContext(
+    return this.owner.runtime.events.runInCausalContext(
       { origin: this.origin, trace: this.trace },
-      () => EventBus.instance.publish(event),
+      () => this.owner.runtime.events.publish(event),
     );
   }
 
@@ -155,7 +154,7 @@ export class EffectExecutionContextV3 {
         target: this.target,
         trace: {
           ...this.trace,
-          narrativeCauseId: EventBus.instance.nextNarrativeCauseId(),
+          narrativeCauseId: this.owner.runtime.events.nextNarrativeCauseId(),
         },
         ability: this.ability,
         buff: this.buff,
@@ -198,7 +197,7 @@ export function executeGameplayEffectV3(
   context: EffectExecutionContextV3,
 ): void {
   if (!context.canExecuteEffect()) return;
-  EventBus.instance.runInCausalContext(
+  context.owner.runtime.events.runInCausalContext(
     { origin: context.origin, trace: context.trace },
     () => effect.execute(context),
   );

@@ -2,7 +2,6 @@ import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { Buff, StackRule } from '../buffs/Buff';
 import { DelayedEffectParams } from '../core/configs';
 import { executeEffectConfigs } from '../core/effectExecutor';
-import { EventBus } from '../core/EventBus';
 import {
   ActionPostEvent,
   DamageTakenEvent,
@@ -32,6 +31,33 @@ export class DelayedRuntimeBuff extends Buff {
     );
     this.remainingTurns = Math.max(1, Math.round(params.delayTurns));
     this.tags.addTags(params.tags ?? [GameplayTags.BUFF.TYPE.DEBUFF]);
+  }
+
+  getParams(): DelayedEffectParams {
+    return this.params;
+  }
+
+  restoreRuntimeState(remainingTurns: number, triggerCount: number): void {
+    this.remainingTurns = Math.max(0, Math.trunc(remainingTurns));
+    this.triggerCount = Math.max(0, Math.trunc(triggerCount));
+    this.refreshToDuration(this.remainingTurns);
+  }
+
+  getRuntimeState(): { remainingTurns: number; triggerCount: number } {
+    return {
+      remainingTurns: this.remainingTurns,
+      triggerCount: this.triggerCount,
+    };
+  }
+
+  override clone(): DelayedRuntimeBuff {
+    const cloned = new DelayedRuntimeBuff(this.params);
+    cloned.tags = this.tags.clone();
+    cloned.setLayer(this.getLayer());
+    cloned.restoreDuration(this.getDuration(), this.getMaxDuration());
+    cloned.remainingTurns = this.remainingTurns;
+    cloned.triggerCount = this.triggerCount;
+    return cloned;
   }
 
   override onActivate(): void {
@@ -66,7 +92,7 @@ export class DelayedRuntimeBuff extends Buff {
     if (!attribution) {
       throw new Error(`Delayed buff ${this.id} has no CombatAttributionV3`);
     }
-    const trace = EventBus.instance.getCurrentTrace();
+    const trace = this._eventBus.getCurrentTrace();
     if (!trace) {
       throw new Error(`Delayed buff ${this.id} trigger has no causal trace`);
     }
@@ -195,9 +221,6 @@ export class DelayedRuntimeBuff extends Buff {
     super.onDeactivate();
   }
 
-  override clone(): DelayedRuntimeBuff {
-    return new DelayedRuntimeBuff(this.params);
-  }
 }
 
 export class DelayedEffect extends GameplayEffect {

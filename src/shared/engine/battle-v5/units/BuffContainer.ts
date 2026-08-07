@@ -1,6 +1,5 @@
 import type { Ability } from '../abilities/Ability';
 import { Buff, StackRule } from '../buffs/Buff';
-import { EventBus } from '../core/EventBus';
 import {
   BuffAddEvent,
   BuffAppliedEvent,
@@ -97,18 +96,18 @@ export class BuffContainer {
       // 1. 发布拦截事件
       const event: BuffAddEvent = {
         type: 'BuffAddEvent',
-        timestamp: Date.now(),
+        timestamp: this._owner.runtime.clock.now(),
         target: this._owner,
         buff,
         source,
         isCancelled: false,
       };
-      publishedAddEvent = EventBus.instance.runInCausalContext(
+      publishedAddEvent = this._owner.runtime.events.runInCausalContext(
         {
           origin: attribution.origin,
-          trace: EventBus.instance.getCurrentTrace(),
+          trace: this._owner.runtime.events.getCurrentTrace(),
         },
-        () => EventBus.instance.publish(event),
+        () => this._owner.runtime.events.publish(event),
       );
       if (event.isCancelled) return;
     }
@@ -375,14 +374,15 @@ export class BuffContainer {
     const resultOrigin = this._resolveFactAttribution(
       operation?.attribution ?? attribution,
     ).origin;
-    const causalTrace = operation?.trace ?? EventBus.instance.reserveTrace();
+    const causalTrace =
+      operation?.trace ?? this._owner.runtime.events.reserveTrace();
     const previousLayers = buff.getLayer();
     let removedEventParentTrace = causalTrace;
     if (
       buff.logVisibility !== 'debug' &&
       operation?.statusFactVisibility !== 'debug'
     ) {
-      const statusTrace = EventBus.instance.reserveTrace({
+      const statusTrace = this._owner.runtime.events.reserveTrace({
         parentEventId: causalTrace.eventId,
       });
       const statusResult = new CombatResultEmitterV3().commit(
@@ -408,14 +408,14 @@ export class BuffContainer {
 
     const removedEvent: BuffRemovedEvent = {
       type: 'BuffRemovedEvent',
-      timestamp: Date.now(),
+      timestamp: this._owner.runtime.clock.now(),
       target: this._owner,
       buff,
       reason: reason === 'consumed' ? 'manual' : reason,
     };
-    EventBus.instance.runInCausalContext(
+    this._owner.runtime.events.runInCausalContext(
       { origin: resultOrigin, trace: removedEventParentTrace },
-      () => EventBus.instance.publish(removedEvent),
+      () => this._owner.runtime.events.publish(removedEvent),
     );
   }
 
@@ -526,16 +526,16 @@ export class BuffContainer {
   ): void {
     const appliedEvent: BuffAppliedEvent = {
       type: 'BuffAppliedEvent',
-      timestamp: Date.now(),
+      timestamp: this._owner.runtime.clock.now(),
       target: this._owner,
       buff,
       source,
       ability: origin?.ability,
       sourceBuff: origin?.buff,
     };
-    EventBus.instance.runInCausalContext(
+    this._owner.runtime.events.runInCausalContext(
       { origin: attribution.origin, trace: parentTrace },
-      () => EventBus.instance.publish(appliedEvent),
+      () => this._owner.runtime.events.publish(appliedEvent),
     );
   }
 
@@ -596,8 +596,8 @@ export class BuffContainer {
     }
     const parentTrace =
       operation?.trace ??
-      EventBus.instance.getCurrentTrace() ??
-      EventBus.instance.reserveTrace();
+      this._owner.runtime.events.getCurrentTrace() ??
+      this._owner.runtime.events.reserveTrace();
     new CombatResultEmitterV3().commit(
       this._owner,
       {
@@ -673,9 +673,9 @@ export class BuffContainer {
     origin?: { ability?: Ability; buff?: Buff },
   ): void {
     if (previousLayer === currentLayer) return;
-    EventBus.instance.publish<BuffLayerChangedEvent>({
+    this._owner.runtime.events.publish<BuffLayerChangedEvent>({
       type: 'BuffLayerChangedEvent',
-      timestamp: Date.now(),
+      timestamp: this._owner.runtime.clock.now(),
       target: this._owner,
       buff,
       source,

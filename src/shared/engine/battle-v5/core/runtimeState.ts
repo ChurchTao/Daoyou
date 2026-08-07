@@ -24,7 +24,7 @@ export interface QueuedActionRuntime {
   hitPolicy: ActionHitPolicy;
 }
 
-interface SkippedActionRuntime {
+export interface SkippedActionRuntime {
   name: string;
   reason: string;
   sourceAbility?: ActionStateAbilityView;
@@ -80,37 +80,26 @@ export interface AbilityModeRuntime {
   cleanupBuffIds?: string[];
 }
 
-const unitState = new WeakMap<Unit, BattleRuntimeState>();
-const delayedBuffEffects = new WeakMap<Buff, EffectConfig[]>();
-const activeAbilityTransforms = new WeakMap<
-  ActiveSkill,
-  PendingAbilityTransform
->();
-const buffAppliedAtAction = new WeakMap<Buff, number>();
+export interface SerializableBattleRuntimeStateV1 {
+  memories: Array<[string, DamageMemoryEntry]>;
+  transforms: PendingAbilityTransform[];
+  counters: Array<[string, number]>;
+  deathPreventTriggers: string[];
+  sequences: Array<[string, number]>;
+  dealtDamageSinceLastCheck: boolean;
+  actionSequence: number;
+  round: number;
+  listenerTriggerBudgets: Array<
+    [string, { token: number; count: number }]
+  >;
+  skippedActions: SkippedActionRuntime[];
+  queuedAction?: QueuedActionRuntime;
+  abilityModes: Array<[string, AbilityModeRuntime]>;
+  actionAmounts: Array<[string, { action: number; amount: number }]>;
+}
 
 export function getBattleRuntimeState(unit: Unit): BattleRuntimeState {
-  let state = unitState.get(unit);
-  if (!state) {
-    state = {
-      memories: new Map(),
-      transforms: [],
-      counters: new Map(),
-      activeEffectGuards: new Set(),
-      globalUniqueEffects: new Map(),
-      deathPreventTriggers: new Set(),
-      sequences: new Map(),
-      dealtDamageSinceLastCheck: false,
-      removedBuffs: [],
-      actionSequence: 0,
-      round: 0,
-      listenerTriggerBudgets: new Map(),
-      skippedActions: [],
-      abilityModes: new Map(),
-      actionAmounts: new Map(),
-    };
-    unitState.set(unit, state);
-  }
-  return state;
+  return unit.runtime.states.getUnitState(unit);
 }
 
 export function queueSkippedActions(
@@ -272,12 +261,16 @@ export function claimActionAmount(
 }
 
 export function markBuffAppliedAtCurrentAction(unit: Unit, buff: Buff): void {
-  buffAppliedAtAction.set(buff, getBattleRuntimeState(unit).actionSequence);
+  unit.runtime.states.setBuffAppliedAtAction(
+    buff,
+    getBattleRuntimeState(unit).actionSequence,
+  );
 }
 
 export function shouldTickBuffDuration(unit: Unit, buff: Buff): boolean {
   return (
-    buffAppliedAtAction.get(buff) !== getBattleRuntimeState(unit).actionSequence
+    unit.runtime.states.getBuffAppliedAtAction(buff) !==
+    getBattleRuntimeState(unit).actionSequence
   );
 }
 
@@ -445,9 +438,10 @@ export function beginAbilityTransform(
   unit: Unit,
   ability: ActiveSkill,
 ): PendingAbilityTransform | undefined {
+  ability.bindRuntime(unit.runtime);
   const transform = consumeAbilityTransform(unit, ability);
   if (transform) {
-    activeAbilityTransforms.set(ability, transform);
+    unit.runtime.states.setActiveAbilityTransform(ability, transform);
   }
   return transform;
 }
@@ -455,22 +449,27 @@ export function beginAbilityTransform(
 export function getActiveAbilityTransform(
   ability: ActiveSkill | undefined,
 ): PendingAbilityTransform | undefined {
-  return ability ? activeAbilityTransforms.get(ability) : undefined;
+  const runtime = ability?.getRuntime();
+  return ability && runtime
+    ? runtime.states.getActiveAbilityTransform(ability)
+    : undefined;
 }
 
 export function endAbilityTransform(ability: ActiveSkill): void {
-  activeAbilityTransforms.delete(ability);
+  ability.getRuntime()?.states.deleteActiveAbilityTransform(ability);
 }
 
 export function setDelayedBuffEffects(
   buff: Buff,
   effects: EffectConfig[],
 ): void {
-  delayedBuffEffects.set(buff, effects);
+  const owner = buff.getOwner();
+  if (!owner) throw new Error(`Buff ${buff.id} must be owned before setup`);
+  owner.runtime.states.setDelayedBuffEffects(buff, effects);
 }
 
 export function getDelayedBuffEffects(buff: Buff): EffectConfig[] | undefined {
-  return delayedBuffEffects.get(buff);
+  return buff.getOwner()?.runtime.states.getDelayedBuffEffects(buff);
 }
 
 export function rememberRemovedBuff(unit: Unit, buff: Buff): void {
@@ -484,4 +483,84 @@ export function readRecentRemovedBuff(
   predicate: (buff: Buff) => boolean,
 ): Buff | undefined {
   return getBattleRuntimeState(unit).removedBuffs.find(predicate);
+}
+
+export function exportBattleRuntimeState(
+  unit: Unit,
+): SerializableBattleRuntimeStateV1 {
+  const state = getBattleRuntimeState(unit);
+  if (state.activeEffectGuards.size > 0) {
+    throw new Error('Checkpoint requires a quiescent effect boundary');
+  }
+  return {
+    memories: [...state.memories].map(([key, value]) => [key, { ...value }]),
+    transforms: state.transforms.map((transform) => ({ ...transform })),
+    counters: [...state.counters],
+    deathPreventTriggers: [...state.deathPreventTriggers],
+    sequences: [...state.sequences],
+    dealtDamageSinceLastCheck: state.dealtDamageSinceLastCheck,
+    actionSequence: state.actionSequence,
+    round: state.round,
+    listenerTriggerBudgets: [...state.listenerTriggerBudgets].map(
+      ([key, value]) => [key, { ...value }],
+    ),
+    skippedActions: state.skippedActions.map((action) => ({ ...action })),
+    queuedAction: state.queuedAction
+      ? {
+          ...state.queuedAction,
+          ability: { ...state.queuedAction.ability },
+          cancelEffects: state.queuedAction.cancelEffects.map((effect) => ({
+            ...effect,
+          })),
+        }
+      : undefined,
+    abilityModes: [...state.abilityModes].map(([key, value]) => [
+      key,
+      { ...value, cleanupBuffIds: value.cleanupBuffIds?.slice() },
+    ]),
+    actionAmounts: [...state.actionAmounts].map(([key, value]) => [
+      key,
+      { ...value },
+    ]),
+  };
+}
+
+export function restoreBattleRuntimeState(
+  unit: Unit,
+  snapshot: SerializableBattleRuntimeStateV1,
+): void {
+  const state = getBattleRuntimeState(unit);
+  state.memories = new Map(
+    snapshot.memories.map(([key, value]) => [key, { ...value }]),
+  );
+  state.transforms = snapshot.transforms.map((transform) => ({ ...transform }));
+  state.counters = new Map(snapshot.counters);
+  state.activeEffectGuards.clear();
+  state.deathPreventTriggers = new Set(snapshot.deathPreventTriggers);
+  state.sequences = new Map(snapshot.sequences);
+  state.dealtDamageSinceLastCheck = snapshot.dealtDamageSinceLastCheck;
+  state.actionSequence = snapshot.actionSequence;
+  state.round = snapshot.round;
+  state.listenerTriggerBudgets = new Map(
+    snapshot.listenerTriggerBudgets.map(([key, value]) => [key, { ...value }]),
+  );
+  state.skippedActions = snapshot.skippedActions.map((action) => ({ ...action }));
+  state.queuedAction = snapshot.queuedAction
+    ? {
+        ...snapshot.queuedAction,
+        ability: { ...snapshot.queuedAction.ability },
+        cancelEffects: snapshot.queuedAction.cancelEffects.map((effect) => ({
+          ...effect,
+        })),
+      }
+    : undefined;
+  state.abilityModes = new Map(
+    snapshot.abilityModes.map(([key, value]) => [
+      key,
+      { ...value, cleanupBuffIds: value.cleanupBuffIds?.slice() },
+    ]),
+  );
+  state.actionAmounts = new Map(
+    snapshot.actionAmounts.map(([key, value]) => [key, { ...value }]),
+  );
 }

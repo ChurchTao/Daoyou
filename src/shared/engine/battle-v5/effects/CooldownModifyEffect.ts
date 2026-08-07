@@ -54,7 +54,7 @@ export class CooldownModifyEffect extends GameplayEffect {
       // 发布冷却修改事件
       context.emit<CooldownModifyEvent>({
         type: 'CooldownModifyEvent',
-        timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
         caster,
         target: recipient,
         ability,

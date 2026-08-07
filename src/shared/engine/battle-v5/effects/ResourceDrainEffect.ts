@@ -44,7 +44,7 @@ export class ResourceDrainEffect extends GameplayEffect {
     // 发布资源夺取事件
     context.emit<ResourceDrainEvent>({
       type: 'ResourceDrainEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       caster,
       target,
       ability,

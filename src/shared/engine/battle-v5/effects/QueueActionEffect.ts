@@ -40,7 +40,7 @@ export class QueueActionEffect extends GameplayEffect {
     });
     context.emit<ActionStateEvent>({
       type: 'ActionStateEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       unit: context.caster,
       stateType: 'queued_action',
       phase: 'entered',

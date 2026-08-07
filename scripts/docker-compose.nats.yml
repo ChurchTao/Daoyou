@@ -9,6 +9,7 @@ services:
       - --http_port=8222
       - --user=app
       - --pass=local-nats-password
+      - --max_payload=8MB
     ports:
       - '4222:4222'
       - '8222:8222'

@@ -5,7 +5,6 @@ import {
 } from '../abilities/AbilitySelectionStrategy';
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import { BasicAttack } from '../abilities/BasicAttack';
-import { EventBus } from '../core/EventBus';
 import {
   ActionEvent,
   ControlledSkipEvent,
@@ -46,7 +45,7 @@ export class AbilityContainer {
   private _subscribeToEvents(): void {
     const actionEventHandler = (event: unknown) =>
       this._onActionTrigger(event as ActionEvent);
-    EventBus.instance.subscribe<ActionEvent>(
+    this._owner.runtime.events.subscribe<ActionEvent>(
       'ActionEvent',
       actionEventHandler,
       EventPriorityLevel.ACTION_TRIGGER,
@@ -152,9 +151,9 @@ export class AbilityContainer {
         opponent,
       );
     } else {
-      EventBus.instance.publish<ControlledSkipEvent>({
+      this._owner.runtime.events.publish<ControlledSkipEvent>({
         type: 'ControlledSkipEvent',
-        timestamp: Date.now(),
+        timestamp: this._owner.runtime.clock.now(),
         unit: this._owner,
         controlTag: GameplayTags.STATUS.CONTROL.NO_ACTION,
       });
@@ -187,9 +186,9 @@ export class AbilityContainer {
    */
   private _prepareCast(ability: Ability, target: Unit): void {
     ability.prepareCast({ caster: this._owner, target });
-    EventBus.instance.publish<SkillPreCastEvent>({
+    this._owner.runtime.events.publish<SkillPreCastEvent>({
       type: 'SkillPreCastEvent',
-      timestamp: Date.now(),
+      timestamp: this._owner.runtime.clock.now(),
       caster: this._owner,
       target,
       fallbackTarget: this._getDefaultTarget() ?? undefined,
@@ -340,7 +339,7 @@ export class AbilityContainer {
   destroy(): void {
     // 取消所有事件订阅
     for (const [eventType, handler] of this._handlers) {
-      EventBus.instance.unsubscribe(eventType, handler);
+      this._owner.runtime.events.unsubscribe(eventType, handler);
     }
     this._handlers.clear();
 

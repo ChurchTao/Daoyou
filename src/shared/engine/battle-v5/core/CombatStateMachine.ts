@@ -63,7 +63,10 @@ export class CombatStateMachine {
   private _states = new Map<CombatPhase, CombatState>();
   private _context: CombatContext;
 
-  constructor(context: CombatContext) {
+  constructor(
+    context: CombatContext,
+    private readonly eventBus: EventBus = EventBus.instance,
+  ) {
     this._context = context;
     this._initStates();
   }
@@ -77,9 +80,9 @@ export class CombatStateMachine {
       phase: CombatPhase.INIT,
       onEnter: () => {
         const units = Array.from(this._context.units.values());
-        EventBus.instance.publish<BattleInitEvent>({
+        this.eventBus.publish<BattleInitEvent>({
           type: 'BattleInitEvent',
-          timestamp: Date.now(),
+          timestamp: this.eventBus.clock.now(),
           player: units[0],
           opponent: units[1],
         });
@@ -92,9 +95,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.ROUND_START, {
       phase: CombatPhase.ROUND_START,
       onEnter: () => {
-        EventBus.instance.publish<RoundStartEvent>({
+        this.eventBus.publish<RoundStartEvent>({
           type: 'RoundStartEvent',
-          timestamp: Date.now(),
+          timestamp: this.eventBus.clock.now(),
           turn: this._context.turn,
         });
       },
@@ -106,9 +109,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.ROUND_PRE, {
       phase: CombatPhase.ROUND_PRE,
       onEnter: () => {
-        EventBus.instance.publish<RoundPreEvent>({
+        this.eventBus.publish<RoundPreEvent>({
           type: 'RoundPreEvent',
-          timestamp: Date.now(),
+          timestamp: this.eventBus.clock.now(),
           turn: this._context.turn,
         });
       },
@@ -127,9 +130,9 @@ export class CombatStateMachine {
             b.attributes.getValue(AttributeType.ACTION_SPEED) -
             a.attributes.getValue(AttributeType.ACTION_SPEED)
           );
-        EventBus.instance.publish<TurnOrderEvent>({
+        this.eventBus.publish<TurnOrderEvent>({
           type: 'TurnOrderEvent',
-          timestamp: Date.now(),
+          timestamp: this.eventBus.clock.now(),
           turn: this._context.turn,
           units,
         });
@@ -153,9 +156,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.ROUND_POST, {
       phase: CombatPhase.ROUND_POST,
       onEnter: () => {
-        EventBus.instance.publish<RoundPostEvent>({
+        this.eventBus.publish<RoundPostEvent>({
           type: 'RoundPostEvent',
-          timestamp: Date.now(),
+          timestamp: this.eventBus.clock.now(),
           turn: this._context.turn,
         });
       },
@@ -167,9 +170,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.VICTORY_CHECK, {
       phase: CombatPhase.VICTORY_CHECK,
       onEnter: () => {
-        EventBus.instance.publish<VictoryCheckEvent>({
+        this.eventBus.publish<VictoryCheckEvent>({
           type: 'VictoryCheckEvent',
-          timestamp: Date.now(),
+          timestamp: this.eventBus.clock.now(),
           turn: this._context.turn,
           battleEnded: this._context.battleEnded,
           winner: this._context.winner,
@@ -183,9 +186,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.END, {
       phase: CombatPhase.END,
       onEnter: () => {
-        EventBus.instance.publish<BattleEndEvent>({
+        this.eventBus.publish<BattleEndEvent>({
           type: 'BattleEndEvent',
-          timestamp: Date.now(),
+          timestamp: this.eventBus.clock.now(),
           winner: this._context.winner,
           turns: this._context.turn,
         });

@@ -42,7 +42,7 @@ export class BuffFactory {
 
     // 2. 递归装配逻辑监听链
     if (config.listeners) {
-      for (const listener of config.listeners) {
+      for (const [listenerIndex, listener] of config.listeners.entries()) {
         this.assertListenerContract(listener);
         const instantiatedEffects = listener.effects
           .map((effCfg) => {
@@ -50,7 +50,13 @@ export class BuffFactory {
             return effect ? { effect, globalUnique: effCfg.globalUnique } : null;
           })
           .filter((e) => e !== null);
-        buff.addInstantiatedListener(buildListenerRuntimeConfig(listener), instantiatedEffects);
+        buff.addInstantiatedListener(
+          buildListenerRuntimeConfig(
+            listener,
+            `${config.id}:buff:${listenerIndex}`,
+          ),
+          instantiatedEffects,
+        );
       }
     }
 

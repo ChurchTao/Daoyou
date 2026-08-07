@@ -1,8 +1,7 @@
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
-import { battleRandom } from './core/BattleRandom';
 import { CombatContext, CombatStateMachine } from './core/CombatStateMachine';
 import { executeEffectConfigs } from './core/effectExecutor';
-import { EventBus } from './core/EventBus';
+import type { EventBus } from './core/EventBus';
 import {
   ActionEvent,
   ActionPostEvent,
@@ -20,7 +19,7 @@ import {
   setRuntimeRound,
   shouldTickBuffDuration,
 } from './core/runtimeState';
-import { AttributeType, CombatPhase } from './core/types';
+import { CombatPhase } from './core/types';
 import { EffectExecutionContextV3 } from './effects/Effect';
 import { AbilityFactory } from './factories/AbilityFactory';
 import { ActionExecutionSystem } from './systems/ActionExecutionSystem';
@@ -39,6 +38,9 @@ import {
 } from './v3';
 import { CombatResultEmitterV3 } from './v3/CombatResultEmitterV3';
 import { CombatAttributionV3, CombatSystemSourceV3 } from './v3/origin';
+import type { BattleRuntime } from './runtime/BattleRuntime';
+import { BattleRoster } from './core/BattleRoster';
+import { InitiativeSystem } from './systems/InitiativeSystem';
 
 export interface BattleResult {
   winner: string;
@@ -73,33 +75,37 @@ export class BattleEngineV5 {
   private _actionSystem: ActionExecutionSystem;
   private _damageSystem: DamageSystem;
   private _stateRecorder: BattleStateRecorder;
+  readonly runtime: BattleRuntime;
+  readonly roster: BattleRoster;
 
-  constructor(player: Unit, opponent: Unit) {
+  constructor(player: Unit, opponent: Unit, runtime: BattleRuntime = player.runtime) {
+    if (player.runtime !== runtime || opponent.runtime !== runtime) {
+      throw new Error('All battle units must belong to the engine runtime');
+    }
     this._player = player;
     this._opponent = opponent;
-    this._eventBus = EventBus.instance;
+    this.runtime = runtime;
+    this.roster = BattleRoster.fromDuel(player, opponent);
+    this._eventBus = runtime.events;
 
     this._recordBuilder = new CombatRecordBuilderV3(this._eventBus);
 
     // 初始化事件驱动系统
-    this._actionSystem = new ActionExecutionSystem();
-    this._damageSystem = new DamageSystem();
+    this._actionSystem = new ActionExecutionSystem(this._eventBus);
+    this._damageSystem = new DamageSystem(this._eventBus, runtime.random);
     this._stateRecorder = new BattleStateRecorder();
 
     // 初始化战斗上下文
     const context: CombatContext = {
       turn: 0,
       maxTurns: VictorySystem.getMaxTurns(),
-      units: new Map([
-        [player.id, player],
-        [opponent.id, opponent],
-      ]),
+      units: new Map(this.roster.units),
       battleEnded: false,
       winner: null,
       currentCaster: null,
     };
 
-    this._stateMachine = new CombatStateMachine(context);
+    this._stateMachine = new CombatStateMachine(context, this._eventBus);
   }
 
   /**
@@ -236,7 +242,7 @@ export class BattleEngineV5 {
         (sequence) => {
           this._eventBus.publish<ActionPreEvent>({
             type: 'ActionPreEvent',
-            timestamp: Date.now(),
+            timestamp: this.runtime.clock.now(),
             caster: actor,
           });
           this._stateRecorder.record(
@@ -279,7 +285,7 @@ export class BattleEngineV5 {
               });
               this._eventBus.publish<ActionStateEvent>({
                 type: 'ActionStateEvent',
-                timestamp: Date.now(),
+                timestamp: this.runtime.clock.now(),
                 unit: actor,
                 stateType: 'rest',
                 phase: 'skipped',
@@ -302,7 +308,7 @@ export class BattleEngineV5 {
               });
               this._eventBus.publish<ControlledSkipEvent>({
                 type: 'ControlledSkipEvent',
-                timestamp: Date.now(),
+                timestamp: this.runtime.clock.now(),
                 unit: actor,
                 controlTag,
               });
@@ -339,7 +345,7 @@ export class BattleEngineV5 {
             const queuedAbility = AbilityFactory.create(queuedAction.ability);
             this._eventBus.publish<SkillPreCastEvent>({
               type: 'SkillPreCastEvent',
-              timestamp: Date.now(),
+              timestamp: this.runtime.clock.now(),
               caster: actor,
               target,
               ability: queuedAbility,
@@ -355,7 +361,7 @@ export class BattleEngineV5 {
             // 发布行动事件，触发整个技能流程
             this._eventBus.publish<ActionEvent>({
               type: 'ActionEvent',
-              timestamp: Date.now(),
+              timestamp: this.runtime.clock.now(),
               caster: actor,
             });
           }
@@ -403,7 +409,7 @@ export class BattleEngineV5 {
     });
     this._eventBus.publish<ActionStateEvent>({
       type: 'ActionStateEvent',
-      timestamp: Date.now(),
+      timestamp: this.runtime.clock.now(),
       unit: actor,
       stateType: 'queued_action',
       phase: 'cancelled',
@@ -459,7 +465,7 @@ export class BattleEngineV5 {
         if (actor.isAlive()) {
           this._eventBus.publish<ActionPostEvent>({
             type: 'ActionPostEvent',
-            timestamp: Date.now(),
+            timestamp: this.runtime.clock.now(),
             caster: actor,
           });
         }
@@ -503,16 +509,10 @@ export class BattleEngineV5 {
    * 获取按行动速度排序的单位
    */
   private getSortedUnits(): Unit[] {
-    return [this._player, this._opponent]
-      .filter((u) => u.isAlive())
-      .sort((a, b) => {
-        const speedA = a.attributes.getValue(AttributeType.ACTION_SPEED);
-        const speedB = b.attributes.getValue(AttributeType.ACTION_SPEED);
-        if (speedA === speedB) {
-          return battleRandom() - 0.5;
-        }
-        return speedB - speedA;
-      });
+    return InitiativeSystem.order(
+      this.roster.getLivingUnits(),
+      this.runtime.random,
+    );
   }
 
   /**

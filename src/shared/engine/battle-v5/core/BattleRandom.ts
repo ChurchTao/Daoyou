@@ -2,6 +2,11 @@ export interface BattleRandomSource {
   next(): number;
 }
 
+export interface BattleRandomStateV1 {
+  algorithm: 'mulberry32';
+  state: number;
+}
+
 const defaultSource: BattleRandomSource = { next: () => Math.random() };
 const sourceStack: BattleRandomSource[] = [];
 
@@ -36,6 +41,22 @@ export class SeededBattleRandomSource implements BattleRandomSource {
     value = Math.imul(value ^ (value >>> 15), value | 1);
     value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
     return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  }
+
+  exportState(): BattleRandomStateV1 {
+    return { algorithm: 'mulberry32', state: this.state };
+  }
+
+  restoreState(snapshot: BattleRandomStateV1): void {
+    if (
+      snapshot.algorithm !== 'mulberry32' ||
+      !Number.isSafeInteger(snapshot.state) ||
+      snapshot.state < 0 ||
+      snapshot.state > 0xffff_ffff
+    ) {
+      throw new Error('Invalid battle random state');
+    }
+    this.state = snapshot.state >>> 0;
   }
 
   private static hash(value: string): number {

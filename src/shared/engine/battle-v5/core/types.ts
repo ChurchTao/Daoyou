@@ -1,5 +1,7 @@
 // ===== 基础类型 =====
 export type UnitId = string;
+export type TeamId = string;
+export type TeamSlot = 0 | 1 | 2 | 3;
 export type AbilityId = string;
 export type BuffId = string;
 export type EventPriority = number;

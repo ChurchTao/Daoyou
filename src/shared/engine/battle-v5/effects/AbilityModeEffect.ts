@@ -88,7 +88,7 @@ export class AbilityModeEffect extends GameplayEffect {
     });
     context.emit<ActionStateEvent>({
       type: 'ActionStateEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       unit: context.caster,
       stateType: 'ability_mode',
       phase,

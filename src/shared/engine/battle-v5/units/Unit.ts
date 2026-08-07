@@ -1,13 +1,19 @@
 import { GameplayTagContainer, GameplayTags } from '@shared/engine/shared/tag-domain';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { SpiritualRoot } from '@shared/types/cultivator';
-import { AttributeType, UnitId, UnitSnapshot } from '../core/types';
+import {
+  AttributeType,
+  type TeamId,
+  type TeamSlot,
+  UnitId,
+  UnitSnapshot,
+} from '../core/types';
 import { AbilityContainer } from './AbilityContainer';
 import { AttributeSet } from './AttributeSet';
 import { BuffContainer } from './BuffContainer';
 import { CombatResourceContainer } from './CombatResourceContainer';
-import { EventBus } from '../core/EventBus';
 import type { HpChangedEvent } from '../core/events';
+import { BattleRuntime } from '../runtime/BattleRuntime';
 
 export type HpChangeReason = HpChangedEvent['reason'];
 
@@ -26,6 +32,9 @@ export class Unit {
   readonly buffs: BuffContainer;
   readonly combatResources: CombatResourceContainer;
   readonly tags: GameplayTagContainer;
+  readonly runtime: BattleRuntime;
+  readonly teamId: TeamId;
+  readonly slot: TeamSlot;
 
   private currentHp: number;
   private currentMp: number;
@@ -47,10 +56,16 @@ export class Unit {
       abilities?: AbilityContainer;
       buffs?: BuffContainer;
       combatResources?: CombatResourceContainer;
+      runtime?: BattleRuntime;
+      teamId?: TeamId;
+      slot?: TeamSlot;
     },
   ) {
     this.id = id;
     this.name = name;
+    this.runtime = options?.runtime ?? BattleRuntime.legacy;
+    this.teamId = options?.teamId ?? `legacy_team:${id}`;
+    this.slot = options?.slot ?? 0;
 
     this.attributes = options?.attributes ?? new AttributeSet(baseAttrs);
     this.abilities = options?.abilities ?? new AbilityContainer(this);
@@ -124,9 +139,9 @@ export class Unit {
     const afterHp = Math.max(0, Math.min(this.maxHp, amount));
     if (afterHp === beforeHp) return;
     this.currentHp = afterHp;
-    EventBus.instance.publish<HpChangedEvent>({
+    this.runtime.events.publish<HpChangedEvent>({
       type: 'HpChangedEvent',
-      timestamp: Date.now(),
+      timestamp: this.runtime.clock.now(),
       unit: this,
       beforeHp,
       afterHp,
@@ -232,6 +247,7 @@ export class Unit {
       this.id + '_mirror',
       this.name + '的镜像',
       this.attributes.getAllValues(),
+      { runtime: this.runtime, teamId: this.teamId, slot: this.slot },
     );
 
     // Clone containers with the temp unit as owner
@@ -250,6 +266,9 @@ export class Unit {
         abilities: clonedAbilities,
         buffs: clonedBuffs,
         combatResources: clonedCombatResources,
+        runtime: this.runtime,
+        teamId: this.teamId,
+        slot: this.slot,
       },
     );
 

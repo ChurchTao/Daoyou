@@ -1,4 +1,4 @@
-import { EventBus } from '../core/EventBus';
+import type { EventBus } from '../core/EventBus';
 import type { Unit } from '../units/Unit';
 import { CombatV3EventType, type CombatResultCommittedEventV3 } from './events';
 import { freezeCombatOriginV3 } from './origin';
@@ -17,7 +17,7 @@ export interface CombatResultScopeV3 {
 }
 
 export class CombatResultEmitterV3 {
-  constructor(private readonly eventBus: EventBus = EventBus.instance) {}
+  constructor(private readonly eventBus?: EventBus) {}
 
   commit(
     target: Unit,
@@ -42,12 +42,13 @@ export class CombatResultEmitterV3 {
           role: scope.narrativeRole ?? ('result' as const),
         })
       : undefined;
-    const committed = this.eventBus.runInCausalContext(
+    const eventBus = this.eventBus ?? target.runtime.events;
+    const committed = eventBus.runInCausalContext(
       { origin: immutableOrigin, trace: parentTrace },
       () =>
-        this.eventBus.publishImmutable<CombatResultCommittedEventV3>({
+        eventBus.publishImmutable<CombatResultCommittedEventV3>({
           type: CombatV3EventType.RESULT_COMMITTED,
-          timestamp: Date.now(),
+          timestamp: target.runtime.clock.now(),
           target,
           result: immutableResult,
           narrative,

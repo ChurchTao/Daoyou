@@ -1,9 +1,5 @@
 import { BattleEngineV5 } from '@shared/engine/battle-v5/BattleEngineV5';
-import {
-  withBattleRandomSource,
-  type BattleRandomSource,
-} from '@shared/engine/battle-v5/core/BattleRandom';
-import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
+import type { BattleRandomSource } from '@shared/engine/battle-v5/core/BattleRandom';
 import { createBattleUnitsWithInit } from '@shared/engine/battle-v5/setup/BattleInitApplier';
 import {
   assertPreparedBattleContext,
@@ -11,23 +7,27 @@ import {
 } from '@shared/engine/battle-v5/setup/BattleStateStrategy';
 import { validateBattleRecordV3 } from '@shared/engine/battle-v5/v3';
 import type { BattleRecordV3 } from '@shared/types/battle';
+import { BattleRuntime } from '@shared/engine/battle-v5/runtime/BattleRuntime';
 
 export function simulateBattleV5(
   context: PreparedBattleContext,
   randomSource?: BattleRandomSource,
 ): BattleRecordV3 {
   assertPreparedBattleContext(context);
-  return withBattleRandomSource(randomSource, () => {
-    EventBus.instance.reset();
+  const runtime = new BattleRuntime({
+    random: randomSource ?? { next: () => Math.random() },
+  });
 
+  try {
     const { player, opponent, initConfig } = context;
     const { playerUnit, opponentUnit } = createBattleUnitsWithInit(
       player,
       opponent,
       initConfig,
+      runtime,
     );
 
-    const engine = new BattleEngineV5(playerUnit, opponentUnit);
+    const engine = new BattleEngineV5(playerUnit, opponentUnit, runtime);
 
     try {
       const battleResult = engine.execute();
@@ -63,7 +63,10 @@ export function simulateBattleV5(
       return record;
     } finally {
       engine.destroy();
-      EventBus.instance.reset();
+      runtime.dispose();
     }
-  });
+  } catch (error) {
+    runtime.dispose();
+    throw error;
+  }
 }
