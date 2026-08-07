@@ -202,6 +202,7 @@ dist-battle
 .claude
 .vscode
 .antigravitycli
+.trae/
 output/
 
 # SponsorKit raw API response and local cache may contain amounts/provider data.

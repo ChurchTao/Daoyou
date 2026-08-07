@@ -81,6 +81,11 @@ export const router = createBrowserRouter(
         handle={title('公开战谱')}
       />
       <Route
+        path="/team-battle-test"
+        lazy={lazyRoute(() => import('@app/routes/team-battle-test/route'))}
+        handle={title('2v2演武测试')}
+      />
+      <Route
         id={AUTH_LAYOUT_ROUTE_ID}
         lazy={lazyRoute(() => import('@app/routes/auth/layout'))}
       >
