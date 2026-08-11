@@ -15,6 +15,7 @@ import {
   type ArenaRoomV1,
   type ArenaTeamIdV1,
 } from '@shared/contracts/arena';
+import type { RealmStage, RealmType } from '@shared/types/constants';
 
 const ROOM_KEY_PREFIX = 'arena:room:v1:';
 const CODE_KEY_PREFIX = 'arena:room-code:v1:';
@@ -120,6 +121,8 @@ export interface CreateArenaRoomInput {
   readonly userId: string;
   readonly cultivatorId: string;
   readonly displayName: string;
+  readonly realm: RealmType;
+  readonly realmStage: RealmStage;
   readonly teamId?: ArenaTeamIdV1;
   readonly now?: number;
 }
@@ -226,6 +229,8 @@ export class ArenaRoomService {
       userId: input.userId,
       cultivatorId: input.cultivatorId,
       displayName: normalizeDisplayName(input.displayName),
+      realm: input.realm,
+      realmStage: input.realmStage,
       ready: false,
       joinedAt: now,
       lastSeenAt: now,
@@ -249,6 +254,49 @@ export class ArenaRoomService {
     const current = findSeat(room, userId);
     if (!current) throw new Error('玩家不在此擂台房间中');
     const next = updateSeat(room, current, { ready, lastSeenAt: now });
+    const status: ArenaRoomStatusV1 = next.teams.alpha
+      .concat(next.teams.beta)
+      .some((seat) => seat.ready)
+      ? 'ready_check'
+      : 'assembling';
+    return this.commit(room, { ...next, status });
+  }
+
+  async switchTeam(
+    roomId: string,
+    userId: string,
+    now = Date.now(),
+  ): Promise<ArenaRoomV1> {
+    const room = await this.requireRoom(roomId);
+    assertRoomJoinable(room);
+    const current = findSeat(room, userId);
+    if (!current) throw new Error('玩家不在此擂台房间中');
+    const targetTeamId: ArenaTeamIdV1 =
+      current.teamId === 'alpha' ? 'beta' : 'alpha';
+    const targetSeats = room.teams[targetTeamId];
+    if (targetSeats.length >= ARENA_ROOM_MAX_SEATS_PER_TEAM) {
+      throw new Error('另一方队伍已满');
+    }
+    const moved: ArenaRoomSeatV1 = {
+      slot: nextSlot(targetSeats),
+      userId: current.userId,
+      cultivatorId: current.cultivatorId,
+      displayName: current.displayName,
+      realm: current.realm,
+      realmStage: current.realmStage,
+      ready: false,
+      joinedAt: current.joinedAt,
+      lastSeenAt: now,
+    };
+    const next = nextRoom(room, {
+      teams: {
+        ...room.teams,
+        [current.teamId]: room.teams[current.teamId].filter(
+          (seat) => seat.userId !== userId,
+        ),
+        [targetTeamId]: [...targetSeats, moved],
+      },
+    });
     const status: ArenaRoomStatusV1 = next.teams.alpha
       .concat(next.teams.beta)
       .some((seat) => seat.ready)
@@ -513,6 +561,8 @@ function createRoomState(
     userId: input.userId,
     cultivatorId: input.cultivatorId,
     displayName: normalizeDisplayName(input.displayName),
+    realm: input.realm,
+    realmStage: input.realmStage,
     ready: false,
     joinedAt: input.now,
     lastSeenAt: input.now,

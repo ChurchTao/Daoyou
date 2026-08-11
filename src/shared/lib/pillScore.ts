@@ -15,7 +15,7 @@ import type {
 } from '@shared/types/consumable';
 import type { Consumable } from '@shared/types/cultivator';
 
-const QUALITY_BASE_SCORE: Record<Quality, number> = {
+export const PILL_QUALITY_BASE_SCORE: Record<Quality, number> = {
   凡品: 58,
   灵品: 130,
   玄品: 259,
@@ -165,7 +165,8 @@ export function calculatePillScore(
   }
 
   const quality = consumable.quality ?? '凡品';
-  const qualityBase = QUALITY_BASE_SCORE[quality] ?? QUALITY_BASE_SCORE.凡品;
+  const qualityBase =
+    PILL_QUALITY_BASE_SCORE[quality] ?? PILL_QUALITY_BASE_SCORE.凡品;
   const expectedPower =
     EXPECTED_EFFECT_POWER_BY_QUALITY[quality] ??
     EXPECTED_EFFECT_POWER_BY_QUALITY.凡品;

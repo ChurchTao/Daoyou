@@ -1,7 +1,8 @@
-import { restoreBattleSave } from '../persistence/BattleStateCodec';
-import type { BattleSaveV1 } from '../persistence/types';
+import type { BattleRoster } from '../core/BattleRoster';
 import type { TeamId, TeamSlot, UnitId } from '../core/types';
 import { getActionStateViews } from '../core/runtimeState';
+import { restoreBattleSave } from '../persistence/BattleStateCodec';
+import type { BattleSaveV1 } from '../persistence/types';
 
 export interface BattlePublicEffectStateV1 {
   readonly id: string;
@@ -60,68 +61,75 @@ export function createBattlePublicSnapshot(
 ): BattlePublicSnapshotV1 {
   const restored = restoreBattleSave(save);
   try {
-    const teamByUnitId = new Map(
-      save.blueprint.teams.flatMap((team) =>
-        team.units.map((unit) => [unit.id, team.id] as const),
-      ),
-    );
-    return {
-      version: 'battle_public_snapshot_v1',
-      battleId: save.checkpoint.battleId,
-      round: save.checkpoint.round,
-      checkpointRevision: save.checkpoint.checkpointRevision,
-      units: restored.roster.getAllUnits().map((unit) => {
-        const snapshot = unit.getSnapshot();
-        const teamId = teamByUnitId.get(unit.id);
-        if (!teamId) throw new Error(`Missing team for battle unit ${unit.id}`);
-        return {
-          unitId: unit.id,
-          teamId,
-          slot: unit.slot,
-          name: unit.name,
-          alive: snapshot.isAlive,
-          hp: {
-            current: Math.round(snapshot.currentHp),
-            max: snapshot.maxHp,
-            percent: Math.round(snapshot.hpPercent * 10000) / 100,
-          },
-          mp: {
-            current: Math.round(snapshot.currentMp),
-            max: snapshot.maxMp,
-            percent: Math.round(snapshot.mpPercent * 10000) / 100,
-          },
-          shield: Math.round(snapshot.currentShield),
-          effects: unit.buffs
-            .getAllBuffs()
-            .filter((buff) => buff.statusVisibility === 'player')
-            .map((buff) => ({
-              id: buff.id,
-              label: buff.name,
-              statusType: buff.type,
-              layers: buff.getLayer(),
-              remainingActions: buff.isPermanent() ? -1 : buff.getDuration(),
-              permanent: buff.isPermanent(),
-            })),
-          combatResources: snapshot.combatResources.map((resource) => ({
-            id: resource.id,
-            name: resource.name,
-            ...(resource.icon ? { icon: resource.icon } : {}),
-            current: resource.current,
-            max: resource.max,
-          })),
-          actionStates: getActionStateViews(unit).map((state) => ({
-            id: [
-              state.type,
-              state.sourceAbility?.id ?? state.ability?.id ?? state.name,
-            ].join(':'),
-            type: state.type,
-            label: state.name,
-            remainingActions: state.remainingActions,
-          })),
-        };
-      }),
-    };
+    return createBattlePublicSnapshotFromRoster(save, restored.roster);
   } finally {
     restored.runtime.dispose();
   }
+}
+
+export function createBattlePublicSnapshotFromRoster(
+  save: BattleSaveV1,
+  roster: BattleRoster,
+): BattlePublicSnapshotV1 {
+  const teamByUnitId = new Map(
+    save.blueprint.teams.flatMap((team) =>
+      team.units.map((unit) => [unit.id, team.id] as const),
+    ),
+  );
+  return {
+    version: 'battle_public_snapshot_v1',
+    battleId: save.checkpoint.battleId,
+    round: save.checkpoint.round,
+    checkpointRevision: save.checkpoint.checkpointRevision,
+    units: roster.getAllUnits().map((unit) => {
+      const snapshot = unit.getSnapshot();
+      const teamId = teamByUnitId.get(unit.id);
+      if (!teamId) throw new Error(`Missing team for battle unit ${unit.id}`);
+      return {
+        unitId: unit.id,
+        teamId,
+        slot: unit.slot,
+        name: unit.name,
+        alive: snapshot.isAlive,
+        hp: {
+          current: Math.round(snapshot.currentHp),
+          max: snapshot.maxHp,
+          percent: Math.round(snapshot.hpPercent * 10000) / 100,
+        },
+        mp: {
+          current: Math.round(snapshot.currentMp),
+          max: snapshot.maxMp,
+          percent: Math.round(snapshot.mpPercent * 10000) / 100,
+        },
+        shield: Math.round(snapshot.currentShield),
+        effects: unit.buffs
+          .getAllBuffs()
+          .filter((buff) => buff.statusVisibility === 'player')
+          .map((buff) => ({
+            id: buff.id,
+            label: buff.name,
+            statusType: buff.type,
+            layers: buff.getLayer(),
+            remainingActions: buff.isPermanent() ? -1 : buff.getDuration(),
+            permanent: buff.isPermanent(),
+          })),
+        combatResources: snapshot.combatResources.map((resource) => ({
+          id: resource.id,
+          name: resource.name,
+          ...(resource.icon ? { icon: resource.icon } : {}),
+          current: resource.current,
+          max: resource.max,
+        })),
+        actionStates: getActionStateViews(unit).map((state) => ({
+          id: [
+            state.type,
+            state.sourceAbility?.id ?? state.ability?.id ?? state.name,
+          ].join(':'),
+          type: state.type,
+          label: state.name,
+          remainingActions: state.remainingActions,
+        })),
+      };
+    }),
+  };
 }

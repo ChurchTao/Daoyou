@@ -16,6 +16,7 @@ import {
   ArenaStartCommandSchema,
   type ArenaRoomV1,
 } from '@shared/contracts/arena';
+import { REALM_STAGE_VALUES, REALM_VALUES } from '@shared/types/constants';
 import { and, eq } from 'drizzle-orm';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
@@ -25,6 +26,8 @@ const RoomIdSchema = z
   .min(1)
   .max(120)
   .regex(/^arena-[A-Za-z0-9-]+$/);
+const RealmSchema = z.enum(REALM_VALUES);
+const RealmStageSchema = z.enum(REALM_STAGE_VALUES);
 
 const router = new Hono<AppEnv>();
 const rooms = new ArenaRoomService();
@@ -68,6 +71,8 @@ router.post(
         userId: identity.userId,
         cultivatorId: identity.cultivatorId,
         displayName: identity.displayName,
+        realm: identity.realm,
+        realmStage: identity.realmStage,
       });
       publishRoom(room);
       return c.json({ room }, 201);
@@ -129,6 +134,24 @@ router.post(
     if (identity instanceof Response) return identity;
     try {
       const room = await rooms.touch(roomId, identity.userId);
+      publishRoom(room);
+      return c.json({ room });
+    } catch (error) {
+      return arenaError(c, error);
+    }
+  },
+);
+
+router.post(
+  '/rooms/:roomId/switch-team',
+  requireActiveCultivatorRef(),
+  validateJson(EmptyCommandSchema),
+  async (c) => {
+    const roomId = RoomIdSchema.parse(c.req.param('roomId'));
+    const identity = await requireArenaMember(c, roomId);
+    if (identity instanceof Response) return identity;
+    try {
+      const room = await rooms.switchTeam(roomId, identity.userId);
       publishRoom(room);
       return c.json({ room });
     } catch (error) {
@@ -212,7 +235,13 @@ async function requireArenaIdentity(c: Context<AppEnv>) {
   const active = c.get('activeCultivatorRef');
   if (!user || !active) return c.json({ error: '当前没有可用的活跃角色' }, 404);
   const row = await getExecutor().query.cultivators.findFirst({
-    columns: { id: true, userId: true, name: true },
+    columns: {
+      id: true,
+      userId: true,
+      name: true,
+      realm: true,
+      realm_stage: true,
+    },
     where: and(
       eq(cultivators.id, active.cultivatorId),
       eq(cultivators.userId, user.id),
@@ -220,10 +249,17 @@ async function requireArenaIdentity(c: Context<AppEnv>) {
     ),
   });
   if (!row) return c.json({ error: '当前没有可用的活跃角色' }, 404);
+  const realm = RealmSchema.safeParse(row.realm);
+  const realmStage = RealmStageSchema.safeParse(row.realm_stage);
+  if (!realm.success || !realmStage.success) {
+    return c.json({ error: '当前角色境界数据无效' }, 500);
+  }
   return {
     userId: row.userId,
     cultivatorId: row.id,
     displayName: row.name,
+    realm: realm.data,
+    realmStage: realmStage.data,
   };
 }
 

@@ -1,5 +1,5 @@
 import type { BattlePublicUnitStateV1 } from '@shared/engine/battle-v5/match/BattlePublicSnapshot';
-import type { CSSProperties, ReactNode } from 'react';
+import { type CSSProperties, type ReactNode, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
 export type RealtimeBattleConnectionStatus =
@@ -17,7 +17,9 @@ export type RealtimeBattleRoundPhase =
 interface BattleRoundHudProps {
   round?: number;
   phase: RealtimeBattleRoundPhase;
-  remainingSeconds?: number;
+  deadlineAt?: number;
+  serverNow?: number;
+  serverNowReceivedAt?: number | null;
 }
 
 const ROUND_SECONDS = 30;
@@ -53,8 +55,27 @@ function phaseMark(phase: RealtimeBattleRoundPhase, remaining?: number) {
 export function BattleRoundHud({
   round,
   phase,
-  remainingSeconds,
+  deadlineAt,
+  serverNow,
+  serverNowReceivedAt,
 }: BattleRoundHudProps) {
+  const [clockNow, setClockNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (phase !== 'planning' || deadlineAt === undefined) return;
+    const initialTimer = window.setTimeout(() => setClockNow(Date.now()), 0);
+    const timer = window.setInterval(() => setClockNow(Date.now()), 1_000);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
+  }, [deadlineAt, phase]);
+  const estimatedServerNow =
+    serverNow !== undefined && serverNowReceivedAt != null
+      ? serverNow + (clockNow - serverNowReceivedAt)
+      : clockNow;
+  const remainingSeconds = deadlineAt === undefined
+    ? undefined
+    : Math.max(0, Math.ceil((deadlineAt - estimatedServerNow) / 1_000));
   const remaining = Math.max(0, remainingSeconds ?? ROUND_SECONDS);
   const progress = phase === 'planning' ? remaining / ROUND_SECONDS : 1;
   const urgency =

@@ -1,5 +1,5 @@
 import { getRedisClient, redis } from '@server/lib/redis';
-import { battleOnlineMatchKey } from './BattleBoardgameStorage';
+import { battleOnlineMatchKey } from './BattleOnlineRedisKeys';
 
 export type BattleMatchParticipantStatus = 'invited' | 'accepted';
 

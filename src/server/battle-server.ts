@@ -1,7 +1,7 @@
 import { createBattleBoardgameGame } from './lib/services/BattleBoardgameAdapter';
 import { RedisBattleBoardgameStorage } from './lib/services/BattleBoardgameStorage';
 import { BattleBoardgameTransport } from './lib/services/BattleBoardgameTransport';
-import { publishPendingBattleReplays } from './lib/services/BattleReplayArchivePublisher';
+import { BattleReplayArchiveScheduler } from './lib/services/BattleReplayArchivePublisher';
 import { Server } from './lib/services/boardgameio-server';
 import { timingSafeEqual } from 'node:crypto';
 import { closeNatsConnection, getNatsConnection } from './lib/nats';
@@ -62,6 +62,8 @@ const battleServer = Server({
   apiOrigins: apiOrigins.length > 0 ? apiOrigins : ['http://localhost:3000'],
 });
 const battleCoordinator = new BattleMatchCoordinator(battleStorage, battleTransport);
+const archiveScheduler = new BattleReplayArchiveScheduler(battleStorage);
+battleStorage.setArchivePendingListener(() => archiveScheduler.wake());
 
 battleServer.router.get(
   '/internal/battle-matches/:matchID/session',
@@ -160,7 +162,9 @@ const servers = await battleServer.run(port, () => {
 
 const DEADLINE_RECONCILE_INTERVAL_MS = 5_000;
 const DEADLINE_RECONCILE_BATCH_SIZE = 100;
+const TIMEOUT_WORKER_CONCURRENCY = 4;
 let deadlineReconcileCursor = '0';
+let resolvingScanCursor = '0';
 let deadlineReconcileAt = 0;
 let timeoutWorkerRunning = false;
 
@@ -169,6 +173,26 @@ const runTimeoutWorker = async () => {
   timeoutWorkerRunning = true;
   try {
     const now = Date.now();
+    const resolvingPage = await battleStorage.scanResolvingMatchIds(
+      resolvingScanCursor,
+      DEADLINE_RECONCILE_BATCH_SIZE,
+    );
+    resolvingScanCursor = resolvingPage.cursor;
+    await runMatchTasksWithConcurrency(
+      resolvingPage.matchIds,
+      'resume_resolving',
+      (matchId) => battleCoordinator.resumeResolving(matchId).then(() => undefined),
+    );
+    await runMatchTasksWithConcurrency(
+      await battleStorage.listExpiredMatchIds(),
+      'resolve_expired',
+      (matchId) => battleCoordinator.resolveExpired(matchId).then(() => undefined),
+    );
+    await runMatchTasksWithConcurrency(
+      await battleStorage.listExpiredWaitingMatchIds(),
+      'expire_waiting',
+      (matchId) => battleCoordinator.expireWaiting(matchId).then(() => undefined),
+    );
     if (now >= deadlineReconcileAt) {
       const page = await battleStorage.scanMatchIds(
         deadlineReconcileCursor,
@@ -176,25 +200,11 @@ const runTimeoutWorker = async () => {
       );
       deadlineReconcileCursor = page.cursor;
       deadlineReconcileAt = Date.now() + DEADLINE_RECONCILE_INTERVAL_MS;
-      for (const matchId of page.matchIds) {
-        await runIsolatedMatchTask(matchId, 'reconcile_deadline', async () => {
-          await battleCoordinator.reconcileDeadlineIndex(matchId);
-        });
-      }
-    }
-    for (const matchId of await battleStorage.listExpiredMatchIds()) {
-      await runIsolatedMatchTask(matchId, 'resolve_expired', async () => {
-        await battleCoordinator.resolveExpired(matchId);
-      });
-    }
-    for (const matchId of await battleStorage.listResolvingMatchIds()) {
-      await runIsolatedMatchTask(matchId, 'resume_resolving', async () => {
-        await battleCoordinator.resumeResolving(matchId);
-      });
-    }
-    for (const matchId of await battleStorage.listExpiredWaitingMatchIds()) {
-      await runIsolatedMatchTask(matchId, 'expire_waiting', () =>
-        battleCoordinator.expireWaiting(matchId).then(() => undefined));
+      await runMatchTasksWithConcurrency(
+        page.matchIds,
+        'reconcile_deadline',
+        (matchId) => battleCoordinator.reconcileDeadlineIndex(matchId).then(() => undefined),
+      );
     }
   } catch (error) {
     console.warn('[battle-server] timeout worker scan failed', {
@@ -204,6 +214,26 @@ const runTimeoutWorker = async () => {
     timeoutWorkerRunning = false;
   }
 };
+
+async function runMatchTasksWithConcurrency(
+  matchIds: readonly string[],
+  operation: Parameters<typeof runIsolatedMatchTask>[1],
+  task: (matchId: string) => Promise<void>,
+): Promise<void> {
+  const queue = [...new Set(matchIds)];
+  let nextIndex = 0;
+  const workers = Array.from(
+    { length: Math.min(TIMEOUT_WORKER_CONCURRENCY, queue.length) },
+    async () => {
+      while (nextIndex < queue.length) {
+        const matchId = queue[nextIndex++];
+        if (!matchId) continue;
+        await runIsolatedMatchTask(matchId, operation, () => task(matchId));
+      }
+    },
+  );
+  await Promise.all(workers);
+}
 
 async function runIsolatedMatchTask(
   matchId: string,
@@ -228,19 +258,7 @@ const timeoutWorker = setInterval(() => void runTimeoutWorker(), 1_000);
 timeoutWorker.unref();
 void runTimeoutWorker();
 
-let archivePublisherBackoffUntil = 0;
-const runArchivePublisher = async () => {
-  if (Date.now() < archivePublisherBackoffUntil) return;
-  try {
-    await publishPendingBattleReplays(battleStorage);
-  } catch (error) {
-    archivePublisherBackoffUntil = Date.now() + 5_000;
-    console.warn('[battle-server] replay archive publish failed', { error });
-  }
-};
-const archivePublisher = setInterval(() => void runArchivePublisher(), 250);
-archivePublisher.unref();
-void runArchivePublisher();
+archiveScheduler.start();
 
 let shuttingDown = false;
 async function shutdown(signal: NodeJS.Signals) {
@@ -248,8 +266,8 @@ async function shutdown(signal: NodeJS.Signals) {
   shuttingDown = true;
   console.info('[battle-server] shutting down', { signal });
   clearInterval(timeoutWorker);
-  clearInterval(archivePublisher);
   battleServer.kill(servers);
+  await archiveScheduler.stop();
   await closeNatsConnection();
 }
 

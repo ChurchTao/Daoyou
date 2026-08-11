@@ -11,9 +11,17 @@ import {
   validateBattleIntents,
 } from '../round/BattleRoundResolver';
 import { resolveLegalQueuedAction } from '../round/QueuedActionResolver';
-import type { BattleActionIntentV1, RoundCommandSetV1 } from '../round/types';
+import type {
+  BattleActionIntentV1,
+  BattlePlanningViewV1,
+  RoundCommandSetV1,
+} from '../round/types';
+import type { TeamId } from '../core/types';
 import { ROUND_PLANNING_TIMEOUT_MS } from '../round/types';
-import { createBattlePublicSnapshot } from './BattlePublicSnapshot';
+import {
+  createBattlePublicSnapshotFromRoster,
+  type BattlePublicSnapshotV1,
+} from './BattlePublicSnapshot';
 import type {
   BattleControllerV1,
   BattleMatchCommandV1,
@@ -287,23 +295,10 @@ export function createBattleMatchPlayerView(
   state: BattleMatchStateV1,
   playerId: PlayerId,
   now: number,
+  projection = createBattleMatchViewProjection(state),
 ): BattleMatchPlayerViewV1 {
   const controller = getController(state, playerId);
   const planning = state.planning;
-  let planningView;
-  if (planning) {
-    const restored = restoreBattleSave(state.battle);
-    try {
-      planningView = createBattlePlanningView({
-        roster: restored.roster,
-        round: planning.round,
-        checkpointRevision: planning.checkpointRevision,
-        teamId: controller.teamId,
-      });
-    } finally {
-      restored.runtime.dispose();
-    }
-  }
   return clone({
     version: 'battle_match_player_view_v1',
     matchId: state.matchId,
@@ -322,8 +317,8 @@ export function createBattleMatchPlayerView(
       state.battle.checkpoint.checkpointRevision,
     deadlineAt: planning?.deadlineAt,
     serverNow: now,
-    publicSnapshot: createBattlePublicSnapshot(state.battle),
-    planningView,
+    publicSnapshot: projection.publicSnapshot,
+    planningView: projection.planningViewByTeamId[controller.teamId],
     ownSubmissions: Object.fromEntries(
       controller.unitIds
         .filter((unitId) => planning?.submissions[unitId])
@@ -339,6 +334,41 @@ export function createBattleMatchPlayerView(
         }
       : undefined,
   });
+}
+
+export interface BattleMatchViewProjection {
+  readonly publicSnapshot: BattlePublicSnapshotV1;
+  readonly planningViewByTeamId: Readonly<Record<TeamId, BattlePlanningViewV1>>;
+}
+
+export function createBattleMatchViewProjection(
+  state: BattleMatchStateV1,
+): BattleMatchViewProjection {
+  const restored = restoreBattleSave(state.battle);
+  try {
+    const planningViewByTeamId: Record<TeamId, BattlePlanningViewV1> = {};
+    if (state.planning) {
+      for (const teamId of new Set(
+        state.controllers.map((controller) => controller.teamId),
+      )) {
+        planningViewByTeamId[teamId] = createBattlePlanningView({
+          roster: restored.roster,
+          round: state.planning.round,
+          checkpointRevision: state.planning.checkpointRevision,
+          teamId,
+        });
+      }
+    }
+    return {
+      publicSnapshot: createBattlePublicSnapshotFromRoster(
+        state.battle,
+        restored.roster,
+      ),
+      planningViewByTeamId,
+    };
+  } finally {
+    restored.runtime.dispose();
+  }
 }
 
 function toPublicResolution(

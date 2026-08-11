@@ -24,7 +24,6 @@ import {
   HIGH_TIER_BASE_FACTOR,
   HIGH_TIER_MIN,
   LOW_TIER_ANCHOR_FACTOR,
-  PILL_RECYCLE_SCORE_FACTOR,
   PRODUCE_PRICE_FACTOR_MIN,
   RECYCLE_LOW_TIER_MAX,
   RECYCLE_PRICE_FACTOR_CAP,
@@ -35,6 +34,7 @@ import {
 } from '@shared/engine/material/creation/config';
 import { isPillConsumable } from '@shared/lib/consumables';
 import { getMaterialTypeLabel } from '@shared/lib/gameConceptDisplay';
+import { calculatePillRecycleUnitPrice as calculatePillRecyclePrice } from '@shared/lib/pillRecyclePrice';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import type {
@@ -271,7 +271,7 @@ export function calculatePillRecycleUnitPrice(
   consumable: Pick<Consumable, 'quality' | 'score' | 'spec'>,
 ): number {
   const score = calculateSingleElixirScore(consumable as Consumable);
-  return Math.max(1, Math.floor(score * PILL_RECYCLE_SCORE_FACTOR));
+  return calculatePillRecyclePrice(getConsumableQuality(consumable), score);
 }
 
 function getConsumableQuality(
@@ -872,7 +872,11 @@ async function previewConsumableSell(
         `「${item.name}」回收数量范围为 1～${item.quantity}`,
       );
     }
-    const unitPrice = calculatePillRecycleUnitPrice(item);
+    const score = calculateSingleElixirScore(item);
+    const unitPrice = calculatePillRecyclePrice(
+      getConsumableQuality(item),
+      score,
+    );
     return {
       id: item.id!,
       name: item.name,
@@ -884,7 +888,7 @@ async function previewConsumableSell(
       quantity,
       unitPrice,
       totalPrice: unitPrice * quantity,
-      score: item.score || calculateSingleElixirScore(item),
+      score,
     };
   });
 

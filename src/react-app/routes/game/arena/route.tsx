@@ -14,6 +14,7 @@ import type {
   ArenaTeamIdV1,
 } from '@shared/contracts/arena';
 import {
+  ARENA_ROOM_MAX_SEATS_PER_TEAM,
   allArenaSeatsReady,
   hasBothArenaTeams,
   isArenaRoomActive,
@@ -348,7 +349,7 @@ function ArenaRoomWorkspace({
     allArenaSeatsReady(room);
 
   const mutate = async (
-    action: 'ready' | 'leave',
+    action: 'ready' | 'switch-team' | 'leave',
     body: Record<string, unknown>,
   ) => {
     onBusy(true);
@@ -426,7 +427,7 @@ function ArenaRoomWorkspace({
       </div>
 
       {current ? (
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-3">
           <button
             type="button"
             disabled={busy || !isArenaRoomActive(room.status)}
@@ -434,6 +435,19 @@ function ArenaRoomWorkspace({
             className="border-crimson/45 text-crimson bg-crimson/6 border px-4 py-3 text-sm disabled:opacity-45"
           >
             {current.seat.ready ? '取消准备' : '准备完毕'}
+          </button>
+          <button
+            type="button"
+            disabled={
+              busy ||
+              !isArenaRoomActive(room.status) ||
+              room.teams[current.teamId === 'alpha' ? 'beta' : 'alpha']
+                .length >= ARENA_ROOM_MAX_SEATS_PER_TEAM
+            }
+            onClick={() => void mutate('switch-team', {})}
+            className="border-ink/20 text-ink-secondary hover:border-crimson/40 hover:text-crimson border px-4 py-3 text-sm disabled:opacity-45"
+          >
+            换到{current.teamId === 'alpha' ? '赤方' : '青方'}
           </button>
           <button
             type="button"
@@ -499,7 +513,7 @@ function ArenaInviteCodeInput({
           onChange(event.target.value.replace(/\D/g, '').slice(0, 6))
         }
         placeholder="000000"
-        className="border-ink/20 focus:border-crimson/55 focus:ring-crimson/10 placeholder:text-ink-secondary/30 mt-2 w-full border bg-transparent px-4 py-3 text-center font-mono text-xl tracking-[0.45em] outline-none transition-colors focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
+        className="border-ink/20 focus:border-crimson/55 focus:ring-crimson/10 placeholder:text-ink-secondary/30 mt-2 w-full border bg-transparent px-4 py-3 text-center font-mono text-xl tracking-[0.45em] transition-colors outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
       />
     </label>
   );
@@ -531,14 +545,24 @@ function ArenaTeamPanel({
               key={seat.userId}
               className="bg-ink/[0.025] flex items-center justify-between gap-3 px-3 py-2 text-sm"
             >
-              <span className="min-w-0 truncate">
-                {seat.displayName}
-                {seat.userId === hostUserId ? (
-                  <span className="text-ink-secondary ml-2 text-xs">房主</span>
-                ) : null}
-                {seat.cultivatorId === currentCultivatorId ? (
-                  <span className="text-crimson ml-2 text-xs">你</span>
-                ) : null}
+              <span className="min-w-0">
+                <span className="block truncate">
+                  {seat.displayName}
+                  {seat.userId === hostUserId ? (
+                    <span className="text-ink-secondary ml-2 text-xs">
+                      房主
+                    </span>
+                  ) : null}
+                  {seat.cultivatorId === currentCultivatorId ? (
+                    <span className="text-crimson ml-2 text-xs">你</span>
+                  ) : null}
+                </span>
+                <span className="text-ink-secondary mt-0.5 block text-xs">
+                  境界：
+                  {seat.realm && seat.realmStage
+                    ? `${seat.realm}${seat.realmStage}`
+                    : '未知'}
+                </span>
               </span>
               <span className={seat.ready ? 'text-teal' : 'text-ink-secondary'}>
                 {seat.ready ? '已准备' : '未准备'}

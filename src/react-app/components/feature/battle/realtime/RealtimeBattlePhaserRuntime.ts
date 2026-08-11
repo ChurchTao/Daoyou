@@ -97,7 +97,7 @@ interface RealtimeBattlePhaserArguments {
 export interface RealtimeBattlePhaserController {
   syncSnapshot: (snapshot: RealtimeBattleSnapshot) => void;
   playTimeline: (timeline: CombatVisualTimeline, offsetMs?: number) => void;
-  focus: (entityId: string) => void;
+  focus: (entityId?: string) => void;
   setCommandSelection: (state: {
     actorUnitId?: string;
     legalTargetIds: readonly string[];
@@ -2540,6 +2540,12 @@ export function attachRealtimeBattlePhaser(
       scene?.playTimeline(timeline, offsetMs);
     },
     focus: (entityId) => {
+      if (!entityId) {
+        currentSnapshot = { ...currentSnapshot, focusedEntityId: '' };
+        scene?.renderSnapshot(currentSnapshot);
+        args.onState(currentSnapshot);
+        return;
+      }
       if (!currentSnapshot.entities.some((entity) => entity.id === entityId))
         return;
       currentSnapshot = { ...currentSnapshot, focusedEntityId: entityId };

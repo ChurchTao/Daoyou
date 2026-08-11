@@ -3,8 +3,13 @@ import type {
   BattleReplayRoundV1,
 } from '@shared/contracts/battleReplay';
 import {
+  BattleBoardgameMovePayloadSchema,
+  type BattleBoardgameMovePayloadV1,
+} from '@shared/contracts/battleMove';
+import {
   applyBattleRoundResolution,
   cancelBattleResolution,
+  createBattleMatchViewProjection,
   createBattleMatchPlayerView,
   markBattleResolutionFailed,
   retryFailedBattleResolution,
@@ -15,7 +20,6 @@ import type {
   BattleCommandReceiptV1,
   BattleCommandRejectionReasonV1,
   BattleMatchStateV1,
-  ClientBattleIntentV1,
 } from '@shared/engine/battle-v5/match/types';
 import { resolveBattleAbilityVisual } from '@shared/engine/battle-v5/presentation';
 import { resolveBattleRound } from '@shared/engine/battle-v5/round/BattleRoundResolver';
@@ -40,12 +44,7 @@ export interface BattleBoardgameSetupDataV1 {
   };
 }
 
-export interface BattleBoardgameMovePayloadV1 {
-  readonly requestId: string;
-  readonly round: number;
-  readonly checkpointRevision: number;
-  readonly intents: Readonly<Record<string, ClientBattleIntentV1>>;
-}
+export type { BattleBoardgameMovePayloadV1 } from '@shared/contracts/battleMove';
 
 export type BattleBoardgameG = BattleMatchStateV1 & {
   readonly playerIdByBoardgameId: Readonly<Record<string, string>>;
@@ -56,9 +55,15 @@ export type BattleBoardgameG = BattleMatchStateV1 & {
   >;
   readonly replay: {
     readonly version: 'battle_replay_accumulator_v1';
-    readonly rounds: readonly BattleReplayRoundV1[];
+    /** Transient hand-off to Redis; never retained in the hot match state. */
+    readonly pendingRound?: BattleReplayRoundV1;
   };
 };
+
+const battleViewProjectionCache = new WeakMap<
+  BattleBoardgameG,
+  ReturnType<typeof createBattleMatchViewProjection>
+>();
 
 function appPlayerId(
   G: BattleBoardgameG,
@@ -107,7 +112,6 @@ export function createBattleBoardgameGame(): Game<
         commandReceiptsByPlayerId: {},
         replay: {
           version: 'battle_replay_accumulator_v1',
-          rounds: [],
         },
       };
     },
@@ -230,8 +234,9 @@ export function createBattleBoardgameGame(): Game<
         };
       }
       const ready = acceptedPlayerIds(G);
+      const projection = getBattleViewProjection(G);
       return {
-        ...createBattleMatchPlayerView(G, appId, Date.now()),
+        ...createBattleMatchPlayerView(G, appId, Date.now(), projection),
         commandReceipt: G.commandReceiptsByPlayerId[appId],
         presentation: G.presentation,
         orchestration: {
@@ -242,6 +247,16 @@ export function createBattleBoardgameGame(): Game<
       };
     },
   };
+}
+
+function getBattleViewProjection(
+  G: BattleBoardgameG,
+): ReturnType<typeof createBattleMatchViewProjection> {
+  const cached = battleViewProjectionCache.get(G);
+  if (cached) return cached;
+  const projection = createBattleMatchViewProjection(G);
+  battleViewProjectionCache.set(G, projection);
+  return projection;
 }
 
 /** Trusted worker hook; never expose this as a client move. */
@@ -435,23 +450,16 @@ function appendReplayRound(
   commandSet: import('@shared/engine/battle-v5/round/types').RoundCommandSetV1,
   resolution: import('@shared/engine/battle-v5/round/types').BattleRoundResolutionV1,
 ): BattleBoardgameG['replay'] {
-  if (
-    G.replay.rounds.some(
-      (round) => round.commandSet.commandSetId === commandSet.commandSetId,
-    )
-  ) {
+  if (G.replay.pendingRound?.commandSet.commandSetId === commandSet.commandSetId) {
     return G.replay;
   }
   return {
-    ...G.replay,
-    rounds: [
-      ...G.replay.rounds,
-      {
-        round: resolution.round,
-        commandSet,
-        resolution: toPublicResolution(resolution),
-      },
-    ],
+    version: 'battle_replay_accumulator_v1',
+    pendingRound: {
+      round: resolution.round,
+      commandSet,
+      resolution: toPublicResolution(resolution),
+    },
   };
 }
 
@@ -471,24 +479,7 @@ function toPublicResolution(
 function isIntentPayload(
   value: unknown,
 ): value is BattleBoardgameMovePayloadV1 {
-  if (!value || typeof value !== 'object') return false;
-  const payload = value as Partial<BattleBoardgameMovePayloadV1>;
-  return (
-    typeof payload.requestId === 'string' &&
-    payload.requestId.length > 0 &&
-    Number.isSafeInteger(payload.round) &&
-    payload.round! > 0 &&
-    Number.isSafeInteger(payload.checkpointRevision) &&
-    payload.checkpointRevision! >= 0 &&
-    Boolean(payload.intents) &&
-    typeof payload.intents === 'object' &&
-    Object.values(payload.intents).every(
-      (intent) =>
-        Boolean(intent) &&
-        typeof intent === 'object' &&
-        (intent.kind === 'basic_attack' || intent.kind === 'ability'),
-    )
-  );
+  return BattleBoardgameMovePayloadSchema.safeParse(value).success;
 }
 
 function logRejectedMove(

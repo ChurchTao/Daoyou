@@ -15,6 +15,7 @@ import {
   applyBattleRoundResolution,
   cancelBattleResolution,
   createBattleMatchPlayerView,
+  createBattleMatchViewProjection,
   createBattleMatchState,
   markBattleResolutionFailed,
   retryFailedBattleResolution,
@@ -195,8 +196,21 @@ describe('BattleMatchStateMachine', () => {
       'b0',
       'b1',
     ]);
-    const alphaView = createBattleMatchPlayerView(state, 'p-a', 1_002);
-    const betaView = createBattleMatchPlayerView(state, 'p-b', 1_002);
+    const projection = createBattleMatchViewProjection(state);
+    const alphaView = createBattleMatchPlayerView(
+      state,
+      'p-a',
+      1_002,
+      projection,
+    );
+    const betaView = createBattleMatchPlayerView(
+      state,
+      'p-b',
+      1_002,
+      projection,
+    );
+    expect(alphaView).toEqual(createBattleMatchPlayerView(state, 'p-a', 1_002));
+    expect(alphaView.publicSnapshot).toEqual(betaView.publicSnapshot);
     expect(alphaView.ownCommitted).toBe(false);
     expect(alphaView.ownSubmissions).toEqual({});
     expect(betaView.ownCommitted).toBe(true);

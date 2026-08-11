@@ -149,9 +149,27 @@ sed -E \
   "${UPSTREAM_CONF}" >"${temporary}"
 
 if cmp -s "${UPSTREAM_CONF}" "${temporary}"; then
-  echo "No upstream server line changed in ${UPSTREAM_CONF}" >&2
-  stop_and_remove_service "${target_service}"
-  exit 1
+  if [ "${current_port}" != "${target_port}" ]; then
+    echo "No matching upstream server line found in ${UPSTREAM_CONF}" >&2
+    stop_and_remove_service "${target_service}"
+    exit 1
+  fi
+
+  echo "Upstream already points to ${target_service} on port ${target_port}"
+
+  if ! "${PRIVILEGED[@]}" docker exec "${OPENRESTY_CONTAINER}" nginx -t; then
+    echo "OpenResty configuration validation failed" >&2
+    exit 1
+  fi
+
+  if ! "${PRIVILEGED[@]}" docker exec "${OPENRESTY_CONTAINER}" nginx -s reload; then
+    echo "OpenResty reload failed" >&2
+    exit 1
+  fi
+
+  echo "Traffic already points to ${target_service} on port ${target_port}"
+  echo "App blue-green deployment completed"
+  exit 0
 fi
 
 "${PRIVILEGED[@]}" cp "${UPSTREAM_CONF}" "${backup}"

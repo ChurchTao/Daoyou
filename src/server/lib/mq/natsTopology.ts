@@ -28,8 +28,6 @@ export const DEAD_LETTER_STREAM = 'DAOYOU_DOMAIN_EVENT_DLQ';
 export const DEAD_LETTER_SUBJECT_PREFIX = 'daoyou.dead-letter';
 export const COMMAND_DEAD_LETTER_STREAM = 'DAOYOU_BACKGROUND_COMMAND_DLQ';
 export const COMMAND_DEAD_LETTER_SUBJECT_PREFIX = 'daoyou.command-dead-letter';
-export const BATTLE_REPLAY_DEAD_LETTER_STREAM = 'DAOYOU_BATTLE_REPLAY_ARCHIVE_DLQ';
-export const BATTLE_REPLAY_DEAD_LETTER_SUBJECT = 'daoyou.battle.replay.archive.dead-letter.v1';
 
 export const BATTLE_REPLAY_ARCHIVE_CONSUMER = {
   stream: BATTLE_REPLAY_STREAM,
@@ -147,22 +145,7 @@ const BATTLE_REPLAY_STREAM_CONFIG: Partial<StreamConfig> = {
   discard: DiscardPolicy.Old,
   max_age: nanos(30 * 24 * 60 * 60 * 1_000),
   max_bytes: 512 * 1_024 * 1_024,
-  max_msg_size: 8 * 1_024 * 1_024,
-  duplicate_window: nanos(24 * 60 * 60 * 1_000),
-  num_replicas: 1,
-  allow_direct: true,
-};
-
-const BATTLE_REPLAY_DEAD_LETTER_STREAM_CONFIG: Partial<StreamConfig> = {
-  name: BATTLE_REPLAY_DEAD_LETTER_STREAM,
-  description: 'Invalid battle replay archive messages',
-  subjects: [BATTLE_REPLAY_DEAD_LETTER_SUBJECT],
-  retention: RetentionPolicy.Limits,
-  storage: StorageType.File,
-  discard: DiscardPolicy.Old,
-  max_age: nanos(30 * 24 * 60 * 60 * 1_000),
-  max_bytes: 128 * 1_024 * 1_024,
-  max_msg_size: 8 * 1_024 * 1_024,
+  max_msg_size: 64 * 1_024,
   duplicate_window: nanos(24 * 60 * 60 * 1_000),
   num_replicas: 1,
   allow_direct: true,
@@ -314,11 +297,6 @@ async function ensureBattleReplayConsumer() {
 export async function ensureBattleReplayStream(): Promise<void> {
   await ensureStream(
     BATTLE_REPLAY_STREAM_CONFIG as Partial<StreamConfig> & { name: string },
-  );
-  await ensureStream(
-    BATTLE_REPLAY_DEAD_LETTER_STREAM_CONFIG as Partial<StreamConfig> & {
-      name: string;
-    },
   );
 }
 

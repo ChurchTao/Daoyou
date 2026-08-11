@@ -41,10 +41,13 @@ export interface BattleReplayV1 {
   readonly outcome: TeamVictoryResult;
 }
 
-export interface BattleReplayArchiveMessageV1 {
-  readonly version: 'battle_replay_archive_message_v1';
+export interface BattleReplayArchiveJobV2 {
+  readonly version: 'battle_replay_archive_job_v2';
   readonly subject: typeof BATTLE_REPLAY_SUBJECT;
-  readonly replay: BattleReplayV1;
+  readonly matchId: string;
+  readonly attempt: number;
+  readonly byteLength: number;
+  readonly checksum: string;
 }
 
 const VersionedObjectSchema = z.object({ version: z.string().min(1) }).passthrough();
@@ -109,16 +112,23 @@ const BattleReplaySchema = z
     }
   });
 
-const BattleReplayArchiveMessageSchema = z
+const BattleReplayArchiveJobSchema = z
   .object({
-    version: z.literal('battle_replay_archive_message_v1'),
+    version: z.literal('battle_replay_archive_job_v2'),
     subject: z.literal(BATTLE_REPLAY_SUBJECT),
-    replay: BattleReplaySchema,
+    matchId: z.string().regex(/^[A-Za-z0-9_-]{1,120}$/),
+    attempt: z.number().int().positive().max(1_000_000),
+    byteLength: z.number().int().positive().max(64 * 1_024 * 1_024),
+    checksum: z.string().regex(/^[a-f0-9]{64}$/),
   })
   .strict();
 
-export function parseBattleReplayArchiveMessage(
+export function parseBattleReplay(input: unknown): BattleReplayV1 {
+  return BattleReplaySchema.parse(input) as unknown as BattleReplayV1;
+}
+
+export function parseBattleReplayArchiveJob(
   input: unknown,
-): BattleReplayArchiveMessageV1 {
-  return BattleReplayArchiveMessageSchema.parse(input) as unknown as BattleReplayArchiveMessageV1;
+): BattleReplayArchiveJobV2 {
+  return BattleReplayArchiveJobSchema.parse(input) as BattleReplayArchiveJobV2;
 }

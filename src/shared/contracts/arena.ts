@@ -1,3 +1,4 @@
+import type { RealmStage, RealmType } from '@shared/types/constants';
 import { z } from 'zod';
 
 /** Public, non-ranked and non-consuming arena sparring room. */
@@ -32,6 +33,9 @@ export interface ArenaRoomSeatV1 {
   readonly userId: string;
   readonly cultivatorId: string;
   readonly displayName: string;
+  /** Optional for compatibility with rooms created before realm snapshots were added. */
+  readonly realm?: RealmType;
+  readonly realmStage?: RealmStage;
   readonly ready: boolean;
   readonly joinedAt: number;
   readonly lastSeenAt: number;
@@ -108,6 +112,7 @@ export type ArenaRoomCommandV1 =
       readonly userId: string;
       readonly ready: boolean;
     }
+  | { readonly type: 'switch_team'; readonly userId: string }
   | { readonly type: 'touch'; readonly userId: string }
   | {
       readonly type: 'start';

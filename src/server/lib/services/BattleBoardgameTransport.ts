@@ -1,4 +1,5 @@
 import type { State } from 'boardgame.io';
+import type { ServerOptions } from 'socket.io';
 import { SocketIO } from './boardgameio-server';
 import { BattleBoardgameStateConflictError } from './BattleBoardgameStorage';
 
@@ -11,7 +12,9 @@ export class BattleBoardgameTransport extends SocketIO {
       conflict: BattleBoardgameStateConflictError,
     ) => Promise<void>,
   ) {
-    super();
+    super({
+      socketOpts: { maxHttpBufferSize: 64 * 1024 } as ServerOptions,
+    });
   }
 
   override getMatchQueue(

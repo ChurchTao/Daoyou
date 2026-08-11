@@ -44,11 +44,6 @@ import {
 } from 'react';
 import { Link, useParams } from 'react-router';
 
-function remainingSeconds(deadlineAt: number | undefined, now: number) {
-  if (!deadlineAt) return undefined;
-  return Math.max(0, Math.ceil((deadlineAt - now) / 1000));
-}
-
 interface PlanningCommandChoice {
   abilityId: string;
   name: string;
@@ -84,7 +79,6 @@ export default function LiveBattleMatchPage() {
   const { matchId } = useParams<{ matchId: string }>();
   const { view, viewReceivedAt, connectionStatus, error, actions } =
     useBattleMatchClient(matchId ?? null);
-  const [now, setNow] = useState(() => Date.now());
   const [activeUnitId, setActiveUnitId] = useState<string | null>(null);
   const [inspectedUnitId, setInspectedUnitId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -109,6 +103,9 @@ export default function LiveBattleMatchPage() {
     string | null
   >(null);
   const [debugResolvedFactCount, setDebugResolvedFactCount] = useState(0);
+  const [completedPresentationKey, setCompletedPresentationKey] = useState<
+    string | null
+  >(null);
   const phaserRootRef = useRef<HTMLDivElement>(null);
   const phaserControllerRef = useRef<RealtimeBattlePhaserController | null>(
     null,
@@ -122,11 +119,10 @@ export default function LiveBattleMatchPage() {
     checkpointRevision: number;
     requestId: string;
   } | null>(null);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(timer);
-  }, []);
+  const debugOpenRef = useRef(false);
+  const debugSequencesRef = useRef<CombatSequenceV3[]>([]);
+  const debugActiveSequenceIdRef = useRef<string | null>(null);
+  const debugResolvedFactCountRef = useRef(0);
 
   const ownUnits = useMemo(
     () => view?.planningView?.units ?? [],
@@ -152,12 +148,13 @@ export default function LiveBattleMatchPage() {
   const activeAbilities = activeUnit?.abilities ?? [];
   const ownSubmissions = view?.ownSubmissions ?? {};
   const allPlayersReady = view?.orchestration.allPlayersReady ?? false;
-  const serverNow =
-    view?.serverNow !== undefined && viewReceivedAt !== null
-      ? view.serverNow + (now - viewReceivedAt)
-      : now;
+  const presentationKey = view?.presentation
+    ? `${view.presentation.commandSetId}:${view.presentation.startedAt}`
+    : null;
+  const presentationEndsAt = view?.presentation?.endsAt;
+  const viewServerNow = view?.serverNow;
   const presentationActive = Boolean(
-    view?.presentation && serverNow < view.presentation.endsAt,
+    view?.presentation && completedPresentationKey !== presentationKey,
   );
   const isPlanning = Boolean(
     view &&
@@ -199,7 +196,6 @@ export default function LiveBattleMatchPage() {
           : resolvedActiveUnitId
             ? 'select_ability'
             : 'select_unit';
-  const roundRemainingSeconds = remainingSeconds(view?.deadlineAt, serverNow);
   const roundPhase: RealtimeBattleRoundPhase = presentationActive
     ? 'presenting'
     : view?.status === 'finished' || view?.status === 'cancelled'
@@ -217,11 +213,8 @@ export default function LiveBattleMatchPage() {
     isPlanning && !isCommitted && !allLivingUnitsLocked,
   );
   const presentationSnapshot = useMemo(
-    () =>
-      view
-        ? createBattlePresentationSnapshot(view, inspectedUnitId ?? undefined)
-        : null,
-    [view, inspectedUnitId],
+    () => (view ? createBattlePresentationSnapshot(view) : null),
+    [view],
   );
   const initialPresentationSnapshotRef = useRef<{
     matchId: string | undefined;
@@ -240,6 +233,16 @@ export default function LiveBattleMatchPage() {
     debugActiveIndex >= 0
       ? debugActiveIndex
       : Math.max(0, debugSequences.length - 1);
+
+  const toggleDebug = useCallback(() => {
+    const next = !debugOpenRef.current;
+    debugOpenRef.current = next;
+    setDebugOpen(next);
+    if (!next) return;
+    setDebugSequences([...debugSequencesRef.current]);
+    setDebugActiveSequenceId(debugActiveSequenceIdRef.current);
+    setDebugResolvedFactCount(debugResolvedFactCountRef.current);
+  }, []);
 
   const submitLockedIntents = useCallback(
     (intents: Record<string, ClientBattleIntentV1>) => {
@@ -472,6 +475,9 @@ export default function LiveBattleMatchPage() {
       setDebugSequences([]);
       setDebugActiveSequenceId(null);
       setDebugResolvedFactCount(0);
+      debugSequencesRef.current = [];
+      debugActiveSequenceIdRef.current = null;
+      debugResolvedFactCountRef.current = 0;
     }, 0);
     return () => window.clearTimeout(clearTimer);
   }, [matchId]);
@@ -499,13 +505,19 @@ export default function LiveBattleMatchPage() {
     const resolution = view?.latestResolution;
     if (!resolution) return;
     const timer = window.setTimeout(() => {
-      setDebugSequences((current) => {
+      const appendSequences = (current: CombatSequenceV3[]) => {
         const existing = new Set(current.map((sequence) => sequence.id));
         const additions = resolution.sequences.filter(
           (sequence) => !existing.has(sequence.id),
         );
-        return additions.length > 0 ? [...current, ...additions] : current;
-      });
+        return additions.length > 0
+          ? [...current, ...additions].slice(-200)
+          : current;
+      };
+      debugSequencesRef.current = appendSequences(debugSequencesRef.current);
+      if (debugOpenRef.current) {
+        setDebugSequences([...debugSequencesRef.current]);
+      }
     }, 0);
     return () => window.clearTimeout(timer);
   }, [view?.latestResolution]);
@@ -612,6 +624,10 @@ export default function LiveBattleMatchPage() {
   }, [presentationActive, presentationSnapshot]);
 
   useEffect(() => {
+    phaserControllerRef.current?.focus(inspectedUnitId ?? undefined);
+  }, [inspectedUnitId, phaserReady, view?.revision]);
+
+  useEffect(() => {
     phaserControllerRef.current?.setCommandSelection({
       actorUnitId:
         isPlanning && !allLivingUnitsLocked
@@ -631,41 +647,73 @@ export default function LiveBattleMatchPage() {
     targetAbility,
   ]);
 
+  const playbackInputRef = useRef({
+    view,
+    viewReceivedAt,
+    presentationSnapshot,
+  });
   useEffect(() => {
-    if (!phaserReady || !view?.presentation || !presentationSnapshot) return;
+    playbackInputRef.current = { view, viewReceivedAt, presentationSnapshot };
+  }, [presentationSnapshot, view, viewReceivedAt]);
+
+  useEffect(() => {
+    const current = playbackInputRef.current;
+    const presentationView = current.view;
+    const presentation = presentationView?.presentation;
+    if (
+      !phaserReady ||
+      !presentationKey ||
+      !presentationView ||
+      !presentation ||
+      !current.presentationSnapshot
+    ) return;
     const startSnapshot = createBattlePresentationSnapshotFromPublic(
-      view.presentation.startingPublicSnapshot,
-      view.teamId,
+      presentation.startingPublicSnapshot,
+      presentationView.teamId,
       {
-        cycle: view.presentation.plan.round,
+        cycle: presentation.plan.round,
         phase: '回合演算',
-        focusedEntityId: inspectedUnitId ?? undefined,
       },
     );
     presentationDirectorRef.current?.play({
-      window: view.presentation,
+      window: presentation,
       startingSnapshot: startSnapshot,
-      finalSnapshot: presentationSnapshot,
+      finalSnapshot: current.presentationSnapshot,
       serverNow:
-        view.serverNow +
-        (viewReceivedAt === null ? 0 : Date.now() - viewReceivedAt),
+        presentationView.serverNow +
+        (current.viewReceivedAt === null
+          ? 0
+          : Date.now() - current.viewReceivedAt),
       onBeatStart: (beat) => {
-        setDebugActiveSequenceId(
-          beat.sequenceIds[beat.sequenceIds.length - 1] ?? null,
-        );
+        const sequenceId = beat.sequenceIds[beat.sequenceIds.length - 1] ?? null;
+        debugActiveSequenceIdRef.current = sequenceId;
+        if (debugOpenRef.current) setDebugActiveSequenceId(sequenceId);
       },
-      onFactResolved: () => setDebugResolvedFactCount((current) => current + 1),
+      onFactResolved: () => {
+        debugResolvedFactCountRef.current += 1;
+        if (debugOpenRef.current) {
+          setDebugResolvedFactCount(debugResolvedFactCountRef.current);
+        }
+      },
     });
     return () => presentationDirectorRef.current?.cancel();
-  }, [
-    inspectedUnitId,
-    phaserReady,
-    presentationSnapshot,
-    view?.presentation,
-    view?.serverNow,
-    view?.teamId,
-    viewReceivedAt,
-  ]);
+  }, [phaserReady, presentationKey]);
+
+  useEffect(() => {
+    if (
+      !presentationKey ||
+      presentationEndsAt === undefined ||
+      viewServerNow === undefined
+    ) return;
+    const currentServerNow =
+      viewServerNow +
+      (viewReceivedAt === null ? 0 : Date.now() - viewReceivedAt);
+    const timer = window.setTimeout(
+      () => setCompletedPresentationKey(presentationKey),
+      Math.max(0, presentationEndsAt - currentServerNow),
+    );
+    return () => window.clearTimeout(timer);
+  }, [presentationEndsAt, presentationKey, viewReceivedAt, viewServerNow]);
 
   useEffect(() => {
     if (view?.status !== 'finished' || !matchId) return;
@@ -736,12 +784,14 @@ export default function LiveBattleMatchPage() {
           presentationActive ? view?.presentation?.plan.round : view?.round
         }
         phase={roundPhase}
-        remainingSeconds={roundRemainingSeconds}
+        deadlineAt={view?.deadlineAt}
+        serverNow={view?.serverNow}
+        serverNowReceivedAt={viewReceivedAt}
       />
       <BattleUtilityHud
         connectionStatus={connectionStatus}
         debugOpen={debugOpen}
-        onToggleDebug={() => setDebugOpen((current) => !current)}
+        onToggleDebug={toggleDebug}
       />
 
       {statusNotice && (
@@ -782,7 +832,7 @@ export default function LiveBattleMatchPage() {
             </div>
             <button
               type="button"
-              onClick={() => setDebugOpen(false)}
+              onClick={toggleDebug}
               className="border-b border-dashed border-[#2c1810]/35"
             >
               关闭
