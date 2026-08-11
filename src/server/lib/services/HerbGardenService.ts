@@ -119,7 +119,9 @@ function seedMaterial(herbKey: string, seedQuality: HerbSeedQuality) {
   if (!herb) throw new HerbGardenError('未知灵植', 400);
   return {
     name: seedName(herb.name, seedQuality),
-    type: 'seed' as const,
+    // 灵种仍属于储物袋可识别的草药材料；是否可播种由 details.kind 判定。
+    // 不引入新的全局材料类型，避免库存协议拒绝整页材料数据。
+    type: 'herb' as const,
     rank: herb.rank,
     element: herb.element,
     description: `${herb.name}的${seedQuality}，可在宗门灵药圃播种。`,
@@ -368,7 +370,7 @@ async function listSeedStacks(
     .where(
       and(
         eq(materials.cultivatorId, cultivatorId),
-        eq(materials.type, 'seed'),
+        eq(materials.type, 'herb'),
         gt(materials.quantity, 0),
       ),
     );
@@ -406,7 +408,7 @@ async function consumeSeed(
       and(
         eq(materials.id, materialId),
         eq(materials.cultivatorId, cultivatorId),
-        eq(materials.type, 'seed'),
+        eq(materials.type, 'herb'),
         gt(materials.quantity, 0),
       ),
     )
@@ -421,7 +423,7 @@ async function consumeSeed(
       and(
         eq(materials.id, materialId),
         eq(materials.cultivatorId, cultivatorId),
-        eq(materials.type, 'seed'),
+        eq(materials.type, 'herb'),
         gt(materials.quantity, 0),
       ),
     )
@@ -453,7 +455,7 @@ export async function plantHerb(
       and(
         eq(materials.id, input.seedMaterialId),
         eq(materials.cultivatorId, cultivatorId),
-        eq(materials.type, 'seed'),
+        eq(materials.type, 'herb'),
         gt(materials.quantity, 0),
       ),
     )

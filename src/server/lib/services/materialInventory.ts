@@ -3,16 +3,10 @@ import { materials } from '@server/lib/drizzle/schema';
 import type { Material } from '@shared/types/cultivator';
 import { and, asc, eq, sql } from 'drizzle-orm';
 
-export type MaterialInventoryWrite = Omit<
-  Pick<
-    Material,
-    'name' | 'type' | 'rank' | 'element' | 'description' | 'details' | 'quantity'
-  >,
-  'type'
-> & {
-  /** 药田灵种是库存专属类型，不进入通用材料生成类型集合。 */
-  type: Material['type'] | 'seed';
-};
+export type MaterialInventoryWrite = Pick<
+  Material,
+  'name' | 'type' | 'rank' | 'element' | 'description' | 'details' | 'quantity'
+>;
 
 export interface MaterialInventoryWriteResult {
   id: string;
