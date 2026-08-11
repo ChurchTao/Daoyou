@@ -41,7 +41,8 @@ export function useHerbGarden(ownerId?: string) {
   }, [endpoint]);
 
   useEffect(() => {
-    void reload();
+    const timeoutId = window.setTimeout(() => void reload(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [reload]);
 
   const mutate = useCallback(
