@@ -4,7 +4,7 @@ export const FATE_SLOT_COUNT = 3;
 export const FATE_CANDIDATE_COUNT = 6;
 export const FATE_RESHAPE_CANDIDATE_COUNT = 8;
 export const FATE_REROLL_LIMIT = 5;
-export const FATE_ROLL_VERSION = 'v6';
+export const FATE_ROLL_VERSION = 'v7';
 
 export const FATE_QUALITY_ORDER = [
   '凡品',

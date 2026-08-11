@@ -100,7 +100,11 @@ export type FateEffectType =
   | 'enlightenment_insight_multiplier'
   | 'inn_cultivation_loss_multiplier'
   | 'system_spirit_stone_multiplier'
-  | 'market_purchase_price_multiplier';
+  | 'market_purchase_price_multiplier'
+  | 'herb_growth_time_multiplier'
+  | 'herb_yield_multiplier'
+  | 'herb_mutation_bonus'
+  | 'herb_seed_return_bonus';
 
 export interface FateEffectRollMeta {
   qualityAnchor: Quality;
@@ -311,5 +315,4 @@ export interface Cultivator {
 
   // 角色当前状态（用于存储战斗/副本中产生的持久状态）
   condition?: CultivatorCondition;
-
 }
