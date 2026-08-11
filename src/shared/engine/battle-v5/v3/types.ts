@@ -47,6 +47,7 @@ export interface CombatNarrativeRelationV3 {
 export type CombatSequencePhaseV3 =
   | 'battle_init'
   | 'round_start'
+  | 'round_post'
   | 'action_pre'
   | 'action'
   | 'action_after'

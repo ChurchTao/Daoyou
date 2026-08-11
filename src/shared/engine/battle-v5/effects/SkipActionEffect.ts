@@ -31,7 +31,7 @@ export class SkipActionEffect extends GameplayEffect {
     });
     context.emit<ActionStateEvent>({
       type: 'ActionStateEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       unit: context.caster,
       stateType: 'rest',
       phase: 'entered',

@@ -5,12 +5,27 @@ import type {
   ResolvedCombatSequenceScopeV3,
 } from '../v3/types';
 import { CombatEvent, EventPriority } from './types';
+import { SystemBattleClock, type BattleClock } from '../runtime/BattleClock';
+import type { CombatResultCommittedEventV3 } from '../v3/events';
+import { BattleResolutionError } from './BattleResolutionError';
+
+interface CombatFactSink {
+  record(event: CombatResultCommittedEventV3): void;
+}
 
 type EventHandler<T extends CombatEvent> = (event: T) => void;
 
 interface EventSubscriber {
   wrappedHandler: (event: CombatEvent) => void;
   priority: EventPriority;
+}
+
+export interface EventBusCursorV1 {
+  sequenceCounter: number;
+  eventCounter: number;
+  ordinalCounter: number;
+  resolutionCounter: number;
+  narrativeCauseCounter: number;
 }
 
 /**
@@ -22,6 +37,7 @@ export class EventBus {
   private static _instance: EventBus;
   private static readonly DEFAULT_MAX_HISTORY_SIZE = 1000;
   private static readonly UNSCOPED_SEQUENCE_ID = 'sequence_v3_unscoped';
+  private static readonly MAX_CAUSAL_DEPTH = 128;
 
   public static get instance(): EventBus {
     if (!this._instance) {
@@ -42,9 +58,10 @@ export class EventBus {
   private _ordinalCounter = 0;
   private _resolutionCounter = 0;
   private _narrativeCauseCounter = 0;
+  private _combatFactSink?: CombatFactSink;
   private readonly _maxHistorySize = EventBus.DEFAULT_MAX_HISTORY_SIZE;
 
-  private constructor() {}
+  constructor(public readonly clock: BattleClock = new SystemBattleClock()) {}
 
   /**
    * Subscribe to an event type with handler and optional priority
@@ -124,7 +141,7 @@ export class EventBus {
     const reservedTrace = event.trace;
     const eventId = reservedTrace?.eventId ?? this.nextEventId();
     const eventWithTimestamp = Object.assign(event, {
-      timestamp: event.timestamp ?? Date.now(),
+      timestamp: event.timestamp ?? this.clock.now(),
       trace: {
         eventId,
         sequenceId:
@@ -152,9 +169,21 @@ export class EventBus {
       this._eventHistory.shift();
     }
 
+    if (eventWithTimestamp.type === 'CombatResultCommittedEventV3') {
+      this._combatFactSink?.record(
+        eventWithTimestamp as unknown as CombatResultCommittedEventV3,
+      );
+    }
+
     const subscribers = this._subscribers.get(eventWithTimestamp.type);
     if (!subscribers) return eventWithTimestamp;
     const dispatchList = [...subscribers];
+    if (this._causalContextStack.length >= EventBus.MAX_CAUSAL_DEPTH) {
+      throw new BattleResolutionError(
+        'BATTLE_RESOLUTION_LIMIT_EXCEEDED',
+        `Battle causal depth exceeded ${EventBus.MAX_CAUSAL_DEPTH}`,
+      );
+    }
     this._causalContextStack.push({
       trace: eventWithTimestamp.trace!,
       origin: eventWithTimestamp.origin,
@@ -189,6 +218,12 @@ export class EventBus {
     context: { origin?: CombatOriginV3; trace?: CombatTraceV3 },
     callback: () => T,
   ): T {
+    if (this._causalContextStack.length >= EventBus.MAX_CAUSAL_DEPTH) {
+      throw new BattleResolutionError(
+        'BATTLE_RESOLUTION_LIMIT_EXCEEDED',
+        `Battle causal depth exceeded ${EventBus.MAX_CAUSAL_DEPTH}`,
+      );
+    }
     this._causalContextStack.push(context);
     try {
       return callback();
@@ -242,6 +277,17 @@ export class EventBus {
     return this._causalContextStack[this._causalContextStack.length - 1]?.trace;
   }
 
+  public attachCombatFactSink(sink: CombatFactSink): void {
+    if (this._combatFactSink && this._combatFactSink !== sink) {
+      throw new Error('EventBus already has an active combat fact sink');
+    }
+    this._combatFactSink = sink;
+  }
+
+  public detachCombatFactSink(sink: CombatFactSink): void {
+    if (this._combatFactSink === sink) this._combatFactSink = undefined;
+  }
+
   private nextEventId(): string {
     return `event_v3_${++this._eventCounter}`;
   }
@@ -258,6 +304,35 @@ export class EventBus {
    */
   public clearHistory(): void {
     this._eventHistory = [];
+  }
+
+  public exportCursor(): EventBusCursorV1 {
+    if (this._sequenceStack.length || this._causalContextStack.length) {
+      throw new Error('EventBus cursor can only be exported at a quiescent boundary');
+    }
+    return {
+      sequenceCounter: this._sequenceCounter,
+      eventCounter: this._eventCounter,
+      ordinalCounter: this._ordinalCounter,
+      resolutionCounter: this._resolutionCounter,
+      narrativeCauseCounter: this._narrativeCauseCounter,
+    };
+  }
+
+  public restoreCursor(cursor: EventBusCursorV1): void {
+    if (this._eventHistory.length || this._sequenceStack.length || this._causalContextStack.length) {
+      throw new Error('EventBus cursor must be restored into a fresh bus');
+    }
+    for (const value of Object.values(cursor)) {
+      if (!Number.isSafeInteger(value) || value < 0) {
+        throw new Error('Invalid EventBus cursor');
+      }
+    }
+    this._sequenceCounter = cursor.sequenceCounter;
+    this._eventCounter = cursor.eventCounter;
+    this._ordinalCounter = cursor.ordinalCounter;
+    this._resolutionCounter = cursor.resolutionCounter;
+    this._narrativeCauseCounter = cursor.narrativeCauseCounter;
   }
 
   /**
@@ -282,5 +357,6 @@ export class EventBus {
     this._ordinalCounter = 0;
     this._resolutionCounter = 0;
     this._narrativeCauseCounter = 0;
+    this._combatFactSink = undefined;
   }
 }

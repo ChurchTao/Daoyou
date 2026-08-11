@@ -4,6 +4,7 @@
 > - 实施与验收日期：2026-07-22
 > - 结论：阶段 0～7 全部完成，最终测试、lint、build、格式和搜索门禁全部通过
 > - 数据边界：无数据库迁移、无持久化模型变化、无稳定宗门/道途/节点/能力 ID 变化
+> - 当前架构提示：这是旧 `BattleEngineV5` 1v1 基线上的历史实施报告。旧引擎现已删除，当前生产主流程为 `Team/Roster + BattleRuntime + Checkpoint + BattleRoundResolver`；报告中的测试数量和 1v1 架构陈述不代表当前状态。
 
 ## 1. 最终结论
 
@@ -15,7 +16,7 @@
 4. `element_history` 专用 Effect 和 runtime state 被天衍隐藏 marker Buff 与通用 runtime counter 替代。
 5. `buff_periodic_settlement/manualSettlementEffects` 被分层灼烧与固定反应追伤替代。
 
-重构没有改写 BattleEngineV5 的 1v1、行动、事件、伤害、Buff 或胜负架构。battle-v5 非 Adapter 生产核心不含四个生产宗门 ID、名称或内容依赖，`sect/core` 也不依赖具体宗门内容。
+该批次当时没有改写 `BattleEngineV5` 的 1v1、行动、事件、伤害、Buff 或胜负架构。后续 Team/Roster 重构已经替换并删除这条旧主流程；本报告仍可用于追溯“battle-v5 非 Adapter 生产核心不依赖具体宗门内容”的解耦决策。
 
 ## 2. 分阶段实施结果
 

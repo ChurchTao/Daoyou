@@ -23,7 +23,7 @@ import {
  *
  * 职责：在每次行动前后对双方单位进行状态快照，并计算帧间 Delta。
  *
- * 采样时机（在 BattleEngineV5 中触发）：
+ * 采样时机（由单回合解析器与自动战斗外壳触发）：
  *  1. battle_init  — 战斗开始后（基线快照）
  *  2. action_pre   — 每个单位的 ActionPreEvent 发布并处理完毕后
  *  3. action_post  — 该单位的动作执行、Buff 过期、CD 刷新全部完成后

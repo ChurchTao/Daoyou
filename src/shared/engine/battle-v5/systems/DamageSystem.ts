@@ -1,6 +1,6 @@
 import { getRealmDamagePressureMultiplier } from '@shared/config/realmProgression';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
-import { battleRandom } from '../core/BattleRandom';
+import { battleRandom, type BattleRandomSource } from '../core/BattleRandom';
 import { EventBus } from '../core/EventBus';
 import {
   DamageEvent,
@@ -47,7 +47,10 @@ export class DamageSystem {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _handlers: Map<string, (event: any) => void> = new Map();
 
-  constructor() {
+  constructor(
+    private readonly eventBus: EventBus = EventBus.instance,
+    private readonly random: BattleRandomSource = { next: battleRandom },
+  ) {
     this._subscribeToEvents();
   }
 
@@ -55,7 +58,7 @@ export class DamageSystem {
     // 1. 订阅技能释放事件，执行命中判定
     const skillCastHandler = (event: SkillCastEvent) =>
       this._onSkillCast(event);
-    EventBus.instance.subscribe<SkillCastEvent>(
+    this.eventBus.subscribe<SkillCastEvent>(
       'SkillCastEvent',
       skillCastHandler,
       EventPriorityLevel.HIT_CHECK,
@@ -66,7 +69,7 @@ export class DamageSystem {
     // 注意：不再订阅 DamageEvent，避免循环
     const damageRequestHandler = (event: DamageRequestEvent) =>
       this._onDamageRequest(event);
-    EventBus.instance.subscribe<DamageRequestEvent>(
+    this.eventBus.subscribe<DamageRequestEvent>(
       'DamageRequestEvent',
       damageRequestHandler,
       EventPriorityLevel.DAMAGE_REQUEST,
@@ -85,7 +88,7 @@ export class DamageSystem {
 
     const hitCheckEvent: HitCheckEvent = {
       type: 'HitCheckEvent',
-      timestamp: Date.now(),
+      timestamp: caster.runtime.clock.now(),
       caster,
       target,
       ability,
@@ -109,7 +112,7 @@ export class DamageSystem {
         3,
         Math.min(45, (evasionRate - accuracy) * 100),
       );
-      if (battleRandom() * 100 < dodgeChance) {
+      if (this.random.next() * 100 < dodgeChance) {
         hitCheckEvent.isDodged = true;
         hitCheckEvent.isHit = false;
       }
@@ -118,7 +121,7 @@ export class DamageSystem {
     }
 
     // 发布命中判定事件
-    const publishedHitCheck = EventBus.instance.publish(hitCheckEvent);
+    const publishedHitCheck = this.eventBus.publish(hitCheckEvent);
 
     if (hitCheckEvent.isDodged) {
       const attribution = CombatAttributionV3.owned(target, {
@@ -133,9 +136,9 @@ export class DamageSystem {
         { type: 'defense', defense: 'dodge' },
         { origin: attribution.origin, parentTrace: publishedHitCheck.trace },
       );
-      EventBus.instance.publish<DodgeEvent>({
+      this.eventBus.publish<DodgeEvent>({
         type: 'DodgeEvent',
-        timestamp: Date.now(),
+        timestamp: caster.runtime.clock.now(),
         caster,
         target,
         ability,
@@ -258,7 +261,7 @@ export class DamageSystem {
       if (
         event.forceCritical ||
         event.isCritical ||
-        battleRandom() < effectiveCritRate
+        this.random.next() < effectiveCritRate
       ) {
         event.isCritical = true;
         const baseCritMult = event.caster.attributes.getValue(
@@ -273,7 +276,7 @@ export class DamageSystem {
     }
 
     // ===== ⑦ 随机浮动 (0.9 ~ 1.1，降低纯数值比拼的确定性) =====
-    const randomFactor = 0.9 + battleRandom() * 0.2;
+    const randomFactor = 0.9 + this.random.next() * 0.2;
     event.finalDamage = event.finalDamage * randomFactor;
 
     // ===== ⑧ 最小伤害保证（避免0伤害）并四舍五入 =====
@@ -289,7 +292,7 @@ export class DamageSystem {
     // 发布伤害应用事件（供护盾/无敌效果订阅）
     const damageEvent: DamageEvent = {
       type: 'DamageEvent',
-      timestamp: Date.now(),
+      timestamp: event.target.runtime.clock.now(),
       caster: event.caster,
       target: event.target,
       ability: event.ability,
@@ -305,7 +308,7 @@ export class DamageSystem {
       canLifesteal: event.canLifesteal,
     };
 
-    EventBus.instance.publish(damageEvent);
+    this.eventBus.publish(damageEvent);
 
     // 直接应用伤害（不再通过订阅 DamageEvent）
     this._updateTargetHealth(damageEvent, damageType);
@@ -431,7 +434,7 @@ export class DamageSystem {
         'Damage settlement requires explicit V3 trace and origin',
       );
     }
-    const damageResultTrace = EventBus.instance.reserveResolutionTrace(
+    const damageResultTrace = this.eventBus.reserveResolutionTrace(
       parentTrace.eventId,
     );
     const { resolutionId } = damageResultTrace;
@@ -445,9 +448,9 @@ export class DamageSystem {
     const absorbedAmount = beforeShield - target.getCurrentShield();
 
     if (beforeShield > 0 && target.getCurrentShield() <= 0) {
-      EventBus.instance.publish<ShieldBreakEvent>({
+      this.eventBus.publish<ShieldBreakEvent>({
         type: 'ShieldBreakEvent',
-        timestamp: Date.now(),
+        timestamp: target.runtime.clock.now(),
         caster,
         target,
         ability,
@@ -470,14 +473,14 @@ export class DamageSystem {
 
     // 发布受击事件（包含护盾抵扣和技能/暴击信息）
     // 注意：在这里发布事件，允许监听器（如免死效果）修改单位状态
-    const damageTakenTrace = EventBus.instance.reserveTrace({
+    const damageTakenTrace = this.eventBus.reserveTrace({
       resolutionId,
       parentEventId: parentTrace.eventId,
     });
-    EventBus.instance.runInCausalContext({ origin, trace: parentTrace }, () =>
-      EventBus.instance.publish<DamageTakenEvent>({
+    this.eventBus.runInCausalContext({ origin, trace: parentTrace }, () =>
+      this.eventBus.publish<DamageTakenEvent>({
         type: 'DamageTakenEvent',
-        timestamp: Date.now(),
+        timestamp: target.runtime.clock.now(),
         caster,
         target,
         ability,
@@ -539,7 +542,7 @@ export class DamageSystem {
    */
   destroy(): void {
     for (const [eventType, handler] of this._handlers) {
-      EventBus.instance.unsubscribe(eventType, handler);
+      this.eventBus.unsubscribe(eventType, handler);
     }
     this._handlers.clear();
   }

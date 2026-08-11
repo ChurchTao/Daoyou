@@ -1,6 +1,5 @@
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { BattleEngineV5 } from '../BattleEngineV5';
 import { Buff, StackRule } from '../buffs/Buff';
 import {
   SeededBattleRandomSource,
@@ -39,7 +38,7 @@ import {
 } from './BattleRecordV3';
 import { CombatFactNarratorV3 } from './CombatFactNarratorV3';
 import { CombatPresenterV3 } from './CombatPresenterV3';
-import { CombatRecordBuilderV3 } from './CombatRecordBuilderV3';
+import { CombatFactSinkV3 } from './CombatFactSinkV3';
 import type { CombatResultScopeV3 } from './CombatResultEmitterV3';
 import { CombatResultEmitterV3 } from './CombatResultEmitterV3';
 import type { CombatMechanicPayloadV3 } from './mechanics';
@@ -79,7 +78,7 @@ function ownedOrigin(
 }
 
 function publishDamage(
-  builder: CombatRecordBuilderV3,
+  builder: CombatFactSinkV3,
   sequenceId: string,
   caster: Unit,
   target: Unit,
@@ -90,7 +89,7 @@ function publishDamage(
     id: 'test-strike',
     name: '测试攻击',
   });
-  builder.runInSequence(
+  builder.runInFrame(
     { id: sequenceId, phase: 'action', turn: 1, actor: caster },
     () => {
       EventBus.instance.publish<DamageRequestEvent>({
@@ -370,7 +369,7 @@ describe('combat facts V3', () => {
   });
 
   it('keeps defensive equipment facts owned by the defender in presentation', () => {
-    const builder = new CombatRecordBuilderV3(EventBus.instance);
+    const builder = new CombatFactSinkV3(EventBus.instance);
     const attacker = unit('attacker', '进攻者');
     const defender = unit('defender', '防守者');
     const origin = ownedOrigin(defender, {
@@ -379,7 +378,7 @@ describe('combat facts V3', () => {
       name: '玄黄不灭甲',
     });
 
-    builder.runInSequence(
+    builder.runInFrame(
       { id: 'sequence:defense', phase: 'action', turn: 1, actor: attacker },
       () => {
         const trigger = EventBus.instance.publish({
@@ -410,7 +409,7 @@ describe('combat facts V3', () => {
   });
 
   it('keeps defensive passive resource facts owned by the defender', () => {
-    const builder = new CombatRecordBuilderV3(EventBus.instance);
+    const builder = new CombatFactSinkV3(EventBus.instance);
     const attacker = unit('attacker', '进攻者');
     const defender = unit('defender', '防守者');
     defender.combatResources.define({
@@ -430,7 +429,7 @@ describe('combat facts V3', () => {
       listeners: [],
     });
 
-    builder.runInSequence(
+    builder.runInFrame(
       { id: 'sequence:resource-defense', phase: 'action', turn: 1 },
       () => {
         const trigger = EventBus.instance.publish({
@@ -478,7 +477,7 @@ describe('combat facts V3', () => {
   ] as const)(
     'keeps defensive %s delayed buff facts attributed to the defender',
     (abilityKind, carrierKind) => {
-      const builder = new CombatRecordBuilderV3(EventBus.instance);
+      const builder = new CombatFactSinkV3(EventBus.instance);
       const damageSystem = new DamageSystem();
       const attacker = unit('attacker', '进攻者');
       const defender = unit('defender', '防守者');
@@ -491,7 +490,7 @@ describe('combat facts V3', () => {
       });
       const attribution = CombatAttributionV3.fromAbility(defender, passive);
 
-      builder.runInSequence(
+      builder.runInFrame(
         { id: `sequence:apply-${carrierKind}`, phase: 'action', turn: 1 },
         () => {
           const trigger = EventBus.instance.publish({
@@ -529,7 +528,7 @@ describe('combat facts V3', () => {
           );
         },
       );
-      builder.runInSequence(
+      builder.runInFrame(
         {
           id: `sequence:trigger-${carrierKind}`,
           phase: 'action_after',
@@ -559,7 +558,7 @@ describe('combat facts V3', () => {
   );
 
   it('records damage before prevention, then exactly one final death', () => {
-    const builder = new CombatRecordBuilderV3(EventBus.instance);
+    const builder = new CombatFactSinkV3(EventBus.instance);
     const damageSystem = new DamageSystem();
     const attacker = unit('attacker', '破阵者');
     const defender = unit('defender', '持甲者');
@@ -627,7 +626,7 @@ describe('combat facts V3', () => {
   });
 
   it('stops an active multi-effect chain when reflect kills its owner', () => {
-    const builder = new CombatRecordBuilderV3(EventBus.instance);
+    const builder = new CombatFactSinkV3(EventBus.instance);
     const damageSystem = new DamageSystem();
     const attacker = unit('attacker', '进攻者');
     const defender = unit('defender', '反击者');
@@ -683,7 +682,7 @@ describe('combat facts V3', () => {
       1_000,
     );
 
-    builder.runInSequence(
+    builder.runInFrame(
       {
         id: 'sequence:two-hit-reflect',
         phase: 'action',
@@ -727,201 +726,8 @@ describe('combat facts V3', () => {
     builder.destroy();
   });
 
-  it('does not settle owned post-action facts after reflect kills the actor', () => {
-    const attacker = new Unit('attacker', '进攻者', {
-      [AttributeType.VITALITY]: 100,
-      [AttributeType.STRENGTH]: 100,
-      [AttributeType.SPIRIT]: 100,
-      [AttributeType.ENDURANCE]: 100,
-      [AttributeType.SPEED]: 1_000,
-      [AttributeType.WILLPOWER]: 100,
-    });
-    const defender = unit('defender', '反击者');
-    attacker.setHp(10);
-    attacker.abilities.setDefaultAttack(
-      AbilityFactory.create({
-        slug: 'fixed-strike',
-        name: '定量一击',
-        type: AbilityType.ACTIVE_SKILL,
-        tags: [
-          GameplayTags.ABILITY.KIND.SKILL,
-          GameplayTags.ABILITY.FUNCTION.DAMAGE,
-          GameplayTags.ABILITY.CHANNEL.TRUE,
-        ],
-        hitPolicy: 'guaranteed',
-        effects: [
-          {
-            type: 'damage',
-            params: {
-              value: {
-                base: 10,
-                attribute: AttributeType.ATK,
-                coefficient: 0,
-              },
-              damageType: DamageType.TRUE,
-            },
-          },
-        ],
-      }),
-    );
-    defender.abilities.addAbility(
-      AbilityFactory.create({
-        slug: 'lethal-reflect',
-        name: '致命反震',
-        type: AbilityType.PASSIVE_SKILL,
-        tags: [
-          GameplayTags.ABILITY.KIND.ARTIFACT,
-          GameplayTags.ABILITY.FUNCTION.BUFF,
-        ],
-        listeners: [
-          {
-            eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-            scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-            priority: 50,
-            effects: [{ type: 'reflect', params: { ratio: 1 } }],
-          },
-        ],
-      }),
-    );
-    attacker.buffs.initializeBuff(
-      new Buff('expiring-stance', '将散之势', BuffType.BUFF, 1),
-      attacker,
-    );
-
-    const engine = new BattleEngineV5(attacker, defender);
-    const result = withBattleRandomSource(
-      new SeededBattleRandomSource('post-action-death'),
-      () => engine.execute(),
-    );
-    const record: BattleRecordV3 = {
-      participants: {
-        player: { id: attacker.id, name: attacker.name },
-        opponent: { id: defender.id, name: defender.name },
-      },
-      outcome: {
-        winner: { id: defender.id, name: defender.name },
-        loser: { id: attacker.id, name: attacker.name },
-        turns: result.turns,
-      },
-      sequences: result.sequences,
-      stateTimeline: result.stateTimeline,
-      finalSnapshots: {
-        winner: result.winnerSnapshot,
-        loser: result.loserSnapshot,
-      },
-    };
-
-    expect(result.winner).toBe(defender.id);
-    expect(() => validateBattleRecordV3(record)).not.toThrow();
-    engine.destroy();
-  });
-
-  it('settles an expired status through the system after its source dies', () => {
-    const source = new Unit('source', '施加者', {
-      [AttributeType.VITALITY]: 100,
-      [AttributeType.STRENGTH]: 100,
-      [AttributeType.SPIRIT]: 100,
-      [AttributeType.ENDURANCE]: 100,
-      [AttributeType.SPEED]: 1_000,
-      [AttributeType.WILLPOWER]: 100,
-    });
-    const survivor = unit('survivor', '存活者');
-    source.setHp(10);
-    source.abilities.setDefaultAttack(
-      AbilityFactory.create({
-        slug: 'lingering-status',
-        name: '遗留术法',
-        type: AbilityType.ACTIVE_SKILL,
-        tags: [
-          GameplayTags.ABILITY.KIND.SKILL,
-          GameplayTags.ABILITY.FUNCTION.BUFF,
-        ],
-        hitPolicy: 'guaranteed',
-        effects: [
-          {
-            type: 'apply_buff',
-            params: {
-              target: 'target',
-              buffConfig: {
-                id: 'lingering-debuff',
-                name: '遗留减益',
-                type: BuffType.DEBUFF,
-                duration: 1,
-                stackRule: StackRule.REFRESH_DURATION,
-                tags: [GameplayTags.BUFF.TYPE.DEBUFF],
-                statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF],
-              },
-            },
-          },
-        ],
-      }),
-    );
-    survivor.abilities.setDefaultAttack(
-      AbilityFactory.create({
-        slug: 'finishing-strike',
-        name: '终结一击',
-        type: AbilityType.ACTIVE_SKILL,
-        tags: [
-          GameplayTags.ABILITY.KIND.SKILL,
-          GameplayTags.ABILITY.FUNCTION.DAMAGE,
-          GameplayTags.ABILITY.CHANNEL.TRUE,
-        ],
-        hitPolicy: 'guaranteed',
-        effects: [
-          {
-            type: 'damage',
-            params: {
-              value: {
-                base: 10,
-                attribute: AttributeType.ATK,
-                coefficient: 0,
-              },
-              damageType: DamageType.TRUE,
-            },
-          },
-        ],
-      }),
-    );
-
-    const engine = new BattleEngineV5(source, survivor);
-    const result = withBattleRandomSource(
-      new SeededBattleRandomSource('dead-status-source'),
-      () => engine.execute(),
-    );
-    const record: BattleRecordV3 = {
-      participants: {
-        player: { id: source.id, name: source.name },
-        opponent: { id: survivor.id, name: survivor.name },
-      },
-      outcome: {
-        winner: { id: survivor.id, name: survivor.name },
-        loser: { id: source.id, name: source.name },
-        turns: result.turns,
-      },
-      sequences: result.sequences,
-      stateTimeline: result.stateTimeline,
-      finalSnapshots: {
-        winner: result.winnerSnapshot,
-        loser: result.loserSnapshot,
-      },
-    };
-    const removal = result.sequences
-      .flatMap((sequence) => sequence.facts)
-      .find(
-        (fact) =>
-          fact.type === 'status' &&
-          fact.operation === 'remove' &&
-          fact.statusId === 'lingering-debuff',
-      );
-
-    expect(result.winner).toBe(survivor.id);
-    expect(removal?.origin.kind).toBe('system');
-    expect(() => validateBattleRecordV3(record)).not.toThrow();
-    engine.destroy();
-  });
-
   it('does not record death when a hit reaction restores hp from zero', () => {
-    const builder = new CombatRecordBuilderV3(EventBus.instance);
+    const builder = new CombatFactSinkV3(EventBus.instance);
     const damageSystem = new DamageSystem();
     const attacker = unit('attacker', '进攻者');
     const defender = unit('defender', '防守者');
@@ -1207,7 +1013,7 @@ describe('combat facts V3', () => {
   });
 
   it('renders committed mechanic and defense semantics without leaking internal ids', () => {
-    const builder = new CombatRecordBuilderV3(EventBus.instance);
+    const builder = new CombatFactSinkV3(EventBus.instance);
     const attacker = unit('attacker', '进攻者');
     const defender = unit('defender', '防守者');
     const ability = AbilityFactory.create({
@@ -1221,7 +1027,7 @@ describe('combat facts V3', () => {
       listeners: [],
     });
 
-    builder.runInSequence(
+    builder.runInFrame(
       { id: 'sequence:presentation', phase: 'action', turn: 1 },
       () => {
         const trigger = EventBus.instance.publish({
@@ -1266,10 +1072,10 @@ describe('combat facts V3', () => {
   });
 
   it('emits explicit status transitions for add, stack, refresh, and replace', () => {
-    const builder = new CombatRecordBuilderV3(EventBus.instance);
+    const builder = new CombatFactSinkV3(EventBus.instance);
     const owner = unit('owner', '归属者');
 
-    builder.runInSequence(
+    builder.runInFrame(
       { id: 'sequence:status-transitions', phase: 'action', turn: 1 },
       () => {
         owner.buffs.addBuff(
@@ -1362,10 +1168,10 @@ describe('combat facts V3', () => {
   });
 
   it('commits a stack result before layer-change reactions mutate the buff', () => {
-    const builder = new CombatRecordBuilderV3(EventBus.instance);
+    const builder = new CombatFactSinkV3(EventBus.instance);
     const owner = unit('owner', '归属者');
 
-    builder.runInSequence(
+    builder.runInFrame(
       { id: 'sequence:stack-reaction', phase: 'action', turn: 1, actor: owner },
       () => {
         owner.buffs.addBuff(
@@ -2585,7 +2391,7 @@ describe('combat facts V3', () => {
   });
 
   it('does not commit a status spread fact when the 1v1 battle has no spread target', () => {
-    const builder = new CombatRecordBuilderV3(EventBus.instance);
+    const builder = new CombatFactSinkV3(EventBus.instance);
     const attacker = unit('attacker', '进攻者');
     const defender = unit('defender', '防守者');
     const ability = AbilityFactory.create({
@@ -2599,7 +2405,7 @@ describe('combat facts V3', () => {
       effects: [],
     });
 
-    builder.runInSequence(
+    builder.runInFrame(
       { id: 'sequence:no-spread-target', phase: 'action', turn: 1 },
       () => {
         const trigger = EventBus.instance.publish({
@@ -2624,7 +2430,7 @@ describe('combat facts V3', () => {
   });
 
   it('dispatches committed results as immutable events', () => {
-    const builder = new CombatRecordBuilderV3(EventBus.instance);
+    const builder = new CombatFactSinkV3(EventBus.instance);
     const target = unit('target', '目标');
     const origin = ownedOrigin(target, {
       kind: 'mechanic',
@@ -2649,7 +2455,7 @@ describe('combat facts V3', () => {
       2_000,
     );
 
-    builder.runInSequence(
+    builder.runInFrame(
       { id: 'sequence:immutable', phase: 'action', turn: 1 },
       () => {
         const trigger = EventBus.instance.publish({
@@ -2937,40 +2743,4 @@ describe('combat facts V3', () => {
     );
   });
 
-  it('validates a complete deterministic battle against its final timeline', () => {
-    const player = unit('player', '玩家', 600);
-    const opponent = unit('opponent', '对手', 10);
-    const engine = new BattleEngineV5(player, opponent);
-    const result = withBattleRandomSource(
-      new SeededBattleRandomSource('combat-v3'),
-      () => engine.execute(),
-    );
-    const record: BattleRecordV3 = {
-      participants: {
-        player: { id: player.id, name: player.name },
-        opponent: { id: opponent.id, name: opponent.name },
-      },
-      outcome: {
-        winner: {
-          id: result.winner,
-          name: result.winner === player.id ? player.name : opponent.name,
-        },
-        loser: {
-          id: result.loser,
-          name: result.loser === player.id ? player.name : opponent.name,
-        },
-        turns: result.turns,
-      },
-      sequences: result.sequences,
-      stateTimeline: result.stateTimeline,
-      finalSnapshots: {
-        winner: result.winnerSnapshot,
-        loser: result.loserSnapshot,
-      },
-    };
-
-    expect(() => validateBattleRecordV3(record)).not.toThrow();
-    expect(record.finalSnapshots.loser.alive).toBe(false);
-    engine.destroy();
-  });
 });

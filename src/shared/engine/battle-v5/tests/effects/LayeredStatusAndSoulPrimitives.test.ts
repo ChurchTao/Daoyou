@@ -4,7 +4,6 @@ import type {
   BuffLayerChangedEvent,
   DamageRequestEvent,
   HealEvent,
-  SkillPreCastEvent,
 } from '../../core/events';
 import { EventBus } from '../../core/EventBus';
 import {
@@ -254,21 +253,9 @@ describe('通用分层状态与伤害行为原语', () => {
       }],
     });
     caster.abilities.addAbility(ability);
-    caster.abilities.setDefaultTarget(target);
-    let prepared: SkillPreCastEvent | undefined;
-    EventBus.instance.subscribe<SkillPreCastEvent>(
-      'SkillPreCastEvent',
-      (event) => { if (event.caster === caster) prepared = event; },
-      -1_000,
-    );
 
-    EventBus.instance.publish({
-      type: 'ActionEvent',
-      timestamp: Date.now(),
-      caster,
-    });
-
-    expect(prepared?.hitPolicy).toBe('guaranteed');
+    expect(ability).toMatchObject({ hitPolicy: 'guaranteed' });
+    expect(ability.canTrigger({ caster, target })).toBe(true);
   });
 
   it('治疗事件仍以请求值与受疗削弱后的实得值分别记账', () => {

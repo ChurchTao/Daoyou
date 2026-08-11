@@ -27,6 +27,7 @@ import {
   type DamageComponent,
   type DamageCalculationMode,
   type LogCauseRef,
+  type TeamId,
   DamageSource,
   DamageType,
 } from './types';
@@ -67,12 +68,6 @@ export interface ActionPreEvent extends CombatEvent {
   caster: Unit;
 }
 
-// ===== 行动阶段触发事件 =====
-export interface ActionEvent extends CombatEvent {
-  type: 'ActionEvent';
-  caster: Unit;
-}
-
 // ===== 行动阶段后置事件（技能结算完毕，Buff 过期处理前触发）=====
 export interface ActionPostEvent extends CombatEvent {
   type: 'ActionPostEvent';
@@ -84,6 +79,8 @@ export interface SkillPreCastEvent extends CombatEvent {
   type: 'SkillPreCastEvent';
   caster: Unit;
   target: Unit;
+  /** Sealed team-cast targets. Absent for legacy single-target casts. */
+  targets?: Unit[];
   fallbackTarget?: Unit;
   ability: Ability;
   isInterrupted: boolean;
@@ -448,6 +445,8 @@ export interface BattleInitEvent extends CombatEvent {
   type: 'BattleInitEvent';
   player: Unit;
   opponent: Unit;
+  /** Complete roster for Team/Roster-aware listeners. */
+  units?: Unit[];
 }
 
 // ===== 回合开始事件（状态机驱动） =====
@@ -480,7 +479,9 @@ export interface VictoryCheckEvent extends CombatEvent {
 // ===== 战斗结束事件 =====
 export interface BattleEndEvent extends CombatEvent {
   type: 'BattleEndEvent';
+  /** Legacy winner unit id; the first surviving winner-team unit in team battles. */
   winner: string | null;
+  winnerTeamId?: TeamId;
   turns: number;
 }
 

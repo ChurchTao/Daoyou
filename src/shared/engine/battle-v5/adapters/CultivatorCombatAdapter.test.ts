@@ -2,7 +2,6 @@ import { getArtifactWearerRealmFactor } from '@shared/engine/shared/artifactReal
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import type { Cultivator } from '@shared/types/cultivator';
 import { EventBus } from '../core/EventBus';
-import type { ActionEvent, SkillPreCastEvent } from '../core/events';
 import { AbilityType, AttributeType, ModifierType } from '../core/types';
 import { Unit } from '../units/Unit';
 import { ActiveSkill } from '../abilities/ActiveSkill';
@@ -191,19 +190,18 @@ describe('CultivatorCombatAdapter', () => {
     const opponent = new Unit('opponent', '木桩', {
       [AttributeType.VITALITY]: 100,
     });
-    unit.abilities.setDefaultTarget(opponent);
-
-    let selectedAbilityId: string | null = null;
-    eventBus.subscribe<SkillPreCastEvent>('SkillPreCastEvent', (event) => {
-      if (event.caster === unit) selectedAbilityId = event.ability.id;
-    });
-    eventBus.publish<ActionEvent>({
-      type: 'ActionEvent',
-      timestamp: Date.now(),
+    const candidates = unit.abilities
+      .getAllAbilities()
+      .filter((ability): ability is ActiveSkill => ability instanceof ActiveSkill)
+      .filter((ability) => ability.canTrigger({ caster: unit, target: opponent }))
+      .map((ability, order) => ({ ability, target: opponent, order }));
+    const selected = unit.abilities.getSelectionStrategy().select({
       caster: unit,
+      opponent,
+      candidates,
     });
 
-    expect(selectedAbilityId).toBe('sect.lingxiao.linked-edge');
+    expect(selected?.ability.id).toBe('sect.lingxiao.linked-edge');
     unit.abilities.destroy();
     eventBus.reset();
   });

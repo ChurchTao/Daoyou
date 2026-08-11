@@ -71,7 +71,7 @@ export class DispelEffect extends GameplayEffect {
     // 发布驱散事件
     context.emit<DispelEvent>({
       type: 'DispelEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       caster,
       target,
       ability,

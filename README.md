@@ -65,9 +65,10 @@
 ├── drizzle/                     # 业务表 Drizzle migrations
 ├── drizzle-auth/                # Better Auth Drizzle migrations
 ├── drizzle.auth.config.ts       # Better Auth 独立迁移配置
-├── scripts/                     # Docker 启停脚本
-├── Dockerfile
-├── docker-compose.yml
+├── scripts/                     # 部署脚本、生产/NATS Compose 与战斗 E2E
+├── docker/
+│   ├── Dockerfile.app
+│   └── Dockerfile.battle
 └── vite.config.ts
 ```
 
@@ -92,7 +93,7 @@
 
 - `Bun 1.3+`
 - `PostgreSQL`
-- `Redis`：不是进程启动硬依赖，但排行榜、世界聊天、部分定时任务等功能会用到
+- `Redis`：API 的部分能力按需使用；独立 battle-server 将其作为在线对局的启动硬依赖
 - `NATS`：进程启动硬依赖；JetStream 承载领域事件、异步投影和后台 command，Core 承载跨实例实时广播
 
 说明：
@@ -121,6 +122,28 @@ cp .env.example .env.local
 | `BETTER_AUTH_URL` | Better Auth 后端对外基准地址；生产填 API 域名，如 `https://api.example.com` |
 | `NATS_SERVERS` | NATS 服务地址，多个地址使用逗号分隔 |
 | `NATS_USER` / `NATS_PASSWORD` | NATS 应用用户凭据 |
+
+独立实时战斗服务由 Node.js 运行构建产物；生产环境还必须配置：
+
+| 变量 | 说明 |
+| --- | --- |
+| `BATTLE_SERVER_PORT` | battle-server 监听端口，默认 `3100` |
+| `BATTLE_SERVER_ORIGINS` | 允许连接 Socket.IO 的玩家前端 origin，逗号分隔 |
+| `BATTLE_SERVER_API_ORIGINS` | 允许调用 Lobby API 的应用服务 origin；CORS 不是鉴权 |
+| `BATTLE_SERVER_API_TOKEN` | 应用服务 / matchmaker 调用 Lobby API 时使用的独立 Bearer 密钥 |
+| `BATTLE_SERVER_URL` | Hono Session Gateway 调用 battle-server 的内网地址 |
+| `BATTLE_SERVER_PUBLIC_ORIGIN` | 返回给浏览器建立 Socket.IO 连接的公网地址 |
+| `REDIS_URL` | 在线对局唯一权威状态、邀请、凭据、截止时间与恢复索引 |
+| `NATS_SERVERS` / `NATS_USER` / `NATS_PASSWORD` | 结束对局回放归档使用的 JetStream |
+
+客户端不得直接调用 boardgame.io 的 `/games/*` Lobby API，也不得持有上述 token。
+应用侧 matchmaker 负责创建对局、预占 player slot 并把对应的 boardgame 凭据通过已认证的
+业务接口交给正确玩家；Socket.IO 连接只使用该玩家自己的凭据。
+
+实时战斗的数据边界固定为：`battle-v5` 只做确定性规则解析，boardgame.io 只做协议与编排；
+进行中的 `G / ctx / _stateID`、选招、锁定、邀请和回放素材只在 Redis。对局结束后 battle-server
+将 `BattleReplayV1` 发布到 NATS JetStream，应用侧 durable consumer 异步、幂等写入
+`wanjiedaoyou_battle_replay_archives`。玩家 move 链路不查询或写入 PostgreSQL，也不使用 Redis Stream。
 
 ### 建议同时配置
 
@@ -206,7 +229,7 @@ bun run auth:migrate
 4. 启动开发服务器
 
 ```bash
-docker compose -f docker-compose.nats.yml up -d
+docker compose -f scripts/docker-compose.nats.yml up -d
 bun run dev
 ```
 
@@ -219,16 +242,21 @@ bun run dev
 - 前端页面：`http://localhost:5173`
 - 健康检查：`http://localhost:5173/api/health-check`
 
-`bun run dev` 会同时启动两个进程：Vite 提供前端页面，Bun 在本地提供 Hono API 与 WebSocket；Vite 将 `/api` 和 `/internal` 代理到 Bun API 服务。
+`bun run dev` 会同时启动三个进程：Vite 提供前端页面，Bun 在本地提供 Hono API，独立 battle-server 提供实时战斗；Vite 将 `/api` 和 `/internal` 代理到 Bun API 服务。battle-server 默认监听 `3100`，由 `BATTLE_SERVER_*` 环境变量控制。
+
+本地 NATS 使用 JetStream 文件卷保存消息和 durable consumer 的投递位点。启动时发现历史消息是预期行为；回放归档和事务消息会在 PostgreSQL 可用后继续消费。若 PostgreSQL 暂时不可用，事务消息恢复器会以 5 秒至 60 秒退避重试，避免连接超时期间持续打满连接池；不应通过删除 NATS 数据卷来规避数据库故障。
 
 ## 构建与运行
 
 | 命令 | 作用 |
 | --- | --- |
-| `bun run dev` | 本地开发 |
+| `bun run dev` | 启动 Vite、API 和 Node.js battle-server 本地开发进程 |
 | `bun run build` | 依次构建前端与服务端 |
 | `bun run build:client` | 构建 Cloudflare Pages 使用的前端 SPA |
 | `bun run build:server` | 构建 Docker 使用的 Bun/Hono 后端 |
+| `bun run build:battle` | 使用 Vite SSR 构建 Node LTS battle-server 到 `dist-battle/battle-server.js` |
+| `bun run battle:server` | 使用 Node.js 启动已构建的独立战斗服务，默认监听 `3100` |
+| `bun run battle:smoke` | 验证 2v2、4v4、超时与真实 Socket.IO 同步流程 |
 | `bun run preview` | 先构建，再运行 `dist/index.js` |
 | `bun run start` | 直接运行已构建产物 |
 | `bun run lint` | ESLint 检查 |
@@ -243,12 +271,16 @@ bun run dev
 
 ## Docker
 
-仓库内已经提供 Dockerfile，运行形态是单容器 Hono 服务，默认监听 `3000`。
+React SPA 继续独立部署到 Cloudflare Pages，不进入任何后端镜像。主服务与
+battle-server 使用独立镜像：`app`（`3000`）使用 Bun，`battle`（`3100`）使用
+Node.js LTS；battle-server 只连接 Redis 与 NATS，不连接 PostgreSQL，并只负责编排实时对局；
+`battle-v5` 仍是无框架依赖的纯战斗引擎。PostgreSQL 回放归档由应用侧 NATS consumer 完成。
 
 本地构建镜像：
 
 ```bash
-docker build -t daoyou-hono-bun:local -f Dockerfile .
+docker build -t daoyou-app:local -f docker/Dockerfile.app .
+docker build -t daoyou-battle:local -f docker/Dockerfile.battle .
 ```
 
 运行镜像：
@@ -256,7 +288,7 @@ docker build -t daoyou-hono-bun:local -f Dockerfile .
 ```bash
 docker run --rm -p 3000:3000 \
   --env-file /path/to/.env.production \
-  daoyou-hono-bun:local
+  daoyou-app:local
 ```
 
 注意：
@@ -266,37 +298,45 @@ docker run --rm -p 3000:3000 \
 
 ## 仓库内现成部署脚本
 
-### 构建本地镜像并启动
+### Hono API 蓝绿发布
 
 ```bash
-ENV_FILE=/path/to/.env.production ./scripts/start-local.sh
+APP_IMAGE=swkzymlyy/daoyou-app:<version> \
+ENV_FILE=/root/daoyou/.env.production \
+./scripts/blue-green-app.sh
 ```
 
 这个脚本会：
 
-- 依据当前仓库构建本地镜像
-- 启动容器
-- 轮询 `/api/health-check` 直到就绪
+- 在 `daoyou-app-blue` / `daoyou-app-green` 间部署闲置颜色
+- 同时验证 Docker health 与宿主机 `/api/health-check`
+- 通过 `nginx -t` 后原子切换 OpenResty upstream
+- 短暂 drain 后停止旧颜色容器
 
-### 拉取远程镜像并启动
+### battle-server 独立发布
 
 ```bash
-ENV_FILE=/path/to/.env.production ./scripts/deploy-local.sh
+BATTLE_IMAGE=swkzymlyy/daoyou-battle:<version> \
+ENV_FILE=/root/daoyou/.env.production \
+./scripts/deploy-battle.sh
 ```
 
 这个脚本会：
 
-- 拉取远程镜像，默认是 `swkzymlyy/daoyou-hono:latest`
-- 删除同名旧容器
-- 启动新容器并等待健康检查成功
+- 使用 `scripts/docker-compose.production.yml` 更新稳定的 battle 服务
+- 轮询容器 health 和 `/healthz`
+- 不参与 Hono API 的蓝绿 upstream 切换
 
-### 使用 docker compose
+### 查看 battle 服务
 
 ```bash
-docker compose up -d
+ENV_FILE=/root/daoyou/.env.production \
+docker compose -f scripts/docker-compose.production.yml ps
 ```
 
-`docker-compose.yml` 默认使用远程镜像，并通过 `env_file` 注入运行时环境。
+生产 Compose 显式定义 `app-blue`、`app-green` 和稳定的 battle 服务；
+`blue-green-app.sh` 通过 Compose 启动闲置 app profile 并切换 OpenResty。
+React SPA 仍由 Cloudflare Pages 独立部署。
 
 ## 生产 cron 配置方式
 

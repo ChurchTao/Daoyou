@@ -44,7 +44,7 @@ export class TagTriggerEffect extends GameplayEffect {
 
     narrativeContext.emit<TagTriggerEvent>({
       type: 'TagTriggerEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       caster,
       target,
       ability,

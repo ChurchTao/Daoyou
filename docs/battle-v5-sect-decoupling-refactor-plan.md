@@ -1,7 +1,8 @@
 # battle-v5 与宗门机制解耦优化重构方案
 
-> - 状态：已实施并通过最终验证（2026-07-22）
+> - 状态：历史实施方案，已实施并通过验证（2026-07-22）
 > - 分析基线：2026-07-22 当前工作区
+> - 当前架构提示：本文记录的是旧 `BattleEngineV5` 1v1 主流程下的宗门解耦决策。该引擎已被删除；当前生产基线为 `Team/Roster + BattleRuntime + Checkpoint + BattleRoundResolver`。本文只用于追溯宗门通用原语的取舍，不再是战斗主流程的实现依据。
 > - 适用范围：`src/shared/engine/battle-v5`、`src/shared/engine/sect`、宗门战斗日志展示与相关测试
 > - 重点宗门：幽都、天衍圣地；红尘剑宗与无相宗作为回归样本
 > - 实施原则：不重做战斗架构，不修改持久化模型，不改变稳定宗门/流派/节点/能力 ID
@@ -43,7 +44,7 @@
 
 ### 2.2 非目标
 
-- 不修改 BattleEngineV5 当前严格 1v1 的单位、目标、回合、胜负和 AI 模型。
+- 当时不修改 `BattleEngineV5` 严格 1v1 的单位、目标、回合、胜负和 AI 模型；该非目标仅适用于本文的历史实施批次，不能用于约束当前 Team/Roster 引擎。
 - 不新增 `DamageType.SOUL` 或其他宗门专属枚举。
 - 不改变 `Cultivator.attributes` 的五维持久化边界。
 - 不持久化 `battleProjection`、宗门战斗资源、Buff、运行时 counter 或 marker。

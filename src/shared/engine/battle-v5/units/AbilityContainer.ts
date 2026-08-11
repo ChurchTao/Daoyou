@@ -1,18 +1,10 @@
-import { Ability, AbilityContext } from '../abilities/Ability';
+import { Ability } from '../abilities/Ability';
 import {
   AbilitySelectionStrategy,
   DefaultAbilitySelectionStrategy,
 } from '../abilities/AbilitySelectionStrategy';
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import { BasicAttack } from '../abilities/BasicAttack';
-import { EventBus } from '../core/EventBus';
-import {
-  ActionEvent,
-  ControlledSkipEvent,
-  EventPriorityLevel,
-  SkillPreCastEvent,
-} from '../core/events';
-import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { AbilityType } from '../core/types';
 import { Unit } from './Unit';
 
@@ -21,8 +13,7 @@ import { Unit } from './Unit';
  *
  * 职责：
  * - 管理单位的所有技能（存储、添加、移除）
- * - 响应 ActionEvent 进行技能筛选
- * - 发布 SkillPreCastEvent 进入施法流程
+ * - 保存自动战斗的技能选择策略
  *
  * 不负责：
  * - 目标选择（由 TargetSelectionSystem 处理）
@@ -31,134 +22,13 @@ import { Unit } from './Unit';
 export class AbilityContainer {
   private _abilities = new Map<string, Ability>();
   private _owner: Unit;
-  private _defaultTarget: Unit | null = null;
   private _defaultAttack: Ability | null = null;
   private _fallbackBasicAttack: Ability | null = null;
   private _selectionStrategy: AbilitySelectionStrategy =
     new DefaultAbilitySelectionStrategy();
-  private _handlers: Map<string, (event: unknown) => void> = new Map();
 
   constructor(owner: Unit) {
     this._owner = owner;
-    this._subscribeToEvents();
-  }
-
-  private _subscribeToEvents(): void {
-    const actionEventHandler = (event: unknown) =>
-      this._onActionTrigger(event as ActionEvent);
-    EventBus.instance.subscribe<ActionEvent>(
-      'ActionEvent',
-      actionEventHandler,
-      EventPriorityLevel.ACTION_TRIGGER,
-    );
-    this._handlers.set('ActionEvent', actionEventHandler);
-  }
-
-  /**
-   * 响应行动触发事件，执行技能筛选
-   * 支持控制三分法：NO_ACTION 由 BattleEngineV5 拦截，此处处理 NO_SKILL / NO_BASIC
-   */
-  private _onActionTrigger(event: ActionEvent): void {
-    // 仅当前出手单位是自己时，才执行筛选
-    // 使用对象引用检查，在内存中最为稳固
-    if (event.caster !== this._owner) {
-      return;
-    }
-
-    // 控制三分法检查
-    // NO_ACTION 已在 BattleEngineV5.executeActionPhase 中拦截，此处做防御性检查
-    if (
-      this._owner.tags.hasAnyTag([
-        GameplayTags.STATUS.CONTROL.NO_ACTION,
-        GameplayTags.STATUS.CONTROL.STUNNED,
-      ])
-    ) {
-      return;
-    }
-
-    const isSkillBlocked = this._owner.tags.hasTag(
-      GameplayTags.STATUS.CONTROL.NO_SKILL,
-    );
-    const isBasicBlocked = this._owner.tags.hasTag(
-      GameplayTags.STATUS.CONTROL.NO_BASIC,
-    );
-
-    const opponent = this._getDefaultTarget();
-
-    // 禁技时跳过所有主动技能，直接尝试普攻
-    // 未禁技时优先匹配主动技能
-    if (!isSkillBlocked) {
-      const candidates: Array<{
-        ability: ActiveSkill;
-        target: Unit;
-        order: number;
-      }> = [];
-      let order = 0;
-
-      for (const ability of this._abilities.values()) {
-        if (ability.type !== AbilityType.ACTIVE_SKILL) {
-          continue;
-        }
-
-        const activeSkill = ability as ActiveSkill;
-
-        const policy = activeSkill.targetPolicy;
-        const resolvedTarget =
-          policy.team === 'self' || policy.team === 'ally'
-            ? this._owner
-            : opponent;
-
-        if (!resolvedTarget || !resolvedTarget.isAlive()) {
-          continue;
-        }
-
-        const context: AbilityContext = {
-          caster: this._owner,
-          target: resolvedTarget,
-        };
-
-        if (activeSkill.canTrigger(context)) {
-          candidates.push({
-            ability: activeSkill,
-            target: resolvedTarget,
-            order: order++,
-          });
-        }
-      }
-
-      const bestChoice = this._selectionStrategy.select({
-        caster: this._owner,
-        opponent,
-        candidates,
-      });
-
-      if (bestChoice) {
-        this._prepareCast(bestChoice.ability, bestChoice.target);
-        return;
-      }
-    }
-
-    // 无可用技能（或禁技状态）时回退到普攻，禁普攻则什么都不做
-    if (
-      !isBasicBlocked &&
-      opponent &&
-      opponent !== this._owner &&
-      opponent.isAlive()
-    ) {
-      const defaultAttack = this._getDefaultAttack();
-      const context = { caster: this._owner, target: opponent };
-      this._prepareCast(
-        defaultAttack.canTrigger(context) ? defaultAttack : this.getFallbackBasicAttack(),
-        opponent,
-      );
-    } else {
-      EventBus.instance.publish<ControlledSkipEvent>({
-        type: 'ControlledSkipEvent',
-        timestamp: Date.now(),
-        unit: this._owner,
-        controlTag: GameplayTags.STATUS.CONTROL.NO_ACTION,
-      });
-    }
   }
 
   /**
@@ -182,39 +52,12 @@ export class AbilityContainer {
       });
   }
 
-  /**
-   * 准备施法：发布施法前摇事件
-   */
-  private _prepareCast(ability: Ability, target: Unit): void {
-    ability.prepareCast({ caster: this._owner, target });
-    EventBus.instance.publish<SkillPreCastEvent>({
-      type: 'SkillPreCastEvent',
-      timestamp: Date.now(),
-      caster: this._owner,
-      target,
-      fallbackTarget: this._getDefaultTarget() ?? undefined,
-      ability,
-      isInterrupted: false,
-      hitPolicy: ability instanceof ActiveSkill ? ability.hitPolicy : 'normal',
-    });
-  }
-
-  // ===== 目标管理（简化版，由外部设置） =====
-
-  setDefaultTarget(target: Unit): void {
-    this._defaultTarget = target;
-  }
-
-  clearDefaultTarget(): void {
-    this._defaultTarget = null;
-  }
-
   setSelectionStrategy(strategy: AbilitySelectionStrategy): void {
     this._selectionStrategy = strategy;
   }
 
-  private _getDefaultTarget(): Unit | null {
-    return this._defaultTarget;
+  getSelectionStrategy(): AbilitySelectionStrategy {
+    return this._selectionStrategy;
   }
 
   private _getDefaultAttack(): Ability {
@@ -228,6 +71,10 @@ export class AbilityContainer {
 
   getDefaultAttackForSnapshot(): Ability | null {
     return this._defaultAttack;
+  }
+
+  getDefaultAttack(): Ability {
+    return this._getDefaultAttack();
   }
 
   getFallbackBasicAttack(): Ability {
@@ -338,12 +185,6 @@ export class AbilityContainer {
   // ===== 销毁 =====
 
   destroy(): void {
-    // 取消所有事件订阅
-    for (const [eventType, handler] of this._handlers) {
-      EventBus.instance.unsubscribe(eventType, handler);
-    }
-    this._handlers.clear();
-
     // 停用所有技能
     for (const ability of this._abilities.values()) {
       ability.setActive(false);

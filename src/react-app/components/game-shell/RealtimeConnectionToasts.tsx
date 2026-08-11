@@ -9,6 +9,7 @@ export function RealtimeConnectionToasts() {
   const seenOnline = useRef<Record<RealtimeChannel, boolean>>({
     'world-chat': false,
     'player-state': false,
+    'arena-room': false,
   });
   const disconnectToastActive = useRef(false);
   const restoreToastActive = useRef(false);

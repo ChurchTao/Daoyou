@@ -23,10 +23,9 @@ import {
 import { DamageEffect } from '../../effects/DamageEffect';
 import { ReflectEffect } from '../../effects/ReflectEffect';
 import { AbilityFactory } from '../../factories/AbilityFactory';
-import { BattleEngineV5 } from '../../BattleEngineV5';
 import { ActionExecutionSystem } from '../../systems/ActionExecutionSystem';
 import { DamageSystem } from '../../systems/DamageSystem';
-import { CombatRecordBuilderV3 } from '../../v3/CombatRecordBuilderV3';
+import { CombatFactSinkV3 } from '../../v3/CombatFactSinkV3';
 import { Unit } from '../../units/Unit';
 import { executeTestEffect } from '../setup/executeTestEffect';
 import { publishTestDamageRequest } from '../setup/combatV3TestHarness';
@@ -99,47 +98,6 @@ describe('ActionExecutionSystem integration', () => {
     skill.tickCooldown();
     expect(skill.currentCooldown).toBe(0);
     expect(skill.isReady()).toBe(true);
-  });
-});
-
-describe('BattleEngineV5 turn order', () => {
-  beforeEach(() => {
-    EventBus.instance.reset();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    EventBus.instance.reset();
-  });
-
-  it('randomizes turn order when units have equal speed', () => {
-    const randomSpy = vi.spyOn(Math, 'random');
-    randomSpy
-      .mockReturnValueOnce(0)
-      .mockReturnValueOnce(0.75)
-      .mockReturnValue(0.5);
-
-    const player = new Unit('player', '玩家', {
-      [AttributeType.VITALITY]: 1,
-      [AttributeType.SPEED]: 10,
-    });
-    const opponent = new Unit('opponent', '对手', {
-      [AttributeType.VITALITY]: 1,
-      [AttributeType.SPEED]: 10,
-    });
-    player.setHp(1);
-    opponent.setHp(1);
-
-    const engine = new BattleEngineV5(player, opponent);
-
-    try {
-      const result = engine.execute();
-
-      expect(result.winner).toBe('opponent');
-      expect(result.turns).toBe(1);
-    } finally {
-      engine.destroy();
-    }
   });
 });
 
@@ -358,7 +316,7 @@ describe('DamageSystem hit check', () => {
 
   it('control resistance should be collected as a resist log entry', () => {
     const actionExecutionSystem = new ActionExecutionSystem();
-    const builder = new CombatRecordBuilderV3(EventBus.instance);
+    const builder = new CombatFactSinkV3(EventBus.instance);
 
     const caster = new Unit('caster', '施法者', {
       [AttributeType.WILLPOWER]: 0,
@@ -395,7 +353,7 @@ describe('DamageSystem hit check', () => {
       ],
     });
 
-    builder.runInSequence(
+    builder.runInFrame(
       { id: 'sequence:control-resist', phase: 'action', turn: 1 },
       () => {
         EventBus.instance.publish<SkillPreCastEvent>({

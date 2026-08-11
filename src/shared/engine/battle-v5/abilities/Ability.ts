@@ -3,9 +3,10 @@ import type {
   AbilityCostConfig,
   AbilitySelectionProfile,
 } from '../core/configs';
-import { EventBus } from '../core/EventBus';
 import { AbilityId, AbilityType, CombatEvent } from '../core/types';
 import { Unit } from '../units/Unit';
+import type { BattleRuntime } from '../runtime/BattleRuntime';
+import type { AbilityConfig } from '../core/configs';
 
 export type { AbilityId };
 
@@ -70,6 +71,8 @@ export class Ability {
 
   // 核心属性
   private _owner: Unit | null = null;
+  private _runtime: BattleRuntime | null = null;
+  private _serializableConfig?: AbilityConfig;
   private _active: boolean = false;
   private _priority: number = 0; // 执行优先级（数值越大越优先）
 
@@ -117,10 +120,27 @@ export class Ability {
 
   setOwner(owner: Unit): void {
     this._owner = owner;
+    this._runtime = owner.runtime;
   }
 
   getOwner(): Unit | null {
     return this._owner;
+  }
+
+  bindRuntime(runtime: BattleRuntime): void {
+    this._runtime = runtime;
+  }
+
+  getRuntime(): BattleRuntime | null {
+    return this._runtime;
+  }
+
+  setSerializableConfig(config: AbilityConfig): void {
+    this._serializableConfig = config;
+  }
+
+  getSerializableConfig(): AbilityConfig | undefined {
+    return this._serializableConfig;
   }
 
   // ===== 激活状态管理 =====
@@ -159,7 +179,7 @@ export class Ability {
   protected onDeactivate(): void {
     // 自动取消所有事件订阅
     for (const subscription of this._eventSubscriptions) {
-      EventBus.instance.unsubscribe(
+      this._eventBus.unsubscribe(
         subscription.eventType,
         subscription.handler,
       );
@@ -177,8 +197,16 @@ export class Ability {
     handler: EventHandler,
     priority?: number,
   ): void {
-    EventBus.instance.subscribe(eventType, handler, priority);
+    this._eventBus.subscribe(eventType, handler, priority);
     this._eventSubscriptions.push({ eventType, handler });
+  }
+
+  protected get _eventBus() {
+    const runtime = this._owner?.runtime ?? this._runtime;
+    if (!runtime) {
+      throw new Error(`Ability ${this.id} must have an owner`);
+    }
+    return runtime.events;
   }
 
   // ===== 核心方法（子类必须实现或重写） =====

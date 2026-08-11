@@ -39,7 +39,7 @@ export class ManaBurnEffect extends GameplayEffect {
     // 发布焚元事件
     context.emit<ManaBurnEvent>({
       type: 'ManaBurnEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       caster,
       target,
       ability,

@@ -10,6 +10,7 @@ import {
 } from './types';
 
 import { ScalableValue } from './ValueCalculator';
+import type { CombatVisualSpec } from '../presentation/CombatVisualProtocol';
 
 export type AbilitySelectionIntent =
   'damage' | 'heal_hp' | 'restore_mp' | 'control' | 'buff' | 'defensive';
@@ -790,6 +791,16 @@ export interface AbilityConfig {
   description?: string;
   type: AbilityType;
   tags?: string[];
+
+  /** Renderer-only metadata. Battle rules and effect resolution never read it. */
+  presentation?: {
+    visual: CombatVisualSpec;
+    castPreset?: string;
+    projectilePreset?: string;
+    impactPreset?: string;
+    cameraPreset?: string;
+    audioKey?: string;
+  };
 
   // 资源与消耗
   mpCost?: number;

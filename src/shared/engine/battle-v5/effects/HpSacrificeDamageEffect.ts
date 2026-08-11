@@ -33,7 +33,7 @@ export class HpSacrificeDamageEffect extends GameplayEffect {
     if (damage <= 0) return;
     context.emit<DamageRequestEvent>({
       type: 'DamageRequestEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       caster: context.caster,
       target: context.target,
       ability: context.ability,

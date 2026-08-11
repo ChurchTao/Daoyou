@@ -3,7 +3,6 @@ import { CombatEvent } from './types';
 import { Unit } from '../units/Unit';
 import { getBattleRuntimeState } from './runtimeState';
 import { checkConditions } from './conditionEvaluator';
-import { battleRandom } from './BattleRandom';
 
 export interface ListenerRuntimeConfig {
   id: string;
@@ -49,7 +48,6 @@ function getDefaultScope(eventType: string): ListenerScope {
       return 'owner_as_target';
     case 'ActionPreEvent':
     case 'ActionPostEvent':
-    case 'ActionEvent':
       return 'owner_as_actor';
     case 'SkillCastEvent':
     case 'SkillPreCastEvent':
@@ -90,11 +88,14 @@ function getDefaultMapping(
   }
 }
 
-export function buildListenerRuntimeConfig(config: ListenerConfig): ListenerRuntimeConfig {
+export function buildListenerRuntimeConfig(
+  config: ListenerConfig,
+  identity?: string,
+): ListenerRuntimeConfig {
   const scope = config.scope ?? getDefaultScope(config.eventType);
 
   return {
-    id: config.id ?? `${config.eventType}_${battleRandom().toString(36).slice(2, 8)}`,
+    id: config.id ?? `${config.eventType}_${stableListenerId(identity ?? JSON.stringify(config))}`,
     eventType: config.eventType,
     scope,
     priority: config.priority,
@@ -117,6 +118,15 @@ export function buildListenerRuntimeConfig(config: ListenerConfig): ListenerRunt
       params: { ...condition.params },
     })),
   };
+}
+
+function stableListenerId(value: string): string {
+  let hash = 2166136261;
+  for (const character of value) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
 }
 
 export function matchesListenerScope(

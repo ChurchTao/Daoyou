@@ -1,10 +1,13 @@
 // Core
-export {
-  CombatStateMachine,
-  type CombatContext,
-} from './core/CombatStateMachine';
+export { BattleRoster, type BattleTeam } from './core/BattleRoster';
 export { EventBus } from './core/EventBus';
 export * from './core/types';
+export {
+  LogicalBattleClock,
+  SystemBattleClock,
+  type BattleClock,
+} from './runtime/BattleClock';
+export { BattleRuntime } from './runtime/BattleRuntime';
 
 // Units
 export { AbilityContainer } from './units/AbilityContainer';
@@ -23,13 +26,11 @@ export { Buff } from './buffs/Buff';
 
 // Systems
 export { DamageSystem } from './systems/DamageSystem';
-export { VictorySystem, type VictoryResult } from './systems/VictorySystem';
-
-// Adapters
+export { InitiativeSystem } from './systems/InitiativeSystem';
 export {
-  CultivatorAdapter,
-  type CultivatorData,
-} from './adapters/CultivatorAdapter';
+  TeamVictorySystem,
+  type TeamVictoryResult,
+} from './systems/TeamVictorySystem';
 
 // Data-Driven System
 export { DataDrivenActiveSkill } from './abilities/DataDrivenActiveSkill';
@@ -37,27 +38,7 @@ export { LayeredDataDrivenActiveSkill } from './abilities/LayeredDataDrivenActiv
 export { DataDrivenBuff } from './buffs/DataDrivenBuff';
 export { AbilityFactory } from './factories/AbilityFactory';
 export { BuffFactory } from './factories/BuffFactory';
-export { AbilityDataLoader } from './loaders/AbilityDataLoader';
-export {
-  combatStatusTemplateRegistry,
-  getAllCombatStatusTemplates,
-  getCombatStatusDisplay,
-  getCombatStatusTemplate,
-  normalizePersistentCombatStatuses,
-} from './setup/CombatStatusTemplateRegistry';
 export { createBattleUnitsWithInit } from './setup/BattleInitApplier';
-export type {
-  BattleInitConfigV5,
-  BattleStateStrategyId,
-  BattleUnitInitFragment,
-  BattleUnitInitSpec,
-  CombatStatusTemplate,
-  PersistentCombatStatusV5,
-  ResolvedBattleInitConfigV5,
-  ResolvedBattleUnitInit,
-  ResourcePointState,
-  TrainingRoomModifierDraft,
-} from './setup/types';
 export {
   assertPreparedBattleContext,
   mergeBattleUnitInitFragments,
@@ -70,9 +51,29 @@ export {
   type BattleEntryUnitState,
   type BattleResourceSource,
   type BattleUnitStateStrategy,
-  type PreparedBattleContext,
   type PrepareBattleContextOptions,
+  type PreparedBattleContext,
 } from './setup/BattleStateStrategy';
+export {
+  combatStatusTemplateRegistry,
+  getAllCombatStatusTemplates,
+  getCombatStatusDisplay,
+  getCombatStatusTemplate,
+  normalizePersistentCombatStatuses,
+} from './setup/CombatStatusTemplateRegistry';
+export type {
+  BattleInitConfigV5,
+  BattleStateStrategyId,
+  BattleUnitInitFragment,
+  BattleUnitInitSpec,
+  CombatStatusTemplate,
+  PersistentCombatStatusV5,
+  ResolvedBattleInitConfigV5,
+  ResolvedBattleUnitInit,
+  ResourcePointState,
+  TrainingRoomModifierDraft,
+} from './setup/types';
 
-// Main Entry
-export { BattleEngineV5, type BattleResult } from './BattleEngineV5';
+export * from './match';
+export * from './persistence';
+export * from './round';

@@ -197,6 +197,13 @@
       "when": 1786334561991,
       "tag": "0027_auction_tax_partial_purchases",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1786428072305,
+      "tag": "0028_magical_exodus",
+      "breakpoints": true
     }
   ]
 }

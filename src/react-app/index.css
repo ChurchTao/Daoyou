@@ -188,6 +188,295 @@ body {
   border-top: 1px dashed var(--color-battle-rule-strong);
 }
 
+.battle-live-shell {
+  background-color: #18201c;
+  background-image: url('/assets/battle/realtime/arena-landscape.webp');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  isolation: isolate;
+}
+
+.battle-live-shell canvas {
+  background: transparent !important;
+}
+
+.battle-arena-vignette {
+  background:
+    linear-gradient(180deg, rgba(8, 14, 12, 0.54) 0%, transparent 22%),
+    linear-gradient(0deg, rgba(8, 12, 10, 0.68) 0%, transparent 28%),
+    radial-gradient(
+      circle at center,
+      transparent 42%,
+      rgba(8, 12, 10, 0.24) 100%
+    );
+}
+
+.battle-utility-chip {
+  border: 1px solid rgba(232, 220, 191, 0.28);
+  background: rgba(15, 23, 20, 0.72);
+  color: rgba(248, 243, 230, 0.9);
+  box-shadow: 0 8px 24px rgba(6, 10, 8, 0.2);
+}
+
+.battle-utility-chip:hover {
+  border-color: rgba(239, 191, 4, 0.4);
+  background: rgba(15, 23, 20, 0.9);
+  color: #fff9e8;
+}
+
+.battle-floating-panel {
+  border: 1px solid rgba(228, 211, 173, 0.3);
+  background: linear-gradient(
+    145deg,
+    rgba(225, 215, 190, 0.94),
+    rgba(200, 186, 153, 0.9)
+  );
+  box-shadow:
+    0 14px 38px rgba(5, 10, 8, 0.28),
+    inset 0 1px rgba(255, 250, 235, 0.5);
+}
+
+.battle-floating-panel--danger {
+  border-color: rgba(159, 47, 63, 0.58);
+  color: #7a1020;
+}
+
+.battle-floating-panel--warning {
+  border-color: rgba(147, 97, 0, 0.52);
+  color: #5e430f;
+}
+
+.battle-debug-panel {
+  border-left: 1px solid rgba(228, 211, 173, 0.28);
+  background: rgba(224, 214, 188, 0.97);
+  color: #2c1810;
+}
+
+.battle-command-dock__surface {
+  border-color: rgba(228, 211, 173, 0.34);
+  background: linear-gradient(
+    180deg,
+    rgba(225, 215, 190, 0.88),
+    rgba(192, 176, 142, 0.96)
+  );
+  box-shadow:
+    0 -14px 44px rgba(5, 10, 8, 0.28),
+    inset 0 1px rgba(255, 250, 235, 0.55);
+}
+
+.battle-round-seal {
+  --battle-round-accent: #3f6b56;
+  isolation: isolate;
+}
+
+.battle-round-hud,
+.battle-round-phase {
+  color: rgba(255, 249, 232, 0.9);
+  text-shadow: 0 2px 8px rgba(4, 9, 7, 0.72);
+}
+
+.battle-round-seal__inner {
+  background: radial-gradient(
+    circle at 38% 30%,
+    rgba(50, 62, 54, 0.96),
+    rgba(12, 20, 17, 0.96)
+  );
+  border: 1px solid rgba(232, 220, 191, 0.3);
+}
+
+.battle-round-seal::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    var(--battle-round-accent) 0 var(--battle-round-progress),
+    rgba(248, 243, 230, 0.18) var(--battle-round-progress) 360deg
+  );
+  content: '';
+  transition: background 180ms ease-out;
+}
+
+.battle-round-seal::after {
+  position: absolute;
+  inset: -0.45rem;
+  border: 2px solid var(--battle-round-accent);
+  border-radius: 9999px;
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+}
+
+.battle-round-seal--warning {
+  --battle-round-accent: #946718;
+}
+
+.battle-round-seal--warning::after {
+  animation: battle-round-warning-pulse 620ms ease-out;
+}
+
+.battle-round-seal--danger {
+  --battle-round-accent: #8f2433;
+}
+
+.battle-round-seal--danger::after {
+  animation: battle-round-danger-pulse 540ms ease-out;
+}
+
+.battle-round-seal--neutral {
+  --battle-round-accent: #735080;
+}
+
+.battle-round-seal__mark {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #fff9e8;
+  font-family: var(--font-lxgwwenkai), serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+}
+
+.battle-round-seal__mark--numeric {
+  font-size: 2.6rem;
+}
+
+.battle-round-seal__mark--phase {
+  font-size: 2.25rem;
+}
+
+@media (min-width: 640px) {
+  .battle-round-seal__mark--numeric {
+    font-size: 3.3rem;
+  }
+
+  .battle-round-seal__mark--phase {
+    font-size: 2.75rem;
+  }
+}
+
+.battle-round-caption {
+  animation: battle-round-caption-in 300ms ease-out;
+}
+
+.battle-target-prompt {
+  animation: battle-target-prompt-in 220ms ease-out;
+}
+
+.battle-unit-inspector {
+  animation: battle-overlay-in 220ms ease-out;
+}
+
+.battle-status-notice {
+  animation: battle-status-notice-in 220ms ease-out;
+}
+
+.battle-command-dock[data-expanded='true'] .battle-command-dock__surface {
+  animation: battle-command-ready 280ms ease-out;
+}
+
+@media (orientation: portrait) {
+  .battle-live-shell {
+    background-image: url('/assets/battle/realtime/arena-portrait.webp');
+  }
+}
+
+@keyframes battle-round-warning-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  45% {
+    opacity: 0.42;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes battle-round-danger-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.78);
+  }
+  42% {
+    opacity: 0.62;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.16);
+  }
+}
+
+@keyframes battle-round-caption-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes battle-target-prompt-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.7rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes battle-overlay-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.45rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes battle-status-notice-in {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes battle-command-ready {
+  from {
+    box-shadow: 0 -4px 18px rgba(44, 24, 16, 0.08);
+  }
+  to {
+    box-shadow: 0 -12px 40px rgba(44, 24, 16, 0.16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battle-round-seal::after,
+  .battle-round-caption,
+  .battle-target-prompt,
+  .battle-status-notice,
+  .battle-unit-inspector,
+  .battle-command-dock__surface {
+    animation: none;
+    transition: none;
+  }
+}
+
 .bgi-map {
   background-image: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/map/map.webp');
 }

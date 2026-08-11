@@ -8,6 +8,7 @@ import {
   recordRealtimeConnectionHeartbeat,
   recordRealtimeConnectionOpen,
 } from '@server/lib/services/onlinePresenceService';
+import { subscribeArenaRoomChanges } from '@server/lib/services/arenaRoomBroadcaster';
 import { subscribeResourceEvents } from '@server/lib/services/playerStateBroadcaster';
 import { subscribeSectChatMessages } from '@server/lib/services/sectChatBroadcaster';
 import { subscribeWorldChatMessages } from '@server/lib/services/worldChatBroadcaster';
@@ -301,6 +302,16 @@ router.get(
               }),
             );
           }
+        }
+        if (channels.includes('arena-room')) {
+          unsubscribers.push(
+            subscribeArenaRoomChanges(reservation.userId, (payload) => {
+              sendEnvelope(ws, {
+                type: 'arena-room.changed',
+                payload,
+              });
+            }),
+          );
         }
 
         heartbeat = setInterval(() => {

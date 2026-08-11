@@ -57,7 +57,7 @@ export class ReflectEffect extends GameplayEffect {
     if (attacker && attacker.isAlive()) {
       context.emit<DamageRequestEvent>({
         type: 'DamageRequestEvent',
-        timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
         caster: target,
         target: attacker,
         damageSource: DamageSource.REFLECT,

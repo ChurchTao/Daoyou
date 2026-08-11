@@ -1,5 +1,4 @@
 import { getRealmEffectChanceMultiplier } from '@shared/config/realmProgression';
-import { battleRandom } from '../core/BattleRandom';
 import { ApplyBuffParams } from '../core/configs';
 import { executeEffectConfigs } from '../core/effectExecutor';
 import { ControlResistEvent } from '../core/events';
@@ -46,7 +45,7 @@ export class ApplyBuffEffect extends GameplayEffect {
     if (resolvedChance <= 0) {
       return;
     }
-    if (resolvedChance < 1 && battleRandom() > resolvedChance) {
+    if (resolvedChance < 1 && context.owner.runtime.random.next() > resolvedChance) {
       return;
     }
 
@@ -63,14 +62,14 @@ export class ApplyBuffEffect extends GameplayEffect {
         (this.params.controlHitBonus ?? 0);
       const resistChance = Math.max(0, (controlResistance - controlHit) * 100);
 
-      if (battleRandom() * 100 < resistChance) {
+      if (context.owner.runtime.random.next() * 100 < resistChance) {
         context.commit(target, {
           type: 'defense',
           defense: 'resist',
         });
         context.emit<ControlResistEvent>({
           type: 'ControlResistEvent',
-          timestamp: Date.now(),
+          timestamp: context.owner.runtime.clock.now(),
           caster,
           target,
           ability: context.ability,

@@ -4,7 +4,6 @@ import type {
   AbilitySelectionProfile,
   ConditionConfig,
 } from '../core/configs';
-import { EventBus } from '../core/EventBus';
 import type { AbilityCostPaidEvent } from '../core/events';
 import {
   beginAbilityTransform,
@@ -414,21 +413,47 @@ export abstract class ActiveSkill extends Ability {
    * 负责资源消耗、冷却启动、效果执行
    */
   override execute(context: AbilityContext): void {
+    this.executeMultiple(context.caster, [
+      {
+        target: context.target,
+        shouldApplyEffects: context.shouldApplyEffects !== false,
+      },
+    ]);
+  }
+
+  executeMultiple(
+    caster: Unit,
+    targets: ReadonlyArray<{
+      target: Unit;
+      shouldApplyEffects: boolean;
+    }>,
+  ): void {
+    const primary = targets[0];
+    if (!primary) return;
+    const targetSnapshots = targets.map(({ target }) => ({
+      target,
+      hp: target.getCurrentHp(),
+      hpRatio:
+        target.getMaxHp() > 0
+          ? target.getCurrentHp() / target.getMaxHp()
+          : 0,
+    }));
+    const context: AbilityContext = { caster, target: primary.target };
     if (!this._castSnapshot) this.prepareCast(context);
-    if (!this.canExecutePreparedCast(context.caster)) {
+    if (!this.canExecutePreparedCast(caster)) {
       this.cancelPreparedCast();
       return;
     }
-    const target = this._castSnapshot?.target ?? context.target;
+    const target = this._castSnapshot?.target ?? primary.target;
     // 消耗资源
-    const payment = this.consumeResources(context.caster);
+    const payment = this.consumeResources(caster);
     const beforeRatio =
-      context.caster.getMaxHp() > 0
-        ? payment.beforeHp / context.caster.getMaxHp()
+      caster.getMaxHp() > 0
+        ? payment.beforeHp / caster.getMaxHp()
         : 0;
     const afterRatio =
-      context.caster.getMaxHp() > 0
-        ? payment.afterHp / context.caster.getMaxHp()
+      caster.getMaxHp() > 0
+        ? payment.afterHp / caster.getMaxHp()
         : 0;
     this._castSnapshot = Object.freeze({
       ...this._castSnapshot!,
@@ -438,10 +463,11 @@ export abstract class ActiveSkill extends Ability {
       casterMpBeforeCost: payment.beforeMp,
       casterMpAfterCost: payment.afterMp,
     });
-    const costPaidEvent = EventBus.instance.publish<AbilityCostPaidEvent>({
+    const eventBus = caster.runtime.events;
+    const costPaidEvent = eventBus.publish<AbilityCostPaidEvent>({
       type: 'AbilityCostPaidEvent',
-      timestamp: Date.now(),
-      caster: context.caster,
+      timestamp: caster.runtime.clock.now(),
+      caster,
       ability: this,
       beforeHp: payment.beforeHp,
       afterHp: payment.afterHp,
@@ -453,37 +479,58 @@ export abstract class ActiveSkill extends Ability {
       afterHpRatio: afterRatio,
     });
 
-    EventBus.instance.runInCausalContext(
+    eventBus.runInCausalContext(
       {
         origin: costPaidEvent.origin,
         trace: costPaidEvent.trace!,
       },
-      () => this.executePaidCast(context, target),
+      () =>
+        this.executePaidCastMultiple(
+          caster,
+          target,
+          targets,
+          targetSnapshots,
+        ),
     );
   }
 
-  private executePaidCast(context: AbilityContext, target: Unit): void {
-    // 启动冷却
+  private executePaidCastMultiple(
+    caster: Unit,
+    primaryTarget: Unit,
+    targets: ReadonlyArray<{
+      target: Unit;
+      shouldApplyEffects: boolean;
+    }>,
+    targetSnapshots: ReadonlyArray<{
+      target: Unit;
+      hp: number;
+      hpRatio: number;
+    }>,
+  ): void {
     this.startCooldown();
-    const transform = peekAbilityTransform(context.caster, this);
-    if (transform?.cooldownModify) {
-      this.modifyCooldown(transform.cooldownModify);
-    }
-
-    const activeTransform = beginAbilityTransform(context.caster, this);
+    const transform = peekAbilityTransform(caster, this);
+    if (transform?.cooldownModify) this.modifyCooldown(transform.cooldownModify);
+    const activeTransform = beginAbilityTransform(caster, this);
     try {
-      // 施法承诺在 MP/CD 结算后必定执行，例如调息或登记后发攻击。
-      this.executeCastEffects(context.caster, target);
-      if (context.shouldApplyEffects === false) {
-        return;
+      this.executeCastEffects(caster, primaryTarget);
+      for (const [index, entry] of targets.entries()) {
+        if (!caster.isAlive()) break;
+        if (!entry.shouldApplyEffects || !entry.target.isAlive()) continue;
+        const target = entry.target;
+        if (index > 0) {
+          const snapshot = targetSnapshots[index];
+          this._castSnapshot = Object.freeze({
+            ...this._castSnapshot!,
+            target,
+            targetId: target.id,
+            targetHpBeforeEffects: snapshot.hp,
+            targetHpRatioBeforeEffects: snapshot.hpRatio,
+          });
+        }
+        this.executeSkill(caster, target);
       }
-
-      // 执行技能效果（子类实现）
-      this.executeSkill(context.caster, target);
     } finally {
-      if (activeTransform) {
-        endAbilityTransform(this);
-      }
+      if (activeTransform) endAbilityTransform(this);
       this.onCastFinished();
       this._castSnapshot = undefined;
     }

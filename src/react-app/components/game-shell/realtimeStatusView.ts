@@ -4,6 +4,7 @@ import type { RealtimeChannel } from '@shared/contracts/realtime';
 export const REALTIME_CHANNEL_META: Record<RealtimeChannel, { label: string }> = {
   'world-chat': { label: '聊天服务器' },
   'player-state': { label: '游戏服务器' },
+  'arena-room': { label: '擂台房间' },
 };
 
 export const REALTIME_STATE_LABEL: Record<

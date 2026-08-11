@@ -178,7 +178,7 @@ export class DamageEffect extends GameplayEffect {
       : this.params.forceCritical || transform?.forceCritical || conditionCritical;
     context.emit<DamageRequestEvent>({
       type: 'DamageRequestEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       caster: resolvedCaster,
       target,
       ability,

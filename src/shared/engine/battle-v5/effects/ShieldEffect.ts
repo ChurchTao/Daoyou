@@ -36,7 +36,7 @@ export class ShieldEffect extends GameplayEffect {
     // 发布护盾事件
     context.emit<ShieldEvent>({
       type: 'ShieldEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       caster,
       target,
       ability,

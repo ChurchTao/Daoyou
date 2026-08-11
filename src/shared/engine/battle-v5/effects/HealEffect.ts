@@ -48,7 +48,7 @@ export class HealEffect extends GameplayEffect {
     // 发布治疗事件用于日志和触发
     context.emit<HealEvent>({
       type: 'HealEvent',
-      timestamp: Date.now(),
+      timestamp: context.owner.runtime.clock.now(),
       caster,
       target,
       ability,
