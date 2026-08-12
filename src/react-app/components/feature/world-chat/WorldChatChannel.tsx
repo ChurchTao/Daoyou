@@ -1,3 +1,4 @@
+import { FriendTargetModal } from '@app/components/feature/friends';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -58,6 +59,7 @@ export function WorldChatChannel() {
   } = useWorldChatFeedModel();
   const [input, setInput] = useState('');
   const [showcaseOpen, setShowcaseOpen] = useState(false);
+  const [friendTargetId, setFriendTargetId] = useState<string | null>(null);
   const [showcaseText, setShowcaseText] = useState('');
   const [showcaseTab, setShowcaseTab] = useState<ShowcaseTab>('artifacts');
   const artifactInventory = useArtifactInventoryResource({
@@ -260,7 +262,11 @@ export function WorldChatChannel() {
                 </div>
               ) : null}
               {displayMessages.map((message) => (
-                <WorldChatMessageItem key={message.id} message={message} />
+                <WorldChatMessageItem
+                  key={message.id}
+                  message={message}
+                  onSelectFriend={setFriendTargetId}
+                />
               ))}
             </div>
           )}
@@ -301,6 +307,11 @@ export function WorldChatChannel() {
           </div>
         ) : null}
       </div>
+
+      <FriendTargetModal
+        targetId={friendTargetId}
+        onClose={() => setFriendTargetId(null)}
+      />
 
       <InkModal
         isOpen={showcaseOpen}

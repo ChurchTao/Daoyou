@@ -102,6 +102,7 @@ export const cultivators = pgTable(
       table.updatedAt,
     ),
     index('cultivators_status_created_idx').on(table.status, table.createdAt),
+    index('cultivators_name_idx').on(table.name),
     index('cultivators_status_spirit_stones_idx').on(
       table.status,
       table.spirit_stones,

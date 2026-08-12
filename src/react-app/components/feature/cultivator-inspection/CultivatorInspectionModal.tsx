@@ -1,7 +1,7 @@
-import { InkModal } from '@app/components/layout/InkModal';
+import { BodyCultivationInspectionSection } from '@app/components/feature/cultivator/BodyCultivationPanels';
 import { LingGenMini } from '@app/components/func/LingGen';
 import { InkBadge } from '@app/components/ui';
-import { BodyCultivationInspectionSection } from '@app/components/feature/cultivator/BodyCultivationPanels';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import type { CultivatorInspectionData } from '@shared/contracts/player';
 import type { ReactNode } from 'react';
 import { CultivatorAttributeTable } from './CultivatorAttributeTable';
@@ -30,11 +30,12 @@ export function CultivatorInspectionModal({
   const background = cultivator.background ?? cultivator.description;
 
   return (
-    <InkModal
+    <InkDetailDrawer
       isOpen={isOpen}
       onClose={onClose}
       title={mode === 'enemy' ? '敌情查探' : '神识查探'}
-      className="max-w-3xl"
+      description={cultivator.name}
+      size="xl"
     >
       <div className="space-y-5">
         <section className="space-y-3 text-center">
@@ -80,6 +81,6 @@ export function CultivatorInspectionModal({
           <CultivatorFateSection cultivator={cultivator} />
         ) : null}
       </div>
-    </InkModal>
+    </InkDetailDrawer>
   );
 }

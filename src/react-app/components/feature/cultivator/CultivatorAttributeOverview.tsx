@@ -1,4 +1,4 @@
-import { InkButton } from '@app/components/ui';
+import { InkButton, InkDetailDrawer } from '@app/components/ui';
 import {
   getCultivatorDisplayAttributes,
   type CultivatorDisplayInput,
@@ -103,7 +103,7 @@ export function CultivatorAttributeOverview({
   expandable?: boolean;
   footerActions?: ReactNode;
 }) {
-  const [showAllAttributes, setShowAllAttributes] = useState(defaultExpanded);
+  const [drawerOpen, setDrawerOpen] = useState(defaultExpanded && expandable);
   const { unit } = getCultivatorDisplayAttributes(cultivator);
   const orderedAttributes = [...PRIMARY_ATTR_ORDER, ...SECONDARY_ATTR_ORDER];
   const displayAttributes = orderedAttributes.map((attrType) => {
@@ -119,9 +119,7 @@ export function CultivatorAttributeOverview({
   });
   const primaryRows = displayAttributes.slice(0, PRIMARY_ATTR_ORDER.length);
   const secondaryAll = displayAttributes.slice(PRIMARY_ATTR_ORDER.length);
-  const secondaryVisible = showAllAttributes
-    ? secondaryAll
-    : secondaryAll.slice(0, 4);
+  const secondaryVisible = expandable ? secondaryAll.slice(0, 4) : secondaryAll;
   const secondaryRows = chunkPairs(secondaryVisible);
   const canExpand = expandable && secondaryAll.length > 4;
 
@@ -207,10 +205,10 @@ export function CultivatorAttributeOverview({
           <div>
             {canExpand ? (
               <InkButton
-                onClick={() => setShowAllAttributes((prev) => !prev)}
+                onClick={() => setDrawerOpen(true)}
                 className="text-sm"
               >
-                {showAllAttributes ? '收起次级属性' : '展开全部属性'}
+                查看全部属性
               </InkButton>
             ) : null}
           </div>
@@ -219,6 +217,40 @@ export function CultivatorAttributeOverview({
           ) : null}
         </div>
       ) : null}
+
+      <InkDetailDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title="全部战斗属性"
+        description="查看由基础根骨、装备、功法与状态共同形成的完整属性。"
+        size="md"
+      >
+        <div className="grid gap-2 sm:grid-cols-2">
+          {secondaryAll.map((item) => (
+            <div
+              key={item.type}
+              className="border-ink/15 flex items-baseline justify-between gap-3 border-b border-dashed py-2 text-sm"
+            >
+              <span className="text-ink">{item.label}</span>
+              <span className="text-ink-secondary text-right">
+                {formatAttributeValue(item.type, item.baseValue)}
+                {item.modifier !== 0 ? (
+                  <span
+                    className={cn(
+                      'ml-1 font-semibold',
+                      item.modifier > 0
+                        ? 'text-emerald-700'
+                        : 'text-violet-700',
+                    )}
+                  >
+                    {formatModifier(item.type, item.modifier)}
+                  </span>
+                ) : null}
+              </span>
+            </div>
+          ))}
+        </div>
+      </InkDetailDrawer>
     </>
   );
 }

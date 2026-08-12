@@ -25,6 +25,7 @@ import {
   InkBadge,
   InkButton,
   InkCard,
+  InkDetailDrawer,
   InkDialog,
   InkIdentifyCelebration,
   InkInput,
@@ -262,11 +263,12 @@ export function AlchemyGuideModal({
   onClose: () => void;
 }) {
   return (
-    <InkModal
+    <InkDetailDrawer
       isOpen={isOpen}
       onClose={onClose}
       title="炉理指引"
-      className="max-w-lg"
+      description="即兴炼丹与丹方炼制的炉前说明。"
+      size="md"
     >
       <div className="space-y-4 text-sm leading-7">
         <section>
@@ -329,7 +331,7 @@ export function AlchemyGuideModal({
           </div>
         </section>
       </div>
-    </InkModal>
+    </InkDetailDrawer>
   );
 }
 

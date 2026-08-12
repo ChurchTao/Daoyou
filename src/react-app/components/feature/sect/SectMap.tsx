@@ -191,22 +191,6 @@ function LockIcon() {
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      className="size-4"
-      aria-hidden="true"
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeWidth="1.5"
-    >
-      <path d="m5.5 5.5 9 9m0-9-9 9" />
-    </svg>
-  );
-}
-
 function FacilityMarkerGlyph({
   locked,
   selected = false,
@@ -462,68 +446,63 @@ export function SectMap({
             >
               单指拖动 · 双指缩放
             </p>
-
-            {selectedSpot && selectedState ? (
-              <section
-                aria-live="polite"
-                className="border-crimson/45 bg-paper/95 absolute right-3 bottom-3 left-3 z-20 border-l-2 px-3 py-2.5 shadow-sm backdrop-blur-sm md:right-auto md:w-[min(22rem,calc(100%-1.5rem))]"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-baseline gap-x-2">
-                      <strong className="text-sm">{selectedSpot.label}</strong>
-                      {selectedState.locked ? (
-                        <span className="text-crimson/75 text-xs">未开放</span>
-                      ) : null}
-                    </div>
-                    <p className="text-ink-secondary mt-1 text-xs leading-5">
-                      {resolveHotspotDescription(
-                        selectedSpot,
-                        selectedState,
-                        rooms,
-                        scenes,
-                      )}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(null)}
-                    aria-label="关闭设施详情"
-                    className="text-ink-secondary hover:text-ink focus-visible:outline-crimson -mr-1 flex size-8 shrink-0 items-center justify-center focus-visible:outline-2"
-                  >
-                    <CloseIcon />
-                  </button>
-                </div>
-                {mode === 'member' &&
-                !selectedState.locked &&
-                selectedSpot.route &&
-                onNavigate ? (
-                  <div className="mt-1.5">
-                    <InkButton
-                      variant="primary"
-                      onClick={() => onNavigate(selectedSpot.route!)}
-                    >
-                      进入{selectedSpot.label}
-                    </InkButton>
-                  </div>
-                ) : null}
-                {mode === 'visitor' &&
-                visitorEntry?.hotspotId === selectedSpot.id &&
-                onNavigate ? (
-                  <div className="mt-1.5">
-                    <InkButton
-                      variant="primary"
-                      onClick={() => onNavigate(visitorEntry.route)}
-                    >
-                      {visitorEntry.label}
-                    </InkButton>
-                  </div>
-                ) : null}
-              </section>
-            ) : null}
           </div>
         )}
       </TransformWrapper>
+
+      <InkDetailDrawer
+        isOpen={selectedSpot !== null && selectedState !== null}
+        onClose={() => setSelectedId(null)}
+        title={selectedSpot?.label ?? '设施详情'}
+        description={
+          selectedSpot && selectedState
+            ? resolveHotspotDescription(
+                selectedSpot,
+                selectedState,
+                rooms,
+                scenes,
+              )
+            : undefined
+        }
+        size="sm"
+        footer={
+          selectedSpot && selectedState ? (
+            <>
+              {mode === 'member' &&
+              !selectedState.locked &&
+              selectedSpot.route &&
+              onNavigate ? (
+                <InkButton
+                  variant="primary"
+                  className="w-full justify-center"
+                  onClick={() => onNavigate(selectedSpot.route!)}
+                >
+                  进入{selectedSpot.label}
+                </InkButton>
+              ) : null}
+              {mode === 'visitor' &&
+              visitorEntry?.hotspotId === selectedSpot.id &&
+              onNavigate ? (
+                <InkButton
+                  variant="primary"
+                  className="w-full justify-center"
+                  onClick={() => onNavigate(visitorEntry.route)}
+                >
+                  {visitorEntry.label}
+                </InkButton>
+              ) : null}
+            </>
+          ) : undefined
+        }
+      >
+        {selectedState?.locked ? (
+          <p className="text-crimson text-sm">该设施当前尚未开放。</p>
+        ) : (
+          <p className="text-ink-secondary text-sm leading-7">
+            选择下方操作继续前往该设施。
+          </p>
+        )}
+      </InkDetailDrawer>
 
       <InkDetailDrawer
         isOpen={directoryOpen}

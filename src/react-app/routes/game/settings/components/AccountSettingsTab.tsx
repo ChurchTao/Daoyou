@@ -2,6 +2,7 @@ import {
   toErrorMessage,
   validatePasswordConfirmation,
 } from '@app/components/auth';
+import { InkModal } from '@app/components/layout/InkModal';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
@@ -431,57 +432,61 @@ export function AccountSettingsTab() {
         description="此操作无法撤销，请确认已了解注销后的影响。"
         className="border-crimson/35 bg-crimson/8 border px-4 pb-4"
       >
-        {deletionExpanded ? (
-          <div className="grid gap-4">
-            <div className="text-ink-secondary space-y-1 text-sm leading-6">
-              <p>当前账号会被永久注销，之后无法恢复。</p>
-              <p>即使使用同一邮箱重新注册，也不会自动找回原有角色。</p>
-            </div>
-
-            <InkInput
-              label={`输入“${ACCOUNT_DELETION_CONFIRMATION}”确认`}
-              placeholder={ACCOUNT_DELETION_CONFIRMATION}
-              value={deletionConfirmation}
-              onChange={setDeletionConfirmation}
-              disabled={deletionSubmitting}
-              size="sm"
-              labelClassName={settingsLabelClass}
-            />
-
-            <div className="flex flex-wrap items-center gap-3">
-              <InkButton
-                variant="primary"
-                onClick={handleDeleteAccount}
-                disabled={!isAccountDeletionConfirmation(deletionConfirmation)}
-                pending={deletionSubmitting}
-                pendingLabel="注销中……"
-              >
-                永久注销账号
-              </InkButton>
-              <InkButton
-                variant="secondary"
-                onClick={cancelDeleteAccount}
-                disabled={deletionSubmitting}
-              >
-                取消
-              </InkButton>
-              {deletionMessage ? (
-                <SettingsMessage type="error">
-                  {deletionMessage}
-                </SettingsMessage>
-              ) : null}
-            </div>
-          </div>
-        ) : (
-          <InkButton
-            variant="primary"
-            onClick={() => setDeletionExpanded(true)}
-            disabled={logoutSubmitting || deletionSubmitting}
-          >
-            注销账号
-          </InkButton>
-        )}
+        <InkButton
+          variant="primary"
+          onClick={() => setDeletionExpanded(true)}
+          disabled={logoutSubmitting || deletionSubmitting}
+        >
+          注销账号
+        </InkButton>
       </SettingsSection>
+
+      <InkModal
+        isOpen={deletionExpanded}
+        onClose={cancelDeleteAccount}
+        title="永久注销账号"
+        footer={
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <InkButton
+              variant="secondary"
+              onClick={cancelDeleteAccount}
+              disabled={deletionSubmitting}
+            >
+              取消
+            </InkButton>
+            <InkButton
+              variant="primary"
+              onClick={handleDeleteAccount}
+              disabled={!isAccountDeletionConfirmation(deletionConfirmation)}
+              pending={deletionSubmitting}
+              pendingLabel="注销中……"
+            >
+              永久注销账号
+            </InkButton>
+          </div>
+        }
+      >
+        <div className="grid gap-4">
+          <div className="text-ink-secondary space-y-1 text-sm leading-6">
+            <p>当前账号会被永久注销，之后无法恢复。</p>
+            <p>即使使用同一邮箱重新注册，也不会自动找回原有角色。</p>
+          </div>
+
+          <InkInput
+            label={`输入“${ACCOUNT_DELETION_CONFIRMATION}”确认`}
+            placeholder={ACCOUNT_DELETION_CONFIRMATION}
+            value={deletionConfirmation}
+            onChange={setDeletionConfirmation}
+            disabled={deletionSubmitting}
+            size="sm"
+            labelClassName={settingsLabelClass}
+          />
+
+          {deletionMessage ? (
+            <SettingsMessage type="error">{deletionMessage}</SettingsMessage>
+          ) : null}
+        </div>
+      </InkModal>
     </div>
   );
 }

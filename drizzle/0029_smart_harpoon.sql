@@ -1,0 +1,1 @@
+CREATE INDEX "cultivators_name_idx" ON "wanjiedaoyou_cultivators" USING btree ("name");

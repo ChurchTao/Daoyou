@@ -30,6 +30,7 @@
 | 头像 | 赞助人 | 贺词 | 支持时间 |
 | :-: | --- | --- | --- |
 | <img src="https://page-r2.daoyou.org/avatar/b_9479836bae3ffbdb0fbc356b3f68f010.jpg" alt="农场主的头像" width="48" height="48" /> | 农场主 | 愿灵田常丰，修行有成。 | 自 2026-08 |
+| <img src="https://page-r2.daoyou.org/avatar/b_9479836bae3ffbdb0fbc356b3f68f010.jpg" alt="农场主的头像" width="48" height="48" /> | 农场主 | 愿炼丹有成，道途无阻。 | 自 2026-12 |
 
 ## 赞助项目
 

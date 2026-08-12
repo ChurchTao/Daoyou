@@ -1,10 +1,9 @@
-import { InkButton } from '@app/components/ui';
+import type { CultivatorInspectionData } from '@shared/contracts/player';
 import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { AttributeType } from '@shared/engine/battle-v5/core/types';
 import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
 import { cn } from '@shared/lib/cn';
-import type { CultivatorInspectionData } from '@shared/contracts/player';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 const PRIMARY_ATTR_ORDER: AttributeType[] = [
   AttributeType.VITALITY,
@@ -84,8 +83,7 @@ export function CultivatorAttributeTable({
 }: {
   cultivator: CultivatorInspectionData;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const { primaryRows, secondaryRows, hasSecondaryAttributes } = useMemo(() => {
+  const { primaryRows, secondaryRows } = useMemo(() => {
     const { unit } = getCultivatorDisplayAttributes(cultivator);
     const buildRows = (attrOrder: AttributeType[]) =>
       attrOrder.map((attrType) => {
@@ -103,25 +101,13 @@ export function CultivatorAttributeTable({
     const secondaryAll = buildRows(SECONDARY_ATTR_ORDER);
     return {
       primaryRows: buildRows(PRIMARY_ATTR_ORDER),
-      secondaryRows: expanded ? chunkPairs(secondaryAll) : [],
-      hasSecondaryAttributes: secondaryAll.length > 0,
+      secondaryRows: chunkPairs(secondaryAll),
     };
-  }, [cultivator, expanded]);
+  }, [cultivator]);
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <h5 className="text-ink font-semibold">全属性</h5>
-        {hasSecondaryAttributes ? (
-          <InkButton
-            className="px-2 py-1 text-xs"
-            variant="secondary"
-            onClick={() => setExpanded((current) => !current)}
-          >
-            {expanded ? '收起次级属性' : '展开全部属性'}
-          </InkButton>
-        ) : null}
-      </div>
+      <h5 className="text-ink font-semibold">全属性</h5>
       <div className="border-ink/15 overflow-x-auto border border-dashed">
         <table className="border-ink/10 w-full border-collapse text-sm">
           <tbody>

@@ -58,7 +58,7 @@ import {
 import {
   evaluateFateContext,
   getAlchemySpiritStoneMultiplier,
-  scaleFateAdjustedValue,
+  scaleFateAdjustedCost,
 } from '@shared/lib/fates';
 import { getHealingCuredStatus } from '@shared/lib/healingPill';
 import { isAlchemyMaterialType } from '@shared/lib/alchemyMaterials';
@@ -1318,7 +1318,7 @@ export async function previewFormulaCraft(
   const highestMaterialRank = calculateHighestMaterialRank(
     rows as Array<{ rank: Quality }>,
   );
-  const baseSpiritStones = scaleFateAdjustedValue(
+  const baseSpiritStones = scaleFateAdjustedCost(
     calculateCraftCost(highestMaterialRank, 'spiritStone'),
     getAlchemySpiritStoneMultiplier(evaluateFateContext(fates)),
   );
@@ -1419,7 +1419,7 @@ export async function prepareFormulaCraft(
     const highestMaterialRank = calculateHighestMaterialRank(
       selectedMaterials as Array<{ rank: Quality }>,
     );
-    const baseCost = scaleFateAdjustedValue(
+    const baseCost = scaleFateAdjustedCost(
       calculateCraftCost(highestMaterialRank, 'spiritStone'),
       getAlchemySpiritStoneMultiplier(
         evaluateFateContext(preHeavenFates),

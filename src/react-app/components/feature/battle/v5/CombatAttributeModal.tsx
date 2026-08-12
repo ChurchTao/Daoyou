@@ -1,4 +1,4 @@
-import { InkModal } from '@app/components/layout/InkModal';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import type {
   AttrsStateView,
   UnitStateSnapshot,
@@ -106,11 +106,12 @@ export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
   };
 
   return (
-    <InkModal
+    <InkDetailDrawer
       isOpen={isOpen}
       onClose={onClose}
       title={`详细属性 · ${unit.name}`}
-      className="battle-modal-panel max-w-2xl"
+      description="查看该单位的基础属性、战斗修正与当前状态。"
+      size="lg"
     >
       <div className="space-y-6">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -211,11 +212,7 @@ export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
             )}
           </div>
         </section>
-
-        <p className="text-battle-muted text-center text-xs italic">
-          点击遮罩或按下 Esc 键即可返回
-        </p>
       </div>
-    </InkModal>
+    </InkDetailDrawer>
   );
 }

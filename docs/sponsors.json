@@ -61,6 +61,17 @@
       "blessing": "愿灵田常丰，修行有成。",
       "url": null,
       "avatar": "https://page-r2.daoyou.org/avatar/b_9479836bae3ffbdb0fbc356b3f68f010.jpg"
+    },
+    {
+      "id": "nongchangzhu2",
+      "name": "农场主",
+      "kind": "person",
+      "tier": "companion",
+      "since": "2026-12",
+      "endedAt": null,
+      "blessing": "愿炼丹有成，道途无阻。",
+      "url": null,
+      "avatar": "https://page-r2.daoyou.org/avatar/b_9479836bae3ffbdb0fbc356b3f68f010.jpg"
     }
   ],
   "anonymous": {

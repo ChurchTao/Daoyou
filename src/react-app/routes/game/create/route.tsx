@@ -15,6 +15,7 @@ import {
   InkActionGroup,
   InkBadge,
   InkButton,
+  InkDetailDrawer,
   InkInput,
   InkList,
   InkListItem,
@@ -150,7 +151,7 @@ export default function CreatePage() {
   >(null);
   const [remainingRerolls, setRemainingRerolls] = useState<number>(0);
   const [isGeneratingFates, setIsGeneratingFates] = useState(false);
-  const [showAllAttributes, setShowAllAttributes] = useState(false);
+  const [attributeDrawerOpen, setAttributeDrawerOpen] = useState(false);
   const [generationQuota, setGenerationQuota] =
     useState<CharacterGenerationQuota | null>(null);
   const trimmedPrompt = userPrompt.trim();
@@ -274,7 +275,7 @@ export default function CreatePage() {
     setSelectedFateIndices([]);
     setTempCultivatorId(null);
     setRemainingRerolls(0);
-    setShowAllAttributes(false);
+    setAttributeDrawerOpen(false);
 
     try {
       // 调用AI生成角色
@@ -425,7 +426,7 @@ export default function CreatePage() {
     setSelectedFateIndices([]);
     setRemainingRerolls(0);
     setTempCultivatorId(null);
-    setShowAllAttributes(false);
+    setAttributeDrawerOpen(false);
   };
 
   const previewStats = useMemo(() => {
@@ -453,9 +454,7 @@ export default function CreatePage() {
     };
   }, [player]);
 
-  const secondaryVisible = showAllAttributes
-    ? (previewStats?.secondaryAll ?? [])
-    : (previewStats?.secondaryAll.slice(0, 4) ?? []);
+  const secondaryVisible = previewStats?.secondaryAll.slice(0, 4) ?? [];
   const secondaryRows = chunkPairs(secondaryVisible);
 
   if (isLoading) {
@@ -776,10 +775,10 @@ export default function CreatePage() {
                   {(previewStats?.secondaryAll.length ?? 0) > 4 && (
                     <div className="mt-3">
                       <InkButton
-                        onClick={() => setShowAllAttributes((prev) => !prev)}
+                        onClick={() => setAttributeDrawerOpen(true)}
                         className="text-sm"
                       >
-                        {showAllAttributes ? '收起次级属性' : '展开全部属性'}
+                        查看全部属性
                       </InkButton>
                     </div>
                   )}
@@ -900,6 +899,40 @@ export default function CreatePage() {
           </div>
         </section>
       ) : null}
+
+      <InkDetailDrawer
+        isOpen={attributeDrawerOpen}
+        onClose={() => setAttributeDrawerOpen(false)}
+        title="道身完整属性"
+        description="当前推演结果的全部次级战斗属性。"
+        size="md"
+      >
+        <div className="grid gap-2 sm:grid-cols-2">
+          {(previewStats?.secondaryAll ?? []).map((item) => (
+            <div
+              key={item.type}
+              className="border-ink/15 flex items-baseline justify-between gap-3 border-b border-dashed py-2 text-sm"
+            >
+              <span className="text-ink">{item.label}</span>
+              <span className="text-ink-secondary text-right">
+                {formatAttributeValue(item.type, item.baseValue)}
+                {item.modifier !== 0 ? (
+                  <span
+                    className={cn(
+                      'ml-1 font-semibold',
+                      item.modifier > 0
+                        ? 'text-emerald-700'
+                        : 'text-violet-700',
+                    )}
+                  >
+                    {formatModifier(item.type, item.modifier)}
+                  </span>
+                ) : null}
+              </span>
+            </div>
+          ))}
+        </div>
+      </InkDetailDrawer>
 
       <FateDetailModal
         isOpen={detailFate !== null}

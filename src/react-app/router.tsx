@@ -315,9 +315,9 @@ export const router = createBrowserRouter(
                 {
                   id: 'mail',
                   presentation: 'service',
-                  summary: '宗门来函与诸界消息尽归玉简。',
+                  summary: '往来玉简与好友名录皆归于此。',
                 },
-                '传音玉简',
+                '道友传音',
               )}
             />
             <Route

@@ -1,4 +1,5 @@
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { cn } from '@shared/lib/cn';
 import { getResourceLabel } from '@shared/lib/gameConceptDisplay';
 import type { PublicBattleUnitSnapshotV1 } from '@shared/types/battle';
@@ -18,36 +19,6 @@ import {
 } from './combatStatusPresentation';
 
 const fmtInt = format(',d');
-const STATUS_DOCK_COLLAPSED_STORAGE_KEY = 'daoyou:battle-status-dock-collapsed';
-const COMPACT_DOCK_MEDIA_QUERY = '(max-width: 767px)';
-
-function isCompactViewport() {
-  if (
-    typeof window === 'undefined' ||
-    typeof window.matchMedia !== 'function'
-  ) {
-    return false;
-  }
-
-  return window.matchMedia(COMPACT_DOCK_MEDIA_QUERY).matches;
-}
-
-function readStoredDockCollapsed() {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-
-  try {
-    const stored = window.localStorage.getItem(
-      STATUS_DOCK_COLLAPSED_STORAGE_KEY,
-    );
-
-    return stored === null ? true : stored === 'true';
-  } catch {
-    return true;
-  }
-}
-
 function ResourceRow({
   label,
   current,
@@ -257,44 +228,8 @@ export function CombatStatusHeader({
   }>;
 }) {
   const dockRef = useRef<HTMLDivElement | null>(null);
-  const [isCompact, setIsCompact] = useState(() => isCompactViewport());
-  const [isCollapsed, setIsCollapsed] = useState(() =>
-    isCompactViewport() ? readStoredDockCollapsed() : false,
-  );
-  const hasActions = onShowPlayerDetails || onShowOpponentDetails;
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const hasSkills = player.cooldowns.length > 0;
-  const isDockCollapsed = isCompact && isCollapsed;
-
-  useEffect(() => {
-    if (
-      typeof window === 'undefined' ||
-      typeof window.matchMedia !== 'function'
-    ) {
-      return;
-    }
-
-    const mediaQuery = window.matchMedia(COMPACT_DOCK_MEDIA_QUERY);
-    const syncDockMode = () => {
-      const compact = mediaQuery.matches;
-      setIsCompact(compact);
-      setIsCollapsed(compact ? readStoredDockCollapsed() : false);
-    };
-
-    syncDockMode();
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', syncDockMode);
-
-      return () => {
-        mediaQuery.removeEventListener('change', syncDockMode);
-      };
-    }
-
-    mediaQuery.addListener(syncDockMode);
-    return () => {
-      mediaQuery.removeListener(syncDockMode);
-    };
-  }, []);
 
   useEffect(() => {
     const node = dockRef.current;
@@ -327,122 +262,108 @@ export function CombatStatusHeader({
     };
   }, []);
 
-  const toggleCollapsed = () => {
-    if (!isCompact) {
-      return;
-    }
-
-    setIsCollapsed((current) => {
-      const next = !current;
-
-      try {
-        window.localStorage.setItem(
-          STATUS_DOCK_COLLAPSED_STORAGE_KEY,
-          String(next),
-        );
-      } catch {
-        // ignore local persistence failures
-      }
-
-      return next;
-    });
+  const openUnitDetails = (callback?: () => void) => {
+    if (!callback) return;
+    setDrawerOpen(false);
+    callback();
   };
 
   return (
     <>
-      <section className="shrink-0 space-y-3">
-        <div className="grid grid-cols-2 gap-2 md:gap-3">
-          <UnitSummary unit={player} />
-          <UnitSummary unit={opponent} />
-        </div>
+      <section
+        aria-label="交战双方状态"
+        className="battle-module grid grid-cols-2 gap-3 px-3 py-2 md:px-4 md:py-3"
+      >
+        <UnitSummary unit={player} />
+        <UnitSummary unit={opponent} />
       </section>
 
       <div
         ref={dockRef}
         className="battle-dock fixed inset-x-0 bottom-0 z-40 select-none"
       >
-        <div className="mx-auto max-w-4xl pt-1.5 pr-[max(env(safe-area-inset-right),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+0.7rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pt-2 md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pb-[calc(env(safe-area-inset-bottom)+0.9rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
-          {isDockCollapsed ? (
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="battle-caption text-[11px] tracking-[0.08em]">
-                  战术状态
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2.5">
-                {statusActions.map((action) => (
-                  <DockAction key={action.label} {...action} />
-                ))}
-                <button
-                  type="button"
-                  onClick={toggleCollapsed}
-                  className="text-battle-muted hover:text-ink text-[13px] leading-5 transition"
-                >
-                  [展开]
-                </button>
-              </div>
+        <div className="mx-auto max-w-4xl space-y-1.5 pt-1.5 pr-[max(env(safe-area-inset-right),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+0.7rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pt-2 md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pb-[calc(env(safe-area-inset-bottom)+0.9rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="text-ink min-w-0 truncate font-semibold">
+                {player.name}
+              </span>
+              <span className="text-battle-muted shrink-0 font-mono">
+                {Math.round(player.hp.percent)}%
+              </span>
+              <span className="text-battle-muted shrink-0">对</span>
+              <span className="text-ink min-w-0 truncate font-semibold">
+                {opponent.name}
+              </span>
+              <span className="text-battle-muted shrink-0 font-mono">
+                {Math.round(opponent.hp.percent)}%
+              </span>
             </div>
-          ) : (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="battle-caption text-[11px] tracking-[0.08em]">
-                    战术状态
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2.5 gap-y-0.5">
-                  {statusActions.map((action) => (
-                    <DockAction key={action.label} {...action} />
-                  ))}
-                  {onShowPlayerDetails && (
-                    <button
-                      type="button"
-                      onClick={onShowPlayerDetails}
-                      className="text-battle-muted hover:text-ink text-[13px] leading-5 transition"
-                    >
-                      [详细属性]
-                    </button>
-                  )}
-                  {onShowOpponentDetails && (
-                    <button
-                      type="button"
-                      onClick={onShowOpponentDetails}
-                      className="text-battle-muted hover:text-ink text-[13px] leading-5 transition"
-                    >
-                      [敌方状态]
-                    </button>
-                  )}
-                  {isCompact && (
-                    <button
-                      type="button"
-                      onClick={toggleCollapsed}
-                      className="text-battle-muted hover:text-ink text-[13px] leading-5 transition"
-                    >
-                      [收起]
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {hasSkills && (
-                <div className="battle-module">
-                  <CombatSkillBar unit={player} />
-                </div>
-              )}
-
-              {controls && <div className="battle-module">{controls}</div>}
-              {!controls &&
-                !hasSkills &&
-                !hasActions &&
-                statusActions.length === 0 && (
-                  <div className="battle-module text-battle-muted text-[13px] leading-5">
-                    当前暂无技能和操作项
-                  </div>
-                )}
+            <div className="flex shrink-0 items-center gap-2.5">
+              {statusActions.map((action) => (
+                <DockAction key={action.label} {...action} />
+              ))}
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="text-battle-muted hover:text-ink text-[13px] leading-5 transition"
+              >
+                [战术详情]
+              </button>
             </div>
-          )}
+          </div>
+          {controls ? <div className="battle-module">{controls}</div> : null}
         </div>
       </div>
+
+      <InkDetailDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title="战术状态"
+        description={`${player.name} 对 ${opponent.name}`}
+        size="lg"
+      >
+        <div className="space-y-5">
+          {hasSkills ? (
+            <section>
+              <h3 className="battle-caption border-ink/15 mb-2 border-b border-dashed pb-1 text-xs">
+                当前技能
+              </h3>
+              <CombatSkillBar unit={player} />
+            </section>
+          ) : null}
+
+          {onShowPlayerDetails || onShowOpponentDetails ? (
+            <section>
+              <h3 className="battle-caption border-ink/15 mb-2 border-b border-dashed pb-1 text-xs">
+                单位详情
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                {onShowPlayerDetails ? (
+                  <InkButton
+                    variant="secondary"
+                    onClick={() => openUnitDetails(onShowPlayerDetails)}
+                  >
+                    查看{player.name}属性
+                  </InkButton>
+                ) : null}
+                {onShowOpponentDetails ? (
+                  <InkButton
+                    variant="secondary"
+                    onClick={() => openUnitDetails(onShowOpponentDetails)}
+                  >
+                    查看{opponent.name}状态
+                  </InkButton>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+
+          {!hasSkills && !onShowPlayerDetails && !onShowOpponentDetails ? (
+            <p className="text-battle-muted text-sm">当前暂无更多战术信息。</p>
+          ) : null}
+        </div>
+      </InkDetailDrawer>
     </>
   );
 }

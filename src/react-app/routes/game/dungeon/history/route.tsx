@@ -6,6 +6,7 @@ import {
 } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkList, InkListItem } from '@app/components/ui/InkList';
 import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { useEffect, useState } from 'react';
@@ -75,6 +76,64 @@ interface DungeonHistoryRecord {
     value?: number;
   }> | null;
   createdAt: string;
+}
+
+function DungeonHistoryDetail({ record }: { record: DungeonHistoryRecord }) {
+  const entries = parseDungeonLog(record.log);
+
+  return (
+    <div className="space-y-5">
+      {record.result.ending_narrative ? (
+        <p className="text-ink/80 text-sm leading-7">
+          {record.result.ending_narrative}
+        </p>
+      ) : null}
+
+      {record.realGains && record.realGains.length > 0 ? (
+        <section>
+          <h3 className="text-ink-secondary border-ink/15 mb-2 border-b border-dashed pb-1 text-xs">
+            获得物品
+          </h3>
+          <InkList dense>
+            {record.realGains.map((gain, index) => (
+              <InkListItem
+                key={`${gain.type}:${gain.name ?? index}`}
+                title={gain.name || getResourceTypeLabel(gain.type)}
+                meta={gain.value ? `×${gain.value}` : undefined}
+              />
+            ))}
+          </InkList>
+        </section>
+      ) : null}
+
+      <section>
+        <h3 className="text-ink-secondary border-ink/15 mb-3 border-b border-dashed pb-1 text-xs">
+          逐回合路线
+        </h3>
+        {entries.length === 0 ? (
+          <pre className="bg-paper-dark text-ink/70 border-ink/10 border border-dashed p-2 text-xs whitespace-pre-wrap">
+            {record.log || '暂无详细记录'}
+          </pre>
+        ) : (
+          <div className="space-y-4">
+            {entries.map((entry) => (
+              <div key={entry.round} className="border-ink/10 border-l-2 pl-3">
+                <div className="text-ink/90 mb-1 font-bold">
+                  第 {entry.round} 回
+                </div>
+                <p className="text-ink/70 mb-2 text-sm leading-7">
+                  {entry.scene}
+                </p>
+                {entry.choice ? (
+                  <div className="text-crimson text-sm">➜ {entry.choice}</div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
 }
 
 interface PaginationInfo {
@@ -167,6 +226,9 @@ export default function DungeonHistoryPage() {
     }
   };
 
+  const selectedRecord =
+    records.find((record) => record.id === expandedId) ?? null;
+
   if (loading && records.length === 0) {
     return (
       <GameSceneFrame
@@ -227,94 +289,26 @@ export default function DungeonHistoryPage() {
       <GameSceneSection title={`共 ${pagination.total} 次探险`}>
         <div className="space-y-4">
           {records.map((record) => (
-            <InkCard key={record.id} className="p-4">
-              <div
-                className="cursor-pointer"
-                onClick={() =>
-                  setExpandedId(expandedId === record.id ? null : record.id)
-                }
+            <InkCard key={record.id} className="p-0">
+              <button
+                type="button"
+                className="hover:bg-ink/4 w-full p-4 text-left transition-colors"
+                onClick={() => setExpandedId(record.id)}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">{record.theme}</h3>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-medium">{record.theme}</h3>
                     <p className="text-ink-secondary text-xs">
                       {formatDate(record.createdAt)}
                     </p>
                   </div>
                   <div
-                    className={`text-2xl font-bold ${getTierColor(record.result.settlement?.reward_tier)}`}
+                    className={`shrink-0 text-2xl font-bold ${getTierColor(record.result.settlement?.reward_tier)}`}
                   >
                     {record.result.settlement?.reward_tier || '—'}
                   </div>
                 </div>
-              </div>
-
-              {expandedId === record.id && (
-                <div className="border-ink/10 mt-4 space-y-4 border-t pt-4">
-                  {record.result.ending_narrative && (
-                    <p className="text-ink/80 text-sm leading-relaxed">
-                      {record.result.ending_narrative}
-                    </p>
-                  )}
-
-                  {record.realGains && record.realGains.length > 0 && (
-                    <div>
-                      <p className="text-ink-secondary mb-2 text-xs">
-                        获得物品:
-                      </p>
-                      <InkList dense>
-                        {record.realGains.map((gain, idx) => (
-                          <InkListItem
-                            key={idx}
-                            title={gain.name || getResourceTypeLabel(gain.type)}
-                            meta={gain.value ? `×${gain.value}` : undefined}
-                          />
-                        ))}
-                      </InkList>
-                    </div>
-                  )}
-
-                  <details className="text-xs">
-                    <summary className="text-ink-secondary cursor-pointer">
-                      查看详细日志
-                    </summary>
-                    <div className="mt-3 space-y-4">
-                      {(() => {
-                        const entries = parseDungeonLog(record.log);
-
-                        if (entries.length === 0) {
-                          // 降级处理：解析失败时显示原始日志
-                          return (
-                            <pre className="bg-paper-dark text-ink/70 border-ink/10 border border-dashed p-2 text-xs whitespace-pre-wrap">
-                              {record.log || '暂无详细记录'}
-                            </pre>
-                          );
-                        }
-
-                        // 结构化时间线展示
-                        return entries.map((entry) => (
-                          <div
-                            key={entry.round}
-                            className="border-ink/10 border-l-2 pl-3"
-                          >
-                            <div className="text-ink/90 mb-1 font-bold">
-                              第 {entry.round} 回
-                            </div>
-                            <p className="text-ink/70 mb-2 text-sm leading-relaxed">
-                              {entry.scene}
-                            </p>
-                            {entry.choice && (
-                              <div className="text-crimson text-sm">
-                                ➜ {entry.choice}
-                              </div>
-                            )}
-                          </div>
-                        ));
-                      })()}
-                    </div>
-                  </details>
-                </div>
-              )}
+              </button>
             </InkCard>
           ))}
         </div>
@@ -342,6 +336,22 @@ export default function DungeonHistoryPage() {
           </div>
         )}
       </GameSceneSection>
+
+      <InkDetailDrawer
+        isOpen={selectedRecord !== null}
+        onClose={() => setExpandedId(null)}
+        title={selectedRecord?.theme ?? '探险札记'}
+        description={
+          selectedRecord
+            ? `${formatDate(selectedRecord.createdAt)} · 奖励品阶 ${selectedRecord.result.settlement?.reward_tier || '—'}`
+            : undefined
+        }
+        size="lg"
+      >
+        {selectedRecord ? (
+          <DungeonHistoryDetail record={selectedRecord} />
+        ) : null}
+      </InkDetailDrawer>
     </GameSceneFrame>
   );
 }

@@ -19,7 +19,7 @@ import { MARKET_PRESET_POOL } from '@shared/engine/material/creation/marketPrese
 import {
   evaluateFateContext,
   getMarketPurchasePriceMultiplier,
-  scaleFateAdjustedValue,
+  scaleFateAdjustedCost,
 } from '@shared/lib/fates';
 import {
   BLACK_MARKET_HIGH_TIER_MIN,
@@ -602,7 +602,7 @@ function getDiscountedMarketPrice(
   basePrice: number,
   fates: PreHeavenFate[] = [],
 ): number {
-  return scaleFateAdjustedValue(basePrice, getMarketPriceMultiplier(fates));
+  return scaleFateAdjustedCost(basePrice, getMarketPriceMultiplier(fates));
 }
 
 function applyMarketPurchaseDiscount(

@@ -1,4 +1,5 @@
 import Link from '@app/components/router/AppLink';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { cn } from '@shared/lib/cn';
 import {
   getCoreDockItemBadge,
@@ -54,7 +55,7 @@ export function GameBottomDock({
   onToggleExpanded: () => void;
   dockMode?: 'core' | 'expanded' | 'hidden';
 }) {
-  const showExpanded = dockMode === 'expanded' || isExpanded;
+  const drawerOpen = dockMode === 'expanded' || isExpanded;
   const coreDockItems = getCoreDockItems();
   const expandedDockGroups = getExpandedDockGroups();
 
@@ -86,36 +87,50 @@ export function GameBottomDock({
             onClick={onToggleExpanded}
             className="hover:text-crimson shrink-0 px-1.5 py-1.5 text-center tracking-[0.08em] whitespace-nowrap transition"
           >
-            [{isExpanded ? '收起' : '展开'}]
+            [{drawerOpen ? '收起' : '展开'}]
           </button>
         </nav>
-
-        {showExpanded ? (
-          <div className="battle-module border-ink/15 mt-2 grid gap-3 border-t border-dashed pt-2.5 text-sm md:grid-cols-2 xl:grid-cols-5">
-            {expandedDockGroups.map((group) => (
-              <div key={group.key}>
-                <div className="text-battle-muted mb-1 text-[0.68rem] tracking-[0.18em]">
-                  {group.title}
-                </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 leading-6">
-                  {group.actions.map((action) => (
-                    <Link
-                      key={action.id}
-                      href={action.href}
-                      className={cn(
-                        'hover:text-crimson transition',
-                        sceneId === action.id ? 'text-crimson' : '',
-                      )}
-                    >
-                      [{action.label}]
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
       </div>
+
+      <InkDetailDrawer
+        isOpen={drawerOpen}
+        onClose={onToggleExpanded}
+        title="万界行止"
+        description="前往修行、历练、造物与交易等次级场景。"
+        size="md"
+        closeOnEscape={dockMode !== 'expanded'}
+        closeOnOverlayClick={dockMode !== 'expanded'}
+      >
+        <nav
+          aria-label="全部游戏场景"
+          className="grid grid-cols-2 gap-x-4 gap-y-5 text-sm"
+        >
+          {expandedDockGroups.map((group) => (
+            <section key={group.key} className="min-w-0">
+              <h3 className="text-battle-muted border-ink/15 mb-2 border-b border-dashed pb-1 text-xs tracking-[0.18em]">
+                {group.title}
+              </h3>
+              <div className="grid gap-1 leading-7">
+                {group.actions.map((action) => (
+                  <Link
+                    key={action.id}
+                    href={action.href}
+                    onClick={
+                      dockMode === 'expanded' ? undefined : onToggleExpanded
+                    }
+                    className={cn(
+                      'hover:text-crimson min-w-0 leading-6 transition',
+                      sceneId === action.id ? 'text-crimson' : '',
+                    )}
+                  >
+                    [{action.label}]
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ))}
+        </nav>
+      </InkDetailDrawer>
     </footer>
   );
 }

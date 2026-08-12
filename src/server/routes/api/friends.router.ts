@@ -1,12 +1,19 @@
-import { requireActiveCultivatorRef } from '@server/lib/hono/middleware';
+import {
+  getValidatedQuery,
+  requireActiveCultivatorRef,
+  validateQuery,
+} from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
+import { acquireRedisCooldown } from '@server/lib/redis/cooldownLimiter';
 import type { AppEnv } from '@server/lib/hono/types';
+import { FRIEND_SEARCH_COOLDOWN_SECONDS } from '@shared/config/socialConfig';
 import {
   addFriendPair,
   FriendServiceError,
   getInviteTarget,
   listFriends,
   removeFriendPair,
+  searchActiveCultivatorsByExactName,
 } from '@server/lib/services/FriendService';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -14,6 +21,12 @@ import { z } from 'zod';
 const CultivatorIdSchema = z.object({
   cultivatorId: z.string().uuid(),
 });
+
+const FriendSearchQuerySchema = z.object({
+  name: z.string().trim().min(1).max(100),
+});
+
+type FriendSearchQuery = z.infer<typeof FriendSearchQuerySchema>;
 
 const router = new Hono<AppEnv>();
 
@@ -26,6 +39,37 @@ router.get('/', requireActiveCultivatorRef(), async (c) => {
   const friends = await listFriends(cultivator.cultivatorId);
   return c.json({ friends });
 });
+
+router.get(
+  '/search',
+  requireActiveCultivatorRef(),
+  validateQuery(FriendSearchQuerySchema),
+  async (c) => {
+    const cultivator = c.get('activeCultivatorRef');
+    if (!cultivator) {
+      return c.json({ error: '未授权访问' }, 401);
+    }
+
+    const cooldown = await acquireRedisCooldown({
+      key: `friends:search:cooldown:${cultivator.cultivatorId}`,
+      cooldownSeconds: FRIEND_SEARCH_COOLDOWN_SECONDS,
+      allowWhenRedisUnavailable: true,
+    });
+    if (!cooldown.allowed) {
+      return c.json(
+        { error: `请 ${cooldown.remainingSeconds} 秒后再搜索` },
+        429,
+      );
+    }
+
+    const { name } = getValidatedQuery<FriendSearchQuery>(c);
+    const results = await searchActiveCultivatorsByExactName(
+      cultivator.cultivatorId,
+      name,
+    );
+    return c.json({ results });
+  },
+);
 
 router.get('/invite/:cultivatorId', requireActiveCultivatorRef(), async (c) => {
   const cultivator = c.get('activeCultivatorRef');

@@ -250,6 +250,39 @@ function StatusDetailBlock({
   );
 }
 
+function GameTopHudPlaceholder() {
+  return (
+    <header
+      aria-busy="true"
+      aria-label="角色状态加载中"
+      className="border-ink/10 sticky top-0 z-30 border-b border-dashed backdrop-blur-sm"
+    >
+      <div className="mx-auto block w-full max-w-5xl pt-[calc(env(safe-area-inset-top)+0.5rem)] pr-[max(env(safe-area-inset-right),0.625rem)] pb-2 pl-[max(env(safe-area-inset-left),0.625rem)] sm:pr-[max(env(safe-area-inset-right),0.75rem)] sm:pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
+        <div className="grid min-w-0 grid-cols-[auto_minmax(3.75rem,0.55fr)_minmax(0,1fr)] items-center gap-2 md:grid-cols-[auto_minmax(8rem,0.44fr)_minmax(0,1fr)] md:gap-4">
+          <div className="border-ink/12 bg-ink/5 h-11 w-11 shrink-0 rounded-full border border-dashed md:h-16 md:w-16" />
+          <div className="bg-ink/8 h-5 w-3/4 max-w-28 md:h-7" />
+          <div className="grid min-w-0 grid-cols-2 gap-x-2 gap-y-1.5 md:gap-x-4 md:gap-y-2">
+            {Array.from({ length: 4 }, (_, index) => (
+              <div key={index} className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="bg-ink/8 h-3 w-7" />
+                  <span className="bg-ink/8 h-3 w-10" />
+                </div>
+                <div className="bg-battle-faint h-[3px]" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="mt-3 flex h-6 items-center gap-1.5 overflow-hidden">
+          <div className="bg-ink/8 h-6 w-24 shrink-0" />
+          <div className="bg-ink/8 h-6 w-20 shrink-0" />
+          <div className="bg-ink/8 h-6 w-28 shrink-0" />
+        </div>
+      </div>
+    </header>
+  );
+}
+
 export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   const { closeDialog, openDialog } = useInkUI();
   const navigate = useNavigate();
@@ -263,7 +296,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
     cultivatorId: snapshot?.cultivatorId ?? '',
   });
 
-  if (!snapshot) return null;
+  if (!snapshot) return <GameTopHudPlaceholder />;
 
   const sectIdentity =
     sectContext.data && !sectContext.error

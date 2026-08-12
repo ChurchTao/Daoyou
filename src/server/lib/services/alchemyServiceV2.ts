@@ -30,7 +30,7 @@ import {
 import {
   evaluateFateContext,
   getAlchemySpiritStoneMultiplier,
-  scaleFateAdjustedValue,
+  scaleFateAdjustedCost,
 } from '@shared/lib/fates';
 import { isAlchemyMaterialType } from '@shared/lib/alchemyMaterials';
 import type {
@@ -358,7 +358,7 @@ export async function previewAlchemySelection(
   const highestMaterialRank = pickHighestRank(rows);
   const fateContext = evaluateFateContext(fates);
   const baseSpiritStones = highestMaterialRank
-    ? scaleFateAdjustedValue(
+    ? scaleFateAdjustedCost(
         calculateCraftCost(highestMaterialRank, 'spiritStone'),
         getAlchemySpiritStoneMultiplier(fateContext),
       )
@@ -425,7 +425,7 @@ export function createAlchemyService(
     const fateContext = evaluateFateContext(
       preHeavenFates,
     );
-    const baseCost = scaleFateAdjustedValue(
+    const baseCost = scaleFateAdjustedCost(
       calculateCraftCost(highestMaterialRank, 'spiritStone'),
       getAlchemySpiritStoneMultiplier(fateContext),
     );

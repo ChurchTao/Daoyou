@@ -1,4 +1,4 @@
-import { scaleFateAdjustedValue } from '@shared/lib/fates';
+import { scaleFateAdjustedCost, scaleFateAdjustedValue } from '@shared/lib/fates';
 import { REALM_ORDER, type RealmType } from '@shared/types/constants';
 
 export const INN_RECOVERY_SPIRIT_STONE_COST_MIN = 500;
@@ -17,7 +17,7 @@ export function calculateInnRecoverySpiritStoneCost(
   realm: RealmType,
   multiplier = 1,
 ): number {
-  return scaleFateAdjustedValue(
+  return scaleFateAdjustedCost(
     getInnRecoveryBaseSpiritStoneCost(realm),
     multiplier,
   );

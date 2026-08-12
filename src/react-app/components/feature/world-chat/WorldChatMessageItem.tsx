@@ -263,9 +263,13 @@ function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
 interface WorldChatMessageItemProps {
   message: WorldChatMessageDTO;
   compact?: boolean;
+  onSelectFriend?: (cultivatorId: string) => void;
 }
 
-export function WorldChatMessageItem({ message }: WorldChatMessageItemProps) {
+export function WorldChatMessageItem({
+  message,
+  onSelectFriend,
+}: WorldChatMessageItemProps) {
   const cultivator = useCultivatorIdentity().data?.cultivator;
   const [detailItem, setDetailItem] = useState<ItemDetailPayload | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -298,7 +302,21 @@ export function WorldChatMessageItem({ message }: WorldChatMessageItemProps) {
             </>
           ) : (
             <>
-              <span className="font-semibold">{message.senderName}</span>
+              {message.senderCultivatorId &&
+              message.senderCultivatorId !== cultivator?.id ? (
+                <button
+                  type="button"
+                  className="cursor-pointer font-semibold underline-offset-2 hover:text-crimson hover:underline"
+                  onClick={() =>
+                    onSelectFriend?.(message.senderCultivatorId!)
+                  }
+                  aria-label={`查看并收录道友 ${message.senderName}`}
+                >
+                  {message.senderName}
+                </button>
+              ) : (
+                <span className="font-semibold">{message.senderName}</span>
+              )}
               <InkBadge tier={message.senderRealm as Tier}>
                 {message.senderRealmStage}
               </InkBadge>

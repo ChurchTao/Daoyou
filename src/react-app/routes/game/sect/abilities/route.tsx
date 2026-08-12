@@ -17,9 +17,9 @@ import {
   useSectProgressionQuery,
 } from '@app/components/feature/sect/sectResources';
 import { createSectRoomNpcHref } from '@app/components/feature/sect/sectRoomNavigation';
-import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkCard, InkNotice } from '@app/components/ui';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import {
@@ -444,11 +444,12 @@ function SectAbilitiesBody() {
               </InkCard>
             ) : null}
 
-            <InkModal
+            <InkDetailDrawer
               isOpen={pickerOpen}
               onClose={() => setPickerOpen(false)}
               title="选择宗门神通"
-              className="max-w-3xl"
+              description="配置出战神通并查看当前流派与经脉下的实际效果。"
+              size="xl"
               footer={
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-ink-secondary text-sm">
@@ -539,7 +540,7 @@ function SectAbilitiesBody() {
                   );
                 })}
               </div>
-            </InkModal>
+            </InkDetailDrawer>
           </>
         )}
       </div>

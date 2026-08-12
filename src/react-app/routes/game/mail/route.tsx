@@ -1,3 +1,4 @@
+import { FriendTargetModal } from '@app/components/feature/friends';
 import {
   GameLoadingState,
   GameSceneAsideSection,
@@ -19,6 +20,12 @@ import {
 } from '@app/lib/resources/inventory';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { usePlayerSession } from '@app/lib/resources/player';
+import type {
+  FriendCultivatorSummary,
+  FriendSearchResponse,
+  FriendSearchResult,
+} from '@shared/contracts/friends';
+import { MAX_FRIENDS_PER_CULTIVATOR } from '@shared/config/socialConfig';
 import { isPillConsumable } from '@shared/lib/consumables';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
@@ -26,21 +33,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 const PAGE_SIZE = 20;
+const MAIL_PAGE_TABS = [
+  { label: '收件玉简', value: 'mail' },
+  { label: '好友名录', value: 'friends' },
+];
 const MIN_TRANSFER_QUALITY = '玄品';
 const TRANSFER_ALLOWED_QUALITIES = Object.keys(QUALITY_ORDER).filter(
   (quality) =>
     QUALITY_ORDER[quality as keyof typeof QUALITY_ORDER] >=
     QUALITY_ORDER[MIN_TRANSFER_QUALITY],
 ) as Quality[];
-
-type FriendSummary = {
-  id: string;
-  name: string;
-  title: string | null;
-  realm: string;
-  realmStage: string;
-  status: string;
-};
 
 type AttachmentOption = {
   key: string;
@@ -135,11 +137,16 @@ export default function MailPage() {
   const [selectedMail, setSelectedMail] = useState<Mail | null>(null);
   const [batchClaiming, setBatchClaiming] = useState(false);
   const [batchReading, setBatchReading] = useState(false);
-  const [friends, setFriends] = useState<FriendSummary[]>([]);
+  const [friends, setFriends] = useState<FriendCultivatorSummary[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(true);
-  const [inviteTarget, setInviteTarget] = useState<FriendSummary | null>(null);
-  const [inviteAlreadyFriend, setInviteAlreadyFriend] = useState(false);
-  const [inviteLoading, setInviteLoading] = useState(false);
+  const [friendTargetId, setFriendTargetId] = useState<string | null>(null);
+  const [friendSearchName, setFriendSearchName] = useState('');
+  const [friendSearchResults, setFriendSearchResults] = useState<
+    FriendSearchResult[]
+  >([]);
+  const [friendSearching, setFriendSearching] = useState(false);
+  const [friendSearchAttempted, setFriendSearchAttempted] = useState(false);
+  const [manualShareLink, setManualShareLink] = useState<string | null>(null);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
   const [sending, setSending] = useState(false);
@@ -172,8 +179,29 @@ export default function MailPage() {
         ? artifactInventory
         : consumableInventory;
   const [searchParams, setSearchParams] = useSearchParams();
+  const inviteTargetId = searchParams.get('addFriend');
+  const activeTab =
+    searchParams.get('tab') === 'friends' || inviteTargetId
+      ? 'friends'
+      : 'mail';
+  const activeFriendTargetId = friendTargetId ?? inviteTargetId;
   const { mutate } = useResourceMutation();
   const { pushToast } = useInkUI();
+
+  const setActiveTab = useCallback(
+    (tab: 'mail' | 'friends') => {
+      setSearchParams((previous) => {
+        const next = new URLSearchParams(previous);
+        if (tab === 'friends') {
+          next.set('tab', 'friends');
+        } else {
+          next.delete('tab');
+        }
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
 
   const clearInviteParam = useCallback(() => {
     setSearchParams((prev) => {
@@ -194,7 +222,7 @@ export default function MailPage() {
         if (!res.ok) {
           throw new Error(data.error || '获取好友名录失败');
         }
-        const nextFriends = (data.friends || []) as FriendSummary[];
+        const nextFriends = (data.friends || []) as FriendCultivatorSummary[];
         setFriends(nextFriends);
         setRecipientId((current) => current || nextFriends[0]?.id || '');
       } catch (error) {
@@ -278,70 +306,26 @@ export default function MailPage() {
 
   useEffect(() => {
     fetch('/api/friends')
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) {
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) {
           throw new Error(data.error || '获取好友名录失败');
         }
-        const nextFriends = (data.friends || []) as FriendSummary[];
+        const nextFriends = (data.friends || []) as FriendCultivatorSummary[];
         setFriends(nextFriends);
         setRecipientId((current) => current || nextFriends[0]?.id || '');
       })
-      .catch((error) => {
+      .catch((loadError) => {
         pushToast({
-          message: error instanceof Error ? error.message : '获取好友名录失败',
+          message:
+            loadError instanceof Error
+              ? loadError.message
+              : '获取好友名录失败',
           tone: 'warning',
         });
       })
-      .finally(() => {
-        setFriendsLoading(false);
-      });
+      .finally(() => setFriendsLoading(false));
   }, [pushToast]);
-
-  useEffect(() => {
-    const targetId = searchParams.get('addFriend');
-    if (!targetId || !cultivator) {
-      return;
-    }
-    if (targetId === cultivator.id) {
-      pushToast({ message: '不能将自己加入好友名录', tone: 'warning' });
-      clearInviteParam();
-      return;
-    }
-
-    let cancelled = false;
-    const loadInvite = async () => {
-      try {
-        setInviteLoading(true);
-        const res = await fetch(`/api/friends/invite/${targetId}`);
-        const data = await res.json();
-        if (cancelled) return;
-        if (!res.ok) {
-          throw new Error(data.error || '查询道友失败');
-        }
-        setInviteTarget(data.target);
-        setInviteAlreadyFriend(Boolean(data.isFriend));
-      } catch (error) {
-        if (!cancelled) {
-          pushToast({
-            message: error instanceof Error ? error.message : '查询道友失败',
-            tone: 'warning',
-          });
-          clearInviteParam();
-        }
-      } finally {
-        if (!cancelled) {
-          setInviteLoading(false);
-        }
-      }
-    };
-
-    void loadInvite();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [clearInviteParam, cultivator, pushToast, searchParams]);
 
   const handleSelectMail = async (mail: Mail) => {
     setSelectedMail(mail);
@@ -458,37 +442,100 @@ export default function MailPage() {
     }
   };
 
+  const getInviteLink = useCallback(() => {
+    if (!cultivator) return null;
+    return `${window.location.origin}/game/mail?tab=friends&addFriend=${cultivator.id}`;
+  }, [cultivator]);
+
+  const copyInviteLink = useCallback(
+    async (link: string) => {
+      try {
+        await navigator.clipboard.writeText(link);
+        pushToast({ message: '好友邀请链接已复制', tone: 'success' });
+      } catch {
+        setManualShareLink(link);
+        pushToast({ message: '复制失败，请手动复制邀请链接', tone: 'warning' });
+      }
+    },
+    [pushToast],
+  );
+
   const handleCopyInviteLink = async () => {
-    if (!cultivator) return;
-    const link = `${window.location.origin}/game/mail?addFriend=${cultivator.id}`;
-    await navigator.clipboard.writeText(link);
-    pushToast({ message: '好友邀请链接已复制', tone: 'success' });
+    const link = getInviteLink();
+    if (!link) return;
+    await copyInviteLink(link);
+  };
+
+  const handleShareInvite = async () => {
+    const link = getInviteLink();
+    if (!link) return;
+
+    if (!navigator.share) {
+      await copyInviteLink(link);
+      return;
+    }
+
+    try {
+      await navigator.share({
+        title: '万界道友',
+        text: '来万界道友与我结缘，一同踏上修仙之路。',
+        url: link,
+      });
+    } catch (shareError) {
+      if (shareError instanceof DOMException && shareError.name === 'AbortError') {
+        return;
+      }
+      pushToast({ message: '分享失败，请改用复制链接', tone: 'warning' });
+    }
+  };
+
+  const handleSearchFriends = async () => {
+    const name = friendSearchName.trim();
+    if (!name) {
+      pushToast({ message: '请输入完整道友名称', tone: 'warning' });
+      return;
+    }
+
+    try {
+      setFriendSearching(true);
+      setFriendSearchAttempted(true);
+      const response = await fetch(
+        `/api/friends/search?name=${encodeURIComponent(name)}`,
+      );
+      const data = (await response.json()) as FriendSearchResponse & {
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data.error || '搜索道友失败');
+      }
+      setFriendSearchResults(data.results);
+    } catch (searchError) {
+      setFriendSearchResults([]);
+      pushToast({
+        message:
+          searchError instanceof Error ? searchError.message : '搜索道友失败',
+        tone: 'warning',
+      });
+    } finally {
+      setFriendSearching(false);
+    }
+  };
+
+  const handleFriendAdded = async (friend: FriendCultivatorSummary) => {
+    setFriendSearchResults((previous) =>
+      previous.map((result) =>
+        result.id === friend.id
+          ? { ...result, relationship: 'friend', isFriend: true }
+          : result,
+      ),
+    );
+    await fetchFriends();
+    setFriendTargetId(null);
+    clearInviteParam();
   };
 
   const handleOpenAttachmentPicker = () => {
     setShowAttachmentPicker(true);
-  };
-
-  const handleConfirmInvite = async () => {
-    if (!inviteTarget) return;
-    try {
-      const res = await fetch(`/api/friends/${inviteTarget.id}`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || '添加道友失败');
-      }
-      pushToast({ message: '已加入好友名录', tone: 'success' });
-      setInviteTarget(null);
-      clearInviteParam();
-      await fetchFriends();
-    } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '添加道友失败',
-        tone: 'danger',
-      });
-    }
   };
 
   const handleRemoveFriend = async (friendId: string) => {
@@ -501,6 +548,13 @@ export default function MailPage() {
         throw new Error(data.error || '移除道友失败');
       }
       setFriends((prev) => prev.filter((friend) => friend.id !== friendId));
+      setFriendSearchResults((previous) =>
+        previous.map((result) =>
+          result.id === friendId
+            ? { ...result, relationship: 'none', isFriend: false }
+            : result,
+        ),
+      );
       if (recipientId === friendId) {
         setRecipientId('');
       }
@@ -511,6 +565,11 @@ export default function MailPage() {
         tone: 'danger',
       });
     }
+  };
+
+  const handleSendToFriend = (friendId: string) => {
+    setRecipientId(friendId);
+    setShowSendModal(true);
   };
 
   const handleSendMail = async () => {
@@ -606,126 +665,247 @@ export default function MailPage() {
 
   return (
     <GameSceneFrame
-      title="【传音玉简】"
-      description="宗门告示、奖励来函与四方灵讯都在此归卷。先清掉要紧的未读与附件，再决定今日是否继续外出。"
+      title="【道友传音】"
+      description="收拢往来玉简与好友名录。可先处理来函，也可寻访道友、分享结缘玉简。"
       aside={
-        <>
-          <GameSceneAsideSection title="收件摘要">
-            <div className="space-y-2 text-sm leading-7">
-              <p>当前已载：{mails.length} 封</p>
-              <p>未读：{unreadCount} 封</p>
-              <p>待领附件：{pendingAttachments} 封</p>
-            </div>
-          </GameSceneAsideSection>
-          <GameSceneAsideSection title="好友名录">
-            <div className="space-y-3 text-sm">
-              <div className="flex flex-wrap gap-2">
-                <InkButton
-                  onClick={handleCopyInviteLink}
-                  disabled={!cultivator}
-                >
-                  复制邀请链接
-                </InkButton>
-                <InkButton
-                  variant="primary"
-                  onClick={() => setShowSendModal(true)}
-                  disabled={friends.length === 0}
-                >
-                  发送传音
-                </InkButton>
+        activeTab === 'mail' ? (
+          <>
+            <GameSceneAsideSection title="收件摘要">
+              <div className="space-y-2 text-sm leading-7">
+                <p>当前已载：{mails.length} 封</p>
+                <p>未读：{unreadCount} 封</p>
+                <p>待领附件：{pendingAttachments} 封</p>
               </div>
-              {friendsLoading ? (
-                <GameLoadingState
-                  message="正在翻检名录……"
-                  variant="inline"
-                  className="min-h-0 py-2"
-                />
-              ) : friends.length === 0 ? (
-                <p className="opacity-60">尚未收录道友。</p>
-              ) : (
-                <div className="space-y-2">
-                  {friends.slice(0, 6).map((friend) => (
-                    <div
-                      key={friend.id}
-                      className="border-ink/10 flex items-center justify-between gap-2 border border-dashed p-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">{friend.name}</p>
-                        <p className="text-xs opacity-60">
-                          {friend.realm} {friend.realmStage}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className="text-xs opacity-60 hover:opacity-100"
-                        onClick={() => void handleRemoveFriend(friend.id)}
-                      >
-                        移除
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </GameSceneAsideSection>
-          <GameSceneAsideSection
-            title="操作说明"
-            className="text-sm leading-7"
-            help={{
-              title: '传音玉简操作说明',
-              content: (
-                <div className="space-y-2 text-sm leading-7">
-                  <p>点击玉简可展开全文，未读会即时回写。</p>
-                  <p>奖励类来函支持就地领取，不必离开当前场景。</p>
-                </div>
-              ),
-            }}
-          />
-        </>
+            </GameSceneAsideSection>
+            <GameSceneAsideSection
+              title="操作说明"
+              className="text-sm leading-7"
+              help={{
+                title: '收件玉简操作说明',
+                content: (
+                  <div className="space-y-2 text-sm leading-7">
+                    <p>点击玉简可展开全文，未读会即时回写。</p>
+                    <p>奖励类来函支持就地领取，不必离开当前场景。</p>
+                  </div>
+                ),
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <GameSceneAsideSection title="名录摘要">
+              <div className="space-y-2 text-sm leading-7">
+                <p>已收录道友：{friends.length} 位</p>
+                <p>可按完整道号搜索，也可分享邀请链接。</p>
+              </div>
+            </GameSceneAsideSection>
+            <GameSceneAsideSection
+              title="结缘说明"
+              className="text-sm leading-7"
+              help={{
+                title: '好友名录操作说明',
+                content: (
+                  <div className="space-y-2 text-sm leading-7">
+                    <p>加入名录后，双方即可互相发送传音。</p>
+                    <p>同名道友可通过境界、称号与道号标识区分。</p>
+                  </div>
+                ),
+              }}
+            />
+          </>
+        )
       }
     >
-      <div className="space-y-4">
-        <div className="flex flex-wrap justify-end gap-2">
-          <InkButton
-            variant="primary"
-            onClick={() => setShowSendModal(true)}
-            disabled={friends.length === 0}
-          >
-            发送传音
-          </InkButton>
-          <InkButton
-            onClick={handleClaimAll}
-            disabled={batchReading || mails.length === 0}
-            pending={batchClaiming}
-            pendingLabel="领取中……"
-          >
-            一键领取
-          </InkButton>
-          <InkButton
-            onClick={handleReadAll}
-            disabled={batchClaiming || mails.length === 0}
-            pending={batchReading}
-            pendingLabel="处理中……"
-          >
-            全部已读
-          </InkButton>
-        </div>
-        {loading ? (
-          <GameLoadingState message="正在接收灵讯……" variant="inline" />
-        ) : (
+      <div className="space-y-5">
+        <InkTabs
+          items={MAIL_PAGE_TABS}
+          activeValue={activeTab}
+          onChange={(value) =>
+            setActiveTab(value === 'friends' ? 'friends' : 'mail')
+          }
+        />
+
+        {activeTab === 'mail' ? (
           <div className="space-y-4">
-            <MailList mails={mails} onSelect={handleSelectMail} />
-            {hasMore ? (
-              <div className="flex justify-center pt-2">
+            <div className="flex flex-wrap justify-end gap-2">
+              <InkButton
+                variant="primary"
+                onClick={() => setShowSendModal(true)}
+                disabled={friends.length === 0}
+              >
+                发送传音
+              </InkButton>
+              <InkButton
+                onClick={handleClaimAll}
+                disabled={batchReading || mails.length === 0}
+                pending={batchClaiming}
+                pendingLabel="领取中……"
+              >
+                一键领取
+              </InkButton>
+              <InkButton
+                onClick={handleReadAll}
+                disabled={batchClaiming || mails.length === 0}
+                pending={batchReading}
+                pendingLabel="处理中……"
+              >
+                全部已读
+              </InkButton>
+            </div>
+            {loading ? (
+              <GameLoadingState message="正在接收灵讯……" variant="inline" />
+            ) : (
+              <div className="space-y-4">
+                <MailList mails={mails} onSelect={handleSelectMail} />
+                {hasMore ? (
+                  <div className="flex justify-center pt-2">
+                    <InkButton
+                      onClick={handleLoadMore}
+                      pending={loadingMore}
+                      pendingLabel="接收中……"
+                    >
+                      加载更多
+                    </InkButton>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <section className="border-ink/15 space-y-3 border-b border-dashed pb-5">
+              <div>
+                <h2 className="text-base font-semibold">邀请道友</h2>
+                <p className="text-ink-secondary mt-1 text-sm leading-6">
+                  将结缘玉简分享给朋友，对方打开后即可将你加入名录。
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 <InkButton
-                  onClick={handleLoadMore}
-                  pending={loadingMore}
-                  pendingLabel="接收中……"
+                  variant="primary"
+                  onClick={() => void handleShareInvite()}
+                  disabled={!cultivator}
                 >
-                  加载更多
+                  分享邀请
+                </InkButton>
+                <InkButton
+                  onClick={() => void handleCopyInviteLink()}
+                  disabled={!cultivator}
+                >
+                  复制链接
                 </InkButton>
               </div>
-            ) : null}
+            </section>
+
+            <section className="border-ink/15 space-y-3 border-b border-dashed pb-5">
+              <div>
+                <h2 className="text-base font-semibold">寻访道友</h2>
+                <p className="text-ink-secondary mt-1 text-sm">
+                  请输入完整道号；同名结果会全部列出。
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1">
+                  <InkInput
+                    label="完整道号"
+                    placeholder="输入道友完整名称"
+                    value={friendSearchName}
+                    onChange={(value) => {
+                      setFriendSearchName(value);
+                      setFriendSearchAttempted(false);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        void handleSearchFriends();
+                      }
+                    }}
+                  />
+                </div>
+                <InkButton
+                  variant="primary"
+                  onClick={() => void handleSearchFriends()}
+                  pending={friendSearching}
+                  pendingLabel="寻访中……"
+                >
+                  搜索
+                </InkButton>
+              </div>
+              {friendSearchResults.length > 0 ? (
+                <InkList>
+                  {friendSearchResults.map((result) => (
+                    <div
+                      key={result.id}
+                      className="border-ink/10 flex flex-col gap-3 border-b border-dashed px-1 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0 text-sm">
+                        <p className="font-medium">{result.name}</p>
+                        <p className="text-ink-secondary mt-1">
+                          {result.realm} {result.realmStage}
+                          {result.title ? ` · ${result.title}` : ''}
+                        </p>
+                        <p className="font-mono text-xs opacity-55">
+                          道号标识：{result.id.slice(0, 8)}
+                        </p>
+                      </div>
+                      <InkButton
+                        variant={result.isFriend ? 'secondary' : 'primary'}
+                        disabled={result.isFriend}
+                        onClick={() => setFriendTargetId(result.id)}
+                      >
+                        {result.isFriend ? '已在名录中' : '查看并收录'}
+                      </InkButton>
+                    </div>
+                  ))}
+                </InkList>
+              ) : friendSearchAttempted && !friendSearching ? (
+                <InkNotice tone="muted">未寻到该道号的活跃道友。</InkNotice>
+              ) : null}
+            </section>
+
+            <section className="space-y-3">
+              <p className="text-ink-secondary text-sm">
+                名录中共 {friends.length} / {MAX_FRIENDS_PER_CULTIVATOR} 位道友
+              </p>
+              {friendsLoading ? (
+                <GameLoadingState message="正在翻检名录……" variant="inline" />
+              ) : friends.length === 0 ? (
+                <InkNotice>
+                  尚未收录道友。可在上方搜索完整道号，或分享邀请链接与朋友结缘。
+                </InkNotice>
+              ) : (
+                <InkList>
+                  {friends.map((friend) => (
+                    <div
+                      key={friend.id}
+                      className="border-ink/10 flex flex-col gap-3 border-b border-dashed px-1 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0 text-sm">
+                        <p className="truncate font-medium">{friend.name}</p>
+                        <p className="text-ink-secondary mt-1">
+                          {friend.realm} {friend.realmStage}
+                          {friend.title ? ` · ${friend.title}` : ''}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap gap-2">
+                        <InkButton
+                          variant="primary"
+                          onClick={() => handleSendToFriend(friend.id)}
+                        >
+                          传音
+                        </InkButton>
+                        <InkButton
+                          variant="secondary"
+                          onClick={() => void handleRemoveFriend(friend.id)}
+                        >
+                          移除
+                        </InkButton>
+                      </div>
+                    </div>
+                  ))}
+                </InkList>
+              )}
+            </section>
           </div>
         )}
       </div>
@@ -916,48 +1096,34 @@ export default function MailPage() {
           ) : null}
         </div>
       </InkModal>
-      <InkModal
-        isOpen={Boolean(inviteTarget) || inviteLoading}
+      <FriendTargetModal
+        targetId={activeFriendTargetId}
         onClose={() => {
-          setInviteTarget(null);
+          setFriendTargetId(null);
           clearInviteParam();
         }}
-        title="收录道友"
+        onAdded={handleFriendAdded}
+      />
+      <InkModal
+        isOpen={Boolean(manualShareLink)}
+        onClose={() => setManualShareLink(null)}
+        title="手动复制邀请链接"
       >
-        {inviteLoading ? (
-          <GameLoadingState message="正在辨认玉简气息……" variant="inline" />
-        ) : inviteTarget ? (
-          <div className="space-y-4">
-            <InkNotice tone="muted">
-              <div className="space-y-1 text-sm">
-                <p className="font-medium">{inviteTarget.name}</p>
-                <p className="opacity-70">
-                  {inviteTarget.realm} {inviteTarget.realmStage}
-                </p>
-                {inviteTarget.title ? (
-                  <p className="opacity-70">称号：{inviteTarget.title}</p>
-                ) : null}
-              </div>
-            </InkNotice>
-            <div className="flex justify-end gap-2">
-              <InkButton
-                onClick={() => {
-                  setInviteTarget(null);
-                  clearInviteParam();
-                }}
-              >
-                取消
-              </InkButton>
-              <InkButton
-                variant="primary"
-                onClick={handleConfirmInvite}
-                disabled={inviteAlreadyFriend}
-              >
-                {inviteAlreadyFriend ? '已在名录中' : '加入名录'}
-              </InkButton>
-            </div>
+        <div className="space-y-4">
+          <InkNotice tone="muted">
+            当前浏览器未允许自动复制，请选中下方链接后手动复制。
+          </InkNotice>
+          <input
+            readOnly
+            value={manualShareLink ?? ''}
+            onFocus={(event) => event.currentTarget.select()}
+            className="border-ink/20 bg-paper-2 text-ink w-full border border-dashed px-3 py-2 font-mono text-sm"
+            aria-label="好友邀请链接"
+          />
+          <div className="flex justify-end">
+            <InkButton onClick={() => setManualShareLink(null)}>关闭</InkButton>
           </div>
-        ) : null}
+        </div>
       </InkModal>
     </GameSceneFrame>
   );

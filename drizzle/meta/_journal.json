@@ -204,6 +204,13 @@
       "when": 1786428072305,
       "tag": "0028_magical_exodus",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1786549787086,
+      "tag": "0029_smart_harpoon",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { REALM_ORDER, type RealmType } from '@shared/types/constants';
-import { redis } from './index';
+import { acquireRedisCooldown } from './cooldownLimiter';
 
 const MAX_CHAT_COOLDOWN_SECONDS = 60;
 const MIN_CHAT_COOLDOWN_SECONDS = 15;
@@ -33,23 +33,7 @@ async function checkAndAcquireCooldownForKey(
   remainingSeconds: number;
 }> {
   const cooldownSeconds = getWorldChatCooldownSeconds(realm);
-  const result = await redis.set(key, '1', 'EX', cooldownSeconds, 'NX');
-
-  if (result === 'OK') {
-    return {
-      allowed: true,
-      remainingSeconds: 0,
-    };
-  }
-
-  const ttl = await redis.ttl(key);
-  const remainingSeconds =
-    typeof ttl === 'number' && ttl > 0 ? ttl : cooldownSeconds;
-
-  return {
-    allowed: false,
-    remainingSeconds,
-  };
+  return acquireRedisCooldown({ key, cooldownSeconds });
 }
 
 export function checkAndAcquireCooldown(
