@@ -247,12 +247,6 @@ body {
   color: #5e430f;
 }
 
-.battle-debug-panel {
-  border-left: 1px solid rgba(228, 211, 173, 0.28);
-  background: rgba(224, 214, 188, 0.97);
-  color: #2c1810;
-}
-
 .battle-command-dock__surface {
   border-color: rgba(228, 211, 173, 0.34);
   background: linear-gradient(

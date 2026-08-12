@@ -65,10 +65,8 @@
 ├── drizzle/                     # 业务表 Drizzle migrations
 ├── drizzle-auth/                # Better Auth Drizzle migrations
 ├── drizzle.auth.config.ts       # Better Auth 独立迁移配置
-├── scripts/                     # 部署脚本、生产/NATS Compose 与战斗 E2E
-├── docker/
-│   ├── Dockerfile.app
-│   └── Dockerfile.battle
+├── scripts/                     # 部署脚本与生产/NATS Compose
+├── docker/Dockerfile.app        # Bun 主服务镜像
 └── vite.config.ts
 ```
 
@@ -93,8 +91,8 @@
 
 - `Bun 1.3+`
 - `PostgreSQL`
-- `Redis`：API 的部分能力按需使用；独立 battle-server 将其作为在线对局的启动硬依赖
-- `NATS`：进程启动硬依赖；JetStream 承载领域事件、异步投影和后台 command，Core 承载跨实例实时广播
+- `Redis`：在线对局、邀请、截止时间、恢复索引和 API 部分能力的权威存储
+- `NATS`：进程启动硬依赖；JetStream 承载领域事件、异步投影、后台 command、战斗演算指针、终态清理和回放归档，Core 只承载可丢失的跨实例实时提示
 
 说明：
 
@@ -123,27 +121,14 @@ cp .env.example .env.local
 | `NATS_SERVERS` | NATS 服务地址，多个地址使用逗号分隔 |
 | `NATS_USER` / `NATS_PASSWORD` | NATS 应用用户凭据 |
 
-独立实时战斗服务由 Node.js 运行构建产物；生产环境还必须配置：
+实时战斗由 Bun/Hono 主服务直接承载；生产环境还必须配置：
 
 | 变量 | 说明 |
 | --- | --- |
-| `BATTLE_SERVER_PORT` | battle-server 监听端口，默认 `3100` |
-| `BATTLE_SERVER_ORIGINS` | 允许连接 Socket.IO 的玩家前端 origin，逗号分隔 |
-| `BATTLE_SERVER_API_ORIGINS` | 允许调用 Lobby API 的应用服务 origin；CORS 不是鉴权 |
-| `BATTLE_SERVER_API_TOKEN` | 应用服务 / matchmaker 调用 Lobby API 时使用的独立 Bearer 密钥 |
-| `BATTLE_SERVER_URL` | Hono Session Gateway 调用 battle-server 的内网地址 |
-| `BATTLE_SERVER_PUBLIC_ORIGIN` | 返回给浏览器建立 Socket.IO 连接的公网地址 |
 | `REDIS_URL` | 在线对局唯一权威状态、邀请、凭据、截止时间与恢复索引 |
-| `NATS_SERVERS` / `NATS_USER` / `NATS_PASSWORD` | 结束对局回放归档使用的 JetStream |
+| `NATS_SERVERS` / `NATS_USER` / `NATS_PASSWORD` | 战斗演算、终态清理和回放归档使用的 JetStream，以及跨实例状态提示使用的 NATS Core |
 
-客户端不得直接调用 boardgame.io 的 `/games/*` Lobby API，也不得持有上述 token。
-应用侧 matchmaker 负责创建对局、预占 player slot 并把对应的 boardgame 凭据通过已认证的
-业务接口交给正确玩家；Socket.IO 连接只使用该玩家自己的凭据。
-
-实时战斗的数据边界固定为：`battle-v5` 只做确定性规则解析，boardgame.io 只做协议与编排；
-进行中的 `G / ctx / _stateID`、选招、锁定、邀请和回放素材只在 Redis。对局结束后 battle-server
-将 `BattleReplayV1` 发布到 NATS JetStream，应用侧 durable consumer 异步、幂等写入
-`wanjiedaoyou_battle_replay_archives`。玩家 move 链路不查询或写入 PostgreSQL，也不使用 Redis Stream。
+客户端通过已认证的 session API 获取 60 秒有效的一次性 WebSocket ticket，不能自行声明玩家身份。实时战斗的数据边界固定为：`battle-v5` 只做确定性规则解析；Bun 主服务负责协议、调度和广播；进行中的权威状态、选招、锁定、邀请、演出战报和回放素材只在 Redis。主服务通过 JetStream 小型指针任务分配统一演算和终态清理；回放归档 consumer 再从 Redis 组装 `BattleReplayV1`，异步、幂等写入 `wanjiedaoyou_battle_replay_archives`。NATS 消息不承载完整 battle save 或战报；玩家 command 链路不查询或写入 PostgreSQL，也不使用 Redis Stream。
 
 ### 建议同时配置
 
@@ -165,30 +150,34 @@ cp .env.example .env.local
 
 ### 登录 / 注册相关
 
-当前鉴权中，以下接口会强制要求 Turnstile token：
+当前鉴权中，以下接口会强制要求 ALTCHA PoW payload：
 
 - `/api/auth/sign-in/email`
 - `/api/auth/sign-up/email`
 - `/api/auth/request-password-reset`
 - `/api/auth/email-otp/send-verification-otp`
 
-因此前端若不配置 Turnstile，相关表单无法正常工作。
+前端通过 `/api/captcha/challenge` 获取带场景和过期时间的 challenge，完成 PoW
+后把 payload 发送给认证接口。服务端会验证签名、场景和有效期，并通过 Redis
+原子记录 challenge 的单次消费状态，防止重放。
 
 | 变量 | 说明 |
 | --- | --- |
 | `VITE_API_BASE_URL` | 前端构建时注入的后端 API 基地址，如 `https://api.example.com` |
-| `VITE_TURNSTILE_SITE_KEY` | 前端构建时注入；没有它，登录/注册/找回密码页不会渲染验证码组件 |
-| `TURNSTILE_SECRET_KEY` 或 `TURNSTILE_SECRET` | 服务端校验 Turnstile 的密钥；未配置时服务端仍要求 token，但不会调用 Cloudflare 做真正校验 |
+| `ALTCHA_HMAC_SECRET` | 服务端签发和验证 ALTCHA challenge 的独立 HMAC 密钥；生产环境必须配置 |
+
+ALTCHA 不需要前端 site key。认证 CAPTCHA 启用时 Redis 也是强依赖；Redis 不可用时，
+受保护的认证请求会失败关闭，避免 challenge 被重复使用。
 
 ### 邮件能力
 
 邮箱验证码、密码注册验证邮件、重置密码邮件、后台邮件广播都会使用SMTP。密码注册必须完成邮箱验证后才能登录；验证链接完成后会自动登录：
 
-| 变量 | 说明 |
-| --- | --- |
+| 变量                                      | 说明          |
+| ----------------------------------------- | ------------- |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` | SMTP 连接配置 |
-| `SMTP_USER` / `SMTP_PASS` | SMTP 认证信息 |
-| `MAIL_FROM` | 发件人 |
+| `SMTP_USER` / `SMTP_PASS`                 | SMTP 认证信息 |
+| `MAIL_FROM`                               | 发件人        |
 
 ### AI 能力
 
@@ -242,7 +231,7 @@ bun run dev
 - 前端页面：`http://localhost:5173`
 - 健康检查：`http://localhost:5173/api/health-check`
 
-`bun run dev` 会同时启动三个进程：Vite 提供前端页面，Bun 在本地提供 Hono API，独立 battle-server 提供实时战斗；Vite 将 `/api` 和 `/internal` 代理到 Bun API 服务。battle-server 默认监听 `3100`，由 `BATTLE_SERVER_*` 环境变量控制。
+`bun run dev` 会同时启动 Vite 前端和 Bun/Hono 主服务；Vite 将 `/api`、`/internal` 与 WebSocket 升级代理到 Bun 服务。
 
 本地 NATS 使用 JetStream 文件卷保存消息和 durable consumer 的投递位点。启动时发现历史消息是预期行为；回放归档和事务消息会在 PostgreSQL 可用后继续消费。若 PostgreSQL 暂时不可用，事务消息恢复器会以 5 秒至 60 秒退避重试，避免连接超时期间持续打满连接池；不应通过删除 NATS 数据卷来规避数据库故障。
 
@@ -250,17 +239,16 @@ bun run dev
 
 | 命令 | 作用 |
 | --- | --- |
-| `bun run dev` | 启动 Vite、API 和 Node.js battle-server 本地开发进程 |
+| `bun run dev` | 启动 Vite 与 Bun/Hono 主服务 |
 | `bun run build` | 依次构建前端与服务端 |
 | `bun run build:client` | 构建 Cloudflare Pages 使用的前端 SPA |
 | `bun run build:server` | 构建 Docker 使用的 Bun/Hono 后端 |
-| `bun run build:battle` | 使用 Vite SSR 构建 Node LTS battle-server 到 `dist-battle/battle-server.js` |
-| `bun run battle:server` | 使用 Node.js 启动已构建的独立战斗服务，默认监听 `3100` |
-| `bun run battle:smoke` | 验证 2v2、4v4、超时与真实 Socket.IO 同步流程 |
 | `bun run preview` | 先构建，再运行 `dist/index.js` |
 | `bun run start` | 直接运行已构建产物 |
 | `bun run lint` | ESLint 检查 |
 | `bun run test` | Vitest |
+| `bun run battle:smoke` | 实时战斗 2v2/4v4、超时默认出招、协议、负载与 Worker 故障注入验收 |
+| `REDIS_URL=redis://127.0.0.1:6379/15 bun run battle:e2e:redis` | 使用本机隔离 Redis DB 验收重启、多实例、幂等和归档 staging |
 | `bun run auth:generate` | 生成 `better_auth` Drizzle 迁移 |
 | `bun run auth:migrate` | 执行 `better_auth` 独立迁移流 |
 
@@ -271,16 +259,12 @@ bun run dev
 
 ## Docker
 
-React SPA 继续独立部署到 Cloudflare Pages，不进入任何后端镜像。主服务与
-battle-server 使用独立镜像：`app`（`3000`）使用 Bun，`battle`（`3100`）使用
-Node.js LTS；battle-server 只连接 Redis 与 NATS，不连接 PostgreSQL，并只负责编排实时对局；
-`battle-v5` 仍是无框架依赖的纯战斗引擎。PostgreSQL 回放归档由应用侧 NATS consumer 完成。
+React SPA 继续独立部署到 Cloudflare Pages，不进入后端镜像。`app`（`3000`）使用 Bun，同时承载 Hono API 与实时战斗 WebSocket；`battle-v5` 仍是无框架依赖的纯战斗引擎。PostgreSQL 回放归档由应用侧 NATS consumer 完成。
 
 本地构建镜像：
 
 ```bash
 docker build -t daoyou-app:local -f docker/Dockerfile.app .
-docker build -t daoyou-battle:local -f docker/Dockerfile.battle .
 ```
 
 运行镜像：
@@ -293,7 +277,7 @@ docker run --rm -p 3000:3000 \
 
 注意：
 
-- `VITE_API_BASE_URL` 和 `VITE_TURNSTILE_SITE_KEY` 是前端 Pages 构建期变量，不进入后端 Docker 镜像
+- `VITE_API_BASE_URL` 是前端 Pages 构建期变量，不进入后端 Docker 镜像
 - 服务运行时环境变量通过 shell、容器环境或 `--env-file` 注入
 
 ## 仓库内现成部署脚本
@@ -313,30 +297,7 @@ ENV_FILE=/root/daoyou/.env.production \
 - 通过 `nginx -t` 后原子切换 OpenResty upstream
 - 短暂 drain 后停止旧颜色容器
 
-### battle-server 独立发布
-
-```bash
-BATTLE_IMAGE=swkzymlyy/daoyou-battle:<version> \
-ENV_FILE=/root/daoyou/.env.production \
-./scripts/deploy-battle.sh
-```
-
-这个脚本会：
-
-- 使用 `scripts/docker-compose.production.yml` 更新稳定的 battle 服务
-- 轮询容器 health 和 `/healthz`
-- 不参与 Hono API 的蓝绿 upstream 切换
-
-### 查看 battle 服务
-
-```bash
-ENV_FILE=/root/daoyou/.env.production \
-docker compose -f scripts/docker-compose.production.yml ps
-```
-
-生产 Compose 显式定义 `app-blue`、`app-green` 和稳定的 battle 服务；
-`blue-green-app.sh` 通过 Compose 启动闲置 app profile 并切换 OpenResty。
-React SPA 仍由 Cloudflare Pages 独立部署。
+生产 Compose 只定义 `app-blue` 和 `app-green`；实时战斗与 API 随同一 Bun 主服务蓝绿发布； `blue-green-app.sh` 通过 Compose 启动闲置 app profile 并切换 OpenResty。React SPA 仍由 Cloudflare Pages 独立部署。
 
 ## 生产 cron 配置方式
 

@@ -173,7 +173,7 @@ function createAutomaticIntent(
   if (peekQueuedAction(unit)) {
     const queuedAction = resolveLegalQueuedAction(unit, allUnits);
     if (!queuedAction) {
-      throw new Error(`Queued action has no legal target for ${unit.id}`);
+      return { kind: 'skip', submittedBy: 'timeout' };
     }
     return {
       kind: 'basic_attack',
@@ -216,7 +216,7 @@ function createAutomaticIntent(
 
   const basicAttack = resolveLegalBasicAttack(unit, allUnits);
   if (!basicAttack) {
-    throw new Error(`Unit ${unit.id} has no legal automatic action`);
+    return { kind: 'skip', submittedBy: 'timeout' };
   }
   return {
     kind: 'basic_attack',

@@ -7,7 +7,6 @@ x-app-common: &app-common
     - ${ENV_FILE:-/root/daoyou/.env.production}
   environment:
     PORT: 3000
-    BATTLE_SERVER_URL: ${BATTLE_SERVER_URL:-http://battle:3100}
   extra_hosts:
     - "host.docker.internal:host-gateway"
   networks:
@@ -39,35 +38,6 @@ services:
     ports:
       - "127.0.0.1:${GREEN_PORT:-3001}:3000"
     profiles: [green]
-
-  battle:
-    image: ${BATTLE_IMAGE:-swkzymlyy/daoyou-battle:latest}
-    container_name: ${BATTLE_CONTAINER_NAME:-daoyou-battle}
-    restart: unless-stopped
-    env_file:
-      - ${ENV_FILE:-/root/daoyou/.env.production}
-    environment:
-      BATTLE_SERVER_PORT: 3100
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    ports:
-      - "127.0.0.1:${BATTLE_PORT:-3100}:3100"
-    networks:
-      runtime:
-        aliases:
-          - battle
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:3100/healthz').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 10s
 
 networks:
   runtime:

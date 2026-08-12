@@ -191,7 +191,7 @@ router.post(
       if (current) publishRoom(current);
       if (
         error instanceof Error &&
-        /BATTLE_SERVER|Battle matchmaker|Battle session gateway|fetch failed|timed out/i.test(
+        /Battle matchmaker|Battle session|fetch failed|timed out/i.test(
           error.message,
         )
       ) {

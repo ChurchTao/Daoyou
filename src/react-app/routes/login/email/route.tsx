@@ -1,10 +1,10 @@
 import {
   AuthPageShell,
-  AuthTurnstileField,
+  AuthCaptchaField,
   buildEmailOtpTarget,
   toErrorMessage,
   useAuthFeedback,
-  useTurnstileField,
+  useCaptchaField,
   validateEmailField,
 } from '@app/components/auth';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -20,13 +20,12 @@ export default function LoginEmailRoute() {
   const { showErrorDialog } = useAuthFeedback();
   const source = searchParams.get('source') === 'signup' ? 'signup' : 'login';
   const {
-    turnstileEnabled,
-    turnstileRef,
+    captchaRef,
     captchaError,
     ensureCaptcha,
     resetCaptcha,
-    setCaptchaToken,
-  } = useTurnstileField();
+    setCaptchaPayload,
+  } = useCaptchaField();
 
   const [displayName, setDisplayName] = useState(
     searchParams.get('name') ?? '',
@@ -136,11 +135,11 @@ export default function LoginEmailRoute() {
           error={errors.email}
           disabled={loading}
         />
-        <AuthTurnstileField
-          enabled={turnstileEnabled}
+        <AuthCaptchaField
+          action="email-otp"
           error={captchaError}
-          turnstileRef={turnstileRef}
-          onTokenChange={setCaptchaToken}
+          captchaRef={captchaRef}
+          onPayloadChange={setCaptchaPayload}
         />
         <InkButton
           type="submit"

@@ -36,7 +36,7 @@ bun run auth:migrate
 
 - `bun run build` is two-stage: `tsc -b && vite build --mode client && vite build`.
 - Vitest uses node environment and discovers tests only under `src/shared`.
-- Docker runtime contains only `dist`; `VITE_TURNSTILE_SITE_KEY` is a build-time variable.
+- Docker runtime contains only `dist`; ALTCHA uses the server-side `ALTCHA_HMAC_SECRET` and does not require a frontend site key.
 - GitHub Actions currently builds and pushes Docker image on `master`; it is not a lint/test quality gate.
 
 ## Skills To Use
@@ -88,7 +88,7 @@ bun run auth:migrate
 ## High-Risk Areas
 
 - Build pipeline and SPA fallback in `vite.config.ts` / `src/index.ts`.
-- Auth, Turnstile, Better Auth schema, admin allowlist, and session cookie passthrough.
+- Auth, ALTCHA, Better Auth schema, admin allowlist, and session cookie passthrough.
 - LLM provider headers, prompt schemas, resource/reward/cost parsing, and metrics.
 - Drizzle migrations, legacy tables, JSONB model shape, and transaction boundaries.
 - `GameViewportLayout`, bottom dock/HUD/world-chat offset, and scene metadata.

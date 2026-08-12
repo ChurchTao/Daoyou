@@ -15,6 +15,7 @@ import {
   type ArenaRoomV1,
   type ArenaTeamIdV1,
 } from '@shared/contracts/arena';
+import type { BattleCleanupManifestV1 } from '@shared/contracts/battleTerminal';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 
 const ROOM_KEY_PREFIX = 'arena:room:v1:';
@@ -101,6 +102,20 @@ return 1
 const DELETE_INDEX_IF_MATCHES_LUA = `
 if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) end
 return 0
+`;
+
+const FORCE_RELEASE_BATTLE_LUA = `
+redis.call('del', KEYS[1], KEYS[2])
+local deleted = 0
+for index = 3, #KEYS do
+  local keyType = redis.call('type', KEYS[index]).ok
+  if keyType ~= 'none' and keyType ~= 'string' then
+    deleted = deleted + redis.call('del', KEYS[index])
+  elseif keyType == 'string' and redis.call('get', KEYS[index]) == ARGV[1] then
+    deleted = deleted + redis.call('del', KEYS[index])
+  end
+end
+return deleted
 `;
 
 const ATTACH_BATTLE_LUA = `
@@ -423,19 +438,76 @@ export class ArenaRoomService {
     return next;
   }
 
-  async finishByBattleMatch(
-    battleMatchId: string,
-  ): Promise<ArenaRoomV1 | null> {
-    const roomId = await redis.get(battleKey(battleMatchId));
-    if (!roomId) return null;
-    const room = await this.getRoom(roomId);
-    if (!room || room.battleMatchId !== battleMatchId) return null;
-    if (room.status !== 'in_battle' && room.status !== 'finished') return null;
-    // Arena rooms are ephemeral orchestration state. Once the replay has
-    // been archived, release all participant indexes so the same players and
-    // cultivators can enter another room immediately.
-    const deleted = await this.deleteRoom(room, [battleKey(battleMatchId)]);
-    return deleted ? room : null;
+  async forceReleaseTerminalBattle(manifest: BattleCleanupManifestV1): Promise<{
+    released: boolean;
+    roomId?: string;
+    userIds: string[];
+    revision: number;
+  }> {
+    const reverseKey = battleKey(manifest.matchId);
+    const reverseRoomId = await redis.get(reverseKey).catch(async (error) => {
+      if (!isWrongTypeRedisError(error)) throw error;
+      await redis.del(reverseKey);
+      return null;
+    });
+    const manifestRoomId =
+      manifest.kind === 'arena_sparring' ? manifest.roomId : undefined;
+    const reverseRoom = reverseRoomId
+      ? await this.getRoom(reverseRoomId).catch(() => null)
+      : null;
+    const reverseMatchesBattle =
+      reverseRoom?.battleMatchId === manifest.matchId;
+    const manifestRoom =
+      manifestRoomId && manifestRoomId !== reverseRoomId
+        ? await this.getRoom(manifestRoomId).catch(() => null)
+        : reverseRoom;
+    const manifestMatchesBattle =
+      manifestRoom?.battleMatchId === manifest.matchId;
+    const roomId = reverseMatchesBattle
+      ? reverseRoomId
+      : manifestMatchesBattle
+        ? manifestRoomId
+        : reverseRoomId && !reverseRoom
+          ? reverseRoomId
+          : manifestRoomId && !manifestRoom
+            ? manifestRoomId
+            : undefined;
+    if (!roomId) {
+      return { released: false, userIds: [], revision: 0 };
+    }
+    const room = roomId === reverseRoomId ? reverseRoom : manifestRoom;
+    const seats = room?.teams.alpha.concat(room.teams.beta) ?? [];
+    const userIds = [
+      ...new Set([...manifest.playerIds, ...seats.map((seat) => seat.userId)]),
+    ];
+    const cultivatorIds = [
+      ...new Set([
+        ...manifest.cultivatorIds,
+        ...seats.map((seat) => seat.cultivatorId),
+      ]),
+    ];
+    const conditionalIndexes = [
+      battleKey(manifest.matchId),
+      ...(room ? [codeKey(room.inviteCode)] : []),
+      ...userIds.map(userKey),
+      ...cultivatorIds.map(cultivatorKey),
+    ];
+    const deletedIndexes = Number(
+      await redis.eval(
+        FORCE_RELEASE_BATTLE_LUA,
+        2 + conditionalIndexes.length,
+        roomKey(roomId),
+        revisionKey(roomId),
+        ...conditionalIndexes,
+        roomId,
+      ),
+    );
+    return {
+      released: Boolean(room) || deletedIndexes > 0,
+      roomId,
+      userIds,
+      revision: room ? room.revision + 1 : Date.now(),
+    };
   }
 
   private async requireRoom(roomId: string): Promise<ArenaRoomV1> {
@@ -675,6 +747,9 @@ function parseRoom(raw: string | null): ArenaRoomV1 | null {
   } catch {
     return null;
   }
+}
+function isWrongTypeRedisError(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith('WRONGTYPE');
 }
 function normalizeDisplayName(value: string): string {
   const name = value.trim().slice(0, 80);

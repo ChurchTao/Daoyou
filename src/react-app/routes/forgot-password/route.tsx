@@ -1,10 +1,10 @@
 import {
   AuthPageShell,
-  AuthTurnstileField,
+  AuthCaptchaField,
   buildEmailOtpTarget,
   toErrorMessage,
   useAuthFeedback,
-  useTurnstileField,
+  useCaptchaField,
   validateEmailField,
 } from '@app/components/auth';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -19,13 +19,12 @@ export default function ForgotPasswordRoute() {
   const { requestPasswordReset } = useAuth();
   const { showDialog, showErrorDialog } = useAuthFeedback();
   const {
-    turnstileEnabled,
-    turnstileRef,
+    captchaRef,
     captchaError,
     ensureCaptcha,
     resetCaptcha,
-    setCaptchaToken,
-  } = useTurnstileField();
+    setCaptchaPayload,
+  } = useCaptchaField();
 
   const [email, setEmail] = useState(searchParams.get('email') ?? '');
   const [loading, setLoading] = useState(false);
@@ -112,11 +111,11 @@ export default function ForgotPasswordRoute() {
           error={errors.email}
           disabled={loading}
         />
-        <AuthTurnstileField
-          enabled={turnstileEnabled}
+        <AuthCaptchaField
+          action="password-reset"
           error={captchaError}
-          turnstileRef={turnstileRef}
-          onTokenChange={setCaptchaToken}
+          captchaRef={captchaRef}
+          onPayloadChange={setCaptchaPayload}
         />
         <InkButton
           type="submit"

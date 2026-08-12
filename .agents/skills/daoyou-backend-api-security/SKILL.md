@@ -1,6 +1,6 @@
 ---
 name: daoyou-backend-api-security
-description: Daoyou Hono API、认证、授权、Better Auth、Turnstile、admin、internal cron、LLM header 安全和服务端输入校验指南。Use when adding or modifying src/server routes, middleware, auth, admin endpoints, cron/internal endpoints, shared contracts, LLM provider handling, API validation, or security-relevant frontend auth/admin loaders in this repo. For ordinary admin pages, navigation, and UI state, use daoyou-frontend-routing-state.
+description: Daoyou Hono API、认证、授权、Better Auth、ALTCHA、admin、internal cron、LLM header 安全和服务端输入校验指南。Use when adding or modifying src/server routes, middleware, auth, admin endpoints, cron/internal endpoints, shared contracts, LLM provider handling, API validation, or security-relevant frontend auth/admin loaders in this repo. For ordinary admin pages, navigation, and UI state, use daoyou-frontend-routing-state.
 ---
 
 # Daoyou Backend API Security
@@ -62,7 +62,7 @@ description: Daoyou Hono API、认证、授权、Better Auth、Turnstile、admin
 ## Do Not
 
 - Do not rely on React loaders for authorization.
-- Do not bypass `src/server/lib/auth/hono.ts` for login, signup, reset, OTP, or Turnstile-protected flows.
+- Do not bypass `src/server/lib/auth/hono.ts` for login, signup, reset, OTP, or ALTCHA-protected flows.
 - Do not add admin files under `/api/admin` without explicit admin authorization.
 - Do not add provider or Base URL request headers; use the validated DeepSeek configuration from the Hono context.
 - Do not make public list/ranking/community endpoints private without checking frontend/product usage.

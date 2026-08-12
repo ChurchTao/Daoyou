@@ -19,9 +19,9 @@
 
 ## 实时战斗回放归档
 
-在线战斗过程中 Redis 是唯一权威状态，PostgreSQL 不参与玩家 move、锁定、超时或结算路径。最终状态和回放素材先原子写入 Redis Hash，并把 match id 加入普通 Redis pending Set（不是 Redis Stream）。battle-server 的发布器从 pending Set 读取完整 `BattleReplayV1`，以 `matchId` 作为 `Nats-Msg-Id` 发布到 `daoyou.battle.replay.archive.v1`；收到 JetStream PubAck 后移除 pending 标记并给在线对局设置 30 分钟 TTL。
+在线战斗过程中 Redis 是唯一权威状态，PostgreSQL 不参与玩家指令、锁定、超时或结算路径。最终状态和回放素材先原子写入 Redis Hash，并把 match id 加入普通 Redis pending Set（不是 Redis Stream）。Bun 主服务内的归档发布器从 pending Set 读取完整 `BattleReplayV1`，以 `matchId` 作为 `Nats-Msg-Id` 发布到 `daoyou.battle.replay.archive.v1`；收到 JetStream PubAck 后移除 pending 标记并给在线对局设置 30 分钟 TTL。
 
-应用侧 consumer 以 `matchId` 为 PostgreSQL 主键执行 `ON CONFLICT DO NOTHING`，因此 PostgreSQL 提交成功但 NATS ACK 丢失时的合法重复投递不会产生重复归档。归档表只保留稳定回放、参与者、引擎/规则版本和最终结果，不保存 boardgame.io metadata、credentials、draft intents、deadline、`_stateID` 或内部 move log。
+应用侧 consumer 以 `matchId` 为 PostgreSQL 主键执行 `ON CONFLICT DO NOTHING`，因此 PostgreSQL 提交成功但 NATS ACK 丢失时的合法重复投递不会产生重复归档。归档表只保留稳定回放、参与者、引擎/规则版本和最终结果，不保存连接票据、draft intents、deadline 或内部命令收据。
 
 `wanjiedaoyou_local_transaction_messages` 是 BullMQ 时代“本地执行消息”的旧模型，已确认由迁移删除。新代码只使用通用事务消息表 `wanjiedaoyou_transactional_messages`。
 

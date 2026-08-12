@@ -23,14 +23,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     name,
     email,
     password,
-    captchaToken,
+    captchaPayload,
   ) => {
     const { error } = await authClient.signUp.email({
       name: name.trim(),
       email: normalizeEmail(email),
       password,
       callbackURL: getDefaultGameRedirectUrl(),
-      fetchOptions: getCaptchaFetchOptions(captchaToken),
+      fetchOptions: getCaptchaFetchOptions(captchaPayload),
     });
 
     if (!error) {
@@ -45,13 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithPassword: AuthContextType['signInWithPassword'] = async (
     email,
     password,
-    captchaToken,
+    captchaPayload,
   ) => {
     const { error } = await authClient.signIn.email({
       email: normalizeEmail(email),
       password,
       callbackURL: getDefaultGameRedirectUrl(),
-      fetchOptions: getCaptchaFetchOptions(captchaToken),
+      fetchOptions: getCaptchaFetchOptions(captchaPayload),
     });
 
     if (!error) {
@@ -65,12 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithEmailOtp: AuthContextType['signInWithEmailOtp'] = async (
     email,
-    captchaToken,
+    captchaPayload,
   ) => {
     const { error } = await authClient.emailOtp.sendVerificationOtp({
       email: normalizeEmail(email),
       type: 'sign-in',
-      fetchOptions: getCaptchaFetchOptions(captchaToken),
+      fetchOptions: getCaptchaFetchOptions(captchaPayload),
     });
 
     return {
@@ -114,13 +114,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const requestPasswordReset: AuthContextType['requestPasswordReset'] = async (
     email,
-    captchaToken,
+    captchaPayload,
     redirectTo,
   ) => {
     const { error } = await authClient.requestPasswordReset({
       email: normalizeEmail(email),
       redirectTo: redirectTo || getDefaultResetRedirectUrl(),
-      fetchOptions: getCaptchaFetchOptions(captchaToken),
+      fetchOptions: getCaptchaFetchOptions(captchaPayload),
     });
 
     return {

@@ -1,6 +1,7 @@
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import { TargetSelectionSystem } from '../systems/TargetSelectionSystem';
 import type { Unit } from '../units/Unit';
+import { GameplayTags } from '../../shared/tag-domain';
 
 export interface LegalBasicAttackV1 {
   ability: ActiveSkill;
@@ -14,6 +15,7 @@ export function resolveLegalBasicAttack(
   allUnits: Unit[],
   preferredTargetId?: string,
 ): LegalBasicAttackV1 | null {
+  if (actor.tags.hasTag(GameplayTags.STATUS.CONTROL.NO_BASIC)) return null;
   const targetSystem = new TargetSelectionSystem();
   const configured = actor.abilities.getDefaultAttack();
   const configuredSelection = select(configured, actor, allUnits, preferredTargetId, targetSystem);

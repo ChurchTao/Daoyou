@@ -2,24 +2,34 @@ import { getJetStreamClient } from '@server/lib/nats';
 import {
   BATTLE_REPLAY_STREAM,
   BATTLE_REPLAY_SUBJECT,
-  type BattleReplayArchiveJobV2,
+  type BattleReplayArchiveJobV3,
 } from '@shared/contracts/battleReplay';
 import { JSONCodec } from 'nats';
-import { releaseArenaRoomForBattle } from './BattleArenaRoomFinalizer';
 import {
   clearBattleReplayArchiveTracking,
-  getBattleReplayArchivePayload,
+  getBattleReplayArchivePointer,
 } from './BattleReplayRedisStore';
-import type { RedisBattleBoardgameStorage } from './BattleBoardgameStorage';
+interface BattleReplayArchiveStore {
+  scanPendingArchiveMatchIds(
+    cursor: string,
+    count: number,
+  ): Promise<{ cursor: string; matchIds: string[] }>;
+  listUnconfirmedArchiveMatchIds(now: number, limit: number): Promise<string[]>;
+  markArchivePublished(
+    matchId: string,
+    attempt: number,
+    expectedStorageRevision: number,
+  ): Promise<void>;
+}
 
-const codec = JSONCodec<BattleReplayArchiveJobV2>();
+const codec = JSONCodec<BattleReplayArchiveJobV3>();
 const ARCHIVE_SCAN_BATCH_SIZE = 100;
 const ARCHIVE_PUBLISH_CONCURRENCY = 4;
 const ARCHIVE_RECONCILE_INTERVAL_MS = 15_000;
 const ARCHIVE_RETRY_DELAY_MS = 5_000;
 
 export async function publishPendingBattleReplays(
-  storage: RedisBattleBoardgameStorage,
+  storage: BattleReplayArchiveStore,
   matchIds: readonly string[],
 ): Promise<number> {
   const uniqueMatchIds = [...new Set(matchIds)];
@@ -37,7 +47,7 @@ export async function publishPendingBattleReplays(
           if (await publishBattleReplay(storage, matchId)) published += 1;
         } catch (error) {
           failures.push(error);
-          console.warn('[battle-server] replay archive item publish failed', {
+          console.warn('[online-battle] replay archive item publish failed', {
             matchId,
             error: error instanceof Error ? error.message : String(error),
           });
@@ -53,29 +63,24 @@ export async function publishPendingBattleReplays(
 }
 
 async function publishBattleReplay(
-  storage: RedisBattleBoardgameStorage,
+  storage: BattleReplayArchiveStore,
   matchId: string,
 ): Promise<boolean> {
-  const payload = await getBattleReplayArchivePayload(matchId);
-  if (!payload) {
+  const pointer = await getBattleReplayArchivePointer(matchId);
+  if (!pointer) {
     await clearBattleReplayArchiveTracking(matchId);
     return false;
   }
-  if (payload.archiveStatus !== 'pending' && payload.archiveStatus !== 'published') {
+  if (pointer.archiveStatus !== 'pending' && pointer.archiveStatus !== 'published') {
     await clearBattleReplayArchiveTracking(matchId);
     return false;
   }
-  if (payload.archiveStatus === 'pending') {
-    // Room cleanup must not depend on NATS or PostgreSQL availability.
-    await releaseArenaRoomForBattle(matchId);
-  }
-  const job: BattleReplayArchiveJobV2 = {
-    version: 'battle_replay_archive_job_v2',
+  const job: BattleReplayArchiveJobV3 = {
+    version: 'battle_replay_archive_job_v3',
     subject: BATTLE_REPLAY_SUBJECT,
     matchId,
-    attempt: payload.publishAttempt + 1,
-    byteLength: payload.byteLength,
-    checksum: payload.checksum,
+    expectedStorageRevision: pointer.expectedStorageRevision,
+    attempt: pointer.publishAttempt + 1,
   };
   const jetStream = await getJetStreamClient();
   await jetStream.publish(BATTLE_REPLAY_SUBJECT, codec.encode(job), {
@@ -83,7 +88,11 @@ async function publishBattleReplay(
     expect: { streamName: BATTLE_REPLAY_STREAM },
     timeout: 5_000,
   });
-  await storage.markArchivePublished(job.matchId, job.attempt);
+  await storage.markArchivePublished(
+    job.matchId,
+    job.attempt,
+    job.expectedStorageRevision,
+  );
   return true;
 }
 
@@ -95,7 +104,7 @@ export class BattleReplayArchiveScheduler {
   private retryTimer: NodeJS.Timeout | undefined;
   private reconcileTimer: NodeJS.Timeout | undefined;
 
-  constructor(private readonly storage: RedisBattleBoardgameStorage) {}
+  constructor(private readonly storage: BattleReplayArchiveStore) {}
 
   start(): void {
     if (this.stopped || this.reconcileTimer) return;
@@ -119,7 +128,7 @@ export class BattleReplayArchiveScheduler {
     }
     this.drainPromise = this.drain()
       .catch((error) => {
-        console.warn('[battle-server] replay archive publish failed', {
+        console.warn('[online-battle] replay archive publish failed', {
           error: error instanceof Error ? error.message : String(error),
         });
         this.scheduleRetry();

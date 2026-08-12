@@ -1,10 +1,10 @@
 import {
   AuthPageShell,
-  AuthTurnstileField,
+  AuthCaptchaField,
   buildEmailOtpTarget,
   toErrorMessage,
   useAuthFeedback,
-  useTurnstileField,
+  useCaptchaField,
   validateEmailField,
   validateRequiredField,
 } from '@app/components/auth';
@@ -21,13 +21,12 @@ export default function LoginPasswordRoute() {
   const { signInWithPassword } = useAuth();
   const { showErrorDialog } = useAuthFeedback();
   const {
-    turnstileEnabled,
-    turnstileRef,
+    captchaRef,
     captchaError,
     ensureCaptcha,
     resetCaptcha,
-    setCaptchaToken,
-  } = useTurnstileField();
+    setCaptchaPayload,
+  } = useCaptchaField();
 
   const [email, setEmail] = useState(searchParams.get('email') ?? '');
   const [password, setPassword] = useState('');
@@ -140,11 +139,11 @@ export default function LoginPasswordRoute() {
           error={errors.password}
           disabled={loading}
         />
-        <AuthTurnstileField
-          enabled={turnstileEnabled}
+        <AuthCaptchaField
+          action="sign-in"
           error={captchaError}
-          turnstileRef={turnstileRef}
-          onTokenChange={setCaptchaToken}
+          captchaRef={captchaRef}
+          onPayloadChange={setCaptchaPayload}
         />
         <InkButton
           type="submit"

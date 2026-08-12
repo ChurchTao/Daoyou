@@ -89,6 +89,13 @@ function createRedisClient(
   return client;
 }
 
+/** Dedicated connection for blocking/subscriber workloads owned by shared infrastructure. */
+export function createDedicatedRedisClient(label: string): Redis {
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) throw new Error('REDIS_URL is required before using Redis');
+  return createRedisClient(redisUrl, { label });
+}
+
 function getRedisClient(): Redis {
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {

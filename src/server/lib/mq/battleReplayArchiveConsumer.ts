@@ -1,16 +1,16 @@
 import { getJetStreamClient } from '@server/lib/nats';
 import { archiveBattleReplay } from '@server/lib/repositories/battleReplayArchiveRepository';
-import { releaseArenaRoomForBattle } from '@server/lib/services/BattleArenaRoomFinalizer';
 import {
-  getBattleReplayArchivePayload,
+  clearBattleReplayArchiveTracking,
+  getBattleReplayArchivePointer,
   markBattleReplayArchived,
 } from '@server/lib/services/BattleReplayRedisStore';
+import { OnlineBattleStore } from '@server/lib/services/OnlineBattleStore';
 import {
   BATTLE_REPLAY_STREAM,
   BATTLE_REPLAY_SUBJECT,
   parseBattleReplayArchiveJob,
-  type BattleReplayArchiveJobV2,
-  type BattleReplayV1,
+  type BattleReplayArchiveJobV3,
 } from '@shared/contracts/battleReplay';
 import { type ConsumerMessages, type JsMsg } from 'nats';
 import {
@@ -26,9 +26,10 @@ const activeHandlers = new Set<Promise<void>>();
 let cancelRestartWait: (() => void) | undefined;
 
 const RESTART_DELAYS_MS = [1_000, 5_000, 15_000, 60_000] as const;
+const store = new OnlineBattleStore();
 
 async function processMessage(message: JsMsg): Promise<void> {
-  let archiveJob: BattleReplayArchiveJobV2;
+  let archiveJob: BattleReplayArchiveJobV3;
   try {
     if (message.subject !== BATTLE_REPLAY_SUBJECT) {
       throw new Error(`Unexpected battle replay subject: ${message.subject}`);
@@ -43,39 +44,58 @@ async function processMessage(message: JsMsg): Promise<void> {
     return;
   }
   try {
-    const replay = await resolveReplay(archiveJob);
+    const pointer = await getBattleReplayArchivePointer(archiveJob.matchId);
+    if (
+      !pointer ||
+      pointer.archiveStatus === 'archived' ||
+      pointer.expectedStorageRevision !== archiveJob.expectedStorageRevision
+    ) {
+      const acknowledged = await message.ackAck({ timeout: 5_000 });
+      if (!acknowledged)
+        throw new Error('Stale replay archive ACK was not confirmed');
+      return;
+    }
+    const replay = await store.buildReplayArchive(
+      archiveJob.matchId,
+      archiveJob.expectedStorageRevision,
+    );
+    if (!replay) {
+      console.error(
+        '[battle-replay-archiver] discarded unrecoverable replay source',
+        { matchId: archiveJob.matchId },
+      );
+      await clearBattleReplayArchiveTracking(archiveJob.matchId);
+      await store.retire(archiveJob.matchId);
+      message.term();
+      return;
+    }
     await archiveBattleReplay(replay);
-    await releaseArenaRoomForBattle(replay.matchId);
-    const confirmed = await markBattleReplayArchived(replay.matchId);
+    const confirmed = await markBattleReplayArchived(
+      replay.matchId,
+      archiveJob.expectedStorageRevision,
+    );
     if (!confirmed) {
-      console.warn('[battle-replay-archiver] Redis archive confirmation was unavailable', {
-        matchId: replay.matchId,
-      });
+      console.warn(
+        '[battle-replay-archiver] Redis archive confirmation was unavailable',
+        {
+          matchId: replay.matchId,
+        },
+      );
     }
     const acknowledged = await message.ackAck({ timeout: 5_000 });
-    if (!acknowledged) throw new Error('Battle replay JetStream ACK was not confirmed');
+    if (!acknowledged)
+      throw new Error('Battle replay JetStream ACK was not confirmed');
   } catch (error) {
-    console.error('[battle-replay-archiver] PostgreSQL archive failed; retrying', {
-      streamSequence: message.info.streamSequence,
-      deliveryCount: message.info.deliveryCount,
-      error,
-    });
+    console.error(
+      '[battle-replay-archiver] PostgreSQL archive failed; retrying',
+      {
+        streamSequence: message.info.streamSequence,
+        deliveryCount: message.info.deliveryCount,
+        error,
+      },
+    );
     message.nak(consumerRetryDelayMs(message.info.deliveryCount));
   }
-}
-
-async function resolveReplay(
-  job: BattleReplayArchiveJobV2,
-): Promise<BattleReplayV1> {
-  const payload = await getBattleReplayArchivePayload(job.matchId);
-  if (!payload) throw new Error(`Battle replay payload is unavailable: ${job.matchId}`);
-  if (payload.byteLength !== job.byteLength) {
-    throw new Error(`Battle replay payload length mismatch: ${job.matchId}`);
-  }
-  if (payload.checksum !== job.checksum) {
-    throw new Error(`Battle replay payload checksum mismatch: ${job.matchId}`);
-  }
-  return payload.replay;
 }
 
 export async function startBattleReplayArchiveConsumer(): Promise<void> {
@@ -120,7 +140,10 @@ export async function startBattleReplayArchiveConsumer(): Promise<void> {
             await Promise.race(handlers);
           }
         }
-        if (!stopping) throw new Error('Battle replay archive consumer stopped unexpectedly');
+        if (!stopping)
+          throw new Error(
+            'Battle replay archive consumer stopped unexpectedly',
+          );
       } catch (error) {
         healthy = false;
         if (!started) {
@@ -129,9 +152,15 @@ export async function startBattleReplayArchiveConsumer(): Promise<void> {
           return;
         }
         if (!stopping) {
-          const delayMs = RESTART_DELAYS_MS[Math.min(restartAttempt, RESTART_DELAYS_MS.length - 1)]!;
+          const delayMs =
+            RESTART_DELAYS_MS[
+              Math.min(restartAttempt, RESTART_DELAYS_MS.length - 1)
+            ]!;
           restartAttempt += 1;
-          console.error('[battle-replay-archiver] consumer stopped; restarting', { delayMs, error });
+          console.error(
+            '[battle-replay-archiver] consumer stopped; restarting',
+            { delayMs, error },
+          );
           await new Promise<void>((resolve) => {
             const timer = setTimeout(() => {
               cancelRestartWait = undefined;

@@ -1,23 +1,24 @@
+import type { BattleCleanupManifestV1 } from '@shared/contracts/battleTerminal';
 import { ArenaRoomService } from './ArenaRoomService';
 import { publishArenaRoomChanges } from './arenaRoomBroadcaster';
 
 const arenaRooms = new ArenaRoomService();
 
 /**
- * Releases ephemeral arena room indexes independently from replay archival.
- * The operation is idempotent: non-arena matches and already released rooms
- * return false without blocking the archive workflow.
+ * Releases ephemeral arena room indexes from a stable terminal manifest. If
+ * the manifest is corrupt or unavailable, ArenaRoomService falls back to the
+ * battle-to-room reverse index. The operation is idempotent and does not
+ * depend on replay archival.
  */
-export async function releaseArenaRoomForBattle(matchId: string): Promise<boolean> {
-  const arenaRoom = await arenaRooms.finishByBattleMatch(matchId);
-  if (!arenaRoom) return false;
-  publishArenaRoomChanges(
-    arenaRoom.teams.alpha.concat(arenaRoom.teams.beta).map((seat) => seat.userId),
-    {
-      roomId: arenaRoom.roomId,
-      revision: arenaRoom.revision + 1,
-      status: arenaRoom.status,
-    },
-  );
+export async function releaseArenaRoomForBattle(
+  manifest: BattleCleanupManifestV1,
+): Promise<boolean> {
+  const result = await arenaRooms.forceReleaseTerminalBattle(manifest);
+  if (!result.released) return false;
+  publishArenaRoomChanges(result.userIds, {
+    roomId: result.roomId ?? manifest.matchId,
+    revision: result.revision,
+    status: 'finished',
+  });
   return true;
 }

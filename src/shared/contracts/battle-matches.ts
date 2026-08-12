@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
 export const BattleMatchSessionSchema = z.object({
-  gameName: z.literal('battle-v5-match'),
-  matchID: z.string().min(1),
-  playerID: z.string().regex(/^\d+$/),
-  playerCredentials: z.string().min(1),
-  serverOrigin: z.string().url(),
+  protocolVersion: z.literal(2),
+  matchId: z.string().min(1),
+  playerId: z.string().min(1),
+  connectTicket: z.string().min(32),
+  websocketUrl: z.string().url(),
 });
 
-export type BattleMatchSessionV1 = z.infer<typeof BattleMatchSessionSchema>;
+export type BattleMatchSessionV2 = z.infer<typeof BattleMatchSessionSchema>;

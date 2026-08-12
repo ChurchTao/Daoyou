@@ -17,6 +17,11 @@ export type BattleActionIntentV1 =
       kind: 'basic_attack';
       targetUnitId: UnitId;
       submittedBy: 'player' | 'timeout';
+    }
+  | {
+      /** Deterministic timeout fallback when no legal action exists. */
+      kind: 'skip';
+      submittedBy: 'timeout';
     };
 
 export interface RoundCommandSetV1 {

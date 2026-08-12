@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { BattleMatchPlayerViewV1 } from '@shared/engine/battle-v5/match/types';
 import {
   applyCombatVisualFactToSnapshot,
+  BATTLE_PRESENTATION_DEFAULT_MAX_MS,
+  createBattlePresentationWindow,
+  compactBattlePresentationWindow,
+  expandBattlePresentationWindow,
   createBattleRoundPlaybackPlan,
   createBattlePresentationSnapshot,
 } from './BattlePresentation';
@@ -146,5 +150,112 @@ describe('BattlePresentation', () => {
 
     const fallback = createBattlePresentationSnapshot(view(), 'missing');
     expect(fallback.focusedEntityId).toBe('a0');
+  });
+
+  it('compresses the playback plan into the authoritative window', () => {
+    const plan = {
+      version: 'battle_round_playback_plan_v1' as const,
+      commandSetId: 'set-long',
+      round: 3,
+      durationMs: 25_000,
+      beats: [{
+        index: 0,
+        actorId: 'a0',
+        actionId: 'long-action',
+        sequenceIds: ['long-sequence'],
+        startAt: 5_000,
+        duration: 20_000,
+        timeline: {
+          action: {
+            id: 'long-action',
+            sourceId: 'a0',
+            targetIds: ['b0'],
+            ability: { id: 'slash', name: '斩击' },
+            visual: { discipline: 'physical', delivery: 'melee' },
+            facts: [],
+          },
+          duration: 20_000,
+          impactAt: 10_000,
+          commands: [{
+            id: 'settle',
+            kind: 'settle' as const,
+            at: 19_000,
+            duration: 1_000,
+          }],
+        },
+      }],
+    };
+    const window = createBattlePresentationWindow({
+      resultId: 'result-3',
+      startedAt: 10_000,
+      startingPublicSnapshot: view().publicSnapshot,
+      plan,
+    });
+    expect(window.readyAcceptedAt).toBe(11_500);
+    expect(window.scheduledEndsAt).toBe(
+      10_000 + BATTLE_PRESENTATION_DEFAULT_MAX_MS,
+    );
+    expect(window.plan.durationMs).toBe(BATTLE_PRESENTATION_DEFAULT_MAX_MS);
+    expect(window.plan.beats[0]?.startAt).toBeLessThan(
+      BATTLE_PRESENTATION_DEFAULT_MAX_MS,
+    );
+    for (const beat of window.plan.beats) {
+      expect(beat.startAt + beat.duration).toBeLessThanOrEqual(
+        BATTLE_PRESENTATION_DEFAULT_MAX_MS,
+      );
+      for (const command of beat.timeline.commands) {
+        expect(beat.startAt + command.at + command.duration).toBeLessThanOrEqual(
+          BATTLE_PRESENTATION_DEFAULT_MAX_MS,
+        );
+      }
+    }
+  });
+
+  it('transports each visual fact once and reconstructs the renderer plan', () => {
+    const origin = {
+      kind: 'owned' as const,
+      owner: { id: 'a0', name: '甲' },
+      carrier: { kind: 'ability' as const, id: 'slash', name: '斩击' },
+    };
+    const fact = {
+      id: 'compact-fact',
+      type: 'damage' as const,
+      trace: { eventId: 'compact-fact', sequenceId: 'compact-sequence', ordinal: 1 },
+      origin,
+      target: { id: 'b0', name: '乙' },
+      amount: 10,
+      beforeHp: 100,
+      afterHp: 90,
+      damageType: 'physical' as const,
+      critical: false,
+      shieldAbsorbed: 0,
+    };
+    const resolution = createBattleRoundPlaybackPlan({
+      version: 'battle_round_resolution_public_v1',
+      commandSetId: 'compact-set',
+      round: 4,
+      outcome: { battleEnded: false },
+      sequences: [{
+        id: 'compact-sequence',
+        turn: 1,
+        phase: 'action',
+        actor: origin.owner,
+        ability: origin.carrier,
+        facts: [fact],
+      }],
+    });
+    const original = createBattlePresentationWindow({
+      resultId: 'compact-result',
+      startedAt: 20_000,
+      startingPublicSnapshot: view().publicSnapshot,
+      plan: resolution,
+    });
+    const compact = compactBattlePresentationWindow(original);
+    expect(compact.facts).toHaveLength(1);
+    expect(expandBattlePresentationWindow(compact)).toEqual(original);
+    expect(JSON.stringify(compact)).not.toContain('"fact":');
+    expect(JSON.stringify(compact).length).toBeLessThan(
+      JSON.stringify(original).length,
+    );
   });
 });

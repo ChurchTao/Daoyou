@@ -4,11 +4,12 @@ import type {
 } from '@shared/engine/battle-v5/match/BattlePublicSnapshot';
 import type {
   BattleMatchPlayerViewV1,
-  BattleRoundResolutionPublicV1,
 } from '@shared/engine/battle-v5/match/types';
+import type { BattleRoundResolutionV1 } from '@shared/engine/battle-v5/round/types';
 import type {
   CombatControlVisual,
   CombatVisualFact,
+  CombatVisualCommand,
   CombatVisualSpec,
 } from '@shared/engine/battle-v5/presentation';
 import {
@@ -98,14 +99,51 @@ export interface BattleRoundPlaybackPlanV1 {
 }
 
 export interface BattlePresentationWindowV1 {
+  readonly protocolVersion: 1;
+  readonly resultId: string;
   readonly commandSetId: string;
   readonly startedAt: number;
-  readonly endsAt: number;
+  readonly readyAcceptedAt: number;
+  readonly scheduledEndsAt: number;
   readonly startingPublicSnapshot: BattlePublicSnapshotV1;
   readonly plan: BattleRoundPlaybackPlanV1;
 }
 
+type CompactVisualCommand =
+  | Exclude<CombatVisualCommand, { kind: 'resolve' | 'reaction' }>
+  | (Omit<Extract<CombatVisualCommand, { kind: 'resolve' | 'reaction' }>, 'fact'> & {
+      readonly factId: string;
+    });
+
+export interface CompactBattlePresentationWindowV1 {
+  readonly protocolVersion: 1;
+  readonly resultId: string;
+  readonly commandSetId: string;
+  readonly startedAt: number;
+  readonly readyAcceptedAt: number;
+  readonly scheduledEndsAt: number;
+  readonly startingPublicSnapshot: BattlePublicSnapshotV1;
+  readonly facts: readonly CombatVisualFact[];
+  readonly plan: Omit<BattleRoundPlaybackPlanV1, 'beats'> & {
+    readonly beats: ReadonlyArray<
+      Omit<BattlePlaybackBeatV1, 'timeline'> & {
+        readonly timeline: Omit<CombatVisualTimeline, 'action' | 'commands'> & {
+          readonly action: Omit<CombatVisualActionInput, 'facts'> & {
+            readonly factIds: readonly string[];
+          };
+          readonly commands: readonly CompactVisualCommand[];
+        };
+      }
+    >;
+  };
+}
+
 const BEAT_GAP_MS = 220;
+export const BATTLE_PRESENTATION_MIN_MS = 1_500;
+export const BATTLE_PRESENTATION_DEFAULT_MAX_MS = 8_000;
+export const BATTLE_PRESENTATION_ABSOLUTE_MAX_MS = 10_000;
+/** Leaves headroom for the surrounding player snapshot and WebSocket envelope. */
+export const BATTLE_PRESENTATION_MAX_SERIALIZED_BYTES = 192 * 1024;
 
 function teamForViewer(
   unit: BattlePublicUnitStateV1,
@@ -116,10 +154,14 @@ function teamForViewer(
 
 function phaseLabel(view: BattleMatchPlayerViewV1): string {
   switch (view.status) {
+    case 'waiting':
+      return '等待玩家';
     case 'planning':
       return '选招';
     case 'resolving':
       return '统一结算';
+    case 'presenting':
+      return '回合演出';
     case 'resolution_failed':
       return '结算冻结';
     case 'finished':
@@ -127,6 +169,172 @@ function phaseLabel(view: BattleMatchPlayerViewV1): string {
     case 'cancelled':
       return '战局取消';
   }
+}
+
+export function createBattlePresentationWindow(input: {
+  readonly resultId: string;
+  readonly startedAt: number;
+  readonly startingPublicSnapshot: BattlePublicSnapshotV1;
+  readonly plan: BattleRoundPlaybackPlanV1;
+  readonly maxDurationMs?: number;
+}): BattlePresentationWindowV1 {
+  const maxDurationMs = Math.min(
+    BATTLE_PRESENTATION_ABSOLUTE_MAX_MS,
+    input.maxDurationMs ?? BATTLE_PRESENTATION_DEFAULT_MAX_MS,
+  );
+  if (
+    !input.resultId ||
+    !Number.isFinite(input.startedAt) ||
+    !Number.isFinite(maxDurationMs) ||
+    maxDurationMs < BATTLE_PRESENTATION_MIN_MS
+  ) {
+    throw new Error('Invalid battle presentation window');
+  }
+  const plan = fitBattlePresentationPlan(input.plan, maxDurationMs);
+  const durationMs = Math.max(
+    BATTLE_PRESENTATION_MIN_MS,
+    plan.durationMs,
+  );
+  return {
+    protocolVersion: 1,
+    resultId: input.resultId,
+    commandSetId: plan.commandSetId,
+    startedAt: input.startedAt,
+    readyAcceptedAt: input.startedAt + BATTLE_PRESENTATION_MIN_MS,
+    scheduledEndsAt: input.startedAt + durationMs,
+    startingPublicSnapshot: input.startingPublicSnapshot,
+    plan,
+  };
+}
+
+/** Fits every renderer timestamp into the authoritative server window. */
+export function fitBattlePresentationPlan(
+  plan: BattleRoundPlaybackPlanV1,
+  maxDurationMs: number,
+): BattleRoundPlaybackPlanV1 {
+  if (!Number.isFinite(maxDurationMs) || maxDurationMs <= 0) {
+    throw new Error('Battle presentation duration budget must be positive');
+  }
+  if (plan.durationMs <= maxDurationMs) return plan;
+  const scale = maxDurationMs / plan.durationMs;
+  const beats = plan.beats.map((beat) => {
+    const startAt = Math.floor(beat.startAt * scale);
+    const endAt = Math.min(
+      maxDurationMs,
+      Math.ceil((beat.startAt + beat.duration) * scale),
+    );
+    const duration = Math.max(0, endAt - startAt);
+    const scaleLocalTime = (value: number) =>
+      Math.min(duration, Math.max(0, Math.floor(value * scale)));
+    const commands = beat.timeline.commands.map((command) => {
+      const at = scaleLocalTime(command.at);
+      const commandEnd = Math.min(
+        duration,
+        Math.max(at, Math.ceil((command.at + command.duration) * scale)),
+      );
+      const scaled = {
+        ...command,
+        at,
+        duration: commandEnd - at,
+      };
+      return command.kind === 'delivery'
+        ? { ...scaled, impactAt: scaleLocalTime(command.impactAt) }
+        : scaled;
+    });
+    return {
+      ...beat,
+      startAt,
+      duration,
+      timeline: {
+        ...beat.timeline,
+        duration,
+        impactAt: scaleLocalTime(beat.timeline.impactAt),
+        commands,
+      },
+    };
+  });
+  return {
+    ...plan,
+    durationMs: maxDurationMs,
+    beats,
+  };
+}
+
+export function compactBattlePresentationWindow(
+  window: BattlePresentationWindowV1,
+): CompactBattlePresentationWindowV1 {
+  const facts = new Map<string, CombatVisualFact>();
+  const beats = window.plan.beats.map((beat) => ({
+    ...beat,
+    timeline: {
+      ...beat.timeline,
+      action: {
+        ...beat.timeline.action,
+        facts: undefined,
+        factIds: beat.timeline.action.facts.map((fact) => {
+          facts.set(fact.id, fact);
+          return fact.id;
+        }),
+      },
+      commands: beat.timeline.commands.map((command) => {
+        if (command.kind !== 'resolve' && command.kind !== 'reaction') {
+          return command;
+        }
+        facts.set(command.fact.id, command.fact);
+        const { fact, ...rest } = command;
+        return { ...rest, factId: fact.id };
+      }),
+    },
+  }));
+  return {
+    ...window,
+    facts: [...facts.values()],
+    plan: { ...window.plan, beats },
+  } as CompactBattlePresentationWindowV1;
+}
+
+export function battlePresentationSerializedBytes(
+  window: CompactBattlePresentationWindowV1,
+): number {
+  return new TextEncoder().encode(JSON.stringify(window)).byteLength;
+}
+
+export function expandBattlePresentationWindow(
+  compact: CompactBattlePresentationWindowV1,
+): BattlePresentationWindowV1 {
+  const facts = new Map(compact.facts.map((fact) => [fact.id, fact]));
+  const requireFact = (factId: string) => {
+    const fact = facts.get(factId);
+    if (!fact) throw new Error(`Missing battle presentation fact: ${factId}`);
+    return fact;
+  };
+  return {
+    protocolVersion: compact.protocolVersion,
+    resultId: compact.resultId,
+    commandSetId: compact.commandSetId,
+    startedAt: compact.startedAt,
+    readyAcceptedAt: compact.readyAcceptedAt,
+    scheduledEndsAt: compact.scheduledEndsAt,
+    startingPublicSnapshot: compact.startingPublicSnapshot,
+    plan: {
+      ...compact.plan,
+      beats: compact.plan.beats.map((beat) => ({
+        ...beat,
+        timeline: {
+          ...beat.timeline,
+          action: (() => {
+            const { factIds, ...action } = beat.timeline.action;
+            return { ...action, facts: factIds.map(requireFact) };
+          })(),
+          commands: beat.timeline.commands.map((command) => {
+            if (!('factId' in command)) return command;
+            const { factId, ...rest } = command;
+            return { ...rest, fact: requireFact(factId) } as CombatVisualCommand;
+          }),
+        },
+      })),
+    },
+  };
 }
 
 function elapsedPlanningMs(view: BattleMatchPlayerViewV1): number {
@@ -218,7 +426,10 @@ export function createBattlePresentationSnapshot(
  * beats never overlap, while targets inside an AOE beat still resolve together.
  */
 export function createBattleRoundPlaybackPlan(
-  resolution: BattleRoundResolutionPublicV1,
+  resolution: Pick<
+    BattleRoundResolutionV1,
+    'commandSetId' | 'round' | 'outcome' | 'sequences'
+  >,
   resolveVisual?: (sequence: CombatSequenceV3) => CombatVisualSpec | undefined,
 ): BattleRoundPlaybackPlanV1 {
   const groups: Array<{

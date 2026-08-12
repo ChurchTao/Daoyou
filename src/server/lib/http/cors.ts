@@ -6,7 +6,7 @@ export const apiCorsOptions = {
     'Content-Type',
     'Authorization',
     'Idempotency-Key',
-    'x-turnstile-token',
+    'x-altcha-payload',
     'x-llm-api-key',
     'x-llm-model',
   ],

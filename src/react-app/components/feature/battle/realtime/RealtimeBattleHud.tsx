@@ -124,14 +124,10 @@ export function BattleRoundHud({
 
 interface BattleUtilityHudProps {
   connectionStatus: RealtimeBattleConnectionStatus;
-  debugOpen: boolean;
-  onToggleDebug: () => void;
 }
 
 export function BattleUtilityHud({
   connectionStatus,
-  debugOpen,
-  onToggleDebug,
 }: BattleUtilityHudProps) {
   const connectionLabel =
     connectionStatus === 'connected'
@@ -152,13 +148,6 @@ export function BattleUtilityHud({
       </div>
 
       <div className="absolute top-[calc(env(safe-area-inset-top)+0.85rem)] right-[calc(env(safe-area-inset-right)+0.85rem)] z-30 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onToggleDebug}
-          className="battle-utility-chip inline-flex min-h-10 items-center rounded-full px-3 text-xs shadow-sm backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#efbf04]"
-        >
-          {debugOpen ? '收起日志' : '战斗日志'}
-        </button>
         <span
           className="battle-utility-chip grid size-10 place-items-center rounded-full shadow-sm backdrop-blur-md"
           title={connectionLabel}

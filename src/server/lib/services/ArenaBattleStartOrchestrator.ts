@@ -6,7 +6,6 @@ import type { ArenaRoomV1 } from '@shared/contracts/arena';
 import { ArenaRoomService } from './ArenaRoomService';
 import { BattleMatchmakerService } from './BattleMatchmakerService';
 import { buildOnlineBattleMatchState } from './BattleOnlineMatchFactory';
-import { ensureBattleMatchParticipants } from './BattleMatchParticipantRepository';
 
 export interface ArenaBattleStartResult {
   readonly room: ArenaRoomV1;
@@ -61,9 +60,6 @@ export class ArenaBattleStartOrchestrator {
 
           const created = await this.matchmaker.createAndPrejoin({
             state,
-            playerNames: Object.fromEntries(
-              room.frozenRoster.seats.map((seat) => [seat.userId, seat.displayName]),
-            ),
             orchestration: {
               kind: 'arena_sparring_v1',
               roomId: room.roomId,
@@ -72,16 +68,6 @@ export class ArenaBattleStartOrchestrator {
           });
           lease.assertHeld();
 
-          await ensureBattleMatchParticipants(
-            state.controllers.map((controller, index) => ({
-              matchId: created.matchID,
-              userId: controller.playerId,
-              teamId: controller.teamId,
-              boardgamePlayerId: String(index),
-              cultivatorIds: controller.unitIds,
-              status: 'accepted',
-            })),
-          );
           room = await this.rooms.attachBattleMatch(
             room.roomId,
             room.startRequestId,

@@ -1,9 +1,11 @@
 import {
   PILL_RECYCLE_BASE_FACTOR,
+  PILL_RECYCLE_CRAFT_COST_DIVISOR,
+  PILL_RECYCLE_PRICE_FACTOR_CAP,
   PILL_RECYCLE_SCORE_MODIFIER_MAX,
   PILL_RECYCLE_SCORE_MODIFIER_MIN,
-  RECYCLE_PRICE_FACTOR_CAP,
 } from '@shared/config/marketConfig';
+import { calculateCraftCost } from '@shared/engine/creation-v2/CraftCostCalculator';
 import { BASE_PRICES } from '@shared/engine/material/creation/config';
 import { PILL_QUALITY_BASE_SCORE } from '@shared/lib/pillScore';
 import type { Quality } from '@shared/types/constants';
@@ -16,7 +18,10 @@ export function calculatePillRecycleUnitPrice(
   quality: Quality,
   score: number,
 ): number {
-  const anchorPrice = BASE_PRICES[quality] ?? BASE_PRICES.凡品;
+  const materialAnchorPrice = BASE_PRICES[quality] ?? BASE_PRICES.凡品;
+  const craftCost = calculateCraftCost(quality, 'spiritStone');
+  const economicAnchor =
+    materialAnchorPrice + craftCost / PILL_RECYCLE_CRAFT_COST_DIVISOR;
   const qualityBaseScore =
     PILL_QUALITY_BASE_SCORE[quality] ?? PILL_QUALITY_BASE_SCORE.凡品;
   const normalizedScore = Number.isFinite(score) ? Math.max(0, score) : 0;
@@ -26,9 +31,11 @@ export function calculatePillRecycleUnitPrice(
     PILL_RECYCLE_SCORE_MODIFIER_MAX,
   );
   const quotedPrice = Math.floor(
-    anchorPrice * PILL_RECYCLE_BASE_FACTOR * scoreModifier,
+    economicAnchor * PILL_RECYCLE_BASE_FACTOR * scoreModifier,
   );
-  const safePriceCap = Math.floor(anchorPrice * RECYCLE_PRICE_FACTOR_CAP);
+  const priceCap = Math.floor(
+    economicAnchor * PILL_RECYCLE_PRICE_FACTOR_CAP,
+  );
 
-  return Math.max(1, Math.min(quotedPrice, safePriceCap));
+  return Math.max(1, Math.min(quotedPrice, priceCap));
 }

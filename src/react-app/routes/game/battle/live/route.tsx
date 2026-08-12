@@ -17,7 +17,6 @@ import {
   attachRealtimeBattlePhaser,
   type RealtimeBattlePhaserController,
 } from '@app/components/feature/battle/realtime/RealtimeBattlePhaserRuntime';
-import { CombatActionLogV3 } from '@app/components/feature/battle/v3/CombatActionLog';
 import {
   BATTLE_QUICKBAR_MAX_SLOTS,
   loadBattleQuickbar,
@@ -29,7 +28,6 @@ import type {
   ClientBattleIntentV1,
 } from '@shared/engine/battle-v5/match/types';
 import type { PlanningAbilityViewV1 } from '@shared/engine/battle-v5/round/types';
-import type { CombatSequenceV3 } from '@shared/engine/battle-v5/v3';
 import {
   createBattlePresentationSnapshot,
   createBattlePresentationSnapshotFromPublic,
@@ -97,15 +95,6 @@ export default function LiveBattleMatchPage() {
     string | null
   >(null);
   const [phaserReady, setPhaserReady] = useState(false);
-  const [debugOpen, setDebugOpen] = useState(false);
-  const [debugSequences, setDebugSequences] = useState<CombatSequenceV3[]>([]);
-  const [debugActiveSequenceId, setDebugActiveSequenceId] = useState<
-    string | null
-  >(null);
-  const [debugResolvedFactCount, setDebugResolvedFactCount] = useState(0);
-  const [completedPresentationKey, setCompletedPresentationKey] = useState<
-    string | null
-  >(null);
   const phaserRootRef = useRef<HTMLDivElement>(null);
   const phaserControllerRef = useRef<RealtimeBattlePhaserController | null>(
     null,
@@ -114,15 +103,12 @@ export default function LiveBattleMatchPage() {
     null,
   );
   const checkpointRevisionRef = useRef<number | null>(null);
+  const readyReportedResultRef = useRef<string | null>(null);
   const autoCommitAttemptRef = useRef<string | null>(null);
   const commitRequestRef = useRef<{
     checkpointRevision: number;
     requestId: string;
   } | null>(null);
-  const debugOpenRef = useRef(false);
-  const debugSequencesRef = useRef<CombatSequenceV3[]>([]);
-  const debugActiveSequenceIdRef = useRef<string | null>(null);
-  const debugResolvedFactCountRef = useRef(0);
 
   const ownUnits = useMemo(
     () => view?.planningView?.units ?? [],
@@ -147,19 +133,15 @@ export default function LiveBattleMatchPage() {
     ownUnits.find((unit) => unit.unitId === resolvedActiveUnitId) ?? null;
   const activeAbilities = activeUnit?.abilities ?? [];
   const ownSubmissions = view?.ownSubmissions ?? {};
-  const allPlayersReady = view?.orchestration.allPlayersReady ?? false;
-  const presentationKey = view?.presentation
-    ? `${view.presentation.commandSetId}:${view.presentation.startedAt}`
+  const presentationKey = view?.presentationWindow
+    ? view.presentationWindow.resultId
     : null;
-  const presentationEndsAt = view?.presentation?.endsAt;
-  const viewServerNow = view?.serverNow;
   const presentationActive = Boolean(
-    view?.presentation && completedPresentationKey !== presentationKey,
+    view?.status === 'presenting' && view.presentationWindow,
   );
   const isPlanning = Boolean(
     view &&
     connectionStatus === 'connected' &&
-    allPlayersReady &&
     view.status === 'planning' &&
     !presentationActive,
   );
@@ -206,7 +188,7 @@ export default function LiveBattleMatchPage() {
           ? 'committed'
           : !view
             ? 'connecting'
-            : !allPlayersReady
+            : view.status === 'waiting'
               ? 'waiting'
               : 'planning';
   const commandDockExpanded = Boolean(
@@ -226,24 +208,6 @@ export default function LiveBattleMatchPage() {
       activeAbilities.find((ability) => ability.abilityId === abilityId),
     )
     .filter((ability): ability is PlanningAbilityViewV1 => Boolean(ability));
-  const debugActiveIndex = debugSequences.findIndex(
-    (sequence) => sequence.id === debugActiveSequenceId,
-  );
-  const debugCurrentIndex =
-    debugActiveIndex >= 0
-      ? debugActiveIndex
-      : Math.max(0, debugSequences.length - 1);
-
-  const toggleDebug = useCallback(() => {
-    const next = !debugOpenRef.current;
-    debugOpenRef.current = next;
-    setDebugOpen(next);
-    if (!next) return;
-    setDebugSequences([...debugSequencesRef.current]);
-    setDebugActiveSequenceId(debugActiveSequenceIdRef.current);
-    setDebugResolvedFactCount(debugResolvedFactCountRef.current);
-  }, []);
-
   const submitLockedIntents = useCallback(
     (intents: Record<string, ClientBattleIntentV1>) => {
       if (!actions || !isPlanning || isCommitted || commitPending || !view)
@@ -455,6 +419,7 @@ export default function LiveBattleMatchPage() {
         ?.abilityName ??
       ownUnits.find((unit) => unit.unitId === unitId)?.basicAttack?.name ??
       '普通攻击';
+    if (intent.kind === 'skip') return '已跳过行动';
     const target = intent.targetUnitId
       ? unitName(view!, intent.targetUnitId)
       : '自动目标';
@@ -464,6 +429,7 @@ export default function LiveBattleMatchPage() {
   useEffect(() => {
     presentationDirectorRef.current?.cancel();
     checkpointRevisionRef.current = null;
+    readyReportedResultRef.current = null;
     autoCommitAttemptRef.current = null;
     commitRequestRef.current = null;
     const clearTimer = window.setTimeout(() => {
@@ -472,12 +438,6 @@ export default function LiveBattleMatchPage() {
       setCommandDrafts({});
       setPlannedIntents({});
       setDrawerOpen(false);
-      setDebugSequences([]);
-      setDebugActiveSequenceId(null);
-      setDebugResolvedFactCount(0);
-      debugSequencesRef.current = [];
-      debugActiveSequenceIdRef.current = null;
-      debugResolvedFactCountRef.current = 0;
     }, 0);
     return () => window.clearTimeout(clearTimer);
   }, [matchId]);
@@ -500,27 +460,6 @@ export default function LiveBattleMatchPage() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [view?.checkpointRevision, view]);
-
-  useEffect(() => {
-    const resolution = view?.latestResolution;
-    if (!resolution) return;
-    const timer = window.setTimeout(() => {
-      const appendSequences = (current: CombatSequenceV3[]) => {
-        const existing = new Set(current.map((sequence) => sequence.id));
-        const additions = resolution.sequences.filter(
-          (sequence) => !existing.has(sequence.id),
-        );
-        return additions.length > 0
-          ? [...current, ...additions].slice(-200)
-          : current;
-      };
-      debugSequencesRef.current = appendSequences(debugSequencesRef.current);
-      if (debugOpenRef.current) {
-        setDebugSequences([...debugSequencesRef.current]);
-      }
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [view?.latestResolution]);
 
   const entityClickRef = useRef<(entityId: string) => void>(() => undefined);
   useEffect(() => {
@@ -659,14 +598,15 @@ export default function LiveBattleMatchPage() {
   useEffect(() => {
     const current = playbackInputRef.current;
     const presentationView = current.view;
-    const presentation = presentationView?.presentation;
+    const presentation = presentationView?.presentationWindow;
     if (
       !phaserReady ||
       !presentationKey ||
       !presentationView ||
       !presentation ||
       !current.presentationSnapshot
-    ) return;
+    )
+      return;
     const startSnapshot = createBattlePresentationSnapshotFromPublic(
       presentation.startingPublicSnapshot,
       presentationView.teamId,
@@ -684,57 +624,30 @@ export default function LiveBattleMatchPage() {
         (current.viewReceivedAt === null
           ? 0
           : Date.now() - current.viewReceivedAt),
-      onBeatStart: (beat) => {
-        const sequenceId = beat.sequenceIds[beat.sequenceIds.length - 1] ?? null;
-        debugActiveSequenceIdRef.current = sequenceId;
-        if (debugOpenRef.current) setDebugActiveSequenceId(sequenceId);
-      },
-      onFactResolved: () => {
-        debugResolvedFactCountRef.current += 1;
-        if (debugOpenRef.current) {
-          setDebugResolvedFactCount(debugResolvedFactCountRef.current);
-        }
+      onComplete: () => {
+        if (
+          !actions ||
+          readyReportedResultRef.current === presentation.resultId
+        )
+          return;
+        readyReportedResultRef.current = presentation.resultId;
+        actions.presentationReady(
+          presentation.plan.round,
+          presentation.resultId,
+        );
       },
     });
     return () => presentationDirectorRef.current?.cancel();
-  }, [phaserReady, presentationKey]);
-
-  useEffect(() => {
-    if (
-      !presentationKey ||
-      presentationEndsAt === undefined ||
-      viewServerNow === undefined
-    ) return;
-    const currentServerNow =
-      viewServerNow +
-      (viewReceivedAt === null ? 0 : Date.now() - viewReceivedAt);
-    const timer = window.setTimeout(
-      () => setCompletedPresentationKey(presentationKey),
-      Math.max(0, presentationEndsAt - currentServerNow),
-    );
-    return () => window.clearTimeout(timer);
-  }, [presentationEndsAt, presentationKey, viewReceivedAt, viewServerNow]);
+  }, [actions, phaserReady, presentationKey]);
 
   useEffect(() => {
     if (view?.status !== 'finished' || !matchId) return;
-    const currentServerNow =
-      view.serverNow +
-      (viewReceivedAt === null ? 0 : Date.now() - viewReceivedAt);
-    const presentationMs = view.presentation
-      ? Math.max(0, view.presentation.endsAt - currentServerNow) + 250
-      : 0;
     const timer = window.setTimeout(
       () => setRevealedResultMatchId(matchId),
-      presentationMs,
+      250,
     );
     return () => window.clearTimeout(timer);
-  }, [
-    matchId,
-    view?.presentation,
-    view?.serverNow,
-    view?.status,
-    viewReceivedAt,
-  ]);
+  }, [matchId, view?.status]);
 
   const commandDockStyle = {
     '--battle-command-safe': commandDockExpanded
@@ -781,18 +694,16 @@ export default function LiveBattleMatchPage() {
 
       <BattleRoundHud
         round={
-          presentationActive ? view?.presentation?.plan.round : view?.round
+          presentationActive
+            ? view?.presentationWindow?.plan.round
+            : view?.round
         }
         phase={roundPhase}
         deadlineAt={view?.deadlineAt}
         serverNow={view?.serverNow}
         serverNowReceivedAt={viewReceivedAt}
       />
-      <BattleUtilityHud
-        connectionStatus={connectionStatus}
-        debugOpen={debugOpen}
-        onToggleDebug={toggleDebug}
-      />
+      <BattleUtilityHud connectionStatus={connectionStatus} />
 
       {statusNotice && (
         <BattleStatusNotice tone={statusNotice.tone}>
@@ -806,45 +717,6 @@ export default function LiveBattleMatchPage() {
           isAlly={inspectedUnit.teamId === view.teamId}
           onClose={() => setInspectedUnitId(null)}
         />
-      )}
-
-      {debugOpen && (
-        <aside
-          className="battle-debug-panel fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col p-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl backdrop-blur sm:w-[26rem]"
-          aria-label="Debug 战斗日志"
-        >
-          <div className="mb-2 flex items-start justify-between gap-3 border-b border-[#2c1810]/15 pb-3 text-[0.65rem] text-[#2c1810]/55">
-            <div>
-              <strong className="block text-xs tracking-[0.12em] text-[#2c1810]">
-                引擎事实 / 动画对照
-              </strong>
-              <span className="mt-1 block">对局 {matchId ?? '—'}</span>
-              <span className="mt-1 block">
-                指令集{' '}
-                {view?.presentation?.commandSetId ??
-                  view?.latestResolution?.commandSetId ??
-                  '—'}
-              </span>
-              <span className="block">
-                checkpoint {view?.checkpointRevision ?? '—'} · 已播放事实{' '}
-                {debugResolvedFactCount}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={toggleDebug}
-              className="border-b border-dashed border-[#2c1810]/35"
-            >
-              关闭
-            </button>
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col">
-            <CombatActionLogV3
-              sequences={debugSequences}
-              currentIndex={debugCurrentIndex}
-            />
-          </div>
-        </aside>
       )}
 
       {targetAbility && (
@@ -995,7 +867,7 @@ export default function LiveBattleMatchPage() {
             {commandMode === 'locked' &&
               (commitPending
                 ? '全部单位已选定，正在一次性提交本方操作。'
-                : '全部单位已选定，等待服务端确认。')}
+                : '全部单位已选定，正在等待服务端确认。')}
             {commandMode === 'committed' &&
               (isResolving
                 ? '双方指令已封存，服务端正在统一结算。'
@@ -1044,8 +916,8 @@ export default function LiveBattleMatchPage() {
               战局已定
             </p>
             <h2 className="mt-2 text-xl font-semibold tracking-[0.14em]">
-              {view.latestResolution?.outcome.battleEnded &&
-              view.latestResolution.outcome.winnerTeamId === view.teamId
+              {view.latestResult?.outcome.battleEnded &&
+              view.latestResult.outcome.winnerTeamId === view.teamId
                 ? '此阵得胜'
                 : '此阵惜败'}
             </h2>

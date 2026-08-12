@@ -9,6 +9,7 @@ import feedbackRouter from '@server/routes/api/admin/feedback.router';
 import itemLibraryRouter from '@server/routes/api/admin/item-library.router';
 import llmMetricsRouter from '@server/routes/api/admin/llm-metrics.router';
 import onlineUsersRouter from '@server/routes/api/admin/online-users.router';
+import onlineBattlesRouter from '@server/routes/api/admin/online-battles.router';
 import redeemCodesRouter from '@server/routes/api/admin/redeem-codes.router';
 import reputationShopRouter from '@server/routes/api/admin/reputation-shop.router';
 import sectShopRouter from '@server/routes/api/admin/sect-shop.router';
@@ -39,6 +40,7 @@ router.route('/sect-shop', sectShopRouter);
 router.route('/community-group', communityGroupRouter);
 router.route('/llm-metrics', llmMetricsRouter);
 router.route('/online-users', onlineUsersRouter);
+router.route('/online-battles', onlineBattlesRouter);
 router.route('/tower-enemy-sets', towerEnemySetsRouter);
 router.route('/battle-simulator', battleSimulatorRouter);
 

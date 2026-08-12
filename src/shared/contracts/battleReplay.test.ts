@@ -5,15 +5,14 @@ import {
 } from './battleReplay';
 
 const validJob = {
-  version: 'battle_replay_archive_job_v2',
+  version: 'battle_replay_archive_job_v3',
   subject: BATTLE_REPLAY_SUBJECT,
   matchId: 'match_123-safe',
+  expectedStorageRevision: 42,
   attempt: 1,
-  byteLength: 1_024,
-  checksum: 'a'.repeat(64),
 } as const;
 
-describe('battle replay archive job v2', () => {
+describe('battle replay archive job v3', () => {
   it('accepts a bounded lightweight archive job', () => {
     expect(parseBattleReplayArchiveJob(validJob)).toEqual(validJob);
   });
@@ -21,8 +20,7 @@ describe('battle replay archive job v2', () => {
   it.each([
     { ...validJob, matchId: 'invalid/match' },
     { ...validJob, attempt: 0 },
-    { ...validJob, byteLength: 0 },
-    { ...validJob, checksum: 'not-a-sha256' },
+    { ...validJob, expectedStorageRevision: -1 },
     { ...validJob, unexpected: true },
   ])('rejects invalid job metadata', (job) => {
     expect(() => parseBattleReplayArchiveJob(job)).toThrow();

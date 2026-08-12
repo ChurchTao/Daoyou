@@ -7,7 +7,6 @@ on:
 
 env:
   APP_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/daoyou-app
-  BATTLE_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/daoyou-battle
   IMAGE_TAG: latest
 
 jobs:
@@ -35,11 +34,3 @@ jobs:
           file: docker/Dockerfile.app
           push: true
           tags: ${{ env.APP_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-
-      - name: Build and push battle image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/Dockerfile.battle
-          push: true
-          tags: ${{ env.BATTLE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}

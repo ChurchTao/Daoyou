@@ -5,8 +5,13 @@ import {
   registerMessageInfrastructure,
   shutdownMessageInfrastructure,
 } from './server/lib/mq/domainEventRegistry';
+import {
+  startOnlineBattleRuntime,
+  stopOnlineBattleRuntime,
+} from './server/lib/services/onlineBattleRuntime';
 
 await registerMessageInfrastructure();
+await startOnlineBattleRuntime();
 registerInternalCronJobs({ enabled: import.meta.env.PROD });
 
 let shuttingDown = false;
@@ -14,6 +19,7 @@ async function shutdown(signal: NodeJS.Signals) {
   if (shuttingDown) return;
   shuttingDown = true;
   console.info('[runtime] graceful shutdown started', { signal });
+  await stopOnlineBattleRuntime();
   await shutdownMessageInfrastructure();
   process.exit(0);
 }

@@ -22,16 +22,16 @@ export interface AuthContextType {
     name: string,
     email: string,
     password: string,
-    captchaToken?: string,
+    captchaPayload?: string,
   ) => Promise<{ error: AuthActionError | null }>;
   signInWithPassword: (
     email: string,
     password: string,
-    captchaToken?: string,
+    captchaPayload?: string,
   ) => Promise<{ error: AuthActionError | null }>;
   signInWithEmailOtp: (
     email: string,
-    captchaToken?: string,
+    captchaPayload?: string,
   ) => Promise<{ error: AuthActionError | null }>;
   verifyEmailOtp: (
     email: string,
@@ -43,7 +43,7 @@ export interface AuthContextType {
   ) => Promise<{ error: AuthActionError | null }>;
   requestPasswordReset: (
     email: string,
-    captchaToken?: string,
+    captchaPayload?: string,
     redirectTo?: string,
   ) => Promise<{ error: AuthActionError | null }>;
   resetPassword: (
@@ -77,14 +77,14 @@ export function getDefaultGameRedirectUrl() {
   return new URL('/game', window.location.origin).toString();
 }
 
-export function getCaptchaFetchOptions(captchaToken?: string) {
-  if (!captchaToken) {
+export function getCaptchaFetchOptions(captchaPayload?: string) {
+  if (!captchaPayload) {
     return undefined;
   }
 
   return {
     headers: {
-      'x-turnstile-token': captchaToken,
+      'x-altcha-payload': captchaPayload,
     },
   };
 }

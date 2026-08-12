@@ -18,14 +18,30 @@ export interface BattleControllerV1 {
 }
 
 export type BattleMatchStatusV1 =
-  'planning' | 'resolving' | 'resolution_failed' | 'finished' | 'cancelled';
+  | 'waiting'
+  | 'planning'
+  | 'resolving'
+  | 'presenting'
+  | 'resolution_failed'
+  | 'finished'
+  | 'cancelled';
 
 export interface BattleMatchPlanningV1 {
   readonly round: number;
   readonly checkpointRevision: number;
+  readonly opensAt: number;
   readonly deadlineAt: number;
   readonly submissions: Readonly<Record<UnitId, BattleActionIntentV1>>;
   readonly committedPlayerIds: readonly PlayerId[];
+}
+
+export interface BattleMatchPresentationV1 {
+  readonly resultId: string;
+  readonly round: number;
+  readonly startedAt: number;
+  readonly readyAcceptedAt: number;
+  readonly scheduledEndsAt: number;
+  readonly readyPlayerIds: readonly PlayerId[];
 }
 
 export interface BattleMatchResolvingV1 {
@@ -76,6 +92,7 @@ export interface BattleMatchStateV1 {
   readonly controllers: readonly BattleControllerV1[];
   readonly planning?: BattleMatchPlanningV1;
   readonly resolving?: BattleMatchResolvingV1;
+  readonly presentation?: BattleMatchPresentationV1;
   readonly latestResolution?: BattleRoundResolutionPublicV1;
   readonly createdAt: number;
   readonly updatedAt: number;
@@ -133,10 +150,12 @@ export interface BattleMatchPlayerViewV1 {
   readonly round: number;
   readonly checkpointRevision: number;
   readonly deadlineAt?: number;
+  readonly planningOpensAt?: number;
   readonly serverNow: number;
   readonly planningView?: BattlePlanningViewV1;
   readonly publicSnapshot: BattlePublicSnapshotV1;
   readonly latestResolution?: BattleRoundResolutionPublicV1;
+  readonly presentation?: BattleMatchPresentationV1;
   readonly ownSubmissions: Readonly<Record<UnitId, BattleActionIntentV1>>;
   readonly ownCommitted: boolean;
   readonly commandReceipt?: BattleCommandReceiptV1;
@@ -148,5 +167,4 @@ export interface BattleRoundResolutionPublicV1 {
   readonly commandSetId: string;
   readonly round: number;
   readonly outcome: BattleRoundResolutionV1['outcome'];
-  readonly sequences: BattleRoundResolutionV1['sequences'];
 }

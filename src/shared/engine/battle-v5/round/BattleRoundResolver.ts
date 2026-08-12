@@ -318,6 +318,7 @@ function executePlannedAction(
   allUnits: Unit[],
   targetSystem: TargetSelectionSystem,
 ): void {
+  if (intent.kind === 'skip') return;
   const queued = consumeQueuedAction(actor);
   if (queued) {
     if (
@@ -566,6 +567,7 @@ function validateUnitIntent(
   intent: BattleActionIntentV1,
   targetSystem: TargetSelectionSystem,
 ): void {
+  if (intent.kind === 'skip') return;
   if (peekQueuedAction(actor)) {
     const queuedAction = resolveLegalQueuedAction(
       actor,
@@ -648,7 +650,9 @@ function validateRoundCommandSet(
   for (const intent of Object.values(commandSet.intents)) {
     if (
       !intent ||
-      (intent.kind !== 'ability' && intent.kind !== 'basic_attack') ||
+      (intent.kind !== 'ability' &&
+        intent.kind !== 'basic_attack' &&
+        intent.kind !== 'skip') ||
       (intent.submittedBy !== 'player' && intent.submittedBy !== 'timeout')
     ) {
       throw new Error('Round command set contains an invalid intent');

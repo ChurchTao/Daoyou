@@ -1,8 +1,8 @@
 export { AuthChoiceCard } from './AuthChoiceCard';
+export { AuthCaptchaField } from './AuthCaptchaField';
 export { AuthPageShell } from './AuthPageShell';
-export { AuthTurnstileField } from './AuthTurnstileField';
 export { useAuthFeedback } from './useAuthFeedback';
-export { useTurnstileField } from './useTurnstileField';
+export { useCaptchaField } from './useCaptchaField';
 export {
   buildEmailOtpTarget,
   getEmailOtpVerifyFieldErrors,
