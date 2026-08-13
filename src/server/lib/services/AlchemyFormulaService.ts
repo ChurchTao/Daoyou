@@ -41,6 +41,7 @@ import {
 } from '@shared/lib/pillEffectScaling';
 import {
   formatAlchemyPropertyVector,
+  getAlchemyPropertyTrackPath,
   normalizeWeightedAlchemyProperties,
 } from '@shared/lib/alchemyProperties';
 import {
@@ -759,8 +760,12 @@ function scaleFormulaOperations(
   operations: ConditionOperation[],
   fitMultiplier: number,
   quality: Quality,
-  minQuality?: Quality,
+  targetPropertyVector: WeightedAlchemyProperty[] = [],
 ): ConditionOperation[] {
+  // A formula blueprint describes the operation route only. Its persisted
+  // numeric values may come from the pill that originally discovered the
+  // formula, so every value-bearing operation is rebuilt from the output
+  // quality before the formula fit multiplier is applied.
   return operations.flatMap((operation): ConditionOperation[] => {
     if (operation.type === 'restore_resource') {
       return [
@@ -806,26 +811,39 @@ function scaleFormulaOperations(
     }
 
     if (operation.type === 'advance_track') {
-      if (
-        minQuality &&
-        (operation.track === 'marrow_wash' || operation.track.startsWith('body.'))
-      ) {
-        const baseValue = buildBodyTrackAdvance(minQuality);
-        const qualityValue = buildBodyTrackAdvance(quality);
+      if (operation.track === 'marrow_wash' || operation.track.startsWith('body.')) {
+        const propertyIndex = targetPropertyVector.findIndex(
+          (property) => getAlchemyPropertyTrackPath(property.key) === operation.track,
+        );
+        const propertyScalar = propertyIndex === 0
+          ? 1
+          : propertyIndex === 1
+            ? 0.35
+            : propertyIndex >= 2
+              ? 0.2
+              : 1;
+        // Formula blueprints may have been discovered from an already-scaled
+        // pill. Rebuild body/marrow values from the canonical quality table so
+        // the persisted operation cannot become a second scaling baseline.
+        const canonicalValue = buildBodyTrackAdvance(quality) * propertyScalar;
         return [
           scalePillEffectOperation(
             {
               ...operation,
-              value: Math.max(
-                1,
-                Math.round(operation.value * (qualityValue / baseValue)),
-              ),
+              value: Math.max(1, Math.round(canonicalValue)),
             },
             fitMultiplier,
           ),
         ];
       }
-      return [scalePillEffectOperation(operation, fitMultiplier)];
+      // No other long-term track is currently formula-generated. Keep the
+      // route, but never let an old blueprint value bypass the common scaler.
+      return [
+        scalePillEffectOperation(
+          { ...operation, value: Math.max(1, Math.round(operation.value)) },
+          fitMultiplier,
+        ),
+      ];
     }
 
     if (operation.type === 'increase_lifespan') {
@@ -1568,7 +1586,7 @@ export async function prepareFormulaCraft(
         formula.blueprint.operations,
         projection.fitMultiplier,
         highestMaterialRank,
-        formula.pattern.minQuality,
+        formula.pattern.targetPropertyVector,
       ),
       highestMaterialRank,
       'middle',

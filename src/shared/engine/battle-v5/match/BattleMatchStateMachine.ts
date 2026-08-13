@@ -16,7 +16,6 @@ import type {
   BattlePlanningViewV1,
   RoundCommandSetV1,
 } from '../round/types';
-import type { TeamId } from '../core/types';
 import { ROUND_PLANNING_TIMEOUT_MS } from '../round/types';
 import {
   createBattlePublicSnapshotFromRoster,
@@ -421,7 +420,7 @@ export function createBattleMatchPlayerView(
     planningOpensAt: planning?.opensAt,
     serverNow: now,
     publicSnapshot: projection.publicSnapshot,
-    planningView: projection.planningViewByTeamId[controller.teamId],
+    planningView: projection.planningViewByPlayerId[playerId],
     ownSubmissions: Object.fromEntries(
       controller.unitIds
         .filter((unitId) => planning?.submissions[unitId])
@@ -442,7 +441,9 @@ export function createBattleMatchPlayerView(
 
 export interface BattleMatchViewProjection {
   readonly publicSnapshot: BattlePublicSnapshotV1;
-  readonly planningViewByTeamId: Readonly<Record<TeamId, BattlePlanningViewV1>>;
+  readonly planningViewByPlayerId: Readonly<
+    Record<PlayerId, BattlePlanningViewV1>
+  >;
 }
 
 export function createBattleMatchViewProjection(
@@ -450,16 +451,14 @@ export function createBattleMatchViewProjection(
 ): BattleMatchViewProjection {
   const restored = restoreBattleSave(state.battle);
   try {
-    const planningViewByTeamId: Record<TeamId, BattlePlanningViewV1> = {};
+    const planningViewByPlayerId: Record<PlayerId, BattlePlanningViewV1> = {};
     if (state.planning) {
-      for (const teamId of new Set(
-        state.controllers.map((controller) => controller.teamId),
-      )) {
-        planningViewByTeamId[teamId] = createBattlePlanningView({
+      for (const controller of state.controllers) {
+        planningViewByPlayerId[controller.playerId] = createBattlePlanningView({
           roster: restored.roster,
           round: state.planning.round,
           checkpointRevision: state.planning.checkpointRevision,
-          teamId,
+          unitIds: controller.unitIds,
         });
       }
     }
@@ -468,7 +467,7 @@ export function createBattleMatchViewProjection(
         state.battle,
         restored.roster,
       ),
-      planningViewByTeamId,
+      planningViewByPlayerId,
     };
   } finally {
     restored.runtime.dispose();

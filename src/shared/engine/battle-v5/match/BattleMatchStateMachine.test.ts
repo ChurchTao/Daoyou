@@ -156,6 +156,29 @@ describe('BattleMatchStateMachine', () => {
     ).toBe(true);
   });
 
+  it('isolates planning units when multiple players share one team', () => {
+    const state = createBattleMatchState({
+      matchId: 'shared-team-match',
+      battle: save(),
+      controllers: [
+        { playerId: 'p-a1', teamId: 'a', unitIds: ['a0'] },
+        { playerId: 'p-a2', teamId: 'a', unitIds: ['a1'] },
+        { playerId: 'p-b', teamId: 'b', unitIds: ['b0', 'b1'] },
+      ],
+      now: 1_000,
+    });
+    const projection = createBattleMatchViewProjection(state);
+
+    expect(
+      createBattleMatchPlayerView(state, 'p-a1', 1_001, projection)
+        .planningView?.units.map((unit) => unit.unitId),
+    ).toEqual(['a0']);
+    expect(
+      createBattleMatchPlayerView(state, 'p-a2', 1_001, projection)
+        .planningView?.units.map((unit) => unit.unitId),
+    ).toEqual(['a1']);
+  });
+
   it('requires every living controlled unit exactly once in an atomic commit', () => {
     const state = createBattleMatchState({
       matchId: 'match-test',
@@ -218,6 +241,24 @@ describe('BattleMatchStateMachine', () => {
     );
     expect(alphaView).toEqual(createBattleMatchPlayerView(state, 'p-a', 1_002));
     expect(alphaView.publicSnapshot).toEqual(betaView.publicSnapshot);
+    expect(alphaView.planningView?.units.map((unit) => unit.unitId)).toEqual([
+      'a0',
+      'a1',
+    ]);
+    expect(betaView.planningView?.units.map((unit) => unit.unitId)).toEqual([
+      'b0',
+      'b1',
+    ]);
+    expect(
+      alphaView.planningView?.units.every((unit) =>
+        controllers[0]!.unitIds.includes(unit.unitId),
+      ),
+    ).toBe(true);
+    expect(
+      betaView.planningView?.units.every((unit) =>
+        controllers[1]!.unitIds.includes(unit.unitId),
+      ),
+    ).toBe(true);
     expect(alphaView.ownCommitted).toBe(false);
     expect(alphaView.ownSubmissions).toEqual({});
     expect(betaView.ownCommitted).toBe(true);

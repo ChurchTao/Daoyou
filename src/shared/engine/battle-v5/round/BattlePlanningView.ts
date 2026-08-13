@@ -1,7 +1,6 @@
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import type { BattleRoster } from '../core/BattleRoster';
 import { peekQueuedAction } from '../core/runtimeState';
-import type { TeamId } from '../core/types';
 import { TargetSelectionSystem } from '../systems/TargetSelectionSystem';
 import { resolveLegalBasicAttack } from './BasicAttackResolver';
 import { resolveLegalQueuedAction } from './QueuedActionResolver';
@@ -11,12 +10,16 @@ export function createBattlePlanningView(input: {
   roster: BattleRoster;
   round: number;
   checkpointRevision: number;
-  teamId?: TeamId;
+  unitIds: readonly string[];
 }): BattlePlanningViewV1 {
   const targetSystem = new TargetSelectionSystem();
   const allUnits = input.roster.getAllUnits();
   const units = allUnits
-    .filter((unit) => !input.teamId || unit.teamId === input.teamId)
+    .filter((unit) => input.unitIds.includes(unit.id))
+    .sort(
+      (left, right) =>
+        input.unitIds.indexOf(left.id) - input.unitIds.indexOf(right.id),
+    )
     .map((unit) => {
       const queued = unit.isAlive() ? peekQueuedAction(unit) : undefined;
       const queuedAction = queued

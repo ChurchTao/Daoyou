@@ -58,6 +58,20 @@ function unitName(view: BattleMatchPlayerViewV1, unitId: string) {
   );
 }
 
+function assertOwnIntentSet(
+  livingControlledUnitIds: readonly string[],
+  intents: Record<string, ClientBattleIntentV1>,
+): void {
+  const allowed = new Set(livingControlledUnitIds);
+  const submitted = Object.keys(intents);
+  if (
+    submitted.length !== allowed.size ||
+    submitted.some((unitId) => !allowed.has(unitId))
+  ) {
+    throw new Error('本次提交必须包含当前玩家全部存活修士的指令');
+  }
+}
+
 type BattleCommandMode =
   | 'select_unit'
   | 'select_ability'
@@ -109,6 +123,7 @@ export default function LiveBattleMatchPage() {
     checkpointRevision: number;
     requestId: string;
   } | null>(null);
+  const planningEpochRef = useRef<string | null>(null);
 
   const ownUnits = useMemo(
     () => view?.planningView?.units ?? [],
@@ -212,6 +227,19 @@ export default function LiveBattleMatchPage() {
     (intents: Record<string, ClientBattleIntentV1>) => {
       if (!actions || !isPlanning || isCommitted || commitPending || !view)
         return false;
+      try {
+        assertOwnIntentSet(
+          ownUnits.filter((unit) => unit.alive).map((unit) => unit.unitId),
+          intents,
+        );
+      } catch (error) {
+        setActionError(
+          error instanceof Error
+            ? error.message
+            : '本方指令未能确认，请重试。',
+        );
+        return false;
+      }
       setActionError(null);
       setCommitPending(true);
       try {
@@ -237,8 +265,25 @@ export default function LiveBattleMatchPage() {
         return false;
       }
     },
-    [actions, commitPending, isCommitted, isPlanning, view],
+    [actions, commitPending, isCommitted, isPlanning, ownUnits, view],
   );
+
+  useEffect(() => {
+    if (!view || view.status !== 'planning') return;
+    const epoch = `${view.round}:${view.checkpointRevision}`;
+    if (planningEpochRef.current === null) {
+      planningEpochRef.current = epoch;
+      return;
+    }
+    if (planningEpochRef.current === epoch) return;
+    planningEpochRef.current = epoch;
+    setPlannedIntents({});
+    setCommandDrafts({});
+    autoCommitAttemptRef.current = null;
+    commitRequestRef.current = null;
+    setCommitPending(false);
+    setActionError(null);
+  }, [view]);
 
   useEffect(() => {
     if (

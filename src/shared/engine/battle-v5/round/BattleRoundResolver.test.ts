@@ -182,7 +182,7 @@ describe('BattleRoundResolver', () => {
       roster,
       round: 1,
       checkpointRevision: 0,
-      teamId: 'alpha',
+      unitIds: ['alpha-0', 'alpha-1', 'alpha-2', 'alpha-3'],
     });
     const result = resolveBattleRound(save, sealRoundCommandSet(save, commandSet));
 
@@ -198,7 +198,7 @@ describe('BattleRoundResolver', () => {
         roster: restored.roster,
         round: 1,
         checkpointRevision: 0,
-        teamId: 'alpha',
+        unitIds: ['a0'],
       });
 
       expect(view.units[0].abilities[0]).toMatchObject({
@@ -326,7 +326,7 @@ describe('BattleRoundResolver', () => {
       roster: restored.roster,
       round: 2,
       checkpointRevision: 1,
-      teamId: 'alpha',
+      unitIds: ['queued-actor'],
     });
     restored.runtime.dispose();
 

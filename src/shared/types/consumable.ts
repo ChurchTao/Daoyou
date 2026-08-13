@@ -343,6 +343,7 @@ export interface TalismanSpec {
 export type ConsumableSpec = PillSpec | TalismanSpec;
 
 export interface AlchemyFormulaBlueprint {
+  /** 操作路线模板；炼制时按最终品质重新生成数值，不应作为绝对药效基准。 */
   operations: ConditionOperation[];
   consumeRules: PillConsumeRules;
   targetStability: number;
