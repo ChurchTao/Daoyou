@@ -9,8 +9,9 @@ export const QI_ACTION_COSTS = {
   dungeon_start: 50,
   retreat_10_years: 4,
   breakthrough_attempt: 20,
-  alchemy_improvised: 2,
-  alchemy_formula: 2,
+  // 炼丹会按本炉原始药蕴动态计费；这里仅保留最低消耗作为通用兜底。
+  alchemy_improvised: 1,
+  alchemy_formula: 1,
   creation_artifact: 8,
   creation_gongfa: 8,
   creation_skill: 8,

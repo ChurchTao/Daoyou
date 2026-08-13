@@ -417,9 +417,39 @@ const alchemyMaterialPropertyVectorSchema = z
     properties: z.array(weightedAlchemyPropertySchema),
   })
   .strict();
+const alchemyEssenceSummarySchema = z
+  .object({
+    rawEssence: z.number(),
+    effectiveEssence: z.number(),
+    qualityPotential: z.number(),
+    purity: z.number(),
+    stability: z.number(),
+  })
+  .strict();
+const alchemyOutputLotSchema = z
+  .object({
+    quality: z.enum(QUALITY_VALUES),
+    appearance: z.enum(PILL_APPEARANCE_GRADE_VALUES),
+    quantity: z.number(),
+    essenceSpent: z.number(),
+    effectMultiplier: z.number(),
+  })
+  .strict();
+const alchemyYieldProfileSchema = z
+  .object({
+    essence: alchemyEssenceSummarySchema,
+    primaryQuality: z.enum(QUALITY_VALUES),
+    lots: z.array(alchemyOutputLotSchema),
+    totalQuantity: z.number(),
+    wastedEssence: z.number(),
+    essenceLossRatio: z.number().optional(),
+    distributionSummary: z.string(),
+  })
+  .strict();
 const alchemyBatchProfileSchema = z
   .object({
-    yieldQuantity: z.number(),
+    yieldQuantity: z.number().optional(),
+    lotQuantity: z.number().int().positive().optional(),
     synergyScore: z.number(),
     conflictScore: z.number(),
     compoundTier: z.enum(ALCHEMY_COMPOUND_TIER_VALUES),
@@ -427,6 +457,9 @@ const alchemyBatchProfileSchema = z
     stabilityDelta: z.number(),
     toxicityDelta: z.number(),
     secondaryEffectMultiplierBonus: z.number(),
+    essenceSummary: alchemyEssenceSummarySchema.optional(),
+    yieldProfile: alchemyYieldProfileSchema.optional(),
+    essenceLossRatio: z.number().min(0).max(1).optional(),
   })
   .strict();
 const pillAlchemyMetaBaseShape = {
@@ -442,6 +475,7 @@ const pillAlchemyMetaBaseShape = {
   appearance: z.enum(PILL_APPEARANCE_GRADE_VALUES).optional(),
   tags: z.array(z.string()),
   batch: alchemyBatchProfileSchema.optional(),
+  version: z.literal(3).optional(),
   breakthroughTargetRealm: z.enum(REALM_VALUES).optional(),
   breakthroughLabel: z.string().optional(),
 };

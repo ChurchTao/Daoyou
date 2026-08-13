@@ -54,6 +54,9 @@ export const CREATION_INPUT_CONSTRAINTS = {
   maxQuantityPerMaterial: 3,
 } as const;
 
+// 炼丹允许一次处理更大的材料堆叠；普通造物仍使用上面的通用上限。
+export const ALCHEMY_MAX_DOSE = 999;
+
 /**
  * 主动技能在缺少完整词缀时的默认投影参数。
  * 用于兜底生成可运行的技能蓝图，避免出现空能力。

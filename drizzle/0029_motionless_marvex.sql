@@ -1,0 +1,3 @@
+ALTER TABLE "wanjiedaoyou_consumables" ADD COLUMN "stack_key" varchar(128);--> statement-breakpoint
+CREATE INDEX "consumables_cultivator_stack_key_idx" ON "wanjiedaoyou_consumables" USING btree ("cultivator_id","stack_key");--> statement-breakpoint
+CREATE UNIQUE INDEX "consumables_cultivator_stack_unique" ON "wanjiedaoyou_consumables" USING btree ("cultivator_id","name","quality","type","stack_key") WHERE "wanjiedaoyou_consumables"."stack_key" is not null;

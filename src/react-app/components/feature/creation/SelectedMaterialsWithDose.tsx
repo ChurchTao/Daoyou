@@ -172,18 +172,27 @@ export function SelectedMaterialsWithDose({
               <div className="flex items-center gap-2">
                 <InkButton
                   variant="secondary"
-                  className="px-2"
+                  className="min-h-11 min-w-11 px-2"
                   disabled={disabled || currentDose <= minDose}
                   onClick={() => onDoseChange(id, currentDose - 1)}
                 >
                   −
                 </InkButton>
-                <span className="w-6 text-center text-sm font-semibold">
-                  {currentDose}
-                </span>
+                <input
+                  type="number"
+                  aria-label={`${material.name}投入数量`}
+                  min={minDose}
+                  max={effectiveMax}
+                  value={currentDose}
+                  disabled={disabled}
+                  onChange={(event) =>
+                    onDoseChange(id, Number(event.target.value))
+                  }
+                  className="border-ink/15 bg-paper focus-visible:outline-crimson min-h-11 w-16 border px-2 text-center text-sm font-semibold focus-visible:outline-2"
+                />
                 <InkButton
                   variant="secondary"
-                  className="px-2"
+                  className="min-h-11 min-w-11 px-2"
                   disabled={disabled || currentDose >= effectiveMax}
                   onClick={() => onDoseChange(id, currentDose + 1)}
                 >

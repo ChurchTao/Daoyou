@@ -1,5 +1,5 @@
-import { AlchemyScene } from '@app/components/feature/craft/AlchemyScene';
+import { AlchemyRoomScene } from '@app/components/feature/alchemy';
 
 export default function AlchemyPage() {
-  return <AlchemyScene />;
+  return <AlchemyRoomScene />;
 }

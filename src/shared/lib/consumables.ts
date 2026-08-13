@@ -119,3 +119,34 @@ function sortJsonValue(value: unknown): unknown {
 export function stableSerializeConsumableSpec(spec: ConsumableSpec): string {
   return JSON.stringify(sortJsonValue(spec));
 }
+
+/**
+ * 返回影响消耗品实际使用效果的稳定堆叠键。
+ *
+ * 炼丹来源、药蕴摘要、批次分布和展示文案都属于追踪/展示元数据，
+ * 不应阻止同效果丹药合堆。该键会在写入时持久化，库存查询不再比较 JSONB。
+ */
+export function buildConsumableStackKey(consumable: Pick<
+  Consumable,
+  'name' | 'type' | 'quality' | 'spec'
+>): string {
+  const spec = consumable.spec;
+  const stackableSpec = {
+    kind: spec.kind,
+    ...(spec.kind === 'pill'
+      ? {
+          family: spec.family,
+          operations: spec.operations,
+          consumeRules: spec.consumeRules,
+        }
+      : {
+          scenario: spec.scenario,
+          sessionMode: spec.sessionMode,
+          notes: spec.notes,
+        }),
+    name: consumable.name,
+    quality: consumable.quality ?? '凡品',
+    type: consumable.type,
+  };
+  return JSON.stringify(sortJsonValue(stackableSpec));
+}

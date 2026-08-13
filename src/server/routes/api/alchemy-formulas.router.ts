@@ -8,14 +8,16 @@ import { AlchemyServiceError } from '@server/lib/services/AlchemyServiceError';
 import { requireActiveCultivatorRef } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
-import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
+import {
+  ALCHEMY_MAX_DOSE,
+  CREATION_INPUT_CONSTRAINTS,
+} from '@shared/engine/creation-v2/config/CreationBalance';
 import { PILL_FAMILY_VALUES } from '@shared/types/consumable';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 const router = new Hono<AppEnv>();
-const { minQuantityPerMaterial, maxQuantityPerMaterial } =
-  CREATION_INPUT_CONSTRAINTS;
+const { minQuantityPerMaterial } = CREATION_INPUT_CONSTRAINTS;
 
 const DiscoveryConfirmSchema = z.object({
   token: z.string().uuid(),
@@ -33,7 +35,7 @@ const FormulaAnalyzeSchema = z.object({
         .number()
         .int()
         .min(minQuantityPerMaterial)
-        .max(maxQuantityPerMaterial),
+        .max(ALCHEMY_MAX_DOSE),
     )
     .optional(),
 });

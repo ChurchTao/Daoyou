@@ -617,6 +617,8 @@ export const consumables = pgTable(
     prompt: varchar('prompt', { length: 200 }).notNull().default(''), // 提示词
     quality: varchar('quality', { length: 20 }).notNull().default('凡品'), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
     spec: jsonb('spec').notNull().default({}),
+    // 仅由新写入的消耗品填充；历史库存不回填，也不参与新堆叠合并。
+    stackKey: varchar('stack_key', { length: 128 }),
     quantity: integer('quantity').notNull().default(1),
     description: text('description'),
     score: integer('score').notNull().default(0), // 评分
@@ -629,6 +631,13 @@ export const consumables = pgTable(
       table.name,
       table.quality,
     ),
+    index('consumables_cultivator_stack_key_idx').on(
+      table.cultivatorId,
+      table.stackKey,
+    ),
+    uniqueIndex('consumables_cultivator_stack_unique')
+      .on(table.cultivatorId, table.name, table.quality, table.type, table.stackKey)
+      .where(sql`${table.stackKey} is not null`),
     index('consumables_score_idx').on(table.score),
   ],
 );

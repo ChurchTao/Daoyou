@@ -271,7 +271,11 @@ export function calculatePillRecycleUnitPrice(
   consumable: Pick<Consumable, 'quality' | 'score' | 'spec'>,
 ): number {
   const score = calculateSingleElixirScore(consumable as Consumable);
-  return calculatePillRecyclePrice(getConsumableQuality(consumable), score);
+  return calculatePillRecyclePrice(
+    getConsumableQuality(consumable),
+    score,
+    consumable.spec.kind === 'pill' ? consumable.spec.alchemyMeta.appearance : undefined,
+  );
 }
 
 function getConsumableQuality(
@@ -876,6 +880,7 @@ async function previewConsumableSell(
     const unitPrice = calculatePillRecyclePrice(
       getConsumableQuality(item),
       score,
+      item.spec.kind === 'pill' ? item.spec.alchemyMeta.appearance : undefined,
     );
     return {
       id: item.id!,

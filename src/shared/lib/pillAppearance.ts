@@ -1,8 +1,8 @@
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type {
   PillAppearanceGrade,
-  WeightedAlchemyProperty,
 } from '@shared/types/consumable';
+import { PILL_APPEARANCE_EFFECT_MULTIPLIER } from '@shared/config/alchemyEssenceConfig';
 
 export interface PillAppearanceConfig {
   grade: PillAppearanceGrade;
@@ -19,7 +19,7 @@ export const PILL_APPEARANCE_CONFIG: Record<
   low: {
     grade: 'low',
     label: '下品',
-    effectMultiplier: 0.75,
+    effectMultiplier: 0.9,
     toxicityMultiplier: 1.5,
     colorClass: 'text-tier-fan',
   },
@@ -33,32 +33,18 @@ export const PILL_APPEARANCE_CONFIG: Record<
   high: {
     grade: 'high',
     label: '上品',
-    effectMultiplier: 1.25,
+    effectMultiplier: 1.1,
     toxicityMultiplier: 0.6,
     colorClass: 'text-tier-tian',
   },
   perfect: {
     grade: 'perfect',
     label: '完美',
-    effectMultiplier: 1.8,
+    effectMultiplier: 1.3,
     toxicityMultiplier: 0,
     colorClass: 'text-tier-shen',
   },
 };
-
-const APPEARANCE_THRESHOLDS: Array<{
-  maxExclusive: number;
-  grade: PillAppearanceGrade;
-}> = [
-  { maxExclusive: 0.3, grade: 'low' },
-  { maxExclusive: 0.75, grade: 'middle' },
-  { maxExclusive: 0.95, grade: 'high' },
-  { maxExclusive: 1, grade: 'perfect' },
-];
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
 
 function qualityIndex(quality: Quality): number {
   return QUALITY_ORDER[quality] ?? 0;
@@ -73,29 +59,6 @@ export function getLinearQualityValue(
   return min + ((max - min) * index) / 7;
 }
 
-export function rollPillAppearance(options: {
-  stability: number;
-  propertyVector: WeightedAlchemyProperty[];
-  rng?: () => number;
-  masteryLevel?: number;
-}): PillAppearanceGrade {
-  const rng = options.rng ?? Math.random;
-  const stabilityAdjustment = clamp((options.stability - 60) / 250, -0.18, 0.16);
-  const primaryWeight = options.propertyVector[0]?.weight ?? 0;
-  const propertyFocusAdjustment = clamp((primaryWeight - 0.5) * 0.18, -0.06, 0.08);
-  const masteryAdjustment = clamp((options.masteryLevel ?? 0) * 0.015, 0, 0.15);
-  const roll = clamp(
-    rng() + stabilityAdjustment + propertyFocusAdjustment + masteryAdjustment,
-    0,
-    0.999999,
-  );
-
-  return (
-    APPEARANCE_THRESHOLDS.find((entry) => roll < entry.maxExclusive)?.grade ??
-    'perfect'
-  );
-}
-
 export function getPillAppearanceLabel(
   appearance: PillAppearanceGrade | undefined,
 ): string {
@@ -105,9 +68,7 @@ export function getPillAppearanceLabel(
 export function getPillAppearanceEffectMultiplier(
   appearance: PillAppearanceGrade | undefined,
 ): number {
-  return appearance
-    ? PILL_APPEARANCE_CONFIG[appearance].effectMultiplier
-    : 1;
+  return appearance ? PILL_APPEARANCE_EFFECT_MULTIPLIER[appearance] : 1;
 }
 
 export function getPillAppearanceToxicityMultiplier(

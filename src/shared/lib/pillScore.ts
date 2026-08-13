@@ -14,6 +14,7 @@ import type {
   PillSpec,
 } from '@shared/types/consumable';
 import type { Consumable } from '@shared/types/cultivator';
+import { PILL_APPEARANCE_EFFECT_MULTIPLIER } from '@shared/config/alchemyEssenceConfig';
 
 export const PILL_QUALITY_BASE_SCORE: Record<Quality, number> = {
   凡品: 58,
@@ -38,10 +39,7 @@ const EXPECTED_EFFECT_POWER_BY_QUALITY: Record<Quality, number> = {
 };
 
 const APPEARANCE_SCORE_FACTOR: Record<PillAppearanceGrade, number> = {
-  low: 0.92,
-  middle: 1,
-  high: 1.08,
-  perfect: 1.18,
+  ...PILL_APPEARANCE_EFFECT_MULTIPLIER,
 };
 
 function clamp(value: number, min: number, max: number): number {

@@ -95,6 +95,40 @@ export interface AlchemyMaterialPropertyVector {
   properties: WeightedAlchemyProperty[];
 }
 
+export interface AlchemyEssenceSummary {
+  rawEssence: number;
+  effectiveEssence: number;
+  qualityPotential: number;
+  purity: number;
+  stability: number;
+}
+
+export interface AlchemyOutputLot {
+  quality: Quality;
+  appearance: PillAppearanceGrade;
+  quantity: number;
+  essenceSpent: number;
+  effectMultiplier: number;
+}
+
+export interface AlchemyYieldProfile {
+  essence: AlchemyEssenceSummary;
+  primaryQuality: Quality;
+  lots: AlchemyOutputLot[];
+  totalQuantity: number;
+  wastedEssence: number;
+  essenceLossRatio?: number;
+  distributionSummary: string;
+}
+
+export interface AlchemyYieldDisplayProfile {
+  primaryQuality: Quality;
+  lots: Array<Pick<AlchemyOutputLot, 'quality' | 'appearance' | 'quantity' | 'effectMultiplier'>>;
+  totalQuantity: number;
+  essenceLossRatio: number;
+  distributionSummary: string;
+}
+
 export const ALCHEMY_COMPOUND_TIER_VALUES = [
   'single',
   'balanced',
@@ -106,7 +140,9 @@ export type AlchemyCompoundTier =
   (typeof ALCHEMY_COMPOUND_TIER_VALUES)[number];
 
 export interface AlchemyBatchProfile {
-  yieldQuantity: number;
+  /** @deprecated 新炼丹产量由 yieldProfile/批次引擎决定。仅兼容历史数据。 */
+  yieldQuantity?: number;
+  lotQuantity?: number;
   synergyScore: number;
   conflictScore: number;
   compoundTier: AlchemyCompoundTier;
@@ -114,13 +150,20 @@ export interface AlchemyBatchProfile {
   stabilityDelta: number;
   toxicityDelta: number;
   secondaryEffectMultiplierBonus: number;
+  essenceSummary?: AlchemyEssenceSummary;
+  yieldProfile?: AlchemyYieldProfile;
+  essenceLossRatio?: number;
 }
 
-export interface AlchemyBatchPreview {
-  minYield: number;
-  maxYield: number;
-  materialKindCount: number;
-  totalDose: number;
+/** 面向玩家的丹方推演摘要；不得包含药蕴绝对值或内部炉况参数。 */
+export interface AlchemyBatchDisplayProfile {
+  compoundTier: AlchemyCompoundTier;
+  roleSummary: string;
+  totalQuantityRange: { min: number; max: number };
+  primaryQualityRange: { min: Quality; max: Quality };
+  possibleQualities: Quality[];
+  appearanceHints: Partial<Record<PillAppearanceGrade, number>>;
+  essenceLossRatioRange: { min: number; max: number };
   summary: string;
   warnings: string[];
 }
@@ -183,6 +226,7 @@ export type PillAlchemyMeta =
       appearance?: PillAppearanceGrade;
       tags: string[];
       batch?: AlchemyBatchProfile;
+      version?: 3;
       breakthroughTargetRealm?: RealmType;
       breakthroughLabel?: string;
     }
@@ -202,6 +246,7 @@ export type PillAlchemyMeta =
       appearance?: PillAppearanceGrade;
       tags: string[];
       batch?: AlchemyBatchProfile;
+      version?: 3;
       breakthroughTargetRealm?: RealmType;
       breakthroughLabel?: string;
     };
@@ -313,7 +358,7 @@ export interface FormulaAnalysisResult {
   warnings: string[];
   materialJudgments: FormulaMaterialJudgment[];
   aggregatedPropertyVector: WeightedAlchemyProperty[];
-  batchProfile?: AlchemyBatchProfile;
+  batchProfile?: AlchemyBatchDisplayProfile;
   dominantElement?: ElementType;
   stability: number;
   toxicityRating: number;

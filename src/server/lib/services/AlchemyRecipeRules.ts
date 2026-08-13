@@ -1,10 +1,10 @@
 import {
   BASE_STABILITY_BY_TYPE,
   BASE_TOXICITY_BY_TYPE,
-  POTENCY_BY_QUALITY,
   QUALITY_STABILITY_BONUS,
   type AlchemyMaterialType,
 } from '@shared/config/alchemyConfig';
+import { MATERIAL_ESSENCE_BY_QUALITY } from '@shared/config/alchemyEssenceConfig';
 import {
   buildCultivationBoostOperation,
   CULTIVATION_BOOST_STATUS_KEY,
@@ -14,9 +14,7 @@ import {
   type CultivationBoostPayload,
 } from '@shared/lib/cultivationBoost';
 import { buildInsightGain } from '@shared/lib/alchemyProgress';
-import { rollPillAppearance } from '@shared/lib/pillAppearance';
 import {
-  applyPillAppearanceToOperations,
   buildBodyTrackAdvance,
   buildBreakthroughFocusOperation,
   buildClearMindOperation,
@@ -36,16 +34,19 @@ import {
   sortWeightedAlchemyProperties,
 } from '@shared/lib/alchemyProperties';
 import { getHealingCuredStatus } from '@shared/lib/healingPill';
+import {
+  calculateEffectiveEssence,
+  calculateQualityPotential,
+  calculateRawEssence,
+  type AlchemyEssenceMaterial,
+} from '@shared/lib/alchemyYield';
 import type {
   ElementType,
   Quality,
-  RealmStage,
-  RealmType,
 } from '@shared/types/constants';
 import { QUALITY_ORDER } from '@shared/types/constants';
 import type {
   AlchemyFocusMode,
-  AlchemyBatchPreview,
   AlchemyBatchProfile,
   AlchemyMaterialPropertyVector,
   AlchemyPropertyKey,
@@ -84,18 +85,7 @@ export interface AggregatedAlchemyProperties {
 export interface SynthesizedAlchemyResult extends AggregatedAlchemyProperties {
   family: PillFamily;
   operations: ConditionOperation[];
-  appearance: PillAppearanceGrade;
   batchProfile: AlchemyBatchProfile;
-}
-
-export interface AlchemyCultivationSnapshotContext {
-  realm: RealmType;
-  realmStage?: RealmStage;
-  expCap?: number;
-}
-
-export interface AlchemySynthesisOptions {
-  rng?: () => number;
 }
 
 const FOCUS_BONUS: Record<AlchemyFocusMode, number> = {
@@ -124,73 +114,11 @@ function applyLowStabilityPenalty(
 }
 
 function getMaterialContribution(material: PreparedAlchemyMaterial): number {
-  return material.dose * POTENCY_BY_QUALITY[material.rank];
-}
-
-function getYieldContribution(
-  material: PreparedAlchemyMaterial,
-  targetRank: Quality,
-): number {
-  const qualityGap = QUALITY_ORDER[targetRank] - QUALITY_ORDER[material.rank];
-  if (qualityGap <= 0) {
-    return getMaterialContribution(material);
-  }
-  if (qualityGap === 1) {
-    return getMaterialContribution(material) * 0.75;
-  }
-  return 0;
-}
-
-function getHighestMaterialRank(materials: PreparedAlchemyMaterial[]): Quality {
-  return materials.reduce<Quality>(
-    (best, material) =>
-      QUALITY_ORDER[material.rank] > QUALITY_ORDER[best]
-        ? material.rank
-        : best,
-    materials[0]!.rank,
-  );
-}
-
-function isYieldSupportingMaterial(
-  material: PreparedAlchemyMaterial,
-  targetRank: Quality,
-): boolean {
-  return QUALITY_ORDER[targetRank] - QUALITY_ORDER[material.rank] <= 1;
-}
-
-function countYieldSupportingMaterials(
-  materials: PreparedAlchemyMaterial[],
-  targetRank: Quality,
-): number {
-  return materials.filter((material) =>
-    isYieldSupportingMaterial(material, targetRank),
-  ).length;
+  return material.dose * MATERIAL_ESSENCE_BY_QUALITY[material.rank];
 }
 
 function roundScore(value: number): number {
   return Number(clamp(value, 0, 1).toFixed(4));
-}
-
-function sumMaterialDose(materials: PreparedAlchemyMaterial[]): number {
-  return materials.reduce((sum, material) => sum + Math.max(1, material.dose), 0);
-}
-
-function calculateBaseYield(materials: PreparedAlchemyMaterial[]): number {
-  if (materials.length === 0) {
-    return 1;
-  }
-
-  const highestRank = getHighestMaterialRank(materials);
-  const targetUnitContribution = POTENCY_BY_QUALITY[highestRank];
-  if (targetUnitContribution <= 0) {
-    return 1;
-  }
-  const effectiveContribution = materials.reduce(
-    (sum, material) => sum + getYieldContribution(material, highestRank),
-    0,
-  );
-
-  return clamp(Math.floor(effectiveContribution / targetUnitContribution), 1, 5);
 }
 
 export function getQuotaCategoryForFamily(
@@ -545,55 +473,6 @@ function buildStabilityAndToxicity(
   };
 }
 
-export function buildAlchemyPreviewWarnings(
-  materials: PreparedAlchemyMaterial[],
-): string[] {
-  const warnings: string[] = [];
-  const estimatedPropertyCount = clamp(materials.length, 1, 3);
-  const { stability, toxicityRating } = buildStabilityAndToxicity(
-    materials,
-    estimatedPropertyCount,
-    'balanced',
-  );
-
-  if (materials.length >= 3 || stability < 45) {
-    warnings.push('材料药路偏杂，预计炉性易浮，成丹稳度可能偏低。');
-  }
-
-  if (toxicityRating >= 12) {
-    warnings.push('药底略显燥烈，预计丹毒偏高，服用后需留意调息。');
-  }
-
-  return warnings;
-}
-
-export function buildAlchemyBatchPreview(
-  materials: PreparedAlchemyMaterial[],
-): AlchemyBatchPreview {
-  const baseYield = calculateBaseYield(materials);
-  const materialKindCount = materials.length;
-  const totalDose = sumMaterialDose(materials);
-  const canGainYieldBonus =
-    materialKindCount > 1 &&
-    countYieldSupportingMaterials(materials, getHighestMaterialRank(materials)) >
-      1;
-  const maxYield =
-    canGainYieldBonus ? Math.min(5, baseYield + 1) : baseYield;
-  const warnings = buildAlchemyPreviewWarnings(materials);
-
-  return {
-    minYield: Math.max(1, Math.min(baseYield, maxYield)),
-    maxYield,
-    materialKindCount,
-    totalDose,
-    summary:
-      materialKindCount <= 1
-        ? '单材成丹，药路稳定但变化有限。'
-        : '多材合炉，实际产量取决于药性配伍与炉势。',
-    warnings,
-  };
-}
-
 function getPrimaryPropertyByMaterial(
   aggregated: Pick<AggregatedAlchemyProperties, 'sourceMaterialVectors'>,
 ): Map<string, AlchemyPropertyKey> {
@@ -623,12 +502,6 @@ export function buildAlchemyBatchProfile(
   } = {},
 ): AlchemyBatchProfile {
   const materialKindCount = materials.length;
-  const baseYield = calculateBaseYield(materials);
-  const highestRank =
-    materials.length > 0 ? getHighestMaterialRank(materials) : undefined;
-  const yieldSupportingMaterialCount = highestRank
-    ? countYieldSupportingMaterials(materials, highestRank)
-    : 0;
   const dominantProperty = aggregated.propertyVector[0]?.key;
   const primaryByRef = getPrimaryPropertyByMaterial(aggregated);
   const primaryMatches = dominantProperty
@@ -696,26 +569,22 @@ export function buildAlchemyBatchProfile(
       ? roundScore(Math.min(0.65, synergyScore * 0.7))
       : 0;
 
-  let yieldQuantity = baseYield;
   const adjustedStability = aggregated.stability + stabilityDelta;
-  if (
-    materialKindCount > 1 &&
-    yieldSupportingMaterialCount > 1 &&
-    synergyScore >= 0.65 &&
-    conflictScore < 0.45 &&
-    adjustedStability >= 55
-  ) {
-    yieldQuantity += 1;
-  }
-  if (adjustedStability < 45 || conflictScore >= 0.65) {
-    yieldQuantity -= 1;
-  }
-  if (options.formulaFitBand === 'degraded') {
-    yieldQuantity = Math.min(yieldQuantity, 3);
-  } else if (options.formulaFitBand === 'poor') {
-    yieldQuantity = Math.min(yieldQuantity - 1, 2);
-  }
-  yieldQuantity = clamp(yieldQuantity, 1, 5);
+
+  const essenceMaterials: AlchemyEssenceMaterial[] = materials.map((material) => ({
+    rank: material.rank,
+    type: material.type,
+    dose: material.dose,
+  }));
+  const rawEssence = calculateRawEssence(essenceMaterials);
+  const essenceFactors = {
+    synergyScore,
+    conflictScore,
+    stability: adjustedStability,
+    purity: clamp(0.45 + qualityPotentialFromMaterials(materials) * 0.4, 0.1, 0.98),
+  };
+  const effectiveEssence = calculateEffectiveEssence(rawEssence, essenceFactors);
+  const qualityPotential = calculateQualityPotential(essenceMaterials, essenceFactors);
 
   const compoundTier =
     materialKindCount <= 1
@@ -735,7 +604,6 @@ export function buildAlchemyBatchProfile(
           : '多材均衡';
 
   return {
-    yieldQuantity,
     synergyScore,
     conflictScore,
     compoundTier,
@@ -743,7 +611,20 @@ export function buildAlchemyBatchProfile(
     stabilityDelta,
     toxicityDelta,
     secondaryEffectMultiplierBonus,
+    essenceSummary: {
+      rawEssence,
+      effectiveEssence,
+      qualityPotential,
+      purity: essenceFactors.purity,
+      stability: clamp(adjustedStability, 0, 100),
+    },
   };
+}
+
+function qualityPotentialFromMaterials(materials: PreparedAlchemyMaterial[]): number {
+  if (materials.length === 0) return 0;
+  const max = Math.max(...materials.map((material) => QUALITY_ORDER[material.rank]));
+  return clamp((max - 1) / 7, 0, 1);
 }
 
 function buildPlanVectorMap(
@@ -833,8 +714,6 @@ export function synthesizeAlchemyFromPlan(
   materials: PreparedAlchemyMaterial[],
   plan: AlchemyRecipePlan,
   quality: Quality,
-  _cultivationContextOrRealm: AlchemyCultivationSnapshotContext | RealmType,
-  options: AlchemySynthesisOptions = {},
 ): SynthesizedAlchemyResult {
   const baseAggregated = aggregateAlchemyProperties(materials, plan);
   const batchProfile = buildAlchemyBatchProfile(materials, baseAggregated);
@@ -857,21 +736,14 @@ export function synthesizeAlchemyFromPlan(
     quality,
     batchProfile.secondaryEffectMultiplierBonus,
   );
-  const appearance = rollPillAppearance({
-    stability: aggregated.stability,
-    propertyVector: aggregated.propertyVector,
-    rng: options.rng,
-  });
-
   if (aggregated.stability < 45) {
     operations = applyLowStabilityPenalty(operations);
   }
 
-  operations = applyPillAppearanceToOperations(operations, appearance);
   operations = appendPositiveToxicityOperation(
     operations,
     quality,
-    appearance,
+    'middle',
     aggregated.propertyVector,
   );
 
@@ -879,7 +751,6 @@ export function synthesizeAlchemyFromPlan(
     ...aggregated,
     family,
     operations,
-    appearance,
     batchProfile,
   };
 }

@@ -11,6 +11,7 @@ import {
   CULTIVATION_BOOST_STATUS_KEY,
   scaleCultivationBoostOperation,
 } from './cultivationBoost';
+import { PILL_APPEARANCE_EFFECT_MULTIPLIER } from '@shared/config/alchemyEssenceConfig';
 
 export const BREAKTHROUGH_FOCUS_STATUS_KEY = 'breakthrough_focus' as const;
 export const PROTECT_MERIDIANS_STATUS_KEY = 'protect_meridians' as const;
@@ -31,35 +32,68 @@ const NUMERIC_RULES = {
 
 export const LIFESPAN_GAIN_BY_QUALITY: Record<Quality, number> = {
   凡品: 10,
-  灵品: 37,
-  玄品: 64,
-  真品: 91,
-  地品: 120,
-  天品: 155,
-  仙品: 240,
-  神品: 320,
+  灵品: 25,
+  玄品: 50,
+  真品: 90,
+  地品: 150,
+  天品: 240,
+  仙品: 420,
+  神品: 700,
 };
 
 export const DETOX_POWER_BY_QUALITY: Record<Quality, number> = {
   凡品: 10,
-  灵品: 17,
-  玄品: 24,
-  真品: 31,
-  地品: 40,
-  天品: 52,
-  仙品: 85,
-  神品: 120,
+  灵品: 18,
+  玄品: 32,
+  真品: 52,
+  地品: 80,
+  天品: 120,
+  仙品: 190,
+  神品: 300,
+};
+
+export const INSIGHT_GAIN_BY_QUALITY: Record<Quality, number> = {
+  凡品: 1,
+  灵品: 3,
+  玄品: 7,
+  真品: 14,
+  地品: 26,
+  天品: 45,
+  仙品: 80,
+  神品: 140,
+};
+
+export const BREAKTHROUGH_CHANCE_BONUS_BY_QUALITY: Record<Quality, number> = {
+  凡品: 0.02,
+  灵品: 0.025,
+  玄品: 0.035,
+  真品: 0.05,
+  地品: 0.075,
+  天品: 0.11,
+  仙品: 0.16,
+  神品: 0.22,
+};
+
+export const PROTECT_MERIDIANS_REDUCTION_BY_QUALITY: Record<Quality, number> = {
+  凡品: 0.2,
+  灵品: 0.25,
+  玄品: 0.32,
+  真品: 0.42,
+  地品: 0.55,
+  天品: 0.68,
+  仙品: 0.8,
+  神品: 0.9,
 };
 
 export const BODY_TRACK_ADVANCE_BY_QUALITY: Record<Quality, number> = {
   凡品: 40,
-  灵品: 48,
-  玄品: 57,
-  真品: 66,
-  地品: 78,
-  天品: 96,
-  仙品: 140,
-  神品: 210,
+  灵品: 55,
+  玄品: 85,
+  真品: 140,
+  地品: 240,
+  天品: 400,
+  仙品: 650,
+  神品: 1200,
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -83,7 +117,7 @@ export function buildRestorePercent(quality: Quality): number {
 }
 
 export function buildInsightGain(quality: Quality): number {
-  return Math.round(getLinearQualityValue(quality, 1, 50));
+  return INSIGHT_GAIN_BY_QUALITY[quality];
 }
 
 export function buildLifespanGain(quality: Quality): number {
@@ -103,11 +137,11 @@ export function buildBodyTrackAdvance(quality: Quality): number {
 }
 
 export function buildBreakthroughChanceBonus(quality: Quality): number {
-  return round4(getLinearQualityValue(quality, 0.02, 0.12));
+  return BREAKTHROUGH_CHANCE_BONUS_BY_QUALITY[quality];
 }
 
 export function buildProtectMeridiansReduction(quality: Quality): number {
-  return round4(getLinearQualityValue(quality, 0.2, 0.7));
+  return PROTECT_MERIDIANS_REDUCTION_BY_QUALITY[quality];
 }
 
 export function buildClearMindUses(
@@ -305,14 +339,7 @@ export function applyPillAppearanceToOperations(
   operations: ConditionOperation[],
   appearance: PillAppearanceGrade,
 ): ConditionOperation[] {
-  const effectMultiplier =
-    appearance === 'low'
-      ? 0.75
-      : appearance === 'middle'
-        ? 1
-        : appearance === 'high'
-          ? 1.25
-          : 1.8;
+  const effectMultiplier = PILL_APPEARANCE_EFFECT_MULTIPLIER[appearance];
 
   return operations.map((operation) => {
     if (

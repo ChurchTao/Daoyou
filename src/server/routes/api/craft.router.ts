@@ -30,7 +30,10 @@ import {
   QiInsufficientError,
   QiServiceError,
 } from '@server/lib/services/QiService';
-import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
+import {
+  ALCHEMY_MAX_DOSE,
+  CREATION_INPUT_CONSTRAINTS,
+} from '@shared/engine/creation-v2/config/CreationBalance';
 import {
   CREATION_CRAFT_TYPES,
   isCreationCraftType,
@@ -58,7 +61,7 @@ const CraftSchema = z.object({
   materialQuantities: z
     .record(
       z.string(),
-      z.number().int().min(minQuantityPerMaterial).max(maxQuantityPerMaterial),
+      z.number().int().min(minQuantityPerMaterial).max(ALCHEMY_MAX_DOSE),
     )
     .optional(),
   userPrompt: z.string().trim().max(300).optional(),
@@ -70,6 +73,18 @@ const CraftSchema = z.object({
       maxTargets: z.number().int().min(1).optional(),
     })
     .optional(),
+}).superRefine((value, context) => {
+  if (value.craftType !== 'alchemy' && value.materialQuantities) {
+    for (const [id, quantity] of Object.entries(value.materialQuantities)) {
+      if (quantity > maxQuantityPerMaterial) {
+        context.addIssue({
+          code: 'custom',
+          path: ['materialQuantities', id],
+          message: `普通造物单种材料最多投入 ${maxQuantityPerMaterial} 个`,
+        });
+      }
+    }
+  }
 });
 
 const ConfirmSchema = z.object({
@@ -93,7 +108,7 @@ function parseMaterialQuantitiesQuery(
   return z
     .record(
       z.string(),
-      z.number().int().min(minQuantityPerMaterial).max(maxQuantityPerMaterial),
+      z.number().int().min(minQuantityPerMaterial).max(ALCHEMY_MAX_DOSE),
     )
     .parse(parsed);
 }
@@ -187,14 +202,7 @@ router.get('/', requireActiveCultivatorRef(), async (c) => {
 
       return c.json({
         success: true,
-        data:
-          alchemyMode === 'formula'
-            ? preview
-            : {
-                cost: preview.cost,
-                canAfford: preview.canAfford,
-                validation: preview.validation,
-              },
+        data: preview,
       });
     }
     if (

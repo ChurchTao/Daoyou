@@ -12,9 +12,7 @@ import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import {
   aggregateAlchemyProperties,
-  buildAlchemyBatchPreview,
   buildAlchemyBatchProfile,
-  buildAlchemyPreviewWarnings,
   buildAlchemyPropertyTags,
   calculatePropertyVectorFit,
   getQuotaCategoryForFamily,
@@ -31,10 +29,8 @@ import {
 import { buildInsightGain } from '@shared/lib/alchemyProgress';
 import {
   getPillAppearanceToxicityMultiplier,
-  rollPillAppearance,
 } from '@shared/lib/pillAppearance';
 import {
-  applyPillAppearanceToOperations,
   buildBodyTrackAdvance,
   buildBreakthroughFocusOperation,
   buildClearMindOperation,
@@ -63,6 +59,13 @@ import {
 import { getHealingCuredStatus } from '@shared/lib/healingPill';
 import { isAlchemyMaterialType } from '@shared/lib/alchemyMaterials';
 import {
+  buildAlchemyYieldPreview,
+  calculateAlchemyQiCost,
+  rollAlchemyYieldProfile,
+  toAlchemyYieldDisplayProfile,
+  type AlchemyYieldFactors,
+} from '@shared/lib/alchemyYield';
+import {
   QUALITY_ORDER,
   type ElementType,
   type MaterialType,
@@ -70,8 +73,8 @@ import {
   type RealmType,
 } from '@shared/types/constants';
 import type {
-  AlchemyBatchPreview,
   AlchemyBatchProfile,
+  AlchemyBatchDisplayProfile,
   AlchemyFormula,
   AlchemyFormulaDiscoveryCandidate,
   AlchemyFormulaMastery,
@@ -100,6 +103,7 @@ import {
 } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
 import { sectOrganizationFacade } from './sect-organization';
+import { assembleAlchemyOutputConsumables } from './alchemy/AlchemyOutputAssembler';
 
 const DISCOVERY_TTL_SECONDS = 600;
 const FORMULA_ANALYSIS_TTL_SECONDS = 600;
@@ -113,11 +117,13 @@ const POOR_PENALTY_FACTOR_MIN = 0.35;
 const POOR_PENALTY_FACTOR_MAX = 0.62;
 
 type MaterialRow = typeof materials.$inferSelect;
+
 type AlchemyFormulaRow = typeof alchemyFormulas.$inferSelect;
 
 export interface FormulaPreviewResult {
   cost: {
     spiritStones: number;
+    qi: number;
   };
   canAfford: boolean;
   validation: {
@@ -125,7 +131,6 @@ export interface FormulaPreviewResult {
     blockingReason?: string;
     warnings: string[];
   };
-  batchPreview: AlchemyBatchPreview;
 }
 
 export interface FormulaProgress {
@@ -175,8 +180,6 @@ interface FormulaAnalysisPayload {
   aggregatedPropertyVector: WeightedAlchemyProperty[];
   batchProfile: AlchemyBatchProfile;
   dominantElement: ElementType;
-  stability: number;
-  toxicityRating: number;
 }
 
 interface DiscoveryContext {
@@ -207,6 +210,28 @@ function sortJsonValue(value: unknown): unknown {
 
 function stableStringify(value: unknown): string {
   return JSON.stringify(sortJsonValue(value));
+}
+
+function toAlchemyBatchDisplayProfile(
+  profile: AlchemyBatchProfile,
+  materials: PreparedAlchemyMaterial[],
+  factors: AlchemyYieldFactors,
+): AlchemyBatchDisplayProfile {
+  const preview = buildAlchemyYieldPreview({
+    materials,
+    factors,
+  });
+  return {
+    compoundTier: profile.compoundTier,
+    roleSummary: profile.roleSummary,
+    totalQuantityRange: preview.totalQuantityRange,
+    primaryQualityRange: preview.primaryQualityRange,
+    possibleQualities: preview.possibleQualities,
+    appearanceHints: preview.appearanceHints,
+    essenceLossRatioRange: preview.essenceLossRatioRange,
+    summary: profile.roleSummary,
+    warnings: preview.likelyLots.length > 8 ? ['本炉产出批次较多，部分相邻批次将合并展示。'] : [],
+  };
 }
 
 function normalizeDose(
@@ -523,13 +548,6 @@ function buildFormulaAnalysisSignature(
   });
 }
 
-function buildFormulaWarnings(
-  formula: AlchemyFormula,
-  materialsList: PreparedAlchemyMaterial[],
-): string[] {
-  return buildAlchemyPreviewWarnings(materialsList);
-}
-
 function validateFormulaIngredients(
   formula: AlchemyFormula,
   materialsList: PreparedAlchemyMaterial[],
@@ -555,11 +573,7 @@ function validateFormulaIngredients(
     );
   }
 
-  return createValidation(
-    true,
-    undefined,
-    buildFormulaWarnings(formula, materialsList),
-  );
+  return createValidation(true);
 }
 
 export function buildFormulaSignature(
@@ -613,6 +627,89 @@ export function calculateFormulaFitMultiplier(
   return clamp(0.85 + fit * 0.3 + elementBonus + qualityBonus, 0.85, 1.15);
 }
 
+function resolveFormulaCraftProjection(
+  formula: AlchemyFormula,
+  materialsList: PreparedAlchemyMaterial[],
+  analysis: Pick<
+    FormulaAnalysisPayload,
+    | 'fitScore'
+    | 'fitBand'
+    | 'batchProfile'
+    | 'dominantElement'
+    | 'aggregatedPropertyVector'
+  >,
+): {
+  fitMultiplier: number;
+  stability: number;
+  toxicityRating: number;
+  yieldFactors: AlchemyYieldFactors;
+} {
+  const fitBandPenaltyFactor =
+    analysis.fitBand === 'poor'
+      ? calculatePoorPenaltyFactor(analysis.fitScore)
+      : analysis.fitBand === 'degraded'
+        ? calculateDegradedPenaltyFactor(analysis.fitScore)
+        : 1;
+  const fitMultiplier = Number(
+    (
+      calculateFormulaFitMultiplier(
+        formula,
+        analysis.aggregatedPropertyVector,
+        analysis.dominantElement,
+        materialsList,
+      ) * fitBandPenaltyFactor
+    ).toFixed(4),
+  );
+  const degradedStabilityPenalty =
+    analysis.fitBand === 'degraded'
+      ? Math.round((FIT_ALIGNED_THRESHOLD - analysis.fitScore) * 40)
+      : 0;
+  const poorStabilityPenalty =
+    analysis.fitBand === 'poor'
+      ? Math.round((FIT_POOR_THRESHOLD - analysis.fitScore) * 120 + 25)
+      : 0;
+  const degradedToxicityPenalty =
+    analysis.fitBand === 'degraded'
+      ? Math.round((FIT_ALIGNED_THRESHOLD - analysis.fitScore) * 30)
+      : 0;
+  const poorToxicityPenalty =
+    analysis.fitBand === 'poor'
+      ? Math.round((FIT_POOR_THRESHOLD - analysis.fitScore) * 120 + 35)
+      : 0;
+  const stability = clamp(
+    formula.blueprint.targetStability +
+      formula.mastery.level * 2 -
+      degradedStabilityPenalty -
+      poorStabilityPenalty +
+      analysis.batchProfile.stabilityDelta,
+    15,
+    95,
+  );
+  const toxicityRating = clamp(
+    formula.blueprint.targetToxicity -
+      formula.mastery.level +
+      degradedToxicityPenalty +
+      poorToxicityPenalty +
+      analysis.batchProfile.toxicityDelta,
+    0,
+    100,
+  );
+  return {
+    fitMultiplier,
+    stability,
+    toxicityRating,
+    yieldFactors: {
+      synergyScore: analysis.batchProfile.synergyScore,
+      conflictScore: analysis.batchProfile.conflictScore,
+      fitMultiplier,
+      stability,
+      purity: analysis.batchProfile.essenceSummary?.purity,
+      masteryLevel: formula.mastery.level,
+      minQuality: formula.pattern.minQuality,
+    },
+  };
+}
+
 function buildFormulaAnalysisPayload(
   cultivatorId: string,
   formula: AlchemyFormula,
@@ -631,7 +728,7 @@ function buildFormulaAnalysisPayload(
     formulaFitScore: fitScore,
     materialJudgments,
   });
-  const warnings = buildFormulaWarnings(formula, materialsList);
+  const warnings: string[] = [];
 
   if (fitBand === 'degraded') {
     warnings.push('本炉虽可循方，但药力散逸较多，成丹后多半只得勉强之品。');
@@ -658,12 +755,6 @@ function buildFormulaAnalysisPayload(
     aggregatedPropertyVector: aggregated.rawPropertyVector,
     batchProfile,
     dominantElement: aggregated.dominantElement,
-    stability: clamp(aggregated.stability + batchProfile.stabilityDelta, 15, 95),
-    toxicityRating: clamp(
-      aggregated.toxicityRating + batchProfile.toxicityDelta,
-      0,
-      100,
-    ),
   };
 }
 
@@ -1248,6 +1339,12 @@ export async function analyzeFormulaMaterials(
     FORMULA_ANALYSIS_TTL_SECONDS,
   );
 
+  const projection = resolveFormulaCraftProjection(
+    formula,
+    materialsList,
+    payload,
+  );
+
   return {
     analysisId,
     valid: true,
@@ -1257,10 +1354,14 @@ export async function analyzeFormulaMaterials(
     warnings: payload.warnings,
     materialJudgments: payload.materialJudgments,
     aggregatedPropertyVector: payload.aggregatedPropertyVector,
-    batchProfile: payload.batchProfile,
+    batchProfile: toAlchemyBatchDisplayProfile(
+      payload.batchProfile,
+      materialsList,
+      projection.yieldFactors,
+    ),
     dominantElement: payload.dominantElement,
-    stability: payload.stability,
-    toxicityRating: payload.toxicityRating,
+    stability: projection.stability,
+    toxicityRating: projection.toxicityRating,
     cooldownRemainingSeconds: cooldown.remainingSeconds,
     expiresInSeconds: FORMULA_ANALYSIS_TTL_SECONDS,
   };
@@ -1285,18 +1386,16 @@ export async function previewFormulaCraft(
 
   if (rows.length !== materialIds.length) {
     return {
-      cost: { spiritStones: 0 },
+      cost: { spiritStones: 0, qi: 1 },
       canAfford: true,
       validation: createValidation(false, '部分材料已耗尽或不存在。'),
-      batchPreview: buildAlchemyBatchPreview([]),
     };
   }
   if (rows.some((row) => row.cultivatorId !== cultivatorId)) {
     return {
-      cost: { spiritStones: 0 },
+      cost: { spiritStones: 0, qi: 1 },
       canAfford: true,
       validation: createValidation(false, '非本人材料，不可动用。'),
-      batchPreview: buildAlchemyBatchPreview([]),
     };
   }
 
@@ -1306,10 +1405,9 @@ export async function previewFormulaCraft(
   } catch (error) {
     if (error instanceof AlchemyServiceError) {
       return {
-        cost: { spiritStones: 0 },
+        cost: { spiritStones: 0, qi: 1 },
         canAfford: true,
         validation: createValidation(false, error.message),
-        batchPreview: buildAlchemyBatchPreview([]),
       };
     }
     throw error;
@@ -1329,17 +1427,23 @@ export async function previewFormulaCraft(
   );
 
   return {
-    cost: { spiritStones },
+    cost: {
+      spiritStones,
+      qi: calculateAlchemyQiCost(materialsList),
+    },
     canAfford: availableSpiritStones >= spiritStones,
     validation: validateFormulaIngredients(formula, materialsList),
-    batchPreview: buildAlchemyBatchPreview(materialsList),
   };
 }
 
 export interface PreparedFormulaCraft {
+  qiCost: number;
   commit(tx: DbTransaction): Promise<{
     result: {
       consumable: Consumable;
+      craftedConsumables: Consumable[];
+      consumables: Consumable[];
+      yieldProfile: import('@shared/types/consumable').AlchemyYieldDisplayProfile;
       formulaProgress: FormulaProgress;
     };
     inventoryChanges: ResourceOperationSettlement['inventoryChanges'];
@@ -1457,76 +1561,25 @@ export async function prepareFormulaCraft(
     });
 
     const dominantElement = aggregated.dominantElement;
-    const fitBandPenaltyFactor =
-      fitBand === 'poor'
-        ? calculatePoorPenaltyFactor(fit)
-        : fitBand === 'degraded'
-          ? calculateDegradedPenaltyFactor(fit)
-          : 1;
-    const fitMultiplier = Number(
-      (
-        calculateFormulaFitMultiplier(
-          formula,
-          aggregated.rawPropertyVector,
-          dominantElement,
-          materialsList,
-        ) * fitBandPenaltyFactor
-      ).toFixed(4),
-    );
-    const appearanceStabilityPenalty =
-      fitBand === 'poor'
-        ? Math.round((FIT_POOR_THRESHOLD - fit) * 120 + 28)
-        : fitBand === 'degraded'
-          ? Math.round((FIT_ALIGNED_THRESHOLD - fit) * 35)
-          : 0;
-    const appearanceMasteryLevel =
-      fitBand === 'poor'
-        ? 0
-        : fitBand === 'degraded'
-          ? Math.max(0, Math.floor(formula.mastery.level / 2))
-          : formula.mastery.level;
-    const appearance = rollPillAppearance({
-      stability: Math.max(
-        0,
-        aggregated.stability +
-          batchProfile.stabilityDelta -
-          appearanceStabilityPenalty,
-      ),
-      propertyVector: formula.pattern.targetPropertyVector,
-      masteryLevel: appearanceMasteryLevel,
+    const projection = resolveFormulaCraftProjection(formula, materialsList, {
+      fitScore: fit,
+      fitBand,
+      batchProfile,
+      dominantElement,
+      aggregatedPropertyVector: aggregated.rawPropertyVector,
     });
+    const qiCost = calculateAlchemyQiCost(materialsList);
     const operations = appendFormulaPositiveToxicity(
-      applyPillAppearanceToOperations(
-        scaleFormulaOperations(
-          formula.blueprint.operations,
-          fitMultiplier,
-          highestMaterialRank,
-          formula.pattern.minQuality,
-        ),
-        appearance,
+      scaleFormulaOperations(
+        formula.blueprint.operations,
+        projection.fitMultiplier,
+        highestMaterialRank,
+        formula.pattern.minQuality,
       ),
       highestMaterialRank,
-      appearance,
+      'middle',
       formula.pattern.targetPropertyVector,
     );
-    const masteryBonusStability = formula.mastery.level * 2;
-    const masteryBonusToxicity = formula.mastery.level;
-    const degradedStabilityPenalty =
-      fitBand === 'degraded'
-        ? Math.round((FIT_ALIGNED_THRESHOLD - fit) * 40)
-        : 0;
-    const poorStabilityPenalty =
-      fitBand === 'poor'
-        ? Math.round((FIT_POOR_THRESHOLD - fit) * 120 + 25)
-        : 0;
-    const degradedToxicityPenalty =
-      fitBand === 'degraded'
-        ? Math.round((FIT_ALIGNED_THRESHOLD - fit) * 30)
-        : 0;
-    const poorToxicityPenalty =
-      fitBand === 'poor'
-        ? Math.round((FIT_POOR_THRESHOLD - fit) * 120 + 35)
-        : 0;
     const spec: PillSpec = {
       kind: 'pill',
       family: formula.family,
@@ -1538,38 +1591,29 @@ export async function prepareFormulaCraft(
       alchemyMeta: {
         source: 'formula',
         formulaId: formula.id,
+        version: 3,
         sourceMaterials: materialsList.map((material) => material.name),
         analysisVersion: 2,
         propertyVector: formula.pattern.targetPropertyVector,
         sourceMaterialVectors: aggregated.sourceMaterialVectors,
         fitScore: fit,
         fitBand,
-        fitMultiplier,
+        fitMultiplier: projection.fitMultiplier,
         dominantElement: formula.pattern.dominantElement ?? dominantElement,
-        stability: clamp(
-          formula.blueprint.targetStability +
-            masteryBonusStability -
-            degradedStabilityPenalty -
-            poorStabilityPenalty +
-            batchProfile.stabilityDelta,
-          15,
-          95,
-        ),
-        toxicityRating: clamp(
-          formula.blueprint.targetToxicity -
-            masteryBonusToxicity +
-            degradedToxicityPenalty +
-            poorToxicityPenalty +
-            batchProfile.toxicityDelta,
-          0,
-          100,
-        ),
-        appearance,
+        stability: projection.stability,
+        toxicityRating: projection.toxicityRating,
+        // 批次生成前的中性占位；最终品相由产出引擎逐枚生成并覆盖。
+        appearance: 'middle',
         tags: buildAlchemyPropertyTags(
           formula.pattern.targetPropertyVector,
           formula.family,
         ),
-        batch: batchProfile,
+        batch: (() => {
+          const persisted = { ...batchProfile };
+          delete persisted.essenceSummary;
+          delete persisted.yieldProfile;
+          return persisted;
+        })(),
       },
     };
     const breakthroughTargetRealm =
@@ -1594,21 +1638,21 @@ export async function prepareFormulaCraft(
         : getFormulaProductName(formula.name),
       type: '丹药',
       quality: highestMaterialRank,
-      quantity: batchProfile.yieldQuantity,
+      // 最终数量由确认阶段的药蕴批次引擎决定；这里仅作为未结算蓝图占位。
+      quantity: 1,
       description: buildFormulaDescription(
         formula,
         materialsList.map((material) => material.name),
         spec.alchemyMeta.stability,
         spec.alchemyMeta.toxicityRating,
         fit,
-        fitMultiplier,
+        projection.fitMultiplier,
         fitBand,
       ),
       score: 0,
       spec,
     };
     consumable.score = calculateSingleElixirScore(consumable);
-
     const { next: nextMastery, progress } = advanceFormulaMastery(
       formula.mastery,
       fit,
@@ -1620,6 +1664,7 @@ export async function prepareFormulaCraft(
     };
 
   return {
+    qiCost,
     async commit(tx: DbTransaction) {
       const inventoryChanges: ResourceOperationSettlement['inventoryChanges'] =
         [];
@@ -1650,6 +1695,18 @@ export async function prepareFormulaCraft(
           );
         }
       }
+
+      // Roll only after the analysis/material snapshot has been revalidated and
+      // the user has actually confirmed the craft.
+      const yieldProfile = rollAlchemyYieldProfile({
+        materials: materialsList,
+        factors: projection.yieldFactors,
+      });
+      const outputConsumables = assembleAlchemyOutputConsumables(
+        consumable,
+        highestMaterialRank,
+        yieldProfile,
+      );
 
       const [charged] = await tx
         .update(cultivators)
@@ -1722,17 +1779,20 @@ export async function prepareFormulaCraft(
         }
       }
 
-      const savedConsumable =
-        await addConsumableToInventoryInTransaction(
-        cultivatorId,
-        consumable,
-        tx,
-      );
-      inventoryChanges.push({
-        kind: 'consumables',
-        operation: 'upsert',
-        item: savedConsumable,
-      });
+      const savedConsumables: Consumable[] = [];
+      for (const output of outputConsumables) {
+        const saved = await addConsumableToInventoryInTransaction(
+          cultivatorId,
+          output,
+          tx,
+        );
+        savedConsumables.push(saved);
+        inventoryChanges.push({
+          kind: 'consumables',
+          operation: 'upsert',
+          item: saved,
+        });
+      }
 
       const [masteryUpdated] = await tx
         .update(alchemyFormulas)
@@ -1753,7 +1813,10 @@ export async function prepareFormulaCraft(
 
       return {
         result: {
-          consumable: savedConsumable,
+          consumable: outputConsumables[0] ?? consumable,
+          consumables: savedConsumables,
+          craftedConsumables: outputConsumables,
+          yieldProfile: toAlchemyYieldDisplayProfile(yieldProfile),
           formulaProgress: progress,
         },
         inventoryChanges,

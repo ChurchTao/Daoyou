@@ -1,5 +1,5 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { useCallback } from 'react';
+import { useCallback, type ReactNode } from 'react';
 
 export const QI_INSUFFICIENT_FRIENDLY_MESSAGE =
   '天地灵气不足，待自然恢复或使用恢复符箓后再试。';
@@ -29,18 +29,20 @@ export function normalizeQiErrorMessage(error: unknown, fallback: string) {
 }
 
 export function useQiActionConfirm() {
-  const { openDialog } = useInkUI();
+  const { closeDialog, openDialog } = useInkUI();
 
   const openQiActionConfirm = useCallback(
     ({
       actionName,
       qiCost,
       confirmLabel,
+      details,
       onConfirm,
     }: {
       actionName: string;
       qiCost: number;
       confirmLabel: string;
+      details?: ReactNode;
       onConfirm: () => void | Promise<void>;
     }) => {
       openDialog({
@@ -48,15 +50,21 @@ export function useQiActionConfirm() {
         content: (
           <div className="space-y-2 text-sm leading-7">
             <p>{getQiActionConfirmText(actionName, qiCost)}</p>
+            {details ? (
+              <div className="border-ink/10 mt-3 border-t pt-3">{details}</div>
+            ) : null}
           </div>
         ),
         confirmLabel,
         cancelLabel: '再想想',
         loadingLabel: '行功中……',
-        onConfirm,
+        onConfirm: async () => {
+          closeDialog();
+          await onConfirm();
+        },
       });
     },
-    [openDialog],
+    [closeDialog, openDialog],
   );
 
   return { openQiActionConfirm };

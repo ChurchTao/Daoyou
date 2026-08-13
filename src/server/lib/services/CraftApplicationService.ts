@@ -122,11 +122,13 @@ export async function executeCraftCommand(args: {
           cultivatorId: args.cultivatorId,
           action: craftQiAction('alchemy', mode),
           actionInstanceId,
+          cost: prepared.qiCost,
           metadata: {
             craftType: 'alchemy',
             alchemyMode: mode,
             materialCount: input.materialIds.length,
             formulaId: input.formulaId,
+            qiCost: prepared.qiCost,
           },
           tx,
         });
@@ -161,8 +163,11 @@ export async function executeCraftCommand(args: {
             cultivatorId: args.cultivatorId,
             cultivatorName,
             actionInstanceId,
-            consumable: (preparedCommit.result as { consumable?: Consumable })
-              .consumable,
+            consumables: (preparedCommit.result as { craftedConsumables?: Consumable[]; consumables?: Consumable[]; consumable?: Consumable })
+              .craftedConsumables ?? (preparedCommit.result as { consumables?: Consumable[]; consumable?: Consumable })
+              .consumables ?? [
+                (preparedCommit.result as { consumable?: Consumable }).consumable,
+              ].filter((item): item is Consumable => Boolean(item)),
           },
           tx,
         );
@@ -579,35 +584,53 @@ async function createAlchemyItemCreatedEvent(
     cultivatorId: string;
     cultivatorName: string;
     actionInstanceId: string;
+    consumables?: Consumable[];
     consumable?: Consumable;
   },
   tx: DbTransaction,
 ): Promise<string | undefined> {
-  const quality = args.consumable?.quality ?? null;
-  if (!args.consumable?.id || !isKnownQuality(quality)) {
+  const consumables = args.consumables?.length
+    ? args.consumables
+    : args.consumable
+      ? [args.consumable]
+      : [];
+  const primary = consumables[0];
+  const quality = primary?.quality ?? null;
+  if (!primary?.id || !isKnownQuality(quality)) {
     return undefined;
   }
   const event = await createDomainEvent(
     {
       type: 'craft.item.created',
-      aggregate: { type: 'consumable', id: args.consumable.id },
+      aggregate: { type: 'consumable', id: primary.id },
       data: {
         userId: args.userId,
         cultivatorId: args.cultivatorId,
         cultivatorName: args.cultivatorName,
         itemType: 'consumable',
-        itemId: args.consumable.id,
-        itemName: args.consumable.name,
+        itemId: primary.id,
+        itemName: primary.name,
         quality,
+        // Keep the historical object-shaped snapshot for existing consumers;
+        // the complete batch is carried in the additive `outputs` field.
         snapshot: {
-          id: args.consumable.id,
-          name: args.consumable.name,
-          type: args.consumable.type,
-          quality,
-          quantity: args.consumable.quantity,
-          description: args.consumable.description,
-          spec: args.consumable.spec,
+          id: primary.id,
+          name: primary.name,
+          type: primary.type,
+          quality: primary.quality,
+          quantity: primary.quantity,
+          description: primary.description,
+          spec: primary.spec,
         },
+        outputs: consumables.map((consumable) => ({
+          id: consumable.id,
+          name: consumable.name,
+          type: consumable.type,
+          quality: consumable.quality,
+          quantity: consumable.quantity,
+          description: consumable.description,
+          spec: consumable.spec,
+        })),
       },
       deduplicationKey: `${args.cultivatorId}:craft-item:${args.actionInstanceId}`,
     },

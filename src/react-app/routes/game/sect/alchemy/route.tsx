@@ -1,4 +1,7 @@
-import { AlchemyScene } from '@app/components/feature/craft/AlchemyScene';
+import {
+  AlchemyCraftSessionProvider,
+  FurnaceWorkspace,
+} from '@app/components/feature/alchemy';
 import {
   SectFacilityWorkspaceConversation,
   SectNpcConversationRegistry,
@@ -53,20 +56,30 @@ function SectAlchemyBody() {
     return (
       <>
         <title>{formatDocumentTitle(scene.title)}</title>
-        <AlchemyScene
-          sectContext={{
-            facilityLevel: level,
-            discountPercent,
-            facilityLabel:
-              presentation.facilityLabels.alchemy ??
-              presentation.facilityLabels.workshop,
-            scene,
-            onExit: () =>
-              navigate(createSectRoomNpcHref('/game/sect/alchemy', 'keeper'), {
-                replace: true,
-              }),
-          }}
-        />
+        <SectScene sceneKey="alchemy" mood="alchemy">
+          <AlchemyCraftSessionProvider
+            sectContext={{
+              facilityLevel: level,
+              discountPercent,
+              facilityLabel:
+                presentation.facilityLabels.alchemy ??
+                presentation.facilityLabels.workshop,
+              scene,
+            }}
+          >
+            <FurnaceWorkspace
+              onBack={() =>
+                navigate(
+                  createSectRoomNpcHref('/game/sect/alchemy', 'furnace'),
+                  { replace: true },
+                )
+              }
+              onReturn={() =>
+                navigate('/game/sect/alchemy', { replace: true })
+              }
+            />
+          </AlchemyCraftSessionProvider>
+        </SectScene>
       </>
     );
   return (

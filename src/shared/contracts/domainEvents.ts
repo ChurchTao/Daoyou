@@ -105,6 +105,7 @@ export const DomainEventDataSchemas = {
       itemName: z.string().min(1).max(200),
       quality: z.enum(QUALITY_VALUES),
       snapshot: z.record(z.string(), z.unknown()),
+      outputs: z.array(z.record(z.string(), z.unknown())).max(8).optional(),
     })
     .strict(),
   'market.material.revealed': z

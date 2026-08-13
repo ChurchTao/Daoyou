@@ -585,7 +585,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
                 <tr>
                   <td className="px-3 py-1.5">炼丹</td>
                   <td className="text-ink px-3 py-1.5 text-right font-mono">
-                    {QI_ACTION_COSTS.alchemy_improvised}
+                    1～20（每 200 药蕴 1 点）
                   </td>
                 </tr>
                 <tr>

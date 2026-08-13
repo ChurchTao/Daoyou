@@ -1,6 +1,6 @@
 {
-  "id": "0d3f4fcb-acbc-4f10-8814-05776bb64e7f",
-  "prevId": "edfe56bd-4c95-4b17-bef8-68e26c56d023",
+  "id": "67cbde6b-05cf-4838-a8f9-f111fc295373",
+  "prevId": "0d3f4fcb-acbc-4f10-8814-05776bb64e7f",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2410,6 +2410,21 @@
             },
             {
               "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cultivators_name_idx": {
+          "name": "cultivators_name_idx",
+          "columns": [
+            {
+              "expression": "name",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
