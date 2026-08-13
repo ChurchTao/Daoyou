@@ -4,13 +4,16 @@ import { FurnaceFiringStage } from '../stages/FurnaceFiringStage';
 import { FurnaceHarvestStage } from '../stages/FurnaceHarvestStage';
 import { FurnaceObservationStage } from '../stages/FurnaceObservationStage';
 import { FurnacePreparationStage } from '../stages/FurnacePreparationStage';
+import type { AlchemyMode } from '@shared/types/consumable';
 
 export function FurnaceWorkspace({
   onBack,
   onReturn = onBack,
+  onModeChange,
 }: {
   onBack(): void;
   onReturn?(): void;
+  onModeChange?(mode: AlchemyMode): void;
 }) {
   const session = useAlchemyCraftSession();
   const title =
@@ -30,7 +33,9 @@ export function FurnaceWorkspace({
         {session.note ? (
           <p className="text-ink-secondary text-sm leading-7">{session.note}</p>
         ) : null}
-        {session.phase === 'preparing' ? <FurnacePreparationStage /> : null}
+        {session.phase === 'preparing' ? (
+          <FurnacePreparationStage onModeChange={onModeChange} />
+        ) : null}
         {session.phase === 'observing' ? <FurnaceObservationStage /> : null}
         {session.phase === 'firing' ? <FurnaceFiringStage /> : null}
         {session.phase === 'result' ? (

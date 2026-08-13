@@ -18,6 +18,7 @@ import {
 } from '@shared/lib/pillUsageText';
 import {
   CULTIVATION_PILL_MAX_QUALITY_BY_REALM,
+  getMinimumPillQualityByRealm,
   PILL_TOXICITY_CAP,
   REALM_PILL_USAGE_LIMITS,
 } from '@shared/config/consumableSystem';
@@ -112,14 +113,17 @@ function assertPillQualityAllowed(
   consumable: Consumable & { spec: PillSpec },
 ): void {
   const maxQuality = CULTIVATION_PILL_MAX_QUALITY_BY_REALM[cultivator.realm];
+  const minQuality = getMinimumPillQualityByRealm(cultivator.realm);
   const pillQuality = consumable.quality ?? '凡品';
-  if ((QUALITY_ORDER[pillQuality] ?? 0) <= (QUALITY_ORDER[maxQuality] ?? 0)) {
-    return;
+  const pillOrder = QUALITY_ORDER[pillQuality] ?? 0;
+  if (pillOrder > (QUALITY_ORDER[maxQuality] ?? 0)) {
+    throw new Error(
+      `药力过盛，强行服用恐爆体而亡。当前境界最多可承受${maxQuality}丹药。`,
+    );
   }
-
-  throw new Error(
-    `药力过盛，强行服用恐爆体而亡。当前境界最多可承受${maxQuality}丹药。`,
-  );
+  if (pillOrder < (QUALITY_ORDER[minQuality] ?? 0)) {
+    throw new Error('药力过于稀薄，无法在当前境界形成有效药路。');
+  }
 }
 
 function removeStatuses(

@@ -1,5 +1,6 @@
 import { calculateSingleElixirScore } from '@server/utils/rankingUtils';
 import { scaleOperationsForOutputLot } from '@shared/lib/alchemyYield';
+import { buildFurnaceToxicityMultiplier } from '@shared/lib/pillEffectScaling';
 import type { AlchemyYieldProfile } from '@shared/types/consumable';
 import type { Consumable } from '@shared/types/cultivator';
 import type { Quality } from '@shared/types/constants';
@@ -20,6 +21,7 @@ export function assembleAlchemyOutputConsumables(
             'middle',
             lot.quality,
             lot.appearance,
+            buildFurnaceToxicityMultiplier(base.spec.alchemyMeta.stability),
           ),
           alchemyMeta: {
             ...base.spec.alchemyMeta,

@@ -1,6 +1,6 @@
-import { getLinearQualityValue } from '@shared/lib/pillAppearance';
+import { getPillAppearanceToxicityMultiplier } from '@shared/lib/pillAppearance';
 import type { ConditionStatusInstance } from '@shared/types/condition';
-import type { Quality } from '@shared/types/constants';
+import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type {
   AddStatusOperation,
   ConditionOperation,
@@ -24,10 +24,10 @@ const NUMERIC_RULES = {
   restorePercent: { min: 0.08, max: 1 },
   cultivationBoost: { min: 0.3, max: 8 },
   insight: { min: 1, max: 100 },
-  lifespan: { min: 10, max: 400 },
-  detox: { min: 10, max: 120 },
-  breakthroughFocus: { min: 0.02, max: 0.25 },
-  protectMeridians: { min: 0.15, max: 1 },
+  lifespan: { min: 10, max: 3000 },
+  detox: { min: 10, max: 1000 },
+  breakthroughFocus: { min: 0.02, max: 0.3 },
+  protectMeridians: { min: 0.15 },
 } as const;
 
 export const LIFESPAN_GAIN_BY_QUALITY: Record<Quality, number> = {
@@ -36,64 +36,75 @@ export const LIFESPAN_GAIN_BY_QUALITY: Record<Quality, number> = {
   玄品: 50,
   真品: 90,
   地品: 150,
-  天品: 240,
-  仙品: 420,
-  神品: 700,
+  天品: 600,
+  仙品: 1200,
+  神品: 2400,
 };
 
 export const DETOX_POWER_BY_QUALITY: Record<Quality, number> = {
-  凡品: 10,
-  灵品: 18,
-  玄品: 32,
-  真品: 52,
-  地品: 80,
-  天品: 120,
-  仙品: 190,
-  神品: 300,
+  凡品: 12,
+  灵品: 24,
+  玄品: 45,
+  真品: 80,
+  地品: 140,
+  天品: 230,
+  仙品: 380,
+  神品: 600,
 };
 
 export const INSIGHT_GAIN_BY_QUALITY: Record<Quality, number> = {
-  凡品: 1,
-  灵品: 3,
-  玄品: 7,
-  真品: 14,
+  凡品: 2,
+  灵品: 4,
+  玄品: 8,
+  真品: 15,
   地品: 26,
-  天品: 45,
-  仙品: 80,
-  神品: 140,
+  天品: 42,
+  仙品: 65,
+  神品: 100,
 };
 
 export const BREAKTHROUGH_CHANCE_BONUS_BY_QUALITY: Record<Quality, number> = {
   凡品: 0.02,
-  灵品: 0.025,
-  玄品: 0.035,
-  真品: 0.05,
-  地品: 0.075,
-  天品: 0.11,
-  仙品: 0.16,
-  神品: 0.22,
+  灵品: 0.04,
+  玄品: 0.07,
+  真品: 0.11,
+  地品: 0.16,
+  天品: 0.21,
+  仙品: 0.26,
+  神品: 0.3,
 };
 
 export const PROTECT_MERIDIANS_REDUCTION_BY_QUALITY: Record<Quality, number> = {
-  凡品: 0.2,
+  凡品: 0.15,
   灵品: 0.25,
-  玄品: 0.32,
-  真品: 0.42,
-  地品: 0.55,
-  天品: 0.68,
-  仙品: 0.8,
-  神品: 0.9,
+  玄品: 0.38,
+  真品: 0.52,
+  地品: 0.66,
+  天品: 0.78,
+  仙品: 0.88,
+  神品: 1,
 };
 
 export const BODY_TRACK_ADVANCE_BY_QUALITY: Record<Quality, number> = {
   凡品: 40,
-  灵品: 55,
-  玄品: 85,
-  真品: 140,
-  地品: 240,
-  天品: 400,
-  仙品: 650,
-  神品: 1200,
+  灵品: 70,
+  玄品: 120,
+  真品: 200,
+  地品: 320,
+  天品: 500,
+  仙品: 750,
+  神品: 1100,
+};
+
+export const RESTORE_PERCENT_BY_QUALITY: Record<Quality, number> = {
+  凡品: 0.12,
+  灵品: 0.2,
+  玄品: 0.3,
+  真品: 0.42,
+  地品: 0.56,
+  天品: 0.7,
+  仙品: 0.85,
+  神品: 1,
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -113,7 +124,7 @@ function floorInt(value: number): number {
 }
 
 export function buildRestorePercent(quality: Quality): number {
-  return round4(getLinearQualityValue(quality, 0.1, 0.8));
+  return RESTORE_PERCENT_BY_QUALITY[quality];
 }
 
 export function buildInsightGain(quality: Quality): number {
@@ -129,7 +140,25 @@ export function buildDetoxPower(quality: Quality): number {
 }
 
 export function buildPositivePillToxicity(quality: Quality): number {
-  return Math.round(getLinearQualityValue(quality, 3, 40));
+  return 40 - QUALITY_ORDER[quality] * 5;
+}
+
+export function buildPillToxicity(
+  quality: Quality,
+  appearance: PillAppearanceGrade | undefined,
+  furnaceMultiplier = 1,
+): number {
+  if (appearance === 'perfect') return 1;
+  const appearanceMultiplier = getPillAppearanceToxicityMultiplier(appearance);
+  return Math.max(
+    1,
+    Math.ceil(buildPositivePillToxicity(quality) * appearanceMultiplier * furnaceMultiplier),
+  );
+}
+
+export function buildFurnaceToxicityMultiplier(stability: number): number {
+  const normalized = Number.isFinite(stability) ? stability : 60;
+  return clamp(1 - (normalized - 60) / 200, 0.75, 1.35);
 }
 
 export function buildBodyTrackAdvance(quality: Quality): number {
@@ -226,7 +255,7 @@ export function getProtectMeridiansReductionPercent(
   if (typeof raw !== 'number' || !Number.isFinite(raw)) {
     return LEGACY_PROTECT_MERIDIANS_REDUCTION;
   }
-  return clamp(raw, NUMERIC_RULES.protectMeridians.min, NUMERIC_RULES.protectMeridians.max);
+  return Math.max(NUMERIC_RULES.protectMeridians.min, raw);
 }
 
 export function scalePillEffectOperation(
@@ -300,11 +329,7 @@ export function scalePillEffectOperation(
             ...operation.payload,
             breakthroughChanceBonus: round4(
               final
-                ? clamp(
-                    value,
-                    NUMERIC_RULES.breakthroughFocus.min,
-                    NUMERIC_RULES.breakthroughFocus.max,
-                  )
+                ? clamp(value, NUMERIC_RULES.breakthroughFocus.min, NUMERIC_RULES.breakthroughFocus.max)
                 : value,
             ),
           },
@@ -317,13 +342,7 @@ export function scalePillEffectOperation(
           payload: {
             ...operation.payload,
             failureExpLossReductionPercent: round4(
-              final
-                ? clamp(
-                    value,
-                    NUMERIC_RULES.protectMeridians.min,
-                    NUMERIC_RULES.protectMeridians.max,
-                  )
-                : value,
+                final ? Math.max(NUMERIC_RULES.protectMeridians.min, value) : value,
             ),
           },
         };

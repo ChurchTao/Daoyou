@@ -20,7 +20,7 @@ export const PILL_APPEARANCE_CONFIG: Record<
     grade: 'low',
     label: '下品',
     effectMultiplier: 0.9,
-    toxicityMultiplier: 1.5,
+    toxicityMultiplier: 1.35,
     colorClass: 'text-tier-fan',
   },
   middle: {
@@ -34,7 +34,7 @@ export const PILL_APPEARANCE_CONFIG: Record<
     grade: 'high',
     label: '上品',
     effectMultiplier: 1.1,
-    toxicityMultiplier: 0.6,
+    toxicityMultiplier: 0.65,
     colorClass: 'text-tier-tian',
   },
   perfect: {

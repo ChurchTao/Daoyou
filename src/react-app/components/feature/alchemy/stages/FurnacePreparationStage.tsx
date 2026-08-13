@@ -7,6 +7,7 @@ import {
 } from '@app/components/ui';
 import { STARTER_ALCHEMY_PROMPT } from '@app/lib/alchemy/starterAlchemy';
 import { useState } from 'react';
+import type { AlchemyMode } from '@shared/types/consumable';
 import {
   ALCHEMY_MAX_DOSE,
   ALCHEMY_MAX_MATERIALS,
@@ -18,7 +19,11 @@ import { FurnaceMaterialDraftList } from '../FurnaceMaterialDraftList';
 
 const MATERIAL_TYPES = ['herb', 'ore', 'monster', 'tcdb', 'aux'] as const;
 
-export function FurnacePreparationStage() {
+export function FurnacePreparationStage({
+  onModeChange,
+}: {
+  onModeChange?: (mode: AlchemyMode) => void;
+}) {
   const session = useAlchemyCraftSession();
   const [materialPickerOpen, setMaterialPickerOpen] = useState(false);
   const [formulaPickerOpen, setFormulaPickerOpen] = useState(false);
@@ -33,13 +38,17 @@ export function FurnacePreparationStage() {
             active={session.mode === 'improvised'}
             title="随心炼丹"
             detail="填写炼制目标并直接尝试，结果要等开鼎后才能知晓。"
-            onClick={() => session.setMode('improvised')}
+            onClick={() =>
+              onModeChange ? onModeChange('improvised') : session.setMode('improvised')
+            }
           />
           <Choice
             active={session.mode === 'formula'}
             title="依方炼制"
             detail="选择已有丹方，预览时分析本炉材料是否符合要求。"
-            onClick={() => session.setMode('formula')}
+            onClick={() =>
+              onModeChange ? onModeChange('formula') : session.setMode('formula')
+            }
           />
         </div>
       </section>

@@ -576,6 +576,9 @@ export function createAlchemyService(
           highestMaterialRank,
           yieldProfile,
         );
+        if (outputConsumables.length === 0) {
+          throw new AlchemyServiceError('本炉药蕴不足，无法凝成丹药。', 400);
+        }
         const primaryConsumable = outputConsumables[0] ?? consumable;
 
         for (const id of stableMaterialIds) {

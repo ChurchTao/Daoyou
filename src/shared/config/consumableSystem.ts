@@ -36,6 +36,22 @@ export const CULTIVATION_PILL_MAX_QUALITY_BY_REALM: Record<RealmType, Quality> =
   渡劫: '神品',
 };
 
+export const CULTIVATION_PILL_MIN_QUALITY_BY_REALM: Record<RealmType, Quality> = {
+  炼气: '凡品',
+  筑基: '凡品',
+  金丹: '灵品',
+  元婴: '玄品',
+  化神: '玄品',
+  炼虚: '玄品',
+  合体: '玄品',
+  大乘: '玄品',
+  渡劫: '玄品',
+};
+
+export function getMinimumPillQualityByRealm(realm: RealmType): Quality {
+  return CULTIVATION_PILL_MIN_QUALITY_BY_REALM[realm] ?? '凡品';
+}
+
 export function getConsumableQualityScalar(quality: Quality | undefined): number {
   return 1 + (QUALITY_ORDER[quality ?? '凡品'] ?? 0) * 0.22;
 }

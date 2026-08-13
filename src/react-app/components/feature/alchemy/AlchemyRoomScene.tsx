@@ -1,7 +1,8 @@
 import { RoomView, type RoomActorView } from '@app/components/feature/room';
 import { GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useLayoutEffect } from 'react';
 import { useBlocker, useSearchParams } from 'react-router';
+import type { AlchemyMode } from '@shared/types/consumable';
 import { AlchemyCraftSessionProvider } from './AlchemyCraftSessionProvider';
 import { ALCHEMY_FACILITIES } from './alchemyFacilities';
 import { useAlchemyCraftSession } from './alchemyCraftContext';
@@ -65,7 +66,7 @@ function AlchemyRoomContent() {
     setSearchParams(next, { replace: true });
   }, [action, rawAction, rawFacility, searchParams, selectedId, setSearchParams]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (selectedId !== 'furnace') return;
     if (action === 'improvised') setCraftMode('improvised');
     else if (action === 'formula') setCraftMode('formula');
@@ -147,6 +148,10 @@ function AlchemyRoomContent() {
       <FurnaceWorkspace
         onBack={() => setLocation('furnace', undefined, true)}
         onReturn={() => setLocation(undefined, undefined, true)}
+        onModeChange={(nextMode: AlchemyMode) => {
+          session.setMode(nextMode);
+          setLocation('furnace', nextMode);
+        }}
       />
     ) : selectedId === 'cabinet' ? (
       <HerbCabinetView

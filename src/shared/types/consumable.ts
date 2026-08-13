@@ -212,6 +212,7 @@ export interface PillConsumeRules {
   quotaCategory: PillQuotaCategory;
 }
 
+
 export type PillAlchemyMeta =
   | {
       source: 'improvised';

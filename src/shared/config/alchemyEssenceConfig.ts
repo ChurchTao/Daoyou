@@ -4,12 +4,12 @@ import type { PillAppearanceGrade } from '@shared/types/consumable';
 export const MATERIAL_ESSENCE_BY_QUALITY: Record<Quality, number> = {
   凡品: 8,
   灵品: 15,
-  玄品: 30,
-  真品: 60,
-  地品: 130,
-  天品: 300,
-  仙品: 750,
-  神品: 2000,
+  玄品: 40,
+  真品: 80,
+  地品: 190,
+  天品: 520,
+  仙品: 1550,
+  神品: 5200,
 };
 
 export const MATERIAL_ESSENCE_TYPE_MULTIPLIER: Record<string, number> = {

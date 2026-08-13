@@ -8,7 +8,6 @@ import {
   PILL_UNIT_ESSENCE_BY_QUALITY,
 } from '@shared/config/alchemyEssenceConfig';
 import { QUALITY_ORDER, QUALITY_VALUES, type Quality } from '@shared/types/constants';
-import { getPillAppearanceToxicityMultiplier } from '@shared/lib/pillAppearance';
 import type {
   AlchemyOutputLot,
   AlchemyYieldProfile,
@@ -16,7 +15,10 @@ import type {
   PillAppearanceGrade,
 } from '@shared/types/consumable';
 import type { ConditionOperation } from '@shared/types/consumable';
-import { buildPositivePillToxicity, scalePillEffectOperation } from './pillEffectScaling';
+import {
+  buildPillToxicity,
+  scalePillEffectOperation,
+} from './pillEffectScaling';
 
 export interface AlchemyEssenceMaterial {
   rank: Quality;
@@ -172,78 +174,6 @@ export function calculateEssenceBuckets(
   });
 }
 
-function deriveMigrationRates(factors: AlchemyYieldFactors): {
-  upward: number;
-  downward: number;
-} {
-  const stability = clamp(factors.stability ?? 60, 0, 100);
-  const synergy = clamp(factors.synergyScore ?? 0, 0, 1);
-  const conflict = clamp(factors.conflictScore ?? 0, 0, 1);
-  const fit = clamp(factors.fitMultiplier ?? 1, 0.85, 1.15);
-  const upward = clamp(
-    0.04 + stability / 1000 + synergy * 0.06 + (fit - 1) * 0.2 +
-      clamp((factors.masteryLevel ?? 0) * 0.001, 0, 0.03) - conflict * 0.05,
-    0,
-    0.16,
-  );
-  const downward = clamp(
-    conflict * 0.12 + Math.max(0, 50 - stability) / 500,
-    0,
-    0.16,
-  );
-  return { upward, downward };
-}
-
-/** 将药蕴只在相邻品质间有限迁移，避免平均品质抬高整炉。 */
-export function applyQualityEssenceMigration(
-  buckets: AlchemyQualityEssenceBucket[],
-  factors: AlchemyYieldFactors = {},
-  effectiveEssence: number,
-): AlchemyQualityEssenceBucket[] {
-  const migrated = buckets.map((bucket) => ({ ...bucket, effectiveEssence: bucket.share * effectiveEssence }));
-  const { upward, downward } = deriveMigrationRates(factors);
-  if (upward > downward) {
-    const rate = upward - downward;
-    const snapshot = migrated.map((bucket) => bucket.effectiveEssence);
-    const transfers = new Map<Quality, number>();
-    for (let order = 0; order < QUALITY_VALUES.length - 1; order += 1) {
-      const source = migrated[order];
-      const target = migrated[order + 1];
-      const transfer = Math.min(snapshot[order] * rate, snapshot[order]);
-      transfers.set(source.quality, (transfers.get(source.quality) ?? 0) - transfer);
-      transfers.set(target.quality, (transfers.get(target.quality) ?? 0) + transfer);
-    }
-    for (const bucket of migrated) bucket.effectiveEssence += transfers.get(bucket.quality) ?? 0;
-  } else if (downward > upward) {
-    const rate = downward - upward;
-    const snapshot = migrated.map((bucket) => bucket.effectiveEssence);
-    const transfers = new Map<Quality, number>();
-    for (let order = QUALITY_VALUES.length - 1; order > 0; order -= 1) {
-      const source = migrated[order];
-      const target = migrated[order - 1];
-      const transfer = Math.min(snapshot[order] * rate, snapshot[order]);
-      transfers.set(source.quality, (transfers.get(source.quality) ?? 0) - transfer);
-      transfers.set(target.quality, (transfers.get(target.quality) ?? 0) + transfer);
-    }
-    for (const bucket of migrated) bucket.effectiveEssence += transfers.get(bucket.quality) ?? 0;
-  }
-  const total = migrated.reduce((sum, bucket) => sum + bucket.effectiveEssence, 0);
-  for (const bucket of migrated) {
-    bucket.effectiveEssence = Math.max(0, bucket.effectiveEssence);
-    bucket.share = total > 0 ? bucket.effectiveEssence / total : 0;
-  }
-  return migrated;
-}
-
-function qualityFromPotential(potential: number): Quality {
-  const order = clamp(
-    Math.floor(potential * QUALITY_VALUES.length),
-    0,
-    QUALITY_VALUES.length - 1,
-  );
-  return QUALITY_VALUES[order] ?? '凡品';
-}
-
 function primaryQualityFromLots(lots: AlchemyOutputLot[], fallback: Quality): Quality {
   return lots.reduce(
     (best, lot) =>
@@ -252,12 +182,17 @@ function primaryQualityFromLots(lots: AlchemyOutputLot[], fallback: Quality): Qu
   );
 }
 
-function buildAppearance(
+function buildAppearanceProfile(
   purity: number,
   stability: number,
   masteryLevel: number,
   rng: () => number,
-): PillAppearanceGrade {
+): {
+  primary: PillAppearanceGrade;
+  secondary?: PillAppearanceGrade;
+  secondaryShare: number;
+  boundaryDistance: number;
+} {
   const score = clamp(
     normalizeRoll(rng) +
       (purity - 0.5) * 0.35 +
@@ -266,10 +201,26 @@ function buildAppearance(
     0,
     0.999999,
   );
-  if (score >= 0.96) return 'perfect';
-  if (score >= 0.72) return 'high';
-  if (score >= 0.3) return 'middle';
-  return 'low';
+  if (score >= 0.96) {
+    return { primary: 'perfect', secondaryShare: 0, boundaryDistance: score - 0.96 };
+  }
+  if (score >= 0.72) {
+    return {
+      primary: 'high',
+      secondary: 'middle',
+      secondaryShare: Number(((0.96 - score) / 0.24).toFixed(4)),
+      boundaryDistance: Math.min(score - 0.72, 0.96 - score),
+    };
+  }
+  if (score >= 0.3) {
+    return {
+      primary: 'middle',
+      secondary: 'low',
+      secondaryShare: Number(((0.72 - score) / 0.42).toFixed(4)),
+      boundaryDistance: Math.min(score - 0.3, 0.72 - score),
+    };
+  }
+  return { primary: 'low', secondaryShare: 0, boundaryDistance: score };
 }
 
 function addLot(
@@ -295,6 +246,45 @@ function addLot(
   }
 }
 
+function capOutputQuantity(lots: AlchemyOutputLot[]): void {
+  let overflow = lots.reduce((sum, lot) => sum + lot.quantity, 0) - MAX_ALCHEMY_OUTPUT_QUANTITY;
+  if (overflow <= 0) return;
+  for (let index = lots.length - 1; index >= 0 && overflow > 0; index -= 1) {
+    const lot = lots[index];
+    const removed = Math.min(lot.quantity, overflow);
+    lot.quantity -= removed;
+    lot.essenceSpent -= removed * PILL_UNIT_ESSENCE_BY_QUALITY[lot.quality];
+    overflow -= removed;
+  }
+  for (let index = lots.length - 1; index >= 0; index -= 1) {
+    if (lots[index].quantity <= 0) lots.splice(index, 1);
+  }
+}
+
+function calculateRemainderConversionRate(factors: AlchemyYieldFactors): number {
+  const stability = clamp(factors.stability ?? 60, 0, 100);
+  const synergy = clamp(factors.synergyScore ?? 0, 0, 1);
+  const conflict = clamp(factors.conflictScore ?? 0, 0, 1);
+  const mastery = clamp(factors.masteryLevel ?? 0, 0, 20);
+  const focusModifier = factors.focusMode === 'focused'
+    ? 0.03
+    : factors.focusMode === 'risky'
+      ? -0.05
+      : 0;
+  return clamp(
+    0.7 + stability / 500 + synergy * 0.06 - conflict * 0.1 + mastery * 0.005 + focusModifier,
+    0.65,
+    0.9,
+  );
+}
+
+interface YieldQualityGroup {
+  quality: Quality;
+  quantity: number;
+  unitEssence: number;
+  appearance: ReturnType<typeof buildAppearanceProfile>;
+}
+
 export function rollAlchemyYieldProfile(options: {
   materials: AlchemyEssenceMaterial[];
   factors?: AlchemyYieldFactors;
@@ -311,61 +301,112 @@ export function rollAlchemyYieldProfile(options: {
     0.1,
     0.98,
   );
-  const buckets = applyQualityEssenceMigration(
-    calculateEssenceBuckets(options.materials),
-    factors,
-    effectiveEssence,
-  );
   const minimumOrder = factors.minQuality ? QUALITY_ORDER[factors.minQuality] : 0;
+  const buckets = calculateEssenceBuckets(options.materials);
+  const pools = buckets.map((bucket) => ({
+    ...bucket,
+    effectiveEssence: bucket.share * effectiveEssence,
+  }));
+  const canFormNativePill = pools.some(
+    (pool) => QUALITY_ORDER[pool.quality] >= minimumOrder && pool.effectiveEssence >= pool.unitEssence,
+  );
   const lots: AlchemyOutputLot[] = [];
+  if (!canFormNativePill) {
+    return {
+      essence: {
+        rawEssence,
+        effectiveEssence,
+        qualityPotential,
+        purity: Number(purity.toFixed(4)),
+        stability,
+      },
+      primaryQuality: factors.minQuality ?? '凡品',
+      lots,
+      totalQuantity: 0,
+      wastedEssence: effectiveEssence,
+      essenceLossRatio: effectiveEssence > 0 ? 1 : 0,
+      distributionSummary: '',
+    };
+  }
+
+  const conversionRate = calculateRemainderConversionRate(factors);
+  const incomingDegraded = new Map<Quality, number>();
+  const groups = new Map<Quality, number>();
 
   for (let order = QUALITY_VALUES.length - 1; order >= minimumOrder; order -= 1) {
-    const bucket = buckets[order];
-    if (!bucket || bucket.effectiveEssence < bucket.unitEssence) continue;
-    // 随机只影响本品质实际投入的药蕴预算，不能凭空增加超过药蕴可支撑的数量。
-    const budget = bucket.effectiveEssence * (0.9 + normalizeRoll(rng) * 0.1);
-    const quantity = Math.floor(budget / bucket.unitEssence);
-    if (quantity <= 0) continue;
-    const spent = quantity * bucket.unitEssence;
-    const appearanceCounts: Record<PillAppearanceGrade, number> = {
-      low: 0,
-      middle: 0,
-      high: 0,
-      perfect: 0,
-    };
-    for (let index = 0; index < quantity; index += 1) {
-      appearanceCounts[buildAppearance(purity, stability, factors.masteryLevel ?? 0, rng)] += 1;
+    const bucket = pools[order];
+    if (!bucket || QUALITY_ORDER[bucket.quality] < minimumOrder) continue;
+    const nativeQuantity = Math.floor(bucket.effectiveEssence / bucket.unitEssence);
+    const nativeRemainder = bucket.effectiveEssence - nativeQuantity * bucket.unitEssence;
+    if (nativeQuantity > 0) {
+      groups.set(bucket.quality, (groups.get(bucket.quality) ?? 0) + nativeQuantity);
     }
-    const appearances = APPEARANCE_ORDER
-      .map((appearance) => ({ appearance, count: appearanceCounts[appearance] }))
-      .filter((entry) => entry.count > 0)
-      .sort((left, right) => right.count - left.count);
-    // 每个品质最多保留两个品相，第三种及以后视为凝练损耗，避免错误合并不同药效。
-    for (const entry of appearances.slice(0, 2)) {
-      addLot(
-        lots,
-        bucket.quality,
-        entry.appearance,
-        entry.count,
-        Math.round((spent * entry.count) / quantity),
+    const incoming = incomingDegraded.get(bucket.quality) ?? 0;
+    const combined = nativeRemainder + incoming;
+    const supplementalQuantity = Math.floor(combined / bucket.unitEssence);
+    if (supplementalQuantity > 0) {
+      groups.set(bucket.quality, (groups.get(bucket.quality) ?? 0) + supplementalQuantity);
+    }
+
+    if (order > minimumOrder) {
+      const nativeRemainderUsed = Math.max(0, supplementalQuantity * bucket.unitEssence - incoming);
+      const convertibleNativeRemainder = Math.max(0, nativeRemainder - nativeRemainderUsed);
+      const target = QUALITY_VALUES[order - 1];
+      incomingDegraded.set(
+        target,
+        (incomingDegraded.get(target) ?? 0) + Math.floor(convertibleNativeRemainder * conversionRate),
       );
     }
   }
 
-  if (lots.length === 0) {
-    const fallback = factors.minQuality ?? '凡品';
-    const quantity = 1;
-    const spent = Math.min(effectiveEssence, PILL_UNIT_ESSENCE_BY_QUALITY[fallback]);
-    addLot(lots, fallback, buildAppearance(purity, stability, factors.masteryLevel ?? 0, rng), quantity, spent);
+  const qualityGroups: YieldQualityGroup[] = [...groups.entries()]
+    .filter(([, quantity]) => quantity > 0)
+    .sort(([left], [right]) => QUALITY_ORDER[right] - QUALITY_ORDER[left])
+    .map(([quality, quantity]) => ({
+      quality,
+      quantity: Math.min(MAX_ALCHEMY_OUTPUT_QUANTITY, quantity),
+      unitEssence: PILL_UNIT_ESSENCE_BY_QUALITY[quality],
+      appearance: buildAppearanceProfile(
+        purity,
+        stability,
+        factors.masteryLevel ?? 0,
+        rng,
+      ),
+    }));
+  const remainingSlots = Math.max(0, MAX_ALCHEMY_OUTPUT_LOTS - qualityGroups.length);
+  const splitGroups = new Set(
+    qualityGroups
+      .map((group, index) => ({ group, index }))
+      .filter(({ group }) => group.quantity > 1 && group.appearance.secondary)
+      .sort((left, right) =>
+        right.group.quantity - left.group.quantity ||
+        right.group.quantity * right.group.unitEssence - left.group.quantity * left.group.unitEssence ||
+        left.group.appearance.boundaryDistance - right.group.appearance.boundaryDistance,
+      )
+      .slice(0, remainingSlots)
+      .map(({ index }) => index),
+  );
+
+  for (const [index, group] of qualityGroups.entries()) {
+    const shouldSplit = splitGroups.has(index) && group.appearance.secondary;
+    const secondaryQuantity = shouldSplit
+      ? Math.max(1, Math.min(group.quantity - 1, Math.round(group.quantity * group.appearance.secondaryShare)))
+      : 0;
+    const primaryQuantity = group.quantity - secondaryQuantity;
+    addLot(lots, group.quality, group.appearance.primary, primaryQuantity, primaryQuantity * group.unitEssence);
+    if (secondaryQuantity > 0 && group.appearance.secondary) {
+      addLot(lots, group.quality, group.appearance.secondary, secondaryQuantity, secondaryQuantity * group.unitEssence);
+    }
   }
 
-  // 只保留药蕴/数量贡献最高的 8 个批次；被裁剪批次计入损耗，不改变其他批次药效。
-  const boundedLots = lots
-    .sort((left, right) => right.essenceSpent - left.essenceSpent || QUALITY_ORDER[right.quality] - QUALITY_ORDER[left.quality])
-    .slice(0, MAX_ALCHEMY_OUTPUT_LOTS);
-  const spentAfterLotCap = boundedLots.reduce((sum, lot) => sum + lot.essenceSpent, 0);
-  const totalQuantity = boundedLots.reduce((sum, lot) => sum + lot.quantity, 0);
-  const primaryQuality = primaryQualityFromLots(boundedLots, factors.minQuality ?? '凡品');
+  const orderedLots = lots.sort(
+    (left, right) => QUALITY_ORDER[right.quality] - QUALITY_ORDER[left.quality] ||
+      APPEARANCE_ORDER.indexOf(left.appearance) - APPEARANCE_ORDER.indexOf(right.appearance),
+  );
+  capOutputQuantity(orderedLots);
+  const spentAfterLotCap = orderedLots.reduce((sum, lot) => sum + lot.essenceSpent, 0);
+  const totalQuantity = orderedLots.reduce((sum, lot) => sum + lot.quantity, 0);
+  const primaryQuality = primaryQualityFromLots(orderedLots, factors.minQuality ?? '凡品');
   return {
     essence: {
       rawEssence,
@@ -375,7 +416,7 @@ export function rollAlchemyYieldProfile(options: {
       stability,
     },
     primaryQuality,
-    lots: boundedLots,
+    lots: orderedLots,
     totalQuantity,
     wastedEssence: Math.max(0, Math.round(effectiveEssence - spentAfterLotCap)),
     essenceLossRatio: effectiveEssence > 0
@@ -387,7 +428,7 @@ export function rollAlchemyYieldProfile(options: {
           1,
         )
       : 0,
-    distributionSummary: boundedLots.map((lot) => `${lot.quality}/${lot.appearance}×${lot.quantity}`).join('、'),
+    distributionSummary: orderedLots.map((lot) => `${lot.quality}/${lot.appearance}×${lot.quantity}`).join('、'),
   };
 }
 
@@ -479,11 +520,11 @@ export function buildAlchemyYieldPreview(options: {
   );
   const minPrimary = primaryQualities.reduce(
     (lowest, quality) => QUALITY_ORDER[quality] < QUALITY_ORDER[lowest] ? quality : lowest,
-    primaryQualities[0] ?? qualityFromPotential(qualityPotential),
+    primaryQualities[0] ?? factors.minQuality ?? '凡品',
   );
   const maxPrimary = primaryQualities.reduce(
     (highest, quality) => QUALITY_ORDER[quality] > QUALITY_ORDER[highest] ? quality : highest,
-    primaryQualities[0] ?? qualityFromPotential(qualityPotential),
+    primaryQualities[0] ?? factors.minQuality ?? '凡品',
   );
   const appearanceTotal = Object.values(appearanceCounts).reduce((sum, count) => sum + count, 0);
   const appearanceHints = Object.fromEntries(
@@ -532,6 +573,7 @@ export function scaleOperationsForOutputLot(
   sourceAppearance: PillAppearanceGrade,
   targetQuality: Quality,
   targetAppearance: PillAppearanceGrade,
+  furnaceMultiplier = 1,
 ): ConditionOperation[] {
   const sourceMultiplier =
     PILL_CONDENSATION_MULTIPLIER_BY_QUALITY[sourceQuality] *
@@ -547,8 +589,7 @@ export function scaleOperationsForOutputLot(
         delta: Math.max(
           0,
           Math.round(
-            buildPositivePillToxicity(targetQuality) *
-              getPillAppearanceToxicityMultiplier(targetAppearance),
+            buildPillToxicity(targetQuality, targetAppearance, furnaceMultiplier),
           ),
         ),
       };

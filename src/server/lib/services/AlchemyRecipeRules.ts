@@ -20,7 +20,7 @@ import {
   buildClearMindOperation,
   buildDetoxPower,
   buildLifespanGain,
-  buildPositivePillToxicity,
+  buildPillToxicity,
   buildProtectMeridiansOperation,
   buildRestorePercent,
   scalePillEffectOperation,
@@ -286,15 +286,7 @@ function buildPositiveToxicityDelta(
     return 0;
   }
 
-  const multiplier =
-    appearance === 'low'
-      ? 1.5
-      : appearance === 'middle'
-        ? 1
-        : appearance === 'high'
-          ? 0.6
-          : 0;
-  return Math.round(buildPositivePillToxicity(quality) * multiplier);
+  return buildPillToxicity(quality, appearance);
 }
 
 function appendPositiveToxicityOperation(
