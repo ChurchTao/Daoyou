@@ -18,44 +18,25 @@ import {
   getQuotaCategoryForFamily,
   type PreparedAlchemyMaterial,
 } from '@server/lib/services/AlchemyRecipeRules';
-import { calculateSingleElixirScore } from '@server/utils/rankingUtils';
+import {
+  addConsumableToInventoryInTransaction,
+  mapMaterialRow,
+} from '@server/lib/services/cultivator/CultivatorInventoryRepository';
+import { getCultivatorPreHeavenFates } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import {
   calculateCraftCost,
   calculateHighestMaterialRank,
 } from '@shared/engine/creation-v2/CraftCostCalculator';
+import type { ResourceOperationSettlement } from '@shared/engine/resource/types';
 import {
-  CULTIVATION_BOOST_STATUS_KEY,
-} from '@shared/lib/cultivationBoost';
-import { buildInsightGain } from '@shared/lib/alchemyProgress';
-import {
-  buildBodyTrackAdvance,
-  buildBreakthroughFocusOperation,
-  buildClearMindOperation,
-  buildCultivationBoostOperationV2,
-  buildDetoxPower,
-  buildLifespanGain,
-  buildPillToxicity,
-  buildProtectMeridiansOperation,
-  buildRestorePercent,
-  scalePillEffectOperation,
-} from '@shared/lib/pillEffectScaling';
+  normalizeAlchemyEffectRoute,
+  validateAlchemyEffectRoute,
+} from '@shared/lib/alchemyEffectResolver';
+import { isAlchemyMaterialType } from '@shared/lib/alchemyMaterials';
 import {
   formatAlchemyPropertyVector,
-  getAlchemyPropertyTrackPath,
   normalizeWeightedAlchemyProperties,
 } from '@shared/lib/alchemyProperties';
-import {
-  getBreakthroughPillLabel,
-  getNextMajorRealm,
-  hasBreakthroughFocusEffect,
-} from '@shared/lib/breakthroughPill';
-import {
-  evaluateFateContext,
-  getAlchemySpiritStoneMultiplier,
-  scaleFateAdjustedCost,
-} from '@shared/lib/fates';
-import { getHealingCuredStatus } from '@shared/lib/healingPill';
-import { isAlchemyMaterialType } from '@shared/lib/alchemyMaterials';
 import {
   buildAlchemyYieldPreview,
   calculateAlchemyQiCost,
@@ -64,6 +45,15 @@ import {
   type AlchemyYieldFactors,
 } from '@shared/lib/alchemyYield';
 import {
+  getBreakthroughPillLabel,
+  getNextMajorRealm,
+} from '@shared/lib/breakthroughPill';
+import {
+  evaluateFateContext,
+  getAlchemySpiritStoneMultiplier,
+  scaleFateAdjustedCost,
+} from '@shared/lib/fates';
+import {
   QUALITY_ORDER,
   type ElementType,
   type MaterialType,
@@ -71,37 +61,32 @@ import {
   type RealmType,
 } from '@shared/types/constants';
 import type {
-  AlchemyBatchProfile,
   AlchemyBatchDisplayProfile,
+  AlchemyBatchProfile,
   AlchemyFormula,
+  AlchemyFormulaBlueprint,
   AlchemyFormulaDiscoveryCandidate,
   AlchemyFormulaMastery,
   AlchemyFormulaPattern,
   AlchemyRecipePlan,
-  ConditionOperation,
   FormulaAnalysisResult,
   FormulaFitBand,
   FormulaMaterialJudgment,
-  PillAppearanceGrade,
   PillFamily,
   PillSpec,
   WeightedAlchemyProperty,
 } from '@shared/types/consumable';
+import { PILL_QUOTA_CATEGORY_VALUES } from '@shared/types/consumable';
 import type { Consumable, PreHeavenFate } from '@shared/types/cultivator';
-import type { ResourceOperationSettlement } from '@shared/engine/resource/types';
 import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import {
+  assembleAlchemyOutputConsumables,
+  type AlchemyOutputDraft,
+} from './alchemy/AlchemyOutputAssembler';
 import { alchemyFormulaAnalyzer } from './AlchemyFormulaAnalyzer';
 import { AlchemyServiceError } from './AlchemyServiceError';
-import {
-  addConsumableToInventoryInTransaction,
-  mapMaterialRow,
-} from '@server/lib/services/cultivator/CultivatorInventoryRepository';
-import {
-  getCultivatorPreHeavenFates,
-} from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
 import { sectOrganizationFacade } from './sect-organization';
-import { assembleAlchemyOutputConsumables } from './alchemy/AlchemyOutputAssembler';
 
 const DISCOVERY_TTL_SECONDS = 600;
 const FORMULA_ANALYSIS_TTL_SECONDS = 600;
@@ -270,10 +255,59 @@ function isValidFormulaPattern(
   );
 }
 
+function parseFormulaBlueprintV4(blueprint: unknown): AlchemyFormulaBlueprint {
+  if (!blueprint || typeof blueprint !== 'object') {
+    throw new AlchemyServiceError('丹方蓝图已损坏，请重新悟方。', 500);
+  }
+  const record = blueprint as Record<string, unknown>;
+  if (record.version !== 4) {
+    throw new AlchemyServiceError('此丹方需要升级后才能使用。', 409);
+  }
+  const consumeRules = record.consumeRules as
+    Record<string, unknown> | undefined;
+  if (
+    !consumeRules ||
+    consumeRules.scene !== 'out_of_battle_only' ||
+    !PILL_QUOTA_CATEGORY_VALUES.includes(
+      consumeRules.quotaCategory as (typeof PILL_QUOTA_CATEGORY_VALUES)[number],
+    )
+  ) {
+    throw new AlchemyServiceError('丹方服用规则已损坏，请重新悟方。', 500);
+  }
+  if (
+    !Number.isFinite(record.targetStability) ||
+    !Number.isFinite(record.targetToxicity)
+  ) {
+    throw new AlchemyServiceError('丹方稳定度数据已损坏，请重新悟方。', 500);
+  }
+  const needsRebirth = record.needsRebirth === true;
+  const route = record.route as AlchemyFormulaBlueprint['route'];
+  if (!needsRebirth) {
+    try {
+      validateAlchemyEffectRoute(route);
+    } catch {
+      throw new AlchemyServiceError('丹方药性路线已损坏，请重新悟方。', 500);
+    }
+  }
+  return {
+    version: 4,
+    route,
+    needsRebirth: needsRebirth || undefined,
+    consumeRules: {
+      scene: 'out_of_battle_only',
+      quotaCategory:
+        consumeRules.quotaCategory as AlchemyFormulaBlueprint['consumeRules']['quotaCategory'],
+    },
+    targetStability: record.targetStability as number,
+    targetToxicity: record.targetToxicity as number,
+  };
+}
+
 function mapAlchemyFormulaRow(row: AlchemyFormulaRow): AlchemyFormula {
   if (!isValidFormulaPattern(row.pattern)) {
     throw new AlchemyServiceError('丹方数据已损坏，请删除后重新悟方。', 500);
   }
+  const blueprint = parseFormulaBlueprintV4(row.blueprint);
 
   return {
     id: row.id,
@@ -287,7 +321,7 @@ function mapAlchemyFormulaRow(row: AlchemyFormulaRow): AlchemyFormula {
         row.pattern.targetPropertyVector as WeightedAlchemyProperty[],
       ),
     },
-    blueprint: row.blueprint,
+    blueprint,
     mastery: row.mastery,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -331,13 +365,13 @@ function buildFallbackFormulaRecordDescription(
       ? '缓推肉身淬炼之势'
       : formula.family === 'cultivation'
         ? '积蓄修为，温养道基'
-      : formula.family === 'insight'
-        ? '澄明心识，引动悟机'
-        : formula.family === 'marrow_wash'
-          ? '引药力洗筋伐髓'
-          : formula.family === 'longevity'
-            ? '固本延寿，续补命元'
-            : '收束药性归于一脉';
+        : formula.family === 'insight'
+          ? '澄明心识，引动悟机'
+          : formula.family === 'marrow_wash'
+            ? '引药力洗筋伐髓'
+            : formula.family === 'longevity'
+              ? '固本延寿，续补命元'
+              : '收束药性归于一脉';
 
   return `此方重在${directionText}，药性取向为${formatAlchemyPropertyVector(formula.pattern.targetPropertyVector)}，${formula.pattern.slotCount}味合炉${qualityText}。`;
 }
@@ -438,7 +472,10 @@ function getDiscoveryKey(cultivatorId: string, token: string): string {
   return `alchemy:formula_discovery:${cultivatorId}:${token}`;
 }
 
-function getFormulaAnalysisKey(cultivatorId: string, analysisId: string): string {
+function getFormulaAnalysisKey(
+  cultivatorId: string,
+  analysisId: string,
+): string {
   return `alchemy:formula_analysis:${cultivatorId}:${analysisId}`;
 }
 
@@ -525,7 +562,9 @@ async function checkAndAcquireFormulaAnalysisCooldown(
   return {
     allowed: false,
     remainingSeconds:
-      typeof ttl === 'number' && ttl > 0 ? ttl : FORMULA_ANALYSIS_COOLDOWN_SECONDS,
+      typeof ttl === 'number' && ttl > 0
+        ? ttl
+        : FORMULA_ANALYSIS_COOLDOWN_SECONDS,
   };
 }
 
@@ -579,7 +618,7 @@ export function buildFormulaSignature(
 ): string {
   return stableStringify({
     family: formula.family,
-    operations: formula.blueprint.operations,
+    route: formula.blueprint.route,
     consumeRules: formula.blueprint.consumeRules,
     dominantElement: formula.pattern.dominantElement ?? null,
     minQuality: formula.pattern.minQuality ?? null,
@@ -756,184 +795,6 @@ function buildFormulaAnalysisPayload(
   };
 }
 
-function scaleFormulaOperations(
-  operations: ConditionOperation[],
-  fitMultiplier: number,
-  quality: Quality,
-  targetPropertyVector: WeightedAlchemyProperty[] = [],
-): ConditionOperation[] {
-  // A formula blueprint describes the operation route only. Its persisted
-  // numeric values may come from the pill that originally discovered the
-  // formula, so every value-bearing operation is rebuilt from the output
-  // quality before the formula fit multiplier is applied.
-  return operations.flatMap((operation): ConditionOperation[] => {
-    if (operation.type === 'restore_resource') {
-      return [
-        scalePillEffectOperation(
-          {
-            ...operation,
-            mode: 'percent',
-            value: buildRestorePercent(quality),
-          },
-          fitMultiplier,
-        ),
-      ];
-    }
-
-    if (operation.type === 'gain_progress') {
-      if (operation.target === 'cultivation_exp') {
-        return [buildCultivationBoostOperationV2(quality, fitMultiplier)];
-      }
-
-      return [
-        scalePillEffectOperation(
-          {
-            ...operation,
-            value: buildInsightGain(quality),
-          },
-          fitMultiplier,
-        ),
-      ];
-    }
-
-    if (
-      operation.type === 'remove_status' &&
-      (operation.status === 'minor_wound' ||
-        operation.status === 'major_wound' ||
-        operation.status === 'near_death')
-    ) {
-      return [
-        {
-          ...operation,
-          status: getHealingCuredStatus(quality),
-        },
-      ];
-    }
-
-    if (operation.type === 'advance_track') {
-      if (operation.track === 'marrow_wash' || operation.track.startsWith('body.')) {
-        const propertyIndex = targetPropertyVector.findIndex(
-          (property) => getAlchemyPropertyTrackPath(property.key) === operation.track,
-        );
-        const propertyScalar = propertyIndex === 0
-          ? 1
-          : propertyIndex === 1
-            ? 0.35
-            : propertyIndex >= 2
-              ? 0.2
-              : 1;
-        // Formula blueprints may have been discovered from an already-scaled
-        // pill. Rebuild body/marrow values from the canonical quality table so
-        // the persisted operation cannot become a second scaling baseline.
-        const canonicalValue = buildBodyTrackAdvance(quality) * propertyScalar;
-        return [
-          scalePillEffectOperation(
-            {
-              ...operation,
-              value: Math.max(1, Math.round(canonicalValue)),
-            },
-            fitMultiplier,
-          ),
-        ];
-      }
-      // No other long-term track is currently formula-generated. Keep the
-      // route, but never let an old blueprint value bypass the common scaler.
-      return [
-        scalePillEffectOperation(
-          { ...operation, value: Math.max(1, Math.round(operation.value)) },
-          fitMultiplier,
-        ),
-      ];
-    }
-
-    if (operation.type === 'increase_lifespan') {
-      return [
-        scalePillEffectOperation(
-          {
-            ...operation,
-            value: buildLifespanGain(quality),
-          },
-          fitMultiplier,
-        ),
-      ];
-    }
-
-    if (operation.type === 'change_gauge') {
-      if (operation.delta >= 0) {
-        return [];
-      }
-      return [
-        scalePillEffectOperation(
-          {
-            ...operation,
-            delta: -buildDetoxPower(quality),
-          },
-          fitMultiplier,
-        ),
-      ];
-    }
-
-    if (
-      operation.type === 'add_status' &&
-      operation.status === CULTIVATION_BOOST_STATUS_KEY
-    ) {
-      return [buildCultivationBoostOperationV2(quality, fitMultiplier)];
-    }
-
-    if (
-      operation.type === 'add_status' &&
-      operation.status === 'breakthrough_focus'
-    ) {
-      return [buildBreakthroughFocusOperation(quality, fitMultiplier)];
-    }
-
-    if (
-      operation.type === 'add_status' &&
-      operation.status === 'protect_meridians'
-    ) {
-      return [buildProtectMeridiansOperation(quality, fitMultiplier)];
-    }
-
-    if (
-      operation.type === 'add_status' &&
-      operation.status === 'clear_mind'
-    ) {
-      return [buildClearMindOperation(quality)];
-    }
-
-    return [operation];
-  });
-}
-
-function appendFormulaPositiveToxicity(
-  operations: ConditionOperation[],
-  quality: Quality,
-  appearance: PillAppearanceGrade,
-  propertyVector: WeightedAlchemyProperty[],
-): ConditionOperation[] {
-  if (propertyVector.some((property) => property.key === 'detox')) {
-    return operations;
-  }
-
-  if (!propertyVector.some((property) => property.key !== 'detox')) {
-    return operations;
-  }
-
-  const delta = buildPillToxicity(quality, appearance);
-  if (delta <= 0) {
-    return operations;
-  }
-
-  return [
-    ...operations,
-    {
-      type: 'change_gauge',
-      gauge: 'pillToxicity',
-      delta,
-    },
-  ];
-}
-
 function calculateFormulaMasteryGain(
   fitScore: number,
   fitBand: FormulaFitBand,
@@ -1008,10 +869,7 @@ async function loadOwnedMaterials(
   q: DbExecutor | DbTransaction = getExecutor(),
 ): Promise<MaterialRow[]> {
   const rows = sortRowsByRequestedIds(
-    await q
-      .select()
-      .from(materials)
-      .where(inArray(materials.id, materialIds)),
+    await q.select().from(materials).where(inArray(materials.id, materialIds)),
     materialIds,
   );
 
@@ -1143,7 +1001,10 @@ export async function buildDiscoveryCandidate(
     slotCount: materialsList.length,
   };
   const blueprint = {
-    operations: spec.operations,
+    version: 4 as const,
+    route: validateAlchemyEffectRoute(
+      normalizeAlchemyEffectRoute({ effects: propertyVector }),
+    ),
     consumeRules: spec.consumeRules,
     targetStability: spec.alchemyMeta.stability,
     targetToxicity: spec.alchemyMeta.toxicityRating,
@@ -1273,7 +1134,10 @@ export async function analyzeFormulaMaterials(
 
   let materialsList: PreparedAlchemyMaterial[];
   try {
-    materialsList = buildPreparedMaterials(selectedMaterials, materialQuantities);
+    materialsList = buildPreparedMaterials(
+      selectedMaterials,
+      materialQuantities,
+    );
   } catch (error) {
     if (error instanceof AlchemyServiceError) {
       return {
@@ -1472,208 +1336,196 @@ export async function prepareFormulaCraft(
 ): Promise<PreparedFormulaCraft> {
   // 分布式锁由 API/Application 层统一获取。
   const q = getExecutor();
-    const [formula, selectedMaterials, cultivator, preHeavenFates, rawAnalysis] =
-      await Promise.all([
-        loadCultivatorFormula(cultivatorId, formulaId, q),
-        loadOwnedMaterials(cultivatorId, materialIds, q),
-        q
-          .select({
-            userId: cultivators.userId,
-            spirit_stones: cultivators.spirit_stones,
-            realm: cultivators.realm,
-          })
-          .from(cultivators)
-          .where(eq(cultivators.id, cultivatorId))
-          .limit(1)
-          .then((rows) => rows[0]),
-        getCultivatorPreHeavenFates(cultivatorId, q),
-        analysisId
-          ? redis.get(getFormulaAnalysisKey(cultivatorId, analysisId))
-          : Promise.resolve(null),
-      ]);
+  const [formula, selectedMaterials, cultivator, preHeavenFates, rawAnalysis] =
+    await Promise.all([
+      loadCultivatorFormula(cultivatorId, formulaId, q),
+      loadOwnedMaterials(cultivatorId, materialIds, q),
+      q
+        .select({
+          userId: cultivators.userId,
+          spirit_stones: cultivators.spirit_stones,
+          realm: cultivators.realm,
+        })
+        .from(cultivators)
+        .where(eq(cultivators.id, cultivatorId))
+        .limit(1)
+        .then((rows) => rows[0]),
+      getCultivatorPreHeavenFates(cultivatorId, q),
+      analysisId
+        ? redis.get(getFormulaAnalysisKey(cultivatorId, analysisId))
+        : Promise.resolve(null),
+    ]);
 
-    if (!cultivator) {
-      throw new AlchemyServiceError('道友查无此人', 404);
-    }
-    if (!analysisId) {
-      throw new AlchemyServiceError('请先推演药路。');
-    }
+  if (!cultivator) {
+    throw new AlchemyServiceError('道友查无此人', 404);
+  }
+  if (!analysisId) {
+    throw new AlchemyServiceError('请先推演药路。');
+  }
 
-    const materialsList = buildPreparedMaterials(
-      selectedMaterials,
-      materialQuantities,
-    );
-    const validation = validateFormulaIngredients(formula, materialsList);
-    if (!validation.valid) {
-      throw new AlchemyServiceError(validation.blockingReason || '丹方不合。');
-    }
+  const materialsList = buildPreparedMaterials(
+    selectedMaterials,
+    materialQuantities,
+  );
+  const validation = validateFormulaIngredients(formula, materialsList);
+  if (!validation.valid) {
+    throw new AlchemyServiceError(validation.blockingReason || '丹方不合。');
+  }
 
-    const analysisKey = getFormulaAnalysisKey(cultivatorId, analysisId);
-    const analysisPayload = parseRedisJson<FormulaAnalysisPayload>(
-      rawAnalysis,
-      analysisKey,
-    );
-    if (!analysisPayload) {
-      throw new AlchemyServiceError('请先推演药路。');
-    }
+  const analysisKey = getFormulaAnalysisKey(cultivatorId, analysisId);
+  const analysisPayload = parseRedisJson<FormulaAnalysisPayload>(
+    rawAnalysis,
+    analysisKey,
+  );
+  if (!analysisPayload) {
+    throw new AlchemyServiceError('请先推演药路。');
+  }
 
-    const signature = buildFormulaAnalysisSignature(
-      cultivatorId,
-      formula.id,
-      formula.mastery.level,
-      materialsList,
-    );
-    if (
-      analysisPayload.cultivatorId !== cultivatorId ||
-      analysisPayload.formulaId !== formula.id ||
-      analysisPayload.formulaMasteryLevel !== formula.mastery.level ||
-      analysisPayload.signature !== signature
-    ) {
-      throw new AlchemyServiceError('请先推演药路。');
-    }
+  const signature = buildFormulaAnalysisSignature(
+    cultivatorId,
+    formula.id,
+    formula.mastery.level,
+    materialsList,
+  );
+  if (
+    analysisPayload.cultivatorId !== cultivatorId ||
+    analysisPayload.formulaId !== formula.id ||
+    analysisPayload.formulaMasteryLevel !== formula.mastery.level ||
+    analysisPayload.signature !== signature
+  ) {
+    throw new AlchemyServiceError('请先推演药路。');
+  }
 
-    const highestMaterialRank = calculateHighestMaterialRank(
-      selectedMaterials as Array<{ rank: Quality }>,
-    );
-    const baseCost = scaleFateAdjustedCost(
-      calculateCraftCost(highestMaterialRank, 'spiritStone'),
-      getAlchemySpiritStoneMultiplier(
-        evaluateFateContext(preHeavenFates),
-      ),
-    );
-    const cost = await sectOrganizationFacade.applyCraftDiscount(
-      cultivatorId,
-      baseCost,
-      'sect.craft.alchemy',
-      q,
-    );
-    if ((cultivator.spirit_stones ?? 0) < cost) {
-      throw new AlchemyServiceError(`灵石不足，需要 ${cost} 枚`);
-    }
+  const highestMaterialRank = calculateHighestMaterialRank(
+    selectedMaterials as Array<{ rank: Quality }>,
+  );
+  const baseCost = scaleFateAdjustedCost(
+    calculateCraftCost(highestMaterialRank, 'spiritStone'),
+    getAlchemySpiritStoneMultiplier(evaluateFateContext(preHeavenFates)),
+  );
+  const cost = await sectOrganizationFacade.applyCraftDiscount(
+    cultivatorId,
+    baseCost,
+    'sect.craft.alchemy',
+    q,
+  );
+  if ((cultivator.spirit_stones ?? 0) < cost) {
+    throw new AlchemyServiceError(`灵石不足，需要 ${cost} 枚`);
+  }
 
-    const aggregated = aggregateAlchemyProperties(
-      materialsList,
-      analysisPayload.plan,
-    );
-    const fit = calculatePropertyVectorFit(
-      aggregated.rawPropertyVector,
-      formula.pattern.targetPropertyVector,
-    );
-    const fitBand = determineFormulaFitBand(fit);
-    if (
-      fitBand !== analysisPayload.fitBand ||
-      Math.abs(fit - analysisPayload.fitScore) > 0.0001
-    ) {
-      throw new AlchemyServiceError('请先推演药路。');
-    }
-    const batchProfile = buildAlchemyBatchProfile(materialsList, aggregated, {
-      formulaFitBand: fitBand,
-      formulaFitScore: fit,
-      materialJudgments: analysisPayload.materialJudgments,
-    });
+  const aggregated = aggregateAlchemyProperties(
+    materialsList,
+    analysisPayload.plan,
+  );
+  const fit = calculatePropertyVectorFit(
+    aggregated.rawPropertyVector,
+    formula.pattern.targetPropertyVector,
+  );
+  const fitBand = determineFormulaFitBand(fit);
+  if (
+    fitBand !== analysisPayload.fitBand ||
+    Math.abs(fit - analysisPayload.fitScore) > 0.0001
+  ) {
+    throw new AlchemyServiceError('请先推演药路。');
+  }
+  const batchProfile = buildAlchemyBatchProfile(materialsList, aggregated, {
+    formulaFitBand: fitBand,
+    formulaFitScore: fit,
+    materialJudgments: analysisPayload.materialJudgments,
+  });
 
-    const dominantElement = aggregated.dominantElement;
-    const projection = resolveFormulaCraftProjection(formula, materialsList, {
+  const dominantElement = aggregated.dominantElement;
+  const projection = resolveFormulaCraftProjection(formula, materialsList, {
+    fitScore: fit,
+    fitBand,
+    batchProfile,
+    dominantElement,
+    aggregatedPropertyVector: aggregated.rawPropertyVector,
+  });
+  const qiCost = calculateAlchemyQiCost(materialsList);
+  if (formula.blueprint.needsRebirth) {
+    throw new AlchemyServiceError('此丹方需要升级后才能炼制。', 409);
+  }
+  const spec: Omit<PillSpec, 'operations'> = {
+    kind: 'pill',
+    family: formula.family,
+    consumeRules: {
+      ...formula.blueprint.consumeRules,
+      quotaCategory: getQuotaCategoryForFamily(formula.family),
+    },
+    alchemyMeta: {
+      source: 'formula',
+      formulaId: formula.id,
+      version: 4,
+      sourceMaterials: materialsList.map((material) => material.name),
+      analysisVersion: 2,
+      propertyVector: formula.blueprint.route.effects,
+      sourceMaterialVectors: aggregated.sourceMaterialVectors,
       fitScore: fit,
       fitBand,
-      batchProfile,
-      dominantElement,
-      aggregatedPropertyVector: aggregated.rawPropertyVector,
-    });
-    const qiCost = calculateAlchemyQiCost(materialsList);
-    const operations = appendFormulaPositiveToxicity(
-      scaleFormulaOperations(
-        formula.blueprint.operations,
-        projection.fitMultiplier,
-        highestMaterialRank,
-        formula.pattern.targetPropertyVector,
+      fitMultiplier: projection.fitMultiplier,
+      dominantElement: formula.pattern.dominantElement ?? dominantElement,
+      stability: projection.stability,
+      toxicityRating: projection.toxicityRating,
+      // 批次生成前的中性占位；最终品相由产出引擎逐枚生成并覆盖。
+      appearance: 'middle',
+      tags: buildAlchemyPropertyTags(
+        formula.blueprint.route.effects,
+        formula.family,
       ),
-      highestMaterialRank,
-      'middle',
-      formula.pattern.targetPropertyVector,
+      batch: (() => {
+        const persisted = { ...batchProfile };
+        delete persisted.essenceSummary;
+        delete persisted.yieldProfile;
+        return persisted;
+      })(),
+    },
+  };
+  const breakthroughTargetRealm =
+    formula.family === 'breakthrough'
+      ? getNextMajorRealm(cultivator.realm as RealmType)
+      : null;
+  const usesFixedBreakthroughName =
+    formula.family === 'breakthrough' &&
+    breakthroughTargetRealm !== null &&
+    formula.blueprint.route.effects.some(
+      (effect) => effect.key === 'breakthrough_support',
     );
-    const spec: PillSpec = {
-      kind: 'pill',
-      family: formula.family,
-      operations,
-      consumeRules: {
-        ...formula.blueprint.consumeRules,
-        quotaCategory: getQuotaCategoryForFamily(formula.family),
-      },
-      alchemyMeta: {
-        source: 'formula',
-        formulaId: formula.id,
-        version: 3,
-        sourceMaterials: materialsList.map((material) => material.name),
-        analysisVersion: 2,
-        propertyVector: formula.pattern.targetPropertyVector,
-        sourceMaterialVectors: aggregated.sourceMaterialVectors,
-        fitScore: fit,
-        fitBand,
-        fitMultiplier: projection.fitMultiplier,
-        dominantElement: formula.pattern.dominantElement ?? dominantElement,
-        stability: projection.stability,
-        toxicityRating: projection.toxicityRating,
-        // 批次生成前的中性占位；最终品相由产出引擎逐枚生成并覆盖。
-        appearance: 'middle',
-        tags: buildAlchemyPropertyTags(
-          formula.pattern.targetPropertyVector,
-          formula.family,
-        ),
-        batch: (() => {
-          const persisted = { ...batchProfile };
-          delete persisted.essenceSummary;
-          delete persisted.yieldProfile;
-          return persisted;
-        })(),
-      },
-    };
-    const breakthroughTargetRealm =
-      formula.family === 'breakthrough'
-        ? getNextMajorRealm(cultivator.realm as RealmType)
-        : null;
-    const usesFixedBreakthroughName =
-      formula.family === 'breakthrough' &&
-      breakthroughTargetRealm !== null &&
-      hasBreakthroughFocusEffect(spec.operations);
-    if (usesFixedBreakthroughName) {
-      spec.alchemyMeta.breakthroughTargetRealm = breakthroughTargetRealm;
-      spec.alchemyMeta.breakthroughLabel = getBreakthroughPillLabel(
-        breakthroughTargetRealm,
-      );
-    } else if (formula.family === 'breakthrough' && breakthroughTargetRealm) {
-      spec.alchemyMeta.breakthroughTargetRealm = breakthroughTargetRealm;
-    }
-    const consumable: Consumable = {
-      name: usesFixedBreakthroughName
-        ? getBreakthroughPillLabel(breakthroughTargetRealm)
-        : getFormulaProductName(formula.name),
-      type: '丹药',
-      quality: highestMaterialRank,
-      // 最终数量由确认阶段的药蕴批次引擎决定；这里仅作为未结算蓝图占位。
-      quantity: 1,
-      description: buildFormulaDescription(
-        formula,
-        materialsList.map((material) => material.name),
-        spec.alchemyMeta.stability,
-        spec.alchemyMeta.toxicityRating,
-        fit,
-        projection.fitMultiplier,
-        fitBand,
-      ),
-      score: 0,
-      spec,
-    };
-    consumable.score = calculateSingleElixirScore(consumable);
-    const { next: nextMastery, progress } = advanceFormulaMastery(
-      formula.mastery,
+  if (usesFixedBreakthroughName) {
+    spec.alchemyMeta.breakthroughTargetRealm = breakthroughTargetRealm;
+    spec.alchemyMeta.breakthroughLabel = getBreakthroughPillLabel(
+      breakthroughTargetRealm,
+    );
+  } else if (formula.family === 'breakthrough' && breakthroughTargetRealm) {
+    spec.alchemyMeta.breakthroughTargetRealm = breakthroughTargetRealm;
+  }
+  const draft: AlchemyOutputDraft = {
+    name: usesFixedBreakthroughName
+      ? getBreakthroughPillLabel(breakthroughTargetRealm)
+      : getFormulaProductName(formula.name),
+    type: '丹药',
+    description: buildFormulaDescription(
+      formula,
+      materialsList.map((material) => material.name),
+      spec.alchemyMeta.stability,
+      spec.alchemyMeta.toxicityRating,
       fit,
+      projection.fitMultiplier,
       fitBand,
-    );
+    ),
+    spec,
+    route: formula.blueprint.route,
+    fitMultiplier: projection.fitMultiplier,
+  };
+  const { next: nextMastery, progress } = advanceFormulaMastery(
+    formula.mastery,
+    fit,
+    fitBand,
+  );
 
-    const afterCommit = async () => {
-      await redis.del(analysisKey);
-    };
+  const afterCommit = async () => {
+    await redis.del(analysisKey);
+  };
 
   return {
     qiCost,
@@ -1715,8 +1567,7 @@ export async function prepareFormulaCraft(
         factors: projection.yieldFactors,
       });
       const outputConsumables = assembleAlchemyOutputConsumables(
-        consumable,
-        highestMaterialRank,
+        draft,
         yieldProfile,
       );
       if (outputConsumables.length === 0) {
@@ -1828,7 +1679,7 @@ export async function prepareFormulaCraft(
 
       return {
         result: {
-          consumable: outputConsumables[0] ?? consumable,
+          consumable: outputConsumables[0]!,
           consumables: savedConsumables,
           craftedConsumables: outputConsumables,
           yieldProfile: toAlchemyYieldDisplayProfile(yieldProfile),

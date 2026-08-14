@@ -1,31 +1,13 @@
 import { renderPrompt } from '@server/lib/prompts';
 import { generateAiObject } from '@server/utils/aiClient';
 import { formatAlchemyPropertyVector } from '@shared/lib/alchemyProperties';
-import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
-import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
-import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
-import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
-import {
-  CULTIVATION_BOOST_STATUS_KEY,
-  getCultivationBoostDisplayText,
-} from '@shared/lib/cultivationBoost';
-import type {
-  ConditionStatusKey,
-  ConditionTrackPath,
-} from '@shared/types/condition';
 import type { ElementType, Quality } from '@shared/types/constants';
 import type {
   AlchemyFocusMode,
-  ConditionOperation,
   PillFamily,
   WeightedAlchemyProperty,
 } from '@shared/types/consumable';
 import { z } from 'zod';
-
-function formatPercent(value: number): string {
-  const percent = Number((value * 100).toFixed(1));
-  return `${Number.isInteger(percent) ? percent.toFixed(0) : percent}%`;
-}
 
 function getPillFamilyLabel(family: PillFamily): string {
   switch (family) {
@@ -52,43 +34,6 @@ function getPillFamilyLabel(family: PillFamily): string {
   }
 }
 
-function getStatusName(status: ConditionStatusKey): string {
-  return getConditionStatusTemplate(status)?.name ?? status;
-}
-
-function describeOperation(operation: ConditionOperation): string {
-  switch (operation.type) {
-    case 'restore_resource':
-      return operation.mode === 'percent'
-        ? `恢复最大${getResourceLabel(operation.resource)} ${formatPercent(operation.value)}`
-        : `恢复${getResourceLabel(operation.resource)} ${operation.value}`;
-    case 'change_gauge':
-      return `丹毒 ${operation.delta > 0 ? '+' : ''}${operation.delta}`;
-    case 'gain_progress':
-      return `${
-        operation.target === 'cultivation_exp'
-          ? getResourceText('cultivation_exp')
-          : getGameConceptLabel('comprehension_insight')
-      } +${operation.value}`;
-    case 'increase_lifespan':
-      return `寿元 +${operation.value} 年`;
-    case 'remove_status':
-      return `化解「${getStatusName(operation.status)}」`;
-    case 'add_status':
-      if (operation.status === CULTIVATION_BOOST_STATUS_KEY) {
-        return getCultivationBoostDisplayText(operation);
-      }
-      return `获得「${getStatusName(operation.status)}」`;
-    case 'advance_track':
-      return `推进${getTrackConfig(operation.track).name} +${operation.value}`;
-  }
-}
-
-function formatLineList(lines: string[]): string {
-  if (lines.length === 0) return '无';
-  return lines.map((line) => `- ${line}`).join('\n');
-}
-
 function formatMaterialList(materialNames: string[]): string {
   if (materialNames.length === 0) return '无';
   return Array.from(new Set(materialNames)).join('、');
@@ -112,7 +57,6 @@ export interface ImprovisedPillCopyFacts {
   quality: Quality;
   materialNames: string[];
   propertyVector: WeightedAlchemyProperty[];
-  operations: ConditionOperation[];
   stability: number;
   toxicityRating: number;
   userPrompt: string;
@@ -186,9 +130,6 @@ export class AlchemyNarrativeEnricher {
       elementText: facts.dominantElement ?? '未显主元素',
       materialsText: formatMaterialList(facts.materialNames),
       propertyVectorText: formatAlchemyPropertyVector(facts.propertyVector),
-      operationLinesText: formatLineList(
-        facts.operations.map(describeOperation),
-      ),
       stabilityText: String(facts.stability),
       toxicityText: String(facts.toxicityRating),
       userPromptText: facts.userPrompt.trim(),
@@ -208,16 +149,4 @@ export class AlchemyNarrativeEnricher {
         return '险进催化';
     }
   }
-}
-
-export function getAlchemyNarrativeOperationLines(
-  operations: ConditionOperation[],
-): string[] {
-  return operations.map(describeOperation);
-}
-
-export function getAlchemyNarrativeTrackName(
-  track: ConditionTrackPath,
-): string {
-  return getTrackConfig(track).name;
 }

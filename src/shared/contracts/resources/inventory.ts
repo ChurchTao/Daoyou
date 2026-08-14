@@ -456,7 +456,7 @@ const alchemyBatchProfileSchema = z
     roleSummary: z.string(),
     stabilityDelta: z.number(),
     toxicityDelta: z.number(),
-    secondaryEffectMultiplierBonus: z.number(),
+    secondaryEffectMultiplierBonus: z.number().optional(),
     essenceSummary: alchemyEssenceSummarySchema.optional(),
     yieldProfile: alchemyYieldProfileSchema.optional(),
     essenceLossRatio: z.number().min(0).max(1).optional(),
@@ -475,7 +475,7 @@ const pillAlchemyMetaBaseShape = {
   appearance: z.enum(PILL_APPEARANCE_GRADE_VALUES).optional(),
   tags: z.array(z.string()),
   batch: alchemyBatchProfileSchema.optional(),
-  version: z.literal(3).optional(),
+  version: z.union([z.literal(3), z.literal(4)]).optional(),
   breakthroughTargetRealm: z.enum(REALM_VALUES).optional(),
   breakthroughLabel: z.string().optional(),
 };

@@ -1,17 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildBreakthroughChanceBonus,
   buildBodyTrackAdvance,
+  buildBreakthroughChanceBonus,
   buildDetoxPower,
   buildInsightGain,
   buildLifespanGain,
-  buildProtectMeridiansReduction,
   buildPillToxicity,
   buildPositivePillToxicity,
+  buildProtectMeridiansReduction,
 } from './pillEffectScaling';
 
 describe('pillEffectScaling high quality curves', () => {
   it('makes immortal and divine longevity gains steeper than mid-tier pills', () => {
+    expect(buildLifespanGain('玄品')).toBe(60);
+    expect(buildLifespanGain('真品')).toBe(140);
+    expect(buildLifespanGain('地品')).toBe(300);
     expect(buildLifespanGain('天品')).toBe(600);
     expect(buildLifespanGain('仙品')).toBe(1200);
     expect(buildLifespanGain('神品')).toBe(2400);
@@ -30,7 +33,9 @@ describe('pillEffectScaling high quality curves', () => {
   });
 
   it('uses a post-tier curve for insight, breakthrough and meridian protection', () => {
-    expect(buildInsightGain('神品')).toBeGreaterThan(buildInsightGain('玄品') * 10);
+    expect(buildInsightGain('神品')).toBeGreaterThan(
+      buildInsightGain('玄品') * 10,
+    );
     expect(buildBreakthroughChanceBonus('神品')).toBeGreaterThan(
       buildBreakthroughChanceBonus('玄品') * 4,
     );

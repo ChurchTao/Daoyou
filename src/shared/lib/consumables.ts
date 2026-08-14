@@ -1,4 +1,3 @@
-import type { Consumable } from '@shared/types/cultivator';
 import type {
   AddStatusOperation,
   AdvanceTrackOperation,
@@ -12,12 +11,15 @@ import type {
   RestoreResourceOperation,
   TalismanSpec,
 } from '@shared/types/consumable';
+import type { Consumable } from '@shared/types/cultivator';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
-export function isPillSpec(spec: ConsumableSpec | null | undefined): spec is PillSpec {
+export function isPillSpec(
+  spec: ConsumableSpec | null | undefined,
+): spec is PillSpec {
   return !!spec && spec.kind === 'pill';
 }
 
@@ -81,11 +83,11 @@ export function isIncreaseLifespanOperation(
   return operation.type === 'increase_lifespan';
 }
 
-export function assertConsumableSpec(
-  value: unknown,
-): ConsumableSpec {
+export function assertConsumableSpec(value: unknown): ConsumableSpec {
   if (!isRecord(value) || typeof value.kind !== 'string') {
-    throw new Error('消耗品数据缺少有效 spec，请清理旧 consumables 数据后重试。');
+    throw new Error(
+      '消耗品数据缺少有效 spec，请清理旧 consumables 数据后重试。',
+    );
   }
 
   if (value.kind === 'pill') {
@@ -126,15 +128,17 @@ export function stableSerializeConsumableSpec(spec: ConsumableSpec): string {
  * 炼丹来源、药蕴摘要、批次分布和展示文案都属于追踪/展示元数据，
  * 不应阻止同效果丹药合堆。该键会在写入时持久化，库存查询不再比较 JSONB。
  */
-export function buildConsumableStackKey(consumable: Pick<
-  Consumable,
-  'name' | 'type' | 'quality' | 'spec'
->): string {
+export function buildConsumableStackKey(
+  consumable: Pick<Consumable, 'name' | 'type' | 'quality' | 'spec'>,
+): string {
   const spec = consumable.spec;
   const stackableSpec = {
     kind: spec.kind,
     ...(spec.kind === 'pill'
       ? {
+          ...(spec.alchemyMeta.version === 4
+            ? { protocol: 'pill:v4' as const }
+            : {}),
           family: spec.family,
           operations: spec.operations,
           consumeRules: spec.consumeRules,

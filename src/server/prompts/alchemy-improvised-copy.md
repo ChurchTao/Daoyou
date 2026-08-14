@@ -43,7 +43,6 @@ id: alchemy-improvised-copy
 - 主元素：{{elementText}}
 - 炼制材料：{{materialsText}}
 - 药性取向：{{propertyVectorText}}
-- 实际药效： {{operationLinesText}}
 - 稳度：{{stabilityText}}
 - 丹毒评定：{{toxicityText}}
 - 玩家丹意：{{userPromptText}}

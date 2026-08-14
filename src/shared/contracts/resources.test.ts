@@ -9,9 +9,9 @@ import {
   getResourceScopeTransitionKinds,
   hasResourceVersionGap,
   orderResourceChanges,
-  requiresResourceEventReload,
   reduceInventoryResourcePage,
   reduceTaskResourceList,
+  requiresResourceEventReload,
   type ResourceChange,
   type ResourceScope,
 } from './resources';
@@ -178,25 +178,15 @@ describe('multi-scope resource contracts', () => {
   test('tracks gaps independently within a scope version stream', () => {
     expect(
       hasResourceVersionGap(
-        [
-          { scopeVersion: 8 },
-          { scopeVersion: 8 },
-          { scopeVersion: 9 },
-        ],
+        [{ scopeVersion: 8 }, { scopeVersion: 8 }, { scopeVersion: 9 }],
         7,
       ),
     ).toBe(false);
     expect(
-      hasResourceVersionGap(
-        [{ scopeVersion: 8 }, { scopeVersion: 10 }],
-        7,
-      ),
+      hasResourceVersionGap([{ scopeVersion: 8 }, { scopeVersion: 10 }], 7),
     ).toBe(true);
     expect(
-      hasResourceVersionGap(
-        [{ scopeVersion: 8 }, { scopeVersion: 8 }],
-        8,
-      ),
+      hasResourceVersionGap([{ scopeVersion: 8 }, { scopeVersion: 8 }], 8),
     ).toBe(false);
     expect(
       advanceContiguousResourceCursor(7, [
@@ -234,11 +224,13 @@ describe('multi-scope resource contracts', () => {
     expect(
       requiresResourceEventReload(
         {
-          changes: [change({
-            operation: 'invalidate',
-            scopeVersion: 12,
-            resourceVersion: 1,
-          })],
+          changes: [
+            change({
+              operation: 'invalidate',
+              scopeVersion: 12,
+              resourceVersion: 1,
+            }),
+          ],
           currentScopeVersion: 12,
           earliestAvailableVersion: 12,
         },
@@ -364,6 +356,66 @@ describe('multi-scope resource contracts', () => {
         payload: undefined,
       }).success,
     ).toBe(false);
+  });
+
+  test('accepts historical v3 and current v4 pills in inventory events', () => {
+    const buildPillChange = (version: number) => ({
+      id: crypto.randomUUID(),
+      mutationOrdinal: 0,
+      scope: cultivatorScope,
+      resourceTopic: 'inventory.consumables',
+      resourceVersion: 1,
+      scopeVersion: 1,
+      eventType: 'inventory.alchemy.changed',
+      source: 'alchemy_improvised',
+      createdAt: '2026-08-14T00:00:00.000Z',
+      operation: 'upsert-items',
+      payload: {
+        idKey: 'id',
+        items: [
+          {
+            id: crypto.randomUUID(),
+            name: '测试丹',
+            type: '丹药',
+            quality: '玄品',
+            quantity: 1,
+            spec: {
+              kind: 'pill',
+              family: 'cultivation',
+              operations: [
+                {
+                  type: 'gain_progress',
+                  target: 'cultivation_exp',
+                  value: 1,
+                },
+              ],
+              consumeRules: {
+                scene: 'out_of_battle_only',
+                quotaCategory: 'cultivation',
+              },
+              alchemyMeta: {
+                source: 'improvised',
+                sourceMaterials: ['测试材料'],
+                stability: 80,
+                toxicityRating: 10,
+                tags: [],
+                version,
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    expect(ResourceChangeSchema.safeParse(buildPillChange(3)).success).toBe(
+      true,
+    );
+    expect(ResourceChangeSchema.safeParse(buildPillChange(4)).success).toBe(
+      true,
+    );
+    expect(ResourceChangeSchema.safeParse(buildPillChange(5)).success).toBe(
+      false,
+    );
   });
 
   test('rejects merge for replace-only topics and nested profile partials', () => {
@@ -521,9 +573,7 @@ describe('multi-scope resource contracts', () => {
     );
     expect(removed.status).toBe('applied');
     if (removed.status === 'applied') {
-      expect(removed.data.items).toEqual([
-        { id: materialTwoId, quantity: 1 },
-      ]);
+      expect(removed.data.items).toEqual([{ id: materialTwoId, quantity: 1 }]);
       expect(removed.data.pagination).toMatchObject({
         total: 1,
         totalPages: 1,

@@ -1,5 +1,43 @@
+import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
+import {
+  CULTIVATION_PILL_MAX_QUALITY_BY_REALM,
+  getMinimumPillQualityByRealm,
+  PILL_TOXICITY_CAP,
+  REALM_PILL_USAGE_LIMITS,
+} from '@shared/config/consumableSystem';
+import type { CultivatorDisplayInput } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+import {
+  BODY_CULTIVATION_REALM_REQUIREMENTS,
+  BODY_REALM_LABELS,
+  getBodyTrackKeyFromPath,
+  isBodyCultivationTrackPath,
+  isLegacyTemperingTrackPath,
+} from '@shared/lib/bodyCultivation/config';
+import {
+  createDefaultBodyCultivationState,
+  normalizeBodyCultivationState,
+} from '@shared/lib/bodyCultivation/normalize';
+import { isPillConsumable } from '@shared/lib/consumables';
+import {
+  CULTIVATION_BOOST_STATUS_KEY,
+  getCultivationBoostPercent,
+} from '@shared/lib/cultivationBoost';
+import {
+  getMarrowWashLevelCapByCultivationRealm,
+  normalizeMarrowWashState,
+} from '@shared/lib/marrowWash';
+import {
+  BREAKTHROUGH_FOCUS_STATUS_KEY,
+  CLEAR_MIND_STATUS_KEY,
+  getBreakthroughFocusBonus,
+  getProtectMeridiansReductionPercent,
+  PROTECT_MERIDIANS_STATUS_KEY,
+} from '@shared/lib/pillEffectScaling';
+import {
+  getPillUsageLimitReachedText,
+  getPrimaryPillQuotaCategory,
+} from '@shared/lib/pillUsageText';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
-import type { Consumable, CultivationProgress } from '@shared/types/cultivator';
 import type {
   BodyCultivationTrackPath,
   ConditionStatusDuration,
@@ -8,49 +46,14 @@ import type {
   ConditionTrackPath,
   CultivatorCondition,
 } from '@shared/types/condition';
-import type { ConditionOperation, PillSpec } from '@shared/types/consumable';
-import type { Cultivator } from '@shared/types/cultivator';
-import type { CultivatorDisplayInput } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import { isPillConsumable } from '@shared/lib/consumables';
-import {
-  getPillUsageLimitReachedText,
-  getPrimaryPillQuotaCategory,
-} from '@shared/lib/pillUsageText';
-import {
-  CULTIVATION_PILL_MAX_QUALITY_BY_REALM,
-  getMinimumPillQualityByRealm,
-  PILL_TOXICITY_CAP,
-  REALM_PILL_USAGE_LIMITS,
-} from '@shared/config/consumableSystem';
 import { QUALITY_ORDER } from '@shared/types/constants';
-import {
-  CULTIVATION_BOOST_STATUS_KEY,
-  getCultivationBoostPercent,
-} from '@shared/lib/cultivationBoost';
-import {
-  BREAKTHROUGH_FOCUS_STATUS_KEY,
-  CLEAR_MIND_STATUS_KEY,
-  getBreakthroughFocusBonus,
-  getProtectMeridiansReductionPercent,
-  PROTECT_MERIDIANS_STATUS_KEY,
-} from '@shared/lib/pillEffectScaling';
+import type { ConditionOperation, PillSpec } from '@shared/types/consumable';
+import type {
+  Consumable,
+  CultivationProgress,
+  Cultivator,
+} from '@shared/types/cultivator';
 import { ConditionService } from './ConditionService';
-import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
-import {
-  getBodyTrackKeyFromPath,
-  BODY_CULTIVATION_REALM_REQUIREMENTS,
-  BODY_REALM_LABELS,
-  isBodyCultivationTrackPath,
-  isLegacyTemperingTrackPath,
-} from '@shared/lib/bodyCultivation/config';
-import {
-  createDefaultBodyCultivationState,
-  normalizeBodyCultivationState,
-} from '@shared/lib/bodyCultivation/normalize';
-import {
-  getMarrowWashLevelCapByCultivationRealm,
-  normalizeMarrowWashState,
-} from '@shared/lib/marrowWash';
 
 const EXECUTION_ORDER: ConditionOperation['type'][] = [
   'restore_resource',
@@ -98,9 +101,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function cloneCultivator(
-  cultivator: PillCultivatorFacts,
-): PillCultivatorFacts {
+function cloneCultivator(cultivator: PillCultivatorFacts): PillCultivatorFacts {
   return structuredClone(cultivator);
 }
 
@@ -224,7 +225,10 @@ function applyTrackReward(
 
   if (track === 'marrow_wash') {
     nextCultivator.unallocated_attribute_points =
-      Math.max(0, Math.floor(nextCultivator.unallocated_attribute_points ?? 0)) + 1;
+      Math.max(
+        0,
+        Math.floor(nextCultivator.unallocated_attribute_points ?? 0),
+      ) + 1;
     return nextCultivator;
   }
 
@@ -245,10 +249,12 @@ function applyTrackReward(
     return nextCultivator;
   }
 
-  nextCultivator.spiritual_roots = nextCultivator.spiritual_roots.map((root) => ({
-    ...root,
-    strength: clamp(root.strength + reward.amount, 0, reward.cap),
-  }));
+  nextCultivator.spiritual_roots = nextCultivator.spiritual_roots.map(
+    (root) => ({
+      ...root,
+      strength: clamp(root.strength + reward.amount, 0, reward.cap),
+    }),
+  );
 
   return nextCultivator;
 }
@@ -344,11 +350,14 @@ function applyAddStatusOperation(
   operation: Extract<ConditionOperation, { type: 'add_status' }>,
   now: Date,
 ): CultivatorCondition {
-  const existing = condition.statuses.find((status) => status.key === operation.status);
+  const existing = condition.statuses.find(
+    (status) => status.key === operation.status,
+  );
   if (
     operation.status === CULTIVATION_BOOST_STATUS_KEY &&
     existing &&
-    getCultivationBoostPercent(existing) >= getCultivationBoostPercent(operation)
+    getCultivationBoostPercent(existing) >=
+      getCultivationBoostPercent(operation)
   ) {
     return condition;
   }
@@ -393,11 +402,14 @@ function applyAddStatusOperation(
 
   const nextStatus: ConditionStatusInstance = {
     key: operation.status,
-    stacks: Math.max(1, (existing?.stacks ?? 0) + Math.floor(operation.stacks ?? 1)),
+    stacks: Math.max(
+      1,
+      (existing?.stacks ?? 0) + Math.floor(operation.stacks ?? 1),
+    ),
     source: 'pill',
-    duration: operation.duration ?? existing?.duration ?? createUntilRemovedDuration(),
-    usesRemaining:
-      operation.usesRemaining ?? existing?.usesRemaining,
+    duration:
+      operation.duration ?? existing?.duration ?? createUntilRemovedDuration(),
+    usesRemaining: operation.usesRemaining ?? existing?.usesRemaining,
     payload: operation.payload ?? existing?.payload,
     createdAt: existing?.createdAt ?? now.toISOString(),
     updatedAt: now.toISOString(),
@@ -432,7 +444,8 @@ function applyGainProgressOperation(
             0,
             Math.min(
               100,
-              progress.comprehension_insight + Math.max(0, Math.floor(operation.value)),
+              progress.comprehension_insight +
+                Math.max(0, Math.floor(operation.value)),
             ),
           ),
         };
@@ -449,11 +462,7 @@ function applyIncreaseLifespanOperation(
     throw new Error('寿元丹药效异常，无法服用。');
   }
 
-  const delta = clamp(
-    Math.floor(operation.value),
-    1,
-    MAX_LIFESPAN_DELTA,
-  );
+  const delta = clamp(Math.floor(operation.value), 1, MAX_LIFESPAN_DELTA);
   cultivator.lifespan = clamp(
     Math.floor(cultivator.lifespan) + delta,
     0,
@@ -462,7 +471,9 @@ function applyIncreaseLifespanOperation(
   return cultivator;
 }
 
-function sortOperations(operations: ConditionOperation[]): ConditionOperation[] {
+function sortOperations(
+  operations: ConditionOperation[],
+): ConditionOperation[] {
   return [...operations].sort(
     (left, right) =>
       EXECUTION_ORDER.indexOf(left.type) - EXECUTION_ORDER.indexOf(right.type),
@@ -491,10 +502,8 @@ function assertBodyCultivationPillTrackCaps(
   for (const operation of sortOperations(spec.operations)) {
     if (
       operation.type !== 'advance_track' ||
-      (
-        !isBodyCultivationTrackPath(operation.track) &&
-        !isLegacyTemperingTrackPath(operation.track)
-      )
+      (!isBodyCultivationTrackPath(operation.track) &&
+        !isLegacyTemperingTrackPath(operation.track))
     ) {
       continue;
     }
@@ -558,7 +567,10 @@ function assertMarrowWashPillTrackCaps(
   const cap = getMarrowWashLevelCapByCultivationRealm(cultivator.realm);
 
   for (const operation of sortOperations(spec.operations)) {
-    if (operation.type !== 'advance_track' || operation.track !== 'marrow_wash') {
+    if (
+      operation.type !== 'advance_track' ||
+      operation.track !== 'marrow_wash'
+    ) {
       continue;
     }
 
@@ -614,10 +626,7 @@ function consumeBreakthroughStatus(
   status: ConditionStatusInstance,
   now: Date,
 ): ConditionStatusInstance | null {
-  if (
-    typeof status.usesRemaining === 'number' &&
-    status.usesRemaining > 0
-  ) {
+  if (typeof status.usesRemaining === 'number' && status.usesRemaining > 0) {
     const nextUses = status.usesRemaining - 1;
     if (nextUses <= 0) {
       return null;
@@ -666,11 +675,16 @@ export const PillOperationExecutor = {
       throw new Error(PILL_TOXICITY_BLOCK_MESSAGE);
     }
     assertBodyCultivationPillTrackCaps(nextCondition, consumable.spec);
-    assertMarrowWashPillTrackCaps(nextCultivator, nextCondition, consumable.spec);
+    assertMarrowWashPillTrackCaps(
+      nextCultivator,
+      nextCondition,
+      consumable.spec,
+    );
 
     if (quotaCategory === 'long_term') {
       const used =
-        nextCondition.counters.longTermPillUsesByRealm[nextCultivator.realm] ?? 0;
+        nextCondition.counters.longTermPillUsesByRealm[nextCultivator.realm] ??
+        0;
       const limit = REALM_PILL_USAGE_LIMITS[nextCultivator.realm];
       if (used >= limit) {
         throw new Error(getPillUsageLimitReachedText('long_term', used, limit));
@@ -689,7 +703,8 @@ export const PillOperationExecutor = {
 
     if (quotaCategory === 'longevity') {
       const used =
-        nextCondition.counters.longevityPillUsesByRealm[nextCultivator.realm] ?? 0;
+        nextCondition.counters.longevityPillUsesByRealm[nextCultivator.realm] ??
+        0;
       const limit = REALM_PILL_USAGE_LIMITS[nextCultivator.realm];
       if (used >= limit) {
         throw new Error(getPillUsageLimitReachedText('longevity', used, limit));
@@ -740,7 +755,8 @@ export const PillOperationExecutor = {
         case 'add_status':
           if (operation.status === CLEAR_MIND_STATUS_KEY) {
             const progress = getOrInitCultivationProgress(
-              (nextCultivator.cultivation_progress ?? {}) as CultivationProgress,
+              (nextCultivator.cultivation_progress ??
+                {}) as CultivationProgress,
               nextCultivator.realm,
               nextCultivator.realm_stage,
             );
@@ -749,7 +765,11 @@ export const PillOperationExecutor = {
               inner_demon: false,
             };
           }
-          nextCondition = applyAddStatusOperation(nextCondition, operation, now);
+          nextCondition = applyAddStatusOperation(
+            nextCondition,
+            operation,
+            now,
+          );
           break;
         case 'advance_track': {
           const result = applyTrackProgress(
@@ -794,7 +814,11 @@ export const PillOperationExecutor = {
     cultivator: PillCultivatorFacts,
     now: Date = new Date(),
   ): CultivatorCondition {
-    const condition = ConditionService.normalizeCondition(cultivator, conditionInput, now);
+    const condition = ConditionService.normalizeCondition(
+      cultivator,
+      conditionInput,
+      now,
+    );
 
     return {
       ...condition,

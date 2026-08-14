@@ -1,6 +1,7 @@
 import {
   MATERIAL_ESSENCE_BY_QUALITY,
   MATERIAL_ESSENCE_TYPE_MULTIPLIER,
+  MAX_ALCHEMY_EFFECTIVE_ESSENCE_MULTIPLIER,
   MAX_ALCHEMY_OUTPUT_LOTS,
   MAX_ALCHEMY_OUTPUT_QUANTITY,
   PILL_APPEARANCE_EFFECT_MULTIPLIER,
@@ -14,11 +15,6 @@ import type {
   AlchemyYieldDisplayProfile,
   PillAppearanceGrade,
 } from '@shared/types/consumable';
-import type { ConditionOperation } from '@shared/types/consumable';
-import {
-  buildPillToxicity,
-  scalePillEffectOperation,
-} from './pillEffectScaling';
 
 export interface AlchemyEssenceMaterial {
   rank: Quality;
@@ -105,9 +101,9 @@ export function calculateEffectiveEssence(
   const multiplier = clamp(
     0.78 + synergy * 0.16 - conflict * 0.2 + stability * 0.12 + mastery + focus + (fit - 1) * 0.35,
     0.5,
-    1.2,
+    MAX_ALCHEMY_EFFECTIVE_ESSENCE_MULTIPLIER,
   );
-  return Math.max(1, Math.round(Math.min(rawEssence * multiplier, 2_000_000)));
+  return Math.max(1, Math.floor(Math.min(rawEssence * multiplier, 2_000_000)));
 }
 
 export function calculateQualityPotential(
@@ -565,35 +561,4 @@ export function buildAlchemyYieldPreview(options: {
       };
     }),
   };
-}
-
-export function scaleOperationsForOutputLot(
-  operations: ConditionOperation[],
-  sourceQuality: Quality,
-  sourceAppearance: PillAppearanceGrade,
-  targetQuality: Quality,
-  targetAppearance: PillAppearanceGrade,
-  furnaceMultiplier = 1,
-): ConditionOperation[] {
-  const sourceMultiplier =
-    PILL_CONDENSATION_MULTIPLIER_BY_QUALITY[sourceQuality] *
-    PILL_APPEARANCE_EFFECT_MULTIPLIER[sourceAppearance];
-  const targetMultiplier =
-    PILL_CONDENSATION_MULTIPLIER_BY_QUALITY[targetQuality] *
-    PILL_APPEARANCE_EFFECT_MULTIPLIER[targetAppearance];
-  const factor = clamp(targetMultiplier / Math.max(0.01, sourceMultiplier), 0.2, 8);
-  return operations.map((operation) => {
-    if (operation.type === 'change_gauge' && operation.delta > 0) {
-      return {
-        ...operation,
-        delta: Math.max(
-          0,
-          Math.round(
-            buildPillToxicity(targetQuality, targetAppearance, furnaceMultiplier),
-          ),
-        ),
-      };
-    }
-    return scalePillEffectOperation(operation, factor, { final: true });
-  });
 }
