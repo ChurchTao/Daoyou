@@ -1,6 +1,7 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { cn } from '@shared/lib/cn';
 import type { TaskInstance } from '@shared/types/task';
+import { TaskObjectiveRow } from './TaskObjectiveRow';
 
 function StatusPill({
   text,
@@ -33,8 +34,10 @@ export function BreakthroughTaskCard({
   const currentStage = task.snapshot.stages.find((stage) => stage.current) ?? null;
   const fromRealm = task.snapshot.fromRealm ?? task.metadata.fromRealm ?? null;
   const toRealm = task.snapshot.toRealm ?? task.metadata.toRealm ?? null;
-  const transitionText =
-    fromRealm && toRealm ? `${fromRealm} → ${toRealm}` : task.snapshot.title;
+  const contextText =
+    fromRealm && toRealm
+      ? `${task.snapshot.title} · ${fromRealm} → ${toRealm}`
+      : task.snapshot.title;
 
   if (task.status === 'completed' || !currentStage) {
     return (
@@ -44,22 +47,19 @@ export function BreakthroughTaskCard({
           className,
         )}
       >
+        <div className="flex items-center justify-between gap-3 border-b border-ink/10 pb-3">
+          <p className="text-ink-secondary min-w-0 truncate text-xs">{contextText}</p>
+          <StatusPill text="前置已成" tone="ready" />
+        </div>
+
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-base font-semibold tracking-[0.04em] text-ink">
-              可回静室冲关
-            </p>
-            <StatusPill text="前置已成" tone="ready" />
-          </div>
-          <p className="text-sm leading-7 text-ink-secondary">
+          <p className="text-ink text-base font-semibold tracking-[0.04em]">
+            可回静室冲关
+          </p>
+          <p className="text-ink-secondary text-sm leading-7">
             这一份破境卷宗已经办妥，现在可以回静室正式冲击
             {toRealm ?? '下一重境界'}。
           </p>
-        </div>
-
-        <div className="space-y-1 text-xs text-ink-secondary">
-          <p>{task.snapshot.title}</p>
-          <p>{transitionText}</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -69,6 +69,14 @@ export function BreakthroughTaskCard({
     );
   }
 
+  const stageIndex = task.snapshot.stages.findIndex((stage) => stage.current);
+  const stageNumber = stageIndex >= 0 ? stageIndex + 1 : 1;
+  const totalStages = task.snapshot.totalStages;
+  const doneCount = currentStage.objectives.filter(
+    (objective) => objective.completed,
+  ).length;
+  const totalCount = currentStage.objectives.length;
+
   return (
     <div
       className={cn(
@@ -76,41 +84,32 @@ export function BreakthroughTaskCard({
         className,
       )}
     >
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-base font-semibold tracking-[0.04em] text-ink">
-            {currentStage.title}
-          </p>
-          <StatusPill text="仍在筹备" tone="pending" />
-        </div>
-        <p className="text-sm leading-7 text-ink-secondary">
-          {currentStage.description}
-        </p>
-        <div className="space-y-1 text-xs text-ink-secondary">
-          <p>{task.snapshot.title}</p>
-          <p>{transitionText}</p>
-        </div>
+      <div className="flex items-center justify-between gap-3 border-b border-ink/10 pb-3">
+        <p className="text-ink-secondary min-w-0 truncate text-xs">{contextText}</p>
+        <StatusPill
+          text={`第 ${stageNumber}/${totalStages} 阶段`}
+          tone="pending"
+        />
       </div>
 
-      <div className="space-y-2 text-sm leading-7">
-        {currentStage.objectives.map((objective) => (
-          <div key={objective.id} className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-ink">{objective.title}</p>
-              <p className="text-xs leading-6 text-ink-secondary">
-                {objective.progressText}
-              </p>
-            </div>
-            <span
-              className={cn(
-                'shrink-0 text-xs',
-                objective.completed ? 'text-emerald-700' : 'text-ink-secondary',
-              )}
-            >
-              {objective.completed ? '已成' : '待办'}
-            </span>
-          </div>
-        ))}
+      <div className="space-y-2">
+        <p className="text-ink text-base font-semibold tracking-[0.04em]">
+          {currentStage.title}
+        </p>
+        <p className="text-ink-secondary text-sm leading-7">
+          {currentStage.description}
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-ink-secondary text-xs leading-5">
+          本阶段目标 · {doneCount}/{totalCount} 已完成
+        </p>
+        <div className="space-y-2">
+          {currentStage.objectives.map((objective) => (
+            <TaskObjectiveRow key={objective.id} objective={objective} />
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">

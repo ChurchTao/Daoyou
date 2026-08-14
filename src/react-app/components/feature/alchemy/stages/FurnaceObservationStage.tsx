@@ -99,6 +99,16 @@ export function FurnaceObservationStage() {
           {warning}
         </InkNotice>
       ))}
+      {session.readiness.estimatedSpiritStones !== null &&
+      !session.readiness.loading &&
+      !session.readiness.canAfford ? (
+        <InkNotice tone="warning">
+          灵石不足：本次炼制需要{' '}
+          {session.readiness.estimatedSpiritStones.toLocaleString('zh-CN')} 枚，
+          当前仅有{' '}
+          {(session.cultivator?.spiritStones ?? 0).toLocaleString('zh-CN')} 枚。
+        </InkNotice>
+      ) : null}
       <section className="border-ink/15 border p-5">
         <p className="text-crimson text-center text-xs tracking-[0.28em]">
           炼制前确认

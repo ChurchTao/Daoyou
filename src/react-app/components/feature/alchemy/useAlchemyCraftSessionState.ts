@@ -1,13 +1,11 @@
 import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorCurrency,
   useCultivatorIdentity,
   usePlayerSession,
 } from '@app/lib/resources/player';
-import { findNextTutorialTask } from '@app/lib/tasks/taskClient';
 import {
   ALCHEMY_MAX_DOSE,
   CREATION_INPUT_CONSTRAINTS,
@@ -128,14 +126,6 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
   const { mutate } = useResourceMutation();
   const { pushToast } = useInkUI();
   const { openQiActionConfirm } = useQiActionConfirm();
-  const { tasks } = useTaskList(cultivator?.id);
-  const starterTask = useMemo(
-    () =>
-      findNextTutorialTask(tasks ?? [])?.definitionId ===
-      'tutorial_first_alchemy',
-    [tasks],
-  );
-
   const [phase, setPhase] = useState<AlchemyWorkspacePhase>('preparing');
   const [mode, setModeState] = useState<AlchemyMode>('improvised');
   const [intent, setIntentState] = useState('');
@@ -697,7 +687,6 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
     loading: profile.loading || currency.loading || playerSession.loading,
     note: playerSession.data?.note,
     sectContext,
-    starterTask,
     phase,
     mode,
     intent,

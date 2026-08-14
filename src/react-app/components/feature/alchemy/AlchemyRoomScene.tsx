@@ -136,10 +136,7 @@ function AlchemyRoomContent() {
     },
     {
       ...ALCHEMY_FACILITIES.guide,
-      status: {
-        label: session.starterTask ? '建议先查看' : '碑文可阅',
-        tone: session.starterTask ? 'attention' : 'neutral',
-      },
+      status: { label: '碑文可阅', tone: 'neutral' },
     },
   ];
 
@@ -165,7 +162,6 @@ function AlchemyRoomContent() {
       />
     ) : selectedId === 'guide' ? (
       <AlchemyGuideView
-        starterTask={session.starterTask}
         focus={action === 'guide-basics' ? 'basics' : 'reference'}
         onBack={() => setLocation('guide', undefined, true)}
         onOpenFurnace={openFurnace}

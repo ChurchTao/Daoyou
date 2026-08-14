@@ -4,6 +4,7 @@ import { claimTaskReward } from '@app/lib/tasks/taskClient';
 import { cn } from '@shared/lib/cn';
 import type { TaskInstance } from '@shared/types/task';
 import { useState } from 'react';
+import { TaskObjectiveRow } from './TaskObjectiveRow';
 
 function StatusPill({
   text,
@@ -98,29 +99,9 @@ export function TutorialTaskCard({
       </div>
 
       {currentStage ? (
-        <div className="space-y-2 text-sm leading-7">
+        <div className="space-y-2">
           {currentStage.objectives.map((objective) => (
-            <div
-              key={objective.id}
-              className="flex items-start justify-between gap-3"
-            >
-              <div className="min-w-0">
-                <p className="text-ink">{objective.title}</p>
-                <p className="text-ink-secondary text-xs leading-6">
-                  {objective.progressText}
-                </p>
-              </div>
-              <span
-                className={cn(
-                  'shrink-0 text-xs',
-                  objective.completed
-                    ? 'text-emerald-700'
-                    : 'text-ink-secondary',
-                )}
-              >
-                {objective.completed ? '已成' : '待办'}
-              </span>
-            </div>
+            <TaskObjectiveRow key={objective.id} objective={objective} />
           ))}
         </div>
       ) : null}

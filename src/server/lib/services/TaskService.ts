@@ -26,7 +26,6 @@ import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
 import { getBreakthroughPillLabel } from '@shared/lib/breakthroughPill';
 import { isConditionStatusActive } from '@shared/lib/condition';
-import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
 import type { BattleRecordV3 } from '@shared/types/battle';
 import type { ConditionStatusKey } from '@shared/types/condition';
 import {
@@ -176,10 +175,6 @@ function buildDefaultObjectiveStates(
       createDefaultObjectiveState(objective.id),
     ),
   );
-}
-
-function getStatusName(statusKey: ConditionStatusKey): string {
-  return getConditionStatusTemplate(statusKey)?.name ?? statusKey;
 }
 
 function toIsoString(value: Date | string | null | undefined): string | null {
@@ -515,8 +510,8 @@ function resolveObjectiveProgress(
           description: definition.description,
           completed,
           progressText: completed
-            ? `已备妥${getStatusName(definition.statusKey)}`
-            : `尚未备妥${getStatusName(definition.statusKey)}`,
+            ? '已具备'
+            : `尚未具备 · ${definition.description}`,
         },
       };
     }

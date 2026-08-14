@@ -1,4 +1,4 @@
-import { InkButton, InkNotice } from '@app/components/ui';
+import { InkButton } from '@app/components/ui';
 import { AlchemyToolWorkspace } from '../AlchemyToolWorkspace';
 
 const SECTIONS = [
@@ -33,12 +33,10 @@ const SECTIONS = [
 ] as const;
 
 export function AlchemyGuideView({
-  starterTask,
   focus = 'reference',
   onBack,
   onOpenFurnace,
 }: {
-  starterTask: boolean;
   focus?: 'basics' | 'reference';
   onBack(): void;
   onOpenFurnace(): void;
@@ -50,16 +48,6 @@ export function AlchemyGuideView({
       onBack={onBack}
     >
       <div className="space-y-6">
-        {starterTask && focus === 'basics' ? (
-          <InkNotice tone="info">
-            <div className="space-y-2">
-              <p className="font-medium">第一炉建议</p>
-              <p className="text-sm leading-7">
-                先选一至两味凡品灵草，各投入一份；选择随心炼丹，并填写“疗伤回元，药性温和”。第一炉只需学会查看炼制预览和结果清单。
-              </p>
-            </div>
-          </InkNotice>
-        ) : null}
         <div className="grid gap-3 md:grid-cols-2">
           {SECTIONS.map((section) => (
             <section key={section.title} className="border-ink/15 border p-5">

@@ -5,7 +5,7 @@ import {
   InkNotice,
   inkFieldVariants,
 } from '@app/components/ui';
-import { STARTER_ALCHEMY_PROMPT } from '@app/lib/alchemy/starterAlchemy';
+import { ALCHEMY_INTENT_SUGGESTIONS } from '@app/lib/alchemy/alchemyIntentSuggestions';
 import { useState } from 'react';
 import type { AlchemyMode } from '@shared/types/consumable';
 import {
@@ -27,6 +27,12 @@ export function FurnacePreparationStage({
   const session = useAlchemyCraftSession();
   const [materialPickerOpen, setMaterialPickerOpen] = useState(false);
   const [formulaPickerOpen, setFormulaPickerOpen] = useState(false);
+  const [intentSuggestionsOpen, setIntentSuggestionsOpen] = useState(false);
+  const [selectedIntentSuggestionId, setSelectedIntentSuggestionId] =
+    useState<string | null>(null);
+  const selectedIntentSuggestion = ALCHEMY_INTENT_SUGGESTIONS.find(
+    (suggestion) => suggestion.id === selectedIntentSuggestionId,
+  );
   return (
     <div className="space-y-6">
       <section>
@@ -67,20 +73,36 @@ export function FurnacePreparationStage({
               onChange={(event) => session.setIntent(event.target.value)}
             />
           </label>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span>
-              {session.starterTask ? (
+          <div className="mt-3 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-ink-secondary mr-1 text-xs tracking-[0.16em]">
+                丹灵建议
+              </span>
+              {ALCHEMY_INTENT_SUGGESTIONS.slice(0, 4).map((suggestion) => (
                 <InkButton
+                  key={suggestion.id}
                   variant="secondary"
-                  onClick={() => session.setIntent(STARTER_ALCHEMY_PROMPT)}
+                  onClick={() => session.setIntent(suggestion.prompt)}
+                  aria-label={`使用炼制目标建议：${suggestion.prompt}`}
                 >
-                  填入推荐目标
+                  {suggestion.label}
                 </InkButton>
-              ) : null}
-            </span>
-            <span className="text-ink-secondary text-xs">
-              {session.intent.length} / 300
-            </span>
+              ))}
+              <InkButton
+                variant="secondary"
+                onClick={() => {
+                  setSelectedIntentSuggestionId(null);
+                  setIntentSuggestionsOpen(true);
+                }}
+              >
+                更多
+              </InkButton>
+            </div>
+            <div className="flex justify-end">
+              <span className="text-ink-secondary text-xs">
+                {session.intent.length} / 300
+              </span>
+            </div>
           </div>
           <InkNotice tone="info">
             没有丹方可供参照。丹药效果、品阶与数量都将在开鼎后揭晓。
@@ -153,6 +175,16 @@ export function FurnacePreparationStage({
           {session.readiness.validation.blockingReason}
         </InkNotice>
       ) : null}
+      {session.readiness.estimatedSpiritStones !== null &&
+      !session.readiness.loading &&
+      !session.readiness.canAfford ? (
+        <InkNotice tone="warning">
+          灵石不足：本次炼制需要{' '}
+          {session.readiness.estimatedSpiritStones.toLocaleString('zh-CN')} 枚，
+          当前仅有{' '}
+          {(session.cultivator?.spiritStones ?? 0).toLocaleString('zh-CN')} 枚。
+        </InkNotice>
+      ) : null}
       {session.analysis.error ? (
         <InkNotice tone="warning">{session.analysis.error}</InkNotice>
       ) : null}
@@ -187,6 +219,80 @@ export function FurnacePreparationStage({
         </InkButton>
       </div>
 
+      <InkDetailDrawer
+        isOpen={intentSuggestionsOpen}
+        onClose={() => {
+          setSelectedIntentSuggestionId(null);
+          setIntentSuggestionsOpen(false);
+        }}
+        title="丹灵建议"
+        description="先选择一种炼丹思路，再确认使用；填入后仍可继续修改。"
+        size="lg"
+        footer={
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-ink-secondary min-w-0 truncate text-xs">
+              {selectedIntentSuggestion
+                ? `已选：${selectedIntentSuggestion.label}`
+                : '尚未选择炼丹思路'}
+            </span>
+            <div className="flex shrink-0 items-center gap-3">
+              <InkButton
+                variant="secondary"
+                onClick={() => {
+                  setSelectedIntentSuggestionId(null);
+                  setIntentSuggestionsOpen(false);
+                }}
+              >
+                关闭
+              </InkButton>
+              <InkButton
+                variant="primary"
+                disabled={!selectedIntentSuggestion}
+                onClick={() => {
+                  if (!selectedIntentSuggestion) return;
+                  session.setIntent(selectedIntentSuggestion.prompt);
+                  setSelectedIntentSuggestionId(null);
+                  setIntentSuggestionsOpen(false);
+                }}
+              >
+                使用此建议
+              </InkButton>
+            </div>
+          </div>
+        }
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          {ALCHEMY_INTENT_SUGGESTIONS.slice(4).map((suggestion) => (
+            <button
+              key={suggestion.id}
+              type="button"
+              aria-pressed={selectedIntentSuggestionId === suggestion.id}
+              className={`border p-4 text-left transition-colors ${
+                selectedIntentSuggestionId === suggestion.id
+                  ? 'border-crimson bg-crimson/[0.06] shadow-[inset_0_0_0_1px_rgba(145,36,36,0.12)]'
+                  : 'border-ink/15 hover:border-crimson/50 hover:bg-ink/[0.02]'
+              }`}
+              onClick={() => setSelectedIntentSuggestionId(suggestion.id)}
+            >
+              <span className="flex items-start justify-between gap-3">
+                <span className="text-base font-medium">{suggestion.label}</span>
+                <span
+                  className={`shrink-0 text-xs ${
+                    selectedIntentSuggestionId === suggestion.id
+                      ? 'text-crimson font-semibold'
+                      : 'text-ink-secondary'
+                  }`}
+                >
+                  {selectedIntentSuggestionId === suggestion.id ? '已选择' : '选择'}
+                </span>
+              </span>
+              <span className="text-ink-secondary mt-2 block text-sm leading-6">
+                {suggestion.prompt}
+              </span>
+            </button>
+          ))}
+        </div>
+      </InkDetailDrawer>
       <InkDetailDrawer
         isOpen={materialPickerOpen}
         onClose={() => setMaterialPickerOpen(false)}

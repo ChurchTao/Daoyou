@@ -61,7 +61,10 @@ export function createBattleMatchState(
       opensAt: input.now,
       deadlineAt: input.now + timeout,
       submissions: {},
-      committedPlayerIds: [],
+      committedPlayerIds: getPlayersWithoutLivingUnits(
+        input.battle,
+        input.controllers,
+      ),
     },
     createdAt: input.now,
     updatedAt: input.now,
@@ -90,7 +93,10 @@ export function openBattlePlanning(
       opensAt: now,
       deadlineAt: now + ROUND_PLANNING_TIMEOUT_MS,
       submissions: {},
-      committedPlayerIds: [],
+      committedPlayerIds: getPlayersWithoutLivingUnits(
+        state.battle,
+        state.controllers,
+      ),
     },
     revision: state.revision + 1,
     updatedAt: now,
@@ -228,7 +234,13 @@ export function applyBattleRoundResolution(
     presentation: {
       ...presentation,
       round: resolution.round,
-      readyPlayerIds: [],
+      // A player whose entire roster has been eliminated has no client-side
+      // action left to acknowledge. Treat that controller as presentation-ready
+      // so it cannot block the surviving players from entering the next round.
+      readyPlayerIds: getPlayersWithoutLivingUnits(
+        resolution.save,
+        state.controllers,
+      ),
     },
     battle: resolution.save,
     latestResolution: toPublicResolution(resolution),
@@ -291,7 +303,10 @@ export function completeBattlePresentation(
           opensAt: now,
           deadlineAt: now + ROUND_PLANNING_TIMEOUT_MS,
           submissions: {},
-          committedPlayerIds: [],
+          committedPlayerIds: getPlayersWithoutLivingUnits(
+            state.battle,
+            state.controllers,
+          ),
         },
     revision: state.revision + 1,
     updatedAt: now,
@@ -555,9 +570,41 @@ function completeMissingIntentsAtDeadline(
 }
 
 function allControllersCommitted(state: BattleMatchStateV1): boolean {
-  return state.controllers.every((controller) =>
-    state.planning!.committedPlayerIds.includes(controller.playerId),
+  const playersRequiringCommit = getPlayersWithLivingUnits(
+    state.battle,
+    state.controllers,
   );
+  return playersRequiringCommit.every((playerId) =>
+    state.planning!.committedPlayerIds.includes(playerId),
+  );
+}
+
+function getPlayersWithoutLivingUnits(
+  battle: BattleSaveV1,
+  controllers: readonly BattleControllerV1[],
+): PlayerId[] {
+  const livingPlayers = new Set(getPlayersWithLivingUnits(battle, controllers));
+  return controllers
+    .map((controller) => controller.playerId)
+    .filter((playerId) => !livingPlayers.has(playerId));
+}
+
+function getPlayersWithLivingUnits(
+  battle: BattleSaveV1,
+  controllers: readonly BattleControllerV1[],
+): PlayerId[] {
+  const restored = restoreBattleSave(battle);
+  try {
+    return controllers
+      .filter((controller) =>
+        controller.unitIds.some((unitId) =>
+          restored.roster.getUnit(unitId).isAlive(),
+        ),
+      )
+      .map((controller) => controller.playerId);
+  } finally {
+    restored.runtime.dispose();
+  }
 }
 
 function getController(

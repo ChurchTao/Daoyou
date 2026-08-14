@@ -179,6 +179,35 @@ describe('BattleMatchStateMachine', () => {
     ).toEqual(['a1']);
   });
 
+  it('does not wait for a player whose controlled units are all dead', () => {
+    const battle = save();
+    battle.checkpoint.units.a0!.hp = 0;
+    battle.checkpoint.units.a1!.hp = 0;
+    const state = createBattleMatchState({
+      matchId: 'eliminated-player-match',
+      battle,
+      controllers,
+      now: 1_000,
+    });
+
+    expect(state.planning?.committedPlayerIds).toEqual(['p-a']);
+    const result = transitionBattleMatch(
+      state,
+      {
+        type: 'resolve_planning_timeout',
+        matchId: 'eliminated-player-match',
+        ...commandBase(state, 'resolve-after-elimination'),
+      },
+      31_001,
+    );
+
+    expect(result.state.status).toBe('resolving');
+    expect(Object.keys(result.state.resolving!.commandSet.intents).sort()).toEqual([
+      'b0',
+      'b1',
+    ]);
+  });
+
   it('requires every living controlled unit exactly once in an atomic commit', () => {
     const state = createBattleMatchState({
       matchId: 'match-test',
@@ -545,6 +574,67 @@ describe('BattleMatchStateMachine', () => {
       'battle_save_v1',
     );
     expect(view.latestResolution).not.toHaveProperty('stateTimeline');
+  });
+
+  it('auto-readies an eliminated player during the presentation phase', () => {
+    const battle = save();
+    battle.checkpoint.units.a0!.hp = 0;
+    battle.checkpoint.units.a1!.hp = 0;
+    const planning = createBattleMatchState({
+      matchId: 'eliminated-presentation-match',
+      battle,
+      controllers,
+      now: 1_000,
+    });
+    const resolving = transitionBattleMatch(
+      planning,
+      {
+        type: 'resolve_planning_timeout',
+        matchId: 'eliminated-presentation-match',
+        ...commandBase(planning, 'timeout-eliminated-presentation'),
+      },
+      31_000,
+    ).state;
+    const nextSave = {
+      ...battle,
+      checkpoint: {
+        ...battle.checkpoint,
+        round: 1,
+        checkpointRevision: 1,
+      },
+    };
+    const presenting = applyBattleRoundResolution(
+      resolving,
+      {
+        version: 'battle_round_resolution_v1',
+        commandSetId: resolving.resolving!.commandSet.commandSetId,
+        round: 1,
+        outcome: { battleEnded: false },
+        sequences: [],
+        stateTimeline: {
+          version: 'battle_state_timeline_v3',
+          frames: [],
+        },
+        checkpoint: nextSave.checkpoint,
+        save: nextSave,
+      },
+      32_000,
+      {
+        resultId: 'eliminated-presentation-result',
+        startedAt: 32_000,
+        readyAcceptedAt: 33_500,
+        scheduledEndsAt: 40_000,
+      },
+    );
+
+    expect(presenting.presentation?.readyPlayerIds).toEqual(['p-a']);
+    const advanced = markBattlePresentationReady(
+      presenting,
+      'p-b',
+      'eliminated-presentation-result',
+      34_000,
+    );
+    expect(advanced.status).toBe('planning');
   });
 
   it('freezes deterministic failures without leaking diagnostics and supports retry or abort', () => {

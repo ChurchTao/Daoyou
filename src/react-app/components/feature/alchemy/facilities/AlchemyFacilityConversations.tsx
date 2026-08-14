@@ -126,7 +126,6 @@ export function AlchemyGuideConversation({
   onExit,
   onOpen,
 }: ConversationProps) {
-  const session = useAlchemyCraftSession();
   return (
     <NpcConversation
       actor={ALCHEMY_FACILITIES.guide}
@@ -137,19 +136,10 @@ export function AlchemyGuideConversation({
         },
       ]}
       options={[
-        ...(session.starterTask
-          ? ([
-              {
-                id: 'guide-basics',
-                label: '查看第一炉建议',
-                tone: 'primary',
-              },
-            ] satisfies NpcConversationOption[])
-          : []),
         {
           id: 'guide-reference',
           label: '阅读炼丹说明',
-          tone: session.starterTask ? 'normal' : 'primary',
+          tone: 'primary',
         },
         { id: 'leave', label: '返回炼丹房', tone: 'muted' },
       ]}
