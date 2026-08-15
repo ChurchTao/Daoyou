@@ -16,6 +16,7 @@ import {
 } from '@server/lib/services/PlayerMailApplicationService';
 import { PlayerMailServiceError } from '@server/lib/services/PlayerMailService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
+import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -28,7 +29,12 @@ const SendMailSchema = z.object({
     .object({
       itemType: z.enum(['material', 'artifact', 'consumable']),
       itemId: z.string().uuid(),
-      quantity: z.number().int().min(1).default(1),
+      quantity: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_PLAYER_ITEM_QUANTITY)
+        .default(1),
     })
     .optional(),
 });

@@ -21,6 +21,7 @@ import {
   BATTLE_TERMINAL_CLEANUP_PENDING_KEY,
   BATTLE_TERMINAL_OUTBOX_PENDING_KEY,
   battleOnlineCommandReceiptsKey,
+  battleOnlineEventSnapshotsKey,
   battleOnlineMatchKey,
   battleOnlinePresentationKey,
   battleReplayArchivePayloadKey,
@@ -46,6 +47,7 @@ import {
   type OnlineBattleRoundResolver,
 } from '@server/lib/services/OnlineBattleResolverPool';
 import {
+  createOnlineBattleEventSnapshot,
   OnlineBattleStore,
   RESOLUTION_TASK_REPUBLISH_LEASE_MS,
 } from '@server/lib/services/OnlineBattleStore';
@@ -100,6 +102,9 @@ try {
   await redis.ping();
   await ensureMessageTopology();
   await startBattleTerminalFinalizerConsumer();
+  await runEventSnapshotRetentionScenario();
+  await runPresentingEventSnapshotScenario();
+  await runEventSnapshotCasConflictScenario();
   await runRestartAndMultiInstanceScenario();
   await runCommandIdempotencyLifecycleScenario();
   await runFinishedArchiveScenario();
@@ -125,6 +130,184 @@ try {
   for (const room of touchedArenaRooms) await cleanupArenaRoom(room);
   redis.disconnect(false);
   await closeNatsConnection();
+}
+
+async function runEventSnapshotRetentionScenario(): Promise<void> {
+  const state = createOnlineBattleFixture(uniqueMatchId('event-snapshots'), 1);
+  touchedMatchIds.push(state.matchId);
+  const store = new OnlineBattleStore();
+  const coordinator = new OnlineBattleCoordinator(store, directResolver);
+  await coordinator.createMatch({
+    match: state,
+    acceptedPlayerIds: state.controllers.map((entry) => entry.playerId),
+  });
+
+  let current = await store.get(state.matchId);
+  for (let index = 1; index <= 18; index += 1) {
+    const next = {
+      ...current,
+      storageRevision: current.storageRevision + 1,
+      clientEventSeq: current.clientEventSeq + 1,
+      match: {
+        ...current.match,
+        revision: current.match.revision + 1,
+        updatedAt: current.match.updatedAt + 1,
+      },
+    };
+    assert(
+      await store.compareAndSet(
+        current,
+        next,
+        undefined,
+        createOnlineBattleEventSnapshot(next),
+      ),
+      `event snapshot CAS ${index} failed`,
+    );
+    current = next;
+  }
+
+  const snapshotKey = battleOnlineEventSnapshotsKey(state.matchId);
+  assert(
+    (await redis.hlen(snapshotKey)) === 16,
+    'event snapshot Hash exceeded its 16-entry bound',
+  );
+  const ttl = await redis.ttl(snapshotKey);
+  assert(
+    ttl > 0 && ttl <= 30,
+    `event snapshot Hash TTL was outside the 30-second bound: ${ttl}`,
+  );
+  assert(
+    (await store.getEventSnapshot(state.matchId, 2)) === null &&
+      (await store.getEventSnapshot(state.matchId, 3))?.eventSeq === 3,
+    'event snapshot pruning did not retain exactly the latest 16 events',
+  );
+  const historical = await coordinator.playerViewAtEvent(
+    state.matchId,
+    state.controllers[0]!.playerId,
+    17,
+  );
+  const latest = await coordinator.playerViewLatest(
+    state.matchId,
+    state.controllers[0]!.playerId,
+  );
+  assert(
+    historical?.clientEventSeq === 17 && latest.clientEventSeq === 18,
+    'historical event view was replaced by the latest runtime',
+  );
+  assert(
+    (await coordinator.playerViewAtEvent(
+      state.matchId,
+      state.controllers[0]!.playerId,
+      999,
+    )) === null && latest.clientEventSeq === current.clientEventSeq,
+    'event snapshot miss did not preserve the latest real event sequence',
+  );
+
+  await redis.hset(snapshotKey, '17', '{}');
+  assert(
+    (await store.getEventSnapshot(state.matchId, 17)) === null &&
+      (await redis.hexists(snapshotKey, '17')) === 0 &&
+      (await redis.exists(battleOnlineMatchKey(state.matchId))) === 1,
+    'corrupt event snapshot removal affected more than its Hash field',
+  );
+  coordinator.close();
+}
+
+async function runPresentingEventSnapshotScenario(): Promise<void> {
+  const state = createOnlineBattleFixture(
+    uniqueMatchId('presenting-event-snapshot'),
+    1,
+  );
+  touchedMatchIds.push(state.matchId);
+  const store = new OnlineBattleStore();
+  const coordinator = new OnlineBattleCoordinator(store, directResolver);
+  await coordinator.createMatch({
+    match: state,
+    acceptedPlayerIds: state.controllers.map((entry) => entry.playerId),
+  });
+  for (const controller of state.controllers) {
+    await coordinator.submitRound({
+      matchId: state.matchId,
+      playerId: controller.playerId,
+      requestId: crypto.randomUUID(),
+      round: 1,
+      checkpointRevision: 0,
+      intents: basicIntentsForPlayer(state, controller.playerId),
+    });
+  }
+  await coordinator.resumeResolution(state.matchId);
+  const latest = await coordinator.playerViewLatest(
+    state.matchId,
+    state.controllers[0]!.playerId,
+  );
+  assert(
+    latest.status === 'presenting' && latest.roundResult,
+    'fixture did not reach a presenting event',
+  );
+  await redis.del(battleOnlinePresentationKey(state.matchId));
+  const exact = await coordinator.playerViewAtEvent(
+    state.matchId,
+    state.controllers[0]!.playerId,
+    latest.clientEventSeq,
+  );
+  assert(
+    exact?.status === 'presenting' &&
+      exact.roundResult?.resultId === latest.roundResult.resultId,
+    'presenting event snapshot depended on the mutable presentation key',
+  );
+  coordinator.close();
+}
+
+async function runEventSnapshotCasConflictScenario(): Promise<void> {
+  const state = createOnlineBattleFixture(
+    uniqueMatchId('event-snapshot-conflict'),
+    1,
+  );
+  touchedMatchIds.push(state.matchId);
+  const store = new OnlineBattleStore();
+  const coordinator = new OnlineBattleCoordinator(store, directResolver);
+  await coordinator.createMatch({
+    match: state,
+    acceptedPlayerIds: state.controllers.map((entry) => entry.playerId),
+  });
+  const current = await store.get(state.matchId);
+  const winner = {
+    ...current,
+    storageRevision: current.storageRevision + 1,
+    match: {
+      ...current.match,
+      revision: current.match.revision + 1,
+      updatedAt: current.match.updatedAt + 1,
+    },
+  };
+  assert(
+    await store.compareAndSet(current, winner),
+    'event snapshot conflict fixture could not advance the winner state',
+  );
+  const stale = {
+    ...current,
+    storageRevision: current.storageRevision + 1,
+    clientEventSeq: current.clientEventSeq + 1,
+    match: {
+      ...current.match,
+      revision: current.match.revision + 2,
+      updatedAt: current.match.updatedAt + 2,
+    },
+  };
+  assert(
+    !(await store.compareAndSet(
+      current,
+      stale,
+      undefined,
+      createOnlineBattleEventSnapshot(stale),
+    )) &&
+      (await redis.hexists(
+        battleOnlineEventSnapshotsKey(state.matchId),
+        String(stale.clientEventSeq),
+      )) === 0,
+    'CAS conflict left an orphan event snapshot',
+  );
+  coordinator.close();
 }
 
 async function runCommandIdempotencyLifecycleScenario(): Promise<void> {
@@ -687,7 +870,7 @@ async function runMissingPresentationDiscardScenario(): Promise<void> {
   await coordinator.resumeResolution(state.matchId);
   await redis.del(battleOnlinePresentationKey(state.matchId));
   await coordinator
-    .playerView(state.matchId, state.controllers[0]!.playerId)
+    .playerViewLatest(state.matchId, state.controllers[0]!.playerId)
     .then(
       () => {
         throw new Error('missing presentation blob was accepted');
@@ -1008,7 +1191,7 @@ async function runRestartAndMultiInstanceScenario(): Promise<void> {
       (controller) => controller.playerId,
     ),
   });
-  const initialPlanningView = await first.playerView(
+  const initialPlanningView = await first.playerViewLatest(
     state.matchId,
     alpha.playerId,
   );
@@ -1090,7 +1273,7 @@ async function runRestartAndMultiInstanceScenario(): Promise<void> {
     presenting.status === 'presenting',
     'restart did not recover resolving',
   );
-  const view = await restarted.playerView(state.matchId, alpha.playerId);
+  const view = await restarted.playerViewLatest(state.matchId, alpha.playerId);
   assert(view.roundResult, 'presenting window did not survive Redis reload');
 
   const duplicateAfterPhaseChange = await restarted.submitRound({
@@ -1117,13 +1300,22 @@ async function runRestartAndMultiInstanceScenario(): Promise<void> {
       requestId: crypto.randomUUID(),
     });
   }
-  const afterReady = await restarted.playerView(state.matchId, alpha.playerId);
+  const afterReady = await restarted.playerViewLatest(
+    state.matchId,
+    alpha.playerId,
+  );
   assert(
     afterReady.clientEventSeq === view.clientEventSeq,
     'presentation Ready incorrectly created another client-visible round result',
   );
+  assert(
+    Number(
+      await redis.zscore(BATTLE_ONLINE_DEADLINES_KEY, state.matchId),
+    ) === view.roundResult.scheduledEndsAt,
+    'presentation Ready moved the Redis deadline before scheduledEndsAt',
+  );
   await Bun.sleep(
-    Math.max(0, view.roundResult.readyAcceptedAt - Date.now()) + 20,
+    Math.max(0, view.roundResult.scheduledEndsAt - Date.now()) + 20,
   );
   await restarted.resolveDeadline(state.matchId);
   const nextPhase = await restarted.runtimeDiagnostic(state.matchId);
@@ -1178,7 +1370,7 @@ async function runFinishedArchiveScenario(): Promise<void> {
     });
   }
   await coordinator.resumeResolution(state.matchId);
-  const view = await coordinator.playerView(
+  const view = await coordinator.playerViewLatest(
     state.matchId,
     state.controllers[0]!.playerId,
   );
@@ -1467,6 +1659,7 @@ async function cleanupMatch(matchId: string): Promise<void> {
     .del(
       battleOnlineMatchKey(matchId),
       battleOnlineCommandReceiptsKey(matchId),
+      battleOnlineEventSnapshotsKey(matchId),
       battleOnlinePresentationKey(matchId),
       battleReplayArchivePayloadKey(matchId),
       battleReplayRoundsKey(matchId),

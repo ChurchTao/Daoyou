@@ -24,13 +24,14 @@ import type {
   BodyCultivationBreakthroughEligibleResponse,
   BodyCultivationBreakthroughReadinessResponse,
 } from '@shared/contracts/bodyCultivation';
+import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 
 const ConsumeSchema = z.object({ consumableId: z.string().uuid() });
 const BodyCultivationBreakthroughSelectionSchema = z.object({
   id: z.string().min(1),
-  quantity: z.number().int().min(1),
+  quantity: z.number().int().min(1).max(MAX_PLAYER_ITEM_QUANTITY),
 });
 const BodyCultivationBreakthroughSchema = z.object({
   materialSelections: z

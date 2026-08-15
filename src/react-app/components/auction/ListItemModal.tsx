@@ -22,6 +22,7 @@ import {
 } from '@app/lib/resources/inventory';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import {
+  AUCTION_MAX_PURCHASE_QUANTITY,
   AUCTION_MIN_QUALITY,
   calculateAuctionSettlement,
   getAuctionUnitPriceCap,
@@ -365,9 +366,15 @@ export function ListItemModal({
       isStackable &&
       (isNaN(quantityNum) ||
         quantityNum < 1 ||
-        quantityNum > selectedItem.quantity)
+        quantityNum >
+          Math.min(selectedItem.quantity, AUCTION_MAX_PURCHASE_QUANTITY))
     ) {
-      setError(`数量范围为 1 ~ ${selectedItem.quantity}`);
+      setError(
+        `数量范围为 1 ~ ${Math.min(
+          selectedItem.quantity,
+          AUCTION_MAX_PURCHASE_QUANTITY,
+        )}`,
+      );
       return;
     }
     if (visibility === 'private' && !targetCultivatorId) {
@@ -1078,11 +1085,24 @@ export function ListItemModal({
               <label className="mb-2 block text-sm font-medium">上架数量</label>
               <div className="flex gap-2">
                 <InkInput
+                  type="number"
+                  min={1}
+                  max={
+                    selectedItem && isStackableItem(selectedItem)
+                      ? Math.min(
+                          selectedItem.quantity,
+                          AUCTION_MAX_PURCHASE_QUANTITY,
+                        )
+                      : 1
+                  }
                   value={quantity}
                   onChange={(v) => setQuantity(v)}
                   placeholder={`请输入数量（最多 ${
                     selectedItem && isStackableItem(selectedItem)
-                      ? selectedItem.quantity
+                      ? Math.min(
+                          selectedItem.quantity,
+                          AUCTION_MAX_PURCHASE_QUANTITY,
+                        )
                       : 0
                   }）`}
                 />
@@ -1091,7 +1111,14 @@ export function ListItemModal({
                   variant="secondary"
                   onClick={() => {
                     if (selectedItem && isStackableItem(selectedItem)) {
-                      setQuantity(String(selectedItem.quantity));
+                      setQuantity(
+                        String(
+                          Math.min(
+                            selectedItem.quantity,
+                            AUCTION_MAX_PURCHASE_QUANTITY,
+                          ),
+                        ),
+                      );
                     }
                   }}
                 >

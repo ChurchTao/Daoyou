@@ -15,6 +15,7 @@ import { StandardSectRules } from '@shared/engine/sect';
 import type { BattleRecordV3 } from '@shared/types/battle';
 import type { CultivationProgress } from '@shared/types/cultivator';
 import { z } from 'zod';
+import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import type { PlayerStateMutationResponse } from './player';
 
 export const SectLevelTrainRequestSchema = z.object({
@@ -46,7 +47,11 @@ export const SectTaskSubmissionInputSchema = z
         z
           .object({
             itemId: z.string().uuid(),
-            quantity: z.number().int().positive().max(99),
+            quantity: z
+              .number()
+              .int()
+              .positive()
+              .max(MAX_PLAYER_ITEM_QUANTITY),
           })
           .strict(),
       )

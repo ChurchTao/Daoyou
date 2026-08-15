@@ -55,7 +55,11 @@ import {
   MAX_SOCKET_MESSAGE_BYTES,
   onlineBattleMessageByteLength,
 } from './OnlineBattleSocketPolicy';
-import { OnlineBattleStore } from './OnlineBattleStore';
+import {
+  createOnlineBattleEventSnapshot,
+  OnlineBattleStore,
+  type OnlineBattleEventSnapshotV1,
+} from './OnlineBattleStore';
 import { publishOnlineBattleEvent } from './onlineBattleBroadcaster';
 
 const MAX_CAS_ATTEMPTS = 8;
@@ -71,13 +75,9 @@ export class OnlineBattleCoordinator {
       projection: ReturnType<typeof createBattleMatchViewProjection>;
     }
   >();
-  private readonly eventRuntimeCache = new Map<
+  private readonly eventSnapshotCache = new Map<
     string,
-    Promise<OnlineBattleRuntimeStateV1>
-  >();
-  private readonly eventPresentationCache = new Map<
-    string,
-    Promise<CompactBattlePresentationWindowV1 | undefined>
+    Promise<OnlineBattleEventSnapshotV1 | null>
   >();
 
   constructor(
@@ -135,7 +135,7 @@ export class OnlineBattleCoordinator {
             ? openBattlePlanning(current.match, Date.now())
             : current.match,
         });
-        if (await this.store.compareAndSet(current, next)) {
+        if (await this.compareAndSet(current, next)) {
           this.publish(current, next);
           return true;
         }
@@ -207,7 +207,7 @@ export class OnlineBattleCoordinator {
             payloadHash,
             receipt,
           );
-          if (await this.store.compareAndSet(current, next, commandReceipt)) {
+          if (await this.compareAndSet(current, next, commandReceipt)) {
             this.publish(current, next);
             return receipt;
           }
@@ -305,7 +305,7 @@ export class OnlineBattleCoordinator {
           const next = this.advance(current, {
             match: updated,
           });
-          if (await this.store.compareAndSet(current, next, commandReceipt)) {
+          if (await this.compareAndSet(current, next, commandReceipt)) {
             this.publish(current, next);
             return receipt;
           }
@@ -362,6 +362,8 @@ export class OnlineBattleCoordinator {
         let match = current.match;
         if (match.status === 'presenting') {
           if (match.presentation) {
+            // Ready acknowledgements are informational only; the
+            // authoritative presentation boundary remains scheduledEndsAt.
             observeOnlineBattleMetric(
               'ready_wait_ms',
               Math.max(0, now - match.presentation.startedAt),
@@ -373,7 +375,7 @@ export class OnlineBattleCoordinator {
               observeOnlineBattleMetric('presentation_forced_end_total');
             }
           }
-          match = completeBattlePresentation(match, now, true);
+          match = completeBattlePresentation(match, now);
         } else if (
           match.status === 'planning' &&
           match.planning &&
@@ -421,7 +423,7 @@ export class OnlineBattleCoordinator {
               }
             : {}),
         });
-        if (await this.store.compareAndSet(current, next)) {
+        if (await this.compareAndSet(current, next)) {
           this.publish(current, next);
           return true;
         }
@@ -540,7 +542,7 @@ export class OnlineBattleCoordinator {
         replay,
         resolutionRetry,
       });
-      if (!(await this.store.compareAndSet(current, next))) return false;
+      if (!(await this.compareAndSet(current, next))) return false;
       this.publish(current, next);
       return true;
     });
@@ -560,7 +562,7 @@ export class OnlineBattleCoordinator {
         match,
         resolutionRetry: undefined,
       });
-      if (!(await this.store.compareAndSet(current, next))) return false;
+      if (!(await this.compareAndSet(current, next))) return false;
       this.publish(current, next);
       return true;
     });
@@ -650,12 +652,47 @@ export class OnlineBattleCoordinator {
     };
   }
 
-  async playerView(
+  async playerViewLatest(
     matchId: string,
     playerId: string,
-    expectedEventSeq?: number,
   ): Promise<OnlineBattlePlayerViewV2> {
-    const runtime = await this.loadRuntimeForView(matchId, expectedEventSeq);
+    const runtime = await this.store.get(matchId);
+    const presentationWindow = await this.store.getPresentationWindow(runtime);
+    return this.buildPlayerView(runtime, playerId, presentationWindow);
+  }
+
+  async playerViewAtEvent(
+    matchId: string,
+    playerId: string,
+    eventSeq: number,
+  ): Promise<OnlineBattlePlayerViewV2 | null> {
+    const snapshot = await this.loadEventSnapshot(matchId, eventSeq);
+    if (!snapshot) return null;
+    const runtime: OnlineBattleRuntimeStateV1 = {
+      version: 'online_battle_runtime_v1',
+      storageRevision: 0,
+      clientEventSeq: snapshot.eventSeq,
+      match: snapshot.match,
+      acceptedPlayerIds: snapshot.acceptedPlayerIds,
+      replay: { version: 'battle_replay_accumulator_v1' },
+    };
+    const view = this.buildPlayerView(
+      runtime,
+      playerId,
+      snapshot.presentationWindow,
+    );
+    if (view.clientEventSeq !== eventSeq) {
+      throw new Error('Battle event view sequence mismatch');
+    }
+    return view;
+  }
+
+  private buildPlayerView(
+    runtime: OnlineBattleRuntimeStateV1,
+    playerId: string,
+    presentationWindow: CompactBattlePresentationWindowV1 | undefined,
+  ): OnlineBattlePlayerViewV2 {
+    const matchId = runtime.match.matchId;
     if (!runtime.acceptedPlayerIds.includes(playerId)) {
       throw new Error('Player has not accepted the battle');
     }
@@ -676,60 +713,28 @@ export class OnlineBattleCoordinator {
         if (oldest) this.projectionCache.delete(oldest);
       }
     }
-    const presentationWindow = await this.loadPresentationForView(
-      runtime,
-      expectedEventSeq,
-    );
     return buildPlayerView(runtime, playerId, presentationWindow, projection);
   }
 
   close(): void {
-    this.eventRuntimeCache.clear();
-    this.eventPresentationCache.clear();
+    this.eventSnapshotCache.clear();
     this.resolver.close();
   }
 
-  private loadRuntimeForView(
+  private loadEventSnapshot(
     matchId: string,
-    expectedEventSeq?: number,
-  ): Promise<OnlineBattleRuntimeStateV1> {
-    if (expectedEventSeq === undefined) return this.store.get(matchId);
-    const key = `${matchId}:${expectedEventSeq}`;
-    const cached = this.eventRuntimeCache.get(key);
+    eventSeq: number,
+  ): Promise<OnlineBattleEventSnapshotV1 | null> {
+    const key = `${matchId}:${eventSeq}`;
+    const cached = this.eventSnapshotCache.get(key);
     if (cached) return cached;
-    const loading = this.store.get(matchId).then((runtime) => {
-      if (runtime.clientEventSeq < expectedEventSeq) {
-        throw new Error('Battle runtime is behind its broadcast event');
-      }
-      return runtime;
-    });
-    this.eventRuntimeCache.set(key, loading);
-    if (this.eventRuntimeCache.size > 256) {
-      const oldest = this.eventRuntimeCache.keys().next().value;
-      if (oldest) this.eventRuntimeCache.delete(oldest);
+    const loading = this.store.getEventSnapshot(matchId, eventSeq);
+    this.eventSnapshotCache.set(key, loading);
+    if (this.eventSnapshotCache.size > 256) {
+      const oldest = this.eventSnapshotCache.keys().next().value;
+      if (oldest) this.eventSnapshotCache.delete(oldest);
     }
-    const timer = setTimeout(() => this.eventRuntimeCache.delete(key), 50);
-    timer.unref();
-    return loading;
-  }
-
-  private loadPresentationForView(
-    runtime: OnlineBattleRuntimeStateV1,
-    expectedEventSeq?: number,
-  ): Promise<CompactBattlePresentationWindowV1 | undefined> {
-    if (expectedEventSeq === undefined) {
-      return this.store.getPresentationWindow(runtime);
-    }
-    const key = `${runtime.match.matchId}:${expectedEventSeq}:${runtime.match.presentation?.resultId ?? 'none'}`;
-    const cached = this.eventPresentationCache.get(key);
-    if (cached) return cached;
-    const loading = this.store.getPresentationWindow(runtime);
-    this.eventPresentationCache.set(key, loading);
-    if (this.eventPresentationCache.size > 256) {
-      const oldest = this.eventPresentationCache.keys().next().value;
-      if (oldest) this.eventPresentationCache.delete(oldest);
-    }
-    const timer = setTimeout(() => this.eventPresentationCache.delete(key), 50);
+    const timer = setTimeout(() => this.eventSnapshotCache.delete(key), 50);
     timer.unref();
     return loading;
   }
@@ -745,7 +750,7 @@ export class OnlineBattleCoordinator {
       const match = update(current.match);
       if (match.revision === current.match.revision) return false;
       const next = this.advance(current, { match });
-      if (!(await this.store.compareAndSet(current, next))) return false;
+      if (!(await this.compareAndSet(current, next))) return false;
       this.publish(current, next);
       return true;
     });
@@ -779,9 +784,26 @@ export class OnlineBattleCoordinator {
       resolutionRetry: undefined,
       termination: { reason, requestedAt: now },
     });
-    if (!(await this.store.compareAndSet(current, next))) return false;
+    if (!(await this.compareAndSet(current, next))) return false;
     this.publish(current, next);
     return true;
+  }
+
+  private compareAndSet(
+    current: OnlineBattleRuntimeStateV1,
+    next: OnlineBattleRuntimeStateV1,
+    commandReceipt?: OnlineBattleCommandReceiptRecordV1,
+  ): Promise<boolean> {
+    const eventSnapshot =
+      next.clientEventSeq === current.clientEventSeq + 1
+        ? createOnlineBattleEventSnapshot(next)
+        : undefined;
+    return this.store.compareAndSet(
+      current,
+      next,
+      commandReceipt,
+      eventSnapshot,
+    );
   }
 
   private publish(

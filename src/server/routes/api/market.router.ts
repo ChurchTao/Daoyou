@@ -22,19 +22,20 @@ import {
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { readCultivatorRealm } from '@server/lib/services/cultivator/CultivatorFactsReader';
 import { getPlayerPreHeavenFates } from '@server/lib/services/cultivator/CultivatorProfileRepository';
+import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import type { PreHeavenFate } from '@shared/types/cultivator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 const BuySchema = z.object({
   listingId: z.string().optional(),
-  quantity: z.number().min(1).default(1),
+  quantity: z.number().int().min(1).max(MAX_PLAYER_ITEM_QUANTITY).default(1),
   layer: z.enum(['common', 'treasure', 'heaven', 'black']).optional(),
   items: z
     .array(
       z.object({
         listingId: z.string(),
-        quantity: z.number().min(1),
+        quantity: z.number().int().min(1).max(MAX_PLAYER_ITEM_QUANTITY),
       }),
     )
     .optional(),
@@ -49,7 +50,7 @@ const PreviewSchema = z
       .array(
         z.object({
           id: z.string().uuid(),
-          quantity: z.number().int().min(1).max(1_000_000),
+          quantity: z.number().int().min(1).max(MAX_PLAYER_ITEM_QUANTITY),
         }),
       )
       .min(1)

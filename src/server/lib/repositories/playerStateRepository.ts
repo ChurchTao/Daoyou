@@ -19,7 +19,7 @@ import {
   type ResourceScope,
   type ResourceTopic,
 } from '@shared/contracts/resources';
-import { and, asc, eq, inArray, lt, min, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, like, lt, min, sql } from 'drizzle-orm';
 import { ZodError } from 'zod';
 
 type ResourceEventRow = typeof resourceEvents.$inferSelect;
@@ -281,6 +281,25 @@ export async function findPlayerMutationRequest(
     )
     .limit(1);
   return row ?? null;
+}
+
+export async function listPlayerMutationRequestsByPrefix(
+  cultivatorId: string,
+  source: string,
+  requestIdPrefix: string,
+  q: DbExecutor | DbTransaction = getExecutor(),
+) {
+  return q
+    .select()
+    .from(playerMutationRequests)
+    .where(
+      and(
+        eq(playerMutationRequests.cultivatorId, cultivatorId),
+        eq(playerMutationRequests.source, source),
+        like(playerMutationRequests.requestId, `${requestIdPrefix}%`),
+      ),
+    )
+    .orderBy(asc(playerMutationRequests.createdAt));
 }
 
 export async function insertPlayerMutationRequest(

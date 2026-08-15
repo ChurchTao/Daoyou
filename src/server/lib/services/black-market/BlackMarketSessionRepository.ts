@@ -2,7 +2,7 @@ import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import type { BlackMarketInternalSession } from './types';
 
-const SESSION_PREFIX = 'black-market:v1:session';
+const SESSION_PREFIX = 'black-market:v9:session';
 
 function sessionKey(sessionId: string): string {
   return `${SESSION_PREFIX}:${sessionId}`;

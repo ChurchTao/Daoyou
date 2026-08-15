@@ -534,12 +534,8 @@ describe('BattleMatchStateMachine', () => {
       'result-1',
       34_100,
     );
-    expect(allReady.status).toBe('planning');
-    expect(allReady.planning).toMatchObject({
-      round: 2,
-      opensAt: 34_100,
-      deadlineAt: 64_100,
-    });
+    expect(allReady.status).toBe('presenting');
+    expect(allReady.presentation?.readyPlayerIds).toEqual(['p-a', 'p-b']);
     const earlyReadyA = markBattlePresentationReady(
       presenting,
       'p-a',
@@ -553,19 +549,18 @@ describe('BattleMatchStateMachine', () => {
       32_600,
     );
     expect(earlyReadyAll.status).toBe('presenting');
-    const openedAtMinimum = completeBattlePresentation(
+    const heldUntilScheduledEnd = completeBattlePresentation(
       earlyReadyAll,
-      33_500,
-      true,
+      39_999,
     );
-    expect(openedAtMinimum.status).toBe('planning');
-    expect(openedAtMinimum.planning).toMatchObject({
-      opensAt: 33_500,
-      deadlineAt: 63_500,
-    });
-    const next = completeBattlePresentation(presenting, 40_000);
+    expect(heldUntilScheduledEnd.status).toBe('presenting');
+    const next = completeBattlePresentation(allReady, 40_000);
     expect(next.status).toBe('planning');
-    expect(next.planning?.round).toBe(2);
+    expect(next.planning).toMatchObject({
+      round: 2,
+      opensAt: 40_000,
+      deadlineAt: 70_000,
+    });
     const view = createBattleMatchPlayerView(next, 'p-a', 40_001);
     expect(view.latestResolution?.version).toBe(
       'battle_round_resolution_public_v1',
@@ -576,7 +571,7 @@ describe('BattleMatchStateMachine', () => {
     expect(view.latestResolution).not.toHaveProperty('stateTimeline');
   });
 
-  it('auto-readies an eliminated player during the presentation phase', () => {
+  it('does not auto-ready an eliminated player during the presentation phase', () => {
     const battle = save();
     battle.checkpoint.units.a0!.hp = 0;
     battle.checkpoint.units.a1!.hp = 0;
@@ -627,14 +622,87 @@ describe('BattleMatchStateMachine', () => {
       },
     );
 
-    expect(presenting.presentation?.readyPlayerIds).toEqual(['p-a']);
-    const advanced = markBattlePresentationReady(
+    expect(presenting.presentation?.readyPlayerIds).toEqual([]);
+    const survivorReady = markBattlePresentationReady(
       presenting,
       'p-b',
       'eliminated-presentation-result',
       34_000,
     );
+    expect(survivorReady.status).toBe('presenting');
+    expect(survivorReady.presentation?.readyPlayerIds).toEqual(['p-b']);
+    const advanced = completeBattlePresentation(survivorReady, 40_000);
     expect(advanced.status).toBe('planning');
+    expect(advanced.planning?.committedPlayerIds).toContain('p-a');
+  });
+
+  it('keeps a terminal presentation alive until its scheduled end', () => {
+    const planning = createBattleMatchState({
+      matchId: 'terminal-presentation-match',
+      battle: save(),
+      controllers,
+      now: 1_000,
+    });
+    const resolving = transitionBattleMatch(
+      planning,
+      {
+        type: 'resolve_planning_timeout',
+        matchId: 'terminal-presentation-match',
+        ...commandBase(planning, 'timeout-terminal-presentation'),
+      },
+      31_000,
+    ).state;
+    const nextSave = {
+      ...resolving.battle,
+      checkpoint: {
+        ...resolving.battle.checkpoint,
+        round: 1,
+        checkpointRevision: 1,
+      },
+    };
+    const presenting = applyBattleRoundResolution(
+      resolving,
+      {
+        version: 'battle_round_resolution_v1',
+        commandSetId: resolving.resolving!.commandSet.commandSetId,
+        round: 1,
+        outcome: { battleEnded: true, winningTeamId: 'a' },
+        sequences: [],
+        stateTimeline: {
+          version: 'battle_state_timeline_v3',
+          frames: [],
+        },
+        checkpoint: nextSave.checkpoint,
+        save: nextSave,
+      },
+      32_000,
+      {
+        resultId: 'terminal-presentation-result',
+        startedAt: 32_000,
+        readyAcceptedAt: 33_500,
+        scheduledEndsAt: 40_000,
+      },
+    );
+    const readyA = markBattlePresentationReady(
+      presenting,
+      'p-a',
+      'terminal-presentation-result',
+      34_000,
+    );
+    const allReady = markBattlePresentationReady(
+      readyA,
+      'p-b',
+      'terminal-presentation-result',
+      34_100,
+    );
+
+    expect(allReady.status).toBe('presenting');
+    expect(completeBattlePresentation(allReady, 39_999).status).toBe(
+      'presenting',
+    );
+    expect(completeBattlePresentation(allReady, 40_000).status).toBe(
+      'finished',
+    );
   });
 
   it('freezes deterministic failures without leaking diagnostics and supports retry or abort', () => {

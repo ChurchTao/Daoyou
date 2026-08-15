@@ -120,20 +120,37 @@ router.get(
         });
       });
     };
-    const sendSnapshotNow = async (
-      ws: WSContext,
-      expectedEventSeq?: number,
-    ) => {
-      const view = await battleCoordinator.playerView(
+    const sendLatestSnapshotNow = async (ws: WSContext) => {
+      const view = await battleCoordinator.playerViewLatest(
         identity.matchId,
         identity.playerId,
-        expectedEventSeq,
       );
       sendSnapshotView(ws, view);
     };
+    const sendEventSnapshotsThrough = async (
+      ws: WSContext,
+      eventSeq: number,
+    ) => {
+      for (let sequence = lastSentEventSeq + 1; sequence <= eventSeq; sequence += 1) {
+        const view = await battleCoordinator.playerViewAtEvent(
+          identity.matchId,
+          identity.playerId,
+          sequence,
+        );
+        if (!view) {
+          observeOnlineBattleMetric('event_snapshot_miss_total');
+          await sendLatestSnapshotNow(ws);
+          return;
+        }
+        if (view.clientEventSeq !== sequence) {
+          throw new Error('Battle event view sequence mismatch');
+        }
+        sendSnapshotView(ws, view);
+      }
+    };
     const sendSnapshotView = (
       ws: WSContext,
-      view: Awaited<ReturnType<typeof battleCoordinator.playerView>>,
+      view: Awaited<ReturnType<typeof battleCoordinator.playerViewLatest>>,
     ) => {
       if (view.clientEventSeq < lastSentEventSeq) return;
       lastSentEventSeq = view.clientEventSeq;
@@ -149,7 +166,7 @@ router.get(
         if (event.eventSeq !== lastSentEventSeq + 1) {
           observeOnlineBattleMetric('client_event_gap_total');
         }
-        await sendSnapshotNow(ws, event.eventSeq);
+        await sendEventSnapshotsThrough(ws, event.eventSeq);
       });
     };
     return {
@@ -238,10 +255,14 @@ router.get(
           return;
         }
         if (message.type === 'battle.resume') {
+          if (resumed) {
+            observeOnlineBattleMetric('presentation_boundary_resync_total');
+          }
           resumed = true;
           enqueue(async () => {
             await subscriptionReady;
-            const current = await battleCoordinator.playerView(
+            await battleCoordinator.resolveDeadline(identity.matchId);
+            const current = await battleCoordinator.playerViewLatest(
               identity.matchId,
               identity.playerId,
             );

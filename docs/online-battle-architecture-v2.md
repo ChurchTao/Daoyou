@@ -24,7 +24,7 @@
 7. 终态提交必须原子写入 terminal outbox；房间释放不得依赖回放归档。
 8. 派生索引中的孤儿记录不能阻塞其他对局，且必须被对账器清理。
 9. 同一个 commandSet 只能有一个结果成功 CAS；跨实例演算必须由可靠任务分配主要执行者。
-10. 客户端动画不得修改权威战斗状态；Ready 只优化节奏。
+10. 客户端动画不得修改权威战斗状态；Ready 只记录客户端演出完成，不改变权威演出边界。
 11. Redis runtime 必须通过完整结构和状态不变量校验；损坏数据直接终止并清理，不迁移。
 12. 任意进程可以在任意 `await` 之间退出，重启后仍必须最终推进或清理。
 
@@ -35,7 +35,7 @@
 | `waiting` | 全员后进入 `planning` | 拒绝 | 拒绝 | `cancelled/accept_timeout` | 拒绝 | 拒绝 | `cancelled` |
 | `planning` | 幂等 | 收齐后进入 `resolving` | 拒绝 | 补默认操作并进入 `resolving` | 拒绝 | 拒绝 | `cancelled` |
 | `resolving` | 拒绝 | 拒绝 | 拒绝 | 重新投递演算任务或超限终止 | `presenting` | 可重试或 `resolution_failed` | `cancelled` |
-| `presenting` | 拒绝 | 拒绝 | 达到最短时长且全员 Ready 后推进 | 到点强制进入下一回合或 `finished` | 拒绝 | 拒绝 | `cancelled` |
+| `presenting` | 拒绝 | 拒绝 | 只记录客户端演出完成，不推进状态 | 到达 `scheduledEndsAt` 后进入下一回合或 `finished` | 拒绝 | 拒绝 | `cancelled` |
 | `resolution_failed` | 拒绝 | 拒绝 | 拒绝 | 最大冻结时间后 `cancelled` | 管理重试后重新演算 | 幂等 | `cancelled` |
 | `finished` | 幂等拒绝 | 拒绝 | 拒绝 | 无变化 | 无变化 | 无变化 | 无变化 |
 | `cancelled` | 幂等拒绝 | 拒绝 | 拒绝 | 无变化 | 无变化 | 无变化 | 无变化 |

@@ -45,10 +45,9 @@ describe('marketConfig display helpers', () => {
   it('configures black market as high-risk high-tier stock', () => {
     const black = getLayerConfig('black');
 
-    expect(black.rankRange).toEqual({ min: '真品', max: '神品' });
+    expect(black.rankRange).toEqual({ min: '地品', max: '神品' });
     expect(black.minHighTierCount).toBe(2);
     expect(black.qualityWeights).toMatchObject({
-      真品: 45,
       地品: 25,
       天品: 17,
       仙品: 9,
@@ -56,6 +55,7 @@ describe('marketConfig display helpers', () => {
     });
     expect(black.qualityWeights).not.toHaveProperty('灵品');
     expect(black.qualityWeights).not.toHaveProperty('玄品');
+    expect(black.qualityWeights).not.toHaveProperty('真品');
   });
 
   it('shows black market risk hint without exact probability', () => {

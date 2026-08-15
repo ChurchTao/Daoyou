@@ -1,31 +1,15 @@
 import {
+  blackMarketDayEnd,
+  blackMarketDayKey,
+  blackMarketEntryCost,
+  blackMarketEntryId,
+  blackMarketTurnsRemaining,
   blackMarketUnit,
   classifyBlackMarketReveal,
-  createBlackMarketPricing,
-  evaluateBlackMarketHaggle,
+  BLACK_MARKET_QUALITIES,
 } from './blackMarketRules';
 
 describe('black market rules', () => {
-  it('keeps personalized pricing deterministic and within design bounds', () => {
-    const pricing = createBlackMarketPricing({
-      seed: 'secret-player-cycle-seed',
-      npcId: 'urgent-cultivator',
-      anchorValue: 10_000,
-    });
-
-    expect(pricing).toEqual(
-      createBlackMarketPricing({
-        seed: 'secret-player-cycle-seed',
-        npcId: 'urgent-cultivator',
-        anchorValue: 10_000,
-      }),
-    );
-    expect(pricing.initialPrice).toBeGreaterThanOrEqual(12_000);
-    expect(pricing.initialPrice).toBeLessThanOrEqual(20_000);
-    expect(pricing.floorPrice).toBeGreaterThanOrEqual(5_000);
-    expect(pricing.floorPrice).toBeLessThanOrEqual(10_000);
-  });
-
   it('uses a stable unit value while separating labels', () => {
     const first = blackMarketUnit('seed', 'initial');
     expect(first).toBeGreaterThanOrEqual(0);
@@ -34,44 +18,50 @@ describe('black market rules', () => {
     expect(first).not.toBe(blackMarketUnit('seed', 'floor'));
   });
 
-  it('never lets negotiation cross the hidden floor', () => {
-    const decision = evaluateBlackMarketHaggle({
-      seed: 'secret-player-cycle-seed',
-      npcId: 'silent-elder',
-      currentPrice: 18_000,
-      floorPrice: 8_000,
-      offeredPrice: 2_000,
-      patience: 4,
-      strategy: 'reason',
-      argumentQuality: 2,
-      validEvidenceCount: 2,
-      randomRoll: 1,
-    });
-
-    expect(decision.nextPrice).toBeGreaterThanOrEqual(8_000);
-  });
-
-  it('gives the same npc different hidden negotiation profiles across cycles', () => {
-    const profiles = Array.from({ length: 80 }, (_, index) =>
-      createBlackMarketPricing({
-        seed: `cycle-${index}`,
-        npcId: 'silent-elder',
-        anchorValue: 10_000,
-      }),
-    );
-
-    expect(profiles.some((profile) => profile.floorPrice === 10_000)).toBe(
-      true,
-    );
-    expect(profiles.some((profile) => profile.floorPrice < 8_000)).toBe(true);
-    expect(
-      new Set(profiles.map((profile) => profile.patience)).size,
-    ).toBeGreaterThan(1);
-  });
-
-  it('grades both losses and windfalls from the server anchor', () => {
+  it('grades both losses and windfalls from the server true value', () => {
     expect(classifyBlackMarketReveal(18_000, 10_000).rating).toBe('血亏');
     expect(classifyBlackMarketReveal(10_000, 10_000).rating).toBe('公允');
     expect(classifyBlackMarketReveal(5_000, 10_000).rating).toBe('天降横财');
+  });
+
+  it('uses the Asia/Shanghai natural day boundary', () => {
+    const beforeMidnight = Date.parse('2026-08-15T15:59:59.999Z');
+    const afterMidnight = Date.parse('2026-08-15T16:00:00.000Z');
+
+    expect(blackMarketDayKey(beforeMidnight)).toBe('2026-08-15');
+    expect(blackMarketDayKey(afterMidnight)).toBe('2026-08-16');
+    expect(blackMarketDayEnd(beforeMidnight)).toBe(afterMidnight);
+    expect(blackMarketDayEnd(afterMidnight)).toBe(
+      Date.parse('2026-08-16T16:00:00.000Z'),
+    );
+  });
+
+  it('makes only the first daily entry free', () => {
+    expect(blackMarketEntryCost(0)).toBe(0);
+    expect(blackMarketEntryCost(1)).toBe(5);
+    expect(blackMarketEntryCost(99)).toBe(5);
+  });
+
+  it('uses a stable daily entry identity for each node and npc', () => {
+    const entry = { dayKey: '2026-08-15', nodeId: 'node-a', npcId: 'npc-a' };
+    expect(blackMarketEntryId(entry)).toBe(blackMarketEntryId(entry));
+    expect(blackMarketEntryId(entry)).not.toBe(
+      blackMarketEntryId({ ...entry, npcId: 'npc-b' }),
+    );
+    expect(blackMarketEntryId(entry)).not.toBe(
+      blackMarketEntryId({ ...entry, nodeId: 'node-b' }),
+    );
+  });
+
+  it('offers only earth through divine quality lots', () => {
+    expect(BLACK_MARKET_QUALITIES).toEqual(['地品', '天品', '仙品', '神品']);
+    expect(BLACK_MARKET_QUALITIES).not.toContain('真品');
+  });
+
+  it('caps a session at six LLM turns', () => {
+    expect(blackMarketTurnsRemaining(0)).toBe(6);
+    expect(blackMarketTurnsRemaining(5)).toBe(1);
+    expect(blackMarketTurnsRemaining(6)).toBe(0);
+    expect(blackMarketTurnsRemaining(7)).toBe(0);
   });
 });

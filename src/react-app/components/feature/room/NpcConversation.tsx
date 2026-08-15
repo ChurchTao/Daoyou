@@ -1,5 +1,5 @@
 import { cn } from '@shared/lib/cn';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import type { RoomActorAppearance } from './RoomView';
 
 export interface NpcConversationActor {
@@ -15,6 +15,9 @@ export interface NpcConversationMessage {
   speaker?: string;
   body: ReactNode;
   tone?: 'normal' | 'muted' | 'attention';
+  gesture?: ReactNode;
+  after?: ReactNode;
+  align?: 'start' | 'end';
 }
 
 export interface NpcConversationOption {
@@ -32,7 +35,13 @@ export interface NpcConversationProps {
   busy?: boolean;
   error?: string;
   children?: ReactNode;
+  context?: ReactNode;
+  transcriptIntro?: ReactNode;
+  containedTranscript?: boolean;
+  density?: 'default' | 'compact';
+  composer?: ReactNode;
   actions?: ReactNode;
+  footer?: ReactNode;
   onSelectOption?(optionId: string): void;
 }
 
@@ -50,12 +59,44 @@ export function NpcConversation({
   busy = false,
   error,
   children,
+  context,
+  transcriptIntro,
+  containedTranscript = false,
+  density = 'default',
+  composer,
   actions,
+  footer,
   onSelectOption,
 }: NpcConversationProps) {
   const appearance = actor.appearance ?? 'person';
+  const compact = density === 'compact';
+  const transcriptRef = useRef<HTMLDivElement>(null);
+  const latestMessageId = messages[messages.length - 1]?.id;
+  const latestMessageBody = messages[messages.length - 1]?.body;
+  const previousLatestMessageIdRef = useRef<typeof latestMessageId>(undefined);
+  const previousLatestMessageBodyRef =
+    useRef<typeof latestMessageBody>(undefined);
+  useEffect(() => {
+    if (!containedTranscript) return;
+    if (
+      previousLatestMessageIdRef.current === latestMessageId &&
+      previousLatestMessageBodyRef.current === latestMessageBody
+    )
+      return;
+    previousLatestMessageIdRef.current = latestMessageId;
+    previousLatestMessageBodyRef.current = latestMessageBody;
+    transcriptRef.current?.scrollTo({
+      top: transcriptRef.current.scrollHeight,
+      behavior: 'smooth',
+    });
+  }, [containedTranscript, latestMessageBody, latestMessageId]);
   return (
-    <div className="grid min-h-[34rem] md:grid-cols-[13rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
+    <div
+      className={cn(
+        'grid md:grid-cols-[13rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]',
+        !containedTranscript && 'min-h-[34rem]',
+      )}
+    >
       <aside className="border-ink/10 bg-ink/[0.025] flex items-center gap-4 border-b px-5 py-4 md:flex-col md:justify-start md:border-r md:border-b-0 md:px-6 md:pt-14 md:text-center">
         <span
           aria-hidden="true"
@@ -79,36 +120,84 @@ export function NpcConversation({
         </div>
       </aside>
 
-      <div className="min-w-0 px-5 py-7 sm:px-8 md:px-10 md:py-10">
+      <div
+        className={cn(
+          'min-w-0 px-5 sm:px-8 md:px-10',
+          containedTranscript ? 'py-5 md:py-6' : 'py-7 md:py-10',
+        )}
+      >
+        {context ? <div className="mb-5">{context}</div> : null}
         <div
+          ref={transcriptRef}
           aria-live="polite"
           aria-busy={busy}
-          className="space-y-4 sm:space-y-5"
+          className={cn(
+            compact ? 'space-y-3' : 'space-y-4 sm:space-y-5',
+            containedTranscript && [
+              'overflow-y-auto overscroll-contain pr-2',
+              compact
+                ? 'h-[clamp(14rem,32dvh,20rem)] md:h-[clamp(16rem,35dvh,22rem)]'
+                : 'h-[clamp(11rem,24dvh,15rem)] md:h-[clamp(11rem,22dvh,16rem)]',
+            ],
+          )}
         >
+          {transcriptIntro ? <div>{transcriptIntro}</div> : null}
           {messages.map((message) => (
-            <p
+            <div
               key={message.id}
               className={cn(
-                'text-base leading-8 sm:text-lg sm:leading-9',
-                messageToneClass[message.tone ?? 'normal'],
+                message.align === 'end'
+                  ? 'ml-auto max-w-[88%] text-right'
+                  : 'max-w-[94%]',
               )}
             >
-              {message.speaker && appearance === 'person' ? (
-                <>
-                  <span className="sr-only">{message.speaker}：</span>
-                  <span aria-hidden="true">“</span>
-                  {message.body}
-                  <span aria-hidden="true">”</span>
-                </>
-              ) : (
-                message.body
-              )}
-            </p>
+              {message.gesture ? (
+                <p
+                  className={cn(
+                    'text-ink-secondary italic',
+                    compact
+                      ? 'mb-0.5 text-xs leading-5'
+                      : 'mb-1 text-sm leading-7',
+                  )}
+                >
+                  {message.gesture}
+                </p>
+              ) : null}
+              <p
+                className={cn(
+                  compact
+                    ? 'text-sm leading-6 sm:text-base sm:leading-7'
+                    : 'text-base leading-8 sm:text-lg sm:leading-9',
+                  messageToneClass[message.tone ?? 'normal'],
+                )}
+              >
+                {message.speaker && appearance === 'person' ? (
+                  <>
+                    {typeof message.body === 'string' && message.body === '' ? (
+                      <span className="text-ink-secondary">正在斟酌措辞……</span>
+                    ) : null}
+                    <span className="sr-only">{message.speaker}：</span>
+                    <span aria-hidden="true">“</span>
+                    {message.body}
+                    <span aria-hidden="true">”</span>
+                  </>
+                ) : (
+                  message.body
+                )}
+              </p>
+              {message.after ? (
+                <div className={cn('text-left', compact ? 'mt-2' : 'mt-3')}>
+                  {message.after}
+                </div>
+              ) : null}
+            </div>
           ))}
           {error ? (
             <p className="text-crimson text-sm leading-7">{error}</p>
           ) : null}
         </div>
+
+        {composer ? <div className="mt-4">{composer}</div> : null}
 
         {children ? <div className="mt-5">{children}</div> : null}
 
@@ -119,7 +208,7 @@ export function NpcConversation({
         ) : null}
 
         {options.length > 0 ? (
-          <div className="mt-3 space-y-2">
+          <div className={cn('mt-3', compact ? 'space-y-1.5' : 'space-y-2')}>
             {options.map((option) => {
               const selected = option.id === selectedOptionId;
               const tone = option.tone ?? 'normal';
@@ -133,7 +222,8 @@ export function NpcConversation({
                   }
                   onClick={() => onSelectOption?.(option.id)}
                   className={cn(
-                    'border-ink/15 bg-ink/[0.025] focus-visible:outline-crimson flex w-full cursor-pointer items-start border-l-2 px-5 py-3 text-left transition-colors enabled:hover:border-crimson/45 enabled:hover:bg-crimson/6 enabled:hover:text-crimson focus-visible:outline-2 focus-visible:outline-offset-[-2px]',
+                    'border-ink/15 bg-ink/[0.025] focus-visible:outline-crimson enabled:hover:border-crimson/45 enabled:hover:bg-crimson/6 enabled:hover:text-crimson flex w-full cursor-pointer items-start border-l-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px]',
+                    compact ? 'px-4 py-2.5' : 'px-5 py-3',
                     tone === 'primary'
                       ? 'text-crimson'
                       : tone === 'muted'
@@ -144,11 +234,19 @@ export function NpcConversation({
                       'cursor-not-allowed opacity-50',
                   )}
                 >
-                  <span className="block text-base">{option.label}</span>
+                  <span
+                    className={cn('block', compact ? 'text-sm' : 'text-base')}
+                  >
+                    {option.label}
+                  </span>
                 </button>
               );
             })}
           </div>
+        ) : null}
+
+        {footer ? (
+          <div className={cn(compact ? 'mt-4' : 'mt-5')}>{footer}</div>
         ) : null}
       </div>
     </div>

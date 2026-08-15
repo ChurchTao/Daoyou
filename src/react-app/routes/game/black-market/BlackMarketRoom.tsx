@@ -31,15 +31,19 @@ export function BlackMarketRoom({
         status: {
           label:
             npc.status === 'completed'
-              ? '本轮已成交'
+              ? '今日已成交'
               : npc.status === 'in_progress'
                 ? '交谈未完'
+                : npc.status === 'granted'
+                  ? '入场凭证已留'
                 : '货物尚在',
           tone:
             npc.status === 'completed'
               ? 'muted'
               : npc.status === 'in_progress'
                 ? 'attention'
+                : npc.status === 'granted'
+                  ? 'attention'
                 : 'active',
         },
         disabled: busy,
@@ -48,7 +52,7 @@ export function BlackMarketRoom({
       onSelect={(npcId) => onSelect(npcId as BlackMarketNpcId)}
       detail={detail}
       prompt="选一名摊主，看看他藏着什么"
-      promptDetail="每人每个开市周期只拿出一件货。"
+      promptDetail="点选摊主只会先看清来人；确认走近后，才会揭开货物。"
     />
   );
 }

@@ -2,6 +2,7 @@ import {
   redisLockErrorResponse,
   requireActiveCultivatorRef,
 } from '@server/lib/hono/middleware';
+import { streamSseEvents } from '@server/lib/hono/streaming';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
   executeYieldCommand,
@@ -26,78 +27,51 @@ yieldRouter.post('/', requireActiveCultivatorRef(), async (c) => {
       userId: user.id,
       cultivatorId: activeCultivator.cultivatorId,
     });
-    const encoder = new TextEncoder();
-    const customStream = new ReadableStream({
-      async start(controller) {
-        try {
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({
-                type: 'result',
-                data: committed.result,
-              })}\n\n`,
-            ),
-          );
-          if (committed.state.changes.length > 0) {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  type: 'state',
-                  state: committed.state,
-                })}\n\n`,
-              ),
-            );
-          }
-          const { system, user: prompt } = renderPrompt('yield-story', {
-            cultivatorRealm: result.cultivatorRealm,
-            cultivatorName: result.cultivatorName,
-            amount: result.amount,
-            extraYieldText: (() => {
-              const extra = [
-                result.expGain ? `修为精进 ${result.expGain} 点` : '',
-                result.insightGain
-                  ? `${getGameConceptLabel('comprehension_insight')} ${result.insightGain} 点`
-                  : '',
-              ]
-                .filter(Boolean)
-                .join('；');
-              return extra ? `；${extra}` : '';
-            })(),
+    return streamSseEvents(c, async (stream) => {
+      await stream.writeSSE({
+        data: JSON.stringify({ type: 'result', data: committed.result }),
+      });
+      if (committed.state.changes.length > 0) {
+        await stream.writeSSE({
+          data: JSON.stringify({ type: 'state', state: committed.state }),
+        });
+      }
+
+      const { system, user: prompt } = renderPrompt('yield-story', {
+        cultivatorRealm: result.cultivatorRealm,
+        cultivatorName: result.cultivatorName,
+        amount: result.amount,
+        extraYieldText: (() => {
+          const extra = [
+            result.expGain ? `修为精进 ${result.expGain} 点` : '',
+            result.insightGain
+              ? `${getGameConceptLabel('comprehension_insight')} ${result.insightGain} 点`
+              : '',
+          ]
+            .filter(Boolean)
+            .join('；');
+          return extra ? `；${extra}` : '';
+        })(),
+      });
+
+      try {
+        const aiStreamResult = streamAiText({
+          system,
+          prompt,
+          abortSignal: c.req.raw.signal,
+          sceneId: 'yield-story',
+        });
+        for await (const chunk of aiStreamResult.textStream) {
+          await stream.writeSSE({
+            data: JSON.stringify({ type: 'chunk', text: chunk }),
           });
-          const aiStreamResult = streamAiText({
-            system,
-            prompt,
-            abortSignal: c.req.raw.signal,
-            sceneId: 'yield-story',
-          });
-          for await (const chunk of aiStreamResult.textStream) {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ type: 'chunk', text: chunk })}\n\n`,
-              ),
-            );
-          }
-        } catch (error) {
-          console.error('Stream processing error:', error);
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({
-                type: 'error',
-                error: '天机推演中断...',
-              })}\n\n`,
-            ),
-          );
-        } finally {
-          controller.close();
         }
-      },
-    });
-    return new Response(customStream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-      },
+      } catch (error) {
+        console.error('Stream processing error:', error);
+        await stream.writeSSE({
+          data: JSON.stringify({ type: 'error', error: '天机推演中断...' }),
+        });
+      }
     });
   } catch (error) {
     const lockErrorResponse = redisLockErrorResponse(error);

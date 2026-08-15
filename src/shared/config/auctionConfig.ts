@@ -1,8 +1,9 @@
+import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 
 export const AUCTION_MIN_QUALITY: Quality = '玄品';
 export const AUCTION_MAX_UNIT_PRICE = 9_999_999;
-export const AUCTION_MAX_PURCHASE_QUANTITY = 1_000_000;
+export const AUCTION_MAX_PURCHASE_QUANTITY = MAX_PLAYER_ITEM_QUANTITY;
 export const AUCTION_MAX_TRANSACTION_TOTAL = 1_000_000_000;
 
 export const AUCTION_QUALITY_UNIT_PRICE_CAPS: Partial<Record<Quality, number>> =

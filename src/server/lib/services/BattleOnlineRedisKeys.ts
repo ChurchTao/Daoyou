@@ -41,6 +41,10 @@ export function battleOnlinePresentationKey(matchId: string): string {
   return `${battleOnlineMatchKey(matchId)}:presentation`;
 }
 
+export function battleOnlineEventSnapshotsKey(matchId: string): string {
+  return `${battleOnlineMatchKey(matchId)}:event-snapshots`;
+}
+
 export function battleTerminalOutboxKey(matchId: string): string {
   if (!/^[A-Za-z0-9_-]{1,120}$/.test(matchId)) {
     throw new Error('Invalid battle match id');

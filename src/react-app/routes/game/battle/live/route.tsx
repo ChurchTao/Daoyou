@@ -72,6 +72,17 @@ function assertOwnIntentSet(
   }
 }
 
+function intentSetKey(
+  epoch: string,
+  intents: Record<string, ClientBattleIntentV1>,
+): string {
+  return `${epoch}:${JSON.stringify(
+    Object.entries(intents).sort(([left], [right]) =>
+      left.localeCompare(right),
+    ),
+  )}`;
+}
+
 type BattleCommandMode =
   | 'select_unit'
   | 'select_ability'
@@ -87,6 +98,24 @@ interface BattleCommandDraft {
   readonly stage: 'select_target';
 }
 
+interface LocalPlanningState {
+  readonly epoch: string | null;
+  readonly intents: Record<string, ClientBattleIntentV1>;
+  readonly drafts: Record<string, BattleCommandDraft>;
+}
+
+const EMPTY_PLANNED_INTENTS: Record<string, ClientBattleIntentV1> = {};
+const EMPTY_COMMAND_DRAFTS: Record<string, BattleCommandDraft> = {};
+
+function planningStateForEpoch(
+  current: LocalPlanningState,
+  epoch: string,
+): LocalPlanningState {
+  return current.epoch === epoch
+    ? current
+    : { epoch, intents: {}, drafts: {} };
+}
+
 export default function LiveBattleMatchPage() {
   const { matchId } = useParams<{ matchId: string }>();
   const { view, viewReceivedAt, connectionStatus, error, actions } =
@@ -94,12 +123,12 @@ export default function LiveBattleMatchPage() {
   const [activeUnitId, setActiveUnitId] = useState<string | null>(null);
   const [inspectedUnitId, setInspectedUnitId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [commandDrafts, setCommandDrafts] = useState<
-    Record<string, BattleCommandDraft>
-  >({});
-  const [plannedIntents, setPlannedIntents] = useState<
-    Record<string, ClientBattleIntentV1>
-  >({});
+  const [localPlanningState, setLocalPlanningState] =
+    useState<LocalPlanningState>({
+      epoch: null,
+      intents: {},
+      drafts: {},
+    });
   const [commitPending, setCommitPending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [quickbarOverrides, setQuickbarOverrides] = useState<
@@ -116,14 +145,27 @@ export default function LiveBattleMatchPage() {
   const presentationDirectorRef = useRef<BattlePresentationDirector | null>(
     null,
   );
-  const checkpointRevisionRef = useRef<number | null>(null);
   const readyReportedResultRef = useRef<string | null>(null);
+  const presentationBoundarySyncAttemptRef = useRef<string | null>(null);
   const autoCommitAttemptRef = useRef<string | null>(null);
   const commitRequestRef = useRef<{
-    checkpointRevision: number;
+    epoch: string;
     requestId: string;
   } | null>(null);
-  const planningEpochRef = useRef<string | null>(null);
+
+  const currentPlanningEpoch =
+    matchId && view?.matchId === matchId && view.status === 'planning'
+      ? `${matchId}:${view.round}:${view.checkpointRevision}`
+      : null;
+  const planningStateCurrent =
+    currentPlanningEpoch !== null &&
+    localPlanningState.epoch === currentPlanningEpoch;
+  const plannedIntents = planningStateCurrent
+    ? localPlanningState.intents
+    : EMPTY_PLANNED_INTENTS;
+  const commandDrafts = planningStateCurrent
+    ? localPlanningState.drafts
+    : EMPTY_COMMAND_DRAFTS;
 
   const ownUnits = useMemo(
     () => view?.planningView?.units ?? [],
@@ -225,7 +267,15 @@ export default function LiveBattleMatchPage() {
     .filter((ability): ability is PlanningAbilityViewV1 => Boolean(ability));
   const submitLockedIntents = useCallback(
     (intents: Record<string, ClientBattleIntentV1>) => {
-      if (!actions || !isPlanning || isCommitted || commitPending || !view)
+      if (
+        !actions ||
+        !isPlanning ||
+        isCommitted ||
+        commitPending ||
+        !view ||
+        !currentPlanningEpoch ||
+        localPlanningState.epoch !== currentPlanningEpoch
+      )
         return false;
       try {
         assertOwnIntentSet(
@@ -244,12 +294,11 @@ export default function LiveBattleMatchPage() {
       setCommitPending(true);
       try {
         const requestId =
-          commitRequestRef.current?.checkpointRevision ===
-          view.checkpointRevision
+          commitRequestRef.current?.epoch === currentPlanningEpoch
             ? commitRequestRef.current.requestId
             : crypto.randomUUID();
         commitRequestRef.current = {
-          checkpointRevision: view.checkpointRevision,
+          epoch: currentPlanningEpoch,
           requestId,
         };
         actions.commitIntents(
@@ -265,42 +314,48 @@ export default function LiveBattleMatchPage() {
         return false;
       }
     },
-    [actions, commitPending, isCommitted, isPlanning, ownUnits, view],
+    [
+      actions,
+      commitPending,
+      currentPlanningEpoch,
+      isCommitted,
+      isPlanning,
+      localPlanningState.epoch,
+      ownUnits,
+      view,
+    ],
   );
 
   useEffect(() => {
-    if (!view || view.status !== 'planning') return;
-    const epoch = `${view.round}:${view.checkpointRevision}`;
-    if (planningEpochRef.current === null) {
-      planningEpochRef.current = epoch;
-      return;
-    }
-    if (planningEpochRef.current === epoch) return;
-    planningEpochRef.current = epoch;
-    setPlannedIntents({});
-    setCommandDrafts({});
+    if (!currentPlanningEpoch) return;
     autoCommitAttemptRef.current = null;
     commitRequestRef.current = null;
-    setCommitPending(false);
-    setActionError(null);
-  }, [view]);
+    const timer = window.setTimeout(() => {
+      setCommitPending(false);
+      setActionError(null);
+      setDrawerOpen(false);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [currentPlanningEpoch]);
 
   useEffect(() => {
     if (
       !allLivingUnitsLocked ||
       !view ||
       !isPlanning ||
+      !currentPlanningEpoch ||
       isCommitted ||
       commitPending
     )
       return;
-    const attemptKey = `${view.checkpointRevision}:${Object.keys(plannedIntents).sort().join(',')}`;
+    const attemptKey = intentSetKey(currentPlanningEpoch, plannedIntents);
     if (autoCommitAttemptRef.current === attemptKey) return;
     autoCommitAttemptRef.current = attemptKey;
     submitLockedIntents(plannedIntents);
   }, [
     allLivingUnitsLocked,
     commitPending,
+    currentPlanningEpoch,
     isCommitted,
     isPlanning,
     plannedIntents,
@@ -328,18 +383,33 @@ export default function LiveBattleMatchPage() {
   useEffect(() => {
     const receipt = view?.commandReceipt;
     const request = commitRequestRef.current;
-    if (!receipt || !request || receipt.requestId !== request.requestId) return;
+    if (
+      !receipt ||
+      !request ||
+      receipt.requestId !== request.requestId ||
+      request.epoch !== currentPlanningEpoch
+    )
+      return;
     const timer = window.setTimeout(() => {
       setCommitPending(false);
       if (receipt.status === 'rejected') {
+        commitRequestRef.current = null;
         const labels = {
           deadline_reached: '本回合已经截止，服务端正在执行默认操作。',
           already_committed: '本方指令已经确认，不能重复修改。',
           stale_match: '战局状态已经变化，请等待最新状态同步。',
           stale_checkpoint: '当前指令属于旧回合，请等待最新战况。',
-          invalid_intents: '本方指令不符合当前战局规则。',
+          invalid_intents: '战局已经变化，请重新选择本回合行动。',
           match_not_planning: '战局已经进入结算阶段。',
         } as const;
+        if (receipt.reason === 'invalid_intents') {
+          autoCommitAttemptRef.current = null;
+          setLocalPlanningState((current) =>
+            current.epoch === request.epoch
+              ? { ...current, intents: {}, drafts: {} }
+              : current,
+          );
+        }
         setActionError(
           receipt.reason ? labels[receipt.reason] : '服务端拒绝了本方指令。',
         );
@@ -348,22 +418,30 @@ export default function LiveBattleMatchPage() {
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [view?.commandReceipt]);
+  }, [currentPlanningEpoch, view?.commandReceipt]);
 
   const lockUnitIntent = useCallback(
     (unitId: string, intent: ClientBattleIntentV1) => {
-      setPlannedIntents((current) =>
-        current[unitId] ? current : { ...current, [unitId]: intent },
-      );
-      setCommandDrafts((current) => {
-        if (!current[unitId]) return current;
-        const next = { ...current };
-        delete next[unitId];
-        return next;
+      if (!currentPlanningEpoch) return;
+      setLocalPlanningState((current) => {
+        const planning = planningStateForEpoch(
+          current,
+          currentPlanningEpoch,
+        );
+        if (planning.intents[unitId]) {
+          return current;
+        }
+        const drafts = { ...planning.drafts };
+        delete drafts[unitId];
+        return {
+          ...planning,
+          intents: { ...planning.intents, [unitId]: intent },
+          drafts,
+        };
       });
       setActionError(null);
     },
-    [],
+    [currentPlanningEpoch],
   );
 
   const chooseAbility = (ability: PlanningAbilityViewV1) => {
@@ -387,15 +465,25 @@ export default function LiveBattleMatchPage() {
       ability.targetScope === 'single' &&
       ability.legalTargetIds.length > 0;
     if (needsTarget) {
-      setCommandDrafts((current) => ({
-        ...current,
-        [activeUnit.unitId]: {
-          unitId: activeUnit.unitId,
-          intent,
-          choice: { ...ability, intentKind: 'ability' },
-          stage: 'select_target',
-        },
-      }));
+      setLocalPlanningState((current) => {
+        if (!currentPlanningEpoch) return current;
+        const planning = planningStateForEpoch(
+          current,
+          currentPlanningEpoch,
+        );
+        return {
+          ...planning,
+          drafts: {
+            ...planning.drafts,
+            [activeUnit.unitId]: {
+              unitId: activeUnit.unitId,
+              intent,
+              choice: { ...ability, intentKind: 'ability' },
+              stage: 'select_target',
+            },
+          },
+        };
+      });
     } else {
       lockUnitIntent(activeUnit.unitId, intent);
     }
@@ -430,24 +518,32 @@ export default function LiveBattleMatchPage() {
           legalTargetIds: activeUnit.basicAttack.legalTargetIds,
           intentKind: 'basic_attack',
         };
-    setCommandDrafts((current) => ({
-      ...current,
-      [activeUnit.unitId]: {
-        unitId: activeUnit.unitId,
-        intent: { kind: 'basic_attack' },
-        choice,
-        stage: 'select_target',
-      },
-    }));
+    setLocalPlanningState((current) => {
+      if (!currentPlanningEpoch) return current;
+      const planning = planningStateForEpoch(current, currentPlanningEpoch);
+      return {
+        ...planning,
+        drafts: {
+          ...planning.drafts,
+          [activeUnit.unitId]: {
+            unitId: activeUnit.unitId,
+            intent: { kind: 'basic_attack' },
+            choice,
+            stage: 'select_target',
+          },
+        },
+      };
+    });
     setActionError(null);
   };
 
   const clearActiveDraft = () => {
-    if (!resolvedActiveUnitId) return;
-    setCommandDrafts((current) => {
-      const next = { ...current };
-      delete next[resolvedActiveUnitId];
-      return next;
+    if (!resolvedActiveUnitId || !currentPlanningEpoch) return;
+    setLocalPlanningState((current) => {
+      if (current.epoch !== currentPlanningEpoch) return current;
+      const drafts = { ...current.drafts };
+      delete drafts[resolvedActiveUnitId];
+      return { ...current, drafts };
     });
     setActionError(null);
   };
@@ -473,38 +569,17 @@ export default function LiveBattleMatchPage() {
 
   useEffect(() => {
     presentationDirectorRef.current?.cancel();
-    checkpointRevisionRef.current = null;
     readyReportedResultRef.current = null;
+    presentationBoundarySyncAttemptRef.current = null;
     autoCommitAttemptRef.current = null;
     commitRequestRef.current = null;
     const clearTimer = window.setTimeout(() => {
       setCommitPending(false);
       setActionError(null);
-      setCommandDrafts({});
-      setPlannedIntents({});
       setDrawerOpen(false);
     }, 0);
     return () => window.clearTimeout(clearTimer);
   }, [matchId]);
-
-  useEffect(() => {
-    if (!view) return;
-    if (checkpointRevisionRef.current === null) {
-      checkpointRevisionRef.current = view.checkpointRevision;
-      return;
-    }
-    if (checkpointRevisionRef.current === view.checkpointRevision) return;
-    checkpointRevisionRef.current = view.checkpointRevision;
-    autoCommitAttemptRef.current = null;
-    commitRequestRef.current = null;
-    const timer = window.setTimeout(() => {
-      setPlannedIntents({});
-      setCommandDrafts({});
-      setCommitPending(false);
-      setDrawerOpen(false);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [view?.checkpointRevision, view]);
 
   const entityClickRef = useRef<(entityId: string) => void>(() => undefined);
   useEffect(() => {
@@ -684,6 +759,55 @@ export default function LiveBattleMatchPage() {
     });
     return () => presentationDirectorRef.current?.cancel();
   }, [actions, phaserReady, presentationKey]);
+
+  useEffect(() => {
+    const presentation = view?.presentationWindow;
+    if (
+      connectionStatus !== 'connected' ||
+      view?.status !== 'presenting' ||
+      !presentation ||
+      !actions
+    ) {
+      return;
+    }
+    const estimatedServerNow =
+      view.serverNow +
+      (viewReceivedAt === null ? 0 : Date.now() - viewReceivedAt);
+    const eventSeq = view.clientEventSeq;
+    const resultId = presentation.resultId;
+    const boundarySyncKey = `${view.matchId}:${resultId}:${eventSeq}`;
+    const delay = Math.max(
+      0,
+      presentation.scheduledEndsAt - estimatedServerNow + 500,
+    );
+    const timer = window.setTimeout(() => {
+      const current = playbackInputRef.current.view;
+      if (
+        !current ||
+        current.matchId !== matchId ||
+        current.status !== 'presenting' ||
+        current.presentationWindow?.resultId !== resultId ||
+        current.clientEventSeq !== eventSeq ||
+        presentationBoundarySyncAttemptRef.current === boundarySyncKey
+      ) {
+        return;
+      }
+      presentationBoundarySyncAttemptRef.current = boundarySyncKey;
+      actions.syncLatest();
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [
+    actions,
+    connectionStatus,
+    matchId,
+    presentationKey,
+    view?.clientEventSeq,
+    view?.matchId,
+    view?.presentationWindow,
+    view?.serverNow,
+    view?.status,
+    viewReceivedAt,
+  ]);
 
   useEffect(() => {
     if (view?.status !== 'finished' || !matchId) return;

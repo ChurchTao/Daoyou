@@ -40,6 +40,7 @@ import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,
 } from '@shared/config/temporaryRestrictions';
+import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import { cn } from '@shared/lib/cn';
 import { isPillConsumable } from '@shared/lib/consumables';
 import type { CultivatorCondition } from '@shared/types/condition';
@@ -137,7 +138,9 @@ function getQuality(item: InventoryItem): string {
 }
 
 function getMaxQuantity(item: InventoryItem): number {
-  return item.itemType === 'artifact' ? 1 : item.quantity;
+  return item.itemType === 'artifact'
+    ? 1
+    : Math.min(item.quantity, MAX_PLAYER_ITEM_QUANTITY);
 }
 
 function formatRemainTime(expiresAt: string, now: number): string {
@@ -1054,6 +1057,9 @@ function BetBattleCreateModal({
                   <div className="mt-2 flex items-center gap-2">
                     <span className="text-ink-secondary text-sm">数量</span>
                     <input
+                      type="number"
+                      min={1}
+                      max={selectedItem.maxQuantity}
                       className={cn(
                         inkFieldVariants({ size: 'sm' }),
                         'w-20 px-1 text-center',

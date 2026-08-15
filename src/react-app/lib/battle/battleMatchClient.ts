@@ -143,6 +143,13 @@ export class BattleMatchSocketClient {
     return requestId;
   }
 
+  syncLatest(): void {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+    const currentEventSeq = this.syncStore.current()?.clientEventSeq;
+    if (currentEventSeq === undefined) return;
+    this.requestResync(currentEventSeq);
+  }
+
   private receive(message: BattleServerMessageV2 | null): void {
     if (!message) return;
     if (message.type === 'time.pong') {

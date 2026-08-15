@@ -24,7 +24,6 @@ export const DEFAULT_BLACK_MYSTERY_CHANCE = 0.7;
 export const BLACK_MARKET_MIN_HIGH_TIER_COUNT = 2;
 export const BLACK_MARKET_HIGH_TIER_MIN: Quality = '地品';
 export const BLACK_MARKET_QUALITY_WEIGHTS: Partial<Record<Quality, number>> = {
-  真品: 45,
   地品: 25,
   天品: 17,
   仙品: 9,
@@ -83,7 +82,7 @@ export const MARKET_LAYER_CONFIG: Record<MarketLayer, LayerConfig> = {
   },
   black: {
     count: MARKET_ITEM_COUNT,
-    rankRange: { min: '真品', max: '神品' },
+    rankRange: { min: '地品', max: '神品' },
     access: { minRealm: '筑基' },
     mysteryChance: DEFAULT_BLACK_MYSTERY_CHANCE,
     qualityWeights: BLACK_MARKET_QUALITY_WEIGHTS,

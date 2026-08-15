@@ -13,6 +13,7 @@ import {
 } from '@server/lib/services/BetBattleApplicationService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { stableCompactStringify } from '@server/utils/llmPayload';
+import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import { REALM_VALUES } from '@shared/types/constants';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -38,7 +39,7 @@ const CreateBetBattleSchema = z.object({
     .object({
       itemType: z.enum(['material', 'artifact', 'consumable']),
       itemId: z.string().uuid(),
-      quantity: z.number().int().min(1),
+      quantity: z.number().int().min(1).max(MAX_PLAYER_ITEM_QUANTITY),
     })
     .nullable()
     .optional(),
@@ -51,7 +52,7 @@ const ChallengeBetBattleSchema = z.object({
     .object({
       itemType: z.enum(['material', 'artifact', 'consumable']),
       itemId: z.string().uuid(),
-      quantity: z.number().int().min(1),
+      quantity: z.number().int().min(1).max(MAX_PLAYER_ITEM_QUANTITY),
     })
     .nullable()
     .optional(),

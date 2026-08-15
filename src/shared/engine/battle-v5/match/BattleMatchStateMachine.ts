@@ -234,13 +234,7 @@ export function applyBattleRoundResolution(
     presentation: {
       ...presentation,
       round: resolution.round,
-      // A player whose entire roster has been eliminated has no client-side
-      // action left to acknowledge. Treat that controller as presentation-ready
-      // so it cannot block the surviving players from entering the next round.
-      readyPlayerIds: getPlayersWithoutLivingUnits(
-        resolution.save,
-        state.controllers,
-      ),
+      readyPlayerIds: [],
     },
     battle: resolution.save,
     latestResolution: toPublicResolution(resolution),
@@ -255,6 +249,9 @@ export function markBattlePresentationReady(
   resultId: string,
   now: number,
 ): BattleMatchStateV1 {
+  // Ready is an informational acknowledgement from the client. The
+  // authoritative presentation boundary remains scheduledEndsAt and is
+  // enforced by completeBattlePresentation below.
   if (state.status !== 'presenting' || !state.presentation) {
     throw new Error('Battle match is not presenting');
   }
@@ -270,24 +267,17 @@ export function markBattlePresentationReady(
     revision: state.revision + 1,
     updatedAt: now,
   });
-  return now >= next.presentation!.readyAcceptedAt &&
-    state.controllers.every((controller) => readyPlayerIds.includes(controller.playerId))
-    ? completeBattlePresentation(next, now, true)
-    : next;
+  return next;
 }
 
 export function completeBattlePresentation(
   state: BattleMatchStateV1,
   now: number,
-  allowReadyAdvance = false,
 ): BattleMatchStateV1 {
   if (state.status !== 'presenting' || !state.presentation) return clone(state);
-  const allReady = state.controllers.every((controller) =>
-    state.presentation!.readyPlayerIds.includes(controller.playerId),
-  );
-  const canAdvanceByReady =
-    allowReadyAdvance && allReady && now >= state.presentation.readyAcceptedAt;
-  if (!canAdvanceByReady && now < state.presentation.scheduledEndsAt) {
+  // Never let an early client Ready acknowledgement shorten the animation
+  // window; only the authoritative scheduled end may advance the match.
+  if (now < state.presentation.scheduledEndsAt) {
     return clone(state);
   }
   const finished = Boolean(state.latestResolution?.outcome.battleEnded);

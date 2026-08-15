@@ -2,6 +2,7 @@ import {
   redisLockErrorResponse,
   requireActiveCultivatorRef,
 } from '@server/lib/hono/middleware';
+import { streamSseEvents } from '@server/lib/hono/streaming';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
   executeRetreatCommand,
@@ -18,10 +19,7 @@ import {
   getLifespanExhaustedStoryPrompt,
 } from '@server/utils/prompts';
 import type { PlayerResourceMutationMeta } from '@shared/contracts/player';
-import type {
-  RetreatResultData,
-  RetreatStreamEvent,
-} from '@shared/contracts/retreat';
+import type { RetreatResultData } from '@shared/contracts/retreat';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 
@@ -49,81 +47,64 @@ function qiErrorResponse(c: Context<AppEnv>, error: unknown) {
   return null;
 }
 
-function encodeSseEvent(
-  encoder: TextEncoder,
-  event: RetreatStreamEvent,
-): Uint8Array {
-  return encoder.encode(`data: ${JSON.stringify(event)}\n\n`);
-}
+function createRetreatStreamResponse(
+  c: Context<AppEnv>,
+  args: {
+    result: RetreatResultData;
+    state?: PlayerResourceMutationMeta;
+    storySource: RetreatStorySource;
+    onStoryComplete?: (story: string) => Promise<void> | void;
+  },
+): Response {
+  return streamSseEvents(c, async (stream) => {
+    await stream.writeSSE({
+      data: JSON.stringify({ type: 'result', data: args.result }),
+    });
+    if (args.state?.changes.length) {
+      await stream.writeSSE({
+        data: JSON.stringify({ type: 'state', state: args.state }),
+      });
+    }
+    if (!args.storySource) {
+      return;
+    }
 
-function createRetreatStreamResponse(args: {
-  result: RetreatResultData;
-  state?: PlayerResourceMutationMeta;
-  storySource: RetreatStorySource;
-  abortSignal: AbortSignal;
-  onStoryComplete?: (story: string) => Promise<void> | void;
-}): Response {
-  const encoder = new TextEncoder();
-  const customStream = new ReadableStream({
-    async start(controller) {
-      controller.enqueue(
-        encodeSseEvent(encoder, { type: 'result', data: args.result }),
-      );
-      if (args.state?.changes.length) {
-        controller.enqueue(
-          encodeSseEvent(encoder, { type: 'state', state: args.state }),
-        );
-      }
-      if (!args.storySource) {
-        controller.close();
-        return;
-      }
-
-      let accumulatedStory = '';
-      try {
-        const prompt =
+    let accumulatedStory = '';
+    try {
+      const prompt =
+        args.storySource.type === 'breakthrough'
+          ? getBreakthroughStoryPrompt(args.storySource.payload)
+          : getLifespanExhaustedStoryPrompt(args.storySource.payload);
+      const aiStreamResult = streamAiText({
+        system: prompt[0],
+        prompt: prompt[1],
+        abortSignal: c.req.raw.signal,
+        sceneId:
           args.storySource.type === 'breakthrough'
-            ? getBreakthroughStoryPrompt(args.storySource.payload)
-            : getLifespanExhaustedStoryPrompt(args.storySource.payload);
-        const aiStreamResult = streamAiText({
-          system: prompt[0],
-          prompt: prompt[1],
-          abortSignal: args.abortSignal,
-          sceneId:
-            args.storySource.type === 'breakthrough'
-              ? 'breakthrough-story'
-              : 'lifespan-exhausted',
+            ? 'breakthrough-story'
+            : 'lifespan-exhausted',
+      });
+      for await (const chunk of aiStreamResult.textStream) {
+        accumulatedStory += chunk;
+        await stream.writeSSE({
+          data: JSON.stringify({ type: 'chunk', text: chunk }),
         });
-        for await (const chunk of aiStreamResult.textStream) {
-          accumulatedStory += chunk;
-          controller.enqueue(
-            encodeSseEvent(encoder, { type: 'chunk', text: chunk }),
-          );
-        }
-      } catch (error) {
-        console.error('Retreat story stream error:', error);
-        controller.enqueue(
-          encodeSseEvent(encoder, {
-            type: 'error',
-            error: '天机推演中断，此番结果已然落定。',
-          }),
-        );
-      } finally {
-        try {
-          await args.onStoryComplete?.(accumulatedStory);
-        } catch (persistError) {
-          console.error('Retreat story persist error:', persistError);
-        }
-        controller.close();
       }
-    },
-  });
-  return new Response(customStream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-    },
+    } catch (error) {
+      console.error('Retreat story stream error:', error);
+      await stream.writeSSE({
+        data: JSON.stringify({
+          type: 'error',
+          error: '天机推演中断，此番结果已然落定。',
+        }),
+      });
+    } finally {
+      try {
+        await args.onStoryComplete?.(accumulatedStory);
+      } catch (persistError) {
+        console.error('Retreat story persist error:', persistError);
+      }
+    }
   });
 }
 
@@ -146,11 +127,10 @@ retreatRouter.post('/', requireActiveCultivatorRef(), async (c) => {
       action,
       years: inputYears ?? 0,
     });
-    return createRetreatStreamResponse({
+    return createRetreatStreamResponse(c, {
       result: execution.committed.result,
       state: execution.committed.state,
       storySource: execution.storySource,
-      abortSignal: c.req.raw.signal,
       onStoryComplete: execution.onStoryComplete,
     });
   } catch (error) {

@@ -25,6 +25,7 @@ import type {
   FriendSearchResponse,
   FriendSearchResult,
 } from '@shared/contracts/friends';
+import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import { MAX_FRIENDS_PER_CULTIVATOR } from '@shared/config/socialConfig';
 import { isPillConsumable } from '@shared/lib/consumables';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
@@ -582,7 +583,10 @@ export default function MailPage() {
       return;
     }
 
-    const quantity = Math.max(1, Number(attachmentQuantity) || 1);
+    const quantity = Math.min(
+      MAX_PLAYER_ITEM_QUANTITY,
+      Math.max(1, Number(attachmentQuantity) || 1),
+    );
     const attachment = selectedAttachment
       ? {
           itemType: selectedAttachment.itemType,
@@ -990,9 +994,17 @@ export default function MailPage() {
             <InkInput
               label="数量"
               type="number"
+              min={1}
+              max={Math.min(
+                selectedAttachment.quantity,
+                MAX_PLAYER_ITEM_QUANTITY,
+              )}
               value={attachmentQuantity}
               onChange={setAttachmentQuantity}
-              hint={`最多 ${selectedAttachment.quantity}`}
+              hint={`最多 ${Math.min(
+                selectedAttachment.quantity,
+                MAX_PLAYER_ITEM_QUANTITY,
+              )}`}
             />
           ) : null}
           <div className="flex justify-end gap-2">

@@ -20,6 +20,8 @@ export interface InkInputProps extends InkFieldVariantProps {
   error?: string;
   disabled?: boolean;
   type?: HTMLInputTypeAttribute;
+  min?: number;
+  max?: number;
   onKeyDown?: (
     event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => void;
@@ -41,6 +43,8 @@ export function InkInput({
   error,
   disabled = false,
   type = 'text',
+  min,
+  max,
   onKeyDown,
   variant,
   size,
@@ -76,6 +80,8 @@ export function InkInput({
       ) : (
         <input
           type={type}
+          min={min}
+          max={max}
           className={fieldClass}
           placeholder={placeholder}
           value={value}

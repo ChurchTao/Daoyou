@@ -81,7 +81,7 @@ for (const teamSize of [2, 4] as const) {
       window.readyAcceptedAt,
     );
   }
-  state = completeBattlePresentation(state, window.readyAcceptedAt, true);
+  state = completeBattlePresentation(state, window.scheduledEndsAt);
   assert(
     state.status === 'planning' || state.status === 'finished',
     `${teamSize}v${teamSize} did not leave presentation`,

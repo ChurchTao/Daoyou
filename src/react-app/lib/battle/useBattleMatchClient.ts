@@ -98,6 +98,7 @@ export function useBattleMatchClient(matchId: string | null) {
       ? {
           commitIntents: client.commitIntents.bind(client),
           presentationReady: client.presentationReady.bind(client),
+          syncLatest: client.syncLatest.bind(client),
         }
       : null,
     [client],

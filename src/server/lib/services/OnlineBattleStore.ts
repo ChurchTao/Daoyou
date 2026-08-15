@@ -20,6 +20,7 @@ import {
   type OnlineBattleCommandReceiptRecordV1,
 } from '@shared/contracts/onlineBattleRuntime';
 import { createBattlePublicSnapshot } from '@shared/engine/battle-v5/match/BattlePublicSnapshot';
+import type { BattleMatchStateV1 } from '@shared/engine/battle-v5/match/types';
 import type {
   BattleBlueprintV1,
   BattleSaveV1,
@@ -41,6 +42,7 @@ import {
   BATTLE_TERMINAL_CLEANUP_PENDING_KEY,
   BATTLE_TERMINAL_OUTBOX_PENDING_KEY,
   battleOnlineCommandReceiptsKey,
+  battleOnlineEventSnapshotsKey,
   battleOnlineMatchKey,
   battleOnlinePresentationKey,
   battleReplayArchivePayloadKey,
@@ -61,7 +63,31 @@ const ARENA_START_INDEX_TTL_SECONDS = 2 * 60 * 60;
 const TERMINAL_OUTBOX_TTL_SECONDS = 30 * 24 * 60 * 60;
 const TERMINAL_COMPLETED_TTL_SECONDS = 24 * 60 * 60;
 const SCHEDULE_CLAIM_LEASE_MS = 15_000;
+const ONLINE_BATTLE_EVENT_SNAPSHOT_TTL_SECONDS = 30;
+const ONLINE_BATTLE_EVENT_SNAPSHOT_MAX_ENTRIES = 16;
 export const RESOLUTION_TASK_REPUBLISH_LEASE_MS = 30_000;
+
+interface StoredOnlineBattleEventSnapshotV1 {
+  readonly version: 'online_battle_event_snapshot_v1';
+  readonly matchId: string;
+  readonly eventSeq: number;
+  readonly matchRevision: number;
+  readonly createdAt: number;
+  readonly matchWithoutBlueprint: BattleMatchStateV1;
+  readonly acceptedPlayerIds: readonly string[];
+  readonly presentationWindow?: CompactBattlePresentationWindowV1;
+}
+
+export interface OnlineBattleEventSnapshotV1 {
+  readonly version: 'online_battle_event_snapshot_v1';
+  readonly matchId: string;
+  readonly eventSeq: number;
+  readonly matchRevision: number;
+  readonly createdAt: number;
+  readonly match: BattleMatchStateV1;
+  readonly acceptedPlayerIds: readonly string[];
+  readonly presentationWindow?: CompactBattlePresentationWindowV1;
+}
 const ONLINE_BATTLE_RESERVED_ROOT_KEYS = new Set([
   BATTLE_ONLINE_ALL_MATCHES_KEY,
   BATTLE_ONLINE_DEADLINES_KEY,
@@ -180,6 +206,11 @@ if ARGV[20] ~= '' then
   redis.call('SET', KEYS[16], ARGV[20])
 elseif ARGV[21] == '1' then
   redis.call('DEL', KEYS[16])
+end
+if ARGV[22] ~= '' then
+  redis.call('HSET', KEYS[17], ARGV[22], ARGV[23])
+  if ARGV[24] ~= '' then redis.call('HDEL', KEYS[17], ARGV[24]) end
+  redis.call('EXPIRE', KEYS[17], ARGV[25])
 end
 if ARGV[11] ~= '' and redis.call('EXISTS', KEYS[13]) == 1 then
   redis.call('EXPIRE', KEYS[13], ARGV[13])
@@ -622,6 +653,32 @@ export class OnlineBattleStore {
     }
   }
 
+  async getEventSnapshot(
+    matchId: string,
+    eventSeq: number,
+  ): Promise<OnlineBattleEventSnapshotV1 | null> {
+    const field = String(eventSeq);
+    const value = await redis.hget(
+      battleOnlineEventSnapshotsKey(matchId),
+      field,
+    );
+    if (!value) return null;
+    try {
+      const blueprint = await this.loadBlueprint(matchId);
+      return parseEventSnapshot(value, matchId, eventSeq, blueprint);
+    } catch (error) {
+      await redis
+        .hdel(battleOnlineEventSnapshotsKey(matchId), field)
+        .catch(() => undefined);
+      console.warn('[online-battle] discarded invalid event snapshot', {
+        matchId,
+        eventSeq,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  }
+
   /**
    * Invalid runtime payloads are never migrated. Release orchestration state
    * from the stable battle-to-room index, then remove every generic battle
@@ -679,11 +736,17 @@ export class OnlineBattleStore {
     current: OnlineBattleRuntimeStateV1,
     next: OnlineBattleRuntimeStateV1,
     commandReceipt?: OnlineBattleCommandReceiptRecordV1,
+    eventSnapshot?: OnlineBattleEventSnapshotV1,
   ): Promise<boolean> {
     const matchId = current.match.matchId;
+    const clientEventAdvanced =
+      next.clientEventSeq === current.clientEventSeq + 1;
     if (
       next.match.matchId !== matchId ||
-      next.storageRevision !== current.storageRevision + 1
+      next.storageRevision !== current.storageRevision + 1 ||
+      (next.clientEventSeq !== current.clientEventSeq &&
+        !clientEventAdvanced) ||
+      Boolean(eventSnapshot) !== clientEventAdvanced
     ) {
       throw new Error('Invalid online battle CAS state');
     }
@@ -730,10 +793,13 @@ export class OnlineBattleStore {
     const shouldDeletePresentation =
       current.match.status === 'presenting' &&
       next.match.status !== 'presenting';
+    const storedEventSnapshot = eventSnapshot
+      ? serializeEventSnapshot(eventSnapshot, next)
+      : '';
     const result = Number(
       await getRedisClient().eval(
         CAS_STATE_LUA,
-        16,
+        17,
         battleOnlineMatchKey(matchId),
         BATTLE_ONLINE_DEADLINES_KEY,
         BATTLE_ONLINE_RESOLVING_KEY,
@@ -752,6 +818,7 @@ export class OnlineBattleStore {
           ? invitationKey(acceptedPlayerId)
           : `battle:invites:disabled:${matchId}`,
         battleOnlinePresentationKey(matchId),
+        battleOnlineEventSnapshotsKey(matchId),
         String(current.storageRevision),
         String(next.storageRevision),
         JSON.stringify(
@@ -777,9 +844,25 @@ export class OnlineBattleStore {
           ? JSON.stringify(pendingPresentationWindow)
           : '',
         shouldDeletePresentation ? '1' : '',
+        eventSnapshot ? String(eventSnapshot.eventSeq) : '',
+        storedEventSnapshot,
+        eventSnapshot &&
+        eventSnapshot.eventSeq >= ONLINE_BATTLE_EVENT_SNAPSHOT_MAX_ENTRIES
+          ? String(
+              eventSnapshot.eventSeq -
+                ONLINE_BATTLE_EVENT_SNAPSHOT_MAX_ENTRIES,
+            )
+          : '',
+        String(ONLINE_BATTLE_EVENT_SNAPSHOT_TTL_SECONDS),
       ),
     );
     if (result === 1) {
+      if (storedEventSnapshot) {
+        observeOnlineBattleMetric(
+          'event_snapshot_bytes',
+          Buffer.byteLength(storedEventSnapshot),
+        );
+      }
       if (shouldArchive) this.archivePendingListener?.();
       if (terminalEvent) this.terminalOutboxPendingListener?.();
       if (resolutionTask) this.resolutionTaskPendingListener?.();
@@ -1475,20 +1558,24 @@ export class OnlineBattleStore {
       if (oldest) this.blueprintCache.delete(oldest);
     }
   }
+
+  private async loadBlueprint(matchId: string): Promise<BattleBlueprintV1> {
+    const cached = this.blueprintCache.get(matchId);
+    if (cached) return cached;
+    const blueprint = parseBlueprint(
+      await redis.hget(battleOnlineMatchKey(matchId), 'blueprint'),
+      matchId,
+    );
+    this.cacheBlueprint(matchId, blueprint);
+    return blueprint;
+  }
 }
 
 function indexedDeadline(runtime: OnlineBattleRuntimeStateV1): number | null {
   if (runtime.acceptedPlayerIds.length < runtime.match.controllers.length)
     return null;
   if (runtime.match.status === 'presenting') {
-    const presentation = runtime.match.presentation;
-    if (!presentation) return null;
-    const allReady = runtime.match.controllers.every((controller) =>
-      presentation.readyPlayerIds.includes(controller.playerId),
-    );
-    return allReady
-      ? presentation.readyAcceptedAt
-      : presentation.scheduledEndsAt;
+    return runtime.match.presentation?.scheduledEndsAt ?? null;
   }
   if (runtime.match.status === 'resolving' && runtime.resolutionRetry) {
     return runtime.resolutionRetry.nextRetryAt;
@@ -1595,6 +1682,124 @@ function stripBlueprint(
       ...runtime.match,
       battle: battle as BattleSaveV1,
     },
+  };
+}
+
+export function createOnlineBattleEventSnapshot(
+  runtime: OnlineBattleRuntimeStateV1,
+): OnlineBattleEventSnapshotV1 {
+  const presentationWindow = runtime.pendingPresentationWindow;
+  if (runtime.match.status === 'presenting' && !presentationWindow) {
+    throw new Error('Client-visible presenting event is missing its window');
+  }
+  if (runtime.match.status !== 'presenting' && presentationWindow) {
+    throw new Error('Non-presenting event cannot include a presentation window');
+  }
+  return {
+    version: 'online_battle_event_snapshot_v1',
+    matchId: runtime.match.matchId,
+    eventSeq: runtime.clientEventSeq,
+    matchRevision: runtime.match.revision,
+    createdAt: runtime.match.updatedAt,
+    match: runtime.match,
+    acceptedPlayerIds: runtime.acceptedPlayerIds,
+    ...(presentationWindow ? { presentationWindow } : {}),
+  };
+}
+
+function serializeEventSnapshot(
+  snapshot: OnlineBattleEventSnapshotV1,
+  next: OnlineBattleRuntimeStateV1,
+): string {
+  if (
+    snapshot.matchId !== next.match.matchId ||
+    snapshot.eventSeq !== next.clientEventSeq ||
+    snapshot.matchRevision !== next.match.revision ||
+    snapshot.match !== next.match
+  ) {
+    throw new Error('Online battle event snapshot does not match CAS state');
+  }
+  const battle = { ...snapshot.match.battle } as Partial<BattleSaveV1>;
+  delete battle.blueprint;
+  const stored: StoredOnlineBattleEventSnapshotV1 = {
+    version: snapshot.version,
+    matchId: snapshot.matchId,
+    eventSeq: snapshot.eventSeq,
+    matchRevision: snapshot.matchRevision,
+    createdAt: snapshot.createdAt,
+    matchWithoutBlueprint: {
+      ...snapshot.match,
+      battle: battle as BattleSaveV1,
+    },
+    acceptedPlayerIds: snapshot.acceptedPlayerIds,
+    ...(snapshot.presentationWindow
+      ? { presentationWindow: snapshot.presentationWindow }
+      : {}),
+  };
+  return JSON.stringify(stored);
+}
+
+function parseEventSnapshot(
+  value: string,
+  matchId: string,
+  eventSeq: number,
+  blueprint: BattleBlueprintV1,
+): OnlineBattleEventSnapshotV1 {
+  const stored = JSON.parse(value) as StoredOnlineBattleEventSnapshotV1;
+  if (
+    !stored ||
+    stored.version !== 'online_battle_event_snapshot_v1' ||
+    stored.matchId !== matchId ||
+    stored.eventSeq !== eventSeq ||
+    !Number.isSafeInteger(stored.eventSeq) ||
+    !Number.isSafeInteger(stored.matchRevision) ||
+    !Number.isFinite(stored.createdAt) ||
+    !Array.isArray(stored.acceptedPlayerIds) ||
+    !stored.acceptedPlayerIds.every((playerId) => typeof playerId === 'string')
+  ) {
+    throw new Error('Online battle event snapshot metadata is invalid');
+  }
+  const match = {
+    ...stored.matchWithoutBlueprint,
+    battle: {
+      ...stored.matchWithoutBlueprint?.battle,
+      blueprint,
+    },
+  } as BattleMatchStateV1;
+  const runtime: OnlineBattleRuntimeStateV1 = {
+    version: 'online_battle_runtime_v1',
+    storageRevision: 0,
+    clientEventSeq: stored.eventSeq,
+    match,
+    acceptedPlayerIds: stored.acceptedPlayerIds,
+    replay: { version: 'battle_replay_accumulator_v1' },
+  };
+  assertOnlineBattleRuntimeState(runtime);
+  if (
+    match.revision !== stored.matchRevision ||
+    match.matchId !== stored.matchId
+  ) {
+    throw new Error('Online battle event snapshot state is inconsistent');
+  }
+  if (match.status === 'presenting') {
+    if (!stored.presentationWindow) {
+      throw new Error('Presenting event snapshot is missing its window');
+    }
+    assertStoredPresentationWindow(stored.presentationWindow, runtime);
+  } else if (stored.presentationWindow) {
+    throw new Error('Non-presenting event snapshot contains a window');
+  }
+  return {
+    version: stored.version,
+    matchId: stored.matchId,
+    eventSeq: stored.eventSeq,
+    matchRevision: stored.matchRevision,
+    createdAt: stored.createdAt,
+    match,
+    acceptedPlayerIds: stored.acceptedPlayerIds,
+    ...(stored.presentationWindow
+      ? { presentationWindow: stored.presentationWindow }
+      : {}),
   };
 }
 

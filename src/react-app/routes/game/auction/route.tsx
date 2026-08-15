@@ -31,6 +31,7 @@ import {
   useCultivatorIdentity,
 } from '@app/lib/resources/player';
 import {
+  AUCTION_MAX_PURCHASE_QUANTITY,
   AUCTION_MAX_TRANSACTION_TOTAL,
   calculateAuctionSettlement,
 } from '@shared/config/auctionConfig';
@@ -470,7 +471,10 @@ export default function AuctionPage() {
       pushToast({ message: '请先登录', tone: 'warning' });
       return;
     }
-    const remainingQuantity = Math.max(1, listing.remainingQuantity || 1);
+    const remainingQuantity = Math.min(
+      AUCTION_MAX_PURCHASE_QUANTITY,
+      Math.max(1, listing.remainingQuantity || 1),
+    );
     const requestedQuantity = Number.parseInt(
       purchaseQuantities[listing.id] || '1',
     );
@@ -675,6 +679,11 @@ export default function AuctionPage() {
                 <div className="w-20 shrink-0">
                   <InkInput
                     type="number"
+                    min={1}
+                    max={Math.min(
+                      listedQuantity,
+                      AUCTION_MAX_PURCHASE_QUANTITY,
+                    )}
                     size="sm"
                     value={purchaseQuantities[listing.id] || '1'}
                     onChange={(value) =>
@@ -695,7 +704,12 @@ export default function AuctionPage() {
                   onClick={() =>
                     setPurchaseQuantities((current) => ({
                       ...current,
-                      [listing.id]: String(listedQuantity),
+                      [listing.id]: String(
+                        Math.min(
+                          listedQuantity,
+                          AUCTION_MAX_PURCHASE_QUANTITY,
+                        ),
+                      ),
                     }))
                   }
                   disabled={buyingId === listing.id}

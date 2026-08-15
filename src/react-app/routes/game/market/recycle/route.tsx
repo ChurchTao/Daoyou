@@ -27,6 +27,7 @@ import {
   usePlayerLoadout,
   usePlayerSession,
 } from '@app/lib/resources/player';
+import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import { isPillConsumable } from '@shared/lib/consumables';
 import { getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
 import { QUALITY_ORDER } from '@shared/types/constants';
@@ -426,14 +427,15 @@ export default function MarketRecyclePage() {
       if (
         !Number.isInteger(quantity) ||
         quantity < 1 ||
-        quantity > item.quantity
+        quantity > Math.min(item.quantity, MAX_PLAYER_ITEM_QUANTITY)
       ) {
         setDialog({
           id: 'consumable-quantity-error',
           title: '数量有误',
           content: (
             <p className="text-crimson py-3 text-center">
-              回收数量范围为 1～{item.quantity}。
+              回收数量范围为 1～
+              {Math.min(item.quantity, MAX_PLAYER_ITEM_QUANTITY)}。
             </p>
           ),
           confirmLabel: '知晓',
@@ -766,6 +768,11 @@ export default function MarketRecyclePage() {
                       <div className="w-24">
                         <InkInput
                           type="number"
+                          min={1}
+                          max={Math.min(
+                            item.quantity,
+                            MAX_PLAYER_ITEM_QUANTITY,
+                          )}
                           size="sm"
                           value={consumableQuantities[item.id!] || '1'}
                           onChange={(value) =>
@@ -774,7 +781,10 @@ export default function MarketRecyclePage() {
                               [item.id!]: value,
                             }))
                           }
-                          hint={`最多 ${item.quantity}`}
+                          hint={`最多 ${Math.min(
+                            item.quantity,
+                            MAX_PLAYER_ITEM_QUANTITY,
+                          )}`}
                           disabled={isProcessing || bulkLoading}
                         />
                       </div>
@@ -784,7 +794,12 @@ export default function MarketRecyclePage() {
                         onClick={() =>
                           setConsumableQuantities((current) => ({
                             ...current,
-                            [item.id!]: String(item.quantity),
+                            [item.id!]: String(
+                              Math.min(
+                                item.quantity,
+                                MAX_PLAYER_ITEM_QUANTITY,
+                              ),
+                            ),
                           }))
                         }
                         disabled={isProcessing || bulkLoading}
