@@ -309,7 +309,7 @@ export function attemptBreakthrough(
     throw new Error(breakthroughResult.recommendation);
   }
 
-  const finalChance = clamp(breakthroughResult.chance, 0.05, 0.95);
+  const finalChance = breakthroughResult.chance;
   const modifiers = breakthroughResult.modifiers;
 
   // roll突破

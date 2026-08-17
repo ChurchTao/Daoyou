@@ -34,6 +34,10 @@ import {
   buildRetreatEfficiencyModel,
   type RetreatEfficiencyModel,
 } from './retreatEfficiency';
+import {
+  buildBreakthroughChancePresentation,
+  type BreakthroughChancePresentation,
+} from './breakthroughChancePresentation';
 
 export interface CultivationProgressData {
   cultivation_exp: number;
@@ -58,10 +62,8 @@ type RetreatCultivatorView = Pick<
   cultivation_progress: NonNullable<Cultivator['cultivation_progress']>;
 };
 
-export interface BreakthroughChancePreviewData {
-  baseChance: number;
-  finalChance: number;
-  buffBonus: number;
+export interface BreakthroughChancePreviewData
+  extends BreakthroughChancePresentation {
   recommendation: string;
 }
 
@@ -227,31 +229,19 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     useMemo((): BreakthroughChancePreviewData | null => {
       if (
         !cultivator ||
-        !cultivationProgress?.canBreakthrough ||
-        (isMajorBreakthrough && majorBreakthroughBlocked)
+        !cultivationProgress?.canBreakthrough
       ) {
         return null;
       }
 
       try {
         const result = calculateBreakthroughChance(cultivator);
-        const baseChance = Math.min(
-          1,
-          Math.max(
-            0.05,
-            result.modifiers.baseChance *
-              result.modifiers.realmDifficulty *
-              result.modifiers.progressMultiplier *
-              result.modifiers.insightMultiplier *
-              result.modifiers.demonPenalty +
-              result.modifiers.toxicityPenalty,
-          ),
-        );
 
         return {
-          baseChance,
-          finalChance: result.chance,
-          buffBonus: result.modifiers.pillBonus + result.modifiers.fateBonus,
+          ...buildBreakthroughChancePresentation({
+            modifiers: result.modifiers,
+            finalChance: result.chance,
+          }),
           recommendation: result.recommendation,
         };
       } catch {
@@ -260,8 +250,6 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     }, [
       cultivator,
       cultivationProgress?.canBreakthrough,
-      isMajorBreakthrough,
-      majorBreakthroughBlocked,
     ]);
 
   const handleRetreatYearsChange = useCallback((value: string) => {

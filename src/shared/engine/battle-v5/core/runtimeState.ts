@@ -60,6 +60,7 @@ export interface BattleRuntimeState {
   activeEffectGuards: Set<string>;
   globalUniqueEffects: Map<string, object>;
   deathPreventTriggers: Set<string>;
+  deathCommitted: boolean;
   sequences: Map<string, number>;
   dealtDamageSinceLastCheck: boolean;
   removedBuffs: Buff[];
@@ -85,6 +86,7 @@ export interface SerializableBattleRuntimeStateV1 {
   transforms: PendingAbilityTransform[];
   counters: Array<[string, number]>;
   deathPreventTriggers: string[];
+  deathCommitted: boolean;
   sequences: Array<[string, number]>;
   dealtDamageSinceLastCheck: boolean;
   actionSequence: number;
@@ -389,6 +391,14 @@ export function markDamageDealt(unit: Unit | undefined): void {
   getBattleRuntimeState(unit).dealtDamageSinceLastCheck = true;
 }
 
+export function hasCommittedDeath(unit: Unit): boolean {
+  return getBattleRuntimeState(unit).deathCommitted;
+}
+
+export function markDeathCommitted(unit: Unit): void {
+  getBattleRuntimeState(unit).deathCommitted = true;
+}
+
 export function consumeDamageDealtFlag(unit: Unit): boolean {
   const state = getBattleRuntimeState(unit);
   const dealt = state.dealtDamageSinceLastCheck;
@@ -497,6 +507,7 @@ export function exportBattleRuntimeState(
     transforms: state.transforms.map((transform) => ({ ...transform })),
     counters: [...state.counters],
     deathPreventTriggers: [...state.deathPreventTriggers],
+    deathCommitted: state.deathCommitted,
     sequences: [...state.sequences],
     dealtDamageSinceLastCheck: state.dealtDamageSinceLastCheck,
     actionSequence: state.actionSequence,
@@ -537,6 +548,7 @@ export function restoreBattleRuntimeState(
   state.counters = new Map(snapshot.counters);
   state.activeEffectGuards.clear();
   state.deathPreventTriggers = new Set(snapshot.deathPreventTriggers);
+  state.deathCommitted = snapshot.deathCommitted ?? false;
   state.sequences = new Map(snapshot.sequences);
   state.dealtDamageSinceLastCheck = snapshot.dealtDamageSinceLastCheck;
   state.actionSequence = snapshot.actionSequence;

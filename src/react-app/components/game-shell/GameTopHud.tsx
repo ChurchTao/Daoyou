@@ -3,6 +3,7 @@ import {
   MarrowWashSummaryContent,
 } from '@app/components/feature/cultivator/BodyCultivationPanels';
 import { useQiState } from '@app/components/feature/cultivator/useQiState';
+import { MeritStamp } from '@app/components/feature/merit/MeritStamp';
 import { getSectIdentityLabels } from '@app/components/feature/sect/sectIdentityDisplay';
 import { useActiveSectContextQuery } from '@app/components/feature/sect/sectResources';
 import { useSectIdentityDialog } from '@app/components/feature/sect/useSectIdentityDialog';
@@ -24,9 +25,48 @@ import {
 } from '@shared/config/qiSystem';
 import { cn } from '@shared/lib/cn';
 import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
+import type { SponsorshipTierId } from '@shared/lib/sponsorship';
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { GameHudSnapshot } from './useGameHudModel';
+
+type MeritProfileResponse = {
+  profile: { highestTier: SponsorshipTierId } | null;
+};
+
+function usePlayerMeritTier(
+  cultivatorId: string | undefined,
+): SponsorshipTierId | null {
+  const [tier, setTier] = useState<SponsorshipTierId | null>(null);
+
+  useEffect(() => {
+    if (!cultivatorId) return;
+
+    let cancelled = false;
+    fetch('/api/sponsorship/me')
+      .then(async (response) => {
+        const data = (await response.json()) as
+          MeritProfileResponse | { error?: string };
+        if (!response.ok) {
+          throw new Error('error' in data ? data.error : '请求失败');
+        }
+        return data as MeritProfileResponse;
+      })
+      .then((data) => {
+        if (!cancelled) setTier(data.profile?.highestTier ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setTier(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cultivatorId]);
+
+  return tier;
+}
 
 function HudMeter({
   label,
@@ -295,6 +335,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   } = useQiState({
     cultivatorId: snapshot?.cultivatorId ?? '',
   });
+  const meritTier = usePlayerMeritTier(snapshot?.cultivatorId);
 
   if (!snapshot) return <GameTopHudPlaceholder />;
 
@@ -764,6 +805,12 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
               >
                 {snapshot.name}
               </Link>
+              {meritTier ? (
+                <MeritStamp
+                  tier={meritTier}
+                  className="size-5 shrink-0 opacity-90 md:size-6"
+                />
+              ) : null}
               {snapshot.title ? (
                 <div className="text-crimson hidden min-w-0 text-xs md:inline-block md:text-sm">
                   <span className="block truncate">「{snapshot.title}」</span>

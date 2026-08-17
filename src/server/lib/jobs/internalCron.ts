@@ -27,6 +27,13 @@ import {
   ITEM_LIBRARY_SYSTEM_USER_ID,
 } from '@server/lib/services/MaterialLibraryService';
 import { sendWeeklyRankingRewardCommand } from '@server/lib/services/RankingApplicationService';
+import {
+  cleanupSponsorshipSensitiveData,
+  reconcileAfdianOrders,
+  retryPendingSponsorshipWork,
+  sendSponsorshipAdminDigest,
+} from '@server/lib/services/SponsorshipApplicationService';
+import { getSponsorshipProvider } from '@server/lib/sponsorship/providerRegistry';
 import { towerEnemySetService } from '@server/lib/tower/enemySets';
 import { RANKING_REWARDS, REALM_VALUES } from '@shared/types/constants';
 import { eq } from 'drizzle-orm';
@@ -56,6 +63,55 @@ export type CronJobResult = {
   skipped: boolean;
   reason?: string;
 };
+
+export async function runSponsorshipReconcileJob(
+  deep = false,
+): Promise<CronJobResult> {
+  return withJobLock(
+    deep ? 'sponsorship-deep-reconcile' : 'sponsorship-reconcile',
+    async () => {
+      const provider = getSponsorshipProvider();
+      if (!provider?.isConfigured()) {
+        return {
+          success: true,
+          processed: 0,
+          skipped: true,
+          reason: 'sponsorship_provider_disabled',
+        };
+      }
+      const result = await reconcileAfdianOrders({ pages: deep ? 50 : 2 });
+      const retried = await retryPendingSponsorshipWork();
+      return {
+        success: true,
+        processed: result.scanned + retried,
+        skipped: false,
+      };
+    },
+  );
+}
+
+export async function runSponsorshipCleanupJob(): Promise<CronJobResult> {
+  return withJobLock('sponsorship-cleanup', async () => {
+    const result = await cleanupSponsorshipSensitiveData();
+    return {
+      success: true,
+      processed:
+        result.snapshots +
+        result.orders +
+        result.claims +
+        result.checkoutIntents,
+      skipped: false,
+    };
+  });
+}
+
+export async function runSponsorshipAdminDigestJob(): Promise<CronJobResult> {
+  return withJobLock('sponsorship-admin-digest', async () => ({
+    success: true,
+    processed: await sendSponsorshipAdminDigest(),
+    skipped: false,
+  }));
+}
 
 export type RankRewardsJobResult = CronJobResult & {
   settlementDate?: string;
@@ -402,12 +458,8 @@ export async function runExpiredDataCleanupJob(): Promise<
           reputationShopPurchases: new Date(
             now - REPUTATION_SHOP_PURCHASE_RETENTION_MS,
           ),
-          sectShopPurchases: new Date(
-            now - SECT_SHOP_PURCHASE_RETENTION_MS,
-          ),
-          sectStipendClaims: new Date(
-            now - SECT_STIPEND_CLAIM_RETENTION_MS,
-          ),
+          sectShopPurchases: new Date(now - SECT_SHOP_PURCHASE_RETENTION_MS),
+          sectStipendClaims: new Date(now - SECT_STIPEND_CLAIM_RETENTION_MS),
           auctionListings: new Date(now - AUCTION_LISTING_RETENTION_MS),
         },
         tx,

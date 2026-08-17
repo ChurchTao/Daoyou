@@ -12,7 +12,11 @@ import {
   ShieldBreakEvent,
   SkillCastEvent,
 } from '../core/events';
-import { markDamageDealt } from '../core/runtimeState';
+import {
+  hasCommittedDeath,
+  markDamageDealt,
+  markDeathCommitted,
+} from '../core/runtimeState';
 import {
   AttributeType,
   type DamageComponent,
@@ -524,7 +528,8 @@ export class DamageSystem {
       { origin, parentTrace, reservedTrace: damageResultTrace },
     );
 
-    if (beforeHp > 0 && finalHp <= 0) {
+    if (beforeHp > 0 && finalHp <= 0 && !hasCommittedDeath(target)) {
+      markDeathCommitted(target);
       target.buffs.removeBuffsOnDeath();
       new CombatResultEmitterV3().commit(
         target,

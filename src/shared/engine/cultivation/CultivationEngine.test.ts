@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Cultivator } from '@shared/types/cultivator';
+import type { Cultivator, FateEffectEntry } from '@shared/types/cultivator';
 import { resolveLiveExpCap } from '@server/utils/cultivationUtils';
 import { attemptBreakthrough, performCultivation } from './CultivationEngine';
 
@@ -110,6 +110,31 @@ function withStatus(
       ...cultivator.condition!,
       statuses: [status],
     },
+  } satisfies Cultivator;
+}
+
+function withBreakthroughFate(cultivator: Cultivator, value: number) {
+  const effect: FateEffectEntry = {
+    id: `breakthrough-${value}`,
+    effectId: 'breakthrough-bonus',
+    scope: value >= 0 ? 'daily' : 'drawback',
+    polarity: value >= 0 ? 'boon' : 'burden',
+    effectType: 'breakthrough_bonus',
+    value,
+    label: '突破成功率变化',
+    description: '测试用突破命格',
+    rollMeta: {
+      qualityAnchor: '凡品',
+      minValue: value,
+      maxValue: value,
+      rolledPercentile: 0,
+      roundingStep: 0.01,
+    },
+  };
+
+  return {
+    ...cultivator,
+    pre_heaven_fates: [{ name: '测试命格', effects: [effect] }],
   } satisfies Cultivator;
 }
 
@@ -337,6 +362,86 @@ describe('CultivationEngine cultivation boost', () => {
     const boosted = attemptBreakthrough(focused, () => 0.99);
 
     expect(boosted.summary.chance).toBeCloseTo(base.summary.chance + 0.12, 4);
+  });
+
+  it('keeps adjusted base chance stable while toxicity lowers final chance', () => {
+    const clean = createCultivator();
+    const currentCap = resolveLiveExpCap(clean.realm, clean.realm_stage);
+    clean.cultivation_progress!.cultivation_exp = currentCap * 0.8;
+    clean.cultivation_progress!.comprehension_insight = 0;
+    const toxic = structuredClone(clean);
+    toxic.condition!.gauges.pillToxicity = 170;
+
+    const cleanResult = attemptBreakthrough(clean, () => 0.99);
+    const toxicResult = attemptBreakthrough(toxic, () => 0.99);
+
+    expect(cleanResult.summary.modifiers.adjustedBaseChance).toBeCloseTo(
+      0.3876,
+      4,
+    );
+    expect(toxicResult.summary.modifiers.adjustedBaseChance).toBeCloseTo(
+      cleanResult.summary.modifiers.adjustedBaseChance,
+      8,
+    );
+    expect(toxicResult.summary.modifiers.toxicityPenalty).toBeCloseTo(
+      0.17,
+      5,
+    );
+    expect(toxicResult.summary.chance).toBeCloseTo(
+      cleanResult.summary.chance -
+        toxicResult.summary.modifiers.toxicityPenalty,
+      8,
+    );
+  });
+
+  it('applies signed fate bonuses and clear mind to the final chance', () => {
+    const base = createCultivator();
+    base.cultivation_progress!.cultivation_exp = 80_000;
+    base.cultivation_progress!.inner_demon = true;
+    const boon = withBreakthroughFate(structuredClone(base), 0.08);
+    const burden = withBreakthroughFate(structuredClone(base), -0.05);
+    const clearMind = withStatus(structuredClone(base), {
+      key: 'clear_mind',
+      stacks: 1,
+      source: 'pill',
+      duration: { kind: 'until_removed' },
+      usesRemaining: 1,
+      createdAt: '2026-05-25T12:00:00.000Z',
+      updatedAt: '2026-05-25T12:00:00.000Z',
+    });
+
+    const baseResult = attemptBreakthrough(base, () => 0.99);
+    const boonResult = attemptBreakthrough(boon, () => 0.99);
+    const burdenResult = attemptBreakthrough(burden, () => 0.99);
+    const clearMindResult = attemptBreakthrough(clearMind, () => 0.99);
+
+    expect(boonResult.summary.chance).toBeCloseTo(
+      baseResult.summary.chance + 0.08,
+      8,
+    );
+    expect(burdenResult.summary.chance).toBeCloseTo(
+      baseResult.summary.chance - 0.05,
+      8,
+    );
+    expect(baseResult.summary.modifiers.demonPenalty).toBe(0.95);
+    expect(clearMindResult.summary.modifiers.demonPenalty).toBe(1);
+    expect(clearMindResult.summary.chance).toBeGreaterThan(
+      baseResult.summary.chance,
+    );
+  });
+
+  it('uses the canonical 95 percent cap for modifiers and the actual roll', () => {
+    const cultivator = createCultivator();
+    cultivator.realm = '炼气';
+    cultivator.cultivation_progress!.cultivation_exp = 100_000;
+    cultivator.cultivation_progress!.comprehension_insight = 100;
+
+    const result = attemptBreakthrough(cultivator, () => 0.96);
+
+    expect(result.summary.modifiers.adjustedBaseChance).toBeGreaterThan(0.95);
+    expect(result.summary.modifiers.finalChance).toBe(0.95);
+    expect(result.summary.chance).toBe(0.95);
+    expect(result.summary.success).toBe(false);
   });
 
   it('uses protect meridians payload to reduce failed breakthrough exp loss', () => {

@@ -96,6 +96,11 @@ export const DOMAIN_EVENT_CONSUMERS = {
     filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.communication.mail-created.v1`,
     concurrency: 8,
   },
+  sponsorshipOrderProjector: {
+    name: 'sponsorship-order-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.sponsorship.order-received.v1`,
+    concurrency: 4,
+  },
 } as const;
 
 const DOMAIN_EVENT_STREAM_CONFIG: Partial<StreamConfig> = {

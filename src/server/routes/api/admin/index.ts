@@ -13,6 +13,7 @@ import onlineBattlesRouter from '@server/routes/api/admin/online-battles.router'
 import redeemCodesRouter from '@server/routes/api/admin/redeem-codes.router';
 import reputationShopRouter from '@server/routes/api/admin/reputation-shop.router';
 import sectShopRouter from '@server/routes/api/admin/sect-shop.router';
+import sponsorshipRouter from '@server/routes/api/admin/sponsorship.router';
 import templatesRouter from '@server/routes/api/admin/templates.router';
 import towerEnemySetsRouter from '@server/routes/api/admin/tower-enemy-sets.router';
 import { Hono } from 'hono';
@@ -37,6 +38,7 @@ router.route('/item-library', itemLibraryRouter);
 router.route('/redeem-codes', redeemCodesRouter);
 router.route('/reputation-shop', reputationShopRouter);
 router.route('/sect-shop', sectShopRouter);
+router.route('/sponsorship', sponsorshipRouter);
 router.route('/community-group', communityGroupRouter);
 router.route('/llm-metrics', llmMetricsRouter);
 router.route('/online-users', onlineUsersRouter);

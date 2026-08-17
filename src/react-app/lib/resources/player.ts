@@ -37,8 +37,12 @@ export function usePlayerLoadout(enabled = true) {
 }
 
 export function useUnreadMailCount() {
-  const query = useSingletonResource(playerMailSummaryResource);
+  const query = usePlayerMailSummary();
   return query.data?.unreadCount;
+}
+
+export function usePlayerMailSummary() {
+  return useSingletonResource(playerMailSummaryResource);
 }
 
 export function useTaskSummary() {

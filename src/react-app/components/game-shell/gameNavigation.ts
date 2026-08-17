@@ -327,6 +327,12 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🎁 兑换码',
       },
       {
+        id: 'merit-ledger',
+        sceneLabel: '功德簿',
+        href: '/game/merit-ledger',
+        expandedDockLabel: '📜 功德簿',
+      },
+      {
         id: 'community',
         sceneLabel: '玩家交流群',
         href: '/game/community',

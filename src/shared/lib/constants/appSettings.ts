@@ -5,6 +5,7 @@ export const APP_SETTING_KEYS = {
   communityQqGroupNumber: 'community_qq_group_number',
   authPageAnnouncement: 'auth_page_announcement',
   itemLibraryDailyMaterialGeneration: 'item_library_daily_material_generation',
+  afdianSponsorship: 'sponsorship_afdian_config_v1',
 } as const;
 
 /** Bundled fallback when DB has no row or row is empty. */

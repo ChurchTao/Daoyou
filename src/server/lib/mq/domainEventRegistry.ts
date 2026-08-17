@@ -8,6 +8,9 @@ import {
 import { projectSectConstructionDonation } from '@server/lib/services/sect-organization/SectConstructionSettlementService';
 import { projectTaskDomainEvent } from '@server/lib/services/TaskDomainEventProjector';
 import { projectWorldRumorDomainEvent } from '@server/lib/services/WorldRumorDomainEventProjector';
+import { processSponsorshipOrder } from '@server/lib/services/SponsorshipApplicationService';
+import { db } from '@server/lib/drizzle/db';
+import { claimMessageForConsumer } from '@server/lib/repositories/messageConsumptionRepository';
 import {
   generateYieldRewardAttachments,
   projectYieldReward,
@@ -108,6 +111,12 @@ export async function registerMessageInfrastructure(): Promise<void> {
       acceptedTypes: ['mail.created'],
       handle: handleMailCreatedEvent,
     }),
+    startDomainEventConsumer({
+      consumerName: DOMAIN_EVENT_CONSUMERS.sponsorshipOrderProjector.name,
+      concurrency: DOMAIN_EVENT_CONSUMERS.sponsorshipOrderProjector.concurrency,
+      acceptedTypes: ['sponsorship.order.received'],
+      handle: handleSponsorshipOrderEvent,
+    }),
   ]);
   startTransactionalMessageRelay();
   registered = true;
@@ -177,6 +186,35 @@ async function handleMailCreatedEvent(event: DomainEventEnvelope) {
     source: 'mail_notification_domain_event',
     event,
     handle: projectMailCreated,
+  });
+}
+
+async function handleSponsorshipOrderEvent(event: DomainEventEnvelope) {
+  if (!isDomainEventType(event, 'sponsorship.order.received')) {
+    throw new Error(`功德订单投影不支持领域事件: ${event.type}`);
+  }
+  const alreadyProcessed = await db.query.messageConsumptions.findFirst({
+    columns: { messageId: true },
+    where: (rows, { and, eq }) =>
+      and(
+        eq(
+          rows.consumerName,
+          DOMAIN_EVENT_CONSUMERS.sponsorshipOrderProjector.name,
+        ),
+        eq(rows.messageId, event.id),
+      ),
+  });
+  if (alreadyProcessed) return;
+  await processSponsorshipOrder(event.data.orderId);
+  await db.transaction(async (tx) => {
+    await claimMessageForConsumer(
+      {
+        consumerName: DOMAIN_EVENT_CONSUMERS.sponsorshipOrderProjector.name,
+        messageId: event.id,
+        messageKey: event.type,
+      },
+      tx,
+    );
   });
 }
 

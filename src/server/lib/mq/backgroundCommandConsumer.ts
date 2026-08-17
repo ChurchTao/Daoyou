@@ -13,6 +13,9 @@ import {
   runMaterialLibraryDailyGenerationJob,
   runRankRewardsJob,
   runResourceReplayCleanupJob,
+  runSponsorshipAdminDigestJob,
+  runSponsorshipCleanupJob,
+  runSponsorshipReconcileJob,
   runTowerEnemySetRefreshJob,
 } from '../jobs/internalCron';
 import {
@@ -24,7 +27,9 @@ import {
 
 const MAX_PROCESSING_ATTEMPTS = 10;
 const WORKING_INTERVAL_MS = 30_000;
-const CONSUMER_RESTART_DELAYS_MS = [1_000, 2_000, 5_000, 10_000, 30_000] as const;
+const CONSUMER_RESTART_DELAYS_MS = [
+  1_000, 2_000, 5_000, 10_000, 30_000,
+] as const;
 const codec = JSONCodec();
 let runningMessages: ConsumerMessages | undefined;
 let consumerTask: Promise<void> | undefined;
@@ -44,6 +49,10 @@ const handlers = {
   'expired-data.cleanup': () => runExpiredDataCleanupJob(),
   'material-library.generate': (command) =>
     runMaterialLibraryDailyGenerationJob(new Date(command.requestedAt)),
+  'sponsorship.reconcile': () => runSponsorshipReconcileJob(false),
+  'sponsorship.deep-reconcile': () => runSponsorshipReconcileJob(true),
+  'sponsorship.cleanup': () => runSponsorshipCleanupJob(),
+  'sponsorship.admin-digest': () => runSponsorshipAdminDigestJob(),
 } satisfies Record<
   BackgroundCommandType,
   (command: BackgroundCommandEnvelope) => Promise<unknown>

@@ -12,6 +12,10 @@ export const BACKGROUND_COMMAND_TYPES = [
   'resource-replay.cleanup',
   'expired-data.cleanup',
   'material-library.generate',
+  'sponsorship.reconcile',
+  'sponsorship.deep-reconcile',
+  'sponsorship.cleanup',
+  'sponsorship.admin-digest',
 ] as const;
 
 export type BackgroundCommandType = (typeof BACKGROUND_COMMAND_TYPES)[number];
@@ -55,6 +59,26 @@ export const BACKGROUND_COMMAND_DEFINITIONS = {
   'material-library.generate': {
     version: 1,
     subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.material-library-generate.v1`,
+    scheduleBucketMs: 24 * 60 * 60_000,
+  },
+  'sponsorship.reconcile': {
+    version: 1,
+    subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.sponsorship-reconcile.v1`,
+    scheduleBucketMs: 10 * 60_000,
+  },
+  'sponsorship.deep-reconcile': {
+    version: 1,
+    subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.sponsorship-deep-reconcile.v1`,
+    scheduleBucketMs: 24 * 60 * 60_000,
+  },
+  'sponsorship.cleanup': {
+    version: 1,
+    subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.sponsorship-cleanup.v1`,
+    scheduleBucketMs: 24 * 60 * 60_000,
+  },
+  'sponsorship.admin-digest': {
+    version: 1,
+    subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.sponsorship-admin-digest.v1`,
     scheduleBucketMs: 24 * 60 * 60_000,
   },
 } as const satisfies Record<

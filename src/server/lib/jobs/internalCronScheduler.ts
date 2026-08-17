@@ -12,6 +12,10 @@ const RESOURCE_REPLAY_CLEANUP_SCHEDULE = '30 18 * * *';
 const EXPIRED_DATA_CLEANUP_SCHEDULE = '45 18 * * *';
 // 17:00 UTC equals 01:00 Asia/Shanghai.
 const MATERIAL_LIBRARY_DAILY_GENERATION_SCHEDULE = '0 17 * * *';
+const SPONSORSHIP_RECONCILE_SCHEDULE = '*/10 * * * *';
+const SPONSORSHIP_DEEP_RECONCILE_SCHEDULE = '15 19 * * *';
+const SPONSORSHIP_CLEANUP_SCHEDULE = '30 19 * * *';
+const SPONSORSHIP_ADMIN_DIGEST_SCHEDULE = '0 1 * * *';
 
 let schedulerRegistered = false;
 let scheduledTasks: Bun.CronJob[] = [];
@@ -58,6 +62,18 @@ export function registerInternalCronJobs(
     Bun.cron(MATERIAL_LIBRARY_DAILY_GENERATION_SCHEDULE, () =>
       runScheduledJob('material-library.generate'),
     ),
+    Bun.cron(SPONSORSHIP_RECONCILE_SCHEDULE, () =>
+      runScheduledJob('sponsorship.reconcile'),
+    ),
+    Bun.cron(SPONSORSHIP_DEEP_RECONCILE_SCHEDULE, () =>
+      runScheduledJob('sponsorship.deep-reconcile'),
+    ),
+    Bun.cron(SPONSORSHIP_CLEANUP_SCHEDULE, () =>
+      runScheduledJob('sponsorship.cleanup'),
+    ),
+    Bun.cron(SPONSORSHIP_ADMIN_DIGEST_SCHEDULE, () =>
+      runScheduledJob('sponsorship.admin-digest'),
+    ),
   ];
   schedulerRegistered = true;
 
@@ -73,6 +89,10 @@ export function registerInternalCronJobs(
     materialLibraryDailyGenerationUtc:
       MATERIAL_LIBRARY_DAILY_GENERATION_SCHEDULE,
     materialLibraryDailyGenerationLocal: '01:00 Asia/Shanghai',
+    sponsorshipReconcile: SPONSORSHIP_RECONCILE_SCHEDULE,
+    sponsorshipDeepReconcileUtc: SPONSORSHIP_DEEP_RECONCILE_SCHEDULE,
+    sponsorshipCleanupUtc: SPONSORSHIP_CLEANUP_SCHEDULE,
+    sponsorshipAdminDigestUtc: SPONSORSHIP_ADMIN_DIGEST_SCHEDULE,
   });
 
   return scheduledTasks;

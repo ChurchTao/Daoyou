@@ -10,6 +10,8 @@ import type { Attributes } from '@shared/types/cultivator';
 import { getAttributeInfo } from '@shared/lib/gameConceptDisplay';
 import { format } from 'd3-format';
 import { useMemo } from 'react';
+import { BreakthroughChanceDetails } from './BreakthroughChanceDetails';
+import { buildBreakthroughChancePresentation } from './breakthroughChancePresentation';
 import { isSuccessfulBreakthrough } from './retreatStream';
 
 const COMPREHENSION_LABEL = getGameConceptLabel('comprehension_insight');
@@ -147,14 +149,10 @@ function BreakthroughResultContent({
   retreatResult: RetreatResultData;
 }) {
   const summary = retreatResult.summary as BreakthroughResult['summary'];
-  const buffBonus = Math.max(
-    0,
-    (summary.modifiers?.pillBonus ?? 0) + (summary.modifiers?.fateBonus ?? 0),
-  );
-  const displayedBaseChance = Math.max(
-    0,
-    Math.min(1, summary.chance - buffBonus),
-  );
+  const chancePresentation = buildBreakthroughChancePresentation({
+    modifiers: summary.modifiers,
+    finalChance: summary.chance,
+  });
   const realmChangeText =
     summary.success && summary.toRealm && summary.toStage
       ? `${summary.fromRealm}${summary.fromStage} → ${summary.toRealm}${summary.toStage}`
@@ -185,14 +183,10 @@ function BreakthroughResultContent({
         {summary.success ? '🌅 突破成功！' : '☁️ 冲关失败'}
       </p>
 
-      <p>成功率 {format('.1%')(Math.min(summary.chance, 1))}</p>
-      {buffBonus > 0 ? (
-        <p className="text-emerald-700">
-          机缘加成：+{format('.1%')(buffBonus)}（
-          {format('.1%')(displayedBaseChance)} →{' '}
-          {format('.1%')(Math.min(summary.chance, 1))}）
-        </p>
-      ) : null}
+      <div className="border-teal/25 bg-bgpaper/60 space-y-3 border border-dashed p-3">
+        <p className="text-teal font-medium">【本次成功率推演】</p>
+        <BreakthroughChanceDetails presentation={chancePresentation} />
+      </div>
 
       {realmChangeText ? <p>境界突破：{realmChangeText}</p> : null}
 

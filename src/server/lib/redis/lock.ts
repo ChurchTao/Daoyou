@@ -28,6 +28,9 @@ export const redisLockKeys = {
     `lock:black-market:session:${sessionId}`,
   dungeonCommand: (cultivatorId: string) =>
     `lock:dungeon:command:${cultivatorId}`,
+  sponsorshipOrder: (orderId: string) => `lock:sponsorship:order:${orderId}`,
+  sponsorshipCultivator: (cultivatorId: string) =>
+    `lock:sponsorship:cultivator:${cultivatorId}`,
 } as const;
 
 export class RedisLeaseLostError extends Error {

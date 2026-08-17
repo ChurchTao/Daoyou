@@ -1,3 +1,4 @@
+import type { BattleReplayV1 } from '@shared/contracts/battleReplay';
 import type {
   ResourceChangeOperation,
   ResourceScopeKind,
@@ -7,9 +8,9 @@ import type {
   ItemLibraryEditorConfig,
   ItemLibraryPayload,
 } from '@shared/lib/itemLibrary';
+import type { SponsorshipTierId } from '@shared/lib/sponsorship';
 import type { TowerPreparedEnemy } from '@shared/lib/tower';
 import type { BattleRecordV3 } from '@shared/types/battle';
-import type { BattleReplayV1 } from '@shared/contracts/battleReplay';
 import type {
   AlchemyFormulaBlueprint,
   AlchemyFormulaMastery,
@@ -636,7 +637,13 @@ export const consumables = pgTable(
       table.stackKey,
     ),
     uniqueIndex('consumables_cultivator_stack_unique')
-      .on(table.cultivatorId, table.name, table.quality, table.type, table.stackKey)
+      .on(
+        table.cultivatorId,
+        table.name,
+        table.quality,
+        table.type,
+        table.stackKey,
+      )
       .where(sql`${table.stackKey} is not null`),
     index('consumables_score_idx').on(table.score),
   ],
@@ -963,6 +970,253 @@ export const appSettings = pgTable('wanjiedaoyou_app_settings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   updatedBy: uuid('updated_by'),
 });
+
+export type SponsorshipVerificationStatus =
+  | 'received'
+  | 'signature_verified'
+  | 'api_verifying'
+  | 'verified'
+  | 'rejected'
+  | 'needs_attention';
+
+export type SponsorshipFulfillmentStatus =
+  | 'pending'
+  | 'linked'
+  | 'awaiting_claim'
+  | 'fulfilling'
+  | 'fulfilled'
+  | 'retry_wait'
+  | 'needs_attention'
+  | 'revoked';
+
+export const sponsorshipCheckoutIntents = pgTable(
+  'wanjiedaoyou_sponsorship_checkout_intents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    provider: varchar('provider', { length: 32 }).notNull(),
+    userId: uuid('user_id'),
+    cultivatorId: uuid('cultivator_id').references(() => cultivators.id, {
+      onDelete: 'set null',
+    }),
+    tier: varchar('tier', { length: 32 }).$type<SponsorshipTierId>().notNull(),
+    expectedPlanId: varchar('expected_plan_id', { length: 80 }),
+    publicListing: boolean('public_listing').notNull().default(true),
+    status: varchar('status', { length: 24 }).notNull().default('pending'),
+    providerOrderId: varchar('provider_order_id', { length: 80 }),
+    configSnapshot: jsonb('config_snapshot').notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('sponsorship_checkout_provider_order_uidx').on(
+      table.provider,
+      table.providerOrderId,
+    ),
+    index('sponsorship_checkout_user_created_idx').on(
+      table.userId,
+      table.createdAt,
+    ),
+    index('sponsorship_checkout_status_expires_idx').on(
+      table.status,
+      table.expiresAt,
+    ),
+  ],
+);
+
+export const sponsorshipOrders = pgTable(
+  'wanjiedaoyou_sponsorship_orders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    provider: varchar('provider', { length: 32 }).notNull(),
+    providerOrderId: varchar('provider_order_id', { length: 80 }).notNull(),
+    customOrderId: varchar('custom_order_id', { length: 128 }),
+    providerUserId: varchar('provider_user_id', { length: 80 }),
+    planId: varchar('plan_id', { length: 80 }),
+    skuId: varchar('sku_id', { length: 80 }),
+    productType: integer('product_type'),
+    totalAmountFen: integer('total_amount_fen'),
+    showAmountFen: integer('show_amount_fen'),
+    month: integer('month'),
+    providerStatus: integer('provider_status'),
+    providerCreatedAt: timestamp('provider_created_at'),
+    verificationStatus: varchar('verification_status', { length: 24 })
+      .$type<SponsorshipVerificationStatus>()
+      .notNull()
+      .default('received'),
+    fulfillmentStatus: varchar('fulfillment_status', { length: 24 })
+      .$type<SponsorshipFulfillmentStatus>()
+      .notNull()
+      .default('pending'),
+    resolvedTier: varchar('resolved_tier', {
+      length: 32,
+    }).$type<SponsorshipTierId>(),
+    checkoutIntentId: uuid('checkout_intent_id').references(
+      () => sponsorshipCheckoutIntents.id,
+      { onDelete: 'set null' },
+    ),
+    configSnapshot: jsonb('config_snapshot'),
+    retryCount: integer('retry_count').notNull().default(0),
+    lastErrorCode: varchar('last_error_code', { length: 80 }),
+    lastErrorMessage: text('last_error_message'),
+    signatureVerifiedAt: timestamp('signature_verified_at'),
+    verifiedAt: timestamp('verified_at'),
+    fulfilledAt: timestamp('fulfilled_at'),
+    revokedAt: timestamp('revoked_at'),
+    sensitivePurgedAt: timestamp('sensitive_purged_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('sponsorship_orders_provider_order_uidx').on(
+      table.provider,
+      table.providerOrderId,
+    ),
+    index('sponsorship_orders_verification_created_idx').on(
+      table.verificationStatus,
+      table.createdAt,
+    ),
+    index('sponsorship_orders_fulfillment_created_idx').on(
+      table.fulfillmentStatus,
+      table.createdAt,
+    ),
+    index('sponsorship_orders_provider_user_idx').on(table.providerUserId),
+  ],
+);
+
+export const sponsorshipOrderSnapshots = pgTable(
+  'wanjiedaoyou_sponsorship_order_snapshots',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orderId: uuid('order_id')
+      .references(() => sponsorshipOrders.id, { onDelete: 'cascade' })
+      .notNull(),
+    source: varchar('source', { length: 24 }).notNull(),
+    payload: jsonb('payload').notNull(),
+    purgeAfter: timestamp('purge_after').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('sponsorship_snapshots_order_created_idx').on(
+      table.orderId,
+      table.createdAt,
+    ),
+    index('sponsorship_snapshots_purge_idx').on(table.purgeAfter),
+  ],
+);
+
+export const sponsorshipMeritProfiles = pgTable(
+  'wanjiedaoyou_sponsorship_merit_profiles',
+  {
+    cultivatorId: uuid('cultivator_id')
+      .primaryKey()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    isPublic: boolean('is_public').notNull().default(true),
+    highestTier: varchar('highest_tier', { length: 32 })
+      .$type<SponsorshipTierId>()
+      .notNull(),
+    meritCount: integer('merit_count').notNull().default(0),
+    firstSupportedAt: timestamp('first_supported_at').notNull(),
+    lastSupportedAt: timestamp('last_supported_at').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('sponsorship_merit_public_tier_first_idx').on(
+      table.isPublic,
+      table.highestTier,
+      table.firstSupportedAt,
+    ),
+  ],
+);
+
+export const sponsorshipMeritRecords = pgTable(
+  'wanjiedaoyou_sponsorship_merit_records',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orderId: uuid('order_id').references(() => sponsorshipOrders.id, {
+      onDelete: 'set null',
+    }),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    tier: varchar('tier', { length: 32 }).$type<SponsorshipTierId>().notNull(),
+    source: varchar('source', { length: 32 }).notNull(),
+    supportedAt: timestamp('supported_at').notNull(),
+    mailId: uuid('mail_id').references(() => mails.id, {
+      onDelete: 'set null',
+    }),
+    createdBy: uuid('created_by'),
+    revokedAt: timestamp('revoked_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('sponsorship_merit_order_uidx').on(table.orderId),
+    index('sponsorship_merit_cultivator_supported_idx').on(
+      table.cultivatorId,
+      table.supportedAt,
+    ),
+  ],
+);
+
+export const sponsorshipClaims = pgTable(
+  'wanjiedaoyou_sponsorship_claims',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orderId: uuid('order_id')
+      .references(() => sponsorshipOrders.id, { onDelete: 'cascade' })
+      .notNull(),
+    codeHash: varchar('code_hash', { length: 64 }).notNull(),
+    code: text('code').notNull(),
+    publicListing: boolean('public_listing').notNull().default(true),
+    version: integer('version').notNull().default(1),
+    status: varchar('status', { length: 24 }).notNull().default('active'),
+    expiresAt: timestamp('expires_at').notNull(),
+    cultivatorId: uuid('cultivator_id').references(() => cultivators.id, {
+      onDelete: 'set null',
+    }),
+    claimedAt: timestamp('claimed_at'),
+    messageStatus: varchar('message_status', { length: 24 })
+      .notNull()
+      .default('pending'),
+    messageAttempts: integer('message_attempts').notNull().default(0),
+    lastMessageError: text('last_message_error'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('sponsorship_claims_order_uidx').on(table.orderId),
+    uniqueIndex('sponsorship_claims_code_hash_uidx').on(table.codeHash),
+    index('sponsorship_claims_status_expires_idx').on(
+      table.status,
+      table.expiresAt,
+    ),
+  ],
+);
+
+export const sponsorshipAdminActions = pgTable(
+  'wanjiedaoyou_sponsorship_admin_actions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    adminUserId: uuid('admin_user_id').notNull(),
+    action: varchar('action', { length: 64 }).notNull(),
+    orderId: uuid('order_id').references(() => sponsorshipOrders.id, {
+      onDelete: 'set null',
+    }),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('sponsorship_admin_actions_admin_created_idx').on(
+      table.adminUserId,
+      table.createdAt,
+    ),
+    index('sponsorship_admin_actions_order_created_idx').on(
+      table.orderId,
+      table.createdAt,
+    ),
+  ],
+);
 
 export const itemLibrary = pgTable(
   'wanjiedaoyou_item_library',

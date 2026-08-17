@@ -1,4 +1,4 @@
-import { getExecutor } from '@server/lib/drizzle/db';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import { appSettings } from '@server/lib/drizzle/schema';
 import {
   APP_SETTING_KEYS,
@@ -7,6 +7,11 @@ import {
   ItemLibraryDailyMaterialGenerationSettingsSchema,
   type ItemLibraryDailyMaterialGenerationSettings,
 } from '@shared/lib/constants/appSettings';
+import {
+  AfdianSponsorshipConfigSchema,
+  DEFAULT_AFDIAN_SPONSORSHIP_CONFIG,
+  type AfdianSponsorshipConfig,
+} from '@shared/lib/sponsorship';
 import { eq } from 'drizzle-orm';
 
 export async function getAppSetting(key: string): Promise<string | null> {
@@ -20,12 +25,15 @@ export async function getAppSetting(key: string): Promise<string | null> {
   return v ? v : null;
 }
 
-export async function upsertAppSetting(params: {
-  key: string;
-  value: string;
-  updatedBy: string;
-}): Promise<void> {
-  const q = getExecutor();
+export async function upsertAppSetting(
+  params: {
+    key: string;
+    value: string;
+    updatedBy: string;
+  },
+  tx?: DbTransaction,
+): Promise<void> {
+  const q = getExecutor(tx);
   await q
     .insert(appSettings)
     .values({
@@ -82,4 +90,32 @@ export async function upsertItemLibraryDailyMaterialGenerationSettings(params: {
     value: JSON.stringify(params.settings),
     updatedBy: params.updatedBy,
   });
+}
+
+export async function getAfdianSponsorshipConfig(): Promise<AfdianSponsorshipConfig> {
+  const raw = await getAppSetting(APP_SETTING_KEYS.afdianSponsorship);
+  if (!raw) return structuredClone(DEFAULT_AFDIAN_SPONSORSHIP_CONFIG);
+  try {
+    return AfdianSponsorshipConfigSchema.parse(JSON.parse(raw));
+  } catch {
+    return structuredClone(DEFAULT_AFDIAN_SPONSORSHIP_CONFIG);
+  }
+}
+
+export async function upsertAfdianSponsorshipConfig(
+  params: {
+    config: AfdianSponsorshipConfig;
+    updatedBy: string;
+  },
+  tx?: DbTransaction,
+): Promise<void> {
+  const config = AfdianSponsorshipConfigSchema.parse(params.config);
+  await upsertAppSetting(
+    {
+      key: APP_SETTING_KEYS.afdianSponsorship,
+      value: JSON.stringify(config),
+      updatedBy: params.updatedBy,
+    },
+    tx,
+  );
 }

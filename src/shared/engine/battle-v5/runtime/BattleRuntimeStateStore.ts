@@ -26,6 +26,7 @@ export class BattleRuntimeStateStore {
         activeEffectGuards: new Set(),
         globalUniqueEffects: new Map(),
         deathPreventTriggers: new Set(),
+        deathCommitted: false,
         sequences: new Map(),
         dealtDamageSinceLastCheck: false,
         removedBuffs: [],

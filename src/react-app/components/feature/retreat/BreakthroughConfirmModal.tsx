@@ -1,6 +1,6 @@
 import { InkModal } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
-import { format } from 'd3-format';
+import { BreakthroughChanceDetails } from './BreakthroughChanceDetails';
 import type { BreakthroughChancePreviewData } from './useRetreatViewModel';
 
 interface BreakthroughConfirmModalProps {
@@ -77,19 +77,9 @@ export function BreakthroughConfirmModal({
         </div>
 
         {chancePreview && (
-          <div className="border-teal/35 bg-bgpaper space-y-1 border border-dashed p-3">
+          <div className="border-teal/35 bg-bgpaper space-y-3 border border-dashed p-3">
             <p className="text-teal font-medium">【当前成功率推演】</p>
-            <p className="text-teal text-xs">
-              基础成功率：{format('.1%')(Math.min(chancePreview.baseChance, 1))}
-            </p>
-            {chancePreview.buffBonus > 0 && (
-              <p className="text-xs text-emerald-800">
-                外物与机缘加成：+{format('.1%')(chancePreview.buffBonus)}
-              </p>
-            )}
-            <p className="text-xs text-emerald-800">
-              最终成功率：{format('.1%')(Math.min(chancePreview.finalChance, 1))}
-            </p>
+            <BreakthroughChanceDetails presentation={chancePreview} />
           </div>
         )}
 

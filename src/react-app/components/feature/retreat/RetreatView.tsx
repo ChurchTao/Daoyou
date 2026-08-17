@@ -14,6 +14,7 @@ import { cn } from '@shared/lib/utils';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
+import { BreakthroughChanceDetails } from './BreakthroughChanceDetails';
 import type {
   RetreatBuffTag,
   RetreatEfficiencyModel,
@@ -21,6 +22,7 @@ import type {
 import { RetreatResultModal } from './RetreatResultModal';
 import {
   useRetreatViewModel,
+  type BreakthroughChancePreviewData,
   type CultivationProgressData,
 } from './useRetreatViewModel';
 
@@ -319,6 +321,7 @@ function BreakthroughPanel({
   cultivationProgress,
   canAttemptBreakthrough,
   guidanceText,
+  breakthroughPreview,
   retreatEfficiency,
   isMajorBreakthrough,
   majorBreakthroughBlocked,
@@ -332,6 +335,7 @@ function BreakthroughPanel({
   cultivationProgress: CultivationProgressData | null;
   canAttemptBreakthrough: boolean;
   guidanceText: string;
+  breakthroughPreview: BreakthroughChancePreviewData | null;
   retreatEfficiency: RetreatEfficiencyModel | null;
   isMajorBreakthrough: boolean;
   majorBreakthroughBlocked: boolean;
@@ -361,7 +365,21 @@ function BreakthroughPanel({
           ) : null}
           <span className="text-ink-secondary">{guidanceText}</span>
         </div>
-        <RetreatBuffTags tags={retreatEfficiency?.breakthroughTags ?? []} />
+        {breakthroughPreview ? (
+          <div className="border-teal/25 bg-bgpaper/60 space-y-3 border border-dashed px-3 py-3">
+            <p className="text-teal text-sm font-medium">成功率推演</p>
+            <BreakthroughChanceDetails presentation={breakthroughPreview} />
+          </div>
+        ) : null}
+
+        {(retreatEfficiency?.breakthroughTags.length ?? 0) > 0 ? (
+          <div className="space-y-2">
+            <p className="text-ink-secondary text-xs leading-5">破境准备</p>
+            <RetreatBuffTags
+              tags={retreatEfficiency?.breakthroughTags ?? []}
+            />
+          </div>
+        ) : null}
       </div>
 
       {isMajorBreakthrough ? (
@@ -610,6 +628,7 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
               cultivationProgress={cultivationProgress}
               canAttemptBreakthrough={canAttemptBreakthrough}
               guidanceText={guidanceText}
+              breakthroughPreview={breakthroughPreview}
               retreatEfficiency={retreatEfficiency}
               isMajorBreakthrough={isMajorBreakthrough}
               majorBreakthroughBlocked={majorBreakthroughBlocked}

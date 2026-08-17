@@ -910,6 +910,14 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="merit-ledger"
+              lazy={lazyRoute(() => import('@app/routes/game/merit-ledger/route'))}
+              handle={scene(
+                { id: 'merit-ledger', presentation: 'service', summary: '记同行之缘，不录金额与次数。' },
+                '功德簿',
+              )}
+            />
+            <Route
               path="settings"
               lazy={lazyRoute(() => import('@app/routes/game/settings/route'))}
               handle={scene(
@@ -1243,6 +1251,11 @@ export const router = createBrowserRouter(
             () => import('@app/routes/admin/redeem-codes/new/route'),
           )}
           handle={title('新建兑换码')}
+        />
+        <Route
+          path="sponsorship"
+          lazy={lazyRoute(() => import('@app/routes/admin/sponsorship/route'))}
+          handle={title('功德簿管理')}
         />
         <Route
           path="llm-metrics"

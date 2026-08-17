@@ -64,6 +64,7 @@ export interface BreakthroughModifiers {
   progressMultiplier: number; // 修为进度系数
   insightMultiplier: number; // 感悟系数
   demonPenalty: number; // 心魔惩罚
+  adjustedBaseChance: number; // 乘算修正后的综合基础成功率
   fateBonus: number; // 命格加成
   pillBonus: number; // 破境丹残留加成
   toxicityPenalty: number; // 丹毒惩罚
@@ -164,20 +165,19 @@ export function calculateBreakthroughChance(
     cultivator.condition,
     fateContext.toxicityPenaltyMultiplier,
   );
+  const adjustedBaseChance =
+    baseChance *
+    realmDifficulty *
+    progressMultiplier *
+    insightMultiplier *
+    demonPenalty;
 
   // 计算最终成功率
   const finalChance = Math.min(
-    1.0,
+    0.95,
     Math.max(
       0.05,
-      baseChance *
-        realmDifficulty *
-        progressMultiplier *
-      insightMultiplier *
-      demonPenalty +
-      fateBonus +
-      pillBonus +
-      -toxicityPenalty,
+      adjustedBaseChance + fateBonus + pillBonus - toxicityPenalty,
     ),
   );
 
@@ -198,6 +198,7 @@ export function calculateBreakthroughChance(
       progressMultiplier,
       insightMultiplier,
       demonPenalty,
+      adjustedBaseChance,
       fateBonus,
       pillBonus,
       toxicityPenalty,
@@ -369,6 +370,7 @@ function createInsufficientExpResult(
       progressMultiplier: 0,
       insightMultiplier: 0,
       demonPenalty: 0,
+      adjustedBaseChance: 0,
       fateBonus: 0,
       pillBonus: 0,
       toxicityPenalty: 0,
@@ -393,6 +395,7 @@ function createMaxRealmResult(): BreakthroughChanceResult {
       progressMultiplier: 0,
       insightMultiplier: 0,
       demonPenalty: 0,
+      adjustedBaseChance: 0,
       fateBonus: 0,
       pillBonus: 0,
       toxicityPenalty: 0,
@@ -432,6 +435,10 @@ export function getBreakthroughChanceExplanation(
 • 修为进度：×${format('.2f')(modifiers.progressMultiplier)}
 • 感悟加成：×${format('.2f')(modifiers.insightMultiplier)}
 ${modifiers.demonPenalty < 1.0 ? `• 心魔惩罚：×${format('.2f')(modifiers.demonPenalty)}\n` : ''}
+• 综合基础成功率：${format('.1%')(modifiers.adjustedBaseChance)}
+• 命格机缘：${format('+.1%')(modifiers.fateBonus)}
+• 破境药力：${format('+.1%')(modifiers.pillBonus)}
+• 丹毒惩罚：-${format('.1%')(modifiers.toxicityPenalty)}
 【建议】${result.recommendation}
   `.trim();
 }

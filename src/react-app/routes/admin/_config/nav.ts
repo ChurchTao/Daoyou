@@ -61,6 +61,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/redeem-codes',
   },
   {
+    title: '功德簿管理',
+    description: '爱发电映射、订单与认领处理',
+    href: '/admin/sponsorship',
+  },
+  {
     title: 'LLM 观测',
     description: '查看场景体积、usage 与缓存迹象',
     href: '/admin/llm-metrics',

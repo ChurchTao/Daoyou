@@ -22,6 +22,7 @@ export const DOMAIN_EVENT_TYPES = [
   'bet-battle.created',
   'bet-battle.settled',
   'ranking.position.changed',
+  'sponsorship.order.received',
 ] as const;
 
 export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];
@@ -147,6 +148,13 @@ export const DomainEventDataSchemas = {
       changeType: z.enum(['direct_entry', 'challenge_win', 'vacancy_entry']),
     })
     .strict(),
+  'sponsorship.order.received': z
+    .object({
+      orderId: z.uuid(),
+      provider: z.literal('afdian'),
+      providerOrderId: z.string().min(1).max(80),
+    })
+    .strict(),
 } as const;
 
 export type DomainEventData<TType extends DomainEventType> = z.infer<
@@ -201,6 +209,10 @@ export const DOMAIN_EVENT_DEFINITIONS = {
   'ranking.position.changed': {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.ranking-position-changed.v1`,
+  },
+  'sponsorship.order.received': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.sponsorship.order-received.v1`,
   },
 } as const satisfies Record<
   DomainEventType,
