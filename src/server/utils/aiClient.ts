@@ -1,6 +1,6 @@
-import { createDeepSeek, deepSeek } from '@ai-sdk/deepseek';
 import { getCurrentContext } from '@server/lib/http/context';
 import { recordLlmCallMetric } from '@server/lib/llm/metricsStore';
+import { LLM_PROVIDERS } from '@server/lib/llm/providers';
 import type {
   LlmCallAttemptMetrics,
   LlmCallMetrics,
@@ -11,7 +11,13 @@ import {
   stableCompactStringify,
   truncateText,
 } from '@server/utils/llmPayload';
-import { DEEPSEEK_DEFAULT_MODEL } from '@shared/config/deepseek';
+import type { LlmByokConfig, LlmProviderId } from '@shared/config/llm';
+import {
+  pickHighestWeightLlmRoute,
+  pickLlmRouteByUserHash,
+  resolveServerLlmRoutes,
+  type LlmRoute,
+} from '@shared/config/llmRouting';
 import {
   generateText,
   JSONParseError,
@@ -19,6 +25,7 @@ import {
   Output,
   streamText,
   TypeValidationError,
+  type LanguageModel,
   type LanguageModelCallOptions,
   type LanguageModelUsage,
 } from 'ai';
@@ -119,6 +126,7 @@ export interface AiArrayOptions<ELEMENT, RESULT = ELEMENT[]>
 
 type MetricContext = {
   sceneId: LlmSceneId;
+  provider: LlmProviderId;
   model: string;
   systemChars: number;
   userChars: number;
@@ -126,7 +134,8 @@ type MetricContext = {
 };
 
 type ResolvedModel = {
-  model: ReturnType<typeof deepSeek>;
+  model: LanguageModel;
+  provider: LlmProviderId;
   modelName: string;
 };
 
@@ -142,7 +151,7 @@ type StructuredGenerationAttempt = {
   maxOutputTokens?: number;
 };
 
-function getRequestConfig() {
+function getRequestConfig(): LlmByokConfig | undefined {
   try {
     return getCurrentContext().get('llmConfig');
   } catch {
@@ -150,25 +159,56 @@ function getRequestConfig() {
   }
 }
 
+function getRequestUserId(): string | undefined {
+  try {
+    return getCurrentContext().get('user')?.id;
+  } catch {
+    return undefined;
+  }
+}
+
+function listConfiguredServerRoutes(): LlmRoute[] {
+  return resolveServerLlmRoutes({
+    providerSpec: process.env.LLM_PROVIDER,
+    availableProviders: {
+      alibaba: Boolean(process.env.ALIBABA_API_KEY?.trim()),
+      deepseek: Boolean(process.env.DEEPSEEK_API_KEY?.trim()),
+    },
+  });
+}
+
+function resolveServerRoute(): LlmRoute {
+  const routes = listConfiguredServerRoutes();
+  if (routes.length === 1) {
+    return routes[0];
+  }
+
+  const userId = getRequestUserId();
+  return userId
+    ? pickLlmRouteByUserHash(routes, userId)
+    : pickHighestWeightLlmRoute(routes);
+}
+
 function resolveModel(sceneId: LlmSceneId): ResolvedModel {
   const requestConfig = getRequestConfig();
-  const modelName =
-    requestConfig?.model ||
-    process.env.DEEPSEEK_MODEL?.trim() ||
-    DEEPSEEK_DEFAULT_MODEL;
+  const route = requestConfig
+    ? {
+        provider: requestConfig.provider,
+        model: requestConfig.model,
+      }
+    : resolveServerRoute();
+  const providerId = route.provider;
+  const def = LLM_PROVIDERS[providerId];
+  const modelName = route.model;
   const debugFetch = LLM_DEBUG_ENABLED
     ? createLlmDebugFetch(sceneId, modelName)
     : undefined;
-  const provider =
-    requestConfig || debugFetch
-      ? createDeepSeek({
-          apiKey: requestConfig?.apiKey,
-          fetch: debugFetch,
-        })
-      : deepSeek;
+  const apiKey =
+    requestConfig?.apiKey ?? process.env[def.apiKeyEnv]?.trim();
 
   return {
-    model: provider(modelName),
+    model: def.create({ apiKey, fetch: debugFetch })(modelName),
+    provider: providerId,
     modelName,
   };
 }
@@ -239,7 +279,7 @@ function recordMetrics(
 ): void {
   const metrics: LlmCallMetrics = {
     sceneId: context.sceneId,
-    provider: 'deepseek',
+    provider: context.provider,
     model: context.model,
     systemChars: context.systemChars,
     userChars: context.userChars,
@@ -261,11 +301,13 @@ function recordMetrics(
 
 function createMetricContext(
   options: AiTextOptions,
+  provider: LlmProviderId,
   model: string,
   schemaChars = 0,
 ): MetricContext {
   return {
     sceneId: options.sceneId,
+    provider,
     model,
     systemChars: options.system.length,
     userChars: options.prompt.length,
@@ -430,8 +472,8 @@ function getStructuredRetryMaxOutputTokens(
 }
 
 export async function generateAiText(options: AiTextOptions) {
-  const { model, modelName } = resolveModel(options.sceneId);
-  const metrics = createMetricContext(options, modelName);
+  const { model, modelName, provider } = resolveModel(options.sceneId);
+  const metrics = createMetricContext(options, provider, modelName);
 
   try {
     const result = await generateText({
@@ -454,8 +496,8 @@ export async function generateAiText(options: AiTextOptions) {
 }
 
 export function streamAiText(options: AiTextOptions) {
-  const { model, modelName } = resolveModel(options.sceneId);
-  const metrics = createMetricContext(options, modelName);
+  const { model, modelName, provider } = resolveModel(options.sceneId);
+  const metrics = createMetricContext(options, provider, modelName);
   let terminalMetricRecorded = false;
 
   const recordTerminalMetric = (
@@ -606,9 +648,10 @@ async function generateStructured<
 export async function generateAiObject<GENERATED, RESULT = GENERATED>(
   options: AiObjectOptions<GENERATED, RESULT>,
 ) {
-  const { model, modelName } = resolveModel(options.sceneId);
+  const { model, modelName, provider } = resolveModel(options.sceneId);
   const metrics = createMetricContext(
     options,
+    provider,
     modelName,
     getSchemaChars(options.schema),
   );
@@ -644,9 +687,10 @@ export async function generateAiObject<GENERATED, RESULT = GENERATED>(
 export async function generateAiArray<ELEMENT, RESULT = ELEMENT[]>(
   options: AiArrayOptions<ELEMENT, RESULT>,
 ) {
-  const { model, modelName } = resolveModel(options.sceneId);
+  const { model, modelName, provider } = resolveModel(options.sceneId);
   const metrics = createMetricContext(
     options,
+    provider,
     modelName,
     getSchemaChars(z.array(options.elementSchema)),
   );

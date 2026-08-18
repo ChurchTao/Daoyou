@@ -126,12 +126,34 @@ ALTCHA 不需要前端 site key。认证 CAPTCHA 启用时 Redis 也是强依赖
 
 ### AI 能力
 
-AI 相关功能只调用 DeepSeek 官方 API。服务端默认配置：
+AI 相关功能支持 DeepSeek 与阿里云百炼（Qwen），统一通过 `aiClient.ts` 调用。服务端只认一张路由表：
 
-- `DEEPSEEK_API_KEY`：服务端 DeepSeek API Key
-- `DEEPSEEK_MODEL`：服务端默认模型，未配置时使用 `deepseek-chat`
+`LLM_PROVIDER=<provider>[/<model>][:<weight>][,...]`
 
-玩家也可以在游戏设置中保存自己的 DeepSeek API Key 与模型。BYOK 配置只保存在当前浏览器；请求携带的配置不完整或格式无效时，服务端会返回 400，不会静默消耗服务器额度。
+| 需求 | 配置 |
+| --- | --- |
+| 单供应商单模型 | `alibaba` 或 `alibaba/qwen3.7-flash` |
+| 单供应商多模型 | `alibaba/qwen3.7-flash:70,alibaba/qwen-plus:30` |
+| 多供应商单模型 | `alibaba/qwen3.7-flash:70,deepseek/deepseek-v4-flash:30` |
+| 多供应商多模型 | `alibaba/qwen3.7-flash:50,alibaba/qwen-plus:20,deepseek/deepseek-v4-flash:30` |
+
+规则：
+
+- 省略 `/model` 时用该供应商默认模型（`qwen3.7-flash` / `deepseek-v4-flash`）
+- 省略 `:weight` 时该条权重为 `1`（等权）
+- 多于一条路由时，按用户 id 做稳定 hash 分流；同一用户始终命中同一条 `provider + model`
+- 无用户上下文（如 cron）时落到当前权重最高的路由
+- 列出的每个供应商都必须配置对应 API Key
+- 未设置 `LLM_PROVIDER` 时自动回退：有 `ALIBABA_API_KEY` 用 `alibaba`，否则有 `DEEPSEEK_API_KEY` 用 `deepseek`
+- 玩家 BYOK 仍优先生效，不走服务端分流
+
+其它变量：
+
+- `ALIBABA_API_KEY`：阿里云百炼 API Key
+- `ALIBABA_BASE_URL`：可选，默认国内北京 `https://dashscope.aliyuncs.com/compatible-mode/v1`
+- `DEEPSEEK_API_KEY`：DeepSeek API Key
+
+玩家也可以在游戏设置中保存自己的供应商、API Key 与模型。BYOK 配置只保存在当前浏览器；请求携带的 provider 必须是服务端白名单枚举，baseURL 不能由客户端指定。配置不完整或格式无效时服务端返回 400，不会静默消耗服务器额度。
 
 ## 数据库初始化
 

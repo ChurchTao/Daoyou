@@ -14,7 +14,8 @@ description: Daoyou Hono API、认证、授权、Better Auth、ALTCHA、admin、
 - `src/server/lib/auth/auth.ts`
 - `src/server/lib/auth/hono.ts`
 - `src/server/utils/aiClient.ts`
-- `src/shared/config/deepseek.ts`
+- `src/shared/config/llm.ts`
+- `src/shared/config/llmRouting.ts`
 - `src/shared/contracts`
 
 ## API Boundary Facts
@@ -34,8 +35,9 @@ description: Daoyou Hono API、认证、授权、Better Auth、ALTCHA、admin、
 ## LLM Security Facts
 
 - The browser patches `window.fetch` in `src/react-app/main.tsx` to add `x-llm-api-key` and `x-llm-model` headers for `/api/` requests.
-- Server LLM calls should use `src/server/utils/aiClient.ts` (`generateAiText`, `streamAiText`, `generateAiObject`, `generateAiArray`) so DeepSeek model resolution, metrics, structured output, and retry behavior stay in one path.
-- Server accepts request-level DeepSeek BYOK only when both API key and model pass `src/shared/config/deepseek.ts`; partial or invalid configuration returns 400 without falling back to the server key.
+- Server LLM calls should use `src/server/utils/aiClient.ts` (`generateAiText`, `streamAiText`, `generateAiObject`, `generateAiArray`) so provider resolution, metrics, structured output, and retry behavior stay in one path.
+- Server-side `LLM_PROVIDER` is a route table: `provider[/model][:weight],...`. It covers one or many providers and one or many models. Multiple routes are sticky by user id hash on the full `provider + model`. BYOK request config still wins and does not enter the split. Read/parse in `src/shared/config/llmRouting.ts`; `aiClient.ts` only maps env and picks.
+- Server accepts request-level BYOK only when provider, API key, and model pass `src/shared/config/llm.ts`; partial or invalid configuration returns 400 without falling back to the server key.
 - DeepSeek calls use the official provider endpoint. Do not accept a request-level provider or Base URL.
 - LLM metrics use in-memory fallback plus Redis key `admin:llm-metrics:events:v1`; do not add a parallel metrics store.
 - Prompt files under `src/server/prompts/*.md` have `id:` headers. New prompt scenes usually also need `LlmSceneId`, caller `sceneId`, and schema/constraint updates.

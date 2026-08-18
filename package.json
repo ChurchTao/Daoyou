@@ -26,6 +26,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@ai-sdk/alibaba": "^2.0.32",
     "@ai-sdk/deepseek": "^3.0.24",
     "@better-auth/drizzle-adapter": "^1.6.26",
     "@better-auth/i18n": "^1.6.26",

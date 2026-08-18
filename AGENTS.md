@@ -57,7 +57,7 @@ bun run auth:migrate
 - `/api/auth/*` is Better Auth through `src/server/lib/auth/hono.ts`.
 - `/internal/cron/*` uses Bearer `CRON_SECRET` when configured; production requires it, while non-production without `CRON_SECRET` currently allows the request.
 - Shared request/response contracts live in `src/shared/contracts`; domain DTO/types live in `src/shared/types`.
-- LLM calls should use `src/server/utils/aiClient.ts`; DeepSeek BYOK validation truth is `src/shared/config/deepseek.ts`.
+- LLM calls should use `src/server/utils/aiClient.ts`; BYOK validation truth is `src/shared/config/llm.ts`. Server routing is one `LLM_PROVIDER` table (`provider[/model][:weight]`) parsed in `src/shared/config/llmRouting.ts`; multiple routes are sticky by user id hash. Request BYOK still wins.
 - Treat all LLM output as untrusted. Resource, reward, cost, drop, and other state-changing numbers need deterministic service/schema/resource-layer guards.
 - Redis access must go through `src/server/lib/redis`; do not instantiate feature-local Redis clients.
 - SMTP mail goes through `src/server/lib/admin/smtp.ts`.

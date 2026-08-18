@@ -9,6 +9,7 @@ export const apiCorsOptions = {
     'x-altcha-payload',
     'x-llm-api-key',
     'x-llm-model',
+    'x-llm-provider',
   ],
   allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,

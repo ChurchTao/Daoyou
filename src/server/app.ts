@@ -7,7 +7,7 @@ import { apiCorsOptions } from '@server/lib/http/cors';
 import { unsafeRequestOriginGuard } from '@server/lib/http/originGuard';
 import apiRouter from '@server/routes/api';
 import internalRouter from '@server/routes/internal';
-import { DeepSeekByokConfigSchema } from '@shared/config/deepseek';
+import { LlmByokConfigSchema } from '@shared/config/llm';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
@@ -23,16 +23,17 @@ app.use('/api/*', cors(apiCorsOptions));
 app.use('/api/*', unsafeRequestOriginGuard());
 
 app.use('*', async (context, next) => {
+  const provider = context.req.header('x-llm-provider');
   const apiKey = context.req.header('x-llm-api-key');
   const model = context.req.header('x-llm-model');
 
-  if (apiKey !== undefined || model !== undefined) {
-    const parsed = DeepSeekByokConfigSchema.safeParse({ apiKey, model });
+  if (provider !== undefined || apiKey !== undefined || model !== undefined) {
+    const parsed = LlmByokConfigSchema.safeParse({ provider, apiKey, model });
     if (!parsed.success) {
       return context.json(
         {
           success: false,
-          error: 'DeepSeek 配置不完整或格式无效',
+          error: 'LLM 配置不完整或格式无效',
         },
         400,
       );

@@ -1,13 +1,12 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
+import { InkSelect } from '@app/components/ui/InkSelect';
+import { LLM_STORAGE_KEY, readStoredLlmConfig } from '@app/lib/llmConfig';
 import {
-  DEEPSEEK_STORAGE_KEY,
-  readStoredDeepSeekConfig,
-} from '@app/lib/deepseekConfig';
-import {
-  DEEPSEEK_DEFAULT_MODEL,
-  DeepSeekByokConfigSchema,
-} from '@shared/config/deepseek';
+  LLM_PROVIDER_DEFAULT_MODELS,
+  LlmByokConfigSchema,
+  type LlmProviderId,
+} from '@shared/config/llm';
 import { useState } from 'react';
 import {
   SettingsMessage,
@@ -15,10 +14,20 @@ import {
   settingsLabelClass,
 } from './SettingsFields';
 
+const PROVIDER_LABELS: Record<LlmProviderId, string> = {
+  deepseek: 'DeepSeek',
+  alibaba: '阿里云百炼（Qwen）',
+};
+
 export function ModelConfigTab() {
-  const stored = readStoredDeepSeekConfig();
-  const [apiKey, setApiKey] = useState(stored?.apiKey || '');
-  const [model, setModel] = useState(stored?.model || DEEPSEEK_DEFAULT_MODEL);
+  const stored = readStoredLlmConfig();
+  const [provider, setProvider] = useState<LlmProviderId>(
+    stored?.provider ?? 'alibaba',
+  );
+  const [apiKey, setApiKey] = useState(stored?.apiKey ?? '');
+  const [model, setModel] = useState(
+    stored?.model ?? LLM_PROVIDER_DEFAULT_MODELS.alibaba,
+  );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{
     type: 'success' | 'error';
@@ -28,12 +37,18 @@ export function ModelConfigTab() {
 
   const canSubmit = apiKey.trim() && model.trim() && !loading;
 
+  const handleProviderChange = (value: string) => {
+    const next = value as LlmProviderId;
+    setProvider(next);
+    setModel(LLM_PROVIDER_DEFAULT_MODELS[next]);
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
-    const parsed = DeepSeekByokConfigSchema.safeParse({ apiKey, model });
+    const parsed = LlmByokConfigSchema.safeParse({ provider, apiKey, model });
     if (!parsed.success) {
-      setMessage({ type: 'error', text: 'API Key 或模型格式无效' });
+      setMessage({ type: 'error', text: '配置格式无效' });
       return;
     }
 
@@ -41,7 +56,7 @@ export function ModelConfigTab() {
     setMessage(null);
 
     try {
-      localStorage.setItem(DEEPSEEK_STORAGE_KEY, JSON.stringify(parsed.data));
+      localStorage.setItem(LLM_STORAGE_KEY, JSON.stringify(parsed.data));
       setHasConfig(true);
       setMessage({ type: 'success', text: '配置已保存到浏览器本地。' });
     } catch {
@@ -52,9 +67,10 @@ export function ModelConfigTab() {
   };
 
   const handleClear = () => {
-    localStorage.removeItem(DEEPSEEK_STORAGE_KEY);
+    localStorage.removeItem(LLM_STORAGE_KEY);
+    setProvider('alibaba');
     setApiKey('');
-    setModel(DEEPSEEK_DEFAULT_MODEL);
+    setModel(LLM_PROVIDER_DEFAULT_MODELS.alibaba);
     setHasConfig(false);
     setMessage({
       type: 'success',
@@ -64,8 +80,18 @@ export function ModelConfigTab() {
 
   return (
     <div className="space-y-5">
+      <InkSelect
+        label="供应商"
+        value={provider}
+        onChange={handleProviderChange}
+        labelClassName={settingsLabelClass}
+      >
+        <option value="deepseek">{PROVIDER_LABELS.deepseek}</option>
+        <option value="alibaba">{PROVIDER_LABELS.alibaba}</option>
+      </InkSelect>
+
       <InkInput
-        label="DeepSeek API Key"
+        label="API Key"
         type="password"
         placeholder="sk-..."
         value={apiKey}
@@ -75,8 +101,8 @@ export function ModelConfigTab() {
       />
 
       <InkInput
-        label="DeepSeek 模型"
-        placeholder="如 deepseek-chat"
+        label="模型"
+        placeholder={LLM_PROVIDER_DEFAULT_MODELS[provider]}
         value={model}
         onChange={setModel}
         size="sm"
@@ -111,7 +137,7 @@ export function ModelConfigTab() {
 
       <SettingsSection>
         <p className="text-ink-secondary text-sm leading-6">
-          仅支持 DeepSeek 官方服务。配置保存在浏览器 localStorage
+          支持 DeepSeek 与阿里云百炼（Qwen）。配置保存在浏览器 localStorage
           中，仅当前设备生效，更换浏览器或清除缓存后需要重新配置。
           <br />
           API Key

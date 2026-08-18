@@ -1,3 +1,5 @@
+import type { LlmProviderId } from '@shared/config/llm';
+
 export type LlmSceneId =
   | 'alchemy-formula-analysis'
   | 'alchemy-improvised-copy'
@@ -38,7 +40,7 @@ export interface LlmCallAttemptMetrics {
 
 export interface LlmCallMetrics {
   sceneId: LlmSceneId;
-  provider: 'deepseek';
+  provider: LlmProviderId;
   model: string;
   systemChars: number;
   userChars: number;
