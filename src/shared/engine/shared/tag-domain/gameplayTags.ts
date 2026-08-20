@@ -194,6 +194,7 @@ export const GameplayTags = {
     DAMAGE_REQUEST: 'DamageRequestEvent',
     DAMAGE: 'DamageEvent',
     ROUND_PRE: 'RoundPreEvent',
+    ROUND_POST: 'RoundPostEvent',
     ROUND_START: 'RoundStartEvent',
     SKILL_PRE_CAST: 'SkillPreCastEvent',
     SKILL_CAST: 'SkillCastEvent',

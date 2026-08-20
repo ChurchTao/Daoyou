@@ -371,7 +371,8 @@ function forgetfulRiverBuff(settings: YouduBuildSettings): BuffConfig {
   return {
     id: YOUDU_FORGETFUL_RIVER,
     name: '忘川',
-    description: '每次行动前受到魂伤，且受到的气血治疗降低。',
+    description: '每回合结束受到魂伤，且受到的气血治疗降低。',
+    durationUnit: 'round',
     type: BuffType.DEBUFF,
     duration: settings.forgetDuration,
     stackRule: StackRule.REFRESH_DURATION,
@@ -394,9 +395,9 @@ function forgetfulRiverBuff(settings: YouduBuildSettings): BuffConfig {
     listeners: [
       {
         id: 'sect.youdu.forgetful-river-dot',
-        eventType: GameplayTags.EVENT.ACTION_PRE,
-        scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
-        priority: EventPriorityLevel.ROUND_PRE,
+        eventType: GameplayTags.EVENT.ROUND_POST,
+        scope: GameplayTags.SCOPE.GLOBAL,
+        priority: EventPriorityLevel.ROUND_POST_DRAIN,
         mapping: { caster: 'owner', target: 'owner' },
         effects: damageEffects,
       },
@@ -1165,7 +1166,7 @@ function compileAbilities(
     extraTags: [soulDamageTag, erosionGeneratorTag],
     detailRows: [
       `${settings.forgetDirectCoefficient.toFixed(2)} × 法术攻击（魂伤）`,
-      `忘川持续${settings.forgetDuration}回合，每次行动前造成${coefficient(settings.forgetDotCoefficient)} × 法术攻击（魂伤）`,
+      `忘川持续${settings.forgetDuration}回合，每回合结束造成${coefficient(settings.forgetDotCoefficient)} × 法术攻击（魂伤）`,
       `受治疗效果额外降低${Math.round(settings.forgetHealReduction * 100)}%`,
       ...(settings.forgetSpeedReduction < 0
         ? [`忘川期间速度降低${percentage(-settings.forgetSpeedReduction)}`]

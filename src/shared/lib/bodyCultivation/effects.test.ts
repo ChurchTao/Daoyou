@@ -5,6 +5,7 @@ import {
   ModifierType,
 } from '@shared/engine/battle-v5/core/types';
 import {
+  buildBodyCultivationAttributeModifiers,
   getBodyCultivationBattleInitHooks,
 } from './effects';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
@@ -59,6 +60,26 @@ function createCondition(args: {
 }
 
 describe('body cultivation battle init hooks', () => {
+  it('applies the six-dimension balance values to body cultivation modifiers', () => {
+    const modifiers = buildBodyCultivationAttributeModifiers(
+      createCondition({
+        realm: 'mortal_body',
+        skin: 10,
+        qiBlood: 10,
+        primordialSpirit: 10,
+      }),
+    );
+
+    expect(modifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ attrType: AttributeType.DEF, value: 0.035 }),
+        expect.objectContaining({ attrType: AttributeType.MAGIC_DEF, value: 0.025 }),
+        expect.objectContaining({ attrType: AttributeType.MAX_HP, value: 0.1 }),
+        expect.objectContaining({ attrType: AttributeType.MAX_MP, value: 0.05 }),
+      ]),
+    );
+  });
+
   it('adds skin direct-damage reduction as a battle-init listener', () => {
     const hooks = getBodyCultivationBattleInitHooks(
       createCondition({
@@ -84,14 +105,14 @@ describe('body cultivation battle init hooks', () => {
               type: 'percent_damage_modifier',
               params: expect.objectContaining({
                 mode: 'reduce',
-                cap: 0.45,
+                cap: 0.3,
               }),
             }),
           ],
         }),
       ],
     });
-    expect(damageReductionEffect?.params.value).toBeCloseTo(0.072);
+    expect(damageReductionEffect?.params.value).toBeCloseTo(0.036);
   });
 
   it('adds skin erosion duration reduction as a battle-init listener', () => {

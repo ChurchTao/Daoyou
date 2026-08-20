@@ -229,7 +229,7 @@ function resolveRestoredBattleRound(
               controlledSkip,
               actor.getCurrentShield() > 0,
             );
-            processBuffDurations(actor);
+            processBuffDurations(actor, 'owner_action');
             actor.abilities.tickAbilitiesCooldown();
           }
           stateRecorder.record(
@@ -244,12 +244,16 @@ function resolveRestoredBattleRound(
     }
 
     let outcome!: ReturnType<typeof TeamVictorySystem.check>;
-    resolutionContext.runFrame({ phase: 'round_post', turn: round }, () => {
+    resolutionContext.runFrame({ phase: 'round_post', turn: round }, (sequence) => {
       eventBus.publish<RoundPostEvent>({
         type: 'RoundPostEvent',
         timestamp: runtime.clock.now(),
         turn: round,
       });
+      for (const unit of allUnits) {
+        processBuffDurations(unit, 'round');
+      }
+      stateRecorder.record('round_post', round, allUnits, undefined, sequence.id);
       outcome = TeamVictorySystem.check(roster, runtime.random, round);
       eventBus.publish<VictoryCheckEvent>({
         type: 'VictoryCheckEvent',
@@ -660,9 +664,13 @@ function validateRoundCommandSet(
   }
 }
 
-function processBuffDurations(unit: Unit): void {
+function processBuffDurations(
+  unit: Unit,
+  durationUnit: 'owner_action' | 'round',
+): void {
   for (const buff of unit.buffs.getAllBuffs()) {
     if (!unit.isAlive()) break;
+    if (buff.durationUnit !== durationUnit) continue;
     if (!shouldTickBuffDuration(unit, buff)) continue;
     buff.tickDuration();
     if (buff.isExpired()) {

@@ -754,6 +754,8 @@ export interface BuffConfig {
   description?: string;
   type: BuffType;
   duration: number; // -1 为永久
+  /** 持续时间递减单位；默认随宿主行动，周期状态可按回合递减。 */
+  durationUnit?: 'owner_action' | 'round';
   /** 内部计数/防重复 marker 可仅保留在调试日志。 */
   logVisibility?: 'player' | 'debug';
   /** 状态栏可见性；缺省时沿用日志可见性以保持兼容。 */

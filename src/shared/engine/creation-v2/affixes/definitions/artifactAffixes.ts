@@ -784,9 +784,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.ROUND_PRE,
+      eventType: GameplayTags.EVENT.ROUND_POST,
       scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.roundPre,
+      priority: CREATION_LISTENER_PRIORITIES.roundPostRecovery,
     },
   },
 
@@ -1029,7 +1029,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-defense-magic-shield',
     displayName: '法力护盾',
-    displayDescription: '受击时优先以灵力抵挡部分伤害',
+    displayDescription: '当前法力高于 30% 时，受击时优先以灵力抵挡部分伤害',
     slot: 'modifier',
     rarity: 'rare',
     match: {
@@ -1046,6 +1046,12 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     applicableArtifactSlots: ['accessory'],
     effectTemplate: {
       type: 'magic_shield',
+      conditions: [
+        {
+          type: 'mp_above',
+          params: { value: 0.3, scope: 'target' },
+        },
+      ],
       params: {
         absorbRatio: { base: 0.18, scale: 'quality', coefficient: 0.03 },
       },
@@ -1701,9 +1707,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.ROUND_PRE,
+      eventType: GameplayTags.EVENT.ROUND_POST,
       scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.roundPre,
+      priority: CREATION_LISTENER_PRIORITIES.roundPostRecovery,
     },
   },
   {

@@ -27,8 +27,8 @@ import {
 } from './utils';
 
 const DOT_TICK_LISTENER = {
-  eventType: GameplayTags.EVENT.ACTION_PRE,
-  scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
+  eventType: GameplayTags.EVENT.ROUND_POST,
+  scope: GameplayTags.SCOPE.GLOBAL,
   priority: CREATION_LISTENER_PRIORITIES.dotTick,
 } as const;
 
@@ -1043,6 +1043,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           name: '灼烧',
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          durationUnit: 'round',
           stackRule: StackRule.STACK_LAYER,
           tags: [
             GameplayTags.BUFF.TYPE.DEBUFF,
@@ -1144,6 +1145,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           name: '中毒',
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.standard,
+          durationUnit: 'round',
           stackRule: StackRule.STACK_LAYER,
           tags: [
             GameplayTags.BUFF.TYPE.DEBUFF,
@@ -1203,6 +1205,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           name: '流血',
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          durationUnit: 'round',
           stackRule: StackRule.STACK_LAYER,
           tags: [
             GameplayTags.BUFF.TYPE.DEBUFF,

@@ -278,7 +278,8 @@ function periodicDamageBuff(
     },
   };
   return buff(id, name, BuffType.DEBUFF, 2, {
-    description: `${name}每次行动前造成持续法术伤害。`,
+    description: `${name}每回合结束造成持续法术伤害。`,
+    durationUnit: 'round',
     tags: [
       GameplayTags.BUFF.TYPE.DEBUFF,
       GameplayTags.BUFF.DOT.ROOT,
@@ -298,9 +299,9 @@ function periodicDamageBuff(
     listeners: [
       {
         id: `${id}.periodic`,
-        eventType: GameplayTags.EVENT.ACTION_PRE,
-        scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-        priority: EventPriorityLevel.ACTION_TRIGGER,
+        eventType: GameplayTags.EVENT.ROUND_POST,
+        scope: GameplayTags.SCOPE.GLOBAL,
+        priority: EventPriorityLevel.ROUND_POST_DRAIN,
         mapping: { caster: 'owner', target: 'owner' },
         effects: [
           periodic,
@@ -1486,6 +1487,7 @@ function compileUtilityAbilities(
   const renewalTick =
     0.03 * settings.woodHealingMultiplier * settings.loadoutMultiplier;
   const renewalBuff = buff('sect.tianyan.renewal', '回春', BuffType.BUFF, 2, {
+    durationUnit: 'round',
     tags: [
       GameplayTags.BUFF.TYPE.BUFF,
       GameplayTags.BUFF.SECT.namespace(TIANYAN_SECT_ID, 'renewal'),
@@ -1494,9 +1496,9 @@ function compileUtilityAbilities(
     listeners: [
       {
         id: 'sect.tianyan.renewal.tick',
-        eventType: GameplayTags.EVENT.ACTION_PRE,
-        scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-        priority: EventPriorityLevel.ACTION_TRIGGER,
+        eventType: GameplayTags.EVENT.ROUND_POST,
+        scope: GameplayTags.SCOPE.GLOBAL,
+        priority: EventPriorityLevel.ROUND_POST_RECOVERY,
         mapping: { caster: 'owner', target: 'owner' },
         effects: [
           {

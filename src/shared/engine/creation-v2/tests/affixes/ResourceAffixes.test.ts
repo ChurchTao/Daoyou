@@ -1,5 +1,6 @@
 import { ARTIFACT_AFFIXES } from '@shared/engine/creation-v2/affixes/definitions/artifactAffixes';
 import { GONGFA_AFFIXES } from '@shared/engine/creation-v2/affixes/definitions/gongfaAffixes';
+import { SKILL_AFFIXES } from '@shared/engine/creation-v2/affixes/definitions/skillAffixes';
 import type { AffixDefinition } from '@shared/engine/creation-v2/affixes/types';
 import { AttributeType } from '@shared/engine/creation-v2/contracts/battle';
 import { CreationTags } from '@shared/engine/shared/tag-domain';
@@ -13,6 +14,47 @@ function getAffix(affixes: AffixDefinition[], id: string): AffixDefinition {
 }
 
 describe('resource affix balance contracts', () => {
+  it.each([
+    ['skill-variant-burn-dot', 'craft-burn'],
+    ['skill-variant-poison-dot', 'craft-poison'],
+    ['skill-variant-bleed-dot', 'craft-bleed'],
+  ])('%s uses round duration for its RoundPost DOT buff', (affixId, buffId) => {
+    const affix = getAffix(SKILL_AFFIXES, affixId);
+    expect(affix.effectTemplate.type).toBe('apply_buff');
+    if (affix.effectTemplate.type !== 'apply_buff') return;
+
+    expect(affix.effectTemplate.params.buffConfig).toMatchObject({
+      id: buffId,
+      durationUnit: 'round',
+      listeners: [
+        expect.objectContaining({ eventType: 'RoundPostEvent' }),
+      ],
+    });
+  });
+
+  it.each([
+    'skill-core-wind-haste',
+    'skill-core-ice-frost-guard',
+    'skill-core-metal-honed-edge',
+  ])('%s keeps owner-action duration semantics', (affixId) => {
+    const affix = getAffix(SKILL_AFFIXES, affixId);
+    expect(affix.effectTemplate.type).toBe('apply_buff');
+    if (affix.effectTemplate.type !== 'apply_buff') return;
+
+    expect(affix.effectTemplate.params.buffConfig.durationUnit).toBeUndefined();
+  });
+
+  it('only enables the unconditional magic shield while current mana is above 30%', () => {
+    const affix = getAffix(ARTIFACT_AFFIXES, 'artifact-defense-magic-shield');
+
+    expect(affix.effectTemplate).toMatchObject({
+      type: 'magic_shield',
+      conditions: [
+        { type: 'mp_above', params: { value: 0.3, scope: 'target' } },
+      ],
+    });
+  });
+
   it('keeps spirit-breaking awl simple while reducing both mana-burn scalars', () => {
     const affix = getAffix(
       ARTIFACT_AFFIXES,

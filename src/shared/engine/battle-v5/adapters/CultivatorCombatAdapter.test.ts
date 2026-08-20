@@ -251,7 +251,7 @@ describe('CultivatorCombatAdapter', () => {
     const unit = createCombatUnitFromCultivator(cultivator);
 
     expect(unit.attributes.getValue(AttributeType.VITALITY)).toBe(10);
-    expect(unit.attributes.getValue(AttributeType.MAX_HP)).toBe(705);
+    expect(unit.attributes.getValue(AttributeType.MAX_HP)).toBe(693);
     expect(
       unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE),
     ).toBeCloseTo(0.0936, 6);

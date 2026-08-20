@@ -45,6 +45,7 @@ export class Buff {
   readonly dispelMode: 'whole' | 'one_layer';
   readonly countsAsStatus: boolean;
   readonly removeOnDeath: boolean;
+  readonly durationUnit: 'owner_action' | 'round';
   private _duration: number;
   private _maxDuration: number;
 
@@ -85,6 +86,7 @@ export class Buff {
     stackPriority: number = 0,
     dispelMode: 'whole' | 'one_layer' = 'whole',
     removeOnDeath: boolean = false,
+    durationUnit: 'owner_action' | 'round' = 'owner_action',
   ) {
     this.id = id;
     this.name = name;
@@ -97,6 +99,7 @@ export class Buff {
     this.dispelMode = dispelMode;
     this.countsAsStatus = countsAsStatus;
     this.removeOnDeath = removeOnDeath;
+    this.durationUnit = durationUnit;
     this.type = type;
     this._maxDuration = duration;
     this._duration = duration;
@@ -337,6 +340,7 @@ export class Buff {
       this.stackPriority,
       this.dispelMode,
       this.removeOnDeath,
+      this.durationUnit,
     );
     cloned.setDuration(this._duration);
     cloned.tags = this.tags.clone();

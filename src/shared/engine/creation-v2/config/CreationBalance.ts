@@ -211,8 +211,8 @@ export const CREATION_AFFIX_SLOT_PLAN = {
 export const CREATION_LISTENER_PRIORITIES = {
   // 行动触发前的增益或预处理优先级。
   actionPreBuff: CREATION_EVENT_PRIORITY_LEVELS.ACTION_TRIGGER,
-  // DOT 在行动前触发，但应晚于同帧预处理增益。
-  dotTick: CREATION_EVENT_PRIORITY_LEVELS.ROUND_PRE,
+  // DOT 在回合结束损耗阶段触发。
+  dotTick: CREATION_EVENT_PRIORITY_LEVELS.ROUND_POST_DRAIN,
   // 技能施放瞬间的监听优先级。
   skillCast: CREATION_EVENT_PRIORITY_LEVELS.SKILL_CAST,
   // 伤害请求阶段的监听优先级，必须早于 DamageSystem 本身，
@@ -226,6 +226,10 @@ export const CREATION_LISTENER_PRIORITIES = {
   damageTaken: CREATION_EVENT_PRIORITY_LEVELS.DAMAGE_TAKEN,
   // 回合开始前的监听优先级。
   roundPre: CREATION_EVENT_PRIORITY_LEVELS.ROUND_PRE,
+  // 回合结束时的周期恢复优先级。
+  roundPostRecovery: CREATION_EVENT_PRIORITY_LEVELS.ROUND_POST_RECOVERY,
+  // 回合结束时的周期损耗优先级。
+  roundPostDrain: CREATION_EVENT_PRIORITY_LEVELS.ROUND_POST_DRAIN,
   // Buff 拦截阶段的监听优先级。
   buffIntercept: CREATION_EVENT_PRIORITY_LEVELS.BUFF_INTERCEPT,
 } as const;

@@ -3,6 +3,7 @@ import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
 import type {
   DamageRequestEvent,
   ResourceDrainEvent,
+  RoundPostEvent,
 } from '@shared/engine/battle-v5/core/events';
 import { EventPriorityLevel } from '@shared/engine/battle-v5/core/events';
 import {
@@ -776,9 +777,11 @@ describe('幽都核心机制实际结算', () => {
     requests.length = 0;
 
     setOverride(caster, AttributeType.MAGIC_ATK, 100);
-    EventBus.instance.publish({ type: 'ActionPreEvent', timestamp: Date.now(), caster: target });
+    beginRuntimeAction(target);
+    EventBus.instance.publish<RoundPostEvent>({ type: 'RoundPostEvent', timestamp: Date.now(), turn: 1 });
     setOverride(caster, AttributeType.MAGIC_ATK, 200);
-    EventBus.instance.publish({ type: 'ActionPreEvent', timestamp: Date.now(), caster: target });
+    beginRuntimeAction(target);
+    EventBus.instance.publish<RoundPostEvent>({ type: 'RoundPostEvent', timestamp: Date.now(), turn: 2 });
 
     expect(requests.map((event) => event.baseDamage)).toEqual([14, 28]);
     expect(requests.every((event) => event.canCrit === false)).toBe(true);

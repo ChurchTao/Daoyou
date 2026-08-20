@@ -224,8 +224,8 @@ describe('CultivatorDisplayAdapter', () => {
       getCultivatorDisplayAttributes(cultivator);
 
     expect(finalAttributes.vitality).toBe(15);
-    expect(attrs.maxHp).toBe(817);
-    expect(attrs.def).toBeCloseTo(27.81, 6);
+    expect(attrs.maxHp).toBe(803);
+    expect(attrs.def).toBeCloseTo(27.4725, 6);
   });
 
   it('builds a serializable display snapshot from battle-v5 attrs and resources', () => {

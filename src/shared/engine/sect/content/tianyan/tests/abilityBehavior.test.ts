@@ -4,6 +4,7 @@ import { withBattleRandomSource } from '@shared/engine/battle-v5/core/BattleRand
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
 import type {
   ActionPreEvent,
+  RoundPostEvent,
   BuffImmuneEvent,
   ControlResistEvent,
   DamageTakenEvent,
@@ -238,16 +239,18 @@ describe('天衍落印术与反应实际结算', () => {
         .find((candidate) => candidate.id === 'sect.tianyan.burn');
     expect(burn()?.getLayer()).toBe(2);
 
-    EventBus.instance.publish<ActionPreEvent>({
-      type: 'ActionPreEvent',
+    beginRuntimeAction(enemy);
+    EventBus.instance.publish<RoundPostEvent>({
+      type: 'RoundPostEvent',
       timestamp: Date.now(),
-      caster: enemy,
+      turn: 1,
     });
     expect(burn()?.getLayer()).toBe(1);
-    EventBus.instance.publish<ActionPreEvent>({
-      type: 'ActionPreEvent',
+    beginRuntimeAction(enemy);
+    EventBus.instance.publish<RoundPostEvent>({
+      type: 'RoundPostEvent',
       timestamp: Date.now(),
-      caster: enemy,
+      turn: 2,
     });
     expect(burn()).toBeUndefined();
   });
@@ -261,10 +264,11 @@ describe('天衍落印术与反应实际结算', () => {
       const { owner, enemy, skill } = setup('luoshu-control');
       cast(skill('flowing-flame'), owner, enemy);
       if (layers === 1) {
-        EventBus.instance.publish<ActionPreEvent>({
-          type: 'ActionPreEvent',
+        beginRuntimeAction(enemy);
+        EventBus.instance.publish<RoundPostEvent>({
+          type: 'RoundPostEvent',
           timestamp: Date.now(),
-          caster: enemy,
+          turn: 1,
         });
       }
       const requests: Array<{ baseDamage: number; cause?: { id: string } }> =
@@ -540,12 +544,12 @@ describe('天衍落印术与反应实际结算', () => {
 
     cast(skill('myriad-wood-renewal'), owner, owner);
     const afterImmediate = owner.getCurrentHp();
-    for (let action = 0; action < 2; action += 1) {
+    for (let turn = 0; turn < 2; turn += 1) {
       beginRuntimeAction(owner);
-      EventBus.instance.publish<ActionPreEvent>({
-        type: 'ActionPreEvent',
+      EventBus.instance.publish<RoundPostEvent>({
+        type: 'RoundPostEvent',
         timestamp: Date.now(),
-        caster: owner,
+        turn: turn + 1,
       });
     }
 

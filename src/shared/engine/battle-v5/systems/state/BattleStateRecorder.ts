@@ -26,8 +26,9 @@ import {
  * 采样时机（由单回合解析器与自动战斗外壳触发）：
  *  1. battle_init  — 战斗开始后（基线快照）
  *  2. action_pre   — 每个单位的 ActionPreEvent 发布并处理完毕后
- *  3. action_post  — 该单位的动作执行、Buff 过期、CD 刷新全部完成后
- *  4. battle_end   — 战斗结束后（终态快照）
+ *  3. action_post  — 该单位的动作执行、行动型 Buff 过期、CD 刷新完成后
+ *  4. round_post   — 回合结束周期结算与回合型 Buff 过期完成后
+ *  5. battle_end   — 战斗结束后（终态快照）
  *
  * 设计原则：
  *  - 与日志系统完全解耦，不依赖 EventBus
@@ -191,7 +192,7 @@ export class BattleStateRecorder {
       sourceName: buff.getSource()?.name,
       layers: buff.getLayer(),
       remaining: buff.isPermanent() ? -1 : buff.getDuration(),
-      durationUnit: 'owner_action',
+      durationUnit: buff.durationUnit,
       isPermanent: buff.isPermanent(),
     }));
   }

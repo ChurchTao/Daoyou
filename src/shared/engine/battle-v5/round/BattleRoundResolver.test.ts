@@ -1,12 +1,15 @@
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { describe, expect, it } from 'vitest';
 import { BattleRoster } from '../core/BattleRoster';
-import type { AbilityConfig } from '../core/configs';
+import type { AbilityConfig, BuffConfig } from '../core/configs';
 import {
   AbilityType,
   AttributeType,
+  BuffType,
   DamageType,
 } from '../core/types';
+import { StackRule } from '../buffs/Buff';
+import { EventPriorityLevel } from '../core/events';
 import { AbilityFactory } from '../factories/AbilityFactory';
 import { BuffFactory } from '../factories/BuffFactory';
 import {
@@ -52,7 +55,7 @@ const aoeAbility: AbilityConfig = {
   ],
 };
 
-function initialSave(): BattleSaveV1 {
+function initialSave(configure?: (units: Unit[]) => void): BattleSaveV1 {
   const runtime = new BattleRuntime();
   const units = [
     new Unit(
@@ -66,6 +69,7 @@ function initialSave(): BattleSaveV1 {
     new Unit('b1', 'b1', {}, { runtime, teamId: 'beta', slot: 1 }),
   ];
   units[0].abilities.addAbility(AbilityFactory.create(aoeAbility));
+  configure?.(units);
   const roster = new BattleRoster(units);
   const blueprint = createBattleBlueprint('team-round', roster);
   return {
@@ -101,6 +105,124 @@ function commands(): RoundCommandSetV1 {
 }
 
 describe('BattleRoundResolver', () => {
+  it('settles round recovery before periodic damage at round post', () => {
+    const save = initialSave((units) => {
+      const unit = units[0];
+      unit.setHp(unit.getMaxHp() - 10, 'set');
+      unit.abilities.addAbility(
+        AbilityFactory.create({
+          slug: 'round-recovery',
+          name: '回合恢复',
+          type: AbilityType.PASSIVE_SKILL,
+          tags: [
+            GameplayTags.ABILITY.FUNCTION.BUFF,
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.FUNCTION.HEAL,
+            GameplayTags.ABILITY.CHANNEL.TRUE,
+          ],
+          listeners: [
+            {
+              eventType: GameplayTags.EVENT.ROUND_POST,
+              scope: 'global',
+              priority: EventPriorityLevel.ROUND_POST_RECOVERY,
+              effects: [
+                {
+                  type: 'heal',
+                  params: { value: { base: 20, coefficient: 0 } },
+                },
+              ],
+            },
+            {
+              eventType: GameplayTags.EVENT.ROUND_POST,
+              scope: 'global',
+              priority: EventPriorityLevel.ROUND_POST_DRAIN,
+              effects: [
+                {
+                  type: 'damage',
+                  params: {
+                    value: { base: 15, coefficient: 0 },
+                    damageType: DamageType.TRUE,
+                    canCrit: false,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      );
+    });
+    const result = resolveBattleRound(save, {
+      version: 'round_command_set_v1',
+      commandSetId: 'round-post-order',
+      round: 1,
+      checkpointRevision: 0,
+      intents: {
+        a0: { kind: 'skip', submittedBy: 'timeout' },
+        a1: { kind: 'skip', submittedBy: 'timeout' },
+        b0: { kind: 'skip', submittedBy: 'timeout' },
+        b1: { kind: 'skip', submittedBy: 'timeout' },
+      },
+    });
+
+    const restoredA0 = restoreBattleSave(result.save).roster.getUnit('a0');
+    expect(restoredA0.getCurrentHp()).toBeLessThan(restoredA0.getMaxHp());
+    expect(restoredA0.getCurrentHp()).toBeGreaterThan(restoredA0.getMaxHp() - 30);
+    expect(result.stateTimeline.frames.some((frame) => frame.phase === 'round_post')).toBe(true);
+  });
+
+  it('ticks round-duration DOT buffs after the round post event', () => {
+    const save = initialSave((units) => {
+      const dot: BuffConfig = {
+        id: 'round-dot-test',
+        name: '回合毒伤',
+        type: BuffType.DEBUFF,
+        duration: 2,
+        durationUnit: 'round',
+        stackRule: StackRule.REFRESH_DURATION,
+        listeners: [
+          {
+            eventType: GameplayTags.EVENT.ROUND_POST,
+            scope: 'global',
+            priority: EventPriorityLevel.ROUND_POST_DRAIN,
+            effects: [
+              {
+                type: 'damage',
+                params: {
+                  value: { base: 5, coefficient: 0 },
+                  damageType: DamageType.TRUE,
+                  canCrit: false,
+                },
+              },
+            ],
+          },
+        ],
+      };
+      units[0].buffs.addBuff(BuffFactory.create(dot), units[0]);
+    });
+
+    const result = resolveBattleRound(save, {
+      version: 'round_command_set_v1',
+      commandSetId: 'round-duration-dot',
+      round: 1,
+      checkpointRevision: 0,
+      intents: {
+        a0: { kind: 'skip', submittedBy: 'timeout' },
+        a1: { kind: 'skip', submittedBy: 'timeout' },
+        b0: { kind: 'skip', submittedBy: 'timeout' },
+        b1: { kind: 'skip', submittedBy: 'timeout' },
+      },
+    });
+
+    const restoredA0 = restoreBattleSave(result.save).roster.getUnit('a0');
+    expect(restoredA0.getCurrentHp()).toBeLessThan(restoredA0.getMaxHp());
+    expect(
+      restoredA0.buffs
+        .getAllBuffs()
+        .find((buff) => buff.id === 'round-dot-test')
+        ?.getDuration(),
+    ).toBe(1);
+  });
+
   it('resolves one sealed 2v2 round atomically and charges AOE once', () => {
     const save = initialSave();
     const commandSet = sealRoundCommandSet(save, commands());

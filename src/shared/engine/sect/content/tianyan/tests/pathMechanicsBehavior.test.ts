@@ -2,6 +2,7 @@ import type { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
 import type {
   ActionPreEvent,
+  RoundPostEvent,
   DamageRequestEvent,
   DamageTakenEvent,
   RoundStartEvent,
@@ -488,12 +489,12 @@ describe('天衍衍数与双道途实际结算', () => {
     cast(skill('myriad-wood-renewal'), owner, owner);
     expect(owner.getCurrentShield()).toBe(0);
 
-    for (let action = 0; action < 2; action += 1) {
+    for (let turn = 0; turn < 2; turn += 1) {
       beginRuntimeAction(owner);
-      EventBus.instance.publish<ActionPreEvent>({
-        type: 'ActionPreEvent',
+      EventBus.instance.publish<RoundPostEvent>({
+        type: 'RoundPostEvent',
         timestamp: Date.now(),
-        caster: owner,
+        turn: turn + 1,
       });
     }
 

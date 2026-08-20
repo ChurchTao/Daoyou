@@ -69,9 +69,9 @@ function getEffectTexts(key: BodyCultivationTrackKey, level: number): string[] {
   switch (key) {
     case 'skin':
       return [
-        `物防 +${formatPercent(clamp(level * 0.006, 0, 0.45))}`,
-        `法防 +${formatPercent(clamp(level * 0.004, 0, 0.3))}`,
-        `受到直接伤害 -${formatPercent(clamp(level * 0.006, 0, 0.45))}`,
+        `物防 +${formatPercent(clamp(level * 0.0035, 0, 0.35))}`,
+        `法防 +${formatPercent(clamp(level * 0.0025, 0, 0.25))}`,
+        `受到直接伤害 -${formatPercent(clamp(level * 0.003, 0, 0.3))}`,
         ...(level >= 5
           ? [`中毒持续 -${clamp(Math.floor(level / 5), 1, 3)} 回合`]
           : []),
@@ -95,13 +95,14 @@ function getEffectTexts(key: BodyCultivationTrackKey, level: number): string[] {
       ];
     case 'qi_blood':
       return [
-        `气血上限 +${formatPercent(clamp(level * 0.012, 0, 1.1))}`,
+        `气血上限 +${formatPercent(clamp(level * 0.01, 0, 1.1))}`,
         `治疗效果 +${formatPercent(clamp(level * 0.004, 0, 0.25))}`,
       ];
     case 'primordial_spirit':
       return [
         `控制抗性 +${formatPercent(clamp(level * 0.008, 0, 0.45))}`,
         `抗暴 +${formatPercent(clamp(level * 0.005, 0, 0.3))}`,
+        `最大法力 +${formatPercent(clamp(level * 0.005, 0, 0.3))}`,
       ];
   }
 }

@@ -153,7 +153,7 @@ export interface UnitStateDelta {
 
 // ===== 状态帧类型 =====
 export type StateFramePhase =
-  'battle_init' | 'action_pre' | 'action_post' | 'battle_end';
+  'battle_init' | 'action_pre' | 'action_post' | 'round_post' | 'battle_end';
 
 // ===== 战斗状态帧 =====
 export interface BattleStateFrame {

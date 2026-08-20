@@ -211,7 +211,12 @@ export type CombatFactDraftV3 = CombatFactV3 extends infer T
 export interface BattleStateFrameV3 {
   frameId: number;
   turn: number;
-  phase: 'battle_init' | 'action_pre' | 'action_post' | 'battle_end';
+  phase:
+    | 'battle_init'
+    | 'action_pre'
+    | 'action_post'
+    | 'round_post'
+    | 'battle_end';
   actorId?: string;
   sourceSequenceId: string;
   units: Record<string, UnitStateSnapshot>;

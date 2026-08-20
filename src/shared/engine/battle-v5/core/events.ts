@@ -49,7 +49,9 @@ export enum EventPriorityLevel {
   DAMAGE_REQUEST = 60, // 伤害请求（增伤修正）
   DAMAGE_APPLY = 55, // 伤害应用（护盾/无敌响应）
   DAMAGE_TAKEN = 50, // 受击事件（触发被动/反伤）
+  ROUND_POST_RECOVERY = 46, // 回合结束周期恢复
   ROUND_PRE = 45, // 回合前置结算（DOT、BUFF结算等）
+  ROUND_POST_DRAIN = 44, // 回合结束周期损耗（DOT、资源扣除）
   BUFF_INTERCEPT = 40, // BUFF 拦截（高于 POST_SETTLE）
   TAG_CHANGE = 35, // 标签变更
   POST_SETTLE = 30, // 后置结算

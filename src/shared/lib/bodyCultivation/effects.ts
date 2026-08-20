@@ -47,17 +47,17 @@ export function buildBodyCultivationAttributeModifiers(
     {
       attrType: AttributeType.DEF,
       type: ModifierType.ADD,
-      value: clamp(skin * 0.006, 0, 0.45),
+      value: clamp(skin * 0.0035, 0, 0.35),
     },
     {
       attrType: AttributeType.MAGIC_DEF,
       type: ModifierType.ADD,
-      value: clamp(skin * 0.004, 0, 0.3),
+      value: clamp(skin * 0.0025, 0, 0.25),
     },
     {
       attrType: AttributeType.MAX_HP,
       type: ModifierType.ADD,
-      value: clamp(sinewBone * 0.008 + qiBlood * 0.012, 0, 1.1),
+      value: clamp(sinewBone * 0.008 + qiBlood * 0.01, 0, 1.1),
     },
     {
       attrType: AttributeType.CRIT_DAMAGE_REDUCTION,
@@ -85,6 +85,11 @@ export function buildBodyCultivationAttributeModifiers(
       value: clamp(primordialSpirit * 0.008, 0, 0.45),
     },
     {
+      attrType: AttributeType.MAX_MP,
+      type: ModifierType.ADD,
+      value: clamp(primordialSpirit * 0.005, 0, 0.3),
+    },
+    {
       attrType: AttributeType.CRIT_RESIST,
       type: ModifierType.FIXED,
       value: clamp(primordialSpirit * 0.005, 0, 0.3),
@@ -97,7 +102,7 @@ export interface BodyCultivationBattleInitHooks {
 }
 
 function buildSkinDamageReductionBuff(skinLevel: number): BuffConfig | null {
-  const reduction = clamp(skinLevel * 0.006, 0, 0.45);
+  const reduction = clamp(skinLevel * 0.003, 0, 0.3);
   if (reduction <= 0) return null;
 
   return {
@@ -121,7 +126,7 @@ function buildSkinDamageReductionBuff(skinLevel: number): BuffConfig | null {
             params: {
               mode: 'reduce',
               value: reduction,
-              cap: 0.45,
+              cap: 0.3,
             },
           },
         ],

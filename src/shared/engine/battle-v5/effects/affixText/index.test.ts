@@ -111,7 +111,7 @@ describe('affixText mechanic rendering', () => {
     expect(view.mechanicNotes.join('、')).toContain('DOT');
     expect(view.bodyText).toContain('60%概率附加「灼烧」');
     expect(view.bodyText).toContain('3回合');
-    expect(view.bodyText).toContain('行动前造成');
+    expect(view.bodyText).toContain('触发时造成');
     expect(view.bodyText).toContain('持续伤害（DOT）');
     expect(view.bodyText).toContain('按层数放大');
   });
