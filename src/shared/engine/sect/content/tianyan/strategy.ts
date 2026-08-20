@@ -3,6 +3,7 @@ import type {
   AbilitySelectionContext,
   AbilitySelectionResult,
 } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
+import { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill';
 import { BuffType } from '@shared/engine/battle-v5/core/types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import {
@@ -70,13 +71,62 @@ function currentSeal(
   );
 }
 
+function currentSealSlot(
+  context: AbilitySelectionContext,
+  seal: TianyanElement,
+): number | undefined {
+  const activeAbilities = context.caster.abilities
+    .getAllAbilities()
+    .filter(
+      (ability): ability is ActiveSkill => ability instanceof ActiveSkill,
+    );
+  const mountedOrder = activeAbilities.findIndex(
+    (ability) => ABILITY_ELEMENTS[contentAbilityId(ability.id)] === seal,
+  );
+  if (mountedOrder >= 0) return mountedOrder;
+
+  return context.candidates.find(
+    (candidate) =>
+      ABILITY_ELEMENTS[contentAbilityId(candidate.ability.id)] === seal,
+  )?.order;
+}
+
+function compareCircularSlotOrder(
+  context: AbilitySelectionContext,
+  seal: TianyanElement,
+  left: AbilitySelectionCandidate,
+  right: AbilitySelectionCandidate,
+): number {
+  const sealOrder = currentSealSlot(context, seal);
+  if (sealOrder === undefined) {
+    return (
+      left.order - right.order ||
+      left.ability.id.localeCompare(right.ability.id)
+    );
+  }
+
+  const leftWrapped = left.order <= sealOrder;
+  const rightWrapped = right.order <= sealOrder;
+  return (
+    Number(leftWrapped) - Number(rightWrapped) ||
+    left.order - right.order ||
+    left.ability.id.localeCompare(right.ability.id)
+  );
+}
+
 function abilityIdsByReaction(
   context: AbilitySelectionContext,
   kind: 'generation' | 'overcoming' | 'any',
+  circular = false,
 ): string[] {
   const seal = currentSeal(context);
   if (!seal) return [];
-  return context.candidates
+  const candidates = circular
+    ? [...context.candidates].sort((left, right) =>
+        compareCircularSlotOrder(context, seal, left, right),
+      )
+    : context.candidates;
+  return candidates
     .map((candidate) => {
       const id = contentAbilityId(candidate.ability.id);
       const element = ABILITY_ELEMENTS[id];
@@ -152,7 +202,7 @@ abstract class TianyanSelectionStrategy extends SectTacticalSelectionStrategy {
     return null;
   }
 
-  protected lowestCostLanding(
+  protected firstLanding(
     context: AbilitySelectionContext,
     score: number,
   ): AbilitySelectionResult | null {
@@ -162,7 +212,6 @@ abstract class TianyanSelectionStrategy extends SectTacticalSelectionStrategy {
       )
       .sort(
         (left, right) =>
-          left.ability.manaCost - right.ability.manaCost ||
           left.order - right.order ||
           left.ability.id.localeCompare(right.ability.id),
       )[0];
@@ -174,8 +223,9 @@ abstract class TianyanSelectionStrategy extends SectTacticalSelectionStrategy {
   protected reactionPriorities(
     context: AbilitySelectionContext,
     kind: 'generation' | 'overcoming' | 'any',
+    circular = false,
   ): string[] {
-    return abilityIdsByReaction(context, kind);
+    return abilityIdsByReaction(context, kind, circular);
   }
 
   protected cleanse(context: AbilitySelectionContext) {
@@ -233,9 +283,7 @@ export class TianyanBaseSelectionStrategy extends TianyanSelectionStrategy {
         );
         return (
           Number(leftUsed) - Number(rightUsed) ||
-          left.ability.manaCost - right.ability.manaCost ||
-          left.order - right.order ||
-          left.ability.id.localeCompare(right.ability.id)
+          compareCircularSlotOrder(context, seal, left, right)
         );
       });
       const reaction = reactions[0];
@@ -251,7 +299,7 @@ export class TianyanBaseSelectionStrategy extends TianyanSelectionStrategy {
       return shift ? this.cast(shift) : this.defaultAttack();
     }
 
-    const landing = this.lowestCostLanding(context, 700);
+    const landing = this.firstLanding(context, 700);
     return landing ? this.cast(landing) : this.fallback();
   }
 }
@@ -260,7 +308,11 @@ export class HetuSelectionStrategy extends TianyanSelectionStrategy {
   protected decide(context: AbilitySelectionContext) {
     const hp = context.caster.getHpPercent();
     const mp = context.caster.getMpPercent();
-    const reactions = this.reactionPriorities(context, 'any');
+    const reactions = this.reactionPriorities(
+      context,
+      'any',
+      this.tacticId === 'small-cycle',
+    );
     const cleanse = this.cleanse(context);
     if (cleanse) return this.cast(cleanse);
     if (this.tacticId === 'nourish-origin') {
@@ -299,7 +351,7 @@ export class HetuSelectionStrategy extends TianyanSelectionStrategy {
         }
       }
       if (!currentSeal(context)) {
-        const landing = this.lowestCostLanding(context, 700);
+        const landing = this.firstLanding(context, 700);
         if (landing) return this.cast(landing);
       }
     }
