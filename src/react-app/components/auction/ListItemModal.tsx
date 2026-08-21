@@ -26,12 +26,14 @@ import {
   AUCTION_MIN_QUALITY,
   calculateAuctionSettlement,
   getAuctionUnitPriceCap,
+  isAuctionListableMaterial,
   isAuctionListableQuality as isAuctionListableQualityValue,
 } from '@shared/config/auctionConfig';
 import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,
 } from '@shared/config/temporaryRestrictions';
+import { isSpiritFieldSeedMaterial } from '@shared/engine/spirit-field/seedMaterial';
 import { cn } from '@shared/lib/cn';
 import { isPillConsumable } from '@shared/lib/consumables';
 import {
@@ -106,6 +108,9 @@ const PAGE_SIZE = 20;
 const AUCTION_ALLOWED_QUALITIES = QUALITY_VALUES.filter(
   (q) => QUALITY_ORDER[q] >= QUALITY_ORDER[AUCTION_MIN_QUALITY],
 );
+const AUCTION_BELOW_MIN_QUALITIES = QUALITY_VALUES.filter(
+  (q) => QUALITY_ORDER[q] < QUALITY_ORDER[AUCTION_MIN_QUALITY],
+);
 
 const defaultMaterialFilters: MaterialListFilters = {
   rank: 'all',
@@ -163,6 +168,10 @@ function isAuctionListableItem(item: SelectableItem): boolean {
     return false;
   }
 
+  if (item.itemType === 'material') {
+    return isAuctionListableMaterial(item as Material);
+  }
+
   const quality = getItemQuality(item);
   return isAuctionListableQualityValue(quality);
 }
@@ -208,6 +217,26 @@ export function ListItemModal({
     materialSortBy: materialFilters.sortBy,
     materialSortOrder: materialFilters.sortOrder,
   });
+  // 凡品/灵品灵田种子不在玄品门槛内，单独拉取后与可上架材料合并展示
+  const materialRankFilter = materialFilters.rank;
+  const includeBelowMinSpiritSeeds =
+    activeType === 'material' &&
+    (materialRankFilter === 'all' ||
+      AUCTION_BELOW_MIN_QUALITIES.includes(materialRankFilter)) &&
+    (materialFilters.type === 'all' || materialFilters.type === 'aux');
+  const spiritSeedInventory = useMaterialInventoryResource({
+    pageSize: 50,
+    enabled: Boolean(cultivator?.id) && includeBelowMinSpiritSeeds,
+    materialRanks:
+      materialRankFilter === 'all'
+        ? AUCTION_BELOW_MIN_QUALITIES
+        : [materialRankFilter],
+    materialTypes: ['aux'],
+    materialElements:
+      materialFilters.element === 'all' ? undefined : [materialFilters.element],
+    materialSortBy: materialFilters.sortBy,
+    materialSortOrder: materialFilters.sortOrder,
+  });
   const artifactInventory = useArtifactInventoryResource({
     pageSize: PAGE_SIZE,
     enabled: Boolean(cultivator?.id) && activeType === 'artifact',
@@ -231,13 +260,23 @@ export function ListItemModal({
     selectedItem && Number.parseInt(price) >= 1
       ? calculateAuctionSettlement(Number.parseInt(price), selectedQuantity)
       : null;
-  const isItemsLoading = activeInventory.loading;
-  const itemsByType = useMemo<Record<ItemType, SelectableItem[]>>(
-    () => ({
-      material: (materialInventory.items ?? []).map((item) => ({
-        ...item,
-        itemType: 'material' as const,
-      })),
+  const isItemsLoading =
+    activeInventory.loading ||
+    (includeBelowMinSpiritSeeds && spiritSeedInventory.loading);
+  const itemsByType = useMemo<Record<ItemType, SelectableItem[]>>(() => {
+    const materialById = new Map<string, SelectableItem>();
+    for (const item of materialInventory.items ?? []) {
+      if (!item.id) continue;
+      materialById.set(item.id, { ...item, itemType: 'material' as const });
+    }
+    for (const item of spiritSeedInventory.items ?? []) {
+      if (!item.id || !isSpiritFieldSeedMaterial(item)) continue;
+      if (!materialById.has(item.id)) {
+        materialById.set(item.id, { ...item, itemType: 'material' as const });
+      }
+    }
+    return {
+      material: Array.from(materialById.values()),
       artifact: (artifactInventory.items ?? []).map((item) => ({
         ...item,
         itemType: 'artifact' as const,
@@ -246,13 +285,13 @@ export function ListItemModal({
         ...item,
         itemType: 'consumable' as const,
       })),
-    }),
-    [
-      artifactInventory.items,
-      consumableInventory.items,
-      materialInventory.items,
-    ],
-  );
+    };
+  }, [
+    artifactInventory.items,
+    consumableInventory.items,
+    materialInventory.items,
+    spiritSeedInventory.items,
+  ]);
 
   useEffect(() => {
     if (!cultivator?.id || step !== 'price') {

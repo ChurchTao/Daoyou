@@ -76,6 +76,16 @@ export const DOMAIN_EVENT_CONSUMERS = {
     filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.*.v1`,
     concurrency: 8,
   },
+  spiritFieldTaskProjector: {
+    name: 'spirit-field-task-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.spirit-field.*.v1`,
+    concurrency: 4,
+  },
+  spiritFieldProgressionProjector: {
+    name: 'spirit-field-progression-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.spirit-field.*.v1`,
+    concurrency: 4,
+  },
   yieldRewardProjector: {
     name: 'yield-reward-projector-v1',
     filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.yield-claimed.v1`,

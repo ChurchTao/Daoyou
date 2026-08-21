@@ -18,6 +18,7 @@ import type {
   PillFamily,
 } from '@shared/types/consumable';
 import type { MailAttachment } from '@shared/types/mail';
+import type { SpiritFieldPlotState } from '@shared/engine/spirit-field/types';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -108,6 +109,37 @@ export const cultivators = pgTable(
       table.status,
       table.spirit_stones,
     ),
+  ],
+);
+
+
+// 个人灵田领域聚合：不再寄生 cultivators.game_settings。
+export const spiritFields = pgTable(
+  'wanjiedaoyou_spirit_fields',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    level: integer('level').notNull().default(0),
+    selfHarvestCount: integer('self_harvest_count').notNull().default(0),
+    totalCareCount: integer('total_care_count').notNull().default(0),
+    starterClaimed: boolean('starter_claimed').notNull().default(false),
+    proficiency: integer('proficiency').notNull().default(0),
+    plots: jsonb('plots')
+      .$type<SpiritFieldPlotState[]>()
+      .notNull()
+      .default([]),
+    version: integer('version').notNull().default(1),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex('spirit_fields_cultivator_uidx').on(table.cultivatorId),
+    index('spirit_fields_updated_idx').on(table.updatedAt),
   ],
 );
 

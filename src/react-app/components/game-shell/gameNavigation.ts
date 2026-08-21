@@ -74,6 +74,12 @@ export const gameDockGroups: GameNavGroup[] = [
         href: '/game/inn',
       },
       {
+        id: 'spirit-field',
+        sceneLabel: '灵田',
+        href: '/game/spirit-field',
+        expandedDockLabel: '🌱 灵田',
+      },
+      {
         id: 'enlightenment',
         sceneLabel: '悟道室',
         href: '/game/enlightenment',

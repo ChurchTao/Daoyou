@@ -6,6 +6,7 @@ import {
   stopNatsCoreSubscriptions,
 } from '@server/lib/services/natsCorePubSub';
 import { projectSectConstructionDonation } from '@server/lib/services/sect-organization/SectConstructionSettlementService';
+import { projectSpiritFieldProgressionDomainEvent } from '@server/lib/services/SpiritFieldProgressionProjector';
 import { projectTaskDomainEvent } from '@server/lib/services/TaskDomainEventProjector';
 import { projectWorldRumorDomainEvent } from '@server/lib/services/WorldRumorDomainEventProjector';
 import { processSponsorshipOrder } from '@server/lib/services/SponsorshipApplicationService';
@@ -81,6 +82,28 @@ export async function registerMessageInfrastructure(): Promise<void> {
       handle: handleTaskEvent,
     }),
     startDomainEventConsumer({
+      consumerName: DOMAIN_EVENT_CONSUMERS.spiritFieldTaskProjector.name,
+      concurrency: DOMAIN_EVENT_CONSUMERS.spiritFieldTaskProjector.concurrency,
+      acceptedTypes: [
+        'spirit-field.sown',
+        'spirit-field.care.performed',
+        'spirit-field.harvest.completed',
+        'spirit-field.upgraded',
+      ],
+      handle: handleSpiritFieldTaskEvent,
+    }),
+    startDomainEventConsumer({
+      consumerName: DOMAIN_EVENT_CONSUMERS.spiritFieldProgressionProjector.name,
+      concurrency: DOMAIN_EVENT_CONSUMERS.spiritFieldProgressionProjector.concurrency,
+      acceptedTypes: [
+        'spirit-field.sown',
+        'spirit-field.care.performed',
+        'spirit-field.harvest.completed',
+        'spirit-field.upgraded',
+      ],
+      handle: handleSpiritFieldProgressionEvent,
+    }),
+    startDomainEventConsumer({
       consumerName: DOMAIN_EVENT_CONSUMERS.yieldRewardProjector.name,
       concurrency: DOMAIN_EVENT_CONSUMERS.yieldRewardProjector.concurrency,
       acceptedTypes: ['yield.claimed'],
@@ -140,6 +163,24 @@ async function handleTaskEvent(event: DomainEventEnvelope) {
     source: 'task_domain_event',
     event,
     handle: projectTaskDomainEvent,
+  });
+}
+
+async function handleSpiritFieldTaskEvent(event: DomainEventEnvelope) {
+  await executeDomainEvent({
+    consumerName: DOMAIN_EVENT_CONSUMERS.spiritFieldTaskProjector.name,
+    source: 'spirit_field_task_domain_event',
+    event,
+    handle: projectTaskDomainEvent,
+  });
+}
+
+async function handleSpiritFieldProgressionEvent(event: DomainEventEnvelope) {
+  await executeDomainEvent({
+    consumerName: DOMAIN_EVENT_CONSUMERS.spiritFieldProgressionProjector.name,
+    source: 'spirit_field_progression_domain_event',
+    event,
+    handle: projectSpiritFieldProgressionDomainEvent,
   });
 }
 

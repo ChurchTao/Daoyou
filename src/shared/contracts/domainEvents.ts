@@ -3,6 +3,7 @@ import {
   REALM_STAGE_VALUES,
   REALM_VALUES,
 } from '@shared/types/constants';
+import { SPIRIT_FIELD_CARE_ACTIONS } from '@shared/engine/spirit-field/types';
 import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
 import { z } from 'zod';
 
@@ -15,6 +16,10 @@ export const DOMAIN_EVENT_TYPES = [
   'ranking.challenge.completed',
   'dungeon.run.settled',
   'yield.claimed',
+  'spirit-field.sown',
+  'spirit-field.care.performed',
+  'spirit-field.harvest.completed',
+  'spirit-field.upgraded',
   'cultivator.realm.changed',
   'mail.created',
   'craft.item.created',
@@ -73,6 +78,55 @@ export const DomainEventDataSchemas = {
       actionInstanceId: z.uuid(),
       realm: z.enum(REALM_VALUES),
       materialCount: z.number().int().positive().max(100),
+    })
+    .strict(),
+  'spirit-field.sown': z
+    .object({
+      cultivatorId: z.uuid(),
+      spiritFieldId: z.uuid(),
+      plotIndex: z.number().int().min(0).max(5),
+      seedMaterialId: z.uuid(),
+      plantName: z.string().min(1).max(100),
+      seedQuality: z.enum(QUALITY_VALUES),
+    })
+    .strict(),
+  'spirit-field.care.performed': z
+    .object({
+      cultivatorId: z.uuid(),
+      spiritFieldId: z.uuid(),
+      plotIndex: z.number().int().min(0).max(5),
+      requestId: z.string().min(8).max(128),
+      action: z.enum(SPIRIT_FIELD_CARE_ACTIONS),
+      plantName: z.string().min(1).max(100),
+      seedQuality: z.enum(QUALITY_VALUES),
+      careGrade: z.enum(['excellent', 'good', 'poor']),
+      careScore: z.number().int().min(0).max(100),
+      qiCost: z.number().int().min(0).max(100),
+    })
+    .strict(),
+  'spirit-field.harvest.completed': z
+    .object({
+      cultivatorId: z.uuid(),
+      spiritFieldId: z.uuid(),
+      plotIndex: z.number().int().min(0).max(5),
+      requestId: z.string().min(8).max(128),
+      mode: z.enum(['focused', 'broad']),
+      plantName: z.string().min(1).max(100),
+      seedQuality: z.enum(QUALITY_VALUES),
+      highestQuality: z.enum(QUALITY_VALUES),
+      careScore: z.number().int().min(0).max(100),
+      herbQuantity: z.number().int().positive().max(10_000),
+      seedReturned: z.number().int().nonnegative().max(100),
+    })
+    .strict(),
+  'spirit-field.upgraded': z
+    .object({
+      cultivatorId: z.uuid(),
+      spiritFieldId: z.uuid(),
+      requestId: z.string().min(8).max(128),
+      fromLevel: z.number().int().min(0).max(6),
+      toLevel: z.number().int().min(0).max(6),
+      spentSpiritStones: z.number().int().nonnegative(),
     })
     .strict(),
   'cultivator.realm.changed': z
@@ -181,6 +235,22 @@ export const DOMAIN_EVENT_DEFINITIONS = {
   'yield.claimed': {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.yield-claimed.v1`,
+  },
+  'spirit-field.sown': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.spirit-field.sown.v1`,
+  },
+  'spirit-field.care.performed': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.spirit-field.care-performed.v1`,
+  },
+  'spirit-field.harvest.completed': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.spirit-field.harvest-completed.v1`,
+  },
+  'spirit-field.upgraded': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.spirit-field.upgraded.v1`,
   },
   'cultivator.realm.changed': {
     version: 1,

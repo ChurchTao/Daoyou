@@ -218,6 +218,20 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="spirit-field"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/spirit-field/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'spirit-field',
+                  presentation: 'workflow',
+                  summary: '播种、观察、养护与采收都在这片个人药圃中完成。',
+                },
+                '灵田',
+              )}
+            />
+            <Route
               path="body-cultivation"
               lazy={lazyRoute(
                 () => import('@app/routes/game/body-cultivation/route'),

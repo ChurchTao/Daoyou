@@ -6,6 +6,7 @@ import {
   AUCTION_MAX_UNIT_PRICE,
   calculateAuctionSettlement,
   getAuctionUnitPriceCap,
+  isAuctionListableMaterial,
   isAuctionListableQuality,
 } from '@shared/config/auctionConfig';
 import { AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO } from '@shared/config/socialConfig';
@@ -264,10 +265,14 @@ export function assertAuctionListableItem(
   }
 
   const itemQuality = normalizeAuctionItemQuality(itemType, itemSnapshot);
-  if (!isAuctionListableQuality(itemQuality)) {
+  const qualityOk =
+    itemType === 'material'
+      ? isAuctionListableMaterial(itemSnapshot as Material)
+      : isAuctionListableQuality(itemQuality);
+  if (!qualityOk) {
     throw new AuctionServiceError(
       AuctionError.INVALID_ITEM_QUALITY,
-      `仅玄品及以上物品可寄售，当前为${itemQuality}`,
+      `仅玄品及以上物品可寄售（灵田种子除外），当前为${itemQuality}`,
     );
   }
 

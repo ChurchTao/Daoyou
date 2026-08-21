@@ -18,6 +18,7 @@ export const QI_ACTION_COSTS = {
   marrow_wash_breakthrough: 20,
   market_identify: 1,
   black_market_entry: 5,
+  spirit_field_care: 5,
 } as const;
 
 export type QiAction = keyof typeof QI_ACTION_COSTS;

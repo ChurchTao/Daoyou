@@ -23,6 +23,40 @@ export async function projectTaskDomainEvent(
     return taskProjectionResult(event.data.cultivatorId, tx);
   }
 
+  if (isDomainEventType(event, 'spirit-field.sown')) {
+    await lockCultivatorForStateMutation(tx, event.data.cultivatorId);
+    await TaskService.recordTaskEvent(
+      event.data.cultivatorId,
+      'spirit_field_sown',
+      { tx },
+    );
+    return taskProjectionResult(event.data.cultivatorId, tx);
+  }
+
+  if (isDomainEventType(event, 'spirit-field.care.performed')) {
+    await lockCultivatorForStateMutation(tx, event.data.cultivatorId);
+    await TaskService.recordTaskEvent(
+      event.data.cultivatorId,
+      'spirit_field_cared',
+      { tx },
+    );
+    return taskProjectionResult(event.data.cultivatorId, tx);
+  }
+
+  if (isDomainEventType(event, 'spirit-field.harvest.completed')) {
+    await lockCultivatorForStateMutation(tx, event.data.cultivatorId);
+    await TaskService.recordTaskEvent(
+      event.data.cultivatorId,
+      'spirit_field_harvested',
+      { tx },
+    );
+    return taskProjectionResult(event.data.cultivatorId, tx);
+  }
+
+  if (isDomainEventType(event, 'spirit-field.upgraded')) {
+    return { result: { status: 'ignored' as const }, resourceChanges: [] };
+  }
+
   if (isDomainEventType(event, 'ranking.challenge.completed')) {
     return {
       result: { status: 'ignored' as const },

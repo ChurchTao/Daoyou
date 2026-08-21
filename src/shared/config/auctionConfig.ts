@@ -1,4 +1,5 @@
 import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
+import { isSpiritFieldSeedMaterial } from '@shared/engine/spirit-field/seedMaterial';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 
 export const AUCTION_MIN_QUALITY: Quality = '玄品';
@@ -36,6 +37,15 @@ export interface AuctionSettlementQuote {
 
 export function isAuctionListableQuality(quality: Quality): boolean {
   return QUALITY_ORDER[quality] >= QUALITY_ORDER[AUCTION_MIN_QUALITY];
+}
+
+/** 材料寄售门槛：玄品及以上；灵田种子例外，凡品/灵品亦可上架。 */
+export function isAuctionListableMaterial(material: {
+  rank: Quality;
+  details?: { spiritFieldSeed?: unknown } | null;
+}): boolean {
+  if (isSpiritFieldSeedMaterial(material)) return true;
+  return isAuctionListableQuality(material.rank);
 }
 
 export function getAuctionUnitPriceCap(quality: Quality): number {
