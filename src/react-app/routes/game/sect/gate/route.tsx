@@ -1,3 +1,4 @@
+import { StorySurfaceSlot } from '@app/components/feature/story/StorySurfaceSlot';
 import {
   NpcConversation,
   useConversationSession,
@@ -17,6 +18,7 @@ import {
   createActivityImmersiveNavigationState,
   requestActivityImmersiveMode,
 } from '@app/lib/gameActivityImmersive';
+import { useStoryNpcDialogue } from '@app/lib/story/useStoryNpcDialogue';
 import { STANDARD_SECT_PRESENTATION } from '@shared/engine/sect';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -40,6 +42,7 @@ export default function SectGatePage() {
           registry={registry}
           eyebrow="山门值录 · 当日勤务"
         />
+        <StorySurfaceSlot surface="sect.gate" />
       </SectScene>
     </SectPermissionBoundary>
   );
@@ -47,6 +50,7 @@ export default function SectGatePage() {
 
 function GateConversation({ actor, onExit }: SectNpcConversationRendererProps) {
   const infrastructure = useSectInfrastructureQuery();
+  const storyDialogue = useStoryNpcDialogue('sect.gate', actor.name);
   const [showNews, setShowNews] = useState(false);
   const session = useConversationSession({
     sessionKey: actor.id,
@@ -63,8 +67,10 @@ function GateConversation({ actor, onExit }: SectNpcConversationRendererProps) {
       speaker: actor.name,
       body: '今日山门内外无事，各处设施仍按常例修缮建设。',
     });
+  messages.push(...storyDialogue.messages);
   const options: NpcConversationOption[] = [
     { id: 'news', label: '请执事说说今日山门动静' },
+    ...storyDialogue.options,
     { id: 'leave', label: '弟子告退', tone: 'muted' },
   ];
   return (
@@ -72,11 +78,14 @@ function GateConversation({ actor, onExit }: SectNpcConversationRendererProps) {
       actor={actor}
       messages={messages}
       options={options}
-      busy={session.phase === 'loading'}
-      error={session.error ?? infrastructure.error}
+      busy={session.phase === 'loading' || storyDialogue.busy}
+      error={storyDialogue.error ?? session.error ?? infrastructure.error}
       onSelectOption={(optionId) => {
-        if (optionId === 'leave') onExit();
-        else if (optionId === 'news') setShowNews(true);
+        void (async () => {
+          if (await storyDialogue.handleOption(optionId)) return;
+          if (optionId === 'leave') onExit();
+          else if (optionId === 'news') setShowNews(true);
+        })();
       }}
     />
   );

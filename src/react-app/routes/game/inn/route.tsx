@@ -1,3 +1,4 @@
+import { StorySurfaceSlot } from '@app/components/feature/story/StorySurfaceSlot';
 import { useCultivatorDisplayProjection } from '@app/components/feature/cultivator/useCultivatorDisplayProjection';
 import {
   GameSceneFrame,
@@ -177,6 +178,7 @@ export default function InnRecoveryPage() {
       title="灵眼之泉"
       description="洞府深处泉眼含灵，泉雾沿石脉缓缓流转。若以灵石催动阵纹，便可借泉息温养伤势、稳住乱掉的气机。"
     >
+      <StorySurfaceSlot surface="inn.spirit-spring" />
       <GameSceneSection>
         <InkCard variant="elevated" padding="lg" className="space-y-5">
           <div className="text-ink space-y-3 text-sm leading-7">

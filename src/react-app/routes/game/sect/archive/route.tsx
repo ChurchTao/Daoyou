@@ -1,3 +1,4 @@
+import { StorySurfaceSlot } from '@app/components/feature/story/StorySurfaceSlot';
 import {
   NpcConversation,
   useConversationSession,
@@ -17,6 +18,7 @@ import {
 } from '@app/components/feature/sect/room';
 import { InkButton } from '@app/components/ui';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
+import { useStoryNpcDialogue } from '@app/lib/story/useStoryNpcDialogue';
 import {
   getEffectiveSectMethodLevelCap,
   STANDARD_SECT_PRESENTATION,
@@ -43,6 +45,7 @@ export default function SectArchivePage() {
           registry={registry}
           eyebrow="传承经卷 · 研习次第"
         />
+        <StorySurfaceSlot surface="sect.archive" />
       </SectScene>
     </SectPermissionBoundary>
   );
@@ -53,6 +56,7 @@ function ArchiveConversation({
   onExit,
 }: SectNpcConversationRendererProps) {
   const context = useSectContextQuery();
+  const storyDialogue = useStoryNpcDialogue('sect.archive', actor.name);
   const infrastructure = useSectInfrastructureQuery();
   const progression = useSectProgressionQuery();
   const profile = useCultivatorIdentity();
@@ -149,6 +153,7 @@ function ArchiveConversation({
         </>
       ),
     });
+  messages.push(...storyDialogue.messages);
   return (
     <NpcConversation
       actor={actor}
@@ -156,10 +161,12 @@ function ArchiveConversation({
       options={[
         { id: 'limit', label: '请长老说说我当前的研习上限' },
         { id: 'workspace', label: '弟子想展开经卷研习' },
+        ...storyDialogue.options,
         { id: 'leave', label: '弟子告退', tone: 'muted' },
       ]}
-      busy={session.phase === 'loading'}
+      busy={session.phase === 'loading' || storyDialogue.busy}
       error={
+        storyDialogue.error ??
         session.error ??
         context.error ??
         infrastructure.error ??
@@ -167,9 +174,12 @@ function ArchiveConversation({
         profile.error
       }
       onSelectOption={(optionId) => {
-        if (optionId === 'leave') onExit();
-        else if (optionId === 'limit' || optionId === 'workspace')
-          setTopic(optionId);
+        void (async () => {
+          if (await storyDialogue.handleOption(optionId)) return;
+          if (optionId === 'leave') onExit();
+          else if (optionId === 'limit' || optionId === 'workspace')
+            setTopic(optionId);
+        })();
       }}
     />
   );

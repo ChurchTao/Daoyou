@@ -1,3 +1,4 @@
+import { StoryBlackMarketSurfaceEncounter } from '@app/components/feature/story/StoryBlackMarketSurfaceEncounter';
 import {
   GameLoadingState,
   GameSceneAsideSection,
@@ -9,6 +10,7 @@ import {
   InkNotice,
   type InkDialogState,
 } from '@app/components/ui';
+import { useStoryBlackMarketInjection } from '@app/lib/story/useStoryBlackMarketInjection';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorCurrency } from '@app/lib/resources/player';
 import type {
@@ -38,6 +40,7 @@ export default function BlackMarketPage() {
   const nodeId = searchParams.get('nodeId') || DEFAULT_NODE_ID;
   const currency = useCultivatorCurrency();
   const { mutate } = useResourceMutation();
+  const { entry: storyBlackMarketEntry } = useStoryBlackMarketInjection();
   const { pushToast } = useInkUI();
   const [overview, setOverview] = useState<BlackMarketOverview>();
   const [session, setSession] = useState<BlackMarketSessionView>();
@@ -110,6 +113,9 @@ export default function BlackMarketPage() {
       window.clearTimeout(rolloverTimer);
     };
   }, [loadOverview, overview, pushToast]);
+
+  const storyHighlightNpcId: BlackMarketNpcId | undefined =
+    storyBlackMarketEntry?.npcId;
 
   const selectedNpc = useMemo(
     () => overview?.npcs.find((npc) => npc.id === selectedNpcId),
@@ -378,7 +384,23 @@ export default function BlackMarketPage() {
     }
   };
 
-  const detail = session?.reveal ? (
+  const storyDetail =
+    selectedNpc &&
+    !session &&
+    storyBlackMarketEntry &&
+    selectedNpc.id === storyBlackMarketEntry.npcId ? (
+      <StoryBlackMarketSurfaceEncounter
+        entry={storyBlackMarketEntry}
+        onResolved={() => {
+          setSelectedNpcId(undefined);
+          setSession(undefined);
+        }}
+      />
+    ) : null;
+
+  const detail = storyDetail ? (
+    storyDetail
+  ) : session?.reveal ? (
     <BlackMarketRevealPanel
       reveal={session.reveal}
       onBack={() => {
@@ -442,6 +464,7 @@ export default function BlackMarketPage() {
             selectedNpcId={selectedNpcId}
             busy={busy}
             detail={detail}
+            storyHighlightNpcId={storyHighlightNpcId}
             onSelect={handleSelect}
           />
         ) : (

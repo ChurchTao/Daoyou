@@ -32,15 +32,17 @@
 | `sect.construction.donated` | `daoyou.domain.sect.construction-donated.v1` | `sect-facility-projector-v1` |
 | `alchemy.craft.completed` | `daoyou.domain.activity.alchemy-craft-completed.v1` | `task-projector-v1` |
 | `ranking.challenge.completed` | `daoyou.domain.activity.ranking-challenge-completed.v1` | `task-projector-v1` |
-| `dungeon.run.settled` | `daoyou.domain.activity.dungeon-run-settled.v1` | `task-projector-v1` |
+| `dungeon.run.settled` | `daoyou.domain.activity.dungeon-run-settled.v1` | `task-projector-v1`、`main-story-dungeon-projector-v1` |
 | `yield.claimed` | `daoyou.domain.activity.yield-claimed.v1` | `yield-reward-projector-v1` |
-| `cultivator.realm.changed` | `daoyou.domain.gameplay.cultivator-realm-changed.v1` | `world-rumor-projector-v1`、`ranking-realm-projector-v1` |
+| `cultivator.realm.changed` | `daoyou.domain.gameplay.cultivator-realm-changed.v1` | `world-rumor-projector-v1`、`ranking-realm-projector-v1`、`main-story-realm-projector-v1` |
 | `mail.created` | `daoyou.domain.communication.mail-created.v1` | `mail-notification-projector-v1` |
 | `craft.item.created` | `daoyou.domain.gameplay.craft-item-created.v1` | `world-rumor-projector-v1` |
 | `market.material.revealed` | `daoyou.domain.gameplay.market-material-revealed.v1` | `world-rumor-projector-v1` |
 | `bet-battle.created` | `daoyou.domain.gameplay.bet-battle-created.v1` | `world-rumor-projector-v1` |
 | `bet-battle.settled` | `daoyou.domain.gameplay.bet-battle-settled.v1` | `world-rumor-projector-v1` |
 | `ranking.position.changed` | `daoyou.domain.gameplay.ranking-position-changed.v1` | `world-rumor-projector-v1` |
+
+主线自身还会发布 `story.node.completed`、`story.clue.discovered`、`story.volume.completed` 三类事实事件，供后续世界传闻、成就、统计等消费者独立订阅；业务玩法域不反向依赖主线。
 
 `ranking.challenge.completed` 仍保留为战斗完成事实，但当前任务定义没有对应计数目标，任务投影器会显式忽略它。
 

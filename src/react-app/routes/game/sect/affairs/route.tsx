@@ -1,3 +1,4 @@
+import { StorySurfaceSlot } from '@app/components/feature/story/StorySurfaceSlot';
 import { SectTaskInteractionProvider } from '@app/components/feature/sect/SectTaskInteractionProvider';
 import {
   SectPermissionBoundary,
@@ -18,6 +19,7 @@ function SectAffairsBody() {
     <SectTaskInteractionProvider>
       <SectScene sceneKey="affairs" mood="affairs">
         <SectAffairsRoom />
+        <StorySurfaceSlot surface="sect.affairs" />
       </SectScene>
     </SectTaskInteractionProvider>
   );

@@ -1,3 +1,4 @@
+import { StorySurfaceSlot } from '@app/components/feature/story/StorySurfaceSlot';
 import {
   NpcConversation,
   useConversationSession,
@@ -10,6 +11,7 @@ import {
   type SectNpcConversationRendererProps,
 } from '@app/components/feature/sect/room';
 import { useSectInfrastructureQuery } from '@app/components/feature/sect/sectResources';
+import { useStoryNpcDialogue } from '@app/lib/story/useStoryNpcDialogue';
 import { STANDARD_SECT_PRESENTATION } from '@shared/engine/sect';
 import { SectPermissionBoundary, SectScene } from '../components/SectScene';
 
@@ -36,6 +38,7 @@ export default function SectHerbGardenPage() {
           registry={registry}
           eyebrow="药畦晨露 · 草木值录"
         />
+        <StorySurfaceSlot surface="sect.herb-garden" />
       </SectScene>
     </SectPermissionBoundary>
   );
@@ -55,6 +58,7 @@ function HerbGardenCaretakerConversation({
   onExit,
 }: SectNpcConversationRendererProps) {
   const infrastructure = useSectInfrastructureQuery();
+  const storyDialogue = useStoryNpcDialogue('sect.herb-garden', actor.name);
   const facilityKey = readText(parameters, 'facilityKey');
   const detail = readText(parameters, 'detail');
   const stages = Array.isArray(parameters.stages)
@@ -90,14 +94,26 @@ function HerbGardenCaretakerConversation({
       tone: facility ? 'normal' : 'attention',
     });
 
+  messages.push(...storyDialogue.messages);
+
   return (
     <NpcConversation
       actor={actor}
       messages={messages}
-      options={[{ id: 'leave', label: '弟子告退', tone: 'muted' }]}
-      busy={session.phase === 'loading' || infrastructure.loading}
-      error={session.error ?? infrastructure.error}
-      onSelectOption={onExit}
+      options={[
+        ...storyDialogue.options,
+        { id: 'leave', label: '弟子告退', tone: 'muted' },
+      ]}
+      busy={
+        session.phase === 'loading' || infrastructure.loading || storyDialogue.busy
+      }
+      error={storyDialogue.error ?? session.error ?? infrastructure.error}
+      onSelectOption={(optionId) => {
+        void (async () => {
+          if (await storyDialogue.handleOption(optionId)) return;
+          if (optionId === 'leave') onExit();
+        })();
+      }}
     />
   );
 }

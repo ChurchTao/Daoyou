@@ -23,6 +23,9 @@ export const DOMAIN_EVENT_TYPES = [
   'bet-battle.settled',
   'ranking.position.changed',
   'sponsorship.order.received',
+  'story.node.completed',
+  'story.clue.discovered',
+  'story.volume.completed',
 ] as const;
 
 export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];
@@ -155,6 +158,33 @@ export const DomainEventDataSchemas = {
       providerOrderId: z.string().min(1).max(80),
     })
     .strict(),
+  'story.node.completed': z
+    .object({
+      cultivatorId: z.uuid(),
+      storyId: z.string().min(1).max(64),
+      storyVersion: z.number().int().positive(),
+      nodeId: z.string().min(1).max(64),
+      nextNodeId: z.string().min(1).max(64),
+      choiceId: z.string().min(1).max(120).optional(),
+    })
+    .strict(),
+  'story.clue.discovered': z
+    .object({
+      cultivatorId: z.uuid(),
+      storyId: z.string().min(1).max(64),
+      storyVersion: z.number().int().positive(),
+      nodeId: z.string().min(1).max(64),
+      clueId: z.string().min(1).max(120),
+    })
+    .strict(),
+  'story.volume.completed': z
+    .object({
+      cultivatorId: z.uuid(),
+      storyId: z.string().min(1).max(64),
+      storyVersion: z.number().int().positive(),
+      volume: z.number().int().positive(),
+    })
+    .strict(),
 } as const;
 
 export type DomainEventData<TType extends DomainEventType> = z.infer<
@@ -213,6 +243,18 @@ export const DOMAIN_EVENT_DEFINITIONS = {
   'sponsorship.order.received': {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.sponsorship.order-received.v1`,
+  },
+  'story.node.completed': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.story.node-completed.v1`,
+  },
+  'story.clue.discovered': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.story.clue-discovered.v1`,
+  },
+  'story.volume.completed': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.story.volume-completed.v1`,
   },
 } as const satisfies Record<
   DomainEventType,

@@ -24,6 +24,7 @@ import {
   InkSelect,
 } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
+import { useStoryAuctionInjection } from '@app/lib/story/useStoryAuctionInjection';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorCondition,
@@ -87,6 +88,13 @@ type AuctionListing = {
   createdAt: string;
   expiresAt: string;
   soldAt?: string;
+  /** 外部剧情插槽生成的虚拟货单；拍卖域不识别卷号或节点。 */
+  storySurface?: {
+    detailInteractionId: string;
+    cancelInteractionId: string;
+    metaLabel: string;
+    timeLabel: string;
+  };
 };
 
 type AuctionPagination = {
@@ -227,6 +235,21 @@ export default function AuctionPage() {
   const [buyConfirmDialog, setBuyConfirmDialog] =
     useState<InkDialogState | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const { entry: storyAuctionEntry, interact: interactStoryAuction } =
+    useStoryAuctionInjection();
+  const storyFutureListing = useMemo<AuctionListing | null>(() => {
+    if (!storyAuctionEntry) return null;
+    return {
+      ...storyAuctionEntry.listing,
+      storySurface: {
+        detailInteractionId: storyAuctionEntry.detailInteractionId,
+        cancelInteractionId: storyAuctionEntry.cancelInteractionId,
+        metaLabel: storyAuctionEntry.metaLabel,
+        timeLabel: storyAuctionEntry.timeLabel,
+      },
+    } as AuctionListing;
+  }, [storyAuctionEntry]);
+
 
   const activeTab = normalizeScope(searchParams.get('tab'));
   const categoryOptions = useMemo(
@@ -541,8 +564,37 @@ export default function AuctionPage() {
     await executeBuy(listing, requestedQuantity);
   };
 
+  const handleListingDetail = (listing: AuctionListing) => {
+    setSelectedItem(
+      toInventoryItemDetail(listing.itemType, listing.itemSnapshot),
+    );
+    const interactionId = listing.storySurface?.detailInteractionId;
+    if (interactionId) {
+      void interactStoryAuction(interactionId).catch((error) =>
+        console.warn('[story-surface] auction detail interaction failed', error),
+      );
+    }
+  };
+
   const handleCancel = async (listing: AuctionListing) => {
     if (!cultivator) return;
+
+    const storyCancelInteractionId = listing.storySurface?.cancelInteractionId;
+    if (storyCancelInteractionId) {
+      setCancellingId(listing.id);
+      try {
+        await interactStoryAuction(storyCancelInteractionId);
+        pushToast({ message: '寄售记录不存在。', tone: 'warning' });
+      } catch (error) {
+        pushToast({
+          message: error instanceof Error ? error.message : '无法下架这条记录',
+          tone: 'warning',
+        });
+      } finally {
+        setCancellingId(null);
+      }
+      return;
+    }
 
     setCancellingId(listing.id);
     try {
@@ -631,6 +683,9 @@ export default function AuctionPage() {
             {listing.sellerId === cultivator?.id ? ' (我)' : ''}
           </span>
           <span>剩余：x{listedQuantity}</span>
+          {listing.storySurface?.metaLabel ? (
+            <span className="text-crimson font-medium">{listing.storySurface.metaLabel}</span>
+          ) : null}
           {listing.visibility === 'private' && (
             <span className="text-crimson">
               专属：
@@ -649,15 +704,11 @@ export default function AuctionPage() {
     const actions = (
       <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
         <span className="text-ink-secondary text-xs whitespace-nowrap">
-          剩余：{timeLeft}
+          {listing.storySurface?.timeLabel ?? `剩余：${timeLeft}`}
         </span>
         <InkButton
           variant="secondary"
-          onClick={() =>
-            setSelectedItem(
-              toInventoryItemDetail(listing.itemType, listing.itemSnapshot),
-            )
-          }
+          onClick={() => handleListingDetail(listing)}
         >
           详情
         </InkButton>
@@ -809,7 +860,23 @@ export default function AuctionPage() {
       : null,
   ].filter(Boolean);
 
-  const activeListings = activeTab === 'browse' ? browseListings : myListings;
+  const baseActiveListings = activeTab === 'browse' ? browseListings : myListings;
+  const shouldInjectFutureListing = Boolean(
+    storyFutureListing &&
+      activeTab === 'browse' &&
+      page === 1 &&
+      (activeType === 'all' || activeType === 'material') &&
+      itemCategory === 'all' &&
+      itemQuality === 'all' &&
+      !currentSearchValue.trim(),
+  );
+  const activeListings = shouldInjectFutureListing && storyFutureListing
+    ? [
+        ...baseActiveListings.slice(0, Math.min(2, baseActiveListings.length)),
+        storyFutureListing,
+        ...baseActiveListings.slice(Math.min(2, baseActiveListings.length)),
+      ]
+    : baseActiveListings;
   const isLoading = activeTab === 'browse' ? isLoadingBrowse : isLoadingMy;
   const filterSummaryText = filterSummary.join(' / ');
 

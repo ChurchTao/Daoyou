@@ -10,12 +10,14 @@ export function BlackMarketRoom({
   selectedNpcId,
   busy,
   detail,
+  storyHighlightNpcId,
   onSelect,
 }: {
   overview: BlackMarketOverview;
   selectedNpcId?: BlackMarketNpcId;
   busy: boolean;
   detail?: ReactNode;
+  storyHighlightNpcId?: BlackMarketNpcId;
   onSelect(npcId: BlackMarketNpcId): void;
 }) {
   return (
@@ -30,16 +32,22 @@ export function BlackMarketRoom({
         responsibility: npc.responsibility,
         status: {
           label:
-            npc.status === 'completed'
-              ? '今日已成交'
-              : npc.status === 'in_progress'
-                ? '交谈未完'
-                : npc.status === 'granted'
-                  ? '入场凭证已留'
-                : '货物尚在',
+            npc.id === storyHighlightNpcId
+              ? npc.id === 'silent-elder'
+                ? '旧物要看'
+                : '今日有怪货'
+              : npc.status === 'completed'
+                ? '今日已成交'
+                : npc.status === 'in_progress'
+                  ? '交谈未完'
+                  : npc.status === 'granted'
+                    ? '入场凭证已留'
+                    : '货物尚在',
           tone:
-            npc.status === 'completed'
-              ? 'muted'
+            npc.id === storyHighlightNpcId
+              ? 'attention'
+              : npc.status === 'completed'
+                ? 'muted'
               : npc.status === 'in_progress'
                 ? 'attention'
                 : npc.status === 'granted'

@@ -111,6 +111,83 @@ export const cultivators = pgTable(
   ],
 );
 
+
+// 主线剧情进度：与通用任务、角色主表分离，便于按卷版本独立维护和迁移。
+export const storyProgress = pgTable(
+  'wanjiedaoyou_story_progress',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    storyId: varchar('story_id', { length: 80 }).notNull(),
+    storyVersion: integer('story_version').notNull().default(1),
+    status: varchar('status', { length: 20 }).notNull().default('active'),
+    currentNodeId: varchar('current_node_id', { length: 40 }).notNull(),
+    currentStep: varchar('current_step', { length: 80 }).notNull(),
+    flags: jsonb('flags')
+      .$type<Record<string, string | boolean | number | null>>()
+      .notNull()
+      .default({}),
+    npcTrust: jsonb('npc_trust')
+      .$type<Record<string, number>>()
+      .notNull()
+      .default({}),
+    startedAt: timestamp('started_at').defaultNow().notNull(),
+    completedAt: timestamp('completed_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('story_progress_cultivator_story_uidx').on(
+      table.cultivatorId,
+      table.storyId,
+    ),
+    index('story_progress_cultivator_status_updated_idx').on(
+      table.cultivatorId,
+      table.status,
+      table.updatedAt,
+    ),
+  ],
+);
+
+// 主线剧情事件日志：只追加选择与玩法触发事实，不把完整历史塞进 progress JSON。
+export const storyEventLogs = pgTable(
+  'wanjiedaoyou_story_event_logs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    storyId: varchar('story_id', { length: 80 }).notNull(),
+    storyVersion: integer('story_version').notNull().default(1),
+    nodeId: varchar('node_id', { length: 40 }).notNull(),
+    sceneKey: varchar('scene_key', { length: 120 }),
+    eventType: varchar('event_type', { length: 60 }).notNull(),
+    choiceId: varchar('choice_id', { length: 80 }),
+    payload: jsonb('payload')
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    dedupeKey: varchar('dedupe_key', { length: 160 }).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('story_event_logs_cultivator_dedupe_uidx').on(
+      table.cultivatorId,
+      table.dedupeKey,
+    ),
+    index('story_event_logs_cultivator_story_created_idx').on(
+      table.cultivatorId,
+      table.storyId,
+      table.createdAt,
+    ),
+  ],
+);
+
 export type AccountDeletionStatus = 'pending' | 'completed';
 
 // 账号注销留档：不关联 Better Auth 或角色外键，确保账号删除后仍可用于后续清理。
