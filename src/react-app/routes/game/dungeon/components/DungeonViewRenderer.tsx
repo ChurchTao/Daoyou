@@ -1,3 +1,4 @@
+import { StorySurfaceSlot } from '@app/components/feature/story/StorySurfaceSlot';
 import { GameSceneLoading, GameSceneSection } from '@app/components/game-shell';
 import { InkSection } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -38,7 +39,12 @@ interface DungeonViewRendererProps {
   cultivator:
     | (Pick<
         Cultivator,
-        'id' | 'realm' | 'attributes' | 'condition' | 'equipped'
+        | 'id'
+        | 'realm'
+        | 'attributes'
+        | 'condition'
+        | 'equipped'
+        | 'cultivation_progress'
       > & {
         inventory: Pick<Cultivator['inventory'], 'artifacts'>;
       })
@@ -285,6 +291,11 @@ export function DungeonViewRenderer({
       <DungeonSceneScreen
         descriptor={resolveDungeonSceneDescriptor('settlement')}
       >
+        <StorySurfaceSlot
+          surface="dungeon.settlement"
+          context={{ mapNodeId: viewState.mapNodeId }}
+          waitForExternalEvent
+        />
         <DungeonSettlement
           settlement={viewState.settlement}
           realGains={viewState.realGains}

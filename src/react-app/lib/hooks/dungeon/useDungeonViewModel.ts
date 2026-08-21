@@ -36,6 +36,7 @@ export type DungeonViewState =
   | { type: 'recoverable_error'; state: DungeonState }
   | {
       type: 'settlement';
+      mapNodeId: string;
       settlement?: DungeonSettlement;
       realGains?: ResourceOperation[];
     };
@@ -169,6 +170,7 @@ export function useDungeonViewModel(
     if (state?.isFinished) {
       return {
         type: 'settlement',
+        mapNodeId: state.mapNodeId,
         settlement: state.settlement,
         realGains: state.realGains,
       };

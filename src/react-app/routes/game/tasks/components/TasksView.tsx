@@ -1,3 +1,4 @@
+import { StoryVolumeCard } from '@app/components/feature/story/StoryVolumeCard';
 import { BreakthroughTaskCard } from '@app/components/feature/tasks/BreakthroughTaskCard';
 import { TutorialTaskCard } from '@app/components/feature/tasks/TutorialTaskCard';
 import {
@@ -37,8 +38,12 @@ export function TasksView() {
   return (
     <GameSceneFrame
       title="任务中心"
-      description="入门引导与破境卷宗归在此处。宗门勤务已经移交执事堂，不再与通用任务混列。"
+      description="主线卷宗只用于回顾与中断后的续接；主线本身会在宗门、坊市、副本与修行等真实场景中自动发生。入门与破境卷宗仍按原系统独立处理。"
     >
+      <GameSceneSection title="主线卷宗 · 回顾">
+        <StoryVolumeCard />
+      </GameSceneSection>
+
       <GameSceneSection title="入门卷宗">
         {loading || !tasks ? (
           <GameLoadingState message="正在整理入门卷宗……" variant="inline" />

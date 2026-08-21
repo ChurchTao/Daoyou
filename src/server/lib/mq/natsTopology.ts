@@ -76,6 +76,16 @@ export const DOMAIN_EVENT_CONSUMERS = {
     filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.*.v1`,
     concurrency: 8,
   },
+  mainStoryDungeonProjector: {
+    name: 'main-story-dungeon-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.dungeon-run-settled.v1`,
+    concurrency: 2,
+  },
+  mainStoryRealmProjector: {
+    name: 'main-story-realm-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.cultivator-realm-changed.v1`,
+    concurrency: 2,
+  },
   yieldRewardProjector: {
     name: 'yield-reward-projector-v1',
     filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.yield-claimed.v1`,

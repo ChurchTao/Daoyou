@@ -1,3 +1,4 @@
+import { StorySurfaceSlot } from '@app/components/feature/story/StorySurfaceSlot';
 import { ConsumableListCard } from '@app/components/feature/consumables';
 import { ArtifactListCard } from '@app/components/feature/products';
 import {
@@ -600,6 +601,7 @@ export default function MarketRecyclePage() {
         </>
       }
     >
+      <StorySurfaceSlot surface="market.recycle" />
       <GameSceneTabs
         activeValue={activeTab}
         onChange={(value) => setActiveTab(value as RecycleTab)}

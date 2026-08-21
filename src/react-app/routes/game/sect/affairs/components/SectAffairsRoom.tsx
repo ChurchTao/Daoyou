@@ -1,3 +1,4 @@
+import { useStoryNpcDialogue } from '@app/lib/story/useStoryNpcDialogue';
 import {
   NpcConversation,
   useConversationSession,
@@ -195,6 +196,7 @@ function SectAffairsNpcConversation({
   onExit(): void;
 }) {
   const interaction = useSectTaskInteraction();
+  const storyDialogue = useStoryNpcDialogue('sect.affairs', npc.name);
   const current = useSectPromotionEvaluationQuery(kind === 'promotion');
   const { data, loading, error } = useSectTasksQuery();
   const [selectedTaskKey, setSelectedTaskKey] = useState<string>();
@@ -325,6 +327,7 @@ function SectAffairsNpcConversation({
       }
       onSelect={(task) => void selectTask(task)}
       onPromote={() => void promote()}
+      storyDialogue={storyDialogue}
       onExit={onExit}
     />
   );
@@ -340,6 +343,7 @@ function TaskListConversation({
   error,
   onSelect,
   onPromote,
+  storyDialogue,
   onExit,
 }: {
   npc: SectRoomActorDefinition;
@@ -351,6 +355,7 @@ function TaskListConversation({
   error?: string;
   onSelect(task: SectTaskViewData): void;
   onPromote(): void;
+  storyDialogue: ReturnType<typeof useStoryNpcDialogue>;
   onExit(): void;
 }) {
   const visible = visibleTasks(tasks);
@@ -374,6 +379,7 @@ function TaskListConversation({
           },
         ]
       : []),
+    ...storyDialogue.options,
     {
       id: LEAVE_CONVERSATION_OPTION,
       label: '弟子告退',
@@ -386,6 +392,7 @@ function TaskListConversation({
       speaker: npc.name,
       body: npcOpening(npc, tasks, guidance),
     },
+    ...storyDialogue.messages,
   ];
   if (promotionResult)
     messages.push({
@@ -401,19 +408,22 @@ function TaskListConversation({
       actor={npc}
       messages={messages}
       options={options}
-      busy={busy}
-      error={error}
+      busy={busy || storyDialogue.busy}
+      error={storyDialogue.error ?? error}
       onSelectOption={(optionId) => {
-        if (optionId === LEAVE_CONVERSATION_OPTION) {
-          onExit();
-          return;
-        }
-        if (optionId === PROMOTE_OPTION) {
-          onPromote();
-          return;
-        }
-        const task = taskByKey.get(optionId);
-        if (task) onSelect(task);
+        void (async () => {
+          if (await storyDialogue.handleOption(optionId)) return;
+          if (optionId === LEAVE_CONVERSATION_OPTION) {
+            onExit();
+            return;
+          }
+          if (optionId === PROMOTE_OPTION) {
+            onPromote();
+            return;
+          }
+          const task = taskByKey.get(optionId);
+          if (task) onSelect(task);
+        })();
       }}
     />
   );

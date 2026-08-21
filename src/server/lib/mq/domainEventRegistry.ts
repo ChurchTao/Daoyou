@@ -1,3 +1,4 @@
+import { projectMainStoryIntegrationEvent } from '@server/lib/services/MainStoryDomainEventProjector';
 import { closeNatsConnection, getNatsConnection } from '@server/lib/nats';
 import { projectMailCreated } from '@server/lib/services/MailDomainEventProjector';
 import { projectRealmChangedRanking } from '@server/lib/services/RealmChangedDomainEventProjector';
@@ -79,6 +80,18 @@ export async function registerMessageInfrastructure(): Promise<void> {
         'yield.claimed',
       ],
       handle: handleTaskEvent,
+    }),
+    startDomainEventConsumer({
+      consumerName: DOMAIN_EVENT_CONSUMERS.mainStoryDungeonProjector.name,
+      concurrency: DOMAIN_EVENT_CONSUMERS.mainStoryDungeonProjector.concurrency,
+      acceptedTypes: ['dungeon.run.settled'],
+      handle: handleMainStoryDungeonEvent,
+    }),
+    startDomainEventConsumer({
+      consumerName: DOMAIN_EVENT_CONSUMERS.mainStoryRealmProjector.name,
+      concurrency: DOMAIN_EVENT_CONSUMERS.mainStoryRealmProjector.concurrency,
+      acceptedTypes: ['cultivator.realm.changed'],
+      handle: handleMainStoryRealmEvent,
     }),
     startDomainEventConsumer({
       consumerName: DOMAIN_EVENT_CONSUMERS.yieldRewardProjector.name,
@@ -174,6 +187,30 @@ async function handleRankingRealmEvent(event: DomainEventEnvelope) {
     source: 'ranking_realm_domain_event',
     event,
     handle: projectRealmChangedRanking,
+  });
+}
+
+async function handleMainStoryDungeonEvent(event: DomainEventEnvelope) {
+  if (!isDomainEventType(event, 'dungeon.run.settled')) {
+    throw new Error(`主线副本投影不支持领域事件: ${event.type}`);
+  }
+  await executeDomainEvent({
+    consumerName: DOMAIN_EVENT_CONSUMERS.mainStoryDungeonProjector.name,
+    source: 'main_story_dungeon_domain_event',
+    event,
+    handle: projectMainStoryIntegrationEvent,
+  });
+}
+
+async function handleMainStoryRealmEvent(event: DomainEventEnvelope) {
+  if (!isDomainEventType(event, 'cultivator.realm.changed')) {
+    throw new Error(`主线境界投影不支持领域事件: ${event.type}`);
+  }
+  await executeDomainEvent({
+    consumerName: DOMAIN_EVENT_CONSUMERS.mainStoryRealmProjector.name,
+    source: 'main_story_realm_domain_event',
+    event,
+    handle: projectMainStoryIntegrationEvent,
   });
 }
 

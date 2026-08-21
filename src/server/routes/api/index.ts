@@ -3,6 +3,7 @@ import { getMessageInfrastructureHealthStatus } from '@server/lib/mq/domainEvent
 import { getNatsHealthStatus } from '@server/lib/nats';
 import { getRedisHealthStatus } from '@server/lib/redis';
 import accountRouter from '@server/routes/api/account.router';
+import storyRouter from '@server/routes/api/story.router';
 import adminRouter from '@server/routes/api/admin';
 import alchemyFormulasRouter from '@server/routes/api/alchemy-formulas.router';
 import auctionRouter from '@server/routes/api/auction.router';
@@ -105,6 +106,7 @@ apiRouter.route('/rankings', rankingsRouter);
 apiRouter.route('/realtime', realtimeRouter);
 apiRouter.route('/reputation-shop', reputationShopRouter);
 apiRouter.route('/save-character', saveCharacterRouter);
+apiRouter.route('/story', storyRouter);
 apiRouter.route('/tasks', tasksRouter);
 apiRouter.route('/tower', towerRouter);
 apiRouter.route('/sects', sectsRouter);
