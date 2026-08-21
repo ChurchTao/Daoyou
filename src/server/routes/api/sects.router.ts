@@ -175,6 +175,7 @@ export function createSectsRouter(
               discipleRank:
                 membership.discipleRank as SectContextData['discipleRank'],
               contribution: membership.contribution,
+              lifetimeContribution: membership.lifetimeContribution,
               office: membership.office as SectContextData['office'],
               promotedAt: membership.promotedAt?.toISOString(),
               permissions: organization.capabilities.snapshot(

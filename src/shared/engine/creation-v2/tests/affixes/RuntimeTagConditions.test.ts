@@ -73,6 +73,7 @@ describe('creation-v2 affix match contract', () => {
         params: { tag: GameplayTags.ABILITY.FUNCTION.CONTROL },
       },
     ]);
+    expect(result.params).not.toHaveProperty('logTriggerName');
   });
 
   it('多 debuff 协同应显式声明 debuff_count_at_least 条件', () => {
@@ -108,6 +109,33 @@ describe('creation-v2 affix match contract', () => {
         params: { value: 2 },
       },
     ]);
+    expect(result.params).not.toHaveProperty('logTriggerName');
+  });
+
+  it('概率条件词条应携带触发日志名称，确定性条件不应刷屏', () => {
+    const rolledAffix: RolledAffix = {
+      id: 'test-probability-trigger',
+      name: '概率护体',
+      slot: 'modifier',
+      rarity: 'rare',
+      energyCost: 10,
+      rollScore: 1,
+      rollEfficiency: 1,
+      finalMultiplier: 1,
+      isPerfect: false,
+      weight: 10,
+      match: {},
+      tags: [],
+      effectTemplate: {
+        type: 'percent_damage_modifier',
+        conditions: [{ type: 'chance', params: { value: 0.2 } }],
+        params: { mode: 'reduce', value: 0.2 },
+      },
+    };
+
+    expect(translator.translate(rolledAffix, '玄品').params).toMatchObject({
+      logTriggerName: '概率护体',
+    });
   });
 
   it('递归 effect 模板应解析为 battle-v5 EffectConfig', () => {

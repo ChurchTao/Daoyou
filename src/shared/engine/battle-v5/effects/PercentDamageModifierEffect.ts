@@ -41,10 +41,20 @@ export class PercentDamageModifierEffect extends GameplayEffect {
     if (this.params.mode === 'increase') {
       damageRequestEvent.damageIncreasePctBucket =
         (damageRequestEvent.damageIncreasePctBucket ?? 0) + value;
-      return;
     } else if (this.params.mode === 'reduce') {
       damageRequestEvent.damageReductionPctBucket =
         (damageRequestEvent.damageReductionPctBucket ?? 0) + value;
+    }
+
+    if (this.params.logTriggerName && value > 0) {
+      context.commit(damageRequestEvent.target, {
+        type: 'mechanic',
+        code: 'conditional_damage_modifier_trigger',
+        payload: {
+          kind: 'named_trigger',
+          label: this.params.logTriggerName,
+        },
+      });
     }
   }
 }

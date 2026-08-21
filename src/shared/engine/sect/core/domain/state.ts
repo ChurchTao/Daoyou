@@ -38,6 +38,8 @@ export interface CultivatorSectState {
   joinedAt?: string;
   activePathId?: SectPathId;
   contribution: number;
+  /** Total contribution earned; unlike contribution, this is not reduced by spending. */
+  lifetimeContribution?: number;
   discipleRank?: SectDiscipleRank;
   office?: SectOffice;
   promotedAt?: string;

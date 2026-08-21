@@ -24,6 +24,7 @@ export interface PromotionCandidateFacts {
   realm: RealmType;
   stage: RealmStage;
   contribution: number;
+  lifetimeContribution?: number;
   dailyCompletions: number;
   completedTaskTags: ReadonlySet<string>;
 }
@@ -45,10 +46,12 @@ export class PromotionRequirementSpecification {
         code: 'realm',
         message: `境界达到${requirement.minRealm}`,
       });
-    if (candidate.contribution < requirement.contribution)
+    const lifetimeContribution =
+      candidate.lifetimeContribution ?? candidate.contribution;
+    if (lifetimeContribution < requirement.contribution)
       violations.push({
         code: 'contribution',
-        message: `当前贡献达到${requirement.contribution}`,
+        message: `累计贡献达到${requirement.contribution}`,
       });
     if (
       requirement.dailyCompletions &&

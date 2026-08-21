@@ -86,7 +86,6 @@ export default function BattleReplayPage() {
         playback={playback}
         statusActions={[
           { label: '分享', onClick: () => setShareOpen(true) },
-          { label: '返回战绩', href: '/game/battle/history' },
         ]}
       />
       {battleResult ? (

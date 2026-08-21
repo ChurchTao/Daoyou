@@ -148,6 +148,7 @@ export const SECT_RESOURCE_DATA_SCHEMAS = {
       joinedAt: z.string().optional(),
       discipleRank: z.enum(['registered', 'outer', 'inner', 'true']),
       contribution: z.number(),
+      lifetimeContribution: z.number(),
       office: z.enum(['none', 'steward', 'protector', 'elder']),
       promotedAt: z.string().optional(),
       permissions: z.record(

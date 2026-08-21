@@ -190,6 +190,7 @@ function membershipState(
     joinedAt: context.joinedAt,
     discipleRank: context.discipleRank,
     contribution: context.contribution,
+    lifetimeContribution: context.lifetimeContribution,
     office: context.office,
     promotedAt: context.promotedAt,
     configVersion: context.configVersion,

@@ -270,6 +270,7 @@ function membershipQueryAdapter(
             cultivatorId: row.cultivatorId,
             discipleRank: row.discipleRank as SectDiscipleRank,
             contribution: row.contribution,
+            lifetimeContribution: row.lifetimeContribution,
           }
         : null;
     },
@@ -877,6 +878,7 @@ export function createPostgresSectCommandContext(args: {
               cultivatorId: row.cultivatorId,
               discipleRank: row.discipleRank as SectDiscipleRank,
               contribution: row.contribution,
+              lifetimeContribution: row.lifetimeContribution,
             }
           : null;
       },
@@ -1051,6 +1053,7 @@ export function createPostgresSectQueryContext(args: {
               cultivatorId: row.cultivatorId,
               discipleRank: row.discipleRank as SectDiscipleRank,
               contribution: row.contribution,
+              lifetimeContribution: row.lifetimeContribution,
             }
           : null;
       },

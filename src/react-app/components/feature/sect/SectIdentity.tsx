@@ -105,6 +105,14 @@ export function SectIdentityDetails({
           </span>
         }
       />
+      <IdentityRow
+        label="累计贡献"
+        value={
+          <span className="text-wood/80 font-mono">
+            {formatContribution(context.lifetimeContribution)}
+          </span>
+        }
+      />
       {showJoinedAt ? (
         <IdentityRow
           label="入门时间"

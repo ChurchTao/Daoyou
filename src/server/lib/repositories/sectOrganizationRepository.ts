@@ -96,6 +96,8 @@ export async function addSectContribution(
     .update(sectMemberships)
     .set({
       contribution: sql`${sectMemberships.contribution} + ${amount}`,
+      lifetimeContribution:
+        sql`${sectMemberships.lifetimeContribution} + ${amount}`,
       updatedAt: new Date(),
     })
     .where(eq(sectMemberships.id, membershipId))

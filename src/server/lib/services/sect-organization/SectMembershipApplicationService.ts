@@ -97,6 +97,7 @@ export class SectMembershipApplicationService {
           realm,
           stage,
           contribution: membership.contribution,
+          lifetimeContribution: membership.lifetimeContribution,
           dailyCompletions,
           completedTaskTags,
         },
@@ -171,6 +172,8 @@ export class SectMembershipApplicationService {
       nextRank,
       missing,
       allowed: Boolean(nextRank && missing.length === 0),
+      contribution: membership.contribution,
+      lifetimeContribution: membership.lifetimeContribution,
     };
   }
 
@@ -222,6 +225,8 @@ export class SectMembershipApplicationService {
       joinedAt: result.joinedAt,
       discipleRank,
       contribution: result.contribution,
+      lifetimeContribution:
+        result.lifetimeContribution ?? result.contribution,
       office: result.office ?? 'none',
       promotedAt: result.promotedAt,
       permissions: organization.capabilities.snapshot(discipleRank),

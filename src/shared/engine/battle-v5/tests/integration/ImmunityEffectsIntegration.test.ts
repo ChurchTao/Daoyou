@@ -6,6 +6,7 @@ import { AbilityType, AttributeType, BuffType, DamageType } from '../../core/typ
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { BuffFactory } from '../../factories/BuffFactory';
 import { Unit } from '../../units/Unit';
+import type { CombatResultCommittedEventV3 } from '../../v3/events';
 
 describe('免疫效果集成测试', () => {
   beforeEach(() => {
@@ -22,7 +23,11 @@ describe('免疫效果集成测试', () => {
     });
   }
 
-  function addPassiveDamageListener(unit: Unit, effects: Array<EffectConfig>): void {
+  function addPassiveDamageListener(
+    unit: Unit,
+    effects: Array<EffectConfig>,
+    eventType: 'DamageEvent' | 'DamageRequestEvent' = 'DamageEvent',
+  ): void {
     unit.abilities.addAbility(
       AbilityFactory.create({
         slug: `passive_${effects.map((effect) => effect.type).join('_')}`,
@@ -31,7 +36,7 @@ describe('免疫效果集成测试', () => {
         tags: [GameplayTags.ABILITY.KIND.PASSIVE],
         listeners: [
           {
-            eventType: 'DamageEvent',
+            eventType,
             scope: 'owner_as_target',
             priority: EventPriorityLevel.DAMAGE_APPLY,
             effects,
@@ -40,6 +45,54 @@ describe('免疫效果集成测试', () => {
       }),
     );
   }
+
+  it('条件减伤实际生效时应提交带词条名称的战斗日志事实', () => {
+    const attacker = createUnit('attacker', '进攻者');
+    const defender = createUnit('defender', '防御者');
+    addPassiveDamageListener(
+      defender,
+      [
+        {
+          type: 'percent_damage_modifier',
+          params: { mode: 'reduce', value: 0.5, logTriggerName: '金甲' },
+        },
+      ],
+      'DamageRequestEvent',
+    );
+
+    const committed: CombatResultCommittedEventV3[] = [];
+    const handler = (event: CombatResultCommittedEventV3) => {
+      committed.push(event);
+    };
+    EventBus.instance.subscribe<CombatResultCommittedEventV3>(
+      'CombatResultCommittedEventV3',
+      handler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+
+    const damageRequest = {
+      type: 'DamageRequestEvent' as const,
+      timestamp: Date.now(),
+      caster: attacker,
+      target: defender,
+      damageType: DamageType.PHYSICAL,
+      baseDamage: 100,
+      finalDamage: 100,
+    };
+    EventBus.instance.publish(damageRequest);
+
+    expect(damageRequest.damageReductionPctBucket).toBe(0.5);
+    expect(committed.map((event) => event.result)).toContainEqual({
+      type: 'mechanic',
+      code: 'conditional_damage_modifier_trigger',
+      payload: { kind: 'named_trigger', label: '金甲' },
+    });
+
+    EventBus.instance.unsubscribe<CombatResultCommittedEventV3>(
+      'CombatResultCommittedEventV3',
+      handler,
+    );
+  });
 
   it('魔法盾应消耗法力并吸收 98% 伤害', () => {
     const attacker = createUnit('attacker', '进攻者');

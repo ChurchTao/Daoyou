@@ -563,6 +563,8 @@ export interface PercentDamageModifierParams {
   mode: 'increase' | 'reduce';
   value: number;
   cap?: number;
+  /** 条件满足并实际应用修正时，在战斗日志中显示该触发名称。 */
+  logTriggerName?: string;
   /** 按产生监听器的 Buff 当前层数放大数值。 */
   scaleByBuffLayer?: boolean;
   allowedDamageSources?: DamageSource[];

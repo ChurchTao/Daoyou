@@ -272,6 +272,7 @@ export interface SectContextData {
   joinedAt?: string;
   discipleRank: SectDiscipleRank;
   contribution: number;
+  lifetimeContribution: number;
   office: CultivatorSectState['office'];
   promotedAt?: string;
   permissions: Record<string, SectPermissionState>;
@@ -303,6 +304,8 @@ export interface SectPromotionEvaluationData {
   nextRank: SectDiscipleRank | null;
   missing: string[];
   allowed: boolean;
+  contribution: number;
+  lifetimeContribution: number;
 }
 
 export const SectPromotionEvaluationDataSchema: z.ZodType<SectPromotionEvaluationData> =
@@ -311,6 +314,8 @@ export const SectPromotionEvaluationDataSchema: z.ZodType<SectPromotionEvaluatio
       nextRank: z.enum(['registered', 'outer', 'inner', 'true']).nullable(),
       missing: z.array(z.string()),
       allowed: z.boolean(),
+      contribution: z.number().int().nonnegative(),
+      lifetimeContribution: z.number().int().nonnegative(),
     })
     .strict();
 

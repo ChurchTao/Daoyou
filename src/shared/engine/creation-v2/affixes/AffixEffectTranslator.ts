@@ -26,17 +26,39 @@ export class AffixEffectTranslator {
    * 翻译词缀定义 + 品质 → 具体 EffectConfig
    */
   translate(affix: RolledAffix, quality: Quality): EffectConfig {
+    const resolved = this.withDeathPreventTriggerKey(
+      this.resolveTemplate(
+        affix.effectTemplate,
+        QUALITY_ORDER[quality],
+        affix.finalMultiplier,
+      ),
+      affix.id,
+    );
     return this.withConditions(
       affix,
-      this.withDeathPreventTriggerKey(
-        this.resolveTemplate(
-          affix.effectTemplate,
-          QUALITY_ORDER[quality],
-          affix.finalMultiplier,
-        ),
-        affix.id,
-      ),
+      this.withConditionalTriggerName(affix, resolved),
     );
+  }
+
+  private withConditionalTriggerName(
+    affix: RolledAffix,
+    effect: EffectConfig,
+  ): EffectConfig {
+    if (
+      effect.type !== 'percent_damage_modifier' ||
+      !affix.effectTemplate.conditions?.some(
+        (condition) => condition.type === 'chance',
+      )
+    ) {
+      return effect;
+    }
+    return {
+      ...effect,
+      params: {
+        ...effect.params,
+        logTriggerName: affix.name,
+      },
+    };
   }
 
   private withConditions(def: RolledAffix, effect: EffectConfig): EffectConfig {

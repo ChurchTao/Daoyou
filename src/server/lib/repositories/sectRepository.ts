@@ -197,6 +197,7 @@ async function hydrateMembership(
     joinedAt: membership.joinedAt?.toISOString(),
     activePathId: membership.activePathId ?? undefined,
     contribution: membership.contribution,
+    lifetimeContribution: membership.lifetimeContribution,
     discipleRank:
       membership.discipleRank as CultivatorSectState['discipleRank'],
     office: membership.office as CultivatorSectState['office'],
@@ -321,6 +322,8 @@ export async function activateMembership(
       status: 'active',
       joinedAt: new Date(),
       contribution: definition.onboarding.initialContribution,
+      // Rejoining a sect resets spendable balance, but never erases earned history.
+      lifetimeContribution: sql`GREATEST(${sectMemberships.lifetimeContribution}, ${definition.onboarding.initialContribution})`,
       activePathId: null,
       configVersion: definition.configVersion,
     })

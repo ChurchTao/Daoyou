@@ -78,6 +78,7 @@ export class SectAdmissionApplicationService {
       joinedAt: sect.joinedAt,
       discipleRank,
       contribution: sect.contribution,
+      lifetimeContribution: sect.lifetimeContribution ?? sect.contribution,
       office: sect.office ?? 'none',
       promotedAt: sect.promotedAt,
       permissions: organization.capabilities.snapshot(discipleRank),

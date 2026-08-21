@@ -230,6 +230,7 @@ export const sectMemberships = pgTable(
     joinedAt: timestamp('joined_at'),
     activePathId: varchar('active_path_id', { length: 64 }),
     contribution: integer('contribution').notNull().default(0),
+    lifetimeContribution: integer('lifetime_contribution').notNull().default(0),
     discipleRank: varchar('disciple_rank', { length: 16 })
       .notNull()
       .default('registered'),

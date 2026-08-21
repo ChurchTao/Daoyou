@@ -142,6 +142,7 @@ export interface SectMembershipRecord {
   cultivatorId: string;
   discipleRank: SectDiscipleRank;
   contribution: number;
+  lifetimeContribution: number;
 }
 
 export interface SectTaskRecord {
