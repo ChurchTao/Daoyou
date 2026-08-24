@@ -1,6 +1,6 @@
-import { renderPrompt } from '@server/lib/prompts';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher';
+import { renderPrompt } from '@server/lib/prompts';
 import { findActiveCultivatorOwnerId } from '@server/lib/repositories/cultivatorRepository';
 import type { BattleRecordV3 } from '@server/lib/services/battleResult';
 import {
@@ -24,6 +24,7 @@ import type {
   ResourceOperationSettlement,
 } from '@shared/engine/resource/types';
 import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
+import { normalizeDungeonResourceTerminology } from '@shared/lib/dungeon/narrativeTerminology';
 import type { SatelliteNode } from '@shared/lib/game/mapSystem';
 import {
   canChallengeDungeonRealm,
@@ -37,8 +38,8 @@ import {
   MaterialType,
   Quality,
   QUALITY_VALUES,
-  REALM_VALUES,
   REALM_STAGE_VALUES,
+  REALM_VALUES,
   RealmType,
   type RealmStage,
 } from '@shared/types/constants';
@@ -69,6 +70,9 @@ import {
   BattleSession,
   createDungeonRoundLlmSchema,
   createDungeonSettlementLlmSchema,
+  DungeonBranchCheckpoint,
+  DungeonExplorationRecord,
+  DungeonOption,
   DungeonOptionCost,
   DungeonPendingAction,
   DungeonRecoverAction,
@@ -93,6 +97,9 @@ const REDIS_TTL = 3600; // 1 hour expiration for active sessions
 const FLOW_LOCK_TTL_SECONDS = 180;
 const RUN_TERMINAL_STATUSES = new Set(['FINISHED']);
 const DUNGEON_REWARD_BLUEPRINT_LIMIT = 5;
+const DUNGEON_EVENT_COUNT = 5;
+const EXPLORATION_EXP_BONUS_PER_LEAD = 0.1;
+const MAX_EXPLORATION_EXP_BONUS = 0.3;
 export const DungeonFlowErrorCode = {
   NOT_FOUND: 'DUNGEON_NOT_FOUND',
   INVALID_STATE: 'DUNGEON_INVALID_STATE',
@@ -135,6 +142,7 @@ type DungeonSettlementOptions = {
   skipInjury?: boolean;
   abandonedBattle?: boolean;
   endDisposition?: DungeonSettlementLlmContext['endDisposition'];
+  battleDefeated?: boolean;
   pendingAction?: DungeonPendingAction;
   deferPersistence?: boolean;
 };
@@ -264,21 +272,50 @@ function appendRoundRewards(
   return acceptedItems;
 }
 
+function discardCurrentRoundRewards(state: DungeonState): RewardBlueprint[] {
+  const discardedItems = state.currentRoundItems ?? [];
+  if (discardedItems.length === 0) return [];
+
+  const accumulatedRewards = state.accumulatedRewards ?? [];
+  state.accumulatedRewards = accumulatedRewards.slice(
+    0,
+    Math.max(0, accumulatedRewards.length - discardedItems.length),
+  );
+  state.currentRoundItems = [];
+  state.exploredExplorationLeads = (
+    state.exploredExplorationLeads ?? []
+  ).filter((entry) => entry.completedRound !== state.currentRound);
+
+  const currentHistory = [...state.history]
+    .reverse()
+    .find((entry) => entry.round === state.currentRound);
+  if (currentHistory) currentHistory.gained_items = [];
+
+  return discardedItems;
+}
+
 function normalizeSettlementRewards(
   settlement: DungeonSettlement,
   accumulatedRewards: RewardBlueprint[],
+  allowExtraRewards = true,
 ): DungeonSettlement {
   const inheritedRewards = selectMostValuableRewardBlueprints(
     accumulatedRewards,
     DUNGEON_REWARD_BLUEPRINT_LIMIT,
   );
   const inheritedKeys = new Set(inheritedRewards.map(rewardBlueprintKey));
-  const extraRewards = settlement.settlement.reward_blueprints.filter(
-    (reward) => !inheritedKeys.has(rewardBlueprintKey(reward)),
-  );
+  const extraRewards = allowExtraRewards
+    ? settlement.settlement.reward_blueprints.filter(
+        (reward) => !inheritedKeys.has(rewardBlueprintKey(reward)),
+      )
+    : [];
   const reward_blueprints = [...inheritedRewards, ...extraRewards].slice(
     0,
     DUNGEON_REWARD_BLUEPRINT_LIMIT,
+  );
+  const performance_tags = sanitizePerformanceTags(
+    settlement.settlement.performance_tags,
+    settlement.settlement.reward_tier,
   );
 
   return DungeonSettlementSchema.parse({
@@ -286,8 +323,25 @@ function normalizeSettlementRewards(
     settlement: {
       ...settlement.settlement,
       reward_blueprints,
+      performance_tags,
     },
   });
+}
+
+function sanitizePerformanceTags(tags: string[], rewardTier: string): string[] {
+  const sanitized = Array.from(
+    new Set(
+      tags
+        .map((tag) => tag.match(/[\p{Script=Han}0-9]+/gu)?.join('') ?? '')
+        .map((tag) => tag.slice(0, 12))
+        .filter((tag) => tag.length >= 2),
+    ),
+  ).slice(0, 4);
+
+  if (sanitized.length > 0) return sanitized;
+  if (rewardTier === 'S' || rewardTier === 'A') return ['机缘深厚'];
+  if (rewardTier === 'B') return ['稳中有得'];
+  return ['及时收手'];
 }
 
 const DEFAULT_RECOVERABLE_ACTIONS: DungeonRecoverAction[] = [
@@ -390,23 +444,636 @@ function cloneCosts(
     : [];
 }
 
-export class DungeonService {
-  private buildFallbackOption(
-    state: Pick<DungeonState, 'currentRound' | 'maxRounds'>,
+function normalizeExplorationTarget(
+  target: string | undefined,
+  fallback: string,
+): string {
+  const normalized = (target || fallback)
+    .replace(/[【】]/gu, '')
+    .replace(/\s+/gu, ' ')
+    .trim()
+    .slice(0, 30);
+  return normalized || '当前线索';
+}
+
+function explorationTargetKey(target: string): string {
+  return normalizeExplorationTarget(target, '当前线索')
+    .replace(/[，。！？、：；,.!?;:\s]/gu, '')
+    .toLocaleLowerCase();
+}
+
+const DEFEATED_ENEMY_RESOLUTION_PATTERN =
+  /击败|斩杀|杀死|伏诛|陨落|毙命|倒毙|已死|死去|死后|尸体|尸身|遗骸|残骸|妖丹|尸骨|巢穴|旧巢/u;
+const EMBEDDED_OPTION_PATTERN =
+  /(?:【\s*)?选项\s*(?:[一二三123]|[:：])|抉择时刻/u;
+const REWARD_NAME_KEY_PATTERN = /[【】「」『』\s，。！？、：；,.!?;:·]/gu;
+const EXPLORATION_TARGET_ACTION_PATTERN =
+  /^(?:尝试|直接|谨慎|强行|冒险|施展|使用|以|用|将|对|继续)?(?:安抚|捏碎|吞噬|炼化|修复|击杀|斩杀|探查|探索|进入|冲击|提取|收取|打开|开启|破解|绕过|潜入|观察|靠近|搜刮|触碰|投入|推演)/u;
+const CONDITIONAL_COST_DESCRIPTION_PATTERN =
+  /若失败|失败则|若成功|成功则|可能扣除|可能损失|有概率|视情况/u;
+const UNCONFIRMED_DEFEAT_PATTERN =
+  /击败|击杀|斩杀|杀死|诛杀|镇杀|伏诛|毙命|倒毙|吞噬殆尽/u;
+const PREEXISTING_MONSTER_REMAINS_PATTERN =
+  /遗骸|尸骸|尸骨|残骸|枯骨|蜕皮|兽骨|旧巢|风化尸身/u;
+const COMBAT_ENGAGEMENT_PATTERN =
+  /(?:(?:击杀|斩杀|杀死|诛杀|迎战|应战|硬撼|搏杀|交战|攻击|反击|围杀|镇杀|束缚|缠绕).{0,18}(?:妖|兽|魔|鬼|敌|守卫|傀儡|蛛|狼|蛇|蝠)|(?:妖|兽|魔|鬼|敌|守卫|傀儡|蛛|狼|蛇|蝠).{0,18}(?:击杀|斩杀|杀死|诛杀|迎战|应战|硬撼|搏杀|交战|攻击|反击|围杀|镇杀|束缚|缠绕))/u;
+const CONCRETE_ITEM_USE_PATTERN =
+  /(?:取出|掏出|祭出|夹住|夹着|服下|吞服|掷出|催动).{0,18}(?:丹药|丹|符箓|阵旗|法宝|灵器|法器|玉简|令牌)/gu;
+const UNSUPPORTED_MECHANICAL_EFFECT_PATTERNS = [
+  /(?:提升|提高|增加|增强|强化|精进|完善).{0,12}(?:攻击力|防御力|速度|闪避率|命中率|暴击率|修为|阵法造诣|炼丹造诣|炼器造诣|功法威力)/u,
+  /(?:攻击力|防御力|速度|闪避率|命中率|暴击率|修为|阵法造诣|炼丹造诣|炼器造诣|功法威力).{0,12}(?:提升|提高|增加|增长|增强|强化|精进|完善)/u,
+  /(?:功法|心法|剑诀|法诀|真解|秘术).{0,24}(?:融入|炼入|吸收|纳入).{0,24}(?:雷劲|雷霆|火劲|寒气|属性之力|元素之力|天地之力|真意)/u,
+  /恢复.{0,6}(?:法力|气血)|(?:法力|气血).{0,6}(?:恢复|回满)|补充法力|转化为.{0,6}法力/u,
+];
+
+function optionNarrative(option: DungeonOption): string {
+  return [
+    option.exploration_target,
+    option.action_mode,
+    option.text,
+    option.requirement,
+    option.potential_cost,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function containsUnsupportedMechanicalEffect(text: string): boolean {
+  return UNSUPPORTED_MECHANICAL_EFFECT_PATTERNS.some((pattern) =>
+    pattern.test(text),
+  );
+}
+
+function rewardNameKey(name: string | undefined): string {
+  return (name ?? '')
+    .replace(REWARD_NAME_KEY_PATTERN, '')
+    .trim()
+    .toLocaleLowerCase();
+}
+
+function rewardNameBigrams(name: string | undefined): Set<string> {
+  const normalized = rewardNameKey(name);
+  const bigrams = new Set<string>();
+  for (let index = 0; index < normalized.length - 1; index += 1) {
+    bigrams.add(normalized.slice(index, index + 2));
+  }
+  return bigrams;
+}
+
+function rewardNamesLookEquivalent(
+  left: RewardBlueprint,
+  right: RewardBlueprint,
+): boolean {
+  if (
+    left.material_type &&
+    right.material_type &&
+    left.material_type !== right.material_type
   ) {
-    const isFinalRound = state.currentRound >= state.maxRounds;
+    return false;
+  }
+  if (left.element && right.element && left.element !== right.element) {
+    return false;
+  }
+
+  const leftKey = rewardNameKey(left.name);
+  const rightKey = rewardNameKey(right.name);
+  if (!leftKey || !rightKey) return false;
+  if (leftKey === rightKey) return true;
+  if (leftKey.length < 4 || rightKey.length < 4) return false;
+
+  const leftBigrams = rewardNameBigrams(left.name);
+  const rightBigrams = rewardNameBigrams(right.name);
+  const overlap = Array.from(leftBigrams).filter((part) =>
+    rightBigrams.has(part),
+  ).length;
+  const similarity =
+    (overlap * 2) / Math.max(1, leftBigrams.size + rightBigrams.size);
+  return similarity >= 0.72;
+}
+
+function formatActualActionCost(cost: DungeonOptionCost): string | null {
+  if (cost.type === 'battle') return null;
+  if (cost.type === 'material') {
+    const materialName =
+      cost.name ||
+      [cost.required_quality, cost.required_type].filter(Boolean).join('') ||
+      '材料';
+    return `【${materialName}】×${cost.value}`;
+  }
+  if (cost.type === 'hp_loss' || cost.type === 'mp_loss') {
+    const label = cost.type === 'hp_loss' ? '气血' : '法力';
+    return `${label}-${Math.round(cost.value * 100)}%`;
+  }
+  const labels: Partial<Record<DungeonOptionCost['type'], string>> = {
+    spirit_stones: '灵石',
+    lifespan: '寿元',
+    cultivation_exp: '修为',
+    comprehension_insight: '感悟',
+    weak: '虚弱',
+    artifact_damage: '法宝损伤',
+  };
+  return `${labels[cost.type] ?? cost.desc ?? cost.type}-${cost.value}`;
+}
+
+function mentionsDefeatedEnemyAsActive(text: string, enemyName: string) {
+  return (
+    text.includes(enemyName) && !DEFEATED_ENEMY_RESOLUTION_PATTERN.test(text)
+  );
+}
+
+function optionTargetsDefeatedEnemy(option: DungeonOption, enemyName: string) {
+  const hasMatchingBattle = (option.costs ?? []).some(
+    (cost) => cost.type === 'battle' && cost.metadata?.enemy_name === enemyName,
+  );
+  return (
+    hasMatchingBattle ||
+    mentionsDefeatedEnemyAsActive(optionNarrative(option), enemyName)
+  );
+}
+
+function findDungeonRoundContinuityViolations(
+  state: DungeonState,
+  roundData: DungeonRound,
+): string[] {
+  const violations: string[] = [];
+  if (EMBEDDED_OPTION_PATTERN.test(roundData.scene_description)) {
+    violations.push('场景正文夹带了选项列表');
+  }
+
+  const hasLastAction = state.history.some((entry) => Boolean(entry.choice));
+  if (hasLastAction && !roundData.action_outcome?.trim()) {
+    violations.push('没有提供上一项抉择的实际结果');
+  }
+
+  const resultNarrative = [
+    roundData.scene_description,
+    roundData.action_outcome,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  if (containsUnsupportedMechanicalEffect(resultNarrative)) {
+    violations.push('叙事宣称了服务端并未实际写入的属性、修为或功法强化');
+  }
+  if (
+    UNCONFIRMED_DEFEAT_PATTERN.test(resultNarrative) &&
+    !(state.defeatedEnemyNames ?? []).some((enemyName) =>
+      resultNarrative.includes(enemyName),
+    )
+  ) {
+    violations.push('叙事宣称击败了未经服务端战斗确认的敌人');
+  }
+  const confirmedItemNames = [
+    ...(state.accumulatedRewards ?? []),
+    ...(roundData.acquired_items ?? []),
+  ]
+    .map((reward) => reward.name?.trim())
+    .filter((name): name is string => Boolean(name));
+  for (const itemUse of resultNarrative.match(CONCRETE_ITEM_USE_PATTERN) ??
+    []) {
+    if (!confirmedItemNames.some((name) => itemUse.includes(name))) {
+      violations.push(`叙事臆造了未确认持有的物品用法：【${itemUse}】`);
+    }
+  }
+
+  for (const option of roundData.interaction.options) {
+    const target = option.exploration_target?.trim() ?? '';
+    if (EXPLORATION_TARGET_ACTION_PATTERN.test(target)) {
+      violations.push(
+        `探索目标【${target}】写成了动作，exploration_target 只能填写名词对象`,
+      );
+    }
+    if (
+      option.action_mode &&
+      explorationTargetKey(target).includes(
+        explorationTargetKey(option.action_mode),
+      )
+    ) {
+      violations.push(
+        `探索目标【${target}】混入了操作方式【${option.action_mode}】`,
+      );
+    }
+    if (containsUnsupportedMechanicalEffect(optionNarrative(option))) {
+      violations.push(`选项【${option.text}】承诺了服务端未支持的强化效果`);
+    }
+    if (
+      COMBAT_ENGAGEMENT_PATTERN.test(optionNarrative(option)) &&
+      !(option.costs ?? []).some((cost) => cost.type === 'battle')
+    ) {
+      violations.push(`选项【${option.text}】会正面接敌却没有 battle 代价`);
+    }
+    for (const cost of option.costs ?? []) {
+      if (cost.desc && CONDITIONAL_COST_DESCRIPTION_PATTERN.test(cost.desc)) {
+        violations.push(`选项【${option.text}】把条件风险写进了确定代价`);
+      }
+    }
+  }
+
+  const accumulatedRewardKeys = new Set(
+    (state.accumulatedRewards ?? [])
+      .map((reward) => rewardNameKey(reward.name))
+      .filter(Boolean),
+  );
+  for (const reward of roundData.acquired_items ?? []) {
+    const key = rewardNameKey(reward.name);
+    if (key && accumulatedRewardKeys.has(key)) {
+      violations.push(`奖励【${reward.name}】与本次秘境已有奖励重复`);
+    }
+    if (reward.name && !resultNarrative.includes(reward.name)) {
+      violations.push(`奖励【${reward.name}】没有在本轮叙事中明确取得`);
+    }
+    const equivalentReward = (state.accumulatedRewards ?? []).find(
+      (existingReward) => rewardNamesLookEquivalent(existingReward, reward),
+    );
+    if (equivalentReward) {
+      violations.push(
+        `奖励【${reward.name}】与已有【${equivalentReward.name}】属于同源近似物品`,
+      );
+    }
+    if (reward.material_type === 'monster') {
+      const rewardEvidence = [resultNarrative, reward.name, reward.description]
+        .filter(Boolean)
+        .join(' ');
+      const comesFromConfirmedEnemy = (state.defeatedEnemyNames ?? []).some(
+        (enemyName) => rewardEvidence.includes(enemyName),
+      );
+      if (
+        !comesFromConfirmedEnemy &&
+        !PREEXISTING_MONSTER_REMAINS_PATTERN.test(rewardEvidence)
+      ) {
+        violations.push(
+          `妖兽材料【${reward.name}】既无服务端击败记录，也不是场景中的既有遗骸`,
+        );
+      }
+    }
+  }
+
+  for (const enemyName of state.defeatedEnemyNames ?? []) {
+    if (mentionsDefeatedEnemyAsActive(roundData.scene_description, enemyName)) {
+      violations.push(`场景将已击败的【${enemyName}】重新写成存活敌人`);
+    }
+    if (
+      roundData.interaction.options.some((option) =>
+        optionTargetsDefeatedEnemy(option, enemyName),
+      )
+    ) {
+      violations.push(`选项再次把已击败的【${enemyName}】作为行动目标`);
+    }
+  }
+
+  return Array.from(new Set(violations));
+}
+
+function cloneDungeonOption(option: DungeonOption): DungeonOption {
+  return {
+    ...option,
+    costs: cloneCosts(option.costs),
+    costPreview: cloneCosts(option.costPreview),
+  };
+}
+
+function constrainSettlementForDisposition(
+  settlement: DungeonSettlement,
+  endDisposition: DungeonSettlementLlmContext['endDisposition'],
+): DungeonSettlement {
+  if (endDisposition === 'completed') return settlement;
+
+  const rewardTier =
+    endDisposition === 'abandoned_before_battle'
+      ? 'D'
+      : settlement.settlement.reward_tier === 'D'
+        ? 'D'
+        : 'C';
+
+  return {
+    ...settlement,
+    settlement: {
+      ...settlement.settlement,
+      reward_tier: rewardTier,
+    },
+  };
+}
+
+function createBattleDefeatSettlement(state: DungeonState): DungeonSettlement {
+  const lastHistory = state.history[state.history.length - 1];
+  const hasPreviousRewards = state.accumulatedRewards.length > 0;
+  const ending =
+    lastHistory?.outcome ??
+    '你在遭遇战中落败，只得保全性命，提前退出此次秘境。';
+
+  return {
+    ending_narrative: `${ending}此前已经完成的探索所得尚可带走，本回机缘则因战败失去。`,
+    settlement: {
+      reward_tier: hasPreviousRewards ? 'C' : 'D',
+      reward_blueprints: [],
+      performance_tags: hasPreviousRewards
+        ? ['战败撤离', '保全旧得']
+        : ['战败撤离', '空手而归'],
+    },
+  };
+}
+
+function applyExplorationExperienceBonus(
+  gains: ResourceOperation[],
+  state: DungeonState,
+): ResourceOperation[] {
+  const branchCount = (state.exploredExplorationLeads ?? []).filter(
+    (entry) => entry.isBranchChoice,
+  ).length;
+  if (branchCount <= 0) return gains;
+
+  const bonusRate = Math.min(
+    MAX_EXPLORATION_EXP_BONUS,
+    branchCount * EXPLORATION_EXP_BONUS_PER_LEAD,
+  );
+
+  return gains.map((gain) => {
+    if (gain.type !== 'cultivation_exp' || gain.value <= 0) return gain;
+    const bonusValue = Math.max(1, Math.floor(gain.value * bonusRate));
+    return {
+      ...gain,
+      value: gain.value + bonusValue,
+      metadata: {
+        ...gain.metadata,
+        dungeonExplorationBranchCount: branchCount,
+        dungeonExplorationBonusRate: bonusRate,
+        dungeonExplorationBonusValue: bonusValue,
+      },
+    };
+  });
+}
+
+export class DungeonService {
+  private assignFreshExplorationMetadata(
+    options: DungeonOption[],
+    round: number,
+  ): DungeonOption[] {
+    return options.map((option, index) => {
+      const target = normalizeExplorationTarget(
+        option.exploration_target,
+        option.text,
+      );
+      const leadId =
+        option.exploration_lead_id ?? `${round}:${index + 1}:${randomUUID()}`;
+      return {
+        ...option,
+        id: index + 1,
+        exploration_target: target,
+        exploration_lead_id: leadId,
+        exploration_is_revisit: option.exploration_is_revisit ?? false,
+      };
+    });
+  }
+
+  private stageExplorationChoice(
+    state: DungeonState,
+    chosenOption: DungeonOption,
+  ): DungeonExplorationRecord | undefined {
+    const leadId = chosenOption.exploration_lead_id;
+    const flow = state.branchFlow;
+    if (!leadId || !flow) return undefined;
+
+    const target = normalizeExplorationTarget(
+      chosenOption.exploration_target,
+      chosenOption.text,
+    );
+    const chosenTargetKey = explorationTargetKey(target);
+    const siblingOptions = (state.currentOptions ?? [])
+      .filter((option) => option.exploration_lead_id !== leadId)
+      .filter(
+        (option) =>
+          explorationTargetKey(option.exploration_target ?? option.text) !==
+          chosenTargetKey,
+      )
+      .map(cloneDungeonOption);
+    const pendingCount = (flow.pendingBranches ?? []).reduce(
+      (count, checkpoint) => count + checkpoint.options.length,
+      0,
+    );
+    const remainingBranchSlots = Math.max(
+      0,
+      state.maxRounds - state.currentRound - 1 - pendingCount,
+    );
+    const checkpointOptions = siblingOptions.slice(0, remainingBranchSlots);
+    let createdCheckpointId: string | undefined;
+    if (checkpointOptions.length > 0) {
+      createdCheckpointId = randomUUID();
+      flow.pendingBranches ??= [];
+      flow.pendingBranches.push({
+        id: createdCheckpointId,
+        sourceRound: state.currentRound,
+        sourceTarget: target,
+        options: checkpointOptions,
+      });
+    }
+    flow.activeRootOption = cloneDungeonOption(chosenOption);
+    flow.stage = 'explore';
+
+    return {
+      id: leadId,
+      target,
+      sourceRound: state.currentRound,
+      completedRound: state.currentRound,
+      isBranchChoice: chosenOption.exploration_is_revisit === true,
+      ...(createdCheckpointId ? { createdCheckpointId } : {}),
+    };
+  }
+
+  private rollbackStagedExploration(
+    state: DungeonState,
+    record: DungeonExplorationRecord | undefined,
+  ) {
+    const flow = state.branchFlow;
+    if (!flow) return;
+    if (record?.createdCheckpointId) {
+      flow.pendingBranches = (flow.pendingBranches ?? []).filter(
+        (checkpoint) => checkpoint.id !== record.createdCheckpointId,
+      );
+    }
+    flow.stage = 'explore';
+  }
+
+  private buildContinueExplorationOption(state: DungeonState): DungeonOption {
+    const activeTarget = normalizeExplorationTarget(
+      state.branchFlow?.activeRootOption?.exploration_target,
+      '秘境深处',
+    );
     return {
       id: 1,
-      text: isFinalRound
-        ? '稳住心神，清点本轮所得并结束探索。'
-        : '稳住心神，沿着当前线索继续探索。',
-      risk_level: 'low' as const,
-      potential_cost: isFinalRound
-        ? '结束本次秘境探索并进入结算。'
-        : '不额外承担风险，继续推进下一轮。',
+      text: `沿【${activeTarget}】继续深入，查明前方的变化。`,
+      risk_level: 'low',
+      exploration_target: activeTarget,
+      exploration_lead_id: `${state.currentRound}:continue:${randomUUID()}`,
+      exploration_is_revisit: false,
+      potential_cost: '沿当前路线继续推进下一个事件。',
       costs: [],
       costPreview: [],
     };
+  }
+
+  private buildFinishExplorationOption(state: DungeonState): DungeonOption {
+    return {
+      id: 1,
+      text: '收束此行，将已经取得的机缘收入囊中。',
+      risk_level: 'low',
+      exploration_target: '秘境出口',
+      exploration_lead_id: `${state.currentRound}:finish:${randomUUID()}`,
+      exploration_is_revisit: false,
+      potential_cost: '第五个事件已经完成，确认后进入结算。',
+      costs: [],
+      costPreview: [],
+    };
+  }
+
+  private prepareNextEventOptions(
+    state: DungeonState,
+    roundData: DungeonRound,
+  ) {
+    const flow = state.branchFlow;
+    if (state.currentRound >= state.maxRounds) {
+      if (flow) flow.pendingBranches = [];
+      const finishOption = this.buildFinishExplorationOption(state);
+      roundData.interaction.options = [finishOption];
+      state.currentOptions = [finishOption];
+      return;
+    }
+    const forwardOptions =
+      roundData.interaction.options.map(cloneDungeonOption);
+    const pendingCount = (flow?.pendingBranches ?? []).reduce(
+      (count, checkpoint) => count + checkpoint.options.length,
+      0,
+    );
+    const revisitSlots =
+      pendingCount === 0
+        ? 0
+        : forwardOptions.length > 0
+          ? Math.min(2, pendingCount)
+          : Math.min(3, pendingCount);
+    const forwardSlots =
+      forwardOptions.length > 0 ? Math.max(1, 3 - revisitSlots) : 0;
+    const visibleForwardOptions = forwardOptions.slice(0, forwardSlots);
+    const overflowForwardOptions = forwardOptions.slice(forwardSlots);
+    const revisitOptions: DungeonOption[] = [];
+
+    while (
+      revisitOptions.length < revisitSlots &&
+      (flow?.pendingBranches?.length ?? 0) > 0
+    ) {
+      const checkpoint = flow!.pendingBranches!.at(-1)!;
+      const needed = revisitSlots - revisitOptions.length;
+      const restored = checkpoint.options.splice(0, needed).map((option) => ({
+        ...cloneDungeonOption(option),
+        exploration_is_revisit: true,
+      }));
+      revisitOptions.push(...restored);
+      if (checkpoint.options.length === 0) {
+        flow!.pendingBranches!.pop();
+      }
+    }
+
+    if (overflowForwardOptions.length > 0 && flow) {
+      flow.pendingBranches ??= [];
+      flow.pendingBranches.push({
+        id: randomUUID(),
+        sourceRound: state.currentRound,
+        sourceTarget: normalizeExplorationTarget(
+          overflowForwardOptions[0]?.exploration_target,
+          '当前事件',
+        ),
+        options: overflowForwardOptions,
+      });
+    }
+
+    let visibleOptions = [...visibleForwardOptions, ...revisitOptions];
+    if (visibleOptions.length === 0) {
+      visibleOptions = [this.buildContinueExplorationOption(state)];
+    }
+    visibleOptions = visibleOptions.map((option, index) => ({
+      ...option,
+      id: index + 1,
+    }));
+
+    if (revisitOptions.length > 0) {
+      const returnHint =
+        visibleForwardOptions.length > 0
+          ? '你也未忘记先前留下的未完成分支，此刻可以折返。'
+          : '此路已告一段落，你循原路折返，先前记下的未完成分支仍可选择。';
+      roundData.scene_description = `${roundData.scene_description} ${returnHint}`;
+    }
+    roundData.interaction.options = visibleOptions;
+    state.currentOptions = visibleOptions;
+  }
+
+  private migrateBranchFlow(state: DungeonState) {
+    const flow = state.branchFlow;
+    if (!flow || flow.mode === 'adaptive') return;
+    const completed = new Set(flow.completedRootLeadIds);
+    const activeLeadId = flow.activeRootOption?.exploration_lead_id;
+    const remainingRootOptions = flow.rootOptions.filter(
+      (option) =>
+        !completed.has(option.exploration_lead_id ?? '') &&
+        option.exploration_lead_id !== activeLeadId,
+    );
+    const pendingBranches: DungeonBranchCheckpoint[] =
+      flow.stage !== 'root' && remainingRootOptions.length > 0
+        ? [
+            {
+              id: randomUUID(),
+              sourceRound: 1,
+              sourceTarget: '秘境入口',
+              options: remainingRootOptions.map(cloneDungeonOption),
+            },
+          ]
+        : [];
+    flow.stage = 'explore';
+    flow.pendingBranches = pendingBranches;
+    flow.mode = 'adaptive';
+  }
+
+  private commitExplorationChoice(
+    state: DungeonState,
+    record: DungeonExplorationRecord | undefined,
+  ) {
+    if (!record) return;
+    state.exploredExplorationLeads ??= [];
+    if (
+      !state.exploredExplorationLeads.some((entry) => entry.id === record.id)
+    ) {
+      state.exploredExplorationLeads.push(record);
+    }
+    const completedTargetKey = explorationTargetKey(record.target);
+    if (state.branchFlow?.pendingBranches) {
+      state.branchFlow.pendingBranches = state.branchFlow.pendingBranches
+        .map((checkpoint) => ({
+          ...checkpoint,
+          options: checkpoint.options.filter(
+            (option) =>
+              explorationTargetKey(option.exploration_target ?? option.text) !==
+              completedTargetKey,
+          ),
+        }))
+        .filter((checkpoint) => checkpoint.options.length > 0);
+    }
+  }
+
+  private recordDefeatedEnemy(state: DungeonState, enemyName: string) {
+    const normalizedName = enemyName.trim();
+    if (!normalizedName) return;
+
+    state.defeatedEnemyNames ??= [];
+    if (!state.defeatedEnemyNames.includes(normalizedName)) {
+      state.defeatedEnemyNames.push(normalizedName);
+    }
+
+    if (state.branchFlow?.pendingBranches) {
+      state.branchFlow.pendingBranches = state.branchFlow.pendingBranches
+        .map((checkpoint) => ({
+          ...checkpoint,
+          options: checkpoint.options.filter(
+            (option) => !optionTargetsDefeatedEnemy(option, normalizedName),
+          ),
+        }))
+        .filter((checkpoint) => checkpoint.options.length > 0);
+    }
   }
 
   private normalizeOptionCosts(option: { costs?: DungeonOptionCost[] }) {
@@ -433,10 +1100,7 @@ export class DungeonService {
       : costs;
   }
 
-  private normalizeRoundOptions(
-    roundData: DungeonRound,
-    state: Pick<DungeonState, 'currentRound' | 'maxRounds'>,
-  ) {
+  private normalizeRoundOptions(roundData: DungeonRound, state: DungeonState) {
     roundData.interaction.options = roundData.interaction.options.map(
       (option) => {
         const costPreview = this.normalizeOptionCosts(option);
@@ -447,9 +1111,137 @@ export class DungeonService {
         };
       },
     );
-    if (roundData.interaction.options.length === 0) {
-      roundData.interaction.options = [this.buildFallbackOption(state)];
+    if (roundData.interaction.options.length > 0) {
+      roundData.interaction.options = this.assignFreshExplorationMetadata(
+        roundData.interaction.options,
+        state.currentRound,
+      );
     }
+    return roundData;
+  }
+
+  private async bindRoundMaterialCosts(
+    roundData: DungeonRound,
+    cultivatorId: string,
+  ): Promise<DungeonRound> {
+    const hasUnboundMaterialCost = roundData.interaction.options.some(
+      (option) =>
+        (option.costs ?? []).some(
+          (cost) => cost.type === 'material' && !cost.name,
+        ),
+    );
+    if (!hasUnboundMaterialCost) return roundData;
+
+    const userId = await findActiveCultivatorOwnerId(cultivatorId);
+    if (!userId) throw new Error('无法获取修真者所属用户');
+
+    const inventoryMaterials: Cultivator['inventory']['materials'] = [];
+    let page = 1;
+    let hasMore = true;
+    while (hasMore) {
+      const inventoryPage = await getPaginatedInventoryByType(
+        userId,
+        cultivatorId,
+        {
+          type: 'materials',
+          page,
+          pageSize: 100,
+          materialSortBy: 'rank',
+          materialSortOrder: 'asc',
+        },
+      );
+      inventoryMaterials.push(...inventoryPage.items);
+      hasMore = inventoryPage.pagination.hasMore;
+      page += 1;
+    }
+
+    const availableOptions: DungeonOption[] = [];
+    for (const option of roundData.interaction.options) {
+      const reservedByMaterialName = new Map<string, number>();
+      const boundCosts: DungeonOptionCost[] = [];
+      const boundMaterials: Array<{ name: string; value: number }> = [];
+      let canAffordOption = true;
+
+      for (const cost of option.costs ?? []) {
+        if (cost.type !== 'material' || cost.name) {
+          boundCosts.push(cost);
+          continue;
+        }
+
+        const requiredRankIndex = QUALITY_VALUES.indexOf(
+          (cost.required_quality as Quality | undefined) ?? '凡品',
+        );
+        const match = inventoryMaterials.find((material) => {
+          if (cost.required_type && material.type !== cost.required_type) {
+            return false;
+          }
+          const materialRankIndex = QUALITY_VALUES.indexOf(material.rank);
+          if (materialRankIndex < Math.max(0, requiredRankIndex)) return false;
+          const sameNameStacks = inventoryMaterials.filter(
+            (candidate) => candidate.name === material.name,
+          );
+          const everyStackMatches = sameNameStacks.every((candidate) => {
+            const rankIndex = QUALITY_VALUES.indexOf(candidate.rank);
+            return (
+              (!cost.required_type || candidate.type === cost.required_type) &&
+              rankIndex >= Math.max(0, requiredRankIndex)
+            );
+          });
+          if (!everyStackMatches) return false;
+          const totalQuantity = sameNameStacks.reduce(
+            (sum, candidate) => sum + (candidate.quantity ?? 0),
+            0,
+          );
+          const reserved = reservedByMaterialName.get(material.name) ?? 0;
+          return totalQuantity - reserved >= cost.value;
+        });
+        if (!match?.id) {
+          canAffordOption = false;
+          break;
+        }
+
+        reservedByMaterialName.set(
+          match.name,
+          (reservedByMaterialName.get(match.name) ?? 0) + cost.value,
+        );
+        boundCosts.push({
+          ...cost,
+          name: match.name,
+          desc: `实际消耗【${match.name}】`,
+          metadata: {
+            ...cost.metadata,
+            boundMaterialId: match.id,
+            boundMaterialRank: match.rank,
+            boundMaterialType: match.type,
+          },
+        });
+        boundMaterials.push({ name: match.name, value: cost.value });
+      }
+
+      if (!canAffordOption) continue;
+      if (boundMaterials.length === 0) {
+        availableOptions.push(option);
+        continue;
+      }
+
+      const materialSummary = boundMaterials
+        .map((material) => `【${material.name}】×${material.value}`)
+        .join('、');
+      const target = normalizeExplorationTarget(
+        option.exploration_target,
+        option.text,
+      );
+      availableOptions.push({
+        ...option,
+        text: `投入${materialSummary}作为媒介，继续查探【${target}】。`,
+        requirement: `持有${materialSummary}`,
+        potential_cost: `确认后将实际消耗${materialSummary}。`,
+        costs: boundCosts,
+        costPreview: cloneCosts(boundCosts),
+      });
+    }
+
+    roundData.interaction.options = availableOptions;
     return roundData;
   }
 
@@ -463,6 +1255,8 @@ export class DungeonService {
     );
     state.costLedger ??= [];
     state.gainLedger ??= [];
+    state.exploredExplorationLeads ??= [];
+    state.defeatedEnemyNames ??= [];
     state.summary_of_sacrifice = state.costLedger.flatMap((entry) =>
       cloneCosts(entry.costs),
     );
@@ -474,11 +1268,72 @@ export class DungeonService {
         costPreview,
       };
     });
+    if (!state.branchFlow && state.currentOptions?.length) {
+      const hasChosenAction = state.history.some((entry) => entry.choice);
+      if (state.currentRound === 1 && !hasChosenAction) {
+        const rootOptions = this.assignFreshExplorationMetadata(
+          state.currentOptions,
+          state.currentRound,
+        );
+        state.currentOptions = rootOptions;
+        state.branchFlow = {
+          stage: 'explore',
+          rootOptions: rootOptions.map(cloneDungeonOption),
+          completedRootLeadIds: [],
+          pendingBranches: [],
+          mode: 'adaptive',
+        };
+      } else {
+        const uniqueOptions = Array.from(
+          new Map(
+            state.currentOptions.map((option) => [
+              explorationTargetKey(option.text),
+              option,
+            ]),
+          ).values(),
+        ).slice(0, 3);
+        state.currentOptions = this.assignFreshExplorationMetadata(
+          uniqueOptions,
+          state.currentRound,
+        );
+        const lastChosenHistory = [...state.history]
+          .reverse()
+          .find((entry) => entry.choice);
+        const lastExploration = [
+          ...state.exploredExplorationLeads,
+        ].reverse()[0];
+        const activeRootOption: DungeonOption = {
+          id: 1,
+          text: lastChosenHistory?.choice ?? '继续完成当前分支',
+          risk_level: 'low',
+          exploration_target: lastExploration?.target ?? '当前分支',
+          exploration_lead_id: `legacy-root:${state.runId ?? randomUUID()}`,
+          costs: [],
+          costPreview: [],
+        };
+        state.branchFlow = {
+          stage: 'explore',
+          rootOptions: [activeRootOption],
+          completedRootLeadIds: [],
+          activeRootOption,
+          pendingBranches: [],
+          mode: 'adaptive',
+          legacy: true,
+        };
+      }
+    }
+    this.migrateBranchFlow(state);
+    state.maxRounds = Math.max(DUNGEON_EVENT_COUNT, state.currentRound);
+    if (state.status === 'EXPLORING' && state.currentRound >= state.maxRounds) {
+      if (state.branchFlow) state.branchFlow.pendingBranches = [];
+      state.currentOptions = [this.buildFinishExplorationOption(state)];
+    }
     if (
       state.status === 'EXPLORING' &&
+      state.currentRound < state.maxRounds &&
       (state.currentOptions?.length ?? 0) === 0
     ) {
-      state.currentOptions = [this.buildFallbackOption(state)];
+      state.currentOptions = [this.buildContinueExplorationOption(state)];
     }
     if (state.status === 'RECOVERABLE_ERROR') {
       state.recoverableActions ??= DEFAULT_RECOVERABLE_ACTIONS;
@@ -588,6 +1443,8 @@ export class DungeonService {
     state: DungeonState,
     action: DungeonPendingAction,
   ) {
+    this.commitExplorationChoice(state, action.exploration);
+
     for (const cost of action.costs) {
       if (cost.type === 'hp_loss') {
         state.accumulatedHpLoss = Math.min(
@@ -614,6 +1471,15 @@ export class DungeonService {
     state.summary_of_sacrifice = state.costLedger.flatMap((entry) =>
       cloneCosts(entry.costs),
     );
+    const historyEntry = state.history.find(
+      (entry) => entry.round === action.round,
+    );
+    if (historyEntry) {
+      const actualCosts = action.costs
+        .map(formatActualActionCost)
+        .filter((cost): cost is string => Boolean(cost));
+      historyEntry.actual_costs = actualCosts.length ? actualCosts : undefined;
+    }
     state.pendingAction = {
       ...action,
       status: 'committed',
@@ -905,7 +1771,7 @@ export class DungeonService {
         ...context,
         mapNodeId, // 保存地图节点ID
         currentRound: 1,
-        maxRounds: 5, // 建议固定或根据地图设定
+        maxRounds: DUNGEON_EVENT_COUNT,
         history: [],
         dangerScore: 10,
         isFinished: false,
@@ -915,6 +1781,15 @@ export class DungeonService {
         costLedger: [],
         gainLedger: [],
         accumulatedRewards: [],
+        branchFlow: {
+          stage: 'explore',
+          rootOptions: [],
+          completedRootLeadIds: [],
+          pendingBranches: [],
+          mode: 'adaptive',
+        },
+        exploredExplorationLeads: [],
+        defeatedEnemyNames: [],
         status: 'EXPLORING',
         accumulatedHpLoss: 0, // 累积气血损失百分比 (0-1)
         accumulatedMpLoss: 0, // 累积法力损失百分比 (0-1)
@@ -922,19 +1797,25 @@ export class DungeonService {
 
       // 3. 首次 AI 调用
       const roundData = await this.previewRoundResourceLoss(
-        this.normalizeRoundOptions(await this.callAI(state), state),
+        await this.bindRoundMaterialCosts(
+          this.normalizeRoundOptions(await this.callAI(state), state),
+          cultivatorId,
+        ),
         cultivatorId,
       );
 
       // 4. 更新历史并存入 Redis
       const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
       const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
+      this.prepareNextEventOptions(state, roundData);
       state.history.push({
         round: 1,
         scene: roundData.scene_description,
         gained_items: gainedNames,
       });
-      state.currentOptions = roundData.interaction.options;
+      state.branchFlow!.rootOptions = (state.currentOptions ?? []).map(
+        cloneDungeonOption,
+      );
       if (!options.deferPersistence) {
         await this.saveState(cultivatorId, state);
       }
@@ -1127,6 +2008,8 @@ export class DungeonService {
 
     await consumeActionCostsOrThrow(true);
 
+    const exploration = this.stageExplorationChoice(state, chosenOption);
+
     const pendingAction: DungeonPendingAction = {
       actionId,
       choiceId,
@@ -1134,6 +2017,7 @@ export class DungeonService {
       round: state.currentRound,
       status: 'pending',
       costs: actionCosts,
+      exploration,
       createdAt: new Date().toISOString(),
     };
     state.pendingAction = pendingAction;
@@ -1141,8 +2025,7 @@ export class DungeonService {
 
     // 2. 推进状态
     state.history[state.history.length - 1].choice = chosenOption?.text;
-    state.history[state.history.length - 1].outcome =
-      chosenOption?.potential_cost;
+    state.history[state.history.length - 1].outcome = undefined;
 
     const battleCost = actionCosts.find((c) => c.type === 'battle');
     if (battleCost) {
@@ -1157,6 +2040,7 @@ export class DungeonService {
           options,
         );
       } catch (error) {
+        this.rollbackStagedExploration(state, exploration);
         const recoverable = await this.markRecoverable(
           cultivatorId,
           state,
@@ -1178,6 +2062,7 @@ export class DungeonService {
         try {
           await consumeActionCostsOrThrow();
         } catch (error) {
+          this.rollbackStagedExploration(state, exploration);
           state.pendingAction = {
             ...pendingAction,
             status: 'failed',
@@ -1265,25 +2150,19 @@ export class DungeonService {
     }
 
     if (state.currentRound >= state.maxRounds) {
+      const finalHistory = state.history[state.history.length - 1];
+      if (finalHistory && !finalHistory.outcome) {
+        finalHistory.outcome = '五处机缘均已查探完毕，你携所得安全离开秘境。';
+      }
       state.status = 'SETTLING';
       if (!options.deferPersistence) {
         await this.saveState(cultivatorId, state);
       }
-      try {
-        const result = await this.settleDungeon(state, {
-          pendingAction,
-          deferPersistence: options.deferPersistence,
-        });
-        return { actionId, ...result };
-      } catch (error) {
-        await this.markRecoverable(
-          cultivatorId,
-          state,
-          error instanceof Error ? error.message : '结算生成失败',
-          SETTLE_RECOVERABLE_ACTIONS,
-        );
-        throw error;
-      }
+      const result = await this.settleDungeon(state, {
+        pendingAction,
+        deferPersistence: options.deferPersistence,
+      });
+      return { actionId, ...result };
     }
 
     state.status = 'GENERATING_NEXT';
@@ -1296,11 +2175,15 @@ export class DungeonService {
     let roundData: DungeonRound;
     try {
       roundData = await this.previewRoundResourceLoss(
-        this.normalizeRoundOptions(await this.callAI(state), state),
+        await this.bindRoundMaterialCosts(
+          this.normalizeRoundOptions(await this.callAI(state), state),
+          cultivatorId,
+        ),
         cultivatorId,
       );
     } catch (error) {
       state.currentRound--;
+      this.rollbackStagedExploration(state, exploration);
       const recoverable = await this.markRecoverable(
         cultivatorId,
         state,
@@ -1324,6 +2207,7 @@ export class DungeonService {
         await consumeActionCostsOrThrow();
       } catch (error) {
         state.currentRound--;
+        this.rollbackStagedExploration(state, exploration);
         state.status = 'EXPLORING';
         state.pendingAction = {
           ...pendingAction,
@@ -1335,22 +2219,27 @@ export class DungeonService {
         throw error;
       }
     }
-    this.commitCostsToState(state, pendingAction);
-    state.pendingAction = undefined;
-    state.costPreview = undefined;
-
     // 记录过程战利品
     const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
     const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
 
     // 4. 更新状态
+    const previousHistory = state.history[state.history.length - 1];
+    if (previousHistory?.choice && !previousHistory.outcome) {
+      previousHistory.outcome = roundData.action_outcome?.trim();
+    }
+    this.prepareNextEventOptions(state, roundData);
     state.history.push({
       round: state.currentRound,
       scene: roundData.scene_description,
       gained_items: gainedNames,
     });
-    state.currentOptions = roundData.interaction.options;
     state.dangerScore = roundData.status_update.internal_danger_score;
+
+    this.commitCostsToState(state, pendingAction);
+    state.pendingAction = undefined;
+    state.costPreview = undefined;
+
     state.status = 'EXPLORING';
 
     if (options.deferPersistence) {
@@ -1510,11 +2399,13 @@ export class DungeonService {
 
     // 战斗失败处理：生成伤势状态
     if (!isWin) {
-      const outcomeText = `你终究是不敵 ${enemyName}，在其重击下狼狈遁走，侮幸捡回一条命。但你已无力再战，只得退出副本。`;
+      discardCurrentRoundRewards(state);
+      const outcomeText = `你终究是不敌 ${enemyName}，在其重击下狼狈遁走，侥幸捡回一条命。但你已无力再战，只得退出副本。`;
       lastHistory.outcome = outcomeText;
 
       const settled = await this.settleDungeon(state, {
         endDisposition: 'retreated_after_battle',
+        battleDefeated: true,
         deferPersistence: options.deferPersistence,
       });
       if (!options.deferPersistence) {
@@ -1544,6 +2435,7 @@ export class DungeonService {
 
     const outcomeText = `历经 ${battleResult.outcome.turns} 个回合的苦战，你成功击败了 ${enemyName}。虽然负了些伤，但总算化险为夷。`;
     lastHistory.outcome = outcomeText;
+    this.recordDefeatedEnemy(state, enemyName);
 
     // FIX: Instead of calling AI immediately, enter LOOTING state
     state.status = 'LOOTING';
@@ -1703,6 +2595,7 @@ export class DungeonService {
 
     delete state.activeBattleId;
     state.status = 'FINISHED';
+    discardCurrentRoundRewards(state);
 
     try {
       const result = await this.settleDungeon(state, {
@@ -1768,13 +2661,12 @@ export class DungeonService {
     state.status = 'GENERATING_NEXT';
     state.statusReason = undefined;
     state.recoverableActions = undefined;
-    state.currentRound++;
-
-    if (state.currentRound > state.maxRounds) {
+    if (state.currentRound >= state.maxRounds) {
       return this.settleDungeon(state, {
         deferPersistence: options.deferPersistence,
       });
     }
+    state.currentRound++;
 
     return this.generateRoundAfterLooting(cultivatorId, state, options);
   }
@@ -1787,7 +2679,10 @@ export class DungeonService {
     let roundData: DungeonRound;
     try {
       roundData = await this.previewRoundResourceLoss(
-        this.normalizeRoundOptions(await this.callAI(state), state),
+        await this.bindRoundMaterialCosts(
+          this.normalizeRoundOptions(await this.callAI(state), state),
+          cultivatorId,
+        ),
         cultivatorId,
       );
     } catch (error) {
@@ -1811,13 +2706,18 @@ export class DungeonService {
     const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
     const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
 
+    const previousHistory = state.history[state.history.length - 1];
+    if (previousHistory?.choice && !previousHistory.outcome) {
+      previousHistory.outcome = roundData.action_outcome?.trim();
+    }
+    this.prepareNextEventOptions(state, roundData);
     state.history.push({
       round: state.currentRound,
       scene: roundData.scene_description,
       gained_items: gainedNames,
     });
-    state.currentOptions = roundData.interaction.options;
     state.dangerScore = roundData.status_update.internal_danger_score;
+
     state.status = 'EXPLORING';
     state.statusReason = undefined;
     state.recoverableActions = undefined;
@@ -1915,12 +2815,14 @@ export class DungeonService {
     }
 
     if (!isWin) {
+      discardCurrentRoundRewards(state);
       if (lastHistory) {
         lastHistory.outcome = `你不敌 ${enemyName}，被迫退出秘境。${reason ? `（天机紊乱：${reason}）` : ''}`;
       }
 
       const settled = await this.settleDungeon(state, {
         endDisposition: 'retreated_after_battle',
+        battleDefeated: true,
         deferPersistence: options.deferPersistence,
       });
       if (!options.deferPersistence) return settled;
@@ -1946,6 +2848,7 @@ export class DungeonService {
 
     // 胜利但回调失败，强制进入 LOOTING 状态进行自我修复
     state.status = 'LOOTING';
+    this.recordDefeatedEnemy(state, enemyName);
     if (lastHistory) {
       lastHistory.outcome = `你击败了 ${enemyName}，但天机推演一时失序，需稳住心神。`;
     }
@@ -1983,6 +2886,12 @@ export class DungeonService {
     state.status = 'SETTLING';
     state.statusReason = undefined;
     state.recoverableActions = undefined;
+    state.settlementEndDisposition =
+      options?.endDisposition ??
+      state.settlementEndDisposition ??
+      (options?.abandonedBattle ? 'abandoned_before_battle' : 'completed');
+    state.battleDefeated =
+      options?.battleDefeated ?? state.battleDefeated ?? false;
 
     try {
       return await this.performSettlement(state, options);
@@ -2023,7 +2932,11 @@ export class DungeonService {
 
     const endDisposition =
       options?.endDisposition ??
+      state.settlementEndDisposition ??
       (options?.abandonedBattle ? 'abandoned_before_battle' : 'completed');
+    const battleDefeated =
+      options?.battleDefeated ?? state.battleDefeated ?? false;
+    const allowExtraRewards = endDisposition === 'completed';
     const deferPersistence = options?.deferPersistence === true;
     const pendingActionToCommit =
       options?.pendingAction &&
@@ -2031,12 +2944,17 @@ export class DungeonService {
         ? options.pendingAction
         : undefined;
     let settlement = state.settlement;
-    if (!settlement) {
+    if (!settlement && battleDefeated) {
+      settlement = createBattleDefeatSettlement(state);
+    } else if (!settlement) {
       const settlementContext = buildDungeonSettlementLlmContext({
         state,
         mapRealm,
         endDisposition,
       });
+      if (!allowExtraRewards) {
+        settlementContext.remainingExtraRewardSlots = 0;
+      }
       const { system: settlementPrompt, user: settlementUserPrompt } =
         renderPrompt('dungeon-settlement', {
           materialTypeTable: DUNGEON_MATERIAL_TYPE_TABLE,
@@ -2053,21 +2971,27 @@ export class DungeonService {
         sceneId: 'dungeon-settlement',
       });
       const generatedSettlement = DungeonSettlementGeneratedSchema.parse({
-        ending_narrative: aiRes.output.ending_narrative,
+        ending_narrative: normalizeDungeonResourceTerminology(
+          aiRes.output.ending_narrative,
+        ),
         settlement: {
           reward_tier: aiRes.output.reward_tier,
           reward_blueprints: aiRes.output.reward_blueprints,
-          performance_tags: aiRes.output.performance_tags,
+          performance_tags: sanitizePerformanceTags(
+            aiRes.output.performance_tags,
+            aiRes.output.reward_tier,
+          ),
         },
       });
-      settlement = normalizeSettlementRewards(
-        generatedSettlement,
-        state.accumulatedRewards ?? [],
-      );
+      settlement = generatedSettlement;
     }
-    settlement = normalizeSettlementRewards(
-      settlement,
-      state.accumulatedRewards ?? [],
+    settlement = constrainSettlementForDisposition(
+      normalizeSettlementRewards(
+        settlement,
+        state.accumulatedRewards ?? [],
+        allowExtraRewards,
+      ),
+      endDisposition,
     );
 
     if (pendingActionToCommit) {
@@ -2128,13 +3052,16 @@ export class DungeonService {
     const realGains =
       state.realGains ??
       committedSettlementGain?.gains ??
-      RewardFactory.generateAllRewards(
-        settlement.settlement.reward_blueprints as RewardBlueprint[],
-        mapRealm,
-        settlement.settlement.reward_tier,
-        state.dangerScore, // 传递危险分数用于奖励计算
-        state.playerInfo, // 传递玩家信息用于修为计算
-        mapNode ? resolveDungeonMapConfig(mapNode).difficultyTier : undefined,
+      applyExplorationExperienceBonus(
+        RewardFactory.generateAllRewards(
+          settlement.settlement.reward_blueprints as RewardBlueprint[],
+          mapRealm,
+          settlement.settlement.reward_tier,
+          state.dangerScore, // 传递危险分数用于奖励计算
+          state.playerInfo, // 传递玩家信息用于修为计算
+          mapNode ? resolveDungeonMapConfig(mapNode).difficultyTier : undefined,
+        ),
+        state,
       );
     state.realGains = realGains;
     if (!deferPersistence) {
@@ -2338,40 +3265,95 @@ export class DungeonService {
         });
     const realmGap = this.calculateRealmGap(state.playerInfo.realm, mapRealm);
     const phase = this.getPhase(state.currentRound, state.maxRounds, realmGap);
+    const currentPlayer = await loadCultivatorDungeonPromptFacts(
+      state.cultivatorId,
+    );
+    const currentResources = currentPlayer
+      ? ConditionService.tickNaturalRecovery(
+          currentPlayer,
+          currentPlayer.condition,
+        ).resources
+      : undefined;
     const userContext: DungeonRoundLlmContext = buildDungeonRoundLlmContext({
       state,
       mapConfig,
       realmGap,
       phase,
+      currentResources,
     });
 
     const remainingRewardSlots = Math.max(
       0,
       DUNGEON_REWARD_BLUEPRINT_LIMIT - state.accumulatedRewards.length,
     );
-    const aiRes = await generateAiObject({
-      system: this.getSystemPrompt(),
-      prompt: stableCompactStringify(userContext),
-      schema: createDungeonRoundLlmSchema(remainingRewardSlots),
-      name: 'DungeonRound',
-      sceneId: 'dungeon-round',
-    });
+    let continuityViolations: string[] = [];
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const aiRes = await generateAiObject({
+        system: this.getSystemPrompt(),
+        prompt: stableCompactStringify(
+          continuityViolations.length > 0
+            ? {
+                ...userContext,
+                continuityCorrection: {
+                  rejectedPreviousOutput: continuityViolations,
+                  instruction:
+                    '重新生成本轮并逐项修正 rejectedPreviousOutput；探索目标必须是稳定名词对象，操作方式只填 action_mode；costs 只能写无条件确定扣除；不得宣称未由服务端写入的强化效果；不得复活已击败敌人，不得生成占位或重复奖励，场景正文不得夹带选项列表。',
+                },
+              }
+            : userContext,
+        ),
+        schema: createDungeonRoundLlmSchema(remainingRewardSlots),
+        name: 'DungeonRound',
+        sceneId: 'dungeon-round',
+      });
 
-    return DungeonRoundSchema.parse({
-      scene_description: aiRes.output.scene_description,
-      interaction: {
-        options: aiRes.output.options.map((option, index) => ({
-          ...option,
-          id: index + 1,
-          costs: option.costs ?? [],
-        })),
-      },
-      acquired_items: aiRes.output.acquired_items,
-      status_update: {
-        is_final_round: state.currentRound >= state.maxRounds,
-        internal_danger_score: aiRes.output.internal_danger_score,
-      },
-    });
+      const roundData = DungeonRoundSchema.parse({
+        scene_description: normalizeDungeonResourceTerminology(
+          aiRes.output.scene_description,
+        ),
+        action_outcome: normalizeDungeonResourceTerminology(
+          aiRes.output.action_outcome,
+        ),
+        interaction: {
+          options: aiRes.output.options.map((option, index) => ({
+            ...option,
+            id: index + 1,
+            text: normalizeDungeonResourceTerminology(option.text),
+            exploration_target: normalizeExplorationTarget(
+              normalizeDungeonResourceTerminology(option.exploration_target),
+              option.text,
+            ),
+            action_mode: normalizeDungeonResourceTerminology(
+              option.action_mode,
+            ),
+            requirement: option.requirement
+              ? normalizeDungeonResourceTerminology(option.requirement)
+              : undefined,
+            potential_cost: option.potential_cost
+              ? normalizeDungeonResourceTerminology(option.potential_cost)
+              : undefined,
+            costs: (option.costs ?? []).map((cost) => ({
+              ...cost,
+              desc: cost.desc
+                ? normalizeDungeonResourceTerminology(cost.desc)
+                : undefined,
+            })),
+          })),
+        },
+        acquired_items: aiRes.output.acquired_items,
+        status_update: {
+          is_final_round: state.currentRound >= state.maxRounds,
+          internal_danger_score: aiRes.output.internal_danger_score,
+        },
+      });
+      continuityViolations = findDungeonRoundContinuityViolations(
+        state,
+        roundData,
+      );
+      if (continuityViolations.length === 0) return roundData;
+    }
+
+    throw new Error(`副本连续性校验失败：${continuityViolations.join('；')}`);
   }
 
   async saveState(
@@ -2678,11 +3660,6 @@ export class DungeonService {
       state.status = 'GENERATING_NEXT';
       state.statusReason = undefined;
       state.recoverableActions = undefined;
-      if (state.currentRound > state.maxRounds) {
-        return this.settleDungeon(state, {
-          deferPersistence: options.deferPersistence,
-        });
-      }
       return this.generateRoundAfterLooting(cultivatorId, state, options);
     }
 
@@ -2702,6 +3679,7 @@ export class DungeonService {
       state.recoverableActions = undefined;
       delete state.activeBattleId;
       return this.settleDungeon(state, {
+        pendingAction: state.pendingAction,
         deferPersistence: options.deferPersistence,
       });
     }

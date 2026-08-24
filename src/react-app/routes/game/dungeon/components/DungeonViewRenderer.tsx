@@ -290,6 +290,7 @@ export function DungeonViewRenderer({
         <DungeonSettlement
           settlement={viewState.settlement}
           realGains={viewState.realGains}
+          history={viewState.history}
           onConfirm={onSettlementConfirm}
         />
       </DungeonSceneScreen>
@@ -381,6 +382,7 @@ export function DungeonViewRenderer({
         )}
       >
         <DungeonExploring
+          key={`${viewState.state.currentRound}:${viewState.state.history.length}:${viewState.lastRound.scene_description}`}
           state={viewState.state}
           lastRound={viewState.lastRound}
           cultivator={cultivator}

@@ -8,11 +8,17 @@ id: dungeon-settlement
 
 根据上下文中的历程摘要、付出摘要、已获蓝图与最终危险分给出评价，并设计额外材料奖励。
 
+术语必须严格区分：`灵力`是基础属性或环境能量，施展术法所消耗和恢复的资源称为`法力`。禁止写“补充灵力”“灵力不足”“灵力耗尽”等资源表述。结算上下文没有最终气血、法力数值，禁止臆测玩家当前资源是否枯竭。
+
 若上下文中的 `endDisposition` 为：
 
 - `completed`：按正常通关评价。
-- `retreated_after_battle`：偏向保守结算，通常为 C 或 D，除非已取得明确收获。
-- `abandoned_before_battle`：必须按 D 级结算，奖励极少。
+- `retreated_after_battle`：只能评为 C 或 D，`reward_blueprints` 必须为空；此前已确认获得的物品由服务端继承。
+- `abandoned_before_battle`：必须按 D 级结算，`reward_blueprints` 必须为空。
+
+若存在 `finalAction`，`ending_narrative` 必须先逐字提及它的 `target`，并具体交代执行 `choice` 的结果，再总结整段秘境历程。
+
+`performance_tags` 最多输出 4 个，每个标签只能是 2-12 字中文或数字短语，不得带逗号、引号、书名号等标点，不得重复。
 
 ## 奖励生成规则
 
@@ -20,6 +26,7 @@ id: dungeon-settlement
 - **继承规则**：上下文中的 `accumulatedRewards` 会由服务端自动继承并发放，禁止为了“继承”而重复输出。
 - **数量上限**：`reward_blueprints` 只输出本次结算新增的额外材料，数量必须 `<= remainingExtraRewardSlots`。若 `remainingExtraRewardSlots` 为 0，必须输出空数组。
 - **珍稀度**：每个 `reward_blueprints` 元素必须填写 `reward_score` (0-100)，衡量材料本身在当前境界下的珍稀度，而不是本次副本总评价。
+- **名称格式**：奖励名称必须是自然中文物品名并包含汉字，禁止英文、下划线、变量名或数据库标识。
 - **评分边界**：普通灵草、矿石、妖兽部件通常为 20-44；完整可用的正品材料为 45-69；明确稀有机缘为 70-84；只有核心传承、天地奇珍、Boss 核心遗留可给 85+。
 
 ## 材料类型 (Material Type)
@@ -35,13 +42,13 @@ id: dungeon-settlement
 
 ## 评价等级 (Reward Tier)
 
-| 等级 | 额外材料数量限制                    | 逻辑                       |
-| ---- | ----------------------------------- | -------------------------- |
-| S    | 2-3 个，但不得超过 remainingExtraRewardSlots | 历经九死一生，或达成圆满。 |
-| A    | 1-2 个，但不得超过 remainingExtraRewardSlots | 表现出色，获取核心资源。   |
-| B    | 1 个，但不得超过 remainingExtraRewardSlots   | 平稳探索，中规中矩。       |
-| C    | 0 个                                | 表现平庸，或中途被迫撤离。 |
-| D    | 0 个                                | 仓皇逃窜，一无所获。       |
+| 等级 | 额外材料数量限制 | 逻辑 |
+| --- | --- | --- |
+| S | 2-3 个，但不得超过 remainingExtraRewardSlots | 历经九死一生，或达成圆满。 |
+| A | 1-2 个，但不得超过 remainingExtraRewardSlots | 表现出色，获取核心资源。 |
+| B | 1 个，但不得超过 remainingExtraRewardSlots | 平稳探索，中规中矩。 |
+| C | 0 个 | 表现平庸，或中途被迫撤离。 |
+| D | 0 个 | 仓皇逃窜，一无所获。 |
 
 ## user
 

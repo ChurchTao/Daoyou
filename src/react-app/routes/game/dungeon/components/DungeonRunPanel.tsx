@@ -31,6 +31,7 @@ import type {
   Cultivator,
 } from '@shared/types/cultivator';
 import { useCallback, useState } from 'react';
+import { formatDungeonText } from '../formatDungeonText';
 
 interface DungeonRunPanelProps {
   state: DungeonState;
@@ -470,9 +471,11 @@ export function DungeonRunPanel({
                             />
                           ) : null}
                           <p className="text-ink-secondary line-clamp-2 text-xs leading-5">
-                            {pillDisplay?.effectSummary ??
-                              item.description ??
-                              '使用后恢复天地灵气。'}
+                            {formatDungeonText(
+                              pillDisplay?.effectSummary ??
+                                item.description ??
+                                '使用后恢复天地灵气。',
+                            )}
                           </p>
                         </div>
                         <InkButton

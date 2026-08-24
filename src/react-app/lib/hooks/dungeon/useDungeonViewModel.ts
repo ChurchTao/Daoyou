@@ -1,5 +1,6 @@
+import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
 import { BattleCallbackData } from '@app/routes/game/dungeon/components/DungeonBattle';
-import { DungeonAbandonBattleResult } from './useEnemyProbe';
+import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import type {
   DungeonOption,
@@ -7,13 +8,13 @@ import type {
   DungeonRound,
   DungeonSettlement,
   DungeonState,
+  History,
 } from '@shared/lib/dungeon/types';
 import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
-import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
-import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { useMemo, useState } from 'react';
 import { useDungeonActions } from './useDungeonActions';
 import { useDungeonState } from './useDungeonState';
+import { DungeonAbandonBattleResult } from './useEnemyProbe';
 
 /**
  * 副本视图状态类型
@@ -40,6 +41,7 @@ export type DungeonViewState =
       type: 'settlement';
       settlement?: DungeonSettlement;
       realGains?: ResourceOperation[];
+      history: History[];
     };
 
 export type DungeonMutationResolution =
@@ -176,6 +178,7 @@ export function useDungeonViewModel(
         type: 'settlement',
         settlement: state.settlement,
         realGains: state.realGains,
+        history: state.history,
       };
     }
 

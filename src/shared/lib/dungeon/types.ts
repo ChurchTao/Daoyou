@@ -1,8 +1,5 @@
 import type { ResourceOperation } from '@shared/engine/resource/types';
-import {
-  ENEMY_RACE_VALUES,
-  REALM_STAGE_VALUES,
-} from '@shared/types/constants';
+import { ENEMY_RACE_VALUES, REALM_STAGE_VALUES } from '@shared/types/constants';
 import { z } from 'zod';
 
 // === AI Interaction Schemas ===
@@ -33,39 +30,64 @@ const DungeonCostMetadataSchema = z
 /**
  * 副本代价 Schema - 直接使用资源引擎类型
  */
-export const DungeonCostSchema = z.object({
-  type: z.enum([
-    // 资源类型
-    'spirit_stones',
-    'lifespan',
-    'cultivation_exp',
-    'comprehension_insight',
-    'material',
-    // 副本特有类型
-    'hp_loss',
-    'mp_loss',
-    'weak',
-    'battle',
-    'artifact_damage',
-  ]),
-  value: z.number().min(0).refine(Number.isFinite, '数量或强度必须为有限数').describe('数量或强度'),
-  name: z.string().optional().describe('材料名称（material 类型需要，如果未知可省略留给系统匹配）'),
-  required_quality: z.enum(DUNGEON_QUALITY_VALUES).optional().describe('模糊要求时：最低品质'),
-  required_type: z.enum(['herb', 'ore', 'monster', 'tcdb', 'aux', 'gongfa_manual', 'skill_manual']).optional().describe('模糊要求时：材料类型'),
-  desc: z.string().optional().describe('描述信息'),
-  metadata: DungeonCostMetadataSchema.optional().describe('元数据（battle 类型需要 race/realm_stage；其他代价可记录系统反馈）'),
-}).superRefine((cost, ctx) => {
-  if (
-    cost.type === 'battle' &&
-    (!cost.metadata || !cost.metadata.race || !cost.metadata.realm_stage)
-  ) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['metadata'],
-      message: 'battle 类型必须提供 metadata',
-    });
-  }
-});
+export const DungeonCostSchema = z
+  .object({
+    type: z.enum([
+      // 资源类型
+      'spirit_stones',
+      'lifespan',
+      'cultivation_exp',
+      'comprehension_insight',
+      'material',
+      // 副本特有类型
+      'hp_loss',
+      'mp_loss',
+      'weak',
+      'battle',
+      'artifact_damage',
+    ]),
+    value: z
+      .number()
+      .min(0)
+      .refine(Number.isFinite, '数量或强度必须为有限数')
+      .describe('数量或强度'),
+    name: z
+      .string()
+      .optional()
+      .describe('材料名称（material 类型需要，如果未知可省略留给系统匹配）'),
+    required_quality: z
+      .enum(DUNGEON_QUALITY_VALUES)
+      .optional()
+      .describe('模糊要求时：最低品质'),
+    required_type: z
+      .enum([
+        'herb',
+        'ore',
+        'monster',
+        'tcdb',
+        'aux',
+        'gongfa_manual',
+        'skill_manual',
+      ])
+      .optional()
+      .describe('模糊要求时：材料类型'),
+    desc: z.string().optional().describe('描述信息'),
+    metadata: DungeonCostMetadataSchema.optional().describe(
+      '元数据（battle 类型需要 race/realm_stage；其他代价可记录系统反馈）',
+    ),
+  })
+  .superRefine((cost, ctx) => {
+    if (
+      cost.type === 'battle' &&
+      (!cost.metadata || !cost.metadata.race || !cost.metadata.realm_stage)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['metadata'],
+        message: 'battle 类型必须提供 metadata',
+      });
+    }
+  });
 
 /**
  * 副本奖励 Schema
@@ -80,7 +102,12 @@ export const DungeonGainSchema = z.object({
     'artifact',
     'consumable',
   ]),
-  value: z.number().min(0).max(10_000_000).refine(Number.isFinite, '数量必须为有限数').describe('数量'),
+  value: z
+    .number()
+    .min(0)
+    .max(10_000_000)
+    .refine(Number.isFinite, '数量必须为有限数')
+    .describe('数量'),
   name: z.string().optional().describe('物品名称'),
   desc: z.string().optional().describe('描述信息'),
   data: z.any().optional().describe('完整物品数据'),
@@ -91,10 +118,25 @@ export const DungeonOptionSchema = z.object({
   id: z.number(),
   text: z.string().describe('选项文本'),
   risk_level: z.enum(['low', 'medium', 'high']).describe('风险等级'),
+  exploration_target: z
+    .string()
+    .max(30)
+    .optional()
+    .describe('该选项实际探索的地点或线索'),
+  action_mode: z
+    .string()
+    .max(20)
+    .optional()
+    .describe('对探索目标采取的方式，如安抚、炼化或破除'),
+  exploration_lead_id: z.string().optional(),
+  exploration_is_revisit: z.boolean().optional(),
   requirement: z.string().optional().describe('选项要求'),
   potential_cost: z.string().optional().describe('潜在成本(文本描述)'),
   costs: z.array(DungeonCostSchema).optional().describe('成本(结构化成本)'),
-  costPreview: z.array(DungeonCostSchema).optional().describe('服务端归一化后的预计代价'),
+  costPreview: z
+    .array(DungeonCostSchema)
+    .optional()
+    .describe('服务端归一化后的预计代价'),
 });
 
 // 奖励蓝图 Schema - AI 只生成创意内容，数值由程序计算
@@ -138,12 +180,22 @@ export type RewardBlueprint = z.infer<typeof RewardBlueprintSchema>;
 // Response from AI for each round
 export const DungeonRoundSchema = z.object({
   scene_description: z.string().describe('场景描述'),
+  action_outcome: z
+    .string()
+    .optional()
+    .describe('上一项抉择实际发生的结果；首轮可以为空'),
   interaction: z
     .object({
-      options: z.array(DungeonOptionSchema).length(3).describe('交互选项'),
+      options: z
+        .array(DungeonOptionSchema)
+        .max(3)
+        .describe('两层探索各有3个选项，分支结果轮没有选项'),
     })
     .describe('交互'),
-  acquired_items: z.array(RewardBlueprintSchema).optional().describe('当前轮次探索或战斗获得的战利品（仅在合理情况下发放，勿滥发）'),
+  acquired_items: z
+    .array(RewardBlueprintSchema)
+    .optional()
+    .describe('当前轮次探索或战斗获得的战利品（仅在合理情况下发放，勿滥发）'),
   status_update: z
     .object({
       is_final_round: z.boolean(),
@@ -209,7 +261,36 @@ export interface History {
   scene: string;
   choice?: string;
   outcome?: string;
+  actual_costs?: string[];
   gained_items?: string[];
+}
+
+export interface DungeonExplorationRecord {
+  id: string;
+  target: string;
+  sourceRound: number;
+  completedRound: number;
+  isBranchChoice: boolean;
+  createdCheckpointId?: string;
+}
+
+export type DungeonBranchStage = 'root' | 'branch' | 'resolution' | 'explore';
+
+export interface DungeonBranchCheckpoint {
+  id: string;
+  sourceRound: number;
+  sourceTarget: string;
+  options: DungeonOption[];
+}
+
+export interface DungeonBranchFlowState {
+  stage: DungeonBranchStage;
+  rootOptions: DungeonOption[];
+  completedRootLeadIds: string[];
+  activeRootOption?: DungeonOption;
+  pendingBranches?: DungeonBranchCheckpoint[];
+  mode?: 'adaptive';
+  legacy?: boolean;
 }
 
 export interface BattleSession {
@@ -236,11 +317,7 @@ export type DungeonRunStatus =
   | 'RECOVERABLE_ERROR';
 
 export type DungeonRecoverAction =
-  | 'retry'
-  | 'retry_continue'
-  | 'retry_settle'
-  | 'safe_retreat'
-  | 'force_quit';
+  'retry' | 'retry_continue' | 'retry_settle' | 'safe_retreat' | 'force_quit';
 
 export interface DungeonCostLedgerEntry {
   actionId: string;
@@ -265,6 +342,7 @@ export interface DungeonPendingAction {
   round: number;
   status: 'pending' | 'committed' | 'failed';
   costs: DungeonOptionCost[];
+  exploration?: DungeonExplorationRecord;
   error?: string;
   createdAt: string;
 }
@@ -286,7 +364,16 @@ export interface DungeonState {
   dangerScore: number;
   isFinished: boolean;
   currentOptions?: DungeonOption[];
+  branchFlow?: DungeonBranchFlowState;
+  exploredExplorationLeads?: DungeonExplorationRecord[];
+  /** 已在本次秘境中确认击败的敌人。 */
+  defeatedEnemyNames?: string[];
   settlement?: DungeonSettlement;
+  /** 本次探索的终止方式；用于结算失败重试时保持原判定。 */
+  settlementEndDisposition?:
+    'completed' | 'retreated_after_battle' | 'abandoned_before_battle';
+  /** 是否因战斗失败而结束。 */
+  battleDefeated?: boolean;
   location: {
     location: string;
     location_tags: string[];
@@ -301,7 +388,7 @@ export interface DungeonState {
   realGains?: ResourceOperation[];
   archiveHistoryCommittedAt?: string;
   accumulatedRewards: RewardBlueprint[];
-  /** 当前轮次获得的物品 */
+  /** 当前轮次暂存的物品；若本轮战斗失败则不会结算。 */
   currentRoundItems?: RewardBlueprint[];
   accumulatedHpLoss: number;
   accumulatedMpLoss: number;

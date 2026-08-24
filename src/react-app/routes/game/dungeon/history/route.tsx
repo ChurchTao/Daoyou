@@ -10,6 +10,7 @@ import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkList, InkListItem } from '@app/components/ui/InkList';
 import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { useEffect, useState } from 'react';
+import { formatDungeonText } from '../formatDungeonText';
 
 /**
  * 日志条目结构
@@ -85,7 +86,7 @@ function DungeonHistoryDetail({ record }: { record: DungeonHistoryRecord }) {
     <div className="space-y-5">
       {record.result.ending_narrative ? (
         <p className="text-ink/80 text-sm leading-7">
-          {record.result.ending_narrative}
+          {formatDungeonText(record.result.ending_narrative)}
         </p>
       ) : null}
 
@@ -112,7 +113,7 @@ function DungeonHistoryDetail({ record }: { record: DungeonHistoryRecord }) {
         </h3>
         {entries.length === 0 ? (
           <pre className="bg-paper-dark text-ink/70 border-ink/10 border border-dashed p-2 text-xs whitespace-pre-wrap">
-            {record.log || '暂无详细记录'}
+            {formatDungeonText(record.log || '暂无详细记录')}
           </pre>
         ) : (
           <div className="space-y-4">
@@ -122,10 +123,12 @@ function DungeonHistoryDetail({ record }: { record: DungeonHistoryRecord }) {
                   第 {entry.round} 回
                 </div>
                 <p className="text-ink/70 mb-2 text-sm leading-7">
-                  {entry.scene}
+                  {formatDungeonText(entry.scene)}
                 </p>
                 {entry.choice ? (
-                  <div className="text-crimson text-sm">➜ {entry.choice}</div>
+                  <div className="text-crimson text-sm">
+                    ➜ {formatDungeonText(entry.choice)}
+                  </div>
                 ) : null}
               </div>
             ))}

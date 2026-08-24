@@ -1,11 +1,12 @@
-import type { ResolvedDungeonMapConfig } from '@shared/lib/game/mapSystem';
-import type { RealmType } from '@shared/types/constants';
 import { truncateText } from '@server/utils/llmPayload';
+import type { ResolvedDungeonMapConfig } from '@shared/lib/game/mapSystem';
+import type { CultivatorCondition } from '@shared/types/condition';
+import type { RealmType } from '@shared/types/constants';
 import type {
   DungeonOptionCost,
+  DungeonRoundLlmContext,
   DungeonSettlementLlmContext,
   DungeonState,
-  DungeonRoundLlmContext,
   History,
   RewardBlueprint,
 } from './types';
@@ -17,6 +18,12 @@ const OUTCOME_SUMMARY_MAX_CHARS = 60;
 const MAP_DESCRIPTION_MAX_CHARS = 80;
 const FALLBACK_TEXT = '未见分明痕迹';
 const DUNGEON_REWARD_BLUEPRINT_LIMIT = 5;
+
+function toResourcePercent(current: number, max: number | undefined): number {
+  const safeMax = Number.isFinite(max) ? Math.max(1, max ?? 1) : 1;
+  const safeCurrent = Number.isFinite(current) ? current : 0;
+  return Math.round(Math.max(0, Math.min(1, safeCurrent / safeMax)) * 100);
+}
 
 function uniqueStrings(values: Array<string | undefined | null>): string[] {
   return Array.from(
@@ -37,10 +44,9 @@ function summarizeRoots(roots: string[]): string[] {
 }
 
 function summarizeFates(fates: string[]): string[] {
-  return uniqueStrings(fates.map((fate) => truncateText(stripParenthetical(fate), 14))).slice(
-    0,
-    4,
-  );
+  return uniqueStrings(
+    fates.map((fate) => truncateText(stripParenthetical(fate), 14)),
+  ).slice(0, 4);
 }
 
 function summarizeTechniques(skills: string[]): string[] {
@@ -56,10 +62,19 @@ function summarizeHistoryEntry(entry: History) {
     sceneSummary: truncateText(entry.scene, SCENE_SUMMARY_MAX_CHARS),
     ...(entry.choice ? { choice: truncateText(entry.choice, 30) } : {}),
     ...(entry.outcome
-      ? { outcomeSummary: truncateText(entry.outcome, OUTCOME_SUMMARY_MAX_CHARS) }
+      ? {
+          outcomeSummary: truncateText(
+            entry.outcome,
+            OUTCOME_SUMMARY_MAX_CHARS,
+          ),
+        }
       : {}),
     ...(entry.gained_items?.length
-      ? { gainedItemNames: entry.gained_items.slice(0, 4).map((item) => truncateText(item, 16)) }
+      ? {
+          gainedItemNames: entry.gained_items
+            .slice(0, 4)
+            .map((item) => truncateText(item, 16)),
+        }
       : {}),
   };
 }
@@ -67,7 +82,9 @@ function summarizeHistoryEntry(entry: History) {
 function summarizeJourney(history: History[]): string[] {
   return history.slice(-JOURNEY_LIMIT).map((entry) => {
     const scene = truncateText(entry.scene, 36) || FALLBACK_TEXT;
-    const choice = entry.choice ? `选${truncateText(entry.choice, 18)}` : '未留抉择';
+    const choice = entry.choice
+      ? `选${truncateText(entry.choice, 18)}`
+      : '未留抉择';
     const outcome = entry.outcome
       ? `结果${truncateText(entry.outcome, 24)}`
       : '结果未明';
@@ -89,6 +106,75 @@ function summarizeRewards(
       ? { reward_score: reward.reward_score }
       : {}),
   }));
+}
+
+function buildLastAction(
+  state: DungeonState,
+): DungeonRoundLlmContext['lastAction'] {
+  const lastHistory = [...state.history]
+    .reverse()
+    .find((entry) => Boolean(entry.choice));
+  const pendingExploration = state.pendingAction?.exploration;
+  const committedExploration = lastHistory
+    ? [...(state.exploredExplorationLeads ?? [])]
+        .reverse()
+        .find((entry) => entry.completedRound === lastHistory.round)
+    : undefined;
+  const exploration = pendingExploration ?? committedExploration;
+  const choice = state.pendingAction?.choiceText ?? lastHistory?.choice;
+  if (!exploration || !choice) return undefined;
+
+  return {
+    target: truncateText(exploration.target, 30),
+    choice: truncateText(choice, 120),
+    sourceRound: exploration.completedRound,
+  };
+}
+
+function isSystemFinishAction(target: string, choice: string): boolean {
+  return (
+    target === '秘境出口' ||
+    choice.startsWith('收束此行') ||
+    choice.includes('确认后进入结算')
+  );
+}
+
+function buildSettlementFinalAction(
+  state: DungeonState,
+): DungeonSettlementLlmContext['finalAction'] {
+  const pendingExploration = state.pendingAction?.exploration;
+  const pendingChoice = state.pendingAction?.choiceText;
+  if (
+    pendingExploration &&
+    pendingChoice &&
+    !isSystemFinishAction(pendingExploration.target, pendingChoice)
+  ) {
+    return {
+      target: truncateText(pendingExploration.target, 30),
+      choice: truncateText(pendingChoice, 120),
+      sourceRound: pendingExploration.completedRound,
+    };
+  }
+
+  for (const history of [...state.history].reverse()) {
+    if (!history.choice) continue;
+    const exploration = [...(state.exploredExplorationLeads ?? [])]
+      .reverse()
+      .find((entry) => entry.completedRound === history.round);
+    if (
+      !exploration ||
+      isSystemFinishAction(exploration.target, history.choice)
+    ) {
+      continue;
+    }
+    return {
+      target: truncateText(exploration.target, 30),
+      choice: truncateText(history.choice, 120),
+      sourceRound: exploration.completedRound,
+    };
+  }
+
+  return undefined;
 }
 
 function summarizeRewardNames(rewards: RewardBlueprint[]): string[] {
@@ -180,9 +266,13 @@ export function buildDungeonRoundLlmContext(args: {
   mapConfig: ResolvedDungeonMapConfig;
   realmGap: number;
   phase: string;
+  currentResources?: CultivatorCondition['resources'];
 }): DungeonRoundLlmContext {
-  const { state, mapConfig, realmGap, phase } = args;
+  const { state, mapConfig, realmGap, phase, currentResources } = args;
   const battleAftermath = buildBattleAftermath(state.history);
+  const lastAction = buildLastAction(state);
+  const branchFlow = state.branchFlow;
+  const stage = branchFlow?.stage ?? 'explore';
 
   return {
     round: state.currentRound,
@@ -215,10 +305,47 @@ export function buildDungeonRoundLlmContext(args: {
       fatesSummary: summarizeFates(state.playerInfo.fates),
       techniqueNames: summarizeTechniques(state.playerInfo.skills),
       combatStyleSummary: buildCombatStyleSummary(state),
+      ...(currentResources
+        ? {
+            resources: {
+              hpPercent: toResourcePercent(
+                currentResources.hp.current,
+                currentResources.hp.max,
+              ),
+              mpPercent: toResourcePercent(
+                currentResources.mp.current,
+                currentResources.mp.max,
+              ),
+            },
+          }
+        : {}),
     },
     history: state.history.slice(-HISTORY_LIMIT).map(summarizeHistoryEntry),
+    ...(lastAction ? { lastAction } : {}),
     ...(battleAftermath ? { battleAftermath } : {}),
+    defeatedEnemyNames: uniqueStrings(state.defeatedEnemyNames ?? []).map(
+      (name) => truncateText(name, 18),
+    ),
     accumulatedRewardNames: summarizeRewardNames(state.accumulatedRewards),
+    flow: {
+      stage,
+      requiredOptionCount: 'up_to_three',
+      eventIndex: state.currentRound,
+      totalEvents: state.maxRounds,
+      pendingBranchCount: (branchFlow?.pendingBranches ?? []).reduce(
+        (count, checkpoint) => count + checkpoint.options.length,
+        0,
+      ),
+      ...(branchFlow?.activeRootOption
+        ? {
+            activeRootTarget: truncateText(
+              branchFlow.activeRootOption.exploration_target ??
+                branchFlow.activeRootOption.text,
+              30,
+            ),
+          }
+        : {}),
+    },
   };
 }
 
@@ -228,6 +355,7 @@ export function buildDungeonSettlementLlmContext(args: {
   endDisposition: DungeonSettlementLlmContext['endDisposition'];
 }): DungeonSettlementLlmContext {
   const { state, mapRealm, endDisposition } = args;
+  const finalAction = buildSettlementFinalAction(state);
 
   return {
     map: {
@@ -238,6 +366,7 @@ export function buildDungeonSettlementLlmContext(args: {
       name: state.playerInfo.name,
       realm: state.playerInfo.realm,
     },
+    ...(finalAction ? { finalAction } : {}),
     journeySummary: summarizeJourney(state.history),
     dangerScore: state.dangerScore,
     sacrificeSummary: buildSacrificeSummary(state.summary_of_sacrifice),

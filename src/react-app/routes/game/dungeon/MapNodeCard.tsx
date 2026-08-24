@@ -10,6 +10,7 @@ import {
 } from '@shared/lib/game/mapSystem';
 import { cn } from '@shared/lib/cn';
 import type { RealmType } from '@shared/types/constants';
+import { formatDungeonText } from './formatDungeonText';
 
 export function MapNodeCard({
   node,
@@ -47,7 +48,7 @@ export function MapNodeCard({
           </span>
         </div>
         <p className="text-ink-secondary mb-2 line-clamp-2 text-xs">
-          {node.description}
+          {formatDungeonText(node.description)}
         </p>
         <div className="text-ink-secondary mb-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
           <span>

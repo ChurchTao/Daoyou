@@ -3,13 +3,17 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkTag } from '@app/components/ui/InkTag';
 import type { ResourceOperation } from '@shared/engine/resource/types';
-import type { DungeonSettlement as DungeonSettlementType } from '@shared/lib/dungeon/types';
-import { Quality } from '@shared/types/constants';
-import type { Material } from '@shared/types/cultivator';
+import type {
+  DungeonSettlement as DungeonSettlementType,
+  History,
+} from '@shared/lib/dungeon/types';
 import {
   getMaterialTypeLabel,
   getResourceTypeInfo,
 } from '@shared/lib/gameConceptDisplay';
+import { Quality } from '@shared/types/constants';
+import type { Material } from '@shared/types/cultivator';
+import { formatDungeonText } from '../formatDungeonText';
 
 interface DisplayMaterial {
   name: string;
@@ -23,12 +27,14 @@ interface DisplayMaterial {
 interface DungeonSettlementProps {
   settlement: DungeonSettlementType | undefined;
   realGains?: ResourceOperation[];
+  history?: History[];
   onConfirm?: () => void;
 }
 
 export function DungeonSettlement({
   settlement,
   realGains = [],
+  history = [],
   onConfirm,
 }: DungeonSettlementProps) {
   const handleConfirm = () => {
@@ -53,6 +59,25 @@ export function DungeonSettlement({
     acc[gain.type] = (acc[gain.type] || 0) + gain.value;
     return acc;
   }, {});
+  const explorationExpBonus = realGains.reduce(
+    (summary, gain) => {
+      if (gain.type !== 'cultivation_exp') return summary;
+      const bonusValue = Number(
+        gain.metadata?.dungeonExplorationBonusValue ?? 0,
+      );
+      const branchCount = Number(
+        gain.metadata?.dungeonExplorationBranchCount ?? 0,
+      );
+      return {
+        value: summary.value + (Number.isFinite(bonusValue) ? bonusValue : 0),
+        branchCount: Math.max(
+          summary.branchCount,
+          Number.isFinite(branchCount) ? branchCount : 0,
+        ),
+      };
+    },
+    { value: 0, branchCount: 0 },
+  );
 
   const keyResources = [
     'spirit_stones',
@@ -140,7 +165,9 @@ export function DungeonSettlement({
       </div>
 
       <p className="text-ink/80 leading-relaxed">
-        {settlement?.ending_narrative || '此行尘埃落定，且看所得机缘。'}
+        {formatDungeonText(
+          settlement?.ending_narrative || '此行尘埃落定，且看所得机缘。',
+        )}
       </p>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -156,6 +183,13 @@ export function DungeonSettlement({
               <div className="mt-1 text-lg font-semibold">
                 {gain.info.icon} +{gain.value.toLocaleString()}
               </div>
+              {gain.type === 'cultivation_exp' &&
+              explorationExpBonus.value > 0 ? (
+                <div className="text-wood mt-1 text-xs">
+                  含 {explorationExpBonus.branchCount} 条支线探索加成 +
+                  {explorationExpBonus.value.toLocaleString()}
+                </div>
+              ) : null}
             </div>
           ))
         ) : (
@@ -199,7 +233,10 @@ export function DungeonSettlement({
                   </div>
                 </div>
                 <div className="text-ink-secondary mt-2 text-xs leading-relaxed">
-                  描述：{item.description || '此物灵机晦暗，暂难窥其全貌。'}
+                  描述：
+                  {formatDungeonText(
+                    item.description || '此物灵机晦暗，暂难窥其全貌。',
+                  )}
                 </div>
               </div>
             ))}
@@ -218,6 +255,65 @@ export function DungeonSettlement({
       >
         收入囊中
       </InkButton>
+
+      <section className="border-ink/15 space-y-3 border-t pt-4">
+        <div>
+          <div className="text-sm font-medium">此行旧事</div>
+          <p className="text-ink-secondary mt-1 text-xs leading-5">
+            按探索顺序记录沿途见闻、所作抉择与对应结果。
+          </p>
+        </div>
+
+        {history.length > 0 ? (
+          <div
+            aria-label="探索事件回顾"
+            className="max-h-72 space-y-4 overflow-y-auto overscroll-contain pr-2 text-sm"
+            tabIndex={0}
+          >
+            {history.map((entry, index) => (
+              <article
+                key={`${entry.round}-${index}`}
+                className="border-ink/15 space-y-2 border-l-2 pl-3"
+              >
+                <div className="text-ink-secondary text-xs font-semibold tracking-[0.12em]">
+                  第{entry.round}回
+                </div>
+                <p className="text-ink/85 leading-6">
+                  {formatDungeonText(entry.scene)}
+                </p>
+                {entry.choice ? (
+                  <p className="text-crimson leading-6">
+                    抉择：{formatDungeonText(entry.choice)}
+                  </p>
+                ) : null}
+                {entry.outcome ? (
+                  <p className="text-ink-secondary leading-6">
+                    结果：{formatDungeonText(entry.outcome)}
+                  </p>
+                ) : null}
+                {entry.actual_costs && entry.actual_costs.length > 0 ? (
+                  <p className="text-ink-secondary text-xs leading-5">
+                    实际消耗：
+                    {entry.actual_costs
+                      .map((cost) => formatDungeonText(cost))
+                      .join('、')}
+                  </p>
+                ) : null}
+                {entry.gained_items && entry.gained_items.length > 0 ? (
+                  <p className="text-wood text-xs leading-5">
+                    途中所得：
+                    {entry.gained_items
+                      .map((item) => formatDungeonText(item))
+                      .join('、')}
+                  </p>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="text-ink-secondary text-sm">此行未留下可回溯的事件。</p>
+        )}
+      </section>
     </InkCard>
   );
 }
