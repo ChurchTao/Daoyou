@@ -10,9 +10,9 @@
  * - 材料生成简化，使用 AI 提供的元素和类型信息
  */
 
+import { calculateDungeonExp } from '@shared/engine/cultivation/ExpBudgetCalculator';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import { YieldCalculator } from '@shared/engine/yield/YieldCalculator';
-import { calculateDungeonExp } from '@shared/engine/cultivation/ExpBudgetCalculator';
 import {
   getDungeonRewardBonus,
   type DungeonDifficultyTier,
@@ -108,10 +108,7 @@ export class RewardFactory {
       );
       rewards.push({
         type: 'comprehension_insight',
-        value: Math.max(
-          1,
-          Math.floor(insightValue * rewardBonus),
-        ),
+        value: Math.max(1, Math.floor(insightValue * rewardBonus)),
       });
     }
 
@@ -207,7 +204,6 @@ export class RewardFactory {
       multiplier,
       dangerBonus,
       mapRealm,
-      tier,
     );
   }
 
@@ -222,13 +218,9 @@ export class RewardFactory {
     multiplier: ValueRange,
     dangerBonus: number,
     mapRealm: RealmType,
-    tier: string,
   ): ResourceOperation {
-    // 计算品质（使用新的评分公式）
-    const quality = this.rollMaterialQuality(
+    const quality = this.resolveMaterialQuality(
       mapRealm,
-      tier,
-      dangerBonus * 200, // 转换回 0-100 的危险分数
       bp.reward_score ?? 50,
     );
     // 获取或推断元素
@@ -330,16 +322,9 @@ export class RewardFactory {
     return elements[Math.floor(Math.random() * elements.length)];
   }
 
-  /**
-   * 生成材料品质。
-   *
-   * 以境界历练品质分布为基准，再由材料稀有度、副本评级与危险分
-   * 对整个品质曲线进行连续加权。
-   */
-  private static rollMaterialQuality(
+  /** 材料稀有评分单调映射到品质，再受副本境界上限约束。 */
+  private static resolveMaterialQuality(
     mapRealm: RealmType,
-    tier: string,
-    dangerScore: number,
     rewardScore: number = 50,
   ): Quality {
     const capQuality = REALM_QUALITY_CAP[mapRealm] || '神品';
@@ -348,46 +333,18 @@ export class RewardFactory {
       Number.isFinite(rewardScore) && rewardScore >= 0 && rewardScore <= 100
         ? rewardScore
         : 50;
-    const safeDangerScore =
-      Number.isFinite(dangerScore) && dangerScore >= 0 && dangerScore <= 100
-        ? dangerScore
-        : 50;
-    const tierRarityBias: Record<string, number> = {
-      S: 0.12,
-      A: 0.06,
-      B: 0,
-      C: -0.06,
-      D: -0.12,
-    };
-    // 材料自身评分是品质曲线偏移的主因，评级和危险度仅作次级修正。
-    const rarityBias =
-      ((safeRewardScore - 50) / 50) * 0.9 +
-      (tierRarityBias[tier] ?? 0) +
-      ((safeDangerScore - 50) / 50) * 0.06;
-    const baseChanceMap =
-      YieldCalculator.getMaterialQualityChanceMap(mapRealm);
-    const weightedQualities = QUALITY_VALUES.map((quality, index) => ({
-      quality,
-      weight:
-        index <= capIndex
-          ? baseChanceMap[quality] * Math.exp(index * rarityBias)
-          : 0,
-    }));
-    const totalWeight = weightedQualities.reduce(
-      (total, entry) => total + entry.weight,
-      0,
-    );
-    let roll = Math.random() * totalWeight;
-    let fallbackQuality: Quality = QUALITY_VALUES[0];
-
-    for (const entry of weightedQualities) {
-      if (entry.weight <= 0) continue;
-      fallbackQuality = entry.quality;
-      roll -= entry.weight;
-      if (roll <= 0) return entry.quality;
-    }
-
-    return fallbackQuality;
+    const desiredQuality: Quality =
+      safeRewardScore < 20
+        ? '凡品'
+        : safeRewardScore < 45
+          ? '灵品'
+          : safeRewardScore < 70
+            ? '玄品'
+            : safeRewardScore < 85
+              ? '真品'
+              : '地品';
+    const desiredIndex = QUALITY_VALUES.indexOf(desiredQuality);
+    return QUALITY_VALUES[Math.min(desiredIndex, capIndex)];
   }
 
   /**

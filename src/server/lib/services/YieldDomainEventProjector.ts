@@ -1,14 +1,10 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
 import type { DomainEventEnvelope } from '@shared/contracts/domainEvents';
+import { getFallbackMaterialPreset } from '@shared/engine/material/creation/fallbackPresets';
 import { MaterialGenerator } from '@shared/engine/material/creation/MaterialGenerator';
+import type { MaterialSkeleton } from '@shared/engine/material/creation/types';
 import { YieldCalculator } from '@shared/engine/yield/YieldCalculator';
-import {
-  MATERIAL_TYPE_VALUES,
-  QUALITY_ORDER,
-  QUALITY_VALUES,
-  type MaterialType,
-  type Quality,
-} from '@shared/types/constants';
+import type { Material } from '@shared/types/cultivator';
 import { MailService, type MailAttachment } from './MailService';
 import {
   materialLibraryEntryToMaterial,
@@ -21,27 +17,17 @@ function createDeterministicRng(seed: string): () => number {
   return () => computeItemLibrarySampleKey(`${seed}:${index++}`);
 }
 
-function buildMaterialTypePreferences(
-  target: MaterialType,
-  seed: string,
-): MaterialType[] {
-  return [
-    target,
-    ...MATERIAL_TYPE_VALUES.filter((type) => type !== target).sort(
-      (left, right) =>
-        computeItemLibrarySampleKey(`${seed}:${left}`) -
-        computeItemLibrarySampleKey(`${seed}:${right}`),
-    ),
-  ];
-}
-
-function buildQualityPreferences(target: Quality): Quality[] {
-  return [...QUALITY_VALUES].sort((left, right) => {
-    const distance =
-      Math.abs(QUALITY_ORDER[left] - QUALITY_ORDER[target]) -
-      Math.abs(QUALITY_ORDER[right] - QUALITY_ORDER[target]);
-    return distance || QUALITY_ORDER[left] - QUALITY_ORDER[right];
-  });
+function createFallbackMaterial(skeleton: MaterialSkeleton): Material {
+  const preset = getFallbackMaterialPreset(skeleton.type, skeleton.rank);
+  return {
+    name: preset.name,
+    type: skeleton.type,
+    rank: skeleton.rank,
+    element: skeleton.forcedElement ?? preset.element,
+    description: preset.description,
+    details: {},
+    quantity: skeleton.quantity,
+  };
 }
 
 export async function generateYieldRewardAttachments(
@@ -62,8 +48,8 @@ export async function generateYieldRewardAttachments(
   for (const [index, skeleton] of skeletons.entries()) {
     const seed = `${event.id}:yield-material:${index}`;
     const request = {
-      materialTypes: buildMaterialTypePreferences(skeleton.type, seed),
-      qualities: buildQualityPreferences(skeleton.rank),
+      materialTypes: [skeleton.type],
+      qualities: [skeleton.rank],
       seed,
     };
     let entry = await sampleMaterialLibraryEntryByPreferences({
@@ -73,15 +59,13 @@ export async function generateYieldRewardAttachments(
     if (!entry) {
       entry = await sampleMaterialLibraryEntryByPreferences(request);
     }
-    if (!entry) {
-      throw new Error(`历练奖励道具库暂无可用材料: ${event.id}`);
-    }
-
-    selectedItemIds.add(entry.itemId);
-    const material = {
-      ...materialLibraryEntryToMaterial(entry),
-      quantity: skeleton.quantity,
-    };
+    if (entry) selectedItemIds.add(entry.itemId);
+    const material = entry
+      ? {
+          ...materialLibraryEntryToMaterial(entry),
+          quantity: skeleton.quantity,
+        }
+      : createFallbackMaterial(skeleton);
     attachments.push({
       type: 'material',
       name: material.name,
