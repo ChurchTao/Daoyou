@@ -1031,7 +1031,7 @@ describe('combat facts V3', () => {
           },
           origin,
           target,
-          code: 'sect.tianyan.reaction.root-collapse',
+          code: 'test.reaction.root-collapse',
           payload: {
             kind: 'named_trigger',
             label: '崩根',
@@ -1050,7 +1050,7 @@ describe('combat facts V3', () => {
           target,
           operation: 'apply',
           transition: 'added',
-          statusId: 'sect.tianyan.root-collapse',
+          statusId: 'test.status.root-collapse',
           statusName: '崩根',
           statusType: 'debuff',
           beforeLayers: 0,
@@ -1075,7 +1075,7 @@ describe('combat facts V3', () => {
       parts.find((part) => part.text.includes('触发「崩根」'))?.reference,
     ).toEqual({
       kind: 'mechanic',
-      id: 'sect.tianyan.reaction.root-collapse',
+      id: 'test.reaction.root-collapse',
       name: '崩根',
       description: '降低目标法防。',
     });
@@ -1083,7 +1083,7 @@ describe('combat facts V3', () => {
       parts.find((part) => part.text.includes('施加「崩根」'))?.reference,
     ).toEqual({
       kind: 'status',
-      id: 'sect.tianyan.root-collapse',
+      id: 'test.status.root-collapse',
       name: '崩根',
     });
   });
