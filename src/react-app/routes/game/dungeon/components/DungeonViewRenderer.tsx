@@ -13,6 +13,7 @@ import type {
   DungeonRecoverAction,
   DungeonState,
 } from '@shared/lib/dungeon/types';
+import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
 import {
   canChallengeDungeonRealm,
   getMapNode,
@@ -53,7 +54,7 @@ interface DungeonViewRendererProps {
     continueLooting: () => Promise<void>;
     escapeLooting: () => Promise<void>;
     recoverDungeon: (action: DungeonRecoverAction) => Promise<void>;
-    startBattle: (enemyName: string) => void;
+    startBattle: (enemyName: string, battlePlan: DungeonBattlePlan) => void;
     abandonBattle: (result: DungeonAbandonBattleResult) => Promise<void>;
     completeBattle: (data: BattleCallbackData | null) => void;
   };
@@ -247,6 +248,7 @@ export function DungeonViewRenderer({
       >
         <DungeonBattle
           battleId={viewState.battleId}
+          battlePlan={viewState.battlePlan}
           player={cultivator}
           onBattleComplete={actions.completeBattle}
         />

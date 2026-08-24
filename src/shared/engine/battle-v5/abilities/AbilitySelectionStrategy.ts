@@ -27,6 +27,13 @@ export interface AbilitySelectionStrategy {
   select(context: AbilitySelectionContext): AbilitySelectionResult | null;
 }
 
+/** Explicitly declines every active skill so automatic combat uses basic attacks. */
+export class BasicAttackOnlySelectionStrategy implements AbilitySelectionStrategy {
+  select(): null {
+    return null;
+  }
+}
+
 export type AbilitySelectionScoreModifier = (
   candidate: AbilitySelectionCandidate,
   context: AbilitySelectionContext,

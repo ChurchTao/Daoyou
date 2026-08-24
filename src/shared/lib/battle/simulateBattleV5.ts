@@ -1,3 +1,4 @@
+import type { AbilitySelectionStrategy } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import {
   SeededBattleRandomSource,
   type BattleRandomSource,
@@ -5,6 +6,7 @@ import {
 } from '@shared/engine/battle-v5/core/BattleRandom';
 import { BattleRoster } from '@shared/engine/battle-v5/core/BattleRoster';
 import { resolveBattleToCompletion } from '@shared/engine/battle-v5/round/BattleAutoResolver';
+import { BattleRuntime } from '@shared/engine/battle-v5/runtime/BattleRuntime';
 import { createBattleUnitsWithInit } from '@shared/engine/battle-v5/setup/BattleInitApplier';
 import {
   assertPreparedBattleContext,
@@ -12,11 +14,16 @@ import {
 } from '@shared/engine/battle-v5/setup/BattleStateStrategy';
 import { validateBattleRecordV3 } from '@shared/engine/battle-v5/v3';
 import type { BattleRecordV3 } from '@shared/types/battle';
-import { BattleRuntime } from '@shared/engine/battle-v5/runtime/BattleRuntime';
+
+export interface BattleSimulationOptions {
+  playerSelectionStrategy?: AbilitySelectionStrategy;
+  opponentSelectionStrategy?: AbilitySelectionStrategy;
+}
 
 export function simulateBattleV5(
   context: PreparedBattleContext,
   randomSource?: BattleRandomSource,
+  options: BattleSimulationOptions = {},
 ): BattleRecordV3 {
   assertPreparedBattleContext(context);
   const runtime = new BattleRuntime({
@@ -31,6 +38,16 @@ export function simulateBattleV5(
       initConfig,
       runtime,
     );
+    if (options.playerSelectionStrategy) {
+      playerUnit.abilities.setSelectionStrategy(
+        options.playerSelectionStrategy,
+      );
+    }
+    if (options.opponentSelectionStrategy) {
+      opponentUnit.abilities.setSelectionStrategy(
+        options.opponentSelectionStrategy,
+      );
+    }
 
     try {
       const battleResult = resolveBattleToCompletion({
@@ -93,7 +110,8 @@ type CheckpointRandomSource = BattleRandomSource & {
 function toCheckpointRandomSource(
   source?: BattleRandomSource,
 ): CheckpointRandomSource {
-  const checkpointSource = source as Partial<CheckpointRandomSource> | undefined;
+  const checkpointSource = source as
+    Partial<CheckpointRandomSource> | undefined;
   if (
     source &&
     typeof checkpointSource?.exportState === 'function' &&
@@ -103,6 +121,8 @@ function toCheckpointRandomSource(
   }
   const sample = source?.next() ?? Math.random();
   return new SeededBattleRandomSource(
-    Math.floor(Math.min(Math.max(sample, 0), 1 - Number.EPSILON) * 0x1_0000_0000),
+    Math.floor(
+      Math.min(Math.max(sample, 0), 1 - Number.EPSILON) * 0x1_0000_0000,
+    ),
   );
 }

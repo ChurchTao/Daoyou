@@ -1,5 +1,6 @@
-import type { BattleRandomSource } from '@shared/engine/battle-v5/core/BattleRandom';
+import type { AbilitySelectionStrategy } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
+import type { BattleRandomSource } from '@shared/engine/battle-v5/core/BattleRandom';
 import {
   mergeBattleUnitInitFragments,
   prepareBattleContext,
@@ -101,16 +102,16 @@ export function executePersistentWorldBattle(args: {
   playerFragment?: BattleUnitInitFragment;
   opponentFragment?: BattleUnitInitFragment;
   randomSource?: BattleRandomSource;
+  playerSelectionStrategy?: AbilitySelectionStrategy;
 }): PersistentWorldBattleExecution {
   const now = args.now ?? new Date();
   const prepared = preparePersistentWorldBattle({
     ...args,
     now,
   });
-  const battleResult = simulateBattleV5(
-    prepared.context,
-    args.randomSource,
-  );
+  const battleResult = simulateBattleV5(prepared.context, args.randomSource, {
+    playerSelectionStrategy: args.playerSelectionStrategy,
+  });
   const playerId = args.player.id ?? args.player.name;
   const didLose = battleResult.outcome.winner.id !== playerId;
   const playerSnapshot = didLose

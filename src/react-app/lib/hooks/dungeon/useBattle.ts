@@ -1,12 +1,13 @@
-import type { ResourceOperation } from '@shared/engine/resource/types';
-import type { BattleRecordV3 } from '@shared/types/battle';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
+import type { ResourceOperation } from '@shared/engine/resource/types';
+import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
 import {
   DungeonRound,
   DungeonSettlement,
   DungeonState,
 } from '@shared/lib/dungeon/types';
-import { useState, useCallback } from 'react';
+import type { BattleRecordV3 } from '@shared/types/battle';
+import { useCallback, useState } from 'react';
 
 interface BattleCallbackData {
   isFinished: boolean;
@@ -20,6 +21,11 @@ type BattleExecutionResult = {
   battleResult?: BattleRecordV3;
   callbackData: BattleCallbackData | null;
 };
+
+interface BattleExecutionInput {
+  battleId: string;
+  battlePlan: DungeonBattlePlan;
+}
 
 const battleExecutionRequests = new Map<string, Promise<BattleExecutionResult>>();
 const battleExecutionResults = new Map<string, BattleExecutionResult>();
@@ -46,7 +52,10 @@ export function useBattle() {
   /**
    * 执行战斗 (JSON)
    */
-  const executeBattle = useCallback(async (battleId: string) => {
+  const executeBattle = useCallback(async ({
+    battleId,
+    battlePlan,
+  }: BattleExecutionInput) => {
     try {
       setLoading(true);
       setBattleEnd(false);
@@ -65,6 +74,7 @@ export function useBattle() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 battleId,
+                battlePlan,
                 requestId: getBattleExecutionRequestId(battleId),
               }),
             });

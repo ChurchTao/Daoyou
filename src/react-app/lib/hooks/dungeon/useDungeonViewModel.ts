@@ -8,6 +8,7 @@ import type {
   DungeonSettlement,
   DungeonState,
 } from '@shared/lib/dungeon/types';
+import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
 import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { useMemo, useState } from 'react';
@@ -29,6 +30,7 @@ export type DungeonViewState =
   | {
       type: 'in_battle';
       battleId: string;
+      battlePlan: DungeonBattlePlan;
       opponentName: string;
       state: DungeonState;
     }
@@ -107,6 +109,8 @@ export function useDungeonViewModel(
 
   // 战斗相关状态
   const [activeBattleId, setActiveBattleId] = useState<string>();
+  const [activeBattlePlan, setActiveBattlePlan] =
+    useState<DungeonBattlePlan>('standard');
   const [opponentName, setOpponentName] = useState('神秘敌手');
 
   /**
@@ -149,6 +153,7 @@ export function useDungeonViewModel(
       return {
         type: 'in_battle',
         battleId: activeBattleId,
+        battlePlan: activeBattlePlan,
         opponentName,
         state,
       };
@@ -197,6 +202,7 @@ export function useDungeonViewModel(
     stateLoading,
     hasCultivator,
     activeBattleId,
+    activeBattlePlan,
     state,
     lastRound,
     opponentName,
@@ -284,8 +290,12 @@ export function useDungeonViewModel(
   /**
    * 操作：开始战斗
    */
-  const handleStartBattle = (enemyName: string) => {
+  const handleStartBattle = (
+    enemyName: string,
+    battlePlan: DungeonBattlePlan,
+  ) => {
     setOpponentName(enemyName);
+    setActiveBattlePlan(battlePlan);
     setActiveBattleId(state?.activeBattleId);
   };
 
@@ -293,6 +303,7 @@ export function useDungeonViewModel(
     result: DungeonAbandonBattleResult,
   ) => {
     setActiveBattleId(undefined);
+    setActiveBattlePlan('standard');
     if (result.isFinished) {
       setState((prev) =>
         prev
@@ -315,6 +326,7 @@ export function useDungeonViewModel(
    */
   const handleBattleComplete = (data: BattleCallbackData | null) => {
     setActiveBattleId(undefined);
+    setActiveBattlePlan('standard');
     if (data?.isFinished) {
       setState((prev) =>
         prev

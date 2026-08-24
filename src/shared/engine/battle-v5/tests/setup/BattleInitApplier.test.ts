@@ -5,9 +5,11 @@ import type {
   CultivatorCondition,
 } from '@shared/types/condition';
 import type { Cultivator } from '@shared/types/cultivator';
+import { BasicAttackOnlySelectionStrategy } from '../../abilities/AbilitySelectionStrategy';
 import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { TargetPolicy } from '../../abilities/TargetPolicy';
 import { StackRule } from '../../buffs/Buff';
+import { SeededBattleRandomSource } from '../../core/BattleRandom';
 import { EventBus } from '../../core/EventBus';
 import {
   DamageRequestEvent,
@@ -16,6 +18,7 @@ import {
 } from '../../core/events';
 import {
   AbilityId,
+  AbilityType,
   AttributeType,
   BuffType,
   DamageSource,
@@ -287,6 +290,66 @@ describe('BattleInitApplier', () => {
     expect(initFrame.baseAttrs.maxHp).toBe(630);
     expect(initFrame.attrs.maxHp).toBe(1_000);
     expect(initFrame.hp.current).toBe(1_000);
+  });
+
+  test('模拟战斗可仅覆写玩家策略为普攻且不消耗法力', () => {
+    const player = createCultivator('player', '道友');
+    const opponent = createCultivator('dummy', '木桩');
+    player.attributes.strength = 40;
+    opponent.attributes.vitality = 5;
+    player.skills = [
+      {
+        id: 'mana-strike',
+        name: '耗法一击',
+        element: '火',
+        cooldown: 0,
+        abilityConfig: {
+          slug: 'mana-strike',
+          name: '耗法一击',
+          type: AbilityType.ACTIVE_SKILL,
+          mpCost: 80,
+          cooldown: 0,
+          priority: 1_000,
+          targetPolicy: { team: 'enemy', scope: 'single' },
+          tags: [
+            GameplayTags.ABILITY.KIND.SKILL,
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.TRUE,
+          ],
+          effects: [
+            {
+              type: 'damage',
+              params: {
+                value: { base: 500 },
+                damageType: DamageType.TRUE,
+                canCrit: false,
+              },
+            },
+          ],
+        },
+      },
+    ];
+
+    const result = simulateBattleV5(
+      prepareStandardFullBattle({ player, opponent }),
+      new SeededBattleRandomSource('basic-attack-only'),
+      {
+        playerSelectionStrategy: new BasicAttackOnlySelectionStrategy(),
+      },
+    );
+    const ownedDamageCarriers = result.sequences.flatMap((sequence) =>
+      sequence.facts.flatMap((fact) =>
+        fact.type === 'damage' && fact.origin.kind === 'owned'
+          ? [fact.origin.carrier.id]
+          : [],
+      ),
+    );
+    const initialPlayer = result.stateTimeline.frames[0].units.player;
+    const finalPlayer = result.stateTimeline.frames.at(-1)!.units.player;
+
+    expect(ownedDamageCarriers).toContain('basic_attack');
+    expect(ownedDamageCarriers).not.toContain('mana-strike');
+    expect(finalPlayer.mp.current).toBe(initialPlayer.mp.current);
   });
 
   test('resourceState.shield 会设置初始护盾', () => {

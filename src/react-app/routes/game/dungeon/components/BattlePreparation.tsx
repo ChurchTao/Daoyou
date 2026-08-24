@@ -8,15 +8,33 @@ import {
   DungeonAbandonBattleResult,
   useEnemyProbe,
 } from '@app/lib/hooks/dungeon/useEnemyProbe';
+import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useEffect, useState } from 'react';
 
 interface BattlePreparationProps {
   battleId: string;
   player: Pick<Cultivator, 'realm' | 'attributes'>;
-  onStart: (enemyName: string) => void;
+  onStart: (enemyName: string, battlePlan: DungeonBattlePlan) => void;
   onAbandon: (result: DungeonAbandonBattleResult) => Promise<void>;
 }
+
+const BATTLE_PLANS: ReadonlyArray<{
+  id: DungeonBattlePlan;
+  name: string;
+  description: string;
+}> = [
+  {
+    id: 'standard',
+    name: '常规作战',
+    description: '按照当前宗门战术和主动栏自动施法。',
+  },
+  {
+    id: 'basic_attack_only',
+    name: '只用普攻',
+    description: '不施放主动技能，适合对付低风险敌人并保留法力。',
+  },
+];
 
 export function BattlePreparation({
   battleId,
@@ -28,6 +46,7 @@ export function BattlePreparation({
   const { enemy, isProbing, probeEnemy, abandonBattle } =
     useEnemyProbe(battleId);
   const [isEnemyDetailOpen, setIsEnemyDetailOpen] = useState(false);
+  const [battlePlan, setBattlePlan] = useState<DungeonBattlePlan>('standard');
 
   useEffect(() => {
     if (!enemy && !isProbing) {
@@ -64,7 +83,7 @@ export function BattlePreparation({
       ? `${enemy.title}·${enemy.name}`
       : enemy?.name || '神秘敌手';
 
-    onStart(enemyName);
+    onStart(enemyName, battlePlan);
   };
 
   const handleStart = () => {
@@ -112,6 +131,33 @@ export function BattlePreparation({
       </div>
 
       <div className="space-y-3">
+        <fieldset className="space-y-2 text-left">
+          <legend className="text-ink text-sm font-semibold">作战方案</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {BATTLE_PLANS.map((plan) => {
+              const selected = battlePlan === plan.id;
+              return (
+                <button
+                  key={plan.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setBattlePlan(plan.id)}
+                  className={`border p-3 text-left transition-colors ${
+                    selected
+                      ? 'border-crimson bg-crimson/10 text-ink'
+                      : 'border-ink/20 bg-paper/60 text-ink-secondary hover:border-ink/40'
+                  }`}
+                >
+                  <span className="block font-semibold">{plan.name}</span>
+                  <span className="mt-1 block text-xs leading-5">
+                    {plan.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
         <InkButton
           variant="secondary"
           className="w-full py-3"

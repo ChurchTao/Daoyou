@@ -4,13 +4,14 @@ import { useBattlePlaybackState } from '@app/components/feature/battle/v3/useBat
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
 import { useBattle } from '@app/lib/hooks/dungeon/useBattle';
 import type { ResourceOperation } from '@shared/engine/resource/types';
-import type { Cultivator } from '@shared/types/cultivator';
-import { useEffect, useRef, useState } from 'react';
+import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
 import {
   DungeonRound,
   DungeonSettlement,
   DungeonState,
 } from '@shared/lib/dungeon/types';
+import type { Cultivator } from '@shared/types/cultivator';
+import { useEffect, useRef, useState } from 'react';
 
 export interface BattleCallbackData {
   isFinished: boolean;
@@ -22,6 +23,7 @@ export interface BattleCallbackData {
 
 interface DungeonBattleProps {
   battleId: string;
+  battlePlan: DungeonBattlePlan;
   player: Pick<Cultivator, 'id'>;
   onBattleComplete: (data: BattleCallbackData | null) => void;
 }
@@ -32,6 +34,7 @@ interface DungeonBattleProps {
  */
 export function DungeonBattle({
   battleId,
+  battlePlan,
   player,
   onBattleComplete,
 }: DungeonBattleProps) {
@@ -46,7 +49,7 @@ export function DungeonBattle({
     hasExecuted.current = true;
 
     const runBattle = async () => {
-      const result = await executeBattle(battleId);
+      const result = await executeBattle({ battleId, battlePlan });
       if (result?.callbackData) {
         setBattleSettlement(result.callbackData);
       } else if (!result?.battleResult) {
@@ -55,14 +58,18 @@ export function DungeonBattle({
     };
 
     void runBattle();
-  }, [battleId, executeBattle, onBattleComplete]);
+  }, [battleId, battlePlan, executeBattle, onBattleComplete]);
 
   const isPlaybackFinished = playback.isPlaybackFinished;
 
   return (
     <BattlePageLayout
       title="副本战斗"
-      subtitle="查看双方状态、技能变化和实时战斗日志。"
+      subtitle={
+        battlePlan === 'basic_attack_only'
+          ? '作战方案：只用普攻，本场不会主动施放技能。'
+          : '查看双方状态、技能变化和实时战斗日志。'
+      }
       variant="immersive-battle"
       loading={loading && !battleResult}
       battleResult={battleResult}
@@ -73,7 +80,11 @@ export function DungeonBattle({
         key={`dungeon-${battleResult?.outcome.turns}-${battleResult?.outcome.winner.id ?? 'unknown'}`}
         dialogKey={`dungeon-${battleResult?.outcome.turns}-${battleResult?.outcome.winner.id ?? 'unknown'}`}
         open={!!battleResult && isPlaybackFinished}
-        title={battleResult?.outcome.winner.id === player.id ? '战斗胜利' : '战斗失败'}
+        title={
+          battleResult?.outcome.winner.id === player.id
+            ? '战斗胜利'
+            : '战斗失败'
+        }
         confirmLabel={battleSettlement?.isFinished ? '查看结算' : '继续探险'}
         onConfirm={() => {
           if (battleSettlement) {

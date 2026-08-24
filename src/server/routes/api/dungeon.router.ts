@@ -22,6 +22,7 @@ import {
   QiInsufficientError,
   QiServiceError,
 } from '@server/lib/services/QiService';
+import { DungeonBattlePlanSchema } from '@shared/lib/dungeon/battlePlan';
 import { desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -58,6 +59,10 @@ const BattleIdQuerySchema = z.object({
 const BattleIdBodySchema = z.object({
   battleId: z.string().min(1),
   requestId: z.string().min(1).max(120).optional(),
+});
+
+const BattleExecuteBodySchema = BattleIdBodySchema.extend({
+  battlePlan: DungeonBattlePlanSchema.default('standard'),
 });
 
 router.post('/start', requireActiveCultivatorRef(), async (c) => {
@@ -410,13 +415,18 @@ battleRouter.post('/execute/v5', requireActiveCultivatorRef(), async (c) => {
       return c.json({ error: '未授权访问' }, 401);
     }
 
-    const { battleId, requestId } = BattleIdBodySchema.parse(
+    const { battleId, battlePlan, requestId } = BattleExecuteBodySchema.parse(
       await c.req.json(),
     );
     const responsePayload = await executeDungeonCommand({
       userId: user.id,
       cultivatorId: cultivator.cultivatorId,
-      command: { kind: 'battle-execute', battleId, requestId },
+      command: {
+        kind: 'battle-execute',
+        battleId,
+        battlePlan,
+        requestId,
+      },
     });
     return c.json(responsePayload);
   } catch (error) {

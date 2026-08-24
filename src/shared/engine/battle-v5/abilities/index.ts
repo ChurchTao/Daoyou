@@ -1,5 +1,6 @@
 export { Ability } from './Ability';
 export {
+  BasicAttackOnlySelectionStrategy,
   DefaultAbilitySelectionStrategy,
   type AbilitySelectionCandidate,
   type AbilitySelectionContext,

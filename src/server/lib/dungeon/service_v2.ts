@@ -12,9 +12,10 @@ import { updateCultivator } from '@server/lib/services/cultivator/CultivatorStat
 import { resourceEngine } from '@server/lib/services/resource/ResourceEngine';
 import { generateAiObject } from '@server/utils/aiClient';
 import { stableCompactStringify } from '@server/utils/llmPayload';
+import { getRealmStageNaturalAttributeValue } from '@shared/config/realmProgression';
+import { BasicAttackOnlySelectionStrategy } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import type { CultivatorDisplayInput } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import { getRealmStageNaturalAttributeValue } from '@shared/config/realmProgression';
 import { EnemyGenerator } from '@shared/engine/enemyGenerator';
 import { TYPE_DESCRIPTIONS } from '@shared/engine/material/creation/config';
 import type {
@@ -22,6 +23,7 @@ import type {
   ResourceOperationResult,
   ResourceOperationSettlement,
 } from '@shared/engine/resource/types';
+import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
 import type { SatelliteNode } from '@shared/lib/game/mapSystem';
 import {
   canChallengeDungeonRealm,
@@ -1577,12 +1579,14 @@ export class DungeonService {
   async executeBattle(
     cultivatorId: string,
     battleId: string,
+    battlePlan: DungeonBattlePlan,
     options: DungeonFlowOptions = {},
   ) {
     return this.withFlowLock(
       cultivatorId,
       'dungeon-battle-execute',
-      () => this.executeBattleUnlocked(cultivatorId, battleId, options),
+      () =>
+        this.executeBattleUnlocked(cultivatorId, battleId, battlePlan, options),
       options.lease,
     );
   }
@@ -1590,6 +1594,7 @@ export class DungeonService {
   private async executeBattleUnlocked(
     cultivatorId: string,
     battleId: string,
+    battlePlan: DungeonBattlePlan,
     options: DungeonFlowOptions = {},
   ) {
     const { battleKey, enemyObject } = await this.getBattleContext(
@@ -1606,6 +1611,10 @@ export class DungeonService {
       strategyId: 'persistent_world',
       player: cultivatorBundle.cultivator,
       opponent: enemyObject,
+      playerSelectionStrategy:
+        battlePlan === 'basic_attack_only'
+          ? new BasicAttackOnlySelectionStrategy()
+          : undefined,
     });
     const { battleResult, nextCondition, didLose } = execution;
 

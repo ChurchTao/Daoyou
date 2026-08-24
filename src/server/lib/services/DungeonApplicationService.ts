@@ -16,6 +16,7 @@ import {
   type ResourceChangeDescriptor,
 } from '@shared/contracts/resources';
 import { projectBattleUnitEntryState } from '@shared/engine/battle-v5/setup/BattleStateStrategy';
+import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
 import {
   canChallengeDungeonRealm,
   getMapNode,
@@ -25,8 +26,8 @@ import {
   evaluateNoviceReadiness,
   type NoviceDungeonReadiness,
 } from '@shared/lib/noviceGuidance';
-import { playerCommandExecutor } from './CommandExecutors';
 import { resolvePersistentWorldPlayerState } from './BattleStateCoordinator';
+import { playerCommandExecutor } from './CommandExecutors';
 import { toPlayerStateMutationResponse } from './ResourceMutationResponse';
 import { TaskService } from './TaskService';
 
@@ -46,7 +47,12 @@ type DungeonCommand =
   | { kind: 'looting-continue' }
   | { kind: 'looting-escape' }
   | { kind: 'battle-abandon'; battleId: string }
-  | { kind: 'battle-execute'; battleId: string; requestId?: string };
+  | {
+      kind: 'battle-execute';
+      battleId: string;
+      battlePlan: DungeonBattlePlan;
+      requestId?: string;
+    };
 
 export class DungeonStartError extends Error {
   constructor(
@@ -318,6 +324,7 @@ async function prepareDungeonCommand(
       const result = await dungeonService.executeBattle(
         cultivatorId,
         command.battleId,
+        command.battlePlan,
         options,
       );
       const hooks = result as DungeonDeferredResult;
