@@ -109,9 +109,11 @@ describe('resolveDungeonMapConfig', () => {
     expect(getDungeonRewardBonus('boss')).toBe(1.5);
   });
 
-  it('allows dungeon challenges only up to the player realm', () => {
+  it('allows qi-refining players into foundation dungeons only', () => {
     expect(canChallengeDungeonRealm('筑基', '炼气')).toBe(true);
     expect(canChallengeDungeonRealm('筑基', '筑基')).toBe(true);
+    expect(canChallengeDungeonRealm('炼气', '筑基')).toBe(true);
+    expect(canChallengeDungeonRealm('炼气', '金丹')).toBe(false);
     expect(canChallengeDungeonRealm('筑基', '金丹')).toBe(false);
   });
 
@@ -143,6 +145,36 @@ describe('resolveDungeonMapConfig', () => {
         satelliteNodes.find((node) => node.id === 'SAT_DJ_02')!,
       ).difficultyLabel,
     ).toBe('绝境');
+  });
+
+  it('configures 鸣雷废阵 as a late qi-refining hard dungeon', () => {
+    const dungeon = getMapNode('SAT_YW_02');
+
+    expect(dungeon).toMatchObject({
+      name: '元武国·鸣雷废阵',
+      parent_id: 'TN_YW_01',
+      realm_requirement: '炼气',
+      environmental_status: 'formation_suppressed',
+      dungeon_config: { difficulty: 'hard' },
+    });
+    expect(dungeon?.tags.slice(0, 3)).toEqual([
+      '单人副本',
+      '炼气后期',
+      '风雷残阵',
+    ]);
+
+    const config = resolveDungeonMapConfig(dungeon!);
+    expect(config).toMatchObject({
+      realmRequirement: '炼气',
+      difficultyTier: 'hard',
+      difficultyLabel: '险地',
+      enemyDifficulty: 35,
+      allowedEnemyRealmStages: ['中期', '后期'],
+      allowBossLoadout: false,
+      rewardBonus: 1.2,
+    });
+    expect(clampDungeonEnemyRealmStage('初期', config)).toBe('中期');
+    expect(clampDungeonEnemyRealmStage('圆满', config)).toBe('后期');
   });
 
   it('connects every production sect to one valid world-map landmark', () => {

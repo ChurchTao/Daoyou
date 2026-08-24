@@ -1,4 +1,5 @@
-import { REALM_ORDER, type RealmType } from '@shared/types/constants';
+import { canChallengeDungeonRealm } from '@shared/lib/game/mapSystem';
+import type { RealmType } from '@shared/types/constants';
 import type {
   Artifact,
   Consumable,
@@ -153,7 +154,7 @@ export function evaluateNoviceReadiness(
 
   if (
     selectedNodeRealm &&
-    REALM_ORDER[selectedNodeRealm] > REALM_ORDER[cultivator.realm]
+    !canChallengeDungeonRealm(cultivator.realm, selectedNodeRealm)
   ) {
     reasons.push(
       `当前秘境要求${selectedNodeRealm}，高于你的${cultivator.realm}境界。`,

@@ -226,7 +226,10 @@ export function canChallengeDungeonRealm(
   playerRealm: RealmType,
   dungeonRealm: RealmType,
 ): boolean {
-  return REALM_ORDER[playerRealm] >= REALM_ORDER[dungeonRealm];
+  return (
+    REALM_ORDER[playerRealm] >= REALM_ORDER[dungeonRealm] ||
+    (playerRealm === '炼气' && dungeonRealm === '筑基')
+  );
 }
 
 export function clampDungeonEnemyRealmStage(

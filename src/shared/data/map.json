@@ -569,6 +569,26 @@
       "y": 76
     },
     {
+      "id": "SAT_YW_02",
+      "name": "元武国·鸣雷废阵",
+      "parent_id": "TN_YW_01",
+      "type": "阵法遗迹",
+      "realm_requirement": "炼气",
+      "environmental_status": "formation_suppressed",
+      "tags": [
+        "单人副本",
+        "炼气后期",
+        "风雷残阵",
+        "阵法破解",
+        "玄品机缘"
+      ],
+      "description": "元武国边境的一座旧阵谷，曾遭雷火击毁，残存阵旗至今仍会引动风雷。外围散修常来拆取阵材，深入者却容易被困在重叠阵门之中。传闻废阵核心仍留有完整的引雷阵纹。",
+      "dungeon_config": { "difficulty": "hard" },
+      "connections": ["TN_YW_01"],
+      "x": 91,
+      "y": 75
+    },
+    {
       "id": "SAT_LX_03",
       "name": "天星城·圣山地脉秘窟",
       "parent_id": "LX_INNER_01",
