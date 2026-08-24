@@ -163,6 +163,7 @@ export default function CultivatorAttributesPage() {
       >
         <CultivatorAttributeOverview
           cultivator={cultivator}
+          attributeDraft={attributeDraft}
           defaultExpanded
           expandable={false}
         />

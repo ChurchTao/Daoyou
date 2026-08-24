@@ -6,6 +6,7 @@ import {
 import { AttributeType } from '@shared/engine/battle-v5/core/types';
 import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
 import { cn } from '@shared/lib/cn';
+import type { Attributes } from '@shared/types/cultivator';
 import { useState, type ReactNode } from 'react';
 
 type PrimaryAttributeType =
@@ -42,6 +43,12 @@ const SECONDARY_ATTR_ORDER: AttributeType[] = [
   AttributeType.CRIT_DAMAGE_REDUCTION,
   AttributeType.ACCURACY,
   AttributeType.HEAL_AMPLIFY,
+];
+
+const ALLOCATION_PREVIEW_SECONDARY_ATTR_ORDER: AttributeType[] = [
+  AttributeType.MAX_HP,
+  AttributeType.MAX_MP,
+  ...SECONDARY_ATTR_ORDER,
 ];
 
 const PERCENT_ATTRS = new Set<AttributeType>([
@@ -92,29 +99,105 @@ function chunkPairs<T>(items: T[]): T[][] {
   return rows;
 }
 
+function AttributeValue({
+  attrType,
+  baseValue,
+  modifier,
+  previewValue,
+  previewDelta,
+}: {
+  attrType: AttributeType;
+  baseValue: number;
+  modifier: number;
+  previewValue?: number;
+  previewDelta?: number;
+}) {
+  const hasPreviewChange =
+    previewValue !== undefined &&
+    previewDelta !== undefined &&
+    Math.abs(previewDelta) > 1e-9;
+
+  return (
+    <>
+      {formatAttributeValue(attrType, baseValue)}
+      {modifier !== 0 ? (
+        <>
+          {' '}
+          <span
+            className={cn(
+              'font-semibold',
+              modifier > 0 ? 'text-emerald-700' : 'text-violet-700',
+            )}
+          >
+            {formatModifier(attrType, modifier)}
+          </span>
+        </>
+      ) : null}
+      {hasPreviewChange ? (
+        <>
+          <span className="text-ink mx-1">→</span>
+          <span className="font-semibold text-emerald-700">
+            {formatAttributeValue(attrType, previewValue)}
+          </span>
+          <span className="ml-1 text-xs text-emerald-700">
+            （本次{formatModifier(attrType, previewDelta)}）
+          </span>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 export function CultivatorAttributeOverview({
   cultivator,
+  attributeDraft,
   defaultExpanded = false,
   expandable = true,
   footerActions,
 }: {
   cultivator: CultivatorDisplayInput;
+  attributeDraft?: Attributes;
   defaultExpanded?: boolean;
   expandable?: boolean;
   footerActions?: ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(defaultExpanded && expandable);
   const { unit } = getCultivatorDisplayAttributes(cultivator);
-  const orderedAttributes = [...PRIMARY_ATTR_ORDER, ...SECONDARY_ATTR_ORDER];
+  const previewUnit = attributeDraft
+    ? getCultivatorDisplayAttributes({
+        ...cultivator,
+        attributes: {
+          vitality: cultivator.attributes.vitality + attributeDraft.vitality,
+          strength: cultivator.attributes.strength + attributeDraft.strength,
+          spirit: cultivator.attributes.spirit + attributeDraft.spirit,
+          endurance:
+            cultivator.attributes.endurance + attributeDraft.endurance,
+          speed: cultivator.attributes.speed + attributeDraft.speed,
+          willpower:
+            cultivator.attributes.willpower + attributeDraft.willpower,
+        },
+      }).unit
+    : null;
+  const secondaryAttributeOrder = attributeDraft
+    ? ALLOCATION_PREVIEW_SECONDARY_ATTR_ORDER
+    : SECONDARY_ATTR_ORDER;
+  const orderedAttributes = [
+    ...PRIMARY_ATTR_ORDER,
+    ...secondaryAttributeOrder,
+  ];
   const displayAttributes = orderedAttributes.map((attrType) => {
     const baseValue = unit.attributes.getBaseValue(attrType);
     const finalValue = unit.attributes.getValue(attrType);
     const modifier = finalValue - baseValue;
+    const previewValue = previewUnit?.attributes.getValue(attrType);
     return {
       type: attrType,
       label: attrLabel(attrType),
       baseValue,
       modifier,
+      previewValue,
+      previewDelta:
+        previewValue === undefined ? undefined : previewValue - finalValue,
     };
   });
   const primaryRows = displayAttributes.slice(0, PRIMARY_ATTR_ORDER.length);
@@ -137,22 +220,7 @@ export function CultivatorAttributeOverview({
                   {item.label}
                 </td>
                 <td className="text-ink-secondary py-2 pr-3 text-right">
-                  {formatAttributeValue(item.type, item.baseValue)}
-                  {item.modifier !== 0 ? (
-                    <>
-                      {' '}
-                      <span
-                        className={cn(
-                          'font-semibold',
-                          item.modifier > 0
-                            ? 'text-emerald-700'
-                            : 'text-violet-700',
-                        )}
-                      >
-                        {formatModifier(item.type, item.modifier)}
-                      </span>
-                    </>
-                  ) : null}
+                  <AttributeValue {...item} attrType={item.type} />
                 </td>
               </tr>
             ))}
@@ -175,22 +243,7 @@ export function CultivatorAttributeOverview({
                     <div className="flex min-w-0 items-baseline justify-between gap-2">
                       <span className="text-ink shrink-0">{item.label}</span>
                       <span className="text-ink-secondary min-w-0 text-right">
-                        {formatAttributeValue(item.type, item.baseValue)}
-                        {item.modifier !== 0 ? (
-                          <>
-                            {' '}
-                            <span
-                              className={cn(
-                                'font-semibold',
-                                item.modifier > 0
-                                  ? 'text-emerald-700'
-                                  : 'text-violet-700',
-                              )}
-                            >
-                              {formatModifier(item.type, item.modifier)}
-                            </span>
-                          </>
-                        ) : null}
+                        <AttributeValue {...item} attrType={item.type} />
                       </span>
                     </div>
                   </td>
@@ -233,19 +286,7 @@ export function CultivatorAttributeOverview({
             >
               <span className="text-ink">{item.label}</span>
               <span className="text-ink-secondary text-right">
-                {formatAttributeValue(item.type, item.baseValue)}
-                {item.modifier !== 0 ? (
-                  <span
-                    className={cn(
-                      'ml-1 font-semibold',
-                      item.modifier > 0
-                        ? 'text-emerald-700'
-                        : 'text-violet-700',
-                    )}
-                  >
-                    {formatModifier(item.type, item.modifier)}
-                  </span>
-                ) : null}
+                <AttributeValue {...item} attrType={item.type} />
               </span>
             </div>
           ))}
