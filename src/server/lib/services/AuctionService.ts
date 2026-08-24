@@ -9,6 +9,7 @@ import {
   isAuctionListableQuality,
 } from '@shared/config/auctionConfig';
 import { AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO } from '@shared/config/socialConfig';
+import { isSystemAuctionSeller } from '@shared/config/systemAuctionConfig';
 import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,
@@ -821,21 +822,23 @@ export async function buyItem(
       tx,
     );
 
-    // 5.4 发送邮件给卖家（扣除手续费后的灵石）
-    await MailService.sendMail(
-      listing.sellerId,
-      '拍卖行物品售出',
-      `道友寄售的【${itemSnapshot.name}】成交 ${quantity} 件，成交额 ${price} 灵石，按阶梯税扣除 ${feeAmount} 灵石后获得 ${sellerAmount} 灵石，请收取附件。`,
-      [
-        {
-          type: 'spirit_stones',
-          name: '灵石',
-          quantity: sellerAmount,
-        },
-      ],
-      'reward',
-      tx,
-    );
+    // 系统货源用于稳定供给并回收灵石，不向虚拟卖家回款。
+    if (!isSystemAuctionSeller(listing.sellerId)) {
+      await MailService.sendMail(
+        listing.sellerId,
+        '拍卖行物品售出',
+        `道友寄售的【${itemSnapshot.name}】成交 ${quantity} 件，成交额 ${price} 灵石，按阶梯税扣除 ${feeAmount} 灵石后获得 ${sellerAmount} 灵石，请收取附件。`,
+        [
+          {
+            type: 'spirit_stones',
+            name: '灵石',
+            quantity: sellerAmount,
+          },
+        ],
+        'reward',
+        tx,
+      );
+    }
   };
 
   if (options.tx) {
@@ -947,6 +950,10 @@ export async function expireListings(): Promise<number> {
 
     // 逐个发送返还邮件
     for (const listing of expiredListings) {
+      processed++;
+      if (isSystemAuctionSeller(listing.sellerId)) {
+        continue;
+      }
       const itemSnapshot = listing.itemSnapshot as
         Material | Artifact | Consumable;
       const itemQuantity = listing.remainingQuantity;
@@ -969,7 +976,6 @@ export async function expireListings(): Promise<number> {
         'reward',
         tx,
       );
-      processed++;
     }
   });
 

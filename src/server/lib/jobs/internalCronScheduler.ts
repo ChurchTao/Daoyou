@@ -2,6 +2,7 @@ import { publishScheduledBackgroundCommand } from '@server/lib/mq/backgroundComm
 import type { BackgroundCommandType } from '@shared/contracts/backgroundCommands';
 
 const AUCTION_EXPIRE_SCHEDULE = '*/2 * * * *';
+const SYSTEM_AUCTION_REFRESH_SCHEDULE = '0 */2 * * *';
 const BET_BATTLE_EXPIRE_SCHEDULE = '*/2 * * * *';
 // Bun.cron uses UTC for cron expressions. 16:00 UTC equals 00:00 Asia/Shanghai.
 const RANK_REWARDS_SCHEDULE = '0 16 * * *';
@@ -43,6 +44,9 @@ export function registerInternalCronJobs(
 
   scheduledTasks = [
     Bun.cron(AUCTION_EXPIRE_SCHEDULE, () => runScheduledJob('auction.expire')),
+    Bun.cron(SYSTEM_AUCTION_REFRESH_SCHEDULE, () =>
+      runScheduledJob('system-auction.refresh'),
+    ),
     Bun.cron(BET_BATTLE_EXPIRE_SCHEDULE, () =>
       runScheduledJob('bet-battle.expire'),
     ),
@@ -79,6 +83,7 @@ export function registerInternalCronJobs(
 
   console.info('[cron] registered Bun cron jobs', {
     auctionExpire: AUCTION_EXPIRE_SCHEDULE,
+    systemAuctionRefresh: SYSTEM_AUCTION_REFRESH_SCHEDULE,
     betBattleExpire: BET_BATTLE_EXPIRE_SCHEDULE,
     rankRewardsUtc: RANK_REWARDS_SCHEDULE,
     rankRewardsLocal: '00:00 Asia/Shanghai',

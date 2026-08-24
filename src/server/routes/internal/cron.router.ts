@@ -1,17 +1,18 @@
+import type { AppEnv } from '@server/lib/hono/types';
 import {
   runAuctionExpireJob,
   runBetBattleExpireJob,
   runExpiredDataCleanupJob,
   runMarketRefreshCronJob,
   runMaterialLibraryDailyGenerationJob,
-  runResourceReplayCleanupJob,
   runRankRewardsJob,
-  runTowerEnemySetRefreshJob,
+  runResourceReplayCleanupJob,
+  runSponsorshipAdminDigestJob,
   runSponsorshipCleanupJob,
   runSponsorshipReconcileJob,
-  runSponsorshipAdminDigestJob,
+  runSystemAuctionRefreshJob,
+  runTowerEnemySetRefreshJob,
 } from '@server/lib/jobs/internalCron';
-import type { AppEnv } from '@server/lib/hono/types';
 import { Hono } from 'hono';
 
 function getCronAuthorizationError(
@@ -65,6 +66,10 @@ const router = new Hono<AppEnv>();
 
 router.get('/auction-expire', (c) =>
   handleCronRequest(c.req.raw, runAuctionExpireJob),
+);
+
+router.get('/system-auction-refresh', (c) =>
+  handleCronRequest(c.req.raw, runSystemAuctionRefreshJob),
 );
 
 router.get('/bet-battle-expire', (c) =>

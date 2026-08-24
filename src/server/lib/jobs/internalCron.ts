@@ -33,6 +33,7 @@ import {
   retryPendingSponsorshipWork,
   sendSponsorshipAdminDigest,
 } from '@server/lib/services/SponsorshipApplicationService';
+import { refreshSystemAuctionListings } from '@server/lib/services/SystemAuctionService';
 import { getSponsorshipProvider } from '@server/lib/sponsorship/providerRegistry';
 import { towerEnemySetService } from '@server/lib/tower/enemySets';
 import { RANKING_REWARDS, REALM_VALUES } from '@shared/types/constants';
@@ -241,6 +242,20 @@ export async function runAuctionExpireJob(): Promise<CronJobResult> {
       success: true,
       processed,
       skipped: false,
+    };
+  });
+}
+
+export async function runSystemAuctionRefreshJob(
+  scheduledAt = new Date(),
+): Promise<CronJobResult> {
+  return withJobLock('system-auction-refresh', async () => {
+    const result = await refreshSystemAuctionListings(scheduledAt);
+    return {
+      success: true,
+      processed: result.created,
+      skipped: result.skipped,
+      reason: result.skipped ? 'current_bucket_already_stocked' : undefined,
     };
   });
 }

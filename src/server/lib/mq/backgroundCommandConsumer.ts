@@ -16,6 +16,7 @@ import {
   runSponsorshipAdminDigestJob,
   runSponsorshipCleanupJob,
   runSponsorshipReconcileJob,
+  runSystemAuctionRefreshJob,
   runTowerEnemySetRefreshJob,
 } from '../jobs/internalCron';
 import {
@@ -40,6 +41,8 @@ const activeHandlers = new Set<Promise<void>>();
 
 const handlers = {
   'auction.expire': () => runAuctionExpireJob(),
+  'system-auction.refresh': (command) =>
+    runSystemAuctionRefreshJob(new Date(command.requestedAt)),
   'bet-battle.expire': () => runBetBattleExpireJob(),
   'ranking.rewards.distribute': (command) =>
     runRankRewardsJob(new Date(command.requestedAt)),

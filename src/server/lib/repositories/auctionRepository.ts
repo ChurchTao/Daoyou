@@ -11,10 +11,7 @@ import * as schema from '../drizzle/schema';
  */
 export type AuctionListing = typeof schema.auctionListings.$inferSelect;
 
-/**
- * 创建拍卖记录
- */
-export async function createListing(data: {
+export interface CreateAuctionListingData {
   sellerId: string;
   sellerName: string;
   itemType: 'material' | 'artifact' | 'consumable';
@@ -30,8 +27,14 @@ export async function createListing(data: {
   targetCultivatorId?: string;
   targetCultivatorName?: string;
   expiresAt: Date;
-  tx?: DbTransaction;
-}): Promise<AuctionListing> {
+}
+
+/**
+ * 创建拍卖记录
+ */
+export async function createListing(
+  data: CreateAuctionListingData & { tx?: DbTransaction },
+): Promise<AuctionListing> {
   const q = getExecutor(data.tx);
   const [listing] = await q
     .insert(schema.auctionListings)
@@ -55,6 +58,36 @@ export async function createListing(data: {
     })
     .returning();
   return listing;
+}
+
+export async function createListings(
+  tx: DbTransaction,
+  listings: CreateAuctionListingData[],
+): Promise<AuctionListing[]> {
+  if (listings.length === 0) return [];
+  return tx
+    .insert(schema.auctionListings)
+    .values(
+      listings.map((data) => ({
+        sellerId: data.sellerId,
+        sellerName: data.sellerName,
+        itemType: data.itemType,
+        itemId: data.itemId,
+        itemName: data.itemName,
+        itemQuality: data.itemQuality,
+        itemCategory: data.itemCategory,
+        itemSnapshot: data.itemSnapshot,
+        price: data.price,
+        initialQuantity: data.initialQuantity,
+        remainingQuantity: data.remainingQuantity,
+        visibility: data.visibility ?? 'public',
+        targetCultivatorId: data.targetCultivatorId,
+        targetCultivatorName: data.targetCultivatorName,
+        status: 'active',
+        expiresAt: data.expiresAt,
+      })),
+    )
+    .returning();
 }
 
 /**
@@ -209,6 +242,41 @@ export async function countActiveBySeller(
       ),
     );
   return result[0]?.count || 0;
+}
+
+export async function countBySellerSince(
+  sellerId: string,
+  createdSince: Date,
+  executor?: DbExecutor,
+): Promise<number> {
+  const q = executor ?? getExecutor();
+  const result = await q
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.auctionListings)
+    .where(
+      and(
+        eq(schema.auctionListings.sellerId, sellerId),
+        gte(schema.auctionListings.createdAt, createdSince),
+      ),
+    );
+  return result[0]?.count || 0;
+}
+
+export async function expireActiveBySeller(
+  tx: DbTransaction,
+  sellerId: string,
+): Promise<number> {
+  const rows = await tx
+    .update(schema.auctionListings)
+    .set({ status: 'expired' })
+    .where(
+      and(
+        eq(schema.auctionListings.sellerId, sellerId),
+        eq(schema.auctionListings.status, 'active'),
+      ),
+    )
+    .returning({ id: schema.auctionListings.id });
+  return rows.length;
 }
 
 /**
