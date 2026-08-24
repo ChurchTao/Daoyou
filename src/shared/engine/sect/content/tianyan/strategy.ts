@@ -205,15 +205,17 @@ abstract class TianyanSelectionStrategy extends SectTacticalSelectionStrategy {
   protected firstLanding(
     context: AbilitySelectionContext,
     score: number,
+    afterSeal?: TianyanElement,
   ): AbilitySelectionResult | null {
     const candidate = context.candidates
       .filter((entry) =>
         Boolean(ABILITY_ELEMENTS[contentAbilityId(entry.ability.id)]),
       )
-      .sort(
-        (left, right) =>
-          left.order - right.order ||
-          left.ability.id.localeCompare(right.ability.id),
+      .sort((left, right) =>
+        afterSeal
+          ? compareCircularSlotOrder(context, afterSeal, left, right)
+          : left.order - right.order ||
+            left.ability.id.localeCompare(right.ability.id),
       )[0];
     return candidate
       ? { ability: candidate.ability, target: candidate.target, score }
@@ -296,7 +298,9 @@ export class TianyanBaseSelectionStrategy extends TianyanSelectionStrategy {
       }
 
       const shift = this.pickAvailable(context, ['shift-palace'], 700);
-      return shift ? this.cast(shift) : this.defaultAttack();
+      if (shift) return this.cast(shift);
+      const landing = this.firstLanding(context, 700, seal);
+      return landing ? this.cast(landing) : this.defaultAttack();
     }
 
     const landing = this.firstLanding(context, 700);

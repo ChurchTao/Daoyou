@@ -171,7 +171,29 @@ describe('天衍基础施法策略', () => {
     expect(selectedId(strategy.select(battle))).toBe('verdant-pulse');
   });
 
-  it('有印但没有合法反应时优先移宫，否则返回太初玄光', () => {
+  it('所有合法反应都因法力不足时顺延到可用的非反应落印术', () => {
+    const battle = context(undefined, [
+      'earth-bearing-seal',
+      'verdant-pulse',
+      'flowing-flame',
+      'dark-water-return',
+    ]);
+    battle.caster.setMp(84);
+    battle.candidates = battle.candidates.filter((candidate) =>
+      candidate.ability.canTrigger({
+        caster: battle.caster,
+        target: candidate.target,
+      }),
+    );
+    battle.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal('fire', 2)),
+      battle.caster,
+    );
+
+    expect(selectedId(strategy.select(battle))).toBe('verdant-pulse');
+  });
+
+  it('有印但没有合法反应时优先移宫，所有落印术不可用时返回太初玄光', () => {
     const shift = context(undefined, ['metal-cloud-cutter', 'shift-palace']);
     shift.opponent.buffs.addBuff(
       BuffFactory.create(createElementSeal('water', 2)),
@@ -180,6 +202,13 @@ describe('天衍基础施法策略', () => {
     expect(selectedId(strategy.select(shift))).toBe('shift-palace');
 
     const wait = context(undefined, ['metal-cloud-cutter']);
+    wait.caster.setMp(0);
+    wait.candidates = wait.candidates.filter((candidate) =>
+      candidate.ability.canTrigger({
+        caster: wait.caster,
+        target: candidate.target,
+      }),
+    );
     wait.opponent.buffs.addBuff(
       BuffFactory.create(createElementSeal('water', 2)),
       wait.caster,
