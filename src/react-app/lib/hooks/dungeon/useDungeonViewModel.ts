@@ -123,8 +123,17 @@ export function useDungeonViewModel(
       return null;
     }
 
+    const currentHistory = state.history[state.history.length - 1];
+    const previousHistory = state.history[state.history.length - 2];
+    const sceneDescription = [
+      previousHistory?.outcome?.trim(),
+      currentHistory.scene,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
     return {
-      scene_description: state.history[state.history.length - 1].scene,
+      scene_description: sceneDescription,
       interaction: {
         options: state.currentOptions || [],
       },

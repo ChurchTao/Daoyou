@@ -7,6 +7,7 @@ describe('normalizeDungeonResourceTerminology', () => {
     ['灵力不足，施法又会消耗灵力。', '法力不足，施法又会消耗法力。'],
     ['体内灵力已经枯竭。', '体内法力已经枯竭。'],
     ['先回补灵力，再继续深入。', '先回补法力，再继续深入。'],
+    ['收起‘冰魄晶’后离开。', '收起【冰魄晶】后离开。'],
   ])('normalizes resource wording in %s', (input, expected) => {
     expect(normalizeDungeonResourceTerminology(input)).toBe(expected);
   });

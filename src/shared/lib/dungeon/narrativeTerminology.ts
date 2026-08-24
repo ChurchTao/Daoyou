@@ -1,5 +1,7 @@
 export function normalizeDungeonResourceTerminology(text: string): string {
   return text
+    .replace(/‘/gu, '【')
+    .replace(/’/gu, '】')
     .replace(/补充灵力|恢复灵力/gu, '恢复法力')
     .replace(/回补灵力/gu, '回补法力')
     .replace(/补足灵力/gu, '补足法力')

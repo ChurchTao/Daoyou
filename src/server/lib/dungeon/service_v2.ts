@@ -103,6 +103,7 @@ const MAX_EXPLORATION_EXP_BONUS = 0.3;
 export const DungeonFlowErrorCode = {
   NOT_FOUND: 'DUNGEON_NOT_FOUND',
   INVALID_STATE: 'DUNGEON_INVALID_STATE',
+  GENERATION_FAILED: 'DUNGEON_GENERATION_FAILED',
 } as const;
 
 export type DungeonFlowErrorCode =
@@ -112,7 +113,7 @@ export class DungeonFlowError extends Error {
   constructor(
     public code: DungeonFlowErrorCode,
     message: string,
-    public status: 404 | 409,
+    public status: 404 | 409 | 503,
   ) {
     super(message);
     this.name = 'DungeonFlowError';
@@ -151,6 +152,8 @@ type DungeonFlowOptions = {
   deferPersistence?: boolean;
   lease?: RedisLeaseContext;
 };
+
+type DungeonRoundGenerationMode = 'initial' | 'advance' | 'terminal';
 
 type DungeonPersistenceHooks = {
   persist: (tx: DbTransaction) => Promise<DungeonPersistenceSettlement | void>;
@@ -272,6 +275,26 @@ function appendRoundRewards(
   return acceptedItems;
 }
 
+function recordGeneratedActionResult(
+  state: DungeonState,
+  roundData: DungeonRound,
+): RewardBlueprint[] {
+  const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
+  const historyEntry = state.history[state.history.length - 1];
+  if (historyEntry?.choice) {
+    historyEntry.outcome =
+      roundData.action_outcome?.trim() ||
+      historyEntry.outcome ||
+      roundData.scene_description.trim();
+    const gainedNames = acceptedItems.map((item) => item.name || '未知物品');
+    historyEntry.gained_items = Array.from(
+      new Set([...(historyEntry.gained_items ?? []), ...gainedNames]),
+    );
+  }
+  state.dangerScore = roundData.status_update.internal_danger_score;
+  return acceptedItems;
+}
+
 function discardCurrentRoundRewards(state: DungeonState): RewardBlueprint[] {
   const discardedItems = state.currentRoundItems ?? [];
   if (discardedItems.length === 0) return [];
@@ -329,12 +352,13 @@ function normalizeSettlementRewards(
 }
 
 function sanitizePerformanceTags(tags: string[], rewardTier: string): string[] {
+  const overclaimPattern = /精通|宗师|大师|无敌|彻底掌控|圆满掌控/u;
   const sanitized = Array.from(
     new Set(
       tags
         .map((tag) => tag.match(/[\p{Script=Han}0-9]+/gu)?.join('') ?? '')
         .map((tag) => tag.slice(0, 12))
-        .filter((tag) => tag.length >= 2),
+        .filter((tag) => tag.length >= 2 && !overclaimPattern.test(tag)),
     ),
   ).slice(0, 4);
 
@@ -479,6 +503,12 @@ const COMBAT_ENGAGEMENT_PATTERN =
   /(?:(?:击杀|斩杀|杀死|诛杀|迎战|应战|硬撼|搏杀|交战|攻击|反击|围杀|镇杀|束缚|缠绕).{0,18}(?:妖|兽|魔|鬼|敌|守卫|傀儡|蛛|狼|蛇|蝠)|(?:妖|兽|魔|鬼|敌|守卫|傀儡|蛛|狼|蛇|蝠).{0,18}(?:击杀|斩杀|杀死|诛杀|迎战|应战|硬撼|搏杀|交战|攻击|反击|围杀|镇杀|束缚|缠绕))/u;
 const CONCRETE_ITEM_USE_PATTERN =
   /(?:取出|掏出|祭出|夹住|夹着|服下|吞服|掷出|催动).{0,18}(?:丹药|丹|符箓|阵旗|法宝|灵器|法器|玉简|令牌)/gu;
+const EXPLORATION_EVIDENCE_NOISE_PATTERN =
+  /[【】「」『』（）()\s，。！？、：；,.!?;:·的之其被于]/gu;
+const CURRENT_BRANCH_RETURN_HINT =
+  '你也未忘记先前留下的未完成分支，此刻可以折返。';
+const ONLY_BRANCH_RETURN_HINT =
+  '此路已告一段落，你循原路折返，先前记下的未完成分支仍可选择。';
 const UNSUPPORTED_MECHANICAL_EFFECT_PATTERNS = [
   /(?:提升|提高|增加|增强|强化|精进|完善).{0,12}(?:攻击力|防御力|速度|闪避率|命中率|暴击率|修为|阵法造诣|炼丹造诣|炼器造诣|功法威力)/u,
   /(?:攻击力|防御力|速度|闪避率|命中率|暴击率|修为|阵法造诣|炼丹造诣|炼器造诣|功法威力).{0,12}(?:提升|提高|增加|增长|增强|强化|精进|完善)/u,
@@ -496,6 +526,52 @@ function optionNarrative(option: DungeonOption): string {
   ]
     .filter(Boolean)
     .join(' ');
+}
+
+function normalizeExplorationEvidenceText(text: string): string {
+  return text.replace(EXPLORATION_EVIDENCE_NOISE_PATTERN, '');
+}
+
+function isOrderedTextSubsequence(needle: string, haystack: string): boolean {
+  if (!needle || !haystack) return false;
+  let needleIndex = 0;
+  for (const char of haystack) {
+    if (char === needle[needleIndex]) needleIndex += 1;
+    if (needleIndex >= needle.length) return true;
+  }
+  return false;
+}
+
+function isExplorationOptionGroundedInScene(
+  option: DungeonOption,
+  scene: string | undefined,
+): boolean {
+  if (!scene) return false;
+  const target = normalizeExplorationEvidenceText(
+    normalizeExplorationTarget(option.exploration_target, option.text),
+  );
+  const narrative = normalizeExplorationEvidenceText(scene);
+  return target.length >= 2 && isOrderedTextSubsequence(target, narrative);
+}
+
+function explorationOptionSourceRound(
+  option: DungeonOption,
+  fallbackRound: number,
+): number {
+  const sourceRound = Number.parseInt(
+    option.exploration_lead_id?.split(':')[0] ?? '',
+    10,
+  );
+  return Number.isInteger(sourceRound) && sourceRound > 0
+    ? sourceRound
+    : fallbackRound;
+}
+
+function removeBranchReturnHints(scene: string): string {
+  return scene
+    .replaceAll(CURRENT_BRANCH_RETURN_HINT, '')
+    .replaceAll(ONLY_BRANCH_RETURN_HINT, '')
+    .replace(/\s+$/u, '');
 }
 
 function containsUnsupportedMechanicalEffect(text: string): boolean {
@@ -551,6 +627,37 @@ function rewardNamesLookEquivalent(
   return similarity >= 0.72;
 }
 
+function ensureRewardAcquisitionNarrative(
+  roundData: DungeonRound,
+  lastActionTarget?: string,
+): DungeonRound {
+  const resultNarrative = roundData.action_outcome?.trim() ?? '';
+  const missingRewardNames = (roundData.acquired_items ?? [])
+    .map((reward) => reward.name?.trim())
+    .filter(
+      (name): name is string =>
+        typeof name === 'string' &&
+        name.length > 0 &&
+        !resultNarrative.includes(name),
+    );
+
+  if (missingRewardNames.length === 0) return roundData;
+
+  const acquisitionNarrative = missingRewardNames
+    .map((name) =>
+      lastActionTarget
+        ? `完成对【${lastActionTarget}】的查探后，你取得并收起【${name}】。`
+        : `你取得并收起【${name}】。`,
+    )
+    .join('');
+  return {
+    ...roundData,
+    action_outcome: [roundData.action_outcome?.trim(), acquisitionNarrative]
+      .filter(Boolean)
+      .join('\n\n'),
+  };
+}
+
 function formatActualActionCost(cost: DungeonOptionCost): string | null {
   if (cost.type === 'battle') return null;
   if (cost.type === 'material') {
@@ -603,6 +710,9 @@ function findDungeonRoundContinuityViolations(
   const hasLastAction = state.history.some((entry) => Boolean(entry.choice));
   if (hasLastAction && !roundData.action_outcome?.trim()) {
     violations.push('没有提供上一项抉择的实际结果');
+  }
+  if (!hasLastAction && roundData.action_outcome?.trim()) {
+    violations.push('首个事件在玩家尚未行动时提前生成了行动结果');
   }
 
   const resultNarrative = [
@@ -678,8 +788,11 @@ function findDungeonRoundContinuityViolations(
     if (key && accumulatedRewardKeys.has(key)) {
       violations.push(`奖励【${reward.name}】与本次秘境已有奖励重复`);
     }
-    if (reward.name && !resultNarrative.includes(reward.name)) {
-      violations.push(`奖励【${reward.name}】没有在本轮叙事中明确取得`);
+    if (
+      reward.name &&
+      !roundData.action_outcome?.includes(reward.name)
+    ) {
+      violations.push(`奖励【${reward.name}】没有在行动结果中明确取得`);
     }
     const equivalentReward = (state.accumulatedRewards ?? []).find(
       (existingReward) => rewardNamesLookEquivalent(existingReward, reward),
@@ -844,6 +957,16 @@ export class DungeonService {
           explorationTargetKey(option.exploration_target ?? option.text) !==
           chosenTargetKey,
       )
+      .filter((option) => {
+        const sourceRound = explorationOptionSourceRound(
+          option,
+          state.currentRound,
+        );
+        const sourceScene = [...state.history]
+          .reverse()
+          .find((entry) => entry.round === sourceRound)?.scene;
+        return isExplorationOptionGroundedInScene(option, sourceScene);
+      })
       .map(cloneDungeonOption);
     const pendingCount = (flow.pendingBranches ?? []).reduce(
       (count, checkpoint) => count + checkpoint.options.length,
@@ -910,46 +1033,19 @@ export class DungeonService {
     };
   }
 
-  private buildFinishExplorationOption(state: DungeonState): DungeonOption {
-    return {
-      id: 1,
-      text: '收束此行，将已经取得的机缘收入囊中。',
-      risk_level: 'low',
-      exploration_target: '秘境出口',
-      exploration_lead_id: `${state.currentRound}:finish:${randomUUID()}`,
-      exploration_is_revisit: false,
-      potential_cost: '第五个事件已经完成，确认后进入结算。',
-      costs: [],
-      costPreview: [],
-    };
-  }
-
   private prepareNextEventOptions(
     state: DungeonState,
     roundData: DungeonRound,
   ) {
     const flow = state.branchFlow;
-    if (state.currentRound >= state.maxRounds) {
-      if (flow) flow.pendingBranches = [];
-      const finishOption = this.buildFinishExplorationOption(state);
-      roundData.interaction.options = [finishOption];
-      state.currentOptions = [finishOption];
-      return;
-    }
     const forwardOptions =
       roundData.interaction.options.map(cloneDungeonOption);
     const pendingCount = (flow?.pendingBranches ?? []).reduce(
       (count, checkpoint) => count + checkpoint.options.length,
       0,
     );
-    const revisitSlots =
-      pendingCount === 0
-        ? 0
-        : forwardOptions.length > 0
-          ? Math.min(2, pendingCount)
-          : Math.min(3, pendingCount);
-    const forwardSlots =
-      forwardOptions.length > 0 ? Math.max(1, 3 - revisitSlots) : 0;
+    const forwardSlots = Math.min(3, forwardOptions.length);
+    const revisitSlots = Math.min(3 - forwardSlots, pendingCount);
     const visibleForwardOptions = forwardOptions.slice(0, forwardSlots);
     const overflowForwardOptions = forwardOptions.slice(forwardSlots);
     const revisitOptions: DungeonOption[] = [];
@@ -995,12 +1091,88 @@ export class DungeonService {
     if (revisitOptions.length > 0) {
       const returnHint =
         visibleForwardOptions.length > 0
-          ? '你也未忘记先前留下的未完成分支，此刻可以折返。'
-          : '此路已告一段落，你循原路折返，先前记下的未完成分支仍可选择。';
+          ? CURRENT_BRANCH_RETURN_HINT
+          : ONLY_BRANCH_RETURN_HINT;
       roundData.scene_description = `${roundData.scene_description} ${returnHint}`;
     }
     roundData.interaction.options = visibleOptions;
     state.currentOptions = visibleOptions;
+  }
+
+  private sanitizeExplorationBranches(state: DungeonState) {
+    const flow = state.branchFlow;
+    if (!flow) return;
+
+    const sceneForRound = (round: number) =>
+      [...state.history]
+        .reverse()
+        .find((entry) => entry.round === round)?.scene;
+    flow.pendingBranches = (flow.pendingBranches ?? [])
+      .map((checkpoint) => ({
+        ...checkpoint,
+        options: checkpoint.options.filter((option) =>
+          isExplorationOptionGroundedInScene(
+            option,
+            sceneForRound(checkpoint.sourceRound),
+          ),
+        ),
+      }))
+      .filter((checkpoint) => checkpoint.options.length > 0);
+
+    const currentOptions = (state.currentOptions ?? []).filter((option) => {
+      if (option.exploration_is_revisit !== true) return true;
+      const sourceRound = explorationOptionSourceRound(
+        option,
+        state.currentRound,
+      );
+      return isExplorationOptionGroundedInScene(
+        option,
+        sceneForRound(sourceRound),
+      );
+    });
+
+    while (currentOptions.length < 3 && flow.pendingBranches.length > 0) {
+      const currentRoundCheckpointIndex = flow.pendingBranches.findLastIndex(
+        (checkpoint) => checkpoint.sourceRound === state.currentRound,
+      );
+      const checkpointIndex =
+        currentRoundCheckpointIndex >= 0
+          ? currentRoundCheckpointIndex
+          : flow.pendingBranches.length - 1;
+      const checkpoint = flow.pendingBranches[checkpointIndex];
+      const option = checkpoint?.options.shift();
+      if (option) {
+        currentOptions.push({
+          ...cloneDungeonOption(option),
+          exploration_is_revisit:
+            checkpoint.sourceRound < state.currentRound,
+        });
+      }
+      if (!checkpoint || checkpoint.options.length === 0) {
+        flow.pendingBranches.splice(checkpointIndex, 1);
+      }
+    }
+
+    state.currentOptions = currentOptions.map((option, index) => ({
+      ...option,
+      id: index + 1,
+    }));
+
+    const hasPriorBranch =
+      state.currentOptions.some(
+        (option) => option.exploration_is_revisit === true,
+      ) ||
+      flow.pendingBranches.some(
+        (checkpoint) => checkpoint.sourceRound < state.currentRound,
+      );
+    if (!hasPriorBranch) {
+      const currentHistory = [...state.history]
+        .reverse()
+        .find((entry) => entry.round === state.currentRound);
+      if (currentHistory) {
+        currentHistory.scene = removeBranchReturnHints(currentHistory.scene);
+      }
+    }
   }
 
   private migrateBranchFlow(state: DungeonState) {
@@ -1323,14 +1495,10 @@ export class DungeonService {
       }
     }
     this.migrateBranchFlow(state);
+    this.sanitizeExplorationBranches(state);
     state.maxRounds = Math.max(DUNGEON_EVENT_COUNT, state.currentRound);
-    if (state.status === 'EXPLORING' && state.currentRound >= state.maxRounds) {
-      if (state.branchFlow) state.branchFlow.pendingBranches = [];
-      state.currentOptions = [this.buildFinishExplorationOption(state)];
-    }
     if (
       state.status === 'EXPLORING' &&
-      state.currentRound < state.maxRounds &&
       (state.currentOptions?.length ?? 0) === 0
     ) {
       state.currentOptions = [this.buildContinueExplorationOption(state)];
@@ -1798,20 +1966,19 @@ export class DungeonService {
       // 3. 首次 AI 调用
       const roundData = await this.previewRoundResourceLoss(
         await this.bindRoundMaterialCosts(
-          this.normalizeRoundOptions(await this.callAI(state), state),
+          this.normalizeRoundOptions(await this.callAI(state, 'initial'), state),
           cultivatorId,
         ),
         cultivatorId,
       );
 
       // 4. 更新历史并存入 Redis
-      const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
-      const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
+      state.currentRoundItems = [];
       this.prepareNextEventOptions(state, roundData);
       state.history.push({
         round: 1,
         scene: roundData.scene_description,
-        gained_items: gainedNames,
+        gained_items: [],
       });
       state.branchFlow!.rootOptions = (state.currentOptions ?? []).map(
         cloneDungeonOption,
@@ -2026,6 +2193,8 @@ export class DungeonService {
     // 2. 推进状态
     state.history[state.history.length - 1].choice = chosenOption?.text;
     state.history[state.history.length - 1].outcome = undefined;
+    // 本次行动的奖励尚未生成；战败时不应撤销上一个已完成事件的收获。
+    state.currentRoundItems = [];
 
     const battleCost = actionCosts.find((c) => c.type === 'battle');
     if (battleCost) {
@@ -2149,40 +2318,31 @@ export class DungeonService {
       };
     }
 
-    if (state.currentRound >= state.maxRounds) {
-      const finalHistory = state.history[state.history.length - 1];
-      if (finalHistory && !finalHistory.outcome) {
-        finalHistory.outcome = '五处机缘均已查探完毕，你携所得安全离开秘境。';
-      }
-      state.status = 'SETTLING';
-      if (!options.deferPersistence) {
-        await this.saveState(cultivatorId, state);
-      }
-      const result = await this.settleDungeon(state, {
-        pendingAction,
-        deferPersistence: options.deferPersistence,
-      });
-      return { actionId, ...result };
-    }
-
+    const isTerminalEvent = state.currentRound >= state.maxRounds;
     state.status = 'GENERATING_NEXT';
     if (!options.deferPersistence) {
       await this.saveState(cultivatorId, state);
     }
-    state.currentRound++;
+    if (!isTerminalEvent) state.currentRound++;
 
     // 3. AI 生成下一轮
     let roundData: DungeonRound;
     try {
       roundData = await this.previewRoundResourceLoss(
         await this.bindRoundMaterialCosts(
-          this.normalizeRoundOptions(await this.callAI(state), state),
+          this.normalizeRoundOptions(
+            await this.callAI(
+              state,
+              isTerminalEvent ? 'terminal' : 'advance',
+            ),
+            state,
+          ),
           cultivatorId,
         ),
         cultivatorId,
       );
     } catch (error) {
-      state.currentRound--;
+      if (!isTerminalEvent) state.currentRound--;
       this.rollbackStagedExploration(state, exploration);
       const recoverable = await this.markRecoverable(
         cultivatorId,
@@ -2206,7 +2366,7 @@ export class DungeonService {
       try {
         await consumeActionCostsOrThrow();
       } catch (error) {
-        state.currentRound--;
+        if (!isTerminalEvent) state.currentRound--;
         this.rollbackStagedExploration(state, exploration);
         state.status = 'EXPLORING';
         state.pendingAction = {
@@ -2219,22 +2379,29 @@ export class DungeonService {
         throw error;
       }
     }
-    // 记录过程战利品
-    const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
-    const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
+    // 奖励与结果归属于刚刚完成的选择，不挂到下一个事件上。
+    recordGeneratedActionResult(state, roundData);
 
     // 4. 更新状态
-    const previousHistory = state.history[state.history.length - 1];
-    if (previousHistory?.choice && !previousHistory.outcome) {
-      previousHistory.outcome = roundData.action_outcome?.trim();
+    if (isTerminalEvent) {
+      if (!options.deferPersistence) {
+        this.commitCostsToState(state, pendingAction);
+        state.pendingAction = undefined;
+        state.costPreview = undefined;
+      }
+      const result = await this.settleDungeon(state, {
+        pendingAction: options.deferPersistence ? pendingAction : undefined,
+        deferPersistence: options.deferPersistence,
+      });
+      return { actionId, roundData, ...result };
     }
+
     this.prepareNextEventOptions(state, roundData);
     state.history.push({
       round: state.currentRound,
       scene: roundData.scene_description,
-      gained_items: gainedNames,
+      gained_items: [],
     });
-    state.dangerScore = roundData.status_update.internal_danger_score;
 
     this.commitCostsToState(state, pendingAction);
     state.pendingAction = undefined;
@@ -2661,12 +2828,7 @@ export class DungeonService {
     state.status = 'GENERATING_NEXT';
     state.statusReason = undefined;
     state.recoverableActions = undefined;
-    if (state.currentRound >= state.maxRounds) {
-      return this.settleDungeon(state, {
-        deferPersistence: options.deferPersistence,
-      });
-    }
-    state.currentRound++;
+    if (state.currentRound < state.maxRounds) state.currentRound++;
 
     return this.generateRoundAfterLooting(cultivatorId, state, options);
   }
@@ -2676,11 +2838,18 @@ export class DungeonService {
     state: DungeonState,
     options: DungeonFlowOptions = {},
   ) {
+    const isTerminalEvent = state.currentRound >= state.maxRounds;
     let roundData: DungeonRound;
     try {
       roundData = await this.previewRoundResourceLoss(
         await this.bindRoundMaterialCosts(
-          this.normalizeRoundOptions(await this.callAI(state), state),
+          this.normalizeRoundOptions(
+            await this.callAI(
+              state,
+              isTerminalEvent ? 'terminal' : 'advance',
+            ),
+            state,
+          ),
           cultivatorId,
         ),
         cultivatorId,
@@ -2703,20 +2872,19 @@ export class DungeonService {
         : { state: recoverable, isFinished: false };
     }
 
-    const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
-    const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
-
-    const previousHistory = state.history[state.history.length - 1];
-    if (previousHistory?.choice && !previousHistory.outcome) {
-      previousHistory.outcome = roundData.action_outcome?.trim();
+    recordGeneratedActionResult(state, roundData);
+    if (isTerminalEvent) {
+      return this.settleDungeon(state, {
+        deferPersistence: options.deferPersistence,
+      });
     }
+
     this.prepareNextEventOptions(state, roundData);
     state.history.push({
       round: state.currentRound,
       scene: roundData.scene_description,
-      gained_items: gainedNames,
+      gained_items: [],
     });
-    state.dangerScore = roundData.status_update.internal_danger_score;
 
     state.status = 'EXPLORING';
     state.statusReason = undefined;
@@ -3243,7 +3411,10 @@ export class DungeonService {
   /**
    * 内部工具：调用 AI 并处理上下文压缩
    */
-  private async callAI(state: DungeonState): Promise<DungeonRound> {
+  private async callAI(
+    state: DungeonState,
+    mode: DungeonRoundGenerationMode = 'advance',
+  ): Promise<DungeonRound> {
     const mapNode = getMapNode(state.mapNodeId);
     const mapRealm =
       mapNode && 'realm_requirement' in mapNode
@@ -3281,11 +3452,20 @@ export class DungeonService {
       phase,
       currentResources,
     });
+    if (mode === 'terminal') {
+      userContext.flow = {
+        ...userContext.flow,
+        stage: 'resolution',
+        requiredOptionCount: 'none',
+      };
+    }
 
     const remainingRewardSlots = Math.max(
       0,
       DUNGEON_REWARD_BLUEPRINT_LIMIT - state.accumulatedRewards.length,
     );
+    const eventRewardCount: 0 | 1 =
+      mode === 'initial' || remainingRewardSlots === 0 ? 0 : 1;
     let continuityViolations: string[] = [];
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const aiRes = await generateAiObject({
@@ -3297,55 +3477,63 @@ export class DungeonService {
                 continuityCorrection: {
                   rejectedPreviousOutput: continuityViolations,
                   instruction:
-                    '重新生成本轮并逐项修正 rejectedPreviousOutput；探索目标必须是稳定名词对象，操作方式只填 action_mode；costs 只能写无条件确定扣除；不得宣称未由服务端写入的强化效果；不得复活已击败敌人，不得生成占位或重复奖励，场景正文不得夹带选项列表。',
+                    '重新生成本轮并逐项修正 rejectedPreviousOutput；action_outcome 必须完整结算刚执行的 lastAction 并明确收起指定奖励，scene_description 只写结算后的新场景；探索目标必须是稳定名词对象，操作方式只填 action_mode；costs 只能写无条件确定扣除；不得宣称未由服务端写入的强化效果；不得复活已击败敌人，不得生成占位或重复奖励，场景正文不得夹带选项列表。',
                 },
               }
             : userContext,
         ),
-        schema: createDungeonRoundLlmSchema(remainingRewardSlots),
+        schema: createDungeonRoundLlmSchema(
+          eventRewardCount,
+          mode === 'terminal' ? 'none' : 'up_to_three',
+        ),
         name: 'DungeonRound',
         sceneId: 'dungeon-round',
       });
 
-      const roundData = DungeonRoundSchema.parse({
-        scene_description: normalizeDungeonResourceTerminology(
-          aiRes.output.scene_description,
-        ),
-        action_outcome: normalizeDungeonResourceTerminology(
-          aiRes.output.action_outcome,
-        ),
-        interaction: {
-          options: aiRes.output.options.map((option, index) => ({
-            ...option,
-            id: index + 1,
-            text: normalizeDungeonResourceTerminology(option.text),
-            exploration_target: normalizeExplorationTarget(
-              normalizeDungeonResourceTerminology(option.exploration_target),
-              option.text,
-            ),
-            action_mode: normalizeDungeonResourceTerminology(
-              option.action_mode,
-            ),
-            requirement: option.requirement
-              ? normalizeDungeonResourceTerminology(option.requirement)
-              : undefined,
-            potential_cost: option.potential_cost
-              ? normalizeDungeonResourceTerminology(option.potential_cost)
-              : undefined,
-            costs: (option.costs ?? []).map((cost) => ({
-              ...cost,
-              desc: cost.desc
-                ? normalizeDungeonResourceTerminology(cost.desc)
+      const roundData = ensureRewardAcquisitionNarrative(
+        DungeonRoundSchema.parse({
+          scene_description: normalizeDungeonResourceTerminology(
+            aiRes.output.scene_description,
+          ),
+          action_outcome: normalizeDungeonResourceTerminology(
+            aiRes.output.action_outcome,
+          ),
+          interaction: {
+            options: aiRes.output.options.map((option, index) => ({
+              ...option,
+              id: index + 1,
+              text: normalizeDungeonResourceTerminology(option.text),
+              exploration_target: normalizeExplorationTarget(
+                normalizeDungeonResourceTerminology(
+                  option.exploration_target,
+                ),
+                option.text,
+              ),
+              action_mode: normalizeDungeonResourceTerminology(
+                option.action_mode,
+              ),
+              requirement: option.requirement
+                ? normalizeDungeonResourceTerminology(option.requirement)
                 : undefined,
+              potential_cost: option.potential_cost
+                ? normalizeDungeonResourceTerminology(option.potential_cost)
+                : undefined,
+              costs: (option.costs ?? []).map((cost) => ({
+                ...cost,
+                desc: cost.desc
+                  ? normalizeDungeonResourceTerminology(cost.desc)
+                  : undefined,
+              })),
             })),
-          })),
-        },
-        acquired_items: aiRes.output.acquired_items,
-        status_update: {
-          is_final_round: state.currentRound >= state.maxRounds,
-          internal_danger_score: aiRes.output.internal_danger_score,
-        },
-      });
+          },
+          acquired_items: aiRes.output.acquired_items,
+          status_update: {
+            is_final_round: mode === 'terminal',
+            internal_danger_score: aiRes.output.internal_danger_score,
+          },
+        }),
+        userContext.lastAction?.target,
+      );
       continuityViolations = findDungeonRoundContinuityViolations(
         state,
         roundData,
@@ -3353,7 +3541,17 @@ export class DungeonService {
       if (continuityViolations.length === 0) return roundData;
     }
 
-    throw new Error(`副本连续性校验失败：${continuityViolations.join('；')}`);
+    console.warn('[DungeonService] 副本连续性校验失败:', {
+      cultivatorId: state.cultivatorId,
+      mapNodeId: state.mapNodeId,
+      round: state.currentRound,
+      violations: continuityViolations,
+    });
+    throw new DungeonFlowError(
+      DungeonFlowErrorCode.GENERATION_FAILED,
+      '本轮秘境演化失败，请重试',
+      503,
+    );
   }
 
   async saveState(

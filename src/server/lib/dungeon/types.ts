@@ -324,12 +324,18 @@ const DungeonOptionLlmSchema = z.object({
   costs: z.array(DungeonCostLlmSchema).optional(),
 });
 
-export function createDungeonRoundLlmSchema(maxRewardCount: number) {
-  const eventRewardCount = maxRewardCount > 0 ? 1 : 0;
+export function createDungeonRoundLlmSchema(
+  eventRewardCount: 0 | 1,
+  optionMode: 'up_to_three' | 'none' = 'up_to_three',
+) {
+  const optionsSchema = z.array(DungeonOptionLlmSchema).max(3);
   return z.object({
     scene_description: z.string(),
     action_outcome: z.string().max(500),
-    options: z.array(DungeonOptionLlmSchema).max(3),
+    options:
+      optionMode === 'none'
+        ? optionsSchema.length(0)
+        : optionsSchema.min(1),
     acquired_items: z.array(RewardBlueprintLlmSchema).length(eventRewardCount),
     internal_danger_score: z.number().int().min(0).max(100),
   });
@@ -597,7 +603,7 @@ export interface DungeonRoundLlmContext {
   accumulatedRewardNames: string[];
   flow: {
     stage: DungeonBranchStage;
-    requiredOptionCount: 'up_to_three';
+    requiredOptionCount: 'up_to_three' | 'none';
     eventIndex: number;
     totalEvents: number;
     pendingBranchCount: number;
@@ -621,6 +627,8 @@ export interface DungeonSettlementLlmContext {
   };
   journeySummary: string[];
   dangerScore: number;
+  completedEventCount: number;
+  unresolvedBranchCount: number;
   sacrificeSummary: Array<{
     type: DungeonOptionCost['type'];
     count: number;

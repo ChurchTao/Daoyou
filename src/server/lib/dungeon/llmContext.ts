@@ -369,6 +369,13 @@ export function buildDungeonSettlementLlmContext(args: {
     ...(finalAction ? { finalAction } : {}),
     journeySummary: summarizeJourney(state.history),
     dangerScore: state.dangerScore,
+    completedEventCount: state.history.filter(
+      (entry) => Boolean(entry.choice && entry.outcome),
+    ).length,
+    unresolvedBranchCount: (state.branchFlow?.pendingBranches ?? []).reduce(
+      (count, checkpoint) => count + checkpoint.options.length,
+      0,
+    ),
     sacrificeSummary: buildSacrificeSummary(state.summary_of_sacrifice),
     accumulatedRewards: summarizeRewards(state.accumulatedRewards),
     rewardBlueprintLimit: DUNGEON_REWARD_BLUEPRINT_LIMIT,
