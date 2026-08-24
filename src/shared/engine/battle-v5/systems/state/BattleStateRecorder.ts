@@ -215,20 +215,24 @@ export class BattleStateRecorder {
     }
     return abilities
       .filter((a): a is ActiveSkill => a instanceof ActiveSkill)
-      .map((skill) => ({
-        skillId: skill.id,
-        skillName: skill.name,
-        isDefaultAttack: skill === defaultAttack,
-        runtimePlanId: skill.runtimePlanId,
-        description: skill.description,
-        current: skill.currentCooldown,
-        max: skill.maxCooldown,
-        mpCost: skill.manaCost,
-        costs: skill.costConfigs.map((cost, index) => ({
-          ...cost,
-          resolvedAmount: skill.resourceCosts[index]?.amount ?? 0,
-        })),
-      }));
+      .map((skill) => {
+        const detailRows = skill.getSerializableConfig()?.detailRows;
+        return {
+          skillId: skill.id,
+          skillName: skill.name,
+          isDefaultAttack: skill === defaultAttack,
+          runtimePlanId: skill.runtimePlanId,
+          description: skill.description,
+          detailRows: detailRows?.length ? detailRows : undefined,
+          current: skill.currentCooldown,
+          max: skill.maxCooldown,
+          mpCost: skill.manaCost,
+          costs: skill.costConfigs.map((cost, index) => ({
+            ...cost,
+            resolvedAmount: skill.resourceCosts[index]?.amount ?? 0,
+          })),
+        };
+      });
   }
 
   // ===== Private: Delta Computation =====

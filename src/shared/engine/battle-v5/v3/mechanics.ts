@@ -88,6 +88,7 @@ export type CombatMechanicPayloadV3 =
   | {
       kind: 'named_trigger';
       label: string;
+      description?: string;
     }
   | {
       kind: 'status_transition';

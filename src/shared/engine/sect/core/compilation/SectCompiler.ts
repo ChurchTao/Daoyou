@@ -272,6 +272,10 @@ export class SectCompiler {
             abilityId,
             {
               ...ability,
+              config: {
+                ...ability.config,
+                detailRows,
+              },
               detailRows,
               summary:
                 base?.description ?? ability.summary ?? ability.config.name,

@@ -29,6 +29,8 @@ export interface CooldownStateView {
   /** 当前效果计划；基础计划不存在时省略。 */
   runtimePlanId?: string;
   description?: string;
+  /** 技能编译后的玩家可见功能说明。 */
+  detailRows?: string[];
   /** 当前剩余冷却回合；0 = 可用 */
   current: number;
   /** 技能最大冷却回合 */

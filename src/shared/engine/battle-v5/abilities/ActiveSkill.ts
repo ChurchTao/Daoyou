@@ -12,6 +12,8 @@ import {
 } from '../core/runtimeState';
 import { AbilityId, AbilityType } from '../core/types';
 import { Unit } from '../units/Unit';
+import { CombatResultEmitterV3 } from '../v3/CombatResultEmitterV3';
+import { combatCarrierFromAbilityV3 } from '../v3/origin';
 import { Ability, AbilityContext, type AbilityCastSnapshot } from './Ability';
 import { TargetPolicy } from './TargetPolicy';
 
@@ -464,6 +466,32 @@ export abstract class ActiveSkill extends Ability {
       casterMpAfterCost: payment.afterMp,
     });
     const eventBus = caster.runtime.events;
+    const tracksManaCost = this._castSnapshot.costs.some(
+      (cost) => cost.type === 'mp',
+    );
+    const parentTrace = eventBus.getCurrentTrace();
+    const origin =
+      eventBus.getCurrentOrigin() ??
+      ({
+        kind: 'owned',
+        owner: { id: caster.id, name: caster.name },
+        carrier: combatCarrierFromAbilityV3(this),
+      } as const);
+    if (tracksManaCost && parentTrace) {
+      new CombatResultEmitterV3(eventBus).commit(
+        caster,
+        {
+          type: 'resource',
+          resourceId: 'mp',
+          resourceName: '法力',
+          before: payment.beforeMp,
+          after: payment.afterMp,
+          applied: payment.afterMp - payment.beforeMp,
+          max: caster.getMaxMp(),
+        },
+        { origin, parentTrace },
+      );
+    }
     const costPaidEvent = eventBus.publish<AbilityCostPaidEvent>({
       type: 'AbilityCostPaidEvent',
       timestamp: caster.runtime.clock.now(),

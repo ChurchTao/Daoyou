@@ -578,6 +578,7 @@ function reactionLog(reaction: TianyanReactionDefinition): EffectConfig {
       mechanic: 'named_trigger',
       internalKey: `sect.tianyan.reaction.${reaction.id}`,
       displayName: reaction.name ?? '五行反应',
+      description: reaction.description,
       target: 'target',
     },
   };

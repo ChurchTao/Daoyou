@@ -35,6 +35,7 @@ export interface TianyanReactionDefinition {
     | 'sever-meridian'
     | 'melt-metal';
   name?: string;
+  description?: string;
   mainDamageBonus?: number;
   followUpRatio?: number;
 }
@@ -116,34 +117,74 @@ const OVERCOMING: Record<TianyanElement, TianyanElement> = {
 
 const REACTION_DETAILS = {
   'wood:fire': {
-    id: 'wildfire', name: '燎原', mainDamageBonus: 0.5,
+    id: 'wildfire',
+    name: '燎原',
+    description:
+      '木印遇火术时触发：提高本次主伤害，并追加一段火系持续伤害；随后木印转为火印。',
+    mainDamageBonus: 0.5,
   },
   'fire:earth': {
-    id: 'lava', name: '熔岩', mainDamageBonus: 0.4,
+    id: 'lava',
+    name: '熔岩',
+    description:
+      '火印遇土术时触发：提高本次主伤害，并施加持续造成火系伤害的「熔岩」；随后火印转为土印。',
+    mainDamageBonus: 0.4,
   },
   'earth:metal': {
-    id: 'forge-edge', name: '锻锋', mainDamageBonus: 0.4,
+    id: 'forge-edge',
+    name: '锻锋',
+    description:
+      '土印遇金术时触发：提高本次主伤害，并使本次伤害获得额外穿防；随后土印转为金印。',
+    mainDamageBonus: 0.4,
   },
   'metal:water': {
-    id: 'cold-spring', name: '寒泉', mainDamageBonus: 0.4,
+    id: 'cold-spring',
+    name: '寒泉',
+    description:
+      '金印遇水术时触发：提高本次主伤害，并强化本次水术施加的迟滞；随后金印转为水印。',
+    mainDamageBonus: 0.4,
   },
   'water:wood': {
-    id: 'flourish', name: '滋荣', mainDamageBonus: 0.4,
+    id: 'flourish',
+    name: '滋荣',
+    description:
+      '水印遇木术时触发：提高本次主伤害，并恢复自身气血；随后水印转为木印。',
+    mainDamageBonus: 0.4,
   },
   'fire:water': {
-    id: 'vaporize', name: '蒸发', followUpRatio: 0.8,
+    id: 'vaporize',
+    name: '蒸发',
+    description:
+      '火印遇水术时触发：按本次记录伤害追加追击，并清除目标灼烧以追加伤害；随后火印转为水印。',
+    followUpRatio: 0.8,
   },
   'water:earth': {
-    id: 'quagmire', name: '泥沼', followUpRatio: 0.4,
+    id: 'quagmire',
+    name: '泥沼',
+    description:
+      '水印遇土术时触发：按本次记录伤害追加土系追击，并尝试使目标定身1回合；随后水印转为土印。',
+    followUpRatio: 0.4,
   },
   'earth:wood': {
-    id: 'root-collapse', name: '崩根', followUpRatio: 0.5,
+    id: 'root-collapse',
+    name: '崩根',
+    description:
+      '土印遇木术时触发：按本次记录伤害追加木系追击，并施加2回合「崩根」以降低目标法防；随后土印转为木印。',
+    followUpRatio: 0.5,
   },
   'wood:metal': {
-    id: 'sever-meridian', name: '断脉', followUpRatio: 0.4,
+    id: 'sever-meridian',
+    name: '断脉',
+    description:
+      '木印遇金术时触发：按本次记录伤害追加金系追击，并尝试使目标禁法1回合；随后木印转为金印。',
+    followUpRatio: 0.4,
   },
   'metal:fire': {
-    id: 'melt-metal', name: '熔金', followUpRatio: 0.5,
+    id: 'melt-metal',
+    name: '熔金',
+    description:
+      '金印遇火术时触发：按本次记录伤害追加火系追击，并施加2回合「熔金」以降低目标物攻与法攻；随后金印转为火印。',
+    followUpRatio: 0.5,
   },
 } as const;
 

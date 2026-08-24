@@ -262,11 +262,19 @@ export type PresentedLogToneV3 =
   | 'defense'
   | 'fatal';
 
+export interface PresentedLogReferenceV3 {
+  kind: 'ability' | 'status' | 'mechanic';
+  id: string;
+  name: string;
+  description?: string;
+}
+
 export interface PresentedLogPartV3 {
   kind: 'text' | 'unit' | 'ability' | 'number' | 'resource' | 'status';
   text: string;
   tone?: PresentedLogToneV3;
   emphasis?: 'normal' | 'strong';
+  reference?: PresentedLogReferenceV3;
 }
 
 export interface PresentedLogLineV3 {

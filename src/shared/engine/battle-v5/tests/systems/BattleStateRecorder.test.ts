@@ -160,6 +160,8 @@ describe('BattleStateRecorder ability roles', () => {
       AbilityFactory.create({
         slug: 'equipped-skill',
         name: '装配神通',
+        description: '测试神通说明。',
+        detailRows: ['效果：获得测试增益'],
         type: AbilityType.ACTIVE_SKILL,
         tags: [GameplayTags.ABILITY.FUNCTION.BUFF],
         effects: [],
@@ -177,6 +179,8 @@ describe('BattleStateRecorder ability roles', () => {
       expect.objectContaining({
         skillId: 'equipped-skill',
         isDefaultAttack: false,
+        description: '测试神通说明。',
+        detailRows: ['效果：获得测试增益'],
       }),
     ]);
   });

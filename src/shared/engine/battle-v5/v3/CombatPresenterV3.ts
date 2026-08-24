@@ -148,10 +148,25 @@ export class CombatPresenterV3 {
         parts: [part(`「${fact.origin.carrier.name}」`, 'status')],
       };
     }
+    const carrierReference = {
+      kind:
+        fact.origin.carrier.kind === 'ability'
+          ? ('ability' as const)
+          : fact.origin.carrier.kind === 'buff'
+            ? ('status' as const)
+            : ('mechanic' as const),
+      id: fact.origin.carrier.id,
+      name: fact.origin.carrier.name,
+    };
     if (fact.origin.owner.id === sequence.actor?.id) {
       return {
         role: 'trigger',
-        parts: [part(`「${fact.origin.carrier.name}」`, 'status')],
+        parts: [
+          {
+            ...part(`「${fact.origin.carrier.name}」`, 'status'),
+            reference: carrierReference,
+          },
+        ],
       };
     }
     return {
@@ -159,7 +174,10 @@ export class CombatPresenterV3 {
       parts: [
         part(`「${fact.origin.owner.name}」`, 'unit'),
         part('的', 'text', 'secondary'),
-        part(`「${fact.origin.carrier.name}」`, 'status'),
+        {
+          ...part(`「${fact.origin.carrier.name}」`, 'status'),
+          reference: carrierReference,
+        },
       ],
     };
   }
@@ -210,7 +228,18 @@ export class CombatPresenterV3 {
         parts: [
           part(`「${sequence.actor.name}」`, 'unit'),
           sequence.ability
-            ? part(`施放《${sequence.ability.name}》`, 'ability', 'ability')
+            ? {
+                ...part(
+                  `施放《${sequence.ability.name}》`,
+                  'ability',
+                  'ability',
+                ),
+                reference: {
+                  kind: 'ability',
+                  id: sequence.ability.id,
+                  name: sequence.ability.name,
+                },
+              }
             : part('采取行动'),
         ],
       };

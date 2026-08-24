@@ -1,10 +1,6 @@
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Buff, StackRule } from '../buffs/Buff';
-import {
-  SeededBattleRandomSource,
-  withBattleRandomSource,
-} from '../core/BattleRandom';
 import type { AbilityConfig } from '../core/configs';
 import { EventBus } from '../core/EventBus';
 import type {
@@ -37,8 +33,8 @@ import {
   validateBattleRecordV3,
 } from './BattleRecordV3';
 import { CombatFactNarratorV3 } from './CombatFactNarratorV3';
-import { CombatPresenterV3 } from './CombatPresenterV3';
 import { CombatFactSinkV3 } from './CombatFactSinkV3';
+import { CombatPresenterV3 } from './CombatPresenterV3';
 import type { CombatResultScopeV3 } from './CombatResultEmitterV3';
 import { CombatResultEmitterV3 } from './CombatResultEmitterV3';
 import type { CombatMechanicPayloadV3 } from './mechanics';
@@ -951,6 +947,145 @@ describe('combat facts V3', () => {
     expect(presentation.heading).toBeUndefined();
     expect(presentation.groups).toHaveLength(1);
     expect(presentation.groups[0]).toMatchObject({ layout: 'root' });
+  });
+
+  it('renders actual mana spending with the remaining mana value', () => {
+    const actor = { id: 'actor', name: '陈安' };
+    const sequence: CombatSequenceV3 = {
+      id: 'sequence:mana-cost',
+      turn: 1,
+      phase: 'action',
+      actor,
+      ability: { id: 'verdant-pulse', name: '青萝生脉' },
+      facts: [
+        {
+          id: 'mana-cost',
+          type: 'resource',
+          trace: {
+            eventId: 'mana-cost',
+            sequenceId: 'sequence:mana-cost',
+            ordinal: 1,
+          },
+          origin: {
+            kind: 'owned',
+            owner: actor,
+            carrier: {
+              kind: 'ability',
+              id: 'verdant-pulse',
+              name: '青萝生脉',
+            },
+          },
+          target: actor,
+          resourceId: 'mp',
+          resourceName: '法力',
+          before: 300,
+          after: 220,
+          applied: -80,
+          max: 300,
+        },
+      ],
+    };
+
+    const presentation = new CombatPresenterV3('concise').present(sequence);
+    expect(
+      presentation.groups
+        .flatMap((group) =>
+          group.layout === 'root'
+            ? group.lines
+            : group.layout === 'inline'
+              ? [group.line]
+              : group.lines,
+        )[0]
+        .parts.map((entry) => entry.text)
+        .join(''),
+    ).toBe('消耗 80 点法力，当前剩余 220 点法力');
+    expect(presentation.heading?.parts[1].reference).toEqual({
+      kind: 'ability',
+      id: 'verdant-pulse',
+      name: '青萝生脉',
+    });
+  });
+
+  it('keeps status and named-mechanic references in structured log parts', () => {
+    const actor = { id: 'actor', name: '陈安' };
+    const target = { id: 'target', name: '异化尸傀' };
+    const origin: CombatOriginV3 = {
+      kind: 'owned',
+      owner: actor,
+      carrier: { kind: 'ability', id: 'wood', name: '青萝生脉' },
+    };
+    const sequence: CombatSequenceV3 = {
+      id: 'sequence:references',
+      turn: 1,
+      phase: 'action',
+      actor,
+      ability: { id: 'wood', name: '青萝生脉' },
+      facts: [
+        {
+          id: 'trigger',
+          type: 'mechanic',
+          trace: {
+            eventId: 'trigger',
+            sequenceId: 'sequence:references',
+            ordinal: 1,
+          },
+          origin,
+          target,
+          code: 'sect.tianyan.reaction.root-collapse',
+          payload: {
+            kind: 'named_trigger',
+            label: '崩根',
+            description: '降低目标法防。',
+          },
+        },
+        {
+          id: 'status',
+          type: 'status',
+          trace: {
+            eventId: 'status',
+            sequenceId: 'sequence:references',
+            ordinal: 2,
+          },
+          origin,
+          target,
+          operation: 'apply',
+          transition: 'added',
+          statusId: 'sect.tianyan.root-collapse',
+          statusName: '崩根',
+          statusType: 'debuff',
+          beforeLayers: 0,
+          afterLayers: 1,
+          duration: 2,
+        },
+      ],
+    };
+
+    const parts = new CombatPresenterV3('concise')
+      .present(sequence)
+      .groups.flatMap((group) =>
+        group.layout === 'root'
+          ? group.lines
+          : group.layout === 'inline'
+            ? [group.line]
+            : group.lines,
+      )
+      .flatMap((line) => line.parts);
+
+    expect(
+      parts.find((part) => part.text.includes('触发「崩根」'))?.reference,
+    ).toEqual({
+      kind: 'mechanic',
+      id: 'sect.tianyan.reaction.root-collapse',
+      name: '崩根',
+      description: '降低目标法防。',
+    });
+    expect(
+      parts.find((part) => part.text.includes('施加「崩根」'))?.reference,
+    ).toEqual({
+      kind: 'status',
+      id: 'sect.tianyan.root-collapse',
+      name: '崩根',
+    });
   });
 
   it('renders action-state phases with domain text instead of internal values', () => {
@@ -2742,5 +2877,4 @@ describe('combat facts V3', () => {
       /dead unit .* commits owned fact/,
     );
   });
-
 });

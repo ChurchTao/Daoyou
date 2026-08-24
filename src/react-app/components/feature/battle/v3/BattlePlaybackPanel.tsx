@@ -76,8 +76,10 @@ export function BattlePlaybackPanel({
         )}
 
         <CombatActionLogV3
+          battleResult={battleResult}
           sequences={battleResult.sequences}
           currentIndex={playback.currentIndex}
+          onInspect={playback.pause}
         />
       </div>
 

@@ -443,6 +443,8 @@ export type RefundPaidCostParams =
 export interface MechanicLogParams {
   mechanic: 'named_trigger' | 'status_transition';
   displayName: string;
+  /** 玩家点击战斗日志中的具名机制时展示的功能说明。 */
+  description?: string;
   internalKey: string;
   target?: 'caster' | 'target';
   visibility?: 'player' | 'debug';
@@ -789,6 +791,8 @@ export interface AbilityConfig {
   slug: string;
   name: string;
   description?: string;
+  /** Renderer-only functional detail rows projected by content compilers. */
+  detailRows?: string[];
   type: AbilityType;
   tags?: string[];
 

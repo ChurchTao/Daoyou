@@ -31,6 +31,15 @@ const part = (
   emphasis?: PresentedLogPartV3['emphasis'],
 ): PresentedLogPartV3 => ({ text, kind, tone, emphasis });
 
+const statusPart = (fact: StatusFactV3, text: string): PresentedLogPartV3 => ({
+  ...part(text, 'status', STATUS_TONE[fact.statusType]),
+  reference: {
+    kind: 'status',
+    id: fact.statusId,
+    name: fact.statusName,
+  },
+});
+
 function isOwnedByTarget(fact: CombatFactV3): boolean {
   return (
     fact.origin.kind === 'owned' && fact.origin.owner.id === fact.target.id
@@ -56,11 +65,7 @@ export class CombatFactNarratorV3 {
           part('的状态结束：'),
           ...item.facts.flatMap((fact, index) => [
             ...(index > 0 ? [part('、')] : []),
-            part(
-              `「${fact.statusName}」`,
-              'status',
-              STATUS_TONE[fact.statusType],
-            ),
+            statusPart(fact, `「${fact.statusName}」`),
           ]),
         ],
       };
@@ -145,6 +150,21 @@ export class CombatFactNarratorV3 {
       case 'defense':
         return this.narrateDefense(fact);
       case 'resource':
+        if (fact.resourceId === 'mp' && fact.applied <= 0) {
+          return {
+            role: 'resource',
+            parts: [
+              part(
+                fact.applied < 0
+                  ? `消耗 ${Math.abs(fact.applied)} 点法力，当前剩余 `
+                  : '本次未消耗法力，当前剩余 ',
+                'resource',
+              ),
+              part(String(fact.after), 'number', 'resource', 'strong'),
+              part(' 点法力', 'resource'),
+            ],
+          };
+        }
         return {
           role: 'resource',
           parts: [
@@ -190,24 +210,14 @@ export class CombatFactNarratorV3 {
         parts: [
           part(`「${fact.target.name}」`, 'unit'),
           part('免疫', 'text', 'defense'),
-          part(
-            `「${fact.statusName}」`,
-            'status',
-            STATUS_TONE[fact.statusType],
-          ),
+          statusPart(fact, `「${fact.statusName}」`),
         ],
       };
     }
     if (fact.operation === 'layers') {
       return {
         role: 'secondary',
-        parts: [
-          part(
-            this.statusLayerText(fact),
-            'status',
-            STATUS_TONE[fact.statusType],
-          ),
-        ],
+        parts: [statusPart(fact, this.statusLayerText(fact))],
       };
     }
     if (fact.operation === 'remove') {
@@ -222,11 +232,7 @@ export class CombatFactNarratorV3 {
         role: 'secondary',
         parts: [
           part(`「${fact.target.name}」的`, 'unit'),
-          part(
-            `「${fact.statusName}」`,
-            'status',
-            STATUS_TONE[fact.statusType],
-          ),
+          statusPart(fact, `「${fact.statusName}」`),
           part(action),
           ...(this.mode === 'detailed'
             ? [
@@ -260,7 +266,7 @@ export class CombatFactNarratorV3 {
     return {
       role: 'trigger',
       parts: [
-        part(text, 'status', STATUS_TONE[fact.statusType]),
+        statusPart(fact, text),
         part(`${suffix}${detailedTransition}`, 'text', 'secondary'),
       ],
     };

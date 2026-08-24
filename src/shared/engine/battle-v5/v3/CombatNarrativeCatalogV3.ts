@@ -190,7 +190,17 @@ const DEFINITIONS: MechanicNarrativeDefinitionMapV3 = {
   named_trigger: {
     concise: 'show',
     attributionLink: 'context',
-    format: (payload) => [part(`触发「${payload.label}」`, 'status')],
+    format: (payload, fact) => [
+      {
+        ...part(`触发「${payload.label}」`, 'status'),
+        reference: {
+          kind: 'mechanic',
+          id: fact.code,
+          name: payload.label,
+          description: payload.description,
+        },
+      },
+    ],
   },
   status_transition: {
     concise: 'show',

@@ -16,7 +16,11 @@ export class MechanicLogEffect extends GameplayEffect {
       visibility: this.params.visibility ?? 'player',
       payload:
         this.params.mechanic === 'named_trigger'
-          ? { kind: 'named_trigger', label: this.params.displayName }
+          ? {
+              kind: 'named_trigger',
+              label: this.params.displayName,
+              description: this.params.description,
+            }
           : {
               kind: 'status_transition',
               label: this.params.displayName,

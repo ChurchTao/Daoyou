@@ -533,6 +533,12 @@ export class BattleRecordValidatorV3 {
       case 'tag_trigger':
       case 'named_trigger':
         this.assertText(payload.label, fact, 'label');
+        if (
+          payload.kind === 'named_trigger' &&
+          payload.description !== undefined
+        ) {
+          this.assertText(payload.description, fact, 'description');
+        }
         break;
       case 'hp_sacrifice':
       case 'mana_burn':
