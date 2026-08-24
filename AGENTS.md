@@ -107,7 +107,7 @@ bun run auth:migrate
 - For LLM/provider changes, run lint/build and inspect provider validation and runtime behavior without adding provider integration tests.
 - For data/model changes, inspect generated migrations, transaction boundaries, and build output; do not add database/repository tests.
 - For docs/skill-only changes, inspect Markdown structure, skill validation, and `git diff`; full app tests are usually unnecessary.
-- Always report commands run and any checks skipped.
+- Report verification outcomes and any checks skipped, but do not list or quote the commands that were run unless the user explicitly asks for them.
 
 ## Working Style
 
@@ -117,3 +117,16 @@ bun run auth:migrate
 - Match existing patterns even if you would design them differently.
 - Remove only unused imports/variables/functions created by your own change.
 - For bugs in eligible pure shared engine logic, prefer a reproducing test first. For frontend, backend, database, or third-party behavior, use non-test verification.
+
+## Command Efficiency
+
+- Treat shell/tool calls as implementation details. Do not echo command text, terminal transcripts, or a `Ran ...` command list in commentary or final responses unless the user explicitly requests them.
+- Before a tool call, describe only its purpose in plain language; do not preview the exact command.
+- The client may still render tool-call activity outside the assistant's prose. Since repository instructions cannot control that UI, minimize visible activity by minimizing calls and keeping captured output tightly bounded.
+- Minimize the number of shell and tool calls while preserving correctness and useful progress updates.
+- Combine related read-only shell checks into one command when their outputs remain clear.
+- Do not repeatedly invoke the shell to inspect small amounts of information that can be gathered together.
+- Prefer one bounded Bash command for consecutive checks instead of many one-line calls.
+- Do not start background terminals unless the task genuinely requires ongoing monitoring or concurrent services.
+- Batch compatible test, lint, typecheck, and build checks when practical.
+- Keep command output concise; filter or summarize noisy logs without hiding relevant failures.
