@@ -25,6 +25,21 @@ const applyEnvToProcess = (mode: string) => {
 const createBuildId = () =>
   process.env.CF_PAGES_COMMIT_SHA ?? process.env.GITHUB_SHA ?? randomUUID();
 
+const bunWebSocketProxyCompatPlugin = (): Plugin => ({
+  name: 'bun-websocket-proxy-socket-compat',
+  configureServer(server) {
+    server.httpServer?.prependListener('upgrade', (_request, socket) => {
+      const compatibleSocket = socket as typeof socket & {
+        destroySoon?: () => void;
+      };
+
+      if (typeof compatibleSocket.destroySoon !== 'function') {
+        compatibleSocket.destroySoon = () => compatibleSocket.end();
+      }
+    });
+  },
+});
+
 const appVersionManifestPlugin = (buildId: string): Plugin => ({
   name: 'app-version-manifest',
   generateBundle() {
@@ -67,7 +82,7 @@ export default defineConfig(({ command, mode }) => {
   return {
     resolve: { alias },
     define: { __APP_BUILD_ID__: JSON.stringify(buildId) },
-    plugins: [react(), tailwindcss()],
+    plugins: [bunWebSocketProxyCompatPlugin(), react(), tailwindcss()],
     server: {
       proxy: {
         '/api': {

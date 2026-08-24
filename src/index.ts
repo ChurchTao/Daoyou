@@ -12,7 +12,9 @@ import {
 
 await registerMessageInfrastructure();
 await startOnlineBattleRuntime();
-registerInternalCronJobs({ enabled: import.meta.env.PROD });
+registerInternalCronJobs({
+  enabled: import.meta.env.PROD || process.env.INTERNAL_CRON_ENABLED === 'true',
+});
 
 let shuttingDown = false;
 async function shutdown(signal: NodeJS.Signals) {
