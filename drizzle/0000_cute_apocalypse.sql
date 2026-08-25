@@ -439,6 +439,7 @@ ALTER TABLE "wanjiedaoyou_qi_logs" ADD CONSTRAINT "wanjiedaoyou_qi_logs_cultivat
 ALTER TABLE "wanjiedaoyou_redeem_code_claims" ADD CONSTRAINT "wanjiedaoyou_redeem_code_claims_redeem_code_id_wanjiedaoyou_redeem_codes_id_fk" FOREIGN KEY ("redeem_code_id") REFERENCES "public"."wanjiedaoyou_redeem_codes"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "wanjiedaoyou_redeem_code_claims" ADD CONSTRAINT "wanjiedaoyou_redeem_code_claims_cultivator_id_wanjiedaoyou_cultivators_id_fk" FOREIGN KEY ("cultivator_id") REFERENCES "public"."wanjiedaoyou_cultivators"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "wanjiedaoyou_redeem_code_claims" ADD CONSTRAINT "wanjiedaoyou_redeem_code_claims_mail_id_wanjiedaoyou_mails_id_fk" FOREIGN KEY ("mail_id") REFERENCES "public"."wanjiedaoyou_mails"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "item_library_item_id_unique" ON "wanjiedaoyou_item_library" USING btree ("item_id");--> statement-breakpoint
 ALTER TABLE "wanjiedaoyou_reputation_shop_items" ADD CONSTRAINT "wanjiedaoyou_reputation_shop_items_item_library_item_id_wanjiedaoyou_item_library_item_id_fk" FOREIGN KEY ("item_library_item_id") REFERENCES "public"."wanjiedaoyou_item_library"("item_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "wanjiedaoyou_reputation_shop_purchases" ADD CONSTRAINT "wanjiedaoyou_reputation_shop_purchases_shop_item_id_wanjiedaoyou_reputation_shop_items_id_fk" FOREIGN KEY ("shop_item_id") REFERENCES "public"."wanjiedaoyou_reputation_shop_items"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "wanjiedaoyou_reputation_shop_purchases" ADD CONSTRAINT "wanjiedaoyou_reputation_shop_purchases_cultivator_id_wanjiedaoyou_cultivators_id_fk" FOREIGN KEY ("cultivator_id") REFERENCES "public"."wanjiedaoyou_cultivators"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -475,7 +476,6 @@ CREATE INDEX "dungeon_runs_cultivator_status_updated_idx" ON "wanjiedaoyou_dunge
 CREATE INDEX "dungeon_runs_status_updated_idx" ON "wanjiedaoyou_dungeon_runs" USING btree ("status","updated_at");--> statement-breakpoint
 CREATE INDEX "feedback_user_created_at_idx" ON "wanjiedaoyou_feedbacks" USING btree ("user_id","created_at");--> statement-breakpoint
 CREATE INDEX "feedback_status_type_created_at_idx" ON "wanjiedaoyou_feedbacks" USING btree ("status","type","created_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "item_library_item_id_unique" ON "wanjiedaoyou_item_library" USING btree ("item_id");--> statement-breakpoint
 CREATE INDEX "item_library_status_type_idx" ON "wanjiedaoyou_item_library" USING btree ("status","type");--> statement-breakpoint
 CREATE INDEX "item_library_name_idx" ON "wanjiedaoyou_item_library" USING btree ("name");--> statement-breakpoint
 CREATE INDEX "mails_cultivator_created_idx" ON "wanjiedaoyou_mails" USING btree ("cultivator_id","created_at");--> statement-breakpoint
