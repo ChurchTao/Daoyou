@@ -1,24 +1,28 @@
 import { getJetStreamManager } from '@server/lib/nats';
 import {
+  PERSONAL_STORY_CONSUMER_NAME,
+  PERSONAL_TRAVEL_STORY_CONSUMER_NAME,
+} from '@server/lib/story/constants';
+import {
   BACKGROUND_COMMAND_STREAM,
   BACKGROUND_COMMAND_SUBJECT_PREFIX,
 } from '@shared/contracts/backgroundCommands';
-import {
-  DOMAIN_EVENT_STREAM,
-  DOMAIN_EVENT_SUBJECT_PREFIX,
-} from '@shared/contracts/domainEvents';
 import {
   BATTLE_REPLAY_STREAM,
   BATTLE_REPLAY_SUBJECT,
 } from '@shared/contracts/battleReplay';
 import {
+  BATTLE_RESOLUTION_STREAM,
+  BATTLE_RESOLUTION_SUBJECT,
+} from '@shared/contracts/battleResolutionTask';
+import {
   BATTLE_TERMINAL_STREAM,
   BATTLE_TERMINAL_SUBJECT,
 } from '@shared/contracts/battleTerminal';
 import {
-  BATTLE_RESOLUTION_STREAM,
-  BATTLE_RESOLUTION_SUBJECT,
-} from '@shared/contracts/battleResolutionTask';
+  DOMAIN_EVENT_STREAM,
+  DOMAIN_EVENT_SUBJECT_PREFIX,
+} from '@shared/contracts/domainEvents';
 import {
   AckPolicy,
   DeliverPolicy,
@@ -75,6 +79,16 @@ export const DOMAIN_EVENT_CONSUMERS = {
     name: 'task-projector-v1',
     filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.*.v1`,
     concurrency: 8,
+  },
+  personalStoryProjector: {
+    name: PERSONAL_STORY_CONSUMER_NAME,
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.dungeon-run-settled.v1`,
+    concurrency: 2,
+  },
+  personalTravelStoryProjector: {
+    name: PERSONAL_TRAVEL_STORY_CONSUMER_NAME,
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.*.v1`,
+    concurrency: 2,
   },
   yieldRewardProjector: {
     name: 'yield-reward-projector-v1',

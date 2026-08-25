@@ -70,13 +70,13 @@ describe('sect task dialogue presentation', () => {
   it('keeps standard dialogue while applying non-task organization themes', () => {
     const definition = new StandardSectOrganizationModule({
       facilityNames: { archive: '宗门藏书阁' },
-    }).tasks.get('gate_sweep')!;
+    }).tasks.get('dungeon_exploration')!;
 
     expect(definition.presentation.dialogue.offeredReply).toBe(
-      '山门洒扫便交给我吧',
+      '这桩秘境探索交给我吧',
     );
     expect(definition.presentation.dialogue.instruction.text).toBe(
-      '去山门步道清理落叶，完成一轮洒扫后回来复命。',
+      '领取委托后，从任务入口前往任意一处秘境，入境不消耗天地灵气；成功完成探索后再回事务堂交回回执。中途撤离不算完成。',
     );
   });
 

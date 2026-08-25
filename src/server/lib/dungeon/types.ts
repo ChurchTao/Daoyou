@@ -1,4 +1,5 @@
 import type { ResourceOperation } from '@shared/engine/resource/types';
+import type { DungeonStoryContext } from '@shared/lib/story/personalStory';
 import { ENEMY_RACE_VALUES, REALM_STAGE_VALUES } from '@shared/types/constants';
 import { z } from 'zod';
 
@@ -274,7 +275,6 @@ const DungeonCostLlmSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.enum([
       'spirit_stones',
-      'lifespan',
       'cultivation_exp',
       'comprehension_insight',
     ]),
@@ -325,10 +325,11 @@ const DungeonOptionLlmSchema = z.object({
 });
 
 export function createDungeonRoundLlmSchema(
-  eventRewardCount: 0 | 1,
+  eventRewardCount: 0 | 1 | 'optional',
   optionMode: 'up_to_three' | 'none' = 'up_to_three',
 ) {
   const optionsSchema = z.array(DungeonOptionLlmSchema).max(3);
+  const rewardsSchema = z.array(RewardBlueprintLlmSchema);
   return z.object({
     scene_description: z.string(),
     action_outcome: z.string().max(500),
@@ -336,7 +337,10 @@ export function createDungeonRoundLlmSchema(
       optionMode === 'none'
         ? optionsSchema.length(0)
         : optionsSchema.min(1),
-    acquired_items: z.array(RewardBlueprintLlmSchema).length(eventRewardCount),
+    acquired_items:
+      eventRewardCount === 'optional'
+        ? rewardsSchema.max(1)
+        : rewardsSchema.length(eventRewardCount),
     internal_danger_score: z.number().int().min(0).max(100),
   });
 }
@@ -516,6 +520,7 @@ export interface DungeonState {
   mapNodeId: string;
   playerInfo: PlayerInfo;
   theme: string;
+  storyContext?: DungeonStoryContext;
   currentRound: number;
   maxRounds: number;
   history: History[];
@@ -601,6 +606,10 @@ export interface DungeonRoundLlmContext {
   battleAftermath?: string;
   defeatedEnemyNames: string[];
   accumulatedRewardNames: string[];
+  story?: Omit<
+    DungeonStoryContext,
+    'threadId' | 'intentId' | 'frameworkId' | 'initialDangerAdjustment'
+  >;
   flow: {
     stage: DungeonBranchStage;
     requiredOptionCount: 'up_to_three' | 'none';
@@ -620,6 +629,10 @@ export interface DungeonSettlementLlmContext {
     name: string;
     realm: string;
   };
+  story?: Omit<
+    DungeonStoryContext,
+    'threadId' | 'intentId' | 'frameworkId' | 'initialDangerAdjustment'
+  >;
   finalAction?: {
     target: string;
     choice: string;

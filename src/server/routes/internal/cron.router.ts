@@ -5,6 +5,7 @@ import {
   runExpiredDataCleanupJob,
   runMarketRefreshCronJob,
   runMaterialLibraryDailyGenerationJob,
+  runPersonalStoryGenerationJob,
   runRankRewardsJob,
   runResourceReplayCleanupJob,
   runSponsorshipAdminDigestJob,
@@ -98,6 +99,10 @@ router.get('/expired-data-cleanup', (c) =>
 
 router.get('/material-library-daily-generation', (c) =>
   handleCronRequest(c.req.raw, runMaterialLibraryDailyGenerationJob),
+);
+
+router.get('/personal-story-generate-next', (c) =>
+  handleCronRequest(c.req.raw, runPersonalStoryGenerationJob),
 );
 
 router.get('/sponsorship-reconcile', (c) =>

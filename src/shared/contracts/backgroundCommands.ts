@@ -13,6 +13,7 @@ export const BACKGROUND_COMMAND_TYPES = [
   'resource-replay.cleanup',
   'expired-data.cleanup',
   'material-library.generate',
+  'personal-story.generate-next',
   'sponsorship.reconcile',
   'sponsorship.deep-reconcile',
   'sponsorship.cleanup',
@@ -66,6 +67,11 @@ export const BACKGROUND_COMMAND_DEFINITIONS = {
     version: 1,
     subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.material-library-generate.v1`,
     scheduleBucketMs: 24 * 60 * 60_000,
+  },
+  'personal-story.generate-next': {
+    version: 1,
+    subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.personal-story-generate-next.v1`,
+    scheduleBucketMs: 60 * 60_000,
   },
   'sponsorship.reconcile': {
     version: 1,

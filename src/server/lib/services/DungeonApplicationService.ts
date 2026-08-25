@@ -1,4 +1,5 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
+import { storyThreads } from '@server/lib/drizzle/schema';
 import {
   dungeonService,
   type DungeonPersistenceSettlement,
@@ -26,13 +27,21 @@ import {
   evaluateNoviceReadiness,
   type NoviceDungeonReadiness,
 } from '@shared/lib/noviceGuidance';
+import type { DungeonStoryContext } from '@shared/lib/story/personalStory';
+import { and, eq, isNull } from 'drizzle-orm';
 import { resolvePersistentWorldPlayerState } from './BattleStateCoordinator';
 import { playerCommandExecutor } from './CommandExecutors';
 import { toPlayerStateMutationResponse } from './ResourceMutationResponse';
 import { TaskService } from './TaskService';
+import { hasActiveSectDungeonTask } from './sect-organization/SectDungeonTaskEligibility';
 
-type DungeonCommand =
-  | { kind: 'start'; mapNodeId: string }
+export type DungeonCommand =
+  | {
+      kind: 'start';
+      mapNodeId: string;
+      storyContext?: DungeonStoryContext;
+      entrySource?: 'sect_task';
+    }
   | { kind: 'action'; choiceId: number; actionId?: string }
   | {
       kind: 'recover';
@@ -107,10 +116,16 @@ export async function executeDungeonCommand(args: {
           mapNodeId: args.command.mapNodeId,
         });
       }
+      const waiveStartQi =
+        args.command.kind === 'start' &&
+        args.command.entrySource === 'sect_task'
+          ? await requireActiveSectDungeonTask(args.cultivatorId)
+          : false;
       const prepared = await prepareDungeonCommand(
         args.cultivatorId,
         args.command,
         lease,
+        waiveStartQi,
       );
       lease.assertHeld();
       const hooks = asDeferredResult(prepared);
@@ -129,6 +144,10 @@ export async function executeDungeonCommand(args: {
             cultivatorId: args.cultivatorId,
             result,
             persist,
+            storyContext:
+              args.command.kind === 'start'
+                ? args.command.storyContext
+                : undefined,
             tx,
           }),
       });
@@ -140,6 +159,18 @@ export async function executeDungeonCommand(args: {
     await redis.set(cacheKey, JSON.stringify(response), 'EX', 3600);
   }
   return response;
+}
+
+async function requireActiveSectDungeonTask(
+  cultivatorId: string,
+): Promise<true> {
+  if (!(await hasActiveSectDungeonTask(cultivatorId))) {
+    throw new DungeonStartError(
+      '宗门秘境委托尚未领取、已经完成或已经过期，请返回宗门事务确认。',
+      409,
+    );
+  }
+  return true;
 }
 
 async function assertDungeonStartReady(args: {
@@ -200,9 +231,32 @@ export async function executeDungeonPersistenceCommand<T>(args: {
   cultivatorId: string;
   result: T;
   persist?: (tx: DbTransaction) => Promise<DungeonPersistenceSettlement | void>;
+  storyContext?: DungeonStoryContext;
   tx: DbTransaction;
 }): Promise<{ result: T; resourceChanges: ResourceChangeDescriptor[] }> {
   const settlement = await args.persist?.(args.tx);
+  if (args.storyContext) {
+    const runId = (args.result as { state?: { runId?: string } }).state?.runId;
+    if (!runId) {
+      throw new Error('关联秘境没有生成运行编号');
+    }
+    const [bound] = await args.tx
+      .update(storyThreads)
+      .set({ linkedRunId: runId })
+      .where(
+        and(
+          eq(storyThreads.id, args.storyContext.threadId),
+          eq(storyThreads.cultivatorId, args.cultivatorId),
+          eq(storyThreads.stage, 'confrontation'),
+          eq(storyThreads.status, 'active'),
+          isNull(storyThreads.linkedRunId),
+        ),
+      )
+      .returning({ id: storyThreads.id });
+    if (!bound) {
+      throw new Error('关联剧情状态已经变化，请刷新后重试');
+    }
+  }
   const resourceChanges: ResourceChangeDescriptor[] = [];
 
   if (settlement?.condition !== undefined) {
@@ -286,15 +340,16 @@ async function prepareDungeonCommand(
   cultivatorId: string,
   command: DungeonCommand,
   lease: RedisLeaseContext,
+  waiveStartQi = false,
 ): Promise<unknown> {
   const options = { deferPersistence: true as const, lease };
   switch (command.kind) {
     case 'start':
-      return dungeonService.startDungeon(
-        cultivatorId,
-        command.mapNodeId,
-        options,
-      );
+      return dungeonService.startDungeon(cultivatorId, command.mapNodeId, {
+        ...options,
+        storyContext: command.storyContext,
+        waiveStartQi,
+      });
     case 'action':
       return dungeonService.handleAction(
         cultivatorId,

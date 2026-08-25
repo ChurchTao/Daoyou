@@ -11,6 +11,7 @@ import {
   runExpiredDataCleanupJob,
   runMarketRefreshCronJob,
   runMaterialLibraryDailyGenerationJob,
+  runPersonalStoryGenerationJob,
   runRankRewardsJob,
   runResourceReplayCleanupJob,
   runSponsorshipAdminDigestJob,
@@ -52,6 +53,7 @@ const handlers = {
   'expired-data.cleanup': () => runExpiredDataCleanupJob(),
   'material-library.generate': (command) =>
     runMaterialLibraryDailyGenerationJob(new Date(command.requestedAt)),
+  'personal-story.generate-next': () => runPersonalStoryGenerationJob(),
   'sponsorship.reconcile': () => runSponsorshipReconcileJob(false),
   'sponsorship.deep-reconcile': () => runSponsorshipReconcileJob(true),
   'sponsorship.cleanup': () => runSponsorshipCleanupJob(),

@@ -6,12 +6,15 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { consumeResourceChanges } from '@app/lib/resources/mutations';
 import { GeneratedMaterial } from '@shared/engine/material/creation/types';
 import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
-import { useEffect, useState } from 'react';
+import type { TravelStoryEvent } from '@shared/lib/story/travelStory';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { TravelStoryModal } from './TravelStoryModal';
 
 interface YieldCardProps {
   cultivator: { last_yield_at?: string };
   onOk?: () => void;
   onInteractionActiveChange?: (active: boolean) => void;
+  onPendingTravelEventChange?: (hasPending: boolean) => void;
   variant?: 'card' | 'compact';
 }
 
@@ -19,6 +22,7 @@ export function YieldCard({
   cultivator,
   onOk,
   onInteractionActiveChange,
+  onPendingTravelEventChange,
   variant = 'card',
 }: YieldCardProps) {
   const { pushToast } = useInkUI();
@@ -32,8 +36,48 @@ export function YieldCard({
     insightGain?: number;
     materialCount?: number; // 材料生成数量（异步）
   } | null>(null);
-
   const [claiming, setClaiming] = useState(false);
+  const [travelEvent, setTravelEvent] = useState<TravelStoryEvent | null>(null);
+  const [travelOpen, setTravelOpen] = useState(false);
+  const travelPollTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const refreshPendingTravelEvent = useCallback(async () => {
+    try {
+      const response = await fetch('/api/story/activity-stories/pending');
+      if (!response.ok) return false;
+      const data = await response.json();
+      const pendingEvent = data.event ?? null;
+      setTravelEvent(pendingEvent);
+      onPendingTravelEventChange?.(Boolean(pendingEvent));
+      return Boolean(pendingEvent);
+    } catch {
+      return false;
+    }
+  }, [onPendingTravelEventChange]);
+
+  const startTravelEventPolling = useCallback(() => {
+    for (const timer of travelPollTimers.current) clearTimeout(timer);
+    travelPollTimers.current = [0, 2_000, 5_000, 10_000, 20_000, 40_000].map(
+      (delay) =>
+        setTimeout(() => {
+          void refreshPendingTravelEvent();
+        }, delay),
+    );
+  }, [refreshPendingTravelEvent]);
+
+  useEffect(() => {
+    const initialTimer = setTimeout(() => {
+      void refreshPendingTravelEvent();
+    }, 0);
+    const refreshTimer = setInterval(() => {
+      void refreshPendingTravelEvent();
+    }, 60_000);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(refreshTimer);
+      for (const timer of travelPollTimers.current) clearTimeout(timer);
+    };
+  }, [refreshPendingTravelEvent]);
 
   // 历练相关
   const handleClaimYield = async () => {
@@ -125,6 +169,7 @@ export function YieldCard({
           }
         }
       }
+      startTravelEventPolling();
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '领取失败',
@@ -143,6 +188,25 @@ export function YieldCard({
     onOk?.();
   };
 
+  const handleOpenTravelEvent = () => {
+    if (!travelEvent) return;
+    setYieldResult(null);
+    setTravelOpen(true);
+    onInteractionActiveChange?.(true);
+  };
+
+  const handleCloseTravelEvent = () => {
+    setTravelOpen(false);
+    onInteractionActiveChange?.(false);
+    onOk?.();
+  };
+
+  const handleTravelEventResolved = () => {
+    setTravelEvent(null);
+    onPendingTravelEventChange?.(false);
+    setTimeout(() => void refreshPendingTravelEvent(), 0);
+  };
+
   useEffect(() => {
     if (cultivator?.last_yield_at) {
       const update = () => {
@@ -154,7 +218,7 @@ export function YieldCard({
     }
   }, [cultivator?.last_yield_at]);
 
-  const actionButton = (
+  const claimButton = (
     <InkButton
       variant={timeSinceYield >= 1 ? 'primary' : 'secondary'}
       disabled={timeSinceYield < 1}
@@ -165,6 +229,22 @@ export function YieldCard({
     >
       {timeSinceYield < 1 ? '历练中' : '领取'}
     </InkButton>
+  );
+  const actionButtons = (
+    <div className="flex items-center gap-1">
+      {travelEvent ? (
+        <InkButton variant="primary" onClick={handleOpenTravelEvent}>
+          {travelEvent.linkage?.kind === 'mainline_prelude'
+            ? '追查主线'
+            : travelEvent.linkage?.kind === 'mainline_echo'
+              ? '回应回响'
+              : travelEvent.activityType === 'travel'
+                ? '处理异闻'
+                : '查看回响'}
+        </InkButton>
+      ) : null}
+      {claimButton}
+    </div>
   );
   const spiritStonesInfo = getGameConceptInfo('spirit_stones');
   const cultivationInfo = getGameConceptInfo('cultivation_exp');
@@ -184,8 +264,8 @@ export function YieldCard({
               ) : null}
             </>
           }
-          summary={`已历练 ${timeSinceYield}/24小时`}
-          action={actionButton}
+          summary={`${travelEvent ? (travelEvent.activityType === 'travel' ? '途中异闻待处理；' : '剧情回响待处理；') : ''}已历练 ${timeSinceYield}/24小时`}
+          action={actionButtons}
         />
       ) : (
         <div className="border-ink/20 relative mb-6 overflow-hidden border bg-white/70 p-4">
@@ -206,7 +286,7 @@ export function YieldCard({
                 <span className="opacity-60"> (上限24h)</span>
               </div>
             </div>
-            {actionButton}
+            {actionButtons}
           </div>
         </div>
       )}
@@ -216,13 +296,24 @@ export function YieldCard({
         onClose={handleCloseYieldModal}
         title="历练归来"
         footer={
-          <InkButton
-            variant="primary"
-            className="w-full"
-            onClick={handleCloseYieldModal}
-          >
-            收入囊中
-          </InkButton>
+          <div className="flex gap-2">
+            {travelEvent ? (
+              <InkButton
+                variant="secondary"
+                className="flex-1"
+                onClick={handleOpenTravelEvent}
+              >
+                查看途中异闻
+              </InkButton>
+            ) : null}
+            <InkButton
+              variant="primary"
+              className="flex-1"
+              onClick={handleCloseYieldModal}
+            >
+              收入囊中
+            </InkButton>
+          </div>
         }
       >
         <div className="text-ink bg-ink/5 border-ink/10 mb-6 max-w-none border border-dashed p-4 text-sm leading-relaxed whitespace-pre-line">
@@ -285,6 +376,13 @@ export function YieldCard({
             </div>
           )}
       </InkModal>
+
+      <TravelStoryModal
+        event={travelEvent}
+        isOpen={travelOpen}
+        onClose={handleCloseTravelEvent}
+        onResolved={handleTravelEventResolved}
+      />
     </>
   );
 }

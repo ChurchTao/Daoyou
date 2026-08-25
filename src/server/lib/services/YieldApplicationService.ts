@@ -173,24 +173,24 @@ export async function executeYieldCommand(args: {
             .update(cultivators)
             .set({ last_yield_at: claimedAt })
             .where(eq(cultivators.id, args.cultivatorId));
-          if (materialCount > 0) {
-            domainEventId = (
-              await createDomainEvent(
-                {
-                  type: 'yield.claimed',
-                  aggregate: { type: 'cultivator', id: args.cultivatorId },
-                  data: {
-                    cultivatorId: args.cultivatorId,
-                    actionInstanceId,
-                    realm: facts.realm,
-                    materialCount,
-                  },
-                  deduplicationKey: `${args.cultivatorId}:yield:${actionInstanceId}`,
+          domainEventId = (
+            await createDomainEvent(
+              {
+                type: 'yield.claimed',
+                aggregate: { type: 'cultivator', id: args.cultivatorId },
+                data: {
+                  cultivatorId: args.cultivatorId,
+                  actionInstanceId,
+                  realm: facts.realm,
+                  realmStage: facts.realmStage,
+                  hours: hoursElapsed,
+                  materialCount,
                 },
-                tx,
-              )
-            ).id;
-          }
+                deduplicationKey: `${args.cultivatorId}:yield:${actionInstanceId}`,
+              },
+              tx,
+            )
+          ).id;
           return {
             result,
             resourceChanges: [

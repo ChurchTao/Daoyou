@@ -7,6 +7,7 @@ import {
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
 import type { FeatureCommandResult } from './CommandExecutors';
 import { readPlayerTaskSummary } from './PlayerResourceReaderService';
+import { projectSectDungeonTaskCompletion } from './sect-organization/SectDungeonTaskProjector';
 import { TaskService } from './TaskService';
 
 export async function projectTaskDomainEvent(
@@ -32,6 +33,7 @@ export async function projectTaskDomainEvent(
 
   if (isDomainEventType(event, 'dungeon.run.settled')) {
     await lockCultivatorForStateMutation(tx, event.data.cultivatorId);
+    const sectProjection = await projectSectDungeonTaskCompletion(event, tx);
     if (event.data.outcome === 'completed') {
       await TaskService.recordDungeonCompletion(
         event.data.cultivatorId,
@@ -39,15 +41,28 @@ export async function projectTaskDomainEvent(
         { tx },
       );
     }
-    await TaskService.recordTaskEvent(
+    if (event.data.outcome !== 'abandoned_before_battle') {
+      await TaskService.recordTaskEvent(
+        event.data.cultivatorId,
+        'dungeon_completed',
+        { tx },
+      );
+    }
+    return taskProjectionResult(
       event.data.cultivatorId,
-      'dungeon_completed',
-      { tx },
+      tx,
+      sectProjection.resourceChanges,
     );
-    return taskProjectionResult(event.data.cultivatorId, tx);
   }
 
   if (isDomainEventType(event, 'yield.claimed')) {
+    return {
+      result: { status: 'ignored' as const },
+      resourceChanges: [],
+    };
+  }
+
+  if (isDomainEventType(event, 'sect.task.completed')) {
     return {
       result: { status: 'ignored' as const },
       resourceChanges: [],
@@ -60,6 +75,7 @@ export async function projectTaskDomainEvent(
 async function taskProjectionResult(
   cultivatorId: string,
   tx: DbTransaction,
+  additionalChanges: ResourceChangeDescriptor[] = [],
 ): Promise<FeatureCommandResult<{ status: 'applied' | 'ignored' }>> {
   const taskSummary = await readPlayerTaskSummary(cultivatorId, tx);
   const scope = { kind: 'cultivator' as const, id: cultivatorId };
@@ -79,6 +95,7 @@ async function taskProjectionResult(
         operation: 'replace',
         payload: taskSummary,
       },
+      ...additionalChanges,
     ] satisfies ResourceChangeDescriptor[],
   };
 }

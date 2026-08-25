@@ -420,6 +420,7 @@ export interface SectCommandContext {
   modules: SectModuleResolver;
   clock: Clock;
   ids: IdGenerator;
+  events: DomainEventWriter;
 }
 
 export interface SectQueryContext {

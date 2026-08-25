@@ -9,6 +9,18 @@ import type {
   ItemLibraryPayload,
 } from '@shared/lib/itemLibrary';
 import type { SponsorshipTierId } from '@shared/lib/sponsorship';
+import type {
+  StoryEntityLifeStatus,
+  StoryIntentPayload,
+  StoryThreadLinkageContext,
+  StoryThreadScope,
+  StoryThreadStage,
+  StoryThreadStatus,
+} from '@shared/lib/story/personalStory';
+import type {
+  ActivityStoryDecision,
+  TravelStoryIntentPayload,
+} from '@shared/lib/story/travelStory';
 import type { TowerPreparedEnemy } from '@shared/lib/tower';
 import type { BattleRecordV3 } from '@shared/types/battle';
 import type {
@@ -1443,6 +1455,239 @@ export const dungeonRuns = pgTable(
       table.updatedAt,
     ),
     index('dungeon_runs_status_updated_idx').on(table.status, table.updatedAt),
+  ],
+);
+
+// 玩家独立剧情：长期记忆。LLM 只能提出候选，落库前必须经服务端校验。
+export const storyMemories = pgTable(
+  'wanjiedaoyou_story_memories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    sourceType: varchar('source_type', { length: 40 }).notNull(),
+    sourceId: varchar('source_id', { length: 128 }).notNull(),
+    factFingerprint: varchar('fact_fingerprint', { length: 160 }).notNull(),
+    summary: text('summary').notNull(),
+    tags: jsonb('tags').$type<string[]>().notNull().default([]),
+    entityIds: jsonb('entity_ids').$type<string[]>().notNull().default([]),
+    importance: integer('importance').notNull().default(1),
+    evidence: jsonb('evidence')
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    occurredAt: timestamp('occurred_at').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('story_memories_cultivator_fingerprint_uidx').on(
+      table.cultivatorId,
+      table.factFingerprint,
+    ),
+    index('story_memories_cultivator_occurred_idx').on(
+      table.cultivatorId,
+      table.occurredAt,
+    ),
+    index('story_memories_source_idx').on(table.sourceType, table.sourceId),
+  ],
+);
+
+// 玩家独立剧情：只保存真正进入个人剧情的关键人物或势力。
+export const storyEntities = pgTable(
+  'wanjiedaoyou_story_entities',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 80 }).notNull(),
+    entityType: varchar('entity_type', { length: 24 }).notNull(),
+    state: text('state').notNull(),
+    relationship: varchar('relationship', { length: 24 }).notNull(),
+    lifeStatus: varchar('life_status', { length: 24 })
+      .$type<StoryEntityLifeStatus>()
+      .notNull()
+      .default('active'),
+    version: integer('version').notNull().default(1),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('story_entities_cultivator_updated_idx').on(
+      table.cultivatorId,
+      table.updatedAt,
+    ),
+  ],
+);
+
+// 玩家独立剧情：一条四阶段剧情线及其权威选择、关联秘境。
+export const storyThreads = pgTable(
+  'wanjiedaoyou_story_threads',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    frameworkId: varchar('framework_id', { length: 64 }).notNull(),
+    frameworkVersion: integer('framework_version').notNull(),
+    threadScope: varchar('thread_scope', { length: 16 })
+      .$type<StoryThreadScope>()
+      .notNull()
+      .default('personal'),
+    stage: varchar('stage', { length: 24 }).$type<StoryThreadStage>().notNull(),
+    status: varchar('status', { length: 24 })
+      .$type<StoryThreadStatus>()
+      .notNull(),
+    premise: text('premise').notNull(),
+    unresolvedQuestion: text('unresolved_question').notNull(),
+    entityIds: jsonb('entity_ids').$type<string[]>().notNull().default([]),
+    selectedChoiceKey: varchar('selected_choice_key', { length: 32 }),
+    linkedMapNodeId: varchar('linked_map_node_id', { length: 100 }),
+    linkedRunId: uuid('linked_run_id').references(() => dungeonRuns.id, {
+      onDelete: 'set null',
+    }),
+    linkageContext: jsonb('linkage_context')
+      .$type<StoryThreadLinkageContext>()
+      .notNull()
+      .default({}),
+    version: integer('version').notNull().default(1),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+    resolvedAt: timestamp('resolved_at'),
+  },
+  (table) => [
+    uniqueIndex('story_threads_one_open_per_cultivator_scope_uidx')
+      .on(table.cultivatorId, table.threadScope)
+      .where(sql`${table.status} in ('active', 'paused')`),
+    index('story_threads_cultivator_updated_idx').on(
+      table.cultivatorId,
+      table.updatedAt,
+    ),
+    uniqueIndex('story_threads_linked_run_uidx')
+      .on(table.linkedRunId)
+      .where(sql`${table.linkedRunId} is not null`),
+  ],
+);
+
+// 玩家独立剧情：每个角色的摘要、当前剧情线与触发冷却。
+export const storyStates = pgTable('wanjiedaoyou_story_states', {
+  cultivatorId: uuid('cultivator_id')
+    .primaryKey()
+    .references(() => cultivators.id, { onDelete: 'cascade' }),
+  version: integer('version').notNull().default(1),
+  storySeed: uuid('story_seed').notNull().defaultRandom(),
+  canonSummary: text('canon_summary').notNull().default(''),
+  activeThreadId: uuid('active_thread_id'),
+  activeSectThreadId: uuid('active_sect_thread_id'),
+  cooldownUntil: timestamp('cooldown_until'),
+  sectCooldownUntil: timestamp('sect_cooldown_until'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at')
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+// 玩家独立剧情：已经校验并等待投递或处理的信件节点。
+export const storyIntents = pgTable(
+  'wanjiedaoyou_story_intents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    threadId: uuid('thread_id').references(() => storyThreads.id, {
+      onDelete: 'cascade',
+    }),
+    storyVersion: integer('story_version').notNull(),
+    beatType: varchar('beat_type', { length: 24 }).notNull(),
+    sourceType: varchar('source_type', { length: 40 }),
+    sourceId: varchar('source_id', { length: 128 }),
+    payload: jsonb('payload')
+      .$type<StoryIntentPayload | TravelStoryIntentPayload>()
+      .notNull(),
+    requiresChoice: boolean('requires_choice').notNull().default(false),
+    status: varchar('status', { length: 24 }).notNull(),
+    deliveredVia: varchar('delivered_via', { length: 24 }),
+    mailId: uuid('mail_id').references(() => mails.id, {
+      onDelete: 'set null',
+    }),
+    lastError: text('last_error'),
+    availableAt: timestamp('available_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    resolvedAt: timestamp('resolved_at'),
+  },
+  (table) => [
+    uniqueIndex('story_intents_thread_beat_uidx').on(
+      table.threadId,
+      table.beatType,
+    ),
+    uniqueIndex('story_intents_mail_uidx')
+      .on(table.mailId)
+      .where(sql`${table.mailId} is not null`),
+    uniqueIndex('story_intents_cultivator_source_beat_uidx')
+      .on(table.cultivatorId, table.sourceType, table.sourceId, table.beatType)
+      .where(
+        sql`${table.sourceType} is not null and ${table.sourceId} is not null`,
+      ),
+    index('story_intents_cultivator_status_created_idx').on(
+      table.cultivatorId,
+      table.status,
+      table.createdAt,
+    ),
+    index('story_intents_cultivator_status_available_idx').on(
+      table.cultivatorId,
+      table.status,
+      table.availableAt,
+    ),
+  ],
+);
+
+// 统一剧情导演：同一角色的同一根活动最终只保留一个裁决。
+export const storyActivityDecisions = pgTable(
+  'wanjiedaoyou_story_activity_decisions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    rootActivityId: varchar('root_activity_id', { length: 160 }).notNull(),
+    decision: varchar('decision', { length: 32 })
+      .$type<ActivityStoryDecision>()
+      .notNull(),
+    priority: integer('priority').notNull(),
+    threadScope: varchar('thread_scope', {
+      length: 16,
+    }).$type<StoryThreadScope>(),
+    sourceEventId: uuid('source_event_id').notNull(),
+    intentId: uuid('intent_id').references(() => storyIntents.id, {
+      onDelete: 'set null',
+    }),
+    status: varchar('status', { length: 24 }).notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+    resolvedAt: timestamp('resolved_at'),
+  },
+  (table) => [
+    uniqueIndex('story_activity_decisions_cultivator_root_uidx').on(
+      table.cultivatorId,
+      table.rootActivityId,
+    ),
+    index('story_activity_decisions_cultivator_status_idx').on(
+      table.cultivatorId,
+      table.status,
+      table.updatedAt,
+    ),
   ],
 );
 

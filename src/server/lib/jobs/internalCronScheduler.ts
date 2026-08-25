@@ -13,6 +13,9 @@ const RESOURCE_REPLAY_CLEANUP_SCHEDULE = '30 18 * * *';
 const EXPIRED_DATA_CLEANUP_SCHEDULE = '45 18 * * *';
 // 17:00 UTC equals 01:00 Asia/Shanghai.
 const MATERIAL_LIBRARY_DAILY_GENERATION_SCHEDULE = '0 17 * * *';
+// Check hourly so a completed chapter becomes eligible about 24 hours later,
+// instead of waiting for the next fixed daily window.
+const PERSONAL_STORY_GENERATE_NEXT_SCHEDULE = '15 * * * *';
 const SPONSORSHIP_RECONCILE_SCHEDULE = '*/10 * * * *';
 const SPONSORSHIP_DEEP_RECONCILE_SCHEDULE = '15 19 * * *';
 const SPONSORSHIP_CLEANUP_SCHEDULE = '30 19 * * *';
@@ -66,6 +69,9 @@ export function registerInternalCronJobs(
     Bun.cron(MATERIAL_LIBRARY_DAILY_GENERATION_SCHEDULE, () =>
       runScheduledJob('material-library.generate'),
     ),
+    Bun.cron(PERSONAL_STORY_GENERATE_NEXT_SCHEDULE, () =>
+      runScheduledJob('personal-story.generate-next'),
+    ),
     Bun.cron(SPONSORSHIP_RECONCILE_SCHEDULE, () =>
       runScheduledJob('sponsorship.reconcile'),
     ),
@@ -94,6 +100,7 @@ export function registerInternalCronJobs(
     materialLibraryDailyGenerationUtc:
       MATERIAL_LIBRARY_DAILY_GENERATION_SCHEDULE,
     materialLibraryDailyGenerationLocal: '01:00 Asia/Shanghai',
+    personalStoryGenerateNext: PERSONAL_STORY_GENERATE_NEXT_SCHEDULE,
     sponsorshipReconcile: SPONSORSHIP_RECONCILE_SCHEDULE,
     sponsorshipDeepReconcileUtc: SPONSORSHIP_DEEP_RECONCILE_SCHEDULE,
     sponsorshipCleanupUtc: SPONSORSHIP_CLEANUP_SCHEDULE,

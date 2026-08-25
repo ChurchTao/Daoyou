@@ -39,7 +39,10 @@ export function useDungeonActions() {
   /**
    * 启动副本
    */
-  const startDungeon = async (nodeId: string) => {
+  const startDungeon = async (
+    nodeId: string,
+    entrySource?: 'sect_task',
+  ) => {
     try {
       setProcessing(true);
       const res = await fetch('/api/dungeon/start', {
@@ -47,6 +50,7 @@ export function useDungeonActions() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mapNodeId: nodeId,
+          ...(entrySource ? { entrySource } : {}),
         }),
       });
 
@@ -55,7 +59,13 @@ export function useDungeonActions() {
         throw new Error(data.message ?? '启动秘境失败');
       }
 
-      pushToast({ message: '秘境已开启', tone: 'success' });
+      pushToast({
+        message:
+          entrySource === 'sect_task'
+            ? '宗门秘境委托已开启，本次不消耗天地灵气'
+            : '秘境已开启',
+        tone: 'success',
+      });
       return data.state;
     } catch (e) {
       pushToast({

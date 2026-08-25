@@ -20,6 +20,11 @@ export type LlmSceneId =
   | 'material-generation'
   | 'material-semantic-enrichment'
   | 'product-naming'
+  | 'story-beat'
+  | 'story-dungeon-blueprint'
+  | 'story-memory-extract'
+  | 'story-activity-event'
+  | 'story-travel-event'
   | 'yield-story';
 
 export type LlmStructuredFailureKind =

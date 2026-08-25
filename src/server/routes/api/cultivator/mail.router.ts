@@ -15,6 +15,7 @@ import {
   sendCultivatorMail,
 } from '@server/lib/services/PlayerMailApplicationService';
 import { PlayerMailServiceError } from '@server/lib/services/PlayerMailService';
+import { listStoryMailDescriptors } from '@server/lib/story/PersonalStoryRepository';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import { and, desc, eq, sql } from 'drizzle-orm';
@@ -68,8 +69,16 @@ mailRouter.get('/', requireActiveCultivatorRef(), async (c) => {
     offset: (page - 1) * pageSize,
   });
   const hasMore = userMails.length > pageSize;
+  const visibleMails = hasMore ? userMails.slice(0, pageSize) : userMails;
+  const storyByMailId = await listStoryMailDescriptors(
+    ref.cultivatorId,
+    visibleMails.map((mail) => mail.id),
+  );
   return c.json({
-    mails: hasMore ? userMails.slice(0, pageSize) : userMails,
+    mails: visibleMails.map((mail) => ({
+      ...mail,
+      story: storyByMailId.get(mail.id),
+    })),
     pagination: { page, pageSize, hasMore },
   });
 });

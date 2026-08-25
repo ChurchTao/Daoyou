@@ -17,6 +17,11 @@ import lifespanExhaustedPrompt from '@server/prompts/lifespan-exhausted.md?raw';
 import materialGenerationPrompt from '@server/prompts/material-generation.md?raw';
 import materialSemanticEnrichmentPrompt from '@server/prompts/material-semantic-enrichment.md?raw';
 import productNamingPrompt from '@server/prompts/product-naming.md?raw';
+import storyActivityEventPrompt from '@server/prompts/story-activity-event.md?raw';
+import storyBeatPrompt from '@server/prompts/story-beat.md?raw';
+import storyDungeonBlueprintPrompt from '@server/prompts/story-dungeon-blueprint.md?raw';
+import storyMemoryExtractPrompt from '@server/prompts/story-memory-extract.md?raw';
+import storyTravelEventPrompt from '@server/prompts/story-travel-event.md?raw';
 import yieldStoryPrompt from '@server/prompts/yield-story.md?raw';
 import { renderTemplate, type TemplateVariableMap } from '../template/render';
 
@@ -53,6 +58,11 @@ const bundledPromptSources: Record<string, string> = {
   'material-generation.md': materialGenerationPrompt,
   'material-semantic-enrichment.md': materialSemanticEnrichmentPrompt,
   'product-naming.md': productNamingPrompt,
+  'story-beat.md': storyBeatPrompt,
+  'story-dungeon-blueprint.md': storyDungeonBlueprintPrompt,
+  'story-memory-extract.md': storyMemoryExtractPrompt,
+  'story-activity-event.md': storyActivityEventPrompt,
+  'story-travel-event.md': storyTravelEventPrompt,
   'yield-story.md': yieldStoryPrompt,
 };
 

@@ -242,6 +242,27 @@ export function MiningEntryAction({
   );
 }
 
+export function DungeonEntryAction({
+  action,
+  display,
+}: SectTaskActionRendererProps) {
+  const { busy, navigate } = useSectTaskInteraction();
+  return (
+    <InkButton
+      variant="primary"
+      className={actionClassName(display)}
+      disabled={busy || !action.enabled}
+      onClick={() => navigate('/game/map?intent=sect-dungeon')}
+    >
+      {action.enabled
+        ? display === 'conversation'
+          ? '弟子这就去探查秘境'
+          : action.label
+        : (action.disabledReason ?? '尚未解锁')}
+    </InkButton>
+  );
+}
+
 export function ItemDeliveryAction(props: SectTaskActionRendererProps) {
   const [open, setOpen] = useState(false);
   const { busy } = useSectTaskInteraction();

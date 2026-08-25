@@ -1,6 +1,6 @@
 import type { MapNodeDetailAction } from '@app/components/feature/map';
 
-export type MapIntent = 'market' | 'dungeon' | 'sect';
+export type MapIntent = 'market' | 'dungeon' | 'sect' | 'sect-dungeon';
 
 export interface NodeActionContext {
   selectedNodeId: string;
@@ -9,7 +9,8 @@ export interface NodeActionContext {
 }
 
 export function resolveMapIntent(value: string | null): MapIntent {
-  if (value === 'market' || value === 'sect') return value;
+  if (value === 'market' || value === 'sect' || value === 'sect-dungeon')
+    return value;
   return 'dungeon';
 }
 
@@ -20,14 +21,18 @@ export function buildNodeActions(
 ): MapNodeDetailAction[] {
   if (intent === 'sect') return [];
 
-  if (intent === 'dungeon') {
+  if (intent === 'dungeon' || intent === 'sect-dungeon') {
     if (ctx.isMainNode) return [];
+    const entryQuery = intent === 'sect-dungeon' ? '&entry=sect-task' : '';
     return [
       {
         key: 'enter-dungeon',
-        label: '前往历练',
+        label: intent === 'sect-dungeon' ? '执行宗门委托' : '前往历练',
         variant: 'primary',
-        onClick: () => navigate(`/game/dungeon?nodeId=${ctx.selectedNodeId}`),
+        onClick: () =>
+          navigate(
+            `/game/dungeon?nodeId=${ctx.selectedNodeId}${entryQuery}`,
+          ),
       },
     ];
   }

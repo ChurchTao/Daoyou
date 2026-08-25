@@ -14,9 +14,8 @@ import { WUXIANG_SECT_PRESENTATION } from './wuxiang';
 import { YOUDU_SECT_PRESENTATION } from './youdu';
 
 const taskIds = [
-  'gate_sweep',
+  'dungeon_exploration',
   'mine_patrol',
-  'spirit_mining',
   'pill_delivery',
   'artifact_delivery',
   'weekly_diligence',

@@ -59,10 +59,11 @@ export const STANDARD_SECT_ARCHIVE_METHOD_CAP = [
   0, 40, 75, 110, 145, 180,
 ] as const;
 
+export const STANDARD_SECT_DUNGEON_TASK_ID = 'dungeon_exploration';
+
 export const STANDARD_SECT_TASK_BASE_CONTRIBUTION = {
-  gate_sweep: 4,
+  dungeon_exploration: 8,
   mine_patrol: 4,
-  spirit_mining: 4,
   pill_delivery: 4,
   artifact_delivery: 5,
   weekly_diligence: 30,
@@ -100,30 +101,31 @@ function taskFulfillment(kind: SectTaskDefinition['kind']) {
 
 const tasks: readonly SectTaskDefinition[] = [
   {
-    id: 'gate_sweep',
+    id: STANDARD_SECT_DUNGEON_TASK_ID,
     kind: 'daily',
     enrollment: 'manual',
     requiredCapability: 'sect.tasks.use',
-    executorKey: 'sect.sweep',
-    minimumDifficulty: 'easy',
+    executorKey: 'sect.dungeon',
+    minimumDifficulty: 'normal',
     reward: {
       policy: 'sect.reward.realm-task',
       input: {
-        baseContribution: STANDARD_SECT_TASK_BASE_CONTRIBUTION.gate_sweep,
+        baseContribution:
+          STANDARD_SECT_TASK_BASE_CONTRIBUTION.dungeon_exploration,
       },
     },
     fulfillment: taskFulfillment('daily'),
     presentation: taskPresentation(
-      '清扫山门',
-      '清理山门步道，完成一轮宗门勤务。',
-      '开始清扫',
+      '秘境探索',
+      '成功完成一次秘境探索，将沿途发现带回宗门复命；入境所需天地灵气由宗门承担。',
+      '前往秘境',
       {
-        offeredReply: '山门洒扫便交给我吧',
-        activeReply: '山门那桩洒扫，我再确认一遍',
-        claimableReply: '山门已经清扫妥当，请执事查验',
-        claimedReply: '请替我查查山门勤务的功簿',
+        offeredReply: '这桩秘境探索交给我吧',
+        activeReply: '秘境探索的要求，请再说一遍',
+        claimableReply: '秘境已经探索完成，请执事查验',
+        claimedReply: '请替我查查秘境探索的功簿',
         instruction: {
-          text: '去山门步道清理落叶，完成一轮洒扫后回来复命。',
+          text: '领取委托后，从任务入口前往任意一处秘境，入境不消耗天地灵气；成功完成探索后再回事务堂交回回执。中途撤离不算完成。',
         },
       },
     ),
@@ -158,36 +160,6 @@ const tasks: readonly SectTaskDefinition[] = [
         claimedReply: '请替我查查矿场巡视的功簿',
         instruction: {
           text: '去宗门矿脉巡视一趟，将侵扰矿场的妖兽驱逐干净，再回来复命。',
-        },
-      },
-    ),
-    target: 1,
-  },
-  {
-    id: 'spirit_mining',
-    kind: 'daily',
-    enrollment: 'manual',
-    requiredCapability: 'sect.tasks.use',
-    executorKey: 'sect.mining',
-    minimumDifficulty: 'normal',
-    reward: {
-      policy: 'sect.reward.realm-task',
-      input: {
-        baseContribution: STANDARD_SECT_TASK_BASE_CONTRIBUTION.spirit_mining,
-      },
-    },
-    fulfillment: taskFulfillment('daily'),
-    presentation: taskPresentation(
-      '灵矿采掘',
-      '进入宗门灵脉，以灵索采集一轮矿藏。',
-      '开始采掘',
-      {
-        offeredReply: '今日灵矿采掘便交给我吧',
-        activeReply: '灵矿采掘的封签，请再替我核对一遍',
-        claimableReply: '今日采掘已经结束，请执事验收回执',
-        claimedReply: '请替我查查灵矿采掘的功簿',
-        instruction: {
-          text: '去宗门灵脉开启采掘封签，以灵索带回足够矿藏，再回来复命。',
         },
       },
     ),

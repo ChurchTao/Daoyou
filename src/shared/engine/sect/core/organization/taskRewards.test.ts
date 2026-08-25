@@ -1,6 +1,5 @@
 import { REALM_VALUES } from '@shared/types/constants';
 import { describe, expect, it } from 'vitest';
-import { scaleMiningTaskReward } from '../mining/MiningRewards';
 import {
   STANDARD_SECT_TASK_BASE_CONTRIBUTION,
   StandardSectOrganizationModule,
@@ -133,41 +132,14 @@ describe('sect task rewards', () => {
           baseContribution: STANDARD_SECT_TASK_BASE_CONTRIBUTION[taskId],
         },
       }).contribution;
-    const miningBase = taskContribution('spirit_mining', 'normal', 'daily');
     const minimumDaily =
-      taskContribution('gate_sweep', 'easy', 'daily') +
+      taskContribution('dungeon_exploration', 'normal', 'daily') +
       taskContribution('mine_patrol', 'normal', 'daily') +
-      scaleMiningTaskReward(
-        calculateRealmSectTaskReward({
-          realm: '金丹',
-          realmStage: '初期',
-          difficulty: 'normal',
-          cadence: 'daily',
-          reward: {
-            baseContribution:
-              STANDARD_SECT_TASK_BASE_CONTRIBUTION.spirit_mining,
-          },
-        }),
-        'D',
-      ).contribution +
       taskContribution('pill_delivery', 'easy', 'daily') +
       taskContribution('artifact_delivery', 'easy', 'daily');
     const maximumDaily =
-      taskContribution('gate_sweep', 'easy', 'daily') +
+      taskContribution('dungeon_exploration', 'normal', 'daily') +
       taskContribution('mine_patrol', 'normal', 'daily') +
-      scaleMiningTaskReward(
-        calculateRealmSectTaskReward({
-          realm: '金丹',
-          realmStage: '初期',
-          difficulty: 'normal',
-          cadence: 'daily',
-          reward: {
-            baseContribution:
-              STANDARD_SECT_TASK_BASE_CONTRIBUTION.spirit_mining,
-          },
-        }),
-        'S',
-      ).contribution +
       taskContribution('pill_delivery', 'elite', 'daily') +
       taskContribution('artifact_delivery', 'elite', 'daily');
     const minimumWeekly =
@@ -181,16 +153,19 @@ describe('sect task rewards', () => {
       taskContribution('weekly_bounty_battle', 'hard', 'weekly') +
       taskContribution('weekly_bounty_material', 'elite', 'weekly');
 
-    expect(miningBase).toBe(5);
-    expect(minimumDaily * 7 + minimumWeekly).toBe(258);
-    expect(maximumDaily * 7 + maximumWeekly).toBe(326);
+    expect(minimumDaily * 7 + minimumWeekly).toBe(265);
+    expect(maximumDaily * 7 + maximumWeekly).toBe(305);
   });
 
   it('declares the standard task difficulty floors', () => {
     const tasks = new StandardSectOrganizationModule().tasks;
-    expect(tasks.get('gate_sweep')?.minimumDifficulty).toBe('easy');
+    expect(tasks.get('dungeon_exploration')?.minimumDifficulty).toBe(
+      'normal',
+    );
+    expect(tasks.get('dungeon_exploration')?.executorKey).toBe('sect.dungeon');
     expect(tasks.get('mine_patrol')?.minimumDifficulty).toBe('normal');
-    expect(tasks.get('spirit_mining')?.minimumDifficulty).toBe('normal');
+    expect(tasks.get('gate_sweep')).toBeUndefined();
+    expect(tasks.get('spirit_mining')).toBeUndefined();
     expect(tasks.get('pill_delivery')?.minimumDifficulty).toBe('easy');
     expect(tasks.get('artifact_delivery')?.minimumDifficulty).toBe('easy');
     expect(tasks.get('weekly_diligence')?.minimumDifficulty).toBe('easy');

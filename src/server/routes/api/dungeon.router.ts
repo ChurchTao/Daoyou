@@ -29,6 +29,7 @@ import { z } from 'zod';
 
 const StartSchema = z.object({
   mapNodeId: z.string().min(1),
+  entrySource: z.literal('sect_task').optional(),
 });
 
 const ActionSchema = z.object({
@@ -72,14 +73,14 @@ router.post('/start', requireActiveCultivatorRef(), async (c) => {
     return c.json({ error: '未授权访问' }, 401);
   }
 
-  const { mapNodeId } = StartSchema.parse(await c.req.json());
+  const { mapNodeId, entrySource } = StartSchema.parse(await c.req.json());
 
   try {
     return c.json(
       await executeDungeonCommand({
         userId: user.id,
         cultivatorId: cultivator.cultivatorId,
-        command: { kind: 'start', mapNodeId },
+        command: { kind: 'start', mapNodeId, entrySource },
       }),
     );
   } catch (error) {

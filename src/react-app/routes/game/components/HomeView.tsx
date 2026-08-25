@@ -55,6 +55,21 @@ export function HomeView() {
     calculateYieldHours(cultivator?.last_yield_at),
   );
   const [yieldInteractionActive, setYieldInteractionActive] = useState(false);
+  const [hasPendingTravelEvent, setHasPendingTravelEvent] = useState(false);
+
+  useEffect(() => {
+    if (!cultivator?.id) return;
+    const controller = new AbortController();
+    void fetch('/api/story/travel-events/pending', {
+      signal: controller.signal,
+    })
+      .then(async (response) =>
+        response.ok ? response.json() : { event: null },
+      )
+      .then((data) => setHasPendingTravelEvent(Boolean(data.event)))
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [cultivator?.id]);
 
   useEffect(() => {
     const update = () =>
@@ -184,13 +199,14 @@ export function HomeView() {
     );
   }
 
-  if (hasYieldAlert || yieldInteractionActive) {
+  if (hasYieldAlert || yieldInteractionActive || hasPendingTravelEvent) {
     urgentItems.push(
       <YieldCard
         key="yield"
         cultivator={cultivator}
         variant="compact"
         onInteractionActiveChange={setYieldInteractionActive}
+        onPendingTravelEventChange={setHasPendingTravelEvent}
       />,
     );
   }

@@ -1,20 +1,22 @@
+import { db } from '@server/lib/drizzle/db';
 import { closeNatsConnection, getNatsConnection } from '@server/lib/nats';
+import { claimMessageForConsumer } from '@server/lib/repositories/messageConsumptionRepository';
 import { projectMailCreated } from '@server/lib/services/MailDomainEventProjector';
-import { projectRealmChangedRanking } from '@server/lib/services/RealmChangedDomainEventProjector';
 import {
   areNatsCoreSubscriptionsHealthy,
   stopNatsCoreSubscriptions,
 } from '@server/lib/services/natsCorePubSub';
+import { projectRealmChangedRanking } from '@server/lib/services/RealmChangedDomainEventProjector';
 import { projectSectConstructionDonation } from '@server/lib/services/sect-organization/SectConstructionSettlementService';
+import { processSponsorshipOrder } from '@server/lib/services/SponsorshipApplicationService';
 import { projectTaskDomainEvent } from '@server/lib/services/TaskDomainEventProjector';
 import { projectWorldRumorDomainEvent } from '@server/lib/services/WorldRumorDomainEventProjector';
-import { processSponsorshipOrder } from '@server/lib/services/SponsorshipApplicationService';
-import { db } from '@server/lib/drizzle/db';
-import { claimMessageForConsumer } from '@server/lib/repositories/messageConsumptionRepository';
 import {
   generateYieldRewardAttachments,
   projectYieldReward,
 } from '@server/lib/services/YieldDomainEventProjector';
+import { projectPersonalStoryDungeonEvent } from '@server/lib/story/PersonalStoryDomainEventProjector';
+import { projectActivityStoryEvent } from '@server/lib/story/TravelStoryDomainEventProjector';
 import {
   isDomainEventType,
   type DomainEventEnvelope,
@@ -24,6 +26,21 @@ import {
   startBackgroundCommandConsumer,
   stopBackgroundCommandConsumer,
 } from './backgroundCommandConsumer';
+import {
+  isBattleReplayArchiveConsumerHealthy,
+  startBattleReplayArchiveConsumer,
+  stopBattleReplayArchiveConsumer,
+} from './battleReplayArchiveConsumer';
+import {
+  isBattleResolutionConsumerHealthy,
+  startBattleResolutionConsumer,
+  stopBattleResolutionConsumer,
+} from './battleResolutionConsumer';
+import {
+  isBattleTerminalFinalizerConsumerHealthy,
+  startBattleTerminalFinalizerConsumer,
+  stopBattleTerminalFinalizerConsumer,
+} from './battleTerminalFinalizerConsumer';
 import {
   areDomainEventConsumersHealthy,
   startDomainEventConsumer,
@@ -35,21 +52,6 @@ import {
   startTransactionalMessageRelay,
   stopTransactionalMessageRelay,
 } from './transactionalMessageRelay';
-import {
-  isBattleReplayArchiveConsumerHealthy,
-  startBattleReplayArchiveConsumer,
-  stopBattleReplayArchiveConsumer,
-} from './battleReplayArchiveConsumer';
-import {
-  isBattleTerminalFinalizerConsumerHealthy,
-  startBattleTerminalFinalizerConsumer,
-  stopBattleTerminalFinalizerConsumer,
-} from './battleTerminalFinalizerConsumer';
-import {
-  isBattleResolutionConsumerHealthy,
-  startBattleResolutionConsumer,
-  stopBattleResolutionConsumer,
-} from './battleResolutionConsumer';
 
 let registered = false;
 
@@ -77,8 +79,28 @@ export async function registerMessageInfrastructure(): Promise<void> {
         'ranking.challenge.completed',
         'dungeon.run.settled',
         'yield.claimed',
+        'sect.task.completed',
       ],
       handle: handleTaskEvent,
+    }),
+    startDomainEventConsumer({
+      consumerName: DOMAIN_EVENT_CONSUMERS.personalStoryProjector.name,
+      concurrency: DOMAIN_EVENT_CONSUMERS.personalStoryProjector.concurrency,
+      acceptedTypes: ['dungeon.run.settled'],
+      handle: handlePersonalStoryEvent,
+    }),
+    startDomainEventConsumer({
+      consumerName: DOMAIN_EVENT_CONSUMERS.personalTravelStoryProjector.name,
+      concurrency:
+        DOMAIN_EVENT_CONSUMERS.personalTravelStoryProjector.concurrency,
+      acceptedTypes: [
+        'alchemy.craft.completed',
+        'ranking.challenge.completed',
+        'dungeon.run.settled',
+        'yield.claimed',
+        'sect.task.completed',
+      ],
+      handle: handlePersonalTravelStoryEvent,
     }),
     startDomainEventConsumer({
       consumerName: DOMAIN_EVENT_CONSUMERS.yieldRewardProjector.name,
@@ -141,6 +163,17 @@ async function handleTaskEvent(event: DomainEventEnvelope) {
     event,
     handle: projectTaskDomainEvent,
   });
+}
+
+async function handlePersonalStoryEvent(event: DomainEventEnvelope) {
+  if (!isDomainEventType(event, 'dungeon.run.settled')) {
+    throw new Error(`个人剧情投影不支持领域事件: ${event.type}`);
+  }
+  await projectPersonalStoryDungeonEvent(event);
+}
+
+async function handlePersonalTravelStoryEvent(event: DomainEventEnvelope) {
+  await projectActivityStoryEvent(event);
 }
 
 async function handleYieldRewardEvent(event: DomainEventEnvelope) {

@@ -1,0 +1,3 @@
+ALTER TABLE "wanjiedaoyou_story_intents" ADD COLUMN "available_at" timestamp DEFAULT now() NOT NULL;--> statement-breakpoint
+ALTER TABLE "wanjiedaoyou_story_threads" ADD COLUMN "linkage_context" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
+CREATE INDEX "story_intents_cultivator_status_available_idx" ON "wanjiedaoyou_story_intents" USING btree ("cultivator_id","status","available_at");

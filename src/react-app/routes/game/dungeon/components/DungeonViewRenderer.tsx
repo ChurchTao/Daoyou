@@ -5,15 +5,16 @@ import { InkCard } from '@app/components/ui/InkCard';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { DungeonViewState } from '@app/lib/hooks/dungeon/useDungeonViewModel';
 import { DungeonAbandonBattleResult } from '@app/lib/hooks/dungeon/useEnemyProbe';
+import { requestActivityStoryRefresh } from '@app/lib/story/activityStoryEvents';
 import type { CultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { isConditionStatusActive } from '@shared/lib/condition';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
+import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
 import type {
   DungeonOption,
   DungeonRecoverAction,
   DungeonState,
 } from '@shared/lib/dungeon/types';
-import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
 import {
   canChallengeDungeonRealm,
   getMapNode,
@@ -21,6 +22,7 @@ import {
 import { evaluateNoviceReadiness } from '@shared/lib/noviceGuidance';
 import type { Cultivator } from '@shared/types/cultivator';
 import type { TaskInstance } from '@shared/types/task';
+import { useEffect } from 'react';
 import { DungeonSceneScreen } from '../dungeonScene';
 import {
   resolveDungeonSceneDescriptor,
@@ -47,6 +49,7 @@ interface DungeonViewRendererProps {
   displayResources?: CultivatorDisplaySnapshot['resources'];
   tasks: TaskInstance[];
   processing: boolean;
+  sectTaskEntry?: boolean;
   actions: {
     startDungeon: (nodeId: string) => Promise<void>;
     performAction: (option: DungeonOption) => Promise<void>;
@@ -61,12 +64,26 @@ interface DungeonViewRendererProps {
   onSettlementConfirm?: () => void;
 }
 
+function DungeonSettlementStoryRefresh() {
+  useEffect(() => {
+    requestActivityStoryRefresh();
+  }, []);
+  return null;
+}
+
 function resolveDungeonRunSceneDescriptor(
   sceneState: DungeonSceneState,
   state: DungeonState,
 ) {
   const descriptor = resolveDungeonSceneDescriptor(sceneState);
   const mapNode = getMapNode(state.mapNodeId);
+
+  if (state.storyContext) {
+    return {
+      ...descriptor,
+      sceneLabel: `前尘回响 · ${state.storyContext.title}`,
+    };
+  }
 
   if (!mapNode?.name) return descriptor;
 
@@ -213,6 +230,7 @@ export function DungeonViewRenderer({
   tasks,
   processing,
   actions,
+  sectTaskEntry = false,
   onSettlementConfirm,
 }: DungeonViewRendererProps) {
   if (viewState.type === 'loading') {
@@ -287,6 +305,7 @@ export function DungeonViewRenderer({
       <DungeonSceneScreen
         descriptor={resolveDungeonSceneDescriptor('settlement')}
       >
+        <DungeonSettlementStoryRefresh />
         <DungeonSettlement
           settlement={viewState.settlement}
           realGains={viewState.realGains}
@@ -448,6 +467,7 @@ export function DungeonViewRenderer({
             readiness={readiness}
             realmBlockReason={realmBlockReason}
             playerRealm={cultivator?.realm}
+            sectTaskEntry={sectTaskEntry}
           />
         </InkSection>
         {renderPreparationNotice(

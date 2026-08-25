@@ -4,7 +4,6 @@ import {
   type SectDomainEvent,
 } from '@shared/engine/sect';
 import { organizationError } from './applicationSupport';
-import type { SectTaskItemRewardGrantStrategyRegistry } from './TaskRewardStrategies';
 import type {
   SectCommandContext,
   SectEconomyCommandContext,
@@ -25,6 +24,7 @@ import type {
   SectTaskProgressRegistry,
   SectTaskRewardPolicyRegistry,
 } from './SectTaskSettlement';
+import type { SectTaskItemRewardGrantStrategyRegistry } from './TaskRewardStrategies';
 
 type SectDomainEventType = SectDomainEvent['type'];
 type SectDomainEventOf<TType extends SectDomainEventType> = Extract<
@@ -122,6 +122,11 @@ export interface SectDomainEventDispatcherFactory {
     cultivatorId: string;
     membership: SectMembershipRecord;
     command: SectCommandContext;
+    completionSource?: {
+      kind: 'task_action' | 'dungeon_run';
+      id: string;
+      mapNodeId?: string;
+    };
   }): SectTaskDomainEventDispatcher;
   forMembership(
     command: SectMembershipCommandContext,
@@ -168,6 +173,11 @@ class StandardSectDomainEventDispatcherFactory implements SectDomainEventDispatc
     cultivatorId: string;
     membership: SectMembershipRecord;
     command: SectCommandContext;
+    completionSource?: {
+      kind: 'task_action' | 'dungeon_run';
+      id: string;
+      mapNodeId?: string;
+    };
   }): SectTaskDomainEventDispatcher {
     const { command, membership } = args;
     const dispatcher = new SectTaskDomainEventDispatcher(
@@ -178,6 +188,51 @@ class StandardSectDomainEventDispatcherFactory implements SectDomainEventDispatc
             .tasks.get(event.taskId);
           if (!definition)
             organizationError(`任务结算定义不存在：${event.taskId}`, 500);
+          const completionSource = args.completionSource ?? {
+            kind: 'task_action' as const,
+            id: event.taskRecordId,
+          };
+          const completedRecord = await command.tasks.find(
+            membership.id,
+            periodKey(event.kind, command),
+            event.taskId,
+          );
+          if (!completedRecord || completedRecord.id !== event.taskRecordId)
+            organizationError(`任务完成快照不存在：${event.taskRecordId}`, 500);
+          const activityId = `sect-task:${event.taskRecordId}`;
+          const rootActivityId =
+            completionSource.kind === 'dungeon_run'
+              ? `dungeon:${completionSource.id}`
+              : activityId;
+          await command.events.create({
+            type: 'sect.task.completed',
+            aggregate: { type: 'sect_task', id: event.taskRecordId },
+            data: {
+              cultivatorId: args.cultivatorId,
+              activityType: 'sect_task',
+              activityId,
+              rootActivityId,
+              authoritativeSummary: `${definition.presentation.title}已完成，完成来源为${completionSource.kind === 'dungeon_run' ? '秘境探索' : '宗门任务行动'}。`,
+              sectId: membership.sectId,
+              membershipId: membership.id,
+              taskRecordId: event.taskRecordId,
+              taskDefinitionId: event.taskId,
+              taskKind: event.kind,
+              taskTitle: definition.presentation.title,
+              taskDescription: definition.presentation.description,
+              rewardSnapshot: {
+                realm: completedRecord.payload.offer.anchorRealm,
+                realmStage: completedRecord.payload.offer.anchorRealmStage,
+                activityTier: 'sect_commission',
+              },
+              sourceReference: {
+                type: completionSource.kind,
+                id: completionSource.id,
+              },
+              completionSource,
+            },
+            deduplicationKey: `sect-task-completed:${event.taskRecordId}`,
+          });
           const derived: SectDomainEvent[] = [];
           for (const rule of definition.fulfillment) {
             const strategy = this.fulfillments.require(rule.strategy);
@@ -471,7 +526,6 @@ class StandardSectDomainEventDispatcherFactory implements SectDomainEventDispatc
       this.limit,
     );
   }
-
 }
 
 export function createStandardSectDomainEventDispatcher(args: {

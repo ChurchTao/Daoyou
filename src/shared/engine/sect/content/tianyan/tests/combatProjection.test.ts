@@ -162,9 +162,9 @@ describe('天衍圣地战斗投影', () => {
       ),
     ).toMatchObject({ locked: true, facility: 'formation' });
     expect(
-      TIANYAN_MODULE.organization.tasks.get('gate_sweep')?.presentation
+      TIANYAN_MODULE.organization.tasks.get('dungeon_exploration')?.presentation
         .actionLabel,
-    ).toBe('开始清扫');
+    ).toBe('前往秘境');
     expect(
       TIANYAN_MODULE.organization.tasks.get('weekly_tournament')?.presentation
         .actionLabel,

@@ -274,6 +274,23 @@ export function buildDungeonRoundLlmContext(args: {
   const branchFlow = state.branchFlow;
   const stage = branchFlow?.stage ?? 'explore';
 
+  const story = state.storyContext
+    ? {
+        title: state.storyContext.title,
+        premise: state.storyContext.premise,
+        choiceKey: state.storyContext.choiceKey,
+        entryMode: state.storyContext.entryMode,
+        objective: state.storyContext.objective,
+        openingHook: state.storyContext.openingHook,
+        primaryClue: state.storyContext.primaryClue,
+        entryAdvantage: state.storyContext.entryAdvantage,
+        entryConsequence: state.storyContext.entryConsequence,
+        travelChoiceKey: state.storyContext.travelChoiceKey,
+        travelOutcome: state.storyContext.travelOutcome,
+        travelDangerAdjustment: state.storyContext.travelDangerAdjustment,
+      }
+    : undefined;
+
   return {
     round: state.currentRound,
     maxRounds: state.maxRounds,
@@ -327,6 +344,7 @@ export function buildDungeonRoundLlmContext(args: {
       (name) => truncateText(name, 18),
     ),
     accumulatedRewardNames: summarizeRewardNames(state.accumulatedRewards),
+    ...(story ? { story } : {}),
     flow: {
       stage,
       requiredOptionCount: 'up_to_three',
@@ -357,6 +375,23 @@ export function buildDungeonSettlementLlmContext(args: {
   const { state, mapRealm, endDisposition } = args;
   const finalAction = buildSettlementFinalAction(state);
 
+  const story = state.storyContext
+    ? {
+        title: state.storyContext.title,
+        premise: state.storyContext.premise,
+        choiceKey: state.storyContext.choiceKey,
+        entryMode: state.storyContext.entryMode,
+        objective: state.storyContext.objective,
+        openingHook: state.storyContext.openingHook,
+        primaryClue: state.storyContext.primaryClue,
+        entryAdvantage: state.storyContext.entryAdvantage,
+        entryConsequence: state.storyContext.entryConsequence,
+        travelChoiceKey: state.storyContext.travelChoiceKey,
+        travelOutcome: state.storyContext.travelOutcome,
+        travelDangerAdjustment: state.storyContext.travelDangerAdjustment,
+      }
+    : undefined;
+
   return {
     map: {
       name: state.location.location,
@@ -366,11 +401,12 @@ export function buildDungeonSettlementLlmContext(args: {
       name: state.playerInfo.name,
       realm: state.playerInfo.realm,
     },
+    ...(story ? { story } : {}),
     ...(finalAction ? { finalAction } : {}),
     journeySummary: summarizeJourney(state.history),
     dangerScore: state.dangerScore,
-    completedEventCount: state.history.filter(
-      (entry) => Boolean(entry.choice && entry.outcome),
+    completedEventCount: state.history.filter((entry) =>
+      Boolean(entry.choice && entry.outcome),
     ).length,
     unresolvedBranchCount: (state.branchFlow?.pendingBranches ?? []).reduce(
       (count, checkpoint) => count + checkpoint.options.length,

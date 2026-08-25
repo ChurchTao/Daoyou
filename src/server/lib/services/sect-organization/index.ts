@@ -4,6 +4,8 @@ export * from './productionSectOrganization';
 export * from './SectAdmissionApplicationService';
 export * from './SectBenefitService';
 export * from './SectConstructionApplicationService';
+export * from './SectDungeonTaskProjector';
+export * from './SectDungeonTaskEligibility';
 export * from './SectEconomyApplicationService';
 export * from './SectMembershipApplicationService';
 export * from './SectOrganizationFacade';

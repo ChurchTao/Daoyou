@@ -35,6 +35,8 @@ import {
 } from '@server/lib/services/SponsorshipApplicationService';
 import { refreshSystemAuctionListings } from '@server/lib/services/SystemAuctionService';
 import { getSponsorshipProvider } from '@server/lib/sponsorship/providerRegistry';
+import { generateDuePersonalStoryForCultivator } from '@server/lib/story/PersonalStoryDomainEventProjector';
+import { listDuePersonalStoryCultivatorIds } from '@server/lib/story/PersonalStoryRepository';
 import { towerEnemySetService } from '@server/lib/tower/enemySets';
 import { RANKING_REWARDS, REALM_VALUES } from '@shared/types/constants';
 import { eq } from 'drizzle-orm';
@@ -43,6 +45,7 @@ const RANK_REWARD_SETTLED_PREFIX = 'golden_rank:weekly_rewards:settled:';
 const LOCK_TTL_SECONDS = 15 * 60;
 const TOWER_ENEMY_SETS_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const MATERIAL_LIBRARY_DAILY_GENERATION_LOCK_TTL_SECONDS = 2 * 60 * 60;
+const PERSONAL_STORY_GENERATION_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const SETTLED_TTL_SECONDS = 7 * 24 * 60 * 60;
 const RESOURCE_REPLAY_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
 const MAIL_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
@@ -401,6 +404,72 @@ export async function runMaterialLibraryDailyGenerationJob(
       };
     },
     MATERIAL_LIBRARY_DAILY_GENERATION_LOCK_TTL_SECONDS,
+  );
+}
+
+export type PersonalStoryGenerationJobResult = CronJobResult & {
+  generated: number;
+  fallback: number;
+  missingSeed: number;
+  failed: number;
+};
+
+export async function runPersonalStoryGenerationJob(): Promise<
+  PersonalStoryGenerationJobResult | CronJobResult
+> {
+  return withJobLock(
+    'personal-story-generate-next',
+    async () => {
+      const now = new Date();
+      const cultivatorIds = await listDuePersonalStoryCultivatorIds(now);
+      const configuredConcurrency = Number(
+        process.env.PERSONAL_STORY_GENERATION_CONCURRENCY || 2,
+      );
+      const concurrency = Number.isFinite(configuredConcurrency)
+        ? Math.max(1, Math.min(8, Math.trunc(configuredConcurrency)))
+        : 2;
+      let generated = 0;
+      let fallback = 0;
+      let missingSeed = 0;
+      let failed = 0;
+
+      for (let index = 0; index < cultivatorIds.length; index += concurrency) {
+        const batch = cultivatorIds.slice(index, index + concurrency);
+        const results = await Promise.allSettled(
+          batch.map((cultivatorId) =>
+            generateDuePersonalStoryForCultivator(cultivatorId, now),
+          ),
+        );
+        results.forEach((result, resultIndex) => {
+          if (result.status === 'rejected') {
+            failed += 1;
+            console.error('[cron] personal story generation failed', {
+              cultivatorId: batch[resultIndex],
+              error: result.reason,
+            });
+            return;
+          }
+          if (result.value.status === 'generated') {
+            generated += 1;
+            if (result.value.source === 'fallback') fallback += 1;
+          } else if (result.value.status === 'missing_seed') {
+            missingSeed += 1;
+          }
+        });
+      }
+
+      return {
+        success: true,
+        processed: generated,
+        skipped: cultivatorIds.length === 0,
+        reason: cultivatorIds.length === 0 ? 'no_due_story' : undefined,
+        generated,
+        fallback,
+        missingSeed,
+        failed,
+      };
+    },
+    PERSONAL_STORY_GENERATION_LOCK_TTL_SECONDS,
   );
 }
 

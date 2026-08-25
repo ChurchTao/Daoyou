@@ -1,16 +1,17 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
+import type { FeatureCommandResult } from '@server/lib/services/CommandExecutors';
 import type { DomainEventEnvelope } from '@shared/contracts/domainEvents';
 import { getFallbackMaterialPreset } from '@shared/engine/material/creation/fallbackPresets';
 import { MaterialGenerator } from '@shared/engine/material/creation/MaterialGenerator';
 import type { MaterialSkeleton } from '@shared/engine/material/creation/types';
 import { YieldCalculator } from '@shared/engine/yield/YieldCalculator';
 import type { Material } from '@shared/types/cultivator';
+import { computeItemLibrarySampleKey } from './itemLibrarySampleKey';
 import { MailService, type MailAttachment } from './MailService';
 import {
   materialLibraryEntryToMaterial,
   sampleMaterialLibraryEntryByPreferences,
 } from './MaterialLibraryService';
-import { computeItemLibrarySampleKey } from './itemLibrarySampleKey';
 
 function createDeterministicRng(seed: string): () => number {
   let index = 0;
@@ -80,7 +81,13 @@ export async function projectYieldReward(
   event: DomainEventEnvelope<'yield.claimed'>,
   attachments: MailAttachment[],
   tx: DbTransaction,
-) {
+): Promise<FeatureCommandResult<{ status: 'ignored' | 'created' }>> {
+  if (attachments.length === 0) {
+    return {
+      result: { status: 'ignored' as const },
+      resourceChanges: [],
+    };
+  }
   await MailService.sendMail(
     event.data.cultivatorId,
     '历练机缘',

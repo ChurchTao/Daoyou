@@ -8,8 +8,6 @@ import {
   executeYieldCommand,
   YieldCommandError,
 } from '@server/lib/services/YieldApplicationService';
-import { renderPrompt } from '@server/lib/prompts';
-import { streamAiText } from '@server/utils/aiClient';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import { Hono } from 'hono';
 
@@ -37,50 +35,28 @@ yieldRouter.post('/', requireActiveCultivatorRef(), async (c) => {
         });
       }
 
-      const { system, user: prompt } = renderPrompt('yield-story', {
-        cultivatorRealm: result.cultivatorRealm,
-        cultivatorName: result.cultivatorName,
-        amount: result.amount,
-        extraYieldText: (() => {
-          const extra = [
-            result.expGain ? `修为精进 ${result.expGain} 点` : '',
-            result.insightGain
-              ? `${getGameConceptLabel('comprehension_insight')} ${result.insightGain} 点`
-              : '',
-          ]
-            .filter(Boolean)
-            .join('；');
-          return extra ? `；${extra}` : '';
-        })(),
+      const hours = Math.max(1, Math.floor(result.hours));
+      const gains = [
+        `${result.amount} 灵石`,
+        result.expGain ? `${result.expGain} 点修为` : '',
+        result.insightGain
+          ? `${result.insightGain} 点${getGameConceptLabel('comprehension_insight')}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('、');
+      await stream.writeSSE({
+        data: JSON.stringify({
+          type: 'chunk',
+          text: `${result.cultivatorName}结束了约${hours}小时的外出历练，平安归来，共带回${gains}。`,
+        }),
       });
-
-      try {
-        const aiStreamResult = streamAiText({
-          system,
-          prompt,
-          abortSignal: c.req.raw.signal,
-          sceneId: 'yield-story',
-        });
-        for await (const chunk of aiStreamResult.textStream) {
-          await stream.writeSSE({
-            data: JSON.stringify({ type: 'chunk', text: chunk }),
-          });
-        }
-      } catch (error) {
-        console.error('Stream processing error:', error);
-        await stream.writeSSE({
-          data: JSON.stringify({ type: 'error', error: '天机推演中断...' }),
-        });
-      }
     });
   } catch (error) {
     const lockErrorResponse = redisLockErrorResponse(error);
     if (lockErrorResponse) return lockErrorResponse;
     if (error instanceof YieldCommandError) {
-      return c.json(
-        { success: false, error: error.message },
-        error.status,
-      );
+      return c.json({ success: false, error: error.message }, error.status);
     }
     throw error;
   }

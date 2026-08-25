@@ -48,6 +48,11 @@ export class FulfillSectTaskHandler {
     definition: SectTaskDefinition;
     record: SectTaskRecord;
     context: SectCommandContext;
+    completionSource?: {
+      kind: 'task_action' | 'dungeon_run';
+      id: string;
+      mapNodeId?: string;
+    };
   }): Promise<{
     record: SectTaskRecord;
     changedTaskRecords: SectTaskRecord[];
@@ -74,6 +79,7 @@ export class FulfillSectTaskHandler {
       cultivatorId: args.cultivatorId,
       membership: args.membership,
       command: args.context,
+      completionSource: args.completionSource,
     });
     const effects = await dispatcher.dispatch(aggregate.pullEvents());
     return {
@@ -377,6 +383,10 @@ export class ExecuteSectTaskActionHandler {
         definition,
         record,
         context,
+        completionSource: {
+          kind: 'task_action',
+          id: command.requestId,
+        },
       });
       record = fulfilled.record;
       effects = mergeSectCommandEffects(effects, fulfilled.effects);

@@ -1,5 +1,6 @@
 import { InkListItem } from '@app/components/ui/InkList';
 import { InkNotice } from '@app/components/ui/InkNotice';
+import type { StoryMailDescriptor } from '@shared/lib/story/personalStory';
 import type { MailAttachment } from '@shared/types/mail';
 
 // Define local interface to match API response/schema
@@ -12,6 +13,7 @@ export interface Mail {
   isRead: boolean;
   isClaimed: boolean;
   createdAt: string;
+  story?: StoryMailDescriptor;
 }
 
 interface MailListProps {
@@ -46,6 +48,11 @@ export function MailList({ mails, onSelect }: MailListProps) {
                   <span className="opacity-50">[已领取]</span>
                 )}
                 {mail.type === 'system' && <span className="text-lg">📢</span>}
+                {mail.story && (
+                  <span className="border-crimson/35 text-crimson border px-1.5 py-0.5 text-xs">
+                    重要剧情
+                  </span>
+                )}
                 {!mail.isRead && (
                   <span className="bg-crimson inline-block h-2 w-2 rounded-full" />
                 )}

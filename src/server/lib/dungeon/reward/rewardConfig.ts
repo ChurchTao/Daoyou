@@ -4,7 +4,8 @@
  * 定义每个境界的奖励数值范围和评级倍率
  */
 
-import type { Quality, RealmType } from '@shared/types/constants';
+import { REALM_BASE_REWARD_QUALITY_CAP } from '@shared/config/activityRewardScaling';
+import type { RealmType } from '@shared/types/constants';
 import type { RewardRangeConfig, ValueRange } from './types';
 
 /**
@@ -95,14 +96,4 @@ export const QUALITY_HINT_OFFSET: Record<string, number> = {
  * 规则：副本评分和危险系数可以提升品质，但通常不建议跨越超过 2 个大阶位。
  * 目的：保持数值平衡，高阶材料应从高阶副本产出。
  */
-export const REALM_QUALITY_CAP: Record<RealmType, Quality> = {
-  炼气: '玄品',
-  筑基: '真品',
-  金丹: '地品',
-  元婴: '天品',
-  化神: '仙品',
-  炼虚: '神品',
-  合体: '神品',
-  大乘: '神品',
-  渡劫: '神品',
-};
+export const REALM_QUALITY_CAP = REALM_BASE_REWARD_QUALITY_CAP;

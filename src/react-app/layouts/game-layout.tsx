@@ -1,3 +1,4 @@
+import { ActivityStoryLauncher } from '@app/components/feature/cultivator/ActivityStoryLauncher';
 import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
 import { WorldChatFeedProvider } from '@app/components/feature/world-chat/useWorldChatFeedModel';
 import { GameBottomDock } from '@app/components/game-shell/GameBottomDock';
@@ -632,6 +633,7 @@ export default function GameLayout() {
     <PlayerProvider accountId={userId}>
       <div className="bg-paper min-h-screen">
         <Outlet />
+        <ActivityStoryLauncher />
       </div>
     </PlayerProvider>
   );

@@ -47,6 +47,7 @@ function DungeonContent() {
   const { tasks, loading: tasksLoading } = useTaskList(cultivator?.id);
   const [searchParams] = useSearchParams();
   const preSelectedNodeId = searchParams.get('nodeId');
+  const sectTaskEntry = searchParams.get('entry') === 'sect-task';
   const navigate = useNavigate();
 
   // 使用 ViewModel Hook 管理所有业务逻辑和状态
@@ -54,6 +55,7 @@ function DungeonContent() {
     !!cultivator,
     cultivator?.id,
     preSelectedNodeId,
+    sectTaskEntry,
   );
 
   // 结算确认回调：刷新库存后跳转首页
@@ -81,6 +83,7 @@ function DungeonContent() {
       tasks={tasks}
       processing={processing}
       actions={actions}
+      sectTaskEntry={sectTaskEntry}
       onSettlementConfirm={handleSettlementConfirm}
     />
   );

@@ -96,6 +96,7 @@ export function useDungeonViewModel(
   hasCultivator: boolean,
   cultivatorId: string | undefined,
   preSelectedNodeId: string | null,
+  sectTaskEntry = false,
 ) {
   // 副本状态管理
   const {
@@ -225,6 +226,11 @@ export function useDungeonViewModel(
    * 操作：启动副本
    */
   const handleStartDungeon = async (nodeId: string) => {
+    if (sectTaskEntry) {
+      const newState = await startDungeon(nodeId, 'sect_task');
+      if (newState) setState(newState);
+      return;
+    }
     openQiActionConfirm({
       actionName: '秘境探索',
       qiCost: QI_ACTION_COSTS.dungeon_start,

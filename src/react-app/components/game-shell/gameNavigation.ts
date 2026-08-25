@@ -256,6 +256,12 @@ export const gameDockGroups: GameNavGroup[] = [
         coreDockLabel: '道友传音',
       },
       {
+        id: 'story-archive',
+        sceneLabel: '前尘录',
+        href: '/game/story',
+        expandedDockLabel: '📜 主线纪事',
+      },
+      {
         id: 'world-chat',
         sceneLabel: '世界传音',
         href: '/game/world-chat',

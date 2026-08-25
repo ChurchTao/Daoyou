@@ -20,14 +20,15 @@ import {
 } from '@app/lib/resources/inventory';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { usePlayerSession } from '@app/lib/resources/player';
+import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
+import { MAX_FRIENDS_PER_CULTIVATOR } from '@shared/config/socialConfig';
 import type {
   FriendCultivatorSummary,
   FriendSearchResponse,
   FriendSearchResult,
 } from '@shared/contracts/friends';
-import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
-import { MAX_FRIENDS_PER_CULTIVATOR } from '@shared/config/socialConfig';
 import { isPillConsumable } from '@shared/lib/consumables';
+import type { StoryMailDescriptor } from '@shared/lib/story/personalStory';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -319,9 +320,7 @@ export default function MailPage() {
       .catch((loadError) => {
         pushToast({
           message:
-            loadError instanceof Error
-              ? loadError.message
-              : '获取好友名录失败',
+            loadError instanceof Error ? loadError.message : '获取好友名录失败',
           tone: 'warning',
         });
       })
@@ -367,6 +366,15 @@ export default function MailPage() {
       prev && prev.id === mailId
         ? { ...prev, isClaimed: true, isRead: true }
         : prev,
+    );
+  };
+
+  const handleStoryUpdate = (mailId: string, story: StoryMailDescriptor) => {
+    setMails((previous) =>
+      previous.map((mail) => (mail.id === mailId ? { ...mail, story } : mail)),
+    );
+    setSelectedMail((previous) =>
+      previous?.id === mailId ? { ...previous, story } : previous,
     );
   };
 
@@ -483,7 +491,10 @@ export default function MailPage() {
         url: link,
       });
     } catch (shareError) {
-      if (shareError instanceof DOMException && shareError.name === 'AbortError') {
+      if (
+        shareError instanceof DOMException &&
+        shareError.name === 'AbortError'
+      ) {
         return;
       }
       pushToast({ message: '分享失败，请改用复制链接', tone: 'warning' });
@@ -630,6 +641,12 @@ export default function MailPage() {
   const pendingAttachments = mails.filter(
     (mail) => mail.type === 'reward' && !mail.isClaimed,
   ).length;
+  const pendingStories = mails.filter(
+    (mail) =>
+      mail.story?.beatType === 'omen' &&
+      (!mail.story.selectedChoiceKey ||
+        mail.story.selectedChoiceKey === 'delay'),
+  ).length;
   const attachmentTabs = [
     { label: '材料', value: 'material' },
     { label: '法宝', value: 'artifact' },
@@ -679,6 +696,7 @@ export default function MailPage() {
                 <p>当前已载：{mails.length} 封</p>
                 <p>未读：{unreadCount} 封</p>
                 <p>待领附件：{pendingAttachments} 封</p>
+                <p>待决旧事：{pendingStories} 封</p>
               </div>
             </GameSceneAsideSection>
             <GameSceneAsideSection
@@ -915,9 +933,11 @@ export default function MailPage() {
       </div>
 
       <MailDetailModal
+        key={selectedMail?.id ?? 'closed-mail-detail'}
         mail={selectedMail}
         onClose={() => setSelectedMail(null)}
         onUpdate={handleUpdate}
+        onStoryUpdate={handleStoryUpdate}
       />
       <InkModal
         isOpen={showSendModal}

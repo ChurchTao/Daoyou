@@ -321,6 +321,18 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="story"
+              lazy={lazyRoute(() => import('@app/routes/game/story/route'))}
+              handle={scene(
+                {
+                  id: 'story-archive',
+                  presentation: 'archive',
+                  summary: '当前主线、已确认抉择与往日结局都在此归卷。',
+                },
+                '前尘录',
+              )}
+            />
+            <Route
               path="tower"
               lazy={lazyRoute(() => import('@app/routes/game/tower/route'))}
               handle={scene(

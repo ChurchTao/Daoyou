@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- provider and hook form one feature boundary */
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { useResourceMutation } from '@app/lib/resources/mutations';
+import { requestActivityStoryRefresh } from '@app/lib/story/activityStoryEvents';
 import type {
   SectTaskActionData,
   SectTaskViewData,
@@ -103,6 +104,9 @@ export function SectTaskInteractionProvider({
           task: result.primaryTask,
           outcome: result.outcome,
         });
+      if (result?.primaryTask.state === 'claimed') {
+        requestActivityStoryRefresh();
+      }
       return result;
     },
     [runRaw],
@@ -122,15 +126,7 @@ export function SectTaskInteractionProvider({
       navigate: routerNavigate,
       clearOutcome,
     }),
-    [
-      busy,
-      clearOutcome,
-      error,
-      execute,
-      outcome,
-      routerNavigate,
-      runRaw,
-    ],
+    [busy, clearOutcome, error, execute, outcome, routerNavigate, runRaw],
   );
   return (
     <SectTaskInteractionContext.Provider value={value}>

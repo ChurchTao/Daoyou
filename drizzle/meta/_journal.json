@@ -225,6 +225,55 @@
       "when": 1786931826016,
       "tag": "0031_damp_karnak",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1787588085156,
+      "tag": "0032_lethal_blue_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1787636573596,
+      "tag": "0033_story_entity_life_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1787636717749,
+      "tag": "0034_repair_dead_story_aftermath",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1787642561184,
+      "tag": "0035_personal_story_daily_cooldown",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1787645609738,
+      "tag": "0036_travel_story_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1787649080062,
+      "tag": "0037_mainline_travel_linkage",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1787652904447,
+      "tag": "0038_burly_deathbird",
+      "breakpoints": true
     }
   ]
 }

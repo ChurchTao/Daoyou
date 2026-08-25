@@ -1032,6 +1032,7 @@ export function createPostgresSectCommandContext(args: {
     modules: moduleResolver(args.runtime),
     clock: args.clock ?? systemSectClock,
     ids: args.ids ?? cryptoSectIdGenerator,
+    events: createPostgresDomainEventWriter(tx),
   };
 }
 

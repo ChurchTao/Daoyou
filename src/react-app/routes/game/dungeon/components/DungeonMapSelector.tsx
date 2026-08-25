@@ -13,6 +13,7 @@ interface DungeonMapSelectorProps {
   readiness: NoviceDungeonReadiness | null;
   realmBlockReason?: string | null;
   playerRealm?: RealmType;
+  sectTaskEntry?: boolean;
 }
 
 /**
@@ -26,12 +27,16 @@ export function DungeonMapSelector({
   readiness,
   realmBlockReason,
   playerRealm,
+  sectTaskEntry = false,
 }: DungeonMapSelectorProps) {
+  const mapHref = sectTaskEntry
+    ? '/game/map?intent=sect-dungeon'
+    : '/game/map';
   if (!selectedNode) {
     return (
       <InkCard className="p-8 text-center">
         <p className="text-ink-secondary">请选择一个秘境</p>
-        <InkButton href="/game/map" variant="primary" className="mt-4">
+        <InkButton href={mapHref} variant="primary" className="mt-4">
           前往地图
         </InkButton>
       </InkCard>
@@ -41,6 +46,11 @@ export function DungeonMapSelector({
   return (
     <div className="space-y-4">
       <MapNodeCard node={selectedNode} playerRealm={playerRealm} />
+      {sectTaskEntry ? (
+        <InkNotice tone="info">
+          本次以宗门秘境委托进入，启动探索不消耗天地灵气。
+        </InkNotice>
+      ) : null}
       {realmBlockReason ? (
         <InkNotice tone="warning">{realmBlockReason}</InkNotice>
       ) : null}
@@ -50,7 +60,7 @@ export function DungeonMapSelector({
         </InkNotice>
       ) : null}
       <div className="flex justify-center gap-4">
-        <InkButton href="/game/map" disabled={isStarting}>
+        <InkButton href={mapHref} disabled={isStarting}>
           重新选择
         </InkButton>
         <InkButton

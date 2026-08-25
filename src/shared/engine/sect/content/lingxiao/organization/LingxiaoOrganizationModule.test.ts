@@ -79,9 +79,9 @@ describe('LingxiaoOrganizationModule', () => {
     expect(
       LINGXIAO_ORGANIZATION.ranks.requirement('true').requiredTaskTags,
     ).toContainEqual({ tag: 'promotion.elder_trial', label: '通过长老试炼' });
-    expect(LINGXIAO_ORGANIZATION.tasks.get('gate_sweep')?.executorKey).toBe(
-      'sect.sweep',
-    );
+    expect(
+      LINGXIAO_ORGANIZATION.tasks.get('dungeon_exploration')?.executorKey,
+    ).toBe('sect.dungeon');
     expect(LINGXIAO_ORGANIZATION.construction.facilities[0]?.key).toBe('archive');
     expect(LINGXIAO_ORGANIZATION.construction.upgradeTarget(1)).toBe(250);
     expect(

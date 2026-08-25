@@ -1,3 +1,4 @@
+import { ACTIVITY_REWARD_TIER_VALUES } from '@shared/config/activityRewardScaling';
 import {
   QUALITY_VALUES,
   REALM_STAGE_VALUES,
@@ -15,6 +16,7 @@ export const DOMAIN_EVENT_TYPES = [
   'ranking.challenge.completed',
   'dungeon.run.settled',
   'yield.claimed',
+  'sect.task.completed',
   'cultivator.realm.changed',
   'mail.created',
   'craft.item.created',
@@ -72,7 +74,45 @@ export const DomainEventDataSchemas = {
       cultivatorId: z.uuid(),
       actionInstanceId: z.uuid(),
       realm: z.enum(REALM_VALUES),
-      materialCount: z.number().int().positive().max(100),
+      realmStage: z.enum(REALM_STAGE_VALUES).optional(),
+      hours: z.number().min(1).max(24).optional(),
+      materialCount: z.number().int().nonnegative().max(100),
+    })
+    .strict(),
+  'sect.task.completed': z
+    .object({
+      cultivatorId: z.uuid(),
+      activityType: z.literal('sect_task'),
+      activityId: z.string().min(1).max(160),
+      rootActivityId: z.string().min(1).max(160),
+      authoritativeSummary: z.string().min(1).max(500),
+      sectId: z.string().min(1).max(64),
+      membershipId: z.uuid(),
+      taskRecordId: z.uuid(),
+      taskDefinitionId: z.string().min(1).max(64),
+      taskKind: z.enum(['daily', 'weekly', 'promotion']),
+      taskTitle: z.string().min(1).max(80),
+      taskDescription: z.string().min(1).max(240),
+      rewardSnapshot: z
+        .object({
+          realm: z.enum(REALM_VALUES),
+          realmStage: z.enum(REALM_STAGE_VALUES),
+          activityTier: z.enum(ACTIVITY_REWARD_TIER_VALUES),
+        })
+        .strict(),
+      sourceReference: z
+        .object({
+          type: z.enum(['task_action', 'dungeon_run']),
+          id: z.string().min(1).max(128),
+        })
+        .strict(),
+      completionSource: z
+        .object({
+          kind: z.enum(['task_action', 'dungeon_run']),
+          id: z.string().min(1).max(128),
+          mapNodeId: z.string().min(1).max(100).optional(),
+        })
+        .strict(),
     })
     .strict(),
   'cultivator.realm.changed': z
@@ -181,6 +221,10 @@ export const DOMAIN_EVENT_DEFINITIONS = {
   'yield.claimed': {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.yield-claimed.v1`,
+  },
+  'sect.task.completed': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.sect-task-completed.v1`,
   },
   'cultivator.realm.changed': {
     version: 1,

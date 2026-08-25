@@ -866,6 +866,30 @@ export class ProgressTaskExecutor extends BaseTaskExecutor<
   }
 }
 
+export class DungeonExplorationTaskExecutor extends BaseTaskExecutor<
+  Record<string, unknown>
+> {
+  readonly key = 'sect.dungeon';
+
+  inputSchema(): ZodType<Record<string, unknown>> {
+    return z.never();
+  }
+
+  actions(definition: SectTaskDefinition): readonly SectTaskActionDescriptor[] {
+    return [
+      {
+        key: 'enter',
+        renderer: 'sect.action.dungeon-entry',
+        label: definition.presentation.actionLabel,
+      },
+    ];
+  }
+
+  async execute(): Promise<SectTaskExecutionDecision> {
+    return invalid('秘境探索任务由秘境结算自动验收');
+  }
+}
+
 export class SectTaskExecutorRegistry {
   private readonly executors = new Map<string, SectTaskExecutor>();
 

@@ -1,4 +1,5 @@
 import type { ResourceOperation } from '@shared/engine/resource/types';
+import type { DungeonStoryContext } from '@shared/lib/story/personalStory';
 import { ENEMY_RACE_VALUES, REALM_STAGE_VALUES } from '@shared/types/constants';
 import { z } from 'zod';
 
@@ -355,6 +356,7 @@ export interface DungeonState {
   mapNodeId: string;
   playerInfo: PlayerInfo;
   theme: string;
+  storyContext?: DungeonStoryContext;
   currentRound: number;
   maxRounds: number;
   history: History[];

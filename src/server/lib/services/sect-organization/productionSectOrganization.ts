@@ -29,16 +29,19 @@ import {
 import { SectTaskSubmissionQueryService } from './SectTaskSubmissionQueryService';
 
 const benefits = new SectBenefitService();
-const plugins = composeSectOrganizationPlugins({
-  organizations: productionSectRuntime.registry
-    .listDefinitions()
-    .map((definition) => ({
-      sectId: definition.id,
-      organization: productionSectRuntime.registry.require(definition.id)
-        .organization,
-    })),
-  manifests: [CORE_SECT_ORGANIZATION_PLUGIN],
-});
+export const productionSectOrganizationPlugins =
+  composeSectOrganizationPlugins({
+    organizations: productionSectRuntime.registry
+      .listDefinitions()
+      .map((definition) => ({
+        sectId: definition.id,
+        organization: productionSectRuntime.registry.require(definition.id)
+          .organization,
+      })),
+    manifests: [CORE_SECT_ORGANIZATION_PLUGIN],
+  });
+
+const plugins = productionSectOrganizationPlugins;
 
 const application = new SectOrganizationFacade({
   membership: new SectMembershipApplicationService(benefits, plugins.events),
