@@ -1,6 +1,7 @@
 import { handleAuthRequest } from '@server/lib/auth/hono';
 import { apiIpRateLimit } from '@server/lib/hono/apiIpRateLimit';
 import { jsonError, redisLockErrorResponse } from '@server/lib/hono/middleware';
+import { requestLogger } from '@server/lib/hono/requestLogger';
 import type { AppEnv } from '@server/lib/hono/types';
 import { runWithContext } from '@server/lib/http/context';
 import { apiCorsOptions } from '@server/lib/http/cors';
@@ -10,12 +11,11 @@ import internalRouter from '@server/routes/internal';
 import { LlmByokConfigSchema } from '@shared/config/llm';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
 
 const app = new Hono<AppEnv>();
 
-app.use('/api/*', logger());
-app.use('/internal/*', logger());
+app.use('/api/*', requestLogger());
+app.use('/internal/*', requestLogger());
 
 app.use('*', async (context, next) => runWithContext(context, next));
 

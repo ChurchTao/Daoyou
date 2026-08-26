@@ -2,15 +2,15 @@ import type { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill
 import { BasicAttack } from '@shared/engine/battle-v5/abilities/BasicAttack';
 import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
-import { createHitResolution } from '@shared/engine/battle-v5/core/resolution';
 import type {
-  DamageSegmentRequestedEvent,
   DamageSegmentAppliedEvent,
+  DamageSegmentRequestedEvent,
 } from '@shared/engine/battle-v5/core/events';
+import { createHitResolution } from '@shared/engine/battle-v5/core/resolution';
 import {
   beginRuntimeAction,
-  getBattleRuntimeState,
   clearAbilityMode,
+  getBattleRuntimeState,
   readAbilityMode,
   setAbilityMode,
 } from '@shared/engine/battle-v5/core/runtimeState';
@@ -25,9 +25,9 @@ import { BuffFactory } from '@shared/engine/battle-v5/factories/BuffFactory';
 import { BattleStateRecorder } from '@shared/engine/battle-v5/systems/state/BattleStateRecorder';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { WUXIANG_FORM_MODE, WUXIANG_KARMA_BUFF, WUXIANG_WAR_INTENT } from '..';
 import { projectSectCombat, resolveSectAbility } from '../..';
 import type { CultivatorSectState } from '../../../core';
-import { WUXIANG_FORM_MODE, WUXIANG_KARMA_BUFF, WUXIANG_WAR_INTENT } from '..';
 
 type PathId = 'mirror-karma' | 'demon-crossing';
 
@@ -165,12 +165,15 @@ describe('无相禅宗三相循环', () => {
   it('3至5点心念进入两次魔相；未命中和非宗门技能都不消费次数', () => {
     const { owner, enemy, defaultAttack, skill } = install('demon-crossing');
     owner.combatResources.modify(WUXIANG_WAR_INTENT, 3);
+    const hpBeforeTurn = owner.getCurrentHp();
     cast(skill('turn-form'), owner, owner);
     expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({
       mode: 'demon',
       remainingUses: 2,
     });
     expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(0);
+    expect(owner.getCurrentHp()).toBe(hpBeforeTurn);
+    expect(owner.getCurrentShield() / owner.getMaxHp()).toBeCloseTo(0.06, 2);
 
     cast(defaultAttack, owner, enemy, false);
     expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({
@@ -217,6 +220,21 @@ describe('无相禅宗三相循环', () => {
     ).toBe(1);
   });
 
+  it('第一念与三叩魔关合并结算后，低血无相仍不超过4段伤害', () => {
+    const { owner, enemy, skill } = install('demon-crossing', [
+      'demon-first-thought',
+    ]);
+    owner.combatResources.modify(WUXIANG_WAR_INTENT, 6);
+    cast(skill('turn-form'), owner, owner);
+    owner.setHp(Math.floor(owner.getMaxHp() * 0.3));
+    const knocks = skill('three-knocks');
+
+    const segments = damageSegments(knocks, () => cast(knocks, owner, enemy));
+
+    expect(segments).toHaveLength(4);
+    expect(segments).not.toContain(0.3506);
+  });
+
   it('施法准备后改变形态，不会改变已冻结的本次效果计划', () => {
     const { owner, enemy, defaultAttack } = install('mirror-karma');
     const requests: DamageSegmentRequestedEvent[] = [];
@@ -244,7 +262,16 @@ describe('无相禅宗三相循环', () => {
     defaultAttack.prepareCast({ caster: owner, target: enemy });
     clearAbilityMode(owner, WUXIANG_FORM_MODE);
 
-    defaultAttack.execute({ caster: owner, target: enemy, resolution: createHitResolution({ actionId: 'wuxiang:default', castId: 'wuxiang:default', caster: owner, target: enemy }) });
+    defaultAttack.execute({
+      caster: owner,
+      target: enemy,
+      resolution: createHitResolution({
+        actionId: 'wuxiang:default',
+        castId: 'wuxiang:default',
+        caster: owner,
+        target: enemy,
+      }),
+    });
 
     expect(requests.length).toBeGreaterThan(1);
     expect(owner.buffs.getAllBuffIds()).not.toContain(WUXIANG_KARMA_BUFF);
@@ -311,7 +338,7 @@ describe('无相禅宗三相循环', () => {
       cast(threeKnocks, owner, enemy),
     );
 
-    expect(segments).toEqual([0.2804, 0.2804, 0.2804, 0.2504, 0.2504, 0.3506]);
+    expect(segments).toEqual([0.8413, 0.5008, 0.3506]);
     expect(
       enemy.buffs
         .getAllBuffs()
@@ -499,7 +526,7 @@ describe('无相禅宗三相循环', () => {
 
     cast(defaultAttack, owner, enemy);
 
-    expect(segments).toEqual([0.601, 0.3506, 0.3005, 0.601]);
+    expect(segments).toEqual([0.601, 0.3506, 0.9015]);
     expect(
       owner.buffs
         .getAllBuffs()
@@ -543,8 +570,8 @@ describe('无相禅宗三相循环', () => {
       return damageSegments(knocks, () => cast(knocks, owner, enemy));
     };
 
-    expect(executeAt(0.5)).toEqual([0.2504, 0.2504, 0.2504]);
-    expect(executeAt(0.48)).toEqual([0.2504, 0.2504, 0.2504, 0.2504]);
+    expect(executeAt(0.5)).toEqual([0.8413]);
+    expect(executeAt(0.48)).toEqual([0.8413, 0.2804]);
   });
 
   it('连续两次魔相使用同一 B，不存在第一门与第二门分支', () => {
@@ -563,8 +590,8 @@ describe('无相禅宗三相循环', () => {
       cast(defaultAttack, owner, enemy),
     );
 
-    expect(first).toEqual([0.601, 0.3506]);
-    expect(second).toEqual([0.601, 0.3506]);
+    expect(first).toEqual([0.6511, 0.5009]);
+    expect(second).toEqual([0.6511, 0.5009]);
     expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toBeUndefined();
   });
 
@@ -596,6 +623,57 @@ describe('无相禅宗三相循环', () => {
     expect(owner.getCurrentHp()).toBe(
       beforeDefense - Math.ceil(beforeDefense * 0.14),
     );
+  });
+
+  it('魔心佛相防御神通获得2点心念，攻击神通仍获得1点', () => {
+    const { owner, enemy, defaultAttack, skill } = install('demon-crossing');
+
+    cast(defaultAttack, owner, enemy);
+    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(1);
+
+    cast(skill('blood-tide'), owner, owner);
+    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(3);
+  });
+
+  it('两门同渡把基础入魔护盾由6%提高到10%', () => {
+    const enter = (nodes: string[] = []) => {
+      const { owner, skill } = install('demon-crossing', nodes);
+      owner.combatResources.modify(WUXIANG_WAR_INTENT, 3);
+      cast(skill('turn-form'), owner, owner);
+      return owner.getCurrentShield() / owner.getMaxHp();
+    };
+
+    expect(enter()).toBeCloseTo(0.06, 2);
+    expect(enter(['demon-two-gates'])).toBeCloseTo(0.1, 2);
+  });
+
+  it('一息无间把渡厄减伤由20%降低至10%而非完全移除', () => {
+    const reduction = (nodes: string[] = []) => {
+      const { owner, enemy, skill } = install('demon-crossing', nodes);
+      owner.combatResources.modify(WUXIANG_WAR_INTENT, 3);
+      cast(skill('turn-form'), owner, owner);
+      const request: DamageSegmentRequestedEvent = {
+        type: 'DamageSegmentRequestedEvent',
+        timestamp: Date.now(),
+        caster: enemy,
+        target: owner,
+        resolution: createHitResolution({
+          actionId: `${enemy.id}:demon-guard`,
+          castId: 'demon-guard',
+          caster: enemy,
+          target: owner,
+        }),
+        damageSource: DamageSource.DIRECT,
+        damageType: DamageType.PHYSICAL,
+        baseDamage: 100,
+        finalDamage: 100,
+      };
+      EventBus.instance.publish(request);
+      return request.damageReductionPctBucket ?? 0;
+    };
+
+    expect(reduction()).toBeCloseTo(0.2);
+    expect(reduction(['demon-no-gap'])).toBeCloseTo(0.1);
   });
 
   it('低血节点只响应宗门神通气血成本跨线，且每场只触发一次', () => {

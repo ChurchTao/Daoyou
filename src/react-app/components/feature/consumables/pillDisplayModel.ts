@@ -614,10 +614,6 @@ function buildAlchemyInfoLines(
           ? '勉强成丹'
           : '偏路成丹'
       : undefined;
-  const formulaFitScoreText =
-    alchemyMeta.source === 'formula' && Number.isFinite(alchemyMeta.fitScore)
-      ? `药性拟合：${Math.round(alchemyMeta.fitScore * 100)}%`
-      : undefined;
   const formulaFitMultiplierText =
     alchemyMeta.source === 'formula' &&
     Number.isFinite(alchemyMeta.fitMultiplier)
@@ -634,7 +630,6 @@ function buildAlchemyInfoLines(
       : undefined,
     `炼制来源：${alchemyMeta.source === 'formula' ? '丹方炼制' : '即兴炼制'}`,
     fitBandText ? `成丹层级：${fitBandText}` : undefined,
-    formulaFitScoreText,
     formulaFitMultiplierText,
     `稳度：${alchemyMeta.stability}`,
     alchemyMeta.dominantElement

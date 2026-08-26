@@ -68,7 +68,7 @@ export const EMPTY_SWIFT_FEATURES: SwiftSwordFeatures = {
   unendingWind: false,
 };
 
-export const SWIFT_SPLIT_LIGHT_HIT_COEFFICIENT = 0.21;
+export const SWIFT_SPLIT_LIGHT_HIT_COEFFICIENT = 0.49;
 export const SWIFT_RETURNING_SWALLOW_COUNTER_COEFFICIENT = 0.6;
 export const SWIFT_MOUNTAIN_BREAKING_COEFFICIENT = 0.12;
 export const SWIFT_SHEATHING_SHIELD_COEFFICIENT = 0.48;
@@ -188,10 +188,10 @@ export function buildSwiftAbilities(
     ],
   });
 
-  const hits = features.splitLight ? 7 : 5;
+  const hits = 3;
   const hitCoefficient = features.splitLight
     ? SWIFT_SPLIT_LIGHT_HIT_COEFFICIENT
-    : 0.29;
+    : 1.45 / hits;
   built['linked-edge'] = active({
     id: 'linked-edge',
     cooldown: 2,
@@ -415,28 +415,20 @@ export function buildSwiftAbilities(
       },
     ],
     effects: [
-      damage(
-        0.3 * finisherScale,
-        undefined,
-        false,
-        DamageSource.DIRECT,
-        features.shadowLine,
-      ),
-      ...Array.from({ length: 6 }, (_, index) =>
-        damage(
-          0.33 * finisherScale,
-          [
-            {
-              type: 'combat_resource_at_least',
-              params: { resourceId, value: index + 1, scope: 'caster' },
-            },
-          ],
-          false,
-          DamageSource.DIRECT,
-          features.shadowLine,
-        ),
-      ),
-      sectEffects.consumeResource(resourceId),
+      {
+        type: 'resource_scaled_damage',
+        params: {
+          resourceId,
+          baseCoefficient: 0.3 * finisherScale,
+          coefficientPerPoint: 0.33 * finisherScale,
+          maxPoints: 6,
+          consume: 'all',
+          attribute: AttributeType.ATK,
+          damageType: DamageType.PHYSICAL,
+          damageSource: DamageSource.DIRECT,
+          forceCritical: features.shadowLine,
+        },
+      },
       ...(features.mountainBreaking
         ? [
             {
@@ -445,7 +437,7 @@ export function buildSwiftAbilities(
                 match: { id: LINGXIAO_SWORD_MARK_BUFF },
                 displayName: '剑痕',
                 consume: 'all' as const,
-                scaleEffectsByLayer: true,
+                aggregateDamageByLayer: true,
                 effects: [
                   damage(SWIFT_MOUNTAIN_BREAKING_COEFFICIENT, undefined, true),
                 ],

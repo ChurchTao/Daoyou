@@ -359,12 +359,12 @@ export interface FormulaAnalysisResult {
   analysisId: string;
   valid: boolean;
   staticBlockingReason?: string;
+  /** LLM 裁决档位对应的服务端代表值；仅兼容既有丹药元数据。 */
   fitScore: number;
   fitBand: FormulaFitBand;
-  alignedThreshold: number;
+  conclusion?: string;
   warnings: string[];
   materialJudgments: FormulaMaterialJudgment[];
-  aggregatedPropertyVector: WeightedAlchemyProperty[];
   batchProfile?: AlchemyBatchDisplayProfile;
   dominantElement?: ElementType;
   stability: number;

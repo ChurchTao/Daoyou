@@ -1,5 +1,12 @@
 import type { EffectConfig } from '@shared/engine/battle-v5/core/configs';
+import {
+  buildListenerRuntimeConfig,
+  resolveListenerContext,
+} from '@shared/engine/battle-v5/core/listenerExecution';
+import { AttributeType } from '@shared/engine/battle-v5/core/types';
+import { ValueCalculator } from '@shared/engine/battle-v5/core/ValueCalculator';
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
+import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { composeProductFromAffixIds } from '@shared/engine/creation-v2/composeProductFromAffixIds';
 import { projectAbilityConfig } from '@shared/engine/creation-v2/models/AbilityProjection';
 import {
@@ -521,6 +528,55 @@ describe('advanced affix projection and rehydrate', () => {
       scope: 'owner_as_target',
       effects: [{ type: 'damage_memory' }],
     });
+  });
+
+  it('last stand shell scales its shield from the artifact owner instead of the attacker', () => {
+    const product = composeProductFromAffixIds({
+      productType: 'artifact',
+      element: '土',
+      requestedSlot: 'accessory',
+      requestedQuality: '神品',
+      name: '测试-灵壁',
+      affixIds: ['artifact-defense-last-stand-shell'],
+    });
+    const listener = projectAbilityConfig(product).listeners?.[0];
+    if (!listener) {
+      throw new Error('last stand shell listener was not projected');
+    }
+
+    expect(listener.mapping).toEqual({ caster: 'owner', target: 'owner' });
+
+    const owner = new Unit('owner', '持有者', {
+      [AttributeType.SPIRIT]: 100,
+    });
+    const attacker = new Unit('attacker', '攻击者', {
+      [AttributeType.SPIRIT]: 10_000,
+    });
+    const runtime = buildListenerRuntimeConfig(listener);
+    const context = resolveListenerContext(
+      owner,
+      {
+        type: 'DamageSegmentAppliedEvent',
+        timestamp: 0,
+        caster: attacker,
+        target: owner,
+      },
+      runtime.mapping,
+    );
+    const shield = listener.effects[0];
+    if (shield?.type !== 'shield') {
+      throw new Error('last stand shell did not project a shield effect');
+    }
+
+    expect(context.caster).toBe(owner);
+    expect(context.target).toBe(owner);
+    expect(
+      ValueCalculator.calculate(
+        shield.params.value,
+        context.caster,
+        context.target,
+      ),
+    ).toBe(60);
   });
 
   it('leakless body consumes its immunity buff after blocking one damage event', () => {

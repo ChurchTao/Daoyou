@@ -438,7 +438,7 @@ function describeEffect(
           `${points}点${name}时总倍率：${number((effect.params.baseCoefficient + effect.params.coefficientPerPoint * points) * 100)}%物攻`,
         );
       }
-      if (effect.params.forceCritical) rows.push('暴击：整次施法必定暴击');
+      if (effect.params.forceCritical) rows.push('暴击：整次施法全部伤害段必定暴击');
       if (effect.params.consume) {
         rows.push(
           effect.params.consume === 'all'

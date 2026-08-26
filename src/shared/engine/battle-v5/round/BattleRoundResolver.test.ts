@@ -271,6 +271,36 @@ describe('BattleRoundResolver', () => {
           ],
         }),
       );
+      units[2].abilities.addAbility(
+        AbilityFactory.create({
+          slug: 'hp-change-retaliation',
+          name: '血震',
+          type: AbilityType.PASSIVE_SKILL,
+          tags: [
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.TRUE,
+          ],
+          listeners: [
+            {
+              eventType: GameplayTags.EVENT.HP_CHANGED,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+              priority: EventPriorityLevel.POST_SETTLE,
+              mapping: { caster: 'owner', target: 'owner' },
+              triggerPolicy: { maxTriggers: 1, granularity: 'hit' },
+              effects: [
+                {
+                  type: 'damage',
+                  params: {
+                    value: { base: 10, coefficient: 0 },
+                    damageType: DamageType.TRUE,
+                    canCrit: false,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      );
     });
 
     const result = resolveBattleRound(save, {
@@ -292,9 +322,8 @@ describe('BattleRoundResolver', () => {
     });
 
     const restored = restoreBattleSave(result.save);
-    expect(restored.roster.getUnit('b0').getCurrentHp()).toBeLessThan(
-      restored.roster.getUnit('b0').getMaxHp(),
-    );
+    const target = restored.roster.getUnit('b0');
+    expect(target.getCurrentHp()).toBeLessThan(target.getMaxHp() - 25);
     restored.runtime.dispose();
   });
 

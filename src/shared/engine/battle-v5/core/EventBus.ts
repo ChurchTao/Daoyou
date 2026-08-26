@@ -9,6 +9,7 @@ import { SystemBattleClock, type BattleClock } from '../runtime/BattleClock';
 import type { CombatResultCommittedEventV3 } from '../v3/events';
 import { BattleResolutionError } from './BattleResolutionError';
 import { ReactionQueue } from './reactionQueue';
+import type { CombatResolutionContext } from './resolution';
 
 interface CombatFactSink {
   record(event: CombatResultCommittedEventV3): void;
@@ -53,6 +54,7 @@ export class EventBus {
   private _causalContextStack: Array<{
     trace?: CombatTraceV3;
     origin?: CombatOriginV3;
+    resolution?: CombatResolutionContext;
   }> = [];
   private _sequenceCounter = 0;
   private _eventCounter = 0;
@@ -202,6 +204,7 @@ export class EventBus {
           parentContext?.trace?.narrativeCauseId,
       },
       origin: event.origin ?? parentContext?.origin,
+      resolution: event.resolution ?? parentContext?.resolution,
     }) as T;
 
     return eventWithTimestamp;
@@ -231,6 +234,7 @@ export class EventBus {
     this._causalContextStack.push({
       trace: eventWithTimestamp.trace!,
       origin: eventWithTimestamp.origin,
+      resolution: eventWithTimestamp.resolution,
     });
     try {
       for (const subscriber of dispatchList) {
@@ -259,7 +263,11 @@ export class EventBus {
   }
 
   public runInCausalContext<T>(
-    context: { origin?: CombatOriginV3; trace?: CombatTraceV3 },
+    context: {
+      origin?: CombatOriginV3;
+      trace?: CombatTraceV3;
+      resolution?: CombatResolutionContext;
+    },
     callback: () => T,
   ): T {
     if (this._causalContextStack.length >= EventBus.MAX_CAUSAL_DEPTH) {

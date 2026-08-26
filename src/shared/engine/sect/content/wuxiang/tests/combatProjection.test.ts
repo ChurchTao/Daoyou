@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { WUXIANG_MODULE, WUXIANG_TECHNIQUE_IDS } from '..';
 import {
-  projectSectCombat,
   PRODUCTION_SECT_IDS,
+  projectSectCombat,
   resolveSectAbility,
 } from '../..';
 import { SectStateValidator, type CultivatorSectState } from '../../../core';
-import { WUXIANG_MODULE, WUXIANG_TECHNIQUE_IDS } from '..';
 
 type PathId = 'mirror-karma' | 'demon-crossing';
 
@@ -247,9 +247,12 @@ describe('无相禅宗战斗投影', () => {
     },
   );
 
-  it.each(['mirror-karma', 'demon-crossing'] as const)(
-    '%s 的转相只在两种受限效果计划间选择，费用按心念条件固定',
-    (pathId) => {
+  it.each([
+    { pathId: 'mirror-karma' as const, costs: [0.04, 0.08] },
+    { pathId: 'demon-crossing' as const, costs: [0.04] },
+  ])(
+    '$pathId 的转相只在两种受限效果计划间选择，费用按心念条件固定',
+    ({ pathId, costs }) => {
       const config = resolveSectAbility({
         sect: state(pathId),
         realm: '化神',
@@ -261,7 +264,7 @@ describe('无相禅宗战斗投影', () => {
         config.costs?.map((cost) =>
           cost.mode === 'current_hp_ratio' ? cost.ratio : 0,
         ),
-      ).toEqual([0.04, 0.08]);
+      ).toEqual(costs);
       expect(
         config.effectPlans?.map((plan) => ({
           name: plan.name,

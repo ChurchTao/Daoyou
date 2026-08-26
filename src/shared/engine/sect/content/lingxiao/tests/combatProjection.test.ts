@@ -307,7 +307,7 @@ describe('宗门注册投影', () => {
     });
     expect(detail.name).toBe('剑荡山河');
     expect(detail.summary).toBe('剑锋纵横，数势相连；前剑未尽，后剑已越其锋。');
-    expect(detail.detailRows).toContain('伤害：7段 × 22.54%物攻');
+    expect(detail.detailRows).toContain('伤害：3段 × 52.6%物攻');
     expect(
       projection.abilities.find(
         (ability) => ability.slug === detail.config.slug,
@@ -662,7 +662,7 @@ describe('宗门注册投影', () => {
         ?.pathBase.detailRows,
     ).toEqual(
       expect.arrayContaining([
-        '伤害：5段 × 31.13%物攻',
+        '伤害：3段 × 51.89%物攻',
         '命中后：剑痕：向目标施加1层，持续目标未来4次行动',
       ]),
     );

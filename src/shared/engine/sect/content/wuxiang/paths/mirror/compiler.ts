@@ -20,6 +20,7 @@ export function compileMirrorAbilities(
     MIRROR_REED_COUNTER,
     MIRROR_REFLOW,
     MIRROR_SECOND_OBSERVE,
+    WUXIANG_KARMA_BUFF,
     WUXIANG_MIRROR_PATH_ID,
     addKarma,
     addKarmaLayers,
@@ -38,6 +39,22 @@ export function compileMirrorAbilities(
     targetBuff,
     tideGuard,
   } = api;
+  const combinedFormlessStrike = (coefficient: number): EffectConfig[] =>
+    features.mirrorSecondPresent
+      ? [
+          {
+            type: 'consume_status_trigger',
+            params: {
+              match: { id: WUXIANG_KARMA_BUFF },
+              displayName: '业痕',
+              consume: 1,
+              target: 'caster',
+              effects: [physical(coefficient + 0.6)],
+              fallbackEffects: [physical(coefficient)],
+            },
+          },
+        ]
+      : [physical(coefficient)];
   const formCompletion: EffectConfig[] = [
     ...(features.mirrorFormlessKarmaLayers > 0
       ? addKarmaLayers(features.mirrorFormlessKarmaLayers)
@@ -79,7 +96,7 @@ export function compileMirrorAbilities(
     formlessName: '心花两忘',
     formlessDescription:
       '一念之中兼得叩心与问罪之效，并再发一击；施展后，无论业痕是否触发，自身都会获得1层业痕。',
-    formlessEffects: [physical(0.3), ...allKarmaEffect(features, 'enemy')],
+    formlessEffects: combinedFormlessStrike(0.3),
     formlessCompletionEffects: formDone([addKarma()]),
   });
   const blood = layeredAbility({
@@ -115,11 +132,11 @@ export function compileMirrorAbilities(
     cost: 0.07,
     target: 'enemy',
     features,
-    effects: [physical(0.28), physical(0.28), physical(0.28)],
+    effects: [physical(0.84)],
     completionEffects: karmaDoors(doorLayers),
     demonName: '业门倒叩',
     demonDescription:
-      '先向目标连击三次；若目标带有业痕，再引爆其原有的全部业门，每层各造成一次伤害。',
+      '先将三叩凝为一击；若目标带有业痕，再引爆其原有的全部业门并合并结算伤害。',
     demonEffects: mirrorPresent(
       [
         {
@@ -130,7 +147,7 @@ export function compileMirrorAbilities(
             consume: 'all',
             target: 'target',
             effects: [physical(0.25)],
-            scaleEffectsByLayer: true,
+            aggregateDamageByLayer: true,
           },
         },
       ],
@@ -140,7 +157,7 @@ export function compileMirrorAbilities(
     formlessName: '门内无人',
     formlessDescription:
       '三叩与倒叩同发，引爆旧业门后再发一击；施展结束时，重新留下新的业门。',
-    formlessEffects: [physical(0.35), ...allKarmaEffect(features, 'enemy')],
+    formlessEffects: combinedFormlessStrike(0.35),
     formlessCompletionEffects: formDone(),
   });
   const observeReduction = features.mirrorObserveReduction;
@@ -258,11 +275,7 @@ export function compileMirrorAbilities(
     formlessName: '五蕴皆空',
     formlessDescription:
       '外法、内执一并照空：驱散目标增益、净化自身减益，并额外伤敌、获得护盾。',
-    formlessEffects: [
-      physical(0.4),
-      shield(0.05),
-      ...allKarmaEffect(features, 'enemy'),
-    ],
+    formlessEffects: [...combinedFormlessStrike(0.4), shield(0.05)],
     formlessCompletionEffects: formDone(),
   });
   const reed = layeredAbility({

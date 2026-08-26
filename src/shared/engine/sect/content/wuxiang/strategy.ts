@@ -124,11 +124,12 @@ export class WuxiangMirrorSelectionStrategy extends WuxiangSelectionStrategy {
       );
     }
     const shouldTurn =
-      this.tacticId === 'guard'
-        ? war >= 5
+      war >= 6 ||
+      (this.tacticId === 'guard'
+        ? war >= 5 || (war >= 3 && karma >= 3)
         : this.tacticId === 'present'
           ? war >= 3 && karma >= 1
-          : war >= 6 || (war >= 3 && context.caster.getHpPercent() < 0.35);
+          : war >= 3 && context.caster.getHpPercent() < 0.35);
     if (shouldTurn) return this.ranked(context, ['turn-form'], 800);
     if (this.tacticId === 'guard' && karma < 3) {
       return this.ranked(context, [
@@ -155,9 +156,21 @@ export class WuxiangDemonSelectionStrategy extends WuxiangSelectionStrategy {
     if (mode?.mode === 'demon') {
       return this.ranked(
         context,
-        hp < 0.3
-          ? ['reed-crossing', 'observe-calamity', 'blood-tide', 'five-skandhas']
-          : ['three-knocks', 'flower-heart', 'blood-tide', 'observe-calamity'],
+        hp < 0.2
+          ? ['reed-crossing', 'blood-tide', 'three-knocks', 'observe-calamity']
+          : hp < 0.3
+            ? [
+                'three-knocks',
+                'reed-crossing',
+                'flower-heart',
+                'observe-calamity',
+              ]
+            : [
+                'three-knocks',
+                'flower-heart',
+                'blood-tide',
+                'observe-calamity',
+              ],
         720,
       );
     }
@@ -176,11 +189,12 @@ export class WuxiangDemonSelectionStrategy extends WuxiangSelectionStrategy {
       );
     }
     const shouldTurn =
-      this.tacticId === 'trial-fire'
-        ? war >= 3 && hp < 0.6
+      war >= 6 ||
+      (this.tacticId === 'trial-fire'
+        ? war >= 3 && hp < 0.65
         : this.tacticId === 'sink-boat'
-          ? war >= 5 && hp < 0.45
-          : war >= 6 || (war >= 3 && hp < 0.25);
+          ? war >= 5 && hp < 0.5
+          : war >= 3 && hp < 0.3);
     if (shouldTurn) return this.ranked(context, ['turn-form'], 800);
     return this.ranked(
       context,

@@ -359,6 +359,8 @@ export interface ConsumeStatusTriggerParams {
   /** 状态不存在时执行一次；用于显式降级，不改变消费语义。 */
   fallbackEffects?: EffectConfig[];
   scaleEffectsByLayer?: boolean;
+  /** 将每层直接伤害合并为单段；非伤害子效果仍只执行一次。 */
+  aggregateDamageByLayer?: boolean;
   target?: 'caster' | 'target';
 }
 

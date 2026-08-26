@@ -1,6 +1,6 @@
-import { renderPrompt } from '@server/lib/prompts';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher';
+import { renderPrompt } from '@server/lib/prompts';
 import { findActiveCultivatorOwnerId } from '@server/lib/repositories/cultivatorRepository';
 import type { BattleRecordV3 } from '@server/lib/services/battleResult';
 import {
@@ -12,9 +12,9 @@ import { updateCultivator } from '@server/lib/services/cultivator/CultivatorStat
 import { resourceEngine } from '@server/lib/services/resource/ResourceEngine';
 import { generateAiObject } from '@server/utils/aiClient';
 import { stableCompactStringify } from '@server/utils/llmPayload';
+import { getRealmStageNaturalAttributeValue } from '@shared/config/realmProgression';
 import type { CultivatorDisplayInput } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import { getRealmStageNaturalAttributeValue } from '@shared/config/realmProgression';
 import { EnemyGenerator } from '@shared/engine/enemyGenerator';
 import { TYPE_DESCRIPTIONS } from '@shared/engine/material/creation/config';
 import type {
@@ -22,6 +22,11 @@ import type {
   ResourceOperationResult,
   ResourceOperationSettlement,
 } from '@shared/engine/resource/types';
+import {
+  buildDungeonPerformanceTags,
+  normalizeDungeonRewardTier,
+  type DungeonEndDisposition,
+} from '@shared/lib/dungeon/settlementPolicy';
 import type { SatelliteNode } from '@shared/lib/game/mapSystem';
 import {
   canChallengeDungeonRealm,
@@ -35,8 +40,8 @@ import {
   MaterialType,
   Quality,
   QUALITY_VALUES,
-  REALM_VALUES,
   REALM_STAGE_VALUES,
+  REALM_VALUES,
   RealmType,
   type RealmStage,
 } from '@shared/types/constants';
@@ -265,6 +270,11 @@ function appendRoundRewards(
 function normalizeSettlementRewards(
   settlement: DungeonSettlement,
   accumulatedRewards: RewardBlueprint[],
+  args: {
+    endDisposition: DungeonEndDisposition;
+    dangerScore: number;
+    committedCostCount: number;
+  },
 ): DungeonSettlement {
   const inheritedRewards = selectMostValuableRewardBlueprints(
     accumulatedRewards,
@@ -274,16 +284,35 @@ function normalizeSettlementRewards(
   const extraRewards = settlement.settlement.reward_blueprints.filter(
     (reward) => !inheritedKeys.has(rewardBlueprintKey(reward)),
   );
-  const reward_blueprints = [...inheritedRewards, ...extraRewards].slice(
-    0,
-    DUNGEON_REWARD_BLUEPRINT_LIMIT,
-  );
+  const acceptedExtraRewards =
+    settlement.settlement.reward_tier === 'C' ||
+    settlement.settlement.reward_tier === 'D'
+      ? []
+      : extraRewards;
+  const reward_blueprints = [
+    ...inheritedRewards,
+    ...acceptedExtraRewards,
+  ].slice(0, DUNGEON_REWARD_BLUEPRINT_LIMIT);
+  const reward_tier = normalizeDungeonRewardTier({
+    proposedTier: settlement.settlement.reward_tier,
+    totalMaterialCount: reward_blueprints.length,
+    endDisposition: args.endDisposition,
+  });
+  const performance_tags = buildDungeonPerformanceTags({
+    tier: reward_tier,
+    dangerScore: args.dangerScore,
+    materialCount: reward_blueprints.length,
+    committedCostCount: args.committedCostCount,
+    endDisposition: args.endDisposition,
+  });
 
   return DungeonSettlementSchema.parse({
     ...settlement,
     settlement: {
       ...settlement.settlement,
+      reward_tier,
       reward_blueprints,
+      performance_tags,
     },
   });
 }
@@ -340,13 +369,11 @@ const COST_LIMITS: Partial<Record<DungeonOptionCost['type'], number>> = {
   material: 999,
   hp_loss: 1,
   mp_loss: 1,
-  weak: 10,
   battle: 100,
-  artifact_damage: 100,
 };
-const DUNGEON_MATERIAL_TYPE_TABLE = Object.entries(TYPE_DESCRIPTIONS)
-  .map(([key, desc]) => `| ${key} | ${desc} |`)
-  .join('\n');
+const DUNGEON_MATERIAL_TYPE_GUIDE = Object.entries(TYPE_DESCRIPTIONS)
+  .map(([key, desc]) => `${key}=${desc}`)
+  .join('；');
 
 function assertDungeonRealmEligible(
   playerRealm: RealmType,
@@ -399,9 +426,6 @@ export class DungeonService {
         ? '稳住心神，清点本轮所得并结束探索。'
         : '稳住心神，沿着当前线索继续探索。',
       risk_level: 'low' as const,
-      potential_cost: isFinalRound
-        ? '结束本次秘境探索并进入结算。'
-        : '不额外承担风险，继续推进下一轮。',
       costs: [],
       costPreview: [],
     };
@@ -830,23 +854,6 @@ export class DungeonService {
     return '结尾期：根据前情收束结局与余波。';
   }
 
-  // 统一的 System Prompt 生成器
-  private getSystemPrompt(): string {
-    return (
-      renderPrompt('dungeon-round', {
-        materialTypeTable: DUNGEON_MATERIAL_TYPE_TABLE,
-        userContextJson: '',
-      }).system +
-      `
-
-### 成本(costs)规范:
-- **数值范围**: hp_loss, mp_loss 必须是 0-1 之间的小数；其他类型为正整数。
-- **材料(material)**: 禁止指定 name，必须提供 required_type 和 required_quality。
-- **冲突禁止**: 若有 'battle'，严禁同时出现 'hp_loss' 或 'mp_loss'。
-- **战斗难度**: battle.value 只作为剧情风险参考；最终敌人 difficulty 与 realm_stage 会由服务端按副本档位配置表覆盖或钳制。`
-    );
-  }
-
   /**
    * 初始化副本
    */
@@ -1139,9 +1146,6 @@ export class DungeonService {
 
     // 2. 推进状态
     state.history[state.history.length - 1].choice = chosenOption?.text;
-    state.history[state.history.length - 1].outcome =
-      chosenOption?.potential_cost;
-
     const battleCost = actionCosts.find((c) => c.type === 'battle');
     if (battleCost) {
       let session: BattleSession & { enemyObject: Cultivator };
@@ -2027,38 +2031,58 @@ export class DungeonService {
         state,
         mapRealm,
         endDisposition,
+        pendingCosts: pendingActionToCommit?.costs,
       });
       const { system: settlementPrompt, user: settlementUserPrompt } =
         renderPrompt('dungeon-settlement', {
-          materialTypeTable: DUNGEON_MATERIAL_TYPE_TABLE,
+          materialTypeTable: DUNGEON_MATERIAL_TYPE_GUIDE,
           settlementContextJson: stableCompactStringify(settlementContext),
         });
 
       const aiRes = await generateAiObject({
         system: settlementPrompt,
         prompt: settlementUserPrompt,
-        schema: createDungeonSettlementLlmSchema(
-          settlementContext.remainingExtraRewardSlots,
-        ),
+        schema: createDungeonSettlementLlmSchema({
+          remainingRewardSlots: settlementContext.remainingExtraRewardSlots,
+          endDisposition,
+        }),
         name: 'DungeonSettlement',
         sceneId: 'dungeon-settlement',
       });
       const generatedSettlement = DungeonSettlementGeneratedSchema.parse({
         ending_narrative: aiRes.output.ending_narrative,
-        settlement: {
-          reward_tier: aiRes.output.reward_tier,
-          reward_blueprints: aiRes.output.reward_blueprints,
-          performance_tags: aiRes.output.performance_tags,
-        },
+        reward_tier: aiRes.output.reward_tier,
+        reward_blueprints: aiRes.output.reward_blueprints,
       });
       settlement = normalizeSettlementRewards(
-        generatedSettlement,
+        {
+          ending_narrative: generatedSettlement.ending_narrative,
+          settlement: {
+            reward_tier: generatedSettlement.reward_tier,
+            reward_blueprints: generatedSettlement.reward_blueprints,
+            performance_tags: [],
+          },
+        },
         state.accumulatedRewards ?? [],
+        {
+          endDisposition,
+          dangerScore: state.dangerScore,
+          committedCostCount:
+            (state.summary_of_sacrifice?.length ?? 0) +
+            (pendingActionToCommit?.costs.length ?? 0),
+        },
       );
     }
     settlement = normalizeSettlementRewards(
       settlement,
       state.accumulatedRewards ?? [],
+      {
+        endDisposition,
+        dangerScore: state.dangerScore,
+        committedCostCount:
+          (state.summary_of_sacrifice?.length ?? 0) +
+          (pendingActionToCommit?.costs.length ?? 0),
+      },
     );
 
     if (pendingActionToCommit) {
@@ -2340,9 +2364,16 @@ export class DungeonService {
       0,
       DUNGEON_REWARD_BLUEPRINT_LIMIT - state.accumulatedRewards.length,
     );
+    const { system: roundPrompt, user: roundUserPrompt } = renderPrompt(
+      'dungeon-round',
+      {
+        materialTypeTable: DUNGEON_MATERIAL_TYPE_GUIDE,
+        userContextJson: stableCompactStringify(userContext),
+      },
+    );
     const aiRes = await generateAiObject({
-      system: this.getSystemPrompt(),
-      prompt: stableCompactStringify(userContext),
+      system: roundPrompt,
+      prompt: roundUserPrompt,
       schema: createDungeonRoundLlmSchema(remainingRewardSlots),
       name: 'DungeonRound',
       sceneId: 'dungeon-round',
@@ -2354,6 +2385,7 @@ export class DungeonService {
         options: aiRes.output.options.map((option, index) => ({
           ...option,
           id: index + 1,
+          risk_level: (['low', 'high', 'medium'] as const)[index] ?? 'medium',
           costs: option.costs ?? [],
         })),
       },

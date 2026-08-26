@@ -716,6 +716,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      mapping: { caster: 'owner', target: 'owner' },
     },
   },
 

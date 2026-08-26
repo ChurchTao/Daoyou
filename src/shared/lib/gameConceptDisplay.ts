@@ -108,16 +108,6 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     icon: '⚔️',
     description: '战斗事件或代价',
   },
-  weak: {
-    label: '虚弱',
-    icon: '😰',
-    description: '虚弱状态',
-  },
-  artifact_damage: {
-    label: '法宝受损',
-    icon: '💥',
-    description: '法宝受损代价',
-  },
   vitality: {
     label: '体魄',
     icon: '💪',
@@ -905,9 +895,7 @@ export const RESOURCE_TYPE_DISPLAY_MAP: Record<
   consumable: getConceptInfo('consumable'),
   hp_loss: getConceptInfo('hp_loss'),
   mp_loss: getConceptInfo('mp_loss'),
-  weak: getConceptInfo('weak'),
   battle: getConceptInfo('battle'),
-  artifact_damage: getConceptInfo('artifact_damage'),
 };
 
 export function getResourceTypeLabel(type: string): string {

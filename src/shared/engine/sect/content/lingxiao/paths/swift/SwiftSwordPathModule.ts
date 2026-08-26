@@ -31,9 +31,9 @@ const SWIFT_SWORD_DEFINITION: SectPathDefinitionWithoutNodes = {
     ],
     abilityChanges: {
       'plain-sword': '牺牲少量基础威力，维持稳定积势。',
-      'sect-ultimate': '由单段爆发改为随剑意追加斩击的多段收束。',
+      'sect-ultimate': '将剑意凝为一记主斩，并可引爆剑痕追加伤害。',
       'guiding-sword': '身法高于目标时追加追击，强化抢攻能力。',
-      'linked-edge': '改为五段连击，获得更多剑意并施加剑痕，不再进入调息。',
+      'linked-edge': '改为三段连击，获得更多剑意并施加剑痕，不再进入调息。',
       'turning-body': '改为先攻后守；短暂提高闪避，首次闪避时反击并积势。',
       'shadow-step': '进一步提高身法与闪避，首次闪避时额外积势。',
       'breaking-edge': '维持基础威力与驱散能力。',

@@ -313,7 +313,23 @@ export class DamageSystem {
 
   private _onDamageApply(event: DamageSegmentRequestedEvent): void {
     if (!event.target.isAlive() || event.finalDamage <= 0) return;
+    if (this._isOwnedDamageSourceDead(event)) return;
     this._updateTargetHealth(event, this._resolveDamageType(event));
+  }
+
+  private _isOwnedDamageSourceDead(
+    event: DamageSegmentRequestedEvent,
+  ): boolean {
+    if (event.origin?.kind !== 'owned') return false;
+    const ownerId = event.origin.owner.id;
+
+    const source = [
+      event.ability?.getOwner(),
+      event.buff?.getCombatAttributionV3()?.owner,
+      event.caster,
+    ].find((unit) => unit?.id === ownerId);
+
+    return source ? !source.isAlive() : false;
   }
 
   private _resolveDamageType(event: DamageSegmentRequestedEvent): DamageType {

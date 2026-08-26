@@ -133,7 +133,7 @@ export const WUXIANG_DEMON_NODES = [
       id: 'demon-two-gates',
       layerId: '4',
       name: '两门同渡',
-      description: '进入魔相时获得6%最大气血护盾。',
+      description: '进入魔相时获得的护盾由6%提高至10%最大气血。',
     },
     (demon) => demon.shieldOnDemonEntry(),
   ),
@@ -182,7 +182,7 @@ export const WUXIANG_DEMON_NODES = [
       layerId: 'ultimate',
       name: '一息无间',
       description:
-        '魔相与无相的单行动吸血上限提高至12%最大气血，但失去公共20%直接伤害减免。',
+        '魔相与无相的单行动吸血上限提高至12%最大气血，但渡厄直接伤害减免由20%降低至10%。',
     },
     (demon) => demon.tradeGuardForLifesteal(),
   ),

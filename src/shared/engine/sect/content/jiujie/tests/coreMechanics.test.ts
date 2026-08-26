@@ -349,8 +349,8 @@ describe('九劫天宫核心战斗语义', () => {
     const config = resolveSectAbility({ sect: state(), realm: '化神', abilityId: 'nine-sky-settlement' }).config;
     expect(config.castConditions).toEqual(expect.arrayContaining([{ type: 'has_tag', params: expect.objectContaining({ scope: 'target' }) }]));
     const settlements = config.effects?.filter((effect) => effect.type === 'consume_status_trigger') ?? [];
-    expect(settlements.find((effect) => effect.type === 'consume_status_trigger' && effect.params.match.id === JIUJIE_DEBT)).toMatchObject({ params: { scaleEffectsByLayer: true, consume: 'all' } });
-    expect(settlements.find((effect) => effect.type === 'consume_status_trigger' && effect.params.match.id === JIUJIE_REOFFEND)).toMatchObject({ params: { scaleEffectsByLayer: true, consume: 'all' } });
+    expect(settlements.find((effect) => effect.type === 'consume_status_trigger' && effect.params.match.id === JIUJIE_DEBT)).toMatchObject({ params: { aggregateDamageByLayer: true, consume: 'all' } });
+    expect(settlements.find((effect) => effect.type === 'consume_status_trigger' && effect.params.match.id === JIUJIE_REOFFEND)).toMatchObject({ params: { aggregateDamageByLayer: true, consume: 'all' } });
     expect(projection.resources[0].max).toBe(3);
     void skill;
   });
@@ -493,9 +493,8 @@ describe('九劫天宫核心战斗语义', () => {
     expect(owner.combatResources.getCurrent(JIUJIE_CALAMITY)).toBe(
       ultimateNode === 'condemnation-final-verdict' ? 1 : 0,
     );
-    expect(requests.filter((event) => event.damageType === DamageType.DOT)).toHaveLength(
-      fifthNode === 'condemnation-reoffend' ? 2 : 0,
-    );
+    expect(requests.filter((event) => event.damageType === DamageType.DOT)).toHaveLength(0);
+    expect(requests.length).toBeLessThanOrEqual(4);
     expect(enemy.buffs.getAllBuffIds().includes(JIUJIE_SIN_DAMAGE)).toBe(
       fifthNode === 'condemnation-clear-book',
     );

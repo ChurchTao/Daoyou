@@ -1262,7 +1262,7 @@ export function compileJiujieBase(
         match: { id: JIUJIE_DEBT },
         displayName: '劫债',
         consume: 'all',
-        scaleEffectsByLayer: true,
+        aggregateDamageByLayer: true,
         target: 'target',
         effects: [
           damage(settings.finishDebtCoefficient, DamageSource.FOLLOW_UP),
@@ -1275,13 +1275,15 @@ export function compileJiujieBase(
         match: { id: JIUJIE_REOFFEND },
         displayName: '重犯',
         consume: 'all',
-        scaleEffectsByLayer: true,
+        aggregateDamageByLayer: true,
         target: 'target',
         effects: [
-          damage(settings.reoffendBonus, DamageSource.FOLLOW_UP, DamageType.MAGICAL, true),
-          ...(settings.condemnation.repeatedThunder
-            ? [damage(settings.thunderCoefficient * 0.50, DamageSource.FOLLOW_UP, DamageType.DOT, true)]
-            : []),
+          damage(
+            settings.reoffendBonus + (settings.condemnation.repeatedThunder ? settings.thunderCoefficient * 0.50 : 0),
+            DamageSource.FOLLOW_UP,
+            DamageType.MAGICAL,
+            true,
+          ),
         ],
       },
     },
