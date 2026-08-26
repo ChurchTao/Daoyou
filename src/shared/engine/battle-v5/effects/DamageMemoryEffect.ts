@@ -1,13 +1,14 @@
 import { DamageMemoryParams } from '../core/configs';
 import {
-  DamageRequestEvent,
-  DamageTakenEvent,
+  DamageSegmentRequestedEvent,
+  DamageSegmentAppliedEvent,
   HealEvent,
   ShieldBreakEvent,
   ShieldEvent,
 } from '../core/events';
 import { clearMemory, readMemory, rememberAmount } from '../core/runtimeState';
 import { DamageSource, DamageType } from '../core/types';
+import { requireResolution } from '../core/resolution';
 import { ValueCalculator } from '../core/ValueCalculator';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { commitMechanicResultV3 } from './advancedEffectUtils';
@@ -104,8 +105,8 @@ export class DamageMemoryEffect extends GameplayEffect {
         break;
       }
       case 'reflect':
-        if (narrativeContext.triggerEvent?.type === 'DamageTakenEvent') {
-          const attacker = (narrativeContext.triggerEvent as DamageTakenEvent)
+        if (narrativeContext.triggerEvent?.type === 'DamageSegmentAppliedEvent') {
+          const attacker = (narrativeContext.triggerEvent as DamageSegmentAppliedEvent)
             .caster;
           if (attacker?.isAlive()) {
             this.publishDamage(
@@ -185,8 +186,9 @@ export class DamageMemoryEffect extends GameplayEffect {
     resolvedFinal = false,
   ): void {
     if (!target.isAlive()) return;
-    context.emit<DamageRequestEvent>({
-      type: 'DamageRequestEvent',
+      context.emit<DamageSegmentRequestedEvent>({
+      type: 'DamageSegmentRequestedEvent',
+      resolution: requireResolution(context),
       timestamp: context.owner.runtime.clock.now(),
       caster,
       target,
@@ -239,8 +241,8 @@ export class DamageMemoryEffect extends GameplayEffect {
     ) {
       return (event as ShieldBreakEvent).brokenShieldAmount;
     }
-    if (event.type !== 'DamageTakenEvent') return 0;
-    const damageEvent = event as DamageTakenEvent;
+    if (event.type !== 'DamageSegmentAppliedEvent') return 0;
+    const damageEvent = event as DamageSegmentAppliedEvent;
     if (this.params.event === 'shield_absorbed') {
       return damageEvent.shieldAbsorbed ?? 0;
     }

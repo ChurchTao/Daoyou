@@ -129,6 +129,7 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
       target: resolved.target,
       ability: this,
       triggerEvent: event, // 关键：注入触发事件
+      resolution: event.resolution,
     });
 
     for (const { effect } of effects) {
@@ -150,8 +151,8 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
           ...listener.runtime,
           mapping: { ...listener.runtime.mapping },
           guard: { ...listener.runtime.guard },
-          budget: listener.runtime.budget
-            ? { ...listener.runtime.budget }
+          triggerPolicy: listener.runtime.triggerPolicy
+            ? { ...listener.runtime.triggerPolicy }
             : undefined,
           conditions: listener.runtime.conditions?.map((condition) => ({
             ...condition,

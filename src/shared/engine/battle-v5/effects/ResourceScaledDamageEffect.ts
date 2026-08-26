@@ -1,11 +1,12 @@
 import type { ResourceScaledDamageParams } from '../core/configs';
-import type { DamageRequestEvent } from '../core/events';
+import type { DamageSegmentRequestedEvent } from '../core/events';
 import {
   AttributeType,
   DamageSource,
   DamageType,
   type DamageComponent,
 } from '../core/types';
+import { requireResolution } from '../core/resolution';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { EffectExecutionContextV3, GameplayEffect } from './Effect';
 
@@ -62,8 +63,9 @@ export class ResourceScaledDamageEffect extends GameplayEffect {
       );
     }
 
-    context.emit<DamageRequestEvent>({
-      type: 'DamageRequestEvent',
+    context.emit<DamageSegmentRequestedEvent>({
+      type: 'DamageSegmentRequestedEvent',
+      resolution: requireResolution(context),
       timestamp: context.owner.runtime.clock.now(),
       caster: context.caster,
       target: context.target,

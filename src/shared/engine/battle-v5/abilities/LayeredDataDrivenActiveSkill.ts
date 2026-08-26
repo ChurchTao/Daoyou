@@ -82,6 +82,7 @@ export class LayeredDataDrivenActiveSkill extends ActiveSkill {
       target,
       ability: this,
       castSnapshot: this.castSnapshot,
+      resolution: this.resolution,
     });
     executeEffectConfigs(plan.effects, context);
     executeEffectConfigs(plan.completionEffects, context);
@@ -102,6 +103,7 @@ export class LayeredDataDrivenActiveSkill extends ActiveSkill {
         target,
         ability: this,
         castSnapshot: this.castSnapshot,
+        resolution: this.resolution,
       }),
     );
   }

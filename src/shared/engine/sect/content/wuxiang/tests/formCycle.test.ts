@@ -2,12 +2,14 @@ import type { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill
 import { BasicAttack } from '@shared/engine/battle-v5/abilities/BasicAttack';
 import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
+import { createHitResolution } from '@shared/engine/battle-v5/core/resolution';
 import type {
-  DamageRequestEvent,
-  DamageTakenEvent,
+  DamageSegmentRequestedEvent,
+  DamageSegmentAppliedEvent,
 } from '@shared/engine/battle-v5/core/events';
 import {
   beginRuntimeAction,
+  getBattleRuntimeState,
   clearAbilityMode,
   readAbilityMode,
   setAbilityMode,
@@ -109,14 +111,20 @@ function install(pathId: PathId, nodes: string[] = []) {
 }
 
 function cast(skill: ActiveSkill, caster: Unit, target: Unit, hit = true) {
+  const resolution = createHitResolution({
+    actionId: `${caster.id}:wuxiang-cast`,
+    castId: `${skill.id}:wuxiang-cast`,
+    caster,
+    target,
+  });
   skill.prepareCast({ caster, target });
-  skill.execute({ caster, target, shouldApplyEffects: hit });
+  skill.execute({ caster, target, shouldApplyEffects: hit, resolution });
 }
 
 function damageSegments(skill: ActiveSkill, action: () => void): number[] {
   const segments: number[] = [];
-  const handler = EventBus.instance.subscribe<DamageRequestEvent>(
-    'DamageRequestEvent',
+  const handler = EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+    'DamageSegmentRequestedEvent',
     (event) => {
       if (event.ability !== skill) return;
       const segment = event.damageComponents?.find(
@@ -126,7 +134,7 @@ function damageSegments(skill: ActiveSkill, action: () => void): number[] {
     },
   );
   action();
-  EventBus.instance.unsubscribe('DamageRequestEvent', handler);
+  EventBus.instance.unsubscribe('DamageSegmentRequestedEvent', handler);
   return segments;
 }
 
@@ -211,9 +219,9 @@ describe('无相禅宗三相循环', () => {
 
   it('施法准备后改变形态，不会改变已冻结的本次效果计划', () => {
     const { owner, enemy, defaultAttack } = install('mirror-karma');
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         if (event.ability === defaultAttack) requests.push(event);
       },
@@ -236,7 +244,7 @@ describe('无相禅宗三相循环', () => {
     defaultAttack.prepareCast({ caster: owner, target: enemy });
     clearAbilityMode(owner, WUXIANG_FORM_MODE);
 
-    defaultAttack.execute({ caster: owner, target: enemy });
+    defaultAttack.execute({ caster: owner, target: enemy, resolution: createHitResolution({ actionId: 'wuxiang:default', castId: 'wuxiang:default', caster: owner, target: enemy }) });
 
     expect(requests.length).toBeGreaterThan(1);
     expect(owner.buffs.getAllBuffIds()).not.toContain(WUXIANG_KARMA_BUFF);
@@ -323,20 +331,32 @@ describe('无相禅宗三相循环', () => {
     });
     cast(skill('observe-calamity'), owner, owner);
 
-    const counters: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const counters: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         if (event.damageSource === DamageSource.COUNTER) counters.push(event);
       },
     );
     const reductions: number[] = [];
     for (let hit = 0; hit < 2; hit += 1) {
-      const request: DamageRequestEvent = {
-        type: 'DamageRequestEvent',
+      const request: DamageSegmentRequestedEvent = {
+        type: 'DamageSegmentRequestedEvent',
         timestamp: Date.now(),
         caster: enemy,
         target: owner,
+        resolution: createHitResolution({
+          actionId: `${enemy.id}:wuxiang-mirror-action:${getBattleRuntimeState(enemy).actionSequence}`,
+          castId: 'wuxiang:mirror-cast',
+          caster: enemy,
+          target: owner,
+        }),
+        resolution: createHitResolution({
+          actionId: `${enemy.id}:wuxiang-action:${hit}`,
+          castId: 'wuxiang:hit-cast',
+          caster: enemy,
+          target: owner,
+        }),
         damageSource: DamageSource.DIRECT,
         damageType: DamageType.PHYSICAL,
         baseDamage: 100,
@@ -344,11 +364,17 @@ describe('无相禅宗三相循环', () => {
       };
       EventBus.instance.publish(request);
       reductions.push(request.damageReductionPctBucket ?? 0);
-      EventBus.instance.publish<DamageTakenEvent>({
-        type: 'DamageTakenEvent',
+      EventBus.instance.publish<DamageSegmentAppliedEvent>({
+        type: 'DamageSegmentAppliedEvent',
         timestamp: Date.now(),
         caster: enemy,
         target: owner,
+        resolution: createHitResolution({
+          actionId: `${enemy.id}:wuxiang-mirror-action`,
+          castId: 'wuxiang:mirror-cast',
+          caster: enemy,
+          target: owner,
+        }),
         damageSource: DamageSource.DIRECT,
         damageType: DamageType.PHYSICAL,
         damageTaken: 65,
@@ -383,19 +409,25 @@ describe('无相禅宗三相循环', () => {
 
   it('明镜仅在佛相响应敌方直接伤害，并按敌方行动首次受击留下业痕', () => {
     const { owner, enemy } = install('mirror-karma');
-    const reflected: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const reflected: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         if (event.damageSource === DamageSource.REFLECT) reflected.push(event);
       },
     );
     const hit = (source: DamageSource) =>
-      EventBus.instance.publish<DamageTakenEvent>({
-        type: 'DamageTakenEvent',
+      EventBus.instance.publish<DamageSegmentAppliedEvent>({
+        type: 'DamageSegmentAppliedEvent',
         timestamp: Date.now(),
         caster: enemy,
         target: owner,
+        resolution: createHitResolution({
+          actionId: `${enemy.id}:wuxiang-mirror-action:${getBattleRuntimeState(enemy).actionSequence}`,
+          castId: 'wuxiang:mirror-cast',
+          caster: enemy,
+          target: owner,
+        }),
         damageSource: source,
         damageType: DamageType.PHYSICAL,
         damageTaken: 100,
@@ -454,8 +486,8 @@ describe('无相禅宗三相循环', () => {
       displayName: '无相',
     });
     const segments: number[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         if (event.ability !== defaultAttack) return;
         const segment = event.damageComponents?.find(
@@ -544,8 +576,8 @@ describe('无相禅宗三相循环', () => {
 
     const flower = skill('flower-heart');
     const beforeAttack = owner.getCurrentHp();
-    EventBus.instance.publish<DamageTakenEvent>({
-      type: 'DamageTakenEvent',
+    EventBus.instance.publish<DamageSegmentAppliedEvent>({
+      type: 'DamageSegmentAppliedEvent',
       timestamp: Date.now(),
       caster: owner,
       target: enemy,

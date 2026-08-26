@@ -314,7 +314,7 @@ export function buildHeavyAbilities(
                     target: 'event.caster' as const,
                   },
                   guard: { skipSecondaryDamageSource: true },
-                  budget: { maxTriggers: 1, reset: 'round' as const },
+                  triggerPolicy: { maxTriggers: 1, granularity: 'round' as const },
                   conditions: [DIRECT_DAMAGE_CONDITION],
                   effects: [
                     damage(

@@ -3,13 +3,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { EventBus } from '../../core/EventBus';
 import type {
   CombatResourceChangeEvent,
-  DamageTakenEvent,
+  DamageSegmentAppliedEvent,
 } from '../../core/events';
-import { beginRuntimeAction, setRuntimeRound } from '../../core/runtimeState';
+import { beginRuntimeAction, getBattleRuntimeState, setRuntimeRound } from '../../core/runtimeState';
 import { AbilityType, AttributeType, DamageSource } from '../../core/types';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { Unit } from '../../units/Unit';
 import { executeTestEffect } from '../setup/executeTestEffect';
+import { createHitResolution } from '../../core/resolution';
 
 function unit(id: string): Unit {
   return new Unit(id, id, {
@@ -77,11 +78,11 @@ describe('battle runtime primitives', () => {
         listeners: [
           {
             id: 'round-budget-listener',
-            eventType: 'DamageTakenEvent',
+            eventType: 'DamageSegmentAppliedEvent',
             scope: 'owner_as_target',
             priority: 0,
             mapping: { caster: 'owner', target: 'owner' },
-            budget: { maxTriggers: 1, reset: 'round' },
+            triggerPolicy: { maxTriggers: 1, granularity: 'round' },
             effects: [
               {
                 type: 'combat_resource_modify',
@@ -93,11 +94,17 @@ describe('battle runtime primitives', () => {
       }),
     );
     const publishDamage = () =>
-      EventBus.instance.publish<DamageTakenEvent>({
-        type: 'DamageTakenEvent',
+      EventBus.instance.publish<DamageSegmentAppliedEvent>({
+        type: 'DamageSegmentAppliedEvent',
         timestamp: Date.now(),
         caster: attacker,
         target: owner,
+        resolution: createHitResolution({
+          actionId: `${owner.id}:tempo-action:${getBattleRuntimeState(owner).actionSequence}`,
+          castId: 'runtime:tempo-cast',
+          caster: attacker,
+          target: owner,
+        }),
         damageSource: DamageSource.DIRECT,
         damageTaken: 1,
         beforeHp: owner.getCurrentHp(),
@@ -126,7 +133,7 @@ describe('battle runtime primitives', () => {
     });
     const sharedBudget = {
       maxTriggers: 1,
-      reset: 'round' as const,
+      granularity: 'round' as const,
       group: 'shared-control-response',
     };
     owner.abilities.addAbility(
@@ -137,11 +144,11 @@ describe('battle runtime primitives', () => {
         tags: [GameplayTags.ABILITY.KIND.PASSIVE],
         listeners: ['first', 'second'].map((suffix) => ({
           id: `group-budget-listener-${suffix}`,
-          eventType: 'DamageTakenEvent',
+          eventType: 'DamageSegmentAppliedEvent',
           scope: 'owner_as_target' as const,
           priority: 0,
           mapping: { caster: 'owner' as const, target: 'owner' as const },
-          budget: sharedBudget,
+          triggerPolicy: sharedBudget,
           effects: [
             {
               type: 'combat_resource_modify' as const,
@@ -157,8 +164,8 @@ describe('battle runtime primitives', () => {
     );
 
     setRuntimeRound(owner, 1);
-    EventBus.instance.publish<DamageTakenEvent>({
-      type: 'DamageTakenEvent',
+    EventBus.instance.publish<DamageSegmentAppliedEvent>({
+      type: 'DamageSegmentAppliedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: owner,
@@ -190,11 +197,11 @@ describe('battle runtime primitives', () => {
         listeners: [
           {
             id: 'action-budget-listener',
-            eventType: 'DamageTakenEvent',
+            eventType: 'DamageSegmentAppliedEvent',
             scope: 'owner_as_target',
             priority: 0,
             mapping: { caster: 'owner', target: 'owner' },
-            budget: { maxTriggers: 1, reset: 'action' },
+            triggerPolicy: { maxTriggers: 1, granularity: 'action' },
             effects: [
               {
                 type: 'combat_resource_modify',
@@ -206,11 +213,17 @@ describe('battle runtime primitives', () => {
       }),
     );
     const publishDamage = () =>
-      EventBus.instance.publish<DamageTakenEvent>({
-        type: 'DamageTakenEvent',
+      EventBus.instance.publish<DamageSegmentAppliedEvent>({
+        type: 'DamageSegmentAppliedEvent',
         timestamp: Date.now(),
         caster: attacker,
         target: owner,
+        resolution: createHitResolution({
+          actionId: `${owner.id}:tempo-action:${getBattleRuntimeState(owner).actionSequence}`,
+          castId: 'runtime:tempo-cast',
+          caster: attacker,
+          target: owner,
+        }),
         damageSource: DamageSource.DIRECT,
         damageTaken: 1,
         beforeHp: owner.getCurrentHp(),
@@ -245,11 +258,11 @@ describe('battle runtime primitives', () => {
         listeners: [
           {
             id: 'source-action-listener',
-            eventType: 'DamageTakenEvent',
+            eventType: 'DamageSegmentAppliedEvent',
             scope: 'owner_as_target',
             priority: 0,
             mapping: { caster: 'owner', target: 'owner' },
-            budget: { maxTriggers: 1, reset: 'source_action' },
+            triggerPolicy: { maxTriggers: 1, granularity: 'action' },
             effects: [
               {
                 type: 'combat_resource_modify',
@@ -261,11 +274,17 @@ describe('battle runtime primitives', () => {
       }),
     );
     const hit = () =>
-      EventBus.instance.publish<DamageTakenEvent>({
-        type: 'DamageTakenEvent',
+      EventBus.instance.publish<DamageSegmentAppliedEvent>({
+        type: 'DamageSegmentAppliedEvent',
         timestamp: Date.now(),
         caster: attacker,
         target: owner,
+        resolution: createHitResolution({
+          actionId: `${attacker.id}:karma-action:${getBattleRuntimeState(attacker).actionSequence}`,
+          castId: 'runtime:karma-cast',
+          caster: attacker,
+          target: owner,
+        }),
         damageSource: DamageSource.DIRECT,
         damageTaken: 1,
         beforeHp: owner.getCurrentHp(),

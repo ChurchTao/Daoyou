@@ -103,6 +103,7 @@ export class DataDrivenActiveSkill extends ActiveSkill {
       target,
       ability: this,
       castSnapshot: this.castSnapshot,
+      resolution: this.resolution,
     });
 
     // 依次执行效果链
@@ -119,6 +120,7 @@ export class DataDrivenActiveSkill extends ActiveSkill {
       target,
       ability: this,
       castSnapshot: this.castSnapshot,
+      resolution: this.resolution,
     });
     for (const effect of this._castEffects) {
       if (!context.canExecuteEffect()) break;
@@ -184,8 +186,8 @@ export class DataDrivenActiveSkill extends ActiveSkill {
           ...listener.runtime,
           mapping: { ...listener.runtime.mapping },
           guard: { ...listener.runtime.guard },
-          budget: listener.runtime.budget
-            ? { ...listener.runtime.budget }
+          triggerPolicy: listener.runtime.triggerPolicy
+            ? { ...listener.runtime.triggerPolicy }
             : undefined,
           conditions: listener.runtime.conditions?.map((condition) => ({
             ...condition,

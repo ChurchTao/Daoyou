@@ -2,12 +2,13 @@ import type { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill
 import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import { withBattleRandomSource } from '@shared/engine/battle-v5/core/BattleRandom';
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
+import { createHitResolution } from '@shared/engine/battle-v5/core/resolution';
 import type {
   ActionPreEvent,
   RoundPostEvent,
   BuffImmuneEvent,
   ControlResistEvent,
-  DamageTakenEvent,
+  DamageSegmentAppliedEvent,
   SkillCastEvent,
 } from '@shared/engine/battle-v5/core/events';
 import {
@@ -82,8 +83,14 @@ function setup(path: 'hetu-evolution' | 'luoshu-control' = 'hetu-evolution') {
 }
 
 function cast(skill: ActiveSkill, caster: Unit, target: Unit): void {
+  const resolution = createHitResolution({
+    actionId: `${caster.id}:tianyan-cast`,
+    castId: `${skill.id}:tianyan-cast`,
+    caster,
+    target,
+  });
   skill.prepareCast({ caster, target });
-  skill.execute({ caster, target });
+  skill.execute({ caster, target, resolution });
 }
 
 function castWithRoll(
@@ -98,11 +105,17 @@ function castWithRoll(
     caster,
     target,
     ability: skill,
+    resolution: createHitResolution({
+      actionId: `${caster.id}:tianyan-test-action`,
+      castId: `${skill.id}:tianyan-test-cast`,
+      caster,
+      target,
+    }),
   };
   skill.prepareCast({ caster, target });
   withBattleRandomSource({ next: () => roll }, () => {
     EventBus.instance.publish(event);
-    skill.execute({ caster, target, shouldApplyEffects: event.isHit });
+    skill.execute({ caster, target, shouldApplyEffects: event.isHit, resolution: event.resolution });
   });
   return event;
 }
@@ -130,9 +143,9 @@ describe('天衍落印术与反应实际结算', () => {
 
   it('落印术被闪避时不造成伤害、不落印且不增加衍数', () => {
     const { owner, enemy, skill } = setup();
-    const damages: DamageTakenEvent[] = [];
-    EventBus.instance.subscribe<DamageTakenEvent>(
-      'DamageTakenEvent',
+    const damages: DamageSegmentAppliedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentAppliedEvent>(
+      'DamageSegmentAppliedEvent',
       (event) => damages.push(event),
       -1_000,
     );
@@ -211,9 +224,9 @@ describe('天衍落印术与反应实际结算', () => {
       BuffFactory.create(createElementSeal('wood', 2)),
       owner,
     );
-    const damages: DamageTakenEvent[] = [];
-    EventBus.instance.subscribe<DamageTakenEvent>(
-      'DamageTakenEvent',
+    const damages: DamageSegmentAppliedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentAppliedEvent>(
+      'DamageSegmentAppliedEvent',
       (event) => damages.push(event),
       -1_000,
     );
@@ -242,6 +255,7 @@ describe('天衍落印术与反应实际结算', () => {
     beginRuntimeAction(enemy);
     EventBus.instance.publish<RoundPostEvent>({
       type: 'RoundPostEvent',
+      resolution: createHitResolution({ actionId: 'tianyan:round:1', castId: 'tianyan:round:1', caster: owner, target: enemy }),
       timestamp: Date.now(),
       turn: 1,
     });
@@ -249,6 +263,7 @@ describe('天衍落印术与反应实际结算', () => {
     beginRuntimeAction(enemy);
     EventBus.instance.publish<RoundPostEvent>({
       type: 'RoundPostEvent',
+      resolution: createHitResolution({ actionId: 'tianyan:round:2', castId: 'tianyan:round:2', caster: owner, target: enemy }),
       timestamp: Date.now(),
       turn: 2,
     });
@@ -267,6 +282,7 @@ describe('天衍落印术与反应实际结算', () => {
         beginRuntimeAction(enemy);
         EventBus.instance.publish<RoundPostEvent>({
           type: 'RoundPostEvent',
+          resolution: createHitResolution({ actionId: `tianyan:evap:${layers}`, castId: `tianyan:evap:${layers}`, caster: owner, target: enemy }),
           timestamp: Date.now(),
           turn: 1,
         });
@@ -274,7 +290,7 @@ describe('天衍落印术与反应实际结算', () => {
       const requests: Array<{ baseDamage: number; cause?: { id: string } }> =
         [];
       EventBus.instance.subscribe(
-        'DamageRequestEvent',
+        'DamageSegmentRequestedEvent',
         (event) => {
           const request = event as {
             baseDamage: number;
@@ -305,9 +321,9 @@ describe('天衍落印术与反应实际结算', () => {
       BuffFactory.create(createElementSeal('fire', 2)),
       owner,
     );
-    const damages: DamageTakenEvent[] = [];
-    EventBus.instance.subscribe<DamageTakenEvent>(
-      'DamageTakenEvent',
+    const damages: DamageSegmentAppliedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentAppliedEvent>(
+      'DamageSegmentAppliedEvent',
       (event) => damages.push(event),
       -1_000,
     );
@@ -397,9 +413,9 @@ describe('天衍落印术与反应实际结算', () => {
       BuffFactory.create(createElementSeal('water', 2)),
       owner,
     );
-    const damages: DamageTakenEvent[] = [];
-    EventBus.instance.subscribe<DamageTakenEvent>(
-      'DamageTakenEvent',
+    const damages: DamageSegmentAppliedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentAppliedEvent>(
+      'DamageSegmentAppliedEvent',
       (event) => damages.push(event),
       -1_000,
     );
@@ -433,7 +449,7 @@ describe('天衍落印术与反应实际结算', () => {
   });
 
   it('六门落印术均有独立基础价值，太白破阵无增益时仍正常伤害与落印', () => {
-    const directDamageCount = (events: DamageTakenEvent[]) =>
+    const directDamageCount = (events: DamageSegmentAppliedEvent[]) =>
       events.filter((event) => event.damageSource === DamageSource.DIRECT)
         .length;
 
@@ -468,9 +484,9 @@ describe('天衍落印术与反应实际结算', () => {
     }
     {
       const { owner, enemy, skill } = setup();
-      const events: DamageTakenEvent[] = [];
-      EventBus.instance.subscribe<DamageTakenEvent>(
-        'DamageTakenEvent',
+      const events: DamageSegmentAppliedEvent[] = [];
+      EventBus.instance.subscribe<DamageSegmentAppliedEvent>(
+        'DamageSegmentAppliedEvent',
         (event) => events.push(event),
         -1_000,
       );
@@ -573,9 +589,9 @@ describe('天衍落印术与反应实际结算', () => {
 
   it('蒸发将两层灼烧近似兑现为一次固定追伤并移除灼烧', () => {
     const { owner, enemy, skill } = setup('luoshu-control');
-    const settlements: DamageTakenEvent[] = [];
-    EventBus.instance.subscribe<DamageTakenEvent>(
-      'DamageTakenEvent',
+    const settlements: DamageSegmentAppliedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentAppliedEvent>(
+      'DamageSegmentAppliedEvent',
       (event) => {
         if (event.cause?.id === 'sect.tianyan.reaction.vaporize') {
           settlements.push(event);
@@ -673,13 +689,13 @@ describe('天衍落印术与反应实际结算', () => {
         owner,
       );
       const resists: ControlResistEvent[] = [];
-      const followUps: DamageTakenEvent[] = [];
+      const followUps: DamageSegmentAppliedEvent[] = [];
       EventBus.instance.subscribe<ControlResistEvent>(
         'ControlResistEvent',
         (event) => resists.push(event),
       );
-      EventBus.instance.subscribe<DamageTakenEvent>(
-        'DamageTakenEvent',
+      EventBus.instance.subscribe<DamageSegmentAppliedEvent>(
+        'DamageSegmentAppliedEvent',
         (event) => {
           if (event.damageSource === DamageSource.FOLLOW_UP)
             followUps.push(event);
@@ -747,12 +763,12 @@ describe('天衍落印术与反应实际结算', () => {
         owner,
       );
       const immune: BuffImmuneEvent[] = [];
-      const followUps: DamageTakenEvent[] = [];
+      const followUps: DamageSegmentAppliedEvent[] = [];
       EventBus.instance.subscribe<BuffImmuneEvent>('BuffImmuneEvent', (event) =>
         immune.push(event),
       );
-      EventBus.instance.subscribe<DamageTakenEvent>(
-        'DamageTakenEvent',
+      EventBus.instance.subscribe<DamageSegmentAppliedEvent>(
+        'DamageSegmentAppliedEvent',
         (event) => {
           if (event.damageSource === DamageSource.FOLLOW_UP)
             followUps.push(event);

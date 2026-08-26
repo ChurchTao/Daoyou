@@ -37,7 +37,7 @@ export abstract class PassiveAbility extends Ability {
    * ```ts
    * protected setupEventListeners(): void {
    *   this.subscribeEvent(
-   *     'DamageTakenEvent',
+   *     'DamageSegmentAppliedEvent',
    *     this.createEventHandler((e) => this.onDamageTaken(e))
    *   );
    * }

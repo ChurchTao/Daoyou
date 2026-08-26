@@ -9,9 +9,8 @@ import type { ListenerScope } from '../../core/configs';
 import type { AffixTextRenderContext } from './context';
 
 const EVENT_LABEL: Record<string, string> = {
-  DamageTakenEvent: '受击后',
-  DamageRequestEvent: '造成伤害时',
-  DamageEvent: '伤害结算时',
+  DamageSegmentAppliedEvent: '受击后',
+  DamageSegmentRequestedEvent: '造成伤害时',
   RoundPreEvent: '每回合',
   ActionPreEvent: '行动前',
   SkillCastEvent: '施法时',
@@ -62,9 +61,9 @@ export function describeListener(
   const scope = context?.listenerScope ?? spec.scope;
 
   switch (eventType) {
-    case 'DamageTakenEvent':
+    case 'DamageSegmentAppliedEvent':
       return describeDamageTakenListener(scope);
-    case 'DamageRequestEvent':
+    case 'DamageSegmentRequestedEvent':
       return describeDamageRequestListener(scope);
     default:
       return EVENT_LABEL[eventType] ?? '';

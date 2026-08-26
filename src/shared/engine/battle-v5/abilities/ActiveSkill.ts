@@ -11,6 +11,7 @@ import {
   peekAbilityTransform,
 } from '../core/runtimeState';
 import { AbilityId, AbilityType } from '../core/types';
+import type { CombatResolutionContext } from '../core/resolution';
 import { Unit } from '../units/Unit';
 import { Ability, AbilityContext, type AbilityCastSnapshot } from './Ability';
 import { TargetPolicy } from './TargetPolicy';
@@ -59,6 +60,7 @@ export interface ActiveSkillConfig {
  * - 定义目标策略
  */
 export abstract class ActiveSkill extends Ability {
+  private _resolution?: CombatResolutionContext;
   // 冷却管理
   private _cooldown: number = 0;
   private _maxCooldown: number = 0;
@@ -141,16 +143,6 @@ export abstract class ActiveSkill extends Ability {
     return this._cooldown;
   }
 
-  // 兼容旧 API
-  getCooldown(): number {
-    return this._maxCooldown;
-  }
-
-  // 兼容旧 API
-  getCurrentCooldown(): number {
-    return this._cooldown;
-  }
-
   isReady(): boolean {
     return this._cooldown <= 0;
   }
@@ -180,11 +172,6 @@ export abstract class ActiveSkill extends Ability {
     this._cooldown = 0;
   }
 
-  // 兼容旧 API - 设置最大冷却时间
-  setCooldown(value: number): void {
-    this._maxCooldown = this.normalizeCooldownValue(value);
-  }
-
   // ===== 资源消耗 =====
 
   get resourceCosts(): ResourceCost[] {
@@ -212,30 +199,10 @@ export abstract class ActiveSkill extends Ability {
     );
   }
 
-  // 兼容旧 API - 获取法力消耗
+  // Derived MP cost for selection and presentation.
   get manaCost(): number {
     const mpCost = this.resourceCosts.find((c) => c.type === 'mp');
     return mpCost?.amount ?? 0;
-  }
-
-  // 兼容旧 API - 设置法力消耗
-  setManaCost(value: number): void {
-    const existingIndex = this._costConfigs.findIndex(
-      (cost) => cost.resource === 'mp',
-    );
-    if (existingIndex >= 0) {
-      if (value === 0) {
-        this._costConfigs.splice(existingIndex, 1);
-      } else {
-        this._costConfigs[existingIndex] = {
-          resource: 'mp',
-          mode: 'flat',
-          amount: value,
-        };
-      }
-    } else if (value > 0) {
-      this._costConfigs.push({ resource: 'mp', mode: 'flat', amount: value });
-    }
   }
 
   /**
@@ -418,7 +385,7 @@ export abstract class ActiveSkill extends Ability {
         target: context.target,
         shouldApplyEffects: context.shouldApplyEffects !== false,
       },
-    ]);
+    ], context.resolution);
   }
 
   executeMultiple(
@@ -426,7 +393,9 @@ export abstract class ActiveSkill extends Ability {
     targets: ReadonlyArray<{
       target: Unit;
       shouldApplyEffects: boolean;
+      resolution?: CombatResolutionContext;
     }>,
+    resolution?: CombatResolutionContext,
   ): void {
     const primary = targets[0];
     if (!primary) return;
@@ -438,7 +407,15 @@ export abstract class ActiveSkill extends Ability {
           ? target.getCurrentHp() / target.getMaxHp()
           : 0,
     }));
-    const context: AbilityContext = { caster, target: primary.target };
+    const context: AbilityContext = {
+      caster,
+      target: primary.target,
+      resolution,
+    };
+    this._resolution = resolution ?? primary.resolution;
+    if (!this._resolution) {
+      throw new Error(`Active skill ${this.id} requires an explicit combat resolution`);
+    }
     if (!this._castSnapshot) this.prepareCast(context);
     if (!this.canExecutePreparedCast(caster)) {
       this.cancelPreparedCast();
@@ -500,6 +477,7 @@ export abstract class ActiveSkill extends Ability {
     targets: ReadonlyArray<{
       target: Unit;
       shouldApplyEffects: boolean;
+      resolution?: CombatResolutionContext;
     }>,
     targetSnapshots: ReadonlyArray<{
       target: Unit;
@@ -517,6 +495,7 @@ export abstract class ActiveSkill extends Ability {
         if (!caster.isAlive()) break;
         if (!entry.shouldApplyEffects || !entry.target.isAlive()) continue;
         const target = entry.target;
+        this._resolution = entry.resolution ?? this._resolution;
         if (index > 0) {
           const snapshot = targetSnapshots[index];
           this._castSnapshot = Object.freeze({
@@ -533,6 +512,7 @@ export abstract class ActiveSkill extends Ability {
       if (activeTransform) endAbilityTransform(this);
       this.onCastFinished();
       this._castSnapshot = undefined;
+      this._resolution = undefined;
     }
   }
 
@@ -542,6 +522,10 @@ export abstract class ActiveSkill extends Ability {
    * 子类实现具体技能效果
    */
   protected abstract executeSkill(caster: Unit, target: Unit): void;
+
+  protected get resolution(): CombatResolutionContext | undefined {
+    return this._resolution;
+  }
 
   protected executeCastEffects(_caster: Unit, _target: Unit): void {
     void _caster;

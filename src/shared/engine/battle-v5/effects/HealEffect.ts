@@ -45,7 +45,9 @@ export class HealEffect extends GameplayEffect {
       });
     }
 
-    // 发布治疗事件用于日志和触发
+    if (appliedAmount <= 0) return;
+
+    // 只有实际改变资源时才发布治疗事件；零值事件不能触发“治疗回满”反应。
     context.emit<HealEvent>({
       type: 'HealEvent',
       timestamp: context.owner.runtime.clock.now(),

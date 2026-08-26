@@ -7,6 +7,7 @@ export type BuffId = string;
 export type EventPriority = number;
 
 import type { CombatOriginV3, CombatTraceV3 } from '../v3/types';
+import type { CombatResolutionContext } from './resolution';
 
 // ===== 战斗事件基类 =====
 export interface CombatEvent {
@@ -14,6 +15,8 @@ export interface CombatEvent {
   readonly timestamp: number;
   readonly trace?: CombatTraceV3;
   readonly origin?: CombatOriginV3;
+  /** Action/cast/hit identity; distinct from causal trace identity. */
+  readonly resolution?: CombatResolutionContext;
 }
 
 // ===== 六维属性类型 =====
@@ -136,8 +139,6 @@ export interface DamageComponent {
   readonly attackBase?: number;
   /** 防御结算后的段倍率。 */
   readonly segmentMultiplier?: number;
-  /** 该分量应承担的防御倍率；属性倍率伤害等于技能段倍率。 */
-  readonly defenseScale?: number;
 }
 
 // ===== BUFF类型 =====

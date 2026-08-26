@@ -44,7 +44,7 @@ export const HEAVY_LAYER_3_NODES = [
             scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
             priority: 0,
             mapping: { caster: 'owner', target: 'event.caster' },
-            budget: { maxTriggers: 1, reset: 'round' },
+            triggerPolicy: { maxTriggers: 1, granularity: 'round' },
             guard: { skipSecondaryDamageSource: true },
             effects: [
               sectEffects.physicalDamage(

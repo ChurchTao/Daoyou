@@ -7,10 +7,11 @@ import {
 } from '../core/BattleRandom';
 import type { AbilityConfig } from '../core/configs';
 import { EventBus } from '../core/EventBus';
+import { createHitResolution } from '../core/resolution';
 import type {
   ActionPostEvent,
   BuffLayerChangedEvent,
-  DamageRequestEvent,
+  DamageSegmentRequestedEvent,
 } from '../core/events';
 import {
   AbilityType,
@@ -92,8 +93,8 @@ function publishDamage(
   builder.runInFrame(
     { id: sequenceId, phase: 'action', turn: 1, actor: caster },
     () => {
-      EventBus.instance.publish<DamageRequestEvent>({
-        type: 'DamageRequestEvent',
+      EventBus.instance.publish<DamageSegmentRequestedEvent>({
+        type: 'DamageSegmentRequestedEvent',
         timestamp: Date.now(),
         caster,
         target,
@@ -539,6 +540,12 @@ describe('combat facts V3', () => {
             type: 'ActionPostEvent',
             timestamp: Date.now(),
             caster: defender,
+            resolution: createHitResolution({
+              actionId: `combat-v3:${carrierKind}:action`,
+              castId: `combat-v3:${carrierKind}:cast`,
+              caster: defender,
+              target: defender,
+            }),
           }),
       );
 
@@ -663,11 +670,11 @@ describe('combat facts V3', () => {
       name: '反震甲',
     });
     EventBus.instance.subscribe(
-      'DamageTakenEvent',
+      'DamageSegmentAppliedEvent',
       (event: CombatEvent & { caster?: Unit; target: Unit }) => {
         if (event.target !== defender || event.caster !== attacker) return;
-        EventBus.instance.publish<DamageRequestEvent>({
-          type: 'DamageRequestEvent',
+        EventBus.instance.publish<DamageSegmentRequestedEvent>({
+          type: 'DamageSegmentRequestedEvent',
           timestamp: Date.now(),
           caster: defender,
           target: attacker,
@@ -701,7 +708,16 @@ describe('combat facts V3', () => {
         });
         EventBus.instance.runInCausalContext(
           { origin: trigger.origin, trace: trigger.trace },
-          () => skill.execute({ caster: attacker, target: defender }),
+          () => skill.execute({
+            caster: attacker,
+            target: defender,
+            resolution: createHitResolution({
+              actionId: 'combat-v3:two-hit',
+              castId: 'combat-v3:two-hit',
+              caster: attacker,
+              target: defender,
+            }),
+          }),
         );
       },
     );
@@ -739,7 +755,7 @@ describe('combat facts V3', () => {
     });
 
     EventBus.instance.subscribe(
-      'DamageTakenEvent',
+      'DamageSegmentAppliedEvent',
       (event: CombatEvent & { target: Unit }) => {
         if (event.target !== defender || defender.getCurrentHp() > 0) return;
         const amount = defender.heal(25);

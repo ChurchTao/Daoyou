@@ -10,8 +10,8 @@ import type {
   BuffAppliedEvent,
   CombatResourceChangeEvent,
   CooldownModifyEvent,
-  DamageRequestEvent,
-  DamageTakenEvent,
+  DamageSegmentRequestedEvent,
+  DamageSegmentAppliedEvent,
   DodgeEvent,
   HealEvent,
   RoundStartEvent,
@@ -28,6 +28,7 @@ import {
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
+import { createHitResolution } from '@shared/engine/battle-v5/core/resolution';
 import { afterEach, describe, expect, it } from 'vitest';
 import { productionSectRuntime } from '../..';
 import type { CultivatorSectState } from '../../../core';
@@ -154,8 +155,8 @@ function runtimeFingerprint(
     abilityCooldowns: [],
   };
   const bus = EventBus.instance;
-  bus.subscribe<DamageRequestEvent>(
-    'DamageRequestEvent',
+  bus.subscribe<DamageSegmentRequestedEvent>(
+    'DamageSegmentRequestedEvent',
     (event) => {
       trace.damage.push(
         [
@@ -238,7 +239,7 @@ function runtimeFingerprint(
     const ability = owner.abilities.getAbility(
       `sect.lingxiao.${abilityId}`,
     ) as ActiveSkill;
-    ability.execute({ caster: owner, target });
+    ability.execute({ caster: owner, target, resolution: createHitResolution({ actionId: `${owner.id}:lingxiao:${abilityId}`, castId: `${ability.id}:lingxiao`, caster: owner, target }) });
     return ability;
   };
 
@@ -248,6 +249,7 @@ function runtimeFingerprint(
     (AbilityFactory.create(queued.ability) as ActiveSkill).execute({
       caster: owner,
       target: enemy,
+      resolution: createHitResolution({ actionId: `${owner.id}:lingxiao:queued`, castId: `${queued.ability.slug}:lingxiao`, caster: owner, target: enemy }),
     });
   }
   execute('shadow-step', owner);
@@ -255,6 +257,7 @@ function runtimeFingerprint(
   execute('nurturing-sword', owner);
   bus.publish<DodgeEvent>({
     type: 'DodgeEvent',
+    resolution: createHitResolution({ actionId: 'lingxiao:matrix:dodge', castId: 'lingxiao:matrix:dodge', caster: enemy, target: owner }),
     timestamp: Date.now(),
     caster: enemy,
     target: owner,
@@ -262,8 +265,9 @@ function runtimeFingerprint(
   });
 
   owner.setShield(Math.max(owner.getCurrentShield(), 1_000));
-  const incomingRequest: DamageRequestEvent = {
-    type: 'DamageRequestEvent',
+  const incomingRequest: DamageSegmentRequestedEvent = {
+    type: 'DamageSegmentRequestedEvent',
+    resolution: createHitResolution({ actionId: 'lingxiao:matrix:incoming', castId: 'lingxiao:matrix:incoming', caster: enemy, target: owner }),
     timestamp: Date.now(),
     caster: enemy,
     target: owner,
@@ -274,8 +278,9 @@ function runtimeFingerprint(
     finalDamage: 1_000,
   };
   bus.publish(incomingRequest);
-  bus.publish<DamageTakenEvent>({
-    type: 'DamageTakenEvent',
+  bus.publish<DamageSegmentAppliedEvent>({
+    type: 'DamageSegmentAppliedEvent',
+    resolution: createHitResolution({ actionId: 'lingxiao:matrix:applied', castId: 'lingxiao:matrix:applied', caster: enemy, target: owner }),
     timestamp: Date.now(),
     caster: enemy,
     target: owner,
@@ -291,6 +296,7 @@ function runtimeFingerprint(
   });
   bus.publish<ShieldBreakEvent>({
     type: 'ShieldBreakEvent',
+    resolution: createHitResolution({ actionId: 'lingxiao:matrix:break', castId: 'lingxiao:matrix:break', caster: enemy, target: owner }),
     timestamp: Date.now(),
     caster: enemy,
     target: owner,
@@ -312,6 +318,7 @@ function runtimeFingerprint(
   for (let index = 0; index < 2; index += 1) {
     bus.publish<SkillCastEvent>({
       type: 'SkillCastEvent',
+      resolution: createHitResolution({ actionId: `lingxiao:matrix:plain:${index}`, castId: `lingxiao:matrix:plain:${index}`, caster: owner, target: enemy }),
       timestamp: Date.now(),
       caster: owner,
       target: enemy,
@@ -323,6 +330,7 @@ function runtimeFingerprint(
   for (let index = 0; index < 2; index += 1) {
     bus.publish<ActionPostEvent>({
       type: 'ActionPostEvent',
+      resolution: createHitResolution({ actionId: `lingxiao:matrix:post:${index}`, castId: `lingxiao:matrix:post:${index}`, caster: owner, target: enemy }),
       timestamp: Date.now(),
       caster: owner,
     });
@@ -332,9 +340,10 @@ function runtimeFingerprint(
   owner.combatResources.set(LINGXIAO_SWORD_MOMENTUM, 6);
   execute('sect-ultimate', enemy);
   execute('guiding-sword', enemy);
-  plain.execute({ caster: owner, target: enemy });
+  plain.execute({ caster: owner, target: enemy, resolution: createHitResolution({ actionId: 'lingxiao:matrix:plain-execute', castId: 'lingxiao:matrix:plain-execute', caster: owner, target: enemy }) });
   bus.publish<RoundStartEvent>({
     type: 'RoundStartEvent',
+    resolution: createHitResolution({ actionId: 'lingxiao:matrix:round', castId: 'lingxiao:matrix:round', caster: owner, target: owner }),
     timestamp: Date.now(),
     turn: 2,
   });
@@ -349,10 +358,8 @@ function runtimeFingerprint(
   trace.finalHp = owner.getCurrentHp();
   trace.abilityCooldowns = owner.abilities
     .getAllAbilities()
-    .filter(
-      (ability): ability is ActiveSkill => 'getCurrentCooldown' in ability,
-    )
-    .map((ability) => `${ability.name}:${ability.getCurrentCooldown()}`)
+    .filter((ability): ability is ActiveSkill => 'currentCooldown' in ability)
+    .map((ability) => `${ability.name}:${ability.currentCooldown}`)
     .sort();
   return trace;
 }

@@ -99,7 +99,7 @@ describe('body cultivation battle init hooks', () => {
       name: '皮肤·外膜护体',
       listeners: [
         expect.objectContaining({
-          eventType: 'DamageRequestEvent',
+          eventType: 'DamageSegmentRequestedEvent',
           effects: [
             expect.objectContaining({
               type: 'percent_damage_modifier',
@@ -313,7 +313,8 @@ describe('body cultivation battle init hooks', () => {
       name: '金身·燃血爆发',
       listeners: [
         expect.objectContaining({
-          eventType: 'DamageTakenEvent',
+          eventType: 'DamageSegmentAppliedEvent',
+          triggerPolicy: { maxTriggers: 1, granularity: 'battle' },
           effects: [
             expect.objectContaining({
               type: 'heal',
@@ -327,18 +328,6 @@ describe('body cultivation battle init hooks', () => {
                 buffConfig: expect.objectContaining({
                   id: 'body_cultivation_golden_body_burn_blood_active',
                   duration: 3,
-                }),
-              }),
-            }),
-            expect.objectContaining({
-              type: 'apply_buff',
-              params: expect.objectContaining({
-                buffConfig: expect.objectContaining({
-                  id: 'body_cultivation_golden_body_burn_blood_marker',
-                  duration: -1,
-                  statusTags: [
-                    GameplayTags.STATUS.STATE.BODY_BURN_BLOOD_TRIGGERED,
-                  ],
                 }),
               }),
             }),

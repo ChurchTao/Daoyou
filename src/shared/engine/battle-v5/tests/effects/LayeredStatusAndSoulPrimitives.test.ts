@@ -2,7 +2,7 @@ import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { StackRule } from '../../buffs/Buff';
 import type {
   BuffLayerChangedEvent,
-  DamageRequestEvent,
+  DamageSegmentRequestedEvent,
   HealEvent,
 } from '../../core/events';
 import { EventBus } from '../../core/EventBus';
@@ -20,6 +20,7 @@ import { describeBuffRuntimeSummary } from '../../effects/affixText/buffText';
 import { DamageSystem } from '../../systems/DamageSystem';
 import { Unit } from '../../units/Unit';
 import { executeTestEffect } from '../setup/executeTestEffect';
+import { createHitResolution } from '../../core/resolution';
 
 const damageTags = [
   GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -170,9 +171,9 @@ describe('通用分层状态与伤害行为原语', () => {
       value: 1,
       source: 'test',
     });
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => requests.push(event),
       -1_000,
     );
@@ -193,7 +194,7 @@ describe('通用分层状态与伤害行为原语', () => {
       }],
     });
 
-    ability.execute({ caster, target });
+    ability.execute({ caster, target, resolution: createHitResolution({ actionId: 'layered:1', castId: 'layered:1', caster, target }) });
 
     expect(requests).toHaveLength(1);
     expect(requests[0].baseDamage).toBe(
@@ -218,7 +219,7 @@ describe('通用分层状态与伤害行为原语', () => {
       caster,
       target,
       triggerEvent: {
-        type: 'DamageTakenEvent',
+        type: 'DamageSegmentAppliedEvent',
         timestamp: Date.now(),
         caster,
         target,

@@ -43,6 +43,7 @@ export class BasicAttack extends ActiveSkill {
       caster,
       target,
       ability: this,
+      resolution: this.resolution,
     });
     executeGameplayEffectV3(this._damageEffect, context);
   }

@@ -1,5 +1,5 @@
 import { MagicShieldParams } from '../core/configs';
-import { DamageEvent, ManaShieldAbsorbEvent } from '../core/events';
+import { DamageSegmentRequestedEvent, ManaShieldAbsorbEvent } from '../core/events';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { EffectExecutionContextV3, GameplayEffect } from './Effect';
 
@@ -14,11 +14,11 @@ export class MagicShieldEffect extends GameplayEffect {
 
   execute(context: EffectExecutionContextV3): void {
     const { triggerEvent } = context;
-    if (!triggerEvent || triggerEvent.type !== 'DamageEvent') {
+    if (!triggerEvent || triggerEvent.type !== 'DamageSegmentRequestedEvent') {
       return;
     }
 
-    const damageEvent = triggerEvent as DamageEvent;
+    const damageEvent = triggerEvent as DamageSegmentRequestedEvent;
     if (damageEvent.finalDamage <= 0) {
       return;
     }

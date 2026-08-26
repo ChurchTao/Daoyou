@@ -1,7 +1,7 @@
 import { getRealmStageRank } from '@shared/config/realmProgression';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventBus } from '../../core/EventBus';
-import { DamageRequestEvent } from '../../core/events';
+import { DamageSegmentRequestedEvent } from '../../core/events';
 import { BuffType, DamageSource, DamageType } from '../../core/types';
 import { ApplyBuffEffect } from '../../effects/ApplyBuffEffect';
 import { DamageSystem } from '../../systems/DamageSystem';
@@ -27,11 +27,11 @@ describe('realm pressure integration', () => {
     return unit;
   }
 
-  function publishTrueDamage(caster: Unit, target: Unit): DamageRequestEvent {
+  function publishTrueDamage(caster: Unit, target: Unit): DamageSegmentRequestedEvent {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const damageSystem = new DamageSystem();
-    const event: DamageRequestEvent = {
-      type: 'DamageRequestEvent',
+    const event: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster,
       target,

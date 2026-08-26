@@ -206,7 +206,7 @@ export function compileMirrorAbilities(
           priority: EventPriorityLevel.DAMAGE_REQUEST + 1,
           mapping: { caster: 'owner', target: 'event.target' },
           guard: { skipSecondaryDamageSource: true },
-          budget: { maxTriggers: 1, reset: 'buff_lifetime' },
+          triggerPolicy: { maxTriggers: 1, granularity: 'buff_lifetime' },
           conditions: [
             {
               type: 'damage_source_is',
@@ -330,7 +330,7 @@ export function compileMirrorPassive(
       priority: 2,
       mapping: { caster: 'owner', target: 'owner' },
       guard: { skipSecondaryDamageSource: true },
-      budget: { maxTriggers: 1, reset: 'source_action' },
+      triggerPolicy: { maxTriggers: 1, granularity: 'action' },
       conditions: [
         {
           type: 'damage_source_is',
@@ -349,7 +349,7 @@ export function compileMirrorPassive(
             priority: 1,
             mapping: { caster: 'owner' as const, target: 'owner' as const },
             guard: { skipSecondaryDamageSource: true },
-            budget: { maxTriggers: 1, reset: 'round' as const },
+            triggerPolicy: { maxTriggers: 1, granularity: 'round' as const },
             conditions: [
               {
                 type: 'damage_source_is' as const,

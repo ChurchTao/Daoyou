@@ -72,7 +72,7 @@ describe('BattleAutoResolver', () => {
         scope: GameplayTags.SCOPE.GLOBAL,
         priority: 0,
         mapping: { caster: 'owner', target: 'owner' },
-        budget: { maxTriggers: 1, reset: 'battle' },
+        triggerPolicy: { maxTriggers: 1, granularity: 'battle' },
         effects: [{
           type: 'shield',
           params: { value: { base: 25 }, target: 'caster' },
@@ -114,7 +114,7 @@ describe('BattleAutoResolver', () => {
         scope: GameplayTags.SCOPE.GLOBAL,
         priority: 0,
         mapping: { caster: 'owner', target: 'owner' },
-        budget: { maxTriggers: 1, reset: 'battle' },
+        triggerPolicy: { maxTriggers: 1, granularity: 'battle' },
         effects: [{
           type: 'shield',
           params: { value: { base: 7 }, target: 'caster' },

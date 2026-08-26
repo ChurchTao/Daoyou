@@ -7,6 +7,7 @@ import { AbilityId, AbilityType, CombatEvent } from '../core/types';
 import { Unit } from '../units/Unit';
 import type { BattleRuntime } from '../runtime/BattleRuntime';
 import type { AbilityConfig } from '../core/configs';
+import type { CombatResolutionContext } from '../core/resolution';
 
 export type { AbilityId };
 
@@ -19,6 +20,7 @@ export interface AbilityContext {
   caster: Unit;
   target: Unit;
   shouldApplyEffects?: boolean;
+  resolution?: CombatResolutionContext;
 }
 
 export interface AbilityCastSnapshot {

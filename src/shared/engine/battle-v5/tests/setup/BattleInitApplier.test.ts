@@ -10,10 +10,12 @@ import { TargetPolicy } from '../../abilities/TargetPolicy';
 import { StackRule } from '../../buffs/Buff';
 import { EventBus } from '../../core/EventBus';
 import {
-  DamageRequestEvent,
+  DamageSegmentRequestedEvent,
   DeathPreventEvent,
+  BuffAppliedEvent,
   SkillPreCastEvent,
 } from '../../core/events';
+import { createHitResolution, withDamageSegment } from '../../core/resolution';
 import {
   AbilityId,
   AttributeType,
@@ -415,7 +417,7 @@ describe('BattleInitApplier', () => {
     });
 
     publishTestDamageRequest({
-      type: 'DamageRequestEvent',
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: opponentUnit,
       target: playerUnit,
@@ -461,6 +463,7 @@ describe('BattleInitApplier', () => {
                     eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
                     scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
                     priority: 20,
+                    triggerPolicy: { maxTriggers: 1, granularity: 'battle' },
                     guard: {
                       requireOwnerAlive: true,
                       skipReflectSource: true,
@@ -472,14 +475,6 @@ describe('BattleInitApplier', () => {
                           {
                             type: 'hp_below',
                             params: { value: 0.35, scope: 'target' },
-                          },
-                          {
-                            type: 'has_not_tag',
-                            params: {
-                              tag: GameplayTags.STATUS.STATE
-                                .BODY_BURN_BLOOD_TRIGGERED,
-                              scope: 'target',
-                            },
                           },
                         ],
                         params: {
@@ -499,36 +494,6 @@ describe('BattleInitApplier', () => {
                           },
                         },
                       },
-                      {
-                        type: 'apply_buff',
-                        conditions: [
-                          {
-                            type: 'hp_below',
-                            params: { value: 0.35, scope: 'target' },
-                          },
-                          {
-                            type: 'has_not_tag',
-                            params: {
-                              tag: GameplayTags.STATUS.STATE
-                                .BODY_BURN_BLOOD_TRIGGERED,
-                              scope: 'target',
-                            },
-                          },
-                        ],
-                        params: {
-                          buffConfig: {
-                            id: 'test_body_burn_blood_marker',
-                            name: '金身·燃血已发',
-                            type: BuffType.BUFF,
-                            duration: -1,
-                            stackRule: 'override',
-                            statusTags: [
-                              GameplayTags.STATUS.STATE
-                                .BODY_BURN_BLOOD_TRIGGERED,
-                            ],
-                          },
-                        },
-                      },
                     ],
                   },
                 ],
@@ -540,9 +505,22 @@ describe('BattleInitApplier', () => {
     );
 
     const baseAtk = playerUnit.attributes.getValue(AttributeType.ATK);
+    let burnBloodActivationCount = 0;
+    eventBus.subscribe<BuffAppliedEvent>('BuffAppliedEvent', (event) => {
+      if (
+        event.target === playerUnit &&
+        event.buff.id === 'test_body_burn_blood_active'
+      ) burnBloodActivationCount += 1;
+    });
+    const burnBloodHit = createHitResolution({
+      actionId: 'golden-body-action',
+      castId: 'golden-body-cast',
+      caster: opponentUnit,
+      target: playerUnit,
+    });
 
     publishTestDamageRequest({
-      type: 'DamageRequestEvent',
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: opponentUnit,
       target: playerUnit,
@@ -550,6 +528,7 @@ describe('BattleInitApplier', () => {
       damageType: DamageType.TRUE,
       baseDamage: 80,
       finalDamage: 80,
+      resolution: withDamageSegment(burnBloodHit, 0, 2),
     });
 
     const activeBuffs = playerUnit.buffs
@@ -558,19 +537,34 @@ describe('BattleInitApplier', () => {
 
     expect(playerUnit.getCurrentHp()).toBeLessThan(35);
     expect(activeBuffs).toHaveLength(1);
-    expect(
-      playerUnit.tags.hasTag(
-        GameplayTags.STATUS.STATE.BODY_BURN_BLOOD_TRIGGERED,
-      ),
-    ).toBe(true);
     expect(playerUnit.attributes.getValue(AttributeType.ATK)).toBeCloseTo(
       baseAtk * 1.2,
     );
+    expect(burnBloodActivationCount).toBe(1);
+
+    publishTestDamageRequest({
+      type: 'DamageSegmentRequestedEvent',
+      timestamp: Date.now(),
+      caster: opponentUnit,
+      target: playerUnit,
+      damageSource: DamageSource.DIRECT,
+      damageType: DamageType.TRUE,
+      baseDamage: 1,
+      finalDamage: 1,
+      resolution: withDamageSegment(burnBloodHit, 1, 2),
+    });
+
+    expect(
+      playerUnit.buffs
+        .getAllBuffs()
+        .filter((buff) => buff.id === 'test_body_burn_blood_active'),
+    ).toHaveLength(1);
+    expect(burnBloodActivationCount).toBe(1);
 
     playerUnit.buffs.removeBuff('test_body_burn_blood_active');
 
     publishTestDamageRequest({
-      type: 'DamageRequestEvent',
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: opponentUnit,
       target: playerUnit,
@@ -636,8 +630,8 @@ describe('BattleInitApplier', () => {
         },
       },
     );
-    const damageRequest: DamageRequestEvent = {
-      type: 'DamageRequestEvent',
+    const damageRequest: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: opponentUnit,
       target: playerUnit,
@@ -647,7 +641,7 @@ describe('BattleInitApplier', () => {
       finalDamage: 100,
     };
 
-    eventBus.publish<DamageRequestEvent>(damageRequest);
+    eventBus.publish<DamageSegmentRequestedEvent>(damageRequest);
 
     expect(damageRequest.damageReductionPctBucket).toBeCloseTo(0.2);
 

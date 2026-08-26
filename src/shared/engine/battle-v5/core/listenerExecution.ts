@@ -1,8 +1,8 @@
-import { ConditionConfig, ListenerConfig, ListenerContextMapping, ListenerScope } from './configs';
+import { ConditionConfig, ListenerConfig, ListenerContextMapping, ListenerScope, ListenerTriggerPolicyConfig } from './configs';
 import { CombatEvent } from './types';
 import { Unit } from '../units/Unit';
-import { getBattleRuntimeState } from './runtimeState';
 import { checkConditions } from './conditionEvaluator';
+import { triggerLedger, type TriggerPolicy } from './triggerLedger';
 
 export interface ListenerRuntimeConfig {
   id: string;
@@ -16,11 +16,7 @@ export interface ListenerRuntimeConfig {
     skipReflectSource: boolean;
     skipSecondaryDamageSource: boolean;
   };
-  budget?: {
-    maxTriggers: number;
-    reset: 'buff_lifetime' | 'action' | 'source_action' | 'round' | 'battle';
-    group?: string;
-  };
+  triggerPolicy?: TriggerPolicy;
   conditions?: ConditionConfig[];
 }
 
@@ -44,7 +40,7 @@ function getEventParticipant(event: CombatEvent, key: 'caster' | 'target' | 'sou
 
 function getDefaultScope(eventType: string): ListenerScope {
   switch (eventType) {
-    case 'DamageTakenEvent':
+    case 'DamageSegmentAppliedEvent':
       return 'owner_as_target';
     case 'ActionPreEvent':
     case 'ActionPostEvent':
@@ -52,7 +48,7 @@ function getDefaultScope(eventType: string): ListenerScope {
     case 'SkillCastEvent':
     case 'SkillPreCastEvent':
     case 'HitCheckEvent':
-    case 'DamageRequestEvent':
+    case 'DamageSegmentRequestedEvent':
       return 'owner_as_caster';
     case 'RoundPreEvent':
     case 'RoundPostEvent':
@@ -106,12 +102,8 @@ export function buildListenerRuntimeConfig(
       skipReflectSource: config.guard?.skipReflectSource ?? false,
       skipSecondaryDamageSource: config.guard?.skipSecondaryDamageSource ?? false,
     },
-    budget: config.budget
-      ? {
-          maxTriggers: Math.max(0, Math.trunc(config.budget.maxTriggers)),
-          reset: config.budget.reset,
-          group: config.budget.group,
-        }
+    triggerPolicy: config.triggerPolicy
+      ? ({ ...config.triggerPolicy } satisfies ListenerTriggerPolicyConfig)
       : undefined,
     conditions: config.conditions?.map((condition) => ({
       ...condition,
@@ -213,7 +205,7 @@ export function shouldExecuteListener(
   }
 
   if (runtime.guard.requireOwnerAlive && !owner.isAlive()) {
-    if (!(runtime.guard.allowLethalWindow && event.type === 'DamageTakenEvent')) {
+    if (!(runtime.guard.allowLethalWindow && event.type === 'DamageSegmentAppliedEvent')) {
       return false;
     }
   }
@@ -227,49 +219,9 @@ export function shouldExecuteListener(
     }, runtime.conditions)) return false;
   }
 
-  if (!claimListenerTrigger(owner, event, runtime, source)) {
+  if (!triggerLedger.claim(owner, event, runtime.id, runtime.triggerPolicy, source)) {
     return false;
   }
 
-  return true;
-}
-
-const lifecycleBudgets = new WeakMap<object, Map<string, number>>();
-
-function claimListenerTrigger(
-  owner: Unit,
-  event: CombatEvent,
-  runtime: ListenerRuntimeConfig,
-  source?: object,
-): boolean {
-  const budget = runtime.budget;
-  if (!budget) return true;
-  if (budget.maxTriggers <= 0) return false;
-
-  if (budget.reset === 'buff_lifetime') {
-    const lifetimeOwner = source ?? runtime;
-    const counters = lifecycleBudgets.get(lifetimeOwner) ?? new Map<string, number>();
-    const budgetKey = budget.group ?? runtime.id;
-    const count = counters.get(budgetKey) ?? 0;
-    if (count >= budget.maxTriggers) return false;
-    counters.set(budgetKey, count + 1);
-    lifecycleBudgets.set(lifetimeOwner, counters);
-    return true;
-  }
-
-  const budgetOwner = budget.reset === 'source_action'
-    ? getEventParticipant(event, 'caster') ?? owner
-    : owner;
-  const state = getBattleRuntimeState(budgetOwner);
-  const token = budget.reset === 'action' || budget.reset === 'source_action'
-    ? state.actionSequence
-    : budget.reset === 'round'
-      ? state.round
-      : 0;
-  const key = `${budget.group ?? runtime.id}:${budget.reset}`;
-  const current = state.listenerTriggerBudgets.get(key);
-  const count = current?.token === token ? current.count : 0;
-  if (count >= budget.maxTriggers) return false;
-  state.listenerTriggerBudgets.set(key, { token, count: count + 1 });
   return true;
 }

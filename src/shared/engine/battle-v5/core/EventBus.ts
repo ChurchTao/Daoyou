@@ -8,6 +8,7 @@ import { CombatEvent, EventPriority } from './types';
 import { SystemBattleClock, type BattleClock } from '../runtime/BattleClock';
 import type { CombatResultCommittedEventV3 } from '../v3/events';
 import { BattleResolutionError } from './BattleResolutionError';
+import { ReactionQueue } from './reactionQueue';
 
 interface CombatFactSink {
   record(event: CombatResultCommittedEventV3): void;
@@ -60,6 +61,10 @@ export class EventBus {
   private _narrativeCauseCounter = 0;
   private _combatFactSink?: CombatFactSink;
   private readonly _maxHistorySize = EventBus.DEFAULT_MAX_HISTORY_SIZE;
+  private readonly _reactionQueue = new ReactionQueue();
+  private _publishDepth = 0;
+  private _reactionSteps = 0;
+  private static readonly MAX_REACTION_STEPS = 1024;
 
   constructor(public readonly clock: BattleClock = new SystemBattleClock()) {}
 
@@ -120,7 +125,40 @@ export class EventBus {
    * Automatically sets timestamp if not provided
    */
   public publish<T extends CombatEvent>(event: T): T {
-    return this._dispatch(this._prepare(event));
+    this._publishDepth += 1;
+    try {
+      return this._dispatch(this._prepare(event));
+    } finally {
+      this._publishDepth -= 1;
+      if (this._publishDepth === 0) this._drainReactions();
+    }
+  }
+
+  /** Queue a secondary reaction behind the current resolution boundary. */
+  public enqueueReaction<T extends CombatEvent>(
+    event: T,
+    priority: EventPriority = 0,
+  ): T {
+    const prepared = this._prepare(event);
+    this._reactionQueue.enqueue(prepared, priority);
+    if (this._publishDepth === 0) this._drainReactions();
+    return prepared;
+  }
+
+  private _drainReactions(): void {
+    while (this._reactionQueue.size > 0) {
+      if (++this._reactionSteps > EventBus.MAX_REACTION_STEPS) {
+        this._reactionQueue.clear();
+        this._reactionSteps = 0;
+        throw new BattleResolutionError(
+          'BATTLE_REACTION_LIMIT_EXCEEDED',
+          `Battle reaction steps exceeded ${EventBus.MAX_REACTION_STEPS}`,
+        );
+      }
+      const reaction = this._reactionQueue.dequeue()!;
+      this.publish(reaction.event);
+    }
+    this._reactionSteps = 0;
   }
 
   /**
@@ -131,7 +169,13 @@ export class EventBus {
     const prepared = this._prepare(event);
     if (prepared.trace) Object.freeze(prepared.trace);
     Object.freeze(prepared);
-    return this._dispatch(prepared);
+    this._publishDepth += 1;
+    try {
+      return this._dispatch(prepared);
+    } finally {
+      this._publishDepth -= 1;
+      if (this._publishDepth === 0) this._drainReactions();
+    }
   }
 
   private _prepare<T extends CombatEvent>(event: T): T {
@@ -357,6 +401,9 @@ export class EventBus {
     this._ordinalCounter = 0;
     this._resolutionCounter = 0;
     this._narrativeCauseCounter = 0;
+    this._reactionQueue.clear();
+    this._publishDepth = 0;
+    this._reactionSteps = 0;
     this._combatFactSink = undefined;
   }
 }

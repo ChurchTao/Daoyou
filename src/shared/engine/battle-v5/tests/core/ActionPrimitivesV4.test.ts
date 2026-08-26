@@ -12,6 +12,7 @@ import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { Unit } from '../../units/Unit';
 import { describe, expect, it } from 'vitest';
 import { executeTestEffect } from '../setup/executeTestEffect';
+import { createHitResolution } from '../../core/resolution';
 
 function unit(id: string): Unit {
   return new Unit(id, id, {});
@@ -37,7 +38,7 @@ describe('V4行动原语', () => {
       castEffects: [{ type: 'skip_action', params: { reason: '调息' } }],
     });
 
-    ability.execute({ caster, target, shouldApplyEffects: false });
+    ability.execute({ caster, target, shouldApplyEffects: false, resolution: createHitResolution({ actionId: 'primitive:1', castId: 'primitive:1', caster, target }) });
 
     expect(consumeSkippedAction(caster)).toMatchObject({
       reason: '调息',

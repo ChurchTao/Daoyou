@@ -1,7 +1,7 @@
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { ValueCalculator } from '../core/ValueCalculator';
 import { DamageDeferParams } from '../core/configs';
-import { DamageEvent } from '../core/events';
+import { DamageSegmentRequestedEvent } from '../core/events';
 import { nextRuntimeSequence, rememberAmount } from '../core/runtimeState';
 import { AttributeType, DamageSource, DamageType } from '../core/types';
 import { EffectRegistry } from '../factories/EffectRegistry';
@@ -17,10 +17,10 @@ export class DamageDeferEffect extends GameplayEffect {
   }
 
   execute(context: EffectExecutionContextV3): void {
-    if (!context.triggerEvent || context.triggerEvent.type !== 'DamageEvent') {
+    if (!context.triggerEvent || context.triggerEvent.type !== 'DamageSegmentRequestedEvent') {
       return;
     }
-    const event = context.triggerEvent as DamageEvent;
+    const event = context.triggerEvent as DamageSegmentRequestedEvent;
     if (
       this.params.thresholdMaxHpRatio !== undefined &&
       event.finalDamage <
@@ -80,7 +80,8 @@ export class DamageDeferEffect extends GameplayEffect {
         ability: context.ability,
         buff: context.buff,
         attribution: CombatAttributionV3.rebind(context.owner, context.origin),
-        trace: context.trace,
+      trace: context.trace,
+      resolution: context.resolution,
       },
     );
   }

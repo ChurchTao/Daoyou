@@ -43,6 +43,7 @@ import { CombatSystemSourceV3 } from '../v3/origin';
 import { resolveLegalBasicAttack } from './BasicAttackResolver';
 import { recordBattleEnd } from './BattleLifecycleResolver';
 import { BattleResolutionContext } from './BattleResolutionContext';
+import { createHitResolution } from '../core/resolution';
 import { resolveLegalQueuedAction } from './QueuedActionResolver';
 import type {
   BattleActionIntentV1,
@@ -119,17 +120,27 @@ function resolveRestoredBattleRound(
     const targetSystem = new TargetSelectionSystem();
     const allUnits = roster.getAllUnits();
     const round = commandSet.round;
+    const roundAnchor = allUnits[0];
+    if (!roundAnchor) throw new Error('Cannot resolve a round without units');
+    const roundResolution = createHitResolution({
+      actionId: `round:${round}`,
+      castId: `round:${round}`,
+      caster: roundAnchor,
+      target: roundAnchor,
+    });
     for (const unit of allUnits) setRuntimeRound(unit, round);
 
     let order: Unit[] = [];
     resolutionContext.runFrame({ phase: 'round_start', turn: round }, () => {
       eventBus.publish<RoundStartEvent>({
         type: 'RoundStartEvent',
+        resolution: roundResolution,
         timestamp: runtime.clock.now(),
         turn: round,
       });
       eventBus.publish<RoundPreEvent>({
         type: 'RoundPreEvent',
+        resolution: roundResolution,
         timestamp: runtime.clock.now(),
         turn: round,
       });
@@ -148,6 +159,12 @@ function resolveRestoredBattleRound(
         continue;
       }
       beginRuntimeAction(actor);
+      const actionResolution = createHitResolution({
+        actionId: `round:${round}:action:${actor.id}`,
+        castId: `round:${round}:action:${actor.id}`,
+        caster: actor,
+        target: actor,
+      });
       resolutionContext.runFrame(
         {
           phase: 'action_pre',
@@ -157,6 +174,7 @@ function resolveRestoredBattleRound(
         (sequence) => {
           eventBus.publish<ActionPreEvent>({
             type: 'ActionPreEvent',
+            resolution: actionResolution,
             timestamp: runtime.clock.now(),
             caster: actor,
           });
@@ -222,6 +240,7 @@ function resolveRestoredBattleRound(
           if (actor.isAlive()) {
             eventBus.publish<ActionPostEvent>({
               type: 'ActionPostEvent',
+              resolution: actionResolution,
               timestamp: runtime.clock.now(),
               caster: actor,
             });
@@ -247,6 +266,7 @@ function resolveRestoredBattleRound(
     resolutionContext.runFrame({ phase: 'round_post', turn: round }, (sequence) => {
       eventBus.publish<RoundPostEvent>({
         type: 'RoundPostEvent',
+        resolution: roundResolution,
         timestamp: runtime.clock.now(),
         turn: round,
       });

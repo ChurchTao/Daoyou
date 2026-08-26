@@ -9,6 +9,7 @@ import { AbilityType, AttributeType, BuffType } from '../../core/types';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { GameplayTags } from '../../../shared/tag-domain';
 import { Unit } from '../../units/Unit';
+import { createHitResolution } from '../../core/resolution';
 
 function unit(id: string): Unit {
   return new Unit(id, id, {
@@ -88,7 +89,7 @@ describe('技能效果层与计划', () => {
       });
     }
 
-    skill.execute({ caster, target });
+    skill.execute({ caster, target, resolution: createHitResolution({ actionId: 'plan:1', castId: 'plan:1', caster, target }) });
 
     expect(caster.buffs.getAllBuffIds()).toEqual(expected);
   });
@@ -108,7 +109,7 @@ describe('技能效果层与计划', () => {
     expect(skill.costConfigs).toEqual(layeredConfig().costs);
     expect(skill.maxCooldown).toBe(2);
     expect(skill.selectionProfile).toEqual({ intents: ['buff'] });
-    skill.execute({ caster, target });
+    skill.execute({ caster, target, resolution: createHitResolution({ actionId: 'plan:2', castId: 'plan:2', caster, target }) });
     expect(readAbilityMode(caster, 'form')).toBeUndefined();
   });
 
@@ -132,7 +133,7 @@ describe('技能效果层与计划', () => {
     expect(skill.runtimePlanId).toBe('formless');
     expect(clone.name).toBe('佛相式');
     expect(clone.runtimePlanId).toBeUndefined();
-    skill.execute({ caster, target });
+    skill.execute({ caster, target, resolution: createHitResolution({ actionId: 'plan:3', castId: 'plan:3', caster, target }) });
     expect(caster.buffs.getAllBuffIds()).toEqual([
       'a-main', 'b-main', 'c-main', 'completed-first', 'a-done', 'b-done', 'c-done',
     ]);
@@ -148,7 +149,7 @@ describe('技能效果层与计划', () => {
       key: 'form', mode: 'demon', remainingUses: 2, displayName: '魔相',
     });
 
-    skill.execute({ caster, target, shouldApplyEffects: false });
+    skill.execute({ caster, target, shouldApplyEffects: false, resolution: createHitResolution({ actionId: 'plan:4', castId: 'plan:4', caster, target }) });
 
     expect(caster.buffs.getAllBuffIds()).toEqual([]);
     expect(readAbilityMode(caster, 'form')).toMatchObject({ remainingUses: 2 });
@@ -168,7 +169,7 @@ describe('技能效果层与计划', () => {
       key: 'form', mode: 'demon', remainingUses: 2, displayName: '魔相',
     });
 
-    skill.execute({ caster, target });
+    skill.execute({ caster, target, resolution: createHitResolution({ actionId: 'plan:5', castId: 'plan:5', caster, target }) });
 
     expect(caster.buffs.getAllBuffIds()).toEqual(['completed']);
     expect(readAbilityMode(caster, 'form')).toMatchObject({ remainingUses: 1 });

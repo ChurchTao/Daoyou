@@ -3,7 +3,7 @@ import { composeProductFromAffixIds } from '@shared/engine/creation-v2/composePr
 import { projectAbilityConfig } from '@shared/engine/creation-v2/models/AbilityProjection';
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
 import type {
-  DamageRequestEvent,
+  DamageSegmentRequestedEvent,
   DeathPreventEvent,
 } from '@shared/engine/battle-v5/core/events';
 import {
@@ -82,7 +82,7 @@ describe('death_prevent artifact affix integration', () => {
 
   function dealLethalDamage(attacker: Unit, defender: Unit): void {
     publishTestDamageRequest({
-      type: 'DamageRequestEvent',
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,

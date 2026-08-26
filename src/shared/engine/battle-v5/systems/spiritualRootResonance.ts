@@ -3,7 +3,7 @@ import {
   GameplayTags,
 } from '@shared/engine/shared/tag-domain';
 import type { ElementType } from '@shared/types/constants';
-import type { DamageRequestEvent } from '../core/events';
+import type { DamageSegmentRequestedEvent } from '../core/events';
 import { DamageSource } from '../core/types';
 
 const SPIRITUAL_ROOT_DAMAGE_MATCH_PER_STRENGTH = 0.002;
@@ -18,7 +18,7 @@ const RUNTIME_ABILITY_TAG_TO_ELEMENT = Object.fromEntries(
 ) as Record<string, ElementType>;
 
 function collectEventElements(
-  event: Pick<DamageRequestEvent, 'ability' | 'buff'>,
+  event: Pick<DamageSegmentRequestedEvent, 'ability' | 'buff'>,
 ): ElementType[] {
   const matched = new Set<ElementType>();
   const tags = [
@@ -37,7 +37,7 @@ function collectEventElements(
 }
 
 export function calculateSpiritualRootDamageMultiplier(
-  event: Pick<DamageRequestEvent, 'ability' | 'buff' | 'caster' | 'damageSource'>,
+  event: Pick<DamageSegmentRequestedEvent, 'ability' | 'buff' | 'caster' | 'damageSource'>,
 ): number {
   if (event.damageSource === DamageSource.REFLECT || !event.caster) {
     return 1;

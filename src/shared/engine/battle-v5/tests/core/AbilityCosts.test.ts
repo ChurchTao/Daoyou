@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ActiveSkill } from '../../abilities/ActiveSkill';
 import { EventBus } from '../../core/EventBus';
-import type { AbilityCostPaidEvent, DamageRequestEvent, DamageTakenEvent } from '../../core/events';
+import type { AbilityCostPaidEvent, DamageSegmentRequestedEvent, DamageSegmentAppliedEvent } from '../../core/events';
 import { AbilityType, AttributeType, DamageSource, DamageType } from '../../core/types';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { GameplayTags } from '../../../shared/tag-domain';
 import { Unit } from '../../units/Unit';
+import { createHitResolution } from '../../core/resolution';
 
 function unit(id: string): Unit {
   return new Unit(id, id, {
@@ -35,7 +36,7 @@ describe('主动技能气血成本', () => {
     const events: AbilityCostPaidEvent[] = [];
     EventBus.instance.subscribe<AbilityCostPaidEvent>('AbilityCostPaidEvent', (event) => events.push(event));
 
-    skill.execute({ caster, target });
+    skill.execute({ caster, target, resolution: createHitResolution({ actionId: 'cost:1', castId: 'cost:1', caster, target }) });
     expect(caster.getCurrentHp()).toBe(92);
     expect(events[0]).toMatchObject({ beforeHp: 101, afterHp: 92, hpPaid: 9 });
     caster.setHp(1);
@@ -65,7 +66,7 @@ describe('主动技能气血成本', () => {
     const before = caster.getCurrentHp();
     skill.prepareCast({ caster, target });
     caster.combatResources.modify('intent', -6);
-    skill.execute({ caster, target });
+    skill.execute({ caster, target, resolution: createHitResolution({ actionId: 'cost:2', castId: 'cost:2', caster, target }) });
     expect(before - caster.getCurrentHp()).toBe(Math.ceil(before * 0.08));
   });
 
@@ -79,8 +80,8 @@ describe('主动技能气血成本', () => {
     });
     skill.setOwner(caster);
     let damageEvents = 0;
-    EventBus.instance.subscribe<DamageTakenEvent>('DamageTakenEvent', () => { damageEvents += 1; });
-    skill.execute({ caster, target: caster });
+    EventBus.instance.subscribe<DamageSegmentAppliedEvent>('DamageSegmentAppliedEvent', () => { damageEvents += 1; });
+    skill.execute({ caster, target: caster, resolution: createHitResolution({ actionId: 'cost:3', castId: 'cost:3', caster, target: caster }) });
     expect(damageEvents).toBe(0);
     expect(caster.isAlive()).toBe(true);
   });
@@ -111,12 +112,12 @@ describe('主动技能气血成本', () => {
       }],
     }) as ActiveSkill;
     skill.setOwner(caster);
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => requests.push(event));
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>('DamageSegmentRequestedEvent', (event) => requests.push(event));
 
     skill.prepareCast({ caster, target });
     target.heal(target.getMaxHp());
-    skill.execute({ caster, target });
+    skill.execute({ caster, target, resolution: createHitResolution({ actionId: 'cost:4', castId: 'cost:4', caster, target }) });
     expect(requests[0].baseDamage).toBeCloseTo(Math.round(attack * 0.6) + attack * 0.2, 5);
   });
 });

@@ -1,8 +1,7 @@
 export { Buff, StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 export type {
-  DamageEvent,
-  DamageRequestEvent,
-  DamageTakenEvent,
+  DamageSegmentRequestedEvent,
+  DamageSegmentAppliedEvent,
   RoundPreEvent,
   SkillCastEvent,
 } from '@shared/engine/battle-v5/core/events';

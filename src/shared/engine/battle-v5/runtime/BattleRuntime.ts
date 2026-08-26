@@ -79,8 +79,8 @@ export class BattleRuntime {
     this.events.restoreCursor(cursor.events);
   }
 
-  /** Compatibility runtime for direct Unit construction in legacy callers. */
-  static readonly legacy = new BattleRuntime({
+  /** Shared runtime for standalone units that are not attached to a battle match. */
+  static readonly standalone = new BattleRuntime({
     events: EventBus.instance,
     random: { next: battleRandom },
     clock: EventBus.instance.clock,

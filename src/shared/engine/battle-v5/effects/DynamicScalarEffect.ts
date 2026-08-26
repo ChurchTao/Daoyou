@@ -1,5 +1,5 @@
 import { DynamicScalarParams } from '../core/configs';
-import { DamageRequestEvent } from '../core/events';
+import { DamageSegmentRequestedEvent } from '../core/events';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { EffectExecutionContextV3, GameplayEffect } from './Effect';
 
@@ -9,10 +9,10 @@ export class DynamicScalarEffect extends GameplayEffect {
   }
 
   execute(context: EffectExecutionContextV3): void {
-    if (!context.triggerEvent || context.triggerEvent.type !== 'DamageRequestEvent') {
+    if (!context.triggerEvent || context.triggerEvent.type !== 'DamageSegmentRequestedEvent') {
       return;
     }
-    const event = context.triggerEvent as DamageRequestEvent;
+    const event = context.triggerEvent as DamageSegmentRequestedEvent;
     const unit = this.params.mode === 'increase' ? context.caster : context.target;
     const percent =
       this.params.resource === 'hp' ? unit.getHpPercent() : unit.getMpPercent();

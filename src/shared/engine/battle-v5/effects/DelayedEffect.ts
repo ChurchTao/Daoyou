@@ -4,7 +4,7 @@ import { DelayedEffectParams } from '../core/configs';
 import { executeEffectConfigs } from '../core/effectExecutor';
 import {
   ActionPostEvent,
-  DamageTakenEvent,
+  DamageSegmentAppliedEvent,
   HealEvent,
   ShieldBreakEvent,
   ShieldEvent,
@@ -14,11 +14,13 @@ import { BuffType } from '../core/types';
 import { ValueCalculator } from '../core/ValueCalculator';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { CombatAttributionV3 } from '../v3/origin';
+import type { CombatResolutionContext } from '../core/resolution';
 import { EffectExecutionContextV3, GameplayEffect } from './Effect';
 
 export class DelayedRuntimeBuff extends Buff {
   private remainingTurns: number;
   private triggerCount = 0;
+  private resolution?: CombatResolutionContext;
 
   constructor(private params: DelayedEffectParams) {
     super(
@@ -35,6 +37,10 @@ export class DelayedRuntimeBuff extends Buff {
 
   getParams(): DelayedEffectParams {
     return this.params;
+  }
+
+  setResolution(resolution: CombatResolutionContext | undefined): void {
+    if (resolution) this.resolution = resolution;
   }
 
   restoreRuntimeState(remainingTurns: number, triggerCount: number): void {
@@ -57,6 +63,7 @@ export class DelayedRuntimeBuff extends Buff {
     cloned.restoreDuration(this.getDuration(), this.getMaxDuration());
     cloned.remainingTurns = this.remainingTurns;
     cloned.triggerCount = this.triggerCount;
+    cloned.resolution = this.resolution;
     return cloned;
   }
 
@@ -74,6 +81,7 @@ export class DelayedRuntimeBuff extends Buff {
       'ActionPostEvent',
       (event) => {
         if (event.caster !== this._owner) return;
+        this.resolution = event.resolution;
         this.remainingTurns -= 1;
         if (this.remainingTurns > 0) return;
         this.trigger();
@@ -103,6 +111,9 @@ export class DelayedRuntimeBuff extends Buff {
   private executeDelayedEffects(
     owner: EffectExecutionContextV3['target'],
   ): void {
+    if (!this.resolution) {
+      throw new Error(`Delayed buff ${this.id} requires an explicit combat resolution`);
+    }
     const attribution = this.getCombatAttributionV3();
     if (!attribution) {
       throw new Error(`Delayed buff ${this.id} has no CombatAttributionV3`);
@@ -114,6 +125,7 @@ export class DelayedRuntimeBuff extends Buff {
         caster: this._source ?? owner,
         target: owner,
         buff: this,
+        resolution: this.resolution,
       }),
     );
   }
@@ -122,8 +134,8 @@ export class DelayedRuntimeBuff extends Buff {
     const record = this.params.record;
     if (!record || !this._owner) return;
     if (record.event === 'damage_taken') {
-      this._subscribeEvent<DamageTakenEvent>(
-        'DamageTakenEvent',
+      this._subscribeEvent<DamageSegmentAppliedEvent>(
+        'DamageSegmentAppliedEvent',
         (event) => {
           if (event.target !== this._owner || !this._owner) return;
           rememberAmount(
@@ -237,6 +249,7 @@ export class DelayedEffect extends GameplayEffect {
         buff: context.buff,
         attribution: CombatAttributionV3.rebind(context.owner, context.origin),
         trace: context.trace,
+        resolution: context.resolution,
       },
     );
   }

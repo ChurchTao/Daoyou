@@ -345,7 +345,7 @@ describe('幽都战斗与展示投影', () => {
     expect(
       listeners.filter(
         (listener) =>
-          listener.budget?.group === 'sect.youdu.decree-control-response-fire',
+          listener.triggerPolicy?.group === 'sect.youdu.decree-control-response-fire',
       ),
     ).toHaveLength(4);
   });

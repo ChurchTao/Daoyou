@@ -84,7 +84,7 @@ export function initializeHeavySwordBuild(
           priority: 0,
           mapping: { caster: 'owner', target: 'owner' },
           guard: { skipSecondaryDamageSource: true },
-          budget: { maxTriggers: 1, reset: 'round' },
+          triggerPolicy: { maxTriggers: 1, granularity: 'round' },
           conditions: [
             {
               type: 'damage_source_is',

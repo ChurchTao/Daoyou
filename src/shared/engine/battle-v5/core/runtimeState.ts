@@ -10,6 +10,7 @@ import type {
   ActionStateView,
 } from './actionState';
 import { AbilityConfig, EffectConfig } from './configs';
+import type { DamageSource } from './types';
 
 export interface RuntimeMutationScopeV3 {
   attribution: CombatAttributionV3;
@@ -60,13 +61,17 @@ export interface BattleRuntimeState {
   activeEffectGuards: Set<string>;
   globalUniqueEffects: Map<string, object>;
   deathPreventTriggers: Set<string>;
+  /** The current damage stream is already covered by one death-prevent source. */
+  deathProtectedHit?: { hitId: string; damageSource?: DamageSource };
   deathCommitted: boolean;
   sequences: Map<string, number>;
   dealtDamageSinceLastCheck: boolean;
   removedBuffs: Buff[];
   actionSequence: number;
   round: number;
-  listenerTriggerBudgets: Map<string, { token: number; count: number }>;
+  triggerLedger: Map<string, { token: string; count: number }>;
+  /** Ephemeral segment allocation state; never serialized across checkpoints. */
+  damageSegmentCounters: Map<string, number>;
   skippedActions: SkippedActionRuntime[];
   queuedAction?: QueuedActionRuntime;
   abilityModes: Map<string, AbilityModeRuntime>;
@@ -91,9 +96,7 @@ export interface SerializableBattleRuntimeStateV1 {
   dealtDamageSinceLastCheck: boolean;
   actionSequence: number;
   round: number;
-  listenerTriggerBudgets: Array<
-    [string, { token: number; count: number }]
-  >;
+  triggerLedger: Array<[string, { token: string; count: number }]>;
   skippedActions: SkippedActionRuntime[];
   queuedAction?: QueuedActionRuntime;
   abilityModes: Array<[string, AbilityModeRuntime]>;
@@ -102,6 +105,24 @@ export interface SerializableBattleRuntimeStateV1 {
 
 export function getBattleRuntimeState(unit: Unit): BattleRuntimeState {
   return unit.runtime.states.getUnitState(unit);
+}
+
+export function markDeathProtectedHit(
+  unit: Unit,
+  hitId: string,
+  damageSource?: DamageSource,
+): void {
+  getBattleRuntimeState(unit).deathProtectedHit = { hitId, damageSource };
+}
+
+export function isDeathProtectedHit(
+  unit: Unit,
+  hitId: string,
+  damageSource?: DamageSource,
+): boolean {
+  const protectedHit = getBattleRuntimeState(unit).deathProtectedHit;
+  return protectedHit?.hitId === hitId &&
+    protectedHit.damageSource === damageSource;
 }
 
 export function queueSkippedActions(
@@ -512,7 +533,7 @@ export function exportBattleRuntimeState(
     dealtDamageSinceLastCheck: state.dealtDamageSinceLastCheck,
     actionSequence: state.actionSequence,
     round: state.round,
-    listenerTriggerBudgets: [...state.listenerTriggerBudgets].map(
+    triggerLedger: [...state.triggerLedger].map(
       ([key, value]) => [key, { ...value }],
     ),
     skippedActions: state.skippedActions.map((action) => ({ ...action })),
@@ -548,14 +569,16 @@ export function restoreBattleRuntimeState(
   state.counters = new Map(snapshot.counters);
   state.activeEffectGuards.clear();
   state.deathPreventTriggers = new Set(snapshot.deathPreventTriggers);
+  state.deathProtectedHit = undefined;
   state.deathCommitted = snapshot.deathCommitted ?? false;
   state.sequences = new Map(snapshot.sequences);
   state.dealtDamageSinceLastCheck = snapshot.dealtDamageSinceLastCheck;
   state.actionSequence = snapshot.actionSequence;
   state.round = snapshot.round;
-  state.listenerTriggerBudgets = new Map(
-    snapshot.listenerTriggerBudgets.map(([key, value]) => [key, { ...value }]),
+  state.triggerLedger = new Map(
+    snapshot.triggerLedger.map(([key, value]) => [key, { ...value }]),
   );
+  state.damageSegmentCounters = new Map();
   state.skippedActions = snapshot.skippedActions.map((action) => ({ ...action }));
   state.queuedAction = snapshot.queuedAction
     ? {

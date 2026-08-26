@@ -1,6 +1,6 @@
 import type { BuffConfig } from '@shared/engine/battle-v5/core/configs';
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
-import type { DamageRequestEvent } from '@shared/engine/battle-v5/core/events';
+import type { DamageSegmentRequestedEvent } from '@shared/engine/battle-v5/core/events';
 import {
   DamageSource,
   DamageType,
@@ -81,8 +81,8 @@ describe('红尘剑宗分层状态', () => {
         target.buffs.addBuff(BuffFactory.create(config), caster);
       }
       const request = (damageSource: DamageSource, damageType: DamageType) => {
-        const event: DamageRequestEvent = {
-          type: 'DamageRequestEvent',
+        const event: DamageSegmentRequestedEvent = {
+          type: 'DamageSegmentRequestedEvent',
           timestamp: Date.now(),
           caster,
           target,

@@ -206,7 +206,7 @@ describe('AffixRegistry tag validation', () => {
     ).not.toThrow();
   });
 
-  it('应拒绝 percent_damage_modifier 绑定到非 DamageRequestEvent', () => {
+  it('应拒绝 percent_damage_modifier 绑定到非 DamageSegmentRequestedEvent', () => {
     const registry = new AffixRegistry();
 
     expect(() =>
@@ -229,7 +229,7 @@ describe('AffixRegistry tag validation', () => {
           },
         }),
       ]),
-    ).toThrow("percent_damage_modifier must use listenerSpec.eventType 'DamageRequestEvent'");
+    ).toThrow("percent_damage_modifier must use listenerSpec.eventType 'DamageSegmentRequestedEvent'");
   });
 
   it('应拒绝 skill apply_buff 为非百分比属性使用 FIXED', () => {

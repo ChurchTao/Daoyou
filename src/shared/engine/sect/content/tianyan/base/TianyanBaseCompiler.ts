@@ -402,7 +402,7 @@ function oneUseDamageBuff(
           condition('ability_has_tag', { tag: landingTag }),
           condition('damage_source_is', { damageSource: DamageSource.DIRECT }),
         ],
-        budget: { maxTriggers: 1, reset: 'buff_lifetime' },
+        triggerPolicy: { maxTriggers: 1, granularity: 'buff_lifetime' },
         effects: [
           {
             type: 'percent_damage_modifier',
@@ -452,7 +452,7 @@ function nextReactionDamageBuff(
           condition('damage_source_is', { damageSource: DamageSource.DIRECT }),
           hasSealCondition(oldSeal),
         ],
-        budget: { maxTriggers: 1, reset: 'buff_lifetime' },
+        triggerPolicy: { maxTriggers: 1, granularity: 'buff_lifetime' },
         effects: [
           {
             type: 'percent_damage_modifier',
@@ -588,10 +588,11 @@ function followUp(
   reaction: TianyanReactionDefinition,
   ratio: number,
   element?: TianyanElement,
+  extraConditions: ConditionConfig[] = [],
 ): EffectConfig {
   return {
     type: 'damage_memory',
-    conditions: [condition('hp_above', { scope: 'target', value: 0 })],
+    conditions: [condition('hp_above', { scope: 'target', value: 0 }), ...extraConditions],
     params: {
       key: TIANYAN_MAIN_DAMAGE_MEMORY,
       mode: 'release',
@@ -674,7 +675,13 @@ function reactionEffects(
   switch (reaction.id) {
     case 'vaporize':
       return [
-        followUp(reaction, settings.vaporizeRatio),
+        followUp(reaction, settings.vaporizeRatio, undefined, [
+          condition('buff_layer_below', {
+            id: TIANYAN_BURN,
+            scope: 'target',
+            value: 1,
+          }),
+        ]),
         {
           type: 'damage',
           conditions: [
@@ -1789,7 +1796,7 @@ function runtimeListeners(settings: TianyanBuildSettings): ListenerConfig[] {
       priority: EventPriorityLevel.DAMAGE_TAKEN,
       mapping: { caster: 'owner', target: 'event.target' },
       guard: { skipSecondaryDamageSource: true },
-      budget: { maxTriggers: 1, reset: 'source_action' },
+      triggerPolicy: { maxTriggers: 1, granularity: 'action' },
       conditions: [
         condition('ability_has_tag', { tag: landingTag }),
         condition('damage_source_is', { damageSource: DamageSource.DIRECT }),
@@ -1815,7 +1822,7 @@ function runtimeListeners(settings: TianyanBuildSettings): ListenerConfig[] {
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: EventPriorityLevel.DAMAGE_TAKEN,
       mapping: { caster: 'owner', target: 'event.target' },
-      budget: { maxTriggers: 1, reset: 'round' },
+      triggerPolicy: { maxTriggers: 1, granularity: 'round' },
       guard: { skipSecondaryDamageSource: true },
       conditions: [
         condition('ability_has_tag', { tag: sectAbilityTag('primordial-ray') }),
@@ -1836,7 +1843,7 @@ function runtimeListeners(settings: TianyanBuildSettings): ListenerConfig[] {
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: EventPriorityLevel.ACTION_TRIGGER,
       mapping: { caster: 'owner', target: 'event.target' },
-      budget: { maxTriggers: 1, reset: 'round' },
+      triggerPolicy: { maxTriggers: 1, granularity: 'round' },
       conditions: [
         condition('ability_has_tag', { tag: sectAbilityTag('shift-palace') }),
       ],
@@ -1869,7 +1876,7 @@ function runtimeListeners(settings: TianyanBuildSettings): ListenerConfig[] {
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: EventPriorityLevel.ACTION_TRIGGER,
       mapping: { caster: 'owner', target: 'event.target' },
-      budget: { maxTriggers: 1, reset: 'source_action' },
+      triggerPolicy: { maxTriggers: 1, granularity: 'action' },
       conditions: [
         condition('source_has_tag', {
           tag: TIANYAN_ELEMENT_ABILITY_TAGS.wood,

@@ -1,5 +1,5 @@
 import { DamageImmunityParams } from '../core/configs';
-import { DamageEvent, DamageImmuneEvent } from '../core/events';
+import { DamageSegmentRequestedEvent, DamageImmuneEvent } from '../core/events';
 import { DamageType } from '../core/types';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
@@ -15,11 +15,11 @@ export class DamageImmunityEffect extends GameplayEffect {
 
   execute(context: EffectExecutionContextV3): void {
     const { triggerEvent, target } = context;
-    if (!triggerEvent || triggerEvent.type !== 'DamageEvent') {
+    if (!triggerEvent || triggerEvent.type !== 'DamageSegmentRequestedEvent') {
       return;
     }
 
-    const event = triggerEvent as DamageEvent;
+    const event = triggerEvent as DamageSegmentRequestedEvent;
     if (event.finalDamage <= 0) {
       return;
     }
@@ -53,7 +53,7 @@ export class DamageImmunityEffect extends GameplayEffect {
   }
 }
 
-function matchesDamageTag(event: DamageEvent, tag: string): boolean {
+function matchesDamageTag(event: DamageSegmentRequestedEvent, tag: string): boolean {
   if (tag === GameplayTags.ABILITY.CHANNEL.MAGIC) {
     return event.damageType === DamageType.MAGICAL;
   }

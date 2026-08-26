@@ -8,15 +8,8 @@
  * - 事件优先级决定执行顺序
  *
  * 统一伤害管道：
- * ┌─────────────────────────────────────────────────────────────────────┐
- * │  技能伤害: SkillCastEvent → HitCheckEvent → DamageRequestEvent     │
- * │  DOT伤害:  ActionPreEvent ─────────────────→ DamageRequestEvent     │
- * │  反伤等:   其他来源 ──────────────────────→ DamageRequestEvent     │
- * └─────────────────────────────────────────────────────────────────────┘
- *                              ↓
- *         DamageRequestEvent → [增伤修正] → [减伤/随机] → DamageEvent
- *                              ↓
- *         DamageEvent → [护盾/无敌响应] → 气血更新 → DamageTakenEvent
+ * AbilityCastStarted → HitResolved → DamageSegmentRequested
+ *   → DamageSegmentApplied → HitSettled
  */
 import { Ability } from '../abilities/Ability';
 import { Buff } from '../buffs/Buff';
@@ -38,6 +31,101 @@ import type {
   ActionStatePhase,
   ActionStateType,
 } from './actionState';
+import type { CombatResolutionContext } from './resolution';
+
+/** Events in the new action/cast/hit/segment resolution model. */
+export interface ResolutionEvent extends CombatEvent {
+  readonly resolution: CombatResolutionContext;
+}
+
+export interface ActionStartedEvent extends ResolutionEvent {
+  readonly type: 'ActionStartedEvent';
+  readonly actor: Unit;
+}
+
+export interface AbilityCastStartedEvent extends ResolutionEvent {
+  readonly type: 'AbilityCastStartedEvent';
+  readonly caster: Unit;
+  readonly target: Unit;
+  readonly ability: Ability;
+}
+
+export interface HitResolvedEvent extends ResolutionEvent {
+  readonly type: 'HitResolvedEvent';
+  readonly caster: Unit;
+  readonly target: Unit;
+  readonly ability: Ability;
+  readonly isHit: boolean;
+  readonly isDodged: boolean;
+  readonly isResisted: boolean;
+}
+
+export interface DamageSegmentRequestedEvent extends ResolutionEvent {
+  readonly type: 'DamageSegmentRequestedEvent';
+  readonly caster?: Unit;
+  readonly target: Unit;
+  readonly ability?: Ability;
+  readonly buff?: Buff;
+  readonly damageSource?: DamageSource;
+  readonly damageType?: DamageType;
+  readonly calculationMode?: DamageCalculationMode;
+  readonly cause?: LogCauseRef;
+  readonly damageTags?: string[];
+  readonly damageComponents?: DamageComponent[];
+  baseDamage: number;
+  finalDamage: number;
+  damageIncreasePctBucket?: number;
+  damageReductionPctBucket?: number;
+  forceCritical?: boolean;
+  canCrit?: boolean;
+  canLifesteal?: boolean;
+  isCritical?: boolean;
+  critMultiplier?: number;
+}
+
+export interface DamageSegmentAppliedEvent extends ResolutionEvent {
+  readonly type: 'DamageSegmentAppliedEvent';
+  readonly caster?: Unit;
+  readonly target: Unit;
+  readonly ability?: Ability;
+  readonly buff?: Buff;
+  readonly damageSource?: DamageSource;
+  readonly damageType?: DamageType;
+  readonly calculationMode?: DamageCalculationMode;
+  readonly cause?: LogCauseRef;
+  readonly damageTags?: string[];
+  readonly finalDamage: number;
+  readonly isCritical?: boolean;
+  readonly critMultiplier?: number;
+  readonly canLifesteal?: boolean;
+  readonly damageTaken: number;
+  readonly beforeHp: number;
+  readonly remainHp: number;
+  readonly shieldAbsorbed: number;
+  readonly remainShield: number;
+  readonly hpReachedZeroBeforeReactions: boolean;
+  readonly reflectSourceName?: string;
+}
+
+export interface HitSettledEvent extends ResolutionEvent {
+  readonly type: 'HitSettledEvent';
+  readonly caster: Unit;
+  readonly target: Unit;
+  readonly ability: Ability;
+  readonly segmentCount: number;
+}
+
+export interface AbilityCastSettledEvent extends ResolutionEvent {
+  readonly type: 'AbilityCastSettledEvent';
+  readonly caster: Unit;
+  readonly target: Unit;
+  readonly ability: Ability;
+}
+
+export interface ActionFinishedEvent extends ResolutionEvent {
+  readonly type: 'ActionFinishedEvent';
+  readonly actor: Unit;
+}
 
 // ===== 事件优先级枚举 =====
 // 数值越大优先级越高，越先执行
@@ -81,7 +169,7 @@ export interface SkillPreCastEvent extends CombatEvent {
   type: 'SkillPreCastEvent';
   caster: Unit;
   target: Unit;
-  /** Sealed team-cast targets. Absent for legacy single-target casts. */
+  /** Sealed team-cast targets. Omitted for a single-target cast. */
   targets?: Unit[];
   fallbackTarget?: Unit;
   ability: Ability;
@@ -165,56 +253,6 @@ export interface ControlResistEvent extends CombatEvent {
   target: Unit;
   ability?: Ability;
   buff: Buff;
-}
-
-// ===== 伤害请求事件 =====
-// 语义：请求造成伤害，进入统一伤害计算管道
-// 用途：增伤效果（如「毒术精通」）订阅此事件修正 finalDamage
-// 来源：技能伤害、DOT 伤害、反伤等所有伤害来源
-export interface DamageRequestEvent extends CombatEvent {
-  type: 'DamageRequestEvent';
-  caster?: Unit; // null 表示 DOT 伤害或环境伤害
-  target: Unit;
-  ability?: Ability; // null 表示非技能来源的伤害
-  buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
-  damageSource?: DamageSource;
-  damageType?: DamageType;
-  calculationMode?: DamageCalculationMode;
-  cause?: LogCauseRef;
-  damageTags?: string[];
-  damageComponents?: DamageComponent[];
-  /** 强制暴击；仍由 DamageSystem 读取施法者暴击倍率。 */
-  forceCritical?: boolean;
-  canCrit?: boolean;
-  canLifesteal?: boolean;
-  baseDamage: number; // 基础伤害（未修正）
-  finalDamage: number; // 最终伤害（可被增伤修正）
-  // 同乘区加算桶：同一次伤害事件内累加，统一在 DamageSystem 中一次结算
-  damageIncreasePctBucket?: number;
-  damageReductionPctBucket?: number;
-  isCritical?: boolean; // 是否暴击
-  critMultiplier?: number; // 暴击倍率
-}
-
-// ===== 伤害应用事件 =====
-// 语义：伤害即将应用到目标身上
-// 用途：护盾/无敌/伤害免疫效果订阅此事件拦截伤害
-// 注意：此事件由 DamageSystem 发布，不再由 DamageSystem 订阅
-export interface DamageEvent extends CombatEvent {
-  type: 'DamageEvent';
-  caster?: Unit; // null 表示 DOT 伤害或环境伤害
-  target: Unit;
-  ability?: Ability; // null 表示非技能来源的伤害
-  buff?: Buff; // 新增：记录来源 Buff
-  damageSource?: DamageSource;
-  damageType?: DamageType;
-  calculationMode?: DamageCalculationMode;
-  cause?: LogCauseRef;
-  damageTags?: string[];
-  finalDamage: number;
-  isCritical?: boolean; // 是否暴击
-  critMultiplier?: number; // 暴击倍率
-  canLifesteal?: boolean;
 }
 
 // ===== 法力护盾抵扣事件 =====
@@ -351,30 +389,6 @@ export interface DeathPreventEvent extends CombatEvent {
   sourceName?: string;
 }
 
-// ===== 受击事件 =====
-export interface DamageTakenEvent extends CombatEvent {
-  type: 'DamageTakenEvent';
-  caster?: Unit; // null 表示 DOT 伤害或环境伤害
-  target: Unit;
-  ability?: Ability; // null 表示非技能来源的伤害
-  buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
-  damageSource?: DamageSource;
-  damageType?: DamageType;
-  calculationMode?: DamageCalculationMode;
-  cause?: LogCauseRef;
-  damageTags?: string[];
-  reflectSourceName?: string;
-  damageTaken: number;
-  beforeHp: number;
-  remainHp: number;
-  shieldAbsorbed?: number; // 护盾抵扣值
-  remainShield?: number; // 剩余护盾值
-  hpReachedZeroBeforeReactions: boolean;
-  isCritical?: boolean; // 是否暴击
-  critMultiplier?: number; // 暴击倍率
-  canLifesteal?: boolean;
-}
-
 // ===== 标签添加事件 =====
 export interface TagAddedEvent extends CombatEvent {
   type: 'TagAddedEvent';
@@ -424,6 +438,7 @@ export interface BuffLayerChangedEvent extends CombatEvent {
   currentLayer: number;
   delta: number;
   reason: BuffLayerChangeReason;
+  readonly resolution?: CombatResolutionContext;
 }
 
 // ===== BUFF 移除事件 =====

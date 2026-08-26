@@ -2,18 +2,20 @@ import { getRealmDamagePressureMultiplier } from '@shared/config/realmProgressio
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { battleRandom, type BattleRandomSource } from '../core/BattleRandom';
 import { EventBus } from '../core/EventBus';
+import { BattleResolutionError } from '../core/BattleResolutionError';
 import {
-  DamageEvent,
-  DamageRequestEvent,
-  DamageTakenEvent,
+  DamageSegmentAppliedEvent,
+  DamageSegmentRequestedEvent,
   DodgeEvent,
   EventPriorityLevel,
   HitCheckEvent,
   ShieldBreakEvent,
   SkillCastEvent,
+  HitResolvedEvent,
 } from '../core/events';
 import {
   hasCommittedDeath,
+  isDeathProtectedHit,
   markDamageDealt,
   markDeathCommitted,
 } from '../core/runtimeState';
@@ -26,26 +28,23 @@ import {
 import { CombatResultEmitterV3 } from '../v3/CombatResultEmitterV3';
 import { CombatAttributionV3 } from '../v3/origin';
 import { calculateSpiritualRootDamageMultiplier } from './spiritualRootResonance';
+import { requireResolution } from '../core/resolution';
 
 /**
  * DamageSystem - 伤害系统
  *
  * EDA 架构设计：
- * - 订阅 SkillCastEvent，执行命中判定，发布 DamageRequestEvent
- * - 订阅 DamageRequestEvent，执行减伤计算，发布 DamageEvent 并直接应用伤害
- * - 不订阅 DamageEvent（避免循环），由 _onDamageRequest 直接调用 _updateTargetHealth
+ * - 订阅 SkillCastEvent，执行命中判定，发布 DamageSegmentRequestedEvent
+ * - 订阅 DamageSegmentRequestedEvent，先完成数值结算，再由较低优先级处理最终应用
  *
  * 统一伤害管道：
  * ┌─────────────────────────────────────────────────────────────────────┐
- * │  技能伤害: SkillCastEvent → HitCheckEvent → DamageRequestEvent     │
- * │  DOT伤害:  ActionPreEvent ─────────────────→ DamageRequestEvent     │
- * │  反伤等:   其他来源 ──────────────────────→ DamageRequestEvent     │
+ * │  技能伤害: SkillCastEvent → HitCheckEvent → DamageSegmentRequestedEvent     │
+ * │  DOT伤害:  ActionPreEvent ─────────────────→ DamageSegmentRequestedEvent     │
+ * │  反伤等:   其他来源 ──────────────────────→ DamageSegmentRequestedEvent     │
  * └─────────────────────────────────────────────────────────────────────┘
  *                              ↓
- *         DamageRequestEvent → [增伤修正] → [灵根共鸣/减伤/随机] → DamageEvent
- *                              ↓
- *         DamageEvent → [护盾/免疫响应] → 气血更新 → DamageTakenEvent
- *                    （其他系统订阅）      （本系统直接调用）
+ *         DamageSegmentRequestedEvent → [数值结算] → [护盾/免疫响应] → 气血更新 → DamageSegmentAppliedEvent
  */
 export class DamageSystem {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -69,26 +68,37 @@ export class DamageSystem {
     );
     this._handlers.set('SkillCastEvent', skillCastHandler);
 
-    // 2. 订阅伤害请求事件，执行减伤、随机浮动和伤害应用
-    // 注意：不再订阅 DamageEvent，避免循环
-    const damageRequestHandler = (event: DamageRequestEvent) =>
-      this._onDamageRequest(event);
-    this.eventBus.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    // 2. 第一阶段完成减伤、随机浮动等数值结算。
+    const damageRequestHandler = (event: DamageSegmentRequestedEvent) =>
+      this._onDamageRequestCalculate(event);
+    this.eventBus.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       damageRequestHandler,
       EventPriorityLevel.DAMAGE_REQUEST,
     );
-    this._handlers.set('DamageRequestEvent', damageRequestHandler);
+    this._handlers.set('DamageSegmentRequestedEvent', damageRequestHandler);
+
+    // 3. 第二阶段低于 DAMAGE_APPLY 拦截监听器，允许免疫、魔法盾等
+    //    监听器直接修改同一个 RequestedEvent；不再引入 Prepared 事件。
+    const damageApplyHandler = (event: DamageSegmentRequestedEvent) =>
+      this._onDamageApply(event);
+    this.eventBus.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
+      damageApplyHandler,
+      EventPriorityLevel.DAMAGE_APPLY - 1,
+    );
+    this._handlers.set('DamageSegmentRequestedEvent:apply', damageApplyHandler);
   }
 
   // ==================== 技能伤害流程 ====================
 
   /**
    * 响应技能释放事件，执行命中判定
-   * 流程：SkillCastEvent → HitCheckEvent → DamageRequestEvent
+   * 流程：SkillCastEvent → HitCheckEvent → DamageSegmentRequestedEvent
    */
   private _onSkillCast(event: SkillCastEvent): void {
     const { caster, target, ability } = event;
+    const resolution = requireResolution(event);
 
     const hitCheckEvent: HitCheckEvent = {
       type: 'HitCheckEvent',
@@ -96,6 +106,7 @@ export class DamageSystem {
       caster,
       target,
       ability,
+      resolution,
       isHit: true,
       isDodged: false,
       isResisted: false,
@@ -127,6 +138,18 @@ export class DamageSystem {
     // 发布命中判定事件
     const publishedHitCheck = this.eventBus.publish(hitCheckEvent);
 
+    this.eventBus.publish<HitResolvedEvent>({
+      type: 'HitResolvedEvent',
+      timestamp: caster.runtime.clock.now(),
+      caster,
+      target,
+      ability,
+      isHit: hitCheckEvent.isHit,
+      isDodged: hitCheckEvent.isDodged,
+      isResisted: hitCheckEvent.isResisted,
+      resolution,
+    });
+
     if (hitCheckEvent.isDodged) {
       const attribution = CombatAttributionV3.owned(target, {
         kind: 'mechanic',
@@ -146,6 +169,7 @@ export class DamageSystem {
         caster,
         target,
         ability,
+        resolution,
       });
     }
 
@@ -155,7 +179,7 @@ export class DamageSystem {
     event.isDodged = hitCheckEvent.isDodged;
     event.isResisted = hitCheckEvent.isResisted;
 
-    // 命中判定逻辑结束。不再此处自动发布 DamageRequestEvent。
+    // 命中判定逻辑结束。不再此处自动发布 DamageSegmentRequestedEvent。
     // 具体的伤害效果由 Ability 的效果链 (GameplayEffect) 主动发布。
   }
 
@@ -174,7 +198,7 @@ export class DamageSystem {
    * ⑥ 随机浮动 (0.9~1.1)
    * ⑦ 最小伤害保证 + 四舍五入
    */
-  private _onDamageRequest(event: DamageRequestEvent): void {
+  private _onDamageRequestCalculate(event: DamageSegmentRequestedEvent): void {
     if (!event.target.isAlive()) {
       return;
     }
@@ -185,7 +209,6 @@ export class DamageSystem {
 
     if (event.calculationMode === 'resolved_final') {
       event.finalDamage = Math.max(1, Math.round(event.finalDamage));
-      this._applyResolvedDamage(event, damageType);
       return;
     }
 
@@ -286,39 +309,14 @@ export class DamageSystem {
     // ===== ⑧ 最小伤害保证（避免0伤害）并四舍五入 =====
     event.finalDamage = Math.max(1, Math.round(event.finalDamage));
 
-    this._applyResolvedDamage(event, damageType);
   }
 
-  private _applyResolvedDamage(
-    event: DamageRequestEvent,
-    damageType: DamageType,
-  ): void {
-    // 发布伤害应用事件（供护盾/无敌效果订阅）
-    const damageEvent: DamageEvent = {
-      type: 'DamageEvent',
-      timestamp: event.target.runtime.clock.now(),
-      caster: event.caster,
-      target: event.target,
-      ability: event.ability,
-      buff: event.buff,
-      damageSource: event.damageSource,
-      damageType,
-      calculationMode: event.calculationMode,
-      cause: event.cause,
-      damageTags: event.damageTags,
-      finalDamage: event.finalDamage,
-      isCritical: event.isCritical,
-      critMultiplier: event.critMultiplier,
-      canLifesteal: event.canLifesteal,
-    };
-
-    this.eventBus.publish(damageEvent);
-
-    // 直接应用伤害（不再通过订阅 DamageEvent）
-    this._updateTargetHealth(damageEvent, damageType);
+  private _onDamageApply(event: DamageSegmentRequestedEvent): void {
+    if (!event.target.isAlive() || event.finalDamage <= 0) return;
+    this._updateTargetHealth(event, this._resolveDamageType(event));
   }
 
-  private _resolveDamageType(event: DamageRequestEvent): DamageType {
+  private _resolveDamageType(event: DamageSegmentRequestedEvent): DamageType {
     if (event.damageType) return event.damageType;
 
     const tags = event.ability?.tags || event.buff?.tags;
@@ -339,7 +337,7 @@ export class DamageSystem {
   }
 
   private _applyDefense(
-    event: DamageRequestEvent,
+    event: DamageSegmentRequestedEvent,
     preMitigationDamage: number,
     effectiveDef: number,
   ): number {
@@ -375,15 +373,9 @@ export class DamageSystem {
         return sum + afterDefense * multiplier;
       }
 
-      // 旧伤害事件兼容：历史生产方仍可读取 defenseScale，但新代码不得写入。
-      const legacyAmount = component.amount * scale;
-      const legacyDefenseScale = Math.max(0, component.defenseScale ?? 1);
-      return (
-        sum +
-        this._applySmoothDefense(
-          legacyAmount,
-          effectiveDef * legacyDefenseScale,
-        )
+      throw new BattleResolutionError(
+        'BATTLE_DAMAGE_COMPONENT_INVALID',
+        `Damage component ${component.kind} is missing attackBase/segmentMultiplier`,
       );
     }, 0);
   }
@@ -398,7 +390,7 @@ export class DamageSystem {
     return (attack * attack) / (attack + defense);
   }
 
-  private _getRealmDamageMultiplier(event: DamageRequestEvent): number {
+  private _getRealmDamageMultiplier(event: DamageSegmentRequestedEvent): number {
     const attackerRank = event.caster?.getRealmMeta().realmRank;
     const defenderRank = event.target.getRealmMeta().realmRank;
     if (attackerRank === undefined || defenderRank === undefined) {
@@ -413,7 +405,7 @@ export class DamageSystem {
    * 更新目标气血，发布受击事件
    */
   private _updateTargetHealth(
-    damageEvent: DamageEvent,
+    damageEvent: DamageSegmentRequestedEvent,
     damageType: DamageType,
   ): void {
     const {
@@ -466,8 +458,18 @@ export class DamageSystem {
     }
 
     // 2. 应用剩余伤害到气血
-    target.takeDamage(remainingDamage);
+    const protectedHit = damageEvent.resolution?.hitId !== undefined &&
+      isDeathProtectedHit(
+        target,
+        damageEvent.resolution.hitId,
+        damageEvent.damageSource,
+      );
+    const hpDamage = protectedHit
+      ? Math.min(remainingDamage, Math.max(0, beforeHp - 1))
+      : remainingDamage;
+    target.takeDamage(hpDamage);
     const actualHpDamage = Math.max(0, beforeHp - target.getCurrentHp());
+    if (actualHpDamage + absorbedAmount <= 0) return;
     if (actualHpDamage + absorbedAmount > 0) {
       markDamageDealt(caster);
       if (damageEvent.damageSource === DamageSource.DIRECT) {
@@ -482,8 +484,8 @@ export class DamageSystem {
       parentEventId: parentTrace.eventId,
     });
     this.eventBus.runInCausalContext({ origin, trace: parentTrace }, () =>
-      this.eventBus.publish<DamageTakenEvent>({
-        type: 'DamageTakenEvent',
+      this.eventBus.publishImmutable<DamageSegmentAppliedEvent>({
+        type: 'DamageSegmentAppliedEvent',
         timestamp: target.runtime.clock.now(),
         caster,
         target,
@@ -494,6 +496,7 @@ export class DamageSystem {
         calculationMode: damageEvent.calculationMode,
         cause: damageEvent.cause,
         damageTags: damageEvent.damageTags,
+        finalDamage: damageEvent.finalDamage,
         reflectSourceName:
           damageEvent.damageSource === DamageSource.REFLECT
             ? caster?.name
@@ -509,6 +512,7 @@ export class DamageSystem {
         canLifesteal,
         trace: damageTakenTrace,
         origin,
+        resolution: damageEvent.resolution,
       }),
     );
 
@@ -547,7 +551,7 @@ export class DamageSystem {
    */
   destroy(): void {
     for (const [eventType, handler] of this._handlers) {
-      this.eventBus.unsubscribe(eventType, handler);
+      this.eventBus.unsubscribe(eventType.split(':', 1)[0], handler);
     }
     this._handlers.clear();
   }

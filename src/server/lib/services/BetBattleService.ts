@@ -26,6 +26,7 @@ import { MailAttachment, MailService } from './MailService';
 import { simulateBattleV5 } from './simulateBattleV5';
 
 const BATTLE_DURATION_HOURS = 48;
+export const MAX_BET_BATTLE_SPIRIT_STONES = 5_000_000;
 
 export type BetStakeItemType = 'material' | 'artifact' | 'consumable';
 export type BetStakeType = 'spirit_stones' | 'item';
@@ -600,6 +601,15 @@ export async function createBetBattle(
 
   validateExclusiveStake(input.stakeType, spiritStones, stakeItem);
   assertConsumableStakeAllowed(stakeItem);
+  if (
+    input.stakeType === 'spirit_stones' &&
+    spiritStones > MAX_BET_BATTLE_SPIRIT_STONES
+  ) {
+    throw new BetBattleServiceError(
+      BetBattleError.INVALID_STAKE,
+      `单次赌战押注灵石不能超过 ${MAX_BET_BATTLE_SPIRIT_STONES} 枚`,
+    );
+  }
   validateRealmRange(input.minRealm, input.maxRealm);
 
   // 分布式锁由 API/Application 层统一获取。

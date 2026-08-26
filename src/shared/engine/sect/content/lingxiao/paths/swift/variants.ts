@@ -276,7 +276,7 @@ export function buildSwiftAbilities(
             scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
             priority: 0,
             mapping: { caster: 'owner', target: 'event.caster' },
-            budget: { maxTriggers: 1, reset: 'buff_lifetime' },
+            triggerPolicy: { maxTriggers: 1, granularity: 'buff_lifetime' },
             effects: [
               damage(
                 features.returningSwallow
@@ -337,7 +337,7 @@ export function buildSwiftAbilities(
             scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
             priority: 0,
             mapping: { caster: 'owner', target: 'owner' },
-            budget: { maxTriggers: 1, reset: 'buff_lifetime' },
+            triggerPolicy: { maxTriggers: 1, granularity: 'buff_lifetime' },
             effects: [sectEffects.modifyResource(resourceId, 1)],
           },
         ],

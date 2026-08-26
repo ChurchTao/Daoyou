@@ -1,6 +1,6 @@
 import { Buff, StackRule } from '../../buffs/Buff';
 import { EventBus } from '../../core/EventBus';
-import { DamageTakenEvent } from '../../core/events';
+import { DamageSegmentAppliedEvent } from '../../core/events';
 import { BuffType } from '../../core/types';
 import { BuffContainer } from '../../units/BuffContainer';
 import { Unit } from '../../units/Unit';
@@ -256,7 +256,7 @@ describe('BuffContainer', () => {
 
       onActivate(): void {
         super.onActivate();
-        this._subscribeEvent<DamageTakenEvent>('DamageTakenEvent', (e) => {
+        this._subscribeEvent<DamageSegmentAppliedEvent>('DamageSegmentAppliedEvent', (e) => {
           if (e.target === this._owner) {
             reflectDamage += e.damageTaken * 0.2; // 反伤 20%
           }
@@ -268,8 +268,8 @@ describe('BuffContainer', () => {
     container.addBuff(buff);
 
     // 模拟受击事件
-    EventBus.instance.publish<DamageTakenEvent>({
-      type: 'DamageTakenEvent',
+    EventBus.instance.publish<DamageSegmentAppliedEvent>({
+      type: 'DamageSegmentAppliedEvent',
       timestamp: Date.now(),
       target: owner,
       damageTaken: 100,
@@ -282,8 +282,8 @@ describe('BuffContainer', () => {
 
     // 移除 Buff 后不应再触发
     container.removeBuff('reflect');
-    EventBus.instance.publish<DamageTakenEvent>({
-      type: 'DamageTakenEvent',
+    EventBus.instance.publish<DamageSegmentAppliedEvent>({
+      type: 'DamageSegmentAppliedEvent',
       timestamp: Date.now(),
       target: owner,
       damageTaken: 100,

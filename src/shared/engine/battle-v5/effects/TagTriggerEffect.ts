@@ -56,7 +56,7 @@ export class TagTriggerEffect extends GameplayEffect {
     if (this.params.effects && this.params.effects.length > 0) {
       executeEffectConfigs(this.params.effects, narrativeContext);
     } else {
-      // Legacy fallback: old tag_trigger implied a fixed Spirit-scaling damage hit.
+      // Default payload for a tag trigger without an explicit effect list.
       const damageEffect = new DamageEffect({
         value: {
           base: 50,

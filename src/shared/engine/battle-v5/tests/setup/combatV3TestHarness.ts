@@ -1,5 +1,5 @@
 import { EventBus } from '../../core/EventBus';
-import type { DamageRequestEvent } from '../../core/events';
+import type { DamageSegmentRequestedEvent } from '../../core/events';
 import type { CombatResultCommittedEventV3 } from '../../v3/events';
 import { CombatV3EventType } from '../../v3/events';
 import { combatCarrierFromAbilityV3 } from '../../v3/origin';
@@ -44,7 +44,7 @@ export function runTestActionV3<T>(actor: Unit, callback: () => T): T {
   );
 }
 
-export function publishTestDamageRequest(event: DamageRequestEvent): void {
+export function publishTestDamageRequest(event: DamageSegmentRequestedEvent): void {
   const origin: CombatOriginV3 = event.ability
     ? {
         kind: 'owned',

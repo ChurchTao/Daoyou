@@ -408,7 +408,7 @@ function forgetfulRiverBuff(settings: YouduBuildSettings): BuffConfig {
             scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
             priority: EventPriorityLevel.DAMAGE_TAKEN,
             mapping: { caster: 'event.caster', target: 'owner' },
-            budget: { maxTriggers: 1, reset: 'round' as const },
+            triggerPolicy: { maxTriggers: 1, granularity: 'round' as const },
             conditions: [
               condition('source_has_tag', { tag: forgetTag }),
               condition('damage_source_is', { damageSource: DamageSource.DELAYED }),
@@ -424,7 +424,7 @@ function forgetfulRiverBuff(settings: YouduBuildSettings): BuffConfig {
             scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
             priority: EventPriorityLevel.DAMAGE_TAKEN,
             mapping: { caster: 'event.caster', target: 'owner' },
-            budget: { maxTriggers: 1, reset: 'round' as const },
+            triggerPolicy: { maxTriggers: 1, granularity: 'round' as const },
             conditions: [
               condition('source_has_tag', { tag: forgetTag }),
               condition('damage_source_is', { damageSource: DamageSource.DELAYED }),
@@ -448,9 +448,9 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: YOUDU_LAYER_PRIORITY.SOUL_FIRE_GAIN,
       mapping: { caster: 'event.source', target: 'owner' },
-      budget: {
+      triggerPolicy: {
         maxTriggers: 1,
-        reset: 'source_action',
+        granularity: 'action',
         group: 'sect.youdu.erosion-gain-soul-fire',
       },
       conditions: [
@@ -467,9 +467,9 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: YOUDU_LAYER_PRIORITY.SOUL_FIRE_GAIN,
       mapping: { caster: 'event.source', target: 'owner' },
-      budget: {
+      triggerPolicy: {
         maxTriggers: 1,
-        reset: 'source_action',
+        granularity: 'action',
         group: 'sect.youdu.erosion-gain-soul-fire',
       },
       conditions: [
@@ -490,7 +490,7 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
           scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
           priority: 190,
           mapping: { caster: 'event.source', target: 'owner' },
-          budget: { maxTriggers: 1, reset: 'battle' as const },
+          triggerPolicy: { maxTriggers: 1, granularity: 'battle' as const },
           conditions: [condition('buff_layer_change', {
             tag: erosionTag, eventField: 'delta', op: 'gt', value: 0,
           })],
@@ -611,7 +611,7 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: 100,
       mapping: { caster: 'event.source', target: 'owner' },
-      budget: { maxTriggers: 1, reset: 'action' },
+      triggerPolicy: { maxTriggers: 1, granularity: 'action' },
       conditions: [condition('buff_layer_change', {
         tag: erosionTag,
         reason: 'dispel',
@@ -651,8 +651,8 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: YOUDU_LAYER_PRIORITY.FIFTH_LAYER_NODE,
       mapping: { caster: 'event.source', target: 'owner' },
-      budget: settings.hundredGhosts
-        ? { maxTriggers: 1, reset: 'battle' }
+      triggerPolicy: settings.hundredGhosts
+        ? { maxTriggers: 1, granularity: 'battle' }
         : undefined,
       conditions: [
         condition('buff_layer_change', {
@@ -676,7 +676,7 @@ function soulErosionBuff(settings: YouduBuildSettings): BuffConfig {
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: 300,
       mapping: { caster: 'event.source', target: 'owner' },
-      budget: { maxTriggers: 1, reset: 'battle' },
+      triggerPolicy: { maxTriggers: 1, granularity: 'battle' },
       conditions: [
         condition('buff_layer_change', {
           tag: erosionTag, eventField: 'previousLayer', op: 'lt', value: 4,
@@ -901,7 +901,7 @@ function compileRuntime(
     scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
     priority: EventPriorityLevel.HIT_CHECK,
     mapping: { caster: 'owner', target: 'event.target' },
-    budget: { maxTriggers: 1, reset: 'source_action' },
+    triggerPolicy: { maxTriggers: 1, granularity: 'action' },
     conditions: [
       condition('combat_resource_at_least', {
         scope: 'caster', resourceId: YOUDU_SOUL_FIRE, value: 3,
@@ -926,9 +926,9 @@ function compileRuntime(
         scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
         priority: EventPriorityLevel.BUFF_INTERCEPT + 1,
         mapping: { caster: 'owner', target: 'owner' },
-        budget: {
+        triggerPolicy: {
           maxTriggers: 1,
-          reset: 'round',
+          granularity: 'round',
           group: 'sect.youdu.decree-control-response-fire',
         },
         conditions: [
@@ -944,9 +944,9 @@ function compileRuntime(
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: EventPriorityLevel.POST_SETTLE,
       mapping: { caster: 'owner', target: 'owner' },
-      budget: {
+      triggerPolicy: {
         maxTriggers: 1,
-        reset: 'round',
+        granularity: 'round',
         group: 'sect.youdu.decree-control-response-fire',
       },
       effects: [gainSoulFire()],
@@ -959,7 +959,7 @@ function compileRuntime(
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: EventPriorityLevel.POST_SETTLE,
       mapping: { caster: 'owner', target: 'event.target' },
-      budget: { maxTriggers: 1, reset: 'battle' },
+      triggerPolicy: { maxTriggers: 1, granularity: 'battle' },
       conditions: [
         condition('is_hit', {}),
         condition('ability_has_exact_tag', { tag: erosionGeneratorTag }),

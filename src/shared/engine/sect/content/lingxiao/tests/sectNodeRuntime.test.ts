@@ -3,7 +3,7 @@ import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
 import type {
   ActionPostEvent,
-  DamageRequestEvent,
+  DamageSegmentRequestedEvent,
   DodgeEvent,
 } from '@shared/engine/battle-v5/core/events';
 import { consumeQueuedAction } from '@shared/engine/battle-v5/core/runtimeState';
@@ -20,10 +20,25 @@ import { publishTestDamageRequest } from '@shared/engine/battle-v5/tests/setup/c
 import { executeTestEffect } from '@shared/engine/battle-v5/tests/setup/executeTestEffect';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
+import { createHitResolution } from '@shared/engine/battle-v5/core/resolution';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LINGXIAO_SWORD_MOMENTUM } from '..';
 import { projectSectCombat, resolveSectAbility } from '../..';
 import type { CultivatorSectState } from '../../../core';
+
+function executeSkill(skill: ActiveSkill, caster: Unit, target: Unit, shouldApplyEffects?: boolean): void {
+  skill.execute({
+    caster,
+    target,
+    shouldApplyEffects,
+    resolution: createHitResolution({
+      actionId: `${caster.id}:lingxiao-test`,
+      castId: `${skill.id}:lingxiao-test`,
+      caster,
+      target,
+    }),
+  });
+}
 
 function sectState(
   pathId: 'swift-sword' | 'heavy-sword',
@@ -103,7 +118,7 @@ describe('红尘剑宗参悟运行时语义', () => {
     const linked = owner.abilities.getAbility(
       'sect.lingxiao.linked-edge',
     ) as ActiveSkill;
-    linked.execute({ caster: owner, target: enemy });
+    executeSkill(linked, owner, enemy);
     expect(
       enemy.buffs
         .getAllBuffs()
@@ -158,6 +173,7 @@ describe('红尘剑宗参悟运行时语义', () => {
         caster: enemy,
         target: owner,
         ability: AbilityFactory.create(turning),
+        resolution: createHitResolution({ actionId: 'lingxiao:dodge:1', castId: 'lingxiao:dodge:1', caster: enemy, target: owner }),
       });
 
     dodge();
@@ -191,8 +207,8 @@ describe('红尘剑宗参悟运行时语义', () => {
       resolveSectAbility({ sect, realm: '化神', abilityId: 'sect-ultimate' })
         .config,
     );
-    const request: DamageRequestEvent = {
-      type: 'DamageRequestEvent',
+    const request: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: owner,
       target: enemy,
@@ -211,8 +227,8 @@ describe('红尘剑宗参悟运行时语义', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const { owner, enemy } = install('heavy-sword', ['heavy-hidden-weight']);
     const damageSystem = new DamageSystem();
-    const request = (): DamageRequestEvent => ({
-      type: 'DamageRequestEvent',
+    const request = (): DamageSegmentRequestedEvent => ({
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: enemy,
       target: owner,
@@ -241,7 +257,7 @@ describe('红尘剑宗参悟运行时语义', () => {
         .config,
     ) as ActiveSkill;
 
-    turning.execute({ caster: owner, target: enemy });
+    executeSkill(turning, owner, enemy);
 
     expect(owner.buffs.getAllBuffIds()).toContain(
       'sect.lingxiao.heavy.hidden-edge',
@@ -258,11 +274,7 @@ describe('红尘剑宗参悟运行时语义', () => {
     ) as ActiveSkill;
     const hpBefore = enemy.getCurrentHp();
 
-    turning.execute({
-      caster: owner,
-      target: enemy,
-      shouldApplyEffects: false,
-    });
+    executeSkill(turning, owner, enemy, false);
 
     expect(enemy.getCurrentHp()).toBe(hpBefore);
     expect(owner.buffs.getAllBuffIds()).not.toContain(
@@ -278,11 +290,7 @@ describe('红尘剑宗参悟运行时语义', () => {
         resolveSectAbility({ sect, realm: '化神', abilityId: 'turning-body' })
           .config,
       ) as ActiveSkill;
-      turning.execute({
-        caster: owner,
-        target: enemy,
-        shouldApplyEffects: false,
-      });
+      executeSkill(turning, owner, enemy, false);
       expect(consumeQueuedAction(owner)?.ability.name).toBe('听雷');
       expect(owner.buffs.getAllBuffIds()).toContain(
         'sect.lingxiao.heavy.hidden-edge',
@@ -301,11 +309,7 @@ describe('红尘剑宗参悟运行时语义', () => {
       resolveSectAbility({ sect, realm: '化神', abilityId: 'turning-body' })
         .config,
     ) as ActiveSkill;
-    turning.execute({
-      caster: owner,
-      target: enemy,
-      shouldApplyEffects: false,
-    });
+    executeSkill(turning, owner, enemy, false);
     expect(consumeQueuedAction(owner)?.ability.name).toBe('听雷');
   });
 
@@ -315,11 +319,7 @@ describe('红尘剑宗参悟运行时语义', () => {
       const ability = AbilityFactory.create(
         resolveSectAbility({ sect, realm: '化神', abilityId }).config,
       ) as ActiveSkill;
-      ability.execute({
-        caster: owner,
-        target: enemy,
-        shouldApplyEffects: false,
-      });
+      executeSkill(ability, owner, enemy, false);
     }
     expect(owner.getCurrentShield()).toBe(0);
     expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(0);
@@ -339,11 +339,7 @@ describe('红尘剑宗参悟运行时语义', () => {
       resolveSectAbility({ sect, realm: '化神', abilityId: 'breaking-edge' })
         .config,
     ) as ActiveSkill;
-    breaking.execute({
-      caster: owner,
-      target: enemy,
-      shouldApplyEffects: false,
-    });
+    executeSkill(breaking, owner, enemy, false);
     expect(enemy.buffs.getAllBuffIds()).toContain('test.positive');
   });
 
@@ -361,16 +357,17 @@ describe('红尘剑宗参悟运行时语义', () => {
           caster: enemy,
           target: owner,
           ability,
+          resolution: createHitResolution({ actionId: 'lingxiao:dodge:2', castId: 'lingxiao:dodge:2', caster: enemy, target: owner }),
         });
 
-      ability.execute({ caster: owner, target });
+      executeSkill(ability, owner, target);
       const modifiedEvasion = owner.attributes.getValue(
         AttributeType.EVASION_RATE,
       );
       dodge();
       expect(owner.combatResources.getCurrent(LINGXIAO_SWORD_MOMENTUM)).toBe(1);
 
-      ability.execute({ caster: owner, target });
+      executeSkill(ability, owner, target);
       expect(owner.attributes.getValue(AttributeType.EVASION_RATE)).toBeCloseTo(
         modifiedEvasion,
       );

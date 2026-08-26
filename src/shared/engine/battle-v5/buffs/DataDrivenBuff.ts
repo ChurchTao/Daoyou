@@ -182,6 +182,7 @@ export class DataDrivenBuff extends Buff {
       target: resolved.target,
       triggerEvent: event, // 关键：注入触发事件
       buff: this,
+      resolution: event.resolution,
     });
 
     for (const { effect } of effects) {
@@ -216,8 +217,8 @@ export class DataDrivenBuff extends Buff {
           ...listener.runtime,
           mapping: { ...listener.runtime.mapping },
           guard: { ...listener.runtime.guard },
-          budget: listener.runtime.budget
-            ? { ...listener.runtime.budget }
+          triggerPolicy: listener.runtime.triggerPolicy
+            ? { ...listener.runtime.triggerPolicy }
             : undefined,
           conditions: listener.runtime.conditions?.map((condition) => ({
             ...condition,

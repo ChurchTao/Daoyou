@@ -360,8 +360,8 @@ function shouldOmitListenerText(
   if (!isSpecificDamageCondition) return false;
 
   return (
-    listenerSpec.eventType === 'DamageRequestEvent' ||
-    listenerSpec.eventType === 'DamageTakenEvent'
+    listenerSpec.eventType === 'DamageSegmentRequestedEvent' ||
+    listenerSpec.eventType === 'DamageSegmentAppliedEvent'
   );
 }
 

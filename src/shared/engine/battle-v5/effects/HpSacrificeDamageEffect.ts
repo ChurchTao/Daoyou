@@ -1,6 +1,7 @@
 import { HpSacrificeDamageParams } from '../core/configs';
-import { DamageRequestEvent } from '../core/events';
+import { DamageSegmentRequestedEvent } from '../core/events';
 import { DamageSource, DamageType } from '../core/types';
+import { requireResolution } from '../core/resolution';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { CombatMechanicCodeV3 } from '../v3/mechanics';
 import { EffectExecutionContextV3, GameplayEffect } from './Effect';
@@ -31,8 +32,9 @@ export class HpSacrificeDamageEffect extends GameplayEffect {
     });
     const damage = Math.round(spend * this.params.damagePerHp);
     if (damage <= 0) return;
-    context.emit<DamageRequestEvent>({
-      type: 'DamageRequestEvent',
+    context.emit<DamageSegmentRequestedEvent>({
+      type: 'DamageSegmentRequestedEvent',
+      resolution: requireResolution(context),
       timestamp: context.owner.runtime.clock.now(),
       caster: context.caster,
       target: context.target,

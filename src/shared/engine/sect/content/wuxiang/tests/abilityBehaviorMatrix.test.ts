@@ -1,10 +1,11 @@
 import type { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill';
 import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
-import type { AbilityCostPaidEvent, DamageRequestEvent } from '@shared/engine/battle-v5/core/events';
+import type { AbilityCostPaidEvent, DamageSegmentRequestedEvent } from '@shared/engine/battle-v5/core/events';
 import { readAbilityMode, setAbilityMode } from '@shared/engine/battle-v5/core/runtimeState';
 import { AttributeType, BuffType } from '@shared/engine/battle-v5/core/types';
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
+import { createHitResolution } from '@shared/engine/battle-v5/core/resolution';
 import { BuffFactory } from '@shared/engine/battle-v5/factories/BuffFactory';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -229,13 +230,13 @@ describe('无相禅宗36格实际结算矩阵', () => {
     const hpBefore = owner.getCurrentHp();
     let paid: AbilityCostPaidEvent | undefined;
     let frozenPlanId: string | undefined;
-    const damageRequests: DamageRequestEvent[] = [];
+    const damageRequests: DamageSegmentRequestedEvent[] = [];
     EventBus.instance.subscribe<AbilityCostPaidEvent>('AbilityCostPaidEvent', (event) => {
       if (event.ability !== skill) return;
       paid = event;
       frozenPlanId = event.ability.runtimePlanId;
     });
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>('DamageSegmentRequestedEvent', (event) => {
       if (event.ability === skill) damageRequests.push(event);
     });
 
@@ -249,7 +250,7 @@ describe('无相禅宗36格实际结算矩阵', () => {
     expect(config.effectLayers?.find((layer) => layer.id === 'formless')?.effects?.length)
       .toBeGreaterThan(0);
     skill.prepareCast({ caster: owner, target });
-    skill.execute({ caster: owner, target });
+    skill.execute({ caster: owner, target, resolution: createHitResolution({ actionId: `${owner.id}:wuxiang-matrix`, castId: `${skill.id}:wuxiang-matrix`, caster: owner, target }) });
 
     expect(paid?.hpPaid).toBe(Math.ceil(hpBefore * costs[pathId][abilityId]));
     expect(frozenPlanId).toBe(form === 'buddha' ? undefined : form);
@@ -285,7 +286,7 @@ describe('无相禅宗36格实际结算矩阵', () => {
     });
 
     skill.prepareCast({ caster: owner, target: enemy });
-    skill.execute({ caster: owner, target: enemy, shouldApplyEffects: false });
+    skill.execute({ caster: owner, target: enemy, shouldApplyEffects: false, resolution: createHitResolution({ actionId: `${owner.id}:wuxiang-miss`, castId: `${skill.id}:wuxiang-miss`, caster: owner, target: enemy }) });
 
     expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ remainingUses: 2 });
     expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(0);

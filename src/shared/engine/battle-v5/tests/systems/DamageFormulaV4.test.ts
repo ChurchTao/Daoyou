@@ -2,7 +2,7 @@ import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventBus } from '../../core/EventBus';
 import { ValueCalculator } from '../../core/ValueCalculator';
-import type { DamageRequestEvent, DamageTakenEvent } from '../../core/events';
+import type { DamageSegmentRequestedEvent, DamageSegmentAppliedEvent } from '../../core/events';
 import { rememberAmount } from '../../core/runtimeState';
 import {
   AbilityType,
@@ -17,6 +17,7 @@ import { DamageSystem } from '../../systems/DamageSystem';
 import { Unit } from '../../units/Unit';
 import { publishTestDamageRequest } from '../setup/combatV3TestHarness';
 import { executeTestEffect } from '../setup/executeTestEffect';
+import { createHitResolution } from '../../core/resolution';
 
 function unit(id: string): Unit {
   return new Unit(id, id, {});
@@ -42,10 +43,10 @@ function request(args: {
   damageSource?: DamageSource;
   bypass?: number;
   forceCritical?: boolean;
-}): DamageRequestEvent {
+}): DamageSegmentRequestedEvent {
   const bypass = args.bypass ?? 0;
   return {
-    type: 'DamageRequestEvent',
+    type: 'DamageSegmentRequestedEvent',
     timestamp: Date.now(),
     caster: args.caster,
     target: args.target,
@@ -243,16 +244,16 @@ describe('V5平滑防御公式', () => {
       }),
       { caster, target: caster },
     );
-    let requestEvent: DamageRequestEvent | undefined;
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    let requestEvent: DamageSegmentRequestedEvent | undefined;
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         if (event.ability?.id === ability.id) requestEvent = event;
       },
       -1_000,
     );
 
-    ability.execute({ caster, target });
+    ability.execute({ caster, target, resolution: createHitResolution({ actionId: 'formula:1', castId: 'formula:1', caster, target }) });
 
     expect(requestEvent?.damageComponents).toEqual([
       expect.objectContaining({
@@ -314,14 +315,14 @@ describe('V5平滑防御公式', () => {
       const caster = unit('caster');
       const target = unit('target');
       let reflected = 0;
-      EventBus.instance.subscribe<DamageRequestEvent>(
-        'DamageRequestEvent',
+      EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+        'DamageSegmentRequestedEvent',
         (event) => {
           if (event.damageSource === DamageSource.REFLECT) reflected += 1;
         },
       );
-      const triggerEvent: DamageTakenEvent = {
-        type: 'DamageTakenEvent',
+      const triggerEvent: DamageSegmentAppliedEvent = {
+        type: 'DamageSegmentAppliedEvent',
         timestamp: Date.now(),
         caster,
         target,

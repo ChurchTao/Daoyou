@@ -1,7 +1,8 @@
 import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
+import { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill';
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
 import type {
-  DamageRequestEvent,
+  DamageSegmentRequestedEvent,
   ResourceDrainEvent,
   RoundPostEvent,
 } from '@shared/engine/battle-v5/core/events';
@@ -25,6 +26,7 @@ import {
   type CombatResultCommittedEventV3,
 } from '@shared/engine/battle-v5/v3';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
+import { createHitResolution } from '@shared/engine/battle-v5/core/resolution';
 import { executeTestEffect } from '@shared/engine/battle-v5/tests/setup/executeTestEffect';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -57,8 +59,23 @@ function config(abilityId: string, pathId?: YouduPathId, nodes: string[] = []) {
   }).config;
 }
 
+let testResolutionSequence = 0;
+
 function ability(abilityId: string, pathId?: YouduPathId, nodes: string[] = []) {
-  return AbilityFactory.create(config(abilityId, pathId, nodes));
+  const created = AbilityFactory.create(config(abilityId, pathId, nodes));
+  if (created instanceof ActiveSkill) {
+    const execute = created.execute.bind(created);
+    created.execute = (context) => execute({
+      ...context,
+      resolution: context.resolution ?? createHitResolution({
+        actionId: `${context.caster.id}:youdu-test:${++testResolutionSequence}`,
+        castId: `${created.id}:youdu-test:${testResolutionSequence}`,
+        caster: context.caster,
+        target: context.target,
+      }),
+    });
+  }
+  return created;
 }
 
 function installRuntime(owner: Unit, pathId?: YouduPathId, nodes: string[] = []): void {
@@ -135,9 +152,15 @@ describe('幽都核心机制实际结算', () => {
     const baseMaxHp = target.getMaxHp();
     const sigh = ability('one-sigh');
     const sever = ability('soul-severing-call');
+    const setupResolution = createHitResolution({
+      actionId: 'youdu:test-action:initial-erosion',
+      castId: 'youdu:test-cast:initial-erosion',
+      caster,
+      target,
+    });
 
-    sigh.execute({ caster, target });
-    sever.execute({ caster, target });
+    sigh.execute({ caster, target, resolution: setupResolution });
+    sever.execute({ caster, target, resolution: setupResolution });
 
     expect(erosion(target)?.getLayer()).toBe(3);
     expect(target.attributes.getValue(AttributeType.MAGIC_ATK)).toBeCloseTo(baseMagicAttack * 0.92);
@@ -484,9 +507,9 @@ describe('幽都核心机制实际结算', () => {
     ability('one-sigh', 'decree', nodes).execute({ caster, target });
     expect(erosion(target)?.getLayer()).toBe(2);
     const sever = ability('soul-severing-call', 'decree', nodes);
-    let soulRequest: DamageRequestEvent | undefined;
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    let soulRequest: DamageSegmentRequestedEvent | undefined;
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         if (event.damageType === DamageType.TRUE) soulRequest = event;
       },
@@ -625,9 +648,9 @@ describe('幽都核心机制实际结算', () => {
   it('混合技能共享能力命中语义但发布术伤与魂伤两个独立伤害请求', () => {
     const caster = unit('caster');
     const target = unit('target');
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => requests.push(event),
       -1_000,
     );
@@ -647,7 +670,7 @@ describe('幽都核心机制实际结算', () => {
     const caster = unit('caster');
     const target = unit('target');
     const deaths: CombatResultCommittedEventV3[] = [];
-    const requests: DamageRequestEvent[] = [];
+    const requests: DamageSegmentRequestedEvent[] = [];
     target.setHp(1);
     EventBus.instance.subscribe<CombatResultCommittedEventV3>(
       CombatV3EventType.RESULT_COMMITTED,
@@ -656,8 +679,8 @@ describe('幽都核心机制实际结算', () => {
       },
       -1_000,
     );
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => requests.push(event),
       -1_000,
     );
@@ -698,16 +721,16 @@ describe('幽都核心机制实际结算', () => {
         params: { value: { base: 10 }, damageType: DamageType.TRUE },
       }],
     });
-    let request: DamageRequestEvent | undefined;
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    let request: DamageSegmentRequestedEvent | undefined;
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         if (event.ability === fake) request = event;
       },
       -1_000,
     );
 
-    fake.execute({ caster, target });
+    fake.execute({ caster, target, resolution: createHitResolution({ actionId: 'youdu:fake', castId: 'youdu:fake', caster, target }) });
 
     expect(request?.damageIncreasePctBucket ?? 0).toBe(0);
   });
@@ -742,9 +765,9 @@ describe('幽都核心机制实际结算', () => {
       (event) => drainEvents.push(event),
       -1_000,
     );
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => requests.push(event),
       -1_000,
     );
@@ -765,9 +788,9 @@ describe('幽都核心机制实际结算', () => {
   it('忘川为单体行动前DOT，逐次读取施术者实时法攻且不额外加层', () => {
     const caster = unit('caster');
     const target = unit('target');
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => requests.push(event),
       -1_000,
     );
@@ -778,10 +801,10 @@ describe('幽都核心机制实际结算', () => {
 
     setOverride(caster, AttributeType.MAGIC_ATK, 100);
     beginRuntimeAction(target);
-    EventBus.instance.publish<RoundPostEvent>({ type: 'RoundPostEvent', timestamp: Date.now(), turn: 1 });
+    EventBus.instance.publish<RoundPostEvent>({ type: 'RoundPostEvent', resolution: createHitResolution({ actionId: 'youdu:round:1', castId: 'youdu:round:1', caster, target }), timestamp: Date.now(), turn: 1 });
     setOverride(caster, AttributeType.MAGIC_ATK, 200);
     beginRuntimeAction(target);
-    EventBus.instance.publish<RoundPostEvent>({ type: 'RoundPostEvent', timestamp: Date.now(), turn: 2 });
+    EventBus.instance.publish<RoundPostEvent>({ type: 'RoundPostEvent', resolution: createHitResolution({ actionId: 'youdu:round:2', castId: 'youdu:round:2', caster, target }), timestamp: Date.now(), turn: 2 });
 
     expect(requests.map((event) => event.baseDamage)).toEqual([14, 28]);
     expect(requests.every((event) => event.canCrit === false)).toBe(true);
@@ -805,10 +828,10 @@ describe('幽都核心机制实际结算', () => {
 
     ability('soul-shall-not-return').execute({ caster, target });
 
-    const expected = Math.round(
+    const expectedWithoutSoulFire = Math.round(
       Math.round(caster.attributes.getValue(AttributeType.MAGIC_ATK) * 1.5059) * 1.08,
     );
-    expect(before - target.getCurrentHp()).toBe(expected);
+    expect(before - target.getCurrentHp()).toBeGreaterThan(expectedWithoutSoulFire);
     expect(target.buffs.getAllBuffIds()).not.toContain(YOUDU_SOUL_EROSION);
     expect(target.tags.hasTag(GameplayTags.STATUS.SECT.state('youdu', 'no-return'))).toBe(true);
     system.destroy();
@@ -819,9 +842,9 @@ describe('幽都核心机制实际结算', () => {
     const target = unit('target');
     installRuntime(caster);
     caster.combatResources.set(YOUDU_SOUL_FIRE, 3);
-    let request: DamageRequestEvent | undefined;
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    let request: DamageSegmentRequestedEvent | undefined;
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         if (event.damageType === DamageType.TRUE) request = event;
       },

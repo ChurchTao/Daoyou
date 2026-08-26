@@ -1,6 +1,6 @@
 import { TurnStateCounterParams } from '../core/configs';
 import { executeEffectConfigs } from '../core/effectExecutor';
-import { DamageTakenEvent } from '../core/events';
+import { DamageSegmentAppliedEvent } from '../core/events';
 import {
   consumeDamageDealtFlag,
   getBattleRuntimeState,
@@ -22,8 +22,8 @@ export class TurnStateCounterEffect extends GameplayEffect {
       }
     } else if (
       context.triggerEvent &&
-      context.triggerEvent.type === 'DamageTakenEvent' &&
-      (context.triggerEvent as DamageTakenEvent).caster !== context.caster
+      context.triggerEvent.type === 'DamageSegmentAppliedEvent' &&
+      (context.triggerEvent as DamageSegmentAppliedEvent).caster !== context.caster
     ) {
       return;
     }

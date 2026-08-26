@@ -254,7 +254,7 @@ function directGuard(
     priority,
     mapping: { caster: 'owner', target: 'owner' },
     guard: { skipSecondaryDamageSource: true },
-    budget: { maxTriggers: 1, reset: 'buff_lifetime' },
+    triggerPolicy: { maxTriggers: 1, granularity: 'buff_lifetime' },
     conditions: [
       {
         type: 'damage_source_is',
@@ -319,9 +319,9 @@ function directGuard(
       priority: 0,
       mapping: { caster: 'owner', target: 'event.caster' },
       guard: { skipSecondaryDamageSource: true },
-      budget: {
+      triggerPolicy: {
         maxTriggers: options.secondTriggerMarker ? 2 : 1,
-        reset: 'buff_lifetime',
+        granularity: 'buff_lifetime',
       },
       conditions: [
         {
@@ -620,7 +620,7 @@ function heartVow(reduction: number): EffectConfig {
           priority: EventPriorityLevel.DAMAGE_REQUEST + 1,
           mapping: { caster: 'event.target', target: 'owner' },
           guard: { skipSecondaryDamageSource: true },
-          budget: { maxTriggers: 1, reset: 'buff_lifetime' },
+          triggerPolicy: { maxTriggers: 1, granularity: 'buff_lifetime' },
           conditions: [
             {
               type: 'damage_source_is',
@@ -675,7 +675,7 @@ function tideGuard(reduction: number): EffectConfig {
           priority: 0,
           mapping: { caster: 'owner', target: 'event.caster' },
           guard: { skipSecondaryDamageSource: true },
-          budget: { maxTriggers: 1, reset: 'buff_lifetime' },
+          triggerPolicy: { maxTriggers: 1, granularity: 'buff_lifetime' },
           conditions: [
             {
               type: 'damage_source_is',
@@ -785,7 +785,7 @@ function outgoingBoost(
                   target: 'event.target' as const,
                 },
                 guard: { skipSecondaryDamageSource: true },
-                budget: { maxTriggers: 1, reset: 'buff_lifetime' as const },
+                triggerPolicy: { maxTriggers: 1, granularity: 'buff_lifetime' as const },
                 conditions: [
                   {
                     type: 'damage_source_is' as const,
@@ -806,7 +806,7 @@ function outgoingBoost(
           scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
           priority: 0,
           mapping: { caster: 'owner', target: 'event.target' },
-          budget: { maxTriggers: 1, reset: 'buff_lifetime' },
+          triggerPolicy: { maxTriggers: 1, granularity: 'buff_lifetime' },
           conditions: [
             { type: 'ability_has_exact_tag', params: { tag: techniqueTag } },
           ],
@@ -852,7 +852,7 @@ function heartGap(bonus: number): EffectConfig {
           scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
           priority: 0,
           mapping: { caster: 'event.caster', target: 'owner' },
-          budget: { maxTriggers: 1, reset: 'source_action' },
+          triggerPolicy: { maxTriggers: 1, granularity: 'action' },
           conditions: [
             { type: 'ability_has_exact_tag', params: { tag: techniqueTag } },
           ],

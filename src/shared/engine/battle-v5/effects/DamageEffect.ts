@@ -1,6 +1,6 @@
 import { DamageParams } from '../core/configs';
 import { executeEffectConfigs } from '../core/effectExecutor';
-import { DamageRequestEvent } from '../core/events';
+import { DamageSegmentRequestedEvent } from '../core/events';
 import {
   AttributeType,
   type DamageComponent,
@@ -21,10 +21,11 @@ import { StackRule } from '../buffs/Buff';
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import { EffectExecutionContextV3, GameplayEffect } from './Effect';
 import { checkConditions } from '../core/conditionEvaluator';
+import { nextDamageSegment, requireResolution } from '../core/resolution';
 
 /**
  * 伤害原子效果
- * 职责：计算伤害并发布 DamageRequestEvent
+ * 职责：计算伤害并发布 DamageSegmentRequestedEvent
  */
 export class DamageEffect extends GameplayEffect {
   constructor(private params: DamageParams) {
@@ -176,8 +177,9 @@ export class DamageEffect extends GameplayEffect {
     const forceCritical = this.params.canCrit === false
       ? false
       : this.params.forceCritical || transform?.forceCritical || conditionCritical;
-    context.emit<DamageRequestEvent>({
-      type: 'DamageRequestEvent',
+    const resolution = nextDamageSegment(requireResolution(context));
+    context.emit<DamageSegmentRequestedEvent>({
+      type: 'DamageSegmentRequestedEvent',
       timestamp: context.owner.runtime.clock.now(),
       caster: resolvedCaster,
       target,
@@ -185,7 +187,7 @@ export class DamageEffect extends GameplayEffect {
       buff, // 传递 buff
       damageSource:
         this.params.damageSource ??
-        (context.triggerEvent?.type === 'DamageTakenEvent'
+        (context.triggerEvent?.type === 'DamageSegmentAppliedEvent'
           ? DamageSource.REFLECT
           : DamageSource.DIRECT),
       damageType:
@@ -199,6 +201,7 @@ export class DamageEffect extends GameplayEffect {
       canCrit: this.params.canCrit ?? true,
       canLifesteal: this.params.canLifesteal ?? true,
       isCritical: forceCritical ? true : undefined,
+      resolution,
     });
 
     if (transform?.addDispel && !transform.addDispelApplied) {

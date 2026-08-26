@@ -5,7 +5,10 @@ import {
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
 import * as betBattleRepository from '@server/lib/repositories/betBattleRepository';
-import { BetBattleServiceError } from '@server/lib/services/BetBattleService';
+import {
+  BetBattleServiceError,
+  MAX_BET_BATTLE_SPIRIT_STONES,
+} from '@server/lib/services/BetBattleService';
 import {
   cancelBetBattleCommand,
   challengeBetBattleCommand,
@@ -34,7 +37,12 @@ const CreateBetBattleSchema = z.object({
     })
     .optional(),
   stakeType: z.enum(['spirit_stones', 'item']),
-  spiritStones: z.number().int().min(0).optional(),
+  spiritStones: z
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_BET_BATTLE_SPIRIT_STONES)
+    .optional(),
   stakeItem: z
     .object({
       itemType: z.enum(['material', 'artifact', 'consumable']),

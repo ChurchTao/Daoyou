@@ -13,14 +13,17 @@ import {
 import { EventBus } from '../../core/EventBus';
 import {
   ControlResistEvent,
-  DamageRequestEvent,
-  DamageTakenEvent,
+  DamageSegmentRequestedEvent,
+  DamageSegmentAppliedEvent,
+  HitSettledEvent,
+  AbilityCastSettledEvent,
   EventPriorityLevel,
   HitCheckEvent,
   SkillCastEvent,
   SkillPreCastEvent,
 } from '../../core/events';
 import { DamageEffect } from '../../effects/DamageEffect';
+import { createHitResolution } from '../../core/resolution';
 import { ReflectEffect } from '../../effects/ReflectEffect';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { ActionExecutionSystem } from '../../systems/ActionExecutionSystem';
@@ -71,6 +74,12 @@ describe('ActionExecutionSystem integration', () => {
       caster,
       target,
       ability: skill,
+      resolution: createHitResolution({
+        actionId: `${caster.id}:test-action`,
+        castId: `${skill.id}:test-cast`,
+        caster,
+        target,
+      }),
       isInterrupted: false,
     });
 
@@ -125,6 +134,12 @@ describe('DamageSystem hit check', () => {
       caster,
       target,
       ability: skill,
+      resolution: createHitResolution({
+        actionId: `${caster.id}:hit-check-action`,
+        castId: `${skill.id}:hit-check-cast`,
+        caster,
+        target,
+      }),
     });
 
     damageSystem.destroy();
@@ -412,6 +427,7 @@ describe('DamageSystem direct mitigation', () => {
   }
 
   it('direct damage effects should publish direct source so defenses reduce damage', () => {
+    mockDeterministicDamageRolls();
     const damageSystem = new DamageSystem();
     const attacker = new Unit('attacker', '攻击者', {});
     const defender = new Unit('defender', '防御者', {});
@@ -425,8 +441,8 @@ describe('DamageSystem direct mitigation', () => {
     });
     defender.updateDerivedStats();
 
-    const receivedRequests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
+    const receivedRequests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>('DamageSegmentRequestedEvent', (event) => {
       receivedRequests.push({ ...event });
     });
 
@@ -463,17 +479,29 @@ describe('DamageSystem direct mitigation', () => {
     defender.updateDerivedStats();
 
     const hpRatioDamage = Math.round(defender.getMaxHp() * 0.1);
-    const event: DamageRequestEvent = {
-      type: 'DamageRequestEvent',
+    const event: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
       damageSource: DamageSource.DIRECT,
       damageType: DamageType.PHYSICAL,
+      resolution: createHitResolution({
+        actionId: 'attacker:test-action',
+        castId: 'hp-ratio:test-cast',
+        caster: attacker,
+        target: defender,
+      }),
       baseDamage: 100 + hpRatioDamage,
       finalDamage: 100 + hpRatioDamage,
       damageComponents: [
-        { kind: 'base', amount: 100, mitigation: 'normal' },
+        {
+          kind: 'base',
+          amount: 100,
+          mitigation: 'normal',
+          attackBase: 100,
+          segmentMultiplier: 1,
+        },
         {
           kind: 'targetMaxHpRatio',
           amount: hpRatioDamage,
@@ -499,10 +527,10 @@ describe('DamageSystem direct mitigation', () => {
     const damageSystem = new DamageSystem();
     const attacker = new Unit('attacker', '攻击者', {});
     const defender = new Unit('defender', '防御者', {});
-    const requests: DamageRequestEvent[] = [];
+    const requests: DamageSegmentRequestedEvent[] = [];
 
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push({ ...event, damageComponents: event.damageComponents });
       },
@@ -550,8 +578,8 @@ describe('DamageSystem direct mitigation', () => {
 
     mockDeterministicDamageRolls();
 
-    const event: DamageRequestEvent = {
-      type: 'DamageRequestEvent',
+    const event: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -577,8 +605,8 @@ describe('DamageSystem direct mitigation', () => {
 
     mockDeterministicDamageRolls();
 
-    const event: DamageRequestEvent = {
-      type: 'DamageRequestEvent',
+    const event: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -615,8 +643,8 @@ describe('DamageSystem direct mitigation', () => {
       effects: [],
     });
 
-    const event: DamageRequestEvent = {
-      type: 'DamageRequestEvent',
+    const event: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -658,8 +686,8 @@ describe('DamageSystem direct mitigation', () => {
       effects: [],
     });
 
-    const event: DamageRequestEvent = {
-      type: 'DamageRequestEvent',
+    const event: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -685,8 +713,8 @@ describe('DamageSystem direct mitigation', () => {
 
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
 
-    const event: DamageRequestEvent = {
-      type: 'DamageRequestEvent',
+    const event: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -712,10 +740,10 @@ describe('DamageSystem direct mitigation', () => {
     });
     defender.setHp(500);
 
-    const reflectRequests: DamageRequestEvent[] = [];
+    const reflectRequests: DamageSegmentRequestedEvent[] = [];
     const reflect = new ReflectEffect({ ratio: 0.5 });
 
-    EventBus.instance.subscribe<DamageTakenEvent>('DamageTakenEvent', (event) => {
+    EventBus.instance.subscribe<DamageSegmentAppliedEvent>('DamageSegmentAppliedEvent', (event) => {
       if (event.target === defender) {
         executeTestEffect(reflect, {
           caster: defender,
@@ -724,7 +752,7 @@ describe('DamageSystem direct mitigation', () => {
         });
       }
     });
-    EventBus.instance.subscribe<DamageRequestEvent>('DamageRequestEvent', (event) => {
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>('DamageSegmentRequestedEvent', (event) => {
       if (event.damageSource === DamageSource.REFLECT) {
         reflectRequests.push(event);
       }
@@ -736,7 +764,7 @@ describe('DamageSystem direct mitigation', () => {
       .mockReturnValueOnce(0.5);
 
     publishTestDamageRequest({
-      type: 'DamageRequestEvent',
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -771,8 +799,8 @@ describe('DamageSystem direct mitigation', () => {
 
     mockDeterministicDamageRolls();
 
-    const event: DamageRequestEvent = {
-      type: 'DamageRequestEvent',
+    const event: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -841,6 +869,68 @@ describe('DamageSystem direct mitigation', () => {
       true,
     );
     expect(ability.tags.hasTag(GameplayTags.ABILITY.CHANNEL.MAGIC)).toBe(true);
+  });
+
+  it('assigns one cast/hit identity and ordered segment indexes to a multi-segment skill', () => {
+    const actionExecutionSystem = new ActionExecutionSystem();
+    const damageSystem = new DamageSystem();
+    const caster = new Unit('segment-caster', '分段施法者', {});
+    const target = new Unit('segment-target', '分段目标', {});
+    const ability = AbilityFactory.create({
+      slug: 'two_segment_identity',
+      name: '两段身份测试',
+      type: AbilityType.ACTIVE_SKILL,
+      tags: [
+        GameplayTags.ABILITY.FUNCTION.DAMAGE,
+        GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+      ],
+      effects: [
+        {
+          type: 'damage',
+          params: { value: { base: 1, attribute: AttributeType.ATK, coefficient: 0 } },
+        },
+        {
+          type: 'damage',
+          params: { value: { base: 1, attribute: AttributeType.ATK, coefficient: 0 } },
+        },
+      ],
+    });
+    const segments: DamageSegmentRequestedEvent[] = [];
+    const settledHits: HitSettledEvent[] = [];
+    const settledCasts: AbilityCastSettledEvent[] = [];
+    const handler = EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
+      (event) => segments.push(event),
+    );
+    EventBus.instance.subscribe<HitSettledEvent>('HitSettledEvent', (event) => {
+      settledHits.push(event);
+    });
+    EventBus.instance.subscribe<AbilityCastSettledEvent>(
+      'AbilityCastSettledEvent',
+      (event) => settledCasts.push(event),
+    );
+
+    EventBus.instance.publish<SkillPreCastEvent>({
+      type: 'SkillPreCastEvent',
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability,
+      isInterrupted: false,
+      hitPolicy: 'guaranteed',
+    });
+
+    expect(segments).toHaveLength(2);
+    expect(segments[0].resolution.castId).toBe(segments[1].resolution.castId);
+    expect(segments[0].resolution.hitId).toBe(segments[1].resolution.hitId);
+    expect(segments.map((event) => event.resolution.segmentIndex)).toEqual([0, 1]);
+    expect(settledHits).toHaveLength(1);
+    expect(settledHits[0].segmentCount).toBe(2);
+    expect(settledCasts).toHaveLength(1);
+
+    EventBus.instance.unsubscribe('DamageSegmentRequestedEvent', handler);
+    damageSystem.destroy();
+    actionExecutionSystem.destroy();
   });
 
   it('AbilityFactory should reject damage abilities missing a damage channel tag', () => {

@@ -428,12 +428,15 @@ class StandardSectDomainEventDispatcherFactory implements SectDomainEventDispatc
           );
           if (balance === null) organizationError('宗门贡献不足', 400);
           const effects = emptySectCommandEffects();
-          effects.settlement.contribution = balance;
+          effects.settlement.contribution = balance.contribution;
           effects.resourceChanges.push({
             resourceTopic: 'sect.membership',
             eventType: 'sect.shop_contribution_spent',
             operation: 'merge',
-            payload: { contribution: balance },
+            payload: {
+              contribution: balance.contribution,
+              lifetimeContribution: balance.lifetimeContribution,
+            },
           });
           return { effects };
         }),

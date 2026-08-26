@@ -261,13 +261,6 @@ function buildGoldenBodyBurnBloodBuff(organsLevel: number): BuffConfig {
         scope: 'target' as const,
       },
     },
-    {
-      type: 'has_not_tag' as const,
-      params: {
-        tag: GameplayTags.STATUS.STATE.BODY_BURN_BLOOD_TRIGGERED,
-        scope: 'target' as const,
-      },
-    },
   ];
 
   return {
@@ -285,6 +278,7 @@ function buildGoldenBodyBurnBloodBuff(organsLevel: number): BuffConfig {
           requireOwnerAlive: true,
           skipSecondaryDamageSource: true,
         },
+        triggerPolicy: { maxTriggers: 1, granularity: 'battle' },
         effects: [
           {
             type: 'heal',
@@ -319,22 +313,6 @@ function buildGoldenBodyBurnBloodBuff(organsLevel: number): BuffConfig {
                     type: ModifierType.FIXED,
                     value: recoveryBonus,
                   },
-                ],
-              },
-            },
-          },
-          {
-            type: 'apply_buff',
-            conditions: triggerConditions,
-            params: {
-              buffConfig: {
-                id: 'body_cultivation_golden_body_burn_blood_marker',
-                name: '金身·燃血已发',
-                type: BuffType.BUFF,
-                duration: -1,
-                stackRule: 'override',
-                statusTags: [
-                  GameplayTags.STATUS.STATE.BODY_BURN_BLOOD_TRIGGERED,
                 ],
               },
             },

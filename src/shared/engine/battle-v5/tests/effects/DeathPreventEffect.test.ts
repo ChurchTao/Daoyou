@@ -2,9 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import type { AbilityConfig } from '../../core/configs';
 import { EventBus } from '../../core/EventBus';
+import { createHitResolution, withDamageSegment } from '../../core/resolution';
 import type {
   DeathPreventEvent,
-  DamageRequestEvent,
+  DamageSegmentRequestedEvent,
 } from '../../core/events';
 import {
   AbilityType,
@@ -79,7 +80,7 @@ describe('DeathPreventEffect source-scoped triggers', () => {
 
   function dealLethalDamage(attacker: Unit, defender: Unit): void {
     publishTestDamageRequest({
-      type: 'DamageRequestEvent',
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -185,6 +186,71 @@ describe('DeathPreventEffect source-scoped triggers', () => {
     expect(defender.isAlive()).toBe(true);
     expect(deathPreventEvents.map((event) => event.sourceKey)).toEqual([
       'source:first',
+    ]);
+  });
+
+  it('one death prevent protects the remaining segments of the same hit', () => {
+    const attacker = createUnit('attacker', '破阵者');
+    const defender = createUnit('defender', '持符者');
+    const deathPreventEvents: DeathPreventEvent[] = [];
+
+    addDeathPreventAbility(defender, 'first_source', 'source:first');
+    addDeathPreventAbility(defender, 'second_source', 'source:second');
+    EventBus.instance.subscribe<DeathPreventEvent>(
+      'DeathPreventEvent',
+      (event) => deathPreventEvents.push(event),
+    );
+
+    const hit = createHitResolution({
+      actionId: 'multi-segment-action',
+      castId: 'multi-segment-cast',
+      caster: attacker,
+      target: defender,
+    });
+    for (let segmentIndex = 0; segmentIndex < 3; segmentIndex += 1) {
+      publishTestDamageRequest({
+        type: 'DamageSegmentRequestedEvent',
+        timestamp: Date.now(),
+        caster: attacker,
+        target: defender,
+        damageSource: DamageSource.DIRECT,
+        damageType: DamageType.TRUE,
+        calculationMode: 'resolved_final',
+        baseDamage: 1_000_000,
+        finalDamage: 1_000_000,
+        resolution: withDamageSegment(hit, segmentIndex, 3),
+      });
+    }
+
+    expect(defender.isAlive()).toBe(true);
+    expect(defender.getCurrentHp()).toBe(1);
+    expect(deathPreventEvents.map((event) => event.sourceKey)).toEqual([
+      'source:first',
+    ]);
+
+    const nextHit = createHitResolution({
+      actionId: 'next-action',
+      castId: 'next-cast',
+      caster: attacker,
+      target: defender,
+    });
+    publishTestDamageRequest({
+      type: 'DamageSegmentRequestedEvent',
+      timestamp: Date.now(),
+      caster: attacker,
+      target: defender,
+      damageSource: DamageSource.DIRECT,
+      damageType: DamageType.TRUE,
+      calculationMode: 'resolved_final',
+      baseDamage: 1_000_000,
+      finalDamage: 1_000_000,
+      resolution: withDamageSegment(nextHit, 0, 1),
+    });
+
+    expect(defender.isAlive()).toBe(true);
+    expect(deathPreventEvents.map((event) => event.sourceKey)).toEqual([
+      'source:first',
+      'source:second',
     ]);
   });
 });

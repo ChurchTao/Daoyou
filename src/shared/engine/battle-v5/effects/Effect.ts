@@ -1,6 +1,7 @@
 import { Ability, type AbilityCastSnapshot } from '../abilities/Ability';
 import { Buff } from '../buffs/Buff';
-import type { DamageTakenEvent } from '../core/events';
+import type { DamageSegmentAppliedEvent } from '../core/events';
+import type { CombatResolutionContext } from '../core/resolution';
 import { CombatEvent, type LogCauseRef } from '../core/types';
 import { Unit } from '../units/Unit';
 import { CombatResultEmitterV3 } from '../v3/CombatResultEmitterV3';
@@ -30,6 +31,7 @@ export class EffectExecutionContextV3 {
   readonly buff?: Buff;
   readonly castSnapshot?: AbilityCastSnapshot;
   readonly damageCause?: LogCauseRef;
+  readonly resolution?: CombatResolutionContext;
   /**
    * 触发此效果的事件（可选）
    * 用于支持吸血、反伤、根据受击伤害触发的效果等
@@ -62,6 +64,7 @@ export class EffectExecutionContextV3 {
     this.buff = input.buff;
     this.castSnapshot = input.castSnapshot;
     this.damageCause = input.damageCause;
+    this.resolution = input.resolution;
     this.triggerEvent = input.triggerEvent;
     this.ownerLivenessPolicy = ownerLivenessPolicy;
     Object.freeze(this);
@@ -120,9 +123,16 @@ export class EffectExecutionContextV3 {
   }
 
   emit<T extends CombatEvent>(event: T): T {
+    const eventWithResolution = event.resolution || this.resolution
+      ? Object.assign(event, {
+          resolution: event.resolution ?? this.resolution,
+        }) as T
+      : event;
     return this.owner.runtime.events.runInCausalContext(
       { origin: this.origin, trace: this.trace },
-      () => this.owner.runtime.events.publish(event),
+      () => this.triggerEvent
+        ? this.owner.runtime.events.enqueueReaction(eventWithResolution, 50)
+        : this.owner.runtime.events.publish(eventWithResolution),
     );
   }
 
@@ -160,6 +170,7 @@ export class EffectExecutionContextV3 {
         buff: this.buff,
         castSnapshot: this.castSnapshot,
         damageCause: this.damageCause,
+        resolution: this.resolution,
         triggerEvent: this.triggerEvent,
       },
       this.attribution,
@@ -177,6 +188,7 @@ interface EffectExecutionContextInputV3 {
   buff?: Buff;
   castSnapshot?: AbilityCastSnapshot;
   damageCause?: LogCauseRef;
+  resolution?: CombatResolutionContext;
   triggerEvent?: CombatEvent;
 }
 
@@ -212,10 +224,10 @@ function resolveOwnedEffectLivenessPolicy(
   input: EffectExecutionContextInputV3,
 ): EffectOwnerLivenessPolicyV3 {
   const trigger = input.triggerEvent;
-  if (trigger?.type !== 'DamageTakenEvent') {
+  if (trigger?.type !== 'DamageSegmentAppliedEvent') {
     return EffectOwnerLivenessPolicyV3.REQUIRE_ALIVE;
   }
-  const damageTaken = trigger as DamageTakenEvent;
+  const damageTaken = trigger as DamageSegmentAppliedEvent;
   if (
     damageTaken.target === input.owner &&
     damageTaken.hpReachedZeroBeforeReactions

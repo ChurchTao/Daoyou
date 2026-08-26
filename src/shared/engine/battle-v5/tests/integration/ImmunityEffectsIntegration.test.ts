@@ -1,7 +1,7 @@
 import { EventBus } from '../../core/EventBus';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import { EffectConfig } from '../../core/configs';
-import { DamageEvent, DamageImmuneEvent, EventPriorityLevel, ManaShieldAbsorbEvent } from '../../core/events';
+import { DamageSegmentRequestedEvent, DamageImmuneEvent, EventPriorityLevel, ManaShieldAbsorbEvent } from '../../core/events';
 import { AbilityType, AttributeType, BuffType, DamageType } from '../../core/types';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { BuffFactory } from '../../factories/BuffFactory';
@@ -26,7 +26,7 @@ describe('免疫效果集成测试', () => {
   function addPassiveDamageListener(
     unit: Unit,
     effects: Array<EffectConfig>,
-    eventType: 'DamageEvent' | 'DamageRequestEvent' = 'DamageEvent',
+    eventType: 'DamageSegmentRequestedEvent' = 'DamageSegmentRequestedEvent',
   ): void {
     unit.abilities.addAbility(
       AbilityFactory.create({
@@ -57,7 +57,7 @@ describe('免疫效果集成测试', () => {
           params: { mode: 'reduce', value: 0.5, logTriggerName: '金甲' },
         },
       ],
-      'DamageRequestEvent',
+      'DamageSegmentRequestedEvent',
     );
 
     const committed: CombatResultCommittedEventV3[] = [];
@@ -71,7 +71,7 @@ describe('免疫效果集成测试', () => {
     );
 
     const damageRequest = {
-      type: 'DamageRequestEvent' as const,
+      type: 'DamageSegmentRequestedEvent' as const,
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -106,8 +106,8 @@ describe('免疫效果集成测试', () => {
     EventBus.instance.subscribe<ManaShieldAbsorbEvent>('ManaShieldAbsorbEvent', handler, EventPriorityLevel.COMBAT_LOG);
 
     const beforeMp = defender.getCurrentMp();
-    const damageEvent: DamageEvent = {
-      type: 'DamageEvent',
+    const damageEvent: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -135,8 +135,8 @@ describe('免疫效果集成测试', () => {
 
     defender.takeMp(defender.getCurrentMp() - 30);
 
-    const damageEvent: DamageEvent = {
-      type: 'DamageEvent',
+    const damageEvent: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -174,8 +174,8 @@ describe('免疫效果集成测试', () => {
     };
     EventBus.instance.subscribe<DamageImmuneEvent>('DamageImmuneEvent', handler, EventPriorityLevel.COMBAT_LOG);
 
-    const damageEvent: DamageEvent = {
-      type: 'DamageEvent',
+    const damageEvent: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -215,8 +215,8 @@ describe('免疫效果集成测试', () => {
       effects: [],
     });
 
-    const damageEvent: DamageEvent = {
-      type: 'DamageEvent',
+    const damageEvent: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -252,8 +252,8 @@ describe('免疫效果集成测试', () => {
         effects: [],
       });
 
-      const blocked: DamageEvent = {
-        type: 'DamageEvent',
+      const blocked: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
         timestamp: Date.now(),
         caster: attacker,
         target: defender,
@@ -261,7 +261,7 @@ describe('免疫效果集成测试', () => {
         damageType: blockedType,
         finalDamage: 120,
       };
-      const allowed: DamageEvent = {
+      const allowed: DamageSegmentRequestedEvent = {
         ...blocked,
         damageType: allowedType,
         finalDamage: 120,
@@ -294,8 +294,8 @@ describe('免疫效果集成测试', () => {
       tags: [GameplayTags.BUFF.DOT.ROOT, GameplayTags.BUFF.DOT.BURN],
     });
 
-    const damageEvent: DamageEvent = {
-      type: 'DamageEvent',
+    const damageEvent: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,

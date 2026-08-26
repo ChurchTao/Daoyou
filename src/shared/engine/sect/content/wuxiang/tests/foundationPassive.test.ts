@@ -1,5 +1,5 @@
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
-import type { DamageRequestEvent } from '@shared/engine/battle-v5/core/events';
+import type { DamageSegmentRequestedEvent } from '@shared/engine/battle-v5/core/events';
 import {
   AttributeType,
   DamageSource,
@@ -108,10 +108,10 @@ describe('无相禅宗根基被动', () => {
     const request = (
       hpRatio: number,
       damageSource: DamageSource,
-    ): DamageRequestEvent => {
+    ): DamageSegmentRequestedEvent => {
       owner.setHp(owner.getMaxHp() * hpRatio);
-      const event: DamageRequestEvent = {
-        type: 'DamageRequestEvent',
+      const event: DamageSegmentRequestedEvent = {
+        type: 'DamageSegmentRequestedEvent',
         timestamp: Date.now(),
         caster: enemy,
         target: owner,

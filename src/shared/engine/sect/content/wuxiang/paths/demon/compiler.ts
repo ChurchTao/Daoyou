@@ -279,7 +279,7 @@ export function compileDemonPassive(
     scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
     priority: 2,
     mapping: { caster: 'owner', target: 'owner' },
-    budget: { maxTriggers: 1, reset: 'battle' },
+    triggerPolicy: { maxTriggers: 1, granularity: 'battle' },
     conditions: [
       { type: 'ability_has_exact_tag', params: { tag: techniqueTag } },
       { type: 'ability_cost_crossed', params: { value: threshold } },

@@ -1,5 +1,5 @@
 import type { LifestealParams } from '../core/configs';
-import type { DamageTakenEvent, HealEvent } from '../core/events';
+import type { DamageSegmentAppliedEvent, HealEvent } from '../core/events';
 import { claimActionAmount } from '../core/runtimeState';
 import { DamageSource } from '../core/types';
 import { EffectRegistry } from '../factories/EffectRegistry';
@@ -12,8 +12,8 @@ export class LifestealEffect extends GameplayEffect {
   }
 
   execute(context: EffectExecutionContextV3): void {
-    if (context.triggerEvent?.type !== 'DamageTakenEvent') return;
-    const event = context.triggerEvent as DamageTakenEvent;
+    if (context.triggerEvent?.type !== 'DamageSegmentAppliedEvent') return;
+    const event = context.triggerEvent as DamageSegmentAppliedEvent;
     if (event.canLifesteal === false) return;
     if (event.caster !== context.caster || event.damageSource !== DamageSource.DIRECT) return;
     const requested = Math.round(event.damageTaken * this.params.ratio);

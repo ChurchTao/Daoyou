@@ -284,15 +284,15 @@ function listenerTrigger(listener: ListenerConfig): string {
       condition.params.damageSource === 'direct',
   );
   if (listener.eventType === 'DodgeEvent') {
-    return listener.budget?.maxTriggers === 1 &&
-      listener.budget.reset === 'buff_lifetime'
+    return listener.triggerPolicy?.maxTriggers === 1 &&
+      listener.triggerPolicy.granularity === 'buff_lifetime'
       ? '持续期间首次闪避时'
       : '闪避时';
   }
-  if (listener.eventType === 'DamageTakenEvent') {
+  if (listener.eventType === 'DamageSegmentAppliedEvent') {
     if (
-      listener.budget?.maxTriggers === 1 &&
-      listener.budget.reset === 'round'
+      listener.triggerPolicy?.maxTriggers === 1 &&
+      listener.triggerPolicy.granularity === 'round'
     ) {
       return `持续期间每回合首次${direct ? '受到直接伤害' : '受击'}时`;
     }
@@ -376,7 +376,7 @@ function listenerRows(
   resources: readonly CombatResourceDefinition[],
 ): string[] {
   if (
-    listener.eventType === 'DamageRequestEvent' &&
+    listener.eventType === 'DamageSegmentRequestedEvent' &&
     listener.effects.length === 1 &&
     listener.effects[0].type === 'percent_damage_modifier'
   ) {

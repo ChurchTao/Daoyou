@@ -10,6 +10,7 @@ import {
 } from '../../effects/Effect';
 import type { Unit } from '../../units/Unit';
 import type { CombatTraceV3 } from '../../v3/types';
+import { createHitResolution } from '../../core/resolution';
 
 const TEST_EFFECT_SOURCE = {
   kind: 'system',
@@ -36,10 +37,17 @@ export function executeTestEffect(
   if (!effect) throw new Error('Expected gameplay effect');
   const owner = input.owner ?? input.caster;
   const trace = input.trace ?? EventBus.instance.reserveTrace();
+  const resolution = createHitResolution({
+    actionId: `test:${owner.id}:action`,
+    castId: `test:${owner.id}:cast:${trace.eventId}`,
+    caster: input.caster,
+    target: input.target,
+  });
   const context =
     input.ability instanceof PassiveAbility
       ? EffectExecutionContextV3.passiveAbility({
           ...input,
+          resolution,
           trace,
           owner,
           ability: input.ability,
@@ -47,6 +55,7 @@ export function executeTestEffect(
       : input.ability
         ? EffectExecutionContextV3.activeAbility({
             ...input,
+            resolution,
             trace,
             owner,
             ability: input.ability,
@@ -54,12 +63,14 @@ export function executeTestEffect(
         : input.buff
           ? EffectExecutionContextV3.buff({
               ...input,
+              resolution,
               trace,
               owner,
               buff: input.buff,
             })
           : EffectExecutionContextV3.system({
               ...input,
+              resolution,
               trace,
               owner,
               source: TEST_EFFECT_SOURCE,

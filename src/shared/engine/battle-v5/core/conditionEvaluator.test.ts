@@ -13,7 +13,7 @@ function createContext(damageType: DamageType) {
     caster,
     target,
     triggerEvent: {
-      type: 'DamageRequestEvent',
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster,
       target,
@@ -67,7 +67,7 @@ describe('conditionEvaluator damage type conditions', () => {
         {
           ...context,
           triggerEvent: {
-            type: 'DamageTakenEvent',
+            type: 'DamageSegmentAppliedEvent',
             timestamp: Date.now(),
             caster: context.caster,
             target: context.target,

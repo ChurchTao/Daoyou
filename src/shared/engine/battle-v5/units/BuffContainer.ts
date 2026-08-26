@@ -24,6 +24,7 @@ import type {
   CombatStatusRemovalReasonV3,
   CombatTraceV3,
 } from '../v3/types';
+import type { CombatResolutionContext } from '../core/resolution';
 import { Unit } from './Unit';
 
 interface BuffApplicationOriginV3 {
@@ -34,6 +35,7 @@ interface BuffApplicationOriginV3 {
   layerChangeReason?: CombatStatusLayerChangeReasonV3;
   statusDisplayName?: string;
   statusFactVisibility?: 'player' | 'debug';
+  resolution?: CombatResolutionContext;
 }
 
 enum BuffApplicationModeV3 {
@@ -90,6 +92,10 @@ export class BuffContainer {
     mode: BuffApplicationModeV3,
   ): void {
     const attribution = this._resolveAttribution(buff, source, origin);
+    const resolutionAwareBuff = buff as Buff & {
+      setResolution?: (resolution: CombatResolutionContext | undefined) => void;
+    };
+    resolutionAwareBuff.setResolution?.(origin?.resolution);
     buff.setCombatAttributionV3(attribution);
     let publishedAddEvent: BuffAddEvent | undefined;
     if (mode === BuffApplicationModeV3.RUNTIME) {
@@ -531,6 +537,7 @@ export class BuffContainer {
       buff,
       source,
       ability: origin?.ability,
+      resolution: origin?.resolution,
       sourceBuff: origin?.buff,
     };
     this._owner.runtime.events.runInCausalContext(
@@ -670,7 +677,7 @@ export class BuffContainer {
     currentLayer: number,
     reason: BuffLayerChangeReason,
     source?: Unit,
-    origin?: { ability?: Ability; buff?: Buff },
+    origin?: BuffApplicationOriginV3,
   ): void {
     if (previousLayer === currentLayer) return;
     this._owner.runtime.events.publish<BuffLayerChangedEvent>({
@@ -680,6 +687,7 @@ export class BuffContainer {
       buff,
       source,
       ability: origin?.ability,
+      resolution: origin?.resolution,
       previousLayer,
       currentLayer,
       delta: currentLayer - previousLayer,

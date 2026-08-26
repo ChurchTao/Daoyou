@@ -649,7 +649,7 @@ src/shared/engine/sect/content/youdu/
 5. `AttributeType.HEAL_RECEIVED_REDUCTION`：底座为 0，状态使用 `ModifierType.FIXED` 相加并在 100%封顶；统一在 `Unit.heal()` 应用，覆盖治疗、持续恢复、吸血及其他气血恢复，不影响法力、护盾和免死。
 6. `DamageParams.canCrit` 与 `DamageParams.canLifesteal`：缺省为 `true`，仅幽都魂伤配置为 `false`，不得改变其他真实伤害。
 7. `AbilityConfig.hitPolicy`：支持 `normal | guaranteed`，并由 `ActiveSkillConfig`、`SectAbilityFactory` 透传到施法准备事件；V1 仅《照影》自身使用 `guaranteed`。
-8. `ListenerTriggerBudgetConfig.group`：允许多个唯一监听器共享触发次数；监听器 ID 始终保留唯一调试语义。
+8. `ListenerTriggerPolicyConfig.group`：允许多个唯一监听器共享触发次数；监听器 ID 始终保留唯一调试语义。
 
 《魂兮不归》不要求新增动态层数伤害参数：幽都编译器用既有 effect plan 生成四层与五层两个互斥固定伤害计划。混合技能的两个伤害请求也不携带标签、色调等展示元数据；玩家视图使用标准中性伤害日志，内容详情仍可描述“术伤/魂伤”。
 

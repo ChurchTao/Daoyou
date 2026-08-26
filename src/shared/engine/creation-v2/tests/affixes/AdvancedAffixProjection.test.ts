@@ -333,7 +333,7 @@ describe('advanced affix projection and rehydrate', () => {
 
     const bloodDrinker = projectWeaponAffix('artifact-weapon-blood-drinker');
     expect(bloodDrinker.listeners?.[0]).toMatchObject({
-      eventType: 'DamageTakenEvent',
+      eventType: 'DamageSegmentAppliedEvent',
       scope: 'owner_as_caster',
       guard: { skipSecondaryDamageSource: true },
       effects: [{ type: 'resource_drain' }],
@@ -353,7 +353,7 @@ describe('advanced affix projection and rehydrate', () => {
       'artifact-weapon-spirit-breaking-awl',
     );
     expect(spiritBreakingAwl.listeners?.[0]).toMatchObject({
-      eventType: 'DamageTakenEvent',
+      eventType: 'DamageSegmentAppliedEvent',
       scope: 'owner_as_caster',
       guard: { skipSecondaryDamageSource: true },
       effects: [{ type: 'mana_burn' }],
@@ -363,7 +363,7 @@ describe('advanced affix projection and rehydrate', () => {
       'artifact-weapon-ban-breaking-edge',
     );
     expect(banBreakingEdge.listeners?.[0]).toMatchObject({
-      eventType: 'DamageTakenEvent',
+      eventType: 'DamageSegmentAppliedEvent',
       scope: 'owner_as_caster',
       guard: { skipSecondaryDamageSource: true },
       effects: [{ type: 'dispel' }],
@@ -373,7 +373,7 @@ describe('advanced affix projection and rehydrate', () => {
       'artifact-weapon-shield-rending-edge',
     );
     expect(shieldRendingEdge.listeners?.[0]).toMatchObject({
-      eventType: 'DamageRequestEvent',
+      eventType: 'DamageSegmentRequestedEvent',
       scope: 'owner_as_caster',
       effects: [{ type: 'percent_damage_modifier' }],
     });
@@ -382,7 +382,7 @@ describe('advanced affix projection and rehydrate', () => {
       'artifact-weapon-soul-falling-nail',
     );
     expect(soulFallingNail.listeners?.[0]).toMatchObject({
-      eventType: 'DamageTakenEvent',
+      eventType: 'DamageSegmentAppliedEvent',
       scope: 'owner_as_caster',
       guard: { skipSecondaryDamageSource: true },
       effects: [{ type: 'ability_lock' }],
@@ -402,7 +402,7 @@ describe('advanced affix projection and rehydrate', () => {
     const effect = listener?.effects[0];
 
     expect(listener).toMatchObject({
-      eventType: 'DamageTakenEvent',
+      eventType: 'DamageSegmentAppliedEvent',
       scope: 'owner_as_target',
       guard: { skipSecondaryDamageSource: true },
     });
@@ -448,7 +448,7 @@ describe('advanced affix projection and rehydrate', () => {
       projectArtifactAffix('artifact-armor-spirit-leaking-inscription', 'armor')
         .listeners?.[0],
     ).toMatchObject({
-      eventType: 'DamageEvent',
+      eventType: 'DamageSegmentRequestedEvent',
       scope: 'owner_as_target',
       effects: [{ type: 'magic_shield' }],
     });
@@ -457,7 +457,7 @@ describe('advanced affix projection and rehydrate', () => {
       projectArtifactAffix('artifact-armor-tide-breaking-mail', 'armor', '水')
         .listeners?.[0],
     ).toMatchObject({
-      eventType: 'DamageTakenEvent',
+      eventType: 'DamageSegmentAppliedEvent',
       scope: 'owner_as_target',
       mapping: { caster: 'owner', target: 'owner' },
       effects: [{ type: 'heal', params: { target: 'mp' } }],
@@ -467,7 +467,7 @@ describe('advanced affix projection and rehydrate', () => {
       projectArtifactAffix('artifact-armor-stone-cocoon', 'armor')
         .listeners?.[0],
     ).toMatchObject({
-      eventType: 'DamageTakenEvent',
+      eventType: 'DamageSegmentAppliedEvent',
       scope: 'owner_as_target',
       mapping: { caster: 'owner', target: 'owner' },
       effects: [{ type: 'shield' }],
@@ -492,7 +492,7 @@ describe('advanced affix projection and rehydrate', () => {
         '水',
       ).listeners?.[0],
     ).toMatchObject({
-      eventType: 'DamageTakenEvent',
+      eventType: 'DamageSegmentAppliedEvent',
       scope: 'owner_as_target',
       mapping: { caster: 'owner', target: 'event.caster' },
       effects: [{ type: 'cooldown_modify' }],

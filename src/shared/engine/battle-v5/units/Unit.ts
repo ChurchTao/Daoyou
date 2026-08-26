@@ -63,8 +63,8 @@ export class Unit {
   ) {
     this.id = id;
     this.name = name;
-    this.runtime = options?.runtime ?? BattleRuntime.legacy;
-    this.teamId = options?.teamId ?? `legacy_team:${id}`;
+    this.runtime = options?.runtime ?? BattleRuntime.standalone;
+    this.teamId = options?.teamId ?? `team:${id}`;
     this.slot = options?.slot ?? 0;
 
     this.attributes = options?.attributes ?? new AttributeSet(baseAttrs);

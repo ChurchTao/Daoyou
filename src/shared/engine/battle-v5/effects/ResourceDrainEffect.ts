@@ -1,5 +1,5 @@
 import { ResourceDrainParams } from '../core/configs';
-import { DamageTakenEvent, ResourceDrainEvent } from '../core/events';
+import { DamageSegmentAppliedEvent, ResourceDrainEvent } from '../core/events';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { EffectExecutionContextV3, GameplayEffect } from './Effect';
 
@@ -16,11 +16,11 @@ export class ResourceDrainEffect extends GameplayEffect {
     const { caster, target, ability, triggerEvent } = context;
 
     // 只有在受击事件触发时才生效，因为需要知道造成的实际伤害
-    if (!triggerEvent || triggerEvent.type !== 'DamageTakenEvent') {
+    if (!triggerEvent || triggerEvent.type !== 'DamageSegmentAppliedEvent') {
       return;
     }
 
-    const damageEvent = triggerEvent as DamageTakenEvent;
+    const damageEvent = triggerEvent as DamageSegmentAppliedEvent;
     const amount = Math.round(damageEvent.damageTaken * this.params.ratio);
 
     if (amount <= 0) return;

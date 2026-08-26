@@ -387,7 +387,7 @@ Status.Sect.tianyan.ElementSeal.Water
 - “实际主伤害”指当前落印术主伤害经防御、增减伤、灵根共鸣、暴击和浮动后实际造成的数值。
 - 若主伤害被护盾吸收，实际主伤害包含护盾吸收量；即读取 `damageTaken + shieldAbsorbed`。目标剩余气血不足造成的溢出伤害不计入。
 - 比例追加伤害按实际主伤害乘以对应比例后四舍五入，不再次经过防御、增减伤、境界、灵根、暴击或随机浮动。
-- 比例追加伤害仍进入伤害应用、护盾吸收、伤害免疫和 `DamageTakenEvent`，但不得触发法印、灼烧、吸血、反应或其他明确排除二次伤害的监听器。
+- 比例追加伤害仍进入伤害应用、护盾吸收、伤害免疫和 `DamageSegmentAppliedEvent`，但不得触发法印、灼烧、吸血、反应或其他明确排除二次伤害的监听器。
 - 比例追加伤害使用 `DamageSource.FOLLOW_UP`，并携带表中元素标签；蒸发追加伤害不携带元素标签。
 - 每次落印术在主伤害前清空本技能的临时主伤害记忆，只记录本行动中当前能力产生的第一条 `DamageSource.DIRECT` 受击事件；反应追伤、DOT 和其他二次伤害不得写入该记忆。记忆在比例追加伤害完成后立即清空。
 - 泥沼使用 `Status.Control.NoAction` 语义；目标不能行动，但仍可被攻击。
@@ -1272,7 +1272,7 @@ Status.Sect.tianyan.ElementSeal.Water
 
 日志语义规则：
 
-- 主伤害、DOT、治疗、法力恢复、护盾、减益、控制、驱散、抵抗和追击分别沿用现有 `DamageTakenEvent`、`HealEvent`、`ShieldEvent`、`BuffAppliedEvent`、`DispelEvent`、`ControlResistEvent` 等通用日志入口；
+- 主伤害、DOT、治疗、法力恢复、护盾、减益、控制、驱散、抵抗和追击分别沿用现有 `DamageSegmentAppliedEvent`、`HealEvent`、`ShieldEvent`、`BuffAppliedEvent`、`DispelEvent`、`ControlResistEvent` 等通用日志入口；
 - 衍数获得、消耗、清空、返还和溢出只使用 `CombatResourceChangeEvent`，不得再发布一条重复的机制日志；
 - 十种反应及河图周天、洛书断局使用通用“具名机制触发”日志条目，每次实际触发只记录一次；
 - 具名反应和道途产生的独立追加伤害必须携带独立于伤害来源的通用 `cause`；并入落印术主伤害系数的增幅仍只显示为主伤害，不额外伪造归因行；`LogPresenter` 根据 `damageSource + cause` 选择文本，不从能力 ID 或标签猜测原因；
@@ -1707,7 +1707,7 @@ src/shared/engine/sect/content/tianyan/
 
 1. **灵根失配豁免**：新增 `IGNORE_SPIRITUAL_ROOT_MISMATCH` 运行时语义，按 4.2 节顺序计算。
 2. **普通伤害部分穿防**：给普通 `DamageParams` 增加 `bypassDefenseRatio?: number`，钳制在 `0～1`，按普通组件与穿防组件拆分；供锻锋与藏锋使用。
-3. **已结算主伤害追伤**：扩展 `damage_memory`，增加 `releaseAs: 'resolved_follow_up'`，并给 `DamageRequestEvent` 增加等价于 `calculationMode: 'resolved_final'` 的通用结算语义。参数至少包含比例和可选元素标签；该模式按记录值乘比例并四舍五入后发布伤害请求，DamageSystem 跳过防御、增减伤、境界、灵根、暴击和浮动，直接从伤害应用阶段继续处理护盾、免疫及受击事件。百分比伤害修正器也必须忽略 `resolved_final` 事件。事件携带 `DamageSource.FOLLOW_UP`；泥沼、崩根、断脉、熔金使用当前新法术元素，蒸发和洛书断局不带元素。元素仅用于语义过滤与日志，不能让固定终值再次计算灵根倍率。
+3. **已结算主伤害追伤**：扩展 `damage_memory`，增加 `releaseAs: 'resolved_follow_up'`，并给 `DamageSegmentRequestedEvent` 增加等价于 `calculationMode: 'resolved_final'` 的通用结算语义。参数至少包含比例和可选元素标签；该模式按记录值乘比例并四舍五入后发布伤害请求，DamageSystem 跳过防御、增减伤、境界、灵根、暴击和浮动，直接从伤害应用阶段继续处理护盾、免疫及受击事件。百分比伤害修正器也必须忽略 `resolved_final` 事件。事件携带 `DamageSource.FOLLOW_UP`；泥沼、崩根、断脉、熔金使用当前新法术元素，蒸发和洛书断局不带元素。元素仅用于语义过滤与日志，不能让固定终值再次计算灵根倍率。
 4. **分层 DOT（复用既有能力）**：灼烧使用标准 `STACK_LAYER` Buff，固定 2 层、上限 2 层；每次 `ActionPre` 先执行一次 `0.16 × MAGIC_ATK` DOT，再用 `buff_layer_modify.subtract` 减 1 层。重复施加恢复并封顶到 2 层、刷新持续时间。燎原直接发布固定 `0.16` 追伤且不减层；蒸发按 1/2 层发布固定 `0.16/0.32` 追伤后清除灼烧。不得新增读取并重新执行 Buff 内部周期配置的通用 Effect。
 5. **实际支付费用返还**：增加通用 `refund_paid_cost` 效果，从当前 `EffectContext.castSnapshot` 读取 `casterMpBeforeCost - casterMpAfterCost`，乘参数比例后四舍五入，恢复法力并发布正常法力恢复事件。没有施法快照或实际支付为 0 时不执行；供《法随气转》和《第一变》共用。
 6. **机制状态排除普通状态计数**：给 `BuffConfig` 和运行时 `Buff` 增加默认值为 `true` 的 `countsAsStatus`，法印设为 `false`。普通增益、减益和控制数量条件以及对应展示统计均忽略此类机制状态；显式按 ID、标签匹配时仍可找到并消费。
@@ -1726,7 +1726,7 @@ interface LogCauseRef {
 
 冲克的主伤害比例追伤 `cause.displayName` 必须包含机制类别与反应名，例如“冲克·蒸发”，不能只写“蒸发”。这是玩家文本中的直接归因，不影响稳定分组所使用的 `cause.id`。蒸发按灼烧层数生成的固定追伤使用“蒸发”，从结构化原因上与主伤害比例追伤区分。
 
-可选 `cause?: LogCauseRef` 必须沿 `DamageRequestEvent → DamageEvent → DamageTakenEvent → DamageEntryData` 完整透传，由 `LogCollector` 收集，不允许天衍在最终日志阶段反查宗门状态补齐。`id` 用于结构化视图和稳定分组，`displayName` 用于玩家文本；内容层只能提供这两个原子字段，不能提供句子模板。
+可选 `cause?: LogCauseRef` 必须沿 `DamageSegmentRequestedEvent → DamageSegmentPreparedEvent → DamageSegmentAppliedEvent → DamageEntryData` 完整透传，由 `LogCollector` 收集，不允许天衍在最终日志阶段反查宗门状态补齐。`id` 用于结构化视图和稳定分组，`displayName` 用于玩家文本；内容层只能提供这两个原子字段，不能提供句子模板。
 
 `LogAggregator` 与 `LogPresenter` 的二次伤害分组键必须纳入 `damageSource`、`cause.kind` 和 `cause.id`。同一行动中由“泥沼”和“洛书断局”产生的两段 `follow_up` 不得因来源单位、能力和目标相同而合并。
 
@@ -1771,7 +1771,7 @@ interface MechanicTriggerBasisRef {
 
 现有 `damage_memory` 的普通 `follow_up` 会重新进入物理追击、防御和暴击流程，不能直接用于“实际主伤害百分比”契约；实现者必须增加上述固定终值模式或等价的通用语义。
 
-9. **治疗来源统一匹配**：条件系统增加通用 `source_has_tag`，优先检查事件携带的能力标签，并在能力缺失时检查来源 Buff 标签。木行直接治疗与《回春》HOT 均携带木元素来源标签，《青华不竭》只建立一条 `HealEvent` 监听器，并以 `source_action` 预算保证同一行动最多触发一次护盾；不得分别监听技能与 HOT 后各自发放一次护盾。
+9. **治疗来源统一匹配**：条件系统增加通用 `source_has_tag`，优先检查事件携带的能力标签，并在能力缺失时检查来源 Buff 标签。木行直接治疗与《回春》HOT 均携带木元素来源标签，《青华不竭》只建立一条 `HealEvent` 监听器，并以 `action` 预算保证同一行动最多触发一次护盾；不得分别监听技能与 HOT 后各自发放一次护盾。
 10. **动态缺血系数启用阈值**：`DamageDynamicScalarConfig` 的目标已损气血比例缩放增加可选 `minMissingHpRatio`。已损比例未严格超过阈值时该动态分量为零，超过后仍按完整已损比例计算，不从阈值处重新起算。《天机尽处》使用 `minMissingHpRatio = 0.65`、`coefficientCap = 0.60` 和施法准备阶段快照，因此目标剩余气血不低于 35% 时完全不获得该系数。
 
 ### 22.5 明确采用的 V1 降级

@@ -3,15 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { Buff, StackRule } from '../../buffs/Buff';
 import { EventBus } from '../../core/EventBus';
+import { createHitResolution } from '../../core/resolution';
 import {
   ActionPostEvent,
   ActionStateEvent,
   BuffAddEvent,
   BuffAppliedEvent,
   CooldownModifyEvent,
-  DamageEvent,
-  DamageRequestEvent,
-  DamageTakenEvent,
+  DamageSegmentRequestedEvent,
+  DamageSegmentAppliedEvent,
   RoundPreEvent,
   ShieldBreakEvent,
 } from '../../core/events';
@@ -130,9 +130,9 @@ describe('Advanced battle effects', () => {
     poison.setLayer(3);
     target.buffs.addBuff(poison, caster);
 
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },
@@ -295,9 +295,9 @@ describe('Advanced battle effects', () => {
   it('delayed effect triggers on owner action post', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },
@@ -329,6 +329,12 @@ describe('Advanced battle effects', () => {
         type: 'ActionPostEvent',
         timestamp: Date.now(),
         caster: target,
+        resolution: createHitResolution({
+          actionId: 'advanced:delay-action',
+          castId: 'advanced:delay-cast',
+          caster: target,
+          target,
+        }),
       });
 
     post();
@@ -341,9 +347,9 @@ describe('Advanced battle effects', () => {
   it('delayed effect cancels on dispel unless triggerOnDispel is enabled', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },
@@ -405,9 +411,9 @@ describe('Advanced battle effects', () => {
   it('delayed effect can record damage taken during the delay window', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },
@@ -435,11 +441,17 @@ describe('Advanced battle effects', () => {
       { caster, target },
     );
 
-    EventBus.instance.publish<DamageTakenEvent>({
-      type: 'DamageTakenEvent',
+    EventBus.instance.publish<DamageSegmentAppliedEvent>({
+      type: 'DamageSegmentAppliedEvent',
       timestamp: Date.now(),
       caster,
       target,
+      resolution: createHitResolution({
+        actionId: 'advanced:damage-action',
+        castId: 'advanced:damage-cast',
+        caster,
+        target,
+      }),
       damageTaken: 80,
       beforeHp: target.getCurrentHp(),
       remainHp: target.getCurrentHp() - 80,
@@ -449,6 +461,12 @@ describe('Advanced battle effects', () => {
       type: 'ActionPostEvent',
       timestamp: Date.now(),
       caster: target,
+      resolution: createHitResolution({
+        actionId: 'advanced:post-action',
+        castId: 'advanced:post-cast',
+        caster: target,
+        target,
+      }),
     });
 
     expect(requests).toHaveLength(1);
@@ -471,7 +489,7 @@ describe('Advanced battle effects', () => {
         caster: attacker,
         target: owner,
         triggerEvent: {
-          type: 'DamageTakenEvent',
+          type: 'DamageSegmentAppliedEvent',
           timestamp: Date.now(),
           caster: attacker,
           target: otherRuntimeOwner,
@@ -479,7 +497,7 @@ describe('Advanced battle effects', () => {
           beforeHp: 1000,
           remainHp: 900,
           hpReachedZeroBeforeReactions: false,
-        } satisfies DamageTakenEvent,
+        } satisfies DamageSegmentAppliedEvent,
       },
     );
 
@@ -489,8 +507,8 @@ describe('Advanced battle effects', () => {
   it('damage memory records and releases as shield without leaking through Unit fields', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
-    const damageEvent: DamageTakenEvent = {
-      type: 'DamageTakenEvent',
+    const damageEvent: DamageSegmentAppliedEvent = {
+      type: 'DamageSegmentAppliedEvent',
       timestamp: Date.now(),
       caster,
       target,
@@ -527,9 +545,9 @@ describe('Advanced battle effects', () => {
   it('damage memory can include shield absorption in damage taken amount', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },
@@ -548,7 +566,7 @@ describe('Advanced battle effects', () => {
         caster,
         target,
         triggerEvent: {
-          type: 'DamageTakenEvent',
+          type: 'DamageSegmentAppliedEvent',
           timestamp: Date.now(),
           caster,
           target,
@@ -557,7 +575,7 @@ describe('Advanced battle effects', () => {
           beforeHp: target.getCurrentHp(),
           remainHp: target.getCurrentHp() - 80,
           hpReachedZeroBeforeReactions: false,
-        } satisfies DamageTakenEvent,
+        } satisfies DamageSegmentAppliedEvent,
       },
     );
 
@@ -597,7 +615,7 @@ describe('Advanced battle effects', () => {
         caster,
         target,
         triggerEvent: {
-          type: 'DamageTakenEvent',
+          type: 'DamageSegmentAppliedEvent',
           timestamp: Date.now(),
           caster,
           target,
@@ -605,7 +623,7 @@ describe('Advanced battle effects', () => {
           beforeHp: target.getCurrentHp(),
           remainHp: target.getCurrentHp() - 50_000,
           hpReachedZeroBeforeReactions: true,
-        } satisfies DamageTakenEvent,
+        } satisfies DamageSegmentAppliedEvent,
       },
     );
 
@@ -626,9 +644,9 @@ describe('Advanced battle effects', () => {
   it('damage memory can release shield break amount as true damage', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },
@@ -665,9 +683,9 @@ describe('Advanced battle effects', () => {
   it('mounts only one listener effect for a global unique key', () => {
     const owner = createUnit('owner');
     const attacker = createUnit('attacker');
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },
@@ -684,7 +702,7 @@ describe('Advanced battle effects', () => {
         ],
         listeners: [
           {
-            eventType: 'DamageTakenEvent',
+            eventType: 'DamageSegmentAppliedEvent',
             scope: 'owner_as_target',
             priority: 0,
             guard: { skipReflectSource: true },
@@ -708,8 +726,14 @@ describe('Advanced battle effects', () => {
     owner.abilities.addAbility(createReflectPassive('global-reflect-a'));
     owner.abilities.addAbility(createReflectPassive('global-reflect-b'));
 
-    EventBus.instance.publish<DamageTakenEvent>({
-      type: 'DamageTakenEvent',
+    EventBus.instance.publish<DamageSegmentAppliedEvent>({
+      type: 'DamageSegmentAppliedEvent',
+      resolution: createHitResolution({
+        actionId: 'global-reflect:action',
+        castId: 'global-reflect:cast',
+        caster: attacker,
+        target: owner,
+      }),
       timestamp: Date.now(),
       caster: attacker,
       target: owner,
@@ -745,9 +769,9 @@ describe('Advanced battle effects', () => {
     const statuses = collectCommittedResultsV3('status');
     const mechanics = collectCommittedResultsV3('mechanic');
 
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },
@@ -848,9 +872,9 @@ describe('Advanced battle effects', () => {
     });
     caster.abilities.addAbility(skill);
 
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },
@@ -940,9 +964,9 @@ describe('Advanced battle effects', () => {
     });
     caster.abilities.addAbility(skill);
 
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },
@@ -958,8 +982,8 @@ describe('Advanced battle effects', () => {
       { caster, target: caster },
     );
 
-    runTestActionV3(caster, () => skill.execute({ caster, target }));
-    runTestActionV3(caster, () => skill.execute({ caster, target }));
+    runTestActionV3(caster, () => skill.execute({ caster, target, resolution: createHitResolution({ actionId: 'transform:1', castId: 'transform:1', caster, target }) }));
+    runTestActionV3(caster, () => skill.execute({ caster, target, resolution: createHitResolution({ actionId: 'transform:2', castId: 'transform:2', caster, target }) }));
 
     expect(requests.slice(0, 2).map((event) => event.damageType)).toEqual([
       DamageType.TRUE,
@@ -996,7 +1020,7 @@ describe('Advanced battle effects', () => {
       ],
     });
 
-    runTestActionV3(caster, () => skill.execute({ caster, target }));
+    runTestActionV3(caster, () => skill.execute({ caster, target, resolution: createHitResolution({ actionId: 'self-buff:1', castId: 'self-buff:1', caster, target }) }));
 
     expect(caster.buffs.getAllBuffIds()).toContain('self_haste');
     expect(target.buffs.getAllBuffIds()).not.toContain('self_haste');
@@ -1270,9 +1294,9 @@ describe('Advanced battle effects', () => {
     });
     caster.abilities.addAbility(skill);
 
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },
@@ -1298,9 +1322,9 @@ describe('Advanced battle effects', () => {
   it('turn state counter for no-damage resets when owner dealt damage', () => {
     const owner = createUnit('owner');
     const target = createUnit('target');
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },
@@ -1345,8 +1369,8 @@ describe('Advanced battle effects', () => {
   it('damage defer reduces current damage and creates delayed damage buff', () => {
     const attacker = createUnit('attacker');
     const defender = createUnit('defender');
-    const event: DamageEvent = {
-      type: 'DamageEvent',
+    const event: DamageSegmentRequestedEvent = {
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -1373,8 +1397,8 @@ describe('Advanced battle effects', () => {
     vi.spyOn(Date, 'now').mockReturnValue(123456);
     const attacker = createUnit('attacker');
     const defender = createUnit('defender');
-    const createEvent = (): DamageEvent => ({
-      type: 'DamageEvent',
+    const createEvent = (): DamageSegmentRequestedEvent => ({
+      type: 'DamageSegmentRequestedEvent',
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
@@ -1478,9 +1502,9 @@ describe('Advanced battle effects', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');
     const mechanics = collectCommittedResultsV3('mechanic');
-    const requests: DamageRequestEvent[] = [];
-    EventBus.instance.subscribe<DamageRequestEvent>(
-      'DamageRequestEvent',
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
       (event) => {
         requests.push(event);
       },

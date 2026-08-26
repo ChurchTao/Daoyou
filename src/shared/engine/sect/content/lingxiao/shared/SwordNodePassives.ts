@@ -128,7 +128,7 @@ export function addHiddenNodePassive(
         scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
         priority: DAMAGE_MODIFIER_PRIORITY,
         mapping: { caster: 'owner', target: 'owner' },
-        budget: { maxTriggers: 1, reset: 'battle' },
+        triggerPolicy: { maxTriggers: 1, granularity: 'battle' },
         conditions: [DIRECT_DAMAGE_CONDITION],
         effects: [
           {
@@ -157,7 +157,7 @@ export function addBorrowedNodePassive(
         scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
         priority: 0,
         mapping: { caster: 'owner', target: 'owner' },
-        budget: { maxTriggers: 1, reset: 'round' },
+        triggerPolicy: { maxTriggers: 1, granularity: 'round' },
         conditions: [DIRECT_DAMAGE_CONDITION],
         effects: [sectEffects.modifyResource(args.resourceId, 1)],
       },

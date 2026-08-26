@@ -42,7 +42,7 @@ export const SWIFT_LAYER_1_NODES = [
             scope: GameplayTags.SCOPE.GLOBAL,
             priority: 0,
             mapping: { caster: 'owner', target: 'owner' },
-            budget: { maxTriggers: 1, reset: 'battle' },
+            triggerPolicy: { maxTriggers: 1, granularity: 'battle' },
             effects: [
               {
                 type: 'apply_buff',

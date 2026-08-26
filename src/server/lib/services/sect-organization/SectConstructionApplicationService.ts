@@ -111,7 +111,10 @@ export class SectConstructionApplicationService {
           resourceTopic: 'sect.membership',
           eventType: 'sect.construction_contribution_granted',
           operation: 'merge',
-          payload: { contribution },
+        payload: {
+          contribution: contribution.contribution,
+          lifetimeContribution: contribution.lifetimeContribution,
+        },
         },
         {
           resourceTopic: 'player.currency',

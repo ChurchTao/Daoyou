@@ -81,6 +81,7 @@ export class BuffCopyEffect extends GameplayEffect {
         buff: context.buff,
         attribution: CombatAttributionV3.rebind(context.owner, context.origin),
         trace: context.trace,
+        resolution: context.resolution,
       });
     } finally {
       endRuntimeGuard(receiver, copyKey);

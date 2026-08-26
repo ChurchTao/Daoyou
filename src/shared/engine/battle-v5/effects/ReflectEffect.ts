@@ -1,9 +1,10 @@
 import { GameplayEffect, EffectExecutionContextV3 } from './Effect';
-import { DamageRequestEvent, DamageTakenEvent } from '../core/events';
+import { DamageSegmentRequestedEvent, DamageSegmentAppliedEvent } from '../core/events';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { ReflectParams } from '../core/configs';
 import { DamageSource } from '../core';
 import { claimActionAmount } from '../core/runtimeState';
+import { requireResolution } from '../core/resolution';
 
 /**
  * 反伤原子效果
@@ -18,11 +19,11 @@ export class ReflectEffect extends GameplayEffect {
     const { triggerEvent, target } = context;
 
     // 需要感知受击伤害
-    if (!triggerEvent || triggerEvent.type !== 'DamageTakenEvent') {
+    if (!triggerEvent || triggerEvent.type !== 'DamageSegmentAppliedEvent') {
       return;
     }
 
-    const damageTakenEvent = triggerEvent as DamageTakenEvent;
+    const damageTakenEvent = triggerEvent as DamageSegmentAppliedEvent;
 
     // 二次伤害不再触发反伤，避免反伤、反击、追击之间形成闭环。
     if (
@@ -55,8 +56,9 @@ export class ReflectEffect extends GameplayEffect {
 
     // 给攻击者发送伤害请求
     if (attacker && attacker.isAlive()) {
-      context.emit<DamageRequestEvent>({
-        type: 'DamageRequestEvent',
+      context.emit<DamageSegmentRequestedEvent>({
+        type: 'DamageSegmentRequestedEvent',
+        resolution: requireResolution(context),
       timestamp: context.owner.runtime.clock.now(),
         caster: target,
         target: attacker,
