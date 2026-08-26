@@ -35,8 +35,7 @@ function context(pathId: TianyanPathId | undefined, abilityIds: string[]) {
       const ability = AbilityFactory.create(
         resolveSectAbility({ sect, realm: '化神', abilityId }).config,
       ) as ActiveSkill;
-      ability.setOwner(caster);
-      ability.setActive(true);
+      caster.abilities.addAbility(ability);
       return {
         ability,
         target: ability.targetPolicy.team === 'enemy' ? opponent : caster,
@@ -60,7 +59,7 @@ function selectedId(
 describe('天衍基础施法策略', () => {
   const strategy = new TianyanBaseSelectionStrategy();
 
-  it('未选择流派时投影基础策略，无印时选择耗蓝最低的落印术', () => {
+  it('未选择流派时投影基础策略，无印时选择主动栏靠前的落印术', () => {
     expect(
       projectSectCombat({
         sect: tianyanState(),
@@ -68,6 +67,19 @@ describe('天衍基础施法策略', () => {
       })?.selectionStrategy,
     ).toBeInstanceOf(TianyanBaseSelectionStrategy);
     const battle = context(undefined, ['flowing-flame', 'verdant-pulse']);
+
+    expect(selectedId(strategy.select(battle))).toBe('flowing-flame');
+  });
+
+  it('主动栏靠前的落印术法力不足时顺延到后续可用技能', () => {
+    const battle = context(undefined, ['flowing-flame', 'verdant-pulse']);
+    battle.caster.setMp(90);
+    battle.candidates = battle.candidates.filter((candidate) =>
+      candidate.ability.canTrigger({
+        caster: battle.caster,
+        target: candidate.target,
+      }),
+    );
 
     expect(selectedId(strategy.select(battle))).toBe('verdant-pulse');
   });
@@ -82,7 +94,7 @@ describe('天衍基础施法策略', () => {
     expect(selectedId(strategy.select(battle))).toBe('flowing-flame');
   });
 
-  it('多个合法反应中优先本轮未使用的元素，再比较实际耗蓝', () => {
+  it('多个合法反应中优先本轮未使用的元素', () => {
     const battle = context(undefined, [
       'dark-water-return',
       'earth-bearing-seal',
@@ -105,6 +117,58 @@ describe('天衍基础施法策略', () => {
     );
 
     expect(selectedId(strategy.select(battle))).toBe('earth-bearing-seal');
+  });
+
+  it('多个未使用的合法反应按主动栏顺序选择而非比较耗蓝', () => {
+    const battle = context(undefined, ['earth-bearing-seal', 'verdant-pulse']);
+    battle.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal('water', 2)),
+      battle.caster,
+    );
+
+    expect(selectedId(strategy.select(battle))).toBe('earth-bearing-seal');
+  });
+
+  it.each([
+    ['wood', 'flowing-flame'],
+    ['fire', 'dark-water-return'],
+    ['water', 'earth-bearing-seal'],
+    ['earth', 'verdant-pulse'],
+  ] as const)('按主动栏环形顺序从%s印继续四行循环', (seal, expected) => {
+    const battle = context(undefined, [
+      'verdant-pulse',
+      'flowing-flame',
+      'dark-water-return',
+      'earth-bearing-seal',
+    ]);
+    battle.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal(seal, 2)),
+      battle.caster,
+    );
+
+    expect(selectedId(strategy.select(battle))).toBe(expected);
+  });
+
+  it('环形下一槽法力不足时继续顺延到后续合法技能', () => {
+    const battle = context(undefined, [
+      'verdant-pulse',
+      'flowing-flame',
+      'dark-water-return',
+      'earth-bearing-seal',
+    ]);
+    battle.caster.setMp(90);
+    battle.candidates = battle.candidates.filter((candidate) =>
+      candidate.ability.canTrigger({
+        caster: battle.caster,
+        target: candidate.target,
+      }),
+    );
+    battle.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal('water', 2)),
+      battle.caster,
+    );
+
+    expect(selectedId(strategy.select(battle))).toBe('verdant-pulse');
   });
 
   it('有印但没有合法反应时优先移宫，否则返回太初玄光', () => {
@@ -156,7 +220,7 @@ describe('天衍六套自动战术', () => {
     expect(selectedId(result)).toBe('dark-water-return');
   });
 
-  it('小周天无印时选择实际法力消耗最低的落印术', () => {
+  it('小周天无印时选择主动栏靠前的落印术', () => {
     const battle = context(TIANYAN_HETU_PATH_ID, [
       'white-star-breaker',
       'metal-cloud-cutter',
@@ -167,7 +231,7 @@ describe('天衍六套自动战术', () => {
         battle,
       );
 
-    expect(selectedId(result)).toBe('metal-cloud-cutter');
+    expect(selectedId(result)).toBe('white-star-breaker');
   });
 
   it('小周天优先补全本轮尚未使用的反应元素', () => {
@@ -189,6 +253,26 @@ describe('天衍六套自动战术', () => {
         statusTags: [tianyanReactionElementMarkerTag('water')],
         countsAsStatus: false,
       }),
+      battle.caster,
+    );
+
+    const result =
+      TIANYAN_HETU_PATH_MODULE.createSelectionStrategy('small-cycle').select(
+        battle,
+      );
+
+    expect(selectedId(result)).toBe('earth-bearing-seal');
+  });
+
+  it('小周天从当前法印对应槽位之后环形选择反应', () => {
+    const battle = context(TIANYAN_HETU_PATH_ID, [
+      'verdant-pulse',
+      'flowing-flame',
+      'dark-water-return',
+      'earth-bearing-seal',
+    ]);
+    battle.opponent.buffs.addBuff(
+      BuffFactory.create(createElementSeal('water', 2)),
       battle.caster,
     );
 
