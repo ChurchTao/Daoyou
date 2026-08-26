@@ -237,6 +237,67 @@ describe('BattleRoundResolver', () => {
     expect(a0.getMaxMp() - a0.getCurrentMp()).toBe(10);
   });
 
+  it('propagates cast resolution to active-skill listener effects', () => {
+    const save = initialSave((units) => {
+      units[0].abilities.addAbility(
+        AbilityFactory.create({
+          slug: 'cast-listener-strike',
+          name: '追击',
+          type: AbilityType.ACTIVE_SKILL,
+          tags: [
+            GameplayTags.ABILITY.KIND.SKILL,
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.TRUE,
+          ],
+          targetPolicy: { team: 'enemy', scope: 'single' },
+          effects: [],
+          listeners: [
+            {
+              eventType: GameplayTags.EVENT.SKILL_CAST,
+              scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+              priority: EventPriorityLevel.SKILL_CAST,
+              mapping: { caster: 'owner', target: 'event.target' },
+              effects: [
+                {
+                  type: 'damage',
+                  params: {
+                    value: { base: 25, coefficient: 0 },
+                    damageType: DamageType.TRUE,
+                    canCrit: false,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      );
+    });
+
+    const result = resolveBattleRound(save, {
+      version: 'round_command_set_v1',
+      commandSetId: 'active-listener-resolution',
+      round: 1,
+      checkpointRevision: 0,
+      intents: {
+        a0: {
+          kind: 'ability',
+          abilityId: 'cast-listener-strike',
+          targetUnitId: 'b0',
+          submittedBy: 'player',
+        },
+        a1: { kind: 'skip', submittedBy: 'timeout' },
+        b0: { kind: 'skip', submittedBy: 'timeout' },
+        b1: { kind: 'skip', submittedBy: 'timeout' },
+      },
+    });
+
+    const restored = restoreBattleSave(result.save);
+    expect(restored.roster.getUnit('b0').getCurrentHp()).toBeLessThan(
+      restored.roster.getUnit('b0').getMaxHp(),
+    );
+    restored.runtime.dispose();
+  });
+
   it('is deterministic for the same checkpoint and sealed command set', () => {
     const save = initialSave();
     const commandSet = commands();

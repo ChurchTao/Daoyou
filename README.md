@@ -35,6 +35,7 @@
 | 界名 | 特色 | 网站入口 | 源代码 | 维护者 |
 | --- | --- | --- | --- | --- |
 | 万界道友 | 官方维护，提供原版玩法与最新功能体验 | [进入此界](https://client.daoyou.org) | [ChurchTao/Daoyou](https://github.com/ChurchTao/Daoyou) | [ChurchTao](https://github.com/ChurchTao) |
+| 云梦界 | 扩展暗巷黑市、拍卖行与灵田等玩法，侧重玩家交互、经济系统和长期养成 | [进入此界](https://yzdoc.cn/game) | [sclzboywow/daoyou](https://github.com/sclzboywow/daoyou) | [sclzboywow](https://github.com/sclzboywow) |
 
 ### 加入万界
 

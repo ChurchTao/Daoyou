@@ -789,7 +789,7 @@ export async function listTopSectContributionRanking(
       name: cultivators.name,
       discipleRank: sectMemberships.discipleRank,
       office: sectMemberships.office,
-      contribution: sectMemberships.contribution,
+      lifetimeContribution: sectMemberships.lifetimeContribution,
       joinedAt: sectMemberships.joinedAt,
     })
     .from(sectMemberships)
@@ -801,7 +801,7 @@ export async function listTopSectContributionRanking(
       ),
     )
     .orderBy(
-      desc(sectMemberships.contribution),
+      desc(sectMemberships.lifetimeContribution),
       asc(sectMemberships.joinedAt),
       asc(cultivators.id),
     )
@@ -819,7 +819,7 @@ export async function findSectContributionRankingMember(
       name: cultivators.name,
       discipleRank: sectMemberships.discipleRank,
       office: sectMemberships.office,
-      contribution: sectMemberships.contribution,
+      lifetimeContribution: sectMemberships.lifetimeContribution,
     })
     .from(sectMemberships)
     .innerJoin(cultivators, eq(cultivators.id, sectMemberships.cultivatorId))
@@ -834,9 +834,9 @@ export async function findSectContributionRankingMember(
   return row ?? null;
 }
 
-export async function countSectMembersAboveContribution(
+export async function countSectMembersAboveLifetimeContribution(
   sectId: string,
-  contribution: number,
+  lifetimeContribution: number,
   q: DbExecutor | DbTransaction,
 ): Promise<number> {
   const [row] = await q
@@ -846,7 +846,7 @@ export async function countSectMembersAboveContribution(
       and(
         eq(sectMemberships.sectId, sectId),
         eq(sectMemberships.status, 'active'),
-        gt(sectMemberships.contribution, contribution),
+        gt(sectMemberships.lifetimeContribution, lifetimeContribution),
       ),
     );
   return Number(row?.value ?? 0);

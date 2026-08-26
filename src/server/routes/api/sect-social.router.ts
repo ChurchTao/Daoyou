@@ -13,7 +13,7 @@ import {
   listSectChatMessages,
 } from '@server/lib/repositories/sectChatRepository';
 import {
-  countSectMembersAboveContribution,
+  countSectMembersAboveLifetimeContribution,
   findSectContributionRankingMember,
   listTopSectContributionRanking,
 } from '@server/lib/repositories/sectOrganizationRepository';
@@ -133,9 +133,9 @@ router.get(
             let previousContribution: number | undefined;
             let rank = 0;
             const entries = rows.map((row, index): SectContributionRankingEntry => {
-              if (row.contribution !== previousContribution) {
+              if (row.lifetimeContribution !== previousContribution) {
                 rank = index + 1;
-                previousContribution = row.contribution;
+                previousContribution = row.lifetimeContribution;
               }
               return {
                 rank,
@@ -143,7 +143,7 @@ router.get(
                 name: row.name,
                 discipleRank: row.discipleRank as SectDiscipleRank,
                 office: row.office as SectOffice,
-                contribution: row.contribution,
+                contribution: row.lifetimeContribution,
               };
             });
             let currentMember = entries.find(
@@ -160,9 +160,9 @@ router.get(
               }
               currentMember = {
                 rank:
-                  (await countSectMembersAboveContribution(
+                  (await countSectMembersAboveLifetimeContribution(
                     membership.sectId,
-                    currentRow.contribution,
+                    currentRow.lifetimeContribution,
                     q,
                   )) + 1,
                 cultivatorId: currentRow.cultivatorId,
@@ -170,13 +170,13 @@ router.get(
                 discipleRank:
                   currentRow.discipleRank as SectDiscipleRank,
                 office: currentRow.office as SectOffice,
-                contribution: currentRow.contribution,
+                contribution: currentRow.lifetimeContribution,
               };
             }
             return {
               scope: { kind: 'sect', id: membership.sectId },
               data: {
-                metric: 'current_balance',
+                metric: 'lifetime_contribution',
                 generatedAt: new Date().toISOString(),
                 entries: entries.slice(0, 20),
                 currentMember,

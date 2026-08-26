@@ -276,7 +276,7 @@ function ContributionRankingWorkspace({
     <div className="min-h-[34rem] px-5 py-7 sm:px-8 md:px-10">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-current/10 pb-4">
         <div>
-          <p className="text-ink-secondary text-sm">宗门贡献榜 · 当前余额</p>
+          <p className="text-ink-secondary text-sm">宗门贡献榜 · 累积贡献</p>
           <p className="mt-1 text-sm">
             我的排名：第 {ranking.currentMember.rank} 名 ·{' '}
             {ranking.currentMember.contribution.toLocaleString('zh-CN')} 点
@@ -305,7 +305,7 @@ function ContributionRankingWorkspace({
                 <th className="p-2">名号</th>
                 <th className="p-2">身份</th>
                 <th className="p-2">职务</th>
-                <th className="p-2 text-right">贡献</th>
+                <th className="p-2 text-right">累积贡献</th>
               </tr>
             </thead>
             <tbody>

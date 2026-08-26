@@ -1,12 +1,17 @@
 import { z } from 'zod';
 
+// Keep this JSON Schema-compatible for providers whose regex engines do not
+// support Unicode property escapes such as `\p{Script=Han}`.
+const IDENTITY_RESHAPE_NAME_PATTERN =
+  /^[\u3400-\u4dbf\u4e00-\u9fff]{2,4}$/u;
+
 export const IdentityReshapeCandidateSchema = z.object({
   name: z
     .string()
     .trim()
     .min(2)
     .max(4)
-    .regex(/^[\p{Script=Han}]{2,4}$/u, '姓名必须为 2-4 个中文字符'),
+    .regex(IDENTITY_RESHAPE_NAME_PATTERN, '姓名必须为 2-4 个中文字符'),
   origin: z.string().trim().min(2).max(40),
   personality: z.string().trim().min(2).max(100),
   background: z.string().trim().min(10).max(300),

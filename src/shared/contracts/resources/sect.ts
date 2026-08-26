@@ -197,7 +197,7 @@ export const SECT_RESOURCE_DATA_SCHEMAS = {
     .strict(),
   'sect.contribution-ranking': z
     .object({
-      metric: z.literal('current_balance'),
+      metric: z.literal('lifetime_contribution'),
       generatedAt: z.string(),
       entries: z
         .array(
