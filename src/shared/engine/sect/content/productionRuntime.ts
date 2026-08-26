@@ -9,6 +9,7 @@ import { LINGXIAO_MODULE, LINGXIAO_SECT_PRESENTATION } from './lingxiao';
 import { WUXIANG_MODULE, WUXIANG_SECT_PRESENTATION } from './wuxiang';
 import { TIANYAN_MODULE, TIANYAN_SECT_PRESENTATION } from './tianyan';
 import { YOUDU_MODULE, YOUDU_SECT_PRESENTATION } from './youdu';
+import { JIUJIE_MODULE, JIUJIE_SECT_PRESENTATION } from './jiujie';
 
 export interface ProductionSectEntry {
   module: SectModule;
@@ -45,6 +46,10 @@ export const PRODUCTION_SECTS = createProductionSectCatalog([
   {
     module: YOUDU_MODULE,
     presentation: YOUDU_SECT_PRESENTATION,
+  },
+  {
+    module: JIUJIE_MODULE,
+    presentation: JIUJIE_SECT_PRESENTATION,
   },
 ]);
 

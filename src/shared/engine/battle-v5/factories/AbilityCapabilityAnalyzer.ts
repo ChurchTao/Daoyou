@@ -13,6 +13,7 @@ export interface AbilityCapabilitySummary {
   hasHeal: boolean;
   hasControl: boolean;
   hasBuff: boolean;
+  hasDebuff: boolean;
   damageChannels: Set<AbilityDamageChannel>;
   selectionProfile?: AbilitySelectionProfile;
 }
@@ -71,6 +72,7 @@ export function analyzeAbilityCapabilities(
   let hasHeal = false;
   let hasControl = false;
   let hasBuff = false;
+  let hasDebuff = false;
 
   for (let index = 0; index < queue.length; index += 1) {
     const effect = queue[index];
@@ -132,9 +134,11 @@ export function analyzeAbilityCapabilities(
       case 'apply_buff':
         if (effect.params.buffConfig.type === BuffType.CONTROL) {
           hasControl = true;
+          hasDebuff = true;
           intents.add('control');
         } else {
           hasBuff = true;
+          if (effect.params.buffConfig.type === BuffType.DEBUFF) hasDebuff = true;
           intents.add('buff');
         }
         break;
@@ -176,6 +180,7 @@ export function analyzeAbilityCapabilities(
     hasHeal,
     hasControl,
     hasBuff,
+    hasDebuff,
     damageChannels,
     selectionProfile: intents.size ? { intents: Array.from(intents) } : undefined,
   };

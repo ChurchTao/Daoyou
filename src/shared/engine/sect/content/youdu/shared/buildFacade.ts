@@ -10,7 +10,8 @@ export interface YouduBuildSettings {
   forgetHighLayerBonus: number;
   forgetFourLayerBonus: number;
   sighForgetBonus: number;
-  firstErosionExtraFire: boolean;
+  sighForgetExtraFire: boolean;
+  initialSoulFire: number;
   erosionAttributeCurve: readonly number[];
   erosionHealCurve: readonly number[];
   crossingEcho: boolean;
@@ -23,22 +24,30 @@ export interface YouduBuildSettings {
   finishBaseCoefficient: number;
   finishPerLayerCoefficient: number;
   finishAddsForget: boolean;
+  finishKeepsSoulFire: boolean;
+  finishMinLayers: number;
   mixedDamageMultiplier: number;
   shadowDuration: number;
   extraControlResistance: number;
   seizeDuration: number;
+  seizeAttackReduction: number;
   pinMpCost: number;
   soulFireBonus: number;
   severHighLayerBonus: number;
   firstShadowExtraLayer: boolean;
   heartSoulFireGain: number;
+  controlResistSoulFireGain: number;
   pinHighLayerSlow: boolean;
+  pinHighLayerSoulDamage: number;
   lostResistPenalty: boolean;
+  lostResistPenaltyDuration: number;
   highLayerControlHitBonus: number;
   lostAfterPenalty: boolean;
-  heartShield: boolean;
+  lostAfterPenaltyDuration: number;
+  heartShieldRatio: number;
   oneNameOneJudgment: boolean;
   nameInYoudu: boolean;
+  nameInYouduHpThreshold: number;
   decreeDirectSoulBonus: number;
   decreeShadowLayerBonus: number;
 }
@@ -54,7 +63,8 @@ export function createYouduBuildSettings(pathId?: SectPathId): YouduBuildSetting
     forgetHighLayerBonus: pathId === 'tide' ? 0.20 : 0,
     forgetFourLayerBonus: 0,
     sighForgetBonus: 0,
-    firstErosionExtraFire: false,
+    sighForgetExtraFire: false,
+    initialSoulFire: 0,
     erosionAttributeCurve: [-0.03, -0.05, -0.08, -0.12, -0.12],
     erosionHealCurve: [0, 0.15, 0.30, 0.50, 1],
     crossingEcho: false,
@@ -67,22 +77,30 @@ export function createYouduBuildSettings(pathId?: SectPathId): YouduBuildSetting
     finishBaseCoefficient: 0.70,
     finishPerLayerCoefficient: 0.20,
     finishAddsForget: false,
+    finishKeepsSoulFire: false,
+    finishMinLayers: 4,
     mixedDamageMultiplier: 1,
     shadowDuration: 3,
     extraControlResistance: 0,
     seizeDuration: 2,
+    seizeAttackReduction: -0.20,
     pinMpCost: 180,
     soulFireBonus: 0.25,
     severHighLayerBonus: 0.50,
     firstShadowExtraLayer: false,
     heartSoulFireGain: pathId === 'decree' ? 1 : 0,
+    controlResistSoulFireGain: pathId === 'decree' ? 1 : 0,
     pinHighLayerSlow: false,
+    pinHighLayerSoulDamage: 0,
     lostResistPenalty: false,
+    lostResistPenaltyDuration: 1,
     highLayerControlHitBonus: 0,
     lostAfterPenalty: false,
-    heartShield: false,
+    lostAfterPenaltyDuration: 1,
+    heartShieldRatio: 0,
     oneNameOneJudgment: false,
     nameInYoudu: false,
+    nameInYouduHpThreshold: 0.20,
     decreeDirectSoulBonus: pathId === 'decree' ? 0.10 : 0,
     decreeShadowLayerBonus: pathId === 'decree' ? 0.01 : 0,
   };
@@ -97,8 +115,11 @@ export class TideBuildFacade {
     this.settings.forgetDirectCoefficient *= 1.15;
     this.settings.forgetDotCoefficient *= 1.15;
   }
-  empowerSigh(): void { this.settings.sighForgetBonus = 0.20; }
-  enableFirstLantern(): void { this.settings.firstErosionExtraFire = true; }
+  empowerSigh(): void {
+    this.settings.sighForgetBonus = 0.20;
+    this.settings.sighForgetExtraFire = true;
+  }
+  enableFirstLantern(): void { this.settings.initialSoulFire = 1; }
   extendForget(): void { this.settings.forgetDuration = 3; }
   deepenHealSuppression(): void { this.settings.forgetHealReduction = 0.30; }
   slowBlackWater(): void { this.settings.forgetSpeedReduction = -0.08; }
@@ -109,9 +130,12 @@ export class TideBuildFacade {
     this.settings.erosionHealCurve = [0, 0.15, 0.40, 0.60, 1];
   }
   enableCrossingEcho(): void { this.settings.crossingEcho = true; }
-  empowerFourLayerForget(): void { this.settings.forgetFourLayerBonus = 0.10; }
+  empowerFourLayerForget(): void { this.settings.forgetFourLayerBonus = 0.25; }
   enableCleanseToll(): void { this.settings.cleanseToll = true; }
-  deepenNoReturnSlow(): void { this.settings.noReturnSpeedReduction = -0.40; }
+  deepenNoReturnSlow(): void {
+    this.settings.noReturnSpeedReduction = -0.40;
+    this.settings.finishKeepsSoulFire = true;
+  }
   enableHundredGhosts(): void { this.settings.hundredGhosts = true; }
   enableDreamInvasion(): void { this.settings.dreamInvasion = true; }
   enableLastFerry(): void { this.settings.lastFerry = true; }
@@ -122,22 +146,43 @@ export class TideBuildFacade {
 
 export class DecreeBuildFacade {
   constructor(readonly settings: YouduBuildSettings) {}
-  empowerMixedStrikes(): void { this.settings.mixedDamageMultiplier = 1.10; }
+  empowerMixedStrikes(): void { this.settings.mixedDamageMultiplier = 1.20; }
   extendShadow(): void { this.settings.shadowDuration = 4; }
   guardSpirit(): void { this.settings.extraControlResistance = 0.10; }
-  extendSeize(): void { this.settings.seizeDuration = 3; }
+  extendSeize(): void {
+    this.settings.seizeDuration = 3;
+    this.settings.seizeAttackReduction = -0.25;
+  }
   quietNail(): void { this.settings.pinMpCost = 140; }
   brightenSoulFire(): void { this.settings.soulFireBonus = 0.35; }
   deepenSevering(): void { this.settings.severHighLayerBonus = 0.70; }
   enableFirstShadowLayer(): void { this.settings.firstShadowExtraLayer = true; }
-  deepenHeartReflection(): void { this.settings.heartSoulFireGain = 2; }
-  enableFourGatesSlow(): void { this.settings.pinHighLayerSlow = true; }
-  enableMeasuredPunishment(): void { this.settings.lostResistPenalty = true; }
+  deepenHeartReflection(): void {
+    this.settings.heartSoulFireGain = 2;
+    this.settings.controlResistSoulFireGain = 2;
+  }
+  enableFourGatesSlow(): void {
+    this.settings.pinHighLayerSlow = true;
+    this.settings.pinHighLayerSoulDamage = 0.20;
+  }
+  enableMeasuredPunishment(): void {
+    this.settings.lostResistPenalty = true;
+    this.settings.lostResistPenaltyDuration = 2;
+  }
   enforceIronLaw(): void { this.settings.highLayerControlHitBonus = 0.15; }
-  enableFiveSoulsPenalty(): void { this.settings.lostAfterPenalty = true; }
-  enableReturningBarrier(): void { this.settings.heartShield = true; }
+  enableFiveSoulsPenalty(): void {
+    this.settings.lostAfterPenalty = true;
+    this.settings.lostAfterPenaltyDuration = 2;
+  }
+  enableReturningBarrier(): void { this.settings.heartShieldRatio = 0.15; }
   enableOneNameJudgment(): void { this.settings.oneNameOneJudgment = true; }
-  strengthenVerdict(): void { this.settings.finishBaseCoefficient = 0.85; }
+  strengthenVerdict(): void {
+    this.settings.finishBaseCoefficient = 0.85;
+    this.settings.finishMinLayers = 3;
+  }
   severSevenInches(): void { this.settings.finishPerLayerCoefficient = 0.25; }
-  enableNameInYoudu(): void { this.settings.nameInYoudu = true; }
+  enableNameInYoudu(): void {
+    this.settings.nameInYoudu = true;
+    this.settings.nameInYouduHpThreshold = 0.35;
+  }
 }

@@ -75,7 +75,12 @@ export type CombatVisualFact =
   | (CombatVisualFactBase & {
       kind: 'defense';
       defense:
-        'mana_shield' | 'damage_immune' | 'dodge' | 'resist' | 'interrupt';
+        | 'mana_shield'
+        | 'damage_immune'
+        | 'skill_immune'
+        | 'dodge'
+        | 'resist'
+        | 'interrupt';
       amount?: number;
       detail?: string;
     })

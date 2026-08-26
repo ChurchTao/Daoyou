@@ -71,6 +71,7 @@ export default function SectVisitPage() {
             mode="visitor"
             image={presentation.map.image!}
             alt={presentation.map.alt}
+            aspectRatio={presentation.map.aspectRatio}
             hotspots={presentation.map.hotspots}
             rooms={presentation.rooms}
             scenes={presentation.scenes}

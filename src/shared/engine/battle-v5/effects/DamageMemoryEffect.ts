@@ -60,20 +60,20 @@ export class DamageMemoryEffect extends GameplayEffect {
 
     switch (this.params.releaseAs ?? 'damage') {
       case 'heal': {
-        const appliedAmount = narrativeContext.target.heal(amount);
+        const appliedAmount = owner.heal(amount);
         if (appliedAmount > 0) {
-          narrativeContext.commit(narrativeContext.target, {
+          narrativeContext.commit(owner, {
             type: 'recovery',
             resource: 'hp',
             amount: Math.round(appliedAmount),
-            after: Math.round(narrativeContext.target.getCurrentHp()),
+            after: Math.round(owner.getCurrentHp()),
           });
         }
         narrativeContext.emit<HealEvent>({
           type: 'HealEvent',
           timestamp: context.owner.runtime.clock.now(),
           caster: context.caster,
-          target: context.target,
+          target: owner,
           ability: context.ability,
           buff: context.buff,
           healAmount: amount,
@@ -83,22 +83,22 @@ export class DamageMemoryEffect extends GameplayEffect {
         break;
       }
       case 'shield': {
-        const beforeShield = narrativeContext.target.getCurrentShield();
-        narrativeContext.target.addShield(amount);
+        const beforeShield = owner.getCurrentShield();
+        owner.addShield(amount);
         const appliedShield =
-          narrativeContext.target.getCurrentShield() - beforeShield;
+          owner.getCurrentShield() - beforeShield;
         if (appliedShield > 0) {
-          narrativeContext.commit(narrativeContext.target, {
+          narrativeContext.commit(owner, {
             type: 'shield',
             amount: Math.round(appliedShield),
-            after: Math.round(narrativeContext.target.getCurrentShield()),
+            after: Math.round(owner.getCurrentShield()),
           });
         }
         narrativeContext.emit<ShieldEvent>({
           type: 'ShieldEvent',
           timestamp: context.owner.runtime.clock.now(),
           caster: context.caster,
-          target: context.target,
+          target: owner,
           ability: context.ability,
           shieldAmount: amount,
         });

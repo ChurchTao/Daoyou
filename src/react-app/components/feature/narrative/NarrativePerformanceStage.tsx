@@ -46,6 +46,8 @@ function NarrativeActPanel({
   busy,
   error,
   finalLabel,
+  finishPendingLabel,
+  finalExitLabel,
   canRewind,
   onReveal,
   onAdvance,
@@ -60,6 +62,8 @@ function NarrativeActPanel({
   busy: boolean;
   error?: string;
   finalLabel: string;
+  finishPendingLabel: string;
+  finalExitLabel: string | null;
   canRewind: boolean;
   onReveal: () => void;
   onAdvance: () => void;
@@ -132,19 +136,21 @@ function NarrativeActPanel({
             <InkButton
               onClick={onFinish}
               pending={busy}
-              pendingLabel="玉牒落印中……"
+              pendingLabel={finishPendingLabel}
               variant="primary"
               className="text-[#f0c77b] hover:text-[#ffe2a4]"
             >
               {finalLabel}
             </InkButton>
-            <InkButton
-              onClick={onBack}
-              disabled={busy}
-              className="text-[#d9cfba] hover:text-white"
-            >
-              再看看其他宗门
-            </InkButton>
+            {finalExitLabel && (
+              <InkButton
+                onClick={onBack}
+                disabled={busy}
+                className="text-[#d9cfba] hover:text-white"
+              >
+                {finalExitLabel}
+              </InkButton>
+            )}
           </>
         )}
       </div>
@@ -155,6 +161,9 @@ function NarrativeActPanel({
 export function NarrativePerformanceStage({
   script,
   finalLabel,
+  exitLabel = '返回诸宗',
+  finalExitLabel = '再看看其他宗门',
+  finishPendingLabel = '玉牒落印中……',
   busy,
   error,
   onBack,
@@ -162,6 +171,9 @@ export function NarrativePerformanceStage({
 }: {
   script: NarrativePerformanceScript;
   finalLabel: string;
+  exitLabel?: string | null;
+  finalExitLabel?: string | null;
+  finishPendingLabel?: string;
   busy: boolean;
   error?: string;
   onBack: () => void;
@@ -204,13 +216,15 @@ export function NarrativePerformanceStage({
               {script.title}
             </h1>
           </div>
-          <InkButton
-            onClick={onBack}
-            disabled={busy}
-            className="text-[#e7dcc3] hover:text-white"
-          >
-            返回诸宗
-          </InkButton>
+          {exitLabel && (
+            <InkButton
+              onClick={onBack}
+              disabled={busy}
+              className="text-[#e7dcc3] hover:text-white"
+            >
+              {exitLabel}
+            </InkButton>
+          )}
         </header>
 
         <div className="mt-auto max-w-2xl pt-24 md:pt-32">
@@ -236,6 +250,8 @@ export function NarrativePerformanceStage({
             busy={busy}
             error={error}
             finalLabel={finalLabel}
+            finishPendingLabel={finishPendingLabel}
+            finalExitLabel={finalExitLabel}
             canRewind={performance.actIndex > 0}
             onReveal={() =>
               setPerformance((state) =>

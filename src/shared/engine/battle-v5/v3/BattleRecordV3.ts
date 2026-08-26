@@ -321,6 +321,7 @@ export class BattleRecordValidatorV3 {
           ![
             'mana_shield',
             'damage_immune',
+            'skill_immune',
             'dodge',
             'resist',
             'interrupt',

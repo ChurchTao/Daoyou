@@ -91,6 +91,15 @@ const EXPECTED_PRESETS = {
     ],
     artifactNames: ['镇魂玄铁令', '忘川夜衣', '引魂灯佩'],
   },
+  jiujie: {
+    name: '九劫宫主·试炼化身',
+    description: '执劫簿立于雷池中央，以行动问罪，以九霄清算。',
+    pathId: 'calamity-eye',
+    tacticId: 'bear-and-return',
+    methodIds: ['jiujie-canon', 'calamity-eye', 'heavenly-record', 'thunder-prison', 'cause-judgment', 'crossing-calamity'],
+    abilityLoadout: ['heaven-hearing', 'receive-calamity', 'thunder-prison-question', 'nine-sky-settlement'],
+    artifactNames: ['劫簿天简', '渡厄雷环', '九门宫印'],
+  },
 } as const;
 
 const ARTIFACT_AFFIX_IDS = [

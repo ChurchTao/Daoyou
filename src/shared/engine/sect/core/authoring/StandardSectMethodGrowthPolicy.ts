@@ -289,6 +289,7 @@ export class StandardSectMethodGrowthPolicy implements SectMethodGrowthPolicy {
       case 'death_prevent':
       case 'buff_immunity':
       case 'damage_immunity':
+      case 'skill_immunity':
       case 'skip_action':
       case 'queue_action':
       case 'ability_mode':

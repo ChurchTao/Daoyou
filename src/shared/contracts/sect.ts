@@ -90,6 +90,49 @@ export const SectMembersQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(50).default(20),
 });
 
+export const SectTransferPreviewQuerySchema = z.object({
+  targetSectId: z.string().min(1).max(64),
+  reversePaths: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+});
+
+export const SectTransferRequestSchema = z
+  .object({
+    targetSectId: z.string().min(1).max(64),
+    reversePaths: z.boolean().default(false),
+    consumableId: z.string().uuid().optional(),
+  })
+  .strict();
+
+export interface SectTransferPreviewData {
+  talisman: { available: boolean; id?: string; name: string };
+  source: { sectId: string; name: string };
+  target: { sectId: string; name: string };
+  discipleRank: SectDiscipleRank;
+  contribution: number;
+  lifetimeContribution: number;
+  methodMappings: Array<{
+    sourceMethodId: string;
+    sourceMethodName: string;
+    targetMethodId: string;
+    targetMethodName: string;
+    level: number;
+  }>;
+  pathMappings: Array<{
+    sourcePathId: string;
+    sourcePathName: string;
+    targetPathId: string;
+    targetPathName: string;
+    unlockedLayerCount: number;
+    active: boolean;
+  }>;
+  activeTaskCount: number;
+  hasClaimableTasks: boolean;
+  warnings: string[];
+}
+
 export const SectMemberActivityStateSchema = z.enum([
   'online',
   'active_today',

@@ -32,6 +32,7 @@ import {
 interface SectMapProps {
   image: string;
   alt: string;
+  aspectRatio?: number;
   hotspots: readonly SectMapHotspot[];
   mode?: SectMapMode;
   facilities?: ReadonlyMap<string, SectFacilityState>;
@@ -229,6 +230,7 @@ function FacilityMarkerGlyph({
 export function SectMap({
   image,
   alt,
+  aspectRatio = 1672 / 941,
   hotspots,
   mode = 'member',
   facilities = new Map(),
@@ -330,11 +332,13 @@ export function SectMap({
           <div className="relative">
             <div className="border-ink/15 relative overflow-hidden border bg-[#e9e1cf] shadow-inner">
               <TransformComponent
-                wrapperClass="!w-full !h-[min(56svh,427px)] !min-h-[320px] md:!h-auto md:!min-h-0 md:aspect-[1672/941] cursor-grab active:cursor-grabbing"
+                wrapperClass="!w-full !h-[min(56svh,427px)] !min-h-[320px] md:!h-auto md:!min-h-0 cursor-grab active:cursor-grabbing"
+                wrapperStyle={{ aspectRatio }}
                 contentClass="!w-max !h-max md:!w-full md:!h-full"
               >
                 <div
-                  className="relative aspect-[1672/941] w-[760px] md:w-full"
+                  className="relative w-[760px] md:w-full"
+                  style={{ aspectRatio }}
                   onClickCapture={handleHotspotClickCapture}
                 >
                   <img

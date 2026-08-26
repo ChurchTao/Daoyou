@@ -84,6 +84,7 @@ export class SectAbilityFactory {
           ? [GameplayTags.ABILITY.FUNCTION.CONTROL]
           : []),
         ...(capabilities.hasBuff ? [GameplayTags.ABILITY.FUNCTION.BUFF] : []),
+        ...(capabilities.hasDebuff ? [GameplayTags.ABILITY.FUNCTION.DEBUFF] : []),
         ...(capabilities.damageChannels.has('physical')
           ? [GameplayTags.ABILITY.CHANNEL.PHYSICAL]
           : []),
@@ -94,6 +95,9 @@ export class SectAbilityFactory {
           ? [GameplayTags.ABILITY.CHANNEL.TRUE]
           : []),
         GameplayTags.ABILITY.KIND.SECT,
+        ...(spec.definition.kind === 'default'
+          ? [GameplayTags.ABILITY.KIND.BASIC]
+          : []),
         GameplayTags.ABILITY.SECT.namespace(this.sectId),
         ...(spec.pathId
           ? [GameplayTags.ABILITY.SECT.path(this.sectId, spec.pathId)]
@@ -152,6 +156,7 @@ export class SectAbilityFactory {
           ? [GameplayTags.ABILITY.FUNCTION.CONTROL]
           : []),
         ...(capabilities.hasBuff ? [GameplayTags.ABILITY.FUNCTION.BUFF] : []),
+        ...(capabilities.hasDebuff ? [GameplayTags.ABILITY.FUNCTION.DEBUFF] : []),
         ...(capabilities.damageChannels.has('physical')
           ? [GameplayTags.ABILITY.CHANNEL.PHYSICAL]
           : []),

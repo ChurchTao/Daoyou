@@ -114,7 +114,7 @@ export const YOUDU_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       id: 'soul-severing-call', kind: 'active', baseName: '离魂引',
       description: '循一声呼唤牵动游魂，魂愈远，越容易被引出形骸。', role: 'generator',
       unlock: { type: 'method', methodId: 'three-souls-separation', level: 1 },
-      mpCost: 80, cooldown: 0,
+      mpCost: 80, cooldown: 1,
     },
     {
       id: 'reveal-shadow', kind: 'active', baseName: '照影',

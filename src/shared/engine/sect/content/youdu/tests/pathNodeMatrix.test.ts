@@ -40,6 +40,9 @@ describe('幽都36参悟节点编译矩阵', () => {
       throw new Error('幽都终结伤害配置缺失');
     }
     return {
+      three: config.effectLayers?.some((layer) => layer.id === 'finish-three')
+        ? coefficient('finish-three')
+        : undefined,
       four: coefficient('finish-four'),
       five: coefficient('finish-five'),
     };
@@ -103,7 +106,7 @@ describe('幽都36参悟节点编译矩阵', () => {
     const coefficients = seize.effects
       ?.filter((effect) => effect.type === 'damage')
       .map((effect) => effect.type === 'damage' ? effect.params.value.coefficient : undefined);
-    expect(coefficients).toEqual([0.2209, 0.2209]);
+    expect(coefficients).toEqual([0.2409, 0.2409]);
 
     const pin = resolveSectAbility({
       sect: state, realm: '化神', abilityId: 'pin-soul',
@@ -122,15 +125,19 @@ describe('幽都36参悟节点编译矩阵', () => {
   });
 
   it('基础与终极节点终结倍率保持在明确理论边界内', () => {
-    expect(finisherCoefficients()).toEqual({ four: 1.5059, five: 1.7066 });
+    expect(finisherCoefficients()).toEqual({
+      three: undefined,
+      four: 1.5059,
+      five: 1.7066,
+    });
     expect(finisherCoefficients(YOUDU_TIDE_PATH_ID, ['tide-lament-deepens']))
-      .toEqual({ four: 1.6665, five: 1.9074 });
+      .toEqual({ three: undefined, four: 1.6665, five: 1.9074 });
     expect(finisherCoefficients(YOUDU_DECREE_PATH_ID, ['decree-verdict']))
-      .toEqual({ four: 1.6564, five: 1.8572 });
+      .toEqual({ three: 1.4557, four: 1.6564, five: 1.8572 });
     expect(finisherCoefficients(
       YOUDU_DECREE_PATH_ID,
       ['decree-bright-prison-fire', 'decree-seven-inch-severance'],
-    )).toEqual({ four: 1.7066, five: 1.9576 });
+    )).toEqual({ three: undefined, four: 1.7066, five: 1.9576 });
 
     const theoreticalMaximum = 1.95 * 1.35;
     expect(theoreticalMaximum).toBeCloseTo(2.6325);

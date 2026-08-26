@@ -405,6 +405,20 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="sect/transfer"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/sect/transfer/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'sect-transfer',
+                  presentation: 'workflow',
+                  summary: '使用欺天符，查看并确认无损转宗。',
+                },
+                '欺天台 · 转宗',
+              )}
+            />
+            <Route
               path="sect/hall"
               lazy={lazyRoute(() => import('@app/routes/game/sect/hall/route'))}
               handle={scene(
@@ -911,9 +925,15 @@ export const router = createBrowserRouter(
             />
             <Route
               path="merit-ledger"
-              lazy={lazyRoute(() => import('@app/routes/game/merit-ledger/route'))}
+              lazy={lazyRoute(
+                () => import('@app/routes/game/merit-ledger/route'),
+              )}
               handle={scene(
-                { id: 'merit-ledger', presentation: 'service', summary: '记同行之缘，不录金额与次数。' },
+                {
+                  id: 'merit-ledger',
+                  presentation: 'service',
+                  summary: '记同行之缘，不录金额与次数。',
+                },
                 '功德簿',
               )}
             />

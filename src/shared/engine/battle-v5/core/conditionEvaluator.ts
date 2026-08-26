@@ -175,6 +175,11 @@ export function evaluateCondition(
       if (!abilityTags || !cond.params.tag) return false;
       return abilityTags.hasTag(cond.params.tag);
     }
+    case 'ability_has_any_tag': {
+      const abilityTags = getAbilityTags(context);
+      const tags = cond.params.tags ?? [];
+      return !!abilityTags && tags.some((tag) => abilityTags.hasTag(tag));
+    }
     case 'ability_has_exact_tag': {
       const abilityTags = getAbilityTags(context);
       if (!abilityTags || !cond.params.tag) return false;

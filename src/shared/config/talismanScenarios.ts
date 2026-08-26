@@ -4,6 +4,10 @@ export const TALISMAN_SCENARIO_OPTIONS = [
     label: '归元洗髓·属性重置',
   },
   {
+    value: 'sect_transfer',
+    label: '欺天符·无损转宗',
+  },
+  {
     value: 'fate_reshape',
     label: '天机逆命·命格重塑',
   },

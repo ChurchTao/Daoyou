@@ -87,6 +87,9 @@ export function describeEffectCore(
     case 'buff_immunity':
       return `免疫状态：${labelTagList(effect.params.tags)}`;
 
+    case 'skill_immunity':
+      return '有概率免疫整个主动法术';
+
     case 'dispel':
       return effect.params.targetTag
         ? `驱散 ${effect.params.maxCount ?? 1} 个${labelGameplayTag(effect.params.targetTag)}`

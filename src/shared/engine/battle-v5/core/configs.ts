@@ -94,6 +94,7 @@ export interface ConditionConfig {
     | 'has_not_tag'
     | 'has_tag_on'
     | 'ability_has_tag'
+    | 'ability_has_any_tag'
     | 'ability_has_exact_tag'
     | 'ability_has_not_tag'
     | 'source_has_tag'
@@ -127,6 +128,7 @@ export interface ConditionConfig {
     | 'is_lethal';
   params: {
     tag?: string;
+    tags?: string[];
     id?: string;
     value?: number;
     // 条件作用域，默认 target。
@@ -596,6 +598,14 @@ export interface DamageImmunityParams {
 }
 
 /**
+ * 整个技能免疫参数定义。
+ * 该效果只在 SkillPreCastEvent 阶段拦截施法，不会只移除技能附带的某个 Buff。
+ */
+export interface SkillImmunityParams {
+  reason?: string;
+}
+
+/**
  * 重构后的辨识联合类型原子效果配置
  */
 export type EffectConfig = BaseEffectConfig &
@@ -636,6 +646,7 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'death_prevent'; params: DeathPreventParams }
     | { type: 'buff_immunity'; params: BuffImmunityParams }
     | { type: 'damage_immunity'; params: DamageImmunityParams }
+    | { type: 'skill_immunity'; params: SkillImmunityParams }
     | { type: 'skip_action'; params: SkipActionParams }
     | { type: 'queue_action'; params: QueueActionParams }
     | { type: 'resource_scaled_damage'; params: ResourceScaledDamageParams }

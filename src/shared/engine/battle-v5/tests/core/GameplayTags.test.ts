@@ -1,6 +1,11 @@
 import { GameplayTagContainer, GameplayTags } from '@shared/engine/shared/tag-domain';
+import { BasicAttack } from '../../abilities/BasicAttack';
 
 describe('GameplayTagContainer', () => {
+  it('应提供能力负面效果标签', () => {
+    expect(GameplayTags.ABILITY.FUNCTION.DEBUFF).toBe('Ability.Function.Debuff');
+  });
+
   describe('基础操作', () => {
     it('应支持添加单个标签', () => {
       const container = new GameplayTagContainer();
@@ -157,6 +162,11 @@ describe('GameplayTags 常量对象', () => {
     expect(
       Object.prototype.hasOwnProperty.call(GameplayTags.ABILITY, 'FUNCTION_DAMAGE'),
     ).toBe(false);
+    expect(GameplayTags.ABILITY.KIND.BASIC).toBe('Ability.Kind.Basic');
+  });
+
+  it('基础普攻应携带通用 BASIC 分类标签', () => {
+    expect(new BasicAttack().tags.hasTag(GameplayTags.ABILITY.KIND.BASIC)).toBe(true);
   });
 
   it('应包含核心 BUFF 标签', () => {

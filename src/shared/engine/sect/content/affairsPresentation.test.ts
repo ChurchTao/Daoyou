@@ -12,6 +12,7 @@ import {
 import { TIANYAN_SECT_PRESENTATION } from './tianyan';
 import { WUXIANG_SECT_PRESENTATION } from './wuxiang';
 import { YOUDU_SECT_PRESENTATION } from './youdu';
+import { JIUJIE_SECT_PRESENTATION } from './jiujie';
 
 const taskIds = [
   'gate_sweep',
@@ -146,6 +147,9 @@ const expectedFacilityNames: Readonly<Record<string, readonly string[]>> = {
     '彼岸圃',
     '无日关',
   ],
+  [JIUJIE_SECT_PRESENTATION.sectId]: [
+    '司雷', '听劫', '衡天', '营造监', '捐献使', '掌卷', '引路天官', '演武教习', '执刑', '守静', '听雷丹师', '断劫使', '雷髓监', '守园', '守天阶', '中天雷池', '天听木圃', '九劫天阶',
+  ],
 };
 
 const productionThemes: readonly SectPresentationTheme[] = [
@@ -153,6 +157,7 @@ const productionThemes: readonly SectPresentationTheme[] = [
   TIANYAN_SECT_PRESENTATION,
   WUXIANG_SECT_PRESENTATION,
   YOUDU_SECT_PRESENTATION,
+  JIUJIE_SECT_PRESENTATION,
 ];
 
 const canonicalMapNotes: Readonly<Record<string, string>> = {
@@ -176,12 +181,14 @@ const canonicalMapNotes: Readonly<Record<string, string>> = {
 describe('production sect affairs presentations', () => {
   it('keeps map notes aligned with current facility responsibilities', () => {
     for (const theme of productionThemes) {
-      expect(
-        Object.fromEntries(
-          theme.map?.hotspots?.map((hotspot) => [hotspot.id, hotspot.note]) ??
-            [],
-        ),
-      ).toEqual(canonicalMapNotes);
+      const notes = Object.fromEntries(
+        theme.map?.hotspots?.map((hotspot) => [hotspot.id, hotspot.note]) ?? [],
+      );
+      expect(notes).toEqual(
+        theme.sectId === 'jiujie'
+          ? { ...canonicalMapNotes, cliff: '劫眼临身 · 流派参悟', condemnation: '天谴加身 · 流派参悟' }
+          : canonicalMapNotes,
+      );
     }
   });
 
@@ -191,10 +198,11 @@ describe('production sect affairs presentations', () => {
       ['法明', '慧觉', '空慈方丈'],
       ['知微', '玄衡道人', '观澜真人'],
       ['照灯', '守簿翁', '归魂婆婆'],
+      ['照雷执事', '守簿翁', '九门长老'],
     ];
     const presentations = Object.values(PRODUCTION_SECT_PRESENTATIONS);
 
-    expect(presentations).toHaveLength(4);
+    expect(presentations).toHaveLength(5);
     expect(
       presentations.map((presentation) =>
         presentation.rooms.affairs.actors.map((npc) => npc.name),

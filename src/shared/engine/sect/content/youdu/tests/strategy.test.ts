@@ -211,6 +211,15 @@ describe('幽都基础施法策略', () => {
   it('没有可用主动技能时返回一叹', () => {
     expect(strategy.select(selectionContext([], 0, 'base'))).toBeNull();
   });
+
+  it('离魂引冷却而不在合法候选中时依次回退到夺魄与一叹', () => {
+    const strategy = new YouduTideSelectionStrategy('tide-cycle');
+    const withSeize = selectionContext(['seize-soul'], 1);
+    expect(strategy.select(withSeize)?.ability.id).toBe('sect.youdu.seize-soul');
+
+    const basicOnly = selectionContext([], 1);
+    expect(strategy.select(basicOnly)).toBeNull();
+  });
 });
 
 describe('幽都自动战术', () => {
@@ -350,6 +359,19 @@ describe('幽都自动战术', () => {
     );
     expect(fifth.select(fifthContext)?.ability.id).toBe(
       'sect.youdu.soul-severing-call',
+    );
+  });
+
+  it('四层判决在司命判词使终结于三层合法时立即终结', () => {
+    const strategy = new YouduDecreeSelectionStrategy('judge-at-four');
+    const context = selectionContext(
+      ['soul-shall-not-return', 'seize-soul', 'reveal-shadow'],
+      3,
+      'decree',
+    );
+
+    expect(strategy.select(context)?.ability.id).toBe(
+      'sect.youdu.soul-shall-not-return',
     );
   });
 });

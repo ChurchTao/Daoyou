@@ -285,6 +285,17 @@
       "tags": ["四大宗门", "三魂七魄", "黑水魂灯"],
       "x": 13,
       "y": 24
+    },
+    {
+      "id": "SECT_JIUJIE",
+      "kind": "sect",
+      "sect_id": "jiujie",
+      "parent_id": "DJ_TRIB_01",
+      "name": "九劫天宫",
+      "description": "雷墟天阙悬于万劫雷狱之上，九重天门在雷池尽头等待后来者。",
+      "tags": ["正统天道", "劫雷审判", "雷墟天阙"],
+      "x": 25,
+      "y": 12
     }
   ],
   "satellite_nodes": [

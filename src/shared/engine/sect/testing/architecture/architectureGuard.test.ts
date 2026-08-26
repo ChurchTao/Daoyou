@@ -10,7 +10,7 @@ const battleUiRoot = resolve(
 );
 
 const productionSectTerms =
-  /lingxiao|红尘剑宗|凌霄|wuxiang|无相|tianyan|天衍|youdu|幽都|sect\.(?:lingxiao|wuxiang|tianyan|youdu)/i;
+  /lingxiao|红尘剑宗|凌霄|wuxiang|无相|tianyan|天衍|youdu|幽都|jiujie|九劫天宫|sect\.(?:lingxiao|wuxiang|tianyan|youdu|jiujie)/i;
 const removedBattleExtensions =
   /postDamageEffects|DamageDisplayMetadata|buffLayerScalar|ElementHistory|element_history|elementHistories|BuffPeriodicSettlement|buff_periodic_settlement|manualSettlementEffects/;
 const forbiddenBattleDependency =
@@ -91,9 +91,11 @@ describe('宗门插件架构守卫', () => {
     }
   });
 
-  it('架构关键词守卫能识别四宗门、非法依赖和退出接口', () => {
+  it('架构关键词守卫能识别生产宗门、非法依赖和退出接口', () => {
     expect('sect.youdu.soul').toMatch(productionSectTerms);
     expect('天衍反应').toMatch(productionSectTerms);
+    expect('sect.jiujie.calamity').toMatch(productionSectTerms);
+    expect('九劫天宫').toMatch(productionSectTerms);
     expect("from '@shared/engine/sect/content/tianyan'").toMatch(
       forbiddenBattleDependency,
     );
@@ -104,6 +106,8 @@ describe('宗门插件架构守卫', () => {
     for (const file of [
       join(root, 'content/lingxiao/paths/swift/variants.ts'),
       join(root, 'content/lingxiao/paths/heavy/variants.ts'),
+      join(root, 'content/jiujie/base/JiujieBaseCompiler.ts'),
+      join(root, 'content/jiujie/shared/buildFacade.ts'),
     ]) {
       const source = readFileSync(file, 'utf8');
       expect(source, relative(root, file)).not.toMatch(/nodes\.has\s*\(/);
@@ -111,6 +115,11 @@ describe('宗门插件架构守卫', () => {
         /if\s*\([^)]*(swift-|heavy-)/,
       );
       expect(source, relative(root, file)).not.toContain('path.level');
+      if (file.includes('/jiujie/')) {
+        expect(source, relative(root, file)).not.toMatch(
+          /(?:if|switch)\s*\([^)]*(?:eye-|condemnation-)/,
+        );
+      }
     }
   });
 

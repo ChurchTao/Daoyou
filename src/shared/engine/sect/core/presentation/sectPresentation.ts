@@ -101,6 +101,7 @@ export interface SectPresentationTheme {
   map?: {
     image?: string;
     alt?: string;
+    aspectRatio?: number;
     hotspots?: readonly SectMapHotspot[];
   };
   facilityLabels?: Readonly<Record<string, string>>;
@@ -119,6 +120,7 @@ export interface ResolvedSectPresentation {
   map: {
     image?: string;
     alt: string;
+    aspectRatio: number;
     hotspots: readonly SectMapHotspot[];
   };
   facilityLabels: Readonly<Record<string, string>>;
@@ -743,6 +745,7 @@ export const STANDARD_SECT_PRESENTATION: Omit<
   announcement: '宗门诸务照常运转，请诸位弟子各安其位、勤勉修行。',
   map: Object.freeze({
     alt: '宗门设施导航图',
+    aspectRatio: 1672 / 941,
     hotspots: STANDARD_HOTSPOTS,
   }),
   facilityLabels: Object.freeze({
@@ -934,6 +937,9 @@ export function resolveSectPresentation(
   }
   if (theme?.map?.alt !== undefined) {
     assertNonBlank(`宗门 ${sectId} 地图替代文本`, theme.map.alt);
+  }
+  if (!Number.isFinite(map.aspectRatio) || map.aspectRatio <= 0) {
+    throw new Error(`宗门 ${sectId} 地图宽高比无效`);
   }
   if (map.image) {
     if (!theme?.map?.alt?.trim() || !theme.map.hotspots?.length) {

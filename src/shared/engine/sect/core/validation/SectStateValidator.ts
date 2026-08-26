@@ -6,7 +6,11 @@ import { isAbilityUnlocked } from '../progression';
 export class SectStateValidator {
   validate(module: SectModule, state: CultivatorSectState): void {
     if (!state.membershipId?.trim()) throw new Error('宗门成员ID不能为空');
-    if (state.status !== 'prospect' && state.status !== 'active')
+    if (
+      state.status !== 'prospect' &&
+      state.status !== 'active' &&
+      state.status !== 'transferred'
+    )
       throw new Error(`宗门成员状态无效: ${String(state.status)}`);
     if (!Number.isInteger(state.contribution) || state.contribution < 0)
       throw new Error('宗门贡献必须为非负整数');

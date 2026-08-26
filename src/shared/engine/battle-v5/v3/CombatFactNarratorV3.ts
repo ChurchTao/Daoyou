@@ -308,6 +308,9 @@ export class CombatFactNarratorV3 {
       case 'interrupt':
         parts = [part('施法被打断', 'text', 'defense')];
         break;
+      case 'skill_immune':
+        parts = [part('技能被免疫', 'text', 'defense')];
+        break;
     }
     if (fact.detail) {
       parts.push(part(`（${fact.detail}）`));

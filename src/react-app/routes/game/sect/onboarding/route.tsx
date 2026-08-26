@@ -30,6 +30,7 @@ export default function SectOnboardingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sectId = searchParams.get('sectId') ?? '';
+  const entry = searchParams.get('entry');
   const session = usePlayerSession();
   const profile = useCultivatorIdentity();
   const activeSectId = session.data?.activeCultivator?.sectId ?? null;
@@ -179,6 +180,7 @@ export default function SectOnboardingPage() {
   const onboarding = getSectPresentation(selected.id).onboarding;
   if (!onboarding) throw new Error(`宗门 ${selected.id} 缺少入门演出`);
   const ownSect = activeSectId === selected.id;
+  const isTransferCeremony = entry === 'transfer' && ownSect;
   const finish = resolveSectOnboardingFinish(activeSectId, selected.id);
   const landmark = getSectLandmarkBySectId(selected.id);
   const worldMapHref = landmark
@@ -218,23 +220,39 @@ export default function SectOnboardingPage() {
 
   return (
     <NarrativePerformanceStage
-      key={selected.id}
+      key={`${selected.id}:${isTransferCeremony ? 'transfer' : 'standard'}`}
       script={onboarding.script}
       finalLabel={
-        !activeSectId
-          ? `拜入${selected.name}`
-          : ownSect
-            ? '返回宗门'
-            : '返回宗门舆图'
+        isTransferCeremony
+          ? `进入${selected.name}`
+          : !activeSectId
+            ? `拜入${selected.name}`
+            : ownSect
+              ? '返回宗门'
+              : '返回宗门舆图'
       }
+      exitLabel={isTransferCeremony ? null : undefined}
+      finalExitLabel={isTransferCeremony ? null : undefined}
+      finishPendingLabel={isTransferCeremony ? '正在进入宗门……' : undefined}
       busy={busy}
       error={joinError?.sectId === selected.id ? joinError.message : undefined}
       onBack={() =>
-        navigate(activeSectId ? worldMapHref : '/game/sect/onboarding', {
-          replace: true,
-        })
+        navigate(
+          isTransferCeremony
+            ? '/game/sect'
+            : activeSectId
+              ? worldMapHref
+              : '/game/sect/onboarding',
+          {
+            replace: true,
+          },
+        )
       }
       onFinish={() => {
+        if (isTransferCeremony) {
+          navigate('/game/sect', { replace: true });
+          return;
+        }
         if (finish.kind === 'join') {
           void join();
           return;

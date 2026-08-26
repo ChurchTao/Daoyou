@@ -61,7 +61,7 @@ export class ActionExecutionSystem {
       throw new Error('SkillPreCastEvent has no V3 trace');
     }
     // 检查是否被打断
-    if (event.isInterrupted && event.interruptPolicy !== 'uninterruptible') {
+    if (event.isImmune || (event.isInterrupted && event.interruptPolicy !== 'uninterruptible')) {
       event.ability.cancelPreparedCast();
       const interruptedOrigin = {
         kind: 'owned' as const,
@@ -75,10 +75,11 @@ export class ActionExecutionSystem {
         },
         () => {
           new CombatResultEmitterV3().commit(
-            event.caster,
+            event.isImmune ? event.target : event.caster,
             {
               type: 'defense',
-              defense: 'interrupt',
+              defense: event.isImmune ? 'skill_immune' : 'interrupt',
+              detail: event.isImmune ? event.immunityReason : undefined,
             },
             { origin: interruptedOrigin, parentTrace: eventTrace },
           );
@@ -88,7 +89,9 @@ export class ActionExecutionSystem {
             caster: event.caster,
             target: event.target,
             ability: event.ability,
-            reason: '施法被打断',
+            reason: event.isImmune
+              ? `${event.immunityReason ?? '技能免疫'}：技能被免疫`
+              : '施法被打断',
           });
           if (event.queuedActionState) {
             new CombatResultEmitterV3().commit(
@@ -113,7 +116,9 @@ export class ActionExecutionSystem {
               remainingActions: 0,
               sourceAbility: event.queuedActionState.sourceAbility,
               ability: { id: event.ability.id, name: event.ability.name },
-              reason: '施法被打断',
+              reason: event.isImmune
+                ? `${event.immunityReason ?? '技能免疫'}：技能被免疫`
+                : '施法被打断',
             });
           }
         },

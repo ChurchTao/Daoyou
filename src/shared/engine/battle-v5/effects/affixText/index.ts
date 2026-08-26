@@ -429,6 +429,7 @@ function describeFormula(effect: EffectConfig): string | undefined {
         : '保留 1 点气血';
     case 'buff_immunity':
     case 'damage_immunity':
+    case 'skill_immunity':
     case 'dispel':
     case 'buff_duration_modify':
     case 'consume_status_trigger':

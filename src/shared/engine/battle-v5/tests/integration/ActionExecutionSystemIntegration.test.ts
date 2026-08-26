@@ -91,6 +91,64 @@ describe('ActionExecutionSystem integration', () => {
     actionExecutionSystem.destroy();
   });
 
+  it('records whole-skill immunity as immunity instead of an interrupt', () => {
+    const actionExecutionSystem = new ActionExecutionSystem();
+    const builder = new CombatFactSinkV3(EventBus.instance);
+    const caster = new Unit('caster', '施法者', {});
+    const target = new Unit('target', '天宫弟子', {});
+    const skill = new TrackingSkill();
+    const initialMp = caster.getCurrentMp();
+
+    EventBus.instance.subscribe<SkillPreCastEvent>(
+      'SkillPreCastEvent',
+      (event) => {
+        event.isImmune = true;
+        event.isInterrupted = true;
+        event.immunityReason = '天威裁决';
+      },
+      EventPriorityLevel.ACTION_TRIGGER,
+    );
+
+    builder.runInFrame(
+      { id: 'sequence:skill-immune', phase: 'action', turn: 1 },
+      () => {
+        EventBus.instance.publish<SkillPreCastEvent>({
+          type: 'SkillPreCastEvent',
+          timestamp: Date.now(),
+          caster,
+          target,
+          ability: skill,
+          resolution: createHitResolution({
+            actionId: `${caster.id}:immune-action`,
+            castId: `${skill.id}:immune-cast`,
+            caster,
+            target,
+          }),
+          isInterrupted: false,
+          interruptPolicy: 'uninterruptible',
+        });
+      },
+    );
+
+    const defenseFacts = builder
+      .getSequences()
+      .flatMap((sequence) => sequence.facts)
+      .filter((fact) => fact.type === 'defense');
+    expect(defenseFacts).toEqual([
+      expect.objectContaining({
+        defense: 'skill_immune',
+        detail: '天威裁决',
+        target: expect.objectContaining({ id: target.id }),
+      }),
+    ]);
+    expect(skill.executeCount).toBe(0);
+    expect(caster.getCurrentMp()).toBe(initialMp);
+    expect(skill.currentCooldown).toBe(0);
+
+    builder.destroy();
+    actionExecutionSystem.destroy();
+  });
+
   it('cooldown modification should stay on integral turn boundaries', () => {
     const skill = new TrackingSkill();
 

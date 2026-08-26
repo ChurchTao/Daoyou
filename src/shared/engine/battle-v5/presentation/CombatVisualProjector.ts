@@ -70,6 +70,7 @@ function defenseCueLabel(
       return '抵抗';
     case 'interrupt':
       return '中断';
+    case 'skill_immune':
     case 'damage_immune':
     case 'mana_shield':
       return '免疫';

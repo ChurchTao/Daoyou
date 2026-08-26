@@ -31,7 +31,10 @@ export class BasicAttack extends ActiveSkill {
       },
     });
 
-    this.tags.addTags([GameplayTags.ABILITY.CHANNEL.PHYSICAL]);
+    this.tags.addTags([
+      GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+      GameplayTags.ABILITY.KIND.BASIC,
+    ]);
   }
 
   /**

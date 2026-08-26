@@ -103,6 +103,7 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '⛰️ 宗门',
       },
       { id: 'sect-onboarding', sceneLabel: '诸宗山门' },
+      { id: 'sect-transfer', sceneLabel: '欺天台 · 转宗' },
       { id: 'identity-reshape', sceneLabel: '改天换地' },
       { id: 'sect-visit', sceneLabel: '访宗舆图' },
       { id: 'sect-foreign-gate', sceneLabel: '外宗山门' },

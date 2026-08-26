@@ -26,5 +26,6 @@ export {
   getTalismanScenarioLabel,
   getTalismanUsageHint,
   isAttributeResetTalisman,
+  isSectTransferTalisman,
   isQiRestoreTalisman,
 } from './talismanDisplay';

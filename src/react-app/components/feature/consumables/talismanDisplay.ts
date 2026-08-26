@@ -9,6 +9,10 @@ import {
   isQiRestoreTalismanScenario,
 } from '@shared/config/qiSystem';
 import {
+  CHEAT_HEAVEN_TALISMAN_SCENARIO,
+  isSectTransferTalismanScenario,
+} from '@shared/config/sectTransferTalisman';
+import {
   AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO,
   FRIEND_MAIL_TALISMAN_SCENARIO,
 } from '@shared/config/socialConfig';
@@ -18,6 +22,7 @@ import { buildManualDrawHref } from '@shared/types/manualDraw';
 
 const TALISMAN_SCENARIO_LABELS: Record<string, string> = {
   [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: '根基属性重洗',
+  [CHEAT_HEAVEN_TALISMAN_SCENARIO]: '欺天符·无损转宗',
   fate_reshape: '命格重塑',
   [IDENTITY_RESHAPE_SCENARIO]: '改天换地·身份重塑',
   draw_gongfa: '问法寻卷·功法抽取',
@@ -27,6 +32,7 @@ const TALISMAN_SCENARIO_LABELS: Record<string, string> = {
 };
 
 const TALISMAN_SCENARIO_HREFS: Record<string, string> = {
+  [CHEAT_HEAVEN_TALISMAN_SCENARIO]: '/game/sect/transfer',
   fate_reshape: '/game/fate-reshape',
   [IDENTITY_RESHAPE_SCENARIO]: '/game/identity-reshape',
   draw_gongfa: buildManualDrawHref('gongfa'),
@@ -37,6 +43,7 @@ const TALISMAN_SCENARIO_HREFS: Record<string, string> = {
 
 const TALISMAN_SCENARIO_ACTION_LABELS: Record<string, string> = {
   [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: '使用',
+  [CHEAT_HEAVEN_TALISMAN_SCENARIO]: '前往欺天台转宗',
   fate_reshape: '前往重塑',
   [IDENTITY_RESHAPE_SCENARIO]: '前往改命',
   draw_gongfa: '抽功法秘籍',
@@ -47,6 +54,8 @@ const TALISMAN_SCENARIO_ACTION_LABELS: Record<string, string> = {
 
 const TALISMAN_USAGE_HINTS: Record<string, string> = {
   [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: `【可在背包中直接使用，重置六维自由分配并返还属性点】`,
+  [CHEAT_HEAVEN_TALISMAN_SCENARIO]:
+    '【前往欺天台查看转宗后的变化，确认成功后才会消耗】',
   fate_reshape: '【前往命格重塑功能页启封，开启时立即扣除】',
   [IDENTITY_RESHAPE_SCENARIO]: '【前往身份重塑文戏启封，开启时立即扣除】',
   draw_gongfa: '【前往问法寻卷，直接消耗符箓抽取功法秘籍】',
@@ -77,6 +86,13 @@ export function isAttributeResetTalisman(consumable: Consumable): boolean {
   return (
     isTalismanConsumable(consumable) &&
     isAttributeResetTalismanScenario(consumable.spec.scenario)
+  );
+}
+
+export function isSectTransferTalisman(consumable: Consumable): boolean {
+  return (
+    isTalismanConsumable(consumable) &&
+    isSectTransferTalismanScenario(consumable.spec.scenario)
   );
 }
 

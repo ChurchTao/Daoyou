@@ -118,6 +118,10 @@ function describeOne(
         : null;
     case 'ability_has_tag':
       return params.tag ? describeDamageTagCondition(params.tag, context) : null;
+    case 'ability_has_any_tag':
+      return params.tags?.length
+        ? `技能具有「${params.tags.map((tag) => labelGameplayTag(tag)).join('」或「')}」时`
+        : null;
     case 'source_has_tag':
       return params.tag ? `来源具有「${labelGameplayTag(params.tag)}」时` : null;
     case 'ability_has_not_tag':

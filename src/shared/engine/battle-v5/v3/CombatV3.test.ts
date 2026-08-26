@@ -1978,6 +1978,7 @@ describe('combat facts V3', () => {
     const cases = {
       mana_shield: '法力护盾生效',
       damage_immune: '免疫伤害',
+      skill_immune: '技能被免疫',
       dodge: '成功闪避',
       resist: '抵抗控制',
       interrupt: '施法被打断',

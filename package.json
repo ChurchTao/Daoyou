@@ -5,6 +5,8 @@
   "license": "GPL-3.0",
   "type": "module",
   "scripts": {
+    "alchemy:formulas:v4": "bun run scripts/migrate-alchemy-formulas-v4.ts",
+    "alchemy:formulas:v4:dry-run": "bun run scripts/migrate-alchemy-formulas-v4.ts --dry-run",
     "auth:generate": "bunx drizzle-kit generate --config drizzle.auth.config.ts",
     "auth:info": "bunx --bun auth@latest info --config src/server/lib/auth/auth.ts --json",
     "auth:migrate": "bunx drizzle-kit migrate --config drizzle.auth.config.ts",
@@ -17,8 +19,6 @@
     "dev:api": "bun run --watch src/index.ts",
     "dev:web": "vite",
     "lint": "eslint .",
-    "alchemy:formulas:v4:dry-run": "bun run scripts/migrate-alchemy-formulas-v4.ts --dry-run",
-    "alchemy:formulas:v4": "bun run scripts/migrate-alchemy-formulas-v4.ts",
     "sponsors:check": "bun run scripts/render-sponsors.ts --check",
     "sponsors:fetch": "node ./node_modules/sponsorkit/dist/cli.mjs --force",
     "sponsors:render": "bun run scripts/render-sponsors.ts",

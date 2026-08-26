@@ -9,7 +9,7 @@ import type {
 } from './definitions';
 import type { SectDiscipleRank, SectOffice } from './organization';
 
-export type SectMembershipStatus = 'prospect' | 'active';
+export type SectMembershipStatus = 'prospect' | 'active' | 'transferred';
 export type SectAbilitySlots = [
   SectAbilityId | null,
   SectAbilityId | null,

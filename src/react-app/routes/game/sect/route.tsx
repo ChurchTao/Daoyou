@@ -59,6 +59,7 @@ export default function SectPage() {
         <SectMap
           image={presentation.map.image}
           alt={presentation.map.alt}
+          aspectRatio={presentation.map.aspectRatio}
           hotspots={presentation.map.hotspots}
           facilities={facilities}
           permissions={permissions}

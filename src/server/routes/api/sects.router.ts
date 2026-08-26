@@ -52,6 +52,8 @@ import {
   executeSectPathLayerUnlockCommand,
   executeSectPathTacticCommand,
 } from '@server/lib/services/sect-organization/SectTraditionCommand';
+import { previewSectTransfer } from '@server/lib/services/sect-organization/SectTransferApplicationService';
+import { executeSectTransferCommand } from '@server/lib/services/sect-organization/SectTransferCommand';
 import {
   SectAbilityLoadoutRequestSchema,
   SectDonationRequestSchema,
@@ -62,6 +64,8 @@ import {
   SectSubmissionCandidatesQuerySchema,
   SectTacticRequestSchema,
   SectTaskActionRequestSchema,
+  SectTransferPreviewQuerySchema,
+  SectTransferRequestSchema,
   type SectContextData,
 } from '@shared/contracts/sect';
 import { SectShopBuyParamsSchema } from '@shared/contracts/sectShop';
@@ -567,6 +571,53 @@ export function createSectsRouter(
         'sect_stipend_claim',
         null,
         executeSectStipendClaimCommand,
+      );
+    },
+  );
+
+  router.get(
+    '/current/transfer/preview',
+    requireActiveCultivatorRef(),
+    validateQuery(SectTransferPreviewQuerySchema),
+    async (c) => {
+      const ref = c.get('activeCultivatorRef');
+      if (!ref)
+        return c.json({ success: false, error: '当前没有活跃角色' }, 404);
+      try {
+        const query = getValidatedQuery<{
+          targetSectId: string;
+          reversePaths: boolean;
+        }>(c);
+        return c.json({
+          success: true as const,
+          data: await previewSectTransfer({
+            cultivatorId: ref.cultivatorId,
+            ...query,
+            runtime,
+            q: getExecutor(),
+          }),
+        });
+      } catch (error) {
+        return failure(c, error);
+      }
+    },
+  );
+
+  router.post(
+    '/current/transfer',
+    requireActiveCultivatorRef(),
+    validateJson(SectTransferRequestSchema),
+    async (c) => {
+      const body = getValidatedJson<{
+        targetSectId: string;
+        reversePaths: boolean;
+        consumableId?: string;
+      }>(c);
+      return organizationCommandMutation(
+        c,
+        'sect_transfer',
+        body,
+        (args) => executeSectTransferCommand({ ...args, ...body }),
       );
     },
   );

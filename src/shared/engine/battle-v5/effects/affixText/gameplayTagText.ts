@@ -7,6 +7,7 @@ const GAMEPLAY_TAG_LABELS: Record<string, string> = {
   [GameplayTags.ABILITY.FUNCTION.CONTROL]: getGameConceptLabel('skill_type_control'),
   [GameplayTags.ABILITY.FUNCTION.HEAL]: getGameConceptLabel('skill_type_heal'),
   [GameplayTags.ABILITY.FUNCTION.BUFF]: getGameConceptLabel('skill_type_buff'),
+  [GameplayTags.ABILITY.FUNCTION.DEBUFF]: '负面技能',
   [GameplayTags.ABILITY.CHANNEL.MAGIC]: '法术',
   [GameplayTags.ABILITY.CHANNEL.PHYSICAL]: '物理',
   [GameplayTags.ABILITY.CHANNEL.TRUE]: '真实',

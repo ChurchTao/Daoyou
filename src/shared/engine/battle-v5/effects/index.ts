@@ -13,6 +13,7 @@ export * from './BuffDurationModifyEffect';
 export * from './DeathPreventEffect';
 export * from './BuffImmunityEffect';
 export * from './DamageImmunityEffect';
+export * from './SkillImmunityEffect';
 export * from './TagTriggerEffect';
 export * from './PercentDamageModifierEffect';
 export * from './AdvancedEffects';
