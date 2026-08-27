@@ -23,6 +23,12 @@ import type {
   ResourceOperationSettlement,
 } from '@shared/engine/resource/types';
 import {
+  calculateDungeonMaterialCost,
+  calculateDungeonResourceCost,
+  calculateDungeonStatLoss,
+  DUNGEON_LIFESPAN_COST_MAX,
+} from '@shared/lib/dungeon/costPolicy';
+import {
   buildDungeonPerformanceTags,
   normalizeDungeonRewardTier,
   type DungeonEndDisposition,
@@ -95,7 +101,7 @@ const dungeonEnemyGenerator = new EnemyGenerator({
 const REDIS_TTL = 3600; // 1 hour expiration for active sessions
 const FLOW_LOCK_TTL_SECONDS = 180;
 const RUN_TERMINAL_STATUSES = new Set(['FINISHED']);
-const DUNGEON_REWARD_BLUEPRINT_LIMIT = 5;
+const DUNGEON_REWARD_BLUEPRINT_LIMIT = 6;
 export const DungeonFlowErrorCode = {
   NOT_FOUND: 'DUNGEON_NOT_FOUND',
   INVALID_STATE: 'DUNGEON_INVALID_STATE',
@@ -363,7 +369,7 @@ function normalizeLegacySixAttributes(
 
 const COST_LIMITS: Partial<Record<DungeonOptionCost['type'], number>> = {
   spirit_stones: 10_000_000,
-  lifespan: 10_000,
+  lifespan: DUNGEON_LIFESPAN_COST_MAX,
   cultivation_exp: 1_000_000,
   comprehension_insight: 100,
   material: 999,
@@ -448,11 +454,15 @@ export class DungeonService {
       .filter((cost) => cost.value > 0 || cost.type === 'battle');
 
     const hasBattle = costs.some((cost) => cost.type === 'battle');
-    return hasBattle
-      ? costs.filter(
-          (cost) => cost.type !== 'hp_loss' && cost.type !== 'mp_loss',
-        )
-      : costs;
+    let battleSeen = false;
+    return costs.filter((cost) => {
+      if (cost.type === 'battle') {
+        if (battleSeen) return false;
+        battleSeen = true;
+        return true;
+      }
+      return !hasBattle || (cost.type !== 'hp_loss' && cost.type !== 'mp_loss');
+    });
   }
 
   private normalizeRoundOptions(
@@ -483,11 +493,23 @@ export class DungeonService {
       realm,
       stage,
     );
-    state.costLedger ??= [];
+    state.costLedger = (state.costLedger ?? []).map((entry) => ({
+      ...entry,
+      costs: this.normalizeOptionCosts(entry),
+    }));
     state.gainLedger ??= [];
     state.summary_of_sacrifice = state.costLedger.flatMap((entry) =>
       cloneCosts(entry.costs),
     );
+    if (state.pendingAction) {
+      state.pendingAction = {
+        ...state.pendingAction,
+        costs: this.normalizeOptionCosts(state.pendingAction),
+      };
+    }
+    state.costPreview = this.normalizeOptionCosts({
+      costs: state.costPreview,
+    });
     state.currentOptions = state.currentOptions?.map((option) => {
       const costPreview = this.normalizeOptionCosts(option);
       return {
@@ -2382,12 +2404,50 @@ export class DungeonService {
     return DungeonRoundSchema.parse({
       scene_description: aiRes.output.scene_description,
       interaction: {
-        options: aiRes.output.options.map((option, index) => ({
-          ...option,
-          id: index + 1,
-          risk_level: (['low', 'high', 'medium'] as const)[index] ?? 'medium',
-          costs: option.costs ?? [],
-        })),
+        options: aiRes.output.options.map((option, index) => {
+          const costs: DungeonOptionCost[] = [
+            ...option.costs.resources.map((cost) => ({
+              type: cost.type,
+              value: calculateDungeonResourceCost({
+                ...cost,
+                realm: mapConfig.realmRequirement,
+                difficulty: mapConfig.difficultyTier,
+              }),
+            })),
+            ...option.costs.materials.map((cost) => {
+              const resolved = calculateDungeonMaterialCost({
+                realm: mapConfig.realmRequirement,
+                difficulty: mapConfig.difficultyTier,
+                rank: cost.rank,
+              });
+              return {
+                type: 'material' as const,
+                required_type: cost.required_type,
+                required_quality: resolved.requiredQuality,
+                value: resolved.value,
+              };
+            }),
+            ...option.costs.stat_losses.map((cost) => ({
+              type: cost.type,
+              value: calculateDungeonStatLoss({
+                realm: mapConfig.realmRequirement,
+                difficulty: mapConfig.difficultyTier,
+                rank: cost.rank,
+              }),
+            })),
+            ...option.costs.battles.map((metadata) => ({
+              type: 'battle' as const,
+              value: 1,
+              metadata,
+            })),
+          ];
+          return {
+            text: option.text,
+            id: index + 1,
+            risk_level: (['low', 'high', 'medium'] as const)[index] ?? 'medium',
+            costs,
+          };
+        }),
       },
       acquired_items: aiRes.output.acquired_items,
       status_update: {

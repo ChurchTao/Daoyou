@@ -16,7 +16,7 @@ const SCENE_SUMMARY_MAX_CHARS = 140;
 const OUTCOME_SUMMARY_MAX_CHARS = 90;
 const MAP_DESCRIPTION_MAX_CHARS = 100;
 const FALLBACK_TEXT = '未见分明痕迹';
-const DUNGEON_REWARD_BLUEPRINT_LIMIT = 5;
+const DUNGEON_REWARD_BLUEPRINT_LIMIT = 6;
 
 function uniqueStrings(values: Array<string | undefined | null>): string[] {
   return Array.from(

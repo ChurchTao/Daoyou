@@ -45,29 +45,94 @@ id: dungeon-round
 
 代价表示玩家一旦选择该行动就会真实触发的门槛、消耗或战斗，不是对未来可能性的文字猜测：
 
-- 低风险选项以观察、绕行、等待或稳步解除障碍为主，可以没有代价，也可以有一项较轻代价；除非剧情已经不存在避战空间，否则不要使用 `battle`。
-- 高风险选项直接冲击本幕的主要障碍，必须有一至两项代价。场景中已有活跃敌人或守卫时，这个选项应使用 `battle`，而不是用预设的气血或法力损失代替战斗。
+- 低风险选项以观察、绕行、等待或稳步解除障碍为主，可以没有代价，也可以有一项较轻代价；除非剧情已经不存在避战空间，否则不要在 `battles` 中添加内容。
+- 高风险选项直接冲击本幕的主要障碍，必须有一至两项代价。场景中已有活跃敌人或守卫时，这个选项应在 `battles` 中填写敌人，而不是用预设的气血或法力损失代替战斗。
 - 中风险选项借助阵法、地形、情报或玩家资源改变局面，通常有一项与具体手段直接相关的代价；只有确实无需预付资源、承受损失或进入战斗时才可为空。
-- 不得让三个选项的 `costs` 同时为空，也不得为了填充字段添加与行动无关的消耗。
+- 不得让三个选项的四类代价数组全部为空，也不得为了填充字段添加与行动无关的消耗。
+
+每个选项的 `costs` 必须是包含四个必填数组的对象：`resources`、`materials`、`stat_losses`、`battles`。某类没有代价时仍必须输出空数组，不得省略字段。
 
 只允许以下已经实装的代价：
 
-- `spirit_stones`、`lifespan`、`cultivation_exp`、`comprehension_insight`：正整数。
-- `material`：必须给出 `required_type`、`required_quality` 和正整数数量，不得指定具体材料名。
-- `hp_loss`、`mp_loss`：大于 0 且不超过 1 的比例。
-- `battle`：必须给出完整敌人元数据；敌人阶段只能来自 `setting.allowedEnemyRealmStages`。
+- `resources`：元素使用 `{ "type", "rank" }`，`type` 只能为 `spirit_stones`、`lifespan`、`cultivation_exp`、`comprehension_insight`。
+- `materials`：元素使用 `{ "required_type", "rank" }`，两个字段都必填；不得指定具体材料名、品质、数量或填写敌人信息。
+- `stat_losses`：元素使用 `{ "type", "rank" }`，`type` 只能为 `hp_loss` 或 `mp_loss`。
+- `battles`：只能为空数组或包含一个元素；元素直接填写敌人的 `race`、`realm_stage`、`enemy_name` 等字段，不要再包裹 `type`、`value` 或 `metadata`。
 
-每个选项都输出 `costs` 数组；没有真实代价时输出空数组。一个选项最多两项代价。若包含 `battle`，不得再附加气血或法力损失，因为战斗系统会独立结算伤害。
+一个选项的四个数组合计最多两项代价。若 `battles` 非空，`stat_losses` 必须为空，因为战斗系统会独立结算伤害。每个选项最多触发一场战斗。若剧情中存在多名敌人，应将其合并描述为同一支敌方队伍或选择一名主要对手，不得在 `battles` 中拆成多个元素。
 
 ## 代价字段语义
 
 所有枚举都使用下列内部值，不要自行缩写、翻译或创造近义值：
 
-- 每项代价必填 `type` 和 `value`。灵石、寿元、修为、悟性与材料的 `value` 是正整数；气血、法力的 `value` 是损失比例；`battle.value` 没有数值结算含义，固定填 `1`。
-- `material` 表示消耗玩家已有的一类材料，不是获得材料。必须同时填写 `required_type` 和 `required_quality`，不得填写 `metadata`。`required_type` 使用下方材料类型枚举；`required_quality` 是最低品质，只能为 `凡品`、`灵品`、`玄品`、`真品`、`地品`、`天品`、`仙品`。
-- `battle` 必须填写 `metadata`，不得填写 `required_type` 或 `required_quality`。`metadata.race` 只能为 `人族`、`妖族`、`鬼魂`、`魔族`、`古兽`、`灵族`；`metadata.realm_stage` 只能为 `初期`、`中期`、`后期`、`圆满`，并且必须符合 `setting.allowedEnemyRealmStages`。
-- `metadata.enemy_name` 是必填的敌人名称；`background`、`description` 和 `is_boss` 可按剧情需要填写。只有真正的副本首领才能设置 `is_boss: true`。
-- 其他代价只填写 `type` 和 `value`，不得附带材料条件或敌人元数据。
+- `rank` 只能是 `minor`、`standard`、`major`，表示轻微、标准、重大代价。它表示该项代价自身的强度，不是选项的风险等级。
+- 常规试探、小额媒介或轻度损耗使用 `minor`；明显的资源投入或承伤使用 `standard`；只有燃烧寿元、强行破阵等不可逆的极端行动才使用 `major`。
+- 不得输出任何代价的精确数值、百分比或材料品质。程序会根据 `setting.realmRequirement`、`setting.difficulty` 和 `rank` 确定真实结算值。
+- `materials` 表示消耗玩家已有的一类材料，不是获得材料。`required_type` 使用下方材料类型枚举；最低品质和数量由程序计算。
+- `battles` 中的 `race` 只能为 `人族`、`妖族`、`鬼魂`、`魔族`、`古兽`、`灵族`；`realm_stage` 只能为 `初期`、`中期`、`后期`、`圆满`，并且必须符合 `setting.allowedEnemyRealmStages`。
+- `battles` 中的 `enemy_name` 是必填的敌人名称；`background`、`description` 和 `is_boss` 可按剧情需要填写。只有真正的副本首领才能设置 `is_boss: true`。
+
+## 分桶结构示例
+
+无代价的选项：
+
+```json
+{
+  "text": "避开巡逻继续探查",
+  "costs": {
+    "resources": [],
+    "materials": [],
+    "stat_losses": [],
+    "battles": []
+  }
+}
+```
+
+消耗矿石的选项：
+
+```json
+{
+  "text": "以矿石激活地下阵眼",
+  "costs": {
+    "resources": [],
+    "materials": [{ "required_type": "ore", "rank": "standard" }],
+    "stat_losses": [],
+    "battles": []
+  }
+}
+```
+
+承受寿元代价的选项：
+
+```json
+{
+  "text": "燃烧寿元强行突破禁制",
+  "costs": {
+    "resources": [{ "type": "lifespan", "rank": "major" }],
+    "materials": [],
+    "stat_losses": [],
+    "battles": []
+  }
+}
+```
+
+必然战斗的选项：
+
+```json
+{
+  "text": "强攻拦路修士打开通道",
+  "costs": {
+    "resources": [],
+    "materials": [],
+    "stat_losses": [],
+    "battles": [
+      { "race": "人族", "realm_stage": "初期", "enemy_name": "拦路修士" }
+    ]
+  }
+}
+```
+
+示例只说明结构，不得照抄其中的剧情、数值或敌人。
 
 # 战利品
 

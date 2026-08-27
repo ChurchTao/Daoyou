@@ -79,6 +79,7 @@ export class TagTriggerEffect extends GameplayEffect {
           buff: narrativeContext.buff,
           attribution: narrativeContext.attribution,
           trace: narrativeContext.trace,
+          resolution: narrativeContext.resolution,
         });
       }
     }

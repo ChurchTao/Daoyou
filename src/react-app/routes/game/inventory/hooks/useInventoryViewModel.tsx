@@ -18,6 +18,7 @@ import {
 } from '@app/lib/resources/player';
 import { isAttributeResetTalismanScenario } from '@shared/config/attributeResetTalisman';
 import { isQiRestoreTalismanScenario } from '@shared/config/qiSystem';
+import { isSectMeridianResetTalismanScenario } from '@shared/config/sectMeridianResetTalisman';
 import {
   isPillConsumable,
   isTalismanConsumable,
@@ -423,7 +424,8 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
       if (isTalismanConsumable(usableItem)) {
         if (
           !isQiRestoreTalismanScenario(usableItem.spec.scenario) &&
-          !isAttributeResetTalismanScenario(usableItem.spec.scenario)
+          !isAttributeResetTalismanScenario(usableItem.spec.scenario) &&
+          !isSectMeridianResetTalismanScenario(usableItem.spec.scenario)
         ) {
           pushToast({
             message:

@@ -1,5 +1,6 @@
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import { isAttributeResetTalismanScenario } from '@shared/config/attributeResetTalisman';
+import { isSectMeridianResetTalismanScenario } from '@shared/config/sectMeridianResetTalisman';
 import {
   RESOURCE_DATA_SCHEMAS,
   type ResourceChangeDescriptor,
@@ -102,6 +103,15 @@ export function conditionChangesAfterConsumable(args: {
         },
       },
       operation: 'merge',
+    });
+  } else if (
+    isTalismanConsumable(args.consumable) &&
+    isSectMeridianResetTalismanScenario(args.consumable.spec.scenario)
+  ) {
+    changes.push({
+      resourceTopic: 'sect.progression',
+      eventType: 'sect.meridian_nodes.reset',
+      operation: 'invalidate',
     });
   } else if (isTalismanConsumable(args.consumable)) {
     if (typeof args.state.qi !== 'number' || !args.state.qiLastRefreshedAt) {

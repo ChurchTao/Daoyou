@@ -64,6 +64,15 @@ describe('九劫天宫宗门投影', () => {
     ]);
   });
 
+  it('天谴录与雷狱镇魂采用前期更平滑的成长曲线', () => {
+    const methods = Object.fromEntries(JIUJIE_BASE_DEFINITION.methods.map((method) => [
+      method.id,
+      method.growthProfile.curve,
+    ]));
+    expect(methods['heavenly-record']).toBe('early');
+    expect(methods['thunder-prison']).toBe('balanced');
+  });
+
   it('构筑门面以语义特性记录节点能力', () => {
     const eyeSettings = createJiujieBuildSettings(JIUJIE_EYE_PATH_ID);
     const eye = new JiujieEyeBuildFacade(eyeSettings);
@@ -97,6 +106,42 @@ describe('九劫天宫宗门投影', () => {
     const baselineTrigger = baselineRuntime.listeners?.find((listener) => listener.id === 'jiujie.law.active-trigger');
     expect(activeTrigger).not.toEqual(baselineTrigger);
     expect(JSON.stringify(activeTrigger)).toContain('first-crime-ready');
+  });
+
+  it('问行取证在已有主罪时追加0.15倍法攻雷伤', () => {
+    const question = resolveSectAbility({
+      sect: state(JIUJIE_CONDEMNATION_PATH_ID, ['condemnation-question']),
+      realm: '筑基',
+      abilityId: 'thunder-prison-question',
+    }).config;
+    const damageEffects = question.effects?.filter((effect) => effect.type === 'damage') ?? [];
+    const evidence = damageEffects.find((effect) =>
+      effect.type === 'damage' && effect.params.damageSource === 'follow_up');
+    expect(evidence?.type === 'damage' && evidence.params.value.coefficient).toBeCloseTo(0.15, 2);
+    expect(evidence?.conditions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'has_tag' }),
+    ]));
+  });
+
+  it('承灾留名使首次受击反击额外增加0.15倍法攻', () => {
+    const counterCoefficients = (nodeIds: string[]) => {
+      const receive = resolveSectAbility({
+        sect: state(JIUJIE_EYE_PATH_ID, nodeIds), realm: '筑基', abilityId: 'receive-calamity',
+      }).config;
+      const eye = receive.effects?.find((effect) =>
+        effect.type === 'apply_buff' && effect.params.buffConfig.id === 'sect.jiujie.eye');
+      const firstHit = eye?.type === 'apply_buff'
+        ? eye.params.buffConfig.listeners?.find((listener) => listener.id === 'jiujie.eye.mark-attacker')
+        : undefined;
+      return firstHit?.effects
+        .filter((effect) => effect.type === 'damage')
+        .map((effect) => effect.type === 'damage' ? effect.params.value.coefficient : undefined);
+    };
+
+    expect(counterCoefficients([])).toHaveLength(1);
+    const enhanced = counterCoefficients(['eye-bear']) ?? [];
+    expect(enhanced).toHaveLength(2);
+    for (const coefficient of enhanced) expect(coefficient).toBeCloseTo(0.15, 2);
   });
 
   it.each([
@@ -150,6 +195,26 @@ describe('九劫天宫宗门投影', () => {
     const thunderConfig = hearing.config.effects?.find((effect) => effect.type === 'apply_buff');
     expect(thunderConfig).toMatchObject({ params: { buffConfig: { id: JIUJIE_THUNDER, dispelPolicy: 'protected', duration: 3 } } });
     expect(JIUJIE_DEBT).toBe('sect.jiujie.debt');
+  });
+
+  it('前期共享神通具有足够的直接伤害系数', () => {
+    const coefficientOf = (abilityId: string) => {
+      const ability = resolveSectAbility({
+        sect: state(JIUJIE_EYE_PATH_ID),
+        realm: '筑基',
+        abilityId,
+      });
+      const directDamage = ability.config.effects?.find((effect) =>
+        effect.type === 'damage' && effect.params.damageSource === 'direct');
+      return directDamage?.type === 'damage'
+        ? directDamage.params.value.coefficient
+        : undefined;
+    };
+
+    const growthScalar = (coefficientOf('thunder-finger') ?? 0) / 0.8;
+    expect(coefficientOf('heaven-hearing')).toBeCloseTo(0.55 * growthScalar);
+    expect(coefficientOf('calamity-seal')).toBeCloseTo(0.25 * growthScalar);
+    expect(coefficientOf('thunder-prison-question')).toBeCloseTo(0.65 * growthScalar);
   });
 
   it('承劫记忆只投影到劫眼道途', () => {

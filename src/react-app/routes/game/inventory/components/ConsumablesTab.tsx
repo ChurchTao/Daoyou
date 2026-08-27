@@ -4,6 +4,7 @@ import {
   getTalismanActionLabel,
   isAttributeResetTalisman,
   isQiRestoreTalisman,
+  isSectMeridianResetTalisman,
 } from '@app/components/feature/consumables';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton, InkList, InkNotice } from '@app/components/ui';
@@ -67,7 +68,8 @@ export function ConsumablesTab({
         const isDirectlyUsable =
           isPillConsumable(item) ||
           isQiRestoreTalisman(item) ||
-          isAttributeResetTalisman(item);
+          isAttributeResetTalisman(item) ||
+          isSectMeridianResetTalisman(item);
         const scenarioHref = getTalismanActionHref(item);
         const scenarioActionLabel = getTalismanActionLabel(item);
         const canNavigateToScenario = Boolean(item.id && scenarioHref);

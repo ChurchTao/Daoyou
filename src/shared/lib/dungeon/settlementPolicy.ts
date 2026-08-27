@@ -8,9 +8,9 @@ export const DUNGEON_TIER_MIN_TOTAL_MATERIALS: Record<
   DungeonRewardTier,
   number
 > = {
-  S: 2,
-  A: 1,
-  B: 1,
+  S: 4,
+  A: 3,
+  B: 2,
   C: 0,
   D: 0,
 };
@@ -44,10 +44,13 @@ export function normalizeDungeonRewardTier(args: {
   }
 
   const materialCount = Math.max(0, args.totalMaterialCount);
-  if (tier === 'S' && materialCount < 2) {
-    tier = materialCount >= 1 ? 'A' : 'C';
+  if (tier === 'S' && materialCount < 4) {
+    tier = materialCount >= 3 ? 'A' : materialCount >= 2 ? 'B' : 'C';
   }
-  if ((tier === 'A' || tier === 'B') && materialCount < 1) {
+  if (tier === 'A' && materialCount < 3) {
+    tier = materialCount >= 2 ? 'B' : 'C';
+  }
+  if (tier === 'B' && materialCount < 2) {
     tier = 'C';
   }
 

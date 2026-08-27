@@ -6,11 +6,11 @@ import {
 
 describe('dungeon settlement policy', () => {
   it.each([
-    ['S', 0, 5, 2],
-    ['S', 1, 4, 1],
-    ['A', 0, 5, 1],
-    ['B', 1, 4, 0],
-    ['C', 0, 5, 0],
+    ['S', 0, 6, 4],
+    ['S', 2, 4, 2],
+    ['A', 0, 6, 3],
+    ['B', 1, 5, 1],
+    ['C', 0, 6, 0],
   ] as const)(
     'requires deterministic extra rewards for tier %s',
     (tier, accumulatedRewardCount, remainingRewardSlots, expected) => {
@@ -24,21 +24,35 @@ describe('dungeon settlement policy', () => {
     },
   );
 
-  it('downgrades a high rating when no material reward exists', () => {
+  it('downgrades ratings that do not meet their material minimum', () => {
     expect(
       normalizeDungeonRewardTier({
         proposedTier: 'S',
-        totalMaterialCount: 0,
-        endDisposition: 'completed',
-      }),
-    ).toBe('C');
-    expect(
-      normalizeDungeonRewardTier({
-        proposedTier: 'S',
-        totalMaterialCount: 1,
+        totalMaterialCount: 3,
         endDisposition: 'completed',
       }),
     ).toBe('A');
+    expect(
+      normalizeDungeonRewardTier({
+        proposedTier: 'S',
+        totalMaterialCount: 2,
+        endDisposition: 'completed',
+      }),
+    ).toBe('B');
+    expect(
+      normalizeDungeonRewardTier({
+        proposedTier: 'A',
+        totalMaterialCount: 2,
+        endDisposition: 'completed',
+      }),
+    ).toBe('B');
+    expect(
+      normalizeDungeonRewardTier({
+        proposedTier: 'B',
+        totalMaterialCount: 1,
+        endDisposition: 'completed',
+      }),
+    ).toBe('C');
   });
 
   it('caps retreat and abandonment ratings', () => {

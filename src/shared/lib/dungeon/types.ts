@@ -189,7 +189,7 @@ export const DungeonSettlementSchema = z
       reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']).describe('奖励等级'),
       reward_blueprints: z
         .array(RewardBlueprintSchema)
-        .max(5)
+        .max(6)
         .describe('奖励蓝图列表（需包含之前获取的物品，空手撤离时可为空）'),
       performance_tags: z
         .array(z.string())

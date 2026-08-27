@@ -37,6 +37,7 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
         buff: context.buff,
         attribution: context.attribution,
         trace: context.trace,
+        resolution: context.resolution,
         layerChangeReason: 'consumed',
         statusDisplayName: this.params.displayName,
       });
@@ -48,6 +49,7 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
         buff: context.buff,
         attribution: context.attribution,
         trace: context.trace,
+        resolution: context.resolution,
         layerChangeReason: 'consumed',
         statusDisplayName: this.params.displayName,
       });

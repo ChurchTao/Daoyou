@@ -18,6 +18,7 @@ export class BuffLayerModifyEffect extends GameplayEffect {
       buff: context.buff,
       attribution: context.attribution,
       trace: context.trace,
+      resolution: context.resolution,
       layerChangeReason: 'modified' as const,
       statusFactVisibility: this.params.logVisibility,
     };

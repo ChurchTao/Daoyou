@@ -16,6 +16,10 @@ import {
   isQiRestoreTalismanScenario,
 } from '@shared/config/qiSystem';
 import {
+  SECT_MERIDIAN_RESET_TALISMAN_NAME,
+  SECT_MERIDIAN_RESET_TALISMAN_SCENARIO,
+} from '@shared/config/sectMeridianResetTalisman';
+import {
   isPillConsumable,
   isTalismanConsumable,
 } from '@shared/lib/consumables';
@@ -40,6 +44,7 @@ import {
   AttributeResetService,
   withAttributeResetLock,
 } from './AttributeResetService';
+import { SectMeridianResetService } from './SectMeridianResetService';
 import type { RedisLeaseContext } from '@server/lib/redis/lock';
 
 async function loadOwnedConsumable(
@@ -130,6 +135,35 @@ export const ConsumableUseEngine = {
 
         return {
           message: `已使用${consumable.name}，六维根基归于自然成长，可分配属性点已返还。`,
+          consumable,
+        };
+      }
+
+      if (consumable.spec.scenario === SECT_MERIDIAN_RESET_TALISMAN_SCENARIO) {
+        if (consumable.spec.sessionMode !== 'consume_on_action') {
+          throw new Error(
+            `该${SECT_MERIDIAN_RESET_TALISMAN_NAME}需在背包中直接启封。`,
+          );
+        }
+        if (!options.tx) {
+          throw new Error('宗门流派节点重置必须在玩家事务中执行');
+        }
+
+        const { resetLoadoutCount } =
+          await SectMeridianResetService.resetSelectedNodes({
+            cultivatorId,
+            tx: options.tx,
+          });
+        await consumeConsumableById(
+          userId,
+          cultivatorId,
+          consumableId,
+          1,
+          options.tx,
+        );
+
+        return {
+          message: `已使用${consumable.name}，清空 ${resetLoadoutCount} 套流派节点方案，可重新选择。`,
           consumable,
         };
       }

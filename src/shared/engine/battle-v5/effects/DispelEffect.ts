@@ -55,6 +55,7 @@ export class DispelEffect extends GameplayEffect {
           ability,
           attribution: context.attribution,
           trace: context.trace,
+          resolution: context.resolution,
         })
       ) {
         removedBuffNames.push(removableBuffs[i].name);

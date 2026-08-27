@@ -9,6 +9,11 @@ import {
   isQiRestoreTalismanScenario,
 } from '@shared/config/qiSystem';
 import {
+  SECT_MERIDIAN_RESET_TALISMAN_NAME,
+  SECT_MERIDIAN_RESET_TALISMAN_SCENARIO,
+  isSectMeridianResetTalismanScenario,
+} from '@shared/config/sectMeridianResetTalisman';
+import {
   CHEAT_HEAVEN_TALISMAN_SCENARIO,
   isSectTransferTalismanScenario,
 } from '@shared/config/sectTransferTalisman';
@@ -23,6 +28,7 @@ import { buildManualDrawHref } from '@shared/types/manualDraw';
 const TALISMAN_SCENARIO_LABELS: Record<string, string> = {
   [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: '根基属性重洗',
   [CHEAT_HEAVEN_TALISMAN_SCENARIO]: '欺天符·无损转宗',
+  [SECT_MERIDIAN_RESET_TALISMAN_SCENARIO]: '洗脉符·流派节点重置',
   fate_reshape: '命格重塑',
   [IDENTITY_RESHAPE_SCENARIO]: '改天换地·身份重塑',
   draw_gongfa: '问法寻卷·功法抽取',
@@ -43,6 +49,7 @@ const TALISMAN_SCENARIO_HREFS: Record<string, string> = {
 
 const TALISMAN_SCENARIO_ACTION_LABELS: Record<string, string> = {
   [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: '使用',
+  [SECT_MERIDIAN_RESET_TALISMAN_SCENARIO]: '使用',
   [CHEAT_HEAVEN_TALISMAN_SCENARIO]: '前往欺天台转宗',
   fate_reshape: '前往重塑',
   [IDENTITY_RESHAPE_SCENARIO]: '前往改命',
@@ -54,6 +61,8 @@ const TALISMAN_SCENARIO_ACTION_LABELS: Record<string, string> = {
 
 const TALISMAN_USAGE_HINTS: Record<string, string> = {
   [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: `【可在背包中直接使用，重置六维自由分配并返还属性点】`,
+  [SECT_MERIDIAN_RESET_TALISMAN_SCENARIO]:
+    '【可在背包中直接使用，清空当前宗门所有流派节点方案】',
   [CHEAT_HEAVEN_TALISMAN_SCENARIO]:
     '【前往欺天台查看转宗后的变化，确认成功后才会消耗】',
   fate_reshape: '【前往命格重塑功能页启封，开启时立即扣除】',
@@ -93,6 +102,13 @@ export function isSectTransferTalisman(consumable: Consumable): boolean {
   return (
     isTalismanConsumable(consumable) &&
     isSectTransferTalismanScenario(consumable.spec.scenario)
+  );
+}
+
+export function isSectMeridianResetTalisman(consumable: Consumable): boolean {
+  return (
+    isTalismanConsumable(consumable) &&
+    isSectMeridianResetTalismanScenario(consumable.spec.scenario)
   );
 }
 
@@ -149,19 +165,28 @@ export function buildTalismanDetailText(consumable: Consumable): string {
           `${ATTRIBUTE_RESET_TALISMAN_NAME}启封后，六维回到当前境界自然成长值。`,
         consumable.description,
       ]
-    : restoreText
+    : isSectMeridianResetTalismanScenario(consumable.spec.scenario)
       ? [
-          `用途：${restoreText}`,
-          '使用方式：可在背包中直接使用',
-          consumable.spec.notes,
+          '用途：清空当前宗门所有已习得流派的三套节点方案',
+          '保留：流派解锁层数、心法、战术和宗门神通配置',
+          '使用方式：可在背包中直接使用；没有已选节点时不会消耗',
+          consumable.spec.notes ??
+            `${SECT_MERIDIAN_RESET_TALISMAN_NAME}启封后，可按已解锁的流派层数重新参悟。`,
           consumable.description,
         ]
-      : [
-          `适用玩法：${getTalismanScenarioLabel(consumable.spec.scenario)}`,
-          '使用方式：需在对应玩法入口使用',
-          consumable.spec.notes,
-          consumable.description,
-        ];
+      : restoreText
+        ? [
+            `用途：${restoreText}`,
+            '使用方式：可在背包中直接使用',
+            consumable.spec.notes,
+            consumable.description,
+          ]
+        : [
+            `适用玩法：${getTalismanScenarioLabel(consumable.spec.scenario)}`,
+            '使用方式：需在对应玩法入口使用',
+            consumable.spec.notes,
+            consumable.description,
+          ];
 
   return lines.filter(Boolean).join('\n');
 }

@@ -1,4 +1,5 @@
 import type { ResourceOperation } from '@shared/engine/resource/types';
+import { DUNGEON_COST_RANK_VALUES } from '@shared/lib/dungeon/costPolicy';
 import type { DungeonEndDisposition } from '@shared/lib/dungeon/settlementPolicy';
 import { ENEMY_RACE_VALUES, REALM_STAGE_VALUES } from '@shared/types/constants';
 import { z } from 'zod';
@@ -229,81 +230,82 @@ const DungeonBattleMetadataLlmSchema = z.object({
   is_boss: z.boolean().optional().describe('只有副本首领才为 true'),
 });
 
-const DungeonCostLlmSchema = z
+const DungeonResourceCostLlmSchema = z.object({
+  type: z
+    .enum([
+      'spirit_stones',
+      'lifespan',
+      'cultivation_exp',
+      'comprehension_insight',
+    ])
+    .describe('资源代价的内部枚举'),
+  rank: z
+    .enum(DUNGEON_COST_RANK_VALUES)
+    .describe('代价强度，程序将据此计算实际数量'),
+});
+
+const DungeonMaterialCostLlmSchema = z.object({
+  required_type: z
+    .enum([
+      'herb',
+      'ore',
+      'monster',
+      'tcdb',
+      'aux',
+      'gongfa_manual',
+      'skill_manual',
+    ])
+    .describe('被消耗材料的类别'),
+  rank: z
+    .enum(DUNGEON_COST_RANK_VALUES)
+    .describe('代价强度，程序将据此计算材料品质与数量'),
+});
+
+const DungeonStatLossLlmSchema = z.object({
+  type: z.enum(['hp_loss', 'mp_loss']).describe('气血或法力损失'),
+  rank: z
+    .enum(DUNGEON_COST_RANK_VALUES)
+    .describe('代价强度，程序将据此计算损失比例'),
+});
+
+const DungeonCostsLlmSchema = z
   .object({
-    type: z
-      .enum([
-        'spirit_stones',
-        'lifespan',
-        'cultivation_exp',
-        'comprehension_insight',
-        'material',
-        'hp_loss',
-        'mp_loss',
-        'battle',
-      ])
-      .describe('玩家选择后真实结算的代价类型'),
-    value: z
-      .number()
-      .positive()
-      .max(10_000_000)
-      .describe('代价数量；气血/法力为 0-1 比例，战斗固定填 1'),
-    required_quality: z
-      .enum(DUNGEON_QUALITY_VALUES)
-      .optional()
-      .describe('仅 material 使用且必须填写，表示被消耗材料的最低品质'),
-    required_type: z
-      .enum([
-        'herb',
-        'ore',
-        'monster',
-        'tcdb',
-        'aux',
-        'gongfa_manual',
-        'skill_manual',
-      ])
-      .optional()
-      .describe('仅 material 使用且必须填写，表示被消耗材料的类别'),
-    metadata: DungeonBattleMetadataLlmSchema.optional().describe(
-      '仅 battle 使用且必须填写；其他代价不要输出 metadata',
-    ),
+    resources: z
+      .array(DungeonResourceCostLlmSchema)
+      .max(2)
+      .describe('灵石、寿元、修为或悟性代价；没有则为空数组'),
+    materials: z
+      .array(DungeonMaterialCostLlmSchema)
+      .max(2)
+      .describe('材料代价；没有则为空数组'),
+    stat_losses: z
+      .array(DungeonStatLossLlmSchema)
+      .max(2)
+      .describe('气血或法力损失；没有则为空数组'),
+    battles: z
+      .array(DungeonBattleMetadataLlmSchema)
+      .max(1)
+      .describe('必然触发的单场战斗；没有则为空数组'),
   })
-  .superRefine((cost, ctx) => {
-    if (cost.type === 'battle' && !cost.metadata) {
+  .superRefine((costs, ctx) => {
+    const total =
+      costs.resources.length +
+      costs.materials.length +
+      costs.stat_losses.length +
+      costs.battles.length;
+    if (total > 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['metadata'],
-        message: 'battle 类型必须提供 metadata',
-      });
-    }
-    if (
-      cost.type === 'material' &&
-      (!cost.required_quality || !cost.required_type)
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['required_type'],
-        message: 'material 类型必须提供 required_type 和 required_quality',
-      });
-    }
-    if (
-      (cost.type === 'hp_loss' || cost.type === 'mp_loss') &&
-      cost.value > 1
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['value'],
-        message: '气血和法力损失必须是 0-1 的比例',
+        message: '每个选项最多包含两项代价',
       });
     }
   });
 
 const DungeonOptionLlmSchema = z.object({
   text: ShortTextSchema.describe('面向玩家的行动、手段与目的'),
-  costs: z
-    .array(DungeonCostLlmSchema)
-    .max(2)
-    .describe('选择该行动后真实触发的代价；无代价时为空数组'),
+  costs: DungeonCostsLlmSchema.describe(
+    '选择该行动后真实触发的分类代价；四个数组都必须输出',
+  ),
 });
 
 export function createDungeonRoundLlmSchema(maxRewardCount: number) {
@@ -327,7 +329,14 @@ export function createDungeonRoundLlmSchema(maxRewardCount: number) {
         .describe('进入本轮剧情后的累计危险值'),
     })
     .superRefine((round, ctx) => {
-      if ((round.options[1]?.costs.length ?? 0) === 0) {
+      const highRiskCosts = round.options[1]?.costs;
+      const highRiskCostCount = highRiskCosts
+        ? highRiskCosts.resources.length +
+          highRiskCosts.materials.length +
+          highRiskCosts.stat_losses.length +
+          highRiskCosts.battles.length
+        : 0;
+      if (highRiskCostCount === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['options', 1, 'costs'],
@@ -345,7 +354,7 @@ export const DungeonSettlementSchema = z
       reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']).describe('奖励等级'),
       reward_blueprints: z
         .array(RewardBlueprintSchema)
-        .max(5)
+        .max(6)
         .describe('奖励蓝图列表（需包含之前获取的物品，空手撤离时可为空）'),
       performance_tags: z
         .array(z.string())
@@ -380,7 +389,7 @@ export function createDungeonSettlementLlmSchema(args: {
 export const DungeonSettlementGeneratedSchema = z.object({
   ending_narrative: NarrativeSchema,
   reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']),
-  reward_blueprints: z.array(RewardBlueprintLlmSchema).max(5),
+  reward_blueprints: z.array(RewardBlueprintLlmSchema).max(6),
 });
 
 export const PlayerInfoSchema = z.object({
