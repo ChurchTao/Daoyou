@@ -9,8 +9,8 @@ import {
 import { productionSectRuntime } from '@shared/engine/sect/content';
 import { createPostgresSectCommandContext } from './PostgresSectOrganizationAdapters';
 import { productionSectOrganizationPlugins } from './productionSectOrganization';
-import { FulfillSectTaskHandler } from './SectTaskApplicationService';
 import { getSectDateKey, getSectWeekKey } from './SectOrganizationClock';
+import { FulfillSectTaskHandler } from './SectTaskApplicationService';
 
 type DungeonSettledEvent = DomainEventEnvelope<'dungeon.run.settled'>;
 
@@ -35,8 +35,7 @@ function isDungeonTask(
   definition: SectTaskDefinition | undefined,
 ): definition is SectTaskDefinition {
   return (
-    definition?.kind === 'daily' &&
-    definition.executorKey === 'sect.dungeon'
+    definition?.kind === 'daily' && definition.executorKey === 'sect.dungeon'
   );
 }
 
@@ -52,10 +51,7 @@ export async function projectSectDungeonTaskCompletion(
   if (!Number.isFinite(occurredAt.getTime())) {
     throw new Error('秘境结算事件时间无效');
   }
-  const userId = await findActiveCultivatorOwnerId(
-    event.data.cultivatorId,
-    tx,
-  );
+  const userId = await findActiveCultivatorOwnerId(event.data.cultivatorId, tx);
   if (!userId) return { status: 'ignored', resourceChanges: [] };
 
   const context = createPostgresSectCommandContext({
@@ -100,6 +96,7 @@ export async function projectSectDungeonTaskCompletion(
       kind: 'dungeon_run',
       id: event.data.runId,
       mapNodeId: event.data.mapNodeId,
+      rootActivityId: event.data.rootActivityId,
     },
   });
   if (result.effects.resourceChanges.length > 0) {

@@ -8,54 +8,10 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkList, InkListItem } from '@app/components/ui/InkList';
+import { parseDungeonHistoryLog } from '@shared/lib/dungeon/historyLog';
 import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { useEffect, useState } from 'react';
 import { formatDungeonText } from '../formatDungeonText';
-
-/**
- * 日志条目结构
- */
-interface LogEntry {
-  round: number;
-  scene: string;
-  choice: string | null;
-}
-
-/**
- * 解析副本日志字符串
- *
- * @param log 原始日志字符串，格式为：[Round 1] 场景描述 -> Choice: 选项\n[Round 2] ...
- * @returns 解析后的结构化数组
- */
-function parseDungeonLog(log: string): LogEntry[] {
-  if (!log || typeof log !== 'string') {
-    return [];
-  }
-
-  try {
-    const lines = log.split('\n').filter((line) => line.trim());
-    const entries: LogEntry[] = [];
-
-    for (const line of lines) {
-      // 正则匹配：[Round X] 场景描述 -> Choice: 选择文本
-      const match = line.match(/\[Round (\d+)\] (.+?)(?: -> Choice: (.+))?$/);
-
-      if (match) {
-        const [, roundStr, scene, choice] = match;
-        entries.push({
-          round: parseInt(roundStr, 10),
-          scene: scene.trim(),
-          choice: choice ? choice.trim() : null,
-        });
-      }
-    }
-
-    return entries;
-  } catch (error) {
-    console.error('日志解析失败:', error);
-    return [];
-  }
-}
 
 interface DungeonHistoryRecord {
   id: string;
@@ -80,7 +36,7 @@ interface DungeonHistoryRecord {
 }
 
 function DungeonHistoryDetail({ record }: { record: DungeonHistoryRecord }) {
-  const entries = parseDungeonLog(record.log);
+  const entries = parseDungeonHistoryLog(record.log);
 
   return (
     <div className="space-y-5">
@@ -128,6 +84,11 @@ function DungeonHistoryDetail({ record }: { record: DungeonHistoryRecord }) {
                 {entry.choice ? (
                   <div className="text-crimson text-sm">
                     ➜ {formatDungeonText(entry.choice)}
+                  </div>
+                ) : null}
+                {entry.actualCosts.length > 0 ? (
+                  <div className="text-ink-secondary mt-1 text-xs">
+                    实际消耗：{entry.actualCosts.join('、')}
                   </div>
                 ) : null}
               </div>

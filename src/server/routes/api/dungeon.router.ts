@@ -37,6 +37,10 @@ const ActionSchema = z.object({
   actionId: z.string().min(1).optional(),
 });
 
+const LootingContinueSchema = z.object({
+  requestId: z.string().min(1).max(120).optional(),
+});
+
 const RecoverSchema = z.object({
   action: z.enum([
     'retry',
@@ -298,11 +302,15 @@ lootingRouter.post('/continue', requireActiveCultivatorRef(), async (c) => {
       return c.json({ error: '未授权访问' }, 401);
     }
 
+    const { requestId } = LootingContinueSchema.parse(
+      await c.req.json().catch(() => ({})),
+    );
+
     return c.json(
       await executeDungeonCommand({
         userId: user.id,
         cultivatorId: cultivator.cultivatorId,
-        command: { kind: 'looting-continue' },
+        command: { kind: 'looting-continue', requestId },
       }),
     );
   } catch (error) {

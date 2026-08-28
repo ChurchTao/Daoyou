@@ -94,11 +94,18 @@ function fallbackMemory(
       : context.run.outcome === 'retreated_after_battle'
         ? '在交锋后选择撤离'
         : '在交锋前放弃深入';
+  const story = context.run.storyContext;
+  const linkedCause = story
+    ? `因“${truncateText(story.travelOutcome, 72)}”进入【${story.title}】，围绕“${truncateText(story.objective, 60)}”`
+    : `曾进入${context.run.theme}，`;
   return {
-    summary: `${context.cultivator.name}曾进入${context.run.theme}，${outcomeText}。`,
+    summary: `${context.cultivator.name}${linkedCause}${outcomeText}。`,
     tags: [
       '秘境',
-      context.run.theme.slice(0, 20),
+      ...(story
+        ? [story.sourceType === 'activity_story' ? '动态异闻' : '个人剧情']
+        : []),
+      (story?.title ?? context.run.theme).slice(0, 20),
       context.run.outcome === 'completed' ? '完成' : '撤离',
     ],
     importance: context.run.outcome === 'completed' ? 2 : 3,
@@ -345,22 +352,40 @@ function fallbackTravelStory(
       {
         key: 'approach_carefully',
         label: '审痕记路',
-        description: '只记下刻痕与方位，不在夜色中贸然深入。',
+        description: '先核对刻痕与旧记忆，再沿安全路径进入痕迹源头。',
         outcome:
-          '你拂去崖壁浮泥，将刻痕的转折和山势一并记下。没有新的异动出现，但这份冷静的记录使此事不再是一段模糊印象。',
-        memorySummary: `${context.cultivator.name}在历练归途谨慎记录了山道崖壁上的旧刻痕。`,
+          '你拂去崖壁浮泥，将刻痕与旧记忆逐一比对，辨出一条被坍石遮掩的安全入口。痕迹源头仍在深处，需进入关联秘境才能查明。',
+        memorySummary: `${context.cultivator.name}在历练归途谨慎辨出山道旧痕所指的秘境入口。`,
         tags: ['云游', '山道', '谨慎'],
         rewardKind: 'comprehension_insight',
+        dungeonBlueprint: {
+          title: '山痕暗径',
+          theme: `${oldTrace}，被雨水冲开的山腹暗径中仍有新的痕迹延伸。`,
+          objective: '进入山腹查明旧刻痕的来历，并处理守在痕迹源头的威胁。',
+          openingHook:
+            '你按记录避开松动岩层，从一条狭窄侧缝进入山腹；旧刻痕在黑暗中逐段显露。',
+          primaryClue: '山腹深处延续的新刻痕',
+          dangerTone: 'cautious',
+        },
       },
       {
         key: 'act_decisively',
         label: '入缝查看',
-        description: '趁天色尚未全暗，沿刻痕指向的岩缝快速查验。',
+        description: '趁痕迹尚未消散，破开岩缝直追源头。',
         outcome:
-          '你沿岩缝行出数十步，证实刻痕指向的只是一处已坍塌的旧路口。在山风封死去路前，你完成了当场查证，也排除了一条假线索。',
-        memorySummary: `${context.cultivator.name}在历练归途果断查验山道刻痕，确认其指向已坍塌的旧路。`,
+          '你趁山风未起破开岩缝，追至一座半埋在山腹中的旧门。门后传来异响，真正的答案与危险都在关联秘境之中。',
+        memorySummary: `${context.cultivator.name}在历练归途果断破开岩缝，发现山道旧痕所指的秘境旧门。`,
         tags: ['云游', '山道', '果断'],
         rewardKind: 'cultivation_exp',
+        dungeonBlueprint: {
+          title: '旧门追痕',
+          theme: `${oldTrace}，半埋旧门后的气息已因强行开启而惊动。`,
+          objective: '抢在旧门重新封闭前追至源头，并解决阻断调查的威胁。',
+          openingHook:
+            '你破开岩缝直入旧门，身后的碎石随即坍落；前方痕迹正向山腹核心迅速退去。',
+          primaryClue: '旧门后正在消退的痕迹',
+          dangerTone: 'urgent',
+        },
       },
     ],
   };
@@ -476,7 +501,7 @@ export class PersonalStoryGenerator {
         schema: StoryOmenGenerationSchema,
         name: 'PersonalStoryOmen',
         sceneId: 'story-beat',
-        maxOutputTokens: 1_200,
+        maxOutputTokens: 1_600,
         abortSignal: AbortSignal.timeout(STORY_LLM_TIMEOUT_MS),
       });
       validateMemoryRefs(response.output.memoryRefs, allowedMemories);
@@ -636,6 +661,13 @@ export class PersonalStoryGenerator {
       );
       if (response.output.entityRefs.some((id) => !allowedEntityIds.has(id))) {
         throw new Error('activity story referenced an unknown entity');
+      }
+      if (
+        input.context.journey.activityType === 'travel' &&
+        !input.linkage &&
+        response.output.choices.some((choice) => !choice.dungeonBlueprint)
+      ) {
+        throw new Error('云游异闻没有生成关联秘境蓝图');
       }
       const narrative = [
         response.output.content,

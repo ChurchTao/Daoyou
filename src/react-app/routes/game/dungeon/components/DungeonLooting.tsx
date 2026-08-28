@@ -25,6 +25,8 @@ export function DungeonLooting({
   onQuit,
   processing,
 }: DungeonLootingProps) {
+  const isFinalRound = state.currentRound >= state.maxRounds;
+
   return (
     <div className="space-y-6 pb-28">
       <DungeonRunPanel
@@ -41,17 +43,28 @@ export function DungeonLooting({
         <p className="text-ink-secondary mb-6 text-center leading-relaxed">
           你击退了强敌，有惊无险地度过了此轮。
           <br />
-          目前位于副本第 {state.currentRound}{' '}
-          轮。前方气息变幻，你可以选择继续深入，或就此离去。
+          {isFinalRound
+            ? '五次事件已经完成，确认后将整理所得并结束本次探索。'
+            : `目前位于副本第 ${state.currentRound} 轮。前方气息变幻，你可以选择继续深入，或就此离去。`}
         </p>
       </InkCard>
 
-      <InkSection title="下一步抉择">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <InkSection title={isFinalRound ? '收束此行' : '下一步抉择'}>
+        <div
+          className={
+            isFinalRound
+              ? 'mx-auto max-w-xl'
+              : 'grid grid-cols-1 gap-4 md:grid-cols-2'
+          }
+        >
           <div className="border-ink/20 bg-paper flex flex-col gap-2 border border-dashed p-4 text-center">
-            <h4 className="font-bold">继续深入</h4>
+            <h4 className="font-bold">
+              {isFinalRound ? '完成探索' : '继续深入'}
+            </h4>
             <p className="text-ink-secondary mb-4 text-xs">
-              向秘境更深处进发，寻找更大的机缘。
+              {isFinalRound
+                ? '确认第五次事件的结果，进入最终结算。'
+                : '向秘境更深处进发，寻找更大的机缘。'}
             </p>
             <InkButton
               variant="primary"
@@ -60,25 +73,27 @@ export function DungeonLooting({
               onClick={onContinue}
               className="mt-auto"
             >
-              继续深入
+              {isFinalRound ? '完成探索' : '继续深入'}
             </InkButton>
           </div>
 
-          <div className="border-ink/20 bg-paper flex flex-col gap-2 border border-dashed p-4 text-center">
-            <h4 className="font-bold">见好就收</h4>
-            <p className="text-ink-secondary mb-4 text-xs">
-              带着当前的收获直接离开秘境。
-            </p>
-            <InkButton
-              variant="outline"
-              pending={processing}
-              pendingLabel="结算中……"
-              onClick={onEscape}
-              className="mt-auto"
-            >
-              离开秘境
-            </InkButton>
-          </div>
+          {!isFinalRound ? (
+            <div className="border-ink/20 bg-paper flex flex-col gap-2 border border-dashed p-4 text-center">
+              <h4 className="font-bold">见好就收</h4>
+              <p className="text-ink-secondary mb-4 text-xs">
+                带着当前的收获直接离开秘境。
+              </p>
+              <InkButton
+                variant="outline"
+                pending={processing}
+                pendingLabel="结算中……"
+                onClick={onEscape}
+                className="mt-auto"
+              >
+                离开秘境
+              </InkButton>
+            </div>
+          ) : null}
         </div>
       </InkSection>
     </div>

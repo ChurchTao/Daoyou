@@ -81,7 +81,11 @@ function resolveDungeonRunSceneDescriptor(
   if (state.storyContext) {
     return {
       ...descriptor,
-      sceneLabel: `前尘回响 · ${state.storyContext.title}`,
+      sceneLabel: `${
+        state.storyContext.sourceType === 'activity_story'
+          ? '动态异闻'
+          : '前尘回响'
+      } · ${state.storyContext.title}`,
     };
   }
 

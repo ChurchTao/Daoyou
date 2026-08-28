@@ -422,6 +422,10 @@ export async function projectPersonalStoryDungeonEvent(
     outcome: event.data.outcome,
     occurredAt: event.occurredAt,
   });
+  const rootActivityId =
+    event.data.rootActivityId ?? `dungeon:${event.data.runId}`;
+  const isActivityStoryLinkedDungeon =
+    context.run.storyContext?.sourceType === 'activity_story';
   const eventAgeMs = Date.now() - new Date(event.occurredAt).getTime();
   const isLiveEvent =
     Number.isFinite(eventAgeMs) &&
@@ -467,6 +471,7 @@ export async function projectPersonalStoryDungeonEvent(
   let plan: ProjectionPlan = { kind: 'memory_only' };
 
   if (
+    !isActivityStoryLinkedDungeon &&
     projectionState.thread?.linkedRunId === event.data.runId &&
     projectionState.thread.stage === 'confrontation'
   ) {
@@ -488,7 +493,7 @@ export async function projectPersonalStoryDungeonEvent(
       realmStage: context.cultivator.realmStage as RealmStage,
       activityType: 'dungeon' as const,
       activityId: `dungeon:${event.data.runId}`,
-      rootActivityId: `dungeon:${event.data.runId}`,
+      rootActivityId,
       title: context.run.theme.slice(0, 100),
       summary: (
         context.run.endingNarrative ??
@@ -535,6 +540,7 @@ export async function projectPersonalStoryDungeonEvent(
       },
     };
   } else if (
+    !isActivityStoryLinkedDungeon &&
     isLiveEvent &&
     !projectionState.thread &&
     event.data.outcome !== 'abandoned_before_battle' &&
@@ -568,7 +574,11 @@ export async function projectPersonalStoryDungeonEvent(
         })),
       }),
     };
-  } else if (isLiveEvent && event.data.outcome !== 'abandoned_before_battle') {
+  } else if (
+    !isActivityStoryLinkedDungeon &&
+    isLiveEvent &&
+    event.data.outcome !== 'abandoned_before_battle'
+  ) {
     const source: TravelStoryTriggerContext['journey'] = {
       actionInstanceId: event.id,
       hours: Math.min(24, Math.max(4, context.run.history.length)),
@@ -576,7 +586,7 @@ export async function projectPersonalStoryDungeonEvent(
       realmStage: context.cultivator.realmStage as RealmStage,
       activityType: 'dungeon',
       activityId: `dungeon:${event.data.runId}`,
-      rootActivityId: `dungeon:${event.data.runId}`,
+      rootActivityId,
       title: context.run.theme.slice(0, 100),
       summary: (
         context.run.endingNarrative ??
@@ -650,7 +660,7 @@ export async function projectPersonalStoryDungeonEvent(
     ) {
       const director = await recordMainlineActivityDecision({
         cultivatorId: event.data.cultivatorId,
-        rootActivityId: `dungeon:${event.data.runId}`,
+        rootActivityId,
         sourceEventId: event.id,
         decision: 'mainline_dungeon',
         threadScope: 'personal',
@@ -679,7 +689,7 @@ export async function projectPersonalStoryDungeonEvent(
     ) {
       const director = await recordMainlineActivityDecision({
         cultivatorId: event.data.cultivatorId,
-        rootActivityId: `dungeon:${event.data.runId}`,
+        rootActivityId,
         sourceEventId: event.id,
         decision: 'mainline_omen',
         threadScope: 'personal',
@@ -704,7 +714,7 @@ export async function projectPersonalStoryDungeonEvent(
       });
       await materializeActivityStoryCandidate({
         cultivatorId: event.data.cultivatorId,
-        rootActivityId: `dungeon:${event.data.runId}`,
+        rootActivityId,
         sourceEventId: event.id,
         decision: 'dungeon_short',
         payload,

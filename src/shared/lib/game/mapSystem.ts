@@ -150,6 +150,32 @@ export function getAllSatelliteNodes(): SatelliteNode[] {
   return worldData.satellite_nodes;
 }
 
+function stableSeedIndex(seed: string, length: number): number {
+  let hash = 2166136261;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return length > 0 ? (hash >>> 0) % length : 0;
+}
+
+/** 为动态异闻稳定选择同境界秘境；同一异闻重试时不会漂移到别处。 */
+export function selectActivityStoryDungeonNode(
+  realm: RealmType,
+  seed: string,
+): SatelliteNode | undefined {
+  const sameRealm = worldData.satellite_nodes.filter(
+    (node) => node.realm_requirement === realm,
+  );
+  const preferred = sameRealm.filter((node) =>
+    ['easy', 'normal'].includes(node.dungeon_config?.difficulty ?? 'normal'),
+  );
+  const candidates = (preferred.length > 0 ? preferred : sameRealm).sort(
+    (left, right) => left.id.localeCompare(right.id),
+  );
+  return candidates[stableSeedIndex(seed, candidates.length)];
+}
+
 export function getAllSectLandmarks(): SectLandmark[] {
   return worldData.sect_landmarks;
 }

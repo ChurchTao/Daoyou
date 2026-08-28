@@ -1,4 +1,5 @@
 import { db } from '@server/lib/drizzle/db';
+import { storyIntents, storyMemories } from '@server/lib/drizzle/schema';
 import { claimMessageForConsumer } from '@server/lib/repositories/messageConsumptionRepository';
 import {
   isDomainEventType,
@@ -10,9 +11,11 @@ import {
   shouldGenerateTravelStoryEvent,
   type ActivityStoryDecision,
 } from '@shared/lib/story/travelStory';
+import { and, eq, inArray } from 'drizzle-orm';
 import {
   canAttemptActivityStoryCandidate,
   materializeActivityStoryCandidate,
+  resolveActivityStoryDecision,
 } from './ActivityStoryDirector';
 import {
   PERSONAL_STORY_LIVE_EVENT_MAX_AGE_MS,
@@ -22,9 +25,12 @@ import {
 } from './constants';
 import { personalStoryGenerator } from './PersonalStoryGenerator';
 import {
+  findStoryMemoryByFingerprint,
   listRecentStoryMemories,
   listStoryEntitiesByIds,
+  loadActivityStoryIntentByDungeonRun,
   loadSectTaskStoryTriggerContext,
+  loadStoryDungeonTriggerContext,
   loadStoryProjectionState,
   loadTravelStoryIntentState,
   loadTravelStoryTriggerContext,
@@ -62,6 +68,128 @@ async function resolveTrigger(event: DomainEventEnvelope): Promise<{
   return null;
 }
 
+async function projectLinkedActivityDungeonSettlement(
+  event: DomainEventEnvelope<'dungeon.run.settled'>,
+): Promise<{ status: 'applied' | 'already_processed' | 'ignored' }> {
+  const linked = await loadActivityStoryIntentByDungeonRun(
+    event.data.cultivatorId,
+    event.data.runId,
+  );
+  if (!linked) return { status: 'ignored' };
+
+  const context = await loadStoryDungeonTriggerContext({
+    cultivatorId: event.data.cultivatorId,
+    runId: event.data.runId,
+    outcome: event.data.outcome,
+    occurredAt: event.occurredAt,
+  });
+  const generation = isLiveEvent(event)
+    ? await personalStoryGenerator.generateMemory(context)
+    : personalStoryGenerator.generateMemoryFallback(context);
+
+  const status = await db.transaction(async (tx) => {
+    const claimed = await claimMessageForConsumer(
+      {
+        consumerName: PERSONAL_TRAVEL_STORY_CONSUMER_NAME,
+        messageId: event.id,
+        messageKey: event.type,
+      },
+      tx,
+    );
+    if (!claimed) return 'already_processed' as const;
+
+    const current = await loadActivityStoryIntentByDungeonRun(
+      event.data.cultivatorId,
+      event.data.runId,
+      tx,
+      true,
+    );
+    if (!current) return 'ignored' as const;
+    const choice = current.payload.choices.find(
+      (candidate) => candidate.key === current.payload.selectedChoiceKey,
+    );
+    const occurredAt = new Date(event.occurredAt);
+    const memoryFingerprint = `dungeon-run:${event.data.runId}`;
+
+    await tx
+      .insert(storyMemories)
+      .values({
+        cultivatorId: event.data.cultivatorId,
+        sourceType: 'activity_story_dungeon',
+        sourceId: event.data.runId,
+        factFingerprint: memoryFingerprint,
+        summary: generation.output.summary,
+        tags: Array.from(
+          new Set([
+            ...(choice?.tags ?? []),
+            ...generation.output.tags,
+            '关联秘境',
+          ]),
+        ).slice(0, 8),
+        entityIds: current.payload.entityRefs,
+        importance: Math.max(3, generation.output.importance),
+        evidence: {
+          intentId: current.intent.id,
+          runId: event.data.runId,
+          mapNodeId: event.data.mapNodeId,
+          outcome: event.data.outcome,
+          selectedChoiceKey: current.payload.selectedChoiceKey,
+          generationSource: generation.source,
+          ...(generation.error ? { generationError: generation.error } : {}),
+        },
+        occurredAt,
+      })
+      .onConflictDoNothing();
+    const storedMemory = await findStoryMemoryByFingerprint(
+      event.data.cultivatorId,
+      memoryFingerprint,
+      tx,
+    );
+    if (!storedMemory) throw new Error('异闻关联秘境记忆写入失败');
+    const summary = storedMemory.summary;
+
+    const payload = TravelStoryIntentPayloadSchema.parse({
+      ...current.payload,
+      linkedDungeon: {
+        ...current.payload.linkedDungeon,
+        status: event.data.outcome,
+        runId: event.data.runId,
+        settledAt: event.occurredAt,
+        endingSummary: summary,
+      },
+    });
+    const [resolved] = await tx
+      .update(storyIntents)
+      .set({
+        payload,
+        status: 'resolved',
+        requiresChoice: false,
+        resolvedAt: occurredAt,
+        lastError: generation.error ?? current.intent.lastError,
+      })
+      .where(
+        and(
+          eq(storyIntents.id, current.intent.id),
+          eq(storyIntents.cultivatorId, event.data.cultivatorId),
+          inArray(storyIntents.status, ['ready', 'delivered']),
+        ),
+      )
+      .returning({ id: storyIntents.id });
+    if (!resolved) throw new Error('异闻关联秘境结算状态写入失败');
+
+    if (current.payload.director) {
+      await resolveActivityStoryDecision({
+        cultivatorId: event.data.cultivatorId,
+        intentId: current.intent.id,
+        tx,
+      });
+    }
+    return 'applied' as const;
+  });
+
+  return { status };
+}
+
 export async function projectActivityStoryEvent(
   event: DomainEventEnvelope,
 ): Promise<{ status: 'applied' | 'already_processed' | 'ignored' }> {
@@ -69,6 +197,10 @@ export async function projectActivityStoryEvent(
     'cultivatorId' in event.data ? event.data.cultivatorId : null;
   if (!cultivatorId || !isPersonalStoryEnabledForCultivator(cultivatorId)) {
     return { status: 'ignored' };
+  }
+
+  if (isDomainEventType(event, 'dungeon.run.settled')) {
+    return projectLinkedActivityDungeonSettlement(event);
   }
 
   const trigger = await resolveTrigger(event);

@@ -2,6 +2,7 @@ import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActi
 import { BattleCallbackData } from '@app/routes/game/dungeon/components/DungeonBattle';
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import type { ResourceOperation } from '@shared/engine/resource/types';
+import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
 import type {
   DungeonOption,
   DungeonRecoverAction,
@@ -10,7 +11,6 @@ import type {
   DungeonState,
   History,
 } from '@shared/lib/dungeon/types';
-import type { DungeonBattlePlan } from '@shared/lib/dungeon/battlePlan';
 import { useMemo, useState } from 'react';
 import { useDungeonActions } from './useDungeonActions';
 import { useDungeonState } from './useDungeonState';
@@ -105,8 +105,15 @@ export function useDungeonViewModel(
     loading: stateLoading,
     refresh,
   } = useDungeonState(hasCultivator);
-  const { startDungeon, performAction, quitDungeon, continueLooting, escapeLooting, recoverDungeon, processing } =
-    useDungeonActions();
+  const {
+    startDungeon,
+    performAction,
+    quitDungeon,
+    continueLooting,
+    escapeLooting,
+    recoverDungeon,
+    processing,
+  } = useDungeonActions();
 
   const { openQiActionConfirm } = useQiActionConfirm();
 
@@ -249,22 +256,33 @@ export function useDungeonViewModel(
    */
   const handlePerformAction = async (option: DungeonOption) => {
     const data = await performAction(option);
-    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   const handleContinueLooting = async () => {
-    const data = await continueLooting();
-    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
+    const requestId = state?.runId
+      ? `${state.runId}:looting:${state.currentRound}`
+      : undefined;
+    const data = await continueLooting(requestId);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   const handleEscapeLooting = async () => {
     const data = await escapeLooting();
-    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   const handleRecoverDungeon = async (action: DungeonRecoverAction) => {
     const data = await recoverDungeon(action);
-    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   const applyMutationResult = async (
@@ -279,9 +297,9 @@ export function useDungeonViewModel(
       setState(resolution.state);
     } else if (resolution.type === 'settlement') {
       setState((prev) =>
-        prev
+        (prev ?? state)
           ? {
-              ...prev,
+              ...(prev ?? state)!,
               isFinished: true,
               settlement: resolution.settlement,
               realGains: resolution.realGains,
@@ -291,7 +309,6 @@ export function useDungeonViewModel(
     } else if (resolution.type === 'clear') {
       setState(null);
     }
-
   };
 
   /**

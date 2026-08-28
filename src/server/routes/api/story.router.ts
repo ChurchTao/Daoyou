@@ -20,6 +20,7 @@ import {
   chooseTravelStoryEvent,
   getPendingActivityStory,
   getPendingTravelStoryEvent,
+  startActivityStoryDungeon,
   TravelStoryCommandError,
 } from '@server/lib/services/TravelStoryApplicationService';
 import { loadPersonalStoryArchive } from '@server/lib/story/PersonalStoryRepository';
@@ -91,6 +92,69 @@ storyRouter.post(
         return c.json({ error: '活动剧情选择参数无效' }, 400);
       }
       if (error instanceof TravelStoryCommandError) {
+        return jsonWithStatus(c, { error: error.message }, error.status);
+      }
+      throw error;
+    }
+  },
+);
+
+storyRouter.post(
+  '/activity-stories/:intentId/start-dungeon',
+  requireActiveCultivatorRef(),
+  async (c) => {
+    const user = c.get('user');
+    const cultivator = c.get('activeCultivatorRef');
+    if (!user || !cultivator) return c.json({ error: '未授权访问' }, 401);
+
+    try {
+      const { intentId } = IntentParamsSchema.parse(c.req.param());
+      return c.json(
+        await startActivityStoryDungeon({
+          userId: user.id,
+          cultivatorId: cultivator.cultivatorId,
+          intentId,
+        }),
+      );
+    } catch (error) {
+      const lockErrorResponse = redisLockErrorResponse(error);
+      if (lockErrorResponse) return lockErrorResponse;
+      if (error instanceof z.ZodError) {
+        return c.json({ error: '异闻编号无效' }, 400);
+      }
+      if (error instanceof TravelStoryCommandError) {
+        return jsonWithStatus(c, { error: error.message }, error.status);
+      }
+      if (error instanceof DungeonStartError) {
+        return jsonWithStatus(
+          c,
+          {
+            error: error.message,
+            ...(error.readiness ? { readiness: error.readiness } : {}),
+          },
+          error.status,
+        );
+      }
+      if (error instanceof DungeonFlowError) {
+        return jsonWithStatus(
+          c,
+          { error: error.message, code: error.code },
+          error.status,
+        );
+      }
+      if (error instanceof QiInsufficientError) {
+        return c.json(
+          {
+            error: error.code,
+            message: error.message,
+            required: error.required,
+            current: error.current,
+            action: error.action,
+          },
+          409,
+        );
+      }
+      if (error instanceof QiServiceError) {
         return jsonWithStatus(c, { error: error.message }, error.status);
       }
       throw error;

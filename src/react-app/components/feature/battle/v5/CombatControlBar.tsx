@@ -17,7 +17,7 @@ export function CombatControlBar({
   onSpeedChange,
   onReset,
 }: CombatControlBarProps) {
-  const speeds = [0.5, 1.0, 1.5, 2.0];
+  const speeds = [0.5, 1.0, 1.5, 2.0, 5.0];
   const isFinished = progress >= 100;
   const mainActionLabel =
     onReset && isFinished ? '重播' : isPlaying ? '暂停' : '播放';

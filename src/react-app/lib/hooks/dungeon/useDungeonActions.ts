@@ -5,7 +5,7 @@ import type {
   DungeonRecoverAction,
   DungeonState,
 } from '@shared/lib/dungeon/types';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 function createActionId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
@@ -35,14 +35,12 @@ async function readDungeonMutation<T>(
 export function useDungeonActions() {
   const { pushToast, openDialog } = useInkUI();
   const [processing, setProcessing] = useState(false);
+  const lootingMutationInFlightRef = useRef(false);
 
   /**
    * 启动副本
    */
-  const startDungeon = async (
-    nodeId: string,
-    entrySource?: 'sect_task',
-  ) => {
+  const startDungeon = async (nodeId: string, entrySource?: 'sect_task') => {
     try {
       setProcessing(true);
       const res = await fetch('/api/dungeon/start', {
@@ -120,8 +118,9 @@ export function useDungeonActions() {
           try {
             setProcessing(true);
             const res = await fetch('/api/dungeon/quit', { method: 'POST' });
-            const data =
-              await readDungeonMutation<{ state?: DungeonState }>(res);
+            const data = await readDungeonMutation<{ state?: DungeonState }>(
+              res,
+            );
             if ('conflict' in data) {
               throw new Error(data.message ?? '放弃失败');
             }
@@ -146,15 +145,25 @@ export function useDungeonActions() {
   /**
    * 战后休整：继续探索
    */
-  const continueLooting = async () => {
+  const continueLooting = async (requestId?: string) => {
+    if (lootingMutationInFlightRef.current) return null;
+    lootingMutationInFlightRef.current = true;
     try {
       setProcessing(true);
-      const res = await fetch('/api/dungeon/looting/continue', { method: 'POST' });
+      const res = await fetch('/api/dungeon/looting/continue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId: requestId ?? createActionId() }),
+      });
       return await readDungeonMutation(res);
     } catch (e) {
-      pushToast({ message: e instanceof Error ? e.message : '操作失败', tone: 'danger' });
+      pushToast({
+        message: e instanceof Error ? e.message : '操作失败',
+        tone: 'danger',
+      });
       return null;
     } finally {
+      lootingMutationInFlightRef.current = false;
       setProcessing(false);
     }
   };
@@ -163,14 +172,22 @@ export function useDungeonActions() {
    * 战后休整：离开秘境
    */
   const escapeLooting = async () => {
+    if (lootingMutationInFlightRef.current) return null;
+    lootingMutationInFlightRef.current = true;
     try {
       setProcessing(true);
-      const res = await fetch('/api/dungeon/looting/escape', { method: 'POST' });
+      const res = await fetch('/api/dungeon/looting/escape', {
+        method: 'POST',
+      });
       return await readDungeonMutation(res);
     } catch (e) {
-      pushToast({ message: e instanceof Error ? e.message : '操作失败', tone: 'danger' });
+      pushToast({
+        message: e instanceof Error ? e.message : '操作失败',
+        tone: 'danger',
+      });
       return null;
     } finally {
+      lootingMutationInFlightRef.current = false;
       setProcessing(false);
     }
   };

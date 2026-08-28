@@ -97,6 +97,45 @@ export const TRAVEL_STORY_REWARD_LABELS: Record<TravelStoryRewardKind, string> =
     comprehension_insight: '感悟',
   };
 
+export const TravelStoryDungeonBlueprintSchema = z
+  .object({
+    title: z.string().trim().min(4).max(60),
+    theme: z.string().trim().min(8).max(160),
+    objective: z.string().trim().min(8).max(160),
+    openingHook: z.string().trim().min(12).max(300),
+    primaryClue: z.string().trim().min(4).max(120),
+    dangerTone: z.enum(['urgent', 'measured', 'cautious']),
+  })
+  .strict();
+export type TravelStoryDungeonBlueprint = z.infer<
+  typeof TravelStoryDungeonBlueprintSchema
+>;
+
+export const TravelStoryDungeonStatusSchema = z.enum([
+  'ready',
+  'running',
+  'completed',
+  'retreated_after_battle',
+  'abandoned_before_battle',
+]);
+export type TravelStoryDungeonStatus = z.infer<
+  typeof TravelStoryDungeonStatusSchema
+>;
+
+export const TravelStoryDungeonLinkSchema = z
+  .object({
+    status: TravelStoryDungeonStatusSchema,
+    mapNodeId: z.string().trim().min(1).max(100),
+    blueprint: TravelStoryDungeonBlueprintSchema,
+    runId: z.string().uuid().optional(),
+    settledAt: z.string().datetime().optional(),
+    endingSummary: z.string().trim().min(1).max(500).optional(),
+  })
+  .strict();
+export type TravelStoryDungeonLink = z.infer<
+  typeof TravelStoryDungeonLinkSchema
+>;
+
 export const TravelStoryChoiceGenerationSchema = z
   .object({
     key: TravelStoryChoiceKeySchema,
@@ -106,6 +145,7 @@ export const TravelStoryChoiceGenerationSchema = z
     memorySummary: z.string().trim().min(12).max(240),
     tags: z.array(z.string().trim().min(1).max(20)).min(1).max(6),
     rewardKind: TravelStoryRewardKindSchema,
+    dungeonBlueprint: TravelStoryDungeonBlueprintSchema.optional(),
   })
   .strict();
 export type TravelStoryChoiceGeneration = z.infer<
@@ -182,6 +222,7 @@ export const TravelStoryIntentPayloadSchema = z
     selectedChoiceKey: TravelStoryChoiceKeySchema.optional(),
     selectedOutcome: z.string().trim().min(1).max(1_200).optional(),
     selectedReward: TravelStoryRewardSchema.optional(),
+    linkedDungeon: TravelStoryDungeonLinkSchema.optional(),
   })
   .strict();
 export type TravelStoryIntentPayload = z.infer<
@@ -203,10 +244,16 @@ export const TravelStoryEventSchema = z
     title: z.string().trim().min(1).max(200),
     content: z.string().trim().min(1).max(4_000),
     choices: z.array(TravelStoryChoicePreviewSchema).length(2),
-    status: z.enum(['awaiting_choice', 'resolved']),
+    status: z.enum([
+      'awaiting_choice',
+      'dungeon_ready',
+      'dungeon_running',
+      'resolved',
+    ]),
     selectedChoiceKey: TravelStoryChoiceKeySchema.optional(),
     selectedOutcome: z.string().trim().min(1).max(1_200).optional(),
     selectedReward: TravelStoryRewardSchema.optional(),
+    dungeon: TravelStoryDungeonLinkSchema.optional(),
     linkage: TravelStoryLinkSchema.optional(),
     createdAt: z.string().datetime(),
   })

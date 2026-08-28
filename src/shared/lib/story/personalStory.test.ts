@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canAdvanceStoryStage,
   deriveStoryArchiveProgress,
+  DungeonStoryContextSchema,
   isDeadStoryEntityMentionHistorical,
   isStoryAftermathNarrationConsistent,
   isStoryOmenIntroductionConsistent,
@@ -203,5 +204,36 @@ describe('personal story rules', () => {
         status: 'resolved',
       }),
     ).toMatchObject({ key: 'resolved', stepIndex: 5 });
+  });
+
+  it('distinguishes dynamic anomaly dungeons from personal story threads', () => {
+    const context = DungeonStoryContextSchema.parse({
+      sourceType: 'activity_story',
+      activityIntentId: '00000000-0000-4000-8000-000000000001',
+      rootActivityId: 'travel:00000000-0000-4000-8000-000000000009',
+      intentId: '00000000-0000-4000-8000-000000000001',
+      frameworkId: 'activity_story',
+      title: '山痕暗径',
+      premise: '山道异闻留下的刻痕伸入山腹，并与玩家旧日记忆发生呼应。',
+      choiceKey: 'approach_carefully',
+      entryMode: 'investigated',
+      objective: '查明刻痕源头并处理阻路威胁。',
+      openingHook: '玩家循安全侧缝进入山腹，旧痕在黑暗中逐段显露。',
+      primaryClue: '山腹深处的新刻痕',
+      initialDangerAdjustment: -5,
+      entryAdvantage: 'prepared_clue',
+      entryConsequence: 'target_prepared',
+      travelChoiceKey: 'approach_carefully',
+      travelOutcome: '玩家已经核对旧痕并找到了安全入口。',
+      travelDangerAdjustment: -5,
+      requiresBattle: true,
+    });
+
+    expect(context.threadId).toBeUndefined();
+    expect(context.requiresBattle).toBe(true);
+    expect(context.sourceType).toBe('activity_story');
+    expect(context.rootActivityId).toBe(
+      'travel:00000000-0000-4000-8000-000000000009',
+    );
   });
 });

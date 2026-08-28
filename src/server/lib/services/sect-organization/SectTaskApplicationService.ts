@@ -10,6 +10,11 @@ import {
 import { z } from 'zod';
 import { ClaimSectTaskRewardHandler } from './ClaimSectTaskRewardHandler';
 import { SectCapabilityAuthorizer } from './SectCapabilityAuthorizer';
+import {
+  emptySectCommandEffects,
+  mergeSectCommandEffects,
+  type SectCommandEffects,
+} from './SectCommandEffects';
 import type { SectDomainEventDispatcherFactory } from './SectDomainEventDispatcher';
 import {
   invalidSectTask,
@@ -32,11 +37,6 @@ import type {
   SectTaskRecord,
 } from './ports';
 import type { SectTaskExecutorRegistry } from './task-executors/SectTaskExecutor';
-import {
-  emptySectCommandEffects,
-  mergeSectCommandEffects,
-  type SectCommandEffects,
-} from './SectCommandEffects';
 
 export class FulfillSectTaskHandler {
   constructor(private readonly events: SectDomainEventDispatcherFactory) {}
@@ -52,6 +52,7 @@ export class FulfillSectTaskHandler {
       kind: 'task_action' | 'dungeon_run';
       id: string;
       mapNodeId?: string;
+      rootActivityId?: string;
     };
   }): Promise<{
     record: SectTaskRecord;
@@ -216,16 +217,14 @@ export class ExecuteSectTaskActionHandler {
         state: 'active',
         enabled: true,
       });
-      return this.complete(
-        {
-          primaryTask,
-          changedTasks: [primaryTask],
-          outcome: {
-            renderer: 'sect.outcome.accepted',
-            data: { accepted: true },
-          },
+      return this.complete({
+        primaryTask,
+        changedTasks: [primaryTask],
+        outcome: {
+          renderer: 'sect.outcome.accepted',
+          data: { accepted: true },
         },
-      );
+      });
     }
 
     let executor;
@@ -286,13 +285,13 @@ export class ExecuteSectTaskActionHandler {
 
     if (command.actionKey === 'claim') {
       const claimed = await this.claims.execute({
-          command,
-          context,
-          membership,
-          definition,
-          executor,
-          record,
-        });
+        command,
+        context,
+        membership,
+        definition,
+        executor,
+        record,
+      });
       return this.complete(claimed.result, claimed.effects);
     }
     if (command.actionKey === 'abandon') {
@@ -398,14 +397,14 @@ export class ExecuteSectTaskActionHandler {
       );
       if (decision.completionSettlement === 'claim-reward') {
         const claimed = await this.claims.execute({
-            command,
-            context,
-            membership,
-            definition,
-            executor,
-            record,
-            changedTasks: linkedTasks,
-          });
+          command,
+          context,
+          membership,
+          definition,
+          executor,
+          record,
+          changedTasks: linkedTasks,
+        });
         return this.complete(
           claimed.result,
           mergeSectCommandEffects(effects, claimed.effects),

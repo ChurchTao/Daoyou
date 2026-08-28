@@ -273,11 +273,7 @@ const DungeonPercentCostValueSchema = z
 
 const DungeonCostLlmSchema = z.discriminatedUnion('type', [
   z.object({
-    type: z.enum([
-      'spirit_stones',
-      'cultivation_exp',
-      'comprehension_insight',
-    ]),
+    type: z.enum(['cultivation_exp', 'comprehension_insight']),
     value: DungeonPositiveIntegerCostValueSchema,
     desc: DungeonCostDescriptionLlmSchema,
   }),
@@ -334,9 +330,7 @@ export function createDungeonRoundLlmSchema(
     scene_description: z.string(),
     action_outcome: z.string().max(500),
     options:
-      optionMode === 'none'
-        ? optionsSchema.length(0)
-        : optionsSchema.min(1),
+      optionMode === 'none' ? optionsSchema.length(0) : optionsSchema.min(1),
     acquired_items:
       eventRewardCount === 'optional'
         ? rewardsSchema.max(1)
@@ -629,6 +623,7 @@ export interface DungeonSettlementLlmContext {
     name: string;
     realm: string;
   };
+  defeatedEnemyNames: string[];
   story?: Omit<
     DungeonStoryContext,
     'threadId' | 'intentId' | 'frameworkId' | 'initialDangerAdjustment'

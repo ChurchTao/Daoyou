@@ -13,6 +13,7 @@ import {
   type TravelStoryReward,
 } from '@shared/lib/story/travelStory';
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 
 export interface ActivityStoryModalProps {
   event: TravelStoryEvent | null;
@@ -50,14 +51,16 @@ function ActivityStoryModalContent({
   onResolved,
 }: ActivityStoryModalProps) {
   const { pushToast } = useInkUI();
+  const navigate = useNavigate();
   const [phase, setPhase] = useState<TravelStoryPhase>(
-    event?.status === 'resolved' ? 'result' : 'narrative',
+    event?.status !== 'awaiting_choice' ? 'result' : 'narrative',
   );
   const [narrativeComplete, setNarrativeComplete] = useState(false);
   const [resultComplete, setResultComplete] = useState(false);
   const [choosing, setChoosing] = useState<TravelStoryChoiceKey | null>(null);
+  const [startingDungeon, setStartingDungeon] = useState(false);
   const [resolvedEvent, setResolvedEvent] = useState<TravelStoryEvent | null>(
-    event?.status === 'resolved' ? event : null,
+    event?.status !== 'awaiting_choice' ? event : null,
   );
 
   if (!event) return null;
@@ -93,6 +96,36 @@ function ActivityStoryModalContent({
   };
 
   const result = resolvedEvent ?? event;
+  const enterDungeon = async () => {
+    if (startingDungeon) return;
+    if (result.status === 'dungeon_running') {
+      onClose();
+      navigate('/game/dungeon');
+      return;
+    }
+    setStartingDungeon(true);
+    try {
+      const response = await fetch(
+        `/api/story/activity-stories/${result.id}/start-dungeon`,
+        { method: 'POST' },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || data.error || '异闻秘境开启失败');
+      }
+      if (data.state) consumeResourceChanges(data.state);
+      pushToast({ message: '异闻关联秘境已开启', tone: 'success' });
+      onClose();
+      navigate('/game/dungeon');
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '异闻秘境开启失败',
+        tone: 'danger',
+      });
+    } finally {
+      setStartingDungeon(false);
+    }
+  };
   const close = () => {
     if (phase === 'result') onResolved();
     onClose();
@@ -113,9 +146,24 @@ function ActivityStoryModalContent({
             下一步
           </InkButton>
         ) : phase === 'result' && resultComplete ? (
-          <InkButton variant="primary" className="w-full" onClick={close}>
-            记下此事
-          </InkButton>
+          result.status === 'dungeon_ready' ||
+          result.status === 'dungeon_running' ? (
+            <InkButton
+              variant="primary"
+              className="w-full"
+              pending={startingDungeon}
+              pendingLabel="秘境开启中……"
+              onClick={() => void enterDungeon()}
+            >
+              {result.status === 'dungeon_running'
+                ? '返回关联秘境'
+                : '进入关联秘境'}
+            </InkButton>
+          ) : (
+            <InkButton variant="primary" className="w-full" onClick={close}>
+              记下此事
+            </InkButton>
+          )
         ) : undefined
       }
     >
@@ -129,6 +177,11 @@ function ActivityStoryModalContent({
       {!event.linkage && event.activityType !== 'travel' ? (
         <InkNotice tone="info" className="mb-4">
           正式任务或秘境奖励已在原玩法结算；这里仅发放受当前境界预算约束的额外剧情回响。
+        </InkNotice>
+      ) : null}
+      {!event.linkage && event.activityType === 'travel' ? (
+        <InkNotice tone="info" className="mb-4">
+          此异闻会生成一处关联秘境。你的选择决定进入方式，真实战斗与结算会写回后续动态剧情。
         </InkNotice>
       ) : null}
       {phase === 'narrative' ? (
@@ -161,9 +214,19 @@ function ActivityStoryModalContent({
                 <span className="text-ink-secondary mt-1 block text-sm leading-6">
                   {choice.description}
                 </span>
-                <span className="text-gold mt-2 block text-xs">
-                  机缘倾向：{TRAVEL_STORY_REWARD_LABELS[choice.rewardKind]}
-                </span>
+                {!event.linkage && event.activityType === 'travel' ? (
+                  <span className="text-gold mt-2 block text-xs">
+                    秘境倾向：
+                    {choice.key === 'approach_carefully'
+                      ? '稳妥探查，初始危险较低'
+                      : '抢占先机，初始危险较高'}
+                  </span>
+                ) : (
+                  <span className="text-gold mt-2 block text-xs">
+                    机缘倾向：
+                    {TRAVEL_STORY_REWARD_LABELS[choice.rewardKind]}
+                  </span>
+                )}
               </InkChoiceButton>
             ))}
           </div>
@@ -192,6 +255,13 @@ function ActivityStoryModalContent({
               {result.linkage.kind === 'mainline_prelude'
                 ? '关联秘境已经解锁，可回重要剧情信进入。'
                 : '延迟回响已经回应，当前主线已归档。'}
+            </InkNotice>
+          ) : null}
+          {result.dungeon && !result.linkage && resultComplete ? (
+            <InkNotice tone="info" className="mt-4 text-center">
+              {result.status === 'dungeon_running'
+                ? `【${result.dungeon.blueprint.title}】正在探索中，战斗与结局尚未结算。`
+                : `已发现【${result.dungeon.blueprint.title}】。进入后将沿当前选择继续剧情，并至少遭遇一场由服务端裁决的战斗。`}
             </InkNotice>
           ) : null}
         </div>

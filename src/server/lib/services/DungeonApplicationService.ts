@@ -1,5 +1,5 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
-import { storyThreads } from '@server/lib/drizzle/schema';
+import { storyIntents, storyThreads } from '@server/lib/drizzle/schema';
 import {
   dungeonService,
   type DungeonPersistenceSettlement,
@@ -28,7 +28,8 @@ import {
   type NoviceDungeonReadiness,
 } from '@shared/lib/noviceGuidance';
 import type { DungeonStoryContext } from '@shared/lib/story/personalStory';
-import { and, eq, isNull } from 'drizzle-orm';
+import { TravelStoryIntentPayloadSchema } from '@shared/lib/story/travelStory';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { resolvePersistentWorldPlayerState } from './BattleStateCoordinator';
 import { playerCommandExecutor } from './CommandExecutors';
 import { toPlayerStateMutationResponse } from './ResourceMutationResponse';
@@ -53,7 +54,7 @@ export type DungeonCommand =
         | 'force_quit';
     }
   | { kind: 'quit' }
-  | { kind: 'looting-continue' }
+  | { kind: 'looting-continue'; requestId?: string }
   | { kind: 'looting-escape' }
   | { kind: 'battle-abandon'; battleId: string }
   | {
@@ -88,7 +89,9 @@ export async function executeDungeonCommand(args: {
   const requestId =
     args.command.kind === 'battle-execute'
       ? (args.command.requestId ?? null)
-      : null;
+      : args.command.kind === 'looting-continue'
+        ? (args.command.requestId ?? null)
+        : null;
   const cacheKey =
     args.command.kind === 'battle-execute' && args.command.requestId
       ? dungeonBattleResultCacheKey({
@@ -96,7 +99,13 @@ export async function executeDungeonCommand(args: {
           battleId: args.command.battleId,
           requestId: args.command.requestId,
         })
-      : null;
+      : args.command.kind === 'looting-continue' && args.command.requestId
+        ? dungeonMutationResultCacheKey({
+            cultivatorId: args.cultivatorId,
+            source,
+            requestId: args.command.requestId,
+          })
+        : null;
   if (cacheKey) {
     const cached = await redis.get(cacheKey);
     if (cached) return JSON.parse(cached) as unknown;
@@ -240,21 +249,68 @@ export async function executeDungeonPersistenceCommand<T>(args: {
     if (!runId) {
       throw new Error('关联秘境没有生成运行编号');
     }
-    const [bound] = await args.tx
-      .update(storyThreads)
-      .set({ linkedRunId: runId })
-      .where(
-        and(
-          eq(storyThreads.id, args.storyContext.threadId),
-          eq(storyThreads.cultivatorId, args.cultivatorId),
-          eq(storyThreads.stage, 'confrontation'),
-          eq(storyThreads.status, 'active'),
-          isNull(storyThreads.linkedRunId),
-        ),
-      )
-      .returning({ id: storyThreads.id });
-    if (!bound) {
-      throw new Error('关联剧情状态已经变化，请刷新后重试');
+    if (args.storyContext.sourceType === 'activity_story') {
+      const intentId = args.storyContext.activityIntentId;
+      if (!intentId) throw new Error('动态异闻秘境缺少关联意图');
+      const [intent] = await args.tx
+        .select()
+        .from(storyIntents)
+        .where(
+          and(
+            eq(storyIntents.id, intentId),
+            eq(storyIntents.cultivatorId, args.cultivatorId),
+            inArray(storyIntents.status, ['ready', 'delivered']),
+          ),
+        )
+        .for('update')
+        .limit(1);
+      const payload = intent
+        ? TravelStoryIntentPayloadSchema.safeParse(intent.payload).data
+        : undefined;
+      if (!payload?.linkedDungeon || payload.linkedDungeon.status !== 'ready') {
+        throw new Error('异闻关联秘境状态已经变化，请刷新后重试');
+      }
+      const nextPayload = TravelStoryIntentPayloadSchema.parse({
+        ...payload,
+        linkedDungeon: {
+          ...payload.linkedDungeon,
+          status: 'running',
+          runId,
+        },
+      });
+      const [bound] = await args.tx
+        .update(storyIntents)
+        .set({ payload: nextPayload, requiresChoice: false })
+        .where(
+          and(
+            eq(storyIntents.id, intentId),
+            eq(storyIntents.cultivatorId, args.cultivatorId),
+            inArray(storyIntents.status, ['ready', 'delivered']),
+          ),
+        )
+        .returning({ id: storyIntents.id });
+      if (!bound) {
+        throw new Error('异闻关联秘境状态已经变化，请刷新后重试');
+      }
+    } else {
+      const threadId = args.storyContext.threadId;
+      if (!threadId) throw new Error('个人剧情秘境缺少关联剧情线');
+      const [bound] = await args.tx
+        .update(storyThreads)
+        .set({ linkedRunId: runId })
+        .where(
+          and(
+            eq(storyThreads.id, threadId),
+            eq(storyThreads.cultivatorId, args.cultivatorId),
+            eq(storyThreads.stage, 'confrontation'),
+            eq(storyThreads.status, 'active'),
+            isNull(storyThreads.linkedRunId),
+          ),
+        )
+        .returning({ id: storyThreads.id });
+      if (!bound) {
+        throw new Error('关联剧情状态已经变化，请刷新后重试');
+      }
     }
   }
   const resourceChanges: ResourceChangeDescriptor[] = [];
@@ -420,4 +476,12 @@ function dungeonBattleResultCacheKey(args: {
   requestId: string;
 }): string {
   return `dungeon:battle-result:${args.cultivatorId}:${args.battleId}:${args.requestId}`;
+}
+
+function dungeonMutationResultCacheKey(args: {
+  cultivatorId: string;
+  source: string;
+  requestId: string;
+}): string {
+  return `dungeon:mutation-result:${args.cultivatorId}:${args.source}:${args.requestId}`;
 }

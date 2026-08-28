@@ -5,6 +5,7 @@ import {
   storyThreads,
 } from '@server/lib/drizzle/schema';
 import { playerCommandExecutor } from '@server/lib/services/CommandExecutors';
+import { executeDungeonCommand } from '@server/lib/services/DungeonApplicationService';
 import { resourceEngine } from '@server/lib/services/resource/ResourceEngine';
 import { resolveActivityStoryDecision } from '@server/lib/story/ActivityStoryDirector';
 import { PERSONAL_STORY_COOLDOWN_MS } from '@server/lib/story/constants';
@@ -15,7 +16,11 @@ import {
 } from '@server/lib/story/PersonalStoryRepository';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
 import type { ResourceOperationSettlement } from '@shared/engine/resource/types';
-import { StoryThreadLinkageContextSchema } from '@shared/lib/story/personalStory';
+import { selectActivityStoryDungeonNode } from '@shared/lib/game/mapSystem';
+import {
+  DungeonStoryContextSchema,
+  StoryThreadLinkageContextSchema,
+} from '@shared/lib/story/personalStory';
 import {
   TravelStoryChoiceKeySchema,
   TravelStoryIntentPayloadSchema,
@@ -23,6 +28,7 @@ import {
   isActivityStoryRewardWithinBudget,
   travelStoryMainlineDangerAdjustment,
   type TravelStoryChoiceKey,
+  type TravelStoryDungeonBlueprint,
 } from '@shared/lib/story/travelStory';
 import { and, eq, inArray } from 'drizzle-orm';
 
@@ -66,6 +72,33 @@ function appendCanonSummary(current: string, addition: string): string {
     .slice(-4_000);
 }
 
+function fallbackActivityDungeonBlueprint(input: {
+  title: string;
+  content: string;
+  outcome: string;
+  choiceKey: TravelStoryChoiceKey;
+}): TravelStoryDungeonBlueprint {
+  const cautious = input.choiceKey === 'approach_carefully';
+  return {
+    title: `${input.title.slice(0, 48)}·深入`,
+    theme: input.content.slice(0, 160),
+    objective: cautious
+      ? '循已确认的线索深入秘境，查明异闻源头并处理阻路威胁。'
+      : '趁线索尚未消退直追异闻源头，并解决阻断调查的威胁。',
+    openingHook: input.outcome.slice(0, 300),
+    primaryClue: `${input.title.slice(0, 48)}留下的异常痕迹`,
+    dangerTone: cautious ? 'cautious' : 'urgent',
+  };
+}
+
+function appendBoundedStoryText(
+  text: string,
+  suffix: string,
+  maxLength: number,
+): string {
+  return `${text.slice(0, Math.max(1, maxLength - suffix.length))}${suffix}`;
+}
+
 export function getPendingTravelStoryEvent(cultivatorId: string) {
   return loadPendingTravelStoryEvent(cultivatorId);
 }
@@ -89,6 +122,12 @@ export async function chooseTravelStoryEvent(input: {
   }
   if (
     current.intent.status === 'resolved' &&
+    current.payload.selectedChoiceKey !== selected
+  ) {
+    throw new TravelStoryCommandError('这段异闻已经做出选择，不能更改', 409);
+  }
+  if (
+    current.payload.selectedChoiceKey &&
     current.payload.selectedChoiceKey !== selected
   ) {
     throw new TravelStoryCommandError('这段异闻已经做出选择，不能更改', 409);
@@ -134,6 +173,21 @@ export async function chooseTravelStoryEvent(input: {
           resourceChanges: [],
         };
       }
+      if (locked.payload.selectedChoiceKey) {
+        if (locked.payload.selectedChoiceKey !== selected) {
+          throw new TravelStoryCommandError(
+            '这段异闻已经做出选择，不能更改',
+            409,
+          );
+        }
+        return {
+          result: {
+            event: toTravelStoryEvent(locked),
+            reward: locked.payload.selectedReward,
+          },
+          resourceChanges: [],
+        };
+      }
       if (!['ready', 'delivered'].includes(locked.intent.status)) {
         throw new TravelStoryCommandError('当前异闻状态无法做出选择', 409);
       }
@@ -143,6 +197,81 @@ export async function chooseTravelStoryEvent(input: {
       );
       if (!choice) {
         throw new TravelStoryCommandError('该云游选择不可用', 400);
+      }
+      const shouldOpenLinkedDungeon =
+        locked.payload.source.activityType === 'travel' &&
+        !locked.payload.linkage;
+      if (shouldOpenLinkedDungeon) {
+        const mapNode = selectActivityStoryDungeonNode(
+          locked.payload.source.realm,
+          locked.intent.id,
+        );
+        if (!mapNode) {
+          throw new TravelStoryCommandError(
+            '当前境界没有可承载异闻的秘境',
+            503,
+          );
+        }
+        const routeOutcome = choice.dungeonBlueprint
+          ? choice.outcome
+          : `${choice.outcome}\n\n正当你准备离开时，残痕在【${mapNode.name}】方向重新显现，露出一处仍可深入的秘境入口。`;
+        const generatedBlueprint =
+          choice.dungeonBlueprint ??
+          fallbackActivityDungeonBlueprint({
+            title: locked.payload.title,
+            content: locked.payload.content,
+            outcome: routeOutcome,
+            choiceKey: selected,
+          });
+        const locationTheme = `；异闻入口最终通向【${mapNode.name}】。`;
+        const locationHook = `你循已确认的入口抵达【${mapNode.name}】。`;
+        const blueprint = {
+          ...generatedBlueprint,
+          theme: appendBoundedStoryText(
+            generatedBlueprint.theme,
+            locationTheme,
+            160,
+          ),
+          openingHook: appendBoundedStoryText(
+            generatedBlueprint.openingHook,
+            locationHook,
+            300,
+          ),
+        } satisfies TravelStoryDungeonBlueprint;
+        const payload = TravelStoryIntentPayloadSchema.parse({
+          ...locked.payload,
+          selectedChoiceKey: selected,
+          selectedOutcome: routeOutcome,
+          linkedDungeon: {
+            status: 'ready',
+            mapNodeId: mapNode.id,
+            blueprint,
+          },
+        });
+        const [updatedIntent] = await tx
+          .update(storyIntents)
+          .set({
+            payload,
+            requiresChoice: false,
+          })
+          .where(
+            and(
+              eq(storyIntents.id, locked.intent.id),
+              eq(storyIntents.cultivatorId, input.cultivatorId),
+              inArray(storyIntents.status, ['ready', 'delivered']),
+            ),
+          )
+          .returning();
+        if (!updatedIntent) {
+          throw new TravelStoryCommandError('异闻秘境路线保存失败', 503);
+        }
+        return {
+          result: {
+            event: toTravelStoryEvent({ intent: updatedIntent, payload }),
+            reward: undefined,
+          },
+          resourceChanges: [],
+        };
       }
       const reward = calculateTravelStoryReward({
         realm: locked.payload.source.realm,
@@ -362,3 +491,67 @@ export async function chooseTravelStoryEvent(input: {
 
 export const getPendingActivityStory = getPendingTravelStoryEvent;
 export const chooseActivityStory = chooseTravelStoryEvent;
+
+export async function startActivityStoryDungeon(input: {
+  userId: string;
+  cultivatorId: string;
+  intentId: string;
+}) {
+  const current = await loadOwnedTravelStoryIntent(
+    input.cultivatorId,
+    input.intentId,
+  );
+  if (!current) {
+    throw new TravelStoryCommandError('途中异闻不存在', 404);
+  }
+  const dungeon = current.payload.linkedDungeon;
+  const choiceKey = current.payload.selectedChoiceKey;
+  const selectedOutcome = current.payload.selectedOutcome;
+  if (
+    current.payload.source.activityType !== 'travel' ||
+    current.payload.linkage ||
+    !dungeon ||
+    dungeon.status !== 'ready' ||
+    !choiceKey ||
+    !selectedOutcome
+  ) {
+    throw new TravelStoryCommandError('当前异闻不能开启关联秘境', 409);
+  }
+
+  const cautious = choiceKey === 'approach_carefully';
+  const rootActivityId =
+    current.payload.director?.rootActivityId ??
+    current.payload.source.rootActivityId ??
+    `travel:${current.payload.source.actionInstanceId}`;
+  const storyContext = DungeonStoryContextSchema.parse({
+    sourceType: 'activity_story',
+    activityIntentId: current.intent.id,
+    rootActivityId,
+    intentId: current.intent.id,
+    frameworkId: 'activity_story',
+    title: dungeon.blueprint.title,
+    premise: dungeon.blueprint.theme,
+    choiceKey,
+    entryMode: cautious ? 'investigated' : 'direct',
+    objective: dungeon.blueprint.objective,
+    openingHook: dungeon.blueprint.openingHook,
+    primaryClue: dungeon.blueprint.primaryClue,
+    initialDangerAdjustment: cautious ? -5 : 5,
+    entryAdvantage: cautious ? 'prepared_clue' : 'initiative',
+    entryConsequence: cautious ? 'target_prepared' : 'higher_danger',
+    travelChoiceKey: choiceKey,
+    travelOutcome: selectedOutcome,
+    travelDangerAdjustment: cautious ? -5 : 5,
+    requiresBattle: true,
+  });
+
+  return executeDungeonCommand({
+    userId: input.userId,
+    cultivatorId: input.cultivatorId,
+    command: {
+      kind: 'start',
+      mapNodeId: dungeon.mapNodeId,
+      storyContext,
+    },
+  });
+}

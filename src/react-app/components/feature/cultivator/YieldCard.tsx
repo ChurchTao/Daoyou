@@ -239,7 +239,11 @@ export function YieldCard({
             : travelEvent.linkage?.kind === 'mainline_echo'
               ? '回应回响'
               : travelEvent.activityType === 'travel'
-                ? '处理异闻'
+                ? travelEvent.status === 'dungeon_ready'
+                  ? '进入异闻秘境'
+                  : travelEvent.status === 'dungeon_running'
+                    ? '返回异闻秘境'
+                    : '处理异闻'
                 : '查看回响'}
         </InkButton>
       ) : null}

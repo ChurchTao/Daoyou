@@ -8,6 +8,7 @@ import {
   isActivityStoryRewardWithinBudget,
   shouldGenerateTravelStoryEvent,
   shouldReplaceActivityStoryDecision,
+  TravelStoryIntentPayloadSchema,
   travelStoryMainlineDangerAdjustment,
 } from './travelStory';
 
@@ -185,5 +186,67 @@ describe('travel story rules', () => {
         ).toBe(true);
       }
     }
+  });
+
+  it('keeps a travel anomaly pending while its linked dungeon runs', () => {
+    const parsed = TravelStoryIntentPayloadSchema.parse({
+      kind: 'activity_story',
+      eventType: 'wild_omen',
+      title: '山道旧痕',
+      content:
+        '归途山壁露出一道与旧日记忆相连的刻痕，痕迹指向山腹深处尚未查明的异动。',
+      memoryRefs: [],
+      entityRefs: [],
+      continuityClaims: [],
+      choices: [
+        {
+          key: 'approach_carefully',
+          label: '审痕记路',
+          description: '先核对旧痕再寻找安全入口。',
+          outcome: '你核对旧痕后找到一条通向山腹的安全入口，源头仍待深入查明。',
+          memorySummary: '玩家谨慎辨认旧痕并找到关联秘境入口。',
+          tags: ['云游', '谨慎'],
+          rewardKind: 'comprehension_insight',
+        },
+        {
+          key: 'act_decisively',
+          label: '破门追痕',
+          description: '趁痕迹未散直接破开旧门。',
+          outcome: '你破开旧门追入山腹，异响从更深处传来，真相仍待探索。',
+          memorySummary: '玩家果断破门并找到关联秘境入口。',
+          tags: ['云游', '果断'],
+          rewardKind: 'cultivation_exp',
+        },
+      ],
+      source: {
+        actionInstanceId: '00000000-0000-4000-8000-000000000001',
+        hours: 8,
+        realm: '炼气',
+        realmStage: '初期',
+        activityType: 'travel',
+      },
+      selectedChoiceKey: 'approach_carefully',
+      selectedOutcome:
+        '你核对旧痕后找到一条通向山腹的安全入口，源头仍待深入查明。',
+      linkedDungeon: {
+        status: 'running',
+        mapNodeId: 'SAT_TN_01',
+        runId: '00000000-0000-4000-8000-000000000002',
+        blueprint: {
+          title: '山痕暗径',
+          theme: '旧日刻痕在山腹暗径中继续延伸，并与玩家已有记忆相互呼应。',
+          objective: '查明刻痕源头并处理阻路威胁。',
+          openingHook: '玩家从安全侧缝进入山腹，刻痕在黑暗中逐段显露。',
+          primaryClue: '山腹深处的新刻痕',
+          dangerTone: 'cautious',
+        },
+      },
+    });
+
+    expect(parsed.linkedDungeon).toMatchObject({
+      status: 'running',
+      mapNodeId: 'SAT_TN_01',
+    });
+    expect(parsed.selectedReward).toBeUndefined();
   });
 });

@@ -164,7 +164,7 @@ export async function loadTravelStoryIntentState(
       .where(
         and(
           eq(storyIntents.cultivatorId, cultivatorId),
-          eq(storyIntents.beatType, 'travel_event'),
+          inArray(storyIntents.beatType, ['travel_event', 'activity_story']),
         ),
       )
       .orderBy(desc(storyIntents.createdAt))
@@ -209,6 +209,14 @@ export function toTravelStoryEvent(input: {
   intent: typeof storyIntents.$inferSelect;
   payload: ReturnType<typeof TravelStoryIntentPayloadSchema.parse>;
 }): TravelStoryEvent {
+  const status =
+    input.intent.status === 'resolved'
+      ? 'resolved'
+      : input.payload.linkedDungeon?.status === 'running'
+        ? 'dungeon_running'
+        : input.payload.linkedDungeon?.status === 'ready'
+          ? 'dungeon_ready'
+          : 'awaiting_choice';
   return TravelStoryEventSchema.parse({
     id: input.intent.id,
     eventType: input.payload.eventType,
@@ -221,13 +229,42 @@ export function toTravelStoryEvent(input: {
       description: choice.description,
       rewardKind: choice.rewardKind,
     })),
-    status: input.intent.status === 'resolved' ? 'resolved' : 'awaiting_choice',
+    status,
     selectedChoiceKey: input.payload.selectedChoiceKey,
     selectedOutcome: input.payload.selectedOutcome,
     selectedReward: input.payload.selectedReward,
+    dungeon: input.payload.linkedDungeon,
     linkage: input.payload.linkage,
     createdAt: input.intent.createdAt.toISOString(),
   });
+}
+
+export async function loadActivityStoryIntentByDungeonRun(
+  cultivatorId: string,
+  runId: string,
+  q: DbExecutor = getExecutor(),
+  lock = false,
+) {
+  let query = q
+    .select()
+    .from(storyIntents)
+    .where(
+      and(
+        eq(storyIntents.cultivatorId, cultivatorId),
+        inArray(storyIntents.beatType, ['travel_event', 'activity_story']),
+        inArray(storyIntents.status, ['ready', 'delivered']),
+      ),
+    )
+    .orderBy(desc(storyIntents.createdAt));
+  if (lock) query = query.for('update') as typeof query;
+  const intents = await query;
+  for (const intent of intents) {
+    const parsed = TravelStoryIntentPayloadSchema.safeParse(intent.payload);
+    if (parsed.success && parsed.data.linkedDungeon?.runId === runId) {
+      return { intent, payload: parsed.data };
+    }
+  }
+  return null;
 }
 
 export async function loadPendingTravelStoryEvent(

@@ -5,7 +5,7 @@ import {
   REALM_VALUES,
 } from '@shared/types/constants';
 import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
-import { z } from 'zod';
+import * as z from 'zod';
 
 export const DOMAIN_EVENT_STREAM = 'DAOYOU_DOMAIN_EVENTS';
 export const DOMAIN_EVENT_SUBJECT_PREFIX = 'daoyou.domain';
@@ -62,6 +62,8 @@ export const DomainEventDataSchemas = {
       cultivatorId: z.uuid(),
       runId: z.uuid(),
       mapNodeId: z.string().min(1).max(100),
+      // 历史 v1 消息没有该字段；新消息由发布方写入，消费者保留回退逻辑。
+      rootActivityId: z.string().min(1).max(160).optional(),
       outcome: z.enum([
         'completed',
         'retreated_after_battle',

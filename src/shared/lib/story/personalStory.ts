@@ -237,12 +237,20 @@ export type StoryThreadLinkageContext = z.infer<
 
 export const DungeonStoryContextSchema = z
   .object({
-    threadId: z.string().uuid(),
+    sourceType: z
+      .enum(['personal_story', 'activity_story'])
+      .default('personal_story'),
+    threadId: z.string().uuid().optional(),
+    activityIntentId: z.string().uuid().optional(),
+    rootActivityId: z.string().trim().min(1).max(160).optional(),
     intentId: z.string().uuid(),
-    frameworkId: z.literal(PERSONAL_STORY_FRAMEWORK_ID),
+    frameworkId: z.enum([PERSONAL_STORY_FRAMEWORK_ID, 'activity_story']),
     title: z.string().trim().min(1).max(80),
     premise: z.string().trim().min(1).max(300),
-    choiceKey: StoryChoiceKeySchema.exclude(['delay']),
+    choiceKey: z.union([
+      StoryChoiceKeySchema.exclude(['delay']),
+      TravelStoryChoiceKeySchema,
+    ]),
     entryMode: z.enum(['direct', 'investigated']),
     objective: z.string().trim().min(1).max(160),
     openingHook: z.string().trim().min(1).max(300),
@@ -253,8 +261,25 @@ export const DungeonStoryContextSchema = z
     travelChoiceKey: TravelStoryChoiceKeySchema,
     travelOutcome: z.string().trim().min(1).max(1_200),
     travelDangerAdjustment: z.number().int().min(-5).max(5),
+    requiresBattle: z.boolean().default(false),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (value.sourceType === 'personal_story' && !value.threadId) {
+      context.addIssue({
+        code: 'custom',
+        path: ['threadId'],
+        message: '个人主线秘境必须关联剧情线',
+      });
+    }
+    if (value.sourceType === 'activity_story' && !value.activityIntentId) {
+      context.addIssue({
+        code: 'custom',
+        path: ['activityIntentId'],
+        message: '动态异闻秘境必须关联异闻意图',
+      });
+    }
+  });
 export type DungeonStoryContext = z.infer<typeof DungeonStoryContextSchema>;
 
 export const StoryMailDescriptorSchema = z

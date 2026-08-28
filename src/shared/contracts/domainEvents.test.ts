@@ -65,6 +65,42 @@ describe('domain event contracts', () => {
     ).toThrow();
   });
 
+  it('preserves a dungeon root activity and accepts legacy events without it', () => {
+    const definition = DOMAIN_EVENT_DEFINITIONS['dungeon.run.settled'];
+    const base = {
+      id: EVENT_ID,
+      type: 'dungeon.run.settled' as const,
+      version: definition.version,
+      subject: definition.subject,
+      occurredAt: '2026-08-03T08:00:00.000Z',
+      aggregate: {
+        type: 'dungeon-run',
+        id: '44444444-4444-4444-8444-444444444444',
+      },
+      data: {
+        cultivatorId: CULTIVATOR_ID,
+        runId: '44444444-4444-4444-8444-444444444444',
+        mapNodeId: 'node-1',
+        outcome: 'completed' as const,
+      },
+    };
+
+    expect(
+      parseDomainEventEnvelope({
+        ...base,
+        data: {
+          ...base.data,
+          rootActivityId: 'travel:33333333-3333-4333-8333-333333333333',
+        },
+      }).data,
+    ).toMatchObject({
+      rootActivityId: 'travel:33333333-3333-4333-8333-333333333333',
+    });
+    expect(parseDomainEventEnvelope(base).data).not.toHaveProperty(
+      'rootActivityId',
+    );
+  });
+
   it.each([
     {
       type: 'yield.claimed' as const,

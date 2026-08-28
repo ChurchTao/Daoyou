@@ -126,6 +126,7 @@ export interface SectDomainEventDispatcherFactory {
       kind: 'task_action' | 'dungeon_run';
       id: string;
       mapNodeId?: string;
+      rootActivityId?: string;
     };
   }): SectTaskDomainEventDispatcher;
   forMembership(
@@ -177,6 +178,7 @@ class StandardSectDomainEventDispatcherFactory implements SectDomainEventDispatc
       kind: 'task_action' | 'dungeon_run';
       id: string;
       mapNodeId?: string;
+      rootActivityId?: string;
     };
   }): SectTaskDomainEventDispatcher {
     const { command, membership } = args;
@@ -201,9 +203,10 @@ class StandardSectDomainEventDispatcherFactory implements SectDomainEventDispatc
             organizationError(`任务完成快照不存在：${event.taskRecordId}`, 500);
           const activityId = `sect-task:${event.taskRecordId}`;
           const rootActivityId =
-            completionSource.kind === 'dungeon_run'
+            completionSource.rootActivityId ??
+            (completionSource.kind === 'dungeon_run'
               ? `dungeon:${completionSource.id}`
-              : activityId;
+              : activityId);
           await command.events.create({
             type: 'sect.task.completed',
             aggregate: { type: 'sect_task', id: event.taskRecordId },
@@ -229,7 +232,13 @@ class StandardSectDomainEventDispatcherFactory implements SectDomainEventDispatc
                 type: completionSource.kind,
                 id: completionSource.id,
               },
-              completionSource,
+              completionSource: {
+                kind: completionSource.kind,
+                id: completionSource.id,
+                ...(completionSource.mapNodeId
+                  ? { mapNodeId: completionSource.mapNodeId }
+                  : {}),
+              },
             },
             deduplicationKey: `sect-task-completed:${event.taskRecordId}`,
           });

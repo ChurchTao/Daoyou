@@ -276,6 +276,7 @@ export function buildDungeonRoundLlmContext(args: {
 
   const story = state.storyContext
     ? {
+        sourceType: state.storyContext.sourceType,
         title: state.storyContext.title,
         premise: state.storyContext.premise,
         choiceKey: state.storyContext.choiceKey,
@@ -288,6 +289,7 @@ export function buildDungeonRoundLlmContext(args: {
         travelChoiceKey: state.storyContext.travelChoiceKey,
         travelOutcome: state.storyContext.travelOutcome,
         travelDangerAdjustment: state.storyContext.travelDangerAdjustment,
+        requiresBattle: state.storyContext.requiresBattle,
       }
     : undefined;
 
@@ -377,6 +379,7 @@ export function buildDungeonSettlementLlmContext(args: {
 
   const story = state.storyContext
     ? {
+        sourceType: state.storyContext.sourceType,
         title: state.storyContext.title,
         premise: state.storyContext.premise,
         choiceKey: state.storyContext.choiceKey,
@@ -389,6 +392,7 @@ export function buildDungeonSettlementLlmContext(args: {
         travelChoiceKey: state.storyContext.travelChoiceKey,
         travelOutcome: state.storyContext.travelOutcome,
         travelDangerAdjustment: state.storyContext.travelDangerAdjustment,
+        requiresBattle: state.storyContext.requiresBattle,
       }
     : undefined;
 
@@ -401,6 +405,9 @@ export function buildDungeonSettlementLlmContext(args: {
       name: state.playerInfo.name,
       realm: state.playerInfo.realm,
     },
+    defeatedEnemyNames: uniqueStrings(state.defeatedEnemyNames ?? []).map(
+      (name) => truncateText(name, 18),
+    ),
     ...(story ? { story } : {}),
     ...(finalAction ? { finalAction } : {}),
     journeySummary: summarizeJourney(state.history),
