@@ -140,6 +140,7 @@ export const ItemLibraryMaterialPayloadSchema = z.object({
   rank: z.enum(QUALITY_VALUES),
   element: z.enum(ELEMENT_VALUES).optional(),
   description: z.string().optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const ItemLibraryConsumablePayloadSchema = z.object({
@@ -308,6 +309,13 @@ export const ItemLibraryMaterialGenerateSchema = z.object({
   seed: z.string().trim().min(1).max(120).optional(),
 });
 
+export const ItemLibrarySpiritSeedGenerateSchema = z.object({
+  count: z.number().int().min(1).max(50),
+  quality: z.enum(QUALITY_VALUES),
+  element: z.enum(ELEMENT_VALUES).optional(),
+  status: ItemLibraryStatusSchema.default('published'),
+});
+
 export const ItemLibraryRewardSelectionSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('spirit_stones'),
@@ -348,6 +356,9 @@ export type ItemLibraryRewardSelection = z.infer<
 export type ItemLibraryListQuery = z.infer<typeof ItemLibraryListQuerySchema>;
 export type ItemLibraryMaterialGenerateInput = z.infer<
   typeof ItemLibraryMaterialGenerateSchema
+>;
+export type ItemLibrarySpiritSeedGenerateInput = z.infer<
+  typeof ItemLibrarySpiritSeedGenerateSchema
 >;
 
 function clonePlainData<T>(value: T): T {

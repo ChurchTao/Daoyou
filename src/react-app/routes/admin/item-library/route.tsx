@@ -128,9 +128,16 @@ export default function ItemLibraryAdminPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [generateCount, setGenerateCount] = useState('20');
-  const [generateType, setGenerateType] = useState(MATERIAL_TYPE_VALUES[0]);
+  const [generateType, setGenerateType] = useState<
+    (typeof MATERIAL_TYPE_VALUES)[number]
+  >('herb');
   const [generateQuality, setGenerateQuality] = useState(QUALITY_VALUES[0]);
   const [generateSeed, setGenerateSeed] = useState('');
+  const [seedGenerateCount, setSeedGenerateCount] = useState('10');
+  const [seedGenerateQuality, setSeedGenerateQuality] = useState(
+    QUALITY_VALUES[0],
+  );
+  const [seedGenerateElement, setSeedGenerateElement] = useState('');
   const [dailySettings, setDailySettings] =
     useState<ItemLibraryDailyMaterialGenerationSettings>(
       DEFAULT_ITEM_LIBRARY_DAILY_MATERIAL_GENERATION_SETTINGS,
@@ -420,6 +427,46 @@ export default function ItemLibraryAdminPage() {
     }
   };
 
+  const generateSpiritSeeds = async () => {
+    const count = Number(seedGenerateCount);
+    if (!Number.isInteger(count) || count < 1 || count > 50) {
+      pushToast({ message: '灵种生成数量必须为 1 至 50 的整数', tone: 'warning' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const response = await fetch('/api/admin/item-library/seeds/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          count,
+          quality: seedGenerateQuality,
+          element: seedGenerateElement || undefined,
+          status: 'published',
+        }),
+      });
+      const data = (await response.json()) as ItemLibraryResponse;
+      if (!response.ok) {
+        throw new Error(data.error ?? '批量生成灵种失败');
+      }
+      pushToast({
+        message: `已生成 ${data.generated ?? data.items?.length ?? 0} 枚灵种并写入道具库`,
+        tone: 'success',
+      });
+      setTypeFilter('material');
+      setQuery('');
+      setPage(1);
+      await loadItems();
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '批量生成灵种失败',
+        tone: 'danger',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveDailySettings = async () => {
     if (!Number.isInteger(dailySettings.count) || dailySettings.count < 1) {
       pushToast({ message: '每日生成数量必须为正整数', tone: 'warning' });
@@ -591,7 +638,7 @@ export default function ItemLibraryAdminPage() {
                   setGenerateType(value as typeof generateType)
                 }
               >
-                {MATERIAL_TYPE_VALUES.map((value) => (
+                {MATERIAL_TYPE_VALUES.filter((value) => value !== 'seed').map((value) => (
                   <option key={value} value={value}>
                     {getMaterialTypeLabel(value)}
                   </option>
@@ -618,6 +665,56 @@ export default function ItemLibraryAdminPage() {
               disabled={saving}
             >
               生成入库
+            </InkButton>
+          </div>
+
+          <div className="border-ink/15 bg-paper/70 space-y-3 border border-dashed p-3">
+            <div>
+              <p className="text-ink font-semibold">批量生成灵植种子</p>
+              <p className="text-ink-secondary mt-1 text-xs leading-5">
+                使用灵种专用生成规则写入完整隐藏习性，可直接作为奖励发放并播种。
+              </p>
+            </div>
+            <InkInput
+              label="数量（最多 50）"
+              value={seedGenerateCount}
+              onChange={setSeedGenerateCount}
+              placeholder="10"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <InkSelect
+                label="品质"
+                value={seedGenerateQuality}
+                onChange={(value) =>
+                  setSeedGenerateQuality(value as typeof seedGenerateQuality)
+                }
+              >
+                {QUALITY_VALUES.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </InkSelect>
+              <InkSelect
+                label="元素"
+                value={seedGenerateElement}
+                onChange={setSeedGenerateElement}
+              >
+                <option value="">随机</option>
+                {ELEMENT_VALUES.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </InkSelect>
+            </div>
+            <InkButton
+              type="button"
+              variant="secondary"
+              onClick={generateSpiritSeeds}
+              disabled={saving}
+            >
+              生成灵种入库
             </InkButton>
           </div>
 
@@ -783,7 +880,10 @@ export default function ItemLibraryAdminPage() {
                   )
                 }
               >
-                {MATERIAL_TYPE_VALUES.map((value) => (
+                {draft.materialType === 'seed' ? (
+                  <option value="seed">灵植种子（专用生成）</option>
+                ) : null}
+                {MATERIAL_TYPE_VALUES.filter((value) => value !== 'seed').map((value) => (
                   <option key={value} value={value}>
                     {getMaterialTypeLabel(value)}
                   </option>

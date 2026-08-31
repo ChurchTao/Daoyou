@@ -12,7 +12,10 @@ import {
   normalizeItemLibraryFilters,
   updateItemLibraryEntry,
 } from '@server/lib/repositories/itemLibraryRepository';
-import { generateMaterialLibraryEntries } from '@server/lib/services/MaterialLibraryService';
+import {
+  generateMaterialLibraryEntries,
+  generateSpiritSeedLibraryEntries,
+} from '@server/lib/services/MaterialLibraryService';
 import { buildPresetArtifact } from '@shared/engine/cultivator/creation/presetProducts';
 import { DEFAULT_AFFIX_REGISTRY } from '@shared/engine/creation-v2/affixes';
 import {
@@ -27,6 +30,7 @@ import {
   ItemLibraryArtifactPayloadSchema,
   ItemLibraryListQuerySchema,
   ItemLibraryMaterialGenerateSchema,
+  ItemLibrarySpiritSeedGenerateSchema,
   UpdateItemLibraryEntrySchema,
   type CreateItemLibraryEntry,
   type UpdateItemLibraryEntry,
@@ -151,6 +155,32 @@ router.post('/materials/generate', requireAdmin(), async (c) => {
   } catch (error) {
     return c.json(
       { error: error instanceof Error ? error.message : '批量生成材料失败' },
+      500,
+    );
+  }
+});
+
+router.post('/seeds/generate', requireAdmin(), async (c) => {
+  const user = c.get('user');
+  if (!user) {
+    return c.json({ error: '未授权访问' }, 401);
+  }
+
+  const body = await c.req.json().catch(() => null);
+  const parsed = ItemLibrarySpiritSeedGenerateSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: '参数错误', details: parsed.error.flatten() }, 400);
+  }
+
+  try {
+    const items = await generateSpiritSeedLibraryEntries({
+      request: parsed.data,
+      userId: user.id,
+    });
+    return c.json({ success: true, items, generated: items.length });
+  } catch (error) {
+    return c.json(
+      { error: error instanceof Error ? error.message : '批量生成灵种失败' },
       500,
     );
   }
