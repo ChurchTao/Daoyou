@@ -7,6 +7,7 @@ import type {
   GainProgressOperation,
   IncreaseLifespanOperation,
   PillSpec,
+  SpiritFruitSpec,
   RemoveStatusOperation,
   RestoreResourceOperation,
   TalismanSpec,
@@ -29,6 +30,12 @@ export function isTalismanSpec(
   return !!spec && spec.kind === 'talisman';
 }
 
+export function isSpiritFruitSpec(
+  spec: ConsumableSpec | null | undefined,
+): spec is SpiritFruitSpec {
+  return !!spec && spec.kind === 'spirit_fruit';
+}
+
 export function isPillConsumable(
   consumable: Consumable | null | undefined,
 ): consumable is Consumable & { spec: PillSpec } {
@@ -39,6 +46,12 @@ export function isTalismanConsumable(
   consumable: Consumable | null | undefined,
 ): consumable is Consumable & { spec: TalismanSpec } {
   return !!consumable && isTalismanSpec(consumable.spec);
+}
+
+export function isSpiritFruitConsumable(
+  consumable: Consumable | null | undefined,
+): consumable is Consumable & { spec: SpiritFruitSpec } {
+  return !!consumable && isSpiritFruitSpec(consumable.spec);
 }
 
 export function isRestoreResourceOperation(
@@ -98,6 +111,10 @@ export function assertConsumableSpec(value: unknown): ConsumableSpec {
     return value as unknown as ConsumableSpec;
   }
 
+  if (value.kind === 'spirit_fruit') {
+    return value as unknown as ConsumableSpec;
+  }
+
   throw new Error('消耗品 spec.kind 非法，请清理旧 consumables 数据后重试。');
 }
 
@@ -143,7 +160,14 @@ export function buildConsumableStackKey(
           operations: spec.operations,
           consumeRules: spec.consumeRules,
         }
-      : {
+      : spec.kind === 'spirit_fruit'
+        ? {
+            family: spec.family,
+            operations: spec.operations,
+            consumeRules: spec.consumeRules,
+            source: spec.source,
+          }
+        : {
           scenario: spec.scenario,
           sessionMode: spec.sessionMode,
           notes: spec.notes,

@@ -14,3 +14,4 @@ export * from './taskRequirementMatcher';
 export * from './taskRequirements';
 export * from './taskRewards';
 export * from './sectBenefits';
+export * from './stipend';

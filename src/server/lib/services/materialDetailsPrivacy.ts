@@ -18,6 +18,7 @@ export function sanitizeMaterialDetails(
   }
   const next = { ...(details as Record<string, unknown>) };
   delete next[HIDDEN_MYSTERY_REVEAL_KEY];
+  delete next.seedSpec;
   return Object.keys(next).length > 0 ? next : undefined;
 }
 

@@ -124,11 +124,11 @@ export class SectMembershipApplicationService {
   }
 
   async getStipendResource(
-    cultivatorId: string,
+    cultivator: { id: string; realm: Cultivator['realm'] },
     context: SectMembershipQueryContext,
   ): Promise<SectStipendData> {
     const membership = await requireMembership(
-      cultivatorId,
+      cultivator.id,
       context.memberships,
     );
     const organization = organizationFor(context.modules, membership.sectId);
@@ -142,6 +142,7 @@ export class SectMembershipApplicationService {
     const stipend = quoteSectStipend(
       organization,
       membership.discipleRank,
+      cultivator.realm,
       facilityLevels,
     );
     const weekKey = context.clock.weekKey();

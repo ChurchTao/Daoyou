@@ -128,6 +128,16 @@ export const REGION_PROFILES: Record<RegionProfileKey, RegionProfile> = {
     signatureTags: ['皇都', '贡品', '大晋商会', '上古遗珍'],
     signatureRatio: 0.35,
   },
+  baicao: {
+    typeWeights: {
+      herb: 3, aux: 2, tcdb: 1, ore: 0.5, monster: 0.25,
+      gongfa_manual: 0.2, skill_manual: 0.2,
+    } satisfies Partial<Record<MaterialType, number>>,
+    priceModifier: { min: 0.85, max: 1.2 },
+    layerOverrides: {},
+    signatureTags: ['灵种', '苗圃', '灵植商盟', '百草集'],
+    signatureRatio: 0.65,
+  },
   default: {
     typeWeights: {},
     priceModifier: { min: 0.85, max: 1.25 },
@@ -152,6 +162,10 @@ const REGION_MARKET_FLAVOR: Record<
   dajin: {
     title: '大晋坊市',
     description: '皇都商会云集，珍稀天材地宝层出不穷。',
+  },
+  baicao: {
+    title: '百草灵种集',
+    description: '山谷苗圃绵延成片，各地灵种按品相与灵性分区流通。',
   },
   default: {
     title: '云游坊市',
@@ -209,7 +223,11 @@ export function getDominantMarketMaterialTypes(
   limit = 3,
 ): MaterialType[] {
   const profile = getRegionProfile(nodeId);
-  return MATERIAL_TYPE_VALUES.filter(
+  const seedRatio = getMarketConfigByNodeId(nodeId)?.seed_ratio;
+  const hasDedicatedSeedStock = Object.values(seedRatio ?? {}).some(
+    (ratio) => typeof ratio === 'number' && ratio > 0,
+  );
+  const weightedTypes = MATERIAL_TYPE_VALUES.filter(
     (type) => (profile.typeWeights[type] ?? 0) > 0,
   )
     .sort((a, b) => {
@@ -217,8 +235,11 @@ export function getDominantMarketMaterialTypes(
         (profile.typeWeights[b] ?? 0) - (profile.typeWeights[a] ?? 0);
       if (weightDelta !== 0) return weightDelta;
       return MATERIAL_TYPE_VALUES.indexOf(a) - MATERIAL_TYPE_VALUES.indexOf(b);
-    })
-    .slice(0, limit);
+    });
+  return [
+    ...(hasDedicatedSeedStock ? (['seed'] as const) : []),
+    ...weightedTypes.filter((type) => type !== 'seed'),
+  ].slice(0, limit);
 }
 
 function getRealmOrder(realm: RealmType): number {

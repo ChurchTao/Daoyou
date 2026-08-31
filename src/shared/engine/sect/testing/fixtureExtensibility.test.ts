@@ -236,9 +236,9 @@ describe('第二宗门扩展闭环', () => {
     expect(FIXTURE_SECT_MODULE.organization.tasks.listDaily()).not.toHaveLength(
       0,
     );
-    expect(FIXTURE_SECT_MODULE.organization.economy.stipendBase('outer')).toBe(
-      1500,
-    );
+    expect(
+      FIXTURE_SECT_MODULE.organization.economy.stipendBase('outer', '炼气'),
+    ).toBe(2000);
     expect(
       FIXTURE_SECT_MODULE.organization.construction.facilities,
     ).not.toHaveLength(0);

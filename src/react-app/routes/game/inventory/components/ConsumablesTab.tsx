@@ -10,6 +10,7 @@ import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton, InkList, InkNotice } from '@app/components/ui';
 import {
   isPillConsumable,
+  isSpiritFruitConsumable,
   isTalismanConsumable,
 } from '@shared/lib/consumables';
 import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
@@ -67,6 +68,7 @@ export function ConsumablesTab({
         const isTalisman = isTalismanConsumable(item);
         const isDirectlyUsable =
           isPillConsumable(item) ||
+          isSpiritFruitConsumable(item) ||
           isQiRestoreTalisman(item) ||
           isAttributeResetTalisman(item) ||
           isSectMeridianResetTalisman(item);

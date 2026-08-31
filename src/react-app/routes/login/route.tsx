@@ -53,10 +53,17 @@ function LoginChoicePage() {
       title="【登录】"
       lead="选择一种登录方式。"
       footer={
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <span className="text-ink-secondary">还没有账号？</span>
           <InkButton href="/signup" variant="primary">
             去注册
+          </InkButton>
+          <span className="text-ink-secondary/50 px-1" aria-hidden="true">
+            ·
+          </span>
+          <span className="text-ink-secondary">忘记密码？</span>
+          <InkButton href="/forgot-password" variant="secondary">
+            找回密码
           </InkButton>
         </div>
       }

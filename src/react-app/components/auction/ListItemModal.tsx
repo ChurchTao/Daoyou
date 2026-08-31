@@ -26,6 +26,7 @@ import {
   AUCTION_MIN_QUALITY,
   calculateAuctionSettlement,
   getAuctionUnitPriceCap,
+  isAuctionListableMaterial,
   isAuctionListableQuality as isAuctionListableQualityValue,
 } from '@shared/config/auctionConfig';
 import {
@@ -106,7 +107,6 @@ const PAGE_SIZE = 20;
 const AUCTION_ALLOWED_QUALITIES = QUALITY_VALUES.filter(
   (q) => QUALITY_ORDER[q] >= QUALITY_ORDER[AUCTION_MIN_QUALITY],
 );
-
 const defaultMaterialFilters: MaterialListFilters = {
   rank: 'all',
   type: 'all',
@@ -161,6 +161,10 @@ function getAuctionUnsupportedReason(item: SelectableItem): string | null {
 function isAuctionListableItem(item: SelectableItem): boolean {
   if (getAuctionUnsupportedReason(item)) {
     return false;
+  }
+
+  if (item.itemType === 'material') {
+    return isAuctionListableMaterial(item as Material);
   }
 
   const quality = getItemQuality(item);
@@ -232,12 +236,14 @@ export function ListItemModal({
       ? calculateAuctionSettlement(Number.parseInt(price), selectedQuantity)
       : null;
   const isItemsLoading = activeInventory.loading;
-  const itemsByType = useMemo<Record<ItemType, SelectableItem[]>>(
-    () => ({
-      material: (materialInventory.items ?? []).map((item) => ({
-        ...item,
-        itemType: 'material' as const,
-      })),
+  const itemsByType = useMemo<Record<ItemType, SelectableItem[]>>(() => {
+    const materialById = new Map<string, SelectableItem>();
+    for (const item of materialInventory.items ?? []) {
+      if (!item.id) continue;
+      materialById.set(item.id, { ...item, itemType: 'material' as const });
+    }
+    return {
+      material: Array.from(materialById.values()),
       artifact: (artifactInventory.items ?? []).map((item) => ({
         ...item,
         itemType: 'artifact' as const,
@@ -246,13 +252,12 @@ export function ListItemModal({
         ...item,
         itemType: 'consumable' as const,
       })),
-    }),
-    [
-      artifactInventory.items,
-      consumableInventory.items,
-      materialInventory.items,
-    ],
-  );
+    };
+  }, [
+    artifactInventory.items,
+    consumableInventory.items,
+    materialInventory.items,
+  ]);
 
   useEffect(() => {
     if (!cultivator?.id || step !== 'price') {

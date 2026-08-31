@@ -29,6 +29,12 @@ export interface MarrowWashSummary {
   canBreakthrough: boolean;
 }
 
+export interface MarrowWashProgressAdvance {
+  state: Required<MarrowWashState>;
+  levelUps: number[];
+  unusedProgress: number;
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -47,20 +53,17 @@ export function normalizeMarrowWashState(
   conditionInput: CultivatorCondition | undefined,
 ): Required<MarrowWashState> {
   const raw = conditionInput?.tracks?.marrowWash;
-  const level = Math.max(0, Math.floor(raw?.level ?? 0));
-  const progress = Math.max(0, Math.floor(raw?.progress ?? 0));
-  const inferredBreakthroughs = Math.max(
-    0,
-    Math.floor(level / MARROW_WASH_BREAKTHROUGH_LEVEL_STEP) - 1,
-  );
+  const rawLevel = Math.max(0, Math.floor(raw?.level ?? 0));
+  const rawProgress = Math.max(0, Math.floor(raw?.progress ?? 0));
   const rawBreakthroughs = Math.max(0, Math.floor(raw?.breakthroughs ?? 0));
   const rawRealm = Math.max(0, Math.floor(raw?.realm ?? 0));
-  const breakthroughs = Math.max(
-    rawBreakthroughs,
-    rawRealm,
-    inferredBreakthroughs,
-  );
+  const breakthroughs = Math.max(rawBreakthroughs, rawRealm);
   const realm = breakthroughs;
+  const nextBreakthroughLevel = getNextMarrowWashBreakthroughLevel({
+    breakthroughs,
+  });
+  const level = Math.min(rawLevel, nextBreakthroughLevel);
+  const progress = rawLevel >= nextBreakthroughLevel ? 0 : rawProgress;
 
   return {
     version: 1,
@@ -82,6 +85,50 @@ export function getNextMarrowWashBreakthroughLevel(
     (Math.max(0, Math.floor(state.breakthroughs ?? 0)) + 1) *
     MARROW_WASH_BREAKTHROUGH_LEVEL_STEP
   );
+}
+
+export function isMarrowWashBreakthroughRequired(
+  state: Pick<MarrowWashState, 'level' | 'breakthroughs'>,
+): boolean {
+  return (
+    Math.max(0, Math.floor(state.level ?? 0)) >=
+    getNextMarrowWashBreakthroughLevel(state)
+  );
+}
+
+export function advanceMarrowWashTowardBreakthrough(
+  stateInput: Required<MarrowWashState>,
+  value: number,
+): MarrowWashProgressAdvance {
+  const state = { ...stateInput };
+  const breakthroughLevel = getNextMarrowWashBreakthroughLevel(state);
+  let remaining = Math.max(0, Math.floor(value));
+  const levelUps: number[] = [];
+
+  if (isMarrowWashBreakthroughRequired(state)) {
+    return { state, levelUps, unusedProgress: remaining };
+  }
+
+  while (remaining > 0 && state.level < breakthroughLevel) {
+    const threshold = getMarrowWashThresholdByLevel(state.level);
+    const needed = Math.max(0, threshold - state.progress);
+    if (remaining < needed) {
+      state.progress += remaining;
+      remaining = 0;
+      break;
+    }
+
+    remaining -= needed;
+    state.level += 1;
+    state.progress = 0;
+    levelUps.push(state.level);
+  }
+
+  return {
+    state,
+    levelUps,
+    unusedProgress: remaining,
+  };
 }
 
 export function getMarrowWashSummary(
@@ -144,6 +191,8 @@ export function breakthroughMarrowWash(
         ...conditionInput.tracks,
         marrowWash: {
           ...state,
+          level: breakthroughLevel,
+          progress: 0,
           realm: toRealm,
           breakthroughs: toRealm,
         },

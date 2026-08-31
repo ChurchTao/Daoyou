@@ -832,6 +832,7 @@ export const CONSUMABLE_TYPE_DISPLAY_MAP: Record<
 > = {
   丹药: getConceptInfo('consumable_pill'),
   符箓: getConceptInfo('consumable_talisman'),
+  灵果: { label: '灵果', icon: '🍑' },
 };
 
 export function getConsumableTypeLabel(type: ConsumableType): string {
@@ -847,6 +848,7 @@ export const MATERIAL_TYPE_DISPLAY_MAP: Record<
   MaterialType,
   MaterialTypeDisplayInfo
 > = {
+  seed: { label: '灵植种子', icon: '🌱' },
   herb: getConceptInfo('material_herb'),
   ore: getConceptInfo('material_ore'),
   monster: getConceptInfo('material_monster'),

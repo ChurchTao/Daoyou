@@ -1,6 +1,7 @@
 import type { DailyTaskDifficulty } from '@shared/engine/cultivation/exp-gain-strategies/types';
 import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
 import type { BattleStateStrategyId } from '@shared/engine/battle-v5/setup/types';
+import type { RealmType } from '@shared/types/constants';
 import type {
   SectDiscipleRank,
   SectRankRequirement,
@@ -168,7 +169,7 @@ export interface SectTaskCatalog {
 }
 
 export interface SectEconomyPolicy {
-  stipendBase(rank: SectDiscipleRank): number;
+  stipendBase(rank: SectDiscipleRank, realm: RealmType): number;
 }
 
 export interface SectConstructionPolicy {

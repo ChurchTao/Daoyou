@@ -6,6 +6,7 @@ import {
   AUCTION_MAX_UNIT_PRICE,
   calculateAuctionSettlement,
   getAuctionUnitPriceCap,
+  isAuctionListableMaterial,
   isAuctionListableQuality,
 } from '@shared/config/auctionConfig';
 import { AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO } from '@shared/config/socialConfig';
@@ -26,6 +27,7 @@ import * as schema from '../drizzle/schema';
 import { mapConsumableRow } from './consumablePersistence';
 import { toArtifactFromProduct } from './creationProductArtifactSupport';
 import { mapMaterialRow } from './cultivator/CultivatorInventoryRepository';
+import { sanitizeMaterialForClient } from './materialDetailsPrivacy';
 import {
   assertFriend,
   FriendServiceError,
@@ -175,7 +177,7 @@ export async function getAuctionItemSnapshot(
           ),
         )
         .limit(1);
-      return material ? mapMaterialRow(material) : null;
+      return material ? mapMaterialRow(material, { includeSeedSpec: true }) : null;
     }
     case 'artifact': {
       const artifact = await getArtifactProductSnapshot(
@@ -264,7 +266,11 @@ export function assertAuctionListableItem(
   }
 
   const itemQuality = normalizeAuctionItemQuality(itemType, itemSnapshot);
-  if (!isAuctionListableQuality(itemQuality)) {
+  const qualityOk =
+    itemType === 'material'
+      ? isAuctionListableMaterial(itemSnapshot as Material)
+      : isAuctionListableQuality(itemQuality);
+  if (!qualityOk) {
     throw new AuctionServiceError(
       AuctionError.INVALID_ITEM_QUALITY,
       `仅玄品及以上物品可寄售，当前为${itemQuality}`,
@@ -577,7 +583,10 @@ export async function listItem(
         inventoryChanges.push({
           kind: 'materials',
           operation: 'upsert',
-          item: { ...current, quantity: current.quantity - quantity },
+          item: sanitizeMaterialForClient({
+            ...current,
+            quantity: current.quantity - quantity,
+          }),
         });
       }
     } else {

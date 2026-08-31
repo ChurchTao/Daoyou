@@ -15,6 +15,7 @@ export const QUALITY_CHANCE_MAP: Record<Quality, number> = {
 
 // 随机生成时各类型出现的权重 (非固定生成时使用)
 export const TYPE_CHANCE_MAP: Record<MaterialType, number> = {
+  seed: 0,
   herb: 0.3, // 30% 灵药
   ore: 0.28, // 28% 矿石
   monster: 0.22, // 22% 妖兽材料
@@ -38,6 +39,7 @@ export const BASE_PRICES: Record<Quality, number> = {
 
 // 类型价格倍率
 export const TYPE_MULTIPLIERS: Record<MaterialType, number> = {
+  seed: 1,
   herb: 1.0,
   ore: 1.0,
   monster: 1.2,
@@ -49,6 +51,7 @@ export const TYPE_MULTIPLIERS: Record<MaterialType, number> = {
 
 // 类型中文描述与解释（用于 Prompt）
 export const TYPE_DESCRIPTIONS: Record<MaterialType, string> = {
+  seed: `${getMaterialTypeLabel('seed')} (仅由个人洞府灵田专用生成器产出)`,
   herb: `${getMaterialTypeLabel('herb')} (用于炼丹，如灵草、灵果)`,
   ore: `${getMaterialTypeLabel('ore')} (用于炼器，如金属、晶石)`,
   monster: `${getMaterialTypeLabel('monster')} (妖丹、骨骼、皮毛等)`,

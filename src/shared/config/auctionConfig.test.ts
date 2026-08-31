@@ -1,7 +1,10 @@
 import {
   calculateAuctionSettlement,
   getAuctionUnitPriceCap,
+  isAuctionListableMaterial,
+  isAuctionListableQuality,
 } from './auctionConfig';
+import { buildSpiritFieldSeedMaterialFromPlant } from '@shared/engine/spirit-field/seedMaterial';
 
 describe('auctionConfig', () => {
   it('按单价超额累进计税并乘以成交数量', () => {
@@ -26,5 +29,40 @@ describe('auctionConfig', () => {
     const quote = calculateAuctionSettlement(unitPrice, 40);
     expect(unitPrice).toBe(800_000);
     expect(quote.grossAmount).toBe(32_000_000);
+  });
+
+  it('灵植种子同样只有玄品及以上可以寄售', () => {
+    const seed = buildSpiritFieldSeedMaterialFromPlant({
+      id: 'seed-test',
+      seedName: '青芽草灵种',
+      seedDescription: '一枚青色种籽。',
+      clueTexts: ['遇到温和灵机时微微发热', '似乎喜爱山间清气'],
+      quality: '凡品',
+      element: '木',
+      minRealm: '炼气',
+      stageDurationMs: { germination: 4 * 60_000, nourishing: 4 * 60_000, forming: 4 * 60_000 },
+      growthForm: 'herb',
+      harvestPart: 'leaf',
+      preferredMethods: ['seasonal_nurture'],
+      avoidedMethods: [],
+      preferredHabitats: ['mountain'],
+      avoidedHabitats: [],
+      growthTraits: ['qi-sensitive'],
+      useTags: ['alchemy'],
+      outcomeBiases: ['herb'],
+      creationTags: ['Material.Semantic.Wood'],
+      baseYieldMin: 4,
+      baseYieldMax: 6,
+    });
+    expect(isAuctionListableQuality(seed.rank)).toBe(false);
+    expect(isAuctionListableMaterial(seed)).toBe(false);
+    const highSeed = { ...seed, rank: '玄品' as const };
+    expect(isAuctionListableMaterial(highSeed)).toBe(true);
+    expect(
+      isAuctionListableMaterial({
+        rank: '凡品',
+        details: {},
+      }),
+    ).toBe(false);
   });
 });

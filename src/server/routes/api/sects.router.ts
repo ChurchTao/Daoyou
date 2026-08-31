@@ -257,9 +257,18 @@ export function createSectsRouter(
     if (!ref) return c.json({ success: false, error: '当前没有活跃角色' }, 404);
     try {
       const q = getExecutor();
+      const cultivator = await q.query.cultivators.findFirst({
+        columns: { id: true, realm: true },
+        where: eq(cultivators.id, ref.cultivatorId),
+      });
+      if (!cultivator)
+        throw new SectError('SECT_MEMBERSHIP_REQUIRED', '角色不存在', 404);
       const data =
         await sectOrganizationFacade.membership.getStipendResource(
-          ref.cultivatorId,
+          {
+            id: cultivator.id,
+            realm: cultivator.realm as RealmType,
+          },
           createPostgresSectMembershipQueryContext({ q, runtime }),
         );
       return c.json(

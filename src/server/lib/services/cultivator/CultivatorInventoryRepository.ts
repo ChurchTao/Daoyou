@@ -84,6 +84,7 @@ export function mapArtifactRow(
 
 export function mapMaterialRow(
   m: typeof schema.materials.$inferSelect,
+  options: { includeSeedSpec?: boolean } = {},
 ): Cultivator['inventory']['materials'][number] {
   return {
     id: m.id,
@@ -94,7 +95,9 @@ export function mapMaterialRow(
       ? (m.element as ElementType)
       : undefined,
     description: m.description || '',
-    details: sanitizeMaterialDetails(m.details),
+    details: options.includeSeedSpec
+      ? ((m.details ?? undefined) as Record<string, unknown> | undefined)
+      : sanitizeMaterialDetails(m.details),
     quantity: m.quantity,
   };
 }
@@ -312,7 +315,7 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
 
   const totalPages = Math.ceil(total / pageSize);
   return {
-    items: pagedRows.map(mapMaterialRow) as InventoryItemByType[T][],
+    items: pagedRows.map((row) => mapMaterialRow(row)) as InventoryItemByType[T][],
     pagination: {
       page,
       pageSize,

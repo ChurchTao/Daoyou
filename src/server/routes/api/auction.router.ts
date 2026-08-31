@@ -12,6 +12,7 @@ import {
 } from '@server/lib/services/AuctionApplicationService';
 import { AuctionServiceError } from '@server/lib/services/AuctionService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
+import { sanitizeMaterialForClient } from '@server/lib/services/materialDetailsPrivacy';
 import {
   AUCTION_MAX_PURCHASE_QUANTITY,
   AUCTION_MAX_UNIT_PRICE,
@@ -119,7 +120,15 @@ router.get('/listings', requireActiveCultivatorRef(), async (c) => {
     const totalPages = Math.ceil(result.total / limit);
 
     return c.json({
-      listings: result.listings,
+      listings: result.listings.map((listing) => ({
+        ...listing,
+        itemSnapshot:
+          listing.itemType === 'material'
+            ? sanitizeMaterialForClient(
+                listing.itemSnapshot as { details?: unknown },
+              )
+            : listing.itemSnapshot,
+      })),
       pagination: {
         page,
         limit,

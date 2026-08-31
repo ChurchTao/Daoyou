@@ -17,6 +17,7 @@ import {
 } from './PlayerResourceReaderService';
 import { sendPlayerMail } from './PlayerMailService';
 import { readCultivatorName } from './cultivator/CultivatorFactsReader';
+import { sanitizeMaterialForClient } from './materialDetailsPrivacy';
 
 type MailActor = {
   userId: string;
@@ -52,7 +53,14 @@ function mailClaimChanges(args: {
             resourceTopic: `inventory.${inventoryChange.kind}`,
             eventType: 'inventory.mail.claimed',
             operation: 'upsert-items',
-            payload: { idKey: 'id', items: [inventoryChange.item] },
+            payload: {
+              idKey: 'id',
+              items: [
+                inventoryChange.kind === 'materials'
+                  ? sanitizeMaterialForClient(inventoryChange.item)
+                  : inventoryChange.item,
+              ],
+            },
           } as ResourceChangeDescriptor)
         : ({
             resourceTopic: `inventory.${inventoryChange.kind}`,
@@ -144,7 +152,7 @@ export function sendCultivatorMail(args: {
         } else if (settlement.itemType === 'consumable') {
           resourceChanges.push(
             settlement.remaining
-              ? {
+                ? {
                   resourceTopic: 'inventory.consumables',
                   eventType: 'inventory.mail.sent',
                   operation: 'upsert-items',
@@ -160,11 +168,14 @@ export function sendCultivatorMail(args: {
         } else {
           resourceChanges.push(
             settlement.remaining
-              ? {
+                ? {
                   resourceTopic: 'inventory.materials',
                   eventType: 'inventory.mail.sent',
                   operation: 'upsert-items',
-                  payload: { idKey: 'id', items: [settlement.remaining] },
+                  payload: {
+                    idKey: 'id',
+                    items: [sanitizeMaterialForClient(settlement.remaining)],
+                  },
                 }
               : {
                   resourceTopic: 'inventory.materials',

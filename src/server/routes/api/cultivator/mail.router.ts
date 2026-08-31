@@ -15,8 +15,11 @@ import {
   sendCultivatorMail,
 } from '@server/lib/services/PlayerMailApplicationService';
 import { PlayerMailServiceError } from '@server/lib/services/PlayerMailService';
+import type { MailAttachment } from '@server/lib/services/MailService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
+import { sanitizeMaterialForClient } from '@server/lib/services/materialDetailsPrivacy';
 import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
+import type { Material } from '@shared/types/cultivator';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -69,7 +72,22 @@ mailRouter.get('/', requireActiveCultivatorRef(), async (c) => {
   });
   const hasMore = userMails.length > pageSize;
   return c.json({
-    mails: hasMore ? userMails.slice(0, pageSize) : userMails,
+    mails: (hasMore ? userMails.slice(0, pageSize) : userMails).map((mail) => {
+      const attachments = Array.isArray(mail.attachments)
+        ? (mail.attachments as MailAttachment[])
+        : [];
+      return {
+        ...mail,
+        attachments: attachments.map((attachment) =>
+          attachment.type === 'material' && attachment.data
+            ? {
+                ...attachment,
+                data: sanitizeMaterialForClient(attachment.data as Material),
+              }
+            : attachment,
+        ),
+      };
+    }),
     pagination: { page, pageSize, hasMore },
   });
 });

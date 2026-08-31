@@ -9,17 +9,42 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
 import { useAuth, type AuthActionError } from '@app/lib/auth/authContext';
 import { useState } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 export default function ResetPasswordRoute() {
   const [searchParams] = useSearchParams();
   const resetToken = searchParams.get('token');
+  const resetError = searchParams.get('error');
 
-  if (!resetToken) {
-    return <Navigate to="/forgot-password" replace />;
+  if (resetError || !resetToken) {
+    return <InvalidResetLinkPage />;
   }
 
   return <ResetPasswordPage resetToken={resetToken} />;
+}
+
+function InvalidResetLinkPage() {
+  return (
+    <AuthPageShell
+      title="【重设链接无效】"
+      lead="该密码重设链接无效或已经过期，请重新发送一封重设邮件。"
+      backHref="/login"
+      footer={
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <InkButton href="/forgot-password" variant="primary">
+            重新发送
+          </InkButton>
+          <InkButton href="/login/password" variant="ghost">
+            返回密码登录
+          </InkButton>
+        </div>
+      }
+    >
+      <p role="alert" className="text-ink-secondary text-sm leading-6">
+        为保护账号安全，密码重设链接只能使用一次，并会在有效期结束后失效。
+      </p>
+    </AuthPageShell>
+  );
 }
 
 function ResetPasswordPage({ resetToken }: { resetToken: string }) {

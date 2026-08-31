@@ -232,6 +232,13 @@
       "when": 1787307226056,
       "tag": "0032_rainy_ender_wiggin",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1788147338302,
+      "tag": "0033_spirit_fields",
+      "breakpoints": true
     }
   ]
 }

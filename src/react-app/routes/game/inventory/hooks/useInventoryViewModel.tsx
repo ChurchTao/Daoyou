@@ -21,6 +21,7 @@ import { isQiRestoreTalismanScenario } from '@shared/config/qiSystem';
 import { isSectMeridianResetTalismanScenario } from '@shared/config/sectMeridianResetTalisman';
 import {
   isPillConsumable,
+  isSpiritFruitConsumable,
   isTalismanConsumable,
 } from '@shared/lib/consumables';
 import type { CultivatorCondition } from '@shared/types/condition';
@@ -463,9 +464,12 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         return;
       }
 
-      if (!isPillConsumable(usableItem)) {
+      if (
+        !isPillConsumable(usableItem) &&
+        !isSpiritFruitConsumable(usableItem)
+      ) {
         pushToast({
-          message: '该消耗品缺少有效丹药数据，暂时无法服用。',
+          message: '该消耗品缺少有效药效数据，暂时无法服用。',
           tone: 'warning',
         });
         return;

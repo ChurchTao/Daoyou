@@ -1,5 +1,6 @@
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
 import { SectMembership, SectStipendClaim } from '@shared/engine/sect';
+import type { RealmType } from '@shared/types/constants';
 import {
   buySectShopItem,
   listSectShopItems,
@@ -139,11 +140,11 @@ export class SectEconomyApplicationService {
   }
 
   async claimStipend(
-    cultivatorId: string,
+    cultivator: { id: string; realm: RealmType },
     context: SectEconomyCommandContext,
   ) {
     const membership = await requireMembership(
-      cultivatorId,
+      cultivator.id,
       context.memberships,
     );
     this.benefits.assertPermission(
@@ -163,6 +164,7 @@ export class SectEconomyApplicationService {
     const quote = quoteSectStipend(
       organization,
       membership.discipleRank,
+      cultivator.realm,
       facilityLevels,
     );
     const weekKey = context.clock.weekKey();
@@ -178,7 +180,7 @@ export class SectEconomyApplicationService {
     }
     const effects = await this.events
       .forStipend({
-        cultivatorId,
+        cultivatorId: cultivator.id,
         command: context,
       })
       .dispatch(claim.pullEvents());

@@ -312,6 +312,18 @@ export interface PillSpec {
   alchemyMeta: PillAlchemyMeta;
 }
 
+/** 灵果复用丹药的效果协议，但不携带炼丹元数据、丹毒或服用额度。 */
+export interface SpiritFruitSpec {
+  kind: 'spirit_fruit';
+  family: PillFamily;
+  operations: ConditionOperation[];
+  consumeRules: PillConsumeRules;
+  source: {
+    kind: 'spirit_field';
+    version: 1;
+  };
+}
+
 export interface AlchemyFormulaMastery {
   level: number;
   exp: number;
@@ -338,7 +350,7 @@ export interface TalismanSpec {
   notes?: string;
 }
 
-export type ConsumableSpec = PillSpec | TalismanSpec;
+export type ConsumableSpec = PillSpec | SpiritFruitSpec | TalismanSpec;
 
 export interface AlchemyFormulaBlueprint {
   version: 4;

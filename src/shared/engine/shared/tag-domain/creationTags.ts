@@ -10,6 +10,7 @@ export const CreationTags = {
   MATERIAL: {
     ROOT: 'Material',
     TYPE: 'Material.Type', // 材料类型总类
+    TYPE_SEED: 'Material.Type.Seed', // 灵植种子
     TYPE_HERB: 'Material.Type.Herb', // 药材
     TYPE_ORE: 'Material.Type.Ore', // 矿石
     TYPE_MONSTER: 'Material.Type.Monster', // 妖兽材料

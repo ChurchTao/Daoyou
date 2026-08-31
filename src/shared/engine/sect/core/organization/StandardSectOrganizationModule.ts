@@ -5,7 +5,11 @@ import {
   buildPresetSkill,
 } from '@shared/engine/cultivator/creation/presetProducts';
 import type { Attributes } from '@shared/types/cultivator';
-import type { ElementType, EquipmentSlot } from '@shared/types/constants';
+import type {
+  ElementType,
+  EquipmentSlot,
+  RealmType,
+} from '@shared/types/constants';
 import {
   SECT_RANK_METHOD_CAP,
   type CultivatorSectState,
@@ -29,6 +33,7 @@ import {
   type SectTaskDialogueDefinition,
 } from './contracts';
 import { getSectFacilityUpgradeTarget } from './construction';
+import { calculateStandardSectStipendBase } from './stipend';
 
 const capabilities = new StandardSectCapabilityPolicy(
   {
@@ -466,8 +471,8 @@ class StandardSectTaskCatalog implements SectTaskCatalog {
 }
 
 class StandardSectEconomyPolicy implements SectEconomyPolicy {
-  stipendBase(rank: SectDiscipleRank): number {
-    return { registered: 500, outer: 1500, inner: 4000, true: 10000 }[rank];
+  stipendBase(rank: SectDiscipleRank, realm: RealmType): number {
+    return calculateStandardSectStipendBase(rank, realm);
   }
 }
 

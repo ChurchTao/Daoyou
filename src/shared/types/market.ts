@@ -9,7 +9,12 @@ import type { PillAppearanceGrade } from './consumable';
 import type { Material } from './cultivator';
 
 export type MarketLayer = 'common' | 'treasure' | 'heaven' | 'black';
-export type RegionProfileKey = 'tiannan' | 'luanxinghai' | 'dajin' | 'default';
+export type RegionProfileKey =
+  | 'tiannan'
+  | 'luanxinghai'
+  | 'dajin'
+  | 'baicao'
+  | 'default';
 
 /** 材料库不足时允许使用内存预设兜底的低层市场 */
 export const MARKET_PRESET_FALLBACK_LAYERS: MarketLayer[] = [

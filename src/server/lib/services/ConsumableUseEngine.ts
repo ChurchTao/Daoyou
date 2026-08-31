@@ -21,6 +21,7 @@ import {
 } from '@shared/config/sectMeridianResetTalisman';
 import {
   isPillConsumable,
+  isSpiritFruitConsumable,
   isTalismanConsumable,
 } from '@shared/lib/consumables';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
@@ -205,8 +206,8 @@ export const ConsumableUseEngine = {
       };
     }
 
-    if (!isPillConsumable(consumable)) {
-      throw new Error('该消耗品缺少有效丹药 spec。');
+    if (!isPillConsumable(consumable) && !isSpiritFruitConsumable(consumable)) {
+      throw new Error('该消耗品缺少有效丹药或灵果 spec。');
     }
 
     const cultivator = await loadPlayerConsumableOperationFacts(

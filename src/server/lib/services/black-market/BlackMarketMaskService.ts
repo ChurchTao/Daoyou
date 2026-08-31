@@ -3,6 +3,9 @@ import type { MaterialType } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
 
 const MASKS: Record<MaterialType, Array<[string, string]>> = {
+  seed: [
+    ['封蜡种匣', '种匣封蜡完整，黑市规矩却不允许此类灵植种子流通。'],
+  ],
   herb: [
     ['封泥药囊', '封泥已经龟裂，淡得几乎闻不出的药香仍未散尽。'],
     ['枯萎灵草束', '叶脉晦暗，偶尔有一线灵光从根须间游过。'],
