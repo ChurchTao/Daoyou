@@ -1,8 +1,14 @@
-import { isPillConsumable } from '@shared/lib/consumables';
+import {
+  isPillConsumable,
+  isSpiritFruitConsumable,
+} from '@shared/lib/consumables';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type { Consumable } from '@shared/types/cultivator';
-import { toPillDisplayModel } from './pillDisplayModel';
+import {
+  toPillDisplayModel,
+  toSpiritFruitDisplayModel,
+} from './pillDisplayModel';
 
 export function getConsumableListSummary(
   consumable: Consumable,
@@ -13,6 +19,9 @@ export function getConsumableListSummary(
 ): string | undefined {
   if (isPillConsumable(consumable)) {
     return toPillDisplayModel(consumable, options).effectSummary;
+  }
+  if (isSpiritFruitConsumable(consumable)) {
+    return toSpiritFruitDisplayModel(consumable, options).effectSummary;
   }
 
   return consumable.description;

@@ -1,19 +1,23 @@
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { ScoreMark } from '@app/components/ui/ScoreMark';
-import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
+import {
+  isPillConsumable,
+  isSpiritFruitConsumable,
+  isTalismanConsumable,
+} from '@shared/lib/consumables';
+import { CONSUMABLE_TYPE_DISPLAY_MAP } from '@shared/lib/gameConceptDisplay';
 import { calculatePillScore } from '@shared/lib/pillScore';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type { Consumable } from '@shared/types/cultivator';
-import { CONSUMABLE_TYPE_DISPLAY_MAP } from '@shared/lib/gameConceptDisplay';
 import type { ReactNode } from 'react';
-import {
-  PillAppearanceMark,
-  PillKeywordLine,
-} from './pillDisplayComponents';
-import { toPillDisplayModel } from './pillDisplayModel';
 import { getConsumableListSummary } from './consumableListSummary';
+import { PillAppearanceMark, PillKeywordLine } from './pillDisplayComponents';
+import {
+  toPillDisplayModel,
+  toSpiritFruitDisplayModel,
+} from './pillDisplayModel';
 import { getTalismanUsageHint } from './talismanDisplay';
 
 export interface ConsumableListCardProps {
@@ -45,7 +49,9 @@ function ConsumableMeta({
 >) {
   const pillDisplay = isPillConsumable(consumable)
     ? toPillDisplayModel(consumable, { realm, condition })
-    : null;
+    : isSpiritFruitConsumable(consumable)
+      ? toSpiritFruitDisplayModel(consumable, { realm, condition })
+      : null;
   const usageHint =
     showUsageHint && isTalismanConsumable(consumable)
       ? getTalismanUsageHint(consumable)
@@ -79,7 +85,9 @@ export function ConsumableListCard({
   const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[consumable.type];
   const pillDisplay = isPillConsumable(consumable)
     ? toPillDisplayModel(consumable, { realm, condition })
-    : null;
+    : isSpiritFruitConsumable(consumable)
+      ? toSpiritFruitDisplayModel(consumable, { realm, condition })
+      : null;
   const pillScore = isPillConsumable(consumable)
     ? calculatePillScore(consumable)
     : null;

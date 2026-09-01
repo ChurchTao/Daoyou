@@ -40,6 +40,7 @@ export function conditionChangesAfterConsumable(args: {
     willpower?: number;
     unallocatedAttributePoints?: number;
     lifespan?: number;
+    spiritualRoots?: Cultivator['spiritual_roots'];
   };
 }): ResourceChangeDescriptor[] {
   const changes: ResourceChangeDescriptor[] = [
@@ -154,10 +155,37 @@ export function conditionChangesAfterConsumable(args: {
         eventType: 'profile.consumable.changed',
         operation: 'merge',
         payload: {
-          cultivator:
-            typeof args.state.lifespan === 'number'
+          cultivator: {
+            ...(typeof args.state.lifespan === 'number'
               ? { lifespan: args.state.lifespan }
-              : {},
+              : {}),
+            ...(typeof args.state.vitality === 'number' &&
+            typeof args.state.strength === 'number' &&
+            typeof args.state.spirit === 'number' &&
+            typeof args.state.endurance === 'number' &&
+            typeof args.state.speed === 'number' &&
+            typeof args.state.willpower === 'number'
+              ? {
+                  attributes: {
+                    vitality: args.state.vitality,
+                    strength: args.state.strength,
+                    spirit: args.state.spirit,
+                    endurance: args.state.endurance,
+                    speed: args.state.speed,
+                    willpower: args.state.willpower,
+                  },
+                }
+              : {}),
+            ...(typeof args.state.unallocatedAttributePoints === 'number'
+              ? {
+                  unallocated_attribute_points:
+                    args.state.unallocatedAttributePoints,
+                }
+              : {}),
+            ...(args.state.spiritualRoots
+              ? { spiritual_roots: args.state.spiritualRoots }
+              : {}),
+          },
         },
       },
     );

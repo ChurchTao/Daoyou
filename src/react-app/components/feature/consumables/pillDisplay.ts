@@ -9,6 +9,7 @@ export {
   describePillOperation,
   getPillFamilyLabel,
   toPillDisplayModel,
+  toSpiritFruitDisplayModel,
   type PillDetailGroup,
   type PillDisplayModel,
 } from './pillDisplayModel';

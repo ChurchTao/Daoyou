@@ -1,17 +1,7 @@
-import { getBreakthroughFocusPillLabel } from '@shared/lib/breakthroughPill';
-import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
-import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import {
-  getLongevityPillUsageLimit,
-  getPillUsageKeywordLabel,
-  getPillUsageRuleText,
-  getPrimaryPillQuotaCategory,
-  getRealmPillUsageLimit,
-} from '@shared/lib/pillUsageText';
-import { normalizeBodyCultivationState } from '@shared/lib/bodyCultivation/normalize';
-import { getBodyCultivationSummary } from '@shared/lib/bodyCultivation/summary';
-import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
-import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
+  CULTIVATION_PILL_MAX_QUALITY_BY_REALM,
+  getMinimumPillQualityByRealm,
+} from '@shared/config/consumableSystem';
 import {
   BODY_CULTIVATION_REALM_REQUIREMENTS,
   getBodyCultivationThresholdByLevel,
@@ -19,13 +9,20 @@ import {
   isBodyCultivationTrackPath,
   isLegacyTemperingTrackPath,
 } from '@shared/lib/bodyCultivation/config';
+import { normalizeBodyCultivationState } from '@shared/lib/bodyCultivation/normalize';
+import { getBodyCultivationSummary } from '@shared/lib/bodyCultivation/summary';
+import { getBreakthroughFocusPillLabel } from '@shared/lib/breakthroughPill';
+import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
 import {
   CULTIVATION_BOOST_STATUS_KEY,
   getCultivationBoostDisplayText,
 } from '@shared/lib/cultivationBoost';
 import {
-  getPillAppearanceLabel,
-} from '@shared/lib/pillAppearance';
+  getGameConceptLabel,
+  getResourceLabel,
+  getResourceText,
+} from '@shared/lib/gameConceptDisplay';
+import { getPillAppearanceLabel } from '@shared/lib/pillAppearance';
 import {
   BREAKTHROUGH_FOCUS_STATUS_KEY,
   CLEAR_MIND_STATUS_KEY,
@@ -33,16 +30,25 @@ import {
   getProtectMeridiansReductionPercent,
   PROTECT_MERIDIANS_STATUS_KEY,
 } from '@shared/lib/pillEffectScaling';
+import {
+  getLongevityPillUsageLimit,
+  getPillUsageKeywordLabel,
+  getPillUsageRuleText,
+  getPrimaryPillQuotaCategory,
+  getRealmPillUsageLimit,
+} from '@shared/lib/pillUsageText';
+import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
 import type {
   ConditionStatusKey,
   CultivatorCondition,
 } from '@shared/types/condition';
-import type { RealmType } from '@shared/types/constants';
+import { QUALITY_ORDER, type RealmType } from '@shared/types/constants';
 import type {
   ConditionOperation,
   PillFamily,
   PillQuotaCategory,
   PillSpec,
+  SpiritFruitSpec,
 } from '@shared/types/consumable';
 import type { Consumable } from '@shared/types/cultivator';
 
@@ -435,7 +441,9 @@ function buildKeywordLabels(
   return labels.slice(0, 3);
 }
 
-function buildCoreEffectLines(spec: PillSpec): string[] {
+function buildCoreEffectLines(
+  spec: Pick<PillSpec | SpiritFruitSpec, 'operations'>,
+): string[] {
   return spec.operations
     .filter(
       (operation) => operation.type !== 'change_gauge' || operation.delta < 0,
@@ -548,7 +556,8 @@ function getBodyTrackPreviewLines(
   const nextSummary = getBodyCultivationSummary(nextCondition).tracks.find(
     (track) => track.key === trackKey,
   );
-  const trackName = currentSummary?.name ?? getTrackConfig(operation.track).name;
+  const trackName =
+    currentSummary?.name ?? getTrackConfig(operation.track).name;
   const currentThreshold = getBodyCultivationThresholdByLevel(
     currentTrack.level,
   );
@@ -587,7 +596,7 @@ function getBodyTrackPreviewLines(
 }
 
 function buildTrackPreviewLines(
-  spec: PillSpec,
+  spec: Pick<PillSpec | SpiritFruitSpec, 'operations'>,
   options?: PillDisplayOptions,
 ): string[] {
   if (!options?.condition) {
@@ -676,6 +685,70 @@ export function toPillDisplayModel(
         key: 'alchemy-info',
         title: '炼制信息',
         lines: buildAlchemyInfoLines(consumable),
+      },
+    ],
+    flavorText: consumable.description,
+  };
+}
+
+function getSpiritFruitRealmRuleLines(
+  consumable: Consumable & { spec: SpiritFruitSpec },
+  realm?: RealmType,
+): string[] {
+  if (!realm) return ['进入角色背包后可判断当前境界是否适合服用'];
+  const quality = consumable.quality ?? '凡品';
+  const minQuality = getMinimumPillQualityByRealm(realm);
+  const maxQuality = CULTIVATION_PILL_MAX_QUALITY_BY_REALM[realm];
+  const order = QUALITY_ORDER[quality];
+  if (order > QUALITY_ORDER[maxQuality]) {
+    return [`当前境界最多可承受${maxQuality}灵果，此果药力过盛`];
+  }
+  if (order < QUALITY_ORDER[minQuality]) {
+    return [`当前境界至少需要${minQuality}灵果，此果药力过于稀薄`];
+  }
+  return ['当前境界可以服用'];
+}
+
+export function toSpiritFruitDisplayModel(
+  consumable: Consumable & { spec: SpiritFruitSpec },
+  options?: PillDisplayOptions,
+): PillDisplayModel {
+  const coreEffects = buildCoreEffectLines(consumable.spec);
+  const trackPreviewLines = buildTrackPreviewLines(consumable.spec, options);
+  return {
+    familyLabel: getPillFamilyLabel(consumable.spec.family),
+    primaryEffect: coreEffects[0] ?? '天地造化药效',
+    effectSummary: coreEffects.join(' / ') || '天地造化药效',
+    keywordLabels: [
+      getPillFamilyLabel(consumable.spec.family),
+      '无丹毒',
+      '不限服用额度',
+    ],
+    detailGroups: [
+      { key: 'core-effects', title: '核心效用', lines: coreEffects },
+      ...(trackPreviewLines.length > 0
+        ? [
+            {
+              key: 'track-preview',
+              title: '服用预览',
+              lines: trackPreviewLines,
+            },
+          ]
+        : []),
+      {
+        key: 'fruit-rules',
+        title: '服用规则',
+        lines: [
+          ...getSpiritFruitRealmRuleLines(consumable, options?.realm),
+          '仅可在场外服用',
+          '不产生丹毒',
+          '不占任何服用额度',
+        ],
+      },
+      {
+        key: 'fruit-source',
+        title: '造化来源',
+        lines: ['个人洞府灵田培育所得', '最终形态由三阶段培育自然成型'],
       },
     ],
     flavorText: consumable.description,
