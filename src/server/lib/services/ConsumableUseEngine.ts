@@ -6,6 +6,10 @@ import {
 import * as schema from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
+import type { RedisLeaseContext } from '@server/lib/redis/lock';
+import { loadPlayerConsumableOperationFacts } from '@server/lib/services/cultivator/CultivatorConditionFactsReader';
+import { consumeConsumableById } from '@server/lib/services/cultivator/CultivatorInventoryRepository';
+import { replaceSpiritualRoots } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import { stripExpCapForStorage } from '@server/utils/cultivationUtils';
 import {
   ATTRIBUTE_RESET_TALISMAN_NAME,
@@ -24,29 +28,22 @@ import {
   isSpiritFruitConsumable,
   isTalismanConsumable,
 } from '@shared/lib/consumables';
-import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
 import { getAttributeLabel } from '@shared/lib/gameConceptDisplay';
+import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
 import type { Consumable } from '@shared/types/cultivator';
-import { and, eq } from 'drizzle-orm';
-import {
-  consumeConsumableById,
-} from '@server/lib/services/cultivator/CultivatorInventoryRepository';
-import {
-  loadPlayerConsumableOperationFacts,
-} from '@server/lib/services/cultivator/CultivatorConditionFactsReader';
-import {
-  replaceSpiritualRoots,
-} from '@server/lib/services/cultivator/CultivatorProfileRepository';
-import { PillOperationExecutor } from './PillOperationExecutor';
-import { QiService } from './QiService';
-import { mapConsumableRow } from './consumablePersistence';
 import { randomUUID } from 'crypto';
+import { and, eq } from 'drizzle-orm';
 import {
   AttributeResetService,
   withAttributeResetLock,
 } from './AttributeResetService';
+import {
+  PillOperationExecutor,
+  type PillCultivatorFacts,
+} from './PillOperationExecutor';
+import { QiService } from './QiService';
 import { SectMeridianResetService } from './SectMeridianResetService';
-import type { RedisLeaseContext } from '@server/lib/redis/lock';
+import { mapConsumableRow } from './consumablePersistence';
 
 async function loadOwnedConsumable(
   cultivatorId: string,
@@ -104,6 +101,13 @@ export const ConsumableUseEngine = {
   ): Promise<{
     message: string;
     consumable: Consumable;
+    profilePatch?: Pick<
+      PillCultivatorFacts,
+      | 'lifespan'
+      | 'attributes'
+      | 'unallocated_attribute_points'
+      | 'spiritual_roots'
+    >;
   }> {
     const consumable = await loadOwnedConsumable(
       cultivatorId,
@@ -170,14 +174,19 @@ export const ConsumableUseEngine = {
       }
 
       if (!isQiRestoreTalismanScenario(consumable.spec.scenario)) {
-        throw new Error('符箓需在对应玩法入口校验并消耗，不能在背包中直接使用。');
+        throw new Error(
+          '符箓需在对应玩法入口校验并消耗，不能在背包中直接使用。',
+        );
       }
 
       if (consumable.spec.sessionMode !== 'consume_on_action') {
-        throw new Error('该符箓需在对应玩法入口校验并消耗，不能在背包中直接使用。');
+        throw new Error(
+          '该符箓需在对应玩法入口校验并消耗，不能在背包中直接使用。',
+        );
       }
 
-      const restoreSpec = QI_RESTORE_TALISMAN_SCENARIOS[consumable.spec.scenario];
+      const restoreSpec =
+        QI_RESTORE_TALISMAN_SCENARIOS[consumable.spec.scenario];
       const restore = async (tx: DbTransaction) => {
         const result = await QiService.restoreQi({
           cultivatorId,
@@ -237,8 +246,9 @@ export const ConsumableUseEngine = {
           endurance: Math.round(nextCultivator.attributes.endurance),
           speed: Math.round(nextCultivator.attributes.speed),
           willpower: Math.round(nextCultivator.attributes.willpower),
-          unallocatedAttributePoints:
-            Math.round(nextCultivator.unallocated_attribute_points ?? 0),
+          unallocatedAttributePoints: Math.round(
+            nextCultivator.unallocated_attribute_points ?? 0,
+          ),
           cultivation_progress: nextCultivator.cultivation_progress
             ? stripExpCapForStorage(nextCultivator.cultivation_progress)
             : null,
@@ -264,16 +274,24 @@ export const ConsumableUseEngine = {
 
     const trackMessage =
       execution.trackLevelUps.length > 0
-        ? ` ${execution.trackLevelUps
-            .map(describeTrackLevelUp)
-            .join('，')}。`
+        ? ` ${execution.trackLevelUps.map(describeTrackLevelUp).join('，')}。`
         : '';
-    const lifespanMessage = lifespanGain > 0 ? ` 寿元 +${lifespanGain} 年。` : '';
+    const lifespanMessage =
+      lifespanGain > 0 ? ` 寿元 +${lifespanGain} 年。` : '';
+    const isSpiritFruit = isSpiritFruitConsumable(consumable);
 
     return {
-      message:
-        `${consumable.name}已服下，药力已经入体。${lifespanMessage}${trackMessage}`.trim(),
+      message: isSpiritFruit
+        ? `${consumable.name}已服下：${execution.appliedEffects.join('，')}。`
+        : `${consumable.name}已服下，药力已经入体。${lifespanMessage}${trackMessage}`.trim(),
       consumable,
+      profilePatch: {
+        lifespan: nextCultivator.lifespan,
+        attributes: nextCultivator.attributes,
+        unallocated_attribute_points:
+          nextCultivator.unallocated_attribute_points,
+        spiritual_roots: nextCultivator.spiritual_roots,
+      },
     };
   },
 

@@ -1,18 +1,22 @@
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { ItemShowcaseModal } from '@app/components/ui/ItemShowcaseModal';
 import { ScoreMark } from '@app/components/ui/ScoreMark';
-import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
+import {
+  isPillConsumable,
+  isSpiritFruitConsumable,
+  isTalismanConsumable,
+} from '@shared/lib/consumables';
+import { CONSUMABLE_TYPE_DISPLAY_MAP } from '@shared/lib/gameConceptDisplay';
 import { calculatePillScore } from '@shared/lib/pillScore';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type { Consumable } from '@shared/types/cultivator';
-import { CONSUMABLE_TYPE_DISPLAY_MAP } from '@shared/lib/gameConceptDisplay';
-import {
-  PillAppearanceMark,
-  PillDetailGroups,
-} from './pillDisplayComponents';
+import { PillAppearanceMark, PillDetailGroups } from './pillDisplayComponents';
 import type { PillDetailGroup } from './pillDisplayModel';
-import { toPillDisplayModel } from './pillDisplayModel';
+import {
+  toPillDisplayModel,
+  toSpiritFruitDisplayModel,
+} from './pillDisplayModel';
 import { buildTalismanDetailText } from './talismanDisplay';
 
 interface ConsumableDetailModalProps {
@@ -116,6 +120,36 @@ export function ConsumableDetailModal({
         extraInfo={<PillDetailGroups groups={model.detailGroups} />}
         description={model.flavorText}
         descriptionTitle="丹成评述"
+      />
+    );
+  }
+
+  if (isSpiritFruitConsumable(consumable)) {
+    const model = toSpiritFruitDisplayModel(consumable, {
+      realm: viewerRealm,
+      condition: viewerCondition,
+    });
+    return (
+      <ItemShowcaseModal
+        isOpen={isOpen}
+        onClose={onClose}
+        icon={typeInfo.icon}
+        name={consumable.name}
+        badges={[
+          consumable.quality ? (
+            <InkBadge key="type" tier={consumable.quality}>
+              {typeInfo.label}
+            </InkBadge>
+          ) : (
+            <InkBadge key="type" tone="default">
+              {typeInfo.label}
+            </InkBadge>
+          ),
+        ].filter(Boolean)}
+        metaSection={<QuantityInfo quantity={consumable.quantity} />}
+        extraInfo={<PillDetailGroups groups={model.detailGroups} />}
+        description={model.flavorText}
+        descriptionTitle="灵果记述"
       />
     );
   }

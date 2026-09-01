@@ -18,6 +18,7 @@ import {
   normalizeBodyCultivationState,
 } from '@shared/lib/bodyCultivation/normalize';
 import { getConditionStatusCureTargets } from '@shared/lib/condition';
+import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
 import {
   isPillConsumable,
   isSpiritFruitConsumable,
@@ -102,6 +103,8 @@ export interface PillExecutionResult {
   cultivator: PillCultivatorFacts;
   consumed: Consumable & { spec: PillSpec };
   trackLevelUps: TrackLevelUpResult[];
+  appliedEffects: string[];
+  noEffectReasons: string[];
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -119,6 +122,7 @@ function createUntilRemovedDuration(): ConditionStatusDuration {
 function assertPillQualityAllowed(
   cultivator: PillCultivatorFacts,
   consumable: Consumable & { spec: PillSpec },
+  itemLabel: '丹药' | '灵果' = '丹药',
 ): void {
   const maxQuality = CULTIVATION_PILL_MAX_QUALITY_BY_REALM[cultivator.realm];
   const minQuality = getMinimumPillQualityByRealm(cultivator.realm);
@@ -126,12 +130,37 @@ function assertPillQualityAllowed(
   const pillOrder = QUALITY_ORDER[pillQuality] ?? 0;
   if (pillOrder > (QUALITY_ORDER[maxQuality] ?? 0)) {
     throw new Error(
-      `药力过盛，强行服用恐爆体而亡。当前境界最多可承受${maxQuality}丹药。`,
+      `药力过盛，强行服用恐爆体而亡。当前境界最多可承受${maxQuality}${itemLabel}。`,
     );
   }
   if (pillOrder < (QUALITY_ORDER[minQuality] ?? 0)) {
-    throw new Error('药力过于稀薄，无法在当前境界形成有效药路。');
+    throw new Error(
+      `这枚${itemLabel}药力过于稀薄，无法在当前境界形成有效药路。`,
+    );
   }
+}
+
+function getProgressValue(
+  cultivator: PillCultivatorFacts,
+  target: Extract<ConditionOperation, { type: 'gain_progress' }>['target'],
+): number {
+  const progress = getOrInitCultivationProgress(
+    (cultivator.cultivation_progress ?? {}) as CultivationProgress,
+    cultivator.realm,
+    cultivator.realm_stage,
+  );
+  return target === 'cultivation_exp'
+    ? progress.cultivation_exp
+    : progress.comprehension_insight;
+}
+
+function getStatusSnapshot(
+  condition: CultivatorCondition,
+  status: ConditionStatusKey,
+): string {
+  return JSON.stringify(
+    condition.statuses.find((item) => item.key === status) ?? null,
+  );
 }
 
 function removeStatuses(
@@ -175,6 +204,18 @@ function getTrackState(
   }
 
   throw new Error(`未知的长期进度轨道：${track satisfies never}`);
+}
+
+function getAppliedTrackProgress(
+  track: ConditionTrackPath,
+  before: ReturnType<typeof getTrackState>,
+  after: ReturnType<typeof getTrackState>,
+): number {
+  let applied = after.progress - before.progress;
+  for (let level = before.level; level < after.level; level += 1) {
+    applied += getTrackConfig(track).thresholdByLevel(level);
+  }
+  return Math.max(0, Math.floor(applied));
 }
 
 function setTrackState(
@@ -529,6 +570,7 @@ function getNetPillToxicityDelta(spec: PillSpec): number {
 function assertBodyCultivationPillTrackCaps(
   condition: CultivatorCondition,
   spec: PillSpec,
+  itemLabel: '丹药' | '灵果',
 ): void {
   let projectedCondition = condition;
 
@@ -555,7 +597,7 @@ function assertBodyCultivationPillTrackCaps(
 
     if (trackState.level >= cap) {
       throw new Error(
-        `${trackName}已达当前肉身境界「${realmLabel}」的单轨上限 Lv.${cap}，请先完成肉身破限后再服用炼体丹。`,
+        `${trackName}已达当前肉身境界「${realmLabel}」的单轨上限 Lv.${cap}，请先完成肉身破限后再服用${itemLabel}。`,
       );
     }
 
@@ -577,7 +619,7 @@ function assertBodyCultivationPillTrackCaps(
 
       if (level > cap || (level === cap && remaining > 0)) {
         throw new Error(
-          `${trackName}本次药力将超过当前肉身境界「${realmLabel}」的单轨上限 Lv.${cap}，请先完成肉身破限后再服用炼体丹。`,
+          `${trackName}本次药力将超过当前肉身境界「${realmLabel}」的单轨上限 Lv.${cap}，请先完成肉身破限后再服用${itemLabel}。`,
         );
       }
     }
@@ -595,6 +637,7 @@ function assertMarrowWashPillTrackCaps(
   cultivator: PillCultivatorFacts,
   condition: CultivatorCondition,
   spec: PillSpec,
+  itemLabel: '丹药' | '灵果',
 ): void {
   let projectedState = normalizeMarrowWashState(condition);
   const cap = getMarrowWashLevelCapByCultivationRealm(cultivator.realm);
@@ -616,13 +659,13 @@ function assertMarrowWashPillTrackCaps(
       const breakthroughLevel =
         getNextMarrowWashBreakthroughLevel(projectedState);
       throw new Error(
-        `洗髓已达破限瓶颈 Lv.${breakthroughLevel}，请先完成本次破限后再服用洗髓丹。`,
+        `洗髓已达破限瓶颈 Lv.${breakthroughLevel}，请先完成本次破限后再服用${itemLabel}。`,
       );
     }
 
     if (projectedState.level >= cap) {
       throw new Error(
-        `洗髓已达当前修为境界的等级上限 Lv.${cap}，请先提升修为境界后再服用洗髓丹。`,
+        `洗髓已达当前修为境界的等级上限 Lv.${cap}，请先提升修为境界后再服用${itemLabel}。`,
       );
     }
 
@@ -635,7 +678,7 @@ function assertMarrowWashPillTrackCaps(
       (advancement.state.level === cap && advancement.state.progress > 0)
     ) {
       throw new Error(
-        `本次药力将超过当前修为境界的洗髓等级上限 Lv.${cap}，请先提升修为境界后再服用洗髓丹。`,
+        `本次药力将超过当前修为境界的洗髓等级上限 Lv.${cap}，请先提升修为境界后再服用${itemLabel}。`,
       );
     }
 
@@ -677,7 +720,9 @@ export const PillOperationExecutor = {
     now: Date = new Date(),
   ): PillExecutionResult {
     const isSpiritFruit = isSpiritFruitConsumable(consumable);
-    const effectConsumable: Consumable & { spec: PillSpec } = isPillConsumable(consumable)
+    const effectConsumable: Consumable & { spec: PillSpec } = isPillConsumable(
+      consumable,
+    )
       ? consumable
       : isSpiritFruitConsumable(consumable)
         ? {
@@ -690,20 +735,30 @@ export const PillOperationExecutor = {
                 (operation) =>
                   operation.type !== 'change_gauge' || operation.delta <= 0,
               ),
-              consumeRules: { scene: 'out_of_battle_only', quotaCategory: 'none' },
+              consumeRules: {
+                scene: 'out_of_battle_only',
+                quotaCategory: 'none',
+              },
               alchemyMeta: {
-                source: 'improvised', sourceMaterials: [], stability: 100,
-                toxicityRating: 0, tags: ['spirit-fruit'], version: 4,
+                source: 'improvised',
+                sourceMaterials: [],
+                stability: 100,
+                toxicityRating: 0,
+                tags: ['spirit-fruit'],
+                version: 4,
               },
             },
           }
-        : (() => { throw new Error('该消耗品并非丹药或灵果，无法按药效协议执行。'); })();
+        : (() => {
+            throw new Error('该消耗品并非丹药或灵果，无法按药效协议执行。');
+          })();
 
+    const itemLabel = isSpiritFruit ? '灵果' : '丹药';
     if (effectConsumable.spec.consumeRules.scene !== 'out_of_battle_only') {
-      throw new Error('该丹药当前不可在背包内直接服用。');
+      throw new Error(`该${itemLabel}当前不可在背包内直接服用。`);
     }
 
-    assertPillQualityAllowed(cultivator, effectConsumable);
+    assertPillQualityAllowed(cultivator, effectConsumable, itemLabel);
 
     const nextCultivator = cloneCultivator(cultivator);
     let nextCondition = ConditionService.tickNaturalRecovery(
@@ -712,6 +767,8 @@ export const PillOperationExecutor = {
       now,
     );
     const trackLevelUps: TrackLevelUpResult[] = [];
+    const appliedEffects: string[] = [];
+    const noEffectReasons: string[] = [];
 
     const quotaCategory = isSpiritFruit
       ? 'none'
@@ -722,11 +779,16 @@ export const PillOperationExecutor = {
     ) {
       throw new Error(PILL_TOXICITY_BLOCK_MESSAGE);
     }
-    assertBodyCultivationPillTrackCaps(nextCondition, effectConsumable.spec);
+    assertBodyCultivationPillTrackCaps(
+      nextCondition,
+      effectConsumable.spec,
+      itemLabel,
+    );
     assertMarrowWashPillTrackCaps(
       nextCultivator,
       nextCondition,
       effectConsumable.spec,
+      itemLabel,
     );
 
     if (quotaCategory === 'long_term') {
@@ -771,14 +833,28 @@ export const PillOperationExecutor = {
 
     for (const operation of sortOperations(effectConsumable.spec.operations)) {
       switch (operation.type) {
-        case 'restore_resource':
+        case 'restore_resource': {
+          const before =
+            operation.resource === 'hp'
+              ? nextCondition.resources.hp.current
+              : nextCondition.resources.mp.current;
           nextCondition = applyRestoreResourceOperation(
             nextCultivator,
             nextCondition,
             operation,
           );
+          const after =
+            operation.resource === 'hp'
+              ? nextCondition.resources.hp.current
+              : nextCondition.resources.mp.current;
+          const restored = Math.max(0, after - before);
+          const label = operation.resource === 'hp' ? '气血' : '法力';
+          if (restored > 0) appliedEffects.push(`${label} +${restored}`);
+          else noEffectReasons.push(`${label}已满`);
           break;
-        case 'change_gauge':
+        }
+        case 'change_gauge': {
+          const before = nextCondition.gauges.pillToxicity;
           nextCondition = {
             ...nextCondition,
             gauges: {
@@ -790,17 +866,51 @@ export const PillOperationExecutor = {
               ),
             },
           };
+          const delta = nextCondition.gauges.pillToxicity - before;
+          if (delta !== 0) {
+            appliedEffects.push(`丹毒 ${delta > 0 ? '+' : ''}${delta}`);
+          } else {
+            noEffectReasons.push(
+              operation.delta < 0 ? '丹毒已为 0' : '丹毒已达上限',
+            );
+          }
           break;
-        case 'gain_progress':
+        }
+        case 'gain_progress': {
+          const before = getProgressValue(nextCultivator, operation.target);
           applyGainProgressOperation(nextCultivator, operation);
+          const after = getProgressValue(nextCultivator, operation.target);
+          const gained = Math.max(0, after - before);
+          const label =
+            operation.target === 'cultivation_exp' ? '修为' : '感悟';
+          if (gained > 0) appliedEffects.push(`${label} +${gained}`);
+          else noEffectReasons.push(`${label}已达当前上限`);
           break;
-        case 'increase_lifespan':
+        }
+        case 'increase_lifespan': {
+          const before = nextCultivator.lifespan;
           applyIncreaseLifespanOperation(nextCultivator, operation);
+          const gained = Math.max(0, nextCultivator.lifespan - before);
+          if (gained > 0) appliedEffects.push(`寿元 +${gained} 年`);
+          else noEffectReasons.push('寿元已达上限');
           break;
-        case 'remove_status':
+        }
+        case 'remove_status': {
+          const before = nextCondition.statuses.length;
           nextCondition = applyRemoveStatusOperation(nextCondition, operation);
+          const removed = Math.max(0, before - nextCondition.statuses.length);
+          if (removed > 0) appliedEffects.push(`化解异常状态 ${removed} 项`);
+          else noEffectReasons.push('当前没有可化解的异常状态');
           break;
-        case 'add_status':
+        }
+        case 'add_status': {
+          const beforeStatus = getStatusSnapshot(
+            nextCondition,
+            operation.status,
+          );
+          const beforeInnerDemon = Boolean(
+            nextCultivator.cultivation_progress?.inner_demon,
+          );
           if (operation.status === CLEAR_MIND_STATUS_KEY) {
             const progress = getOrInitCultivationProgress(
               (nextCultivator.cultivation_progress ??
@@ -818,8 +928,23 @@ export const PillOperationExecutor = {
             operation,
             now,
           );
+          const statusChanged =
+            getStatusSnapshot(nextCondition, operation.status) !== beforeStatus;
+          const innerDemonRemoved =
+            beforeInnerDemon &&
+            !nextCultivator.cultivation_progress?.inner_demon;
+          const statusName =
+            getConditionStatusTemplate(operation.status)?.name ??
+            operation.status;
+          if (statusChanged || innerDemonRemoved) {
+            appliedEffects.push(`获得「${statusName}」助力`);
+          } else {
+            noEffectReasons.push('已有同等或更强的对应助力');
+          }
           break;
+        }
         case 'advance_track': {
+          const before = getTrackState(nextCondition, operation.track);
           const result = applyTrackProgress(
             nextCultivator,
             nextCondition,
@@ -832,9 +957,33 @@ export const PillOperationExecutor = {
           nextCultivator.spiritual_roots = result.cultivator.spiritual_roots;
           nextCondition = result.condition;
           trackLevelUps.push(...result.levelUps);
+          const after = getTrackState(nextCondition, operation.track);
+          const applied = getAppliedTrackProgress(
+            operation.track,
+            before,
+            after,
+          );
+          if (applied > 0) {
+            appliedEffects.push(
+              `${getTrackConfig(operation.track).name}进度 +${applied}`,
+            );
+          } else {
+            noEffectReasons.push(
+              `${getTrackConfig(operation.track).name}无法继续推进`,
+            );
+          }
           break;
         }
       }
+    }
+
+    if (isSpiritFruit && appliedEffects.length === 0) {
+      const reason = [...new Set(noEffectReasons)].join('；');
+      throw new Error(
+        reason
+          ? `当前服用不会产生有效收益：${reason}。`
+          : '当前服用不会产生有效收益。',
+      );
     }
 
     nextCondition = ConditionService.normalizeCondition(
@@ -856,6 +1005,8 @@ export const PillOperationExecutor = {
       cultivator: nextCultivator,
       consumed: effectConsumable,
       trackLevelUps,
+      appliedEffects,
+      noEffectReasons,
     };
   },
 

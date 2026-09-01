@@ -105,6 +105,7 @@ export function consumeCultivatorConsumable(args: {
                 ...state,
                 realm: state.realm as RealmType,
                 realmStage: state.realmStage as RealmStage,
+                spiritualRoots: result.profilePatch?.spiritual_roots,
               },
             }),
           };
