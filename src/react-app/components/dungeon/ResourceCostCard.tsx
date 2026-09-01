@@ -1,14 +1,14 @@
 import { InkCard } from '@app/components/ui/InkCard';
-import type { DungeonOptionCost } from '@shared/lib/dungeon/types';
-import {
-  getResourceDisplayName,
-  getResourceIcon,
-} from '@shared/lib/gameConceptDisplay';
 import {
   formatDungeonCostBodyCultivationFeedback,
   formatDungeonCostName,
   formatDungeonCostValue,
 } from '@app/lib/dungeon/formatDungeonCost';
+import type { DungeonOptionCost } from '@shared/lib/dungeon/types';
+import {
+  getResourceDisplayName,
+  getResourceIcon,
+} from '@shared/lib/gameConceptDisplay';
 import { format } from 'd3-format';
 
 interface ResourceCostCardProps {
@@ -39,9 +39,7 @@ export function ResourceCostCard({
       'cultivation_exp',
       'comprehension_insight',
       'material',
-      'weak',
       'battle',
-      'artifact_damage',
     ].includes(c.type),
   );
 

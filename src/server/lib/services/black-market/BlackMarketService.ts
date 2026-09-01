@@ -154,8 +154,9 @@ function rotatePreferred<T>(values: readonly T[], preferred: T): T[] {
 
 function selectMaterialPreferences(seed: string, nodeId: string) {
   const profile = getRegionProfile(nodeId);
+  const materialPool = MATERIAL_TYPE_VALUES.filter((value) => value !== 'seed');
   const materialType = weightedPick(
-    MATERIAL_TYPE_VALUES.map((value) => ({
+    materialPool.map((value) => ({
       value,
       weight: profile.typeWeights[value] ?? 0.25,
     })),
@@ -169,7 +170,7 @@ function selectMaterialPreferences(seed: string, nodeId: string) {
     })),
     blackMarketUnit(seed, 'quality'),
   );
-  const materialTypes = [...MATERIAL_TYPE_VALUES].sort(
+  const materialTypes = [...materialPool].sort(
     (left, right) =>
       (profile.typeWeights[right] ?? 0) - (profile.typeWeights[left] ?? 0),
   );

@@ -2,6 +2,7 @@ import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import { materials } from '@server/lib/drizzle/schema';
 import type { Material } from '@shared/types/cultivator';
 import { and, asc, eq, sql } from 'drizzle-orm';
+import { readSpiritFieldSeedSpec } from '@shared/engine/spirit-field/seedMaterial';
 
 export type MaterialInventoryWrite = Pick<
   Material,
@@ -27,18 +28,31 @@ export async function addMaterialStackToInventory(
   assertMaterialQuantity(material.quantity);
 
   const q = getExecutor(tx);
-  const [existing] = await q
-    .select({ id: materials.id })
+  const candidates = await q
+    .select({ id: materials.id, type: materials.type, details: materials.details })
     .from(materials)
     .where(
       and(
         eq(materials.cultivatorId, cultivatorId),
         eq(materials.name, material.name),
         eq(materials.rank, material.rank),
+        eq(materials.type, material.type),
       ),
     )
-    .orderBy(asc(materials.createdAt), asc(materials.id))
-    .limit(1);
+    .orderBy(asc(materials.createdAt), asc(materials.id));
+
+  const incomingSeed = material.type === 'seed'
+    ? readSpiritFieldSeedSpec(material.details)
+    : null;
+  const existing = candidates.find((candidate) => {
+    if (material.type !== 'seed') return true;
+    const candidateSeed = readSpiritFieldSeedSpec(candidate.details);
+    return Boolean(
+      incomingSeed &&
+        candidateSeed &&
+        incomingSeed.fingerprint === candidateSeed.fingerprint,
+    );
+  });
 
   if (existing) {
     await q

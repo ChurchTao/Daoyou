@@ -1,7 +1,6 @@
 import {
   ELEMENT_VALUES,
   EQUIPMENT_SLOT_VALUES,
-  MATERIAL_TYPE_VALUES,
   QUALITY_VALUES,
   type ElementType,
   type EquipmentSlot,
@@ -147,6 +146,7 @@ export interface ItemLibraryDraft {
   materialType: MaterialType;
   materialRank: Quality;
   materialElement: '' | ElementType;
+  materialDetails: Record<string, unknown>;
   consumableKind: 'pill' | 'talisman';
   consumableQuality: Quality;
   consumableElement: '' | ElementType;
@@ -344,9 +344,10 @@ export function createEmptyDraft(): ItemLibraryDraft {
     status: 'published',
     name: '',
     description: '',
-    materialType: MATERIAL_TYPE_VALUES[0],
+    materialType: 'herb',
     materialRank: QUALITY_VALUES[0],
     materialElement: '',
+    materialDetails: {},
     consumableKind: 'pill',
     consumableQuality: QUALITY_VALUES[0],
     consumableElement: '',
@@ -453,6 +454,7 @@ export function entryToDraft(entry: ItemLibraryEntry): ItemLibraryDraft {
     draft.materialType = entry.payload.type;
     draft.materialRank = entry.payload.rank;
     draft.materialElement = entry.payload.element ?? '';
+    draft.materialDetails = entry.payload.details ?? {};
   }
 
   if (entry.type === 'consumable') {
@@ -629,6 +631,9 @@ export function buildItemLibrarySubmitBody(
         ...(draft.materialElement ? { element: draft.materialElement } : {}),
         ...(draft.description.trim()
           ? { description: draft.description.trim() }
+          : {}),
+        ...(Object.keys(draft.materialDetails).length > 0
+          ? { details: draft.materialDetails }
           : {}),
       },
       editorConfig: {},

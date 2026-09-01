@@ -1,4 +1,4 @@
-import type { ConsumeStatusTriggerParams } from '../core/configs';
+import type { ConsumeStatusTriggerParams, EffectConfig } from '../core/configs';
 import { executeEffectConfigs } from '../core/effectExecutor';
 import { getDelayedBuffEffects } from '../core/runtimeState';
 import { EffectRegistry } from '../factories/EffectRegistry';
@@ -37,6 +37,7 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
         buff: context.buff,
         attribution: context.attribution,
         trace: context.trace,
+        resolution: context.resolution,
         layerChangeReason: 'consumed',
         statusDisplayName: this.params.displayName,
       });
@@ -48,6 +49,7 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
         buff: context.buff,
         attribution: context.attribution,
         trace: context.trace,
+        resolution: context.resolution,
         layerChangeReason: 'consumed',
         statusDisplayName: this.params.displayName,
       });
@@ -57,12 +59,45 @@ export class ConsumeStatusTriggerEffect extends GameplayEffect {
       this.params.effects.length > 0
         ? this.params.effects
         : (delayedEffects ?? []);
-    const repeats = this.params.scaleEffectsByLayer ? consumedLayers : 1;
+    const effects = this.params.aggregateDamageByLayer
+      ? configuredEffects.map((effect) => aggregateDirectDamage(effect, consumedLayers))
+      : configuredEffects;
+    const repeats = this.params.scaleEffectsByLayer && !this.params.aggregateDamageByLayer
+      ? consumedLayers
+      : 1;
     for (let index = 0; index < repeats; index += 1) {
       if (!context.canExecuteEffect()) break;
-      executeEffectConfigs(configuredEffects, context);
+      executeEffectConfigs(effects, context);
     }
   }
+}
+
+function aggregateDirectDamage(effect: EffectConfig, consumedLayers: number): EffectConfig {
+  if (effect.type !== 'damage' || consumedLayers === 1) return effect;
+  const value = effect.params.value;
+  return {
+    ...effect,
+    params: {
+      ...effect.params,
+      value: {
+        ...value,
+        base: value.base === undefined ? undefined : value.base * consumedLayers,
+        coefficient: value.attribute
+          ? (value.coefficient ?? 1) * consumedLayers
+          : value.coefficient,
+        targetMaxHpRatio: value.targetMaxHpRatio === undefined
+          ? undefined
+          : value.targetMaxHpRatio * consumedLayers,
+        targetMaxMpRatio: value.targetMaxMpRatio === undefined
+          ? undefined
+          : value.targetMaxMpRatio * consumedLayers,
+      },
+      dynamicScalars: effect.params.dynamicScalars?.map((scalar) => ({
+        ...scalar,
+        coefficientCap: scalar.coefficientCap * consumedLayers,
+      })),
+    },
+  };
 }
 
 EffectRegistry.getInstance().register(

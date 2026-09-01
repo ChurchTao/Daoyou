@@ -312,6 +312,18 @@ export interface PillSpec {
   alchemyMeta: PillAlchemyMeta;
 }
 
+/** 灵果复用丹药的效果协议，但不携带炼丹元数据、丹毒或服用额度。 */
+export interface SpiritFruitSpec {
+  kind: 'spirit_fruit';
+  family: PillFamily;
+  operations: ConditionOperation[];
+  consumeRules: PillConsumeRules;
+  source: {
+    kind: 'spirit_field';
+    version: 1;
+  };
+}
+
 export interface AlchemyFormulaMastery {
   level: number;
   exp: number;
@@ -338,7 +350,7 @@ export interface TalismanSpec {
   notes?: string;
 }
 
-export type ConsumableSpec = PillSpec | TalismanSpec;
+export type ConsumableSpec = PillSpec | SpiritFruitSpec | TalismanSpec;
 
 export interface AlchemyFormulaBlueprint {
   version: 4;
@@ -359,12 +371,12 @@ export interface FormulaAnalysisResult {
   analysisId: string;
   valid: boolean;
   staticBlockingReason?: string;
+  /** LLM 裁决档位对应的服务端代表值；仅兼容既有丹药元数据。 */
   fitScore: number;
   fitBand: FormulaFitBand;
-  alignedThreshold: number;
+  conclusion?: string;
   warnings: string[];
   materialJudgments: FormulaMaterialJudgment[];
-  aggregatedPropertyVector: WeightedAlchemyProperty[];
   batchProfile?: AlchemyBatchDisplayProfile;
   dominantElement?: ElementType;
   stability: number;

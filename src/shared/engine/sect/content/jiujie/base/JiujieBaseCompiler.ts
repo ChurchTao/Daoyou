@@ -199,6 +199,10 @@ function eyeBuff(settings: JiujieBuildSettings): BuffConfig {
       type: 'runtime_counter_modify',
       params: { key: JIUJIE_EYE_HIT_COUNTER, operation: 'set', amount: 1, target: 'caster' },
     },
+    damage(0.15, DamageSource.COUNTER, DamageType.MAGICAL, true),
+    ...(settings.eye.bearingMark
+      ? [damage(0.15, DamageSource.COUNTER, DamageType.MAGICAL, true)]
+      : []),
     apply(beheldBuff()),
     ...(settings.eye.bearingMark
       ? [{ ...apply(debtBuff(settings)), conditions: [c('has_tag', { scope: 'target', tag: thunderTag })] }]
@@ -614,6 +618,7 @@ function repeatPunishment(settings: JiujieBuildSettings, sin: string): EffectCon
 function runtimeListeners(settings: JiujieBuildSettings): ListenerConfig[] {
   const common = [c('has_tag', { scope: 'target', tag: thunderTag })];
   const oncePerAction = { maxTriggers: 1, granularity: 'action' as const };
+  const tracksBasicChain = settings.pathId === JIUJIE_CONDEMNATION_PATH_ID;
   const basicEffects: EffectConfig[] = [
     damage(
       settings.thunderCoefficient * (settings.condemnation.basicRecorded ? 1.30 : 1),
@@ -622,7 +627,7 @@ function runtimeListeners(settings: JiujieBuildSettings): ListenerConfig[] {
       true,
     ),
   ];
-  if (settings.condemnation.twoBasicsCrime) {
+  if (tracksBasicChain) {
     basicEffects.push({
       type: 'runtime_counter_modify',
       params: {
@@ -635,9 +640,19 @@ function runtimeListeners(settings: JiujieBuildSettings): ListenerConfig[] {
           {
             type: 'mechanic_log',
             conditions: [c('runtime_counter_compare', { scope: 'target', key: JIUJIE_BASIC_CHAIN_COUNTER, op: 'gte', value: 2 })],
-            params: { mechanic: 'named_trigger', internalKey: JIUJIE_BASIC_CHAIN_LOG, displayName: '两避成罪', target: 'target' },
+            params: {
+              mechanic: 'named_trigger', internalKey: JIUJIE_BASIC_CHAIN_LOG,
+              displayName: settings.condemnation.twoBasicsCrime ? '两避成罪' : '两行成劫', target: 'target',
+            },
           },
-          { ...apply(debtBuff(settings)), conditions: [c('runtime_counter_compare', { scope: 'target', key: JIUJIE_BASIC_CHAIN_COUNTER, op: 'gte', value: 2 })] },
+          {
+            type: 'combat_resource_modify',
+            conditions: [c('runtime_counter_compare', { scope: 'target', key: JIUJIE_BASIC_CHAIN_COUNTER, op: 'gte', value: 2 })],
+            params: { resourceId: JIUJIE_CALAMITY, operation: 'add', amount: 1, target: 'caster', reason: 'gain' },
+          },
+          ...(settings.condemnation.twoBasicsCrime
+            ? [{ ...apply(debtBuff(settings)), conditions: [c('runtime_counter_compare', { scope: 'target', key: JIUJIE_BASIC_CHAIN_COUNTER, op: 'gte', value: 2 })] } satisfies EffectConfig]
+            : []),
           { type: 'runtime_counter_modify', conditions: [c('runtime_counter_compare', { scope: 'target', key: JIUJIE_BASIC_CHAIN_COUNTER, op: 'gte', value: 2 })], params: { key: JIUJIE_BASIC_CHAIN_COUNTER, operation: 'reset', target: 'target' } },
         ],
       },
@@ -681,7 +696,7 @@ function runtimeListeners(settings: JiujieBuildSettings): ListenerConfig[] {
       },
     });
   }
-  if (settings.condemnation.twoBasicsCrime) {
+  if (tracksBasicChain) {
     activeEffects.push({ type: 'runtime_counter_modify', params: { key: JIUJIE_BASIC_CHAIN_COUNTER, operation: 'reset', target: 'target' } });
   }
   const activeOnly: ListenerConfig = {
@@ -737,7 +752,7 @@ function runtimeListeners(settings: JiujieBuildSettings): ListenerConfig[] {
       }
     }
   }
-  const cleanup: ListenerConfig[] = settings.condemnation.twoBasicsCrime
+  const cleanup: ListenerConfig[] = tracksBasicChain
     ? [{
         id: 'jiujie.law.basic-chain-cleanup',
         eventType: GameplayTags.EVENT.BUFF_REMOVED,
@@ -908,7 +923,7 @@ export function compileJiujieBase(
   ability(builder, 'heaven-hearing', {
     definition: d('heaven-hearing'),
     effects: [
-      damage(0.45),
+      damage(0.55),
       ...(settings.condemnation.hearingRecords
         ? [{ ...apply(debtBuff(settings)), conditions: [c('has_tag', { scope: 'target', tag: thunderTag })] }]
         : []),
@@ -944,7 +959,7 @@ export function compileJiujieBase(
       ...(settings.pathId === JIUJIE_EYE_PATH_ID
         ? [
             `承劫量最多记录自身最大气血的${Math.round((settings.eye.armorMemory ? 0.70 : settings.memoryCap) * 100)}%。`,
-            `劫眼持续${settings.eyeDuration}回合；期间首次直接受击标记攻击者，并按行动获得劫数。`,
+            `劫眼持续${settings.eyeDuration}回合；期间首次直接受击以0.15倍法攻反击并标记攻击者，且按行动获得劫数。`,
           ]
         : []),
     ],
@@ -952,6 +967,7 @@ export function compileJiujieBase(
   ability(builder, 'calamity-seal', {
     definition: d('calamity-seal'),
     effects: [
+      damage(0.25),
       {
         type: 'apply_buff',
         conditions: [c('has_tag', { scope: 'target', tag: thunderTag })],
@@ -1010,10 +1026,16 @@ export function compileJiujieBase(
         : []),
       ...(settings.condemnation.questionEvidence
         ? [
-            ...[JIUJIE_SIN_DAMAGE, JIUJIE_SIN_SUPPORT, JIUJIE_SIN_CONTROL].map((sin) => ({
-              ...apply(reoffendBuff()),
-              conditions: [c('has_tag', { scope: 'target', tag: sin })],
-            })),
+            ...[JIUJIE_SIN_DAMAGE, JIUJIE_SIN_SUPPORT, JIUJIE_SIN_CONTROL].flatMap((sin) => [
+              {
+                ...apply(reoffendBuff()),
+                conditions: [c('has_tag', { scope: 'target', tag: sin })],
+              },
+              {
+                ...damage(0.15, DamageSource.FOLLOW_UP, DamageType.MAGICAL, true),
+                conditions: [c('has_tag', { scope: 'target', tag: sin })],
+              },
+            ]),
           ]
         : []),
       ...(settings.condemnation.pendingTrial
@@ -1262,7 +1284,7 @@ export function compileJiujieBase(
         match: { id: JIUJIE_DEBT },
         displayName: '劫债',
         consume: 'all',
-        scaleEffectsByLayer: true,
+        aggregateDamageByLayer: true,
         target: 'target',
         effects: [
           damage(settings.finishDebtCoefficient, DamageSource.FOLLOW_UP),
@@ -1275,13 +1297,15 @@ export function compileJiujieBase(
         match: { id: JIUJIE_REOFFEND },
         displayName: '重犯',
         consume: 'all',
-        scaleEffectsByLayer: true,
+        aggregateDamageByLayer: true,
         target: 'target',
         effects: [
-          damage(settings.reoffendBonus, DamageSource.FOLLOW_UP, DamageType.MAGICAL, true),
-          ...(settings.condemnation.repeatedThunder
-            ? [damage(settings.thunderCoefficient * 0.50, DamageSource.FOLLOW_UP, DamageType.DOT, true)]
-            : []),
+          damage(
+            settings.reoffendBonus + (settings.condemnation.repeatedThunder ? settings.thunderCoefficient * 0.50 : 0),
+            DamageSource.FOLLOW_UP,
+            DamageType.MAGICAL,
+            true,
+          ),
         ],
       },
     },
@@ -1313,7 +1337,7 @@ export function compileJiujieBase(
           } satisfies EffectConfig,
         ]
       : []),
-    ...(settings.condemnation.twoBasicsCrime
+    ...(settings.pathId === JIUJIE_CONDEMNATION_PATH_ID
       ? [{ type: 'runtime_counter_modify', params: { key: JIUJIE_BASIC_CHAIN_COUNTER, operation: 'reset', target: 'target' } } satisfies EffectConfig]
       : []),
     ...(settings.condemnation.endlessCondemnation

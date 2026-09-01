@@ -24,6 +24,23 @@ export const NATURAL_RECOVERY_CONFIG = {
   toxicityPenaltyDivisor: 180,
 } as const;
 
+const WOUND_STATUS_SEVERITY_ORDER = [
+  'minor_wound',
+  'major_wound',
+  'near_death',
+] as const satisfies readonly ConditionStatusKey[];
+
+export function getConditionStatusCureTargets(
+  status: ConditionStatusKey,
+): ConditionStatusKey[] {
+  const woundIndex = WOUND_STATUS_SEVERITY_ORDER.indexOf(
+    status as (typeof WOUND_STATUS_SEVERITY_ORDER)[number],
+  );
+  return woundIndex < 0
+    ? [status]
+    : WOUND_STATUS_SEVERITY_ORDER.slice(0, woundIndex + 1);
+}
+
 export interface NaturalRecoveryEstimate {
   perHour: number;
   timeToFullMs: number | null;

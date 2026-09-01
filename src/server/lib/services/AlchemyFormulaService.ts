@@ -14,7 +14,6 @@ import {
   aggregateAlchemyProperties,
   buildAlchemyBatchProfile,
   buildAlchemyPropertyTags,
-  calculatePropertyVectorFit,
   getQuotaCategoryForFamily,
   type PreparedAlchemyMaterial,
 } from '@server/lib/services/AlchemyRecipeRules';
@@ -32,6 +31,7 @@ import {
   normalizeAlchemyEffectRoute,
   validateAlchemyEffectRoute,
 } from '@shared/lib/alchemyEffectResolver';
+import { getFormulaFitPolicy } from '@shared/lib/alchemyFormulaFit';
 import { isAlchemyMaterialType } from '@shared/lib/alchemyMaterials';
 import {
   formatAlchemyPropertyVector,
@@ -92,12 +92,6 @@ const DISCOVERY_TTL_SECONDS = 600;
 const FORMULA_ANALYSIS_TTL_SECONDS = 600;
 const FORMULA_ANALYSIS_COOLDOWN_SECONDS = 30;
 const DISCOVERY_STABILITY_THRESHOLD = 70;
-const FIT_ALIGNED_THRESHOLD = 0.65;
-const FIT_POOR_THRESHOLD = 0.35;
-const DEGRADED_PENALTY_FACTOR_MIN = 0.78;
-const DEGRADED_PENALTY_FACTOR_MAX = 0.9;
-const POOR_PENALTY_FACTOR_MIN = 0.35;
-const POOR_PENALTY_FACTOR_MAX = 0.62;
 
 type MaterialRow = typeof materials.$inferSelect;
 
@@ -157,10 +151,9 @@ interface FormulaAnalysisPayload {
   plan: AlchemyRecipePlan;
   fitScore: number;
   fitBand: FormulaFitBand;
-  alignedThreshold: number;
+  conclusion: string;
   warnings: string[];
   materialJudgments: FormulaMaterialJudgment[];
-  aggregatedPropertyVector: WeightedAlchemyProperty[];
   batchProfile: AlchemyBatchProfile;
   dominantElement: ElementType;
 }
@@ -385,7 +378,6 @@ function buildFormulaDescription(
   sourceMaterials: string[],
   stability: number,
   toxicityRating: number,
-  fitScore: number,
   fitMultiplier: number,
   fitBand: FormulaFitBand,
 ): string {
@@ -398,8 +390,6 @@ function buildFormulaDescription(
     lines.push('本炉循方成丹，但药力散逸，终究未尽合丹方原意。');
   } else if (fitBand === 'poor') {
     lines.push('本炉药路偏离丹方甚远，虽可收丹，药力与品相都受明显折损。');
-  } else if (fitScore < FIT_ALIGNED_THRESHOLD) {
-    lines.push('本炉药性虽能循方成丹，仍有几分偏离，药力难免散逸。');
   }
 
   return lines.join('');
@@ -510,32 +500,6 @@ function sortMaterialJudgments(
   });
 }
 
-function determineFormulaFitBand(fitScore: number): FormulaFitBand {
-  if (fitScore >= FIT_ALIGNED_THRESHOLD) {
-    return 'aligned';
-  }
-  if (fitScore < FIT_POOR_THRESHOLD) {
-    return 'poor';
-  }
-  return 'degraded';
-}
-
-function calculateDegradedPenaltyFactor(fitScore: number): number {
-  return clamp(
-    0.55 + fitScore * 0.5,
-    DEGRADED_PENALTY_FACTOR_MIN,
-    DEGRADED_PENALTY_FACTOR_MAX,
-  );
-}
-
-function calculatePoorPenaltyFactor(fitScore: number): number {
-  return clamp(
-    0.22 + fitScore * 0.9,
-    POOR_PENALTY_FACTOR_MIN,
-    POOR_PENALTY_FACTOR_MAX,
-  );
-}
-
 async function checkAndAcquireFormulaAnalysisCooldown(
   cultivatorId: string,
 ): Promise<{
@@ -642,16 +606,13 @@ function countMaterialsAboveMinQuality(
   ).length;
 }
 
-export function calculateFormulaFitMultiplier(
+function calculateFormulaFitMultiplier(
   formula: AlchemyFormula,
-  currentPropertyVector: WeightedAlchemyProperty[],
+  fitBand: FormulaFitBand,
   dominantElement: ElementType,
   materialsList: PreparedAlchemyMaterial[],
 ): number {
-  const fit = calculatePropertyVectorFit(
-    currentPropertyVector,
-    formula.pattern.targetPropertyVector,
-  );
+  const policy = getFormulaFitPolicy(fitBand);
   const elementBonus =
     formula.pattern.dominantElement &&
     dominantElement === formula.pattern.dominantElement
@@ -661,7 +622,11 @@ export function calculateFormulaFitMultiplier(
     countMaterialsAboveMinQuality(materialsList, formula.pattern.minQuality) *
     0.02;
 
-  return clamp(0.85 + fit * 0.3 + elementBonus + qualityBonus, 0.85, 1.15);
+  return clamp(
+    policy.baseMultiplier + elementBonus + qualityBonus,
+    policy.minMultiplier,
+    policy.maxMultiplier,
+  );
 }
 
 function resolveFormulaCraftProjection(
@@ -669,11 +634,7 @@ function resolveFormulaCraftProjection(
   materialsList: PreparedAlchemyMaterial[],
   analysis: Pick<
     FormulaAnalysisPayload,
-    | 'fitScore'
-    | 'fitBand'
-    | 'batchProfile'
-    | 'dominantElement'
-    | 'aggregatedPropertyVector'
+    'fitBand' | 'batchProfile' | 'dominantElement'
   >,
 ): {
   fitMultiplier: number;
@@ -681,43 +642,19 @@ function resolveFormulaCraftProjection(
   toxicityRating: number;
   yieldFactors: AlchemyYieldFactors;
 } {
-  const fitBandPenaltyFactor =
-    analysis.fitBand === 'poor'
-      ? calculatePoorPenaltyFactor(analysis.fitScore)
-      : analysis.fitBand === 'degraded'
-        ? calculateDegradedPenaltyFactor(analysis.fitScore)
-        : 1;
+  const policy = getFormulaFitPolicy(analysis.fitBand);
   const fitMultiplier = Number(
-    (
-      calculateFormulaFitMultiplier(
-        formula,
-        analysis.aggregatedPropertyVector,
-        analysis.dominantElement,
-        materialsList,
-      ) * fitBandPenaltyFactor
+    calculateFormulaFitMultiplier(
+      formula,
+      analysis.fitBand,
+      analysis.dominantElement,
+      materialsList,
     ).toFixed(4),
   );
-  const degradedStabilityPenalty =
-    analysis.fitBand === 'degraded'
-      ? Math.round((FIT_ALIGNED_THRESHOLD - analysis.fitScore) * 40)
-      : 0;
-  const poorStabilityPenalty =
-    analysis.fitBand === 'poor'
-      ? Math.round((FIT_POOR_THRESHOLD - analysis.fitScore) * 120 + 25)
-      : 0;
-  const degradedToxicityPenalty =
-    analysis.fitBand === 'degraded'
-      ? Math.round((FIT_ALIGNED_THRESHOLD - analysis.fitScore) * 30)
-      : 0;
-  const poorToxicityPenalty =
-    analysis.fitBand === 'poor'
-      ? Math.round((FIT_POOR_THRESHOLD - analysis.fitScore) * 120 + 35)
-      : 0;
   const stability = clamp(
     formula.blueprint.targetStability +
       formula.mastery.level * 2 -
-      degradedStabilityPenalty -
-      poorStabilityPenalty +
+      policy.stabilityPenalty +
       analysis.batchProfile.stabilityDelta,
     15,
     95,
@@ -725,8 +662,7 @@ function resolveFormulaCraftProjection(
   const toxicityRating = clamp(
     formula.blueprint.targetToxicity -
       formula.mastery.level +
-      degradedToxicityPenalty +
-      poorToxicityPenalty +
+      policy.toxicityPenalty +
       analysis.batchProfile.toxicityDelta,
     0,
     100,
@@ -752,17 +688,14 @@ function buildFormulaAnalysisPayload(
   formula: AlchemyFormula,
   materialsList: PreparedAlchemyMaterial[],
   plan: AlchemyRecipePlan,
+  fitBand: FormulaFitBand,
+  conclusion: string,
   materialJudgments: FormulaMaterialJudgment[],
 ): FormulaAnalysisPayload {
   const aggregated = aggregateAlchemyProperties(materialsList, plan);
-  const fitScore = calculatePropertyVectorFit(
-    aggregated.rawPropertyVector,
-    formula.pattern.targetPropertyVector,
-  );
-  const fitBand = determineFormulaFitBand(fitScore);
+  const fitScore = getFormulaFitPolicy(fitBand).score;
   const batchProfile = buildAlchemyBatchProfile(materialsList, aggregated, {
     formulaFitBand: fitBand,
-    formulaFitScore: fitScore,
     materialJudgments,
   });
   const warnings: string[] = [];
@@ -786,37 +719,22 @@ function buildFormulaAnalysisPayload(
     plan,
     fitScore,
     fitBand,
-    alignedThreshold: FIT_ALIGNED_THRESHOLD,
+    conclusion,
     warnings,
     materialJudgments: sortMaterialJudgments(materialJudgments),
-    aggregatedPropertyVector: aggregated.rawPropertyVector,
     batchProfile,
     dominantElement: aggregated.dominantElement,
   };
 }
 
-function calculateFormulaMasteryGain(
-  fitScore: number,
-  fitBand: FormulaFitBand,
-): number {
-  if (fitBand === 'aligned') {
-    return fitScore >= 0.9 ? 3 : 2;
-  }
-  if (fitBand === 'degraded') {
-    return fitScore >= 0.5 ? 1 : 0;
-  }
-  return 0;
-}
-
 export function advanceFormulaMastery(
   mastery: AlchemyFormulaMastery,
-  fitScore = 1,
   fitBand: FormulaFitBand = 'aligned',
 ): {
   next: AlchemyFormulaMastery;
   progress: FormulaProgress;
 } {
-  const gainedExp = calculateFormulaMasteryGain(fitScore, fitBand);
+  const gainedExp = getFormulaFitPolicy(fitBand).masteryGain;
   let level = mastery.level;
   let exp = mastery.exp + gainedExp;
 
@@ -1146,10 +1064,8 @@ export async function analyzeFormulaMaterials(
         staticBlockingReason: error.message,
         fitScore: 0,
         fitBand: 'poor',
-        alignedThreshold: FIT_ALIGNED_THRESHOLD,
         warnings: [],
         materialJudgments: [],
-        aggregatedPropertyVector: [],
         dominantElement: formula.pattern.dominantElement,
         stability: 0,
         toxicityRating: 0,
@@ -1168,10 +1084,8 @@ export async function analyzeFormulaMaterials(
       staticBlockingReason: validation.blockingReason,
       fitScore: 0,
       fitBand: 'poor',
-      alignedThreshold: FIT_ALIGNED_THRESHOLD,
       warnings: validation.warnings,
       materialJudgments: [],
-      aggregatedPropertyVector: [],
       dominantElement: formula.pattern.dominantElement,
       stability: 0,
       toxicityRating: 0,
@@ -1204,6 +1118,8 @@ export async function analyzeFormulaMaterials(
     formula,
     materialsList,
     analysis.plan,
+    analysis.fitBand,
+    analysis.conclusion,
     analysis.materialJudgments,
   );
   const analysisId = crypto.randomUUID();
@@ -1226,10 +1142,9 @@ export async function analyzeFormulaMaterials(
     valid: true,
     fitScore: payload.fitScore,
     fitBand: payload.fitBand,
-    alignedThreshold: payload.alignedThreshold,
+    conclusion: payload.conclusion,
     warnings: payload.warnings,
     materialJudgments: payload.materialJudgments,
-    aggregatedPropertyVector: payload.aggregatedPropertyVector,
     batchProfile: toAlchemyBatchDisplayProfile(
       payload.batchProfile,
       materialsList,
@@ -1417,30 +1332,18 @@ export async function prepareFormulaCraft(
     materialsList,
     analysisPayload.plan,
   );
-  const fit = calculatePropertyVectorFit(
-    aggregated.rawPropertyVector,
-    formula.pattern.targetPropertyVector,
-  );
-  const fitBand = determineFormulaFitBand(fit);
-  if (
-    fitBand !== analysisPayload.fitBand ||
-    Math.abs(fit - analysisPayload.fitScore) > 0.0001
-  ) {
-    throw new AlchemyServiceError('请先推演药路。');
-  }
+  const fitBand = analysisPayload.fitBand;
+  const fitScore = getFormulaFitPolicy(fitBand).score;
   const batchProfile = buildAlchemyBatchProfile(materialsList, aggregated, {
     formulaFitBand: fitBand,
-    formulaFitScore: fit,
     materialJudgments: analysisPayload.materialJudgments,
   });
 
   const dominantElement = aggregated.dominantElement;
   const projection = resolveFormulaCraftProjection(formula, materialsList, {
-    fitScore: fit,
     fitBand,
     batchProfile,
     dominantElement,
-    aggregatedPropertyVector: aggregated.rawPropertyVector,
   });
   const qiCost = calculateAlchemyQiCost(materialsList);
   if (formula.blueprint.needsRebirth) {
@@ -1461,7 +1364,7 @@ export async function prepareFormulaCraft(
       analysisVersion: 2,
       propertyVector: formula.blueprint.route.effects,
       sourceMaterialVectors: aggregated.sourceMaterialVectors,
-      fitScore: fit,
+      fitScore,
       fitBand,
       fitMultiplier: projection.fitMultiplier,
       dominantElement: formula.pattern.dominantElement ?? dominantElement,
@@ -1509,7 +1412,6 @@ export async function prepareFormulaCraft(
       materialsList.map((material) => material.name),
       spec.alchemyMeta.stability,
       spec.alchemyMeta.toxicityRating,
-      fit,
       projection.fitMultiplier,
       fitBand,
     ),
@@ -1519,7 +1421,6 @@ export async function prepareFormulaCraft(
   };
   const { next: nextMastery, progress } = advanceFormulaMastery(
     formula.mastery,
-    fit,
     fitBand,
   );
 

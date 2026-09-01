@@ -237,6 +237,255 @@ describe('BattleRoundResolver', () => {
     expect(a0.getMaxMp() - a0.getCurrentMp()).toBe(10);
   });
 
+  it('propagates cast resolution to active-skill listener effects', () => {
+    const save = initialSave((units) => {
+      units[0].abilities.addAbility(
+        AbilityFactory.create({
+          slug: 'cast-listener-strike',
+          name: '追击',
+          type: AbilityType.ACTIVE_SKILL,
+          tags: [
+            GameplayTags.ABILITY.KIND.SKILL,
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.TRUE,
+          ],
+          targetPolicy: { team: 'enemy', scope: 'single' },
+          effects: [],
+          listeners: [
+            {
+              eventType: GameplayTags.EVENT.SKILL_CAST,
+              scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+              priority: EventPriorityLevel.SKILL_CAST,
+              mapping: { caster: 'owner', target: 'event.target' },
+              effects: [
+                {
+                  type: 'damage',
+                  params: {
+                    value: { base: 25, coefficient: 0 },
+                    damageType: DamageType.TRUE,
+                    canCrit: false,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      units[2].abilities.addAbility(
+        AbilityFactory.create({
+          slug: 'hp-change-retaliation',
+          name: '血震',
+          type: AbilityType.PASSIVE_SKILL,
+          tags: [
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.TRUE,
+          ],
+          listeners: [
+            {
+              eventType: GameplayTags.EVENT.HP_CHANGED,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+              priority: EventPriorityLevel.POST_SETTLE,
+              mapping: { caster: 'owner', target: 'owner' },
+              triggerPolicy: { maxTriggers: 1, granularity: 'hit' },
+              effects: [
+                {
+                  type: 'damage',
+                  params: {
+                    value: { base: 10, coefficient: 0 },
+                    damageType: DamageType.TRUE,
+                    canCrit: false,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      );
+    });
+
+    const result = resolveBattleRound(save, {
+      version: 'round_command_set_v1',
+      commandSetId: 'active-listener-resolution',
+      round: 1,
+      checkpointRevision: 0,
+      intents: {
+        a0: {
+          kind: 'ability',
+          abilityId: 'cast-listener-strike',
+          targetUnitId: 'b0',
+          submittedBy: 'player',
+        },
+        a1: { kind: 'skip', submittedBy: 'timeout' },
+        b0: { kind: 'skip', submittedBy: 'timeout' },
+        b1: { kind: 'skip', submittedBy: 'timeout' },
+      },
+    });
+
+    const restored = restoreBattleSave(result.save);
+    const target = restored.roster.getUnit('b0');
+    expect(target.getCurrentHp()).toBeLessThan(target.getMaxHp() - 25);
+    restored.runtime.dispose();
+  });
+
+  it('propagates action resolution to buff-add listeners', () => {
+    const save = initialSave((units) => {
+      units[0].abilities.addAbility(
+        AbilityFactory.create({
+          slug: 'apply-resolution-marker',
+          name: '施加结算标记',
+          type: AbilityType.ACTIVE_SKILL,
+          tags: [GameplayTags.ABILITY.KIND.SKILL, GameplayTags.ABILITY.FUNCTION.BUFF],
+          targetPolicy: { team: 'enemy', scope: 'single' },
+          effects: [
+            {
+              type: 'apply_buff',
+              params: {
+                target: 'target',
+                buffConfig: {
+                  id: 'resolution-marker',
+                  name: '结算标记',
+                  type: BuffType.DEBUFF,
+                  duration: 1,
+                  stackRule: StackRule.REFRESH_DURATION,
+                },
+              },
+            },
+          ],
+        }),
+      );
+      units[2].abilities.addAbility(
+        AbilityFactory.create({
+          slug: 'buff-add-resolution-listener',
+          name: '状态结算监听',
+          type: AbilityType.PASSIVE_SKILL,
+          tags: [GameplayTags.ABILITY.KIND.PASSIVE],
+          listeners: [
+            {
+              id: 'buff-add-resolution-listener',
+              eventType: GameplayTags.EVENT.BUFF_ADD,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+              mapping: { caster: 'owner', target: 'owner' },
+              triggerPolicy: { maxTriggers: 1, granularity: 'action' },
+              effects: [
+                {
+                  type: 'buff_duration_modify',
+                  params: { rounds: 1 },
+                },
+              ],
+            },
+          ],
+        }),
+      );
+    });
+
+    const result = resolveBattleRound(save, {
+      version: 'round_command_set_v1',
+      commandSetId: 'buff-add-resolution',
+      round: 1,
+      checkpointRevision: 0,
+      intents: {
+        a0: {
+          kind: 'ability',
+          abilityId: 'apply-resolution-marker',
+          targetUnitId: 'b0',
+          submittedBy: 'player',
+        },
+        a1: { kind: 'skip', submittedBy: 'timeout' },
+        b0: { kind: 'skip', submittedBy: 'timeout' },
+        b1: { kind: 'skip', submittedBy: 'timeout' },
+      },
+    });
+
+    const restored = restoreBattleSave(result.save);
+    expect(
+      restored.roster
+        .getUnit('b0')
+        .buffs.getAllBuffs()
+        .find((buff) => buff.id === 'resolution-marker')
+        ?.getDuration(),
+    ).toBe(2);
+    restored.runtime.dispose();
+  });
+
+  it('propagates action resolution to buff layer changes', () => {
+    const save = initialSave((units) => {
+      units[0].abilities.addAbility(
+        AbilityFactory.create({
+          slug: 'add-resolution-layer',
+          name: '增加结算层数',
+          type: AbilityType.ACTIVE_SKILL,
+          tags: [GameplayTags.ABILITY.KIND.SKILL, GameplayTags.ABILITY.FUNCTION.BUFF],
+          targetPolicy: { team: 'enemy', scope: 'single' },
+          effects: [
+            {
+              type: 'buff_layer_modify',
+              params: {
+                match: { id: 'resolution-layered-status' },
+                operation: 'add',
+                layers: 1,
+                target: 'target',
+              },
+            },
+          ],
+        }),
+      );
+      units[2].buffs.initializeBuff(
+        BuffFactory.create({
+          id: 'resolution-layered-status',
+          name: '结算层数状态',
+          type: BuffType.DEBUFF,
+          duration: 3,
+          stackRule: StackRule.STACK_LAYER,
+          maxLayers: 3,
+          listeners: [
+            {
+              id: 'layer-change-resolution-listener',
+              eventType: GameplayTags.EVENT.BUFF_LAYER_CHANGED,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+              mapping: { caster: 'event.source', target: 'owner' },
+              triggerPolicy: { maxTriggers: 1, granularity: 'action' },
+              effects: [
+                {
+                  type: 'buff_duration_modify',
+                  params: { rounds: 0 },
+                },
+              ],
+            },
+          ],
+        }),
+        units[0],
+      );
+    });
+
+    const result = resolveBattleRound(save, {
+      version: 'round_command_set_v1',
+      commandSetId: 'buff-layer-resolution',
+      round: 1,
+      checkpointRevision: 0,
+      intents: {
+        a0: {
+          kind: 'ability',
+          abilityId: 'add-resolution-layer',
+          targetUnitId: 'b0',
+          submittedBy: 'player',
+        },
+        a1: { kind: 'skip', submittedBy: 'timeout' },
+        b0: { kind: 'skip', submittedBy: 'timeout' },
+        b1: { kind: 'skip', submittedBy: 'timeout' },
+      },
+    });
+
+    const restored = restoreBattleSave(result.save);
+    expect(
+      restored.roster
+        .getUnit('b0')
+        .buffs.getAllBuffs()
+        .find((buff) => buff.id === 'resolution-layered-status')
+        ?.getLayer(),
+    ).toBe(2);
+    restored.runtime.dispose();
+  });
+
   it('is deterministic for the same checkpoint and sealed command set', () => {
     const save = initialSave();
     const commandSet = commands();

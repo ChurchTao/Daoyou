@@ -51,7 +51,7 @@ export const JIUJIE_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       name: '《天谴录》',
       description: '以天听辨行为，以劫簿记主罪。',
       growthProfile: {
-        curve: 'balanced',
+        curve: 'early',
         effects,
         durationMilestones,
         panelModifier: {
@@ -67,7 +67,7 @@ export const JIUJIE_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       name: '《雷狱镇魂》',
       description: '雷狱穿透护持，使天罚不为法障所蔽。',
       growthProfile: {
-        curve: 'late',
+        curve: 'balanced',
         effects,
         durationMilestones,
         panelModifier: {
@@ -125,7 +125,7 @@ export const JIUJIE_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       id: 'heaven-hearing',
       kind: 'active',
       baseName: '天听引雷',
-      description: '引天听落雷，在目标身上留下不可驱散的劫雷。',
+      description: '造成0.55倍法攻雷伤，并在目标身上留下不可驱散的劫雷。',
       role: 'generator',
       unlock: { type: 'method', methodId: 'jiujie-canon', level: 1 },
       mpCost: 80,
@@ -145,7 +145,7 @@ export const JIUJIE_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       id: 'calamity-seal',
       kind: 'active',
       baseName: '劫簿落印',
-      description: '为目标落印；目标已有劫雷时，额外增加一层劫债。',
+      description: '造成0.25倍法攻雷伤并落印；目标已有劫雷时，额外增加一层劫债。',
       role: 'generator',
       unlock: { type: 'method', methodId: 'heavenly-record', level: 1 },
       mpCost: 120,
@@ -155,7 +155,7 @@ export const JIUJIE_BASE_DEFINITION: SectDefinitionWithoutPaths = {
       id: 'thunder-prison-question',
       kind: 'active',
       baseName: '雷狱问行',
-      description: '追问目标仍在劫中的下一步，推进天罚。',
+      description: '造成0.65倍法攻雷伤，追问目标仍在劫中的下一步并推进天罚。',
       role: 'combo',
       unlock: { type: 'method', methodId: 'thunder-prison', level: 1 },
       mpCost: 140,

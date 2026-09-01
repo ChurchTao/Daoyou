@@ -4,11 +4,13 @@ import {
   getTalismanActionLabel,
   isAttributeResetTalisman,
   isQiRestoreTalisman,
+  isSectMeridianResetTalisman,
 } from '@app/components/feature/consumables';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton, InkList, InkNotice } from '@app/components/ui';
 import {
   isPillConsumable,
+  isSpiritFruitConsumable,
   isTalismanConsumable,
 } from '@shared/lib/consumables';
 import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
@@ -66,8 +68,10 @@ export function ConsumablesTab({
         const isTalisman = isTalismanConsumable(item);
         const isDirectlyUsable =
           isPillConsumable(item) ||
+          isSpiritFruitConsumable(item) ||
           isQiRestoreTalisman(item) ||
-          isAttributeResetTalisman(item);
+          isAttributeResetTalisman(item) ||
+          isSectMeridianResetTalisman(item);
         const scenarioHref = getTalismanActionHref(item);
         const scenarioActionLabel = getTalismanActionLabel(item);
         const canNavigateToScenario = Boolean(item.id && scenarioHref);

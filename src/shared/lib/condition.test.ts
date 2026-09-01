@@ -5,6 +5,7 @@ import type {
   CultivatorCondition,
 } from '@shared/types/condition';
 import {
+  getConditionStatusCureTargets,
   getNextConditionStatusExpiryMs,
   NATURAL_RECOVERY_CONFIG,
   projectNaturalRecoveryResources,
@@ -104,6 +105,17 @@ function project(
     now: new Date(options.now ?? '2026-01-01T01:00:00.000Z'),
   });
 }
+
+describe('getConditionStatusCureTargets', () => {
+  it.each([
+    ['minor_wound', ['minor_wound']],
+    ['major_wound', ['minor_wound', 'major_wound']],
+    ['near_death', ['minor_wound', 'major_wound', 'near_death']],
+    ['weakness', ['weakness']],
+  ] as const)('resolves %s cure targets', (status, expected) => {
+    expect(getConditionStatusCureTargets(status)).toEqual(expected);
+  });
+});
 
 describe('projectNaturalRecoveryResources', () => {
   it('projects one hour of base hp and mp recovery', () => {

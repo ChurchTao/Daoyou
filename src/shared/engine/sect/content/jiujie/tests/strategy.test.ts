@@ -188,9 +188,9 @@ describe('九劫天宫自动施法策略', () => {
   });
 
   it.each([
-    ['劫眼临身', JIUJIE_EYE_PATH_ID, 'bear-and-return'],
-    ['天谴加身', JIUJIE_CONDEMNATION_PATH_ID, 'record-and-judge'],
-  ] as const)('%s达到两点劫数后优先九霄清算', (_label, pathId, tacticId) => {
+    ['劫眼临身', JIUJIE_EYE_PATH_ID, 'close-the-eye'],
+    ['天谴加身', JIUJIE_CONDEMNATION_PATH_ID, 'listen-to-heaven'],
+  ] as const)('%s保守战术健康时保留两点劫数，三点时才优先九霄清算', (_label, pathId, tacticId) => {
     const battle = context(pathId, tacticId, (caster, opponent) => {
       caster.combatResources.set(JIUJIE_CALAMITY, 2);
       markThunder(opponent);
@@ -201,9 +201,53 @@ describe('九劫天宫自动施法策略', () => {
       pathId === JIUJIE_EYE_PATH_ID
         ? new JiujieEyeSelectionStrategy(tacticId)
         : new JiujieCondemnationSelectionStrategy(tacticId);
+    expect(strategy.select(battle)?.ability.id).not.toBe(
+      'sect.jiujie.nine-sky-settlement',
+    );
+
+    battle.caster.combatResources.set(JIUJIE_CALAMITY, 3);
     expect(strategy.select(battle)?.ability.id).toBe(
       'sect.jiujie.nine-sky-settlement',
     );
+  });
+
+  it.each([
+    ['劫眼临身', JIUJIE_EYE_PATH_ID, 'bear-and-return'],
+    ['天谴加身', JIUJIE_CONDEMNATION_PATH_ID, 'record-and-judge'],
+  ] as const)('%s默认进攻战术在两点劫数时立即清算', (_label, pathId, tacticId) => {
+    const battle = context(pathId, tacticId, (caster, opponent) => {
+      caster.combatResources.set(JIUJIE_CALAMITY, 2);
+      markThunder(opponent);
+      if (pathId === JIUJIE_EYE_PATH_ID) openEye(caster);
+    });
+    const strategy = pathId === JIUJIE_EYE_PATH_ID
+      ? new JiujieEyeSelectionStrategy(tacticId)
+      : new JiujieCondemnationSelectionStrategy(tacticId);
+    expect(strategy.select(battle)?.ability.id).toBe('sect.jiujie.nine-sky-settlement');
+  });
+
+  it.each([
+    ['劫眼临身', JIUJIE_EYE_PATH_ID, 'bear-and-return'],
+    ['天谴加身', JIUJIE_CONDEMNATION_PATH_ID, 'record-and-judge'],
+  ] as const)('%s在自身危急或目标濒危时会用两点劫数提前清算', (_label, pathId, tacticId) => {
+    const strategy = pathId === JIUJIE_EYE_PATH_ID
+      ? new JiujieEyeSelectionStrategy(tacticId)
+      : new JiujieCondemnationSelectionStrategy(tacticId);
+    const endangered = context(pathId, tacticId, (caster, opponent) => {
+      caster.combatResources.set(JIUJIE_CALAMITY, 2);
+      caster.setHp(Math.floor(caster.getMaxHp() * 0.35));
+      markThunder(opponent);
+      if (pathId === JIUJIE_EYE_PATH_ID) openEye(caster);
+    });
+    expect(strategy.select(endangered)?.ability.id).toBe('sect.jiujie.nine-sky-settlement');
+
+    const execute = context(pathId, tacticId, (caster, opponent) => {
+      caster.combatResources.set(JIUJIE_CALAMITY, 2);
+      opponent.setHp(Math.floor(opponent.getMaxHp() * 0.25));
+      markThunder(opponent);
+      if (pathId === JIUJIE_EYE_PATH_ID) openEye(caster);
+    });
+    expect(strategy.select(execute)?.ability.id).toBe('sect.jiujie.nine-sky-settlement');
   });
 
   it('闭目守劫仅在低血时消耗一点劫数换取护盾', () => {
@@ -237,15 +281,20 @@ describe('九劫天宫自动施法策略', () => {
     ).toBe('sect.jiujie.borrow-calamity');
   });
 
-  it('天谴两种起手分别遵守落印与天听偏好', () => {
+  it('天谴所有战术在目标没有劫雷时优先以天听引雷造成伤害并启动', () => {
     expect(
       new JiujieCondemnationSelectionStrategy('record-and-judge').select(
         context(JIUJIE_CONDEMNATION_PATH_ID, 'record-and-judge'),
       )?.ability.id,
-    ).toBe('sect.jiujie.calamity-seal');
+    ).toBe('sect.jiujie.heaven-hearing');
     expect(
       new JiujieCondemnationSelectionStrategy('listen-to-heaven').select(
         context(JIUJIE_CONDEMNATION_PATH_ID, 'listen-to-heaven'),
+      )?.ability.id,
+    ).toBe('sect.jiujie.heaven-hearing');
+    expect(
+      new JiujieCondemnationSelectionStrategy('heavy-statute').select(
+        context(JIUJIE_CONDEMNATION_PATH_ID, 'heavy-statute'),
       )?.ability.id,
     ).toBe('sect.jiujie.heaven-hearing');
   });

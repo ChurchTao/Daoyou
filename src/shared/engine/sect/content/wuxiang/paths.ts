@@ -6,7 +6,6 @@ import {
   type SectPathDefinitionWithoutNodes,
   type SectTacticId,
 } from '../../core';
-import { compileWuxiangPath } from './shared/compiler';
 import { WUXIANG_DEMON_PATH_ID, WUXIANG_MIRROR_PATH_ID } from './ids';
 import { WUXIANG_DEMON_NODES } from './paths/demon/nodes';
 import { WUXIANG_MIRROR_NODES } from './paths/mirror/nodes';
@@ -17,6 +16,7 @@ import {
   MIRROR_BUILD_FACADE,
   MirrorBuildFacade,
 } from './shared/buildFacades';
+import { compileWuxiangPath } from './shared/compiler';
 import {
   WuxiangDemonSelectionStrategy,
   WuxiangMirrorSelectionStrategy,
@@ -36,7 +36,7 @@ const mirrorDefinition: SectPathDefinitionWithoutNodes = {
       id: 'guard',
       name: '守镜',
       description:
-        '优先保持3层业痕与防守状态；达到5点心念后入魔，优先使用防御神通维持血线。',
+        '优先保持3层业痕与防守状态；3层业痕且达到3点心念，或达到5点心念后入魔，优先使用防御神通维持血线。',
     },
     {
       id: 'present',
@@ -101,26 +101,27 @@ const demonDefinition: SectPathDefinitionWithoutNodes = {
       id: 'trial-fire',
       name: '试火',
       description:
-        '达到3点心念且低于60%气血时入魔，优先防御神通与吸血窗口，避免继续无保护沉血。',
+        '达到3点心念且低于65%气血时入魔；危急时先以攻击吸血，再用防御神通稳住血线。',
     },
     {
       id: 'sink-boat',
       name: '沉舟',
       description:
-        '尽量积至5点心念并主动压至45%气血以下，入魔后优先连续使用攻击神通收束。',
+        '尽量积至5点心念并主动压至50%气血以下，入魔后优先连续使用攻击神通收束。',
     },
     {
       id: 'one-thought',
       name: '一念',
       description:
-        '优先积满6点心念使用无相；低于25%气血时允许以3点心念提前入魔自救。',
+        '优先积满6点心念使用无相；低于30%气血时允许以3点心念提前入魔自救。',
     },
   ],
   presentation: {
     highlights: [
       {
         name: '主动沉血',
-        description: '佛相支付当前气血施展神通，以真实代价换取心念。',
+        description:
+          '佛相支付当前气血施展神通，以真实代价换取心念；防御神通可积蓄更多心念。',
       },
       {
         name: '两息渡厄',
@@ -147,7 +148,7 @@ const demonDefinition: SectPathDefinitionWithoutNodes = {
       'reed-crossing':
         '佛相获得护盾与下一击减伤；魔相进一步强化两者；无相在濒危时恢复气血。',
       'turn-form':
-        '3～5点心念可进入魔相两式并获得渡厄护体；6点心念可使下一门神通显化无相。',
+        '3～5点心念可无额外气血成本进入魔相两式并获得渡厄护体与护盾；6点心念可支付少量气血使下一门神通显化无相。',
     },
   },
 };

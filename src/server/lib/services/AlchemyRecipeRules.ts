@@ -268,7 +268,6 @@ export function buildAlchemyBatchProfile(
   >,
   options: {
     formulaFitBand?: FormulaFitBand;
-    formulaFitScore?: number;
     materialJudgments?: FormulaMaterialJudgment[];
   } = {},
 ): AlchemyBatchProfile {
@@ -304,10 +303,7 @@ export function buildAlchemyBatchProfile(
         options.materialJudgments.length) *
       0.18
     : 0;
-  const fitScoreBonus =
-    options.formulaFitBand === 'aligned'
-      ? Math.min(0.18, (options.formulaFitScore ?? 0) * 0.18)
-      : 0;
+  const fitScoreBonus = options.formulaFitBand === 'aligned' ? 0.18 : 0;
   const synergyScore = roundScore(
     sameRouteScore * 0.68 +
       complementaryScore +
@@ -519,25 +515,6 @@ export function synthesizeAlchemyFromPlan(
     family,
     batchProfile,
   };
-}
-
-export function calculatePropertyVectorFit(
-  currentVector: WeightedAlchemyProperty[],
-  blueprintVector: WeightedAlchemyProperty[],
-): number {
-  const currentMap = new Map(
-    currentVector.map((property) => [property.key, property.weight]),
-  );
-
-  return Number(
-    blueprintVector
-      .reduce(
-        (sum, property) =>
-          sum + Math.min(currentMap.get(property.key) ?? 0, property.weight),
-        0,
-      )
-      .toFixed(4),
-  );
 }
 
 export function buildAlchemyPropertyTags(

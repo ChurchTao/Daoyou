@@ -1,0 +1,97 @@
+name: 提交服务器加入「万界」
+description: 申请将基于《万界道友》开源部署的服务器收录到 README「万界」名录
+title: "[万界申请] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你为《万界道友》开辟新的世界。请完整填写以下信息；审核通过后，维护者会将服务器加入 README「万界」名录。
+
+        收录是社区索引，不代表《万界道友》官方为服务器的安全性、可用性、内容或运营行为背书。
+
+  - type: input
+    id: world-name
+    attributes:
+      label: 界名
+      description: 请填写 2–5 个汉字，不得冒充官方或与已收录界名混淆。
+      placeholder: 例如：青云界
+    validations:
+      required: true
+
+  - type: input
+    id: website-url
+    attributes:
+      label: 网站入口
+      description: 请提供玩家可以公开访问的 HTTPS 地址。
+      placeholder: https://example.com
+    validations:
+      required: true
+
+  - type: input
+    id: source-url
+    attributes:
+      label: 源代码地址
+      description: 必须是与当前部署版本对应、无需授权即可访问的完整源代码仓库。
+      placeholder: https://github.com/owner/repository
+    validations:
+      required: true
+
+  - type: textarea
+    id: features
+    attributes:
+      label: 特色描述
+      description: 请简要介绍世界观、特色玩法或相较上游的主要改动，这段内容可能被精简后写入 README。
+      placeholder: 请用 50–200 字介绍你的服务器。
+    validations:
+      required: true
+
+  - type: input
+    id: maintainer
+    attributes:
+      label: 维护者及联系方式
+      description: 请提供 GitHub 用户名，或其他可公开联系到服务器维护者的方式。
+      placeholder: "@username / contact@example.com"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: monetization
+    attributes:
+      label: 付费或广告
+      description: 服务器当前是否包含充值、赞助换取权益、付费服务或广告？
+      options:
+        - 不包含
+        - 包含（请在补充说明中说明）
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data-collection
+    attributes:
+      label: 用户数据收集
+      description: 除维持账号和游戏运行所必需的数据外，是否收集其他用户信息？
+      options:
+        - 不收集额外信息
+        - 收集（请在补充说明中说明用途和隐私政策）
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-information
+    attributes:
+      label: 补充说明
+      description: 如存在付费、广告、额外数据收集、访问地区限制或其他需要审核者了解的事项，请在此说明。
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: 提交确认
+      options:
+        - label: 我确认当前部署版本的完整源代码可公开访问，并保留了上游项目署名及许可证声明。
+          required: true
+        - label: 我确认网站当前可以公开访问，所提交的信息真实、准确。
+          required: true
+        - label: 我确认该服务器不会冒充《万界道友》官方服务器。
+          required: true
+        - label: 我理解服务器长期不可访问、源代码停止公开或违反收录规则时，可能被移出「万界」名录。
+          required: true

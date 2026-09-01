@@ -48,6 +48,18 @@ function setup(pathId: string = JIUJIE_EYE_PATH_ID, nodeIds: string[] = []) {
   return { owner, enemy, skill, projection };
 }
 
+function pureSupportSkill(owner: Unit): ActiveSkill {
+  const result = AbilityFactory.create({
+    slug: 'test.jiujie-pure-support',
+    name: '测试纯增益神通',
+    type: AbilityType.ACTIVE_SKILL,
+    tags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effects: [],
+  }) as ActiveSkill;
+  result.setOwner(owner);
+  return result;
+}
+
 let testResolutionSequence = 0;
 
 function resolution(caster: Unit, target: Unit, ability: ActiveSkill) {
@@ -241,6 +253,23 @@ describe('九劫天宫核心战斗语义', () => {
     expect(enemy.tags.hasTag('Buff.Sect.jiujie.thunder')).toBe(true);
   });
 
+  it('劫眼首次承受直接伤害时以0.15倍法攻反击', () => {
+    const config = resolveSectAbility({
+      sect: state(JIUJIE_EYE_PATH_ID), realm: '化神', abilityId: 'receive-calamity',
+    }).config;
+    const eye = config.effects?.find((effect) =>
+      effect.type === 'apply_buff' && effect.params.buffConfig.id === JIUJIE_EYE);
+    const firstHit = eye?.type === 'apply_buff'
+      ? eye.params.buffConfig.listeners?.find((listener) => listener.id === 'jiujie.eye.mark-attacker')
+      : undefined;
+    const counter = firstHit?.effects.find((effect) => effect.type === 'damage');
+    expect(counter).toMatchObject({
+      type: 'damage',
+      params: { damageType: DamageType.MAGICAL, damageSource: DamageSource.COUNTER },
+    });
+    expect(counter?.type === 'damage' && counter.params.value.coefficient).toBeCloseTo(0.15, 2);
+  });
+
   it('借劫续门只把已有劫眼与承天受劫各延长一回合', () => {
     const { owner, skill } = setup(JIUJIE_EYE_PATH_ID, ['eye-return']);
     expect(resolveSectAbility({
@@ -279,7 +308,7 @@ describe('九劫天宫核心战斗语义', () => {
     const requests: DamageSegmentRequestedEvent[] = [];
     EventBus.instance.subscribe<DamageSegmentRequestedEvent>('DamageSegmentRequestedEvent', (event) => requests.push(event));
     cast(eye.skill('nine-sky-settlement'), eye.owner, eye.enemy);
-    expect(requests.find((event) => event.damageSource === DamageSource.FOLLOW_UP)?.baseDamage).toBe(14);
+    expect(requests.find((event) => event.damageSource === DamageSource.FOLLOW_UP)?.baseDamage).toBe(20);
     expect(getBattleRuntimeState(eye.owner).memories.has(JIUJIE_EYE)).toBe(false);
 
     EventBus.instance.reset();
@@ -349,8 +378,8 @@ describe('九劫天宫核心战斗语义', () => {
     const config = resolveSectAbility({ sect: state(), realm: '化神', abilityId: 'nine-sky-settlement' }).config;
     expect(config.castConditions).toEqual(expect.arrayContaining([{ type: 'has_tag', params: expect.objectContaining({ scope: 'target' }) }]));
     const settlements = config.effects?.filter((effect) => effect.type === 'consume_status_trigger') ?? [];
-    expect(settlements.find((effect) => effect.type === 'consume_status_trigger' && effect.params.match.id === JIUJIE_DEBT)).toMatchObject({ params: { scaleEffectsByLayer: true, consume: 'all' } });
-    expect(settlements.find((effect) => effect.type === 'consume_status_trigger' && effect.params.match.id === JIUJIE_REOFFEND)).toMatchObject({ params: { scaleEffectsByLayer: true, consume: 'all' } });
+    expect(settlements.find((effect) => effect.type === 'consume_status_trigger' && effect.params.match.id === JIUJIE_DEBT)).toMatchObject({ params: { aggregateDamageByLayer: true, consume: 'all' } });
+    expect(settlements.find((effect) => effect.type === 'consume_status_trigger' && effect.params.match.id === JIUJIE_REOFFEND)).toMatchObject({ params: { aggregateDamageByLayer: true, consume: 'all' } });
     expect(projection.resources[0].max).toBe(3);
     void skill;
   });
@@ -367,8 +396,7 @@ describe('九劫天宫核心战斗语义', () => {
     publishSkill(enemy, owner, active);
     expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === JIUJIE_SIN_DAMAGE)).toBeDefined();
     expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === JIUJIE_REOFFEND)?.getLayer()).toBe(1);
-    const support = skill('calamity-seal');
-    support.setOwner(enemy);
+    const support = pureSupportSkill(enemy);
     beginRuntimeAction(enemy);
     publishSkill(enemy, owner, support);
     expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === JIUJIE_SIN_DAMAGE)).toBeUndefined();
@@ -378,8 +406,7 @@ describe('九劫天宫核心战斗语义', () => {
   it('天谴加身将纯增益主动行为记录为扶持主罪', () => {
     const { owner, enemy, skill } = setup(JIUJIE_CONDEMNATION_PATH_ID);
     cast(skill('heaven-hearing'), owner, enemy);
-    const support = skill('calamity-seal');
-    support.setOwner(enemy);
+    const support = pureSupportSkill(enemy);
     beginRuntimeAction(enemy);
     publishSkill(enemy, owner, support);
     expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === JIUJIE_SIN_SUPPORT)).toBeDefined();
@@ -398,6 +425,53 @@ describe('九劫天宫核心战斗语义', () => {
     publishSkill(enemy, owner, basic);
     expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === JIUJIE_THUNDER)?.getDuration()).toBe(4);
     expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === JIUJIE_DEBT)?.getLayer()).toBe(1);
+    expect(owner.combatResources.getCurrent(JIUJIE_CALAMITY)).toBe(1);
+  });
+
+  it('天谴加身每两次连续普攻获得1点劫数，基础规则不增加劫债', () => {
+    const { owner, enemy, skill, projection } = setup(JIUJIE_CONDEMNATION_PATH_ID);
+    cast(skill('heaven-hearing'), owner, enemy);
+    const basic = AbilityFactory.create(projection.defaultAttack!) as ActiveSkill;
+    basic.setOwner(enemy);
+
+    publishSkill(enemy, owner, basic);
+    expect(owner.combatResources.getCurrent(JIUJIE_CALAMITY)).toBe(0);
+    publishSkill(enemy, owner, basic);
+    expect(owner.combatResources.getCurrent(JIUJIE_CALAMITY)).toBe(1);
+    expect(enemy.buffs.getAllBuffs().find((buff) => buff.id === JIUJIE_DEBT)).toBeUndefined();
+  });
+
+  it('非普攻行动与劫雷移除会重置天谴普攻计数', () => {
+    const { owner, enemy, skill, projection } = setup(JIUJIE_CONDEMNATION_PATH_ID);
+    cast(skill('heaven-hearing'), owner, enemy);
+    const basic = AbilityFactory.create(projection.defaultAttack!) as ActiveSkill;
+    basic.setOwner(enemy);
+    const support = pureSupportSkill(enemy);
+
+    publishSkill(enemy, owner, basic);
+    publishSkill(enemy, owner, support);
+    expect(owner.combatResources.getCurrent(JIUJIE_CALAMITY)).toBe(1);
+    publishSkill(enemy, owner, basic);
+    expect(owner.combatResources.getCurrent(JIUJIE_CALAMITY)).toBe(1);
+
+    enemy.buffs.removeBuff(JIUJIE_THUNDER);
+    cast(skill('heaven-hearing'), owner, enemy);
+    publishSkill(enemy, owner, basic);
+    expect(owner.combatResources.getCurrent(JIUJIE_CALAMITY)).toBe(1);
+  });
+
+  it('九霄清算后天谴普攻计数从零开始', () => {
+    const { owner, enemy, skill, projection } = setup(JIUJIE_CONDEMNATION_PATH_ID);
+    cast(skill('heaven-hearing'), owner, enemy);
+    const basic = AbilityFactory.create(projection.defaultAttack!) as ActiveSkill;
+    basic.setOwner(enemy);
+    publishSkill(enemy, owner, basic);
+
+    owner.combatResources.set(JIUJIE_CALAMITY, 2);
+    cast(skill('nine-sky-settlement'), owner, enemy);
+    cast(skill('heaven-hearing'), owner, enemy);
+    publishSkill(enemy, owner, basic);
+    expect(owner.combatResources.getCurrent(JIUJIE_CALAMITY)).toBe(0);
   });
 
   it.each([
@@ -405,11 +479,11 @@ describe('九劫天宫核心战斗语义', () => {
     ['eye-true-record', 'eye-heavenly-shield', 0.45, DamageType.TRUE, false, true],
     ['eye-true-record', 'eye-calamity-without-end', 0.45, DamageType.TRUE, false, false],
     ['eye-returning-law', 'eye-nine-gates', 1.00, DamageType.MAGICAL, true, false],
-    ['eye-returning-law', 'eye-heavenly-shield', 0.35, DamageType.MAGICAL, true, true],
-    ['eye-returning-law', 'eye-calamity-without-end', 0.35, DamageType.MAGICAL, true, false],
+    ['eye-returning-law', 'eye-heavenly-shield', 0.50, DamageType.MAGICAL, true, true],
+    ['eye-returning-law', 'eye-calamity-without-end', 0.50, DamageType.MAGICAL, true, false],
     ['eye-after-rain', 'eye-nine-gates', 1.00, DamageType.MAGICAL, false, false],
-    ['eye-after-rain', 'eye-heavenly-shield', 0.35, DamageType.MAGICAL, false, true],
-    ['eye-after-rain', 'eye-calamity-without-end', 0.35, DamageType.MAGICAL, false, false],
+    ['eye-after-rain', 'eye-heavenly-shield', 0.50, DamageType.MAGICAL, false, true],
+    ['eye-after-rain', 'eye-calamity-without-end', 0.50, DamageType.MAGICAL, false, false],
   ] as const)('劫眼第五层%s与终极层%s按既定顺序兑现承劫记忆', (
     fifthNode, ultimateNode, damageRatio, damageType, heals, shields,
   ) => {
@@ -493,9 +567,8 @@ describe('九劫天宫核心战斗语义', () => {
     expect(owner.combatResources.getCurrent(JIUJIE_CALAMITY)).toBe(
       ultimateNode === 'condemnation-final-verdict' ? 1 : 0,
     );
-    expect(requests.filter((event) => event.damageType === DamageType.DOT)).toHaveLength(
-      fifthNode === 'condemnation-reoffend' ? 2 : 0,
-    );
+    expect(requests.filter((event) => event.damageType === DamageType.DOT)).toHaveLength(0);
+    expect(requests.length).toBeLessThanOrEqual(4);
     expect(enemy.buffs.getAllBuffIds().includes(JIUJIE_SIN_DAMAGE)).toBe(
       fifthNode === 'condemnation-clear-book',
     );

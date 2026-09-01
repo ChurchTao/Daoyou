@@ -8,6 +8,10 @@ export const TALISMAN_SCENARIO_OPTIONS = [
     label: '欺天符·无损转宗',
   },
   {
+    value: 'sect_meridian_reset',
+    label: '洗脉符·流派节点重置',
+  },
+  {
     value: 'fate_reshape',
     label: '天机逆命·命格重塑',
   },

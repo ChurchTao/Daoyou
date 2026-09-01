@@ -26,7 +26,12 @@ import type {
   SectContextData,
   SectTransferPreviewData,
 } from '@shared/contracts/sect';
-import { buildSectTransferPlan, type SectRuntime } from '@shared/engine/sect';
+import {
+  buildSectTransferPlan,
+  resolveSectTaskClaimReward,
+  SectTaskRecordPayloadSchema,
+  type SectRuntime,
+} from '@shared/engine/sect';
 import type { Consumable } from '@shared/types/cultivator';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { getSectDateKey, getSectWeekKey } from './SectOrganizationClock';
@@ -107,6 +112,7 @@ async function inspectTasks(
       periodKey: sectTaskRecords.periodKey,
       status: sectTaskRecords.status,
       claimedAt: sectTaskRecords.claimedAt,
+      payload: sectTaskRecords.payload,
     })
     .from(sectTaskRecords)
     .where(eq(sectTaskRecords.membershipId, membershipId));
@@ -120,10 +126,31 @@ async function inspectTasks(
   return {
     activeTaskCount: currentRows.filter((row) => row.status === 'active')
       .length,
-    hasClaimableTasks: currentRows.some(
-      (row) => row.status === 'completed' && !row.claimedAt,
-    ),
+    hasClaimableTasks: currentRows.some((row) => {
+      if (row.status !== 'completed' || row.claimedAt) return false;
+      const payload = SectTaskRecordPayloadSchema.safeParse(row.payload);
+      if (!payload.success) return true;
+      return Boolean(resolveSectTaskClaimReward(payload.data));
+    }),
   };
+}
+
+async function clearSectProgress(
+  membershipId: string,
+  tx: DbTransaction,
+) {
+  await tx
+    .delete(sectAbilityLoadouts)
+    .where(eq(sectAbilityLoadouts.membershipId, membershipId));
+  await tx
+    .delete(sectMeridianLoadouts)
+    .where(eq(sectMeridianLoadouts.membershipId, membershipId));
+  await tx
+    .delete(sectPathProgress)
+    .where(eq(sectPathProgress.membershipId, membershipId));
+  await tx
+    .delete(sectMethodProgress)
+    .where(eq(sectMethodProgress.membershipId, membershipId));
 }
 
 export async function previewSectTransfer(args: {
@@ -218,42 +245,13 @@ export async function executeSectTransfer(args: {
     args.targetSectId,
     args.tx,
   );
-  if (existingTarget && existingTarget.status !== 'prospect')
+  if (existingTarget?.status === 'active')
     throw new SectError(
       'SECT_ORGANIZATION_INVALID',
-      '目标宗门已有历史传承，欺天符不能覆盖既有玉牒',
+      '目标宗门玉牒已经处于启用状态',
       409,
     );
-  if (existingTarget) {
-    const [methods, paths, meridians, abilities] = await Promise.all([
-      args.tx
-        .select({ id: sectMethodProgress.id })
-        .from(sectMethodProgress)
-        .where(eq(sectMethodProgress.membershipId, existingTarget.id))
-        .limit(1),
-      args.tx
-        .select({ id: sectPathProgress.id })
-        .from(sectPathProgress)
-        .where(eq(sectPathProgress.membershipId, existingTarget.id))
-        .limit(1),
-      args.tx
-        .select({ id: sectMeridianLoadouts.id })
-        .from(sectMeridianLoadouts)
-        .where(eq(sectMeridianLoadouts.membershipId, existingTarget.id))
-        .limit(1),
-      args.tx
-        .select({ id: sectAbilityLoadouts.id })
-        .from(sectAbilityLoadouts)
-        .where(eq(sectAbilityLoadouts.membershipId, existingTarget.id))
-        .limit(1),
-    ]);
-    if (methods.length || paths.length || meridians.length || abilities.length)
-      throw new SectError(
-        'SECT_ORGANIZATION_INVALID',
-        '目标宗门已有修行进度，欺天符不能覆盖既有传承',
-        409,
-      );
-  }
+  if (existingTarget) await clearSectProgress(existingTarget.id, args.tx);
 
   await args.tx
     .update(sectTaskRecords)

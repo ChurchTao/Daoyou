@@ -39,7 +39,7 @@ const tideDefinition: SectPathDefinitionWithoutNodes = {
     ],
     abilityChanges: {
       'forgetful-river-tide': '忘川在至少3层蚀魂目标上提高20%持续魂伤，并能从每回合首次有效潮伤中获得魂火。',
-      'soul-shall-not-return': '节点可强化逐层魂伤、保留蚀魂或在终结后续接忘川。',
+      'soul-shall-not-return': '节点可强化逐层魂伤、保留蚀魂、留存魂火或在终结后续接忘川。',
     },
   },
 };
@@ -53,7 +53,7 @@ const decreeDefinition: SectPathDefinitionWithoutNodes = {
   defaultTacticId: 'pin-the-caster',
   tactics: [
     { id: 'pin-the-caster', name: '钉法者', description: '优先照影并压制敌方术者，在关键窗口镇魂。' },
-    { id: 'judge-at-four', name: '四层判决', description: '集中单一目标，达到四层立即终结。' },
+    { id: 'judge-at-four', name: '四层判决', description: '集中单一目标，达到终结要求立即裁决；司命判词可提前到三层。' },
     { id: 'take-the-fifth', name: '取其第五', description: '优先触发失魂，再在归窍窗口储存魂火。' },
   ],
   presentation: {
@@ -63,9 +63,9 @@ const decreeDefinition: SectPathDefinitionWithoutNodes = {
       { name: '镇魄裁断', description: '在四层抉择控制、失魂或终结。' },
     ],
     abilityChanges: {
-      'reveal-shadow': '自身对照影目标造成魂伤时，每层蚀魂额外提高1%。',
+      'reveal-shadow': '成功施加照影时获得1点魂火；自身对照影目标造成魂伤时，每层蚀魂额外提高1%。',
       'pin-soul': '节点可强化高层镇魂的命中、速度压制与法力效率。',
-      'soul-shall-not-return': '节点可强化基础与逐层魂伤，并提供裁决后的资源回转。',
+      'soul-shall-not-return': '节点可强化逐层魂伤、把最低终结层数提前到3层，并提供裁决后的资源回转。',
     },
   },
 };

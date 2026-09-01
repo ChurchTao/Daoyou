@@ -133,16 +133,6 @@ export function DungeonExploring({
                         : '稳健'}
                   </InkTag>
                 </div>
-                {option.requirement ? (
-                  <div className="text-crimson mt-2 text-sm">
-                    需: {option.requirement}
-                  </div>
-                ) : null}
-                {option.potential_cost ? (
-                  <div className="text-ink-secondary mt-1 text-sm">
-                    提示: {option.potential_cost}
-                  </div>
-                ) : null}
                 <OptionCostPreview costs={costs} />
               </InkChoiceButton>
             );

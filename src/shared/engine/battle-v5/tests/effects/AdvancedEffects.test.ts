@@ -163,6 +163,35 @@ describe('Advanced battle effects', () => {
     expect(requests[0].baseDamage).toBe(20);
   });
 
+  it('combines layer-scaled status damage into one segment', () => {
+    const caster = createUnit('caster');
+    const target = createUnit('target');
+    const mark = new Buff('aggregate_mark', '聚合印记', BuffType.DEBUFF, 3, StackRule.STACK_LAYER);
+    mark.setLayer(3);
+    target.buffs.addBuff(mark, caster);
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
+      (event) => requests.push(event),
+    );
+
+    executeTestEffect(
+      new ConsumeStatusTriggerEffect({
+        match: { id: 'aggregate_mark' },
+        consume: 'all',
+        aggregateDamageByLayer: true,
+        effects: [{
+          type: 'damage',
+          params: { value: { base: 20, attribute: AttributeType.MAGIC_ATK, coefficient: 0 } },
+        }],
+      }),
+      { caster, target },
+    );
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0].baseDamage).toBe(60);
+  });
+
   it('consume status trigger commits one final consumed status fact', () => {
     const caster = createUnit('caster');
     const target = createUnit('target');

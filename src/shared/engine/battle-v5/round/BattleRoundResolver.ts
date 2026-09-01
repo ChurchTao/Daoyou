@@ -43,7 +43,10 @@ import { CombatSystemSourceV3 } from '../v3/origin';
 import { resolveLegalBasicAttack } from './BasicAttackResolver';
 import { recordBattleEnd } from './BattleLifecycleResolver';
 import { BattleResolutionContext } from './BattleResolutionContext';
-import { createHitResolution } from '../core/resolution';
+import {
+  createHitResolution,
+  type CombatResolutionContext,
+} from '../core/resolution';
 import { resolveLegalQueuedAction } from './QueuedActionResolver';
 import type {
   BattleActionIntentV1,
@@ -248,7 +251,7 @@ function resolveRestoredBattleRound(
               controlledSkip,
               actor.getCurrentShield() > 0,
             );
-            processBuffDurations(actor, 'owner_action');
+            processBuffDurations(actor, 'owner_action', actionResolution);
             actor.abilities.tickAbilitiesCooldown();
           }
           stateRecorder.record(
@@ -271,7 +274,7 @@ function resolveRestoredBattleRound(
         turn: round,
       });
       for (const unit of allUnits) {
-        processBuffDurations(unit, 'round');
+        processBuffDurations(unit, 'round', roundResolution);
       }
       stateRecorder.record('round_post', round, allUnits, undefined, sequence.id);
       outcome = TeamVictorySystem.check(roster, runtime.random, round);
@@ -688,6 +691,7 @@ function validateRoundCommandSet(
 function processBuffDurations(
   unit: Unit,
   durationUnit: 'owner_action' | 'round',
+  resolution: CombatResolutionContext,
 ): void {
   for (const buff of unit.buffs.getAllBuffs()) {
     if (!unit.isAlive()) break;
@@ -697,6 +701,7 @@ function processBuffDurations(
     if (buff.isExpired()) {
       unit.buffs.removeBuffExpired(buff.id, {
         trace: unit.runtime.events.reserveTrace(),
+        resolution,
       });
     }
   }

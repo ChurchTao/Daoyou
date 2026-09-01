@@ -173,17 +173,33 @@ export class YouduDecreeSelectionStrategy extends YouduSelectionStrategy {
 
     if (this.tacticId === 'pin-the-caster') {
       if (!hasShadow) {
-        return this.pick(context, ['reveal-shadow', 'soul-severing-call'], 800);
+        return this.pick(
+          context,
+          ['reveal-shadow', 'soul-severing-call', 'seize-soul', 'one-sigh'],
+          800,
+        );
       }
       if (hasImminentControlOrHealing(context)) {
-        return this.pick(context, ['pin-soul', 'soul-severing-call'], 810);
+        return this.pick(
+          context,
+          ['pin-soul', 'soul-severing-call', 'seize-soul', 'one-sigh'],
+          810,
+        );
       }
       if (erosion >= 4 && (fire >= 3 || targetHp < 0.45)) {
         return this.pick(context, ['soul-shall-not-return', 'pin-soul'], 820);
       }
     }
-    if (this.tacticId === 'judge-at-four' && erosion >= 4) {
-      return this.pick(context, ['soul-shall-not-return', 'pin-soul'], 820);
+    if (this.tacticId === 'judge-at-four' && erosion >= 3) {
+      const finisher = this.pickOnly(context, ['soul-shall-not-return'], 820);
+      if (finisher) return this.cast(finisher);
+      if (erosion >= 4) {
+        return this.pick(
+          context,
+          ['pin-soul', 'seize-soul', 'one-sigh'],
+          810,
+        );
+      }
     }
     if (this.tacticId === 'take-the-fifth') {
       if (erosion < 5) {
@@ -199,8 +215,8 @@ export class YouduDecreeSelectionStrategy extends YouduSelectionStrategy {
       return this.pick(
         context,
         fire >= 3
-          ? ['soul-shall-not-return', 'pin-soul']
-          : ['pin-soul', 'soul-shall-not-return'],
+          ? ['soul-shall-not-return', 'pin-soul', 'seize-soul', 'one-sigh']
+          : ['pin-soul', 'soul-shall-not-return', 'seize-soul', 'one-sigh'],
         790,
       );
     }

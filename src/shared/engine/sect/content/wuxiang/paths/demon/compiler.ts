@@ -14,6 +14,7 @@ export function compileDemonAbilities(
   api: WuxiangCompilerApi,
 ): Record<string, SectCompiledAbility> {
   const {
+    DEMON_FIRST_THOUGHT,
     WUXIANG_DEMON_PATH_ID,
     buff,
     clearBuff,
@@ -33,6 +34,22 @@ export function compileDemonAbilities(
   const cDone = () => demonCompletion(features, 'formless');
   const first = (target: 'enemy' | 'self'): EffectConfig[] =>
     features.demonFirstThought ? [firstThoughtBonus(target)] : [];
+  const firstThoughtStrike = (coefficient: number): EffectConfig[] =>
+    features.demonFirstThought
+      ? [
+          {
+            type: 'consume_status_trigger',
+            params: {
+              match: { id: DEMON_FIRST_THOUGHT },
+              displayName: '第一念',
+              consume: 1,
+              target: 'caster',
+              effects: [physical(coefficient + 0.35)],
+              fallbackEffects: [physical(coefficient)],
+            },
+          },
+        ]
+      : [physical(coefficient)];
   const heartBonus = features.demonHeartGapBonus;
   const flower = layeredAbility({
     id: 'flower-heart',
@@ -40,12 +57,12 @@ export function compileDemonAbilities(
     cost: 0.06,
     target: 'enemy',
     features,
-    effects: [physical(0.6)],
+    effects: [physical(0.65)],
     completionEffects: [heartGap(heartBonus)],
     demonName: '摘心问魔',
     demonDescription:
       '先叩心伤敌并留下心隙，再以摘心重击追袭；施展后，目标额外获得1层心隙。',
-    demonEffects: [...first('enemy'), physical(0.35)],
+    demonEffects: [...first('enemy'), physical(0.5)],
     demonCompletionEffects: [heartGap(heartBonus), ...bDone()],
     formlessName: '心魔两忘',
     formlessDescription:
@@ -113,26 +130,21 @@ export function compileDemonAbilities(
     cost: 0.09,
     target: 'enemy',
     features,
-    effects: [
-      physical(0.25),
-      physical(0.25),
-      physical(0.25),
-      physical(0.25, lowCondition),
-    ],
+    effects: [physical(0.84), physical(0.28, lowCondition)],
     demonName: '三叩魔关',
     demonDescription: '完成三叩后，再以一记重击强渡魔关。',
-    demonEffects: [...first('enemy'), physical(0.45)],
+    demonEffects: firstThoughtStrike(0.6),
     demonCompletionEffects: bDone(),
     formlessName: '业门无生',
     formlessDescription:
-      '三叩与魔关一并出手；自身气血低于35%时，再发动一记必定暴击的无生之击。',
+      '三叩与魔关一并出手；自身气血低于40%时，再发动一记必定暴击的无生之击。',
     formlessEffects: [
       physical(
         features.demonOneFurnace ? 0.85 : 0.65,
         [
           {
             type: 'hp_below',
-            params: { scope: 'caster', value: 0.35, timing: 'cast' },
+            params: { scope: 'caster', value: 0.4, timing: 'cast' },
           },
         ],
         { forceCritical: true },

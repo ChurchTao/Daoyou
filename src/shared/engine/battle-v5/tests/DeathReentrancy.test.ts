@@ -100,6 +100,40 @@ function addDeathPreventThenSelfDamage(unit: Unit): void {
   );
 }
 
+function addLethalWindowCounter(unit: Unit): void {
+  unit.abilities.addAbility(
+    AbilityFactory.create({
+      slug: 'lethal-window-counter',
+      name: '绝命反击',
+      type: AbilityType.PASSIVE_SKILL,
+      tags: [
+        GameplayTags.ABILITY.FUNCTION.DAMAGE,
+        GameplayTags.ABILITY.CHANNEL.TRUE,
+      ],
+      listeners: [
+        {
+          eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+          scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+          priority: 50,
+          guard: { requireOwnerAlive: false, allowLethalWindow: true },
+          mapping: { caster: 'owner', target: 'event.caster' },
+          effects: [
+            {
+              type: 'damage',
+              params: {
+                value: { base: 20, coefficient: 0 },
+                damageType: DamageType.TRUE,
+                canCrit: false,
+                damageSource: 'counter',
+              },
+            },
+          ],
+        },
+      ],
+    }),
+  );
+}
+
 describe('unit_died re-entrancy', () => {
   it('commits exactly one unit_died when lethal self damage re-enters the death window', () => {
     const runtime = new BattleRuntime({
@@ -126,6 +160,37 @@ describe('unit_died re-entrancy', () => {
       (death) => death.target.id === defender.id,
     );
     expect(defenderDeaths).toHaveLength(1);
+    runtime.dispose();
+  });
+
+  it('does not settle a queued owned reaction after its owner dies', () => {
+    const runtime = new BattleRuntime({
+      random: new SeededBattleRandomSource('dead-owner-reaction'),
+    });
+    const attacker = createUnit(runtime, 'attacker', '攻击者', 500, 'alpha');
+    const defender = createUnit(runtime, 'defender', '防守者', 30, 'beta');
+    addLethalHit(attacker, 100);
+    addLethalWindowCounter(defender);
+
+    const result = resolveBattleToCompletion({
+      battleId: 'dead-owner-reaction',
+      roster: BattleRoster.fromDuel(attacker, defender),
+      runtime,
+    });
+    const facts = result.sequences.flatMap((sequence) => sequence.facts);
+    const death = facts.find(
+      (fact) => fact.type === 'unit_died' && fact.target.id === defender.id,
+    );
+
+    expect(death).toBeDefined();
+    expect(
+      facts.some(
+        (fact) =>
+          fact.origin.kind === 'owned' &&
+          fact.origin.owner.id === defender.id &&
+          fact.trace.ordinal > death!.trace.ordinal,
+      ),
+    ).toBe(false);
     runtime.dispose();
   });
 });

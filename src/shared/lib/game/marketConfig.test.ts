@@ -20,6 +20,11 @@ describe('marketConfig display helpers', () => {
       'ore',
       'tcdb',
     ]);
+    expect(getDominantMarketMaterialTypes('TN_BAICAO_01')).toEqual([
+      'seed',
+      'herb',
+      'aux',
+    ]);
   });
 
   it('returns enabled market node switch options', () => {
@@ -29,11 +34,18 @@ describe('marketConfig display helpers', () => {
     expect(ids).toContain('TN_YUE_01');
     expect(ids).toContain('LX_INNER_01');
     expect(ids).toContain('DJ_CENTRAL_01');
+    expect(ids).toContain('TN_BAICAO_01');
     expect(ids).not.toContain('TN_YUE_02');
     expect(options.find((option) => option.id === 'DJ_CENTRAL_01')).toMatchObject({
       name: '大晋·晋京',
       region: '大晋',
       dominantMaterialTypes: ['tcdb', 'ore', 'aux'],
+    });
+    expect(options.find((option) => option.id === 'TN_BAICAO_01')).toMatchObject({
+      name: '天南·百草集',
+      region: '天南',
+      allowedLayers: ['common', 'treasure', 'heaven'],
+      dominantMaterialTypes: ['seed', 'herb', 'aux'],
     });
   });
 

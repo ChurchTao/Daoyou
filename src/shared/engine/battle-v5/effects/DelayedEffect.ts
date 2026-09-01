@@ -104,7 +104,11 @@ export class DelayedRuntimeBuff extends Buff {
     if (!trace) {
       throw new Error(`Delayed buff ${this.id} trigger has no causal trace`);
     }
-    owner.buffs.removeBuff(this.id, { attribution, trace });
+    owner.buffs.removeBuff(this.id, {
+      attribution,
+      trace,
+      resolution: this.resolution,
+    });
     this.executeDelayedEffects(owner);
   }
 

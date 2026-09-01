@@ -512,7 +512,10 @@ function layeredAbility(spec: LayeredAbilitySpec): SectCompiledAbility {
   ];
   const buddhistCompletion: EffectConfig[] = [
     ...(spec.completionEffects ?? []),
-    gainWar(1, [modeIs('none')]),
+    gainWar(
+      spec.pathId === WUXIANG_DEMON_PATH_ID && spec.target === 'self' ? 2 : 1,
+      [modeIs('none')],
+    ),
     ...(spec.features.buddhistShieldRatio > 0
       ? [shield(spec.features.buddhistShieldRatio) as EffectConfig].map(
           (effect) => ({ ...effect, conditions: [modeIs('none')] }),
@@ -785,7 +788,10 @@ function outgoingBoost(
                   target: 'event.target' as const,
                 },
                 guard: { skipSecondaryDamageSource: true },
-                triggerPolicy: { maxTriggers: 1, granularity: 'buff_lifetime' as const },
+                triggerPolicy: {
+                  maxTriggers: 1,
+                  granularity: 'buff_lifetime' as const,
+                },
                 conditions: [
                   {
                     type: 'damage_source_is' as const,
@@ -953,8 +959,14 @@ function turnForm(
           ),
         ]
       : [
-          ...(features.demonHasPublicReduction
-            ? [persistentDirectReduction(DEMON_GUARD, '渡厄', 0.2)]
+          ...(features.demonPublicReduction > 0
+            ? [
+                persistentDirectReduction(
+                  DEMON_GUARD,
+                  '渡厄',
+                  features.demonPublicReduction,
+                ),
+              ]
             : []),
           selfBuff(
             buff(
@@ -1044,47 +1056,54 @@ function turnForm(
       },
     },
   ];
-  const formlessCost = 0.08 + (isMirror ? features.mirrorFormlessCostBonus : 0);
+  const formlessCost =
+    (isMirror ? 0.08 : 0.04) +
+    (isMirror ? features.mirrorFormlessCostBonus : 0);
+  const costs: AbilityCostConfig[] = [
+    ...(isMirror
+      ? [
+          {
+            resource: 'hp' as const,
+            mode: 'current_hp_ratio' as const,
+            ratio: 0.04,
+            minimum: 1,
+            retain: 1,
+            conditions: [
+              {
+                type: 'combat_resource_below' as const,
+                params: {
+                  scope: 'caster' as const,
+                  resourceId: WUXIANG_WAR_INTENT,
+                  value: 6,
+                },
+              },
+            ],
+          },
+        ]
+      : []),
+    {
+      resource: 'hp',
+      mode: 'current_hp_ratio',
+      ratio: formlessCost,
+      minimum: 1,
+      retain: 1,
+      conditions: [
+        {
+          type: 'combat_resource_at_least',
+          params: {
+            scope: 'caster',
+            resourceId: WUXIANG_WAR_INTENT,
+            value: 6,
+          },
+        },
+      ],
+    },
+  ];
   return factory.active({
     definition: definition('turn-form'),
     pathId,
     targetPolicy: { team: 'self', scope: 'single' },
-    costs: [
-      {
-        resource: 'hp',
-        mode: 'current_hp_ratio',
-        ratio: 0.04,
-        minimum: 1,
-        retain: 1,
-        conditions: [
-          {
-            type: 'combat_resource_below',
-            params: {
-              scope: 'caster',
-              resourceId: WUXIANG_WAR_INTENT,
-              value: 6,
-            },
-          },
-        ],
-      },
-      {
-        resource: 'hp',
-        mode: 'current_hp_ratio',
-        ratio: formlessCost,
-        minimum: 1,
-        retain: 1,
-        conditions: [
-          {
-            type: 'combat_resource_at_least',
-            params: {
-              scope: 'caster',
-              resourceId: WUXIANG_WAR_INTENT,
-              value: 6,
-            },
-          },
-        ],
-      },
-    ],
+    costs,
     effects: [],
     baseEffectDisplayName: '佛相',
     effectLayers: [
@@ -1097,7 +1116,7 @@ function turnForm(
         name: '一念无间',
         priority: 300,
         description:
-          '消耗全部心念与气血，使下一门宗门神通显化无相，兼具佛相本式与魔相变化。',
+          '消耗全部心念与少量气血，使下一门宗门神通显化无相，兼具佛相本式与魔相变化。',
         conditions: [
           {
             type: 'combat_resource_at_least',
@@ -1114,8 +1133,9 @@ function turnForm(
         id: 'demon',
         name: '魔相入身',
         priority: 200,
-        description:
-          '消耗3点心念与少量气血，使之后两门宗门神通在原有效果之外显化魔相变化。',
+        description: isMirror
+          ? '消耗3点心念与少量气血，使之后两门宗门神通在原有效果之外显化魔相变化。'
+          : '消耗3点心念，使之后两门宗门神通在原有效果之外显化魔相变化，并获得渡厄护盾。',
         conditions: [
           {
             type: 'combat_resource_at_least',
@@ -1150,6 +1170,7 @@ function passiveDefinition(id: 'mirror-core' | 'demon-core') {
 
 const compilerApi = {
   DEMON_CONTROL_GUARD,
+  DEMON_FIRST_THOUGHT,
   HEART_GAP,
   KARMA_DOOR,
   MIRROR_OBSERVE_COUNTER,

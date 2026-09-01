@@ -106,12 +106,14 @@ export class BuffContainer {
         target: this._owner,
         buff,
         source,
+        resolution: origin?.resolution,
         isCancelled: false,
       };
       publishedAddEvent = this._owner.runtime.events.runInCausalContext(
         {
           origin: attribution.origin,
           trace: this._owner.runtime.events.getCurrentTrace(),
+          resolution: origin?.resolution,
         },
         () => this._owner.runtime.events.publish(event),
       );
@@ -350,7 +352,7 @@ export class BuffContainer {
    */
   removeBuffExpired(
     buffId: BuffId,
-    origin?: Pick<BuffApplicationOriginV3, 'trace'>,
+    origin?: Pick<BuffApplicationOriginV3, 'trace' | 'resolution'>,
   ): void {
     this._removeBuffWithReason(buffId, 'expired', origin);
   }
@@ -417,10 +419,15 @@ export class BuffContainer {
       timestamp: this._owner.runtime.clock.now(),
       target: this._owner,
       buff,
+      resolution: operation?.resolution,
       reason: reason === 'consumed' ? 'manual' : reason,
     };
     this._owner.runtime.events.runInCausalContext(
-      { origin: resultOrigin, trace: removedEventParentTrace },
+      {
+        origin: resultOrigin,
+        trace: removedEventParentTrace,
+        resolution: operation?.resolution,
+      },
       () => this._owner.runtime.events.publish(removedEvent),
     );
   }
@@ -541,7 +548,11 @@ export class BuffContainer {
       sourceBuff: origin?.buff,
     };
     this._owner.runtime.events.runInCausalContext(
-      { origin: attribution.origin, trace: parentTrace },
+      {
+        origin: attribution.origin,
+        trace: parentTrace,
+        resolution: origin?.resolution,
+      },
       () => this._owner.runtime.events.publish(appliedEvent),
     );
   }

@@ -1,22 +1,28 @@
 import type { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill';
 import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import { EventBus } from '@shared/engine/battle-v5/core/EventBus';
-import type { AbilityCostPaidEvent, DamageSegmentRequestedEvent } from '@shared/engine/battle-v5/core/events';
-import { readAbilityMode, setAbilityMode } from '@shared/engine/battle-v5/core/runtimeState';
+import type {
+  AbilityCostPaidEvent,
+  DamageSegmentRequestedEvent,
+} from '@shared/engine/battle-v5/core/events';
+import { createHitResolution } from '@shared/engine/battle-v5/core/resolution';
+import {
+  readAbilityMode,
+  setAbilityMode,
+} from '@shared/engine/battle-v5/core/runtimeState';
 import { AttributeType, BuffType } from '@shared/engine/battle-v5/core/types';
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
-import { createHitResolution } from '@shared/engine/battle-v5/core/resolution';
 import { BuffFactory } from '@shared/engine/battle-v5/factories/BuffFactory';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { projectSectCombat, resolveSectAbility } from '../..';
-import type { CultivatorSectState } from '../../../core';
 import {
   WUXIANG_FORM_MODE,
   WUXIANG_KARMA_BUFF,
   WUXIANG_TECHNIQUE_IDS,
   WUXIANG_WAR_INTENT,
 } from '..';
+import { projectSectCombat, resolveSectAbility } from '../..';
+import type { CultivatorSectState } from '../../../core';
 
 type PathId = 'mirror-karma' | 'demon-crossing';
 type Form = 'buddha' | 'demon' | 'formless';
@@ -45,7 +51,7 @@ const costs: Record<PathId, Record<string, number>> = {
     'flower-heart': 0.05,
     'blood-tide': 0.08,
     'three-knocks': 0.07,
-    'observe-calamity': 0.10,
+    'observe-calamity': 0.1,
     'five-skandhas': 0.06,
     'reed-crossing': 0.08,
   },
@@ -55,7 +61,7 @@ const costs: Record<PathId, Record<string, number>> = {
     'three-knocks': 0.09,
     'observe-calamity': 0.11,
     'five-skandhas': 0.07,
-    'reed-crossing': 0.10,
+    'reed-crossing': 0.1,
   },
 };
 
@@ -89,24 +95,32 @@ const cooldowns: Record<string, number> = {
 
 const damageSegments: Record<PathId, Record<string, Record<Form, number[]>>> = {
   'mirror-karma': {
-    'flower-heart': { buddha: [0.6], demon: [0.6, 0.35], formless: [0.6, 0.35, 0.3] },
+    'flower-heart': {
+      buddha: [0.6],
+      demon: [0.6, 0.35],
+      formless: [0.6, 0.35, 0.3],
+    },
     'blood-tide': { buddha: [], demon: [], formless: [] },
     'three-knocks': {
-      buddha: [0.28, 0.28, 0.28],
-      demon: [0.28, 0.28, 0.28, 0.25],
-      formless: [0.28, 0.28, 0.28, 0.25, 0.35],
+      buddha: [0.84],
+      demon: [0.84, 0.25],
+      formless: [0.84, 0.25, 0.35],
     },
     'observe-calamity': { buddha: [], demon: [], formless: [] },
     'five-skandhas': { buddha: [0.5], demon: [0.5], formless: [0.5, 0.4] },
     'reed-crossing': { buddha: [], demon: [], formless: [] },
   },
   'demon-crossing': {
-    'flower-heart': { buddha: [0.6], demon: [0.6, 0.35], formless: [0.6, 0.35, 0.2] },
+    'flower-heart': {
+      buddha: [0.65],
+      demon: [0.65, 0.5],
+      formless: [0.65, 0.5, 0.2],
+    },
     'blood-tide': { buddha: [], demon: [], formless: [] },
     'three-knocks': {
-      buddha: [0.25, 0.25, 0.25],
-      demon: [0.25, 0.25, 0.25, 0.45],
-      formless: [0.25, 0.25, 0.25, 0.45],
+      buddha: [0.84],
+      demon: [0.84, 0.6],
+      formless: [0.84, 0.6],
     },
     'observe-calamity': { buddha: [], demon: [], formless: [] },
     'five-skandhas': { buddha: [], demon: [], formless: [] },
@@ -114,17 +128,29 @@ const damageSegments: Record<PathId, Record<string, Record<Form, number[]>>> = {
   },
 };
 
-const projectedSegment = (value: number): number =>
-  ({
-    '0.6': 0.601,
-    '0.35': 0.3506,
-    '0.3': 0.3005,
-    '0.28': 0.2804,
-    '0.25': 0.2504,
-    '0.5': 0.5008,
-    '0.4': 0.4006,
-    '0.45': 0.4507,
-  })[String(value)] ?? value;
+const projectedSegment = (
+  value: number,
+  pathId: PathId,
+  abilityId: string,
+): number => {
+  if (pathId === 'demon-crossing' && abilityId === 'flower-heart') {
+    if (value === 0.65) return 0.6511;
+    if (value === 0.5) return 0.5009;
+  }
+  return (
+    {
+      '0.6': 0.601,
+      '0.35': 0.3506,
+      '0.3': 0.3005,
+      '0.28': 0.2804,
+      '0.84': 0.8413,
+      '0.25': 0.2504,
+      '0.5': 0.5008,
+      '0.4': 0.4006,
+      '0.45': 0.4507,
+    }[String(value)] ?? value
+  );
+};
 
 function state(pathId: PathId): CultivatorSectState {
   return {
@@ -142,18 +168,25 @@ function state(pathId: PathId): CultivatorSectState {
       'six-senses': 3,
       'reed-crossing-method': 3,
     },
-    paths: [{
-      pathId,
-      unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
-      tacticId: pathId === 'mirror-karma' ? 'guard' : 'trial-fire',
-      activeMeridianSlot: 1,
-      meridianLoadouts: [
-        { slot: 1, nodeIds: [], version: 1 },
-        { slot: 2, nodeIds: [], version: 1 },
-        { slot: 3, nodeIds: [], version: 1 },
-      ],
-    }],
-    abilityLoadout: ['turn-form', 'blood-tide', 'three-knocks', 'observe-calamity'],
+    paths: [
+      {
+        pathId,
+        unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
+        tacticId: pathId === 'mirror-karma' ? 'guard' : 'trial-fire',
+        activeMeridianSlot: 1,
+        meridianLoadouts: [
+          { slot: 1, nodeIds: [], version: 1 },
+          { slot: 2, nodeIds: [], version: 1 },
+          { slot: 3, nodeIds: [], version: 1 },
+        ],
+      },
+    ],
+    abilityLoadout: [
+      'turn-form',
+      'blood-tide',
+      'three-knocks',
+      'observe-calamity',
+    ],
   };
 }
 
@@ -168,115 +201,176 @@ function unit(id: string): Unit {
 }
 
 const forms: Form[] = ['buddha', 'demon', 'formless'];
-const cases = (['mirror-karma', 'demon-crossing'] as PathId[]).flatMap((pathId) =>
-  WUXIANG_TECHNIQUE_IDS.flatMap((abilityId) =>
-    forms.map((form) => ({ pathId, abilityId, form }))));
+const cases = (['mirror-karma', 'demon-crossing'] as PathId[]).flatMap(
+  (pathId) =>
+    WUXIANG_TECHNIQUE_IDS.flatMap((abilityId) =>
+      forms.map((form) => ({ pathId, abilityId, form })),
+    ),
+);
 
 describe('无相禅宗36格实际结算矩阵', () => {
   beforeEach(() => EventBus.instance.reset());
   afterEach(() => EventBus.instance.reset());
 
-  it.each(cases)('$pathId/$abilityId/$form 冻结并执行对应 A/B/C 计划', ({
-    pathId,
-    abilityId,
-    form,
-  }) => {
-    const projection = projectSectCombat({ sect: state(pathId), realm: '化神' })!;
-    const owner = unit('owner');
-    const enemy = unit('enemy');
-    if (
-      pathId === 'demon-crossing' &&
-      abilityId === 'flower-heart' &&
-      form === 'formless'
-    ) {
-      enemy.setHp(Math.floor(enemy.getMaxHp() * 0.5));
-    }
-    for (const resource of projection.resources) owner.combatResources.define(resource);
-    const config = resolveSectAbility({ sect: state(pathId), realm: '化神', abilityId }).config;
-    const skill = AbilityFactory.create(config) as ActiveSkill;
-    skill.setOwner(owner);
-    skill.setActive(true);
+  it.each(cases)(
+    '$pathId/$abilityId/$form 冻结并执行对应 A/B/C 计划',
+    ({ pathId, abilityId, form }) => {
+      const projection = projectSectCombat({
+        sect: state(pathId),
+        realm: '化神',
+      })!;
+      const owner = unit('owner');
+      const enemy = unit('enemy');
+      if (
+        pathId === 'demon-crossing' &&
+        abilityId === 'flower-heart' &&
+        form === 'formless'
+      ) {
+        enemy.setHp(Math.floor(enemy.getMaxHp() * 0.5));
+      }
+      for (const resource of projection.resources)
+        owner.combatResources.define(resource);
+      const config = resolveSectAbility({
+        sect: state(pathId),
+        realm: '化神',
+        abilityId,
+      }).config;
+      const skill = AbilityFactory.create(config) as ActiveSkill;
+      skill.setOwner(owner);
+      skill.setActive(true);
 
-    if (form !== 'buddha') {
-      setAbilityMode(owner, {
-        key: WUXIANG_FORM_MODE,
-        mode: form,
-        remainingUses: form === 'demon' ? 2 : 1,
-        displayName: form === 'demon' ? '魔相' : '无相',
-      });
-      if (pathId === 'mirror-karma') {
-        owner.buffs.addBuff(BuffFactory.create({
-          id: WUXIANG_KARMA_BUFF,
-          name: '业痕',
-          type: BuffType.BUFF,
-          duration: -1,
-          stackRule: StackRule.STACK_LAYER,
-          maxLayers: 3,
-        }), owner);
-        if (abilityId === 'three-knocks') {
-          enemy.buffs.addBuff(BuffFactory.create({
-            id: 'sect.wuxiang.mirror.karma-door',
-            name: '旧业门',
-            type: BuffType.DEBUFF,
-            duration: 4,
-            stackRule: StackRule.STACK_LAYER,
-            maxLayers: 3,
-          }), owner);
+      if (form !== 'buddha') {
+        setAbilityMode(owner, {
+          key: WUXIANG_FORM_MODE,
+          mode: form,
+          remainingUses: form === 'demon' ? 2 : 1,
+          displayName: form === 'demon' ? '魔相' : '无相',
+        });
+        if (pathId === 'mirror-karma') {
+          owner.buffs.addBuff(
+            BuffFactory.create({
+              id: WUXIANG_KARMA_BUFF,
+              name: '业痕',
+              type: BuffType.BUFF,
+              duration: -1,
+              stackRule: StackRule.STACK_LAYER,
+              maxLayers: 3,
+            }),
+            owner,
+          );
+          if (abilityId === 'three-knocks') {
+            enemy.buffs.addBuff(
+              BuffFactory.create({
+                id: 'sect.wuxiang.mirror.karma-door',
+                name: '旧业门',
+                type: BuffType.DEBUFF,
+                duration: 4,
+                stackRule: StackRule.STACK_LAYER,
+                maxLayers: 3,
+              }),
+              owner,
+            );
+          }
         }
       }
-    }
-    const target = targets[pathId][abilityId] === 'self' ? owner : enemy;
-    const formIndex = forms.indexOf(form);
-    const hpBefore = owner.getCurrentHp();
-    let paid: AbilityCostPaidEvent | undefined;
-    let frozenPlanId: string | undefined;
-    const damageRequests: DamageSegmentRequestedEvent[] = [];
-    EventBus.instance.subscribe<AbilityCostPaidEvent>('AbilityCostPaidEvent', (event) => {
-      if (event.ability !== skill) return;
-      paid = event;
-      frozenPlanId = event.ability.runtimePlanId;
-    });
-    EventBus.instance.subscribe<DamageSegmentRequestedEvent>('DamageSegmentRequestedEvent', (event) => {
-      if (event.ability === skill) damageRequests.push(event);
-    });
+      const target = targets[pathId][abilityId] === 'self' ? owner : enemy;
+      const formIndex = forms.indexOf(form);
+      const hpBefore = owner.getCurrentHp();
+      let paid: AbilityCostPaidEvent | undefined;
+      let frozenPlanId: string | undefined;
+      const damageRequests: DamageSegmentRequestedEvent[] = [];
+      EventBus.instance.subscribe<AbilityCostPaidEvent>(
+        'AbilityCostPaidEvent',
+        (event) => {
+          if (event.ability !== skill) return;
+          paid = event;
+          frozenPlanId = event.ability.runtimePlanId;
+        },
+      );
+      EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+        'DamageSegmentRequestedEvent',
+        (event) => {
+          if (event.ability === skill) damageRequests.push(event);
+        },
+      );
 
-    expect(skill.id).toBe(`sect.wuxiang.${abilityId}`);
-    expect(skill.name).toBe(names[pathId][abilityId][formIndex]);
-    expect(skill.targetPolicy.team).toBe(targets[pathId][abilityId]);
-    expect(skill.maxCooldown).toBe(cooldowns[abilityId]);
-    expect(config.effects?.length).toBeGreaterThan(0);
-    expect(config.effectLayers?.find((layer) => layer.id === 'demon')?.effects?.length)
-      .toBeGreaterThan(0);
-    expect(config.effectLayers?.find((layer) => layer.id === 'formless')?.effects?.length)
-      .toBeGreaterThan(0);
-    skill.prepareCast({ caster: owner, target });
-    skill.execute({ caster: owner, target, resolution: createHitResolution({ actionId: `${owner.id}:wuxiang-matrix`, castId: `${skill.id}:wuxiang-matrix`, caster: owner, target }) });
-
-    expect(paid?.hpPaid).toBe(Math.ceil(hpBefore * costs[pathId][abilityId]));
-    expect(frozenPlanId).toBe(form === 'buddha' ? undefined : form);
-    expect(damageRequests.every((event) => event.target === enemy)).toBe(true);
-    expect(damageRequests.map((event) =>
-      event.damageComponents?.find((component) =>
-        component.segmentMultiplier !== undefined)?.segmentMultiplier ?? 0))
-      .toEqual(damageSegments[pathId][abilityId][form].map(projectedSegment));
-    expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT))
-      .toBe(form === 'buddha' ? 1 : 0);
-    if (form === 'demon') {
-      expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({
-        mode: 'demon',
-        remainingUses: 1,
+      expect(skill.id).toBe(`sect.wuxiang.${abilityId}`);
+      expect(skill.name).toBe(names[pathId][abilityId][formIndex]);
+      expect(skill.targetPolicy.team).toBe(targets[pathId][abilityId]);
+      expect(skill.maxCooldown).toBe(cooldowns[abilityId]);
+      expect(config.effects?.length).toBeGreaterThan(0);
+      expect(
+        config.effectLayers?.find((layer) => layer.id === 'demon')?.effects
+          ?.length,
+      ).toBeGreaterThan(0);
+      expect(
+        config.effectLayers?.find((layer) => layer.id === 'formless')?.effects
+          ?.length,
+      ).toBeGreaterThan(0);
+      skill.prepareCast({ caster: owner, target });
+      skill.execute({
+        caster: owner,
+        target,
+        resolution: createHitResolution({
+          actionId: `${owner.id}:wuxiang-matrix`,
+          castId: `${skill.id}:wuxiang-matrix`,
+          caster: owner,
+          target,
+        }),
       });
-    } else {
-      expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toBeUndefined();
-    }
-  });
+
+      expect(paid?.hpPaid).toBe(Math.ceil(hpBefore * costs[pathId][abilityId]));
+      expect(frozenPlanId).toBe(form === 'buddha' ? undefined : form);
+      expect(damageRequests.every((event) => event.target === enemy)).toBe(
+        true,
+      );
+      expect(damageRequests.length).toBeLessThanOrEqual(4);
+      expect(
+        damageRequests.map(
+          (event) =>
+            event.damageComponents?.find(
+              (component) => component.segmentMultiplier !== undefined,
+            )?.segmentMultiplier ?? 0,
+        ),
+      ).toEqual(
+        damageSegments[pathId][abilityId][form].map((value) =>
+          projectedSegment(value, pathId, abilityId),
+        ),
+      );
+      const expectedWar =
+        form === 'buddha' &&
+        pathId === 'demon-crossing' &&
+        targets[pathId][abilityId] === 'self'
+          ? 2
+          : form === 'buddha'
+            ? 1
+            : 0;
+      expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(
+        expectedWar,
+      );
+      if (form === 'demon') {
+        expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({
+          mode: 'demon',
+          remainingUses: 1,
+        });
+      } else {
+        expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toBeUndefined();
+      }
+    },
+  );
 
   it('未命中不执行完成效果，也不消费魔相次数', () => {
-    const projection = projectSectCombat({ sect: state('mirror-karma'), realm: '化神' })!;
+    const projection = projectSectCombat({
+      sect: state('mirror-karma'),
+      realm: '化神',
+    })!;
     const owner = unit('owner');
     const enemy = unit('enemy');
-    for (const resource of projection.resources) owner.combatResources.define(resource);
-    const skill = AbilityFactory.create(projection.defaultAttack!) as ActiveSkill;
+    for (const resource of projection.resources)
+      owner.combatResources.define(resource);
+    const skill = AbilityFactory.create(
+      projection.defaultAttack!,
+    ) as ActiveSkill;
     skill.setOwner(owner);
     setAbilityMode(owner, {
       key: WUXIANG_FORM_MODE,
@@ -286,9 +380,21 @@ describe('无相禅宗36格实际结算矩阵', () => {
     });
 
     skill.prepareCast({ caster: owner, target: enemy });
-    skill.execute({ caster: owner, target: enemy, shouldApplyEffects: false, resolution: createHitResolution({ actionId: `${owner.id}:wuxiang-miss`, castId: `${skill.id}:wuxiang-miss`, caster: owner, target: enemy }) });
+    skill.execute({
+      caster: owner,
+      target: enemy,
+      shouldApplyEffects: false,
+      resolution: createHitResolution({
+        actionId: `${owner.id}:wuxiang-miss`,
+        castId: `${skill.id}:wuxiang-miss`,
+        caster: owner,
+        target: enemy,
+      }),
+    });
 
-    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({ remainingUses: 2 });
+    expect(readAbilityMode(owner, WUXIANG_FORM_MODE)).toMatchObject({
+      remainingUses: 2,
+    });
     expect(owner.combatResources.getCurrent(WUXIANG_WAR_INTENT)).toBe(0);
   });
 });

@@ -155,6 +155,7 @@ export class DataDrivenActiveSkill extends ActiveSkill {
       target: resolved.target,
       ability: this,
       triggerEvent: event,
+      resolution: event.resolution,
     });
 
     for (const { effect } of effects) {

@@ -123,7 +123,7 @@ export function describeEffectCore(
       return `命中「${labelGameplayTag(effect.params.triggerTag)}」触发额外效果`;
 
     case 'consume_status_trigger':
-      return `消耗${describeBuffMatch(effect.params.match)}后${describeChildren(effect.params.effects)}`;
+      return `消耗${describeBuffMatch(effect.params.match)}后${effect.params.aggregateDamageByLayer ? '按原层数合并' : effect.params.scaleEffectsByLayer ? '按原层数重复' : ''}${describeChildren(effect.params.effects)}`;
 
     case 'delayed_effect':
       return `${effect.params.delayTurns} 回合后触发「${effect.params.name}」：${describeChildren(effect.params.effects)}`;

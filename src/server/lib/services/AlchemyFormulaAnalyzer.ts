@@ -6,14 +6,15 @@ import {
   getAlchemyPropertyLabel,
   normalizeWeightedAlchemyProperties,
 } from '@shared/lib/alchemyProperties';
-import { mergeAlchemyMaterialPropertyHints } from '@shared/lib/alchemyMaterialHints';
 import type {
   AlchemyFormula,
   AlchemyRecipePlan,
+  FormulaFitBand,
   FormulaMaterialJudgment,
 } from '@shared/types/consumable';
 import {
   ALCHEMY_FOCUS_MODE_VALUES,
+  FORMULA_FIT_BAND_VALUES,
   FORMULA_MATERIAL_VERDICT_VALUES,
 } from '@shared/types/consumable';
 import { z } from 'zod';
@@ -35,11 +36,44 @@ const materialJudgmentSchema = z.object({
   reason: z.string().trim().min(1).max(40),
 });
 
-const formulaAnalysisSchema = z.object({
-  materialVectors: z.array(materialVectorSchema).min(1),
-  materialJudgments: z.array(materialJudgmentSchema).min(1),
-  focusMode: z.enum(ALCHEMY_FOCUS_MODE_VALUES),
-});
+const formulaAnalysisSchema = z
+  .object({
+    materialVectors: z.array(materialVectorSchema).min(1),
+    materialJudgments: z.array(materialJudgmentSchema).min(1),
+    focusMode: z.enum(ALCHEMY_FOCUS_MODE_VALUES),
+    fitBand: z.enum(FORMULA_FIT_BAND_VALUES),
+    conclusion: z.string().trim().min(1).max(80),
+  })
+  .superRefine((analysis, context) => {
+    const verdicts = analysis.materialJudgments.map(
+      (judgment) => judgment.verdict,
+    );
+    const hasCore = verdicts.includes('core');
+    const hasConflict = verdicts.includes('conflict');
+    const claimsCompleteAlignment = [
+      analysis.conclusion,
+      ...analysis.materialJudgments.map((judgment) => judgment.reason),
+    ].some((text) => /完美契合|完全契合|高度契合/.test(text));
+
+    if (analysis.fitBand === 'aligned' && (!hasCore || hasConflict)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'aligned 炉况必须包含主材且不能包含冲突材料',
+      });
+    }
+    if (analysis.fitBand === 'poor' && !hasConflict) {
+      context.addIssue({
+        code: 'custom',
+        message: 'poor 炉况必须指出至少一味冲突材料',
+      });
+    }
+    if (analysis.fitBand !== 'aligned' && claimsCompleteAlignment) {
+      context.addIssue({
+        code: 'custom',
+        message: '非 aligned 炉况不得声称材料或整炉完全契合',
+      });
+    }
+  });
 
 function buildPropertyGuide(): string {
   return GENERATABLE_ALCHEMY_PROPERTY_KEY_VALUES.map(
@@ -72,6 +106,8 @@ export class AlchemyFormulaAnalyzer {
     materials: PreparedAlchemyMaterial[];
   }): Promise<{
     plan: AlchemyRecipePlan;
+    fitBand: FormulaFitBand;
+    conclusion: string;
     materialJudgments: FormulaMaterialJudgment[];
   }> {
     const payloadJson = stableCompactStringify({
@@ -144,13 +180,10 @@ export class AlchemyFormulaAnalyzer {
           `formula analyzer returned unknown material ref: ${vector.materialRef}`,
         );
       }
-      return mergeAlchemyMaterialPropertyHints(
-        {
-          ...vector,
-          materialName: material.name,
-        },
-        material,
-      );
+      return {
+        ...vector,
+        materialName: material.name,
+      };
     });
 
     const seenJudgmentRefs = new Set<string>();
@@ -184,6 +217,8 @@ export class AlchemyFormulaAnalyzer {
         focusMode: normalized.focusMode,
         requestedElementBias: input.formula.pattern.dominantElement,
       },
+      fitBand: normalized.fitBand,
+      conclusion: normalized.conclusion.trim(),
       materialJudgments,
     };
   }

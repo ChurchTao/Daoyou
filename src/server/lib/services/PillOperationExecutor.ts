@@ -17,13 +17,20 @@ import {
   createDefaultBodyCultivationState,
   normalizeBodyCultivationState,
 } from '@shared/lib/bodyCultivation/normalize';
-import { isPillConsumable } from '@shared/lib/consumables';
+import { getConditionStatusCureTargets } from '@shared/lib/condition';
+import {
+  isPillConsumable,
+  isSpiritFruitConsumable,
+} from '@shared/lib/consumables';
 import {
   CULTIVATION_BOOST_STATUS_KEY,
   getCultivationBoostPercent,
 } from '@shared/lib/cultivationBoost';
 import {
+  advanceMarrowWashTowardBreakthrough,
   getMarrowWashLevelCapByCultivationRealm,
+  getNextMarrowWashBreakthroughLevel,
+  isMarrowWashBreakthroughRequired,
   normalizeMarrowWashState,
 } from '@shared/lib/marrowWash';
 import {
@@ -129,9 +136,10 @@ function assertPillQualityAllowed(
 
 function removeStatuses(
   statuses: ConditionStatusInstance[],
-  key: ConditionStatusKey,
+  keys: ConditionStatusKey[],
 ): ConditionStatusInstance[] {
-  return statuses.filter((status) => status.key !== key);
+  const keySet = new Set(keys);
+  return statuses.filter((status) => !keySet.has(status.key));
 }
 
 function replaceStatus(
@@ -283,6 +291,28 @@ function applyTrackProgress(
       : track;
 
   const current = getTrackState(nextCondition, track);
+  if (track === 'marrow_wash') {
+    const result = advanceMarrowWashTowardBreakthrough(
+      normalizeMarrowWashState(nextCondition),
+      getEffectiveTrackProgressValue(value),
+    );
+    for (const newLevel of result.levelUps) {
+      nextCultivator = applyTrackReward(nextCultivator, track);
+      levelUps.push({ track: levelUpTrack, newLevel });
+    }
+    nextCondition = setTrackState(
+      nextCondition,
+      track,
+      result.state.level,
+      result.state.progress,
+    );
+    return {
+      cultivator: nextCultivator,
+      condition: nextCondition,
+      levelUps,
+    };
+  }
+
   let level = current.level;
   let progress = current.progress + getEffectiveTrackProgressValue(value);
 
@@ -341,7 +371,10 @@ function applyRemoveStatusOperation(
 ): CultivatorCondition {
   return {
     ...condition,
-    statuses: removeStatuses(condition.statuses, operation.status),
+    statuses: removeStatuses(
+      condition.statuses,
+      getConditionStatusCureTargets(operation.status),
+    ),
   };
 }
 
@@ -579,40 +612,34 @@ function assertMarrowWashPillTrackCaps(
       continue;
     }
 
+    if (isMarrowWashBreakthroughRequired(projectedState)) {
+      const breakthroughLevel =
+        getNextMarrowWashBreakthroughLevel(projectedState);
+      throw new Error(
+        `洗髓已达破限瓶颈 Lv.${breakthroughLevel}，请先完成本次破限后再服用洗髓丹。`,
+      );
+    }
+
     if (projectedState.level >= cap) {
       throw new Error(
         `洗髓已达当前修为境界的等级上限 Lv.${cap}，请先提升修为境界后再服用洗髓丹。`,
       );
     }
 
-    let level = projectedState.level;
-    let progress = projectedState.progress;
-    let remaining = value;
-
-    while (remaining > 0) {
-      const threshold = getTrackConfig(operation.track).thresholdByLevel(level);
-      const needed = threshold - progress;
-      if (remaining < needed) {
-        progress += remaining;
-        break;
-      }
-
-      remaining -= needed;
-      level += 1;
-      progress = 0;
-
-      if (level > cap || (level === cap && remaining > 0)) {
-        throw new Error(
-          `本次药力将超过当前修为境界的洗髓等级上限 Lv.${cap}，请先提升修为境界后再服用洗髓丹。`,
-        );
-      }
+    const advancement = advanceMarrowWashTowardBreakthrough(
+      projectedState,
+      value,
+    );
+    if (
+      advancement.state.level > cap ||
+      (advancement.state.level === cap && advancement.state.progress > 0)
+    ) {
+      throw new Error(
+        `本次药力将超过当前修为境界的洗髓等级上限 Lv.${cap}，请先提升修为境界后再服用洗髓丹。`,
+      );
     }
 
-    projectedState = {
-      ...projectedState,
-      level,
-      progress,
-    };
+    projectedState = advancement.state;
   }
 }
 
@@ -649,15 +676,34 @@ export const PillOperationExecutor = {
     consumable: Consumable,
     now: Date = new Date(),
   ): PillExecutionResult {
-    if (!isPillConsumable(consumable)) {
-      throw new Error('该消耗品并非丹药，无法按丹药协议执行。');
-    }
+    const isSpiritFruit = isSpiritFruitConsumable(consumable);
+    const effectConsumable: Consumable & { spec: PillSpec } = isPillConsumable(consumable)
+      ? consumable
+      : isSpiritFruitConsumable(consumable)
+        ? {
+            ...consumable,
+            type: '丹药',
+            spec: {
+              kind: 'pill',
+              family: consumable.spec.family,
+              operations: consumable.spec.operations.filter(
+                (operation) =>
+                  operation.type !== 'change_gauge' || operation.delta <= 0,
+              ),
+              consumeRules: { scene: 'out_of_battle_only', quotaCategory: 'none' },
+              alchemyMeta: {
+                source: 'improvised', sourceMaterials: [], stability: 100,
+                toxicityRating: 0, tags: ['spirit-fruit'], version: 4,
+              },
+            },
+          }
+        : (() => { throw new Error('该消耗品并非丹药或灵果，无法按药效协议执行。'); })();
 
-    if (consumable.spec.consumeRules.scene !== 'out_of_battle_only') {
+    if (effectConsumable.spec.consumeRules.scene !== 'out_of_battle_only') {
       throw new Error('该丹药当前不可在背包内直接服用。');
     }
 
-    assertPillQualityAllowed(cultivator, consumable);
+    assertPillQualityAllowed(cultivator, effectConsumable);
 
     const nextCultivator = cloneCultivator(cultivator);
     let nextCondition = ConditionService.tickNaturalRecovery(
@@ -667,18 +713,20 @@ export const PillOperationExecutor = {
     );
     const trackLevelUps: TrackLevelUpResult[] = [];
 
-    const quotaCategory = getEffectiveQuotaCategory(consumable.spec);
+    const quotaCategory = isSpiritFruit
+      ? 'none'
+      : getEffectiveQuotaCategory(effectConsumable.spec);
     if (
       nextCondition.gauges.pillToxicity >= PILL_TOXICITY_CAP &&
-      getNetPillToxicityDelta(consumable.spec) > 0
+      getNetPillToxicityDelta(effectConsumable.spec) > 0
     ) {
       throw new Error(PILL_TOXICITY_BLOCK_MESSAGE);
     }
-    assertBodyCultivationPillTrackCaps(nextCondition, consumable.spec);
+    assertBodyCultivationPillTrackCaps(nextCondition, effectConsumable.spec);
     assertMarrowWashPillTrackCaps(
       nextCultivator,
       nextCondition,
-      consumable.spec,
+      effectConsumable.spec,
     );
 
     if (quotaCategory === 'long_term') {
@@ -721,7 +769,7 @@ export const PillOperationExecutor = {
       };
     }
 
-    for (const operation of sortOperations(consumable.spec.operations)) {
+    for (const operation of sortOperations(effectConsumable.spec.operations)) {
       switch (operation.type) {
         case 'restore_resource':
           nextCondition = applyRestoreResourceOperation(
@@ -791,20 +839,22 @@ export const PillOperationExecutor = {
 
     nextCondition = ConditionService.normalizeCondition(
       nextCultivator,
-      {
-        ...nextCondition,
-        timestamps: {
-          ...nextCondition.timestamps,
-          lastPillAt: now.toISOString(),
-        },
-      },
+      isSpiritFruit
+        ? nextCondition
+        : {
+            ...nextCondition,
+            timestamps: {
+              ...nextCondition.timestamps,
+              lastPillAt: now.toISOString(),
+            },
+          },
       now,
     );
     nextCultivator.condition = nextCondition;
 
     return {
       cultivator: nextCultivator,
-      consumed: consumable,
+      consumed: effectConsumable,
       trackLevelUps,
     };
   },

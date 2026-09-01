@@ -1,15 +1,19 @@
 import type { AbilitySelectionCandidate } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
 import type { ActiveSkill } from '@shared/engine/battle-v5/abilities/ActiveSkill';
+import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import { setAbilityMode } from '@shared/engine/battle-v5/core/runtimeState';
-import { AttributeType } from '@shared/engine/battle-v5/core/types';
+import { AttributeType, BuffType } from '@shared/engine/battle-v5/core/types';
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
+import { BuffFactory } from '@shared/engine/battle-v5/factories/BuffFactory';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
 import { describe, expect, it } from 'vitest';
 import {
   WUXIANG_FORM_MODE,
+  WUXIANG_KARMA_BUFF,
   WUXIANG_WAR_INTENT,
   WuxiangBaseSelectionStrategy,
   WuxiangDemonSelectionStrategy,
+  WuxiangMirrorSelectionStrategy,
 } from '..';
 import { projectSectCombat, resolveSectAbility } from '../..';
 import type { CultivatorSectState } from '../../../core';
@@ -140,5 +144,56 @@ describe('无相基础施法策略', () => {
 
     expect(first?.ability.id).toBe('sect.wuxiang.five-skandhas');
     expect(second?.ability.id).toBe(first?.ability.id);
+  });
+
+  it.each(['trial-fire', 'sink-boat', 'one-thought'])(
+    '魔心%s战术在6点心念时无条件转无相',
+    (tacticId) => {
+      const battle = context(['three-knocks', 'turn-form']);
+      battle.caster.combatResources.set(WUXIANG_WAR_INTENT, 6);
+      const strategy = new WuxiangDemonSelectionStrategy(tacticId);
+
+      expect(strategy.select(battle)?.ability.id).toBe(
+        'sect.wuxiang.turn-form',
+      );
+    },
+  );
+
+  it('魔心20%至30%气血在魔相优先攻击以触发吸血', () => {
+    const battle = context(['three-knocks', 'reed-crossing']);
+    battle.caster.setHp(Math.floor(battle.caster.getMaxHp() * 0.25));
+    setAbilityMode(battle.caster, {
+      key: WUXIANG_FORM_MODE,
+      mode: 'demon',
+      remainingUses: 2,
+      displayName: '魔相',
+    });
+
+    expect(
+      new WuxiangDemonSelectionStrategy('trial-fire').select(battle)?.ability
+        .id,
+    ).toBe('sect.wuxiang.three-knocks');
+  });
+
+  it('明镜守镜战术在3层业痕与3点心念时提前转相', () => {
+    const battle = context(['three-knocks', 'turn-form']);
+    battle.caster.combatResources.set(WUXIANG_WAR_INTENT, 3);
+    for (let layer = 0; layer < 3; layer += 1) {
+      battle.caster.buffs.addBuff(
+        BuffFactory.create({
+          id: WUXIANG_KARMA_BUFF,
+          name: '业痕',
+          type: BuffType.BUFF,
+          duration: -1,
+          stackRule: StackRule.STACK_LAYER,
+          maxLayers: 3,
+        }),
+        battle.caster,
+      );
+    }
+
+    expect(
+      new WuxiangMirrorSelectionStrategy('guard').select(battle)?.ability.id,
+    ).toBe('sect.wuxiang.turn-form');
   });
 });

@@ -22,6 +22,11 @@ type AuthAnnouncementResponse = {
   error?: string;
 };
 
+const PASSWORD_RECOVERY_PATHS = new Set([
+  '/forgot-password',
+  '/reset-password',
+]);
+
 async function hasAuthenticatedUser(request: Request) {
   const session = await resolveSessionData(request);
 
@@ -58,7 +63,11 @@ export async function guestOnlyLoader({ request }: LoaderFunctionArgs) {
 export async function authLayoutLoader({
   request,
 }: LoaderFunctionArgs): Promise<AuthLoaderData | Response> {
-  if (await hasAuthenticatedUser(request)) {
+  const pathname = new URL(request.url).pathname;
+  if (
+    !PASSWORD_RECOVERY_PATHS.has(pathname) &&
+    (await hasAuthenticatedUser(request))
+  ) {
     return replace('/game');
   }
 

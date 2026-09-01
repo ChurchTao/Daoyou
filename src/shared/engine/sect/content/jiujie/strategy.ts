@@ -22,13 +22,22 @@ function hasCasterBuff(context: AbilitySelectionContext, id: string): boolean {
   return context.caster.buffs.getAllBuffIds().includes(id);
 }
 
-function canSettle(
+function shouldSettle(
   context: AbilitySelectionContext,
   calamity: number,
+  tacticId?: SectTacticId,
 ): boolean {
-  return (
+  const targetCanBeSettled =
+    layers(context, JIUJIE_THUNDER) > 0 || layers(context, JIUJIE_DEBT) > 0;
+  if (!targetCanBeSettled) return false;
+  if (calamity >= 3) return true;
+  if (
     calamity >= 2 &&
-    (layers(context, JIUJIE_THUNDER) > 0 || layers(context, JIUJIE_DEBT) > 0)
+    (tacticId === 'bear-and-return' || tacticId === 'record-and-judge')
+  ) return true;
+  return calamity >= 2 && (
+    context.caster.getHpPercent() <= 0.4 ||
+    (context.opponent?.getHpPercent() ?? 1) <= 0.3
   );
 }
 
@@ -55,7 +64,7 @@ export class JiujieBaseSelectionStrategy extends Strategy {
     const thunder = layers(context, JIUJIE_THUNDER);
     const calamity = context.caster.combatResources.getCurrent(JIUJIE_CALAMITY);
 
-    if (canSettle(context, calamity)) {
+    if (shouldSettle(context, calamity)) {
       return this.pick(context, ['nine-sky-settlement', 'causal-echo']);
     }
     if (!thunder) {
@@ -79,7 +88,7 @@ export class JiujieEyeSelectionStrategy extends Strategy {
     const thunder = layers(context, JIUJIE_THUNDER);
     const calamity = context.caster.combatResources.getCurrent(JIUJIE_CALAMITY);
 
-    if (canSettle(context, calamity)) {
+    if (shouldSettle(context, calamity, this.tacticId)) {
       return this.pick(context, ['nine-sky-settlement', 'causal-echo']);
     }
 
@@ -150,14 +159,12 @@ export class JiujieCondemnationSelectionStrategy extends Strategy {
       }
     }
 
-    if (canSettle(context, calamity)) {
+    if (shouldSettle(context, calamity, this.tacticId)) {
       return this.pick(context, ['nine-sky-settlement', 'causal-echo']);
     }
 
     if (!thunder) {
-      return this.tacticId === 'listen-to-heaven'
-        ? this.pick(context, ['heaven-hearing', 'calamity-seal'])
-        : this.pick(context, ['calamity-seal', 'heaven-hearing']);
+      return this.pick(context, ['heaven-hearing', 'calamity-seal']);
     }
 
     if (this.tacticId === 'heavy-statute') {

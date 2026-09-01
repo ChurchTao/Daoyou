@@ -87,7 +87,10 @@ export default function LoginPasswordRoute() {
       backHref="/login"
       footer={
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <InkButton href="/forgot-password" variant="ghost">
+          <InkButton
+            href={buildEmailOtpTarget('/forgot-password', { email })}
+            variant="ghost"
+          >
             忘记密码
           </InkButton>
           <InkButton

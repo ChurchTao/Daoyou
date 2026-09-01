@@ -103,6 +103,7 @@ export function describeFormulaObservation(
   analysis: FormulaAnalysisResult | null,
 ): string | null {
   if (!analysis) return null;
+  if (analysis.conclusion?.trim()) return analysis.conclusion.trim();
   if (analysis.fitBand === 'aligned')
     return '丹方火纹与炉中药气彼此咬合，药路已经完全显明。';
   if (analysis.fitBand === 'degraded')

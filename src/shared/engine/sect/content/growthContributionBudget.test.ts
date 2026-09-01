@@ -4,6 +4,9 @@ import { LINGXIAO_SECT } from './lingxiao';
 import { TIANYAN_SECT } from './tianyan';
 import { WUXIANG_SECT } from './wuxiang';
 import { YOUDU_SECT } from './youdu';
+import { JIUJIE_MODULE } from './jiujie';
+
+const JIUJIE_SECT = JIUJIE_MODULE.definition;
 
 type BudgetBuild = {
   id: string;
@@ -42,6 +45,19 @@ function effect(
 const outputContribution = (multiplier: number) => 1 - 1 / multiplier;
 
 const builds: Record<string, BudgetBuild[]> = {
+  jiujie: [
+    { id: 'calamity-eye-offense', penetrationUtilization: 0.55, statusUtilization: 0.20 },
+    { id: 'condemnation-control', penetrationUtilization: 0.35, statusUtilization: 0.35 },
+  ].map(({ id, penetrationUtilization, statusUtilization }) => ({
+    id,
+    contributionAt: (level) =>
+      outputContribution(
+        ((1 + panel(JIUJIE_SECT, 'heavenly-record', level)) *
+          (1 + effect(JIUJIE_SECT, 'heavenly-record', 'damage', level)) *
+          (1 + effect(JIUJIE_SECT, 'jiujie-canon', 'status', level) * statusUtilization)) /
+          (1 - penetrationUtilization * panel(JIUJIE_SECT, 'thunder-prison', level)),
+      ),
+  })),
   lingxiao: ['aggressive', 'heavy-break'].map((id) => ({
     id,
     contributionAt: (level) =>
@@ -112,7 +128,7 @@ const milestoneBands = [
   [135, 0.2, 0.27],
 ] as const;
 
-describe('四宗心法统一贡献率门禁', () => {
+describe('五宗心法统一贡献率门禁', () => {
   it.each(Object.entries(builds))('%s代表构筑满足阶段成长预算', (_sectId, entries) => {
     for (const [level, minimum, maximum] of milestoneBands) {
       for (const entry of entries) {

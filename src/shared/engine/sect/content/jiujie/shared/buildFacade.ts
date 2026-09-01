@@ -87,9 +87,9 @@ export function createJiujieBuildSettings(pathId?: SectPathId): JiujieBuildSetti
   return {
     pathId, resourceMax: 3, thunderDuration: 3, thunderCoefficient: 0.25,
     debtDuration: 4, receiveDuration: eyePath ? 2 : 1, receiveReduction: eyePath ? 0.80 : 0.90,
-    memoryCap: eyePath ? 0.50 : 0.25, questionCoefficient: 0.55, borrowShieldRatio: 0.15,
+    memoryCap: eyePath ? 0.50 : 0.25, questionCoefficient: 0.65, borrowShieldRatio: 0.15,
     finishDebtCoefficient: condemnationPath ? 0.20 : 0.15, eyeDuration: 2,
-    reoffendBonus: condemnationPath ? 0.15 : 0, finishMemoryRatio: eyePath ? 0.35 : 0,
+    reoffendBonus: condemnationPath ? 0.15 : 0, finishMemoryRatio: eyePath ? 0.50 : 0,
     settlementThunderDuration: 0,
     eye: emptyEyeFeatures(),
     condemnation: emptyCondemnationFeatures(),

@@ -17,6 +17,10 @@ import {
 } from '@shared/engine/material/creation/config';
 import { MARKET_PRESET_POOL } from '@shared/engine/material/creation/marketPresets';
 import {
+  getSpiritFieldMarketSeedSlotCount,
+  SpiritSeedGenerator,
+} from '@shared/engine/spirit-field';
+import {
   evaluateFateContext,
   getMarketPurchasePriceMultiplier,
   scaleFateAdjustedCost,
@@ -339,6 +343,10 @@ function buildMysteryMask(type: MaterialType) {
     MaterialType,
     { names: string[]; descriptions: string[] }
   > = {
+    seed: {
+      names: ['封存灵种'],
+      descriptions: ['灵种只由灵田专用生成器塑造，不参与通用神秘物品生成。'],
+    },
     herb: {
       names: ['枯萎的灵草束', '封泥药囊', '残叶草根'],
       descriptions: [
@@ -825,6 +833,51 @@ async function generateFromMaterialLibrary(
   return listings.slice(0, layerConfig.count);
 }
 
+/** 按节点配置注入动态灵种；普通坊市不再固定占位，黑市始终不注入。 */
+async function injectSpiritFieldSeedListings(
+  listings: InternalMarketListing[],
+  nodeId: string,
+  layer: MarketLayer,
+  profile: RegionProfile,
+  layerConfig: ResolvedLayerConfig,
+): Promise<InternalMarketListing[]> {
+  const slots = getSpiritFieldMarketSeedSlotCount(
+    layer,
+    layerConfig.count,
+    getMarketConfigByNodeId(nodeId)?.seed_ratio,
+  );
+  if (slots <= 0) return listings;
+
+  const seeds = await SpiritSeedGenerator.generateRandom(slots, {
+    rankRange: layerConfig.rankRange,
+    regionTags: getNodeRegionTags(nodeId),
+  });
+  const seedListings: InternalMarketListing[] = seeds.map((material) => ({
+    id: crypto.randomUUID(),
+    nodeId,
+    layer,
+    name: material.name,
+    type: material.type,
+    rank: material.rank,
+    element: material.element,
+    description: material.description ?? '',
+    details: material.details,
+    quantity: 1,
+    price: computePrice(
+      layer,
+      material.rank,
+      material.type,
+      profile.priceModifier,
+    ),
+  }));
+
+  const keepCount = Math.max(0, layerConfig.count - seedListings.length);
+  return [...listings.slice(0, keepCount), ...seedListings].slice(
+    0,
+    layerConfig.count,
+  );
+}
+
 /**
  * 统一生成入口：所有市场先走持久材料库；common / treasure 不足时使用预设兜底。
  */
@@ -853,6 +906,14 @@ async function generateListings(
     });
     listings = [...listings, ...fallback];
   }
+
+  listings = await injectSpiritFieldSeedListings(
+    listings,
+    nodeId,
+    layer,
+    profile,
+    layerConfig,
+  );
 
   // 黑市应用神秘层
   if (layer === 'black') {

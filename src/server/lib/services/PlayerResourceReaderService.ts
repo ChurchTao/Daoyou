@@ -258,7 +258,6 @@ export async function readPlayerResources(args: {
   const now = new Date();
   resourceReads.push(
     ...requested.map((key) => async () => {
-      const startedAt = performance.now();
       const context: ReaderContext = {
         userId: args.userId,
         cultivatorId: active.id,
@@ -268,10 +267,6 @@ export async function readPlayerResources(args: {
       };
       Object.assign(resourceData, {
         [key]: await readers[key](context),
-      });
-      console.info('[player-resource-reader]', {
-        resourceKey: key,
-        durationMs: Math.round(performance.now() - startedAt),
       });
     }),
   );

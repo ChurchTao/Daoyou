@@ -1,4 +1,5 @@
 import {
+  buildEmailOtpTarget,
   toErrorMessage,
   validatePasswordConfirmation,
 } from '@app/components/auth';
@@ -364,6 +365,16 @@ export function AccountSettingsTab() {
             >
               {passwordMode === 'change' ? '修改密码' : '设置密码'}
             </InkButton>
+            {passwordMode === 'change' ? (
+              <InkButton
+                href={buildEmailOtpTarget('/forgot-password', {
+                  email: user?.email,
+                })}
+                variant="secondary"
+              >
+                忘记当前密码？邮件重置
+              </InkButton>
+            ) : null}
             {passwordMessage ? (
               <SettingsMessage type={passwordMessage.type}>
                 {passwordMessage.text}

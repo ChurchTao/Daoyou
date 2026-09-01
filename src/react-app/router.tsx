@@ -218,6 +218,20 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="spirit-field"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/spirit-field/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'spirit-field',
+                  presentation: 'workflow',
+                  summary: '在个人洞府药圃中播种，并以三阶段培育等待天地造化成型。',
+                },
+                '洞府灵田',
+              )}
+            />
+            <Route
               path="body-cultivation"
               lazy={lazyRoute(
                 () => import('@app/routes/game/body-cultivation/route'),

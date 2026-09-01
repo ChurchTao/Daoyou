@@ -157,7 +157,7 @@ export const SectContributionRankingEntrySchema = z
 
 export const SectContributionRankingDataSchema = z
   .object({
-    metric: z.literal('current_balance'),
+    metric: z.literal('lifetime_contribution'),
     generatedAt: z.string(),
     entries: z.array(SectContributionRankingEntrySchema).max(20),
     currentMember: SectContributionRankingEntrySchema,

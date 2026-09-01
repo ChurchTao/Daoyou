@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { IdentityReshapeCandidateSchema } from '@shared/types/identityReshape';
 import {
   IDENTITY_RESHAPE_QUESTIONS,
@@ -67,5 +68,14 @@ describe('identity reshape question bank', () => {
         background: '背景过短',
       }).success,
     ).toBe(false);
+  });
+
+  it('emits a provider-compatible JSON Schema name pattern', () => {
+    const jsonSchema = JSON.stringify(
+      z.toJSONSchema(IdentityReshapeCandidateSchema),
+    );
+
+    expect(jsonSchema).not.toContain('\\\\p{Script=Han}');
+    expect(jsonSchema).toContain('\\\\u3400-\\\\u4dbf');
   });
 });

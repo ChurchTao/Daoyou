@@ -1,22 +1,22 @@
+import { truncateText } from '@server/utils/llmPayload';
 import type { ResolvedDungeonMapConfig } from '@shared/lib/game/mapSystem';
 import type { RealmType } from '@shared/types/constants';
-import { truncateText } from '@server/utils/llmPayload';
 import type {
   DungeonOptionCost,
+  DungeonRoundLlmContext,
   DungeonSettlementLlmContext,
   DungeonState,
-  DungeonRoundLlmContext,
   History,
   RewardBlueprint,
 } from './types';
 
-const HISTORY_LIMIT = 3;
+const HISTORY_LIMIT = 4;
 const JOURNEY_LIMIT = 5;
-const SCENE_SUMMARY_MAX_CHARS = 80;
-const OUTCOME_SUMMARY_MAX_CHARS = 60;
-const MAP_DESCRIPTION_MAX_CHARS = 80;
+const SCENE_SUMMARY_MAX_CHARS = 140;
+const OUTCOME_SUMMARY_MAX_CHARS = 90;
+const MAP_DESCRIPTION_MAX_CHARS = 100;
 const FALLBACK_TEXT = '未见分明痕迹';
-const DUNGEON_REWARD_BLUEPRINT_LIMIT = 5;
+const DUNGEON_REWARD_BLUEPRINT_LIMIT = 6;
 
 function uniqueStrings(values: Array<string | undefined | null>): string[] {
   return Array.from(
@@ -32,34 +32,25 @@ function stripParenthetical(text: string): string {
   return text.replace(/（.*?）|\(.*?\)/g, '').trim();
 }
 
-function summarizeRoots(roots: string[]): string[] {
-  return uniqueStrings(roots.map((root) => truncateText(root, 16))).slice(0, 4);
-}
-
-function summarizeFates(fates: string[]): string[] {
-  return uniqueStrings(fates.map((fate) => truncateText(stripParenthetical(fate), 14))).slice(
-    0,
-    4,
-  );
-}
-
-function summarizeTechniques(skills: string[]): string[] {
-  return uniqueStrings(skills.map((skill) => truncateText(skill, 16))).slice(
-    0,
-    4,
-  );
-}
-
 function summarizeHistoryEntry(entry: History) {
   return {
     round: entry.round,
     sceneSummary: truncateText(entry.scene, SCENE_SUMMARY_MAX_CHARS),
     ...(entry.choice ? { choice: truncateText(entry.choice, 30) } : {}),
     ...(entry.outcome
-      ? { outcomeSummary: truncateText(entry.outcome, OUTCOME_SUMMARY_MAX_CHARS) }
+      ? {
+          outcomeSummary: truncateText(
+            entry.outcome,
+            OUTCOME_SUMMARY_MAX_CHARS,
+          ),
+        }
       : {}),
     ...(entry.gained_items?.length
-      ? { gainedItemNames: entry.gained_items.slice(0, 4).map((item) => truncateText(item, 16)) }
+      ? {
+          gainedItemNames: entry.gained_items
+            .slice(0, 4)
+            .map((item) => truncateText(item, 16)),
+        }
       : {}),
   };
 }
@@ -67,24 +58,22 @@ function summarizeHistoryEntry(entry: History) {
 function summarizeJourney(history: History[]): string[] {
   return history.slice(-JOURNEY_LIMIT).map((entry) => {
     const scene = truncateText(entry.scene, 36) || FALLBACK_TEXT;
-    const choice = entry.choice ? `选${truncateText(entry.choice, 18)}` : '未留抉择';
+    const choice = entry.choice
+      ? `选${truncateText(entry.choice, 18)}`
+      : '未留抉择';
     const outcome = entry.outcome
-      ? `结果${truncateText(entry.outcome, 24)}`
-      : '结果未明';
-    return `第${entry.round}轮：${scene}；${choice}；${outcome}`;
+      ? `；结果${truncateText(entry.outcome, 24)}`
+      : '';
+    return `第${entry.round}轮：${scene}；${choice}${outcome}`;
   });
 }
 
 function summarizeRewards(
   rewards: RewardBlueprint[],
-): DungeonSettlementLlmContext['accumulatedRewards'] {
+): DungeonSettlementLlmContext['securedRewards'] {
   return rewards.map((reward) => ({
     ...(reward.name ? { name: truncateText(reward.name, 18) } : {}),
-    ...(reward.description
-      ? { description: truncateText(reward.description, 48) }
-      : {}),
     ...(reward.material_type ? { material_type: reward.material_type } : {}),
-    ...(reward.element ? { element: reward.element } : {}),
     ...(typeof reward.reward_score === 'number'
       ? { reward_score: reward.reward_score }
       : {}),
@@ -117,7 +106,7 @@ function buildCombatStyleSummary(state: DungeonState): string {
 
 function buildSacrificeSummary(
   costs: DungeonOptionCost[] | undefined,
-): DungeonSettlementLlmContext['sacrificeSummary'] {
+): DungeonSettlementLlmContext['committedCosts'] {
   if (!costs?.length) return [];
 
   const grouped = new Map<
@@ -175,6 +164,25 @@ function buildBattleAftermath(history: History[]): string | undefined {
   return truncateText(outcome, 60);
 }
 
+function summarizePendingChoice(
+  state: DungeonState,
+): DungeonRoundLlmContext['pendingChoice'] {
+  const action = state.pendingAction;
+  if (!action) return undefined;
+
+  return {
+    text: truncateText(action.choiceText ?? '已作出选择', 36),
+    costs: action.costs.map((cost) => ({
+      type: cost.type,
+      value: cost.value,
+      ...(cost.required_quality
+        ? { requiredQuality: cost.required_quality }
+        : {}),
+      ...(cost.required_type ? { requiredType: cost.required_type } : {}),
+    })),
+  };
+}
+
 export function buildDungeonRoundLlmContext(args: {
   state: DungeonState;
   mapConfig: ResolvedDungeonMapConfig;
@@ -183,21 +191,22 @@ export function buildDungeonRoundLlmContext(args: {
 }): DungeonRoundLlmContext {
   const { state, mapConfig, realmGap, phase } = args;
   const battleAftermath = buildBattleAftermath(state.history);
+  const pendingChoice = summarizePendingChoice(state);
 
   return {
-    round: state.currentRound,
-    maxRounds: state.maxRounds,
-    phase,
-    realmGap,
-    dangerScore: state.dangerScore,
-    map: {
+    progress: {
+      round: state.currentRound,
+      totalRounds: state.maxRounds,
+      phase,
+      dangerScore: state.dangerScore,
+    },
+    setting: {
       name: state.location.location,
       realmRequirement: mapConfig.realmRequirement,
-      difficultyTier: mapConfig.difficultyTier,
-      difficultyLabel: mapConfig.difficultyLabel,
-      enemyDifficulty: mapConfig.enemyDifficulty,
+      difficulty: mapConfig.difficultyLabel,
+      realmGap,
       allowedEnemyRealmStages: mapConfig.allowedEnemyRealmStages,
-      tags: state.location.location_tags.slice(0, 6),
+      tags: state.location.location_tags.slice(0, 4),
       descriptionSummary: truncateText(
         state.location.location_description,
         MAP_DESCRIPTION_MAX_CHARS,
@@ -208,17 +217,15 @@ export function buildDungeonRoundLlmContext(args: {
       realm: state.playerInfo.realm,
       age: state.playerInfo.age,
       lifespan: state.playerInfo.lifespan,
-      coreTraits: uniqueStrings([
-        truncateText(state.playerInfo.personality, 14),
-      ]),
-      rootsSummary: summarizeRoots(state.playerInfo.spiritual_roots),
-      fatesSummary: summarizeFates(state.playerInfo.fates),
-      techniqueNames: summarizeTechniques(state.playerInfo.skills),
-      combatStyleSummary: buildCombatStyleSummary(state),
+      traits: uniqueStrings([truncateText(state.playerInfo.personality, 14)]),
+      combatStyle: buildCombatStyleSummary(state),
     },
-    history: state.history.slice(-HISTORY_LIMIT).map(summarizeHistoryEntry),
+    recentHistory: state.history
+      .slice(-HISTORY_LIMIT)
+      .map(summarizeHistoryEntry),
+    ...(pendingChoice ? { pendingChoice } : {}),
     ...(battleAftermath ? { battleAftermath } : {}),
-    accumulatedRewardNames: summarizeRewardNames(state.accumulatedRewards),
+    securedRewardNames: summarizeRewardNames(state.accumulatedRewards),
   };
 }
 
@@ -226,11 +233,16 @@ export function buildDungeonSettlementLlmContext(args: {
   state: DungeonState;
   mapRealm: RealmType;
   endDisposition: DungeonSettlementLlmContext['endDisposition'];
+  pendingCosts?: DungeonOptionCost[];
 }): DungeonSettlementLlmContext {
   const { state, mapRealm, endDisposition } = args;
+  const committedCosts = [
+    ...(state.summary_of_sacrifice ?? []),
+    ...(args.pendingCosts ?? []),
+  ];
 
   return {
-    map: {
+    setting: {
       name: state.location.location,
       realmRequirement: mapRealm,
     },
@@ -238,12 +250,10 @@ export function buildDungeonSettlementLlmContext(args: {
       name: state.playerInfo.name,
       realm: state.playerInfo.realm,
     },
-    journeySummary: summarizeJourney(state.history),
+    journey: summarizeJourney(state.history),
     dangerScore: state.dangerScore,
-    sacrificeSummary: buildSacrificeSummary(state.summary_of_sacrifice),
-    accumulatedRewards: summarizeRewards(state.accumulatedRewards),
-    rewardBlueprintLimit: DUNGEON_REWARD_BLUEPRINT_LIMIT,
-    accumulatedRewardCount: state.accumulatedRewards.length,
+    committedCosts: buildSacrificeSummary(committedCosts),
+    securedRewards: summarizeRewards(state.accumulatedRewards),
     remainingExtraRewardSlots: Math.max(
       0,
       DUNGEON_REWARD_BLUEPRINT_LIMIT - state.accumulatedRewards.length,

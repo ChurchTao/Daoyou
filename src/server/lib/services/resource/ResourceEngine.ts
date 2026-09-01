@@ -1,7 +1,4 @@
-import type {
-  DbExecutor,
-  DbTransaction,
-} from '@server/lib/drizzle/db';
+import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
 import {
   addArtifactToInventoryInTransaction,
@@ -19,13 +16,13 @@ import {
   calculateSingleArtifactScore,
   calculateSingleElixirScore,
 } from '@server/utils/rankingUtils';
-import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type {
   ResourceOperation,
   ResourceOperationResult,
   ResourceOperationSettlement,
   ResourceValidationResult,
 } from '@shared/engine/resource/types';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
@@ -158,9 +155,7 @@ export class ResourceEngine {
           continue;
         case 'hp_loss':
         case 'mp_loss':
-        case 'weak':
         case 'battle':
-        case 'artifact_damage':
         case 'artifact':
         case 'consumable':
           continue;
@@ -299,9 +294,7 @@ export class ResourceEngine {
           break;
         case 'hp_loss':
         case 'mp_loss':
-        case 'weak':
         case 'battle':
-        case 'artifact_damage':
         case 'artifact':
         case 'consumable':
           break;
@@ -421,9 +414,7 @@ export class ResourceEngine {
           break;
         case 'hp_loss':
         case 'mp_loss':
-        case 'weak':
         case 'battle':
-        case 'artifact_damage':
           break;
       }
     }

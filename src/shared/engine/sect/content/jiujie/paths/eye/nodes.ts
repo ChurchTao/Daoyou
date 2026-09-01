@@ -35,7 +35,7 @@ const node = (
 
 export const JIUJIE_EYE_NODES = [
   node('eye-open', '1', '开门迎劫', '施展《承天受劫》时获得8%最大气血护盾；该护盾在承劫期间破裂时获得1点劫数，每次施法最多一次。', 'openingShield', ['receive-calamity']),
-  node('eye-bear', '1', '承灾留名', '劫眼第一次照见攻击者时：若其没有劫雷则施加劫雷；若已有劫雷，则改为增加1层劫债。', 'bearingMark', ['receive-calamity']),
+  node('eye-bear', '1', '承灾留名', '劫眼第一次照见攻击者时额外反击0.15倍法攻雷伤；若其没有劫雷则施加劫雷，若已有劫雷则增加1层劫债。', 'bearingMark', ['receive-calamity']),
   node('eye-first-light', '1', '雷光护心', '每次劫眼存续期间第一次受到直接伤害后，获得5%最大气血护盾，并额外获得1点劫数。', 'firstLight', ['receive-calamity']),
   node('eye-record', '2', '血甲同书', '承劫量可以记录护盾吸收的直接伤害；记录上限提高至自身最大气血的70%。', 'armorMemory', ['receive-calamity']),
   node('eye-question', '2', '问劫寻隙', '《雷狱问行》命中照见目标时，额外推进1层劫债，并使《承天受劫》当前冷却减少1回合。', 'questionBeheld', ['thunder-prison-question']),

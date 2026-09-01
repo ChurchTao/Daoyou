@@ -129,7 +129,11 @@ export class EffectExecutionContextV3 {
         }) as T
       : event;
     return this.owner.runtime.events.runInCausalContext(
-      { origin: this.origin, trace: this.trace },
+      {
+        origin: this.origin,
+        trace: this.trace,
+        resolution: this.resolution ?? this.triggerEvent?.resolution,
+      },
       () => this.triggerEvent
         ? this.owner.runtime.events.enqueueReaction(eventWithResolution, 50)
         : this.owner.runtime.events.publish(eventWithResolution),
@@ -210,7 +214,11 @@ export function executeGameplayEffectV3(
 ): void {
   if (!context.canExecuteEffect()) return;
   context.owner.runtime.events.runInCausalContext(
-    { origin: context.origin, trace: context.trace },
+    {
+      origin: context.origin,
+      trace: context.trace,
+      resolution: context.resolution ?? context.triggerEvent?.resolution,
+    },
     () => effect.execute(context),
   );
 }

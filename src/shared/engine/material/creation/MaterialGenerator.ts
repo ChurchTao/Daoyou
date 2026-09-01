@@ -50,6 +50,9 @@ export class MaterialGenerator {
   public static async generateFromSkeletons(
     skeletons: MaterialSkeleton[],
   ): Promise<GeneratedMaterial[]> {
+    if (skeletons.some((skeleton) => skeleton.type === 'seed')) {
+      throw new Error('灵植种子必须使用 SpiritSeedGenerator 生成');
+    }
     return this.fillMaterialDetails(skeletons);
   }
 
@@ -128,6 +131,9 @@ export class MaterialGenerator {
     options: MaterialRandomOptions = {},
     rng: () => number = Math.random,
   ): MaterialSkeleton[] {
+    if (options.specifiedType === 'seed') {
+      throw new Error('灵植种子必须使用 SpiritSeedGenerator 生成');
+    }
     const skeletons: MaterialSkeleton[] = [];
 
     for (let i = 0; i < count; i++) {

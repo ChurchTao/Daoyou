@@ -16,7 +16,12 @@ import {
   isQiRestoreTalismanScenario,
 } from '@shared/config/qiSystem';
 import {
+  SECT_MERIDIAN_RESET_TALISMAN_NAME,
+  SECT_MERIDIAN_RESET_TALISMAN_SCENARIO,
+} from '@shared/config/sectMeridianResetTalisman';
+import {
   isPillConsumable,
+  isSpiritFruitConsumable,
   isTalismanConsumable,
 } from '@shared/lib/consumables';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
@@ -40,6 +45,7 @@ import {
   AttributeResetService,
   withAttributeResetLock,
 } from './AttributeResetService';
+import { SectMeridianResetService } from './SectMeridianResetService';
 import type { RedisLeaseContext } from '@server/lib/redis/lock';
 
 async function loadOwnedConsumable(
@@ -134,6 +140,35 @@ export const ConsumableUseEngine = {
         };
       }
 
+      if (consumable.spec.scenario === SECT_MERIDIAN_RESET_TALISMAN_SCENARIO) {
+        if (consumable.spec.sessionMode !== 'consume_on_action') {
+          throw new Error(
+            `该${SECT_MERIDIAN_RESET_TALISMAN_NAME}需在背包中直接启封。`,
+          );
+        }
+        if (!options.tx) {
+          throw new Error('宗门流派节点重置必须在玩家事务中执行');
+        }
+
+        const { resetLoadoutCount } =
+          await SectMeridianResetService.resetSelectedNodes({
+            cultivatorId,
+            tx: options.tx,
+          });
+        await consumeConsumableById(
+          userId,
+          cultivatorId,
+          consumableId,
+          1,
+          options.tx,
+        );
+
+        return {
+          message: `已使用${consumable.name}，清空 ${resetLoadoutCount} 套流派节点方案，可重新选择。`,
+          consumable,
+        };
+      }
+
       if (!isQiRestoreTalismanScenario(consumable.spec.scenario)) {
         throw new Error('符箓需在对应玩法入口校验并消耗，不能在背包中直接使用。');
       }
@@ -171,8 +206,8 @@ export const ConsumableUseEngine = {
       };
     }
 
-    if (!isPillConsumable(consumable)) {
-      throw new Error('该消耗品缺少有效丹药 spec。');
+    if (!isPillConsumable(consumable) && !isSpiritFruitConsumable(consumable)) {
+      throw new Error('该消耗品缺少有效丹药或灵果 spec。');
     }
 
     const cultivator = await loadPlayerConsumableOperationFacts(

@@ -113,6 +113,29 @@ describe('红尘剑宗参悟运行时语义', () => {
   beforeEach(() => EventBus.instance.reset());
   afterEach(() => EventBus.instance.reset());
 
+  it('极限照影收束将剑意与剑痕合并结算且不超过4段', () => {
+    const { owner, enemy } = install('swift-sword', [
+      'swift-mountain-breaking',
+      'swift-endless-flow',
+    ]);
+    const linked = owner.abilities.getAbility('sect.lingxiao.linked-edge') as ActiveSkill;
+    for (let index = 0; index < 3; index += 1) executeSkill(linked, owner, enemy);
+    owner.combatResources.set(LINGXIAO_SWORD_MOMENTUM, 6);
+    const ultimate = owner.abilities.getAbility('sect.lingxiao.sect-ultimate') as ActiveSkill;
+    const requests: DamageSegmentRequestedEvent[] = [];
+    EventBus.instance.subscribe<DamageSegmentRequestedEvent>(
+      'DamageSegmentRequestedEvent',
+      (event) => {
+        if (event.ability === ultimate) requests.push(event);
+      },
+    );
+
+    executeSkill(ultimate, owner, enemy);
+
+    expect(requests).toHaveLength(3);
+    expect(requests.length).toBeLessThanOrEqual(4);
+  });
+
   it('留痕使剑荡山河施加两层剑痕', () => {
     const { owner, enemy } = install('swift-sword', ['swift-retained-force']);
     const linked = owner.abilities.getAbility(

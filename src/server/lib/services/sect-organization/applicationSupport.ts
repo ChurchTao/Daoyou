@@ -3,6 +3,7 @@ import {
   type SectFacilityState,
   type SectOrganizationModule,
 } from '@shared/engine/sect';
+import type { RealmType } from '@shared/types/constants';
 import { SectError } from '../SectError';
 import type {
   SectFacilityRecord,
@@ -64,10 +65,11 @@ export interface SectStipendQuote {
 export function quoteSectStipend(
   organization: SectOrganizationModule,
   rank: SectDiscipleRank,
+  realm: RealmType,
   facilityLevels: ReadonlyMap<string, number>,
 ): SectStipendQuote {
   const spiritStones = Math.floor(
-    organization.economy.stipendBase(rank) *
+    organization.economy.stipendBase(rank, realm) *
       organization.benefits.stipendMultiplier(facilityLevels),
   );
   return { spiritStones };

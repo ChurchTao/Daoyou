@@ -13,7 +13,7 @@
       },
       "tags": ["黄枫谷", "灵气中等", "新手区"],
       "description": "越国七大派割据之地，黄枫谷所在地，山势雄奇。",
-      "connections": ["TN_YUE_02", "TN_YW_01", "TN_XI_01", "TN_BORDER_01"],
+      "connections": ["TN_YUE_02", "TN_YW_01", "TN_XI_01", "TN_BAICAO_01", "TN_BORDER_01"],
       "x": 84,
       "y": 85
     },
@@ -40,7 +40,7 @@
       },
       "tags": ["天星宗", "阵法交易", "齐云霄"],
       "description": "阵法之道极其发达，许多珍稀阵盘均产自此地。",
-      "connections": ["TN_YUE_01", "TN_WE_01"],
+      "connections": ["TN_YUE_01", "TN_BAICAO_01", "TN_WE_01"],
       "x": 88,
       "y": 77
     },
@@ -56,9 +56,30 @@
       },
       "tags": ["落云宗", "古剑门", "百巧院"],
       "description": "天南灵气最浓郁的三个地点之一，三派共治。",
-      "connections": ["TN_YUE_01", "TN_ZMG_01"],
+      "connections": ["TN_YUE_01", "TN_BAICAO_01", "TN_ZMG_01"],
       "x": 88,
       "y": 70
+    },
+    {
+      "id": "TN_BAICAO_01",
+      "name": "天南·百草集",
+      "region": "天南",
+      "realm_requirement": "炼气",
+      "market_config": {
+        "enabled": true,
+        "allowed_layers": ["common", "treasure", "heaven"],
+        "region_profile": "baicao",
+        "seed_ratio": {
+          "common": 0.75,
+          "treasure": 0.625,
+          "heaven": 0.5
+        }
+      },
+      "tags": ["灵植商盟", "百草苗圃", "灵种集散地"],
+      "description": "天南诸家灵植夫与采药人共同经营的山谷集市，苗圃连绵，四方灵种在此分级封存、交换流通。",
+      "connections": ["TN_YUE_01", "TN_YW_01", "TN_XI_01"],
+      "x": 82,
+      "y": 74
     },
     {
       "id": "TN_ZMG_01",

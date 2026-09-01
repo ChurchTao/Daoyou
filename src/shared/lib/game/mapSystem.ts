@@ -10,6 +10,8 @@ export interface NodeMarketConfig {
   enabled: boolean;
   allowed_layers: MarketLayer[];
   region_profile: RegionProfileKey;
+  /** 各层灵种货架占比；未配置的坊市不固定注入灵种。 */
+  seed_ratio?: Partial<Record<MarketLayer, number>>;
 }
 
 export interface DungeonMapConfig {

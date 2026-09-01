@@ -6,11 +6,13 @@ import {
 import { itemLibrary } from '@server/lib/drizzle/schema';
 import { MaterialGenerator } from '@shared/engine/material/creation/MaterialGenerator';
 import type { MaterialSkeleton } from '@shared/engine/material/creation/types';
+import { SpiritSeedGenerator } from '@shared/engine/spirit-field';
 import {
   ItemLibraryEntrySchema,
   type CreateItemLibraryEntry,
   type ItemLibraryEntry,
   type ItemLibraryMaterialGenerateInput,
+  type ItemLibrarySpiritSeedGenerateInput,
 } from '@shared/lib/itemLibrary';
 import {
   QUALITY_ORDER,
@@ -219,7 +221,7 @@ function materialEntryToWrite(entry: ItemLibraryEntry): Material {
     rank: material.payload.rank,
     element: material.payload.element,
     description: material.payload.description,
-    details: {},
+    details: material.payload.details ?? {},
     quantity: 1,
   };
 }
@@ -235,6 +237,19 @@ export async function generateMaterialLibraryEntries(input: {
   userId: string;
   ignoreItemIdConflicts?: boolean;
 }): Promise<ItemLibraryEntry[]> {
+  // 兼容尚未刷新、仍从普通材料入口提交 seed 的管理后台页面；
+  // 服务端统一改走灵种生成器，避免构造缺失 seedSpec 的普通材料。
+  if (input.request.materialType === 'seed') {
+    return generateSpiritSeedLibraryEntries({
+      request: {
+        count: input.request.count,
+        quality: input.request.quality,
+        status: input.request.status,
+      },
+      userId: input.userId,
+    });
+  }
+
   const skeletons: MaterialSkeleton[] = Array.from(
     { length: input.request.count },
     () => ({
@@ -295,6 +310,69 @@ export async function generateMaterialLibraryEntries(input: {
         .onConflictDoNothing({ target: itemLibrary.itemId })
         .returning()
     : await insert.returning();
+  return rows.map(parseRow);
+}
+
+export async function generateSpiritSeedLibraryEntries(input: {
+  request: ItemLibrarySpiritSeedGenerateInput;
+  userId: string;
+}): Promise<ItemLibraryEntry[]> {
+  const generated: Array<Omit<Material, 'id'>> = [];
+  const generationOptions = {
+      guaranteedRank: input.request.quality,
+      specifiedElement: input.request.element,
+  };
+  for (let remaining = input.request.count; remaining > 0; remaining -= 8) {
+    generated.push(
+      ...(await SpiritSeedGenerator.generateRandom(
+        Math.min(8, remaining),
+        generationOptions,
+      )),
+    );
+  }
+  if (generated.length === 0) return [];
+
+  const batchSeed = `spirit-seed:${input.request.quality}:${input.request.element ?? 'random'}:${new Date().toISOString()}`;
+  const generatedAt = new Date().toISOString();
+  const values = generated.map((material, index) => {
+    const sampleSeed = `${batchSeed}:${index}`;
+    const itemId = buildItemId({
+      materialType: 'seed',
+      quality: material.rank,
+      index,
+      seed: batchSeed,
+    });
+    return {
+      itemId,
+      type: 'material' as const,
+      status: input.request.status,
+      name: material.name,
+      description: material.description ?? null,
+      quality: material.rank,
+      element: material.element ?? null,
+      category: 'seed',
+      sampleKey: computeItemLibrarySampleKey(sampleSeed),
+      payload: {
+        name: material.name,
+        type: 'seed' as const,
+        rank: material.rank,
+        element: material.element,
+        description: material.description,
+        details: material.details,
+      },
+      editorConfig: {
+        source: 'llm_spirit_seed',
+        generatedAt,
+      },
+      createdBy: input.userId,
+      updatedBy: input.userId,
+    };
+  });
+
+  const rows = await getExecutor()
+    .insert(itemLibrary)
+    .values(values)
+    .returning();
   return rows.map(parseRow);
 }
 

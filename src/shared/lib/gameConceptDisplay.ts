@@ -108,16 +108,6 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     icon: '⚔️',
     description: '战斗事件或代价',
   },
-  weak: {
-    label: '虚弱',
-    icon: '😰',
-    description: '虚弱状态',
-  },
-  artifact_damage: {
-    label: '法宝受损',
-    icon: '💥',
-    description: '法宝受损代价',
-  },
   vitality: {
     label: '体魄',
     icon: '💪',
@@ -842,6 +832,7 @@ export const CONSUMABLE_TYPE_DISPLAY_MAP: Record<
 > = {
   丹药: getConceptInfo('consumable_pill'),
   符箓: getConceptInfo('consumable_talisman'),
+  灵果: { label: '灵果', icon: '🍑' },
 };
 
 export function getConsumableTypeLabel(type: ConsumableType): string {
@@ -857,6 +848,7 @@ export const MATERIAL_TYPE_DISPLAY_MAP: Record<
   MaterialType,
   MaterialTypeDisplayInfo
 > = {
+  seed: { label: '灵植种子', icon: '🌱' },
   herb: getConceptInfo('material_herb'),
   ore: getConceptInfo('material_ore'),
   monster: getConceptInfo('material_monster'),
@@ -905,9 +897,7 @@ export const RESOURCE_TYPE_DISPLAY_MAP: Record<
   consumable: getConceptInfo('consumable'),
   hp_loss: getConceptInfo('hp_loss'),
   mp_loss: getConceptInfo('mp_loss'),
-  weak: getConceptInfo('weak'),
   battle: getConceptInfo('battle'),
-  artifact_damage: getConceptInfo('artifact_damage'),
 };
 
 export function getResourceTypeLabel(type: string): string {
