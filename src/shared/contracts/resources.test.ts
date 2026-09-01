@@ -111,6 +111,48 @@ describe('multi-scope resource contracts', () => {
     expect(RESOURCE_TOPIC_SCOPE_KIND['sect.membership']).toBe('cultivator');
   });
 
+  test('accepts spirit fruit consumables in inventory pages', () => {
+    expect(
+      RESOURCE_DATA_SCHEMAS['inventory.consumables'].safeParse({
+        items: [
+          {
+            id: '44444444-4444-4444-8444-444444444444',
+            name: '凝寒露果',
+            type: '丹药',
+            quality: '凡品',
+            quantity: 2,
+            description: '灵田中凝结寒露而成的灵果。',
+            prompt: '',
+            score: 0,
+            spec: {
+              kind: 'spirit_fruit',
+              family: 'cultivation',
+              operations: [
+                {
+                  type: 'gain_progress',
+                  target: 'cultivation_exp',
+                  value: 100,
+                },
+              ],
+              consumeRules: {
+                scene: 'out_of_battle_only',
+                quotaCategory: 'none',
+              },
+              source: { kind: 'spirit_field', version: 1 },
+            },
+          },
+        ],
+        pagination: {
+          page: 1,
+          pageSize: 20,
+          total: 1,
+          totalPages: 1,
+          hasMore: false,
+        },
+      }).success,
+    ).toBe(true);
+  });
+
   test('keeps infrastructure and daily construction status separate', () => {
     const infrastructure = { facilities: [] };
     const member = {

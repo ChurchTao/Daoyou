@@ -525,6 +525,25 @@ export const consumableSchema = z
         .strict(),
       z
         .object({
+          kind: z.literal('spirit_fruit'),
+          family: z.enum(PILL_FAMILY_VALUES),
+          operations: z.array(conditionOperationSchema),
+          consumeRules: z
+            .object({
+              scene: z.literal('out_of_battle_only'),
+              quotaCategory: z.enum(PILL_QUOTA_CATEGORY_VALUES),
+            })
+            .strict(),
+          source: z
+            .object({
+              kind: z.literal('spirit_field'),
+              version: z.literal(1),
+            })
+            .strict(),
+        })
+        .strict(),
+      z
+        .object({
           kind: z.literal('talisman'),
           scenario: z.string(),
           sessionMode: z.enum(TALISMAN_SESSION_MODE_VALUES),
