@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  COMBAT_V6_PHASE_1_VERSIONS,
   CommandType,
   HpZeroOutcome,
   createBattle,
@@ -38,6 +39,7 @@ describe('combat-v6 copied core', () => {
   it('resolves a deterministic we-go battle through the public entrypoint', () => {
     const battle = createBattle({
       seed: 42,
+      versions: COMBAT_V6_PHASE_1_VERSIONS,
       ruleset: deterministicRules,
       units: [
         {

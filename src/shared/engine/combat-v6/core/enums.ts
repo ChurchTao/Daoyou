@@ -167,7 +167,7 @@ export const StatusHit = {
 } as const
 export type StatusHit = (typeof StatusHit)[keyof typeof StatusHit]
 
-/** 伤害公式族。具体算法在 rules-xyq，引擎只把名字传过去。 */
+/** 伤害公式族。具体算法在 rules-daoyou，引擎只把名字传过去。 */
 export const FormulaFamily = {
   Physical: "physical",
   Spell: "spell",

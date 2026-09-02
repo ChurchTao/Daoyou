@@ -249,7 +249,7 @@ hit                    = floor(80 + speed)
 dodge                  = floor(speed)
 ```
 
-当前 core 的 `furyRate` 在完成字段更名前只作为 `physicalFuryRate` 的最终边界适配名，不能与器诀使用的战意资源混用。
+core 已统一使用 `physicalFuryRate` 表示物理狂暴概率，不能与器诀使用的战意资源混用。
 
 技能等级规则：
 

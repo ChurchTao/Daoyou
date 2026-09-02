@@ -20,7 +20,7 @@ export const DEFAULT_ATTRS: Attrs = {
   dodge: 0,
   critRate: 0,
   spellCritRate: 0,
-  furyRate: 0,
+  physicalFuryRate: 0,
   sealHit: 0,
   sealResist: 0,
   attackCultivate: 0,
@@ -41,7 +41,7 @@ export function createUnit(input: LineupUnit, index: number): Unit {
     maxMp: Math.max(0, Math.floor(finiteOr(input.attrs.maxMp ?? mp, mp))),
     critRate: clamp01(input.attrs.critRate ?? 0),
     spellCritRate: clamp01(input.attrs.spellCritRate ?? 0),
-    furyRate: clamp01(input.attrs.furyRate ?? 0),
+    physicalFuryRate: clamp01(input.attrs.physicalFuryRate ?? 0),
   }
   return {
     id: input.id ?? `u${input.side}_${input.slot ?? index}`,

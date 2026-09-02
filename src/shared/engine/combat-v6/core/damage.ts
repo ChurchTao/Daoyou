@@ -46,7 +46,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
 
   if (!rollHit(ctx, source, target, src, dst, input.kind)) return
 
-  const fury = input.kind === DamageKind.Physical && ctx.rng.chance(src.furyRate)
+  const fury = input.kind === DamageKind.Physical && ctx.rng.chance(src.physicalFuryRate)
   const skillId = input.skillId ?? ctx.currentAction?.skillId
   const isPrimary =
     input.isPrimary ?? (ctx.currentAction?.primaryTargetId !== undefined && target.id === ctx.currentAction.primaryTargetId)

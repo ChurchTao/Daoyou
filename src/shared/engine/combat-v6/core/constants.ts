@@ -50,7 +50,7 @@ export const ATTR_NAMES = [
   "dodge",
   "critRate", // 必杀率 0–1
   "spellCritRate", // 法术暴击率 0–1
-  "furyRate", // 狂暴率 0–1，先放大伤害再减防御
+  "physicalFuryRate", // 物理狂暴率 0–1，先放大伤害再减防御
   "sealHit",
   "sealResist",
   "attackCultivate", // 攻法修炼

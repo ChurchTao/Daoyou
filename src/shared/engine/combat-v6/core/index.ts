@@ -1,6 +1,6 @@
 /**
  * 梦幻回合制战斗内核。Host 用 createBattle / submit / lockAndResolve；
- * 内容在 @mhxy/data，公式在 @mhxy/rules-xyq。
+ * 内容、Daoyou 公式和角色投影均由 core 上层注入。
  */
 export { createBattle, BattleSession } from "./session.ts"
 export { SeededRng } from "./rng.ts"
@@ -50,6 +50,7 @@ export type {
   BattleResult,
   BattleState,
   Command,
+  CombatV6VersionStamp,
   CreateBattleInput,
   DecideCommandInput,
   EffectWhen,

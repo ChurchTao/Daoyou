@@ -79,6 +79,14 @@ export type BattleResult = {
   reason: ResultReason
 }
 
+/** 战斗、快照与回放共同携带的首版版本契约。 */
+export type CombatV6VersionStamp = {
+  engineVersion: "combat-v6"
+  rulesetVersion: "daoyou_rules_v1"
+  contentVersion: "empty_content_v1"
+  projectionVersion: "character_panel_v1"
+}
+
 /** 场上一条状态。kind 是覆盖键（失心和定身 kind 不同，可并存）。 */
 export type StatusInstance = {
   id: StatusId
@@ -144,6 +152,7 @@ export type BattleState = {
   units: Unit[]
   result?: BattleResult
   rngState: number
+  versions: CombatV6VersionStamp
 }
 
 export type LineupUnit = {
@@ -396,7 +405,12 @@ export type Ruleset = {
 }
 
 export type BattleEvent =
-  | { type: typeof EventType.BattleStart; seed: number; unitIds: UnitId[] }
+  | {
+      type: typeof EventType.BattleStart
+      seed: number
+      unitIds: UnitId[]
+      versions: CombatV6VersionStamp
+    }
   | { type: typeof EventType.RoundStart; round: number }
   | { type: typeof EventType.CommandAccepted; unitId: UnitId; command: Command }
   | { type: typeof EventType.CommandDefaulted; unitId: UnitId; command: Command }
@@ -452,6 +466,7 @@ export type BattleEvent =
 
 export type CreateBattleInput = {
   seed: number
+  versions: CombatV6VersionStamp
   units: LineupUnit[]
   ruleset: Ruleset
   skills?: SkillDef[]

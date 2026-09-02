@@ -78,7 +78,7 @@ combat-v6 不理解这六个字段。它接收的是已经编译完成的战斗�
 | `defenseCultivate` | 物理防修 | 无统一字段 | 炼体 `skin` 等级迁移为防御修炼 |
 | `spellCultivate` | 法术攻修及封印公式 | 无统一字段 | 炼体 `organs` 等级迁移为法术修炼 |
 | `resistSpellCultivate` | 法防修及封印抗性 | 无统一字段 | 炼体 `primordial_spirit` 等级迁移为抗法修炼 |
-| `physicalFuryRate`（core 暂名 `furyRate`） | 物理狂暴概率 | 无统一面板字段 | 由 v6 道装/功法/技能被动提供，裸身默认 0 |
+| `physicalFuryRate` | 物理狂暴概率 | 无统一面板字段 | 由 v6 道装/功法/技能被动提供，裸身默认 0 |
 | `level` | 逃跑、封印、规则公式 | 角色没有普通等级，只有境界阶段和心法等级 | 兼容期按境界阶段映射 5～180 级 |
 | `skillLevels[skillId]` | 技能人数、公式和封印命中 | 普通造物技能没有技能等级；宗门只有六本心法等级 | 宗门技能取所属心法等级；缺省兼容期取人物等级并报告诊断 |
 

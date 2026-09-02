@@ -49,6 +49,7 @@ export class BattleSession {
         phase: BattlePhase.Command,
         units,
         rngState: rng.state,
+        versions: { ...input.versions },
       },
       emit: (event) => {
         events.push(event)
@@ -64,6 +65,7 @@ export class BattleSession {
       type: EventType.BattleStart,
       seed: input.seed,
       unitIds: units.map((u) => u.id),
+      versions: { ...input.versions },
     })
     this.ctx.emit({ type: EventType.RoundStart, round: 1 })
     this.ctx.hooks.emit(HookName.OnRoundStart)
@@ -100,6 +102,7 @@ export class BattleSession {
       round: this.ctx.state.round,
       phase: this.ctx.state.phase,
       rngState: this.ctx.rng.state,
+      versions: { ...this.ctx.state.versions },
       result: this.ctx.state.result ? { ...this.ctx.state.result } : undefined,
       units: this.ctx.state.units.map(cloneUnit),
     }
