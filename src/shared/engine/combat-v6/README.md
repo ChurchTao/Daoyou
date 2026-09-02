@@ -1,5 +1,11 @@
 # combat-v6
 
+完整的新体系设计、隔离边界和分阶段迁移路线以
+[`docs/combat-v6-mhxy-redesign-roadmap.md`](../../../../docs/combat-v6-mhxy-redesign-roadmap.md)
+为 canonical 文档。角色字段的逐项兼容分析见
+[`CHARACTER_COMPATIBILITY.md`](./CHARACTER_COMPATIBILITY.md)，新版道装领域见
+[`docs/combat-v6-equipment-system-design.md`](../../../../docs/combat-v6-equipment-system-design.md)。
+
 `core/` 当前是
 `/Users/churcht/Documents/GitHub/mhxy-combat-copy/packages/engine/src`
 的完整源码副本，作为梦幻式 we-go 回合战斗的隔离内核。
