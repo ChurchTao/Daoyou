@@ -4,7 +4,9 @@
 [`docs/combat-v6-mhxy-redesign-roadmap.md`](../../../../docs/combat-v6-mhxy-redesign-roadmap.md)
 为 canonical 文档。角色字段的逐项兼容分析见
 [`CHARACTER_COMPATIBILITY.md`](./CHARACTER_COMPATIBILITY.md)，新版道装领域见
-[`docs/combat-v6-equipment-system-design.md`](../../../../docs/combat-v6-equipment-system-design.md)。
+[`docs/combat-v6-equipment-system-design.md`](../../../../docs/combat-v6-equipment-system-design.md)，
+新版功法领域见
+[`docs/combat-v6-manual-system-design.md`](../../../../docs/combat-v6-manual-system-design.md)。
 
 `core/` 当前是
 `/Users/churcht/Documents/GitHub/mhxy-combat-copy/packages/engine/src`

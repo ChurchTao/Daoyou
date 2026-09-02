@@ -5,6 +5,10 @@
 > 适用分支：`codex/combat-v6`  
 > 建立时基线提交：`f9510ab5`  
 > 核心目录：`src/shared/engine/combat-v6`  
+> 角色面板：[`combat-v6 角色六维与战斗面板设计`](./combat-v6-character-panel-design.md)
+> 修炼系统：[`combat-v6 新版修炼系统设计`](./combat-v6-training-system-design.md)
+> 宗门系统：[`combat-v6 宗门心法、技能与经脉系统设计`](./combat-v6-sect-skill-meridian-system-design.md)
+> 召唤兽系统：[`combat-v6 召唤兽系统设计`](./combat-v6-summoned-beast-system-design.md)
 > 兼容性明细：`src/shared/engine/combat-v6/CHARACTER_COMPATIBILITY.md`
 
 本文档是 combat-v6 后续设计和实现的方向基线。代码实现、数据模型、内容配置和迁移策略若与本文冲突，应先修改本文并记录决策，再修改代码，避免实现过程中重新滑回 battle-v5 / SPA + GAS 的设计方式。
@@ -177,28 +181,31 @@ type CultivatorBaseCombatInput = Pick<
   | 'realm_stage'
   | 'attributes'
   | 'condition'
-  | 'playerRace'
-  | 'race'
 >;
 ```
 
 装备、功法、宗门和修炼由各自的 v6 投影器单独输入，不得通过扩大这个 `Pick` 偷渡旧 build 数据。
 
-### 5.2 临时一致性面板映射
+### 5.2 正式角色面板投影
 
-第一阶段先复制当前基础公式到 v6 面板编译器，保证角色裸面板切换前后可解释；不得调用 battle-v5 `AttributeSet`：
+角色永久六维、有效六维、裸身面板公式、点数单位和编译顺序以 [`combat-v6 角色六维与战斗面板设计`](./combat-v6-character-panel-design.md) 为准。第一版正式投影版本为 `character_panel_v1`，不得调用 battle-v5 `AttributeSet`：
 
 ```text
 physicalAtk = floor(40 + strength × 3.5)
 physicalDef = floor(10 + endurance × 1.75)
 magicAtk    = floor(40 + spirit × 3.5)
-magicDef    = floor(10 + willpower × 1.75 + vitality × 0.25)
+magicDef    = floor(10 + willpower × 1.75)
 maxHp       = floor(400 + vitality × 20 + endurance × 3)
 maxMp       = floor(200 + spirit × 4 + willpower × 10)
 speed       = speed
+hit         = floor(80 + speed)
+dodge       = floor(speed)
+healPower   = floor(vitality × 0.25 + willpower)
+sealHit     = floor(spirit × 0.5)
+sealResist  = floor(willpower × 0.5)
 ```
 
-这是 `cultivator_base_compat_v1`，目标是稳定迁移，不代表最终平衡公式。后续整体梦幻化调整必须发布新的 projection version，不得静默改旧版本。
+道装附灵六维在上述公式之前与永久六维合并为有效六维；其他 build 默认在公式之后输出面板贡献或被动。后续调整系数、职责、取整或贡献顺序必须发布新的 projection version，不得静默改写 `character_panel_v1`。
 
 ### 5.3 当前气血与法力
 
@@ -223,24 +230,26 @@ level = (getRealmStageRank(realm, realmStage) + 1) * 5;
 
 现有 36 个境界阶段映射为 5～180 级。该等级只作为 v6 公式、技能开放和目标规则的统一标尺，不替代修为境界，也不改变原有境界持久数据。
 
-### 5.5 暂缺属性默认值
+### 5.5 裸身属性与暂缺系统默认值
 
-在各新系统尚未接入前，基础投影采用显式兼容默认值：
+基础投影直接生成六维可派生字段；尚未接入的新系统采用显式默认值：
 
 ```text
 attackCultivate       = 0
 defenseCultivate      = 0
 spellCultivate        = 0
 resistSpellCultivate  = 0
-furyRate              = 0
+physicalFuryRate      = 0
 critRate              = 0.05
 spellCritRate         = 0.05
-healPower             = 0
-sealHit               = 0
-sealResist            = 0
-hit                    = 94
-dodge                  = 0
+healPower             = floor(vitality × 0.25 + willpower)
+sealHit               = floor(spirit × 0.5)
+sealResist            = floor(willpower × 0.5)
+hit                    = floor(80 + speed)
+dodge                  = floor(speed)
 ```
+
+当前 core 的 `furyRate` 在完成字段更名前只作为 `physicalFuryRate` 的最终边界适配名，不能与器诀使用的战意资源混用。
 
 技能等级规则：
 
@@ -268,6 +277,8 @@ interface CombatV6ProjectionResult {
 
 ## 6. 新修炼系统：由炼体五轨原位改造
 
+完整升级、位阶、战斗公式和迁移设计以 [`combat-v6 新版修炼系统设计`](./combat-v6-training-system-design.md) 为准。
+
 ### 6.1 迁移原则
 
 当前炼体拥有五条持久轨道：皮肤、筋骨、脏腑、气血、元神。新修炼系统不另起一套从零养成的数据，也不继续使用旧炼体效果。
@@ -275,7 +286,7 @@ interface CombatV6ProjectionResult {
 锁定原则：
 
 1. 玩家五轨的 `level` 一对一继承，任何一轨都不合并、不取平均、不丢失。
-2. `progress` 按旧等级内完成比例迁移，避免新旧升级阈值不同造成药力损失。
+2. `progress` 原值保留；新旧继续使用同一升级阈值，不做比例换算。
 3. 旧肉身阶位、milestone 和战斗 Buff 停止提供 v6 效果。
 4. 新效果只输出 v6 面板贡献或被动，不生成 v5 modifier。
 5. 迁移必须幂等并记录 migration version，不能重复换算。
@@ -294,53 +305,43 @@ interface CombatV6ProjectionResult {
 
 这样既满足 combat-v6 的四项修炼字段，又不吞掉第五条已有养成。生命根基不是第五个伤害修炼差，不参与物理/法术修炼差公式。
 
+玩家界面和持久数据继续使用皮肤、筋骨、脏腑、气血、元神原名称与 track key；“攻法修炼”等只表示 combat-v6 内部战斗作用，不要求改名或迁移丹药方向。
+
 映射名称和效果属于 v6 新规则；旧轨道此前提供的百分比物攻、抗暴、减伤、回蓝、濒死保护等效果全部终止，不做叠加继承。
 
 ### 6.3 等级和进度迁移
 
-建议持久模型：
+继续使用现有 `condition.tracks.bodyCultivation` 持久模型，不另建平行修炼状态：
 
 ```ts
-interface CombatTrainingV6 {
+interface BodyCultivationState {
   version: 1;
-  tracks: {
-    physicalAttack: TrainingProgress;
-    physicalDefense: TrainingProgress;
-    spellAttack: TrainingProgress;
-    spellDefense: TrainingProgress;
-    lifeFoundation: TrainingProgress;
-  };
-  migratedFrom?: {
-    source: 'body_cultivation_v1';
-    migratedAt: string;
-  };
-}
-
-interface TrainingProgress {
-  level: number;
-  progress: number;
+  realm: BodyCultivationRealm;
+  tracks: Record<BodyCultivationTrackKey, ConditionProgressTrack>;
 }
 ```
 
-进度迁移按比例：
+五轨等级和进度原值保留。升级阈值继续使用现有公式：
 
 ```text
-oldRatio   = clamp(oldProgress / oldThreshold(oldLevel), 0, 1)
-newLevel   = oldLevel
-newProgress = floor(oldRatio × newThreshold(newLevel))
+threshold(level) = 100 + 70 × level
 ```
 
-如果第一版沿用原阈值，则数值看起来不变；仍应通过比例算法实现，以便以后调整曲线。
+五轨只通过炼体丹、灵果等合法 `advance_track` 消耗品推进，不提供消耗修为、灵石或贡献的直接修炼入口。现有丹药方向和实例无需映射。
+
+肉身七阶继续作为阶段位阶和单轨上限展示，但取消旧专项轨道条件、材料、丹药、概率、失败和保底。达到人物境界与五轨总等级要求后，由玩家点击无消耗、确定性提升到下一位阶。
 
 ### 6.4 新效果边界
 
-- 四项主修直接产生同名 v6 修炼值，第一版建议 `修炼值 = 轨道等级`。
-- 生命根基只允许通过明确公式增加 `maxHp` 和 `healPower`，不直接改六维。
+- 四项主修直接产生同名 v6 修炼值，`修炼值 = 对应轨道等级`。
+- 物法伤害修炼差按 `2% + 5` 公式结算，有效差限制在 `-20～20`。
+- 封禁修炼差每级修正 2 个百分点，有效差限制在 `-10～10`。
+- 生命根基每级增加 `character_panel_v1` 裸身气血 0.5%，每两级增加 1 点 `healPower`，不直接改六维。
 - 修炼不来源于宗门心法；转宗、换装备、换功法不会改变四修炼等级。
 - 修炼也不提供宗门主动技能等级。
-- 修炼的长期消耗、上限、升级材料和界面可沿用现有炼体入口改造，但文本、效果预览和突破条件都要重写。
+- 肉身位阶本身不提供 combat-v6 战斗效果，旧七阶战斗被动全部退出。
 
-第一版不保留旧肉身七阶的战斗被动。若需要展示历史投入，可将旧阶位保留为无战斗权重的纪念字段；未来若要新增修炼阶位，应基于新五轨重新定义。
+肉身七阶单轨上限依次为 5、10、15、22、30、45、60；晋升总等级门槛继续为 12、30、55、90、140、220。
 
 ---
 
@@ -363,31 +364,25 @@ newProgress = floor(oldRatio × newThreshold(newLevel))
 
 ## 8. 新功法系统：角色版“魔兽要诀”
 
-### 8.1 定位
+功法是跨宗门的有限槽位被动 build，通过参悟功法玉简，将被动铭刻为角色道印。完整领域设计以 [`combat-v6 功法系统设计`](./combat-v6-manual-system-design.md) 为准。
 
-功法是跨宗门的有限槽位被动 build，不承担宗门主动技能职责。它的体验接近召唤兽学习魔兽要诀：获得功法书、学习、覆盖、遗忘、处理冲突并形成被动组合。
+已确认边界：
 
-### 8.2 核心规则
-
-- 固定或可成长的功法槽位上限。
-- 普通/高级等阶，同系高级可压制普通版本。
-- 明确的冲突组、互斥组和覆盖规则。
-- 学习新功法时可替换已有槽位。
-- 遗忘与锁定机制避免误覆盖关键功法。
-- 功法只编译为 v6 被动 `SkillDef`、innate 能力或少量白名单面板贡献。
-
-### 8.3 禁止事项
-
-- 不把旧 `CultivationTechnique.abilityConfig` 自动翻译成 v6。
-- 不允许功法携带任意脚本。
-- 不让功法直接改宗门技能底表；确需联动时使用通用 Hook 条件和技能标签。
-- 不让功法成为第二套宗门技能系统。
-
-旧功法的名称、描述或收藏记录可以保留展示；其战斗价值通过补偿或新功法书重发解决。
+- 炼气初始 2 个道印位，每提升一个大境界增加 1 个，化神达到 6 个后封顶。
+- 首版每个角色只有一套功法构筑，不能保存或切换方案。
+- 构筑使用独立值对象设计，保留后期迁移到多构筑方案的技术可行性，但首版不预埋切换接口和 UI。
+- 首版没有固印、锁槽和对应材料。
+- 槽满后由玩家明确选择改修目标，不做随机覆盖；参悟必定成功。
+- 使用本篇/真解同源覆盖，不设计功法等级与经验。
+- 功法只编译为 v6 被动、innate、少量白名单面板贡献和通用标签。
+- 功法不授予主动技能，不修改宗门技能，不提供四项修炼。
+- 首版功法名称、描述、效果、数值、掉落和构筑操作均无 AI 参与。
 
 ---
 
 ## 9. 新宗门技能系统
+
+完整领域设计以 [`combat-v6 宗门心法、技能与经脉系统设计`](./combat-v6-sect-skill-meridian-system-design.md) 为准。
 
 ### 9.1 社会状态与战斗进度拆分
 
@@ -405,8 +400,9 @@ interface SectCombatProgressV6 {
   version: 1;
   sectId: string;
   methods: Record<string, number>;
-  activePathId?: string;
-  meridianLoadouts: MeridianLoadoutV6[];
+  meridianDepth: number;
+  activePathId: string;
+  meridianLoadouts: [MeridianLoadoutV6, MeridianLoadoutV6];
 }
 ```
 
@@ -416,9 +412,12 @@ interface SectCombatProgressV6 {
 
 每个宗门保留六本心法，目标上限 180：
 
+- 心法上限为 `min(180, 人物等级 + 10)`。
+- 分支心法不得超过主心法等级。
 - 心法决定技能开放条件。
 - 宗门技能等级等于其所属心法等级。
 - 心法可以提供少量明确的基础面板贡献，但不映射四项人物修炼。
+- 取消 v5 `growthProfile` 通用效果倍率，技能通过所属心法等级显式成长。
 - 修炼、心法和人物战斗等级是三个独立维度。
 
 ### 9.3 技能使用
@@ -426,18 +425,23 @@ interface SectCombatProgressV6 {
 - 取消“固定装配四个主动技能”的战斗限制。
 - 已解锁且满足条件的宗门技能都可在战斗中使用。
 - 快捷栏只是一种 UI 偏好，不是战斗能力真相。
-- 默认攻击可以被宗门内容替换，但仍通过投影结果声明。
+- 所有人使用统一普通攻击；宗门可以通过投影结果中的被动或覆盖改变其行为。
+- 宗门特色机制必须重建为 v6 状态、资源、被动、反应表和通用效果。
+- 特殊战斗资源按机制需要配置，可为空，首版每宗门最多一种。
 
 ### 9.4 宗门投影契约
 
 ```ts
 interface SectCombatProjectionV6 {
-  defaultAttack?: SkillDef;
   skills: SkillDef[];
   passives: SkillDef[];
+  statusDefs: StatusDef[];
   skillLevels: Record<string, number>;
+  skillOverrides: SkillDef[];
+  resources: CombatResourceDef[];
   panel: CombatV6PanelContribution[];
   unitTags: string[];
+  diagnostics: CombatV6ProjectionDiagnostic[];
 }
 ```
 
@@ -447,14 +451,17 @@ interface SectCombatProjectionV6 {
 
 ## 10. 新经脉系统
 
+经脉的完整结构、特色机制边界和旧进度迁移以 [`combat-v6 宗门心法、技能与经脉系统设计`](./combat-v6-sect-skill-meridian-system-design.md) 为准。
+
 ### 10.1 结构
 
-每个宗门提供若干流派，每个流派采用七层经脉：
+每个宗门固定两个流派，每个流派采用七层经脉：
 
-- 每层 2～3 个互斥节点。
-- 一套生效方案；可保存多套方案用于切换。
+- 每层恰好 3 个互斥节点。
+- 每个流派保存且只保存 1 套方案，因此每宗门共 2 套。
+- 激活流派时自动启用对应方案。
 - 节点选择必须满足前置层和心法/人物等级条件。
-- 切换方案发生在战斗外；开战后使用已编译快照。
+- 战斗外免费切换流派、重置和修改节点；开战后使用已编译快照。
 
 ### 10.2 节点允许输出
 
@@ -488,10 +495,11 @@ interface SectCombatProjectionV6 {
 ### 11.1 编译管线
 
 ```text
-角色身份 + 六维 + 境界
-→ 基础面板 compat 公式
+角色身份 + 永久六维 + 境界
+→ 道装附灵六维合成有效六维
+→ character_panel_v1 裸身面板
 → 新修炼贡献
-→ 新装备贡献
+→ 道装器胚、灵纹、淬炼及其他装备贡献
 → 新功法贡献
 → 宗门心法贡献
 → 经脉 patch 与贡献
@@ -538,10 +546,12 @@ interface CombatV6PanelContribution {
 
 | 现有机制 | v6 方向 |
 | --- | --- |
-| 六维基础属性 | 保留为持久真相，公式投影 |
+| 六维基础属性 | 保留为持久真相，按 `character_panel_v1` 公式投影 |
 | 当前 HP/MP | 按场景资源策略读取 |
 | 境界 | 保留；兼容期映射 5～180 人物等级 |
-| 灵根 | 不直接进 core；以后编译为标签/被动或退出战斗 |
+| 种族 | 首版不进入 combat-v6 投影，不生成标签、面板、技能或被动 |
+| 灵根 | 首版不进入 combat-v6 投影，不生成元素标签、共鸣、失配、技能或被动 |
+| 命格 | 首版不进入 combat-v6 投影；战斗外经济、修炼或叙事作用不受影响 |
 | 境界压制 | 默认不迁移；若保留，进入 rules-daoyou 且版本化 |
 | 物法穿透 | 默认退出通用面板；个别技能可用公式/被动表达 |
 | 暴击抵抗/暴伤减免 | 不直接迁移；有明确内容需求再增加通用机制 |
@@ -581,7 +591,7 @@ interface CombatV6PanelContribution {
 交付：
 
 - `rules-daoyou` 第一版。
-- `cultivator_base_compat_v1` 面板编译器。
+- `character_panel_v1` 面板编译器。
 - 5～180 人物等级映射。
 - `full/persistent` 资源策略。
 - 投影诊断和版本戳。
@@ -598,17 +608,18 @@ interface CombatV6PanelContribution {
 
 交付：
 
-- `CombatTrainingV6` 类型、迁移函数和幂等版本。
-- 五轨等级一对一迁移与进度比例迁移。
+- 继续使用 `BodyCultivationState`，迁移只停止旧 breakthrough/milestone 运行时语义。
+- 五轨等级、进度、名称、key 和丹药方向原值保留。
 - 四修炼 + 生命根基的新效果编译。
 - 旧炼体效果与 v6 彻底断开。
-- 新修炼展示文案、升级预览和必要的持久化方案。
+- 确定性肉身位阶提升、单轨上限和新版效果预览。
 
 完成条件：
 
-- 任意旧角色迁移前后五条等级完全一致。
+- 任意旧角色迁移前后五条等级与进度完全一致。
 - v6 只读取新修炼投影，不读取 `bodyCultivation` 的旧战斗效果。
-- 重复执行迁移不会重复增加等级或进度。
+- 不存在直接修炼入口；现有炼体丹和灵果继续生效。
+- 重复执行迁移不会改变等级、进度或重复提升位阶。
 
 ### Phase 3：一个完整宗门纵切
 
@@ -619,7 +630,7 @@ interface CombatV6PanelContribution {
 - 一个宗门的六本心法（0～180）。
 - 全部基础主动/被动技能。
 - 至少一个完整流派。
-- 七层经脉，每层互斥节点。
+- 七层经脉，每层恰好三个互斥节点。
 - 技能 patch、grant/revoke、面板和被动编译验证。
 
 完成条件：
@@ -652,15 +663,18 @@ interface CombatV6PanelContribution {
 
 交付：
 
-- 功法书、槽位、学习、覆盖、锁定、遗忘。
-- 普通/高级层级与冲突组。
+- 功法玉简、境界派生槽位、参悟、明确覆盖和散功。
+- 本篇/真解同源层级、冲突组与跨系统能力键。
 - 功法到 v6 passives/innate 的编译。
-- 旧功法补偿/兑换方案。
+- revision 并发保护与未来多构筑迁移边界。
+- 无 AI 的人工内容表和 10～12 个首批功法谱系。
 
 完成条件：
 
-- 功法切换不影响宗门心法和人物修炼。
+- 炼气至渡劫槽位数严格为 2、3、4、5、6、6、6、6、6。
+- 功法改修不影响宗门心法、人物修炼和道装状态。
 - 所有冲突都在开战前被确定性解决。
+- 首版状态、接口和 UI 不包含多构筑切换、固印或 AI 链路。
 
 ### Phase 6：扩展其余宗门
 
@@ -707,7 +721,7 @@ interface CombatV6PanelContribution {
 
 ### Phase 9：召唤兽与后续梦幻式系统
 
-召唤兽需要独立持久模型：等级、属性点、资质、成长、技能、出战/板凳编组。召唤兽技能可复用功法式普通/高级被动冲突规则，但人物功法与兽诀数据不可混为同一实例类型。
+召唤兽按[`combat-v6 召唤兽系统设计`](./combat-v6-summoned-beast-system-design.md)建立独立持久领域。首版采用独立五维与五资质、0～180 等级的妖类境界映射、固定出生技能格、随机覆盖打书、6 只携带与单宠在场，并实现死亡扣除 50 寿命的最小闭环。人物功法与兽诀不可混为同一实例类型；首版不开放召唤兽修炼。
 
 之后再按需求增加：
 
@@ -743,7 +757,7 @@ interface CombatV6PanelContribution {
 - core 指令锁定、速度顺序、状态、死亡/倒地和 RNG。
 - rules-daoyou 物理、法术、固伤、治疗、封印和修炼差公式。
 - 角色基础投影黄金值。
-- 五轨修炼迁移的等级保持、进度比例和幂等性。
+- 五轨修炼迁移的等级/进度原值保持、位阶晋升和幂等性。
 - 装备属性白名单与冲突。
 - 功法普通/高级冲突和覆盖。
 - 宗门心法等级到技能等级映射。
@@ -792,15 +806,12 @@ bun run build
 
 这些问题不阻塞架构实施，但进入相应 Phase 前必须补充版本化决策：
 
-- 六维最终梦幻式面板公式，及是否继续使用 `cultivator_base_compat_v1`。
-- `hit/dodge/sealHit/sealResist/healPower` 的正式六维来源和单位。
-- 生命根基每级提供的 `maxHp/healPower` 数值。
-- 四修炼的等级上限、升级成本、人物等级限制和修炼差系数。
-- 是否保留灵根战斗机制、境界压制和个体暴击抵抗。
+- 是否保留境界压制和个体暴击抵抗。
 - 道装各部位器胚区间、附灵概率与属性倾向。
-- 功法槽位数量、普通/高级获得方式和覆盖成本。
+- 首批功法谱系、本篇/真解数值、玉简掉落与残页兑换成本。
 - 首个纵切宗门及其六心法定义。
-- 愤怒、特技、药品、阵法和召唤兽的具体排期。
+- 愤怒、特技、药品、阵法和召唤兽的具体实施排期。
+- 召唤兽的物种表、资质/成长区间、妖类境界正式命名、首批兽诀和寿命恢复道具数值。
 
 这些属于 balance/content decision，不得反向破坏前述隔离、编译、版本和持久化边界。
 
@@ -826,3 +837,20 @@ bun run build
 | 2026-09-02 | 新装备系统定名“道装”，采用梦幻式六部位并使用修仙化术语 | “法宝”保留给未来独立系统 |
 | 2026-09-02 | 道装不设品质、稀有度或权威评分，只展示实际数值和效果 | 生成、展示、市场与筛选不得重新引入替代品质 |
 | 2026-09-02 | 道装完全独立且不使用境界衰减 | 建立独立生成/装配/投影领域，以器阶自然换代 |
+| 2026-09-02 | 功法槽位为炼气 2 槽、逐大境界增加并在化神封顶 6 槽 | 后续境界不再增加槽位 |
+| 2026-09-02 | 功法首版仅一套构筑、不固印、无 AI | 保留未来多构筑迁移边界，不提前实现切换和锁定能力 |
+| 2026-09-02 | 锁定 `character_panel_v1` 六维职责、裸身公式和面板点数单位 | 保留现有自然成长、自由加点与洗点；v6 独立重算派生面板 |
+| 2026-09-02 | 宗门保留特色机制，特殊资源按需配置 | 无相形态、天衍五行、幽都固伤/削弱/伤势等以 v6 通用原语重建 |
+| 2026-09-02 | 每宗门固定双流派，每流派七层且每层三个互斥节点 | 每宗门最终交付 42 个经脉节点 |
+| 2026-09-02 | 两个流派各保存一套经脉方案，战斗外免费切换和重置 | 不提供同一流派多方案槽位，战斗使用锁定快照 |
+| 2026-09-02 | 旧宗门心法等级和经脉深度平滑迁移，不返还修为灵石 | 按心法槽位、最高深度和节点位置继承，旧战斗效果退出 |
+| 2026-09-02 | 心法上限为人物等级加 10，取消通用 growthProfile 与四技能装配 | 技能显式读取所属心法等级；统一普攻，快捷栏仅为 UI 偏好 |
+| 2026-09-02 | 炼体五轨名称、等级、进度与丹药方向原值保留，只替换 v6 战斗作用 | 不建立直接点修或平行持久模型，继续通过 condition 消耗品链路推进 |
+| 2026-09-02 | 肉身七阶保留为阶段位阶与单轨上限，晋升改为无消耗确定性点击 | 取消专项轨道要求、材料、概率、失败、保底和全部旧战斗被动 |
+| 2026-09-02 | 锁定四修炼差与生命根基数值 | 物法差为 `2% + 5` 且限 ±20；封禁差限 ±10；气血轨最高提供裸身气血 30% 与治疗强度 30 |
+| 2026-09-02 | 种族、灵根和命格首版全部不进入 combat-v6 | 不预埋空字段、标签或兼容效果；后续有明确需求时重新设计并提升相关版本 |
+| 2026-09-02 | 召唤兽采用独立五维、五资质、成长与 180 级妖类境界映射 | 不复用人物六维或人物 build，首版不设闪避资质和召唤兽修炼 |
+| 2026-09-02 | 召唤兽出生技能数量永久决定技能格上限，打书随机覆盖 | 不提供指定覆盖、固印、锁定、保底或后天增格 |
+| 2026-09-02 | 玩家最多携带 6 只召唤兽，场上最多 1 只 | 编组与个体分离持久化，换宠消耗人物行动 |
+| 2026-09-02 | 召唤兽死亡扣除 50 寿命，低于 50 禁止出战，归零不删除 | 由 Host 在战后事务中幂等结算，首版提供最小寿命恢复出口 |
+| 2026-09-02 | 法宝首版不实现 | 作为未来独立构筑系统记录，当前不预埋数据库字段或 core 分支 |
