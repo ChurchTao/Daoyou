@@ -84,7 +84,7 @@ export type CombatV6VersionStamp = {
   engineVersion: "combat-v6"
   rulesetVersion: "daoyou_rules_v1"
   contentVersion: "empty_content_v1"
-  projectionVersion: "character_panel_v1"
+  projectionVersion: "character_panel_v1" | "character_training_v1"
 }
 
 /** 场上一条状态。kind 是覆盖键（失心和定身 kind 不同，可并存）。 */

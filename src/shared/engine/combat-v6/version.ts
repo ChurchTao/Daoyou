@@ -7,3 +7,11 @@ export const COMBAT_V6_PHASE_1_VERSIONS: CombatV6VersionStamp = Object.freeze({
   contentVersion: "empty_content_v1",
   projectionVersion: "character_panel_v1",
 })
+
+/** Phase 2 的五轨修炼组合投影版本戳。 */
+export const COMBAT_V6_PHASE_2_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  engineVersion: "combat-v6",
+  rulesetVersion: "daoyou_rules_v1",
+  contentVersion: "empty_content_v1",
+  projectionVersion: "character_training_v1",
+})

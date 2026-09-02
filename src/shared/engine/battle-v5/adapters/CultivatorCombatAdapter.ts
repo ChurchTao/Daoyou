@@ -5,11 +5,9 @@ import {
   getArtifactWearerRealmFactor,
   scaleArtifactMainPanelFixedModifiers,
 } from '@shared/engine/shared/artifactRealmScaling';
-import { buildBodyCultivationAttributeModifiers } from '@shared/lib/bodyCultivation/effects';
 import { AbilityFactory } from '../factories/AbilityFactory';
 import {
   AttributeType,
-  type AttributeModifier,
   type UnitId,
   type TeamId,
   type TeamSlot,
@@ -46,27 +44,6 @@ const ATTRIBUTE_MAP = {
   speed: AttributeType.SPEED,
   willpower: AttributeType.WILLPOWER,
 } as const;
-
-function mountBodyCultivationModifiers(
-  unit: Unit,
-  cultivator: CultivatorCombatInput,
-): void {
-  for (const [index, modifier] of buildBodyCultivationAttributeModifiers(
-    cultivator.condition,
-  ).entries()) {
-    const mountedModifier: AttributeModifier = {
-      id: `bodyCultivation:body-cultivation:${modifier.attrType}:${index}`,
-      attrType: modifier.attrType,
-      type: modifier.type,
-      value: modifier.value,
-      source: {
-        sourceType: 'bodyCultivation',
-        carrierId: 'body-cultivation',
-      },
-    };
-    unit.attributes.addModifier(mountedModifier);
-  }
-}
 
 export function createCombatUnitFromCultivator(
   cultivator: CultivatorCombatInput,
@@ -137,8 +114,6 @@ export function createCombatUnitFromCultivator(
         : artifact.abilityConfig;
     unit.abilities.addAbility(AbilityFactory.create(effectiveAbilityConfig));
   }
-
-  mountBodyCultivationModifiers(unit, cultivator);
 
   if (sectProjection) {
     for (const resource of sectProjection.resources) {

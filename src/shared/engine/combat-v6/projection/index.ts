@@ -1,5 +1,7 @@
 export { compileCharacterPanelV1, type CharacterPanelV1 } from "./character-panel-v1.ts"
 export { projectCultivatorBaseToCombatV6 } from "./project-cultivator-base.ts"
+export { compileBodyCultivationV6 } from "./body-cultivation-v6.ts"
+export { projectCultivatorWithTrainingToCombatV6 } from "./project-cultivator-with-training.ts"
 export type {
   CombatV6ProjectionDiagnostic,
   CombatV6ProjectionDiagnosticCode,
@@ -8,4 +10,7 @@ export type {
   CombatV6ResourcePolicy,
   CultivatorBaseCombatInput,
   ProjectCultivatorBaseInput,
+  ProjectCultivatorWithTrainingInput,
+  CombatV6TrainingProjection,
+  CombatV6BodyCultivationInput,
 } from "./types.ts"

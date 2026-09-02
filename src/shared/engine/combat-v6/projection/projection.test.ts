@@ -3,7 +3,9 @@ import type { Attributes } from "@shared/types/cultivator"
 import type { CultivatorCondition } from "@shared/types/condition"
 import {
   compileCharacterPanelV1,
+  compileBodyCultivationV6,
   projectCultivatorBaseToCombatV6,
+  projectCultivatorWithTrainingToCombatV6,
   type CultivatorBaseCombatInput,
 } from "./index.ts"
 
@@ -232,5 +234,149 @@ describe("base cultivator projection", () => {
 
     expect(result.ok).toBe(false)
     expect(result.diagnostics.filter((item) => item.code === "INVALID_BASE_ATTRIBUTE")).toHaveLength(2)
+  })
+})
+
+describe("character_training_v1", () => {
+  it.each([
+    [0, 0, 0],
+    [10, 31, 5],
+    [20, 63, 10],
+    [60, 189, 30],
+  ])(
+    "compiles life foundation level %i into hp and heal bonuses",
+    (level, maxHpBonus, healPowerBonus) => {
+      const condition = createCondition(100, 100)
+      condition.tracks.bodyCultivation = {
+        version: 1,
+        realm: "dao_body",
+        tracks: {
+          skin: { level: 0, progress: 0 },
+          sinew_bone: { level: 0, progress: 0 },
+          organs: { level: 0, progress: 0 },
+          qi_blood: { level, progress: 0 },
+          primordial_spirit: { level: 0, progress: 0 },
+        },
+        milestones: {},
+      }
+
+      expect(
+        compileBodyCultivationV6(
+          condition.tracks.bodyCultivation,
+          compileCharacterPanelV1(BASE_ATTRIBUTES),
+        ),
+      ).toMatchObject({ lifeFoundationLevel: level, maxHpBonus, healPowerBonus })
+    },
+  )
+
+  it("maps all five tracks without mutating persistent state", () => {
+    const condition = createCondition(100, 100)
+    condition.tracks.bodyCultivation = {
+      version: 1,
+      realm: "golden_body",
+      tracks: {
+        skin: { level: 12, progress: 1 },
+        sinew_bone: { level: 13, progress: 2 },
+        organs: { level: 14, progress: 3 },
+        qi_blood: { level: 15, progress: 4 },
+        primordial_spirit: { level: 16, progress: 5 },
+      },
+      milestones: { legacy: true },
+    }
+    const before = structuredClone(condition)
+    const result = projectCultivatorWithTrainingToCombatV6({
+      cultivator: cultivator({ condition }),
+      side: 0,
+      slot: 0,
+      resourcePolicy: "full",
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.unit.attrs).toMatchObject({
+      hp: 677,
+      maxHp: 677,
+      healPower: 19,
+      attackCultivate: 13,
+      defenseCultivate: 12,
+      spellCultivate: 14,
+      resistSpellCultivate: 16,
+    })
+    expect(result.versions.projectionVersion).toBe("character_training_v1")
+    expect(condition).toEqual(before)
+  })
+
+  it("defaults missing cultivation to zero and preserves persistent hp", () => {
+    const condition = createCondition(500, 200)
+    const result = projectCultivatorWithTrainingToCombatV6({
+      cultivator: cultivator({ condition }),
+      side: 0,
+      slot: 0,
+      resourcePolicy: "persistent",
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.unit.attrs).toMatchObject({
+      hp: 500,
+      maxHp: 630,
+      mp: 200,
+      attackCultivate: 0,
+    })
+  })
+
+  it("uses the trained max hp for persistent clamping without healing", () => {
+    const condition = createCondition(700, 100)
+    condition.tracks.bodyCultivation = {
+      version: 1,
+      realm: "dao_body",
+      tracks: {
+        skin: { level: 0, progress: 0 },
+        sinew_bone: { level: 0, progress: 0 },
+        organs: { level: 0, progress: 0 },
+        qi_blood: { level: 20, progress: 0 },
+        primordial_spirit: { level: 0, progress: 0 },
+      },
+      milestones: {},
+    }
+    const result = projectCultivatorWithTrainingToCombatV6({
+      cultivator: cultivator({ condition }),
+      side: 0,
+      slot: 0,
+      resourcePolicy: "persistent",
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.unit.attrs).toMatchObject({ hp: 693, maxHp: 693 })
+    expect(result.diagnostics.map((item) => item.code)).toContain("RESOURCE_CLAMPED")
+  })
+
+  it("rejects invalid levels and only clamps over-cap projection values", () => {
+    const condition = createCondition(100, 100)
+    condition.tracks.bodyCultivation = {
+      version: 1,
+      realm: "dao_body",
+      tracks: {
+        skin: { level: 61, progress: 0 },
+        sinew_bone: { level: -1, progress: 0 },
+        organs: { level: 0, progress: 0 },
+        qi_blood: { level: 0, progress: 0 },
+        primordial_spirit: { level: 0, progress: 0 },
+      },
+      milestones: {},
+    }
+    const result = projectCultivatorWithTrainingToCombatV6({
+      cultivator: cultivator({ condition }),
+      side: 0,
+      slot: 0,
+      resourcePolicy: "full",
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.diagnostics.map((item) => item.code)).toEqual(
+      expect.arrayContaining(["TRAINING_LEVEL_CLAMPED", "INVALID_TRAINING_LEVEL"]),
+    )
+    expect(condition.tracks.bodyCultivation.tracks.skin.level).toBe(61)
   })
 })

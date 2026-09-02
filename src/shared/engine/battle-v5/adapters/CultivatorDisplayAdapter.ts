@@ -4,7 +4,6 @@ import {
   getArtifactWearerRealmFactor,
   scaleArtifactMainPanelFixedModifiers,
 } from '@shared/engine/shared/artifactRealmScaling';
-import { buildBodyCultivationAttributeModifiers } from '@shared/lib/bodyCultivation/effects';
 import { projectSectMethodModifiers } from '@shared/engine/sect';
 import { sectRegistry } from '@shared/engine/sect/content';
 import type { AttributeModifierConfig } from '../core/configs';
@@ -119,14 +118,6 @@ export function createDisplayUnitFromCultivator(
       ),
     });
   }
-
-  mountModifiers(unit, 'bodyCultivation', {
-    id: 'body-cultivation',
-    name: '肉身炼体',
-    attributeModifiers: buildBodyCultivationAttributeModifiers(
-      cultivator.condition,
-    ),
-  });
 
   unit.updateDerivedStats();
   return unit;

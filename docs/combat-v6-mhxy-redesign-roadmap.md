@@ -604,6 +604,8 @@ interface CombatV6PanelContribution {
 
 ### Phase 2：炼体五轨迁移为新修炼
 
+> 状态：已完成（2026-09-02）
+
 目标：玩家继承五轨等级，v6 获得四修炼和生命根基。
 
 交付：
@@ -620,6 +622,8 @@ interface CombatV6PanelContribution {
 - v6 只读取新修炼投影，不读取 `bodyCultivation` 的旧战斗效果。
 - 不存在直接修炼入口；现有炼体丹和灵果继续生效。
 - 重复执行迁移不会改变等级、进度或重复提升位阶。
+
+实际实现补充：采用惰性兼容，不执行数据库批量迁移；旧 `milestones` 原样保留但不生效，成功晋升时清除旧 `breakthrough`。`character_training_v1` 负责五轨组合投影，battle-v5 旧炼体 modifier、开战 Buff 与位阶 Hook 已删除。
 
 ### Phase 3：一个完整宗门纵切
 

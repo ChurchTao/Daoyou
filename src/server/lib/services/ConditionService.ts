@@ -722,16 +722,10 @@ export const ConditionService = {
   breakthroughBodyCultivationRealm(
     cultivator: Pick<Cultivator, 'realm' | 'condition'>,
     conditionInput: CultivatorCondition | undefined,
-    rng: () => number = Math.random,
   ): {
     condition: CultivatorCondition;
     fromRealm: BodyCultivationRealm;
     toRealm: BodyCultivationRealm;
-    success: boolean;
-    chance: number;
-    roll: number;
-    failedAttempts: number;
-    guaranteeProgress: number;
   } {
     const condition = conditionInput ?? cultivator.condition;
     if (!condition) {
@@ -739,7 +733,7 @@ export const ConditionService = {
     }
     const result = advanceBodyCultivationRealm(condition, {
       cultivatorRealm: cultivator.realm,
-    }, rng);
+    });
 
     return {
       condition: {
@@ -751,11 +745,6 @@ export const ConditionService = {
       },
       fromRealm: result.fromRealm,
       toRealm: result.toRealm,
-      success: result.success,
-      chance: result.chance,
-      roll: result.roll,
-      failedAttempts: result.failedAttempts,
-      guaranteeProgress: result.guaranteeProgress,
     };
   },
 };

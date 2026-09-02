@@ -255,7 +255,7 @@ export const router = createBrowserRouter(
                   id: 'body-cultivation',
                   summary: '五轨炼体等级、当前收益与进阶准备归于此处。',
                 },
-                '肉身破限',
+                '肉身升阶',
               )}
             />
             <Route

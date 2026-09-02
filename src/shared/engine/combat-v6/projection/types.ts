@@ -1,5 +1,6 @@
 import type { Attributes } from "@shared/types/cultivator"
 import type { CultivatorCondition } from "@shared/types/condition"
+import type { BodyCultivationState } from "@shared/types/condition"
 import type { RealmStage, RealmType } from "@shared/types/constants"
 import type {
   CombatV6VersionStamp,
@@ -24,6 +25,21 @@ export interface ProjectCultivatorBaseInput {
   resourcePolicy: CombatV6ResourcePolicy
 }
 
+export type ProjectCultivatorWithTrainingInput = ProjectCultivatorBaseInput
+
+export interface CombatV6TrainingProjection {
+  attackCultivate: number
+  defenseCultivate: number
+  spellCultivate: number
+  resistSpellCultivate: number
+  lifeFoundationLevel: number
+  maxHpBonus: number
+  healPowerBonus: number
+  diagnostics: CombatV6ProjectionDiagnostic[]
+}
+
+export type CombatV6BodyCultivationInput = BodyCultivationState | undefined
+
 export type CombatV6ProjectionDiagnosticSeverity = "info" | "warning" | "error"
 
 export type CombatV6ProjectionDiagnosticCode =
@@ -34,6 +50,8 @@ export type CombatV6ProjectionDiagnosticCode =
   | "PERSISTENT_HP_DEPLETED"
   | "RESOURCE_CLAMPED"
   | "PERSISTENT_STATUSES_NOT_PROJECTED"
+  | "INVALID_TRAINING_LEVEL"
+  | "TRAINING_LEVEL_CLAMPED"
 
 export interface CombatV6ProjectionDiagnostic {
   severity: CombatV6ProjectionDiagnosticSeverity

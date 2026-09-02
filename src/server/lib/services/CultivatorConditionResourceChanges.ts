@@ -6,7 +6,6 @@ import {
   type ResourceChangeDescriptor,
   type ResourceDataMap,
 } from '@shared/contracts/resources';
-import type { ResourceOperationSettlement } from '@shared/engine/resource/types';
 import { isTalismanConsumable } from '@shared/lib/consumables';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type {
@@ -221,38 +220,16 @@ export function innRecoveryChanges(args: {
 }
 
 export function bodyBreakthroughChanges(args: {
-  success: boolean;
   condition: ResourceDataMap['player.condition'];
-  inventoryChanges: ResourceOperationSettlement['inventoryChanges'];
 }): ResourceChangeDescriptor[] {
-  const changes: ResourceChangeDescriptor[] = [
+  return [
     {
       resourceTopic: 'player.condition',
-      eventType: args.success
-        ? 'condition.body_cultivation.breakthrough'
-        : 'condition.body_cultivation.breakthrough_failed',
+      eventType: 'condition.body_cultivation.breakthrough',
       operation: 'replace',
       payload: args.condition,
     },
   ];
-  for (const inventoryChange of args.inventoryChanges) {
-    changes.push(
-      inventoryChange.operation === 'upsert'
-        ? ({
-            resourceTopic: `inventory.${inventoryChange.kind}`,
-            eventType: 'inventory.body_cultivation.breakthrough_consumed',
-            operation: 'upsert-items',
-            payload: { idKey: 'id', items: [inventoryChange.item] },
-          } as ResourceChangeDescriptor)
-        : ({
-            resourceTopic: `inventory.${inventoryChange.kind}`,
-            eventType: 'inventory.body_cultivation.breakthrough_consumed',
-            operation: 'remove-items',
-            payload: { idKey: 'id', ids: [inventoryChange.id] },
-          } as ResourceChangeDescriptor),
-    );
-  }
-  return changes;
 }
 
 export function marrowWashBreakthroughChanges(args: {
