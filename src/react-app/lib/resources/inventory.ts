@@ -84,7 +84,7 @@ export function useArtifactInventoryResource(options: {
 export function useConsumableInventoryResource(options: {
   pageSize: number;
   enabled?: boolean;
-  consumableKind?: 'pill';
+  consumableKind?: 'pill' | 'spirit_fruit' | 'tradable';
 }) {
   const { pageSize, enabled = true, consumableKind } = options;
   const [page, setPage] = useState(1);

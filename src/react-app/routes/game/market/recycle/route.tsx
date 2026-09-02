@@ -28,7 +28,7 @@ import {
   usePlayerSession,
 } from '@app/lib/resources/player';
 import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
-import { isPillConsumable } from '@shared/lib/consumables';
+import { isTradableConsumable } from '@shared/lib/consumables';
 import { getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
 import { QUALITY_ORDER } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
@@ -159,7 +159,7 @@ export default function MarketRecyclePage() {
   const consumableInventory = useConsumableInventoryResource({
     enabled: Boolean(cultivatorId),
     pageSize: 20,
-    consumableKind: 'pill',
+    consumableKind: 'tradable',
   });
   const materials = materialInventory.items ?? [];
   const materialPagination = materialInventory.pagination ?? {
@@ -192,7 +192,7 @@ export default function MarketRecyclePage() {
   const goPrevArtifactPage = artifactInventory.goPrevPage;
   const goNextArtifactPage = artifactInventory.goNextPage;
   const consumableItems = (consumableInventory.items ?? []).filter(
-    isPillConsumable,
+    isTradableConsumable,
   );
   const consumablePagination = consumableInventory.pagination ?? {
     page: consumableInventory.page,
@@ -294,12 +294,12 @@ export default function MarketRecyclePage() {
           ? isArtifact
             ? '法宝鉴评'
             : isConsumable
-              ? '高阶丹药回收确认'
+              ? '高阶丹药/灵果回收确认'
               : '鉴宝师评估'
           : isArtifact
             ? '法宝回收确认'
             : isConsumable
-              ? '废丹回收确认'
+              ? '丹药/灵果回收确认'
               : '废料回收确认',
         content: (
           <div className="space-y-3 py-1">
@@ -334,7 +334,7 @@ export default function MarketRecyclePage() {
             ) : (
               <p className="text-center leading-7">
                 本次将清理 <span className="font-bold">{totalCount}</span>{' '}
-                {isArtifact ? '件法宝' : isConsumable ? '枚丹药' : '份废料'}
+                {isArtifact ? '件法宝' : isConsumable ? '份灵物' : '份废料'}
                 ，预计获得{' '}
                 <span className="font-bold">
                   {preview.totalSpiritStones}
@@ -547,7 +547,7 @@ export default function MarketRecyclePage() {
     <GameSceneFrame
       variant="workflow"
       title="【坊市鉴宝司】"
-      description="鉴宝司按品相估价材料、法宝与丹药，确认货单后当场结算灵石。"
+      description="鉴宝司按品相估价材料、法宝、丹药与灵果，确认货单后当场结算灵石。"
       aside={
         <>
           <GameSceneAsideSection title="鉴宝摘要">
@@ -559,7 +559,7 @@ export default function MarketRecyclePage() {
                   ? '材料回收'
                   : isArtifactTab
                     ? '法宝回收'
-                    : '丹药回收'}
+                    : '丹药/灵果回收'}
               </p>
               <p>
                 当前页次：{pagination.page} /{' '}
@@ -589,8 +589,8 @@ export default function MarketRecyclePage() {
                     </>
                   ) : (
                     <>
-                      <p>仅回收有效丹药，符箓等其他消耗品不纳入。</p>
-                      <p>可选择单组数量；凡、灵、玄品丹药可批量清理。</p>
+                      <p>仅回收有效丹药与灵果，符箓等其他消耗品不纳入。</p>
+                      <p>可选择单组数量；凡、灵、玄品可批量清理。</p>
                     </>
                   )}
                 </div>
@@ -606,7 +606,7 @@ export default function MarketRecyclePage() {
         items={[
           { label: '材料回收', value: 'materials' },
           { label: '法宝回收', value: 'artifacts' },
-          { label: '丹药回收', value: 'consumables' },
+          { label: '丹药/灵果', value: 'consumables' },
         ]}
       />
 
@@ -623,7 +623,7 @@ export default function MarketRecyclePage() {
           </p>
         ) : (
           <p className="text-ink-secondary text-sm leading-7">
-            丹药按品质、品相、评分和实际功效保守估价；可先选数量，再确认回收。
+            丹药按品相与实际功效估价，灵果按同品质效力保守折算；可先选数量，再确认回收。
           </p>
         )}
 
@@ -639,7 +639,7 @@ export default function MarketRecyclePage() {
               ? '一键出售低阶材料'
               : isArtifactTab
                 ? '一键出售低阶法宝'
-                : '一键回收低阶丹药'}
+                : '一键回收低阶丹药/灵果'}
           </InkButton>
           <InkButton
             variant="secondary"
@@ -652,7 +652,7 @@ export default function MarketRecyclePage() {
               ? '刷新材料'
               : isArtifactTab
                 ? '刷新法宝'
-                : '刷新丹药'}
+                : '刷新丹药/灵果'}
           </InkButton>
         </div>
       </div>
@@ -668,7 +668,7 @@ export default function MarketRecyclePage() {
                 ? '鉴宝师正在清点货架，请稍候……'
                 : isArtifactTab
                   ? '鉴宝师正在核对法宝名录，请稍候……'
-                  : '药师正在核对丹药名录，请稍候……'
+                  : '药师正在核对丹药与灵果名录，请稍候……'
             }
             variant="inline"
           />
@@ -680,7 +680,7 @@ export default function MarketRecyclePage() {
               ? '储物袋暂无材料，先去历练再来坊市吧。'
               : isArtifactTab
                 ? '储物袋暂无法宝，先去炼器或探险再来坊市吧。'
-                : '储物袋暂无可回收丹药。'}
+                : '储物袋暂无可回收丹药或灵果。'}
           </InkNotice>
         ) : isMaterialTab ? (
           <InkList>
@@ -795,10 +795,7 @@ export default function MarketRecyclePage() {
                           setConsumableQuantities((current) => ({
                             ...current,
                             [item.id!]: String(
-                              Math.min(
-                                item.quantity,
-                                MAX_PLAYER_ITEM_QUANTITY,
-                              ),
+                              Math.min(item.quantity, MAX_PLAYER_ITEM_QUANTITY),
                             ),
                           }))
                         }

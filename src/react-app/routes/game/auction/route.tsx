@@ -111,7 +111,7 @@ const TYPE_TABS: Array<{ label: string; value: AuctionTypeFilter }> = [
   { label: '全部', value: 'all' },
   { label: '材料', value: 'material' },
   { label: '法宝', value: 'artifact' },
-  { label: '丹药', value: 'consumable' },
+  { label: '丹药/灵果', value: 'consumable' },
 ];
 
 const VIEW_TABS: Array<{ label: string; value: AuctionScope }> = [
@@ -163,10 +163,12 @@ function getCategoryOptions(itemType: AuctionTypeFilter) {
   }
 
   if (itemType === 'consumable') {
-    return CONSUMABLE_TYPE_VALUES.map((value) => ({
-      value,
-      label: CONSUMABLE_TYPE_DISPLAY_MAP[value].label,
-    }));
+    return CONSUMABLE_TYPE_VALUES.filter((value) => value !== '符箓').map(
+      (value) => ({
+        value,
+        label: CONSUMABLE_TYPE_DISPLAY_MAP[value].label,
+      }),
+    );
   }
 
   return [];
@@ -705,10 +707,7 @@ export default function AuctionPage() {
                     setPurchaseQuantities((current) => ({
                       ...current,
                       [listing.id]: String(
-                        Math.min(
-                          listedQuantity,
-                          AUCTION_MAX_PURCHASE_QUANTITY,
-                        ),
+                        Math.min(listedQuantity, AUCTION_MAX_PURCHASE_QUANTITY),
                       ),
                     }))
                   }

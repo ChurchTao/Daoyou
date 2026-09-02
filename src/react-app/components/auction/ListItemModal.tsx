@@ -34,9 +34,8 @@ import {
   temporaryRestrictions,
 } from '@shared/config/temporaryRestrictions';
 import { cn } from '@shared/lib/cn';
-import { isPillConsumable } from '@shared/lib/consumables';
+import { isTradableConsumable } from '@shared/lib/consumables';
 import {
-  CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
   getMaterialTypeInfo,
   getResourceTypeLabel,
@@ -151,8 +150,11 @@ function getMaxPriceForItem(item: SelectableItem): number {
 }
 
 function getAuctionUnsupportedReason(item: SelectableItem): string | null {
-  if (item.itemType === 'consumable' && !isPillConsumable(item as Consumable)) {
-    return '当前仅支持丹药寄售';
+  if (
+    item.itemType === 'consumable' &&
+    !isTradableConsumable(item as Consumable)
+  ) {
+    return '当前仅支持丹药或灵果寄售';
   }
 
   return null;
@@ -219,7 +221,7 @@ export function ListItemModal({
   const consumableInventory = useConsumableInventoryResource({
     pageSize: PAGE_SIZE,
     enabled: Boolean(cultivator?.id) && activeType === 'consumable',
-    consumableKind: 'pill',
+    consumableKind: 'tradable',
   });
   const activeInventory =
     activeType === 'material'
@@ -613,7 +615,7 @@ export function ListItemModal({
   const tabs = [
     { label: getResourceTypeLabel('material'), value: 'material' },
     { label: getResourceTypeLabel('artifact'), value: 'artifact' },
-    { label: CONSUMABLE_TYPE_DISPLAY_MAP.丹药.label, value: 'consumable' },
+    { label: '丹药/灵果', value: 'consumable' },
   ];
 
   return (
@@ -899,7 +901,9 @@ export function ListItemModal({
                           disabled={isItemsLoading}
                         >
                           <option value="all">全部种类</option>
-                          {CONSUMABLE_TYPE_VALUES.map((type) => (
+                          {CONSUMABLE_TYPE_VALUES.filter(
+                            (type) => type !== '符箓',
+                          ).map((type) => (
                             <option key={type} value={type}>
                               {type}
                             </option>

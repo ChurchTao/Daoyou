@@ -14,7 +14,7 @@ import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,
 } from '@shared/config/temporaryRestrictions';
-import { isPillConsumable } from '@shared/lib/consumables';
+import { isTradableConsumable } from '@shared/lib/consumables';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
@@ -27,13 +27,13 @@ import * as schema from '../drizzle/schema';
 import { mapConsumableRow } from './consumablePersistence';
 import { toArtifactFromProduct } from './creationProductArtifactSupport';
 import { mapMaterialRow } from './cultivator/CultivatorInventoryRepository';
-import { sanitizeMaterialForClient } from './materialDetailsPrivacy';
 import {
   assertFriend,
   FriendServiceError,
   getInviteTarget,
 } from './FriendService';
 import { MailService } from './MailService';
+import { sanitizeMaterialForClient } from './materialDetailsPrivacy';
 import {
   consumeFirstTalismanByScenario,
   TalismanScenarioError,
@@ -177,7 +177,9 @@ export async function getAuctionItemSnapshot(
           ),
         )
         .limit(1);
-      return material ? mapMaterialRow(material, { includeSeedSpec: true }) : null;
+      return material
+        ? mapMaterialRow(material, { includeSeedSpec: true })
+        : null;
     }
     case 'artifact': {
       const artifact = await getArtifactProductSnapshot(
@@ -257,11 +259,11 @@ export function assertAuctionListableItem(
   }
   if (
     itemType === 'consumable' &&
-    !isPillConsumable(itemSnapshot as Consumable)
+    !isTradableConsumable(itemSnapshot as Consumable)
   ) {
     throw new AuctionServiceError(
       AuctionError.INVALID_ITEM_TYPE,
-      '当前仅支持丹药寄售',
+      '当前仅支持丹药或灵果寄售',
     );
   }
 

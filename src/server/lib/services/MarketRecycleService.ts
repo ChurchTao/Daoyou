@@ -32,9 +32,15 @@ import {
   BASE_PRICES,
   TYPE_MULTIPLIERS,
 } from '@shared/engine/material/creation/config';
-import { isPillConsumable } from '@shared/lib/consumables';
+import {
+  isSpiritFruitConsumable,
+  isTradableConsumable,
+} from '@shared/lib/consumables';
 import { getMaterialTypeLabel } from '@shared/lib/gameConceptDisplay';
-import { calculatePillRecycleUnitPrice as calculatePillRecyclePrice } from '@shared/lib/pillRecyclePrice';
+import {
+  calculatePillRecycleUnitPrice as calculatePillRecyclePrice,
+  calculateSpiritFruitRecycleUnitPrice,
+} from '@shared/lib/pillRecyclePrice';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import type {
@@ -274,7 +280,9 @@ export function calculatePillRecycleUnitPrice(
   return calculatePillRecyclePrice(
     getConsumableQuality(consumable),
     score,
-    consumable.spec.kind === 'pill' ? consumable.spec.alchemyMeta.appearance : undefined,
+    consumable.spec.kind === 'pill'
+      ? consumable.spec.alchemyMeta.appearance
+      : undefined,
   );
 }
 
@@ -571,14 +579,14 @@ async function loadOwnedConsumables(
     );
 
   if (rows.length !== consumableIds.length) {
-    throw new MarketRecycleError(400, '部分丹药不存在或不属于当前角色');
+    throw new MarketRecycleError(400, '部分丹药或灵果不存在或不属于当前角色');
   }
 
   const order = new Map(consumableIds.map((id, index) => [id, index]));
   rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
   const items = rows.map(mapConsumableRow);
-  if (items.some((item) => !isPillConsumable(item))) {
-    throw new MarketRecycleError(400, '丹药回收不支持符箓或无效消耗品');
+  if (items.some((item) => !isTradableConsumable(item))) {
+    throw new MarketRecycleError(400, '仅支持回收丹药或灵果');
   }
   return items;
 }
@@ -861,10 +869,10 @@ async function previewConsumableSell(
     isHighTier(getConsumableQuality(item)),
   );
   if (lowTier.length > 0 && highTier.length > 0) {
-    throw new MarketRecycleError(400, '不可混合回收低品与高品丹药');
+    throw new MarketRecycleError(400, '不可混合回收低品与高品丹药或灵果');
   }
   if (highTier.length > 1) {
-    throw new MarketRecycleError(400, '真品及以上丹药仅支持单组回收');
+    throw new MarketRecycleError(400, '真品及以上丹药或灵果仅支持单组回收');
   }
 
   const mode: SellMode = highTier.length === 1 ? 'high_single' : 'low_bulk';
@@ -877,11 +885,15 @@ async function previewConsumableSell(
       );
     }
     const score = calculateSingleElixirScore(item);
-    const unitPrice = calculatePillRecyclePrice(
-      getConsumableQuality(item),
-      score,
-      item.spec.kind === 'pill' ? item.spec.alchemyMeta.appearance : undefined,
-    );
+    const unitPrice = isSpiritFruitConsumable(item)
+      ? calculateSpiritFruitRecycleUnitPrice(getConsumableQuality(item))
+      : calculatePillRecyclePrice(
+          getConsumableQuality(item),
+          score,
+          item.spec.kind === 'pill'
+            ? item.spec.alchemyMeta.appearance
+            : undefined,
+        );
     return {
       id: item.id!,
       name: item.name,
@@ -970,12 +982,12 @@ export async function previewAllLowTierSell(
         and(
           eq(consumables.cultivatorId, cultivator.id),
           inArray(consumables.quality, lowTierQualities),
-          sql`${consumables.spec}->>'kind' = 'pill'`,
+          sql`${consumables.spec}->>'kind' in ('pill', 'spirit_fruit')`,
         ),
       )
       .orderBy(desc(consumables.createdAt), desc(consumables.id));
     if (rows.length === 0) {
-      throw new MarketRecycleError(400, '未找到可回收丹药');
+      throw new MarketRecycleError(400, '未找到可回收丹药或灵果');
     }
     return previewConsumableSell(
       cultivator,
@@ -1230,7 +1242,7 @@ async function confirmConsumableSell(
       getConsumableSpecHash(current) !== expected.specHash ||
       quoted.quantity > current.quantity
     ) {
-      throw new MarketRecycleError(409, '丹药已发生变化，请重新预览');
+      throw new MarketRecycleError(409, '丹药或灵果已发生变化，请重新预览');
     }
   }
 
@@ -1249,7 +1261,7 @@ async function confirmConsumableSell(
         )
         .returning({ id: consumables.id });
       if (deleted.length !== 1) {
-        throw new MarketRecycleError(409, '丹药已发生变化，请重新预览');
+        throw new MarketRecycleError(409, '丹药或灵果已发生变化，请重新预览');
       }
       inventoryChanges.push({ operation: 'remove', id: quoted.id });
       continue;
@@ -1267,7 +1279,7 @@ async function confirmConsumableSell(
       )
       .returning();
     if (!updated) {
-      throw new MarketRecycleError(409, '丹药已发生变化，请重新预览');
+      throw new MarketRecycleError(409, '丹药或灵果已发生变化，请重新预览');
     }
     inventoryChanges.push({
       operation: 'upsert',

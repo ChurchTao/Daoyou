@@ -1,6 +1,6 @@
 import type { Consumable } from '@shared/types/cultivator';
 import { describe, expect, it } from 'vitest';
-import { buildConsumableStackKey } from './consumables';
+import { buildConsumableStackKey, isTradableConsumable } from './consumables';
 
 function buildPill(version?: 3 | 4): Consumable {
   return {
@@ -51,5 +51,48 @@ describe('buildConsumableStackKey', () => {
     expect(buildConsumableStackKey(buildPill(4))).toBe(
       buildConsumableStackKey(buildPill(4)),
     );
+  });
+});
+
+describe('isTradableConsumable', () => {
+  it('允许丹药与灵果交易，但排除符箓', () => {
+    const fruit: Consumable = {
+      name: '青露灵果',
+      type: '灵果',
+      quality: '玄品',
+      quantity: 1,
+      spec: {
+        kind: 'spirit_fruit',
+        family: 'healing',
+        operations: [
+          {
+            type: 'restore_resource',
+            resource: 'hp',
+            mode: 'percent',
+            value: 0.08,
+          },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'none',
+        },
+        source: { kind: 'spirit_field', version: 1 },
+      },
+    };
+    const talisman: Consumable = {
+      name: '贵宾符',
+      type: '符箓',
+      quality: '玄品',
+      quantity: 1,
+      spec: {
+        kind: 'talisman',
+        scenario: 'auction-private-listing',
+        sessionMode: 'consume_on_action',
+      },
+    };
+
+    expect(isTradableConsumable(buildPill())).toBe(true);
+    expect(isTradableConsumable(fruit)).toBe(true);
+    expect(isTradableConsumable(talisman)).toBe(false);
   });
 });

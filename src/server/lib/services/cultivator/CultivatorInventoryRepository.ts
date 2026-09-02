@@ -1,5 +1,4 @@
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
-import { createHash } from 'node:crypto';
 import {
   calculateSingleArtifactScore,
   calculateSingleElixirScore,
@@ -8,6 +7,7 @@ import {
   rehydrateStoredProductModel,
   serializeProductModel,
 } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
+import { buildConsumableStackKey } from '@shared/lib/consumables';
 import {
   ELEMENT_VALUES,
   ElementType,
@@ -33,6 +33,7 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
 import {
   getExecutor,
   type DbExecutor,
@@ -40,7 +41,6 @@ import {
 } from '../../drizzle/db';
 import * as schema from '../../drizzle/schema';
 import { mapConsumableRow } from '../consumablePersistence';
-import { buildConsumableStackKey } from '@shared/lib/consumables';
 import { toArtifactFromProduct } from '../creationProductArtifactSupport';
 import { sanitizeMaterialDetails } from '../materialDetailsPrivacy';
 import { addMaterialStackToInventory } from '../materialInventory';
@@ -153,7 +153,7 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
     materialElements?: ElementType[];
     materialSortBy?: MaterialInventorySortBy;
     materialSortOrder?: MaterialInventorySortOrder;
-    consumableKind?: 'pill';
+    consumableKind?: 'pill' | 'spirit_fruit' | 'tradable';
   },
   q: DbExecutor | DbTransaction = getExecutor(),
 ): Promise<PaginatedInventoryResult<T>> {
@@ -207,13 +207,21 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
   }
 
   if (options.type === 'consumables') {
-    const consumableWhere =
-      options.consumableKind === 'pill'
-        ? and(
-            eq(schema.consumables.cultivatorId, cultivatorId),
-            sql`${schema.consumables.spec}->>'kind' = 'pill'`,
-          )
-        : eq(schema.consumables.cultivatorId, cultivatorId);
+    const consumableWhere = (() => {
+      if (options.consumableKind === 'tradable') {
+        return and(
+          eq(schema.consumables.cultivatorId, cultivatorId),
+          sql`${schema.consumables.spec}->>'kind' in ('pill', 'spirit_fruit')`,
+        );
+      }
+      if (options.consumableKind) {
+        return and(
+          eq(schema.consumables.cultivatorId, cultivatorId),
+          sql`${schema.consumables.spec}->>'kind' = ${options.consumableKind}`,
+        );
+      }
+      return eq(schema.consumables.cultivatorId, cultivatorId);
+    })();
     const countResult = await q
       .select({ count: sql<number>`count(*)` })
       .from(schema.consumables)
@@ -315,7 +323,9 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
 
   const totalPages = Math.ceil(total / pageSize);
   return {
-    items: pagedRows.map((row) => mapMaterialRow(row)) as InventoryItemByType[T][],
+    items: pagedRows.map((row) =>
+      mapMaterialRow(row),
+    ) as InventoryItemByType[T][],
     pagination: {
       page,
       pageSize,
