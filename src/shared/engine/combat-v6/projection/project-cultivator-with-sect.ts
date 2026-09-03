@@ -1,9 +1,9 @@
 import { compileSectCombatV6 } from "../content/index.ts"
-import type { CombatV6PanelContribution } from "../content/types.ts"
 import type { LineupUnit } from "../core/index.ts"
 import { COMBAT_V6_PHASE_3_VERSIONS } from "../version.ts"
 import { projectCultivatorWithTrainingToCombatV6 } from "./project-cultivator-with-training.ts"
 import type {
+  CombatV6PanelContribution,
   CombatV6ProjectionDiagnostic,
   CombatV6ProjectionResult,
   ProjectCultivatorWithTrainingAndSectInput,

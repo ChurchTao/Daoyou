@@ -177,6 +177,7 @@ class Parser {
     if (name === ExprVar.SkillLevel) return this.env.skillLevel
     if (name === ExprVar.Targets) return this.env.targets
     if (name === ExprVar.Damage) return this.env.damage ?? 0
+    if (name === ExprVar.HpDamage) return this.env.hpDamage ?? 0
     if (name === ExprVar.Level) return this.env.source.level
     const dotted = name.split(".")
     if (dotted.length === 2) {

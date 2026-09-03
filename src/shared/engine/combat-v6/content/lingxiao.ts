@@ -12,8 +12,8 @@ import {
   type SkillHook,
   type StatusDef,
 } from "../core/index.ts"
+import type { CombatV6PanelContribution } from "../projection/types.ts"
 import type {
-  CombatV6PanelContribution,
   MeridianNodeDefV6,
   SectDefinitionV6,
   SectSkillDefV6,

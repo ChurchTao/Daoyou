@@ -171,6 +171,7 @@ function resolvePhysicalAttack(ctx: BattleContext, unit: Unit, targetId: string)
     sourceId: unit.id,
     primaryTargetId: target.id,
     targetIds: [target.id],
+    resourceGains: {},
   }
   ctx.emit({ type: EventType.ActionStart, unitId: unit.id, command: { type: CommandType.Attack, target: target.id } })
   resolveStrike(ctx, {
@@ -265,6 +266,12 @@ function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds
   const env = makeEnv(unit, skill, targets)
   const mpCost = atLeast(0, Math.floor(evalExpr(skill.costMp ?? 0, env) * mpCostFactor(ctx, unit)))
   const hpCost = atLeast(0, Math.floor(evalExpr(skill.costHp ?? 0, env)))
+  const resourceCosts = resolveResourceCosts(skill, env)
+
+  if (targets.length === 0) {
+    fallbackToAttack(ctx, unit, targetIds, FailReason.NoTarget)
+    return
+  }
 
   if (skill.requireHpRatio !== undefined && unit.attrs.hp / unit.attrs.maxHp < skill.requireHpRatio) {
     fallbackToAttack(ctx, unit, targetIds, FailReason.HpRequirement)
@@ -282,6 +289,18 @@ function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds
     )
     return
   }
+  const missingCost = resourceCosts.find(
+    (cost) => (resourceOf(unit, cost.resourceId)?.current ?? 0) < cost.amount,
+  )
+  if (missingCost) {
+    fallbackToAttack(
+      ctx,
+      unit,
+      targetIds,
+      failDetail(FailReason.ResourceRequirement, missingCost.resourceId),
+    )
+    return
+  }
   if (unit.attrs.mp < mpCost) {
     fallbackToAttack(ctx, unit, targetIds, FailReason.InsufficientMp)
     return
@@ -292,6 +311,7 @@ function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds
     sourceId: unit.id,
     primaryTargetId: targets[0]?.id,
     targetIds: targets.map((t) => t.id),
+    resourceGains: {},
   }
   ctx.emit({
     type: EventType.ActionStart,
@@ -308,6 +328,20 @@ function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds
     const spend = Math.min(atLeast(0, unit.attrs.hp - MIN_HP), hpCost)
     unit.attrs.hp -= spend
     ctx.emit({ type: EventType.HpCost, unitId: unit.id, amount: spend, hpAfter: unit.attrs.hp })
+  }
+  for (const cost of resourceCosts) {
+    if (cost.amount <= 0) continue
+    const resource = resourceOf(unit, cost.resourceId)!
+    const before = resource.current
+    resource.current -= cost.amount
+    ctx.emit({
+      type: EventType.ResourceChanged,
+      sourceId: unit.id,
+      unitId: unit.id,
+      resourceId: resource.id,
+      before,
+      after: resource.current,
+    })
   }
 
   for (const effect of skill.effects) {
@@ -333,6 +367,18 @@ function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds
     isPrimary: true,
   })
   ctx.currentAction = undefined
+}
+
+function resolveResourceCosts(
+  skill: SkillDef,
+  env: ReturnType<typeof makeEnv>,
+): Array<{ resourceId: string; amount: number }> {
+  const totals = new Map<string, number>()
+  for (const cost of skill.resourceCosts ?? []) {
+    const amount = atLeast(0, Math.floor(evalExpr(cost.amount, env)))
+    totals.set(cost.resourceId, (totals.get(cost.resourceId) ?? 0) + amount)
+  }
+  return [...totals].map(([resourceId, amount]) => ({ resourceId, amount }))
 }
 
 function mpCostFactor(ctx: BattleContext, unit: Unit): number {

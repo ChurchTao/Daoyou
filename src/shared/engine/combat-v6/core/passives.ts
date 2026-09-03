@@ -51,6 +51,7 @@ export function bindDataHooks(ctx: BattleContext): void {
           const env = {
             ...makeEnv(unit, skill, hctx.target ? [hctx.target] : []),
             damage: hctx.damage,
+            hpDamage: hctx.hpDamage,
           }
           if (hook.chance !== undefined && !ctx.rng.chance(evalExpr(hook.chance, env))) return
 
@@ -96,7 +97,7 @@ function applyHookEffect(
   skill: SkillDef,
   effect: SkillEffect,
   targets: Unit[],
-  env: ReturnType<typeof makeEnv> & { damage?: number },
+  env: ReturnType<typeof makeEnv> & { damage?: number; hpDamage?: number },
   hctx: HookContext,
 ): void {
   if (effect.type === EffectType.ModifyStrike) {

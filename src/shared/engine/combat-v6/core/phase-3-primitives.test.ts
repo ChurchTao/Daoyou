@@ -82,6 +82,65 @@ function battleWith(skillDef = skill()) {
 }
 
 describe("combat-v6 phase 3 generic primitives", () => {
+  it("prechecks aggregated resource costs, falls back, and emits successful deductions", () => {
+    const costly = skill({
+      id: "costly",
+      resourceCosts: [
+        { resourceId: "sword_intent", amount: 3 },
+        { resourceId: "sword_intent", amount: 4 },
+      ],
+      effects: [{ type: EffectType.PhysicalHit, coeff: 2 }],
+    })
+    const failed = battleWith(costly)
+    failed.unit("source").resources[0]!.current = 6
+    failed.submit("source", { type: CommandType.Skill, skillId: costly.id, targets: ["target"] })
+    failed.submit("target", { type: CommandType.Defend })
+    failed.lockAndResolve()
+    expect(failed.log()).toContainEqual({ type: EventType.ActionFailed, unitId: "source", reason: "resource-requirement:sword_intent" })
+    expect(failed.unit("source").resources[0]?.current).toBe(6)
+
+    const succeeded = battleWith(costly)
+    succeeded.submit("source", { type: CommandType.Skill, skillId: costly.id, targets: ["target"] })
+    succeeded.submit("target", { type: CommandType.Defend })
+    succeeded.lockAndResolve()
+    expect(succeeded.unit("source").resources[0]?.current).toBe(3)
+    expect(succeeded.log()).toContainEqual({
+      type: EventType.ResourceChanged,
+      sourceId: "source",
+      unitId: "source",
+      resourceId: "sword_intent",
+      before: 10,
+      after: 3,
+    })
+  })
+
+  it("exposes actual hp loss and caps repeated gains within one action", () => {
+    const capped = skill({
+      id: "capped",
+      effects: [
+        { type: EffectType.ModifyResource, resourceId: "sword_intent", amount: 15, maxGainPerAction: 30 },
+        { type: EffectType.ModifyResource, resourceId: "sword_intent", amount: 15, maxGainPerAction: 30 },
+        { type: EffectType.ModifyResource, resourceId: "sword_intent", amount: 15, maxGainPerAction: 30 },
+      ],
+    })
+    const battle = battleWith(capped)
+    battle.unit("source").resources[0]!.current = 0
+    battle.unit("source").resources[0]!.max = 100
+    battle.submit("source", { type: CommandType.Skill, skillId: capped.id, targets: ["target"] })
+    battle.submit("target", { type: CommandType.Defend })
+    battle.lockAndResolve()
+    expect(battle.unit("source").resources[0]?.current).toBe(30)
+
+    const lethal = battleWith(skill({ effects: [{ type: EffectType.PhysicalHit, coeff: 10 }] }))
+    lethal.unit("target").attrs.hp = 30
+    lethal.unit("target").attrs.maxHp = 200
+    let hpDamage = -1
+    lethal.hooks.on(HookName.OnBeHit, (context) => { hpDamage = context.hpDamage ?? -1 })
+    lethal.submit("source", { type: CommandType.Skill, skillId: "resource-strike", targets: ["target"] })
+    lethal.lockAndResolve()
+    expect(hpDamage).toBe(30)
+  })
+
   it("clamps resource changes and persists them in snapshots and events", () => {
     const battle = battleWith()
     battle.submit("source", { type: CommandType.Skill, skillId: "resource-strike", targets: ["target"] })

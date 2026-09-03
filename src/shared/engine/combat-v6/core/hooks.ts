@@ -14,6 +14,8 @@ export type HookContext = {
   cancelled?: boolean
   /** 钩子可改最终伤害 */
   damage?: number
+  /** 本次伤害实际扣除的气血，不包含过量部分。 */
+  hpDamage?: number
   /** 钩子可改物理忽防比例，最终由伤害入口夹取到 0～1。 */
   defenseIgnore?: number
   /** 钩子可改治疗量 */

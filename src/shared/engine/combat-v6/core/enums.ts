@@ -273,6 +273,7 @@ export const ExprVar = {
   SkillLevel: "skillLevel",
   Targets: "targets",
   Damage: "damage",
+  HpDamage: "hpDamage",
   Level: "level",
   Source: "source",
   Target: "target",

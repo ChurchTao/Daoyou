@@ -90,8 +90,17 @@ export type BattleResult = {
 export type CombatV6VersionStamp = {
   engineVersion: "combat-v6"
   rulesetVersion: "daoyou_rules_v1"
-  contentVersion: "empty_content_v1" | "daoyou_sect_content_v1"
-  projectionVersion: "character_panel_v1" | "character_training_v1" | "character_sect_v1"
+  contentVersion:
+    | "empty_content_v1"
+    | "daoyou_sect_content_v1"
+    | "daoyou_sect_equipment_content_v1"
+    | "daoyou_sect_equipment_special_content_v1"
+  projectionVersion:
+    | "character_panel_v1"
+    | "character_training_v1"
+    | "character_sect_v1"
+    | "character_equipment_v1"
+    | "character_equipment_special_v1"
 }
 
 /** 场上一条状态。kind 是覆盖键（失心和定身 kind 不同，可并存）。 */
@@ -274,6 +283,8 @@ type EffectCore =
       resourceId: string
       amount: Expr
       mode?: "add" | "set"
+      /** 正向增加时，同一次行动内该单位此资源最多获得多少。 */
+      maxGainPerAction?: Expr
     }
   | { type: typeof EffectType.ModifyChance; add?: Expr; factor?: Expr }
   | { type: typeof EffectType.ClearSkipNextAction }
@@ -317,6 +328,7 @@ export type SkillDef = {
   costHpFrom?: CostHpFrom
   requireHpRatio?: number
   resourceRequirements?: Array<{ resourceId: string; min: number }>
+  resourceCosts?: Array<{ resourceId: string; amount: Expr }>
   tags: SkillTag[]
   /** 技能族公式名，由 rules 插件解释，引擎不当分支 */
   formula?: FormulaFamily
@@ -512,4 +524,6 @@ export type ExprEnv = {
   source: Unit
   target?: Unit
   damage?: number
+  /** 实际气血损失，已排除过量伤害。 */
+  hpDamage?: number
 }

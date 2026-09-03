@@ -3,14 +3,23 @@ import type { CultivatorCondition } from "@shared/types/condition"
 import type { BodyCultivationState } from "@shared/types/condition"
 import type { RealmStage, RealmType } from "@shared/types/constants"
 import type {
+  AttrName,
   CombatV6VersionStamp,
   LineupUnit,
   SkillDef,
   StatusDef,
 } from "../core/index.ts"
 import type { SectCombatProgressV6 } from "../content/types.ts"
+import type { DaoEquipmentLoadoutV1 } from "../equipment/types.ts"
 
 export type CombatV6ResourcePolicy = "full" | "persistent"
+
+/** 内容层共用的中立面板贡献契约；具体 build 不得互相依赖。 */
+export type CombatV6PanelContribution = {
+  attr: AttrName
+  mode: "add" | "multiply"
+  value: number
+}
 
 export interface CultivatorBaseCombatInput {
   id: string
@@ -34,6 +43,56 @@ export interface ProjectCultivatorWithTrainingAndSectInput
   extends ProjectCultivatorWithTrainingInput {
   sect: SectCombatProgressV6
 }
+
+export interface ProjectCultivatorWithEquipmentInput
+  extends ProjectCultivatorWithTrainingAndSectInput {
+  equipment: DaoEquipmentLoadoutV1
+}
+
+export type ProjectCultivatorWithEquipmentSpecialInput =
+  ProjectCultivatorWithEquipmentInput
+
+export interface CompareDaoEquipmentLoadoutsV1Input
+  extends Omit<ProjectCultivatorWithEquipmentInput, "equipment"> {
+  before: DaoEquipmentLoadoutV1
+  after: DaoEquipmentLoadoutV1
+}
+
+export type CompareDaoEquipmentLoadoutsV1Result =
+  | {
+      ok: true
+      effectiveAttributeDiffs: Attributes
+      panelDiffs: Partial<Record<AttrName, number>>
+      beforeDiagnostics: CombatV6ProjectionDiagnostic[]
+      afterDiagnostics: CombatV6ProjectionDiagnostic[]
+    }
+  | {
+      ok: false
+      beforeDiagnostics: CombatV6ProjectionDiagnostic[]
+      afterDiagnostics: CombatV6ProjectionDiagnostic[]
+    }
+
+export interface CompareDaoEquipmentSpecialLoadoutsV1Input
+  extends Omit<ProjectCultivatorWithEquipmentSpecialInput, "equipment"> {
+  before: DaoEquipmentLoadoutV1
+  after: DaoEquipmentLoadoutV1
+}
+
+export type CompareDaoEquipmentSpecialLoadoutsV1Result =
+  | {
+      ok: true
+      effectiveAttributeDiffs: Attributes
+      panelDiffs: Partial<Record<AttrName, number>>
+      effectiveEssenceChanges: { added: string[]; removed: string[] }
+      grantedArtChanges: { added: string[]; removed: string[] }
+      beforeDiagnostics: CombatV6ProjectionDiagnostic[]
+      afterDiagnostics: CombatV6ProjectionDiagnostic[]
+    }
+  | {
+      ok: false
+      beforeDiagnostics: CombatV6ProjectionDiagnostic[]
+      afterDiagnostics: CombatV6ProjectionDiagnostic[]
+    }
 
 export interface CombatV6TrainingProjection {
   attackCultivate: number
@@ -76,6 +135,27 @@ export type CombatV6ProjectionDiagnosticCode =
   | "PATCH_TARGET_MISSING"
   | "PATCH_CONFLICT"
   | "CONTENT_ID_CONFLICT"
+  | "INVALID_EQUIPMENT_IDENTITY"
+  | "UNKNOWN_EQUIPMENT_TEMPLATE"
+  | "INVALID_EQUIPMENT_LEVEL"
+  | "EQUIPMENT_LEVEL_REQUIREMENT"
+  | "EQUIPMENT_SLOT_MISMATCH"
+  | "DUPLICATE_EQUIPMENT_INSTANCE"
+  | "INVALID_EQUIPMENT_BASE_STAT"
+  | "INVALID_EQUIPMENT_ATTRIBUTE_BONUS"
+  | "FORBIDDEN_EQUIPMENT_FIELD"
+  | "UNSUPPORTED_EQUIPMENT_CONTENT"
+  | "UNKNOWN_FORMATION_INSCRIPTION"
+  | "FORMATION_INSCRIPTION_SLOT_MISMATCH"
+  | "FORMATION_INSCRIPTION_LEVEL_INVALID"
+  | "UNKNOWN_EQUIPMENT_ESSENCE"
+  | "UNKNOWN_EQUIPMENT_ART"
+  | "EQUIPMENT_SPECIAL_GENERATOR_MISMATCH"
+  | "EQUIPMENT_SPECIAL_SLOT_MISMATCH"
+  | "EQUIPMENT_ESSENCE_CONFLICT"
+  | "EQUIPMENT_ESSENCE_DUPLICATE_IGNORED"
+  | "EQUIPMENT_ART_DUPLICATE_IGNORED"
+  | "EQUIPMENT_SPECIAL_CONTENT_INVALID"
 
 export interface CombatV6ProjectionDiagnostic {
   severity: CombatV6ProjectionDiagnosticSeverity

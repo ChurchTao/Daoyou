@@ -94,10 +94,19 @@ function handleModifyResource(
   const resource = resourceOf(source, effect.resourceId)
   if (!resource) return
   const before = resource.current
-  const value = Math.floor(evalExpr(effect.amount, env))
+  let value = Math.floor(evalExpr(effect.amount, env))
+  const action = ctx.currentAction
+  const gainKey = `${source.id}:${resource.id}`
+  if (effect.mode !== "set" && value > 0 && effect.maxGainPerAction !== undefined && action) {
+    const cap = Math.max(0, Math.floor(evalExpr(effect.maxGainPerAction, env)))
+    value = Math.min(value, Math.max(0, cap - (action.resourceGains[gainKey] ?? 0)))
+  }
   const next = effect.mode === "set" ? value : before + value
   resource.current = Math.min(resource.max, Math.max(0, next))
   if (resource.current === before) return
+  if (effect.mode !== "set" && resource.current > before && action) {
+    action.resourceGains[gainKey] = (action.resourceGains[gainKey] ?? 0) + resource.current - before
+  }
   ctx.emit({
     type: EventType.ResourceChanged,
     sourceId: source.id,

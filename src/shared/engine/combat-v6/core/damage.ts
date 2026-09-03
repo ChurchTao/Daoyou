@@ -221,7 +221,9 @@ export function applyDamage(
   if (!isStanding(target) || target.flags.downed) return
 
   const kept = redirectOverflow(ctx, source, target, amount, kind)
+  const hpBefore = target.attrs.hp
   const hp = atLeast(0, target.attrs.hp - kept)
+  const hpDamage = hpBefore - hp
   target.attrs.hp = hp
   ctx.lastStrikeDamage = kept
   ctx.emit({
@@ -237,6 +239,7 @@ export function applyDamage(
       source,
       target,
       damage: kept,
+      hpDamage,
       kind,
       skillId: ctx.currentAction?.skillId,
       isPrimary: ctx.currentAction?.primaryTargetId === target.id,

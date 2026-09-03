@@ -1,11 +1,13 @@
 import type {
-  AttrName,
   CombatResourceState,
   SkillDef,
   SkillEffect,
   StatusDef,
 } from "../core/index.ts"
-import type { CombatV6ProjectionDiagnostic } from "../projection/types.ts"
+import type {
+  CombatV6PanelContribution,
+  CombatV6ProjectionDiagnostic,
+} from "../projection/types.ts"
 
 export type SectMethodDefV6 = {
   id: string
@@ -13,12 +15,6 @@ export type SectMethodDefV6 = {
   name: string
   isPrimary: boolean
   panel?: CombatV6PanelContribution
-}
-
-export type CombatV6PanelContribution = {
-  attr: AttrName
-  mode: "add" | "multiply"
-  value: number
 }
 
 export type SectSkillDefV6 = {

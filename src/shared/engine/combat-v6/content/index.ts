@@ -21,8 +21,8 @@ export {
   LINGXIAO_V6_DEFINITION,
   LINGXIAO_V6_ID,
 } from "./lingxiao.ts"
+export type { CombatV6PanelContribution } from "../projection/types.ts"
 export type {
-  CombatV6PanelContribution,
   CompileSectCombatV6Result,
   MeridianNodeDefV6,
   SectCombatProgressV6,

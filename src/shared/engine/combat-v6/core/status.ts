@@ -18,6 +18,7 @@ import {
 import { evalExpr, skillLevelOf } from "./expr.ts"
 import { standingUnits } from "./query.ts"
 import type { Attrs, CommandPolicy as CommandPolicyType, ExprEnv, StatusDef, StatusId, Unit, UnitId } from "./types.ts"
+import { effectiveAttrs } from "./units.ts"
 
 export function statusDef(ctx: BattleContext, id: StatusId): StatusDef | undefined {
   return ctx.statusDefs.get(id)
@@ -75,11 +76,19 @@ export function applyStatus(
     return
   }
 
-  const env: ExprEnv = options.env ?? {
+  const baseEnv: ExprEnv = options.env ?? {
     skillLevel: 0,
     targets: 1,
     source: ctx.state.units.find((u) => u.id === sourceId) ?? unit,
     target: unit,
+  }
+  // 状态面板表达式按施放时有效属性快照；刷新同 kind 时排除旧层，避免自身滚雪球。
+  const withoutSameKind = { ...unit, statuses: unit.statuses.filter((status) => status.kind !== def.kind) }
+  const snapshotTarget = { ...unit, attrs: effectiveAttrs(withoutSameKind) }
+  const env: ExprEnv = {
+    ...baseEnv,
+    target: baseEnv.target?.id === unit.id ? snapshotTarget : baseEnv.target,
+    source: baseEnv.source.id === unit.id ? snapshotTarget : baseEnv.source,
   }
 
   const attrMods: Partial<Attrs> = {}
