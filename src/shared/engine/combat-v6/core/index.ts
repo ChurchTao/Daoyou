@@ -16,6 +16,7 @@ export {
   CommandPolicy,
   CommandType,
   DamageKind,
+  DamageOrigin,
   EffectType,
   EventType,
   ExprFn,

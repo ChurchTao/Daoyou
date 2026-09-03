@@ -16,6 +16,7 @@ import type {
   BattlePhase,
   CommandPolicy,
   DamageKind,
+  DamageOrigin,
   FormulaFamily,
   HookAim,
   HookName,
@@ -35,6 +36,7 @@ export type {
   CommandType,
   CostHpFrom,
   DamageKind,
+  DamageOrigin,
   EffectType,
   EventType,
   FormulaFamily,
@@ -95,12 +97,14 @@ export type CombatV6VersionStamp = {
     | "daoyou_sect_content_v1"
     | "daoyou_sect_equipment_content_v1"
     | "daoyou_sect_equipment_special_content_v1"
+    | "daoyou_character_build_content_v1"
   projectionVersion:
     | "character_panel_v1"
     | "character_training_v1"
     | "character_sect_v1"
     | "character_equipment_v1"
     | "character_equipment_special_v1"
+    | "character_build_v1"
 }
 
 /** 场上一条状态。kind 是覆盖键（失心和定身 kind 不同，可并存）。 */
@@ -233,6 +237,8 @@ export type EffectWhen = {
   requireKind?: DamageKind
   sourceResource?: { id: string; min?: number; max?: number }
   sourceDefending?: boolean
+  damageOrigins?: DamageOrigin[]
+  sourceStanding?: boolean
 }
 
 type EffectCore =
@@ -254,6 +260,13 @@ type EffectCore =
       formula?: FormulaFamily
     }
   | { type: typeof EffectType.Heal; power: Expr; healMaxHp?: boolean }
+  | {
+      type: typeof EffectType.RestoreHp
+      power: Expr
+      maxGainPerAction?: Expr
+      revive?: boolean
+      clearStatuses?: boolean
+    }
   | { type: typeof EffectType.RestoreMp; power: Expr }
   | { type: typeof EffectType.Revive; hp?: Expr; hpRatio?: Expr }
   | {
@@ -302,6 +315,8 @@ export type SkillHook = {
   aim?: HookAim
   aimCount?: Expr
   aimMode?: TargetMode
+  /** 概率钩子默认成功后消耗次数；onAttempt 用于每场只判定一次。 */
+  limitConsumption?: "onSuccess" | "onAttempt"
   effects: SkillEffect[]
 }
 

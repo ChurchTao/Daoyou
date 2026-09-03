@@ -11,6 +11,7 @@ import type {
 } from "../core/index.ts"
 import type { SectCombatProgressV6 } from "../content/types.ts"
 import type { DaoEquipmentLoadoutV1 } from "../equipment/types.ts"
+import type { CultivatorManualStateV1 } from "../manuals/types.ts"
 
 export type CombatV6ResourcePolicy = "full" | "persistent"
 
@@ -51,6 +52,11 @@ export interface ProjectCultivatorWithEquipmentInput
 
 export type ProjectCultivatorWithEquipmentSpecialInput =
   ProjectCultivatorWithEquipmentInput
+
+export interface ProjectCultivatorToCombatV6Input
+  extends ProjectCultivatorWithEquipmentSpecialInput {
+  manuals: CultivatorManualStateV1
+}
 
 export interface CompareDaoEquipmentLoadoutsV1Input
   extends Omit<ProjectCultivatorWithEquipmentInput, "equipment"> {
@@ -156,6 +162,21 @@ export type CombatV6ProjectionDiagnosticCode =
   | "EQUIPMENT_ESSENCE_DUPLICATE_IGNORED"
   | "EQUIPMENT_ART_DUPLICATE_IGNORED"
   | "EQUIPMENT_SPECIAL_CONTENT_INVALID"
+  | "INVALID_MANUAL_STATE"
+  | "INVALID_MANUAL_REVISION"
+  | "MANUAL_SLOT_INVALID"
+  | "MANUAL_SLOT_LOCKED"
+  | "MANUAL_SLOT_OCCUPIED"
+  | "MANUAL_SLOT_EMPTY"
+  | "MANUAL_EXPECTED_MISMATCH"
+  | "UNKNOWN_MANUAL"
+  | "DUPLICATE_MANUAL"
+  | "MANUAL_LINEAGE_CONFLICT"
+  | "MANUAL_RANK_DOWNGRADE"
+  | "MANUAL_CONFLICT_REQUIRES_FORGET"
+  | "MANUAL_CONTENT_INVALID"
+  | "CAPABILITY_POLICY_CONFLICT"
+  | "CAPABILITY_RESOLUTION_CONFLICT"
 
 export interface CombatV6ProjectionDiagnostic {
   severity: CombatV6ProjectionDiagnosticSeverity

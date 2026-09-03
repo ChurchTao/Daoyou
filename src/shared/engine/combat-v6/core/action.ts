@@ -172,6 +172,7 @@ function resolvePhysicalAttack(ctx: BattleContext, unit: Unit, targetId: string)
     primaryTargetId: target.id,
     targetIds: [target.id],
     resourceGains: {},
+    hpRestoreGains: {},
   }
   ctx.emit({ type: EventType.ActionStart, unitId: unit.id, command: { type: CommandType.Attack, target: target.id } })
   resolveStrike(ctx, {
@@ -312,6 +313,7 @@ function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds
     primaryTargetId: targets[0]?.id,
     targetIds: targets.map((t) => t.id),
     resourceGains: {},
+    hpRestoreGains: {},
   }
   ctx.emit({
     type: EventType.ActionStart,

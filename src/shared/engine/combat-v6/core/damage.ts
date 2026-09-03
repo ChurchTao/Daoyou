@@ -4,10 +4,10 @@
  */
 import { MIN_DAMAGE, MIN_HP, MIN_MAX_HP } from "./constants.ts"
 import type { BattleContext } from "./context.ts"
-import { DamageKind, EventType, FailReason, FormulaFamily, HookName } from "./enums.ts"
+import { DamageKind, DamageOrigin, EventType, FailReason, FormulaFamily, HookName } from "./enums.ts"
 import { atLeast, floorAtLeast } from "./math.ts"
 import { alliesOf, tryUnit } from "./query.ts"
-import { breakStatusesOnDamage } from "./status.ts"
+import { breakStatusesOnDamage, clearCombatStatuses } from "./status.ts"
 import { isUntargetableBy } from "./targeting.ts"
 import type { DamageKind as DamageKindType, SchoolTerm, SkillDef, SplashSpec, Unit } from "./types.ts"
 import { damageTakenFactor, effectiveAttrs, healDealtFactor, healTakenFactor, isStanding } from "./units.ts"
@@ -36,6 +36,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   const src = effectiveAttrs(source)
   const dst = effectiveAttrs(target)
   const silent = ctx.suppressHooks > 0
+  const origin = silent ? DamageOrigin.HookDerived : DamageOrigin.ActionDirect
 
   if (input.kind === DamageKind.Physical) {
     const protector = findProtector(ctx, target)
@@ -59,6 +60,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     skillId,
     isPrimary,
     chance: critChance,
+    origin,
   })
   const crit = critRoll.crit ?? ctx.rng.chance(Math.min(1, Math.max(0, critRoll.chance ?? critChance)))
 
@@ -69,6 +71,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     skillId,
     isPrimary,
     defenseIgnore: input.defenseIgnore ?? 0,
+    origin,
   })
   const strikeInput = { ...input, defenseIgnore: defenseIgnoreHook.defenseIgnore }
   let raw = computeBase(ctx, source, target, src, dst, strikeInput, fury)
@@ -84,6 +87,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     kind: input.kind,
     skillId,
     isPrimary,
+    origin,
   })
   const amount = floorAtLeast(MIN_DAMAGE, hooked.damage ?? raw)
 
@@ -96,15 +100,17 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     fury,
   })
 
-  applyDamage(ctx, source, target, amount, input.kind, silent)
+  const hpDamage = applyDamage(ctx, source, target, amount, input.kind, silent, origin)
   if (!silent) {
     ctx.hooks.emit(HookName.AfterHit, {
       source,
       target,
       damage: amount,
+      hpDamage,
       kind: input.kind,
       skillId,
       isPrimary,
+      origin,
     })
   }
 }
@@ -139,6 +145,7 @@ function rollHit(
     kind,
     skillId: inputSkillId(ctx),
     chance,
+    origin: ctx.suppressHooks > 0 ? DamageOrigin.HookDerived : DamageOrigin.ActionDirect,
   })
   if (ctx.rng.chance(Math.min(1, Math.max(0, hitRoll.chance ?? chance)))) return true
   ctx.emit({ type: EventType.Miss, sourceId: source.id, targetId: target.id, kind })
@@ -217,8 +224,9 @@ export function applyDamage(
   amount: number,
   kind: DamageKindType,
   silent = false,
-): void {
-  if (!isStanding(target) || target.flags.downed) return
+  origin = silent ? DamageOrigin.HookDerived : DamageOrigin.ActionDirect,
+): number {
+  if (!isStanding(target) || target.flags.downed) return 0
 
   const kept = redirectOverflow(ctx, source, target, amount, kind)
   const hpBefore = target.attrs.hp
@@ -243,10 +251,12 @@ export function applyDamage(
       kind,
       skillId: ctx.currentAction?.skillId,
       isPrimary: ctx.currentAction?.primaryTargetId === target.id,
+      origin,
     })
   }
   breakStatusesOnDamage(ctx, target)
   if (hp <= 0) ctx.applyHpZero(target, source, ctx.currentAction?.skillId)
+  return hpDamage
 }
 
 /** 我佛慈悲一类：目标留下 keep，其余打到状态来源。 */
@@ -325,6 +335,37 @@ export function applyRevive(ctx: BattleContext, source: Unit, target: Unit, hp: 
   ctx.emit({ type: EventType.UnitRevived, unitId: target.id, hp: restored })
   ctx.emit({ type: EventType.Heal, sourceId: source.id, targetId: target.id, amount: restored, hpAfter: restored })
   return true
+}
+
+/** 精确恢复气血：不读取 healPower 与施疗/受疗倍率。 */
+export function applyHpRestore(
+  ctx: BattleContext,
+  source: Unit,
+  target: Unit,
+  amount: number,
+  options: { revive?: boolean; clearStatuses?: boolean } = {},
+): number {
+  if (target.flags.escaped) return 0
+  if (options.revive && target.attrs.hp <= 0) {
+    if (target.statuses.some((s) => ctx.statusDefs.get(s.id)?.blocksRevive)) {
+      ctx.emit({ type: EventType.ActionFailed, unitId: source.id, reason: FailReason.ReviveBlocked })
+      return 0
+    }
+    if (options.clearStatuses) clearCombatStatuses(ctx, target)
+    const restored = Math.max(MIN_HP, Math.min(target.attrs.maxHp, Math.floor(amount)))
+    target.attrs.hp = restored
+    target.flags.downed = false
+    target.flags.dead = false
+    ctx.emit({ type: EventType.UnitRevived, unitId: target.id, hp: restored })
+    ctx.emit({ type: EventType.Heal, sourceId: source.id, targetId: target.id, amount: restored, hpAfter: restored })
+    return restored
+  }
+  if (!isStanding(target)) return 0
+  const restored = Math.max(0, Math.min(target.attrs.maxHp - target.attrs.hp, Math.floor(amount)))
+  if (restored <= 0) return 0
+  target.attrs.hp += restored
+  ctx.emit({ type: EventType.Heal, sourceId: source.id, targetId: target.id, amount: restored, hpAfter: target.attrs.hp })
+  return restored
 }
 
 export function applyMpDamage(ctx: BattleContext, source: Unit, target: Unit, amount: number): void {

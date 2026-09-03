@@ -11,6 +11,7 @@ export {
   compareDaoEquipmentSpecialLoadoutsV1,
   projectCultivatorWithEquipmentSpecialToCombatV6,
 } from "./project-cultivator-with-equipment-special.ts"
+export { projectCultivatorToCombatV6 } from "./project-cultivator.ts"
 export type {
   CombatV6PanelContribution,
   CombatV6ProjectionDiagnostic,
@@ -24,6 +25,7 @@ export type {
   ProjectCultivatorWithTrainingAndSectInput,
   ProjectCultivatorWithEquipmentInput,
   ProjectCultivatorWithEquipmentSpecialInput,
+  ProjectCultivatorToCombatV6Input,
   CompareDaoEquipmentLoadoutsV1Input,
   CompareDaoEquipmentLoadoutsV1Result,
   CompareDaoEquipmentSpecialLoadoutsV1Input,

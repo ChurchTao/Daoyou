@@ -3,7 +3,7 @@
  */
 import { DEFAULT_HITS } from "./constants.ts"
 import type { BattleContext } from "./context.ts"
-import { applyHeal, applyMpDamage, applyRevive, applyWound, resolveStrike } from "./damage.ts"
+import { applyHeal, applyHpRestore, applyMpDamage, applyRevive, applyWound, resolveStrike } from "./damage.ts"
 import { DamageKind, EffectType, EventType, FailReason, StatusHit, StatusRemoveReason } from "./enums.ts"
 import { evalExpr } from "./expr.ts"
 import { atLeast, floorAtLeast } from "./math.ts"
@@ -30,6 +30,7 @@ const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect
     const power = evalExpr(effect.power, env)
     for (const t of targets) applyHeal(ctx, source, t, power, effect.healMaxHp)
   },
+  [EffectType.RestoreHp]: handleRestoreHp,
   [EffectType.RestoreMp]: handleRestoreMp,
   [EffectType.Revive]: handleRevive,
   [EffectType.DamageMp]: (ctx, source, _skill, effect, targets, env) => {
@@ -51,6 +52,32 @@ const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect
   [EffectType.ClearSkipNextAction]: (_ctx, source) => {
     source.flags.skipNextAction = false
   },
+}
+
+function handleRestoreHp(
+  ctx: BattleContext,
+  source: Unit,
+  skill: SkillDef,
+  effect: Extract<SkillEffect, { type: typeof EffectType.RestoreHp }>,
+  targets: Unit[],
+  env: ExprEnv,
+): void {
+  let power = atLeast(0, Math.floor(evalExpr(effect.power, env)))
+  const action = ctx.currentAction
+  const gainKey = `${source.id}:${skill.id}`
+  if (effect.maxGainPerAction !== undefined && action) {
+    const cap = atLeast(0, Math.floor(evalExpr(effect.maxGainPerAction, env)))
+    power = Math.min(power, Math.max(0, cap - (action.hpRestoreGains[gainKey] ?? 0)))
+  }
+  for (const target of targets) {
+    const restored = applyHpRestore(ctx, source, target, power, {
+      revive: effect.revive,
+      clearStatuses: effect.clearStatuses,
+    })
+    if (action && restored > 0) {
+      action.hpRestoreGains[gainKey] = (action.hpRestoreGains[gainKey] ?? 0) + restored
+    }
+  }
 }
 
 export function applyEffect(

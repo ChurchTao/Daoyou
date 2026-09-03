@@ -35,6 +35,8 @@ export type BattleContext = {
     targetIds: UnitId[]
     /** 同步行动内的资源获取计数；行动结束即销毁。 */
     resourceGains: Record<string, number>
+    /** 独立气血恢复的行动内累计量；行动结束即销毁。 */
+    hpRestoreGains: Record<string, number>
   }
   /** 最近一次打击扣血，给后续「按伤害扣蓝」用。 */
   lastStrikeDamage?: number

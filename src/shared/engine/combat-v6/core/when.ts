@@ -2,9 +2,9 @@
  * 钩子/效果条件匹配。只认标签、状态、技能 id 列表和数值门槛，不认门派。
  */
 import type { BattleContext } from "./context.ts"
-import type { DamageKind } from "./enums.ts"
+import type { DamageKind, DamageOrigin } from "./enums.ts"
 import type { EffectWhen, SkillDef, SkillId, Unit } from "./types.ts"
-import { resourceOf } from "./units.ts"
+import { isStanding, resourceOf } from "./units.ts"
 
 export type WhenScope = {
   source: Unit
@@ -12,6 +12,7 @@ export type WhenScope = {
   skill?: SkillDef
   skillId?: SkillId
   kind?: DamageKind
+  origin?: DamageOrigin
   isPrimary?: boolean
   /** 写入 marks 的前缀，通常是被动技能 id + 钩子下标 */
   markKey?: string
@@ -58,6 +59,8 @@ export function matchesWhen(ctx: BattleContext, when: EffectWhen | undefined, sc
   if (when.sourceHpRatioAbove !== undefined && hpRatio(scope.source) <= when.sourceHpRatioAbove) return false
   if (when.sourceTags?.length && !when.sourceTags.every((tag) => scope.source.tags.includes(tag))) return false
   if (when.sourceDefending !== undefined && scope.source.flags.defending !== when.sourceDefending) return false
+  if (when.sourceStanding !== undefined && isStanding(scope.source) !== when.sourceStanding) return false
+  if (when.damageOrigins?.length && (!scope.origin || !when.damageOrigins.includes(scope.origin))) return false
   if (when.sourceResource) {
     const resource = resourceOf(scope.source, when.sourceResource.id)
     if (!resource) return false

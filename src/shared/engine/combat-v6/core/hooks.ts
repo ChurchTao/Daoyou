@@ -2,7 +2,7 @@
  * 战斗内钩子总线。被动技能在 bindDataHooks 里订阅。
  * cancelled / damage 是钩子回写通道（跳过出手、改最终伤害）。
  */
-import type { DamageKind, HookName } from "./enums.ts"
+import type { DamageKind, DamageOrigin, HookName } from "./enums.ts"
 import type { BattleEvent, SkillId, Unit } from "./types.ts"
 
 export type { HookName }
@@ -21,6 +21,7 @@ export type HookContext = {
   /** 钩子可改治疗量 */
   heal?: number
   kind?: DamageKind
+  origin?: DamageOrigin
   skillId?: SkillId
   isPrimary?: boolean
   crit?: boolean

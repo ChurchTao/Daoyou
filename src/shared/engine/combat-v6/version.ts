@@ -39,3 +39,11 @@ export const COMBAT_V6_PHASE_4B_VERSIONS: CombatV6VersionStamp = Object.freeze({
   contentVersion: "daoyou_sect_equipment_special_content_v1",
   projectionVersion: "character_equipment_special_v1",
 })
+
+/** Phase 5A 的角色完整构筑与功法内容版本戳。 */
+export const COMBAT_V6_PHASE_5A_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  engineVersion: "combat-v6",
+  rulesetVersion: "daoyou_rules_v1",
+  contentVersion: "daoyou_character_build_content_v1",
+  projectionVersion: "character_build_v1",
+})

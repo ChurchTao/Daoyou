@@ -28,6 +28,13 @@ export const DamageKind = {
 } as const
 export type DamageKind = (typeof DamageKind)[keyof typeof DamageKind]
 
+export const DamageOrigin = {
+  ActionDirect: "action-direct",
+  HookDerived: "hook-derived",
+  Status: "status",
+} as const
+export type DamageOrigin = (typeof DamageOrigin)[keyof typeof DamageOrigin]
+
 export const CommandType = {
   Attack: "attack",
   Skill: "skill",
@@ -185,6 +192,7 @@ export const EffectType = {
   PhysicalHit: "physicalHit",
   SpellHit: "spellHit",
   Heal: "heal",
+  RestoreHp: "restoreHp",
   RestoreMp: "restoreMp",
   Revive: "revive",
   ApplyStatus: "applyStatus",

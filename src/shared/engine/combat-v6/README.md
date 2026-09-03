@@ -6,7 +6,8 @@
 [`CHARACTER_COMPATIBILITY.md`](./CHARACTER_COMPATIBILITY.md)，新版道装领域见
 [`docs/combat-v6-equipment-system-design.md`](../../../../docs/combat-v6-equipment-system-design.md)，
 新版功法领域见
-[`docs/combat-v6-manual-system-design.md`](../../../../docs/combat-v6-manual-system-design.md)，红尘剑宗完整纵切见
+[`docs/combat-v6-manual-system-design.md`](../../../../docs/combat-v6-manual-system-design.md)，Phase 5A 数值见
+[`docs/combat-v6-manual-phase-5a-balance.md`](../../../../docs/combat-v6-manual-phase-5a-balance.md)，红尘剑宗完整纵切见
 [`docs/combat-v6-lingxiao-datang-sect-design.md`](../../../../docs/combat-v6-lingxiao-datang-sect-design.md)。
 
 `core/` 当前是
@@ -22,6 +23,7 @@
 - Phase 3 已交付 `character_sect_v1`、红尘剑宗六心法、斩尘证道/万剑归一双流派、42个经脉节点和单场剑意资源。
 - Phase 4A 已交付六部位道装、`dao_equipment_generator_v1`、九种阵法灵纹、实例/装配校验、装配比较与 `character_equipment_v1` 完整投影。
 - Phase 4B 已交付 `dao_equipment_generator_v2`、七种器蕴、九种器诀、单场战意、特殊装配比较与 `character_equipment_special_v1` 完整投影；Phase 4A 入口仍拒绝特殊引用。
+- Phase 5A 已交付唯一功法构筑、十谱系二十定义、三种纯状态操作、统一能力解析与 `character_build_v1` 完整人物投影。
 - 道装固定已鉴定且没有品质、评分或淬炼；重铸、锁灵、持久化、经济和 UI 保留给 Phase 4C。
 - core 已支持资源事件与门槛、资源条件目标数、物理忽防、击倒来源归因和数据化概率修改；没有宗门 ID 特判。
 - 肉身位阶已改为只检查人物境界与五轨总等级的确定性逐阶提升；旧材料、概率、失败与保底流程已退出。
@@ -37,5 +39,6 @@
 - `rules-daoyou/`：Daoyou 第一版基础公式与死亡/默认指令规则。
 - `content/`：提供红尘剑宗 v6 内容定义、双流派经脉和宗门编译器。
 - `equipment/`：提供独立道装类型、六模板、九灵纹、七器蕴、九器诀、v1/v2 确定性生成和两阶段装配编译校验。
-- `projection/`：提供 `character_panel_v1`、`character_training_v1`、`character_sect_v1`、`character_equipment_v1` 与 `character_equipment_special_v1` 完整投影。
-- `version.ts`：Phase 1/2/3/4A/4B 战斗、快照与回放共同使用的版本戳。
+- `manuals/`：提供功法状态、参悟/改修/散功、十个本篇/真解谱系、编译与能力解析。
+- `projection/`：提供各阶段投影和统一的 `projectCultivatorToCombatV6` 完整人物构筑入口。
+- `version.ts`：Phase 1～5A 战斗、快照与回放共同使用的版本戳。

@@ -43,10 +43,13 @@ export function bindDataHooks(ctx: BattleContext): void {
             skill: actionSkill,
             skillId,
             kind: hctx.kind ?? hook.requireKind,
+            origin: hctx.origin,
             isPrimary: hctx.isPrimary,
             markKey: `${skill.id}:${hookIndex}`,
           }
           if (!matchesWhen(ctx, hook.when, scope)) return
+
+          if (hook.limitConsumption === "onAttempt") consumeWhen(ctx, hook.when, scope)
 
           const env = {
             ...makeEnv(unit, skill, hctx.target ? [hctx.target] : []),
@@ -68,7 +71,7 @@ export function bindDataHooks(ctx: BattleContext): void {
           } finally {
             ctx.suppressHooks -= 1
           }
-          consumeWhen(ctx, hook.when, scope)
+          if (hook.limitConsumption !== "onAttempt") consumeWhen(ctx, hook.when, scope)
           for (const effect of usable) consumeWhen(ctx, effect.when, { ...scope, markKey: `${scope.markKey}:${effect.type}` })
         })
       })
