@@ -81,8 +81,12 @@ function needsHookTarget(effect: SkillEffect): boolean {
     effect.type !== EffectType.ApplyStatus &&
     effect.type !== EffectType.Dispel &&
     effect.type !== EffectType.ModifyStrike &&
+    effect.type !== EffectType.ModifyDefenseIgnore &&
     effect.type !== EffectType.ModifyHeal &&
-    effect.type !== EffectType.SetCrit
+    effect.type !== EffectType.SetCrit &&
+    effect.type !== EffectType.ModifyResource &&
+    effect.type !== EffectType.ModifyChance &&
+    effect.type !== EffectType.ClearSkipNextAction
   )
 }
 
@@ -101,6 +105,12 @@ function applyHookEffect(
     hctx.damage = (hctx.damage ?? 0) * factor + add
     return
   }
+  if (effect.type === EffectType.ModifyDefenseIgnore) {
+    const factor = evalExpr(effect.factor ?? 1, env)
+    const add = evalExpr(effect.add ?? 0, env)
+    hctx.defenseIgnore = (hctx.defenseIgnore ?? 0) * factor + add
+    return
+  }
   if (effect.type === EffectType.ModifyHeal) {
     const factor = evalExpr(effect.factor ?? 1, env)
     const add = evalExpr(effect.add ?? 0, env)
@@ -109,6 +119,12 @@ function applyHookEffect(
   }
   if (effect.type === EffectType.SetCrit) {
     hctx.crit = true
+    return
+  }
+  if (effect.type === EffectType.ModifyChance) {
+    const factor = evalExpr(effect.factor ?? 1, env)
+    const add = evalExpr(effect.add ?? 0, env)
+    hctx.chance = (hctx.chance ?? 0) * factor + add
     return
   }
   applyEffect(ctx, unit, skill, effect, targets, env)

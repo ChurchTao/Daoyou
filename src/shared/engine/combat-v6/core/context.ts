@@ -23,7 +23,7 @@ export type BattleContext = {
   hooks: HookBus
   events: BattleEvent[]
   emit: (event: BattleEvent) => void
-  applyHpZero: (unit: Unit) => void
+  applyHpZero: (unit: Unit, source?: Unit, skillId?: SkillId) => void
   checkEnd: (reason?: BattleResult["reason"]) => void
   /** >0 时命中不再触发 afterHit/onBeHit，避免连击/反击/反震互爆 */
   suppressHooks: number

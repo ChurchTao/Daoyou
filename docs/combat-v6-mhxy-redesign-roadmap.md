@@ -8,6 +8,7 @@
 > 角色面板：[`combat-v6 角色六维与战斗面板设计`](./combat-v6-character-panel-design.md)
 > 修炼系统：[`combat-v6 新版修炼系统设计`](./combat-v6-training-system-design.md)
 > 宗门系统：[`combat-v6 宗门心法、技能与经脉系统设计`](./combat-v6-sect-skill-meridian-system-design.md)
+> 红尘剑宗纵切：[`combat-v6 红尘剑宗纵切设计`](./combat-v6-lingxiao-datang-sect-design.md)
 > 召唤兽系统：[`combat-v6 召唤兽系统设计`](./combat-v6-summoned-beast-system-design.md)
 > 兼容性明细：`src/shared/engine/combat-v6/CHARACTER_COMPATIBILITY.md`
 
@@ -627,6 +628,10 @@ interface CombatV6PanelContribution {
 
 ### Phase 3：一个完整宗门纵切
 
+> 状态：已完成（2026-09-03）
+>
+> 实际纵切：[`红尘剑宗——斩尘证道／万剑归一`](./combat-v6-lingxiao-datang-sect-design.md)
+
 目标：先把一套内容 DSL 做稳定，再扩展所有宗门。
 
 交付：
@@ -642,6 +647,8 @@ interface CombatV6PanelContribution {
 - 宗门内容中没有 core 特判。
 - 所有技能等级都来自所属心法。
 - 经脉不同方案可对拍并产生稳定差异。
+
+实际实现补充：红尘剑宗以 `lingxiao` 为社会身份 ID，交付六心法、六个基础技能、四个流派/经脉技能、两条完整流派和42个可观察节点。`character_sect_v1` 只读取显式 `SectCombatProgressV6`，不读取旧 `CultivatorSectState`。剑意、动态目标数、条件忽防、击倒归因和资源事件均由通用 core 原语表达，内容层不存在 battle-v5 或 creation-v2 依赖。
 
 ### Phase 4：新装备系统
 
@@ -858,3 +865,4 @@ bun run build
 | 2026-09-02 | 玩家最多携带 6 只召唤兽，场上最多 1 只 | 编组与个体分离持久化，换宠消耗人物行动 |
 | 2026-09-02 | 召唤兽死亡扣除 50 寿命，低于 50 禁止出战，归零不删除 | 由 Host 在战后事务中幂等结算，首版提供最小寿命恢复出口 |
 | 2026-09-02 | 法宝首版不实现 | 作为未来独立构筑系统记录，当前不预埋数据库字段或 core 分支 |
+| 2026-09-03 | Phase 3 采用红尘剑宗完整纵切，双流派为斩尘证道与万剑归一 | 交付六心法、42节点、剑意资源与 `character_sect_v1`，不接旧宗门进度或线上服务 |

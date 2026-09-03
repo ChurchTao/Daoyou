@@ -5,7 +5,7 @@ import { evalExpr, skillLevelOf } from "./expr.ts"
 import { alliesOf, enemiesOf } from "./query.ts"
 import { skillOf } from "./skills.ts"
 import type { SkillDef, Unit } from "./types.ts"
-import { isStanding } from "./units.ts"
+import { isStanding, resourceOf } from "./units.ts"
 
 /**
  * 选目标。隐身对单体不可选，群体（fill/all/random 且人数>1）仍能打到。
@@ -67,7 +67,10 @@ export function poolFor(ctx: BattleContext, source: Unit, skill: SkillDef): Unit
 }
 
 export function targetCount(source: Unit, skill: SkillDef, fallbackTargets: number): number {
-  const raw = evalExpr(skill.targeting.count ?? DEFAULT_TARGET_COUNT, {
+  const resourceCount = skill.targeting.countByResource
+    ?.filter((entry) => (resourceOf(source, entry.resourceId)?.current ?? 0) >= entry.min)
+    .slice(-1)[0]?.count
+  const raw = evalExpr(resourceCount ?? skill.targeting.count ?? DEFAULT_TARGET_COUNT, {
     skillLevel: skillLevelOf(source, skill.id),
     targets: fallbackTargets,
     source,

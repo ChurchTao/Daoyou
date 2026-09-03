@@ -5,7 +5,10 @@ import type { RealmStage, RealmType } from "@shared/types/constants"
 import type {
   CombatV6VersionStamp,
   LineupUnit,
+  SkillDef,
+  StatusDef,
 } from "../core/index.ts"
+import type { SectCombatProgressV6 } from "../content/types.ts"
 
 export type CombatV6ResourcePolicy = "full" | "persistent"
 
@@ -26,6 +29,11 @@ export interface ProjectCultivatorBaseInput {
 }
 
 export type ProjectCultivatorWithTrainingInput = ProjectCultivatorBaseInput
+
+export interface ProjectCultivatorWithTrainingAndSectInput
+  extends ProjectCultivatorWithTrainingInput {
+  sect: SectCombatProgressV6
+}
 
 export interface CombatV6TrainingProjection {
   attackCultivate: number
@@ -52,6 +60,22 @@ export type CombatV6ProjectionDiagnosticCode =
   | "PERSISTENT_STATUSES_NOT_PROJECTED"
   | "INVALID_TRAINING_LEVEL"
   | "TRAINING_LEVEL_CLAMPED"
+  | "INVALID_SECT_ID"
+  | "INVALID_METHOD_SET"
+  | "INVALID_METHOD_LEVEL"
+  | "METHOD_LEVEL_CAP_EXCEEDED"
+  | "BRANCH_METHOD_EXCEEDS_PRIMARY"
+  | "INVALID_ACTIVE_PATH"
+  | "INVALID_MERIDIAN_LOADOUT"
+  | "MERIDIAN_NODE_UNKNOWN"
+  | "MERIDIAN_NODE_WRONG_PATH"
+  | "MERIDIAN_NODE_LOCKED"
+  | "MERIDIAN_LAYER_CONFLICT"
+  | "MERIDIAN_SELECTION_INCOMPLETE"
+  | "SKILL_SOURCE_METHOD_MISSING"
+  | "PATCH_TARGET_MISSING"
+  | "PATCH_CONFLICT"
+  | "CONTENT_ID_CONFLICT"
 
 export interface CombatV6ProjectionDiagnostic {
   severity: CombatV6ProjectionDiagnosticSeverity
@@ -69,8 +93,8 @@ export type CombatV6ProjectionResult =
   | (ProjectionCommon & {
       ok: true
       unit: LineupUnit
-      skills: []
-      statusDefs: []
+      skills: SkillDef[]
+      statusDefs: StatusDef[]
     })
   | (ProjectionCommon & {
       ok: false

@@ -14,12 +14,15 @@ export type HookContext = {
   cancelled?: boolean
   /** 钩子可改最终伤害 */
   damage?: number
+  /** 钩子可改物理忽防比例，最终由伤害入口夹取到 0～1。 */
+  defenseIgnore?: number
   /** 钩子可改治疗量 */
   heal?: number
   kind?: DamageKind
   skillId?: SkillId
   isPrimary?: boolean
   crit?: boolean
+  chance?: number
 }
 
 export type HookFn = (ctx: HookContext) => void

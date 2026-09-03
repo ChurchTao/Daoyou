@@ -11,6 +11,7 @@ import {
   CommandPolicy,
   CommandType,
   DamageKind,
+  EffectType,
   EventType,
   FailReason,
   HookName,
@@ -29,7 +30,7 @@ import { commandPolicyOf, hasBlock, hasStatusFlag } from "./status.ts"
 import { resolveSkillTargets } from "./targeting.ts"
 import { skillOf } from "./skills.ts"
 import type { Command, SkillDef, Unit } from "./types.ts"
-import { effectiveSpeed, isActionable, isStanding } from "./units.ts"
+import { effectiveSpeed, isActionable, isStanding, resourceOf } from "./units.ts"
 import { consumeWhen, matchesWhen } from "./when.ts"
 
 /** 防御/保护在锁指令时立刻生效，不必等该单位出手（保护者比被保护者慢时仍能拦刀）。 */
@@ -269,6 +270,18 @@ function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds
     fallbackToAttack(ctx, unit, targetIds, FailReason.HpRequirement)
     return
   }
+  const missingResource = skill.resourceRequirements?.find(
+    (requirement) => (resourceOf(unit, requirement.resourceId)?.current ?? 0) < requirement.min,
+  )
+  if (missingResource) {
+    fallbackToAttack(
+      ctx,
+      unit,
+      targetIds,
+      failDetail(FailReason.ResourceRequirement, missingResource.resourceId),
+    )
+    return
+  }
   if (unit.attrs.mp < mpCost) {
     fallbackToAttack(ctx, unit, targetIds, FailReason.InsufficientMp)
     return
@@ -298,7 +311,8 @@ function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds
   }
 
   for (const effect of skill.effects) {
-    if (ctx.state.result) break
+    // 战斗已结束后不再产生伤害/状态，但仍结清本次技能声明的资源变化。
+    if (ctx.state.result && effect.type !== EffectType.ModifyResource) continue
     if (effect.when && !matchesWhen(ctx, effect.when, { source: unit, target: targets[0], skill, skillId: skill.id, markKey: `${skill.id}:effect` })) {
       continue
     }

@@ -58,6 +58,13 @@ export type UnitId = string
 export type SkillId = string
 export type StatusId = string
 
+export type CombatResourceState = {
+  id: string
+  name: string
+  current: number
+  max: number
+}
+
 /** 数值或表达式。可用 skillLevel / targets / 单位属性 / floor min max。 */
 export type Expr = number | string
 
@@ -83,8 +90,8 @@ export type BattleResult = {
 export type CombatV6VersionStamp = {
   engineVersion: "combat-v6"
   rulesetVersion: "daoyou_rules_v1"
-  contentVersion: "empty_content_v1"
-  projectionVersion: "character_panel_v1" | "character_training_v1"
+  contentVersion: "empty_content_v1" | "daoyou_sect_content_v1"
+  projectionVersion: "character_panel_v1" | "character_training_v1" | "character_sect_v1"
 }
 
 /** 场上一条状态。kind 是覆盖键（失心和定身 kind 不同，可并存）。 */
@@ -136,6 +143,7 @@ export type Unit = {
   skillOverrides: Record<SkillId, SkillDef>
   /** 单位标签（鬼魂系等），给 when.foeTags 用，不是门派 id。 */
   tags: string[]
+  resources: CombatResourceState[]
   /** 本场/本回合「只触发一次」的键。 */
   marks: string[]
   statuses: StatusInstance[]
@@ -176,6 +184,7 @@ export type LineupUnit = {
   /** 入场时的技能补丁，按 id 覆盖底表。 */
   skillOverrides?: SkillDef[]
   tags?: string[]
+  resources?: CombatResourceState[]
 }
 
 export type SkillTargeting = {
@@ -183,6 +192,8 @@ export type SkillTargeting = {
   /** explicit=只用指令目标；fill=指令目标优先再补满；all/random/lowestHp/lowestDef 由引擎选 */
   mode?: TargetMode
   count?: Expr
+  /** 满足资源门槛时替换作用人数；后定义的已满足规则优先。 */
+  countByResource?: Array<{ resourceId: string; min: number; count: Expr }>
   /** 选满 count 之后，按概率再补 extraCount（雷动秒五） */
   extraChance?: Expr
   extraCount?: Expr
@@ -211,6 +222,8 @@ export type EffectWhen = {
   oncePerBattle?: boolean
   oncePerRound?: boolean
   requireKind?: DamageKind
+  sourceResource?: { id: string; min?: number; max?: number }
+  sourceDefending?: boolean
 }
 
 type EffectCore =
@@ -221,6 +234,7 @@ type EffectCore =
       power?: Expr
       trueDamage?: boolean
       formula?: FormulaFamily
+      defenseIgnore?: Expr
     }
   | {
       type: typeof EffectType.SpellHit
@@ -252,8 +266,17 @@ type EffectCore =
   | { type: typeof EffectType.DamageMp; power?: Expr }
   | { type: typeof EffectType.Wound; power?: Expr }
   | { type: typeof EffectType.ModifyStrike; factor?: Expr; add?: Expr }
+  | { type: typeof EffectType.ModifyDefenseIgnore; factor?: Expr; add?: Expr }
   | { type: typeof EffectType.ModifyHeal; factor?: Expr; add?: Expr }
   | { type: typeof EffectType.SetCrit }
+  | {
+      type: typeof EffectType.ModifyResource
+      resourceId: string
+      amount: Expr
+      mode?: "add" | "set"
+    }
+  | { type: typeof EffectType.ModifyChance; add?: Expr; factor?: Expr }
+  | { type: typeof EffectType.ClearSkipNextAction }
 
 export type SkillEffect = EffectCore & { when?: EffectWhen }
 
@@ -293,6 +316,7 @@ export type SkillDef = {
   costHp?: Expr
   costHpFrom?: CostHpFrom
   requireHpRatio?: number
+  resourceRequirements?: Array<{ resourceId: string; min: number }>
   tags: SkillTag[]
   /** 技能族公式名，由 rules 插件解释，引擎不当分支 */
   formula?: FormulaFamily
@@ -367,6 +391,7 @@ export type StrikeFormulaInput = {
   targetCount?: number
   schoolTerm?: SchoolTerm
   splash?: SplashSpec
+  defenseIgnore?: number
 }
 
 export type FormulaSet = {
@@ -456,6 +481,14 @@ export type BattleEvent =
   | { type: typeof EventType.PetSummoned; unitId: UnitId; petId: UnitId }
   | { type: typeof EventType.PetRecalled; unitId: UnitId; petId: UnitId }
   | { type: typeof EventType.MpRestore; unitId: UnitId; amount: number; mpAfter: number }
+  | {
+      type: typeof EventType.ResourceChanged
+      sourceId: UnitId
+      unitId: UnitId
+      resourceId: string
+      before: number
+      after: number
+    }
   | { type: typeof EventType.ActionFailed; unitId: UnitId; reason: string }
   | { type: typeof EventType.RoundEnd; round: number }
   | {

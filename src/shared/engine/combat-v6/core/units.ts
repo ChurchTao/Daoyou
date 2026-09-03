@@ -2,7 +2,7 @@ import { DEFAULT_DAMAGE_TAKEN, DEFAULT_HIT, MIN_HP, MIN_MAX_HP } from "./constan
 import { DamageKind } from "./enums.ts"
 import { clamp01, finiteOr } from "./math.ts"
 import { overridesFrom } from "./skills.ts"
-import type { Attrs, LineupUnit, StatusInstance, Unit } from "./types.ts"
+import type { Attrs, CombatResourceState, LineupUnit, StatusInstance, Unit } from "./types.ts"
 
 /** 入场缺省属性。命中默认 100，保证木桩对打不因 0 命中而全空。 */
 export const DEFAULT_ATTRS: Attrs = {
@@ -57,6 +57,7 @@ export function createUnit(input: LineupUnit, index: number): Unit {
     skillLevels: { ...(input.skillLevels ?? {}) },
     skillOverrides: overridesFrom(input.skillOverrides),
     tags: [...(input.tags ?? [])],
+    resources: normalizeResources(input.resources),
     marks: [],
     statuses: [],
     flags: {
@@ -89,12 +90,30 @@ export function cloneUnit(unit: Unit): Unit {
     skillLevels: { ...unit.skillLevels },
     skillOverrides: { ...unit.skillOverrides },
     tags: [...unit.tags],
+    resources: unit.resources.map((resource) => ({ ...resource })),
     marks: [...unit.marks],
     statuses: unit.statuses.map((s) => ({ ...s, attrMods: { ...s.attrMods } })),
     flags: { ...unit.flags },
     command: unit.command ? { ...unit.command } : undefined,
     lastCommand: unit.lastCommand ? { ...unit.lastCommand } : undefined,
   }
+}
+
+function normalizeResources(resources: CombatResourceState[] | undefined): CombatResourceState[] {
+  const seen = new Set<string>()
+  const result: CombatResourceState[] = []
+  for (const resource of resources ?? []) {
+    if (!resource.id || seen.has(resource.id)) continue
+    seen.add(resource.id)
+    const max = Math.max(0, Math.floor(finiteOr(resource.max, 0)))
+    const current = Math.min(max, Math.max(0, Math.floor(finiteOr(resource.current, 0))))
+    result.push({ id: resource.id, name: resource.name, current, max })
+  }
+  return result
+}
+
+export function resourceOf(unit: Unit, id: string): CombatResourceState | undefined {
+  return unit.resources.find((resource) => resource.id === id)
 }
 
 export function emptyStatusMods(): Pick<

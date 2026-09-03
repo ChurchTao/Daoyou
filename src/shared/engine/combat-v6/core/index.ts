@@ -6,7 +6,7 @@ export { createBattle, BattleSession } from "./session.ts"
 export { SeededRng } from "./rng.ts"
 export { HookBus, type HookContext, type HookFn } from "./hooks.ts"
 export { evalExpr, skillLevelOf } from "./expr.ts"
-export { DEFAULT_ATTRS, createUnit, effectiveSpeed, effectiveAttrs, isStanding, isActionable } from "./units.ts"
+export { DEFAULT_ATTRS, createUnit, effectiveSpeed, effectiveAttrs, isStanding, isActionable, resourceOf } from "./units.ts"
 export { skillOf } from "./skills.ts"
 export { standingUnits, enemiesOf, alliesOf, unitById } from "./query.ts"
 export { BattleError, ErrorCode } from "./errors.ts"
@@ -46,11 +46,13 @@ export { ATTR_NAMES, BUILTIN_SKILL_ID, MIN_DAMAGE, MIN_HP } from "./constants.ts
 
 export type {
   Attrs,
+  AttrName,
   BattleEvent,
   BattleResult,
   BattleState,
   Command,
   CombatV6VersionStamp,
+  CombatResourceState,
   CreateBattleInput,
   DecideCommandInput,
   EffectWhen,
@@ -66,6 +68,7 @@ export type {
   SkillDef,
   SkillEffect,
   SkillId,
+  SkillHook,
   SkillTargeting,
   StatusDef,
   StatusId,

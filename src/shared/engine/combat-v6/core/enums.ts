@@ -86,6 +86,8 @@ export type StatusCategory = (typeof StatusCategory)[keyof typeof StatusCategory
 export const HookName = {
   BeforeAction: "beforeAction",
   OnHitCalc: "onHitCalc",
+  /** 物理伤害公式前计算忽防比例。 */
+  OnDefenseIgnoreCalc: "onDefenseIgnoreCalc",
   OnBeHit: "onBeHit",
   AfterHit: "afterHit",
   OnFatal: "onFatal",
@@ -97,6 +99,7 @@ export const HookName = {
   AfterAction: "afterAction",
   /** 必杀判定之后、乘倍之前。钩子可把 crit 置真。 */
   OnCritRoll: "onCritRoll",
+  OnHitRoll: "onHitRoll",
   /** 治疗数字算出之后、入账之前。钩子可改 heal。 */
   OnHealCalc: "onHealCalc",
 } as const
@@ -139,6 +142,7 @@ export const FailReason = {
   Rooted: "rooted",
   InsufficientMp: "insufficient-mp",
   HpRequirement: "hp-requirement",
+  ResourceRequirement: "resource-requirement",
   SkillNotKnown: "skill-not-known",
   PassiveNotCastable: "passive-not-castable",
   FleeFailed: "flee-failed",
@@ -189,8 +193,12 @@ export const EffectType = {
   DamageMp: "damageMp",
   Wound: "wound",
   ModifyStrike: "modifyStrike",
+  ModifyDefenseIgnore: "modifyDefenseIgnore",
   ModifyHeal: "modifyHeal",
   SetCrit: "setCrit",
+  ModifyResource: "modifyResource",
+  ModifyChance: "modifyChance",
+  ClearSkipNextAction: "clearSkipNextAction",
 } as const
 export type EffectType = (typeof EffectType)[keyof typeof EffectType]
 
@@ -221,6 +229,7 @@ export const EventType = {
   PetSummoned: "petSummoned",
   PetRecalled: "petRecalled",
   MpRestore: "mpRestore",
+  ResourceChanged: "resourceChanged",
   ActionFailed: "actionFailed",
   RoundEnd: "roundEnd",
   BattleEnd: "battleEnd",

@@ -54,7 +54,7 @@ export class BattleSession {
       emit: (event) => {
         events.push(event)
       },
-      applyHpZero: (unit) => this.applyHpZero(unit),
+      applyHpZero: (unit, source, skillId) => this.applyHpZero(unit, source, skillId),
       checkEnd: (reason) => this.finishIfNeeded(reason),
       suppressHooks: 0,
     }
@@ -185,9 +185,9 @@ export class BattleSession {
    * 先触发 onFatal（神佑等可在此把气血拉回正），仍 <=0 才倒地/死亡。
    * 人物倒地可被复活；召唤兽/NPC 本场死亡，不能再召。
    */
-  private applyHpZero(unit: Unit): void {
+  private applyHpZero(unit: Unit, source?: Unit, skillId?: string): void {
     if (unit.flags.dead || unit.flags.downed) return
-    this.ctx.hooks.emit(HookName.OnFatal, { target: unit })
+    this.ctx.hooks.emit(HookName.OnFatal, { source, target: unit, skillId })
     if (unit.attrs.hp > 0) return
     const outcome = this.ctx.rules.hpZeroOutcome(unit)
     clearCombatStatuses(this.ctx, unit)
@@ -199,7 +199,7 @@ export class BattleSession {
       unit.flags.dead = true
       this.ctx.emit({ type: EventType.UnitDead, unitId: unit.id })
     }
-    this.ctx.hooks.emit(HookName.OnDeath, { target: unit })
+    this.ctx.hooks.emit(HookName.OnDeath, { source, target: unit, skillId })
     this.finishIfNeeded(ResultReason.Wipe)
   }
 

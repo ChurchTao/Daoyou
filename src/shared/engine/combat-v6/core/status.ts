@@ -161,7 +161,12 @@ export function tickStatuses(ctx: BattleContext): void {
           hpAfter: hp,
           kind: DamageKind.Spell,
         })
-        if (hp <= 0) ctx.applyHpZero(unit)
+        if (hp <= 0) {
+          ctx.applyHpZero(
+            unit,
+            ctx.state.units.find((candidate) => candidate.id === inst.sourceId),
+          )
+        }
       }
 
       // Dot 当回合就跳并扣持续；普通状态当回合不扣；expireSameRound（我佛护体）当回合结束即卸。

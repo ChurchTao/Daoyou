@@ -9,7 +9,7 @@ import { evalExpr } from "./expr.ts"
 import { atLeast, floorAtLeast } from "./math.ts"
 import { applyStatus, envFor, removeStatus } from "./status.ts"
 import type { ExprEnv, SkillDef, SkillEffect, Unit } from "./types.ts"
-import { isStanding } from "./units.ts"
+import { isStanding, resourceOf } from "./units.ts"
 
 type EffectHandler<T extends SkillEffect = SkillEffect> = (
   ctx: BattleContext,
@@ -43,8 +43,14 @@ const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect
   [EffectType.PhysicalHit]: handleHit,
   [EffectType.SpellHit]: handleHit,
   [EffectType.ModifyStrike]: () => undefined,
+  [EffectType.ModifyDefenseIgnore]: () => undefined,
   [EffectType.ModifyHeal]: () => undefined,
   [EffectType.SetCrit]: () => undefined,
+  [EffectType.ModifyResource]: handleModifyResource,
+  [EffectType.ModifyChance]: () => undefined,
+  [EffectType.ClearSkipNextAction]: (_ctx, source) => {
+    source.flags.skipNextAction = false
+  },
 }
 
 export function applyEffect(
@@ -61,8 +67,12 @@ export function applyEffect(
     effect.type !== EffectType.ApplyStatus &&
     effect.type !== EffectType.Dispel &&
     effect.type !== EffectType.ModifyStrike &&
+    effect.type !== EffectType.ModifyDefenseIgnore &&
     effect.type !== EffectType.ModifyHeal &&
-    effect.type !== EffectType.SetCrit
+    effect.type !== EffectType.SetCrit &&
+    effect.type !== EffectType.ModifyResource &&
+    effect.type !== EffectType.ModifyChance &&
+    effect.type !== EffectType.ClearSkipNextAction
   ) {
     if (targets.length === 0) {
       ctx.emit({ type: EventType.ActionFailed, unitId: source.id, reason: FailReason.NoTarget })
@@ -71,6 +81,31 @@ export function applyEffect(
   }
   const handler = handlers[effect.type] as EffectHandler
   handler(ctx, source, skill, effect, targets, env)
+}
+
+function handleModifyResource(
+  ctx: BattleContext,
+  source: Unit,
+  _skill: SkillDef,
+  effect: Extract<SkillEffect, { type: typeof EffectType.ModifyResource }>,
+  _targets: Unit[],
+  env: ExprEnv,
+): void {
+  const resource = resourceOf(source, effect.resourceId)
+  if (!resource) return
+  const before = resource.current
+  const value = Math.floor(evalExpr(effect.amount, env))
+  const next = effect.mode === "set" ? value : before + value
+  resource.current = Math.min(resource.max, Math.max(0, next))
+  if (resource.current === before) return
+  ctx.emit({
+    type: EventType.ResourceChanged,
+    sourceId: source.id,
+    unitId: source.id,
+    resourceId: resource.id,
+    before,
+    after: resource.current,
+  })
 }
 
 function handleApplyStatus(
@@ -185,6 +220,10 @@ function handleHit(
         coeff: coeffs[i] ?? 1,
         power,
         trueDamage: effect.trueDamage,
+        defenseIgnore:
+          effect.type === EffectType.PhysicalHit
+            ? evalExpr(effect.defenseIgnore ?? 0, env)
+            : 0,
         formula: effect.formula ?? skill.formula,
         skillLevel: env.skillLevel,
         targetCount: targets.length,

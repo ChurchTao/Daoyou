@@ -4,6 +4,7 @@
 import type { BattleContext } from "./context.ts"
 import type { DamageKind } from "./enums.ts"
 import type { EffectWhen, SkillDef, SkillId, Unit } from "./types.ts"
+import { resourceOf } from "./units.ts"
 
 export type WhenScope = {
   source: Unit
@@ -56,6 +57,13 @@ export function matchesWhen(ctx: BattleContext, when: EffectWhen | undefined, sc
   if (when.sourceHpRatioBelow !== undefined && hpRatio(scope.source) >= when.sourceHpRatioBelow) return false
   if (when.sourceHpRatioAbove !== undefined && hpRatio(scope.source) <= when.sourceHpRatioAbove) return false
   if (when.sourceTags?.length && !when.sourceTags.every((tag) => scope.source.tags.includes(tag))) return false
+  if (when.sourceDefending !== undefined && scope.source.flags.defending !== when.sourceDefending) return false
+  if (when.sourceResource) {
+    const resource = resourceOf(scope.source, when.sourceResource.id)
+    if (!resource) return false
+    if (when.sourceResource.min !== undefined && resource.current < when.sourceResource.min) return false
+    if (when.sourceResource.max !== undefined && resource.current > when.sourceResource.max) return false
+  }
 
   const foe = scope.target
   if (when.targetSlot === "primary" && !isPrimary) return false

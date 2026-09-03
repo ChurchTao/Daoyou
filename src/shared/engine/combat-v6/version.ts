@@ -15,3 +15,11 @@ export const COMBAT_V6_PHASE_2_VERSIONS: CombatV6VersionStamp = Object.freeze({
   contentVersion: "empty_content_v1",
   projectionVersion: "character_training_v1",
 })
+
+/** Phase 3 的红尘剑宗内容与组合投影版本戳。 */
+export const COMBAT_V6_PHASE_3_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  engineVersion: "combat-v6",
+  rulesetVersion: "daoyou_rules_v1",
+  contentVersion: "daoyou_sect_content_v1",
+  projectionVersion: "character_sect_v1",
+})

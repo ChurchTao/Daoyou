@@ -3,6 +3,7 @@
 > 状态：宗门战斗领域方向基线（Canonical）
 > 建立日期：2026-09-02
 > 上位设计：[`combat-v6 梦幻式战斗体系设计稿与迁移路线图`](./combat-v6-mhxy-redesign-roadmap.md)
+> 首个完整纵切：[`combat-v6 红尘剑宗纵切设计`](./combat-v6-lingxiao-datang-sect-design.md)
 > 适用范围：combat-v6 人物宗门心法、宗门技能、特色机制、双流派与经脉编译
 
 本文定义 combat-v6 的宗门战斗体系。现有宗门社会身份和玩家已经投入形成的心法等级、经脉深度平滑进入新版；旧宗门技能、`AbilityConfig`、通用成长倍率、四技能装配和 v5 运行时产物全部退出。
@@ -697,4 +698,3 @@ interface SectCombatProjectionV6 {
 - 幽都伤势比例、恢复方式和尸体干预边界。
 - 红尘剑宗、九劫天宫及其他宗门的 v6 特色机制。
 - 首个宗门纵切的选择和交付排期。
-

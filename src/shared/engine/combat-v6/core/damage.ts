@@ -24,6 +24,7 @@ export type StrikeInput = {
   targetCount?: number
   schoolTerm?: SchoolTerm
   splash?: SplashSpec
+  defenseIgnore?: number
   skillId?: string
   isPrimary?: boolean
 }
@@ -50,21 +51,27 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   const skillId = input.skillId ?? ctx.currentAction?.skillId
   const isPrimary =
     input.isPrimary ?? (ctx.currentAction?.primaryTargetId !== undefined && target.id === ctx.currentAction.primaryTargetId)
-  let crit =
-    input.kind === DamageKind.Physical
-      ? ctx.rng.chance(src.critRate)
-      : ctx.rng.chance(src.spellCritRate)
+  const critChance = input.kind === DamageKind.Physical ? src.critRate : src.spellCritRate
   const critRoll = ctx.hooks.emit(HookName.OnCritRoll, {
     source,
     target,
     kind: input.kind,
     skillId,
     isPrimary,
-    crit,
+    chance: critChance,
   })
-  crit = critRoll.crit ?? crit
+  const crit = critRoll.crit ?? ctx.rng.chance(Math.min(1, Math.max(0, critRoll.chance ?? critChance)))
 
-  let raw = computeBase(ctx, source, target, src, dst, input, fury)
+  const defenseIgnoreHook = ctx.hooks.emit(HookName.OnDefenseIgnoreCalc, {
+    source,
+    target,
+    kind: input.kind,
+    skillId,
+    isPrimary,
+    defenseIgnore: input.defenseIgnore ?? 0,
+  })
+  const strikeInput = { ...input, defenseIgnore: defenseIgnoreHook.defenseIgnore }
+  let raw = computeBase(ctx, source, target, src, dst, strikeInput, fury)
   raw = applyCrit(ctx, raw, crit)
   raw = applyFluctuation(ctx, raw, input.kind)
   raw = applyDefend(ctx, target, input.kind, raw)
@@ -126,9 +133,20 @@ function rollHit(
     kind === DamageKind.Physical
       ? formulas.physicalHitChance(withAttrs(source, src), withAttrs(target, dst))
       : formulas.spellHitChance(withAttrs(source, src), withAttrs(target, dst))
-  if (ctx.rng.chance(chance)) return true
+  const hitRoll = ctx.hooks.emit(HookName.OnHitRoll, {
+    source,
+    target,
+    kind,
+    skillId: inputSkillId(ctx),
+    chance,
+  })
+  if (ctx.rng.chance(Math.min(1, Math.max(0, hitRoll.chance ?? chance)))) return true
   ctx.emit({ type: EventType.Miss, sourceId: source.id, targetId: target.id, kind })
   return false
+}
+
+function inputSkillId(ctx: BattleContext): string | undefined {
+  return ctx.currentAction?.skillId
 }
 
 function computeBase(
@@ -147,11 +165,19 @@ function computeBase(
       : input.kind === DamageKind.Physical
         ? FormulaFamily.Physical
         : FormulaFamily.Spell)
+  const defenseIgnore = Math.min(1, Math.max(0, input.defenseIgnore ?? 0))
+  const effectiveTarget =
+    input.kind === DamageKind.Physical && defenseIgnore > 0
+      ? withAttrs(target, {
+          ...dst,
+          physicalDef: Math.floor(dst.physicalDef * (1 - defenseIgnore)),
+        })
+      : withAttrs(target, dst)
   return ctx.rules.formulas.baseDamage({
     family,
     kind: input.kind,
     source: withAttrs(source, src),
-    target: withAttrs(target, dst),
+    target: effectiveTarget,
     coeff: input.coeff,
     power: input.power,
     fury,
@@ -160,6 +186,7 @@ function computeBase(
     targetCount: input.targetCount ?? 1,
     schoolTerm: input.schoolTerm,
     splash: input.splash,
+    defenseIgnore,
   })
 }
 
@@ -216,7 +243,7 @@ export function applyDamage(
     })
   }
   breakStatusesOnDamage(ctx, target)
-  if (hp <= 0) ctx.applyHpZero(target)
+  if (hp <= 0) ctx.applyHpZero(target, source, ctx.currentAction?.skillId)
 }
 
 /** 我佛慈悲一类：目标留下 keep，其余打到状态来源。 */
@@ -244,7 +271,7 @@ function redirectOverflow(
       hpAfter: hp,
       kind,
     })
-    if (hp <= 0) ctx.applyHpZero(caster)
+    if (hp <= 0) ctx.applyHpZero(caster, source, ctx.currentAction?.skillId)
   }
   return kept
 }
