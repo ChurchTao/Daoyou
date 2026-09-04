@@ -19,6 +19,10 @@
 [`docs/combat-v6-jiujie-sect-design.md`](../../../../docs/combat-v6-jiujie-sect-design.md)。
 Phase 7A 遭遇与训练 Host 见
 [`docs/combat-v6-phase-7a-training-host-design.md`](../../../../docs/combat-v6-phase-7a-training-host-design.md)。
+Phase 7B 权威构筑与训练房接入见
+[`docs/combat-v6-phase-7b-authoritative-training-design.md`](../../../../docs/combat-v6-phase-7b-authoritative-training-design.md)。
+Phase 7C Redis权威运行时与回放归档见
+[`docs/combat-v6-phase-7c-redis-runtime-replay-design.md`](../../../../docs/combat-v6-phase-7c-redis-runtime-replay-design.md)。
 
 `core/` 当前是
 `/Users/churcht/Documents/GitHub/mhxy-combat-copy/packages/engine/src`
@@ -39,12 +43,14 @@ Phase 7A 遭遇与训练 Host 见
 - Phase 6C 已交付状态消费/复制、有效冲击伤害、通用机制事件、天衍圣地五行法印与十种协同反应、河图演生/洛书制化双流派、42个经脉节点和 `character_build_v4` 完整投影。
 - Phase 6D 已交付通用概率分支、非致命打击、状态层数读取、随机物理攻击目标策略，以及九劫天宫“天律镇妖/九霄驭雷”双流派、三封、五雷、电芒协同、42个经脉节点和 `character_build_v5` 完整投影。
 - Phase 7A 已交付60/120/180三档独立训练 NPC、六类训练遭遇、三种确定性策略、结构化指令查询、纯逻辑 Encounter Host、结果摘要和非持久调试转录。
+- Phase 7B 已交付独立 v6 构筑持久态、五宗门旧心法单次迁移、权威人物装配器、进程内训练会话、训练 API 和 v6 原生练功房页面。
+- Phase 7C 已交付可恢复 Redis 权威训练运行时、两小时绝对期限、revision CAS、仅传 battle ID 的通用终局事件/回放流与 PostgreSQL 回放归档。
 - 道装固定已鉴定且没有品质、评分或淬炼；重铸、锁灵、持久化、经济和 UI 保留给 Phase 4C。
 - core 已支持资源事件与门槛、效果级目标、固定伤害、独立伤势、护盾、疗伤、稳定净化、成功结算段、物法忽防、物理必中、击倒来源归因和数据化概率修改；没有宗门 ID 特判。
 - 肉身位阶已改为只检查人物境界与五轨总等级的确定性逐阶提升；旧材料、概率、失败与保底流程已退出。
 - battle-v5 不再读取炼体 modifier、开战 Buff 或位阶 Hook；五轨战斗效果只存在于 combat-v6 新投影。
 - 裸角色无需加载旧装备、功法、宗门、经脉或炼体效果即可投影并完成确定性 1v1 战斗。
-- 已具备共享纯逻辑训练 Host；尚未接入服务端权威会话、战斗 API、持久战斗记录或战斗 UI。
+- 已具备共享纯逻辑训练 Host、服务端 Redis 权威会话、逐回合训练 UI 和自包含 v6 回放；尚未接入奖励、战后 condition 回写或普通任务 PVE。
 - `combat-v6` 不依赖 `battle-v5`、`creation-v2` 或旧宗门编译器；core 不反向依赖具体宗门内容。
 - 复制基线建立后，后续改造只在本目录进行，不反向修改来源仓库。
 
@@ -57,4 +63,5 @@ Phase 7A 遭遇与训练 Host 见
 - `manuals/`：提供功法状态、参悟/改修/散功、十个本篇/真解谱系、编译与能力解析。
 - `projection/`：保留各阶段入口，并提供 `projectCultivatorMultiSectV5ToCombatV6` 五宗门完整人物构筑入口。
 - `encounter/`：提供训练 NPC、六类遭遇、内容校验、指令查询编排、确定性 NPC 策略和共享纯逻辑 Host。
-- `version.ts`：Phase 1～7A 战斗、快照与调试转录共同使用的版本戳。
+- `build-state/`：提供五宗门旧心法显式映射、迁移归一化和一次性初始化读模型。
+- `version.ts`：Phase 1～7B 战斗、快照与调试转录共同使用的版本戳。

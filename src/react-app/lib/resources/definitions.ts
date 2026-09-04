@@ -6,6 +6,7 @@ export {
   type InventoryPageParams,
 } from './inventoryDefinitions';
 export {
+  playerCombatV6BuildResource,
   playerConditionResource,
   playerCurrencyResource,
   playerLoadoutResource,
@@ -35,6 +36,7 @@ import {
   inventoryMaterialsResource,
 } from './inventoryDefinitions';
 import {
+  playerCombatV6BuildResource,
   playerConditionResource,
   playerCurrencyResource,
   playerLoadoutResource,
@@ -64,6 +66,7 @@ export const resourceRegistry = {
   playerProgress: playerProgressResource,
   playerCurrency: playerCurrencyResource,
   playerLoadout: playerLoadoutResource,
+  playerCombatV6Build: playerCombatV6BuildResource,
   playerMailSummary: playerMailSummaryResource,
   playerTaskSummary: playerTaskSummaryResource,
   playerTasks: playerTasksResource,

@@ -801,16 +801,31 @@ interface CombatV6PanelContribution {
 
 专项设计见[`combat-v6 Phase 7A：确定性遭遇编排与训练 Host`](./combat-v6-phase-7a-training-host-design.md)。
 
-### Phase 7B～7C：PVE 产品接入
+### Phase 7B：权威构筑持久化与 v6 训练房
+
+> 状态：已完成（2026-09-04）
+
+交付：
+
+- membership 归属的独立 combat-v6 构筑持久态，以及五宗门 active membership 的六心法单次迁移。
+- `pending / uninitialized / active` 初始化流程和一次性流派选择。
+- 服务端 `character_build_v5` 权威装配器，不读取 battle-v5、creation-v2 功法或旧装备。
+- 每角色单会话、30分钟 TTL、乐观 revision、事件游标和 membership 变更失效的进程内训练 Store。
+- 只接受遭遇、档位与五类指令的训练 API，以及原位替换后的 v6 练功房。
+
+边界：不包含奖励、失败成本、战后资源回写、Redis、checkpoint、WebSocket、正式录像或普通任务 PVE。
+
+专项设计见[`combat-v6 Phase 7B：权威人物构筑持久化与 v6 训练房接入`](./combat-v6-phase-7b-authoritative-training-design.md)。
+
+### Phase 7C：普通任务 PVE 接入
 
 按风险从低到高：
 
-1. Phase 7B：服务端权威训练会话、战斗 API 和最小训练房页面。
-2. Phase 7C：普通任务战斗。
-3. 宗门任务战斗。
-4. 爬塔。
-5. 地图/副本连续战斗。
-6. 排行、竞猜等依赖战斗结果的玩法。
+1. 普通任务战斗。
+2. 宗门任务战斗。
+3. 爬塔。
+4. 地图/副本连续战斗。
+5. 排行、竞猜等依赖战斗结果的玩法。
 
 每个玩法需要明确资源策略、战后回写、失败成本、奖励权威和旧记录读取方式。
 
@@ -955,6 +970,7 @@ bun run build
 | 2026-09-03 | Phase 5A 锁定十谱系二十定义与完整人物投影 | 发布 `character_build_v1`；法连、连击与功法外围持久化不进入本阶段 |
 | 2026-09-03 | Phase 6A 锁定多宗门注册表与幽都经典双流派 | 发布 `daoyou_rules_v2` / `character_build_v2`；固定伤害与伤势成为中立 core 原语 |
 | 2026-09-04 | Phase 6D 锁定九劫天宫天律镇妖/九霄驭雷双流派 | 发布 `daoyou_rules_v5` / `character_build_v5`；旧劫雷、劫债、劫数与整技能免疫永久退出 v6 |
+| 2026-09-04 | Phase 7C 锁定 Redis 权威运行态、通用终局事件与独立 v6 回放 | 训练房迁出进程内 Store；战斗不绑定任务且 PostgreSQL 只保存终局回放 |
 | 2026-09-02 | 锁定 `character_panel_v1` 六维职责、裸身公式和面板点数单位 | 保留现有自然成长、自由加点与洗点；v6 独立重算派生面板 |
 | 2026-09-02 | 宗门保留特色机制，特殊资源按需配置 | 无相形态、天衍五行、幽都固伤/削弱/伤势等以 v6 通用原语重建 |
 | 2026-09-02 | 每宗门固定双流派，每流派七层且每层三个互斥节点 | 每宗门最终交付 42 个经脉节点 |

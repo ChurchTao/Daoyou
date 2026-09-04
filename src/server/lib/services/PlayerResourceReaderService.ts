@@ -17,6 +17,7 @@ import {
 import { getPlayerLoadoutByCultivatorId } from '@server/lib/services/cultivator/CultivatorLoadoutReader';
 import { getPlayerIdentityCultivatorById } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import { QiService } from '@server/lib/services/QiService';
+import { getCombatV6BuildView } from '@server/lib/services/combat-v6/CombatV6BuildService';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import {
   PLAYER_RESOURCE_KEYS,
@@ -152,6 +153,8 @@ const readers: {
   },
   loadout: ({ cultivatorId, q }) =>
     getPlayerLoadoutByCultivatorId(cultivatorId, q),
+  'combat-v6-build': ({ cultivatorId, q }) =>
+    getCombatV6BuildView(cultivatorId, q),
   'mail-summary': ({ cultivatorId, q }) =>
     readPlayerMailSummary(cultivatorId, q),
   'task-summary': ({ cultivatorId, q }) =>

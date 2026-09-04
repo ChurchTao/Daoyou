@@ -87,3 +87,13 @@ export const COMBAT_V6_PHASE_7A_VERSIONS: CombatV6VersionStamp = Object.freeze({
   contentVersion: "daoyou_training_encounter_content_v1",
   projectionVersion: "training_encounter_v1",
 })
+
+/** Phase 7B 沿用7A战斗内容；新增的是持久构筑和服务端训练协议。 */
+export const COMBAT_V6_PHASE_7B_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  ...COMBAT_V6_PHASE_7A_VERSIONS,
+})
+
+/** Phase 7C 沿用7A规则与内容；新增Redis运行协议、终局事件和回放版本。 */
+export const COMBAT_V6_PHASE_7C_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  ...COMBAT_V6_PHASE_7A_VERSIONS,
+})

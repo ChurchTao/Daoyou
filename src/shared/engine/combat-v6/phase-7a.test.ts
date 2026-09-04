@@ -26,12 +26,14 @@ import {
   TrainingHostErrorCode,
   compileCombatV6TrainingEncounterV1,
   createCombatV6TrainingHostV1,
+  restoreCombatV6TrainingHostV1,
   trainingEncounterOutcome,
   validateCombatV6TrainingContentV1,
   type CombatV6TrainingTierV1,
 } from "./encounter/index.ts"
 import { daoyouRulesetV5 } from "./rules-daoyou/index.ts"
 import { COMBAT_V6_PHASE_6D_VERSIONS, COMBAT_V6_PHASE_7A_VERSIONS } from "./version.ts"
+import { CombatV6RedisRuntimeV1Schema } from "@shared/contracts/combatV6Runtime"
 
 const ATTRIBUTES: Attributes = { vitality: 10, strength: 10, spirit: 10, endurance: 10, speed: 10, willpower: 10 }
 const MANUALS = { version: 1 as const, revision: 0, build: { slots: [] } }
@@ -197,6 +199,34 @@ describe("combat-v6 Phase 7A Host", () => {
     trace.rounds.length = 0
     expect(left.trace().initialUnits[0].name).not.toBe("被修改")
     expect(left.trace().rounds).toHaveLength(1)
+  })
+
+  it("从Redis运行快照恢复后保持指令、RNG、事件和终态确定性", () => {
+    const created = createCombatV6TrainingHostV1(input(TRAINING_ENCOUNTER_ID.SingleSparring, 60, "jiujie", 771))
+    if (!created.ok) throw new Error("训练Host创建失败")
+    const target = created.host.queryCommands().attackTargetIds[0]
+    created.host.submit(created.host.playerId, { type: CommandType.Attack, target })
+    const restored = restoreCombatV6TrainingHostV1(created.host.runtimeSnapshot())
+    if (!restored.ok) throw new Error("训练Host恢复失败")
+    expect(restored.host.state).toEqual(created.host.state)
+    expect(restored.host.trace().events).toEqual(created.host.trace().events)
+    created.host.resolveRound()
+    restored.host.resolveRound()
+    expect(restored.host.trace()).toEqual(created.host.trace())
+    expect(CombatV6RedisRuntimeV1Schema.safeParse({
+      runtimeVersion: "combat_v6_redis_runtime_v1",
+      battleId: "c431d125-c61d-423a-9b2d-dde9dd94daac",
+      userId: "9942e266-6f21-4b96-8563-d476e581f612",
+      cultivatorId: "34fd2d39-1322-44c6-a566-e552b28d6781",
+      membershipId: "f14f1d52-c21d-45d6-8ea3-2a510a855c1f",
+      buildRevision: 1,
+      metadata: { schemaVersion: 1, sourceType: "training-room", battleType: "training", idempotencyKey: "c457d5b7-d6be-471b-9dc2-d17bd267e339", payload: { encounterId: TRAINING_ENCOUNTER_ID.SingleSparring, tier: 60 } },
+      revision: 1,
+      createdAt: "2026-09-04T00:00:00.000Z",
+      expiresAt: "2026-09-04T02:00:00.000Z",
+      latestEventSeq: created.host.trace().events.length - 1,
+      host: created.host.runtimeSnapshot(),
+    }).success).toBe(true)
   })
 
   it("将内核终局稳定解释为训练结果", () => {

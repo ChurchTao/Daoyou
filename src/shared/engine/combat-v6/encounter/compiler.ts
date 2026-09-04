@@ -140,6 +140,7 @@ export function compileCombatV6TrainingEncounterV1(
       playerId: player.unit.id!,
       npcStrategies,
       sourceProjectionVersions: { ...COMBAT_V6_PHASE_6D_VERSIONS },
+      sourcePlayerInput: clone(input.player),
       battleInput: { seed: input.seed, versions, ruleset: daoyouRulesetV5, units, skills, statusDefs },
     },
   }

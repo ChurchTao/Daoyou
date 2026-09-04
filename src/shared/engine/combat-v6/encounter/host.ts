@@ -6,6 +6,7 @@ import {
   Team,
   TargetSide,
   createBattle,
+  restoreBattle,
   isStanding,
   type BattleEvent,
   type BattleSession,
@@ -16,6 +17,7 @@ import {
 import { compileCombatV6TrainingEncounterV1 } from "./compiler.ts"
 import type {
   CombatV6EncounterTraceV1,
+  CombatV6TrainingRuntimeSnapshotV1,
   CombatV6TrainingHostV1,
   CompileCombatV6TrainingEncounterV1Input,
   CompileCombatV6TrainingEncounterV1Result,
@@ -52,6 +54,12 @@ export function createCombatV6TrainingHostV1(input: CompileCombatV6TrainingEncou
   return { ok: true, host: new CombatV6TrainingHostSessionV1(result.compiled), diagnostics: result.diagnostics, versions: result.versions }
 }
 
+export function restoreCombatV6TrainingHostV1(runtime: CombatV6TrainingRuntimeSnapshotV1): CreateCombatV6TrainingHostV1Result {
+  const result = compileCombatV6TrainingEncounterV1(runtime.input)
+  if (!result.ok) return result
+  return { ok: true, host: new CombatV6TrainingHostSessionV1(result.compiled, runtime), diagnostics: result.diagnostics, versions: result.versions }
+}
+
 export class CombatV6TrainingHostSessionV1 implements CombatV6TrainingHostV1 {
   readonly playerId: string
   private readonly battle: BattleSession
@@ -60,12 +68,13 @@ export class CombatV6TrainingHostSessionV1 implements CombatV6TrainingHostV1 {
   private readonly statusDefs: NonNullable<CompiledCombatV6TrainingEncounterV1["battleInput"]["statusDefs"]>
   private readonly rounds: CombatV6EncounterTraceV1["rounds"] = []
 
-  constructor(private readonly compiled: CompiledCombatV6TrainingEncounterV1) {
+  constructor(private readonly compiled: CompiledCombatV6TrainingEncounterV1, restored?: CombatV6TrainingRuntimeSnapshotV1) {
     this.playerId = compiled.playerId
     this.initialUnits = clone(compiled.battleInput.units)
     this.skills = clone(compiled.battleInput.skills ?? [])
     this.statusDefs = clone(compiled.battleInput.statusDefs ?? [])
-    this.battle = createBattle(compiled.battleInput)
+    this.battle = restored ? restoreBattle(compiled.battleInput, restored.state, restored.events) : createBattle(compiled.battleInput)
+    if (restored) this.rounds.push(...clone(restored.rounds))
   }
 
   get finished(): boolean { return this.battle.finished }
@@ -112,6 +121,17 @@ export class CombatV6TrainingHostSessionV1 implements CombatV6TrainingHostV1 {
   }
 
   snapshot() { return this.battle.snapshot() }
+
+  runtimeSnapshot(): CombatV6TrainingRuntimeSnapshotV1 {
+    return clone({
+      schemaVersion: 1 as const,
+      hostVersion: "combat_v6_training_runtime_v1" as const,
+      input: { encounterId: this.compiled.encounterId, tier: this.compiled.tier, seed: this.compiled.seed, player: this.compiled.sourcePlayerInput },
+      state: this.battle.snapshot(),
+      rounds: this.rounds,
+      events: [...this.battle.log()],
+    })
+  }
 
   trace(): CombatV6EncounterTraceV1 {
     const finished = this.battle.finished

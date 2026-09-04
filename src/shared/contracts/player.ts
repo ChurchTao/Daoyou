@@ -1,6 +1,7 @@
 import type { ApiSuccess } from '@shared/contracts/http';
 import type { CultivationProgress, Cultivator } from '@shared/types/cultivator';
 import type { QiProjectionBaseline } from '@shared/types/qi';
+import type { CombatV6BuildViewV1 } from './combatV6';
 import type {
   ResourceChange,
   ResourceReadMeta,
@@ -61,6 +62,7 @@ export const PLAYER_RESOURCE_KEYS = [
   'progress',
   'currency',
   'loadout',
+  'combat-v6-build',
   'mail-summary',
   'task-summary',
 ] as const;
@@ -88,6 +90,7 @@ export interface PlayerResourceMap {
     reputation: number;
   };
   loadout: PlayerLoadout;
+  'combat-v6-build': CombatV6BuildViewV1;
   'mail-summary': {
     unreadCount: number;
   };

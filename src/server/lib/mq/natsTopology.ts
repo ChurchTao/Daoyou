@@ -19,6 +19,7 @@ import {
   BATTLE_RESOLUTION_STREAM,
   BATTLE_RESOLUTION_SUBJECT,
 } from '@shared/contracts/battleResolutionTask';
+import { COMBAT_V6_REPLAY_STREAM, COMBAT_V6_REPLAY_SUBJECT } from '@shared/contracts/combatV6Runtime';
 import {
   AckPolicy,
   DeliverPolicy,
@@ -56,6 +57,13 @@ export const BATTLE_RESOLUTION_CONSUMER = {
   name: 'battle-resolution-worker-v1',
   filterSubject: BATTLE_RESOLUTION_SUBJECT,
   concurrency: 4,
+} as const;
+
+export const COMBAT_V6_REPLAY_ARCHIVE_CONSUMER = {
+  stream: COMBAT_V6_REPLAY_STREAM,
+  name: 'combat-v6-replay-postgres-archiver-v1',
+  filterSubject: COMBAT_V6_REPLAY_SUBJECT,
+  concurrency: 2,
 } as const;
 
 export const BACKGROUND_COMMAND_CONSUMER = {
@@ -204,6 +212,21 @@ const BATTLE_RESOLUTION_STREAM_CONFIG: Partial<StreamConfig> = {
   max_bytes: 64 * 1_024 * 1_024,
   max_msg_size: 4 * 1_024,
   duplicate_window: nanos(10 * 60 * 1_000),
+  num_replicas: 1,
+  allow_direct: true,
+};
+
+const COMBAT_V6_REPLAY_STREAM_CONFIG: Partial<StreamConfig> = {
+  name: COMBAT_V6_REPLAY_STREAM,
+  description: 'Small Redis pointers for combat-v6 replay archival',
+  subjects: [COMBAT_V6_REPLAY_SUBJECT],
+  retention: RetentionPolicy.Workqueue,
+  storage: StorageType.File,
+  discard: DiscardPolicy.Old,
+  max_age: nanos(30 * 24 * 60 * 60 * 1_000),
+  max_bytes: 64 * 1_024 * 1_024,
+  max_msg_size: 4 * 1_024,
+  duplicate_window: nanos(24 * 60 * 60 * 1_000),
   num_replicas: 1,
   allow_direct: true,
 };
@@ -417,6 +440,22 @@ async function ensureBattleResolutionConsumer() {
   }
 }
 
+async function ensureCombatV6ReplayConsumer() {
+  const manager = await getJetStreamManager();
+  const mutableConfig: Partial<ConsumerUpdateConfig> = {
+    description: 'Archive combat-v6 replays to PostgreSQL', ack_wait: nanos(2 * 60 * 1_000), max_deliver: -1,
+    max_ack_pending: COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.concurrency, max_batch: COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.concurrency,
+    backoff: [], filter_subject: COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.filterSubject,
+  };
+  try {
+    await manager.consumers.info(COMBAT_V6_REPLAY_STREAM, COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.name);
+    await manager.consumers.update(COMBAT_V6_REPLAY_STREAM, COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.name, mutableConfig);
+  } catch (error) {
+    if (!isNotFoundError(error)) throw error;
+    await manager.consumers.add(COMBAT_V6_REPLAY_STREAM, { ...mutableConfig, durable_name: COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.name, ack_policy: AckPolicy.Explicit, deliver_policy: DeliverPolicy.All, replay_policy: ReplayPolicy.Instant } satisfies Partial<ConsumerConfig>);
+  }
+}
+
 export async function ensureBattleReplayStream(): Promise<void> {
   await ensureStream(
     BATTLE_REPLAY_STREAM_CONFIG as Partial<StreamConfig> & { name: string },
@@ -447,12 +486,14 @@ export async function ensureMessageTopology(): Promise<void> {
   await ensureStream(
     BATTLE_RESOLUTION_STREAM_CONFIG as Partial<StreamConfig> & { name: string },
   );
+  await ensureStream(COMBAT_V6_REPLAY_STREAM_CONFIG as Partial<StreamConfig> & { name: string });
   await Promise.all([
     ...Object.values(DOMAIN_EVENT_CONSUMERS).map(ensureConsumer),
     ensureBackgroundCommandConsumer(),
     ensureBattleReplayConsumer(),
     ensureBattleTerminalConsumer(),
     ensureBattleResolutionConsumer(),
+    ensureCombatV6ReplayConsumer(),
   ]);
   console.info('[nats] JetStream topology ready', {
     stream: DOMAIN_EVENT_STREAM,
@@ -467,5 +508,6 @@ export async function ensureMessageTopology(): Promise<void> {
     battleTerminalConsumer: BATTLE_TERMINAL_FINALIZER_CONSUMER.name,
     battleResolutionStream: BATTLE_RESOLUTION_STREAM,
     battleResolutionConsumer: BATTLE_RESOLUTION_CONSUMER.name,
+    combatV6ReplayStream: COMBAT_V6_REPLAY_STREAM,
   });
 }

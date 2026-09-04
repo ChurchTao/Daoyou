@@ -2,7 +2,7 @@
  * 梦幻回合制战斗内核。Host 用 createBattle / submit / lockAndResolve；
  * 内容、Daoyou 公式和角色投影均由 core 上层注入。
  */
-export { createBattle, BattleSession } from "./session.ts"
+export { createBattle, restoreBattle, BattleSession } from "./session.ts"
 export { SeededRng } from "./rng.ts"
 export { HookBus, type HookContext, type HookFn } from "./hooks.ts"
 export { evalExpr, skillLevelOf } from "./expr.ts"

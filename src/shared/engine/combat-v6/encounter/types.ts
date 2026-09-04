@@ -88,6 +88,7 @@ export type CompiledCombatV6TrainingEncounterV1 = {
   npcStrategies: Record<string, PveCommandStrategyV1>
   battleInput: CreateBattleInput
   sourceProjectionVersions: CombatV6VersionStamp
+  sourcePlayerInput: CombatV6TrainingPlayerInput
 }
 
 export type CompileCombatV6TrainingEncounterV1Result =
@@ -113,6 +114,16 @@ export interface CombatV6EncounterTraceV1 {
   outcome?: TrainingEncounterOutcome
 }
 
+/** Redis运行时快照；仅保证当前combat-v6版本内恢复，不是长期录像协议。 */
+export interface CombatV6TrainingRuntimeSnapshotV1 {
+  schemaVersion: 1
+  hostVersion: "combat_v6_training_runtime_v1"
+  input: CompileCombatV6TrainingEncounterV1Input
+  state: BattleState
+  rounds: CombatV6EncounterTraceV1["rounds"]
+  events: BattleEvent[]
+}
+
 export interface CombatV6TrainingHostV1 {
   readonly playerId: string
   readonly finished: boolean
@@ -122,4 +133,5 @@ export interface CombatV6TrainingHostV1 {
   resolveRound(): BattleEvent[]
   snapshot(): BattleState
   trace(): CombatV6EncounterTraceV1
+  runtimeSnapshot(): CombatV6TrainingRuntimeSnapshotV1
 }

@@ -13,6 +13,7 @@ export {
   TrainingHostError,
   TrainingHostErrorCode,
   createCombatV6TrainingHostV1,
+  restoreCombatV6TrainingHostV1,
   trainingEncounterOutcome,
   type CreateCombatV6TrainingHostV1Result,
 } from "./host.ts"
@@ -24,6 +25,7 @@ export type {
   CombatV6TrainingContentV1,
   CombatV6TrainingHostV1,
   CombatV6TrainingPlayerInput,
+  CombatV6TrainingRuntimeSnapshotV1,
   CombatV6TrainingTierV1,
   CompileCombatV6TrainingEncounterV1Input,
   CompileCombatV6TrainingEncounterV1Result,

@@ -1,585 +1,274 @@
 import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
-import { BattlePlaybackPanel } from '@app/components/feature/battle/v3/BattlePlaybackPanel';
-import { useBattlePlaybackState } from '@app/components/feature/battle/v3/useBattlePlaybackState';
-import { useCultivatorDisplayProjection } from '@app/components/feature/cultivator/useCultivatorDisplayProjection';
-import { GameImmersiveLoading } from '@app/components/game-shell';
-import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { inkFieldVariants } from '@app/components/ui/inkFieldStyles';
-import { AttributeType, ModifierType } from '@shared/engine/battle-v5/core/types';
-import type { TrainingRoomModifierDraft } from '@shared/engine/battle-v5/setup/types';
-import { ATTR_LABELS } from '@shared/engine/battle-v5/effects/affixText/attributes';
-import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
-import { prepareStandardFullBattle } from '@shared/engine/battle-v5/setup/BattleStateStrategy';
-import type { BattleRecordV3 } from '@shared/types/battle';
-import { simulateBattleV5 } from '@shared/lib/battle/simulateBattleV5';
-import { getResourceText } from '@shared/lib/gameConceptDisplay';
-import {
-  buildTrainingBattleInitConfig, createDefaultTrainingRoomDraft, parseTrainingRoomStorage, TRAINING_ROOM_STORAGE_KEY, TRAINING_ROOM_STORAGE_VERSION, type TrainingRoomDraft, type TrainingRoomPreset, } from '@shared/lib/training-room/config';
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useCombatV6Build } from '@app/lib/resources/player';
+import { consumeResourceMutation } from '@app/lib/resources/mutations';
+import type {
+  CombatV6BuildViewV1,
+  CombatV6TrainingCommandV1,
+  CombatV6TrainingSessionViewV1,
+} from '@shared/contracts/combatV6';
+import type { BattleEvent } from '@shared/engine/combat-v6/core';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-const ATTRIBUTE_OPTIONS = Object.values(AttributeType);
-const MODIFIER_TYPE_OPTIONS = [
-  ModifierType.FIXED,
-  ModifierType.ADD,
-  ModifierType.MULTIPLY,
-  ModifierType.FINAL,
-  ModifierType.OVERRIDE,
-] as const;
-
-const SELECT_CLASSNAME = inkFieldVariants({ size: 'sm' });
-const INPUT_CLASSNAME = inkFieldVariants({ size: 'sm' });
-
-const PRIMARY_ATTRIBUTE_FIELDS = [
-  { key: AttributeType.VITALITY, label: ATTR_LABELS[AttributeType.VITALITY] },
-  { key: AttributeType.STRENGTH, label: ATTR_LABELS[AttributeType.STRENGTH] },
-  { key: AttributeType.SPIRIT, label: ATTR_LABELS[AttributeType.SPIRIT] },
-  { key: AttributeType.ENDURANCE, label: ATTR_LABELS[AttributeType.ENDURANCE] },
-  { key: AttributeType.SPEED, label: ATTR_LABELS[AttributeType.SPEED] },
-  { key: AttributeType.WILLPOWER, label: ATTR_LABELS[AttributeType.WILLPOWER] },
-] as const;
-
-const MODIFIER_TYPE_LABELS: Record<(typeof MODIFIER_TYPE_OPTIONS)[number], string> = {
-  [ModifierType.FIXED]: '直接增加',
-  [ModifierType.ADD]: '按比例增加',
-  [ModifierType.MULTIPLY]: '按倍数调整',
-  [ModifierType.FINAL]: '设为最终值',
-  [ModifierType.OVERRIDE]: '直接指定',
+type ContentView = {
+  tiers: readonly (60 | 120 | 180)[];
+  encounters: Array<{ id: string; name: string }>;
 };
+type SequencedEvent = CombatV6TrainingSessionViewV1['events'][number];
 
-const MODIFIER_VALUE_HINTS: Record<
-  (typeof MODIFIER_TYPE_OPTIONS)[number],
-  string
-> = {
-  [ModifierType.FIXED]: '直接填写要增加或减少的数值。',
-  [ModifierType.ADD]: '填写比例，例如 0.2 代表增加 20%。',
-  [ModifierType.MULTIPLY]: '填写倍数，例如 1.5 代表调整为 1.5 倍。',
-  [ModifierType.FINAL]: '直接填写调整后的最终数值。',
-  [ModifierType.OVERRIDE]: '忽略原值，直接指定为这个数值。',
-};
-
-function readTrainingRoomStorage() {
-  if (typeof window === 'undefined') return null;
-  return parseTrainingRoomStorage(
-    window.localStorage.getItem(TRAINING_ROOM_STORAGE_KEY),
-  );
+class ApiError extends Error {
+  constructor(message: string, readonly code?: string) {
+    super(message);
+  }
 }
 
-function createModifierDraft(): TrainingRoomModifierDraft {
-  return {
-    id:
-      globalThis.crypto?.randomUUID?.() ??
-      `training-mod-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    attrType: AttributeType.ATK,
-    type: ModifierType.FIXED,
-    value: 10,
+async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...init,
+    headers: init?.body
+      ? { 'Content-Type': 'application/json', ...init.headers }
+      : init?.headers,
+  });
+  const body = (await response.json()) as {
+    success?: boolean;
+    data?: T;
+    code?: string;
+    error?: string;
   };
+  if (!response.ok || body.success === false) {
+    throw new ApiError(body.error ?? `请求失败（${response.status}）`, body.code);
+  }
+  return body.data as T;
 }
 
-function NumberField({
-  label,
-  value,
-  onChange,
-  min,
-  step = 1,
-  hint,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  min?: number;
-  step?: number;
-  hint?: string;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-sm font-medium text-ink">{label}</span>
-      <input
-        type="number"
-        className={INPUT_CLASSNAME}
-        min={min}
-        step={step}
-        value={Number.isFinite(value) ? value : 0}
-        onChange={(event) => onChange(Number(event.target.value || 0))}
-      />
-      {hint ? <span className="text-xs text-ink/55">{hint}</span> : null}
-    </label>
-  );
+function mergeEvents(current: SequencedEvent[], incoming: SequencedEvent[]) {
+  const bySeq = new Map(current.map((item) => [item.seq, item]));
+  for (const item of incoming) bySeq.set(item.seq, item);
+  return [...bySeq.values()].sort((left, right) => left.seq - right.seq);
 }
 
-function ModifierEditor({
-  modifiers,
-  onChange,
-}: {
-  modifiers: TrainingRoomModifierDraft[];
-  onChange: (modifiers: TrainingRoomModifierDraft[]) => void;
+function unitName(units: CombatV6TrainingSessionViewV1['units'], id?: string) {
+  return units.find((unit) => unit.id === id)?.name ?? id ?? '未知目标';
+}
+
+function eventText(event: BattleEvent, units: CombatV6TrainingSessionViewV1['units']) {
+  switch (event.type) {
+    case 'battleStart': return '演武开始。';
+    case 'roundStart': return `第 ${event.round} 回合开始。`;
+    case 'roundEnd': return `第 ${event.round} 回合结束。`;
+    case 'actionStart': return `${unitName(units, event.unitId)}开始行动。`;
+    case 'actionSkip': return `${unitName(units, event.unitId)}无法行动：${event.reason}`;
+    case 'actionFailed': return `${unitName(units, event.unitId)}施展失败：${event.reason}`;
+    case 'retarget': return `${unitName(units, event.unitId)}的目标转向${unitName(units, event.to)}。`;
+    case 'miss': return `${unitName(units, event.sourceId)}未能命中${unitName(units, event.targetId)}。`;
+    case 'damage': return `${unitName(units, event.sourceId)}对${unitName(units, event.targetId)}造成 ${event.amount} 点伤害。`;
+    case 'heal': return `${unitName(units, event.sourceId)}为${unitName(units, event.targetId)}恢复 ${event.amount} 点气血。`;
+    case 'mpCost': return `${unitName(units, event.unitId)}消耗 ${event.amount} 点法力。`;
+    case 'hpCost': return `${unitName(units, event.unitId)}消耗 ${event.amount} 点气血。`;
+    case 'mpDamage': return `${unitName(units, event.targetId)}损失 ${event.amount} 点法力。`;
+    case 'mpRestore': return `${unitName(units, event.unitId)}恢复 ${event.amount} 点法力。`;
+    case 'woundChanged': return `${unitName(units, event.targetId)}的伤势由 ${event.before} 变为 ${event.after}。`;
+    case 'barrierChanged': return `${unitName(units, event.unitId)}的护盾变化：${event.before} → ${event.after}。`;
+    case 'statusApplied': return `${unitName(units, event.unitId)}获得状态「${event.statusId}」。`;
+    case 'statusRemoved': return `${unitName(units, event.unitId)}失去状态「${event.statusId}」。`;
+    case 'resourceChanged': return `${unitName(units, event.unitId)}的${event.resourceId}：${event.before} → ${event.after}。`;
+    case 'unitDowned': return `${unitName(units, event.unitId)}倒地。`;
+    case 'unitDead': return `${unitName(units, event.unitId)}战死。`;
+    case 'unitRevived': return `${unitName(units, event.unitId)}复起，恢复 ${event.hp} 点气血。`;
+    case 'unitEscaped': return `${unitName(units, event.unitId)}离开了战斗。`;
+    case 'mechanicTriggered': return `${unitName(units, event.sourceId)}触发「${event.name}」。`;
+    case 'chanceResolved': return `机缘判定${event.success ? '成功' : '失败'}（${Math.round(event.chance * 100)}%）。`;
+    case 'battleEnd': return '演武结束。';
+    case 'protectTrigger': return `${unitName(units, event.protectorId)}挺身保护${unitName(units, event.originalTargetId)}。`;
+    case 'petSummoned':
+    case 'petRecalled': return `${unitName(units, event.unitId)}的召唤单位发生变化。`;
+    default: return null;
+  }
+}
+
+function BuildInitialization({ build, pending, onInitialize }: {
+  build: CombatV6BuildViewV1;
+  pending: boolean;
+  onInitialize: (pathId: string) => void;
 }) {
-  return (
-    <InkCard variant="elevated" className="p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-ink">木桩属性调整</p>
-        </div>
-        <InkButton
-          variant="secondary"
-          onClick={() => onChange([...modifiers, createModifierDraft()])}
-        >
-          新增调整
-        </InkButton>
-      </div>
-
-      {modifiers.length === 0 ? (
-        <p className="text-sm text-ink/55">暂未添加额外调整。</p>
-      ) : (
-        <div className="space-y-3">
-          {modifiers.map((modifier, index) => (
-            <div
-              key={modifier.id}
-              className="grid grid-cols-1 gap-3 border border-dashed border-ink/10 p-3 md:grid-cols-[minmax(0,2fr)_150px_120px_auto]"
-            >
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-ink/55">属性</span>
-                <select
-                  className={SELECT_CLASSNAME}
-                  value={modifier.attrType}
-                  onChange={(event) => {
-                    const next = [...modifiers];
-                    next[index] = {
-                      ...modifier,
-                      attrType: event.target.value as AttributeType,
-                    };
-                    onChange(next);
-                  }}
-                >
-                  {ATTRIBUTE_OPTIONS.map((attrType) => (
-                    <option key={attrType} value={attrType}>
-                      {ATTR_LABELS[attrType] ?? attrType}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-ink/55">调整方式</span>
-                <select
-                  className={SELECT_CLASSNAME}
-                  value={modifier.type}
-                  onChange={(event) => {
-                    const next = [...modifiers];
-                    next[index] = {
-                      ...modifier,
-                      type: event.target.value as TrainingRoomModifierDraft['type'],
-                    };
-                    onChange(next);
-                  }}
-                >
-                  {MODIFIER_TYPE_OPTIONS.map((type) => (
-                    <option key={type} value={type}>
-                      {MODIFIER_TYPE_LABELS[type]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <NumberField
-                label="数值"
-                value={modifier.value}
-                step={0.01}
-                hint={MODIFIER_VALUE_HINTS[modifier.type]}
-                onChange={(nextValue) => {
-                  const next = [...modifiers];
-                  next[index] = {
-                    ...modifier,
-                    value: nextValue,
-                  };
-                  onChange(next);
-                }}
-              />
-
-              <div className="flex items-end justify-end">
-                <InkButton
-                  variant="ghost"
-                  onClick={() =>
-                    onChange(modifiers.filter((item) => item.id !== modifier.id))
-                  }
-                >
-                  删除
-                </InkButton>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+  const [pathId, setPathId] = useState(build.paths[0]?.id ?? '');
+  return <div className="space-y-4">
+    <InkCard variant="highlighted" padding="lg">
+      <h2 className="font-heading text-xl">立定 v6 修行流派</h2>
+      <p className="text-ink-secondary mt-2 text-sm leading-7">当前宗门：{build.sectName}。此阶段完成选择后不可切换、升级或重置。</p>
     </InkCard>
-  );
+    <div className="grid gap-3 md:grid-cols-2">
+      {build.paths.map((path) => <button key={path.id} type="button" onClick={() => setPathId(path.id)} className={`border p-4 text-left ${pathId === path.id ? 'border-crimson bg-crimson/5' : 'border-ink/15'}`}>
+        <strong>{path.name}</strong><p className="text-ink-secondary mt-1 text-xs">{path.id}</p>
+      </button>)}
+    </div>
+    <InkCard padding="lg">
+      <h3 className="font-semibold">六心法</h3>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">{build.methods.map((method) => <div key={method.id} className="flex justify-between border-b border-ink/10 py-1 text-sm"><span>{method.name}{method.isPrimary ? '（主）' : ''}</span><span>{method.level} 级</span></div>)}</div>
+    </InkCard>
+    <InkButton variant="primary" pending={pending} disabled={!pathId} onClick={() => onInitialize(pathId)}>确认流派并开启练功房</InkButton>
+  </div>;
+}
+
+function EncounterSelection({ content, pending, onCreate }: {
+  content: ContentView;
+  pending: boolean;
+  onCreate: (encounterId: string, tier: 60 | 120 | 180) => void;
+}) {
+  const [encounterId, setEncounterId] = useState(content.encounters[0]?.id ?? '');
+  const [tier, setTier] = useState<60 | 120 | 180>(60);
+  const fieldClass = inkFieldVariants({ size: 'sm' });
+  return <InkCard variant="elevated" padding="lg">
+    <h2 className="font-heading text-xl">选择演武场景</h2>
+    <p className="text-ink-secondary mt-2 text-sm">训练不产生奖励、消耗回写或失败成本。</p>
+    <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <label className="space-y-1 text-sm"><span>场景</span><select className={fieldClass} value={encounterId} onChange={(event) => setEncounterId(event.target.value)}>{content.encounters.map((encounter) => <option key={encounter.id} value={encounter.id}>{encounter.name}</option>)}</select></label>
+      <label className="space-y-1 text-sm"><span>训练档位</span><select className={fieldClass} value={tier} onChange={(event) => setTier(Number(event.target.value) as 60 | 120 | 180)}>{content.tiers.map((value) => <option key={value} value={value}>{value} 级</option>)}</select></label>
+    </div>
+    <div className="mt-4"><InkButton variant="primary" pending={pending} disabled={!encounterId} onClick={() => onCreate(encounterId, tier)}>开始训练</InkButton></div>
+  </InkCard>;
+}
+
+function UnitCard({ unit }: { unit: CombatV6TrainingSessionViewV1['units'][number] }) {
+  const recoverableHp = Math.max(1, unit.maxHp - unit.wound);
+  return <InkCard variant={unit.side === 0 ? 'highlighted' : 'default'} padding="sm">
+    <div className="flex items-start justify-between gap-3"><div><strong>{unit.name}</strong><span className="text-ink-secondary ml-2 text-xs">{unit.side === 0 ? '我方' : '敌方'}·{unit.slot + 1}位</span></div><span className="text-xs">{unit.dead ? '死亡' : unit.downed ? '倒地' : unit.escaped ? '离场' : '站立'}</span></div>
+    <div className="mt-2 grid grid-cols-2 gap-2 text-sm"><span>气血 {unit.hp}/{recoverableHp}</span><span>法力 {unit.mp}/{unit.maxMp}</span><span>伤势 {unit.wound}</span><span>护盾 {unit.barriers.reduce((sum, item) => sum + item.current, 0)}</span></div>
+    {(unit.statuses.length > 0 || unit.resources.length > 0 || unit.barriers.length > 0) && <div className="text-ink-secondary mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+      {unit.statuses.map((status) => <span key={`${status.id}-${status.remainingRounds}`}>{status.id} ×{status.stacks}（{status.remainingRounds}回合）</span>)}
+      {unit.barriers.map((barrier) => <span key={barrier.id}>{barrier.name} {barrier.current}（{barrier.remainingRounds}回合）</span>)}
+      {unit.resources.map((resource) => <span key={resource.id}>{resource.name} {resource.current}/{resource.max}</span>)}
+    </div>}
+  </InkCard>;
+}
+
+function CommandPanel({ session, pending, onSubmit, onResolve, onAbandon }: {
+  session: CombatV6TrainingSessionViewV1;
+  pending: boolean;
+  onSubmit: (command: CombatV6TrainingCommandV1) => void;
+  onResolve: () => void;
+  onAbandon: () => void;
+}) {
+  const options = session.commandOptions;
+  const targets = new Map(session.units.map((unit) => [unit.id, unit.name]));
+  if (session.outcome) {
+    const labels = { victory: '胜利', defeat: '落败', draw: '平局', aborted: '已中止' };
+    return <InkCard variant="highlighted" padding="lg"><h2 className="font-heading text-xl">演武结果：{labels[session.outcome]}</h2><div className="mt-3"><InkButton variant="primary" pending={pending} onClick={onAbandon}>结束本次训练</InkButton></div></InkCard>;
+  }
+  return <InkCard variant="elevated" padding="lg">
+    <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-heading text-xl">第 {session.round} 回合指令</h2><p className="text-ink-secondary mt-1 text-xs">{session.pendingCommand ? '已锁定一条指令，可继续覆盖。' : '请选择本回合指令。'}</p></div><InkButton variant="ghost" pending={pending} onClick={onAbandon}>放弃训练</InkButton></div>
+    {!options?.canSubmit ? <p className="text-crimson mt-3 text-sm">{options?.reasons.join('；') || '当前无法提交指令'}</p> : null}
+    <div className="mt-4 space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {options?.attackTargetIds.map((id) => <InkButton key={id} disabled={pending || !options.canSubmit} onClick={() => onSubmit({ type: 'attack', target: id })}>攻击·{targets.get(id) ?? id}</InkButton>)}
+        {options?.canDefend ? <InkButton disabled={pending || !options.canSubmit} onClick={() => onSubmit({ type: 'defend' })}>防御</InkButton> : null}
+        {options?.protectTargetIds.map((id) => <InkButton key={id} disabled={pending || !options.canSubmit} onClick={() => onSubmit({ type: 'protect', target: id })}>保护·{targets.get(id) ?? id}</InkButton>)}
+        {options?.canFlee ? <InkButton disabled={pending || !options.canSubmit} onClick={() => onSubmit({ type: 'flee' })}>逃跑</InkButton> : null}
+      </div>
+      {options?.skills.map((skill) => <div key={skill.skillId} className="border-t border-ink/10 pt-2 text-sm"><div className="flex flex-wrap items-center gap-2"><strong>{skill.skillId}</strong>{!skill.ready ? <span className="text-crimson text-xs">{skill.reasons.join('；')}</span> : null}{skill.selectableTargetIds.map((id) => <InkButton key={id} disabled={pending || !options.canSubmit || !skill.ready} onClick={() => onSubmit({ type: 'skill', skillId: skill.skillId, targets: [id] })}>施展·{targets.get(id) ?? id}</InkButton>)}</div></div>)}
+    </div>
+    <div className="mt-5 border-t border-ink/15 pt-3"><InkButton variant="primary" pending={pending} disabled={!session.pendingCommand} onClick={onResolve}>推进回合</InkButton></div>
+  </InkCard>;
 }
 
 export default function TrainingRoomPage() {
-  const navigate = useNavigate();
-  const projection = useCultivatorDisplayProjection();
-  const cultivator = projection.data?.cultivator ?? null;
-  const isLoading = projection.loading;
-  const [isFighting, setIsFighting] = useState(false);
-  const [battleResult, setBattleResult] = useState<BattleRecordV3>();
-  const [draft, setDraft] = useState<TrainingRoomDraft>(() => {
-    return readTrainingRoomStorage()?.currentDraft ?? createDefaultTrainingRoomDraft();
-  });
-  const [presets, setPresets] = useState<TrainingRoomPreset[]>(() => {
-    return readTrainingRoomStorage()?.presets ?? [];
-  });
-  const [selectedPresetId, setSelectedPresetId] = useState('');
-  const [presetName, setPresetName] = useState('');
-  const [storageReady] = useState(typeof window !== 'undefined');
-  const [isDebugPanelOpen, setIsDebugPanelOpen] = useState(false);
-  const playback = useBattlePlaybackState(battleResult);
+  const buildQuery = useCombatV6Build();
+  const build = buildQuery.data;
+  const [content, setContent] = useState<ContentView>();
+  const [session, setSession] = useState<CombatV6TrainingSessionViewV1 | null>();
+  const [events, setEvents] = useState<SequencedEvent[]>([]);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+
+  const acceptSession = useCallback((next: CombatV6TrainingSessionViewV1 | null) => {
+    setSession(next);
+    if (next) setEvents((current) => mergeEvents(current, next.events));
+    else setEvents([]);
+  }, []);
+
+  const loadSession = useCallback(async () => {
+    setSessionLoading(true);
+    setError('');
+    try {
+      const [nextContent, current] = await Promise.all([
+        request<ContentView>('/api/combat-v6/training/content'),
+        request<CombatV6TrainingSessionViewV1 | null>('/api/combat-v6/training/sessions/current'),
+      ]);
+      setContent(nextContent);
+      acceptSession(current);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '练功房加载失败');
+    } finally {
+      setSessionLoading(false);
+    }
+  }, [acceptSession]);
 
   useEffect(() => {
-    if (!storageReady) return;
+    if (build?.status !== 'active') return;
+    const timer = window.setTimeout(() => void loadSession(), 0);
+    return () => window.clearTimeout(timer);
+  }, [build?.status, loadSession]);
 
-    window.localStorage.setItem(
-      TRAINING_ROOM_STORAGE_KEY,
-      JSON.stringify({
-        version: TRAINING_ROOM_STORAGE_VERSION,
-        currentDraft: draft,
-        presets,
-      }),
-    );
-  }, [draft, presets, storageReady]);
-
-  const startTrainingWithDraft = useCallback(
-    (nextDraft: TrainingRoomDraft) => {
-      if (!cultivator || isFighting) return;
-
-      setIsFighting(true);
-      setBattleResult(undefined);
-
-      const mockDummy: CultivatorCombatInput = {
-        id: 'dummy',
-        name: '木桩',
-        attributes: {
-          vitality: 10,
-          strength: 10,
-          spirit: 10,
-          endurance: 10,
-          speed: 10,
-          willpower: 10,
-        },
-        spiritual_roots: [],
-        pre_heaven_fates: [],
-        cultivations: [],
-        skills: [],
-        inventory: { artifacts: [] },
-        equipped: { weapon: null, armor: null, accessory: null },
-        realm: '炼气',
-        realm_stage: '初期',
-      };
-
-      const fragments = buildTrainingBattleInitConfig(nextDraft);
-      const result = simulateBattleV5(
-        prepareStandardFullBattle({
-          player: cultivator,
-          opponent: mockDummy,
-          strategyId: 'training_custom',
-          ...fragments,
-        }),
-      );
-
-      setBattleResult(result);
-    },
-    [cultivator, isFighting],
-  );
-
-  const handleStartTraining = useCallback(() => {
-    startTrainingWithDraft(draft);
-  }, [draft, startTrainingWithDraft]);
-
-  const handleStartDefaultTraining = useCallback(() => {
-    startTrainingWithDraft(createDefaultTrainingRoomDraft());
-  }, [startTrainingWithDraft]);
-
-  const handleLeave = useCallback(() => {
-    if (isFighting && !playback.isPlaybackFinished) {
-      if (!confirm('训练尚未结束，确定要离开吗？')) return;
+  const run = useCallback(async (action: () => Promise<void>) => {
+    setPending(true);
+    setError('');
+    try {
+      await action();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '操作失败');
+      if (cause instanceof ApiError && cause.code === 'TRAINING_SESSION_REVISION_CONFLICT') await loadSession();
+    } finally {
+      setPending(false);
     }
-    navigate('/game');
-  }, [isFighting, navigate, playback.isPlaybackFinished]);
+  }, [loadSession]);
 
-  const savePreset = () => {
-    const normalizedName =
-      presetName.trim() ||
-      presets.find((preset) => preset.id === selectedPresetId)?.name ||
-      `训练预设 ${presets.length + 1}`;
-    const existingId = selectedPresetId || '';
-    const presetId =
-      existingId ||
-      globalThis.crypto?.randomUUID?.() ||
-      `training-preset-${Date.now()}`;
+  const loading = buildQuery.loading || (build?.status === 'active' && sessionLoading);
+  const shownError = error || buildQuery.error || '';
 
-    const nextPreset: TrainingRoomPreset = {
-      id: presetId,
-      name: normalizedName,
-      draft,
-      updatedAt: Date.now(),
-    };
+  const groupedEvents = useMemo(() => {
+    let round = 0;
+    const groups = new Map<number, SequencedEvent[]>();
+    for (const item of events) {
+      if (item.event.type === 'roundStart') round = item.event.round;
+      const list = groups.get(round) ?? [];
+      list.push(item);
+      groups.set(round, list);
+    }
+    return [...groups.entries()];
+  }, [events]);
 
-    setPresets((current) => {
-      const exists = current.some((preset) => preset.id === presetId);
-      if (!exists) return [nextPreset, ...current];
-      return current.map((preset) => (preset.id === presetId ? nextPreset : preset));
-    });
-    setSelectedPresetId(presetId);
-    setPresetName(normalizedName);
-  };
-
-  const loadPreset = () => {
-    const preset = presets.find((item) => item.id === selectedPresetId);
-    if (!preset) return;
-    setDraft(preset.draft);
-    setPresetName(preset.name);
-  };
-
-  const deletePreset = () => {
-    if (!selectedPresetId) return;
-    setPresets((current) =>
-      current.filter((preset) => preset.id !== selectedPresetId),
-    );
-    setSelectedPresetId('');
-    setPresetName('');
-  };
-
-  if (isLoading) {
-    return <GameImmersiveLoading message="识海构筑中……" />;
-  }
-
-  const opponentUnitId = battleResult?.participants.opponent.id || 'dummy';
-  const initialOpponentHp =
-    battleResult?.stateTimeline.frames[0]?.units[opponentUnitId || '']?.hp
-      .current ?? 0;
-  const totalDamage = Math.max(
-    0,
-    initialOpponentHp -
-      (playback.currentOpponentFrame?.hp.current ?? initialOpponentHp),
-  );
-  const isEnded = !!battleResult && playback.isPlaybackFinished;
-
-  return (
-    <BattlePageLayout
-      title="练功房"
-      subtitle="直接和木桩切磋；需要时再展开自定义设置。"
-      variant={battleResult ? 'immersive-battle' : 'page'}
-      loading={isFighting && !battleResult}
-    >
-      {!battleResult ? (
-        <div className="space-y-6">
-          <InkCard variant="elevated" className="p-5">
-            <p className="battle-caption mb-3 text-xs">练功说明</p>
-            <p className="text-battle-muted max-w-3xl text-sm leading-7 md:text-base">
-              默认会提供一只标准木桩，你可以直接开始训练，快速查看伤害、耗蓝和技能节奏。想做专项测试时，再展开自定义设置即可。
-            </p>
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <InkButton
-                onClick={handleStartDefaultTraining}
-                variant="primary"
-                className="text-base md:text-lg"
-              >
-                直接开始训练
-              </InkButton>
-              <InkButton
-                variant="secondary"
-                onClick={() => setIsDebugPanelOpen((current) => !current)}
-              >
-                {isDebugPanelOpen ? '收起自定义设置' : '打开自定义设置'}
-              </InkButton>
-            </div>
-          </InkCard>
-
-          {isDebugPanelOpen ? (
-            <div className="space-y-6">
-              <InkCard variant="elevated" className="p-5">
-                <p className="battle-caption mb-4 text-xs">自定义设置</p>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_180px_auto]">
-                  <label className="flex flex-col gap-1">
-                    <span className="text-sm font-medium text-ink">预设名称</span>
-                    <input
-                      className={INPUT_CLASSNAME}
-                      value={presetName}
-                      onChange={(event) => setPresetName(event.target.value)}
-                      placeholder="例如：十万血木桩 / 破防测试"
-                    />
-                  </label>
-
-                  <label className="flex flex-col gap-1">
-                    <span className="text-sm font-medium text-ink">已存预设</span>
-                    <select
-                      className={SELECT_CLASSNAME}
-                      value={selectedPresetId}
-                      onChange={(event) => {
-                        const nextId = event.target.value;
-                        setSelectedPresetId(nextId);
-                        const preset = presets.find((item) => item.id === nextId);
-                        setPresetName(preset?.name ?? '');
-                      }}
-                    >
-                      <option value="">选择预设</option>
-                      {presets.map((preset) => (
-                        <option key={preset.id} value={preset.id}>
-                          {preset.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <div className="flex flex-wrap items-end justify-end gap-2">
-                    <InkButton variant="secondary" onClick={savePreset}>
-                      保存当前预设
-                    </InkButton>
-                    <InkButton
-                      variant="secondary"
-                      onClick={loadPreset}
-                      disabled={!selectedPresetId}
-                    >
-                      载入
-                    </InkButton>
-                    <InkButton
-                      variant="ghost"
-                      onClick={deletePreset}
-                      disabled={!selectedPresetId}
-                    >
-                      删除
-                    </InkButton>
-                    <InkButton
-                      variant="ghost"
-                      onClick={() => {
-                        setDraft(createDefaultTrainingRoomDraft());
-                        setSelectedPresetId('');
-                        setPresetName('');
-                      }}
-                    >
-                      恢复默认
-                    </InkButton>
-                  </div>
-                </div>
-              </InkCard>
-
-              <div className="space-y-4">
-                  <InkCard variant="elevated" className="p-5">
-                    <p className="mb-3 text-base font-semibold text-ink">木桩基础设置</p>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <NumberField
-                        label={`木桩${getResourceText('maxHp')}`}
-                        value={draft.dummy.maxHp}
-                        min={0}
-                        onChange={(value) =>
-                          setDraft((current) => ({
-                            ...current,
-                            dummy: {
-                              ...current.dummy,
-                              maxHp: Math.max(0, value),
-                            },
-                          }))
-                        }
-                      />
-                      <NumberField
-                        label={`木桩${getResourceText('maxMp')}`}
-                        value={draft.dummy.maxMp}
-                        min={0}
-                        onChange={(value) =>
-                          setDraft((current) => ({
-                            ...current,
-                            dummy: {
-                              ...current.dummy,
-                              maxMp: Math.max(0, value),
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3">
-                      {PRIMARY_ATTRIBUTE_FIELDS.map((field) => (
-                        <NumberField
-                          key={field.key}
-                          label={field.label}
-                          value={draft.dummy.baseAttributes[field.key]}
-                          min={0}
-                          onChange={(value) =>
-                            setDraft((current) => ({
-                              ...current,
-                              dummy: {
-                                ...current.dummy,
-                                baseAttributes: {
-                                  ...current.dummy.baseAttributes,
-                                  [field.key]: Math.max(0, value),
-                                },
-                              },
-                            }))
-                          }
-                        />
-                      ))}
-                    </div>
-                  </InkCard>
-
-                  <ModifierEditor
-                    modifiers={draft.dummy.modifiers}
-                    onChange={(modifiers) =>
-                      setDraft((current) => ({
-                        ...current,
-                        dummy: {
-                          ...current.dummy,
-                          modifiers,
-                        },
-                      }))
-                    }
-                  />
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-dashed border-ink/10 pt-4">
-                <p className="text-sm text-ink/55">
-                  当前设置会自动保存在本机浏览器中，方便下次继续练功。
-                </p>
-                <InkButton
-                  onClick={handleStartTraining}
-                  variant="primary"
-                  className="text-base md:text-lg"
-                >
-                  以当前设置开始
-                </InkButton>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      ) : (
-        <BattlePlaybackPanel
-          battleResult={battleResult}
-          playback={playback}
-          statusActions={[
-            {
-              label: '离开练功房',
-              onClick: handleLeave,
-            },
-          ]}
-        />
-      )}
-
-      <CombatResultDialog
-        key={`training-${battleResult?.outcome.turns}-${playback.currentOpponentFrame?.hp.current ?? 0}`}
-        dialogKey={`training-${battleResult?.outcome.turns}-${playback.currentOpponentFrame?.hp.current ?? 0}`}
-        open={isEnded}
-        title="本次训练结束"
-        content={
-          <p className="leading-8">
-            本次训练共造成 {totalDamage.toLocaleString()} 点伤害。
-          </p>
-        }
-        confirmLabel="再来一次"
-        cancelLabel="先看看"
-        onConfirm={() => {
-          setIsFighting(false);
-          setBattleResult(undefined);
-        }}
-      />
-    </BattlePageLayout>
-  );
+  return <BattlePageLayout title="练功房" subtitle="combat-v6 权威构筑与确定性逐回合演武" loading={loading} error={shownError}>
+    {!loading && build && !build.membershipId ? <InkCard variant="highlighted" padding="lg"><h2 className="font-heading text-xl">尚无有效宗门</h2><p className="text-ink-secondary mt-2 text-sm">加入已接入 combat-v6 的宗门后方可演武。</p><div className="mt-3"><InkButton href="/game/sect" variant="primary">前往宗门</InkButton></div></InkCard> : null}
+    {!loading && build?.membershipId && !build.sectId ? <InkCard variant="highlighted" padding="lg">当前宗门尚未接入 combat-v6。</InkCard> : null}
+    {!loading && build?.sectId && build.status !== 'active' ? <BuildInitialization build={build} pending={pending} onInitialize={(activePathId) => void run(async () => {
+      const response = await fetch('/api/combat-v6/build/initialize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activePathId, expectedRevision: 0 }),
+      });
+      const next = await consumeResourceMutation<CombatV6BuildViewV1>(response);
+      buildQuery.setData(next);
+    })} /> : null}
+    {!loading && build?.status === 'active' && content && session === null ? <EncounterSelection content={content} pending={pending} onCreate={(encounterId, tier) => void run(async () => {
+      setEvents([]);
+      acceptSession(await request<CombatV6TrainingSessionViewV1>('/api/combat-v6/training/sessions', { method: 'POST', body: JSON.stringify({ encounterId, tier }) }));
+    })} /> : null}
+    {!loading && session ? <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-2"><section><h2 className="font-heading mb-2 text-lg">我方</h2>{session.units.filter((unit) => unit.side === 0).map((unit) => <UnitCard key={unit.id} unit={unit} />)}</section><section><h2 className="font-heading mb-2 text-lg">敌方</h2>{session.units.filter((unit) => unit.side === 1).map((unit) => <UnitCard key={unit.id} unit={unit} />)}</section></div>
+      <CommandPanel session={session} pending={pending} onSubmit={(command) => void run(async () => {
+        const unitId = session.commandOptions?.unitId;
+        if (!unitId) throw new Error('当前没有可提交指令的角色');
+        acceptSession(await request<CombatV6TrainingSessionViewV1>(`/api/combat-v6/training/sessions/${session.sessionId}/commands/${unitId}`, { method: 'PUT', body: JSON.stringify({ expectedRevision: session.revision, command }) }));
+      })} onResolve={() => void run(async () => {
+        acceptSession(await request<CombatV6TrainingSessionViewV1>(`/api/combat-v6/training/sessions/${session.sessionId}/resolve`, { method: 'POST', body: JSON.stringify({ expectedRevision: session.revision }) }));
+      })} onAbandon={() => void run(async () => {
+        await request(`/api/combat-v6/training/sessions/${session.sessionId}`, { method: 'DELETE', body: JSON.stringify({ expectedRevision: session.revision }) });
+        acceptSession(null);
+      })} />
+      <InkCard padding="lg"><h2 className="font-heading text-xl">战况纪要</h2>{groupedEvents.length === 0 ? <p className="text-ink-secondary mt-3 text-sm">尚无战斗事件。</p> : <div className="mt-3 space-y-4">{groupedEvents.map(([round, items]) => <section key={round}><h3 className="text-sm font-semibold">{round === 0 ? '开场' : `第 ${round} 回合`}</h3><ul className="text-ink-secondary mt-1 space-y-1 text-sm leading-6">{items.map((item) => { const text = eventText(item.event, session.units); return text ? <li key={item.seq}>{text}</li> : null; })}</ul></section>)}</div>}</InkCard>
+    </div> : null}
+  </BattlePageLayout>;
 }

@@ -32,12 +32,17 @@ export class BattleSession {
   private readonly ctx: BattleContext
   private cursor = 0
 
-  constructor(input: CreateBattleInput) {
+  constructor(
+    input: CreateBattleInput,
+    restored?: { state: BattleState; events: BattleEvent[] },
+  ) {
     const rng = new SeededRng(input.seed)
-    const units = input.units.map((u, i) => createUnit(u, i))
+    const units = restored
+      ? restored.state.units.map(cloneUnit)
+      : input.units.map((u, i) => createUnit(u, i))
     const skills = new Map<string, SkillDef>((input.skills ?? []).map((s) => [s.id, s]))
     const statusDefs = new Map<string, StatusDef>((input.statusDefs ?? []).map((s) => [s.id, s]))
-    const events: BattleEvent[] = []
+    const events: BattleEvent[] = restored ? structuredClone(restored.events) : []
 
     const ctx: BattleContext = {
       rng,
@@ -46,13 +51,15 @@ export class BattleSession {
       statusDefs,
       hooks: new HookBus(),
       events,
-      state: {
-        round: 1,
-        phase: BattlePhase.Command,
-        units,
-        rngState: rng.state,
-        versions: { ...input.versions },
-      },
+      state: restored
+        ? { ...structuredClone(restored.state), units }
+        : {
+            round: 1,
+            phase: BattlePhase.Command,
+            units,
+            rngState: rng.state,
+            versions: { ...input.versions },
+          },
       emit: (event) => {
         events.push(event)
         if (event.type === EventType.ActionFailed && ctx.currentAction?.sourceId === event.unitId) {
@@ -64,16 +71,19 @@ export class BattleSession {
       suppressHooks: 0,
     }
     this.ctx = ctx
+    if (restored) rng.state = restored.state.rngState
     bindDataHooks(this.ctx)
 
-    this.ctx.emit({
-      type: EventType.BattleStart,
-      seed: input.seed,
-      unitIds: units.map((u) => u.id),
-      versions: { ...input.versions },
-    })
-    this.ctx.emit({ type: EventType.RoundStart, round: 1 })
-    this.ctx.hooks.emit(HookName.OnRoundStart)
+    if (!restored) {
+      this.ctx.emit({
+        type: EventType.BattleStart,
+        seed: input.seed,
+        unitIds: units.map((u) => u.id),
+        versions: { ...input.versions },
+      })
+      this.ctx.emit({ type: EventType.RoundStart, round: 1 })
+      this.ctx.hooks.emit(HookName.OnRoundStart)
+    }
     this.syncRng()
   }
 
@@ -251,6 +261,17 @@ export class BattleSession {
   private syncRng(): void {
     this.ctx.state.rngState = this.ctx.rng.state
   }
+}
+
+export function restoreBattle(
+  input: CreateBattleInput,
+  state: BattleState,
+  events: BattleEvent[],
+): BattleSession {
+  return new BattleSession(input, {
+    state: structuredClone(state),
+    events: structuredClone(events),
+  })
 }
 
 /** 开打入口。技能表同 id 后写覆盖（测试覆盖兽决概率）；单位 id 不可重复。 */

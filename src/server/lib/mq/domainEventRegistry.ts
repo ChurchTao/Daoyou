@@ -50,6 +50,7 @@ import {
   startBattleResolutionConsumer,
   stopBattleResolutionConsumer,
 } from './battleResolutionConsumer';
+import { isCombatV6MessagingHealthy, startCombatV6Messaging, stopCombatV6Messaging } from './combatV6Messaging';
 
 let registered = false;
 
@@ -63,6 +64,7 @@ export async function registerMessageInfrastructure(): Promise<void> {
     startBattleReplayArchiveConsumer(),
     startBattleTerminalFinalizerConsumer(),
     startBattleResolutionConsumer(),
+    startCombatV6Messaging(),
     startDomainEventConsumer({
       consumerName: DOMAIN_EVENT_CONSUMERS.sectFacilityProjector.name,
       concurrency: DOMAIN_EVENT_CONSUMERS.sectFacilityProjector.concurrency,
@@ -226,6 +228,7 @@ export async function shutdownMessageInfrastructure(): Promise<void> {
   await stopBattleReplayArchiveConsumer();
   await stopBattleTerminalFinalizerConsumer();
   await stopBattleResolutionConsumer();
+  await stopCombatV6Messaging();
   await stopDomainEventConsumers();
   await stopNatsCoreSubscriptions();
   await closeNatsConnection();
@@ -238,6 +241,7 @@ export function getMessageInfrastructureHealthStatus(): 'up' | 'down' {
     isBattleReplayArchiveConsumerHealthy() &&
     isBattleTerminalFinalizerConsumerHealthy() &&
     isBattleResolutionConsumerHealthy() &&
+    isCombatV6MessagingHealthy() &&
     areNatsCoreSubscriptionsHealthy()
     ? 'up'
     : 'down';
