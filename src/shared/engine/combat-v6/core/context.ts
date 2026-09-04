@@ -23,7 +23,7 @@ export type BattleContext = {
   hooks: HookBus
   events: BattleEvent[]
   emit: (event: BattleEvent) => void
-  applyHpZero: (unit: Unit, source?: Unit, skillId?: SkillId) => void
+  applyHpZero: (unit: Unit, source?: Unit, skillId?: SkillId, kind?: import("./enums.ts").DamageKind, origin?: import("./enums.ts").DamageOrigin) => void
   checkEnd: (reason?: BattleResult["reason"]) => void
   /** >0 时命中不再触发 afterHit/onBeHit，避免连击/反击/反震互爆 */
   suppressHooks: number
@@ -37,6 +37,11 @@ export type BattleContext = {
     resourceGains: Record<string, number>
     /** 独立气血恢复的行动内累计量；行动结束即销毁。 */
     hpRestoreGains: Record<string, number>
+    impactDamageByTarget: Record<UnitId, number>
+    initialStatusIdsByTarget: Record<UnitId, string[]>
+    initialStatusKindsByTarget: Record<UnitId, string[]>
+    /** 主效果产生 ActionFailed 后禁止 successEffects。 */
+    failed: boolean
   }
   /** 最近一次打击扣血，给后续「按伤害扣蓝」用。 */
   lastStrikeDamage?: number

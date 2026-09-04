@@ -42,8 +42,8 @@ function validateDefinition(
   diagnostics: CombatV6ProjectionDiagnostic[],
 ): void {
   const { definition } = input
-  if (definition.id !== "lingxiao" || input.progress.sectId !== definition.id) {
-    diagnostics.push(diagnostic("error", "INVALID_SECT_ID", "Phase 3 只接受红尘剑宗内容", "sectId"))
+  if (input.progress.sectId !== definition.id) {
+    diagnostics.push(diagnostic("error", "SECT_DEFINITION_MISMATCH", "宗门定义与战斗进度不一致", "sectId"))
   }
   const slots = definition.methods.map((method) => method.slot)
   if (
@@ -58,6 +58,9 @@ function validateDefinition(
     diagnostics.push(diagnostic("error", "INVALID_ACTIVE_PATH", "宗门必须恰好定义两条流派", "definition.paths"))
   }
   for (const path of definition.paths) {
+    for (const node of path.nodes) {
+      if (node.pathId !== path.id) diagnostics.push(diagnostic("error", "SECT_DEFINITION_MISMATCH", `节点 ${node.id} 的流派归属不一致`, `definition.paths.${path.id}.nodes.${node.id}`))
+    }
     for (let layer = 1; layer <= 7; layer++) {
       const nodes = path.nodes.filter((node) => node.layer === layer)
       if (nodes.length !== 3 || new Set(nodes.map((node) => node.slot)).size !== 3) {
@@ -71,6 +74,7 @@ function validateDefinition(
     ...allSkillDefs(input).map((skill) => skill.definition.id),
     ...definition.statuses.map((status) => status.id),
     ...definition.paths.map((path) => path.id),
+    ...new Set(definition.paths.flatMap((path) => (path.resources ?? []).map((resource) => resource.id))),
     ...definition.paths.flatMap((path) => path.nodes.map((node) => node.id)),
   ]
   if (new Set(ids).size !== ids.length) {
@@ -81,6 +85,79 @@ function validateDefinition(
     if (!methodIds.has(skill.sourceMethodId)) {
       diagnostics.push(diagnostic("error", "SKILL_SOURCE_METHOD_MISSING", `技能 ${skill.definition.id} 缺少所属心法`, `skills.${skill.definition.id}`))
     }
+    const successEffects = skill.definition.successEffects ?? []
+    if (
+      skill.definition.targeting.requireStatusIds?.some((id) => !id) ||
+      skill.definition.targeting.requireStatusKinds?.some((kind) => !kind)
+    ) {
+      diagnostics.push(diagnostic("error", "INVALID_TARGET_STATUS_REQUIREMENT", `技能 ${skill.definition.id} 的目标状态要求非法`, `skills.${skill.definition.id}.targeting`))
+    }
+    for (const effect of successEffects) {
+      if (!effect || !Object.values(EffectType).includes(effect.type)) {
+        diagnostics.push(diagnostic("error", "INVALID_SUCCESS_EFFECT", `技能 ${skill.definition.id} 的成功结算效果非法`, `skills.${skill.definition.id}.successEffects`))
+      }
+    }
+    const validateEffects = (effects: SkillEffect[], nested = false): void => {
+    for (const effect of effects) {
+      if (effect.targeting && !["enemy", "ally", "self", "any"].includes(effect.targeting.side)) {
+        diagnostics.push(diagnostic("error", "INVALID_EFFECT_TARGETING", `技能 ${skill.definition.id} 的效果级目标非法`, `skills.${skill.definition.id}.effects`))
+      }
+      if (effect.type === EffectType.FixedHit && effect.formula && effect.formula !== "fixed" && effect.formula !== "judge") {
+        diagnostics.push(diagnostic("error", "INVALID_FIXED_DAMAGE_CONTENT", `技能 ${skill.definition.id} 的固定伤害公式非法`, `skills.${skill.definition.id}.effects`))
+      }
+      if (effect.type === EffectType.Wound && typeof effect.power === "number" && (!Number.isFinite(effect.power) || effect.power < 0)) {
+        diagnostics.push(diagnostic("error", "INVALID_WOUND_VALUE", `技能 ${skill.definition.id} 的伤势值非法`, `skills.${skill.definition.id}.effects`))
+      }
+      if (effect.type === EffectType.RemoveWound && typeof effect.power === "number" && (!Number.isFinite(effect.power) || effect.power < 0)) {
+        diagnostics.push(diagnostic("error", "INVALID_WOUND_REDUCTION", `技能 ${skill.definition.id} 的疗伤值非法`, `skills.${skill.definition.id}.effects`))
+      }
+      if (effect.type === EffectType.ApplyBarrier) {
+        if (!effect.id || !effect.kind || !effect.name) diagnostics.push(diagnostic("error", "INVALID_BARRIER_CONTENT", `技能 ${skill.definition.id} 的护盾定义不完整`, `skills.${skill.definition.id}.effects`))
+        if (typeof effect.power === "number" && (!Number.isFinite(effect.power) || effect.power < 0)) diagnostics.push(diagnostic("error", "INVALID_BARRIER_VALUE", `技能 ${skill.definition.id} 的护盾值非法`, `skills.${skill.definition.id}.effects`))
+        if (typeof effect.duration === "number" && (!Number.isFinite(effect.duration) || effect.duration < 1)) diagnostics.push(diagnostic("error", "INVALID_BARRIER_DURATION", `技能 ${skill.definition.id} 的护盾持续非法`, `skills.${skill.definition.id}.effects`))
+      }
+      if ((effect.type === EffectType.PhysicalHit || effect.type === EffectType.SpellHit) && typeof effect.defenseIgnore === "number" && (!Number.isFinite(effect.defenseIgnore) || effect.defenseIgnore < 0 || effect.defenseIgnore > 1)) {
+        diagnostics.push(diagnostic("error", "INVALID_SPELL_DEFENSE_IGNORE", `技能 ${skill.definition.id} 的忽防值非法`, `skills.${skill.definition.id}.effects`))
+      }
+      if (effect.type === EffectType.Dispel) {
+        const priority = effect.categoryPriority ?? []
+        if (
+          (typeof effect.maxCount === "number" && (!Number.isFinite(effect.maxCount) || effect.maxCount < 0)) ||
+          new Set(priority).size !== priority.length
+        ) {
+          diagnostics.push(diagnostic("error", "INVALID_DISPEL_POLICY", `技能 ${skill.definition.id} 的净化策略非法`, `skills.${skill.definition.id}.effects`))
+        }
+      }
+      if (effect.type === EffectType.RemoveStatus && !(effect.statusIds?.length || effect.kinds?.length)) {
+        diagnostics.push(diagnostic("error", "INVALID_STATUS_REMOVAL", `技能 ${skill.definition.id} 的状态消费缺少匹配条件`, `skills.${skill.definition.id}.effects`))
+      }
+      if (effect.type === EffectType.CopyStatus && !(effect.statusIds?.length || effect.kinds?.length)) {
+        diagnostics.push(diagnostic("error", "INVALID_STATUS_COPY", `技能 ${skill.definition.id} 的状态复制缺少匹配条件`, `skills.${skill.definition.id}.effects`))
+      }
+      if (effect.type === EffectType.EmitMechanic && (!effect.mechanicId || !effect.name)) {
+        diagnostics.push(diagnostic("error", "INVALID_MECHANIC_EVENT", `技能 ${skill.definition.id} 的机制事件定义非法`, `skills.${skill.definition.id}.effects`))
+      }
+      if (effect.when?.targetStatusStack) {
+        const spec = effect.when.targetStatusStack
+        if ((!spec.statusId && !spec.kind) || (spec.min !== undefined && (!Number.isFinite(spec.min) || spec.min < 0)) || (spec.max !== undefined && (!Number.isFinite(spec.max) || spec.max < 0 || (spec.min !== undefined && spec.max < spec.min)))) {
+          diagnostics.push(diagnostic("error", "INVALID_STATUS_STACK_REQUIREMENT", `技能 ${skill.definition.id} 的状态层数条件非法`, `skills.${skill.definition.id}.effects`))
+        }
+      }
+      if (effect.type === EffectType.RandomBranch) {
+        if (!effect.branchId) {
+          diagnostics.push(diagnostic("error", "INVALID_CHANCE_BRANCH", `技能 ${skill.definition.id} 的概率分支非法`, `skills.${skill.definition.id}.effects`))
+        }
+        if (typeof effect.chance === "number" && (!Number.isFinite(effect.chance) || effect.chance < 0 || effect.chance > 1)) diagnostics.push(diagnostic("error", "INVALID_CHANCE_VALUE", `技能 ${skill.definition.id} 的概率值非法`, `skills.${skill.definition.id}.effects`))
+        if (nested) diagnostics.push(diagnostic("error", "NESTED_CHANCE_BRANCH_UNSUPPORTED", `技能 ${skill.definition.id} 不支持嵌套概率分支`, `skills.${skill.definition.id}.effects`))
+        validateEffects(effect.successEffects, true)
+        validateEffects(effect.failureEffects, true)
+      }
+      if ((effect.type === EffectType.PhysicalHit || effect.type === EffectType.SpellHit || effect.type === EffectType.FixedHit) && effect.cannotKill !== undefined && typeof effect.cannotKill !== "boolean") {
+        diagnostics.push(diagnostic("error", "INVALID_NONLETHAL_HIT", `技能 ${skill.definition.id} 的非致命声明非法`, `skills.${skill.definition.id}.effects`))
+      }
+    }
+    }
+    validateEffects([...skill.definition.effects, ...successEffects])
   }
 }
 
@@ -127,6 +204,16 @@ function validateProgress(
     diagnostics.push(diagnostic("error", "INVALID_MERIDIAN_LOADOUT", "两条流派必须各有且只有一套经脉方案", "progress.meridianLoadouts"))
     return []
   }
+  for (const candidate of progress.meridianLoadouts) {
+    const candidatePath = definition.paths.find((entry) => entry.id === candidate.pathId)
+    if (!candidatePath) continue
+    for (const nodeId of candidate.nodeIds) {
+      if (!candidatePath.nodes.some((node) => node.id === nodeId)) {
+        const belongsElsewhere = definition.paths.some((entry) => entry.id !== candidate.pathId && entry.nodes.some((node) => node.id === nodeId))
+        diagnostics.push(diagnostic("error", belongsElsewhere ? "MERIDIAN_NODE_WRONG_PATH" : "MERIDIAN_NODE_UNKNOWN", `经脉节点 ${nodeId} 不属于方案 ${candidate.pathId}`, `progress.meridianLoadouts.${candidate.pathId}`))
+      }
+    }
+  }
   const loadout = progress.meridianLoadouts.find((entry) => entry.pathId === path.id)!
   const nodes: MeridianNodeDefV6[] = []
   const selectedLayers = new Set<number>()
@@ -162,6 +249,10 @@ function patchConflictKey(patch: SkillPatchV6): string | undefined {
   if (patch.operation === "setCostHp") return `${patch.skillId}:costHp`
   if (patch.operation === "setTargetCount") return `${patch.skillId}:targeting.count`
   if (patch.operation === "setPhysicalDefenseIgnore") return `${patch.skillId}:physical.defenseIgnore`
+  if (patch.operation === "setPhysicalCannotMiss") return `${patch.skillId}:physical.cannotMiss`
+  if (patch.operation === "setSealBase") return `${patch.skillId}:sealBase`
+  if (patch.operation === "setStatusDuration") return undefined
+  if (patch.operation === "replaceStatusId") return `${patch.skillId}:status.${patch.from}.id`
   return undefined
 }
 
@@ -183,6 +274,45 @@ function applyPatch(skill: SkillDef, patch: SkillPatchV6): SkillDef {
   if (patch.operation === "prependEffect") next.effects.unshift(structuredClone(patch.effect))
   if (patch.operation === "removeEffectType") {
     next.effects = next.effects.filter((effect) => effect.type !== patch.effectType)
+  }
+  if (patch.operation === "setEffectTargetCount") {
+    next.effects = next.effects.map((effect) => effect.type === patch.effectType
+      ? { ...effect, targeting: { ...(effect.targeting ?? next.targeting), count: patch.value } }
+      : effect)
+  }
+  if (patch.operation === "setCopyStatusDurationAdd") {
+    next.effects = next.effects.map((effect) => effect.type === EffectType.CopyStatus
+      ? { ...effect, durationAdd: patch.value }
+      : effect)
+  }
+  if (patch.operation === "multiplyRestoreMpPower") {
+    next.effects = next.effects.map((effect) => effect.type === EffectType.RestoreMp
+      ? { ...effect, power: `(${effect.power}) * ${patch.value}` }
+      : effect)
+  }
+  if (patch.operation === "multiplyCostMp") next.costMp = `(${next.costMp ?? 0}) * ${patch.value}`
+  if (patch.operation === "setRandomBranchChance") {
+    next.effects = next.effects.map((effect) => effect.type === EffectType.RandomBranch && effect.branchId === patch.branchId
+      ? { ...effect, chance: patch.value }
+      : effect)
+  }
+  if (patch.operation === "setRandomBranchFixedPower") {
+    next.effects = next.effects.map((effect) => effect.type === EffectType.RandomBranch && effect.branchId === patch.branchId
+      ? {
+          ...effect,
+          successEffects: effect.successEffects.map((child) => child.type === EffectType.FixedHit ? { ...child, power: patch.value } : child),
+        }
+      : effect)
+  }
+  if (patch.operation === "setEffectPower" || patch.operation === "multiplyEffectPower") {
+    next.effects = next.effects.map((effect) => {
+      if (effect.type !== patch.effectType || !("power" in effect)) return effect
+      if (patch.primaryTargetStatusId && !effect.when?.primaryTargetStatusIds?.includes(patch.primaryTargetStatusId)) return effect
+      return {
+        ...effect,
+        power: patch.operation === "setEffectPower" ? patch.value : `(${effect.power ?? 0}) * ${patch.value}`,
+      }
+    })
   }
   if (patch.operation === "multiplyPhysicalCoefficients") {
     next.effects = next.effects.map((effect) => {
@@ -214,6 +344,113 @@ function applyPatch(skill: SkillDef, patch: SkillPatchV6): SkillDef {
   if (patch.operation === "setPhysicalDefenseIgnore") {
     next.effects = next.effects.map((effect) =>
       effect.type === EffectType.PhysicalHit ? { ...effect, defenseIgnore: patch.value } : effect,
+    )
+  }
+  if (patch.operation === "setPhysicalCannotMiss") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.PhysicalHit ? { ...effect, cannotMiss: patch.value } : effect,
+    )
+  }
+  if (patch.operation === "multiplyFixedPower") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.FixedHit
+        ? { ...effect, power: `(${effect.power ?? 0}) * ${patch.value}` }
+        : effect,
+    )
+  }
+  if (patch.operation === "multiplyWoundPower") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.Wound
+        ? { ...effect, power: `(${effect.power ?? 0}) * ${patch.value}` }
+        : effect,
+    )
+  }
+  if (patch.operation === "multiplyHealPower") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.Heal
+        ? { ...effect, power: `(${effect.power}) * ${patch.value}` }
+        : effect,
+    )
+  }
+  if (patch.operation === "multiplyBarrierPower") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.ApplyBarrier
+        ? { ...effect, power: `(${effect.power}) * ${patch.value}` }
+        : effect,
+    )
+  }
+  if (patch.operation === "multiplyRemoveWoundPower") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.RemoveWound
+        ? { ...effect, power: `(${effect.power}) * ${patch.value}` }
+        : effect,
+    )
+  }
+  if (patch.operation === "setDispelMaxCount") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.Dispel ? { ...effect, maxCount: patch.value } : effect,
+    )
+  }
+  if (patch.operation === "setDispelExcludeStatusFlags") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.Dispel ? { ...effect, excludeStatusFlags: [...patch.value] } : effect,
+    )
+  }
+  if (patch.operation === "setReviveRatio") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.Revive && (
+        patch.whenStatusId === undefined ||
+        (patch.statusPresent === true && effect.when?.requireStatusIds?.includes(patch.whenStatusId)) ||
+        (patch.statusPresent === false && effect.when?.requireAbsentStatusIds?.includes(patch.whenStatusId))
+      ) ? { ...effect, hpRatio: patch.value } : effect,
+    )
+  }
+  if (patch.operation === "addSpellDefenseIgnore") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.SpellHit
+        ? { ...effect, defenseIgnore: `(${effect.defenseIgnore ?? 0}) + ${patch.value}` }
+        : effect,
+    )
+  }
+  if (patch.operation === "multiplySpellCoefficients") {
+    next.effects = next.effects.map((effect) => {
+      if (effect.type !== EffectType.SpellHit) return effect
+      const coeffs = Array.isArray(effect.coeff) ? effect.coeff : [effect.coeff ?? 1]
+      return { ...effect, coeff: coeffs.map((value) => value * patch.value) }
+    })
+  }
+  if (patch.operation === "addSpellPower") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.SpellHit
+        ? { ...effect, power: `(${effect.power ?? 0}) + (${patch.value})` }
+        : effect,
+    )
+  }
+  if (patch.operation === "setSplash") next.splash = { perTarget: patch.perTarget, floor: patch.floor }
+  if (patch.operation === "appendSuccessEffect") {
+    next.successEffects = [...(next.successEffects ?? []), structuredClone(patch.effect)]
+  }
+  if (patch.operation === "setBarrierDuration") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.ApplyBarrier && effect.id === patch.barrierId
+        ? { ...effect, duration: patch.value }
+        : effect,
+    )
+  }
+  if (patch.operation === "setSealBase") next.sealBase = patch.value
+  if (patch.operation === "addSealBase") next.sealBase = (next.sealBase ?? 0) + patch.value
+  if (patch.operation === "setStatusDuration") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.ApplyStatus && effect.statusId === patch.statusId
+        ? { ...effect, duration: patch.value }
+        : effect,
+    )
+  }
+  if (patch.operation === "replaceStatusId") {
+    next.effects = next.effects.map((effect) =>
+      effect.type === EffectType.ApplyStatus && effect.statusId === patch.from
+        ? { ...effect, statusId: patch.to }
+        : effect,
     )
   }
   return next
@@ -291,7 +528,7 @@ export function compileSectDefinitionV6(input: CompileSectCombatV6Input): Compil
       activeSkillIds: [...new Set(activeSkillIds)],
       passiveSkillIds: [...new Set(passiveSkillIds)],
       skillLevels,
-      skillOverrides: [...patchedIds].map((id) => cloneSkill(byId.get(id)!)),
+      skillOverrides: [...patchedIds].filter((id) => byId.has(id)).map((id) => cloneSkill(byId.get(id)!)),
       resources: (activePath.resources ?? []).map((resource) => ({ ...resource })),
       panel: [
         ...input.definition.methods.flatMap((method) => {
@@ -299,6 +536,7 @@ export function compileSectDefinitionV6(input: CompileSectCombatV6Input): Compil
           const level = methodLevels[method.id] ?? 0
           return [{ ...method.panel, value: Math.floor(method.panel.value * level) }]
         }),
+        ...(activePath.panel ?? []).map((entry) => ({ ...entry })),
         ...selectedNodes.flatMap((node) => node.panel ?? []).map((entry) => ({ ...entry })),
       ],
       unitTags: [],

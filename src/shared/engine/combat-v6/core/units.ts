@@ -52,12 +52,14 @@ export function createUnit(input: LineupUnit, index: number): Unit {
     level: Math.max(0, Math.floor(finiteOr(input.level ?? 0, 0))),
     ownerId: input.ownerId,
     attrs,
+    wound: 0,
     skills: [...(input.skills ?? [])],
     passives: [...(input.passives ?? [])],
     skillLevels: { ...(input.skillLevels ?? {}) },
     skillOverrides: overridesFrom(input.skillOverrides),
     tags: [...(input.tags ?? [])],
     resources: normalizeResources(input.resources),
+    barriers: [],
     marks: [],
     statuses: [],
     flags: {
@@ -91,6 +93,7 @@ export function cloneUnit(unit: Unit): Unit {
     skillOverrides: { ...unit.skillOverrides },
     tags: [...unit.tags],
     resources: unit.resources.map((resource) => ({ ...resource })),
+    barriers: unit.barriers.map((barrier) => ({ ...barrier })),
     marks: [...unit.marks],
     statuses: unit.statuses.map((s) => ({ ...s, attrMods: { ...s.attrMods } })),
     flags: { ...unit.flags },
@@ -114,6 +117,10 @@ function normalizeResources(resources: CombatResourceState[] | undefined): Comba
 
 export function resourceOf(unit: Unit, id: string): CombatResourceState | undefined {
   return unit.resources.find((resource) => resource.id === id)
+}
+
+export function recoverableHp(unit: Unit): number {
+  return Math.max(MIN_HP, unit.attrs.maxHp - Math.max(0, Math.floor(unit.wound)))
 }
 
 export function emptyStatusMods(): Pick<
@@ -147,6 +154,7 @@ export function effectiveSpeed(unit: Unit): number {
 }
 
 export function damageTakenFactor(unit: Unit, kind: DamageKind): number {
+  if (kind === DamageKind.Fixed) return DEFAULT_DAMAGE_TAKEN
   let factor = DEFAULT_DAMAGE_TAKEN
   for (const status of unit.statuses) {
     factor *= kind === DamageKind.Physical ? status.damageTakenPhysical : status.damageTakenSpell

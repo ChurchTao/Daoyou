@@ -47,3 +47,43 @@ export const COMBAT_V6_PHASE_5A_VERSIONS: CombatV6VersionStamp = Object.freeze({
   contentVersion: "daoyou_character_build_content_v1",
   projectionVersion: "character_build_v1",
 })
+
+/** Phase 6A 的多宗门完整构筑与幽都内容版本戳。 */
+export const COMBAT_V6_PHASE_6A_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  engineVersion: "combat-v6",
+  rulesetVersion: "daoyou_rules_v2",
+  contentVersion: "daoyou_character_build_content_v2",
+  projectionVersion: "character_build_v2",
+})
+
+/** Phase 6B 的三宗门完整构筑、治疗防护原语与无相内容版本戳。 */
+export const COMBAT_V6_PHASE_6B_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  engineVersion: "combat-v6",
+  rulesetVersion: "daoyou_rules_v3",
+  contentVersion: "daoyou_character_build_content_v3",
+  projectionVersion: "character_build_v3",
+})
+
+/** Phase 6C 的四宗门完整构筑、五行法印与反应版本戳。 */
+export const COMBAT_V6_PHASE_6C_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  engineVersion: "combat-v6",
+  rulesetVersion: "daoyou_rules_v4",
+  contentVersion: "daoyou_character_build_content_v4",
+  projectionVersion: "character_build_v4",
+})
+
+/** Phase 6D 的五宗门完整构筑、三封、电芒与概率裁定版本戳。 */
+export const COMBAT_V6_PHASE_6D_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  engineVersion: "combat-v6",
+  rulesetVersion: "daoyou_rules_v5",
+  contentVersion: "daoyou_character_build_content_v5",
+  projectionVersion: "character_build_v5",
+})
+
+/** Phase 7A 的训练遭遇内容与纯逻辑 Host 版本戳。 */
+export const COMBAT_V6_PHASE_7A_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  engineVersion: "combat-v6",
+  rulesetVersion: "daoyou_rules_v5",
+  contentVersion: "daoyou_training_encounter_content_v1",
+  projectionVersion: "training_encounter_v1",
+})

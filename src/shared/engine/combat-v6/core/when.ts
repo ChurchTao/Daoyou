@@ -30,6 +30,28 @@ function hasKind(unit: Unit, kinds: string[]): boolean {
   return kinds.some((kind) => unit.statuses.some((s) => s.kind === kind))
 }
 
+function hasCategory(ctx: BattleContext, unit: Unit, categories: import("./enums.ts").StatusCategory[]): boolean {
+  return unit.statuses.some((status) => {
+    const category = ctx.statusDefs.get(status.id)?.category
+    return category !== undefined && categories.includes(category)
+  })
+}
+
+export function targetStatusStacks(
+  _ctx: BattleContext,
+  when: EffectWhen | undefined,
+  target: Unit | undefined,
+): number {
+  const spec = when?.targetStatusStack
+  if (!spec || !target) return 0
+  return target.statuses
+    .filter((status) =>
+      (spec.statusId === undefined || status.id === spec.statusId) &&
+      (spec.kind === undefined || status.kind === spec.kind),
+    )
+    .reduce((sum, status) => sum + status.stacks, 0)
+}
+
 function markName(scope: WhenScope, round: number, when: EffectWhen): string | undefined {
   if (!scope.markKey) return undefined
   if (when.oncePerBattle) return `battle:${scope.markKey}`
@@ -71,6 +93,26 @@ export function matchesWhen(ctx: BattleContext, when: EffectWhen | undefined, sc
   const foe = scope.target
   if (when.targetSlot === "primary" && !isPrimary) return false
   if (when.foeKind && foe?.kind !== when.foeKind) return false
+  if (when.targetStatusIds && (!foe || !hasId(foe, when.targetStatusIds))) return false
+  if (when.targetStatusKinds && (!foe || !hasKind(foe, when.targetStatusKinds))) return false
+  if (when.targetAbsentStatusIds && foe && hasId(foe, when.targetAbsentStatusIds)) return false
+  if (when.targetAbsentStatusKinds && foe && hasKind(foe, when.targetAbsentStatusKinds)) return false
+  if (when.targetStatusCategories && (!foe || !hasCategory(ctx, foe, when.targetStatusCategories))) return false
+  if (when.targetAbsentStatusCategories && foe && hasCategory(ctx, foe, when.targetAbsentStatusCategories)) return false
+  if (when.targetStatusStack) {
+    const stacks = targetStatusStacks(ctx, when, foe)
+    if (when.targetStatusStack.min !== undefined && stacks < when.targetStatusStack.min) return false
+    if (when.targetStatusStack.max !== undefined && stacks > when.targetStatusStack.max) return false
+  }
+  const primaryId = ctx.currentAction?.primaryTargetId
+  if (when.primaryTargetStatusIds?.length) {
+    const ids = primaryId ? ctx.currentAction?.initialStatusIdsByTarget[primaryId] ?? [] : []
+    if (!when.primaryTargetStatusIds.some((id) => ids.includes(id))) return false
+  }
+  if (when.primaryTargetStatusKinds?.length) {
+    const kinds = primaryId ? ctx.currentAction?.initialStatusKindsByTarget[primaryId] ?? [] : []
+    if (!when.primaryTargetStatusKinds.some((kind) => kinds.includes(kind))) return false
+  }
   if (when.foeTags?.length) {
     if (!foe || !when.foeTags.every((tag) => foe.tags.includes(tag))) return false
   }

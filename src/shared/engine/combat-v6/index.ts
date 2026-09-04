@@ -4,6 +4,7 @@ export * from './content/index.ts';
 export * from './equipment/index.ts';
 export * from './manuals/index.ts';
 export * from './rules-daoyou/index.ts';
+export * from './encounter/index.ts';
 export {
   COMBAT_V6_PHASE_1_VERSIONS,
   COMBAT_V6_PHASE_2_VERSIONS,
@@ -11,4 +12,9 @@ export {
   COMBAT_V6_PHASE_4A_VERSIONS,
   COMBAT_V6_PHASE_4B_VERSIONS,
   COMBAT_V6_PHASE_5A_VERSIONS,
+  COMBAT_V6_PHASE_6A_VERSIONS,
+  COMBAT_V6_PHASE_6B_VERSIONS,
+  COMBAT_V6_PHASE_6C_VERSIONS,
+  COMBAT_V6_PHASE_6D_VERSIONS,
+  COMBAT_V6_PHASE_7A_VERSIONS,
 } from './version.ts';

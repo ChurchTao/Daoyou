@@ -25,6 +25,7 @@ import type {
   Side,
   SkillTag,
   StatusCategory,
+  StatusFlag,
   TargetMode,
   TargetSide,
   UnitKind,
@@ -47,6 +48,7 @@ export type {
   Side,
   SkillTag,
   StatusCategory,
+  StatusFlag,
   StatusHit,
   StatusTick,
   TargetMode,
@@ -65,6 +67,16 @@ export type CombatResourceState = {
   name: string
   current: number
   max: number
+}
+
+export type BarrierState = {
+  id: string
+  kind: string
+  name: string
+  current: number
+  remainingRounds: number
+  sourceId: UnitId
+  appliedRound: number
 }
 
 /** 数值或表达式。可用 skillLevel / targets / 单位属性 / floor min max。 */
@@ -91,13 +103,18 @@ export type BattleResult = {
 /** 战斗、快照与回放共同携带的首版版本契约。 */
 export type CombatV6VersionStamp = {
   engineVersion: "combat-v6"
-  rulesetVersion: "daoyou_rules_v1"
+  rulesetVersion: "daoyou_rules_v1" | "daoyou_rules_v2" | "daoyou_rules_v3" | "daoyou_rules_v4" | "daoyou_rules_v5"
   contentVersion:
     | "empty_content_v1"
     | "daoyou_sect_content_v1"
     | "daoyou_sect_equipment_content_v1"
     | "daoyou_sect_equipment_special_content_v1"
     | "daoyou_character_build_content_v1"
+    | "daoyou_character_build_content_v2"
+    | "daoyou_character_build_content_v3"
+    | "daoyou_character_build_content_v4"
+    | "daoyou_character_build_content_v5"
+    | "daoyou_training_encounter_content_v1"
   projectionVersion:
     | "character_panel_v1"
     | "character_training_v1"
@@ -105,6 +122,11 @@ export type CombatV6VersionStamp = {
     | "character_equipment_v1"
     | "character_equipment_special_v1"
     | "character_build_v1"
+    | "character_build_v2"
+    | "character_build_v3"
+    | "character_build_v4"
+    | "character_build_v5"
+    | "training_encounter_v1"
 }
 
 /** 场上一条状态。kind 是覆盖键（失心和定身 kind 不同，可并存）。 */
@@ -149,6 +171,8 @@ export type Unit = {
   /** 召唤兽归属的人物 id */
   ownerId?: UnitId
   attrs: Attrs
+  /** 本场独立伤势；不修改真实 maxHp。 */
+  wound: number
   skills: SkillId[]
   passives: SkillId[]
   skillLevels: Record<SkillId, number>
@@ -157,6 +181,7 @@ export type Unit = {
   /** 单位标签（鬼魂系等），给 when.foeTags 用，不是门派 id。 */
   tags: string[]
   resources: CombatResourceState[]
+  barriers: BarrierState[]
   /** 本场/本回合「只触发一次」的键。 */
   marks: string[]
   statuses: StatusInstance[]
@@ -174,6 +199,26 @@ export type BattleState = {
   result?: BattleResult
   rngState: number
   versions: CombatV6VersionStamp
+}
+
+export type CombatV6SkillCommandOption = {
+  skillId: SkillId
+  ready: boolean
+  reasons: string[]
+  selectableTargetIds: UnitId[]
+  targetMode: TargetMode
+  targetCount: number
+}
+
+export type CombatV6CommandOptions = {
+  unitId: UnitId
+  canSubmit: boolean
+  reasons: string[]
+  attackTargetIds: UnitId[]
+  protectTargetIds: UnitId[]
+  canDefend: boolean
+  canFlee: boolean
+  skills: CombatV6SkillCommandOption[]
 }
 
 export type LineupUnit = {
@@ -213,6 +258,8 @@ export type SkillTargeting = {
   /** 倒地人物只能被复活类选中 */
   includeDowned?: boolean
   includeDead?: boolean
+  requireStatusIds?: StatusId[]
+  requireStatusKinds?: string[]
 }
 
 /** 钩子/效果的通用过滤。引擎只做匹配，不要在这里写门派名。 */
@@ -223,6 +270,20 @@ export type EffectWhen = {
   requireStatusKinds?: string[]
   requireAbsentStatusIds?: StatusId[]
   requireAbsentStatusKinds?: string[]
+  targetStatusIds?: StatusId[]
+  targetStatusKinds?: string[]
+  targetAbsentStatusIds?: StatusId[]
+  targetAbsentStatusKinds?: string[]
+  targetStatusCategories?: StatusCategory[]
+  targetAbsentStatusCategories?: StatusCategory[]
+  targetStatusStack?: {
+    statusId?: StatusId
+    kind?: string
+    min?: number
+    max?: number
+  }
+  primaryTargetStatusIds?: StatusId[]
+  primaryTargetStatusKinds?: string[]
   sourceHpRatioBelow?: number
   sourceHpRatioAbove?: number
   targetHpRatioBelow?: number
@@ -243,6 +304,13 @@ export type EffectWhen = {
 
 type EffectCore =
   | {
+      type: typeof EffectType.RandomBranch
+      branchId: string
+      chance: Expr
+      successEffects: SkillEffect[]
+      failureEffects: SkillEffect[]
+    }
+  | {
       type: typeof EffectType.PhysicalHit
       hits?: Expr
       coeff?: number | number[]
@@ -250,6 +318,8 @@ type EffectCore =
       trueDamage?: boolean
       formula?: FormulaFamily
       defenseIgnore?: Expr
+      cannotMiss?: boolean
+      cannotKill?: boolean
     }
   | {
       type: typeof EffectType.SpellHit
@@ -258,6 +328,17 @@ type EffectCore =
       power?: Expr
       trueDamage?: boolean
       formula?: FormulaFamily
+      defenseIgnore?: Expr
+      cannotKill?: boolean
+    }
+  | {
+      type: typeof EffectType.FixedHit
+      hits?: Expr
+      coeff?: number | number[]
+      power?: Expr
+      formula?: FormulaFamily
+      origin?: DamageOrigin
+      cannotKill?: boolean
     }
   | { type: typeof EffectType.Heal; power: Expr; healMaxHp?: boolean }
   | {
@@ -278,18 +359,36 @@ type EffectCore =
       /** 封印类走 sealHitChance，否则必中 */
       hit?: StatusHit
     }
+  | { type: typeof EffectType.RemoveStatus; statusIds?: StatusId[]; kinds?: string[]; maxCount?: Expr }
+  | { type: typeof EffectType.CopyStatus; statusIds?: StatusId[]; kinds?: string[]; maxCount?: Expr; durationAdd?: Expr }
+  | { type: typeof EffectType.EmitMechanic; mechanicId: string; name: string }
   | {
       type: typeof EffectType.Dispel
       kinds?: string[]
       statusIds?: StatusId[]
       categories?: StatusCategory[]
+      maxCount?: Expr
+      categoryPriority?: StatusCategory[]
+      includeStatusFlags?: StatusFlag[]
+      excludeStatusFlags?: StatusFlag[]
     }
   | { type: typeof EffectType.SkipNextAction }
   | { type: typeof EffectType.DamageMp; power?: Expr }
   | { type: typeof EffectType.Wound; power?: Expr }
+  | { type: typeof EffectType.RemoveWound; power: Expr }
+  | {
+      type: typeof EffectType.ApplyBarrier
+      id: string
+      kind: string
+      name: string
+      power: Expr
+      duration: Expr
+    }
   | { type: typeof EffectType.ModifyStrike; factor?: Expr; add?: Expr }
   | { type: typeof EffectType.ModifyDefenseIgnore; factor?: Expr; add?: Expr }
   | { type: typeof EffectType.ModifyHeal; factor?: Expr; add?: Expr }
+  | { type: typeof EffectType.ModifyBarrier; factor?: Expr; add?: Expr }
+  | { type: typeof EffectType.ModifyWound; factor?: Expr; add?: Expr }
   | { type: typeof EffectType.SetCrit }
   | {
       type: typeof EffectType.ModifyResource
@@ -302,7 +401,8 @@ type EffectCore =
   | { type: typeof EffectType.ModifyChance; add?: Expr; factor?: Expr }
   | { type: typeof EffectType.ClearSkipNextAction }
 
-export type SkillEffect = EffectCore & { when?: EffectWhen }
+export type SkillEffect = EffectCore & { when?: EffectWhen; targeting?: SkillTargeting }
+export type RandomBranchEffect = Extract<SkillEffect, { type: typeof EffectType.RandomBranch }>
 
 export type SkillHook = {
   on: HookName
@@ -355,6 +455,8 @@ export type SkillDef = {
   sealBase?: number
   targeting: SkillTargeting
   effects: SkillEffect[]
+  /** 主效果没有产生 ActionFailed 时执行；合法 no-op 仍算成功。 */
+  successEffects?: SkillEffect[]
   hooks?: SkillHook[]
   /** 同单位带了列出的技能则本被动不生效（高级连击 vs 连击） */
   conflicts?: SkillId[]
@@ -395,6 +497,8 @@ export type StatusDef = {
   healDealt?: number
   /** >1 时同 kind 可叠层（降疗），满层再替换最早的一层。 */
   maxStacks?: number
+  /** false 时普通 Dispel 不可移除；倒地和自然到期不受影响。 */
+  dispellable?: boolean
 }
 
 export type ActionScope = {
@@ -499,8 +603,20 @@ export type BattleEvent =
   | { type: typeof EventType.HpCost; unitId: UnitId; amount: number; hpAfter: number }
   | { type: typeof EventType.MpDamage; sourceId: UnitId; targetId: UnitId; amount: number; mpAfter: number }
   | { type: typeof EventType.Wound; sourceId: UnitId; targetId: UnitId; amount: number; maxHpAfter: number }
+  | { type: typeof EventType.WoundChanged; sourceId: UnitId; targetId: UnitId; before: number; after: number; hpAfter: number; recoverableHpAfter: number }
+  | {
+      type: typeof EventType.BarrierChanged
+      sourceId: UnitId
+      unitId: UnitId
+      barrierId: string
+      before: number
+      after: number
+      reason: "applied" | "refreshed" | "absorbed" | "expired" | "downed"
+    }
   | { type: typeof EventType.StatusApplied; unitId: UnitId; statusId: StatusId; duration: number }
   | { type: typeof EventType.StatusRemoved; unitId: UnitId; statusId: StatusId; reason: string }
+  | { type: typeof EventType.MechanicTriggered; mechanicId: string; name: string; sourceId: UnitId; targetId?: UnitId }
+  | { type: typeof EventType.ChanceResolved; branchId: string; sourceId: UnitId; targetId?: UnitId; chance: number; success: boolean }
   | { type: typeof EventType.UnitDowned; unitId: UnitId }
   | { type: typeof EventType.UnitDead; unitId: UnitId }
   | { type: typeof EventType.UnitRevived; unitId: UnitId; hp: number }
@@ -541,4 +657,6 @@ export type ExprEnv = {
   damage?: number
   /** 实际气血损失，已排除过量伤害。 */
   hpDamage?: number
+  impactDamage?: number
+  targetStatusStacks?: number
 }

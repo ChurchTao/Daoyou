@@ -178,6 +178,8 @@ class Parser {
     if (name === ExprVar.Targets) return this.env.targets
     if (name === ExprVar.Damage) return this.env.damage ?? 0
     if (name === ExprVar.HpDamage) return this.env.hpDamage ?? 0
+    if (name === ExprVar.ImpactDamage) return this.env.impactDamage ?? 0
+    if (name === ExprVar.TargetStatusStacks) return this.env.targetStatusStacks ?? 0
     if (name === ExprVar.Level) return this.env.source.level
     const dotted = name.split(".")
     if (dotted.length === 2) {

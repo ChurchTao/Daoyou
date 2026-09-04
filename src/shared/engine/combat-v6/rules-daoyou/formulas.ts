@@ -59,6 +59,14 @@ function magicStrike(input: StrikeFormulaInput): number {
   return finish(applyCultivate(splashed, src.spellCultivate - dst.resistSpellCultivate))
 }
 
+function magicStrikeV3(input: StrikeFormulaInput): number {
+  const src = input.source.attrs
+  const dst = input.target.attrs
+  const schoolPower = schoolTermValue(input.schoolTerm, input.skillLevel ?? 0) + input.power
+  const raw = (src.magicAtk - dst.magicDef + schoolPower) * input.coeff
+  return finish(applyCultivate(raw * splashFactor(input.splash, input.targetCount ?? 1), src.spellCultivate - dst.resistSpellCultivate))
+}
+
 const families: Record<string, (input: StrikeFormulaInput) => number> = {
   [FormulaFamily.Physical]: (input) => {
     const furyMultiplier = input.fury
@@ -136,5 +144,15 @@ export const daoyouFormulas: FormulaSet = {
       DaoyouRule.fleeChanceBase +
         (unit.attrs.speed - averageEnemySpeed) / DaoyouRule.hitChanceScale,
     )
+  },
+}
+
+export const daoyouFormulasV3: FormulaSet = {
+  ...daoyouFormulas,
+  baseDamage(input) {
+    if (input.family === FormulaFamily.Spell || input.family === FormulaFamily.Dragon) {
+      return magicStrikeV3(input)
+    }
+    return baseDamage(input)
   },
 }

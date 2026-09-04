@@ -4,14 +4,16 @@ import { BattlePhase, CommandType, EventType, HookName, HpZeroOutcome, MatchWinn
 import { BattleError, ErrorCode } from "./errors.ts"
 import { HookBus } from "./hooks.ts"
 import { clearRoundFlags, lockCommands, resolveRoundActions } from "./pipeline.ts"
-import { teamFled, teamWiped, unitById } from "./query.ts"
+import { commandOptions, teamFled, teamWiped, unitById } from "./query.ts"
 import { SeededRng } from "./rng.ts"
 import { bindDataHooks } from "./passives.ts"
+import { clearBarriers, tickBarriers } from "./barriers.ts"
 import { applyStatus, clearCombatStatuses, tickStatuses } from "./status.ts"
 import type {
   BattleEvent,
   BattleResult,
   BattleState,
+  CombatV6CommandOptions,
   Command,
   CreateBattleInput,
   SkillDef,
@@ -53,8 +55,11 @@ export class BattleSession {
       },
       emit: (event) => {
         events.push(event)
+        if (event.type === EventType.ActionFailed && ctx.currentAction?.sourceId === event.unitId) {
+          ctx.currentAction.failed = true
+        }
       },
-      applyHpZero: (unit, source, skillId) => this.applyHpZero(unit, source, skillId),
+      applyHpZero: (unit, source, skillId, kind, origin) => this.applyHpZero(unit, source, skillId, kind, origin),
       checkEnd: (reason) => this.finishIfNeeded(reason),
       suppressHooks: 0,
     }
@@ -112,6 +117,10 @@ export class BattleSession {
     return unitById(this.ctx.state, id)
   }
 
+  queryCommands(unitId: UnitId): CombatV6CommandOptions {
+    return commandOptions(this.ctx, unitId)
+  }
+
   /** 仅指令阶段可调用；锁指令后不可再改。超时未提交的单位由 lockAndResolve 补默认普攻。 */
   submit(unitId: UnitId, command: Command): void {
     if (this.ctx.state.phase !== BattlePhase.Command) {
@@ -143,6 +152,7 @@ export class BattleSession {
 
     if (!this.ctx.state.result) {
       tickStatuses(this.ctx)
+      tickBarriers(this.ctx)
     }
 
     this.ctx.emit({ type: EventType.RoundEnd, round: this.ctx.state.round })
@@ -185,12 +195,13 @@ export class BattleSession {
    * 先触发 onFatal（神佑等可在此把气血拉回正），仍 <=0 才倒地/死亡。
    * 人物倒地可被复活；召唤兽/NPC 本场死亡，不能再召。
    */
-  private applyHpZero(unit: Unit, source?: Unit, skillId?: string): void {
+  private applyHpZero(unit: Unit, source?: Unit, skillId?: string, kind?: import("./enums.ts").DamageKind, origin?: import("./enums.ts").DamageOrigin): void {
     if (unit.flags.dead || unit.flags.downed) return
-    this.ctx.hooks.emit(HookName.OnFatal, { source, target: unit, skillId })
+    this.ctx.hooks.emit(HookName.OnFatal, { source, target: unit, skillId, kind, origin })
     if (unit.attrs.hp > 0) return
     const outcome = this.ctx.rules.hpZeroOutcome(unit)
     clearCombatStatuses(this.ctx, unit)
+    clearBarriers(this.ctx, unit)
     unit.attrs.hp = 0
     if (outcome === HpZeroOutcome.Downed) {
       unit.flags.downed = true
@@ -199,7 +210,7 @@ export class BattleSession {
       unit.flags.dead = true
       this.ctx.emit({ type: EventType.UnitDead, unitId: unit.id })
     }
-    this.ctx.hooks.emit(HookName.OnDeath, { source, target: unit, skillId })
+    this.ctx.hooks.emit(HookName.OnDeath, { source, target: unit, skillId, kind, origin })
     this.finishIfNeeded(ResultReason.Wipe)
   }
 

@@ -23,15 +23,15 @@ import {
   StatusFlag,
   UnitKind,
 } from "./enums.ts"
-import { evalExpr } from "./expr.ts"
 import { atLeast } from "./math.ts"
 import { standingUnits } from "./query.ts"
+import { checkSkillRequirements } from "./requirements.ts"
 import { commandPolicyOf, hasBlock, hasStatusFlag } from "./status.ts"
 import { resolveSkillTargets } from "./targeting.ts"
 import { skillOf } from "./skills.ts"
 import type { Command, SkillDef, Unit } from "./types.ts"
 import { effectiveSpeed, isActionable, isStanding, resourceOf } from "./units.ts"
-import { consumeWhen, matchesWhen } from "./when.ts"
+import { consumeWhen, matchesWhen, targetStatusStacks } from "./when.ts"
 
 /** 防御/保护在锁指令时立刻生效，不必等该单位出手（保护者比被保护者慢时仍能拦刀）。 */
 export function applyRoundFlags(unit: Unit, command: Command): void {
@@ -137,7 +137,7 @@ const commandHandlers: Partial<
       ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: FailReason.Rooted })
       return
     }
-    resolvePhysicalAttack(ctx, unit, command.target)
+    resolvePhysicalAttack(ctx, unit, command.target, commandPolicyOf(ctx, unit).policy === CommandPolicy.RandomAttackTarget)
   },
 }
 
@@ -153,15 +153,45 @@ function applyCommandPolicy(ctx: BattleContext, unit: Unit): void {
     return
   }
   if (policy === CommandPolicy.Random) {
-    const pool = ctx.state.units.filter((u) => u.id !== unit.id && isStanding(u))
+    const pool = randomAttackPool(ctx, unit)
     if (pool.length === 0) return
     const pick = pool[Math.floor(ctx.rng.next() * pool.length)]
     unit.command = { type: CommandType.Attack, target: pick.id }
+    return
+  }
+  if (policy === CommandPolicy.RandomAttackTarget) {
+    const command = unit.command
+    const physical = command?.type === CommandType.Attack || (
+      command?.type === CommandType.Skill &&
+      Boolean(skillOf(ctx.skills, unit, command.skillId)?.tags.includes(SkillTag.Physical))
+    )
+    if (!physical) return
+    const pool = randomAttackPool(ctx, unit)
+    if (pool.length === 0) return
+    const pick = pool[Math.floor(ctx.rng.next() * pool.length)]
+    unit.lastTargetId = pick.id
+    unit.command = command.type === CommandType.Attack
+      ? { ...command, target: pick.id }
+      : { ...command, targets: [pick.id, ...command.targets.filter((id) => id !== pick.id)] }
   }
 }
 
-function resolvePhysicalAttack(ctx: BattleContext, unit: Unit, targetId: string): void {
-  const target = resolveAliveTarget(ctx, unit, targetId)
+function randomAttackPool(ctx: BattleContext, unit: Unit): Unit[] {
+  return ctx.state.units
+    .filter((candidate) => candidate.id !== unit.id && isStanding(candidate))
+    .sort((a, b) => a.slot - b.slot || a.id.localeCompare(b.id))
+}
+
+function pickRandomAttackTarget(ctx: BattleContext, unit: Unit): Unit | undefined {
+  const pool = randomAttackPool(ctx, unit)
+  return pool.length > 0 ? pool[Math.floor(ctx.rng.next() * pool.length)] : undefined
+}
+
+function resolvePhysicalAttack(ctx: BattleContext, unit: Unit, targetId: string, allowAlly = false): void {
+  const direct = ctx.state.units.find((candidate) => candidate.id === targetId)
+  const target = allowAlly && direct && direct.id !== unit.id && isStanding(direct)
+    ? direct
+    : resolveAliveTarget(ctx, unit, targetId)
   if (!target) {
     ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: FailReason.NoTarget })
     return
@@ -173,6 +203,10 @@ function resolvePhysicalAttack(ctx: BattleContext, unit: Unit, targetId: string)
     targetIds: [target.id],
     resourceGains: {},
     hpRestoreGains: {},
+    impactDamageByTarget: {},
+    initialStatusIdsByTarget: { [target.id]: target.statuses.map((status) => status.id) },
+    initialStatusKindsByTarget: { [target.id]: target.statuses.map((status) => status.kind) },
+    failed: false,
   }
   ctx.emit({ type: EventType.ActionStart, unitId: unit.id, command: { type: CommandType.Attack, target: target.id } })
   resolveStrike(ctx, {
@@ -245,8 +279,13 @@ function resolveSkillCommand(ctx: BattleContext, unit: Unit, skillId: string, ta
   if (skill.tags.includes(SkillTag.Spell) && hasBlock(ctx, unit, StatusFlag.BlocksSpell)) {
     ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: FailReason.Sealed })
     if (!hasBlock(ctx, unit, StatusFlag.BlocksPhysical)) {
-      const fallback = resolveAliveTarget(ctx, unit, unit.lastTargetId)
-      if (fallback) resolvePhysicalAttack(ctx, unit, fallback.id)
+      const randomTarget = commandPolicyOf(ctx, unit).policy === CommandPolicy.RandomAttackTarget
+        ? skill.tags.includes(SkillTag.Physical)
+          ? ctx.state.units.find((candidate) => candidate.id === unit.lastTargetId && candidate.id !== unit.id && isStanding(candidate))
+          : pickRandomAttackTarget(ctx, unit)
+        : undefined
+      const fallback = randomTarget ?? resolveAliveTarget(ctx, unit, unit.lastTargetId)
+      if (fallback) resolvePhysicalAttack(ctx, unit, fallback.id, Boolean(randomTarget))
     }
     return
   }
@@ -254,20 +293,26 @@ function resolveSkillCommand(ctx: BattleContext, unit: Unit, skillId: string, ta
     ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: FailReason.Rooted })
     return
   }
-  resolveSkill(ctx, unit, skill, targets)
+  resolveSkill(
+    ctx,
+    unit,
+    skill,
+    targets,
+    commandPolicyOf(ctx, unit).policy === CommandPolicy.RandomAttackTarget && skill.tags.includes(SkillTag.Physical)
+      ? targets[0]
+      : undefined,
+  )
 }
 
-function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds: string[]): void {
+function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds: string[], forcedPrimaryId?: string): void {
   if (!unit.skills.includes(skill.id) && !unit.passives.includes(skill.id)) {
     ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: FailReason.SkillNotKnown })
     return
   }
 
-  const targets = resolveSkillTargets(ctx, unit, skill, targetIds)
+  const targets = resolveSkillTargets(ctx, unit, skill, targetIds, forcedPrimaryId)
   const env = makeEnv(unit, skill, targets)
-  const mpCost = atLeast(0, Math.floor(evalExpr(skill.costMp ?? 0, env) * mpCostFactor(ctx, unit)))
-  const hpCost = atLeast(0, Math.floor(evalExpr(skill.costHp ?? 0, env)))
-  const resourceCosts = resolveResourceCosts(skill, env)
+  const { mpCost, hpCost, resourceCosts } = checkSkillRequirements(ctx, unit, skill, targets)
 
   if (targets.length === 0) {
     fallbackToAttack(ctx, unit, targetIds, FailReason.NoTarget)
@@ -314,6 +359,10 @@ function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds
     targetIds: targets.map((t) => t.id),
     resourceGains: {},
     hpRestoreGains: {},
+    impactDamageByTarget: {},
+    initialStatusIdsByTarget: Object.fromEntries(targets.map((target) => [target.id, target.statuses.map((status) => status.id)])),
+    initialStatusKindsByTarget: Object.fromEntries(targets.map((target) => [target.id, target.statuses.map((status) => status.kind)])),
+    failed: false,
   }
   ctx.emit({
     type: EventType.ActionStart,
@@ -346,15 +395,9 @@ function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds
     })
   }
 
-  for (const effect of skill.effects) {
-    // 战斗已结束后不再产生伤害/状态，但仍结清本次技能声明的资源变化。
-    if (ctx.state.result && effect.type !== EffectType.ModifyResource) continue
-    if (effect.when && !matchesWhen(ctx, effect.when, { source: unit, target: targets[0], skill, skillId: skill.id, markKey: `${skill.id}:effect` })) {
-      continue
-    }
-    applyEffect(ctx, unit, skill, effect, targets, env)
-    env.damage = ctx.lastStrikeDamage
-    consumeWhen(ctx, effect.when, { source: unit, target: targets[0], skill, skillId: skill.id, markKey: `${skill.id}:effect` })
+  applyDeclaredEffects(ctx, unit, skill, skill.effects, targets, targetIds, env)
+  if (!ctx.currentAction.failed && skill.successEffects?.length) {
+    applyDeclaredEffects(ctx, unit, skill, skill.successEffects, targets, targetIds, env)
   }
   const kind = skill.tags.includes(SkillTag.Physical)
     ? DamageKind.Physical
@@ -371,30 +414,75 @@ function resolveSkill(ctx: BattleContext, unit: Unit, skill: SkillDef, targetIds
   ctx.currentAction = undefined
 }
 
-function resolveResourceCosts(
+function applyDeclaredEffects(
+  ctx: BattleContext,
+  unit: Unit,
   skill: SkillDef,
+  effects: SkillDef["effects"],
+  targets: Unit[],
+  targetIds: string[],
   env: ReturnType<typeof makeEnv>,
-): Array<{ resourceId: string; amount: number }> {
-  const totals = new Map<string, number>()
-  for (const cost of skill.resourceCosts ?? []) {
-    const amount = atLeast(0, Math.floor(evalExpr(cost.amount, env)))
-    totals.set(cost.resourceId, (totals.get(cost.resourceId) ?? 0) + amount)
+): void {
+  for (const effect of effects) {
+    // 战斗已结束后不再产生伤害/状态，但仍结清本次技能声明的资源变化。
+    if (ctx.state.result && !(new Set<string>([
+      EffectType.ModifyResource,
+      EffectType.Heal,
+      EffectType.RestoreHp,
+      EffectType.RestoreMp,
+      EffectType.RemoveWound,
+      EffectType.ApplyBarrier,
+      EffectType.EmitMechanic,
+    ])).has(effect.type)) continue
+    const resolvedTargets = effect.targeting
+      ? resolveSkillTargets(ctx, unit, { ...skill, targeting: effect.targeting }, targetIds)
+      : targets
+    const effectTargets = effect.when
+      ? resolvedTargets.filter((target) => matchesWhen(ctx, effect.when, {
+          source: unit,
+          target,
+          skill,
+          skillId: skill.id,
+          markKey: `${skill.id}:effect`,
+        }))
+      : resolvedTargets
+    if (resolvedTargets.length > 0 && effectTargets.length === 0) {
+      continue
+    }
+    if (effect.targeting) {
+      for (const target of effectTargets) {
+        applyEffect(ctx, unit, skill, effect, [target], {
+          ...makeEnv(unit, skill, effectTargets),
+          target,
+          targetStatusStacks: targetStatusStacks(ctx, effect.when, target),
+        })
+      }
+    } else {
+      const target = effectTargets[0] ?? env.target
+      applyEffect(ctx, unit, skill, effect, effectTargets, {
+        ...env,
+        target,
+        targetStatusStacks: targetStatusStacks(ctx, effect.when, target),
+      })
+    }
+    env.damage = ctx.lastStrikeDamage
+    const envTarget = effectTargets[0] ?? env.target
+    env.impactDamage = envTarget ? ctx.currentAction?.impactDamageByTarget[envTarget.id] ?? 0 : 0
+    consumeWhen(ctx, effect.when, { source: unit, target: effectTargets[0], skill, skillId: skill.id, markKey: `${skill.id}:effect` })
   }
-  return [...totals].map(([resourceId, amount]) => ({ resourceId, amount }))
-}
-
-function mpCostFactor(ctx: BattleContext, unit: Unit): number {
-  let factor = 1
-  for (const id of unit.passives) {
-    const innate = skillOf(ctx.skills, unit, id)?.innate?.mpCostFactor
-    if (innate !== undefined) factor *= innate
-  }
-  return factor
 }
 
 /** 蓝不足、横扫气血未过半等：技能失败后改打普攻（端游常见兜底）。 */
 function fallbackToAttack(ctx: BattleContext, unit: Unit, targetIds: string[], reason: string): void {
   ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason })
+  if (commandPolicyOf(ctx, unit).policy === CommandPolicy.RandomAttackTarget) {
+    const command = unit.command
+    const target = command?.type === CommandType.Skill && skillOf(ctx.skills, unit, command.skillId)?.tags.includes(SkillTag.Physical)
+      ? ctx.state.units.find((candidate) => candidate.id === (targetIds[0] ?? unit.lastTargetId))
+      : pickRandomAttackTarget(ctx, unit)
+    if (target && target.id !== unit.id && isStanding(target)) resolvePhysicalAttack(ctx, unit, target.id, true)
+    return
+  }
   const fallback = resolveAliveTarget(ctx, unit, targetIds[0] ?? unit.lastTargetId)
   if (fallback) resolvePhysicalAttack(ctx, unit, fallback.id)
 }

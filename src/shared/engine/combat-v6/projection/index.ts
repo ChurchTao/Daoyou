@@ -12,6 +12,10 @@ export {
   projectCultivatorWithEquipmentSpecialToCombatV6,
 } from "./project-cultivator-with-equipment-special.ts"
 export { projectCultivatorToCombatV6 } from "./project-cultivator.ts"
+export { projectCultivatorMultiSectToCombatV6 } from "./project-cultivator-multi-sect.ts"
+export { projectCultivatorMultiSectV3ToCombatV6 } from "./project-cultivator-multi-sect-v3.ts"
+export { projectCultivatorMultiSectV4ToCombatV6 } from "./project-cultivator-multi-sect-v4.ts"
+export { projectCultivatorMultiSectV5ToCombatV6 } from "./project-cultivator-multi-sect-v5.ts"
 export type {
   CombatV6PanelContribution,
   CombatV6ProjectionDiagnostic,
@@ -26,6 +30,7 @@ export type {
   ProjectCultivatorWithEquipmentInput,
   ProjectCultivatorWithEquipmentSpecialInput,
   ProjectCultivatorToCombatV6Input,
+  ProjectCultivatorMultiSectToCombatV6Input,
   CompareDaoEquipmentLoadoutsV1Input,
   CompareDaoEquipmentLoadoutsV1Result,
   CompareDaoEquipmentSpecialLoadoutsV1Input,

@@ -119,6 +119,7 @@ export function projectCultivatorWithEquipmentToCombatV6(
   input: ProjectCultivatorWithEquipmentInput,
 ): CombatV6ProjectionResult {
   const versions = { ...COMBAT_V6_PHASE_4A_VERSIONS }
+  if (input.sect.sectId !== "lingxiao") return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: "character_equipment_v1 只接受红尘剑宗", path: "sect.sectId" }], versions }
   const base = projectCultivatorBaseToCombatV6({ ...input, resourcePolicy: "full" })
   if (!base.ok) return { ok: false, diagnostics: base.diagnostics, versions }
 

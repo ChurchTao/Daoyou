@@ -37,6 +37,8 @@ export function canSelect(ctx: BattleContext, source: Unit, target: Unit, skill:
   if (side === TargetSide.Enemy && target.side === source.side) return false
   if (side === TargetSide.Ally && target.side !== source.side) return false
   if (isUntargetableBy(ctx, source, target, aoe)) return false
+  if (skill.targeting.requireStatusIds?.length && !skill.targeting.requireStatusIds.some((id) => target.statuses.some((status) => status.id === id))) return false
+  if (skill.targeting.requireStatusKinds?.length && !skill.targeting.requireStatusKinds.some((kind) => target.statuses.some((status) => status.kind === kind))) return false
   return true
 }
 
@@ -102,6 +104,7 @@ export function resolveSkillTargets(
   source: Unit,
   skill: SkillDef,
   targetIds: string[],
+  forcedPrimaryId?: string,
 ): Unit[] {
   const mode = skill.targeting.mode ?? TargetMode.Explicit
   if (skill.targeting.side === TargetSide.Self) return [source]
@@ -142,7 +145,15 @@ export function resolveSkillTargets(
 
   const picked: Unit[] = []
   const seen = new Set<string>()
+  if (forcedPrimaryId) {
+    const forced = ctx.state.units.find((unit) => unit.id === forcedPrimaryId)
+    if (forced && forced.id !== source.id && isStanding(forced)) {
+      picked.push(forced)
+      seen.add(forced.id)
+    }
+  }
   for (const id of targetIds) {
+    if (picked.length >= count) break
     const unit = ctx.state.units.find((u) => u.id === id)
     if (!unit || seen.has(unit.id)) continue
     if (!canSelect(ctx, source, unit, skill, aoe)) continue

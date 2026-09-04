@@ -7,6 +7,7 @@ import type { BattleContext } from "./context.ts"
 import {
   CommandPolicy,
   DamageKind,
+  DamageOrigin,
   EventType,
   FailReason,
   failDetail,
@@ -18,7 +19,8 @@ import {
 import { evalExpr, skillLevelOf } from "./expr.ts"
 import { standingUnits } from "./query.ts"
 import type { Attrs, CommandPolicy as CommandPolicyType, ExprEnv, StatusDef, StatusId, Unit, UnitId } from "./types.ts"
-import { effectiveAttrs } from "./units.ts"
+import { effectiveAttrs, recoverableHp } from "./units.ts"
+import { applyDamage } from "./damage.ts"
 
 export function statusDef(ctx: BattleContext, id: StatusId): StatusDef | undefined {
   return ctx.statusDefs.get(id)
@@ -103,6 +105,7 @@ export function applyStatus(
     existing.stacks = stacks
     existing.remainingRounds = duration
     existing.sourceId = sourceId
+    existing.appliedRound = ctx.state.round
     const healTaken = def.healTaken ?? DEFAULT_DAMAGE_TAKEN
     const healDealt = def.healDealt ?? DEFAULT_DAMAGE_TAKEN
     existing.healTaken = healTaken ** stacks
@@ -142,10 +145,34 @@ export function removeStatus(ctx: BattleContext, unit: Unit, statusId: StatusId,
   if (!inst) return
   if (inst.attrMods.maxHp) {
     unit.attrs.maxHp = Math.max(MIN_MAX_HP, unit.attrs.maxHp - inst.attrMods.maxHp)
-    if (unit.attrs.hp > unit.attrs.maxHp) unit.attrs.hp = unit.attrs.maxHp
+    unit.wound = Math.min(unit.wound, unit.attrs.maxHp - 1)
+    if (unit.attrs.hp > recoverableHp(unit)) unit.attrs.hp = recoverableHp(unit)
   }
   unit.statuses = unit.statuses.filter((s) => s.id !== statusId)
   ctx.emit({ type: EventType.StatusRemoved, unitId: unit.id, statusId, reason })
+}
+
+/** 复制当前运行时快照；sourceId 仅改为本次施法者，不参与后续资格判断。 */
+export function copyStatusInstance(
+  ctx: BattleContext,
+  source: Unit,
+  target: Unit,
+  instance: Unit["statuses"][number],
+  durationAdd = 0,
+): void {
+  if (!statusDef(ctx, instance.id)) return
+  for (const current of [...target.statuses].filter((status) => status.kind === instance.kind)) {
+    removeStatus(ctx, target, current.id, StatusRemoveReason.Replaced)
+  }
+  const copy = {
+    ...structuredClone(instance),
+    sourceId: source.id,
+    appliedRound: ctx.state.round,
+    remainingRounds: Math.max(1, Math.floor(instance.remainingRounds + durationAdd)),
+  }
+  target.statuses.push(copy)
+  if (copy.attrMods.maxHp) target.attrs.maxHp += copy.attrMods.maxHp
+  ctx.emit({ type: EventType.StatusApplied, unitId: target.id, statusId: copy.id, duration: copy.remainingRounds })
 }
 
 export function breakStatusesOnDamage(ctx: BattleContext, unit: Unit): void {
@@ -160,22 +187,8 @@ export function tickStatuses(ctx: BattleContext): void {
       const def = statusDef(ctx, inst.id)
       if (def?.ticks === StatusTick.RoundEnd && def.onTick?.type === TickKind.Dot && !unit.flags.downed) {
         const amount = Math.max(1, Math.floor(unit.attrs.maxHp * def.onTick.ratioOfMaxHp))
-        const hp = Math.max(0, unit.attrs.hp - amount)
-        unit.attrs.hp = hp
-        ctx.emit({
-          type: EventType.Damage,
-          sourceId: inst.sourceId,
-          targetId: unit.id,
-          amount,
-          hpAfter: hp,
-          kind: DamageKind.Spell,
-        })
-        if (hp <= 0) {
-          ctx.applyHpZero(
-            unit,
-            ctx.state.units.find((candidate) => candidate.id === inst.sourceId),
-          )
-        }
+        const source = ctx.state.units.find((candidate) => candidate.id === inst.sourceId) ?? unit
+        applyDamage(ctx, source, unit, amount, DamageKind.Fixed, true, DamageOrigin.Status)
       }
 
       // Dot 当回合就跳并扣持续；普通状态当回合不扣；expireSameRound（我佛护体）当回合结束即卸。

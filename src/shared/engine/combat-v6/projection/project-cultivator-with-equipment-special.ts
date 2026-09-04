@@ -1,8 +1,9 @@
 import type { Attributes } from "@shared/types/cultivator"
-import { compileSectCombatV6 } from "../content/index.ts"
-import { ATTR_NAMES, type AttrName, type LineupUnit } from "../core/index.ts"
+import { compileSectCombatV6, compileSectCombatV6V2, compileSectCombatV6V3, compileSectCombatV6V4 } from "../content/index.ts"
+import { ATTR_NAMES, type AttrName, type CombatV6VersionStamp, type LineupUnit } from "../core/index.ts"
 import {
   DAO_EQUIPMENT_ARTS_V1,
+  DAO_EQUIPMENT_ART_SKILL_ID,
   DAO_RAGE_RESOURCE_ID,
   compileDaoEquipmentSpecialLoadoutV1,
 } from "../equipment/index.ts"
@@ -119,10 +120,18 @@ function contentConflicts(
   return diagnostics
 }
 
-export function projectCultivatorWithEquipmentSpecialToCombatV6(
+export function projectCultivatorWithEquipmentSpecialInternal(
   input: ProjectCultivatorWithEquipmentSpecialInput,
+  versions: CombatV6VersionStamp,
+  allowMultiSect: boolean,
+  allowWuxiang = false,
+  allowTianyan = false,
+  allowJiujie = false,
 ): CombatV6ProjectionResult {
-  const versions = { ...COMBAT_V6_PHASE_4B_VERSIONS }
+  if (input.sect.sectId === "jiujie" && !allowJiujie) return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: `${versions.projectionVersion} 不接受九劫天宫`, path: "sect.sectId" }], versions }
+  if (input.sect.sectId === "tianyan" && !allowTianyan) return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: `${versions.projectionVersion} 不接受天衍圣地`, path: "sect.sectId" }], versions }
+  if (input.sect.sectId === "wuxiang" && !allowWuxiang) return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: `${versions.projectionVersion} 不接受无相禅宗`, path: "sect.sectId" }], versions }
+  if (!allowMultiSect && input.sect.sectId !== "lingxiao") return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: "character_equipment_special_v1 只接受红尘剑宗", path: "sect.sectId" }], versions }
   const base = projectCultivatorBaseToCombatV6({ ...input, resourcePolicy: "full" })
   if (!base.ok) return { ok: false, diagnostics: base.diagnostics, versions }
   const equipment = compileDaoEquipmentSpecialLoadoutV1(input.equipment, base.unit.level ?? 0)
@@ -132,7 +141,13 @@ export function projectCultivatorWithEquipmentSpecialToCombatV6(
   for (const key of ATTRIBUTE_KEYS) effectiveAttributes[key] += equipment.projection.attributeBonuses[key]
   const characterPanel = compileCharacterPanelV1(effectiveAttributes)
   const training = compileBodyCultivationV6(input.cultivator.condition?.tracks.bodyCultivation, characterPanel)
-  const sect = compileSectCombatV6({ progress: input.sect, characterLevel: base.unit.level ?? 0 })
+  const sect = allowJiujie
+    ? compileSectCombatV6V4({ progress: input.sect, characterLevel: base.unit.level ?? 0 })
+    : allowTianyan
+    ? compileSectCombatV6V3({ progress: input.sect, characterLevel: base.unit.level ?? 0 })
+    : allowWuxiang
+      ? compileSectCombatV6V2({ progress: input.sect, characterLevel: base.unit.level ?? 0 })
+    : compileSectCombatV6({ progress: input.sect, characterLevel: base.unit.level ?? 0 })
   const diagnostics = [
     ...base.diagnostics,
     ...equipment.projection.diagnostics,
@@ -159,6 +174,11 @@ export function projectCultivatorWithEquipmentSpecialToCombatV6(
     .filter((art) => equipment.projection.grantedArtIds.includes(art.id))
     .map((art) => art.skill.id)
   const artSkillLevels = Object.fromEntries(artSkillIds.map((id) => [id, 0]))
+  const phase6Overrides = allowMultiSect && artSkillIds.includes(DAO_EQUIPMENT_ART_SKILL_ID.Qingxin)
+    ? DAO_EQUIPMENT_ARTS_V1
+        .filter((art) => art.skill.id === DAO_EQUIPMENT_ART_SKILL_ID.Qingxin)
+        .map((art) => ({ ...structuredClone(art.skill), targeting: { ...art.skill.targeting, includeDowned: true } }))
+    : []
   return {
     ok: true,
     unit: {
@@ -167,7 +187,7 @@ export function projectCultivatorWithEquipmentSpecialToCombatV6(
       skills: [...sect.projection.activeSkillIds, ...artSkillIds],
       passives: [...sect.projection.passiveSkillIds, ...equipment.projection.passiveSkillIds],
       skillLevels: { ...sect.projection.skillLevels, ...artSkillLevels },
-      skillOverrides: [...sect.projection.skillOverrides, ...equipment.projection.skillOverrides],
+      skillOverrides: [...sect.projection.skillOverrides, ...equipment.projection.skillOverrides, ...phase6Overrides],
       resources: [
         ...sect.projection.resources,
         { id: DAO_RAGE_RESOURCE_ID, name: "战意", current: 0, max: 150 },
@@ -179,6 +199,12 @@ export function projectCultivatorWithEquipmentSpecialToCombatV6(
     diagnostics,
     versions,
   }
+}
+
+export function projectCultivatorWithEquipmentSpecialToCombatV6(
+  input: ProjectCultivatorWithEquipmentSpecialInput,
+): CombatV6ProjectionResult {
+  return projectCultivatorWithEquipmentSpecialInternal(input, { ...COMBAT_V6_PHASE_4B_VERSIONS }, false)
 }
 
 function setChanges(before: string[], after: string[]): { added: string[]; removed: string[] } {

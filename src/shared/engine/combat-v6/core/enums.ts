@@ -25,6 +25,7 @@ export type BattlePhase = (typeof BattlePhase)[keyof typeof BattlePhase]
 export const DamageKind = {
   Physical: "physical",
   Spell: "spell",
+  Fixed: "fixed",
 } as const
 export type DamageKind = (typeof DamageKind)[keyof typeof DamageKind]
 
@@ -78,6 +79,7 @@ export type TargetMode = (typeof TargetMode)[keyof typeof TargetMode]
 export const CommandPolicy = {
   None: "none",
   Random: "random",
+  RandomAttackTarget: "randomAttackTarget",
   StoredAttack: "storedAttack",
 } as const
 export type CommandPolicy = (typeof CommandPolicy)[keyof typeof CommandPolicy]
@@ -109,6 +111,8 @@ export const HookName = {
   OnHitRoll: "onHitRoll",
   /** 治疗数字算出之后、入账之前。钩子可改 heal。 */
   OnHealCalc: "onHealCalc",
+  OnBarrierCalc: "onBarrierCalc",
+  OnWoundCalc: "onWoundCalc",
 } as const
 export type HookName = (typeof HookName)[keyof typeof HookName]
 
@@ -169,6 +173,7 @@ export const StatusRemoveReason = {
   Dispel: "dispel",
   Replaced: "replaced",
   Downed: "downed",
+  Consumed: "consumed",
 } as const
 export type StatusRemoveReason = (typeof StatusRemoveReason)[keyof typeof StatusRemoveReason]
 
@@ -189,20 +194,29 @@ export const FormulaFamily = {
 export type FormulaFamily = (typeof FormulaFamily)[keyof typeof FormulaFamily]
 
 export const EffectType = {
+  RandomBranch: "randomBranch",
   PhysicalHit: "physicalHit",
   SpellHit: "spellHit",
+  FixedHit: "fixedHit",
   Heal: "heal",
   RestoreHp: "restoreHp",
   RestoreMp: "restoreMp",
   Revive: "revive",
   ApplyStatus: "applyStatus",
+  RemoveStatus: "removeStatus",
+  CopyStatus: "copyStatus",
+  EmitMechanic: "emitMechanic",
   Dispel: "dispel",
   SkipNextAction: "skipNextAction",
   DamageMp: "damageMp",
   Wound: "wound",
+  RemoveWound: "removeWound",
+  ApplyBarrier: "applyBarrier",
   ModifyStrike: "modifyStrike",
   ModifyDefenseIgnore: "modifyDefenseIgnore",
   ModifyHeal: "modifyHeal",
+  ModifyBarrier: "modifyBarrier",
+  ModifyWound: "modifyWound",
   SetCrit: "setCrit",
   ModifyResource: "modifyResource",
   ModifyChance: "modifyChance",
@@ -228,8 +242,12 @@ export const EventType = {
   HpCost: "hpCost",
   MpDamage: "mpDamage",
   Wound: "wound",
+  WoundChanged: "woundChanged",
+  BarrierChanged: "barrierChanged",
   StatusApplied: "statusApplied",
   StatusRemoved: "statusRemoved",
+  MechanicTriggered: "mechanicTriggered",
+  ChanceResolved: "chanceResolved",
   UnitDowned: "unitDowned",
   UnitDead: "unitDead",
   UnitRevived: "unitRevived",
@@ -282,6 +300,8 @@ export const ExprVar = {
   Targets: "targets",
   Damage: "damage",
   HpDamage: "hpDamage",
+  ImpactDamage: "impactDamage",
+  TargetStatusStacks: "targetStatusStacks",
   Level: "level",
   Source: "source",
   Target: "target",

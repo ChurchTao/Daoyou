@@ -6,8 +6,10 @@ export { createBattle, BattleSession } from "./session.ts"
 export { SeededRng } from "./rng.ts"
 export { HookBus, type HookContext, type HookFn } from "./hooks.ts"
 export { evalExpr, skillLevelOf } from "./expr.ts"
-export { DEFAULT_ATTRS, createUnit, effectiveSpeed, effectiveAttrs, isStanding, isActionable, resourceOf } from "./units.ts"
+export { DEFAULT_ATTRS, createUnit, effectiveSpeed, effectiveAttrs, isStanding, isActionable, resourceOf, recoverableHp } from "./units.ts"
+export { absorbBarriers, applyBarrier, clearBarriers, tickBarriers } from "./barriers.ts"
 export { skillOf } from "./skills.ts"
+export { applyWound, changeWound } from "./damage.ts"
 export { standingUnits, enemiesOf, alliesOf, unitById } from "./query.ts"
 export { BattleError, ErrorCode } from "./errors.ts"
 export { validateLineup } from "./validate.ts"
@@ -48,11 +50,14 @@ export { ATTR_NAMES, BUILTIN_SKILL_ID, MIN_DAMAGE, MIN_HP } from "./constants.ts
 export type {
   Attrs,
   AttrName,
+  BarrierState,
   BattleEvent,
   BattleResult,
   BattleState,
   Command,
   CombatV6VersionStamp,
+  CombatV6CommandOptions,
+  CombatV6SkillCommandOption,
   CombatResourceState,
   CreateBattleInput,
   DecideCommandInput,
@@ -65,6 +70,7 @@ export type {
   StrikeFormulaInput,
   LineupUnit,
   Ruleset,
+  RandomBranchEffect,
   Side,
   SkillDef,
   SkillEffect,

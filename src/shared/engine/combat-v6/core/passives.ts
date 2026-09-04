@@ -4,13 +4,13 @@
  */
 import type { BattleContext } from "./context.ts"
 import { applyEffect, makeEnv } from "./effects.ts"
-import { EffectType, HookAim, HookName, TargetMode } from "./enums.ts"
+import { DamageKind, EffectType, HookAim, HookName, TargetMode } from "./enums.ts"
 import { evalExpr } from "./expr.ts"
 import type { HookContext } from "./hooks.ts"
 import { skillOf } from "./skills.ts"
 import { enemiesOf } from "./query.ts"
 import type { HookAim as HookAimType, SkillDef, SkillEffect, SkillHook, Unit } from "./types.ts"
-import { consumeWhen, matchesWhen, type WhenScope } from "./when.ts"
+import { consumeWhen, matchesWhen, targetStatusStacks, type WhenScope } from "./when.ts"
 import { isStanding } from "./units.ts"
 
 export function bindDataHooks(ctx: BattleContext): void {
@@ -31,6 +31,12 @@ export function bindDataHooks(ctx: BattleContext): void {
           if (hook.targetIsSelf && hctx.target?.id !== unit.id) return
           if (hook.sourceIsSelf && hctx.source?.id !== unit.id) return
           if (hook.requireKind && hctx.kind !== hook.requireKind) return
+          if (
+            hctx.kind === DamageKind.Fixed &&
+            (hook.on === HookName.OnHitCalc || hook.on === HookName.OnCritRoll || hook.on === HookName.OnDefenseIgnoreCalc) &&
+            hook.requireKind !== DamageKind.Fixed &&
+            hook.when?.requireKind !== DamageKind.Fixed
+          ) return
           if (unit.flags.escaped || unit.flags.benched) return
           if (unit.flags.dead && hook.on !== HookName.OnFatal) return
 
@@ -55,6 +61,7 @@ export function bindDataHooks(ctx: BattleContext): void {
             ...makeEnv(unit, skill, hctx.target ? [hctx.target] : []),
             damage: hctx.damage,
             hpDamage: hctx.hpDamage,
+            targetStatusStacks: targetStatusStacks(ctx, hook.when, hctx.target),
           }
           if (hook.chance !== undefined && !ctx.rng.chance(evalExpr(hook.chance, env))) return
 
@@ -66,7 +73,10 @@ export function bindDataHooks(ctx: BattleContext): void {
           ctx.suppressHooks += 1
           try {
             for (const effect of usable.length ? usable : hook.effects) {
-              applyHookEffect(ctx, unit, skill, effect, targets, env, hctx)
+              applyHookEffect(ctx, unit, skill, effect, targets, {
+                ...env,
+                targetStatusStacks: targetStatusStacks(ctx, effect.when ?? hook.when, hctx.target),
+              }, hctx)
             }
           } finally {
             ctx.suppressHooks -= 1
@@ -87,6 +97,8 @@ function needsHookTarget(effect: SkillEffect): boolean {
     effect.type !== EffectType.ModifyStrike &&
     effect.type !== EffectType.ModifyDefenseIgnore &&
     effect.type !== EffectType.ModifyHeal &&
+    effect.type !== EffectType.ModifyBarrier &&
+    effect.type !== EffectType.ModifyWound &&
     effect.type !== EffectType.SetCrit &&
     effect.type !== EffectType.ModifyResource &&
     effect.type !== EffectType.ModifyChance &&
@@ -119,6 +131,18 @@ function applyHookEffect(
     const factor = evalExpr(effect.factor ?? 1, env)
     const add = evalExpr(effect.add ?? 0, env)
     hctx.heal = (hctx.heal ?? 0) * factor + add
+    return
+  }
+  if (effect.type === EffectType.ModifyBarrier) {
+    const factor = evalExpr(effect.factor ?? 1, env)
+    const add = evalExpr(effect.add ?? 0, env)
+    hctx.barrier = (hctx.barrier ?? 0) * factor + add
+    return
+  }
+  if (effect.type === EffectType.ModifyWound) {
+    const factor = evalExpr(effect.factor ?? 1, env)
+    const add = evalExpr(effect.add ?? 0, env)
+    hctx.wound = (hctx.wound ?? 0) * factor + add
     return
   }
   if (effect.type === EffectType.SetCrit) {

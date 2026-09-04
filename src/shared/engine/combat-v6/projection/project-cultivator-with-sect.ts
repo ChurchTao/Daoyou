@@ -26,6 +26,7 @@ export function projectCultivatorWithTrainingAndSectToCombatV6(
 ): CombatV6ProjectionResult {
   const base = projectCultivatorWithTrainingToCombatV6(input)
   const versions = { ...COMBAT_V6_PHASE_3_VERSIONS }
+  if (input.sect.sectId !== "lingxiao") return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: "character_sect_v1 只接受红尘剑宗", path: "sect.sectId" }], versions }
   if (!base.ok) return { ok: false, diagnostics: base.diagnostics, versions }
 
   const compiled = compileSectCombatV6({

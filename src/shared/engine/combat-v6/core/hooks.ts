@@ -20,6 +20,10 @@ export type HookContext = {
   defenseIgnore?: number
   /** 钩子可改治疗量 */
   heal?: number
+  /** 钩子可改护盾量。 */
+  barrier?: number
+  /** 钩子可改疗伤量。 */
+  wound?: number
   kind?: DamageKind
   origin?: DamageOrigin
   skillId?: SkillId

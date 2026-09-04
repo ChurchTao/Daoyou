@@ -3,13 +3,16 @@
  */
 import { DEFAULT_HITS } from "./constants.ts"
 import type { BattleContext } from "./context.ts"
-import { applyHeal, applyHpRestore, applyMpDamage, applyRevive, applyWound, resolveStrike } from "./damage.ts"
-import { DamageKind, EffectType, EventType, FailReason, StatusHit, StatusRemoveReason } from "./enums.ts"
+import { applyBarrier } from "./barriers.ts"
+import { applyHeal, applyHpRestore, applyMpDamage, applyRevive, applyWound, changeWound, resolveStrike } from "./damage.ts"
+import { DamageKind, EffectType, EventType, FailReason, FormulaFamily, StatusCategory, StatusHit, StatusRemoveReason } from "./enums.ts"
 import { evalExpr } from "./expr.ts"
 import { atLeast, floorAtLeast } from "./math.ts"
-import { applyStatus, envFor, removeStatus } from "./status.ts"
+import { applyStatus, copyStatusInstance, envFor, removeStatus } from "./status.ts"
+import { resolveSkillTargets } from "./targeting.ts"
 import type { ExprEnv, SkillDef, SkillEffect, Unit } from "./types.ts"
 import { isStanding, resourceOf } from "./units.ts"
+import { matchesWhen, targetStatusStacks } from "./when.ts"
 
 type EffectHandler<T extends SkillEffect = SkillEffect> = (
   ctx: BattleContext,
@@ -21,10 +24,16 @@ type EffectHandler<T extends SkillEffect = SkillEffect> = (
 ) => void
 
 const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect, { type: K }>> } = {
+  [EffectType.RandomBranch]: handleRandomBranch,
   [EffectType.SkipNextAction]: (_ctx, source) => {
     source.flags.skipNextAction = true
   },
   [EffectType.ApplyStatus]: handleApplyStatus,
+  [EffectType.RemoveStatus]: handleRemoveStatus,
+  [EffectType.CopyStatus]: handleCopyStatus,
+  [EffectType.EmitMechanic]: (ctx, source, _skill, effect, targets) => {
+    ctx.emit({ type: EventType.MechanicTriggered, mechanicId: effect.mechanicId, name: effect.name, sourceId: source.id, targetId: targets[0]?.id })
+  },
   [EffectType.Dispel]: handleDispel,
   [EffectType.Heal]: (ctx, source, _skill, effect, targets, env) => {
     const power = evalExpr(effect.power, env)
@@ -41,17 +50,78 @@ const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect
     const power = evalExpr(effect.power, env)
     for (const t of targets) applyWound(ctx, source, t, power)
   },
+  [EffectType.RemoveWound]: (ctx, source, _skill, effect, targets, env) => {
+    for (const t of targets) {
+      const base = Math.max(0, evalExpr(effect.power, { ...env, target: t }))
+      const hooked = ctx.hooks.emit("onWoundCalc", { source, target: t, wound: base, skillId: ctx.currentAction?.skillId })
+      changeWound(ctx, source, t, -Math.max(0, Math.floor(hooked.wound ?? base)))
+    }
+  },
+  [EffectType.ApplyBarrier]: (ctx, source, _skill, effect, targets, env) => {
+    for (const target of targets) {
+      applyBarrier(ctx, source, target, {
+        id: effect.id,
+        kind: effect.kind,
+        name: effect.name,
+        amount: ctx.hooks.emit("onBarrierCalc", {
+          source,
+          target,
+          barrier: evalExpr(effect.power, { ...env, target }),
+          skillId: ctx.currentAction?.skillId,
+        }).barrier ?? 0,
+        duration: evalExpr(effect.duration, { ...env, target }),
+      })
+    }
+  },
   [EffectType.PhysicalHit]: handleHit,
   [EffectType.SpellHit]: handleHit,
+  [EffectType.FixedHit]: handleHit,
   [EffectType.ModifyStrike]: () => undefined,
   [EffectType.ModifyDefenseIgnore]: () => undefined,
   [EffectType.ModifyHeal]: () => undefined,
+  [EffectType.ModifyBarrier]: () => undefined,
+  [EffectType.ModifyWound]: () => undefined,
   [EffectType.SetCrit]: () => undefined,
   [EffectType.ModifyResource]: handleModifyResource,
   [EffectType.ModifyChance]: () => undefined,
   [EffectType.ClearSkipNextAction]: (_ctx, source) => {
     source.flags.skipNextAction = false
   },
+}
+
+function handleRandomBranch(
+  ctx: BattleContext,
+  source: Unit,
+  skill: SkillDef,
+  effect: Extract<SkillEffect, { type: typeof EffectType.RandomBranch }>,
+  targets: Unit[],
+  env: ExprEnv,
+): void {
+  const chance = Math.min(1, Math.max(0, evalExpr(effect.chance, env)))
+  const success = ctx.rng.chance(chance)
+  ctx.emit({
+    type: EventType.ChanceResolved,
+    branchId: effect.branchId,
+    sourceId: source.id,
+    targetId: targets[0]?.id,
+    chance,
+    success,
+  })
+  const branch = success ? effect.successEffects : effect.failureEffects
+  for (const child of branch) {
+    const resolved = child.targeting
+      ? resolveSkillTargets(ctx, source, { ...skill, targeting: child.targeting }, targets.map((target) => target.id))
+      : targets
+    const matched = child.when
+      ? resolved.filter((target) => matchesWhen(ctx, child.when, { source, target, skill, skillId: skill.id }))
+      : resolved
+    const childEnv = {
+      ...env,
+      target: matched[0] ?? env.target,
+      targetStatusStacks: targetStatusStacks(ctx, child.when, matched[0] ?? env.target),
+    }
+    applyEffect(ctx, source, skill, child, matched, childEnv)
+  }
 }
 
 function handleRestoreHp(
@@ -91,7 +161,11 @@ export function applyEffect(
   // 休息、给自己上状态、驱散可以没有敌方目标。
   if (
     effect.type !== EffectType.SkipNextAction &&
+    effect.type !== EffectType.RandomBranch &&
     effect.type !== EffectType.ApplyStatus &&
+    effect.type !== EffectType.RemoveStatus &&
+    effect.type !== EffectType.CopyStatus &&
+    effect.type !== EffectType.EmitMechanic &&
     effect.type !== EffectType.Dispel &&
     effect.type !== EffectType.ModifyStrike &&
     effect.type !== EffectType.ModifyDefenseIgnore &&
@@ -110,10 +184,52 @@ export function applyEffect(
   handler(ctx, source, skill, effect, targets, env)
 }
 
-function handleModifyResource(
+function matchingStatuses(unit: Unit, spec: { statusIds?: string[]; kinds?: string[] }): Unit["statuses"] {
+  return unit.statuses
+    .filter((status) => spec.statusIds?.includes(status.id) || spec.kinds?.includes(status.kind))
+    .sort((a, b) => a.appliedRound - b.appliedRound || a.id.localeCompare(b.id))
+}
+
+function handleRemoveStatus(
+  ctx: BattleContext,
+  _source: Unit,
+  _skill: SkillDef,
+  effect: Extract<SkillEffect, { type: typeof EffectType.RemoveStatus }>,
+  targets: Unit[],
+  env: ExprEnv,
+): void {
+  for (const target of targets) {
+    const max = effect.maxCount === undefined ? Number.POSITIVE_INFINITY : Math.max(0, Math.floor(evalExpr(effect.maxCount, { ...env, target })))
+    for (const status of matchingStatuses(target, effect).slice(0, max)) {
+      removeStatus(ctx, target, status.id, StatusRemoveReason.Consumed)
+    }
+  }
+}
+
+function handleCopyStatus(
   ctx: BattleContext,
   source: Unit,
   _skill: SkillDef,
+  effect: Extract<SkillEffect, { type: typeof EffectType.CopyStatus }>,
+  targets: Unit[],
+  env: ExprEnv,
+): void {
+  const primaryId = ctx.currentAction?.primaryTargetId
+  const primary = primaryId ? ctx.state.units.find((unit) => unit.id === primaryId) : undefined
+  if (!primary) return
+  const max = effect.maxCount === undefined ? Number.POSITIVE_INFINITY : Math.max(0, Math.floor(evalExpr(effect.maxCount, env)))
+  const statuses = matchingStatuses(primary, effect).slice(0, max)
+  const durationAdd = Math.floor(evalExpr(effect.durationAdd ?? 0, env))
+  for (const target of targets) {
+    if (target.id === primary.id) continue
+    for (const status of statuses) copyStatusInstance(ctx, source, target, status, durationAdd)
+  }
+}
+
+function handleModifyResource(
+  ctx: BattleContext,
+  source: Unit,
+  skill: SkillDef,
   effect: Extract<SkillEffect, { type: typeof EffectType.ModifyResource }>,
   _targets: Unit[],
   env: ExprEnv,
@@ -147,7 +263,7 @@ function handleModifyResource(
 function handleApplyStatus(
   ctx: BattleContext,
   source: Unit,
-  _skill: SkillDef,
+  skill: SkillDef,
   effect: Extract<SkillEffect, { type: typeof EffectType.ApplyStatus }>,
   targets: Unit[],
   env: ExprEnv,
@@ -155,9 +271,10 @@ function handleApplyStatus(
   const dest = effect.self ? [source] : targets
   const duration = floorAtLeast(1, evalExpr(effect.duration, env))
   for (const t of dest) {
+    if ((t.flags.downed || t.flags.dead) && !(effect.targeting?.includeDowned ?? skill.targeting.includeDowned)) continue
     const hit = effect.hit ?? StatusHit.Always
     if (hit === StatusHit.Seal) {
-      const chance = ctx.rules.formulas.sealHitChance(source, t, env.skillLevel, _skill.sealBase)
+      const chance = ctx.rules.formulas.sealHitChance(source, t, env.skillLevel, skill.sealBase)
       if (!ctx.rng.chance(chance)) {
         ctx.emit({ type: EventType.Miss, sourceId: source.id, targetId: t.id, kind: StatusHit.Seal })
         continue
@@ -179,17 +296,29 @@ function handleDispel(
 ): void {
   const dest = targets.length ? targets : [source]
   for (const t of dest) {
-    const ids = [
-      ...(effect.statusIds ?? []),
-      ...t.statuses.filter((s) => effect.kinds?.includes(s.kind)).map((s) => s.id),
-      ...t.statuses
-        .filter((s) => {
-          const cat = ctx.statusDefs.get(s.id)?.category
-          return cat !== undefined && effect.categories?.includes(cat)
-        })
-        .map((s) => s.id),
-    ]
-    for (const id of new Set(ids)) removeStatus(ctx, t, id, StatusRemoveReason.Dispel)
+    const priority = effect.categoryPriority ?? [StatusCategory.Control, StatusCategory.Debuff, StatusCategory.Dot, StatusCategory.Buff]
+    const maxCount = effect.maxCount === undefined
+      ? Number.POSITIVE_INFINITY
+      : Math.max(0, Math.floor(evalExpr(effect.maxCount, { skillLevel: 0, targets: 1, source, target: t })))
+    const candidates = t.statuses
+      .filter((status) => {
+        const def = ctx.statusDefs.get(status.id)
+        if (def?.dispellable === false) return false
+        if (effect.includeStatusFlags?.length && !effect.includeStatusFlags.some((flag) => Boolean(def?.[flag]))) return false
+        if (effect.excludeStatusFlags?.some((flag) => Boolean(def?.[flag]))) return false
+        return effect.statusIds?.includes(status.id) === true ||
+          effect.kinds?.includes(status.kind) === true ||
+          (def?.category !== undefined && effect.categories?.includes(def.category) === true)
+      })
+      .sort((a, b) => {
+        const aCategory = ctx.statusDefs.get(a.id)?.category
+        const bCategory = ctx.statusDefs.get(b.id)?.category
+        const aPriority = aCategory === undefined ? priority.length : priority.indexOf(aCategory)
+        const bPriority = bCategory === undefined ? priority.length : priority.indexOf(bCategory)
+        return aPriority - bPriority || a.appliedRound - b.appliedRound || a.id.localeCompare(b.id)
+      })
+      .slice(0, maxCount)
+    for (const status of candidates) removeStatus(ctx, t, status.id, StatusRemoveReason.Dispel)
   }
 }
 
@@ -233,7 +362,7 @@ function handleHit(
   ctx: BattleContext,
   source: Unit,
   skill: SkillDef,
-  effect: Extract<SkillEffect, { type: typeof EffectType.PhysicalHit | typeof EffectType.SpellHit }>,
+  effect: Extract<SkillEffect, { type: typeof EffectType.PhysicalHit | typeof EffectType.SpellHit | typeof EffectType.FixedHit }>,
   targets: Unit[],
   env: ExprEnv,
 ): void {
@@ -242,10 +371,18 @@ function handleHit(
   const coeffs: number[] = Array.isArray(coeffSpec)
     ? coeffSpec
     : Array.from({ length: hits }, () => coeffSpec ?? 1)
-  const kind = effect.type === EffectType.PhysicalHit ? DamageKind.Physical : DamageKind.Spell
+  const formula = effect.formula ?? skill.formula
+  const trueDamage = effect.type === EffectType.FixedHit ? true : effect.trueDamage
+  const fixed = effect.type === EffectType.FixedHit || trueDamage === true || formula === FormulaFamily.Fixed || formula === FormulaFamily.Judge
+  const kind = fixed
+    ? DamageKind.Fixed
+    : effect.type === EffectType.PhysicalHit
+      ? DamageKind.Physical
+      : DamageKind.Spell
   const power = evalExpr(effect.power, env)
 
   for (const t of targets) {
+    if (effect.when?.targetSlot === "primary" && ctx.currentAction?.primaryTargetId !== t.id) continue
     for (let i = 0; i < hits; i++) {
       // 横扫中途打死目标则后续刀取消。
       if (!isStanding(t) || ctx.state.result) break
@@ -255,18 +392,21 @@ function handleHit(
         kind,
         coeff: coeffs[i] ?? 1,
         power,
-        trueDamage: effect.trueDamage,
+        trueDamage,
         defenseIgnore:
-          effect.type === EffectType.PhysicalHit
+          effect.type === EffectType.PhysicalHit || effect.type === EffectType.SpellHit
             ? evalExpr(effect.defenseIgnore ?? 0, env)
             : 0,
-        formula: effect.formula ?? skill.formula,
+        cannotMiss: effect.type === EffectType.PhysicalHit ? effect.cannotMiss : kind === DamageKind.Fixed,
+        cannotKill: effect.cannotKill,
+        formula,
         skillLevel: env.skillLevel,
-        targetCount: targets.length,
+        targetCount: env.targets,
         schoolTerm: skill.schoolTerm,
         splash: skill.splash,
         skillId: skill.id,
         isPrimary: ctx.currentAction?.primaryTargetId === t.id,
+        origin: effect.type === EffectType.FixedHit ? effect.origin : undefined,
       })
     }
   }
