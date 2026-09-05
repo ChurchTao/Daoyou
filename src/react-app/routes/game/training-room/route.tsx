@@ -6,10 +6,10 @@ import { useCombatV6Build } from '@app/lib/resources/player';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type {
   CombatV6BuildViewV1,
-  CombatV6TrainingCommandV1,
   CombatV6TrainingSessionViewV1,
 } from '@shared/contracts/combatV6';
-import type { BattleEvent } from '@shared/engine/combat-v6/core';
+import { UnitCard, CommandPanel } from '@app/components/feature/battle/CombatV6Panels';
+import { eventText } from '@app/components/feature/battle/combatV6EventText';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type ContentView = {
@@ -49,44 +49,6 @@ function mergeEvents(current: SequencedEvent[], incoming: SequencedEvent[]) {
   return [...bySeq.values()].sort((left, right) => left.seq - right.seq);
 }
 
-function unitName(units: CombatV6TrainingSessionViewV1['units'], id?: string) {
-  return units.find((unit) => unit.id === id)?.name ?? id ?? '未知目标';
-}
-
-function eventText(event: BattleEvent, units: CombatV6TrainingSessionViewV1['units']) {
-  switch (event.type) {
-    case 'battleStart': return '演武开始。';
-    case 'roundStart': return `第 ${event.round} 回合开始。`;
-    case 'roundEnd': return `第 ${event.round} 回合结束。`;
-    case 'actionStart': return `${unitName(units, event.unitId)}开始行动。`;
-    case 'actionSkip': return `${unitName(units, event.unitId)}无法行动：${event.reason}`;
-    case 'actionFailed': return `${unitName(units, event.unitId)}施展失败：${event.reason}`;
-    case 'retarget': return `${unitName(units, event.unitId)}的目标转向${unitName(units, event.to)}。`;
-    case 'miss': return `${unitName(units, event.sourceId)}未能命中${unitName(units, event.targetId)}。`;
-    case 'damage': return `${unitName(units, event.sourceId)}对${unitName(units, event.targetId)}造成 ${event.amount} 点伤害。`;
-    case 'heal': return `${unitName(units, event.sourceId)}为${unitName(units, event.targetId)}恢复 ${event.amount} 点气血。`;
-    case 'mpCost': return `${unitName(units, event.unitId)}消耗 ${event.amount} 点法力。`;
-    case 'hpCost': return `${unitName(units, event.unitId)}消耗 ${event.amount} 点气血。`;
-    case 'mpDamage': return `${unitName(units, event.targetId)}损失 ${event.amount} 点法力。`;
-    case 'mpRestore': return `${unitName(units, event.unitId)}恢复 ${event.amount} 点法力。`;
-    case 'woundChanged': return `${unitName(units, event.targetId)}的伤势由 ${event.before} 变为 ${event.after}。`;
-    case 'barrierChanged': return `${unitName(units, event.unitId)}的护盾变化：${event.before} → ${event.after}。`;
-    case 'statusApplied': return `${unitName(units, event.unitId)}获得状态「${event.statusId}」。`;
-    case 'statusRemoved': return `${unitName(units, event.unitId)}失去状态「${event.statusId}」。`;
-    case 'resourceChanged': return `${unitName(units, event.unitId)}的${event.resourceId}：${event.before} → ${event.after}。`;
-    case 'unitDowned': return `${unitName(units, event.unitId)}倒地。`;
-    case 'unitDead': return `${unitName(units, event.unitId)}战死。`;
-    case 'unitRevived': return `${unitName(units, event.unitId)}复起，恢复 ${event.hp} 点气血。`;
-    case 'unitEscaped': return `${unitName(units, event.unitId)}离开了战斗。`;
-    case 'mechanicTriggered': return `${unitName(units, event.sourceId)}触发「${event.name}」。`;
-    case 'chanceResolved': return `机缘判定${event.success ? '成功' : '失败'}（${Math.round(event.chance * 100)}%）。`;
-    case 'battleEnd': return '演武结束。';
-    case 'protectTrigger': return `${unitName(units, event.protectorId)}挺身保护${unitName(units, event.originalTargetId)}。`;
-    case 'petSummoned':
-    case 'petRecalled': return `${unitName(units, event.unitId)}的召唤单位发生变化。`;
-    default: return null;
-  }
-}
 
 function BuildInitialization({ build, pending, onInitialize }: {
   build: CombatV6BuildViewV1;
@@ -131,47 +93,6 @@ function EncounterSelection({ content, pending, onCreate }: {
   </InkCard>;
 }
 
-function UnitCard({ unit }: { unit: CombatV6TrainingSessionViewV1['units'][number] }) {
-  const recoverableHp = Math.max(1, unit.maxHp - unit.wound);
-  return <InkCard variant={unit.side === 0 ? 'highlighted' : 'default'} padding="sm">
-    <div className="flex items-start justify-between gap-3"><div><strong>{unit.name}</strong><span className="text-ink-secondary ml-2 text-xs">{unit.side === 0 ? '我方' : '敌方'}·{unit.slot + 1}位</span></div><span className="text-xs">{unit.dead ? '死亡' : unit.downed ? '倒地' : unit.escaped ? '离场' : '站立'}</span></div>
-    <div className="mt-2 grid grid-cols-2 gap-2 text-sm"><span>气血 {unit.hp}/{recoverableHp}</span><span>法力 {unit.mp}/{unit.maxMp}</span><span>伤势 {unit.wound}</span><span>护盾 {unit.barriers.reduce((sum, item) => sum + item.current, 0)}</span></div>
-    {(unit.statuses.length > 0 || unit.resources.length > 0 || unit.barriers.length > 0) && <div className="text-ink-secondary mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-      {unit.statuses.map((status) => <span key={`${status.id}-${status.remainingRounds}`}>{status.id} ×{status.stacks}（{status.remainingRounds}回合）</span>)}
-      {unit.barriers.map((barrier) => <span key={barrier.id}>{barrier.name} {barrier.current}（{barrier.remainingRounds}回合）</span>)}
-      {unit.resources.map((resource) => <span key={resource.id}>{resource.name} {resource.current}/{resource.max}</span>)}
-    </div>}
-  </InkCard>;
-}
-
-function CommandPanel({ session, pending, onSubmit, onResolve, onAbandon }: {
-  session: CombatV6TrainingSessionViewV1;
-  pending: boolean;
-  onSubmit: (command: CombatV6TrainingCommandV1) => void;
-  onResolve: () => void;
-  onAbandon: () => void;
-}) {
-  const options = session.commandOptions;
-  const targets = new Map(session.units.map((unit) => [unit.id, unit.name]));
-  if (session.outcome) {
-    const labels = { victory: '胜利', defeat: '落败', draw: '平局', aborted: '已中止' };
-    return <InkCard variant="highlighted" padding="lg"><h2 className="font-heading text-xl">演武结果：{labels[session.outcome]}</h2><div className="mt-3"><InkButton variant="primary" pending={pending} onClick={onAbandon}>结束本次训练</InkButton></div></InkCard>;
-  }
-  return <InkCard variant="elevated" padding="lg">
-    <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-heading text-xl">第 {session.round} 回合指令</h2><p className="text-ink-secondary mt-1 text-xs">{session.pendingCommand ? '已锁定一条指令，可继续覆盖。' : '请选择本回合指令。'}</p></div><InkButton variant="ghost" pending={pending} onClick={onAbandon}>放弃训练</InkButton></div>
-    {!options?.canSubmit ? <p className="text-crimson mt-3 text-sm">{options?.reasons.join('；') || '当前无法提交指令'}</p> : null}
-    <div className="mt-4 space-y-3">
-      <div className="flex flex-wrap gap-2">
-        {options?.attackTargetIds.map((id) => <InkButton key={id} disabled={pending || !options.canSubmit} onClick={() => onSubmit({ type: 'attack', target: id })}>攻击·{targets.get(id) ?? id}</InkButton>)}
-        {options?.canDefend ? <InkButton disabled={pending || !options.canSubmit} onClick={() => onSubmit({ type: 'defend' })}>防御</InkButton> : null}
-        {options?.protectTargetIds.map((id) => <InkButton key={id} disabled={pending || !options.canSubmit} onClick={() => onSubmit({ type: 'protect', target: id })}>保护·{targets.get(id) ?? id}</InkButton>)}
-        {options?.canFlee ? <InkButton disabled={pending || !options.canSubmit} onClick={() => onSubmit({ type: 'flee' })}>逃跑</InkButton> : null}
-      </div>
-      {options?.skills.map((skill) => <div key={skill.skillId} className="border-t border-ink/10 pt-2 text-sm"><div className="flex flex-wrap items-center gap-2"><strong>{skill.skillId}</strong>{!skill.ready ? <span className="text-crimson text-xs">{skill.reasons.join('；')}</span> : null}{skill.selectableTargetIds.map((id) => <InkButton key={id} disabled={pending || !options.canSubmit || !skill.ready} onClick={() => onSubmit({ type: 'skill', skillId: skill.skillId, targets: [id] })}>施展·{targets.get(id) ?? id}</InkButton>)}</div></div>)}
-    </div>
-    <div className="mt-5 border-t border-ink/15 pt-3"><InkButton variant="primary" pending={pending} disabled={!session.pendingCommand} onClick={onResolve}>推进回合</InkButton></div>
-  </InkCard>;
-}
 
 export default function TrainingRoomPage() {
   const buildQuery = useCombatV6Build();

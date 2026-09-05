@@ -97,3 +97,8 @@ export const COMBAT_V6_PHASE_7B_VERSIONS: CombatV6VersionStamp = Object.freeze({
 export const COMBAT_V6_PHASE_7C_VERSIONS: CombatV6VersionStamp = Object.freeze({
   ...COMBAT_V6_PHASE_7A_VERSIONS,
 })
+/** Wild encounters keep rules v5 while versioning their own content/projection. */
+export const COMBAT_V6_PHASE_7D_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  engineVersion: 'combat-v6', rulesetVersion: 'daoyou_rules_v5',
+  contentVersion: 'daoyou_wild_encounter_content_v1', projectionVersion: 'wild_encounter_v1',
+});

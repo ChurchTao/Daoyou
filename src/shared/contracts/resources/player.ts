@@ -344,6 +344,7 @@ export const conditionStatusSchema = z
   .strict();
 const conditionSchema = z
   .object({
+    combatV6: z.object({maxHp:z.number().positive(),maxMp:z.number().nonnegative(),recoveryPaused:z.boolean()}).strict().optional(),
     version: z.literal(1),
     resources: z
       .object({

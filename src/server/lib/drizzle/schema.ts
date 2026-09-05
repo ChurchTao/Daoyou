@@ -1020,7 +1020,7 @@ export const battleReplayArchives = pgTable(
   ],
 );
 
-// combat-v6仅持久化完整终局回放；活动战局、指令与RNG仅存在Redis。
+// combat-v6活动战局、指令与RNG仅存在Redis。
 export const combatV6ReplayArchives = pgTable(
   'wanjiedaoyou_combat_v6_replay_archives',
   {

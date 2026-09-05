@@ -21,3 +21,4 @@ export {
   COMBAT_V6_PHASE_7B_VERSIONS,
   COMBAT_V6_PHASE_7C_VERSIONS,
 } from './version.ts';
+export * from './wild/index.ts';

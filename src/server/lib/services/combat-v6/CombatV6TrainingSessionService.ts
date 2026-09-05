@@ -7,6 +7,7 @@ import { COMBAT_V6_TRAINING_ENCOUNTERS_V1, createCombatV6TrainingHostV1, restore
 import { randomInt, randomUUID } from 'node:crypto';
 import { assembleCombatV6TrainingPlayer, CombatV6BuildError } from './CombatV6BuildService';
 import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
+import { CombatV6WildStore } from './CombatV6WildStore';
 
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 type Actor = { userId: string; cultivatorId: string };
@@ -19,6 +20,7 @@ export class CombatV6TrainingSessionService {
   constructor(private readonly store = new CombatV6RuntimeStore()) {}
 
   async create(actor: Actor, encounterId: string, tier: CombatV6TrainingTierV1) {
+    if (await new CombatV6WildStore().lock(actor.cultivatorId)) throw this.error('AlreadyActive', '野外战斗或资源结算尚未结束');
     const currentId = await this.store.currentId(actor.cultivatorId);
     if (currentId) {
       const current = await this.store.get(currentId);

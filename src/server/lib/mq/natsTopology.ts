@@ -74,6 +74,11 @@ export const BACKGROUND_COMMAND_CONSUMER = {
 } as const;
 
 export const DOMAIN_EVENT_CONSUMERS = {
+  combatV6Condition: {
+    name: 'combat-v6-condition-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.battle.combat-v6-battle-finished.v1`,
+    concurrency: 4,
+  },
   sectFacilityProjector: {
     name: 'sect-facility-projector-v1',
     filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.sect.construction-donated.v1`,

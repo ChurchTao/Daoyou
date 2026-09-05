@@ -9,6 +9,7 @@ import { getExecutor } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
 import type { ActiveCultivatorRef, AppEnv } from '@server/lib/hono/types';
 import { redis } from '@server/lib/redis';
+import { CombatV6MutationLockedError } from '@server/lib/services/combat-v6/CombatV6MutationGuard';
 import {
   isRedisLockContention,
   LockAcquisitionError,
@@ -238,6 +239,7 @@ export function errorBody(
 }
 
 export function redisLockErrorResponse(error: unknown): Response | null {
+  if(error instanceof CombatV6MutationLockedError) return Response.json({success:false,code:error.code,error:error.message},{status:409});
   if (isRedisLockContention(error)) {
     const response = errorBody('操作正在处理中，请稍后重试', 429);
     response.headers.set('Retry-After', '1');

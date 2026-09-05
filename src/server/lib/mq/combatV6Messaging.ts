@@ -2,6 +2,8 @@ import { getJetStreamClient } from '@server/lib/nats';
 import { archiveCombatV6Replay, CombatV6ReplayConflictError } from '@server/lib/repositories/combatV6ReplayRepository';
 import { combatV6TrainingSessionStore } from '@server/lib/services/combat-v6/CombatV6TrainingSessionService';
 import { CombatV6RuntimeStore } from '@server/lib/services/combat-v6/CombatV6RuntimeStore';
+import { wildSessions } from '@server/lib/services/combat-v6/CombatV6WildSessionService';
+import { retryCombatV6Settlements } from '@server/lib/services/combat-v6/CombatV6ConditionProjector';
 import {
   COMBAT_V6_REPLAY_STREAM,
   COMBAT_V6_REPLAY_SUBJECT,
@@ -24,6 +26,8 @@ let stopping = false;
 
 async function publishOutboxes(): Promise<void> {
   await combatV6TrainingSessionStore.expireDue();
+  await wildSessions.expireDue();
+  await retryCombatV6Settlements();
   const jetStream = await getJetStreamClient();
   for (const battleId of await store.pending('terminal')) {
     const value = await store.outbox('terminal', battleId); if (!value) { await store.acknowledge('terminal', battleId); continue; }

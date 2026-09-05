@@ -1109,6 +1109,7 @@ export const router = createBrowserRouter(
                 '练功房',
               )}
             />
+            <Route path="wild" lazy={lazyRoute(() => import('@app/routes/game/wild/route'))} handle={scene({id:'wild',chrome:'immersive',dock:'hidden'},'野外探索')} />
             <Route
               path="tasks/:taskId/challenge"
               lazy={lazyRoute(

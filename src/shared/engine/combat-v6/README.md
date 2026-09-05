@@ -50,7 +50,7 @@ Phase 7C Redis权威运行时与回放归档见
 - 肉身位阶已改为只检查人物境界与五轨总等级的确定性逐阶提升；旧材料、概率、失败与保底流程已退出。
 - battle-v5 不再读取炼体 modifier、开战 Buff 或位阶 Hook；五轨战斗效果只存在于 combat-v6 新投影。
 - 裸角色无需加载旧装备、功法、宗门、经脉或炼体效果即可投影并完成确定性 1v1 战斗。
-- 已具备共享纯逻辑训练 Host、服务端 Redis 权威会话、逐回合训练 UI 和自包含 v6 回放；尚未接入奖励、战后 condition 回写或普通任务 PVE。
+- 已具备共享PVE Host、Redis权威会话、训练/野外逐回合UI、自包含v6回放和野外Condition结算；尚未接入奖励、任务消费者或捕捉。
 - `combat-v6` 不依赖 `battle-v5`、`creation-v2` 或旧宗门编译器；core 不反向依赖具体宗门内容。
 - 复制基线建立后，后续改造只在本目录进行，不反向修改来源仓库。
 
@@ -64,4 +64,10 @@ Phase 7C Redis权威运行时与回放归档见
 - `projection/`：保留各阶段入口，并提供 `projectCultivatorMultiSectV5ToCombatV6` 五宗门完整人物构筑入口。
 - `encounter/`：提供训练 NPC、六类遭遇、内容校验、指令查询编排、确定性 NPC 策略和共享纯逻辑 Host。
 - `build-state/`：提供五宗门旧心法显式映射、迁移归一化和一次性初始化读模型。
-- `version.ts`：Phase 1～7B 战斗、快照与调试转录共同使用的版本戳。
+- `version.ts`：Phase 1～7D 战斗、快照与调试转录共同使用的版本戳。
+
+## Phase 7D 野外遭遇
+
+新增 `wild/`：青溪灵草坡固定物种池、5～15级独立面板、确定性1～3只遭遇、可恢复PVE Host与资源结算纯规则。训练与野外共享中立回合编排，旧投影和rules v5保持兼容。服务端已接入每日20次Redis额度、终局Condition消费者和地图探索页；捕捉、宠物个体、奖励和任务消费尚未接入。
+
+设计见 [Phase 7D专项稿](../../../../docs/combat-v6-phase-7d-wild-encounter-design.md)。部署需执行新增业务迁移并完成认证页面及消息故障验证。

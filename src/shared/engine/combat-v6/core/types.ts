@@ -115,6 +115,7 @@ export type CombatV6VersionStamp = {
     | "daoyou_character_build_content_v4"
     | "daoyou_character_build_content_v5"
     | "daoyou_training_encounter_content_v1"
+    | "daoyou_wild_encounter_content_v1"
   projectionVersion:
     | "character_panel_v1"
     | "character_training_v1"
@@ -127,6 +128,7 @@ export type CombatV6VersionStamp = {
     | "character_build_v4"
     | "character_build_v5"
     | "training_encounter_v1"
+    | "wild_encounter_v1"
 }
 
 /** 场上一条状态。kind 是覆盖键（失心和定身 kind 不同，可并存）。 */

@@ -10,6 +10,7 @@ import { projectTaskDomainEvent } from '@server/lib/services/TaskDomainEventProj
 import { projectWorldRumorDomainEvent } from '@server/lib/services/WorldRumorDomainEventProjector';
 import { processSponsorshipOrder } from '@server/lib/services/SponsorshipApplicationService';
 import { db } from '@server/lib/drizzle/db';
+import { projectCombatV6Condition } from '@server/lib/services/combat-v6/CombatV6ConditionProjector';
 import { claimMessageForConsumer } from '@server/lib/repositories/messageConsumptionRepository';
 import {
   generateYieldRewardAttachments,
@@ -65,6 +66,12 @@ export async function registerMessageInfrastructure(): Promise<void> {
     startBattleTerminalFinalizerConsumer(),
     startBattleResolutionConsumer(),
     startCombatV6Messaging(),
+    startDomainEventConsumer({
+      consumerName: DOMAIN_EVENT_CONSUMERS.combatV6Condition.name,
+      concurrency: DOMAIN_EVENT_CONSUMERS.combatV6Condition.concurrency,
+      acceptedTypes: ['combat.v6.battle.finished'],
+      handle: async (event) => { if (event.type === 'combat.v6.battle.finished') await projectCombatV6Condition((event as DomainEventEnvelope<'combat.v6.battle.finished'>).data.battleId); },
+    }),
     startDomainEventConsumer({
       consumerName: DOMAIN_EVENT_CONSUMERS.sectFacilityProjector.name,
       concurrency: DOMAIN_EVENT_CONSUMERS.sectFacilityProjector.concurrency,

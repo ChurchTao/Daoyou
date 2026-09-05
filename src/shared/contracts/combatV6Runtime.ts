@@ -24,6 +24,7 @@ export const CombatV6TrainingBattleMetadataV1Schema = z.object({
 
 export const CombatV6BattleMetadataV1Schema = z.discriminatedUnion('sourceType', [
   CombatV6TrainingBattleMetadataV1Schema,
+  z.object({ schemaVersion:z.literal(1), sourceType:z.literal('wild-encounter'), battleType:z.literal('pve'), idempotencyKey:z.string().min(1).max(200), payload:z.object({nodeId:z.string().min(1),encounterContentVersion:z.string().min(1),combatants:z.array(z.object({unitId:z.string().min(1),speciesId:z.string().min(1),level:z.number().int().min(5).max(15)}).strict()).min(1).max(3)}).strict() }).strict(),
 ]);
 export type CombatV6BattleMetadataV1 = z.infer<typeof CombatV6BattleMetadataV1Schema>;
 
@@ -84,7 +85,7 @@ export interface CombatV6RedisRuntimeV1 {
   cultivatorId: string;
   membershipId: string;
   buildRevision: number;
-  metadata: CombatV6BattleMetadataV1;
+  metadata: z.infer<typeof CombatV6TrainingBattleMetadataV1Schema>;
   revision: number;
   createdAt: string;
   expiresAt: string;
@@ -119,7 +120,11 @@ export const CombatV6RedisRuntimeV1Schema = z.object({
   }).strict(),
 }).strict();
 
-export interface CombatV6ReplayV1 extends CombatV6EncounterTraceV1 {
+export interface CombatV6ReplayV1 extends Omit<CombatV6EncounterTraceV1, 'hostVersion' | 'encounterId' | 'tier'> {
+  hostVersion: 'combat_v6_encounter_host_v1' | 'combat_v6_wild_encounter_host_v1';
+  encounterId?: string;
+  tier?: 60 | 120 | 180;
+  nodeId?: string;
   replayVersion: typeof COMBAT_V6_REPLAY_VERSION;
   battleId: string;
   cultivatorId: string;
@@ -138,9 +143,10 @@ export const CombatV6ReplayV1Schema = z.object({
   startedAt: z.string().datetime(),
   finishedAt: z.string().datetime(),
   schemaVersion: z.literal(1),
-  hostVersion: z.literal('combat_v6_encounter_host_v1'),
-  encounterId: z.string().min(1),
-  tier: z.union([z.literal(60), z.literal(120), z.literal(180)]),
+  hostVersion: z.enum(['combat_v6_encounter_host_v1','combat_v6_wild_encounter_host_v1']),
+  encounterId: z.string().min(1).optional(),
+  tier: z.union([z.literal(60), z.literal(120), z.literal(180)]).optional(),
+  nodeId: z.string().min(1).optional(),
   seed: z.number().int(),
   combatVersions: VersionStampSchema,
   sourceProjectionVersions: VersionStampSchema,
@@ -151,7 +157,10 @@ export const CombatV6ReplayV1Schema = z.object({
   events: z.array(z.unknown()),
   finalState: z.object({ round: z.number().int().positive() }).passthrough(),
   outcome: z.enum(['victory', 'defeat', 'draw', 'aborted']),
-}).strict();
+}).strict().refine((value) => value.metadata.sourceType === 'training-room'
+  ? value.hostVersion === 'combat_v6_encounter_host_v1' && value.encounterId === value.metadata.payload.encounterId && value.tier === value.metadata.payload.tier && value.nodeId === undefined
+  : value.hostVersion === 'combat_v6_wild_encounter_host_v1' && value.nodeId === value.metadata.payload.nodeId && value.encounterId === undefined && value.tier === undefined,
+  'Replay source and host must agree');
 
 export interface CombatV6ReplayArchiveMessageV1 {
   version: 'combat_v6_replay_archive_message_v1';

@@ -22,6 +22,8 @@ export const COMBAT_V6_DEADLINES_KEY = `${PREFIX}:deadlines`;
 const CREATE_SCRIPT = `
 local active = redis.call('GET', KEYS[2])
 if active then return {'ACTIVE', active} end
+local settlement = redis.call('GET', KEYS[5])
+if settlement then return {'ACTIVE', settlement} end
 local idem = redis.call('GET', KEYS[3])
 if idem then return {'IDEMPOTENT', idem} end
 redis.call('SET', KEYS[1], ARGV[1], 'PXAT', ARGV[2])
@@ -69,9 +71,9 @@ export class CombatV6RuntimeStore {
     const hardExpiry = Date.parse(runtime.expiresAt);
     const result = await redis.eval(
       CREATE_SCRIPT,
-      4,
+      5,
       runtimeKey(runtime.battleId), activeKey(runtime.cultivatorId),
-      idemKey(runtime.metadata.sourceType, runtime.metadata.idempotencyKey), COMBAT_V6_DEADLINES_KEY,
+      idemKey(runtime.metadata.sourceType, runtime.metadata.idempotencyKey), COMBAT_V6_DEADLINES_KEY, `combat:v6:wild:lock:${runtime.cultivatorId}`,
       JSON.stringify(runtime), String(hardExpiry + RUNTIME_GRACE_MS), runtime.battleId, String(hardExpiry),
     ) as [string, string];
     return { status: result[0]!.toLowerCase() as 'created' | 'active' | 'idempotent', battleId: result[1]! };
@@ -79,7 +81,9 @@ export class CombatV6RuntimeStore {
 
   async get(battleId: string): Promise<CombatV6RedisRuntimeV1 | null> {
     const raw = await redis.get(runtimeKey(battleId));
-    return raw ? parseCombatV6Runtime(JSON.parse(raw)) : null;
+    if (!raw) return null;
+    const value = JSON.parse(raw);
+    return value.metadata?.sourceType === 'wild-encounter' ? null : parseCombatV6Runtime(value);
   }
 
   async currentId(cultivatorId: string): Promise<string | null> {

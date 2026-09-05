@@ -1,4 +1,4 @@
-import { requireActiveCultivatorRef } from '@server/lib/hono/middleware';
+import { requireActiveCultivatorRef, redisLockErrorResponse } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
@@ -28,6 +28,9 @@ import {
 } from '@shared/contracts/combatV6';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
+import { wildSessions, WildError } from '@server/lib/services/combat-v6/CombatV6WildSessionService';
+import { WildExploreRequestSchema } from '@shared/contracts/combatV6Wild';
+import { TrainingHostError } from '@shared/engine/combat-v6/encounter';
 
 const router = new Hono<AppEnv>();
 const combatV6RuntimeStore = new CombatV6RuntimeStore();
@@ -46,6 +49,8 @@ function actor(c: Context<AppEnv>) {
 }
 
 function errorResponse(c: Context<AppEnv>, error: unknown) {
+  const coordinationError=redisLockErrorResponse(error); if(coordinationError)return coordinationError;
+  if (error instanceof TrainingHostError) return c.json({success:false,code:'WILD_COMMAND_NOT_ALLOWED',error:error.message},400);
   if (error instanceof z.ZodError) {
     return c.json(
       {
@@ -59,6 +64,7 @@ function errorResponse(c: Context<AppEnv>, error: unknown) {
   }
   if (
     error instanceof CombatV6BuildError ||
+    error instanceof WildError ||
     error instanceof CombatV6TrainingSessionError
   ) {
     return jsonWithStatus(
@@ -110,6 +116,8 @@ router.get('/replays/:battleId', async (c) => {
     const current = actor(c);
     const archived = await findOwnedCombatV6Replay(params.battleId, current.cultivatorId);
     if (archived) return c.json({ success: true, data: archived.replay });
+    const terminal = await combatV6RuntimeStore.terminalRecord(params.battleId);
+    if(terminal?.cultivatorId===current.cultivatorId && terminal.replayExpected) return c.json({success:false,code:COMBAT_V6_REPLAY_ERROR_CODE.Pending,error:'战斗回放正在归档'},202);
     const runtime = await combatV6RuntimeStore.get(params.battleId);
     if (runtime?.cultivatorId === current.cultivatorId && runtime.host.state.result) {
       return c.json({ success: false, code: COMBAT_V6_REPLAY_ERROR_CODE.Pending, error: '战斗回放正在归档' }, 202);
@@ -232,5 +240,13 @@ router.get('/training/sessions/:sessionId/trace', async (c) => {
     return errorResponse(c, error);
   }
 });
+
+router.get('/wild/regions/:nodeId', async(c)=>{try{return c.json({success:true,data:await wildSessions.region(actor(c),c.req.param('nodeId'))});}catch(error){return errorResponse(c,error);}});
+router.post('/wild/explorations', async(c)=>{try{const input=WildExploreRequestSchema.parse(await c.req.json());return c.json({success:true,data:await wildSessions.explore(actor(c),input.nodeId,input.requestId)});}catch(error){return errorResponse(c,error);}});
+router.get('/wild/sessions/current',async(c)=>{try{return c.json({success:true,data:await wildSessions.current(actor(c))});}catch(error){return errorResponse(c,error);}});
+router.get('/wild/sessions/:sessionId',async(c)=>{try{const {sessionId}=CombatV6TrainingSessionParamsSchema.parse(c.req.param());const query=CombatV6TrainingEventsQuerySchema.parse(c.req.query());return c.json({success:true,data:await wildSessions.get(actor(c),sessionId,query.afterEventSeq)});}catch(error){return errorResponse(c,error);}});
+router.put('/wild/sessions/:sessionId/commands/:unitId',async(c)=>{try{const p=CombatV6TrainingCommandParamsSchema.parse(c.req.param());const input=CombatV6TrainingCommandRequestSchema.parse(await c.req.json());return c.json({success:true,data:await wildSessions.submit(actor(c),p.sessionId,input.expectedRevision,p.unitId,input.command)});}catch(error){return errorResponse(c,error);}});
+router.post('/wild/sessions/:sessionId/resolve',async(c)=>{try{const p=CombatV6TrainingSessionParamsSchema.parse(c.req.param());const input=CombatV6TrainingRevisionRequestSchema.parse(await c.req.json());return c.json({success:true,data:await wildSessions.resolve(actor(c),p.sessionId,input.expectedRevision)});}catch(error){return errorResponse(c,error);}});
+router.delete('/wild/sessions/:sessionId',async(c)=>{try{const p=CombatV6TrainingSessionParamsSchema.parse(c.req.param());const input=CombatV6TrainingRevisionRequestSchema.parse(await c.req.json());return c.json({success:true,data:await wildSessions.abandon(actor(c),p.sessionId,input.expectedRevision)});}catch(error){return errorResponse(c,error);}});
 
 export default router;

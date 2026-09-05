@@ -60,15 +60,20 @@ export function restoreCombatV6TrainingHostV1(runtime: CombatV6TrainingRuntimeSn
   return { ok: true, host: new CombatV6TrainingHostSessionV1(result.compiled, runtime), diagnostics: result.diagnostics, versions: result.versions }
 }
 
-export class CombatV6TrainingHostSessionV1 implements CombatV6TrainingHostV1 {
-  readonly playerId: string
-  private readonly battle: BattleSession
-  private readonly initialUnits: CompiledCombatV6TrainingEncounterV1["battleInput"]["units"]
-  private readonly skills: SkillDef[]
-  private readonly statusDefs: NonNullable<CompiledCombatV6TrainingEncounterV1["battleInput"]["statusDefs"]>
-  private readonly rounds: CombatV6EncounterTraceV1["rounds"] = []
+export type CompiledPveEncounter = Pick<CompiledCombatV6TrainingEncounterV1, "playerId" | "battleInput" | "npcStrategies" | "sourceProjectionVersions">
+export type PveRestoredState = Pick<CombatV6TrainingRuntimeSnapshotV1, "state" | "events" | "rounds">
 
-  constructor(private readonly compiled: CompiledCombatV6TrainingEncounterV1, restored?: CombatV6TrainingRuntimeSnapshotV1) {
+/** Shared command orchestration. Source-specific compilation and serialization stay outside. */
+export class CombatV6PveHostSession {
+  readonly playerId: string
+  protected readonly battle: BattleSession
+  protected readonly initialUnits: CompiledCombatV6TrainingEncounterV1["battleInput"]["units"]
+  protected readonly skills: SkillDef[]
+  protected readonly statusDefs: NonNullable<CompiledCombatV6TrainingEncounterV1["battleInput"]["statusDefs"]>
+  protected readonly rounds: CombatV6EncounterTraceV1["rounds"] = []
+
+  constructor(private readonly encounter: CompiledPveEncounter, restored?: PveRestoredState) {
+    const compiled = encounter
     this.playerId = compiled.playerId
     this.initialUnits = clone(compiled.battleInput.units)
     this.skills = clone(compiled.battleInput.skills ?? [])
@@ -105,7 +110,7 @@ export class CombatV6TrainingHostSessionV1 implements CombatV6TrainingHostV1 {
       .sort(stableUnitOrder)
     for (const npc of npcs) {
       if (npc.command) continue
-      const strategy = this.compiled.npcStrategies[npc.id]
+      const strategy = this.encounter.npcStrategies[npc.id]
       if (strategy) this.battle.submit(npc.id, this.decideNpcCommand(npc, strategy))
     }
 
@@ -121,6 +126,42 @@ export class CombatV6TrainingHostSessionV1 implements CombatV6TrainingHostV1 {
   }
 
   snapshot() { return this.battle.snapshot() }
+
+  protected recordedState(): PveRestoredState {
+    return clone({ state: this.battle.snapshot(), rounds: this.rounds, events: [...this.battle.log()] })
+  }
+
+  protected traceData() {
+    return clone({ seed: this.encounter.battleInput.seed, combatVersions: this.encounter.battleInput.versions,
+      sourceProjectionVersions: this.encounter.sourceProjectionVersions, initialUnits: this.initialUnits,
+      skills: this.skills, statusDefs: this.statusDefs, rounds: this.rounds, events: [...this.battle.log()],
+      finalState: this.finished ? this.snapshot() : undefined,
+      outcome: this.finished ? trainingEncounterOutcome(this.battle.state, this.playerId) : undefined })
+  }
+
+  private validateCommand(unit: Unit, command: Command): void {
+    if (![CommandType.Attack, CommandType.Skill, CommandType.Defend, CommandType.Protect, CommandType.Flee].includes(command.type as never)) throw new TrainingHostError(TrainingHostErrorCode.UnsupportedCommand, `不支持指令：${command.type}`)
+    if (command.type === CommandType.Skill && !unit.skills.includes(command.skillId)) throw new TrainingHostError(TrainingHostErrorCode.UnknownSkill, `未拥有技能 ${command.skillId}`)
+    const ids = command.type === CommandType.Skill ? command.targets : command.type === CommandType.Attack || command.type === CommandType.Protect ? [command.target] : []
+    for (const id of ids) if (!this.battle.state.units.some((candidate) => candidate.id === id)) throw new TrainingHostError(TrainingHostErrorCode.UnknownTarget, `未知目标：${id}`)
+  }
+
+  private decideNpcCommand(unit: Unit, strategy: PveCommandStrategyV1): Command {
+    if (strategy.type === "defend") return { type: CommandType.Defend }
+    const enemies = this.battle.state.units.filter((candidate) => candidate.side !== unit.side && isStanding(candidate)).sort(stableUnitOrder)
+    if (strategy.type === "attack") return enemies[0] ? { type: CommandType.Attack, target: enemies[0].id } : { type: CommandType.Defend }
+    const skillId = strategy.skillIds[(this.battle.state.round - 1) % strategy.skillIds.length]
+    const skill = this.skills.find((candidate) => candidate.id === skillId)
+    if (!skill) return { type: CommandType.Defend }
+    const option = this.battle.queryCommands(unit.id).skills.find((candidate) => candidate.skillId === skillId)
+    const rawPool = skill.targeting.side === TargetSide.Self ? [unit] : this.battle.state.units.filter((candidate) => isStanding(candidate) && (skill.targeting.side === TargetSide.Any || (skill.targeting.side === TargetSide.Enemy ? candidate.side !== unit.side : candidate.side === unit.side))).sort(stableUnitOrder)
+    const target = option?.selectableTargetIds[0] ?? rawPool[0]?.id
+    return { type: CommandType.Skill, skillId, targets: target ? [target] : [] }
+  }
+}
+
+export class CombatV6TrainingHostSessionV1 extends CombatV6PveHostSession implements CombatV6TrainingHostV1 {
+  constructor(private readonly compiled: CompiledCombatV6TrainingEncounterV1, restored?: CombatV6TrainingRuntimeSnapshotV1) { super(compiled, restored) }
 
   runtimeSnapshot(): CombatV6TrainingRuntimeSnapshotV1 {
     return clone({
@@ -153,39 +194,6 @@ export class CombatV6TrainingHostSessionV1 implements CombatV6TrainingHostV1 {
     })
   }
 
-  private validateCommand(unit: Unit, command: Command): void {
-    if (![CommandType.Attack, CommandType.Skill, CommandType.Defend, CommandType.Protect, CommandType.Flee].includes(command.type as never)) {
-      throw new TrainingHostError(TrainingHostErrorCode.UnsupportedCommand, `训练 Host 不支持指令：${command.type}`)
-    }
-    if (command.type === CommandType.Skill && !unit.skills.includes(command.skillId)) {
-      throw new TrainingHostError(TrainingHostErrorCode.UnknownSkill, `单位 ${unit.id} 未拥有技能 ${command.skillId}`)
-    }
-    const ids = command.type === CommandType.Skill
-      ? command.targets
-      : command.type === CommandType.Attack || command.type === CommandType.Protect
-        ? [command.target]
-        : []
-    for (const id of ids) {
-      if (!this.battle.state.units.some((candidate) => candidate.id === id)) throw new TrainingHostError(TrainingHostErrorCode.UnknownTarget, `未知训练目标：${id}`)
-    }
-  }
-
-  private decideNpcCommand(unit: Unit, strategy: PveCommandStrategyV1): Command {
-    if (strategy.type === "defend") return { type: CommandType.Defend }
-    const enemies = this.battle.state.units.filter((candidate) => candidate.side !== unit.side && isStanding(candidate)).sort(stableUnitOrder)
-    if (strategy.type === "attack") return enemies[0] ? { type: CommandType.Attack, target: enemies[0].id } : { type: CommandType.Defend }
-    const skillId = strategy.skillIds[(this.battle.state.round - 1) % strategy.skillIds.length]
-    const skill = this.skills.find((candidate) => candidate.id === skillId)
-    if (!skill) return { type: CommandType.Defend }
-    const option = this.battle.queryCommands(unit.id).skills.find((candidate) => candidate.skillId === skillId)
-    const rawPool = skill.targeting.side === TargetSide.Self
-      ? [unit]
-      : this.battle.state.units
-          .filter((candidate) => isStanding(candidate) && (skill.targeting.side === TargetSide.Any || (skill.targeting.side === TargetSide.Enemy ? candidate.side !== unit.side : candidate.side === unit.side)))
-          .sort(stableUnitOrder)
-    const target = option?.selectableTargetIds[0] ?? rawPool[0]?.id
-    return { type: CommandType.Skill, skillId, targets: target ? [target] : [] }
-  }
 }
 
 export function trainingEncounterOutcome(state: ReturnType<BattleSession["snapshot"]>, playerId: string): TrainingEncounterOutcome | undefined {

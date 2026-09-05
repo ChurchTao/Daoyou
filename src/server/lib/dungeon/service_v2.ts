@@ -1,5 +1,6 @@
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher';
+import { assertCombatV6MutationAllowed } from '@server/lib/services/combat-v6/CombatV6MutationGuard';
 import { renderPrompt } from '@server/lib/prompts';
 import { findActiveCultivatorOwnerId } from '@server/lib/repositories/cultivatorRepository';
 import type { BattleRecordV3 } from '@server/lib/services/battleResult';
@@ -590,6 +591,7 @@ export class DungeonService {
     task: () => Promise<T>,
     lease?: RedisLeaseContext,
   ): Promise<T> {
+    await assertCombatV6MutationAllowed(cultivatorId,'dungeon');
     if (lease) {
       lease.assertHeld();
       const result = await task();

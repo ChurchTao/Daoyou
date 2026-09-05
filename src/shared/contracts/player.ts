@@ -83,7 +83,7 @@ export interface PlayerResourceMap {
   profile: {
     cultivator: PlayerIdentityCultivator;
   };
-  condition: Cultivator['condition'];
+  condition: (NonNullable<Cultivator['condition']> & { combatV6?: { maxHp: number; maxMp: number; recoveryPaused: boolean } }) | undefined;
   progress: CultivationProgress;
   currency: QiProjectionBaseline & {
     spiritStones: number;
