@@ -1,4 +1,5 @@
 import {
+  playerCombatV6BuildResource,
   playerConditionResource,
   playerCurrencyResource,
   playerLoadoutResource,
@@ -34,6 +35,10 @@ export function useCultivatorCurrency(enabled = true) {
 
 export function usePlayerLoadout(enabled = true) {
   return useSingletonResource(playerLoadoutResource, enabled);
+}
+
+export function useCombatV6Build(enabled = true) {
+  return useSingletonResource(playerCombatV6BuildResource, enabled);
 }
 
 export function useUnreadMailCount() {

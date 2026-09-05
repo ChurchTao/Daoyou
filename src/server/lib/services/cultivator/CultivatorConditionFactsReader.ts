@@ -1,4 +1,5 @@
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
+import { readCombatV6ConditionAuthority } from '../combat-v6/CombatV6ConditionAuthority';
 import { loadCultivatorSectState } from '@server/lib/repositories/sectRepository';
 import {
   getExecutor,
@@ -75,7 +76,9 @@ export async function loadPlayerRetreatFacts(
       creationProductRepository.findEquippedByType(cultivatorId, 'artifact', q),
   ]);
   const loadout = mapLoadoutFromProducts([gongfa, artifacts]);
+  const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(cultivatorId, q);
   return {
+    ...{ combatV6ResourceAuthority },
     id: row.id,
     name: row.name,
     realm: row.realm as RealmType,
@@ -151,7 +154,9 @@ export async function loadPlayerInnRecoveryFacts(
       creationProductRepository.findEquippedByType(cultivatorId, 'artifact', q),
   ]);
   const loadout = mapLoadoutFromProducts([gongfa, artifacts]);
+  const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(cultivatorId, q);
   return {
+    ...{ combatV6ResourceAuthority },
     id: row.id,
     name: row.name,
     realm: row.realm as RealmType,
@@ -223,7 +228,9 @@ export async function loadPlayerConsumableOperationFacts(
       creationProductRepository.findEquippedByType(cultivatorId, 'artifact', q),
   ]);
   const loadout = mapLoadoutFromProducts([gongfa, artifacts]);
+  const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(cultivatorId, q);
   return {
+    ...{ combatV6ResourceAuthority },
     id: row.id,
     name: row.name,
     realm: row.realm as RealmType,

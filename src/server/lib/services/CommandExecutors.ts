@@ -1,4 +1,5 @@
 import { db, type DbTransaction } from '@server/lib/drizzle/db';
+import { assertCombatV6MutationAllowed } from './combat-v6/CombatV6MutationGuard';
 import {
   findPlayerMutationRequest,
   insertPlayerMutationRequest,
@@ -131,6 +132,7 @@ export class PlayerCommandExecutor {
       try {
         const result = await db.transaction(async (tx) => {
           await lockCultivatorForStateMutation(tx, input.cultivatorId);
+          await assertCombatV6MutationAllowed(input.cultivatorId, input.source);
           if (idempotency) {
             const existing = await findPlayerMutationRequest(
               input.cultivatorId,

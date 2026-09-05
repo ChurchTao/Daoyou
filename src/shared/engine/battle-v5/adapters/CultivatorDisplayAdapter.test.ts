@@ -178,8 +178,9 @@ describe('CultivatorDisplayAdapter', () => {
     expect(finalAttributes.willpower).toBe(10);
   });
 
-  it('applies body cultivation modifiers without changing primary attributes', () => {
+  it('does not apply body cultivation modifiers to battle-v5 display attrs', () => {
     const cultivator = createCultivatorFixture();
+    const baseline = getCultivatorDisplayAttributes(structuredClone(cultivator));
     cultivator.condition = {
       version: 1,
       resources: {
@@ -224,8 +225,8 @@ describe('CultivatorDisplayAdapter', () => {
       getCultivatorDisplayAttributes(cultivator);
 
     expect(finalAttributes.vitality).toBe(15);
-    expect(attrs.maxHp).toBe(803);
-    expect(attrs.def).toBeCloseTo(27.4725, 6);
+    expect(attrs.maxHp).toBe(baseline.attrs.maxHp);
+    expect(attrs.def).toBe(baseline.attrs.def);
   });
 
   it('builds a serializable display snapshot from battle-v5 attrs and resources', () => {

@@ -2,7 +2,6 @@ import {
   BODY_CULTIVATION_REALM_ORDER,
   BODY_CULTIVATION_REALM_REQUIREMENTS,
   BODY_CULTIVATION_TRACK_KEYS,
-  type BodyCultivationRealmRequirement,
   createEmptyProgressTrack,
   isCultivationRealmAtLeast,
 } from '@shared/lib/bodyCultivation/config';
@@ -156,42 +155,6 @@ function resolveBodyRealm(
   return selected;
 }
 
-function applyRealmRequirements(
-  levels: BodyCultivationTrackLevels,
-  race: EnemyRace,
-  variantKey: string,
-  realm: BodyCultivationRealm,
-): void {
-  const requirement = BODY_CULTIVATION_REALM_REQUIREMENTS[
-    realm
-  ] as BodyCultivationRealmRequirement;
-
-  if (requirement.minAllTracksLevel) {
-    for (const track of BODY_CULTIVATION_TRACK_KEYS) {
-      levels[track] = Math.max(levels[track], requirement.minAllTracksLevel);
-    }
-  }
-
-  for (const [track, level] of Object.entries(
-    requirement.requiredTrackLevels ?? {},
-  ) as Array<[BodyCultivationTrackKey, number]>) {
-    levels[track] = Math.max(levels[track], level);
-  }
-
-  if (requirement.requiredAnyTracks) {
-    const preferredTracks = sortTracksByRacePreference(race, variantKey).slice(
-      0,
-      requirement.requiredAnyTracks.count,
-    );
-    for (const track of preferredTracks) {
-      levels[track] = Math.max(
-        levels[track],
-        requirement.requiredAnyTracks.minLevel,
-      );
-    }
-  }
-}
-
 export class EnemyBodyCultivationPlanner {
   plan(args: {
     input: NormalizedEnemyGenerationInput;
@@ -201,8 +164,6 @@ export class EnemyBodyCultivationPlanner {
     const totalLevel = resolveTotalLevel(input);
     const realm = resolveBodyRealm(input, totalLevel);
     const trackLevels = createEmptyTrackLevels();
-
-    applyRealmRequirements(trackLevels, input.race, variantKey, realm);
 
     while (sumTrackLevels(trackLevels) < totalLevel) {
       const track = pickNextTrack(trackLevels, input.race, variantKey);

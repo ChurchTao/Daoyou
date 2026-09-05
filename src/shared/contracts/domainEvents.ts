@@ -6,6 +6,7 @@ import {
 import { SPIRIT_FIELD_CARE_ACTIONS } from '@shared/engine/spirit-field/types';
 import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
 import { z } from 'zod';
+import { CombatV6BattleFinishedDataV1Schema } from './combatV6Runtime';
 
 export const DOMAIN_EVENT_STREAM = 'DAOYOU_DOMAIN_EVENTS';
 export const DOMAIN_EVENT_SUBJECT_PREFIX = 'daoyou.domain';
@@ -28,6 +29,7 @@ export const DOMAIN_EVENT_TYPES = [
   'bet-battle.settled',
   'ranking.position.changed',
   'sponsorship.order.received',
+  'combat.v6.battle.finished',
 ] as const;
 
 export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];
@@ -208,6 +210,7 @@ export const DomainEventDataSchemas = {
       providerOrderId: z.string().min(1).max(80),
     })
     .strict(),
+  'combat.v6.battle.finished': CombatV6BattleFinishedDataV1Schema,
 } as const;
 
 export type DomainEventData<TType extends DomainEventType> = z.infer<
@@ -282,6 +285,10 @@ export const DOMAIN_EVENT_DEFINITIONS = {
   'sponsorship.order.received': {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.sponsorship.order-received.v1`,
+  },
+  'combat.v6.battle.finished': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.battle.combat-v6-battle-finished.v1`,
   },
 } as const satisfies Record<
   DomainEventType,

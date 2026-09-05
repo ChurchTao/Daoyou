@@ -1,7 +1,9 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import { getExecutor } from '@server/lib/drizzle/db';
 import { messageConsumptions } from '@server/lib/drizzle/schema';
-import { lt } from 'drizzle-orm';
+import { and, lt, ne } from 'drizzle-orm';
+
+export const COMBAT_V6_CONDITION_CONSUMER = 'combat-v6-condition-v1';
 
 export async function claimMessageForConsumer(
   input: {
@@ -25,7 +27,14 @@ export async function pruneMessageConsumptions(
 ): Promise<number> {
   const rows = await q
     .delete(messageConsumptions)
-    .where(lt(messageConsumptions.processedAt, cutoff))
+    // Settlement may commit in PG while Redis unlock keeps failing indefinitely.
+    // Keep these receipts until a settlement-aware retention policy is available.
+    .where(
+      and(
+        lt(messageConsumptions.processedAt, cutoff),
+        ne(messageConsumptions.consumerName, COMBAT_V6_CONDITION_CONSUMER),
+      ),
+    )
     .returning({ messageId: messageConsumptions.messageId });
   return rows.length;
 }

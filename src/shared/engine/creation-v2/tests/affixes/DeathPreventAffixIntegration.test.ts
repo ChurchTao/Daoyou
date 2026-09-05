@@ -12,11 +12,8 @@ import {
   DamageType,
 } from '@shared/engine/battle-v5/core/types';
 import { AbilityFactory } from '@shared/engine/battle-v5/factories/AbilityFactory';
-import { BuffFactory } from '@shared/engine/battle-v5/factories/BuffFactory';
 import { DamageSystem } from '@shared/engine/battle-v5/systems/DamageSystem';
 import { Unit } from '@shared/engine/battle-v5/units/Unit';
-import { getBodyCultivationBattleInitHooks } from '@shared/lib/bodyCultivation/effects';
-import type { CultivatorCondition } from '@shared/types/condition';
 import { publishTestDamageRequest } from '@shared/engine/battle-v5/tests/setup/combatV3TestHarness';
 
 describe('death_prevent artifact affix integration', () => {
@@ -36,48 +33,6 @@ describe('death_prevent artifact affix integration', () => {
       [AttributeType.WILLPOWER]: 100,
       [AttributeType.ENDURANCE]: 100,
     });
-  }
-
-  function createJadeMarrowCondition(): CultivatorCondition {
-    return {
-      version: 1,
-      resources: {
-        hp: { current: 100 },
-        mp: { current: 100 },
-      },
-      gauges: {
-        pillToxicity: 0,
-      },
-      tracks: {
-        bodyCultivation: {
-          version: 1,
-          realm: 'jade_marrow',
-          tracks: {
-            skin: { level: 0, progress: 0 },
-            sinew_bone: { level: 12, progress: 0 },
-            organs: { level: 0, progress: 0 },
-            qi_blood: { level: 10, progress: 0 },
-            primordial_spirit: { level: 0, progress: 0 },
-          },
-          milestones: {},
-        },
-        tempering: {
-          vitality: { level: 0, progress: 0 },
-          spirit: { level: 0, progress: 0 },
-          wisdom: { level: 0, progress: 0 },
-          speed: { level: 0, progress: 0 },
-          willpower: { level: 0, progress: 0 },
-        },
-        marrowWash: { level: 0, progress: 0 },
-      },
-      counters: {
-        longTermPillUsesByRealm: {},
-        cultivationPillUsesByRealm: {},
-        longevityPillUsesByRealm: {},
-      },
-      statuses: [],
-      timestamps: {},
-    };
   }
 
   function dealLethalDamage(attacker: Unit, defender: Unit): void {
@@ -126,50 +81,6 @@ describe('death_prevent artifact affix integration', () => {
         .getEventHistory()
         .some((event) => event.type === 'DeathPreventEvent'),
     ).toBe(true);
-
-    damageSystem.destroy();
-  });
-
-  it('替身纸人与玉髓不灭骨应按不同来源分别触发', () => {
-    const attacker = createUnit('attacker', '破阵者');
-    const defender = createUnit('defender', '持符者');
-    const damageSystem = new DamageSystem();
-    const deathPreventEvents: DeathPreventEvent[] = [];
-
-    EventBus.instance.subscribe<DeathPreventEvent>(
-      'DeathPreventEvent',
-      (event) => deathPreventEvents.push(event),
-    );
-
-    const artifact = composeProductFromAffixIds({
-      productType: 'artifact',
-      element: '金',
-      name: '替身甲',
-      requestedSlot: 'armor',
-      affixIds: ['artifact-defense-death-prevent'],
-    });
-    defender.abilities.addAbility(AbilityFactory.create(projectAbilityConfig(artifact)));
-
-    const jadeMarrowBuff = getBodyCultivationBattleInitHooks(
-      createJadeMarrowCondition(),
-    ).startingBuffs.find(
-      (buff) => buff.id === 'body_cultivation_jade_marrow_death_prevent',
-    );
-    expect(jadeMarrowBuff).toBeDefined();
-    defender.buffs.addBuff(BuffFactory.create(jadeMarrowBuff!), defender);
-
-    dealLethalDamage(attacker, defender);
-    expect(defender.isAlive()).toBe(true);
-    expect(deathPreventEvents.map((event) => event.sourceKey)).toEqual([
-      'artifact-defense-death-prevent',
-    ]);
-
-    dealLethalDamage(attacker, defender);
-    expect(defender.isAlive()).toBe(true);
-    expect(deathPreventEvents.map((event) => event.sourceKey)).toEqual([
-      'artifact-defense-death-prevent',
-      'body_cultivation_jade_marrow_death_prevent',
-    ]);
 
     damageSystem.destroy();
   });

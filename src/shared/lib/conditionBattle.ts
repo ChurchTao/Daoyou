@@ -1,13 +1,11 @@
 import type { BattleUnitInitFragment } from '@shared/engine/battle-v5/setup/types';
 import type { CultivatorCondition } from '@shared/types/condition';
-import { getBodyCultivationBattleInitHooks } from './bodyCultivation/effects';
 import { isConditionStatusActive } from './condition';
 
 export function buildConditionBattleUnitInitFragment(
   condition: CultivatorCondition,
   now: Date,
 ): BattleUnitInitFragment {
-  const battleInitHooks = getBodyCultivationBattleInitHooks(condition);
   return {
     statusRefs: condition.statuses
       .filter((status) => isConditionStatusActive(status, now))
@@ -22,9 +20,5 @@ export function buildConditionBattleUnitInitFragment(
             : undefined,
         payload: status.payload,
       })),
-    startingBuffs: battleInitHooks.startingBuffs.map((buff) => ({
-      buff,
-      source: 'self',
-    })),
   };
 }

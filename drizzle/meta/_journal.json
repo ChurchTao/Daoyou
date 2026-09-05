@@ -239,6 +239,20 @@
       "when": 1788147338302,
       "tag": "0033_spirit_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1788508381899,
+      "tag": "0034_flowery_squadron_sinister",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1788516324786,
+      "tag": "0035_even_crusher_hogan",
+      "breakpoints": true
     }
   ]
 }

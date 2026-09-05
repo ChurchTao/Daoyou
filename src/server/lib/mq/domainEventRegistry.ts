@@ -10,6 +10,7 @@ import { projectTaskDomainEvent } from '@server/lib/services/TaskDomainEventProj
 import { projectWorldRumorDomainEvent } from '@server/lib/services/WorldRumorDomainEventProjector';
 import { processSponsorshipOrder } from '@server/lib/services/SponsorshipApplicationService';
 import { db } from '@server/lib/drizzle/db';
+import { projectCombatV6Condition } from '@server/lib/services/combat-v6/CombatV6ConditionProjector';
 import { claimMessageForConsumer } from '@server/lib/repositories/messageConsumptionRepository';
 import {
   generateYieldRewardAttachments,
@@ -50,6 +51,7 @@ import {
   startBattleResolutionConsumer,
   stopBattleResolutionConsumer,
 } from './battleResolutionConsumer';
+import { isCombatV6MessagingHealthy, startCombatV6Messaging, stopCombatV6Messaging } from './combatV6Messaging';
 
 let registered = false;
 
@@ -63,6 +65,13 @@ export async function registerMessageInfrastructure(): Promise<void> {
     startBattleReplayArchiveConsumer(),
     startBattleTerminalFinalizerConsumer(),
     startBattleResolutionConsumer(),
+    startCombatV6Messaging(),
+    startDomainEventConsumer({
+      consumerName: DOMAIN_EVENT_CONSUMERS.combatV6Condition.name,
+      concurrency: DOMAIN_EVENT_CONSUMERS.combatV6Condition.concurrency,
+      acceptedTypes: ['combat.v6.battle.finished'],
+      handle: async (event) => { if (event.type === 'combat.v6.battle.finished') await projectCombatV6Condition((event as DomainEventEnvelope<'combat.v6.battle.finished'>).data.battleId); },
+    }),
     startDomainEventConsumer({
       consumerName: DOMAIN_EVENT_CONSUMERS.sectFacilityProjector.name,
       concurrency: DOMAIN_EVENT_CONSUMERS.sectFacilityProjector.concurrency,
@@ -226,6 +235,7 @@ export async function shutdownMessageInfrastructure(): Promise<void> {
   await stopBattleReplayArchiveConsumer();
   await stopBattleTerminalFinalizerConsumer();
   await stopBattleResolutionConsumer();
+  await stopCombatV6Messaging();
   await stopDomainEventConsumers();
   await stopNatsCoreSubscriptions();
   await closeNatsConnection();
@@ -238,6 +248,7 @@ export function getMessageInfrastructureHealthStatus(): 'up' | 'down' {
     isBattleReplayArchiveConsumerHealthy() &&
     isBattleTerminalFinalizerConsumerHealthy() &&
     isBattleResolutionConsumerHealthy() &&
+    isCombatV6MessagingHealthy() &&
     areNatsCoreSubscriptionsHealthy()
     ? 'up'
     : 'down';

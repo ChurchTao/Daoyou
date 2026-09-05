@@ -1,4 +1,5 @@
 import type { BattleReplayV1 } from '@shared/contracts/battleReplay';
+import type { CombatV6ReplayV1 } from '@shared/contracts/combatV6Runtime';
 import type {
   ResourceChangeOperation,
   ResourceScopeKind,
@@ -11,6 +12,7 @@ import type {
 import type { SponsorshipTierId } from '@shared/lib/sponsorship';
 import type { TowerPreparedEnemy } from '@shared/lib/tower';
 import type { BattleRecordV3 } from '@shared/types/battle';
+import type { DaoEquipmentInstanceV1 } from '@shared/engine/combat-v6/equipment';
 import type {
   AlchemyFormulaBlueprint,
   AlchemyFormulaMastery,
@@ -501,6 +503,166 @@ export const sectAbilityLoadouts = pgTable(
   ],
 );
 
+// ===== combat-v6 独立人物构筑 =====
+export const combatV6BuildProfiles = pgTable(
+  'wanjiedaoyou_combat_v6_build_profiles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    membershipId: uuid('membership_id')
+      .references(() => sectMemberships.id, { onDelete: 'cascade' })
+      .notNull(),
+    schemaVersion: integer('schema_version').notNull().default(1),
+    revision: integer('revision').notNull().default(0),
+    status: varchar('status', { length: 16 }).notNull().default('pending'),
+    activePathId: varchar('active_path_id', { length: 160 }),
+    meridianDepth: integer('meridian_depth').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex('combat_v6_build_membership_unique').on(table.membershipId),
+  ],
+);
+
+export const combatV6MethodProgress = pgTable(
+  'wanjiedaoyou_combat_v6_method_progress',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: uuid('profile_id')
+      .references(() => combatV6BuildProfiles.id, { onDelete: 'cascade' })
+      .notNull(),
+    methodId: varchar('method_id', { length: 160 }).notNull(),
+    level: integer('level').notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex('combat_v6_method_profile_method_unique').on(
+      table.profileId,
+      table.methodId,
+    ),
+  ],
+);
+
+export const combatV6MeridianLoadouts = pgTable(
+  'wanjiedaoyou_combat_v6_meridian_loadouts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: uuid('profile_id')
+      .references(() => combatV6BuildProfiles.id, { onDelete: 'cascade' })
+      .notNull(),
+    pathId: varchar('path_id', { length: 160 }).notNull(),
+    revision: integer('revision').notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex('combat_v6_meridian_profile_path_unique').on(
+      table.profileId,
+      table.pathId,
+    ),
+  ],
+);
+
+export const combatV6MeridianNodes = pgTable(
+  'wanjiedaoyou_combat_v6_meridian_nodes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    loadoutId: uuid('loadout_id')
+      .references(() => combatV6MeridianLoadouts.id, { onDelete: 'cascade' })
+      .notNull(),
+    nodeId: varchar('node_id', { length: 160 }).notNull(),
+    layer: integer('layer').notNull(),
+  },
+  (table) => [
+    uniqueIndex('combat_v6_meridian_loadout_node_unique').on(
+      table.loadoutId,
+      table.nodeId,
+    ),
+    uniqueIndex('combat_v6_meridian_loadout_layer_unique').on(
+      table.loadoutId,
+      table.layer,
+    ),
+  ],
+);
+
+export const combatV6ManualStates = pgTable(
+  'wanjiedaoyou_combat_v6_manual_states',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: uuid('profile_id')
+      .references(() => combatV6BuildProfiles.id, { onDelete: 'cascade' })
+      .notNull(),
+    schemaVersion: integer('schema_version').notNull().default(1),
+    revision: integer('revision').notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex('combat_v6_manual_profile_unique').on(table.profileId),
+  ],
+);
+
+export const combatV6ManualSlots = pgTable(
+  'wanjiedaoyou_combat_v6_manual_slots',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    stateId: uuid('state_id')
+      .references(() => combatV6ManualStates.id, { onDelete: 'cascade' })
+      .notNull(),
+    slot: integer('slot').notNull(),
+    manualId: varchar('manual_id', { length: 160 }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('combat_v6_manual_state_slot_unique').on(
+      table.stateId,
+      table.slot,
+    ),
+    uniqueIndex('combat_v6_manual_state_manual_unique').on(
+      table.stateId,
+      table.manualId,
+    ),
+  ],
+);
+
+export const combatV6EquipmentInstances = pgTable(
+  'wanjiedaoyou_combat_v6_equipment_instances',
+  {
+    id: varchar('id', { length: 160 }).primaryKey(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    schemaVersion: integer('schema_version').notNull().default(1),
+    generatorVersion: varchar('generator_version', { length: 64 }).notNull(),
+    instance: jsonb('instance').$type<DaoEquipmentInstanceV1>().notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('combat_v6_equipment_cultivator_idx').on(table.cultivatorId),
+  ],
+);
+
+export const combatV6EquipmentLoadouts = pgTable(
+  'wanjiedaoyou_combat_v6_equipment_loadouts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: uuid('profile_id')
+      .references(() => combatV6BuildProfiles.id, { onDelete: 'cascade' })
+      .notNull(),
+    slot: varchar('slot', { length: 32 }).notNull(),
+    equipmentInstanceId: varchar('equipment_instance_id', { length: 160 })
+      .references(() => combatV6EquipmentInstances.id, { onDelete: 'restrict' })
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('combat_v6_equipment_profile_slot_unique').on(
+      table.profileId,
+      table.slot,
+    ),
+    uniqueIndex('combat_v6_equipment_profile_instance_unique').on(
+      table.profileId,
+      table.equipmentInstanceId,
+    ),
+  ],
+);
+
 export const resourceEvents = pgTable(
   'wanjiedaoyou_resource_events',
   {
@@ -855,6 +1017,30 @@ export const battleReplayArchives = pgTable(
       'gin',
       table.participants,
     ),
+  ],
+);
+
+// combat-v6活动战局、指令与RNG仅存在Redis。
+export const combatV6ReplayArchives = pgTable(
+  'wanjiedaoyou_combat_v6_replay_archives',
+  {
+    battleId: uuid('battle_id').primaryKey(),
+    cultivatorId: uuid('cultivator_id').notNull(),
+    metadataVersion: integer('metadata_version').notNull(),
+    sourceType: varchar('source_type', { length: 64 }).notNull(),
+    battleType: varchar('battle_type', { length: 64 }).notNull(),
+    idempotencyKey: uuid('idempotency_key').notNull(),
+    engineVersion: varchar('engine_version', { length: 40 }).notNull(),
+    rulesetVersion: varchar('ruleset_version', { length: 60 }).notNull(),
+    startedAt: timestamp('started_at').notNull(),
+    finishedAt: timestamp('finished_at').notNull(),
+    outcome: varchar('outcome', { length: 24 }).notNull(),
+    replay: jsonb('replay').$type<CombatV6ReplayV1>().notNull(),
+    archivedAt: timestamp('archived_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('combat_v6_replay_source_idempotency_uidx').on(table.sourceType, table.idempotencyKey),
+    index('combat_v6_replay_cultivator_finished_idx').on(table.cultivatorId, table.finishedAt),
   ],
 );
 
