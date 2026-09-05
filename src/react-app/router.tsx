@@ -1,3 +1,4 @@
+import { CombatV6Layout } from '@app/layouts/combat-v6-layout';
 import App, { RootRouteErrorBoundary } from '@app/App';
 import { AppBootScreen } from '@app/components/feature/app-boot/AppBootScreen';
 import { getGameSceneMeta } from '@app/components/game-shell/gameNavigation';
@@ -1010,6 +1011,23 @@ export const router = createBrowserRouter(
             />
           </Route>
 
+          <Route element={<CombatV6Layout />}>
+            <Route
+              path="training-room"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/training-room/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'training-room',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '练功房',
+              )}
+            />
+            <Route path="wild" lazy={lazyRoute(() => import('@app/routes/game/wild/route'))} handle={scene({id:'wild',chrome:'immersive',dock:'hidden'},'野外探索')} />
+          </Route>
           <Route element={<GameCombatLayout />}>
             <Route
               path="battle/challenge"
@@ -1095,21 +1113,6 @@ export const router = createBrowserRouter(
                 '赌战挑战',
               )}
             />
-            <Route
-              path="training-room"
-              lazy={lazyRoute(
-                () => import('@app/routes/game/training-room/route'),
-              )}
-              handle={scene(
-                {
-                  id: 'training-room',
-                  chrome: 'immersive',
-                  dock: 'hidden',
-                },
-                '练功房',
-              )}
-            />
-            <Route path="wild" lazy={lazyRoute(() => import('@app/routes/game/wild/route'))} handle={scene({id:'wild',chrome:'immersive',dock:'hidden'},'野外探索')} />
             <Route
               path="tasks/:taskId/challenge"
               lazy={lazyRoute(

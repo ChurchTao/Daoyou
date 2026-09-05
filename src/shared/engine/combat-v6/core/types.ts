@@ -205,6 +205,8 @@ export type BattleState = {
 
 export type CombatV6SkillCommandOption = {
   skillId: SkillId
+  name: string
+  costs: { mp: number; hp: number; resources: Array<{ resourceId: string; amount: number }> }
   ready: boolean
   reasons: string[]
   selectableTargetIds: UnitId[]

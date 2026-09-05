@@ -1,19 +1,19 @@
 import type {
+  CombatV6SectId,
+  SectCombatProgressV6,
+} from '@shared/engine/combat-v6/content';
+import type {
   BattleEvent,
   CombatV6CommandOptions,
   CombatV6VersionStamp,
   Command,
 } from '@shared/engine/combat-v6/core';
 import type {
-  CombatV6SectId,
-  SectCombatProgressV6,
-} from '@shared/engine/combat-v6/content';
-import type { DaoEquipmentLoadoutV1 } from '@shared/engine/combat-v6/equipment';
-import type { CultivatorManualStateV1 } from '@shared/engine/combat-v6/manuals';
-import type {
   CombatV6TrainingTierV1,
   TrainingEncounterOutcome,
 } from '@shared/engine/combat-v6/encounter';
+import type { DaoEquipmentLoadoutV1 } from '@shared/engine/combat-v6/equipment';
+import type { CultivatorManualStateV1 } from '@shared/engine/combat-v6/manuals';
 import { z } from 'zod';
 
 export const COMBAT_V6_BUILD_SCHEMA_VERSION = 1 as const;
@@ -95,7 +95,9 @@ export type CombatV6TrainingCreateRequest = z.infer<
 >;
 
 export const CombatV6TrainingCommandSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('attack'), target: z.string().min(1).max(200) }).strict(),
+  z
+    .object({ type: z.literal('attack'), target: z.string().min(1).max(200) })
+    .strict(),
   z
     .object({
       type: z.literal('skill'),
@@ -104,7 +106,9 @@ export const CombatV6TrainingCommandSchema = z.discriminatedUnion('type', [
     })
     .strict(),
   z.object({ type: z.literal('defend') }).strict(),
-  z.object({ type: z.literal('protect'), target: z.string().min(1).max(200) }).strict(),
+  z
+    .object({ type: z.literal('protect'), target: z.string().min(1).max(200) })
+    .strict(),
   z.object({ type: z.literal('flee') }).strict(),
 ]);
 export type CombatV6TrainingCommandV1 = z.infer<
@@ -127,7 +131,9 @@ export const CombatV6TrainingSessionParamsSchema = z
   .object({ sessionId: z.string().uuid() })
   .strict();
 
-export const CombatV6ReplayParamsSchema = z.object({ battleId: z.uuid() }).strict();
+export const CombatV6ReplayParamsSchema = z
+  .object({ battleId: z.uuid() })
+  .strict();
 
 export const CombatV6TrainingCommandParamsSchema = z
   .object({
@@ -147,6 +153,9 @@ export interface CombatV6TrainingUnitViewV1 {
   name: string;
   side: 0 | 1;
   slot: number;
+  kind?: 'player' | 'pet' | 'npc';
+  ownerId?: string;
+  attributes?: Record<string, number>;
   hp: number;
   maxHp: number;
   mp: number;
@@ -155,9 +164,42 @@ export interface CombatV6TrainingUnitViewV1 {
   downed: boolean;
   dead: boolean;
   escaped: boolean;
-  statuses: Array<{ id: string; remainingRounds: number; stacks: number }>;
-  barriers: Array<{ id: string; name: string; current: number; remainingRounds: number }>;
+  statuses: Array<{
+    id: string;
+    name?: string;
+    remainingRounds: number;
+    stacks: number;
+  }>;
+  barriers: Array<{
+    id: string;
+    name: string;
+    current: number;
+    remainingRounds: number;
+  }>;
   resources: Array<{ id: string; name: string; current: number; max: number }>;
+}
+
+export type CombatV6UnitChanges = Partial<
+  Omit<CombatV6TrainingUnitViewV1, 'id'>
+>;
+export type CombatV6OptionalUnitField = 'kind' | 'ownerId' | 'attributes';
+export interface CombatV6DeltaFrameV1 {
+  afterEventSeq: number;
+  round: number;
+  updates: Array<{
+    id: string;
+    set: CombatV6UnitChanges;
+    unset?: CombatV6OptionalUnitField[];
+  }>;
+  added?: CombatV6TrainingUnitViewV1[];
+  removed?: string[];
+  /** Present only when insertion/reordering cannot preserve the existing array order. */
+  order?: string[];
+}
+export interface CombatV6PlaybackV1 {
+  format: 'delta-v1';
+  fromEventSeq: number;
+  frames: CombatV6DeltaFrameV1[];
 }
 
 export interface CombatV6TrainingSessionViewV1 {
@@ -176,6 +218,12 @@ export interface CombatV6TrainingSessionViewV1 {
   pendingCommand?: CombatV6TrainingCommandV1;
   events: Array<{ seq: number; event: BattleEvent }>;
   latestEventSeq: number;
+  display?: {
+    skills: Record<string, string>;
+    statuses: Record<string, string>;
+  };
+  /** Ephemeral public display deltas; requires a matching event cursor. */
+  playback?: CombatV6PlaybackV1;
 }
 
 export const COMBAT_V6_BUILD_ERROR_CODE = {

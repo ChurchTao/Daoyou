@@ -99,7 +99,7 @@ export class CombatV6PveHostSession {
     this.battle.submit(unitId, clone(command))
   }
 
-  resolveRound(): BattleEvent[] {
+  resolveRound(afterAction?: (state: ReturnType<BattleSession['snapshot']>, eventSeq: number) => void): BattleEvent[] {
     if (this.battle.finished) return []
     if (this.battle.state.phase !== BattlePhase.Command) throw new TrainingHostError(TrainingHostErrorCode.NotCommandPhase, "当前不在训练指令阶段")
     const player = this.battle.unit(this.playerId)
@@ -120,7 +120,7 @@ export class CombatV6PveHostSession {
       .sort(stableUnitOrder)
       .map((unit) => ({ unitId: unit.id, command: clone(unit.command!) }))
     const before = this.battle.log().length
-    this.battle.lockAndResolve()
+    this.battle.lockAndResolve(afterAction)
     this.rounds.push({ round, commands })
     return clone(this.battle.log().slice(before))
   }

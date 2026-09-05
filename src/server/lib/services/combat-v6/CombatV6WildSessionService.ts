@@ -3,6 +3,11 @@ import { cultivators } from '@server/lib/drizzle/schema';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { findActiveCombatV6Membership } from '@server/lib/repositories/combatV6BuildRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
+import {
+  combatV6Display,
+  combatV6Playback,
+  combatV6Units,
+} from '@shared/combat-v6/presentation';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
 import type {
   CombatV6ReplayV1,
@@ -329,7 +334,7 @@ export class CombatV6WildSessionService {
     );
     if (membership?.membershipId !== r.membershipId) {
       if (s) await store.finish(s, wildTerminal(s, 'membership-changed'));
-      else if(r.host.state.result) await store.clearFinished(r,r.revision);
+      else if (r.host.state.result) await store.clearFinished(r, r.revision);
       throw new WildError(
         'WILD_MEMBERSHIP_CHANGED',
         '宗门已变化，战斗正在结算',
@@ -358,19 +363,34 @@ export class CombatV6WildSessionService {
     );
   }
   async resolve(actor: Actor, id: string, expected: number) {
-    return this.change(actor, id, expected, (host) => host.resolveRound());
+    return this.change(
+      actor,
+      id,
+      expected,
+      (host, capture) => host.resolveRound(capture),
+      true,
+    );
   }
   private async change(
     actor: Actor,
     id: string,
     expected: number,
-    action: (host: WildHost) => unknown,
+    action: (
+      host: WildHost,
+      capture: ReturnType<typeof combatV6Playback>['capture'],
+    ) => unknown,
+    resolving = false,
   ) {
     const r = await this.require(actor, id);
     if (r.revision !== expected) checked('CONFLICT');
     const host = new WildHost(r.host, r.host);
     if (host.finished) throw new WildError('WILD_FINISHED', '战斗已结束');
-    action(host);
+    const presentation = combatV6Playback(
+      r.latestEventSeq,
+      r.host.input.statusDefs ?? [],
+      host.state,
+    );
+    action(host, presentation.capture);
     const s = await store.summary(id);
     if (!s) throw new WildError('WILD_SETTLEMENT_MISSING', '结算事实缺失');
     const next = {
@@ -404,7 +424,11 @@ export class CombatV6WildSessionService {
         }
       : undefined;
     checked(await store.save(next, expected, nextSummary, event, replay));
-    return this.view(next, r.latestEventSeq);
+    if (resolving) presentation.capture(host.state, next.latestEventSeq);
+    return {
+      ...(await this.view(next, r.latestEventSeq)),
+      ...(resolving ? { playback: presentation.playback } : {}),
+    };
   }
   async abandon(actor: Actor, id: string, expected: number) {
     const r = await this.require(actor, id);
@@ -449,32 +473,11 @@ export class CombatV6WildSessionService {
           ? 'pending'
           : 'settled'
         : 'not-started',
-      units: state.units.map((u) => ({
-        id: u.id,
-        name: u.name,
-        side: u.side,
-        slot: u.slot,
-        hp: u.attrs.hp,
-        maxHp: u.attrs.maxHp,
-        mp: u.attrs.mp,
-        maxMp: u.attrs.maxMp,
-        wound: u.wound,
-        downed: u.flags.downed,
-        dead: u.flags.dead,
-        escaped: u.flags.escaped,
-        statuses: u.statuses.map((s) => ({
-          id: s.id,
-          remainingRounds: s.remainingRounds,
-          stacks: s.stacks,
-        })),
-        barriers: u.barriers.map((b) => ({
-          id: b.id,
-          name: b.name,
-          current: b.current,
-          remainingRounds: b.remainingRounds,
-        })),
-        resources: u.resources,
-      })),
+      units: combatV6Units(state, r.host.input.statusDefs ?? []),
+      display: combatV6Display(
+        r.host.input.skills ?? [],
+        r.host.input.statusDefs ?? [],
+      ),
       commandOptions: host.finished ? undefined : host.queryCommands(),
       pendingCommand: player.command as CombatV6TrainingCommandV1 | undefined,
       events: r.host.events

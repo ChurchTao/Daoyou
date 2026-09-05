@@ -52,6 +52,8 @@ export function commandOptions(ctx: BattleContext, unitId: UnitId): CombatV6Comm
     const skillReasons = canSubmit ? check.reasons : [...reasons, ...check.reasons]
     return [{
       skillId,
+      name: skill.name,
+      costs: { mp: check.mpCost, hp: check.hpCost, resources: check.resourceCosts },
       ready: skillReasons.length === 0,
       reasons: [...new Set(skillReasons)],
       selectableTargetIds: targets.map((target) => target.id),

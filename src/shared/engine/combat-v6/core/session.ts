@@ -150,7 +150,7 @@ export class BattleSession {
   /**
    * 指令期结束：补齐未下达指令（超时默认普通攻击 / NPC AI），然后按速度结算整轮。
    */
-  lockAndResolve(): void {
+  lockAndResolve(afterAction?: (state: BattleState, eventSeq: number) => void): void {
     if (this.ctx.state.phase === BattlePhase.Ended) return
     if (this.ctx.state.phase !== BattlePhase.Command) {
       throw new BattleError(ErrorCode.NotCommandPhase, "当前不在指令阶段")
@@ -158,7 +158,9 @@ export class BattleSession {
 
     this.ctx.state.phase = BattlePhase.Resolve
     lockCommands(this.ctx)
-    resolveRoundActions(this.ctx)
+    resolveRoundActions(this.ctx, afterAction
+      ? () => afterAction(this.snapshot(), this.ctx.events.length - 1)
+      : undefined)
 
     if (!this.ctx.state.result) {
       tickStatuses(this.ctx)

@@ -6,12 +6,14 @@
 - `GameNarrativeLayout`：`/game/sect/onboarding`、`/game/identity-reshape` 等无 HUD、无全局导航的分幕演出
 - `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft*`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`、`/game/bet-battle`
 - `GameActivityLayout`：`/game/sect/gate/sweep`、`/game/sect/spirit-vein/mining` 等无 HUD、无全局导航的全屏互动玩法
-- `GameCombatLayout`：`/game/battle`、`/game/battle/challenge`、`/game/battle/live/:matchId`、`/game/battle/:id`、`/game/bet-battle/challenge`、`/game/training-room`、`/game/wild`、宗门任务战斗
+- `GameCombatLayout`：`/game/battle`、`/game/battle/challenge`、`/game/battle/live/:matchId`、`/game/battle/:id`、`/game/bet-battle/challenge`、宗门任务战斗
+- `CombatV6Layout`：`/game/training-room`、`/game/wild`，独立于 v5 战斗布局及状态容器
 - `GameMapLayout`：`/game/map`
 - `GameDungeonLayout`：`/game/dungeon`
 
 ## 共享组件归位
 
+- v6 战斗页面、阵容、指令和逐行动播报放在 `src/react-app/components/feature/combat-v6/`；仅复用通用 UI 和全局配色，不依赖旧 `feature/battle` 组件。协议与恢复规则见 [v6 战斗 UI](combat-v6-battle-ui.md)
 - 造化/参悟共享材料选择器放在 `src/react-app/components/feature/creation/MaterialSelector.tsx`
 - 道身长期状态与称号编辑放在 `src/react-app/components/feature/cultivator/`
 - 跨玩法复用的分幕演出舞台放在 `src/react-app/components/feature/narrative/`

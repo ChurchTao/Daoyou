@@ -130,7 +130,7 @@ export interface CombatV6TrainingHostV1 {
   readonly state: BattleState
   queryCommands(unitId?: string): CombatV6CommandOptions
   submit(unitId: string, command: Command): void
-  resolveRound(): BattleEvent[]
+  resolveRound(afterAction?: (state: BattleState, eventSeq: number) => void): BattleEvent[]
   snapshot(): BattleState
   trace(): CombatV6EncounterTraceV1
   runtimeSnapshot(): CombatV6TrainingRuntimeSnapshotV1
