@@ -1,5 +1,8 @@
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
+import { useState } from 'react';
+import { CombatV6SkillChoice } from './CombatV6SkillChoice';
 import { reasonText } from './presentation';
 import type { CombatV6Session } from './session';
 export type Choice = {
@@ -41,6 +44,13 @@ export function CombatV6Commands({
   onClose: () => void;
 }) {
   const options = session.commandOptions;
+  const [category, setCategory] = useState<'spell' | 'art'>();
+  const skills =
+    options?.skills.filter(
+      (skill) =>
+        (session.display?.skillDetails?.[skill.skillId]?.category ??
+          'spell') === category,
+    ) ?? [];
   const disabled = pending || playing;
   const ended = !playing && session.outcome;
   return (
@@ -87,59 +97,31 @@ export function CombatV6Commands({
                   onClick={() =>
                     setAction({
                       type: 'attack',
-                      name: '普攻',
+                      name: '攻击',
                       ids: options!.attackTargetIds,
                       count: 1,
                     })
                   }
                   aria-pressed={choice?.type === 'attack'}
                 >
-                  普攻
+                  攻击
                 </button>
-                {options?.skills.map((skill) => (
+                {(['spell', 'art'] as const).map((group) => (
                   <button
-                    key={skill.skillId}
-                    disabled={disabled || !skill.ready}
-                    aria-pressed={choice?.skillId === skill.skillId}
+                    key={group}
+                    disabled={disabled}
+                    aria-haspopup="dialog"
+                    aria-pressed={
+                      choice?.type === 'skill' &&
+                      (session.display?.skillDetails?.[choice.skillId!]
+                        ?.category ?? 'spell') === group
+                    }
                     onClick={() => {
-                      if (
-                        ['all', 'random', 'lowestHp', 'lowestDef'].includes(
-                          skill.targetMode,
-                        ) ||
-                        (skill.selectableTargetIds.length === 1 &&
-                          skill.selectableTargetIds[0] === options.unitId)
-                      ) {
-                        void submit({
-                          type: 'skill',
-                          skillId: skill.skillId,
-                          targets: skill.selectableTargetIds.slice(0, 1),
-                        });
-                      } else
-                        setAction({
-                          type: 'skill',
-                          name: skill.name,
-                          skillId: skill.skillId,
-                          ids: skill.selectableTargetIds,
-                          count:
-                            skill.targetMode === 'explicit'
-                              ? Math.min(
-                                  skill.targetCount,
-                                  skill.selectableTargetIds.length,
-                                )
-                              : 1,
-                        });
+                      onCancel();
+                      setCategory(group);
                     }}
                   >
-                    <span>{skill.name}</span>
-                    <small>
-                      {skill.ready
-                        ? skill.costs.mp
-                          ? `${skill.costs.mp} 法力`
-                          : skill.costs.hp
-                            ? `${skill.costs.hp} 气血`
-                            : ''
-                        : skill.reasons.map(reasonText).join('；')}
-                    </small>
+                    {group === 'spell' ? '神通' : '器诀'}
                   </button>
                 ))}
                 {options?.canDefend && (
@@ -213,6 +195,66 @@ export function CombatV6Commands({
           )}
         </>
       )}
+      {category && !disabled && !ended ? (
+        <InkDetailDrawer
+          isOpen
+          title={category === 'spell' ? '神通' : '器诀'}
+          size="sm"
+          onClose={() => setCategory(undefined)}
+        >
+          <div className="cv6-skill-list">
+            {skills.length ? (
+              skills.map((skill) => (
+                <CombatV6SkillChoice
+                  key={skill.skillId}
+                  skill={skill}
+                  detail={
+                    session.display?.skillDetails?.[skill.skillId]?.description
+                  }
+                  resources={
+                    session.units.find((unit) => unit.id === options?.unitId)
+                      ?.resources ?? []
+                  }
+                  onSelect={() => {
+                    setCategory(undefined);
+                    if (
+                      ['all', 'random', 'lowestHp', 'lowestDef'].includes(
+                        skill.targetMode,
+                      ) ||
+                      (skill.selectableTargetIds.length === 1 &&
+                        skill.selectableTargetIds[0] === options?.unitId)
+                    ) {
+                      void submit({
+                        type: 'skill',
+                        skillId: skill.skillId,
+                        targets: skill.selectableTargetIds.slice(0, 1),
+                      });
+                    } else {
+                      setAction({
+                        type: 'skill',
+                        name: skill.name,
+                        skillId: skill.skillId,
+                        ids: skill.selectableTargetIds,
+                        count:
+                          skill.targetMode === 'explicit'
+                            ? Math.min(
+                                skill.targetCount,
+                                skill.selectableTargetIds.length,
+                              )
+                            : 1,
+                      });
+                    }
+                  }}
+                />
+              ))
+            ) : (
+              <p className="cv6-muted">
+                暂无可用{category === 'spell' ? '神通' : '器诀'}
+              </p>
+            )}
+          </div>
+        </InkDetailDrawer>
+      ) : null}
     </footer>
   );
 }

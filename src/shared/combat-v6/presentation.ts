@@ -9,10 +9,12 @@ import type {
   StatusDef,
 } from '@shared/engine/combat-v6/core';
 import { effectiveAttrs } from '@shared/engine/combat-v6/core/units';
+import { combatV6SkillDetails } from './skill-details';
 
 export function combatV6Display(skills: SkillDef[], statuses: StatusDef[]) {
   return {
     skills: Object.fromEntries(skills.map((s) => [s.id, s.name])),
+    skillDetails: combatV6SkillDetails(skills, statuses),
     statuses: Object.fromEntries(statuses.map((s) => [s.id, s.name])),
   };
 }

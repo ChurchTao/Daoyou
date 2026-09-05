@@ -220,6 +220,10 @@ export interface CombatV6TrainingSessionViewV1 {
   latestEventSeq: number;
   display?: {
     skills: Record<string, string>;
+    skillDetails?: Record<
+      string,
+      { category: 'spell' | 'art'; description: string }
+    >;
     statuses: Record<string, string>;
   };
   /** Ephemeral public display deltas; requires a matching event cursor. */

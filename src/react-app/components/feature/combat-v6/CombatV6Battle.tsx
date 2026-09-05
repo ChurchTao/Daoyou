@@ -119,6 +119,7 @@ export function CombatV6Battle({
         <CombatV6Log entries={log.entries} visibleSeq={shown.visibleSeq} />
       </div>
       <CombatV6Commands
+        key={selectionId}
         session={session}
         pending={pending}
         playing={playing}
