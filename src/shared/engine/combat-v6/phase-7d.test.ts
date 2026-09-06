@@ -1,3 +1,4 @@
+import { createCombatV6Replay } from '@shared/combat-v6/replay';
 import {
   CombatV6BattleMetadataV1Schema,
   parseCombatV6Replay,
@@ -172,16 +173,25 @@ describe('Phase 7D wild content', () => {
         restored.resolveRound();
       }
       expect(restored.trace()).toEqual(host.trace());
-      const replay = {
-        ...host.trace(),
-        replayVersion: 'combat_v6_replay_v1',
+      const unit = host.state.units.find((u) => u.id === host.playerId)!;
+      const replay = createCombatV6Replay({
+        trace: { ...host.trace(), seed: snapshot.input.seed! },
         battleId: id,
-        cultivatorId: id,
+        participants: [
+          {
+            userId: 'test-user',
+            cultivatorId: id,
+            unitId: unit.id,
+            side: unit.side,
+            slot: unit.slot,
+          },
+        ],
         metadata,
         startedAt: wire.createdAt,
         finishedAt: '2026-09-05T00:05:00.000Z',
-      };
-      expect(parseCombatV6Replay(replay).nodeId).toBe(WILD_REGION.nodeId);
+        reason: 'battle-ended',
+      });
+      expect(parseCombatV6Replay(replay).metadata).toEqual(metadata);
       expect(() => parseCombatV6Replay({ ...replay, tier: 60 })).toThrow();
       expect(restored.runtimeSnapshot()).toEqual(host.runtimeSnapshot());
       expect(input).toEqual(before);

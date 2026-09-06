@@ -6,6 +6,7 @@ import type {
 } from '../contracts/combatV6';
 
 const fields = [
+  'publicBars',
   'name',
   'side',
   'slot',

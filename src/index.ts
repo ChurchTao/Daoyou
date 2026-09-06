@@ -28,6 +28,7 @@ process.once('SIGTERM', () => void shutdown('SIGTERM'));
 process.once('SIGINT', () => void shutdown('SIGINT'));
 
 export default {
+  hostname: process.env.HOST,
   port: Number(process.env.PORT ?? 3000),
   fetch(request: Request, server: unknown) {
     return app.fetch(request, { server });

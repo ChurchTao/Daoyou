@@ -1,17 +1,17 @@
+import { db } from '@server/lib/drizzle/db';
 import { closeNatsConnection, getNatsConnection } from '@server/lib/nats';
+import { claimMessageForConsumer } from '@server/lib/repositories/messageConsumptionRepository';
+import { projectCombatV6Condition } from '@server/lib/services/combat-v6/CombatV6ConditionProjector';
 import { projectMailCreated } from '@server/lib/services/MailDomainEventProjector';
-import { projectRealmChangedRanking } from '@server/lib/services/RealmChangedDomainEventProjector';
 import {
   areNatsCoreSubscriptionsHealthy,
   stopNatsCoreSubscriptions,
 } from '@server/lib/services/natsCorePubSub';
+import { projectRealmChangedRanking } from '@server/lib/services/RealmChangedDomainEventProjector';
 import { projectSectConstructionDonation } from '@server/lib/services/sect-organization/SectConstructionSettlementService';
+import { processSponsorshipOrder } from '@server/lib/services/SponsorshipApplicationService';
 import { projectTaskDomainEvent } from '@server/lib/services/TaskDomainEventProjector';
 import { projectWorldRumorDomainEvent } from '@server/lib/services/WorldRumorDomainEventProjector';
-import { processSponsorshipOrder } from '@server/lib/services/SponsorshipApplicationService';
-import { db } from '@server/lib/drizzle/db';
-import { projectCombatV6Condition } from '@server/lib/services/combat-v6/CombatV6ConditionProjector';
-import { claimMessageForConsumer } from '@server/lib/repositories/messageConsumptionRepository';
 import {
   generateYieldRewardAttachments,
   projectYieldReward,
@@ -26,6 +26,26 @@ import {
   stopBackgroundCommandConsumer,
 } from './backgroundCommandConsumer';
 import {
+  isBattleReplayArchiveConsumerHealthy,
+  startBattleReplayArchiveConsumer,
+  stopBattleReplayArchiveConsumer,
+} from './battleReplayArchiveConsumer';
+import {
+  isBattleResolutionConsumerHealthy,
+  startBattleResolutionConsumer,
+  stopBattleResolutionConsumer,
+} from './battleResolutionConsumer';
+import {
+  isBattleTerminalFinalizerConsumerHealthy,
+  startBattleTerminalFinalizerConsumer,
+  stopBattleTerminalFinalizerConsumer,
+} from './battleTerminalFinalizerConsumer';
+import {
+  isCombatV6MessagingHealthy,
+  startCombatV6Messaging,
+  stopCombatV6Messaging,
+} from './combatV6Messaging';
+import {
   areDomainEventConsumersHealthy,
   startDomainEventConsumer,
   stopDomainEventConsumers,
@@ -36,22 +56,6 @@ import {
   startTransactionalMessageRelay,
   stopTransactionalMessageRelay,
 } from './transactionalMessageRelay';
-import {
-  isBattleReplayArchiveConsumerHealthy,
-  startBattleReplayArchiveConsumer,
-  stopBattleReplayArchiveConsumer,
-} from './battleReplayArchiveConsumer';
-import {
-  isBattleTerminalFinalizerConsumerHealthy,
-  startBattleTerminalFinalizerConsumer,
-  stopBattleTerminalFinalizerConsumer,
-} from './battleTerminalFinalizerConsumer';
-import {
-  isBattleResolutionConsumerHealthy,
-  startBattleResolutionConsumer,
-  stopBattleResolutionConsumer,
-} from './battleResolutionConsumer';
-import { isCombatV6MessagingHealthy, startCombatV6Messaging, stopCombatV6Messaging } from './combatV6Messaging';
 
 let registered = false;
 
@@ -70,7 +74,15 @@ export async function registerMessageInfrastructure(): Promise<void> {
       consumerName: DOMAIN_EVENT_CONSUMERS.combatV6Condition.name,
       concurrency: DOMAIN_EVENT_CONSUMERS.combatV6Condition.concurrency,
       acceptedTypes: ['combat.v6.battle.finished'],
-      handle: async (event) => { if (event.type === 'combat.v6.battle.finished') await projectCombatV6Condition((event as DomainEventEnvelope<'combat.v6.battle.finished'>).data.battleId); },
+      handle: async (event) => {
+        if (event.type === 'combat.v6.battle.finished') {
+          const data = (
+            event as DomainEventEnvelope<'combat.v6.battle.finished'>
+          ).data;
+          if (data.sourceType !== 'arena-sparring')
+            await projectCombatV6Condition(data.battleId);
+        }
+      },
     }),
     startDomainEventConsumer({
       consumerName: DOMAIN_EVENT_CONSUMERS.sectFacilityProjector.name,

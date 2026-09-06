@@ -29,7 +29,9 @@ export function CombatV6Details({
     <dialog
       ref={dialogRef}
       className="cv6-dialog"
-      onClose={() => onClose()}
+      onClose={() => {
+        if (!dialogRef.current?.open) onClose();
+      }}
       aria-labelledby="cv6-detail-title"
     >
       <header>
@@ -41,21 +43,31 @@ export function CombatV6Details({
           <dl>
             <dt>气血</dt>
             <dd>
-              {detailUnit.hp} / {detailUnit.maxHp}
+              {detailUnit.publicBars
+                ? `${detailUnit.hp / 100}%`
+                : `${detailUnit.hp} / ${detailUnit.maxHp}`}
             </dd>
             <dt>法力</dt>
             <dd>
-              {detailUnit.mp} / {detailUnit.maxMp}
+              {detailUnit.publicBars
+                ? `${detailUnit.mp / 100}%`
+                : `${detailUnit.mp} / ${detailUnit.maxMp}`}
             </dd>
             <dt>护盾</dt>
             <dd>
-              {detailUnit.barriers.reduce((sum, b) => sum + b.current, 0)}
+              {detailUnit.publicBars
+                ? `${detailUnit.barriers.reduce((sum, b) => sum + b.current, 0) / 100}% 气血上限`
+                : detailUnit.barriers.reduce((sum, b) => sum + b.current, 0)}
             </dd>
-            <dt>伤势</dt>
-            <dd>
-              {detailUnit.wound}（可恢复至{' '}
-              {Math.max(1, detailUnit.maxHp - detailUnit.wound)}）
-            </dd>
+            {!detailUnit.publicBars && (
+              <>
+                <dt>伤势</dt>
+                <dd>
+                  {detailUnit.wound}（可恢复至{' '}
+                  {Math.max(1, detailUnit.maxHp - detailUnit.wound)}）
+                </dd>
+              </>
+            )}
             {detailUnit.resources.map((r) => (
               <div className="cv6-dl-row" key={r.id}>
                 <dt>{r.name}</dt>
@@ -81,7 +93,9 @@ export function CombatV6Details({
             ))}
             {detailUnit.barriers.map((b) => (
               <li key={b.id}>
-                {b.name} · {b.current} · {b.remainingRounds} 回合
+                {b.name} ·{' '}
+                {detailUnit.publicBars ? `${b.current / 100}%` : b.current} ·{' '}
+                {b.remainingRounds} 回合
               </li>
             ))}
           </ul>

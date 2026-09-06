@@ -8,13 +8,13 @@ export function useCaptchaField() {
 
   const updateCaptchaPayload = useCallback((payload: string | null) => {
     setCaptchaPayload(payload);
-    if (payload) {
+    if (payload !== null) {
       setCaptchaError('');
     }
   }, []);
 
   const ensureCaptcha = () => {
-    if (!captchaPayload) {
+    if (captchaPayload === null) {
       setCaptchaError('请先完成人机验证');
       return null;
     }

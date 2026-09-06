@@ -8,6 +8,7 @@ import {
   combatV6Playback,
   combatV6Units,
 } from '@shared/combat-v6/presentation';
+import { createCombatV6Replay } from '@shared/combat-v6/replay';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
 import type {
   CombatV6ReplayV1,
@@ -410,18 +411,23 @@ export class CombatV6WildSessionService {
         )
       : undefined;
     const replay: CombatV6ReplayV1 | undefined = event
-      ? {
-          ...trace,
-          seed: next.host.input.seed!,
-          replayVersion: 'combat_v6_replay_v1',
+      ? createCombatV6Replay({
+          trace: { ...trace, seed: next.host.input.seed! },
           battleId: id,
-          cultivatorId: actor.cultivatorId,
+          participants: [
+            {
+              userId: actor.userId,
+              cultivatorId: actor.cultivatorId,
+              unitId: host.playerId,
+              side: host.state.units.find((u) => u.id === host.playerId)!.side,
+              slot: host.state.units.find((u) => u.id === host.playerId)!.slot,
+            },
+          ],
           metadata: r.metadata,
           startedAt: r.createdAt,
           finishedAt: event.record.finishedAt,
-          finalState: trace.finalState!,
-          outcome: trace.outcome!,
-        }
+          reason: event.record.reason,
+        })
       : undefined;
     checked(await store.save(next, expected, nextSummary, event, replay));
     if (resolving) presentation.capture(host.state, next.latestEventSeq);

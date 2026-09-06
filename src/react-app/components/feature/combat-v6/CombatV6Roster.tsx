@@ -44,7 +44,11 @@ const UnitRow = memo(function UnitRow({
         <span
           className="cv6-hp"
           role="img"
-          aria-label={`气血 ${u.hp}/${u.maxHp}，护盾 ${u.barriers.reduce((sum, b) => sum + b.current, 0)}`}
+          aria-label={
+            u.publicBars
+              ? `气血 ${u.hp / 100}%`
+              : `气血 ${u.hp}/${u.maxHp}，护盾 ${u.barriers.reduce((sum, b) => sum + b.current, 0)}`
+          }
         >
           <span
             className="cv6-hp-fill"
@@ -63,7 +67,9 @@ const UnitRow = memo(function UnitRow({
         <span
           className="cv6-mp"
           role="img"
-          aria-label={`法力 ${u.mp}/${u.maxMp}`}
+          aria-label={
+            u.publicBars ? `法力 ${u.mp / 100}%` : `法力 ${u.mp}/${u.maxMp}`
+          }
         >
           <span style={{ width: `${ratio(u.mp, u.maxMp)}%` }} />
         </span>

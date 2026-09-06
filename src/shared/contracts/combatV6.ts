@@ -149,6 +149,8 @@ export const CombatV6TrainingEventsQuerySchema = z
   .strict();
 
 export interface CombatV6TrainingUnitViewV1 {
+  /** Other participants expose bars in basis points, not exact resource values. */
+  publicBars?: boolean;
   id: string;
   name: string;
   side: 0 | 1;
@@ -182,7 +184,8 @@ export interface CombatV6TrainingUnitViewV1 {
 export type CombatV6UnitChanges = Partial<
   Omit<CombatV6TrainingUnitViewV1, 'id'>
 >;
-export type CombatV6OptionalUnitField = 'kind' | 'ownerId' | 'attributes';
+export type CombatV6OptionalUnitField =
+  'kind' | 'ownerId' | 'attributes' | 'publicBars';
 export interface CombatV6DeltaFrameV1 {
   afterEventSeq: number;
   round: number;
@@ -202,6 +205,15 @@ export interface CombatV6PlaybackV1 {
   frames: CombatV6DeltaFrameV1[];
 }
 
+type PrivateResourceFields =
+  'hp' | 'hpAfter' | 'mpAfter' | 'maxHpAfter' | 'recoverableHpAfter';
+type DisplayEvent<E> = E extends BattleEvent
+  ? Omit<E, PrivateResourceFields> &
+      Partial<Pick<E, Extract<keyof E, PrivateResourceFields>>>
+  : never;
+/** PVE may include exact resources; arena redacts post-action resource balances. */
+export type CombatV6DisplayEvent = DisplayEvent<BattleEvent>;
+
 export interface CombatV6TrainingSessionViewV1 {
   apiVersion: typeof COMBAT_V6_TRAINING_API_VERSION;
   sessionId: string;
@@ -216,7 +228,7 @@ export interface CombatV6TrainingSessionViewV1 {
   units: CombatV6TrainingUnitViewV1[];
   commandOptions?: CombatV6CommandOptions;
   pendingCommand?: CombatV6TrainingCommandV1;
-  events: Array<{ seq: number; event: BattleEvent }>;
+  events: Array<{ seq: number; event: CombatV6DisplayEvent }>;
   latestEventSeq: number;
   display?: {
     skills: Record<string, string>;

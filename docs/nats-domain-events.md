@@ -96,7 +96,7 @@ docker compose -f docker-compose.nats.yml up -d
 docker compose -f docker-compose.nats.yml ps
 ```
 
-开发容器凭据在 `.env.example` 中。停止容器不会删除 JetStream volume；需要重置本地事件时应显式删除 `nats-data` volume。
+开发容器凭据在 `env/example.env` 中。停止容器不会删除 JetStream volume；需要重置本地事件时应显式删除 `nats-data` volume。
 
 ## 故障检查
 

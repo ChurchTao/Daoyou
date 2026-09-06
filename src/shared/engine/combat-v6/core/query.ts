@@ -7,7 +7,7 @@ import { checkSkillRequirements } from "./requirements.ts"
 import { skillOf } from "./skills.ts"
 import { poolFor, targetCount } from "./targeting.ts"
 import type { BattleState, CombatV6CommandOptions, Side, Unit, UnitId } from "./types.ts"
-import { isActionable, isStanding } from "./units.ts"
+import { canCollectCommand, isStanding } from "./units.ts"
 
 export function unitById(state: BattleState, id: UnitId): Unit {
   const unit = state.units.find((u) => u.id === id)
@@ -40,21 +40,32 @@ export function commandOptions(ctx: BattleContext, unitId: UnitId): CombatV6Comm
   const unit = unitById(ctx.state, unitId)
   const reasons: string[] = []
   if (ctx.state.phase !== BattlePhase.Command) reasons.push("not-command-phase")
-  if (!isActionable(unit)) reasons.push("unit-cannot-act")
+  if (!canCollectCommand(unit, ctx.rules.deferredPlayerCommands)) reasons.push("unit-cannot-act")
   const enemies = enemiesOf(ctx.state, unit).sort(stableUnitOrder)
   const allies = alliesOf(ctx.state, unit).filter((candidate) => candidate.id !== unit.id).sort(stableUnitOrder)
   const canSubmit = reasons.length === 0
   const skills = unit.skills.flatMap((skillId) => {
     const skill = skillOf(ctx.skills, unit, skillId)
     if (!skill) return []
-    const targets = poolFor(ctx, unit, skill).sort(stableUnitOrder)
+    const targets = poolFor(ctx, unit, skill)
+    if (ctx.rules.deferredPlayerCommands) {
+      // A downed player may be revived before this action, including self buffs.
+      const units = ctx.state.units.map(candidate => candidate.flags.downed && canCollectCommand(candidate, true)
+        ? { ...candidate, flags: { ...candidate.flags, downed: false } } : candidate)
+      const prospective = { ...ctx, state: { ...ctx.state, units } }
+      const source = units.find(candidate => candidate.id === unit.id)!
+      for (const target of poolFor(prospective, source, skill)) {
+        if (!targets.some(candidate => candidate.id === target.id)) targets.push(unitById(ctx.state, target.id))
+      }
+    }
+    targets.sort(stableUnitOrder)
     const check = checkSkillRequirements(ctx, unit, skill, targets.slice(0, targetCount(unit, skill, 1)))
     const skillReasons = canSubmit ? check.reasons : [...reasons, ...check.reasons]
     return [{
       skillId,
       name: skill.name,
       costs: { mp: check.mpCost, hp: check.hpCost, resources: check.resourceCosts },
-      ready: skillReasons.length === 0,
+      ready: ctx.rules.deferredPlayerCommands ? canSubmit && targets.length > 0 : skillReasons.length === 0,
       reasons: [...new Set(skillReasons)],
       selectableTargetIds: targets.map((target) => target.id),
       targetMode: skill.targeting.mode ?? TargetMode.Explicit,

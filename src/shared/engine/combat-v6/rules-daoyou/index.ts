@@ -111,3 +111,5 @@ export const daoyouDeterministicRulesetV5 = createDaoyouRulesetV5({
 })
 
 export const daoyouRulesetV5 = createDaoyouRulesetV5()
+
+export const daoyouRulesetV6: Ruleset = { ...daoyouRulesetV5, name: 'daoyou-rules-v6', maxRounds: 100, deferredPlayerCommands: true }

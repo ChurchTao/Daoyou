@@ -1,4 +1,4 @@
-import type { BattleEvent } from '@shared/engine/combat-v6/core';
+import type { CombatV6DisplayEvent } from '@shared/contracts/combatV6';
 import type { CombatV6Session, CombatV6Unit, SequencedEvent } from './session';
 
 export function unitLabels(units: CombatV6Unit[]) {
@@ -154,7 +154,9 @@ export function appendBattleEntries(
     seq: events[events.length - 1].seq,
   };
 
-  function eventLine(e: BattleEvent): Omit<LogLine, 'seq'> | undefined {
+  function eventLine(
+    e: CombatV6DisplayEvent,
+  ): Omit<LogLine, 'seq'> | undefined {
     switch (e.type) {
       case 'damage':
         return {
@@ -190,7 +192,10 @@ export function appendBattleEntries(
         return { text: `${name(e.unitId)}离场` };
       case 'unitRevived':
         return {
-          text: `${name(e.unitId)}复起，恢复 ${e.hp} 气血`,
+          text:
+            typeof e.hp === 'number'
+              ? `${name(e.unitId)}复起，恢复 ${e.hp} 气血`
+              : `${name(e.unitId)}复起`,
           tone: 'heal',
         };
       case 'barrierChanged':

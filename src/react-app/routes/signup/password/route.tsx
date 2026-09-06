@@ -1,6 +1,6 @@
 import {
-  AuthPageShell,
   AuthCaptchaField,
+  AuthPageShell,
   buildEmailOtpTarget,
   toErrorMessage,
   useAuthFeedback,

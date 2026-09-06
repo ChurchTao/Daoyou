@@ -1,6 +1,10 @@
-import { requireActiveCultivatorRef, redisLockErrorResponse } from '@server/lib/hono/middleware';
+import {
+  redisLockErrorResponse,
+  requireActiveCultivatorRef,
+} from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
+import { findOwnedCombatV6Replay } from '@server/lib/repositories/combatV6ReplayRepository';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { readResourceWithMeta } from '@server/lib/services/ResourceReadService';
 import {
@@ -8,29 +12,32 @@ import {
   getCombatV6BuildView,
   initializeCombatV6Build,
 } from '@server/lib/services/combat-v6/CombatV6BuildService';
+import { CombatV6RuntimeStore } from '@server/lib/services/combat-v6/CombatV6RuntimeStore';
 import {
   COMBAT_V6_TRAINING_CONTENT_VIEW,
   CombatV6TrainingSessionError,
   combatV6TrainingSessionStore,
 } from '@server/lib/services/combat-v6/CombatV6TrainingSessionService';
-import { CombatV6RuntimeStore } from '@server/lib/services/combat-v6/CombatV6RuntimeStore';
-import { findOwnedCombatV6Replay } from '@server/lib/repositories/combatV6ReplayRepository';
 import {
+  WildError,
+  wildSessions,
+} from '@server/lib/services/combat-v6/CombatV6WildSessionService';
+import { combatV6ReplayView } from '@shared/combat-v6/replay';
+import {
+  COMBAT_V6_REPLAY_ERROR_CODE,
   CombatV6BuildInitializeRequestSchema,
-  CombatV6TrainingCommandRequestSchema,
+  CombatV6ReplayParamsSchema,
   CombatV6TrainingCommandParamsSchema,
+  CombatV6TrainingCommandRequestSchema,
   CombatV6TrainingCreateRequestSchema,
   CombatV6TrainingEventsQuerySchema,
   CombatV6TrainingRevisionRequestSchema,
   CombatV6TrainingSessionParamsSchema,
-  CombatV6ReplayParamsSchema,
-  COMBAT_V6_REPLAY_ERROR_CODE,
 } from '@shared/contracts/combatV6';
-import { Hono, type Context } from 'hono';
-import { z } from 'zod';
-import { wildSessions, WildError } from '@server/lib/services/combat-v6/CombatV6WildSessionService';
 import { WildExploreRequestSchema } from '@shared/contracts/combatV6Wild';
 import { TrainingHostError } from '@shared/engine/combat-v6/encounter';
+import { Hono, type Context } from 'hono';
+import { z } from 'zod';
 
 const router = new Hono<AppEnv>();
 const combatV6RuntimeStore = new CombatV6RuntimeStore();
@@ -49,8 +56,17 @@ function actor(c: Context<AppEnv>) {
 }
 
 function errorResponse(c: Context<AppEnv>, error: unknown) {
-  const coordinationError=redisLockErrorResponse(error); if(coordinationError)return coordinationError;
-  if (error instanceof TrainingHostError) return c.json({success:false,code:'WILD_COMMAND_NOT_ALLOWED',error:error.message},400);
+  const coordinationError = redisLockErrorResponse(error);
+  if (coordinationError) return coordinationError;
+  if (error instanceof TrainingHostError)
+    return c.json(
+      {
+        success: false,
+        code: 'WILD_COMMAND_NOT_ALLOWED',
+        error: error.message,
+      },
+      400,
+    );
   if (error instanceof z.ZodError) {
     return c.json(
       {
@@ -75,7 +91,11 @@ function errorResponse(c: Context<AppEnv>, error: unknown) {
   }
   console.error('combat-v6 api error:', error);
   return c.json(
-    { success: false, code: 'COMBAT_V6_INTERNAL_ERROR', error: '练功房暂不可用，请稍后再试' },
+    {
+      success: false,
+      code: 'COMBAT_V6_INTERNAL_ERROR',
+      error: '练功房暂不可用，请稍后再试',
+    },
     500,
   );
 }
@@ -97,9 +117,13 @@ router.get('/build', async (c) => {
 
 router.post('/build/initialize', async (c) => {
   try {
-    const input = CombatV6BuildInitializeRequestSchema.parse(await c.req.json());
+    const input = CombatV6BuildInitializeRequestSchema.parse(
+      await c.req.json(),
+    );
     return c.json(
-      toPlayerStateMutationResponse(await initializeCombatV6Build(actor(c), input)),
+      toPlayerStateMutationResponse(
+        await initializeCombatV6Build(actor(c), input),
+      ),
     );
   } catch (error) {
     return errorResponse(c, error);
@@ -114,15 +138,54 @@ router.get('/replays/:battleId', async (c) => {
   try {
     const params = CombatV6ReplayParamsSchema.parse(c.req.param());
     const current = actor(c);
-    const archived = await findOwnedCombatV6Replay(params.battleId, current.cultivatorId);
-    if (archived) return c.json({ success: true, data: archived.replay });
+    const archived = await findOwnedCombatV6Replay(
+      params.battleId,
+      current.cultivatorId,
+    );
+    if (archived)
+      return c.json({
+        success: true,
+        data: combatV6ReplayView(
+          archived.replay,
+          current.cultivatorId,
+          current.userId,
+        ),
+      });
     const terminal = await combatV6RuntimeStore.terminalRecord(params.battleId);
-    if(terminal?.cultivatorId===current.cultivatorId && terminal.replayExpected) return c.json({success:false,code:COMBAT_V6_REPLAY_ERROR_CODE.Pending,error:'战斗回放正在归档'},202);
+    if (
+      terminal?.cultivatorId === current.cultivatorId &&
+      terminal.replayExpected
+    )
+      return c.json(
+        {
+          success: false,
+          code: COMBAT_V6_REPLAY_ERROR_CODE.Pending,
+          error: '战斗回放正在归档',
+        },
+        202,
+      );
     const runtime = await combatV6RuntimeStore.get(params.battleId);
-    if (runtime?.cultivatorId === current.cultivatorId && runtime.host.state.result) {
-      return c.json({ success: false, code: COMBAT_V6_REPLAY_ERROR_CODE.Pending, error: '战斗回放正在归档' }, 202);
+    if (
+      runtime?.cultivatorId === current.cultivatorId &&
+      runtime.host.state.result
+    ) {
+      return c.json(
+        {
+          success: false,
+          code: COMBAT_V6_REPLAY_ERROR_CODE.Pending,
+          error: '战斗回放正在归档',
+        },
+        202,
+      );
     }
-    return c.json({ success: false, code: COMBAT_V6_REPLAY_ERROR_CODE.NotFound, error: '战斗回放不存在' }, 404);
+    return c.json(
+      {
+        success: false,
+        code: COMBAT_V6_REPLAY_ERROR_CODE.NotFound,
+        error: '战斗回放不存在',
+      },
+      404,
+    );
   } catch (error) {
     return errorResponse(c, error);
   }
@@ -133,7 +196,10 @@ router.get('/training/sessions/current', async (c) => {
     const query = CombatV6TrainingEventsQuerySchema.parse(c.req.query());
     return c.json({
       success: true,
-      data: await combatV6TrainingSessionStore.current(actor(c), query.afterEventSeq),
+      data: await combatV6TrainingSessionStore.current(
+        actor(c),
+        query.afterEventSeq,
+      ),
     });
   } catch (error) {
     return errorResponse(c, error);
@@ -176,7 +242,9 @@ router.get('/training/sessions/:sessionId', async (c) => {
 router.put('/training/sessions/:sessionId/commands/:unitId', async (c) => {
   try {
     const params = CombatV6TrainingCommandParamsSchema.parse(c.req.param());
-    const input = CombatV6TrainingCommandRequestSchema.parse(await c.req.json());
+    const input = CombatV6TrainingCommandRequestSchema.parse(
+      await c.req.json(),
+    );
     return c.json({
       success: true,
       data: await combatV6TrainingSessionStore.submit(
@@ -195,7 +263,9 @@ router.put('/training/sessions/:sessionId/commands/:unitId', async (c) => {
 router.post('/training/sessions/:sessionId/resolve', async (c) => {
   try {
     const params = CombatV6TrainingSessionParamsSchema.parse(c.req.param());
-    const input = CombatV6TrainingRevisionRequestSchema.parse(await c.req.json());
+    const input = CombatV6TrainingRevisionRequestSchema.parse(
+      await c.req.json(),
+    );
     return c.json({
       success: true,
       data: await combatV6TrainingSessionStore.resolve(
@@ -212,7 +282,9 @@ router.post('/training/sessions/:sessionId/resolve', async (c) => {
 router.delete('/training/sessions/:sessionId', async (c) => {
   try {
     const params = CombatV6TrainingSessionParamsSchema.parse(c.req.param());
-    const input = CombatV6TrainingRevisionRequestSchema.parse(await c.req.json());
+    const input = CombatV6TrainingRevisionRequestSchema.parse(
+      await c.req.json(),
+    );
     return c.json({
       success: true,
       data: await combatV6TrainingSessionStore.abandon(
@@ -228,25 +300,129 @@ router.delete('/training/sessions/:sessionId', async (c) => {
 
 router.get('/training/sessions/:sessionId/trace', async (c) => {
   if (process.env.NODE_ENV === 'production') {
-    return c.json({ success: false, code: 'TRAINING_SESSION_NOT_FOUND', error: '训练会话不存在' }, 404);
+    return c.json(
+      {
+        success: false,
+        code: 'TRAINING_SESSION_NOT_FOUND',
+        error: '训练会话不存在',
+      },
+      404,
+    );
   }
   try {
     const params = CombatV6TrainingSessionParamsSchema.parse(c.req.param());
     return c.json({
       success: true,
-      data: await combatV6TrainingSessionStore.trace(actor(c), params.sessionId),
+      data: await combatV6TrainingSessionStore.trace(
+        actor(c),
+        params.sessionId,
+      ),
     });
   } catch (error) {
     return errorResponse(c, error);
   }
 });
 
-router.get('/wild/regions/:nodeId', async(c)=>{try{return c.json({success:true,data:await wildSessions.region(actor(c),c.req.param('nodeId'))});}catch(error){return errorResponse(c,error);}});
-router.post('/wild/explorations', async(c)=>{try{const input=WildExploreRequestSchema.parse(await c.req.json());return c.json({success:true,data:await wildSessions.explore(actor(c),input.nodeId,input.requestId)});}catch(error){return errorResponse(c,error);}});
-router.get('/wild/sessions/current',async(c)=>{try{return c.json({success:true,data:await wildSessions.current(actor(c))});}catch(error){return errorResponse(c,error);}});
-router.get('/wild/sessions/:sessionId',async(c)=>{try{const {sessionId}=CombatV6TrainingSessionParamsSchema.parse(c.req.param());const query=CombatV6TrainingEventsQuerySchema.parse(c.req.query());return c.json({success:true,data:await wildSessions.get(actor(c),sessionId,query.afterEventSeq)});}catch(error){return errorResponse(c,error);}});
-router.put('/wild/sessions/:sessionId/commands/:unitId',async(c)=>{try{const p=CombatV6TrainingCommandParamsSchema.parse(c.req.param());const input=CombatV6TrainingCommandRequestSchema.parse(await c.req.json());return c.json({success:true,data:await wildSessions.submit(actor(c),p.sessionId,input.expectedRevision,p.unitId,input.command)});}catch(error){return errorResponse(c,error);}});
-router.post('/wild/sessions/:sessionId/resolve',async(c)=>{try{const p=CombatV6TrainingSessionParamsSchema.parse(c.req.param());const input=CombatV6TrainingRevisionRequestSchema.parse(await c.req.json());return c.json({success:true,data:await wildSessions.resolve(actor(c),p.sessionId,input.expectedRevision)});}catch(error){return errorResponse(c,error);}});
-router.delete('/wild/sessions/:sessionId',async(c)=>{try{const p=CombatV6TrainingSessionParamsSchema.parse(c.req.param());const input=CombatV6TrainingRevisionRequestSchema.parse(await c.req.json());return c.json({success:true,data:await wildSessions.abandon(actor(c),p.sessionId,input.expectedRevision)});}catch(error){return errorResponse(c,error);}});
+router.get('/wild/regions/:nodeId', async (c) => {
+  try {
+    return c.json({
+      success: true,
+      data: await wildSessions.region(actor(c), c.req.param('nodeId')),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.post('/wild/explorations', async (c) => {
+  try {
+    const input = WildExploreRequestSchema.parse(await c.req.json());
+    return c.json({
+      success: true,
+      data: await wildSessions.explore(actor(c), input.nodeId, input.requestId),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.get('/wild/sessions/current', async (c) => {
+  try {
+    return c.json({
+      success: true,
+      data: await wildSessions.current(actor(c)),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.get('/wild/sessions/:sessionId', async (c) => {
+  try {
+    const { sessionId } = CombatV6TrainingSessionParamsSchema.parse(
+      c.req.param(),
+    );
+    const query = CombatV6TrainingEventsQuerySchema.parse(c.req.query());
+    return c.json({
+      success: true,
+      data: await wildSessions.get(actor(c), sessionId, query.afterEventSeq),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.put('/wild/sessions/:sessionId/commands/:unitId', async (c) => {
+  try {
+    const p = CombatV6TrainingCommandParamsSchema.parse(c.req.param());
+    const input = CombatV6TrainingCommandRequestSchema.parse(
+      await c.req.json(),
+    );
+    return c.json({
+      success: true,
+      data: await wildSessions.submit(
+        actor(c),
+        p.sessionId,
+        input.expectedRevision,
+        p.unitId,
+        input.command,
+      ),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.post('/wild/sessions/:sessionId/resolve', async (c) => {
+  try {
+    const p = CombatV6TrainingSessionParamsSchema.parse(c.req.param());
+    const input = CombatV6TrainingRevisionRequestSchema.parse(
+      await c.req.json(),
+    );
+    return c.json({
+      success: true,
+      data: await wildSessions.resolve(
+        actor(c),
+        p.sessionId,
+        input.expectedRevision,
+      ),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.delete('/wild/sessions/:sessionId', async (c) => {
+  try {
+    const p = CombatV6TrainingSessionParamsSchema.parse(c.req.param());
+    const input = CombatV6TrainingRevisionRequestSchema.parse(
+      await c.req.json(),
+    );
+    return c.json({
+      success: true,
+      data: await wildSessions.abandon(
+        actor(c),
+        p.sessionId,
+        input.expectedRevision,
+      ),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
 
 export default router;

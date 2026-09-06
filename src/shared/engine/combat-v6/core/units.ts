@@ -83,6 +83,10 @@ export function isActionable(unit: Unit): boolean {
   return isStanding(unit)
 }
 
+export function canCollectCommand(unit: Unit, deferred = false): boolean {
+  return isStanding(unit) || (deferred && unit.kind === 'player' && !unit.flags.dead && !unit.flags.escaped && !unit.flags.benched)
+}
+
 export function cloneUnit(unit: Unit): Unit {
   return {
     ...unit,

@@ -25,7 +25,7 @@
     }
   },
   "include": [
-    "vite.config.ts",
+    "vite*.ts",
     "vitest.config.ts",
     "drizzle.auth.config.ts",
     "./src/index.ts",

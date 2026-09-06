@@ -194,7 +194,9 @@ dist
 ### Wrangler ###
 .wrangler/
 .env*
-!.env.example
+/env/*
+!/env/local.env
+!/env/example.env
 .dev.vars*
 !.dev.vars.example
 
@@ -208,3 +210,4 @@ sponsorkit/.cache*.json
 sponsorkit/sponsors.json
 
 .venv*
+!scripts/docker-compose.local.yml

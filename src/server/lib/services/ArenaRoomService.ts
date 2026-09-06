@@ -15,7 +15,6 @@ import {
   type ArenaRoomV1,
   type ArenaTeamIdV1,
 } from '@shared/contracts/arena';
-import type { BattleCleanupManifestV1 } from '@shared/contracts/battleTerminal';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 
 const ROOM_KEY_PREFIX = 'arena:room:v1:';
@@ -438,7 +437,31 @@ export class ArenaRoomService {
     return next;
   }
 
-  async forceReleaseTerminalBattle(manifest: BattleCleanupManifestV1): Promise<{
+  async resetFailedStart(roomId: string, requestId: string) {
+    const room = await this.requireRoom(roomId);
+    if (
+      room.status !== 'starting' ||
+      room.startRequestId !== requestId ||
+      room.battleMatchId
+    )
+      return;
+    await this.commit(
+      room,
+      nextRoom(room, {
+        status: 'ready_check',
+        startRequestId: undefined,
+        frozenRoster: undefined,
+      }),
+    );
+  }
+
+  async forceReleaseTerminalBattle(manifest: {
+    matchId: string;
+    kind: string;
+    roomId?: string;
+    playerIds: readonly string[];
+    cultivatorIds: readonly string[];
+  }): Promise<{
     released: boolean;
     roomId?: string;
     userIds: string[];

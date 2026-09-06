@@ -1,3 +1,5 @@
+import { redis } from '@server/lib/redis';
+import { arenaOccupancyKey } from './CombatV6ArenaStore';
 import { CombatV6WildStore } from './CombatV6WildStore';
 
 const sensitive =
@@ -6,7 +8,7 @@ export class CombatV6MutationLockedError extends Error {
   readonly code = 'WILD_SETTLEMENT_LOCKED';
   readonly status = 409;
   constructor() {
-    super('野外战斗或资源结算期间无法进行此操作');
+    super('战斗或资源结算期间无法进行此操作');
   }
 }
 export async function assertCombatV6MutationAllowed(
@@ -15,7 +17,8 @@ export async function assertCombatV6MutationAllowed(
 ) {
   if (
     sensitive.test(source) &&
-    (await new CombatV6WildStore().lock(cultivatorId))
+    ((await new CombatV6WildStore().lock(cultivatorId)) ||
+      (await redis.get(arenaOccupancyKey(cultivatorId))))
   ) {
     throw new CombatV6MutationLockedError();
   }

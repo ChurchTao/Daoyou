@@ -45,14 +45,18 @@
 说明：
 
 - 仓库脚本默认围绕 `bun` / `bunx` 编写，不建议继续沿用旧的 `npm + Next.js` 使用方式
-- 开发模式默认端口是 `5173`
+- 专用本地开发前端端口是 `5174`，预发布调试默认 `5173`
 - 构建后服务默认端口是 `3000`
 
 ## 安装
 
+推荐使用[纯本地开发与预发布隔离](./local-development.md)：启停服务、迁移数据库和启动应用分别执行。`dev` 组读取 `env/local.env`，`prd` 组读取 `env/staging.env`；浏览器自动化遵循[测试规范](./testing.md)。
+
 ```bash
 bun install
-cp .env.example .env.local
+bun run services up -d --wait
+bun run db:migrate
+bun run dev
 ```
 
 ## 环境变量
@@ -98,7 +102,7 @@ cp .env.example .env.local
 
 ### 登录 / 注册相关
 
-当前鉴权中，以下接口会强制要求 ALTCHA PoW payload：
+配置 `ALTCHA_HMAC_SECRET` 后，以下接口强制要求 ALTCHA PoW payload；未配置或为空时跳过人机验证：
 
 - `/api/auth/sign-in/email`
 - `/api/auth/sign-up/email`
@@ -110,7 +114,7 @@ cp .env.example .env.local
 | 变量 | 说明 |
 | --- | --- |
 | `VITE_API_BASE_URL` | 前端构建时注入的后端 API 基地址，如 `https://api.example.com` |
-| `ALTCHA_HMAC_SECRET` | 服务端签发和验证 ALTCHA challenge 的独立 HMAC 密钥；生产环境必须配置 |
+| `ALTCHA_HMAC_SECRET` | 服务端签发和验证 ALTCHA challenge 的独立 HMAC 密钥；是否配置决定是否启用人机验证 |
 
 ALTCHA 不需要前端 site key。认证 CAPTCHA 启用时 Redis 也是强依赖；Redis 不可用时，受保护的认证请求会失败关闭，避免 challenge 被重复使用。
 
@@ -159,17 +163,16 @@ AI 相关功能支持 DeepSeek 与阿里云百炼（Qwen），统一通过 `aiCl
 
 首次启动通常要做两件事：
 
-1. 应用业务表迁移
-2. Better Auth 表迁移
+1. Better Auth 表迁移
+2. 应用业务表迁移
 
 ```bash
-bunx drizzle-kit migrate
-bun run auth:migrate
+bun run db:migrate
 ```
 
 说明：
 
-- 运行这些命令前，请先确保 `DATABASE_URL`、`BETTER_AUTH_SECRET`、`BETTER_AUTH_URL` 已在当前进程环境中可见
+- 本地命令从 `env/local.env` 加载配置；独立的 Drizzle／认证工具需由进程环境或 `bun --env-file=...` 显式提供配置
 - `drizzle/` 目录下已经存在业务表迁移文件
 - `drizzle/` 只管理 `wanjiedaoyou_*` 业务表
 - `drizzle-auth/` 只管理固定 `better_auth` schema，并使用独立迁移历史表
@@ -179,24 +182,24 @@ bun run auth:migrate
 
 ## 本地开发
 
-1. 准备好 `.env.local`
+1. 准备好 `env/local.env`
 2. 确保数据库、Redis 和 NATS JetStream 可连接
 3. 执行迁移
 4. 启动开发服务器
 
 ```bash
-docker compose -f scripts/docker-compose.nats.yml up -d
+bun run services up -d --wait
 bun run dev
 ```
 
-本地 NATS 容器监听 `4222`，监控端口为 `8222`，开发凭据与 `.env.example` 一致。持久数据保存在 Docker volume `nats-data` 中。
+专用本地 NATS 监听 `14222`，监控端口为 `18222`；开发凭据与 `env/local.env` 一致。持久数据保存在 `daoyou-local` 专用卷中。
 
 生产硬切顺序、Stream/consumer、DLQ 和故障检查参见 [nats-domain-events.md](nats-domain-events.md)。
 
 访问：
 
-- 前端页面：`http://localhost:5173`
-- 健康检查：`http://localhost:5173/api/health-check`
+- 前端页面：`http://127.0.0.1:5174`
+- 健康检查：`http://127.0.0.1:5174/api/health-check`
 
 `bun run dev` 会同时启动 Vite 前端和 Bun/Hono 主服务；Vite 将 `/api`、`/internal` 与 WebSocket 升级代理到 Bun 服务。
 
@@ -207,15 +210,15 @@ bun run dev
 | 命令 | 作用 |
 | --- | --- |
 | `bun run dev` | 启动 Vite 与 Bun/Hono 主服务 |
+| `bun run dev:api` / `dev:web` | 独立启动本地 API／Web |
+| `bun run prd` / `prd:api` / `prd:web` | 使用预发布配置启动两者／仅 API／仅 Web |
 | `bun run build` | 依次构建前端与服务端 |
 | `bun run build:client` | 构建 Cloudflare Pages 使用的前端 SPA |
 | `bun run build:server` | 构建 Docker 使用的 Bun/Hono 后端 |
-| `bun run preview` | 先构建，再运行 `dist/index.js` |
-| `bun run start` | 直接运行已构建产物 |
 | `bun run lint` | ESLint 检查 |
 | `bun run test` | Vitest |
-| `bun run battle:smoke` | 实时战斗 2v2/4v4、超时默认出招、协议、负载与 Worker 故障注入验收 |
-| `REDIS_URL=redis://127.0.0.1:6379/15 bun run battle:e2e:redis` | 使用本机隔离 Redis DB 验收重启、多实例、幂等和归档 staging |
+| `bun run services up -d --wait` / `down` | 启停本地依赖服务 |
+| `bun run db:migrate` | 使用选定环境依次迁移认证与业务表 |
 | `bun run auth:generate` | 生成 `better_auth` Drizzle 迁移 |
 | `bun run auth:migrate` | 执行 `better_auth` 独立迁移流 |
 

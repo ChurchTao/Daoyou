@@ -5,13 +5,13 @@ import {
   combatV6Playback,
   combatV6Units,
 } from '@shared/combat-v6/presentation';
+import { createCombatV6Replay } from '@shared/combat-v6/replay';
 import {
   COMBAT_V6_TRAINING_ERROR_CODE,
   type CombatV6TrainingCommandV1,
   type CombatV6TrainingSessionViewV1,
 } from '@shared/contracts/combatV6';
 import {
-  COMBAT_V6_REPLAY_VERSION,
   CombatV6BattleFinishedRecordV1Schema,
   type CombatV6BattleFinishedRecordV1,
   type CombatV6RedisRuntimeV1,
@@ -346,17 +346,26 @@ export class CombatV6TrainingSessionService {
     const trace = host.trace();
     if (!trace.finalState || !trace.outcome)
       throw new Error('Cannot archive unfinished combat-v6 battle');
-    return {
-      ...trace,
-      replayVersion: COMBAT_V6_REPLAY_VERSION,
+    const player = trace.finalState.units.find(
+      (unit) => unit.id === host.playerId,
+    )!;
+    return createCombatV6Replay({
+      trace,
       battleId: runtime.battleId,
-      cultivatorId: runtime.cultivatorId,
+      participants: [
+        {
+          userId: runtime.userId,
+          cultivatorId: runtime.cultivatorId,
+          unitId: player.id,
+          side: player.side,
+          slot: player.slot,
+        },
+      ],
       metadata: runtime.metadata,
       startedAt: runtime.createdAt,
       finishedAt: new Date().toISOString(),
-      finalState: trace.finalState,
-      outcome: trace.outcome,
-    };
+      reason: trace.outcome === 'aborted' ? 'fled' : 'battle-ended',
+    });
   }
   private async expire(runtime: CombatV6RedisRuntimeV1) {
     await this.store.remove(

@@ -21,7 +21,7 @@ import type {
   Unit,
   UnitId,
 } from "./types.ts"
-import { cloneUnit, createUnit, isStanding } from "./units.ts"
+import { cloneUnit, createUnit, canCollectCommand } from "./units.ts"
 import { validateLineup } from "./validate.ts"
 
 /**
@@ -137,7 +137,7 @@ export class BattleSession {
       throw new BattleError(ErrorCode.CommandsLocked, "当前不在指令阶段，无法下达指令")
     }
     const unit = unitById(this.ctx.state, unitId)
-    if (!isStanding(unit)) {
+    if (!canCollectCommand(unit, this.ctx.rules.deferredPlayerCommands)) {
       throw new BattleError(ErrorCode.UnitCannotAct, `单位 ${unitId} 无法行动`)
     }
     const resolved = materializeCommand(this.ctx, unit, command)

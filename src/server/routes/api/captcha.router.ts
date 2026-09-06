@@ -8,6 +8,11 @@ import { Hono } from 'hono';
 
 const router = new Hono<AppEnv>();
 
+router.get('/config', (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json({ enabled: isAltchaServerEnabled() });
+});
+
 router.get('/challenge', async (c) => {
   const action = c.req.query('action') ?? '';
   if (!isAltchaAction(action)) {

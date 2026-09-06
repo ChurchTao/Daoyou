@@ -1,6 +1,7 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
+import type { ArenaSessionView } from '@shared/contracts/combatV6Arena';
 import { useState } from 'react';
 import { CombatV6SkillChoice } from './CombatV6SkillChoice';
 import { reasonText } from './presentation';
@@ -19,6 +20,7 @@ const outcomeLabels = {
   aborted: '已离场',
 };
 export function CombatV6Commands({
+  online,
   session,
   playing,
   pending,
@@ -31,6 +33,7 @@ export function CombatV6Commands({
   onResolve,
   onClose,
 }: {
+  online?: ArenaSessionView;
   session: CombatV6Session;
   playing: boolean;
   pending: boolean;
@@ -77,13 +80,15 @@ export function CombatV6Commands({
         <>
           <div className="cv6-command-heading">
             <strong>{playing ? '战斗进行中' : unitName}</strong>
-            <button
-              className="cv6-text-button"
-              disabled={disabled}
-              onClick={onClose}
-            >
-              放弃战斗
-            </button>
+            {!online && (
+              <button
+                className="cv6-text-button"
+                disabled={disabled}
+                onClick={onClose}
+              >
+                放弃战斗
+              </button>
+            )}
           </div>
           {!playing && (
             <>
@@ -109,7 +114,7 @@ export function CombatV6Commands({
                 {(['spell', 'art'] as const).map((group) => (
                   <button
                     key={group}
-                    disabled={disabled}
+                    disabled={disabled || (!!online && !options)}
                     aria-haspopup="dialog"
                     aria-pressed={
                       choice?.type === 'skill' &&
@@ -173,6 +178,14 @@ export function CombatV6Commands({
                       取消
                     </button>
                   </>
+                ) : online ? (
+                  online.submittedUnitIds.includes(online.controlledUnitId) ? (
+                    '已提交，等待其他人物下令'
+                  ) : online.stage === 'collecting' && options?.canSubmit ? (
+                    '选择行动 · 超时默认普攻'
+                  ) : (
+                    '等待战斗推进'
+                  )
                 ) : session.pendingCommand ? (
                   <button disabled={disabled} onClick={() => void onResolve()}>
                     继续执行已提交指令

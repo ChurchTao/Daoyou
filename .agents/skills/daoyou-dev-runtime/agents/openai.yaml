@@ -1,4 +1,0 @@
-interface:
-  display_name: "Daoyou Dev Runtime"
-  short_description: "Daoyou 本地启动、构建、Docker 与 cron"
-  default_prompt: "Use $daoyou-dev-runtime to debug or change Daoyou local startup, build, Docker, env, health check, or cron behavior."

@@ -103,8 +103,9 @@ export type BattleResult = {
 /** 战斗、快照与回放共同携带的首版版本契约。 */
 export type CombatV6VersionStamp = {
   engineVersion: "combat-v6"
-  rulesetVersion: "daoyou_rules_v1" | "daoyou_rules_v2" | "daoyou_rules_v3" | "daoyou_rules_v4" | "daoyou_rules_v5"
+  rulesetVersion: "daoyou_rules_v1" | "daoyou_rules_v2" | "daoyou_rules_v3" | "daoyou_rules_v4" | "daoyou_rules_v5" | "daoyou_rules_v6"
   contentVersion:
+    | 'daoyou_arena_content_v1'
     | "empty_content_v1"
     | "daoyou_sect_content_v1"
     | "daoyou_sect_equipment_content_v1"
@@ -117,6 +118,7 @@ export type CombatV6VersionStamp = {
     | "daoyou_training_encounter_content_v1"
     | "daoyou_wild_encounter_content_v1"
   projectionVersion:
+    | 'arena_encounter_v1'
     | "character_panel_v1"
     | "character_training_v1"
     | "character_sect_v1"
@@ -558,6 +560,8 @@ export type DecideCommandInput = {
 /** 规则插件。公式、死亡分型、默认指令都在这里，引擎保持规则无关。 */
 export type Ruleset = {
   name: string
+  /** Intent can be submitted before a player is revived or regains resources. */
+  deferredPlayerCommands?: boolean
   maxRounds: number
   formulas: FormulaSet
   hpZeroOutcome(unit: Unit): HpZeroOutcome

@@ -49,7 +49,9 @@ export function CombatV6SkillChoice({
       </div>
       <small>
         {costs}
-        {!skill.ready ? ` · ${skill.reasons.map(reasonText).join('；')}` : ''}
+        {skill.reasons.length
+          ? ` · ${skill.reasons.map(reasonText).join('；')}${skill.ready ? '（行动时判定）' : ''}`
+          : ''}
       </small>
     </div>
   );

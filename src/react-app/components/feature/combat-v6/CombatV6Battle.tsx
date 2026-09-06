@@ -1,4 +1,5 @@
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
+import type { ArenaSessionView } from '@shared/contracts/combatV6Arena';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { CombatV6Commands, type Choice } from './CombatV6Commands';
@@ -9,6 +10,7 @@ import { unitLabels } from './presentation';
 import type { CombatV6Session, SessionState } from './session';
 
 type Props = {
+  online?: ArenaSessionView;
   title: string;
   session: CombatV6Session;
   shown: SessionState<CombatV6Session>['shown'];
@@ -29,6 +31,7 @@ const outcomeLabels = {
 };
 const noTargets: string[] = [];
 export function CombatV6Battle({
+  online,
   title,
   session,
   shown,
@@ -41,7 +44,7 @@ export function CombatV6Battle({
   back,
   backLabel,
 }: Props) {
-  const selectionId = `${session.sessionId}:${session.revision}:${session.commandOptions?.unitId ?? 'ended'}`;
+  const selectionId = `${session.sessionId}:${online ? session.round : session.revision}:${session.commandOptions?.unitId ?? 'ended'}`;
   const [selection, setSelection] = useState<{
     id: string;
     choice: Choice;
@@ -110,7 +113,10 @@ export function CombatV6Battle({
         <CombatV6Roster
           units={shown.units}
           labels={labels}
-          controlledId={playing ? undefined : session.commandOptions?.unitId}
+          controlledId={
+            online?.controlledUnitId ??
+            (playing ? undefined : session.commandOptions?.unitId)
+          }
           targetIds={disabled ? undefined : choice?.ids}
           selectedIds={targets}
           onInspect={setInspected}
@@ -119,12 +125,15 @@ export function CombatV6Battle({
         <CombatV6Log entries={log.entries} visibleSeq={shown.visibleSeq} />
       </div>
       <CombatV6Commands
+        online={online}
         key={selectionId}
         session={session}
         pending={pending}
         playing={playing}
         unitName={
-          labels.get(session.commandOptions?.unitId ?? '') ?? '等待指令'
+          labels.get(
+            online?.controlledUnitId ?? session.commandOptions?.unitId ?? '',
+          ) ?? '等待指令'
         }
         choice={choice}
         targets={targets}

@@ -30,7 +30,7 @@ import { commandPolicyOf, hasBlock, hasStatusFlag } from "./status.ts"
 import { resolveSkillTargets } from "./targeting.ts"
 import { skillOf } from "./skills.ts"
 import type { Command, SkillDef, Unit } from "./types.ts"
-import { effectiveSpeed, isActionable, isStanding, resourceOf } from "./units.ts"
+import { effectiveSpeed, isActionable, isStanding, resourceOf, canCollectCommand } from "./units.ts"
 import { consumeWhen, matchesWhen, targetStatusStacks } from "./when.ts"
 
 /** 防御/保护在锁指令时立刻生效，不必等该单位出手（保护者比被保护者慢时仍能拦刀）。 */
@@ -47,7 +47,7 @@ export function clearRoundFlags(unit: Unit): void {
 
 /** 当回合速度（含状态加减）排序；后发制人一类 actFirst 插到队列最前。合击未实现。 */
 export function turnOrder(ctx: BattleContext): Unit[] {
-  return standingUnits(ctx.state)
+  return ctx.state.units.filter(unit => canCollectCommand(unit, ctx.rules.deferredPlayerCommands))
     .slice()
     .sort((a, b) => {
       const first = Number(hasStatusFlag(ctx, a, StatusFlag.ActFirst)) - Number(hasStatusFlag(ctx, b, StatusFlag.ActFirst))
@@ -61,7 +61,7 @@ export function turnOrder(ctx: BattleContext): Unit[] {
 
 /** 未提交的单位在此补指令（超时普攻 / 自动复用 / NPC AI），并点亮防御、保护旗。 */
 export function lockCommands(ctx: BattleContext): void {
-  for (const unit of standingUnits(ctx.state)) {
+  for (const unit of ctx.state.units.filter(unit => canCollectCommand(unit, ctx.rules.deferredPlayerCommands))) {
     let command = unit.command
     if (!command) {
       command = fillMissingCommand(ctx, unit)

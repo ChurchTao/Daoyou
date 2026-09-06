@@ -5,6 +5,8 @@ import type {
   ResourceScopeKind,
   ResourceTopic,
 } from '@shared/contracts/resources';
+import type { DaoEquipmentInstanceV1 } from '@shared/engine/combat-v6/equipment';
+import type { SpiritFieldPlotState } from '@shared/engine/spirit-field/types';
 import type {
   ItemLibraryEditorConfig,
   ItemLibraryPayload,
@@ -12,7 +14,6 @@ import type {
 import type { SponsorshipTierId } from '@shared/lib/sponsorship';
 import type { TowerPreparedEnemy } from '@shared/lib/tower';
 import type { BattleRecordV3 } from '@shared/types/battle';
-import type { DaoEquipmentInstanceV1 } from '@shared/engine/combat-v6/equipment';
 import type {
   AlchemyFormulaBlueprint,
   AlchemyFormulaMastery,
@@ -20,7 +21,6 @@ import type {
   PillFamily,
 } from '@shared/types/consumable';
 import type { MailAttachment } from '@shared/types/mail';
-import type { SpiritFieldPlotState } from '@shared/engine/spirit-field/types';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -114,7 +114,6 @@ export const cultivators = pgTable(
   ],
 );
 
-
 // 个人灵田领域聚合：不再寄生 cultivators.game_settings。
 export const spiritFields = pgTable(
   'wanjiedaoyou_spirit_fields',
@@ -126,10 +125,7 @@ export const spiritFields = pgTable(
     selfHarvestCount: integer('self_harvest_count').notNull().default(0),
     totalCareCount: integer('total_care_count').notNull().default(0),
     starterClaimed: boolean('starter_claimed').notNull().default(false),
-    plots: jsonb('plots')
-      .$type<SpiritFieldPlotState[]>()
-      .notNull()
-      .default([]),
+    plots: jsonb('plots').$type<SpiritFieldPlotState[]>().notNull().default([]),
     version: integer('version').notNull().default(1),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
@@ -1025,7 +1021,6 @@ export const combatV6ReplayArchives = pgTable(
   'wanjiedaoyou_combat_v6_replay_archives',
   {
     battleId: uuid('battle_id').primaryKey(),
-    cultivatorId: uuid('cultivator_id').notNull(),
     metadataVersion: integer('metadata_version').notNull(),
     sourceType: varchar('source_type', { length: 64 }).notNull(),
     battleType: varchar('battle_type', { length: 64 }).notNull(),
@@ -1039,8 +1034,31 @@ export const combatV6ReplayArchives = pgTable(
     archivedAt: timestamp('archived_at').defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex('combat_v6_replay_source_idempotency_uidx').on(table.sourceType, table.idempotencyKey),
-    index('combat_v6_replay_cultivator_finished_idx').on(table.cultivatorId, table.finishedAt),
+    uniqueIndex('combat_v6_replay_source_idempotency_uidx').on(
+      table.sourceType,
+      table.idempotencyKey,
+    ),
+    index('combat_v6_replay_finished_idx').on(table.finishedAt),
+  ],
+);
+
+// 不关联角色生命周期：删除角色不应连带删除历史战斗及参与记录。
+export const combatV6ReplayParticipants = pgTable(
+  'wanjiedaoyou_combat_v6_replay_participants',
+  {
+    battleId: uuid('battle_id')
+      .notNull()
+      .references(() => combatV6ReplayArchives.battleId, {
+        onDelete: 'cascade',
+      }),
+    cultivatorId: uuid('cultivator_id').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.battleId, table.cultivatorId] }),
+    index('combat_v6_replay_participant_cultivator_idx').on(
+      table.cultivatorId,
+      table.battleId,
+    ),
   ],
 );
 
