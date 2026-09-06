@@ -110,16 +110,33 @@ export const CombatV6TrainingCommandSchema = z.discriminatedUnion('type', [
     .object({ type: z.literal('protect'), target: z.string().min(1).max(200) })
     .strict(),
   z.object({ type: z.literal('flee') }).strict(),
+  z
+    .object({ type: z.literal('summon'), petId: z.string().min(1).max(200) })
+    .strict(),
+  z.object({ type: z.literal('recall') }).strict(),
 ]);
 export type CombatV6TrainingCommandV1 = z.infer<
   typeof CombatV6TrainingCommandSchema
 > &
   Command;
 
+export const CombatV6CommandGroupSchema = z
+  .array(
+    z
+      .object({
+        unitId: z.string().min(1).max(200),
+        command: CombatV6TrainingCommandSchema,
+      })
+      .strict(),
+  )
+  .min(1)
+  .max(2);
+export type CombatV6CommandGroup = z.infer<typeof CombatV6CommandGroupSchema>;
+
 export const CombatV6TrainingCommandRequestSchema = z
   .object({
     expectedRevision: z.number().int().nonnegative(),
-    command: CombatV6TrainingCommandSchema,
+    commands: CombatV6CommandGroupSchema,
   })
   .strict();
 
@@ -227,10 +244,12 @@ export interface CombatV6TrainingSessionViewV1 {
   outcome?: TrainingEncounterOutcome;
   units: CombatV6TrainingUnitViewV1[];
   commandOptions?: CombatV6CommandOptions;
+  controlledCommandOptions?: CombatV6CommandOptions[];
   pendingCommand?: CombatV6TrainingCommandV1;
   events: Array<{ seq: number; event: CombatV6DisplayEvent }>;
   latestEventSeq: number;
   display?: {
+    unitNames?: Record<string, string>;
     skills: Record<string, string>;
     skillDetails?: Record<
       string,

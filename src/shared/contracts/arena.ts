@@ -5,6 +5,7 @@ import { z } from 'zod';
 export const ARENA_SPARRING_MODE_V1 = 'arena_sparring_v1' as const;
 export const ARENA_ROOM_INVITE_CODE_LENGTH = 6;
 export const ARENA_ROOM_MAX_SEATS_PER_TEAM = 4;
+export const ARENA_ROOM_MAX_SPECTATORS = 50;
 export const ARENA_ROOM_TTL_SECONDS = 30 * 60;
 
 export type ArenaRoomModeV1 = typeof ARENA_SPARRING_MODE_V1;
@@ -72,6 +73,7 @@ export interface ArenaRoomV1 {
   readonly startRequestId?: string;
   readonly frozenRoster?: ArenaFrozenRosterV1;
   readonly teams: Readonly<Record<ArenaTeamIdV1, readonly ArenaRoomSeatV1[]>>;
+  readonly spectators?: readonly ArenaRoomSeatV1[];
 }
 
 export const ArenaInviteCodeSchema = z
@@ -85,6 +87,7 @@ export const ArenaCreateRoomSchema = z.object({}).strict();
 export const ArenaJoinRoomSchema = z
   .object({
     inviteCode: ArenaInviteCodeSchema,
+    role: z.enum(['participant', 'spectator']).default('participant'),
   })
   .strict();
 

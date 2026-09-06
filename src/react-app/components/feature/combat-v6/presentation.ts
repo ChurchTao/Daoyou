@@ -63,7 +63,7 @@ export type BattleLog = {
 export function appendBattleEntries(
   previous: BattleLog,
   events: SequencedEvent[],
-  session: CombatV6Session,
+  session: Pick<CombatV6Session, 'units' | 'display'>,
 ): BattleLog {
   if (!events.length) return previous;
   const result = [...previous.entries];
@@ -77,7 +77,8 @@ export function appendBattleEntries(
       : undefined;
   if (entry) result[result.length - 1] = entry;
   const names = unitLabels(session.units);
-  const name = (id?: string) => names.get(id ?? '') ?? '未知单位';
+  const name = (id?: string) =>
+    names.get(id ?? '') ?? session.display?.unitNames?.[id ?? ''] ?? '未知单位';
   const resources = new Map(
     session.units.flatMap((u) =>
       u.resources.map((r) => [r.id, r.name] as const),
@@ -122,7 +123,11 @@ export function appendBattleEntries(
                 ? '凝神防御'
                 : c.type === 'flee'
                   ? '尝试逃离'
-                  : '开始行动';
+                  : c.type === 'summon'
+                    ? `召唤${name(c.petId)}`
+                    : c.type === 'recall'
+                      ? '召回灵兽'
+                      : '开始行动';
       entry = {
         seq,
         endSeq: seq,

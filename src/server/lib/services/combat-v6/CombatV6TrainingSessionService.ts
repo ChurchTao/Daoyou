@@ -1,9 +1,12 @@
 import { db } from '@server/lib/drizzle/db';
+import { redis } from '@server/lib/redis';
+import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { findActiveCombatV6Membership } from '@server/lib/repositories/combatV6BuildRepository';
 import {
   combatV6Display,
   combatV6Playback,
   combatV6Units,
+  visibleUnitNames,
 } from '@shared/combat-v6/presentation';
 import { createCombatV6Replay } from '@shared/combat-v6/replay';
 import {
@@ -34,6 +37,7 @@ import {
   type TrainingEncounterOutcome,
 } from '@shared/engine/combat-v6/encounter';
 import { randomInt, randomUUID } from 'node:crypto';
+import { arenaOccupancyKey } from './CombatV6ArenaStore';
 import {
   assembleCombatV6TrainingPlayer,
   CombatV6BuildError,
@@ -63,6 +67,28 @@ export class CombatV6TrainingSessionService {
     encounterId: string,
     tier: CombatV6TrainingTierV1,
   ) {
+    return withRedisLock(
+      {
+        key: redisLockKeys.cultivatorMutation(actor.cultivatorId),
+        context: 'combat-v6-training-create',
+        timeoutMs: 30000,
+        retries: 0,
+      },
+      async (lease) => {
+        const result = await this.createLocked(actor, encounterId, tier);
+        lease.assertHeld();
+        return result;
+      },
+    );
+  }
+
+  private async createLocked(
+    actor: Actor,
+    encounterId: string,
+    tier: CombatV6TrainingTierV1,
+  ) {
+    if (await redis.get(arenaOccupancyKey(actor.cultivatorId)))
+      throw this.error('AlreadyActive', '请先结束擂台战斗');
     if (await new CombatV6WildStore().lock(actor.cultivatorId))
       throw this.error('AlreadyActive', '野外战斗或资源结算尚未结束');
     const currentId = await this.store.currentId(actor.cultivatorId);
@@ -160,13 +186,15 @@ export class CombatV6TrainingSessionService {
     battleId: string,
     expectedRevision: number,
     unitId: string,
-    command: CombatV6TrainingCommandV1,
+    commands: import('@shared/contracts/combatV6').CombatV6CommandGroup,
   ) {
     const runtime = await this.require(actor, battleId);
     this.assertRevision(runtime, expectedRevision);
     const host = this.restore(runtime);
     try {
-      host.submit(unitId, structuredClone(command));
+      if (unitId !== host.playerId)
+        throw this.error('CommandNotAllowed', '无权提交此人物指令', 400);
+      host.submitGroup(structuredClone(commands));
     } catch (error) {
       if (error instanceof TrainingHostError)
         throw this.error('CommandNotAllowed', error.message, 400);
@@ -430,8 +458,16 @@ export class CombatV6TrainingSessionService {
       phase: state.phase,
       ...(host.finished ? { outcome: host.trace().outcome } : {}),
       units: combatV6Units(state, host.trace().statusDefs),
-      display: combatV6Display(host.trace().skills, host.trace().statusDefs),
-      ...(!host.finished ? { commandOptions: host.queryCommands() } : {}),
+      display: {
+        ...combatV6Display(host.trace().skills, host.trace().statusDefs),
+        unitNames: visibleUnitNames(state, runtime.host.events, host.playerId),
+      },
+      ...(!host.finished
+        ? {
+            commandOptions: host.queryCommands(),
+            controlledCommandOptions: host.controlledCommandOptions(),
+          }
+        : {}),
       ...(player?.command
         ? { pendingCommand: player.command as CombatV6TrainingCommandV1 }
         : {}),

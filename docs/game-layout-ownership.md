@@ -13,6 +13,8 @@
 
 ## 共享组件归位
 
+- `/game/beasts` 归属 `GameViewportLayout`，使用 `GameSceneFrame` 展示召唤兽管理；战斗中的召唤选择仍由 v6 指令组件负责。
+
 - v6 战斗页面、阵容、指令和逐行动播报放在 `src/react-app/components/feature/combat-v6/`；仅复用通用 UI 和全局配色，不依赖旧 `feature/battle` 组件。协议与恢复规则见 [v6 战斗 UI](combat-v6-battle-ui.md)
 - 造化/参悟共享材料选择器放在 `src/react-app/components/feature/creation/MaterialSelector.tsx`
 - 道身长期状态与称号编辑放在 `src/react-app/components/feature/cultivator/`

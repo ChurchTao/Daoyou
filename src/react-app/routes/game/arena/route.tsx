@@ -126,8 +126,13 @@ export default function ArenaPage() {
       (room.status !== 'starting' && room.status !== 'in_battle')
     )
       return;
-    navigate(`/game/combat-v6/arena/${encodeURIComponent(room.battleMatchId)}`);
-  }, [navigate, room?.battleMatchId, room?.status]);
+    const watching = room.spectators?.some(
+      (s) => s.cultivatorId === currentCultivatorId,
+    );
+    navigate(
+      `/game/combat-v6/arena/${encodeURIComponent(room.battleMatchId)}${watching ? '?watch=1' : ''}`,
+    );
+  }, [navigate, room, currentCultivatorId]);
 
   useEffect(() => {
     if (room?.status !== 'starting' || room.battleMatchId) return;
@@ -227,7 +232,7 @@ function ArenaFacility({
   const [error, setError] = useState<string>();
   const [startRequestId] = useState(() => crypto.randomUUID());
 
-  const perform = async (action: 'create' | 'join') => {
+  const perform = async (action: 'create' | 'join' | 'watch') => {
     setBusy(true);
     setError(undefined);
     try {
@@ -236,7 +241,14 @@ function ArenaFacility({
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(action === 'create' ? {} : { inviteCode }),
+          body: JSON.stringify(
+            action === 'create'
+              ? {}
+              : {
+                  inviteCode,
+                  role: action === 'watch' ? 'spectator' : 'participant',
+                },
+          ),
         },
       );
       onRoom(response.room);
@@ -308,7 +320,15 @@ function ArenaFacility({
                   onClick={() => void perform('join')}
                   className="border-crimson/45 text-crimson hover:bg-crimson/6 w-full border-l-2 px-5 py-3 text-left disabled:opacity-50"
                 >
-                  加入房间
+                  加入参战席
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || inviteCode.length !== 6}
+                  onClick={() => void perform('watch')}
+                  className="border-ink/20 text-ink-secondary w-full border-l-2 px-5 py-3 text-left disabled:opacity-50"
+                >
+                  加入观战席
                 </button>
               </div>
             ) : null}
@@ -342,6 +362,9 @@ function ArenaRoomWorkspace({
     [currentCultivatorId, room],
   );
   const isHost = current?.seat.userId === room.hostUserId;
+  const watching = room.spectators?.some(
+    (s) => s.cultivatorId === currentCultivatorId,
+  );
   const canStart =
     isHost &&
     isArenaRoomActive(room.status) &&
@@ -426,6 +449,22 @@ function ArenaRoomWorkspace({
         ))}
       </div>
 
+      <section className="border-ink/15 border-t pt-3" aria-label="观战席">
+        <p className="text-ink-secondary text-xs">观战席</p>
+        <div className="mt-2 flex flex-wrap gap-3 text-sm">
+          {room.spectators?.length ? (
+            room.spectators.map((seat) => (
+              <span key={seat.cultivatorId}>
+                {seat.displayName}
+                {seat.cultivatorId === currentCultivatorId ? ' · 你' : ''}
+              </span>
+            ))
+          ) : (
+            <span className="text-ink-secondary">暂无观战者</span>
+          )}
+        </div>
+      </section>
+
       {current ? (
         <div className="grid gap-2 sm:grid-cols-3">
           <button
@@ -458,6 +497,15 @@ function ArenaRoomWorkspace({
             离开房间
           </button>
         </div>
+      ) : watching ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void mutate('leave', {})}
+          className="border-ink/20 text-ink-secondary border px-4 py-3 text-sm disabled:opacity-45"
+        >
+          离开观战席
+        </button>
       ) : (
         <p className="text-crimson text-sm">
           当前修士不在此房间中，请刷新页面。

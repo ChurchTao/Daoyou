@@ -49,7 +49,7 @@ router.get('/rooms/:roomId', requireActiveCultivatorRef(), async (c) => {
   const room = await rooms.getRoom(roomId);
   if (!room) return c.json({ error: '擂台房间不存在或已过期' }, 404);
   const participant = room.teams.alpha
-    .concat(room.teams.beta)
+    .concat(room.teams.beta, room.spectators ?? [])
     .some(
       (seat) =>
         seat.userId === identity.userId &&
@@ -91,11 +91,13 @@ router.post(
     if (identity instanceof Response) return identity;
     const body = getValidatedJson<{
       inviteCode: string;
+      role: 'participant' | 'spectator';
     }>(c);
     try {
       const room = await rooms.joinRoom({
         ...identity,
         inviteCode: body.inviteCode,
+        role: body.role,
       });
       publishRoom(room);
       return c.json({ room });
@@ -223,7 +225,7 @@ router.post(
         revision: room?.revision ?? previous.revision + 1,
         status: room?.status ?? 'cancelled',
       });
-      return c.json({ room });
+      return c.json({ room: null });
     } catch (error) {
       return arenaError(c, error);
     }
@@ -269,7 +271,7 @@ async function requireArenaMember(c: Context<AppEnv>, roomId: string) {
   const room = await rooms.getRoom(roomId);
   if (!room) return c.json({ error: '擂台房间不存在或已过期' }, 404);
   const member = room.teams.alpha
-    .concat(room.teams.beta)
+    .concat(room.teams.beta, room.spectators ?? [])
     .some(
       (seat) =>
         seat.userId === identity.userId &&
@@ -293,7 +295,9 @@ function arenaError(c: Context<AppEnv>, error: unknown) {
 }
 
 function arenaUserIds(room: ArenaRoomV1): string[] {
-  return room.teams.alpha.concat(room.teams.beta).map((seat) => seat.userId);
+  return room.teams.alpha
+    .concat(room.teams.beta, room.spectators ?? [])
+    .map((seat) => seat.userId);
 }
 
 function publishRoom(room: ArenaRoomV1): void {

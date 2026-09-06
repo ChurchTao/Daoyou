@@ -3,6 +3,7 @@ import {
   allArenaSeatsReady,
   ARENA_ROOM_INVITE_CODE_LENGTH,
   ARENA_ROOM_MAX_SEATS_PER_TEAM,
+  ARENA_ROOM_MAX_SPECTATORS,
   ARENA_ROOM_TTL_SECONDS,
   ARENA_SPARRING_MODE_V1,
   ARENA_SPARRING_RULES_V1,
@@ -104,7 +105,13 @@ return 0
 `;
 
 const FORCE_RELEASE_BATTLE_LUA = `
-redis.call('del', KEYS[1], KEYS[2])
+if ARGV[2] ~= '' and redis.call('get', KEYS[2]) ~= ARGV[4] then return -1 end
+if ARGV[2] ~= '' then
+ redis.call('set', KEYS[1], ARGV[2], 'EX', 300)
+ redis.call('set', KEYS[2], ARGV[3], 'EX', 300)
+else
+ redis.call('del', KEYS[1], KEYS[2])
+end
 local deleted = 0
 for index = 3, #KEYS do
   local keyType = redis.call('type', KEYS[index]).ok
@@ -128,6 +135,7 @@ if redis.call('exists', battleKey) == 1 and redis.call('get', battleKey) ~= ARGV
 redis.call('set', battleKey, ARGV[6], 'EX', ARGV[4])
 redis.call('set', roomKey, ARGV[2], 'EX', ARGV[4])
 redis.call('set', revisionKey, ARGV[3], 'EX', ARGV[4])
+for index = 4, #KEYS do redis.call('expire', KEYS[index], ARGV[4]) end
 return 1
 `;
 
@@ -146,6 +154,7 @@ export interface JoinArenaRoomInput extends Omit<
   'teamId'
 > {
   readonly inviteCode: string;
+  readonly role?: 'participant' | 'spectator';
 }
 
 export class ArenaRoomService {
@@ -191,7 +200,12 @@ export class ArenaRoomService {
     const roomId = await redis.get(index);
     if (!roomId) return null;
     const room = await this.getRoom(roomId);
-    if (room && findSeat(room, userId)) return room;
+    if (
+      room &&
+      (findSeat(room, userId) ||
+        room.spectators?.some((s) => s.userId === userId))
+    )
+      return room;
     await redis.eval(DELETE_INDEX_IF_MATCHES_LUA, 1, index, roomId);
     return null;
   }
@@ -203,7 +217,12 @@ export class ArenaRoomService {
     const roomId = await redis.get(index);
     if (!roomId) return null;
     const room = await this.getRoom(roomId);
-    if (room && findCultivatorSeat(room, cultivatorId)) return room;
+    if (
+      room &&
+      (findCultivatorSeat(room, cultivatorId) ||
+        room.spectators?.some((s) => s.cultivatorId === cultivatorId))
+    )
+      return room;
     await redis.eval(DELETE_INDEX_IF_MATCHES_LUA, 1, index, roomId);
     return null;
   }
@@ -216,6 +235,51 @@ export class ArenaRoomService {
 
   async joinRoom(input: JoinArenaRoomInput): Promise<ArenaRoomV1> {
     const room = await this.requireRoomByCode(input.inviteCode);
+    if (input.role === 'spectator') {
+      if (!isArenaRoomActive(room.status) && room.status !== 'in_battle')
+        throw new Error('擂台房间当前不接受观战');
+      const existing = [
+        ...room.teams.alpha,
+        ...room.teams.beta,
+        ...(room.spectators ?? []),
+      ].find(
+        (s) =>
+          s.userId === input.userId || s.cultivatorId === input.cultivatorId,
+      );
+      if (existing) {
+        if (
+          existing.userId === input.userId &&
+          existing.cultivatorId === input.cultivatorId
+        )
+          return room;
+        throw new Error('玩家已经在此擂台房间中');
+      }
+      if ((room.spectators?.length ?? 0) >= ARENA_ROOM_MAX_SPECTATORS)
+        throw new Error('观战席已满');
+      const now = input.now ?? Date.now();
+      const next = nextRoom(room, {
+        spectators: [
+          ...(room.spectators ?? []),
+          {
+            slot: 0,
+            userId: input.userId,
+            cultivatorId: input.cultivatorId,
+            displayName: normalizeDisplayName(input.displayName),
+            realm: input.realm,
+            realmStage: input.realmStage,
+            ready: false,
+            joinedAt: now,
+            lastSeenAt: now,
+          },
+        ],
+      });
+      return this.commitWithIndexes(
+        room,
+        next,
+        [userKey(input.userId), cultivatorKey(input.cultivatorId)],
+        room.roomId,
+      );
+    }
     assertRoomJoinable(room);
     if (
       room.teams.alpha.some((seat) => seat.userId === input.userId) ||
@@ -325,6 +389,19 @@ export class ArenaRoomService {
     now = Date.now(),
   ): Promise<ArenaRoomV1> {
     const room = await this.requireRoom(roomId);
+    if (
+      room.spectators?.some((s) => s.userId === userId) &&
+      isArenaRoomActive(room.status)
+    ) {
+      return this.commit(
+        room,
+        nextRoom(room, {
+          spectators: room.spectators.map((s) =>
+            s.userId === userId ? { ...s, lastSeenAt: now } : s,
+          ),
+        }),
+      );
+    }
     const current = findSeat(room, userId);
     if (!current || !isArenaRoomActive(room.status))
       throw new Error('擂台房间已不可用');
@@ -333,6 +410,31 @@ export class ArenaRoomService {
 
   async leave(roomId: string, userId: string): Promise<ArenaRoomV1 | null> {
     const room = await this.requireRoom(roomId);
+    const spectator = room.spectators?.find((s) => s.userId === userId);
+    if (spectator) {
+      const next = nextRoom(room, {
+        spectators: room.spectators!.filter((s) => s.userId !== userId),
+      });
+      const refreshKeys = roomIndexKeys(next);
+      const result = Number(
+        await redis.eval(
+          CAS_ROOM_REMOVE_INDEXES_LUA,
+          4 + refreshKeys.length,
+          roomKey(roomId),
+          revisionKey(roomId),
+          userKey(userId),
+          cultivatorKey(spectator.cultivatorId),
+          ...refreshKeys,
+          String(room.revision),
+          JSON.stringify(next),
+          String(next.revision),
+          String(roomTtl(next)),
+          roomId,
+        ),
+      );
+      if (result !== 1) throw new Error('擂台房间状态已变化，请刷新后重试');
+      return next;
+    }
     assertRoomJoinable(room);
     const current = findSeat(room, userId);
     if (!current) return room;
@@ -418,14 +520,15 @@ export class ArenaRoomService {
     const result = Number(
       await redis.eval(
         ATTACH_BATTLE_LUA,
-        3,
+        3 + roomIndexKeys(next).length,
         roomKey(room.roomId),
         revisionKey(room.roomId),
         battleKey(battleMatchId),
+        ...roomIndexKeys(next),
         String(room.revision),
         JSON.stringify(next),
         String(next.revision),
-        String(ARENA_ROOM_TTL_SECONDS),
+        String(roomTtl(next)),
         battleMatchId,
         room.roomId,
       ),
@@ -455,13 +558,16 @@ export class ArenaRoomService {
     );
   }
 
-  async forceReleaseTerminalBattle(manifest: {
-    matchId: string;
-    kind: string;
-    roomId?: string;
-    playerIds: readonly string[];
-    cultivatorIds: readonly string[];
-  }): Promise<{
+  async forceReleaseTerminalBattle(
+    manifest: {
+      matchId: string;
+      kind: string;
+      roomId?: string;
+      playerIds: readonly string[];
+      cultivatorIds: readonly string[];
+    },
+    attempt = 0,
+  ): Promise<{
     released: boolean;
     roomId?: string;
     userIds: string[];
@@ -499,7 +605,17 @@ export class ArenaRoomService {
       return { released: false, userIds: [], revision: 0 };
     }
     const room = roomId === reverseRoomId ? reverseRoom : manifestRoom;
-    const seats = room?.teams.alpha.concat(room.teams.beta) ?? [];
+    const seats = room
+      ? [...room.teams.alpha, ...room.teams.beta, ...(room.spectators ?? [])]
+      : [];
+    const terminal = room
+      ? {
+          ...room,
+          status: 'finished' as const,
+          revision: room.revision + 1,
+          expiresAt: Date.now() + 300000,
+        }
+      : undefined;
     const userIds = [
       ...new Set([...manifest.playerIds, ...seats.map((seat) => seat.userId)]),
     ];
@@ -523,8 +639,15 @@ export class ArenaRoomService {
         revisionKey(roomId),
         ...conditionalIndexes,
         roomId,
+        terminal ? JSON.stringify(terminal) : '',
+        String(terminal?.revision ?? 0),
+        String(room?.revision ?? 0),
       ),
     );
+    if (deletedIndexes === -1) {
+      if (attempt >= 8) throw new Error('擂台房间状态已变化，请刷新后重试');
+      return this.forceReleaseTerminalBattle(manifest, attempt + 1);
+    }
     return {
       released: Boolean(room) || deletedIndexes > 0,
       roomId,
@@ -573,7 +696,7 @@ export class ArenaRoomService {
         String(room.revision),
         JSON.stringify(next),
         String(next.revision),
-        String(ARENA_ROOM_TTL_SECONDS),
+        String(roomTtl(next)),
         roomId,
       ),
     );
@@ -599,7 +722,7 @@ export class ArenaRoomService {
         String(room.revision),
         JSON.stringify(next),
         String(next.revision),
-        String(ARENA_ROOM_TTL_SECONDS),
+        String(roomTtl(next)),
       ),
     );
     if (result === -1) throw new Error('擂台房间状态已变化，请刷新后重试');
@@ -612,7 +735,11 @@ export class ArenaRoomService {
     room: ArenaRoomV1,
     extraKeys: readonly string[] = [],
   ): Promise<boolean> {
-    const seats = room.teams.alpha.concat(room.teams.beta);
+    const seats = [
+      ...room.teams.alpha,
+      ...room.teams.beta,
+      ...(room.spectators ?? []),
+    ];
     const indexKeys = [
       ...seats.map((seat) => userKey(seat.userId)),
       ...seats.map((seat) => cultivatorKey(seat.cultivatorId)),
@@ -726,7 +853,7 @@ function nextRoom(room: ArenaRoomV1, patch: Partial<ArenaRoomV1>): ArenaRoomV1 {
     ...patch,
     revision: room.revision + 1,
     updatedAt: now,
-    expiresAt: now + ARENA_ROOM_TTL_SECONDS * 1000,
+    expiresAt: now + roomTtl({ ...room, ...patch }) * 1000,
   };
 }
 function findSeat(
@@ -795,12 +922,24 @@ function cultivatorKey(cultivatorId: string): string {
   return `${CULTIVATOR_KEY_PREFIX}${cultivatorId}`;
 }
 function roomIndexKeys(room: ArenaRoomV1): string[] {
-  const seats = room.teams.alpha.concat(room.teams.beta);
+  if (room.status === 'finished') return [];
+  const seats = [
+    ...room.teams.alpha,
+    ...room.teams.beta,
+    ...(room.spectators ?? []),
+  ];
   return [
     codeKey(room.inviteCode),
     ...seats.map((seat) => userKey(seat.userId)),
     ...seats.map((seat) => cultivatorKey(seat.cultivatorId)),
   ];
+}
+function roomTtl(room: ArenaRoomV1): number {
+  return room.status === 'in_battle'
+    ? 7500
+    : room.status === 'finished'
+      ? 300
+      : ARENA_ROOM_TTL_SECONDS;
 }
 function battleKey(battleMatchId: string): string {
   if (!/^[A-Za-z0-9_-]{1,120}$/.test(battleMatchId))

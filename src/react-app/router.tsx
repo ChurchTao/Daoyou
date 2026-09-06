@@ -845,7 +845,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'battle-history',
                   presentation: 'archive',
-                  summary: '斗法卷宗与旧战回放在此归档。',
+                  summary: '翻阅斗法卷宗，回看每一次出招。',
                 },
                 '【全部战绩】',
               )}
@@ -873,6 +873,18 @@ export const router = createBrowserRouter(
                   summary: '设注、应战与结算皆在赌战台。',
                 },
                 '赌战台',
+              )}
+            />
+            <Route
+              path="beasts"
+              lazy={lazyRoute(() => import('@app/routes/game/beasts/route'))}
+              handle={scene(
+                {
+                  id: 'beasts',
+                  presentation: 'workflow',
+                  summary: '与灵兽结缘，编组出战或安心休养。',
+                },
+                '灵兽',
               )}
             />
             <Route

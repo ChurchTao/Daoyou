@@ -5,6 +5,10 @@ import type {
   ResourceScopeKind,
   ResourceTopic,
 } from '@shared/contracts/resources';
+import type {
+  BeastLineup,
+  SummonedBeast,
+} from '@shared/engine/combat-v6/beasts';
 import type { DaoEquipmentInstanceV1 } from '@shared/engine/combat-v6/equipment';
 import type { SpiritFieldPlotState } from '@shared/engine/spirit-field/types';
 import type {
@@ -500,6 +504,32 @@ export const sectAbilityLoadouts = pgTable(
 );
 
 // ===== combat-v6 独立人物构筑 =====
+export const combatV6Beasts = pgTable(
+  'wanjiedaoyou_combat_v6_beasts',
+  {
+    id: uuid('id').primaryKey(),
+    cultivatorId: uuid('cultivator_id')
+      .notNull()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    individual: jsonb('individual').$type<SummonedBeast>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index('combat_v6_beasts_owner_idx').on(table.cultivatorId)],
+);
+
+export const combatV6BeastLineups = pgTable(
+  'wanjiedaoyou_combat_v6_beast_lineups',
+  {
+    cultivatorId: uuid('cultivator_id')
+      .primaryKey()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    lineup: jsonb('lineup').$type<BeastLineup>().notNull(),
+    starterBeastId: uuid('starter_beast_id'),
+  },
+);
+
 export const combatV6BuildProfiles = pgTable(
   'wanjiedaoyou_combat_v6_build_profiles',
   {
@@ -1031,6 +1061,12 @@ export const combatV6ReplayArchives = pgTable(
     finishedAt: timestamp('finished_at').notNull(),
     outcome: varchar('outcome', { length: 24 }).notNull(),
     replay: jsonb('replay').$type<CombatV6ReplayV1>().notNull(),
+    roundCount: integer('round_count').notNull().default(0),
+    sides: jsonb('sides')
+      .$type<[string[], string[]]>()
+      .notNull()
+      .default([[], []]),
+    playable: boolean('playable').notNull().default(false),
     archivedAt: timestamp('archived_at').defaultNow().notNull(),
   },
   (table) => [
@@ -1052,6 +1088,7 @@ export const combatV6ReplayParticipants = pgTable(
         onDelete: 'cascade',
       }),
     cultivatorId: uuid('cultivator_id').notNull(),
+    side: integer('side').notNull().default(0),
   },
   (table) => [
     primaryKey({ columns: [table.battleId, table.cultivatorId] }),

@@ -94,6 +94,7 @@ function ratio(value: number, max: number) {
   return max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
 }
 export function CombatV6Roster({
+  spectator = false,
   units,
   labels,
   controlledId,
@@ -102,6 +103,7 @@ export function CombatV6Roster({
   onInspect,
   onPick,
 }: {
+  spectator?: boolean;
   units: CombatV6Unit[];
   labels: Map<string, string>;
   controlledId?: string;
@@ -151,9 +153,25 @@ export function CombatV6Roster({
         <aside
           key={side}
           className={`cv6-roster cv6-side-${side}`}
-          aria-label={side === 0 ? '我方' : '敌方'}
+          aria-label={
+            spectator
+              ? side === 0
+                ? '青方'
+                : '赤方'
+              : side === 0
+                ? '我方'
+                : '敌方'
+          }
         >
-          <h2>{side === 0 ? '我方' : '敌方'}</h2>
+          <h2>
+            {spectator
+              ? side === 0
+                ? '青方'
+                : '赤方'
+              : side === 0
+                ? '我方'
+                : '敌方'}
+          </h2>
           <div className="cv6-lineup">
             {rows.map((row) => (
               <div className="cv6-pair" key={row.slot}>

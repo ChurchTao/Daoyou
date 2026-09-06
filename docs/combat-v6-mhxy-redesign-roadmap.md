@@ -5,13 +5,7 @@
 > 适用分支：`codex/combat-v6`  
 > 建立时基线提交：`f9510ab5`  
 > 核心目录：`src/shared/engine/combat-v6`  
-> 角色面板：[`combat-v6 角色六维与战斗面板设计`](./combat-v6-character-panel-design.md)
-> 修炼系统：[`combat-v6 新版修炼系统设计`](./combat-v6-training-system-design.md)
-> 宗门系统：[`combat-v6 宗门心法、技能与经脉系统设计`](./combat-v6-sect-skill-meridian-system-design.md)
-> 红尘剑宗纵切：[`combat-v6 红尘剑宗纵切设计`](./combat-v6-lingxiao-datang-sect-design.md)
-> 九劫天宫纵切：[`combat-v6 九劫天宫经典双流派纵切`](./combat-v6-jiujie-sect-design.md)
-> 召唤兽系统：[`combat-v6 召唤兽系统设计`](./combat-v6-summoned-beast-system-design.md)
-> 兼容性明细：`src/shared/engine/combat-v6/CHARACTER_COMPATIBILITY.md`
+> 角色面板：[`combat-v6 角色六维与战斗面板设计`](./combat-v6-character-panel-design.md) 修炼系统：[`combat-v6 新版修炼系统设计`](./combat-v6-training-system-design.md) 宗门系统：[`combat-v6 宗门心法、技能与经脉系统设计`](./combat-v6-sect-skill-meridian-system-design.md) 红尘剑宗纵切：[`combat-v6 红尘剑宗纵切设计`](./combat-v6-lingxiao-datang-sect-design.md) 九劫天宫纵切：[`combat-v6 九劫天宫经典双流派纵切`](./combat-v6-jiujie-sect-design.md) 召唤兽系统：[`combat-v6 召唤兽系统设计`](./combat-v6-summoned-beast-system-design.md) 兼容性明细：`src/shared/engine/combat-v6/CHARACTER_COMPATIBILITY.md`
 
 本文档是 combat-v6 后续设计和实现的方向基线。代码实现、数据模型、内容配置和迁移策略若与本文冲突，应先修改本文并记录决策，再修改代码，避免实现过程中重新滑回 battle-v5 / SPA + GAS 的设计方式。
 
@@ -136,8 +130,12 @@ Host / PVE / Online Battle
 严禁出现：
 
 ```ts
-if (skill.id === '某宗门技能') { /* 特判 */ }
-if (nodeIds.includes('某经脉节点')) { /* 特判 */ }
+if (skill.id === '某宗门技能') {
+  /* 特判 */
+}
+if (nodeIds.includes('某经脉节点')) {
+  /* 特判 */
+}
 ```
 
 ---
@@ -177,12 +175,7 @@ interface CombatV6VersionStamp {
 ```ts
 type CultivatorBaseCombatInput = Pick<
   Cultivator,
-  | 'id'
-  | 'name'
-  | 'realm'
-  | 'realm_stage'
-  | 'attributes'
-  | 'condition'
+  'id' | 'name' | 'realm' | 'realm_stage' | 'attributes' | 'condition'
 >;
 ```
 
@@ -520,7 +513,8 @@ interface SectCombatProjectionV6 {
 
 ```ts
 interface CombatV6PanelContribution {
-  sourceType: 'training' | 'equipment' | 'manual' | 'sect' | 'meridian' | 'condition';
+  sourceType:
+    'training' | 'equipment' | 'manual' | 'sect' | 'meridian' | 'condition';
   sourceId: string;
   attr: AttrName;
   mode: 'flat' | 'percentBase';
@@ -882,11 +876,17 @@ WebSocket 负责及时送达战斗数据，React 与播放控制器负责渲染�
 
 #### Phase 8B：回放播放器与版本兼容
 
+> 状态：新版战绩列表与回放播放器已接入（2026-09-06），浏览器交互验收待补，详见 [Phase 8B 专项设计与验证](./combat-v6-phase-8b-replay-design.md)。`/game/battle/history` 硬切 v6；旧记录读取与分享 API 返回 410。列表仅查询归档元数据及角色关联，不读取、解包回放 JSON。
+
+新记录采用 `combat_v6_replay_v2`，保存开场基准、权威结算时采集的逐行动差量、冻结展示资料与终态校验数据。播放器复用 v6 阵容、战报、详情与配色，支持播放/暂停、前后行动、回合跳转和倍速。旧 v6 v1 归档只显示静态战报和结果；不重跑旧引擎。回放可见性限定本人关联角色，不包括观战或分享。
+
 基于已归档的 v6 回放增加播放器，复用阵容、战报与单位详情展示组件。专项设计必须明确历史逐行动单位状态的来源、必要的回放格式版本提升和旧归档策略：不能从文字战报反推 HP/MP，也不能依赖当前最新内容表或最新规则重算旧录像。缺少可播放状态的旧归档不得伪造动态状态。
 
 完成条件：新归档可稳定还原逐行动单位状态与事件，播放不改变权威数据；版本升级后旧记录仍按明确兼容策略读取。
 
 #### Phase 8C：观战与在线负载验证
+
+> 状态：房间观战席已接入，真实 1v1 加观众的开战、实时播放、重新入席、重连、终局与历史权限拒绝复验通过；4v4 观战负载和故障矩阵仍待完成，详见 [8C 专项设计与验证记录](./combat-v6-phase-8c-spectator-design.md)。沿用邀请码进入，只读公共视图、实时逐行动播放；观众不获得历史权限。
 
 真实 4v4 人物控制与基础验收已提前至 8A；8C 在此基础上开放只读观战，扩展观战权限、在线并发与推送负载验证。持久召唤兽与换宠控制仍进入 Phase 9，页面的 16 单位展示能力不替代真实参与者验收。
 
@@ -903,12 +903,27 @@ Phase 8 整体完成条件：
 
 召唤兽按[`combat-v6 召唤兽系统设计`](./combat-v6-summoned-beast-system-design.md)建立独立持久领域。首版采用独立五维与五资质、0～180 等级的妖类境界映射、固定出生技能格、随机覆盖打书、6 只携带与单宠在场，并实现死亡扣除 50 寿命的最小闭环。人物功法与兽诀不可混为同一实例类型；首版不开放召唤兽修炼。
 
-之后再按需求增加：
+#### Phase 9A：持久召唤兽与双操作闭环
+
+> 状态：代码已实现（2026-09-06），已完成本地领取、野外带宠战斗与回放、双账号带宠切磋的基本验证；完整多人及故障验收待完成。详见 [9A 实施与验收记录](./combat-v6-phase-9a-summoned-beast-plan.md)。Phase 8 的 4v4 观战负载、多实例与故障验收继续单独追踪，不因 9A 实现而标记通过。
+
+建立正式召唤兽个体与独立编组，提供一次性新手领取、最多携带六只和单宠在场；接入 PvE、练功房与擂台，完成先人物后召唤兽的整组指令提交、召回换宠、公共观战和统一归档。每场满 HP/MP 入场，不持久保存宠物当前 HP/MP；有效 PvE 死亡每宠每场幂等扣除 50 寿命，擂台与练功房不扣寿命，并提供确定性寿命恢复出口。
+
+倒地人物仍需提交允许的操作，并可指挥存活宠物，但不能预选召唤或换宠。超时／离线对人物与可行动宠物分别补普攻，不自动换宠。换宠时仍可预先提交旧宠指令，按速度顺序执行；旧宠行动前若已退场，则不执行。新宠下一回合才行动。
+
+#### Phase 9B：正式获取与基础成长
+
+野外捕捉、经验升级、自由加点，以及获取和恢复资源闭环。沿用 9A 正式个体模型，不重新生成已持有个体的成长、资质或固定技能格。
+
+#### Phase 9C：兽诀培养
+
+兽诀获取、事务化随机覆盖打书、普通／高级同系生效规则。固定技能格不增长，不加入指定覆盖、锁定或保底。
+
+后续再按需求增加：
 
 - 愤怒资源、装备特技和宗门怒气技。
 - 药品与物品指令。
 - 阵法。
-- 捕捉。
 - 其他已明确排期的战斗系统。
 
 ### Phase 10：切流与退役 v5
@@ -918,13 +933,13 @@ Phase 8 整体完成条件：
 - 目标玩法全部有 v6 Host。
 - 玩家角色投影、修炼、至少所需宗门、装备和功法均已迁移。
 - 新旧资源和补偿流程已执行。
-- v6 监控、战斗记录、错误诊断和回滚开关可用。
+- v6 监控、战斗记录和错误诊断可用；停机维护后硬切，不增加回滚功能开关。
 
 切流后：
 
 - 禁止新建 v5 战斗内容和旧造物战斗产物。
-- battle-v5 仅保留旧记录/旧玩法读取能力。
-- 经稳定观察期后再删除不再需要的写链路，不能先删旧记录解释器。
+- 旧战绩读取及分享已由 8B 退役，不保留旧记录查看入口。
+- 逐一核实尚存旧玩法、角色投影等依赖后删除 v5；不能将战绩硬切等同于全仓旧引擎已可删除。
 
 ---
 
@@ -1052,4 +1067,4 @@ bun run build
 
 首个普通PVE采用青溪灵草坡野生灵兽暗雷：点击必遇敌、角色每日共享20次、固定区域物种与等级。已接入Redis遭遇运行态、独立Condition结算与v6地图页面；任务消费者、奖励、捕捉及宠物持久化仍为后续范围。详见 [Phase 7D专项设计](./combat-v6-phase-7d-wild-encounter-design.md)。基础设施与页面验收以专项稿及实施报告为准，不将纯逻辑通过等同于线上验收。
 
-新版战斗页面、二级技能抽屉、独立 Tooltip、差量协议与逐行动播放已交付，认证野怪胜利和资源结算链路已回归。详细 UI 与验证范围见[战斗 UI 与展示协议](./combat-v6-battle-ui.md)。Phase 8A 已接入擂台及独立 v6 页面，并在隔离本地环境以八个真实认证账号完成 4v4 收令、推送、逃跑终局与归档。继续收口[Phase 8A 验证记录](./combat-v6-phase-8a-arena-online-design.md)中的故障与响应式检查；不提前扩展到 Phase 8B。
+新版战斗页面、二级技能抽屉、独立 Tooltip、差量协议与逐行动播放已交付，认证野怪胜利和资源结算链路已回归。详细 UI 与验证范围见[战斗 UI 与展示协议](./combat-v6-battle-ui.md)。Phase 8A 已接入擂台及独立 v6 页面，并在隔离本地环境以八个真实认证账号完成 4v4 收令、推送、逃跑终局与归档。[Phase 8A 验证记录](./combat-v6-phase-8a-arena-online-design.md)中的故障与响应式检查仍需收口。经确认进入 Phase 8B，已接入新版战绩及回放，具体完成与未验收范围见 [8B 专项记录](./combat-v6-phase-8b-replay-design.md)。

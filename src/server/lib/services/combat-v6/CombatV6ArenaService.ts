@@ -15,12 +15,15 @@ import {
   resolveArena,
   validateArenaCommand,
 } from '@shared/combat-v6/arena';
+import { validateCommandGroup } from '@shared/combat-v6/controlled-commands';
 import {
   combatV6ReplayView,
   createCombatV6Replay,
 } from '@shared/combat-v6/replay';
+import { startReplayTimeline } from '@shared/combat-v6/replay-timeline';
 import type { ArenaRoomV1 } from '@shared/contracts/arena';
 import {
+  ARENA_PUBLIC_VIEW,
   ARENA_V6_PROTOCOL,
   type ArenaRuntime,
   type ArenaV6Submit,
@@ -30,6 +33,10 @@ import {
   DOMAIN_EVENT_STREAM,
   parseDomainEventEnvelope,
 } from '@shared/contracts/domainEvents';
+import {
+  BEAST_SKILLS,
+  projectBeastRoster,
+} from '@shared/engine/combat-v6/beasts';
 import type { SkillDef, StatusDef } from '@shared/engine/combat-v6/core';
 import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
 import { and, eq } from 'drizzle-orm';
@@ -111,6 +118,15 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
           });
           if (!projection.ok) throw new ArenaV6Error('参战构筑无法编译');
           units.push(projection.unit);
+          units.push(
+            ...projectBeastRoster(
+              player.beasts,
+              projection.unit.id!,
+              projection.unit.side,
+              projection.unit.slot ?? 0,
+            ),
+          );
+          mergeDefinitions(skills, BEAST_SKILLS);
           participants.push({
             userId: seat.userId,
             cultivatorId: seat.cultivatorId,
@@ -139,6 +155,11 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
           startRequestId: room.startRequestId!,
           participants,
           state: battle.snapshot(),
+          timeline: startReplayTimeline(
+            battle.snapshot(),
+            input.statusDefs,
+            battle.log().length - 1,
+          ),
           events: [...battle.log()],
           rounds: [],
           revision: 0,
@@ -170,6 +191,20 @@ export async function ownedArenaV6(id: string, actor: Actor) {
   return { runtime, participant };
 }
 
+export async function watchedArenaV6(id: string, actor: Actor) {
+  const runtime = await store.get(id);
+  if (!runtime) throw new ArenaV6Error('战斗不存在或已过期', 404);
+  const room = await new ArenaRoomService().getRoom(runtime.roomId);
+  if (
+    room?.battleMatchId !== id ||
+    !room.spectators?.some(
+      (s) => s.userId === actor.userId && s.cultivatorId === actor.cultivatorId,
+    )
+  )
+    throw new ArenaV6Error('请先凭邀请码进入房间观战席', 403);
+  return { runtime, participant: { unitId: ARENA_PUBLIC_VIEW } };
+}
+
 export async function submitArenaV6(
   id: string,
   actor: Actor,
@@ -182,7 +217,7 @@ export async function submitArenaV6(
       if (
         receipt.unitId !== participant.unitId ||
         receipt.round !== input.round ||
-        JSON.stringify(receipt.command) !== JSON.stringify(input.command)
+        JSON.stringify(receipt.commands) !== JSON.stringify(input.commands)
       )
         throw new ArenaV6Error('请求 ID 已用于其他指令');
       return {
@@ -201,7 +236,9 @@ export async function submitArenaV6(
     if (runtime.commands[participant.unitId])
       throw new ArenaV6Error('本回合指令已提交');
     try {
-      validateArenaCommand(runtime, participant.unitId, input.command);
+      validateCommandGroup(runtime.state, participant.unitId, input.commands);
+      for (const entry of input.commands)
+        validateArenaCommand(runtime, entry.unitId, entry.command);
     } catch (error) {
       throw new ArenaV6Error(
         error instanceof Error ? error.message : '指令无效',
@@ -209,14 +246,15 @@ export async function submitArenaV6(
       );
     }
     const next = structuredClone(runtime);
-    next.commands[participant.unitId] = {
-      requestId: input.requestId,
-      command: input.command,
-    };
+    for (const entry of input.commands)
+      next.commands[entry.unitId] = {
+        requestId: input.requestId,
+        command: entry.command,
+      };
     next.receipts[input.requestId] = {
       round: input.round,
       unitId: participant.unitId,
-      command: input.command,
+      commands: input.commands,
     };
     next.revision++;
     if (arenaWaitingUnits(next).every((u) => next.commands[u.id]))
@@ -284,7 +322,12 @@ export async function advanceArenaV6(id: string) {
       deadlineAt: runtime.playbackEndsAt + 30000,
     };
     for (const unit of arenaWaitingUnits(next)) {
-      if (!(await store.online(`${runtime.battleId}:${unit.id}`, now)))
+      if (
+        !(await store.online(
+          `${runtime.battleId}:${unit.ownerId ?? unit.id}`,
+          now,
+        ))
+      )
         next.commands[unit.id] = {
           requestId: `offline:${next.state.round}:${unit.id}`,
           command: arenaDefaultCommand(next, unit.id),
@@ -379,6 +422,7 @@ async function finalizeArenaV6(runtime: ArenaRuntime) {
         rounds: runtime.rounds,
         events: runtime.events,
         finalState: runtime.state,
+        timeline: runtime.timeline,
       },
     }),
   );

@@ -437,3 +437,35 @@
     min-height: 2.75rem;
   }
 }
+.cv6-replay-controls {
+  border-top: 1px solid var(--color-ink-200, #d5cbb9);
+  padding: 12px;
+  font-size: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cv6-replay-actions,
+.cv6-replay-settings {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.cv6-replay-controls button,
+.cv6-replay-controls select {
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-ink-200, #d5cbb9);
+  border-radius: 4px;
+}
+.cv6-replay-controls button:disabled {
+  opacity: 0.4;
+}
+.cv6-replay-link {
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 13px;
+}

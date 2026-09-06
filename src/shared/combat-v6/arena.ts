@@ -3,6 +3,7 @@ import {
   type CombatV6DisplayEvent,
 } from '@shared/contracts/combatV6';
 import {
+  ARENA_PUBLIC_VIEW,
   ARENA_V6_PROTOCOL,
   type ArenaRuntime,
   type ArenaSessionView,
@@ -16,9 +17,15 @@ import {
 } from '@shared/engine/combat-v6/core';
 import { canCollectCommand } from '@shared/engine/combat-v6/core/units';
 import { daoyouRulesetV6 } from '@shared/engine/combat-v6/rules-daoyou';
-import { COMBAT_V6_PHASE_8A_VERSIONS } from '@shared/engine/combat-v6/version';
+import { COMBAT_V6_PHASE_9A_ARENA_VERSIONS } from '@shared/engine/combat-v6/version';
+import { controlledUnits, validatePetCommand } from './controlled-commands';
 import { diffUnits } from './playback';
-import { combatV6Display, combatV6Units } from './presentation';
+import {
+  combatV6Display,
+  combatV6Units,
+  visibleUnitNames,
+} from './presentation';
+import { replayRound, startReplayTimeline } from './replay-timeline';
 
 export function arenaBattle(
   runtime: Pick<ArenaRuntime, 'seed' | 'units' | 'skills' | 'statusDefs'> &
@@ -29,13 +36,13 @@ export function arenaBattle(
     units: runtime.units,
     skills: runtime.skills,
     statusDefs: runtime.statusDefs,
-    versions: COMBAT_V6_PHASE_8A_VERSIONS,
+    versions: COMBAT_V6_PHASE_9A_ARENA_VERSIONS,
     ruleset: daoyouRulesetV6,
   };
   if (runtime.state) {
     if (
       JSON.stringify(runtime.state.versions) !==
-      JSON.stringify(COMBAT_V6_PHASE_8A_VERSIONS)
+      JSON.stringify(COMBAT_V6_PHASE_9A_ARENA_VERSIONS)
     )
       throw new Error('ARENA_VERSION_MISMATCH');
     return restoreBattle(input, runtime.state, runtime.events ?? []);
@@ -72,6 +79,7 @@ export function validateArenaCommand(
 ) {
   const options = arenaBattle(runtime).queryCommands(unitId);
   if (!options.canSubmit) throw new Error('当前单位不能下令');
+  validatePetCommand(options, command);
   if (
     command.type === 'attack' &&
     command.target &&
@@ -102,10 +110,26 @@ export function arenaUnits(
   runtime: Pick<ArenaRuntime, 'statusDefs'>,
   viewerId: string,
 ) {
-  const viewerSide = state.units.find((u) => u.id === viewerId)!.side;
-  return combatV6Units(state, runtime.statusDefs).map((unit) => {
+  const viewerSide =
+    viewerId === ARENA_PUBLIC_VIEW
+      ? 0
+      : state.units.find((u) => u.id === viewerId)!.side;
+  return projectReplayUnits(
+    combatV6Units(state, runtime.statusDefs),
+    viewerId,
+    viewerSide,
+  );
+}
+
+export function projectReplayUnits(
+  units: ReturnType<typeof combatV6Units>,
+  viewerId: string,
+  viewerSide: 0 | 1,
+) {
+  return units.map((unit) => {
     const side = (unit.side === viewerSide ? 0 : 1) as 0 | 1;
-    if (unit.id === viewerId) return { ...unit, side };
+    if (unit.id === viewerId || unit.ownerId === viewerId)
+      return { ...unit, side };
     return {
       ...unit,
       side,
@@ -161,12 +185,15 @@ export function arenaView(
   now: number,
 ): ArenaSessionView {
   const viewer = runtime.participants.find((p) => p.unitId === viewerId);
-  if (!viewer) throw new Error('ARENA_FORBIDDEN');
+  const spectator = viewerId === ARENA_PUBLIC_VIEW;
+  if (!viewer && !spectator) throw new Error('ARENA_FORBIDDEN');
   const events = arenaEvents(runtime.events);
   const state = runtime.state;
   const result = state.result;
   const visibleSkills = new Set(
-    state.units.find((u) => u.id === viewerId)!.skills,
+    state.units
+      .filter((u) => u.id === viewerId || u.ownerId === viewerId)
+      .flatMap((u) => u.skills),
   );
   const visibleStatuses = new Set(
     state.units.flatMap((u) => u.statuses.map((s) => s.id)),
@@ -187,7 +214,7 @@ export function arenaView(
         ? 'aborted'
         : result.winner === 'draw'
           ? 'draw'
-          : result.winner === viewer.side
+          : result.winner === (viewer?.side ?? 0)
             ? 'victory'
             : 'defeat';
   return {
@@ -199,6 +226,7 @@ export function arenaView(
     combatVersions: state.versions,
     roomId: runtime.roomId,
     controlledUnitId: viewerId,
+    spectator,
     round: state.round,
     phase: state.phase,
     stage: runtime.stage,
@@ -207,12 +235,23 @@ export function arenaView(
     events,
     latestEventSeq: events.length - 1,
     commandOptions:
-      runtime.stage === 'collecting' && !runtime.commands[viewerId]
+      !spectator &&
+      runtime.stage === 'collecting' &&
+      !runtime.commands[viewerId]
         ? arenaBattle(runtime).queryCommands(viewerId)
         : undefined,
     pendingCommand: undefined,
+    controlledCommandOptions:
+      !spectator &&
+      runtime.stage === 'collecting' &&
+      !runtime.commands[viewerId]
+        ? controlledUnits(state, viewerId).map((unit) =>
+            arenaBattle(runtime).queryCommands(unit.id),
+          )
+        : undefined,
     display: {
       ...display,
+      unitNames: visibleUnitNames(state, runtime.events, viewerId),
       skills: Object.fromEntries(
         runtime.skills
           .filter((s) => visibleSkills.has(s.id))
@@ -238,6 +277,18 @@ export function arenaView(
 
 export function resolveArena(runtime: ArenaRuntime, now: number): ArenaRuntime {
   const next = structuredClone(runtime);
+  if (!next.timeline && next.rounds.length === 0)
+    next.timeline = startReplayTimeline(
+      next.state,
+      next.statusDefs,
+      next.events.length - 1,
+    );
+  const recording = replayRound(
+    next.timeline,
+    next.state,
+    next.statusDefs,
+    next.events.length - 1,
+  );
   const battle = arenaBattle(next);
   const commands = arenaWaitingUnits(next).map((unit) => ({
     unitId: unit.id,
@@ -248,10 +299,10 @@ export function resolveArena(runtime: ArenaRuntime, now: number): ArenaRuntime {
   next.rounds.push({ round: next.state.round, commands });
   const fromSeq = arenaEvents(next.events).length - 1;
   const frames = new Map(
-    next.participants.map((p) => [
-      p.unitId,
+    [...next.participants.map((p) => p.unitId), ARENA_PUBLIC_VIEW].map((id) => [
+      id,
       {
-        previous: arenaUnits(next.state, next, p.unitId),
+        previous: arenaUnits(next.state, next, id),
         frames: [] as NonNullable<ArenaSessionView['playback']>['frames'],
         seq: fromSeq,
       },
@@ -267,7 +318,11 @@ export function resolveArena(runtime: ArenaRuntime, now: number): ArenaRuntime {
       value.seq = seq;
     }
   };
-  battle.lockAndResolve(capture);
+  battle.lockAndResolve((state, seq) => {
+    recording.capture(state, seq);
+    capture(state);
+  });
+  recording.finish(battle.snapshot(), battle.log().length - 1);
   capture(battle.snapshot());
   next.state = battle.snapshot();
   next.events = [...battle.log()];
@@ -278,14 +333,14 @@ export function resolveArena(runtime: ArenaRuntime, now: number): ArenaRuntime {
   next.deadlineAt = next.playbackEndsAt;
   if (battle.finished) next.terminalReason = 'battle-ended';
   next.lastResults = Object.fromEntries(
-    next.participants.map((p) => [
-      p.unitId,
+    [...next.participants.map((p) => p.unitId), ARENA_PUBLIC_VIEW].map((id) => [
+      id,
       {
-        ...arenaView(next, p.unitId, now),
+        ...arenaView(next, id, now),
         playback: {
           format: 'delta-v1' as const,
           fromEventSeq: fromSeq,
-          frames: frames.get(p.unitId)!.frames,
+          frames: frames.get(id)!.frames,
         },
       },
     ]),

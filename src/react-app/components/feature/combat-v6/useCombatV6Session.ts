@@ -1,4 +1,3 @@
-import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { combatV6Request, CombatV6RequestError, mutationBody } from './request';
 import {
@@ -140,14 +139,14 @@ export function useCombatV6Session<T extends CombatV6Session>(
     [base, run, acceptSession],
   );
   const submit = useCallback(
-    (command: CombatV6TrainingCommandV1) =>
+    (commands: import('@shared/contracts/combatV6').CombatV6CommandGroup) =>
       run(async () => {
         const session = current.current.session;
         const unitId = session?.commandOptions?.unitId;
         if (!session || !unitId) throw new Error('当前没有可下令的角色');
         const accepted = await combatV6Request<T>(
           `${base}/sessions/${session.sessionId}/commands/${encodeURIComponent(unitId)}`,
-          mutationBody({ expectedRevision: session.revision, command }, 'PUT'),
+          mutationBody({ expectedRevision: session.revision, commands }, 'PUT'),
         );
         acceptSession(accepted);
         acceptSession(

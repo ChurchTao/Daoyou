@@ -1,12 +1,24 @@
+import { db } from '@server/lib/drizzle/db';
 import {
   redisLockErrorResponse,
   requireActiveCultivatorRef,
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
-import { findOwnedCombatV6Replay } from '@server/lib/repositories/combatV6ReplayRepository';
+import { readBeastRoster } from '@server/lib/repositories/combatV6BeastRepository';
+import {
+  findOwnedCombatV6Replay,
+  listOwnedCombatV6Replays,
+} from '@server/lib/repositories/combatV6ReplayRepository';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { readResourceWithMeta } from '@server/lib/services/ResourceReadService';
+import { CombatV6ArenaStore } from '@server/lib/services/combat-v6/CombatV6ArenaStore';
+import {
+  BeastError,
+  claimStarterBeast,
+  restBeast,
+  updateBeastLineup,
+} from '@server/lib/services/combat-v6/CombatV6BeastService';
 import {
   CombatV6BuildError,
   getCombatV6BuildView,
@@ -34,6 +46,12 @@ import {
   CombatV6TrainingRevisionRequestSchema,
   CombatV6TrainingSessionParamsSchema,
 } from '@shared/contracts/combatV6';
+import {
+  BeastClaimSchema,
+  BeastLineupRequestSchema,
+  BeastRestSchema,
+} from '@shared/contracts/combatV6Beasts';
+import { CombatV6HistoryQuerySchema } from '@shared/contracts/combatV6Replay';
 import { WildExploreRequestSchema } from '@shared/contracts/combatV6Wild';
 import { TrainingHostError } from '@shared/engine/combat-v6/encounter';
 import { Hono, type Context } from 'hono';
@@ -41,6 +59,7 @@ import { z } from 'zod';
 
 const router = new Hono<AppEnv>();
 const combatV6RuntimeStore = new CombatV6RuntimeStore();
+const arenaReplayStore = new CombatV6ArenaStore();
 router.use('*', requireActiveCultivatorRef());
 
 function actor(c: Context<AppEnv>) {
@@ -56,6 +75,8 @@ function actor(c: Context<AppEnv>) {
 }
 
 function errorResponse(c: Context<AppEnv>, error: unknown) {
+  if (error instanceof BeastError)
+    return c.json({ success: false, error: error.message }, error.status);
   const coordinationError = redisLockErrorResponse(error);
   if (coordinationError) return coordinationError;
   if (error instanceof TrainingHostError)
@@ -100,6 +121,57 @@ function errorResponse(c: Context<AppEnv>, error: unknown) {
   );
 }
 
+router.get('/beasts', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  try {
+    return c.json({
+      success: true,
+      data: await readBeastRoster(actor(c).cultivatorId, db),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.post('/beasts/claim', async (c) => {
+  try {
+    const input = BeastClaimSchema.parse(await c.req.json());
+    return c.json({
+      success: true,
+      data: await claimStarterBeast(actor(c).cultivatorId, input.speciesId),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.put('/beasts/lineup', async (c) => {
+  try {
+    return c.json({
+      success: true,
+      data: await updateBeastLineup(
+        actor(c).cultivatorId,
+        BeastLineupRequestSchema.parse(await c.req.json()),
+      ),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.post('/beasts/rest', async (c) => {
+  try {
+    const input = BeastRestSchema.parse(await c.req.json());
+    return c.json({
+      success: true,
+      data: await restBeast(
+        actor(c).cultivatorId,
+        input.beastId,
+        input.expectedRevision,
+      ),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+
 router.get('/build', async (c) => {
   try {
     const current = actor(c);
@@ -136,13 +208,21 @@ router.get('/training/content', (c) =>
 
 router.get('/replays/:battleId', async (c) => {
   try {
+    c.header('Cache-Control', 'private, no-store');
     const params = CombatV6ReplayParamsSchema.parse(c.req.param());
     const current = actor(c);
     const archived = await findOwnedCombatV6Replay(
       params.battleId,
       current.cultivatorId,
     );
-    if (archived)
+    if (
+      archived &&
+      archived.replay.participants.some(
+        (p) =>
+          p.cultivatorId === current.cultivatorId &&
+          p.userId === current.userId,
+      )
+    )
       return c.json({
         success: true,
         data: combatV6ReplayView(
@@ -151,6 +231,23 @@ router.get('/replays/:battleId', async (c) => {
           current.userId,
         ),
       });
+    const arena = await arenaReplayStore.get(params.battleId);
+    if (
+      arena?.stage === 'finished' &&
+      arena.participants.some(
+        (p) =>
+          p.userId === current.userId &&
+          p.cultivatorId === current.cultivatorId,
+      )
+    )
+      return c.json(
+        {
+          success: false,
+          code: COMBAT_V6_REPLAY_ERROR_CODE.Pending,
+          error: '战斗回放正在归档，请稍后重试',
+        },
+        202,
+      );
     const terminal = await combatV6RuntimeStore.terminalRecord(params.battleId);
     if (
       terminal?.cultivatorId === current.cultivatorId &&
@@ -186,6 +283,19 @@ router.get('/replays/:battleId', async (c) => {
       },
       404,
     );
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+
+router.get('/replays', async (c) => {
+  try {
+    const query = CombatV6HistoryQuerySchema.parse(c.req.query());
+    c.header('Cache-Control', 'private, no-store');
+    return c.json({
+      success: true,
+      data: await listOwnedCombatV6Replays(actor(c).cultivatorId, query),
+    });
   } catch (error) {
     return errorResponse(c, error);
   }
@@ -252,7 +362,7 @@ router.put('/training/sessions/:sessionId/commands/:unitId', async (c) => {
         params.sessionId,
         input.expectedRevision,
         params.unitId,
-        input.command,
+        input.commands,
       ),
     });
   } catch (error) {
@@ -381,7 +491,7 @@ router.put('/wild/sessions/:sessionId/commands/:unitId', async (c) => {
         p.sessionId,
         input.expectedRevision,
         p.unitId,
-        input.command,
+        input.commands,
       ),
     });
   } catch (error) {

@@ -1,14 +1,12 @@
 import { db } from '@server/lib/drizzle/db';
-import {
-  messageConsumptions,
-  cultivators,
-} from '@server/lib/drizzle/schema';
+import { cultivators, messageConsumptions } from '@server/lib/drizzle/schema';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
-import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
+import { settleBeastDeaths } from '@server/lib/repositories/combatV6BeastRepository';
 import {
   claimMessageForConsumer,
   COMBAT_V6_CONDITION_CONSUMER,
 } from '@server/lib/repositories/messageConsumptionRepository';
+import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
 import { settleWildResources } from '@shared/engine/combat-v6/wild/rules';
 import type { CultivatorCondition } from '@shared/types/condition';
 import { and, eq } from 'drizzle-orm';
@@ -70,6 +68,12 @@ export async function projectCombatV6Condition(
           tx,
         );
         if (!claimed) return;
+        if (record.reason === 'battle-ended' || record.reason === 'fled')
+          await settleBeastDeaths(
+            s.cultivatorId,
+            record.deadBeastIds ?? [],
+            tx,
+          );
         const [row] = await tx
           .select({ condition: cultivators.condition })
           .from(cultivators)

@@ -1,101 +1,48 @@
-import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
-import { BattleShareDialog } from '@app/components/feature/battle/share/BattleShareDialog';
-import { BattlePlaybackPanel } from '@app/components/feature/battle/v3/BattlePlaybackPanel';
-import { useBattlePlaybackState } from '@app/components/feature/battle/v3/useBattlePlaybackState';
-import { GameImmersiveLoading } from '@app/components/game-shell';
-import Link from '@app/components/router/AppLink';
-import type { BattleRecordV3 as BattleRecordNative } from '@shared/types/battle';
+import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
+import { CombatV6ReplayPlayer } from '@app/components/feature/combat-v6/CombatV6ReplayPlayer';
+import { combatV6Request } from '@app/components/feature/combat-v6/request';
+import { usePlayerSession } from '@app/lib/resources/player';
+import type { CombatV6ReplayView } from '@shared/combat-v6/replay';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 
-type BattleRecordRow = {
-  id: string;
-  createdAt: string | null;
-  battleResult: BattleRecordNative;
-};
-
-type BattleRecordResponse = {
-  success: boolean;
-  data: BattleRecordRow;
-};
-
-export default function BattleReplayPage() {
-  const params = useParams<{ id: string }>();
-  const id = params.id;
-
-  const [record, setRecord] = useState<BattleRecordRow | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [shareOpen, setShareOpen] = useState(false);
-  const battleResult = record?.battleResult;
-  const playback = useBattlePlaybackState(battleResult);
-
+export default function BattleReplayRoute() {
+  const { id = '' } = useParams();
+  const characterId = usePlayerSession().data?.activeCultivator?.id;
+  return <ReplayLoader key={`${characterId}:${id}`} id={id} />;
+}
+function ReplayLoader({ id }: { id: string }) {
+  const [record, setRecord] = useState<CombatV6ReplayView>();
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    if (!id) return;
-
-    const fetchBattleRecord = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/battle-records/v3/${id}`, {
-          cache: 'no-store',
-        });
-        if (!res.ok) return;
-        const data = (await res.json()) as BattleRecordResponse;
-        if (data.success) {
-          setRecord(data.data);
-        }
-      } catch (error) {
-        console.error('获取战斗记录失败:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void fetchBattleRecord();
-  }, [id]);
-
-  if (loading && !record) {
-    return <GameImmersiveLoading message="回溯战斗回放……" />;
-  }
-
-  if (!record && !loading) {
-    return (
-      <div className="flex h-full items-center justify-center px-4 py-20">
-        <div className="border-battle-rule-strong max-w-md border border-dashed bg-[rgba(248,243,230,0.92)] px-5 py-5 text-center">
-          <p className="text-ink mb-4">未找到该战斗记录</p>
-          <Link
-            href="/game/battle/history"
-            className="text-ink hover:text-crimson"
-          >
-            [返回战绩]
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
+    const abort = new AbortController();
+    void combatV6Request<CombatV6ReplayView>(
+      `/api/combat-v6/replays/${encodeURIComponent(id)}`,
+      { signal: abort.signal, cache: 'no-store' },
+    )
+      .then((data) => {
+        if (!abort.signal.aborted) setRecord(data);
+      })
+      .catch((e: Error) => {
+        if (!abort.signal.aborted) setError(e.message);
+      });
+    return () => abort.abort();
+  }, [id, attempt]);
   return (
-    <BattlePageLayout
-      title={`战斗回放 · ${playback.playerName} vs ${playback.opponentName}`}
-      subtitle="按时间顺序查看这场战斗的全过程。"
-      variant="immersive-battle"
-      loading={loading}
-      battleResult={battleResult}
+    <CombatV6Page
+      title="战斗回放"
+      active={!!record}
+      loading={!record && !error}
+      error={error}
+      back="/game/battle/history"
+      backLabel="返回战绩"
+      onRetry={() => {
+        setError('');
+        setAttempt((n) => n + 1);
+      }}
     >
-      <BattlePlaybackPanel
-        battleResult={battleResult}
-        playback={playback}
-        statusActions={[
-          { label: '分享', onClick: () => setShareOpen(true) },
-        ]}
-      />
-      {battleResult ? (
-        <BattleShareDialog
-          isOpen={shareOpen}
-          battleRecordId={record.id}
-          summary={battleResult.outcome}
-          onClose={() => setShareOpen(false)}
-        />
-      ) : null}
-    </BattlePageLayout>
+      {record ? <CombatV6ReplayPlayer record={record} /> : null}
+    </CombatV6Page>
   );
 }

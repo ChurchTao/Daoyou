@@ -5,6 +5,7 @@ import {
   combatV6MeridianLoadouts,
   combatV6MethodProgress,
 } from '@server/lib/drizzle/schema';
+import { readBeastRoster } from '@server/lib/repositories/combatV6BeastRepository';
 import {
   characterIdentityRow,
   findActiveCombatV6Membership,
@@ -282,6 +283,7 @@ export async function assembleCombatV6TrainingPlayer(
     sect: build.sect,
     equipment: build.equipment,
     manuals: build.manuals,
+    beasts: await readBeastRoster(cultivatorId, q),
   };
   const projected = projectCultivatorMultiSectV5ToCombatV6({
     ...player,

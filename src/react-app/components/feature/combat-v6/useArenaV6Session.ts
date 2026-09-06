@@ -1,4 +1,3 @@
-import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
 import type {
   ArenaSessionView,
   ArenaSocketMessage,
@@ -8,7 +7,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { combatV6Request, CombatV6RequestError, mutationBody } from './request';
 import { emptySession, reduceSession } from './session';
 
-export function useArenaV6Session(battleId: string) {
+export function useArenaV6Session(battleId: string, spectator = false) {
   const [state, dispatch] = useReducer(
     reduceSession<ArenaSessionView>,
     undefined,
@@ -27,7 +26,7 @@ export function useArenaV6Session(battleId: string) {
   useEffect(() => {
     latest.current = state.session;
   }, [state.session]);
-  const base = `/api/combat-v6/arena/${encodeURIComponent(battleId)}`;
+  const base = `/api/combat-v6/arena/${encodeURIComponent(battleId)}${spectator ? '/watch' : ''}`;
 
   useEffect(() => {
     let disposed = false;
@@ -36,6 +35,7 @@ export function useArenaV6Session(battleId: string) {
     let controller: AbortController | undefined;
     let ready = false;
     let reading = false;
+    let accessEnded = false;
     let serial = 0;
     let buffered: ArenaSessionView[] = [];
     const lifetime = lifecycle.current;
@@ -65,6 +65,13 @@ export function useArenaV6Session(battleId: string) {
         setError(undefined);
       } catch (cause) {
         if (!disposed && request === serial) {
+          if (
+            cause instanceof CombatV6RequestError &&
+            (cause.status === 403 || cause.status === 404)
+          ) {
+            accessEnded = true;
+            clearTimeout(retryTimer);
+          }
           setError(cause instanceof Error ? cause.message : '恢复失败');
           socket?.close();
         }
@@ -76,7 +83,7 @@ export function useArenaV6Session(battleId: string) {
       void read(full);
     };
     const connect = () => {
-      if (disposed) return;
+      if (disposed || accessEnded) return;
       ready = false;
       buffered = [];
       const url = new URL(`${base}/socket`, window.location.href);
@@ -115,11 +122,18 @@ export function useArenaV6Session(battleId: string) {
           }
         } else dispatch({ type: 'receive', session: message.session });
       };
-      socket.onclose = () => {
+      socket.onclose = (event) => {
         if (disposed) return;
         setConnected(false);
         ready = false;
-        retryTimer = setTimeout(connect, 1500);
+        if (latest.current?.stage === 'finished') return;
+        if (event.code === 1008) {
+          accessEnded = true;
+          setError('观战或连接权限已结束，请返回擂台');
+          return;
+        }
+        if (!reading && !latest.current) void read();
+        if (!accessEnded) retryTimer = setTimeout(connect, 1500);
       };
     };
     connect();
@@ -174,16 +188,18 @@ export function useArenaV6Session(battleId: string) {
     [base],
   );
   const submit = useCallback(
-    async (command: CombatV6TrainingCommandV1) => {
+    async (
+      commands: import('@shared/contracts/combatV6').CombatV6CommandGroup,
+    ) => {
       const session = latest.current;
-      if (!session || !connected || retry) return;
+      if (spectator || !session || !connected || retry) return;
       await send({
         round: session.round,
         requestId: crypto.randomUUID(),
-        command,
+        commands,
       });
     },
-    [connected, retry, send],
+    [connected, retry, send, spectator],
   );
   return {
     state,

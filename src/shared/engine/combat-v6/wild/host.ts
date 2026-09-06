@@ -1,3 +1,4 @@
+import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import {
   SeededRng,
   UnitKind,
@@ -13,13 +14,12 @@ import type {
   PveCommandStrategyV1,
 } from '../encounter/types.ts';
 import { projectCultivatorMultiSectV5ToCombatV6 } from '../projection/index.ts';
-import { daoyouRulesetV5 } from '../rules-daoyou/index.ts';
+import { daoyouRulesetV6 } from '../rules-daoyou/index.ts';
 import {
   COMBAT_V6_PHASE_6D_VERSIONS,
-  COMBAT_V6_PHASE_7D_VERSIONS,
+  COMBAT_V6_PHASE_9A_WILD_VERSIONS,
 } from '../version.ts';
 import {
-  WILD_CONTENT_VERSION,
   WILD_REGION,
   WILD_SKILLS,
   WILD_SPECIES,
@@ -27,7 +27,7 @@ import {
   wildPanel,
 } from './content.ts';
 
-export const WILD_VERSIONS = COMBAT_V6_PHASE_7D_VERSIONS;
+export const WILD_VERSIONS = COMBAT_V6_PHASE_9A_WILD_VERSIONS;
 export type WildCombatant = {
   unitId: string;
   speciesId: string;
@@ -64,14 +64,16 @@ export class WildHost extends CombatV6PveHostSession {
     >,
     restored?: PveRestoredState,
   ) {
-    if (compiled.input.versions?.contentVersion !== WILD_CONTENT_VERSION)
+    if (
+      compiled.input.versions?.contentVersion !== WILD_VERSIONS.contentVersion
+    )
       throw new Error('WILD_RUNTIME_VERSION_MISMATCH');
     super(
       {
         playerId: compiled.playerId,
         battleInput: {
           ...structuredClone(compiled.input),
-          ruleset: daoyouRulesetV5,
+          ruleset: daoyouRulesetV6,
         },
         npcStrategies: compiled.npcStrategies,
         sourceProjectionVersions: COMBAT_V6_PHASE_6D_VERSIONS,
@@ -111,7 +113,10 @@ export function createWildHost(
     );
   const combatants = generateWildEncounter(nodeId, seed);
   const strategies: Record<string, PveCommandStrategyV1> = {};
-  const units: LineupUnit[] = [projected.unit];
+  const units: LineupUnit[] = [
+    projected.unit,
+    ...projectBeastRoster(player.beasts, projected.unit.id!, 0, 0),
+  ];
   for (const [slot, c] of combatants.entries()) {
     const species = WILD_SPECIES.find((s) => s.id === c.speciesId)!;
     const skills = [...species.skillIds];
@@ -153,7 +158,7 @@ export function createWildHost(
       seed,
       versions: WILD_VERSIONS,
       units,
-      skills: [...projected.skills, ...WILD_SKILLS],
+      skills: [...projected.skills, ...WILD_SKILLS, ...BEAST_SKILLS],
       statusDefs: projected.statusDefs,
     },
   });

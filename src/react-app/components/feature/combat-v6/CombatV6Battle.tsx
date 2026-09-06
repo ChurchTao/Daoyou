@@ -17,7 +17,9 @@ type Props = {
   log: SessionState<CombatV6Session>['log'];
   playing: boolean;
   pending: boolean;
-  onCommand: (command: CombatV6TrainingCommandV1) => Promise<void>;
+  onCommand: (
+    commands: import('@shared/contracts/combatV6').CombatV6CommandGroup,
+  ) => Promise<void>;
   onResolve: () => Promise<void>;
   onClose: () => void;
   back: string;
@@ -44,7 +46,25 @@ export function CombatV6Battle({
   back,
   backLabel,
 }: Props) {
-  const selectionId = `${session.sessionId}:${online ? session.round : session.revision}:${session.commandOptions?.unitId ?? 'ended'}`;
+  const roundId = `${session.sessionId}:${session.round}`;
+  const [draft, setDraft] = useState<{
+    id: string;
+    command: CombatV6TrainingCommandV1;
+  }>();
+  const firstCommand = draft?.id === roundId ? draft.command : undefined;
+  const commandOptions = useMemo(
+    () =>
+      session.controlledCommandOptions ??
+      (session.commandOptions ? [session.commandOptions] : []),
+    [session.controlledCommandOptions, session.commandOptions],
+  );
+  const activeOptions =
+    commandOptions[firstCommand && commandOptions.length > 1 ? 1 : 0];
+  const commandSession =
+    activeOptions === session.commandOptions
+      ? session
+      : { ...session, commandOptions: activeOptions };
+  const selectionId = `${roundId}:${activeOptions?.unitId ?? 'ended'}`;
   const [selection, setSelection] = useState<{
     id: string;
     choice: Choice;
@@ -68,15 +88,37 @@ export function CombatV6Battle({
   const submit = useCallback(
     async (command: CombatV6TrainingCommandV1) => {
       if (disabled || requestBusy.current) return;
+      if (!activeOptions) return;
+      if (commandOptions.length > 1 && !firstCommand) {
+        setDraft({ id: roundId, command });
+        cancel();
+        return;
+      }
       requestBusy.current = true;
       cancel();
       try {
-        await onCommand(command);
+        await onCommand(
+          firstCommand && commandOptions.length > 1
+            ? [
+                { unitId: commandOptions[0].unitId, command: firstCommand },
+                { unitId: activeOptions.unitId, command },
+              ]
+            : [{ unitId: activeOptions.unitId, command }],
+        );
+        setDraft(undefined);
       } finally {
         requestBusy.current = false;
       }
     },
-    [disabled, onCommand, cancel],
+    [
+      disabled,
+      onCommand,
+      cancel,
+      activeOptions,
+      commandOptions,
+      firstCommand,
+      roundId,
+    ],
   );
   const pick = useCallback(
     (id: string) => {
@@ -104,19 +146,32 @@ export function CombatV6Battle({
         <h1>{title}</h1>
         <span>
           {ended
-            ? outcomeLabels[ended]
+            ? online?.spectator
+              ? (
+                  {
+                    victory: '青方获胜',
+                    defeat: '赤方获胜',
+                    draw: '平局',
+                    aborted: '战斗已终止',
+                  } as const
+                )[ended]
+              : outcomeLabels[ended]
             : `第 ${shown.round} 回合 · ${playing ? '战斗中' : '下令中'}`}
         </span>
-        <Link to={back}>{backLabel}</Link>
+        {online?.spectator ? (
+          <button disabled={pending} onClick={onClose}>
+            退出观战
+          </button>
+        ) : (
+          <Link to={back}>{backLabel}</Link>
+        )}
       </header>
       <div className="cv6-field">
         <CombatV6Roster
+          spectator={online?.spectator}
           units={shown.units}
           labels={labels}
-          controlledId={
-            online?.controlledUnitId ??
-            (playing ? undefined : session.commandOptions?.unitId)
-          }
+          controlledId={playing ? undefined : activeOptions?.unitId}
           targetIds={disabled ? undefined : choice?.ids}
           selectedIds={targets}
           onInspect={setInspected}
@@ -124,25 +179,43 @@ export function CombatV6Battle({
         />
         <CombatV6Log entries={log.entries} visibleSeq={shown.visibleSeq} />
       </div>
-      <CombatV6Commands
-        online={online}
-        key={selectionId}
-        session={session}
-        pending={pending}
-        playing={playing}
-        unitName={
-          labels.get(
-            online?.controlledUnitId ?? session.commandOptions?.unitId ?? '',
-          ) ?? '等待指令'
-        }
-        choice={choice}
-        targets={targets}
-        setAction={setAction}
-        onCancel={cancel}
-        submit={submit}
-        onResolve={onResolve}
-        onClose={onClose}
-      />
+      {!online?.spectator ? (
+        <CombatV6Commands
+          online={online}
+          key={selectionId}
+          session={commandSession}
+          pending={pending}
+          playing={playing}
+          unitName={labels.get(activeOptions?.unitId ?? '') ?? '等待指令'}
+          choice={choice}
+          targets={targets}
+          setAction={setAction}
+          onCancel={cancel}
+          submit={submit}
+          onResolve={onResolve}
+          onClose={onClose}
+          onPrevious={
+            firstCommand && commandOptions.length > 1
+              ? () => {
+                  setDraft(undefined);
+                  cancel();
+                }
+              : undefined
+          }
+        />
+      ) : (
+        <p className="cv6-muted p-3 text-sm">
+          {ended ? '本场观战已结束' : '观战中'}
+        </p>
+      )}
+      {ended && !online?.spectator ? (
+        <Link
+          className="cv6-replay-link"
+          to={`/game/battle/${session.sessionId}`}
+        >
+          查看回放 →
+        </Link>
+      ) : null}
       {detailUnit ? (
         <CombatV6Details
           detailUnit={detailUnit}

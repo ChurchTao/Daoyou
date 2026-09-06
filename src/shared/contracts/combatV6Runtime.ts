@@ -9,9 +9,14 @@ import type {
 } from '@shared/engine/combat-v6/core';
 import type { CombatV6TrainingRuntimeSnapshotV1 } from '@shared/engine/combat-v6/encounter';
 import { z } from 'zod';
+import {
+  CombatV6ReplayTimelineSchema,
+  type CombatV6ReplayDisplay,
+  type CombatV6ReplayTimeline,
+} from './combatV6Replay';
 
 export const COMBAT_V6_RUNTIME_VERSION = 'combat_v6_redis_runtime_v1' as const;
-export const COMBAT_V6_REPLAY_VERSION = 'combat_v6_replay_v1' as const;
+export const COMBAT_V6_REPLAY_VERSION = 'combat_v6_replay_v2' as const;
 export const COMBAT_V6_REPLAY_STREAM = 'DAOYOU_COMBAT_V6_REPLAY_ARCHIVES';
 export const COMBAT_V6_REPLAY_SUBJECT = 'daoyou.combat-v6.replay.archive.v1';
 
@@ -89,6 +94,7 @@ const VersionStampSchema = z
 
 export const CombatV6BattleFinishedRecordV1Schema = z
   .object({
+    deadBeastIds: z.array(z.uuid()).max(6).optional(),
     battleId: z.uuid(),
     cultivatorId: z.uuid(),
     metadata: CombatV6BattleMetadataV1Schema,
@@ -179,6 +185,7 @@ export const CombatV6RedisRuntimeV1Schema = z
           .passthrough(),
         rounds: z.array(z.unknown()),
         events: z.array(z.unknown()),
+        timeline: CombatV6ReplayTimelineSchema.optional(),
       })
       .strict(),
   })
@@ -208,6 +215,8 @@ export const CombatV6ReplayParticipantSchema = z
   .strict();
 
 export interface CombatV6ReplayV1 {
+  timeline?: CombatV6ReplayTimeline;
+  display?: CombatV6ReplayDisplay;
   seed: number;
   combatVersions: CombatV6VersionStamp;
   initialUnits: LineupUnit[];
@@ -218,7 +227,7 @@ export interface CombatV6ReplayV1 {
     commands: Array<{ unitId: string; command: Command }>;
   }>;
   events: BattleEvent[];
-  replayVersion: typeof COMBAT_V6_REPLAY_VERSION;
+  replayVersion: 'combat_v6_replay_v1' | typeof COMBAT_V6_REPLAY_VERSION;
   battleId: string;
   participants: z.infer<typeof CombatV6ReplayParticipantSchema>[];
   metadata: z.infer<typeof CombatV6ReplayMetadataSchema>;
@@ -231,7 +240,15 @@ export interface CombatV6ReplayV1 {
 
 export const CombatV6ReplayV1Schema = z
   .object({
-    replayVersion: z.literal(COMBAT_V6_REPLAY_VERSION),
+    replayVersion: z.enum(['combat_v6_replay_v1', COMBAT_V6_REPLAY_VERSION]),
+    timeline: CombatV6ReplayTimelineSchema.optional(),
+    display: z
+      .object({
+        skills: z.record(z.string(), z.string()),
+        statuses: z.record(z.string(), z.string()),
+        skillDetails: z.record(z.string(), z.unknown()).optional(),
+      })
+      .optional(),
     battleId: z.uuid(),
     participants: z.array(CombatV6ReplayParticipantSchema).min(1).max(8),
     metadata: CombatV6ReplayMetadataSchema,
@@ -249,6 +266,12 @@ export const CombatV6ReplayV1Schema = z
     reason: CombatV6TerminalReasonSchema,
   })
   .strict()
+  .refine(
+    (value) =>
+      value.replayVersion !== COMBAT_V6_REPLAY_VERSION ||
+      (!!value.timeline?.finalUnits && !!value.display),
+    'Playable replay requires frozen presentation',
+  )
   .refine(
     (value) =>
       new Set(value.participants.map((p) => p.cultivatorId)).size ===

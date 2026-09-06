@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ARENA_PUBLIC_VIEW,
   ARENA_V6_PROTOCOL,
   ArenaV6SubmitSchema,
   type ArenaRuntime,
@@ -77,6 +78,128 @@ function fixture(count = 8): ArenaRuntime {
 }
 
 describe('arena public host', () => {
+  it('4v4每人六只携带只展示一宠，16个行动且观众不获得替补或控制信息', () => {
+    const runtime = fixture();
+    const players = [...runtime.units];
+    for (const player of players)
+      for (let i = 0; i < 6; i++)
+        runtime.units.push({
+          id: `${player.id}:pet:${i}`,
+          name: `灵兽${player.id}:${i}`,
+          kind: 'pet',
+          ownerId: player.id,
+          side: player.side,
+          slot: player.slot,
+          benched: i > 0,
+          attrs: { hp: 1000, speed: 1, physicalAtk: 1 },
+        });
+    const battle = arenaBattle({
+      seed: runtime.seed,
+      units: runtime.units,
+      skills: runtime.skills,
+      statusDefs: runtime.statusDefs,
+    });
+    runtime.state = battle.snapshot();
+    runtime.events = [...battle.log()];
+    expect(runtime.state.units).toHaveLength(56);
+    const view = arenaView(runtime, 'u0', 0);
+    expect(view.units).toHaveLength(16);
+    expect(view.controlledCommandOptions?.map((o) => o.unitId)).toEqual([
+      'u0',
+      'u0:pet:0',
+    ]);
+    expect(view.controlledCommandOptions?.[0].summonablePets).toHaveLength(5);
+    const publicView = arenaView(runtime, ARENA_PUBLIC_VIEW, 0);
+    expect(publicView.controlledCommandOptions).toBeUndefined();
+    expect(Object.keys(publicView.display.unitNames ?? {})).toHaveLength(16);
+    expect(publicView.units.every((u) => u.publicBars && !u.attributes)).toBe(
+      true,
+    );
+    const next = resolveArena(runtime, 0);
+    const publicResult = next.lastResults[ARENA_PUBLIC_VIEW];
+    expect(next.rounds[0].commands).toHaveLength(16);
+    let shown = publicView.units;
+    for (const frame of publicResult.playback!.frames)
+      shown = applyUnitDelta(shown, frame);
+    expect(shown).toEqual(publicResult.units);
+  });
+  it('provides spectator deltas with no control, private attributes or uncast skills', () => {
+    const runtime = fixture();
+    runtime.skills = runtime.skills.map((s) => ({ ...s, costMp: 0 }));
+    runtime.commands.u0 = {
+      requestId: 'private',
+      command: { type: 'skill', skillId: 's0', targets: ['u0'] },
+    };
+    const initial = arenaView(runtime, ARENA_PUBLIC_VIEW, 0);
+    expect(initial.spectator).toBe(true);
+    expect(initial.commandOptions).toBeUndefined();
+    expect(initial.pendingCommand).toBeUndefined();
+    expect(initial.display.skills).toEqual({});
+    expect(
+      initial.units.every(
+        (u) => u.publicBars && !u.attributes && u.resources.length === 0,
+      ),
+    ).toBe(true);
+    expect(
+      initial.events.some(({ event }) => event.type === 'commandAccepted'),
+    ).toBe(false);
+    const next = resolveArena(runtime, 1000);
+    const view = next.lastResults[ARENA_PUBLIC_VIEW];
+    let shown = initial.units;
+    for (const frame of view.playback!.frames)
+      shown = applyUnitDelta(shown, frame);
+    expect(shown).toEqual(view.units);
+    expect(view.units.map((u) => u.side)).toEqual(
+      next.state.units.map((u) => u.side),
+    );
+    expect(view.display.skills.s0).toBe('私有技能0');
+    expect(view.commandOptions).toBeUndefined();
+    expect(() => arenaView(runtime, 'unauthorized', 0)).toThrow(
+      'ARENA_FORBIDDEN',
+    );
+  });
+  it('archives consecutive rounds once and reproduces each participant live delta view', () => {
+    let runtime = fixture();
+    const id = 'c431d125-c61d-423a-9b2d-dde9dd94daac';
+    runtime.participants = runtime.participants.map((p, i) => ({
+      ...p,
+      cultivatorId: `c431d125-c61d-423a-9b2d-dde9dd94daa${i}`,
+    }));
+    runtime = resolveArena(runtime, 0);
+    const firstFrameCount = runtime.timeline!.frames.length;
+    runtime.stage = 'collecting';
+    runtime = resolveArena(runtime, 30000);
+    const replay = createCombatV6Replay({
+      battleId: id,
+      participants: runtime.participants,
+      metadata: {
+        schemaVersion: 1,
+        sourceType: 'arena-sparring',
+        battleType: 'pvp',
+        idempotencyKey: id,
+        payload: { roomId: 'room' },
+      },
+      startedAt: new Date(0).toISOString(),
+      finishedAt: new Date(60000).toISOString(),
+      reason: 'expired',
+      trace: {
+        ...runtime,
+        initialUnits: runtime.units,
+        finalState: runtime.state,
+      },
+    });
+    for (const p of runtime.participants) {
+      const view = combatV6ReplayView(replay, p.cultivatorId, p.userId);
+      expect(view.timeline!.frames.slice(firstFrameCount)).toEqual(
+        runtime.lastResults[p.unitId].playback!.frames,
+      );
+      let units = view.timeline!.initialUnits;
+      for (const frame of view.timeline!.frames)
+        units = applyUnitDelta(units, frame);
+      expect(units).toEqual(runtime.lastResults[p.unitId].units);
+      expect(units.find((u) => u.id === p.unitId)?.side).toBe(0);
+    }
+  });
   it('uses one strict archive for PvE and PvP, without host or delivery state', () => {
     const runtime = fixture();
     const id = 'c431d125-c61d-423a-9b2d-dde9dd94daac';

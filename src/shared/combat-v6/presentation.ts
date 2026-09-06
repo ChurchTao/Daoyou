@@ -19,6 +19,26 @@ export function combatV6Display(skills: SkillDef[], statuses: StatusDef[]) {
   };
 }
 
+/** Only units that have appeared, or the viewer's own reserves, may be named publicly. */
+export function visibleUnitNames(
+  state: BattleState,
+  events: readonly import('@shared/engine/combat-v6/core').BattleEvent[],
+  viewerId: string,
+) {
+  const summoned = new Set(
+    events.flatMap((e) =>
+      e.type === 'petSummoned' || e.type === 'petRecalled' ? [e.petId] : [],
+    ),
+  );
+  return Object.fromEntries(
+    state.units
+      .filter(
+        (u) => !u.flags.benched || u.ownerId === viewerId || summoned.has(u.id),
+      )
+      .map((u) => [u.id, u.name]),
+  );
+}
+
 /** Whitelist display facts; the server never serializes commands, RNG or private build facts. */
 export function combatV6Units(
   state: BattleState,

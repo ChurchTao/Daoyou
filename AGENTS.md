@@ -98,6 +98,7 @@ bun run db:migrate
 ## Verification Checklist
 
 - Testing has only two layers: pure `src/shared` unit tests and Codex browser/Playwright simulations following `docs/testing.md`. Do not add one-off smoke, E2E, seed, benchmark, or fault-injection scripts.
+- Local browser test accounts and their shared password are documented in `docs/testing.md` section 3. Reuse them; query the local database read-only to select existing accounts and characters instead of asking the user for known credentials again. Complete email verification through Mailpit and never apply these credentials or test writes to staging/production.
 
 - Unit tests are forbidden under `src/react-app` and `src/server`; do not add `*.test.*` or `*.spec.*` files there.
 - New unit tests are allowed only for pure, deterministic, reusable engine/domain logic under `src/shared`.

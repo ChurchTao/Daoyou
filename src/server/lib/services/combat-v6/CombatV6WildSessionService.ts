@@ -1,5 +1,6 @@
 import { db } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
+import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { findActiveCombatV6Membership } from '@server/lib/repositories/combatV6BuildRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
@@ -7,6 +8,7 @@ import {
   combatV6Display,
   combatV6Playback,
   combatV6Units,
+  visibleUnitNames,
 } from '@shared/combat-v6/presentation';
 import { createCombatV6Replay } from '@shared/combat-v6/replay';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
@@ -21,6 +23,7 @@ import type {
   WildSettlement,
 } from '@shared/contracts/combatV6Wild';
 import { DOMAIN_EVENT_DEFINITIONS } from '@shared/contracts/domainEvents';
+import { beastDeathIds } from '@shared/engine/combat-v6/beasts';
 import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
 import {
   WILD_CONTENT_VERSION,
@@ -35,6 +38,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { ConditionService } from '../ConditionService';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
 import { getCultivatorPreHeavenFates } from '../cultivator/CultivatorProfileRepository';
+import { arenaOccupancyKey } from './CombatV6ArenaStore';
 import { assembleCombatV6TrainingPlayer } from './CombatV6BuildService';
 import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
 import { CombatV6WildStore } from './CombatV6WildStore';
@@ -71,6 +75,7 @@ export function wildTerminal(
       data: { battleId: s.battleId },
     },
     record: {
+      deadBeastIds: s.deadBeastIds,
       battleId: s.battleId,
       cultivatorId: s.cultivatorId,
       metadata: s.metadata,
@@ -90,6 +95,7 @@ function summaryOf(
 ): WildSettlement {
   const p = r.host.state.units.find((u) => u.id === r.host.playerId)!;
   return {
+    deadBeastIds: beastDeathIds(r.host.events),
     schemaVersion: 1,
     battleId: r.battleId,
     userId: r.userId,
@@ -155,6 +161,8 @@ export class CombatV6WildSessionService {
         retries: 0,
       },
       async (lease) => {
+        if (await redis.get(arenaOccupancyKey(actor.cultivatorId)))
+          throw new WildError('WILD_BATTLE_ALREADY_ACTIVE', '请先结束擂台战斗');
         const activeId = await common.currentId(actor.cultivatorId);
         if (activeId) {
           const r = await store.get(activeId);
@@ -357,11 +365,13 @@ export class CombatV6WildSessionService {
     id: string,
     expected: number,
     unitId: string,
-    command: CombatV6TrainingCommandV1,
+    commands: import('@shared/contracts/combatV6').CombatV6CommandGroup,
   ) {
-    return this.change(actor, id, expected, (host) =>
-      host.submit(unitId, command),
-    );
+    return this.change(actor, id, expected, (host) => {
+      if (unitId !== host.playerId)
+        throw new WildError('WILD_COMMAND_INVALID', '无权提交此人物指令', 400);
+      host.submitGroup(commands);
+    });
   }
   async resolve(actor: Actor, id: string, expected: number) {
     return this.change(
@@ -480,11 +490,17 @@ export class CombatV6WildSessionService {
           : 'settled'
         : 'not-started',
       units: combatV6Units(state, r.host.input.statusDefs ?? []),
-      display: combatV6Display(
-        r.host.input.skills ?? [],
-        r.host.input.statusDefs ?? [],
-      ),
+      display: {
+        ...combatV6Display(
+          r.host.input.skills ?? [],
+          r.host.input.statusDefs ?? [],
+        ),
+        unitNames: visibleUnitNames(state, r.host.events, host.playerId),
+      },
       commandOptions: host.finished ? undefined : host.queryCommands(),
+      controlledCommandOptions: host.finished
+        ? undefined
+        : host.controlledCommandOptions(),
       pendingCommand: player.command as CombatV6TrainingCommandV1 | undefined,
       events: r.host.events
         .map((event, seq) => ({ event, seq }))

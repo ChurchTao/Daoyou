@@ -32,6 +32,7 @@ export function CombatV6Commands({
   submit,
   onResolve,
   onClose,
+  onPrevious,
 }: {
   online?: ArenaSessionView;
   session: CombatV6Session;
@@ -45,9 +46,11 @@ export function CombatV6Commands({
   submit: (command: CombatV6TrainingCommandV1) => Promise<void>;
   onResolve: () => Promise<void>;
   onClose: () => void;
+  onPrevious?: () => void;
 }) {
   const options = session.commandOptions;
   const [category, setCategory] = useState<'spell' | 'art'>();
+  const [petsOpen, setPetsOpen] = useState(false);
   const skills =
     options?.skills.filter(
       (skill) =>
@@ -80,6 +83,11 @@ export function CombatV6Commands({
         <>
           <div className="cv6-command-heading">
             <strong>{playing ? '战斗进行中' : unitName}</strong>
+            {onPrevious && !playing ? (
+              <button disabled={disabled} onClick={onPrevious}>
+                返回人物指令
+              </button>
+            ) : null}
             {!online && (
               <button
                 className="cv6-text-button"
@@ -158,6 +166,25 @@ export function CombatV6Commands({
                     onClick={() => void submit({ type: 'flee' })}
                   >
                     逃跑
+                  </button>
+                )}
+                {!!options?.summonablePets?.length && (
+                  <button
+                    disabled={disabled}
+                    onClick={() => {
+                      onCancel();
+                      setPetsOpen(true);
+                    }}
+                  >
+                    召唤
+                  </button>
+                )}
+                {options?.canRecall && (
+                  <button
+                    disabled={disabled}
+                    onClick={() => void submit({ type: 'recall' })}
+                  >
+                    召回
                   </button>
                 )}
               </div>
@@ -265,6 +292,32 @@ export function CombatV6Commands({
                 暂无可用{category === 'spell' ? '神通' : '器诀'}
               </p>
             )}
+          </div>
+        </InkDetailDrawer>
+      ) : null}
+      {petsOpen && !disabled && !ended ? (
+        <InkDetailDrawer
+          isOpen
+          title="召唤灵兽"
+          size="sm"
+          onClose={() => setPetsOpen(false)}
+        >
+          <div className="cv6-skill-list">
+            {options?.summonablePets?.map((pet) => (
+              <button
+                key={pet.id}
+                onClick={() => {
+                  setPetsOpen(false);
+                  void submit({ type: 'summon', petId: pet.id });
+                }}
+              >
+                {pet.name}{' '}
+                <span className="cv6-muted">
+                  气血 {Math.floor((pet.hp / pet.maxHp) * 100)}% · 法力{' '}
+                  {Math.floor((pet.mp / Math.max(1, pet.maxMp)) * 100)}%
+                </span>
+              </button>
+            ))}
           </div>
         </InkDetailDrawer>
       ) : null}

@@ -260,6 +260,20 @@
       "when": 1788670113128,
       "tag": "0036_unified_v6_replay",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1788676248284,
+      "tag": "0037_v6_replay_history_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1788691868265,
+      "tag": "0038_v6_summoned_beasts",
+      "breakpoints": true
     }
   ]
 }
