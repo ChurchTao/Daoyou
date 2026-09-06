@@ -294,27 +294,13 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
-.cv6-skill-help {
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-  color: var(--color-battle-muted);
-}
-.cv6-skill-row > small,
-.cv6-skill-preview {
+.cv6-skill-row > small {
   display: block;
   padding: 0 0.5rem;
   font-size: 0.75rem;
   color: var(--color-battle-muted);
   line-height: 1.8;
   overflow-wrap: anywhere;
-}
-.cv6-skill-preview:not([hidden]) {
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: color-mix(in srgb, var(--color-resource-mp) 5%, transparent);
-}
-.cv6-skill-preview[hidden] {
-  display: none;
 }
 .cv6-command-hint {
   font-size: 0.75rem;
