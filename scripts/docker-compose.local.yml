@@ -1,0 +1,58 @@
+name: daoyou-local
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: daoyou
+      POSTGRES_PASSWORD: daoyou-local-only
+      POSTGRES_DB: daoyou_local
+    ports: ['127.0.0.1:15432:5432']
+    volumes: ['postgres-data:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U daoyou -d daoyou_local']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports: ['127.0.0.1:16379:6379']
+    volumes: ['redis-data:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  nats:
+    image: nats:2.11-alpine
+    command:
+      [
+        '--config=/etc/nats/nats-server.conf',
+        '--jetstream',
+        '--store_dir=/data/jetstream',
+        '--http_port=8222',
+        '--user=app',
+        '--pass=local-nats-password',
+      ]
+    ports: ['127.0.0.1:14222:4222', '127.0.0.1:18222:8222']
+    volumes:
+      [
+        'nats-data:/data/jetstream',
+        './nats-server.conf:/etc/nats/nats-server.conf:ro',
+      ]
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'wget -qO- http://127.0.0.1:8222/healthz | grep -q ok']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  mailpit:
+    image: axllent/mailpit:v1.29
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: '1'
+      MP_SMTP_AUTH_ALLOW_INSECURE: '1'
+    ports: ['127.0.0.1:11025:1025', '127.0.0.1:18025:8025']
+volumes:
+  postgres-data:
+  redis-data:
+  nats-data:

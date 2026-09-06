@@ -37,7 +37,7 @@ export default function BodyCultivationPage() {
   return (
     <GameSceneFrame
       title="肉身炼体"
-      description="服用炼体丹提升皮肤、筋骨、脏腑、气血与元神五条轨道。满足等级、修为、材料和丹药要求后，可以提升肉身阶位。"
+      description="服用炼体丹提升皮肤、筋骨、脏腑、气血与元神五条轨道。满足五轨总等级与修为境界后，可以直接提升肉身位阶。"
       headerMeta={
         note ? (
           <GameSceneNote>

@@ -15,9 +15,7 @@ import type { RealmStage, RealmType } from '@shared/types/constants';
 import { randomUUID } from 'crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import {
-  consumeBodyCultivationBreakthroughCosts,
   loadPlayerBodyCultivationFacts,
-  planBodyCultivationBreakthroughSelections,
 } from './BodyCultivationBreakthroughService';
 import { playerCommandExecutor } from './CommandExecutors';
 import { ConditionService } from './ConditionService';
@@ -174,31 +172,21 @@ export async function recoverCultivatorAtInn(args: { actor: Actor }) {
 
 export async function breakthroughBodyCultivation(args: {
   actor: Actor;
-  selection: Parameters<typeof planBodyCultivationBreakthroughSelections>[1];
 }) {
-  const cultivator = await loadPlayerBodyCultivationFacts(
-    args.actor.userId,
-    args.actor.cultivatorId,
-  );
-  if (!cultivator) throw new Error('角色不存在');
-  const costPlan = await planBodyCultivationBreakthroughSelections(
-    cultivator,
-    args.selection,
-  );
-  const result = ConditionService.breakthroughBodyCultivationRealm(
-    cultivator,
-    cultivator.condition,
-  );
   return playerCommandExecutor.executeWithLock({
     userId: args.actor.userId,
     cultivatorId: args.actor.cultivatorId,
     source: 'body_cultivation_breakthrough',
     command: async (tx) => {
-      const inventoryChanges = await consumeBodyCultivationBreakthroughCosts(
+      const cultivator = await loadPlayerBodyCultivationFacts(
         args.actor.userId,
         args.actor.cultivatorId,
-        costPlan,
         tx,
+      );
+      if (!cultivator) throw new Error('角色不存在');
+      const result = ConditionService.breakthroughBodyCultivationRealm(
+        cultivator,
+        cultivator.condition,
       );
       const saved = await updateCultivator(
         args.actor.cultivatorId,
@@ -208,19 +196,12 @@ export async function breakthroughBodyCultivation(args: {
       if (!saved) throw new Error('更新角色数据失败');
       return {
         result: {
-          success: result.success,
           fromRealm: result.fromRealm,
           toRealm: result.toRealm,
-          chance: result.chance,
-          roll: result.roll,
-          failedAttempts: result.failedAttempts,
-          guaranteeProgress: result.guaranteeProgress,
           condition: result.condition,
         },
         resourceChanges: bodyBreakthroughChanges({
-          success: result.success,
           condition: result.condition,
-          inventoryChanges,
         }),
       };
     },

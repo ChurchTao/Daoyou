@@ -11,6 +11,7 @@ import {
   type MapNodeInfo,
 } from '@shared/lib/game/mapSystem';
 import type { ComponentProps } from 'react';
+import { WildNodePreview } from './WildNodePreview';
 
 type InkButtonVariant = ComponentProps<typeof InkButton>['variant'];
 
@@ -62,6 +63,7 @@ export function MapNodeDetail({ node, onClose, actions }: MapNodeDetailProps) {
         ) : undefined
       }
     >
+      {node.wild_encounter_id ? <WildNodePreview key={node.id} nodeId={node.id}/> : null}
       <div className="text-ink-secondary mb-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
         <span>
           推荐境界：

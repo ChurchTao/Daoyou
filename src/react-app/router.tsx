@@ -1,6 +1,7 @@
 import App, { RootRouteErrorBoundary } from '@app/App';
 import { AppBootScreen } from '@app/components/feature/app-boot/AppBootScreen';
 import { getGameSceneMeta } from '@app/components/game-shell/gameNavigation';
+import { CombatV6Layout } from '@app/layouts/combat-v6-layout';
 import {
   GameActivityLayout,
   GameCombatLayout,
@@ -226,7 +227,8 @@ export const router = createBrowserRouter(
                 {
                   id: 'spirit-field',
                   presentation: 'workflow',
-                  summary: '在个人洞府药圃中播种，并以三阶段培育等待天地造化成型。',
+                  summary:
+                    '在个人洞府药圃中播种，并以三阶段培育等待天地造化成型。',
                 },
                 '洞府灵田',
               )}
@@ -255,7 +257,7 @@ export const router = createBrowserRouter(
                   id: 'body-cultivation',
                   summary: '五轨炼体等级、当前收益与进阶准备归于此处。',
                 },
-                '肉身破限',
+                '肉身升阶',
               )}
             />
             <Route
@@ -1010,6 +1012,40 @@ export const router = createBrowserRouter(
             />
           </Route>
 
+          <Route element={<CombatV6Layout />}>
+            <Route
+              path="combat-v6/arena/:battleId"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/combat-v6/arena/route'),
+              )}
+              handle={scene(
+                { id: 'arena-sparring', chrome: 'immersive', dock: 'hidden' },
+                '擂台切磋',
+              )}
+            />
+            <Route
+              path="training-room"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/training-room/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'training-room',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '练功房',
+              )}
+            />
+            <Route
+              path="wild"
+              lazy={lazyRoute(() => import('@app/routes/game/wild/route'))}
+              handle={scene(
+                { id: 'wild', chrome: 'immersive', dock: 'hidden' },
+                '野外探索',
+              )}
+            />
+          </Route>
           <Route element={<GameCombatLayout />}>
             <Route
               path="battle/challenge"
@@ -1093,20 +1129,6 @@ export const router = createBrowserRouter(
                   dock: 'hidden',
                 },
                 '赌战挑战',
-              )}
-            />
-            <Route
-              path="training-room"
-              lazy={lazyRoute(
-                () => import('@app/routes/game/training-room/route'),
-              )}
-              handle={scene(
-                {
-                  id: 'training-room',
-                  chrome: 'immersive',
-                  dock: 'hidden',
-                },
-                '练功房',
               )}
             />
             <Route

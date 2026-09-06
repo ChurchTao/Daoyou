@@ -31,28 +31,28 @@ export const LEGACY_TEMPERING_TO_BODY_TRACK = {
 export const BODY_TRACK_LABELS = {
   skin: {
     name: '炼体·皮肤',
-    layerName: '防御与减伤',
-    shortDesc: '物防、法防、受到直接伤害',
+    layerName: '防御修炼',
+    shortDesc: '提升 combat-v6 防御修炼',
   },
   sinew_bone: {
     name: '炼体·筋骨',
-    layerName: '气血与抗暴',
-    shortDesc: '气血上限、暴击减伤',
+    layerName: '攻法修炼',
+    shortDesc: '提升 combat-v6 攻法修炼',
   },
   organs: {
     name: '炼体·脏腑',
-    layerName: '攻击与回蓝',
-    shortDesc: '物攻、法攻、战斗回蓝',
+    layerName: '法术修炼',
+    shortDesc: '提升 combat-v6 法术修炼',
   },
   qi_blood: {
     name: '炼体·气血',
-    layerName: '气血与治疗',
-    shortDesc: '气血上限、治疗效果',
+    layerName: '生命根基',
+    shortDesc: '提升裸身气血与固定治疗强度',
   },
   primordial_spirit: {
     name: '炼体·元神',
-    layerName: '控制与抗暴',
-    shortDesc: '控制抗性、抗暴',
+    layerName: '抗法修炼',
+    shortDesc: '提升 combat-v6 抗法修炼',
   },
 } as const satisfies Record<
   BodyCultivationTrackKey,
@@ -84,12 +84,6 @@ export interface BodyCultivationRealmRequirement {
   label: string;
   minCultivationRealm: RealmType;
   totalLevel: number;
-  requiredTrackLevels?: Partial<Record<BodyCultivationTrackKey, number>>;
-  requiredAnyTracks?: {
-    count: number;
-    minLevel: number;
-  };
-  minAllTracksLevel?: number;
   softTrackCap: number;
   unlockText: string;
 }
@@ -101,70 +95,55 @@ export const BODY_CULTIVATION_REALM_REQUIREMENTS = {
     minCultivationRealm: '炼气',
     totalLevel: 0,
     softTrackCap: 5,
-    unlockText: '初始肉身',
+    unlockText: '五轨单轨上限 Lv.5',
   },
   bronze_skin: {
     realm: 'bronze_skin',
     label: BODY_REALM_LABELS.bronze_skin,
     minCultivationRealm: '炼气',
     totalLevel: 12,
-    requiredAnyTracks: { count: 3, minLevel: 3 },
     softTrackCap: 10,
-    unlockText: '开局3回合受到直接伤害降低10%',
+    unlockText: '五轨单轨上限提升至 Lv.10',
   },
   iron_bone: {
     realm: 'iron_bone',
     label: BODY_REALM_LABELS.iron_bone,
     minCultivationRealm: '筑基',
     totalLevel: 30,
-    requiredTrackLevels: {
-      sinew_bone: 8,
-      skin: 6,
-    },
     softTrackCap: 15,
-    unlockText: '常驻暴击率与暴击伤害提升',
+    unlockText: '五轨单轨上限提升至 Lv.15',
   },
   jade_marrow: {
     realm: 'jade_marrow',
     label: BODY_REALM_LABELS.jade_marrow,
     minCultivationRealm: '金丹',
     totalLevel: 55,
-    requiredTrackLevels: {
-      sinew_bone: 12,
-      qi_blood: 10,
-    },
     softTrackCap: 22,
-    unlockText: '濒死保护并驱散负面状态',
+    unlockText: '五轨单轨上限提升至 Lv.22',
   },
   golden_body: {
     realm: 'golden_body',
     label: BODY_REALM_LABELS.golden_body,
     minCultivationRealm: '元婴',
     totalLevel: 90,
-    minAllTracksLevel: 10,
     softTrackCap: 30,
-    unlockText: '低血燃血爆发并恢复气血',
+    unlockText: '五轨单轨上限提升至 Lv.30',
   },
   dharma_body: {
     realm: 'dharma_body',
     label: BODY_REALM_LABELS.dharma_body,
     minCultivationRealm: '化神',
     totalLevel: 140,
-    requiredTrackLevels: {
-      organs: 18,
-      primordial_spirit: 18,
-    },
     softTrackCap: 45,
-    unlockText: '开局控制抗性提升',
+    unlockText: '五轨单轨上限提升至 Lv.45',
   },
   dao_body: {
     realm: 'dao_body',
     label: BODY_REALM_LABELS.dao_body,
     minCultivationRealm: '合体',
     totalLevel: 220,
-    minAllTracksLevel: 25,
-    softTrackCap: 55,
-    unlockText: '常驻最终伤害减免20%',
+    softTrackCap: 60,
+    unlockText: '五轨单轨上限提升至 Lv.60',
   },
 } as const satisfies Record<
   BodyCultivationRealm,

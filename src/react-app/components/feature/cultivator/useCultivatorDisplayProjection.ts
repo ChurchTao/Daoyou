@@ -108,8 +108,9 @@ export function useCultivatorDisplayProjection(enabled = true) {
     return {
       cultivator,
       display,
-      maxHp: display.resources.hp.max,
-      maxMp: display.resources.mp.max,
+      maxHp: condition.data.combatV6?.maxHp ?? display.resources.hp.max,
+      maxMp: condition.data.combatV6?.maxMp ?? display.resources.mp.max,
+      recoveryPaused: condition.data.combatV6?.recoveryPaused ?? false,
       fateContext,
     };
   }, [condition.data, identity, loadout.data, sect, sectReady]);
@@ -125,7 +126,7 @@ export function useCultivatorDisplayProjection(enabled = true) {
             toxicityPenaltyMultiplier:
               basis.fateContext.toxicityPenaltyMultiplier,
             naturalRecoveryMultiplier:
-              basis.fateContext.naturalRecoveryMultiplier,
+              basis.recoveryPaused ? 0 : basis.fateContext.naturalRecoveryMultiplier,
             now: new Date(estimatedNowMs),
           })
         : null,
@@ -154,7 +155,7 @@ export function useCultivatorDisplayProjection(enabled = true) {
       toxicityPenaltyMultiplier:
         basis.fateContext.toxicityPenaltyMultiplier,
       naturalRecoveryMultiplier:
-        basis.fateContext.naturalRecoveryMultiplier,
+        basis.recoveryPaused ? 0 : basis.fateContext.naturalRecoveryMultiplier,
       now: new Date(nowMs),
     });
     const projectedCondition: CultivatorCondition = {

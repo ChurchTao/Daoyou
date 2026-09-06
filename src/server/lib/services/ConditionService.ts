@@ -341,10 +341,20 @@ function normalizeResourcePoint(args: {
 }
 
 export const ConditionService = {
+  /** v6 supplies authoritative maxima; this path never invokes legacy projections. */
+  applyCombatV6Resources(condition: CultivatorCondition, resources: {hp:number;mp:number;maxHp:number;maxMp:number}, now = new Date()): CultivatorCondition {
+    return { ...structuredClone(condition), resources: {hp:{current:resources.hp,max:resources.maxHp},mp:{current:resources.mp,max:resources.maxMp}}, timestamps:{...condition.timestamps,lastRecoveryAt:now.toISOString(),lastBattleAt:now.toISOString()} };
+  },
+  recoverCombatV6Resources(condition: CultivatorCondition, maxima: {maxHp:number;maxMp:number}, now = new Date(), recovery: {toxicityPenaltyMultiplier:number;naturalRecoveryMultiplier:number} = {toxicityPenaltyMultiplier:1,naturalRecoveryMultiplier:1}): CultivatorCondition {
+    const projection = projectNaturalRecoveryResources({conditionInput:condition,...maxima,now,...recovery});
+    return {...structuredClone(condition),resources:projection.resources,timestamps:{...condition.timestamps,lastRecoveryAt:now.toISOString()}};
+  },
   getMaxResources(
     cultivator: CultivatorDisplayInput,
     conditionInput?: CultivatorCondition,
   ): { maxHp: number; maxMp: number } {
+    const authority = (cultivator as CultivatorDisplayInput & {combatV6ResourceAuthority?: {maxHp:number;maxMp:number}}).combatV6ResourceAuthority;
+    if (authority) return {maxHp:authority.maxHp,maxMp:authority.maxMp};
     const display = getCultivatorDisplayAttributes(
       conditionInput
         ? {
@@ -470,6 +480,7 @@ export const ConditionService = {
     );
     const { maxHp, maxMp } = this.getMaxResources(cultivator, condition);
     const statuses = pruneInactiveStatuses(condition.statuses, now);
+    if ((cultivator as ConditionCultivatorFacts & {combatV6ResourceAuthority?: {recoveryPaused:boolean}}).combatV6ResourceAuthority?.recoveryPaused) return {...condition,statuses};
     const fateContext = evaluateFateContext(cultivator.pre_heaven_fates ?? []);
     const projection = projectNaturalRecoveryResources({
       conditionInput: condition,
@@ -722,16 +733,10 @@ export const ConditionService = {
   breakthroughBodyCultivationRealm(
     cultivator: Pick<Cultivator, 'realm' | 'condition'>,
     conditionInput: CultivatorCondition | undefined,
-    rng: () => number = Math.random,
   ): {
     condition: CultivatorCondition;
     fromRealm: BodyCultivationRealm;
     toRealm: BodyCultivationRealm;
-    success: boolean;
-    chance: number;
-    roll: number;
-    failedAttempts: number;
-    guaranteeProgress: number;
   } {
     const condition = conditionInput ?? cultivator.condition;
     if (!condition) {
@@ -739,7 +744,7 @@ export const ConditionService = {
     }
     const result = advanceBodyCultivationRealm(condition, {
       cultivatorRealm: cultivator.realm,
-    }, rng);
+    });
 
     return {
       condition: {
@@ -751,11 +756,6 @@ export const ConditionService = {
       },
       fromRealm: result.fromRealm,
       toRealm: result.toRealm,
-      success: result.success,
-      chance: result.chance,
-      roll: result.roll,
-      failedAttempts: result.failedAttempts,
-      guaranteeProgress: result.guaranteeProgress,
     };
   },
 };

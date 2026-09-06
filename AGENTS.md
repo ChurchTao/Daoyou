@@ -26,15 +26,15 @@ AI agents should read this first. Keep changes small, project-specific, and back
 ```bash
 bun install
 bun run dev
+bun run prd
 bun run lint
 bun run test
 bun run build
-bun run check
-bunx drizzle-kit migrate
-bun run auth:migrate
+bun run db:migrate
 ```
 
-- `bun run build` is two-stage: `tsc -b && vite build --mode client && vite build`.
+- `dev[:api|:web]` selects `env/local.env`; `prd[:api|:web]` selects `env/staging.env`. Bun's implicit env loading is disabled; other tools require explicitly injected variables or `bun --env-file=...`.
+- `bun run build` sequentially invokes `build:client` and `build:server`; Vite configs separate client, server and resolver Worker targets. Preserve these CI/CD entrypoints.
 - Vitest uses node environment and discovers tests only under `src/shared`.
 - Docker runtime contains only `dist`; ALTCHA uses the server-side `ALTCHA_HMAC_SECRET` and does not require a frontend site key.
 - GitHub Actions currently builds and pushes Docker image on `master`; it is not a lint/test quality gate.
@@ -96,6 +96,8 @@ bun run auth:migrate
 - Redis locks, cron jobs, rankings, market cache, chat cooldown, and health-check behavior.
 
 ## Verification Checklist
+
+- Testing has only two layers: pure `src/shared` unit tests and Codex browser/Playwright simulations following `docs/testing.md`. Do not add one-off smoke, E2E, seed, benchmark, or fault-injection scripts.
 
 - Unit tests are forbidden under `src/react-app` and `src/server`; do not add `*.test.*` or `*.spec.*` files there.
 - New unit tests are allowed only for pure, deterministic, reusable engine/domain logic under `src/shared`.

@@ -306,7 +306,7 @@ describe('BattleInitApplier', () => {
     expect(playerUnit.getCurrentShield()).toBe(180);
   });
 
-  test('肉身入场效果会自动挂载到双方战斗单元', () => {
+  test('肉身状态不再向 battle-v5 自动挂载入场效果', () => {
     const player = createCultivator('player', '道友');
     const opponent = createCultivator('opponent', '对手');
     player.condition = createBodyCultivationCondition({
@@ -324,19 +324,11 @@ describe('BattleInitApplier', () => {
 
     expect(playerUnit.getCurrentShield()).toBe(0);
     expect(opponentUnit.getCurrentShield()).toBe(0);
-    expect(
-      playerUnit.buffs
-        .getAllBuffs()
-        .some((buff) => buff.id === 'body_cultivation_skin_damage_reduction'),
-    ).toBe(true);
-    expect(
-      playerUnit.buffs
-        .getAllBuffs()
-        .some((buff) => buff.id === 'body_cultivation_organs_skill_refund'),
-    ).toBe(true);
+    expect(playerUnit.buffs.getAllBuffs()).toEqual([]);
+    expect(opponentUnit.buffs.getAllBuffs()).toEqual([]);
   });
 
-  test('肉身入场效果不会重复同名 buff', () => {
+  test('显式 startingBuffs 仍按原配置挂载', () => {
     const player = createCultivator('player', '道友');
     const opponent = createCultivator('opponent', '对手');
     player.condition = createBodyCultivationCondition({

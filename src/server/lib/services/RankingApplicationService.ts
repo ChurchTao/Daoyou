@@ -1,6 +1,7 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher';
+import { assertCombatV6MutationAllowed } from './combat-v6/CombatV6MutationGuard';
 import {
   acquireChallengeLock,
   addToRanking,
@@ -86,6 +87,7 @@ export async function runRankingBattleCommand(args: {
   targetId?: string | null;
   rankingRealm: RealmType;
 }) {
+  await assertCombatV6MutationAllowed(args.cultivatorId,'ranking_challenge');
   const identity = await readCultivatorPublicIdentity(args.cultivatorId);
   const affectsRanking = args.rankingRealm === identity.realm;
   const challengeCheck = await checkDailyChallenges(args.cultivatorId);

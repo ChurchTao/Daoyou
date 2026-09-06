@@ -1,4 +1,3 @@
-import { getBodyCultivationBattleInitHooks } from '@shared/lib/bodyCultivation/effects';
 import {
   createCombatUnitFromCultivator,
   type CultivatorCombatInput,
@@ -160,32 +159,6 @@ function applyResourceState(
   });
 }
 
-function mergeBodyCultivationInit(
-  spec: BattleUnitInitSpec | undefined,
-  cultivator: CultivatorCombatInput,
-): BattleUnitInitSpec | undefined {
-  const hooks = getBodyCultivationBattleInitHooks(cultivator.condition);
-  const existingBuffIds = new Set(
-    spec?.startingBuffs?.map((entry) => entry.buff.id) ?? [],
-  );
-  const bodyStartingBuffs = hooks.startingBuffs
-    .filter((buff) => !existingBuffIds.has(buff.id))
-    .map((buff) => ({
-      buff,
-      source: 'self' as const,
-    }));
-
-  if (!bodyStartingBuffs.length) {
-    return spec;
-  }
-
-  return {
-    ...spec,
-    resourceState: spec?.resourceState,
-    startingBuffs: [...(spec?.startingBuffs ?? []), ...bodyStartingBuffs],
-  };
-}
-
 function applyUnitInit(
   unit: Unit,
   counterpart: Unit,
@@ -222,14 +195,8 @@ export function createBattleUnitsWithInit(
     teamId: 'opponent',
     slot: 0,
   });
-  const mergedConfig: BattleInitConfigV5 = {
-    ...config,
-    player: mergeBodyCultivationInit(config?.player, player),
-    opponent: mergeBodyCultivationInit(config?.opponent, opponent),
-  };
-
-  applyUnitInit(playerUnit, opponentUnit, mergedConfig.player);
-  applyUnitInit(opponentUnit, playerUnit, mergedConfig.opponent);
+  applyUnitInit(playerUnit, opponentUnit, config?.player);
+  applyUnitInit(opponentUnit, playerUnit, config?.opponent);
 
   return {
     playerUnit,

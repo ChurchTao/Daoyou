@@ -427,7 +427,7 @@ export function CultivatorTrackSection() {
     return null;
   }
 
-  const breakthroughStatus = nextRealm?.canAttempt ? '可破限' : '未满足';
+  const breakthroughStatus = nextRealm?.canAttempt ? '可升阶' : '未满足';
 
   return (
     <GameSceneSection title="肉身炼体">
@@ -438,7 +438,7 @@ export function CultivatorTrackSection() {
             label={`肉身·${state.bodySummary.realm.label}`}
             note={state.bodySummary.realm.unlockText}
             value={`总 Lv.${state.bodySummary.totalLevel}`}
-            trailing={`单轨软上限 Lv.${state.bodySummary.realm.softTrackCap}`}
+            trailing={`单轨上限 Lv.${state.bodySummary.realm.softTrackCap}`}
           />
           {nextRealm ? (
             <div className="border-ink/10 border-b border-dashed py-2.5">
@@ -482,7 +482,7 @@ export function CultivatorTrackSection() {
               variant="primary"
               className="text-sm"
             >
-              前往破限
+              前往升阶
             </InkButton>
           </div>
         ) : null}

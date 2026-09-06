@@ -187,6 +187,7 @@ export const playerCurrencyResource: ResourceDefinition<
   },
 };
 export const playerLoadoutResource = playerDefinition('loadout');
+export const playerCombatV6BuildResource = playerDefinition('combat-v6-build');
 export const playerMailSummaryResource = playerDefinition('mail-summary');
 export const playerTaskSummaryResource = playerDefinition('task-summary');
 

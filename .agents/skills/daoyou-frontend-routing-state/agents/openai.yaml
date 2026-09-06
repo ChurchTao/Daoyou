@@ -1,4 +1,0 @@
-interface:
-  display_name: "Daoyou Frontend Routing State"
-  short_description: "Daoyou 路由、场景元数据与前端状态刷新"
-  default_prompt: "Use $daoyou-frontend-routing-state to add Daoyou routes, scene metadata, loaders, admin pages, or frontend state refresh logic."

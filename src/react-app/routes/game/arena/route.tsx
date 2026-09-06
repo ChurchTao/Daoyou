@@ -126,7 +126,7 @@ export default function ArenaPage() {
       (room.status !== 'starting' && room.status !== 'in_battle')
     )
       return;
-    navigate(`/game/battle/live/${encodeURIComponent(room.battleMatchId)}`);
+    navigate(`/game/combat-v6/arena/${encodeURIComponent(room.battleMatchId)}`);
   }, [navigate, room?.battleMatchId, room?.status]);
 
   useEffect(() => {

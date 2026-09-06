@@ -206,8 +206,9 @@ describe('CultivatorCombatAdapter', () => {
     eventBus.reset();
   });
 
-  it('mounts body cultivation modifiers in combat units', () => {
+  it('does not mount body cultivation modifiers in battle-v5 units', () => {
     const cultivator = createCultivatorFixture();
+    const baseline = createCombatUnitFromCultivator(structuredClone(cultivator));
     cultivator.condition = {
       version: 1,
       resources: {
@@ -250,11 +251,15 @@ describe('CultivatorCombatAdapter', () => {
 
     const unit = createCombatUnitFromCultivator(cultivator);
 
-    expect(unit.attributes.getValue(AttributeType.VITALITY)).toBe(10);
-    expect(unit.attributes.getValue(AttributeType.MAX_HP)).toBe(693);
-    expect(
-      unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE),
-    ).toBeCloseTo(0.0936, 6);
+    expect(unit.attributes.getValue(AttributeType.VITALITY)).toBe(
+      baseline.attributes.getValue(AttributeType.VITALITY),
+    );
+    expect(unit.attributes.getValue(AttributeType.MAX_HP)).toBe(
+      baseline.attributes.getValue(AttributeType.MAX_HP),
+    );
+    expect(unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE)).toBe(
+      baseline.attributes.getValue(AttributeType.CONTROL_RESISTANCE),
+    );
   });
 
   it('keeps wuxiang ability projection identical with or without body cultivation', () => {

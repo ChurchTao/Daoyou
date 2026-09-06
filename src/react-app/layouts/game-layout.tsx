@@ -188,6 +188,8 @@ function resolveSpecialSceneDescriptor(
     };
   }
 
+  if (pathname === '/game/wild') return {sceneLabel:scene.label,backAction:{type:'path',label:'返回地图',href:'/game/map'}};
+
   return null;
 }
 

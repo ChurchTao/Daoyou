@@ -1,4 +1,5 @@
 import type { MapNodeDetailAction } from '@app/components/feature/map';
+import { getMapNode } from '@shared/lib/game/mapSystem';
 
 export type MapIntent = 'market' | 'dungeon' | 'sect';
 
@@ -23,6 +24,7 @@ export function buildNodeActions(
   if (intent === 'dungeon') {
     if (ctx.isMainNode) return [];
     return [
+      ...(getMapNode(ctx.selectedNodeId)?.wild_encounter_id ? [{key:'wild-explore',label:'探索灵兽',variant:'primary' as const,onClick:()=>navigate(`/game/wild?nodeId=${ctx.selectedNodeId}`)}] : []),
       {
         key: 'enter-dungeon',
         label: '前往历练',
@@ -33,6 +35,7 @@ export function buildNodeActions(
   }
 
   const actions: MapNodeDetailAction[] = [];
+  if (getMapNode(ctx.selectedNodeId)?.wild_encounter_id) actions.push({key:'wild-explore',label:'探索灵兽',variant:'primary',onClick:()=>navigate(`/game/wild?nodeId=${ctx.selectedNodeId}`)});
   if (!ctx.isMainNode) {
     actions.push({
       key: 'enter-dungeon',

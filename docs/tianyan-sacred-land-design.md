@@ -1,6 +1,8 @@
-# 天衍圣地完整设计稿
+# 天衍圣地完整设计稿（battle-v5 历史方案）
 
-> 文档状态：开发基线
+> 文档状态：battle-v5 历史设计；combat-v6 实现不得以本文技能、四槽或36节点为依据
+>
+> combat-v6 当前基线：[`combat-v6-tianyan-sect-design.md`](./combat-v6-tianyan-sect-design.md)
 >
 > 内容版本：V1
 >

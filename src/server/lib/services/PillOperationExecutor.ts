@@ -250,6 +250,7 @@ function setTrackState(
         ...condition.tracks,
         bodyCultivation: {
           ...bodyCultivation,
+          breakthrough: undefined,
           tracks: {
             ...bodyCultivation.tracks,
             [key]: {

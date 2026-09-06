@@ -1,4 +1,0 @@
-interface:
-  display_name: "Daoyou Test Quality"
-  short_description: "Daoyou 纯引擎测试与非测试质量验证路径"
-  default_prompt: "Use $daoyou-test-quality to test eligible pure shared engine logic or choose non-test verification for frontend, backend, database, and provider changes."

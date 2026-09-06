@@ -4,14 +4,16 @@ import {
   type SectCommandArgs,
 } from './commandSupport';
 import { executeSectTransfer } from './SectTransferApplicationService';
+import { settleWildBeforeMembershipChange } from '../combat-v6/CombatV6MembershipBoundary';
 
-export function executeSectTransferCommand(
+export async function executeSectTransferCommand(
   args: SectCommandArgs & {
     targetSectId: string;
     reversePaths: boolean;
     consumableId?: string;
   },
 ) {
+  await settleWildBeforeMembershipChange(args.cultivatorId);
   return executeSectPlayerCommand(args, async (tx) => {
     const result = await executeSectTransfer({ ...args, tx });
     return {
