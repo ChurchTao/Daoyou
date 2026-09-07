@@ -18,7 +18,7 @@ import { projectCultivatorMultiSectV5ToCombatV6 } from '../projection/index.ts';
 import { daoyouRulesetV6 } from '../rules-daoyou/index.ts';
 import {
   COMBAT_V6_PHASE_6D_VERSIONS,
-  COMBAT_V6_PHASE_9B_WILD_VERSIONS,
+  COMBAT_V6_PHASE_9C_WILD_VERSIONS,
 } from '../version.ts';
 import {
   WILD_REGION,
@@ -28,7 +28,7 @@ import {
   wildPanel,
 } from './content.ts';
 
-export const WILD_VERSIONS = COMBAT_V6_PHASE_9B_WILD_VERSIONS;
+export const WILD_VERSIONS = COMBAT_V6_PHASE_9C_WILD_VERSIONS;
 export type WildCombatant = {
   unitId: string;
   speciesId: string;

@@ -274,6 +274,20 @@
       "when": 1788691868265,
       "tag": "0038_v6_summoned_beasts",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1788755523519,
+      "tag": "0039_inventory_v6",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1788760243550,
+      "tag": "0040_inventory_slot_capacity",
+      "breakpoints": true
     }
   ]
 }

@@ -1,9 +1,23 @@
+import { BEAST_SKILLS } from '@shared/engine/combat-v6/beasts';
 import { EffectType, TargetSide } from '@shared/engine/combat-v6/core/enums';
 import { DAO_EQUIPMENT_ARTS_V1 } from '@shared/engine/combat-v6/equipment/special-content';
 import { describe, expect, it } from 'vitest';
 import { combatV6SkillDetails } from './skill-details';
 
 describe('combat skill previews', () => {
+  it('shows combo chances from the authoritative hooks', () => {
+    const details = combatV6SkillDetails(BEAST_SKILLS, []);
+    expect(details['beast.combo'].description).toContain('25%');
+    expect(details['beast.advanced-combo'].description).toContain('40%');
+    const combo = BEAST_SKILLS.find((skill) => skill.id === 'beast.combo')!;
+    const adjusted = {
+      ...combo,
+      hooks: combo.hooks!.map((hook) => ({ ...hook, chance: 0.3 })),
+    };
+    expect(
+      combatV6SkillDetails([adjusted], [])[combo.id].description,
+    ).toContain('30%');
+  });
   it('classifies all registered equipment arts without relying on skill names', () => {
     const skills = DAO_EQUIPMENT_ARTS_V1.map((art) => art.skill);
     const details = combatV6SkillDetails(skills, []);

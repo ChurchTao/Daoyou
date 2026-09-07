@@ -13,8 +13,8 @@ import type { TaskInstance } from '@shared/types/task';
 import { cn } from '@shared/lib/utils';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
 import { BreakthroughChanceDetails } from './BreakthroughChanceDetails';
+import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
 import type {
   RetreatBuffTag,
   RetreatEfficiencyModel,
@@ -168,7 +168,7 @@ function RetreatBuffTags({
           <span>{emptyHint}</span>
           {showShortcuts ? (
             <>
-              <InkButton href="/game/inventory" variant="ghost">
+              <InkButton href="/game/cave/storage" variant="ghost">
                 背包
               </InkButton>
               <InkButton href="/game/craft/alchemy" variant="ghost">
@@ -375,9 +375,7 @@ function BreakthroughPanel({
         {(retreatEfficiency?.breakthroughTags.length ?? 0) > 0 ? (
           <div className="space-y-2">
             <p className="text-ink-secondary text-xs leading-5">破境准备</p>
-            <RetreatBuffTags
-              tags={retreatEfficiency?.breakthroughTags ?? []}
-            />
+            <RetreatBuffTags tags={retreatEfficiency?.breakthroughTags ?? []} />
           </div>
         ) : null}
       </div>

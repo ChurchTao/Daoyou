@@ -1,0 +1,2 @@
+ALTER TABLE "wanjiedaoyou_inventory_items" DROP CONSTRAINT "inventory_slot_valid";--> statement-breakpoint
+ALTER TABLE "wanjiedaoyou_inventory_items" ADD CONSTRAINT "inventory_slot_valid" CHECK (("wanjiedaoyou_inventory_items"."location" = 'bag' AND "wanjiedaoyou_inventory_items"."slot_index" IS NOT NULL AND "wanjiedaoyou_inventory_items"."slot_index" >= 0) OR ("wanjiedaoyou_inventory_items"."location" = 'storage' AND "wanjiedaoyou_inventory_items"."slot_index" IS NULL));

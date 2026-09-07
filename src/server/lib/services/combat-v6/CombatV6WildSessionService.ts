@@ -29,6 +29,7 @@ import {
   beastVictoryExperience,
   generateCapturedBeast,
 } from '@shared/engine/combat-v6/beasts/progression';
+import { SeededRng } from '@shared/engine/combat-v6/core';
 import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
 import {
   WILD_CONTENT_VERSION,
@@ -37,6 +38,7 @@ import {
 } from '@shared/engine/combat-v6/wild/content';
 import { createWildHost, WildHost } from '@shared/engine/combat-v6/wild/host';
 import { wildDay } from '@shared/engine/combat-v6/wild/rules';
+import { rollBeastBooks } from '@shared/inventory';
 import { evaluateFateContext } from '@shared/lib/fates';
 import { eq } from 'drizzle-orm';
 import { createHash, randomInt, randomUUID } from 'node:crypto';
@@ -99,7 +101,21 @@ function summaryOf(
   entry: WildSettlement['entry'],
 ): WildSettlement {
   const p = r.host.state.units.find((u) => u.id === r.host.playerId)!;
+  const rewardSeed = createHash('sha256')
+    .update(`beast-books-v1:${r.battleId}:${r.host.input.seed}`)
+    .digest()
+    .readUInt32LE();
+  const rewardRng = new SeededRng(rewardSeed);
   return {
+    itemRewards:
+      r.host.state.result?.winner === p.side
+        ? rollBeastBooks(
+            r.host.state.units.filter(
+              (u) => u.side !== p.side && u.kind === 'npc' && u.flags.dead,
+            ).length,
+            () => rewardRng.next(),
+          )
+        : [],
     capturedBeasts: r.host.events.flatMap((event) => {
       if (event.type !== 'unitCaptured' || event.unitId !== r.host.playerId)
         return [];
@@ -430,13 +446,14 @@ export class CombatV6WildSessionService {
     action(host, presentation.capture);
     const s = await store.summary(id);
     if (!s) throw new WildError('WILD_SETTLEMENT_MISSING', '结算事实缺失');
-    const next = {
+    const next: WildRuntime = {
       ...r,
       revision: r.revision + 1,
       host: host.runtimeSnapshot(),
     };
     next.latestEventSeq = next.host.events.length - 1;
     const nextSummary = summaryOf(next, s.entry);
+    if (host.finished) next.itemRewards = nextSummary.itemRewards ?? [];
     const trace = host.trace();
     const event = host.finished
       ? wildTerminal(
@@ -510,6 +527,7 @@ export class CombatV6WildSessionService {
       round: state.round,
       phase: state.phase,
       outcome: host.trace().outcome,
+      itemRewards: host.finished ? (r.itemRewards ?? []) : [],
       settlement: host.finished
         ? (await store.lock(r.cultivatorId))
           ? 'pending'

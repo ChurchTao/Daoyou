@@ -152,3 +152,9 @@ export const COMBAT_V6_PHASE_9B_WILD_VERSIONS: CombatV6VersionStamp =
     contentVersion: 'daoyou_wild_capture_content_v1',
     projectionVersion: 'wild_beast_v2',
   });
+
+export const COMBAT_V6_PHASE_9C_WILD_VERSIONS: CombatV6VersionStamp =
+  Object.freeze({
+    ...COMBAT_V6_PHASE_9B_WILD_VERSIONS,
+    contentVersion: 'daoyou_wild_inventory_content_v1',
+  });

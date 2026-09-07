@@ -1,4 +1,4 @@
-import { EffectType } from '@shared/engine/combat-v6/core/enums';
+import { EffectType, HookName } from '@shared/engine/combat-v6/core/enums';
 import type {
   SkillDef,
   SkillEffect,
@@ -7,6 +7,12 @@ import type {
 import { DAO_EQUIPMENT_ART_SKILL_ID } from '@shared/engine/combat-v6/equipment/special-content';
 
 const artIds = new Set<string>(Object.values(DAO_EQUIPMENT_ART_SKILL_ID));
+function beastComboDescription(skill: SkillDef): string | undefined {
+  if (skill.id !== 'beast.combo' && skill.id !== 'beast.advanced-combo') return;
+  const hook = skill.hooks?.find((entry) => entry.on === HookName.AfterHit);
+  if (typeof hook?.chance !== 'number') return;
+  return `自身物理攻击命中后，有 ${Math.round(hook.chance * 100)}% 概率向该目标追加一次物理攻击。`;
+}
 const effectLabels: Record<SkillEffect['type'], string> = {
   physicalHit: '造成物理伤害',
   spellHit: '造成法术伤害',
@@ -65,14 +71,16 @@ export function combatV6SkillDetails(
         category: artIds.has(skill.id) ? ('art' as const) : ('spell' as const),
         description: skill.capture
           ? '尝试收服野生灵兽，气血越低越容易成功；执行时消耗法力，失败仍消耗。'
-          : [
+          : (beastComboDescription(skill) ??
+            ([
               ...new Set([
                 ...skill.effects.map(describe),
                 ...(skill.successEffects ?? []).map(
                   (effect) => `施放成功后：${describe(effect)}`,
                 ),
               ]),
-            ].join('；') || '被动能力，依技能条件触发。',
+            ].join('；') ||
+              '被动能力，依技能条件触发。')),
       },
     ]),
   );

@@ -46,6 +46,16 @@ export const gameDockGroups: GameNavGroup[] = [
         coreDockLabel: '洞府',
       },
       {
+        id: 'storage',
+        sceneLabel: '洞府储藏室',
+        href: '/game/cave/storage/new?location=storage',
+      },
+      {
+        id: 'legacy-storage',
+        sceneLabel: '洞府旧藏',
+        href: '/game/cave/storage',
+      },
+      {
         id: 'cultivator',
         sceneLabel: '道身',
         href: '/game/cultivator',

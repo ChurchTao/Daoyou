@@ -10,6 +10,11 @@ import {
   findOwnedCombatV6Replay,
   listOwnedCombatV6Replays,
 } from '@server/lib/repositories/combatV6ReplayRepository';
+import {
+  InventoryError,
+  mutateInventory,
+  readInventory,
+} from '@server/lib/services/InventoryService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { readResourceWithMeta } from '@server/lib/services/ResourceReadService';
 import { CombatV6ArenaStore } from '@server/lib/services/combat-v6/CombatV6ArenaStore';
@@ -56,7 +61,12 @@ import {
 } from '@shared/contracts/combatV6Beasts';
 import { CombatV6HistoryQuerySchema } from '@shared/contracts/combatV6Replay';
 import { WildExploreRequestSchema } from '@shared/contracts/combatV6Wild';
+import {
+  InventoryActionSchema,
+  InventoryQuerySchema,
+} from '@shared/contracts/inventory';
 import { TrainingHostError } from '@shared/engine/combat-v6/encounter';
+import { InventoryRuleError } from '@shared/inventory';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 
@@ -78,6 +88,8 @@ function actor(c: Context<AppEnv>) {
 }
 
 function errorResponse(c: Context<AppEnv>, error: unknown) {
+  if (error instanceof InventoryError || error instanceof InventoryRuleError)
+    return c.json({ success: false, error: error.message }, 409);
   if (error instanceof BeastError)
     return c.json({ success: false, error: error.message }, error.status);
   const coordinationError = redisLockErrorResponse(error);
@@ -124,6 +136,33 @@ function errorResponse(c: Context<AppEnv>, error: unknown) {
   );
 }
 
+router.get('/inventory', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  try {
+    return c.json({
+      success: true,
+      data: await readInventory(
+        actor(c).cultivatorId,
+        InventoryQuerySchema.parse(c.req.query()),
+      ),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.post('/inventory', async (c) => {
+  try {
+    return c.json({
+      success: true,
+      data: await mutateInventory(
+        actor(c).cultivatorId,
+        InventoryActionSchema.parse(await c.req.json()),
+      ),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
 router.get('/beasts', async (c) => {
   c.header('Cache-Control', 'no-store');
   try {

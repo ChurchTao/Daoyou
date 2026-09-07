@@ -9,6 +9,7 @@ import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { combatV6SkillDetails } from '@shared/combat-v6/skill-details';
 import type { BeastManagementView } from '@shared/contracts/combatV6Beasts';
 import {
+  activeBeastSkills,
   BEAST_SKILLS,
   BEAST_SPECIES,
   beastPanel,
@@ -18,6 +19,7 @@ import {
 } from '@shared/engine/combat-v6/beasts';
 import { nextBeastExp } from '@shared/engine/combat-v6/beasts/progression';
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { BeastActionDrawer, type BeastAction } from './BeastActionDrawer';
 
 const base = '/api/combat-v6/beasts';
@@ -95,6 +97,9 @@ function BeastDetails({
           {beast.skills.map((id) => (
             <span key={id} className="inline-flex items-center gap-1">
               {BEAST_SKILLS.find((skill) => skill.id === id)?.name}
+              {!activeBeastSkills(beast).includes(id) ? (
+                <span className="text-ink-secondary">（被高级技能抑制）</span>
+              ) : null}
               <InkTooltip label="查看兽诀说明">
                 {skillDetails[id]?.description}
               </InkTooltip>
@@ -102,6 +107,12 @@ function BeastDetails({
           ))}
         </div>
         <dl className="grid grid-cols-2 gap-2">
+          <Link
+            className="col-span-2 underline"
+            to={`/game/inventory?beastId=${beast.id}`}
+          >
+            学习兽诀
+          </Link>
           {Object.entries(attributeNames).map(([key, name]) => (
             <div key={key}>
               <dt className="text-ink-secondary">{name}</dt>

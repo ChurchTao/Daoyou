@@ -9,7 +9,6 @@ import type {
   BeastLineup,
   SummonedBeast,
 } from '@shared/engine/combat-v6/beasts';
-import type { DaoEquipmentInstanceV1 } from '@shared/engine/combat-v6/equipment';
 import type { SpiritFieldPlotState } from '@shared/engine/spirit-field/types';
 import type {
   ItemLibraryEditorConfig,
@@ -29,6 +28,7 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
+  check,
   doublePrecision,
   index,
   integer,
@@ -648,20 +648,40 @@ export const combatV6ManualSlots = pgTable(
   ],
 );
 
-export const combatV6EquipmentInstances = pgTable(
-  'wanjiedaoyou_combat_v6_equipment_instances',
+export const inventoryItems = pgTable(
+  'wanjiedaoyou_inventory_items',
   {
     id: varchar('id', { length: 160 }).primaryKey(),
     cultivatorId: uuid('cultivator_id')
       .references(() => cultivators.id, { onDelete: 'cascade' })
       .notNull(),
-    schemaVersion: integer('schema_version').notNull().default(1),
-    generatorVersion: varchar('generator_version', { length: 64 }).notNull(),
-    instance: jsonb('instance').$type<DaoEquipmentInstanceV1>().notNull(),
+    location: varchar('location', { length: 16 })
+      .$type<'bag' | 'storage'>()
+      .notNull(),
+    slotIndex: integer('slot_index'),
+    definitionId: varchar('definition_id', { length: 160 }).notNull(),
+    quantity: integer('quantity').notNull(),
+    instanceData: jsonb('instance_data'),
+    revision: integer('revision').notNull().default(0),
     createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   (table) => [
-    index('combat_v6_equipment_cultivator_idx').on(table.cultivatorId),
+    index('inventory_owner_location_idx').on(
+      table.cultivatorId,
+      table.location,
+    ),
+    uniqueIndex('inventory_bag_slot_unique')
+      .on(table.cultivatorId, table.slotIndex)
+      .where(sql`${table.location} = 'bag'`),
+    check(
+      'inventory_quantity_positive',
+      sql`${table.quantity} > 0 AND ${table.revision} >= 0`,
+    ),
+    check(
+      'inventory_slot_valid',
+      sql`(${table.location} = 'bag' AND ${table.slotIndex} IS NOT NULL AND ${table.slotIndex} >= 0) OR (${table.location} = 'storage' AND ${table.slotIndex} IS NULL)`,
+    ),
   ],
 );
 
@@ -674,7 +694,7 @@ export const combatV6EquipmentLoadouts = pgTable(
       .notNull(),
     slot: varchar('slot', { length: 32 }).notNull(),
     equipmentInstanceId: varchar('equipment_instance_id', { length: 160 })
-      .references(() => combatV6EquipmentInstances.id, { onDelete: 'restrict' })
+      .references(() => inventoryItems.id, { onDelete: 'restrict' })
       .notNull(),
   },
   (table) => [

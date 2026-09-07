@@ -11,6 +11,7 @@ import {
   useCultivatorCondition,
 } from '@app/lib/resources/player';
 import type { WildSessionView } from '@shared/contracts/combatV6Wild';
+import { itemDefinition } from '@shared/inventory';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 
@@ -249,6 +250,20 @@ function WildRegion({ nodeId }: { nodeId: string }) {
           backLabel="返回地图"
         />
       )}
+      {session?.settlement === 'settled' &&
+      !combat.playing &&
+      session.itemRewards?.length ? (
+        <p role="status" className="mt-3 text-sm">
+          获得{' '}
+          {session.itemRewards
+            .map(
+              (item) =>
+                `${itemDefinition(item.definitionId).name} ×${item.quantity}`,
+            )
+            .join('、')}
+          。已收存，背包不足的部分自动存入洞府储藏室。
+        </p>
+      ) : null}
     </CombatV6Page>
   );
 }

@@ -2,6 +2,7 @@ import type { WildRuntimeSnapshot } from '@shared/engine/combat-v6/wild/host';
 import type { WildResources } from '@shared/engine/combat-v6/wild/rules';
 import { z } from 'zod';
 import { BeastSchema, type SummonedBeast } from '../engine/combat-v6/beasts';
+import { ItemGrantSchema, type ItemGrant } from '../inventory';
 import type { CombatV6TrainingSessionViewV1 } from './combatV6';
 import { CombatV6ReplayTimelineSchema } from './combatV6Replay';
 import type { CombatV6RedisRuntimeV1 } from './combatV6Runtime';
@@ -24,6 +25,8 @@ export type WildRuntime = Omit<CombatV6RedisRuntimeV1, 'metadata' | 'host'> & {
     { sourceType: 'wild-encounter' }
   >;
   host: WildRuntimeSnapshot;
+  /** Frozen terminal display; settlement facts may be removed after delivery. */
+  itemRewards?: ItemGrant[];
 };
 export const WildRuntimeSchema = z
   .object({
@@ -38,6 +41,7 @@ export const WildRuntimeSchema = z
     createdAt: z.iso.datetime(),
     expiresAt: z.iso.datetime(),
     latestEventSeq: z.number().int().min(-1),
+    itemRewards: z.array(ItemGrantSchema).max(3).optional(),
     host: z
       .object({
         schemaVersion: z.literal(1),
@@ -51,7 +55,7 @@ export const WildRuntimeSchema = z
               .object({
                 engineVersion: z.literal('combat-v6'),
                 rulesetVersion: z.literal('daoyou_rules_v8'),
-                contentVersion: z.literal('daoyou_wild_capture_content_v1'),
+                contentVersion: z.literal('daoyou_wild_inventory_content_v1'),
                 projectionVersion: z.literal('wild_beast_v2'),
               })
               .strict(),
@@ -106,6 +110,7 @@ export const WildRuntimeSchema = z
       v.latestEventSeq === v.host.events.length - 1,
   );
 export interface WildSettlement {
+  itemRewards?: ItemGrant[];
   capturedBeasts?: SummonedBeast[];
   beastExperience?: { beastId: string; amount: number };
   deadBeastIds?: string[];
@@ -125,6 +130,7 @@ export interface WildSettlement {
 }
 export const WildSettlementSchema = z
   .object({
+    itemRewards: z.array(ItemGrantSchema).max(3).optional(),
     capturedBeasts: z.array(BeastSchema).max(3).optional(),
     beastExperience: z
       .object({
@@ -160,4 +166,8 @@ export const WildSettlementSchema = z
 export type WildSessionView = Omit<
   CombatV6TrainingSessionViewV1,
   'encounterId' | 'tier'
-> & { nodeId: string; settlement: 'pending' | 'settled' | 'not-started' };
+> & {
+  nodeId: string;
+  settlement: 'pending' | 'settled' | 'not-started';
+  itemRewards?: ItemGrant[];
+};

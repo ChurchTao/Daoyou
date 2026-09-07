@@ -275,7 +275,9 @@ export const router = createBrowserRouter(
             />
             <Route
               path="inventory"
-              lazy={lazyRoute(() => import('@app/routes/game/inventory/route'))}
+              lazy={lazyRoute(
+                () => import('@app/routes/game/inventory/InventoryV6'),
+              )}
               handle={scene(
                 {
                   id: 'inventory',
@@ -283,6 +285,32 @@ export const router = createBrowserRouter(
                   summary: '点清身边诸物，再决定去留流转。',
                 },
                 '储物袋',
+              )}
+            />
+            <Route
+              path="cave/storage"
+              lazy={lazyRoute(() => import('@app/routes/game/inventory/route'))}
+              handle={scene(
+                {
+                  id: 'legacy-storage',
+                  presentation: 'service',
+                  summary: '洞府收藏的旧有诸物。',
+                },
+                '洞府旧藏',
+              )}
+            />
+            <Route
+              path="cave/storage/new"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/inventory/InventoryV6'),
+              )}
+              handle={scene(
+                {
+                  id: 'storage',
+                  presentation: 'service',
+                  summary: '收存随身之外的物品。',
+                },
+                '洞府储藏室',
               )}
             />
             <Route

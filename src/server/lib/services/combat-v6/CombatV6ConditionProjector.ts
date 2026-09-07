@@ -14,6 +14,7 @@ import { settleWildResources } from '@shared/engine/combat-v6/wild/rules';
 import type { CultivatorCondition } from '@shared/types/condition';
 import { and, eq } from 'drizzle-orm';
 import { ConditionService } from '../ConditionService';
+import { grantInventory } from '../InventoryService';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
 import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
 import { CombatV6WildStore } from './CombatV6WildStore';
@@ -78,6 +79,8 @@ export async function projectCombatV6Condition(
             tx,
           );
           await settleBeastProgress(s, tx);
+          if (record.reason === 'battle-ended')
+            await grantInventory(s.cultivatorId, s.itemRewards ?? [], tx);
         }
         const [row] = await tx
           .select({ condition: cultivators.condition })
