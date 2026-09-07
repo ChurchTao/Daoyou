@@ -6,6 +6,7 @@ import { findActiveCombatV6Membership } from '@server/lib/repositories/combatV6B
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
 import {
   combatV6Display,
+  combatV6DisplayEvent,
   combatV6Playback,
   combatV6Units,
   visibleUnitNames,
@@ -24,6 +25,10 @@ import type {
 } from '@shared/contracts/combatV6Wild';
 import { DOMAIN_EVENT_DEFINITIONS } from '@shared/contracts/domainEvents';
 import { beastDeathIds } from '@shared/engine/combat-v6/beasts';
+import {
+  beastVictoryExperience,
+  generateCapturedBeast,
+} from '@shared/engine/combat-v6/beasts/progression';
 import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
 import {
   WILD_CONTENT_VERSION,
@@ -34,7 +39,7 @@ import { createWildHost, WildHost } from '@shared/engine/combat-v6/wild/host';
 import { wildDay } from '@shared/engine/combat-v6/wild/rules';
 import { evaluateFateContext } from '@shared/lib/fates';
 import { eq } from 'drizzle-orm';
-import { randomInt, randomUUID } from 'node:crypto';
+import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { ConditionService } from '../ConditionService';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
 import { getCultivatorPreHeavenFates } from '../cultivator/CultivatorProfileRepository';
@@ -95,6 +100,27 @@ function summaryOf(
 ): WildSettlement {
   const p = r.host.state.units.find((u) => u.id === r.host.playerId)!;
   return {
+    capturedBeasts: r.host.events.flatMap((event) => {
+      if (event.type !== 'unitCaptured' || event.unitId !== r.host.playerId)
+        return [];
+      const target = r.host.combatants.find((c) => c.unitId === event.targetId);
+      if (!target) throw new Error('CAPTURE_TARGET_MISSING');
+      // Battle UUID plus encounter slot gives a stable UUID without another receipt table.
+      const hex = createHash('sha256')
+        .update(`${r.battleId}:${target.unitId}`)
+        .digest('hex');
+      const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+      return [
+        generateCapturedBeast(
+          id,
+          r.cultivatorId,
+          target.speciesId,
+          target.level,
+          event.generationSeed,
+        ),
+      ];
+    }),
+    beastExperience: beastVictoryExperience(r.host.state, r.host.playerId),
     deadBeastIds: beastDeathIds(r.host.events),
     schemaVersion: 1,
     battleId: r.battleId,
@@ -503,7 +529,7 @@ export class CombatV6WildSessionService {
         : host.controlledCommandOptions(),
       pendingCommand: player.command as CombatV6TrainingCommandV1 | undefined,
       events: r.host.events
-        .map((event, seq) => ({ event, seq }))
+        .map((event, seq) => ({ event: combatV6DisplayEvent(event), seq }))
         .filter((x) => x.seq > after),
       latestEventSeq: r.latestEventSeq,
     });

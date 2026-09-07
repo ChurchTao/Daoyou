@@ -3,6 +3,7 @@ import {
   BeastLineupSchema,
   type BeastRoster,
 } from '../engine/combat-v6/beasts';
+import { BeastAllocationSchema } from '../engine/combat-v6/beasts/progression';
 export const BeastClaimSchema = z
   .object({ speciesId: z.string().min(1).max(160) })
   .strict();
@@ -13,4 +14,11 @@ export const BeastRestSchema = z
     expectedRevision: z.number().int().nonnegative(),
   })
   .strict();
-export type BeastManagementView = BeastRoster & { starterClaimed: boolean };
+export const BeastAllocateSchema = BeastRestSchema.extend({
+  points: BeastAllocationSchema,
+});
+export type BeastManagementView = BeastRoster & {
+  starterClaimed: boolean;
+  ownerLevel: number;
+  spiritStones: number;
+};

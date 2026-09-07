@@ -4,12 +4,20 @@ import type {
   CombatV6TrainingUnitViewV1,
 } from '@shared/contracts/combatV6';
 import type {
+  BattleEvent,
   BattleState,
   SkillDef,
   StatusDef,
 } from '@shared/engine/combat-v6/core';
 import { effectiveAttrs } from '@shared/engine/combat-v6/core/units';
 import { combatV6SkillDetails } from './skill-details';
+
+/** Keep the generation RNG output in the authority/archive, never in live playback. */
+export function combatV6DisplayEvent(event: BattleEvent) {
+  if (event.type === 'unitCaptured')
+    return { type: event.type, unitId: event.unitId, targetId: event.targetId };
+  return event;
+}
 
 export function combatV6Display(skills: SkillDef[], statuses: StatusDef[]) {
   return {
@@ -33,7 +41,11 @@ export function visibleUnitNames(
   return Object.fromEntries(
     state.units
       .filter(
-        (u) => !u.flags.benched || u.ownerId === viewerId || summoned.has(u.id),
+        (u) =>
+          !u.flags.benched ||
+          !!u.flags.capturedBy ||
+          u.ownerId === viewerId ||
+          summoned.has(u.id),
       )
       .map((u) => [u.id, u.name]),
   );

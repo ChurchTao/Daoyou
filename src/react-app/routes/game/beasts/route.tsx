@@ -13,9 +13,12 @@ import {
   BEAST_SPECIES,
   beastPanel,
   beastRealm,
+  canDeployBeast,
   type SummonedBeast,
 } from '@shared/engine/combat-v6/beasts';
+import { nextBeastExp } from '@shared/engine/combat-v6/beasts/progression';
 import { useEffect, useRef, useState } from 'react';
+import { BeastActionDrawer, type BeastAction } from './BeastActionDrawer';
 
 const base = '/api/combat-v6/beasts';
 const skillDetails = combatV6SkillDetails(BEAST_SKILLS, []);
@@ -29,9 +32,17 @@ const attributeNames = {
 function BeastDetails({
   beast,
   close,
+  ownerLevel,
+  pending,
+  isLead,
+  act,
 }: {
   beast: SummonedBeast;
   close: () => void;
+  ownerLevel: number;
+  pending: boolean;
+  isLead: boolean;
+  act: (action: BeastAction) => void;
 }) {
   const panel = beastPanel(beast);
   return (
@@ -45,6 +56,41 @@ function BeastDetails({
           寿命 {beast.currentLifespan} / {beast.maxLifespan} · 技能格{' '}
           {beast.skillSlotCapacity}
         </p>
+        <p>
+          携带等级{' '}
+          {BEAST_SPECIES.find((s) => s.id === beast.speciesId)?.carryLevel} ·
+          战斗等级 {beast.level}
+        </p>
+        <p>
+          {beast.level >= Math.min(ownerLevel, 180)
+            ? '已达当前培养上限'
+            : `经验 ${beast.exp} / ${nextBeastExp(beast.level)}`}{' '}
+          · 待分配 {beast.unallocatedPoints} 点
+        </p>
+        {!canDeployBeast(beast, ownerLevel) ? (
+          <p className="text-crimson">等级或寿命不满足出战条件</p>
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          <InkButton
+            disabled={
+              pending ||
+              beast.unallocatedPoints === 0 ||
+              beast.level > ownerLevel
+            }
+            onClick={() => act('allocate')}
+          >
+            分配属性
+          </InkButton>
+          <InkButton
+            disabled={pending || isLead}
+            onClick={() => act('release')}
+          >
+            放生
+          </InkButton>
+        </div>
+        {isLead ? (
+          <p className="text-ink-secondary">放生前请先取消首发。</p>
+        ) : null}
         <div className="flex flex-wrap gap-3">
           {beast.skills.map((id) => (
             <span key={id} className="inline-flex items-center gap-1">
@@ -93,6 +139,10 @@ export default function BeastsPage() {
   const [pending, setPending] = useState(false);
   const [detailId, setDetailId] = useState<string>();
   const [claimId, setClaimId] = useState<string>();
+  const [action, setAction] = useState<{
+    beastId: string;
+    type: BeastAction;
+  }>();
   const busy = useRef(false);
   const controller = useRef<AbortController | null>(null);
   useEffect(() => {
@@ -122,6 +172,7 @@ export default function BeastsPage() {
       if (!read.signal.aborted) {
         setView(result);
         setClaimId(undefined);
+        setAction(undefined);
       }
     } catch (e) {
       if (!read.signal.aborted)
@@ -131,7 +182,7 @@ export default function BeastsPage() {
       if (!read.signal.aborted) setPending(false);
     }
   }
-  function lineup(beastId: string, action: 'carry' | 'lead') {
+  function lineup(beastId: string, action: 'carry' | 'lead' | 'unlead') {
     if (!view) return;
     const current = view.lineup;
     const carried = current.carriedBeastIds.includes(beastId);
@@ -140,19 +191,23 @@ export default function BeastsPage() {
         ? carried
           ? current.carriedBeastIds
           : [...current.carriedBeastIds, beastId]
-        : carried
-          ? current.carriedBeastIds.filter((id) => id !== beastId)
-          : [...current.carriedBeastIds, beastId];
+        : action === 'unlead'
+          ? current.carriedBeastIds
+          : carried
+            ? current.carriedBeastIds.filter((id) => id !== beastId)
+            : [...current.carriedBeastIds, beastId];
     void mutate(
       'lineup',
       {
         carriedBeastIds: ids,
         leadBeastId:
-          action === 'lead'
-            ? beastId
-            : ids.includes(current.leadBeastId ?? '')
-              ? current.leadBeastId
-              : undefined,
+          action === 'unlead'
+            ? undefined
+            : action === 'lead'
+              ? beastId
+              : ids.includes(current.leadBeastId ?? '')
+                ? current.leadBeastId
+                : undefined,
         revision: current.revision,
       },
       'PUT',
@@ -160,6 +215,9 @@ export default function BeastsPage() {
   }
   const detail = view?.beasts.find((beast) => beast.id === detailId);
   const claim = BEAST_SPECIES.find((species) => species.id === claimId);
+  const actionBeast = view?.beasts.find(
+    (beast) => beast.id === action?.beastId,
+  );
   return (
     <GameSceneFrame variant="workflow">
       {error ? (
@@ -224,35 +282,63 @@ export default function BeastsPage() {
                 <InkButton
                   disabled={
                     pending ||
-                    beast.currentLifespan < 50 ||
-                    view.lineup.leadBeastId === beast.id ||
+                    (view.lineup.leadBeastId !== beast.id &&
+                      !canDeployBeast(beast, view.ownerLevel)) ||
                     (!view.lineup.carriedBeastIds.includes(beast.id) &&
                       view.lineup.carriedBeastIds.length >= 6)
                   }
-                  onClick={() => lineup(beast.id, 'lead')}
+                  onClick={() =>
+                    lineup(
+                      beast.id,
+                      view.lineup.leadBeastId === beast.id ? 'unlead' : 'lead',
+                    )
+                  }
                 >
-                  设为首发
+                  {view.lineup.leadBeastId === beast.id
+                    ? '取消首发'
+                    : '设为首发'}
                 </InkButton>
                 <InkButton
                   disabled={
                     pending || beast.currentLifespan >= beast.maxLifespan
                   }
-                  onClick={() =>
-                    void mutate('rest', {
-                      beastId: beast.id,
-                      expectedRevision: beast.revision,
-                    })
-                  }
+                  onClick={() => setAction({ beastId: beast.id, type: 'rest' })}
                 >
-                  休养 · 免费恢复寿命
+                  休养
                 </InkButton>
               </div>
             </div>
           ))}
         </>
       )}
-      {detail ? (
-        <BeastDetails beast={detail} close={() => setDetailId(undefined)} />
+      {detail && !action ? (
+        <BeastDetails
+          beast={detail}
+          ownerLevel={view!.ownerLevel}
+          pending={pending}
+          isLead={view!.lineup.leadBeastId === detail.id}
+          act={(type) => setAction({ beastId: detail.id, type })}
+          close={() => setDetailId(undefined)}
+        />
+      ) : null}
+      {actionBeast && action ? (
+        <BeastActionDrawer
+          key={`${action.type}:${actionBeast.id}:${actionBeast.revision}`}
+          beast={actionBeast}
+          action={action.type}
+          error={error}
+          ownerLevel={view!.ownerLevel}
+          spiritStones={view!.spiritStones}
+          pending={pending}
+          close={() => setAction(undefined)}
+          confirm={(points) =>
+            void mutate(action.type, {
+              beastId: actionBeast.id,
+              expectedRevision: actionBeast.revision,
+              ...(points ? { points } : {}),
+            })
+          }
+        />
       ) : null}
       {claim ? (
         <InkDetailDrawer
@@ -270,7 +356,7 @@ export default function BeastsPage() {
           }
         >
           <p className="text-sm leading-7">
-            每位角色可免费选择一次。伙伴初始10级、1000寿命，资质与成长生成后固定，附带一格出生技能。结缘后自动携带并设为首发。
+            每位角色可免费选择一次。伙伴初始10级、1000寿命，资质与成长生成后固定，附带一格出生技能。有空位时自动携带，满足出战等级且没有首发时设为首发。
           </p>
         </InkDetailDrawer>
       ) : null}

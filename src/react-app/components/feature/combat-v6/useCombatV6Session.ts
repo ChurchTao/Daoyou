@@ -66,6 +66,7 @@ export function useCombatV6Session<T extends CombatV6Session>(
           )
             return;
           dispatch({ type: 'receive', session: next, full: full || !known });
+          if (full) setError('');
           setLoading(false);
           return next;
         })

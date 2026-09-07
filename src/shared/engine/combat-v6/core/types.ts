@@ -111,8 +111,10 @@ export type CombatV6VersionStamp = {
     | 'daoyou_rules_v4'
     | 'daoyou_rules_v5'
     | 'daoyou_rules_v6'
-    | 'daoyou_rules_v7';
+    | 'daoyou_rules_v7'
+    | 'daoyou_rules_v8';
   contentVersion:
+    | 'daoyou_wild_capture_content_v1'
     | 'daoyou_arena_beast_content_v1'
     | 'daoyou_training_beast_content_v1'
     | 'daoyou_wild_beast_content_v1'
@@ -129,6 +131,9 @@ export type CombatV6VersionStamp = {
     | 'daoyou_training_encounter_content_v1'
     | 'daoyou_wild_encounter_content_v1';
   projectionVersion:
+    | 'arena_beast_v2'
+    | 'training_beast_v2'
+    | 'wild_beast_v2'
     | 'arena_beast_v1'
     | 'training_beast_v1'
     | 'wild_beast_v1'
@@ -165,6 +170,7 @@ export type StatusInstance = {
 };
 
 export type UnitFlags = {
+  capturedBy?: UnitId;
   defending: boolean;
   protecting?: UnitId;
   auto: boolean;
@@ -485,6 +491,12 @@ export type SplashSpec = {
 
 /** 技能声明。主动效果在 effects，被动在 hooks；引擎不认技能 id。 */
 export type SkillDef = {
+  /** Host freezes eligible targets/capacity; normal skill targeting and payment still apply. */
+  capture?: {
+    targetMpCosts: Record<UnitId, number>;
+    capacity: number;
+    chance: Expr;
+  };
   id: SkillId;
   name: string;
   school?: string;
@@ -753,6 +765,12 @@ export type BattleEvent =
   | { type: typeof EventType.UnitEscaped; unitId: UnitId }
   | { type: typeof EventType.PetSummoned; unitId: UnitId; petId: UnitId }
   | { type: typeof EventType.PetRecalled; unitId: UnitId; petId: UnitId }
+  | {
+      type: typeof EventType.UnitCaptured;
+      unitId: UnitId;
+      targetId: UnitId;
+      generationSeed: number;
+    }
   | {
       type: typeof EventType.MpRestore;
       unitId: UnitId;

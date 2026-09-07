@@ -17,7 +17,7 @@ import {
 } from '@shared/engine/combat-v6/core';
 import { canCollectCommand } from '@shared/engine/combat-v6/core/units';
 import { daoyouRulesetV6 } from '@shared/engine/combat-v6/rules-daoyou';
-import { COMBAT_V6_PHASE_9A_ARENA_VERSIONS } from '@shared/engine/combat-v6/version';
+import { COMBAT_V6_PHASE_9B_ARENA_VERSIONS } from '@shared/engine/combat-v6/version';
 import { controlledUnits, validatePetCommand } from './controlled-commands';
 import { diffUnits } from './playback';
 import {
@@ -36,13 +36,13 @@ export function arenaBattle(
     units: runtime.units,
     skills: runtime.skills,
     statusDefs: runtime.statusDefs,
-    versions: COMBAT_V6_PHASE_9A_ARENA_VERSIONS,
+    versions: COMBAT_V6_PHASE_9B_ARENA_VERSIONS,
     ruleset: daoyouRulesetV6,
   };
   if (runtime.state) {
     if (
       JSON.stringify(runtime.state.versions) !==
-      JSON.stringify(COMBAT_V6_PHASE_9A_ARENA_VERSIONS)
+      JSON.stringify(COMBAT_V6_PHASE_9B_ARENA_VERSIONS)
     )
       throw new Error('ARENA_VERSION_MISMATCH');
     return restoreBattle(input, runtime.state, runtime.events ?? []);
@@ -169,6 +169,7 @@ export function arenaEvents(events: readonly BattleEvent[]) {
       const publicEvent = { ...event } as Record<string, unknown>;
       for (const key of [
         'hp',
+        'generationSeed',
         'hpAfter',
         'mpAfter',
         'maxHpAfter',

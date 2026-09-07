@@ -1,7 +1,10 @@
 import { db } from '@server/lib/drizzle/db';
 import { cultivators, messageConsumptions } from '@server/lib/drizzle/schema';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
-import { settleBeastDeaths } from '@server/lib/repositories/combatV6BeastRepository';
+import {
+  settleBeastDeaths,
+  settleBeastProgress,
+} from '@server/lib/repositories/combatV6BeastRepository';
 import {
   claimMessageForConsumer,
   COMBAT_V6_CONDITION_CONSUMER,
@@ -68,12 +71,14 @@ export async function projectCombatV6Condition(
           tx,
         );
         if (!claimed) return;
-        if (record.reason === 'battle-ended' || record.reason === 'fled')
+        if (record.reason === 'battle-ended' || record.reason === 'fled') {
           await settleBeastDeaths(
             s.cultivatorId,
             record.deadBeastIds ?? [],
             tx,
           );
+          await settleBeastProgress(s, tx);
+        }
         const [row] = await tx
           .select({ condition: cultivators.condition })
           .from(cultivators)

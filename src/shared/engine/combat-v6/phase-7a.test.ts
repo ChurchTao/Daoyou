@@ -36,7 +36,7 @@ import { daoyouRulesetV5 } from './rules-daoyou/index.ts';
 import {
   COMBAT_V6_PHASE_6D_VERSIONS,
   COMBAT_V6_PHASE_7A_VERSIONS,
-  COMBAT_V6_PHASE_9A_TRAINING_VERSIONS,
+  COMBAT_V6_PHASE_9B_TRAINING_VERSIONS,
 } from './version.ts';
 
 const ATTRIBUTES: Attributes = {
@@ -103,7 +103,7 @@ describe('combat-v6 Phase 7A 内容与编译', () => {
         );
         expect(result.ok, `${encounter.id}@${tier}`).toBe(true);
         if (!result.ok) continue;
-        expect(result.versions).toEqual(COMBAT_V6_PHASE_9A_TRAINING_VERSIONS);
+        expect(result.versions).toEqual(COMBAT_V6_PHASE_9B_TRAINING_VERSIONS);
         expect(result.compiled.sourceProjectionVersions).toEqual(
           COMBAT_V6_PHASE_6D_VERSIONS,
         );

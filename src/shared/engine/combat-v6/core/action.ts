@@ -29,6 +29,7 @@ import {
   StatusRemoveReason,
   UnitKind,
 } from './enums.ts';
+import { evalExpr } from './expr.ts';
 import { atLeast } from './math.ts';
 import { standingUnits } from './query.ts';
 import { checkSkillRequirements } from './requirements.ts';
@@ -525,6 +526,14 @@ function resolveSkill(
   );
 
   if (targets.length === 0) {
+    if (skill.capture) {
+      ctx.emit({
+        type: EventType.ActionFailed,
+        unitId: unit.id,
+        reason: FailReason.NoTarget,
+      });
+      return;
+    }
     fallbackToAttack(ctx, unit, targetIds, FailReason.NoTarget);
     return;
   }
@@ -563,6 +572,14 @@ function resolveSkill(
     return;
   }
   if (unit.attrs.mp < mpCost) {
+    if (skill.capture) {
+      ctx.emit({
+        type: EventType.ActionFailed,
+        unitId: unit.id,
+        reason: FailReason.InsufficientMp,
+      });
+      return;
+    }
     fallbackToAttack(ctx, unit, targetIds, FailReason.InsufficientMp);
     return;
   }
@@ -634,6 +651,40 @@ function resolveSkill(
     });
   }
 
+  if (skill.capture) {
+    const target = targets[0]!;
+    const chance = Math.max(
+      0,
+      Math.min(1, evalExpr(skill.capture.chance, env)),
+    );
+    const success = ctx.rng.chance(chance);
+    ctx.emit({
+      type: EventType.ChanceResolved,
+      branchId: skill.id,
+      sourceId: unit.id,
+      targetId: target.id,
+      chance,
+      success,
+    });
+    if (success) {
+      target.flags.benched = true;
+      target.flags.capturedBy = unit.id;
+      clearRoundFlags(target);
+      ctx.emit({
+        type: EventType.UnitCaptured,
+        unitId: unit.id,
+        targetId: target.id,
+        generationSeed: Math.floor(ctx.rng.next() * 0x7fffffff),
+      });
+      ctx.checkEnd();
+    } else {
+      ctx.emit({
+        type: EventType.ActionFailed,
+        unitId: unit.id,
+        reason: FailReason.CaptureFailed,
+      });
+    }
+  }
   applyDeclaredEffects(
     ctx,
     unit,

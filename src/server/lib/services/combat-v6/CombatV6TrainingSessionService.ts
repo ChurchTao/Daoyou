@@ -4,6 +4,7 @@ import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { findActiveCombatV6Membership } from '@server/lib/repositories/combatV6BuildRepository';
 import {
   combatV6Display,
+  combatV6DisplayEvent,
   combatV6Playback,
   combatV6Units,
   visibleUnitNames,
@@ -472,7 +473,7 @@ export class CombatV6TrainingSessionService {
         ? { pendingCommand: player.command as CombatV6TrainingCommandV1 }
         : {}),
       events: events
-        .map((event, seq) => ({ seq, event }))
+        .map((event, seq) => ({ seq, event: combatV6DisplayEvent(event) }))
         .filter((event) => event.seq > afterEventSeq),
       latestEventSeq: events.length - 1,
     });

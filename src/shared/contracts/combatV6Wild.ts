@@ -1,6 +1,7 @@
 import type { WildRuntimeSnapshot } from '@shared/engine/combat-v6/wild/host';
 import type { WildResources } from '@shared/engine/combat-v6/wild/rules';
 import { z } from 'zod';
+import { BeastSchema, type SummonedBeast } from '../engine/combat-v6/beasts';
 import type { CombatV6TrainingSessionViewV1 } from './combatV6';
 import { CombatV6ReplayTimelineSchema } from './combatV6Replay';
 import type { CombatV6RedisRuntimeV1 } from './combatV6Runtime';
@@ -49,9 +50,9 @@ export const WildRuntimeSchema = z
             versions: z
               .object({
                 engineVersion: z.literal('combat-v6'),
-                rulesetVersion: z.literal('daoyou_rules_v7'),
-                contentVersion: z.literal('daoyou_wild_beast_content_v1'),
-                projectionVersion: z.literal('wild_beast_v1'),
+                rulesetVersion: z.literal('daoyou_rules_v8'),
+                contentVersion: z.literal('daoyou_wild_capture_content_v1'),
+                projectionVersion: z.literal('wild_beast_v2'),
               })
               .strict(),
             units: z.array(z.record(z.string(), z.unknown())).min(2).max(10),
@@ -105,6 +106,8 @@ export const WildRuntimeSchema = z
       v.latestEventSeq === v.host.events.length - 1,
   );
 export interface WildSettlement {
+  capturedBeasts?: SummonedBeast[];
+  beastExperience?: { beastId: string; amount: number };
   deadBeastIds?: string[];
   schemaVersion: 1;
   battleId: string;
@@ -122,6 +125,14 @@ export interface WildSettlement {
 }
 export const WildSettlementSchema = z
   .object({
+    capturedBeasts: z.array(BeastSchema).max(3).optional(),
+    beastExperience: z
+      .object({
+        beastId: z.uuid(),
+        amount: z.number().int().nonnegative().max(450),
+      })
+      .strict()
+      .optional(),
     deadBeastIds: z.array(z.uuid()).max(6).optional(),
     schemaVersion: z.literal(1),
     battleId: z.uuid(),

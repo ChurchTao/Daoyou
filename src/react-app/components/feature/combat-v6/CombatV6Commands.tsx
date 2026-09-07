@@ -1,7 +1,9 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { InkTooltip } from '@app/components/ui/InkTooltip';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
 import type { ArenaSessionView } from '@shared/contracts/combatV6Arena';
+import { CAPTURE_SKILL_ID } from '@shared/engine/combat-v6/beasts/progression';
 import { useState } from 'react';
 import { CombatV6SkillChoice } from './CombatV6SkillChoice';
 import { reasonText } from './presentation';
@@ -49,11 +51,15 @@ export function CombatV6Commands({
   onPrevious?: () => void;
 }) {
   const options = session.commandOptions;
+  const capture = options?.skills.find(
+    (skill) => skill.skillId === CAPTURE_SKILL_ID,
+  );
   const [category, setCategory] = useState<'spell' | 'art'>();
   const [petsOpen, setPetsOpen] = useState(false);
   const skills =
     options?.skills.filter(
       (skill) =>
+        skill.skillId !== CAPTURE_SKILL_ID &&
         (session.display?.skillDetails?.[skill.skillId]?.category ??
           'spell') === category,
     ) ?? [];
@@ -126,6 +132,7 @@ export function CombatV6Commands({
                     aria-haspopup="dialog"
                     aria-pressed={
                       choice?.type === 'skill' &&
+                      choice.skillId !== CAPTURE_SKILL_ID &&
                       (session.display?.skillDetails?.[choice.skillId!]
                         ?.category ?? 'spell') === group
                     }
@@ -137,6 +144,31 @@ export function CombatV6Commands({
                     {group === 'spell' ? '神通' : '器诀'}
                   </button>
                 ))}
+                {capture ? (
+                  <span className="inline-flex items-center gap-1">
+                    <button
+                      disabled={disabled || !capture.ready}
+                      aria-pressed={choice?.skillId === CAPTURE_SKILL_ID}
+                      onClick={() =>
+                        setAction({
+                          type: 'skill',
+                          name: `捕捉 · ${capture.costs.mp} MP`,
+                          skillId: capture.skillId,
+                          ids: capture.selectableTargetIds,
+                          count: 1,
+                        })
+                      }
+                    >
+                      捕捉
+                    </button>
+                    <InkTooltip label="查看捕捉说明">
+                      执行时消耗法力，失败也会消耗。目标失效会自动转向可捕捉灵兽；持有已满或未达到携带等级时不能捕捉。
+                      {capture.costs.mp
+                        ? ` 当前目标消耗 ${capture.costs.mp} MP。`
+                        : ''}
+                    </InkTooltip>
+                  </span>
+                ) : null}
                 {options?.canDefend && (
                   <button
                     disabled={disabled}

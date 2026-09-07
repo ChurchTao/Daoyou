@@ -1,171 +1,210 @@
-import { getRealmStageRank } from "@shared/config/realmProgression"
-import type { Attributes } from "@shared/types/cultivator"
-import { REALM_STAGE_VALUES, REALM_VALUES } from "@shared/types/constants"
-import { UnitKind, type LineupUnit } from "../core/index.ts"
-import { COMBAT_V6_PHASE_1_VERSIONS } from "../version.ts"
-import { compileCharacterPanelV1 } from "./character-panel-v1.ts"
+import { REALM_STAGE_VALUES, REALM_VALUES } from '@shared/types/constants';
+import type { Attributes } from '@shared/types/cultivator';
+import { UnitKind, type LineupUnit } from '../core/index.ts';
+import { COMBAT_V6_PHASE_1_VERSIONS } from '../version.ts';
+import { combatCharacterLevel } from './character-level';
+import { compileCharacterPanelV1 } from './character-panel-v1.ts';
 import type {
   CombatV6ProjectionDiagnostic,
   CombatV6ProjectionResult,
   ProjectCultivatorBaseInput,
-} from "./types.ts"
+} from './types.ts';
 
 const ATTRIBUTE_KEYS = [
-  "vitality",
-  "strength",
-  "spirit",
-  "endurance",
-  "speed",
-  "willpower",
-] as const satisfies readonly (keyof Attributes)[]
+  'vitality',
+  'strength',
+  'spirit',
+  'endurance',
+  'speed',
+  'willpower',
+] as const satisfies readonly (keyof Attributes)[];
 
 function diagnostic(
-  severity: CombatV6ProjectionDiagnostic["severity"],
-  code: CombatV6ProjectionDiagnostic["code"],
+  severity: CombatV6ProjectionDiagnostic['severity'],
+  code: CombatV6ProjectionDiagnostic['code'],
   message: string,
   path?: string,
 ): CombatV6ProjectionDiagnostic {
-  return { severity, code, message, ...(path ? { path } : {}) }
+  return { severity, code, message, ...(path ? { path } : {}) };
 }
 
 function clamp(min: number, max: number, value: number): number {
-  return Math.min(max, Math.max(min, value))
+  return Math.min(max, Math.max(min, value));
 }
 
 function hasErrors(diagnostics: CombatV6ProjectionDiagnostic[]): boolean {
-  return diagnostics.some((item) => item.severity === "error")
+  return diagnostics.some((item) => item.severity === 'error');
 }
 
 export function projectCultivatorBaseToCombatV6(
   input: ProjectCultivatorBaseInput,
 ): CombatV6ProjectionResult {
-  const diagnostics: CombatV6ProjectionDiagnostic[] = []
-  const { cultivator } = input
+  const diagnostics: CombatV6ProjectionDiagnostic[] = [];
+  const { cultivator } = input;
 
-  if (typeof cultivator.id !== "string" || cultivator.id.trim().length === 0) {
-    diagnostics.push(diagnostic("error", "INVALID_IDENTITY", "角色 id 不能为空", "cultivator.id"))
+  if (typeof cultivator.id !== 'string' || cultivator.id.trim().length === 0) {
+    diagnostics.push(
+      diagnostic(
+        'error',
+        'INVALID_IDENTITY',
+        '角色 id 不能为空',
+        'cultivator.id',
+      ),
+    );
   }
-  if (typeof cultivator.name !== "string" || cultivator.name.trim().length === 0) {
-    diagnostics.push(diagnostic("error", "INVALID_IDENTITY", "角色名称不能为空", "cultivator.name"))
+  if (
+    typeof cultivator.name !== 'string' ||
+    cultivator.name.trim().length === 0
+  ) {
+    diagnostics.push(
+      diagnostic(
+        'error',
+        'INVALID_IDENTITY',
+        '角色名称不能为空',
+        'cultivator.name',
+      ),
+    );
   }
   if (!REALM_VALUES.includes(cultivator.realm)) {
-    diagnostics.push(diagnostic("error", "INVALID_IDENTITY", "角色境界无法映射", "cultivator.realm"))
+    diagnostics.push(
+      diagnostic(
+        'error',
+        'INVALID_IDENTITY',
+        '角色境界无法映射',
+        'cultivator.realm',
+      ),
+    );
   }
   if (!REALM_STAGE_VALUES.includes(cultivator.realm_stage)) {
     diagnostics.push(
-      diagnostic("error", "INVALID_IDENTITY", "角色境界阶段无法映射", "cultivator.realm_stage"),
-    )
+      diagnostic(
+        'error',
+        'INVALID_IDENTITY',
+        '角色境界阶段无法映射',
+        'cultivator.realm_stage',
+      ),
+    );
   }
   if (!Number.isInteger(input.slot) || input.slot < 0) {
-    diagnostics.push(diagnostic("error", "INVALID_IDENTITY", "阵容位置必须是非负整数", "slot"))
+    diagnostics.push(
+      diagnostic('error', 'INVALID_IDENTITY', '阵容位置必须是非负整数', 'slot'),
+    );
   }
 
   for (const key of ATTRIBUTE_KEYS) {
-    const value = cultivator.attributes?.[key]
+    const value = cultivator.attributes?.[key];
     if (!Number.isFinite(value) || value < 0) {
       diagnostics.push(
         diagnostic(
-          "error",
-          "INVALID_BASE_ATTRIBUTE",
+          'error',
+          'INVALID_BASE_ATTRIBUTE',
           `${key} 必须是有限非负数`,
           `cultivator.attributes.${key}`,
         ),
-      )
+      );
     }
   }
 
   if ((cultivator.condition?.statuses.length ?? 0) > 0) {
     diagnostics.push(
       diagnostic(
-        "warning",
-        "PERSISTENT_STATUSES_NOT_PROJECTED",
-        "Phase 1 不会把角色长期状态编译为 combat-v6 状态",
-        "cultivator.condition.statuses",
+        'warning',
+        'PERSISTENT_STATUSES_NOT_PROJECTED',
+        'Phase 1 不会把角色长期状态编译为 combat-v6 状态',
+        'cultivator.condition.statuses',
       ),
-    )
+    );
   }
 
   if (hasErrors(diagnostics)) {
-    return { ok: false, diagnostics, versions: { ...COMBAT_V6_PHASE_1_VERSIONS } }
+    return {
+      ok: false,
+      diagnostics,
+      versions: { ...COMBAT_V6_PHASE_1_VERSIONS },
+    };
   }
 
-  const panel = compileCharacterPanelV1(cultivator.attributes)
-  let hp = panel.maxHp
-  let mp = panel.maxMp
+  const panel = compileCharacterPanelV1(cultivator.attributes);
+  let hp = panel.maxHp;
+  let mp = panel.maxMp;
 
-  if (input.resourcePolicy === "persistent") {
-    const resources = cultivator.condition?.resources
+  if (input.resourcePolicy === 'persistent') {
+    const resources = cultivator.condition?.resources;
     if (!resources) {
       diagnostics.push(
         diagnostic(
-          "error",
-          "MISSING_PERSISTENT_RESOURCES",
-          "persistent 资源策略要求角色存在当前气血和法力",
-          "cultivator.condition.resources",
+          'error',
+          'MISSING_PERSISTENT_RESOURCES',
+          'persistent 资源策略要求角色存在当前气血和法力',
+          'cultivator.condition.resources',
         ),
-      )
+      );
     } else {
-      const currentHp = resources.hp?.current
-      const currentMp = resources.mp?.current
+      const currentHp = resources.hp?.current;
+      const currentMp = resources.mp?.current;
       if (!Number.isFinite(currentHp)) {
         diagnostics.push(
           diagnostic(
-            "error",
-            "INVALID_PERSISTENT_RESOURCE",
-            "当前气血必须是有限数",
-            "cultivator.condition.resources.hp.current",
+            'error',
+            'INVALID_PERSISTENT_RESOURCE',
+            '当前气血必须是有限数',
+            'cultivator.condition.resources.hp.current',
           ),
-        )
+        );
       }
       if (!Number.isFinite(currentMp)) {
         diagnostics.push(
           diagnostic(
-            "error",
-            "INVALID_PERSISTENT_RESOURCE",
-            "当前法力必须是有限数",
-            "cultivator.condition.resources.mp.current",
+            'error',
+            'INVALID_PERSISTENT_RESOURCE',
+            '当前法力必须是有限数',
+            'cultivator.condition.resources.mp.current',
           ),
-        )
+        );
       }
       if (Number.isFinite(currentHp) && Number.isFinite(currentMp)) {
-        hp = clamp(0, panel.maxHp, currentHp)
-        mp = clamp(0, panel.maxMp, currentMp)
+        hp = clamp(0, panel.maxHp, currentHp);
+        mp = clamp(0, panel.maxMp, currentMp);
         if (hp !== currentHp) {
           diagnostics.push(
             diagnostic(
-              "warning",
-              "RESOURCE_CLAMPED",
+              'warning',
+              'RESOURCE_CLAMPED',
               `当前气血已夹取到 0～${panel.maxHp}`,
-              "cultivator.condition.resources.hp.current",
+              'cultivator.condition.resources.hp.current',
             ),
-          )
+          );
         }
         if (mp !== currentMp) {
           diagnostics.push(
             diagnostic(
-              "warning",
-              "RESOURCE_CLAMPED",
+              'warning',
+              'RESOURCE_CLAMPED',
               `当前法力已夹取到 0～${panel.maxMp}`,
-              "cultivator.condition.resources.mp.current",
+              'cultivator.condition.resources.mp.current',
             ),
-          )
+          );
         }
         if (hp <= 0) {
           diagnostics.push(
             diagnostic(
-              "error",
-              "PERSISTENT_HP_DEPLETED",
-              "当前气血为 0 的角色不能进入战斗",
-              "cultivator.condition.resources.hp.current",
+              'error',
+              'PERSISTENT_HP_DEPLETED',
+              '当前气血为 0 的角色不能进入战斗',
+              'cultivator.condition.resources.hp.current',
             ),
-          )
+          );
         }
       }
     }
   }
 
   if (hasErrors(diagnostics)) {
-    return { ok: false, diagnostics, versions: { ...COMBAT_V6_PHASE_1_VERSIONS } }
+    return {
+      ok: false,
+      diagnostics,
+      versions: { ...COMBAT_V6_PHASE_1_VERSIONS },
+    };
   }
 
   const unit: LineupUnit = {
@@ -174,7 +213,7 @@ export function projectCultivatorBaseToCombatV6(
     side: input.side,
     kind: UnitKind.Player,
     slot: input.slot,
-    level: (getRealmStageRank(cultivator.realm, cultivator.realm_stage) + 1) * 5,
+    level: combatCharacterLevel(cultivator.realm, cultivator.realm_stage),
     attrs: {
       hp,
       maxHp: panel.maxHp,
@@ -203,7 +242,7 @@ export function projectCultivatorBaseToCombatV6(
     skillLevels: {},
     skillOverrides: [],
     tags: [],
-  }
+  };
 
   return {
     ok: true,
@@ -212,5 +251,5 @@ export function projectCultivatorBaseToCombatV6(
     statusDefs: [],
     diagnostics,
     versions: { ...COMBAT_V6_PHASE_1_VERSIONS },
-  }
+  };
 }

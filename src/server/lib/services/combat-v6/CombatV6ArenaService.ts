@@ -124,6 +124,7 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
               projection.unit.id!,
               projection.unit.side,
               projection.unit.slot ?? 0,
+              projection.unit.level,
             ),
           );
           mergeDefinitions(skills, BEAST_SKILLS);

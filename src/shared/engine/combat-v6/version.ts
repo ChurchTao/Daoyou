@@ -132,3 +132,23 @@ export const COMBAT_V6_PHASE_9A_WILD_VERSIONS: CombatV6VersionStamp =
     contentVersion: 'daoyou_wild_beast_content_v1',
     projectionVersion: 'wild_beast_v1',
   });
+
+export const COMBAT_V6_PHASE_9B_ARENA_VERSIONS: CombatV6VersionStamp =
+  Object.freeze({
+    ...COMBAT_V6_PHASE_9A_ARENA_VERSIONS,
+    rulesetVersion: 'daoyou_rules_v8',
+    projectionVersion: 'arena_beast_v2',
+  });
+export const COMBAT_V6_PHASE_9B_TRAINING_VERSIONS: CombatV6VersionStamp =
+  Object.freeze({
+    ...COMBAT_V6_PHASE_9A_TRAINING_VERSIONS,
+    rulesetVersion: 'daoyou_rules_v8',
+    projectionVersion: 'training_beast_v2',
+  });
+export const COMBAT_V6_PHASE_9B_WILD_VERSIONS: CombatV6VersionStamp =
+  Object.freeze({
+    ...COMBAT_V6_PHASE_9A_WILD_VERSIONS,
+    rulesetVersion: 'daoyou_rules_v8',
+    contentVersion: 'daoyou_wild_capture_content_v1',
+    projectionVersion: 'wild_beast_v2',
+  });

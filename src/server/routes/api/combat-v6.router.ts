@@ -15,7 +15,9 @@ import { readResourceWithMeta } from '@server/lib/services/ResourceReadService';
 import { CombatV6ArenaStore } from '@server/lib/services/combat-v6/CombatV6ArenaStore';
 import {
   BeastError,
+  allocateBeastPoints,
   claimStarterBeast,
+  releaseBeast,
   restBeast,
   updateBeastLineup,
 } from '@server/lib/services/combat-v6/CombatV6BeastService';
@@ -47,6 +49,7 @@ import {
   CombatV6TrainingSessionParamsSchema,
 } from '@shared/contracts/combatV6';
 import {
+  BeastAllocateSchema,
   BeastClaimSchema,
   BeastLineupRequestSchema,
   BeastRestSchema,
@@ -162,6 +165,38 @@ router.post('/beasts/rest', async (c) => {
     return c.json({
       success: true,
       data: await restBeast(
+        actor(c).cultivatorId,
+        input.beastId,
+        input.expectedRevision,
+      ),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+
+router.post('/beasts/allocate', async (c) => {
+  try {
+    const input = BeastAllocateSchema.parse(await c.req.json());
+    return c.json({
+      success: true,
+      data: await allocateBeastPoints(
+        actor(c).cultivatorId,
+        input.beastId,
+        input.expectedRevision,
+        input.points,
+      ),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.post('/beasts/release', async (c) => {
+  try {
+    const input = BeastRestSchema.parse(await c.req.json());
+    return c.json({
+      success: true,
+      data: await releaseBeast(
         actor(c).cultivatorId,
         input.beastId,
         input.expectedRevision,

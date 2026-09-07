@@ -32,6 +32,7 @@ export function reasonText(reason: string) {
     'skip-next-action': '本次行动休息',
     'not-standing': '当前无法行动',
     'flee-failed': '逃离失败',
+    'capture-failed': '捕捉失败',
     'revive-blocked': '当前无法复起',
     'skill-not-known': '尚未掌握此技能',
     'passive-not-castable': '被动技能无法主动施展',
@@ -224,6 +225,8 @@ export function appendBattleEntries(
         };
       case 'chanceResolved':
         return { text: `机缘判定${e.success ? '成功' : '失败'}`, detail: true };
+      case 'unitCaptured':
+        return { text: `${name(e.targetId)}已收服，战后加入灵兽列表` };
       case 'petSummoned':
         return { text: `${name(e.unitId)}召出${name(e.petId)}` };
       case 'petRecalled':

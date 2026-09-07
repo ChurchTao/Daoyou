@@ -63,15 +63,16 @@ export function combatV6SkillDetails(
       skill.id,
       {
         category: artIds.has(skill.id) ? ('art' as const) : ('spell' as const),
-        description:
-          [
-            ...new Set([
-              ...skill.effects.map(describe),
-              ...(skill.successEffects ?? []).map(
-                (effect) => `施放成功后：${describe(effect)}`,
-              ),
-            ]),
-          ].join('；') || '被动能力，依技能条件触发。',
+        description: skill.capture
+          ? '尝试收服野生灵兽，气血越低越容易成功；执行时消耗法力，失败仍消耗。'
+          : [
+              ...new Set([
+                ...skill.effects.map(describe),
+                ...(skill.successEffects ?? []).map(
+                  (effect) => `施放成功后：${describe(effect)}`,
+                ),
+              ]),
+            ].join('；') || '被动能力，依技能条件触发。',
       },
     ]),
   );

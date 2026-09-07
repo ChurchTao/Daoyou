@@ -10,7 +10,7 @@ import { projectCultivatorMultiSectV5ToCombatV6 } from '../projection/index.ts';
 import { daoyouRulesetV6 } from '../rules-daoyou/index.ts';
 import {
   COMBAT_V6_PHASE_6D_VERSIONS,
-  COMBAT_V6_PHASE_9A_TRAINING_VERSIONS,
+  COMBAT_V6_PHASE_9B_TRAINING_VERSIONS,
 } from '../version.ts';
 import { COMBAT_V6_TRAINING_CONTENT_V1 } from './content.ts';
 import type {
@@ -229,7 +229,7 @@ export function compileCombatV6TrainingEncounterV1(
   input: CompileCombatV6TrainingEncounterV1Input,
   content: CombatV6TrainingContentV1 = COMBAT_V6_TRAINING_CONTENT_V1,
 ): CompileCombatV6TrainingEncounterV1Result {
-  const versions = { ...COMBAT_V6_PHASE_9A_TRAINING_VERSIONS };
+  const versions = { ...COMBAT_V6_PHASE_9B_TRAINING_VERSIONS };
   const diagnostics = validateCombatV6TrainingContentV1(content);
   const encounter = content.encounters.find(
     (candidate) => candidate.id === input.encounterId,
@@ -312,6 +312,7 @@ export function compileCombatV6TrainingEncounterV1(
       player.unit.id!,
       Team.A,
       encounter.playerSlot,
+      player.unit.level,
     ),
   );
   const skills = mergeDefinitions(

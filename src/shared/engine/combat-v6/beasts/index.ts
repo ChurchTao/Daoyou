@@ -50,7 +50,7 @@ export const BeastSchema = z
     skills: z.array(z.string()).max(8),
     currentLifespan: points,
     maxLifespan: points,
-    generationVersion: z.literal(BEAST_VERSION),
+    generationVersion: z.enum([BEAST_VERSION, 'summoned_beast_capture_v1']),
     generationSeed: z.number().int(),
     revision: points,
   })
@@ -91,6 +91,7 @@ export const BEAST_SPECIES = [
   {
     id: 'combat.wild.species.spirit-fox',
     name: '青灵狐',
+    carryLevel: 5,
     role: '法术',
     allocation: 'magic',
     skill: 'beast.spirit-flame',
@@ -99,6 +100,7 @@ export const BEAST_SPECIES = [
   {
     id: 'combat.wild.species.rock-boar',
     name: '岩甲猪',
+    carryLevel: 5,
     role: '防护',
     allocation: 'constitution',
     skill: 'beast.stone-guard',
@@ -107,6 +109,7 @@ export const BEAST_SPECIES = [
   {
     id: 'combat.wild.species.wind-wolf',
     name: '疾风狼',
+    carryLevel: 5,
     role: '物理',
     allocation: 'strength',
     skill: 'beast.wind-strike',
@@ -284,6 +287,7 @@ export function projectBeastRoster(
   ownerId: string,
   side: Side,
   slot: number,
+  ownerLevel = 180,
 ): LineupUnit[] {
   if (!roster) return [];
   const lineup = BeastLineupSchema.parse(roster.lineup);
@@ -293,7 +297,7 @@ export function projectBeastRoster(
       if (beast.ownerCultivatorId !== ownerId)
         throw new Error('召唤兽归属不符');
       // Low lifespan reserves never enter the runtime, so they cannot be summoned.
-      return beast.currentLifespan < 50
+      return !canDeployBeast(beast, ownerLevel)
         ? []
         : [
             {
@@ -324,6 +328,16 @@ export function projectBeastRoster(
           ];
     })
     .flat();
+}
+
+export function canDeployBeast(beast: SummonedBeast, ownerLevel: number) {
+  return (
+    beast.currentLifespan >= 50 &&
+    beast.level <= ownerLevel &&
+    BEAST_SPECIES.some(
+      (s) => s.id === beast.speciesId && s.carryLevel <= ownerLevel,
+    )
+  );
 }
 
 export function beastDeathIds(events: readonly BattleEvent[]): string[] {

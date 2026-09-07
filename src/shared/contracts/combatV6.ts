@@ -223,7 +223,12 @@ export interface CombatV6PlaybackV1 {
 }
 
 type PrivateResourceFields =
-  'hp' | 'hpAfter' | 'mpAfter' | 'maxHpAfter' | 'recoverableHpAfter';
+  | 'hp'
+  | 'hpAfter'
+  | 'mpAfter'
+  | 'maxHpAfter'
+  | 'recoverableHpAfter'
+  | 'generationSeed';
 type DisplayEvent<E> = E extends BattleEvent
   ? Omit<E, PrivateResourceFields> &
       Partial<Pick<E, Extract<keyof E, PrivateResourceFields>>>

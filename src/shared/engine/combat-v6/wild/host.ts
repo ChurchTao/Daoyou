@@ -1,4 +1,5 @@
 import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
+import { captureSkill } from '../beasts/progression';
 import {
   SeededRng,
   UnitKind,
@@ -17,7 +18,7 @@ import { projectCultivatorMultiSectV5ToCombatV6 } from '../projection/index.ts';
 import { daoyouRulesetV6 } from '../rules-daoyou/index.ts';
 import {
   COMBAT_V6_PHASE_6D_VERSIONS,
-  COMBAT_V6_PHASE_9A_WILD_VERSIONS,
+  COMBAT_V6_PHASE_9B_WILD_VERSIONS,
 } from '../version.ts';
 import {
   WILD_REGION,
@@ -27,7 +28,7 @@ import {
   wildPanel,
 } from './content.ts';
 
-export const WILD_VERSIONS = COMBAT_V6_PHASE_9A_WILD_VERSIONS;
+export const WILD_VERSIONS = COMBAT_V6_PHASE_9B_WILD_VERSIONS;
 export type WildCombatant = {
   unitId: string;
   speciesId: string;
@@ -115,7 +116,13 @@ export function createWildHost(
   const strategies: Record<string, PveCommandStrategyV1> = {};
   const units: LineupUnit[] = [
     projected.unit,
-    ...projectBeastRoster(player.beasts, projected.unit.id!, 0, 0),
+    ...projectBeastRoster(
+      player.beasts,
+      projected.unit.id!,
+      0,
+      0,
+      projected.unit.level,
+    ),
   ];
   for (const [slot, c] of combatants.entries()) {
     const species = WILD_SPECIES.find((s) => s.id === c.speciesId)!;
@@ -147,6 +154,12 @@ export function createWildHost(
     new Set(units.map((u) => u.id)).size !== units.length
   )
     throw new Error('WILD_CONTENT_ID_CONFLICT');
+  const capture = captureSkill(
+    combatants,
+    projected.unit.level!,
+    player.beasts?.beasts.length ?? 0,
+  );
+  projected.unit.skills = [...(projected.unit.skills ?? []), capture.id];
   return new WildHost({
     schemaVersion: 1,
     hostVersion: 'combat_v6_wild_runtime_v1',
@@ -158,7 +171,7 @@ export function createWildHost(
       seed,
       versions: WILD_VERSIONS,
       units,
-      skills: [...projected.skills, ...WILD_SKILLS, ...BEAST_SKILLS],
+      skills: [...projected.skills, ...WILD_SKILLS, ...BEAST_SKILLS, capture],
       statusDefs: projected.statusDefs,
     },
   });
