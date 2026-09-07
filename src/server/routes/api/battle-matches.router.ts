@@ -7,7 +7,10 @@ import {
 } from '@server/lib/services/BattleMatchParticipantRepository';
 import { BattleMatchmakerService } from '@server/lib/services/BattleMatchmakerService';
 import { buildOnlineBattleMatchState } from '@server/lib/services/BattleOnlineMatchFactory';
-import { observeOnlineBattleMetric } from '@server/lib/services/OnlineBattleMetrics';
+import {
+  changeQueuedBattleSocketTasks,
+  observeOnlineBattleMetric,
+} from '@server/lib/services/OnlineBattleMetrics';
 import {
   MAX_BATTLE_CONNECTIONS_PER_PLAYER,
   MAX_SOCKET_MESSAGE_BYTES,
@@ -82,7 +85,10 @@ router.get(
     let lastSentEventSeq = -1;
     let unsubscribe: (() => void) | undefined;
     let subscriptionReady = Promise.resolve();
-    let sendQueue = Promise.resolve();
+    const connectionAbort = new AbortController();
+    const sendQueue: Array<() => Promise<void> | void> = [];
+    let sending = false;
+    let closeSocket: (() => void) | undefined;
     const commandRateWindow = new OnlineBattleCommandRateWindow();
     const connectionKey = `${identity.matchId}:${identity.playerId}`;
     battleConnectionCounts.set(
@@ -111,14 +117,48 @@ router.get(
       }
       ws.send(encoded);
     };
-    const enqueue = (task: () => Promise<void> | void) => {
-      sendQueue = sendQueue.then(task).catch((error) => {
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      closed = true;
+      connectionAbort.abort();
+      changeQueuedBattleSocketTasks(-sendQueue.length);
+      sendQueue.length = 0;
+      unsubscribe?.();
+      releaseConnection();
+    };
+    const drainQueue = async () => {
+      if (sending) return;
+      sending = true;
+      try {
+        while (!closed && sendQueue.length > 0) {
+          const task = sendQueue.shift()!;
+          changeQueuedBattleSocketTasks(-1);
+          await task();
+        }
+      } catch (error) {
         console.warn('[online-battle] socket send failed', {
           matchId: identity.matchId,
           playerId: identity.playerId,
           error,
         });
-      });
+        closeSocket?.();
+        cleanup();
+      } finally {
+        sending = false;
+      }
+    };
+    const enqueue = (task: () => Promise<void> | void) => {
+      if (closed) return;
+      if (sendQueue.length >= 32) {
+        closeSocket?.();
+        cleanup();
+        return;
+      }
+      sendQueue.push(task);
+      changeQueuedBattleSocketTasks(1);
+      void drainQueue();
     };
     const sendLatestSnapshotNow = async (ws: WSContext) => {
       const view = await battleCoordinator.playerViewLatest(
@@ -131,7 +171,7 @@ router.get(
       ws: WSContext,
       eventSeq: number,
     ) => {
-      for (let sequence = lastSentEventSeq + 1; sequence <= eventSeq; sequence += 1) {
+      for (let sequence = lastSentEventSeq + 1; !closed && sequence <= eventSeq; sequence += 1) {
         const view = await battleCoordinator.playerViewAtEvent(
           identity.matchId,
           identity.playerId,
@@ -171,6 +211,16 @@ router.get(
     };
     return {
       onOpen(_event, ws) {
+        if (closed) return;
+        closeSocket = () => {
+          try {
+            ws.close(1_013, 'battle connection needs resync');
+          } catch {
+            // The transport may already be closed.
+          } finally {
+            cleanup();
+          }
+        };
         if (
           (battleConnectionCounts.get(connectionKey) ?? 0) >
           MAX_BATTLE_CONNECTIONS_PER_PLAYER
@@ -183,9 +233,13 @@ router.get(
           (event) => {
             sendBattleEvent(ws, event);
           },
+          connectionAbort.signal,
         );
         unsubscribe = subscription.unsubscribe;
         subscriptionReady = subscription.ready;
+        void subscriptionReady.catch(() => {
+          if (!closed) closeSocket?.();
+        });
       },
       async onMessage(event, ws) {
         const raw = event.data;
@@ -261,6 +315,7 @@ router.get(
           resumed = true;
           enqueue(async () => {
             await subscriptionReady;
+            if (closed) return;
             await battleCoordinator.resolveDeadline(identity.matchId);
             const current = await battleCoordinator.playerViewLatest(
               identity.matchId,
@@ -342,14 +397,10 @@ router.get(
         }
       },
       onClose() {
-        closed = true;
-        unsubscribe?.();
-        releaseConnection();
+        cleanup();
       },
       onError() {
-        closed = true;
-        unsubscribe?.();
-        releaseConnection();
+        cleanup();
       },
     };
   }),

@@ -85,15 +85,14 @@ export class AlchemyRecipePlanner {
       hasUserPrompt: input.userPrompt?.trim() ? 'true' : 'false',
     });
 
-    const response = await this.withTimeout(
-      generateAiObject({
-        system,
-        prompt: user,
-        schema: alchemyRecipePlanSchema,
-        name: 'AlchemyRecipePlan',
-        sceneId: 'alchemy-recipe-plan',
-      }),
-    );
+    const response = await generateAiObject({
+      timeoutMs: this.options.timeoutMs ?? 20_000,
+      system,
+      prompt: user,
+      schema: alchemyRecipePlanSchema,
+      name: 'AlchemyRecipePlan',
+      sceneId: 'alchemy-recipe-plan',
+    });
 
     const normalized = normalizePlan(response.output);
     const materialMap = new Map(
@@ -148,18 +147,6 @@ export class AlchemyRecipePlanner {
       ...normalized,
       materialVectors,
     };
-  }
-
-  private async withTimeout<T>(promise: Promise<T>): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        setTimeout(
-          () => reject(new Error('LLM alchemy recipe plan timeout')),
-          this.options.timeoutMs ?? 20_000,
-        );
-      }),
-    ]);
   }
 }
 

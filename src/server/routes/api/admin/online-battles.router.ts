@@ -1,3 +1,6 @@
+import { getLocalPresenceStats } from '@server/lib/services/onlinePresenceService';
+import { getNatsSubscriptionStats } from '@server/lib/services/natsCorePubSub';
+import { getAiRuntimeStats } from '@server/utils/aiClient';
 import { requireAdmin } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
@@ -13,7 +16,15 @@ const router = new Hono<AppEnv>();
 
 router.get('/metrics', requireAdmin(), (c) => c.json({
   success: true,
-  data: getOnlineBattleMetricsSnapshot(),
+  data: {
+    ...getOnlineBattleMetricsSnapshot(),
+    runtime: {
+      memory: process.memoryUsage(),
+      presence: getLocalPresenceStats(),
+      nats: getNatsSubscriptionStats(),
+      ai: getAiRuntimeStats(),
+    },
+  },
 }));
 
 router.get('/:matchId', requireAdmin(), async (c) => {

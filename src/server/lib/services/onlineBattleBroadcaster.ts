@@ -27,6 +27,7 @@ function subjectForMatch(matchId: string): string {
 export function subscribeOnlineBattleChanges(
   matchId: string,
   listener: Listener,
+  signal?: AbortSignal,
 ): { readonly ready: Promise<void>; readonly unsubscribe: () => void } {
   const set = listeners.get(matchId) ?? new Set<Listener>();
   set.add(listener);
@@ -42,7 +43,7 @@ export function subscribeOnlineBattleChanges(
     );
   }
   return {
-    ready: waitForNatsCoreSubjectReady(subjectForMatch(matchId)),
+    ready: waitForNatsCoreSubjectReady(subjectForMatch(matchId), signal),
     unsubscribe: () => {
       set.delete(listener);
       if (set.size > 0) return;

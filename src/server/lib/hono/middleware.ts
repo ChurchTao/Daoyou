@@ -18,45 +18,14 @@ import { and, eq } from 'drizzle-orm';
 import type { Context, MiddlewareHandler } from 'hono';
 import { ZodError, type ZodType } from 'zod';
 
-const ACTIVE_REF_MEMORY_TTL_MS = 45_000;
 const ACTIVE_REF_REDIS_TTL_SECONDS = 600;
 
 type CachedActiveCultivatorRef = ActiveCultivatorRef & {
   cachedAt: string;
 };
 
-const activeRefMemoryCache = new Map<
-  string,
-  { value: CachedActiveCultivatorRef; expiresAt: number }
->();
-
 function activeRefCacheKey(userId: string): string {
   return `active-cultivator:user:${userId}`;
-}
-
-function readActiveRefMemoryCache(userId: string): ActiveCultivatorRef | null {
-  const cached = activeRefMemoryCache.get(userId);
-  if (!cached) {
-    return null;
-  }
-
-  if (cached.expiresAt <= Date.now()) {
-    activeRefMemoryCache.delete(userId);
-    return null;
-  }
-
-  return {
-    userId: cached.value.userId,
-    cultivatorId: cached.value.cultivatorId,
-    status: cached.value.status,
-  };
-}
-
-function writeActiveRefMemoryCache(ref: ActiveCultivatorRef) {
-  activeRefMemoryCache.set(ref.userId, {
-    value: { ...ref, cachedAt: new Date().toISOString() },
-    expiresAt: Date.now() + ACTIVE_REF_MEMORY_TTL_MS,
-  });
 }
 
 async function readActiveRefRedisCache(
@@ -86,7 +55,6 @@ async function readActiveRefRedisCache(
       cultivatorId: parsed.cultivatorId,
       status: 'active',
     };
-    writeActiveRefMemoryCache(ref);
     return ref;
   } catch (error) {
     console.warn('[active-cultivator-ref] redis read failed', error);
@@ -116,7 +84,6 @@ async function writeActiveRefRedisCache(ref: ActiveCultivatorRef) {
 }
 
 export async function invalidateActiveCultivatorRef(userId: string) {
-  activeRefMemoryCache.delete(userId);
   if (!process.env.REDIS_URL) {
     return;
   }
@@ -131,11 +98,6 @@ export async function invalidateActiveCultivatorRef(userId: string) {
 async function resolveActiveCultivatorRef(
   user: AuthUser,
 ): Promise<ActiveCultivatorRef | null> {
-  const memoryCached = readActiveRefMemoryCache(user.id);
-  if (memoryCached) {
-    return memoryCached;
-  }
-
   const redisCached = await readActiveRefRedisCache(user.id);
   if (redisCached) {
     return redisCached;
@@ -163,7 +125,6 @@ async function resolveActiveCultivatorRef(
     cultivatorId: row.id,
     status: 'active',
   };
-  writeActiveRefMemoryCache(ref);
   await writeActiveRefRedisCache(ref);
   return ref;
 }

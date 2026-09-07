@@ -50,6 +50,12 @@ const gauges = new Map<OnlineBattleGaugeName, { value: number; recordedAt: numbe
 const recentOperatorActions: OnlineBattleOperatorAction[] = [];
 const MAX_OPERATOR_ACTIONS = 100;
 
+let queuedSocketTasks = 0;
+
+export function changeQueuedBattleSocketTasks(delta: number): void {
+  queuedSocketTasks += delta;
+}
+
 export function observeOnlineBattleMetric(
   name: OnlineBattleMetricName,
   value = 1,
@@ -96,6 +102,7 @@ export function getOnlineBattleMetricsSnapshot() {
   return {
     generatedAt: Date.now(),
     processScoped: true,
+    queuedSocketTasks,
     metrics: Object.fromEntries(
       [...summaries.entries()].map(([name, summary]) => [name, {
         ...summary,
