@@ -660,6 +660,7 @@ export const inventoryItems = pgTable(
       .notNull(),
     slotIndex: integer('slot_index'),
     definitionId: varchar('definition_id', { length: 160 }).notNull(),
+    stackKey: varchar('stack_key', { length: 200 }),
     quantity: integer('quantity').notNull(),
     instanceData: jsonb('instance_data'),
     revision: integer('revision').notNull().default(0),
@@ -670,6 +671,12 @@ export const inventoryItems = pgTable(
     index('inventory_owner_location_idx').on(
       table.cultivatorId,
       table.location,
+    ),
+    index('inventory_stack_lookup_idx').on(
+      table.cultivatorId,
+      table.location,
+      table.definitionId,
+      table.stackKey,
     ),
     uniqueIndex('inventory_bag_slot_unique')
       .on(table.cultivatorId, table.slotIndex)

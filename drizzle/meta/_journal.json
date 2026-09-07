@@ -288,6 +288,13 @@
       "when": 1788760243550,
       "tag": "0040_inventory_slot_capacity",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1788787559076,
+      "tag": "0041_inventory_stack_key",
+      "breakpoints": true
     }
   ]
 }

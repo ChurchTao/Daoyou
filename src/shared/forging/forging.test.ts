@@ -7,7 +7,8 @@ import {
 } from '../engine/combat-v6/equipment/forging';
 import { generateDaoEquipmentV2 } from '../engine/combat-v6/equipment/generator';
 import { DAO_EQUIPMENT_SLOTS } from '../engine/combat-v6/equipment/types';
-import { addItems, sameStack, sortBag } from '../inventory';
+import { sameStack, sortBag } from '../inventory';
+import { addItems } from '../inventory/test-helpers';
 import { BLUEPRINTS } from '../items/definitions/equipment-blueprints';
 import { MaterialFactsSchema } from '../items/definitions/materials';
 import { forgedName } from './names';

@@ -1,6 +1,7 @@
 import type { WildRuntimeSnapshot } from '@shared/engine/combat-v6/wild/host';
 import type { WildResources } from '@shared/engine/combat-v6/wild/rules';
 import { z } from 'zod';
+import { DropPoolSchema, type DropPool } from '../drops';
 import { BeastSchema, type SummonedBeast } from '../engine/combat-v6/beasts';
 import { ItemGrantSchema, type ItemGrant } from '../inventory';
 import type { CombatV6TrainingSessionViewV1 } from './combatV6';
@@ -25,6 +26,7 @@ export type WildRuntime = Omit<CombatV6RedisRuntimeV1, 'metadata' | 'host'> & {
     { sourceType: 'wild-encounter' }
   >;
   host: WildRuntimeSnapshot;
+  dropPool: DropPool;
   /** Frozen terminal display; settlement facts may be removed after delivery. */
   itemRewards?: ItemGrant[];
 };
@@ -41,7 +43,8 @@ export const WildRuntimeSchema = z
     createdAt: z.iso.datetime(),
     expiresAt: z.iso.datetime(),
     latestEventSeq: z.number().int().min(-1),
-    itemRewards: z.array(ItemGrantSchema).max(3).optional(),
+    itemRewards: z.array(ItemGrantSchema).max(100).optional(),
+    dropPool: DropPoolSchema,
     host: z
       .object({
         schemaVersion: z.literal(1),
@@ -130,7 +133,7 @@ export interface WildSettlement {
 }
 export const WildSettlementSchema = z
   .object({
-    itemRewards: z.array(ItemGrantSchema).max(3).optional(),
+    itemRewards: z.array(ItemGrantSchema).max(100).optional(),
     capturedBeasts: z.array(BeastSchema).max(3).optional(),
     beastExperience: z
       .object({

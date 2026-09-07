@@ -7,10 +7,8 @@ import type { ForgeRequest, ForgeView } from '@shared/contracts/forging';
 import type { DaoEquipmentInstanceV1 } from '@shared/engine/combat-v6/equipment/types';
 import { forgingCost } from '@shared/forging/rules';
 import { itemDefinition } from '@shared/inventory';
-import {
-  MATERIAL_TYPE_NAMES,
-  MaterialFactsSchema,
-} from '@shared/items/definitions/materials';
+import { MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
+import { materialFactsOf } from '@shared/items/material';
 import { QUALITY_ORDER } from '@shared/types/constants';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
@@ -56,10 +54,10 @@ export function ForgingRoom() {
   const cost = definition?.level ? forgingCost(definition.level) : undefined;
   const materials =
     view?.inventory.items
-      .filter((i) => i.definitionId === 'material.v1')
+      .filter((i) => itemDefinition(i.definitionId).kind === 'material')
       .map((i) => ({
         ...i,
-        facts: MaterialFactsSchema.parse(i.instanceData),
+        facts: materialFactsOf(i.definitionId, i.instanceData),
       })) ?? [];
   const chosen = materials.filter((m) => quantities[m.id] > 0);
   const total = chosen.reduce((n, m) => n + quantities[m.id], 0);

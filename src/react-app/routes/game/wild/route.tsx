@@ -12,6 +12,7 @@ import {
 } from '@app/lib/resources/player';
 import type { WildSessionView } from '@shared/contracts/combatV6Wild';
 import { itemDefinition } from '@shared/inventory';
+import { InventoryEquipmentSchema } from '@shared/inventory/equipment';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 
@@ -258,7 +259,7 @@ function WildRegion({ nodeId }: { nodeId: string }) {
           {session.itemRewards
             .map(
               (item) =>
-                `${itemDefinition(item.definitionId).name} ×${item.quantity}`,
+                `${item.definitionId === 'equipment.v6' ? InventoryEquipmentSchema.parse(item.instanceData).name : itemDefinition(item.definitionId).name} ×${item.quantity}`,
             )
             .join('、')}
           。已收存，背包不足的部分自动存入洞府储藏室。

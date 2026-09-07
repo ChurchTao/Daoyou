@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { BeastSchema, type SummonedBeast } from '../engine/combat-v6/beasts';
-import { BOOKS } from '../items/definitions/beast-books';
 import { MaterialFactsSchema } from '../items/definitions/materials';
 import { findItemDefinition } from '../items/registry';
 import { InventoryEquipmentSchema } from './equipment';
@@ -26,6 +25,7 @@ export const InventoryItemSchema = z
     definitionId: z.string().min(1).max(160),
     quantity: z.number().int().positive().max(2147483647),
     instanceData: z.unknown().nullable(),
+    stackKey: z.string().nullable(),
     revision: z.number().int().nonnegative(),
   })
   .strict()
@@ -43,7 +43,7 @@ export const InventoryItemSchema = z
       const equipment = InventoryEquipmentSchema.safeParse(item.instanceData);
       if (!equipment.success || equipment.data.id !== item.id)
         ctx.addIssue({ code: 'custom', message: '道装个体事实无效' });
-    } else if (definition.kind === 'material') {
+    } else if (item.definitionId === 'material.v1') {
       if (!MaterialFactsSchema.safeParse(item.instanceData).success)
         ctx.addIssue({ code: 'custom', message: '材料事实无效' });
     } else if (item.instanceData !== null)
@@ -69,7 +69,8 @@ export const ItemGrantSchema = z
 export function sameStack(a: InventoryItem, b: InventoryItem) {
   return (
     a.definitionId === b.definitionId &&
-    JSON.stringify(a.instanceData) === JSON.stringify(b.instanceData) &&
+    a.stackKey !== null &&
+    a.stackKey === b.stackKey &&
     itemDefinition(a.definitionId).stackLimit > 1
   );
 }
@@ -119,6 +120,7 @@ export function addItems(
   location: 'bag' | 'storage',
   overflow: boolean,
   id: () => string,
+  stackKey: string | null,
 ) {
   if (!Number.isSafeInteger(grant.quantity) || grant.quantity <= 0)
     throw new InventoryRuleError('物品数量无效');
@@ -134,6 +136,7 @@ export function addItems(
       id: facts.id,
       definitionId: grant.definitionId,
       instanceData: facts,
+      stackKey: null,
       quantity: 1,
       location: location === 'bag' && slotIndex === null ? 'storage' : location,
       slotIndex,
@@ -142,7 +145,7 @@ export function addItems(
     return [...items, item];
   }
   const facts =
-    itemDefinition(grant.definitionId).kind === 'material'
+    grant.definitionId === 'material.v1'
       ? MaterialFactsSchema.parse(grant.instanceData)
       : null;
   if (!facts && grant.instanceData !== undefined)
@@ -156,7 +159,7 @@ export function addItems(
       if (
         item.location !== destination ||
         item.definitionId !== grant.definitionId ||
-        JSON.stringify(item.instanceData) !== JSON.stringify(facts) ||
+        item.stackKey !== stackKey ||
         item.quantity >= limit
       )
         continue;
@@ -178,6 +181,7 @@ export function addItems(
         definitionId: grant.definitionId,
         quantity,
         instanceData: facts,
+        stackKey,
         revision: 0,
       });
       remaining -= quantity;
@@ -203,18 +207,4 @@ export function learnBeastSkill(
   const skills = [...beast.skills];
   skills[slot] = skillId;
   return BeastSchema.parse({ ...beast, skills, revision: beast.revision + 1 });
-}
-/** Independent reward stream supplied by Host; never consumes combat RNG. */
-export function rollBeastBooks(
-  kills: number,
-  random: () => number,
-): ItemGrant[] {
-  const result: ItemGrant[] = [];
-  for (let i = 0; i < kills; i++) {
-    if (random() >= 0.03) continue;
-    const roll = random();
-    const index = roll < 0.96 ? Math.floor(roll / 0.24) : 4;
-    result.push({ definitionId: BOOKS[index].id, quantity: 1 });
-  }
-  return result;
 }

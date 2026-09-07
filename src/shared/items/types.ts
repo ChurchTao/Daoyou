@@ -1,4 +1,5 @@
 import type { DaoEquipmentSlot } from '../engine/combat-v6/equipment/types';
+import type { MaterialFacts } from './definitions/materials';
 
 export interface ItemDefinition {
   id: string;
@@ -8,4 +9,5 @@ export interface ItemDefinition {
   skillId?: string;
   slot?: DaoEquipmentSlot;
   level?: number;
+  material?: MaterialFacts;
 }

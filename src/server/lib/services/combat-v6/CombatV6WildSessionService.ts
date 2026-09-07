@@ -38,8 +38,8 @@ import {
 } from '@shared/engine/combat-v6/wild/content';
 import { createWildHost, WildHost } from '@shared/engine/combat-v6/wild/host';
 import { wildDay } from '@shared/engine/combat-v6/wild/rules';
-import { rollBeastBooks } from '@shared/inventory';
 import { evaluateFateContext } from '@shared/lib/fates';
+import { WILD_DROP_POOLS, wildItemRewards } from '@shared/rewards/wild';
 import { eq } from 'drizzle-orm';
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { ConditionService } from '../ConditionService';
@@ -101,20 +101,28 @@ function summaryOf(
   entry: WildSettlement['entry'],
 ): WildSettlement {
   const p = r.host.state.units.find((u) => u.id === r.host.playerId)!;
-  const rewardSeed = createHash('sha256')
-    .update(`beast-books-v1:${r.battleId}:${r.host.input.seed}`)
-    .digest()
-    .readUInt32LE();
-  const rewardRng = new SeededRng(rewardSeed);
+  const rewardHash = (key: string) =>
+    createHash('sha256')
+      .update(
+        `${r.battleId}:${r.host.input.seed}:${r.dropPool.id}:${r.dropPool.version}:${key}`,
+      )
+      .digest();
   return {
     itemRewards:
       r.host.state.result?.winner === p.side
-        ? rollBeastBooks(
-            r.host.state.units.filter(
-              (u) => u.side !== p.side && u.kind === 'npc' && u.flags.dead,
-            ).length,
-            () => rewardRng.next(),
-          )
+        ? (r.itemRewards ??
+          wildItemRewards(
+            r.dropPool,
+            (key) => {
+              const rng = new SeededRng(rewardHash(key).readUInt32LE());
+              return () => rng.next();
+            },
+            (group) => {
+              const hex = rewardHash(`instance:${group}`).toString('hex');
+              return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+            },
+            r.createdAt,
+          ))
         : [],
     capturedBeasts: r.host.events.flatMap((event) => {
       if (event.type !== 'unitCaptured' || event.unitId !== r.host.playerId)
@@ -265,6 +273,7 @@ export class CombatV6WildSessionService {
           }
           const snapshot = host.runtimeSnapshot();
           const r: WildRuntime = {
+            dropPool: structuredClone(WILD_DROP_POOLS[nodeId]),
             runtimeVersion: 'combat_v6_redis_runtime_v1',
             battleId: randomUUID(),
             ...actor,

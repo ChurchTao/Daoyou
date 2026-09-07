@@ -10,15 +10,14 @@ import {
   generateDaoEquipmentV2,
 } from '../engine/combat-v6/equipment';
 import {
-  addItems,
   BOOKS,
   InventoryItemSchema,
   learnBeastSkill,
-  rollBeastBooks,
   sameStack,
   sortBag,
   type InventoryItem,
 } from './index';
+import { addItems } from './test-helpers';
 const item = (slotIndex = 0, quantity = 1): InventoryItem => ({
   id: `item-${slotIndex}`,
   location: 'bag',
@@ -26,6 +25,7 @@ const item = (slotIndex = 0, quantity = 1): InventoryItem => ({
   definitionId: BOOKS[0].id,
   quantity,
   instanceData: null,
+  stackKey: `definition.v1:${BOOKS[0].id}`,
   revision: 0,
 });
 describe('inventory capacity and immutable facts', () => {
@@ -189,18 +189,5 @@ describe('beast books', () => {
     const next = learnBeastSkill(two, BOOKS[4].id, 10, 1);
     expect(next.skills).toEqual([BOOKS[3].skillId, BOOKS[4].skillId]);
     expect(activeBeastSkills(next)).toEqual([BOOKS[4].skillId]);
-  });
-  it('uses the confirmed drop boundaries and supports multiple drops', () => {
-    const sequence = [0.03, 0.029, 0.95, 0.01, 0.96];
-    let index = 0;
-    expect(rollBeastBooks(3, () => sequence[index++])).toEqual([
-      { definitionId: BOOKS[3].id, quantity: 1 },
-      { definitionId: BOOKS[4].id, quantity: 1 },
-    ]);
-    expect(
-      rollBeastBooks(0, () => {
-        throw new Error('must not roll');
-      }),
-    ).toEqual([]);
   });
 });

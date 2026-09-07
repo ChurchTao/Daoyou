@@ -22,6 +22,7 @@ import {
   MATERIAL_TYPE_NAMES,
   MaterialFactsSchema,
 } from '@shared/items/definitions/materials';
+import { materialFactsOf } from '@shared/items/material';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 
@@ -408,7 +409,9 @@ function ItemDrawer({
             </InkTooltip>
           </p>
         ) : definition.kind === 'material' ? (
-          <MaterialDetails data={item.instanceData} />
+          <MaterialDetails
+            data={materialFactsOf(item.definitionId, item.instanceData)}
+          />
         ) : definition.kind === 'blueprint' ? (
           <p>
             {definition.level}级图纸，铸造消耗一张。

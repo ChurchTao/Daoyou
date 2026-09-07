@@ -153,6 +153,19 @@ describe('Phase 7D wild content', () => {
         expiresAt: '2026-09-05T02:00:00.000Z',
         latestEventSeq: snapshot.events.length - 1,
         host: snapshot,
+        dropPool: {
+          id: 'test',
+          version: 1,
+          groups: [
+            {
+              id: 'none',
+              chance: 0,
+              entries: [
+                { rewardId: 'unused', weight: 1, quantity: { min: 1, max: 1 } },
+              ],
+            },
+          ],
+        },
       };
       expect(WildRuntimeSchema.safeParse(wire).success).toBe(true);
       expect(

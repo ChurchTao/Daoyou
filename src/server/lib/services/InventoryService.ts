@@ -46,6 +46,7 @@ import { lockCultivatorForStateMutation } from '../repositories/playerStateRepos
 import { arenaOccupancyKey } from './combat-v6/CombatV6ArenaStore';
 import { CombatV6RuntimeStore } from './combat-v6/CombatV6RuntimeStore';
 import { CombatV6WildStore } from './combat-v6/CombatV6WildStore';
+import { inventoryStackKey } from './inventoryStackKey';
 import { ResourceEventCommitter } from './ResourceEventCommitter';
 
 export class InventoryError extends Error {}
@@ -59,6 +60,7 @@ export function inventoryItemOf(
     definitionId: row.definitionId,
     quantity: row.quantity,
     instanceData: row.instanceData,
+    stackKey: row.stackKey,
     revision: row.revision,
   });
   if (item.definitionId === 'material.v1')
@@ -227,6 +229,10 @@ export async function grantInventory(
               ...grants.map((g) =>
                 and(
                   eq(inventoryItems.definitionId, g.definitionId),
+                  eq(
+                    inventoryItems.stackKey,
+                    inventoryStackKey(g.definitionId, g.instanceData) ?? '',
+                  ),
                   sql`${inventoryItems.quantity} < ${itemDefinition(g.definitionId).stackLimit}`,
                 ),
               ),
@@ -237,7 +243,14 @@ export async function grantInventory(
   ).map(inventoryItemOf);
   let next = before;
   for (const grant of grants)
-    next = addItems(next, grant, 'bag', overflow, randomUUID);
+    next = addItems(
+      next,
+      grant,
+      'bag',
+      overflow,
+      randomUUID,
+      inventoryStackKey(grant.definitionId, grant.instanceData),
+    );
   await saveInventoryPlan(owner, before, next, tx);
 }
 export async function mutateInventory(owner: string, input: InventoryAction) {
@@ -279,9 +292,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
                   eq(inventoryItems.cultivatorId, owner),
                   eq(inventoryItems.location, 'storage'),
                   eq(inventoryItems.definitionId, source.definitionId),
-                  source.instanceData === null
-                    ? sql`${inventoryItems.instanceData} IS NULL`
-                    : sql`${inventoryItems.instanceData} = ${JSON.stringify(source.instanceData)}::jsonb`,
+                  eq(inventoryItems.stackKey, source.stackKey ?? ''),
                   sql`${inventoryItems.quantity} < ${itemDefinition(source.definitionId).stackLimit}`,
                 ),
               )
@@ -341,6 +352,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
                 input.location,
                 false,
                 () => item.id,
+                item.stackKey,
               ).map((entry) =>
                 entry.id === item.id
                   ? { ...entry, revision: item.revision + 1 }

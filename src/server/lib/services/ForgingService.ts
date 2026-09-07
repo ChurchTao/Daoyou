@@ -17,6 +17,7 @@ import {
   FORGING_MATERIAL_TYPES,
   MaterialFactsSchema,
 } from '@shared/items/definitions/materials';
+import { materialFactsOf } from '@shared/items/material';
 import { and, asc, count, eq, gte, ilike, inArray, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
@@ -125,12 +126,15 @@ export async function forgeEquipment(owner: string, input: ForgeRequest) {
       throw new InventoryError('请选择道装图纸');
     const selected = input.materials.map((ref) => {
       const item = requireItem(ref);
-      if (item.definitionId !== 'material.v1' || item.quantity < ref.quantity)
+      if (
+        itemDefinition(item.definitionId).kind !== 'material' ||
+        item.quantity < ref.quantity
+      )
         throw new InventoryError('材料数量不足或类型无效');
       return {
         item,
         quantity: ref.quantity,
-        facts: MaterialFactsSchema.parse(item.instanceData),
+        facts: materialFactsOf(item.definitionId, item.instanceData),
       };
     });
     const character = await readBeastOwner(owner, tx);
@@ -176,6 +180,7 @@ export async function forgeEquipment(owner: string, input: ForgeRequest) {
       'bag',
       false,
       randomUUID,
+      null,
     );
     await QiService.reserveQi({
       cultivatorId: owner,
