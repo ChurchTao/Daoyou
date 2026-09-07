@@ -2,6 +2,7 @@ import {
   combatV6Request,
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
+import { EquipmentDetails } from '@app/components/feature/forging/EquipmentDetails';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
@@ -18,11 +19,11 @@ import {
 } from '@shared/engine/combat-v6/beasts';
 import { BAG_CAPACITY, itemDefinition } from '@shared/inventory';
 import {
-  EQUIPMENT_ATTRIBUTE_NAMES,
-  InventoryEquipmentSchema,
-} from '@shared/inventory/equipment';
+  MATERIAL_TYPE_NAMES,
+  MaterialFactsSchema,
+} from '@shared/items/definitions/materials';
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 
 const endpoint = '/api/combat-v6/inventory';
 const details = combatV6SkillDetails(BEAST_SKILLS, []);
@@ -189,6 +190,8 @@ export default function InventoryV6() {
             <option value="all">全部</option>
             <option value="beast_book">兽诀</option>
             <option value="equipment">道装</option>
+            <option value="blueprint">图纸</option>
+            <option value="material">材料</option>
           </select>
           {location === 'bag' ? (
             <InkButton
@@ -265,7 +268,11 @@ export default function InventoryV6() {
                 {entry ? (
                   <>
                     <span aria-hidden className="text-ink-secondary text-lg">
-                      {entry.definitionId === 'equipment.v6' ? '◇' : '卷'}
+                      {itemDefinition(entry.definitionId).kind === 'equipment'
+                        ? '◇'
+                        : itemDefinition(entry.definitionId).kind === 'material'
+                          ? '◆'
+                          : '卷'}
                     </span>
                     <span className="line-clamp-2 break-all">{entry.name}</span>
                     <span className="text-ink-secondary">
@@ -399,6 +406,15 @@ function ItemDrawer({
             <InkTooltip label="兽诀使用说明">
               消耗一本，等概率覆盖一个现有技能，包括出生技能。普通和高级同系同时存在时仅高级生效。
             </InkTooltip>
+          </p>
+        ) : definition.kind === 'material' ? (
+          <MaterialDetails data={item.instanceData} />
+        ) : definition.kind === 'blueprint' ? (
+          <p>
+            {definition.level}级图纸，铸造消耗一张。
+            <Link className="ml-2 underline" to="/game/craft/refine">
+              前往炼器室
+            </Link>
           </p>
         ) : (
           <EquipmentDetails data={item.instanceData} />
@@ -547,25 +563,15 @@ function ItemDrawer({
   );
 }
 
-function EquipmentDetails({ data }: { data: unknown }) {
-  const equipment = InventoryEquipmentSchema.parse(data);
+function MaterialDetails({ data }: { data: unknown }) {
+  const material = MaterialFactsSchema.parse(data);
   return (
-    <div className="space-y-2">
+    <div>
       <p>
-        {equipment.equipmentLevel}级道装 · 需要人物 {equipment.requiredLevel}级
+        {material.rank} · {MATERIAL_TYPE_NAMES[material.type]}
+        {material.element ? ` · ${material.element}` : ''}
       </p>
-      <dl className="grid grid-cols-2 gap-2">
-        {[...equipment.baseStats, ...equipment.attributeBonuses].map(
-          (roll, index) => (
-            <div key={index}>
-              <dt className="text-ink-secondary">
-                {EQUIPMENT_ATTRIBUTE_NAMES[roll.attr]}
-              </dt>
-              <dd>+{roll.value}</dd>
-            </div>
-          ),
-        )}
-      </dl>
+      <p>{material.description}</p>
     </div>
   );
 }

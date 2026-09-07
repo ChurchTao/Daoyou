@@ -12,7 +12,7 @@
 
 由 Codex 在当次开发任务中操作真实本地页面，不将操作固化为一次性仓库脚本。
 
-1. 准备 `env/local.env`，执行 `bun run services up -d --wait` 和 `bun run db:migrate`。普通验证使用 `bun run dev`；长流程需关闭 watch 时，在两个终端执行 `bun --env-file=env/local.env src/index.ts` 和 `bun run dev:web`。确认页面为 `127.0.0.1:5174`、服务指向专用本地数据；不得使用 `prd` 进行测试写入。
+1. 准备 `env/local.env`，执行 `bun run services up -d --wait` 和 `bun run db:migrate`。普通验证使用 `bun run dev`；长流程需关闭 watch 时，在两个终端执行 `APP_ENV=local NODE_ENV=development bun --env-file=env/local.env src/index.ts` 和 `bun run dev:web`。确认页面为 `127.0.0.1:5174`、服务指向专用本地数据；不得使用 `prd` 进行测试写入。
 2. 列出本次改动需要验证的用户行为、预期结果和准备条件。通过页面注册／登录，邮件验证使用 Mailpit；优先复用已有测试角色。缺少 LLM 或角色构筑等条件时如实说明，不通过假成功继续。
 3. 使用可用的 Codex 浏览器能力或 Playwright，按可访问名称和实际页面定位控件。操作后等待具体界面／网络状态，不依赖固定长时间 sleep。多人测试使用独立浏览器上下文或配置文件，每个角色有独立会话。
 4. 同时观察界面、控制台和网络：检查请求次数、错误、权限边界、提交结果及恢复过程。涉及布局时检查桌面和 360px；涉及性能时使用网络面板／Profiler，不维护一次性基准脚本。
@@ -30,3 +30,32 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 - 使用真实页面和上述密码登录。邮箱未验证时，通过 Mailpit（`http://127.0.0.1:18025`）完成正常验证流程，不直接修改数据库中的验证标记或认证状态。
 - 缺少账号时通过页面注册本地测试账号，并沿用统一密码；已有账号登录失败时先确认环境、账号存在性及邮箱验证状态，不擅自重置密码或修改认证配置。
 - 多人测试使用独立浏览器上下文或配置文件，确认每个会话实际登录的角色，避免共享 Cookie 将多人测试变成同账号多标签页。
+
+## 4. 本地物资发放
+
+`POST http://127.0.0.1:3001/api/dev/resources` 不要求登录，仅在显式 `APP_ENV=local` 且 `NODE_ENV` 非 production 时注册；缺省、预发布及生产不开启。不要将 local 配置用于外部可访问的部署。
+
+先只读查询已有测试角色 ID，然后提交 JSON，例如：
+
+```json
+{
+  "cultivatorId": "替换为已有本地角色的UUID",
+  "grants": [
+    {
+      "type": "item",
+      "item": { "definitionId": "blueprint.weapon.10", "quantity": 1 }
+    },
+    {
+      "type": "vault-material",
+      "facts": { "name": "验收玄铁", "type": "ore", "rank": "凡品" },
+      "quantity": 1
+    },
+    { "type": "spirit-stones", "amount": 1000 },
+    { "type": "qi", "amount": 20 }
+  ]
+}
+```
+
+新库存材料使用 `type: item`、`definitionId: material.v1`、`instanceData: { name, type, rank, element?, description? }`。兽诀使用注册的定义 ID；随机道装使用 `{ "type": "equipment", "slot": "weapon", "level": 10 }`。全部定义在 `src/shared/items/definitions`，参数边界见 `src/shared/contracts/forging.ts`。
+
+发放遵循正式背包容量、材料校验、资源上限和战斗占用规则，整批事务成功或整体回滚。不支持修改任意字段、账号创建或整库清空。测试前记录物资与资源基准，完成后只清理本次发放和生成的测试物品；保留其他测试已产生的角色进度及历史记录。

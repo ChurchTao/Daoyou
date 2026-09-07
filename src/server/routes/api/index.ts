@@ -41,7 +41,10 @@ import tasksRouter from '@server/routes/api/tasks.router';
 import towerRouter from '@server/routes/api/tower.router';
 import worldChatRouter from '@server/routes/api/world-chat.router';
 import playerRouter from '@server/routes/player.router';
+import { allowsLocalDevTools } from '@shared/config/deployment';
 import { Hono } from 'hono';
+import devResourcesRouter from './dev-resources.router';
+import forgingRouter from './forging.router';
 
 const apiRouter = new Hono<AppEnv>();
 
@@ -91,6 +94,9 @@ apiRouter.route('/black-market', blackMarketRouter);
 apiRouter.route('/captcha', captchaRouter);
 apiRouter.route('/community', communityRouter);
 apiRouter.route('/combat-v6/arena', combatV6ArenaRouter);
+apiRouter.route('/combat-v6/forging', forgingRouter);
+if (allowsLocalDevTools(process.env.APP_ENV, process.env.NODE_ENV))
+  apiRouter.route('/dev', devResourcesRouter);
 apiRouter.route('/combat-v6', combatV6Router);
 apiRouter.route('/craft', craftRouter);
 apiRouter.route('/cultivator', cultivatorRouter);

@@ -1,39 +1,16 @@
 import { z } from 'zod';
-import {
-  BEAST_SKILLS,
-  BeastSchema,
-  type SummonedBeast,
-} from '../engine/combat-v6/beasts';
+import { BeastSchema, type SummonedBeast } from '../engine/combat-v6/beasts';
+import { BOOKS } from '../items/definitions/beast-books';
+import { MaterialFactsSchema } from '../items/definitions/materials';
+import { findItemDefinition } from '../items/registry';
 import { InventoryEquipmentSchema } from './equipment';
+export { BOOKS } from '../items/definitions/beast-books';
 
 export const BAG_CAPACITY = 40;
 export class InventoryRuleError extends Error {}
-export const BOOKS = [
-  'beast.spirit-flame',
-  'beast.stone-guard',
-  'beast.wind-strike',
-  'beast.combo',
-  'beast.advanced-combo',
-]
-  .map((id) => BEAST_SKILLS.find((skill) => skill.id === id)!)
-  .map((skill) => ({
-    id: `book.${skill.id}`,
-    name: `${skill.name}兽诀`,
-    kind: 'beast_book' as const,
-    skillId: skill.id,
-    stackLimit: 99,
-  }));
 export function itemDefinition(id: string) {
-  const book = BOOKS.find((item) => item.id === id);
-  if (book) return book;
-  if (id === 'equipment.v6')
-    return {
-      id,
-      name: '道装',
-      kind: 'equipment' as const,
-      stackLimit: 1,
-      skillId: undefined,
-    };
+  const definition = findItemDefinition(id);
+  if (definition) return definition;
   throw new InventoryRuleError('未知物品定义');
 }
 export const InventoryItemSchema = z
@@ -55,10 +32,7 @@ export const InventoryItemSchema = z
   .superRefine((item, ctx) => {
     if ((item.location === 'bag') !== (item.slotIndex !== null))
       ctx.addIssue({ code: 'custom', message: '格位与位置不一致' });
-    if (
-      item.definitionId !== 'equipment.v6' &&
-      !BOOKS.some((book) => book.id === item.definitionId)
-    ) {
+    if (!findItemDefinition(item.definitionId)) {
       ctx.addIssue({ code: 'custom', message: '未知物品定义' });
       return;
     }
@@ -69,6 +43,9 @@ export const InventoryItemSchema = z
       const equipment = InventoryEquipmentSchema.safeParse(item.instanceData);
       if (!equipment.success || equipment.data.id !== item.id)
         ctx.addIssue({ code: 'custom', message: '道装个体事实无效' });
+    } else if (definition.kind === 'material') {
+      if (!MaterialFactsSchema.safeParse(item.instanceData).success)
+        ctx.addIssue({ code: 'custom', message: '材料事实无效' });
     } else if (item.instanceData !== null)
       ctx.addIssue({ code: 'custom', message: '固定物品不能附带个体属性' });
   });
@@ -76,20 +53,23 @@ export type InventoryItem = z.infer<typeof InventoryItemSchema>;
 export type ItemGrant = {
   definitionId: string;
   quantity: number;
-  instanceData?: z.infer<typeof InventoryEquipmentSchema>;
+  instanceData?:
+    | z.infer<typeof InventoryEquipmentSchema>
+    | z.infer<typeof MaterialFactsSchema>;
 };
 export const ItemGrantSchema = z
   .object({
     definitionId: z.string(),
     quantity: z.number().int().positive().max(99),
-    instanceData: InventoryEquipmentSchema.optional(),
+    instanceData: z
+      .union([InventoryEquipmentSchema, MaterialFactsSchema])
+      .optional(),
   })
   .strict();
 export function sameStack(a: InventoryItem, b: InventoryItem) {
   return (
     a.definitionId === b.definitionId &&
-    a.instanceData == null &&
-    b.instanceData == null &&
+    JSON.stringify(a.instanceData) === JSON.stringify(b.instanceData) &&
     itemDefinition(a.definitionId).stackLimit > 1
   );
 }
@@ -161,7 +141,11 @@ export function addItems(
     });
     return [...items, item];
   }
-  if (grant.instanceData !== undefined)
+  const facts =
+    itemDefinition(grant.definitionId).kind === 'material'
+      ? MaterialFactsSchema.parse(grant.instanceData)
+      : null;
+  if (!facts && grant.instanceData !== undefined)
     throw new InventoryRuleError('固定物品不能附带个体属性');
   const next = items.map((i) => ({ ...i }));
   let remaining = grant.quantity;
@@ -172,7 +156,7 @@ export function addItems(
       if (
         item.location !== destination ||
         item.definitionId !== grant.definitionId ||
-        item.instanceData != null ||
+        JSON.stringify(item.instanceData) !== JSON.stringify(facts) ||
         item.quantity >= limit
       )
         continue;
@@ -193,7 +177,7 @@ export function addItems(
         slotIndex,
         definitionId: grant.definitionId,
         quantity,
-        instanceData: null,
+        instanceData: facts,
         revision: 0,
       });
       remaining -= quantity;

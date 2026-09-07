@@ -9,7 +9,9 @@ export const InventoryQuerySchema = z
     location: z.enum(['bag', 'storage']).default('bag'),
     page: z.coerce.number().int().min(0).max(1000000).default(0),
     search: z.string().max(80).default(''),
-    kind: z.enum(['all', 'beast_book', 'equipment']).default('all'),
+    kind: z
+      .enum(['all', 'beast_book', 'equipment', 'blueprint', 'material'])
+      .default('all'),
   })
   .strict();
 export const InventoryActionSchema = z.discriminatedUnion('action', [

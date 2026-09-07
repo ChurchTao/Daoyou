@@ -4,32 +4,30 @@ import {
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
-import {
-  previewFormulaCraft,
-} from '@server/lib/services/AlchemyFormulaService';
+import { previewFormulaCraft } from '@server/lib/services/AlchemyFormulaService';
 import {
   AlchemyServiceError,
   previewAlchemySelection,
 } from '@server/lib/services/alchemyServiceV2';
+import {
+  CraftCommandError,
+  executeCraftCommand,
+  executeCreationConfirmationCommand,
+} from '@server/lib/services/CraftApplicationService';
 import {
   CreationServiceError,
   estimateCost,
   getPendingCreation,
   previewCreationSelection,
 } from '@server/lib/services/creationServiceV2';
-import {
-  getPlayerPreHeavenFates,
-} from '@server/lib/services/cultivator/CultivatorProfileRepository';
-import {
-  CraftCommandError,
-  executeCraftCommand,
-  executeCreationConfirmationCommand,
-} from '@server/lib/services/CraftApplicationService';
-import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
+import { readCraftReadinessFacts } from '@server/lib/services/cultivator/CultivatorFactsReader';
+import { getPlayerPreHeavenFates } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import {
   QiInsufficientError,
   QiServiceError,
 } from '@server/lib/services/QiService';
+import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
+import { SELF_CREATED_SKILL_CREATION_FROZEN_ERROR } from '@shared/config/selfCreatedSkillFreeze';
 import {
   ALCHEMY_MAX_DOSE,
   CREATION_INPUT_CONSTRAINTS,
@@ -38,54 +36,51 @@ import {
   CREATION_CRAFT_TYPES,
   isCreationCraftType,
 } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
-import { SELF_CREATED_SKILL_CREATION_FROZEN_ERROR } from '@shared/config/selfCreatedSkillFreeze';
-import {
-  EQUIPMENT_SLOT_VALUES,
-  type Quality,
-} from '@shared/types/constants';
+import { EQUIPMENT_SLOT_VALUES, type Quality } from '@shared/types/constants';
 import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { readCraftReadinessFacts } from '@server/lib/services/cultivator/CultivatorFactsReader';
 
 const SUPPORTED_CRAFT_TYPES = [...CREATION_CRAFT_TYPES, 'alchemy'] as const;
 const { minQuantityPerMaterial, maxQuantityPerMaterial } =
   CREATION_INPUT_CONSTRAINTS;
 
-const CraftSchema = z.object({
-  materialIds: z.array(z.string()).optional(),
-  craftType: z.enum(SUPPORTED_CRAFT_TYPES),
-  alchemyMode: z.enum(ALCHEMY_MODE_VALUES).optional(),
-  formulaId: z.string().uuid().optional(),
-  analysisId: z.string().uuid().optional(),
-  materialQuantities: z
-    .record(
-      z.string(),
-      z.number().int().min(minQuantityPerMaterial).max(ALCHEMY_MAX_DOSE),
-    )
-    .optional(),
-  userPrompt: z.string().trim().max(300).optional(),
-  requestedSlot: z.enum(EQUIPMENT_SLOT_VALUES).optional(),
-  requestedTargetPolicy: z
-    .object({
-      team: z.enum(['enemy', 'ally', 'self', 'any']),
-      scope: z.enum(['single', 'aoe', 'random']),
-      maxTargets: z.number().int().min(1).optional(),
-    })
-    .optional(),
-}).superRefine((value, context) => {
-  if (value.craftType !== 'alchemy' && value.materialQuantities) {
-    for (const [id, quantity] of Object.entries(value.materialQuantities)) {
-      if (quantity > maxQuantityPerMaterial) {
-        context.addIssue({
-          code: 'custom',
-          path: ['materialQuantities', id],
-          message: `普通造物单种材料最多投入 ${maxQuantityPerMaterial} 个`,
-        });
+const CraftSchema = z
+  .object({
+    materialIds: z.array(z.string()).optional(),
+    craftType: z.enum(SUPPORTED_CRAFT_TYPES),
+    alchemyMode: z.enum(ALCHEMY_MODE_VALUES).optional(),
+    formulaId: z.string().uuid().optional(),
+    analysisId: z.string().uuid().optional(),
+    materialQuantities: z
+      .record(
+        z.string(),
+        z.number().int().min(minQuantityPerMaterial).max(ALCHEMY_MAX_DOSE),
+      )
+      .optional(),
+    userPrompt: z.string().trim().max(300).optional(),
+    requestedSlot: z.enum(EQUIPMENT_SLOT_VALUES).optional(),
+    requestedTargetPolicy: z
+      .object({
+        team: z.enum(['enemy', 'ally', 'self', 'any']),
+        scope: z.enum(['single', 'aoe', 'random']),
+        maxTargets: z.number().int().min(1).optional(),
+      })
+      .optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.craftType !== 'alchemy' && value.materialQuantities) {
+      for (const [id, quantity] of Object.entries(value.materialQuantities)) {
+        if (quantity > maxQuantityPerMaterial) {
+          context.addIssue({
+            code: 'custom',
+            path: ['materialQuantities', id],
+            message: `普通造物单种材料最多投入 ${maxQuantityPerMaterial} 个`,
+          });
+        }
       }
     }
-  }
-});
+  });
 
 const ConfirmSchema = z.object({
   craftType: z.enum(CREATION_CRAFT_TYPES),
@@ -150,9 +145,7 @@ router.get('/', requireActiveCultivatorRef(), async (c) => {
     if (!fateList) {
       return c.json({ error: '当前没有活跃角色' }, 404);
     }
-    const readiness = await readCraftReadinessFacts(
-      cultivator.cultivatorId,
-    );
+    const readiness = await readCraftReadinessFacts(cultivator.cultivatorId);
     const materialIdsParam = c.req.query('materialIds');
     const materialQuantitiesParam = c.req.query('materialQuantities');
     const craftType = c.req.query('craftType');
@@ -165,6 +158,8 @@ router.get('/', requireActiveCultivatorRef(), async (c) => {
     if (!craftType) {
       return c.json({ error: '请指定造物类型' }, 400);
     }
+    if (craftType === 'refine')
+      return c.json({ error: '旧炼器已停用，请前往新版炼器室' }, 410);
     if (craftType !== 'alchemy' && !isCreationCraftType(craftType)) {
       return c.json({ error: '无效的造物类型' }, 400);
     }
@@ -286,6 +281,8 @@ router.post('/', requireActiveCultivatorRef(), async (c) => {
         400,
       );
     }
+    if (parsed.data.craftType === 'refine')
+      return c.json({ error: '旧炼器已停用，请前往新版炼器室' }, 410);
     if (parsed.data.craftType === 'create_skill') {
       return c.json(
         {
@@ -361,6 +358,8 @@ confirmRouter.post('/', requireActiveCultivatorRef(), async (c) => {
     const { craftType, replaceId, abandon } = ConfirmSchema.parse(
       await c.req.json(),
     );
+    if (craftType === 'refine' && !abandon)
+      return c.json({ error: '旧炼器已停用，请前往新版炼器室' }, 410);
     if (craftType === 'create_skill' && !abandon) {
       return c.json(
         {

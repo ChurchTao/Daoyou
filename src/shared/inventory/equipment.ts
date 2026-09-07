@@ -54,6 +54,7 @@ export const InventoryEquipmentSchema = z
     generatorVersion: z.enum([
       'dao_equipment_generator_v1',
       'dao_equipment_generator_v2',
+      'dao_equipment_generator_v3',
     ]),
     createdAt: z.string(),
   })

@@ -52,7 +52,7 @@ export const gameDockGroups: GameNavGroup[] = [
       },
       {
         id: 'legacy-storage',
-        sceneLabel: '洞府旧藏',
+        sceneLabel: '洞府宝库',
         href: '/game/cave/storage',
       },
       {

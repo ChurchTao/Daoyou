@@ -10,7 +10,6 @@ import {
 import {
   addItems,
   BAG_CAPACITY,
-  BOOKS,
   emptySlot,
   InventoryItemSchema,
   itemDefinition,
@@ -20,6 +19,8 @@ import {
   type InventoryItem,
   type ItemGrant,
 } from '@shared/inventory';
+import { MaterialFactsSchema } from '@shared/items/definitions/materials';
+import { ITEM_DEFINITIONS } from '@shared/items/registry';
 import { and, asc, count, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
@@ -48,8 +49,10 @@ import { CombatV6WildStore } from './combat-v6/CombatV6WildStore';
 import { ResourceEventCommitter } from './ResourceEventCommitter';
 
 export class InventoryError extends Error {}
-function itemOf(row: typeof inventoryItems.$inferSelect): InventoryItem {
-  return InventoryItemSchema.parse({
+export function inventoryItemOf(
+  row: typeof inventoryItems.$inferSelect,
+): InventoryItem {
+  const item = InventoryItemSchema.parse({
     id: row.id,
     location: row.location,
     slotIndex: row.slotIndex,
@@ -58,26 +61,37 @@ function itemOf(row: typeof inventoryItems.$inferSelect): InventoryItem {
     instanceData: row.instanceData,
     revision: row.revision,
   });
+  if (item.definitionId === 'material.v1')
+    item.instanceData = MaterialFactsSchema.parse(item.instanceData);
+  return item;
+}
+export async function assertInventoryIdle(owner: string) {
+  if (
+    (await new CombatV6WildStore().lock(owner)) ||
+    (await new CombatV6RuntimeStore().currentId(owner)) ||
+    (await redis.get(arenaOccupancyKey(owner)))
+  )
+    throw new InventoryError('请先结束战斗与结算，再调整物品');
 }
 export async function readInventory(
   owner: string,
   query: z.infer<typeof InventoryQuerySchema>,
 ): Promise<InventoryView> {
   const ownerFilter = eq(inventoryItems.cultivatorId, owner);
-  const matches = BOOKS.filter((i) => i.name.includes(query.search)).map(
-    (i) => i.id,
-  );
+  const matches = ITEM_DEFINITIONS.filter((i) =>
+    i.name.includes(query.search),
+  ).map((i) => i.id);
   const filter = and(
     ownerFilter,
     eq(inventoryItems.location, query.location),
     query.kind === 'all'
       ? undefined
-      : query.kind === 'equipment'
-        ? eq(inventoryItems.definitionId, 'equipment.v6')
-        : inArray(
-            inventoryItems.definitionId,
-            BOOKS.map((i) => i.id),
+      : inArray(
+          inventoryItems.definitionId,
+          ITEM_DEFINITIONS.filter((i) => i.kind === query.kind).map(
+            (i) => i.id,
           ),
+        ),
     query.search
       ? or(
           inArray(inventoryItems.definitionId, matches),
@@ -130,9 +144,10 @@ export async function readInventory(
   const ids = new Set(equipped.map((i) => i.id));
   return {
     items: rows.map((row) => ({
-      ...itemOf(row),
+      ...inventoryItemOf(row),
       name:
-        row.definitionId === 'equipment.v6'
+        row.definitionId === 'equipment.v6' ||
+        row.definitionId === 'material.v1'
           ? (row.instanceData as DaoEquipmentInstanceV1).name
           : itemDefinition(row.definitionId).name,
       equipped: ids.has(row.id),
@@ -145,7 +160,7 @@ export async function readInventory(
 }
 
 /** Caller holds the character SQL lock. Apply only changed rows, with stale-write guards. */
-async function save(
+export async function saveInventoryPlan(
   owner: string,
   before: InventoryItem[],
   after: InventoryItem[],
@@ -195,6 +210,7 @@ export async function grantInventory(
   owner: string,
   grants: ItemGrant[],
   tx: DbTransaction,
+  overflow = true,
 ) {
   if (!grants.length) return;
   // Only relevant stacks and the bounded bag are needed, even with an unlimited store.
@@ -218,11 +234,11 @@ export async function grantInventory(
           ),
         ),
       )
-  ).map(itemOf);
+  ).map(inventoryItemOf);
   let next = before;
   for (const grant of grants)
-    next = addItems(next, grant, 'bag', true, randomUUID);
-  await save(owner, before, next, tx);
+    next = addItems(next, grant, 'bag', overflow, randomUUID);
+  await saveInventoryPlan(owner, before, next, tx);
 }
 export async function mutateInventory(owner: string, input: InventoryAction) {
   return withRedisLock(
@@ -235,12 +251,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
     async (lease) =>
       db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, owner);
-        if (
-          (await new CombatV6WildStore().lock(owner)) ||
-          (await new CombatV6RuntimeStore().currentId(owner)) ||
-          (await redis.get(arenaOccupancyKey(owner)))
-        )
-          throw new InventoryError('请先结束战斗与结算，再调整物品');
+        await assertInventoryIdle(owner);
         const before = (
           await tx
             .select()
@@ -256,7 +267,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
                 ),
               ),
             )
-        ).map(itemOf);
+        ).map(inventoryItemOf);
         if (input.action === 'transfer' && input.location === 'storage') {
           const source = before.find((i) => i.id === input.id);
           if (source) {
@@ -268,12 +279,15 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
                   eq(inventoryItems.cultivatorId, owner),
                   eq(inventoryItems.location, 'storage'),
                   eq(inventoryItems.definitionId, source.definitionId),
+                  source.instanceData === null
+                    ? sql`${inventoryItems.instanceData} IS NULL`
+                    : sql`${inventoryItems.instanceData} = ${JSON.stringify(source.instanceData)}::jsonb`,
                   sql`${inventoryItems.quantity} < ${itemDefinition(source.definitionId).stackLimit}`,
                 ),
               )
               .orderBy(asc(inventoryItems.id))
               .limit(1);
-            before.push(...stacks.map(itemOf));
+            before.push(...stacks.map(inventoryItemOf));
           }
         }
         let next = before.map((i) => ({ ...i }));
@@ -310,13 +324,20 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
             if (item.location === input.location)
               throw new InventoryError('物品已在该位置');
             next = next.filter((i) => i.id !== item.id);
-            if (
-              item.instanceData == null &&
-              itemDefinition(item.definitionId).stackLimit > 1
-            )
+            if (itemDefinition(item.definitionId).stackLimit > 1)
               next = addItems(
                 next,
-                { definitionId: item.definitionId, quantity: item.quantity },
+                {
+                  definitionId: item.definitionId,
+                  quantity: item.quantity,
+                  ...(item.definitionId === 'material.v1'
+                    ? {
+                        instanceData: MaterialFactsSchema.parse(
+                          item.instanceData,
+                        ),
+                      }
+                    : {}),
+                },
                 input.location,
                 false,
                 () => item.id,
@@ -373,7 +394,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
           } else if (input.action === 'split') {
             if (
               item.location !== 'bag' ||
-              item.instanceData != null ||
+              itemDefinition(item.definitionId).stackLimit === 1 ||
               input.quantity >= item.quantity
             )
               throw new InventoryError('拆分数量无效');
@@ -505,7 +526,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
             });
           }
         }
-        await save(owner, before, next, tx);
+        await saveInventoryPlan(owner, before, next, tx);
         lease.assertHeld();
         return result;
       }),

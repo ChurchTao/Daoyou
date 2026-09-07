@@ -8,8 +8,8 @@ import {
   SPIRITUAL_ROOT_GRADE_VALUES,
 } from '@shared/types/constants';
 import type { TaskInstance } from '@shared/types/task';
-import { CombatV6BuildInitializationStatusSchema } from '../combatV6';
 import { z } from 'zod';
+import { CombatV6BuildInitializationStatusSchema } from '../combatV6';
 import type { PlayerResourceMap } from '../player';
 import {
   artifactSchema,
@@ -79,6 +79,7 @@ const combatV6EquipmentInstanceSchema = z
     generatorVersion: z.enum([
       'dao_equipment_generator_v1',
       'dao_equipment_generator_v2',
+      'dao_equipment_generator_v3',
     ]),
     createdAt: z.string(),
   })
@@ -344,7 +345,14 @@ export const conditionStatusSchema = z
   .strict();
 const conditionSchema = z
   .object({
-    combatV6: z.object({maxHp:z.number().positive(),maxMp:z.number().nonnegative(),recoveryPaused:z.boolean()}).strict().optional(),
+    combatV6: z
+      .object({
+        maxHp: z.number().positive(),
+        maxMp: z.number().nonnegative(),
+        recoveryPaused: z.boolean(),
+      })
+      .strict()
+      .optional(),
     version: z.literal(1),
     resources: z
       .object({
@@ -558,7 +566,9 @@ export const PLAYER_RESOURCE_DATA_SCHEMAS = {
       status: CombatV6BuildInitializationStatusSchema,
       revision: z.number().int().nonnegative(),
       membershipId: z.string().uuid().optional(),
-      sectId: z.enum(['lingxiao', 'youdu', 'wuxiang', 'tianyan', 'jiujie']).optional(),
+      sectId: z
+        .enum(['lingxiao', 'youdu', 'wuxiang', 'tianyan', 'jiujie'])
+        .optional(),
       sectName: z.string().optional(),
       activePathId: z.string().optional(),
       meridianDepth: z.number().int().min(0).max(7),

@@ -10,6 +10,7 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkDialog } from '@app/components/ui/InkDialog';
 import { InkIdentifyCelebration } from '@app/components/ui/InkIdentifyCelebration';
 
+import { VaultWithdrawal } from '@app/components/feature/forging/VaultWithdrawal';
 import { ItemDetailModal } from '@app/components/feature/items';
 import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
 import {
@@ -116,7 +117,7 @@ export function InventoryView() {
 
   return (
     <GameSceneFrame
-      title="【储物袋】"
+      title="【洞府宝库】"
       description="法宝、材料与消耗品都在此汇总。先点清手头资源，再决定是佩装、炼造，还是送去坊市流转。"
       headerMeta={
         note ? (
@@ -128,6 +129,7 @@ export function InventoryView() {
       aside={aside}
     >
       <div className="space-y-4">
+        {activeTab === 'materials' ? <VaultWithdrawal /> : null}
         <GameSceneTabs
           activeValue={activeTab}
           onChange={(val) => setActiveTab(val as InventoryTab)}
