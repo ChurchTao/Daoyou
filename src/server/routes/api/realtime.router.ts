@@ -348,6 +348,9 @@ router.get(
       onClose() {
         cleanup();
       },
+      onError() {
+        cleanup();
+      },
     };
   }),
 );

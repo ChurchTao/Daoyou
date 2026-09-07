@@ -224,6 +224,7 @@ export function recordRealtimeConnectionClose(cultivatorId: string): void {
   const current = localConnectionCounts.get(cultivatorId) ?? 0;
   if (current <= 1) {
     localConnectionCounts.delete(cultivatorId);
+    lastActivePersistedAt.delete(cultivatorId);
     setMemoryOnline(cultivatorId, false);
     void syncOnlineChangeToRedis(cultivatorId, false).catch((error) => {
       console.warn('[online-presence] failed to record offline cultivator', {
@@ -256,6 +257,7 @@ export async function __recordRealtimeConnectionCloseForTests(
   const current = localConnectionCounts.get(cultivatorId) ?? 0;
   if (current <= 1) {
     localConnectionCounts.delete(cultivatorId);
+    lastActivePersistedAt.delete(cultivatorId);
     setMemoryOnline(cultivatorId, false);
     await syncOnlineChangeToRedis(cultivatorId, false);
     return;
@@ -308,4 +310,11 @@ export function __resetOnlinePresenceForTests(): void {
   memoryToday = formatLocalDate(new Date());
   memoryTodayPeakOnline = 0;
   memoryAllTimePeakOnline = 0;
+}
+
+export function getLocalPresenceStats() {
+  return {
+    connectedCultivators: localConnectionCounts.size,
+    activityEntries: lastActivePersistedAt.size,
+  };
 }

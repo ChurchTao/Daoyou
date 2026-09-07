@@ -32,5 +32,9 @@ export default {
   fetch(request: Request, server: unknown) {
     return app.fetch(request, { server });
   },
-  websocket,
+  websocket: {
+    ...websocket,
+    backpressureLimit: 1_048_576,
+    closeOnBackpressureLimit: true,
+  },
 };

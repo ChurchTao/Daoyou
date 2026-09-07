@@ -10,9 +10,7 @@ type SharedSubscription = {
   healthy: boolean;
   task: Promise<void>;
   cancelRestartWait?: () => void;
-  ready: Promise<void>;
-  resolveReady: () => void;
-  readyResolved: boolean;
+  readyWaiters: Set<() => void>;
 };
 
 const codec = StringCodec();
@@ -22,18 +20,12 @@ const SUBSCRIPTION_RESTART_DELAYS_MS = [
 ] as const;
 
 function createSharedSubscription(subject: string): SharedSubscription {
-  let resolveReady!: () => void;
-  const ready = new Promise<void>((resolve) => {
-    resolveReady = resolve;
-  });
   const shared: SharedSubscription = {
     handlers: new Set(),
     closed: false,
     healthy: false,
     task: Promise.resolve(),
-    ready,
-    resolveReady,
-    readyResolved: false,
+    readyWaiters: new Set(),
   };
   shared.task = superviseSubscription(subject, shared);
   subscriptions.set(subject, shared);
@@ -46,15 +38,16 @@ async function superviseSubscription(
 ): Promise<void> {
   let restartAttempt = 0;
   while (!shared.closed) {
+    let subscription: Subscription | undefined;
     try {
       const connection = await getNatsConnection();
       if (shared.closed) return;
-      const subscription = connection.subscribe(subject);
+      subscription = connection.subscribe(subject);
       shared.subscription = subscription;
       await connection.flush();
       shared.healthy = true;
-      shared.readyResolved = true;
-      shared.resolveReady();
+      for (const ready of shared.readyWaiters) ready();
+      shared.readyWaiters.clear();
       restartAttempt = 0;
       for await (const message of subscription) {
         const decoded = codec.decode(message.data);
@@ -71,8 +64,9 @@ async function superviseSubscription(
       }
       if (!shared.closed) throw new Error('NATS Core subscription 意外结束');
     } catch (error) {
+      subscription?.unsubscribe();
       shared.healthy = false;
-      resetReadyWaiter(shared);
+
       if (!shared.closed) {
         const delayMs =
           SUBSCRIPTION_RESTART_DELAYS_MS[
@@ -87,6 +81,7 @@ async function superviseSubscription(
         await waitForRestart(shared, delayMs);
       }
     } finally {
+      subscription?.unsubscribe();
       shared.healthy = false;
       shared.subscription = undefined;
     }
@@ -140,6 +135,8 @@ export function subscribeNatsCoreSubject(
     if (current.handlers.size > 0) return;
     subscriptions.delete(subject);
     current.closed = true;
+    for (const ready of current.readyWaiters) ready();
+    current.readyWaiters.clear();
     current.healthy = false;
     current.cancelRestartWait?.();
     current.subscription?.unsubscribe();
@@ -148,12 +145,38 @@ export function subscribeNatsCoreSubject(
 
 export async function waitForNatsCoreSubjectReady(
   subject: string,
+  signal?: AbortSignal,
 ): Promise<void> {
   const shared =
     subscriptions.get(subject) ?? createSharedSubscription(subject);
-  if (!shared.healthy) await shared.ready;
-  const connection = await getNatsConnection();
-  await connection.flush();
+  const controller = new AbortController();
+  const abort = () => controller.abort(signal?.reason);
+  signal?.addEventListener('abort', abort, { once: true });
+  if (signal?.aborted) abort();
+  const timer = setTimeout(
+    () => controller.abort(new Error('NATS subscription readiness timed out')),
+    10_000,
+  );
+  const cancelled = new Promise<never>((_, reject) => {
+    if (controller.signal.aborted) reject(controller.signal.reason);
+    else controller.signal.addEventListener('abort', () => reject(controller.signal.reason), { once: true });
+  });
+  let ready: (() => void) | undefined;
+  const readiness = shared.healthy ? Promise.resolve() : new Promise<void>((resolve) => {
+    ready = resolve;
+    shared.readyWaiters.add(resolve);
+  });
+  try {
+    await Promise.race([readiness, cancelled]);
+    if (shared.closed) throw new Error('NATS subscription closed');
+    controller.signal.throwIfAborted();
+    const connection = await Promise.race([getNatsConnection(), cancelled]);
+    await Promise.race([connection.flush(), cancelled]);
+  } finally {
+    if (ready) shared.readyWaiters.delete(ready);
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', abort);
+  }
 }
 
 export function areNatsCoreSubscriptionsHealthy(): boolean {
@@ -167,6 +190,8 @@ export async function stopNatsCoreSubscriptions(): Promise<void> {
   subscriptions.clear();
   for (const shared of active) {
     shared.closed = true;
+    for (const ready of shared.readyWaiters) ready();
+    shared.readyWaiters.clear();
     shared.healthy = false;
     shared.cancelRestartWait?.();
     shared.subscription?.unsubscribe();
@@ -174,10 +199,12 @@ export async function stopNatsCoreSubscriptions(): Promise<void> {
   await Promise.allSettled(active.map((shared) => shared.task));
 }
 
-function resetReadyWaiter(shared: SharedSubscription): void {
-  if (shared.closed || !shared.readyResolved) return;
-  shared.readyResolved = false;
-  shared.ready = new Promise<void>((resolve) => {
-    shared.resolveReady = resolve;
-  });
+export function getNatsSubscriptionStats() {
+  let handlers = 0;
+  let readyWaiters = 0;
+  for (const shared of subscriptions.values()) {
+    handlers += shared.handlers.size;
+    readyWaiters += shared.readyWaiters.size;
+  }
+  return { subjects: subscriptions.size, handlers, readyWaiters };
 }
