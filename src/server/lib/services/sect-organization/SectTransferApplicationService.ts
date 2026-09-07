@@ -16,8 +16,8 @@ import {
   loadCultivatorSectState,
   loadSectCultivatorProgress,
 } from '@server/lib/repositories/sectRepository';
-import { SectError } from '@server/lib/services/SectError';
 import { consumeConsumableById } from '@server/lib/services/cultivator/CultivatorInventoryRepository';
+import { SectError } from '@server/lib/services/SectError';
 import {
   CHEAT_HEAVEN_TALISMAN_NAME,
   CHEAT_HEAVEN_TALISMAN_SCENARIO,
@@ -34,6 +34,11 @@ import {
 } from '@shared/engine/sect';
 import type { Consumable } from '@shared/types/cultivator';
 import { and, asc, eq, sql } from 'drizzle-orm';
+import {
+  carryV6SectBuild,
+  planV6SectTransfer,
+} from '../combat-v6/CombatV6SectTransfer';
+import { assertInventoryIdle } from '../InventoryService';
 import { getSectDateKey, getSectWeekKey } from './SectOrganizationClock';
 
 async function loadTransferTalisman(
@@ -135,10 +140,7 @@ async function inspectTasks(
   };
 }
 
-async function clearSectProgress(
-  membershipId: string,
-  tx: DbTransaction,
-) {
+async function clearSectProgress(membershipId: string, tx: DbTransaction) {
   await tx
     .delete(sectAbilityLoadouts)
     .where(eq(sectAbilityLoadouts.membershipId, membershipId));
@@ -160,8 +162,16 @@ export async function previewSectTransfer(args: {
   runtime: SectRuntime;
   q: DbExecutor | DbTransaction;
 }): Promise<SectTransferPreviewData> {
-  const { source, sourceModule, targetModule, plan } =
+  const { source, sourceModule, targetModule } =
     await requireTransferPlan(args);
+  const v6 = await planV6SectTransfer(
+    args.cultivatorId,
+    source.membershipId,
+    source.sectId,
+    args.targetSectId,
+    args.reversePaths,
+    args.q,
+  );
   const [talisman, tasks] = await Promise.all([
     loadTransferTalisman(args.cultivatorId, args.q),
     inspectTasks(source.membershipId, args.q),
@@ -180,23 +190,31 @@ export async function previewSectTransfer(args: {
     discipleRank: source.discipleRank ?? 'registered',
     contribution: source.contribution,
     lifetimeContribution: source.lifetimeContribution ?? source.contribution,
-    methodMappings: plan.methodLevels,
-    pathMappings: plan.pathMappings.map((mapping) => ({
-      ...mapping,
-      sourcePathName:
-        sourceModule.definition.paths.find(
-          (path) => path.id === mapping.sourcePathId,
-        )?.name ?? mapping.sourcePathId,
-      targetPathName:
-        targetModule.definition.paths.find(
-          (path) => path.id === mapping.targetPathId,
-        )?.name ?? mapping.targetPathId,
-      active: plan.activePathId === mapping.targetPathId,
-    })),
+    methodMappings: v6.source.methods.map((method) => {
+      const target = v6.target.methods.find((m) => m.slot === method.slot)!;
+      return {
+        sourceMethodId: method.id,
+        sourceMethodName: method.name,
+        targetMethodId: target.id,
+        targetMethodName: target.name,
+        level: v6.progress.methods[method.id],
+      };
+    }),
+    pathMappings: v6.source.paths.map((path, index) => {
+      const target = v6.target.paths[args.reversePaths ? 1 - index : index];
+      return {
+        sourcePathId: path.id,
+        sourcePathName: path.name,
+        targetPathId: target.id,
+        targetPathName: target.name,
+        unlockedLayerCount: v6.next.meridianDepth,
+        active: v6.next.activePathId === target.id,
+      };
+    }),
     ...tasks,
     warnings: [
-      '转宗后，目标宗门的节点和三套流派方案会清空，你可以按保留的解锁层数重新选择。',
-      '转宗后，宗门神通栏会清空，需要重新装配。',
+      '共用经脉深度保留，目标宗门两流派的节点选择清空。',
+      '心法等级按槽位保留，已解锁神通自动可用；人物道印、道装和修炼不变。',
       '原宗门职务不会保留。',
       ...(tasks.activeTaskCount > 0
         ? [`${tasks.activeTaskCount}项进行中的宗门任务将自动放弃。`]
@@ -221,6 +239,15 @@ export async function executeSectTransfer(args: {
     ...args,
     q: args.tx,
   });
+  await assertInventoryIdle(args.cultivatorId);
+  const v6 = await planV6SectTransfer(
+    args.cultivatorId,
+    source.membershipId,
+    source.sectId,
+    args.targetSectId,
+    args.reversePaths,
+    args.tx,
+  );
   const talisman = await loadTransferTalisman(
     args.cultivatorId,
     args.tx,
@@ -297,6 +324,7 @@ export async function executeSectTransfer(args: {
         .values(membershipValues)
         .returning();
   if (!targetMembership) throw new Error('目标宗门玉牒创建失败');
+  await carryV6SectBuild(v6, targetMembership.id, args.tx);
 
   const methodRows = plan.methodLevels
     .filter((method) => method.level > 0)

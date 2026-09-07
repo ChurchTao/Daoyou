@@ -214,7 +214,10 @@ export default function TrainingRoomPage() {
               const response = await fetch('/api/combat-v6/build/initialize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ activePathId, expectedRevision: 0 }),
+                body: JSON.stringify({
+                  activePathId,
+                  expectedRevision: build.revision,
+                }),
               });
               const next =
                 await consumeResourceMutation<CombatV6BuildViewV1>(response);

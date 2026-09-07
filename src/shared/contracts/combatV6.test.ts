@@ -24,9 +24,15 @@ describe('combat-v6 Phase 7B contracts', () => {
     expect(
       CombatV6BuildInitializeRequestSchema.safeParse({
         activePathId: 'x',
-        expectedRevision: 1,
+        expectedRevision: -1,
       }).success,
     ).toBe(false);
+    expect(
+      CombatV6BuildInitializeRequestSchema.safeParse({
+        activePathId: 'lingxiao.path.zhanchen',
+        expectedRevision: 3,
+      }).success,
+    ).toBe(true);
     expect(
       CombatV6TrainingCreateRequestSchema.safeParse({
         encounterId: 'combat.training.encounter.single-dummy',

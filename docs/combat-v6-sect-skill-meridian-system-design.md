@@ -1,14 +1,6 @@
 # combat-v6 宗门心法、技能与经脉系统设计
 
-> 状态：宗门战斗领域方向基线（Canonical）
-> 建立日期：2026-09-02
-> 上位设计：[`combat-v6 梦幻式战斗体系设计稿与迁移路线图`](./combat-v6-mhxy-redesign-roadmap.md)
-> 首个完整纵切：[`combat-v6 红尘剑宗纵切设计`](./combat-v6-lingxiao-datang-sect-design.md)
-> 第二个完整纵切：[`combat-v6 幽都经典双流派纵切`](./combat-v6-youdu-classic-sect-design.md)
-> 第三个完整纵切：[`combat-v6 无相禅宗双流派纵切`](./combat-v6-wuxiang-sect-design.md)
-> 第四个完整纵切：[`combat-v6 天衍圣地河洛九宫纵切`](./combat-v6-tianyan-sect-design.md)
-> 第五个完整纵切：[`combat-v6 九劫天宫经典双流派纵切`](./combat-v6-jiujie-sect-design.md)
-> 适用范围：combat-v6 人物宗门心法、宗门技能、特色机制、双流派与经脉编译
+> 状态：宗门战斗领域方向基线（Canonical）建立日期：2026-09-02上位设计：[`combat-v6 梦幻式战斗体系设计稿与迁移路线图`](./combat-v6-mhxy-redesign-roadmap.md) 首个完整纵切：[`combat-v6 红尘剑宗纵切设计`](./combat-v6-lingxiao-datang-sect-design.md) 第二个完整纵切：[`combat-v6 幽都经典双流派纵切`](./combat-v6-youdu-classic-sect-design.md) 第三个完整纵切：[`combat-v6 无相禅宗双流派纵切`](./combat-v6-wuxiang-sect-design.md) 第四个完整纵切：[`combat-v6 天衍圣地河洛九宫纵切`](./combat-v6-tianyan-sect-design.md) 第五个完整纵切：[`combat-v6 九劫天宫经典双流派纵切`](./combat-v6-jiujie-sect-design.md) 适用范围：combat-v6 人物宗门心法、宗门技能、特色机制、双流派与经脉编译
 
 本文定义 combat-v6 的宗门战斗体系。现有宗门社会身份和玩家已经投入形成的心法等级、经脉深度平滑进入新版；旧宗门技能、`AbilityConfig`、通用成长倍率、四技能装配和 v5 运行时产物全部退出。
 
@@ -185,10 +177,10 @@ interface SectSkillDefV6 {
 }
 ```
 
-| 类型 | 说明 |
-| --- | --- |
-| `active` | 玩家在行动阶段主动选择的宗门技能 |
-| `passive` | 宗门根基、技能被动或经脉授予的常驻能力 |
+| 类型       | 说明                                                       |
+| ---------- | ---------------------------------------------------------- |
+| `active`   | 玩家在行动阶段主动选择的宗门技能                           |
+| `passive`  | 宗门根基、技能被动或经脉授予的常驻能力                     |
 | `internal` | 追击、反击、形态入场、反应结算等内部引用技能，不显示为指令 |
 
 普通攻击由 combat-v6 通用规则提供，不属于任何一本宗门心法。宗门若要强化或改变普攻，通过被动、状态或单位技能覆盖实现。
@@ -261,10 +253,10 @@ core 不认识宗门名称。若特色机制需要新的 core 原语，必须满
 
 保留三种形态：
 
-| 形态 | 定位 |
-| --- | --- |
-| 佛相 | 防御、护盾、恢复、保护 |
-| 魔相 | 输出、吸血、气血消耗、风险换收益 |
+| 形态 | 定位                                       |
+| ---- | ------------------------------------------ |
+| 佛相 | 防御、护盾、恢复、保护                     |
+| 魔相 | 输出、吸血、气血消耗、风险换收益           |
 | 无相 | 条件进入的短期强化窗口，融合或升华佛魔能力 |
 
 三种形态编译为互斥状态：
@@ -315,9 +307,9 @@ interface ElementReactionDefV6 {
 
 两条流派分别侧重：
 
-| 流派方向 | 定位 |
-| --- | --- |
-| 勾魂阎罗 | 固定伤害、幽毒、伤势、群体恢复和锢魂控制 |
+| 流派方向 | 定位                                             |
+| -------- | ------------------------------------------------ |
+| 勾魂阎罗 | 固定伤害、幽毒、伤势、群体恢复和锢魂控制         |
 | 六道魍魉 | 法术驱动的物理攻击、幽毒附着、必中群攻和物理爆发 |
 
 固定伤害使用 v6 `fixed/judge` 公式族。削弱、毒和压疗使用通用状态与治疗系数。
@@ -351,13 +343,13 @@ interface SectDefinitionV6 {
 
 初步方向：
 
-| 宗门 | 资源方向 |
-| --- | --- |
-| 无相禅宗 | 保留心念 |
+| 宗门     | 资源方向                             |
+| -------- | ------------------------------------ |
+| 无相禅宗 | 保留心念                             |
 | 天衍圣地 | 根据反应计数是否形成决策决定衍数去留 |
-| 幽都 | 首版可移除魂火 |
-| 红尘剑宗 | 连招与终式确有消费关系时保留剑意 |
-| 九劫天宫 | 承劫—清算循环成立时保留劫数 |
+| 幽都     | 首版可移除魂火                       |
+| 红尘剑宗 | 连招与终式确有消费关系时保留剑意     |
+| 九劫天宫 | 承劫—清算循环成立时保留劫数          |
 
 ---
 
@@ -438,10 +430,7 @@ interface SectMeridianLoadoutV6 {
 
 interface SectCombatProgressV6 {
   activePathId: string;
-  meridianLoadouts: [
-    SectMeridianLoadoutV6,
-    SectMeridianLoadoutV6,
-  ];
+  meridianLoadouts: [SectMeridianLoadoutV6, SectMeridianLoadoutV6];
 }
 ```
 
@@ -522,10 +511,7 @@ interface SectCombatProgressV6 {
   methods: Record<string, number>;
   meridianDepth: number;
   activePathId: string;
-  meridianLoadouts: [
-    SectMeridianLoadoutV6,
-    SectMeridianLoadoutV6,
-  ];
+  meridianLoadouts: [SectMeridianLoadoutV6, SectMeridianLoadoutV6];
 }
 ```
 
@@ -575,7 +561,7 @@ interface SectCombatProgressV6 {
 - 旧技能和技能等级投影。
 - 旧心法描述的战斗语义。
 
-迁移记录保存源心法 ID、目标心法 ID、槽位和等级，保证幂等。
+迁移 SQL 固定源心法 ID、目标心法 ID 与槽位映射，已有新版等级不覆盖，不新增迁移凭据表。
 
 ### 9.3 经脉深度
 
@@ -583,24 +569,18 @@ interface SectCombatProgressV6 {
 
 ```text
 newMeridianDepth
-= max(旧流派一解锁层数, 旧流派二解锁层数)
+= max(旧流派一最高已解锁层级, 旧流派二最高已解锁层级, 已有新版深度)
 ```
 
 新版两条流派均可以在该深度内配置节点。这样不会降低玩家已有的最高战斗深度，也不因旧系统曾在两个流派分别投入而直接把层数相加制造额外战力。
 
-第七层是新版新增成长，迁移时默认未解锁。
+旧版 ultimate 对应第六层；迁移不赠送第七层，但已有新版第七层仍保留。
 
 ### 9.4 流派与节点选择
 
-```text
-旧流派序号 → 新流派同序号
-旧层级 1～6 → 新层级 1～6
-旧节点在该层的位置 1/2/3 → 新节点同位置
-```
+Phase 9G 只继承共用深度，不翻译旧节点，也不自动代选节点。已有新版流派与节点保留；尚未启用的构筑由玩家选定初始流派，两流派从空方案开始。允许空位进入战斗，并提示方案不完整。
 
-这只是结构迁移，不是旧节点效果翻译器。旧节点 ID、被动、modifier 和技能 patch 不进入 v6。
-
-无法识别稳定位置时，使用对应流派的推荐默认节点并输出迁移诊断。迁移后两条流派各拥有一套可直接使用的经脉方案。
+养成费用、等级门槛、免费切换与转宗规则以 [Phase 9G 实施方案](combat-v6-phase-9g-sect-plan.md) 为准。文末 Phase 7B 限制保留为历史阶段记录，深度从零与禁止切换的临时限制已由 9G 替代。
 
 ### 9.5 四技能栏
 

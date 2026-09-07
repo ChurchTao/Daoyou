@@ -4,7 +4,6 @@ import {
   type SectCommandArgs,
 } from './commandSupport';
 import { executeSectTransfer } from './SectTransferApplicationService';
-import { settleWildBeforeMembershipChange } from '../combat-v6/CombatV6MembershipBoundary';
 
 export async function executeSectTransferCommand(
   args: SectCommandArgs & {
@@ -13,12 +12,16 @@ export async function executeSectTransferCommand(
     consumableId?: string;
   },
 ) {
-  await settleWildBeforeMembershipChange(args.cultivatorId);
   return executeSectPlayerCommand(args, async (tx) => {
     const result = await executeSectTransfer({ ...args, tx });
     return {
       result: { sect: result.sect },
       resourceChanges: [
+        {
+          resourceTopic: 'player.combat-v6-build',
+          operation: 'invalidate',
+          eventType: 'combat_v6.sect.transferred',
+        },
         {
           resourceTopic: 'player.session',
           eventType: 'sect.transferred',

@@ -129,7 +129,7 @@ export default function SectTransferPage() {
             <strong>{preview.target.name}</strong>？
           </p>
           <p className="text-ink-secondary text-center">
-            心法等级、流派解锁层数、弟子身份和贡献都会保留。转入新宗门后，需要重新选择流派节点和宗门神通；原宗门职务不会保留。
+            心法等级、经脉共用深度、弟子身份和贡献都会保留。转入新宗门后，需要重新选择流派节点，神通随心法与经脉自动解锁；原宗门职务不会保留。
           </p>
           {preview.activeTaskCount > 0 && (
             <p className="text-crimson text-center">

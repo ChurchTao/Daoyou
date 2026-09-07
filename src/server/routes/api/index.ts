@@ -44,6 +44,7 @@ import playerRouter from '@server/routes/player.router';
 import { allowsLocalDevTools } from '@shared/config/deployment';
 import { Hono } from 'hono';
 import manualsRouter from './combat-v6-manuals.router';
+import sectV6Router from './combat-v6-sect.router';
 import devResourcesRouter from './dev-resources.router';
 import forgingRouter from './forging.router';
 
@@ -97,6 +98,7 @@ apiRouter.route('/community', communityRouter);
 apiRouter.route('/combat-v6/arena', combatV6ArenaRouter);
 apiRouter.route('/combat-v6/forging', forgingRouter);
 apiRouter.route('/combat-v6/manuals', manualsRouter);
+apiRouter.route('/combat-v6/sect', sectV6Router);
 if (allowsLocalDevTools(process.env.APP_ENV, process.env.NODE_ENV))
   apiRouter.route('/dev', devResourcesRouter);
 apiRouter.route('/combat-v6', combatV6Router);

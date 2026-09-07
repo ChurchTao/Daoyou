@@ -71,7 +71,7 @@ export interface CombatV6PersistedBuildV1 {
 export const CombatV6BuildInitializeRequestSchema = z
   .object({
     activePathId: z.string().min(1).max(160),
-    expectedRevision: z.literal(0),
+    expectedRevision: z.number().int().nonnegative(),
   })
   .strict();
 export type CombatV6BuildInitializeRequest = z.infer<

@@ -17,6 +17,7 @@ import {
   PlayerCommandIdempotencyError,
   type CommittedCommand,
 } from '@server/lib/services/CommandExecutors';
+import { InventoryError } from '@server/lib/services/InventoryService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import {
   readResourceWithMeta,
@@ -29,11 +30,7 @@ import {
   createPostgresSectMembershipQueryContext,
   createPostgresSectQueryContext,
 } from '@server/lib/services/sect-organization/PostgresSectOrganizationAdapters';
-import { SectError } from '@server/lib/services/SectError';
-import { SectShopError } from '@server/lib/services/SectShopService';
-import {
-  executeSectConstructionDonationCommand,
-} from '@server/lib/services/sect-organization/SectConstructionCommand';
+import { executeSectConstructionDonationCommand } from '@server/lib/services/sect-organization/SectConstructionCommand';
 import {
   executeSectShopPurchaseCommand,
   executeSectStipendClaimCommand,
@@ -43,26 +40,15 @@ import {
   executeSectPromotionCommand,
 } from '@server/lib/services/sect-organization/SectMembershipCommand';
 import { executeSectTaskActionCommand } from '@server/lib/services/sect-organization/SectTaskCommand';
-import {
-  executeSectAbilityLoadoutCommand,
-  executeSectMeridianActivateCommand,
-  executeSectMeridianUpdateCommand,
-  executeSectMethodTrainCommand,
-  executeSectPathActivateCommand,
-  executeSectPathLayerUnlockCommand,
-  executeSectPathTacticCommand,
-} from '@server/lib/services/sect-organization/SectTraditionCommand';
 import { previewSectTransfer } from '@server/lib/services/sect-organization/SectTransferApplicationService';
 import { executeSectTransferCommand } from '@server/lib/services/sect-organization/SectTransferCommand';
+import { SectError } from '@server/lib/services/SectError';
+import { SectShopError } from '@server/lib/services/SectShopService';
 import {
-  SectAbilityLoadoutRequestSchema,
   SectDonationRequestSchema,
   SectIdempotencyKeySchema,
   SectMembersQuerySchema,
-  SectMeridianLoadoutRequestSchema,
-  SectMethodTrainRequestSchema,
   SectSubmissionCandidatesQuerySchema,
-  SectTacticRequestSchema,
   SectTaskActionRequestSchema,
   SectTransferPreviewQuerySchema,
   SectTransferRequestSchema,
@@ -129,6 +115,8 @@ function failure(c: Context<AppEnv>, error: unknown) {
       { success: false as const, error: error.message },
       error.status as 400 | 404 | 500,
     );
+  if (error instanceof InventoryError)
+    return c.json({ success: false as const, error: error.message }, 409);
   console.error('[sects]', error);
   return c.json({ success: false as const, error: '宗门事务处理失败' }, 500);
 }
@@ -148,8 +136,6 @@ export function createSectsRouter(
   const runtime = dependencies.runtime ?? productionSectRuntime;
   const admission = (q: Parameters<typeof organizationFacade.admission>[0]) =>
     organizationFacade.admission(q, runtime);
-  const tradition = (q: Parameters<typeof organizationFacade.tradition>[0]) =>
-    organizationFacade.tradition(q, runtime);
 
   router.get('/current/context', requireActiveCultivatorRef(), async (c) => {
     const ref = c.get('activeCultivatorRef');
@@ -195,36 +181,40 @@ export function createSectsRouter(
     }
   });
 
-  router.get('/current/infrastructure', requireActiveCultivatorRef(), async (c) => {
-    const ref = c.get('activeCultivatorRef');
-    if (!ref) return c.json({ success: false, error: '当前没有活跃角色' }, 404);
-    try {
-      return c.json(
-        await readResourceWithResolvedScope(
-          'sect.infrastructure',
-          async (q) => {
-            const membership = await findMembership(ref.cultivatorId, q);
-            if (!membership)
-              throw new SectError(
-                'SECT_MEMBERSHIP_REQUIRED',
-                '尚未拜入宗门',
-                404,
-              );
-            return {
-              scope: { kind: 'sect', id: membership.sectId },
-              data:
-                await sectOrganizationFacade.membership.getInfrastructureResource(
+  router.get(
+    '/current/infrastructure',
+    requireActiveCultivatorRef(),
+    async (c) => {
+      const ref = c.get('activeCultivatorRef');
+      if (!ref)
+        return c.json({ success: false, error: '当前没有活跃角色' }, 404);
+      try {
+        return c.json(
+          await readResourceWithResolvedScope(
+            'sect.infrastructure',
+            async (q) => {
+              const membership = await findMembership(ref.cultivatorId, q);
+              if (!membership)
+                throw new SectError(
+                  'SECT_MEMBERSHIP_REQUIRED',
+                  '尚未拜入宗门',
+                  404,
+                );
+              return {
+                scope: { kind: 'sect', id: membership.sectId },
+                data: await sectOrganizationFacade.membership.getInfrastructureResource(
                   ref.cultivatorId,
                   createPostgresSectMembershipQueryContext({ q, runtime }),
                 ),
-            };
-          },
-        ),
-      );
-    } catch (error) {
-      return failure(c, error);
-    }
-  });
+              };
+            },
+          ),
+        );
+      } catch (error) {
+        return failure(c, error);
+      }
+    },
+  );
 
   router.get(
     '/current/progression',
@@ -263,17 +253,14 @@ export function createSectsRouter(
       });
       if (!cultivator)
         throw new SectError('SECT_MEMBERSHIP_REQUIRED', '角色不存在', 404);
-      const data =
-        await sectOrganizationFacade.membership.getStipendResource(
-          {
-            id: cultivator.id,
-            realm: cultivator.realm as RealmType,
-          },
-          createPostgresSectMembershipQueryContext({ q, runtime }),
-        );
-      return c.json(
-        { success: true as const, data },
+      const data = await sectOrganizationFacade.membership.getStipendResource(
+        {
+          id: cultivator.id,
+          realm: cultivator.realm as RealmType,
+        },
+        createPostgresSectMembershipQueryContext({ q, runtime }),
       );
+      return c.json({ success: true as const, data });
     } catch (error) {
       return failure(c, error);
     }
@@ -293,11 +280,7 @@ export function createSectsRouter(
           where: eq(cultivators.id, ref.cultivatorId),
         });
         if (!cultivator)
-          throw new SectError(
-            'SECT_MEMBERSHIP_REQUIRED',
-            '角色不存在',
-            404,
-          );
+          throw new SectError('SECT_MEMBERSHIP_REQUIRED', '角色不存在', 404);
         const data =
           await sectOrganizationFacade.membership.getPromotionEvaluationResource(
             {
@@ -319,11 +302,14 @@ export function createSectsRouter(
     if (!ref) return c.json({ success: false, error: '当前没有活跃角色' }, 404);
     try {
       return c.json(
-        await readResourceWithMeta({ kind: 'cultivator', id: ref.cultivatorId }, 'sect.tasks', (q) =>
-          sectOrganizationFacade.tasks.queries.execute(
-            { cultivatorId: ref.cultivatorId },
-            createPostgresSectQueryContext({ q, runtime }),
-          ),
+        await readResourceWithMeta(
+          { kind: 'cultivator', id: ref.cultivatorId },
+          'sect.tasks',
+          (q) =>
+            sectOrganizationFacade.tasks.queries.execute(
+              { cultivatorId: ref.cultivatorId },
+              createPostgresSectQueryContext({ q, runtime }),
+            ),
         ),
       );
     } catch (error) {
@@ -373,11 +359,14 @@ export function createSectsRouter(
     if (!ref) return c.json({ success: false, error: '当前没有活跃角色' }, 404);
     try {
       return c.json(
-        await readResourceWithMeta({ kind: 'cultivator', id: ref.cultivatorId }, 'sect.shop', (q) =>
-          sectOrganizationFacade.economy.getShop(
-            ref.cultivatorId,
-            createPostgresSectEconomyContext({ q, runtime }),
-          ),
+        await readResourceWithMeta(
+          { kind: 'cultivator', id: ref.cultivatorId },
+          'sect.shop',
+          (q) =>
+            sectOrganizationFacade.economy.getShop(
+              ref.cultivatorId,
+              createPostgresSectEconomyContext({ q, runtime }),
+            ),
         ),
       );
     } catch (error) {
@@ -423,27 +412,24 @@ export function createSectsRouter(
       try {
         const query = getValidatedQuery<{ page: number; pageSize: number }>(c);
         return c.json(
-          await readResourceWithResolvedScope(
-            'sect.members',
-            async (q) => {
-              const membership = await findMembership(ref.cultivatorId, q);
-              if (!membership)
-                throw new SectError(
-                  'SECT_MEMBERSHIP_REQUIRED',
-                  '尚未拜入宗门',
-                  404,
-                );
-              return {
-                scope: { kind: 'sect', id: membership.sectId },
-                data: await sectOrganizationFacade.membership.listMembers(
-                  ref.cultivatorId,
-                  query.page,
-                  query.pageSize,
-                  createPostgresSectMembershipQueryContext({ q, runtime }),
-                ),
-              };
-            },
-          ),
+          await readResourceWithResolvedScope('sect.members', async (q) => {
+            const membership = await findMembership(ref.cultivatorId, q);
+            if (!membership)
+              throw new SectError(
+                'SECT_MEMBERSHIP_REQUIRED',
+                '尚未拜入宗门',
+                404,
+              );
+            return {
+              scope: { kind: 'sect', id: membership.sectId },
+              data: await sectOrganizationFacade.membership.listMembers(
+                ref.cultivatorId,
+                query.page,
+                query.pageSize,
+                createPostgresSectMembershipQueryContext({ q, runtime }),
+              ),
+            };
+          }),
         );
       } catch (error) {
         return failure(c, error);
@@ -561,8 +547,7 @@ export function createSectsRouter(
         c,
         'sect_construction_donate',
         body,
-        (args) =>
-          executeSectConstructionDonationCommand({ ...args, ...body }),
+        (args) => executeSectConstructionDonationCommand({ ...args, ...body }),
       );
     },
   );
@@ -622,164 +607,40 @@ export function createSectsRouter(
         reversePaths: boolean;
         consumableId?: string;
       }>(c);
-      return organizationCommandMutation(
-        c,
-        'sect_transfer',
-        body,
-        (args) => executeSectTransferCommand({ ...args, ...body }),
+      return organizationCommandMutation(c, 'sect_transfer', body, (args) =>
+        executeSectTransferCommand({ ...args, ...body }),
       );
     },
   );
 
   router.post('/:sectId/join', requireActiveCultivatorRef(), async (c) => {
     const sectId = c.req.param('sectId');
-    return organizationCommandMutation(
-      c,
-      'sect_join',
-      { sectId },
-      (args) => executeSectJoinCommand({ ...args, sectId, admission }),
+    return organizationCommandMutation(c, 'sect_join', { sectId }, (args) =>
+      executeSectJoinCommand({ ...args, sectId, admission }),
     );
   });
 
-  router.post(
-    '/current/methods/:methodId/train',
+  // Legacy combat progression is retired; social and organization routes remain intact.
+  router.on(
+    ['POST', 'PUT'],
+    [
+      '/current/methods/:methodId/train',
+      '/current/paths/:pathId/layers/:layerId/unlock',
+      '/current/paths/:pathId/activate',
+      '/current/paths/:pathId/meridian-loadouts/:slot',
+      '/current/paths/:pathId/meridian-loadouts/:slot/activate',
+      '/current/ability-loadout',
+      '/current/paths/:pathId/tactic',
+    ],
     requireActiveCultivatorRef(),
-    validateJson(SectMethodTrainRequestSchema),
-    async (c) => {
-      const body = getValidatedJson<{ targetLevel: number }>(c);
-      return organizationCommandMutation(
-        c,
-        'sect_method_train',
-        { methodId: c.req.param('methodId'), ...body },
-        (args) =>
-          executeSectMethodTrainCommand({
-            ...args,
-            tradition,
-            methodId: c.req.param('methodId'),
-            targetLevel: body.targetLevel,
-          }),
-      );
-    },
-  );
-
-  router.post(
-    '/current/paths/:pathId/layers/:layerId/unlock',
-    requireActiveCultivatorRef(),
-    async (c) => {
-      return organizationCommandMutation(
-        c,
-        'sect_path_layer_unlock',
+    (c) =>
+      c.json(
         {
-          pathId: c.req.param('pathId'),
-          layerId: c.req.param('layerId'),
+          success: false,
+          error: '旧宗门战斗养成已停用，请刷新使用新版心法与经脉',
         },
-        (args) =>
-          executeSectPathLayerUnlockCommand({
-            ...args,
-            tradition,
-            pathId: c.req.param('pathId'),
-            layerId: c.req.param('layerId'),
-          }),
-      );
-    },
-  );
-
-  router.post(
-    '/current/paths/:pathId/activate',
-    requireActiveCultivatorRef(),
-    async (c) =>
-      organizationCommandMutation(
-        c,
-        'sect_path_activate',
-        { pathId: c.req.param('pathId') },
-        (args) =>
-          executeSectPathActivateCommand({
-            ...args,
-            tradition,
-            pathId: c.req.param('pathId'),
-          }),
+        410,
       ),
-  );
-
-  router.put(
-    '/current/paths/:pathId/meridian-loadouts/:slot',
-    requireActiveCultivatorRef(),
-    validateJson(SectMeridianLoadoutRequestSchema),
-    async (c) => {
-      const body = getValidatedJson<{ nodeIds: string[] }>(c);
-      return organizationCommandMutation(
-        c,
-        'sect_meridian_update',
-        { pathId: c.req.param('pathId'), slot: c.req.param('slot'), ...body },
-        (args) =>
-          executeSectMeridianUpdateCommand({
-            ...args,
-            tradition,
-            pathId: c.req.param('pathId'),
-            slot: Number(c.req.param('slot')),
-            nodeIds: body.nodeIds,
-          }),
-      );
-    },
-  );
-
-  router.post(
-    '/current/paths/:pathId/meridian-loadouts/:slot/activate',
-    requireActiveCultivatorRef(),
-    async (c) =>
-      organizationCommandMutation(
-        c,
-        'sect_meridian_activate',
-        { pathId: c.req.param('pathId'), slot: c.req.param('slot') },
-        (args) =>
-          executeSectMeridianActivateCommand({
-            ...args,
-            tradition,
-            pathId: c.req.param('pathId'),
-            slot: Number(c.req.param('slot')),
-          }),
-      ),
-  );
-
-  router.put(
-    '/current/ability-loadout',
-    requireActiveCultivatorRef(),
-    validateJson(SectAbilityLoadoutRequestSchema),
-    async (c) => {
-      const body = getValidatedJson<{ abilityIds: Array<string | null> }>(c);
-      return organizationCommandMutation(
-        c,
-        'sect_ability_loadout',
-        body,
-        (args) =>
-          executeSectAbilityLoadoutCommand({
-            ...args,
-            tradition,
-            abilityIds: body.abilityIds,
-          }),
-      );
-    },
-  );
-
-  router.put(
-    '/current/paths/:pathId/tactic',
-    requireActiveCultivatorRef(),
-    validateJson(SectTacticRequestSchema),
-    async (c) => {
-      const body = getValidatedJson<{ tacticId: string }>(c);
-      return organizationCommandMutation(
-        c,
-        'sect_tactic',
-        { pathId: c.req.param('pathId'), ...body },
-        (args) =>
-          executeSectPathTacticCommand({
-            ...args,
-            tradition,
-            pathId: c.req.param('pathId'),
-            tacticId: body.tacticId,
-          }),
-      );
-    },
   );
 
   router.route('/current', sectSocialRouter);

@@ -295,6 +295,13 @@
       "when": 1788787559076,
       "tag": "0041_inventory_stack_key",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1788792210469,
+      "tag": "0042_v6_sect_depth",
+      "breakpoints": true
     }
   ]
 }

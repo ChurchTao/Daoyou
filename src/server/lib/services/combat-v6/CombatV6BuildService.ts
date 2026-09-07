@@ -77,7 +77,8 @@ export async function getCombatV6BuildView(
     activePathId: profile?.activePathId ?? undefined,
     methodLevels,
   });
-  if (profile?.status !== 'active') return base;
+  if (profile?.status !== 'active')
+    return { ...base, meridianDepth: profile?.meridianDepth ?? 0 };
   const build = await loadActiveCombatV6Build(cultivatorId, q);
   if (!build)
     throw new CombatV6BuildError(
@@ -85,7 +86,12 @@ export async function getCombatV6BuildView(
       'combat-v6构筑数据不完整',
       422,
     );
-  return { ...base, manuals: build.manuals, equipment: build.equipment };
+  return {
+    ...base,
+    meridianDepth: build.sect.meridianDepth,
+    manuals: build.manuals,
+    equipment: build.equipment,
+  };
 }
 
 export async function initializeCombatV6Build(
