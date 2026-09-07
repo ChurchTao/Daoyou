@@ -160,6 +160,8 @@ router.get('/', requireActiveCultivatorRef(), async (c) => {
     }
     if (craftType === 'refine')
       return c.json({ error: '旧炼器已停用，请前往新版炼器室' }, 410);
+    if (craftType === 'create_gongfa')
+      return c.json({ error: '旧功法创作已停用，请使用功法玉简参悟' }, 410);
     if (craftType !== 'alchemy' && !isCreationCraftType(craftType)) {
       return c.json({ error: '无效的造物类型' }, 400);
     }
@@ -202,7 +204,6 @@ router.get('/', requireActiveCultivatorRef(), async (c) => {
     }
     if (
       craftType !== 'create_skill' &&
-      craftType !== 'create_gongfa' &&
       (!materialIdsParam || materialIdsParam.length === 0)
     ) {
       return c.json({ error: '请选择材料以查询消耗' }, 400);
@@ -283,6 +284,8 @@ router.post('/', requireActiveCultivatorRef(), async (c) => {
     }
     if (parsed.data.craftType === 'refine')
       return c.json({ error: '旧炼器已停用，请前往新版炼器室' }, 410);
+    if (parsed.data.craftType === 'create_gongfa')
+      return c.json({ error: '旧功法创作已停用，请使用功法玉简参悟' }, 410);
     if (parsed.data.craftType === 'create_skill') {
       return c.json(
         {
@@ -360,6 +363,8 @@ confirmRouter.post('/', requireActiveCultivatorRef(), async (c) => {
     );
     if (craftType === 'refine' && !abandon)
       return c.json({ error: '旧炼器已停用，请前往新版炼器室' }, 410);
+    if (craftType === 'create_gongfa' && !abandon)
+      return c.json({ error: '旧功法创作已停用，请使用功法玉简参悟' }, 410);
     if (craftType === 'create_skill' && !abandon) {
       return c.json(
         {

@@ -4,9 +4,11 @@ import {
   DAO_EQUIPMENT_SLOTS,
   type DaoEquipmentSlot,
 } from '../engine/combat-v6/equipment/types';
+import { CHARACTER_MANUALS_V1 } from '../engine/combat-v6/manuals/content';
 import type { ItemGrant } from '../inventory';
 import { BOOKS } from '../items/definitions/beast-books';
 import { FIXED_MATERIALS } from '../items/definitions/fixed-materials';
+import { MANUAL_JADES } from '../items/definitions/manual-jades';
 import { findItemDefinition } from '../items/registry';
 
 // Business configuration: levels/slots/probabilities belong here, never in the drop engine.
@@ -26,9 +28,9 @@ const entry = (rewardId: string, weight = 1) => ({
   weight,
   quantity: { min: 1, max: 1 },
 });
-export const QINGXI_POOL_V1 = DropPoolSchema.parse({
+export const QINGXI_POOL_V2 = DropPoolSchema.parse({
   id: 'qingxi',
-  version: 1,
+  version: 2,
   groups: [
     {
       id: 'materials',
@@ -54,10 +56,23 @@ export const QINGXI_POOL_V1 = DropPoolSchema.parse({
       chance: 0.03,
       entries: BOOKS.map((book, i) => entry(book.id, i < 4 ? 24 : 4)),
     },
+    {
+      id: 'manuals',
+      chance: 0.03,
+      entries: MANUAL_JADES.map((jade) =>
+        entry(
+          jade.id,
+          CHARACTER_MANUALS_V1.find((manual) => manual.id === jade.manualId)!
+            .rank === 'base'
+            ? 19
+            : 1,
+        ),
+      ),
+    },
   ],
 });
 export const WILD_DROP_POOLS: Record<string, DropPool> = {
-  SAT_TN_08: QINGXI_POOL_V1,
+  SAT_TN_08: QINGXI_POOL_V2,
 };
 for (const pool of Object.values(WILD_DROP_POOLS)) {
   for (const group of pool.groups)

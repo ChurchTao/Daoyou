@@ -17,6 +17,7 @@ import {
   BEAST_SKILLS,
   activeBeastSkills,
 } from '@shared/engine/combat-v6/beasts';
+import { CHARACTER_MANUALS_V1 } from '@shared/engine/combat-v6/manuals/content';
 import { BAG_CAPACITY, itemDefinition } from '@shared/inventory';
 import {
   MATERIAL_TYPE_NAMES,
@@ -190,6 +191,7 @@ export default function InventoryV6() {
           >
             <option value="all">全部</option>
             <option value="beast_book">兽诀</option>
+            <option value="manual_jade">功法玉简</option>
             <option value="equipment">道装</option>
             <option value="blueprint">图纸</option>
             <option value="material">材料</option>
@@ -408,6 +410,14 @@ function ItemDrawer({
               消耗一本，等概率覆盖一个现有技能，包括出生技能。普通和高级同系同时存在时仅高级生效。
             </InkTooltip>
           </p>
+        ) : definition.kind === 'manual_jade' ? (
+          <p>
+            {
+              CHARACTER_MANUALS_V1.find(
+                (manual) => manual.id === definition.manualId,
+              )?.description
+            }
+          </p>
         ) : definition.kind === 'material' ? (
           <MaterialDetails
             data={materialFactsOf(item.definitionId, item.instanceData)}
@@ -496,6 +506,14 @@ function ItemDrawer({
         ) : (
           <>
             <div className="flex flex-wrap gap-3">
+              {item.location === 'bag' && definition.kind === 'manual_jade' ? (
+                <InkButton
+                  href={`/game/enlightenment/gongfa?itemId=${encodeURIComponent(item.id)}`}
+                  disabled={pending}
+                >
+                  参悟
+                </InkButton>
+              ) : null}
               {item.location === 'bag' && definition.kind === 'beast_book' ? (
                 <InkButton disabled={pending} onClick={() => setLearning(true)}>
                   使用

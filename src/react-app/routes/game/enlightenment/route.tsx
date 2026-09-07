@@ -100,9 +100,9 @@ export default function EnlightenmentPage() {
               功法参悟
             </h3>
             <p className="text-ink-secondary mb-4 min-h-10 text-sm">
-              参悟大道法则，创造修炼功法。
+              参悟功法玉简，将所学铭刻于道基。
               <br />
-              草木、妖骨与辅材可作底稿，功法秘籍最能稳固道基。
+              一印一法，随心取舍。
             </p>
             <InkButton href="/game/enlightenment/gongfa" variant="primary">
               开始参悟

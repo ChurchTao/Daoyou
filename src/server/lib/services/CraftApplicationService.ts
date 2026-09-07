@@ -75,6 +75,8 @@ export async function executeCraftCommand(args: {
   input: CraftCommandInput;
 }): Promise<CommittedCommand<unknown>> {
   const { input } = args;
+  if (input.craftType === 'create_gongfa')
+    throw new CraftCommandError('旧功法创作已停用，请使用功法玉简参悟');
   const { name: cultivatorName } = await readCultivatorName(args.cultivatorId);
   if (input.materialIds.length === 0) {
     throw new CraftCommandError('参数缺失，请选择材料');
@@ -163,10 +165,23 @@ export async function executeCraftCommand(args: {
             cultivatorId: args.cultivatorId,
             cultivatorName,
             actionInstanceId,
-            consumables: (preparedCommit.result as { craftedConsumables?: Consumable[]; consumables?: Consumable[]; consumable?: Consumable })
-              .craftedConsumables ?? (preparedCommit.result as { consumables?: Consumable[]; consumable?: Consumable })
-              .consumables ?? [
-                (preparedCommit.result as { consumable?: Consumable }).consumable,
+            consumables:
+              (
+                preparedCommit.result as {
+                  craftedConsumables?: Consumable[];
+                  consumables?: Consumable[];
+                  consumable?: Consumable;
+                }
+              ).craftedConsumables ??
+              (
+                preparedCommit.result as {
+                  consumables?: Consumable[];
+                  consumable?: Consumable;
+                }
+              ).consumables ??
+              [
+                (preparedCommit.result as { consumable?: Consumable })
+                  .consumable,
               ].filter((item): item is Consumable => Boolean(item)),
           },
           tx,
@@ -284,6 +299,8 @@ export async function executeCreationConfirmationCommand(args: {
       }>;
     }
 > {
+  if (args.craftType === 'create_gongfa' && !args.abandon)
+    throw new CraftCommandError('旧功法创作已停用，请使用功法玉简参悟');
   const { name: cultivatorName } = await readCultivatorName(args.cultivatorId);
   if (args.abandon) {
     await withRedisLock(

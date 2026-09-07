@@ -767,7 +767,7 @@ export const router = createBrowserRouter(
               handle={scene(
                 {
                   id: 'gongfa-enlightenment',
-                  summary: '衡量悟性与投入，细推功法脉络。',
+                  summary: '参悟玉简，将所学铭刻于道基。',
                 },
                 '【功法参悟】',
               )}
