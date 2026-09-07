@@ -62,7 +62,7 @@ const TALISMAN_SCENARIO_ACTION_LABELS: Record<string, string> = {
 const TALISMAN_USAGE_HINTS: Record<string, string> = {
   [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: `【可在背包中直接使用，重置六维自由分配并返还属性点】`,
   [SECT_MERIDIAN_RESET_TALISMAN_SCENARIO]:
-    '【可在背包中直接使用，清空当前宗门所有流派节点方案】',
+    '【战斗外使用，清空新版宗门两流派节点，保留共用深度】',
   [CHEAT_HEAVEN_TALISMAN_SCENARIO]:
     '【前往欺天台查看转宗后的变化，确认成功后才会消耗】',
   fate_reshape: '【前往命格重塑功能页启封，开启时立即扣除】',
@@ -167,11 +167,11 @@ export function buildTalismanDetailText(consumable: Consumable): string {
       ]
     : isSectMeridianResetTalismanScenario(consumable.spec.scenario)
       ? [
-          '用途：清空当前宗门所有已习得流派的三套节点方案',
-          '保留：流派解锁层数、心法、战术和宗门神通配置',
+          '用途：清空新版宗门两流派各一套节点方案',
+          '保留：共用经脉深度、心法等级、当前流派、道印与装备',
           '使用方式：可在背包中直接使用；没有已选节点时不会消耗',
           consumable.spec.notes ??
-            `${SECT_MERIDIAN_RESET_TALISMAN_NAME}启封后，可按已解锁的流派层数重新参悟。`,
+            `${SECT_MERIDIAN_RESET_TALISMAN_NAME}启封后，可按已解锁的共用深度重新参悟；平时也可免费逐层调整节点。`,
           consumable.description,
         ]
       : restoreText

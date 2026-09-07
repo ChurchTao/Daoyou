@@ -9,8 +9,8 @@ import { useResourceMutation } from '@app/lib/resources/mutations';
 import { usePlayerSession } from '@app/lib/resources/player';
 import { CHEAT_HEAVEN_TALISMAN_NAME } from '@shared/config/sectTransferTalisman';
 import type { SectTransferPreviewData } from '@shared/contracts/sect';
+import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '@shared/engine/combat-v6/content';
 import { SECT_RANK_LABELS } from '@shared/engine/sect';
-import { productionSectRuntime } from '@shared/engine/sect/content';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -33,9 +33,9 @@ export default function SectTransferPage() {
   const currentSectId = session.data?.activeCultivator?.sectId;
   const targets = useMemo(
     () =>
-      productionSectRuntime.registry
-        .listDefinitions()
-        .filter((definition) => definition.id !== currentSectId),
+      Object.values(COMBAT_V6_SECT_DEFINITIONS_V4).filter(
+        (definition) => definition.id !== currentSectId,
+      ),
     [currentSectId],
   );
   const [targetSectId, setTargetSectId] = useState('');
@@ -56,6 +56,7 @@ export default function SectTransferPage() {
     const request = previewRequestRef.current + 1;
     previewRequestRef.current = request;
     setLoading(true);
+    setPreview(undefined);
     setError(undefined);
     await fetchPreview(nextTargetSectId, nextReverse)
       .then((data) => {
@@ -162,7 +163,7 @@ export default function SectTransferPage() {
                 )}
               </div>
               <p className="text-ink-secondary text-sm leading-6">
-                {sect.description}
+                {sect.paths.map((path) => path.name).join(' · ')}
               </p>
               <InkButton
                 variant={targetSectId === sect.id ? 'primary' : 'secondary'}

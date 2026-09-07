@@ -1,19 +1,14 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import {
   consumables,
-  creationProducts,
-  sectAbilityLoadouts,
   sectMemberships,
-  sectMeridianLoadouts,
-  sectMethodProgress,
-  sectPathProgress,
   sectStipendClaims,
   sectTaskRecords,
 } from '@server/lib/drizzle/schema';
 import { ensureSectFacilities } from '@server/lib/repositories/sectOrganizationRepository';
 import {
+  findMembership,
   findMembershipForSect,
-  loadCultivatorSectState,
   loadSectCultivatorProgress,
 } from '@server/lib/repositories/sectRepository';
 import { consumeConsumableById } from '@server/lib/services/cultivator/CultivatorInventoryRepository';
@@ -27,9 +22,9 @@ import type {
   SectTransferPreviewData,
 } from '@shared/contracts/sect';
 import {
-  buildSectTransferPlan,
   resolveSectTaskClaimReward,
   SectTaskRecordPayloadSchema,
+  type SectDiscipleRank,
   type SectRuntime,
 } from '@shared/engine/sect';
 import type { Consumable } from '@shared/types/cultivator';
@@ -71,11 +66,14 @@ async function requireTransferPlan(args: {
   runtime: SectRuntime;
   q: DbExecutor | DbTransaction;
 }) {
-  const source = await loadCultivatorSectState(
-    args.cultivatorId,
-    args.q,
-    args.runtime,
-  );
+  const row = await findMembership(args.cultivatorId, args.q);
+  const source = row
+    ? {
+        ...row,
+        membershipId: row.id,
+        discipleRank: row.discipleRank as SectDiscipleRank,
+      }
+    : null;
   if (!source)
     throw new SectError('SECT_MEMBERSHIP_REQUIRED', '尚未拜入宗门', 400);
   const sourceModule = args.runtime.registry.require(source.sectId);
@@ -98,13 +96,13 @@ async function requireTransferPlan(args: {
       admission.reason ?? '不符合目标宗门准入条件',
       400,
     );
-  const plan = buildSectTransferPlan({
-    source,
-    sourceDefinition: sourceModule.definition,
-    targetDefinition: targetModule.definition,
-    reversePathMapping: args.reversePaths,
-  });
-  return { source, sourceModule, targetModule, plan };
+  if (source.sectId === args.targetSectId)
+    throw new SectError(
+      'SECT_ORGANIZATION_INVALID',
+      '已在目标宗门，无需转宗',
+      400,
+    );
+  return { source, sourceModule, targetModule };
 }
 
 async function inspectTasks(
@@ -138,21 +136,6 @@ async function inspectTasks(
       return Boolean(resolveSectTaskClaimReward(payload.data));
     }),
   };
-}
-
-async function clearSectProgress(membershipId: string, tx: DbTransaction) {
-  await tx
-    .delete(sectAbilityLoadouts)
-    .where(eq(sectAbilityLoadouts.membershipId, membershipId));
-  await tx
-    .delete(sectMeridianLoadouts)
-    .where(eq(sectMeridianLoadouts.membershipId, membershipId));
-  await tx
-    .delete(sectPathProgress)
-    .where(eq(sectPathProgress.membershipId, membershipId));
-  await tx
-    .delete(sectMethodProgress)
-    .where(eq(sectMethodProgress.membershipId, membershipId));
 }
 
 export async function previewSectTransfer(args: {
@@ -235,7 +218,7 @@ export async function executeSectTransfer(args: {
   runtime: SectRuntime;
   tx: DbTransaction;
 }) {
-  const { source, targetModule, plan } = await requireTransferPlan({
+  const { source, targetModule } = await requireTransferPlan({
     ...args,
     q: args.tx,
   });
@@ -278,7 +261,6 @@ export async function executeSectTransfer(args: {
       '目标宗门玉牒已经处于启用状态',
       409,
     );
-  if (existingTarget) await clearSectProgress(existingTarget.id, args.tx);
 
   await args.tx
     .update(sectTaskRecords)
@@ -304,7 +286,6 @@ export async function executeSectTransfer(args: {
     sectId: args.targetSectId,
     status: 'active',
     joinedAt: new Date(),
-    activePathId: plan.activePathId ?? null,
     contribution: source.contribution,
     lifetimeContribution: source.lifetimeContribution ?? source.contribution,
     discipleRank: source.discipleRank ?? 'registered',
@@ -326,34 +307,6 @@ export async function executeSectTransfer(args: {
   if (!targetMembership) throw new Error('目标宗门玉牒创建失败');
   await carryV6SectBuild(v6, targetMembership.id, args.tx);
 
-  const methodRows = plan.methodLevels
-    .filter((method) => method.level > 0)
-    .map((method) => ({
-      membershipId: targetMembership.id,
-      methodId: method.targetMethodId,
-      level: method.level,
-    }));
-  if (methodRows.length)
-    await args.tx.insert(sectMethodProgress).values(methodRows);
-  for (const path of plan.targetPaths) {
-    await args.tx.insert(sectPathProgress).values({
-      membershipId: targetMembership.id,
-      pathId: path.pathId,
-      unlockedLayerIds: path.unlockedLayerIds,
-      tacticId: path.tacticId,
-      activeMeridianSlot: 1,
-    });
-    await args.tx.insert(sectMeridianLoadouts).values(
-      path.meridianLoadouts.map((loadout) => ({
-        membershipId: targetMembership.id,
-        pathId: path.pathId,
-        slot: loadout.slot,
-        nodeIds: [],
-        version: 1,
-      })),
-    );
-  }
-
   // 历史任务迁至新玉牒，仅用于保持同周期领取边界；进行中任务已转为放弃。
   await args.tx
     .update(sectTaskRecords)
@@ -363,15 +316,6 @@ export async function executeSectTransfer(args: {
     .update(sectStipendClaims)
     .set({ membershipId: targetMembership.id })
     .where(eq(sectStipendClaims.membershipId, source.membershipId));
-  await args.tx
-    .update(creationProducts)
-    .set({ isEquipped: false })
-    .where(
-      and(
-        eq(creationProducts.cultivatorId, args.cultivatorId),
-        eq(creationProducts.productType, 'skill'),
-      ),
-    );
   await ensureSectFacilities(
     args.targetSectId,
     targetModule.organization.construction.facilities,
@@ -384,29 +328,21 @@ export async function executeSectTransfer(args: {
     1,
     args.tx,
   );
-  const targetState = await loadCultivatorSectState(
-    args.cultivatorId,
-    args.tx,
-    args.runtime,
-  );
-  if (!targetState) throw new Error('转宗完成后无法读取新的宗门传承');
-  const rank = targetState.discipleRank ?? 'registered';
+  const rank = targetMembership.discipleRank as SectDiscipleRank;
   const membership = {
-    sectId: targetState.sectId,
-    membershipId: targetState.membershipId,
-    status: targetState.status,
-    joinedAt: targetState.joinedAt,
+    sectId: targetMembership.sectId,
+    membershipId: targetMembership.id,
+    status: 'active',
+    joinedAt: targetMembership.joinedAt?.toISOString(),
     discipleRank: rank,
-    contribution: targetState.contribution,
-    lifetimeContribution:
-      targetState.lifetimeContribution ?? targetState.contribution,
-    office: targetState.office ?? 'none',
-    promotedAt: targetState.promotedAt,
+    contribution: targetMembership.contribution,
+    lifetimeContribution: targetMembership.lifetimeContribution,
+    office: 'none',
+    promotedAt: targetMembership.promotedAt?.toISOString(),
     permissions: targetModule.organization.capabilities.snapshot(rank),
-    configVersion: targetState.configVersion,
+    configVersion: targetMembership.configVersion,
   } satisfies SectContextData;
   return {
-    sect: targetState,
     membership,
     consumedTalismanId: talisman.id,
     remainingTalisman: consumed.remaining as Consumable | null,

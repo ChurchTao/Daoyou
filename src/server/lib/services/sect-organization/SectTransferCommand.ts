@@ -15,7 +15,7 @@ export async function executeSectTransferCommand(
   return executeSectPlayerCommand(args, async (tx) => {
     const result = await executeSectTransfer({ ...args, tx });
     return {
-      result: { sect: result.sect },
+      result: { membership: result.membership },
       resourceChanges: [
         {
           resourceTopic: 'player.combat-v6-build',
@@ -30,7 +30,7 @@ export async function executeSectTransferCommand(
             activeCultivator: {
               id: args.cultivatorId,
               status: 'active',
-              sectId: result.sect.sectId,
+              sectId: result.membership.sectId,
             },
           },
         },
@@ -39,17 +39,6 @@ export async function executeSectTransferCommand(
           eventType: 'sect.transferred',
           operation: 'replace',
           payload: result.membership,
-        },
-        {
-          resourceTopic: 'sect.progression',
-          eventType: 'sect.transferred',
-          operation: 'replace',
-          payload: {
-            activePathId: result.sect.activePathId,
-            methods: result.sect.methods,
-            paths: result.sect.paths,
-            abilityLoadout: result.sect.abilityLoadout,
-          },
         },
         result.remainingTalisman
           ? {
@@ -71,7 +60,7 @@ export async function executeSectTransferCommand(
           operation: 'invalidate',
         },
         {
-          scope: { kind: 'sect', id: result.sect.sectId },
+          scope: { kind: 'sect', id: result.membership.sectId },
           resourceTopic: 'sect.members',
           eventType: 'sect.member_transferred',
           operation: 'invalidate',
