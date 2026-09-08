@@ -298,12 +298,6 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🏆 天骄榜',
       },
       {
-        id: 'bet-battle',
-        sceneLabel: '赌战台',
-        href: '/game/bet-battle',
-        expandedDockLabel: '⚔️ 赌战台',
-      },
-      {
         id: 'arena-sparring',
         sceneLabel: '擂台切磋',
         href: '/game/arena',
@@ -333,10 +327,6 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'task-challenge',
         sceneLabel: '破境试炼',
-      },
-      {
-        id: 'bet-battle-challenge',
-        sceneLabel: '赌战挑战',
       },
     ],
   },

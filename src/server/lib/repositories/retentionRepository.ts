@@ -4,7 +4,6 @@ import {
   auctionListings,
   battleReplayArchives,
   battleRecordsV3,
-  betBattles,
   dungeonHistories,
   dungeonRuns,
   mails,
@@ -22,7 +21,6 @@ export type ExpiredDataCleanupCutoffs = {
   dungeonRuns: Date;
   battleReplayArchives: Date;
   battleRecordsV3: Date;
-  betBattles: Date;
   reputationShopPurchases: Date;
   sectShopPurchases: Date;
   sectStipendClaims: Date;
@@ -36,7 +34,6 @@ export type ExpiredDataCleanupResult = {
   dungeonRuns: number;
   battleReplayArchives: number;
   battleRecordsV3: number;
-  betBattles: number;
   reputationShopPurchases: number;
   sectShopPurchases: number;
   sectStipendClaims: number;
@@ -109,18 +106,6 @@ export async function pruneExpiredData(
       .returning({ id: battleRecordsV3.id }),
   );
 
-  const betBattlesDeleted = await deleteExpiredRows(q, (executor) =>
-    executor
-      .delete(betBattles)
-      .where(
-        and(
-          inArray(betBattles.status, ['settled', 'cancelled', 'expired']),
-          lt(betBattles.createdAt, cutoffs.betBattles),
-        ),
-      )
-      .returning({ id: betBattles.id }),
-  );
-
   const reputationShopPurchasesDeleted = await deleteExpiredRows(
     q,
     (executor) =>
@@ -169,7 +154,6 @@ export async function pruneExpiredData(
     dungeonRuns: dungeonRunsDeleted,
     battleReplayArchives: battleReplayArchivesDeleted,
     battleRecordsV3: battleRecordsV3Deleted,
-    betBattles: betBattlesDeleted,
     reputationShopPurchases: reputationShopPurchasesDeleted,
     sectShopPurchases: sectShopPurchasesDeleted,
     sectStipendClaims: sectStipendClaimsDeleted,

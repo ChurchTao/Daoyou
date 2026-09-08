@@ -1,3 +1,4 @@
+import { combatV6Request } from '@app/components/feature/combat-v6/request';
 import { CultivatorInspectionModal } from '@app/components/feature/cultivator-inspection';
 import {
   ItemDetailModal,
@@ -19,12 +20,12 @@ import {
 } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkList, InkListItem, InkNotice } from '@app/components/ui';
-import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorCurrency,
   useCultivatorIdentity,
   usePlayerSession,
 } from '@app/lib/resources/player';
+import type { RankingChallengeRequest } from '@shared/contracts/combatV6Ranking';
 import type { CultivatorInspectionData } from '@shared/contracts/player';
 import { cn } from '@shared/lib/cn';
 import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
@@ -39,7 +40,7 @@ import type {
   RankingsDisplayItem,
   WealthRankingEntry,
 } from '@shared/types/rankings';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { toRankingDetailItem } from './rankingDetailItem';
 
@@ -54,13 +55,6 @@ type RankingTab =
   'battle' | 'artifact' | 'technique' | 'skill' | 'elixir' | 'wealth';
 const REPUTATION_INFO = getGameConceptInfo('reputation');
 const REPUTATION_LABEL = `${REPUTATION_INFO.icon} ${REPUTATION_INFO.label}`;
-
-type DirectEntryResponse = {
-  type: 'direct_entry';
-  realm: RealmType;
-  rank: number;
-  remainingChallenges: number;
-};
 
 function resolveRealm(value?: string | null): RealmType {
   return REALM_VALUES.includes(value as RealmType)
@@ -233,6 +227,7 @@ export default function RankingsPage() {
     useState<LoadingState>('idle');
   const [loadingRankings, setLoadingRankings] = useState(true);
   const [challenging, setChallenging] = useState<string | null>(null);
+  const [pending, setPending] = useState<RankingChallengeRequest | null>(null);
   const [error, setError] = useState<string>('');
   const [probing, setProbing] = useState<string | null>(null);
   const [inspectedCultivator, setInspectedCultivator] =
@@ -241,69 +236,6 @@ export default function RankingsPage() {
     useState<ItemDetailPayload | null>(null);
   const activeRealm = resolveRealm(
     searchParams.get('realm') ?? cultivator?.realm,
-  );
-
-  const loadRankings = useCallback(
-    async (tab: RankingTab, realm: RealmType = activeRealm) => {
-      setLoadingRankings(true);
-      setError('');
-      try {
-        let url = `/api/rankings?realm=${encodeURIComponent(realm)}`;
-        if (tab === 'wealth') {
-          url = '/api/rankings/wealth';
-        } else if (tab !== 'battle') {
-          url = `/api/rankings/items?type=${tab}`;
-        }
-
-        const response = await fetch(url);
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || '榜单暂不可用');
-        }
-        setRankings(result.data || []);
-      } catch (err) {
-        console.error('获取排行榜失败:', err);
-        const errorMessage = '获取排行榜失败，请稍后重试';
-        setError(errorMessage);
-        pushToast({ message: errorMessage, tone: 'danger' });
-        setRankings([]);
-      } finally {
-        setLoadingRankings(false);
-      }
-    },
-    [activeRealm, pushToast, setError, setLoadingRankings, setRankings],
-  );
-
-  const loadMyRankInfo = useCallback(
-    async (realm: RealmType = activeRealm) => {
-      if (!cultivator?.id) return;
-
-      setMyRankInfoLoadingState('loading');
-      try {
-        const response = await fetch(
-          `/api/rankings/my-rank?realm=${encodeURIComponent(realm)}`,
-        );
-        const result = await response.json();
-        if (response.ok && result.success) {
-          setMyRankInfo({
-            rank: result.data.rank,
-            remainingChallenges: result.data.remainingChallenges,
-          });
-          setMyRankInfoLoadingState('loaded');
-        }
-      } catch (err) {
-        console.error('获取我的排名失败:', err);
-        pushToast({ message: '获取排名信息失败', tone: 'danger' });
-        setMyRankInfoLoadingState('loaded');
-      }
-    },
-    [
-      activeRealm,
-      cultivator?.id,
-      pushToast,
-      setMyRankInfo,
-      setMyRankInfoLoadingState,
-    ],
   );
 
   useEffect(() => {
@@ -358,11 +290,18 @@ export default function RankingsPage() {
 
     const loadInitialMyRank = async () => {
       try {
-        const response = await fetch(
-          `/api/rankings/my-rank?realm=${encodeURIComponent(activeRealm)}`,
-        );
+        const [response, recovery] = await Promise.all([
+          fetch(
+            `/api/rankings/my-rank?realm=${encodeURIComponent(activeRealm)}`,
+          ),
+          combatV6Request<RankingChallengeRequest | null>(
+            '/api/rankings/challenge/current',
+            { cache: 'no-store' },
+          ),
+        ]);
         const result = await response.json();
         if (cancelled) return;
+        setPending(recovery);
 
         if (response.ok && result.success) {
           setMyRankInfo({
@@ -392,29 +331,6 @@ export default function RankingsPage() {
     setRankings([]);
     setLoadingRankings(true);
     setActiveTab(val as RankingTab);
-  };
-
-  const executeDirectEntry = async () => {
-    const data = await consumeResourceMutation<DirectEntryResponse>(
-      await fetch('/api/rankings/challenge-battle/v5', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          targetId: null,
-          realm: activeRealm,
-        }),
-      }),
-    );
-    await Promise.all([
-      loadRankings(activeTab, activeRealm),
-      loadMyRankInfo(activeRealm),
-    ]);
-    pushToast({
-      message: `成功上榜，占据第${data.rank}名！`,
-      tone: 'success',
-    });
   };
 
   const handleProbe = async (targetId: string) => {
@@ -447,86 +363,36 @@ export default function RankingsPage() {
     }
   };
 
-  const handleChallenge = async (targetId: string) => {
-    if (!cultivator?.id) return;
-
-    setChallenging(targetId);
+  const handleChallenge = async (targetId: string | null) => {
+    if (!cultivator?.id || challenging) return;
+    setChallenging(targetId ?? 'direct');
     try {
-      // 先验证挑战条件
-      const response = await fetch('/api/rankings/challenge', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          targetId,
-          realm: activeRealm,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || '挑战验证失败');
-      }
-
-      // 如果是直接上榜，显示提示并刷新
-      if (result.data.directEntry) {
-        await executeDirectEntry();
-        return;
-      }
-
-      // 验证通过，跳转到挑战战斗页面
-      const params = new URLSearchParams({
+      const pending = await combatV6Request<RankingChallengeRequest | null>(
+        '/api/rankings/challenge/current',
+        { cache: 'no-store' },
+      );
+      const request = pending ?? {
+        requestId: crypto.randomUUID(),
         targetId,
         realm: activeRealm,
+      };
+      const params = new URLSearchParams({
+        requestId: request.requestId,
+        realm: request.realm,
       });
-      navigate(`/game/battle/challenge?${params.toString()}`);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : '挑战验证失败，请稍后重试';
-      pushToast({ message: errorMessage, tone: 'danger' });
+      if (request.targetId) params.set('targetId', request.targetId);
+      navigate('/game/battle/challenge?' + params.toString());
+    } catch (e) {
+      pushToast({
+        message: e instanceof Error ? e.message : '无法发起挑战',
+        tone: 'danger',
+      });
     } finally {
       setChallenging(null);
     }
   };
-
-  const handleDirectEntry = async () => {
-    if (!cultivator?.id) return;
-
-    setChallenging('direct');
-    try {
-      // 验证直接上榜条件，真正上榜只走 v5 mutation。
-      const response = await fetch('/api/rankings/challenge', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          targetId: null, // null表示直接上榜
-          realm: activeRealm,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || '上榜失败');
-      }
-
-      if (result.data.directEntry) {
-        await executeDirectEntry();
-        return;
-      }
-
-      throw new Error('当前无法直接上榜');
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : '上榜失败，请稍后重试';
-      pushToast({ message: errorMessage, tone: 'danger' });
-    } finally {
-      setChallenging(null);
-    }
+  const handleDirectEntry = () => {
+    void handleChallenge(null);
   };
 
   if (isLoading && !cultivator) {
@@ -695,6 +561,14 @@ export default function RankingsPage() {
           />
         ) : null}
 
+        {activeTab === 'battle' && pending ? (
+          <InkButton
+            onClick={() => void handleChallenge(pending.targetId)}
+            pending={!!challenging}
+          >
+            恢复未完成挑战
+          </InkButton>
+        ) : null}
         {!cultivator ? (
           <InkNotice>请先觉醒角色再来挑战万界金榜。</InkNotice>
         ) : loadingRankings ? (

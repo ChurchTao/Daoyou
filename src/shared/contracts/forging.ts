@@ -61,6 +61,12 @@ export const DevGrantSchema = z
           z.object({ type: z.literal('item'), item: ItemGrantSchema }).strict(),
           z
             .object({
+              type: z.literal('beast'),
+              speciesId: z.string().min(1).max(100),
+            })
+            .strict(),
+          z
+            .object({
               type: z.literal('vault-material'),
               facts: MaterialFactsSchema,
               quantity: z.number().int().min(1).max(3960),

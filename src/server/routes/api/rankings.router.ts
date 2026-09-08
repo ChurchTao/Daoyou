@@ -4,23 +4,26 @@ import {
   creationProducts,
   cultivators,
 } from '@server/lib/drizzle/schema';
-import { requireActiveCultivatorRef } from '@server/lib/hono/middleware';
+import {
+  redisLockErrorResponse,
+  requireActiveCultivatorRef,
+} from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
-  checkDailyChallenges,
   getCultivatorRank,
   getRankingList,
   getRemainingChallenges,
-  isLocked,
-  isRankingEmpty,
 } from '@server/lib/redis/rankings';
+import { InventoryError } from '@server/lib/services/InventoryService';
+import { CombatV6BuildError } from '@server/lib/services/combat-v6/CombatV6BuildService';
 import {
-  loadCultivatorInspectionData,
-} from '@server/lib/services/cultivator/CultivatorCombatProjectionReader';
-import {
-  RankingCommandError,
-  runRankingBattleCommand,
-} from '@server/lib/services/RankingApplicationService';
+  pendingRanking,
+  RankingV6Error,
+  runRankingChallenge,
+} from '@server/lib/services/combat-v6/CombatV6RankingService';
+import { loadCultivatorInspectionData } from '@server/lib/services/cultivator/CultivatorCombatProjectionReader';
+import { readCultivatorRealm } from '@server/lib/services/cultivator/CultivatorFactsReader';
+import { RankingChallengeSchema } from '@shared/contracts/combatV6Ranking';
 import { projectAbilityConfig } from '@shared/engine/creation-v2/models/AbilityProjection';
 import { rehydrateStoredProductModel } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
 import {
@@ -42,17 +45,6 @@ import type {
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { readCultivatorRealm } from '@server/lib/services/cultivator/CultivatorFactsReader';
-
-const ChallengeSchema = z.object({
-  targetId: z.string().optional().nullable(),
-  realm: z.enum(REALM_VALUES).optional(),
-});
-
-const ChallengeBattleSchema = z.object({
-  targetId: z.string().optional().nullable(),
-  realm: z.enum(REALM_VALUES).optional(),
-});
 
 const router = new Hono<AppEnv>();
 const publicRouter = new Hono<AppEnv>();
@@ -338,7 +330,9 @@ challengeRouter.get('/my-rank', requireActiveCultivatorRef(), async (c) => {
   const own = await readCultivatorRealm(cultivator.cultivatorId);
   const realm = parseRealmQuery(c.req.query('realm')) ?? own.realm;
   const rank = await getCultivatorRank(realm, cultivator.cultivatorId);
-  const remainingChallenges = await getRemainingChallenges(cultivator.cultivatorId);
+  const remainingChallenges = await getRemainingChallenges(
+    cultivator.cultivatorId,
+  );
 
   return c.json({
     success: true,
@@ -379,125 +373,61 @@ challengeRouter.post('/probe', requireActiveCultivatorRef(), async (c) => {
   }
 });
 
-challengeRouter.post('/challenge', requireActiveCultivatorRef(), async (c) => {
-  const user = c.get('user');
-  const cultivator = c.get('activeCultivatorRef');
-  if (!user || !cultivator) {
-    return c.json({ error: '未授权访问' }, 401);
-  }
-
-  const { targetId, realm: requestedRealm } = ChallengeSchema.parse(
-    await c.req.json(),
-  );
-  const cultivatorId = cultivator.cultivatorId;
-  const ownRealm = (await readCultivatorRealm(cultivatorId)).realm;
-  const rankingRealm = requestedRealm ?? ownRealm;
-  const isOwnRealmRanking = rankingRealm === ownRealm;
-  const challengeCheck = await checkDailyChallenges(cultivatorId);
-  if (!challengeCheck.success) {
-    return c.json({ error: '今日挑战次数已用完（每日限10次）' }, 400);
-  }
-
-  const isEmpty = await isRankingEmpty(rankingRealm);
-  const challengerRank = await getCultivatorRank(rankingRealm, cultivatorId);
-
-  if (
-    (!targetId || targetId === '') &&
-    isOwnRealmRanking &&
-    isEmpty &&
-    challengerRank === null
-  ) {
-    return c.json({
-      success: true,
-      message: '可直接上榜',
-      data: {
-        directEntry: true,
-        realm: rankingRealm,
-        rank: 1,
-        remainingChallenges: challengeCheck.remaining,
-      },
-    });
-  }
-
-  if (!targetId || targetId.trim() === '') {
-    return c.json(
-      {
-        error: isOwnRealmRanking
-          ? '请提供被挑战者ID'
-          : '越境榜单不可直接上榜，请选择榜上修士切磋',
-      },
-      400,
-    );
-  }
-
-  const targetRank = await getCultivatorRank(rankingRealm, targetId);
-  if (targetRank === null) {
-    return c.json({ error: '被挑战者不在排行榜上' }, 404);
-  }
-
-  if (await isLocked(targetId)) {
-    return c.json({ error: '被挑战者正在被其他玩家挑战，请稍后再试' }, 409);
-  }
-
-  return c.json({
-    success: true,
-    message: '挑战验证通过，可以开始战斗',
-    data: {
-      cultivatorId,
-      targetId,
-      realm: rankingRealm,
-      challengerRank,
-      targetRank,
-      affectsRanking: isOwnRealmRanking,
-      remainingChallenges: challengeCheck.remaining,
-    },
-  });
-});
-
-challengeRouter.post('/challenge-battle', requireActiveCultivatorRef(), (c) => {
-  return c.json(
-    {
-      error:
-        '旧接口 /api/rankings/challenge-battle 已废弃，请使用 /api/rankings/challenge-battle/v5',
-    },
-    410,
-  );
-});
-
-challengeRouter.post(
+for (const path of [
+  '/challenge',
+  '/challenge-battle',
   '/challenge-battle/v5',
+]) {
+  challengeRouter.post(path, requireActiveCultivatorRef(), (c) =>
+    c.json(
+      { success: false, error: '旧天骄榜战斗已停用，请刷新使用新版挑战' },
+      410,
+    ),
+  );
+}
+challengeRouter.get(
+  '/challenge/current',
   requireActiveCultivatorRef(),
   async (c) => {
-    const user = c.get('user');
-    const challenger = c.get('activeCultivatorRef');
-    if (!user || !challenger) {
-      return c.json({ error: '未授权访问' }, 401);
-    }
-
+    c.header('Cache-Control', 'no-store');
+    return c.json({
+      success: true,
+      data: await pendingRanking(c.get('activeCultivatorRef')!.cultivatorId),
+    });
+  },
+);
+challengeRouter.post(
+  '/challenge-battle/v6',
+  requireActiveCultivatorRef(),
+  async (c) => {
+    c.header('Cache-Control', 'no-store');
     try {
-      const parsed = ChallengeBattleSchema.parse(await c.req.json());
-      const ownRealm = (
-        await readCultivatorRealm(challenger.cultivatorId)
-      ).realm;
-      const rankingRealm = parsed.realm ?? ownRealm;
-      const committed = await runRankingBattleCommand({
-        userId: user.id,
-        cultivatorId: challenger.cultivatorId,
-        targetId: parsed.targetId,
-        rankingRealm,
-      });
-      return c.json({
-        success: true,
-        data: committed.result,
-        state: committed.state,
-      });
+      const data = await runRankingChallenge(
+        {
+          userId: c.get('user')!.id,
+          cultivatorId: c.get('activeCultivatorRef')!.cultivatorId,
+        },
+        RankingChallengeSchema.parse(await c.req.json()),
+      );
+      return c.json({ success: true, data });
     } catch (error) {
-      if (error instanceof RankingCommandError) {
-        return c.json({ error: error.message }, error.status);
-      }
-      console.error('挑战战斗流程错误:', error);
+      const lock = redisLockErrorResponse(error);
+      if (lock) return lock;
+      if (error instanceof z.ZodError)
+        return c.json({ success: false, error: '挑战参数无效' }, 400);
+      if (error instanceof InventoryError)
+        return c.json(
+          { success: false, error: '请先结束当前战斗与结算，再发起天骄榜挑战' },
+          409,
+        );
+      if (
+        error instanceof RankingV6Error ||
+        error instanceof CombatV6BuildError
+      )
+        return c.json({ success: false, error: error.message }, 409);
+      console.error('[ranking-v6] challenge failed', error);
       return c.json(
-        { error: error instanceof Error ? error.message : '挑战失败' },
+        { success: false, error: '挑战尚未完成，请使用原请求重试恢复' },
         500,
       );
     }

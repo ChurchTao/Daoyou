@@ -4,11 +4,13 @@ import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { getJetStreamClient } from '@server/lib/nats';
 import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
+import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
 import {
   archiveCombatV6Replay,
   findOwnedCombatV6Replay,
 } from '@server/lib/repositories/combatV6ReplayRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
+import { hasActiveTower } from '@server/lib/tower/occupancy';
 import {
   arenaBattle,
   arenaDefaultCommand,
@@ -98,7 +100,11 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
         const units: ArenaRuntime['units'] = [];
         const participants: ArenaRuntime['participants'] = [];
         for (const seat of seats) {
-          if (await hasActiveDungeon(seat.cultivatorId))
+          if (
+            (await hasActiveTower(seat.cultivatorId)) ||
+            (await hasActiveRanking(seat.cultivatorId)) ||
+            (await hasActiveDungeon(seat.cultivatorId))
+          )
             throw new ArenaV6Error('参战角色尚在秘境探索或结算中');
           const identity = await tx.query.cultivators.findFirst({
             where: and(

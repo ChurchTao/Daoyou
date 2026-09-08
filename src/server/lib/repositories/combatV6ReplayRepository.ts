@@ -85,6 +85,19 @@ export class CombatV6ReplayConflictError extends Error {
   }
 }
 
+/** A lost short-lived request must not settle a new result over an existing archive. */
+export async function combatV6ReplayExists(
+  battleId: string,
+  executor: DbExecutor = db,
+) {
+  const [row] = await executor
+    .select({ battleId: combatV6ReplayArchives.battleId })
+    .from(combatV6ReplayArchives)
+    .where(eq(combatV6ReplayArchives.battleId, battleId))
+    .limit(1);
+  return !!row;
+}
+
 export async function findOwnedCombatV6Replay(
   battleId: string,
   cultivatorId: string,

@@ -2,7 +2,9 @@ import { db } from '@server/lib/drizzle/db';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
+import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
 import { findActiveCombatV6Membership } from '@server/lib/repositories/combatV6BuildRepository';
+import { hasActiveTower } from '@server/lib/tower/occupancy';
 import {
   combatV6Display,
   combatV6DisplayEvent,
@@ -89,7 +91,11 @@ export class CombatV6TrainingSessionService {
     encounterId: string,
     tier: CombatV6TrainingTierV1,
   ) {
-    if (await hasActiveDungeon(actor.cultivatorId))
+    if (
+      (await hasActiveTower(actor.cultivatorId)) ||
+      (await hasActiveRanking(actor.cultivatorId)) ||
+      (await hasActiveDungeon(actor.cultivatorId))
+    )
       throw this.error('AlreadyActive', '请先结束秘境探索与结算');
     if (await redis.get(arenaOccupancyKey(actor.cultivatorId)))
       throw this.error('AlreadyActive', '请先结束擂台战斗');

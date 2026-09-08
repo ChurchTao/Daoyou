@@ -6,11 +6,13 @@ import {
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
+import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
 import {
   readBeastOwner,
   readBeastRoster,
 } from '@server/lib/repositories/combatV6BeastRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
+import { hasActiveTower } from '@server/lib/tower/occupancy';
 import {
   BEAST_SPECIES,
   BeastLineupSchema,
@@ -52,6 +54,8 @@ async function mutate<T>(
       db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, cultivatorId);
         if (
+          (await hasActiveTower(cultivatorId)) ||
+          (await hasActiveRanking(cultivatorId)) ||
           (await hasActiveDungeon(cultivatorId)) ||
           (await new CombatV6WildStore().lock(cultivatorId)) ||
           (await redis.get(arenaOccupancyKey(cultivatorId))) ||

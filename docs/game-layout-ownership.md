@@ -4,9 +4,9 @@
 
 - `GameGenesisLayout`：`/game/create`、`/game/reincarnate`
 - `GameNarrativeLayout`：`/game/sect/onboarding`、`/game/identity-reshape` 等无 HUD、无全局导航的分幕演出
-- `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft*`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`、`/game/bet-battle`
+- `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft*`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`
 - `GameActivityLayout`：`/game/sect/gate/sweep`、`/game/sect/spirit-vein/mining` 等无 HUD、无全局导航的全屏互动玩法
-- `GameCombatLayout`：`/game/battle`、`/game/battle/challenge`、`/game/battle/live/:matchId`、`/game/battle/:id`、`/game/bet-battle/challenge`、宗门任务战斗
+- `GameCombatLayout`：`/game/battle`、`/game/battle/challenge`、`/game/battle/live/:matchId`、`/game/battle/:id`、宗门任务战斗
 - `CombatV6Layout`：`/game/training-room`、`/game/wild`，独立于 v5 战斗布局及状态容器
 - `GameMapLayout`：`/game/map`
 - `GameDungeonLayout`：`/game/dungeon`
@@ -14,6 +14,8 @@
 ## 共享组件归位
 
 - `/game/beasts` 归属 `GameViewportLayout`，使用 `GameSceneFrame` 展示召唤兽管理；战斗中的召唤选择仍由 v6 指令组件负责。
+- `/game/tower` 使用主流程壳展示挑战、祝福和周榜；活动战斗跳转 `/game/tower/battle` 的既有沉浸壳，复用 v6 公共战斗组件。结算播放结束后返回幻境，不在入口正文嵌入旧战斗播放器。
+- `/game/rankings` 保留榜单主流程壳；`/game/battle/challenge` 使用 v6 公共回放播放器自动逐行动播放服务端已结算的挑战，播放完成后展示名次摘要。挑战请求 UUID 保留在 URL，刷新及失败后恢复同一结果，观看不占用角色。
 
 - v6 战斗页面、阵容、指令和逐行动播报放在 `src/react-app/components/feature/combat-v6/`；仅复用通用 UI 和全局配色，不依赖旧 `feature/battle` 组件。协议与恢复规则见 [v6 战斗 UI](combat-v6-battle-ui.md)
 - 造化/参悟共享材料选择器放在 `src/react-app/components/feature/creation/MaterialSelector.tsx`

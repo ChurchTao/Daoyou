@@ -1,3 +1,5 @@
+import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
+import { hasActiveTower } from '@server/lib/tower/occupancy';
 import type {
   InventoryAction,
   InventoryQuerySchema,
@@ -70,6 +72,8 @@ export function inventoryItemOf(
 }
 export async function assertInventoryIdle(owner: string) {
   if (
+    (await hasActiveTower(owner)) ||
+    (await hasActiveRanking(owner)) ||
     (await hasActiveDungeon(owner)) ||
     (await new CombatV6WildStore().lock(owner)) ||
     (await new CombatV6RuntimeStore().currentId(owner)) ||

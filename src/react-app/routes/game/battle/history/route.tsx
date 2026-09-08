@@ -10,6 +10,8 @@ const sources = {
   'training-room': '练功房',
   'wild-encounter': '野外遭遇',
   dungeon: '秘境遭遇',
+  tower: '蜃楼幻境',
+  ranking: '天骄榜',
   'arena-sparring': '擂台切磋',
 };
 const outcomes = {

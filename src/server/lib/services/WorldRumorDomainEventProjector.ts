@@ -64,24 +64,6 @@ export async function projectWorldRumorDomainEvent(
     } as WorldChatPayload);
   }
 
-  if (isDomainEventType(event, 'bet-battle.created')) {
-    const text = event.data.taunt
-      ? `${event.data.cultivatorName}在赌战台放话：${event.data.taunt} 有胆便来应战！`
-      : `${event.data.cultivatorName}在赌战台摆下战帖，静候各路道友应战！`;
-    return createRumor(event, event.data.userId, 'duel_invite', text, {
-      battleId: event.data.battleId,
-      routePath: '/game/bet-battle',
-      taunt: event.data.taunt,
-      expiresAt: undefined,
-    });
-  }
-
-  if (isDomainEventType(event, 'bet-battle.settled')) {
-    return createRumor(event, event.data.userId, 'text', event.data.rumor, {
-      text: event.data.rumor,
-    });
-  }
-
   if (isDomainEventType(event, 'ranking.position.changed')) {
     const text =
       event.data.changeType === 'direct_entry'
@@ -102,7 +84,7 @@ function ignored(): RumorProjectionResult {
 async function createRumor(
   event: DomainEventEnvelope,
   senderUserId: string,
-  messageType: 'text' | 'item_showcase' | 'duel_invite',
+  messageType: 'text' | 'item_showcase',
   text: string,
   payload: WorldChatPayload,
 ): Promise<RumorProjectionResult> {

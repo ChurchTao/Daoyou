@@ -1,179 +1,140 @@
-import { requireActiveCultivatorRef } from '@server/lib/hono/middleware';
+import {
+  redisLockErrorResponse,
+  requireActiveCultivatorRef,
+} from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
+import { InventoryError } from '@server/lib/services/InventoryService';
+import { CombatV6BuildError } from '@server/lib/services/combat-v6/CombatV6BuildService';
 import {
-  executeTowerBattleCommand,
-  executeTowerBlessingCommand,
-  executeTowerProbeCommand,
-  executeTowerResetCommand,
-  executeTowerStartCommand,
-} from '@server/lib/services/TowerApplicationService';
-import { towerService } from '@server/lib/tower/service';
+  advanceTower,
+  changeTowerBattle,
+  completeTower,
+  getTowerBattle,
+  getTowerView,
+  startTower,
+  TowerV6Error,
+} from '@server/lib/tower/combatV6';
+import { getTowerLeaderboard } from '@server/lib/tower/leaderboard';
 import {
-  TOWER_BLESSING_IDS,
-  TOWER_ELIGIBLE_REALMS,
-} from '@shared/lib/tower';
+  CombatV6TrainingCommandRequestSchema,
+  CombatV6TrainingEventsQuerySchema,
+  CombatV6TrainingRevisionRequestSchema,
+} from '@shared/contracts/combatV6';
+import { TOWER_BLESSING_IDS } from '@shared/lib/tower/blessings';
+import { TOWER_ELIGIBLE_REALMS } from '@shared/lib/tower/helpers';
+import { getTowerSeasonMeta } from '@shared/lib/tower/season';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { readCultivatorRealm } from '@server/lib/services/cultivator/CultivatorFactsReader';
 
 const router = new Hono<AppEnv>();
-const battleRouter = new Hono<AppEnv>();
-
-const BlessingSchema = z.object({
-  blessingId: z.enum(TOWER_BLESSING_IDS),
+router.use('*', requireActiveCultivatorRef());
+router.onError((error, c) => {
+  const lock = redisLockErrorResponse(error);
+  if (lock) return lock;
+  if (error instanceof z.ZodError)
+    return c.json({ error: '幻境请求参数无效' }, 400);
+  if (
+    error instanceof TowerV6Error ||
+    error instanceof InventoryError ||
+    error instanceof CombatV6BuildError
+  )
+    return c.json({ error: error.message }, 409);
+  console.error('[tower-v6] request failed', error);
+  return c.json({ error: '幻境操作失败，请刷新后重试' }, 500);
 });
-
-const BattleIdBodySchema = z.object({
-  battleId: z.string().min(1),
+router.get('/state', async (c) =>
+  c.json({
+    success: true,
+    data: await getTowerView(c.get('activeCultivatorRef')!.cultivatorId),
+  }),
+);
+router.post('/start', async (c) =>
+  c.json({
+    success: true,
+    data: await startTower(c.get('activeCultivatorRef')!.cultivatorId),
+  }),
+);
+const actionSchema = z.object({
+  runId: z.uuid(),
+  revision: z.number().int().min(0),
+  action: z.enum(['battle', 'blessing', 'leave', 'complete']),
+  blessingId: z.enum(TOWER_BLESSING_IDS).optional(),
 });
-
-const BattleIdQuerySchema = z.object({
-  battleId: z.string().min(1),
+router.post('/action', async (c) => {
+  const input = actionSchema.parse(await c.req.json());
+  const owner = c.get('activeCultivatorRef')!.cultivatorId;
+  const data =
+    input.action === 'complete'
+      ? await completeTower(
+          { userId: c.get('user')!.id, cultivatorId: owner },
+          input,
+        )
+      : await advanceTower(owner, input);
+  return c.json({ success: true, data });
 });
-
-const LeaderboardQuerySchema = z.object({
-  realm: z.enum(TOWER_ELIGIBLE_REALMS),
-  limit: z.coerce.number().int().min(1).max(30).default(30),
-});
-
-router.post('/start', requireActiveCultivatorRef(), async (c) => {
-  try {
-    const cultivator = c.get('activeCultivatorRef');
-    if (!cultivator) {
-      return c.json({ error: '当前没有活跃角色' }, 404);
-    }
-
-    const result = await executeTowerStartCommand({
-      cultivatorId: cultivator.cultivatorId,
-    });
-    return c.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : '开启幻境失败';
-    return c.json({ error: message }, 400);
-  }
-});
-
-router.get('/state', requireActiveCultivatorRef(), async (c) => {
-  const cultivator = c.get('activeCultivatorRef');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
-  }
-
-  const { realm } = await readCultivatorRealm(cultivator.cultivatorId);
-  const result = await towerService.getState(
-    cultivator.cultivatorId,
-    undefined,
-    realm,
-  );
-  return c.json(result);
-});
-
-router.post('/reset', requireActiveCultivatorRef(), async (c) => {
-  const cultivator = c.get('activeCultivatorRef');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
-  }
-
-  const result = await executeTowerResetCommand({
-    cultivatorId: cultivator.cultivatorId,
+router.get('/leaderboard', async (c) => {
+  const realm = z.enum(TOWER_ELIGIBLE_REALMS).parse(c.req.query('realm'));
+  const season = getTowerSeasonMeta();
+  return c.json({
+    success: true,
+    data: await getTowerLeaderboard({
+      seasonKey: season.seasonKey,
+      seasonEndAt: season.seasonEndsAt,
+      realm,
+      limit: 30,
+      selfCultivatorId: c.get('activeCultivatorRef')!.cultivatorId,
+    }),
   });
-  return c.json(result);
 });
-
-router.post('/blessing/choose', requireActiveCultivatorRef(), async (c) => {
-  try {
-    const cultivator = c.get('activeCultivatorRef');
-    if (!cultivator) {
-      return c.json({ error: '当前没有活跃角色' }, 404);
-    }
-
-    const { blessingId } = BlessingSchema.parse(await c.req.json());
-    const result = await executeTowerBlessingCommand({
-      cultivatorId: cultivator.cultivatorId,
-      blessingId,
-    });
-    return c.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : '选择祝福失败';
-    return c.json({ error: message }, 400);
-  }
+router.get('/battle/sessions/current', async (c) =>
+  c.json({
+    success: true,
+    data: await getTowerBattle(c.get('activeCultivatorRef')!.cultivatorId),
+  }),
+);
+router.get('/battle/sessions/:id', async (c) => {
+  const query = CombatV6TrainingEventsQuerySchema.parse(c.req.query());
+  const data = await getTowerBattle(
+    c.get('activeCultivatorRef')!.cultivatorId,
+    z.uuid().parse(c.req.param('id')),
+    query.afterEventSeq,
+  );
+  return data
+    ? c.json({ success: true, data })
+    : c.json({ error: '战斗不存在' }, 404);
 });
-
-router.get('/leaderboard', requireActiveCultivatorRef(), async (c) => {
-  try {
-    const cultivator = c.get('activeCultivatorRef');
-    const query = LeaderboardQuerySchema.parse({
-      realm: c.req.query('realm'),
-      limit: c.req.query('limit'),
-    });
-    const result = await towerService.getLeaderboard(
-      cultivator?.cultivatorId,
-      query.realm,
-      query.limit,
-    );
-    return c.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : '获取塔榜失败';
-    return c.json({ error: message }, 400);
-  }
+router.put('/battle/sessions/:id/commands/:unitId', async (c) => {
+  const input = CombatV6TrainingCommandRequestSchema.parse(await c.req.json());
+  const data = await changeTowerBattle(
+    {
+      userId: c.get('user')!.id,
+      cultivatorId: c.get('activeCultivatorRef')!.cultivatorId,
+    },
+    z.uuid().parse(c.req.param('id')),
+    input.expectedRevision,
+    { unitId: c.req.param('unitId'), commands: input.commands },
+  );
+  return c.json({ success: true, data });
 });
-
-battleRouter.post('/probe', requireActiveCultivatorRef(), async (c) => {
-  try {
-    const cultivator = c.get('activeCultivatorRef');
-    if (!cultivator) {
-      return c.json({ error: '当前没有活跃角色' }, 404);
-    }
-
-    const result = await executeTowerProbeCommand({
-      cultivatorId: cultivator.cultivatorId,
-    });
-    return c.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : '照见幻影失败';
-    return c.json({ error: message }, 400);
-  }
+router.post('/battle/sessions/:id/resolve', async (c) => {
+  const input = CombatV6TrainingRevisionRequestSchema.parse(await c.req.json());
+  const data = await changeTowerBattle(
+    {
+      userId: c.get('user')!.id,
+      cultivatorId: c.get('activeCultivatorRef')!.cultivatorId,
+    },
+    z.uuid().parse(c.req.param('id')),
+    input.expectedRevision,
+  );
+  return c.json({ success: true, data });
 });
-
-battleRouter.get('/context', requireActiveCultivatorRef(), async (c) => {
-  try {
-    const cultivator = c.get('activeCultivatorRef');
-    if (!cultivator) {
-      return c.json({ error: '当前没有活跃角色' }, 404);
-    }
-
-    const { battleId } = BattleIdQuerySchema.parse({
-      battleId: c.req.query('battleId'),
-    });
-    const result = await towerService.getBattleContext(cultivator.cultivatorId, battleId);
-    return c.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : '读取幻境战局失败';
-    return c.json({ error: message }, 400);
-  }
-});
-
-battleRouter.post('/execute/v5', requireActiveCultivatorRef(), async (c) => {
-  try {
-    const user = c.get('user');
-    const cultivator = c.get('activeCultivatorRef');
-    if (!user || !cultivator) {
-      return c.json({ error: '未授权访问' }, 401);
-    }
-
-    const { battleId } = BattleIdBodySchema.parse(await c.req.json());
-    const response = await executeTowerBattleCommand({
-      userId: user.id,
-      cultivatorId: cultivator.cultivatorId,
-      battleId,
-    });
-    return c.json(response);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : '幻境战局执行失败';
-    return c.json({ error: message }, 400);
-  }
-});
-
-router.route('/battle', battleRouter);
-
+router.all('/battle/*', (c) =>
+  c.json({ error: '旧幻境战斗已下线，请刷新页面' }, 410),
+);
+router.post('/reset', (c) =>
+  c.json({ error: '旧幻境接口已下线，请刷新页面' }, 410),
+);
+router.post('/blessing/choose', (c) =>
+  c.json({ error: '旧幻境接口已下线，请刷新页面' }, 410),
+);
 export default router;

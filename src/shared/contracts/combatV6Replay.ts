@@ -103,7 +103,14 @@ export const CombatV6ReplayTimelineSchema = z
 export const CombatV6HistoryQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(10000).default(1),
   source: z
-    .enum(['training-room', 'wild-encounter', 'arena-sparring', 'dungeon'])
+    .enum([
+      'training-room',
+      'wild-encounter',
+      'arena-sparring',
+      'dungeon',
+      'tower',
+      'ranking',
+    ])
     .optional(),
 });
 export type CombatV6HistoryQuery = z.infer<typeof CombatV6HistoryQuerySchema>;

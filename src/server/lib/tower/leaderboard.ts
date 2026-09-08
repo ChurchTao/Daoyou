@@ -1,6 +1,6 @@
-import { redis } from '@server/lib/redis';
 import { db } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
+import { redis } from '@server/lib/redis';
 import {
   packTowerLeaderboardScore,
   unpackTowerLeaderboardScore,
@@ -11,7 +11,7 @@ import type { RealmType } from '@shared/types/constants';
 import { and, eq, inArray } from 'drizzle-orm';
 
 function getTowerLeaderboardKey(seasonKey: string, realm: RealmType) {
-  return `tower:leaderboard:${seasonKey}:${realm}`;
+  return `tower:v6:leaderboard:${seasonKey}:${realm}`;
 }
 
 export async function updateTowerWeeklyRecord(args: {
@@ -29,7 +29,10 @@ export async function updateTowerWeeklyRecord(args: {
 
   if (typeof currentScoreRaw === 'string') {
     const currentScore = Number(currentScoreRaw);
-    const currentRecord = unpackTowerLeaderboardScore(currentScore, seasonEndAtMs);
+    const currentRecord = unpackTowerLeaderboardScore(
+      currentScore,
+      seasonEndAtMs,
+    );
 
     if (currentRecord.highestFloor > args.highestFloor) {
       return;
@@ -45,6 +48,7 @@ export async function updateTowerWeeklyRecord(args: {
     seasonEndAtMs,
   );
   await redis.zadd(key, nextScore, args.cultivatorId);
+  await redis.expireat(key, Math.ceil(seasonEndAtMs / 1000) + 86400);
 }
 
 export async function getTowerLeaderboard(args: {

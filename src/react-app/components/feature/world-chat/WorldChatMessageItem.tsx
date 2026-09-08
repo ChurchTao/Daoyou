@@ -331,8 +331,6 @@ export function WorldChatMessageItem({
             <BattleShowcaseCard payload={battleShowcase} />
           ) : message.messageType === 'battle_showcase' ? (
             '【战谱展示】'
-          ) : message.messageType === 'duel_invite' ? (
-            message.textContent || '赌战台有新战帖'
           ) : message.messageType === 'item_showcase' && showcaseData ? (
             <span>
               <button

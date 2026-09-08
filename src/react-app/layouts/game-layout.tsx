@@ -166,17 +166,6 @@ function resolveSpecialSceneDescriptor(
     };
   }
 
-  if (pathname === '/game/bet-battle/challenge') {
-    return {
-      sceneLabel: scene.label,
-      backAction: {
-        type: 'path',
-        label: '返回赌战台',
-        href: '/game/bet-battle',
-      },
-    };
-  }
-
   if (pathname === '/game/training-room') {
     return {
       sceneLabel: scene.label,

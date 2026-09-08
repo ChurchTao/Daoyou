@@ -277,7 +277,6 @@ ENV_FILE=/root/daoyou/.env.production \
 - `/internal/cron/*` 仍然保留，便于手动触发、联调，或后续切回外部调度器
 
 - `GET /internal/cron/auction-expire`
-- `GET /internal/cron/bet-battle-expire`
 - `GET /internal/cron/rank-rewards`
 - `GET /internal/cron/market-refresh`
 - `GET /internal/cron/tower-enemy-sets`
@@ -287,7 +286,6 @@ ENV_FILE=/root/daoyou/.env.production \
 当前内置调度频率：
 
 - `auction-expire`：每 2 分钟
-- `bet-battle-expire`：每 2 分钟
 - `rank-rewards`：每天 `00:00 Asia/Shanghai`
 - `market-refresh`：每 5 分钟
 - `tower-enemy-sets`：每小时
@@ -306,7 +304,6 @@ ENV_FILE=/root/daoyou/.env.production \
 
 ```cron
 */2 * * * * curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/internal/cron/auction-expire
-*/2 * * * * curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/internal/cron/bet-battle-expire
 0 0 * * * curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/internal/cron/rank-rewards
 */5 * * * * curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/internal/cron/market-refresh
 0 * * * * curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/internal/cron/tower-enemy-sets

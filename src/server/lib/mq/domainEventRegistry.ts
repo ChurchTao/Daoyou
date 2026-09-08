@@ -114,8 +114,6 @@ export async function registerMessageInfrastructure(): Promise<void> {
         'cultivator.realm.changed',
         'craft.item.created',
         'market.material.revealed',
-        'bet-battle.created',
-        'bet-battle.settled',
         'ranking.position.changed',
       ],
       handle: handleWorldRumorEvent,

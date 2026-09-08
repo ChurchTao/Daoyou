@@ -6,22 +6,10 @@ export type WorldChatMessageChannel = 'system' | 'world' | 'sect';
 
 export type WorldChatChannel = WorldChatMessageChannel;
 
-export type WorldChatMessageType =
-  'text' | 'duel_invite' | 'item_showcase' | 'battle_showcase';
+export type WorldChatMessageType = 'text' | 'item_showcase' | 'battle_showcase';
 
 export interface WorldChatTextPayload {
   text: string;
-}
-
-export interface WorldChatDuelInvitePayload {
-  battleId?: string;
-  routePath?: string;
-  targetCultivatorId?: string;
-  taunt?: string;
-  wager?: {
-    spiritStones?: number;
-  };
-  expiresAt?: string;
 }
 
 export type WorldChatShowcaseItemType =
@@ -89,7 +77,6 @@ export interface WorldChatBattleShowcasePayload {
 
 export interface WorldChatPayloadMap {
   text: WorldChatTextPayload;
-  duel_invite: WorldChatDuelInvitePayload;
   item_showcase: WorldChatItemShowcasePayload;
   battle_showcase: WorldChatBattleShowcasePayload;
 }

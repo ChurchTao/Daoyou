@@ -891,19 +891,6 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
-              path="bet-battle"
-              lazy={lazyRoute(
-                () => import('@app/routes/game/bet-battle/route'),
-              )}
-              handle={scene(
-                {
-                  id: 'bet-battle',
-                  summary: '设注、应战与结算皆在赌战台。',
-                },
-                '赌战台',
-              )}
-            />
-            <Route
               path="beasts"
               lazy={lazyRoute(() => import('@app/routes/game/beasts/route'))}
               handle={scene(
@@ -1155,20 +1142,6 @@ export const router = createBrowserRouter(
                   dock: 'hidden',
                 },
                 '蜃楼战局',
-              )}
-            />
-            <Route
-              path="bet-battle/challenge"
-              lazy={lazyRoute(
-                () => import('@app/routes/game/bet-battle/challenge/route'),
-              )}
-              handle={scene(
-                {
-                  id: 'bet-battle-challenge',
-                  chrome: 'immersive',
-                  dock: 'hidden',
-                },
-                '赌战挑战',
               )}
             />
             <Route

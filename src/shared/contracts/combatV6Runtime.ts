@@ -42,6 +42,26 @@ export const CombatV6BattleMetadataV1Schema = z.discriminatedUnion(
     z
       .object({
         schemaVersion: z.literal(1),
+        sourceType: z.literal('ranking'),
+        battleType: z.literal('pvp'),
+        idempotencyKey: z.uuid(),
+        payload: z.object({ realm: z.string(), day: z.string() }).strict(),
+      })
+      .strict(),
+    z
+      .object({
+        schemaVersion: z.literal(1),
+        sourceType: z.literal('tower'),
+        battleType: z.literal('pve'),
+        idempotencyKey: z.uuid(),
+        payload: z
+          .object({ runId: z.uuid(), floor: z.number().int().min(1).max(20) })
+          .strict(),
+      })
+      .strict(),
+    z
+      .object({
+        schemaVersion: z.literal(1),
         sourceType: z.literal('dungeon'),
         battleType: z.literal('pve'),
         idempotencyKey: z.uuid(),

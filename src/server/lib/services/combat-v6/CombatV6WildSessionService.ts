@@ -3,8 +3,10 @@ import { cultivators } from '@server/lib/drizzle/schema';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
+import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
 import { findActiveCombatV6Membership } from '@server/lib/repositories/combatV6BuildRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
+import { hasActiveTower } from '@server/lib/tower/occupancy';
 import {
   combatV6Display,
   combatV6DisplayEvent,
@@ -212,7 +214,11 @@ export class CombatV6WildSessionService {
         retries: 0,
       },
       async (lease) => {
-        if (await hasActiveDungeon(actor.cultivatorId))
+        if (
+          (await hasActiveTower(actor.cultivatorId)) ||
+          (await hasActiveRanking(actor.cultivatorId)) ||
+          (await hasActiveDungeon(actor.cultivatorId))
+        )
           throw new WildError('DUNGEON_ACTIVE', '请先结束秘境探索与结算');
         if (await redis.get(arenaOccupancyKey(actor.cultivatorId)))
           throw new WildError('WILD_BATTLE_ALREADY_ACTIVE', '请先结束擂台战斗');

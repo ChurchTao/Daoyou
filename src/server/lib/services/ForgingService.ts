@@ -6,6 +6,11 @@ import type {
   VaultView,
   WithdrawMaterialSchema,
 } from '@shared/contracts/forging';
+import {
+  BEAST_SPECIES,
+  generateStarterBeast,
+} from '@shared/engine/combat-v6/beasts';
+import { BEAST_CAPACITY } from '@shared/engine/combat-v6/beasts/progression';
 import { generateForgedEquipment } from '@shared/engine/combat-v6/equipment/forging';
 import { forgingBoosts, forgingCost } from '@shared/forging/rules';
 import {
@@ -22,7 +27,12 @@ import { and, asc, count, eq, gte, ilike, inArray, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { db, type DbTransaction } from '../drizzle/db';
-import { cultivators, inventoryItems, materials } from '../drizzle/schema';
+import {
+  combatV6Beasts,
+  cultivators,
+  inventoryItems,
+  materials,
+} from '../drizzle/schema';
 import { redisLockKeys, withRedisLock } from '../redis/lock';
 import { readBeastOwner } from '../repositories/combatV6BeastRepository';
 import { lockCultivatorForStateMutation } from '../repositories/playerStateRepository';
@@ -297,7 +307,27 @@ export async function grantDevResources(input: z.infer<typeof DevGrantSchema>) {
     for (const grant of input.grants) {
       if (grant.type === 'item')
         await grantInventory(input.cultivatorId, [grant.item], tx, false);
-      else if (grant.type === 'vault-material') {
+      else if (grant.type === 'beast') {
+        if (!BEAST_SPECIES.some((species) => species.id === grant.speciesId))
+          throw new InventoryError('灵兽物种无效');
+        const [held] = await tx
+          .select({ total: count() })
+          .from(combatV6Beasts)
+          .where(eq(combatV6Beasts.cultivatorId, input.cultivatorId));
+        if (held.total >= BEAST_CAPACITY)
+          throw new InventoryError('灵兽持有数量已达上限');
+        const id = randomUUID();
+        const individual = generateStarterBeast(
+          id,
+          input.cultivatorId,
+          grant.speciesId,
+          randomInt(0x100000000),
+        );
+        await tx
+          .insert(combatV6Beasts)
+          .values({ id, cultivatorId: input.cultivatorId, individual });
+        ids.push(id);
+      } else if (grant.type === 'vault-material') {
         const [row] = await tx
           .insert(materials)
           .values({

@@ -1886,7 +1886,8 @@ export const auctionListings = pgTable(
   ],
 );
 
-// 赌战表
+// 已退役赌战的历史托管记录。仅保留 schema 防止误生成 DROP；无运行时读写。
+// 停机核对并退还未结押注后，另行安排数据库物理清理。
 export const betBattles = pgTable(
   'wanjiedaoyou_bet_battles',
   {

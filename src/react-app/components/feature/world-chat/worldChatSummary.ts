@@ -57,10 +57,6 @@ export function getWorldChatMessageBody(message: WorldChatMessageDTO) {
       : summary;
   }
 
-  if (message.messageType === 'duel_invite') {
-    return message.textContent || '赌战台有新战帖';
-  }
-
   if (
     message.messageType === 'item_showcase' &&
     isItemShowcasePayload(message.payload)

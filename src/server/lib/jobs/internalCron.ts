@@ -19,7 +19,6 @@ import {
 } from '@server/lib/repositories/retentionRepository';
 import { prunePublishedTransactionalMessages } from '@server/lib/repositories/transactionalMessageRepository';
 import { expireListings } from '@server/lib/services/AuctionService';
-import { expireBetBattles } from '@server/lib/services/BetBattleService';
 import type { MailAttachment } from '@server/lib/services/MailService';
 import { runMarketRefreshJob } from '@server/lib/services/MarketScheduler';
 import {
@@ -34,13 +33,11 @@ import {
   sendSponsorshipAdminDigest,
 } from '@server/lib/services/SponsorshipApplicationService';
 import { getSponsorshipProvider } from '@server/lib/sponsorship/providerRegistry';
-import { towerEnemySetService } from '@server/lib/tower/enemySets';
 import { RANKING_REWARDS, REALM_VALUES } from '@shared/types/constants';
 import { eq } from 'drizzle-orm';
 
 const RANK_REWARD_SETTLED_PREFIX = 'golden_rank:weekly_rewards:settled:';
 const LOCK_TTL_SECONDS = 15 * 60;
-const TOWER_ENEMY_SETS_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const MATERIAL_LIBRARY_DAILY_GENERATION_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const SETTLED_TTL_SECONDS = 7 * 24 * 60 * 60;
 const RESOURCE_REPLAY_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
@@ -50,7 +47,6 @@ const DUNGEON_HISTORY_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const DUNGEON_RUN_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const BATTLE_REPLAY_ARCHIVE_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 const BATTLE_RECORD_V3_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
-const BET_BATTLE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const REPUTATION_SHOP_PURCHASE_RETENTION_MS = 21 * 24 * 60 * 60 * 1000;
 const SECT_SHOP_PURCHASE_RETENTION_MS = 8 * 7 * 24 * 60 * 60 * 1000;
 const SECT_STIPEND_CLAIM_RETENTION_MS = 60 * 24 * 60 * 60 * 1000;
@@ -246,17 +242,6 @@ export async function runAuctionExpireJob(): Promise<CronJobResult> {
   });
 }
 
-export async function runBetBattleExpireJob(): Promise<CronJobResult> {
-  return withJobLock('bet-battle-expire', async () => {
-    const processed = await expireBetBattles();
-    return {
-      success: true,
-      processed,
-      skipped: false,
-    };
-  });
-}
-
 export async function runRankRewardsJob(
   scheduledAt = new Date(),
 ): Promise<RankRewardsJobResult> {
@@ -390,41 +375,13 @@ export async function runMaterialLibraryDailyGenerationJob(
   );
 }
 
-export async function runTowerEnemySetRefreshJob(): Promise<
-  TowerEnemySetsJobResult | CronJobResult
-> {
-  return withJobLock(
-    'tower-enemy-sets',
-    async () => {
-      const results =
-        await towerEnemySetService.refreshCurrentAndNextIfNeeded();
-      const generated = results.reduce(
-        (sum, result) => sum + result.generated,
-        0,
-      );
-      const failed = results.reduce((sum, result) => sum + result.failed, 0);
-      const skipped = results.reduce((sum, result) => sum + result.skipped, 0);
-      const processed = results.reduce(
-        (sum, result) => sum + result.processed,
-        0,
-      );
-
-      return {
-        success: true,
-        processed,
-        skipped: generated === 0 && failed === 0,
-        generated,
-        failed,
-        logs: results.flatMap((result) => [
-          `season ${result.seasonKey}`,
-          ...result.logs,
-        ]),
-        reason:
-          generated === 0 && failed === 0 ? `existing:${skipped}` : undefined,
-      };
-    },
-    TOWER_ENEMY_SETS_LOCK_TTL_SECONDS,
-  );
+export async function runTowerEnemySetRefreshJob(): Promise<CronJobResult> {
+  return {
+    success: true,
+    processed: 0,
+    skipped: true,
+    reason: 'v6-configured-enemies',
+  };
 }
 
 export async function runResourceReplayCleanupJob(): Promise<CronJobResult> {
@@ -458,7 +415,6 @@ export async function runExpiredDataCleanupJob(): Promise<
             now - BATTLE_REPLAY_ARCHIVE_RETENTION_MS,
           ),
           battleRecordsV3: new Date(now - BATTLE_RECORD_V3_RETENTION_MS),
-          betBattles: new Date(now - BET_BATTLE_RETENTION_MS),
           reputationShopPurchases: new Date(
             now - REPUTATION_SHOP_PURCHASE_RETENTION_MS,
           ),

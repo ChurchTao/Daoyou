@@ -1,8 +1,10 @@
 import { redisLockErrorResponse } from '@server/lib/hono/middleware';
+import { patchDevCultivator } from '@server/lib/services/DevCultivatorService';
 import { grantDevResources } from '@server/lib/services/ForgingService';
 import { InventoryError } from '@server/lib/services/InventoryService';
 import { QiServiceError } from '@server/lib/services/QiService';
 import { allowsLocalDevTools } from '@shared/config/deployment';
+import { DevCultivatorPatchSchema } from '@shared/contracts/devTools';
 import { DevGrantSchema } from '@shared/contracts/forging';
 import { InventoryRuleError } from '@shared/inventory';
 import { Hono } from 'hono';
@@ -31,6 +33,25 @@ router.post('/resources', async (c) => {
       error instanceof InventoryRuleError ||
       error instanceof QiServiceError
     )
+      return c.json({ success: false, error: error.message }, 409);
+    throw error;
+  }
+});
+router.patch('/cultivators/:id', async (c) => {
+  try {
+    return c.json({
+      success: true,
+      ...(await patchDevCultivator(
+        z.uuid().parse(c.req.param('id')),
+        DevCultivatorPatchSchema.parse(await c.req.json()),
+      )),
+    });
+  } catch (error) {
+    const lock = redisLockErrorResponse(error);
+    if (lock) return lock;
+    if (error instanceof z.ZodError)
+      return c.json({ success: false, error: '角色调整参数无效' }, 400);
+    if (error instanceof InventoryError)
       return c.json({ success: false, error: error.message }, 409);
     throw error;
   }

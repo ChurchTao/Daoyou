@@ -31,7 +31,7 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 - 缺少账号时通过页面注册本地测试账号，并沿用统一密码；已有账号登录失败时先确认环境、账号存在性及邮箱验证状态，不擅自重置密码或修改认证配置。
 - 多人测试使用独立浏览器上下文或配置文件，确认每个会话实际登录的角色，避免共享 Cookie 将多人测试变成同账号多标签页。
 
-## 4. 本地物资发放
+## 4. 本地物资发放与角色调整
 
 `POST http://127.0.0.1:3001/api/dev/resources` 不要求登录，仅在显式 `APP_ENV=local` 且 `NODE_ENV` 非 production 时注册；缺省、预发布及生产不开启。不要将 local 配置用于外部可访问的部署。
 
@@ -59,3 +59,23 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 新库存材料使用 `type: item`、`definitionId: material.v1`、`instanceData: { name, type, rank, element?, description? }`。兽诀使用注册的定义 ID；随机道装使用 `{ "type": "equipment", "slot": "weapon", "level": 10 }`。全部定义在 `src/shared/items/definitions`，参数边界见 `src/shared/contracts/forging.ts`。
 
 发放遵循正式背包容量、材料校验、资源上限和战斗占用规则，整批事务成功或整体回滚。不支持修改任意字段、账号创建或整库清空。测试前记录物资与资源基准，完成后只清理本次发放和生成的测试物品；保留其他测试已产生的角色进度及历史记录。
+
+灵兽可通过同一发放接口提交 `{ "type": "beast", "speciesId": "combat.wild.species.rock-boar" }`（speciesId 必须来自灵兽定义）。生成标准 10 级个体，遵循兽栏容量；不会自动携带或设为首发，随后使用正式阵容接口配置。
+
+`PATCH http://127.0.0.1:3001/api/dev/cultivators/:id` 使用相同的纯本地环境限制，无需登录。只读查询已有角色 UUID 后，可按需提交以下白名单字段：
+
+```json
+{
+  "realm": "金丹",
+  "realmStage": "初期",
+  "attributes": { "vitality": 1000, "strength": 1000 },
+  "unallocatedAttributePoints": 0,
+  "spiritStones": 10000,
+  "reputation": 0,
+  "resources": { "hp": 10000, "mp": 10000 }
+}
+```
+
+所有数值为新绝对值，省略字段保持原值。基础属性支持 vitality、strength、spirit、endurance、speed、willpower（1–10000）；待分配属性点 0–100000、灵石 0–100000000、声望 0–1000000。resources 必须同时给出 hp、mp（0–10000000），按调整后 v6 构筑的资源上限裁剪。不自动分配属性、补满资源或迁移宗门深度。
+
+空对象、未知字段、非法境界或越界值返回 400；不存在或非活跃角色、战斗占用返回 409。角色调整采用角色锁和数据库事务，提交后更新资源版本；脚本发起的变更后应刷新页面获取新数据。禁止修改用户归属、认证、角色状态等任意数据库字段。测试结束恢复事先记录的境界、属性和准备性资源改动，保留实际玩法奖励与战绩。

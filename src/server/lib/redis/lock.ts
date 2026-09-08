@@ -19,7 +19,6 @@ export const redisLockKeys = {
   cultivatorMutation: (cultivatorId: string) =>
     `lock:cultivator:mutation:${cultivatorId}`,
   auctionListing: (listingId: string) => `lock:auction:listing:${listingId}`,
-  betBattle: (battleId: string) => `lock:bet-battle:${battleId}`,
   battleMatch: (matchId: string) => `lock:battle-match:${matchId}`,
   cron: (jobName: string) => `lock:cron:${jobName}`,
   marketGeneration: (nodeId: string, layer: number | string, cycle: string) =>

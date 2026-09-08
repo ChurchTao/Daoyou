@@ -1,6 +1,12 @@
 import type { CombatV6ReplayView } from '@shared/combat-v6/replay';
 import { replaySeeker } from '@shared/combat-v6/replay-timeline';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Link } from 'react-router';
 import { CombatV6Details } from './CombatV6Details';
 import { CombatV6Log } from './CombatV6Log';
@@ -16,8 +22,18 @@ const outcomes: Record<string, string> = {
 };
 export function CombatV6ReplayPlayer({
   record,
+  autoPlay = false,
+  title = '战斗回放',
+  back = '/game/battle/history',
+  backLabel = '返回战绩',
+  endContent,
 }: {
   record: CombatV6ReplayView;
+  autoPlay?: boolean;
+  title?: string;
+  back?: string;
+  backLabel?: string;
+  endContent?: ReactNode;
 }) {
   const timeline = record.timeline;
   const [seek] = useState(() =>
@@ -32,7 +48,7 @@ export function CombatV6ReplayPlayer({
     ),
   );
   const [position, setPosition] = useState(() => seek(0));
-  const [running, setRunning] = useState(false);
+  const [running, setRunning] = useState(autoPlay);
   const [speed, setSpeed] = useState(1);
   const [inspected, setInspected] = useState<string>();
   const count = timeline?.frames.length ?? 0;
@@ -79,11 +95,11 @@ export function CombatV6ReplayPlayer({
   return (
     <section className="cv6-battle" aria-label="战斗回放">
       <header className="cv6-header">
-        <h1>战斗回放</h1>
+        <h1>{title}</h1>
         <span>
           {ended ? outcomes[record.outcome] : `第 ${position.round} 回合`}
         </span>
-        <Link to="/game/battle/history">返回战绩</Link>
+        <Link to={back}>{backLabel}</Link>
       </header>
       <div className="cv6-field">
         <CombatV6Roster
@@ -96,6 +112,7 @@ export function CombatV6ReplayPlayer({
         />
         <CombatV6Log entries={log.entries} visibleSeq={position.visibleSeq} />
       </div>
+      {ended ? endContent : null}
       {timeline ? (
         <footer className="cv6-replay-controls" aria-label="回放控制">
           <div className="cv6-replay-actions">
