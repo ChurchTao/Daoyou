@@ -158,7 +158,7 @@ export function useForgingSession() {
           resolve,
           window.matchMedia('(prefers-reduced-motion: reduce)').matches
             ? 0
-            : 900,
+            : 1800,
         );
         stopCeremony.current = () => {
           window.clearTimeout(timer);

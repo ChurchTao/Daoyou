@@ -13,9 +13,15 @@ const positions = [
 export function ForgingFurnace({
   session,
   onOpenBag,
+  revealed,
+  onReveal,
+  onInspect,
 }: {
   session: ForgingSession;
   onOpenBag: (filter: 'blueprint' | 'material') => void;
+  revealed: boolean;
+  onReveal: () => void;
+  onInspect: () => void;
 }) {
   return (
     <div
@@ -26,6 +32,37 @@ export function ForgingFurnace({
         aria-hidden="true"
         className="border-ink/10 absolute inset-[12%] rounded-full border"
       />
+      {session.pending ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-10 motion-reduce:hidden"
+        >
+          {[
+            [50, 10],
+            [84, 29],
+            [84, 70],
+            [50, 90],
+            [16, 70],
+            [16, 29],
+          ].map(([x, y], index) =>
+            (
+              index === 0 ? session.blueprint : session.materialIds[index - 1]
+            ) ? (
+              <div
+                key={index}
+                className="absolute inset-0 motion-safe:animate-[forge-gather_800ms_ease-in_both]"
+                style={{ transformOrigin: '50% 53%' }}
+              >
+                <span
+                  className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-200 shadow-[0_0_18px_7px_rgba(217,146,62,0.65)]"
+                  style={{ left: `${x}%`, top: `${y}%` }}
+                />
+              </div>
+            ) : null,
+          )}
+          <div className="absolute top-[53%] left-1/2 h-[30%] w-[30%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(ellipse,rgba(255,210,120,0.85),rgba(210,95,30,0.4)_40%,transparent_70%)] motion-safe:animate-[forge-fire_1600ms_ease-in-out_infinite_alternate]" />
+        </div>
+      ) : null}
       <img
         src="/assets/forging/earthfire-furnace.webp"
         alt="墨铜炼器炉，朱色地火映亮炉膛"
@@ -96,6 +133,34 @@ export function ForgingFurnace({
           </button>
         );
       })}
+      {session.result ? (
+        <div className="absolute top-[53%] left-1/2 z-10 w-[36%] -translate-x-1/2 -translate-y-1/2 text-center">
+          <button
+            type="button"
+            aria-label={`查看${session.result.equipment.name}`}
+            disabled={!revealed}
+            onClick={onInspect}
+            onAnimationEnd={(event) => {
+              if (event.target === event.currentTarget && !revealed) onReveal();
+            }}
+            className={cn(
+              'bg-paper border-crimson/60 text-crimson hover:border-crimson mx-auto flex aspect-square w-[58%] cursor-pointer items-center justify-center border text-3xl shadow-[0_0_24px_rgba(178,80,30,0.3)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-default',
+              !revealed &&
+                'animate-[forge-reveal_1100ms_ease-out_both] motion-reduce:[animation-duration:1ms]',
+            )}
+          >
+            ◇
+          </button>
+          <p
+            className={cn(
+              'bg-paper/90 text-crimson mt-2 px-1 py-1 text-sm',
+              !revealed && 'opacity-0',
+            )}
+          >
+            {session.result.equipment.name}
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }

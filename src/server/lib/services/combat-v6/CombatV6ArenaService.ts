@@ -1,3 +1,4 @@
+import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { db } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
@@ -104,7 +105,8 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
           if (
             (await hasActiveTower(seat.cultivatorId)) ||
             (await hasActiveRanking(seat.cultivatorId)) ||
-            (await hasActiveDungeon(seat.cultivatorId))
+            (await hasActiveDungeon(seat.cultivatorId)) ||
+            (await hasActiveSectTaskBattle(seat.cultivatorId))
           )
             throw new ArenaV6Error('参战角色尚在秘境探索或结算中');
           const identity = await tx.query.cultivators.findFirst({

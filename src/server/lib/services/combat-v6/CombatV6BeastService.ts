@@ -1,3 +1,4 @@
+import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { db, type DbTransaction } from '@server/lib/drizzle/db';
 import {
   combatV6BeastLineups,
@@ -57,6 +58,7 @@ async function mutate<T>(
           (await hasActiveTower(cultivatorId)) ||
           (await hasActiveRanking(cultivatorId)) ||
           (await hasActiveDungeon(cultivatorId)) ||
+          (await hasActiveSectTaskBattle(cultivatorId)) ||
           (await new CombatV6WildStore().lock(cultivatorId)) ||
           (await redis.get(arenaOccupancyKey(cultivatorId))) ||
           (await new CombatV6RuntimeStore().currentId(cultivatorId))

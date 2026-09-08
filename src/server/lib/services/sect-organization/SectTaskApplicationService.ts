@@ -127,6 +127,11 @@ export class ExecuteSectTaskActionHandler {
       periodKey,
       definition.id,
     );
+    if (command.actionKey === 'claim') {
+      const records = await context.tasks.list(membership.id, [periodKey]);
+      record = records.find((candidate) => candidate.taskId === definition.id &&
+        candidate.periodKey !== periodKey && candidate.status === 'completed' && !candidate.claimedAt) ?? record;
+    }
 
     if (command.actionKey === 'accept') {
       if (definition.enrollment !== 'manual')

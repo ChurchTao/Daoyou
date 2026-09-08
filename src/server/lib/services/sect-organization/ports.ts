@@ -8,9 +8,6 @@ import type {
   ResourceDataMap,
 } from '@shared/contracts/resources';
 import type { SectTaskSettlementData } from '@shared/contracts/sect';
-import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
-import type { SectBattleStateStrategy } from '@shared/engine/sect';
-import type { CultivatorCondition } from '@shared/types/condition';
 import type {
   CultivatorSectState,
   SectAbilitySlots,
@@ -23,7 +20,6 @@ import type {
   SectTaskRecordPayload,
   SectTrainingCost,
 } from '@shared/engine/sect';
-import type { BattleRecordV3 } from '@shared/types/battle';
 import type { Quality, RealmStage, RealmType } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
 import type { SectCommandEffects } from './SectCommandEffects';
@@ -275,25 +271,11 @@ export interface SectSubmissionInventoryGateway extends SectSubmissionInventoryR
 }
 
 export interface SectCultivatorGateway {
-  loadRuntime(cultivatorId: string): Promise<CultivatorCombatInput | null>;
-  findBattleTargetCandidate(input: {
-    requesterSectId: string;
-    excludeCultivatorId: string;
-    realms: readonly RealmType[];
-    relation: 'same-sect' | 'other-sect';
-  }): Promise<{
-    cultivatorId: string;
-    sectId: string;
-    sectName: string;
-  } | null>;
   loadProgress(cultivatorId: string): Promise<{
     realm: RealmType;
     stage: RealmStage;
   } | null>;
-  saveCondition(
-    cultivatorId: string,
-    condition: CultivatorCondition,
-  ): Promise<void>;
+
 }
 
 export interface SectRewardMaterialCandidate {
@@ -313,15 +295,8 @@ export interface SectRewardMaterialCatalogGateway {
 }
 
 export interface SectBattleGateway {
-  execute(
-    player: CultivatorCombatInput,
-    opponent: CultivatorCombatInput,
-    strategy: SectBattleStateStrategy,
-    seed: string,
-  ): {
-    battleResult: BattleRecordV3;
-    nextCondition?: CultivatorCondition;
-  };
+  freeze(context: import('./task-executors/SectTaskExecutor').SectTaskEnrollmentContext): Promise<import('@shared/contracts/combatV6SectTask').SectV6Target>;
+  start(context: import('./task-executors/SectTaskExecutor').SectTaskExecutionContext): Promise<{ battleId: string }>;
 }
 
 export interface SectRewardGateway {

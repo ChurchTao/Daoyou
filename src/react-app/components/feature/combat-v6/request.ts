@@ -14,7 +14,9 @@ export async function combatV6Request<T>(
   const headers = new Headers(init?.headers);
   if (init?.body) headers.set('Content-Type', 'application/json');
   const response = await fetch(url, { ...init, headers });
-  const body = (await response.json()) as {
+  const body = (await response.json().catch(() => ({
+    error: '战斗服务暂时不可用，请稍后刷新重试',
+  }))) as {
     success?: boolean;
     data?: T;
     error?: string;

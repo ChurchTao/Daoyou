@@ -489,6 +489,48 @@ body {
 }
 
 /* 动画 */
+@keyframes forge-gather {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.04);
+  }
+}
+
+@keyframes forge-fire {
+  0% {
+    opacity: 0.25;
+    transform: scale(0.65);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes forge-reveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  75%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

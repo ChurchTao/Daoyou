@@ -1,3 +1,4 @@
+import { canonicalizeResourceParams } from '../../../contracts/resources/core';
 import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import type { CreateBattleInput, SkillDef, StatusDef } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
@@ -38,6 +39,11 @@ export function freezeSectNpcOpponent(
   const spec = SECT_NPC_TEMPLATES[template];
   const hp = Math.round((100 + level * 20) * spec.hp);
   const attack = Math.round((15 + level * 5) * spec.attack);
+  const skills = BEAST_SKILLS.filter((skill) =>
+    template === 'mine_patrol'
+      ? skill.id === 'beast.wind-strike'
+      : skill.id === 'beast.spirit-flame' || skill.id === 'beast.wind-strike',
+  );
   return {
     version: 'sect-v6-opponent-v1',
     units: [
@@ -59,10 +65,13 @@ export function freezeSectNpcOpponent(
           magicDef: 10 + level * 3,
           speed: 10 + level * 3,
         },
-        skills: [],
+        skills: skills.map((skill) => skill.id),
+        skillLevels: Object.fromEntries(
+          skills.map((skill) => [skill.id, level]),
+        ),
       },
     ],
-    skills: [],
+    skills: structuredClone(skills),
     statusDefs: [],
   };
 }
@@ -125,7 +134,7 @@ export class SectBattleHost extends CombatV6PveHostSession {
         npcStrategies: Object.fromEntries(
           source.input.units
             .filter((unit) => unit.side === 1)
-            .map((unit) => [unit.id!, { type: 'ruleset' as const }]),
+            .map((unit) => [unit.id!, { type: 'automatic' as const }]),
         ),
         sourceProjectionVersions: COMBAT_V6_PHASE_6D_VERSIONS,
       },
@@ -177,7 +186,11 @@ export function createSectBattleHost(
     const result = new Map<string, T>();
     for (const value of values) {
       const previous = result.get(value.id);
-      if (previous && JSON.stringify(previous) !== JSON.stringify(value))
+      if (
+        previous &&
+        canonicalizeResourceParams(previous) !==
+          canonicalizeResourceParams(value)
+      )
         throw new Error(`宗门战斗定义冲突：${value.id}`);
       result.set(value.id, value);
     }

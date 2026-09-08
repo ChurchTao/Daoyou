@@ -4,7 +4,6 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { itemDefinition } from '@shared/inventory';
-import { EQUIPMENT_ATTRIBUTE_NAMES } from '@shared/inventory/equipment';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useBeforeUnload, useBlocker } from 'react-router';
 import { EquipmentDetails } from './EquipmentDetails';
@@ -53,6 +52,7 @@ export function ForgingRoom() {
   const [filter, setFilter] = useState<ForgeFilter>('all');
   const [selected, setSelected] = useState<string>();
   const [message, setMessage] = useState('');
+  const [revealed, setRevealed] = useState(false);
   const [drawer, setDrawer] = useState<'bag' | 'confirm' | 'details'>();
   const compact = useSyncExternalStore(
     subscribeCompact,
@@ -146,47 +146,51 @@ export function ForgingRoom() {
                       </InkButton>
                     </div>
                   ) : null}
-                  <ForgingFurnace session={session} onOpenBag={openBag} />
+                  <ForgingFurnace
+                    session={session}
+                    onOpenBag={openBag}
+                    revealed={revealed}
+                    onReveal={() => {
+                      setRevealed(true);
+                      setDrawer('details');
+                    }}
+                    onInspect={() => setDrawer('details')}
+                  />
                   {result ? (
-                    <section
-                      className="mt-4 space-y-3 text-center"
-                      aria-live="polite"
-                    >
-                      <p className="text-crimson text-lg">
-                        铸成「{result.equipment.name}」
+                    revealed ? (
+                      <section
+                        className="mt-4 space-y-3 text-center"
+                        aria-live="polite"
+                      >
+                        <p className="text-ink-secondary text-xs">
+                          {result.equipment.equipmentLevel}级 · 已收入储物袋
+                        </p>
+                        <div className="flex justify-center gap-4">
+                          <InkButton onClick={() => setDrawer('details')}>
+                            查看道装
+                          </InkButton>
+                          <InkButton
+                            variant="primary"
+                            disabled={!session.view}
+                            onClick={() => {
+                              session.continueForging();
+                              setRevealed(false);
+                              setMessage('');
+                              setSelected(undefined);
+                            }}
+                          >
+                            继续铸造
+                          </InkButton>
+                        </div>
+                      </section>
+                    ) : (
+                      <p
+                        role="status"
+                        className="text-ink-secondary my-4 text-center text-xs"
+                      >
+                        炉光渐敛，道装成形……
                       </p>
-                      <p className="text-ink-secondary text-xs">
-                        {result.equipment.equipmentLevel}级 · 已收入储物袋
-                      </p>
-                      <dl className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-                        {result.equipment.baseStats.map((roll) => (
-                          <div key={roll.attr}>
-                            <dt className="text-ink-secondary text-xs">
-                              {EQUIPMENT_ATTRIBUTE_NAMES[roll.attr]}
-                            </dt>
-                            <dd className="text-lg tabular-nums">
-                              +{roll.value}
-                            </dd>
-                          </div>
-                        ))}
-                      </dl>
-                      <div className="flex justify-center gap-4">
-                        <InkButton onClick={() => setDrawer('details')}>
-                          查看道装
-                        </InkButton>
-                        <InkButton
-                          variant="primary"
-                          disabled={!session.view}
-                          onClick={() => {
-                            session.continueForging();
-                            setMessage('');
-                            setSelected(undefined);
-                          }}
-                        >
-                          继续铸造
-                        </InkButton>
-                      </div>
-                    </section>
+                    )
                   ) : (
                     <>
                       <p

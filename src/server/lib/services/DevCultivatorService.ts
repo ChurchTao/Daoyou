@@ -2,9 +2,9 @@ import { allowsLocalDevTools } from '@shared/config/deployment';
 import type { DevCultivatorPatch } from '@shared/contracts/devTools';
 import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
 import type { CultivatorCondition } from '@shared/types/condition';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '../drizzle/db';
-import { cultivators } from '../drizzle/schema';
+import { cultivators, sectMemberships } from '../drizzle/schema';
 import { redisLockKeys, withRedisLock } from '../redis/lock';
 import { ConditionService } from './ConditionService';
 import { assertInventoryIdle, InventoryError } from './InventoryService';
@@ -34,6 +34,36 @@ export async function patchDevCultivator(
         if (!before || before.status !== 'active')
           throw new InventoryError('活跃角色不存在');
         await assertInventoryIdle(owner);
+        let sect;
+        if (input.sect) {
+          const [membership] = await tx
+            .select()
+            .from(sectMemberships)
+            .where(
+              and(
+                eq(sectMemberships.cultivatorId, owner),
+                eq(sectMemberships.status, 'active'),
+              ),
+            )
+            .for('update');
+          if (!membership) throw new InventoryError('角色尚未加入宗门');
+          if (
+            (input.sect.contribution ?? membership.contribution) >
+            (input.sect.lifetimeContribution ?? membership.lifetimeContribution)
+          )
+            throw new InventoryError('累计贡献不能小于可用贡献');
+          [sect] = await tx
+            .update(sectMemberships)
+            .set({ ...input.sect, updatedAt: new Date() })
+            .where(eq(sectMemberships.id, membership.id))
+            .returning({
+              membershipId: sectMemberships.id,
+              sectId: sectMemberships.sectId,
+              discipleRank: sectMemberships.discipleRank,
+              contribution: sectMemberships.contribution,
+              lifetimeContribution: sectMemberships.lifetimeContribution,
+            });
+        }
         await tx
           .update(cultivators)
           .set({
@@ -83,19 +113,38 @@ export async function patchDevCultivator(
           actor: { userId: before.userId, cultivatorId: owner },
           source: 'dev-cultivator',
           scopeDefaults: { cultivatorId: owner },
-          changes: (
-            [
-              'player.profile',
-              'player.currency',
-              'player.progress',
-              'player.condition',
-              'player.combat-v6-build',
-            ] as const
-          ).map((resourceTopic) => ({
-            resourceTopic,
-            operation: 'invalidate' as const,
-            eventType: 'dev.cultivator.changed',
-          })),
+          changes: [
+            ...(
+              [
+                'player.profile',
+                'player.currency',
+                'player.progress',
+                'player.condition',
+                'player.combat-v6-build',
+              ] as const
+            ).map((resourceTopic) => ({
+              resourceTopic,
+              operation: 'invalidate' as const,
+              eventType: 'dev.cultivator.changed',
+            })),
+            ...(sect
+              ? [
+                  ...(['sect.membership', 'sect.tasks'] as const).map(
+                    (resourceTopic) => ({
+                      resourceTopic,
+                      operation: 'invalidate' as const,
+                      eventType: 'dev.sect.changed',
+                    }),
+                  ),
+                  {
+                    scope: { kind: 'sect' as const, id: sect.sectId },
+                    resourceTopic: 'sect.members' as const,
+                    operation: 'invalidate' as const,
+                    eventType: 'dev.sect.changed',
+                  },
+                ]
+              : []),
+          ],
         });
         lease.assertHeld();
         const [after] = await tx
@@ -115,7 +164,7 @@ export async function patchDevCultivator(
           })
           .from(cultivators)
           .where(eq(cultivators.id, owner));
-        return { data: after, state };
+        return { data: { ...after, ...(sect ? { sect } : {}) }, state };
       }),
   );
 }

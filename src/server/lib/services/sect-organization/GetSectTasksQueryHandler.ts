@@ -45,7 +45,10 @@ export class GetSectTasksQueryHandler {
     const items = await Promise.all(
       definitions.map(async (definition): Promise<SectTaskViewData> => {
         const periodKey = sectTaskPeriodKey(definition, context);
-        const persisted = records.find(
+        const pendingBattle = records.find((record) => record.taskId === definition.id &&
+          (record.payload.executorData.battleSettled === false ||
+            (record.periodKey !== periodKey && record.status === 'completed' && !record.claimedAt)));
+        const persisted = pendingBattle ?? records.find(
           (record) =>
             record.taskId === definition.id &&
             record.periodKey === periodKey &&

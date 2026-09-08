@@ -7,6 +7,9 @@ import {
 import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
 import { assembleCombatV6TrainingPlayer } from './CombatV6BuildService';
 import { CombatV6WildStore } from './CombatV6WildStore';
+import { activeSectTaskBattle } from './CombatV6SectTaskOccupancy';
+import { SectTaskRecordPayloadSchema } from '@shared/engine/sect';
+import { SectV6TargetSchema } from '@shared/contracts/combatV6SectTask';
 
 /** Read-model annotation only. Never persisted into cultivators.condition. */
 export async function readCombatV6ConditionAuthority(
@@ -38,9 +41,13 @@ export async function readCombatV6ConditionAuthority(
     resourcePolicy: 'full',
   });
   if (!projected.ok) throw new Error('COMBAT_V6_BUILD_INVALID');
+  const taskBattle = await activeSectTaskBattle(id, q);
+  const taskTarget = taskBattle ? SectV6TargetSchema.parse(
+    SectTaskRecordPayloadSchema.parse(taskBattle.payload).executorData.battleTarget,
+  ) : undefined;
   return {
     maxHp: projected.unit.attrs.maxHp!,
     maxMp: projected.unit.attrs.maxMp!,
-    recoveryPaused: await hasActiveDungeon(id),
+    recoveryPaused: (await hasActiveDungeon(id)) || taskTarget?.resourcePolicy === 'persistent',
   };
 }

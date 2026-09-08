@@ -1,3 +1,4 @@
+import { hasActiveSectTaskBattle } from './combat-v6/CombatV6SectTaskOccupancy';
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
 import { hasActiveTower } from '@server/lib/tower/occupancy';
 import type {
@@ -75,6 +76,7 @@ export async function assertInventoryIdle(owner: string) {
     (await hasActiveTower(owner)) ||
     (await hasActiveRanking(owner)) ||
     (await hasActiveDungeon(owner)) ||
+    (await hasActiveSectTaskBattle(owner)) ||
     (await new CombatV6WildStore().lock(owner)) ||
     (await new CombatV6RuntimeStore().currentId(owner)) ||
     (await redis.get(arenaOccupancyKey(owner)))

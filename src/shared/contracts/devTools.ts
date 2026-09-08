@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SECT_DISCIPLE_RANKS } from '../engine/sect/core/domain/organization';
 import { REALM_STAGE_VALUES, REALM_VALUES } from '../types/constants';
 
 const attribute = z.number().int().min(1).max(10000);
@@ -21,6 +22,15 @@ export const DevCultivatorPatchSchema = z
     unallocatedAttributePoints: z.number().int().min(0).max(100000).optional(),
     spiritStones: z.number().int().min(0).max(100000000).optional(),
     reputation: z.number().int().min(0).max(1000000).optional(),
+    sect: z
+      .object({
+        discipleRank: z.enum(SECT_DISCIPLE_RANKS).optional(),
+        contribution: z.number().int().min(0).max(100000000).optional(),
+        lifetimeContribution: z.number().int().min(0).max(100000000).optional(),
+      })
+      .strict()
+      .refine((v) => Object.keys(v).length > 0, '宗门调整不能为空')
+      .optional(),
     resources: z
       .object({
         hp: z.number().int().min(0).max(10000000),

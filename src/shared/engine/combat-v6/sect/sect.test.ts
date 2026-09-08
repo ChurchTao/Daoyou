@@ -1,3 +1,4 @@
+import { SectV6TargetSchema } from '@shared/contracts/combatV6SectTask';
 import type { CultivatorCondition } from '@shared/types/condition';
 import { describe, expect, it } from 'vitest';
 import { generateStarterBeast } from '../beasts';
@@ -69,6 +70,58 @@ function player(id: string): CombatV6TrainingPlayerInput {
 }
 
 describe('宗门任务原生 V6 Host', () => {
+  it('持久化重排对象字段后，同一技能定义仍可合并', () => {
+    const opponent = freezeSectNpcOpponent('mine_patrol', 5);
+    opponent.skills = opponent.skills.map(
+      (skill) =>
+        Object.fromEntries(Object.entries(skill).reverse()) as typeof skill,
+    );
+    expect(() =>
+      createSectBattleHost(player('player'), opponent, 'full', 1),
+    ).not.toThrow();
+  });
+  it('原生目标校验拒绝空阵容、旧 combatant 和错误阵营', () => {
+    const target = {
+      schemaVersion: 2,
+      kind: 'preset',
+      challengeTitle: '矿场巡视',
+      name: '矿兽',
+      description: '矿脉妖兽',
+      realm: '炼气',
+      realmStage: '后期',
+      lockedAt: '2026-09-08T00:00:00.000Z',
+      seed: 1,
+      contentVersion: 'combat-v6-sect-task-v1',
+      resourcePolicy: 'persistent',
+      opponent: freezeSectNpcOpponent('mine_patrol', 5),
+    };
+    expect(SectV6TargetSchema.safeParse(target).success).toBe(true);
+    expect(
+      SectV6TargetSchema.safeParse({
+        ...target,
+        opponent: { ...target.opponent, units: [] },
+      }).success,
+    ).toBe(false);
+    expect(
+      SectV6TargetSchema.safeParse({ ...target, combatant: player('old') })
+        .success,
+    ).toBe(false);
+    target.opponent.units[0].side = 0;
+    expect(SectV6TargetSchema.safeParse(target).success).toBe(false);
+  });
+  it('NPC 法力不足时回退合法普攻，不重复释放不可用技能', () => {
+    const opponent = freezeSectNpcOpponent('elder_trial', 5);
+    opponent.units[0].attrs!.mp = 0;
+    const host = createSectBattleHost(player('player'), opponent, 'full', 1);
+    host.submit(host.playerId, { type: 'defend' });
+    host.resolveRound();
+    expect(
+      host
+        .trace()
+        .rounds[0].commands.find((entry) => entry.unitId !== host.playerId)
+        ?.command.type,
+    ).toBe('attack');
+  });
   it('现实资源保留零法力，演武满资源隔离，不修改角色输入', () => {
     const input = player('player');
     const before = structuredClone(input);
@@ -131,7 +184,7 @@ describe('宗门任务原生 V6 Host', () => {
         host
           .trace()
           .rounds[0].commands.some(
-            (c) => c.unitId !== host.playerId && c.command.type === 'attack',
+            (c) => c.unitId !== host.playerId && c.command.type === 'skill',
           ),
       ).toBe(true);
       expect(

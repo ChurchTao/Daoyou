@@ -14,7 +14,6 @@ import {
   sectTaskRecords,
 } from '@server/lib/drizzle/schema';
 import type { SectDiscipleRank, SectOffice } from '@shared/engine/sect';
-import type { RealmType } from '@shared/types/constants';
 import { and, asc, count, desc, eq, gt, gte, inArray, lte, ne, sql } from 'drizzle-orm';
 
 export async function ensureSectFacilities(
@@ -159,7 +158,10 @@ export async function listSectTaskRecords(
     .where(
       and(
         eq(sectTaskRecords.membershipId, membershipId),
-        inArray(sectTaskRecords.periodKey, [...new Set(periodKeys)]),
+        sql`(${inArray(sectTaskRecords.periodKey, [...new Set(periodKeys)])}
+          OR ${sectTaskRecords.payload}->'executorData'->>'battleSettled' = 'false'
+          OR (${sectTaskRecords.status} = 'completed' AND ${sectTaskRecords.claimedAt} IS NULL
+            AND ${sectTaskRecords.payload}->'executorData'->'battleTarget'->>'schemaVersion' = '2'))`,
       ),
     )
     .orderBy(desc(sectTaskRecords.createdAt));
@@ -850,36 +852,4 @@ export async function countSectMembersAboveLifetimeContribution(
       ),
     );
   return Number(row?.value ?? 0);
-}
-
-export async function findSectBattleTargetCandidate(
-  input: {
-    requesterSectId: string;
-    excludeCultivatorId: string;
-    realms: readonly RealmType[];
-    relation: 'same-sect' | 'other-sect';
-  },
-  q: DbExecutor | DbTransaction,
-) {
-  const [row] = await q
-    .select({
-      cultivatorId: sectMemberships.cultivatorId,
-      sectId: sectMemberships.sectId,
-    })
-    .from(sectMemberships)
-    .innerJoin(cultivators, eq(cultivators.id, sectMemberships.cultivatorId))
-    .where(
-      and(
-        eq(sectMemberships.status, 'active'),
-        eq(cultivators.status, 'active'),
-        inArray(cultivators.realm, input.realms),
-        sql`${sectMemberships.cultivatorId} <> ${input.excludeCultivatorId}`,
-        input.relation === 'same-sect'
-          ? eq(sectMemberships.sectId, input.requesterSectId)
-          : sql`${sectMemberships.sectId} <> ${input.requesterSectId}`,
-      ),
-    )
-    .orderBy(sql`random()`)
-    .limit(1);
-  return row ?? null;
 }

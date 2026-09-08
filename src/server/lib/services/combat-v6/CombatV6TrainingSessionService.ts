@@ -1,3 +1,4 @@
+import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { db } from '@server/lib/drizzle/db';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
@@ -96,7 +97,8 @@ export class CombatV6TrainingSessionService {
     if (
       (await hasActiveTower(actor.cultivatorId)) ||
       (await hasActiveRanking(actor.cultivatorId)) ||
-      (await hasActiveDungeon(actor.cultivatorId))
+      (await hasActiveDungeon(actor.cultivatorId)) ||
+      (await hasActiveSectTaskBattle(actor.cultivatorId))
     )
       throw this.error('AlreadyActive', '请先结束秘境探索与结算');
     if (await redis.get(arenaOccupancyKey(actor.cultivatorId)))

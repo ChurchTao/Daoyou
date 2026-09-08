@@ -1,4 +1,5 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
+import { freezeSectTaskTarget, startSectTaskBattle } from '../combat-v6/CombatV6SectTaskService';
 import {
   consumables,
   creationProducts,
@@ -9,7 +10,6 @@ import * as organization from '@server/lib/repositories/sectOrganizationReposito
 import * as memberships from '@server/lib/repositories/sectRepository';
 import { mapConsumableRow } from '@server/lib/services/consumablePersistence';
 import { toArtifactFromProduct } from '@server/lib/services/creationProductArtifactSupport';
-import { loadCultivatorCombatInput } from '@server/lib/services/cultivator/CultivatorCombatProjectionReader';
 import {
   addMaterialToInventoryInTransaction,
   mapArtifactRow,
@@ -18,14 +18,11 @@ import {
 import {
   updateCultivationExp,
 } from '@server/lib/services/cultivator/CultivatorStateRepository';
-import { updateCultivator } from '@server/lib/services/cultivator/CultivatorStateRepository';
-import { executePersistentWorldBattle } from '@server/lib/services/BattleStateCoordinator';
 import {
   materialLibraryEntryToMaterial,
   sampleMaterialLibraryEntryDeterministic,
 } from '@server/lib/services/MaterialLibraryService';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
-import { SeededBattleRandomSource } from '@shared/engine/battle-v5/core/BattleRandom';
 import {
   projectSectPillTraits,
   SectTaskRecordPayloadSchema,
@@ -35,8 +32,6 @@ import {
   type SectSubmissionItemFacts,
   type SectSubmissionItemKind,
 } from '@shared/engine/sect';
-import { simulateBattleV5 } from '@shared/lib/battle/simulateBattleV5';
-import { prepareStandardFullBattle } from '@shared/engine/battle-v5/setup/BattleStateStrategy';
 import { isPillSpec } from '@shared/lib/consumables';
 import {
   ELEMENT_VALUES,
@@ -961,56 +956,13 @@ export function createPostgresSectCommandContext(args: {
     },
     submissionInventory: submissionInventoryAdapter(tx),
     cultivators: {
-      async loadRuntime(cultivatorId) {
-        return (
-          (await loadCultivatorCombatInput(cultivatorId, tx))?.cultivator ??
-          null
-        );
-      },
-      async findBattleTargetCandidate(input) {
-        const candidate =
-          await organization.findSectBattleTargetCandidate(input, tx);
-        return candidate
-          ? {
-              ...candidate,
-              sectName: args.runtime.registry.require(candidate.sectId)
-                .definition.name,
-            }
-          : null;
-      },
       loadProgress: (cultivatorId) =>
         memberships.loadSectCultivatorProgress(cultivatorId, tx),
-      async saveCondition(cultivatorId, condition) {
-        const updated = await updateCultivator(
-          cultivatorId,
-          { condition },
-          tx,
-        );
-        if (!updated) throw new Error('角色状态保存失败');
-      },
+
     },
     battle: {
-      execute: (player, opponent, strategy, seed) => {
-        const randomSource = new SeededBattleRandomSource(seed);
-        if (strategy === 'persistent_world') {
-          const execution = executePersistentWorldBattle({
-            strategyId: strategy,
-            player,
-            opponent,
-            randomSource,
-          });
-          return {
-            battleResult: execution.battleResult,
-            nextCondition: execution.nextCondition,
-          };
-        }
-        return {
-          battleResult: simulateBattleV5(
-            prepareStandardFullBattle({ player, opponent }),
-            randomSource,
-          ),
-        };
-      },
+      freeze: (context) => freezeSectTaskTarget(context, tx),
+      start: (context) => startSectTaskBattle(context, tx),
     },
     rewards: rewardAdapter(tx, args.userId),
     rewardMaterials: {

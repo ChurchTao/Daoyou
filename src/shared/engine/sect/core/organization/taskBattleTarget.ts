@@ -1,4 +1,5 @@
 import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
+import { SectV6TargetSchema } from '@shared/contracts/combatV6SectTask';
 import {
   REALM_STAGE_VALUES,
   REALM_VALUES,
@@ -57,10 +58,11 @@ export const SectCultivatorBattleTargetSnapshotSchema = baseTargetSchema
   })
   .strict();
 
-export const SectBattleTargetSnapshotSchema = z.discriminatedUnion('kind', [
+const legacyTargetSchema = z.discriminatedUnion('kind', [
   SectPresetBattleTargetSnapshotSchema,
   SectCultivatorBattleTargetSnapshotSchema,
 ]);
+export const SectBattleTargetSnapshotSchema = z.union([SectV6TargetSchema, legacyTargetSchema]);
 
 export type SectBattleTargetSnapshot = z.infer<
   typeof SectBattleTargetSnapshotSchema

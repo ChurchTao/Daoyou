@@ -338,6 +338,11 @@ export class CombatV6PveHostSession {
     unit: Unit,
     strategy: PveCommandStrategyV1,
   ): Command {
+    if (strategy.type === 'automatic') {
+      return automaticCommands(this.battle.snapshot(), unit.id, this.skills,
+        (id) => this.battle.queryCommands(id)).find((entry) => entry.unitId === unit.id)?.command ??
+        { type: CommandType.Defend };
+    }
     if (strategy.type === 'ruleset') {
       const state = this.battle.snapshot();
       return this.encounter.battleInput.ruleset.decideCommand({
@@ -463,3 +468,4 @@ function stableUnitOrder(a: Unit, b: Unit): number {
 function clone<T>(value: T): T {
   return structuredClone(value);
 }
+import { automaticCommands } from '../../../combat-v6/auto';

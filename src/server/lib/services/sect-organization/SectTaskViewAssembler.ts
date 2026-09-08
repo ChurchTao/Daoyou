@@ -90,6 +90,7 @@ export function toSectTaskView(args: {
     args.record.createdAt,
     args.now,
   );
+  const battleActive = args.record.payload.executorData.battleSettled === false;
   const actions =
     args.state === 'claimed'
       ? []
@@ -122,6 +123,7 @@ export function toSectTaskView(args: {
           : [
               ...args.executor.actions(args.definition).map((action) => ({
                 ...action,
+                ...(battleActive && action.key === 'execute' ? { label: '继续战斗' } : {}),
                 enabled: args.enabled,
                 ...(args.disabledReason
                   ? { disabledReason: args.disabledReason }
@@ -133,13 +135,15 @@ export function toSectTaskView(args: {
                       key: 'abandon',
                       renderer: 'sect.action.abandon',
                       label: '放弃此事',
-                      enabled: args.enabled && abandonAvailability.allowed,
+                      enabled: args.enabled && abandonAvailability.allowed && !battleActive,
                       parameters: {
                         availableAt:
                           abandonAvailability.availableAt.toISOString(),
                         cooldownBlocked: !abandonAvailability.allowed,
                       },
-                      ...(!args.enabled && args.disabledReason
+                      ...(battleActive
+                        ? { disabledReason: '请先结束战斗与结算' }
+                        : !args.enabled && args.disabledReason
                         ? { disabledReason: args.disabledReason }
                         : !abandonAvailability.allowed
                           ? { disabledReason: '领取满 15 分钟后方可放弃' }

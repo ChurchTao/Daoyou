@@ -40,6 +40,8 @@ const plugins = composeSectOrganizationPlugins({
   manifests: [CORE_SECT_ORGANIZATION_PLUGIN],
 });
 
+const fulfillment = new FulfillSectTaskHandler(plugins.events);
+export const fulfillSectV6Task = (args: Parameters<FulfillSectTaskHandler['execute']>[0]) => fulfillment.execute(args);
 const application = new SectOrganizationFacade({
   membership: new SectMembershipApplicationService(benefits, plugins.events),
   tasks: {
@@ -47,7 +49,7 @@ const application = new SectOrganizationFacade({
     submissions: new SectTaskSubmissionQueryService(),
     actions: new ExecuteSectTaskActionHandler(
       plugins.executors,
-      new FulfillSectTaskHandler(plugins.events),
+      fulfillment,
       new ClaimSectTaskRewardHandler(plugins.events),
       plugins.offerPolicies,
       plugins.rewardPolicies,

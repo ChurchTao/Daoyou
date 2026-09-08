@@ -1,3 +1,4 @@
+import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { db } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
@@ -219,7 +220,8 @@ export class CombatV6WildSessionService {
         if (
           (await hasActiveTower(actor.cultivatorId)) ||
           (await hasActiveRanking(actor.cultivatorId)) ||
-          (await hasActiveDungeon(actor.cultivatorId))
+          (await hasActiveDungeon(actor.cultivatorId)) ||
+          (await hasActiveSectTaskBattle(actor.cultivatorId))
         )
           throw new WildError('DUNGEON_ACTIVE', '请先结束秘境探索与结算');
         if (await redis.get(arenaOccupancyKey(actor.cultivatorId)))
