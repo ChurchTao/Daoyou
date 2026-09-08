@@ -99,35 +99,35 @@ export function useDungeonActions() {
    * 退出副本
    */
   const quitDungeon = () => {
-    return new Promise<boolean>((resolve) => {
+    return new Promise<unknown>((resolve) => {
       openDialog({
-        title: '放弃探索',
+        title: '结束探索',
         content:
-          '确定要放弃当前探索吗？放弃后无法获得任何奖励，且本轮进度将丢失。',
-        confirmLabel: '确认放弃',
+          '确定结束本次探索吗？已获得的收益将结算发放，但不会获得通关奖励。',
+        confirmLabel: '确认离开',
         cancelLabel: '取消',
         onConfirm: async () => {
           try {
             setProcessing(true);
             const res = await fetch('/api/dungeon/quit', { method: 'POST' });
-            const data =
-              await readDungeonMutation<{ state?: DungeonState }>(res);
+            const data = await readDungeonMutation<{ state?: DungeonState }>(
+              res,
+            );
             if ('conflict' in data) {
               throw new Error(data.message ?? '放弃失败');
             }
 
-            pushToast({ message: '已放弃探索', tone: 'success' });
-            resolve(true);
+            resolve(data);
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (e) {
             pushToast({ message: '操作失败', tone: 'danger' });
-            resolve(false);
+            resolve(null);
           } finally {
             setProcessing(false);
           }
         },
         onCancel: () => {
-          resolve(false);
+          resolve(null);
         },
       });
     });
@@ -139,10 +139,15 @@ export function useDungeonActions() {
   const continueLooting = async () => {
     try {
       setProcessing(true);
-      const res = await fetch('/api/dungeon/looting/continue', { method: 'POST' });
+      const res = await fetch('/api/dungeon/looting/continue', {
+        method: 'POST',
+      });
       return await readDungeonMutation(res);
     } catch (e) {
-      pushToast({ message: e instanceof Error ? e.message : '操作失败', tone: 'danger' });
+      pushToast({
+        message: e instanceof Error ? e.message : '操作失败',
+        tone: 'danger',
+      });
       return null;
     } finally {
       setProcessing(false);
@@ -155,10 +160,15 @@ export function useDungeonActions() {
   const escapeLooting = async () => {
     try {
       setProcessing(true);
-      const res = await fetch('/api/dungeon/looting/escape', { method: 'POST' });
+      const res = await fetch('/api/dungeon/looting/escape', {
+        method: 'POST',
+      });
       return await readDungeonMutation(res);
     } catch (e) {
-      pushToast({ message: e instanceof Error ? e.message : '操作失败', tone: 'danger' });
+      pushToast({
+        message: e instanceof Error ? e.message : '操作失败',
+        tone: 'danger',
+      });
       return null;
     } finally {
       setProcessing(false);

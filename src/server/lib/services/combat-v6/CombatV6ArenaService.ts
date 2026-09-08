@@ -1,5 +1,6 @@
 import { db } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
+import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { getJetStreamClient } from '@server/lib/nats';
 import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
@@ -97,6 +98,8 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
         const units: ArenaRuntime['units'] = [];
         const participants: ArenaRuntime['participants'] = [];
         for (const seat of seats) {
+          if (await hasActiveDungeon(seat.cultivatorId))
+            throw new ArenaV6Error('参战角色尚在秘境探索或结算中');
           const identity = await tx.query.cultivators.findFirst({
             where: and(
               eq(cultivators.id, seat.cultivatorId),

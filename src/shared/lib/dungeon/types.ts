@@ -1,4 +1,5 @@
 import type { ResourceOperation } from '@shared/engine/resource/types';
+import { ItemGrantSchema } from '@shared/inventory';
 import { ENEMY_RACE_VALUES, REALM_STAGE_VALUES } from '@shared/types/constants';
 import { z } from 'zod';
 
@@ -184,6 +185,7 @@ export const DungeonRoundSchema = z.object({
 // Settlement info from AI
 export const DungeonSettlementSchema = z
   .object({
+    inventoryRewards: z.array(ItemGrantSchema).optional(),
     ending_narrative: z.string().describe('结局叙述'),
     settlement: z.object({
       reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']).describe('奖励等级'),
@@ -297,6 +299,10 @@ export interface DungeonPendingAction {
 // === Internal State Management ===
 
 export interface DungeonState {
+  rewardSeed?: number;
+  v6Rewards?: import('@shared/rewards/dungeon').DungeonRewardEntry[];
+  beastResources?: Record<string, { hp: number; mp: number }>;
+  endDisposition?: import('@shared/lib/dungeon/settlementPolicy').DungeonEndDisposition;
   runId?: string;
   cultivatorId: string;
   mapNodeId: string;

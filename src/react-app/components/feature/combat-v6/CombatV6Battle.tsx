@@ -10,6 +10,7 @@ import { unitLabels } from './presentation';
 import type { CombatV6Session, SessionState } from './session';
 
 type Props = {
+  allowAbandon?: boolean;
   online?: ArenaSessionView;
   title: string;
   session: CombatV6Session;
@@ -33,6 +34,7 @@ const outcomeLabels = {
 };
 const noTargets: string[] = [];
 export function CombatV6Battle({
+  allowAbandon = true,
   online,
   title,
   session,
@@ -181,6 +183,7 @@ export function CombatV6Battle({
       </div>
       {!online?.spectator ? (
         <CombatV6Commands
+          allowAbandon={allowAbandon}
           online={online}
           key={selectionId}
           session={commandSession}

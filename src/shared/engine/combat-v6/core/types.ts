@@ -115,6 +115,7 @@ export type CombatV6VersionStamp = {
     | 'daoyou_rules_v8';
   contentVersion:
     | 'daoyou_wild_inventory_content_v1'
+    | 'combat-v6-dungeon-v1'
     | 'daoyou_wild_capture_content_v1'
     | 'daoyou_arena_beast_content_v1'
     | 'daoyou_training_beast_content_v1'

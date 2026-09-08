@@ -1,350 +1,359 @@
+import { RoomView, type RoomActorView } from '@app/components/feature/room';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
-import { consumeResourceMutation } from '@app/lib/resources/mutations';
-import type { ForgeRequest, ForgeView } from '@shared/contracts/forging';
-import type { DaoEquipmentInstanceV1 } from '@shared/engine/combat-v6/equipment/types';
-import { forgingCost } from '@shared/forging/rules';
 import { itemDefinition } from '@shared/inventory';
-import { MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
-import { materialFactsOf } from '@shared/items/material';
-import { QUALITY_ORDER } from '@shared/types/constants';
-import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
-import { combatV6Request, mutationBody } from '../combat-v6/request';
+import { EQUIPMENT_ATTRIBUTE_NAMES } from '@shared/inventory/equipment';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useBeforeUnload, useBlocker } from 'react-router';
 import { EquipmentDetails } from './EquipmentDetails';
+import { ForgingFurnace } from './ForgingFurnace';
+import { ForgingInventory, type ForgeFilter } from './ForgingInventory';
+import { useForgingSession, type ForgeItem } from './useForgingSession';
 
-const endpoint = '/api/combat-v6/forging';
+const facilities: RoomActorView[] = [
+  {
+    id: 'furnace',
+    sigil: '炉',
+    name: '地火器炉',
+    identity: '铸造设施',
+    responsibility: '依图定形，借地火锻成道装',
+    appearance: 'facility',
+  },
+  {
+    id: 'archive',
+    sigil: '卷',
+    name: '道装图录',
+    identity: '图纸设施',
+    responsibility: '翻阅随身图纸，择一卷开炉',
+    appearance: 'facility',
+  },
+  {
+    id: 'guide',
+    sigil: '碑',
+    name: '铸器碑',
+    identity: '指引设施',
+    responsibility: '辨灵材之性，知铸器之理',
+    appearance: 'facility',
+  },
+];
+const compactQuery = '(max-width: 767px)';
+function subscribeCompact(callback: () => void) {
+  const query = window.matchMedia(compactQuery);
+  query.addEventListener('change', callback);
+  return () => query.removeEventListener('change', callback);
+}
+const readCompact = () => window.matchMedia(compactQuery).matches;
+const readServerCompact = () => false;
+
 export function ForgingRoom() {
-  const [view, setView] = useState<ForgeView>();
-  const [refresh, setRefresh] = useState(0);
-  const [blueprintId, setBlueprintId] = useState('');
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [picker, setPicker] = useState<'blueprint' | 'materials' | 'confirm'>();
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState('');
-  const [result, setResult] = useState<{
-    equipment: DaoEquipmentInstanceV1;
-    previous?: unknown;
-  }>();
-  const busy = useRef(false);
-  const alive = useRef(true);
+  const session = useForgingSession();
+  const [facility, setFacility] = useState('');
+  const [filter, setFilter] = useState<ForgeFilter>('all');
+  const [selected, setSelected] = useState<string>();
+  const [message, setMessage] = useState('');
+  const [drawer, setDrawer] = useState<'bag' | 'confirm' | 'details'>();
+  const compact = useSyncExternalStore(
+    subscribeCompact,
+    readCompact,
+    readServerCompact,
+  );
+  const bagRef = useRef<HTMLElement>(null);
+  const blocker = useBlocker(session.pending);
+  const resetBlockedNavigation =
+    blocker.state === 'blocked' ? blocker.reset : undefined;
   useEffect(() => {
-    alive.current = true;
-    return () => {
-      alive.current = false;
-    };
-  }, []);
-  useEffect(() => {
-    const controller = new AbortController();
-    void combatV6Request<ForgeView>(endpoint, { signal: controller.signal })
-      .then((data) => {
-        if (!controller.signal.aborted) setView(data);
-      })
-      .catch((e) => {
-        if (!controller.signal.aborted) setError(e.message);
-      });
-    return () => controller.abort();
-  }, [refresh]);
-  const blueprint = view?.inventory.items.find((i) => i.id === blueprintId);
-  const definition = blueprint
-    ? itemDefinition(blueprint.definitionId)
-    : undefined;
-  const cost = definition?.level ? forgingCost(definition.level) : undefined;
-  const materials =
-    view?.inventory.items
-      .filter((i) => itemDefinition(i.definitionId).kind === 'material')
-      .map((i) => ({
-        ...i,
-        facts: materialFactsOf(i.definitionId, i.instanceData),
-      })) ?? [];
-  const chosen = materials.filter((m) => quantities[m.id] > 0);
-  const total = chosen.reduce((n, m) => n + quantities[m.id], 0);
-  const boostCount = (types: string[]) =>
-    chosen
-      .filter((m) => types.includes(m.facts.type))
-      .reduce((n, m) => n + quantities[m.id], 0);
-  const valid =
-    !!view &&
-    !!cost &&
-    !!definition?.level &&
-    definition.level <= view.ownerLevel &&
-    total === cost.quantity &&
-    chosen.every(
-      (m) =>
-        Number.isInteger(quantities[m.id]) &&
-        quantities[m.id] <= m.quantity &&
-        QUALITY_ORDER[m.facts.rank] >= QUALITY_ORDER[cost.rank],
-    ) &&
-    view.spiritStones >= cost.spiritStones &&
-    view.qi >= cost.qi;
-  async function submit() {
-    if (busy.current || !blueprint || !valid) return;
-    busy.current = true;
-    setPending(true);
-    setError('');
-    const input: ForgeRequest = {
-      blueprint: { id: blueprint.id, revision: blueprint.revision },
-      materials: chosen.map((m) => ({
-        id: m.id,
-        revision: m.revision,
-        quantity: quantities[m.id],
-      })),
-    };
-    const previous = view!.inventory.items.find(
-      (i) =>
-        i.equipped &&
-        i.definitionId === 'equipment.v6' &&
-        (i.instanceData as DaoEquipmentInstanceV1).slot === definition?.slot,
-    )?.instanceData;
-    try {
-      const response = await consumeResourceMutation<{
-        equipment: DaoEquipmentInstanceV1;
-      }>(
-        await fetch(endpoint, {
-          ...mutationBody(input),
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      );
-      if (alive.current) setResult({ ...response, previous });
-    } catch (e) {
-      if (alive.current)
-        setError(
-          `${e instanceof Error ? e.message : '请求失败'}。请核对背包结果后重新备料。`,
-        );
-    } finally {
-      busy.current = false;
-      if (alive.current) {
-        setPending(false);
-        setPicker(undefined);
-        setBlueprintId('');
-        setQuantities({});
-        setView(undefined);
-        setRefresh((n) => n + 1);
-      }
+    resetBlockedNavigation?.();
+  }, [resetBlockedNavigation]);
+  useBeforeUnload((event) => {
+    if (session.pending) {
+      event.preventDefault();
+      event.returnValue = '';
     }
+  });
+  function openBag(next: ForgeFilter) {
+    setFilter(next);
+    if (compact) setDrawer('bag');
+    else bagRef.current?.focus();
   }
+  function choose(item: ForgeItem) {
+    setSelected(item.id);
+    setMessage(session.choose(item));
+  }
+  const bag = (
+    <ForgingInventory
+      session={session}
+      filter={filter}
+      onFilter={setFilter}
+      selected={selected}
+      message={message}
+      onChoose={choose}
+    />
+  );
+  const blueprints =
+    session.view?.inventory.items.filter(
+      (item) => itemDefinition(item.definitionId).kind === 'blueprint',
+    ) ?? [];
+  const { result } = session;
   return (
     <GameSceneFrame variant="workflow">
-      <div className="space-y-6 text-sm">
-        {error ? (
+      <div className="space-y-4 text-sm">
+        {session.error ? (
           <p role="alert" className="text-crimson">
-            {error}{' '}
-            <button
-              className="underline"
+            {session.error}{' '}
+            <InkButton
+              disabled={session.pending}
               onClick={() => {
-                setError('');
-                setRefresh((n) => n + 1);
+                setMessage('');
+                session.reload();
               }}
             >
-              重新读取
-            </button>
+              重新核对
+            </InkButton>
           </p>
         ) : null}
-        {result ? (
-          <section className="space-y-4">
-            <p role="status">铸成「{result.equipment.name}」，已收入背包。</p>
+        {!facility ? (
+          <RoomView
+            description="地火映壁，炉中尚有余温。图卷与铸器碑分列两侧，择一处走近。"
+            actors={facilities}
+            onSelect={setFacility}
+            prompt="选择一处设施"
+          />
+        ) : (
+          <>
+            <header className="border-ink/10 flex items-center justify-between gap-3 border-b pb-3">
+              <h3 className="font-medium">
+                {facilities.find((entry) => entry.id === facility)?.name}
+              </h3>
+              <InkButton
+                disabled={session.pending}
+                onClick={() => setFacility('')}
+              >
+                返回炼器室
+              </InkButton>
+            </header>
+            {facility === 'furnace' ? (
+              <div className="grid gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+                <section className="min-w-0">
+                  {compact ? (
+                    <div className="flex justify-end">
+                      <InkButton
+                        disabled={session.locked}
+                        onClick={() => openBag('all')}
+                      >
+                        储物袋
+                      </InkButton>
+                    </div>
+                  ) : null}
+                  <ForgingFurnace session={session} onOpenBag={openBag} />
+                  {result ? (
+                    <section
+                      className="mt-4 space-y-3 text-center"
+                      aria-live="polite"
+                    >
+                      <p className="text-crimson text-lg">
+                        铸成「{result.equipment.name}」
+                      </p>
+                      <p className="text-ink-secondary text-xs">
+                        {result.equipment.equipmentLevel}级 · 已收入储物袋
+                      </p>
+                      <dl className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+                        {result.equipment.baseStats.map((roll) => (
+                          <div key={roll.attr}>
+                            <dt className="text-ink-secondary text-xs">
+                              {EQUIPMENT_ATTRIBUTE_NAMES[roll.attr]}
+                            </dt>
+                            <dd className="text-lg tabular-nums">
+                              +{roll.value}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                      <div className="flex justify-center gap-4">
+                        <InkButton onClick={() => setDrawer('details')}>
+                          查看道装
+                        </InkButton>
+                        <InkButton
+                          variant="primary"
+                          disabled={!session.view}
+                          onClick={() => {
+                            session.continueForging();
+                            setMessage('');
+                            setSelected(undefined);
+                          }}
+                        >
+                          继续铸造
+                        </InkButton>
+                      </div>
+                    </section>
+                  ) : (
+                    <>
+                      <p
+                        className="text-ink-secondary my-4 min-h-6 text-center text-xs"
+                        role="status"
+                      >
+                        {session.pending
+                          ? '地火正盛，灵材入炉，静候成器……'
+                          : (session.problem ?? '图材相合，可引地火。')}
+                      </p>
+                      <footer className="border-ink/10 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+                        <div className="space-y-1 text-xs">
+                          <p>
+                            {session.cost
+                              ? `${session.cost.spiritStones.toLocaleString()} 灵石 · ${session.cost.qi} 天地灵气`
+                              : '选择图纸后确定本次消耗'}
+                          </p>
+                          <div className="text-ink-secondary flex items-center gap-2">
+                            {session.cost
+                              ? `${session.cost.quantity} 份灵材 · ${session.cost.rank}起`
+                              : '一卷图纸，最多五份灵材'}
+                            <InkTooltip label="材料增益规则">
+                              每份材料增加 1.8 个百分点，同类最多
+                              9%。矿石增益白字择优；天材地宝增益器蕴数量择优；辅助与妖兽材料增益已有附灵数值择优。高品质无额外加成，器诀独立随机。
+                            </InkTooltip>
+                          </div>
+                        </div>
+                        <InkButton
+                          variant="primary"
+                          pending={session.pending}
+                          pendingLabel="铸造中……"
+                          disabled={session.locked || !!session.problem}
+                          onClick={() => setDrawer('confirm')}
+                        >
+                          开炉铸造
+                        </InkButton>
+                      </footer>
+                    </>
+                  )}
+                </section>
+                {!compact ? (
+                  <aside
+                    ref={bagRef}
+                    tabIndex={-1}
+                    aria-label="炼器物品栏"
+                    className="border-ink/10 min-w-0 border-l pl-5 focus-visible:outline-none"
+                  >
+                    {bag}
+                  </aside>
+                ) : null}
+              </div>
+            ) : facility === 'archive' ? (
+              <div className="space-y-3">
+                {!session.view ? (
+                  <p>正在翻阅图纸……</p>
+                ) : !blueprints.length ? (
+                  <p className="text-ink-secondary">储物袋中暂无道装图纸。</p>
+                ) : (
+                  blueprints.map((item) => (
+                    <div
+                      key={item.id}
+                      className="border-ink/10 flex items-center justify-between gap-3 border-b py-3"
+                    >
+                      <div>
+                        <p>
+                          {item.name} ×{item.quantity}
+                        </p>
+                        <p className="text-ink-secondary text-xs">
+                          {session.itemProblem(item)}
+                        </p>
+                      </div>
+                      <InkButton
+                        disabled={session.locked || !!session.itemProblem(item)}
+                        onClick={() => {
+                          choose(item);
+                          setFacility('furnace');
+                        }}
+                      >
+                        带入器炉
+                      </InkButton>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="max-w-2xl space-y-6 py-3 text-sm leading-7">
+                <section>
+                  <h3 className="mb-2 font-medium">依图定形</h3>
+                  <p className="text-ink-secondary">
+                    图纸决定道装的等级与槽位，不可铸造高于人物等级的图纸。每炉需要一卷图纸与规定数量、品质的材料。
+                  </p>
+                </section>
+                <section>
+                  <h3 className="mb-2 font-medium">灵材各有所长</h3>
+                  <p className="text-ink-secondary">
+                    矿石偏重白字面板；天材地宝偏重器蕴数量；辅助与妖兽材料偏重附灵数值。同类可叠加择优概率，每份
+                    1.8%，最多 9%。器诀独立随机。
+                  </p>
+                </section>
+                <section>
+                  <h3 className="mb-2 font-medium">开炉成器</h3>
+                  <p className="text-ink-secondary">
+                    铸造只使用储物袋中的图纸与灵材，旧材料需先从洞府宝库取出。确认开炉时消耗图纸、材料、灵石与天地灵气，成品自动入包。炉前放入、移出不扣除物品。
+                  </p>
+                </section>
+              </div>
+            )}
+          </>
+        )}
+        <InkDetailDrawer
+          isOpen={drawer === 'bag' && compact}
+          title="选择图纸与灵材"
+          onClose={() => setDrawer(undefined)}
+          size="md"
+          footer={
+            <InkButton onClick={() => setDrawer(undefined)}>选好了</InkButton>
+          }
+        >
+          {bag}
+        </InkDetailDrawer>
+        <InkDetailDrawer
+          isOpen={drawer === 'confirm'}
+          title="确认开炉"
+          size="sm"
+          onClose={() => setDrawer(undefined)}
+        >
+          <div className="space-y-3 text-sm">
+            <p>{session.blueprint?.name} ×1</p>
+            {Array.from(session.quantities, ([id, quantity]) => (
+              <p key={id}>
+                {session.byId.get(id)?.name} ×{quantity}
+              </p>
+            ))}
+            <p>
+              {session.cost?.spiritStones.toLocaleString()} 灵石 ·{' '}
+              {session.cost?.qi} 天地灵气
+            </p>
+            <p className="text-ink-secondary">
+              必定铸成一件道装，属性随机，成品自动入包。
+            </p>
+            <InkButton
+              variant="primary"
+              disabled={session.locked || !!session.problem}
+              onClick={() => {
+                setDrawer(undefined);
+                setMessage('');
+                setSelected(undefined);
+                void session.submit();
+              }}
+            >
+              确认开炉
+            </InkButton>
+          </div>
+        </InkDetailDrawer>
+        <InkDetailDrawer
+          isOpen={drawer === 'details' && !!result}
+          title={result?.equipment.name ?? '道装详情'}
+          onClose={() => setDrawer(undefined)}
+          size="md"
+        >
+          {result ? (
             <EquipmentDetails
               data={result.equipment}
               previous={result.previous}
             />
-            <div className="flex gap-4">
-              <InkButton onClick={() => setResult(undefined)}>
-                继续铸造
-              </InkButton>
-              <Link className="self-center underline" to="/game/inventory">
-                查看背包与装配
-              </Link>
-            </div>
-          </section>
-        ) : (
-          <>
-            <section className="space-y-2">
-              <p className="text-ink-secondary">图纸</p>
-              <InkButton
-                disabled={!view || pending}
-                onClick={() => setPicker('blueprint')}
-              >
-                {blueprint?.name ?? '选择道装图纸'}
-              </InkButton>
-              {!view ? <p>正在查看物品……</p> : null}
-            </section>
-            {cost ? (
-              <section className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span>
-                    材料 {total} / {cost.quantity} 件 · {cost.rank}起
-                  </span>
-                  <InkTooltip label="材料增益规则">
-                    每件材料增加 1.8 个百分点，同组最多
-                    9%。矿石增益白字择优，天材地宝增益器蕴条数择优，辅助或妖兽材料增益已有附灵数值择优。高品质无额外加成，器诀独立随机。
-                  </InkTooltip>
-                </div>
-                {chosen.map((m) => (
-                  <p key={m.id}>
-                    {m.name} ×{quantities[m.id]} · {m.facts.rank}
-                  </p>
-                ))}
-                <InkButton
-                  disabled={pending}
-                  onClick={() => setPicker('materials')}
-                >
-                  选择材料
-                </InkButton>
-                {total ? (
-                  <p className="text-ink-secondary">
-                    白字择优 +{(boostCount(['ore']) * 1.8).toFixed(1)}% ·
-                    附灵择优 +
-                    {(boostCount(['aux', 'monster']) * 1.8).toFixed(1)}% ·
-                    器蕴择优 +{(boostCount(['tcdb']) * 1.8).toFixed(1)}%
-                  </p>
-                ) : null}
-                <p>
-                  {cost.spiritStones} 灵石 · {cost.qi} 天地灵气
-                </p>
-                {view &&
-                (view.spiritStones < cost.spiritStones || view.qi < cost.qi) ? (
-                  <p className="text-crimson">灵石或天地灵气不足</p>
-                ) : null}
-                <InkButton
-                  disabled={!valid || pending}
-                  onClick={() => setPicker('confirm')}
-                >
-                  铸造
-                </InkButton>
-              </section>
-            ) : null}
-          </>
-        )}
-        {picker ? (
-          <InkDetailDrawer
-            isOpen
-            title={
-              picker === 'blueprint'
-                ? '选择图纸'
-                : picker === 'materials'
-                  ? '选择材料'
-                  : '确认铸造'
-            }
-            onClose={() => {
-              if (!pending) setPicker(undefined);
-            }}
-            size="sm"
-          >
-            <div className="space-y-4 text-sm">
-              {picker === 'blueprint' ? (
-                <>
-                  {view?.inventory.items
-                    .filter(
-                      (i) =>
-                        itemDefinition(i.definitionId).kind === 'blueprint',
-                    )
-                    .map((i) => (
-                      <div key={i.id}>
-                        <InkButton
-                          disabled={
-                            itemDefinition(i.definitionId).level! >
-                            view.ownerLevel
-                          }
-                          onClick={() => {
-                            setBlueprintId(i.id);
-                            setQuantities({});
-                            setPicker(undefined);
-                          }}
-                        >
-                          {i.name} ×{i.quantity}
-                        </InkButton>
-                        {itemDefinition(i.definitionId).level! >
-                        view.ownerLevel ? (
-                          <span> 超过人物等级</span>
-                        ) : null}
-                      </div>
-                    ))}
-                  {!view?.inventory.items.some(
-                    (i) => itemDefinition(i.definitionId).kind === 'blueprint',
-                  ) ? (
-                    <p>背包中没有道装图纸。</p>
-                  ) : null}
-                </>
-              ) : picker === 'materials' ? (
-                <>
-                  <p>
-                    请选择 {cost?.quantity} 件{cost?.rank}或更高品质的材料。
-                  </p>
-                  {materials.map((m) => (
-                    <label
-                      key={m.id}
-                      className="border-ink/10 flex items-center justify-between gap-3 border-b py-2"
-                    >
-                      <span>
-                        {m.name}
-                        <span className="text-ink-secondary block">
-                          {m.facts.rank} · {MATERIAL_TYPE_NAMES[m.facts.type]} ·
-                          持有 {m.quantity}
-                        </span>
-                      </span>
-                      <input
-                        type="number"
-                        aria-label={`${m.name}数量`}
-                        className="border-ink/20 w-16 border bg-transparent p-2"
-                        min={0}
-                        max={Math.min(m.quantity, cost?.quantity ?? 0)}
-                        value={quantities[m.id] ?? 0}
-                        disabled={
-                          !!cost &&
-                          QUALITY_ORDER[m.facts.rank] < QUALITY_ORDER[cost.rank]
-                        }
-                        onChange={(e) =>
-                          setQuantities((old) => ({
-                            ...old,
-                            [m.id]: Math.max(
-                              0,
-                              Math.min(
-                                Number(e.target.value),
-                                m.quantity,
-                                cost?.quantity ?? 0,
-                              ),
-                            ),
-                          }))
-                        }
-                      />
-                    </label>
-                  ))}
-                  {!materials.length ? (
-                    <p>背包中没有可用材料，请先从洞府宝库取出。</p>
-                  ) : null}
-                  <InkButton
-                    disabled={total !== cost?.quantity}
-                    onClick={() => setPicker(undefined)}
-                  >
-                    选好了
-                  </InkButton>
-                </>
-              ) : (
-                <>
-                  <p>{blueprint?.name} ×1</p>
-                  {chosen.map((m) => (
-                    <p key={m.id}>
-                      {m.name} ×{quantities[m.id]}
-                    </p>
-                  ))}
-                  <p>
-                    {cost?.spiritStones} 灵石 · {cost?.qi} 天地灵气
-                  </p>
-                  <p>必定生成一件道装，属性随机。成品自动入包。</p>
-                  <InkButton
-                    pending={pending}
-                    disabled={!valid}
-                    onClick={() => void submit()}
-                  >
-                    确认铸造
-                  </InkButton>
-                </>
-              )}
-            </div>
-          </InkDetailDrawer>
-        ) : null}
+          ) : null}
+        </InkDetailDrawer>
       </div>
     </GameSceneFrame>
   );

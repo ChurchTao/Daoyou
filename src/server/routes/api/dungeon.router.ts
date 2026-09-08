@@ -1,6 +1,10 @@
 import { getExecutor } from '@server/lib/drizzle/db';
 import { dungeonHistories } from '@server/lib/drizzle/schema';
 import {
+  changeDungeonBattle,
+  getDungeonBattle,
+} from '@server/lib/dungeon/combatV6';
+import {
   checkDungeonLimit,
   getDungeonLimitConfig,
 } from '@server/lib/dungeon/dungeonLimiter';
@@ -22,6 +26,11 @@ import {
   QiInsufficientError,
   QiServiceError,
 } from '@server/lib/services/QiService';
+import {
+  CombatV6TrainingCommandRequestSchema,
+  CombatV6TrainingEventsQuerySchema,
+  CombatV6TrainingRevisionRequestSchema,
+} from '@shared/contracts/combatV6';
 import { desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -51,9 +60,78 @@ const limitRouter = new Hono<AppEnv>();
 const lootingRouter = new Hono<AppEnv>();
 const battleRouter = new Hono<AppEnv>();
 
-const BattleIdQuerySchema = z.object({
-  battleId: z.string().min(1),
+battleRouter.get(
+  '/sessions/current',
+  requireActiveCultivatorRef(),
+  async (c) => {
+    return c.json({
+      success: true,
+      data: await getDungeonBattle(c.get('activeCultivatorRef')!.cultivatorId),
+    });
+  },
+);
+battleRouter.get('/sessions/:id', requireActiveCultivatorRef(), async (c) => {
+  const query = CombatV6TrainingEventsQuerySchema.parse(c.req.query());
+  const data = await getDungeonBattle(
+    c.get('activeCultivatorRef')!.cultivatorId,
+    z.uuid().parse(c.req.param('id')),
+    query.afterEventSeq,
+  );
+  return data
+    ? c.json({ success: true, data })
+    : c.json({ error: '战斗不存在' }, 404);
 });
+battleRouter.put(
+  '/sessions/:id/commands/:unitId',
+  requireActiveCultivatorRef(),
+  async (c) => {
+    const input = CombatV6TrainingCommandRequestSchema.parse(
+      await c.req.json(),
+    );
+    try {
+      const data = await changeDungeonBattle(
+        {
+          userId: c.get('user')!.id,
+          cultivatorId: c.get('activeCultivatorRef')!.cultivatorId,
+        },
+        z.uuid().parse(c.req.param('id')),
+        input.expectedRevision,
+        { unitId: c.req.param('unitId'), commands: input.commands },
+      );
+      return c.json({ success: true, data });
+    } catch (error) {
+      return c.json(
+        { error: error instanceof Error ? error.message : '提交失败' },
+        409,
+      );
+    }
+  },
+);
+battleRouter.post(
+  '/sessions/:id/resolve',
+  requireActiveCultivatorRef(),
+  async (c) => {
+    const input = CombatV6TrainingRevisionRequestSchema.parse(
+      await c.req.json(),
+    );
+    try {
+      const data = await changeDungeonBattle(
+        {
+          userId: c.get('user')!.id,
+          cultivatorId: c.get('activeCultivatorRef')!.cultivatorId,
+        },
+        z.uuid().parse(c.req.param('id')),
+        input.expectedRevision,
+      );
+      return c.json({ success: true, data });
+    } catch (error) {
+      return c.json(
+        { error: error instanceof Error ? error.message : '结算失败' },
+        409,
+      );
+    }
+  },
+);
 
 const BattleIdBodySchema = z.object({
   battleId: z.string().min(1),
@@ -344,65 +422,15 @@ lootingRouter.post('/escape', requireActiveCultivatorRef(), async (c) => {
   }
 });
 
-battleRouter.get('/probe', requireActiveCultivatorRef(), async (c) => {
-  try {
-    const cultivator = c.get('activeCultivatorRef');
-    const user = c.get('user');
-    if (!user || !cultivator) {
-      return c.json({ error: '未授权访问' }, 401);
-    }
+battleRouter.get('/probe', requireActiveCultivatorRef(), (c) =>
+  c.json({ error: '旧查探入口已停用' }, 410),
+);
 
-    const { battleId } = BattleIdQuerySchema.parse({
-      battleId: c.req.query('battleId'),
-    });
-    const enemy = await dungeonService.probeBattleEnemy(
-      cultivator.cultivatorId,
-      battleId,
-    );
-    return c.json({
-      success: true,
-      enemy,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : '遭遇战查探失败';
-    const status = /遭遇战|修真者/.test(message) ? 404 : 500;
-    return c.json({ error: message }, status);
-  }
-});
+battleRouter.post('/abandon', requireActiveCultivatorRef(), (c) =>
+  c.json({ error: '旧放弃入口已停用，请使用战斗内逃跑' }, 410),
+);
 
-battleRouter.post('/abandon', requireActiveCultivatorRef(), async (c) => {
-  try {
-    const cultivator = c.get('activeCultivatorRef');
-    const user = c.get('user');
-    if (!user || !cultivator) {
-      return c.json({ error: '未授权访问' }, 401);
-    }
-
-    const { battleId } = BattleIdBodySchema.parse(await c.req.json());
-    return c.json(
-      await executeDungeonCommand({
-        userId: user.id,
-        cultivatorId: cultivator.cultivatorId,
-        command: { kind: 'battle-abandon', battleId },
-      }),
-    );
-  } catch (error) {
-    const lockErrorResponse = redisLockErrorResponse(error);
-    if (lockErrorResponse) return lockErrorResponse;
-    if (error instanceof DungeonFlowError) {
-      return jsonWithStatus(
-        c,
-        { error: error.message, code: error.code },
-        error.status,
-      );
-    }
-    const message = error instanceof Error ? error.message : '放弃遭遇战失败';
-    const status = /遭遇战|修真者/.test(message) ? 404 : 500;
-    return c.json({ error: message }, status);
-  }
-});
-
-battleRouter.post('/execute/v5', requireActiveCultivatorRef(), async (c) => {
+battleRouter.post('/complete', requireActiveCultivatorRef(), async (c) => {
   try {
     const cultivator = c.get('activeCultivatorRef');
     const user = c.get('user');
@@ -434,6 +462,10 @@ battleRouter.post('/execute/v5', requireActiveCultivatorRef(), async (c) => {
     return c.json({ error: message }, status);
   }
 });
+
+battleRouter.post('/execute/v5', requireActiveCultivatorRef(), (c) =>
+  c.json({ error: '旧战斗已停用，请刷新页面' }, 410),
+);
 
 router.route('/history', historyRouter);
 router.route('/limit', limitRouter);

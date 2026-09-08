@@ -1,4 +1,5 @@
 import type { DbExecutor } from '@server/lib/drizzle/db';
+import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import {
   findActiveCombatV6Membership,
   findCombatV6Profile,
@@ -40,6 +41,6 @@ export async function readCombatV6ConditionAuthority(
   return {
     maxHp: projected.unit.attrs.maxHp!,
     maxMp: projected.unit.attrs.maxMp!,
-    recoveryPaused: false,
+    recoveryPaused: await hasActiveDungeon(id),
   };
 }

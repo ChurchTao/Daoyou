@@ -8,7 +8,6 @@ import {
   formatDungeonCostName,
   formatDungeonCostValue,
 } from '@app/lib/dungeon/formatDungeonCost';
-import type { CultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import type {
   DungeonOption,
   DungeonOptionCost,
@@ -18,13 +17,14 @@ import type {
 import { getResourceIcon } from '@shared/lib/gameConceptDisplay';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useState } from 'react';
+import type { DungeonDisplayResources } from './DungeonRunPanel';
 import { DungeonRunPanel } from './DungeonRunPanel';
 
 interface DungeonExploringProps {
   state: DungeonState;
   lastRound: DungeonRound | null;
   cultivator: Pick<Cultivator, 'realm' | 'condition'> | null;
-  displayResources?: CultivatorDisplaySnapshot['resources'];
+  displayResources?: DungeonDisplayResources;
   onAction: (option: DungeonOption) => Promise<unknown>;
   onQuit: () => Promise<boolean>;
   processing: boolean;
@@ -88,6 +88,7 @@ export function DungeonExploring({
         cultivator={cultivator}
         displayResources={displayResources}
         onQuit={onQuit}
+        processing={processing}
       />
 
       <InkCard className="mb-6 flex min-h-50 flex-col justify-center">

@@ -4,10 +4,9 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { DungeonViewState } from '@app/lib/hooks/dungeon/useDungeonViewModel';
-import { DungeonAbandonBattleResult } from '@app/lib/hooks/dungeon/useEnemyProbe';
-import type { CultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { isConditionStatusActive } from '@shared/lib/condition';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
+import { dungeonReadiness } from '@shared/lib/dungeon/readiness';
 import type {
   DungeonOption,
   DungeonRecoverAction,
@@ -17,7 +16,6 @@ import {
   canChallengeDungeonRealm,
   getMapNode,
 } from '@shared/lib/game/mapSystem';
-import { evaluateNoviceReadiness } from '@shared/lib/noviceGuidance';
 import type { Cultivator } from '@shared/types/cultivator';
 import type { TaskInstance } from '@shared/types/task';
 import { DungeonSceneScreen } from '../dungeonScene';
@@ -25,25 +23,20 @@ import {
   resolveDungeonSceneDescriptor,
   type DungeonSceneState,
 } from '../dungeonSceneRegistry';
-import { BattlePreparation } from './BattlePreparation';
 import { BattleCallbackData, DungeonBattle } from './DungeonBattle';
 import { DungeonExploring } from './DungeonExploring';
 import { DungeonLooting } from './DungeonLooting';
 import { DungeonMapSelector } from './DungeonMapSelector';
-import { DungeonRunPanel } from './DungeonRunPanel';
+import type { DungeonDisplayResources } from './DungeonRunPanel';
 import { DungeonSettlement } from './DungeonSettlement';
 
 interface DungeonViewRendererProps {
   viewState: DungeonViewState;
-  cultivator:
-    | (Pick<
-        Cultivator,
-        'id' | 'realm' | 'attributes' | 'condition' | 'equipped'
-      > & {
-        inventory: Pick<Cultivator['inventory'], 'artifacts'>;
-      })
-    | null;
-  displayResources?: CultivatorDisplaySnapshot['resources'];
+  cultivator: Pick<
+    Cultivator,
+    'id' | 'realm' | 'attributes' | 'condition'
+  > | null;
+  displayResources?: DungeonDisplayResources;
   tasks: TaskInstance[];
   processing: boolean;
   actions: {
@@ -53,8 +46,6 @@ interface DungeonViewRendererProps {
     continueLooting: () => Promise<void>;
     escapeLooting: () => Promise<void>;
     recoverDungeon: (action: DungeonRecoverAction) => Promise<void>;
-    startBattle: (enemyName: string) => void;
-    abandonBattle: (result: DungeonAbandonBattleResult) => Promise<void>;
     completeBattle: (data: BattleCallbackData | null) => void;
   };
   onSettlementConfirm?: () => void;
@@ -77,9 +68,9 @@ function resolveDungeonRunSceneDescriptor(
 
 function renderPreparationNotice(
   cultivator: Pick<Cultivator, 'realm' | 'condition'> | null,
-  displayResources: CultivatorDisplaySnapshot['resources'] | undefined,
+  displayResources: DungeonDisplayResources | undefined,
   selectedNode: ReturnType<typeof getMapNode> | null,
-  readiness: ReturnType<typeof evaluateNoviceReadiness> | null,
+  readiness: ReturnType<typeof dungeonReadiness> | null,
 ) {
   if (!cultivator) return null;
 
@@ -109,7 +100,7 @@ function renderPreparationNotice(
         ? `当前有${statusNames}状态，出行前可先调息。`
         : hpPercent < 60 || mpPercent < 60
           ? '气血或法力偏低，出行前可先补足。'
-          : '状态平稳，可以出行；遇险时优先查探再决断。';
+          : '状态平稳，可以出行；战后可休整，或带着已有收获离开。';
 
   return (
     <GameSceneSection
@@ -123,9 +114,11 @@ function renderPreparationNotice(
               气血、法力、异常状态用于出行前判断，不作为探索选项的通过条件。
             </p>
             <p>
-              遭遇强敌时可先查探；撤退会进入结算或离开流程，继续深入会提高风险与收益预期。
+              遭遇战逐行动播报；胜利后可继续深入或离开，失败或成功逃跑则结算此前收获。
             </p>
-            <p>丹药仍通过储物袋等通用入口使用，不写入当前副本进度。</p>
+            <p>
+              探索休整时可使用恢复丹药；战斗中不能用药，场次之间不会自动恢复气血与法力。
+            </p>
           </div>
         ),
       }}
@@ -250,32 +243,6 @@ export function DungeonViewRenderer({
           player={cultivator}
           onBattleComplete={actions.completeBattle}
         />
-      </DungeonSceneScreen>
-    );
-  }
-
-  if (viewState.type === 'battle_preparation' && cultivator) {
-    return (
-      <DungeonSceneScreen
-        descriptor={resolveDungeonRunSceneDescriptor(
-          'battle_preparation',
-          viewState.state,
-        )}
-      >
-        <div className="pb-28">
-          <DungeonRunPanel
-            state={viewState.state}
-            cultivator={cultivator}
-            displayResources={displayResources}
-            onQuit={actions.quitDungeon}
-          />
-          <BattlePreparation
-            battleId={viewState.state.activeBattleId!}
-            player={cultivator}
-            onStart={actions.startBattle}
-            onAbandon={actions.abandonBattle}
-          />
-        </div>
       </DungeonSceneScreen>
     );
   }
@@ -410,15 +377,14 @@ export function DungeonViewRenderer({
         : null;
     const readiness =
       cultivator && displayResources
-        ? evaluateNoviceReadiness({
-            cultivator,
+        ? dungeonReadiness({
+            realm: cultivator.realm,
             selectedNodeRealm,
             hp: displayResources.hp,
             mp: displayResources.mp,
-            isFirstDungeonTutorialActive: Boolean(
+            firstVisit: Boolean(
               firstDungeonTask && !firstDungeonTask.snapshot.isCompleted,
             ),
-            hasRecoveryPill: null,
           })
         : null;
 

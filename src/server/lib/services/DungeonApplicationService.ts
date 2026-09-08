@@ -1,4 +1,5 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
+import { dungeonPlayer } from '@server/lib/dungeon/combatV6';
 import {
   dungeonService,
   type DungeonPersistenceSettlement,
@@ -9,24 +10,19 @@ import {
   withRedisLock,
   type RedisLeaseContext,
 } from '@server/lib/redis/lock';
-import { hasCultivatorRecoveryPill } from '@server/lib/repositories/cultivatorRepository';
-import { loadCultivatorCombatInput } from '@server/lib/services/cultivator/CultivatorCombatProjectionReader';
 import {
   RESOURCE_DATA_SCHEMAS,
   type ResourceChangeDescriptor,
 } from '@shared/contracts/resources';
-import { projectBattleUnitEntryState } from '@shared/engine/battle-v5/setup/BattleStateStrategy';
+import { dungeonReadiness } from '@shared/lib/dungeon/readiness';
 import {
   canChallengeDungeonRealm,
   getMapNode,
   isSatelliteNode,
 } from '@shared/lib/game/mapSystem';
-import {
-  evaluateNoviceReadiness,
-  type NoviceDungeonReadiness,
-} from '@shared/lib/noviceGuidance';
+import {} from '@shared/lib/noviceGuidance';
 import { playerCommandExecutor } from './CommandExecutors';
-import { resolvePersistentWorldPlayerState } from './BattleStateCoordinator';
+
 import { toPlayerStateMutationResponse } from './ResourceMutationResponse';
 import { TaskService } from './TaskService';
 
@@ -52,7 +48,7 @@ export class DungeonStartError extends Error {
   constructor(
     message: string,
     readonly status: 400 | 404 | 409,
-    readonly readiness?: NoviceDungeonReadiness,
+    readonly readiness?: ReturnType<typeof dungeonReadiness>,
   ) {
     super(message);
     this.name = 'DungeonStartError';
@@ -144,21 +140,11 @@ async function assertDungeonStartReady(args: {
   if (!isSatelliteNode(args.mapNodeId)) {
     throw new DungeonStartError('只有秘境节点可以进行副本挑战', 400);
   }
-  const now = new Date();
-  const [isFirstDungeonTutorialActive, cultivatorBundle, hasRecoveryPill] =
-    await Promise.all([
-      TaskService.isFirstDungeonTutorialActive(args.cultivatorId),
-      loadCultivatorCombatInput(args.cultivatorId),
-      hasCultivatorRecoveryPill(args.cultivatorId),
-    ]);
-  if (!cultivatorBundle || cultivatorBundle.userId !== args.userId) {
-    throw new DungeonStartError('当前没有活跃角色', 404);
-  }
-  const preparedPlayer = resolvePersistentWorldPlayerState({
-    player: cultivatorBundle.cultivator,
-    now,
-  });
-  const cultivator = preparedPlayer.player;
+
+  const isFirstDungeonTutorialActive =
+    await TaskService.isFirstDungeonTutorialActive(args.cultivatorId);
+  const { player, caps } = await dungeonPlayer(args.cultivatorId);
+  const cultivator = player.cultivator;
   const selectedNode = getMapNode(args.mapNodeId);
   const selectedNodeRealm =
     selectedNode && 'realm_requirement' in selectedNode
@@ -173,17 +159,22 @@ async function assertDungeonStartReady(args: {
       409,
     );
   }
-  const entryState = projectBattleUnitEntryState({
-    cultivator,
-    state: preparedPlayer.playerState,
-  });
-  const readiness = evaluateNoviceReadiness({
-    cultivator,
+  const entryState = {
+    hp: {
+      current: player.cultivator.condition!.resources.hp.current,
+      max: caps.maxHp,
+    },
+    mp: {
+      current: player.cultivator.condition!.resources.mp.current,
+      max: caps.maxMp,
+    },
+  };
+  const readiness = dungeonReadiness({
+    realm: cultivator.realm,
     selectedNodeRealm,
     hp: entryState.hp,
     mp: entryState.mp,
-    isFirstDungeonTutorialActive,
-    hasRecoveryPill,
+    firstVisit: isFirstDungeonTutorialActive,
   });
   if (readiness.shouldBlock) {
     throw new DungeonStartError(readiness.reasons.join('；'), 409, readiness);
@@ -309,11 +300,7 @@ async function prepareDungeonCommand(
     case 'looting-escape':
       return dungeonService.escapeFromLooting(cultivatorId, options);
     case 'battle-abandon':
-      return dungeonService.abandonBattle(
-        cultivatorId,
-        command.battleId,
-        options,
-      );
+      throw new Error('请在战斗中使用逃跑指令');
     case 'battle-execute': {
       const result = await dungeonService.executeBattle(
         cultivatorId,
@@ -322,10 +309,9 @@ async function prepareDungeonCommand(
       );
       const hooks = result as DungeonDeferredResult;
       return {
-        battleResult: result.battleResult,
         callbackData: {
           dungeonState: result.state,
-          roundData: result.roundData,
+
           isFinished: result.isFinished,
           settlement: result.settlement,
           realGains: result.realGains,

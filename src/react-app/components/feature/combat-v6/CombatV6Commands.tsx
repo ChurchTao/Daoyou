@@ -22,6 +22,7 @@ const outcomeLabels = {
   aborted: '已离场',
 };
 export function CombatV6Commands({
+  allowAbandon = true,
   online,
   session,
   playing,
@@ -36,6 +37,7 @@ export function CombatV6Commands({
   onClose,
   onPrevious,
 }: {
+  allowAbandon?: boolean;
   online?: ArenaSessionView;
   session: CombatV6Session;
   playing: boolean;
@@ -94,7 +96,7 @@ export function CombatV6Commands({
                 返回人物指令
               </button>
             ) : null}
-            {!online && (
+            {!online && allowAbandon && (
               <button
                 className="cv6-text-button"
                 disabled={disabled}

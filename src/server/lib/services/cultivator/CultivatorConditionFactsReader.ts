@@ -1,6 +1,3 @@
-import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
-import { readCombatV6ConditionAuthority } from '../combat-v6/CombatV6ConditionAuthority';
-import { loadCultivatorSectState } from '@server/lib/repositories/sectRepository';
 import {
   getExecutor,
   runDbTasks,
@@ -8,20 +5,21 @@ import {
   type DbTransaction,
 } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
+import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
+import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
+import { loadCultivatorSectState } from '@server/lib/repositories/sectRepository';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import type { CultivatorDisplayInput } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmStage, RealmType } from '@shared/types/constants';
-import type {
-  CultivationProgress,
-  Cultivator,
-} from '@shared/types/cultivator';
+import type { CultivationProgress, Cultivator } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
+import { readCombatV6ConditionAuthority } from '../combat-v6/CombatV6ConditionAuthority';
+import { mapLoadoutFromProducts } from './CultivatorLoadoutReader';
 import {
   getCultivatorPreHeavenFates,
   mapSpiritualRoots,
 } from './CultivatorProfileRepository';
-import { mapLoadoutFromProducts } from './CultivatorLoadoutReader';
 
 function activeOwnedCultivatorFilter(userId: string, cultivatorId: string) {
   return and(
@@ -52,8 +50,7 @@ export async function loadPlayerRetreatFacts(
       endurance: schema.cultivators.endurance,
       speed: schema.cultivators.speed,
       willpower: schema.cultivators.willpower,
-      unallocatedAttributePoints:
-        schema.cultivators.unallocatedAttributePoints,
+      unallocatedAttributePoints: schema.cultivators.unallocatedAttributePoints,
       condition: schema.cultivators.condition,
       cultivationProgress: schema.cultivators.cultivation_progress,
     })
@@ -76,7 +73,10 @@ export async function loadPlayerRetreatFacts(
       creationProductRepository.findEquippedByType(cultivatorId, 'artifact', q),
   ]);
   const loadout = mapLoadoutFromProducts([gongfa, artifacts]);
-  const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(cultivatorId, q);
+  const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(
+    cultivatorId,
+    q,
+  );
   return {
     ...{ combatV6ResourceAuthority },
     id: row.id,
@@ -154,7 +154,10 @@ export async function loadPlayerInnRecoveryFacts(
       creationProductRepository.findEquippedByType(cultivatorId, 'artifact', q),
   ]);
   const loadout = mapLoadoutFromProducts([gongfa, artifacts]);
-  const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(cultivatorId, q);
+  const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(
+    cultivatorId,
+    q,
+  );
   return {
     ...{ combatV6ResourceAuthority },
     id: row.id,
@@ -204,8 +207,7 @@ export async function loadPlayerConsumableOperationFacts(
       endurance: schema.cultivators.endurance,
       speed: schema.cultivators.speed,
       willpower: schema.cultivators.willpower,
-      unallocatedAttributePoints:
-        schema.cultivators.unallocatedAttributePoints,
+      unallocatedAttributePoints: schema.cultivators.unallocatedAttributePoints,
       condition: schema.cultivators.condition,
       cultivationProgress: schema.cultivators.cultivation_progress,
     })
@@ -214,6 +216,7 @@ export async function loadPlayerConsumableOperationFacts(
     .limit(1);
   if (!row) return null;
 
+  const inDungeon = await hasActiveDungeon(cultivatorId);
   const [roots, fates, sect, gongfa, artifacts] = await runDbTasks(q, [
     () =>
       q
@@ -221,14 +224,32 @@ export async function loadPlayerConsumableOperationFacts(
         .from(schema.spiritualRoots)
         .where(eq(schema.spiritualRoots.cultivatorId, cultivatorId)),
     () => getCultivatorPreHeavenFates(cultivatorId, q),
-    () => loadCultivatorSectState(cultivatorId, q),
     () =>
-      creationProductRepository.findEquippedByType(cultivatorId, 'gongfa', q),
+      inDungeon
+        ? Promise.resolve(undefined)
+        : loadCultivatorSectState(cultivatorId, q),
     () =>
-      creationProductRepository.findEquippedByType(cultivatorId, 'artifact', q),
+      inDungeon
+        ? Promise.resolve([])
+        : creationProductRepository.findEquippedByType(
+            cultivatorId,
+            'gongfa',
+            q,
+          ),
+    () =>
+      inDungeon
+        ? Promise.resolve([])
+        : creationProductRepository.findEquippedByType(
+            cultivatorId,
+            'artifact',
+            q,
+          ),
   ]);
   const loadout = mapLoadoutFromProducts([gongfa, artifacts]);
-  const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(cultivatorId, q);
+  const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(
+    cultivatorId,
+    q,
+  );
   return {
     ...{ combatV6ResourceAuthority },
     id: row.id,

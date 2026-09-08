@@ -4,6 +4,7 @@ import {
   type DbTransaction,
 } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
+import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import type { RedisLeaseContext } from '@server/lib/redis/lock';
@@ -32,7 +33,7 @@ import { getAttributeLabel } from '@shared/lib/gameConceptDisplay';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
 import type { Consumable } from '@shared/types/cultivator';
 import { randomUUID } from 'crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import {
   AttributeResetService,
   withAttributeResetLock,
@@ -116,6 +117,36 @@ export const ConsumableUseEngine = {
     );
     if (!consumable) {
       throw new Error('该消耗品不存在或已耗尽。');
+    }
+    if (await hasActiveDungeon(cultivatorId)) {
+      const [run] = await getExecutor(options.tx)
+        .select({
+          activeBattleId: schema.dungeonRuns.activeBattleId,
+          status: schema.dungeonRuns.status,
+        })
+        .from(schema.dungeonRuns)
+        .where(
+          and(
+            eq(schema.dungeonRuns.cultivatorId, cultivatorId),
+            ne(schema.dungeonRuns.status, 'FINISHED'),
+          ),
+        )
+        .limit(1);
+      if (
+        run?.activeBattleId ||
+        !['EXPLORING', 'LOOTING'].includes(run?.status ?? '') ||
+        !isPillConsumable(consumable) ||
+        !consumable.spec.operations.some(
+          (op) => op.type === 'restore_resource',
+        ) ||
+        !consumable.spec.operations.every(
+          (op) => op.type === 'restore_resource' || op.type === 'change_gauge',
+        )
+      ) {
+        throw new Error(
+          '秘境休整期间仅可使用恢复气血或法力的丹药，战斗与结算期间不可使用',
+        );
+      }
     }
 
     if (isTalismanConsumable(consumable)) {

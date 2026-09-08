@@ -9,6 +9,7 @@ import { Link, useSearchParams } from 'react-router';
 const sources = {
   'training-room': '练功房',
   'wild-encounter': '野外遭遇',
+  dungeon: '秘境遭遇',
   'arena-sparring': '擂台切磋',
 };
 const outcomes = {

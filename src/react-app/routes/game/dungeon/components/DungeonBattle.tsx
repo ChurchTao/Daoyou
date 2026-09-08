@@ -1,16 +1,16 @@
-import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
-import { BattlePlaybackPanel } from '@app/components/feature/battle/v3/BattlePlaybackPanel';
-import { useBattlePlaybackState } from '@app/components/feature/battle/v3/useBattlePlaybackState';
-import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
-import { useBattle } from '@app/lib/hooks/dungeon/useBattle';
+import { CombatV6Battle } from '@app/components/feature/combat-v6/CombatV6Battle';
+import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
+import { useCombatV6Session } from '@app/components/feature/combat-v6/useCombatV6Session';
+import { InkButton } from '@app/components/ui/InkButton';
+import { consumeResourceMutation } from '@app/lib/resources/mutations';
+import type { DungeonSessionView } from '@shared/contracts/combatV6Dungeon';
 import type { ResourceOperation } from '@shared/engine/resource/types';
-import type { Cultivator } from '@shared/types/cultivator';
-import { useEffect, useRef, useState } from 'react';
-import {
+import type {
   DungeonRound,
   DungeonSettlement,
   DungeonState,
 } from '@shared/lib/dungeon/types';
+import type { Cultivator } from '@shared/types/cultivator';
 
 export interface BattleCallbackData {
   isFinished: boolean;
@@ -19,80 +19,58 @@ export interface BattleCallbackData {
   dungeonState?: DungeonState;
   roundData?: DungeonRound;
 }
-
-interface DungeonBattleProps {
+export function DungeonBattle({
+  battleId,
+  onBattleComplete,
+}: {
   battleId: string;
   player: Pick<Cultivator, 'id'>;
   onBattleComplete: (data: BattleCallbackData | null) => void;
-}
-
-/**
- * 副本战斗组件
- * 处理战斗执行和展示
- */
-export function DungeonBattle({
-  battleId,
-  player,
-  onBattleComplete,
-}: DungeonBattleProps) {
-  const { battleResult, loading, executeBattle } = useBattle();
-  const playback = useBattlePlaybackState(battleResult);
-  const [battleSettlement, setBattleSettlement] =
-    useState<BattleCallbackData | null>(null);
-  const hasExecuted = useRef(false);
-
-  useEffect(() => {
-    if (hasExecuted.current) return;
-    hasExecuted.current = true;
-
-    const runBattle = async () => {
-      const result = await executeBattle(battleId);
-      if (result?.callbackData) {
-        setBattleSettlement(result.callbackData);
-      } else if (!result?.battleResult) {
-        onBattleComplete(null);
-      }
-    };
-
-    void runBattle();
-  }, [battleId, executeBattle, onBattleComplete]);
-
-  const isPlaybackFinished = playback.isPlaybackFinished;
-
+}) {
+  const combat = useCombatV6Session<DungeonSessionView>('/api/dungeon/battle');
+  const finish = () => {
+    if (!combat.session?.outcome || combat.playing) return;
+    void combat.run(async () => {
+      const response = await fetch('/api/dungeon/battle/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ battleId, requestId: battleId }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? '秘境恢复失败');
+      const result = await consumeResourceMutation<{
+        callbackData: BattleCallbackData;
+      }>(body);
+      onBattleComplete(result.callbackData);
+    });
+  };
   return (
-    <BattlePageLayout
-      title="副本战斗"
-      subtitle="查看双方状态、技能变化和实时战斗日志。"
-      variant="immersive-battle"
-      loading={loading && !battleResult}
-      battleResult={battleResult}
-    >
-      <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
-
-      <CombatResultDialog
-        key={`dungeon-${battleResult?.outcome.turns}-${battleResult?.outcome.winner.id ?? 'unknown'}`}
-        dialogKey={`dungeon-${battleResult?.outcome.turns}-${battleResult?.outcome.winner.id ?? 'unknown'}`}
-        open={!!battleResult && isPlaybackFinished}
-        title={battleResult?.outcome.winner.id === player.id ? '战斗胜利' : '战斗失败'}
-        confirmLabel={battleSettlement?.isFinished ? '查看结算' : '继续探险'}
-        onConfirm={() => {
-          if (battleSettlement) {
-            onBattleComplete(battleSettlement);
-            return;
-          }
-
-          if (battleResult) {
-            onBattleComplete(null);
-          }
-        }}
-        content={
-          <p className="leading-8">
-            {battleResult?.outcome.winner.id === player.id
-              ? '你已经击败当前敌人，可以继续推进副本。'
-              : '你在这场战斗中落败，本轮探索到此结束。'}
-          </p>
-        }
-      />
-    </BattlePageLayout>
+    <CombatV6Page title="秘境遭遇" active>
+      {combat.error ? (
+        <p role="alert">
+          {combat.error}{' '}
+          <InkButton onClick={() => void combat.refresh(true)}>重试</InkButton>
+        </p>
+      ) : null}
+      {combat.session ? (
+        <CombatV6Battle
+          allowAbandon={false}
+          key={battleId}
+          title="秘境遭遇"
+          session={combat.session}
+          shown={combat.shown}
+          log={combat.log}
+          playing={combat.playing}
+          pending={combat.pending}
+          onCommand={combat.submit}
+          onResolve={combat.resolve}
+          onClose={finish}
+          back="/game/dungeon"
+          backLabel="返回秘境"
+        />
+      ) : (
+        <p>正在恢复遭遇战…</p>
+      )}
+    </CombatV6Page>
   );
 }

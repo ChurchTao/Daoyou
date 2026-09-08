@@ -1,10 +1,11 @@
-import { useCultivatorDisplayProjection } from '@app/components/feature/cultivator/useCultivatorDisplayProjection';
 import { GameSceneLoading } from '@app/components/game-shell';
 import { useDungeonViewModel } from '@app/lib/hooks/dungeon/useDungeonViewModel';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
-import { projectBattleUnitEntryState } from '@shared/engine/battle-v5/setup/BattleStateStrategy';
-import { buildConditionBattleUnitInitFragment } from '@shared/lib/conditionBattle';
-import { Suspense, useCallback, useMemo } from 'react';
+import {
+  useCultivatorCondition,
+  useCultivatorIdentity,
+} from '@app/lib/resources/player';
+import { Suspense, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { DungeonViewRenderer } from './components/DungeonViewRenderer';
 import { DungeonSceneScreen } from './dungeonScene';
@@ -19,31 +20,32 @@ import { resolveDungeonSceneDescriptor } from './dungeonSceneRegistry';
  * 3. 视图渲染：委托给 DungeonViewRenderer 处理
  */
 function DungeonContent() {
-  const projection = useCultivatorDisplayProjection();
-  const cultivator = projection.data?.cultivator ?? null;
-  const battleEntryResources = useMemo(() => {
-    const data = projection.data;
-    if (!data) return undefined;
-    const entry = projectBattleUnitEntryState({
-      cultivator: data.cultivator,
-      state: {
-        resources: {
-          kind: 'absolute',
-          hp: data.projectedCondition.resources.hp.current,
-          mp: data.projectedCondition.resources.mp.current,
-        },
-        fragment: buildConditionBattleUnitInitFragment(
-          data.projectedCondition,
-          data.now,
+  const identity = useCultivatorIdentity();
+  const condition = useCultivatorCondition();
+  const cultivator = identity.data?.cultivator
+    ? { ...identity.data.cultivator, condition: condition.data }
+    : null;
+  const resource = (
+    point: { current: number; max?: number } | undefined,
+    authorityMax?: number,
+  ) => {
+    const max = authorityMax ?? point?.max ?? 0;
+    const current = Math.min(max, Math.max(0, point?.current ?? 0));
+    return { current, max, percent: max ? (current / max) * 100 : 0 };
+  };
+  const battleEntryResources = condition.data
+    ? {
+        hp: resource(
+          condition.data.resources.hp,
+          condition.data.combatV6?.maxHp,
         ),
-      },
-    });
-    return {
-      hp: entry.hp,
-      mp: entry.mp,
-    };
-  }, [projection.data]);
-  const isCultivatorLoading = projection.loading;
+        mp: resource(
+          condition.data.resources.mp,
+          condition.data.combatV6?.maxMp,
+        ),
+      }
+    : undefined;
+  const isCultivatorLoading = identity.loading || condition.loading;
   const { tasks, loading: tasksLoading } = useTaskList(cultivator?.id);
   const [searchParams] = useSearchParams();
   const preSelectedNodeId = searchParams.get('nodeId');

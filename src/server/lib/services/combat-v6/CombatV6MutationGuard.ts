@@ -1,3 +1,4 @@
+import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { arenaOccupancyKey } from './CombatV6ArenaStore';
 import { CombatV6WildStore } from './CombatV6WildStore';
@@ -15,6 +16,14 @@ export async function assertCombatV6MutationAllowed(
   cultivatorId: string,
   source: string,
 ) {
+  if (
+    !source.startsWith('dungeon') &&
+    source !== 'consumable_use' &&
+    sensitive.test(source) &&
+    (await hasActiveDungeon(cultivatorId))
+  ) {
+    throw new CombatV6MutationLockedError();
+  }
   if (
     sensitive.test(source) &&
     ((await new CombatV6WildStore().lock(cultivatorId)) ||

@@ -31,6 +31,7 @@ import {
   combatV6EquipmentLoadouts,
   inventoryItems,
 } from '../drizzle/schema';
+import { hasActiveDungeon } from '../dungeon/occupancy';
 import { redis } from '../redis';
 import { redisLockKeys, withRedisLock } from '../redis/lock';
 import {
@@ -69,6 +70,7 @@ export function inventoryItemOf(
 }
 export async function assertInventoryIdle(owner: string) {
   if (
+    (await hasActiveDungeon(owner)) ||
     (await new CombatV6WildStore().lock(owner)) ||
     (await new CombatV6RuntimeStore().currentId(owner)) ||
     (await redis.get(arenaOccupancyKey(owner)))

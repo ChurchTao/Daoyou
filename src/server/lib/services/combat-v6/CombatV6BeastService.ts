@@ -3,6 +3,7 @@ import {
   combatV6BeastLineups,
   combatV6Beasts,
 } from '@server/lib/drizzle/schema';
+import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import {
@@ -51,6 +52,7 @@ async function mutate<T>(
       db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, cultivatorId);
         if (
+          (await hasActiveDungeon(cultivatorId)) ||
           (await new CombatV6WildStore().lock(cultivatorId)) ||
           (await redis.get(arenaOccupancyKey(cultivatorId))) ||
           (await new CombatV6RuntimeStore().currentId(cultivatorId))

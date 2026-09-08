@@ -1,5 +1,6 @@
 import { db } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
+import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { findActiveCombatV6Membership } from '@server/lib/repositories/combatV6BuildRepository';
@@ -211,6 +212,8 @@ export class CombatV6WildSessionService {
         retries: 0,
       },
       async (lease) => {
+        if (await hasActiveDungeon(actor.cultivatorId))
+          throw new WildError('DUNGEON_ACTIVE', '请先结束秘境探索与结算');
         if (await redis.get(arenaOccupancyKey(actor.cultivatorId)))
           throw new WildError('WILD_BATTLE_ALREADY_ACTIVE', '请先结束擂台战斗');
         const activeId = await common.currentId(actor.cultivatorId);
