@@ -41,6 +41,13 @@ export const CombatV6BattleMetadataV1Schema = z.discriminatedUnion(
     CombatV6TrainingBattleMetadataV1Schema,
     z.object({
       schemaVersion: z.literal(1),
+      sourceType: z.literal('breakthrough'),
+      battleType: z.literal('pve'),
+      idempotencyKey: z.uuid(),
+      payload: z.object({ taskId: z.uuid(), challengeId: z.string().min(1) }).strict(),
+    }).strict(),
+    z.object({
+      schemaVersion: z.literal(1),
       sourceType: z.literal('sect-task'),
       battleType: z.literal('pve'),
       idempotencyKey: z.uuid(),

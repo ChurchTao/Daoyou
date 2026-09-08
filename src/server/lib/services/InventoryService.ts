@@ -76,7 +76,7 @@ export async function assertInventoryIdle(owner: string) {
     (await hasActiveTower(owner)) ||
     (await hasActiveRanking(owner)) ||
     (await hasActiveDungeon(owner)) ||
-    (await hasActiveSectTaskBattle(owner)) ||
+    ((await hasActiveSectTaskBattle(owner)) || (await hasActiveBreakthroughBattle(owner))) ||
     (await new CombatV6WildStore().lock(owner)) ||
     (await new CombatV6RuntimeStore().currentId(owner)) ||
     (await redis.get(arenaOccupancyKey(owner)))
@@ -552,3 +552,4 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
       }),
   );
 }
+import { hasActiveBreakthroughBattle } from './combat-v6/CombatV6BreakthroughOccupancy';

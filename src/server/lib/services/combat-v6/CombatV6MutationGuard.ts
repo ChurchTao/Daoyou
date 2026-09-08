@@ -5,6 +5,7 @@ import { hasActiveTower } from '@server/lib/tower/occupancy';
 import { arenaOccupancyKey } from './CombatV6ArenaStore';
 import { CombatV6WildStore } from './CombatV6WildStore';
 import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
+import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';
 
 const sensitive =
   /^(consumable_use|inn_recovery|body_cultivation|marrow_wash|fate_reshape|active_reincarnate|profile_attribute|task_challenge|tower_battle|retreat_|ranking_challenge|product_equip|artifact_equip|sect[._-]|dungeon|spirit_field)/;
@@ -19,7 +20,8 @@ export async function assertCombatV6MutationAllowed(
   cultivatorId: string,
   source: string,
 ) {
-  if (sensitive.test(source) && await hasActiveSectTaskBattle(cultivatorId))
+  if (sensitive.test(source) && ((await hasActiveSectTaskBattle(cultivatorId)) ||
+    (await hasActiveBreakthroughBattle(cultivatorId))))
     throw new CombatV6MutationLockedError();
   if (sensitive.test(source) && (await hasActiveRanking(cultivatorId)))
     throw new CombatV6MutationLockedError();

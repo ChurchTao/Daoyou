@@ -19,14 +19,10 @@ import {
   updateCultivatorTask,
   type CultivatorTaskRecord,
 } from '@server/lib/repositories/taskRepository';
-import { loadCultivatorCombatInput } from '@server/lib/services/cultivator/CultivatorCombatProjectionReader';
-import { updateCultivator } from '@server/lib/services/cultivator/CultivatorStateRepository';
 import { getNextStage } from '@server/utils/breakthroughCalculator';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
-import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
 import { getBreakthroughPillLabel } from '@shared/lib/breakthroughPill';
 import { isConditionStatusActive } from '@shared/lib/condition';
-import type { BattleRecordV3 } from '@shared/types/battle';
 import type { ConditionStatusKey } from '@shared/types/condition';
 import {
   QUALITY_ORDER,
@@ -49,7 +45,6 @@ import type {
   TaskStatus,
 } from '@shared/types/task';
 import { MailService } from './MailService';
-import { executePersistentWorldBattle } from './BattleStateCoordinator';
 import {
   getBreakthroughTaskDefinition,
   getBreakthroughTaskDefinitionByTransition,
@@ -69,14 +64,6 @@ interface TaskServiceWriteOptions {
 
 interface TaskSyncOptions extends TaskServiceWriteOptions {
   hideCompletedBreakthrough?: boolean;
-}
-
-export interface TaskChallengeResult {
-  task: TaskInstance;
-  battleResult: BattleRecordV3;
-  isWin: boolean;
-  challengeTitle: string;
-  condition: NonNullable<Cultivator['condition']>;
 }
 
 export interface MajorBreakthroughGate {
@@ -1034,18 +1021,6 @@ async function syncTaskRecord(
   return mapTaskInstance(nextRecord, resolved.snapshot);
 }
 
-async function loadCombatInputOrThrow(
-  cultivatorId: string,
-  options: TaskServiceWriteOptions = {},
-): Promise<CultivatorCombatInput> {
-  const bundle = await loadCultivatorCombatInput(cultivatorId, options.tx);
-  if (!bundle) {
-    throw new Error('角色不存在');
-  }
-
-  return bundle.cultivator;
-}
-
 async function syncCultivatorTasksWithContext(
   context: TaskProgressContext,
   options: TaskSyncOptions = {},
@@ -1445,16 +1420,12 @@ export const TaskService = {
     };
   },
 
-  async runTaskChallenge(
+  async prepareTaskChallenge(
     cultivatorId: string,
     taskId: string,
     options: TaskServiceWriteOptions = {},
-  ): Promise<TaskChallengeResult> {
-    const q = options.tx ?? getExecutor();
-    const [cultivator, context] = await runDbTasks(q, [
-      () => loadCombatInputOrThrow(cultivatorId, options),
-      () => loadTaskProgressContextOrThrow(cultivatorId, options),
-    ]);
+  ) {
+    const context = await loadTaskProgressContextOrThrow(cultivatorId, options);
     await ensureCurrentTaskRecords(context, options);
     const record = await findCultivatorTaskById(
       cultivatorId,
@@ -1466,8 +1437,8 @@ export const TaskService = {
     }
 
     const definition = getBreakthroughTaskDefinition(record.definitionId);
-    if (!definition) {
-      throw new Error('任务定义不存在');
+    if (!definition || context.realm !== definition.fromRealm || context.realmStage !== '圆满') {
+      throw new Error('当前境界没有可执行的试炼');
     }
 
     const preview = buildTaskSnapshot(
@@ -1505,68 +1476,30 @@ export const TaskService = {
       throw new Error('试炼配置不存在');
     }
 
-    const opponent = await challengeProfile.buildOpponent(cultivator);
-    const execution = executePersistentWorldBattle({
-      strategyId: challengeProfile.stateStrategy,
-      player: cultivator,
-      opponent,
-    });
-    const { battleResult, nextCondition, didLose } = execution;
-    const isWin = !didLose;
-    await updateCultivator(
-      cultivatorId,
-      { condition: nextCondition },
-      options.tx,
+    return { record, objectiveId: challengeObjective.id, challengeId: challengeProfile.id };
+  },
+
+  async completeTaskChallenge(
+    cultivatorId: string,
+    taskId: string,
+    objectiveId: string,
+    tx: DbTransaction,
+  ) {
+    const record = await findCultivatorTaskById(cultivatorId, taskId, tx);
+    if (!record) throw new Error('任务不存在');
+    const definition = getBreakthroughTaskDefinition(record.definitionId);
+    if (!definition?.stages.some((stage) => stage.objectives.some((objective) =>
+      objective.id === objectiveId && objective.kind === 'win_task_challenge')))
+      throw new Error('试炼目标不存在');
+    const nextStates = normalizeObjectiveStates(record.objectives);
+    const index = nextStates.findIndex((state) => state.objectiveId === objectiveId);
+    const completed = completeObjectiveState(
+      index >= 0 ? nextStates[index] : createDefaultObjectiveState(objectiveId),
+      1, new Date().toISOString(),
     );
-
-    if (isWin) {
-      const nextStates = normalizeObjectiveStates(record.objectives);
-      const nowIso = new Date().toISOString();
-      const stateIndex = nextStates.findIndex(
-        (state) => state.objectiveId === challengeObjective.id,
-      );
-      const currentState =
-        stateIndex >= 0
-          ? nextStates[stateIndex]
-          : createDefaultObjectiveState(challengeObjective.id);
-      const completedState = completeObjectiveState(
-        {
-          ...currentState,
-          objectiveId: challengeObjective.id,
-        },
-        1,
-        nowIso,
-      );
-
-      if (stateIndex >= 0) {
-        nextStates[stateIndex] = completedState;
-      } else {
-        nextStates.push(completedState);
-      }
-
-      await updateCultivatorTask(
-        record.id,
-        cultivatorId,
-        {
-          objectives: nextStates,
-        },
-        options.tx,
-      );
-    }
-
-    const task = (await syncCultivatorTasksWithContext(context, options)).find(
-      (item) => item.id === taskId,
-    );
-    if (!task) {
-      throw new Error('任务同步失败');
-    }
-
-    return {
-      task,
-      battleResult,
-      isWin,
-      challengeTitle: challengeProfile.title,
-      condition: nextCondition,
-    };
+    if (index >= 0) nextStates[index] = completed;
+    else nextStates.push(completed);
+    await updateCultivatorTask(taskId, cultivatorId, { objectives: nextStates }, tx);
+    return this.syncCultivatorTasks(cultivatorId, tx);
   },
 };

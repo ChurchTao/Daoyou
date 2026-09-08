@@ -98,7 +98,7 @@ export class CombatV6TrainingSessionService {
       (await hasActiveTower(actor.cultivatorId)) ||
       (await hasActiveRanking(actor.cultivatorId)) ||
       (await hasActiveDungeon(actor.cultivatorId)) ||
-      (await hasActiveSectTaskBattle(actor.cultivatorId))
+      ((await hasActiveSectTaskBattle(actor.cultivatorId)) || (await hasActiveBreakthroughBattle(actor.cultivatorId)))
     )
       throw this.error('AlreadyActive', '请先结束秘境探索与结算');
     if (await redis.get(arenaOccupancyKey(actor.cultivatorId)))
@@ -519,3 +519,4 @@ export const COMBAT_V6_TRAINING_CONTENT_VIEW = Object.freeze({
     name,
   })),
 });
+import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';

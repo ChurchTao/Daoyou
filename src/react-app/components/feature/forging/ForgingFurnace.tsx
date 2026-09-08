@@ -1,5 +1,6 @@
+import { InkButton } from '@app/components/ui/InkButton';
 import { cn } from '@shared/lib/cn';
-import { ForgeItemSigil } from './ForgingInventory';
+import { ItemSlot } from '../items/ItemSlot';
 import type { ForgingSession } from './useForgingSession';
 
 const positions = [
@@ -15,13 +16,11 @@ export function ForgingFurnace({
   onOpenBag,
   revealed,
   onReveal,
-  onInspect,
 }: {
   session: ForgingSession;
   onOpenBag: (filter: 'blueprint' | 'material') => void;
   revealed: boolean;
   onReveal: () => void;
-  onInspect: () => void;
 }) {
   return (
     <div
@@ -81,84 +80,81 @@ export function ForgingFurnace({
           : session.blueprint?.id;
         const item = id ? session.byId.get(id) : undefined;
         const unused = index > (session.cost?.quantity ?? 0);
+        const action = () =>
+          index === 0
+            ? onOpenBag('blueprint')
+            : item
+              ? session.remove(index - 1)
+              : onOpenBag('material');
         return (
-          <button
+          <div
             key={index}
-            type="button"
-            disabled={session.locked || (index > 0 && unused)}
-            aria-label={
-              index === 0
-                ? '选择或更换图纸'
-                : unused
-                  ? '本次无需材料'
-                  : item
-                    ? `移出${item.name}`
-                    : `投入第${index}份材料`
-            }
-            onClick={() =>
-              index === 0
-                ? onOpenBag('blueprint')
-                : item
-                  ? session.remove(index - 1)
-                  : onOpenBag('material')
-            }
             className={cn(
-              'bg-paper border-ink/20 hover:border-crimson/50 absolute flex aspect-square min-h-16 w-[19%] -translate-x-1/2 -translate-y-1/2 cursor-pointer flex-col items-center justify-center border px-1 py-1 text-xs transition-colors disabled:cursor-default motion-reduce:transition-none',
+              'absolute w-[19%] -translate-x-1/2 -translate-y-1/2',
               position,
-              unused && index > 0 && 'text-ink-secondary/50 border-dashed',
-              item && 'border-crimson/30',
             )}
           >
-            <span
-              aria-hidden="true"
-              className="text-ink-secondary shrink-0 text-lg leading-none"
-            >
-              {item ? (
-                <ForgeItemSigil item={item} />
-              ) : unused && index > 0 ? (
-                '·'
-              ) : (
-                '＋'
+            <ItemSlot
+              item={item ? { ...item, quantity: 1 } : undefined}
+              emptyLabel={
+                index === 0
+                  ? '道装图纸'
+                  : unused
+                    ? session.cost
+                      ? '无需材料'
+                      : '待选图纸'
+                    : '投入灵材'
+              }
+              disabled={session.locked || (index > 0 && unused)}
+              emptyIcon={index > 0 && unused ? '—' : '＋'}
+              className={cn(
+                'w-full',
+                index > 0 && unused
+                  ? 'border-ink/15 bg-ink/5 hover:border-ink/15 border-dashed bg-[repeating-linear-gradient(135deg,transparent,transparent_6px,rgba(70,60,45,0.06)_6px,rgba(70,60,45,0.06)_7px)]'
+                  : !session.locked && 'border-crimson/50 hover:bg-crimson/5',
               )}
-            </span>
-            <span className="line-clamp-2 shrink-0 leading-4">
-              {index === 0
-                ? (item?.name ?? '道装图纸')
-                : unused
-                  ? session.cost
-                    ? '本次无需'
-                    : '待定'
-                  : (item?.name ?? '投入灵材')}
-            </span>
-          </button>
+              onQuickAction={action}
+            >
+              {item
+                ? (close) => (
+                    <InkButton
+                      disabled={session.locked}
+                      onClick={() => {
+                        close();
+                        action();
+                      }}
+                    >
+                      {index === 0 ? '更换图纸' : '移出'}
+                    </InkButton>
+                  )
+                : undefined}
+            </ItemSlot>
+          </div>
         );
       })}
       {session.result ? (
-        <div className="absolute top-[53%] left-1/2 z-10 w-[36%] -translate-x-1/2 -translate-y-1/2 text-center">
-          <button
-            type="button"
-            aria-label={`查看${session.result.equipment.name}`}
-            disabled={!revealed}
-            onClick={onInspect}
+        <div className="absolute top-[53%] left-1/2 z-10 w-[19%] -translate-x-1/2 -translate-y-1/2 text-center">
+          <div
             onAnimationEnd={(event) => {
               if (event.target === event.currentTarget && !revealed) onReveal();
             }}
             className={cn(
-              'bg-paper border-crimson/60 text-crimson hover:border-crimson mx-auto flex aspect-square w-[58%] cursor-pointer items-center justify-center border text-3xl shadow-[0_0_24px_rgba(178,80,30,0.3)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-default',
+              'w-full',
               !revealed &&
                 'animate-[forge-reveal_1100ms_ease-out_both] motion-reduce:[animation-duration:1ms]',
             )}
           >
-            ◇
-          </button>
-          <p
-            className={cn(
-              'bg-paper/90 text-crimson mt-2 px-1 py-1 text-sm',
-              !revealed && 'opacity-0',
-            )}
-          >
-            {session.result.equipment.name}
-          </p>
+            <ItemSlot
+              item={{
+                definitionId: 'equipment.v6',
+                name: session.result.equipment.name,
+                quantity: 1,
+                instanceData: session.result.equipment,
+              }}
+              disabled={!revealed}
+              className="w-full shadow-[0_0_24px_rgba(178,80,30,0.3)]"
+            />
+          </div>
         </div>
       ) : null}
     </div>

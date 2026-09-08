@@ -1,19 +1,10 @@
-import { EnemyGenerator } from '@shared/engine/enemyGenerator';
-import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
 import { buildPresetArtifact } from '@shared/engine/cultivator/creation/presetProducts';
-import { hasActiveConditionStatus } from '@shared/lib/condition';
 import type {
   TaskDefinition,
   TaskInstanceMetadata,
   TaskStageDefinition,
 } from '@shared/types/task';
-import { ServerEnemyCopyProvider } from '@server/lib/services/ServerEnemyCopyProvider';
-
-const challengeEnemyGenerator = new EnemyGenerator({
-  copyProvider: new ServerEnemyCopyProvider({
-    enabled: process.env.NODE_ENV !== 'test',
-  }),
-});
+import { BREAKTHROUGH_CHALLENGES } from '@shared/engine/combat-v6/breakthrough/host';
 
 const noviceGuardArtifact = buildPresetArtifact({
   name: '入门护身玉佩',
@@ -89,166 +80,9 @@ export type RuntimeTaskDefinition =
 export interface TaskChallengeProfile {
   id: string;
   title: string;
-  stateStrategy: 'persistent_world';
-  enemyDifficulty?: number;
-  buildOpponent: (
-    cultivator: CultivatorCombatInput,
-  ) => CultivatorCombatInput | Promise<CultivatorCombatInput>;
 }
-
-function cloneMirrorOpponent(
-  cultivator: CultivatorCombatInput,
-  options: {
-    name: string;
-    attributeMultiplier: number;
-    bonusWillpower?: number;
-    bonusSpeed?: number;
-  },
-): CultivatorCombatInput {
-  const multiplier = options.attributeMultiplier;
-
-  return {
-    ...structuredClone(cultivator),
-    id:
-      globalThis.crypto?.randomUUID?.() ??
-      `mirror-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    name: options.name,
-    attributes: {
-      vitality: Math.max(1, Math.floor(cultivator.attributes.vitality * multiplier)),
-      strength: Math.max(1, Math.floor(cultivator.attributes.strength * multiplier)),
-      spirit: Math.max(1, Math.floor(cultivator.attributes.spirit * multiplier)),
-      endurance: Math.max(1, Math.floor(cultivator.attributes.endurance * multiplier)),
-      speed: Math.max(
-        1,
-        Math.floor(cultivator.attributes.speed * multiplier) + (options.bonusSpeed ?? 0),
-      ),
-      willpower: Math.max(
-        1,
-        Math.floor(cultivator.attributes.willpower * multiplier) +
-          (options.bonusWillpower ?? 0),
-      ),
-    },
-  };
-}
-
-async function buildGeneratedChallengeOpponent(
-  cultivator: CultivatorCombatInput,
-  options: {
-    name: string;
-    race: '灵族' | '魔族' | '古兽';
-    enemyDifficulty: number;
-    narrativeHint: string;
-  },
-): Promise<CultivatorCombatInput> {
-  const draft = challengeEnemyGenerator.buildDraft({
-    realm: cultivator.realm,
-    realmStage: cultivator.realm_stage,
-    race: options.race,
-    difficulty: options.enemyDifficulty,
-    isBoss: true,
-    name: options.name,
-    background: options.narrativeHint,
-    description: `${options.name}杀机炽盛，专为破境试炼而来。`,
-  });
-  const enriched = await challengeEnemyGenerator.enrichNarrative(draft);
-  return enriched.cultivator;
-}
-
-const BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY = {
-  tribulationDeity: 65,
-  lawInsightVoid: 75,
-  tribulationBody: 90,
-  heavenlyTribulationFinal: 100,
-} as const;
-
-const challengeProfiles: TaskChallengeProfile[] = [
-  {
-    id: 'heart_demon_nascent',
-    title: '心魔劫',
-    stateStrategy: 'persistent_world',
-    buildOpponent: (cultivator) =>
-      cloneMirrorOpponent(
-        cultivator,
-        hasActiveConditionStatus(cultivator.condition, 'clear_mind')
-          ? {
-              name: '心魔化身',
-              attributeMultiplier: 1,
-            }
-          : {
-              name: '心魔化身',
-              attributeMultiplier: 1.08,
-              bonusWillpower: 6,
-              bonusSpeed: 4,
-            },
-      ),
-  },
-  {
-    id: 'tribulation_deity',
-    title: '化神之扰',
-    stateStrategy: 'persistent_world',
-    enemyDifficulty: BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.tribulationDeity,
-    buildOpponent: (cultivator) =>
-      buildGeneratedChallengeOpponent(cultivator, {
-        name: '天劫投影',
-        race: '灵族',
-        enemyDifficulty: BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.tribulationDeity,
-        narrativeHint: '天劫降临时凝聚而成的劫影，通体天罚雷光流转，奉天命阻断化神之路。',
-      }),
-  },
-  {
-    id: 'law_insight_void',
-    title: '法则试锋',
-    stateStrategy: 'persistent_world',
-    enemyDifficulty: BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.lawInsightVoid,
-    buildOpponent: (cultivator) =>
-      buildGeneratedChallengeOpponent(cultivator, {
-        name: '法则残影',
-        race: '灵族',
-        enemyDifficulty: BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.lawInsightVoid,
-        narrativeHint: '法则碎片凝化的残影，举手投足间隐现天地规则之力，试探悟道者能否承受法则之重。',
-      }),
-  },
-  {
-    id: 'tribulation_body',
-    title: '雷劫淬体',
-    stateStrategy: 'persistent_world',
-    enemyDifficulty: BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.tribulationBody,
-    buildOpponent: (cultivator) =>
-      buildGeneratedChallengeOpponent(cultivator, {
-        name: '劫雷化身',
-        race: '古兽',
-        enemyDifficulty: BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.tribulationBody,
-        narrativeHint: '劫雷凝形的太古兽体，浑身雷弧缠绕，以雷霆之势淬炼渡劫者的道体根基。',
-      }),
-  },
-  {
-    id: 'inner_demon_grand',
-    title: '大执念劫',
-    stateStrategy: 'persistent_world',
-    buildOpponent: (cultivator) =>
-      cloneMirrorOpponent(cultivator, {
-        name: '执念化身',
-        attributeMultiplier: 1.12,
-        bonusWillpower: 12,
-        bonusSpeed: 6,
-      }),
-  },
-  {
-    id: 'heavenly_tribulation_final',
-    title: '天劫前奏',
-    stateStrategy: 'persistent_world',
-    enemyDifficulty:
-      BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.heavenlyTribulationFinal,
-    buildOpponent: (cultivator) =>
-      buildGeneratedChallengeOpponent(cultivator, {
-        name: '天道劫影',
-        race: '古兽',
-        enemyDifficulty:
-          BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.heavenlyTribulationFinal,
-        narrativeHint: '天道意志所化的终极劫影，承载末法时代最后一缕天威，誓要将不配渡劫者碾为齑粉。',
-      }),
-  },
-];
+const challengeProfiles: TaskChallengeProfile[] = Object.entries(BREAKTHROUGH_CHALLENGES)
+  .map(([id, spec]) => ({ id, title: spec.title }));
 
 const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
   {

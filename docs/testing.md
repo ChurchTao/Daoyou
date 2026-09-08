@@ -93,3 +93,24 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 ```
 
 `sect` 至少填写一个字段；弟子身份为 `registered`、`outer`、`inner`、`true`，两类贡献为 0–100000000 的整数绝对值，省略保持原值。调整后的累计贡献不得小于可用贡献，否则返回 409；角色没有 active 宗门成员记录也返回 409。可与境界／属性调整放在一次请求中，整笔事务成功或回滚，并更新宗门成员、任务和角色资源版本。此能力只准备身份与贡献，不执行正式晋升、不生成晋升资格、不修改任务完成记录、职务或宗门归属。准备前记录基准，验收后恢复身份、贡献等准备字段，保留真实试炼战绩与资格记录。
+
+突破试炼验收可使用同一 PATCH 接口补齐准备条件：
+
+```json
+{
+  "realm": "元婴",
+  "realmStage": "圆满",
+  "cultivation": { "experience": 100000, "insight": 90 },
+  "breakthroughPreparation": {
+    "clearMind": true,
+    "protectMeridians": true,
+    "completedDungeonObjectiveIds": ["clear-archive"]
+  }
+}
+```
+
+`cultivation` 的 experience 为 0–1000000000000 整数修为绝对值，insight 为 0–100 整数感悟；修为上限仍按调整后的境界实时计算，不写入 exp_cap。两个准备对象均不能为空，省略字段不变。清心／护脉 true 添加带 devTools 标记的系统状态，false 只移除本接口添加的对应状态，保留正常玩法已有状态。
+
+调整 realm、realmStage 或 breakthroughPreparation 时会同步当前破境任务，确保准备目标有对应任务。通过外部 dev 请求准备后应刷新浏览器再开始验收，避免页面沿用先前角色缓存。10F 实际运行记录及准备数据去向见 [阶段验收记录](./combat-v6-phase-10f-breakthrough-plan.md#73-解锁后的真实运行验收2026-09-08-至-09)。
+
+`completedDungeonObjectiveIds` 只接受当前大境界破境任务中 kind 为 complete_dungeon 的目标 ID，用于跳过验收准备所需的长秘境流程，不创建秘境通关记录或奖励。未知目标及 win_task_challenge 战斗目标返回 409，整笔联合调整回滚；不能用本接口直接制造试炼胜利。真实试炼胜负、灵兽消耗、任务推进和最终突破必须通过正式页面完成。准备前记录境界、六属性、资源、修为、感悟及任务目标基准；验收记录须区分 dev 准备目标和真实战斗完成目标，结束后恢复临时角色字段并移除 dev 状态，不把准备数据记作真实验收证据。

@@ -10,6 +10,7 @@ import {
 import type { TaskInstance } from '@shared/types/task';
 import { z } from 'zod';
 import { CombatV6BuildInitializationStatusSchema } from '../combatV6';
+import { BreakthroughBattlePointerSchema } from '../combatV6Breakthrough';
 import type { PlayerResourceMap } from '../player';
 import {
   artifactSchema,
@@ -512,6 +513,7 @@ export const taskInstanceSchema = z
         rewardGrantPendingKey: z.string().optional(),
         rewardExpGrantedKey: z.string().optional(),
         rewardGrantedKey: z.string().optional(),
+        breakthroughBattle: BreakthroughBattlePointerSchema.optional(),
       })
       .strict(),
     createdAt: z.string(),

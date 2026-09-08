@@ -8,6 +8,7 @@ import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6
 import { assembleCombatV6TrainingPlayer } from './CombatV6BuildService';
 import { CombatV6WildStore } from './CombatV6WildStore';
 import { activeSectTaskBattle } from './CombatV6SectTaskOccupancy';
+import { activeBreakthroughBattle } from './CombatV6BreakthroughOccupancy';
 import { SectTaskRecordPayloadSchema } from '@shared/engine/sect';
 import { SectV6TargetSchema } from '@shared/contracts/combatV6SectTask';
 
@@ -48,6 +49,7 @@ export async function readCombatV6ConditionAuthority(
   return {
     maxHp: projected.unit.attrs.maxHp!,
     maxMp: projected.unit.attrs.maxMp!,
-    recoveryPaused: (await hasActiveDungeon(id)) || taskTarget?.resourcePolicy === 'persistent',
+    recoveryPaused: (await hasActiveDungeon(id)) || taskTarget?.resourcePolicy === 'persistent' ||
+      !!(await activeBreakthroughBattle(id, q)),
   };
 }

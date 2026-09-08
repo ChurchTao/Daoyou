@@ -6,9 +6,10 @@ import {
 import { readResourceWithMeta } from '@server/lib/services/ResourceReadService';
 import {
   claimTaskRewardCommand,
-  executeTaskChallengeCommand,
 } from '@server/lib/services/TaskApplicationService';
 import { TaskService } from '@server/lib/services/TaskService';
+import { startBreakthroughBattle } from '@server/lib/services/combat-v6/CombatV6BreakthroughService';
+import { redisLockErrorResponse } from '@server/lib/hono/middleware';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -78,13 +79,14 @@ router.post('/:id/challenge', requireActiveCultivatorRef(), async (c) => {
   }
 
   try {
-    const committed = await executeTaskChallengeCommand({
+    const session = await startBreakthroughBattle({
       userId: user.id,
       cultivatorId: ref.cultivatorId,
-      taskId: c.req.param('id'),
-    });
-    return c.json(toPlayerStateMutationResponse(committed));
+    }, z.uuid().parse(c.req.param('id')));
+    return c.json({ success: true, data: session });
   } catch (error) {
+    const lock = redisLockErrorResponse(error);
+    if (lock) return lock;
     const message =
       error instanceof Error ? error.message : '试炼失败，请稍后再试';
     const status =

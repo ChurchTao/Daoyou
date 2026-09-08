@@ -45,6 +45,7 @@ import { Hono } from 'hono';
 import manualsRouter from './combat-v6-manuals.router';
 import sectV6Router from './combat-v6-sect.router';
 import sectTasksV6Router from './combat-v6-sect-tasks.router';
+import breakthroughV6Router from './combat-v6-breakthrough.router';
 import devResourcesRouter from './dev-resources.router';
 import forgingRouter from './forging.router';
 
@@ -99,6 +100,7 @@ apiRouter.route('/combat-v6/forging', forgingRouter);
 apiRouter.route('/combat-v6/manuals', manualsRouter);
 apiRouter.route('/combat-v6/sect', sectV6Router);
 apiRouter.route('/combat-v6/sect-tasks', sectTasksV6Router);
+apiRouter.route('/combat-v6/breakthrough', breakthroughV6Router);
 if (allowsLocalDevTools(process.env.APP_ENV, process.env.NODE_ENV))
   apiRouter.route('/dev', devResourcesRouter);
 apiRouter.route('/combat-v6', combatV6Router);

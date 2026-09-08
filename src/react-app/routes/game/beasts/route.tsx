@@ -19,8 +19,8 @@ import {
 } from '@shared/engine/combat-v6/beasts';
 import { nextBeastExp } from '@shared/engine/combat-v6/beasts/progression';
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
 import { BeastActionDrawer, type BeastAction } from './BeastActionDrawer';
+import { BeastBookDrawer } from './BeastBookDrawer';
 
 const base = '/api/combat-v6/beasts';
 const skillDetails = combatV6SkillDetails(BEAST_SKILLS, []);
@@ -38,6 +38,7 @@ function BeastDetails({
   pending,
   isLead,
   act,
+  learn,
 }: {
   beast: SummonedBeast;
   close: () => void;
@@ -45,6 +46,7 @@ function BeastDetails({
   pending: boolean;
   isLead: boolean;
   act: (action: BeastAction) => void;
+  learn: () => void;
 }) {
   const panel = beastPanel(beast);
   return (
@@ -107,12 +109,13 @@ function BeastDetails({
           ))}
         </div>
         <dl className="grid grid-cols-2 gap-2">
-          <Link
+          <InkButton
             className="col-span-2 underline"
-            to={`/game/inventory?beastId=${beast.id}`}
+            disabled={pending}
+            onClick={learn}
           >
             学习兽诀
-          </Link>
+          </InkButton>
           {Object.entries(attributeNames).map(([key, name]) => (
             <div key={key}>
               <dt className="text-ink-secondary">{name}</dt>
@@ -150,6 +153,7 @@ export default function BeastsPage() {
   const [pending, setPending] = useState(false);
   const [detailId, setDetailId] = useState<string>();
   const [claimId, setClaimId] = useState<string>();
+  const [learningId, setLearningId] = useState<string>();
   const [action, setAction] = useState<{
     beastId: string;
     type: BeastAction;
@@ -322,9 +326,17 @@ export default function BeastsPage() {
           ))}
         </>
       )}
-      {detail && !action ? (
+      {learningId ? (
+        <BeastBookDrawer
+          beastId={learningId}
+          close={() => setLearningId(undefined)}
+          onUpdate={setView}
+        />
+      ) : null}
+      {detail && !action && !learningId ? (
         <BeastDetails
           beast={detail}
+          learn={() => setLearningId(detail.id)}
           ownerLevel={view!.ownerLevel}
           pending={pending}
           isLead={view!.lineup.leadBeastId === detail.id}

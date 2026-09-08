@@ -9,12 +9,7 @@ export type TaskDetailResponse = ApiSuccess<{
   task: TaskInstance;
 }>;
 
-export type TaskChallengeResponse = PlayerStateMutationResponse<{
-  task: TaskInstance;
-  battleResult: import('@shared/types/battle').BattleRecordV3;
-  isWin: boolean;
-  challengeTitle: string;
-}>;
+export type TaskChallengeResponse = ApiSuccess<import('./combatV6Breakthrough').BreakthroughSessionView>;
 
 export type TaskRewardClaimResponse = PlayerStateMutationResponse<{
   task: TaskInstance;

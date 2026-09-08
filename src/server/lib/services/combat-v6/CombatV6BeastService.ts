@@ -58,7 +58,7 @@ async function mutate<T>(
           (await hasActiveTower(cultivatorId)) ||
           (await hasActiveRanking(cultivatorId)) ||
           (await hasActiveDungeon(cultivatorId)) ||
-          (await hasActiveSectTaskBattle(cultivatorId)) ||
+          ((await hasActiveSectTaskBattle(cultivatorId)) || (await hasActiveBreakthroughBattle(cultivatorId))) ||
           (await new CombatV6WildStore().lock(cultivatorId)) ||
           (await redis.get(arenaOccupancyKey(cultivatorId))) ||
           (await new CombatV6RuntimeStore().currentId(cultivatorId))
@@ -250,3 +250,4 @@ export async function releaseBeast(
     return readBeastRoster(cultivatorId, tx);
   });
 }
+import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';

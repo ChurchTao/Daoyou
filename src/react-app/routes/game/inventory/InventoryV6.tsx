@@ -2,36 +2,24 @@ import {
   combatV6Request,
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
-import { EquipmentDetails } from '@app/components/feature/forging/EquipmentDetails';
+import {
+  InventoryGrid,
+  ItemSlot,
+} from '@app/components/feature/items/ItemSlot';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
+import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
-import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
-import { InkTooltip } from '@app/components/ui/InkTooltip';
-import { combatV6SkillDetails } from '@shared/combat-v6/skill-details';
-import type { BeastManagementView } from '@shared/contracts/combatV6Beasts';
 import type {
   InventoryAction,
   InventoryView,
 } from '@shared/contracts/inventory';
-import {
-  BEAST_SKILLS,
-  activeBeastSkills,
-} from '@shared/engine/combat-v6/beasts';
-import { CHARACTER_MANUALS_V1 } from '@shared/engine/combat-v6/manuals/content';
 import { BAG_CAPACITY, itemDefinition } from '@shared/inventory';
-import {
-  MATERIAL_TYPE_NAMES,
-  MaterialFactsSchema,
-} from '@shared/items/definitions/materials';
-import { materialFactsOf } from '@shared/items/material';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 
 const endpoint = '/api/combat-v6/inventory';
-const details = combatV6SkillDetails(BEAST_SKILLS, []);
-const skillName = (id: string) =>
-  BEAST_SKILLS.find((s) => s.id === id)?.name ?? id;
 type Item = InventoryView['items'][number];
+type BagAction = Exclude<InventoryAction, { action: 'learn' }>;
 export default function InventoryV6() {
   const [params, setParams] = useSearchParams();
   const route = useLocation();
@@ -46,10 +34,8 @@ export default function InventoryV6() {
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState('all');
   const [data, setData] = useState<InventoryView>();
-  const [selected, setSelected] = useState<string>();
   const [moving, setMoving] = useState<Item>();
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const { pushToast } = useInkUI();
   const [pending, setPending] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const busy = useRef(false);
@@ -81,35 +67,32 @@ export default function InventoryV6() {
         }
       })
       .catch((e) => {
-        if (!controller.signal.aborted) setError(e.message);
+        if (!controller.signal.aborted)
+          pushToast({
+            message: e.message,
+            tone: 'danger',
+            actionLabel: '重新读取',
+            onAction: () => setRefresh((v) => v + 1),
+          });
       });
     return () => controller.abort();
-  }, [location, page, search, kind, refresh]);
-  async function act(action: InventoryAction) {
+  }, [location, page, search, kind, refresh, pushToast]);
+  async function act(action: BagAction) {
     if (busy.current) return;
     busy.current = true;
     setPending(true);
-    setError('');
-    setNotice('');
     reader.current?.abort();
     try {
-      const result = await combatV6Request<{
-        oldSkill?: string;
-        newSkill?: string;
-      }>(endpoint, mutationBody(action));
+      await combatV6Request(endpoint, mutationBody(action));
       if (!mounted.current) return;
-      setSelected(undefined);
       setMoving(undefined);
-      setNotice(
-        result.newSkill
-          ? `${skillName(result.oldSkill!)} → ${skillName(result.newSkill)}`
-          : '已完成',
-      );
+      pushToast({ message: '已完成', tone: 'success' });
     } catch (e) {
       if (mounted.current)
-        setError(
-          `${e instanceof Error ? e.message : '请求失败'}；请重新核对物品状态后操作。`,
-        );
+        pushToast({
+          message: `${e instanceof Error ? e.message : '请求失败'}；请重新核对物品状态后操作。`,
+          tone: 'danger',
+        });
     } finally {
       busy.current = false;
       if (mounted.current) {
@@ -118,7 +101,6 @@ export default function InventoryV6() {
       }
     }
   }
-  const item = data?.items.find((i) => i.id === selected);
   const slots = new Map(data?.items.map((i) => [i.slotIndex, i]));
   const filtered = !!search || kind !== 'all';
   function choose(entry: Item | undefined, slot: number) {
@@ -134,7 +116,6 @@ export default function InventoryV6() {
       });
       return;
     }
-    setSelected(entry?.id);
   }
   return (
     <GameSceneFrame variant="workflow">
@@ -154,7 +135,6 @@ export default function InventoryV6() {
                 setParams({ location: value });
                 setPage(0);
                 setData(undefined);
-                setSelected(undefined);
                 setMoving(undefined);
               }}
             >
@@ -196,6 +176,12 @@ export default function InventoryV6() {
             <option value="blueprint">图纸</option>
             <option value="material">材料</option>
           </select>
+          <InkButton
+            disabled={pending}
+            onClick={() => setRefresh((value) => value + 1)}
+          >
+            刷新
+          </InkButton>
           {location === 'bag' ? (
             <InkButton
               disabled={pending || !data || filtered}
@@ -213,41 +199,15 @@ export default function InventoryV6() {
             </InkButton>
           ) : null}
         </div>
-        {error ? (
-          <p role="alert" className="text-crimson text-sm">
-            {error}
-            <button
-              disabled={pending}
-              className="ml-2 underline"
-              onClick={() => {
-                setError('');
-                setRefresh((v) => v + 1);
-              }}
-            >
-              重新读取
-            </button>
-          </p>
-        ) : null}
-        {notice ? (
-          <p role="status" className="text-sm">
-            {notice}
-          </p>
-        ) : null}
         {moving ? (
-          <p className="text-sm">
-            选择目标格位，同类合并，其他物品交换位置。
-            <button
-              className="ml-2 underline"
-              onClick={() => setMoving(undefined)}
-            >
-              取消移动
-            </button>
-          </p>
+          <InkButton disabled={pending} onClick={() => setMoving(undefined)}>
+            取消移动
+          </InkButton>
         ) : null}
         {!data ? (
           <p className="text-ink-secondary text-sm">正在查看物品……</p>
         ) : (
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+          <InventoryGrid>
             {(location === 'bag'
               ? Array.from({ length: BAG_CAPACITY }, (_, slot) => ({
                   entry: slots.get(slot),
@@ -255,41 +215,41 @@ export default function InventoryV6() {
                 }))
               : data.items.map((entry, slot) => ({ entry, slot }))
             ).map(({ entry, slot }) => (
-              <button
+              <ItemSlot
                 key={location === 'bag' ? slot : entry!.id}
-                disabled={
-                  pending || (!entry && !moving) || (filtered && !entry)
-                }
-                aria-label={
-                  entry
-                    ? `${entry.name}，${entry.quantity}件${entry.equipped ? '，已装备' : ''}`
-                    : `空格 ${slot + 1}`
-                }
-                onClick={() => choose(entry, slot)}
-                className={`border-ink/15 relative flex min-h-20 min-w-0 flex-col items-center justify-center gap-1 rounded border p-1 text-xs ${moving?.id === entry?.id && moving ? 'ring-ink ring-1' : 'hover:bg-ink/5'}`}
+                item={entry}
+                emptyLabel=""
+                disabled={pending || (filtered && !entry)}
+                selected={!!entry && moving?.id === entry.id}
+                onQuickAction={moving ? () => choose(entry, slot) : undefined}
+                quickOnTouch={!!moving}
               >
-                {entry ? (
-                  <>
-                    <span aria-hidden className="text-ink-secondary text-lg">
-                      {itemDefinition(entry.definitionId).kind === 'equipment'
-                        ? '◇'
-                        : itemDefinition(entry.definitionId).kind === 'material'
-                          ? '◆'
-                          : '卷'}
-                    </span>
-                    <span className="line-clamp-2 break-all">{entry.name}</span>
-                    <span className="text-ink-secondary">
-                      {entry.equipped ? '已装备' : `×${entry.quantity}`}
-                    </span>
-                  </>
-                ) : (
-                  <span aria-hidden className="text-ink/15">
-                    ·
-                  </span>
-                )}
-              </button>
+                {entry
+                  ? (close) => (
+                      <ItemActions
+                        key={`${entry.id}:${entry.revision}`}
+                        item={entry}
+                        pending={pending}
+                        act={async (action) => {
+                          await act(action);
+                          close();
+                        }}
+                        move={() => {
+                          setMoving(entry);
+                          pushToast({
+                            message:
+                              '选择目标格位，同类合并，其他物品交换位置。',
+                          });
+                          close();
+                          setSearch('');
+                          setKind('all');
+                        }}
+                      />
+                    )
+                  : undefined}
+              </ItemSlot>
             ))}
-          </div>
+          </InventoryGrid>
         )}
         {location === 'storage' && data?.total === 0 ? (
           <p className="text-ink-secondary text-sm">暂无物品</p>
@@ -319,280 +279,84 @@ export default function InventoryV6() {
             </InkButton>
           </div>
         ) : null}
-        {item ? (
-          <ItemDrawer
-            key={`${item.id}:${item.revision}`}
-            item={item}
-            initialBeastId={params.get('beastId')}
-            pending={pending}
-            error={error}
-            close={() => {
-              if (!pending) setSelected(undefined);
-            }}
-            act={act}
-            move={() => {
-              setMoving(item);
-              setSelected(undefined);
-              setSearch('');
-              setKind('all');
-            }}
-          />
-        ) : null}
       </div>
     </GameSceneFrame>
   );
 }
 
-function ItemDrawer({
+function ItemActions({
   item,
-  initialBeastId,
   pending,
-  error,
-  close,
   act,
   move,
 }: {
   item: Item;
-  initialBeastId: string | null;
   pending: boolean;
-  error: string;
-  close: () => void;
-  act: (action: InventoryAction) => Promise<void>;
+  act: (action: BagAction) => Promise<void>;
   move: () => void;
 }) {
   const definition = itemDefinition(item.definitionId);
-  const [learning, setLearning] = useState(false);
-  const [roster, setRoster] = useState<BeastManagementView>();
-  const [loadError, setLoadError] = useState('');
-  const [beastId, setBeastId] = useState(initialBeastId ?? '');
   const [quantity, setQuantity] = useState(1);
-  useEffect(() => {
-    if (!learning) return;
-    const controller = new AbortController();
-    void combatV6Request<BeastManagementView>('/api/combat-v6/beasts', {
-      signal: controller.signal,
-    })
-      .then((value) => {
-        if (!controller.signal.aborted) setRoster(value);
-      })
-      .catch((e) => {
-        if (!controller.signal.aborted) setLoadError(e.message);
-      });
-    return () => controller.abort();
-  }, [learning]);
-  const beast = roster?.beasts.find((b) => b.id === beastId);
-  const valid =
-    !!beast &&
-    beast.skillSlotCapacity > 0 &&
-    beast.level <= roster!.ownerLevel &&
-    !beast.skills.includes(definition.skillId!);
   const ref = { id: item.id, revision: item.revision };
   return (
-    <InkDetailDrawer
-      isOpen
-      title={learning ? `学习 · ${item.name}` : item.name}
-      onClose={close}
-      size="sm"
-    >
-      <div className="space-y-4 text-sm">
-        {error || loadError ? (
-          <p role="alert" className="text-crimson">
-            {error || loadError}
-          </p>
-        ) : null}
-        <p>
-          持有 {item.quantity} {definition.kind === 'beast_book' ? '本' : '件'}
-        </p>
-        {definition.skillId ? (
-          <p>
-            {details[definition.skillId]?.description}
-            <InkTooltip label="兽诀使用说明">
-              消耗一本，等概率覆盖一个现有技能，包括出生技能。普通和高级同系同时存在时仅高级生效。
-            </InkTooltip>
-          </p>
-        ) : definition.kind === 'manual_jade' ? (
-          <p>
-            {
-              CHARACTER_MANUALS_V1.find(
-                (manual) => manual.id === definition.manualId,
-              )?.description
+    <div className="space-y-4 text-sm">
+      <div className="flex flex-wrap gap-3">
+        {item.location === 'bag' && definition.kind === 'equipment' ? (
+          <InkButton
+            pending={pending}
+            onClick={() =>
+              void act({
+                action: 'equip',
+                ...ref,
+                equipped: !item.equipped,
+              })
             }
-          </p>
-        ) : definition.kind === 'material' ? (
-          <MaterialDetails
-            data={materialFactsOf(item.definitionId, item.instanceData)}
-          />
-        ) : definition.kind === 'blueprint' ? (
-          <p>
-            {definition.level}级图纸，铸造消耗一张。
-            <Link className="ml-2 underline" to="/game/craft/refine">
-              前往炼器室
-            </Link>
-          </p>
-        ) : (
-          <EquipmentDetails data={item.instanceData} />
-        )}
-        {learning ? (
-          <>
-            {!roster && !loadError ? <p>正在查看灵兽……</p> : null}
-            <label className="block">
-              选择灵兽
-              <select
-                aria-label="选择学习灵兽"
-                className="border-ink/20 mt-2 w-full border bg-transparent p-2"
-                value={beastId}
-                disabled={pending}
-                onChange={(e) => setBeastId(e.target.value)}
-              >
-                <option value="">请选择</option>
-                {roster?.beasts.map((b) => (
-                  <option
-                    key={b.id}
-                    value={b.id}
-                    disabled={
-                      b.level > roster.ownerLevel ||
-                      !b.skillSlotCapacity ||
-                      b.skills.includes(definition.skillId!)
-                    }
-                  >
-                    {b.name} · {b.level}级
-                    {b.skills.includes(definition.skillId!)
-                      ? ' · 已拥有'
-                      : b.level > roster.ownerLevel
-                        ? ' · 等级过高'
-                        : !b.skillSlotCapacity
-                          ? ' · 无技能格'
-                          : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {beast ? (
-              <div className="space-y-2">
-                {beast.skills.map((id) => (
-                  <p key={id}>
-                    {skillName(id)}
-                    {!activeBeastSkills(beast).includes(id)
-                      ? '（被高级技能抑制）'
-                      : ''}
-                    <InkTooltip label="技能说明">
-                      {details[id]?.description}
-                    </InkTooltip>
-                  </p>
-                ))}
-              </div>
-            ) : null}
-            <p>随机覆盖其中一个技能，消耗一本，结果不可撤销。</p>
-            <div className="flex gap-3">
-              <InkButton disabled={pending} onClick={() => setLearning(false)}>
-                返回
-              </InkButton>
-              <InkButton
-                pending={pending}
-                disabled={!valid}
-                onClick={() =>
-                  void act({
-                    action: 'learn',
-                    ...ref,
-                    beastId,
-                    beastRevision: beast!.revision,
-                  })
-                }
-              >
-                确认学习
-              </InkButton>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex flex-wrap gap-3">
-              {item.location === 'bag' && definition.kind === 'manual_jade' ? (
-                <InkButton
-                  href={`/game/enlightenment/gongfa?itemId=${encodeURIComponent(item.id)}`}
-                  disabled={pending}
-                >
-                  参悟
-                </InkButton>
-              ) : null}
-              {item.location === 'bag' && definition.kind === 'beast_book' ? (
-                <InkButton disabled={pending} onClick={() => setLearning(true)}>
-                  使用
-                </InkButton>
-              ) : null}
-              {item.location === 'bag' && definition.kind === 'equipment' ? (
-                <InkButton
-                  pending={pending}
-                  onClick={() =>
-                    void act({
-                      action: 'equip',
-                      ...ref,
-                      equipped: !item.equipped,
-                    })
-                  }
-                >
-                  {item.equipped ? '卸下' : '装备'}
-                </InkButton>
-              ) : null}
-              <InkButton
-                disabled={pending || item.equipped}
-                onClick={() =>
-                  void act({
-                    action: 'transfer',
-                    ...ref,
-                    location: item.location === 'bag' ? 'storage' : 'bag',
-                  })
-                }
-              >
-                {item.location === 'bag' ? '存入储藏室' : '取入背包'}
-              </InkButton>
-              {item.location === 'bag' ? (
-                <InkButton disabled={pending} onClick={move}>
-                  移动／合并
-                </InkButton>
-              ) : null}
-            </div>
-            {item.location === 'bag' && item.quantity > 1 ? (
-              <div className="flex items-center gap-3">
-                <input
-                  aria-label="拆分数量"
-                  type="number"
-                  min={1}
-                  max={item.quantity - 1}
-                  value={quantity}
-                  className="border-ink/20 w-20 border bg-transparent p-2"
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                />
-                <InkButton
-                  disabled={
-                    pending ||
-                    !Number.isInteger(quantity) ||
-                    quantity < 1 ||
-                    quantity >= item.quantity
-                  }
-                  onClick={() =>
-                    void act({ action: 'split', ...ref, quantity })
-                  }
-                >
-                  拆分到空格
-                </InkButton>
-              </div>
-            ) : null}
-          </>
-        )}
+          >
+            {item.equipped ? '卸下' : '装备'}
+          </InkButton>
+        ) : null}
+        <InkButton
+          disabled={pending || item.equipped}
+          onClick={() =>
+            void act({
+              action: 'transfer',
+              ...ref,
+              location: item.location === 'bag' ? 'storage' : 'bag',
+            })
+          }
+        >
+          {item.location === 'bag' ? '存入储藏室' : '取入背包'}
+        </InkButton>
+        {item.location === 'bag' ? (
+          <InkButton disabled={pending} onClick={move}>
+            移动／合并
+          </InkButton>
+        ) : null}
       </div>
-    </InkDetailDrawer>
-  );
-}
-
-function MaterialDetails({ data }: { data: unknown }) {
-  const material = MaterialFactsSchema.parse(data);
-  return (
-    <div>
-      <p>
-        {material.rank} · {MATERIAL_TYPE_NAMES[material.type]}
-        {material.element ? ` · ${material.element}` : ''}
-      </p>
-      <p>{material.description}</p>
+      {item.location === 'bag' && item.quantity > 1 ? (
+        <div className="flex items-center gap-3">
+          <input
+            aria-label="拆分数量"
+            type="number"
+            min={1}
+            max={item.quantity - 1}
+            value={quantity}
+            className="border-ink/20 w-20 border bg-transparent p-2"
+            onChange={(e) => setQuantity(Number(e.target.value))}
+          />
+          <InkButton
+            disabled={
+              pending ||
+              !Number.isInteger(quantity) ||
+              quantity < 1 ||
+              quantity >= item.quantity
+            }
+            onClick={() => void act({ action: 'split', ...ref, quantity })}
+          >
+            拆分到空格
+          </InkButton>
+        </div>
+      ) : null}
     </div>
   );
 }

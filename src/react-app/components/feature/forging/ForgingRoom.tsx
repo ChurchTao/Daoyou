@@ -1,12 +1,13 @@
 import { RoomView, type RoomActorView } from '@app/components/feature/room';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
+import { InkModal } from '@app/components/layout/InkModal';
+import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { itemDefinition } from '@shared/inventory';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useBeforeUnload, useBlocker } from 'react-router';
-import { EquipmentDetails } from './EquipmentDetails';
 import { ForgingFurnace } from './ForgingFurnace';
 import { ForgingInventory, type ForgeFilter } from './ForgingInventory';
 import { useForgingSession, type ForgeItem } from './useForgingSession';
@@ -51,9 +52,9 @@ export function ForgingRoom() {
   const [facility, setFacility] = useState('');
   const [filter, setFilter] = useState<ForgeFilter>('all');
   const [selected, setSelected] = useState<string>();
-  const [message, setMessage] = useState('');
+  const { pushToast } = useInkUI();
   const [revealed, setRevealed] = useState(false);
-  const [drawer, setDrawer] = useState<'bag' | 'confirm' | 'details'>();
+  const [drawer, setDrawer] = useState<'bag' | 'confirm'>();
   const compact = useSyncExternalStore(
     subscribeCompact,
     readCompact,
@@ -79,7 +80,8 @@ export function ForgingRoom() {
   }
   function choose(item: ForgeItem) {
     setSelected(item.id);
-    setMessage(session.choose(item));
+    const message = session.choose(item);
+    if (message) pushToast({ message });
   }
   const bag = (
     <ForgingInventory
@@ -87,7 +89,6 @@ export function ForgingRoom() {
       filter={filter}
       onFilter={setFilter}
       selected={selected}
-      message={message}
       onChoose={choose}
     />
   );
@@ -105,7 +106,6 @@ export function ForgingRoom() {
             <InkButton
               disabled={session.pending}
               onClick={() => {
-                setMessage('');
                 session.reload();
               }}
             >
@@ -152,9 +152,11 @@ export function ForgingRoom() {
                     revealed={revealed}
                     onReveal={() => {
                       setRevealed(true);
-                      setDrawer('details');
+                      pushToast({
+                        message: '打造成功，道装已收入储物袋。',
+                        tone: 'success',
+                      });
                     }}
-                    onInspect={() => setDrawer('details')}
                   />
                   {result ? (
                     revealed ? (
@@ -166,16 +168,12 @@ export function ForgingRoom() {
                           {result.equipment.equipmentLevel}级 · 已收入储物袋
                         </p>
                         <div className="flex justify-center gap-4">
-                          <InkButton onClick={() => setDrawer('details')}>
-                            查看道装
-                          </InkButton>
                           <InkButton
                             variant="primary"
                             disabled={!session.view}
                             onClick={() => {
                               session.continueForging();
                               setRevealed(false);
-                              setMessage('');
                               setSelected(undefined);
                             }}
                           >
@@ -311,11 +309,25 @@ export function ForgingRoom() {
         >
           {bag}
         </InkDetailDrawer>
-        <InkDetailDrawer
+        <InkModal
           isOpen={drawer === 'confirm'}
           title="确认开炉"
-          size="sm"
           onClose={() => setDrawer(undefined)}
+          footer={
+            <div className="flex justify-end gap-3">
+              <InkButton onClick={() => setDrawer(undefined)}>取消</InkButton>
+              <InkButton
+                disabled={session.locked || !!session.problem}
+                onClick={() => {
+                  setDrawer(undefined);
+                  setSelected(undefined);
+                  void session.submit();
+                }}
+              >
+                确认开炉
+              </InkButton>
+            </div>
+          }
         >
           <div className="space-y-3 text-sm">
             <p>{session.blueprint?.name} ×1</p>
@@ -331,33 +343,8 @@ export function ForgingRoom() {
             <p className="text-ink-secondary">
               必定铸成一件道装，属性随机，成品自动入包。
             </p>
-            <InkButton
-              variant="primary"
-              disabled={session.locked || !!session.problem}
-              onClick={() => {
-                setDrawer(undefined);
-                setMessage('');
-                setSelected(undefined);
-                void session.submit();
-              }}
-            >
-              确认开炉
-            </InkButton>
           </div>
-        </InkDetailDrawer>
-        <InkDetailDrawer
-          isOpen={drawer === 'details' && !!result}
-          title={result?.equipment.name ?? '道装详情'}
-          onClose={() => setDrawer(undefined)}
-          size="md"
-        >
-          {result ? (
-            <EquipmentDetails
-              data={result.equipment}
-              previous={result.previous}
-            />
-          ) : null}
-        </InkDetailDrawer>
+        </InkModal>
       </div>
     </GameSceneFrame>
   );

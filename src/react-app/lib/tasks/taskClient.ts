@@ -28,7 +28,6 @@ export async function startTaskChallenge(taskId: string) {
     method: 'POST',
   });
   const payload = await readJsonOrThrow<TaskChallengeResponse>(response);
-  await consumeResourceMutation(payload);
   return payload;
 }
 

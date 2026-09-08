@@ -221,7 +221,7 @@ export class CombatV6WildSessionService {
           (await hasActiveTower(actor.cultivatorId)) ||
           (await hasActiveRanking(actor.cultivatorId)) ||
           (await hasActiveDungeon(actor.cultivatorId)) ||
-          (await hasActiveSectTaskBattle(actor.cultivatorId))
+          ((await hasActiveSectTaskBattle(actor.cultivatorId)) || (await hasActiveBreakthroughBattle(actor.cultivatorId)))
         )
           throw new WildError('DUNGEON_ACTIVE', '请先结束秘境探索与结算');
         if (await redis.get(arenaOccupancyKey(actor.cultivatorId)))
@@ -595,3 +595,4 @@ export class CombatV6WildSessionService {
   }
 }
 export const wildSessions = new CombatV6WildSessionService();
+import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';

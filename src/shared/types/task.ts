@@ -136,6 +136,7 @@ export interface TaskObjectiveState {
 }
 
 export interface TaskInstanceMetadata {
+  breakthroughBattle?: import('../contracts/combatV6Breakthrough').BreakthroughBattlePointer;
   fromRealm?: RealmType;
   toRealm?: RealmType;
   taskTheme?:

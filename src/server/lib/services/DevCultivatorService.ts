@@ -10,6 +10,12 @@ import { ConditionService } from './ConditionService';
 import { assertInventoryIdle, InventoryError } from './InventoryService';
 import { ResourceEventCommitter } from './ResourceEventCommitter';
 import { assembleCombatV6TrainingPlayer } from './combat-v6/CombatV6BuildService';
+import { getOrInitCultivationProgress, stripExpCapForStorage } from '@server/utils/cultivationUtils';
+import type { CultivationProgress } from '@shared/types/cultivator';
+import type { RealmStage, RealmType } from '@shared/types/constants';
+import { TaskService } from './TaskService';
+import { getBreakthroughTaskDefinition } from './taskDefinitions';
+import { updateCultivatorTask } from '../repositories/taskRepository';
 
 export async function patchDevCultivator(
   owner: string,
@@ -109,6 +115,57 @@ export async function patchDevCultivator(
             .set({ condition })
             .where(eq(cultivators.id, owner));
         }
+        if (input.cultivation) {
+          const progress = getOrInitCultivationProgress(
+            before.cultivation_progress as CultivationProgress,
+            (input.realm ?? before.realm) as RealmType,
+            (input.realmStage ?? before.realm_stage) as RealmStage,
+          );
+          if (input.cultivation.experience !== undefined)
+            progress.cultivation_exp = input.cultivation.experience;
+          if (input.cultivation.insight !== undefined)
+            progress.comprehension_insight = input.cultivation.insight;
+          await tx.update(cultivators).set({ cultivation_progress: stripExpCapForStorage(progress) })
+            .where(eq(cultivators.id, owner));
+        }
+        if (input.breakthroughPreparation) {
+          const prep = input.breakthroughPreparation;
+          const [current] = await tx.select({ condition: cultivators.condition }).from(cultivators)
+            .where(eq(cultivators.id, owner));
+          const condition = structuredClone(current.condition) as CultivatorCondition;
+          const now = new Date().toISOString();
+          for (const [field, key] of [['clearMind', 'clear_mind'], ['protectMeridians', 'protect_meridians']] as const) {
+            const enabled = prep[field];
+            if (enabled === undefined) continue;
+            condition.statuses = condition.statuses.filter((status) =>
+              !(status.key === key && status.payload?.devTools === true));
+            if (enabled) condition.statuses.push({
+              key, stacks: 1, source: 'system', duration: { kind: 'until_removed' },
+              payload: { devTools: true }, createdAt: now, updatedAt: now,
+            });
+          }
+          await tx.update(cultivators).set({ condition }).where(eq(cultivators.id, owner));
+          if (prep.completedDungeonObjectiveIds) {
+            const tasks = await TaskService.syncCultivatorTasks(owner, tx);
+            const realm = input.realm ?? before.realm;
+            const task = tasks.find((task) => task.category === 'breakthrough_major' &&
+              task.metadata.fromRealm === realm);
+            const definition = task && getBreakthroughTaskDefinition(task.definitionId);
+            if (!task || !definition) throw new InventoryError('当前没有破境任务');
+            for (const id of prep.completedDungeonObjectiveIds) {
+              if (!definition.stages.some((stage) => stage.objectives.some((objective) =>
+                objective.id === id && objective.kind === 'complete_dungeon')))
+                throw new InventoryError('仅允许准备当前破境任务的秘境目标');
+            }
+            const objectives = task.objectives.map((objective) =>
+              prep.completedDungeonObjectiveIds!.includes(objective.objectiveId)
+                ? { ...objective, completed: true, progressValue: 1, completedAt: now, updatedAt: now }
+                : objective);
+            await updateCultivatorTask(task.id, owner, { objectives }, tx);
+          }
+        }
+        if (input.realm || input.realmStage || input.breakthroughPreparation)
+          await TaskService.syncCultivatorTasks(owner, tx);
         const state = await new ResourceEventCommitter().commit(tx, {
           actor: { userId: before.userId, cultivatorId: owner },
           source: 'dev-cultivator',
@@ -121,6 +178,8 @@ export async function patchDevCultivator(
                 'player.progress',
                 'player.condition',
                 'player.combat-v6-build',
+                'player.tasks',
+                'player.task-summary',
               ] as const
             ).map((resourceTopic) => ({
               resourceTopic,

@@ -106,7 +106,7 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
             (await hasActiveTower(seat.cultivatorId)) ||
             (await hasActiveRanking(seat.cultivatorId)) ||
             (await hasActiveDungeon(seat.cultivatorId)) ||
-            (await hasActiveSectTaskBattle(seat.cultivatorId))
+            ((await hasActiveSectTaskBattle(seat.cultivatorId)) || (await hasActiveBreakthroughBattle(seat.cultivatorId)))
           )
             throw new ArenaV6Error('参战角色尚在秘境探索或结算中');
           const identity = await tx.query.cultivators.findFirst({
@@ -520,3 +520,4 @@ export async function stopArenaV6Coordinator() {
   clearTimeout(timer);
   await task;
 }
+import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';

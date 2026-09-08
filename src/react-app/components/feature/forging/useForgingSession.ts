@@ -22,7 +22,6 @@ export function useForgingSession() {
   const [error, setError] = useState('');
   const [result, setResult] = useState<{
     equipment: DaoEquipmentInstanceV1;
-    previous?: unknown;
   }>();
   const busy = useRef(false);
   const alive = useRef(true);
@@ -44,7 +43,8 @@ export function useForgingSession() {
         if (!controller.signal.aborted) setView(data);
       })
       .catch((e) => {
-        if (!controller.signal.aborted) setError(e.message);
+        if (!controller.signal.aborted)
+          setError((previous) => previous || `读取储物袋失败：${e.message}`);
       });
     return () => controller.abort();
   }, [refresh]);
@@ -75,7 +75,9 @@ export function useForgingSession() {
       : null;
   }
   const problem = !view
-    ? '正在读取储物袋……'
+    ? error
+      ? '请重新核对储物袋后备料'
+      : '正在读取储物袋……'
     : !blueprint
       ? '请先选择道装图纸'
       : (itemProblem(blueprint) ??
@@ -146,12 +148,6 @@ export function useForgingSession() {
         quantity,
       })),
     };
-    const previous = view!.inventory.items.find(
-      (item) =>
-        item.equipped &&
-        item.definitionId === 'equipment.v6' &&
-        (item.instanceData as DaoEquipmentInstanceV1).slot === definition?.slot,
-    )?.instanceData;
     try {
       const ceremony = new Promise<void>((resolve) => {
         const timer = window.setTimeout(
@@ -176,7 +172,7 @@ export function useForgingSession() {
         ),
         ceremony,
       ]);
-      if (alive.current) setResult({ ...response, previous });
+      if (alive.current) setResult(response);
     } catch (e) {
       if (alive.current) {
         setError(
