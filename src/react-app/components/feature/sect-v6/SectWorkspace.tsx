@@ -1,26 +1,12 @@
+import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
-import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
-import type {
-  SectV6Action,
-  SectV6Cost,
-  SectV6View,
-} from '@shared/contracts/combatV6Sect';
-import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '@shared/engine/combat-v6/content';
-import { sectV6Change } from '@shared/engine/combat-v6/sect-progression';
-import {
-  SECT_PANEL_LABELS,
-  sectSkillCatalog,
-} from '@shared/engine/combat-v6/sect-progression/presentation';
+import type { SectV6Action, SectV6View } from '@shared/contracts/combatV6Sect';
+import { sectSkillCatalog } from '@shared/engine/combat-v6/sect-progression/presentation';
 import { useEffect, useRef, useState } from 'react';
 import { combatV6Request, mutationBody } from '../combat-v6/request';
-import {
-  actionProblem,
-  actionReference,
-  type SectWorkspaceProps,
-} from './actions';
-import { CostText } from './CostText';
 import { MeridianEditor } from './MeridianEditor';
+import { MethodsWorkbench } from './MethodsWorkbench';
 
 const endpoint = '/api/combat-v6/sect';
 export type SectWorkspaceMode = 'methods' | 'paths' | 'skills';
@@ -35,7 +21,7 @@ export function SectWorkspace({
   const [refresh, setRefresh] = useState(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const { pushToast } = useInkUI();
   const busy = useRef(false);
   const alive = useRef(true);
   const reader = useRef<AbortController | null>(null);
@@ -63,7 +49,6 @@ export function SectWorkspace({
     busy.current = true;
     setPending(true);
     setError('');
-    setNotice('');
     reader.current?.abort();
     try {
       await consumeResourceMutation(
@@ -72,10 +57,10 @@ export function SectWorkspace({
           headers: { 'Content-Type': 'application/json' },
         }),
       );
+      const latest = await combatV6Request<SectV6View>(endpoint);
       if (alive.current) {
-        setNotice('传承已更新，下一场战斗生效。');
-        setView(undefined);
-        setRefresh((n) => n + 1);
+        setView(latest);
+        pushToast({ message: '传承已更新，下一场战斗生效。', tone: 'success' });
       }
       return true;
     } catch (e) {
@@ -93,7 +78,7 @@ export function SectWorkspace({
   }
   const act = (action: SectV6Action) => request(endpoint, action);
   return (
-    <div className="min-h-[24rem] space-y-4 px-5 py-7 text-sm sm:px-8">
+    <div className="p-3 text-sm md:p-5 [&>p]:mb-4">
       {error ? (
         <p role="alert" className="text-crimson">
           {error}{' '}
@@ -109,7 +94,6 @@ export function SectWorkspace({
           </button>
         </p>
       ) : null}
-      {notice ? <p role="status">{notice}</p> : null}
       {!view ? (
         <p>正在读取传承……</p>
       ) : !view.progress ? (
@@ -141,7 +125,7 @@ export function SectWorkspace({
           ) : null}
           {mode === 'paths' ? (
             <MeridianEditor
-              key={`${view.build.membershipId}:${view.build.revision}`}
+              key={`${view.build.membershipId}:${refresh}`}
               view={view}
               pending={pending}
               act={act}
@@ -155,8 +139,8 @@ export function SectWorkspace({
                 </InkButton>
               </div>
               {mode === 'methods' ? (
-                <Methods
-                  key={`${view.build.membershipId}:${view.build.revision}`}
+                <MethodsWorkbench
+                  key={view.build.membershipId}
                   view={view}
                   pending={pending}
                   act={act}
@@ -172,10 +156,8 @@ export function SectWorkspace({
   );
 }
 
-function Skills({ view, methodId }: { view: SectV6View; methodId?: string }) {
-  const skills = sectSkillCatalog(view.progress!, view.characterLevel).filter(
-    (skill) => !methodId || skill.methodId === methodId,
-  );
+function Skills({ view }: { view: SectV6View }) {
+  const skills = sectSkillCatalog(view.progress!, view.characterLevel);
   return (
     <div className="space-y-3">
       {skills.map((skill) => (
@@ -194,88 +176,5 @@ function Skills({ view, methodId }: { view: SectV6View; methodId?: string }) {
         </section>
       ))}
     </div>
-  );
-}
-
-function Methods({ view, pending, act }: SectWorkspaceProps) {
-  const [selected, setSelected] = useState('');
-  const definition = COMBAT_V6_SECT_DEFINITIONS_V4[view.progress!.sectId];
-  const method = definition.methods.find((m) => m.id === selected);
-  const level = method ? view.progress!.methods[method.id] : 0;
-  const action: SectV6Action = {
-    ...actionReference(view),
-    action: 'train',
-    methodId: selected,
-  };
-  let cost: SectV6Cost | undefined;
-  if (method) {
-    try {
-      cost = sectV6Change(view.progress!, view.characterLevel, action).cost;
-    } catch {
-      /* Validation message below. */
-    }
-  }
-  const problem = method ? actionProblem(view, action) : null;
-  return (
-    <>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {definition.methods.map((m) => (
-          <button
-            className="border-ink/15 hover:bg-ink/5 rounded border p-4 text-left"
-            disabled={pending}
-            key={m.id}
-            onClick={() => setSelected(m.id)}
-          >
-            <span className="block">
-              {m.name}
-              {m.isPrimary ? ' · 主心法' : ''}
-            </span>
-            <span className="text-ink-secondary">
-              {view.progress!.methods[m.id]}级
-            </span>
-          </button>
-        ))}
-      </div>
-      {method ? (
-        <InkDetailDrawer
-          isOpen
-          size="sm"
-          title={method.name}
-          onClose={() => {
-            if (!pending) setSelected('');
-          }}
-        >
-          <div className="space-y-4 text-sm">
-            <p>
-              当前 {level} 级 · 上限 {Math.min(180, view.characterLevel + 10)}{' '}
-              级
-            </p>
-            {method.panel ? (
-              <p>
-                {SECT_PANEL_LABELS[method.panel.attr] ?? method.panel.attr}：
-                {Math.floor(method.panel.value * level)}
-                {level < 180
-                  ? ` → ${Math.floor(method.panel.value * (level + 1))}`
-                  : ''}
-              </p>
-            ) : null}
-            <Skills view={view} methodId={method.id} />
-            {cost ? <CostText cost={cost} /> : null}
-            {problem ? (
-              <p role="alert" className="text-crimson">
-                {problem}
-              </p>
-            ) : null}
-            <InkButton
-              pending={pending}
-              disabled={!!problem}
-              onClick={() => void act(action)}
-            >
-              升一级
-            </InkButton>
-          </div>
-        </InkDetailDrawer>
-      ) : null}
-    </>
   );
 }
