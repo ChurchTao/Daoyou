@@ -3,6 +3,18 @@ import type { BattleState, StatusDef } from '../engine/combat-v6/core';
 import { applyUnitDelta } from './playback';
 import { combatV6Playback, combatV6Units } from './presentation';
 
+/** Incremental HTTP playback after server-driven rounds; recovery still loads the full baseline. */
+export function liveReplayDelta(
+  timeline: CombatV6ReplayTimeline | undefined,
+  after: number,
+) {
+  if (!timeline || after < timeline.fromEventSeq) return undefined;
+  const frames = timeline.frames.filter((frame) => frame.afterEventSeq > after);
+  return frames.length
+    ? { format: 'delta-v1' as const, fromEventSeq: after, frames }
+    : undefined;
+}
+
 export function startReplayTimeline(
   state: BattleState,
   statuses: StatusDef[],

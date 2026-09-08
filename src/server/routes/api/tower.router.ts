@@ -15,6 +15,7 @@ import {
   TowerV6Error,
 } from '@server/lib/tower/combatV6';
 import { getTowerLeaderboard } from '@server/lib/tower/leaderboard';
+import { CombatAutoRequestSchema } from '@shared/combat-v6/auto';
 import {
   CombatV6TrainingCommandRequestSchema,
   CombatV6TrainingEventsQuerySchema,
@@ -28,6 +29,28 @@ import { z } from 'zod';
 
 const router = new Hono<AppEnv>();
 router.use('*', requireActiveCultivatorRef());
+router.post('/battle/sessions/:id/auto', async (c) => {
+  const input = CombatAutoRequestSchema.parse(await c.req.json());
+  const id = z.uuid().parse(c.req.param('id'));
+  try {
+    return c.json({
+      success: true,
+      data: await changeTowerBattle(
+        c.get('activeCultivatorRef')!,
+        id,
+        input.expectedRevision,
+        undefined,
+        input.round,
+      ),
+    });
+  } catch (error) {
+    return c.json(
+      { error: error instanceof Error ? error.message : '自动指令提交失败' },
+      409,
+    );
+  }
+});
+
 router.onError((error, c) => {
   const lock = redisLockErrorResponse(error);
   if (lock) return lock;

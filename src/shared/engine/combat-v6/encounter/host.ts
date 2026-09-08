@@ -338,6 +338,19 @@ export class CombatV6PveHostSession {
     unit: Unit,
     strategy: PveCommandStrategyV1,
   ): Command {
+    if (strategy.type === 'ruleset') {
+      const state = this.battle.snapshot();
+      return this.encounter.battleInput.ruleset.decideCommand({
+        unit,
+        state,
+        enemies: state.units.filter(
+          (u) => u.side !== unit.side && isStanding(u),
+        ),
+        allies: state.units.filter(
+          (u) => u.side === unit.side && u.id !== unit.id && isStanding(u),
+        ),
+      });
+    }
     if (strategy.type === 'defend') return { type: CommandType.Defend };
     const enemies = this.battle.state.units
       .filter(

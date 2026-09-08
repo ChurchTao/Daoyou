@@ -1,6 +1,7 @@
+import { AUTO_DELAY_MS } from '@shared/combat-v6/auto';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
 import type { ArenaSessionView } from '@shared/contracts/combatV6Arena';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { CombatV6Commands, type Choice } from './CombatV6Commands';
 import { CombatV6Details } from './CombatV6Details';
@@ -22,6 +23,7 @@ type Props = {
     commands: import('@shared/contracts/combatV6').CombatV6CommandGroup,
   ) => Promise<void>;
   onResolve: () => Promise<void>;
+  onAuto: () => Promise<void>;
   onClose: () => void;
   back: string;
   backLabel: string;
@@ -44,11 +46,14 @@ export function CombatV6Battle({
   pending,
   onCommand,
   onResolve,
+  onAuto,
   onClose,
   back,
   backLabel,
 }: Props) {
-  const roundId = `${session.sessionId}:${session.round}`;
+  const [autoSession, setAutoSession] = useState<string | null>(null);
+  const autoEnabled = autoSession === session.sessionId && !session.outcome;
+  const roundId = `${session.sessionId}:${session.round}:${autoEnabled}`;
   const [draft, setDraft] = useState<{
     id: string;
     command: CombatV6TrainingCommandV1;
@@ -77,6 +82,31 @@ export function CombatV6Battle({
   const [inspected, setInspected] = useState<string>();
   const requestBusy = useRef(false);
   const disabled = pending || playing;
+  const autoReady =
+    autoEnabled &&
+    !disabled &&
+    !online?.spectator &&
+    (!online || online.stage === 'collecting') &&
+    commandOptions.some((option) => option.canSubmit);
+  useEffect(() => {
+    if (!autoReady) return;
+    const timer = window.setTimeout(() => {
+      if (requestBusy.current) return;
+      requestBusy.current = true;
+      void onAuto()
+        .catch(() => {
+          setAutoSession((current) =>
+            current === session.sessionId ? null : current,
+          );
+        })
+        .finally(() => {
+          requestBusy.current = false;
+        });
+    }, AUTO_DELAY_MS);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [autoReady, session.sessionId, session.round, onAuto]);
   const labels = useMemo(() => unitLabels(shown.units), [shown.units]);
   const byId = useMemo(
     () => new Map(shown.units.map((u) => [u.id, u])),
@@ -196,6 +226,12 @@ export function CombatV6Battle({
           onCancel={cancel}
           submit={submit}
           onResolve={onResolve}
+          autoEnabled={autoEnabled}
+          onAuto={() => {
+            setAutoSession(autoEnabled ? null : session.sessionId);
+            setDraft(undefined);
+            cancel();
+          }}
           onClose={onClose}
           onPrevious={
             firstCommand && commandOptions.length > 1

@@ -1,3 +1,4 @@
+import { automaticCommands } from '@shared/combat-v6/auto';
 import {
   combatV6Display,
   combatV6DisplayEvent,
@@ -6,6 +7,7 @@ import {
   visibleUnitNames,
 } from '@shared/combat-v6/presentation';
 import { createCombatV6Replay } from '@shared/combat-v6/replay';
+import { liveReplayDelta } from '@shared/combat-v6/replay-timeline';
 import type { CombatV6CommandGroup } from '@shared/contracts/combatV6';
 import type {
   TowerReward,
@@ -41,7 +43,10 @@ import {
   withRedisLock,
   type RedisLeaseContext,
 } from '../redis/lock';
-import { archiveCombatV6Replay } from '../repositories/combatV6ReplayRepository';
+import {
+  archiveCombatV6Replay,
+  combatV6ReplayExists,
+} from '../repositories/combatV6ReplayRepository';
 import { lockCultivatorForStateMutation } from '../repositories/playerStateRepository';
 import { assembleCombatV6TrainingPlayer } from '../services/combat-v6/CombatV6BuildService';
 import {
@@ -266,6 +271,12 @@ function battleView(run: Run, after = -1): TowerSessionView {
   const host = new TowerHost(battle.snapshot, battle.snapshot);
   return {
     apiVersion: 1,
+    settlement: host.finished
+      ? battle.settled
+        ? 'settled'
+        : 'pending'
+      : 'not-started',
+    playback: liveReplayDelta(battle.snapshot.timeline, after),
     sessionId: battle.id,
     revision: battle.revision,
     expiresAt: new Date(expires(run) * 1000).toISOString(),
@@ -329,6 +340,7 @@ export async function changeTowerBattle(
   id: string,
   revision: number,
   command?: { unitId: string; commands: CombatV6CommandGroup },
+  autoRound?: number,
 ) {
   return locked(actor.cultivatorId, async (lease) => {
     const owner = actor.cultivatorId;
@@ -340,6 +352,17 @@ export async function changeTowerBattle(
       throw new TowerV6Error('战斗状态已变化，请刷新');
     const host = new TowerHost(battle.snapshot, battle.snapshot);
     if (battle.settled) return battleView(run);
+    if (autoRound !== undefined && !host.finished) {
+      if (host.state.round !== autoRound)
+        throw new TowerV6Error('战斗回合已变化，请刷新');
+      const commands = automaticCommands(
+        host.state,
+        host.playerId,
+        battle.snapshot.input.skills ?? [],
+        (id) => host.controlledCommandOptions().find((o) => o.unitId === id)!,
+      );
+      if (commands.length) host.submitGroup(commands);
+    }
     const after = battle.snapshot.events.length - 1;
     const playback = combatV6Playback(
       after,
@@ -375,6 +398,9 @@ export async function changeTowerBattle(
       await db.transaction(async (tx) => {
         lease.assertHeld();
         await lockCultivatorForStateMutation(tx, owner);
+        // The archive commits with rewards. A failed Redis acknowledgement must
+        // rebuild the run from this terminal snapshot without granting again.
+        if (await combatV6ReplayExists(id, tx)) return;
         if (reward) {
           await grantInventory(owner, reward.items, tx);
           await new ResourceEventCommitter().commit(tx, {
@@ -401,7 +427,13 @@ export async function changeTowerBattle(
           createCombatV6Replay({
             battleId: id,
             participants: [
-              { ...actor, unitId: host.playerId, side: 0, slot: 0 },
+              {
+                userId: actor.userId,
+                cultivatorId: actor.cultivatorId,
+                unitId: host.playerId,
+                side: 0,
+                slot: 0,
+              },
             ],
             metadata: {
               schemaVersion: 1,

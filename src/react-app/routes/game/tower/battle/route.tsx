@@ -42,6 +42,14 @@ export default function TowerBattleRoute() {
           <InkButton onClick={() => void combat.refresh(true)}>重试</InkButton>
         </p>
       ) : null}
+      {combat.session?.settlement === 'pending' ? (
+        <InkButton
+          pending={combat.pending}
+          onClick={() => void combat.resolve()}
+        >
+          重试结算
+        </InkButton>
+      ) : null}
       {combat.session ? (
         <CombatV6Battle
           allowAbandon={false}
@@ -53,6 +61,7 @@ export default function TowerBattleRoute() {
           pending={combat.pending}
           onCommand={combat.submit}
           onResolve={combat.resolve}
+          onAuto={combat.submitAuto}
           onClose={finish}
           back="/game/tower"
           backLabel="返回幻境"

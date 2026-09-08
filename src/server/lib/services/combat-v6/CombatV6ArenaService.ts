@@ -18,6 +18,7 @@ import {
   resolveArena,
   validateArenaCommand,
 } from '@shared/combat-v6/arena';
+import { automaticCommands } from '@shared/combat-v6/auto';
 import { validateCommandGroup } from '@shared/combat-v6/controlled-commands';
 import {
   combatV6ReplayView,
@@ -245,9 +246,18 @@ export async function submitArenaV6(
       throw new ArenaV6Error('本回合已锁定，请同步最新战况');
     if (runtime.commands[participant.unitId])
       throw new ArenaV6Error('本回合指令已提交');
+    const commands =
+      input.commands === 'AUTO'
+        ? automaticCommands(
+            runtime.state,
+            participant.unitId,
+            runtime.skills,
+            (unitId) => arenaBattle(runtime).queryCommands(unitId),
+          )
+        : input.commands;
     try {
-      validateCommandGroup(runtime.state, participant.unitId, input.commands);
-      for (const entry of input.commands)
+      validateCommandGroup(runtime.state, participant.unitId, commands);
+      for (const entry of commands)
         validateArenaCommand(runtime, entry.unitId, entry.command);
     } catch (error) {
       throw new ArenaV6Error(
@@ -256,7 +266,7 @@ export async function submitArenaV6(
       );
     }
     const next = structuredClone(runtime);
-    for (const entry of input.commands)
+    for (const entry of commands)
       next.commands[entry.unitId] = {
         requestId: input.requestId,
         command: entry.command,

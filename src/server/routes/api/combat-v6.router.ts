@@ -41,6 +41,7 @@ import {
   WildError,
   wildSessions,
 } from '@server/lib/services/combat-v6/CombatV6WildSessionService';
+import { CombatAutoRequestSchema } from '@shared/combat-v6/auto';
 import { combatV6ReplayView } from '@shared/combat-v6/replay';
 import {
   COMBAT_V6_REPLAY_ERROR_CODE,
@@ -74,6 +75,47 @@ const router = new Hono<AppEnv>();
 const combatV6RuntimeStore = new CombatV6RuntimeStore();
 const arenaReplayStore = new CombatV6ArenaStore();
 router.use('*', requireActiveCultivatorRef());
+router.post('/wild/sessions/:id/auto', async (c) => {
+  const input = CombatAutoRequestSchema.parse(await c.req.json());
+  const id = z.uuid().parse(c.req.param('id'));
+  try {
+    return c.json({
+      success: true,
+      data: await wildSessions.resolve(
+        c.get('activeCultivatorRef')!,
+        id,
+        input.expectedRevision,
+        input.round,
+      ),
+    });
+  } catch (error) {
+    return c.json(
+      { error: error instanceof Error ? error.message : '自动指令提交失败' },
+      409,
+    );
+  }
+});
+
+router.post('/training/sessions/:id/auto', async (c) => {
+  const input = CombatAutoRequestSchema.parse(await c.req.json());
+  const id = z.uuid().parse(c.req.param('id'));
+  try {
+    return c.json({
+      success: true,
+      data: await combatV6TrainingSessionStore.resolve(
+        c.get('activeCultivatorRef')!,
+        id,
+        input.expectedRevision,
+        input.round,
+      ),
+    });
+  } catch (error) {
+    return c.json(
+      { error: error instanceof Error ? error.message : '自动指令提交失败' },
+      409,
+    );
+  }
+});
 
 function actor(c: Context<AppEnv>) {
   const ref = c.get('activeCultivatorRef');

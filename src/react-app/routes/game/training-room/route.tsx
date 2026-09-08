@@ -261,6 +261,7 @@ export default function TrainingRoomPage() {
           playing={combat.playing}
           onCommand={submit}
           onResolve={resolve}
+          onAuto={combat.submitAuto}
           onClose={() => {
             if (!session.outcome && !window.confirm('确认放弃本次训练？'))
               return;

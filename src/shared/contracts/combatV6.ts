@@ -237,6 +237,7 @@ type DisplayEvent<E> = E extends BattleEvent
 export type CombatV6DisplayEvent = DisplayEvent<BattleEvent>;
 
 export interface CombatV6TrainingSessionViewV1 {
+  settlement?: 'pending' | 'settled' | 'not-started';
   apiVersion: typeof COMBAT_V6_TRAINING_API_VERSION;
   sessionId: string;
   revision: number;

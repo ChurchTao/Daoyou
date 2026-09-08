@@ -7,6 +7,7 @@ import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
 import { findActiveCombatV6Membership } from '@server/lib/repositories/combatV6BuildRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
 import { hasActiveTower } from '@server/lib/tower/occupancy';
+import { automaticCommands } from '@shared/combat-v6/auto';
 import {
   combatV6Display,
   combatV6DisplayEvent,
@@ -15,6 +16,7 @@ import {
   visibleUnitNames,
 } from '@shared/combat-v6/presentation';
 import { createCombatV6Replay } from '@shared/combat-v6/replay';
+import { liveReplayDelta } from '@shared/combat-v6/replay-timeline';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
 import type {
   CombatV6ReplayV1,
@@ -433,13 +435,19 @@ export class CombatV6WildSessionService {
       host.submitGroup(commands);
     });
   }
-  async resolve(actor: Actor, id: string, expected: number) {
+  async resolve(
+    actor: Actor,
+    id: string,
+    expected: number,
+    autoRound?: number,
+  ) {
     return this.change(
       actor,
       id,
       expected,
       (host, capture) => host.resolveRound(capture),
       true,
+      autoRound,
     );
   }
   private async change(
@@ -451,6 +459,7 @@ export class CombatV6WildSessionService {
       capture: ReturnType<typeof combatV6Playback>['capture'],
     ) => unknown,
     resolving = false,
+    autoRound?: number,
   ) {
     const r = await this.require(actor, id);
     if (r.revision !== expected) checked('CONFLICT');
@@ -461,6 +470,17 @@ export class CombatV6WildSessionService {
       r.host.input.statusDefs ?? [],
       host.state,
     );
+    if (autoRound !== undefined) {
+      if (host.state.round !== autoRound)
+        throw new Error('战斗回合已变化，请刷新');
+      const commands = automaticCommands(
+        host.state,
+        host.playerId,
+        r.host.input.skills ?? [],
+        (id) => host.controlledCommandOptions().find((o) => o.unitId === id)!,
+      );
+      if (commands.length) host.submitGroup(commands);
+    }
     action(host, presentation.capture);
     const s = await store.summary(id);
     if (!s) throw new WildError('WILD_SETTLEMENT_MISSING', '结算事实缺失');
@@ -538,6 +558,7 @@ export class CombatV6WildSessionService {
     return structuredClone({
       apiVersion: 1,
       sessionId: r.battleId,
+      playback: liveReplayDelta(r.host.timeline, after),
       revision: r.revision,
       expiresAt: r.expiresAt,
       nodeId: r.metadata.payload.nodeId,

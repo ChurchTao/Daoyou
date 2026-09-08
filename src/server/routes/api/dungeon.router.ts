@@ -26,6 +26,7 @@ import {
   QiInsufficientError,
   QiServiceError,
 } from '@server/lib/services/QiService';
+import { CombatAutoRequestSchema } from '@shared/combat-v6/auto';
 import {
   CombatV6TrainingCommandRequestSchema,
   CombatV6TrainingEventsQuerySchema,
@@ -59,6 +60,31 @@ const historyRouter = new Hono<AppEnv>();
 const limitRouter = new Hono<AppEnv>();
 const lootingRouter = new Hono<AppEnv>();
 const battleRouter = new Hono<AppEnv>();
+battleRouter.post(
+  '/sessions/:id/auto',
+  requireActiveCultivatorRef(),
+  async (c) => {
+    const input = CombatAutoRequestSchema.parse(await c.req.json());
+    const id = z.uuid().parse(c.req.param('id'));
+    try {
+      return c.json({
+        success: true,
+        data: await changeDungeonBattle(
+          c.get('activeCultivatorRef')!,
+          id,
+          input.expectedRevision,
+          undefined,
+          input.round,
+        ),
+      });
+    } catch (error) {
+      return c.json(
+        { error: error instanceof Error ? error.message : '自动指令提交失败' },
+        409,
+      );
+    }
+  },
+);
 
 battleRouter.get(
   '/sessions/current',

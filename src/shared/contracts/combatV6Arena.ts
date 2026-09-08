@@ -8,10 +8,7 @@ import type {
 } from '@shared/engine/combat-v6/core';
 import { z } from 'zod';
 import type { CombatV6TrainingSessionViewV1 } from './combatV6';
-import {
-  CombatV6CommandGroupSchema,
-  type CombatV6CommandGroup,
-} from './combatV6';
+import { CombatV6CommandGroupSchema } from './combatV6';
 import type { CombatV6ReplayTimeline } from './combatV6Replay';
 
 export const ARENA_V6_PROTOCOL = 'combat_v6_arena_v1' as const;
@@ -20,7 +17,7 @@ export const ArenaV6SubmitSchema = z
   .object({
     round: z.number().int().positive(),
     requestId: z.uuid(),
-    commands: CombatV6CommandGroupSchema,
+    commands: z.union([CombatV6CommandGroupSchema, z.literal('AUTO')]),
   })
   .strict();
 export type ArenaV6Submit = z.infer<typeof ArenaV6SubmitSchema>;
@@ -56,11 +53,15 @@ export type ArenaRuntime = {
   playbackEndsAt: number;
   commands: Record<
     string,
-    { requestId: string; command: Command; automatic?: boolean }
+    {
+      requestId: string;
+      command: Command;
+      automatic?: boolean;
+    }
   >;
   receipts: Record<
     string,
-    { round: number; unitId: string; commands: CombatV6CommandGroup }
+    { round: number; unitId: string; commands: ArenaV6Submit['commands'] }
   >;
   terminalReason?: 'battle-ended' | 'expired' | 'technical-abort';
   lastResults: Record<string, ArenaSessionView>;

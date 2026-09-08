@@ -34,6 +34,8 @@ export function CombatV6Commands({
   onCancel,
   submit,
   onResolve,
+  onAuto,
+  autoEnabled,
   onClose,
   onPrevious,
 }: {
@@ -49,6 +51,8 @@ export function CombatV6Commands({
   onCancel: () => void;
   submit: (command: CombatV6TrainingCommandV1) => Promise<void>;
   onResolve: () => Promise<void>;
+  onAuto: () => void;
+  autoEnabled: boolean;
   onClose: () => void;
   onPrevious?: () => void;
 }) {
@@ -91,6 +95,17 @@ export function CombatV6Commands({
         <>
           <div className="cv6-command-heading">
             <strong>{playing ? '战斗进行中' : unitName}</strong>
+            <button
+              disabled={!!session.outcome || (pending && !autoEnabled)}
+              aria-pressed={autoEnabled}
+              onClick={() => {
+                onCancel();
+                onAuto();
+              }}
+            >
+              {autoEnabled ? '取消自动' : '自动'}
+            </button>
+            {autoEnabled && <span role="status">自动战斗中</span>}
             {onPrevious && !playing ? (
               <button disabled={disabled} onClick={onPrevious}>
                 返回人物指令

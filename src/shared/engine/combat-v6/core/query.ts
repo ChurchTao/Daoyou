@@ -5,7 +5,7 @@ import type { BattleContext } from './context.ts';
 import { BattlePhase, TargetMode, oppositeSide } from './enums.ts';
 import { checkSkillRequirements } from './requirements.ts';
 import { skillOf } from './skills.ts';
-import { poolFor, targetCount } from './targeting.ts';
+import { isUntargetableBy, poolFor, targetCount } from './targeting.ts';
 import type {
   BattleState,
   CombatV6CommandOptions,
@@ -112,7 +112,9 @@ export function commandOptions(
     unitId,
     canSubmit,
     reasons,
-    attackTargetIds: enemies.map((target) => target.id),
+    attackTargetIds: enemies
+      .filter((target) => !isUntargetableBy(ctx, unit, target, false))
+      .map((target) => target.id),
     protectTargetIds: allies.map((target) => target.id),
     canDefend: canSubmit,
     canFlee: canSubmit && enemies.length > 0,

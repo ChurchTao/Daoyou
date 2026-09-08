@@ -20,6 +20,7 @@ import {
   resolveArena,
   validateArenaCommand,
 } from './arena';
+import { automaticCommands } from './auto';
 import { applyUnitDelta, contiguousEvents } from './playback';
 import { combatV6ReplayView, createCombatV6Replay } from './replay';
 
@@ -78,6 +79,68 @@ function fixture(count = 8): ArenaRuntime {
 }
 
 describe('arena public host', () => {
+  it('AUTO 只为本人和在场灵兽生成普通合法指令', () => {
+    const runtime = fixture(4);
+    runtime.units.push({
+      id: 'pet',
+      name: '灵兽',
+      kind: 'pet',
+      ownerId: 'u0',
+      side: 0,
+      slot: 4,
+      attrs: { hp: 100, speed: 1 },
+    });
+    runtime.state = arenaBattle({ ...runtime, state: undefined }).snapshot();
+    const before = structuredClone(runtime);
+    const battle = arenaBattle(runtime);
+    const commands = automaticCommands(
+      runtime.state,
+      'u0',
+      runtime.skills,
+      (id) => battle.queryCommands(id),
+    );
+    expect(commands.map((c) => c.unitId)).toEqual(['u0', 'pet']);
+    for (const entry of commands)
+      expect(() =>
+        validateArenaCommand(runtime, entry.unitId, entry.command),
+      ).not.toThrow();
+    expect(runtime).toEqual(before);
+  });
+
+  it('AUTO 请求协议可解析，回放只记录展开后的实际指令', () => {
+    const input = ArenaV6SubmitSchema.parse({
+      round: 1,
+      requestId: '10000000-0000-4000-8000-000000000001',
+      commands: 'AUTO',
+    });
+    const runtime = fixture(2);
+    const battle = arenaBattle(runtime);
+    for (const p of runtime.participants) {
+      const commands = automaticCommands(
+        runtime.state,
+        p.unitId,
+        runtime.skills,
+        (id) => battle.queryCommands(id),
+      );
+      for (const entry of commands)
+        runtime.commands[entry.unitId] = {
+          requestId: input.requestId,
+          command: entry.command,
+        };
+    }
+    runtime.stage = 'resolving';
+    const result = resolveArena(runtime, 4000);
+    expect(result.rounds[0].commands).toHaveLength(2);
+    expect(
+      result.rounds[0].commands.every(
+        (entry) => entry.command.type === 'attack',
+      ),
+    ).toBe(true);
+    expect(
+      arenaView(result, ARENA_PUBLIC_VIEW, 4000).commandOptions,
+    ).toBeUndefined();
+  });
+
   it('4v4每人六只携带只展示一宠，16个行动且观众不获得替补或控制信息', () => {
     const runtime = fixture();
     const players = [...runtime.units];

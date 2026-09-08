@@ -64,6 +64,7 @@ export function DungeonBattle({
           pending={combat.pending}
           onCommand={combat.submit}
           onResolve={combat.resolve}
+          onAuto={combat.submitAuto}
           onClose={finish}
           back="/game/dungeon"
           backLabel="返回秘境"

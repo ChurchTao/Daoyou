@@ -169,6 +169,7 @@ export function useArenaV6Session(battleId: string, spectator = false) {
         setRetry(undefined);
         // HTTP acknowledgement is authoritative even if the corresponding push was lost.
         readRef.current(false);
+        return true;
       } catch (cause) {
         if (token !== lifecycle.current.version) return;
         if (
@@ -201,6 +202,17 @@ export function useArenaV6Session(battleId: string, spectator = false) {
     },
     [connected, retry, send, spectator],
   );
+  const submitAuto = useCallback(async () => {
+    const session = latest.current;
+    if (spectator || !session || !connected || retry)
+      throw new Error('当前无法自动下令');
+    const accepted = await send({
+      round: session.round,
+      requestId: crypto.randomUUID(),
+      commands: 'AUTO',
+    });
+    if (!accepted) throw new Error('自动指令未完成');
+  }, [connected, retry, send, spectator]);
   return {
     state,
     connected,
@@ -212,6 +224,7 @@ export function useArenaV6Session(battleId: string, spectator = false) {
       if (retry) void send(retry);
     },
     submit,
+    submitAuto,
     refresh,
   };
 }

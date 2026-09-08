@@ -17,6 +17,7 @@ import type { ProjectCultivatorMultiSectToCombatV6Input } from '../projection/in
 export type CombatV6TrainingTierV1 = 60 | 120 | 180;
 
 export type PveCommandStrategyV1 =
+  | { type: 'ruleset' }
   | { type: 'defend' }
   | { type: 'attack' }
   | { type: 'skill-rotation'; skillIds: string[] };

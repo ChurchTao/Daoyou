@@ -246,6 +246,7 @@ function WildRegion({ nodeId }: { nodeId: string }) {
           playing={combat.playing}
           onCommand={submit}
           onResolve={resolve}
+          onAuto={combat.submitAuto}
           onClose={abandon}
           back="/game/map"
           backLabel="返回地图"

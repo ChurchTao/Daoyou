@@ -12,6 +12,7 @@ import { assembleCombatV6TrainingPlayer } from '@server/lib/services/combat-v6/C
 import { ConditionService } from '@server/lib/services/ConditionService';
 import { getCultivatorPreHeavenFates } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import { ResourceEventCommitter } from '@server/lib/services/ResourceEventCommitter';
+import { automaticCommands } from '@shared/combat-v6/auto';
 import {
   combatV6Display,
   combatV6DisplayEvent,
@@ -20,6 +21,7 @@ import {
   visibleUnitNames,
 } from '@shared/combat-v6/presentation';
 import { createCombatV6Replay } from '@shared/combat-v6/replay';
+import { liveReplayDelta } from '@shared/combat-v6/replay-timeline';
 import type { CombatV6CommandGroup } from '@shared/contracts/combatV6';
 import type { DungeonSessionView } from '@shared/contracts/combatV6Dungeon';
 import { beastDeathIds, BeastSchema } from '@shared/engine/combat-v6/beasts';
@@ -167,6 +169,7 @@ function view(payload: DungeonBattlePayload, after = -1): DungeonSessionView {
   const snapshot = payload.snapshot;
   return {
     apiVersion: 1,
+    playback: liveReplayDelta(payload.snapshot.timeline, after),
     sessionId: payload.session.battleId,
     revision: payload.revision,
     expiresAt: new Date(Date.parse(payload.startedAt) + 86400000).toISOString(),
@@ -203,6 +206,7 @@ export async function changeDungeonBattle(
   id: string,
   revision: number,
   command?: { unitId: string; commands: CombatV6CommandGroup },
+  autoRound?: number,
 ) {
   return withRedisLock(
     {
@@ -221,6 +225,18 @@ export async function changeDungeonBattle(
           throw new Error('战斗状态已变化，请刷新');
         const host = new DungeonHost(payload.snapshot, payload.snapshot);
         if (host.finished) return view(payload);
+        if (autoRound !== undefined) {
+          if (host.state.round !== autoRound)
+            throw new Error('战斗回合已变化，请刷新');
+          const commands = automaticCommands(
+            host.state,
+            host.playerId,
+            payload.snapshot.input.skills ?? [],
+            (id) =>
+              host.controlledCommandOptions().find((o) => o.unitId === id)!,
+          );
+          if (commands.length) host.submitGroup(commands);
+        }
         const after = payload.snapshot.events.length - 1;
         const playback = combatV6Playback(
           after,
@@ -289,7 +305,13 @@ export async function changeDungeonBattle(
             createCombatV6Replay({
               battleId: id,
               participants: [
-                { ...actor, unitId: host.playerId, side: 0, slot: 0 },
+                {
+                  userId: actor.userId,
+                  cultivatorId: actor.cultivatorId,
+                  unitId: host.playerId,
+                  side: 0,
+                  slot: 0,
+                },
               ],
               metadata: {
                 schemaVersion: 1,

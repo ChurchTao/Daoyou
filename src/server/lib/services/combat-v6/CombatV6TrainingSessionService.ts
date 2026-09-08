@@ -5,6 +5,7 @@ import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
 import { findActiveCombatV6Membership } from '@server/lib/repositories/combatV6BuildRepository';
 import { hasActiveTower } from '@server/lib/tower/occupancy';
+import { automaticCommands } from '@shared/combat-v6/auto';
 import {
   combatV6Display,
   combatV6DisplayEvent,
@@ -13,6 +14,7 @@ import {
   visibleUnitNames,
 } from '@shared/combat-v6/presentation';
 import { createCombatV6Replay } from '@shared/combat-v6/replay';
+import { liveReplayDelta } from '@shared/combat-v6/replay-timeline';
 import {
   COMBAT_V6_TRAINING_ERROR_CODE,
   type CombatV6TrainingCommandV1,
@@ -215,11 +217,27 @@ export class CombatV6TrainingSessionService {
     return this.view(next, runtime.latestEventSeq);
   }
 
-  async resolve(actor: Actor, battleId: string, expectedRevision: number) {
+  async resolve(
+    actor: Actor,
+    battleId: string,
+    expectedRevision: number,
+    autoRound?: number,
+  ) {
     const runtime = await this.require(actor, battleId);
     this.assertRevision(runtime, expectedRevision);
     const host = this.restore(runtime);
     if (host.finished) return this.view(runtime, runtime.latestEventSeq);
+    if (autoRound !== undefined) {
+      if (host.state.round !== autoRound)
+        throw new Error('战斗回合已变化，请刷新');
+      const commands = automaticCommands(
+        host.state,
+        host.playerId,
+        host.trace().skills,
+        (id) => host.controlledCommandOptions().find((o) => o.unitId === id)!,
+      );
+      if (commands.length) host.submitGroup(commands);
+    }
     const presentation = combatV6Playback(
       runtime.latestEventSeq,
       host.trace().statusDefs,
@@ -459,6 +477,7 @@ export class CombatV6TrainingSessionService {
     return structuredClone({
       apiVersion: 1,
       sessionId: runtime.battleId,
+      playback: liveReplayDelta(runtime.host.timeline, afterEventSeq),
       revision: runtime.revision,
       expiresAt: runtime.expiresAt,
       encounterId: runtime.metadata.payload.encounterId,

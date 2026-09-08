@@ -101,6 +101,7 @@ function ArenaBattle({
             }
             onCommand={controller.submit}
             onResolve={noResolve}
+            onAuto={controller.submitAuto}
             onClose={() => void leave()}
             back="/game/arena"
             backLabel="返回擂台"

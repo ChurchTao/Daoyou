@@ -42,10 +42,8 @@ bun run db:migrate
 ## Skills To Use
 
 - `daoyou-dev-runtime`: local startup, build, Docker, env, health check, cron, deployment scripts.
-- `daoyou-test-quality`: tests, lint, typecheck, validation selection, Vitest/ESLint/TS config.
 - `daoyou-backend-api-security`: Hono routes, auth, admin, cron/internal APIs, LLM/provider security, Redis/SMTP integration boundaries.
 - `daoyou-data-layer`: Drizzle schema/migrations, repositories, transactions, Better Auth schema, durable models.
-- `daoyou-frontend-routing-state`: React routes, route handles, scene metadata, admin nav, frontend cache/refresh hooks.
 - `daoyou-game-ui`: `GameViewportLayout` main-flow scene UI structure and review rules.
 - `daoyou-game-core-domain`: battle-v5, creation-v2, attributes, tags, affixes, product projections.
 - `daoyou-condition-alchemy-market`: condition, pills, alchemy, market, recycle, manual draw.

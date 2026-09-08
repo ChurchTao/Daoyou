@@ -115,8 +115,9 @@ export function useCombatV6Session<T extends CombatV6Session>(
         await action();
       } catch (cause) {
         if (mounted.current) {
-          setError(cause instanceof Error ? cause.message : '操作失败');
           await refresh(true);
+          if (mounted.current)
+            setError(cause instanceof Error ? cause.message : '操作失败');
         }
       } finally {
         busy.current = false;
@@ -159,6 +160,25 @@ export function useCombatV6Session<T extends CombatV6Session>(
       }),
     [base, run, acceptSession],
   );
+  const submitAuto = useCallback(async () => {
+    let accepted = false;
+    await run(async () => {
+      const session = current.current.session;
+      if (!session || session.outcome) return;
+      acceptSession(
+        await combatV6Request<T>(
+          `${base}/sessions/${session.sessionId}/auto`,
+          mutationBody({
+            type: 'AUTO',
+            round: session.round,
+            expectedRevision: session.revision,
+          }),
+        ),
+      );
+      accepted = true;
+    });
+    if (!accepted) throw new Error('自动指令未完成');
+  }, [base, run, acceptSession]);
   return {
     ...state,
     playing: !!state.queue.length || state.recoveryNeeded,
@@ -171,5 +191,6 @@ export function useCombatV6Session<T extends CombatV6Session>(
     run,
     submit,
     resolve,
+    submitAuto,
   };
 }
