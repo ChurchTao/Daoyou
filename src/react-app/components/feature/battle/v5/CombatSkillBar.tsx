@@ -51,7 +51,7 @@ function SkillStateItem({
       >
         {stateLabel}
       </span>
-      <span className="text-battle-muted num-stat shrink-0 text-[10px] leading-none">
+      <span className="text-battle-muted shrink-0 font-mono text-[10px] leading-none">
         {costLabel}
       </span>
     </div>

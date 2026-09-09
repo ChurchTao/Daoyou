@@ -33,6 +33,10 @@ export default function CultivatorAttributesPage() {
     return <GameSceneLoading message="正在读取根基属性……" />;
   }
 
+  if (projection.error) {
+    return <InkNotice>{projection.error}</InkNotice>;
+  }
+
   if (!cultivator) {
     return (
       <div className="flex h-full items-center justify-center px-4">

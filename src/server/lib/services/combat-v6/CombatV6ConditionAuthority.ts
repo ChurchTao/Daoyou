@@ -2,10 +2,12 @@ import type { DbExecutor } from '@server/lib/drizzle/db';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import {
   findActiveCombatV6Membership,
-  findCombatV6Profile,
+  characterIdentityRow,
+  loadActiveCombatV6Build,
 } from '@server/lib/repositories/combatV6BuildRepository';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
-import { assembleCombatV6TrainingPlayer } from './CombatV6BuildService';
+import { projectCharacterDisplay, type CharacterDisplayBuild } from '@shared/lib/cultivatorDisplay';
+import type { CultivatorCondition } from '@shared/types/condition';
+import type { RealmStage, RealmType } from '@shared/types/constants';
 import { CombatV6WildStore } from './CombatV6WildStore';
 import { activeSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { activeBreakthroughBattle } from './CombatV6BreakthroughOccupancy';
@@ -17,38 +19,38 @@ export async function readCombatV6ConditionAuthority(
   id: string,
   q: DbExecutor,
 ) {
+  const membership = await findActiveCombatV6Membership(id, q);
+  const build: CharacterDisplayBuild | null = membership ? await loadActiveCombatV6Build(id, q) : null;
+  if (membership && !build) throw new Error('V6 构筑尚未就绪，请完成宗门构筑初始化');
+  const row = await characterIdentityRow(id, q);
+  if (!row) throw new Error('角色不存在');
+  const attrs = projectCharacterDisplay({
+    id: row.id, name: row.name, realm: row.realm as RealmType, realm_stage: row.realm_stage as RealmStage,
+    attributes: { vitality: row.vitality, strength: row.strength, spirit: row.spirit, endurance: row.endurance, speed: row.speed, willpower: row.willpower },
+    condition: (row.condition as CultivatorCondition | null) ?? undefined,
+  }, build);
   const store = new CombatV6WildStore();
   const lock = await store.lock(id);
   if (lock) {
     const summary = await store.summary(lock);
     if (!summary) throw new Error('WILD_SETTLEMENT_MISSING');
     return {
+      attrs,
+      build,
       maxHp: summary.entry.maxHp,
       maxMp: summary.entry.maxMp,
       recoveryPaused: true,
     };
   }
-  const membership = await findActiveCombatV6Membership(id, q);
-  if (
-    !membership ||
-    (await findCombatV6Profile(membership.membershipId, q))?.status !== 'active'
-  )
-    return undefined;
-  const { player } = await assembleCombatV6TrainingPlayer(id, q);
-  const projected = projectCultivatorMultiSectV5ToCombatV6({
-    ...player,
-    side: 0,
-    slot: 0,
-    resourcePolicy: 'full',
-  });
-  if (!projected.ok) throw new Error('COMBAT_V6_BUILD_INVALID');
   const taskBattle = await activeSectTaskBattle(id, q);
   const taskTarget = taskBattle ? SectV6TargetSchema.parse(
     SectTaskRecordPayloadSchema.parse(taskBattle.payload).executorData.battleTarget,
   ) : undefined;
   return {
-    maxHp: projected.unit.attrs.maxHp!,
-    maxMp: projected.unit.attrs.maxMp!,
+    attrs,
+    build,
+    maxHp: attrs.maxHp,
+    maxMp: attrs.maxMp,
     recoveryPaused: (await hasActiveDungeon(id)) || taskTarget?.resourcePolicy === 'persistent' ||
       !!(await activeBreakthroughBattle(id, q)),
   };

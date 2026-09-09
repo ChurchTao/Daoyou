@@ -1,6 +1,5 @@
 import { InkButton } from '@app/components/ui';
-import { AttributeType } from '@shared/engine/battle-v5/core/types';
-import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
+import { CHARACTER_ATTRIBUTE_LABELS } from '@shared/lib/cultivatorDisplay';
 import { cn } from '@shared/lib/cn';
 import type { Attributes } from '@shared/types/cultivator';
 import {
@@ -11,31 +10,7 @@ import {
   sumAttributeDraft,
 } from './attributeAllocationControlLogic';
 
-type PrimaryAttributeType =
-  | AttributeType.STRENGTH
-  | AttributeType.SPIRIT
-  | AttributeType.VITALITY
-  | AttributeType.SPEED
-  | AttributeType.WILLPOWER
-  | AttributeType.ENDURANCE;
-
-const ATTRIBUTE_ORDER: PrimaryAttributeType[] = [
-  AttributeType.VITALITY,
-  AttributeType.STRENGTH,
-  AttributeType.SPIRIT,
-  AttributeType.ENDURANCE,
-  AttributeType.SPEED,
-  AttributeType.WILLPOWER,
-];
-
-const ATTRIBUTE_KEY_BY_TYPE: Record<PrimaryAttributeType, keyof Attributes> = {
-  [AttributeType.SPIRIT]: 'spirit',
-  [AttributeType.VITALITY]: 'vitality',
-  [AttributeType.STRENGTH]: 'strength',
-  [AttributeType.SPEED]: 'speed',
-  [AttributeType.WILLPOWER]: 'willpower',
-  [AttributeType.ENDURANCE]: 'endurance',
-};
+const ATTRIBUTE_ORDER = Object.keys(CHARACTER_ATTRIBUTE_LABELS) as (keyof Attributes)[];
 
 export function AttributeAllocationControl({
   currentAttributes,
@@ -77,12 +52,12 @@ export function AttributeAllocationControl({
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {ATTRIBUTE_ORDER.map((attrType) => {
-          const key = ATTRIBUTE_KEY_BY_TYPE[attrType];
+          const key = attrType;
           const draftValue = draft[key];
           return (
             <div key={key} className="text-sm">
               <div className="text-ink-secondary mb-1 flex items-center justify-between gap-2">
-                <span>{attrLabel(attrType)}</span>
+                <span>{CHARACTER_ATTRIBUTE_LABELS[attrType]}</span>
                 <span className="text-xs">
                   {currentAttributes[key]} → {currentAttributes[key] + draftValue}
                 </span>
@@ -90,7 +65,7 @@ export function AttributeAllocationControl({
               <div className="grid grid-cols-[2rem_1fr_2rem]">
                 <button
                   type="button"
-                  aria-label={`减少${attrLabel(attrType)}分配`}
+                  aria-label={`减少${CHARACTER_ATTRIBUTE_LABELS[attrType]}分配`}
                   disabled={draftValue <= 0 || loading}
                   onClick={() =>
                     onChange(adjustAttributeDraftValue(draft, key, -1))
@@ -119,7 +94,7 @@ export function AttributeAllocationControl({
                 />
                 <button
                   type="button"
-                  aria-label={`增加${attrLabel(attrType)}分配`}
+                  aria-label={`增加${CHARACTER_ATTRIBUTE_LABELS[attrType]}分配`}
                   disabled={pending >= unallocatedPoints || loading}
                   onClick={() =>
                     onChange(adjustAttributeDraftValue(draft, key, 1))

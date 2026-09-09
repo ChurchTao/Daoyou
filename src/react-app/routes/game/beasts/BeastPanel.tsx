@@ -40,7 +40,7 @@ function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="border-ink/8 flex items-center justify-between gap-3 border-b py-1.5">
       <dt className="text-ink-secondary text-xs">{label}</dt>
-      <dd className="num-stat text-sm">{value.toLocaleString()}</dd>
+      <dd className="font-mono text-sm">{value.toLocaleString()}</dd>
     </div>
   );
 }
@@ -204,7 +204,7 @@ export function BeastPanel({
           {Object.entries(BEAST_ATTRIBUTE_NAMES).map(([key, label]) => (
             <div key={key}>
               <dt className="text-ink-secondary text-xs">{label}</dt>
-              <dd className="num-stat mt-1 text-sm">
+              <dd className="mt-1 font-mono text-sm">
                 {10 +
                   beast.level +
                   beast.allocatedAttributes[

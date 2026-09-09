@@ -112,7 +112,7 @@ export function BeastActionDrawer({
             ).map(([key, name]) => (
               <div key={key}>
                 <dt>{name}</dt>
-                <dd className="num-stat">
+                <dd className="font-mono">
                   {before[key]} → {after[key]}
                 </dd>
               </div>

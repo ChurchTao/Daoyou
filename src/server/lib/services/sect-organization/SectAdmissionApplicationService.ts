@@ -88,6 +88,11 @@ export class SectAdmissionApplicationService {
       result: { sect },
       resourceChanges: [
         {
+          resourceTopic: 'player.combat-v6-build',
+          eventType: 'sect.joined',
+          operation: 'invalidate',
+        },
+        {
           resourceTopic: 'player.session',
           eventType: 'sect.joined',
           operation: 'merge',

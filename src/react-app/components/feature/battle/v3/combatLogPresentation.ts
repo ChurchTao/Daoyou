@@ -30,7 +30,6 @@ export function getCombatLogPartClassNameV3(
   const classes: string[] = [];
 
   if (part.kind === 'unit') classes.push('font-medium');
-  if (part.kind === 'number') classes.push('num-body');
   if (part.kind === 'ability' || part.kind === 'status') {
     classes.push('font-medium');
   }

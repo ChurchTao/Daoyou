@@ -42,19 +42,19 @@ export function CombatV6Details({
         <div className="cv6-detail-body">
           <dl>
             <dt>气血</dt>
-            <dd className="num-stat">
+            <dd className="font-mono">
               {detailUnit.publicBars
                 ? `${detailUnit.hp / 100}%`
                 : `${detailUnit.hp} / ${detailUnit.maxHp}`}
             </dd>
             <dt>法力</dt>
-            <dd className="num-stat">
+            <dd className="font-mono">
               {detailUnit.publicBars
                 ? `${detailUnit.mp / 100}%`
                 : `${detailUnit.mp} / ${detailUnit.maxMp}`}
             </dd>
             <dt>护盾</dt>
-            <dd className="num-stat">
+            <dd className="font-mono">
               {detailUnit.publicBars
                 ? `${detailUnit.barriers.reduce((sum, b) => sum + b.current, 0) / 100}% 气血上限`
                 : detailUnit.barriers.reduce((sum, b) => sum + b.current, 0)}
@@ -62,7 +62,7 @@ export function CombatV6Details({
             {!detailUnit.publicBars && (
               <>
                 <dt>伤势</dt>
-                <dd className="num-stat">
+                <dd className="font-mono">
                   {detailUnit.wound}（可恢复至{' '}
                   {Math.max(1, detailUnit.maxHp - detailUnit.wound)}）
                 </dd>
@@ -71,7 +71,7 @@ export function CombatV6Details({
             {detailUnit.resources.map((r) => (
               <div className="cv6-dl-row" key={r.id}>
                 <dt>{r.name}</dt>
-                <dd className="num-stat">
+                <dd className="font-mono">
                   {r.current} / {r.max}
                 </dd>
               </div>
@@ -79,7 +79,7 @@ export function CombatV6Details({
             {Object.entries(detailUnit.attributes ?? {}).map(([key, value]) => (
               <div className="cv6-dl-row" key={key}>
                 <dt>{attributeLabels[key] ?? '属性'}</dt>
-                <dd className="num-stat">{Math.round(value)}</dd>
+                <dd className="font-mono">{Math.round(value)}</dd>
               </div>
             ))}
           </dl>

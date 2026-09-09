@@ -30,11 +30,8 @@ export function getStatusEffectDetails(
 
   if (status.key === 'weakness') {
     const stacks = Math.max(1, Math.floor(status.stacks || 1));
-    const penaltyPercent = Math.round(
-      (1 - Math.max(0.5, 1 - stacks * 0.05)) * 100,
-    );
     return [
-      `当前 ${stacks} 层：体魄、力道、灵力、根骨、身法、神识降低 ${penaltyPercent}%。`,
+      `当前虚弱 ${stacks} 层。`,
       ...details,
     ];
   }

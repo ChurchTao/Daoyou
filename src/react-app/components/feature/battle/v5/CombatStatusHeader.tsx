@@ -44,7 +44,7 @@ function ResourceRow({
     <div className="space-y-0.5">
       <div className="flex items-center gap-1.5 text-[11px] leading-4 md:text-xs md:leading-5">
         <span className="text-battle-muted w-7 shrink-0">{label}</span>
-        <span className="text-ink num-stat min-w-0 flex-1 truncate text-right">
+        <span className="text-ink min-w-0 flex-1 truncate text-right font-mono">
           {fmtInt(current)} / {fmtInt(max)}
           {!!shield && shield > 0 && (
             <span className="text-resource-shield"> ({fmtInt(shield)})</span>
@@ -155,7 +155,7 @@ function UnitSummary({ unit }: { unit: PublicBattleUnitSnapshotV1 }) {
                     }}
                   />
                 </div>
-                <span className="text-ink-secondary num-stat">
+                <span className="text-ink-secondary font-mono">
                   {display.value}
                 </span>
               </div>
@@ -288,14 +288,14 @@ export function CombatStatusHeader({
               <span className="text-ink min-w-0 truncate font-semibold">
                 {player.name}
               </span>
-              <span className="text-battle-muted num-stat shrink-0">
+              <span className="text-battle-muted shrink-0 font-mono">
                 {Math.round(player.hp.percent)}%
               </span>
               <span className="text-battle-muted shrink-0">对</span>
               <span className="text-ink min-w-0 truncate font-semibold">
                 {opponent.name}
               </span>
-              <span className="text-battle-muted num-stat shrink-0">
+              <span className="text-battle-muted shrink-0 font-mono">
                 {Math.round(opponent.hp.percent)}%
               </span>
             </div>

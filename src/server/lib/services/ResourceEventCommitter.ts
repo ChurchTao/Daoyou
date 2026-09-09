@@ -6,6 +6,8 @@ import {
   type ScopeVersionCommit,
 } from '@server/lib/repositories/playerStateRepository';
 import type { PlayerResourceMutationMeta } from '@shared/contracts/player';
+import { refreshCombatV6CharacterResources } from './combat-v6/CombatV6CharacterResourceRefresh';
+import { withCharacterPanelInvalidations } from '@shared/lib/characterResourceChanges';
 import {
   RESOURCE_TOPIC_SCOPE_KIND,
   type ResourceChange,
@@ -43,10 +45,16 @@ export class ResourceEventCommitter {
       return { changes: [], baselines: [] };
     }
     assertCompleteQiBaselines(input.changes);
-    const scopedChanges = resolveResourceChangeScopes(
+    const originalChanges = resolveResourceChangeScopes(
       input.changes,
       input.scopeDefaults,
     );
+    const changedCharacters = new Set(originalChanges.filter(change =>
+      change.scope.kind === 'cultivator' &&
+      ['player.profile', 'player.combat-v6-build'].includes(change.resourceTopic),
+    ).map(change => change.scope.id));
+    for (const id of changedCharacters) await refreshCombatV6CharacterResources(id, tx);
+    const scopedChanges = withCharacterPanelInvalidations(originalChanges);
     const commits = await bumpResourceVersions(tx, scopedChanges);
     const changes = await insertResourceChanges(tx, {
       actorUserId: input.actor?.userId,

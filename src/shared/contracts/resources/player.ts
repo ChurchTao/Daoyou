@@ -351,6 +351,12 @@ const conditionSchema = z
         maxHp: z.number().positive(),
         maxMp: z.number().nonnegative(),
         recoveryPaused: z.boolean(),
+        attrs: z.object({
+          physicalAtk: z.number(), physicalDef: z.number(), magicAtk: z.number(), magicDef: z.number(),
+          maxHp: z.number().positive(), maxMp: z.number().nonnegative(), healPower: z.number(),
+          speed: z.number(), hit: z.number(), dodge: z.number(), critRate: z.number(),
+          spellCritRate: z.number(), physicalFuryRate: z.number(), sealHit: z.number(), sealResist: z.number(),
+        }).strict(),
       })
       .strict()
       .optional(),

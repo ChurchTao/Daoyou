@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { projectCharacterDisplay, rebaseCharacterResources } from './cultivatorDisplay';
 import type {
   ConditionStatusInstance,
   ConditionStatusKey,
@@ -201,7 +202,7 @@ describe('projectNaturalRecoveryResources', () => {
     });
   });
 
-  it('preserves a full state when the runtime max increases', () => {
+  it('does not heal a full resource when the runtime max increases', () => {
     const result = project(
       createCondition({
         hp: { current: 1_000, max: 1_000 },
@@ -214,8 +215,32 @@ describe('projectNaturalRecoveryResources', () => {
       },
     );
 
-    expect(result.resources.hp).toEqual({ current: 1_200, max: 1_200 });
+    expect(result.resources.hp).toEqual({ current: 1_000, max: 1_200 });
     expect(result.resources.mp).toEqual({ current: 500, max: 1_200 });
+  });
+
+  it('settles old recovery before raising limits and starts a new recovery baseline', () => {
+    const condition = createCondition({ hp: { current: 100, max: 1_000 }, mp: { current: 500, max: 1_000 } });
+    const attrs = projectCharacterDisplay({ name: 'test', realm: '炼气', realm_stage: '初期', attributes: { vitality: 10, strength: 10, spirit: 10, endurance: 10, speed: 10, willpower: 10 } }, null);
+    const now = new Date('2026-01-02T00:00:00.000Z');
+    const next = rebaseCharacterResources(condition, { attrs, maxHp: 1_200, maxMp: 1_200, recoveryPaused: false }, now, { toxicityPenaltyMultiplier: 1, naturalRecoveryMultiplier: 1 });
+    expect(next.resources).toEqual({ hp: { current: 1_000, max: 1_200 }, mp: { current: 1_000, max: 1_200 } });
+    expect(next.timestamps.lastRecoveryAt).toBe(now.toISOString());
+    expect(project(next, { maxHp: 1_200, maxMp: 1_200, now: now.toISOString() }).resources).toEqual(next.resources);
+    expect(condition.resources.hp.current).toBe(100);
+  });
+
+  it('projects life-foundation changes and ignores legacy wound stat penalties', () => {
+    const condition = createCondition({ statuses: [createStatus('major_wound'), createStatus('weakness')] });
+    const cultivator = { name: 'test', realm: '炼气' as const, realm_stage: '初期' as const, attributes: { vitality: 10, strength: 10, spirit: 10, endurance: 10, speed: 10, willpower: 10 }, condition };
+    const base = projectCharacterDisplay(cultivator, null);
+    expect(base.maxHp).toBe(630);
+    condition.tracks.bodyCultivation!.tracks.qi_blood.level = 10;
+    const trained = projectCharacterDisplay(cultivator, null);
+    expect(trained.maxHp).toBe(661);
+    expect(trained.healPower).toBe(base.healPower + 5);
+    const next = rebaseCharacterResources(condition, { attrs: trained, maxHp: 661, maxMp: 340, recoveryPaused: true }, new Date('2026-01-02'), { toxicityPenaltyMultiplier: 1, naturalRecoveryMultiplier: 1 });
+    expect(next.resources.hp.current).toBe(100);
   });
 
   it('clamps resources when the runtime max decreases', () => {

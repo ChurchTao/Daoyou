@@ -48,7 +48,7 @@ function formatLogLabel(labels: Record<string, string>, value: string | null) {
 
 function QiDeltaCell({ log }: { log: QiLogEntry }) {
   return (
-    <span className="num-stat">
+    <span className="font-mono">
       {log.qiBefore}
       <span className="text-ink-secondary px-1">→</span>
       {log.qiAfter}
@@ -151,10 +151,10 @@ export function QiLogsTab() {
                     <td className="px-3 py-2">
                       {formatLogLabel(STATUS_LABELS, log.status)}
                     </td>
-                    <td className="text-ink num-stat px-3 py-2 text-right">
+                    <td className="text-ink px-3 py-2 text-right font-mono">
                       {log.qiCost}
                     </td>
-                    <td className="text-ink num-stat px-3 py-2 text-right">
+                    <td className="text-ink px-3 py-2 text-right font-mono">
                       {log.qiGain}
                     </td>
                     <td className="text-ink px-3 py-2 text-right">

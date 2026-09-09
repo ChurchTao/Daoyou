@@ -18,13 +18,13 @@ export function BreakthroughChanceDetails({
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
           <p className="text-ink-secondary text-xs leading-5">综合基础率</p>
-          <p className="text-ink num-stat font-semibold">
+          <p className="text-ink font-mono font-semibold">
             {formatPercent(presentation.adjustedBaseChance)}
           </p>
         </div>
         <div>
           <p className="text-ink-secondary text-xs leading-5">最终成功率</p>
-          <p className="num-stat font-semibold text-emerald-800">
+          <p className="font-mono font-semibold text-emerald-800">
             {formatPercent(presentation.finalChance)}
           </p>
         </div>
@@ -44,7 +44,7 @@ export function BreakthroughChanceDetails({
               )}
             >
               <span>{factor.label}</span>
-              <span className="num-stat">{factor.value}</span>
+              <span className="font-mono">{factor.value}</span>
             </span>
           ))}
         </div>

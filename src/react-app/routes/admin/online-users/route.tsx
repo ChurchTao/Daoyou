@@ -36,7 +36,7 @@ function SummaryCard(props: { title: string; value: number; hint: string }) {
       <p className="text-ink-secondary text-xs tracking-[0.2em]">
         {props.title}
       </p>
-      <p className="num-stat text-ink mt-3 text-4xl font-semibold">
+      <p className="text-ink mt-3 font-mono text-4xl font-semibold">
         {props.value}
       </p>
       <p className="text-ink-secondary mt-3 text-xs leading-6">{props.hint}</p>

@@ -20,6 +20,7 @@ import type {
 import type { Cultivator } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
 import { ConditionService } from '../ConditionService';
+import { readCombatV6ConditionAuthority } from '../combat-v6/CombatV6ConditionAuthority';
 import {
   getPlayerLoadoutByCultivatorId,
   mapLoadoutFromProducts,
@@ -133,24 +134,14 @@ export async function loadCultivatorCombatInput(
     inventory: { artifacts: loadout.artifacts },
     condition: storedCondition,
   };
-  const legacyMaxResources = ConditionService.getMaxResources(
-    {
-      ...baseInput,
-      cultivations: [],
-      equipped: { weapon: null, armor: null, accessory: null },
-      inventory: { artifacts: [] },
-    },
-    storedCondition,
-  );
+  const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(cultivatorId, q);
   return {
     userId: owner.userId,
     cultivator: {
       ...baseInput,
       condition: ConditionService.normalizeCondition(
-        baseInput,
+        { ...baseInput, combatV6ResourceAuthority },
         storedCondition,
-        undefined,
-        { legacyMaxResources },
       ),
     },
   };
@@ -304,7 +295,9 @@ export async function loadCultivatorInspectionData(
     },
   ]);
   if (!identity || !state) return null;
+  const combatV6 = await readCombatV6ConditionAuthority(cultivatorId, q);
   return {
+    combatPanel: combatV6.attrs,
     id: identity.id,
     name: identity.name,
     title: identity.title,

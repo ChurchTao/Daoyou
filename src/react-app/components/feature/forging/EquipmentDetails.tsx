@@ -30,7 +30,7 @@ export function EquipmentDetails({
             {equipment[key].map((roll) => (
               <div key={roll.attr}>
                 <dt>{EQUIPMENT_ATTRIBUTE_NAMES[roll.attr]}</dt>
-                <dd className="num-stat">
+                <dd className="font-mono">
                   +{roll.value}
                   {old ? (
                     <span className="text-ink-secondary ml-2">

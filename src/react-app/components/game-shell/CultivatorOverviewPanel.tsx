@@ -31,8 +31,7 @@ import {
 } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { useResourceMutation } from '@app/lib/resources/mutations';
-import { AttributeType } from '@shared/engine/battle-v5/core/types';
-import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
+import { CHARACTER_ATTRIBUTE_LABELS } from '@shared/lib/cultivatorDisplay';
 import { cn } from '@shared/lib/cn';
 import { getEquipmentSlotInfo } from '@shared/lib/gameConceptDisplay';
 import type { Cultivator } from '@shared/types/cultivator';
@@ -43,27 +42,27 @@ import { GameSceneSection } from './GameSceneSection';
 
 const PRIMARY_ATTRIBUTE_HELP = [
   {
-    label: attrLabel(AttributeType.VITALITY),
+    label: CHARACTER_ATTRIBUTE_LABELS.vitality,
     description: '稳固生命根基，决定最大气血并提供少量法术防御。',
   },
   {
-    label: attrLabel(AttributeType.STRENGTH),
+    label: CHARACTER_ATTRIBUTE_LABELS.strength,
     description: '凝聚筋力与兵刃威势，决定物理攻击。',
   },
   {
-    label: attrLabel(AttributeType.SPIRIT),
+    label: CHARACTER_ATTRIBUTE_LABELS.spirit,
     description: '滋养术法根基，决定法术攻击并提供少量法力。',
   },
   {
-    label: attrLabel(AttributeType.ENDURANCE),
+    label: CHARACTER_ATTRIBUTE_LABELS.endurance,
     description: '锤炼筋骨韧性，决定物理防御并提供少量最大气血。',
   },
   {
-    label: attrLabel(AttributeType.SPEED),
+    label: CHARACTER_ATTRIBUTE_LABELS.speed,
     description: '提升身形腾挪，主要增加闪避与行动速度，并少量增加命中。',
   },
   {
-    label: attrLabel(AttributeType.WILLPOWER),
+    label: CHARACTER_ATTRIBUTE_LABELS.willpower,
     description: '凝练神魂，影响法术防御、法力以及控制命中与抗性。',
   },
 ];
@@ -139,6 +138,9 @@ export function CultivatorOverviewPanel() {
   const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
   const [isSavingTitle, setIsSavingTitle] = useState(false);
+
+  if (projection.error) return <InkNotice>{projection.error}</InkNotice>;
+  if (projection.loading && !cultivator) return <InkNotice>正在读取角色属性……</InkNotice>;
 
   if (!cultivator) {
     return <InkNotice>尚无角色资料，先去觉醒灵根，再来凝视真形。</InkNotice>;

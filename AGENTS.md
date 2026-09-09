@@ -62,7 +62,7 @@ bun run db:migrate
 
 ## Frontend Rules
 
-- Numeric typography uses Tailwind utilities from `src/react-app/index.css`: `num-body` for prose (normally inherited), `num-stat` for standalone attributes/resources, and `num-stack` for item quantities. Do not add component-local numeric font stacks or use `font-mono` to style quantities. See `docs/numeric-typography.md`; identifiers/code are separate from numeric data.
+- Numeric data uses Tailwind default `font-mono`; prose inherits the body font. Keep quantity weight/spacing local (`font-semibold tracking-tight`), and do not override `--font-mono` or add numeric font tokens/classes. See `docs/numeric-typography.md`.
 
 - React routes are centralized in `src/react-app/router.tsx` and loaded with `lazyRoute`.
 - Game scenes use `handle={scene(...)}`; the scene id must exist in `src/react-app/components/game-shell/gameNavigation.ts`.

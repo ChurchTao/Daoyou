@@ -1,7 +1,8 @@
 import {
-  getCultivatorDisplayAttributes,
+  characterResourceMaxima,
+  normalizeCharacterResource,
   type CultivatorDisplayInput,
-} from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+} from '@shared/lib/cultivatorDisplay';
 import type { BattleUnitInitFragment } from '@shared/engine/battle-v5/setup/types';
 import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
 import {
@@ -186,15 +187,6 @@ export interface ExternalResourceLossPreview {
   triggerTexts: string[];
 }
 
-interface ConditionResourceMaxSnapshot {
-  maxHp: number;
-  maxMp: number;
-}
-
-interface NormalizeConditionOptions {
-  legacyMaxResources?: ConditionResourceMaxSnapshot;
-}
-
 function getWoundSeverityIndex(key: ConditionStatusKey): number {
   return WOUND_SEVERITY_ORDER.indexOf(key);
 }
@@ -264,7 +256,7 @@ function buildDefaultCondition(
   cultivator: CultivatorDisplayInput,
   now: Date,
 ): CultivatorCondition {
-  const display = getCultivatorDisplayAttributes(cultivator);
+  const display = characterResourceMaxima(cultivator);
   return {
     version: 1,
     resources: {
@@ -302,42 +294,16 @@ function buildDefaultCondition(
   };
 }
 
-function getStoredResourceMax(value: unknown): number | undefined {
-  if (
-    typeof value === 'number' &&
-    Number.isFinite(value) &&
-    value >= 0
-  ) {
-    return Math.floor(value);
-  }
-
-  return undefined;
-}
-
 function normalizeResourcePoint(args: {
   current: number | undefined;
   defaultCurrent: number;
   runtimeMax: number;
-  storedMax?: number;
-  legacyMax?: number;
 }): ConditionResourcePoint {
   const rawCurrent =
     typeof args.current === 'number' && Number.isFinite(args.current)
       ? Math.floor(args.current)
       : args.defaultCurrent;
-  const previousMax = args.storedMax ?? args.legacyMax;
-  const shouldPreserveFullState =
-    previousMax !== undefined &&
-    args.runtimeMax > previousMax &&
-    rawCurrent >= previousMax;
-  const current = shouldPreserveFullState
-    ? args.runtimeMax
-    : clamp(rawCurrent, 0, args.runtimeMax);
-
-  return {
-    current,
-    max: args.runtimeMax,
-  };
+  return normalizeCharacterResource(rawCurrent, args.runtimeMax);
 }
 
 export const ConditionService = {
@@ -353,27 +319,13 @@ export const ConditionService = {
     cultivator: CultivatorDisplayInput,
     conditionInput?: CultivatorCondition,
   ): { maxHp: number; maxMp: number } {
-    const authority = (cultivator as CultivatorDisplayInput & {combatV6ResourceAuthority?: {maxHp:number;maxMp:number}}).combatV6ResourceAuthority;
-    if (authority) return {maxHp:authority.maxHp,maxMp:authority.maxMp};
-    const display = getCultivatorDisplayAttributes(
-      conditionInput
-        ? {
-            ...cultivator,
-            condition: conditionInput,
-          }
-        : cultivator,
-    );
-    return {
-      maxHp: display.maxHp,
-      maxMp: display.maxMp,
-    };
+    return characterResourceMaxima(cultivator, conditionInput);
   },
 
   normalizeCondition(
     cultivator: CultivatorDisplayInput,
     input?: CultivatorCondition,
     now: Date = new Date(),
-    options: NormalizeConditionOptions = {},
   ): CultivatorCondition {
     const defaults = buildDefaultCondition(cultivator, now);
     const raw = input ?? cultivator.condition;
@@ -387,15 +339,11 @@ export const ConditionService = {
           current: raw?.resources?.hp?.current,
           defaultCurrent: defaults.resources.hp.current,
           runtimeMax: maxHp,
-          storedMax: getStoredResourceMax(raw?.resources?.hp?.max),
-          legacyMax: options.legacyMaxResources?.maxHp,
         }),
         mp: normalizeResourcePoint({
           current: raw?.resources?.mp?.current,
           defaultCurrent: defaults.resources.mp.current,
           runtimeMax: maxMp,
-          storedMax: getStoredResourceMax(raw?.resources?.mp?.max),
-          legacyMax: options.legacyMaxResources?.maxMp,
         }),
       },
       gauges: {
@@ -470,17 +418,15 @@ export const ConditionService = {
     cultivator: ConditionCultivatorFacts,
     conditionInput?: CultivatorCondition,
     now: Date = new Date(),
-    options: NormalizeConditionOptions = {},
   ): CultivatorCondition {
     const condition = this.normalizeCondition(
       cultivator,
       conditionInput,
       now,
-      options,
     );
     const { maxHp, maxMp } = this.getMaxResources(cultivator, condition);
     const statuses = pruneInactiveStatuses(condition.statuses, now);
-    if ((cultivator as ConditionCultivatorFacts & {combatV6ResourceAuthority?: {recoveryPaused:boolean}}).combatV6ResourceAuthority?.recoveryPaused) return {...condition,statuses};
+    if (cultivator.combatV6ResourceAuthority?.recoveryPaused) return {...condition,statuses};
     const fateContext = evaluateFateContext(cultivator.pre_heaven_fates ?? []);
     const projection = projectNaturalRecoveryResources({
       conditionInput: condition,

@@ -9,7 +9,7 @@ import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { loadCultivatorSectState } from '@server/lib/repositories/sectRepository';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
-import type { CultivatorDisplayInput } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+import type { CultivatorDisplayInput } from '@shared/lib/cultivatorDisplay';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { CultivationProgress, Cultivator } from '@shared/types/cultivator';

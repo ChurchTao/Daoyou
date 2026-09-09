@@ -34,6 +34,7 @@ export type CultivatorInspectionData = Pick<
   | 'condition'
   | 'sect'
 > & {
+  combatPanel: import('@shared/engine/combat-v6/projection').CharacterPanelV1;
   inventory: Pick<Cultivator['inventory'], 'artifacts'>;
 };
 
@@ -83,7 +84,7 @@ export interface PlayerResourceMap {
   profile: {
     cultivator: PlayerIdentityCultivator;
   };
-  condition: (NonNullable<Cultivator['condition']> & { combatV6?: { maxHp: number; maxMp: number; recoveryPaused: boolean } }) | undefined;
+  condition: (NonNullable<Cultivator['condition']> & { combatV6?: import('@shared/lib/cultivatorDisplay').CombatV6ResourceAuthority }) | undefined;
   progress: CultivationProgress;
   currency: QiProjectionBaseline & {
     spiritStones: number;

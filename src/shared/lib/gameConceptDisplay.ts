@@ -112,7 +112,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     label: '体魄',
     icon: '💪',
     shortLabel: '体',
-    description: '气血与生命根基，决定最大气血并提供少量法术防御',
+    description: '气血与生命根基，提升最大气血和治疗强度',
   },
   strength: {
     label: '力道',
@@ -124,7 +124,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     label: '灵力',
     icon: '⚡',
     shortLabel: '灵',
-    description: '灵力浑厚程度，决定法术攻击并提供少量法力',
+    description: '灵力浑厚程度，提升法术攻击、法力和封印命中',
   },
   endurance: {
     label: '根骨',
@@ -142,7 +142,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     label: '神识',
     icon: '👁️',
     shortLabel: '识',
-    description: '神魂与意志强度，影响法术防御、法力和控制攻防',
+    description: '神魂与意志强度，提升法术防御、法力、治疗强度和封印抵抗',
   },
   gongfa: {
     label: '功法',
@@ -454,7 +454,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   status_weakness: {
     label: '虚弱',
     icon: '😰',
-    description: '元气大伤，战力大幅下降',
+    description: '元气大伤，尚待恢复',
   },
   status_minor_wound: {
     label: '轻伤',
@@ -464,7 +464,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   status_major_wound: {
     label: '重伤',
     icon: '💥',
-    description: '身负重伤，实力大损',
+    description: '身负重伤，自然恢复减慢',
   },
   status_near_death: {
     label: '濒死',
