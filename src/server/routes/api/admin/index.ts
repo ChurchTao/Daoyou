@@ -2,7 +2,6 @@ import { requireAdmin } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
 import accountsRouter from '@server/routes/api/admin/accounts.router';
 import announcementRouter from '@server/routes/api/admin/announcement.router';
-import battleSimulatorRouter from '@server/routes/api/admin/battle-simulator.router';
 import broadcastRouter from '@server/routes/api/admin/broadcast.router';
 import communityGroupRouter from '@server/routes/api/admin/community-qrcode.router';
 import feedbackRouter from '@server/routes/api/admin/feedback.router';
@@ -44,6 +43,5 @@ router.route('/llm-metrics', llmMetricsRouter);
 router.route('/online-users', onlineUsersRouter);
 router.route('/online-battles', onlineBattlesRouter);
 router.route('/tower-enemy-sets', towerEnemySetsRouter);
-router.route('/battle-simulator', battleSimulatorRouter);
 
 export default router;

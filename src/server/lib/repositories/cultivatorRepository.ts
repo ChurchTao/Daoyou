@@ -1,7 +1,6 @@
 import { getExecutor, type DbExecutor } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
-import type { RealmStage, RealmType } from '@shared/types/constants';
-import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 
 export interface CultivatorBreakthroughPillRecord {
   targetRealm: string | null;
@@ -168,36 +167,6 @@ export async function existsCultivatorById(
     .limit(1);
 
   return rows.length > 0;
-}
-
-export async function sampleActiveCultivatorIds(args: {
-  limit: number;
-  realms?: RealmType[];
-  realmStages?: RealmStage[];
-  excludeIds?: string[];
-  q?: DbExecutor;
-}): Promise<string[]> {
-  const q = args.q ?? getExecutor();
-  const filters = [eq(schema.cultivators.status, 'active')];
-
-  if (args.realms?.length) {
-    filters.push(inArray(schema.cultivators.realm, args.realms));
-  }
-  if (args.realmStages?.length) {
-    filters.push(inArray(schema.cultivators.realm_stage, args.realmStages));
-  }
-  if (args.excludeIds?.length) {
-    filters.push(notInArray(schema.cultivators.id, args.excludeIds));
-  }
-
-  const rows = await q
-    .select({ id: schema.cultivators.id })
-    .from(schema.cultivators)
-    .where(and(...filters))
-    .orderBy(sql`random()`)
-    .limit(Math.max(1, Math.min(100, Math.floor(args.limit))));
-
-  return rows.map((row) => row.id);
 }
 
 export async function hasCultivatorOwnership(

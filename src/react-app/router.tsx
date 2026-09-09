@@ -1337,13 +1337,6 @@ export const router = createBrowserRouter(
           handle={title('在线人数')}
         />
         <Route
-          path="battle-simulator"
-          lazy={lazyRoute(
-            () => import('@app/routes/admin/battle-simulator/route'),
-          )}
-          handle={title('对战模拟器')}
-        />
-        <Route
           path="tower-enemy-sets"
           lazy={lazyRoute(
             () => import('@app/routes/admin/tower-enemy-sets/route'),
