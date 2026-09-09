@@ -1009,7 +1009,12 @@ export const cultivatorTasks = pgTable(
   ],
 );
 
-// 战斗记录 V3：战斗事实、序列与状态时间线的唯一运行时数据源。
+/**
+ * @deprecated V5 历史战绩。本次退役版本上线后的下一版本删除表及 schema。
+ * 删除前解除 chatMessageApplication 战报分享、旧仓储和 retention 清理引用，
+ * 并先删除 betBattles 的外键依赖。当前 V6 战绩使用 combatV6ReplayArchives。
+ * 计划见 docs/combat-v6-legacy-table-retirement.md；本版不得生成 DROP。
+ */
 export const battleRecordsV3 = pgTable(
   'wanjiedaoyou_battle_records_v3',
   {
@@ -1047,7 +1052,11 @@ export const battleRecordsV3 = pgTable(
   ],
 );
 
-// 在线对局结束后由 NATS 消费者异步写入；进行中状态只存在 Redis。
+/**
+ * @deprecated 10H 已下线的 V5 在线回放历史表，无运行时读写及自动清理。
+ * 本次退役版本上线后的下一版本删除表、schema 及仅供本表使用的历史 JSON 类型。
+ * 计划见 docs/combat-v6-legacy-table-retirement.md；本版不得生成 DROP。
+ */
 export const battleReplayArchives = pgTable(
   'wanjiedaoyou_battle_replay_archives',
   {
@@ -1886,8 +1895,11 @@ export const auctionListings = pgTable(
   ],
 );
 
-// 已退役赌战的历史托管记录。仅保留 schema 防止误生成 DROP；无运行时读写。
-// 停机核对并退还未结押注后，另行安排数据库物理清理。
+/**
+ * @deprecated 10D 已下线的赌战历史表，无运行时读写及自动清理。
+ * 本次退役版本上线后的下一版本删除，顺序先于 battleRecordsV3（存在外键）。
+ * 计划见 docs/combat-v6-legacy-table-retirement.md；本版不得生成 DROP。
+ */
 export const betBattles = pgTable(
   'wanjiedaoyou_bet_battles',
   {

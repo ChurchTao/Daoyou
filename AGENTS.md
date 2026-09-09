@@ -34,7 +34,7 @@ bun run db:migrate
 ```
 
 - `dev[:api|:web]` selects `env/local.env`; `prd[:api|:web]` selects `env/staging.env`. Bun's implicit env loading is disabled; other tools require explicitly injected variables or `bun --env-file=...`.
-- `bun run build` sequentially invokes `build:client` and `build:server`; Vite configs separate client, server and resolver Worker targets. Preserve these CI/CD entrypoints.
+- `bun run build` sequentially invokes `build:client` and `build:server`; Vite configs separate client and server targets. The old V5 resolver Worker target was retired in Phase 10H. Preserve the remaining CI/CD entrypoints.
 - Vitest uses node environment and discovers tests only under `src/shared`.
 - Docker runtime contains only `dist`; ALTCHA uses the server-side `ALTCHA_HMAC_SECRET` and does not require a frontend site key.
 - GitHub Actions currently builds and pushes Docker image on `master`; it is not a lint/test quality gate.

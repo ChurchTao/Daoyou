@@ -7,18 +7,6 @@ import {
   DOMAIN_EVENT_STREAM,
   DOMAIN_EVENT_SUBJECT_PREFIX,
 } from '@shared/contracts/domainEvents';
-import {
-  BATTLE_REPLAY_STREAM,
-  BATTLE_REPLAY_SUBJECT,
-} from '@shared/contracts/battleReplay';
-import {
-  BATTLE_TERMINAL_STREAM,
-  BATTLE_TERMINAL_SUBJECT,
-} from '@shared/contracts/battleTerminal';
-import {
-  BATTLE_RESOLUTION_STREAM,
-  BATTLE_RESOLUTION_SUBJECT,
-} from '@shared/contracts/battleResolutionTask';
 import { COMBAT_V6_REPLAY_STREAM, COMBAT_V6_REPLAY_SUBJECT } from '@shared/contracts/combatV6Runtime';
 import {
   AckPolicy,
@@ -37,27 +25,6 @@ export const DEAD_LETTER_STREAM = 'DAOYOU_DOMAIN_EVENT_DLQ';
 export const DEAD_LETTER_SUBJECT_PREFIX = 'daoyou.dead-letter';
 export const COMMAND_DEAD_LETTER_STREAM = 'DAOYOU_BACKGROUND_COMMAND_DLQ';
 export const COMMAND_DEAD_LETTER_SUBJECT_PREFIX = 'daoyou.command-dead-letter';
-
-export const BATTLE_REPLAY_ARCHIVE_CONSUMER = {
-  stream: BATTLE_REPLAY_STREAM,
-  name: 'battle-replay-postgres-archiver-v1',
-  filterSubject: BATTLE_REPLAY_SUBJECT,
-  concurrency: 2,
-} as const;
-
-export const BATTLE_TERMINAL_FINALIZER_CONSUMER = {
-  stream: BATTLE_TERMINAL_STREAM,
-  name: 'battle-terminal-finalizer-v1',
-  filterSubject: BATTLE_TERMINAL_SUBJECT,
-  concurrency: 4,
-} as const;
-
-export const BATTLE_RESOLUTION_CONSUMER = {
-  stream: BATTLE_RESOLUTION_STREAM,
-  name: 'battle-resolution-worker-v1',
-  filterSubject: BATTLE_RESOLUTION_SUBJECT,
-  concurrency: 4,
-} as const;
 
 export const COMBAT_V6_REPLAY_ARCHIVE_CONSUMER = {
   stream: COMBAT_V6_REPLAY_STREAM,
@@ -171,51 +138,6 @@ const COMMAND_DEAD_LETTER_STREAM_CONFIG: Partial<StreamConfig> = {
   max_age: nanos(30 * 24 * 60 * 60 * 1_000),
   max_bytes: 128 * 1_024 * 1_024,
   max_msg_size: 512 * 1_024,
-  duplicate_window: nanos(10 * 60 * 1_000),
-  num_replicas: 1,
-  allow_direct: true,
-};
-
-const BATTLE_REPLAY_STREAM_CONFIG: Partial<StreamConfig> = {
-  name: BATTLE_REPLAY_STREAM,
-  description: 'Finished battle replay archive jobs',
-  subjects: [BATTLE_REPLAY_SUBJECT],
-  retention: RetentionPolicy.Workqueue,
-  storage: StorageType.File,
-  discard: DiscardPolicy.Old,
-  max_age: nanos(30 * 24 * 60 * 60 * 1_000),
-  max_bytes: 512 * 1_024 * 1_024,
-  max_msg_size: 64 * 1_024,
-  duplicate_window: nanos(24 * 60 * 60 * 1_000),
-  num_replicas: 1,
-  allow_direct: true,
-};
-
-const BATTLE_TERMINAL_STREAM_CONFIG: Partial<StreamConfig> = {
-  name: BATTLE_TERMINAL_STREAM,
-  description: 'Durable online battle terminal cleanup events',
-  subjects: [BATTLE_TERMINAL_SUBJECT],
-  retention: RetentionPolicy.Workqueue,
-  storage: StorageType.File,
-  discard: DiscardPolicy.Old,
-  max_age: nanos(30 * 24 * 60 * 60 * 1_000),
-  max_bytes: 128 * 1_024 * 1_024,
-  max_msg_size: 32 * 1_024,
-  duplicate_window: nanos(24 * 60 * 60 * 1_000),
-  num_replicas: 1,
-  allow_direct: true,
-};
-
-const BATTLE_RESOLUTION_STREAM_CONFIG: Partial<StreamConfig> = {
-  name: BATTLE_RESOLUTION_STREAM,
-  description: 'Small durable pointers for online battle round resolution',
-  subjects: [BATTLE_RESOLUTION_SUBJECT],
-  retention: RetentionPolicy.Workqueue,
-  storage: StorageType.File,
-  discard: DiscardPolicy.Old,
-  max_age: nanos(24 * 60 * 60 * 1_000),
-  max_bytes: 64 * 1_024 * 1_024,
-  max_msg_size: 4 * 1_024,
   duplicate_window: nanos(10 * 60 * 1_000),
   num_replicas: 1,
   allow_direct: true,
@@ -346,105 +268,6 @@ async function ensureBackgroundCommandConsumer() {
   }
 }
 
-async function ensureBattleReplayConsumer() {
-  const manager = await getJetStreamManager();
-  const mutableConfig: Partial<ConsumerUpdateConfig> = {
-    description: 'Archive finished battle replays to PostgreSQL',
-    ack_wait: nanos(2 * 60 * 1_000),
-    max_deliver: -1,
-    max_ack_pending: BATTLE_REPLAY_ARCHIVE_CONSUMER.concurrency,
-    max_batch: BATTLE_REPLAY_ARCHIVE_CONSUMER.concurrency,
-    backoff: [],
-    filter_subject: BATTLE_REPLAY_ARCHIVE_CONSUMER.filterSubject,
-  };
-  try {
-    await manager.consumers.info(
-      BATTLE_REPLAY_STREAM,
-      BATTLE_REPLAY_ARCHIVE_CONSUMER.name,
-    );
-    await manager.consumers.update(
-      BATTLE_REPLAY_STREAM,
-      BATTLE_REPLAY_ARCHIVE_CONSUMER.name,
-      mutableConfig,
-    );
-  } catch (error) {
-    if (!isNotFoundError(error)) throw error;
-    await manager.consumers.add(BATTLE_REPLAY_STREAM, {
-      ...mutableConfig,
-      durable_name: BATTLE_REPLAY_ARCHIVE_CONSUMER.name,
-      ack_policy: AckPolicy.Explicit,
-      deliver_policy: DeliverPolicy.All,
-      replay_policy: ReplayPolicy.Instant,
-    } satisfies Partial<ConsumerConfig>);
-  }
-}
-
-async function ensureBattleTerminalConsumer() {
-  const manager = await getJetStreamManager();
-  const mutableConfig: Partial<ConsumerUpdateConfig> = {
-    description: 'Release all online battle occupancy after terminal state',
-    ack_wait: nanos(2 * 60 * 1_000),
-    max_deliver: -1,
-    max_ack_pending: BATTLE_TERMINAL_FINALIZER_CONSUMER.concurrency,
-    max_batch: BATTLE_TERMINAL_FINALIZER_CONSUMER.concurrency,
-    backoff: [],
-    filter_subject: BATTLE_TERMINAL_FINALIZER_CONSUMER.filterSubject,
-  };
-  try {
-    await manager.consumers.info(
-      BATTLE_TERMINAL_STREAM,
-      BATTLE_TERMINAL_FINALIZER_CONSUMER.name,
-    );
-    await manager.consumers.update(
-      BATTLE_TERMINAL_STREAM,
-      BATTLE_TERMINAL_FINALIZER_CONSUMER.name,
-      mutableConfig,
-    );
-  } catch (error) {
-    if (!isNotFoundError(error)) throw error;
-    await manager.consumers.add(BATTLE_TERMINAL_STREAM, {
-      ...mutableConfig,
-      durable_name: BATTLE_TERMINAL_FINALIZER_CONSUMER.name,
-      ack_policy: AckPolicy.Explicit,
-      deliver_policy: DeliverPolicy.All,
-      replay_policy: ReplayPolicy.Instant,
-    } satisfies Partial<ConsumerConfig>);
-  }
-}
-
-async function ensureBattleResolutionConsumer() {
-  const manager = await getJetStreamManager();
-  const mutableConfig: Partial<ConsumerUpdateConfig> = {
-    description: 'Resolve one online battle round from a Redis state pointer',
-    ack_wait: nanos(2 * 60 * 1_000),
-    max_deliver: -1,
-    max_ack_pending: BATTLE_RESOLUTION_CONSUMER.concurrency,
-    max_batch: BATTLE_RESOLUTION_CONSUMER.concurrency,
-    backoff: [],
-    filter_subject: BATTLE_RESOLUTION_CONSUMER.filterSubject,
-  };
-  try {
-    await manager.consumers.info(
-      BATTLE_RESOLUTION_STREAM,
-      BATTLE_RESOLUTION_CONSUMER.name,
-    );
-    await manager.consumers.update(
-      BATTLE_RESOLUTION_STREAM,
-      BATTLE_RESOLUTION_CONSUMER.name,
-      mutableConfig,
-    );
-  } catch (error) {
-    if (!isNotFoundError(error)) throw error;
-    await manager.consumers.add(BATTLE_RESOLUTION_STREAM, {
-      ...mutableConfig,
-      durable_name: BATTLE_RESOLUTION_CONSUMER.name,
-      ack_policy: AckPolicy.Explicit,
-      deliver_policy: DeliverPolicy.All,
-      replay_policy: ReplayPolicy.Instant,
-    } satisfies Partial<ConsumerConfig>);
-  }
-}
-
 async function ensureCombatV6ReplayConsumer() {
   const manager = await getJetStreamManager();
   const mutableConfig: Partial<ConsumerUpdateConfig> = {
@@ -459,12 +282,6 @@ async function ensureCombatV6ReplayConsumer() {
     if (!isNotFoundError(error)) throw error;
     await manager.consumers.add(COMBAT_V6_REPLAY_STREAM, { ...mutableConfig, durable_name: COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.name, ack_policy: AckPolicy.Explicit, deliver_policy: DeliverPolicy.All, replay_policy: ReplayPolicy.Instant } satisfies Partial<ConsumerConfig>);
   }
-}
-
-export async function ensureBattleReplayStream(): Promise<void> {
-  await ensureStream(
-    BATTLE_REPLAY_STREAM_CONFIG as Partial<StreamConfig> & { name: string },
-  );
 }
 
 export async function ensureMessageTopology(): Promise<void> {
@@ -484,20 +301,10 @@ export async function ensureMessageTopology(): Promise<void> {
       name: string;
     },
   );
-  await ensureBattleReplayStream();
-  await ensureStream(
-    BATTLE_TERMINAL_STREAM_CONFIG as Partial<StreamConfig> & { name: string },
-  );
-  await ensureStream(
-    BATTLE_RESOLUTION_STREAM_CONFIG as Partial<StreamConfig> & { name: string },
-  );
   await ensureStream(COMBAT_V6_REPLAY_STREAM_CONFIG as Partial<StreamConfig> & { name: string });
   await Promise.all([
     ...Object.values(DOMAIN_EVENT_CONSUMERS).map(ensureConsumer),
     ensureBackgroundCommandConsumer(),
-    ensureBattleReplayConsumer(),
-    ensureBattleTerminalConsumer(),
-    ensureBattleResolutionConsumer(),
     ensureCombatV6ReplayConsumer(),
   ]);
   console.info('[nats] JetStream topology ready', {
@@ -507,12 +314,6 @@ export async function ensureMessageTopology(): Promise<void> {
     ),
     commandStream: BACKGROUND_COMMAND_STREAM,
     commandConsumer: BACKGROUND_COMMAND_CONSUMER.name,
-    battleReplayStream: BATTLE_REPLAY_STREAM,
-    battleReplayConsumer: BATTLE_REPLAY_ARCHIVE_CONSUMER.name,
-    battleTerminalStream: BATTLE_TERMINAL_STREAM,
-    battleTerminalConsumer: BATTLE_TERMINAL_FINALIZER_CONSUMER.name,
-    battleResolutionStream: BATTLE_RESOLUTION_STREAM,
-    battleResolutionConsumer: BATTLE_RESOLUTION_CONSUMER.name,
     combatV6ReplayStream: COMBAT_V6_REPLAY_STREAM,
   });
 }

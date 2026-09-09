@@ -45,7 +45,6 @@ const MAIL_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 const QI_LOG_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 const DUNGEON_HISTORY_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const DUNGEON_RUN_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
-const BATTLE_REPLAY_ARCHIVE_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 const BATTLE_RECORD_V3_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const REPUTATION_SHOP_PURCHASE_RETENTION_MS = 21 * 24 * 60 * 60 * 1000;
 const SECT_SHOP_PURCHASE_RETENTION_MS = 8 * 7 * 24 * 60 * 60 * 1000;
@@ -411,9 +410,6 @@ export async function runExpiredDataCleanupJob(): Promise<
           qiLogs: new Date(now - QI_LOG_RETENTION_MS),
           dungeonHistories: new Date(now - DUNGEON_HISTORY_RETENTION_MS),
           dungeonRuns: new Date(now - DUNGEON_RUN_RETENTION_MS),
-          battleReplayArchives: new Date(
-            now - BATTLE_REPLAY_ARCHIVE_RETENTION_MS,
-          ),
           battleRecordsV3: new Date(now - BATTLE_RECORD_V3_RETENTION_MS),
           reputationShopPurchases: new Date(
             now - REPUTATION_SHOP_PURCHASE_RETENTION_MS,

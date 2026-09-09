@@ -1026,6 +1026,24 @@ Phase 9E 已实现通用掉落底座、库存堆叠键与野外首次接入，�
 
 2026-09-09 已实施并完成上述验收：本地 POST `/api/admin/battle-simulator/duel` 和 `/monte-carlo` 均返回 404「接口不存在」；真实浏览器以 local1 管理员会话打开后台总览，侧栏及模块入口均不再展示模拟器，旧 `/admin/battle-simulator` 地址显示既有 404 页面。`bun run lint`、`bun run build`（含前后端类型检查）、`git diff --check` 通过；构建保留既有 chunk 提示。本次仅下线专属功能，未修改共享引擎逻辑，未运行全量 shared 测试。
 
+#### Phase 10H：旧 V5 在线战斗整体下线
+
+> 2026-09-09 用户确认：停机维护后硬切，旧在线战斗及专属消费者全部删除，不考虑旧场次待处理数据，不做排空、迁移、补偿或兼容运行。
+
+已删除旧邀请大厅与战局页面、导航、客户端同步与 Phaser 表现组件、专属样式及图片；删除 `/api/battle-matches` HTTP／WebSocket 和 `/api/admin/online-battles` 诊断入口、旧匹配／邀请服务、Redis 战局运行时与索引／票据、调度和结算 Worker。
+
+旧回合结算、终局清理、回放归档的消息发布者及消费者全部删除，连同启动／关闭、健康检查、NATS stream／consumer 注册、重试及修复调度代码一起移除。构建不再生成 online-battle-resolver.js，旧 arena-v6-cutover 维护脚本删除。不为旧数据保留消费者或补偿逻辑。
+
+V6 擂台仍使用的 ArenaRoomService、ArenaBattleStartOrchestrator、NATS 共用连接、领域事件、combatV6Messaging 和 V6 回放归档保留。旧 PostgreSQL 回放表仅保留 schema 与历史 JSON 类型，删除读写仓储、协议解析及定期清理，不执行 DROP 或历史数据修改。既有 NATS 持久 stream／consumer 对象不会因删除代码而自动销毁；本次不操作部署环境的存量对象，新进程不再注册或订阅它们。上线时由停机维护隔离旧进程，不能让旧版本实例继续运行。
+
+验证通过：`bun run lint`、`bun run build`（含前后端类型检查）、`bun run test`（222 文件／2043 项）、`git diff --check`。已删除三份仅测试退役协议／表现的测试；共享 V5 引擎测试保留。构建保留既有 chunk 提示。
+
+本地运行验收：旧创建、邀请、后台 metrics 接口返回 404；消息健康检查 redis/nats/messaging 均 up。真实浏览器验证 V6 擂台创建房间、准备状态及退出，临时房间已释放；旧 `/game/battle/live/:matchId` 显示 404。旧大厅 `/game/battle/live` 不再匹配邀请页，而由既有 `battle/:id` 回放路由显示 Invalid UUID，不再具备任何旧战斗功能。本轮未重跑完整多人战斗、自动、观战及新终局归档；前序验收余项继续保留。
+
+后续阶段再迁移角色展示、condition／恢复等共用能力中的 V5 依赖，然后删除剩余引擎；本次在线链路下线不等同于全仓 V5 已退役。
+
+2026-09-09 补充决定：历史在线回放、赌战及 V3 战绩表本版标记弃用，本次退役版本上线后的下一版本删除表与 schema。V3 战绩表仍需先解除聊天分享及定期清理引用；V6 表不在删除范围。具体清单、外键顺序与验收要求见 [历史表删除计划](./combat-v6-legacy-table-retirement.md)。本版不执行 DROP。
+
 #### 后续切流与退役条件
 
 切流条件：

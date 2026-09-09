@@ -26,21 +26,6 @@ import {
   stopBackgroundCommandConsumer,
 } from './backgroundCommandConsumer';
 import {
-  isBattleReplayArchiveConsumerHealthy,
-  startBattleReplayArchiveConsumer,
-  stopBattleReplayArchiveConsumer,
-} from './battleReplayArchiveConsumer';
-import {
-  isBattleResolutionConsumerHealthy,
-  startBattleResolutionConsumer,
-  stopBattleResolutionConsumer,
-} from './battleResolutionConsumer';
-import {
-  isBattleTerminalFinalizerConsumerHealthy,
-  startBattleTerminalFinalizerConsumer,
-  stopBattleTerminalFinalizerConsumer,
-} from './battleTerminalFinalizerConsumer';
-import {
   isCombatV6MessagingHealthy,
   startCombatV6Messaging,
   stopCombatV6Messaging,
@@ -66,9 +51,6 @@ export async function registerMessageInfrastructure(): Promise<void> {
   await ensureMessageTopology();
   await Promise.all([
     startBackgroundCommandConsumer(),
-    startBattleReplayArchiveConsumer(),
-    startBattleTerminalFinalizerConsumer(),
-    startBattleResolutionConsumer(),
     startCombatV6Messaging(),
     startDomainEventConsumer({
       consumerName: DOMAIN_EVENT_CONSUMERS.combatV6Condition.name,
@@ -242,9 +224,6 @@ export async function shutdownMessageInfrastructure(): Promise<void> {
   registered = false;
   stopTransactionalMessageRelay();
   await stopBackgroundCommandConsumer();
-  await stopBattleReplayArchiveConsumer();
-  await stopBattleTerminalFinalizerConsumer();
-  await stopBattleResolutionConsumer();
   await stopCombatV6Messaging();
   await stopDomainEventConsumers();
   await stopNatsCoreSubscriptions();
@@ -255,9 +234,6 @@ export function getMessageInfrastructureHealthStatus(): 'up' | 'down' {
   return registered &&
     areDomainEventConsumersHealthy() &&
     isBackgroundCommandConsumerHealthy() &&
-    isBattleReplayArchiveConsumerHealthy() &&
-    isBattleTerminalFinalizerConsumerHealthy() &&
-    isBattleResolutionConsumerHealthy() &&
     isCombatV6MessagingHealthy() &&
     areNatsCoreSubscriptionsHealthy()
     ? 'up'

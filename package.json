@@ -12,7 +12,7 @@
     "auth:migrate": "bunx drizzle-kit migrate --config drizzle.auth.config.ts",
     "build": "bun run --sequential build:client build:server",
     "build:client": "tsc -b tsconfig.app.json && vite build",
-    "build:server": "tsc -b tsconfig.node.json && vite build --config vite.server.config.ts && vite build --config vite.battle-worker.config.ts",
+    "build:server": "tsc -b tsconfig.node.json && vite build --config vite.server.config.ts",
     "db:migrate": "bun --env-file=env/local.env run auth:migrate && bun --env-file=env/local.env x drizzle-kit migrate",
     "dev": "bun run --parallel dev:api dev:web",
     "dev:api": "APP_ENV=local NODE_ENV=development bun --env-file=env/local.env --watch src/index.ts",

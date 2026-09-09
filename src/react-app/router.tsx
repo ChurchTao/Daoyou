@@ -1089,34 +1089,6 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
-              path="battle/live"
-              lazy={lazyRoute(
-                () => import('@app/routes/game/battle/live/lobby'),
-              )}
-              handle={scene(
-                {
-                  id: 'battle-live-lobby',
-                  chrome: 'immersive',
-                  dock: 'hidden',
-                },
-                '多人战斗邀请',
-              )}
-            />
-            <Route
-              path="battle/live/:matchId"
-              lazy={lazyRoute(
-                () => import('@app/routes/game/battle/live/route'),
-              )}
-              handle={scene(
-                {
-                  id: 'battle-live-match',
-                  chrome: 'immersive',
-                  dock: 'hidden',
-                },
-                '实时多人战局',
-              )}
-            />
-            <Route
               path="battle/:id"
               lazy={lazyRoute(
                 () => import('@app/routes/game/battle/detail/route'),
