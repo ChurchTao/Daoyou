@@ -1,4 +1,3 @@
-import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
 import { SectV6TargetSchema } from '@shared/contracts/combatV6SectTask';
 import {
   REALM_STAGE_VALUES,
@@ -11,25 +10,6 @@ import type { SectBattleTargetAcquisition } from './contracts';
 
 export const SECT_BATTLE_TARGET_SCHEMA_VERSION = 1;
 
-function isCombatant(value: unknown): value is CultivatorCombatInput {
-  if (!value || typeof value !== 'object') return false;
-  const record = value as Record<string, unknown>;
-  return (
-    typeof record.id === 'string' &&
-    typeof record.name === 'string' &&
-    REALM_VALUES.includes(record.realm as RealmType) &&
-    REALM_STAGE_VALUES.includes(record.realm_stage as RealmStage) &&
-    Boolean(record.attributes && typeof record.attributes === 'object') &&
-    Boolean(record.inventory && typeof record.inventory === 'object') &&
-    Boolean(record.equipped && typeof record.equipped === 'object')
-  );
-}
-
-const combatantSchema = z.custom<CultivatorCombatInput>(
-  isCombatant,
-  '宗门战斗目标快照无效',
-);
-
 const baseTargetSchema = z.object({
   schemaVersion: z.literal(SECT_BATTLE_TARGET_SCHEMA_VERSION),
   challengeTitle: z.string().min(1).max(100),
@@ -37,32 +17,32 @@ const baseTargetSchema = z.object({
   description: z.string().min(1).max(500),
   realm: z.enum(REALM_VALUES),
   realmStage: z.enum(REALM_STAGE_VALUES),
-  combatant: combatantSchema,
 });
 
-export const SectPresetBattleTargetSnapshotSchema = baseTargetSchema
-  .extend({
-    kind: z.literal('preset'),
-    presetId: z.string().min(1).max(128),
-    rulesVersion: z.number().int().positive(),
-  })
-  .strict();
+export const SectPresetBattleTargetSnapshotSchema = baseTargetSchema.extend({
+  kind: z.literal('preset'),
+  presetId: z.string().min(1).max(128),
+  rulesVersion: z.number().int().positive(),
+});
 
-export const SectCultivatorBattleTargetSnapshotSchema = baseTargetSchema
-  .extend({
+export const SectCultivatorBattleTargetSnapshotSchema = baseTargetSchema.extend(
+  {
     kind: z.literal('cultivator'),
     sourceCultivatorId: z.string().uuid(),
     sourceSectId: z.string().min(1).max(64),
     sourceSectName: z.string().min(1).max(100),
     lockedAt: z.string().datetime(),
-  })
-  .strict();
+  },
+);
 
 const legacyTargetSchema = z.discriminatedUnion('kind', [
   SectPresetBattleTargetSnapshotSchema,
   SectCultivatorBattleTargetSnapshotSchema,
 ]);
-export const SectBattleTargetSnapshotSchema = z.union([SectV6TargetSchema, legacyTargetSchema]);
+export const SectBattleTargetSnapshotSchema = z.union([
+  SectV6TargetSchema,
+  legacyTargetSchema,
+]);
 
 export type SectBattleTargetSnapshot = z.infer<
   typeof SectBattleTargetSnapshotSchema

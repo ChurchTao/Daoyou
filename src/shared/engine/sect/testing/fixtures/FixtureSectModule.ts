@@ -1,23 +1,9 @@
-import { DefaultAbilitySelectionStrategy } from '@shared/engine/battle-v5/abilities/AbilitySelectionStrategy';
-import { StackRule } from '@shared/engine/battle-v5/buffs/Buff';
 import {
-  AttributeType,
-  BuffType,
-  DamageType,
-  ModifierType,
-} from '@shared/engine/battle-v5/core/types';
-import {
-  BaseSectPathModule,
-  ConfiguredSectNodePlugin,
-  SectAbilityFactory,
   StandardSectModule,
   type CultivatorSectState,
   type SectAbilityDefinition,
-  type SectBuildBuilder,
   type SectDefinitionWithoutPaths,
-  type SectPathCompileContext,
-  type SectPathDefinitionWithoutNodes,
-  type SectProjectionContext,
+  type SectPathDefinition,
 } from '../../core';
 
 const layers = [
@@ -84,14 +70,6 @@ const methods = Array.from({ length: 6 }, (_, index) => ({
   name: `样例心法${index + 1}`,
   description: '扩展契约测试心法。',
   isPrimary: index === 0,
-  growthProfile: {
-    curve: 'balanced' as const,
-    effects: { damage: 0.1, heal: 0.1, shield: 0.1, status: 0.1 },
-    durationMilestones: [
-      { level: 60, bonus: 1 },
-      { level: 120, bonus: 2 },
-    ],
-  },
 }));
 const abilities: SectAbilityDefinition[] = methods.map((method, index) =>
   index === 5
@@ -112,8 +90,6 @@ const abilities: SectAbilityDefinition[] = methods.map((method, index) =>
         description: '扩展契约测试法术。',
         unlock: { type: 'method', methodId: method.id, level: 1 },
         role: index === 2 ? 'defensive' : index === 3 ? 'utility' : 'generator',
-        mpCost: index === 0 ? 0 : 10,
-        cooldown: index === 0 ? 0 : 1,
       },
 );
 
@@ -123,8 +99,6 @@ const baseDefinition: SectDefinitionWithoutPaths = {
   description: '仅用于验证宗门横向扩展。',
   raceIds: ['human'],
   configVersion: 1,
-  foundationPassiveId: 'fixture-ability-6',
-  combatResource: { id: 'fixture.resource', name: '专注', max: 18 },
   methods,
   abilities,
   onboarding: {
@@ -134,210 +108,30 @@ const baseDefinition: SectDefinitionWithoutPaths = {
   },
 };
 
-function createFixtureNodes(prefix: string, resourceId: string) {
-  return layers.flatMap((layer) =>
-    Array.from(
-      { length: 3 },
-      (_, index) =>
-        new ConfiguredSectNodePlugin(
-          {
-            id: `${prefix}-${layer.id}-${index + 1}`,
-            layerId: layer.id,
-            name: `${prefix}节点${index + 1}`,
-            description: '改变测试资源初始值。',
-          },
-          (context, builder) => {
-            builder.updateResource(resourceId, (resource) => ({
-              ...resource,
-              initial: context.activeNodeIds.size,
-            }));
-          },
-        ),
-    ),
-  );
-}
-
-class FixturePathModule extends BaseSectPathModule {
-  constructor(
-    definition: SectPathDefinitionWithoutNodes,
-    private readonly resourceId: string,
-    private readonly resourceName: string,
-    prefix: string,
-  ) {
-    super(definition, createFixtureNodes(prefix, resourceId));
-  }
-
-  protected initializeBuild(
-    _context: SectPathCompileContext,
-    builder: SectBuildBuilder,
-  ): void {
-    builder.clearResources().setResource({
-      id: this.resourceId,
-      name: this.resourceName,
-      initial: 0,
-      max: 18,
-    });
-  }
-
-  createSelectionStrategy() {
-    return { select: () => null };
-  }
-}
-
-const firstPath = new FixturePathModule(
-  {
-    id: 'fixture-first-path',
-    name: '第一流派',
-    description: '第一测试流派',
-    minRealm: '筑基',
-    minRealmStage: '初期',
-    layers: layers.map((layer) => ({ ...layer })),
-    defaultTacticId: 'fixture-first-tactic',
-    tactics: [
-      { id: 'fixture-first-tactic', name: '第一战术', description: '测试战术' },
-    ],
-  },
-  'fixture.resource',
-  '专注',
-  'fixture-first',
-);
-
-const secondPath = new FixturePathModule(
-  {
-    id: 'fixture-second-path',
-    name: '第二流派',
-    description: '第二测试流派',
-    minRealm: '筑基',
-    minRealmStage: '初期',
-    layers: layers.map((layer) => ({ ...layer })),
-    defaultTacticId: 'fixture-second-tactic',
-    tactics: [
-      {
-        id: 'fixture-second-tactic',
-        name: '第二战术',
-        description: '测试战术',
-      },
-    ],
-  },
-  'fixture.resource',
-  '专注',
-  'fixture-second',
-);
-
-function compileFixtureBase(
-  definitionRoot: SectDefinitionWithoutPaths & { paths?: never },
-  _context: SectProjectionContext,
-  builder: SectBuildBuilder,
-): void {
-  const factory = new SectAbilityFactory(definitionRoot.id);
-  for (const definition of definitionRoot.abilities) {
-    if (definition.kind === 'passive') {
-      builder.setAbility(
-        definition.id,
-        factory.passive({
-          definition,
-          modifiers: [
-            {
-              attrType: AttributeType.MAGIC_DEF,
-              type: ModifierType.ADD,
-              value: 0.05,
-            },
-          ],
-        }),
-      );
-      continue;
-    }
-    const idParts = definition.id.split('-');
-    const index = Number(idParts[idParts.length - 1]);
-    const effects =
-      index === 2
-        ? [
-            {
-              type: 'damage' as const,
-              params: {
-                value: { attribute: AttributeType.MAGIC_ATK, coefficient: 1 },
-                damageType: DamageType.MAGICAL,
-              },
-            },
-          ]
-        : index === 3
-          ? [
-              {
-                type: 'heal' as const,
-                params: {
-                  value: { targetMaxHpRatio: 0.1 },
-                  target: 'hp' as const,
-                  recipient: 'caster' as const,
-                },
-              },
-            ]
-          : index === 4
-            ? [
-                {
-                  type: 'apply_buff' as const,
-                  params: {
-                    target: 'target' as const,
-                    buffConfig: {
-                      id: 'fixture.control',
-                      name: '定身',
-                      type: BuffType.CONTROL,
-                      duration: 1,
-                      stackRule: StackRule.REFRESH_DURATION,
-                    },
-                  },
-                },
-              ]
-            : [
-                {
-                  type: 'damage' as const,
-                  params: {
-                    value: { attribute: AttributeType.ATK, coefficient: 1 },
-                    damageType:
-                      index === 5 ? DamageType.TRUE : DamageType.PHYSICAL,
-                  },
-                },
-              ];
-    builder.setAbility(
-      definition.id,
-      factory.active({
-        definition,
-        detailRows: ['伤害：1.00物攻'],
-        targetPolicy:
-          index === 2
-            ? { team: 'enemy', scope: 'aoe', maxTargets: 3 }
-            : index === 3
-              ? { team: 'self', scope: 'single' }
-              : { team: 'enemy', scope: 'single' },
-        effects,
-      }),
-    );
-  }
-  builder.setResource({
-    id: definitionRoot.combatResource.id,
-    name: definitionRoot.combatResource.name,
-    initial: 0,
-    max: definitionRoot.combatResource.max,
-  });
-}
-
-class FixtureSectModule extends StandardSectModule {
-  constructor() {
-    super(baseDefinition, [firstPath, secondPath]);
-  }
-
-  protected compileBase(
-    context: SectProjectionContext,
-    builder: SectBuildBuilder,
-  ): void {
-    compileFixtureBase(baseDefinition, context, builder);
-  }
-
-  createBaseSelectionStrategy() {
-    return new DefaultAbilitySelectionStrategy();
-  }
-}
-
-export const FIXTURE_SECT_MODULE = new FixtureSectModule();
+const paths: SectPathDefinition[] = ['first', 'second'].map((key) => ({
+  id: `fixture-${key}-path`,
+  name: key === 'first' ? '第一流派' : '第二流派',
+  description: '历史迁移测试流派',
+  minRealm: '筑基',
+  minRealmStage: '初期',
+  layers: layers.map((layer) => ({ ...layer })),
+  defaultTacticId: `fixture-${key}-tactic`,
+  tactics: [
+    { id: `fixture-${key}-tactic`, name: '测试战术', description: '历史标识' },
+  ],
+  nodes: layers.flatMap((layer) =>
+    Array.from({ length: 3 }, (_, index) => ({
+      id: `fixture-${key}-${layer.id}-${index + 1}`,
+      layerId: layer.id,
+      name: '历史节点',
+      description: '历史迁移标识',
+    })),
+  ),
+}));
+export const FIXTURE_SECT_MODULE = new StandardSectModule({
+  ...baseDefinition,
+  paths,
+});
 
 export function fixtureSectState(): CultivatorSectState {
   return {

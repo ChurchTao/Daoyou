@@ -1,30 +1,17 @@
-import { getRealmStageAttributeBudget } from '@shared/config/realmProgression';
-import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
-import {
-  buildPresetArtifact,
-  buildPresetSkill,
-} from '@shared/engine/cultivator/creation/presetProducts';
-import type { Attributes } from '@shared/types/cultivator';
-import type {
-  ElementType,
-  EquipmentSlot,
-  RealmType,
-} from '@shared/types/constants';
+import type { RealmType } from '@shared/types/constants';
 import {
   SECT_RANK_METHOD_CAP,
-  type CultivatorSectState,
   type SectDiscipleRank,
   type SectRankRequirement,
 } from '../domain';
 import { StandardSectCapabilityPolicy } from './StandardSectCapabilityPolicy';
+import { getSectFacilityUpgradeTarget } from './construction';
 import {
   SECT_CRAFT_CONTEXTS,
-  type SectBattleScenarioCatalog,
   type SectBenefitPolicy,
   type SectConstructionPolicy,
   type SectCraftContextKey,
   type SectEconomyPolicy,
-  type SectOpponentFactory,
   type SectOrganizationModule,
   type SectOrganizationTaskId,
   type SectRankPolicy,
@@ -32,7 +19,6 @@ import {
   type SectTaskDefinition,
   type SectTaskDialogueDefinition,
 } from './contracts';
-import { getSectFacilityUpgradeTarget } from './construction';
 import { calculateStandardSectStipendBase } from './stipend';
 
 const capabilities = new StandardSectCapabilityPolicy(
@@ -496,284 +482,6 @@ class StandardSectConstructionPolicy implements SectConstructionPolicy {
   }
 }
 
-const ATTRIBUTE_KEYS = [
-  'vitality',
-  'strength',
-  'spirit',
-  'endurance',
-  'speed',
-  'willpower',
-] as const;
-
-function scaledRealmAttributes(
-  player: Pick<CultivatorCombatInput, 'realm' | 'realm_stage'>,
-  multiplier: number,
-): Attributes {
-  const budget = getRealmStageAttributeBudget(player.realm, player.realm_stage);
-  const base = Math.floor(budget / ATTRIBUTE_KEYS.length);
-  const remainder = budget % ATTRIBUTE_KEYS.length;
-  return Object.fromEntries(
-    ATTRIBUTE_KEYS.map((key, index) => [
-      key,
-      Math.max(
-        1,
-        Math.floor((base + (index < remainder ? 1 : 0)) * multiplier),
-      ),
-    ]),
-  ) as unknown as Attributes;
-}
-
-function createRealmNpcOpponent(
-  player: Pick<CultivatorCombatInput, 'realm' | 'realm_stage'>,
-  opponentId: string,
-  name: string,
-  multiplier: number,
-  skills: CultivatorCombatInput['skills'] = [],
-): CultivatorCombatInput {
-  return {
-    id: opponentId,
-    name,
-    realm: player.realm,
-    realm_stage: player.realm_stage,
-    attributes: scaledRealmAttributes(player, multiplier),
-    spiritual_roots: [],
-    pre_heaven_fates: [],
-    cultivations: [],
-    skills: structuredClone(skills),
-    inventory: { artifacts: [] },
-    equipped: { weapon: null, armor: null, accessory: null },
-  };
-}
-
-function createLockedCultivatorOpponent(
-  target: CultivatorCombatInput,
-  opponentId: string,
-): CultivatorCombatInput {
-  const opponent = structuredClone(target);
-  opponent.id = opponentId;
-  return opponent;
-}
-
-const MINE_BEAST_NAME = '裂岩獠兽';
-const MINE_BEAST_DESCRIPTION =
-  '盘踞宗门矿脉的厚甲妖兽，惯以獠牙冲阵、震地扰敌，并以妖血强化自身。';
-const MINE_BEAST_SKILLS: CultivatorCombatInput['skills'] = [
-  buildPresetSkill({
-    name: '碎岩扑击',
-    description: '挟碎岩之力扑向敌手，撕开其护体防御。',
-    element: '土',
-    affixIds: ['skill-core-damage-earth', 'skill-variant-def-break'],
-    quality: '玄品',
-  }),
-  buildPresetSkill({
-    name: '撼地怒吼',
-    description: '以沉闷咆哮震动地脉，使敌手一时难以行动。',
-    element: '土',
-    affixIds: ['skill-core-damage-earth', 'skill-variant-control-stun'],
-    quality: '玄品',
-  }),
-  buildPresetSkill({
-    name: '妖血沸腾',
-    description: '催动妖血燃起凶性，强化自身战意。',
-    element: '火',
-    affixIds: ['skill-core-fire-channeling'],
-    quality: '玄品',
-  }),
-];
-
-const ELDER_ARTIFACT_RECIPES: readonly {
-  slot: EquipmentSlot;
-  element: ElementType;
-  affixIds: string[];
-}[] = [
-  {
-    slot: 'weapon',
-    element: '土',
-    affixIds: [
-      'artifact-panel-weapon-dual-atk',
-      'artifact-panel-spirit',
-      'artifact-weapon-blood-drinker',
-    ],
-  },
-  {
-    slot: 'armor',
-    element: '木',
-    affixIds: [
-      'artifact-panel-armor-dual-def',
-      'artifact-panel-vitality',
-      'artifact-defense-death-prevent',
-    ],
-  },
-  {
-    slot: 'accessory',
-    element: '水',
-    affixIds: [
-      'artifact-panel-accessory-utility',
-      'artifact-panel-willpower',
-      'artifact-accessory-clear-heart-pendant',
-    ],
-  },
-];
-
-function elderSectState(
-  sectId: string,
-  preset: SectElderTrialPreset,
-): CultivatorSectState {
-  return {
-    membershipId: `preset-elder-${sectId}`,
-    sectId,
-    status: 'active',
-    contribution: 0,
-    discipleRank: 'true',
-    office: 'elder',
-    configVersion: preset.configVersion,
-    activePathId: preset.pathId,
-    methods: Object.fromEntries(
-      preset.methodIds.map((methodId) => [methodId, 135]),
-    ),
-    paths: [
-      {
-        pathId: preset.pathId,
-        unlockedLayerIds: ['1', '2', '3', '4', '5', 'ultimate'],
-        tacticId: preset.tacticId,
-        activeMeridianSlot: 1,
-        meridianLoadouts: [
-          { slot: 1, nodeIds: [], version: 1 },
-          { slot: 2, nodeIds: [], version: 1 },
-          { slot: 3, nodeIds: [], version: 1 },
-        ],
-      },
-    ],
-    abilityLoadout: [...preset.abilityLoadout],
-  };
-}
-
-function createElderOpponent(
-  sectId: string,
-  opponentId: string,
-  preset: SectElderTrialPreset,
-): CultivatorCombatInput {
-  const artifacts = ELDER_ARTIFACT_RECIPES.map((recipe, index) =>
-    buildPresetArtifact({
-      id: `${opponentId}-${recipe.slot}`,
-      name: preset.artifactNames[index]!,
-      description: preset.artifactDescriptions[index]!,
-      slot: recipe.slot,
-      element: recipe.element,
-      affixIds: recipe.affixIds,
-      quality: '地品',
-      realm: '元婴',
-      realmStage: '圆满',
-      creatorName: preset.name,
-      creatorCultivatorId: `preset-elder-${sectId}`,
-      isEquipped: true,
-    }),
-  );
-  return {
-    id: opponentId,
-    name: preset.name,
-    realm: '元婴',
-    realm_stage: '圆满',
-    attributes: scaledRealmAttributes(
-      { realm: '元婴', realm_stage: '圆满' },
-      1,
-    ),
-    spiritual_roots: [],
-    pre_heaven_fates: [],
-    cultivations: [],
-    skills: [],
-    sect: elderSectState(sectId, preset),
-    inventory: { artifacts },
-    equipped: {
-      weapon: artifacts[0]?.id ?? null,
-      armor: artifacts[1]?.id ?? null,
-      accessory: artifacts[2]?.id ?? null,
-    },
-  };
-}
-
-class StandardSectBattleScenarioCatalog implements SectBattleScenarioCatalog {
-  private readonly scenarios: ReadonlyMap<string, SectOpponentFactory>;
-
-  constructor(theme: SectOrganizationTheme) {
-    this.scenarios = new Map([
-      [
-        'mine_patrol',
-        {
-          acquisition: 'preset',
-          stateStrategy: 'persistent_world',
-          create({ player, opponentId }) {
-            return {
-              opponent: createRealmNpcOpponent(
-                player,
-                opponentId,
-                MINE_BEAST_NAME,
-                0.75,
-                MINE_BEAST_SKILLS,
-              ),
-              title: '矿场巡视',
-              presetId: 'mine-beast-rockfang-v1',
-              description: MINE_BEAST_DESCRIPTION,
-            };
-          },
-        },
-      ],
-      [
-        'weekly_tournament',
-        {
-          acquisition: 'same-sect',
-          stateStrategy: 'standard_full',
-          create({ target, opponentId }) {
-            if (!target) throw new Error('宗门小比缺少已锁定对手');
-            return {
-              opponent: createLockedCultivatorOpponent(target, opponentId),
-              title: '宗门小比',
-              description: '本周演武名册中与你同境或低一境的同门。',
-            };
-          },
-        },
-      ],
-      [
-        'weekly_bounty_battle',
-        {
-          acquisition: 'other-sect',
-          stateStrategy: 'persistent_world',
-          create({ target, opponentId }) {
-            if (!target) throw new Error('战斗悬赏缺少已锁定目标');
-            return {
-              opponent: createLockedCultivatorOpponent(target, opponentId),
-              title: '悬赏令·讨伐',
-              description: '悬赏令上与你同境或低一境的外宗目标。',
-            };
-          },
-        },
-      ],
-      [
-        'elder_trial',
-        {
-          acquisition: 'preset',
-          stateStrategy: 'persistent_world',
-          create({ sectId, opponentId }) {
-            const preset = theme.elderTrial;
-            if (!preset)
-              throw new Error(`宗门 ${sectId} 未配置长老试炼预设`);
-            return {
-              opponent: createElderOpponent(sectId, opponentId, preset),
-              title: '长老试炼',
-              presetId: `elder-trial-${sectId}-v1`,
-              description: preset.description,
-            };
-          },
-        },
-      ],
-    ]);
-  }
-
-  get(taskId: SectOrganizationTaskId): SectOpponentFactory | undefined {
-    return this.scenarios.get(taskId);
-  }
-}
-
 class StandardSectRankPolicy implements SectRankPolicy {
   nextRank(rank: SectDiscipleRank): SectDiscipleRank | null {
     return (
@@ -982,13 +690,6 @@ export interface SectOrganizationTheme {
 export interface SectElderTrialPreset {
   name: string;
   description: string;
-  configVersion: number;
-  methodIds: readonly string[];
-  pathId: string;
-  tacticId: string;
-  abilityLoadout: CultivatorSectState['abilityLoadout'];
-  artifactNames: readonly [string, string, string];
-  artifactDescriptions: readonly [string, string, string];
 }
 
 export class StandardSectOrganizationModule implements SectOrganizationModule {
@@ -997,13 +698,11 @@ export class StandardSectOrganizationModule implements SectOrganizationModule {
   readonly tasks: SectTaskCatalog;
   readonly economy: SectEconomyPolicy;
   readonly construction = new StandardSectConstructionPolicy();
-  readonly battles: SectBattleScenarioCatalog;
   readonly benefits: SectBenefitPolicy;
 
   constructor(readonly theme: SectOrganizationTheme = {}) {
     this.tasks = new StandardSectTaskCatalog();
     this.economy = new StandardSectEconomyPolicy();
-    this.battles = new StandardSectBattleScenarioCatalog(theme);
     this.benefits = new StandardSectBenefitPolicy(theme);
   }
 }

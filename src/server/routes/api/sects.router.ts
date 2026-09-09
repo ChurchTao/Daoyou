@@ -23,6 +23,8 @@ import {
   readResourceWithMeta,
   readResourceWithResolvedScope,
 } from '@server/lib/services/ResourceReadService';
+import { SectError } from '@server/lib/services/SectError';
+import { SectShopError } from '@server/lib/services/SectShopService';
 import { sectOrganizationFacade } from '@server/lib/services/sect-organization';
 import {
   createPostgresSectConstructionQueryContext,
@@ -42,8 +44,6 @@ import {
 import { executeSectTaskActionCommand } from '@server/lib/services/sect-organization/SectTaskCommand';
 import { previewSectTransfer } from '@server/lib/services/sect-organization/SectTransferApplicationService';
 import { executeSectTransferCommand } from '@server/lib/services/sect-organization/SectTransferCommand';
-import { SectError } from '@server/lib/services/SectError';
-import { SectShopError } from '@server/lib/services/SectShopService';
 import {
   SectDonationRequestSchema,
   SectIdempotencyKeySchema,
@@ -123,10 +123,7 @@ function failure(c: Context<AppEnv>, error: unknown) {
 
 export function createSectsRouter(
   dependencies: {
-    organizationFacade?: Pick<
-      typeof sectOrganizationFacade,
-      'admission' | 'tradition'
-    >;
+    organizationFacade?: Pick<typeof sectOrganizationFacade, 'admission'>;
     runtime?: SectRuntime;
   } = {},
 ) {

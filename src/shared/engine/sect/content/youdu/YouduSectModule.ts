@@ -1,32 +1,10 @@
-import {
-  StandardSectModule,
-  type SectBuildBuilder,
-  type SectProjectionContext,
-} from '../../core';
-import { compileYouduBase } from './base/YouduBaseCompiler';
-import { YOUDU_BASE_DEFINITION } from './definition';
+import { StandardSectModule } from '../../core';
+import { YOUDU_DEFINITION } from './definition';
 import { YOUDU_ORGANIZATION_THEME } from './organization';
-import { YOUDU_DECREE_PATH_MODULE, YOUDU_TIDE_PATH_MODULE } from './paths';
-import { YouduBaseSelectionStrategy } from './strategy';
 
 export class YouduSectModule extends StandardSectModule {
   constructor() {
-    super(
-      YOUDU_BASE_DEFINITION,
-      [YOUDU_TIDE_PATH_MODULE, YOUDU_DECREE_PATH_MODULE],
-      { organizationTheme: YOUDU_ORGANIZATION_THEME },
-    );
-  }
-
-  protected compileBase(
-    context: SectProjectionContext,
-    builder: SectBuildBuilder,
-  ): void {
-    compileYouduBase(context, builder);
-  }
-
-  createBaseSelectionStrategy() {
-    return new YouduBaseSelectionStrategy();
+    super(YOUDU_DEFINITION, { organizationTheme: YOUDU_ORGANIZATION_THEME });
   }
 }
 

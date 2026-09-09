@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -24,6 +24,16 @@ function sourceFiles(directory: string): string[] {
 }
 
 describe('宗门插件架构守卫', () => {
+  it('宗门组织和静态历史目录不再导入旧战斗或造物引擎', () => {
+    for (const file of sourceFiles(root).filter(
+      (path) => !/\.test\.(ts|tsx)$/.test(path),
+    )) {
+      expect(readFileSync(file, 'utf8'), relative(root, file)).not.toMatch(
+        /battle-v5|creation-v2/,
+      );
+    }
+  });
+
   it('根目录只保留公共入口、说明和分层目录', () => {
     expect(readdirSync(root).sort()).toEqual(
       ['README.md', 'content', 'core', 'index.ts', 'testing'].sort(),
@@ -86,27 +96,6 @@ describe('宗门插件架构守卫', () => {
     expect('manualSettlementEffects').toMatch(removedBattleExtensions);
   });
 
-  it('流派基础编译器不按节点ID集中分派', () => {
-    for (const file of [
-      join(root, 'content/lingxiao/paths/swift/variants.ts'),
-      join(root, 'content/lingxiao/paths/heavy/variants.ts'),
-      join(root, 'content/jiujie/base/JiujieBaseCompiler.ts'),
-      join(root, 'content/jiujie/shared/buildFacade.ts'),
-    ]) {
-      const source = readFileSync(file, 'utf8');
-      expect(source, relative(root, file)).not.toMatch(/nodes\.has\s*\(/);
-      expect(source, relative(root, file)).not.toMatch(
-        /if\s*\([^)]*(swift-|heavy-)/,
-      );
-      expect(source, relative(root, file)).not.toContain('path.level');
-      if (file.includes('/jiujie/')) {
-        expect(source, relative(root, file)).not.toMatch(
-          /(?:if|switch)\s*\([^)]*(?:eye-|condemnation-)/,
-        );
-      }
-    }
-  });
-
   it('通用核心不固定流派层数或每层节点数', () => {
     for (const file of sourceFiles(join(root, 'core')).filter(
       (path) => !path.includes('/tests/'),
@@ -124,22 +113,6 @@ describe('宗门插件架构守卫', () => {
       'utf8',
     );
     expect(production).not.toMatch(/fixture|testing/);
-  });
-
-  it('红尘剑宗内容不手写神通详情或启动期组合穷举', () => {
-    const contentRoot = join(root, 'content/lingxiao');
-    for (const file of sourceFiles(contentRoot).filter(
-      (path) => !path.includes('/tests/'),
-    )) {
-      const source = readFileSync(file, 'utf8');
-      const label = relative(root, file);
-      expect(source, label).not.toContain('detailRows');
-    }
-    const compilationRule = readFileSync(
-      join(root, 'core/validation/SectCompilationRule.ts'),
-      'utf8',
-    );
-    expect(compilationRule).not.toMatch(/compileCombination|JSON\.stringify/);
   });
 
   it('通用宗门前端不依赖具体宗门或固定内容数量', () => {

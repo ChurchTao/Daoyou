@@ -1,17 +1,15 @@
 import type { SectRuntime } from '@shared/engine/sect';
 import type { GetSectTasksQueryHandler } from './GetSectTasksQueryHandler';
-import type {
-  SectAdmissionRepository,
-  SectTraditionRepository,
-  SectTrainingResourceGateway,
-} from './ports';
 import { SectAdmissionApplicationService } from './SectAdmissionApplicationService';
 import type { SectConstructionApplicationService } from './SectConstructionApplicationService';
 import type { SectEconomyApplicationService } from './SectEconomyApplicationService';
 import type { SectMembershipApplicationService } from './SectMembershipApplicationService';
 import type { ExecuteSectTaskActionHandler } from './SectTaskApplicationService';
 import type { SectTaskSubmissionQueryService } from './SectTaskSubmissionQueryService';
-import { SectTraditionApplicationService } from './SectTraditionApplicationService';
+import type {
+  SectAdmissionRepository,
+  SectAdmissionResourceReader,
+} from './ports';
 
 export interface SectOrganizationServices {
   membership: SectMembershipApplicationService;
@@ -41,21 +39,9 @@ export class SectOrganizationFacade {
   createAdmission(args: {
     runtime: SectRuntime;
     repository: SectAdmissionRepository;
-    resources: Pick<SectTrainingResourceGateway, 'load'>;
+    resources: SectAdmissionResourceReader;
   }): SectAdmissionApplicationService {
     return new SectAdmissionApplicationService(
-      args.runtime,
-      args.repository,
-      args.resources,
-    );
-  }
-
-  createTradition(args: {
-    runtime: SectRuntime;
-    repository: SectTraditionRepository;
-    resources: SectTrainingResourceGateway;
-  }): SectTraditionApplicationService {
-    return new SectTraditionApplicationService(
       args.runtime,
       args.repository,
       args.resources,

@@ -1,13 +1,16 @@
-import type { Cultivator } from '@shared/types/cultivator';
-import type { RealmStage, RealmType } from '@shared/types/constants';
 import {
   getArtifactWearerRealmFactor,
   scaleArtifactMainPanelFixedModifiers,
 } from '@shared/engine/shared/artifactRealmScaling';
-import { projectSectMethodModifiers } from '@shared/engine/sect';
-import { sectRegistry } from '@shared/engine/sect/content';
+import type { RealmStage, RealmType } from '@shared/types/constants';
+import type { Cultivator } from '@shared/types/cultivator';
 import type { AttributeModifierConfig } from '../core/configs';
-import { AttributeType, ModifierType, type AttributeModifier, type UnitId } from '../core/types';
+import {
+  AttributeType,
+  ModifierType,
+  type AttributeModifier,
+  type UnitId,
+} from '../core/types';
 import type { AttrsStateView } from '../systems/state/types';
 import { Unit } from '../units/Unit';
 
@@ -72,10 +75,13 @@ export function createDisplayUnitFromCultivator(
 
   for (const [cultivatorKey, attrType] of Object.entries(ATTRIBUTE_MAP)) {
     baseAttrs[attrType] =
-      cultivator.attributes[cultivatorKey as keyof typeof cultivator.attributes] ?? 0;
+      cultivator.attributes[
+        cultivatorKey as keyof typeof cultivator.attributes
+      ] ?? 0;
   }
 
-  const unitId = ((cultivator.id ?? cultivator.name) + (isMirror ? '_mirror' : '')) as UnitId;
+  const unitId = ((cultivator.id ?? cultivator.name) +
+    (isMirror ? '_mirror' : '')) as UnitId;
   const unitName = isMirror ? `${cultivator.name}的镜像` : cultivator.name;
   const unit = new Unit(unitId, unitName, baseAttrs);
 
@@ -83,20 +89,12 @@ export function createDisplayUnitFromCultivator(
     mountModifiers(unit, 'gongfa', cultivation);
   }
 
-  for (const method of cultivator.sect
-    ? projectSectMethodModifiers(cultivator.sect, sectRegistry.require(cultivator.sect.sectId).definition)
-    : []) {
-    mountModifiers(unit, 'sect-method', {
-      id: method.methodId,
-      name: method.methodName,
-      attributeModifiers: method.modifiers,
-    });
-  }
-
   const equippedIds = new Set(
-    [cultivator.equipped.weapon, cultivator.equipped.armor, cultivator.equipped.accessory].filter(
-      Boolean,
-    ),
+    [
+      cultivator.equipped.weapon,
+      cultivator.equipped.armor,
+      cultivator.equipped.accessory,
+    ].filter(Boolean),
   );
   for (const artifact of cultivator.inventory.artifacts ?? []) {
     if (!artifact.id || !equippedIds.has(artifact.id)) continue;
@@ -212,12 +210,8 @@ function buildAttrsView(unit: Unit): AttrsStateView {
     controlResistance: unit.attributes.getValue(
       AttributeType.CONTROL_RESISTANCE,
     ),
-    armorPenetration: unit.attributes.getValue(
-      AttributeType.ARMOR_PENETRATION,
-    ),
-    magicPenetration: unit.attributes.getValue(
-      AttributeType.MAGIC_PENETRATION,
-    ),
+    armorPenetration: unit.attributes.getValue(AttributeType.ARMOR_PENETRATION),
+    magicPenetration: unit.attributes.getValue(AttributeType.MAGIC_PENETRATION),
     critResist: unit.attributes.getValue(AttributeType.CRIT_RESIST),
     critDamageReduction: unit.attributes.getValue(
       AttributeType.CRIT_DAMAGE_REDUCTION,

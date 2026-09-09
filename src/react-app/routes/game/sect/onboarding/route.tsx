@@ -8,6 +8,10 @@ import {
 } from '@app/lib/resources/player';
 import { getSectPresentation } from '@app/lib/sect/sectPresentation';
 import type { SectCatalogEntry } from '@shared/contracts/sect';
+import {
+  COMBAT_V6_SECT_DEFINITIONS_V4,
+  type CombatV6SectId,
+} from '@shared/engine/combat-v6/content';
 import { productionSectRuntime } from '@shared/engine/sect/content';
 import { getSectLandmarkBySectId } from '@shared/lib/game/mapSystem';
 import { useMemo, useRef, useState } from 'react';
@@ -20,7 +24,7 @@ import {
 import { resolveSectOnboardingFinish } from './sectOnboardingFlow';
 
 interface OnboardingSectEntry extends SectCatalogEntry {
-  foundationPassive: {
+  paths: {
     name: string;
     description: string;
   };
@@ -49,19 +53,15 @@ export default function SectOnboardingPage() {
           }).allowed,
       )
       .map((definition): OnboardingSectEntry => {
-        const foundationPassive = definition.abilities.find(
-          (ability) => ability.id === definition.foundationPassiveId,
-        );
-        if (!foundationPassive) {
-          throw new Error(`宗门 ${definition.id} 缺少根基被动定义`);
-        }
+        const combat =
+          COMBAT_V6_SECT_DEFINITIONS_V4[definition.id as CombatV6SectId];
         return {
           id: definition.id,
           name: definition.name,
           description: definition.description,
-          foundationPassive: {
-            name: foundationPassive.baseName,
-            description: foundationPassive.description,
+          paths: {
+            name: combat.paths.map((path) => path.name).join(' · '),
+            description: '入宗后可修习六心法，选择流派并参悟经脉。',
           },
         };
       });
@@ -146,10 +146,10 @@ export default function SectOnboardingPage() {
                         宗门根基
                       </p>
                       <p className="mt-1 text-sm font-semibold text-[#f2d69c]">
-                        {sect.foundationPassive.name}
+                        {sect.paths.name}
                       </p>
                       <p className="mt-1 text-sm leading-6 text-[#ded2ba]">
-                        {sect.foundationPassive.description}
+                        {sect.paths.description}
                       </p>
                     </div>
                     <InkButton

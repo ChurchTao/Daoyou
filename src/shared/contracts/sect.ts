@@ -1,3 +1,4 @@
+import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import type {
   CultivatorSectState,
   SectBattleTargetSummary,
@@ -11,29 +12,10 @@ import type {
   SectTaskDialoguePresentation,
   SectTaskRewardSnapshot,
 } from '@shared/engine/sect';
-import { StandardSectRules } from '@shared/engine/sect';
 import type { CultivationProgress } from '@shared/types/cultivator';
 import { z } from 'zod';
-import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import type { PlayerStateMutationResponse } from './player';
 
-export const SectLevelTrainRequestSchema = z.object({
-  targetLevel: z.number().int().positive(),
-});
-export const SectMethodTrainRequestSchema = SectLevelTrainRequestSchema;
-export const SectMeridianLoadoutRequestSchema = z.object({
-  nodeIds: z
-    .array(z.string().min(1).max(64))
-    .max(StandardSectRules.meridianNodeTransportLimit),
-});
-export const SectAbilityLoadoutRequestSchema = z.object({
-  abilityIds: z
-    .array(z.string().min(1).max(64).nullable())
-    .length(StandardSectRules.activeAbilitySlotCount),
-});
-export const SectTacticRequestSchema = z.object({
-  tacticId: z.string().min(1).max(32),
-});
 export const SectTaskActionRequestSchema = z
   .object({
     input: z.record(z.string(), z.json()).default({}),
@@ -46,11 +28,7 @@ export const SectTaskSubmissionInputSchema = z
         z
           .object({
             itemId: z.string().uuid(),
-            quantity: z
-              .number()
-              .int()
-              .positive()
-              .max(MAX_PLAYER_ITEM_QUANTITY),
+            quantity: z.number().int().positive().max(MAX_PLAYER_ITEM_QUANTITY),
           })
           .strict(),
       )
@@ -291,10 +269,7 @@ export interface SectSubmissionCandidatesData {
 export type SectTaskActionResponse =
   PlayerStateMutationResponse<SectTaskActionData>;
 
-export type {
-  SectShopData,
-  SectShopItemData,
-} from './sectShop';
+export type { SectShopData, SectShopItemData } from './sectShop';
 
 export interface SectInfrastructureData {
   facilities: SectFacilityState[];

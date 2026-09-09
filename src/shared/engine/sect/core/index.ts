@@ -1,5 +1,3 @@
-export * from './authoring';
-export * from './compilation';
 export * from './domain';
 export * from './mining';
 export * from './organization';

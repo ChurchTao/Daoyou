@@ -1,22 +1,20 @@
-import type { Cultivator } from '@shared/types/cultivator';
-import type { RealmStage, RealmType } from '@shared/types/constants';
 import { getRealmStageRank } from '@shared/config/realmProgression';
 import {
   getArtifactWearerRealmFactor,
   scaleArtifactMainPanelFixedModifiers,
 } from '@shared/engine/shared/artifactRealmScaling';
-import { AbilityFactory } from '../factories/AbilityFactory';
+import type { RealmStage, RealmType } from '@shared/types/constants';
+import type { Cultivator } from '@shared/types/cultivator';
+import type { AbilityConfig } from '../core/configs';
 import {
   AttributeType,
-  type UnitId,
   type TeamId,
   type TeamSlot,
+  type UnitId,
 } from '../core/types';
-import type { AbilityConfig } from '../core/configs';
-import { Unit } from '../units/Unit';
-import { createSectAbilitySelectionStrategy } from '@shared/engine/sect';
-import { projectSectCombat } from '@shared/engine/sect/content';
+import { AbilityFactory } from '../factories/AbilityFactory';
 import type { BattleRuntime } from '../runtime/BattleRuntime';
+import { Unit } from '../units/Unit';
 
 export type CultivatorCombatInput = Pick<
   Cultivator,
@@ -55,10 +53,13 @@ export function createCombatUnitFromCultivator(
 
   for (const [cultivatorKey, attrType] of Object.entries(ATTRIBUTE_MAP)) {
     baseAttrs[attrType] =
-      cultivator.attributes[cultivatorKey as keyof typeof cultivator.attributes] ?? 0;
+      cultivator.attributes[
+        cultivatorKey as keyof typeof cultivator.attributes
+      ] ?? 0;
   }
 
-  const unitId = ((cultivator.id ?? cultivator.name) + (isMirror ? '_mirror' : '')) as UnitId;
+  const unitId = ((cultivator.id ?? cultivator.name) +
+    (isMirror ? '_mirror' : '')) as UnitId;
   const unitName = isMirror ? `${cultivator.name}的镜像` : cultivator.name;
   const unit = new Unit(unitId, unitName, baseAttrs, { runtime, ...team });
   unit.setSpiritualRoots(cultivator.spiritual_roots ?? []);
@@ -68,11 +69,7 @@ export function createCombatUnitFromCultivator(
     realmRank: getRealmStageRank(cultivator.realm, cultivator.realm_stage),
   });
 
-  const sectProjection = cultivator.sect
-    ? projectSectCombat({ sect: cultivator.sect, realm: cultivator.realm })
-    : null;
-
-  for (const skill of sectProjection ? [] : (cultivator.skills ?? [])) {
+  for (const skill of cultivator.skills ?? []) {
     if (!skill.abilityConfig) continue;
     unit.abilities.addAbility(AbilityFactory.create(skill.abilityConfig));
   }
@@ -83,12 +80,18 @@ export function createCombatUnitFromCultivator(
   }
 
   const equippedIds = new Set(
-    [cultivator.equipped.weapon, cultivator.equipped.armor, cultivator.equipped.accessory].filter(
-      Boolean,
-    ),
+    [
+      cultivator.equipped.weapon,
+      cultivator.equipped.armor,
+      cultivator.equipped.accessory,
+    ].filter(Boolean),
   );
   for (const artifact of cultivator.inventory.artifacts ?? []) {
-    if (!artifact.id || !equippedIds.has(artifact.id) || !artifact.abilityConfig) {
+    if (
+      !artifact.id ||
+      !equippedIds.has(artifact.id) ||
+      !artifact.abilityConfig
+    ) {
       continue;
     }
     const productModel = (artifact.productModel ?? {}) as {
@@ -113,31 +116,6 @@ export function createCombatUnitFromCultivator(
           }
         : artifact.abilityConfig;
     unit.abilities.addAbility(AbilityFactory.create(effectiveAbilityConfig));
-  }
-
-  if (sectProjection) {
-    for (const resource of sectProjection.resources) {
-      unit.combatResources.define(resource);
-    }
-    if (sectProjection.defaultAttack) {
-      unit.abilities.setDefaultAttack(AbilityFactory.create(sectProjection.defaultAttack));
-    }
-    for (const ability of sectProjection.abilities) {
-      unit.abilities.addAbility(AbilityFactory.create(ability));
-    }
-    const selectionStrategy = createSectAbilitySelectionStrategy(sectProjection);
-    if (selectionStrategy) {
-      unit.abilities.setSelectionStrategy(selectionStrategy);
-    }
-    for (const method of sectProjection.methodModifiers) {
-      for (const [index, modifier] of method.modifiers.entries()) {
-        unit.attributes.addModifier({
-          id: `sect-method:${method.methodId}:${modifier.attrType}:${index}`,
-          ...modifier,
-          source: { sourceType: 'sectMethod', carrierId: method.methodId },
-        });
-      }
-    }
   }
 
   unit.updateDerivedStats();

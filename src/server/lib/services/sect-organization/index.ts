@@ -11,4 +11,3 @@ export * from './SectOrganizationPlugins';
 export * from './SectTaskApplicationService';
 export * from './SectTaskSettlement';
 export * from './SectTaskSubmissionQueryService';
-export * from './SectTraditionApplicationService';

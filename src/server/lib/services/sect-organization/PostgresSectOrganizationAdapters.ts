@@ -1,5 +1,4 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
-import { freezeSectTaskTarget, startSectTaskBattle } from '../combat-v6/CombatV6SectTaskService';
 import {
   consumables,
   creationProducts,
@@ -8,6 +7,10 @@ import {
 import { createPostgresDomainEventWriter } from '@server/lib/mq/domainEventWriter';
 import * as organization from '@server/lib/repositories/sectOrganizationRepository';
 import * as memberships from '@server/lib/repositories/sectRepository';
+import {
+  materialLibraryEntryToMaterial,
+  sampleMaterialLibraryEntryDeterministic,
+} from '@server/lib/services/MaterialLibraryService';
 import { mapConsumableRow } from '@server/lib/services/consumablePersistence';
 import { toArtifactFromProduct } from '@server/lib/services/creationProductArtifactSupport';
 import {
@@ -15,17 +18,11 @@ import {
   mapArtifactRow,
   mapMaterialRow,
 } from '@server/lib/services/cultivator/CultivatorInventoryRepository';
-import {
-  updateCultivationExp,
-} from '@server/lib/services/cultivator/CultivatorStateRepository';
-import {
-  materialLibraryEntryToMaterial,
-  sampleMaterialLibraryEntryDeterministic,
-} from '@server/lib/services/MaterialLibraryService';
+import { updateCultivationExp } from '@server/lib/services/cultivator/CultivatorStateRepository';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
 import {
-  projectSectPillTraits,
   SectTaskRecordPayloadSchema,
+  projectSectPillTraits,
   type SectDiscipleRank,
   type SectPillSubmissionFacts,
   type SectRuntime,
@@ -43,10 +40,17 @@ import {
 } from '@shared/types/constants';
 import type { ConsumableSpec } from '@shared/types/consumable';
 import { eq } from 'drizzle-orm';
+import {
+  freezeSectTaskTarget,
+  startSectTaskBattle,
+} from '../combat-v6/CombatV6SectTaskService';
+import { emptySectCommandEffects } from './SectCommandEffects';
+import { getSectDateKey, getSectWeekKey } from './SectOrganizationClock';
 import type {
   Clock,
   IdGenerator,
   SectAdmissionRepository,
+  SectAdmissionResourceReader,
   SectBenefitQueryContext,
   SectCommandContext,
   SectConstructionCommandContext,
@@ -64,11 +68,7 @@ import type {
   SectMembershipRepository,
   SectQueryContext,
   SectTaskRecord,
-  SectTraditionRepository,
-  SectTrainingResourceGateway,
 } from './ports';
-import { emptySectCommandEffects } from './SectCommandEffects';
-import { getSectDateKey, getSectWeekKey } from './SectOrganizationClock';
 
 function mapTask(row: {
   id: string;
@@ -171,84 +171,12 @@ export function createPostgresSectAdmissionRepository(args: {
   };
 }
 
-export function createPostgresSectTraditionRepository(args: {
+export function createPostgresSectAdmissionResourceReader(args: {
   q: DbExecutor | DbTransaction;
-  runtime: SectRuntime;
-}): SectTraditionRepository {
-  const { q, runtime } = args;
-  const tx = () => requireTransaction(q);
-  return {
-    ...stateAdapter(q, runtime),
-    setMethodLevel: (membershipId, methodId, level) =>
-      memberships.setMethodLevel(membershipId, methodId, level, tx()),
-    createPathWithFirstLayer: (membershipId, pathId, tacticId, layerId) =>
-      memberships.createPathWithFirstLayer(
-        membershipId,
-        pathId,
-        tacticId,
-        layerId,
-        tx(),
-      ),
-    appendUnlockedPathLayer: (membershipId, pathId, layerId, expectedCount) =>
-      memberships.appendUnlockedPathLayer(
-        membershipId,
-        pathId,
-        layerId,
-        expectedCount,
-        tx(),
-      ),
-    activatePathIfNone: (membershipId, pathId) =>
-      memberships.activatePathIfNone(membershipId, pathId, tx()),
-    activatePath: (membershipId, pathId) =>
-      memberships.activatePath(membershipId, pathId, tx()),
-    replaceMeridianLoadout: (membershipId, pathId, slot, nodeIds) =>
-      memberships.replaceMeridianLoadout(
-        membershipId,
-        pathId,
-        slot,
-        nodeIds,
-        tx(),
-      ),
-    activateMeridianLoadout: (membershipId, pathId, slot) =>
-      memberships.activateMeridianLoadout(membershipId, pathId, slot, tx()),
-    replaceAbilityLoadout: (membershipId, slots) =>
-      memberships.replaceAbilityLoadout(membershipId, slots, tx()),
-    setPathTactic: (membershipId, pathId, tacticId) =>
-      memberships.setPathTactic(membershipId, pathId, tacticId, tx()),
-  };
-}
-
-export function createPostgresSectTrainingResourceGateway(args: {
-  q: DbExecutor | DbTransaction;
-  runtime: SectRuntime;
-}): SectTrainingResourceGateway {
-  const { q, runtime } = args;
+}): SectAdmissionResourceReader {
   return {
     load: (cultivatorId) =>
-      memberships.loadSectCultivatorProgress(cultivatorId, q),
-    spend: (cultivatorId, cost) =>
-      memberships.spendTrainingResources(
-        cultivatorId,
-        cost,
-        requireTransaction(q),
-      ),
-    async methodLevelCap(cultivatorId) {
-      const state = await memberships.loadCultivatorSectState(
-        cultivatorId,
-        q,
-        runtime,
-      );
-      if (!state) return 20;
-      const levels = new Map(
-        (await organization.listSectFacilities(state.sectId, q)).map((row) => [
-          row.facilityKey,
-          row.level,
-        ]),
-      );
-      return runtime.registry
-        .require(state.sectId)
-        .organization.benefits.methodLevelCap(levels);
-    },
+      memberships.loadSectCultivatorProgress(cultivatorId, args.q),
   };
 }
 
@@ -724,11 +652,7 @@ function economyCommandAdapter(tx: DbTransaction): SectEconomyRepository {
   return {
     ...economyReadAdapter(tx),
     async spendContribution(membershipId: string, amount: number) {
-      return organization.spendSectContribution(
-        membershipId,
-        amount,
-        tx,
-      );
+      return organization.spendSectContribution(membershipId, amount, tx);
     },
     async recordStipendClaim(input: {
       membershipId: string;
@@ -748,11 +672,7 @@ function constructionCommandAdapter(
 ): SectConstructionRepository {
   return {
     async grantContribution(membershipId: string, amount: number) {
-      return organization.addSectContribution(
-        membershipId,
-        amount,
-        tx,
-      );
+      return organization.addSectContribution(membershipId, amount, tx);
     },
   };
 }
@@ -904,7 +824,12 @@ export function createPostgresSectCommandContext(args: {
         return row ? mapTask(row) : null;
       },
       nextAttempt: (membershipId, periodKey, taskId) =>
-        organization.getNextSectTaskAttempt(membershipId, periodKey, taskId, tx),
+        organization.getNextSectTaskAttempt(
+          membershipId,
+          periodKey,
+          taskId,
+          tx,
+        ),
       create: async (input) =>
         mapTask(
           await organization.createSectTaskRecord(
@@ -958,7 +883,6 @@ export function createPostgresSectCommandContext(args: {
     cultivators: {
       loadProgress: (cultivatorId) =>
         memberships.loadSectCultivatorProgress(cultivatorId, tx),
-
     },
     battle: {
       freeze: (context) => freezeSectTaskTarget(context, tx),

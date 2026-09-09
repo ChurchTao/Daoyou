@@ -1,8 +1,5 @@
+import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import type { DomainEventWriter } from '@server/lib/mq/domainEventWriter';
-import type {
-  DbExecutor,
-  DbTransaction,
-} from '@server/lib/drizzle/db';
 import type {
   ResourceChangeDescriptor,
   ResourceDataMap,
@@ -10,7 +7,6 @@ import type {
 import type { SectTaskSettlementData } from '@shared/contracts/sect';
 import type {
   CultivatorSectState,
-  SectAbilitySlots,
   SectDefinition,
   SectDiscipleRank,
   SectOffice,
@@ -18,7 +14,6 @@ import type {
   SectSubmissionItemFacts,
   SectSubmissionItemKind,
   SectTaskRecordPayload,
-  SectTrainingCost,
 } from '@shared/engine/sect';
 import type { Quality, RealmStage, RealmType } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
@@ -84,52 +79,8 @@ export interface SectTrainingResourceSnapshot {
   playerRace: 'human';
 }
 
-export interface SectTrainingResourceGateway {
+export interface SectAdmissionResourceReader {
   load(cultivatorId: string): Promise<SectTrainingResourceSnapshot | null>;
-  spend(cultivatorId: string, cost: SectTrainingCost): Promise<boolean>;
-  methodLevelCap(cultivatorId: string): Promise<number>;
-}
-
-export interface SectTraditionRepository extends SectStateRepository {
-  setMethodLevel(
-    membershipId: string,
-    methodId: string,
-    level: number,
-  ): Promise<void>;
-  createPathWithFirstLayer(
-    membershipId: string,
-    pathId: string,
-    tacticId: string,
-    layerId: string,
-  ): Promise<boolean>;
-  appendUnlockedPathLayer(
-    membershipId: string,
-    pathId: string,
-    layerId: string,
-    expectedUnlockedCount: number,
-  ): Promise<boolean>;
-  activatePathIfNone(membershipId: string, pathId: string): Promise<void>;
-  activatePath(membershipId: string, pathId: string): Promise<boolean>;
-  replaceMeridianLoadout(
-    membershipId: string,
-    pathId: string,
-    slot: number,
-    nodeIds: string[],
-  ): Promise<void>;
-  activateMeridianLoadout(
-    membershipId: string,
-    pathId: string,
-    slot: number,
-  ): Promise<void>;
-  replaceAbilityLoadout(
-    membershipId: string,
-    slots: SectAbilitySlots,
-  ): Promise<void>;
-  setPathTactic(
-    membershipId: string,
-    pathId: string,
-    tacticId: string,
-  ): Promise<void>;
 }
 
 export interface SectMembershipRecord {
@@ -275,7 +226,6 @@ export interface SectCultivatorGateway {
     realm: RealmType;
     stage: RealmStage;
   } | null>;
-
 }
 
 export interface SectRewardMaterialCandidate {
@@ -295,8 +245,12 @@ export interface SectRewardMaterialCatalogGateway {
 }
 
 export interface SectBattleGateway {
-  freeze(context: import('./task-executors/SectTaskExecutor').SectTaskEnrollmentContext): Promise<import('@shared/contracts/combatV6SectTask').SectV6Target>;
-  start(context: import('./task-executors/SectTaskExecutor').SectTaskExecutionContext): Promise<{ battleId: string }>;
+  freeze(
+    context: import('./task-executors/SectTaskExecutor').SectTaskEnrollmentContext,
+  ): Promise<import('@shared/contracts/combatV6SectTask').SectV6Target>;
+  start(
+    context: import('./task-executors/SectTaskExecutor').SectTaskExecutionContext,
+  ): Promise<{ battleId: string }>;
 }
 
 export interface SectRewardGateway {

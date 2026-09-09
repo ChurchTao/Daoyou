@@ -1,13 +1,7 @@
 import {
-  BaseSectModule,
-  StandardSectMethodGrowthPolicy,
   StandardSectCapabilityPolicy,
-  standardSectProgression,
-  type SectBuildBuilder,
-  type SectDefinition,
-  type SectDefinitionWithoutPaths,
+  type SectModule,
   type SectOrganizationModule,
-  type SectProjectionContext,
 } from '../../core';
 import { FIXTURE_SECT_MODULE } from './FixtureSectModule';
 
@@ -117,7 +111,6 @@ const fixtureOrganization: SectOrganizationModule = {
     ],
     upgradeTarget: (level) => (level < 3 ? 1 : null),
   },
-  battles: { get: () => undefined },
   benefits: {
     snapshot: () => ({
       retreatMultiplier: 1,
@@ -138,45 +131,9 @@ const fixtureOrganization: SectOrganizationModule = {
   },
 };
 
-function omitPaths(definition: SectDefinition): SectDefinitionWithoutPaths {
-  const { paths, ...withoutPaths } = definition;
-  void paths;
-  return withoutPaths;
-}
-
-const fixtureDefinition = omitPaths(FIXTURE_SECT_MODULE.definition);
-
-class CustomEconomyFixtureSectModule extends BaseSectModule {
-  constructor() {
-    super(
-      fixtureDefinition,
-      Array.from(FIXTURE_SECT_MODULE.paths.values()),
-      standardSectProgression,
-      new StandardSectMethodGrowthPolicy(fixtureDefinition.methods),
-      fixtureOrganization,
-      {
-        check: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
-      },
-    );
-  }
-
-  protected compileBase(
-    context: SectProjectionContext,
-    builder: SectBuildBuilder,
-  ): void {
-    const build = FIXTURE_SECT_MODULE.createBaseBuilder(context).build();
-    builder.replaceAbilities(build.abilities);
-    for (const resource of build.resources) builder.setResource(resource);
-    for (const modifier of build.abilityPresentationModifiers ?? []) {
-      builder.addAbilityPresentationModifier(modifier);
-    }
-  }
-
-  createBaseSelectionStrategy() {
-    return FIXTURE_SECT_MODULE.createBaseSelectionStrategy();
-  }
-}
-
-/** 仅供验证自定义经济/服务端插件；标准宗门扩展测试不得使用。 */
-export const CUSTOM_ECONOMY_FIXTURE_SECT_MODULE =
-  new CustomEconomyFixtureSectModule();
+/** 自定义组织经济夹具，不包含战斗实现。 */
+export const CUSTOM_ECONOMY_FIXTURE_SECT_MODULE: SectModule = {
+  definition: FIXTURE_SECT_MODULE.definition,
+  organization: fixtureOrganization,
+  checkAdmission: (context) => FIXTURE_SECT_MODULE.checkAdmission(context),
+};

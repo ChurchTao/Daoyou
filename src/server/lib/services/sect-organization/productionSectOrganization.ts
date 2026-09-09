@@ -9,9 +9,8 @@ import { ClaimSectTaskRewardHandler } from './ClaimSectTaskRewardHandler';
 import { GetSectTasksQueryHandler } from './GetSectTasksQueryHandler';
 import {
   createPostgresSectAdmissionRepository,
+  createPostgresSectAdmissionResourceReader,
   createPostgresSectBenefitContext,
-  createPostgresSectTraditionRepository,
-  createPostgresSectTrainingResourceGateway,
 } from './PostgresSectOrganizationAdapters';
 import { SectBenefitService } from './SectBenefitService';
 import { SectConstructionApplicationService } from './SectConstructionApplicationService';
@@ -19,8 +18,8 @@ import { SectEconomyApplicationService } from './SectEconomyApplicationService';
 import { SectMembershipApplicationService } from './SectMembershipApplicationService';
 import { SectOrganizationFacade } from './SectOrganizationFacade';
 import {
-  composeSectOrganizationPlugins,
   CORE_SECT_ORGANIZATION_PLUGIN,
+  composeSectOrganizationPlugins,
 } from './SectOrganizationPlugins';
 import {
   ExecuteSectTaskActionHandler,
@@ -41,7 +40,9 @@ const plugins = composeSectOrganizationPlugins({
 });
 
 const fulfillment = new FulfillSectTaskHandler(plugins.events);
-export const fulfillSectV6Task = (args: Parameters<FulfillSectTaskHandler['execute']>[0]) => fulfillment.execute(args);
+export const fulfillSectV6Task = (
+  args: Parameters<FulfillSectTaskHandler['execute']>[0],
+) => fulfillment.execute(args);
 const application = new SectOrganizationFacade({
   membership: new SectMembershipApplicationService(benefits, plugins.events),
   tasks: {
@@ -55,10 +56,7 @@ const application = new SectOrganizationFacade({
       plugins.rewardPolicies,
     ),
   },
-  economy: new SectEconomyApplicationService(
-    benefits,
-    plugins.events,
-  ),
+  economy: new SectEconomyApplicationService(benefits, plugins.events),
   construction: new SectConstructionApplicationService(benefits),
 });
 
@@ -72,24 +70,11 @@ export const sectOrganizationFacade = {
     q: DbExecutor | DbTransaction = getExecutor(),
     runtime = productionSectRuntime,
   ) {
-    const resources = createPostgresSectTrainingResourceGateway({
-      q,
-      runtime,
-    });
+    const resources = createPostgresSectAdmissionResourceReader({ q });
     return application.createAdmission({
       runtime,
       repository: createPostgresSectAdmissionRepository({ q, runtime }),
       resources,
-    });
-  },
-  tradition(
-    q: DbExecutor | DbTransaction = getExecutor(),
-    runtime = productionSectRuntime,
-  ) {
-    return application.createTradition({
-      runtime,
-      repository: createPostgresSectTraditionRepository({ q, runtime }),
-      resources: createPostgresSectTrainingResourceGateway({ q, runtime }),
     });
   },
   getFacilityBonuses(
