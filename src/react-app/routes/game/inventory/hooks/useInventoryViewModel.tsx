@@ -147,7 +147,6 @@ export interface UseInventoryViewModelReturn {
   clearIdentifyCelebration: () => void;
 
   // 业务操作
-  handleEquipToggle: (item: Artifact) => Promise<void>;
   handleConsume: (item: Consumable) => Promise<void>;
   handleIdentifyMaterial: (item: Material) => Promise<void>;
   openDiscardConfirm: (
@@ -339,43 +338,6 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
       });
     },
     [handleDiscard],
-  );
-
-  // 装备/卸下法宝
-  const handleEquipToggle = useCallback(
-    async (item: Artifact) => {
-      if (!cultivatorId || !item.id) {
-        pushToast({
-          message: '此法宝暂无有效 ID，无法操作。',
-          tone: 'warning',
-        });
-        return;
-      }
-
-      setPendingId(item.id);
-      try {
-        await mutate(
-          fetch(`/api/cultivator/equip`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ artifactId: item.id }),
-          }),
-        );
-
-        pushToast({ message: '法宝灵性已调顺。', tone: 'success' });
-      } catch (error) {
-        pushToast({
-          message:
-            error instanceof Error
-              ? `此法有违天道：${error.message}`
-              : '操作失败，请稍后重试。',
-          tone: 'danger',
-        });
-      } finally {
-        setPendingId(null);
-      }
-    },
-    [cultivatorId, mutate, pushToast],
   );
 
   const executeConsumableUse = useCallback(
@@ -657,7 +619,6 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     clearIdentifyCelebration,
 
     // 业务操作
-    handleEquipToggle,
     handleConsume,
     handleIdentifyMaterial,
     openDiscardConfirm,

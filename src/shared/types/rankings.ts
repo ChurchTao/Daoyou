@@ -17,7 +17,7 @@ export interface BattleRankingItem {
   bodyCultivation?: BodyCultivationRankingInfo;
 }
 
-export type RankingItemType = 'artifact' | 'skill' | 'elixir' | 'technique';
+export type RankingItemType = 'elixir';
 
 export interface ItemRankingEntry {
   id: string; // itemId
@@ -55,6 +55,4 @@ export interface WealthRankingEntry {
 }
 
 export type RankingsDisplayItem =
-  | BattleRankingItem
-  | ItemRankingEntry
-  | WealthRankingEntry;
+  BattleRankingItem | ItemRankingEntry | WealthRankingEntry;

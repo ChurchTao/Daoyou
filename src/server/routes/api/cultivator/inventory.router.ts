@@ -229,6 +229,9 @@ inventoryRouter.post('/discard', requireActiveCultivatorRef(), async (c) => {
     return c.json({ success: false, error: '未授权访问' }, 401);
   }
   const { itemId, itemType } = DiscardSchema.parse(await c.req.json());
+  if (itemType === 'artifact') {
+    return c.json({ success: false, error: '历史法宝已停用，仅支持查看' }, 410);
+  }
   const committed = await discardInventoryItem({
     actor: { userId: user.id, cultivatorId: cultivator.cultivatorId },
     itemId,

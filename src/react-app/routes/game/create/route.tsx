@@ -2,7 +2,6 @@ import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
 import { toFateDisplayModel } from '@app/components/feature/fates/FateDisplayAdapter';
 import { FateEffectInlineList } from '@app/components/feature/fates/FateEffectInlineList';
 import {
-  AbilityMetaLine,
   AffixInlineList,
   toProductDisplayModel,
   type ProductRecordLike,
@@ -32,8 +31,13 @@ import {
   type CharacterGenerationQuotaResponse,
   type GenerateCharacterResponse,
 } from '@shared/contracts/character-generation';
-import { characterDisplayRows, formatCharacterAttributeValue as formatAttributeValue, formatCharacterAttributeModifier as formatModifier, projectCharacterDisplay } from '@shared/lib/cultivatorDisplay';
 import { cn } from '@shared/lib/cn';
+import {
+  characterDisplayRows,
+  formatCharacterAttributeValue as formatAttributeValue,
+  formatCharacterAttributeModifier as formatModifier,
+  projectCharacterDisplay,
+} from '@shared/lib/cultivatorDisplay';
 import {
   getGameConceptIcon,
   getResourceLabel,
@@ -362,7 +366,11 @@ export default function CreatePage() {
   const previewStats = useMemo(() => {
     if (!player) return null;
     const panel = projectCharacterDisplay(player, null);
-    return { maxHp: panel.maxHp, maxMp: panel.maxMp, ...characterDisplayRows(player.attributes, panel) };
+    return {
+      maxHp: panel.maxHp,
+      maxMp: panel.maxMp,
+      ...characterDisplayRows(player.attributes, panel),
+    };
   }, [player]);
 
   const secondaryVisible = previewStats?.secondaryAll.slice(0, 4) ?? [];
@@ -757,9 +765,6 @@ export default function CreatePage() {
                             meta={
                               <div className="space-y-1">
                                 <AffixInlineList affixes={product.affixes} />
-                                <AbilityMetaLine
-                                  projection={product.projection}
-                                />
                               </div>
                             }
                             description={skill.description}

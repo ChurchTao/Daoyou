@@ -1,5 +1,5 @@
 /**
- * GameplayTags: creation-v2 与 battle-v5 共用的运行时语义词表。
+ * GameplayTags: 保留给材料分类与现存领域引用的语义词表。
  *
  * 约定：
  * 1. 所有运行时标签都从这里取值，不允许手写字符串。
@@ -60,7 +60,7 @@ export const GameplayTags = {
   },
 
   // ===== 能力域 =====
-  // Ability 是 battle-v5 最关键的运行时标签出口，必须按轴读取：
+  // 历史 Ability 标签按以下语义轴归档：
   // - FUNCTION：能力职责（damage/heal/control/buff）
   // - CHANNEL：伤害通道（magic/physical/true）
   // - KIND：能力来源（skill/passive/artifact/gongfa）

@@ -1,8 +1,7 @@
 import { getGameConceptIcon } from '@shared/lib/gameConceptDisplay';
 import type { ReactNode } from 'react';
-import { AbilityMetaLine } from './AbilityMetaLine';
-import { AffixInlineList } from './AffixInlineList';
 import type { ProductDisplayModel } from './abilityDisplay';
+import { AffixInlineList } from './AffixInlineList';
 import { ProductListRow } from './ProductListRow';
 
 export interface AbilityListCardProps {
@@ -34,32 +33,20 @@ export function AbilityListCard({
   variant = 'normal',
 }: AbilityListCardProps) {
   const affixMeta =
-    product.affixes.length > 0 ? <AffixInlineList affixes={product.affixes} /> : null;
-  const projectionMeta =
-    product.productType === 'skill' ? (
-      <AbilityMetaLine projection={product.projection} />
+    product.affixes.length > 0 ? (
+      <AffixInlineList affixes={product.affixes} />
     ) : null;
-  const meta =
-    affixMeta || projectionMeta ? (
-      <div className="space-y-1">
-        {affixMeta}
-        {projectionMeta}
-      </div>
-    ) : undefined;
+  const meta = affixMeta;
   const state = selected
     ? 'selected'
     : variant === 'pending'
       ? 'pending'
-      : product.isEquipped
-        ? 'active'
-        : 'normal';
+      : 'normal';
   const stateLabel = selected
     ? '已选中'
     : variant === 'pending'
       ? '待纳入'
-      : product.isEquipped
-        ? '已启用'
-        : undefined;
+      : undefined;
 
   return (
     <ProductListRow

@@ -1,17 +1,10 @@
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
-import {
-  calculateSingleArtifactScore,
-  calculateSingleElixirScore,
-} from '@server/utils/rankingUtils';
-import {
-  rehydrateStoredProductModel,
-  serializeProductModel,
-} from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
+import { calculateSingleElixirScore } from '@server/utils/rankingUtils';
+import { legacyProductForGrant } from '@shared/legacy/products';
 import { buildConsumableStackKey } from '@shared/lib/consumables';
 import {
   ELEMENT_VALUES,
   ElementType,
-  EquipmentSlot,
   MaterialType,
   Quality,
   QUALITY_ORDER,
@@ -20,7 +13,6 @@ import type {
   Artifact,
   Consumable,
   Cultivator,
-  EquippedItems,
   Material,
 } from '@shared/types/cultivator';
 import {
@@ -318,65 +310,6 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
   };
 }
 
-// ===== 物品栏和装备相关操作 =====
-
-/**
- * 装备/卸下装备
- */
-export async function equipEquipment(
-  userId: string,
-  cultivatorId: string,
-  artifactId: string,
-): Promise<EquippedItems> {
-  // 权限验证
-  const existing = await getExecutor()
-    .select({ id: schema.cultivators.id })
-    .from(schema.cultivators)
-    .where(
-      and(
-        eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId),
-      ),
-    );
-
-  if (existing.length === 0) {
-    throw new Error('角色不存在或无权限操作');
-  }
-
-  // 获取装备信息
-  const artifact = await creationProductRepository.findById(artifactId);
-
-  if (
-    !artifact ||
-    artifact.cultivatorId !== cultivatorId ||
-    artifact.productType !== 'artifact'
-  ) {
-    throw new Error('装备不存在或无权限操作');
-  }
-
-  const slot = (artifact.slot as EquipmentSlot) || 'weapon';
-  if (artifact.isEquipped) {
-    await creationProductRepository.unequipArtifact(artifactId);
-  } else {
-    await creationProductRepository.equipArtifact(
-      artifactId,
-      cultivatorId,
-      slot,
-    );
-  }
-
-  const equippedArtifacts =
-    await creationProductRepository.findEquippedArtifacts(cultivatorId);
-
-  return {
-    weapon:
-      equippedArtifacts.find((item) => item.slot === 'weapon')?.id ?? null,
-    armor: equippedArtifacts.find((item) => item.slot === 'armor')?.id ?? null,
-    accessory:
-      equippedArtifacts.find((item) => item.slot === 'accessory')?.id ?? null,
-  };
-}
-
 // ===== 资源管理引擎底层操作 =====
 
 /**
@@ -580,19 +513,22 @@ export async function addArtifactToInventoryInTransaction(
   tx: DbTransaction,
 ): Promise<Artifact> {
   const dbInstance = getExecutor(tx);
-  const score = calculateSingleArtifactScore(artifact);
+  const score = artifact.score ?? 0;
   const rawProductModel =
     artifact.productModel &&
     typeof artifact.productModel === 'object' &&
     !Array.isArray(artifact.productModel)
       ? (artifact.productModel as Record<string, unknown>)
       : null;
-  const normalizedProductModel = rehydrateStoredProductModel(
-    rawProductModel,
-    artifact.element,
-  );
+  const normalizedProductModel = rawProductModel
+    ? legacyProductForGrant(rawProductModel)
+    : null;
 
-  if (!rawProductModel || !normalizedProductModel) {
+  if (
+    !rawProductModel ||
+    !normalizedProductModel ||
+    normalizedProductModel.productType !== 'artifact'
+  ) {
     throw new Error('法宝数据缺少有效 productModel，无法入库');
   }
 
@@ -607,7 +543,7 @@ export async function addArtifactToInventoryInTransaction(
       slot: artifact.slot,
       score,
       isEquipped: false,
-      productModel: serializeProductModel(normalizedProductModel),
+      productModel: normalizedProductModel,
     },
     dbInstance,
   );

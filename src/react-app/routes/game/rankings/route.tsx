@@ -51,8 +51,7 @@ type MyRankInfo = {
 
 type LoadingState = 'idle' | 'loading' | 'loaded';
 
-type RankingTab =
-  'battle' | 'artifact' | 'technique' | 'skill' | 'elixir' | 'wealth';
+type RankingTab = 'battle' | 'elixir' | 'wealth';
 const REPUTATION_INFO = getGameConceptInfo('reputation');
 const REPUTATION_LABEL = `${REPUTATION_INFO.icon} ${REPUTATION_INFO.label}`;
 
@@ -410,9 +409,6 @@ export default function RankingsPage() {
   const rankingTabs = [
     { label: '天骄榜', value: 'battle' },
     { label: '财富榜', value: 'wealth' },
-    { label: '法宝榜', value: 'artifact' },
-    { label: '功法榜', value: 'technique' },
-    { label: '神通榜', value: 'skill' },
     { label: '丹药榜', value: 'elixir' },
   ];
   const activeTabLabel =

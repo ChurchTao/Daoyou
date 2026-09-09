@@ -8,25 +8,20 @@ import {
   isValidRedeemCodeFormat,
   normalizeRedeemCode,
 } from '@server/lib/redeem/code';
-import {
-  AttributeResetServiceError,
-} from '@server/lib/services/AttributeResetService';
-import {
-  CreationProductCommandError,
-  toggleArtifactLoadout,
-} from '@server/lib/services/CreationProductApplicationService';
+import { AttributeResetServiceError } from '@server/lib/services/AttributeResetService';
+
 import {
   allocateCultivatorAttributes,
   reincarnateActiveCultivator,
   resetCultivatorAttributes,
   updateCultivatorTitle,
 } from '@server/lib/services/CultivatorProfileApplicationService';
-import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { QiService } from '@server/lib/services/QiService';
 import {
   claimRedeemCode,
   RedeemClaimError,
 } from '@server/lib/services/RedeemCodeApplicationService';
+import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -34,23 +29,21 @@ const TitleSchema = z.object({
   title: z.string().min(2).max(8).optional().nullable(),
 });
 
-const EquipSchema = z.object({
-  artifactId: z.string(),
-});
-
 const ClaimRedeemCodeSchema = z.object({
   code: z.string().trim().min(1).max(64),
 });
 
-const AttributeAllocationSchema = z.object({
-  attribute_model_version: z.literal(2),
-  vitality: z.number().int().min(0).default(0),
-  strength: z.number().int().min(0).default(0),
-  spirit: z.number().int().min(0).default(0),
-  endurance: z.number().int().min(0).default(0),
-  speed: z.number().int().min(0).default(0),
-  willpower: z.number().int().min(0).default(0),
-}).strict();
+const AttributeAllocationSchema = z
+  .object({
+    attribute_model_version: z.literal(2),
+    vitality: z.number().int().min(0).default(0),
+    strength: z.number().int().min(0).default(0),
+    spirit: z.number().int().min(0).default(0),
+    endurance: z.number().int().min(0).default(0),
+    speed: z.number().int().min(0).default(0),
+    willpower: z.number().int().min(0).default(0),
+  })
+  .strict();
 
 function isUniqueViolation(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
@@ -85,28 +78,9 @@ router.post('/active-reincarnate', requireActiveCultivatorRef(), async (c) => {
   return c.json(toPlayerStateMutationResponse(committed));
 });
 
-router.post('/equip', requireActiveCultivatorRef(), async (c) => {
-  const user = c.get('user');
-  const cultivator = c.get('activeCultivatorRef');
-  if (!user || !cultivator) {
-    return c.json({ error: '未授权访问' }, 401);
-  }
-
-  const { artifactId } = EquipSchema.parse(await c.req.json());
-  try {
-    const committed = await toggleArtifactLoadout({
-      userId: user.id,
-      cultivatorId: cultivator.cultivatorId,
-      artifactId,
-    });
-    return c.json(toPlayerStateMutationResponse(committed));
-  } catch (error) {
-    if (error instanceof CreationProductCommandError) {
-      return c.json({ error: error.message }, error.status);
-    }
-    throw error;
-  }
-});
+router.post('/equip', requireActiveCultivatorRef(), (c) =>
+  c.json({ error: '旧产物装配已停用' }, 410),
+);
 
 router.get('/qi/logs', requireActiveCultivatorRef(), async (c) => {
   const cultivator = c.get('activeCultivatorRef');
@@ -116,7 +90,10 @@ router.get('/qi/logs', requireActiveCultivatorRef(), async (c) => {
 
   const page = parsePositiveInt(c.req.query('page'), 1);
   const pageSize = Math.min(100, parsePositiveInt(c.req.query('pageSize'), 20));
-  const data = await QiService.listLogs(cultivator.cultivatorId, { page, pageSize });
+  const data = await QiService.listLogs(cultivator.cultivatorId, {
+    page,
+    pageSize,
+  });
   return c.json({ success: true, data });
 });
 

@@ -1,19 +1,18 @@
-import type { ItemShowcaseModalProps } from '@app/components/ui/ItemShowcaseModal';
 import { InkBadge } from '@app/components/ui/InkBadge';
-import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
-import { getResourceLabel } from '@shared/lib/gameConceptDisplay';
-import type { EquipmentSlot } from '@shared/types/constants';
-import { getEquipmentSlotInfo } from '@shared/lib/gameConceptDisplay';
-import { AffixChip } from './AffixChip';
+import type { ItemShowcaseModalProps } from '@app/components/ui/ItemShowcaseModal';
 import {
-  formatTargetPolicyValue,
-  type ProductDisplayModel,
-} from './abilityDisplay';
+  getEquipmentSlotInfo,
+  getGameConceptInfo,
+} from '@shared/lib/gameConceptDisplay';
+import type { EquipmentSlot } from '@shared/types/constants';
+import { AffixChip } from './AffixChip';
+import { type ProductDisplayModel } from './abilityDisplay';
 import { getScoreMark } from './scoreMeta';
 
 function getProductIcon(product: ProductDisplayModel): string {
   if (product.productType === 'artifact') {
-    return getEquipmentSlotInfo((product.slot as EquipmentSlot) ?? 'weapon').icon;
+    return getEquipmentSlotInfo((product.slot as EquipmentSlot) ?? 'weapon')
+      .icon;
   }
 
   if (product.productType === 'gongfa') {
@@ -42,39 +41,6 @@ function getDescriptionTitle(product: ProductDisplayModel): string {
 function buildInfoRows(product: ProductDisplayModel) {
   const rows: Array<{ key: string; label: string; value: string }> = [];
 
-  if (
-    product.projection?.projectionKind === 'active_skill' &&
-    product.projection.targetPolicy
-  ) {
-    rows.push({
-      key: 'target-policy',
-      label: '目标策略',
-      value: formatTargetPolicyValue(product.projection.targetPolicy),
-    });
-  }
-
-  if (
-    product.projection?.projectionKind === 'active_skill' &&
-    product.projection.mpCost !== undefined
-  ) {
-    rows.push({
-      key: 'mp-cost',
-      label: `${getResourceLabel('mp')}消耗`,
-      value: `${product.projection.mpCost}`,
-    });
-  }
-
-  if (
-    product.projection?.projectionKind === 'active_skill' &&
-    product.projection.cooldown !== undefined
-  ) {
-    rows.push({
-      key: 'cooldown',
-      label: '冷却回合',
-      value: `${product.projection.cooldown}`,
-    });
-  }
-
   if (!product.rawModel || product.rawModel.productType !== 'artifact') {
     return rows;
   }
@@ -83,7 +49,7 @@ function buildInfoRows(product: ProductDisplayModel) {
   if (metadata?.anchorRealm) {
     rows.push({
       key: 'anchor-realm',
-      label: '境界要求（境界若低，效果将减弱）',
+      label: '历史境界记录',
       value: metadata.anchorRealm,
     });
   }
@@ -118,10 +84,21 @@ function getExtraInfo(product: ProductDisplayModel) {
 }
 
 function getFooter(product: ProductDisplayModel) {
-  if (product.affixes.length === 0) return null;
-
   return (
     <div className="space-y-4 pt-2">
+      <div className="space-y-1 text-sm">
+        <p>历史属性</p>
+        {product.modifiers.length ? (
+          product.modifiers.map((modifier, index) => (
+            <p key={index}>
+              {modifier.attrLabel}{' '}
+              <span className="font-mono">{modifier.valueText}</span>
+            </p>
+          ))
+        ) : (
+          <p className="text-ink-secondary">未记录</p>
+        )}
+      </div>
       <div className="space-y-2">
         <div className="text-ink text-sm font-semibold tracking-[0.12em]">
           词缀
@@ -149,6 +126,7 @@ export function getProductShowcaseProps(
     icon: getProductIcon(product),
     name: product.name,
     badges: [
+      <InkBadge key="legacy">历史物品 · 已停用</InkBadge>,
       product.quality ? (
         <InkBadge key="quality" tier={product.quality}>
           {kindLabel}
@@ -170,7 +148,7 @@ export function getProductShowcaseProps(
       ) : null,
     ].filter(Boolean),
     extraInfo: getExtraInfo(product),
-    description: product.description,
+    description: product.description ?? '未记录说明',
     descriptionTitle: getDescriptionTitle(product),
     footer: getFooter(product),
     cornerMeta: getScoreMark(product.score),

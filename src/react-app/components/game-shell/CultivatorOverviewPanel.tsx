@@ -11,7 +11,6 @@ import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
 import { toFateDisplayModel } from '@app/components/feature/fates/FateDisplayAdapter';
 import { FateEffectInlineList } from '@app/components/feature/fates/FateEffectInlineList';
 import {
-  AbilityMetaLine,
   AffixInlineList,
   toProductDisplayModel,
   type ProductRecordLike,
@@ -31,8 +30,8 @@ import {
 } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { useResourceMutation } from '@app/lib/resources/mutations';
-import { CHARACTER_ATTRIBUTE_LABELS } from '@shared/lib/cultivatorDisplay';
 import { cn } from '@shared/lib/cn';
+import { CHARACTER_ATTRIBUTE_LABELS } from '@shared/lib/cultivatorDisplay';
 import { getEquipmentSlotInfo } from '@shared/lib/gameConceptDisplay';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useState, type ReactNode } from 'react';
@@ -140,7 +139,8 @@ export function CultivatorOverviewPanel() {
   const [isSavingTitle, setIsSavingTitle] = useState(false);
 
   if (projection.error) return <InkNotice>{projection.error}</InkNotice>;
-  if (projection.loading && !cultivator) return <InkNotice>正在读取角色属性……</InkNotice>;
+  if (projection.loading && !cultivator)
+    return <InkNotice>正在读取角色属性……</InkNotice>;
 
   if (!cultivator) {
     return <InkNotice>尚无角色资料，先去觉醒灵根，再来凝视真形。</InkNotice>;
@@ -482,7 +482,6 @@ export function CultivatorOverviewPanel() {
                   meta={
                     <div className="space-y-1">
                       <AffixInlineList affixes={product.affixes} />
-                      <AbilityMetaLine projection={product.projection} />
                     </div>
                   }
                   description={skill.description}

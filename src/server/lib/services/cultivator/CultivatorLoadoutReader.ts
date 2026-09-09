@@ -1,46 +1,16 @@
-import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import {
   getExecutor,
   runDbTasks,
   type DbExecutor,
   type DbTransaction,
 } from '@server/lib/drizzle/db';
+import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import type { PlayerLoadout } from '@shared/contracts/player';
-import type { AbilityConfig } from '@shared/engine/creation-v2/contracts/battle';
-import { projectAbilityConfig } from '@shared/engine/creation-v2/models/AbilityProjection';
-import {
-  rehydrateStoredProductModel,
-} from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
-import type {
-  ElementType,
-  Quality,
-} from '@shared/types/constants';
+import { legacyModifiers, legacyRecord } from '@shared/legacy/products';
+import type { ElementType, Quality } from '@shared/types/constants';
 import type { Cultivator, EquippedItems } from '@shared/types/cultivator';
-import { mapArtifactRow } from './CultivatorInventoryRepository';
 import { toArtifactFromProduct } from '../creationProductArtifactSupport';
-
-function productModelToAbilityConfig(
-  productModel: Record<string, unknown> | null | undefined,
-  element: string | null | undefined,
-  id: string,
-): AbilityConfig {
-  const rehydrated = rehydrateStoredProductModel(
-    productModel as Record<string, unknown>,
-    (element as ElementType) || undefined,
-  );
-  if (!rehydrated) return { slug: id } as AbilityConfig;
-  return { ...projectAbilityConfig(rehydrated), slug: id };
-}
-
-function productModelToRuntimeModel(
-  productModel: Record<string, unknown> | null | undefined,
-  element: string | null | undefined,
-) {
-  return rehydrateStoredProductModel(
-    productModel as Record<string, unknown>,
-    (element as ElementType) || undefined,
-  );
-}
+import { mapArtifactRow } from './CultivatorInventoryRepository';
 
 export function mapLoadoutFromProducts(
   products: Awaited<
@@ -60,15 +30,6 @@ export function mapLoadoutFromProducts(
 
   const cultivations: Cultivator['cultivations'] = gongfaProducts.map(
     (product) => {
-      const rehydratedModel = productModelToRuntimeModel(
-        product.productModel as Record<string, unknown>,
-        product.element,
-      );
-      const abilityConfig = productModelToAbilityConfig(
-        product.productModel as Record<string, unknown>,
-        product.element,
-        product.id,
-      );
       return {
         id: product.id,
         name: product.name,
@@ -76,35 +37,23 @@ export function mapLoadoutFromProducts(
         quality: product.quality as Quality | undefined,
         score: product.score || 0,
         description: product.description || undefined,
-        attributeModifiers: abilityConfig.modifiers ?? [],
-        abilityConfig,
-        productModel: rehydratedModel ?? product.productModel ?? undefined,
+        attributeModifiers: legacyModifiers(
+          legacyRecord(product.productModel).attributeModifiers,
+        ),
+        productModel: product.productModel ?? undefined,
       };
     },
   );
 
   const skills: Cultivator['skills'] = skillProducts.map((product) => {
-    const rehydratedModel = productModelToRuntimeModel(
-      product.productModel as Record<string, unknown>,
-      product.element,
-    );
-    const abilityConfig = productModelToAbilityConfig(
-      product.productModel as Record<string, unknown>,
-      product.element,
-      product.id,
-    );
     return {
       id: product.id,
       name: product.name,
       element: (product.element as ElementType) || '金',
       quality: product.quality as Quality | undefined,
-      cost: abilityConfig.mpCost || undefined,
-      cooldown: abilityConfig.cooldown ?? 0,
-      target_self:
-        abilityConfig.targetPolicy?.team === 'self' ? true : undefined,
+      cooldown: 0,
       description: product.description || undefined,
-      abilityConfig,
-      productModel: rehydratedModel ?? product.productModel ?? undefined,
+      productModel: product.productModel ?? undefined,
     };
   });
   const artifacts = artifactProducts.map((artifact) =>
@@ -129,23 +78,11 @@ export async function getPlayerLoadoutByCultivatorId(
   const q = executor ?? getExecutor();
   const [skills, cultivations, artifacts] = await runDbTasks(q, [
     () =>
-      creationProductRepository.findEquippedByType(
-        cultivatorId,
-        'skill',
-        q,
-      ),
+      creationProductRepository.findEquippedByType(cultivatorId, 'skill', q),
     () =>
-      creationProductRepository.findEquippedByType(
-        cultivatorId,
-        'gongfa',
-        q,
-      ),
+      creationProductRepository.findEquippedByType(cultivatorId, 'gongfa', q),
     () =>
-      creationProductRepository.findEquippedByType(
-        cultivatorId,
-        'artifact',
-        q,
-      ),
+      creationProductRepository.findEquippedByType(cultivatorId, 'artifact', q),
   ]);
   return mapLoadoutFromProducts([skills, cultivations, artifacts]);
 }

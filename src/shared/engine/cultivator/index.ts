@@ -1,5 +1,5 @@
 /**
  * 旧 cultivator 模块已在 v5 迁移中删除。
- * 角色属性计算请使用 engine/battle-v5/adapters/CultivatorDisplayAdapter。
+ * 角色战斗属性由 combat-v6 角色投影提供；V5 引擎已退役。
  */
 export {};

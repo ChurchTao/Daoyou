@@ -1,10 +1,12 @@
 // ===== 新一代修仙底层数据模型 =====
 
-import type { AbilityConfig } from '@shared/engine/creation-v2/contracts/battle';
-import type { AttributeModifierConfig } from '@shared/engine/battle-v5/core/configs';
-import type { ConsumableSpec } from '@shared/types/consumable';
-import type { CultivatorCondition } from '@shared/types/condition';
 import type { CultivatorSectState, PlayerRaceId } from '@shared/engine/sect';
+import type {
+  LegacyAbilitySnapshot as AbilityConfig,
+  LegacyAttributeModifier as AttributeModifierConfig,
+} from '@shared/legacy/products';
+import type { CultivatorCondition } from '@shared/types/condition';
+import type { ConsumableSpec } from '@shared/types/consumable';
 import type {
   ConsumableType,
   ElementType,
@@ -21,12 +23,7 @@ import type {
 /**
  * 基础属性（仅六维）。
  *
- * 所有派生属性（暴击率、闪避率、气血上限 等）都由 battle-v5
- * 的 AttributeSystem/AttrsStateView 动态计算，不再写入 DB 与实体。
- *
- * 展示层需要派生属性时，请通过
- *   `CultivatorDisplayAdapter.snapshot(cultivator)` 或
- *   `getCultivatorDisplayAttributes(cultivator)` 取 AttrsStateView。
+ * 派生属性由 V6 权威面板计算，不写入角色基础属性。
  */
 export interface Attributes {
   vitality: number; // 体魄：气血上限、少量法术防御
@@ -311,5 +308,4 @@ export interface Cultivator {
 
   // 角色当前状态（用于存储战斗/副本中产生的持久状态）
   condition?: CultivatorCondition;
-
 }

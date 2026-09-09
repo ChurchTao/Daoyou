@@ -1,29 +1,23 @@
-import { type RealmStage, type RealmType } from '@shared/types/constants';
-import {
-  getBreakthroughAttributeGrowthReward,
-} from '@shared/config/realmProgression';
-import {
-  evaluateFateContext,
-} from '@shared/lib/fates';
+import { getBreakthroughAttributeGrowthReward } from '@shared/config/realmProgression';
 import { isConditionStatusActive } from '@shared/lib/condition';
 import {
   consumeCultivationBoostStatus,
   getCultivationBoostRetreatMultiplier,
 } from '@shared/lib/cultivationBoost';
-import {
-  getProtectMeridiansReductionPercent,
-} from '@shared/lib/pillEffectScaling';
+import { evaluateFateContext } from '@shared/lib/fates';
+import { getProtectMeridiansReductionPercent } from '@shared/lib/pillEffectScaling';
 import type {
   ConditionStatusInstance,
   ConditionStatusKey,
 } from '@shared/types/condition';
+import { type RealmStage, type RealmType } from '@shared/types/constants';
 import type {
   Attributes,
   BreakthroughHistoryEntry,
   Cultivator,
   RetreatRecord,
 } from '@shared/types/cultivator';
-import type { CultivatorDisplayInput } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+
 import {
   calculateBreakthroughChance,
   getNextStage,
@@ -81,8 +75,18 @@ function getMajorDeviationGain(
   }
 }
 
-export type RetreatCultivatorFacts = CultivatorDisplayInput &
-  Pick<
+export type RetreatCultivatorFacts = Pick<
+  Cultivator,
+  | 'id'
+  | 'name'
+  | 'attributes'
+  | 'realm'
+  | 'realm_stage'
+  | 'condition'
+  | 'cultivations'
+  | 'sect'
+  | 'equipped'
+> & { inventory: Pick<Cultivator['inventory'], 'artifacts'> } & Pick<
     Cultivator,
     | 'age'
     | 'lifespan'
@@ -184,9 +188,7 @@ export function performCultivation(
   // 记录闭关前修为
   const exp_before = progress.cultivation_exp;
   const wasBottleneckActive = isBottleneckReached(progress);
-  const fateContext = evaluateFateContext(
-    cultivator.pre_heaven_fates ?? [],
-  );
+  const fateContext = evaluateFateContext(cultivator.pre_heaven_fates ?? []);
 
   // 计算修为获取
   const expResult = calculateCultivationExp(cultivator, years, rng);
@@ -202,9 +204,7 @@ export function performCultivation(
   );
   const finalInsightGain = Math.max(
     0,
-    Math.floor(
-      expResult.insight_gained * fateContext.retreatInsightMultiplier,
-    ),
+    Math.floor(expResult.insight_gained * fateContext.retreatInsightMultiplier),
   );
 
   // 修为允许超过当前阶段 cap；突破成功时扣除本阶段 cap 并保留溢出。
@@ -328,10 +328,7 @@ export function attemptBreakthrough(
     cultivator,
     'protect_meridians',
   );
-  const clearMindStatus = getActiveStatus(
-    cultivator,
-    'clear_mind',
-  );
+  const clearMindStatus = getActiveStatus(cultivator, 'clear_mind');
   if (success) {
     // 突破成功
     const attributeReward = getBreakthroughAttributeGrowthReward(
@@ -420,9 +417,7 @@ export function attemptBreakthrough(
     progress.breakthrough_failures += 1;
 
     if (isMajorBreakthrough) {
-      let deviationGain = Math.floor(
-        getMajorDeviationGain(fromRealm, rng),
-      );
+      let deviationGain = Math.floor(getMajorDeviationGain(fromRealm, rng));
       if (clearMindStatus) {
         deviationGain = Math.max(5, Math.floor(deviationGain * 0.65));
       }
@@ -435,7 +430,6 @@ export function attemptBreakthrough(
         0,
         100,
       );
-
     }
 
     if (

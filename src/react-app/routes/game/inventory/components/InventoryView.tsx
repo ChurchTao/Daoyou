@@ -62,7 +62,6 @@ export function InventoryView() {
     pendingId,
     identifyCelebration,
     clearIdentifyCelebration,
-    handleEquipToggle,
     handleConsume,
     handleIdentifyMaterial,
     openDiscardConfirm,
@@ -148,11 +147,7 @@ export function InventoryView() {
           <ArtifactsTab
             artifacts={inventory.artifacts}
             isLoading={isTabLoading && inventory.artifacts.length === 0}
-            equipped={equipped}
-            pendingId={pendingId}
             onShowDetails={(item) => openItemDetail({ kind: 'artifact', item })}
-            onEquipToggle={handleEquipToggle}
-            onDiscard={(item) => openDiscardConfirm(item, 'artifact')}
           />
         )}
         {activeTab === 'materials' && (

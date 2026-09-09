@@ -3,7 +3,6 @@ import { join, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), 'src/shared/engine/sect');
-const battleRoot = resolve(process.cwd(), 'src/shared/engine/battle-v5');
 
 const productionSectTerms =
   /lingxiao|红尘剑宗|凌霄|wuxiang|无相|tianyan|天衍|youdu|幽都|jiujie|九劫天宫|sect\.(?:lingxiao|wuxiang|tianyan|youdu|jiujie)/i;
@@ -58,23 +57,8 @@ describe('宗门插件架构守卫', () => {
     );
   });
 
-  it('battle-v5 非适配器核心不依赖任何生产宗门、宗门内容或 React', () => {
-    for (const file of sourceFiles(battleRoot).filter(
-      (path) => !path.includes('/tests/') && !path.includes('/adapters/'),
-    )) {
-      const source = readFileSync(file, 'utf8');
-      const label = relative(process.cwd(), file);
-      expect(source, label).not.toMatch(productionSectTerms);
-      expect(source, label).not.toMatch(forbiddenBattleDependency);
-    }
-  });
-
   it('已退出的单宗门战斗扩展不会重新进入生产源码', () => {
-    const productionRoots = [
-      battleRoot,
-      join(root, 'core'),
-      join(root, 'content'),
-    ];
+    const productionRoots = [join(root, 'core'), join(root, 'content')];
     for (const file of productionRoots
       .flatMap(sourceFiles)
       .filter((path) => !/\.(?:test|spec)\.(ts|tsx)$/.test(path))) {

@@ -1,6 +1,6 @@
 import { getExecutor, type DbExecutor } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
-import type { CreationProductType } from '@shared/engine/creation-v2/types';
+import type { LegacyProductType as CreationProductType } from '@shared/legacy/products';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 export type CreationProductRecord = typeof schema.creationProducts.$inferSelect;
@@ -138,33 +138,6 @@ export async function countByType(
   return result.count;
 }
 
-export async function countEquippedByType(
-  cultivatorId: string,
-  productType: CreationProductType,
-  q: DbExecutor = getExecutor(),
-): Promise<number> {
-  const [result] = await q
-    .select({ count: sql<number>`count(*)::int` })
-    .from(schema.creationProducts)
-    .where(
-      and(
-        eq(schema.creationProducts.cultivatorId, cultivatorId),
-        eq(schema.creationProducts.productType, productType),
-        eq(schema.creationProducts.isEquipped, true),
-      ),
-    );
-  return result.count;
-}
-
-export async function deleteById(
-  id: string,
-  q: DbExecutor = getExecutor(),
-): Promise<void> {
-  await q
-    .delete(schema.creationProducts)
-    .where(eq(schema.creationProducts.id, id));
-}
-
 export async function deleteArtifactsByIdsAndCultivator(
   cultivatorId: string,
   artifactIds: string[],
@@ -182,60 +155,4 @@ export async function deleteArtifactsByIdsAndCultivator(
       ),
     )
     .returning();
-}
-
-export async function equipArtifact(
-  id: string,
-  cultivatorId: string,
-  slot: string,
-  q: DbExecutor = getExecutor(),
-): Promise<void> {
-  // 先卸下同槽位已装备的法宝
-  await q
-    .update(schema.creationProducts)
-    .set({ isEquipped: false })
-    .where(
-      and(
-        eq(schema.creationProducts.cultivatorId, cultivatorId),
-        eq(schema.creationProducts.productType, 'artifact'),
-        eq(schema.creationProducts.slot, slot),
-        eq(schema.creationProducts.isEquipped, true),
-      ),
-    );
-  // 装备新法宝
-  await q
-    .update(schema.creationProducts)
-    .set({ isEquipped: true })
-    .where(eq(schema.creationProducts.id, id));
-}
-
-export async function unequipArtifact(
-  id: string,
-  q: DbExecutor = getExecutor(),
-): Promise<void> {
-  await setProductEquipped(id, false, q);
-}
-
-export async function setProductEquipped(
-  id: string,
-  isEquipped: boolean,
-  q: DbExecutor = getExecutor(),
-): Promise<void> {
-  await q
-    .update(schema.creationProducts)
-    .set({ isEquipped })
-    .where(eq(schema.creationProducts.id, id));
-}
-
-export async function findForRanking(
-  productType: CreationProductType,
-  limit: number = 100,
-  q: DbExecutor = getExecutor(),
-): Promise<CreationProductRecord[]> {
-  return q
-    .select()
-    .from(schema.creationProducts)
-    .where(eq(schema.creationProducts.productType, productType))
-    .orderBy(desc(schema.creationProducts.score))
-    .limit(limit);
 }

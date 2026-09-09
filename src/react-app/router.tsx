@@ -418,7 +418,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'skills',
                   presentation: 'archive',
-                  summary: '已成诸术归卷，便于查阅与取舍。',
+                  summary: '旧日诸术归卷，留存往昔修行记录。',
                 },
                 '【所修神通】',
               )}
@@ -715,7 +715,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'techniques',
                   presentation: 'archive',
-                  summary: '功法道基在此归档，便于比照深浅。',
+                  summary: '旧日功法归档，留存往昔修行记录。',
                 },
                 '【所修功法】',
               )}

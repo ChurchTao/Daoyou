@@ -632,7 +632,7 @@ export function getElementInfo(key: ElementType): ElementDisplayInfo {
 }
 
 /**
- * 展示层用属性键：基础六维 + battle-v5 派生键。
+ * 展示层用属性键：基础六维与历史派生属性键。
  */
 export type AttributeKey =
   | keyof Attributes

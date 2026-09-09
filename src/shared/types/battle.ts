@@ -1,19 +1,4 @@
-import type {
-  BattleInitConfigV5,
-  BattleUnitInitSpec,
-  PersistentCombatStatusV5,
-  ResourcePointState,
-} from '@shared/engine/battle-v5/setup/types';
-import type { BattleRecordV3 } from '@shared/engine/battle-v5/v3';
-import type { Cultivator } from '@shared/types/cultivator';
-
-export type {
-  BattleInitConfigV5,
-  BattleUnitInitSpec,
-  PersistentCombatStatusV5,
-  ResourcePointState,
-};
-
-export type { BattleRecordV3 };
-
+import type { Cultivator } from './cultivator';
+/** Opaque archive retained solely for the deprecated table's JSON column. */
+export type BattleRecordV3 = Record<string, unknown>;
 export type BattleRecordUnitSummary = Pick<Cultivator, 'id' | 'name'>;

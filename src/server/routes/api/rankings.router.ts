@@ -1,9 +1,5 @@
 import { getExecutor } from '@server/lib/drizzle/db';
-import {
-  consumables,
-  creationProducts,
-  cultivators,
-} from '@server/lib/drizzle/schema';
+import { consumables, cultivators } from '@server/lib/drizzle/schema';
 import {
   redisLockErrorResponse,
   requireActiveCultivatorRef,
@@ -24,18 +20,10 @@ import {
 import { loadCultivatorInspectionData } from '@server/lib/services/cultivator/CultivatorCombatProjectionReader';
 import { readCultivatorRealm } from '@server/lib/services/cultivator/CultivatorFactsReader';
 import { RankingChallengeSchema } from '@shared/contracts/combatV6Ranking';
-import { projectAbilityConfig } from '@shared/engine/creation-v2/models/AbilityProjection';
-import { rehydrateStoredProductModel } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
+import { getConsumableTypeLabel } from '@shared/lib/gameConceptDisplay';
 import {
-  getConsumableTypeLabel,
-  getCreationProductTypeLabel,
-  getEquipmentSlotLabel,
-} from '@shared/lib/gameConceptDisplay';
-import {
-  EquipmentSlot,
   QUALITY_VALUES,
   REALM_VALUES,
-  type ElementType,
   type RealmType,
 } from '@shared/types/constants';
 import type {
@@ -49,16 +37,6 @@ import { z } from 'zod';
 const router = new Hono<AppEnv>();
 const publicRouter = new Hono<AppEnv>();
 const challengeRouter = new Hono<AppEnv>();
-
-function getRehydratedProductModel(
-  productModel: unknown,
-  element?: string | null,
-) {
-  return rehydrateStoredProductModel(
-    (productModel ?? null) as Record<string, unknown> | null,
-    (element as ElementType | null) ?? undefined,
-  );
-}
 
 function parseRealmQuery(raw: string | undefined | null): RealmType | null {
   if (!raw) return null;
@@ -90,184 +68,46 @@ publicRouter.get('/', async (c) => {
 publicRouter.get('/items', async (c) => {
   try {
     const type = c.req.query('type');
-    if (!type || !['artifact', 'skill', 'elixir', 'technique'].includes(type)) {
+    if (type && ['artifact', 'skill', 'technique'].includes(type))
+      return c.json(
+        { success: false, error: '旧装备、功法、神通榜单已停用' },
+        410,
+      );
+    if (type !== 'elixir') {
       return c.json({ success: false, error: '无效的榜单类型' }, 400);
     }
 
     let items: ItemRankingEntry[] = [];
     const limit = 100;
     const validQualities = QUALITY_VALUES.slice(2);
-    const validProductQualities = QUALITY_VALUES.slice(2);
+    const rows = await getExecutor()
+      .select({ item: consumables, owner: cultivators })
+      .from(consumables)
+      .leftJoin(cultivators, eq(consumables.cultivatorId, cultivators.id))
+      .where(
+        and(
+          isNotNull(consumables.cultivatorId),
+          eq(consumables.type, '丹药'),
+          inArray(consumables.quality, validQualities as string[]),
+        ),
+      )
+      .orderBy(desc(consumables.score))
+      .limit(limit);
 
-    if (type === 'artifact') {
-      const rows = await getExecutor()
-        .select({ item: creationProducts, owner: cultivators })
-        .from(creationProducts)
-        .leftJoin(
-          cultivators,
-          eq(creationProducts.cultivatorId, cultivators.id),
-        )
-        .where(
-          and(
-            isNotNull(creationProducts.cultivatorId),
-            eq(creationProducts.productType, 'artifact'),
-            inArray(creationProducts.quality, validQualities as string[]),
-          ),
-        )
-        .orderBy(desc(creationProducts.score))
-        .limit(limit);
-
-      items = rows.map(({ item, owner }, index) => {
-        const productModel =
-          getRehydratedProductModel(item.productModel, item.element) ??
-          item.productModel ??
-          undefined;
-
-        return {
-          id: item.id,
-          rank: index + 1,
-          name: item.name,
-          itemType: 'artifact',
-          type: getEquipmentSlotLabel(item.slot as EquipmentSlot),
-          quality: item.quality ?? undefined,
-          ownerName: owner?.name || '未知',
-          score: item.score || 0,
-          description: item.description || '',
-          title: item.quality ?? undefined,
-          element: item.element ?? undefined,
-          slot: item.slot ?? undefined,
-          productModel,
-        };
-      });
-    } else if (type === 'skill') {
-      const rows = await getExecutor()
-        .select({ item: creationProducts, owner: cultivators })
-        .from(creationProducts)
-        .leftJoin(
-          cultivators,
-          eq(creationProducts.cultivatorId, cultivators.id),
-        )
-        .where(
-          and(
-            isNotNull(creationProducts.cultivatorId),
-            eq(creationProducts.productType, 'skill'),
-            inArray(
-              creationProducts.quality,
-              validProductQualities as string[],
-            ),
-          ),
-        )
-        .orderBy(desc(creationProducts.score))
-        .limit(limit);
-
-      items = rows.map(({ item, owner }, index) => {
-        let cooldown = 0;
-        let cost = 0;
-        const productModel = getRehydratedProductModel(
-          item.productModel,
-          item.element,
-        );
-
-        if (productModel) {
-          try {
-            const abilityConfig = projectAbilityConfig(productModel);
-            cooldown = abilityConfig.cooldown ?? 0;
-            cost = abilityConfig.mpCost || 0;
-          } catch {
-            // fallback to defaults
-          }
-        }
-
-        return {
-          id: item.id,
-          rank: index + 1,
-          name: item.name,
-          itemType: 'skill',
-          type: item.element
-            ? `${item.element}系${getCreationProductTypeLabel('skill')}`
-            : getCreationProductTypeLabel('skill'),
-          quality: (item.quality as string | undefined) || undefined,
-          ownerName: owner?.name || '未知',
-          score: item.score || 0,
-          description: item.description || '',
-          title: item.quality || '未知品阶',
-          element: item.element ?? undefined,
-          cooldown,
-          cost,
-          productModel: productModel ?? item.productModel ?? undefined,
-        };
-      });
-    } else if (type === 'elixir') {
-      const rows = await getExecutor()
-        .select({ item: consumables, owner: cultivators })
-        .from(consumables)
-        .leftJoin(cultivators, eq(consumables.cultivatorId, cultivators.id))
-        .where(
-          and(
-            isNotNull(consumables.cultivatorId),
-            eq(consumables.type, '丹药'),
-            inArray(consumables.quality, validQualities as string[]),
-          ),
-        )
-        .orderBy(desc(consumables.score))
-        .limit(limit);
-
-      items = rows.map(({ item, owner }, index) => ({
-        id: item.id,
-        rank: index + 1,
-        name: item.name,
-        itemType: 'elixir',
-        type: getConsumableTypeLabel('丹药'),
-        quality: item.quality ?? undefined,
-        ownerName: owner?.name || '未知',
-        score: item.score || 0,
-        description: item.description || '',
-        title: item.quality ?? undefined,
-        quantity: item.quantity,
-        spec: item.spec ?? undefined,
-      }));
-    } else if (type === 'technique') {
-      const rows = await getExecutor()
-        .select({ item: creationProducts, owner: cultivators })
-        .from(creationProducts)
-        .leftJoin(
-          cultivators,
-          eq(creationProducts.cultivatorId, cultivators.id),
-        )
-        .where(
-          and(
-            isNotNull(creationProducts.cultivatorId),
-            eq(creationProducts.productType, 'gongfa'),
-            inArray(
-              creationProducts.quality,
-              validProductQualities as string[],
-            ),
-          ),
-        )
-        .orderBy(desc(creationProducts.score))
-        .limit(limit);
-
-      items = rows.map(({ item, owner }, index) => {
-        const productModel =
-          getRehydratedProductModel(item.productModel, item.element) ??
-          item.productModel ??
-          undefined;
-
-        return {
-          id: item.id,
-          rank: index + 1,
-          name: item.name,
-          itemType: 'technique',
-          type: getCreationProductTypeLabel('gongfa'),
-          quality: (item.quality as string | undefined) || undefined,
-          ownerName: owner?.name || '未知',
-          score: item.score || 0,
-          description: item.description || '',
-          title: item.quality || '未知品阶',
-          productModel,
-        };
-      });
-    }
+    items = rows.map(({ item, owner }, index) => ({
+      id: item.id,
+      rank: index + 1,
+      name: item.name,
+      itemType: 'elixir',
+      type: getConsumableTypeLabel('丹药'),
+      quality: item.quality ?? undefined,
+      ownerName: owner?.name || '未知',
+      score: item.score || 0,
+      description: item.description || '',
+      title: item.quality ?? undefined,
+      quantity: item.quantity,
+      spec: item.spec ?? undefined,
+    }));
 
     return c.json({
       success: true,

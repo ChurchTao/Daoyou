@@ -5,10 +5,7 @@ import {
 import { InkBadge, InkButton, type Tier } from '@app/components/ui';
 import { cn } from '@shared/lib/cn';
 import { isPillSpec } from '@shared/lib/consumables';
-import {
-  CONSUMABLE_TYPE_DISPLAY_MAP,
-  getEquipmentSlotInfo,
-} from '@shared/lib/gameConceptDisplay';
+import { CONSUMABLE_TYPE_DISPLAY_MAP } from '@shared/lib/gameConceptDisplay';
 import {
   formatCompactGameNumber,
   formatFullGameNumber,
@@ -103,18 +100,8 @@ function resolveItemRankTone(rank: number) {
 }
 
 function resolveItemIcon(item: ItemRankingEntry) {
-  if (item.itemType === 'artifact') {
-    return getEquipmentSlotInfo(
-      (item.slot as 'weapon' | 'armor' | 'accessory') || 'weapon',
-    ).icon;
-  }
-
-  if (item.itemType === 'elixir') {
-    return CONSUMABLE_TYPE_DISPLAY_MAP[(item.type as '丹药' | '符箓') || '丹药']
-      .icon;
-  }
-
-  return item.itemType === 'technique' ? '典' : '诀';
+  return CONSUMABLE_TYPE_DISPLAY_MAP[(item.type as '丹药' | '符箓') || '丹药']
+    .icon;
 }
 
 function RankSeal({ label, className }: { label: string; className: string }) {
