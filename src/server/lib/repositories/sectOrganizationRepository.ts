@@ -14,7 +14,19 @@ import {
   sectTaskRecords,
 } from '@server/lib/drizzle/schema';
 import type { SectDiscipleRank, SectOffice } from '@shared/engine/sect';
-import { and, asc, count, desc, eq, gt, gte, inArray, lte, ne, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  lte,
+  ne,
+  sql,
+} from 'drizzle-orm';
 
 export async function ensureSectFacilities(
   sectId: string,
@@ -95,8 +107,7 @@ export async function addSectContribution(
     .update(sectMemberships)
     .set({
       contribution: sql`${sectMemberships.contribution} + ${amount}`,
-      lifetimeContribution:
-        sql`${sectMemberships.lifetimeContribution} + ${amount}`,
+      lifetimeContribution: sql`${sectMemberships.lifetimeContribution} + ${amount}`,
       updatedAt: new Date(),
     })
     .where(eq(sectMemberships.id, membershipId))
@@ -195,7 +206,9 @@ export async function getNextSectTaskAttempt(
   q: DbExecutor | DbTransaction,
 ) {
   const [row] = await q
-    .select({ attempt: sql<number>`coalesce(max(${sectTaskRecords.attempt}), 0)` })
+    .select({
+      attempt: sql<number>`coalesce(max(${sectTaskRecords.attempt}), 0)`,
+    })
     .from(sectTaskRecords)
     .where(
       and(
@@ -492,24 +505,6 @@ export async function findOwnedMaterial(
   return row ?? null;
 }
 
-export async function findOwnedConsumable(
-  cultivatorId: string,
-  itemId: string,
-  q: DbExecutor | DbTransaction,
-) {
-  const [row] = await q
-    .select()
-    .from(consumables)
-    .where(
-      and(
-        eq(consumables.cultivatorId, cultivatorId),
-        eq(consumables.id, itemId),
-      ),
-    )
-    .limit(1);
-  return row ?? null;
-}
-
 export async function findOwnedArtifact(
   cultivatorId: string,
   itemId: string,
@@ -546,31 +541,6 @@ export async function listOwnedSubmissionMaterials(
         .limit(pageSize)
         .offset((page - 1) * pageSize),
     () => q.select({ total: count() }).from(materials).where(where),
-  ]);
-  return { rows, total: Number(totals[0]?.total ?? 0) };
-}
-
-export async function listOwnedSubmissionConsumables(
-  cultivatorId: string,
-  page: number,
-  pageSize: number,
-  q: DbExecutor | DbTransaction,
-) {
-  const condition = and(
-    eq(consumables.cultivatorId, cultivatorId),
-    eq(consumables.type, '丹药'),
-    sql`${consumables.spec} ->> 'kind' = 'pill'`,
-  );
-  const [rows, totals] = await runDbTasks(q, [
-    () =>
-      q
-        .select()
-        .from(consumables)
-        .where(condition)
-        .orderBy(desc(consumables.createdAt), asc(consumables.id))
-        .limit(pageSize)
-        .offset((page - 1) * pageSize),
-    () => q.select({ total: count() }).from(consumables).where(condition),
   ]);
   return { rows, total: Number(totals[0]?.total ?? 0) };
 }
@@ -625,38 +595,6 @@ export async function consumeOwnedSubmissionMaterial(
           eq(materials.id, itemId),
           eq(materials.cultivatorId, cultivatorId),
           eq(materials.quantity, 0),
-        ),
-      );
-  return true;
-}
-
-export async function consumeOwnedSubmissionConsumable(
-  cultivatorId: string,
-  itemId: string,
-  quantity: number,
-  tx: DbTransaction,
-) {
-  const [row] = await tx
-    .update(consumables)
-    .set({ quantity: sql`${consumables.quantity} - ${quantity}` })
-    .where(
-      and(
-        eq(consumables.id, itemId),
-        eq(consumables.cultivatorId, cultivatorId),
-        eq(consumables.type, '丹药'),
-        gte(consumables.quantity, quantity),
-      ),
-    )
-    .returning({ id: consumables.id, quantity: consumables.quantity });
-  if (!row) return false;
-  if (row.quantity === 0)
-    await tx
-      .delete(consumables)
-      .where(
-        and(
-          eq(consumables.id, itemId),
-          eq(consumables.cultivatorId, cultivatorId),
-          eq(consumables.quantity, 0),
         ),
       );
   return true;

@@ -1,6 +1,5 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import {
-  consumables,
   sectMemberships,
   sectStipendClaims,
   sectTaskRecords,
@@ -28,7 +27,8 @@ import {
   type SectRuntime,
 } from '@shared/engine/sect';
 import type { Consumable } from '@shared/types/cultivator';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
+import { findBagTalisman } from '../BagConsumables';
 import {
   carryV6SectBuild,
   planV6SectTransfer,
@@ -41,22 +41,18 @@ async function loadTransferTalisman(
   q: DbExecutor | DbTransaction,
   consumableId?: string,
 ) {
-  const conditions = [
-    eq(consumables.cultivatorId, cultivatorId),
-    eq(consumables.type, '符箓'),
-    sql`${consumables.quantity} > 0`,
-    sql`${consumables.spec}->>'kind' = 'talisman'`,
-    sql`${consumables.spec}->>'scenario' = ${CHEAT_HEAVEN_TALISMAN_SCENARIO}`,
-    sql`${consumables.spec}->>'sessionMode' = 'consume_on_action'`,
-  ];
-  if (consumableId) conditions.push(eq(consumables.id, consumableId));
-  const [row] = await q
-    .select()
-    .from(consumables)
-    .where(and(...conditions))
-    .orderBy(asc(consumables.createdAt), asc(consumables.id))
-    .limit(1);
-  return row;
+  return (
+    await findBagTalisman(
+      cultivatorId,
+      CHEAT_HEAVEN_TALISMAN_SCENARIO,
+      q,
+      consumableId,
+    )
+  ).find(
+    (item) =>
+      item.spec.kind === 'talisman' &&
+      item.spec.sessionMode === 'consume_on_action',
+  );
 }
 
 async function requireTransferPlan(args: {

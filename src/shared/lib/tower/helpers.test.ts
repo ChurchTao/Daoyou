@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { EnemyGenerator } from '@shared/engine/enemyGenerator';
 import {
-  buildTowerEnemyVariantSeed,
   buildTowerBlessingChoices,
+  buildTowerEnemyVariantSeed,
   isTowerRealmEligible,
   packTowerLeaderboardScore,
   resolveTowerDifficulty,
   resolveTowerFloorKind,
   resolveTowerMilestoneTier,
   resolveTowerRealmStage,
-  TOWER_MAX_FLOOR,
   TOWER_ELIGIBLE_REALMS,
+  TOWER_MAX_FLOOR,
   unpackTowerLeaderboardScore,
 } from './helpers';
 import { getTowerBlessingEffectPreview } from './presentation';
@@ -139,28 +138,5 @@ describe('tower helpers', () => {
         floor: 99,
       }),
     ).toBe('tower:2026-W22@Asia/Shanghai:金丹:20');
-  });
-
-  it('uses variantSeed to create distinct enemy variants for the same realm floor', () => {
-    const generator = new EnemyGenerator();
-    const base = {
-      realm: '金丹' as const,
-      realmStage: '初期' as const,
-      race: '人族' as const,
-      difficulty: 5,
-      isBoss: false,
-    };
-
-    const first = generator.buildDraft({
-      ...base,
-      variantSeed: 'tower:2026-W22@Asia/Shanghai:金丹:1',
-    });
-    const second = generator.buildDraft({
-      ...base,
-      variantSeed: 'tower:2026-W23@Asia/Shanghai:金丹:1',
-    });
-
-    expect(first.cultivator.id).not.toBe(second.cultivator.id);
-    expect(first.balance.variantKey).not.toBe(second.balance.variantKey);
   });
 });

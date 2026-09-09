@@ -19,13 +19,14 @@ import {
   QiServiceError,
 } from '@server/lib/services/QiService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
-import type {
-  BodyCultivationBreakthroughReadinessResponse,
-} from '@shared/contracts/bodyCultivation';
+import type { BodyCultivationBreakthroughReadinessResponse } from '@shared/contracts/bodyCultivation';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 
-const ConsumeSchema = z.object({ consumableId: z.string().uuid() });
+const ConsumeSchema = z.object({
+  consumableId: z.string().uuid(),
+  revision: z.number().int().nonnegative().optional(),
+});
 const BodyCultivationBreakthroughSchema = z.object({}).strict();
 
 function qiErrorResponse(c: Context<AppEnv>, error: unknown) {
@@ -66,6 +67,7 @@ conditionRouter.post('/consume', requireActiveCultivatorRef(), async (c) => {
         cultivatorId: cultivator.cultivatorId,
       },
       consumableId: parsed.data.consumableId,
+      revision: parsed.data.revision,
     });
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {

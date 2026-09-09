@@ -4,7 +4,13 @@ import type { MaterialFacts } from './definitions/materials';
 export interface ItemDefinition {
   id: string;
   name: string;
-  kind: 'beast_book' | 'equipment' | 'blueprint' | 'material' | 'manual_jade';
+  kind:
+    | 'beast_book'
+    | 'equipment'
+    | 'blueprint'
+    | 'material'
+    | 'manual_jade'
+    | 'consumable';
   stackLimit: number;
   skillId?: string;
   manualId?: string;

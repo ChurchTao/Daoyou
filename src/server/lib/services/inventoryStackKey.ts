@@ -6,7 +6,7 @@ export function inventoryStackKey(
   data: unknown,
 ): string | null {
   const identity = inventoryStackIdentity(definitionId, data);
-  return definitionId === 'material.v1'
-    ? `material.v1:${createHash('sha256').update(identity!).digest('hex')}`
+  return definitionId === 'material.v1' || definitionId === 'consumable.v1'
+    ? `${definitionId}:${createHash('sha256').update(identity!).digest('hex')}`
     : identity;
 }

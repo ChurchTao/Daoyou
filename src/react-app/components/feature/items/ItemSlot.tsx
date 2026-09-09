@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { EquipmentDetails } from '../forging/EquipmentDetails';
+import { ConsumableDetails } from './ConsumableDetails';
 import { itemPresentation, type DisplayItem } from './itemPresentation';
 
 export function InventoryGrid({
@@ -251,6 +252,11 @@ export function ItemSlot({
             </header>
             {itemDefinition(item.definitionId).kind === 'equipment' ? (
               <EquipmentDetails data={item.instanceData} />
+            ) : item.definitionId === 'consumable.v1' ? (
+              <ConsumableDetails
+                data={item.instanceData}
+                quantity={item.quantity}
+              />
             ) : (
               <p className="whitespace-pre-line">{presentation.description}</p>
             )}

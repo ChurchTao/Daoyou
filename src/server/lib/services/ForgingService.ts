@@ -18,6 +18,7 @@ import {
   itemDefinition,
   type InventoryItem,
 } from '@shared/inventory';
+import { consumableFactsOf } from '@shared/items/definitions/consumables';
 import {
   FORGING_MATERIAL_TYPES,
   MaterialFactsSchema,
@@ -29,6 +30,7 @@ import type { z } from 'zod';
 import { db, type DbTransaction } from '../drizzle/db';
 import {
   combatV6Beasts,
+  consumables,
   cultivators,
   inventoryItems,
   materials,
@@ -36,6 +38,8 @@ import {
 import { redisLockKeys, withRedisLock } from '../redis/lock';
 import { readBeastOwner } from '../repositories/combatV6BeastRepository';
 import { lockCultivatorForStateMutation } from '../repositories/playerStateRepository';
+import { mapConsumableRow } from './consumablePersistence';
+import { addConsumableToInventoryInTransaction } from './cultivator/CultivatorInventoryRepository';
 import {
   assertInventoryIdle,
   grantInventory,
@@ -44,6 +48,7 @@ import {
   readInventory,
   saveInventoryPlan,
 } from './InventoryService';
+import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
 import { QiService } from './QiService';
 import { ResourceEventCommitter } from './ResourceEventCommitter';
 
@@ -78,6 +83,11 @@ async function mutate<T>(
               resourceTopic: 'player.profile',
               operation: 'invalidate',
               eventType: 'forging.profile.changed',
+            },
+            {
+              resourceTopic: 'inventory.consumables',
+              operation: 'invalidate',
+              eventType: 'vault.consumables.changed',
             },
             {
               resourceTopic: 'inventory.materials',
@@ -222,35 +232,40 @@ export async function readVault(
   owner: string,
   query: z.infer<typeof VaultQuerySchema>,
 ): Promise<VaultView> {
+  const table = query.kind === 'consumable' ? consumables : materials;
   const filter = and(
-    eq(materials.cultivatorId, owner),
-    inArray(materials.type, [...FORGING_MATERIAL_TYPES]),
+    eq(table.cultivatorId, owner),
+    query.kind === 'material'
+      ? inArray(materials.type, ['herb', ...FORGING_MATERIAL_TYPES])
+      : undefined,
     query.search
-      ? ilike(materials.name, `%${query.search.replace(/[\\%_]/g, '\\$&')}%`)
+      ? ilike(
+          table.name,
+          '%' + query.search.replace(/[\\\\%_]/g, '\\\\$&') + '%',
+        )
       : undefined,
   );
-  const [total] = await db.select({ n: count() }).from(materials).where(filter);
+  const [total] = await db.select({ n: count() }).from(table).where(filter);
   const page = Math.min(query.page, Math.max(0, Math.ceil(total.n / 40) - 1));
   const rows = await db
     .select()
-    .from(materials)
+    .from(table)
     .where(filter)
-    .orderBy(asc(materials.createdAt), asc(materials.id))
+    .orderBy(asc(table.createdAt), asc(table.id))
     .limit(40)
     .offset(page * 40);
   return {
     total: total.n,
     page,
     items: rows.map((row) => ({
-      ...MaterialFactsSchema.parse({
-        name: row.name,
-        type: row.type,
-        rank: row.rank,
-        element: row.element,
-        description: row.description ?? '',
-      }),
       id: row.id,
+      name: row.name,
+      type: row.type,
       quantity: row.quantity,
+      rank: 'rank' in row ? row.rank : row.quality,
+      description: row.description ?? '',
+      element: 'element' in row ? row.element : null,
+      kind: query.kind,
     })),
   };
 }
@@ -260,43 +275,62 @@ export async function withdrawMaterial(
   input: z.infer<typeof WithdrawMaterialSchema>,
 ) {
   return mutate(owner, async (tx) => {
+    const table = input.kind === 'consumable' ? consumables : materials;
     const [row] = await tx
       .select()
-      .from(materials)
-      .where(and(eq(materials.id, input.id), eq(materials.cultivatorId, owner)))
+      .from(table)
+      .where(and(eq(table.id, input.id), eq(table.cultivatorId, owner)))
       .for('update');
     if (
       !row ||
       row.quantity !== input.expectedQuantity ||
       input.quantity > row.quantity
     )
-      throw new InventoryError('材料已变化，请刷新宝库');
-    const facts = MaterialFactsSchema.parse({
-      name: row.name,
-      type: row.type,
-      rank: row.rank,
-      element: row.element,
-      description: row.description ?? '',
-    });
-    await grantInventory(
-      owner,
-      [
-        {
-          definitionId: 'material.v1',
-          quantity: input.quantity,
-          instanceData: facts,
-        },
-      ],
-      tx,
-      false,
-    );
+      throw new InventoryError('物品已变化，请刷新宝库');
+    if ('rank' in row) {
+      const blocked = getMysteryMaterialBlockingReason([row]);
+      if (blocked) throw new InventoryError(blocked);
+      const facts = MaterialFactsSchema.parse({
+        name: row.name,
+        type: row.type,
+        rank: row.rank,
+        element: row.element,
+        description: row.description ?? '',
+      });
+      await grantInventory(
+        owner,
+        [
+          {
+            definitionId: 'material.v1',
+            quantity: input.quantity,
+            instanceData: facts,
+          },
+        ],
+        tx,
+        false,
+      );
+    } else {
+      const facts = consumableFactsOf(mapConsumableRow(row));
+      await grantInventory(
+        owner,
+        [
+          {
+            definitionId: 'consumable.v1',
+            quantity: input.quantity,
+            instanceData: facts,
+          },
+        ],
+        tx,
+        false,
+      );
+    }
     if (row.quantity === input.quantity)
-      await tx.delete(materials).where(eq(materials.id, row.id));
+      await tx.delete(table).where(eq(table.id, row.id));
     else
       await tx
-        .update(materials)
+        .update(table)
         .set({ quantity: row.quantity - input.quantity })
-        .where(eq(materials.id, row.id));
+        .where(eq(table.id, row.id));
     return { withdrawn: input.quantity };
   });
 }
@@ -307,7 +341,14 @@ export async function grantDevResources(input: z.infer<typeof DevGrantSchema>) {
     for (const grant of input.grants) {
       if (grant.type === 'item')
         await grantInventory(input.cultivatorId, [grant.item], tx, false);
-      else if (grant.type === 'beast') {
+      else if (grant.type === 'vault-consumable') {
+        const item = await addConsumableToInventoryInTransaction(
+          input.cultivatorId,
+          { ...grant.facts, quantity: grant.quantity },
+          tx,
+        );
+        if (item.id) ids.push(item.id);
+      } else if (grant.type === 'beast') {
         if (!BEAST_SPECIES.some((species) => species.id === grant.speciesId))
           throw new InventoryError('灵兽物种无效');
         const [held] = await tx

@@ -1,8 +1,4 @@
 import {
-  PendingCreationNotice,
-  usePendingCreations,
-} from '@app/components/feature/creation';
-import {
   AbilityDetailModal,
   AbilityListCard,
 } from '@app/components/feature/products';
@@ -33,10 +29,6 @@ export function TechniquesView() {
     toggleTechniqueEnabled,
     openForgetConfirm,
   } = useTechniquesViewModel();
-  const pendingCreations = usePendingCreations({
-    craftTypes: ['create_gongfa'],
-    enabled: Boolean(cultivator),
-  });
 
   if (isLoading && !cultivator) {
     return <GameSceneLoading message="功法卷轴徐徐展开……" />;
@@ -76,10 +68,6 @@ export function TechniquesView() {
       }
     >
       <div className="space-y-4">
-        <PendingCreationNotice
-          pendingTypes={pendingCreations.pendingTypes}
-          loading={pendingCreations.isLoading}
-        />
         {!cultivator ? (
           <InkNotice>还未觉醒道身，何谈功法？先去首页觉醒吧。</InkNotice>
         ) : techniques.length === 0 ? (

@@ -14,9 +14,8 @@ import {
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { randomUUID } from 'crypto';
 import { and, eq, sql } from 'drizzle-orm';
-import {
-  loadPlayerBodyCultivationFacts,
-} from './BodyCultivationBreakthroughService';
+import { inventoryItems } from '../drizzle/schema';
+import { loadPlayerBodyCultivationFacts } from './BodyCultivationBreakthroughService';
 import { playerCommandExecutor } from './CommandExecutors';
 import { ConditionService } from './ConditionService';
 import { ConsumableUseEngine } from './ConsumableUseEngine';
@@ -36,6 +35,7 @@ type Actor = { userId: string; cultivatorId: string };
 export function consumeCultivatorConsumable(args: {
   actor: Actor;
   consumableId: string;
+  revision?: number;
 }) {
   return withRedisLock(
     {
@@ -51,6 +51,20 @@ export function consumeCultivatorConsumable(args: {
         cultivatorId: args.actor.cultivatorId,
         source: 'consumable_use',
         command: async (tx) => {
+          if (args.revision !== undefined) {
+            const [item] = await tx
+              .select({ revision: inventoryItems.revision })
+              .from(inventoryItems)
+              .where(
+                and(
+                  eq(inventoryItems.id, args.consumableId),
+                  eq(inventoryItems.cultivatorId, args.actor.cultivatorId),
+                  eq(inventoryItems.location, 'bag'),
+                ),
+              );
+            if (!item || item.revision !== args.revision)
+              throw new Error('物品已变化，请刷新后重试');
+          }
           const result = await ConsumableUseEngine.consume(
             args.actor.userId,
             args.actor.cultivatorId,
@@ -170,9 +184,7 @@ export async function recoverCultivatorAtInn(args: { actor: Actor }) {
   });
 }
 
-export async function breakthroughBodyCultivation(args: {
-  actor: Actor;
-}) {
+export async function breakthroughBodyCultivation(args: { actor: Actor }) {
   return playerCommandExecutor.executeWithLock({
     userId: args.actor.userId,
     cultivatorId: args.actor.cultivatorId,

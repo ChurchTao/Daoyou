@@ -5,6 +5,7 @@ import { BEAST_SKILLS } from '@shared/engine/combat-v6/beasts';
 import { CHARACTER_MANUALS_V1 } from '@shared/engine/combat-v6/manuals/content';
 import { itemDefinition } from '@shared/inventory';
 import { InventoryEquipmentSchema } from '@shared/inventory/equipment';
+import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
 import { MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
 import { materialFactsOf } from '@shared/items/material';
@@ -38,10 +39,23 @@ function levelTier(level: number) {
 export function itemPresentation(item: DisplayItem) {
   const def = itemDefinition(item.definitionId);
   switch (def.kind) {
+    case 'consumable': {
+      const facts = ConsumableFactsSchema.parse(item.instanceData);
+      return {
+        icon:
+          facts.type === '丹药' ? '🌕' : facts.type === '灵果' ? '🍑' : '🧧',
+        color: tierColorMap[facts.quality],
+        tier: facts.quality,
+        type: facts.type,
+        description: facts.description,
+      };
+    }
     case 'material': {
       const facts = materialFactsOf(item.definitionId, item.instanceData);
       return {
-        icon: { ore: '🪨', tcdb: '💎', aux: '🧵', monster: '🦴' }[facts.type],
+        icon: { herb: '🌿', ore: '🪨', tcdb: '💎', aux: '🧵', monster: '🦴' }[
+          facts.type
+        ],
         color: tierColorMap[facts.rank],
         tier: facts.rank,
         type: MATERIAL_TYPE_NAMES[facts.type],

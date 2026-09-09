@@ -13,8 +13,8 @@ export function HerbCabinetView({
 }) {
   const session = useAlchemyCraftSession();
   const { pushToast } = useInkUI();
-  const carry = (material: Material) => {
-    const outcome = session.addMaterialToFurnace(material);
+  const carry = (material: Material, dose: number) => {
+    const outcome = session.addMaterialToFurnace(material, dose);
     if (outcome === 'limit-reached') {
       pushToast({
         message: '本炉材料种类已满，请先到丹炉调整。',
@@ -25,7 +25,7 @@ export function HerbCabinetView({
     pushToast({
       message:
         outcome === 'already-added'
-          ? `【${material.name}】已在炉中，原有剂量保持不变。`
+          ? `【${material.name}】已在炉中，份量已更新。`
           : `已将【${material.name}】添加到丹炉。`,
       tone: 'success',
     });
@@ -37,10 +37,7 @@ export function HerbCabinetView({
       backLabel="百草药柜"
       onBack={onBack}
     >
-      <AlchemyMaterialShelf
-        cultivatorId={session.cultivator?.id}
-        onCarry={carry}
-      />
+      <AlchemyMaterialShelf onCarry={carry} />
     </AlchemyToolWorkspace>
   );
 }

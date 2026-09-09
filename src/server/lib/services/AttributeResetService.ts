@@ -5,6 +5,7 @@ import {
   withRedisLock,
   type RedisLeaseContext,
 } from '@server/lib/redis/lock';
+import { consumeConsumableById } from '@server/lib/services/cultivator/CultivatorInventoryRepository';
 import {
   ATTRIBUTE_RESET_TALISMAN_NAME,
   ATTRIBUTE_RESET_TALISMAN_SCENARIO,
@@ -12,10 +13,8 @@ import {
 import { getRealmStageNaturalAttributeValue } from '@shared/config/realmProgression';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { Attributes } from '@shared/types/cultivator';
-import { and, asc, eq, sql } from 'drizzle-orm';
-import {
-  consumeConsumableById,
-} from '@server/lib/services/cultivator/CultivatorInventoryRepository';
+import { eq } from 'drizzle-orm';
+import { findBagTalisman } from './BagConsumables';
 
 export class AttributeResetServiceError extends Error {
   constructor(
@@ -69,27 +68,18 @@ async function loadResetTalisman(args: {
   consumableId?: string;
   tx?: DbTransaction;
 }) {
-  const q = getExecutor(args.tx);
-  const conditions = [
-    eq(schema.consumables.cultivatorId, args.cultivatorId),
-    eq(schema.consumables.type, '符箓'),
-    sql`${schema.consumables.quantity} > 0`,
-    sql`${schema.consumables.spec}->>'kind' = 'talisman'`,
-    sql`${schema.consumables.spec}->>'scenario' = ${ATTRIBUTE_RESET_TALISMAN_SCENARIO}`,
-    sql`${schema.consumables.spec}->>'sessionMode' = 'consume_on_action'`,
-  ];
-  if (args.consumableId) {
-    conditions.push(eq(schema.consumables.id, args.consumableId));
-  }
-
-  const rows = await q
-    .select()
-    .from(schema.consumables)
-    .where(and(...conditions))
-    .orderBy(asc(schema.consumables.createdAt), asc(schema.consumables.id))
-    .limit(1);
-
-  return rows[0];
+  return (
+    await findBagTalisman(
+      args.cultivatorId,
+      ATTRIBUTE_RESET_TALISMAN_SCENARIO,
+      getExecutor(args.tx),
+      args.consumableId,
+    )
+  ).find(
+    (item) =>
+      item.spec.kind === 'talisman' &&
+      item.spec.sessionMode === 'consume_on_action',
+  );
 }
 
 export const AttributeResetService = {
@@ -151,10 +141,7 @@ export const AttributeResetService = {
     );
 
     if (refundedAttributePoints <= 0) {
-      throw new AttributeResetServiceError(
-        400,
-        '当前没有已分配的属性点可重置',
-      );
+      throw new AttributeResetServiceError(400, '当前没有已分配的属性点可重置');
     }
 
     const nextAttributes = {

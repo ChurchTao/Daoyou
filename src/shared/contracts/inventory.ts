@@ -17,6 +17,7 @@ export const InventoryQuerySchema = z
         'blueprint',
         'material',
         'manual_jade',
+        'consumable',
       ])
       .default('all'),
   })

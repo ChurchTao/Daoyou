@@ -2,21 +2,32 @@ import {
   combatV6Request,
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
+import {
+  getTalismanActionHref,
+  getTalismanActionLabel,
+  isAttributeResetTalisman,
+  isQiRestoreTalisman,
+  isSectMeridianResetTalisman,
+} from '@app/components/feature/consumables';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
+import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type {
   InventoryAction,
   InventoryView,
 } from '@shared/contracts/inventory';
 import { BAG_CAPACITY, itemDefinition } from '@shared/inventory';
+import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 
 const endpoint = '/api/combat-v6/inventory';
 type Item = InventoryView['items'][number];
-type BagAction = Exclude<InventoryAction, { action: 'learn' }>;
+type BagAction =
+  | Exclude<InventoryAction, { action: 'learn' }>
+  | { action: 'use'; id: string; revision: number };
 export default function InventoryV6() {
   const [params, setParams] = useSearchParams();
   const route = useLocation();
@@ -80,7 +91,17 @@ export default function InventoryV6() {
     setPending(true);
     reader.current?.abort();
     try {
-      await combatV6Request(endpoint, mutationBody(action));
+      if (action.action === 'use') {
+        await consumeResourceMutation(
+          await fetch(
+            '/api/cultivator/consume',
+            mutationBody({
+              consumableId: action.id,
+              revision: action.revision,
+            }),
+          ),
+        );
+      } else await combatV6Request(endpoint, mutationBody(action));
       if (!mounted.current) return;
       setMoving(undefined);
       pushToast({ message: '已完成', tone: 'success' });
@@ -171,6 +192,7 @@ export default function InventoryV6() {
             <option value="equipment">道装</option>
             <option value="blueprint">图纸</option>
             <option value="material">材料</option>
+            <option value="consumable">丹药与消耗品</option>
           </select>
           <InkButton
             disabled={pending}
@@ -283,9 +305,38 @@ function ItemActions({
   const definition = itemDefinition(item.definitionId);
   const [quantity, setQuantity] = useState(1);
   const ref = { id: item.id, revision: item.revision };
+  const navigate = useNavigate();
+  const consumable =
+    definition.kind === 'consumable'
+      ? {
+          ...ConsumableFactsSchema.parse(item.instanceData),
+          id: item.id,
+          quantity: item.quantity,
+        }
+      : undefined;
+  const actionHref = consumable && getTalismanActionHref(consumable);
+  const directUse =
+    consumable &&
+    (consumable.spec.kind !== 'talisman' ||
+      isQiRestoreTalisman(consumable) ||
+      isAttributeResetTalisman(consumable) ||
+      isSectMeridianResetTalisman(consumable));
   return (
     <div className="space-y-4 text-sm">
       <div className="flex flex-wrap gap-3">
+        {item.location === 'bag' && directUse ? (
+          <InkButton
+            disabled={pending}
+            onClick={() => void act({ action: 'use', ...ref })}
+          >
+            使用
+          </InkButton>
+        ) : null}
+        {item.location === 'bag' && consumable && actionHref && !directUse ? (
+          <InkButton disabled={pending} onClick={() => navigate(actionHref)}>
+            {getTalismanActionLabel(consumable) ?? '前往使用'}
+          </InkButton>
+        ) : null}
         {item.location === 'bag' && definition.kind === 'equipment' ? (
           <InkButton
             pending={pending}

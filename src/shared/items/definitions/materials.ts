@@ -7,6 +7,7 @@ export const FORGING_MATERIAL_TYPES = [
   'monster',
 ] as const;
 export const MATERIAL_TYPE_NAMES = {
+  herb: '草药',
   ore: '矿石',
   tcdb: '天材地宝',
   aux: '辅助材料',
@@ -22,7 +23,7 @@ export const MATERIAL_ITEM = {
 export const MaterialFactsSchema = z
   .object({
     name: z.string().trim().min(1).max(100),
-    type: z.enum(FORGING_MATERIAL_TYPES),
+    type: z.enum(['herb', ...FORGING_MATERIAL_TYPES]),
     rank: z.enum(QUALITY_VALUES),
     element: z.enum(ELEMENT_VALUES).nullable().default(null),
     description: z.string().max(4000).default(''),

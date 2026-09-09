@@ -1,9 +1,5 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
-import {
-  consumables,
-  creationProducts,
-  materials,
-} from '@server/lib/drizzle/schema';
+import { creationProducts, materials } from '@server/lib/drizzle/schema';
 import { createPostgresDomainEventWriter } from '@server/lib/mq/domainEventWriter';
 import * as organization from '@server/lib/repositories/sectOrganizationRepository';
 import * as memberships from '@server/lib/repositories/sectRepository';
@@ -11,7 +7,6 @@ import {
   materialLibraryEntryToMaterial,
   sampleMaterialLibraryEntryDeterministic,
 } from '@server/lib/services/MaterialLibraryService';
-import { mapConsumableRow } from '@server/lib/services/consumablePersistence';
 import { toArtifactFromProduct } from '@server/lib/services/creationProductArtifactSupport';
 import {
   addMaterialToInventoryInTransaction,
@@ -40,6 +35,11 @@ import {
 } from '@shared/types/constants';
 import type { ConsumableSpec } from '@shared/types/consumable';
 import { eq } from 'drizzle-orm';
+import {
+  consumeBagConsumable,
+  getBagConsumable,
+  readBagConsumables,
+} from '../BagConsumables';
 import {
   freezeSectTaskTarget,
   startSectTaskBattle,
@@ -255,7 +255,7 @@ function facilityCommandAdapter(
   };
 }
 
-function normalizeQuality(value: string | null): Quality {
+function normalizeQuality(value: string | null | undefined): Quality {
   return QUALITY_VALUES.includes(value as Quality)
     ? (value as Quality)
     : '凡品';
@@ -264,7 +264,7 @@ function normalizeQuality(value: string | null): Quality {
 function mapSubmissionPill(row: {
   id: string;
   name: string;
-  quality: string;
+  quality?: string;
   quantity: number;
   spec: unknown;
 }): SectPillSubmissionFacts | null {
@@ -352,11 +352,7 @@ function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
     itemId: string,
   ): Promise<SectSubmissionItemFacts | null> => {
     if (kind === 'pill') {
-      const row = await organization.findOwnedConsumable(
-        cultivatorId,
-        itemId,
-        q,
-      );
+      const row = await getBagConsumable(cultivatorId, itemId, q);
       return row ? mapSubmissionPill(row) : null;
     }
     if (kind === 'artifact') {
@@ -374,17 +370,18 @@ function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
       pageSize: number;
     }) {
       if (input.kind === 'pill') {
-        const result = await organization.listOwnedSubmissionConsumables(
-          input.cultivatorId,
-          input.page,
-          input.pageSize,
-          q,
+        const rows = (await readBagConsumables(input.cultivatorId, q)).filter(
+          (item) => item.spec.kind === 'pill',
         );
         return {
-          items: result.rows
+          items: rows
+            .slice(
+              (input.page - 1) * input.pageSize,
+              input.page * input.pageSize,
+            )
             .map(mapSubmissionPill)
             .filter((item): item is SectPillSubmissionFacts => Boolean(item)),
-          total: result.total,
+          total: rows.length,
         };
       }
       if (input.kind === 'artifact') {
@@ -420,7 +417,7 @@ function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
       if (!('rollback' in q)) throw new Error('宗门物品提交必须在事务中执行');
       const consumed =
         input.kind === 'pill'
-          ? await organization.consumeOwnedSubmissionConsumable(
+          ? await consumeBagConsumable(
               input.cultivatorId,
               input.itemId,
               input.quantity,
@@ -443,6 +440,7 @@ function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
         q,
         input.kind,
         input.itemId,
+        input.cultivatorId,
       );
       return inventorySettlement(true, change, input.itemId);
     },
@@ -457,7 +455,14 @@ function inventorySettlement(
   if (!consumed) return { consumed: false };
   return {
     consumed: true,
-    change,
+    change:
+      change.resourceTopic === 'inventory.consumables'
+        ? {
+            resourceTopic: change.resourceTopic,
+            eventType: change.eventType,
+            operation: 'invalidate' as const,
+          }
+        : change,
     settlement: {
       topic: change.resourceTopic,
       itemId,
@@ -476,23 +481,20 @@ async function buildSubmissionInventoryChange(
   q: DbTransaction,
   kind: SectSubmissionItemKind,
   itemId: string,
+  owner: string,
 ): Promise<
   ResourceChangeDescriptor<
     'inventory.artifacts' | 'inventory.materials' | 'inventory.consumables'
   >
 > {
   if (kind === 'pill') {
-    const [row] = await q
-      .select()
-      .from(consumables)
-      .where(eq(consumables.id, itemId))
-      .limit(1);
+    const row = await getBagConsumable(owner, itemId, q);
     return row
       ? {
           resourceTopic: 'inventory.consumables',
           eventType: 'sect.task_inventory_item_updated',
           operation: 'upsert-items',
-          payload: { items: [mapConsumableRow(row)], idKey: 'id' },
+          payload: { items: [row], idKey: 'id' },
         }
       : {
           resourceTopic: 'inventory.consumables',

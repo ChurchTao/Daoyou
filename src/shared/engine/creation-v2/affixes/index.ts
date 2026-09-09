@@ -2,16 +2,12 @@
  * affixes/index.ts: 词缀子系统对外导出入口。
  * 导出类型、翻译器、注册表与默认注册数据，供 composer 与规则层使用。
  */
-export type {
-  AffixDefinition,
-  AffixEffectTemplate,
-  AffixListenerSpec,
-  AffixScalableValue,
-  AffixTagMatchGroup,
-  AffixTagMatcher,
-  ScalableParam,
-  ScalableValueV2,
-} from './types';
+export { AffixEffectTranslator } from './AffixEffectTranslator';
+export {
+  buildNeutralCreationTagSignals,
+  evaluateAffixMatcher,
+} from './AffixMatcher';
+export { AffixRegistry } from './AffixRegistry';
 export {
   collectAffixMatcherReferencedTags,
   flattenAffixMatcherTags,
@@ -19,21 +15,21 @@ export {
   matchAny,
   matchNone,
 } from './types';
-export { AffixEffectTranslator } from './AffixEffectTranslator';
-export {
-  buildNeutralCreationTagSignals,
-  evaluateAffixMatcher,
-} from './AffixMatcher';
-export { AffixRegistry } from './AffixRegistry';
-export { AffixPoolBuilder } from './AffixPoolBuilder';
-export { AffixSelector } from './AffixSelector';
-export type { AffixSelectionResult } from './AffixSelector';
-export { AffixPicker } from './AffixPicker';
+export type {
+  AffixDefinition,
+  AffixEffectTemplate,
+  AffixListenerSpec,
+  AffixScalableValue,
+  AffixTagMatcher,
+  AffixTagMatchGroup,
+  ScalableParam,
+  ScalableValueV2,
+} from './types';
 
 import { AffixRegistry } from './AffixRegistry';
-import { SKILL_AFFIXES } from './definitions/skillAffixes';
 import { ARTIFACT_AFFIXES } from './definitions/artifactAffixes';
 import { GONGFA_AFFIXES } from './definitions/gongfaAffixes';
+import { SKILL_AFFIXES } from './definitions/skillAffixes';
 
 /**
  * 默认词缀注册表（已预填所有内置词缀池）

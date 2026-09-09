@@ -40,19 +40,11 @@ export async function executeSectTransferCommand(
           operation: 'replace',
           payload: result.membership,
         },
-        result.remainingTalisman
-          ? {
-              resourceTopic: 'inventory.consumables',
-              eventType: 'inventory.sect_transfer.used',
-              operation: 'upsert-items',
-              payload: { idKey: 'id', items: [result.remainingTalisman] },
-            }
-          : {
-              resourceTopic: 'inventory.consumables',
-              eventType: 'inventory.sect_transfer.used',
-              operation: 'remove-items',
-              payload: { idKey: 'id', ids: [result.consumedTalismanId] },
-            },
+        {
+          resourceTopic: 'inventory.consumables',
+          eventType: 'inventory.sect_transfer.used',
+          operation: 'invalidate',
+        },
         {
           scope: { kind: 'sect', id: result.sourceSectId },
           resourceTopic: 'sect.members',

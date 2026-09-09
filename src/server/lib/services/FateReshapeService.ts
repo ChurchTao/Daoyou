@@ -6,28 +6,26 @@ import {
   withRedisLock,
   type RedisLeaseContext,
 } from '@server/lib/redis/lock';
+import { findActiveCultivatorOwnerId } from '@server/lib/repositories/cultivatorRepository';
+import { consumeConsumableById } from '@server/lib/services/cultivator/CultivatorInventoryRepository';
+import {
+  getPlayerPreHeavenFates,
+  replacePreHeavenFates,
+} from '@server/lib/services/cultivator/CultivatorProfileRepository';
+import type { Consumable } from '@shared/types/cultivator';
 import type {
   FateReshapeSessionDTO,
   FateReshapeSessionStore,
 } from '@shared/types/fateReshape';
-import { and, asc, eq, sql } from 'drizzle-orm';
 import {
   getExecutor,
   type DbExecutor,
   type DbTransaction,
 } from '../drizzle/db';
-import * as schema from '../drizzle/schema';
+import { findBagTalisman } from './BagConsumables';
 import { FATE_RESHAPE_CANDIDATE_COUNT } from './FateConfig';
 import { FateEngine } from './FateEngine';
-import type { ConsumableRow } from './consumablePersistence';
-import {
-  consumeConsumableById,
-} from '@server/lib/services/cultivator/CultivatorInventoryRepository';
-import { findActiveCultivatorOwnerId } from '@server/lib/repositories/cultivatorRepository';
-import {
-  getPlayerPreHeavenFates,
-  replacePreHeavenFates,
-} from '@server/lib/services/cultivator/CultivatorProfileRepository';
+type ConsumableRow = Consumable & { id: string };
 
 const FATE_RESHAPE_SESSION_TTL_SEC = 3600;
 const FATE_RESHAPE_SCENARIO = 'fate_reshape';
@@ -148,19 +146,7 @@ async function loadMatchingTalismanRows(
   cultivatorId: string,
   q: DbExecutor | DbTransaction = getExecutor(),
 ): Promise<ConsumableRow[]> {
-  const rows = await q
-    .select()
-    .from(schema.consumables)
-    .where(
-      and(
-        eq(schema.consumables.cultivatorId, cultivatorId),
-        eq(schema.consumables.type, '符箓'),
-        sql`${schema.consumables.quantity} > 0`,
-        sql`${schema.consumables.spec}->>'kind' = 'talisman'`,
-        sql`${schema.consumables.spec}->>'scenario' = ${FATE_RESHAPE_SCENARIO}`,
-      ),
-    )
-    .orderBy(asc(schema.consumables.createdAt), asc(schema.consumables.id));
+  const rows = await findBagTalisman(cultivatorId, FATE_RESHAPE_SCENARIO, q);
 
   return rows;
 }

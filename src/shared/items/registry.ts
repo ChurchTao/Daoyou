@@ -1,4 +1,5 @@
 import { BOOKS } from './definitions/beast-books';
+import { CONSUMABLE_ITEM } from './definitions/consumables';
 import { EQUIPMENT_ITEM } from './definitions/equipment';
 import { BLUEPRINTS } from './definitions/equipment-blueprints';
 import { FIXED_MATERIALS } from './definitions/fixed-materials';
@@ -10,6 +11,7 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
   ...BLUEPRINTS,
   EQUIPMENT_ITEM,
   MATERIAL_ITEM,
+  CONSUMABLE_ITEM,
   ...FIXED_MATERIALS,
   ...MANUAL_JADES,
 ];

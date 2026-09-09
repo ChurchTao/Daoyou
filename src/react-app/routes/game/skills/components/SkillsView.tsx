@@ -1,8 +1,4 @@
 import {
-  PendingCreationNotice,
-  usePendingCreations,
-} from '@app/components/feature/creation';
-import {
   AbilityDetailModal,
   AbilityListCard,
 } from '@app/components/feature/products';
@@ -41,10 +37,6 @@ export function SkillsView() {
     toggleSkillEnabled,
     openForgetConfirm,
   } = useSkillsViewModel();
-  const pendingCreations = usePendingCreations({
-    craftTypes: ['create_skill'],
-    enabled: Boolean(cultivator),
-  });
   const sectSkillLocked = membership.data?.status === 'active';
 
   if (isLoading && !cultivator) {
@@ -83,10 +75,6 @@ export function SkillsView() {
       }
     >
       <div className="space-y-4">
-        <PendingCreationNotice
-          pendingTypes={pendingCreations.pendingTypes}
-          loading={pendingCreations.isLoading}
-        />
         <InkNotice tone="info">{SELF_CREATED_SKILL_FREEZE_MESSAGE}</InkNotice>
         {!cultivator ? (
           <InkNotice>还未觉醒道身，何谈神通？先去首页觉醒吧。</InkNotice>

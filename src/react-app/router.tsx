@@ -294,7 +294,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'legacy-storage',
                   presentation: 'service',
-                  summary: '收藏洞府诸物，取出灵材以备铸造。',
+                  summary: '收藏洞府旧物，取出灵材与丹药放入储物袋。',
                 },
                 '洞府宝库',
               )}

@@ -1,6 +1,6 @@
 import { InkButton } from '@app/components/ui/InkButton';
-import { BAG_CAPACITY, itemDefinition } from '@shared/inventory';
-import { InventoryGrid, ItemSlot } from '../items/ItemSlot';
+import { itemDefinition } from '@shared/inventory';
+import { InventoryItems } from '../items/InventoryItems';
 import type { ForgeItem, ForgingSession } from './useForgingSession';
 
 export type ForgeFilter = 'all' | 'blueprint' | 'material';
@@ -17,9 +17,6 @@ export function ForgingInventory({
   selected?: string;
   onChoose: (item: ForgeItem) => void;
 }) {
-  const slots = new Map(
-    session.view?.inventory.items.map((item) => [item.slotIndex, item]),
-  );
   return (
     <div className="space-y-3 text-sm">
       <header className="flex justify-between">
@@ -50,9 +47,9 @@ export function ForgingInventory({
       {!session.view && !session.error ? (
         <p role="status">正在读取储物袋……</p>
       ) : null}
-      <InventoryGrid className="grid-cols-4 gap-1 sm:grid-cols-5">
-        {Array.from({ length: BAG_CAPACITY }, (_, index) => {
-          const item = slots.get(index);
+      <InventoryItems
+        items={session.view?.inventory.items ?? []}
+        slotProps={(item) => {
           const matching =
             !item ||
             filter === 'all' ||
@@ -63,39 +60,33 @@ export function ForgingInventory({
                 Number(session.blueprint?.id === item.id)
               : 0;
           const problem = item ? session.itemProblem(item) : null;
-          return (
-            <ItemSlot
-              key={index}
-              item={item}
-              emptyLabel=""
-              selected={!!item && selected === item.id}
-              disabled={!matching || session.locked || !!problem}
-              className={!matching ? 'opacity-25' : undefined}
-              badge={used ? `已投${used}` : undefined}
-              onQuickAction={item ? () => onChoose(item) : undefined}
-            >
-              {item
-                ? (close) => (
-                    <>
-                      {problem ? (
-                        <p className="text-ink-secondary">{problem}</p>
-                      ) : null}
-                      <InkButton
-                        disabled={session.locked || !matching || !!problem}
-                        onClick={() => {
-                          onChoose(item);
-                          close();
-                        }}
-                      >
-                        放入器炉
-                      </InkButton>
-                    </>
-                  )
-                : undefined}
-            </ItemSlot>
-          );
-        })}
-      </InventoryGrid>
+          return {
+            selected: !!item && selected === item.id,
+            disabled: !matching || session.locked || !!problem,
+            className: !matching ? 'opacity-25' : undefined,
+            badge: used ? `已投${used}` : undefined,
+            onQuickAction: item ? () => onChoose(item) : undefined,
+            children: item
+              ? (close) => (
+                  <>
+                    {problem ? (
+                      <p className="text-ink-secondary">{problem}</p>
+                    ) : null}
+                    <InkButton
+                      disabled={session.locked || !matching || !!problem}
+                      onClick={() => {
+                        onChoose(item);
+                        close();
+                      }}
+                    >
+                      放入器炉
+                    </InkButton>
+                  </>
+                )
+              : undefined,
+          };
+        }}
+      />
     </div>
   );
 }

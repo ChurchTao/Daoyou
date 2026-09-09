@@ -1,20 +1,13 @@
 import { Quality } from '@shared/types/constants';
 import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../affixes/AffixRegistry';
-import {
-  AffixListenerSpec,
-} from '../affixes/types';
+import { AffixListenerSpec } from '../affixes/types';
 import type { EffectConfig, ListenerConfig } from '../contracts/battle';
-import type { CreationProductType, RolledAffix } from '../types';
+import type { RolledAffix } from '../types';
 /*
  * composers/shared.ts: Composer 公共工具。
  * 包含投影品质推导、构建分组 listener，以及通用的 slug 生成器委托等辅助函数。
  */
-import { deriveProjectionQualityFromBudget } from '../analysis/ProjectionQualityProfile';
-import { CreationSession } from '../CreationSession';
-import { CompositionFacts } from '../rules/contracts/CompositionFacts';
-
-
 
 export function buildGroupedListeners({
   registry,
@@ -22,7 +15,13 @@ export function buildGroupedListeners({
   rolledAffixes,
   quality,
   defaultListenerSpec,
-}: { registry: AffixRegistry; translator: AffixEffectTranslator; rolledAffixes: RolledAffix[]; quality: Quality; defaultListenerSpec: AffixListenerSpec; }): ListenerConfig[] {
+}: {
+  registry: AffixRegistry;
+  translator: AffixEffectTranslator;
+  rolledAffixes: RolledAffix[];
+  quality: Quality;
+  defaultListenerSpec: AffixListenerSpec;
+}): ListenerConfig[] {
   const listenerMap = new Map<string, ListenerConfig>();
 
   for (const rolled of rolledAffixes) {
@@ -40,7 +39,11 @@ export function buildGroupedListeners({
     // order, so different-priority affixes must not be silently merged.
     const key = `${spec.eventType}||${spec.scope}||${spec.priority}`;
 
-    const guard = buildCreationListenerGuard(spec.eventType, effect, spec.guard);
+    const guard = buildCreationListenerGuard(
+      spec.eventType,
+      effect,
+      spec.guard,
+    );
 
     if (!listenerMap.has(key)) {
       listenerMap.set(key, {
@@ -70,14 +73,20 @@ export function buildCreationListenerGuard(
   effect: EffectConfig,
   guard?: ListenerConfig['guard'],
 ): ListenerConfig['guard'] | undefined {
-  if (eventType === 'DamageSegmentAppliedEvent' && executesDeathPrevent(effect)) {
+  if (
+    eventType === 'DamageSegmentAppliedEvent' &&
+    executesDeathPrevent(effect)
+  ) {
     return {
       ...guard,
       allowLethalWindow: true,
     };
   }
 
-  if (eventType !== 'DamageSegmentAppliedEvent' || !executesDamageResponse(effect)) {
+  if (
+    eventType !== 'DamageSegmentAppliedEvent' ||
+    !executesDamageResponse(effect)
+  ) {
     return guard;
   }
 
@@ -112,57 +121,4 @@ function executesDeathPrevent(effect: EffectConfig): boolean {
   }
 
   return false;
-}
-
-/**
- * Builds a CompositionFacts object from the current session state.
- * Shared by all three Composer implementations to eliminate duplication.
- *
- * Pass an optional `registry` to populate `coreEffectType` from the core affix's effectTemplate.
- */
-export function buildCompositionFacts(
-  session: CreationSession,
-  productType: CreationProductType,
-  registry?: AffixRegistry,
-): CompositionFacts {
-  const { intent, energyBudget, rolledAffixes, input, materialFingerprints } = session.state;
-  if (!intent) throw new Error('Cannot compose blueprint before resolving intent');
-  if (!energyBudget) throw new Error('Cannot compose blueprint before energy budgeting');
-
-  const projectionQualityProfile = deriveProjectionQualityFromBudget(energyBudget);
-
-  let coreEffectType: string | undefined;
-  if (registry) {
-    const coreAffix = rolledAffixes.find((affix) => affix.slot === 'core');
-    if (coreAffix) {
-      const coreDef = registry.queryById(coreAffix.id);
-      coreEffectType = coreDef?.effectTemplate.type;
-    }
-  }
-  const projectionContext =
-    session.state.intentCraftMeta?.projectionContext ?? input.projectionContext;
-
-  return {
-    productType,
-    intent,
-    recipeMatch: session.state.recipeMatch!,
-    energySummary: {
-      effectiveTotal: energyBudget.effectiveTotal,
-      reserved: energyBudget.reserved,
-      startingAffixEnergy:
-        energyBudget.initialRemaining ??
-        Math.max(0, energyBudget.effectiveTotal - energyBudget.reserved),
-      spentAffixEnergy: energyBudget.spent,
-      remainingAffixEnergy: energyBudget.remaining,
-    },
-    projectionQualityProfile,
-    affixes: rolledAffixes,
-    inputTags: session.state.inputTags,
-    materialFingerprints,
-    materialNames: input.materials.map((m) => m.name),
-    ...(input.realm ? { anchorRealm: input.realm } : {}),
-    ...(input.realmStage ? { anchorRealmStage: input.realmStage } : {}),
-    ...(coreEffectType !== undefined ? { coreEffectType } : {}),
-    ...(projectionContext ? { projectionContext } : {}),
-  };
 }

@@ -10,13 +10,14 @@ export function VaultWithdrawal() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <InkButton onClick={() => setOpen(true)}>取出铸造材料</InkButton>
+      <InkButton onClick={() => setOpen(true)}>从洞府宝库取出</InkButton>
       {open ? <WithdrawalDrawer close={() => setOpen(false)} /> : null}
     </>
   );
 }
 function WithdrawalDrawer({ close }: { close: () => void }) {
   const [view, setView] = useState<VaultView>();
+  const [kind, setKind] = useState<'material' | 'consumable'>('material');
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [refresh, setRefresh] = useState(0);
@@ -36,7 +37,7 @@ function WithdrawalDrawer({ close }: { close: () => void }) {
   useEffect(() => {
     const controller = new AbortController();
     void combatV6Request<VaultView>(
-      `/api/combat-v6/forging/vault?${new URLSearchParams({ page: String(page), search })}`,
+      `/api/combat-v6/forging/vault?${new URLSearchParams({ page: String(page), search, kind })}`,
       { signal: controller.signal },
     )
       .then((data) => {
@@ -49,7 +50,7 @@ function WithdrawalDrawer({ close }: { close: () => void }) {
         if (!controller.signal.aborted) setError(e.message);
       });
     return () => controller.abort();
-  }, [page, search, refresh]);
+  }, [page, search, kind, refresh]);
   const item = view?.items.find((i) => i.id === selected);
   async function withdraw() {
     if (busy.current || !item) return;
@@ -62,6 +63,7 @@ function WithdrawalDrawer({ close }: { close: () => void }) {
         await fetch('/api/combat-v6/forging/vault/withdraw', {
           ...mutationBody({
             id: item.id,
+            kind,
             quantity,
             expectedQuantity: item.quantity,
           }),
@@ -86,13 +88,26 @@ function WithdrawalDrawer({ close }: { close: () => void }) {
   return (
     <InkDetailDrawer
       isOpen
-      title="宝库 · 材料取出"
+      title="洞府宝库 · 取出物品"
       onClose={() => {
         if (!pending) close();
       }}
       size="sm"
     >
       <div className="space-y-4 text-sm">
+        <select
+          aria-label="宝库物品类型"
+          value={kind}
+          disabled={pending}
+          onChange={(e) => {
+            setKind(e.target.value as typeof kind);
+            setPage(0);
+            setSelected(undefined);
+          }}
+        >
+          <option value="material">材料</option>
+          <option value="consumable">丹药与消耗品</option>
+        </select>
         {error ? (
           <p role="alert" className="text-crimson">
             {error}{' '}
@@ -152,7 +167,7 @@ function WithdrawalDrawer({ close }: { close: () => void }) {
         ) : (
           <>
             <input
-              aria-label="搜索宝库材料"
+              aria-label="搜索宝库物品"
               placeholder="搜索材料"
               className="border-ink/20 w-full border-b bg-transparent p-2"
               value={search}
@@ -178,14 +193,17 @@ function WithdrawalDrawer({ close }: { close: () => void }) {
                   <span>
                     {m.name}
                     <span className="text-ink-secondary block">
-                      {m.rank} · {MATERIAL_TYPE_NAMES[m.type]}
+                      {m.rank} ·{' '}
+                      {MATERIAL_TYPE_NAMES[
+                        m.type as keyof typeof MATERIAL_TYPE_NAMES
+                      ] ?? m.type}
                     </span>
                   </span>
                   <span>×{m.quantity}</span>
                 </button>
               ))
             )}
-            {view?.total === 0 ? <p>暂无可取出的铸造材料。</p> : null}
+            {view?.total === 0 ? <p>暂无可取出的物品。</p> : null}
             {view ? (
               <div className="flex items-center justify-between">
                 <InkButton

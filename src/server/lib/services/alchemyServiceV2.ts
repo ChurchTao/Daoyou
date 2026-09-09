@@ -1,9 +1,5 @@
-import {
-  getExecutor,
-  type DbExecutor,
-  type DbTransaction,
-} from '@server/lib/drizzle/db';
-import { cultivators, materials } from '@server/lib/drizzle/schema';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
+import { cultivators } from '@server/lib/drizzle/schema';
 import {
   buildAlchemyPropertyTags,
   describeAlchemyPropertyVector,
@@ -11,17 +7,14 @@ import {
   synthesizeAlchemyFromPlan,
   type PreparedAlchemyMaterial,
 } from '@server/lib/services/AlchemyRecipeRules';
-import {
-  addConsumableToInventoryInTransaction,
-  mapMaterialRow,
-} from '@server/lib/services/cultivator/CultivatorInventoryRepository';
 import { getCultivatorPreHeavenFates } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import { ELEMENT_PREFIX_MAP } from '@shared/config/alchemyConfig';
-import {
-  calculateCraftCost,
-  calculateHighestMaterialRank,
-} from '@shared/engine/creation-v2/CraftCostCalculator';
 import type { ResourceOperationSettlement } from '@shared/engine/resource/types';
+import type { AlchemyBagMaterial } from '@shared/inventory/alchemy';
+import {
+  calculateAlchemyCost,
+  calculateHighestMaterialRank,
+} from '@shared/lib/alchemyCost';
 import { normalizeAlchemyEffectRoute } from '@shared/lib/alchemyEffectResolver';
 import { isAlchemyMaterialType } from '@shared/lib/alchemyMaterials';
 import {
@@ -46,7 +39,12 @@ import type {
 } from '@shared/types/constants';
 import type { AlchemyRecipePlan, PillSpec } from '@shared/types/consumable';
 import type { Consumable, PreHeavenFate } from '@shared/types/cultivator';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
+import {
+  consumeAlchemyMaterials,
+  grantAlchemyOutput,
+  loadAlchemyMaterials,
+} from './alchemy/AlchemyInventory';
 import {
   assembleAlchemyOutputConsumables,
   type AlchemyOutputDraft,
@@ -58,13 +56,12 @@ import {
   type AlchemyRecipePlanner,
 } from './AlchemyRecipePlanner';
 import { AlchemyServiceError } from './AlchemyServiceError';
-import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
 import { sectOrganizationFacade } from './sect-organization';
 
 export { synthesizeAlchemyFromPlan as synthesizeAlchemy } from './AlchemyRecipeRules';
 export { AlchemyServiceError } from './AlchemyServiceError';
 
-type MaterialRow = typeof materials.$inferSelect;
+type MaterialRow = AlchemyBagMaterial;
 
 export interface AlchemySelectionValidation {
   valid: boolean;
@@ -124,28 +121,22 @@ function describeFocusMode(focusMode: AlchemyRecipePlan['focusMode']): string {
   }
 }
 
-function sortRowsByRequestedIds(
-  rows: MaterialRow[],
-  requestedIds: string[],
-): MaterialRow[] {
-  const rank = new Map(requestedIds.map((id, index) => [id, index]));
-  return [...rows].sort((left, right) => {
-    const leftRank = rank.get(left.id) ?? Number.MAX_SAFE_INTEGER;
-    const rightRank = rank.get(right.id) ?? Number.MAX_SAFE_INTEGER;
-    return leftRank - rightRank;
-  });
-}
-
 function normalizeDose(
   material: MaterialRow,
   materialQuantities?: Record<string, number>,
 ): number {
-  const requested = materialQuantities?.[material.id];
-  if (!requested || !Number.isFinite(requested)) {
-    return 1;
+  const requested = materialQuantities?.[material.id] ?? 1;
+  if (
+    !Number.isInteger(requested) ||
+    requested < 1 ||
+    requested > material.quantity
+  ) {
+    throw new AlchemyServiceError(
+      `材料 ${material.name} 数量不足，请重新备料。`,
+      409,
+    );
   }
-
-  return Math.max(1, Math.min(material.quantity, Math.floor(requested)));
+  return requested;
 }
 
 function pickHighestRank(materialRows: MaterialRow[]): Quality | null {
@@ -154,10 +145,6 @@ function pickHighestRank(materialRows: MaterialRow[]): Quality | null {
 }
 
 function validateMaterialRow(material: MaterialRow): string | null {
-  const mysteryReason = getMysteryMaterialBlockingReason([material]);
-  if (mysteryReason) {
-    return mysteryReason;
-  }
   if (!material.element) {
     return `材料 ${material.name} 缺少五行属性，当前无法入炉。`;
   }
@@ -274,57 +261,12 @@ async function loadPreviewMaterialRows(
   cultivatorId: string,
   materialIds: string[],
 ): Promise<{ rows: MaterialRow[]; blockingReason?: string }> {
-  const rows = sortRowsByRequestedIds(
-    await getExecutor()
-      .select()
-      .from(materials)
-      .where(inArray(materials.id, materialIds)),
-    materialIds,
-  );
-
-  if (rows.length !== materialIds.length) {
-    return {
-      rows: [],
-      blockingReason: '部分材料已耗尽或不存在。',
-    };
-  }
-
-  if (rows.some((row) => row.cultivatorId !== cultivatorId)) {
-    return {
-      rows: [],
-      blockingReason: '非本人材料，不可动用。',
-    };
-  }
+  const rows = await loadAlchemyMaterials(cultivatorId, materialIds);
 
   return { rows };
 }
 
-async function loadOwnedMaterials(
-  cultivatorId: string,
-  materialIds: string[],
-  q: DbExecutor | DbTransaction = getExecutor(),
-): Promise<MaterialRow[]> {
-  const rows = sortRowsByRequestedIds(
-    await q.select().from(materials).where(inArray(materials.id, materialIds)),
-    materialIds,
-  );
-
-  if (rows.length !== materialIds.length) {
-    throw new AlchemyServiceError('部分材料已耗尽或不存在。');
-  }
-
-  for (const row of rows) {
-    if (row.cultivatorId !== cultivatorId) {
-      throw new AlchemyServiceError('非本人材料，不可动用。', 403);
-    }
-  }
-  const mysteryReason = getMysteryMaterialBlockingReason(rows);
-  if (mysteryReason) {
-    throw new AlchemyServiceError(mysteryReason, 400);
-  }
-
-  return rows;
-}
+const loadOwnedMaterials = loadAlchemyMaterials;
 
 export async function previewAlchemySelection(
   cultivatorId: string,
@@ -350,7 +292,7 @@ export async function previewAlchemySelection(
   const fateContext = evaluateFateContext(fates);
   const baseSpiritStones = highestMaterialRank
     ? scaleFateAdjustedCost(
-        calculateCraftCost(highestMaterialRank, 'spiritStone'),
+        calculateAlchemyCost(highestMaterialRank),
         getAlchemySpiritStoneMultiplier(fateContext),
       )
     : 0;
@@ -415,7 +357,7 @@ export function createAlchemyService(
     );
     const fateContext = evaluateFateContext(preHeavenFates);
     const baseCost = scaleFateAdjustedCost(
-      calculateCraftCost(highestMaterialRank, 'spiritStone'),
+      calculateAlchemyCost(highestMaterialRank),
       getAlchemySpiritStoneMultiplier(fateContext),
     );
     const cost = await sectOrganizationFacade.applyCraftDiscount(
@@ -531,6 +473,9 @@ export function createAlchemyService(
           if (
             !current ||
             !expected ||
+            JSON.stringify(current.members) !==
+              JSON.stringify(expected.members) ||
+            current.description !== expected.description ||
             current.quantity !== expected.quantity ||
             current.rank !== expected.rank ||
             current.type !== expected.type ||
@@ -563,62 +508,12 @@ export function createAlchemyService(
         }
         const primaryConsumable = outputConsumables[0]!;
 
-        for (const id of stableMaterialIds) {
-          const prepared = preparedMaterials.find((item) => item.id === id);
-          const expected = expectedById.get(id);
-          if (!prepared || !expected) {
-            throw new AlchemyServiceError('材料记录异常，无法扣除', 500);
-          }
-
-          if (prepared.dose >= expected.quantity) {
-            const deleted = await tx
-              .delete(materials)
-              .where(
-                and(
-                  eq(materials.id, id),
-                  eq(materials.cultivatorId, cultivatorId),
-                  eq(materials.quantity, expected.quantity),
-                ),
-              )
-              .returning({ id: materials.id });
-            if (deleted.length !== 1) {
-              throw new AlchemyServiceError(
-                '材料已发生变化，请重新确认配方。',
-                409,
-              );
-            }
-            inventoryChanges.push({
-              kind: 'materials',
-              operation: 'remove',
-              id,
-            });
-          } else {
-            const updated = await tx
-              .update(materials)
-              .set({
-                quantity: sql`${materials.quantity} - ${prepared.dose}`,
-              })
-              .where(
-                and(
-                  eq(materials.id, id),
-                  eq(materials.cultivatorId, cultivatorId),
-                  eq(materials.quantity, expected.quantity),
-                ),
-              )
-              .returning();
-            if (updated.length !== 1) {
-              throw new AlchemyServiceError(
-                '材料已发生变化，请重新确认配方。',
-                409,
-              );
-            }
-            inventoryChanges.push({
-              kind: 'materials',
-              operation: 'upsert',
-              item: mapMaterialRow(updated[0]),
-            });
-          }
-        }
+        await consumeAlchemyMaterials(
+          cultivatorId,
+          selectedMaterials,
+          preparedMaterials,
+          tx,
+        );
 
         const [charged] = await tx
           .update(cultivators)
@@ -637,24 +532,16 @@ export function createAlchemyService(
           throw new AlchemyServiceError(`灵石不足，需要 ${cost} 枚`, 409);
         }
 
-        const savedConsumables: Consumable[] = [];
-        for (const output of outputConsumables) {
-          const saved = await addConsumableToInventoryInTransaction(
-            cultivatorId,
-            output,
-            tx,
-          );
-          savedConsumables.push(saved);
-          inventoryChanges.push({
-            kind: 'consumables',
-            operation: 'upsert',
-            item: saved,
-          });
-        }
+        const savedConsumables = await grantAlchemyOutput(
+          cultivatorId,
+          outputConsumables,
+          tx,
+        );
+
         const result: ImprovisedAlchemyCraftResult = {
-          consumable: primaryConsumable,
+          consumable: savedConsumables[0]!,
           consumables: savedConsumables,
-          craftedConsumables: outputConsumables,
+          craftedConsumables: savedConsumables,
           yieldProfile: toAlchemyYieldDisplayProfile(yieldProfile),
         };
         return {

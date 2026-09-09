@@ -1,8 +1,9 @@
+import { consumeConsumableById } from '@server/lib/services/cultivator/CultivatorInventoryRepository';
+import { resourceEngine } from '@server/lib/services/resource/ResourceEngine';
 import { rollManualDrawQualities } from '@shared/config/manualDrawConfig';
 import { MaterialGenerator } from '@shared/engine/material/creation/MaterialGenerator';
 import type { MaterialSkeleton } from '@shared/engine/material/creation/types';
-import { resourceEngine } from '@server/lib/services/resource/ResourceEngine';
-import type { Material } from '@shared/types/cultivator';
+import type { Consumable, Material } from '@shared/types/cultivator';
 import {
   MANUAL_DRAW_CONFIG,
   type ManualDrawCount,
@@ -11,17 +12,13 @@ import {
   type ManualDrawStatusDTO,
   type ManualDrawTalismanCounts,
 } from '@shared/types/manualDraw';
-import { and, asc, eq, sql } from 'drizzle-orm';
 import {
   getExecutor,
   type DbExecutor,
   type DbTransaction,
 } from '../drizzle/db';
-import * as schema from '../drizzle/schema';
-import type { ConsumableRow } from './consumablePersistence';
-import {
-  consumeConsumableById,
-} from '@server/lib/services/cultivator/CultivatorInventoryRepository';
+import { findBagTalisman } from './BagConsumables';
+type ConsumableRow = Consumable & { id: string };
 
 const ALLOWED_DRAW_COUNTS = new Set<ManualDrawCount>([1, 5]);
 
@@ -38,19 +35,7 @@ async function loadMatchingTalismanRows(
 ): Promise<ConsumableRow[]> {
   const config = MANUAL_DRAW_CONFIG[kind];
   const q = executor ?? getExecutor();
-  const rows = await q
-    .select()
-    .from(schema.consumables)
-    .where(
-      and(
-        eq(schema.consumables.cultivatorId, cultivatorId),
-        eq(schema.consumables.type, '符箓'),
-        sql`${schema.consumables.quantity} > 0`,
-        sql`${schema.consumables.spec}->>'kind' = 'talisman'`,
-        sql`${schema.consumables.spec}->>'scenario' = ${config.talismanScenario}`,
-      ),
-    )
-    .orderBy(asc(schema.consumables.createdAt), asc(schema.consumables.id));
+  const rows = await findBagTalisman(cultivatorId, config.talismanScenario, q);
 
   return rows;
 }

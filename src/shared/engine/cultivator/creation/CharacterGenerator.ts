@@ -1,10 +1,9 @@
+import { generateAiObject } from '@server/utils/aiClient';
 import type {
   CultivationTechnique,
   Cultivator,
   Skill,
 } from '@shared/types/cultivator';
-import { generateAiObject } from '@server/utils/aiClient';
-import { BASIC_SKILLS, BASIC_TECHNIQUES } from './config';
 import {
   getCharacterGenerationPrompt,
   getCharacterGenerationUserPrompt,
@@ -41,18 +40,9 @@ export class CharacterGenerator {
       data.element_preferences,
     );
 
-    // 确定主灵根（强度最高的）
-    const mainRoot = spiritual_roots.reduce((prev, current) =>
-      prev.strength > current.strength ? prev : current,
-    );
-
-    // 3. 分配功法与神通
-    // 功法：主灵根对应的基础功法
-    const cultivation = BASIC_TECHNIQUES[mainRoot.element]();
-    const cultivations: CultivationTechnique[] = [cultivation];
-
-    // 神通：主灵根对应的一攻一守
-    const skills: Skill[] = [...BASIC_SKILLS[mainRoot.element]];
+    // V6 构筑独立初始化，不再生产旧功法或神通。
+    const cultivations: CultivationTechnique[] = [];
+    const skills: Skill[] = [];
 
     // 4. 其他基础数值
     const age = 14 + Math.floor(Math.random() * 6); // 14-20岁

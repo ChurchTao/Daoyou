@@ -1,4 +1,3 @@
-import { hasActiveSectTaskBattle } from './combat-v6/CombatV6SectTaskOccupancy';
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
 import { hasActiveTower } from '@server/lib/tower/occupancy';
 import type {
@@ -22,6 +21,7 @@ import {
   type InventoryItem,
   type ItemGrant,
 } from '@shared/inventory';
+import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import { ITEM_DEFINITIONS } from '@shared/items/registry';
 import { and, asc, count, eq, ilike, inArray, or, sql } from 'drizzle-orm';
@@ -48,7 +48,9 @@ import {
 } from '../repositories/combatV6BuildRepository';
 import { lockCultivatorForStateMutation } from '../repositories/playerStateRepository';
 import { arenaOccupancyKey } from './combat-v6/CombatV6ArenaStore';
+import { hasActiveBreakthroughBattle } from './combat-v6/CombatV6BreakthroughOccupancy';
 import { CombatV6RuntimeStore } from './combat-v6/CombatV6RuntimeStore';
+import { hasActiveSectTaskBattle } from './combat-v6/CombatV6SectTaskOccupancy';
 import { CombatV6WildStore } from './combat-v6/CombatV6WildStore';
 import { inventoryStackKey } from './inventoryStackKey';
 import { ResourceEventCommitter } from './ResourceEventCommitter';
@@ -69,6 +71,8 @@ export function inventoryItemOf(
   });
   if (item.definitionId === 'material.v1')
     item.instanceData = MaterialFactsSchema.parse(item.instanceData);
+  if (item.definitionId === 'consumable.v1')
+    item.instanceData = ConsumableFactsSchema.parse(item.instanceData);
   return item;
 }
 export async function assertInventoryIdle(owner: string) {
@@ -76,7 +80,8 @@ export async function assertInventoryIdle(owner: string) {
     (await hasActiveTower(owner)) ||
     (await hasActiveRanking(owner)) ||
     (await hasActiveDungeon(owner)) ||
-    ((await hasActiveSectTaskBattle(owner)) || (await hasActiveBreakthroughBattle(owner))) ||
+    (await hasActiveSectTaskBattle(owner)) ||
+    (await hasActiveBreakthroughBattle(owner)) ||
     (await new CombatV6WildStore().lock(owner)) ||
     (await new CombatV6RuntimeStore().currentId(owner)) ||
     (await redis.get(arenaOccupancyKey(owner)))
@@ -157,7 +162,8 @@ export async function readInventory(
       ...inventoryItemOf(row),
       name:
         row.definitionId === 'equipment.v6' ||
-        row.definitionId === 'material.v1'
+        row.definitionId === 'material.v1' ||
+        row.definitionId === 'consumable.v1'
           ? (row.instanceData as DaoEquipmentInstanceV1).name
           : itemDefinition(row.definitionId).name,
       equipped: ids.has(row.id),
@@ -222,7 +228,7 @@ export async function grantInventory(
   tx: DbTransaction,
   overflow = true,
 ) {
-  if (!grants.length) return;
+  if (!grants.length) return [];
   // Only relevant stacks and the bounded bag are needed, even with an unlimited store.
   const before = (
     await tx
@@ -260,6 +266,11 @@ export async function grantInventory(
       inventoryStackKey(grant.definitionId, grant.instanceData),
     );
   await saveInventoryPlan(owner, before, next, tx);
+  return next.filter(
+    (item) =>
+      item.quantity >
+      (before.find((previous) => previous.id === item.id)?.quantity ?? 0),
+  );
 }
 export async function mutateInventory(owner: string, input: InventoryAction) {
   return withRedisLock(
@@ -355,7 +366,13 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
                           item.instanceData,
                         ),
                       }
-                    : {}),
+                    : item.definitionId === 'consumable.v1'
+                      ? {
+                          instanceData: ConsumableFactsSchema.parse(
+                            item.instanceData,
+                          ),
+                        }
+                      : {}),
                 },
                 input.location,
                 false,
@@ -552,4 +569,3 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
       }),
   );
 }
-import { hasActiveBreakthroughBattle } from './combat-v6/CombatV6BreakthroughOccupancy';

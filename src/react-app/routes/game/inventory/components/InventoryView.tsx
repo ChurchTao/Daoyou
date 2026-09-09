@@ -129,7 +129,7 @@ export function InventoryView() {
       aside={aside}
     >
       <div className="space-y-4">
-        {activeTab === 'materials' ? <VaultWithdrawal /> : null}
+        {activeTab !== 'artifacts' ? <VaultWithdrawal /> : null}
         <GameSceneTabs
           activeValue={activeTab}
           onChange={(val) => setActiveTab(val as InventoryTab)}

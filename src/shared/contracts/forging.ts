@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { DAO_EQUIPMENT_SLOTS } from '../engine/combat-v6/equipment/types';
 import { ForgingLevelSchema } from '../forging/rules';
 import { ItemGrantSchema } from '../inventory';
+import { ConsumableFactsSchema } from '../items/definitions/consumables';
 import { MaterialFactsSchema } from '../items/definitions/materials';
 import type { InventoryView } from './inventory';
 
@@ -33,6 +34,7 @@ export type ForgeView = {
 };
 export const WithdrawMaterialSchema = z
   .object({
+    kind: z.enum(['material', 'consumable']).default('material'),
     id: z.uuid(),
     quantity: z.number().int().min(1).max(3960),
     expectedQuantity: z.number().int().positive(),
@@ -40,15 +42,22 @@ export const WithdrawMaterialSchema = z
   .strict();
 export const VaultQuerySchema = z
   .object({
+    kind: z.enum(['material', 'consumable']).default('material'),
     page: z.coerce.number().int().min(0).max(1000000).default(0),
     search: z.string().max(80).default(''),
   })
   .strict();
 export type VaultView = {
-  items: (z.infer<typeof MaterialFactsSchema> & {
+  items: {
+    kind: 'material' | 'consumable';
+    name: string;
+    type: string;
+    rank: string;
+    description: string;
+    element: string | null;
     id: string;
     quantity: number;
-  })[];
+  }[];
   total: number;
   page: number;
 };
@@ -59,6 +68,13 @@ export const DevGrantSchema = z
       .array(
         z.discriminatedUnion('type', [
           z.object({ type: z.literal('item'), item: ItemGrantSchema }).strict(),
+          z
+            .object({
+              type: z.literal('vault-consumable'),
+              facts: ConsumableFactsSchema,
+              quantity: z.number().int().min(1).max(3960),
+            })
+            .strict(),
           z
             .object({
               type: z.literal('beast'),

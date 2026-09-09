@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { BeastSchema, type SummonedBeast } from '../engine/combat-v6/beasts';
+import { ConsumableFactsSchema } from '../items/definitions/consumables';
 import { MaterialFactsSchema } from '../items/definitions/materials';
 import { findItemDefinition } from '../items/registry';
 import { InventoryEquipmentSchema } from './equipment';
@@ -46,6 +47,9 @@ export const InventoryItemSchema = z
     } else if (item.definitionId === 'material.v1') {
       if (!MaterialFactsSchema.safeParse(item.instanceData).success)
         ctx.addIssue({ code: 'custom', message: '材料事实无效' });
+    } else if (item.definitionId === 'consumable.v1') {
+      if (!ConsumableFactsSchema.safeParse(item.instanceData).success)
+        ctx.addIssue({ code: 'custom', message: '消耗品事实无效' });
     } else if (item.instanceData !== null)
       ctx.addIssue({ code: 'custom', message: '固定物品不能附带个体属性' });
   });
@@ -55,14 +59,19 @@ export type ItemGrant = {
   quantity: number;
   instanceData?:
     | z.infer<typeof InventoryEquipmentSchema>
-    | z.infer<typeof MaterialFactsSchema>;
+    | z.infer<typeof MaterialFactsSchema>
+    | z.infer<typeof ConsumableFactsSchema>;
 };
 export const ItemGrantSchema = z
   .object({
     definitionId: z.string(),
     quantity: z.number().int().positive().max(99),
     instanceData: z
-      .union([InventoryEquipmentSchema, MaterialFactsSchema])
+      .union([
+        InventoryEquipmentSchema,
+        MaterialFactsSchema,
+        ConsumableFactsSchema,
+      ])
       .optional(),
   })
   .strict();
@@ -147,7 +156,9 @@ export function addItems(
   const facts =
     grant.definitionId === 'material.v1'
       ? MaterialFactsSchema.parse(grant.instanceData)
-      : null;
+      : grant.definitionId === 'consumable.v1'
+        ? ConsumableFactsSchema.parse(grant.instanceData)
+        : null;
   if (!facts && grant.instanceData !== undefined)
     throw new InventoryRuleError('固定物品不能附带个体属性');
   const next = items.map((i) => ({ ...i }));

@@ -632,13 +632,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
                 <tr>
                   <td className="px-3 py-1.5">炼器</td>
                   <td className="text-ink px-3 py-1.5 text-right font-mono">
-                    {QI_ACTION_COSTS.creation_artifact}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-1.5">创造功法/神通</td>
-                  <td className="text-ink px-3 py-1.5 text-right font-mono">
-                    {QI_ACTION_COSTS.creation_gongfa}
+                    7～41（随图纸等级）
                   </td>
                 </tr>
               </tbody>

@@ -1,18 +1,6 @@
-import {
-  ConsumableListCard,
-  getTalismanActionHref,
-  getTalismanActionLabel,
-  isAttributeResetTalisman,
-  isQiRestoreTalisman,
-  isSectMeridianResetTalisman,
-} from '@app/components/feature/consumables';
+import { ConsumableListCard } from '@app/components/feature/consumables';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton, InkList, InkNotice } from '@app/components/ui';
-import {
-  isPillConsumable,
-  isSpiritFruitConsumable,
-  isTalismanConsumable,
-} from '@shared/lib/consumables';
 import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
@@ -37,9 +25,7 @@ export function ConsumablesTab({
   realm,
   condition,
   isLoading = false,
-  pendingId,
   onShowDetails,
-  onConsume,
   onDiscard,
 }: ConsumablesTabProps) {
   if (isLoading) {
@@ -65,17 +51,6 @@ export function ConsumablesTab({
   return (
     <InkList>
       {sortedItems.map((item, idx) => {
-        const isTalisman = isTalismanConsumable(item);
-        const isDirectlyUsable =
-          isPillConsumable(item) ||
-          isSpiritFruitConsumable(item) ||
-          isQiRestoreTalisman(item) ||
-          isAttributeResetTalisman(item) ||
-          isSectMeridianResetTalisman(item);
-        const scenarioHref = getTalismanActionHref(item);
-        const scenarioActionLabel = getTalismanActionLabel(item);
-        const canNavigateToScenario = Boolean(item.id && scenarioHref);
-
         return (
           <ConsumableListCard
             key={item.id || idx}
@@ -91,28 +66,9 @@ export function ConsumablesTab({
                 >
                   详情
                 </InkButton>
-                <InkButton
-                  disabled={
-                    !item.id || (!isDirectlyUsable && !canNavigateToScenario)
-                  }
-                  pending={pendingId === item.id}
-                  pendingLabel="使用中……"
-                  onClick={
-                    canNavigateToScenario ? undefined : () => onConsume(item)
-                  }
-                  href={canNavigateToScenario ? scenarioHref : undefined}
-                  variant="primary"
-                >
-                  {canNavigateToScenario
-                    ? scenarioActionLabel
-                    : isTalisman
-                      ? isDirectlyUsable
-                        ? '使用'
-                        : '需前往玩法'
-                      : isDirectlyUsable
-                        ? '服用'
-                        : '暂未开放'}
-                </InkButton>
+                <span className="text-ink-secondary self-center text-xs">
+                  从洞府宝库取出后使用
+                </span>
                 <InkButton variant="primary" onClick={() => onDiscard(item)}>
                   销毁
                 </InkButton>

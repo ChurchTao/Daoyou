@@ -1,47 +1,34 @@
 import {
-findActiveCultivatorIdByUserId,
-hasCultivatorOwnership,
-hasDeadCultivatorByUserId
+  findActiveCultivatorIdByUserId,
+  hasCultivatorOwnership,
+  hasDeadCultivatorByUserId,
 } from '@server/lib/repositories/cultivatorRepository';
-import type {
-PlayerIdentityCultivator
-} from '@shared/contracts/player';
+import type { PlayerIdentityCultivator } from '@shared/contracts/player';
 import {
-serializeProductModel
-} from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
-import {
-ensureStarterSkill,
-ensureStarterTechnique,
-} from '@shared/engine/cultivator/creation/starterProducts';
-import {
-clampSpiritualRootEffectiveStrength,
-SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
+  clampSpiritualRootEffectiveStrength,
+  SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
 } from '@shared/lib/marrowWash';
 import {
-ElementType,
-GenderType,
-Quality,
-RealmStage,
-RealmType,
-SpiritualRootGrade
+  ElementType,
+  GenderType,
+  Quality,
+  RealmStage,
+  RealmType,
+  SpiritualRootGrade,
 } from '@shared/types/constants';
-import type {
-Cultivator,
-PreHeavenFate
-} from '@shared/types/cultivator';
-import { and,desc,eq,sql } from 'drizzle-orm';
+import type { Cultivator, PreHeavenFate } from '@shared/types/cultivator';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import {
-db,
-getExecutor,
-runDbTasks,
-type DbExecutor,
-type DbTransaction,
+  db,
+  getExecutor,
+  runDbTasks,
+  type DbExecutor,
+  type DbTransaction,
 } from '../../drizzle/db';
 import * as schema from '../../drizzle/schema';
 import { ConditionService } from '../ConditionService';
 import { FateEngine } from '../FateEngine';
 import { assertCultivatorOwnership } from './CultivatorStateRepository';
-
 
 export function mapSpiritualRoots(
   roots: Array<typeof schema.spiritualRoots.$inferSelect>,
@@ -111,7 +98,6 @@ export async function getPlayerPreHeavenFates(
   }
   return getCultivatorPreHeavenFates(cultivatorId, q);
 }
-
 
 function buildPreHeavenFateInsertValues(
   cultivatorId: string,
@@ -205,43 +191,6 @@ export async function createCultivator(
         .values(buildPreHeavenFateInsertValues(cultivatorId, normalizedFates));
     }
 
-    const starterProductRows = [
-      ...cultivator.cultivations.map((technique) => {
-        const normalizedTechnique = ensureStarterTechnique(technique);
-        return {
-          cultivatorId,
-          productType: 'gongfa' as const,
-          name: normalizedTechnique.name,
-          description: normalizedTechnique.description ?? null,
-          element: normalizedTechnique.element ?? null,
-          quality: normalizedTechnique.quality,
-          slot: null,
-          score: normalizedTechnique.score ?? 0,
-          isEquipped: true,
-          productModel: serializeProductModel(normalizedTechnique.productModel),
-        };
-      }),
-      ...cultivator.skills.map((skill) => {
-        const normalizedSkill = ensureStarterSkill(skill);
-        return {
-          cultivatorId,
-          productType: 'skill' as const,
-          name: normalizedSkill.name,
-          description: normalizedSkill.description ?? null,
-          element: normalizedSkill.element ?? null,
-          quality: normalizedSkill.quality,
-          slot: null,
-          score: 0,
-          isEquipped: true,
-          productModel: serializeProductModel(normalizedSkill.productModel),
-        };
-      }),
-    ];
-
-    if (starterProductRows.length > 0) {
-      await tx.insert(schema.creationProducts).values(starterProductRows);
-    }
-
     return cultivatorRecord;
   };
   const result = transaction
@@ -278,7 +227,6 @@ export async function getUserAliveCultivatorId(
 export async function hasActiveCultivator(userId: string): Promise<boolean> {
   return (await getUserAliveCultivatorId(userId)) !== null;
 }
-
 
 export async function getPlayerIdentityCultivatorById(
   userId: string,
@@ -375,7 +323,6 @@ export async function getPlayerIdentityCultivatorById(
 export async function hasDeadCultivator(userId: string): Promise<boolean> {
   return hasDeadCultivatorByUserId(userId, getExecutor());
 }
-
 
 export async function getLastDeadCultivatorSummary(userId: string): Promise<{
   id: string;

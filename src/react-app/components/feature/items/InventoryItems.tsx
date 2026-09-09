@@ -28,15 +28,22 @@ export function InventoryItems({
         }))
       : items.map((item, slot) => ({ item, slot }));
   return (
-    <InventoryGrid className={className}>
-      {entries.map(({ item, slot }) => (
-        <ItemSlot
-          key={location === 'bag' ? slot : item!.id}
-          item={item}
-          emptyLabel=""
-          {...slotProps(item, slot)}
-        />
-      ))}
-    </InventoryGrid>
+    <div className="@container">
+      <InventoryGrid
+        className={
+          className ??
+          'w-full grid-cols-4 gap-1 sm:grid-cols-4 @min-[360px]:grid-cols-5 @min-[720px]:grid-cols-8'
+        }
+      >
+        {entries.map(({ item, slot }) => (
+          <ItemSlot
+            key={location === 'bag' ? slot : item!.id}
+            item={item}
+            emptyLabel=""
+            {...slotProps(item, slot)}
+          />
+        ))}
+      </InventoryGrid>
+    </div>
   );
 }

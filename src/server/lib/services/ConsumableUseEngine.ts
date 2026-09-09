@@ -1,8 +1,4 @@
-import {
-  getExecutor,
-  type DbExecutor,
-  type DbTransaction,
-} from '@server/lib/drizzle/db';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
@@ -38,33 +34,13 @@ import {
   AttributeResetService,
   withAttributeResetLock,
 } from './AttributeResetService';
+import { getBagConsumable as loadOwnedConsumable } from './BagConsumables';
 import {
   PillOperationExecutor,
   type PillCultivatorFacts,
 } from './PillOperationExecutor';
 import { QiService } from './QiService';
 import { SectMeridianResetService } from './SectMeridianResetService';
-import { mapConsumableRow } from './consumablePersistence';
-
-async function loadOwnedConsumable(
-  cultivatorId: string,
-  consumableId: string,
-  executor?: DbExecutor | DbTransaction,
-): Promise<Consumable | null> {
-  const q = executor ?? getExecutor();
-  const rows = await q
-    .select()
-    .from(schema.consumables)
-    .where(
-      and(
-        eq(schema.consumables.id, consumableId),
-        eq(schema.consumables.cultivatorId, cultivatorId),
-      ),
-    )
-    .limit(1);
-
-  return rows[0] ? mapConsumableRow(rows[0]) : null;
-}
 
 function describeTrackLevelUp(levelUp: {
   track: Parameters<typeof getTrackConfig>[0];

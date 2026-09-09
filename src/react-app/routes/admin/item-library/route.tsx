@@ -7,21 +7,16 @@ import {
   TALISMAN_SCENARIO_OPTIONS,
   isTalismanScenario,
 } from '@shared/config/talismanScenarios';
-import { DEFAULT_AFFIX_REGISTRY } from '@shared/engine/creation-v2/affixes';
+import { getAllConditionStatusTemplates } from '@shared/lib/conditionStatusRegistry';
 import {
   DEFAULT_ITEM_LIBRARY_DAILY_MATERIAL_GENERATION_SETTINGS,
   type ItemLibraryDailyMaterialGenerationSettings,
 } from '@shared/lib/constants/appSettings';
-import { getAllConditionStatusTemplates } from '@shared/lib/conditionStatusRegistry';
 import { CULTIVATION_BOOST_STATUS_KEY } from '@shared/lib/cultivationBoost';
-import {
-  getEquipmentSlotLabel,
-  getMaterialTypeLabel,
-} from '@shared/lib/gameConceptDisplay';
+import { getMaterialTypeLabel } from '@shared/lib/gameConceptDisplay';
 import type {
   CreateItemLibraryEntry,
   ItemLibraryEntry,
-  UpdateItemLibraryEntry,
 } from '@shared/lib/itemLibrary';
 import { getPillAppearanceLabel } from '@shared/lib/pillAppearance';
 import {
@@ -31,11 +26,8 @@ import {
 } from '@shared/lib/pillEffectScaling';
 import {
   ELEMENT_VALUES,
-  EQUIPMENT_SLOT_VALUES,
   MATERIAL_TYPE_VALUES,
   QUALITY_VALUES,
-  REALM_STAGE_VALUES,
-  REALM_VALUES,
 } from '@shared/types/constants';
 import {
   PILL_APPEARANCE_GRADE_VALUES,
@@ -43,7 +35,7 @@ import {
   PILL_QUOTA_CATEGORY_VALUES,
   TALISMAN_SESSION_MODE_VALUES,
 } from '@shared/types/consumable';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ITEM_LIBRARY_STATUS_LABELS,
   ITEM_LIBRARY_TYPE_LABELS,
@@ -79,16 +71,6 @@ interface DailyMaterialGenerationSettingsResponse {
   settings?: ItemLibraryDailyMaterialGenerationSettings;
   error?: string;
 }
-
-const artifactAffixOptions = DEFAULT_AFFIX_REGISTRY.getAll()
-  .filter((affix) => affix.applicableTo.includes('artifact'))
-  .map((affix) => ({
-    id: affix.id,
-    name: affix.displayName,
-    description: affix.displayDescription,
-    slot: affix.slot,
-    rarity: affix.rarity,
-  }));
 
 const conditionStatusOptions = getAllConditionStatusTemplates().map(
   (status) => ({
@@ -128,9 +110,8 @@ export default function ItemLibraryAdminPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [generateCount, setGenerateCount] = useState('20');
-  const [generateType, setGenerateType] = useState<
-    (typeof MATERIAL_TYPE_VALUES)[number]
-  >('herb');
+  const [generateType, setGenerateType] =
+    useState<(typeof MATERIAL_TYPE_VALUES)[number]>('herb');
   const [generateQuality, setGenerateQuality] = useState(QUALITY_VALUES[0]);
   const [generateSeed, setGenerateSeed] = useState('');
   const [seedGenerateCount, setSeedGenerateCount] = useState('10');
@@ -144,51 +125,6 @@ export default function ItemLibraryAdminPage() {
     );
   const [dailySettingsLoading, setDailySettingsLoading] = useState(true);
   const [dailySettingsSaving, setDailySettingsSaving] = useState(false);
-  const [affixQuery, setAffixQuery] = useState('');
-  const [affixSlotFilter, setAffixSlotFilter] = useState('');
-  const [affixRarityFilter, setAffixRarityFilter] = useState('');
-
-  const selectedAffixSet = useMemo(
-    () => new Set(draft.artifactAffixIds),
-    [draft.artifactAffixIds],
-  );
-  const selectedAffixes = useMemo(
-    () =>
-      artifactAffixOptions.filter((affix) => selectedAffixSet.has(affix.id)),
-    [selectedAffixSet],
-  );
-  const affixSlots = useMemo(
-    () =>
-      Array.from(new Set(artifactAffixOptions.map((affix) => affix.slot))),
-    [],
-  );
-  const affixRarities = useMemo(
-    () =>
-      Array.from(new Set(artifactAffixOptions.map((affix) => affix.rarity))),
-    [],
-  );
-  const filteredAffixOptions = useMemo(() => {
-    const keyword = affixQuery.trim().toLowerCase();
-    return artifactAffixOptions.filter((affix) => {
-      if (affixSlotFilter && affix.slot !== affixSlotFilter) {
-        return false;
-      }
-      if (affixRarityFilter && affix.rarity !== affixRarityFilter) {
-        return false;
-      }
-      if (!keyword) return true;
-      return [
-        affix.name,
-        affix.description,
-        affix.slot,
-        affix.rarity,
-        affix.id,
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(keyword);
-    });
-  }, [affixQuery, affixRarityFilter, affixSlotFilter]);
 
   const loadItems = useCallback(async () => {
     const params = new URLSearchParams();
@@ -273,45 +209,8 @@ export default function ItemLibraryAdminPage() {
     setDraft((current) => ({ ...current, [key]: value }));
   };
 
-  const previewArtifact = async () => {
-    if (draft.type !== 'artifact') return null;
-    if (draft.artifactAffixIds.length === 0) {
-      throw new Error('请至少选择一个法宝词缀');
-    }
-
-    const response = await fetch('/api/admin/item-library/artifact/preview', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: draft.name.trim(),
-        description: draft.description.trim() || undefined,
-        slot: draft.artifactSlot,
-        element: draft.artifactElement,
-        quality: draft.artifactQuality,
-        realm: draft.artifactRealm || undefined,
-        realmStage: draft.artifactRealmStage || undefined,
-        affixIds: draft.artifactAffixIds,
-      }),
-    });
-    const data = (await response.json()) as ItemLibraryResponse;
-    if (!response.ok || !data.payload) {
-      throw new Error(data.error ?? '生成法宝预览失败');
-    }
-    setDraftField('artifactPayload', data.payload);
-    return data.payload;
-  };
-
-  const buildSubmitBody = async (): Promise<
-    CreateItemLibraryEntry | UpdateItemLibraryEntry
-  > => {
-    if (draft.type === 'artifact' && !draft.artifactPayload) {
-      const payload = await previewArtifact();
-      return buildItemLibrarySubmitBody({
-        ...draft,
-        artifactPayload: payload,
-      });
-    }
-
+  const buildSubmitBody = async () => {
+    if (draft.type === 'artifact') throw new Error('旧装备生产已停用');
     return buildItemLibrarySubmitBody(draft);
   };
 
@@ -430,7 +329,10 @@ export default function ItemLibraryAdminPage() {
   const generateSpiritSeeds = async () => {
     const count = Number(seedGenerateCount);
     if (!Number.isInteger(count) || count < 1 || count > 50) {
-      pushToast({ message: '灵种生成数量必须为 1 至 50 的整数', tone: 'warning' });
+      pushToast({
+        message: '灵种生成数量必须为 1 至 50 的整数',
+        tone: 'warning',
+      });
       return;
     }
     setSaving(true);
@@ -499,19 +401,6 @@ export default function ItemLibraryAdminPage() {
     } finally {
       setDailySettingsSaving(false);
     }
-  };
-
-  const toggleAffix = (affixId: string) => {
-    setDraft((current) => {
-      const exists = current.artifactAffixIds.includes(affixId);
-      return {
-        ...current,
-        artifactPayload: null,
-        artifactAffixIds: exists
-          ? current.artifactAffixIds.filter((id) => id !== affixId)
-          : [...current.artifactAffixIds, affixId],
-      };
-    });
   };
 
   const updatePillOperation = (
@@ -638,11 +527,13 @@ export default function ItemLibraryAdminPage() {
                   setGenerateType(value as typeof generateType)
                 }
               >
-                {MATERIAL_TYPE_VALUES.filter((value) => value !== 'seed').map((value) => (
-                  <option key={value} value={value}>
-                    {getMaterialTypeLabel(value)}
-                  </option>
-                ))}
+                {MATERIAL_TYPE_VALUES.filter((value) => value !== 'seed').map(
+                  (value) => (
+                    <option key={value} value={value}>
+                      {getMaterialTypeLabel(value)}
+                    </option>
+                  ),
+                )}
               </InkSelect>
               <InkSelect
                 label="品质"
@@ -827,7 +718,7 @@ export default function ItemLibraryAdminPage() {
               <option value="consumable">
                 {ITEM_LIBRARY_TYPE_LABELS.consumable}
               </option>
-              <option value="artifact">
+              <option value="artifact" disabled>
                 {ITEM_LIBRARY_TYPE_LABELS.artifact}
               </option>
             </InkSelect>
@@ -883,11 +774,13 @@ export default function ItemLibraryAdminPage() {
                 {draft.materialType === 'seed' ? (
                   <option value="seed">灵植种子（专用生成）</option>
                 ) : null}
-                {MATERIAL_TYPE_VALUES.filter((value) => value !== 'seed').map((value) => (
-                  <option key={value} value={value}>
-                    {getMaterialTypeLabel(value)}
-                  </option>
-                ))}
+                {MATERIAL_TYPE_VALUES.filter((value) => value !== 'seed').map(
+                  (value) => (
+                    <option key={value} value={value}>
+                      {getMaterialTypeLabel(value)}
+                    </option>
+                  ),
+                )}
               </InkSelect>
               <InkSelect
                 label="品阶"
@@ -1496,219 +1389,13 @@ export default function ItemLibraryAdminPage() {
           ) : null}
 
           {draft.type === 'artifact' ? (
-            <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-5">
-                <InkSelect
-                  label="槽位"
-                  value={draft.artifactSlot}
-                  onChange={(value) => {
-                    setDraftField(
-                      'artifactSlot',
-                      value as ItemLibraryDraft['artifactSlot'],
-                    );
-                    setDraftField('artifactPayload', null);
-                  }}
-                >
-                  {EQUIPMENT_SLOT_VALUES.map((value) => (
-                    <option key={value} value={value}>
-                      {getEquipmentSlotLabel(value)}
-                    </option>
-                  ))}
-                </InkSelect>
-                <InkSelect
-                  label="元素"
-                  value={draft.artifactElement}
-                  onChange={(value) => {
-                    setDraftField(
-                      'artifactElement',
-                      value as ItemLibraryDraft['artifactElement'],
-                    );
-                    setDraftField('artifactPayload', null);
-                  }}
-                >
-                  {ELEMENT_VALUES.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </InkSelect>
-                <InkSelect
-                  label="品质"
-                  value={draft.artifactQuality}
-                  onChange={(value) => {
-                    setDraftField(
-                      'artifactQuality',
-                      value as ItemLibraryDraft['artifactQuality'],
-                    );
-                    setDraftField('artifactPayload', null);
-                  }}
-                >
-                  {QUALITY_VALUES.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </InkSelect>
-                <InkSelect
-                  label="境界锚点"
-                  value={draft.artifactRealm}
-                  onChange={(value) => {
-                    setDraftField(
-                      'artifactRealm',
-                      value as ItemLibraryDraft['artifactRealm'],
-                    );
-                    setDraftField('artifactPayload', null);
-                  }}
-                >
-                  <option value="">无</option>
-                  {REALM_VALUES.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </InkSelect>
-                <InkSelect
-                  label="阶段锚点"
-                  value={draft.artifactRealmStage}
-                  onChange={(value) => {
-                    setDraftField(
-                      'artifactRealmStage',
-                      value as ItemLibraryDraft['artifactRealmStage'],
-                    );
-                    setDraftField('artifactPayload', null);
-                  }}
-                >
-                  <option value="">无</option>
-                  {REALM_STAGE_VALUES.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </InkSelect>
-              </div>
-
-              <div className="border-ink/12 bg-paper/70 space-y-3 border border-dashed p-4">
-                <div className="grid gap-3 md:grid-cols-3">
-                  <InkInput
-                    label="搜索词缀"
-                    value={affixQuery}
-                    onChange={setAffixQuery}
-                    placeholder="输入名称、槽位或描述"
-                  />
-                  <InkSelect
-                    label="词缀槽位"
-                    value={affixSlotFilter}
-                    onChange={setAffixSlotFilter}
-                  >
-                    <option value="">全部</option>
-                    {affixSlots.map((slot) => (
-                      <option key={slot} value={slot}>
-                        {slot}
-                      </option>
-                    ))}
-                  </InkSelect>
-                  <InkSelect
-                    label="稀有度"
-                    value={affixRarityFilter}
-                    onChange={setAffixRarityFilter}
-                  >
-                    <option value="">全部</option>
-                    {affixRarities.map((rarity) => (
-                      <option key={rarity} value={rarity}>
-                        {rarity}
-                      </option>
-                    ))}
-                  </InkSelect>
-                </div>
-
-                <div className="border-ink/12 bg-bgpaper/70 border border-dashed px-3 py-2">
-                  <p className="text-ink-secondary text-xs tracking-[0.18em]">
-                    已选词缀
-                  </p>
-                  <p className="text-ink mt-1 text-sm leading-7">
-                    {selectedAffixes.length > 0
-                      ? selectedAffixes.map((affix) => affix.name).join('、')
-                      : '暂未选择'}
-                  </p>
-                </div>
-
-                <div className="max-h-[420px] space-y-2 overflow-auto">
-                  {filteredAffixOptions.length === 0 ? (
-                    <InkNotice tone="warning">
-                      没有符合筛选条件的法宝词缀。
-                    </InkNotice>
-                  ) : null}
-                  {filteredAffixOptions.map((affix) => (
-                    <label
-                      key={affix.id}
-                      className="border-ink/12 bg-bgpaper/50 flex gap-3 border border-dashed p-3 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedAffixSet.has(affix.id)}
-                        onChange={() => toggleAffix(affix.id)}
-                      />
-                      <span>
-                        <span className="text-ink font-semibold">
-                          {affix.name}
-                        </span>
-                        <span className="text-ink-secondary ml-2">
-                          {affix.slot} / {affix.rarity}
-                        </span>
-                        <span className="text-ink-secondary mt-1 block">
-                          {affix.description}
-                        </span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <InkButton
-                  type="button"
-                  variant="secondary"
-                  onClick={() =>
-                    void previewArtifact()
-                      .then(() =>
-                        pushToast({
-                          message: '法宝预览已生成',
-                          tone: 'success',
-                        }),
-                      )
-                      .catch((error) =>
-                        pushToast({
-                          message:
-                            error instanceof Error
-                              ? error.message
-                              : '生成法宝预览失败',
-                          tone: 'danger',
-                        }),
-                      )
-                  }
-                >
-                  生成法宝预览
-                </InkButton>
-                {draft.artifactPayload ? (
-                  <span className="text-ink-secondary text-sm">
-                    {draft.artifactPayload.quality ?? '凡品'} / 评分{' '}
-                    {draft.artifactPayload.score ?? 0} / 已选{' '}
-                    {draft.artifactAffixIds.length} 个词缀
-                  </span>
-                ) : (
-                  <span className="text-ink-secondary text-sm">
-                    保存前会自动生成服务端预览。
-                  </span>
-                )}
-              </div>
-            </div>
+            <p>旧装备生产已停用，历史内容保留。</p>
           ) : null}
-
           <div className="flex flex-wrap gap-3">
             <InkButton
               type="button"
               variant="primary"
-              disabled={saving}
+              disabled={saving || draft.type === 'artifact'}
               onClick={() => void save()}
             >
               {saving ? '保存中...' : draft.rowId ? '保存修改' : '创建道具'}

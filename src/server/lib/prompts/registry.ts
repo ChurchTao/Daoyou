@@ -10,16 +10,13 @@ import characterGenerationPrompt from '@server/prompts/character-generation.md?r
 import divineFortunePrompt from '@server/prompts/divine-fortune.md?raw';
 import dungeonRoundPrompt from '@server/prompts/dungeon-round.md?raw';
 import dungeonSettlementPrompt from '@server/prompts/dungeon-settlement.md?raw';
-import enemyNarrativePrompt from '@server/prompts/enemy-narrative.md?raw';
 import fateNamingPrompt from '@server/prompts/fate-naming.md?raw';
 import identityReshapePrompt from '@server/prompts/identity-reshape.md?raw';
 import lifespanExhaustedPrompt from '@server/prompts/lifespan-exhausted.md?raw';
 import materialGenerationPrompt from '@server/prompts/material-generation.md?raw';
-import spiritSeedGenerationPrompt from '@server/prompts/spirit-seed-generation.md?raw';
-import materialSemanticEnrichmentPrompt from '@server/prompts/material-semantic-enrichment.md?raw';
-import productNamingPrompt from '@server/prompts/product-naming.md?raw';
-import spiritFieldStageJudgmentPrompt from '@server/prompts/spirit-field-stage-judgment.md?raw';
 import spiritFieldFinalizationPrompt from '@server/prompts/spirit-field-finalization.md?raw';
+import spiritFieldStageJudgmentPrompt from '@server/prompts/spirit-field-stage-judgment.md?raw';
+import spiritSeedGenerationPrompt from '@server/prompts/spirit-seed-generation.md?raw';
 import yieldStoryPrompt from '@server/prompts/yield-story.md?raw';
 import { renderTemplate, type TemplateVariableMap } from '../template/render';
 
@@ -49,14 +46,11 @@ const bundledPromptSources: Record<string, string> = {
   'divine-fortune.md': divineFortunePrompt,
   'dungeon-round.md': dungeonRoundPrompt,
   'dungeon-settlement.md': dungeonSettlementPrompt,
-  'enemy-narrative.md': enemyNarrativePrompt,
   'fate-naming.md': fateNamingPrompt,
   'identity-reshape.md': identityReshapePrompt,
   'lifespan-exhausted.md': lifespanExhaustedPrompt,
   'material-generation.md': materialGenerationPrompt,
   'spirit-seed-generation.md': spiritSeedGenerationPrompt,
-  'material-semantic-enrichment.md': materialSemanticEnrichmentPrompt,
-  'product-naming.md': productNamingPrompt,
   'spirit-field-stage-judgment.md': spiritFieldStageJudgmentPrompt,
   'spirit-field-finalization.md': spiritFieldFinalizationPrompt,
   'yield-story.md': yieldStoryPrompt,

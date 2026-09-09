@@ -60,7 +60,12 @@ describe('blueprint forging', () => {
         { facts: { ...facts, rank: '凡品' }, quantity: 5 },
       ]),
     ).toThrow('品质');
-    for (const type of ['herb', 'seed', 'skill_manual', 'gongfa_manual'])
+    expect(() =>
+      forgingBoosts(20, 20, [
+        { facts: { ...facts, type: 'herb' }, quantity: 1 },
+      ]),
+    ).toThrow('不能用于铸造');
+    for (const type of ['seed', 'skill_manual', 'gongfa_manual'])
       expect(MaterialFactsSchema.safeParse({ ...facts, type }).success).toBe(
         false,
       );

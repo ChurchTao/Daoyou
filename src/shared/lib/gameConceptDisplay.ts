@@ -100,7 +100,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   },
   consumable: {
     label: '消耗品',
-    icon: '💊',
+    icon: '🌕',
     description: '丹药、符箓等消耗品',
   },
   battle: {

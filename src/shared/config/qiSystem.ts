@@ -12,10 +12,7 @@ export const QI_ACTION_COSTS = {
   // 炼丹会按本炉原始药蕴动态计费；这里仅保留最低消耗作为通用兜底。
   alchemy_improvised: 1,
   alchemy_formula: 1,
-  creation_artifact: 8,
   equipment_forge: 7,
-  creation_gongfa: 8,
-  creation_skill: 8,
   marrow_wash_breakthrough: 20,
   market_identify: 1,
   black_market_entry: 5,

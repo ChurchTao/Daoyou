@@ -54,22 +54,11 @@ export function conditionChangesAfterConsumable(args: {
       operation: 'replace',
       payload: args.taskSummary,
     },
-    args.remainingConsumable
-      ? {
-          resourceTopic: 'inventory.consumables',
-          eventType: 'inventory.consumable.used',
-          operation: 'upsert-items',
-          payload: { idKey: 'id', items: [args.remainingConsumable] },
-        }
-      : {
-          resourceTopic: 'inventory.consumables',
-          eventType: 'inventory.consumable.used',
-          operation: 'remove-items',
-          payload: {
-            idKey: 'id',
-            ids: args.consumable.id ? [args.consumable.id] : [],
-          },
-        },
+    {
+      resourceTopic: 'inventory.consumables',
+      eventType: 'inventory.consumable.used',
+      operation: 'invalidate',
+    },
   ];
   if (
     isTalismanConsumable(args.consumable) &&

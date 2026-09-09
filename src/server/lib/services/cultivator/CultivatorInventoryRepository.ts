@@ -1,5 +1,4 @@
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
-import { createHash } from 'node:crypto';
 import {
   calculateSingleArtifactScore,
   calculateSingleElixirScore,
@@ -8,6 +7,7 @@ import {
   rehydrateStoredProductModel,
   serializeProductModel,
 } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
+import { buildConsumableStackKey } from '@shared/lib/consumables';
 import {
   ELEMENT_VALUES,
   ElementType,
@@ -33,14 +33,15 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
 import {
   getExecutor,
   type DbExecutor,
   type DbTransaction,
 } from '../../drizzle/db';
 import * as schema from '../../drizzle/schema';
+import { consumeBagConsumable, getBagConsumable } from '../BagConsumables';
 import { mapConsumableRow } from '../consumablePersistence';
-import { buildConsumableStackKey } from '@shared/lib/consumables';
 import { toArtifactFromProduct } from '../creationProductArtifactSupport';
 import { sanitizeMaterialDetails } from '../materialDetailsPrivacy';
 import { addMaterialStackToInventory } from '../materialInventory';
@@ -107,18 +108,7 @@ export async function getCultivatorConsumableById(
   consumableId: string,
   executor?: DbExecutor | DbTransaction,
 ): Promise<Consumable | null> {
-  const q = executor ?? getExecutor();
-  const [row] = await q
-    .select()
-    .from(schema.consumables)
-    .where(
-      and(
-        eq(schema.consumables.cultivatorId, cultivatorId),
-        eq(schema.consumables.id, consumableId),
-      ),
-    )
-    .limit(1);
-  return row ? mapConsumableRow(row) : null;
+  return getBagConsumable(cultivatorId, consumableId, executor);
 }
 
 export async function getCultivatorMaterialById(
@@ -315,7 +305,9 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
 
   const totalPages = Math.ceil(total / pageSize);
   return {
-    items: pagedRows.map((row) => mapMaterialRow(row)) as InventoryItemByType[T][],
+    items: pagedRows.map((row) =>
+      mapMaterialRow(row),
+    ) as InventoryItemByType[T][],
     pagination: {
       page,
       pageSize,
@@ -709,44 +701,7 @@ export async function consumeConsumableById(
 }> {
   const dbInstance = getExecutor(tx);
   await assertCultivatorOwnership(userId, cultivatorId, dbInstance);
-  const rows = await dbInstance
-    .select()
-    .from(schema.consumables)
-    .where(
-      and(
-        eq(schema.consumables.id, consumableId),
-        eq(schema.consumables.cultivatorId, cultivatorId),
-      ),
-    )
-    .limit(1);
-
-  const existing = rows[0];
-  if (!existing) {
-    throw new Error('消耗品不存在或已被耗尽');
-  }
-
-  if (existing.quantity < quantity) {
-    throw new Error(`消耗品数量不足，当前仅有 ${existing.quantity}`);
-  }
-
-  if (existing.quantity === quantity) {
-    await dbInstance
-      .delete(schema.consumables)
-      .where(eq(schema.consumables.id, existing.id));
-    return { remainingQuantity: 0, removed: true, remaining: null };
-  }
-
-  const [updated] = await dbInstance
-    .update(schema.consumables)
-    .set({ quantity: existing.quantity - quantity })
-    .where(eq(schema.consumables.id, existing.id))
-    .returning();
-  if (!updated) throw new Error('消耗品数量更新失败');
-  return {
-    remainingQuantity: updated.quantity,
-    removed: false,
-    remaining: mapConsumableRow(updated),
-  };
+  return consumeBagConsumable(cultivatorId, consumableId, quantity, dbInstance);
 }
 
 /**
