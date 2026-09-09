@@ -12,7 +12,6 @@ import type {
   SectTaskRewardSnapshot,
 } from '@shared/engine/sect';
 import { StandardSectRules } from '@shared/engine/sect';
-import type { BattleRecordV3 } from '@shared/types/battle';
 import type { CultivationProgress } from '@shared/types/cultivator';
 import { z } from 'zod';
 import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
@@ -262,13 +261,6 @@ export interface SectTaskSettlementData {
     remainingQuantity: number;
     removed: boolean;
   }>;
-}
-
-export interface SectBattleOutcomeData {
-  battle: BattleRecordV3;
-  won: boolean;
-  challengeTitle: string;
-  taskFulfilled: boolean;
 }
 
 export interface SectTaskRewardReceipt {

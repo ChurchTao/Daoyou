@@ -7,6 +7,7 @@ import {
   validateQuery,
 } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
+import { rejectRetiredBattleShare } from '@server/lib/hono/chat';
 import { checkAndAcquireSectChatCooldown } from '@server/lib/redis/worldChatLimiter';
 import {
   createSectChatMessage,
@@ -70,6 +71,7 @@ router.get(
 router.post(
   '/chat/messages',
   requireActiveCultivatorRef(),
+  rejectRetiredBattleShare,
   validateJson(WorldChatCreateMessageSchema),
   async (c) => {
     const user = c.get('user');

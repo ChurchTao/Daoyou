@@ -8,7 +8,6 @@ import {
   SweepEntryAction,
 } from '@app/components/feature/sect/SectTaskActions';
 import {
-  BattleOutcome,
   CompletedOutcome,
   MiningResultOutcome,
   MiningSessionOutcome,
@@ -16,13 +15,11 @@ import {
   SweepSessionOutcome,
 } from '@app/components/feature/sect/SectTaskOutcomeRenderers';
 import type {
-  SectBattleOutcomeData,
   SectMiningResultData,
   SectMiningSessionData,
   SectSweepSessionData,
   SectTaskRewardReceipt,
 } from '@shared/contracts/sect';
-import type { BattleRecordV3 } from '@shared/types/battle';
 import { z } from 'zod';
 import type {
   DecodedSectTaskOutcome,
@@ -67,68 +64,6 @@ const miningResultSchema = z.object({
   rewardSummary: z.array(z.string()).optional(),
 });
 
-const battleUnitSchema = z
-  .object({ id: z.string(), name: z.string() })
-  .passthrough();
-const battleResourceSchema = z
-  .object({
-    current: z.number(),
-    max: z.number(),
-    percent: z.number(),
-  })
-  .passthrough();
-const battleSnapshotSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    alive: z.boolean(),
-    hp: battleResourceSchema,
-    mp: battleResourceSchema,
-  })
-  .passthrough();
-const battleRecordEnvelopeSchema = z
-  .object({
-    participants: z.object({
-      player: battleUnitSchema,
-      opponent: battleUnitSchema,
-    }),
-    outcome: z.object({
-      winner: battleUnitSchema,
-      loser: battleUnitSchema,
-      turns: z.number().int().nonnegative(),
-    }),
-    sequences: z.array(
-      z
-        .object({
-          id: z.string(),
-          turn: z.number().int().nonnegative(),
-          phase: z.string(),
-          facts: z.array(z.unknown()),
-        })
-        .passthrough(),
-    ),
-    stateTimeline: z
-      .object({
-        frames: z.array(z.unknown()),
-        unitIds: z.array(z.string()),
-        unitNames: z.record(z.string(), z.string()),
-      })
-      .passthrough(),
-    finalSnapshots: z.object({
-      winner: battleSnapshotSchema,
-      loser: battleSnapshotSchema.optional(),
-    }),
-  })
-  .passthrough();
-const battleRecordSchema = z.custom<BattleRecordV3>(
-  (value) => battleRecordEnvelopeSchema.safeParse(value).success,
-);
-const battleOutcomeSchema = z.object({
-  battle: battleRecordSchema,
-  won: z.boolean(),
-  challengeTitle: z.string(),
-  taskFulfilled: z.boolean(),
-});
 const rewardReceiptSchema = z.object({
   taskRecordId: z.string(),
   claimedAt: z.string(),
@@ -166,11 +101,6 @@ export const CORE_SECT_TASK_RENDERER_PLUGIN: SectTaskRendererPluginManifest = {
       key: 'sect.outcome.mining-result',
       schema: miningResultSchema,
       renderer: MiningResultOutcome,
-    },
-    {
-      key: 'sect.outcome.battle',
-      schema: battleOutcomeSchema,
-      renderer: BattleOutcome,
     },
     {
       key: 'sect.outcome.accepted',
@@ -216,14 +146,6 @@ export function readMiningResultOutcome(
 ): SectMiningResultData | undefined {
   if (outcome.renderer !== 'sect.outcome.mining-result') return undefined;
   const parsed = miningResultSchema.safeParse(outcome.data);
-  return parsed.success ? parsed.data : undefined;
-}
-
-export function readBattleOutcome(
-  outcome: DecodedSectTaskOutcome,
-): SectBattleOutcomeData | undefined {
-  if (outcome.renderer !== 'sect.outcome.battle') return undefined;
-  const parsed = battleOutcomeSchema.safeParse(outcome.data);
   return parsed.success ? parsed.data : undefined;
 }
 

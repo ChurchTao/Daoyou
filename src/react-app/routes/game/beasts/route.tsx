@@ -49,7 +49,7 @@ export default function BeastsPage() {
     return () => controller.current?.abort();
   }, [pushToast]);
   async function mutate(path: string, body: unknown, method = 'POST') {
-    if (busy.current) return;
+    if (busy.current) return false;
     busy.current = true;
     setPending(true);
     setFailed(false);
@@ -78,6 +78,7 @@ export default function BeastsPage() {
                     : '灵兽已放生',
           tone: 'success',
         });
+        return true;
       }
     } catch (e) {
       if (!read.signal.aborted)
@@ -89,6 +90,7 @@ export default function BeastsPage() {
       busy.current = false;
       if (!read.signal.aborted) setPending(false);
     }
+    return false;
   }
   function lineup(beastId: string, action: 'carry' | 'lead' | 'unlead') {
     if (!view) return;
@@ -258,7 +260,7 @@ export default function BeastsPage() {
             </aside>
             {detail ? (
               <BeastPanel
-                key={detail.id}
+                key={`${detail.id}:${detail.revision}:${view.ownerLevel}`}
                 beast={detail}
                 ownerLevel={view.ownerLevel}
                 isLead={view.lineup.leadBeastId === detail.id}
@@ -268,6 +270,13 @@ export default function BeastsPage() {
                 lineup={(type) => lineup(detail.id, type)}
                 act={(type) => setAction({ beastId: detail.id, type })}
                 learn={() => setLearningId(detail.id)}
+                allocate={(points) =>
+                  mutate('allocate', {
+                    beastId: detail.id,
+                    expectedRevision: detail.revision,
+                    points,
+                  })
+                }
               />
             ) : (
               <p className="text-ink-secondary py-8 text-center text-sm">
@@ -291,17 +300,15 @@ export default function BeastsPage() {
           key={`${action.type}:${actionBeast.id}:${actionBeast.revision}`}
           beast={actionBeast}
           action={action.type}
-          ownerLevel={view!.ownerLevel}
           spiritStones={view!.spiritStones}
           pending={pending}
           close={() => {
             if (!busy.current) setAction(undefined);
           }}
-          confirm={(points) =>
+          confirm={() =>
             void mutate(action.type, {
               beastId: actionBeast.id,
               expectedRevision: actionBeast.revision,
-              ...(points ? { points } : {}),
             })
           }
         />

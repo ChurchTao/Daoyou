@@ -1,3 +1,5 @@
+import { AttributeAllocation } from '@app/components/feature/attributes/AttributeAllocation';
+import { InkModal } from '@app/components/layout/InkModal';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { combatV6SkillDetails } from '@shared/combat-v6/skill-details';
@@ -10,9 +12,11 @@ import {
   type SummonedBeast,
 } from '@shared/engine/combat-v6/beasts';
 import {
+  allocateBeast,
   BEAST_ATTRIBUTE_NAMES,
   nextBeastExp,
 } from '@shared/engine/combat-v6/beasts/progression';
+import { useState } from 'react';
 import type { BeastAction } from './BeastActionDrawer';
 
 const species = new Map(BEAST_SPECIES.map((s) => [s.id as string, s]));
@@ -36,11 +40,26 @@ export function BeastLeadSeal() {
     </span>
   );
 }
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({
+  label,
+  value,
+  before,
+}: {
+  label: string;
+  value: number;
+  before?: number;
+}) {
   return (
-    <div className="border-ink/8 flex items-center justify-between gap-3 border-b py-1.5">
+    <div className="border-ink/8 flex flex-wrap items-center justify-between gap-x-3 border-b py-1.5">
       <dt className="text-ink-secondary text-xs">{label}</dt>
-      <dd className="font-mono text-sm">{value.toLocaleString()}</dd>
+      <dd className="ml-auto font-mono text-sm">
+        {before !== undefined && before !== value ? (
+          <span className="text-ink-secondary mr-1 text-xs">
+            {before.toLocaleString()} →
+          </span>
+        ) : null}
+        {value.toLocaleString()}
+      </dd>
     </div>
   );
 }
@@ -54,6 +73,7 @@ export function BeastPanel({
   lineup,
   act,
   learn,
+  allocate,
 }: {
   beast: SummonedBeast;
   ownerLevel: number;
@@ -64,8 +84,23 @@ export function BeastPanel({
   lineup: (action: 'carry' | 'lead' | 'unlead') => void;
   act: (action: BeastAction) => void;
   learn: () => void;
+  allocate: (points: SummonedBeast['allocatedAttributes']) => Promise<boolean>;
 }) {
-  const panel = beastPanel(beast);
+  const [draft, setDraft] = useState<SummonedBeast['allocatedAttributes']>({
+    constitution: 0,
+    strength: 0,
+    magic: 0,
+    endurance: 0,
+    agility: 0,
+  });
+  const [confirming, setConfirming] = useState(false);
+  const total = Object.values(draft).reduce((sum, value) => sum + value, 0);
+  const before = beastPanel(beast);
+  const canAllocate = beast.level <= ownerLevel;
+  const panel =
+    total > 0 && canAllocate
+      ? beastPanel(allocateBeast(beast, draft, ownerLevel))
+      : before;
   const definition = species.get(beast.speciesId);
   const active = new Set(activeBeastSkills(beast));
   const capped = beast.level >= Math.min(ownerLevel, 180);
@@ -165,7 +200,12 @@ export function BeastPanel({
                 ['speed', '速度'],
               ] as const
             ).map(([key, label]) => (
-              <Stat key={key} label={label} value={panel[key]} />
+              <Stat
+                key={key}
+                label={label}
+                value={panel[key]}
+                before={before[key]}
+              />
             ))}
           </dl>
         </section>
@@ -186,35 +226,62 @@ export function BeastPanel({
           </dl>
         </section>
       </div>
-      <section className="border-ink/15 border-t pt-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-teal text-sm">属性加点</h3>
-          <InkButton
-            disabled={
-              pending ||
-              beast.unallocatedPoints === 0 ||
-              beast.level > ownerLevel
-            }
-            onClick={() => act('allocate')}
-          >
-            待分配 {beast.unallocatedPoints} · 加点
-          </InkButton>
-        </div>
-        <dl className="grid grid-cols-5 gap-2 text-center">
-          {Object.entries(BEAST_ATTRIBUTE_NAMES).map(([key, label]) => (
-            <div key={key}>
-              <dt className="text-ink-secondary text-xs">{label}</dt>
-              <dd className="mt-1 font-mono text-sm">
-                {10 +
-                  beast.level +
-                  beast.allocatedAttributes[
-                    key as keyof typeof beast.allocatedAttributes
-                  ]}
-              </dd>
-            </div>
-          ))}
+      <AttributeAllocation
+        attributes={Object.entries(BEAST_ATTRIBUTE_NAMES).map(
+          ([id, label]) => ({
+            id: id as keyof typeof draft,
+            label,
+            value:
+              10 +
+              beast.level +
+              beast.allocatedAttributes[id as keyof typeof draft],
+          }),
+        )}
+        available={beast.unallocatedPoints}
+        draft={draft}
+        onChange={setDraft}
+        disabled={pending || !canAllocate || confirming}
+        onConfirm={() => setConfirming(true)}
+      />
+      <InkModal
+        isOpen={confirming}
+        onClose={() => {
+          if (!pending) setConfirming(false);
+        }}
+        title={`确认分配 · ${beast.name}`}
+        footer={
+          <div className="flex justify-end gap-3">
+            <InkButton disabled={pending} onClick={() => setConfirming(false)}>
+              返回调整
+            </InkButton>
+            <InkButton
+              pending={pending}
+              disabled={total === 0 || !canAllocate}
+              onClick={async () => {
+                if (await allocate(draft)) setConfirming(false);
+              }}
+            >
+              确认分配
+            </InkButton>
+          </div>
+        }
+      >
+        <p className="text-sm">
+          消耗 <span className="font-mono">{total}</span> 点，确认后不可撤销。
+        </p>
+        <dl className="mt-3 space-y-2">
+          {Object.entries(BEAST_ATTRIBUTE_NAMES)
+            .filter(([id]) => draft[id as keyof typeof draft] > 0)
+            .map(([id, label]) => (
+              <div key={id} className="flex justify-between text-sm">
+                <dt>{label}</dt>
+                <dd className="text-teal font-mono">
+                  +{draft[id as keyof typeof draft]}
+                </dd>
+              </div>
+            ))}
         </dl>
-      </section>
+      </InkModal>
       <section className="border-ink/15 border-t pt-4">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="text-teal text-sm">技能</h3>

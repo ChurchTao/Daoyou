@@ -2,7 +2,6 @@ import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import { getExecutor } from '@server/lib/drizzle/db';
 import {
   auctionListings,
-  battleRecordsV3,
   dungeonHistories,
   dungeonRuns,
   mails,
@@ -18,7 +17,6 @@ export type ExpiredDataCleanupCutoffs = {
   qiLogs: Date;
   dungeonHistories: Date;
   dungeonRuns: Date;
-  battleRecordsV3: Date;
   reputationShopPurchases: Date;
   sectShopPurchases: Date;
   sectStipendClaims: Date;
@@ -30,7 +28,6 @@ export type ExpiredDataCleanupResult = {
   qiLogs: number;
   dungeonHistories: number;
   dungeonRuns: number;
-  battleRecordsV3: number;
   reputationShopPurchases: number;
   sectShopPurchases: number;
   sectStipendClaims: number;
@@ -84,13 +81,6 @@ export async function pruneExpiredData(
       .returning({ id: dungeonRuns.id }),
   );
 
-  const battleRecordsV3Deleted = await deleteExpiredRows(q, (executor) =>
-    executor
-      .delete(battleRecordsV3)
-      .where(lt(battleRecordsV3.createdAt, cutoffs.battleRecordsV3))
-      .returning({ id: battleRecordsV3.id }),
-  );
-
   const reputationShopPurchasesDeleted = await deleteExpiredRows(
     q,
     (executor) =>
@@ -137,7 +127,6 @@ export async function pruneExpiredData(
     qiLogs: qiLogsDeleted,
     dungeonHistories: dungeonHistoriesDeleted,
     dungeonRuns: dungeonRunsDeleted,
-    battleRecordsV3: battleRecordsV3Deleted,
     reputationShopPurchases: reputationShopPurchasesDeleted,
     sectShopPurchases: sectShopPurchasesDeleted,
     sectStipendClaims: sectStipendClaimsDeleted,

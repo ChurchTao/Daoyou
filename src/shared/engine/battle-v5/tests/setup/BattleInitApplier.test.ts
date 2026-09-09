@@ -1,4 +1,4 @@
-import { simulateBattleV5 } from '@server/lib/services/simulateBattleV5';
+import { simulateBattleV5 } from '@shared/lib/battle/simulateBattleV5';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
 import type {
   BodyCultivationTrackKey,

@@ -22,24 +22,13 @@ export const WorldChatItemShowcaseMessageSchema = z.object({
     .optional(),
 });
 
-export const WorldChatBattleShowcaseMessageSchema = z.object({
-  messageType: z.literal('battle_showcase'),
-  battleRecordId: z.string().uuid(),
-  textContent: z
-    .string()
-    .trim()
-    .max(200)
-    .refine((value) => Array.from(value).length <= 100)
-    .optional(),
-});
-
 export const WorldChatCreateMessageSchema = z.discriminatedUnion(
   'messageType',
   [
     WorldChatTextMessageSchema,
     WorldChatItemShowcaseMessageSchema,
-    WorldChatBattleShowcaseMessageSchema,
   ],
+  { error: '仅支持文字与道具消息，旧版战报分享已停用' },
 );
 
 export const WorldChatListQuerySchema = z.object({

@@ -10,12 +10,14 @@ import {
   GameSceneLoading,
   GameSceneSection,
 } from '@app/components/game-shell';
+import { InkModal } from '@app/components/layout/InkModal';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { ATTRIBUTE_RESET_TALISMAN_NAME } from '@shared/config/attributeResetTalisman';
+import { CHARACTER_ATTRIBUTE_LABELS } from '@shared/lib/cultivatorDisplay';
 import type { Attributes } from '@shared/types/cultivator';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 export default function CultivatorAttributesPage() {
   const projection = useCultivatorDisplayProjection();
@@ -28,6 +30,8 @@ export default function CultivatorAttributesPage() {
   );
   const [isAllocatingAttributes, setIsAllocatingAttributes] = useState(false);
   const [isResettingAttributes, setIsResettingAttributes] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const busy = useRef(false);
 
   if (isLoading && !cultivator) {
     return <GameSceneLoading message="正在读取根基属性……" />;
@@ -54,6 +58,7 @@ export default function CultivatorAttributesPage() {
     cultivator.unallocated_attribute_points ?? 0;
 
   const handleAllocateAttributes = async () => {
+    if (busy.current) return;
     if (
       !canSubmitAttributeAllocation({
         draft: attributeDraft,
@@ -65,6 +70,7 @@ export default function CultivatorAttributesPage() {
     }
 
     try {
+      busy.current = true;
       setIsAllocatingAttributes(true);
       await mutate(
         fetch('/api/cultivator/attributes/allocate', {
@@ -77,6 +83,7 @@ export default function CultivatorAttributesPage() {
         }),
       );
       setAttributeDraft(createEmptyAttributeDraft());
+      setConfirming(false);
       pushToast({ message: '根基属性已分配', tone: 'success' });
     } catch (error) {
       pushToast({
@@ -84,14 +91,16 @@ export default function CultivatorAttributesPage() {
         tone: 'danger',
       });
     } finally {
+      busy.current = false;
       setIsAllocatingAttributes(false);
     }
   };
 
   const handleResetAttributes = async () => {
-    if (isResettingAttributes) return;
+    if (busy.current) return;
 
     try {
+      busy.current = true;
       setIsResettingAttributes(true);
       const result = await mutate<{
         refunded_attribute_points: number;
@@ -112,6 +121,7 @@ export default function CultivatorAttributesPage() {
         tone: 'danger',
       });
     } finally {
+      busy.current = false;
       setIsResettingAttributes(false);
     }
   };
@@ -142,23 +152,22 @@ export default function CultivatorAttributesPage() {
       title="根基属性"
       description="六维根基会随境界自然增长，额外获得的可分配点可在此处落定。"
     >
-      <GameSceneSection title="分配根基">
-        <AttributeAllocationControl
-          currentAttributes={cultivator.attributes}
-          unallocatedPoints={unallocatedAttributePoints}
-          draft={attributeDraft}
-          loading={isAllocatingAttributes}
-          onChange={setAttributeDraft}
-          onSubmit={() => void handleAllocateAttributes()}
-        />
-      </GameSceneSection>
-
+      <AttributeAllocationControl
+        currentAttributes={cultivator.attributes}
+        unallocatedPoints={unallocatedAttributePoints}
+        draft={attributeDraft}
+        loading={isAllocatingAttributes || isResettingAttributes || confirming}
+        onChange={setAttributeDraft}
+        onSubmit={() => setConfirming(true)}
+      />
       <GameSceneSection
-        title="属性详情"
+        title="当前属性详情"
         actions={
           <InkButton
             variant="primary"
-            disabled={isResettingAttributes}
+            disabled={
+              isResettingAttributes || isAllocatingAttributes || confirming
+            }
             onClick={openResetConfirm}
           >
             重置属性点
@@ -171,6 +180,55 @@ export default function CultivatorAttributesPage() {
           expandable={false}
         />
       </GameSceneSection>
+      <InkModal
+        isOpen={confirming}
+        title="确认分配根基"
+        onClose={() => {
+          if (!busy.current) setConfirming(false);
+        }}
+        footer={
+          <div className="flex justify-end gap-3">
+            <InkButton
+              disabled={isAllocatingAttributes}
+              onClick={() => setConfirming(false)}
+            >
+              返回调整
+            </InkButton>
+            <InkButton
+              pending={isAllocatingAttributes}
+              onClick={() => void handleAllocateAttributes()}
+            >
+              确认分配
+            </InkButton>
+          </div>
+        }
+      >
+        <p className="text-sm">
+          本次消耗{' '}
+          <span className="font-mono">
+            {Object.values(attributeDraft).reduce(
+              (sum, value) => sum + value,
+              0,
+            )}
+          </span>{' '}
+          点。确认后如需重新分配，需消耗{ATTRIBUTE_RESET_TALISMAN_NAME}。
+        </p>
+        <dl className="mt-3 space-y-2 text-sm">
+          {(Object.keys(CHARACTER_ATTRIBUTE_LABELS) as (keyof Attributes)[])
+            .filter((key) => attributeDraft[key] > 0)
+            .map((key) => (
+              <div key={key} className="flex justify-between gap-3">
+                <dt>{CHARACTER_ATTRIBUTE_LABELS[key]}</dt>
+                <dd className="font-mono">
+                  {cultivator.attributes[key]} →{' '}
+                  <span className="text-teal">
+                    {cultivator.attributes[key] + attributeDraft[key]}
+                  </span>
+                </dd>
+              </div>
+            ))}
+        </dl>
+      </InkModal>
     </GameSceneFrame>
   );
 }

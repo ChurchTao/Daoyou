@@ -1,78 +1,59 @@
-import Zhanji from '@app/components/func/Zhanji';
+import { CombatV6HistoryList } from '@app/components/feature/combat-v6/CombatV6HistoryList';
+import { combatV6Request } from '@app/components/feature/combat-v6/request';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton } from '@app/components/ui/InkButton';
-import { InkList } from '@app/components/ui/InkList';
 import { InkNotice } from '@app/components/ui/InkNotice';
-import { fetchJsonCached } from '@app/lib/client/requestCache';
 import { usePlayerSession } from '@app/lib/resources/player';
-import type { BattleRecordUnitSummary } from '@shared/types/battle';
+import type { CombatV6HistoryPage } from '@shared/contracts/combatV6Replay';
 import { useEffect, useState } from 'react';
 
-type BattleSummary = {
-  id: string;
-  createdAt: string | null;
-  winner: BattleRecordUnitSummary;
-  loser: BattleRecordUnitSummary;
-  turns: number;
-};
-
 export function RecentBattles() {
-  const [records, setRecords] = useState<BattleSummary[]>([]);
-  const [loading, setLoading] = useState(false);
-  const cultivator = usePlayerSession().data?.activeCultivator;
+  const id = usePlayerSession().data?.activeCultivator?.id;
+  return id ? <RecentBattleList key={id} /> : null;
+}
 
+function RecentBattleList() {
+  const [data, setData] = useState<CombatV6HistoryPage>();
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    let cancelled = false;
+    const abort = new AbortController();
+    void combatV6Request<CombatV6HistoryPage>('/api/combat-v6/replays?page=1', {
+      signal: abort.signal,
+      cache: 'no-store',
+    })
+      .then((result) => {
+        if (!abort.signal.aborted) setData(result);
+      })
+      .catch((e: Error) => {
+        if (!abort.signal.aborted) setError(e.message);
+      });
+    return () => abort.abort();
+  }, [attempt]);
 
-    const fetchRecords = async () => {
-      setLoading(true);
-      try {
-        // 列表接口已改为分页，这里只取第一页前 5 条
-        const data = await fetchJsonCached<{
-          success: boolean;
-          data?: BattleSummary[];
-        }>('/api/battle-records/v3?page=1&pageSize=3', {
-          key: 'home:recent-battles:v3:page=1&pageSize=3',
-          ttlMs: 30 * 1000,
-        });
-        if (cancelled) return;
-        if (data.success && Array.isArray(data.data)) {
-          setRecords(data.data);
-        }
-      } catch (e) {
-        if (cancelled) return;
-        console.error('获取近期战绩失败:', e);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void fetchRecords();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (loading) {
+  if (error)
+    return (
+      <div role="alert">
+        <InkNotice>近期战绩加载失败：{error}</InkNotice>
+        <InkButton
+          onClick={() => {
+            setError('');
+            setAttempt((n) => n + 1);
+          }}
+        >
+          重试
+        </InkButton>
+      </div>
+    );
+  if (!data)
     return <GameLoadingState message="近期战绩加载中……" variant="inline" />;
-  }
-
-  if (!records.length) {
-    return <InkNotice>暂无战斗记录。</InkNotice>;
-  }
-
+  if (!data.items.length) return <InkNotice>暂无战斗记录。</InkNotice>;
   return (
-    <InkList dense className="gap-1">
-      {records.map((r) => (
-        <Zhanji key={r.id} record={r} currentCultivatorId={cultivator?.id} />
-      ))}
-
+    <>
+      <CombatV6HistoryList items={data.items.slice(0, 3)} />
       <InkButton href="/game/battle/history" className="pt-2">
         查看全部战绩
       </InkButton>
-    </InkList>
+    </>
   );
 }

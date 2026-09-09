@@ -4,7 +4,6 @@ import { createElement } from 'react';
 import type { ZodType } from 'zod';
 
 export {
-  readBattleOutcome,
   readMiningResultOutcome,
   readMiningSessionOutcome,
   readRewardReceiptOutcome,

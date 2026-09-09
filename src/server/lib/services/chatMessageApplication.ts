@@ -1,4 +1,3 @@
-import { ensureBattleRecordV3Share } from '@server/lib/repositories/battleRecordV3Repository';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { readCultivatorPublicIdentity } from '@server/lib/services/cultivator/CultivatorFactsReader';
 import {
@@ -8,7 +7,6 @@ import {
 import type { WorldChatCreateMessageRequest } from '@shared/contracts/world-chat';
 import type {
   ItemShowcaseSnapshotMap,
-  WorldChatBattleShowcasePayload,
   WorldChatItemShowcasePayload,
   WorldChatMessageChannel,
   WorldChatMessageDTO,
@@ -116,28 +114,6 @@ async function buildItemShowcasePayload(params: {
   return { itemType, itemId, snapshot, text: showcaseText };
 }
 
-async function buildBattleShowcasePayload(params: {
-  cultivatorId: string;
-  battleRecordId: string;
-  text?: string;
-}): Promise<WorldChatBattleShowcasePayload | null> {
-  const result = await ensureBattleRecordV3Share(
-    params.battleRecordId,
-    params.cultivatorId,
-  );
-  if (!result) return null;
-
-  const { outcome } = result.record.battleResult;
-  return {
-    shareCode: result.shareCode,
-    winner: outcome.winner,
-    loser: outcome.loser,
-    turns: outcome.turns,
-    battleCreatedAt: result.record.createdAt.toISOString(),
-    ...(params.text?.trim() ? { text: params.text.trim() } : {}),
-  };
-}
-
 export async function createCultivatorChatMessage(params: {
   request: WorldChatCreateMessageRequest;
   userId: string;
@@ -195,27 +171,6 @@ export async function createCultivatorChatMessage(params: {
       messageType: 'text',
       textContent: text,
       payload: { text },
-    });
-  }
-
-  if (params.request.messageType === 'battle_showcase') {
-    const showcaseText = params.request.textContent?.trim() ?? '';
-    if (countChars(showcaseText) > 100) {
-      throw new ChatMessageApplicationError('附言长度需在 100 字以内', 400);
-    }
-    const payload = await buildBattleShowcasePayload({
-      cultivatorId: params.cultivatorId,
-      battleRecordId: params.request.battleRecordId,
-      text: showcaseText,
-    });
-    if (!payload) {
-      throw new ChatMessageApplicationError('战绩不存在或无权展示', 404);
-    }
-    return params.persist({
-      ...senderBase,
-      messageType: 'battle_showcase',
-      textContent: payload.text,
-      payload,
     });
   }
 

@@ -3,8 +3,6 @@ import {
   normalizeCharacterResource,
   type CultivatorDisplayInput,
 } from '@shared/lib/cultivatorDisplay';
-import type { BattleUnitInitFragment } from '@shared/engine/battle-v5/setup/types';
-import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
 import {
   getBreakthroughPenalty,
   isConditionStatusActive,
@@ -21,7 +19,6 @@ import {
 import {
   breakthroughBodyCultivationRealm as advanceBodyCultivationRealm,
 } from '@shared/lib/bodyCultivation/breakthrough';
-import { buildConditionBattleUnitInitFragment } from '@shared/lib/conditionBattle';
 import { PILL_TOXICITY_CAP } from '@shared/config/consumableSystem';
 import { normalizeMarrowWashState } from '@shared/lib/marrowWash';
 import type {
@@ -37,12 +34,6 @@ import type { Cultivator } from '@shared/types/cultivator';
 
 export type ConditionCultivatorFacts = CultivatorDisplayInput &
   Pick<Cultivator, 'pre_heaven_fates'>;
-
-const WOUND_SEVERITY_ORDER: ConditionStatusKey[] = [
-  'minor_wound',
-  'major_wound',
-  'near_death',
-];
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -165,14 +156,6 @@ function replaceStatus(
   ];
 }
 
-function removeStatuses(
-  statuses: ConditionStatusInstance[],
-  keys: ConditionStatusKey[],
-): ConditionStatusInstance[] {
-  const keySet = new Set(keys);
-  return statuses.filter((status) => !keySet.has(status.key));
-}
-
 export interface ExternalResourceLossPreview {
   maxHp: number;
   maxMp: number;
@@ -185,71 +168,6 @@ export interface ExternalResourceLossPreview {
   hpLossMultiplier: number;
   mpLossMultiplier: number;
   triggerTexts: string[];
-}
-
-function getWoundSeverityIndex(key: ConditionStatusKey): number {
-  return WOUND_SEVERITY_ORDER.indexOf(key);
-}
-
-function getCurrentWoundStatus(
-  statuses: ConditionStatusInstance[],
-): ConditionStatusKey | null {
-  const woundStatuses = statuses
-    .map((status) => status.key)
-    .filter((key): key is ConditionStatusKey => getWoundSeverityIndex(key) >= 0);
-
-  if (woundStatuses.length === 0) return null;
-  return woundStatuses.sort(
-    (left, right) => getWoundSeverityIndex(right) - getWoundSeverityIndex(left),
-  )[0] ?? null;
-}
-
-function downgradeWoundStatus(
-  woundStatus: ConditionStatusKey,
-  steps: number,
-): ConditionStatusKey | null {
-  const currentIndex = getWoundSeverityIndex(woundStatus);
-  if (currentIndex < 0) return woundStatus;
-  const nextIndex = currentIndex - Math.max(0, Math.floor(steps));
-  return nextIndex >= 0 ? WOUND_SEVERITY_ORDER[nextIndex] : null;
-}
-
-function setMinimumWoundStatus(
-  statuses: ConditionStatusInstance[],
-  target: ConditionStatusKey,
-  now: Date,
-): ConditionStatusInstance[] {
-  const current = getCurrentWoundStatus(statuses);
-  const currentIndex = current ? getWoundSeverityIndex(current) : -1;
-  const targetIndex = getWoundSeverityIndex(target);
-  const nextKey =
-    currentIndex > targetIndex && current ? current : target;
-
-  return replaceStatus(
-    removeStatuses(statuses, WOUND_SEVERITY_ORDER),
-    {
-      key: nextKey,
-      stacks: 1,
-      source: 'battle',
-      duration: createUntilRemovedDuration(),
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    },
-  );
-}
-
-function setBattleWoundStatus(
-  statuses: ConditionStatusInstance[],
-  target: ConditionStatusKey,
-  downgradeSteps: number,
-  now: Date,
-): ConditionStatusInstance[] {
-  const downgraded = downgradeWoundStatus(target, downgradeSteps);
-  if (!downgraded) {
-    return removeStatuses(statuses, WOUND_SEVERITY_ORDER);
-  }
-
-  return setMinimumWoundStatus(statuses, downgraded, now);
 }
 
 function buildDefaultCondition(
@@ -569,100 +487,6 @@ export const ConditionService = {
     return {
       ...conditionInput,
       statuses: replaceStatus(conditionInput.statuses, nextStatus),
-    };
-  },
-
-  preparePersistentBattleCondition(
-    cultivator: ConditionCultivatorFacts,
-    conditionInput: CultivatorCondition | undefined,
-    now: Date = new Date(),
-  ): {
-    condition: CultivatorCondition;
-    playerFragment: BattleUnitInitFragment;
-  } {
-    const condition = this.tickNaturalRecovery(cultivator, conditionInput, now);
-
-    return {
-      condition,
-      playerFragment: {
-        ...buildConditionBattleUnitInitFragment(condition, now),
-        resourceState: {
-          hp: {
-            mode: 'absolute',
-            value: condition.resources.hp.current,
-          },
-          mp: {
-            mode: 'absolute',
-            value: condition.resources.mp.current,
-          },
-        },
-      },
-    };
-  },
-
-  settlePersistentBattleCondition(
-    cultivator: ConditionCultivatorFacts,
-    conditionBaseline: CultivatorCondition,
-    playerSnapshot: UnitStateSnapshot,
-    didLose: boolean,
-    now: Date = new Date(),
-  ): CultivatorCondition {
-    const condition = this.normalizeCondition(
-      cultivator,
-      conditionBaseline,
-      now,
-    );
-    const { maxHp, maxMp } = this.getMaxResources(cultivator, condition);
-
-    if (didLose) {
-      return {
-        ...condition,
-        resources: {
-          hp: { current: 1, max: maxHp },
-          mp: { current: 0, max: maxMp },
-        },
-        statuses: setMinimumWoundStatus(condition.statuses, 'near_death', now),
-        timestamps: {
-          ...condition.timestamps,
-          lastBattleAt: now.toISOString(),
-          lastRecoveryAt: now.toISOString(),
-        },
-      };
-    }
-
-    const currentHp = clamp(playerSnapshot.hp.current, 0, maxHp);
-    const currentMp = clamp(playerSnapshot.mp.current, 0, maxMp);
-    const hpRatio = maxHp > 0 ? currentHp / maxHp : 0;
-    let statuses = condition.statuses;
-
-    if (hpRatio <= 0.15) {
-      statuses = setBattleWoundStatus(
-        statuses,
-        'major_wound',
-        0,
-        now,
-      );
-    } else if (hpRatio <= 0.35) {
-      statuses = setBattleWoundStatus(
-        statuses,
-        'minor_wound',
-        0,
-        now,
-      );
-    }
-
-    return {
-      ...condition,
-      resources: {
-        hp: { current: currentHp, max: maxHp },
-        mp: { current: currentMp, max: maxMp },
-      },
-      statuses,
-      timestamps: {
-        ...condition.timestamps,
-        lastBattleAt: now.toISOString(),
-        lastRecoveryAt: now.toISOString(),
-      },
     };
   },
 

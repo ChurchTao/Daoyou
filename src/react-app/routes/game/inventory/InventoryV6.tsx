@@ -2,10 +2,7 @@ import {
   combatV6Request,
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
-import {
-  InventoryGrid,
-  ItemSlot,
-} from '@app/components/feature/items/ItemSlot';
+import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -101,7 +98,6 @@ export default function InventoryV6() {
       }
     }
   }
-  const slots = new Map(data?.items.map((i) => [i.slotIndex, i]));
   const filtered = !!search || kind !== 'all';
   function choose(entry: Item | undefined, slot: number) {
     if (pending) return;
@@ -207,49 +203,38 @@ export default function InventoryV6() {
         {!data ? (
           <p className="text-ink-secondary text-sm">正在查看物品……</p>
         ) : (
-          <InventoryGrid>
-            {(location === 'bag'
-              ? Array.from({ length: BAG_CAPACITY }, (_, slot) => ({
-                  entry: slots.get(slot),
-                  slot,
-                }))
-              : data.items.map((entry, slot) => ({ entry, slot }))
-            ).map(({ entry, slot }) => (
-              <ItemSlot
-                key={location === 'bag' ? slot : entry!.id}
-                item={entry}
-                emptyLabel=""
-                disabled={pending || (filtered && !entry)}
-                selected={!!entry && moving?.id === entry.id}
-                onQuickAction={moving ? () => choose(entry, slot) : undefined}
-                quickOnTouch={!!moving}
-              >
-                {entry
-                  ? (close) => (
-                      <ItemActions
-                        key={`${entry.id}:${entry.revision}`}
-                        item={entry}
-                        pending={pending}
-                        act={async (action) => {
-                          await act(action);
-                          close();
-                        }}
-                        move={() => {
-                          setMoving(entry);
-                          pushToast({
-                            message:
-                              '选择目标格位，同类合并，其他物品交换位置。',
-                          });
-                          close();
-                          setSearch('');
-                          setKind('all');
-                        }}
-                      />
-                    )
-                  : undefined}
-              </ItemSlot>
-            ))}
-          </InventoryGrid>
+          <InventoryItems
+            items={data.items}
+            location={location}
+            slotProps={(entry, slot) => ({
+              disabled: pending || (filtered && !entry),
+              selected: !!entry && moving?.id === entry.id,
+              onQuickAction: moving ? () => choose(entry, slot) : undefined,
+              quickOnTouch: !!moving,
+              children: entry
+                ? (close) => (
+                    <ItemActions
+                      key={`${entry.id}:${entry.revision}`}
+                      item={entry}
+                      pending={pending}
+                      act={async (action) => {
+                        await act(action);
+                        close();
+                      }}
+                      move={() => {
+                        setMoving(entry);
+                        pushToast({
+                          message: '选择目标格位，同类合并，其他物品交换位置。',
+                        });
+                        close();
+                        setSearch('');
+                        setKind('all');
+                      }}
+                    />
+                  )
+                : undefined,
+            })}
+          />
         )}
         {location === 'storage' && data?.total === 0 ? (
           <p className="text-ink-secondary text-sm">暂无物品</p>

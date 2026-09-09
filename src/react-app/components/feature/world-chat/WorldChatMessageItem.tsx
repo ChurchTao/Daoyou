@@ -2,7 +2,6 @@ import {
   ItemDetailModal,
   type ItemDetailPayload,
 } from '@app/components/feature/items';
-import Link from '@app/components/router/AppLink';
 import type { Tier } from '@app/components/ui/InkBadge';
 import { InkBadge, tierColorMap } from '@app/components/ui/InkBadge';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
@@ -92,9 +91,8 @@ function BattleShowcaseCard({
   payload: WorldChatBattleShowcasePayload;
 }) {
   return (
-    <Link
-      href={`/battle-replay/${payload.shareCode}`}
-      className="border-ink/15 hover:border-crimson/35 mt-1 block border border-dashed bg-white/55 px-3 py-2 no-underline transition hover:bg-white/80"
+    <div
+      className="border-ink/15 mt-1 border border-dashed bg-white/55 px-3 py-2"
     >
       <div className="flex min-w-0 items-center gap-2">
         <span className="text-teal min-w-0 flex-1 truncate font-semibold">
@@ -107,14 +105,14 @@ function BattleShowcaseCard({
       </div>
       <div className="text-ink-secondary mt-1 flex items-center justify-between gap-3 text-xs">
         <span>鏖战 {payload.turns} 回</span>
-        <span className="text-ink">观看战谱 →</span>
+        <span className="text-ink">旧版战报已停用</span>
       </div>
       {payload.text ? (
         <p className="text-ink border-ink/10 mt-1.5 border-t border-dashed pt-1.5 text-sm leading-6 break-all">
           {payload.text}
         </p>
       ) : null}
-    </Link>
+    </div>
   );
 }
 
@@ -330,7 +328,7 @@ export function WorldChatMessageItem({
           {message.messageType === 'battle_showcase' && battleShowcase ? (
             <BattleShowcaseCard payload={battleShowcase} />
           ) : message.messageType === 'battle_showcase' ? (
-            '【战谱展示】'
+            '旧版战报已停用'
           ) : message.messageType === 'item_showcase' && showcaseData ? (
             <span>
               <button

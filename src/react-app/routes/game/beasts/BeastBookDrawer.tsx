@@ -2,10 +2,7 @@ import {
   combatV6Request,
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
-import {
-  InventoryGrid,
-  ItemSlot,
-} from '@app/components/feature/items/ItemSlot';
+import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
@@ -17,7 +14,7 @@ import {
   BEAST_SKILLS,
   activeBeastSkills,
 } from '@shared/engine/combat-v6/beasts';
-import { itemDefinition } from '@shared/inventory';
+import { BAG_CAPACITY, itemDefinition } from '@shared/inventory';
 import { useEffect, useRef, useState } from 'react';
 
 const details = combatV6SkillDetails(BEAST_SKILLS, []);
@@ -47,10 +44,9 @@ export function BeastBookDrawer({
     const controller = new AbortController();
     lifetime.current = controller;
     void Promise.all([
-      combatV6Request<InventoryView>(
-        '/api/combat-v6/inventory?location=bag&kind=beast_book',
-        { signal: controller.signal },
-      ),
+      combatV6Request<InventoryView>('/api/combat-v6/inventory?location=bag', {
+        signal: controller.signal,
+      }),
       combatV6Request<BeastManagementView>('/api/combat-v6/beasts', {
         signal: controller.signal,
       }),
@@ -72,6 +68,7 @@ export function BeastBookDrawer({
   const valid =
     !!beast &&
     !!selected &&
+    itemDefinition(selected.definitionId).kind === 'beast_book' &&
     beast.skillSlotCapacity > 0 &&
     beast.level <= data!.roster.ownerLevel &&
     !beast.skills.includes(itemDefinition(selected.definitionId).skillId!);
@@ -129,7 +126,29 @@ export function BeastBookDrawer({
     <InkDetailDrawer
       isOpen
       title={`${beast?.name ?? '灵兽'} · 学习兽诀`}
-      size="sm"
+      size="md"
+      footer={
+        selected ? (
+          <div className="space-y-2 text-sm">
+            <p>
+              消耗一本{itemDefinition(selected.definitionId).name}
+              ，随机覆盖一个已有技能，结果不可撤销。
+            </p>
+            {!valid ? (
+              <p className="text-ink-secondary">
+                灵兽需有技能格、战斗等级不高于人物等级，且尚未拥有此技能。
+              </p>
+            ) : null}
+            <InkButton
+              pending={pending}
+              disabled={!valid}
+              onClick={() => void learn()}
+            >
+              确认学习
+            </InkButton>
+          </div>
+        ) : null
+      }
       onClose={() => {
         if (!busy.current) close();
       }}
@@ -159,53 +178,56 @@ export function BeastBookDrawer({
           刷新兽诀
         </InkButton>
         {data ? (
-          <InventoryGrid>
-            {data.inventory.items.map((item) => (
-              <ItemSlot
-                key={item.id}
-                item={item}
-                selected={selectedId === item.id}
-                disabled={pending}
-              >
-                {(hide) => (
-                  <InkButton
-                    disabled={pending}
-                    onClick={() => {
-                      setSelectedId(item.id);
-                      hide();
-                    }}
-                  >
-                    选择此兽诀
-                  </InkButton>
-                )}
-              </ItemSlot>
-            ))}
-          </InventoryGrid>
+          <>
+            <div className="text-ink-secondary flex justify-between text-xs">
+              <span>储物袋 · 选择兽诀</span>
+              <span className="font-mono">
+                {data.inventory.used} / {BAG_CAPACITY}
+              </span>
+            </div>
+            <InventoryItems
+              items={data.inventory.items}
+              slotProps={(item) => {
+                const book =
+                  !!item &&
+                  itemDefinition(item.definitionId).kind === 'beast_book';
+                return {
+                  selected: !!item && selectedId === item.id,
+                  disabled: pending || !book,
+                  className: item && !book ? 'opacity-35' : undefined,
+                  onQuickAction: book
+                    ? () => setSelectedId(item.id)
+                    : undefined,
+                  children: item
+                    ? (hide) =>
+                        book ? (
+                          <InkButton
+                            disabled={pending}
+                            onClick={() => {
+                              setSelectedId(item.id);
+                              hide();
+                            }}
+                          >
+                            选择此兽诀
+                          </InkButton>
+                        ) : (
+                          <p className="text-ink-secondary">
+                            请选择兽诀用于学习。
+                          </p>
+                        )
+                    : undefined,
+                };
+              }}
+            />
+          </>
         ) : (
           <p>正在读取兽诀……</p>
         )}
-        {data?.inventory.items.length === 0 ? (
+        {data &&
+        !data.inventory.items.some(
+          (item) => itemDefinition(item.definitionId).kind === 'beast_book',
+        ) ? (
           <p className="text-ink-secondary">储物袋中暂无兽诀</p>
-        ) : null}
-        {selected ? (
-          <>
-            <p>
-              消耗一本{itemDefinition(selected.definitionId).name}
-              ，随机覆盖一个已有技能，结果不可撤销。
-            </p>
-            {!valid ? (
-              <p className="text-ink-secondary">
-                灵兽需有技能格、战斗等级不高于人物等级，且尚未拥有此技能。
-              </p>
-            ) : null}
-            <InkButton
-              pending={pending}
-              disabled={!valid}
-              onClick={() => void learn()}
-            >
-              确认学习
-            </InkButton>
-          </>
         ) : null}
       </div>
     </InkDetailDrawer>

@@ -8,9 +8,9 @@
 | --- | --- | --- | --- |
 | `wanjiedaoyou_battle_replay_archives` | `battleReplayArchives` | 10H 已删除读写仓储、归档消费者及定期清理，仅保留历史 schema／JSON 类型 | 删除 schema 及仅供该表使用的 `BattleReplayV1` 历史类型 |
 | `wanjiedaoyou_bet_battles` | `betBattles` | 10D 已删除业务读写及自动清理；外键引用 V3 战绩表 | 删除 schema；物理删除顺序在 V3 战绩表之前 |
-| `wanjiedaoyou_battle_records_v3` | `battleRecordsV3` | 历史战绩，仍有 `chatMessageApplication` 的旧战报分享、`battleRecordV3Repository` 及 retention 清理引用 | 解除分享读写与旧仓储、清理任务引用；处理历史分享展示引用后删除 schema |
+| `wanjiedaoyou_battle_records_v3` | `battleRecordsV3` | 10J 已删除聊天分享创建、旧仓储及 retention 清理；历史消息只显示内嵌摘要，不再读表 | 删除 schema 及独占历史类型；物理删除顺序在赌战表之后 |
 
-`@deprecated` 标记已加在 Drizzle 导出声明上，本版不改表结构、不删除数据、不生成 DROP 迁移，也不新增运行时迁移／兼容逻辑。V3 表的残余引用尚未清理，弃用标记不等同于当前可以直接删表。
+`@deprecated` 标记已加在 Drizzle 导出声明上，本版不改表结构、不删除数据、不生成 DROP 迁移，也不新增运行时迁移／兼容逻辑。10J 后三张表均只保留 schema 引用；物理删除仍遵循下一版本安排。
 
 ## 下一版本实施边界
 
@@ -27,4 +27,4 @@
 - 共享消息、邮件、角色、宗门和物品表不因 V5 退役而删除。
 - 更早的 `wanjiedaoyou_battle_records`、`wanjiedaoyou_battle_records_v2` 已在历史迁移 `0022_modern_winter_soldier.sql` 中安排删除，不重复新增删除计划；具体环境是否执行过该迁移在下一版本部署核对时确认。
 
-本轮验证仅检查注释、Markdown、引用和 `git diff --check`，未修改运行逻辑或结构，未重跑应用测试与构建。
+最初标记弃用时仅检查注释、Markdown、引用和 `git diff --check`。10J 已完成运行时消费者清理及 lint、共享测试、构建与重点页面验收，详见 [10J 实施记录](./combat-v6-phase-10j-legacy-battle-consumers.md)。物理删除迁移尚未执行。

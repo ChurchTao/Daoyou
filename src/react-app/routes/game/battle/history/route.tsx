@@ -1,27 +1,13 @@
+import { CombatV6HistoryList } from '@app/components/feature/combat-v6/CombatV6HistoryList';
+import { combatV6HistorySources as sources } from '@app/components/feature/combat-v6/presentation';
 import { combatV6Request } from '@app/components/feature/combat-v6/request';
 import { GameLoadingState, GameSceneTabs } from '@app/components/game-shell';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { usePlayerSession } from '@app/lib/resources/player';
 import type { CombatV6HistoryPage } from '@shared/contracts/combatV6Replay';
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 
-const sources = {
-  'training-room': '练功房',
-  'wild-encounter': '野外遭遇',
-  'sect-task': '宗门挑战',
-  breakthrough: '破境试炼',
-  dungeon: '秘境遭遇',
-  tower: '蜃楼幻境',
-  ranking: '天骄榜',
-  'arena-sparring': '擂台切磋',
-};
-const outcomes = {
-  victory: '胜利',
-  defeat: '落败',
-  draw: '平局',
-  aborted: '已结束',
-};
 export default function BattleHistoryRoute() {
   const characterId = usePlayerSession().data?.activeCultivator?.id;
   const [params, setParams] = useSearchParams();
@@ -107,48 +93,7 @@ function HistoryPage({
       {!data.items.length ? (
         <InkNotice>暂无战斗记录。</InkNotice>
       ) : (
-        <ul className="divide-ink/10 divide-y">
-          {data.items.map((record) => (
-            <li key={record.battleId}>
-              <Link
-                className="hover:bg-ink/5 focus-visible:outline-ink block space-y-2 py-4"
-                to={`/game/battle/${record.battleId}`}
-              >
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span>
-                    {sources[record.sourceType as keyof typeof sources] ??
-                      '战斗'}
-                  </span>
-                  <strong
-                    className={
-                      record.outcome === 'victory'
-                        ? 'text-cinnabar'
-                        : 'text-ink-secondary'
-                    }
-                  >
-                    {outcomes[record.outcome]}
-                  </strong>
-                </div>
-                <p className="text-sm leading-6 break-words">
-                  {record.sides[0].join('、') || '我方'}{' '}
-                  <span className="text-ink-secondary">对阵</span>{' '}
-                  {record.sides[1].join('、') || '敌方'}
-                </p>
-                <div className="text-ink-secondary flex flex-wrap justify-between gap-2 text-xs">
-                  <time dateTime={record.finishedAt}>
-                    {new Date(record.finishedAt).toLocaleString('zh-CN', {
-                      hour12: false,
-                    })}
-                  </time>
-                  <span>
-                    {record.roundCount} 回合 ·{' '}
-                    {record.playable ? '查看回放 →' : '查看战报 →'}
-                  </span>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <CombatV6HistoryList items={data.items} />
       )}
       <div className="flex items-center justify-between text-sm">
         <InkButton disabled={page === 1} onClick={() => onPage(page - 1)}>

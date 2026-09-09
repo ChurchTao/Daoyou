@@ -1011,8 +1011,8 @@ export const cultivatorTasks = pgTable(
 
 /**
  * @deprecated V5 历史战绩。本次退役版本上线后的下一版本删除表及 schema。
- * 删除前解除 chatMessageApplication 战报分享、旧仓储和 retention 清理引用，
- * 并先删除 betBattles 的外键依赖。当前 V6 战绩使用 combatV6ReplayArchives。
+ * 10J 已解除战报分享、旧仓储和 retention 清理引用，仅保留历史 schema。
+ * 删除时先解除 betBattles 的外键依赖。当前 V6 战绩使用 combatV6ReplayArchives。
  * 计划见 docs/combat-v6-legacy-table-retirement.md；本版不得生成 DROP。
  */
 export const battleRecordsV3 = pgTable(
