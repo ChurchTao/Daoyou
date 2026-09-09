@@ -354,7 +354,6 @@
 }
 .cv6-detail-body dd {
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 .cv6-detail-body ul {
   border-top: 1px solid var(--color-battle-faint);

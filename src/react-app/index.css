@@ -82,6 +82,29 @@
   --font-sans: var(--font-lxgwwenkai);
   --font-mono: var(--font-lxgwwenkai);
   --font-heading: 'Ma Shan Zheng';
+  --font-numeric-body: var(--font-lxgwwenkai);
+  --font-numeric-stat: Arial, 'Helvetica Neue', var(--font-lxgwwenkai);
+  --font-numeric-stack:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    var(--font-lxgwwenkai);
+}
+
+/* 数字按用途选类，不在组件中声明字体栈；字号与色彩仍由组件负责。 */
+@utility num-body {
+  font-family: var(--font-numeric-body);
+  font-variant-numeric: normal;
+}
+
+@utility num-stat {
+  font-family: var(--font-numeric-stat);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+@utility num-stack {
+  font-family: var(--font-numeric-stack);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 
 :root {

@@ -899,7 +899,7 @@ export const router = createBrowserRouter(
                   presentation: 'workflow',
                   summary: '与灵兽结缘，编组出战或安心休养。',
                 },
-                '灵兽',
+                '灵兽袋',
               )}
             />
             <Route

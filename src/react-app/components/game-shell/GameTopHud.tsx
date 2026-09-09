@@ -95,7 +95,7 @@ function HudMeter({
         <span className="text-battle-muted shrink-0 tracking-[0.12em]">
           {label}
         </span>
-        <span className="text-ink min-w-0 truncate text-right font-mono text-[0.58rem] md:text-[0.8rem]">
+        <span className="text-ink num-stat min-w-0 truncate text-right text-[0.58rem] md:text-[0.8rem]">
           {display}
         </span>
       </div>
@@ -223,7 +223,7 @@ function HudTag({
   const content = (
     <>
       {label && <span className="shrink-0 text-stone-500">{label}</span>}
-      <span className="text-ink min-w-0 truncate font-mono">{value}</span>
+      <span className="text-ink num-stat min-w-0 truncate">{value}</span>
     </>
   );
 
@@ -613,31 +613,31 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
               <tbody className="divide-ink/10 divide-y">
                 <tr>
                   <td className="px-3 py-1.5">秘境探索</td>
-                  <td className="text-ink px-3 py-1.5 text-right font-mono">
+                  <td className="text-ink num-stat px-3 py-1.5 text-right">
                     {QI_ACTION_COSTS.dungeon_start}
                   </td>
                 </tr>
                 <tr>
                   <td className="px-3 py-1.5">突破</td>
-                  <td className="text-ink px-3 py-1.5 text-right font-mono">
+                  <td className="text-ink num-stat px-3 py-1.5 text-right">
                     {QI_ACTION_COSTS.breakthrough_attempt}
                   </td>
                 </tr>
                 <tr>
                   <td className="px-3 py-1.5">炼丹</td>
-                  <td className="text-ink px-3 py-1.5 text-right font-mono">
+                  <td className="text-ink num-stat px-3 py-1.5 text-right">
                     1～20（每 200 药蕴 1 点）
                   </td>
                 </tr>
                 <tr>
                   <td className="px-3 py-1.5">炼器</td>
-                  <td className="text-ink px-3 py-1.5 text-right font-mono">
+                  <td className="text-ink num-stat px-3 py-1.5 text-right">
                     {QI_ACTION_COSTS.creation_artifact}
                   </td>
                 </tr>
                 <tr>
                   <td className="px-3 py-1.5">创造功法/神通</td>
-                  <td className="text-ink px-3 py-1.5 text-right font-mono">
+                  <td className="text-ink num-stat px-3 py-1.5 text-right">
                     {QI_ACTION_COSTS.creation_gongfa}
                   </td>
                 </tr>

@@ -182,7 +182,7 @@ export function ItemSlot({
           </span>
         ) : null}
         {item && item.quantity > 1 ? (
-          <span className="text-ink absolute top-1 left-1 font-[ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace] text-[clamp(0.75rem,20cqw,1rem)] leading-none font-semibold tracking-tight tabular-nums [text-shadow:0_1px_2px_var(--color-paper)]">
+          <span className="text-ink num-stack absolute top-1 left-1 text-[clamp(0.75rem,20cqw,1rem)] leading-none [text-shadow:0_1px_2px_var(--color-paper)]">
             <span className="text-[0.75em]">×</span>
             {item.quantity >= 10000
               ? `${Math.floor(item.quantity / 1000)}k`

@@ -12,9 +12,13 @@ import { createPortal } from 'react-dom';
 export function InkTooltip({
   label,
   children,
+  triggerContent,
+  triggerClassName,
 }: {
   label: string;
   children: ReactNode;
+  triggerContent?: ReactNode;
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const id = useId();
@@ -106,7 +110,10 @@ export function InkTooltip({
         type="button"
         aria-label={label}
         aria-describedby={open ? id : undefined}
-        className="text-ink-secondary hover:text-ink focus-visible:outline-ink hover:bg-ink/5 inline-flex size-9 shrink-0 cursor-help items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+        className={
+          triggerClassName ??
+          'text-ink-secondary hover:text-ink focus-visible:outline-ink hover:bg-ink/5 inline-flex size-9 shrink-0 cursor-help items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2'
+        }
         onPointerEnter={(event) => {
           if (event.pointerType === 'mouse') {
             cancelLeave();
@@ -134,21 +141,23 @@ export function InkTooltip({
           setOpen((value) => (pointerType.current === 'touch' ? !value : true));
         }}
       >
-        <svg
-          aria-hidden="true"
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="12" cy="12" r="9" />
-          <path d="M9.5 9a2.5 2.5 0 0 1 5 .3c0 1.7-2.5 1.9-2.5 3.7" />
-          <path d="M12 16.5h.01" />
-        </svg>
+        {triggerContent ?? (
+          <svg
+            aria-hidden="true"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.5 9a2.5 2.5 0 0 1 5 .3c0 1.7-2.5 1.9-2.5 3.7" />
+            <path d="M12 16.5h.01" />
+          </svg>
+        )}
       </button>
       {open
         ? createPortal(

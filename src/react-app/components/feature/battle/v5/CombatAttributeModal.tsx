@@ -88,7 +88,7 @@ export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
         className="border-battle-faint flex items-baseline justify-between gap-4 border-b border-dashed py-1.5 text-sm last:border-b-0"
       >
         <span className="text-battle-muted">{ATTR_LABELS[key] || key}</span>
-        <div className="text-ink flex items-baseline gap-1 font-mono">
+        <div className="text-ink num-stat flex items-baseline gap-1">
           <span>
             {displayBase}
             {isPercentage && '%'}

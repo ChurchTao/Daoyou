@@ -147,9 +147,9 @@ export const gameDockGroups: GameNavGroup[] = [
       { id: 'wild', sceneLabel: '野外探索', href: '/game/wild' },
       {
         id: 'beasts',
-        sceneLabel: '灵兽',
+        sceneLabel: '灵兽袋',
         href: '/game/beasts',
-        expandedDockLabel: '灵兽',
+        expandedDockLabel: '灵兽袋',
       },
       {
         id: 'inventory',

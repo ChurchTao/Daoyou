@@ -13,7 +13,7 @@
 
 ## 共享组件归位
 
-- `/game/beasts` 归属 `GameViewportLayout`，使用 `GameSceneFrame` 展示召唤兽管理；战斗中的召唤选择仍由 v6 指令组件负责。
+- `/game/beasts` 归属 `GameViewportLayout`，使用 `GameSceneFrame` 展示灵兽袋（拥有上限 24，只选最多 6 只出战编组）；桌面左侧名册、右侧属性与技能，移动端名册在上。技能使用统一浮层，加点与学习兽诀由专属操作层承载；战斗中的召唤选择仍由 v6 指令组件负责。
 - `/game/tower` 使用主流程壳展示挑战、祝福和周榜；活动战斗跳转 `/game/tower/battle` 的既有沉浸壳，复用 v6 公共战斗组件。结算播放结束后返回幻境，不在入口正文嵌入旧战斗播放器。
 - `/game/rankings` 保留榜单主流程壳；`/game/battle/challenge` 使用 v6 公共回放播放器自动逐行动播放服务端已结算的挑战，播放完成后展示名次摘要。挑战请求 UUID 保留在 URL，刷新及失败后恢复同一结果，观看不占用角色。
 

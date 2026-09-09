@@ -136,7 +136,7 @@ export function CultivatorAttributeOverview({
                 <td className="text-crimson w-[40%] py-2 pr-2 pl-3 font-semibold">
                   {item.label}
                 </td>
-                <td className="text-ink-secondary py-2 pr-3 text-right">
+                <td className="num-stat text-ink-secondary py-2 pr-3 text-right">
                   {formatAttributeValue(item.type, item.baseValue)}
                   {item.modifier !== 0 ? (
                     <>
@@ -174,7 +174,7 @@ export function CultivatorAttributeOverview({
                   >
                     <div className="flex min-w-0 items-baseline justify-between gap-2">
                       <span className="text-ink shrink-0">{item.label}</span>
-                      <span className="text-ink-secondary min-w-0 text-right">
+                      <span className="num-stat text-ink-secondary min-w-0 text-right">
                         {formatAttributeValue(item.type, item.baseValue)}
                         {item.modifier !== 0 ? (
                           <>
@@ -232,7 +232,7 @@ export function CultivatorAttributeOverview({
               className="border-ink/15 flex items-baseline justify-between gap-3 border-b border-dashed py-2 text-sm"
             >
               <span className="text-ink">{item.label}</span>
-              <span className="text-ink-secondary text-right">
+              <span className="num-stat text-ink-secondary text-right">
                 {formatAttributeValue(item.type, item.baseValue)}
                 {item.modifier !== 0 ? (
                   <span

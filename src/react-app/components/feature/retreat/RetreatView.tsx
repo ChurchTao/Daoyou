@@ -159,7 +159,7 @@ function RetreatBuffTags({
         >
           <span aria-hidden="true">{tag.icon}</span>
           <span className="truncate">{tag.label}</span>
-          {tag.value ? <span className="font-mono">{tag.value}</span> : null}
+          {tag.value ? <span className="num-stat">{tag.value}</span> : null}
         </span>
       ))}
       {emptyHint ? (

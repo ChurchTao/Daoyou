@@ -82,7 +82,7 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
         </p>
         {panel ? (
           <div
-            className="mt-4 flex items-center gap-6 py-4 md:gap-8 [&_strong]:mt-1 [&_strong]:block [&_strong]:text-2xl [&_strong]:font-normal [&_strong]:tabular-nums"
+            className="[&_strong]:num-stat mt-4 flex items-center gap-6 py-4 md:gap-8 [&_strong]:mt-1 [&_strong]:block [&_strong]:text-2xl [&_strong]:font-normal"
             aria-live="polite"
           >
             <div>

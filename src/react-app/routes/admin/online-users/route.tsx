@@ -20,8 +20,7 @@ async function fetchOnlineUsersSnapshot(): Promise<AdminOnlineUsersSnapshot> {
     cache: 'no-store',
   });
   const payload = (await response.json()) as
-    | AdminOnlineUsersResponse
-    | { success?: false; error?: string };
+    AdminOnlineUsersResponse | { success?: false; error?: string };
 
   if (!response.ok || !payload.success || !('data' in payload)) {
     const errorPayload = payload as { error?: string };
@@ -31,17 +30,13 @@ async function fetchOnlineUsersSnapshot(): Promise<AdminOnlineUsersSnapshot> {
   return payload.data;
 }
 
-function SummaryCard(props: {
-  title: string;
-  value: number;
-  hint: string;
-}) {
+function SummaryCard(props: { title: string; value: number; hint: string }) {
   return (
     <div className="border-ink/15 bg-bgpaper/85 border border-dashed p-5">
       <p className="text-ink-secondary text-xs tracking-[0.2em]">
         {props.title}
       </p>
-      <p className="text-ink mt-3 text-4xl font-semibold tabular-nums">
+      <p className="num-stat text-ink mt-3 text-4xl font-semibold">
         {props.value}
       </p>
       <p className="text-ink-secondary mt-3 text-xs leading-6">{props.hint}</p>
@@ -51,7 +46,9 @@ function SummaryCard(props: {
 
 export default function AdminOnlineUsersPage() {
   const { pushToast } = useInkUI();
-  const [snapshot, setSnapshot] = useState<AdminOnlineUsersSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<AdminOnlineUsersSnapshot | null>(
+    null,
+  );
   const [refreshing, setRefreshing] = useState(false);
 
   const loadSnapshot = useCallback(async () => {
@@ -106,8 +103,8 @@ export default function AdminOnlineUsersPage() {
           </InkButton>
           <p className="text-ink-secondary text-xs">
             数据源：{snapshot?.source === 'redis' ? 'Redis' : '本实例内存'}，
-            今日：{snapshot?.today ?? '暂无'}，
-            最近刷新：{formatDateTime(snapshot?.generatedAt ?? null)}
+            今日：{snapshot?.today ?? '暂无'}， 最近刷新：
+            {formatDateTime(snapshot?.generatedAt ?? null)}
           </p>
         </div>
 
@@ -131,7 +128,8 @@ export default function AdminOnlineUsersPage() {
 
         {snapshot?.source === 'memory' ? (
           <div className="border-gold/30 bg-gold/10 text-ink-secondary border border-dashed p-4 text-sm leading-7">
-            Redis 当前不可用，页面展示的是本后端实例内存统计。多实例汇总与持久峰值会在
+            Redis
+            当前不可用，页面展示的是本后端实例内存统计。多实例汇总与持久峰值会在
             Redis 恢复后继续使用 Redis 数据。
           </div>
         ) : null}

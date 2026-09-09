@@ -128,7 +128,7 @@ function renderPreparationNotice(
           <div>
             <div className="mb-1 flex items-center justify-between gap-3 text-xs">
               <span className="text-ink-secondary">气血</span>
-              <span className="text-ink tabular-nums">
+              <span className="text-ink num-stat">
                 {Math.floor(hp?.current ?? 0)}/{Math.floor(hp?.max ?? 0)}
               </span>
             </div>
@@ -142,7 +142,7 @@ function renderPreparationNotice(
           <div>
             <div className="mb-1 flex items-center justify-between gap-3 text-xs">
               <span className="text-ink-secondary">法力</span>
-              <span className="text-ink tabular-nums">
+              <span className="text-ink num-stat">
                 {Math.floor(mp?.current ?? 0)}/{Math.floor(mp?.max ?? 0)}
               </span>
             </div>

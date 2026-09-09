@@ -1,3 +1,4 @@
+import { InkModal } from '@app/components/layout/InkModal';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import {
@@ -19,7 +20,6 @@ export function BeastActionDrawer({
   ownerLevel,
   spiritStones,
   pending,
-  error,
   close,
   confirm,
 }: {
@@ -28,7 +28,6 @@ export function BeastActionDrawer({
   ownerLevel: number;
   spiritStones: number;
   pending: boolean;
-  error?: string;
   close: () => void;
   confirm: (points?: typeof emptyPoints) => void;
 }) {
@@ -41,33 +40,34 @@ export function BeastActionDrawer({
     ? beastPanel(allocateBeast(beast, points, ownerLevel))
     : before;
   const cost = beastRestCost(beast);
+  const Container = action === 'allocate' ? InkDetailDrawer : InkModal;
   return (
-    <InkDetailDrawer
+    <Container
       isOpen
       title={`${labels[action]} · ${beast.name}`}
       onClose={close}
-      size="sm"
+      {...(action === 'allocate' ? { size: 'sm' as const } : {})}
       footer={
-        <InkButton
-          pending={pending}
-          disabled={
-            action === 'allocate'
-              ? !valid
-              : action === 'rest'
-                ? cost <= 0 || cost > spiritStones
-                : false
-          }
-          onClick={() => confirm(action === 'allocate' ? points : undefined)}
-        >
-          确认{labels[action]}
-        </InkButton>
+        <div className="flex justify-end gap-3">
+          <InkButton disabled={pending} onClick={close}>
+            取消
+          </InkButton>
+          <InkButton
+            pending={pending}
+            disabled={
+              action === 'allocate'
+                ? !valid
+                : action === 'rest'
+                  ? cost <= 0 || cost > spiritStones
+                  : false
+            }
+            onClick={() => confirm(action === 'allocate' ? points : undefined)}
+          >
+            确认{labels[action]}
+          </InkButton>
+        </div>
       }
     >
-      {error ? (
-        <p role="alert" className="text-crimson mb-3 text-sm">
-          {error}
-        </p>
-      ) : null}
       {action === 'allocate' ? (
         <div className="space-y-4 text-sm">
           <p>剩余点数 {beast.unallocatedPoints - total} · 确认后不可撤销</p>
@@ -78,7 +78,8 @@ export function BeastActionDrawer({
             >
               <span>{name}</span>
               <input
-                className="border-ink/20 w-24 rounded border p-2"
+                className="border-ink/20 w-24 rounded-xs border p-2"
+                disabled={pending}
                 aria-label={`分配${name}`}
                 type="number"
                 min={0}
@@ -111,7 +112,7 @@ export function BeastActionDrawer({
             ).map(([key, name]) => (
               <div key={key}>
                 <dt>{name}</dt>
-                <dd>
+                <dd className="num-stat">
                   {before[key]} → {after[key]}
                 </dd>
               </div>
@@ -135,7 +136,7 @@ export function BeastActionDrawer({
           <p>放生没有收益，无法找回。该灵兽会同时移出携带编组。</p>
         </div>
       )}
-    </InkDetailDrawer>
+    </Container>
   );
 }
 const emptyPoints = {

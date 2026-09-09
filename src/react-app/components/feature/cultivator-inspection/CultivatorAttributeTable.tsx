@@ -119,7 +119,7 @@ export function CultivatorAttributeTable({
                 <td className="text-crimson w-[40%] py-2 pr-2 pl-3 font-semibold">
                   {row.label}
                 </td>
-                <td className="text-ink-secondary py-2 pr-3 text-right">
+                <td className="num-stat text-ink-secondary py-2 pr-3 text-right">
                   {formatAttributeValue(row.attrType, row.baseValue)}
                   {Math.abs(row.modifier) > 0.001 ? (
                     <>
@@ -157,7 +157,7 @@ export function CultivatorAttributeTable({
                   >
                     <div className="flex min-w-0 items-baseline justify-between gap-2">
                       <span className="text-ink shrink-0">{row.label}</span>
-                      <span className="text-ink-secondary min-w-0 text-right">
+                      <span className="num-stat text-ink-secondary min-w-0 text-right">
                         {formatAttributeValue(row.attrType, row.baseValue)}
                         {Math.abs(row.modifier) > 0.001 ? (
                           <>

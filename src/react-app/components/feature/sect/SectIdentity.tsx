@@ -100,7 +100,7 @@ export function SectIdentityDetails({
       <IdentityRow
         label="当前贡献"
         value={
-          <span className="text-wood font-mono">
+          <span className="text-wood num-stat">
             {formatContribution(context.contribution)}
           </span>
         }
@@ -108,7 +108,7 @@ export function SectIdentityDetails({
       <IdentityRow
         label="累计贡献"
         value={
-          <span className="text-wood/80 font-mono">
+          <span className="text-wood/80 num-stat">
             {formatContribution(context.lifetimeContribution)}
           </span>
         }
