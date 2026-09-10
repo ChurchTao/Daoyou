@@ -6,7 +6,7 @@ import { getPlayerLoadoutByCultivatorId } from '@server/lib/services/cultivator/
 import { getPlayerPreHeavenFates } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import type { MarketBuyInput } from '@shared/contracts/market';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
-import type { Material, PreHeavenFate } from '@shared/types/cultivator';
+import type { PreHeavenFate } from '@shared/types/cultivator';
 import type { SellConfirmResponse } from '@shared/types/market';
 import { eq } from 'drizzle-orm';
 import { playerCommandExecutor } from './CommandExecutors';
@@ -20,7 +20,6 @@ import {
 type PreparedPurchaseCommand<T> = {
   commit(tx: DbTransaction): Promise<{
     result: T;
-    inventoryItems: Material[];
   }>;
 };
 
@@ -48,16 +47,6 @@ export async function executeMarketPurchaseCommand<T>(
         operation: 'merge',
         payload: { spiritStones: currency.spiritStones },
       },
-      ...(committed.inventoryItems.length
-        ? [
-            {
-              resourceTopic: 'inventory.materials' as const,
-              eventType: 'inventory.market.purchased',
-              operation: 'upsert-items' as const,
-              payload: { idKey: 'id', items: committed.inventoryItems },
-            },
-          ]
-        : []),
     ],
   };
 }

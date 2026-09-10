@@ -4,6 +4,7 @@ import { ForgingLevelSchema } from '../forging/rules';
 import { ItemGrantSchema } from '../inventory';
 import { ConsumableFactsSchema } from '../items/definitions/consumables';
 import { MaterialFactsSchema } from '../items/definitions/materials';
+import { SeedFactsSchema } from '../items/definitions/seeds';
 import type { InventoryView } from './inventory';
 
 const ref = {
@@ -68,6 +69,13 @@ export const DevGrantSchema = z
       .array(
         z.discriminatedUnion('type', [
           z.object({ type: z.literal('item'), item: ItemGrantSchema }).strict(),
+          z
+            .object({
+              type: z.literal('vault-seed'),
+              facts: SeedFactsSchema,
+              quantity: z.number().int().min(1).max(99),
+            })
+            .strict(),
           z
             .object({
               type: z.literal('vault-consumable'),

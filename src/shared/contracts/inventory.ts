@@ -12,6 +12,7 @@ export const InventoryQuerySchema = z
     kind: z
       .enum([
         'all',
+        'seed',
         'beast_book',
         'equipment',
         'blueprint',

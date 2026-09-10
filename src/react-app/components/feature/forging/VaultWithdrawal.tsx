@@ -6,16 +6,26 @@ import { MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
 import { useEffect, useRef, useState } from 'react';
 import { combatV6Request, mutationBody } from '../combat-v6/request';
 
-export function VaultWithdrawal() {
+export function VaultWithdrawal({
+  onChanged,
+}: { onChanged?: () => void } = {}) {
   const [open, setOpen] = useState(false);
   return (
     <>
       <InkButton onClick={() => setOpen(true)}>从洞府宝库取出</InkButton>
-      {open ? <WithdrawalDrawer close={() => setOpen(false)} /> : null}
+      {open ? (
+        <WithdrawalDrawer close={() => setOpen(false)} onChanged={onChanged} />
+      ) : null}
     </>
   );
 }
-function WithdrawalDrawer({ close }: { close: () => void }) {
+function WithdrawalDrawer({
+  close,
+  onChanged,
+}: {
+  close: () => void;
+  onChanged?: () => void;
+}) {
   const [view, setView] = useState<VaultView>();
   const [kind, setKind] = useState<'material' | 'consumable'>('material');
   const [page, setPage] = useState(0);
@@ -73,6 +83,7 @@ function WithdrawalDrawer({ close }: { close: () => void }) {
       if (alive.current) {
         setNotice(`已取出 ${item.name} ×${quantity}，放入物品栏。`);
         setSelected(undefined);
+        onChanged?.();
       }
     } catch (e) {
       if (alive.current)

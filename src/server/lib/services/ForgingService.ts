@@ -12,6 +12,7 @@ import {
 } from '@shared/engine/combat-v6/beasts';
 import { BEAST_CAPACITY } from '@shared/engine/combat-v6/beasts/progression';
 import { generateForgedEquipment } from '@shared/engine/combat-v6/equipment/forging';
+import { buildSpiritFieldSeedMaterialFromPlant } from '@shared/engine/spirit-field/seedMaterial';
 import { forgingBoosts, forgingCost } from '@shared/forging/rules';
 import {
   addItems,
@@ -23,6 +24,7 @@ import {
   FORGING_MATERIAL_TYPES,
   MaterialFactsSchema,
 } from '@shared/items/definitions/materials';
+import { seedFactsOf } from '@shared/items/definitions/seeds';
 import { materialFactsOf } from '@shared/items/material';
 import { and, asc, count, eq, gte, ilike, inArray, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
@@ -236,7 +238,7 @@ export async function readVault(
   const filter = and(
     eq(table.cultivatorId, owner),
     query.kind === 'material'
-      ? inArray(materials.type, ['herb', ...FORGING_MATERIAL_TYPES])
+      ? inArray(materials.type, ['seed', 'herb', ...FORGING_MATERIAL_TYPES])
       : undefined,
     query.search
       ? ilike(
@@ -290,18 +292,21 @@ export async function withdrawMaterial(
     if ('rank' in row) {
       const blocked = getMysteryMaterialBlockingReason([row]);
       if (blocked) throw new InventoryError(blocked);
-      const facts = MaterialFactsSchema.parse({
-        name: row.name,
-        type: row.type,
-        rank: row.rank,
-        element: row.element,
-        description: row.description ?? '',
-      });
+      const facts =
+        row.type === 'seed'
+          ? seedFactsOf(row)
+          : MaterialFactsSchema.parse({
+              name: row.name,
+              type: row.type,
+              rank: row.rank,
+              element: row.element,
+              description: row.description ?? '',
+            });
       await grantInventory(
         owner,
         [
           {
-            definitionId: 'material.v1',
+            definitionId: row.type === 'seed' ? 'seed.v1' : 'material.v1',
             quantity: input.quantity,
             instanceData: facts,
           },
@@ -368,6 +373,18 @@ export async function grantDevResources(input: z.infer<typeof DevGrantSchema>) {
           .insert(combatV6Beasts)
           .values({ id, cultivatorId: input.cultivatorId, individual });
         ids.push(id);
+      } else if (grant.type === 'vault-seed') {
+        const [row] = await tx
+          .insert(materials)
+          .values({
+            ...buildSpiritFieldSeedMaterialFromPlant(
+              grant.facts.seedSpec.plant,
+              grant.quantity,
+            ),
+            cultivatorId: input.cultivatorId,
+          })
+          .returning({ id: materials.id });
+        ids.push(row.id);
       } else if (grant.type === 'vault-material') {
         const [row] = await tx
           .insert(materials)

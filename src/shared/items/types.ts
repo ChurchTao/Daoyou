@@ -10,7 +10,8 @@ export interface ItemDefinition {
     | 'blueprint'
     | 'material'
     | 'manual_jade'
-    | 'consumable';
+    | 'consumable'
+    | 'seed';
   stackLimit: number;
   skillId?: string;
   manualId?: string;

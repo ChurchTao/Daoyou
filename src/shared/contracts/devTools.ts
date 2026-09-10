@@ -5,6 +5,10 @@ import { REALM_STAGE_VALUES, REALM_VALUES } from '../types/constants';
 const attribute = z.number().int().min(1).max(10000);
 export const DevCultivatorPatchSchema = z
   .object({
+    spiritField: z
+      .object({ finishGrowth: z.number().int().min(0).max(5) })
+      .strict()
+      .optional(),
     realm: z.enum(REALM_VALUES).optional(),
     realmStage: z.enum(REALM_STAGE_VALUES).optional(),
     attributes: z
@@ -22,15 +26,27 @@ export const DevCultivatorPatchSchema = z
     unallocatedAttributePoints: z.number().int().min(0).max(100000).optional(),
     spiritStones: z.number().int().min(0).max(100000000).optional(),
     reputation: z.number().int().min(0).max(1000000).optional(),
-    cultivation: z.object({
-      experience: z.number().int().min(0).max(1000000000000).optional(),
-      insight: z.number().int().min(0).max(100).optional(),
-    }).strict().refine((v) => Object.keys(v).length > 0, '修炼调整不能为空').optional(),
-    breakthroughPreparation: z.object({
-      clearMind: z.boolean().optional(),
-      protectMeridians: z.boolean().optional(),
-      completedDungeonObjectiveIds: z.array(z.string().min(1).max(120)).min(1).max(10).optional(),
-    }).strict().refine((v) => Object.keys(v).length > 0, '试炼准备不能为空').optional(),
+    cultivation: z
+      .object({
+        experience: z.number().int().min(0).max(1000000000000).optional(),
+        insight: z.number().int().min(0).max(100).optional(),
+      })
+      .strict()
+      .refine((v) => Object.keys(v).length > 0, '修炼调整不能为空')
+      .optional(),
+    breakthroughPreparation: z
+      .object({
+        clearMind: z.boolean().optional(),
+        protectMeridians: z.boolean().optional(),
+        completedDungeonObjectiveIds: z
+          .array(z.string().min(1).max(120))
+          .min(1)
+          .max(10)
+          .optional(),
+      })
+      .strict()
+      .refine((v) => Object.keys(v).length > 0, '试炼准备不能为空')
+      .optional(),
     sect: z
       .object({
         discipleRank: z.enum(SECT_DISCIPLE_RANKS).optional(),

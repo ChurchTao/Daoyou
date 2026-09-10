@@ -37,8 +37,7 @@ function levelTier(level: number) {
   return { color: tierColorMap[realm], tier: `${realm} · ${level}级` };
 }
 export function itemPresentation(item: DisplayItem) {
-  // Display-only shelf seeds are not a new inventory definition.
-  if (item.definitionId === 'market.seed') {
+  if (item.definitionId === 'seed.v1') {
     const facts = item.instanceData as {
       rank: keyof typeof tierColorMap;
       description?: string;

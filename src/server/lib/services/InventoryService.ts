@@ -23,6 +23,7 @@ import {
 } from '@shared/inventory';
 import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
+import { SeedFactsSchema } from '@shared/items/definitions/seeds';
 import { ITEM_DEFINITIONS } from '@shared/items/registry';
 import { and, asc, count, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
@@ -69,6 +70,8 @@ export function inventoryItemOf(
     stackKey: row.stackKey,
     revision: row.revision,
   });
+  if (item.definitionId === 'seed.v1')
+    item.instanceData = SeedFactsSchema.parse(item.instanceData);
   if (item.definitionId === 'material.v1')
     item.instanceData = MaterialFactsSchema.parse(item.instanceData);
   if (item.definitionId === 'consumable.v1')
@@ -160,9 +163,24 @@ export async function readInventory(
   return {
     items: rows.map((row) => ({
       ...inventoryItemOf(row),
+      ...(row.definitionId === 'seed.v1'
+        ? {
+            instanceData: (() => {
+              const { plant } = SeedFactsSchema.parse(
+                row.instanceData,
+              ).seedSpec;
+              return {
+                name: plant.seedName,
+                rank: plant.quality,
+                description: `${plant.seedDescription}\n${plant.clueTexts.join('；')}`,
+              };
+            })(),
+          }
+        : {}),
       name:
         row.definitionId === 'equipment.v6' ||
         row.definitionId === 'material.v1' ||
+        row.definitionId === 'seed.v1' ||
         row.definitionId === 'consumable.v1'
           ? (row.instanceData as DaoEquipmentInstanceV1).name
           : itemDefinition(row.definitionId).name,
@@ -360,19 +378,21 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
                 {
                   definitionId: item.definitionId,
                   quantity: item.quantity,
-                  ...(item.definitionId === 'material.v1'
-                    ? {
-                        instanceData: MaterialFactsSchema.parse(
-                          item.instanceData,
-                        ),
-                      }
-                    : item.definitionId === 'consumable.v1'
+                  ...(item.definitionId === 'seed.v1'
+                    ? { instanceData: SeedFactsSchema.parse(item.instanceData) }
+                    : item.definitionId === 'material.v1'
                       ? {
-                          instanceData: ConsumableFactsSchema.parse(
+                          instanceData: MaterialFactsSchema.parse(
                             item.instanceData,
                           ),
                         }
-                      : {}),
+                      : item.definitionId === 'consumable.v1'
+                        ? {
+                            instanceData: ConsumableFactsSchema.parse(
+                              item.instanceData,
+                            ),
+                          }
+                        : {}),
                 },
                 input.location,
                 false,

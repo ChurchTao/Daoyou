@@ -380,7 +380,7 @@ function MarketWorkspace({
                 <ItemSlot
                   item={{
                     definitionId:
-                      item.type === 'seed' ? 'market.seed' : 'material.v1',
+                      item.type === 'seed' ? 'seed.v1' : 'material.v1',
                     name: item.name,
                     quantity: item.quantity,
                     instanceData: {
@@ -408,7 +408,7 @@ function MarketWorkspace({
                     <div className="space-y-2">
                       {item.type === 'seed' ? (
                         <p className="text-ink-secondary">
-                          购入后存入洞府宝库，供灵田播种。
+                          购入后放入物品栏，供灵田播种。
                         </p>
                       ) : null}
                       {item.basePrice && item.basePrice > item.price ? (

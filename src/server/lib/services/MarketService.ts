@@ -14,7 +14,6 @@ import {
   withRedisLock,
 } from '@server/lib/redis/lock';
 import type { MarketPurchaseResult } from '@shared/contracts/market';
-import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import {
   BASE_PRICES,
   QUALITY_CHANCE_MAP,
@@ -26,6 +25,7 @@ import {
   getSpiritFieldMarketSeedSlotCount,
   SpiritSeedGenerator,
 } from '@shared/engine/spirit-field';
+import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import {
   evaluateFateContext,
   getMarketPurchasePriceMultiplier,
@@ -71,7 +71,6 @@ import {
   sanitizeMaterialDetails,
   type HiddenMysteryReveal,
 } from './materialDetailsPrivacy';
-import { addMaterialStackToInventory } from './materialInventory';
 import {
   materialLibraryEntryToMaterial,
   sampleMaterialForRange,
@@ -1141,33 +1140,9 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
         )
         .returning({ id: cultivators.id });
       if (!paid) throw new MarketServiceError(400, '囊中羞涩，灵石不足');
-      const inventoryItems = [];
       const deliveries: MarketPurchaseResult['deliveries'] = [];
       for (const item of selected) {
-        if (item.type === 'seed') {
-          const stored = await addMaterialStackToInventory(
-            cultivatorId,
-            { ...item, quantity: 1, details: item.details ?? {} },
-            tx,
-          );
-          const [row] = await tx
-            .select()
-            .from(materials)
-            .where(
-              and(
-                eq(materials.id, stored.id),
-                eq(materials.cultivatorId, cultivatorId),
-              ),
-            )
-            .limit(1);
-          if (!row) throw new Error('种子入库失败');
-          inventoryItems.push(mapMaterialRow(row));
-          deliveries.push({
-            listingId: item.id,
-            name: item.name,
-            location: 'vault',
-          });
-        } else {
+        {
           const delivered = await deliverMarketMaterial(cultivatorId, item, tx);
           deliveries.push({
             listingId: item.id,
@@ -1185,7 +1160,7 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
           result: {},
         })),
       );
-      return { result: { totalCost, deliveries }, inventoryItems };
+      return { result: { totalCost, deliveries } };
     },
   };
 }

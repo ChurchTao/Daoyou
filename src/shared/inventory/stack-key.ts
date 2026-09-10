@@ -1,5 +1,6 @@
 import { ConsumableFactsSchema } from '../items/definitions/consumables';
 import { MaterialFactsSchema } from '../items/definitions/materials';
+import { SeedFactsSchema } from '../items/definitions/seeds';
 import { stableSerializeConsumableSpec } from '../lib/consumables';
 
 /** Versioned, length-prefixed UTF-8 facts; SQL backfill uses the same encoding. */
@@ -7,6 +8,8 @@ export function inventoryStackIdentity(
   definitionId: string,
   data: unknown,
 ): string | null {
+  if (definitionId === 'seed.v1')
+    return `seed.v1:${JSON.stringify(SeedFactsSchema.parse(data).seedSpec)}`;
   if (definitionId === 'equipment.v6') return null;
   if (definitionId === 'consumable.v1') {
     const facts = ConsumableFactsSchema.parse(data);

@@ -4,19 +4,21 @@ import {
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
-import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
-import {
-  SpiritFieldServiceError,
-  cultivateSpiritField,
-  claimSpiritFieldStarterSeeds,
-  getSpiritFieldSnapshot,
-  harvestSpiritField,
-  sowSpiritField,
-} from '@server/lib/services/spirit-field/SpiritFieldService';
+import { PlayerCommandIdempotencyError } from '@server/lib/services/CommandExecutors';
+import { InventoryError } from '@server/lib/services/InventoryService';
 import {
   QiInsufficientError,
   QiServiceError,
 } from '@server/lib/services/QiService';
+import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
+import {
+  SpiritFieldServiceError,
+  claimSpiritFieldStarterSeeds,
+  cultivateSpiritField,
+  getSpiritFieldSnapshot,
+  harvestSpiritField,
+  sowSpiritField,
+} from '@server/lib/services/spirit-field/SpiritFieldService';
 import {
   SpiritFieldCultivateRequestSchema,
   SpiritFieldHarvestRequestSchema,
@@ -40,6 +42,11 @@ function errorResponse(c: Context<AppEnv>, error: unknown) {
   const lockResponse = redisLockErrorResponse(error);
   if (lockResponse) return lockResponse;
 
+  if (
+    error instanceof InventoryError ||
+    error instanceof PlayerCommandIdempotencyError
+  )
+    return c.json({ success: false, error: error.message }, 409);
   if (error instanceof z.ZodError) {
     return c.json(
       {
@@ -82,10 +89,7 @@ function errorResponse(c: Context<AppEnv>, error: unknown) {
   }
 
   console.error('spirit field api error:', error);
-  return c.json(
-    { success: false, error: '灵田灵机暂乱，请稍后再试' },
-    500,
-  );
+  return c.json({ success: false, error: '灵田灵机暂乱，请稍后再试' }, 500);
 }
 
 router.get('/', async (c) => {

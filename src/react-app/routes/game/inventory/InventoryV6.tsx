@@ -273,6 +273,7 @@ export default function InventoryV6() {
               <option value="equipment">道装</option>
               <option value="blueprint">图纸</option>
               <option value="material">材料</option>
+              <option value="seed">灵种</option>
               <option value="consumable">丹药与消耗品</option>
             </select>
             {slotFilter ? (

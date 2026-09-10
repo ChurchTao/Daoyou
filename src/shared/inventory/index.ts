@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { BeastSchema, type SummonedBeast } from '../engine/combat-v6/beasts';
 import { ConsumableFactsSchema } from '../items/definitions/consumables';
 import { MaterialFactsSchema } from '../items/definitions/materials';
+import { SeedFactsSchema } from '../items/definitions/seeds';
 import { findItemDefinition } from '../items/registry';
 import { InventoryEquipmentSchema } from './equipment';
 export { BOOKS } from '../items/definitions/beast-books';
@@ -44,6 +45,9 @@ export const InventoryItemSchema = z
       const equipment = InventoryEquipmentSchema.safeParse(item.instanceData);
       if (!equipment.success || equipment.data.id !== item.id)
         ctx.addIssue({ code: 'custom', message: '道装个体事实无效' });
+    } else if (item.definitionId === 'seed.v1') {
+      if (!SeedFactsSchema.safeParse(item.instanceData).success)
+        ctx.addIssue({ code: 'custom', message: '灵种事实无效' });
     } else if (item.definitionId === 'material.v1') {
       if (!MaterialFactsSchema.safeParse(item.instanceData).success)
         ctx.addIssue({ code: 'custom', message: '材料事实无效' });
@@ -59,6 +63,7 @@ export type ItemGrant = {
   quantity: number;
   instanceData?:
     | z.infer<typeof InventoryEquipmentSchema>
+    | z.infer<typeof SeedFactsSchema>
     | z.infer<typeof MaterialFactsSchema>
     | z.infer<typeof ConsumableFactsSchema>;
 };
@@ -69,6 +74,7 @@ export const ItemGrantSchema = z
     instanceData: z
       .union([
         InventoryEquipmentSchema,
+        SeedFactsSchema,
         MaterialFactsSchema,
         ConsumableFactsSchema,
       ])
@@ -154,11 +160,13 @@ export function addItems(
     return [...items, item];
   }
   const facts =
-    grant.definitionId === 'material.v1'
-      ? MaterialFactsSchema.parse(grant.instanceData)
-      : grant.definitionId === 'consumable.v1'
-        ? ConsumableFactsSchema.parse(grant.instanceData)
-        : null;
+    grant.definitionId === 'seed.v1'
+      ? SeedFactsSchema.parse(grant.instanceData)
+      : grant.definitionId === 'material.v1'
+        ? MaterialFactsSchema.parse(grant.instanceData)
+        : grant.definitionId === 'consumable.v1'
+          ? ConsumableFactsSchema.parse(grant.instanceData)
+          : null;
   if (!facts && grant.instanceData !== undefined)
     throw new InventoryRuleError('固定物品不能附带个体属性');
   const next = items.map((i) => ({ ...i }));

@@ -5,12 +5,14 @@ import { BLUEPRINTS } from './definitions/equipment-blueprints';
 import { FIXED_MATERIALS } from './definitions/fixed-materials';
 import { MANUAL_JADES } from './definitions/manual-jades';
 import { MATERIAL_ITEM } from './definitions/materials';
+import { SEED_ITEM } from './definitions/seeds';
 import type { ItemDefinition } from './types';
 export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
   ...BOOKS,
   ...BLUEPRINTS,
   EQUIPMENT_ITEM,
   MATERIAL_ITEM,
+  SEED_ITEM,
   CONSUMABLE_ITEM,
   ...FIXED_MATERIALS,
   ...MANUAL_JADES,
