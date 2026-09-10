@@ -573,10 +573,11 @@ export const PLAYER_RESOURCE_DATA_SCHEMAS = {
         .object({
           version: z.literal(1),
           revision: z.number().int().nonnegative(),
+          learned: z.array(z.object({ manualId: z.string(), level: z.number().int().positive(), unlockedLevel: z.number().int().positive() })),
           build: z.object({
             slots: z.array(
               z.object({
-                slot: combatV6SlotSchema,
+                slot: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
                 manualId: z.string(),
               }),
             ),

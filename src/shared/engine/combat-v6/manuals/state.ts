@@ -1,144 +1,89 @@
-import type { CombatV6ProjectionDiagnostic } from "../projection/types.ts"
-import { CHARACTER_MANUALS_V1 } from "./content.ts"
-import { getManualSlotCount, isManualSlotV1, validateManualStateV1 } from "./compiler.ts"
+import type { RealmType } from '@shared/types/constants';
+import {
+  getManualSlotCount,
+  manualSlot,
+  validateManualStateV1,
+} from './compiler';
+import { CHARACTER_MANUALS_V1, manualRule } from './content';
 import type {
-  CharacterManualDefV1,
   CultivatorManualStateV1,
-  ForgetManualV1Input,
-  LearnManualV1Input,
+  ManualSlotV1,
   ManualStateChangeResult,
-  ReplaceManualV1Input,
-} from "./types.ts"
+} from './types';
 
-function error(
-  code: CombatV6ProjectionDiagnostic["code"],
-  message: string,
-  path?: string,
-): ManualStateChangeResult {
-  return { ok: false, diagnostics: [{ severity: "error", code, message, path }] }
-}
-
-function cloneState(state: CultivatorManualStateV1): CultivatorManualStateV1 {
-  return {
-    version: 1,
-    revision: state.revision,
-    build: { slots: state.build.slots.map((entry) => ({ ...entry })) },
+export function changeManual(input: {
+  state: CultivatorManualStateV1;
+  realm: RealmType;
+  expectedRevision: number;
+  slot: ManualSlotV1;
+  manualId: string;
+  action: 'learn' | 'activate' | 'train' | 'unlock';
+  resources: { experience: number; insight: number };
+}): ManualStateChangeResult {
+  const { state, realm, action } = input;
+  const fail = (message: string): ManualStateChangeResult => ({
+    ok: false,
+    diagnostics: [{ severity: 'error', code: 'INVALID_MANUAL_STATE', message }],
+  });
+  const diagnostics = validateManualStateV1(state, realm);
+  if (diagnostics.length) return { ok: false, diagnostics };
+  if (state.revision !== input.expectedRevision)
+    return fail('功法已变化，请刷新后重试');
+  const def = CHARACTER_MANUALS_V1.find((d) => d.id === input.manualId);
+  if (
+    !def ||
+    manualSlot(def) !== input.slot ||
+    input.slot > getManualSlotCount(realm)
+  )
+    return fail('功法不属于已开放的境界位');
+  const next = structuredClone(state);
+  const learned = next.learned.find((d) => d.manualId === def.id);
+  const rule = manualRule(def);
+  const cost = { experience: 0, insight: 0 };
+  if (action === 'learn') {
+    if (learned) return fail('已学会此功法，请修炼或突破瓶颈');
+    next.learned.push({
+      manualId: def.id,
+      level: 1,
+      unlockedLevel: rule.bottlenecks[0] ?? rule.maxLevel,
+    });
+    if (!next.build.slots.some((s) => s.slot === input.slot))
+      next.build.slots.push({ slot: input.slot, manualId: def.id });
+  } else {
+    if (!learned) return fail('尚未学习此功法');
+    if (action === 'activate') {
+      if (
+        next.build.slots.some(
+          (s) => s.slot === input.slot && s.manualId === def.id,
+        )
+      )
+        return fail('此功法已激活');
+      next.build.slots = next.build.slots.filter((s) => s.slot !== input.slot);
+      next.build.slots.push({ slot: input.slot, manualId: def.id });
+    } else if (action === 'unlock') {
+      if (
+        learned.level !== learned.unlockedLevel ||
+        learned.level === rule.maxLevel
+      )
+        return fail('当前未遇到功法瓶颈');
+      learned.unlockedLevel =
+        rule.bottlenecks.find((n) => n > learned.level) ?? rule.maxLevel;
+    } else {
+      if (learned.level === rule.maxLevel) return fail('功法已圆满');
+      if (learned.level === learned.unlockedLevel)
+        return fail('需要同名玉简突破瓶颈');
+      Object.assign(cost, rule.costsByRealm[def.realm][learned.level - 1]);
+      if (
+        !Number.isFinite(input.resources.experience) ||
+        !Number.isFinite(input.resources.insight) ||
+        input.resources.experience < cost.experience ||
+        input.resources.insight < cost.insight
+      )
+        return fail('修为或道心感悟不足');
+      learned.level += 1;
+    }
   }
-}
-
-function preflight(
-  input: { state: CultivatorManualStateV1; realm: LearnManualV1Input["realm"]; expectedRevision: number },
-  definitions: readonly CharacterManualDefV1[],
-): ManualStateChangeResult | undefined {
-  const diagnostics = validateManualStateV1(input.state, input.realm, definitions)
-  if (diagnostics.some((item) => item.severity === "error")) return { ok: false, diagnostics }
-  if (!Number.isInteger(input.expectedRevision) || input.expectedRevision !== input.state.revision) {
-    return error("INVALID_MANUAL_REVISION", "功法状态已变化，请刷新后重试", "expectedRevision")
-  }
-  return undefined
-}
-
-function definitionOf(
-  id: string,
-  definitions: readonly CharacterManualDefV1[],
-): CharacterManualDefV1 | undefined {
-  return definitions.find((item) => item.id === id)
-}
-
-function conflictWithBuild(
-  definition: CharacterManualDefV1,
-  state: CultivatorManualStateV1,
-  definitions: readonly CharacterManualDefV1[],
-): CharacterManualDefV1 | undefined {
-  const groups = new Set(definition.conflictGroups)
-  return state.build.slots
-    .map((entry) => definitionOf(entry.manualId, definitions))
-    .find((current): current is CharacterManualDefV1 =>
-      Boolean(current && current.conflictGroups.some((group) => groups.has(group))),
-    )
-}
-
-function lineageInBuild(
-  definition: CharacterManualDefV1,
-  state: CultivatorManualStateV1,
-  definitions: readonly CharacterManualDefV1[],
-): CharacterManualDefV1 | undefined {
-  return state.build.slots
-    .map((entry) => definitionOf(entry.manualId, definitions))
-    .find((current) => current?.lineageId === definition.lineageId)
-}
-
-function success(state: CultivatorManualStateV1): ManualStateChangeResult {
-  state.revision += 1
-  state.build.slots.sort((left, right) => left.slot - right.slot)
-  return { ok: true, state, diagnostics: [] }
-}
-
-export function learnManualV1(
-  input: LearnManualV1Input,
-  definitions: readonly CharacterManualDefV1[] = CHARACTER_MANUALS_V1,
-): ManualStateChangeResult {
-  const failed = preflight(input, definitions)
-  if (failed) return failed
-  if (!isManualSlotV1(input.slot)) return error("MANUAL_SLOT_INVALID", "道印位必须位于1～6", "slot")
-  if (input.slot > getManualSlotCount(input.realm)) return error("MANUAL_SLOT_LOCKED", `当前境界尚未解锁第${input.slot}道印位`, "slot")
-  if (input.state.build.slots.some((entry) => entry.slot === input.slot)) return error("MANUAL_SLOT_OCCUPIED", `第${input.slot}道印位已有功法`, "slot")
-  const definition = definitionOf(input.manualId, definitions)
-  if (!definition) return error("UNKNOWN_MANUAL", `未知功法：${input.manualId}`, "manualId")
-  const lineage = lineageInBuild(definition, input.state, definitions)
-  if (lineage?.rank === "true" && definition.rank === "base") return error("MANUAL_RANK_DOWNGRADE", "已有同源真解，不能参悟本篇", "manualId")
-  if (lineage) return error("MANUAL_LINEAGE_CONFLICT", "同一谱系只能保留一本功法", "manualId")
-  if (input.state.build.slots.some((entry) => entry.manualId === definition.id)) return error("DUPLICATE_MANUAL", "不能重复参悟同一本功法", "manualId")
-  const conflict = conflictWithBuild(definition, input.state, definitions)
-  if (conflict) return error("MANUAL_CONFLICT_REQUIRES_FORGET", `必须先散去冲突功法 ${conflict.name}`, "manualId")
-  const next = cloneState(input.state)
-  next.build.slots.push({ slot: input.slot, manualId: definition.id })
-  return success(next)
-}
-
-export function replaceManualV1(
-  input: ReplaceManualV1Input,
-  definitions: readonly CharacterManualDefV1[] = CHARACTER_MANUALS_V1,
-): ManualStateChangeResult {
-  const failed = preflight(input, definitions)
-  if (failed) return failed
-  if (!isManualSlotV1(input.slot)) return error("MANUAL_SLOT_INVALID", "道印位必须位于1～6", "slot")
-  if (input.slot > getManualSlotCount(input.realm)) return error("MANUAL_SLOT_LOCKED", `当前境界尚未解锁第${input.slot}道印位`, "slot")
-  const current = input.state.build.slots.find((entry) => entry.slot === input.slot)
-  if (!current) return error("MANUAL_SLOT_EMPTY", `第${input.slot}道印位为空`, "slot")
-  if (current.manualId !== input.expectedManualId) return error("MANUAL_EXPECTED_MISMATCH", "目标道印内容已变化", "expectedManualId")
-  const currentDefinition = definitionOf(current.manualId, definitions)!
-  const nextDefinition = definitionOf(input.manualId, definitions)
-  if (!nextDefinition) return error("UNKNOWN_MANUAL", `未知功法：${input.manualId}`, "manualId")
-  if (currentDefinition.id === nextDefinition.id) return error("DUPLICATE_MANUAL", "新旧功法相同", "manualId")
-
-  const withoutCurrent = cloneState(input.state)
-  withoutCurrent.build.slots = withoutCurrent.build.slots.filter((entry) => entry.slot !== input.slot)
-  const lineage = lineageInBuild(nextDefinition, withoutCurrent, definitions)
-  if (lineage?.rank === "true" && nextDefinition.rank === "base") return error("MANUAL_RANK_DOWNGRADE", "已有同源真解，不能改修本篇", "manualId")
-  if (lineage) return error("MANUAL_LINEAGE_CONFLICT", "同一谱系只能保留一本功法", "manualId")
-  const sameLineageUpgrade = currentDefinition.lineageId === nextDefinition.lineageId && currentDefinition.rank === "base" && nextDefinition.rank === "true"
-  if (currentDefinition.lineageId === nextDefinition.lineageId && !sameLineageUpgrade) {
-    return error("MANUAL_RANK_DOWNGRADE", "同源功法只允许本篇原位升级真解", "manualId")
-  }
-  const conflict = conflictWithBuild(nextDefinition, withoutCurrent, definitions)
-  if (conflict) return error("MANUAL_CONFLICT_REQUIRES_FORGET", `必须先散去冲突功法 ${conflict.name}`, "manualId")
-  withoutCurrent.build.slots.push({ slot: input.slot, manualId: nextDefinition.id })
-  return success(withoutCurrent)
-}
-
-export function forgetManualV1(
-  input: ForgetManualV1Input,
-  definitions: readonly CharacterManualDefV1[] = CHARACTER_MANUALS_V1,
-): ManualStateChangeResult {
-  const failed = preflight(input, definitions)
-  if (failed) return failed
-  if (!isManualSlotV1(input.slot)) return error("MANUAL_SLOT_INVALID", "道印位必须位于1～6", "slot")
-  if (input.slot > getManualSlotCount(input.realm)) return error("MANUAL_SLOT_LOCKED", `当前境界尚未解锁第${input.slot}道印位`, "slot")
-  const current = input.state.build.slots.find((entry) => entry.slot === input.slot)
-  if (!current) return error("MANUAL_SLOT_EMPTY", `第${input.slot}道印位为空`, "slot")
-  if (current.manualId !== input.expectedManualId) return error("MANUAL_EXPECTED_MISMATCH", "目标道印内容已变化", "expectedManualId")
-  const next = cloneState(input.state)
-  next.build.slots = next.build.slots.filter((entry) => entry.slot !== input.slot)
-  return success(next)
+  next.revision += 1;
+  next.build.slots.sort((a, b) => a.slot - b.slot);
+  return { ok: true, state: next, cost, diagnostics: [] };
 }

@@ -69,7 +69,7 @@ function player(sectId: CombatV6SectId) {
     },
     sect,
     equipment: {},
-    manuals: { version: 1 as const, revision: 0, build: { slots: [] } },
+    manuals: { version: 1 as const, revision: 0, learned: [], build: { slots: [] } },
   };
 }
 

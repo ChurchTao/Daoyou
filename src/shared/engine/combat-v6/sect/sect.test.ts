@@ -65,7 +65,7 @@ function player(id: string): CombatV6TrainingPlayerInput {
       })) as CombatV6TrainingPlayerInput['sect']['meridianLoadouts'],
     },
     equipment: {},
-    manuals: { version: 1, revision: 0, build: { slots: [] } },
+    manuals: { version: 1, revision: 0, learned: [], build: { slots: [] } },
   };
 }
 

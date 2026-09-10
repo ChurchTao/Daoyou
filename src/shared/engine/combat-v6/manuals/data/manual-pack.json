@@ -1,0 +1,409 @@
+{
+  "$schema": "./manual-pack.schema.json",
+  "version": 1,
+  "progressions": {
+    "standard": {
+      "maxLevel": 9,
+      "bottlenecks": [
+        3,
+        6
+      ],
+      "costsByRealm": {
+        "炼气": [
+          {
+            "experience": 20,
+            "insight": 2
+          },
+          {
+            "experience": 40,
+            "insight": 3
+          },
+          {
+            "experience": 60,
+            "insight": 4
+          },
+          {
+            "experience": 80,
+            "insight": 5
+          },
+          {
+            "experience": 100,
+            "insight": 6
+          },
+          {
+            "experience": 120,
+            "insight": 7
+          },
+          {
+            "experience": 140,
+            "insight": 8
+          },
+          {
+            "experience": 160,
+            "insight": 9
+          }
+        ],
+        "筑基": [
+          {
+            "experience": 100,
+            "insight": 2
+          },
+          {
+            "experience": 200,
+            "insight": 3
+          },
+          {
+            "experience": 300,
+            "insight": 4
+          },
+          {
+            "experience": 400,
+            "insight": 5
+          },
+          {
+            "experience": 500,
+            "insight": 6
+          },
+          {
+            "experience": 600,
+            "insight": 7
+          },
+          {
+            "experience": 700,
+            "insight": 8
+          },
+          {
+            "experience": 800,
+            "insight": 9
+          }
+        ],
+        "金丹": [
+          {
+            "experience": 500,
+            "insight": 2
+          },
+          {
+            "experience": 1000,
+            "insight": 3
+          },
+          {
+            "experience": 1500,
+            "insight": 4
+          },
+          {
+            "experience": 2000,
+            "insight": 5
+          },
+          {
+            "experience": 2500,
+            "insight": 6
+          },
+          {
+            "experience": 3000,
+            "insight": 7
+          },
+          {
+            "experience": 3500,
+            "insight": 8
+          },
+          {
+            "experience": 4000,
+            "insight": 9
+          }
+        ],
+        "元婴": [
+          {
+            "experience": 2000,
+            "insight": 2
+          },
+          {
+            "experience": 4000,
+            "insight": 3
+          },
+          {
+            "experience": 6000,
+            "insight": 4
+          },
+          {
+            "experience": 8000,
+            "insight": 5
+          },
+          {
+            "experience": 10000,
+            "insight": 6
+          },
+          {
+            "experience": 12000,
+            "insight": 7
+          },
+          {
+            "experience": 14000,
+            "insight": 8
+          },
+          {
+            "experience": 16000,
+            "insight": 9
+          }
+        ]
+      }
+    }
+  },
+  "manuals": [
+    {
+      "id": "character_manual.changchun",
+      "name": "长春功",
+      "realm": "炼气",
+      "rarity": "common",
+      "description": "温养肉身，培固根本。",
+      "progressionId": "standard",
+      "dropWeight": 100,
+      "effects": [
+        {
+          "attribute": "vitality",
+          "valuePerLevel": 1
+        }
+      ]
+    },
+    {
+      "id": "character_manual.qingfeng",
+      "name": "轻风诀",
+      "realm": "炼气",
+      "rarity": "common",
+      "description": "行气轻灵，身随风动。",
+      "progressionId": "standard",
+      "dropWeight": 100,
+      "effects": [
+        {
+          "attribute": "speed",
+          "valuePerLevel": 1
+        }
+      ]
+    },
+    {
+      "id": "character_manual.yangshen",
+      "name": "养神诀",
+      "realm": "炼气",
+      "rarity": "common",
+      "description": "澄明灵台，凝聚神元。",
+      "progressionId": "standard",
+      "dropWeight": 100,
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 1
+        }
+      ]
+    },
+    {
+      "id": "character_manual.songhe",
+      "name": "松鹤养元经",
+      "realm": "炼气",
+      "rarity": "rare",
+      "description": "温养肉身，培固根本。",
+      "progressionId": "standard",
+      "dropWeight": 5,
+      "effects": [
+        {
+          "attribute": "vitality",
+          "valuePerLevel": 1
+        },
+        {
+          "attribute": "willpower",
+          "valuePerLevel": 1
+        }
+      ]
+    },
+    {
+      "id": "character_manual.houtu",
+      "name": "厚土功",
+      "realm": "筑基",
+      "rarity": "common",
+      "description": "厚积根基，坚韧如山。",
+      "progressionId": "standard",
+      "dropWeight": 100,
+      "effects": [
+        {
+          "attribute": "endurance",
+          "valuePerLevel": 1
+        }
+      ]
+    },
+    {
+      "id": "character_manual.ningyuan",
+      "name": "凝元诀",
+      "realm": "筑基",
+      "rarity": "common",
+      "description": "澄明灵台，凝聚神元。",
+      "progressionId": "standard",
+      "dropWeight": 100,
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 1
+        }
+      ]
+    },
+    {
+      "id": "character_manual.duanyue",
+      "name": "断岳功",
+      "realm": "筑基",
+      "rarity": "common",
+      "description": "凝炼劲力，发力沉雄。",
+      "progressionId": "standard",
+      "dropWeight": 100,
+      "effects": [
+        {
+          "attribute": "strength",
+          "valuePerLevel": 1
+        }
+      ]
+    },
+    {
+      "id": "character_manual.jinque",
+      "name": "金阙固元经",
+      "realm": "筑基",
+      "rarity": "rare",
+      "description": "厚积根基，坚韧如山。",
+      "progressionId": "standard",
+      "dropWeight": 5,
+      "effects": [
+        {
+          "attribute": "endurance",
+          "valuePerLevel": 1
+        },
+        {
+          "attribute": "vitality",
+          "valuePerLevel": 1
+        }
+      ]
+    },
+    {
+      "id": "character_manual.jianyu",
+      "name": "剑元诀",
+      "realm": "金丹",
+      "rarity": "common",
+      "description": "凝炼劲力，发力沉雄。",
+      "progressionId": "standard",
+      "dropWeight": 100,
+      "effects": [
+        {
+          "attribute": "strength",
+          "valuePerLevel": 2
+        }
+      ]
+    },
+    {
+      "id": "character_manual.dinghun",
+      "name": "定魂功",
+      "realm": "金丹",
+      "rarity": "common",
+      "description": "凝神守一，心志不移。",
+      "progressionId": "standard",
+      "dropWeight": 100,
+      "effects": [
+        {
+          "attribute": "willpower",
+          "valuePerLevel": 2
+        }
+      ]
+    },
+    {
+      "id": "character_manual.liuyun",
+      "name": "流云诀",
+      "realm": "金丹",
+      "rarity": "common",
+      "description": "行气轻灵，身随风动。",
+      "progressionId": "standard",
+      "dropWeight": 100,
+      "effects": [
+        {
+          "attribute": "speed",
+          "valuePerLevel": 2
+        }
+      ]
+    },
+    {
+      "id": "character_manual.zixiao",
+      "name": "紫霄养神经",
+      "realm": "金丹",
+      "rarity": "rare",
+      "description": "澄明灵台，凝聚神元。",
+      "progressionId": "standard",
+      "dropWeight": 5,
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 2
+        },
+        {
+          "attribute": "willpower",
+          "valuePerLevel": 2
+        }
+      ]
+    },
+    {
+      "id": "character_manual.taiqing",
+      "name": "太清诀",
+      "realm": "元婴",
+      "rarity": "common",
+      "description": "澄明灵台，凝聚神元。",
+      "progressionId": "standard",
+      "dropWeight": 100,
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 2
+        }
+      ]
+    },
+    {
+      "id": "character_manual.changsheng",
+      "name": "长生功",
+      "realm": "元婴",
+      "rarity": "common",
+      "description": "温养肉身，培固根本。",
+      "progressionId": "standard",
+      "dropWeight": 100,
+      "effects": [
+        {
+          "attribute": "vitality",
+          "valuePerLevel": 2
+        }
+      ]
+    },
+    {
+      "id": "character_manual.zhenyue",
+      "name": "镇岳功",
+      "realm": "元婴",
+      "rarity": "common",
+      "description": "厚积根基，坚韧如山。",
+      "progressionId": "standard",
+      "dropWeight": 100,
+      "effects": [
+        {
+          "attribute": "endurance",
+          "valuePerLevel": 2
+        }
+      ]
+    },
+    {
+      "id": "character_manual.shenxiao",
+      "name": "神霄御风经",
+      "realm": "元婴",
+      "rarity": "rare",
+      "description": "凝炼劲力，发力沉雄。",
+      "progressionId": "standard",
+      "dropWeight": 5,
+      "effects": [
+        {
+          "attribute": "strength",
+          "valuePerLevel": 2
+        },
+        {
+          "attribute": "speed",
+          "valuePerLevel": 2
+        }
+      ]
+    }
+  ]
+}

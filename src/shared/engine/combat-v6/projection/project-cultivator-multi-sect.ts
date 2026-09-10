@@ -1,4 +1,4 @@
-import { CHARACTER_MANUALS_V1, compileCharacterManualsV1, resolveCombatCapabilitiesV1 } from "../manuals/index.ts"
+import { withManualAttributes, CHARACTER_MANUALS_V1, compileCharacterManualsV1, resolveCombatCapabilitiesV1 } from "../manuals/index.ts"
 import { COMBAT_V6_PHASE_6A_VERSIONS } from "../version.ts"
 import { projectCultivatorWithEquipmentSpecialInternal } from "./project-cultivator-with-equipment-special.ts"
 import type { CombatV6ProjectionDiagnostic, CombatV6ProjectionResult, ProjectCultivatorMultiSectToCombatV6Input } from "./types.ts"
@@ -12,10 +12,10 @@ function manualContentConflicts(existingSkills: string[], existingStatuses: stri
 
 export function projectCultivatorMultiSectToCombatV6(input: ProjectCultivatorMultiSectToCombatV6Input): CombatV6ProjectionResult {
   const versions = { ...COMBAT_V6_PHASE_6A_VERSIONS }
-  const base = projectCultivatorWithEquipmentSpecialInternal(input, versions, true)
-  if (!base.ok) return { ok: false, diagnostics: base.diagnostics, versions }
   const manuals = compileCharacterManualsV1({ state: input.manuals, realm: input.cultivator.realm })
-  if (!manuals.ok) return { ok: false, diagnostics: [...base.diagnostics, ...manuals.diagnostics], versions }
+  if (!manuals.ok) return { ok: false, diagnostics: manuals.diagnostics, versions }
+  const base = projectCultivatorWithEquipmentSpecialInternal({ ...input, cultivator: withManualAttributes(input.cultivator, manuals.projection) }, versions, true)
+  if (!base.ok) return { ok: false, diagnostics: base.diagnostics, versions }
   const capabilities = resolveCombatCapabilitiesV1(manuals.projection.capabilities)
   if (!capabilities.ok) return { ok: false, diagnostics: [...base.diagnostics, ...manuals.projection.diagnostics, ...capabilities.diagnostics], versions }
   const diagnostics = [

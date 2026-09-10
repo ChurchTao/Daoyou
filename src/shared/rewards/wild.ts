@@ -63,9 +63,7 @@ export const QINGXI_POOL_V2 = DropPoolSchema.parse({
         entry(
           jade.id,
           CHARACTER_MANUALS_V1.find((manual) => manual.id === jade.manualId)!
-            .rank === 'base'
-            ? 19
-            : 1,
+            .dropWeight,
         ),
       ),
     },

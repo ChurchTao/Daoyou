@@ -302,6 +302,13 @@
       "when": 1788792210469,
       "tag": "0042_v6_sect_depth",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1789048437114,
+      "tag": "0043_manual-level-progression",
+      "breakpoints": true
     }
   ]
 }

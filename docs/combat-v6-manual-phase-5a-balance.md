@@ -1,5 +1,7 @@
 # combat-v6 Phase 5A 功法内容与数值基线
 
+> 历史记录：2026-09-10 起被[境界功法层数养成](./combat-v6-manual-system-design.md)替代，本文数值和本篇／真解规则不再用于当前实现。
+
 > 状态：已实现（2026-09-03）
 > 上位设计：[`combat-v6 功法系统设计`](./combat-v6-manual-system-design.md)
 

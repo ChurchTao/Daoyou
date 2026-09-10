@@ -1,9 +1,5 @@
 import type { ManualAction } from '../contracts/combatV6Manuals';
-import {
-  forgetManualV1,
-  learnManualV1,
-  replaceManualV1,
-} from '../engine/combat-v6/manuals/state';
+import { changeManual } from '../engine/combat-v6/manuals/state';
 import type {
   CultivatorManualStateV1,
   ManualStateChangeResult,
@@ -12,27 +8,22 @@ import type { InventoryItem } from '../inventory';
 import { findItemDefinition } from '../items/registry';
 import type { RealmType } from '../types/constants';
 
-/** Shared preview and authoritative validation; no inventory mutation until validation succeeds. */
+/** Shared preview and authoritative validation, before any resource or inventory mutation. */
 export function previewManualAction(
   state: CultivatorManualStateV1,
   realm: RealmType,
   action: ManualAction,
+  resources: { experience: number; insight: number },
   item?: InventoryItem,
 ): ManualStateChangeResult {
-  const input = { ...action, state, realm };
-  if (action.action === 'forget')
-    return forgetManualV1({
-      ...input,
-      expectedManualId: action.expectedManualId,
-    });
-  const manualId = item && findItemDefinition(item.definitionId)?.manualId;
   if (
-    !item ||
-    item.id !== action.item.id ||
-    item.revision !== action.item.revision ||
-    item.location !== 'bag' ||
-    item.quantity < 1 ||
-    !manualId
+    'item' in action &&
+    (!item ||
+      item.id !== action.item.id ||
+      item.revision !== action.item.revision ||
+      item.location !== 'bag' ||
+      item.quantity < 1 ||
+      findItemDefinition(item.definitionId)?.manualId !== action.manualId)
   ) {
     return {
       ok: false,
@@ -40,16 +31,10 @@ export function previewManualAction(
         {
           severity: 'error',
           code: 'INVALID_MANUAL_STATE',
-          message: '玉简已变化或未在储物袋，请刷新后重试',
+          message: '需要储物袋中的同名功法玉简，请刷新核对',
         },
       ],
     };
   }
-  return action.expectedManualId === null
-    ? learnManualV1({ ...input, manualId })
-    : replaceManualV1({
-        ...input,
-        manualId,
-        expectedManualId: action.expectedManualId,
-      });
+  return changeManual({ ...action, state, realm, resources });
 }

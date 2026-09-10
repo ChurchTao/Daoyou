@@ -36,7 +36,7 @@ function player(id: string): CombatV6TrainingPlayerInput {
       })) as CombatV6TrainingPlayerInput['sect']['meridianLoadouts'],
     },
     equipment: {},
-    manuals: { version: 1, revision: 0, build: { slots: [] } },
+    manuals: { version: 1, revision: 0, learned: [], build: { slots: [] } },
   };
 }
 it('首发合法性、满资源及输入隔离', () => {

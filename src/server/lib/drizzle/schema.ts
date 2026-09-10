@@ -620,6 +620,7 @@ export const combatV6ManualStates = pgTable(
       .notNull(),
     schemaVersion: integer('schema_version').notNull().default(1),
     revision: integer('revision').notNull().default(0),
+    learned: jsonb('learned').$type<Array<{ manualId: string; level: number; unlockedLevel: number }>>().notNull().default([]),
   },
   (table) => [
     uniqueIndex('combat_v6_manual_profile_unique').on(table.profileId),

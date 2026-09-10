@@ -129,9 +129,10 @@ export async function loadActiveCombatV6Build(
   const manuals: CultivatorManualStateV1 = {
     version: 1,
     revision: manualState.revision,
+    learned: manualState.learned,
     build: {
       slots: slots.map((slot) => ({
-        slot: slot.slot as 1 | 2 | 3 | 4 | 5 | 6,
+        slot: slot.slot as 1 | 2 | 3 | 4,
         manualId: slot.manualId,
       })),
     },

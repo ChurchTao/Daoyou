@@ -3,6 +3,7 @@ import {
   combatV6BuildProfiles,
   combatV6ManualSlots,
   combatV6ManualStates,
+  cultivators,
   inventoryItems,
 } from '@server/lib/drizzle/schema';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
@@ -11,13 +12,19 @@ import {
   loadActiveCombatV6Build,
 } from '@server/lib/repositories/combatV6BuildRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
+import {
+  getOrInitCultivationProgress,
+  stripExpCapForStorage,
+  syncBottleneckState,
+} from '@server/utils/cultivationUtils';
 import type {
   ManualAction,
   ManualView,
 } from '@shared/contracts/combatV6Manuals';
 import { findItemDefinition } from '@shared/items/registry';
 import { previewManualAction } from '@shared/manuals/action';
-import type { RealmType } from '@shared/types/constants';
+import type { RealmStage, RealmType } from '@shared/types/constants';
+import type { CultivationProgress } from '@shared/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
 import {
   assertInventoryIdle,
@@ -31,13 +38,25 @@ async function readManualFacts(owner: string, q: DbExecutor) {
   const character = await characterIdentityRow(owner, q);
   if (!character) throw new InventoryError('角色不可用');
   const build = await loadActiveCombatV6Build(owner, q);
-  return { character, build };
+  const [row] = await q
+    .select({
+      progress: cultivators.cultivation_progress,
+      stage: cultivators.realm_stage,
+    })
+    .from(cultivators)
+    .where(eq(cultivators.id, owner));
+  const progress = getOrInitCultivationProgress(
+    row.progress as CultivationProgress,
+    character.realm as RealmType,
+    row.stage as RealmStage,
+  );
+  return { character, build, progress };
 }
 
 export async function readManuals(owner: string): Promise<ManualView> {
   return db.transaction(
     async (tx) => {
-      const { character, build } = await readManualFacts(owner, tx);
+      const { character, build, progress } = await readManualFacts(owner, tx);
       const rows = await tx
         .select()
         .from(inventoryItems)
@@ -55,11 +74,16 @@ export async function readManuals(owner: string): Promise<ManualView> {
           await assertInventoryIdle(owner);
         } catch (error) {
           if (!(error instanceof InventoryError)) throw error;
-          blockedReason = '请先结束战斗与结算，再调整道印';
+          blockedReason = '请先结束战斗与结算，再调整功法';
         }
       }
       return {
         realm: character.realm as RealmType,
+        resources: {
+          experience: progress.cultivation_exp,
+          insight: progress.comprehension_insight,
+          experienceCap: progress.exp_cap,
+        },
         state: build?.manuals ?? null,
         items: rows
           .filter(
@@ -86,16 +110,16 @@ export async function mutateManuals(owner: string, action: ManualAction) {
       db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, owner);
         await assertInventoryIdle(owner);
-        const { character, build } = await readManualFacts(owner, tx);
+        const { character, build, progress } = await readManualFacts(owner, tx);
         if (!build) throw new InventoryError('请先在宗门完成战斗构筑');
         const [manualState] = await tx
           .select()
           .from(combatV6ManualStates)
           .where(eq(combatV6ManualStates.profileId, build.profileId));
         if (!manualState || manualState.revision !== action.expectedRevision)
-          throw new InventoryError('道印已变化，请刷新后重试');
+          throw new InventoryError('功法已变化，请刷新后重试');
         const rows =
-          action.action === 'learn'
+          'item' in action
             ? await tx
                 .select()
                 .from(inventoryItems)
@@ -112,6 +136,10 @@ export async function mutateManuals(owner: string, action: ManualAction) {
           build.manuals,
           character.realm as RealmType,
           action,
+          {
+            experience: progress.cultivation_exp,
+            insight: progress.comprehension_insight,
+          },
           item,
         );
         if (!result.ok)
@@ -121,7 +149,10 @@ export async function mutateManuals(owner: string, action: ManualAction) {
 
         const updated = await tx
           .update(combatV6ManualStates)
-          .set({ revision: result.state.revision })
+          .set({
+            revision: result.state.revision,
+            learned: result.state.learned,
+          })
           .where(
             and(
               eq(combatV6ManualStates.id, manualState.id),
@@ -130,7 +161,7 @@ export async function mutateManuals(owner: string, action: ManualAction) {
           )
           .returning({ id: combatV6ManualStates.id });
         if (!updated.length)
-          throw new InventoryError('道印已变化，请刷新后重试');
+          throw new InventoryError('功法已变化，请刷新后重试');
         await tx
           .delete(combatV6ManualSlots)
           .where(
@@ -146,7 +177,7 @@ export async function mutateManuals(owner: string, action: ManualAction) {
           await tx
             .insert(combatV6ManualSlots)
             .values({ stateId: manualState.id, ...nextSlot });
-        if (action.action === 'learn') {
+        if ('item' in action) {
           await saveInventoryPlan(
             owner,
             before,
@@ -162,6 +193,18 @@ export async function mutateManuals(owner: string, action: ManualAction) {
             tx,
           );
         }
+        if (action.action === 'train') {
+          progress.cultivation_exp -= result.cost.experience;
+          progress.comprehension_insight -= result.cost.insight;
+          syncBottleneckState(progress);
+          await tx
+            .update(cultivators)
+            .set({
+              cultivation_progress: stripExpCapForStorage(progress),
+              updatedAt: new Date(),
+            })
+            .where(eq(cultivators.id, owner));
+        }
         await tx
           .update(combatV6BuildProfiles)
           .set({ revision: sql`${combatV6BuildProfiles.revision} + 1` })
@@ -171,6 +214,16 @@ export async function mutateManuals(owner: string, action: ManualAction) {
           source: 'combat-v6-manuals',
           scopeDefaults: { cultivatorId: owner },
           changes: [
+            {
+              resourceTopic: 'player.progress',
+              operation: 'invalidate',
+              eventType: 'combat_v6.manuals.changed',
+            },
+            {
+              resourceTopic: 'player.profile',
+              operation: 'invalidate',
+              eventType: 'combat_v6.manuals.changed',
+            },
             {
               resourceTopic: 'player.combat-v6-build',
               operation: 'invalidate',

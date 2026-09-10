@@ -1,4 +1,5 @@
 import {
+  withManualAttributes,
   CHARACTER_MANUALS_V1,
   compileCharacterManualsV1,
   resolveCombatCapabilitiesV1,
@@ -31,10 +32,10 @@ export function projectCultivatorToCombatV6(
   input: ProjectCultivatorToCombatV6Input,
 ): CombatV6ProjectionResult {
   const versions = { ...COMBAT_V6_PHASE_5A_VERSIONS }
-  const base = projectCultivatorWithEquipmentSpecialToCombatV6(input)
-  if (!base.ok) return { ok: false, diagnostics: base.diagnostics, versions }
   const manuals = compileCharacterManualsV1({ state: input.manuals, realm: input.cultivator.realm })
-  if (!manuals.ok) return { ok: false, diagnostics: [...base.diagnostics, ...manuals.diagnostics], versions }
+  if (!manuals.ok) return { ok: false, diagnostics: manuals.diagnostics, versions }
+  const base = projectCultivatorWithEquipmentSpecialToCombatV6({ ...input, cultivator: withManualAttributes(input.cultivator, manuals.projection) })
+  if (!base.ok) return { ok: false, diagnostics: base.diagnostics, versions }
   const capabilities = resolveCombatCapabilitiesV1(manuals.projection.capabilities)
   if (!capabilities.ok) return { ok: false, diagnostics: [...base.diagnostics, ...manuals.projection.diagnostics, ...capabilities.diagnostics], versions }
 

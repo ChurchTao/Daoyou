@@ -49,7 +49,7 @@ export function CultivatorLoadoutSections({
         <h5 className="font-semibold">已装配功法</h5>
         {build.manuals.length ? (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-            {build.manuals.map(({ slot, manualId }) => {
+            {build.manuals.map(({ slot, manualId, level }) => {
               const definition = itemDefinition('jade.' + manualId);
               return (
                 <div key={slot}>
@@ -63,7 +63,7 @@ export function CultivatorLoadoutSections({
                     }}
                   />
                   <p className="text-center text-xs">
-                    功法位 <span className="font-mono">{slot}</span>
+                    <span className="font-mono">{level}</span> 层
                   </p>
                 </div>
               );

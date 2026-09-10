@@ -231,7 +231,7 @@ for (const definition of Object.values(COMBAT_V6_SECT_DEFINITIONS_V4)) {
           })) as CombatV6TrainingPlayerInput['sect']['meridianLoadouts'],
         },
         equipment: {},
-        manuals: { version: 1, revision: 0, build: { slots: [] } },
+        manuals: { version: 1, revision: 0, learned: [], build: { slots: [] } },
       });
       const input = compileRankingBattle([player('a'), player('b')], 47);
       const battle = createBattle({ ...input, ruleset: daoyouRulesetV6 });

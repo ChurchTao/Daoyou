@@ -33,7 +33,7 @@ describe('public V6 build', () => {
         createFreshCombatV6MethodLevels('lingxiao'),
       ),
       equipment: {},
-      manuals: { version: 1, revision: 7, build: { slots: [] } },
+      manuals: { version: 1, revision: 7, learned: [], build: { slots: [] } },
     };
   }
   it('matches the character panel and omits private build state', () => {
@@ -61,5 +61,19 @@ describe('public V6 build', () => {
     const result = publicCombatV6Build(character, input);
     expect(result.build.equipment).not.toBe(input.equipment);
     expect(result.build.manuals).not.toBe(input.manuals.build.slots);
+  });
+  it('active manual levels affect the full panel while learned alternatives stay private', () => {
+    const input = build();
+    const baseline = publicCombatV6Build(character, input);
+    input.manuals.learned = [
+      { manualId: 'character_manual.changchun', level: 3, unlockedLevel: 3 },
+      { manualId: 'character_manual.songhe', level: 9, unlockedLevel: 9 },
+    ];
+    input.manuals.build.slots = [{ slot: 1, manualId: 'character_manual.changchun' }];
+    const result = publicCombatV6Build(character, input);
+    expect(result.build.manuals).toEqual([{ slot: 1, manualId: 'character_manual.changchun', level: 3 }]);
+    expect(JSON.stringify(result.build)).not.toContain('songhe');
+    expect(result.combatPanel.maxHp - baseline.combatPanel.maxHp).toBe(60);
+    expect(character.attributes.vitality).toBe(20);
   });
 });

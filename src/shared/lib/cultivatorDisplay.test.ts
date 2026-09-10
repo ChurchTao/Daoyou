@@ -15,7 +15,7 @@ const build: CharacterDisplayBuild = {
     activePathId: definition.paths[0].id, meridianDepth: 0,
     meridianLoadouts: definition.paths.map(p => ({ pathId: p.id, nodeIds: [], revision: 0 })) as CharacterDisplayBuild['sect']['meridianLoadouts'],
   },
-  equipment: {}, manuals: { version: 1, revision: 0, build: { slots: [] } },
+  equipment: {}, manuals: { version: 1, revision: 0, learned: [], build: { slots: [] } },
 };
 
 describe('V6 character panel authority', () => {

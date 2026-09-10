@@ -39,7 +39,7 @@ export function publicCombatV6Build(
       pathName: definition.paths.find((p) => p.id === build.sect.activePathId)!
         .name,
       equipment: structuredClone(build.equipment),
-      manuals: structuredClone(build.manuals.build.slots),
+      manuals: build.manuals.build.slots.map(entry => ({ ...entry, level: build.manuals.learned.find(m => m.manualId === entry.manualId)!.level })),
       skills: (projection.unit.skills ?? []).map((id) => {
         const skill = skills.find((s) => s.id === id)!;
         return {
