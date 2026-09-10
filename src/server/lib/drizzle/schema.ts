@@ -1804,7 +1804,7 @@ export const auctionListings = pgTable(
     sellerName: varchar('seller_name', { length: 100 }).notNull(), // 冗余存储，方便展示
 
     // 物品信息
-    itemType: varchar('item_type', { length: 20 }).notNull(), // material | artifact | consumable
+    itemType: varchar('item_type', { length: 20 }).notNull(), // 新版 ItemDefinition.kind
     itemId: uuid('item_id').notNull(), // 原物品ID（引用），售出后可清理
     itemName: varchar('item_name', { length: 200 }).notNull().default(''),
     itemQuality: varchar('item_quality', { length: 20 }).notNull().default(''),

@@ -859,7 +859,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'auction',
                   presentation: 'service',
-                  summary: '观市、寄售与竞拍合为一案。',
+                  summary: '珍材道装在此寄售，成交物与灵石由传音送达。',
                 },
                 '拍卖行',
               )}

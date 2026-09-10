@@ -1,11 +1,6 @@
 import { ListItemModal } from '@app/components/auction/ListItemModal';
-import { ConsumableListCard } from '@app/components/feature/consumables';
-import {
-  ItemDetailModal,
-  toInventoryItemDetail,
-  type ItemDetailPayload,
-} from '@app/components/feature/items';
-import { ArtifactListCard } from '@app/components/feature/products';
+import { ItemSlot } from '@app/components/feature/items/ItemSlot';
+import { itemPresentation } from '@app/components/feature/items/itemPresentation';
 import {
   GameLoadingState,
   GameSceneAsideSection,
@@ -14,7 +9,6 @@ import {
 } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
-  InkBadge,
   InkButton,
   InkDialog,
   InkDialogState,
@@ -23,10 +17,8 @@ import {
   InkNotice,
   InkSelect,
 } from '@app/components/ui';
-import { ItemCard } from '@app/components/ui/ItemCard';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import {
-  useCultivatorCondition,
   useCultivatorCurrency,
   useCultivatorIdentity,
 } from '@app/lib/resources/player';
@@ -36,58 +28,31 @@ import {
   calculateAuctionSettlement,
 } from '@shared/config/auctionConfig';
 import {
-  TEMP_DISABLED_MESSAGES,
-  temporaryRestrictions,
-} from '@shared/config/temporaryRestrictions';
-import {
-  CONSUMABLE_TYPE_DISPLAY_MAP,
-  getEquipmentSlotInfo,
-  getGameConceptInfo,
-  getMaterialTypeInfo,
-} from '@shared/lib/gameConceptDisplay';
-import {
-  CONSUMABLE_TYPE_VALUES,
-  EQUIPMENT_SLOT_VALUES,
-  MATERIAL_TYPE_VALUES,
-  QUALITY_VALUES,
-} from '@shared/types/constants';
-import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
+  AUCTION_ITEM_TYPES,
+  AUCTION_TYPE_NAMES,
+  type AuctionItemType,
+  type AuctionListingView,
+} from '@shared/contracts/auction';
+import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
+import { MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
+import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
+import { QUALITY_VALUES } from '@shared/types/constants';
 import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from 'react';
 import { useSearchParams } from 'react-router';
 
-type AuctionItemType = 'material' | 'artifact' | 'consumable';
 type AuctionTypeFilter = AuctionItemType | 'all';
 type AuctionScope = 'browse' | 'my';
 type AuctionSearchMode = 'itemName' | 'sellerName';
 type AuctionSortBy = 'latest' | 'price_asc' | 'price_desc';
 
-type AuctionListing = {
-  id: string;
-  sellerId: string;
-  sellerName: string;
-  itemType: AuctionItemType;
-  itemId: string;
-  itemName: string;
-  itemQuality: string;
-  itemCategory: string;
-  itemSnapshot: Material | Artifact | Consumable;
-  price: number;
-  initialQuantity: number;
-  remainingQuantity: number;
-  visibility?: 'public' | 'private';
-  targetCultivatorId?: string | null;
-  targetCultivatorName?: string | null;
-  status: string;
-  createdAt: string;
-  expiresAt: string;
-  soldAt?: string;
-};
+type AuctionListing = AuctionListingView;
 
 type AuctionPagination = {
   page: number;
@@ -109,9 +74,10 @@ const HIGH_VALUE_PURCHASE_CONFIRM_THRESHOLD = 100_000;
 
 const TYPE_TABS: Array<{ label: string; value: AuctionTypeFilter }> = [
   { label: '全部', value: 'all' },
-  { label: '材料', value: 'material' },
-  { label: '法宝', value: 'artifact' },
-  { label: '丹药', value: 'consumable' },
+  ...AUCTION_ITEM_TYPES.map((value) => ({
+    label: AUCTION_TYPE_NAMES[value],
+    value,
+  })),
 ];
 
 const VIEW_TABS: Array<{ label: string; value: AuctionScope }> = [
@@ -125,8 +91,8 @@ const SEARCH_MODE_LABELS: Record<AuctionSearchMode, string> = {
 };
 
 function normalizeType(value: string | null): AuctionTypeFilter {
-  return value === 'material' || value === 'artifact' || value === 'consumable'
-    ? value
+  return AUCTION_ITEM_TYPES.includes(value as AuctionItemType)
+    ? (value as AuctionItemType)
     : 'all';
 }
 
@@ -148,28 +114,15 @@ function normalizePage(value: string | null): number {
 }
 
 function getCategoryOptions(itemType: AuctionTypeFilter) {
-  if (itemType === 'material') {
-    return MATERIAL_TYPE_VALUES.map((value) => ({
-      value,
-      label: getMaterialTypeInfo(value).label,
-    }));
-  }
-
-  if (itemType === 'artifact') {
-    return EQUIPMENT_SLOT_VALUES.map((value) => ({
-      value,
-      label: getEquipmentSlotInfo(value).label,
-    }));
-  }
-
-  if (itemType === 'consumable') {
-    return CONSUMABLE_TYPE_VALUES.map((value) => ({
-      value,
-      label: CONSUMABLE_TYPE_DISPLAY_MAP[value].label,
-    }));
-  }
-
-  return [];
+  const names =
+    itemType === 'material'
+      ? MATERIAL_TYPE_NAMES
+      : itemType === 'equipment' || itemType === 'blueprint'
+        ? EQUIPMENT_SLOT_NAMES
+        : itemType === 'consumable'
+          ? { pill: '丹药', spirit_fruit: '灵果' }
+          : {};
+  return Object.entries(names).map(([value, label]) => ({ value, label }));
 }
 
 function getQualityLabel(value: string | null) {
@@ -184,9 +137,7 @@ export default function AuctionPage() {
   const activeType = normalizeType(searchParams.get('itemType'));
   const [showListModal, setShowListModal] = useState(false);
   const profile = useCultivatorIdentity();
-  const condition = useCultivatorCondition(
-    activeType === 'all' || activeType === 'consumable' || showListModal,
-  );
+
   const currency = useCultivatorCurrency();
   const identity = profile.data?.cultivator;
   const cultivator =
@@ -194,7 +145,6 @@ export default function AuctionPage() {
       ? {
           id: identity.id,
           realm: identity.realm,
-          condition: condition.data,
           spirit_stones: currency.data.spiritStones,
         }
       : null;
@@ -221,9 +171,8 @@ export default function AuctionPage() {
     Record<string, string>
   >({});
   const [cancellingId, setCancellingId] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<ItemDetailPayload | null>(
-    null,
-  );
+  const buyPending = useRef(false);
+  const buyAttempt = useRef<{ key: string; id: string }>(undefined);
   const [buyConfirmDialog, setBuyConfirmDialog] =
     useState<InkDialogState | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -442,6 +391,11 @@ export default function AuctionPage() {
   };
 
   const executeBuy = async (listing: AuctionListing, quantity: number) => {
+    if (buyPending.current) return;
+    buyPending.current = true;
+    const key = JSON.stringify([listing.id, quantity]);
+    if (buyAttempt.current?.key !== key)
+      buyAttempt.current = { key, id: crypto.randomUUID() };
     setBuyingId(listing.id);
     try {
       const result = await mutate<{ message: string }>(
@@ -451,10 +405,11 @@ export default function AuctionPage() {
           body: JSON.stringify({
             listingId: listing.id,
             quantity,
-            requestId: crypto.randomUUID(),
+            requestId: buyAttempt.current.id,
           }),
         }),
       );
+      buyAttempt.current = undefined;
       pushToast({ message: result.message, tone: 'success' });
       setPurchaseQuantities((current) => ({ ...current, [listing.id]: '1' }));
       await fetchListings('browse', pagination.browse.page);
@@ -462,6 +417,7 @@ export default function AuctionPage() {
       const message = e instanceof Error ? e.message : '购买失败';
       pushToast({ message, tone: 'danger' });
     } finally {
+      buyPending.current = false;
       setBuyingId(null);
     }
   };
@@ -573,53 +529,8 @@ export default function AuctionPage() {
     return `${hours}时${minutes}分`;
   };
 
-  const getItemDisplayProps = (listing: AuctionListing) => {
-    const item = listing.itemSnapshot;
-    const baseProps = {
-      name: item.name,
-      description: item.description,
-    };
-
-    switch (listing.itemType) {
-      case 'material': {
-        const material = item as Material;
-        const typeInfo = getMaterialTypeInfo(material.type);
-        return {
-          ...baseProps,
-          icon: typeInfo.icon,
-          quality: material.rank,
-          badgeExtra: (
-            <>
-              <InkBadge tone="default">{typeInfo.label}</InkBadge>
-              {material.element && (
-                <InkBadge tone="default">{material.element}</InkBadge>
-              )}
-            </>
-          ),
-        };
-      }
-      case 'artifact': {
-        const artifact = item as Artifact;
-        const slotInfo = getEquipmentSlotInfo(artifact.slot);
-        return {
-          ...baseProps,
-          icon: slotInfo.icon,
-          quality: artifact.quality,
-          badgeExtra: (
-            <>
-              <InkBadge tone="default">{artifact.element}</InkBadge>
-              <InkBadge tone="default">{slotInfo.label}</InkBadge>
-            </>
-          ),
-        };
-      }
-      case 'consumable':
-        return baseProps;
-    }
-  };
-
   const renderListing = (listing: AuctionListing) => {
-    const displayProps = getItemDisplayProps(listing);
+    const presentation = itemPresentation(listing.item);
     const timeLeft = formatTime(listing.expiresAt);
     const listedQuantity = Math.max(1, listing.remainingQuantity || 1);
     const isOwner = listing.sellerId === cultivator?.id;
@@ -651,16 +562,6 @@ export default function AuctionPage() {
         <span className="text-ink-secondary text-xs whitespace-nowrap">
           剩余：{timeLeft}
         </span>
-        <InkButton
-          variant="secondary"
-          onClick={() =>
-            setSelectedItem(
-              toInventoryItemDetail(listing.itemType, listing.itemSnapshot),
-            )
-          }
-        >
-          详情
-        </InkButton>
         {isOwner ? (
           <InkButton
             onClick={() => handleCancel(listing)}
@@ -673,7 +574,7 @@ export default function AuctionPage() {
           </InkButton>
         ) : (
           <>
-            {listing.itemType !== 'artifact' && listedQuantity > 1 ? (
+            {listing.itemType !== 'equipment' && listedQuantity > 1 ? (
               <div className="flex items-center gap-1 whitespace-nowrap">
                 <span className="text-ink-secondary text-sm">数量</span>
                 <div className="w-20 shrink-0">
@@ -705,10 +606,7 @@ export default function AuctionPage() {
                     setPurchaseQuantities((current) => ({
                       ...current,
                       [listing.id]: String(
-                        Math.min(
-                          listedQuantity,
-                          AUCTION_MAX_PURCHASE_QUANTITY,
-                        ),
+                        Math.min(listedQuantity, AUCTION_MAX_PURCHASE_QUANTITY),
                       ),
                     }))
                   }
@@ -732,38 +630,29 @@ export default function AuctionPage() {
       </div>
     );
 
-    if (listing.itemType === 'consumable') {
-      return (
-        <ConsumableListCard
-          key={listing.id}
-          consumable={listing.itemSnapshot as Consumable}
-          realm={cultivator?.realm}
-          condition={cultivator?.condition}
-          contextMeta={listingMeta}
-          actions={actions}
-        />
-      );
-    }
-
-    if (listing.itemType === 'artifact') {
-      return (
-        <ArtifactListCard
-          key={listing.id}
-          artifact={listing.itemSnapshot as Artifact}
-          contextMeta={listingMeta}
-          actions={actions}
-        />
-      );
-    }
-
     return (
-      <ItemCard
+      <div
         key={listing.id}
-        layout="col"
-        {...displayProps}
-        meta={listingMeta}
-        actions={actions}
-      />
+        className="border-ink/15 flex flex-wrap items-center gap-4 border-b py-4"
+      >
+        <div className="w-16 shrink-0">
+          <ItemSlot
+            className="w-full"
+            item={listing.item}
+            quantityLabel="库存"
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className={presentation?.color}>{listing.itemName}</p>
+          <p className="text-ink-secondary text-xs">
+            {[presentation?.type, presentation?.tier]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+          {listingMeta}
+        </div>
+        {actions}
+      </div>
     );
   };
 
@@ -822,7 +711,7 @@ export default function AuctionPage() {
             : 'grid gap-3 md:grid-cols-[1fr_1fr_1fr]'
         }
       >
-        {activeType !== 'all' && (
+        {categoryOptions.length > 0 && (
           <InkSelect
             label="子类"
             size="sm"
@@ -936,7 +825,7 @@ export default function AuctionPage() {
     <GameSceneFrame
       variant="workflow"
       title="【拍卖行】"
-      description="各路道友寄售珍材法宝，按类检索后再议价成交。"
+      description="各路道友寄售珍材道装，选定货单后购入，物品与成交款由邮件送达。"
       aside={
         <>
           <GameSceneAsideSection title="寄售摘要">
@@ -1011,10 +900,6 @@ export default function AuctionPage() {
         </div>
       </div>
 
-      {temporaryRestrictions.disableConsumableAuctionListing && (
-        <InkNotice>{TEMP_DISABLED_MESSAGES.consumableAuctionListing}</InkNotice>
-      )}
-
       {isLoading ? (
         <GameLoadingState message="正在获取拍卖列表……" variant="inline" />
       ) : activeListings.length > 0 ? (
@@ -1038,17 +923,11 @@ export default function AuctionPage() {
           onSuccess={() => {
             setShowListModal(false);
             updateQuery({ tab: 'my', page: null });
+            void fetchListings('my', 1);
           }}
-          cultivator={cultivator}
         />
       )}
 
-      <ItemDetailModal
-        isOpen={!!selectedItem}
-        onClose={() => setSelectedItem(null)}
-        item={selectedItem}
-        viewerRealm={cultivator?.realm}
-      />
       <InkDialog
         dialog={buyConfirmDialog}
         onClose={() => setBuyConfirmDialog(null)}
