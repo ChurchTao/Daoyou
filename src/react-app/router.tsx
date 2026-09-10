@@ -773,20 +773,6 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
-              path="enlightenment/manual-draw"
-              lazy={lazyRoute(
-                () =>
-                  import('@app/routes/game/enlightenment/manual-draw/route'),
-              )}
-              handle={scene(
-                {
-                  id: 'manual-draw',
-                  summary: '请符求卷，补足今日所缺法门。',
-                },
-                '问法寻卷',
-              )}
-            />
-            <Route
               path="enlightenment/replace"
               lazy={lazyRoute(
                 () => import('@app/routes/game/enlightenment/replace/route'),

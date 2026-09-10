@@ -217,11 +217,6 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '📜 任务中心',
       },
       {
-        id: 'manual-draw',
-        sceneLabel: '悟道演法',
-        href: '/game/enlightenment/manual-draw',
-      },
-      {
         id: 'alchemy',
         sceneLabel: '炼丹房',
       },

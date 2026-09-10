@@ -11,9 +11,8 @@ import {
 } from '@server/lib/drizzle/schema';
 import { findPublishedItemLibraryByItemIds } from '@server/lib/repositories/itemLibraryRepository';
 import { resourceEngine } from '@server/lib/services/resource/ResourceEngine';
-import type {
-  ResourceOperationSettlement,
-} from '@shared/engine/resource/types';
+import { isTalismanScenario } from '@shared/config/talismanScenarios';
+import { MailInventoryGrantSchema } from '@shared/contracts/mail';
 import {
   REPUTATION_SHOP_MAX_PRICE,
   type ReputationShopItemMutation,
@@ -21,16 +20,17 @@ import {
   type ReputationShopItemView,
 } from '@shared/contracts/reputationShop';
 import {
-  attachmentsToResourceOperations,
+  getItemExchangePurchaseWeek,
+  getItemExchangeQuantityError,
+} from '@shared/lib/itemExchangeShop';
+import {
   buildAttachmentFromItemLibraryEntry,
   parseItemLibraryEntry,
   type ItemLibraryEntry,
 } from '@shared/lib/itemLibrary';
-import {
-  getItemExchangePurchaseWeek,
-  getItemExchangeQuantityError,
-} from '@shared/lib/itemExchangeShop';
 import { and, asc, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { grantInventory } from './InventoryService';
+import { newRewardAttachment } from './MailInventory';
 
 type ShopItemRow = typeof reputationShopItems.$inferSelect;
 type ItemLibraryRow = typeof itemLibrary.$inferSelect;
@@ -46,7 +46,9 @@ export class ReputationShopError extends Error {
 
 function toIso(value: Date | string | null | undefined): string {
   if (!value) return new Date(0).toISOString();
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+  return value instanceof Date
+    ? value.toISOString()
+    : new Date(value).toISOString();
 }
 
 export function getReputationShopPurchaseWeek(date = new Date()): string {
@@ -141,12 +143,14 @@ async function loadShopItemWithLibrary(
   return result ?? null;
 }
 
-export async function listReputationShopItems(args: {
-  cultivatorId?: string;
-  status?: ReputationShopItemStatus;
-  userVisibleOnly?: boolean;
-  q?: DbExecutor | DbTransaction;
-} = {}): Promise<ReputationShopItemView[]> {
+export async function listReputationShopItems(
+  args: {
+    cultivatorId?: string;
+    status?: ReputationShopItemStatus;
+    userVisibleOnly?: boolean;
+    q?: DbExecutor | DbTransaction;
+  } = {},
+): Promise<ReputationShopItemView[]> {
   const q = args.q ?? getExecutor();
   const whereConditions: SQL<unknown>[] = [];
   if (args.status) {
@@ -176,15 +180,21 @@ export async function listReputationShopItems(args: {
 
   return runDbTasks(
     q,
-    rows.map(
-      (entry) => () =>
-        buildView({
-          row: entry.row,
-          item: entry.item,
-          cultivatorId: args.cultivatorId,
-          q,
-        }),
-    ),
+    rows
+      .filter(
+        (entry) =>
+          !args.userVisibleOnly ||
+          isSupportedReward(parseItem(entry.item), entry.row.quantity),
+      )
+      .map(
+        (entry) => () =>
+          buildView({
+            row: entry.row,
+            item: entry.item,
+            cultivatorId: args.cultivatorId,
+            q,
+          }),
+      ),
   );
 }
 
@@ -231,6 +241,7 @@ async function assertPublishedItemAndQuantity(input: {
   if (!item) {
     throw new ReputationShopError(400, '请选择已发布的道具库道具');
   }
+  buildShopGrant(item, input.quantity);
   assertQuantityForItemType({
     itemType: item.type,
     quantity: input.quantity,
@@ -319,7 +330,7 @@ export async function buyReputationShopItem(params: {
 }): Promise<{
   item: ReputationShopItemView;
   reputation: number;
-  settlement: ResourceOperationSettlement;
+  destinations: Array<'bag' | 'storage'>;
 }> {
   const loaded = await loadShopItemWithLibrary(params.id, params.tx);
   if (!loaded) {
@@ -341,16 +352,11 @@ export async function buyReputationShopItem(params: {
     throw new ReputationShopError(400, '此物已达兑换上限');
   }
 
-  const attachment = buildAttachmentFromItemLibraryEntry(
-    parseItem(loaded.item),
-    loaded.row.quantity,
-  );
-  const gains = attachmentsToResourceOperations([attachment]);
+  const grant = buildShopGrant(parseItem(loaded.item), loaded.row.quantity);
   const resourceResult = await resourceEngine.applyInTransaction({
     userId: params.userId,
     cultivatorId: params.cultivatorId,
     consume: [{ type: 'reputation', value: loaded.row.price }],
-    gain: gains,
     tx: params.tx,
   });
   if (!resourceResult.success) {
@@ -362,6 +368,12 @@ export async function buyReputationShopItem(params: {
   if (!resourceResult.settlement) {
     throw new ReputationShopError(500, '兑换结算结果缺失');
   }
+
+  const delivered = await grantInventory(
+    params.cultivatorId,
+    [grant],
+    params.tx,
+  );
 
   await params.tx.insert(reputationShopPurchases).values({
     shopItemId: loaded.row.id,
@@ -380,6 +392,38 @@ export async function buyReputationShopItem(params: {
       q: params.tx,
     }),
     reputation: resourceResult.settlement.reputation ?? 0,
-    settlement: resourceResult.settlement,
+    destinations: [...new Set(delivered.map((item) => item.location))],
   };
+}
+
+function buildShopGrant(item: ItemLibraryEntry, quantity: number) {
+  if (
+    item.type === 'consumable' &&
+    item.payload.spec.kind === 'talisman' &&
+    !isTalismanScenario(item.payload.spec.scenario)
+  ) {
+    throw new ReputationShopError(400, '该符箓对应玩法已停用，暂不可兑换');
+  }
+  try {
+    const attachment = newRewardAttachment(
+      buildAttachmentFromItemLibraryEntry(item, quantity),
+    );
+    if (attachment.type !== 'inventory_v1')
+      throw new Error('该道具不支持新版物品栏');
+    return MailInventoryGrantSchema.parse(attachment.inventory);
+  } catch {
+    throw new ReputationShopError(
+      400,
+      '该道具不支持当前奖励发放，请下架后重新配置',
+    );
+  }
+}
+
+function isSupportedReward(item: ItemLibraryEntry, quantity: number): boolean {
+  try {
+    buildShopGrant(item, quantity);
+    return true;
+  } catch {
+    return false;
+  }
 }

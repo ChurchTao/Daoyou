@@ -20,14 +20,6 @@ export const TALISMAN_SCENARIO_OPTIONS = [
     label: '改天换地·身份重塑',
   },
   {
-    value: 'draw_gongfa',
-    label: '问法寻卷·功法抽取',
-  },
-  {
-    value: 'draw_skill',
-    label: '问法寻卷·神通抽取',
-  },
-  {
     value: 'friend_mail_send',
     label: '好友传音',
   },

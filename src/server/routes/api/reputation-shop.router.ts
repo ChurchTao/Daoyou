@@ -4,16 +4,20 @@ import {
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
-import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
+import { PlayerCommandIdempotencyError } from '@server/lib/services/CommandExecutors';
+import { readCultivatorReputation } from '@server/lib/services/cultivator/CultivatorFactsReader';
+import { purchaseReputationShopItemCommand } from '@server/lib/services/ReputationShopApplicationService';
 import {
   listReputationShopItems,
   ReputationShopError,
 } from '@server/lib/services/ReputationShopService';
-import { purchaseReputationShopItemCommand } from '@server/lib/services/ReputationShopApplicationService';
-import { ReputationShopBuyParamsSchema } from '@shared/contracts/reputationShop';
+import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
+import {
+  ReputationShopBuyBodySchema,
+  ReputationShopBuyParamsSchema,
+} from '@shared/contracts/reputationShop';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { readCultivatorReputation } from '@server/lib/services/cultivator/CultivatorFactsReader';
 
 const router = new Hono<AppEnv>();
 
@@ -48,8 +52,10 @@ router.post('/:id/buy', requireActiveCultivatorRef(), async (c) => {
     const params = ReputationShopBuyParamsSchema.parse({
       id: c.req.param('id'),
     });
+    const body = ReputationShopBuyBodySchema.parse(await c.req.json());
     const committed = await purchaseReputationShopItemCommand({
       id: params.id,
+      requestId: body.requestId,
       userId: user.id,
       cultivatorId: cultivator.cultivatorId,
     });
@@ -57,7 +63,10 @@ router.post('/:id/buy', requireActiveCultivatorRef(), async (c) => {
   } catch (error) {
     const lockErrorResponse = redisLockErrorResponse(error);
     if (lockErrorResponse) return lockErrorResponse;
-    if (error instanceof ReputationShopError) {
+    if (
+      error instanceof ReputationShopError ||
+      error instanceof PlayerCommandIdempotencyError
+    ) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }
     if (error instanceof z.ZodError) {

@@ -7,8 +7,7 @@ import {
 } from '@shared/contracts/itemExchangeShop';
 import { z } from 'zod';
 
-export const ReputationShopItemStatusSchema =
-  ItemExchangeShopItemStatusSchema;
+export const ReputationShopItemStatusSchema = ItemExchangeShopItemStatusSchema;
 
 export const ReputationShopListQuerySchema = z.object({
   status: ReputationShopItemStatusSchema.optional(),
@@ -24,6 +23,10 @@ export const ReputationShopItemMutationSchema =
 export const ReputationShopBuyParamsSchema = z.object({
   id: z.string().uuid(),
 });
+
+export const ReputationShopBuyBodySchema = z
+  .object({ requestId: z.string().uuid() })
+  .strict();
 
 export type ReputationShopItemStatus = z.infer<
   typeof ReputationShopItemStatusSchema
@@ -41,5 +44,6 @@ export interface ReputationShopListResponse {
 
 export interface ReputationShopBuyResponse {
   purchasedItem: ReputationShopItemView;
+  destinations: Array<'bag' | 'storage'>;
   reputation: number;
 }

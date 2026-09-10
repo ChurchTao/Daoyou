@@ -1,3 +1,4 @@
+import { assertCurrentRewardItem } from '@shared/lib/retiredDraw';
 import { getExecutor, type DbExecutor } from '@server/lib/drizzle/db';
 import { itemLibrary } from '@server/lib/drizzle/schema';
 import { computeItemLibrarySampleKey } from '@server/lib/services/itemLibrarySampleKey';
@@ -239,6 +240,8 @@ export async function createItemLibraryEntry(params: {
   entry: CreateItemLibraryEntry;
   userId: string;
 }): Promise<ItemLibraryEntry> {
+  if (params.entry.status === 'published')
+    assertCurrentRewardItem(params.entry.payload);
   const columns = toSearchableColumns(params.entry);
   const q = getExecutor();
   const [row] = await q
@@ -264,6 +267,8 @@ export async function updateItemLibraryEntry(params: {
   entry: UpdateItemLibraryEntry;
   userId: string;
 }): Promise<ItemLibraryEntry | null> {
+  if (params.entry.status === 'published')
+    assertCurrentRewardItem(params.entry.payload);
   const columns = toSearchableColumns(params.entry);
   const q = getExecutor();
   const [row] = await q

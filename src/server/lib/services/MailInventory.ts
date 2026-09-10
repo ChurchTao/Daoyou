@@ -2,6 +2,7 @@ import { MailInventoryGrantSchema } from '@shared/contracts/mail';
 import { consumableFactsOf } from '@shared/items/definitions/consumables';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import { seedFactsOf, SeedFactsSchema } from '@shared/items/definitions/seeds';
+import { assertCurrentRewardItem } from '@shared/lib/retiredDraw';
 import type { Consumable, Material } from '@shared/types/cultivator';
 import type { MailAttachment } from '@shared/types/mail';
 import type { DbTransaction } from '../drizzle/db';
@@ -10,6 +11,9 @@ import { sanitizeMaterialForClient } from './materialDetailsPrivacy';
 
 /** Only used when producing new rewards; never converts stored mail on claim. */
 export function newRewardAttachment(item: MailAttachment): MailAttachment {
+  assertCurrentRewardItem(
+    item.type === 'inventory_v1' ? item.inventory?.instanceData : item.data,
+  );
   if (item.type === 'consumable' && item.data)
     return {
       type: 'inventory_v1',

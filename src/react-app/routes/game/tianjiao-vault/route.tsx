@@ -12,7 +12,7 @@ import type {
   ReputationShopListResponse,
 } from '@shared/contracts/reputationShop';
 import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const REPUTATION_INFO = getGameConceptInfo('reputation');
 
@@ -30,6 +30,8 @@ export default function TianjiaoVaultPage() {
   const { pushToast } = useInkUI();
   const [items, setItems] = useState<ReputationShopItemView[]>([]);
   const [loading, setLoading] = useState(true);
+  const pending = useRef(false);
+  const attempts = useRef(new Map<string, string>());
   const [buyingId, setBuyingId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -52,24 +54,33 @@ export default function TianjiaoVaultPage() {
   }, [refresh]);
 
   const handleBuy = async (item: ReputationShopItemView) => {
-    if (item.remainingPurchases === 0) {
+    if (pending.current) return;
+    if (!attempts.current.has(item.id) && item.remainingPurchases === 0) {
       pushToast({ message: '此物已达兑换上限', tone: 'warning' });
       return;
     }
-    if (reputation === undefined || reputation < item.price) {
+    if (
+      !attempts.current.has(item.id) &&
+      (reputation === undefined || reputation < item.price)
+    ) {
       pushToast({ message: '声望不足', tone: 'warning' });
       return;
     }
+    pending.current = true;
+    if (!attempts.current.has(item.id))
+      attempts.current.set(item.id, crypto.randomUUID());
     setBuyingId(item.id);
     try {
       const result = await mutate<ReputationShopBuyResponse>(
         fetch(`/api/reputation-shop/${item.id}/buy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId: attempts.current.get(item.id) }),
         }),
       );
+      attempts.current.delete(item.id);
       pushToast({
-        message: `已兑换 ${result.purchasedItem.item.name}`,
+        message: `已兑换 ${result.purchasedItem.item.name}，已放入${result.destinations.map((location) => (location === 'bag' ? '背包' : '储藏室')).join('、')}`,
         tone: 'success',
       });
       await refresh();
@@ -79,6 +90,7 @@ export default function TianjiaoVaultPage() {
         tone: 'danger',
       });
     } finally {
+      pending.current = false;
       setBuyingId(null);
     }
   };
@@ -100,7 +112,7 @@ export default function TianjiaoVaultPage() {
           </GameSceneAsideSection>
           <GameSceneAsideSection title="兑换规矩">
             <div className="space-y-2 text-sm leading-7">
-              <p>兑换后道具会直接归入储物袋。</p>
+              <p>兑换后道具进入背包，满包转入储藏室。</p>
               <p>部分珍藏设有个人兑换上限。</p>
             </div>
           </GameSceneAsideSection>
