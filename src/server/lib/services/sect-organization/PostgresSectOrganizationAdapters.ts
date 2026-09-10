@@ -1,5 +1,8 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
-import { creationProducts, materials } from '@server/lib/drizzle/schema';
+import {
+  combatV6EquipmentLoadouts,
+  inventoryItems,
+} from '@server/lib/drizzle/schema';
 import { createPostgresDomainEventWriter } from '@server/lib/mq/domainEventWriter';
 import * as organization from '@server/lib/repositories/sectOrganizationRepository';
 import * as memberships from '@server/lib/repositories/sectRepository';
@@ -7,39 +10,28 @@ import {
   materialLibraryEntryToMaterial,
   sampleMaterialLibraryEntryDeterministic,
 } from '@server/lib/services/MaterialLibraryService';
-import { toArtifactFromProduct } from '@server/lib/services/creationProductArtifactSupport';
-import {
-  addMaterialToInventoryInTransaction,
-  mapArtifactRow,
-  mapMaterialRow,
-} from '@server/lib/services/cultivator/CultivatorInventoryRepository';
 import { updateCultivationExp } from '@server/lib/services/cultivator/CultivatorStateRepository';
-import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
 import {
   SectTaskRecordPayloadSchema,
   projectSectPillTraits,
   type SectDiscipleRank,
-  type SectPillSubmissionFacts,
   type SectRuntime,
   type SectSubmissionItemFacts,
   type SectSubmissionItemKind,
 } from '@shared/engine/sect';
-import { isPillSpec } from '@shared/lib/consumables';
+import { itemDefinition } from '@shared/inventory';
+import { InventoryEquipmentSchema } from '@shared/inventory/equipment';
+import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
+import { MaterialFactsSchema } from '@shared/items/definitions/materials';
+import { materialFactsOf } from '@shared/items/material';
+import { and, eq, inArray } from 'drizzle-orm';
 import {
-  ELEMENT_VALUES,
-  MATERIAL_TYPE_VALUES,
-  QUALITY_VALUES,
-  type ElementType,
-  type MaterialType,
-  type Quality,
-} from '@shared/types/constants';
-import type { ConsumableSpec } from '@shared/types/consumable';
-import { eq } from 'drizzle-orm';
-import {
-  consumeBagConsumable,
-  getBagConsumable,
-  readBagConsumables,
-} from '../BagConsumables';
+  assertInventoryIdle,
+  grantInventory,
+  inventoryItemOf,
+  saveInventoryPlan,
+} from '../InventoryService';
+import { SectError } from '../SectError';
 import {
   freezeSectTaskTarget,
   startSectTaskBattle,
@@ -67,6 +59,7 @@ import type {
   SectMembershipQueryRepository,
   SectMembershipRepository,
   SectQueryContext,
+  SectRewardGateway,
   SectTaskRecord,
 } from './ports';
 
@@ -255,295 +248,159 @@ function facilityCommandAdapter(
   };
 }
 
-function normalizeQuality(value: string | null | undefined): Quality {
-  return QUALITY_VALUES.includes(value as Quality)
-    ? (value as Quality)
-    : '凡品';
-}
-
-function mapSubmissionPill(row: {
-  id: string;
-  name: string;
-  quality?: string;
-  quantity: number;
-  spec: unknown;
-}): SectPillSubmissionFacts | null {
-  if (!isPillSpec(row.spec as ConsumableSpec)) return null;
-  const spec = row.spec as ConsumableSpec & { kind: 'pill' };
-  return {
-    kind: 'pill',
-    id: row.id,
-    name: row.name,
-    quality: normalizeQuality(row.quality),
-    quantity: row.quantity,
-    family: spec.family,
-    appearance: spec.alchemyMeta.appearance,
-    traits: projectSectPillTraits(spec),
-  };
-}
-
-function mapSubmissionMaterial(row: {
-  id: string;
-  name: string;
-  rank: string;
-  quantity: number;
-  type: string;
-  element: string | null;
-}): SectSubmissionItemFacts {
-  return {
-    kind: 'material',
-    id: row.id,
-    name: row.name,
-    quality: normalizeQuality(row.rank),
-    quantity: row.quantity,
-    materialType: MATERIAL_TYPE_VALUES.includes(row.type as MaterialType)
-      ? (row.type as MaterialType)
-      : 'aux',
-    element: ELEMENT_VALUES.includes(row.element as ElementType)
-      ? (row.element as ElementType)
-      : undefined,
-  };
-}
-
-function mapSubmissionArtifact(row: {
-  id: string;
-  name: string;
-  quality: string | null;
-  slot: string | null;
-  isEquipped: boolean;
-  productModel: unknown;
-}): SectSubmissionItemFacts {
-  const model =
-    row.productModel && typeof row.productModel === 'object'
-      ? (row.productModel as Record<string, unknown>)
-      : {};
-  const affixes = Array.isArray(model.affixes) ? model.affixes : [];
-  const modelQuality = QUALITY_VALUES.includes(
-    model.projectionQuality as Quality,
-  )
-    ? (model.projectionQuality as Quality)
-    : undefined;
-  const rowQuality = normalizeQuality(row.quality);
-  if (modelQuality && modelQuality !== rowQuality)
-    throw new Error(`法宝品质持久化不一致：${row.id}`);
-  return {
-    kind: 'artifact',
-    id: row.id,
-    name: row.name,
-    quality: modelQuality ?? rowQuality,
-    quantity: 1,
-    slot: ['weapon', 'armor', 'accessory'].includes(row.slot ?? '')
-      ? (row.slot as 'weapon' | 'armor' | 'accessory')
-      : undefined,
-    perfectAffixCount: affixes.filter(
-      (affix) =>
-        affix &&
-        typeof affix === 'object' &&
-        (affix as Record<string, unknown>).isPerfect === true,
-    ).length,
-    isEquipped: row.isEquipped,
-  };
-}
-
 function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
-  const find = async (
+  async function list(
     cultivatorId: string,
-    kind: SectSubmissionItemKind,
-    itemId: string,
-  ): Promise<SectSubmissionItemFacts | null> => {
-    if (kind === 'pill') {
-      const row = await getBagConsumable(cultivatorId, itemId, q);
-      return row ? mapSubmissionPill(row) : null;
-    }
-    if (kind === 'artifact') {
-      const row = await organization.findOwnedArtifact(cultivatorId, itemId, q);
-      return row ? mapSubmissionArtifact(row) : null;
-    }
-    const row = await organization.findOwnedMaterial(cultivatorId, itemId, q);
-    return row ? mapSubmissionMaterial(row) : null;
-  };
+  ): Promise<SectSubmissionItemFacts[]> {
+    const rows = await q
+      .select()
+      .from(inventoryItems)
+      .where(
+        and(
+          eq(inventoryItems.cultivatorId, cultivatorId),
+          eq(inventoryItems.location, 'bag'),
+        ),
+      );
+    const loadouts = rows.length
+      ? await q
+          .select()
+          .from(combatV6EquipmentLoadouts)
+          .where(
+            inArray(
+              combatV6EquipmentLoadouts.equipmentInstanceId,
+              rows.map((row) => row.id),
+            ),
+          )
+      : [];
+    return rows.flatMap((row): SectSubmissionItemFacts[] => {
+      const common = { id: row.id, quantity: row.quantity };
+      if (itemDefinition(row.definitionId).kind === 'material') {
+        const facts = materialFactsOf(row.definitionId, row.instanceData);
+        return [
+          {
+            ...common,
+            kind: 'material',
+            name: facts.name,
+            quality: facts.rank,
+            materialType: facts.type,
+            element: facts.element ?? undefined,
+          },
+        ];
+      }
+      if (row.definitionId === 'consumable.v1') {
+        const facts = ConsumableFactsSchema.parse(row.instanceData);
+        if (facts.spec.kind !== 'pill') return [];
+        return [
+          {
+            ...common,
+            kind: 'pill',
+            name: facts.name,
+            quality: facts.quality,
+            family: facts.spec.family,
+            appearance: facts.spec.alchemyMeta.appearance,
+            traits: projectSectPillTraits(facts.spec),
+          },
+        ];
+      }
+      if (row.definitionId === 'equipment.v6') {
+        const facts = InventoryEquipmentSchema.parse(row.instanceData);
+        return [
+          {
+            ...common,
+            quantity: 1,
+            kind: 'equipment',
+            name: facts.name,
+            slot: facts.slot,
+            equipmentLevel: facts.equipmentLevel,
+            isEquipped: loadouts.some((l) => l.equipmentInstanceId === row.id),
+          },
+        ];
+      }
+      return [];
+    });
+  }
   return {
-    async listSubmissionItemsPage(input: {
+    async listSubmissionItems(input: {
       cultivatorId: string;
       kind: SectSubmissionItemKind;
-      page: number;
-      pageSize: number;
     }) {
-      if (input.kind === 'pill') {
-        const rows = (await readBagConsumables(input.cultivatorId, q)).filter(
-          (item) => item.spec.kind === 'pill',
-        );
-        return {
-          items: rows
-            .slice(
-              (input.page - 1) * input.pageSize,
-              input.page * input.pageSize,
-            )
-            .map(mapSubmissionPill)
-            .filter((item): item is SectPillSubmissionFacts => Boolean(item)),
-          total: rows.length,
-        };
-      }
-      if (input.kind === 'artifact') {
-        const result = await organization.listOwnedSubmissionArtifacts(
-          input.cultivatorId,
-          input.page,
-          input.pageSize,
-          q,
-        );
-        return {
-          items: result.rows.map(mapSubmissionArtifact),
-          total: result.total,
-        };
-      }
-      const result = await organization.listOwnedSubmissionMaterials(
-        input.cultivatorId,
-        input.page,
-        input.pageSize,
-        q,
+      return (await list(input.cultivatorId)).filter(
+        (item) => item.kind === input.kind,
       );
-      return {
-        items: result.rows.map(mapSubmissionMaterial),
-        total: result.total,
-      };
     },
-    findSubmissionItem: find,
+    async findSubmissionItem(
+      cultivatorId: string,
+      kind: SectSubmissionItemKind,
+      itemId: string,
+    ) {
+      return (
+        (await list(cultivatorId)).find(
+          (item) => item.id === itemId && item.kind === kind,
+        ) ?? null
+      );
+    },
     async consumeSubmissionItem(input: {
       cultivatorId: string;
       kind: SectSubmissionItemKind;
       itemId: string;
+      revision: number;
       quantity: number;
     }) {
       if (!('rollback' in q)) throw new Error('宗门物品提交必须在事务中执行');
-      const consumed =
-        input.kind === 'pill'
-          ? await consumeBagConsumable(
-              input.cultivatorId,
-              input.itemId,
-              input.quantity,
-              q,
-            )
-          : input.kind === 'artifact'
-            ? await organization.consumeOwnedSubmissionArtifact(
-                input.cultivatorId,
-                input.itemId,
-                q,
-              )
-            : await organization.consumeOwnedSubmissionMaterial(
-                input.cultivatorId,
-                input.itemId,
-                input.quantity,
-                q,
-              );
-      if (!consumed) return { consumed: false };
-      const change = await buildSubmissionInventoryChange(
-        q,
-        input.kind,
-        input.itemId,
-        input.cultivatorId,
+      await assertInventoryIdle(input.cultivatorId);
+      const rows = await q
+        .select()
+        .from(inventoryItems)
+        .where(
+          and(
+            eq(inventoryItems.cultivatorId, input.cultivatorId),
+            eq(inventoryItems.location, 'bag'),
+            eq(inventoryItems.id, input.itemId),
+          ),
+        );
+      const before = rows.map(inventoryItemOf);
+      const item = before[0];
+      if (
+        !item ||
+        item.revision !== input.revision ||
+        item.quantity < input.quantity
+      )
+        throw new SectError(
+          'SECT_ORGANIZATION_INVALID',
+          '物品已变化，请重新选择',
+          409,
+        );
+      const facts = (await list(input.cultivatorId)).find(
+        (i) => i.id === input.itemId && i.kind === input.kind,
       );
-      return inventorySettlement(true, change, input.itemId);
-    },
-  };
-}
-
-function inventorySettlement(
-  consumed: boolean,
-  change: Awaited<ReturnType<typeof buildSubmissionInventoryChange>>,
-  itemId: string,
-) {
-  if (!consumed) return { consumed: false };
-  return {
-    consumed: true,
-    change:
-      change.resourceTopic === 'inventory.consumables'
-        ? {
-            resourceTopic: change.resourceTopic,
-            eventType: change.eventType,
-            operation: 'invalidate' as const,
-          }
-        : change,
-    settlement: {
-      topic: change.resourceTopic,
-      itemId,
-      remainingQuantity:
-        change.operation === 'upsert-items'
-          ? Number(
-              (change.payload.items[0] as { quantity?: number })?.quantity ?? 1,
-            )
-          : 0,
-      removed: change.operation === 'remove-items',
-    },
-  };
-}
-
-async function buildSubmissionInventoryChange(
-  q: DbTransaction,
-  kind: SectSubmissionItemKind,
-  itemId: string,
-  owner: string,
-): Promise<
-  ResourceChangeDescriptor<
-    'inventory.artifacts' | 'inventory.materials' | 'inventory.consumables'
-  >
-> {
-  if (kind === 'pill') {
-    const row = await getBagConsumable(owner, itemId, q);
-    return row
-      ? {
-          resourceTopic: 'inventory.consumables',
-          eventType: 'sect.task_inventory_item_updated',
-          operation: 'upsert-items',
-          payload: { items: [row], idKey: 'id' },
-        }
-      : {
-          resourceTopic: 'inventory.consumables',
-          eventType: 'sect.task_inventory_item_removed',
-          operation: 'remove-items',
-          payload: { ids: [itemId], idKey: 'id' },
-        };
-  }
-  if (kind === 'artifact') {
-    const [row] = await q
-      .select()
-      .from(creationProducts)
-      .where(eq(creationProducts.id, itemId))
-      .limit(1);
-    return row
-      ? {
-          resourceTopic: 'inventory.artifacts',
-          eventType: 'sect.task_inventory_item_updated',
-          operation: 'upsert-items',
-          payload: {
-            items: [mapArtifactRow(toArtifactFromProduct(row))],
-            idKey: 'id',
-          },
-        }
-      : {
-          resourceTopic: 'inventory.artifacts',
-          eventType: 'sect.task_inventory_item_removed',
-          operation: 'remove-items',
-          payload: { ids: [itemId], idKey: 'id' },
-        };
-  }
-  const [row] = await q
-    .select()
-    .from(materials)
-    .where(eq(materials.id, itemId))
-    .limit(1);
-  return row
-    ? {
-        resourceTopic: 'inventory.materials',
-        eventType: 'sect.task_inventory_item_updated',
-        operation: 'upsert-items',
-        payload: { items: [mapMaterialRow(row)], idKey: 'id' },
-      }
-    : {
-        resourceTopic: 'inventory.materials',
-        eventType: 'sect.task_inventory_item_removed',
-        operation: 'remove-items',
-        payload: { ids: [itemId], idKey: 'id' },
+      if (!facts || (facts.kind === 'equipment' && facts.isEquipped))
+        throw new SectError('SECT_ORGANIZATION_INVALID', '物品不可交付', 409);
+      const remainingQuantity = item.quantity - input.quantity;
+      await saveInventoryPlan(
+        input.cultivatorId,
+        before,
+        remainingQuantity
+          ? [
+              {
+                ...item,
+                quantity: remainingQuantity,
+                revision: item.revision + 1,
+              },
+            ]
+          : [],
+        q,
+      );
+      return {
+        consumed: true,
+        settlement: {
+          topic: 'inventory-v6' as const,
+          itemId: item.id,
+          remainingQuantity,
+          removed: !remainingQuantity,
+        },
       };
+    },
+  };
 }
 
 function rewardAdapter(q: DbExecutor | DbTransaction, userId: string) {
@@ -621,22 +478,27 @@ function rewardAdapter(q: DbExecutor | DbTransaction, userId: string) {
     },
     async grantMaterial(
       cultivatorId: string,
-      input: Parameters<typeof addMaterialToInventoryInTransaction>[1],
+      input: Parameters<SectRewardGateway['grantMaterial']>[1],
     ) {
       if (!('rollback' in q)) throw new Error('宗门奖励必须在事务中执行');
-      const material = await addMaterialToInventoryInTransaction(
+      await grantInventory(
         cultivatorId,
-        input,
+        [
+          {
+            definitionId: 'material.v1',
+            quantity: input.quantity,
+            instanceData: MaterialFactsSchema.parse({
+              name: input.name,
+              type: input.type,
+              rank: input.rank,
+              element: input.element ?? null,
+              description: input.description ?? '',
+            }),
+          },
+        ],
         q,
       );
-      const effects = emptySectCommandEffects();
-      effects.resourceChanges.push({
-        resourceTopic: 'inventory.materials',
-        eventType: 'sect.reward_material_granted',
-        operation: 'upsert-items',
-        payload: { idKey: 'id', items: [material] },
-      });
-      return effects;
+      return emptySectCommandEffects();
     },
   };
 }

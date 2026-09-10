@@ -1,9 +1,4 @@
 import type { SectOrganizationModule } from '@shared/engine/sect';
-import {
-  SectTaskItemRewardGrantStrategyRegistry,
-  SectTaskMaterialRewardGrantStrategy,
-  type SectTaskItemRewardGrantStrategy,
-} from './TaskRewardStrategies';
 import { createStandardSectDomainEventDispatcher } from './SectDomainEventDispatcher';
 import {
   CompletedDailyTaskProgressStrategy,
@@ -20,8 +15,8 @@ import {
   type SectTaskRewardPolicy,
 } from './SectTaskSettlement';
 import {
-  ArtifactDeliveryTaskExecutor,
   BattleTaskExecutor,
+  EquipmentDeliveryTaskExecutor,
   MaterialDeliveryTaskExecutor,
   MiningGameTaskExecutor,
   PillDeliveryTaskExecutor,
@@ -30,6 +25,11 @@ import {
   SweepGameTaskExecutor,
   type SectTaskExecutor,
 } from './task-executors/SectTaskExecutor';
+import {
+  SectTaskItemRewardGrantStrategyRegistry,
+  SectTaskMaterialRewardGrantStrategy,
+  type SectTaskItemRewardGrantStrategy,
+} from './TaskRewardStrategies';
 
 export interface SectOrganizationPluginManifest {
   /** `*` contributes reusable application mechanics; other ids belong to one sect. */
@@ -49,7 +49,7 @@ export const CORE_SECT_ORGANIZATION_PLUGIN: SectOrganizationPluginManifest = {
     () => new MiningGameTaskExecutor(),
     () => new BattleTaskExecutor(),
     () => new PillDeliveryTaskExecutor(),
-    () => new ArtifactDeliveryTaskExecutor(),
+    () => new EquipmentDeliveryTaskExecutor(),
     () => new MaterialDeliveryTaskExecutor(),
     () => new ProgressTaskExecutor(),
   ],

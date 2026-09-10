@@ -48,7 +48,6 @@ import {
   SectDonationRequestSchema,
   SectIdempotencyKeySchema,
   SectMembersQuerySchema,
-  SectSubmissionCandidatesQuerySchema,
   SectTaskActionRequestSchema,
   SectTransferPreviewQuerySchema,
   SectTransferRequestSchema,
@@ -317,7 +316,6 @@ export function createSectsRouter(
   router.get(
     '/current/tasks/:taskId/submission-candidates',
     requireActiveCultivatorRef(),
-    validateQuery(SectSubmissionCandidatesQuerySchema),
     async (c) => {
       const ref = c.get('activeCultivatorRef');
       if (!ref)
@@ -326,18 +324,12 @@ export function createSectsRouter(
       if (!taskId || taskId.length > 64)
         return c.json({ success: false, error: '任务编号无效' }, 400);
       try {
-        const query = getValidatedQuery<{
-          page: number;
-          pageSize: number;
-          eligible: 'all' | 'yes' | 'no';
-        }>(c);
         return c.json({
           success: true,
           data: await sectOrganizationFacade.tasks.submissions.execute(
             {
               cultivatorId: ref.cultivatorId,
               taskId,
-              ...query,
             },
             createPostgresSectQueryContext({
               q: getExecutor(),

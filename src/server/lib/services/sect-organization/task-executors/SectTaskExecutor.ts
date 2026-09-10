@@ -509,7 +509,11 @@ export class BattleTaskExecutor extends BaseTaskExecutor<
     if (actionKey !== 'execute') invalid('战斗任务不支持该操作');
     const battle = await context.ports.battle.start(context);
     const effects = emptySectCommandEffects();
-    effects.resourceChanges.push({ resourceTopic: 'player.condition', operation: 'invalidate', eventType: 'sect.battle.started' });
+    effects.resourceChanges.push({
+      resourceTopic: 'player.condition',
+      operation: 'invalidate',
+      eventType: 'sect.battle.started',
+    });
     return {
       completed: false,
       completionSettlement: 'deferred',
@@ -531,7 +535,7 @@ export class BattleTaskExecutor extends BaseTaskExecutor<
 }
 
 abstract class DeliveryTaskExecutor extends BaseTaskExecutor<SectTaskSubmissionInput> {
-  protected abstract readonly itemKind: 'pill' | 'artifact' | 'material';
+  protected abstract readonly itemKind: 'pill' | 'equipment' | 'material';
   inputSchema(): ZodType<SectTaskSubmissionInput> {
     return SectTaskSubmissionInputSchema;
   }
@@ -569,7 +573,9 @@ abstract class DeliveryTaskExecutor extends BaseTaskExecutor<SectTaskSubmissionI
           itemId: item.id,
           kind: item.kind,
           name: item.name,
-          quality: item.quality,
+          ...(item.kind === 'equipment'
+            ? { equipmentLevel: item.equipmentLevel }
+            : { quality: item.quality }),
           quantity,
           matchedFacts: [matchedFact],
         })),
@@ -610,6 +616,7 @@ export class PillDeliveryTaskExecutor extends DeliveryTaskExecutor {
         kind: 'pill',
         itemId: item.id,
         quantity: selection.quantity,
+        revision: selection.revision,
       });
     if (!settlement.consumed) invalid('丹药数量不足');
     const effects = inventorySettlementEffects(settlement);
@@ -625,15 +632,15 @@ export class PillDeliveryTaskExecutor extends DeliveryTaskExecutor {
   }
 }
 
-export class ArtifactDeliveryTaskExecutor extends DeliveryTaskExecutor {
-  readonly key = 'sect.delivery.artifact';
-  protected readonly itemKind = 'artifact' as const;
+export class EquipmentDeliveryTaskExecutor extends DeliveryTaskExecutor {
+  readonly key = 'sect.delivery.equipment';
+  protected readonly itemKind = 'equipment' as const;
   async execute(
     actionKey: string,
     context: SectTaskExecutionContext,
     input: SectTaskSubmissionInput,
   ): Promise<SectTaskExecutionDecision> {
-    if (actionKey !== 'execute') invalid('法宝交付不支持该操作');
+    if (actionKey !== 'execute') invalid('道装交付不支持该操作');
     const requirement = this.requirement(context.record);
     const selection = input.items[0];
     if (
@@ -644,21 +651,22 @@ export class ArtifactDeliveryTaskExecutor extends DeliveryTaskExecutor {
       invalid(`该委托须一次提交 ${requirement.quantity} 件`);
     const item = await context.ports.submissionInventory.findSubmissionItem(
       context.cultivatorId,
-      'artifact',
+      'equipment',
       selection.itemId,
     );
-    if (!item) invalid('未找到该法宝');
+    if (!item) invalid('未找到该道装');
     const match = matchSectDeliveryRequirement(requirement, item);
     if (!match.eligible)
-      invalid(match.violations[0]?.message ?? '法宝不符合要求');
+      invalid(match.violations[0]?.message ?? '道装不符合要求');
     const settlement =
       await context.ports.submissionInventory.consumeSubmissionItem({
         cultivatorId: context.cultivatorId,
-        kind: 'artifact',
+        kind: 'equipment',
         itemId: item.id,
         quantity: selection.quantity,
+        revision: selection.revision,
       });
-    if (!settlement.consumed) invalid('法宝状态已变化，请重试');
+    if (!settlement.consumed) invalid('道装状态已变化，请重试');
     const effects = inventorySettlementEffects(settlement);
     return {
       completed: true,
@@ -685,15 +693,18 @@ export class MaterialDeliveryTaskExecutor extends DeliveryTaskExecutor {
     if (requirement.kind !== 'material') invalid('任务材料要求缺失');
     const selections = [];
     for (const selection of input.items) {
-      const item =
-        await context.ports.submissionInventory.findSubmissionItem(
-          context.cultivatorId,
-          'material',
-          selection.itemId,
-        );
+      const item = await context.ports.submissionInventory.findSubmissionItem(
+        context.cultivatorId,
+        'material',
+        selection.itemId,
+      );
       if (!item || item.kind !== 'material')
         invalid('悬赏所需材料状态已经变化');
-      selections.push({ item, quantity: selection.quantity });
+      selections.push({
+        item,
+        quantity: selection.quantity,
+        revision: selection.revision,
+      });
     }
     const match = matchSectMaterialDeliverySelection(requirement, selections);
     if (!match.eligible)
@@ -706,6 +717,7 @@ export class MaterialDeliveryTaskExecutor extends DeliveryTaskExecutor {
           kind: 'material',
           itemId: selection.item.id,
           quantity: selection.quantity,
+          revision: selection.revision,
         });
       if (!settlement.consumed) invalid('材料状态已变化，请重试');
       effects = mergeSectCommandEffects(
@@ -731,7 +743,6 @@ function inventorySettlementEffects(
   >,
 ): SectCommandEffects {
   const effects = emptySectCommandEffects();
-  if (settlement.change) effects.resourceChanges.push(settlement.change);
   if (settlement.settlement)
     effects.settlement.inventory.push(settlement.settlement);
   return effects;

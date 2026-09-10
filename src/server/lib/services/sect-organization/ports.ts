@@ -1,9 +1,6 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import type { DomainEventWriter } from '@server/lib/mq/domainEventWriter';
-import type {
-  ResourceChangeDescriptor,
-  ResourceDataMap,
-} from '@shared/contracts/resources';
+import type { ResourceDataMap } from '@shared/contracts/resources';
 import type { SectTaskSettlementData } from '@shared/contracts/sect';
 import type {
   CultivatorSectState,
@@ -192,19 +189,14 @@ export interface SectTaskRepository extends SectTaskReadRepository {
 
 export interface SectInventorySettlementResult {
   consumed: boolean;
-  change?: ResourceChangeDescriptor<
-    'inventory.artifacts' | 'inventory.materials' | 'inventory.consumables'
-  >;
   settlement?: SectTaskSettlementData['inventory'][number];
 }
 
 export interface SectSubmissionInventoryReadGateway {
-  listSubmissionItemsPage(input: {
+  listSubmissionItems(input: {
     cultivatorId: string;
     kind: SectSubmissionItemKind;
-    page: number;
-    pageSize: number;
-  }): Promise<{ items: SectSubmissionItemFacts[]; total: number }>;
+  }): Promise<SectSubmissionItemFacts[]>;
   findSubmissionItem(
     cultivatorId: string,
     kind: SectSubmissionItemKind,
@@ -217,6 +209,7 @@ export interface SectSubmissionInventoryGateway extends SectSubmissionInventoryR
     cultivatorId: string;
     kind: SectSubmissionItemKind;
     itemId: string;
+    revision: number;
     quantity: number;
   }): Promise<SectInventorySettlementResult>;
 }

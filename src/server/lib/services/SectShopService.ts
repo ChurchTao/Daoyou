@@ -10,8 +10,6 @@ import {
   sectShopPurchases,
 } from '@server/lib/drizzle/schema';
 import { findPublishedItemLibraryByItemIds } from '@server/lib/repositories/itemLibraryRepository';
-import { resourceEngine } from '@server/lib/services/resource/ResourceEngine';
-import type { ResourceOperationSettlement } from '@shared/engine/resource/types';
 import type {
   SectShopItemData,
   SectShopItemMutation,
@@ -19,16 +17,17 @@ import type {
 } from '@shared/contracts/sectShop';
 import { SECT_SHOP_MAX_PRICE } from '@shared/contracts/sectShop';
 import {
-  attachmentsToResourceOperations,
+  getItemExchangePurchaseWeek,
+  getItemExchangeQuantityError,
+} from '@shared/lib/itemExchangeShop';
+import {
   buildAttachmentFromItemLibraryEntry,
   parseItemLibraryEntry,
   type ItemLibraryEntry,
 } from '@shared/lib/itemLibrary';
-import {
-  getItemExchangePurchaseWeek,
-  getItemExchangeQuantityError,
-} from '@shared/lib/itemExchangeShop';
 import { and, asc, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { assertInventoryIdle, grantInventory } from './InventoryService';
+import { newRewardAttachment } from './MailInventory';
 
 type ShopItemRow = typeof sectShopItems.$inferSelect;
 type ItemLibraryRow = typeof itemLibrary.$inferSelect;
@@ -95,15 +94,9 @@ async function buildView(args: {
   purchaseWeek?: string;
   q: DbExecutor | DbTransaction;
 }): Promise<SectShopItemData> {
-  const purchaseWeek =
-    args.purchaseWeek ?? getItemExchangePurchaseWeek();
+  const purchaseWeek = args.purchaseWeek ?? getItemExchangePurchaseWeek();
   const purchasedCount = args.cultivatorId
-    ? await countPurchases(
-        args.cultivatorId,
-        args.row.id,
-        purchaseWeek,
-        args.q,
-      )
+    ? await countPurchases(args.cultivatorId, args.row.id, purchaseWeek, args.q)
     : 0;
   const remainingPurchases =
     typeof args.row.perUserLimit === 'number'
@@ -288,7 +281,7 @@ export async function buySectShopItem(params: {
   spendContribution: (cost: number) => Promise<void>;
 }): Promise<{
   item: SectShopItemData;
-  settlement: ResourceOperationSettlement;
+  destinations: Array<'bag' | 'storage'>;
 }> {
   const loaded = await loadShopItemWithLibrary(params.id, params.tx);
   if (!loaded) throw new SectShopError(404, '宗门宝库商品不存在');
@@ -306,27 +299,21 @@ export async function buySectShopItem(params: {
     throw new SectShopError(400, '此物已达兑换上限');
   }
 
-  await params.spendContribution(loaded.row.price);
-  const attachment = buildAttachmentFromItemLibraryEntry(
-    parseItem(loaded.item),
-    loaded.row.quantity,
+  const attachment = newRewardAttachment(
+    buildAttachmentFromItemLibraryEntry(
+      parseItem(loaded.item),
+      loaded.row.quantity,
+    ),
   );
-  const result = await resourceEngine.applyInTransaction({
-    userId: params.userId,
-    cultivatorId: params.cultivatorId,
-    consume: [],
-    gain: attachmentsToResourceOperations([attachment]),
-    tx: params.tx,
-  });
-  if (!result.success) {
-    throw new SectShopError(
-      400,
-      result.errors?.[0] ?? '兑换结算失败',
-    );
-  }
-  if (!result.settlement) {
-    throw new SectShopError(500, '兑换结算结果缺失');
-  }
+  if (attachment.type !== 'inventory_v1' || !attachment.inventory)
+    throw new SectShopError(400, '此商品尚未开放新版兑换');
+  await assertInventoryIdle(params.cultivatorId);
+  await params.spendContribution(loaded.row.price);
+  const delivered = await grantInventory(
+    params.cultivatorId,
+    [attachment.inventory],
+    params.tx,
+  );
 
   await params.tx.insert(sectShopPurchases).values({
     shopItemId: loaded.row.id,
@@ -346,6 +333,6 @@ export async function buySectShopItem(params: {
       purchaseWeek: params.purchaseWeek,
       q: params.tx,
     }),
-    settlement: result.settlement,
+    destinations: [...new Set(delivered.map((item) => item.location))],
   };
 }

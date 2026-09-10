@@ -1,11 +1,11 @@
+import type { DaoEquipmentSlot } from '@shared/engine/combat-v6/equipment/types';
+import { CULTIVATION_BOOST_STATUS_KEY } from '@shared/lib/cultivationBoost';
 import {
   QUALITY_ORDER,
   type ElementType,
-  type EquipmentSlot,
   type MaterialType,
   type Quality,
 } from '@shared/types/constants';
-import { CULTIVATION_BOOST_STATUS_KEY } from '@shared/lib/cultivationBoost';
 import type {
   PillAppearanceGrade,
   PillFamily,
@@ -28,14 +28,13 @@ export interface SectPillSubmissionFacts {
   traits: SectPillTraitKey[];
 }
 
-export interface SectArtifactSubmissionFacts {
-  kind: 'artifact';
+export interface SectEquipmentSubmissionFacts {
+  kind: 'equipment';
   id: string;
   name: string;
-  quality: Quality;
   quantity: 1;
-  slot?: EquipmentSlot;
-  perfectAffixCount: number;
+  slot: DaoEquipmentSlot;
+  equipmentLevel: number;
   isEquipped: boolean;
 }
 
@@ -51,7 +50,7 @@ export interface SectMaterialSubmissionFacts {
 
 export type SectSubmissionItemFacts =
   | SectPillSubmissionFacts
-  | SectArtifactSubmissionFacts
+  | SectEquipmentSubmissionFacts
   | SectMaterialSubmissionFacts;
 
 export type SectDeliveryViolationCode =
@@ -66,7 +65,7 @@ export type SectDeliveryViolationCode =
   | 'missing_trait'
   | 'appearance_mismatch'
   | 'wrong_slot'
-  | 'perfect_affix_missing'
+  | 'level_too_low'
   | 'wrong_material_type'
   | 'wrong_element'
   | 'item_equipped';
@@ -144,7 +143,11 @@ export function matchSectDeliveryRequirement(
     add('wrong_kind', '物品类型与委托要求不符');
     return { eligible: false, violations };
   }
-  if (QUALITY_ORDER[candidate.quality] < QUALITY_ORDER[requirement.minQuality])
+  if (
+    candidate.kind !== 'equipment' &&
+    requirement.kind !== 'equipment' &&
+    QUALITY_ORDER[candidate.quality] < QUALITY_ORDER[requirement.minQuality]
+  )
     add('quality_too_low', `品质低于${requirement.minQuality}`);
   if (candidate.quantity < requirement.quantity)
     add('quantity_too_low', `数量不足 ${requirement.quantity}`);
@@ -155,8 +158,7 @@ export function matchSectDeliveryRequirement(
     const hasRequiredTrait = candidate.traits.includes(requirement.trait);
     if (!hasRequiredTrait && candidate.family !== requirement.family)
       add('wrong_family', '丹药主类别不符合要求');
-    if (!hasRequiredTrait)
-      add('missing_trait', '丹药不具备指定功效');
+    if (!hasRequiredTrait) add('missing_trait', '丹药不具备指定功效');
     const actual = candidate.appearance;
     const matches =
       actual !== undefined &&
@@ -165,18 +167,15 @@ export function matchSectDeliveryRequirement(
         : APPEARANCE_ORDER[actual] >=
           APPEARANCE_ORDER[requirement.appearance.grade]);
     if (!matches) add('appearance_mismatch', '丹药品相不符合要求');
-  } else if (requirement.kind === 'artifact' && candidate.kind === 'artifact') {
-    if (candidate.isEquipped) add('item_equipped', '已装备法宝不能提交');
+  } else if (
+    requirement.kind === 'equipment' &&
+    candidate.kind === 'equipment'
+  ) {
+    if (candidate.isEquipped) add('item_equipped', '已装备道装不能提交');
     if (candidate.slot !== requirement.slot)
-      add('wrong_slot', '法宝部位不符合要求');
-    if (
-      requirement.minPerfectAffixCount &&
-      candidate.perfectAffixCount < requirement.minPerfectAffixCount
-    )
-      add(
-        'perfect_affix_missing',
-        `完美词条少于 ${requirement.minPerfectAffixCount} 条`,
-      );
+      add('wrong_slot', '道装部位不符合要求');
+    if (candidate.equipmentLevel < requirement.minEquipmentLevel)
+      add('level_too_low', `道装等级低于 ${requirement.minEquipmentLevel} 级`);
   } else if (requirement.kind === 'material' && candidate.kind === 'material') {
     if (candidate.materialType !== requirement.materialType)
       add('wrong_material_type', '材料类型不符合要求');

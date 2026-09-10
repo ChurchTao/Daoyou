@@ -8,18 +8,10 @@ const taskBattleRequests = new Map<string, Promise<SectTaskActionData>>();
 
 export function fetchSectSubmissionCandidates(
   taskId: string,
-  page = 1,
-  pageSize = 30,
-  eligible: 'all' | 'yes' | 'no' = 'all',
   signal?: AbortSignal,
 ): Promise<SectSubmissionCandidatesData> {
-  const query = new URLSearchParams({
-    page: String(page),
-    pageSize: String(pageSize),
-    eligible,
-  });
   return fetch(
-    `/api/sects/current/tasks/${encodeURIComponent(taskId)}/submission-candidates?${query.toString()}`,
+    `/api/sects/current/tasks/${encodeURIComponent(taskId)}/submission-candidates`,
     { signal },
   ).then(async (response) => {
     const payload = await response.json();

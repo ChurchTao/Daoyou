@@ -28,6 +28,7 @@ export const SectTaskSubmissionInputSchema = z
         z
           .object({
             itemId: z.string().uuid(),
+            revision: z.number().int().nonnegative(),
             quantity: z.number().int().positive().max(MAX_PLAYER_ITEM_QUANTITY),
           })
           .strict(),
@@ -44,11 +45,6 @@ export const SectTaskSubmissionInputSchema = z
 export type SectTaskSubmissionInput = z.infer<
   typeof SectTaskSubmissionInputSchema
 >;
-export const SectSubmissionCandidatesQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().min(1).max(50).default(30),
-  eligible: z.enum(['all', 'yes', 'no']).default('all'),
-});
 export const SectDonationRequestSchema = z
   .object({
     facilityKey: z.string().min(1).max(32),
@@ -233,8 +229,7 @@ export interface SectTaskSettlementData {
   spiritStones?: number;
   cultivationProgress?: CultivationProgress;
   inventory: Array<{
-    topic:
-      'inventory.artifacts' | 'inventory.materials' | 'inventory.consumables';
+    topic: 'inventory-v6';
     itemId: string;
     remainingQuantity: number;
     removed: boolean;
@@ -261,9 +256,6 @@ export interface SectSubmissionCandidateData {
 export interface SectSubmissionCandidatesData {
   requirement: SectDeliveryRequirement;
   items: SectSubmissionCandidateData[];
-  page: number;
-  pageSize: number;
-  total: number;
 }
 
 export type SectTaskActionResponse =

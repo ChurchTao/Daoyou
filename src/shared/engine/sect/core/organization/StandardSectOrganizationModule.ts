@@ -225,11 +225,11 @@ const tasks: readonly SectTaskDefinition[] = [
     kind: 'daily',
     enrollment: 'manual',
     requiredCapability: 'sect.task.artifact_delivery.accept',
-    executorKey: 'sect.delivery.artifact',
+    executorKey: 'sect.delivery.equipment',
     minimumDifficulty: 'easy',
     offer: {
       policy: 'sect.offer.delivery',
-      input: { kind: 'artifact' },
+      input: { kind: 'equipment' },
     },
     reward: {
       policy: 'sect.reward.realm-task',
@@ -240,16 +240,16 @@ const tasks: readonly SectTaskDefinition[] = [
     },
     fulfillment: taskFulfillment('daily'),
     presentation: taskPresentation(
-      '法宝委托',
-      '寻来符合要求且未装备的法宝，交由宗门统一调度。',
-      '选择法宝',
+      '道装委托',
+      '寻来符合要求且未装备的道装，交由宗门统一调度。',
+      '选择道装',
       {
-        offeredReply: '法宝调度一事，我可以接下',
-        activeReply: '法宝那桩委托，请再说一遍',
-        claimableReply: '法宝已经移交，请执事查验',
-        claimedReply: '请替我查查法宝委托的功簿',
+        offeredReply: '道装调度一事，我可以接下',
+        activeReply: '道装那桩委托，请再说一遍',
+        claimableReply: '道装已经移交，请执事查验',
+        claimedReply: '请替我查查道装委托的功簿',
         instruction: {
-          text: '替宗门寻来一件合用的未装备法宝，带回事务堂核验。',
+          text: '替宗门寻来一件合用的未装备道装，带回事务堂核验。',
           requirementPrefix: '替宗门寻来',
           requirementSuffix: '，带回事务堂核验。',
         },

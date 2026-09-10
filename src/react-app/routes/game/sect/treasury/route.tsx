@@ -14,7 +14,7 @@ import type {
   SectShopItemData,
 } from '@shared/contracts/sectShop';
 import { STANDARD_SECT_PRESENTATION } from '@shared/engine/sect';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   postJson,
   SectPermissionBoundary,
@@ -51,14 +51,21 @@ function TreasuryConversation({
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [buyingId, setBuyingId] = useState<string | null>(null);
 
+  const pending = useRef(false);
+  const attempts = useRef(new Map<string, string>());
   const executeBuy = async (item: SectShopItemData) => {
+    if (pending.current) return;
+    pending.current = true;
+    const requestId = attempts.current.get(item.id) ?? crypto.randomUUID();
+    attempts.current.set(item.id, requestId);
     setBuyingId(item.id);
     try {
       const result = await mutate<SectShopBuyResponse>(
-        fetch(`/api/sects/current/shop/${item.id}/buy`, postJson()),
+        fetch(`/api/sects/current/shop/${item.id}/buy`, postJson(undefined, requestId)),
       );
+      attempts.current.delete(item.id);
       pushToast({
-        message: `已支取 ${result.purchasedItem.item.name}`,
+        message: `已支取 ${result.purchasedItem.item.name}，存入${result.destinations.map(location => location === 'bag' ? '背包' : '储藏室').join('／')}`,
         tone: 'success',
       });
       await shop.reload();
@@ -68,6 +75,7 @@ function TreasuryConversation({
         tone: 'danger',
       });
     } finally {
+      pending.current = false;
       setBuyingId(null);
     }
   };

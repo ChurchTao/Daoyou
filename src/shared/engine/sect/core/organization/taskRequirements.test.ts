@@ -1,8 +1,15 @@
-import { QUALITY_ORDER, REALM_VALUES } from '@shared/types/constants';
+import { BLUEPRINTS } from '@shared/items/definitions/equipment-blueprints';
+import { QINGXI_EQUIPMENT_LEVELS } from '@shared/rewards/wild';
+import {
+  QUALITY_ORDER,
+  REALM_STAGE_VALUES,
+  REALM_VALUES,
+} from '@shared/types/constants';
 import { describe, expect, it } from 'vitest';
 import {
   SECT_REALM_QUALITY_RULES,
   STANDARD_SECT_TASK_REQUIREMENT_CURVE,
+  SectEquipmentDeliveryRequirementSchema,
   SectTaskRandomSource,
   assertSectRealmQualityRules,
   assertStandardSectTaskRequirementCurve,
@@ -19,7 +26,7 @@ describe('sect task requirement generation', () => {
     expect(STANDARD_SECT_TASK_REQUIREMENT_CURVE).toMatchObject({
       quantity: {
         pill: 1,
-        artifact: 1,
+        equipment: 1,
         material: {
           min: 1,
           max: 3,
@@ -34,7 +41,6 @@ describe('sect task requirement generation', () => {
         { grade: 'perfect', weight: 5 },
       ],
       optionalConditionChance: {
-        artifactPerfectAffix: 0.45,
         materialElement: 0.35,
       },
       difficulty: {
@@ -85,10 +91,10 @@ describe('sect task requirement generation', () => {
           realm,
           seed: `${realm}:pill:${index}`,
         });
-        const artifact = generateSectDeliveryRequirement({
-          kind: 'artifact',
+        const equipment = generateSectDeliveryRequirement({
+          kind: 'equipment',
           realm,
-          seed: `${realm}:artifact:${index}`,
+          seed: `${realm}:equipment:${index}`,
         });
         const material = generateSectDeliveryRequirement({
           kind: 'material',
@@ -101,10 +107,10 @@ describe('sect task requirement generation', () => {
           expect(pill.trait).toBeDefined();
           expect(pill.appearance).toBeDefined();
         }
-        expect(artifact.kind).toBe('artifact');
-        if (artifact.kind === 'artifact') {
-          expect(artifact.slot).toBeDefined();
-          expect(artifact.mustBeUnequipped).toBe(true);
+        expect(equipment.kind).toBe('equipment');
+        if (equipment.kind === 'equipment') {
+          expect(equipment.slot).toBeDefined();
+          expect(equipment.mustBeUnequipped).toBe(true);
         }
         expect(material.kind).toBe('material');
         if (material.kind === 'material')
@@ -139,27 +145,17 @@ describe('sect task requirement generation', () => {
     expect(counts.perfect / samples).toBeLessThan(0.06);
   });
 
-  it('keeps perfect-affix and elemental constraints optional', () => {
+  it('keeps elemental constraints optional', () => {
     const samples = 10_000;
-    let affixCount = 0;
     let elementCount = 0;
     for (let index = 0; index < samples; index += 1) {
-      const artifact = generateSectDeliveryRequirement({
-        kind: 'artifact',
-        realm: '元婴',
-        seed: `artifact-extra:${index}`,
-      });
       const material = generateSectDeliveryRequirement({
         kind: 'material',
         realm: '元婴',
         seed: `material-extra:${index}`,
       });
-      if (artifact.kind === 'artifact' && artifact.minPerfectAffixCount)
-        affixCount += 1;
       if (material.kind === 'material' && material.element) elementCount += 1;
     }
-    expect(affixCount / samples).toBeGreaterThan(0.43);
-    expect(affixCount / samples).toBeLessThan(0.47);
     expect(elementCount / samples).toBeGreaterThan(0.33);
     expect(elementCount / samples).toBeLessThan(0.37);
   });
@@ -236,16 +232,15 @@ describe('sect task requirement generation', () => {
     },
     {
       requirement: {
-        kind: 'artifact' as const,
+        kind: 'equipment' as const,
         quantity: 1 as const,
-        minQuality: '灵品' as const,
+        minEquipmentLevel: 30,
         slot: 'weapon' as const,
         mustBeUnequipped: true as const,
-        minPerfectAffixCount: 2,
       },
-      text: '1件灵品以上的攻击法宝，必须处于未装备状态，并带有至少2条完美词条',
+      text: '1件30级及以上法兵，必须处于未装备状态',
       rawTerms: ['weapon'],
-      emphasis: ['quantity', 'quality', 'effect', 'warning', 'quantity'],
+      emphasis: ['quantity', 'effect', 'effect', 'warning'],
     },
     {
       requirement: {
@@ -274,3 +269,68 @@ describe('sect task requirement generation', () => {
     },
   );
 });
+
+it('generates craftable equipment tiers without quality or rare affix requirements', () => {
+  const slots = new Set<string>();
+  for (const realm of REALM_VALUES)
+    for (const realmStage of REALM_STAGE_VALUES)
+      for (let i = 0; i < 20; i++) {
+        const req = generateSectDeliveryRequirement({
+          kind: 'equipment',
+          realm,
+          realmStage,
+          seed: String(i),
+        });
+        if (req.kind !== 'equipment') throw new Error('wrong kind');
+        expect(
+          SectEquipmentDeliveryRequirementSchema.safeParse(req).success,
+        ).toBe(true);
+        expect(
+          BLUEPRINTS.some(
+            (b) => b.level === req.minEquipmentLevel && b.slot === req.slot,
+          ),
+        ).toBe(true);
+        expect(QINGXI_EQUIPMENT_LEVELS).toContain(req.minEquipmentLevel);
+        expect(req).not.toHaveProperty('minQuality');
+        expect(req).not.toHaveProperty('minPerfectAffixCount');
+        slots.add(req.slot);
+      }
+  expect(slots.size).toBe(6);
+  expect(
+    generateSectDeliveryRequirement({
+      kind: 'equipment',
+      realm: '炼气',
+      realmStage: '初期',
+      seed: 'a',
+    }),
+  ).toMatchObject({ minEquipmentLevel: 10 });
+  expect(
+    generateSectDeliveryRequirement({
+      kind: 'equipment',
+      realm: '渡劫',
+      realmStage: '圆满',
+      seed: 'a',
+    }),
+  ).toMatchObject({ minEquipmentLevel: 10 });
+});
+it.each([
+  [40, 'easy'],
+  [50, 'normal'],
+  [80, 'normal'],
+  [90, 'hard'],
+  [120, 'hard'],
+  [130, 'elite'],
+] as const)(
+  'classifies equipment level %s independently of quality',
+  (level, expected) => {
+    expect(
+      calculateSectDeliveryDifficulty({
+        kind: 'equipment',
+        quantity: 1,
+        minEquipmentLevel: level,
+        slot: 'head',
+        mustBeUnequipped: true,
+      }),
+    ).toBe(expected);
+  },
+);

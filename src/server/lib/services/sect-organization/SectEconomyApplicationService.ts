@@ -1,12 +1,10 @@
-import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
-import { SectMembership, SectStipendClaim } from '@shared/engine/sect';
-import type { RealmType } from '@shared/types/constants';
 import {
   buySectShopItem,
   listSectShopItems,
 } from '@server/lib/services/SectShopService';
-import type { SectBenefitService } from './SectBenefitService';
-import type { SectDomainEventDispatcherFactory } from './SectDomainEventDispatcher';
+import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
+import { SectMembership, SectStipendClaim } from '@shared/engine/sect';
+import type { RealmType } from '@shared/types/constants';
 import {
   mapFacilities,
   organizationError,
@@ -19,10 +17,12 @@ import type {
   SectEconomyQueryContext,
   SectMembershipRecord,
 } from './ports';
+import type { SectBenefitService } from './SectBenefitService';
 import {
   emptySectCommandEffects,
   type SectCommandEffects,
 } from './SectCommandEffects';
+import type { SectDomainEventDispatcherFactory } from './SectDomainEventDispatcher';
 
 export class SectEconomyApplicationService {
   constructor(
@@ -93,26 +93,10 @@ export class SectEconomyApplicationService {
       },
       ...spentEffects.resourceChanges,
     ];
-    for (const change of purchase.settlement.inventoryChanges) {
-      resourceChanges.push(
-        change.operation === 'upsert'
-          ? ({
-              resourceTopic: `inventory.${change.kind}`,
-              eventType: 'inventory.sect_shop.rewarded',
-              operation: 'upsert-items',
-              payload: { idKey: 'id', items: [change.item] },
-            } as ResourceChangeDescriptor)
-          : ({
-              resourceTopic: `inventory.${change.kind}`,
-              eventType: 'inventory.sect_shop.rewarded',
-              operation: 'remove-items',
-              payload: { idKey: 'id', ids: [change.id] },
-            } as ResourceChangeDescriptor),
-      );
-    }
     return {
       result: {
         purchasedItem: purchase.item,
+        destinations: purchase.destinations,
         contribution: result.contribution,
       },
       resourceChanges,

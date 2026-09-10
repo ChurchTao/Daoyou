@@ -12,7 +12,7 @@ import { MANUAL_JADES } from '../items/definitions/manual-jades';
 import { findItemDefinition } from '../items/registry';
 
 // Business configuration: levels/slots/probabilities belong here, never in the drop engine.
-const levels = [10];
+export const QINGXI_EQUIPMENT_LEVELS = [10] as const;
 const equipmentRewards = new Map<
   string,
   { slot: DaoEquipmentSlot; level: number }
@@ -40,14 +40,14 @@ export const QINGXI_POOL_V2 = DropPoolSchema.parse({
     {
       id: 'blueprints',
       chance: 0.08,
-      entries: levels.flatMap((level) =>
+      entries: QINGXI_EQUIPMENT_LEVELS.flatMap((level) =>
         DAO_EQUIPMENT_SLOTS.map((slot) => entry(`blueprint.${slot}.${level}`)),
       ),
     },
     {
       id: 'equipment',
       chance: 0.01,
-      entries: levels.flatMap((level) =>
+      entries: QINGXI_EQUIPMENT_LEVELS.flatMap((level) =>
         DAO_EQUIPMENT_SLOTS.map((slot) => entry(`equipment.${slot}.${level}`)),
       ),
     },

@@ -24,9 +24,6 @@ export class SectTaskSubmissionQueryService {
     input: {
       cultivatorId: string;
       taskId: string;
-      page: number;
-      pageSize: number;
-      eligible: 'all' | 'yes' | 'no';
     },
     context: SectQueryContext,
   ): Promise<SectSubmissionCandidatesData> {
@@ -47,29 +44,19 @@ export class SectTaskSubmissionQueryService {
       invalid('只有进行中的交付委托可以选择物品');
     const requirement = record.payload.offer.requirement;
     if (!requirement) invalid('该任务不是道具交付委托', 400);
-    const page = await context.submissionInventory.listSubmissionItemsPage({
+    const items = await context.submissionInventory.listSubmissionItems({
       cultivatorId: input.cultivatorId,
       kind: requirement.kind,
-      page: input.page,
-      pageSize: input.pageSize,
     });
-    const matched = page.items
+    const matched = items
       .map((item) => ({
         item,
         ...matchSectDeliveryCandidate(requirement, item),
       }))
-      .filter((candidate) =>
-        input.eligible === 'all'
-          ? true
-          : candidate.eligible === (input.eligible === 'yes'),
-      )
       .sort((left, right) => Number(right.eligible) - Number(left.eligible));
     return {
       requirement,
       items: matched,
-      page: input.page,
-      pageSize: input.pageSize,
-      total: page.total,
     };
   }
 }

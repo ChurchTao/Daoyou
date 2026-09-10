@@ -75,14 +75,14 @@ export class SectTaskOfferPolicyRegistry extends Registry<SectTaskOfferPolicy> {
 }
 
 const deliveryOfferInput = z.object({
-  kind: z.enum(['pill', 'artifact', 'material']),
+  kind: z.enum(['pill', 'equipment', 'material']),
 });
 
 export class DeliverySectTaskOfferPolicy implements SectTaskOfferPolicy<
   z.infer<typeof deliveryOfferInput>
 > {
   readonly key = 'sect.offer.delivery';
-  readonly version = 1;
+  readonly version = 2;
   readonly inputSchema = deliveryOfferInput;
 
   constructor() {
@@ -97,6 +97,7 @@ export class DeliverySectTaskOfferPolicy implements SectTaskOfferPolicy<
     const requirement = generateSectDeliveryRequirement({
       kind: input.kind,
       realm: context.realm,
+      realmStage: context.realmStage,
       seed: [
         context.membershipId,
         context.taskId,
