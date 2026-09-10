@@ -83,10 +83,8 @@ export type RetreatCultivatorFacts = Pick<
   | 'realm'
   | 'realm_stage'
   | 'condition'
-  | 'cultivations'
   | 'sect'
-  | 'equipped'
-> & { inventory: Pick<Cultivator['inventory'], 'artifacts'> } & Pick<
+> & Pick<
     Cultivator,
     | 'age'
     | 'lifespan'

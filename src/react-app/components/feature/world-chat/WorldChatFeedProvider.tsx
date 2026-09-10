@@ -396,7 +396,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
           }
         | {
             messageType: 'item_showcase';
-            itemType: SendWorldChatShowcaseInput['itemType'];
+            revision: SendWorldChatShowcaseInput['revision'];
             itemId: string;
             textContent?: string;
           },
@@ -482,7 +482,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
       sendShowcaseMessage: (input) =>
         send({
           messageType: 'item_showcase',
-          itemType: input.itemType,
+          revision: input.revision,
           itemId: input.itemId,
           textContent: input.textContent || undefined,
         }),

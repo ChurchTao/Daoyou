@@ -7,7 +7,7 @@ id: breakthrough-story
 要求：
 
 - 80~150字，语言古风、细腻，有意境
-- 结合角色姓名、境界、感悟、灵根、功法等背景
+- 结合角色姓名、境界、感悟、灵根等背景
 - 具体写出闭关年限、感悟、瓶颈、破境细节以及天地异象
 - 若为大境界突破，要强调劫难与蜕变；若为小境界，突出积累与打磨
 - 可引用诗句/心声，但不要使用列表或标题
@@ -15,7 +15,7 @@ id: breakthrough-story
 
 ## user
 
-【角色】{{name}}｜{{realm}}{{realmStage}}｜感悟 {{insight}} 灵根：{{roots}} 功法：{{cultivations}} 气运：{{fates}} 年龄：{{age}}，寿元：{{lifespan}}
+【角色】{{name}}｜{{realm}}{{realmStage}}｜感悟 {{insight}} 灵根：{{roots}} 气运：{{fates}} 年龄：{{age}}，寿元：{{lifespan}}
 
 【闭关】本次闭关 {{yearsSpent}} 年。【突破】从 {{fromRealm}}{{fromStage}} → {{toRealm}}{{toStage}}，{{breakthroughType}}，寿元提升 {{lifespanGained}} 年。【收获】{{attributeGain}}。
 

@@ -22,9 +22,22 @@ describe('chat message creation after legacy battle sharing retirement', () => {
     expect(
       WorldChatCreateMessageSchema.safeParse({
         messageType: 'item_showcase',
-        itemType: 'material',
+        revision: 0,
         itemId: 'material-id',
       }).success,
     ).toBe(true);
+  });
+  it('requires a fresh inventory reference and rejects client snapshots and legacy types', () => {
+    const input = { messageType: 'item_showcase', itemId: 'item', revision: 2 };
+    for (const change of [
+      { revision: undefined },
+      { revision: -1 },
+      { revision: 1.5 },
+      { snapshot: { name: '伪造道装' } },
+      { itemType: 'artifact' },
+    ])
+      expect(
+        WorldChatCreateMessageSchema.safeParse({ ...input, ...change }).success,
+      ).toBe(false);
   });
 });

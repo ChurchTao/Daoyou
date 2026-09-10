@@ -2,7 +2,6 @@ import type { DbTransaction } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository';
-import { getPlayerLoadoutByCultivatorId } from '@server/lib/services/cultivator/CultivatorLoadoutReader';
 import { getPlayerPreHeavenFates } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import type { MarketBuyInput } from '@shared/contracts/market';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
@@ -60,7 +59,6 @@ export async function executeMarketSellCommand(
     >;
   },
   tx: DbTransaction,
-  cultivatorId: string,
 ): Promise<{
   result: SellConfirmResponse;
   resourceChanges: ResourceChangeDescriptor[];
@@ -81,15 +79,6 @@ export async function executeMarketSellCommand(
     operation: 'remove-items',
     payload: { idKey: 'id', ids: result.soldItems.map((item) => item.id) },
   });
-  if (result.itemType === 'artifact') {
-    const loadout = await getPlayerLoadoutByCultivatorId(cultivatorId, tx);
-    resourceChanges.push({
-      resourceTopic: 'player.loadout',
-      eventType: 'loadout.market.sold',
-      operation: 'replace',
-      payload: loadout,
-    });
-  }
   return {
     result,
     resourceChanges,
@@ -150,7 +139,6 @@ export async function confirmMarketSell(args: {
           const command = await executeMarketSellCommand(
             prepared,
             tx,
-            args.actor.cultivatorId,
           );
           afterCommit = command.afterCommit;
           return command;

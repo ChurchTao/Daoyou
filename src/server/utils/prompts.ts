@@ -15,7 +15,6 @@ export type RetreatStoryCultivator = Pick<
   | 'cultivation_progress'
   | 'spiritual_roots'
   | 'pre_heaven_fates'
-  | 'cultivations'
 >;
 
 function summarizeRootElements(
@@ -56,8 +55,6 @@ export function getBreakthroughStoryPrompt({
   summary,
 }: BreakthroughStoryPayload): [string, string] {
   const roots = summarizeRootElements(cultivator);
-  const cultivations =
-    cultivator.cultivations?.map((cult) => cult.name).join('，') ?? '无';
   const fates = summarizeFateNames(cultivator);
   const attributeGainParts: string[] = [];
   if (summary.naturalAttributeGrowth && summary.naturalAttributeGrowth > 0) {
@@ -80,7 +77,6 @@ export function getBreakthroughStoryPrompt({
     realmStage: cultivator.realm_stage,
     insight: cultivator.cultivation_progress?.comprehension_insight ?? 0,
     roots,
-    cultivations,
     fates,
     age: cultivator.age,
     lifespan: cultivator.lifespan,
@@ -130,8 +126,6 @@ export function getLifespanExhaustedStoryPrompt({
     realmStage: cultivator.realm_stage,
     insight: cultivator.cultivation_progress?.comprehension_insight ?? 0,
     roots,
-    cultivations:
-      cultivator.cultivations?.map((c) => c.name).join('，') || '无',
     fates,
     age: cultivator.age,
     lifespan: cultivator.lifespan,

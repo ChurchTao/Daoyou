@@ -37,7 +37,6 @@ export function InventoryView() {
     condition,
     spiritStones,
     inventory,
-    equipped,
     isLoading,
     isTabLoading,
     isTabRefreshing,
@@ -68,11 +67,7 @@ export function InventoryView() {
   } = useInventoryViewModel();
 
   const activeResourceReady =
-    activeTab === 'artifacts'
-      ? Boolean(equipped)
-      : activeTab === 'consumables'
-        ? Boolean(realm && condition)
-        : true;
+    activeTab === 'consumables' ? Boolean(realm && condition) : true;
 
   // 加载状态
   if (isLoading && (!cultivatorId || !activeResourceReady)) {
@@ -143,7 +138,7 @@ export function InventoryView() {
           <GameLoadingState message="正在刷新当前分栏……" variant="inline" />
         ) : null}
 
-        {activeTab === 'artifacts' && equipped && (
+        {activeTab === 'artifacts' && (
           <ArtifactsTab
             artifacts={inventory.artifacts}
             isLoading={isTabLoading && inventory.artifacts.length === 0}

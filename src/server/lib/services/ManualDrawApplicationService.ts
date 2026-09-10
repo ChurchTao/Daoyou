@@ -2,9 +2,6 @@ import type { DbTransaction } from '@server/lib/drizzle/db';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
 import { ManualDrawService } from './ManualDrawService';
 import {
-  getPlayerLoadoutByCultivatorId,
-} from '@server/lib/services/cultivator/CultivatorLoadoutReader';
-import {
   redisLockKeys,
   withRedisLock,
 } from '@server/lib/redis/lock';
@@ -67,19 +64,8 @@ export async function executeManualDrawCommand(args: {
     args.prepared,
     args.tx,
   );
-  const loadout = await getPlayerLoadoutByCultivatorId(
-    args.cultivatorId,
-    args.tx,
-  );
   return {
     result,
-    resourceChanges: [
-      {
-        resourceTopic: 'player.loadout',
-        eventType: 'loadout.manual_draw.completed',
-        operation: 'replace',
-        payload: loadout,
-      },
-    ],
+    resourceChanges: [],
   };
 }

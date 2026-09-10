@@ -13,7 +13,6 @@ import {
   useCultivatorCondition,
   useCultivatorCurrency,
   useCultivatorIdentity,
-  usePlayerLoadout,
   usePlayerSession,
 } from '@app/lib/resources/player';
 import { isAttributeResetTalismanScenario } from '@shared/config/attributeResetTalisman';
@@ -35,7 +34,6 @@ import {
 import type {
   Artifact,
   Consumable,
-  EquippedItems,
   Material,
 } from '@shared/types/cultivator';
 import { useCallback, useMemo, useState } from 'react';
@@ -109,7 +107,6 @@ export interface UseInventoryViewModelReturn {
   condition: CultivatorCondition | undefined;
   spiritStones: number | undefined;
   inventory: InventoryByTab;
-  equipped: EquippedItems | null;
   isLoading: boolean;
   isTabLoading: boolean;
   isTabRefreshing: boolean;
@@ -185,17 +182,14 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
   const profile = useCultivatorIdentity(needsViewerFacts);
   const conditionQuery = useCultivatorCondition(needsViewerFacts);
   const currency = useCultivatorCurrency();
-  const loadout = usePlayerLoadout(activeTab === 'artifacts');
   const cultivatorId = session.data?.activeCultivator?.id ?? null;
   const realm = profile.data?.cultivator.realm;
   const condition = conditionQuery.data;
   const spiritStones = currency.data?.spiritStones;
-  const equipped = loadout.data?.equipped ?? null;
   const isLoading =
     currency.loading ||
     session.loading ||
-    (needsViewerFacts && (profile.loading || conditionQuery.loading)) ||
-    (activeTab === 'artifacts' && loadout.loading);
+    (needsViewerFacts && (profile.loading || conditionQuery.loading));
   const note = session.data?.note;
 
   const { pushToast } = useInkUI();
@@ -563,7 +557,6 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     condition,
     spiritStones,
     inventory,
-    equipped,
     isLoading,
     isTabLoading,
     isTabRefreshing,

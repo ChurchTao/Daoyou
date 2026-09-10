@@ -52,7 +52,6 @@ export const RESOURCE_TOPIC_SCOPE_KIND = {
   'player.condition': 'cultivator',
   'player.progress': 'cultivator',
   'player.currency': 'cultivator',
-  'player.loadout': 'cultivator',
   'player.combat-v6-build': 'cultivator',
   'player.mail-summary': 'cultivator',
   'player.task-summary': 'cultivator',

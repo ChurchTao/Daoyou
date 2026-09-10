@@ -10,8 +10,7 @@ import {
 
 export type CultivatorDisplayInput = Pick<Cultivator,
   'id' | 'name' | 'attributes' | 'realm' | 'realm_stage' | 'condition'
-  | 'cultivations' | 'sect' | 'equipped'> & {
-  inventory: Pick<Cultivator['inventory'], 'artifacts'>;
+  | 'sect'> & {
   combatV6ResourceAuthority?: CombatV6ResourceAuthority & { build: CharacterDisplayBuild | null };
 };
 

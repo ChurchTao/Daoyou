@@ -2,7 +2,6 @@ import {
   playerCombatV6BuildResource,
   playerConditionResource,
   playerCurrencyResource,
-  playerLoadoutResource,
   playerMailSummaryResource,
   playerProfileResource,
   playerProgressResource,
@@ -31,10 +30,6 @@ export function useCultivatorProgress(enabled = true) {
 
 export function useCultivatorCurrency(enabled = true) {
   return useSingletonResource(playerCurrencyResource, enabled);
-}
-
-export function usePlayerLoadout(enabled = true) {
-  return useSingletonResource(playerLoadoutResource, enabled);
 }
 
 export function useCombatV6Build(enabled = true) {

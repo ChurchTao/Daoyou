@@ -15,7 +15,6 @@ import {
   readResourceVersions,
   readScopeVersion,
 } from '@server/lib/repositories/playerStateRepository';
-import { getPlayerLoadoutByCultivatorId } from '@server/lib/services/cultivator/CultivatorLoadoutReader';
 import { getPlayerIdentityCultivatorById } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import { QiService } from '@server/lib/services/QiService';
 import { getCombatV6BuildView } from '@server/lib/services/combat-v6/CombatV6BuildService';
@@ -155,8 +154,6 @@ const readers: {
       qiLastRefreshedAt: qiState.qiLastRefreshedAt?.toISOString() ?? null,
     };
   },
-  loadout: ({ cultivatorId, q }) =>
-    getPlayerLoadoutByCultivatorId(cultivatorId, q),
   'combat-v6-build': ({ cultivatorId, q }) =>
     getCombatV6BuildView(cultivatorId, q),
   'mail-summary': ({ cultivatorId, q }) =>

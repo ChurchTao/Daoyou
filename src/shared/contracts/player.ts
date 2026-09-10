@@ -8,13 +8,6 @@ import type {
   ResourceScope,
 } from './resources';
 
-export type PlayerLoadout = {
-  skills: Cultivator['skills'];
-  cultivations: Cultivator['cultivations'];
-  artifacts: Cultivator['inventory']['artifacts'];
-  equipped: Cultivator['equipped'];
-};
-
 export type CultivatorInspectionData = Pick<
   Cultivator,
   | 'id'
@@ -28,14 +21,10 @@ export type CultivatorInspectionData = Pick<
   | 'attributes'
   | 'spiritual_roots'
   | 'pre_heaven_fates'
-  | 'cultivations'
-  | 'skills'
-  | 'equipped'
   | 'condition'
-  | 'sect'
 > & {
-  combatPanel: import('@shared/engine/combat-v6/projection').CharacterPanelV1;
-  inventory: Pick<Cultivator['inventory'], 'artifacts'>;
+  combatPanel: import('@shared/engine/combat-v6/projection').CharacterPanelV1 | null;
+  build: import('@shared/combat-v6/public-build').PublicCombatV6Build | null;
 };
 
 export type PlayerIdentityCultivator = Omit<
@@ -62,7 +51,6 @@ export const PLAYER_RESOURCE_KEYS = [
   'condition',
   'progress',
   'currency',
-  'loadout',
   'combat-v6-build',
   'mail-summary',
   'task-summary',
@@ -90,7 +78,6 @@ export interface PlayerResourceMap {
     spiritStones: number;
     reputation: number;
   };
-  loadout: PlayerLoadout;
   'combat-v6-build': CombatV6BuildViewV1;
   'mail-summary': {
     unreadCount: number;

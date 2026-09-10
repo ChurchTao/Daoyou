@@ -12,11 +12,6 @@ import { z } from 'zod';
 import { CombatV6BuildInitializationStatusSchema } from '../combatV6';
 import { BreakthroughBattlePointerSchema } from '../combatV6Breakthrough';
 import type { PlayerResourceMap } from '../player';
-import {
-  artifactSchema,
-  cultivationTechniqueSchema,
-  skillSchema,
-} from './inventory';
 import type { ResourceChange } from './registry';
 
 const combatV6SlotSchema = z.union([
@@ -92,7 +87,6 @@ export const PLAYER_RESOURCE_TOPICS = [
   'player.condition',
   'player.progress',
   'player.currency',
-  'player.loadout',
   'player.combat-v6-build',
   'player.mail-summary',
   'player.task-summary',
@@ -107,7 +101,6 @@ export interface PlayerResourceDataMap {
   'player.condition': PlayerResourceMap['condition'];
   'player.progress': PlayerResourceMap['progress'];
   'player.currency': PlayerResourceMap['currency'];
-  'player.loadout': PlayerResourceMap['loadout'];
   'player.combat-v6-build': PlayerResourceMap['combat-v6-build'];
   'player.mail-summary': PlayerResourceMap['mail-summary'];
   'player.task-summary': PlayerResourceMap['task-summary'];
@@ -552,20 +545,6 @@ export const PLAYER_RESOURCE_DATA_SCHEMAS = {
       reputation: z.number(),
       qi: z.number(),
       qiLastRefreshedAt: z.string().nullable(),
-    })
-    .strict(),
-  'player.loadout': z
-    .object({
-      skills: z.array(skillSchema),
-      cultivations: z.array(cultivationTechniqueSchema),
-      artifacts: z.array(artifactSchema),
-      equipped: z
-        .object({
-          weapon: z.string().nullable(),
-          armor: z.string().nullable(),
-          accessory: z.string().nullable(),
-        })
-        .strict(),
     })
     .strict(),
   'player.combat-v6-build': z

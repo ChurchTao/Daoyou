@@ -10,11 +10,7 @@ import { useCultivatorDisplayProjection } from '@app/components/feature/cultivat
 import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
 import { toFateDisplayModel } from '@app/components/feature/fates/FateDisplayAdapter';
 import { FateEffectInlineList } from '@app/components/feature/fates/FateEffectInlineList';
-import {
-  AffixInlineList,
-  toProductDisplayModel,
-  type ProductRecordLike,
-} from '@app/components/feature/products';
+import { CurrentCultivatorBuild } from '@app/components/feature/cultivator-inspection/CurrentCultivatorBuild';
 import { SectIdentityDetails } from '@app/components/feature/sect/SectIdentity';
 import { useActiveSectContextQuery } from '@app/components/feature/sect/sectResources';
 import { useSectIdentityDialog } from '@app/components/feature/sect/useSectIdentityDialog';
@@ -32,7 +28,6 @@ import { ItemCard } from '@app/components/ui/ItemCard';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { cn } from '@shared/lib/cn';
 import { CHARACTER_ATTRIBUTE_LABELS } from '@shared/lib/cultivatorDisplay';
-import { getEquipmentSlotInfo } from '@shared/lib/gameConceptDisplay';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
@@ -145,9 +140,6 @@ export function CultivatorOverviewPanel() {
   if (!cultivator) {
     return <InkNotice>尚无角色资料，先去觉醒灵根，再来凝视真形。</InkNotice>;
   }
-  const inventory = cultivator.inventory;
-  const skills = cultivator.skills;
-  const equipped = cultivator.equipped;
 
   const handleReincarnate = async () => {
     try {
@@ -230,13 +222,6 @@ export function CultivatorOverviewPanel() {
     });
   };
 
-  const equippedItems = inventory.artifacts.filter(
-    (item) =>
-      item.id &&
-      (equipped.weapon === item.id ||
-        equipped.armor === item.id ||
-        equipped.accessory === item.id),
-  );
 
   return (
     <div className="space-y-5">
@@ -395,103 +380,7 @@ export function CultivatorOverviewPanel() {
 
       <BodyCultivationEntrySection />
 
-      <GameSceneSection title="所御法宝">
-        {equippedItems.length > 0 ? (
-          <InkList>
-            {equippedItems.map((item) => {
-              const product = toProductDisplayModel(item as ProductRecordLike);
-              const slotInfo = getEquipmentSlotInfo(item.slot);
-
-              return (
-                <ItemCard
-                  key={item.id}
-                  icon={slotInfo.icon}
-                  name={item.name}
-                  quality={item.quality}
-                  badgeExtra={
-                    <>
-                      <InkBadge tone="default">{item.element}</InkBadge>
-                      <InkBadge tone="default">{slotInfo.label}</InkBadge>
-                    </>
-                  }
-                  meta={
-                    <div className="space-y-1">
-                      <AffixInlineList affixes={product.affixes} />
-                      <div className="text-ink-secondary flex flex-wrap gap-2 text-sm">
-                        <span className="text-ink font-medium">已装备</span>
-                      </div>
-                    </div>
-                  }
-                  description={item.description}
-                  layout="col"
-                />
-              );
-            })}
-          </InkList>
-        ) : (
-          <InkNotice>尚未佩戴法宝</InkNotice>
-        )}
-      </GameSceneSection>
-
-      <GameSceneSection title="所修功法">
-        {(cultivator.cultivations || []).length === 0 ? (
-          <InkNotice>尚无功法</InkNotice>
-        ) : (
-          <InkList>
-            {cultivator.cultivations.map((technique) => {
-              const product = toProductDisplayModel(
-                technique as ProductRecordLike,
-              );
-              return (
-                <ItemCard
-                  key={technique.id ?? technique.name}
-                  icon="📘"
-                  name={technique.name}
-                  quality={technique.quality}
-                  badgeExtra={
-                    technique.element ? (
-                      <InkBadge tone="default">{technique.element}</InkBadge>
-                    ) : undefined
-                  }
-                  meta={<AffixInlineList affixes={product.affixes} />}
-                  description={technique.description}
-                  layout="col"
-                />
-              );
-            })}
-          </InkList>
-        )}
-      </GameSceneSection>
-
-      <GameSceneSection title="所修神通">
-        {skills.length === 0 ? (
-          <InkNotice>尚无神通</InkNotice>
-        ) : (
-          <InkList>
-            {skills.map((skill) => {
-              const product = toProductDisplayModel(skill as ProductRecordLike);
-              return (
-                <ItemCard
-                  key={skill.id ?? skill.name}
-                  icon="📜"
-                  name={skill.name}
-                  quality={skill.quality}
-                  badgeExtra={
-                    <InkBadge tone="default">{skill.element}</InkBadge>
-                  }
-                  meta={
-                    <div className="space-y-1">
-                      <AffixInlineList affixes={product.affixes} />
-                    </div>
-                  }
-                  description={skill.description}
-                  layout="col"
-                />
-              );
-            })}
-          </InkList>
-        )}
-      </GameSceneSection>
+      <CurrentCultivatorBuild cultivatorId={cultivator.id!} />
 
       <div className="bg-ink/5 rounded-sm p-2 text-right">
         <p className="text-ink-secondary text-sm leading-7">

@@ -18,7 +18,7 @@ function chunkPairs<T>(items: T[]): T[][] {
 export function CultivatorAttributeTable({
   cultivator,
 }: {
-  cultivator: CultivatorInspectionData;
+  cultivator: CultivatorInspectionData & { combatPanel: NonNullable<CultivatorInspectionData['combatPanel']> };
 }) {
   const { primaryRows, secondaryRows } = useMemo(() => {
     const { primaryRows, secondaryAll } = characterDisplayRows(

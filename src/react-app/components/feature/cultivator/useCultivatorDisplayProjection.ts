@@ -6,7 +6,6 @@ import {
 import {
   useCultivatorCondition,
   useCultivatorIdentity,
-  usePlayerLoadout,
 } from '@app/lib/resources/player';
 import {
   getEstimatedServerNowMs,
@@ -30,7 +29,7 @@ import { useMemo } from 'react';
 
 export type CultivatorDisplayProjectionInput = PlayerIdentityCultivator &
   Omit<CultivatorDisplayInput, 'condition'> &
-  Pick<Cultivator, 'skills' | 'spiritual_roots'> &
+  Pick<Cultivator, 'spiritual_roots'> &
   Pick<Cultivator, 'pre_heaven_fates'> & {
     condition: CultivatorCondition & { combatV6: CombatV6ResourceAuthority };
   };
@@ -59,7 +58,6 @@ function buildProjectedResourceView(resource: {
 export function useCultivatorDisplayProjection(enabled = true) {
   const profile = useCultivatorIdentity(enabled);
   const condition = useCultivatorCondition(enabled);
-  const loadout = usePlayerLoadout(enabled);
   const sectContext = useActiveSectContextQuery(enabled);
   const sectProgression = useSectProgressionQuery(
     enabled && sectContext.hasSect,
@@ -86,7 +84,6 @@ export function useCultivatorDisplayProjection(enabled = true) {
     if (
       !identity ||
       !condition.data?.combatV6 ||
-      !loadout.data ||
       !sectReady
     ) {
       return null;
@@ -94,10 +91,6 @@ export function useCultivatorDisplayProjection(enabled = true) {
     const cultivator: CultivatorDisplayProjectionInput = {
       ...identity,
       condition: { ...condition.data, combatV6: condition.data.combatV6 },
-      skills: loadout.data.skills,
-      cultivations: loadout.data.cultivations,
-      equipped: loadout.data.equipped,
-      inventory: { artifacts: loadout.data.artifacts },
       sect,
     };
     const display = { attrs: condition.data.combatV6.attrs };
@@ -112,7 +105,7 @@ export function useCultivatorDisplayProjection(enabled = true) {
       recoveryPaused: condition.data.combatV6.recoveryPaused,
       fateContext,
     };
-  }, [condition.data, identity, loadout.data, sect, sectReady]);
+  }, [condition.data, identity, sect, sectReady]);
 
   const estimatedNowMs = getEstimatedServerNowMs();
   const initialProjection = useMemo(
@@ -188,7 +181,6 @@ export function useCultivatorDisplayProjection(enabled = true) {
     enabled &&
     (profile.loading ||
       condition.loading ||
-      loadout.loading ||
       sectContext.sessionLoading ||
       (sectContext.hasSect &&
         (sectContext.loading || sectProgression.loading)));
@@ -196,7 +188,6 @@ export function useCultivatorDisplayProjection(enabled = true) {
     profile.error ??
     condition.error ??
     (condition.data && !condition.data.combatV6 ? '角色战斗属性尚未加载' : undefined) ??
-    loadout.error ??
     sectContext.sessionError ??
     sectContext.error ??
     (sectContext.hasSect ? sectProgression.error : undefined);

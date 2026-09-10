@@ -1,104 +1,94 @@
-import {
-  AbilityListCard,
-  ArtifactListCard,
-  toProductDisplayModel,
-  type ProductRecordLike,
-} from '@app/components/feature/products';
-import { InkList, InkNotice } from '@app/components/ui';
-import type { CultivatorInspectionData } from '@shared/contracts/player';
-import type {
-  Artifact,
-  CultivationTechnique,
-  Skill,
-} from '@shared/types/cultivator';
-
-function getEquippedArtifacts(cultivator: CultivatorInspectionData): Artifact[] {
-  const artifacts = cultivator.inventory?.artifacts ?? [];
-  const equippedIds = [
-    cultivator.equipped?.weapon,
-    cultivator.equipped?.armor,
-    cultivator.equipped?.accessory,
-  ].filter(Boolean);
-
-  return equippedIds.flatMap((id) => {
-    const artifact = artifacts.find((item) => item.id === id);
-    return artifact ? [artifact] : [];
-  });
-}
-
-function toGongfaDisplayModel(technique: CultivationTechnique) {
-  return toProductDisplayModel({
-    ...(technique as ProductRecordLike),
-    productType: 'gongfa',
-  });
-}
-
-function toSkillDisplayModel(skill: Skill) {
-  return toProductDisplayModel({
-    ...(skill as ProductRecordLike),
-    productType: 'skill',
-  });
-}
+import { ItemSlot } from '@app/components/feature/items/ItemSlot';
+import { InkNotice } from '@app/components/ui';
+import type { PublicCombatV6Build } from '@shared/combat-v6/public-build';
+import { DAO_EQUIPMENT_SLOTS } from '@shared/engine/combat-v6/equipment';
+import { itemDefinition } from '@shared/inventory';
+import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
 
 export function CultivatorLoadoutSections({
-  cultivator,
+  build,
 }: {
-  cultivator: CultivatorInspectionData;
+  build: PublicCombatV6Build | null;
 }) {
-  const equippedArtifacts = getEquippedArtifacts(cultivator);
-  const cultivations = cultivator.cultivations ?? [];
-  const skills = cultivator.skills ?? [];
-
+  if (!build) return <InkNotice>尚未初始化新版构筑</InkNotice>;
   return (
-    <>
+    <div className="space-y-5">
+      <p className="text-sm">
+        {build.sectName} · {build.pathName}
+      </p>
       <section className="space-y-3">
-        <h5 className="text-ink font-semibold">法宝</h5>
-        {equippedArtifacts.length === 0 ? (
-          <InkNotice>尚未佩戴法宝</InkNotice>
-        ) : (
-          <InkList>
-            {equippedArtifacts.map((artifact) => (
-              <ArtifactListCard
-                key={artifact.id ?? artifact.name}
-                artifact={artifact}
-                equipped
-              />
-            ))}
-          </InkList>
-        )}
+        <h5 className="font-semibold">所御道装</h5>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {DAO_EQUIPMENT_SLOTS.map((slot) => {
+            const equipment = build.equipment[slot];
+            return (
+              <div key={slot} className="space-y-1">
+                <ItemSlot
+                  className="w-full"
+                  emptyLabel="未装备"
+                  item={
+                    equipment
+                      ? {
+                          definitionId: 'equipment.v6',
+                          name: equipment.name,
+                          quantity: 1,
+                          instanceData: equipment,
+                        }
+                      : undefined
+                  }
+                />
+                <p className="text-ink-secondary text-center text-xs">
+                  {EQUIPMENT_SLOT_NAMES[slot]}
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </section>
-
       <section className="space-y-3">
-        <h5 className="text-ink font-semibold">功法</h5>
-        {cultivations.length === 0 ? (
-          <InkNotice>尚无功法</InkNotice>
-        ) : (
-          <div className="space-y-2">
-            {cultivations.map((technique) => (
-              <AbilityListCard
-                key={technique.id ?? technique.name}
-                product={toGongfaDisplayModel(technique)}
-              />
-            ))}
+        <h5 className="font-semibold">已装配功法</h5>
+        {build.manuals.length ? (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {build.manuals.map(({ slot, manualId }) => {
+              const definition = itemDefinition('jade.' + manualId);
+              return (
+                <div key={slot}>
+                  <ItemSlot
+                    className="w-full"
+                    item={{
+                      definitionId: definition.id,
+                      name: definition.name.replace(/玉简$/, ''),
+                      quantity: 1,
+                      instanceData: null,
+                    }}
+                  />
+                  <p className="text-center text-xs">
+                    功法位 <span className="font-mono">{slot}</span>
+                  </p>
+                </div>
+              );
+            })}
           </div>
-        )}
-      </section>
-
-      <section className="space-y-3">
-        <h5 className="text-ink font-semibold">神通</h5>
-        {skills.length === 0 ? (
-          <InkNotice>尚无神通</InkNotice>
         ) : (
-          <div className="space-y-2">
-            {skills.map((skill) => (
-              <AbilityListCard
-                key={skill.id ?? skill.name}
-                product={toSkillDisplayModel(skill)}
-              />
-            ))}
-          </div>
+          <InkNotice>尚未装配功法</InkNotice>
         )}
       </section>
-    </>
+      <section className="space-y-3">
+        <h5 className="font-semibold">当前可用技能</h5>
+        {build.skills.map((skill) => (
+          <details
+            key={skill.id}
+            className="border-ink/10 border-b pb-2 text-sm"
+          >
+            <summary className="cursor-pointer">
+              {skill.name} · Lv.<span className="font-mono">{skill.level}</span>
+            </summary>
+            <p className="text-ink-secondary mt-2 leading-6">
+              {skill.description}
+            </p>
+          </details>
+        ))}
+      </section>
+    </div>
   );
 }

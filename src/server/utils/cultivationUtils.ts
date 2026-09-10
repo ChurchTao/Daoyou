@@ -10,16 +10,12 @@ import {
   EPIPHANY_INSIGHT_RANGE,
   FAILURE_LOSS_PARAMS,
   MAX_NORMAL_INSIGHT,
-  NO_TECHNIQUE_MULTIPLIER,
   NORMAL_BREAKTHROUGH_THRESHOLD,
   NORMAL_INSIGHT_SCALE,
   PERFECT_BREAKTHROUGH_INSIGHT,
   RANDOM_FACTOR_LOW,
   RANDOM_FACTOR_RANGE,
   SPIRITUAL_ROOT_BASE,
-  TECHNIQUE_FALLBACK_QUALITY,
-  TECHNIQUE_MIN_MULTIPLIER,
-  TECHNIQUE_QUALITY_MULTIPLIERS,
   YEARS_MULTIPLIER_BASE,
   YEARS_MULTIPLIER_SCALE,
 } from '@shared/config/cultivationTuning';
@@ -154,29 +150,6 @@ export function calculateSpiritualRootMultiplier(
 }
 
 /**
- * 获取功法系数
- */
-export function getCultivationTechniqueMultiplier(
-  cultivator: Pick<Cultivator, 'cultivations'>,
-): number {
-  if (!cultivator.cultivations || cultivator.cultivations.length === 0) {
-    return NO_TECHNIQUE_MULTIPLIER;
-  }
-
-  let maxMultiplier = TECHNIQUE_MIN_MULTIPLIER;
-  for (const cultivation of cultivator.cultivations) {
-    const multiplier =
-      TECHNIQUE_QUALITY_MULTIPLIERS[cultivation.quality ?? TECHNIQUE_FALLBACK_QUALITY] ??
-      TECHNIQUE_MIN_MULTIPLIER;
-    if (multiplier > maxMultiplier) {
-      maxMultiplier = multiplier;
-    }
-  }
-
-  return maxMultiplier;
-}
-
-/**
  * 计算年限系数
  * 公式：YEARS_MULTIPLIER_BASE + YEARS_MULTIPLIER_SCALE × √(log₁₀(years + 1))
  */
@@ -222,7 +195,6 @@ export function calculateCultivationExp(
     | 'realm_stage'
     | 'cultivation_progress'
     | 'spiritual_roots'
-    | 'cultivations'
   >,
   years: number,
   rng: () => number = Math.random,
@@ -240,9 +212,6 @@ export function calculateCultivationExp(
     cultivator.spiritual_roots,
   );
 
-  // 3. 功法系数
-  const techniqueMultiplier = getCultivationTechniqueMultiplier(cultivator);
-
   // 4. 年限系数
   const yearsMultiplier = calculateYearsMultiplier(years);
 
@@ -257,7 +226,6 @@ export function calculateCultivationExp(
   let exp_gained =
     baseExp *
     spiritualRootMultiplier *
-    techniqueMultiplier *
     yearsMultiplier *
     randomFactor;
 

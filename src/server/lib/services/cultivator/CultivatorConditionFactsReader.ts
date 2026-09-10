@@ -6,7 +6,6 @@ import {
 } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
-import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { loadCultivatorSectState } from '@server/lib/repositories/sectRepository';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import type { CultivatorDisplayInput } from '@shared/lib/cultivatorDisplay';
@@ -15,7 +14,6 @@ import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { CultivationProgress, Cultivator } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
 import { readCombatV6ConditionAuthority } from '../combat-v6/CombatV6ConditionAuthority';
-import { mapLoadoutFromProducts } from './CultivatorLoadoutReader';
 import {
   getCultivatorPreHeavenFates,
   mapSpiritualRoots,
@@ -59,7 +57,7 @@ export async function loadPlayerRetreatFacts(
     .limit(1);
   if (!row) return null;
 
-  const [roots, fates, sect, gongfa, artifacts] = await runDbTasks(q, [
+  const [roots, fates, sect] = await runDbTasks(q, [
     () =>
       q
         .select()
@@ -67,12 +65,7 @@ export async function loadPlayerRetreatFacts(
         .where(eq(schema.spiritualRoots.cultivatorId, cultivatorId)),
     () => getCultivatorPreHeavenFates(cultivatorId, q),
     () => loadCultivatorSectState(cultivatorId, q),
-    () =>
-      creationProductRepository.findEquippedByType(cultivatorId, 'gongfa', q),
-    () =>
-      creationProductRepository.findEquippedByType(cultivatorId, 'artifact', q),
   ]);
-  const loadout = mapLoadoutFromProducts([gongfa, artifacts]);
   const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(
     cultivatorId,
     q,
@@ -104,9 +97,6 @@ export async function loadPlayerRetreatFacts(
     ),
     condition:
       (row.condition as CultivatorCondition | null | undefined) ?? undefined,
-    cultivations: loadout.cultivations,
-    equipped: loadout.equipped,
-    inventory: { artifacts: loadout.artifacts },
     sect,
   };
 }
@@ -145,15 +135,10 @@ export async function loadPlayerInnRecoveryFacts(
     .limit(1);
   if (!row) return null;
 
-  const [fates, sect, gongfa, artifacts] = await runDbTasks(q, [
+  const [fates, sect] = await runDbTasks(q, [
     () => getCultivatorPreHeavenFates(cultivatorId, q),
     () => loadCultivatorSectState(cultivatorId, q),
-    () =>
-      creationProductRepository.findEquippedByType(cultivatorId, 'gongfa', q),
-    () =>
-      creationProductRepository.findEquippedByType(cultivatorId, 'artifact', q),
   ]);
-  const loadout = mapLoadoutFromProducts([gongfa, artifacts]);
   const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(
     cultivatorId,
     q,
@@ -181,9 +166,6 @@ export async function loadPlayerInnRecoveryFacts(
     ),
     spirit_stones: row.spiritStones,
     pre_heaven_fates: fates,
-    cultivations: loadout.cultivations,
-    equipped: loadout.equipped,
-    inventory: { artifacts: loadout.artifacts },
     sect,
   };
 }
@@ -217,7 +199,7 @@ export async function loadPlayerConsumableOperationFacts(
   if (!row) return null;
 
   const inDungeon = await hasActiveDungeon(cultivatorId);
-  const [roots, fates, sect, gongfa, artifacts] = await runDbTasks(q, [
+  const [roots, fates, sect] = await runDbTasks(q, [
     () =>
       q
         .select()
@@ -228,24 +210,7 @@ export async function loadPlayerConsumableOperationFacts(
       inDungeon
         ? Promise.resolve(undefined)
         : loadCultivatorSectState(cultivatorId, q),
-    () =>
-      inDungeon
-        ? Promise.resolve([])
-        : creationProductRepository.findEquippedByType(
-            cultivatorId,
-            'gongfa',
-            q,
-          ),
-    () =>
-      inDungeon
-        ? Promise.resolve([])
-        : creationProductRepository.findEquippedByType(
-            cultivatorId,
-            'artifact',
-            q,
-          ),
   ]);
-  const loadout = mapLoadoutFromProducts([gongfa, artifacts]);
   const combatV6ResourceAuthority = await readCombatV6ConditionAuthority(
     cultivatorId,
     q,
@@ -275,9 +240,6 @@ export async function loadPlayerConsumableOperationFacts(
     ),
     condition:
       (row.condition as CultivatorCondition | null | undefined) ?? undefined,
-    cultivations: loadout.cultivations,
-    equipped: loadout.equipped,
-    inventory: { artifacts: loadout.artifacts },
     sect,
   };
 }

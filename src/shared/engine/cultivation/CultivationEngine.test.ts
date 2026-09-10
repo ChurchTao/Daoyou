@@ -581,3 +581,14 @@ describe('CultivationEngine cultivation boost', () => {
     );
   });
 });
+
+describe('retired legacy manual retreat multiplier', () => {
+  it('old manual qualities do not alter retreat rewards', () => {
+    const baseline = performCultivation(createCultivator(), 1, () => 0.5);
+    for (const quality of ['凡品', '神品'] as const) {
+      const character = createCultivator();
+      character.cultivations = [{ name: '旧功法', quality }];
+      expect(performCultivation(character, 1, () => 0.5).summary).toEqual(baseline.summary);
+    }
+  });
+});
