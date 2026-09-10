@@ -1,33 +1,29 @@
 import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
-import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import * as schema from '@server/lib/drizzle/schema';
 import { FRIEND_MAIL_TALISMAN_SCENARIO } from '@shared/config/socialConfig';
-import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
+import {
+  mailGiftBlockReason,
+  type SendMailRequest,
+} from '@shared/contracts/mail';
+import { itemDefinition, ItemGrantSchema } from '@shared/inventory';
 import type { MailAttachment } from '@shared/types/mail';
 import { and, eq } from 'drizzle-orm';
-import {
-  assertAuctionListableItem,
-  AuctionServiceError,
-  getAuctionItemSnapshot,
-  type AuctionItemType,
-} from './AuctionService';
 import { assertFriend, FriendServiceError } from './FriendService';
+import {
+  assertInventoryIdle,
+  InventoryError,
+  inventoryItemOf,
+  saveInventoryPlan,
+} from './InventoryService';
 import { MailService } from './MailService';
 import {
   consumeFirstTalismanByScenario,
   TalismanScenarioError,
 } from './TalismanScenarioService';
 
-export type PlayerMailAttachmentInput = {
-  itemType: AuctionItemType;
-  itemId: string;
-  quantity: number;
-};
-
-export type PlayerMailInventorySettlement =
-  | { itemType: 'artifact'; itemId: string; remaining: Artifact | null }
-  | { itemType: 'material'; itemId: string; remaining: Material | null }
-  | { itemType: 'consumable'; itemId: string; remaining: Consumable | null };
+export type PlayerMailAttachmentInput = NonNullable<
+  SendMailRequest['attachment']
+>;
 
 export class PlayerMailServiceError extends Error {
   constructor(
@@ -65,132 +61,70 @@ async function assertActiveRecipient(
 }
 
 async function detachAttachment(
-  senderCultivatorId: string,
-  attachment: PlayerMailAttachmentInput,
+  owner: string,
+  input: PlayerMailAttachmentInput,
   tx: DbTransaction,
-): Promise<{
-  attachment: MailAttachment;
-  settlement: PlayerMailInventorySettlement;
-}> {
-  if (attachment.quantity < 1) {
-    throw new PlayerMailServiceError(400, '附件数量必须至少为 1');
-  }
-
-  const item = await getAuctionItemSnapshot(
-    attachment.itemType,
-    attachment.itemId,
-    senderCultivatorId,
+): Promise<MailAttachment> {
+  await assertInventoryIdle(owner);
+  const before = (
+    await tx
+      .select()
+      .from(schema.inventoryItems)
+      .where(
+        and(
+          eq(schema.inventoryItems.cultivatorId, owner),
+          eq(schema.inventoryItems.location, 'bag'),
+        ),
+      )
+  ).map(inventoryItemOf);
+  const item = before.find((row) => row.id === input.itemId);
+  if (
+    !item ||
+    item.revision !== input.revision ||
+    item.quantity < input.quantity
+  )
+    throw new InventoryError('附件已变化或数量不足，请重新选择');
+  const equipped = await tx
+    .select()
+    .from(schema.combatV6EquipmentLoadouts)
+    .where(eq(schema.combatV6EquipmentLoadouts.equipmentInstanceId, item.id))
+    .limit(1);
+  const reason = mailGiftBlockReason({
+    ...item,
+    equipped: equipped.length > 0,
+  });
+  if (reason) throw new InventoryError(reason);
+  const grant = ItemGrantSchema.parse({
+    definitionId: item.definitionId,
+    quantity: input.quantity,
+    ...(item.instanceData === null ? {} : { instanceData: item.instanceData }),
+  });
+  await saveInventoryPlan(
+    owner,
+    before,
+    before.flatMap((row) =>
+      row.id !== item.id
+        ? [row]
+        : row.quantity === input.quantity
+          ? []
+          : [
+              {
+                ...row,
+                quantity: row.quantity - input.quantity,
+                revision: row.revision + 1,
+              },
+            ],
+    ),
     tx,
   );
-  if (!item) {
-    throw new PlayerMailServiceError(404, '附件物品不存在或已被消耗');
-  }
-
-  try {
-    assertAuctionListableItem(attachment.itemType, item, attachment.quantity);
-  } catch (error) {
-    if (error instanceof AuctionServiceError) {
-      throw new PlayerMailServiceError(400, error.message);
-    }
-    throw error;
-  }
-
-  if (attachment.itemType === 'artifact') {
-    const deleted =
-      await creationProductRepository.deleteArtifactsByIdsAndCultivator(
-        senderCultivatorId,
-        [attachment.itemId],
-        tx,
-      );
-    if (deleted.length !== 1) {
-      throw new PlayerMailServiceError(404, '附件物品不存在或已被消耗');
-    }
-  } else if (attachment.itemType === 'material') {
-    const current = item as Material;
-    if (attachment.quantity === current.quantity) {
-      await tx
-        .delete(schema.materials)
-        .where(
-          and(
-            eq(schema.materials.id, attachment.itemId),
-            eq(schema.materials.cultivatorId, senderCultivatorId),
-          ),
-        );
-    } else {
-      await tx
-        .update(schema.materials)
-        .set({ quantity: current.quantity - attachment.quantity })
-        .where(
-          and(
-            eq(schema.materials.id, attachment.itemId),
-            eq(schema.materials.cultivatorId, senderCultivatorId),
-          ),
-        );
-    }
-  } else {
-    const current = item as Consumable;
-    if (attachment.quantity === current.quantity) {
-      await tx
-        .delete(schema.consumables)
-        .where(
-          and(
-            eq(schema.consumables.id, attachment.itemId),
-            eq(schema.consumables.cultivatorId, senderCultivatorId),
-          ),
-        );
-    } else {
-      await tx
-        .update(schema.consumables)
-        .set({ quantity: current.quantity - attachment.quantity })
-        .where(
-          and(
-            eq(schema.consumables.id, attachment.itemId),
-            eq(schema.consumables.cultivatorId, senderCultivatorId),
-          ),
-        );
-    }
-  }
-
-  const snapshot =
-    attachment.itemType === 'artifact'
-      ? (item as Artifact)
-      : ({ ...item, quantity: attachment.quantity } as Material | Consumable);
-
-  const remaining =
-    attachment.itemType === 'artifact' ||
-    attachment.quantity === (item as Material | Consumable).quantity
-      ? null
-      : ({
-          ...item,
-          quantity:
-            (item as Material | Consumable).quantity - attachment.quantity,
-        } as Material | Consumable);
-  const settlement: PlayerMailInventorySettlement =
-    attachment.itemType === 'artifact'
-      ? {
-          itemType: 'artifact',
-          itemId: attachment.itemId,
-          remaining: null,
-        }
-      : attachment.itemType === 'material'
-        ? {
-            itemType: 'material',
-            itemId: attachment.itemId,
-            remaining: remaining as Material | null,
-          }
-        : {
-            itemType: 'consumable',
-            itemId: attachment.itemId,
-            remaining: remaining as Consumable | null,
-          };
+  const name =
+    (item.instanceData as { name?: string } | null)?.name ??
+    itemDefinition(item.definitionId).name;
   return {
-    attachment: {
-      type: attachment.itemType,
-      name: snapshot.name,
-      quantity: attachment.quantity,
-      data: snapshot,
-    },
-    settlement,
+    type: 'inventory_v1',
+    name,
+    quantity: input.quantity,
+    inventory: grant,
   };
 }
 
@@ -204,7 +138,6 @@ export async function sendPlayerMail(input: {
 }): Promise<{
   recipientName: string;
   attachmentCount: number;
-  inventorySettlements: PlayerMailInventorySettlement[];
 }> {
   const persist = async (tx: DbTransaction) => {
     if (input.senderCultivatorId === input.recipientCultivatorId) {
@@ -217,20 +150,19 @@ export async function sendPlayerMail(input: {
         input.recipientCultivatorId,
         tx,
       );
-      const talismanSettlement = await consumeFirstTalismanByScenario(
+      await consumeFirstTalismanByScenario(
         input.senderCultivatorId,
         FRIEND_MAIL_TALISMAN_SCENARIO,
         tx,
       );
-      const recipient = await assertActiveRecipient(input.recipientCultivatorId, tx);
+      const recipient = await assertActiveRecipient(
+        input.recipientCultivatorId,
+        tx,
+      );
       const detached = input.attachment
-        ? await detachAttachment(
-            input.senderCultivatorId,
-            input.attachment,
-            tx,
-          )
+        ? await detachAttachment(input.senderCultivatorId, input.attachment, tx)
         : null;
-      const attachments = detached ? [detached.attachment] : [];
+      const attachments = detached ? [detached] : [];
 
       await MailService.sendMail(
         input.recipientCultivatorId,
@@ -244,14 +176,6 @@ export async function sendPlayerMail(input: {
       return {
         recipientName: recipient.name,
         attachmentCount: attachments.length,
-        inventorySettlements: [
-          {
-            itemType: 'consumable' as const,
-            itemId: talismanSettlement.itemId,
-            remaining: talismanSettlement.remaining,
-          },
-          ...(detached ? [detached.settlement] : []),
-        ],
       };
     } catch (error) {
       if (error instanceof FriendServiceError) {

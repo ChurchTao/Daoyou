@@ -284,7 +284,7 @@ router.post('/game-mail', requireAdmin(), async (c) => {
     const batch = rows.slice(i, i + batchSize);
     await db.transaction(async (tx) => {
       for (const row of batch) {
-        await MailService.sendMail(
+        await MailService.sendNewRewardMail(
           row.cultivatorId,
           row.title,
           row.content,

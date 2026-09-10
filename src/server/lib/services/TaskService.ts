@@ -1373,7 +1373,7 @@ export const TaskService = {
       }
 
       if (mailAttachments.length > 0) {
-        await MailService.sendMail(
+        await MailService.sendNewRewardMail(
           cultivatorId,
           `【任务奖励】${claimedTask.snapshot.title}`,
           `道友已完成"${claimedTask.snapshot.title}"，任务奖励已封入附件，请前往传音符诏领取。`,

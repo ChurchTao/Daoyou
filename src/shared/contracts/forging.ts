@@ -5,6 +5,7 @@ import { ItemGrantSchema } from '../inventory';
 import { ConsumableFactsSchema } from '../items/definitions/consumables';
 import { MaterialFactsSchema } from '../items/definitions/materials';
 import { SeedFactsSchema } from '../items/definitions/seeds';
+import { MailAttachmentsSchema } from '../lib/itemLibrary';
 import type { InventoryView } from './inventory';
 
 const ref = {
@@ -68,6 +69,15 @@ export const DevGrantSchema = z
     grants: z
       .array(
         z.discriminatedUnion('type', [
+          z
+            .object({
+              type: z.literal('mail'),
+              format: z
+                .enum(['historical', 'new_reward'])
+                .default('new_reward'),
+              attachments: MailAttachmentsSchema.min(1).max(20),
+            })
+            .strict(),
           z.object({ type: z.literal('item'), item: ItemGrantSchema }).strict(),
           z
             .object({

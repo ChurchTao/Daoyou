@@ -1,4 +1,8 @@
-import { getExecutor, type DbExecutor, type DbTransaction } from '@server/lib/drizzle/db';
+import {
+  getExecutor,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db';
 import { mails } from '@server/lib/drizzle/schema';
 import {
   redisLockErrorResponse,
@@ -6,6 +10,10 @@ import {
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
+import { PlayerCommandIdempotencyError } from '@server/lib/services/CommandExecutors';
+import { InventoryError } from '@server/lib/services/InventoryService';
+import { publicMailAttachment } from '@server/lib/services/MailInventory';
+import type { MailAttachment } from '@server/lib/services/MailService';
 import {
   claimAllCultivatorMail,
   claimCultivatorMail,
@@ -15,32 +23,13 @@ import {
   sendCultivatorMail,
 } from '@server/lib/services/PlayerMailApplicationService';
 import { PlayerMailServiceError } from '@server/lib/services/PlayerMailService';
-import type { MailAttachment } from '@server/lib/services/MailService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
-import { sanitizeMaterialForClient } from '@server/lib/services/materialDetailsPrivacy';
-import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
-import type { Material } from '@shared/types/cultivator';
+import { SendMailSchema } from '@shared/contracts/mail';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 const MailIdSchema = z.object({ mailId: z.string() });
-const SendMailSchema = z.object({
-  recipientCultivatorId: z.string().uuid(),
-  content: z.string().trim().min(1).max(1000),
-  attachment: z
-    .object({
-      itemType: z.enum(['material', 'artifact', 'consumable']),
-      itemId: z.string().uuid(),
-      quantity: z
-        .number()
-        .int()
-        .min(1)
-        .max(MAX_PLAYER_ITEM_QUANTITY)
-        .default(1),
-    })
-    .optional(),
-});
 
 async function countUnreadMail(
   cultivatorId: string,
@@ -78,14 +67,7 @@ mailRouter.get('/', requireActiveCultivatorRef(), async (c) => {
         : [];
       return {
         ...mail,
-        attachments: attachments.map((attachment) =>
-          attachment.type === 'material' && attachment.data
-            ? {
-                ...attachment,
-                data: sanitizeMaterialForClient(attachment.data as Material),
-              }
-            : attachment,
-        ),
+        attachments: attachments.map(publicMailAttachment),
       };
     }),
     pagination: { page, pageSize, hasMore },
@@ -105,6 +87,7 @@ mailRouter.post('/send', requireActiveCultivatorRef(), async (c) => {
       },
       recipientCultivatorId: parsed.recipientCultivatorId,
       content: parsed.content,
+      requestId: parsed.requestId,
       attachment: parsed.attachment,
     });
     return c.json(toPlayerStateMutationResponse(committed));
@@ -114,6 +97,11 @@ mailRouter.post('/send', requireActiveCultivatorRef(), async (c) => {
     if (error instanceof z.ZodError) {
       return c.json({ error: '参数错误', details: error.issues }, 400);
     }
+    if (
+      error instanceof InventoryError ||
+      error instanceof PlayerCommandIdempotencyError
+    )
+      return c.json({ error: error.message }, 409);
     if (error instanceof PlayerMailServiceError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }

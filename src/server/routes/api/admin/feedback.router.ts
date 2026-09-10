@@ -210,7 +210,7 @@ router.patch('/:id/status', requireAdmin(), async (c) => {
         }
       }
 
-      await MailService.sendMail(
+      await MailService.sendNewRewardMail(
         recipientCultivatorId,
         '反馈工单状态更新',
         buildFeedbackStatusMailContent({

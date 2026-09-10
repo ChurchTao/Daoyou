@@ -1,3 +1,4 @@
+import { parseMailAttachments } from '@shared/lib/itemLibrary';
 import type {
   DevGrantSchema,
   ForgeRequest,
@@ -50,6 +51,7 @@ import {
   readInventory,
   saveInventoryPlan,
 } from './InventoryService';
+import { MailService } from './MailService';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
 import { QiService } from './QiService';
 import { ResourceEventCommitter } from './ResourceEventCommitter';
@@ -346,7 +348,21 @@ export async function grantDevResources(input: z.infer<typeof DevGrantSchema>) {
     for (const grant of input.grants) {
       if (grant.type === 'item')
         await grantInventory(input.cultivatorId, [grant.item], tx, false);
-      else if (grant.type === 'vault-consumable') {
+      else if (grant.type === 'mail') {
+        const send =
+          grant.format === 'historical'
+            ? MailService.sendMail
+            : MailService.sendNewRewardMail;
+        const mail = await send(
+          input.cultivatorId,
+          '本地邮件验收',
+          '10Q 本地附件领取验收',
+          parseMailAttachments(grant.attachments),
+          'reward',
+          tx,
+        );
+        ids.push(mail.id);
+      } else if (grant.type === 'vault-consumable') {
         const item = await addConsumableToInventoryInTransaction(
           input.cultivatorId,
           { ...grant.facts, quantity: grant.quantity },

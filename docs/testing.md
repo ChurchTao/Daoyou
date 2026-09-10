@@ -60,6 +60,8 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 
 旧丹药／消耗品验收可提交 `{ "type": "vault-consumable", "facts": { name, type, quality, description, prompt, score, spec }, "quantity": 2 }`，facts 须符合 `ConsumableFactsSchema`，quantity 为 1–3960；沿用历史消耗品发放入口写入洞府宝库，再通过正式取出操作转换。新版消耗品直接发放使用 `type: item`、`definitionId: consumable.v1` 及同一完整 facts 作为 instanceData。该能力仍只在纯本地开放。
 
+邮件附件验收可提交 `{ "type": "mail", "format": "historical" | "new_reward", "attachments": [...] }`。附件遵循共享 MailAttachmentsSchema，每次1–20个。format默认为new_reward，经过正式新奖励生产入口；historical原样保存合法附件协议，可构造新旧混合邮件。邮件固定使用本地验收标题与正文，返回邮件ID。该能力只创建样本，领取仍需真实角色通过正式邮件接口完成，不直接标记领取或绕过好友赠送成本。
+
 发放遵循正式背包容量、材料校验、资源上限和战斗占用规则，整批事务成功或整体回滚。不支持修改任意字段、账号创建或整库清空。测试前记录物资与资源基准，完成后只清理本次发放和生成的测试物品；保留其他测试已产生的角色进度及历史记录。
 
 灵兽可通过同一发放接口提交 `{ "type": "beast", "speciesId": "combat.wild.species.rock-boar" }`（speciesId 必须来自灵兽定义）。生成标准 10 级个体，遵循兽栏容量；不会自动携带或设为首发，随后使用正式阵容接口配置。

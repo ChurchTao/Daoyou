@@ -20,7 +20,7 @@ export async function sendWeeklyRankingRewardCommand(args: {
       fingerprint: args.requestFingerprint,
     },
     command: async (tx) => {
-      const mail = await MailService.sendMail(
+      const mail = await MailService.sendNewRewardMail(
         args.cultivatorId,
         args.title,
         args.content,
