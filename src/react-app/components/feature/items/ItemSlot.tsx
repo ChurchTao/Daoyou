@@ -37,6 +37,7 @@ export function ItemSlot({
   onQuickAction,
   quickOnTouch,
   children,
+  comparisonItem,
 }: {
   item?: DisplayItem;
   selected?: boolean;
@@ -48,6 +49,7 @@ export function ItemSlot({
   onQuickAction?: () => void;
   quickOnTouch?: boolean;
   children?: (close: () => void) => ReactNode;
+  comparisonItem?: DisplayItem;
 }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -167,7 +169,9 @@ export function ItemSlot({
             'pointer-events-none absolute grid place-items-center leading-none',
             item
               ? 'inset-x-0 top-[10%] bottom-[24%] text-[clamp(1.5rem,48cqw,2.75rem)]'
-              : 'text-ink/25 inset-0 text-xl',
+              : emptyLabel && emptyIcon !== '·'
+                ? 'text-ink/25 inset-x-0 top-[10%] bottom-[24%] text-[clamp(1.5rem,48cqw,2.75rem)]'
+                : 'text-ink/25 inset-0 text-xl',
           )}
         >
           {presentation?.icon ?? emptyIcon}
@@ -251,7 +255,22 @@ export function ItemSlot({
               </button>
             </header>
             {itemDefinition(item.definitionId).kind === 'equipment' ? (
-              <EquipmentDetails data={item.instanceData} />
+              <>
+                <EquipmentDetails data={item.instanceData} />
+                {comparisonItem ? (
+                  <details className="border-ink/15 mt-3 border-t pt-3">
+                    <summary className="text-ink-secondary cursor-pointer">
+                      与已穿戴的{comparisonItem.name}对比
+                    </summary>
+                    <div className="mt-3">
+                      <EquipmentDetails
+                        data={item.instanceData}
+                        previous={comparisonItem.instanceData}
+                      />
+                    </div>
+                  </details>
+                ) : null}
+              </>
             ) : item.definitionId === 'consumable.v1' ? (
               <ConsumableDetails
                 data={item.instanceData}

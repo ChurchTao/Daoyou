@@ -16,7 +16,7 @@ export type ItemDetailPayload =
       item: Material;
     }
   | {
-      kind: 'consumable';
+      kind: 'consumable' | 'inventory-consumable';
       item: Consumable;
     }
   | {

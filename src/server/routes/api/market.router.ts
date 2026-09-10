@@ -27,6 +27,12 @@ import type { PreHeavenFate } from '@shared/types/cultivator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+import {
+  confirmBagRecycle,
+  previewBagRecycle,
+} from '@server/lib/services/BagRecycleService';
+import { RecycleRequestSchema } from '@shared/contracts/recycle';
+
 const BuySchema = z.object({
   listingId: z.string().optional(),
   quantity: z.number().int().min(1).max(MAX_PLAYER_ITEM_QUANTITY).default(1),
@@ -103,6 +109,31 @@ async function loadMarketFates(cultivator: {
   );
 }
 
+router.post('/recycle', requireActiveCultivatorRef(), async (c) => {
+  const ref = c.get('activeCultivatorRef')!;
+  try {
+    const input = RecycleRequestSchema.parse(await c.req.json());
+    if (input.phase === 'preview')
+      return c.json({
+        success: true,
+        data: await previewBagRecycle(ref.cultivatorId, input.items),
+      });
+    const committed = await confirmBagRecycle(
+      { userId: ref.userId, cultivatorId: ref.cultivatorId },
+      input.quoteId,
+    );
+    return c.json(toPlayerStateMutationResponse(committed));
+  } catch (error) {
+    const lockResponse = redisLockErrorResponse(error);
+    if (lockResponse) return lockResponse;
+    if (error instanceof z.ZodError)
+      return c.json({ error: error.issues[0]?.message ?? '参数格式错误' }, 400);
+    if (error instanceof MarketRecycleError)
+      return jsonWithStatus(c, { error: error.message }, error.status);
+    throw error;
+  }
+});
+
 router.post('/sell', requireActiveCultivatorRef(), async (c) => {
   const cultivator = c.get('activeCultivatorRef');
   if (!cultivator) {
@@ -114,19 +145,21 @@ router.post('/sell', requireActiveCultivatorRef(), async (c) => {
 
     if (parsed.phase === 'preview') {
       const itemType = parsed.itemType || 'material';
-      if (parsed.selection === 'low-tier-all') {
-        const result = await previewAllLowTierSell(
-          { id: cultivator.cultivatorId },
-          itemType,
+      if (itemType !== 'artifact')
+        return c.json(
+          { error: '请将旧物取入随身物品栏后向回收掌柜询价。' },
+          410,
         );
+      if (parsed.selection === 'low-tier-all') {
+        const result = await previewAllLowTierSell({
+          id: cultivator.cultivatorId,
+        });
         return c.json(result);
       }
       const itemIds = parsed.itemIds || parsed.materialIds || [];
       const result = await previewSell(
         { id: cultivator.cultivatorId },
         itemIds,
-        itemType,
-        parsed.items,
       );
       return c.json(result);
     }

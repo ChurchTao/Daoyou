@@ -6,6 +6,8 @@ import {
 } from '@app/components/feature/products';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { ItemShowcaseModal } from '@app/components/ui/ItemShowcaseModal';
+import { consumableFactsOf } from '@shared/items/definitions/consumables';
+import { getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type {
@@ -14,7 +16,7 @@ import type {
   Material,
   Skill,
 } from '@shared/types/cultivator';
-import { getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
+import { ConsumableDetails } from './ConsumableDetails';
 import type { ItemDetailPayload } from './itemDetailPayload';
 
 interface ItemDetailModalProps {
@@ -91,6 +93,28 @@ export function ItemDetailModal({
     );
   }
 
+  if (item.kind === 'inventory-consumable') {
+    return (
+      <ItemShowcaseModal
+        isOpen
+        onClose={onClose}
+        icon="🌕"
+        name={item.item.name}
+        badges={[
+          <InkBadge key="quality" tier={item.item.quality}>
+            丹药
+          </InkBadge>,
+        ]}
+        extraInfo={<QuantityInfo quantity={item.item.quantity} />}
+        footer={
+          <ConsumableDetails
+            data={consumableFactsOf(item.item)}
+            quantity={item.item.quantity}
+          />
+        }
+      />
+    );
+  }
   if (item.kind === 'consumable') {
     return (
       <ConsumableDetailModal

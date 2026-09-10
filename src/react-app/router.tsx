@@ -833,7 +833,7 @@ export const router = createBrowserRouter(
               handle={scene(
                 {
                   id: 'market-recycle',
-                  summary: '识别去留，批量回收冗余之物。',
+                  summary: '与掌柜商量一桩旧物换灵石的买卖。',
                 },
                 '坊市鉴宝',
               )}

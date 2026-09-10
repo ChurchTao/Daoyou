@@ -9,7 +9,6 @@ import type { SellConfirmResponse } from '@shared/types/market';
 import { eq } from 'drizzle-orm';
 import { playerCommandExecutor } from './CommandExecutors';
 import { readCultivatorRealm } from './cultivator/CultivatorFactsReader';
-import type { MarketRecycleInventoryChange } from './MarketRecycleService';
 import { prepareSellConfirmation } from './MarketRecycleService';
 import {
   prepareBatchMarketPurchase,
@@ -72,7 +71,6 @@ export async function executeMarketSellCommand(
     commit(tx: DbTransaction): Promise<
       SellConfirmResponse & {
         afterCommit?: () => Promise<unknown>;
-        inventoryChanges?: MarketRecycleInventoryChange[];
       }
     >;
   },
@@ -83,11 +81,7 @@ export async function executeMarketSellCommand(
   resourceChanges: ResourceChangeDescriptor[];
   afterCommit?: () => Promise<void>;
 }> {
-  const {
-    afterCommit,
-    inventoryChanges = [],
-    ...result
-  } = await prepared.commit(tx);
+  const { afterCommit, ...result } = await prepared.commit(tx);
   const resourceChanges: ResourceChangeDescriptor[] = [
     {
       resourceTopic: 'player.currency',
@@ -96,43 +90,12 @@ export async function executeMarketSellCommand(
       operation: 'merge',
     },
   ];
-  if (result.itemType === 'consumable') {
-    const removedIds = inventoryChanges
-      .filter((change) => change.operation === 'remove')
-      .map((change) => change.id);
-    const upsertedItems = inventoryChanges
-      .filter((change) => change.operation === 'upsert')
-      .map((change) => change.item);
-    if (removedIds.length > 0) {
-      resourceChanges.push({
-        resourceTopic: 'inventory.consumables',
-        eventType: 'inventory.market.sold',
-        operation: 'remove-items',
-        payload: { idKey: 'id', ids: removedIds },
-      });
-    }
-    if (upsertedItems.length > 0) {
-      resourceChanges.push({
-        resourceTopic: 'inventory.consumables',
-        eventType: 'inventory.market.sold',
-        operation: 'upsert-items',
-        payload: { idKey: 'id', items: upsertedItems },
-      });
-    }
-  } else {
-    resourceChanges.push({
-      resourceTopic:
-        result.itemType === 'artifact'
-          ? 'inventory.artifacts'
-          : 'inventory.materials',
-      eventType: 'inventory.market.sold',
-      operation: 'remove-items',
-      payload: {
-        idKey: 'id',
-        ids: result.soldItems.map((item) => item.id),
-      },
-    });
-  }
+  resourceChanges.push({
+    resourceTopic: 'inventory.artifacts',
+    eventType: 'inventory.market.sold',
+    operation: 'remove-items',
+    payload: { idKey: 'id', ids: result.soldItems.map((item) => item.id) },
+  });
   if (result.itemType === 'artifact') {
     const loadout = await getPlayerLoadoutByCultivatorId(cultivatorId, tx);
     resourceChanges.push({

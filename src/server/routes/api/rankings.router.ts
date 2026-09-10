@@ -1,5 +1,5 @@
 import { getExecutor } from '@server/lib/drizzle/db';
-import { consumables, cultivators } from '@server/lib/drizzle/schema';
+import { cultivators, inventoryItems } from '@server/lib/drizzle/schema';
 import {
   redisLockErrorResponse,
   requireActiveCultivatorRef,
@@ -20,7 +20,7 @@ import {
 import { loadCultivatorInspectionData } from '@server/lib/services/cultivator/CultivatorCombatProjectionReader';
 import { readCultivatorRealm } from '@server/lib/services/cultivator/CultivatorFactsReader';
 import { RankingChallengeSchema } from '@shared/contracts/combatV6Ranking';
-import { getConsumableTypeLabel } from '@shared/lib/gameConceptDisplay';
+import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import {
   QUALITY_VALUES,
   REALM_VALUES,
@@ -30,7 +30,7 @@ import type {
   ItemRankingEntry,
   WealthRankingEntry,
 } from '@shared/types/rankings';
-import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -77,37 +77,52 @@ publicRouter.get('/items', async (c) => {
       return c.json({ success: false, error: '无效的榜单类型' }, 400);
     }
 
-    let items: ItemRankingEntry[] = [];
-    const limit = 100;
-    const validQualities = QUALITY_VALUES.slice(2);
+    const score = sql<number>`(${inventoryItems.instanceData}->>'score')::double precision`;
+    const groupId = sql<string>`concat('pill:', ${inventoryItems.cultivatorId}, ':', md5(${inventoryItems.instanceData}::text))`;
     const rows = await getExecutor()
-      .select({ item: consumables, owner: cultivators })
-      .from(consumables)
-      .leftJoin(cultivators, eq(consumables.cultivatorId, cultivators.id))
+      .select({
+        id: groupId,
+        ownerName: cultivators.name,
+        facts: inventoryItems.instanceData,
+        quantity: sql<number>`sum(${inventoryItems.quantity})::integer`,
+      })
+      .from(inventoryItems)
+      .innerJoin(cultivators, eq(inventoryItems.cultivatorId, cultivators.id))
       .where(
         and(
-          isNotNull(consumables.cultivatorId),
-          eq(consumables.type, '丹药'),
-          inArray(consumables.quality, validQualities as string[]),
+          eq(inventoryItems.definitionId, 'consumable.v1'),
+          inArray(inventoryItems.location, ['bag', 'storage']),
+          sql`${inventoryItems.instanceData}->>'type' = '丹药'`,
+          sql`${inventoryItems.instanceData}->'spec'->>'kind' = 'pill'`,
+          inArray(
+            sql`${inventoryItems.instanceData}->>'quality'`,
+            QUALITY_VALUES.slice(2),
+          ),
         ),
       )
-      .orderBy(desc(consumables.score))
-      .limit(limit);
-
-    items = rows.map(({ item, owner }, index) => ({
-      id: item.id,
-      rank: index + 1,
-      name: item.name,
-      itemType: 'elixir',
-      type: getConsumableTypeLabel('丹药'),
-      quality: item.quality ?? undefined,
-      ownerName: owner?.name || '未知',
-      score: item.score || 0,
-      description: item.description || '',
-      title: item.quality ?? undefined,
-      quantity: item.quantity,
-      spec: item.spec ?? undefined,
-    }));
+      .groupBy(
+        inventoryItems.cultivatorId,
+        cultivators.name,
+        inventoryItems.instanceData,
+      )
+      .orderBy(desc(score), groupId)
+      .limit(100);
+    const items: ItemRankingEntry[] = rows.map((row, index) => {
+      const facts = ConsumableFactsSchema.parse(row.facts);
+      return {
+        id: row.id,
+        rank: index + 1,
+        name: facts.name,
+        itemType: 'elixir',
+        type: facts.type,
+        quality: facts.quality,
+        ownerName: row.ownerName,
+        score: facts.score,
+        description: facts.description,
+        quantity: row.quantity,
+        spec: facts.spec,
+      };
+    });
 
     return c.json({
       success: true,

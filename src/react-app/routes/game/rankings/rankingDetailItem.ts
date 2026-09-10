@@ -15,5 +15,5 @@ export function toRankingDetailItem(item: ItemRankingEntry): ItemDetailPayload {
     spec: assertConsumableSpec(item.spec),
   };
 
-  return { kind: 'consumable', item: consumable };
+  return { kind: 'inventory-consumable', item: consumable };
 }
