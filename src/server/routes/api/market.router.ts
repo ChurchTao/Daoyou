@@ -4,6 +4,7 @@ import {
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
+import { PlayerCommandIdempotencyError } from '@server/lib/services/CommandExecutors';
 import {
   confirmMarketSell,
   purchaseMarketItems,
@@ -23,6 +24,7 @@ import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMuta
 import { readCultivatorRealm } from '@server/lib/services/cultivator/CultivatorFactsReader';
 import { getPlayerPreHeavenFates } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
+import { MarketBuySchema } from '@shared/contracts/market';
 import type { PreHeavenFate } from '@shared/types/cultivator';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -32,20 +34,6 @@ import {
   previewBagRecycle,
 } from '@server/lib/services/BagRecycleService';
 import { RecycleRequestSchema } from '@shared/contracts/recycle';
-
-const BuySchema = z.object({
-  listingId: z.string().optional(),
-  quantity: z.number().int().min(1).max(MAX_PLAYER_ITEM_QUANTITY).default(1),
-  layer: z.enum(['common', 'treasure', 'heaven', 'black']).optional(),
-  items: z
-    .array(
-      z.object({
-        listingId: z.string(),
-        quantity: z.number().int().min(1).max(MAX_PLAYER_ITEM_QUANTITY),
-      }),
-    )
-    .optional(),
-});
 
 const PreviewSchema = z
   .object({
@@ -229,46 +217,23 @@ router.post('/:nodeId/buy', requireActiveCultivatorRef(), async (c) => {
   }
 
   try {
-    const parsed = BuySchema.parse(await c.req.json());
-    const nodeId = resolveNodeId(c.req.param('nodeId'));
-    const layer = parsed.layer || resolveLayer(c.req.query('layer'));
-    if (layer === 'black') {
-      throw new MarketServiceError(410, '旧黑市交易已经关闭，请前往暗巷黑市');
-    }
-    if (parsed.items && parsed.items.length > 0) {
-      const committed = await purchaseMarketItems({
-        actor: {
-          userId: cultivator.userId,
-          cultivatorId: cultivator.cultivatorId,
-        },
-        nodeId,
-        layer,
-        items: parsed.items,
-        quantity: parsed.quantity,
-      });
-      return c.json(toPlayerStateMutationResponse(committed));
-    }
-
-    if (!parsed.listingId) {
-      return c.json({ error: '缺少 listingId' }, 400);
-    }
-    const listingId = parsed.listingId;
-
+    const input = MarketBuySchema.parse(await c.req.json());
     const committed = await purchaseMarketItems({
       actor: {
         userId: cultivator.userId,
         cultivatorId: cultivator.cultivatorId,
       },
-      nodeId,
-      layer,
-      listingId,
-      quantity: parsed.quantity,
+      nodeId: resolveNodeId(c.req.param('nodeId')),
+      input,
     });
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     const lockErrorResponse = redisLockErrorResponse(error);
     if (lockErrorResponse) return lockErrorResponse;
-    if (error instanceof MarketServiceError) {
+    if (
+      error instanceof MarketServiceError ||
+      error instanceof PlayerCommandIdempotencyError
+    ) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }
     if (error instanceof z.ZodError) {

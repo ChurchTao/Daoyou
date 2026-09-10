@@ -31,6 +31,7 @@ export function BlackMarketRevealPanel({
         <InkIdentifyCelebration rank={reveal.material.rank} />
       ) : null}
       <p className="text-ink-secondary text-sm tracking-[0.25em]">真品揭晓</p>
+      {reveal.location ? <p className="text-ink-secondary mt-2 text-sm">{reveal.location === 'storage' ? '随身物品栏已满，已存入储藏室。' : '已收入随身物品栏。'}</p> : null}
       <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
         <h2 className="text-ink text-2xl font-normal sm:text-3xl">
           {reveal.material.name}

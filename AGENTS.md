@@ -45,6 +45,7 @@ bun run db:migrate
 - `daoyou-backend-api-security`: Hono routes, auth, admin, cron/internal APIs, LLM/provider security, Redis/SMTP integration boundaries.
 - `daoyou-data-layer`: Drizzle schema/migrations, repositories, transactions, Better Auth schema, durable models.
 - `daoyou-game-ui`: `GameViewportLayout` main-flow scene UI structure and review rules.
+- `daoyou-ink-portraits`: 玩家、NPC、BOSS 写意墨像立绘的固定笔墨基准、生成与视觉验收；见 `.agents/skills/daoyou-ink-portraits/SKILL.md`。
 - `daoyou-game-core-domain`: battle-v5, creation-v2, attributes, tags, affixes, product projections.
 - `daoyou-condition-alchemy-market`: condition, pills, alchemy, market, recycle, manual draw.
 

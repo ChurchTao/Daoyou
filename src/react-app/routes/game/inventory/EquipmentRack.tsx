@@ -102,7 +102,7 @@ export function EquipmentRack({
             alt=""
             width={640}
             height={960}
-            className="pointer-events-none absolute inset-0 h-full w-full object-contain opacity-65"
+            className="pointer-events-none absolute inset-y-0 left-18 h-full w-[calc(100%-9rem)] object-cover lg:left-26 lg:w-[calc(100%-13rem)]"
           />
         ) : null}
         {columns.map((slots, column) => (

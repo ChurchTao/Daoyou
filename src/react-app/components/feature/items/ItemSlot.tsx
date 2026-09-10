@@ -1,4 +1,3 @@
-import { itemDefinition } from '@shared/inventory';
 import { cn } from '@shared/lib/cn';
 import {
   useEffect,
@@ -38,6 +37,7 @@ export function ItemSlot({
   quickOnTouch,
   children,
   comparisonItem,
+  quantityLabel = '持有',
 }: {
   item?: DisplayItem;
   selected?: boolean;
@@ -50,6 +50,7 @@ export function ItemSlot({
   quickOnTouch?: boolean;
   children?: (close: () => void) => ReactNode;
   comparisonItem?: DisplayItem;
+  quantityLabel?: '持有' | '库存';
 }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -239,7 +240,7 @@ export function ItemSlot({
                   {[
                     presentation.type,
                     presentation.tier,
-                    `持有 ${item.quantity}`,
+                    `${quantityLabel} ${item.quantity}`,
                   ]
                     .filter(Boolean)
                     .join(' · ')}
@@ -254,7 +255,7 @@ export function ItemSlot({
                 ×
               </button>
             </header>
-            {itemDefinition(item.definitionId).kind === 'equipment' ? (
+            {item.definitionId === 'equipment.v6' ? (
               <>
                 <EquipmentDetails data={item.instanceData} />
                 {comparisonItem ? (

@@ -1,5 +1,9 @@
 import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
-import { cultivators, materials } from '@server/lib/drizzle/schema';
+import {
+  cultivators,
+  materials,
+  playerMutationRequests,
+} from '@server/lib/drizzle/schema';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher';
 import { redis } from '@server/lib/redis';
@@ -9,6 +13,8 @@ import {
   redisLockKeys,
   withRedisLock,
 } from '@server/lib/redis/lock';
+import type { MarketPurchaseResult } from '@shared/contracts/market';
+import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import {
   BASE_PRICES,
   QUALITY_CHANCE_MAP,
@@ -56,12 +62,13 @@ import type {
   ResolvedLayerConfig,
 } from '@shared/types/market';
 import { MARKET_PRESET_FALLBACK_LAYERS } from '@shared/types/market';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
 import { mapMaterialRow } from './cultivator/CultivatorInventoryRepository';
+import { deliverMarketMaterial } from './MarketInventoryDelivery';
 import {
   getHiddenMysteryReveal,
   sanitizeMaterialDetails,
-  withHiddenMysteryReveal,
   type HiddenMysteryReveal,
 } from './materialDetailsPrivacy';
 import { addMaterialStackToInventory } from './materialInventory';
@@ -97,26 +104,50 @@ type InternalMarketListing = MarketListing & {
   mysteryReveal?: HiddenMysteryReveal;
 };
 
-export type BuyInput = {
+export type BatchBuyInput = {
   nodeId: string;
   layer: MarketLayer;
-  listingId: string;
-  quantity: number;
+  items: { listingId: string; quantity: number }[];
+  expectedTotal: number;
   userId: string;
   cultivatorId: string;
   cultivatorRealm: RealmType;
   fates?: PreHeavenFate[];
 };
 
-export type BatchBuyInput = {
-  nodeId: string;
-  layer: MarketLayer;
-  items: { listingId: string; quantity: number }[];
-  userId: string;
-  cultivatorId: string;
-  cultivatorRealm: RealmType;
-  fates?: PreHeavenFate[];
-};
+const LISTING_PURCHASE_SOURCE = 'market_listing_purchase';
+function purchaseKey(
+  nodeId: string,
+  layer: MarketLayer,
+  cycle: number,
+  id: string,
+) {
+  return createHash('sha256')
+    .update(JSON.stringify([nodeId, layer, cycle, id]))
+    .digest('hex');
+}
+async function readPurchasedListings(
+  userId: string,
+  keys: string[],
+  tx = getExecutor(),
+) {
+  if (!keys.length) return new Set<string>();
+  const rows = await tx
+    .select({ key: playerMutationRequests.requestId })
+    .from(playerMutationRequests)
+    .innerJoin(
+      cultivators,
+      eq(cultivators.id, playerMutationRequests.cultivatorId),
+    )
+    .where(
+      and(
+        eq(cultivators.userId, userId),
+        eq(playerMutationRequests.source, LISTING_PURCHASE_SOURCE),
+        inArray(playerMutationRequests.requestId, keys),
+      ),
+    );
+  return new Set(rows.map((row) => row.key));
+}
 
 type IdentifyInput = {
   materialId: string;
@@ -148,10 +179,6 @@ function getBoughtKey(
 
 function getMysteryKey(cultivatorId: string, mysteryId: string) {
   return `${MYSTERY_PREFIX}:${cultivatorId}:${mysteryId}`;
-}
-
-function getBoughtTtlSec(layer: MarketLayer): number {
-  return Math.ceil(getRefreshInterval(layer) / 1000) + 3600;
 }
 
 function canUsePresetFallback(layer: MarketLayer): boolean {
@@ -230,15 +257,7 @@ function rollHighTierQuality(layerConfig: ResolvedLayerConfig): Quality | null {
  */
 function weightedPickType(profile: RegionProfile): MaterialType {
   const weights = profile.typeWeights;
-  const allTypes: MaterialType[] = [
-    'herb',
-    'ore',
-    'monster',
-    'tcdb',
-    'aux',
-    'gongfa_manual',
-    'skill_manual',
-  ];
+  const allTypes = MaterialFactsSchema.shape.type.options;
 
   const entries = allTypes.map((t) => ({
     type: t,
@@ -483,58 +502,6 @@ function normalizeRankRange(
   const range = value as { min?: unknown; max?: unknown };
   if (!isQuality(range.min) || !isQuality(range.max)) return fallback;
   return { min: range.min, max: range.max };
-}
-
-function getMysteryContextForListing(
-  item: InternalMarketListing,
-): MysteryRevealContext {
-  if (item.mysteryContext) {
-    return {
-      ...item.mysteryContext,
-      anchorPrice: item.mysteryContext.anchorPrice ?? item.price,
-    };
-  }
-
-  const layer = isMarketLayer(item.layer) ? item.layer : 'black';
-  const nodeId = item.nodeId || getDefaultMarketNodeId();
-  const layerConfig = resolveLayerConfig(layer, getRegionProfile(nodeId));
-  return {
-    type: isMaterialType(item.type) ? item.type : 'aux',
-    rankRange: layerConfig.rankRange,
-    anchorPrice: item.price,
-    nodeId,
-    layer,
-    regionTags: getNodeRegionTags(nodeId),
-    createdAt: Date.now(),
-  };
-}
-
-function buildMysteryDetails(item: InternalMarketListing, mysteryId: string) {
-  const context = getMysteryContextForListing(item);
-  return {
-    mysteryId,
-    identifyCost: 1,
-    disguiseTier: item.rank,
-    purchasedAt: Date.now(),
-    type: context.type,
-    rankRange: context.rankRange,
-    anchorPrice: context.anchorPrice,
-    nodeId: context.nodeId,
-    layer: context.layer,
-    regionTags: context.regionTags,
-  };
-}
-
-function buildHiddenMysteryReveal(
-  item: InternalMarketListing,
-): HiddenMysteryReveal | null {
-  if (item.mysteryReveal) {
-    return item.mysteryReveal;
-  }
-  if (!item.isMystery) {
-    return null;
-  }
-  return null;
 }
 
 function resolveMysteryRevealContext(
@@ -1007,7 +974,15 @@ function parseCachedData(raw: string | null): CachedMarketData | null {
   ) {
     return null;
   }
-  return asData;
+  // Preserve current listing IDs and purchase quotas; retired stock stays off sale.
+  return {
+    ...asData,
+    listings: asData.listings.filter(
+      (item) =>
+        item.type === 'seed' ||
+        MaterialFactsSchema.shape.type.safeParse(item.type).success,
+    ),
+  };
 }
 
 // ─── 公开 API ───
@@ -1068,10 +1043,21 @@ export async function getMarketListings(input: {
   const boughtKey = getBoughtKey(userId, nodeId, layer, cycle);
   const boughtIds = new Set(await redis.smembers(boughtKey));
 
-  // 5. 合并视图：已买的标记 quantity = 0
+  const durableBought = await readPurchasedListings(
+    userId,
+    cachedData.listings.map((item) =>
+      purchaseKey(nodeId, layer, cycle, item.id),
+    ),
+  );
+
+  // Redis preserves pre-cutover purchases; durable receipts cover committed new purchases.
   const listings = cachedData.listings.map((l) => ({
     ...applyMarketPurchaseDiscount(sanitizeListing(l), input.fates),
-    quantity: boughtIds.has(l.id) ? 0 : 1,
+    quantity:
+      boughtIds.has(l.id) ||
+      durableBought.has(purchaseKey(nodeId, layer, cycle, l.id))
+        ? 0
+        : 1,
   }));
 
   return {
@@ -1084,281 +1070,84 @@ export async function getMarketListings(input: {
   };
 }
 
-export async function prepareMarketItemPurchase(input: BuyInput) {
-  const {
-    nodeId,
-    layer,
-    listingId,
-    quantity,
-    userId,
-    cultivatorId,
-    cultivatorRealm,
-  } = input;
-
-  if (quantity < 1) {
-    throw new MarketServiceError(400, '购买数量必须大于 0');
-  }
-  if (quantity !== 1) {
-    throw new MarketServiceError(400, '新版坊市每次仅可购入 1 件');
-  }
-
-  const access = getMarketAccess(nodeId, layer, cultivatorRealm);
-  if (!access.allowed) {
-    throw new MarketServiceError(403, access.reason || '当前层不可进入');
-  }
-
-  const cycle = getCurrentCycle(layer);
-
-  // 分布式锁由 API/Application 层统一获取；Redis 读取全部在 DB 事务外。
-  const cacheKey = getCacheKey(nodeId, layer, cycle);
-  const cachedData = parseCachedData(await redis.get(cacheKey));
-  if (!cachedData) {
-    throw new MarketServiceError(404, '坊市正在进货中，暂未开启');
-  }
-
-  const item = cachedData.listings.find((l) => l.id === listingId);
-  if (!item) {
-    throw new MarketServiceError(404, '此物已不再坊市之中');
-  }
-
-  // 检查个人是否已购买
-  const boughtKey = getBoughtKey(userId, nodeId, layer, cycle);
-  const alreadyBought = Boolean(await redis.sismember(boughtKey, listingId));
-
-  const itemPrice = getDiscountedMarketPrice(item.price, input.fates);
-  const totalPrice = itemPrice * quantity;
-  const preparedMysteryId = item.isMystery ? crypto.randomUUID() : null;
-  const preparedHiddenReveal = item.isMystery
-    ? buildHiddenMysteryReveal(item)
-    : null;
-  const ttl = getBoughtTtlSec(layer);
-  const markPurchased = async () => {
-    await redis.sadd(boughtKey, listingId);
-    await redis.expire(boughtKey, ttl);
-  };
-
-  return {
-    async commit(tx: DbTransaction) {
-      if (alreadyBought) {
-        throw new MarketServiceError(400, '本批此物你已购入，不可重复购买');
-      }
-      const [updatedCultivator] = await tx
-        .update(cultivators)
-        .set({
-          spirit_stones: sql`${cultivators.spirit_stones} - ${totalPrice}`,
-        })
-        .where(
-          sql`${cultivators.id} = ${cultivatorId} AND ${cultivators.spirit_stones} >= ${totalPrice}`,
-        )
-        .returning({ id: cultivators.id });
-
-      if (!updatedCultivator) {
-        throw new MarketServiceError(400, '囊中羞涩，灵石不足');
-      }
-
-      let purchasedMaterial;
-      if (item.isMystery) {
-        if (!preparedHiddenReveal || !preparedMysteryId) {
-          throw new MarketServiceError(503, '黑市鉴宝册缺页，请稍后再试');
-        }
-        const publicDetails = {
-          ...(sanitizeMaterialDetails(item.details) ?? {}),
-          mystery: buildMysteryDetails(item, preparedMysteryId),
-        };
-
-        const [inserted] = await tx
-          .insert(materials)
-          .values({
-            cultivatorId,
-            name: item.mysteryMask?.disguisedName || item.name,
-            type: item.type,
-            rank: item.rank,
-            element: item.element,
-            description: item.description,
-            quantity,
-            details: withHiddenMysteryReveal(
-              publicDetails,
-              preparedHiddenReveal,
-            ),
-          })
-          .returning();
-        purchasedMaterial = mapMaterialRow(inserted);
-      } else {
-        const stored = await addMaterialStackToInventory(
-          cultivatorId,
-          {
-            name: item.name,
-            type: item.type,
-            rank: item.rank,
-            element: item.element,
-            description: item.description,
-            quantity,
-            details: item.details || {},
-          },
-          tx,
-        );
-        const [row] = await tx
-          .select()
-          .from(materials)
-          .where(
-            and(
-              eq(materials.id, stored.id),
-              eq(materials.cultivatorId, cultivatorId),
-            ),
-          )
-          .limit(1);
-        if (!row) throw new MarketServiceError(500, '坊市物品入库失败');
-        purchasedMaterial = mapMaterialRow(row);
-      }
-
-      return {
-        result: {
-          success: true,
-          message: `成功购入 ${item.name} x${quantity}`,
-          item: applyMarketPurchaseDiscount(sanitizeListing(item), input.fates),
-        },
-        inventoryItems: [purchasedMaterial],
-        afterCommit: markPurchased,
-      };
-    },
-  };
+/** Preserve the account-scoped marker even if its old character is later deleted. */
+export async function markMarketPurchased(
+  userId: string,
+  nodeId: string,
+  layer: MarketLayer,
+  listingIds: string[],
+) {
+  const key = getBoughtKey(userId, nodeId, layer, getCurrentCycle(layer));
+  await redis.sadd(key, ...listingIds);
+  await redis.expire(key, Math.ceil(getRefreshInterval(layer) / 1000) + 3600);
 }
 
 export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
   const { nodeId, layer, items, userId, cultivatorId, cultivatorRealm } = input;
-
-  if (items.length === 0) {
-    throw new MarketServiceError(400, '购买列表不能为空');
-  }
-
-  const listingIds = new Set<string>();
-  for (const buyItem of items) {
-    if (buyItem.quantity < 1) {
-      throw new MarketServiceError(400, '购买数量必须大于 0');
-    }
-    if (buyItem.quantity !== 1) {
-      throw new MarketServiceError(400, '新版坊市每次仅可购入 1 件');
-    }
-    if (listingIds.has(buyItem.listingId)) {
-      throw new MarketServiceError(400, '批量购买中存在重复物品');
-    }
-    listingIds.add(buyItem.listingId);
-  }
-
   const access = getMarketAccess(nodeId, layer, cultivatorRealm);
-  if (!access.allowed) {
+  if (!access.allowed)
     throw new MarketServiceError(403, access.reason || '当前层不可进入');
-  }
-
   const cycle = getCurrentCycle(layer);
-  // 分布式锁由 API/Application 层统一获取；Redis 读取全部在 DB 事务外。
-  const cacheKey = getCacheKey(nodeId, layer, cycle);
-  const cachedData = parseCachedData(await redis.get(cacheKey));
-  if (!cachedData) {
-    throw new MarketServiceError(404, '坊市正在进货中，暂未开启');
-  }
-
-  const boughtKey = getBoughtKey(userId, nodeId, layer, cycle);
-  const boughtIds = new Set(await redis.smembers(boughtKey));
-
-  let totalCost = 0;
-  const processItems: { item: InternalMarketListing; quantity: number }[] = [];
-  let alreadyBoughtItemName: string | null = null;
-
-  for (const buyReq of items) {
-    const item = cachedData.listings.find((l) => l.id === buyReq.listingId);
-    if (!item) {
-      throw new MarketServiceError(404, `物品已售罄或下架`);
-    }
-    if (boughtIds.has(item.id) && !alreadyBoughtItemName) {
-      alreadyBoughtItemName = item.name;
-    }
-    totalCost +=
-      getDiscountedMarketPrice(item.price, input.fates) * buyReq.quantity;
-    processItems.push({ item, quantity: buyReq.quantity });
-  }
-
-  const preparedMysteries = new Map(
-    processItems
-      .filter(({ item }) => item.isMystery)
-      .map(({ item }) => [
-        item.id,
-        {
-          mysteryId: crypto.randomUUID(),
-          hiddenReveal: buildHiddenMysteryReveal(item),
-        },
-      ]),
+  const cached = parseCachedData(
+    await redis.get(getCacheKey(nodeId, layer, cycle)),
   );
-  const stableListingIds = processItems.map(({ item }) => item.id).sort();
-  const ttl = getBoughtTtlSec(layer);
-  const markPurchased = async () => {
-    await redis.sadd(boughtKey, ...stableListingIds);
-    await redis.expire(boughtKey, ttl);
-  };
-
+  if (!cached) throw new MarketServiceError(409, '货架已刷新，请重新选购');
+  const boughtKey = getBoughtKey(userId, nodeId, layer, cycle);
+  const bought = new Set(await redis.smembers(boughtKey));
+  const selected = items.map((ref) => {
+    const item = cached.listings.find((row) => row.id === ref.listingId);
+    if (!item || item.isMystery)
+      throw new MarketServiceError(409, '商品已下架，请刷新货架');
+    return item;
+  });
+  const totalCost = selected.reduce(
+    (total, item) => total + getDiscountedMarketPrice(item.price, input.fates),
+    0,
+  );
+  if (
+    !Number.isSafeInteger(totalCost) ||
+    totalCost < 0 ||
+    totalCost !== input.expectedTotal
+  )
+    throw new MarketServiceError(409, '价格已变化，请刷新货架后重新确认');
+  const keys = selected.map((item) =>
+    purchaseKey(nodeId, layer, cycle, item.id),
+  );
   return {
     async commit(tx: DbTransaction) {
-      if (alreadyBoughtItemName) {
+      if (cycle !== getCurrentCycle(layer))
+        throw new MarketServiceError(409, '货架已刷新，请重新选购');
+      const durableBought = await readPurchasedListings(userId, keys, tx);
+      if (
+        selected.some(
+          (item, index) =>
+            bought.has(item.id) || durableBought.has(keys[index]),
+        )
+      )
         throw new MarketServiceError(
-          400,
-          `你已购入过 ${alreadyBoughtItemName}`,
+          409,
+          '所选商品中有已购入的物品，请刷新货架',
         );
-      }
-      const [updatedCultivator] = await tx
+      const [paid] = await tx
         .update(cultivators)
         .set({
           spirit_stones: sql`${cultivators.spirit_stones} - ${totalCost}`,
         })
         .where(
-          sql`${cultivators.id} = ${cultivatorId} AND ${cultivators.spirit_stones} >= ${totalCost}`,
+          and(
+            eq(cultivators.id, cultivatorId),
+            sql`${cultivators.spirit_stones} >= ${totalCost}`,
+          ),
         )
         .returning({ id: cultivators.id });
-
-      if (!updatedCultivator) {
-        throw new MarketServiceError(400, '囊中羞涩，灵石不足');
-      }
-
+      if (!paid) throw new MarketServiceError(400, '囊中羞涩，灵石不足');
       const inventoryItems = [];
-      for (const { item, quantity } of processItems) {
-        if (item.isMystery) {
-          const preparedMystery = preparedMysteries.get(item.id);
-          if (!preparedMystery?.hiddenReveal) {
-            throw new MarketServiceError(503, '黑市鉴宝册缺页，请稍后再试');
-          }
-          const publicDetails = {
-            ...(sanitizeMaterialDetails(item.details) ?? {}),
-            mystery: buildMysteryDetails(item, preparedMystery.mysteryId),
-          };
-
-          const [inserted] = await tx
-            .insert(materials)
-            .values({
-              cultivatorId,
-              name: item.mysteryMask?.disguisedName || item.name,
-              type: item.type,
-              rank: item.rank,
-              element: item.element,
-              description: item.description,
-              quantity,
-              details: withHiddenMysteryReveal(
-                publicDetails,
-                preparedMystery.hiddenReveal,
-              ),
-            })
-            .returning();
-          inventoryItems.push(mapMaterialRow(inserted));
-        } else {
+      const deliveries: MarketPurchaseResult['deliveries'] = [];
+      for (const item of selected) {
+        if (item.type === 'seed') {
           const stored = await addMaterialStackToInventory(
             cultivatorId,
-            {
-              name: item.name,
-              type: item.type,
-              rank: item.rank,
-              element: item.element,
-              description: item.description,
-              quantity,
-              details: item.details || {},
-            },
+            { ...item, quantity: 1, details: item.details ?? {} },
             tx,
           );
           const [row] = await tx
@@ -1371,20 +1160,32 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
               ),
             )
             .limit(1);
-          if (!row) throw new MarketServiceError(500, '坊市物品入库失败');
+          if (!row) throw new Error('种子入库失败');
           inventoryItems.push(mapMaterialRow(row));
+          deliveries.push({
+            listingId: item.id,
+            name: item.name,
+            location: 'vault',
+          });
+        } else {
+          const delivered = await deliverMarketMaterial(cultivatorId, item, tx);
+          deliveries.push({
+            listingId: item.id,
+            name: item.name,
+            location: delivered.location,
+          });
         }
       }
-
-      return {
-        result: {
-          success: true,
-          message: `成功批量购入 ${processItems.length} 种物品`,
-          totalCost,
-        },
-        inventoryItems,
-        afterCommit: markPurchased,
-      };
+      await tx.insert(playerMutationRequests).values(
+        keys.map((key) => ({
+          cultivatorId,
+          source: LISTING_PURCHASE_SOURCE,
+          requestId: key,
+          requestFingerprint: key,
+          result: {},
+        })),
+      );
+      return { result: { totalCost, deliveries }, inventoryItems };
     },
   };
 }

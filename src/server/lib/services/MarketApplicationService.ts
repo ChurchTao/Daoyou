@@ -1,8 +1,10 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
+import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository';
 import { getPlayerLoadoutByCultivatorId } from '@server/lib/services/cultivator/CultivatorLoadoutReader';
 import { getPlayerPreHeavenFates } from '@server/lib/services/cultivator/CultivatorProfileRepository';
+import type { MarketBuyInput } from '@shared/contracts/market';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
 import type { Material, PreHeavenFate } from '@shared/types/cultivator';
 import type { SellConfirmResponse } from '@shared/types/market';
@@ -11,15 +13,14 @@ import { playerCommandExecutor } from './CommandExecutors';
 import { readCultivatorRealm } from './cultivator/CultivatorFactsReader';
 import { prepareSellConfirmation } from './MarketRecycleService';
 import {
+  markMarketPurchased,
   prepareBatchMarketPurchase,
-  prepareMarketItemPurchase,
 } from './MarketService';
 
 type PreparedPurchaseCommand<T> = {
   commit(tx: DbTransaction): Promise<{
     result: T;
     inventoryItems: Material[];
-    afterCommit?: () => Promise<unknown>;
   }>;
 };
 
@@ -30,7 +31,6 @@ export async function executeMarketPurchaseCommand<T>(
 ): Promise<{
   result: T;
   resourceChanges: ResourceChangeDescriptor[];
-  afterCommit?: () => Promise<void>;
 }> {
   const committed = await prepared.commit(tx);
   const [currency] = await tx
@@ -48,21 +48,17 @@ export async function executeMarketPurchaseCommand<T>(
         operation: 'merge',
         payload: { spiritStones: currency.spiritStones },
       },
-      {
-        resourceTopic: 'inventory.materials',
-        eventType: 'inventory.market.purchased',
-        operation: 'upsert-items',
-        payload: {
-          idKey: 'id',
-          items: committed.inventoryItems,
-        },
-      },
+      ...(committed.inventoryItems.length
+        ? [
+            {
+              resourceTopic: 'inventory.materials' as const,
+              eventType: 'inventory.market.purchased',
+              operation: 'upsert-items' as const,
+              payload: { idKey: 'id', items: committed.inventoryItems },
+            },
+          ]
+        : []),
     ],
-    afterCommit: committed.afterCommit
-      ? async () => {
-          await committed.afterCommit?.();
-        }
-      : undefined,
   };
 }
 
@@ -183,65 +179,66 @@ export async function confirmMarketSell(args: {
 export async function purchaseMarketItems(args: {
   actor: MarketActor;
   nodeId: string;
-  layer: 'common' | 'treasure' | 'heaven' | 'black';
-  listingId?: string;
-  quantity: number;
-  items?: Array<{ listingId: string; quantity: number }>;
+  input: MarketBuyInput;
 }) {
-  const { realm } = await readCultivatorRealm(args.actor.cultivatorId);
-  const isBatch = Boolean(args.items?.length);
+  const { actor, nodeId, input } = args;
+  const fingerprint = JSON.stringify({
+    nodeId,
+    layer: input.layer,
+    expectedTotal: input.expectedTotal,
+    ids: input.items.map((item) => item.listingId).sort(),
+  });
+  const source = 'market_purchase_v6';
   return withRedisLock(
     {
-      key: redisLockKeys.cultivatorMutation(args.actor.cultivatorId),
-      context: isBatch ? 'market-batch-buy' : 'market-buy',
-      timeoutMs: isBatch ? 30_000 : 10_000,
+      keys: [
+        redisLockKeys.cultivatorMutation(actor.cultivatorId),
+        `market:purchase:user:${actor.userId}`,
+      ],
+      context: 'market-purchase',
+      timeoutMs: 30000,
       retries: 0,
     },
     async (lease) => {
-      const fates = await loadMarketFates(args.actor);
-      let prepared: PreparedPurchaseCommand<unknown>;
-      if (isBatch) {
-        prepared = await prepareBatchMarketPurchase({
-          nodeId: args.nodeId,
-          layer: args.layer,
-          items: args.items ?? [],
-          userId: args.actor.userId,
-          cultivatorId: args.actor.cultivatorId,
-          cultivatorRealm: realm,
-          fates,
-        });
-      } else {
-        prepared = await prepareMarketItemPurchase({
-          nodeId: args.nodeId,
-          layer: args.layer,
-          listingId: args.listingId ?? '',
-          quantity: args.quantity,
-          userId: args.actor.userId,
-          cultivatorId: args.actor.cultivatorId,
-          cultivatorRealm: realm,
-          fates,
-        });
-      }
-      let afterCommit: (() => Promise<void>) | undefined;
+      const existing = await findPlayerMutationRequest(
+        actor.cultivatorId,
+        source,
+        input.requestId,
+      );
+      const prepared = existing
+        ? undefined
+        : await prepareBatchMarketPurchase({
+            nodeId,
+            layer: input.layer,
+            items: input.items,
+            expectedTotal: input.expectedTotal,
+            userId: actor.userId,
+            cultivatorId: actor.cultivatorId,
+            cultivatorRealm: (await readCultivatorRealm(actor.cultivatorId))
+              .realm,
+            fates: await loadMarketFates(actor),
+          });
       const committed = await playerCommandExecutor.execute({
         coordination: { mode: 'redis', lease },
-        userId: args.actor.userId,
-        cultivatorId: args.actor.cultivatorId,
-        source: isBatch ? 'market_batch_buy' : 'market_buy',
+        userId: actor.userId,
+        cultivatorId: actor.cultivatorId,
+        source,
+        idempotency: { key: input.requestId, fingerprint },
         command: async (tx) => {
-          const command = await executeMarketPurchaseCommand(
-            prepared,
-            tx,
-            args.actor.cultivatorId,
-          );
-          afterCommit = command.afterCommit;
-          return command;
+          if (!prepared) throw new Error('购买凭据已失效，请重新选购');
+          return executeMarketPurchaseCommand(prepared, tx, actor.cultivatorId);
         },
       });
-      await runAfterCommit(afterCommit, {
-        cultivatorId: args.actor.cultivatorId,
-        listingId: args.listingId,
-      });
+      await runAfterCommit(
+        () =>
+          markMarketPurchased(
+            actor.userId,
+            nodeId,
+            input.layer,
+            input.items.map((item) => item.listingId),
+          ),
+        { cultivatorId: actor.cultivatorId, requestId: input.requestId },
+      );
       return committed;
     },
   );

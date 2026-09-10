@@ -37,6 +37,20 @@ function levelTier(level: number) {
   return { color: tierColorMap[realm], tier: `${realm} · ${level}级` };
 }
 export function itemPresentation(item: DisplayItem) {
+  // Display-only shelf seeds are not a new inventory definition.
+  if (item.definitionId === 'market.seed') {
+    const facts = item.instanceData as {
+      rank: keyof typeof tierColorMap;
+      description?: string;
+    };
+    return {
+      icon: '🌱',
+      color: tierColorMap[facts.rank],
+      tier: facts.rank,
+      type: '种子',
+      description: facts.description ?? '',
+    };
+  }
   const def = itemDefinition(item.definitionId);
   switch (def.kind) {
     case 'consumable': {
