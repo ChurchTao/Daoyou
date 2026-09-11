@@ -1,10 +1,7 @@
 import { SeededRng } from "../core/index.ts"
 import type { CombatV6ProjectionDiagnostic } from "../projection/types.ts"
 import { DAO_EQUIPMENT_BASE_GENERATION, daoEquipmentAttributeRange, daoEquipmentTemplateOf } from "./content.ts"
-import {
-  DAO_EQUIPMENT_ARTS_V1,
-  DAO_EQUIPMENT_ESSENCES_V1,
-} from "./special-content.ts"
+import { DAO_EQUIPMENT_SPECIAL_GENERATION, equipmentArtPool, equipmentEssencePool } from "./forging-content.ts"
 import {
   DAO_EQUIPMENT_GENERATOR_VERSION,
   DAO_EQUIPMENT_GENERATOR_VERSION_V2,
@@ -146,8 +143,9 @@ function generateBaseRolls(
 }
 
 function essenceCount(roll: number): 0 | 1 | 2 {
-  if (roll < 0.82) return 0
-  if (roll < 0.98) return 1
+  const [zero, one] = DAO_EQUIPMENT_SPECIAL_GENERATION.essenceCountProbabilities
+  if (roll < zero) return 0
+  if (roll < zero + one) return 1
   return 2
 }
 
@@ -169,14 +167,15 @@ export function generateDaoEquipmentV2(
     template,
   )
   const count = essenceCount(rng.next())
-  const essencePool = DAO_EQUIPMENT_ESSENCES_V1.map((definition) => definition.id)
+  const essencePool = equipmentEssencePool(template.slot)
   const essenceIds: string[] = []
   for (let index = 0; index < count; index += 1) {
     const pick = Math.floor(rng.next() * essencePool.length)
     essenceIds.push(essencePool.splice(pick, 1)[0])
   }
-  const artId = rng.next() < 0.08
-    ? DAO_EQUIPMENT_ARTS_V1[Math.floor(rng.next() * DAO_EQUIPMENT_ARTS_V1.length)].id
+  const artPool = equipmentArtPool(template.slot)
+  const artId = rng.next() < DAO_EQUIPMENT_SPECIAL_GENERATION.artChance
+    ? artPool[Math.floor(rng.next() * artPool.length)]
     : undefined
 
   return {
@@ -207,4 +206,4 @@ export const daoEquipmentGenerationRulesV1 = {
   attributeRange: daoEquipmentAttributeRange,
 }
 
-export const daoEquipmentGenerationRulesV2 = { essenceCount, artChance: 0.08 }
+export const daoEquipmentGenerationRulesV2 = { essenceCount, artChance: DAO_EQUIPMENT_SPECIAL_GENERATION.artChance }

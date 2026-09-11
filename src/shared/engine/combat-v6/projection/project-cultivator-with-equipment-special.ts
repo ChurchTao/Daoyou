@@ -1,9 +1,9 @@
 import type { Attributes } from "@shared/types/cultivator"
+import { DAO_RAGE_RESOURCE, DAO_EQUIPMENT_MULTI_SECT_DOWNED_SKILL_IDS } from "../equipment/special-content.ts"
 import { compileSectCombatV6, compileSectCombatV6V2, compileSectCombatV6V3, compileSectCombatV6V4 } from "../content/index.ts"
 import { ATTR_NAMES, type AttrName, type CombatV6VersionStamp, type LineupUnit } from "../core/index.ts"
 import {
   DAO_EQUIPMENT_ARTS_V1,
-  DAO_EQUIPMENT_ART_SKILL_ID,
   DAO_RAGE_RESOURCE_ID,
   compileDaoEquipmentSpecialLoadoutV1,
 } from "../equipment/index.ts"
@@ -174,9 +174,9 @@ export function projectCultivatorWithEquipmentSpecialInternal(
     .filter((art) => equipment.projection.grantedArtIds.includes(art.id))
     .map((art) => art.skill.id)
   const artSkillLevels = Object.fromEntries(artSkillIds.map((id) => [id, 0]))
-  const phase6Overrides = allowMultiSect && artSkillIds.includes(DAO_EQUIPMENT_ART_SKILL_ID.Qingxin)
+  const phase6Overrides = allowMultiSect
     ? DAO_EQUIPMENT_ARTS_V1
-        .filter((art) => art.skill.id === DAO_EQUIPMENT_ART_SKILL_ID.Qingxin)
+        .filter((art) => artSkillIds.includes(art.skill.id) && DAO_EQUIPMENT_MULTI_SECT_DOWNED_SKILL_IDS.includes(art.skill.id))
         .map((art) => ({ ...structuredClone(art.skill), targeting: { ...art.skill.targeting, includeDowned: true } }))
     : []
   return {
@@ -190,7 +190,7 @@ export function projectCultivatorWithEquipmentSpecialInternal(
       skillOverrides: [...(sect?.projection.skillOverrides ?? []), ...equipment.projection.skillOverrides, ...phase6Overrides],
       resources: [
         ...(sect?.projection.resources ?? []),
-        { id: DAO_RAGE_RESOURCE_ID, name: "战意", current: 0, max: 150 },
+        { ...DAO_RAGE_RESOURCE },
       ],
       tags: [...(base.unit.tags ?? []), ...(sect?.projection.unitTags ?? [])],
     },

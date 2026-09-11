@@ -1,9 +1,13 @@
+import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
-import { useConsumableInventoryResource } from '@app/lib/resources/inventory';
 import { useResourceMutation } from '@app/lib/resources/mutations';
+import { useCultivatorCondition } from '@app/lib/resources/player';
+import type { InventoryView } from '@shared/contracts/inventory';
 import { itemDefinition } from '@shared/inventory';
+import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
+import { canUseDungeonRecoveryPill } from '@shared/lib/dungeon/rest';
 import type { DungeonState } from '@shared/lib/dungeon/types';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useRef, useState } from 'react';
@@ -30,30 +34,50 @@ export function DungeonRunPanel({
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [bag, setBag] = useState<InventoryView>();
+  const [readError, setReadError] = useState('');
   const busy = useRef(false);
   const { pushToast } = useInkUI();
   const { mutate } = useResourceMutation();
-  const inventory = useConsumableInventoryResource({
-    pageSize: 40,
-    enabled: open,
-    consumableKind: 'pill',
-  });
-  const pills = (inventory.items ?? []).filter(
-    (item) =>
-      item.spec.kind === 'pill' &&
-      item.spec.operations.length > 0 &&
-      item.spec.operations.some((op) => op.type === 'restore_resource') &&
-      item.spec.operations.every(
-        (op) => op.type === 'restore_resource' || op.type === 'change_gauge',
-      ),
-  );
+  const condition = useCultivatorCondition();
+  const unavailable =
+    !!readError ||
+    !!condition.error ||
+    condition.loading ||
+    condition.isRefreshing;
   const rewards = (state.v6Rewards ?? [])
     .flatMap((r) => r.items)
     .map(
       (item) => `${itemDefinition(item.definitionId).name} ×${item.quantity}`,
     );
-  const consume = async (consumableId: string) => {
+  const refresh = async () => {
+    setReadError('');
+    try {
+      const response = await fetch('/api/combat-v6/inventory?location=bag', {
+        signal: AbortSignal.timeout(15000),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? '物品栏读取失败');
+      setBag(body.data);
+      await condition.reload();
+    } catch {
+      setReadError('暂时无法核实物品与资源，请重新读取后再用药。');
+    }
+  };
+  const readInventory = async () => {
     if (busy.current) return;
+    busy.current = true;
+    setPending(true);
+    setOpen(true);
+    try {
+      await refresh();
+    } finally {
+      busy.current = false;
+      setPending(false);
+    }
+  };
+  const consume = async (item: InventoryView['items'][number]) => {
+    if (busy.current || processing || unavailable) return;
     busy.current = true;
     setPending(true);
     try {
@@ -61,16 +85,23 @@ export function DungeonRunPanel({
         fetch('/api/cultivator/consume', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ consumableId }),
+          body: JSON.stringify({
+            consumableId: item.id,
+            revision: item.revision,
+          }),
+          signal: AbortSignal.timeout(15000),
         }),
       );
-      await inventory.reload();
+      pushToast({ message: `已使用一枚${item.name}`, tone: 'success' });
     } catch (error) {
       pushToast({
-        message: error instanceof Error ? error.message : '使用失败',
+        message: error instanceof Error ? error.message : '使用结果未确认',
         tone: 'danger',
       });
     } finally {
+      // Verify actual stock after either success or an uncertain response.
+      // Never replay the consumption request automatically.
+      await refresh();
       busy.current = false;
       setPending(false);
     }
@@ -82,7 +113,10 @@ export function DungeonRunPanel({
           探索 {state.currentRound}/{state.maxRounds}
         </span>
         <div className="flex gap-2">
-          <InkButton disabled={processing} onClick={() => setOpen(true)}>
+          <InkButton
+            disabled={processing || pending}
+            onClick={() => void readInventory()}
+          >
             休整与收获
           </InkButton>
           <InkButton
@@ -95,53 +129,67 @@ export function DungeonRunPanel({
       </div>
       <InkDetailDrawer
         isOpen={open}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          if (!pending) setOpen(false);
+        }}
         title="休整与收获"
       >
         <div className="space-y-4">
-          <p>
+          <p className="font-mono">
             气血 {Math.floor(displayResources?.hp.current ?? 0)}/
-            {displayResources?.hp.max ?? 0} · 法力{' '}
-            {Math.floor(displayResources?.mp.current ?? 0)}/
+            {displayResources?.hp.max ?? 0}
+            {' · '}法力 {Math.floor(displayResources?.mp.current ?? 0)}/
             {displayResources?.mp.max ?? 0}
           </p>
           <p>
             {rewards.length ? rewards.join('、') : '暂未获得物品'}
             。离开秘境时统一结算。
           </p>
-          {pills.map((item) => (
-            <InkButton
-              key={item.id}
-              disabled={pending || !!state.activeBattleId}
-              onClick={() => void consume(item.id!)}
-            >
-              {item.name} ×{item.quantity}
-            </InkButton>
-          ))}
-          {!pills.length ? <p>本页暂无可用于休整的恢复丹药。</p> : null}
-          {(inventory.pagination?.totalPages ?? 0) > 1 ? (
-            <div className="flex items-center gap-3">
-              <InkButton
-                disabled={pending || inventory.loading || inventory.page <= 1}
-                onClick={inventory.goPrevPage}
-              >
-                上一页
-              </InkButton>
-              <span>
-                {inventory.page} / {inventory.pagination?.totalPages}
-              </span>
-              <InkButton
-                disabled={
-                  pending ||
-                  inventory.loading ||
-                  inventory.page >= (inventory.pagination?.totalPages ?? 1)
-                }
-                onClick={inventory.goNextPage}
-              >
-                下一页
-              </InkButton>
-            </div>
+          <p>选择随身恢复丹药，查看药效后使用一枚。</p>
+          {readError || condition.error ? (
+            <p role="alert">
+              {readError || '人物资源读取失败，请重新读取后再用药。'}
+            </p>
           ) : null}
+          <InkButton
+            disabled={pending || processing}
+            onClick={() => void readInventory()}
+          >
+            {pending ? '正在核实…' : '重新读取'}
+          </InkButton>
+          <InventoryItems
+            items={bag?.items ?? []}
+            className="grid-cols-5 gap-1 sm:grid-cols-5"
+            slotProps={(item) => {
+              const facts =
+                item?.definitionId === 'consumable.v1'
+                  ? ConsumableFactsSchema.safeParse(item.instanceData)
+                  : undefined;
+              const eligible =
+                facts?.success && canUseDungeonRecoveryPill(state, facts.data);
+              return {
+                disabled: !item || pending || processing || unavailable,
+                children: item
+                  ? (close) => (
+                      <div className="space-y-2">
+                        {!eligible ? <p>此物不能用于秘境休整。</p> : null}
+                        <InkButton
+                          disabled={
+                            !eligible || pending || processing || unavailable
+                          }
+                          onClick={() => {
+                            close();
+                            void consume(item);
+                          }}
+                        >
+                          使用一枚
+                        </InkButton>
+                      </div>
+                    )
+                  : undefined,
+              };
+            }}
+          />
         </div>
       </InkDetailDrawer>
     </div>

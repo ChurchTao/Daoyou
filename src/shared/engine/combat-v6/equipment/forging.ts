@@ -5,7 +5,7 @@ import {
   daoEquipmentGenerationRulesV2,
   generateDaoEquipmentV2,
 } from './generator';
-import { DAO_EQUIPMENT_ESSENCES_V1 } from './special-content';
+import { DAO_EQUIPMENT_FORGING, equipmentEssencePool } from './forging-content';
 import type {
   DaoEquipmentGenerationResult,
   GenerateDaoEquipmentV2Input,
@@ -16,7 +16,7 @@ export type ForgingBoosts = {
   essence: number;
   attributes: number;
 };
-export const FORGING_BOOST_PER_MATERIAL = 0.018;
+export const FORGING_BOOST_PER_MATERIAL = DAO_EQUIPMENT_FORGING.boostPerMaterial;
 export function rollHigher(
   first: number,
   chance: number,
@@ -97,11 +97,9 @@ export function generateForgedEquipment(
     () => essence.next(),
     () => daoEquipmentGenerationRulesV2.essenceCount(essence.next()),
   );
-  const pool = DAO_EQUIPMENT_ESSENCES_V1.filter(
-    (entry) =>
-      !instance.essenceIds.includes(entry.id) &&
-      (!entry.allowedSlots || entry.allowedSlots.includes(instance.slot)),
-  ).map((entry) => entry.id);
+  const pool = equipmentEssencePool(instance.slot).filter(
+    (id) => !instance.essenceIds.includes(id),
+  );
   while (instance.essenceIds.length < count && pool.length)
     instance.essenceIds.push(
       pool.splice(Math.floor(essence.next() * pool.length), 1)[0],

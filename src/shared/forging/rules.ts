@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DAO_EQUIPMENT_FORGING } from '../engine/combat-v6/equipment/forging-content';
 import type { ForgingBoosts } from '../engine/combat-v6/equipment/forging';
 import { InventoryRuleError } from '../inventory';
 import type { MaterialFacts } from '../items/definitions/materials';
@@ -11,13 +12,13 @@ export const ForgingLevelSchema = z
   .max(180)
   .multipleOf(10);
 export function forgingCost(level: number) {
-  const t = ForgingLevelSchema.parse(level) / 10;
-  const quantity = Math.ceil(t / 4);
+  const validLevel = ForgingLevelSchema.parse(level);
+  const cost = DAO_EQUIPMENT_FORGING.costs.find(entry => entry.level === validLevel)!;
   return {
-    spiritStones: 100 * t * t,
-    qi: 5 + 2 * t,
-    quantity,
-    rank: (['凡品', '灵品', '玄品', '真品', '地品'] as const)[quantity - 1],
+    spiritStones: cost.spiritStones,
+    qi: cost.qi,
+    quantity: cost.quantity,
+    rank: cost.rank,
   };
 }
 export function forgingBoosts(

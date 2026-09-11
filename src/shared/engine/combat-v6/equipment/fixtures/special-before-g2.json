@@ -1,0 +1,413 @@
+{
+  "arts": [
+    {
+      "id": "dao_equipment.art.huiyuan",
+      "name": "回元诀",
+      "rageCost": 40,
+      "skill": {
+        "id": "dao_equipment.skill.huiyuan",
+        "name": "回元诀",
+        "resourceCosts": [
+          {
+            "resourceId": "combat.resource.rage",
+            "amount": 40
+          }
+        ],
+        "tags": [
+          "support"
+        ],
+        "targeting": {
+          "side": "ally",
+          "count": 1
+        },
+        "effects": [
+          {
+            "type": "heal",
+            "power": "target.maxHp * 0.25"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dao_equipment.art.qingxin",
+      "name": "清心诀",
+      "rageCost": 60,
+      "skill": {
+        "id": "dao_equipment.skill.qingxin",
+        "name": "清心诀",
+        "resourceCosts": [
+          {
+            "resourceId": "combat.resource.rage",
+            "amount": 60
+          }
+        ],
+        "tags": [
+          "support"
+        ],
+        "targeting": {
+          "side": "ally",
+          "count": 1
+        },
+        "effects": [
+          {
+            "type": "dispel",
+            "categories": [
+              "control"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dao_equipment.art.juling",
+      "name": "聚灵诀",
+      "rageCost": 50,
+      "skill": {
+        "id": "dao_equipment.skill.juling",
+        "name": "聚灵诀",
+        "resourceCosts": [
+          {
+            "resourceId": "combat.resource.rage",
+            "amount": 50
+          }
+        ],
+        "tags": [
+          "support"
+        ],
+        "targeting": {
+          "side": "ally",
+          "count": 1
+        },
+        "effects": [
+          {
+            "type": "restoreMp",
+            "power": "target.maxMp * 0.25"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dao_equipment.art.huanhun",
+      "name": "还魂诀",
+      "rageCost": 100,
+      "skill": {
+        "id": "dao_equipment.skill.huanhun",
+        "name": "还魂诀",
+        "resourceCosts": [
+          {
+            "resourceId": "combat.resource.rage",
+            "amount": 100
+          }
+        ],
+        "tags": [
+          "support"
+        ],
+        "targeting": {
+          "side": "ally",
+          "count": 1,
+          "includeDowned": true
+        },
+        "effects": [
+          {
+            "type": "revive",
+            "hpRatio": 0.2
+          }
+        ]
+      }
+    },
+    {
+      "id": "dao_equipment.art.jingang",
+      "name": "金刚护法",
+      "rageCost": 80,
+      "skill": {
+        "id": "dao_equipment.skill.jingang",
+        "name": "金刚护法",
+        "resourceCosts": [
+          {
+            "resourceId": "combat.resource.rage",
+            "amount": 80
+          }
+        ],
+        "tags": [
+          "support"
+        ],
+        "targeting": {
+          "side": "ally",
+          "mode": "all"
+        },
+        "effects": [
+          {
+            "type": "applyStatus",
+            "statusId": "dao_equipment.status.jingang_guard",
+            "duration": 3
+          }
+        ]
+      },
+      "statusDefs": [
+        {
+          "id": "dao_equipment.status.jingang_guard",
+          "name": "金刚护法",
+          "kind": "dao_equipment.guard.physical",
+          "category": "buff",
+          "attrMods": {
+            "physicalDef": "floor(target.physicalDef * 0.1)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dao_equipment.art.xuanling",
+      "name": "玄灵护法",
+      "rageCost": 80,
+      "skill": {
+        "id": "dao_equipment.skill.xuanling",
+        "name": "玄灵护法",
+        "resourceCosts": [
+          {
+            "resourceId": "combat.resource.rage",
+            "amount": 80
+          }
+        ],
+        "tags": [
+          "support"
+        ],
+        "targeting": {
+          "side": "ally",
+          "mode": "all"
+        },
+        "effects": [
+          {
+            "type": "applyStatus",
+            "statusId": "dao_equipment.status.xuanling_guard",
+            "duration": 3
+          }
+        ]
+      },
+      "statusDefs": [
+        {
+          "id": "dao_equipment.status.xuanling_guard",
+          "name": "玄灵护法",
+          "kind": "dao_equipment.guard.spell",
+          "category": "buff",
+          "attrMods": {
+            "magicDef": "floor(target.magicDef * 0.1)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dao_equipment.art.pofa",
+      "name": "破法诀",
+      "rageCost": 70,
+      "skill": {
+        "id": "dao_equipment.skill.pofa",
+        "name": "破法诀",
+        "resourceCosts": [
+          {
+            "resourceId": "combat.resource.rage",
+            "amount": 70
+          }
+        ],
+        "tags": [
+          "support"
+        ],
+        "targeting": {
+          "side": "enemy",
+          "count": 1
+        },
+        "effects": [
+          {
+            "type": "dispel",
+            "categories": [
+              "buff"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dao_equipment.art.zhuxian",
+      "name": "诛仙式",
+      "rageCost": 120,
+      "skill": {
+        "id": "dao_equipment.skill.zhuxian",
+        "name": "诛仙式",
+        "resourceCosts": [
+          {
+            "resourceId": "combat.resource.rage",
+            "amount": 120
+          }
+        ],
+        "tags": [
+          "physical"
+        ],
+        "targeting": {
+          "side": "enemy",
+          "count": 1
+        },
+        "effects": [
+          {
+            "type": "physicalHit",
+            "coeff": 1.5,
+            "defenseIgnore": 0.1
+          }
+        ]
+      }
+    },
+    {
+      "id": "dao_equipment.art.tianlei",
+      "name": "天雷引",
+      "rageCost": 120,
+      "skill": {
+        "id": "dao_equipment.skill.tianlei",
+        "name": "天雷引",
+        "resourceCosts": [
+          {
+            "resourceId": "combat.resource.rage",
+            "amount": 120
+          }
+        ],
+        "tags": [
+          "spell"
+        ],
+        "targeting": {
+          "side": "enemy",
+          "mode": "fill",
+          "count": 3
+        },
+        "effects": [
+          {
+            "type": "spellHit",
+            "coeff": 0.85
+          }
+        ]
+      }
+    }
+  ],
+  "essences": [
+    {
+      "id": "dao_equipment.essence.cangfeng",
+      "name": "藏锋",
+      "stackPolicy": "stack",
+      "panel": [
+        {
+          "attr": "critRate",
+          "mode": "add",
+          "value": 0.03
+        }
+      ]
+    },
+    {
+      "id": "dao_equipment.essence.ningshen",
+      "name": "凝神",
+      "stackPolicy": "stack",
+      "panel": [
+        {
+          "attr": "spellCritRate",
+          "mode": "add",
+          "value": 0.03
+        }
+      ]
+    },
+    {
+      "id": "dao_equipment.essence.pojin",
+      "name": "破禁",
+      "stackPolicy": "stack",
+      "panel": [
+        {
+          "attr": "sealHit",
+          "mode": "add",
+          "value": 20
+        }
+      ]
+    },
+    {
+      "id": "dao_equipment.essence.dinghun",
+      "name": "定魂",
+      "stackPolicy": "stack",
+      "panel": [
+        {
+          "attr": "sealResist",
+          "mode": "add",
+          "value": 20
+        }
+      ]
+    },
+    {
+      "id": "dao_equipment.essence.qingling",
+      "name": "轻灵",
+      "stackPolicy": "unique",
+      "requiredLevelOffset": -10
+    },
+    {
+      "id": "dao_equipment.essence.jiangang",
+      "name": "激昂",
+      "stackPolicy": "highest",
+      "resourceGainFactors": {
+        "combat.resource.rage": 1.2
+      }
+    },
+    {
+      "id": "dao_equipment.essence.guiyuan",
+      "name": "归元",
+      "stackPolicy": "highest",
+      "resourceCostFactors": {
+        "combat.resource.rage": 0.8
+      }
+    }
+  ],
+  "passives": [
+    {
+      "id": "dao_equipment.passive.rage_gain",
+      "name": "战意积蓄",
+      "tags": [
+        "passive"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [],
+      "hooks": [
+        {
+          "on": "onBeHit",
+          "sourceIsSelf": true,
+          "aim": "self",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "combat.resource.rage",
+              "amount": "min(20, max(1, floor(floor(hpDamage / target.maxHp * 100) * 1)))",
+              "maxGainPerAction": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dao_equipment.passive.rage_gain_excited",
+      "name": "激昂战意",
+      "tags": [
+        "passive"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [],
+      "hooks": [
+        {
+          "on": "onBeHit",
+          "sourceIsSelf": true,
+          "aim": "self",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "combat.resource.rage",
+              "amount": "min(20, max(1, floor(floor(hpDamage / target.maxHp * 100) * 1.2)))",
+              "maxGainPerAction": 30
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

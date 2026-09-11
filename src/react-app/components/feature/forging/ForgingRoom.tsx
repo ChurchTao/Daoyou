@@ -5,12 +5,16 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
+import { DAO_EQUIPMENT_FORGING } from '@shared/engine/combat-v6/equipment/forging-content';
 import { itemDefinition } from '@shared/inventory';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useBeforeUnload, useBlocker } from 'react-router';
 import { ForgingFurnace } from './ForgingFurnace';
 import { ForgingInventory, type ForgeFilter } from './ForgingInventory';
 import { useForgingSession, type ForgeItem } from './useForgingSession';
+
+const boostPercent = Number((DAO_EQUIPMENT_FORGING.boostPerMaterial * 100).toFixed(6));
+const maxBoostPercent = Number((DAO_EQUIPMENT_FORGING.boostPerMaterial * 5 * 100).toFixed(6));
 
 const facilities: RoomActorView[] = [
   {
@@ -211,8 +215,8 @@ export function ForgingRoom() {
                               ? `${session.cost.quantity} 份灵材 · ${session.cost.rank}起`
                               : '一卷图纸，最多五份灵材'}
                             <InkTooltip label="材料增益规则">
-                              每份材料增加 1.8 个百分点，同类最多
-                              9%。矿石增益白字择优；天材地宝增益器蕴数量择优；辅助与妖兽材料增益已有附灵数值择优。高品质无额外加成，器诀独立随机。
+                              每份材料增加 {boostPercent} 个百分点，同类最多
+                              {maxBoostPercent}%。矿石增益白字择优；天材地宝增益器蕴数量择优；辅助与妖兽材料增益已有附灵数值择优。高品质无额外加成，器诀独立随机。
                             </InkTooltip>
                           </div>
                         </div>
@@ -285,7 +289,7 @@ export function ForgingRoom() {
                   <h3 className="mb-2 font-medium">灵材各有所长</h3>
                   <p className="text-ink-secondary">
                     矿石偏重白字面板；天材地宝偏重器蕴数量；辅助与妖兽材料偏重附灵数值。同类可叠加择优概率，每份
-                    1.8%，最多 9%。器诀独立随机。
+                    {boostPercent}%，最多 {maxBoostPercent}%。器诀独立随机。
                   </p>
                 </section>
                 <section>

@@ -1,0 +1,188 @@
+{
+  "$schema": "./equipment-special.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "essences": [
+    {
+      "id": "dao_equipment.essence.cangfeng",
+      "name": "藏锋",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "panelAdd",
+        "attribute": "critRate",
+        "value": 0.03
+      }
+    },
+    {
+      "id": "dao_equipment.essence.ningshen",
+      "name": "凝神",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "panelAdd",
+        "attribute": "spellCritRate",
+        "value": 0.03
+      }
+    },
+    {
+      "id": "dao_equipment.essence.pojin",
+      "name": "破禁",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "panelAdd",
+        "attribute": "sealHit",
+        "value": 20
+      }
+    },
+    {
+      "id": "dao_equipment.essence.dinghun",
+      "name": "定魂",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "panelAdd",
+        "attribute": "sealResist",
+        "value": 20
+      }
+    },
+    {
+      "id": "dao_equipment.essence.qingling",
+      "name": "轻灵",
+      "stackPolicy": "unique",
+      "effect": {
+        "type": "requiredLevelOffset",
+        "value": -10
+      }
+    },
+    {
+      "id": "dao_equipment.essence.jiangang",
+      "name": "激昂",
+      "stackPolicy": "highest",
+      "effect": {
+        "type": "rageGain",
+        "factor": 1.2
+      }
+    },
+    {
+      "id": "dao_equipment.essence.guiyuan",
+      "name": "归元",
+      "stackPolicy": "highest",
+      "effect": {
+        "type": "rageCost",
+        "factor": 0.8
+      }
+    }
+  ],
+  "arts": [
+    {
+      "id": "dao_equipment.art.huiyuan",
+      "name": "回元诀",
+      "skillId": "dao_equipment.skill.huiyuan",
+      "rageCost": 40,
+      "effect": {
+        "type": "heal",
+        "ratio": 0.25
+      }
+    },
+    {
+      "id": "dao_equipment.art.qingxin",
+      "name": "清心诀",
+      "includeDownedInMultiSect": true,
+      "skillId": "dao_equipment.skill.qingxin",
+      "rageCost": 60,
+      "effect": {
+        "type": "dispel",
+        "side": "ally",
+        "categories": [
+          "control"
+        ]
+      }
+    },
+    {
+      "id": "dao_equipment.art.juling",
+      "name": "聚灵诀",
+      "skillId": "dao_equipment.skill.juling",
+      "rageCost": 50,
+      "effect": {
+        "type": "restoreMp",
+        "ratio": 0.25
+      }
+    },
+    {
+      "id": "dao_equipment.art.huanhun",
+      "name": "还魂诀",
+      "skillId": "dao_equipment.skill.huanhun",
+      "rageCost": 100,
+      "effect": {
+        "type": "revive",
+        "hpRatio": 0.2
+      }
+    },
+    {
+      "id": "dao_equipment.art.jingang",
+      "name": "金刚护法",
+      "skillId": "dao_equipment.skill.jingang",
+      "rageCost": 80,
+      "effect": {
+        "type": "defenseBuff",
+        "attribute": "physicalDef",
+        "ratio": 0.1,
+        "duration": 3,
+        "statusId": "dao_equipment.status.jingang_guard"
+      }
+    },
+    {
+      "id": "dao_equipment.art.xuanling",
+      "name": "玄灵护法",
+      "skillId": "dao_equipment.skill.xuanling",
+      "rageCost": 80,
+      "effect": {
+        "type": "defenseBuff",
+        "attribute": "magicDef",
+        "ratio": 0.1,
+        "duration": 3,
+        "statusId": "dao_equipment.status.xuanling_guard"
+      }
+    },
+    {
+      "id": "dao_equipment.art.pofa",
+      "name": "破法诀",
+      "skillId": "dao_equipment.skill.pofa",
+      "rageCost": 70,
+      "effect": {
+        "type": "dispel",
+        "side": "enemy",
+        "categories": [
+          "buff"
+        ]
+      }
+    },
+    {
+      "id": "dao_equipment.art.zhuxian",
+      "name": "诛仙式",
+      "skillId": "dao_equipment.skill.zhuxian",
+      "rageCost": 120,
+      "effect": {
+        "type": "physicalHit",
+        "coefficient": 1.5,
+        "defenseIgnore": 0.1
+      }
+    },
+    {
+      "id": "dao_equipment.art.tianlei",
+      "name": "天雷引",
+      "skillId": "dao_equipment.skill.tianlei",
+      "rageCost": 120,
+      "effect": {
+        "type": "spellHit",
+        "coefficient": 0.85,
+        "targetCount": 3
+      }
+    }
+  ],
+  "rageResource": { "name": "战意", "initial": 0, "maximum": 150 },
+  "rageGain": {
+    "minPerHit": 1,
+    "maxPerHit": 20,
+    "damagePercentScale": 100,
+    "maxPerAction": 30
+  }
+}

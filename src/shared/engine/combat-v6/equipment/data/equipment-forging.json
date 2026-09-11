@@ -1,0 +1,164 @@
+{
+  "$schema": "./equipment-forging.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "generation": {
+    "essenceCountProbabilities": [
+      0.82,
+      0.16,
+      0.02
+    ],
+    "artChance": 0.08,
+    "essencePool": [
+      "dao_equipment.essence.cangfeng",
+      "dao_equipment.essence.ningshen",
+      "dao_equipment.essence.pojin",
+      "dao_equipment.essence.dinghun",
+      "dao_equipment.essence.qingling",
+      "dao_equipment.essence.jiangang",
+      "dao_equipment.essence.guiyuan"
+    ],
+    "artPool": [
+      "dao_equipment.art.huiyuan",
+      "dao_equipment.art.qingxin",
+      "dao_equipment.art.juling",
+      "dao_equipment.art.huanhun",
+      "dao_equipment.art.jingang",
+      "dao_equipment.art.xuanling",
+      "dao_equipment.art.pofa",
+      "dao_equipment.art.zhuxian",
+      "dao_equipment.art.tianlei"
+    ]
+  },
+  "forging": {
+    "boostPerMaterial": 0.018,
+    "costs": [
+      {
+        "level": 10,
+        "spiritStones": 100,
+        "qi": 7,
+        "quantity": 1,
+        "rank": "凡品"
+      },
+      {
+        "level": 20,
+        "spiritStones": 400,
+        "qi": 9,
+        "quantity": 1,
+        "rank": "凡品"
+      },
+      {
+        "level": 30,
+        "spiritStones": 900,
+        "qi": 11,
+        "quantity": 1,
+        "rank": "凡品"
+      },
+      {
+        "level": 40,
+        "spiritStones": 1600,
+        "qi": 13,
+        "quantity": 1,
+        "rank": "凡品"
+      },
+      {
+        "level": 50,
+        "spiritStones": 2500,
+        "qi": 15,
+        "quantity": 2,
+        "rank": "灵品"
+      },
+      {
+        "level": 60,
+        "spiritStones": 3600,
+        "qi": 17,
+        "quantity": 2,
+        "rank": "灵品"
+      },
+      {
+        "level": 70,
+        "spiritStones": 4900,
+        "qi": 19,
+        "quantity": 2,
+        "rank": "灵品"
+      },
+      {
+        "level": 80,
+        "spiritStones": 6400,
+        "qi": 21,
+        "quantity": 2,
+        "rank": "灵品"
+      },
+      {
+        "level": 90,
+        "spiritStones": 8100,
+        "qi": 23,
+        "quantity": 3,
+        "rank": "玄品"
+      },
+      {
+        "level": 100,
+        "spiritStones": 10000,
+        "qi": 25,
+        "quantity": 3,
+        "rank": "玄品"
+      },
+      {
+        "level": 110,
+        "spiritStones": 12100,
+        "qi": 27,
+        "quantity": 3,
+        "rank": "玄品"
+      },
+      {
+        "level": 120,
+        "spiritStones": 14400,
+        "qi": 29,
+        "quantity": 3,
+        "rank": "玄品"
+      },
+      {
+        "level": 130,
+        "spiritStones": 16900,
+        "qi": 31,
+        "quantity": 4,
+        "rank": "真品"
+      },
+      {
+        "level": 140,
+        "spiritStones": 19600,
+        "qi": 33,
+        "quantity": 4,
+        "rank": "真品"
+      },
+      {
+        "level": 150,
+        "spiritStones": 22500,
+        "qi": 35,
+        "quantity": 4,
+        "rank": "真品"
+      },
+      {
+        "level": 160,
+        "spiritStones": 25600,
+        "qi": 37,
+        "quantity": 4,
+        "rank": "真品"
+      },
+      {
+        "level": 170,
+        "spiritStones": 28900,
+        "qi": 39,
+        "quantity": 5,
+        "rank": "地品"
+      },
+      {
+        "level": 180,
+        "spiritStones": 32400,
+        "qi": 41,
+        "quantity": 5,
+        "rank": "地品"
+      }
+    ]
+  }
+}

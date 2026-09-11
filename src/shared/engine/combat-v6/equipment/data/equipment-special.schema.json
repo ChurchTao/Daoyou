@@ -1,0 +1,483 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "essences": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^dao_equipment\\.essence\\.[a-z][a-z0-9_]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "allowedSlots": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "weapon",
+                "head",
+                "armor",
+                "necklace",
+                "belt",
+                "footwear"
+              ]
+            }
+          },
+          "stackPolicy": {
+            "type": "string",
+            "enum": [
+              "stack",
+              "unique",
+              "highest"
+            ]
+          },
+          "conflictGroup": {
+            "type": "string",
+            "minLength": 1
+          },
+          "effect": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "panelAdd"
+                  },
+                  "attribute": {
+                    "type": "string",
+                    "enum": [
+                      "physicalAtk",
+                      "physicalDef",
+                      "magicAtk",
+                      "magicDef",
+                      "maxHp",
+                      "maxMp",
+                      "healPower",
+                      "speed",
+                      "hit",
+                      "dodge",
+                      "critRate",
+                      "spellCritRate",
+                      "physicalFuryRate",
+                      "sealHit",
+                      "sealResist"
+                    ]
+                  },
+                  "value": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  }
+                },
+                "required": [
+                  "type",
+                  "attribute",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "requiredLevelOffset"
+                  },
+                  "value": {
+                    "type": "integer",
+                    "minimum": -180,
+                    "maximum": 0
+                  }
+                },
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "rageGain"
+                  },
+                  "factor": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "factor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "rageCost"
+                  },
+                  "factor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "factor"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "stackPolicy",
+          "effect"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "arts": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^dao_equipment\\.art\\.[a-z][a-z0-9_]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "allowedSlots": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "weapon",
+                "head",
+                "armor",
+                "necklace",
+                "belt",
+                "footwear"
+              ]
+            }
+          },
+          "skillId": {
+            "type": "string",
+            "pattern": "^dao_equipment\\.skill\\.[a-z][a-z0-9_]*$"
+          },
+          "includeDownedInMultiSect": {
+            "type": "boolean"
+          },
+          "rageCost": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "effect": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "heal"
+                  },
+                  "ratio": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "ratio"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "restoreMp"
+                  },
+                  "ratio": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "ratio"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "revive"
+                  },
+                  "hpRatio": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "hpRatio"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "dispel"
+                  },
+                  "side": {
+                    "type": "string",
+                    "enum": [
+                      "ally",
+                      "enemy"
+                    ]
+                  },
+                  "categories": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "buff",
+                        "control"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "type",
+                  "side",
+                  "categories"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "defenseBuff"
+                  },
+                  "attribute": {
+                    "type": "string",
+                    "enum": [
+                      "physicalDef",
+                      "magicDef"
+                    ]
+                  },
+                  "ratio": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  },
+                  "statusId": {
+                    "type": "string",
+                    "pattern": "^dao_equipment\\.status\\.[a-z][a-z0-9_]*$"
+                  }
+                },
+                "required": [
+                  "type",
+                  "attribute",
+                  "ratio",
+                  "duration",
+                  "statusId"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "physicalHit"
+                  },
+                  "coefficient": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000,
+                    "multipleOf": 0.000001
+                  },
+                  "defenseIgnore": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "coefficient",
+                  "defenseIgnore"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "spellHit"
+                  },
+                  "coefficient": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000,
+                    "multipleOf": 0.000001
+                  },
+                  "targetCount": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  }
+                },
+                "required": [
+                  "type",
+                  "coefficient",
+                  "targetCount"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "skillId",
+          "rageCost",
+          "effect"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "rageResource": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maximum": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "multipleOf": 0.000001
+        }
+      },
+      "required": [
+        "name",
+        "initial",
+        "maximum"
+      ],
+      "additionalProperties": false
+    },
+    "rageGain": {
+      "type": "object",
+      "properties": {
+        "minPerHit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maxPerHit": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "multipleOf": 0.000001
+        },
+        "damagePercentScale": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000000,
+          "multipleOf": 0.000001
+        },
+        "maxPerAction": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "multipleOf": 0.000001
+        }
+      },
+      "required": [
+        "minPerHit",
+        "maxPerHit",
+        "damagePercentScale",
+        "maxPerAction"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "essences",
+    "arts",
+    "rageResource",
+    "rageGain"
+  ],
+  "additionalProperties": false
+}

@@ -26,16 +26,18 @@ import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import { SeedFactsSchema } from '@shared/items/definitions/seeds';
 import { ITEM_DEFINITIONS } from '@shared/items/registry';
-import { and, asc, count, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { canUseDungeonRecoveryPill } from '@shared/lib/dungeon/rest';
+import type { Consumable } from '@shared/types/cultivator';
+import { and, asc, count, eq, ilike, inArray, ne, or, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
-import { db, type DbTransaction } from '../drizzle/db';
+import { db, type DbExecutor, type DbTransaction } from '../drizzle/db';
 import {
   cultivatorBeasts,
   cultivatorEquipmentSlots,
+  dungeonRuns,
   inventoryItems,
 } from '../drizzle/schema';
-import { hasActiveDungeon } from '../dungeon/occupancy';
 import { redis } from '../redis';
 import { redisLockKeys, withRedisLock } from '../redis/lock';
 import {
@@ -74,11 +76,28 @@ export function inventoryItemOf(
     item.instanceData = ConsumableFactsSchema.parse(item.instanceData);
   return item;
 }
-export async function assertInventoryIdle(owner: string) {
+export async function assertInventoryIdle(
+  owner: string,
+  recoveryItem?: Pick<Consumable, 'spec'>,
+  tx: DbExecutor = db,
+) {
+  const [run] = await tx
+    .select({
+      status: dungeonRuns.status,
+      activeBattleId: dungeonRuns.activeBattleId,
+    })
+    .from(dungeonRuns)
+    .where(
+      and(
+        eq(dungeonRuns.cultivatorId, owner),
+        ne(dungeonRuns.status, 'FINISHED'),
+      ),
+    )
+    .limit(1);
   if (
     (await hasActiveTower(owner)) ||
     (await hasActiveRanking(owner)) ||
-    (await hasActiveDungeon(owner)) ||
+    (run && (!recoveryItem || !canUseDungeonRecoveryPill(run, recoveryItem))) ||
     (await hasActiveSectTaskBattle(owner)) ||
     (await hasActiveBreakthroughBattle(owner)) ||
     (await new CombatV6WildStore().lock(owner)) ||

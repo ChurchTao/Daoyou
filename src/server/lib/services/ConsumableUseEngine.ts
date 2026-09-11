@@ -25,6 +25,7 @@ import {
   isSpiritFruitConsumable,
   isTalismanConsumable,
 } from '@shared/lib/consumables';
+import { canUseDungeonRecoveryPill } from '@shared/lib/dungeon/rest';
 import { getAttributeLabel } from '@shared/lib/gameConceptDisplay';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
 import type { Consumable } from '@shared/types/cultivator';
@@ -108,17 +109,7 @@ export const ConsumableUseEngine = {
           ),
         )
         .limit(1);
-      if (
-        run?.activeBattleId ||
-        !['EXPLORING', 'LOOTING'].includes(run?.status ?? '') ||
-        !isPillConsumable(consumable) ||
-        !consumable.spec.operations.some(
-          (op) => op.type === 'restore_resource',
-        ) ||
-        !consumable.spec.operations.every(
-          (op) => op.type === 'restore_resource' || op.type === 'change_gauge',
-        )
-      ) {
+      if (!run || !canUseDungeonRecoveryPill(run, consumable)) {
         throw new Error(
           '秘境休整期间仅可使用恢复气血或法力的丹药，战斗与结算期间不可使用',
         );
