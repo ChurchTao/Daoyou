@@ -1,6 +1,2 @@
-import { getRealmStageRank } from '@shared/config/realmProgression';
-export function combatCharacterLevel(
-  ...realm: Parameters<typeof getRealmStageRank>
-) {
-  return (getRealmStageRank(...realm) + 1) * 5;
-}
+// Combat and permanent attribute budgets use the same realm-to-level mapping.
+export { getRealmStageLevel as combatCharacterLevel } from '@shared/config/realmProgression';

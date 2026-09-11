@@ -1,3 +1,4 @@
+import { getRealmStageUnallocatedAttributeBudget } from '@shared/config/realmProgression';
 import { generateAiObject } from '@server/utils/aiClient';
 import type {
   CultivationTechnique,
@@ -67,6 +68,9 @@ export class CharacterGenerator {
       lifespan,
 
       attributes,
+      unallocated_attribute_points: getRealmStageUnallocatedAttributeBudget(
+        '炼气', '初期',
+      ),
       spiritual_roots,
       cultivations,
       skills,

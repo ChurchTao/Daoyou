@@ -273,9 +273,13 @@ describe('CultivationEngine cultivation boost', () => {
     );
     cultivator.cultivation_progress!.bottleneck_state = true;
 
+    const attributesBefore = { ...cultivator.attributes };
+    const freePointsBefore = cultivator.unallocated_attribute_points;
     const result = attemptBreakthrough(cultivator, () => 0.99);
 
     expect(result.summary.success).toBe(false);
+    expect(result.cultivator.attributes).toEqual(attributesBefore);
+    expect(result.cultivator.unallocated_attribute_points).toBe(freePointsBefore);
     expect(
       result.cultivator.cultivation_progress!.cultivation_exp / currentCap,
     ).toBeLessThan(0.7);
@@ -311,16 +315,16 @@ describe('CultivationEngine cultivation boost', () => {
     const minorResult = attemptBreakthrough(minor, () => 0);
 
     expect(minorResult.summary.attributeGrowth).toEqual({});
-    expect(minorResult.summary.naturalAttributeGrowth).toBe(2);
-    expect(minorResult.summary.attributePointReward).toBe(10);
-    expect(minorResult.cultivator.unallocated_attribute_points).toBe(10);
+    expect(minorResult.summary.naturalAttributeGrowth).toBe(5);
+    expect(minorResult.summary.attributePointReward).toBe(25);
+    expect(minorResult.cultivator.unallocated_attribute_points).toBe(25);
     expect(minorResult.cultivator.attributes).toEqual({
-      vitality: minorAttributesBefore.vitality + 2,
-      strength: minorAttributesBefore.strength + 2,
-      spirit: minorAttributesBefore.spirit + 2,
-      endurance: minorAttributesBefore.endurance + 2,
-      speed: minorAttributesBefore.speed + 2,
-      willpower: minorAttributesBefore.willpower + 2,
+      vitality: minorAttributesBefore.vitality + 5,
+      strength: minorAttributesBefore.strength + 5,
+      spirit: minorAttributesBefore.spirit + 5,
+      endurance: minorAttributesBefore.endurance + 5,
+      speed: minorAttributesBefore.speed + 5,
+      willpower: minorAttributesBefore.willpower + 5,
     });
 
     const major = createCultivator();
@@ -330,16 +334,16 @@ describe('CultivationEngine cultivation boost', () => {
 
     const majorResult = attemptBreakthrough(major, () => 0);
 
-    expect(majorResult.summary.naturalAttributeGrowth).toBe(4);
-    expect(majorResult.summary.attributePointReward).toBe(20);
-    expect(majorResult.cultivator.unallocated_attribute_points).toBe(20);
+    expect(majorResult.summary.naturalAttributeGrowth).toBe(5);
+    expect(majorResult.summary.attributePointReward).toBe(25);
+    expect(majorResult.cultivator.unallocated_attribute_points).toBe(25);
     expect(majorResult.cultivator.attributes).toEqual({
-      vitality: majorAttributesBefore.vitality + 4,
-      strength: majorAttributesBefore.strength + 4,
-      spirit: majorAttributesBefore.spirit + 4,
-      endurance: majorAttributesBefore.endurance + 4,
-      speed: majorAttributesBefore.speed + 4,
-      willpower: majorAttributesBefore.willpower + 4,
+      vitality: majorAttributesBefore.vitality + 5,
+      strength: majorAttributesBefore.strength + 5,
+      spirit: majorAttributesBefore.spirit + 5,
+      endurance: majorAttributesBefore.endurance + 5,
+      speed: majorAttributesBefore.speed + 5,
+      willpower: majorAttributesBefore.willpower + 5,
     });
   });
 

@@ -81,13 +81,14 @@ describe('CharacterGenerator', () => {
     const { cultivator } = await CharacterGenerator.generate('根骨上佳的修士');
 
     expect(cultivator.attributes).toEqual({
-      vitality: 10,
-      strength: 10,
-      spirit: 10,
-      endurance: 10,
-      speed: 10,
-      willpower: 10,
+      vitality: 15,
+      strength: 15,
+      spirit: 15,
+      endurance: 15,
+      speed: 15,
+      willpower: 15,
     });
+    expect(cultivator.unallocated_attribute_points).toBe(25);
     const removedSkillCapKey = 'max' + '_skills';
     expect(removedSkillCapKey in cultivator).toBe(false);
   });

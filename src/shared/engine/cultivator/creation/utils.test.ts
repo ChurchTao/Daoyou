@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { ELEMENT_VALUES } from '@shared/types/constants';
-import { generateSpiritualRoots } from './utils';
+import { generateAttributes, generateSpiritualRoots } from './utils';
 
 describe('generateSpiritualRoots', () => {
   it('filters invalid elements and never outputs values outside ELEMENT_VALUES', () => {
@@ -69,5 +69,13 @@ describe('generateSpiritualRoots', () => {
     } finally {
       randomSpy.mockRestore();
     }
+  });
+});
+
+
+it('creates the level-five natural attributes without allocated points', () => {
+  expect(generateAttributes()).toEqual({
+    vitality: 15, strength: 15, spirit: 15,
+    endurance: 15, speed: 15, willpower: 15,
   });
 });
