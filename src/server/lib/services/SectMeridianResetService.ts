@@ -1,10 +1,10 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
 import {
-  combatV6BuildProfiles,
-  combatV6MeridianLoadouts,
-  combatV6MeridianNodes,
+  sectCombatStates,
+  sectMeridianLoadouts,
+  sectMeridianNodes,
 } from '@server/lib/drizzle/schema';
-import { loadActiveCombatV6Build } from '@server/lib/repositories/combatV6BuildRepository';
+import { readActiveSectCombatProgress } from '@server/lib/repositories/sectCombatRepository';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { assertInventoryIdle } from './InventoryService';
 
@@ -22,7 +22,7 @@ export const SectMeridianResetService = {
     tx: DbTransaction;
   }): Promise<{ resetLoadoutCount: number }> {
     await assertInventoryIdle(args.cultivatorId);
-    const build = await loadActiveCombatV6Build(args.cultivatorId, args.tx);
+    const build = await readActiveSectCombatProgress(args.cultivatorId, args.tx);
     if (!build) throw new SectMeridianResetServiceError('请先启用新版宗门传承');
     const paths = build.sect.meridianLoadouts
       .filter((loadout) => loadout.nodeIds.length > 0)
@@ -30,21 +30,21 @@ export const SectMeridianResetService = {
     if (!paths.length)
       throw new SectMeridianResetServiceError('当前宗门流派没有已选择的节点');
     const rows = await args.tx
-      .select({ id: combatV6MeridianLoadouts.id })
-      .from(combatV6MeridianLoadouts)
-      .where(eq(combatV6MeridianLoadouts.profileId, build.profileId));
+      .select({ id: sectMeridianLoadouts.id })
+      .from(sectMeridianLoadouts)
+      .where(eq(sectMeridianLoadouts.membershipId, build.membershipId));
     const ids = rows.map((row) => row.id);
     await args.tx
-      .delete(combatV6MeridianNodes)
-      .where(inArray(combatV6MeridianNodes.loadoutId, ids));
+      .delete(sectMeridianNodes)
+      .where(inArray(sectMeridianNodes.loadoutId, ids));
     await args.tx
-      .update(combatV6MeridianLoadouts)
-      .set({ revision: sql`${combatV6MeridianLoadouts.revision} + 1` })
-      .where(inArray(combatV6MeridianLoadouts.id, ids));
+      .update(sectMeridianLoadouts)
+      .set({ revision: sql`${sectMeridianLoadouts.revision} + 1` })
+      .where(inArray(sectMeridianLoadouts.id, ids));
     await args.tx
-      .update(combatV6BuildProfiles)
+      .update(sectCombatStates)
       .set({ revision: build.revision + 1 })
-      .where(eq(combatV6BuildProfiles.id, build.profileId));
+      .where(eq(sectCombatStates.membershipId, build.membershipId));
     return { resetLoadoutCount: paths.length };
   },
 };

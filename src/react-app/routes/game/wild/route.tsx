@@ -7,8 +7,8 @@ import {
 import { useCombatV6Session } from '@app/components/feature/combat-v6/useCombatV6Session';
 import { InkButton } from '@app/components/ui/InkButton';
 import {
-  useCombatV6Build,
   useCultivatorCondition,
+  useSectCombatState,
 } from '@app/lib/resources/player';
 import type { WildSessionView } from '@shared/contracts/combatV6Wild';
 import { itemDefinition } from '@shared/inventory';
@@ -50,7 +50,7 @@ export default function WildPage() {
   return <WildRegion key={nodeId} nodeId={nodeId} />;
 }
 function WildRegion({ nodeId }: { nodeId: string }) {
-  const build = useCombatV6Build();
+  const build = useSectCombatState();
   const { reload: reloadCondition } = useCultivatorCondition();
   const combat = useCombatV6Session<WildSessionView>('/api/combat-v6/wild');
   const {

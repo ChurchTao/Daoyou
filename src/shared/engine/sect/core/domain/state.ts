@@ -1,42 +1,12 @@
-import type {
-  SectAbilityId,
-  SectId,
-  SectMethodId,
-  SectNodeId,
-  SectPathId,
-  SectPathLayerId,
-  SectTacticId,
-} from './definitions';
+import type { SectId } from './definitions';
 import type { SectDiscipleRank, SectOffice } from './organization';
 
 export type SectMembershipStatus = 'prospect' | 'active' | 'transferred';
-export type SectAbilitySlots = [
-  SectAbilityId | null,
-  SectAbilityId | null,
-  SectAbilityId | null,
-  SectAbilityId | null,
-];
-
-export interface SectMeridianLoadoutState {
-  slot: 1 | 2 | 3;
-  nodeIds: SectNodeId[];
-  version: number;
-}
-
-export interface CultivatorSectPathState {
-  pathId: SectPathId;
-  unlockedLayerIds: SectPathLayerId[];
-  tacticId: SectTacticId;
-  activeMeridianSlot: 1 | 2 | 3;
-  meridianLoadouts: SectMeridianLoadoutState[];
-}
-
 export interface CultivatorSectState {
   membershipId: string;
   sectId: SectId;
   status: SectMembershipStatus;
   joinedAt?: string;
-  activePathId?: SectPathId;
   contribution: number;
   /** Total contribution earned; unlike contribution, this is not reduced by spending. */
   lifetimeContribution?: number;
@@ -44,7 +14,4 @@ export interface CultivatorSectState {
   office?: SectOffice;
   promotedAt?: string;
   configVersion: number;
-  methods: Partial<Record<SectMethodId, number>>;
-  paths: CultivatorSectPathState[];
-  abilityLoadout: SectAbilitySlots;
 }

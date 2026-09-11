@@ -1,7 +1,8 @@
+import { isNotNull } from 'drizzle-orm';
 import { db, type DbTransaction } from '@server/lib/drizzle/db';
 import {
-  combatV6BuildProfiles,
-  combatV6ReplayArchives,
+  sectCombatStates,
+  combatReplayArchives,
   cultivators,
   sectMemberships,
   sectTaskRecords,
@@ -117,14 +118,14 @@ export async function freezeSectTaskTarget(
     .from(sectMemberships)
     .innerJoin(cultivators, eq(cultivators.id, sectMemberships.cultivatorId))
     .innerJoin(
-      combatV6BuildProfiles,
-      eq(combatV6BuildProfiles.membershipId, sectMemberships.id),
+      sectCombatStates,
+      eq(sectCombatStates.membershipId, sectMemberships.id),
     )
     .where(
       and(
         eq(sectMemberships.status, 'active'),
         eq(cultivators.status, 'active'),
-        eq(combatV6BuildProfiles.status, 'active'),
+        isNotNull(sectCombatStates.activePathId),
         ne(cultivators.id, context.cultivatorId),
         inArray(
           cultivators.realm,
@@ -361,9 +362,9 @@ export async function changeSectTaskBattle(
         await db.transaction(async (tx) => {
           await lockCultivatorForStateMutation(tx, actor.cultivatorId);
           const [receipt] = await tx
-            .select({ id: combatV6ReplayArchives.battleId })
-            .from(combatV6ReplayArchives)
-            .where(eq(combatV6ReplayArchives.battleId, id));
+            .select({ id: combatReplayArchives.battleId })
+            .from(combatReplayArchives)
+            .where(eq(combatReplayArchives.battleId, id));
           if (receipt) return;
           const [row] = await tx
             .select()

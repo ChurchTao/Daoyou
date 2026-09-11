@@ -17,6 +17,7 @@ export { projectCultivatorMultiSectV3ToCombatV6 } from "./project-cultivator-mul
 export { projectCultivatorMultiSectV4ToCombatV6 } from "./project-cultivator-multi-sect-v4.ts"
 export { projectCultivatorMultiSectV5ToCombatV6 } from "./project-cultivator-multi-sect-v5.ts"
 export type {
+  CharacterCombatInput,
   CombatV6PanelContribution,
   CombatV6ProjectionDiagnostic,
   CombatV6ProjectionDiagnosticCode,

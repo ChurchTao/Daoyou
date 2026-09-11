@@ -4,7 +4,7 @@ import {
   type CombatV6ReplayV1,
 } from '@shared/contracts/combatV6Runtime';
 import type { CombatV6ReplayTimeline } from '../contracts/combatV6Replay';
-import { arenaEvents, arenaUnits, projectReplayUnits } from './arena';
+import { arenaEvents, projectReplayUnits } from './arena';
 import { applyUnitDelta, diffUnits } from './playback';
 import {
   combatV6Display,
@@ -28,7 +28,7 @@ export function createCombatV6Replay(
       'seed' | 'initialUnits' | 'skills' | 'statusDefs' | 'rounds' | 'events'
     > & {
       finalState?: CombatV6ReplayV1['finalState'];
-      timeline?: CombatV6ReplayTimeline;
+      timeline: CombatV6ReplayTimeline;
     };
   },
 ): CombatV6ReplayV1 {
@@ -37,18 +37,12 @@ export function createCombatV6Replay(
   const winner = trace.finalState.result?.winner;
   return parseCombatV6Replay({
     ...metadata,
-    replayVersion: trace.timeline
-      ? COMBAT_V6_REPLAY_VERSION
-      : 'combat_v6_replay_v1',
-    ...(trace.timeline
-      ? {
-          timeline: {
-            ...trace.timeline,
-            finalUnits: combatV6Units(trace.finalState, trace.statusDefs),
-          },
-          display: combatV6Display(trace.skills, trace.statusDefs),
-        }
-      : {}),
+    replayVersion: COMBAT_V6_REPLAY_VERSION,
+    timeline: {
+      ...trace.timeline,
+      finalUnits: combatV6Units(trace.finalState, trace.statusDefs),
+    },
+    display: combatV6Display(trace.skills, trace.statusDefs),
     seed: trace.seed,
     combatVersions: trace.finalState.versions,
     initialUnits: trace.initialUnits,
@@ -83,12 +77,7 @@ export function combatV6ReplayView(
       .filter((u) => u.id === viewer.unitId || u.ownerId === viewer.unitId)
       .flatMap((u) => u.skills),
   );
-  const frozenDisplay =
-    replay.display ??
-    combatV6Display(
-      replay.skills.filter((s) => ownSkills.has(s.id)),
-      replay.statusDefs,
-    );
+  const frozenDisplay = replay.display;
   const display = {
     ...frozenDisplay,
     unitNames: visibleUnitNames(
@@ -109,9 +98,7 @@ export function combatV6ReplayView(
   return {
     battleId: replay.battleId,
     controlledUnitId: viewer.unitId,
-    timeline: replay.timeline
-      ? projectTimeline(replay, viewer.unitId, viewer.side)
-      : undefined,
+    timeline: projectTimeline(replay, viewer.unitId, viewer.side),
     combatVersions: replay.combatVersions,
     startedAt: replay.startedAt,
     finishedAt: replay.finishedAt,
@@ -123,13 +110,11 @@ export function combatV6ReplayView(
         : replay.outcome === `side-${viewer.side}`
           ? 'victory'
           : 'defeat',
-    units: replay.timeline?.finalUnits
-      ? projectReplayUnits(
-          replay.timeline.finalUnits,
-          viewer.unitId,
-          viewer.side,
-        )
-      : arenaUnits(replay.finalState, replay, viewer.unitId),
+    units: projectReplayUnits(
+      replay.timeline.finalUnits!,
+      viewer.unitId,
+      viewer.side,
+    ),
     events,
     display: {
       ...display,
@@ -148,7 +133,7 @@ function projectTimeline(
   viewerId: string,
   side: 0 | 1,
 ): CombatV6ReplayTimeline {
-  const tape = replay.timeline!;
+  const tape = replay.timeline;
   const cursors: number[] = [];
   let cursor = -1;
   for (const event of replay.events) {

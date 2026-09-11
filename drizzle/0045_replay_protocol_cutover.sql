@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_combat_replay_archives" DROP COLUMN "playable";

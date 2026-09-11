@@ -186,7 +186,7 @@ export const playerCurrencyResource: ResourceDefinition<
     return defaultResourceReducer(current, change);
   },
 };
-export const playerCombatV6BuildResource = playerDefinition('combat-v6-build');
+export const playerSectCombatResource = playerDefinition('sect-combat');
 export const playerMailSummaryResource = playerDefinition('mail-summary');
 export const playerTaskSummaryResource = playerDefinition('task-summary');
 

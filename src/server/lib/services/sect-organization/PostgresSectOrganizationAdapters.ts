@@ -1,6 +1,6 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import {
-  combatV6EquipmentLoadouts,
+  cultivatorEquipmentSlots,
   inventoryItems,
 } from '@server/lib/drizzle/schema';
 import { createPostgresDomainEventWriter } from '@server/lib/mq/domainEventWriter';
@@ -264,10 +264,10 @@ function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
     const loadouts = rows.length
       ? await q
           .select()
-          .from(combatV6EquipmentLoadouts)
+          .from(cultivatorEquipmentSlots)
           .where(
             inArray(
-              combatV6EquipmentLoadouts.equipmentInstanceId,
+              cultivatorEquipmentSlots.equipmentInstanceId,
               rows.map((row) => row.id),
             ),
           )

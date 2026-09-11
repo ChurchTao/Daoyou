@@ -17,7 +17,7 @@ import type {
   CombatV6ProjectionResult,
   CompareDaoEquipmentSpecialLoadoutsV1Input,
   CompareDaoEquipmentSpecialLoadoutsV1Result,
-  ProjectCultivatorWithEquipmentSpecialInput,
+  CharacterCombatInput,
 } from "./types.ts"
 
 const ATTRIBUTE_KEYS = [
@@ -69,7 +69,7 @@ function panelAttrs(attributes: Attributes): LineupUnit["attrs"] {
 }
 
 function applyResources(
-  input: ProjectCultivatorWithEquipmentSpecialInput,
+  input: Omit<CharacterCombatInput, "manuals">,
   attrs: LineupUnit["attrs"],
   diagnostics: CombatV6ProjectionDiagnostic[],
 ): void {
@@ -121,17 +121,17 @@ function contentConflicts(
 }
 
 export function projectCultivatorWithEquipmentSpecialInternal(
-  input: ProjectCultivatorWithEquipmentSpecialInput,
+  input: Omit<CharacterCombatInput, "manuals">,
   versions: CombatV6VersionStamp,
   allowMultiSect: boolean,
   allowWuxiang = false,
   allowTianyan = false,
   allowJiujie = false,
 ): CombatV6ProjectionResult {
-  if (input.sect.sectId === "jiujie" && !allowJiujie) return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: `${versions.projectionVersion} 不接受九劫天宫`, path: "sect.sectId" }], versions }
-  if (input.sect.sectId === "tianyan" && !allowTianyan) return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: `${versions.projectionVersion} 不接受天衍圣地`, path: "sect.sectId" }], versions }
-  if (input.sect.sectId === "wuxiang" && !allowWuxiang) return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: `${versions.projectionVersion} 不接受无相禅宗`, path: "sect.sectId" }], versions }
-  if (!allowMultiSect && input.sect.sectId !== "lingxiao") return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: "character_equipment_special_v1 只接受红尘剑宗", path: "sect.sectId" }], versions }
+  if (input.sect?.sectId === "jiujie" && !allowJiujie) return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: `${versions.projectionVersion} 不接受九劫天宫`, path: "sect.sectId" }], versions }
+  if (input.sect?.sectId === "tianyan" && !allowTianyan) return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: `${versions.projectionVersion} 不接受天衍圣地`, path: "sect.sectId" }], versions }
+  if (input.sect?.sectId === "wuxiang" && !allowWuxiang) return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: `${versions.projectionVersion} 不接受无相禅宗`, path: "sect.sectId" }], versions }
+  if (!allowMultiSect && input.sect?.sectId !== "lingxiao") return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: "character_equipment_special_v1 只接受红尘剑宗", path: "sect.sectId" }], versions }
   const base = projectCultivatorBaseToCombatV6({ ...input, resourcePolicy: "full" })
   if (!base.ok) return { ok: false, diagnostics: base.diagnostics, versions }
   const equipment = compileDaoEquipmentSpecialLoadoutV1(input.equipment, base.unit.level ?? 0)
@@ -141,7 +141,7 @@ export function projectCultivatorWithEquipmentSpecialInternal(
   for (const key of ATTRIBUTE_KEYS) effectiveAttributes[key] += equipment.projection.attributeBonuses[key]
   const characterPanel = compileCharacterPanelV1(effectiveAttributes)
   const training = compileBodyCultivationV6(input.cultivator.condition?.tracks.bodyCultivation, characterPanel)
-  const sect = allowJiujie
+  const sect = !input.sect ? undefined : allowJiujie
     ? compileSectCombatV6V4({ progress: input.sect, characterLevel: base.unit.level ?? 0 })
     : allowTianyan
     ? compileSectCombatV6V3({ progress: input.sect, characterLevel: base.unit.level ?? 0 })
@@ -152,10 +152,10 @@ export function projectCultivatorWithEquipmentSpecialInternal(
     ...base.diagnostics,
     ...equipment.projection.diagnostics,
     ...training.diagnostics,
-    ...(sect.ok ? sect.projection.diagnostics : sect.diagnostics),
+    ...(sect ? (sect.ok ? sect.projection.diagnostics : sect.diagnostics) : []),
   ]
-  if (!sect.ok) return { ok: false, diagnostics, versions }
-  diagnostics.push(...contentConflicts(sect.projection, equipment.projection))
+  if (sect && !sect.ok) return { ok: false, diagnostics, versions }
+  if (sect) diagnostics.push(...contentConflicts(sect.projection, equipment.projection))
   if (hasErrors(diagnostics)) return { ok: false, diagnostics, versions }
 
   const attrs = panelAttrs(effectiveAttributes)
@@ -166,7 +166,7 @@ export function projectCultivatorWithEquipmentSpecialInternal(
   attrs.spellCultivate = training.spellCultivate
   attrs.resistSpellCultivate = training.resistSpellCultivate
   for (const roll of equipment.projection.panel) applyContribution(attrs, { attr: roll.attr, mode: "add", value: roll.value })
-  for (const contribution of sect.projection.panel) applyContribution(attrs, contribution)
+  for (const contribution of sect?.projection.panel ?? []) applyContribution(attrs, contribution)
   applyResources(input, attrs, diagnostics)
   if (hasErrors(diagnostics)) return { ok: false, diagnostics, versions }
 
@@ -184,25 +184,25 @@ export function projectCultivatorWithEquipmentSpecialInternal(
     unit: {
       ...base.unit,
       attrs,
-      skills: [...sect.projection.activeSkillIds, ...artSkillIds],
-      passives: [...sect.projection.passiveSkillIds, ...equipment.projection.passiveSkillIds],
-      skillLevels: { ...sect.projection.skillLevels, ...artSkillLevels },
-      skillOverrides: [...sect.projection.skillOverrides, ...equipment.projection.skillOverrides, ...phase6Overrides],
+      skills: [...(sect?.projection.activeSkillIds ?? []), ...artSkillIds],
+      passives: [...(sect?.projection.passiveSkillIds ?? []), ...equipment.projection.passiveSkillIds],
+      skillLevels: { ...sect?.projection.skillLevels, ...artSkillLevels },
+      skillOverrides: [...(sect?.projection.skillOverrides ?? []), ...equipment.projection.skillOverrides, ...phase6Overrides],
       resources: [
-        ...sect.projection.resources,
+        ...(sect?.projection.resources ?? []),
         { id: DAO_RAGE_RESOURCE_ID, name: "战意", current: 0, max: 150 },
       ],
-      tags: [...(base.unit.tags ?? []), ...sect.projection.unitTags],
+      tags: [...(base.unit.tags ?? []), ...(sect?.projection.unitTags ?? [])],
     },
-    skills: [...sect.projection.skills, ...equipment.projection.skills],
-    statusDefs: [...sect.projection.statusDefs, ...equipment.projection.statusDefs],
+    skills: [...(sect?.projection.skills ?? []), ...equipment.projection.skills],
+    statusDefs: [...(sect?.projection.statusDefs ?? []), ...equipment.projection.statusDefs],
     diagnostics,
     versions,
   }
 }
 
 export function projectCultivatorWithEquipmentSpecialToCombatV6(
-  input: ProjectCultivatorWithEquipmentSpecialInput,
+  input: Omit<CharacterCombatInput, "manuals">,
 ): CombatV6ProjectionResult {
   return projectCultivatorWithEquipmentSpecialInternal(input, { ...COMBAT_V6_PHASE_4B_VERSIONS }, false)
 }

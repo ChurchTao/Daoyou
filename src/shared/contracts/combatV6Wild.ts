@@ -37,7 +37,6 @@ export const WildRuntimeSchema = z
     userId: z.uuid(),
     cultivatorId: z.uuid(),
     membershipId: z.uuid(),
-    buildRevision: z.number().int().nonnegative(),
     metadata: CombatV6BattleMetadataV1Schema,
     revision: z.number().int().nonnegative(),
     createdAt: z.iso.datetime(),
@@ -101,7 +100,7 @@ export const WildRuntimeSchema = z
           .passthrough(),
         rounds: z.array(z.unknown()),
         events: z.array(z.unknown()),
-        timeline: CombatV6ReplayTimelineSchema.optional(),
+        timeline: CombatV6ReplayTimelineSchema,
       })
       .strict(),
   })

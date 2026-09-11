@@ -25,7 +25,7 @@ import {
   combatV6Units,
   visibleUnitNames,
 } from './presentation';
-import { replayRound, startReplayTimeline } from './replay-timeline';
+import { replayRound } from './replay-timeline';
 
 export function arenaBattle(
   runtime: Pick<ArenaRuntime, 'seed' | 'units' | 'skills' | 'statusDefs'> &
@@ -278,12 +278,6 @@ export function arenaView(
 
 export function resolveArena(runtime: ArenaRuntime, now: number): ArenaRuntime {
   const next = structuredClone(runtime);
-  if (!next.timeline && next.rounds.length === 0)
-    next.timeline = startReplayTimeline(
-      next.state,
-      next.statusDefs,
-      next.events.length - 1,
-    );
   const recording = replayRound(
     next.timeline,
     next.state,

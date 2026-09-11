@@ -5,10 +5,10 @@ import { combatV6Playback, combatV6Units } from './presentation';
 
 /** Incremental HTTP playback after server-driven rounds; recovery still loads the full baseline. */
 export function liveReplayDelta(
-  timeline: CombatV6ReplayTimeline | undefined,
+  timeline: CombatV6ReplayTimeline,
   after: number,
 ) {
-  if (!timeline || after < timeline.fromEventSeq) return undefined;
+  if (after < timeline.fromEventSeq) return undefined;
   const frames = timeline.frames.filter((frame) => frame.afterEventSeq > after);
   return frames.length
     ? { format: 'delta-v1' as const, fromEventSeq: after, frames }
@@ -31,7 +31,7 @@ export function startReplayTimeline(
 
 /** Collect only the current round, then append it to the durable timeline in the same CAS. */
 export function replayRound(
-  timeline: CombatV6ReplayTimeline | undefined,
+  timeline: CombatV6ReplayTimeline,
   state: BattleState,
   statuses: StatusDef[],
   seq: number,
@@ -41,7 +41,7 @@ export function replayRound(
     capture: collector.capture,
     finish(final: BattleState, finalSeq: number) {
       collector.capture(final, finalSeq);
-      if (timeline) timeline.frames.push(...collector.playback.frames);
+      timeline.frames.push(...collector.playback.frames);
     },
   };
 }

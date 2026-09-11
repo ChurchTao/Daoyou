@@ -140,8 +140,5 @@ export function fixtureSectState(): CultivatorSectState {
     status: 'active',
     contribution: 30,
     configVersion: 1,
-    methods: { 'fixture-method-1': 1, 'fixture-method-2': 1 },
-    paths: [],
-    abilityLoadout: ['fixture-ability-2', null, null, null],
   };
 }

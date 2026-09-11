@@ -1,14 +1,13 @@
 import {
-  playerCombatV6BuildResource,
   playerConditionResource,
   playerCurrencyResource,
   playerMailSummaryResource,
   playerProfileResource,
   playerProgressResource,
+  playerSectCombatResource,
   playerSessionResource,
   playerTaskSummaryResource,
   sectContextResource,
-  sectProgressionResource,
 } from '@app/lib/resources/definitions';
 import { useSingletonResource } from '@app/lib/resources/hooks';
 
@@ -32,8 +31,8 @@ export function useCultivatorCurrency(enabled = true) {
   return useSingletonResource(playerCurrencyResource, enabled);
 }
 
-export function useCombatV6Build(enabled = true) {
-  return useSingletonResource(playerCombatV6BuildResource, enabled);
+export function useSectCombatState(enabled = true) {
+  return useSingletonResource(playerSectCombatResource, enabled);
 }
 
 export function useUnreadMailCount() {
@@ -51,8 +50,4 @@ export function useTaskSummary() {
 
 export function useSectMembership() {
   return useSingletonResource(sectContextResource);
-}
-
-export function useSectProgression() {
-  return useSingletonResource(sectProgressionResource);
 }

@@ -5,7 +5,7 @@ import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
-import { findActiveCombatV6Membership } from '@server/lib/repositories/combatV6BuildRepository';
+import { findActiveSectMembership } from '@server/lib/repositories/sectCombatRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
 import { hasActiveTower } from '@server/lib/tower/occupancy';
 import { automaticCommands } from '@shared/combat-v6/auto';
@@ -291,7 +291,6 @@ export class CombatV6WildSessionService {
             battleId: randomUUID(),
             ...actor,
             membershipId: assembled.membershipId,
-            buildRevision: assembled.buildRevision,
             metadata: {
               schemaVersion: 1,
               sourceType: 'wild-encounter',
@@ -401,7 +400,7 @@ export class CombatV6WildSessionService {
       if (s) await store.finish(s, wildTerminal(s, 'expired'));
       throw new WildError('WILD_SESSION_NOT_FOUND', '战斗已过期', 404);
     }
-    const membership = await findActiveCombatV6Membership(
+    const membership = await findActiveSectMembership(
       actor.cultivatorId,
       db,
     );

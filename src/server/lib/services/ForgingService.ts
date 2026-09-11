@@ -1,4 +1,3 @@
-import { parseMailAttachments } from '@shared/lib/itemLibrary';
 import type {
   DevGrantSchema,
   ForgeRequest,
@@ -27,19 +26,23 @@ import {
 } from '@shared/items/definitions/materials';
 import { seedFactsOf } from '@shared/items/definitions/seeds';
 import { materialFactsOf } from '@shared/items/material';
+import { parseMailAttachments } from '@shared/lib/itemLibrary';
 import { and, asc, count, eq, gte, ilike, inArray, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { db, type DbTransaction } from '../drizzle/db';
 import {
-  combatV6Beasts,
   consumables,
+  cultivatorBeasts,
   cultivators,
   inventoryItems,
   materials,
 } from '../drizzle/schema';
 import { redisLockKeys, withRedisLock } from '../redis/lock';
-import { readBeastOwner } from '../repositories/combatV6BeastRepository';
+import {
+  beastIndividualData,
+  readBeastOwner,
+} from '../repositories/combatV6BeastRepository';
 import { lockCultivatorForStateMutation } from '../repositories/playerStateRepository';
 import { mapConsumableRow } from './consumablePersistence';
 import { addConsumableToInventoryInTransaction } from './cultivator/CultivatorInventoryRepository';
@@ -374,8 +377,8 @@ export async function grantDevResources(input: z.infer<typeof DevGrantSchema>) {
           throw new InventoryError('灵兽物种无效');
         const [held] = await tx
           .select({ total: count() })
-          .from(combatV6Beasts)
-          .where(eq(combatV6Beasts.cultivatorId, input.cultivatorId));
+          .from(cultivatorBeasts)
+          .where(eq(cultivatorBeasts.cultivatorId, input.cultivatorId));
         if (held.total >= BEAST_CAPACITY)
           throw new InventoryError('灵兽持有数量已达上限');
         const id = randomUUID();
@@ -386,8 +389,12 @@ export async function grantDevResources(input: z.infer<typeof DevGrantSchema>) {
           randomInt(0x100000000),
         );
         await tx
-          .insert(combatV6Beasts)
-          .values({ id, cultivatorId: input.cultivatorId, individual });
+          .insert(cultivatorBeasts)
+          .values({
+            id,
+            cultivatorId: input.cultivatorId,
+            individual: beastIndividualData(individual),
+          });
         ids.push(id);
       } else if (grant.type === 'vault-seed') {
         const [row] = await tx

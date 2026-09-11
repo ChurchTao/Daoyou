@@ -36,22 +36,12 @@ export function CombatV6ReplayPlayer({
   endContent?: ReactNode;
 }) {
   const timeline = record.timeline;
-  const [seek] = useState(() =>
-    replaySeeker(
-      timeline ?? {
-        format: 'delta-v1',
-        initialUnits: record.units,
-        initialRound: record.round,
-        fromEventSeq: record.events[record.events.length - 1]?.seq ?? -1,
-        frames: [],
-      },
-    ),
-  );
+  const [seek] = useState(() => replaySeeker(timeline));
   const [position, setPosition] = useState(() => seek(0));
   const [running, setRunning] = useState(autoPlay);
   const [speed, setSpeed] = useState(1);
   const [inspected, setInspected] = useState<string>();
-  const count = timeline?.frames.length ?? 0;
+  const count = timeline.frames.length;
   const playing = running && position.index < count;
   const ended = position.index === count;
   const move = useCallback(
@@ -72,8 +62,8 @@ export function CombatV6ReplayPlayer({
   const labels = useMemo(() => unitLabels(position.units), [position.units]);
   const log = useMemo(() => {
     const units = new Map(record.units.map((u) => [u.id, u]));
-    for (const u of record.timeline?.initialUnits ?? []) units.set(u.id, u);
-    for (const frame of record.timeline?.frames ?? [])
+    for (const u of record.timeline.initialUnits) units.set(u.id, u);
+    for (const frame of record.timeline.frames)
       for (const u of frame.added ?? []) units.set(u.id, u);
     return appendBattleEntries(
       { entries: [], round: 0, open: false, seq: -1 },
@@ -82,14 +72,12 @@ export function CombatV6ReplayPlayer({
     );
   }, [record]);
   const rounds = useMemo(() => {
-    const result = new Map<number, number>([
-      [timeline?.initialRound ?? record.round, 0],
-    ]);
-    timeline?.frames.forEach((frame, index) => {
+    const result = new Map<number, number>([[timeline.initialRound, 0]]);
+    timeline.frames.forEach((frame, index) => {
       if (!result.has(frame.round)) result.set(frame.round, index + 1);
     });
     return [...result].map(([round, index]) => ({ round, index }));
-  }, [timeline, record.round]);
+  }, [timeline]);
   const unit = position.units.find((u) => u.id === inspected);
   const close = useCallback(() => setInspected(undefined), []);
   return (
@@ -113,78 +101,71 @@ export function CombatV6ReplayPlayer({
         <CombatV6Log entries={log.entries} visibleSeq={position.visibleSeq} />
       </div>
       {ended ? endContent : null}
-      {timeline ? (
-        <footer className="cv6-replay-controls" aria-label="回放控制">
-          <div className="cv6-replay-actions">
-            <button
-              onClick={() => move(0)}
-              disabled={position.index === 0 && !playing}
+      <footer className="cv6-replay-controls" aria-label="回放控制">
+        <div className="cv6-replay-actions">
+          <button
+            onClick={() => move(0)}
+            disabled={position.index === 0 && !playing}
+          >
+            重播
+          </button>
+          <button
+            onClick={() => move(position.index - 1)}
+            disabled={!position.index}
+          >
+            上一行动
+          </button>
+          <button
+            onClick={() => {
+              if (ended) setPosition(seek(0));
+              setRunning(!playing);
+            }}
+            disabled={!count}
+          >
+            {playing ? '暂停' : '播放'}
+          </button>
+          <button onClick={() => move(position.index + 1)} disabled={ended}>
+            下一行动
+          </button>
+        </div>
+        <div className="cv6-replay-settings">
+          <label>
+            回合{' '}
+            <select
+              aria-label="跳转回合"
+              value={position.round}
+              onChange={(e) =>
+                move(
+                  rounds.find((r) => r.round === Number(e.target.value))!.index,
+                )
+              }
             >
-              重播
-            </button>
-            <button
-              onClick={() => move(position.index - 1)}
-              disabled={!position.index}
+              {rounds.map((r) => (
+                <option key={r.round} value={r.round}>
+                  {r.round}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            速度{' '}
+            <select
+              aria-label="播放速度"
+              value={speed}
+              onChange={(e) => setSpeed(Number(e.target.value))}
             >
-              上一行动
-            </button>
-            <button
-              onClick={() => {
-                if (ended) setPosition(seek(0));
-                setRunning(!playing);
-              }}
-              disabled={!count}
-            >
-              {playing ? '暂停' : '播放'}
-            </button>
-            <button onClick={() => move(position.index + 1)} disabled={ended}>
-              下一行动
-            </button>
-          </div>
-          <div className="cv6-replay-settings">
-            <label>
-              回合{' '}
-              <select
-                aria-label="跳转回合"
-                value={position.round}
-                onChange={(e) =>
-                  move(
-                    rounds.find((r) => r.round === Number(e.target.value))!
-                      .index,
-                  )
-                }
-              >
-                {rounds.map((r) => (
-                  <option key={r.round} value={r.round}>
-                    {r.round}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              速度{' '}
-              <select
-                aria-label="播放速度"
-                value={speed}
-                onChange={(e) => setSpeed(Number(e.target.value))}
-              >
-                {[0.5, 1, 2, 4].map((s) => (
-                  <option key={s} value={s}>
-                    {s}×
-                  </option>
-                ))}
-              </select>
-            </label>
-            <span>
-              {position.index} / {count}
-            </span>
-          </div>
-        </footer>
-      ) : (
-        <footer className="cv6-replay-controls cv6-muted">
-          此记录仅保留战报与最终状态，暂无逐行动回放数据。
-        </footer>
-      )}
+              {[0.5, 1, 2, 4].map((s) => (
+                <option key={s} value={s}>
+                  {s}×
+                </option>
+              ))}
+            </select>
+          </label>
+          <span>
+            {position.index} / {count}
+          </span>
+        </div>
+      </footer>
       {unit ? (
         <CombatV6Details
           detailUnit={unit}

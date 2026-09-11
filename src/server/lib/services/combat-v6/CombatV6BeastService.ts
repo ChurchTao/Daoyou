@@ -1,14 +1,14 @@
-import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { db, type DbTransaction } from '@server/lib/drizzle/db';
 import {
-  combatV6BeastLineups,
-  combatV6Beasts,
+  cultivatorBeastLineups,
+  cultivatorBeasts,
 } from '@server/lib/drizzle/schema';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
 import {
+  beastIndividualData,
   readBeastOwner,
   readBeastRoster,
 } from '@server/lib/repositories/combatV6BeastRepository';
@@ -33,7 +33,9 @@ import type { z } from 'zod';
 import { updateSpiritStones } from '../cultivator/CultivatorStateRepository';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
 import { arenaOccupancyKey } from './CombatV6ArenaStore';
+import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';
 import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
+import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { CombatV6WildStore } from './CombatV6WildStore';
 
 export class BeastError extends Error {
@@ -58,7 +60,8 @@ async function mutate<T>(
           (await hasActiveTower(cultivatorId)) ||
           (await hasActiveRanking(cultivatorId)) ||
           (await hasActiveDungeon(cultivatorId)) ||
-          ((await hasActiveSectTaskBattle(cultivatorId)) || (await hasActiveBreakthroughBattle(cultivatorId))) ||
+          (await hasActiveSectTaskBattle(cultivatorId)) ||
+          (await hasActiveBreakthroughBattle(cultivatorId)) ||
           (await new CombatV6WildStore().lock(cultivatorId)) ||
           (await redis.get(arenaOccupancyKey(cultivatorId))) ||
           (await new CombatV6RuntimeStore().currentId(cultivatorId))
@@ -89,8 +92,12 @@ export async function claimStarterBeast(
       randomInt(0, 0x7fffffff),
     );
     await tx
-      .insert(combatV6Beasts)
-      .values({ id: beast.id, cultivatorId, individual: beast });
+      .insert(cultivatorBeasts)
+      .values({
+        id: beast.id,
+        cultivatorId,
+        individual: beastIndividualData(beast),
+      });
     const canCarry = roster.lineup.carriedBeastIds.length < 6;
     const lineup = {
       carriedBeastIds: canCarry
@@ -104,11 +111,11 @@ export async function claimStarterBeast(
       revision: roster.lineup.revision + 1,
     };
     await tx
-      .insert(combatV6BeastLineups)
-      .values({ cultivatorId, lineup, starterBeastId: beast.id })
+      .insert(cultivatorBeastLineups)
+      .values({ cultivatorId, lineup, starterClaimedAt: new Date() })
       .onConflictDoUpdate({
-        target: combatV6BeastLineups.cultivatorId,
-        set: { lineup, starterBeastId: beast.id },
+        target: cultivatorBeastLineups.cultivatorId,
+        set: { lineup, starterClaimedAt: new Date() },
       });
     return readBeastRoster(cultivatorId, tx);
   });
@@ -139,10 +146,10 @@ export async function updateBeastLineup(
       throw new BeastError('等级或寿命不满足出战条件，不能设为首发');
     const next = { ...lineup, revision: lineup.revision + 1 };
     await tx
-      .insert(combatV6BeastLineups)
+      .insert(cultivatorBeastLineups)
       .values({ cultivatorId, lineup: next })
       .onConflictDoUpdate({
-        target: combatV6BeastLineups.cultivatorId,
+        target: cultivatorBeastLineups.cultivatorId,
         set: { lineup: next },
       });
     return readBeastRoster(cultivatorId, tx);
@@ -171,15 +178,15 @@ export async function restBeast(
         tx,
       );
       await tx
-        .update(combatV6Beasts)
+        .update(cultivatorBeasts)
         .set({
-          individual: {
+          individual: beastIndividualData({
             ...beast,
             currentLifespan: beast.maxLifespan,
             revision: beast.revision + 1,
-          },
+          }),
         })
-        .where(eq(combatV6Beasts.id, id));
+        .where(eq(cultivatorBeasts.id, id));
       await new ResourceEventCommitter().commit(tx, {
         actor: { userId: owner.userId, cultivatorId },
         source: 'combat-v6-beast-rest',
@@ -216,9 +223,9 @@ export async function allocateBeastPoints(
       throw new BeastError(e instanceof Error ? e.message : '加点无效');
     }
     await tx
-      .update(combatV6Beasts)
-      .set({ individual: next })
-      .where(eq(combatV6Beasts.id, id));
+      .update(cultivatorBeasts)
+      .set({ individual: beastIndividualData(next) })
+      .where(eq(cultivatorBeasts.id, id));
     return readBeastRoster(cultivatorId, tx);
   });
 }
@@ -235,7 +242,7 @@ export async function releaseBeast(
       throw new BeastError('灵兽状态已变化，请刷新后重试');
     if (roster.lineup.leadBeastId === id) throw new BeastError('请先取消首发');
     await tx
-      .update(combatV6BeastLineups)
+      .update(cultivatorBeastLineups)
       .set({
         lineup: {
           ...roster.lineup,
@@ -245,9 +252,8 @@ export async function releaseBeast(
           revision: roster.lineup.revision + 1,
         },
       })
-      .where(eq(combatV6BeastLineups.cultivatorId, cultivatorId));
-    await tx.delete(combatV6Beasts).where(eq(combatV6Beasts.id, id));
+      .where(eq(cultivatorBeastLineups.cultivatorId, cultivatorId));
+    await tx.delete(cultivatorBeasts).where(eq(cultivatorBeasts.id, id));
     return readBeastRoster(cultivatorId, tx);
   });
 }
-import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';

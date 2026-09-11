@@ -1,5 +1,5 @@
 import {
-  CombatV6BuildInitializeRequestSchema,
+  SectPathSelectionRequestSchema,
   CombatV6TrainingCommandParamsSchema,
   CombatV6TrainingCommandRequestSchema,
   CombatV6TrainingCreateRequestSchema,
@@ -16,19 +16,19 @@ import {
 describe('combat-v6 Phase 7B contracts', () => {
   test('accepts only supported training tiers and strict build initialization', () => {
     expect(
-      CombatV6BuildInitializeRequestSchema.parse({
+      SectPathSelectionRequestSchema.parse({
         activePathId: 'lingxiao.path.zhanchen',
         expectedRevision: 0,
       }),
     ).toBeTruthy();
     expect(
-      CombatV6BuildInitializeRequestSchema.safeParse({
+      SectPathSelectionRequestSchema.safeParse({
         activePathId: 'x',
         expectedRevision: -1,
       }).success,
     ).toBe(false);
     expect(
-      CombatV6BuildInitializeRequestSchema.safeParse({
+      SectPathSelectionRequestSchema.safeParse({
         activePathId: 'lingxiao.path.zhanchen',
         expectedRevision: 3,
       }).success,

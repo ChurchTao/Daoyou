@@ -1,16 +1,15 @@
+import { readCharacterManuals } from '@server/lib/repositories/characterLoadoutRepository';
 import { db, type DbExecutor } from '@server/lib/drizzle/db';
 import {
-  combatV6BuildProfiles,
-  combatV6ManualSlots,
-  combatV6ManualStates,
+  cultivatorManualSlots,
+  cultivatorManualStates,
   cultivators,
   inventoryItems,
 } from '@server/lib/drizzle/schema';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import {
   characterIdentityRow,
-  loadActiveCombatV6Build,
-} from '@server/lib/repositories/combatV6BuildRepository';
+} from '@server/lib/repositories/sectCombatRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
 import {
   getOrInitCultivationProgress,
@@ -25,7 +24,7 @@ import { findItemDefinition } from '@shared/items/registry';
 import { previewManualAction } from '@shared/manuals/action';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { CultivationProgress } from '@shared/types/cultivator';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import {
   assertInventoryIdle,
   InventoryError,
@@ -37,7 +36,7 @@ import { ResourceEventCommitter } from '../ResourceEventCommitter';
 async function readManualFacts(owner: string, q: DbExecutor) {
   const character = await characterIdentityRow(owner, q);
   if (!character) throw new InventoryError('角色不可用');
-  const build = await loadActiveCombatV6Build(owner, q);
+  const manuals = await readCharacterManuals(owner, q);
   const [row] = await q
     .select({
       progress: cultivators.cultivation_progress,
@@ -50,13 +49,13 @@ async function readManualFacts(owner: string, q: DbExecutor) {
     character.realm as RealmType,
     row.stage as RealmStage,
   );
-  return { character, build, progress };
+  return { character, manuals, progress };
 }
 
 export async function readManuals(owner: string): Promise<ManualView> {
   return db.transaction(
     async (tx) => {
-      const { character, build, progress } = await readManualFacts(owner, tx);
+      const { character, manuals, progress } = await readManualFacts(owner, tx);
       const rows = await tx
         .select()
         .from(inventoryItems)
@@ -66,10 +65,8 @@ export async function readManuals(owner: string): Promise<ManualView> {
             eq(inventoryItems.location, 'bag'),
           ),
         );
-      let blockedReason: string | null = build
-        ? null
-        : '请先在宗门完成战斗构筑';
-      if (build) {
+      let blockedReason: string | null = null;
+      {
         try {
           await assertInventoryIdle(owner);
         } catch (error) {
@@ -84,7 +81,7 @@ export async function readManuals(owner: string): Promise<ManualView> {
           insight: progress.comprehension_insight,
           experienceCap: progress.exp_cap,
         },
-        state: build?.manuals ?? null,
+        state: manuals,
         items: rows
           .filter(
             (row) =>
@@ -110,13 +107,9 @@ export async function mutateManuals(owner: string, action: ManualAction) {
       db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, owner);
         await assertInventoryIdle(owner);
-        const { character, build, progress } = await readManualFacts(owner, tx);
-        if (!build) throw new InventoryError('请先在宗门完成战斗构筑');
-        const [manualState] = await tx
-          .select()
-          .from(combatV6ManualStates)
-          .where(eq(combatV6ManualStates.profileId, build.profileId));
-        if (!manualState || manualState.revision !== action.expectedRevision)
+        const { character, manuals, progress } = await readManualFacts(owner, tx);
+        await tx.insert(cultivatorManualStates).values({cultivatorId: owner}).onConflictDoNothing();
+        if (manuals.revision !== action.expectedRevision)
           throw new InventoryError('功法已变化，请刷新后重试');
         const rows =
           'item' in action
@@ -133,7 +126,7 @@ export async function mutateManuals(owner: string, action: ManualAction) {
         const before = rows.map(inventoryItemOf);
         const item = before[0];
         const result = previewManualAction(
-          build.manuals,
+          manuals,
           character.realm as RealmType,
           action,
           {
@@ -148,26 +141,26 @@ export async function mutateManuals(owner: string, action: ManualAction) {
           );
 
         const updated = await tx
-          .update(combatV6ManualStates)
+          .update(cultivatorManualStates)
           .set({
             revision: result.state.revision,
             learned: result.state.learned,
           })
           .where(
             and(
-              eq(combatV6ManualStates.id, manualState.id),
-              eq(combatV6ManualStates.revision, action.expectedRevision),
+              eq(cultivatorManualStates.cultivatorId, owner),
+              eq(cultivatorManualStates.revision, action.expectedRevision),
             ),
           )
-          .returning({ id: combatV6ManualStates.id });
+          .returning({ id: cultivatorManualStates.cultivatorId });
         if (!updated.length)
           throw new InventoryError('功法已变化，请刷新后重试');
         await tx
-          .delete(combatV6ManualSlots)
+          .delete(cultivatorManualSlots)
           .where(
             and(
-              eq(combatV6ManualSlots.stateId, manualState.id),
-              eq(combatV6ManualSlots.slot, action.slot),
+              eq(cultivatorManualSlots.cultivatorId, owner),
+              eq(cultivatorManualSlots.slot, action.slot),
             ),
           );
         const nextSlot = result.state.build.slots.find(
@@ -175,8 +168,8 @@ export async function mutateManuals(owner: string, action: ManualAction) {
         );
         if (nextSlot)
           await tx
-            .insert(combatV6ManualSlots)
-            .values({ stateId: manualState.id, ...nextSlot });
+            .insert(cultivatorManualSlots)
+            .values({ cultivatorId: owner, ...nextSlot });
         if ('item' in action) {
           await saveInventoryPlan(
             owner,
@@ -205,10 +198,6 @@ export async function mutateManuals(owner: string, action: ManualAction) {
             })
             .where(eq(cultivators.id, owner));
         }
-        await tx
-          .update(combatV6BuildProfiles)
-          .set({ revision: sql`${combatV6BuildProfiles.revision} + 1` })
-          .where(eq(combatV6BuildProfiles.id, build.profileId));
         const state = await new ResourceEventCommitter().commit(tx, {
           actor: { userId: character.userId, cultivatorId: owner },
           source: 'combat-v6-manuals',
@@ -221,11 +210,6 @@ export async function mutateManuals(owner: string, action: ManualAction) {
             },
             {
               resourceTopic: 'player.profile',
-              operation: 'invalidate',
-              eventType: 'combat_v6.manuals.changed',
-            },
-            {
-              resourceTopic: 'player.combat-v6-build',
               operation: 'invalidate',
               eventType: 'combat_v6.manuals.changed',
             },

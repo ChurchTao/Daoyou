@@ -1,3 +1,4 @@
+import { readCharacterCombatBuild } from '@server/lib/repositories/characterLoadoutRepository';
 import {
   db,
   type DbExecutor,
@@ -5,8 +6,7 @@ import {
 } from '@server/lib/drizzle/db';
 import {
   characterIdentityRow,
-  loadActiveCombatV6Build,
-} from '@server/lib/repositories/combatV6BuildRepository';
+} from '@server/lib/repositories/sectCombatRepository';
 import { findCultivatorOwnerStatusById } from '@server/lib/repositories/cultivatorRepository';
 import { publicCombatV6Build } from '@shared/combat-v6/public-build';
 import type { CultivatorInspectionData } from '@shared/contracts/player';
@@ -33,7 +33,7 @@ export async function loadCultivatorInspectionData(
   const row = await characterIdentityRow(cultivatorId, q);
   if (!identity || !row) return null;
   const condition = (row.condition as CultivatorCondition | null) ?? undefined;
-  const build = await loadActiveCombatV6Build(cultivatorId, q);
+  const build = await readCharacterCombatBuild(cultivatorId, q);
   const publicBuild = build
     ? publicCombatV6Build({ ...identity, condition }, build)
     : { combatPanel: null, build: null };

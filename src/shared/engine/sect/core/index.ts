@@ -3,7 +3,6 @@ export * from './mining';
 export * from './organization';
 export * from './plugin';
 export * from './presentation';
-export * from './progression';
 export * from './runtime';
 export * from './sweep';
 export * from './validation';

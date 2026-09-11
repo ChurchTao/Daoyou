@@ -1,11 +1,10 @@
+import { readCharacterCombatBuild } from '@server/lib/repositories/characterLoadoutRepository';
 import type { DbExecutor } from '@server/lib/drizzle/db';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import {
-  findActiveCombatV6Membership,
   characterIdentityRow,
-  loadActiveCombatV6Build,
-} from '@server/lib/repositories/combatV6BuildRepository';
-import { projectCharacterDisplay, type CharacterDisplayBuild } from '@shared/lib/cultivatorDisplay';
+} from '@server/lib/repositories/sectCombatRepository';
+import { projectCharacterDisplay } from '@shared/lib/cultivatorDisplay';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { CombatV6WildStore } from './CombatV6WildStore';
@@ -19,9 +18,7 @@ export async function readCombatV6ConditionAuthority(
   id: string,
   q: DbExecutor,
 ) {
-  const membership = await findActiveCombatV6Membership(id, q);
-  const build: CharacterDisplayBuild | null = membership ? await loadActiveCombatV6Build(id, q) : null;
-  if (membership && !build) throw new Error('V6 构筑尚未就绪，请完成宗门构筑初始化');
+  const build = await readCharacterCombatBuild(id, q);
   const row = await characterIdentityRow(id, q);
   if (!row) throw new Error('角色不存在');
   const attrs = projectCharacterDisplay({

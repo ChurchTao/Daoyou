@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { SectCombatProgressV6 } from '../engine/combat-v6/content/types';
-import type { CombatV6BuildViewV1 } from './combatV6';
+import type { SectCombatView } from './combatV6';
 
 const reference = {
   membershipId: z.uuid(),
@@ -38,7 +38,7 @@ export interface SectV6Cost {
   comprehensionInsight: number;
 }
 export interface SectV6View {
-  build: CombatV6BuildViewV1;
+  build: SectCombatView;
   progress: SectCombatProgressV6 | null;
   characterLevel: number;
   resources: SectV6Cost;

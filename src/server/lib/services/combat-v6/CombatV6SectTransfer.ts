@@ -1,14 +1,14 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import {
-  combatV6BuildProfiles,
-  combatV6MeridianLoadouts,
-  combatV6MethodProgress,
+  sectCombatStates,
+  sectMeridianLoadouts,
+  sectMethodProgress,
 } from '@server/lib/drizzle/schema';
 import {
-  findCombatV6Profile,
-  listCombatV6MethodLevels,
-  loadActiveCombatV6Build,
-} from '@server/lib/repositories/combatV6BuildRepository';
+  findSectCombatState,
+  readSectCombatProgress,
+  readSectMethodLevels,
+} from '@server/lib/repositories/sectCombatRepository';
 import {
   createEmptySectCombatProgressV6,
   createFreshCombatV6MethodLevels,
@@ -22,7 +22,6 @@ import { eq } from 'drizzle-orm';
 import { InventoryError } from '../InventoryService';
 
 export async function planV6SectTransfer(
-  owner: string,
   membershipId: string,
   sourceId: string,
   targetId: string,
@@ -36,26 +35,25 @@ export async function planV6SectTransfer(
     throw new InventoryError('目标宗门尚未接入新版传承');
   const source = COMBAT_V6_SECT_DEFINITIONS_V4[sourceId as CombatV6SectId];
   const target = COMBAT_V6_SECT_DEFINITIONS_V4[targetId as CombatV6SectId];
-  const profile = await findCombatV6Profile(membershipId, q);
-  const active =
-    profile?.status === 'active'
-      ? await loadActiveCombatV6Build(owner, q)
-      : null;
-  if (profile?.status === 'active' && !active)
+  const sectState = await findSectCombatState(membershipId, q);
+  const active = sectState?.activePathId
+    ? await readSectCombatProgress(membershipId, q)
+    : null;
+  if (sectState?.activePathId && !active)
     throw new InventoryError('当前构筑数据不完整');
   const progress = active?.sect ?? {
     ...createEmptySectCombatProgressV6(
       source.id,
       source.paths[0].id,
-      profile
-        ? await listCombatV6MethodLevels(profile.id, q)
+      sectState
+        ? await readSectMethodLevels(membershipId, q)
         : createFreshCombatV6MethodLevels(source.id),
     ),
-    meridianDepth: (profile?.meridianDepth ?? 0) as
+    meridianDepth: (sectState?.meridianDepth ?? 0) as
       0 | 1 | 2 | 3 | 4 | 5 | 6 | 7,
   };
   return {
-    profile,
+    sectState,
     source,
     target,
     progress,
@@ -68,51 +66,63 @@ export async function carryV6SectBuild(
   targetMembershipId: string,
   tx: DbTransaction,
 ) {
-  const previous = await findCombatV6Profile(targetMembershipId, tx);
-  // The departing build is authoritative; a historical target profile must not resurrect old loadouts.
-  if (previous)
-    await tx
-      .delete(combatV6BuildProfiles)
-      .where(eq(combatV6BuildProfiles.id, previous.id));
-  const [profile] = plan.profile
-    ? await tx
-        .update(combatV6BuildProfiles)
-        .set({
-          membershipId: targetMembershipId,
-          activePathId:
-            plan.profile.status === 'active' ? plan.next.activePathId : null,
-          revision: plan.profile.revision + 1,
-        })
-        .where(eq(combatV6BuildProfiles.id, plan.profile.id))
-        .returning()
-    : await tx
-        .insert(combatV6BuildProfiles)
-        .values({
-          membershipId: targetMembershipId,
-          status: 'pending',
-          meridianDepth: plan.next.meridianDepth,
-        })
-        .returning();
+  // Only sect progress moves. Character manuals and equipment are independent.
   await tx
-    .delete(combatV6MethodProgress)
-    .where(eq(combatV6MethodProgress.profileId, profile.id));
-  await tx.insert(combatV6MethodProgress).values(
-    Object.entries(plan.next.methods).map(([methodId, level]) => ({
-      profileId: profile.id,
-      methodId,
-      level,
-    })),
-  );
+    .delete(sectMeridianLoadouts)
+    .where(eq(sectMeridianLoadouts.membershipId, targetMembershipId));
   await tx
-    .delete(combatV6MeridianLoadouts)
-    .where(eq(combatV6MeridianLoadouts.profileId, profile.id));
-  if (profile.status === 'active')
-    await tx.insert(combatV6MeridianLoadouts).values(
-      plan.next.meridianLoadouts.map((loadout) => ({
-        profileId: profile.id,
-        pathId: loadout.pathId,
-        revision: 0,
+    .delete(sectMethodProgress)
+    .where(eq(sectMethodProgress.membershipId, targetMembershipId));
+  await tx
+    .insert(sectCombatStates)
+    .values({
+      membershipId: targetMembershipId,
+      activePathId: plan.sectState?.activePathId
+        ? plan.next.activePathId
+        : null,
+      meridianDepth: plan.next.meridianDepth,
+      revision: (plan.sectState?.revision ?? 0) + 1,
+    })
+    .onConflictDoUpdate({
+      target: sectCombatStates.membershipId,
+      set: {
+        activePathId: plan.sectState?.activePathId
+          ? plan.next.activePathId
+          : null,
+        meridianDepth: plan.next.meridianDepth,
+        revision: (plan.sectState?.revision ?? 0) + 1,
+      },
+    });
+  await tx
+    .insert(sectMethodProgress)
+    .values(
+      Object.entries(plan.next.methods).map(([methodId, level]) => ({
+        membershipId: targetMembershipId,
+        methodId,
+        level,
       })),
     );
-  // Manual states and equipment loadouts stay attached to this same profile ID.
+  if (plan.sectState?.activePathId)
+    await tx
+      .insert(sectMeridianLoadouts)
+      .values(
+        plan.next.meridianLoadouts.map((loadout) => ({
+          membershipId: targetMembershipId,
+          pathId: loadout.pathId,
+          revision: 0,
+        })),
+      );
+  if (plan.sectState && plan.sectState.membershipId !== targetMembershipId) {
+    await tx
+      .delete(sectMeridianLoadouts)
+      .where(
+        eq(sectMeridianLoadouts.membershipId, plan.sectState.membershipId),
+      );
+    await tx
+      .delete(sectMethodProgress)
+      .where(eq(sectMethodProgress.membershipId, plan.sectState.membershipId));
+    await tx
+      .delete(sectCombatStates)
+      .where(eq(sectCombatStates.membershipId, plan.sectState.membershipId));
+  }
 }

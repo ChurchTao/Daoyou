@@ -52,7 +52,7 @@ export const RESOURCE_TOPIC_SCOPE_KIND = {
   'player.condition': 'cultivator',
   'player.progress': 'cultivator',
   'player.currency': 'cultivator',
-  'player.combat-v6-build': 'cultivator',
+  'player.sect-combat': 'cultivator',
   'player.mail-summary': 'cultivator',
   'player.task-summary': 'cultivator',
   'player.tasks': 'cultivator',
@@ -60,7 +60,6 @@ export const RESOURCE_TOPIC_SCOPE_KIND = {
   'sect.members': 'sect',
   'sect.contribution-ranking': 'sect',
   'sect.infrastructure': 'sect',
-  'sect.progression': 'cultivator',
   'sect.tasks': 'cultivator',
   'sect.shop': 'cultivator',
   'sect.construction-member': 'cultivator',
@@ -92,7 +91,6 @@ function getResourceMergeSchema(topic: ResourceTopic): z.ZodTypeAny {
     'player.mail-summary',
     'player.task-summary',
     'sect.membership',
-    'sect.progression',
     'sect.construction-member',
   ]);
   if (!mergeableTopics.has(topic)) return z.never();
@@ -121,7 +119,6 @@ type MergeableResourceTopic =
   | 'player.mail-summary'
   | 'player.task-summary'
   | 'sect.membership'
-  | 'sect.progression'
   | 'sect.construction-member';
 
 type ItemResourceTopic =
@@ -217,7 +214,6 @@ const MERGEABLE_RESOURCE_TOPICS = new Set<ResourceTopic>([
   'player.mail-summary',
   'player.task-summary',
   'sect.membership',
-  'sect.progression',
   'sect.construction-member',
 ]);
 

@@ -105,7 +105,7 @@ export function SectWorkspace({
               pending={pending}
               disabled={view.blockedReason !== '请先选择流派，启用宗门传承'}
               onClick={() =>
-                void request('/api/combat-v6/build/initialize', {
+                void request('/api/combat-v6/sect/path', {
                   activePathId: path.id,
                   expectedRevision: view.build.revision,
                 })

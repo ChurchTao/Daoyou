@@ -111,7 +111,7 @@ export type TrainingEncounterOutcome =
   'victory' | 'defeat' | 'draw' | 'aborted';
 
 export interface CombatV6EncounterTraceV1 {
-  timeline?: CombatV6ReplayTimeline;
+  timeline: CombatV6ReplayTimeline;
   schemaVersion: 1;
   hostVersion: 'combat_v6_encounter_host_v1';
   encounterId: string;
@@ -133,7 +133,7 @@ export interface CombatV6EncounterTraceV1 {
 
 /** Redis运行时快照；仅保证当前combat-v6版本内恢复，不是长期录像协议。 */
 export interface CombatV6TrainingRuntimeSnapshotV1 {
-  timeline?: CombatV6ReplayTimeline;
+  timeline: CombatV6ReplayTimeline;
   schemaVersion: 1;
   hostVersion: 'combat_v6_training_runtime_v1';
   input: CompileCombatV6TrainingEncounterV1Input;

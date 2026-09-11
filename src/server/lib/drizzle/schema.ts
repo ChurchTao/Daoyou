@@ -30,6 +30,7 @@ import {
   boolean,
   check,
   doublePrecision,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -260,7 +261,6 @@ export const sectMemberships = pgTable(
     status: varchar('status', { length: 16 }).notNull().default('prospect'),
     experiencedAt: timestamp('experienced_at'),
     joinedAt: timestamp('joined_at'),
-    activePathId: varchar('active_path_id', { length: 64 }),
     contribution: integer('contribution').notNull().default(0),
     lifetimeContribution: integer('lifetime_contribution').notNull().default(0),
     discipleRank: varchar('disciple_rank', { length: 16 })
@@ -403,6 +403,57 @@ export const sectStipendClaims = pgTable(
   ],
 );
 
+// ===== 角色资产与宗门战斗进度 =====
+export const cultivatorBeasts = pgTable(
+  'wanjiedaoyou_cultivator_beasts',
+  {
+    id: uuid('id').primaryKey(),
+    cultivatorId: uuid('cultivator_id')
+      .notNull()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    individual: jsonb('individual')
+      .$type<Omit<SummonedBeast, 'id' | 'ownerCultivatorId'>>()
+      .notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index('cultivator_beasts_owner_idx').on(table.cultivatorId)],
+);
+
+export const cultivatorBeastLineups = pgTable(
+  'wanjiedaoyou_cultivator_beast_lineups',
+  {
+    cultivatorId: uuid('cultivator_id')
+      .primaryKey()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    lineup: jsonb('lineup').$type<BeastLineup>().notNull(),
+    starterClaimedAt: timestamp('starter_claimed_at', { withTimezone: true }),
+  },
+);
+
+export const sectCombatStates = pgTable(
+  'wanjiedaoyou_sect_combat_states',
+  {
+    membershipId: uuid('membership_id')
+      .primaryKey()
+      .references(() => sectMemberships.id, { onDelete: 'cascade' }),
+    revision: integer('revision').notNull().default(0),
+    activePathId: varchar('active_path_id', { length: 160 }),
+    meridianDepth: integer('meridian_depth').notNull().default(0),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    check(
+      'sect_combat_progress_valid',
+      sql`${table.revision} >= 0 AND ${table.meridianDepth} BETWEEN 0 AND 7`,
+    ),
+  ],
+);
+
 export const sectMethodProgress = pgTable(
   'wanjiedaoyou_sect_method_progress',
   {
@@ -410,44 +461,13 @@ export const sectMethodProgress = pgTable(
     membershipId: uuid('membership_id')
       .references(() => sectMemberships.id, { onDelete: 'cascade' })
       .notNull(),
-    methodId: varchar('method_id', { length: 64 }).notNull(),
+    methodId: varchar('method_id', { length: 160 }).notNull(),
     level: integer('level').notNull().default(0),
-    updatedAt: timestamp('updated_at')
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
   },
   (table) => [
     uniqueIndex('sect_method_membership_method_unique').on(
       table.membershipId,
       table.methodId,
-    ),
-  ],
-);
-
-export const sectPathProgress = pgTable(
-  'wanjiedaoyou_sect_path_progress',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    membershipId: uuid('membership_id')
-      .references(() => sectMemberships.id, { onDelete: 'cascade' })
-      .notNull(),
-    pathId: varchar('path_id', { length: 64 }).notNull(),
-    unlockedLayerIds: jsonb('unlocked_layer_ids')
-      .$type<string[]>()
-      .notNull()
-      .default([]),
-    tacticId: varchar('tactic_id', { length: 32 }).notNull(),
-    activeMeridianSlot: integer('active_meridian_slot').notNull().default(1),
-    updatedAt: timestamp('updated_at')
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    uniqueIndex('sect_path_membership_path_unique').on(
-      table.membershipId,
-      table.pathId,
     ),
   ],
 );
@@ -459,193 +479,78 @@ export const sectMeridianLoadouts = pgTable(
     membershipId: uuid('membership_id')
       .references(() => sectMemberships.id, { onDelete: 'cascade' })
       .notNull(),
-    pathId: varchar('path_id', { length: 64 }).notNull().default(''),
-    slot: integer('slot').notNull(),
-    nodeIds: jsonb('node_ids').$type<string[]>().notNull().default([]),
-    version: integer('version').notNull().default(1),
-    updatedAt: timestamp('updated_at')
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    uniqueIndex('sect_meridian_membership_path_slot_unique').on(
-      table.membershipId,
-      table.pathId,
-      table.slot,
-    ),
-  ],
-);
-
-export const sectAbilityLoadouts = pgTable(
-  'wanjiedaoyou_sect_ability_loadouts',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    membershipId: uuid('membership_id')
-      .references(() => sectMemberships.id, { onDelete: 'cascade' })
-      .notNull(),
-    slot: integer('slot').notNull(),
-    abilityId: varchar('ability_id', { length: 64 }).notNull(),
-    updatedAt: timestamp('updated_at')
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    uniqueIndex('sect_ability_membership_slot_unique').on(
-      table.membershipId,
-      table.slot,
-    ),
-    uniqueIndex('sect_ability_membership_ability_unique').on(
-      table.membershipId,
-      table.abilityId,
-    ),
-  ],
-);
-
-// ===== combat-v6 独立人物构筑 =====
-export const combatV6Beasts = pgTable(
-  'wanjiedaoyou_combat_v6_beasts',
-  {
-    id: uuid('id').primaryKey(),
-    cultivatorId: uuid('cultivator_id')
-      .notNull()
-      .references(() => cultivators.id, { onDelete: 'cascade' }),
-    individual: jsonb('individual').$type<SummonedBeast>().notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [index('combat_v6_beasts_owner_idx').on(table.cultivatorId)],
-);
-
-export const combatV6BeastLineups = pgTable(
-  'wanjiedaoyou_combat_v6_beast_lineups',
-  {
-    cultivatorId: uuid('cultivator_id')
-      .primaryKey()
-      .references(() => cultivators.id, { onDelete: 'cascade' }),
-    lineup: jsonb('lineup').$type<BeastLineup>().notNull(),
-    starterBeastId: uuid('starter_beast_id'),
-  },
-);
-
-export const combatV6BuildProfiles = pgTable(
-  'wanjiedaoyou_combat_v6_build_profiles',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    membershipId: uuid('membership_id')
-      .references(() => sectMemberships.id, { onDelete: 'cascade' })
-      .notNull(),
-    schemaVersion: integer('schema_version').notNull().default(1),
-    revision: integer('revision').notNull().default(0),
-    status: varchar('status', { length: 16 }).notNull().default('pending'),
-    activePathId: varchar('active_path_id', { length: 160 }),
-    meridianDepth: integer('meridian_depth').notNull().default(0),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at')
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    uniqueIndex('combat_v6_build_membership_unique').on(table.membershipId),
-  ],
-);
-
-export const combatV6MethodProgress = pgTable(
-  'wanjiedaoyou_combat_v6_method_progress',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    profileId: uuid('profile_id')
-      .references(() => combatV6BuildProfiles.id, { onDelete: 'cascade' })
-      .notNull(),
-    methodId: varchar('method_id', { length: 160 }).notNull(),
-    level: integer('level').notNull().default(0),
-  },
-  (table) => [
-    uniqueIndex('combat_v6_method_profile_method_unique').on(
-      table.profileId,
-      table.methodId,
-    ),
-  ],
-);
-
-export const combatV6MeridianLoadouts = pgTable(
-  'wanjiedaoyou_combat_v6_meridian_loadouts',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    profileId: uuid('profile_id')
-      .references(() => combatV6BuildProfiles.id, { onDelete: 'cascade' })
-      .notNull(),
     pathId: varchar('path_id', { length: 160 }).notNull(),
     revision: integer('revision').notNull().default(0),
   },
   (table) => [
-    uniqueIndex('combat_v6_meridian_profile_path_unique').on(
-      table.profileId,
+    uniqueIndex('sect_meridian_membership_path_unique').on(
+      table.membershipId,
       table.pathId,
     ),
   ],
 );
 
-export const combatV6MeridianNodes = pgTable(
-  'wanjiedaoyou_combat_v6_meridian_nodes',
+export const sectMeridianNodes = pgTable(
+  'wanjiedaoyou_sect_meridian_nodes',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     loadoutId: uuid('loadout_id')
-      .references(() => combatV6MeridianLoadouts.id, { onDelete: 'cascade' })
+      .references(() => sectMeridianLoadouts.id, { onDelete: 'cascade' })
       .notNull(),
     nodeId: varchar('node_id', { length: 160 }).notNull(),
     layer: integer('layer').notNull(),
   },
   (table) => [
-    uniqueIndex('combat_v6_meridian_loadout_node_unique').on(
+    uniqueIndex('sect_meridian_loadout_node_unique').on(
       table.loadoutId,
       table.nodeId,
     ),
-    uniqueIndex('combat_v6_meridian_loadout_layer_unique').on(
+    uniqueIndex('sect_meridian_loadout_layer_unique').on(
       table.loadoutId,
       table.layer,
     ),
   ],
 );
 
-export const combatV6ManualStates = pgTable(
-  'wanjiedaoyou_combat_v6_manual_states',
+export const cultivatorManualStates = pgTable(
+  'wanjiedaoyou_cultivator_manual_states',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    profileId: uuid('profile_id')
-      .references(() => combatV6BuildProfiles.id, { onDelete: 'cascade' })
-      .notNull(),
-    schemaVersion: integer('schema_version').notNull().default(1),
+    cultivatorId: uuid('cultivator_id')
+      .primaryKey()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
     revision: integer('revision').notNull().default(0),
-    learned: jsonb('learned').$type<Array<{ manualId: string; level: number; unlockedLevel: number }>>().notNull().default([]),
+    learned: jsonb('learned')
+      .$type<
+        Array<{ manualId: string; level: number; unlockedLevel: number }>
+      >()
+      .notNull()
+      .default([]),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
   },
   (table) => [
-    uniqueIndex('combat_v6_manual_profile_unique').on(table.profileId),
+    check('cultivator_manual_revision_valid', sql`${table.revision} >= 0`),
   ],
 );
 
-export const combatV6ManualSlots = pgTable(
-  'wanjiedaoyou_combat_v6_manual_slots',
+export const cultivatorManualSlots = pgTable(
+  'wanjiedaoyou_cultivator_manual_slots',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    stateId: uuid('state_id')
-      .references(() => combatV6ManualStates.id, { onDelete: 'cascade' })
-      .notNull(),
+    cultivatorId: uuid('cultivator_id')
+      .notNull()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
     slot: integer('slot').notNull(),
     manualId: varchar('manual_id', { length: 160 }).notNull(),
   },
   (table) => [
-    uniqueIndex('combat_v6_manual_state_slot_unique').on(
-      table.stateId,
-      table.slot,
-    ),
-    uniqueIndex('combat_v6_manual_state_manual_unique').on(
-      table.stateId,
+    primaryKey({ columns: [table.cultivatorId, table.slot] }),
+    uniqueIndex('cultivator_manual_unique').on(
+      table.cultivatorId,
       table.manualId,
     ),
+    check('cultivator_manual_slot_valid', sql`${table.slot} BETWEEN 1 AND 4`),
   ],
 );
 
@@ -669,6 +574,7 @@ export const inventoryItems = pgTable(
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   (table) => [
+    uniqueIndex('inventory_owner_id_unique').on(table.cultivatorId, table.id),
     index('inventory_owner_location_idx').on(
       table.cultivatorId,
       table.location,
@@ -693,27 +599,26 @@ export const inventoryItems = pgTable(
   ],
 );
 
-export const combatV6EquipmentLoadouts = pgTable(
-  'wanjiedaoyou_combat_v6_equipment_loadouts',
+export const cultivatorEquipmentSlots = pgTable(
+  'wanjiedaoyou_cultivator_equipment_slots',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    profileId: uuid('profile_id')
-      .references(() => combatV6BuildProfiles.id, { onDelete: 'cascade' })
-      .notNull(),
+    cultivatorId: uuid('cultivator_id')
+      .notNull()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
     slot: varchar('slot', { length: 32 }).notNull(),
-    equipmentInstanceId: varchar('equipment_instance_id', { length: 160 })
-      .references(() => inventoryItems.id, { onDelete: 'restrict' })
-      .notNull(),
+    equipmentInstanceId: varchar('equipment_instance_id', {
+      length: 160,
+    }).notNull(),
   },
   (table) => [
-    uniqueIndex('combat_v6_equipment_profile_slot_unique').on(
-      table.profileId,
-      table.slot,
-    ),
-    uniqueIndex('combat_v6_equipment_profile_instance_unique').on(
-      table.profileId,
+    primaryKey({ columns: [table.cultivatorId, table.slot] }),
+    uniqueIndex('cultivator_equipment_instance_unique').on(
       table.equipmentInstanceId,
     ),
+    foreignKey({
+      columns: [table.cultivatorId, table.equipmentInstanceId],
+      foreignColumns: [inventoryItems.cultivatorId, inventoryItems.id],
+    }).onDelete('no action'),
   ],
 );
 
@@ -1013,7 +918,7 @@ export const cultivatorTasks = pgTable(
 /**
  * @deprecated V5 历史战绩。本次退役版本上线后的下一版本删除表及 schema。
  * 10J 已解除战报分享、旧仓储和 retention 清理引用，仅保留历史 schema。
- * 删除时先解除 betBattles 的外键依赖。当前 V6 战绩使用 combatV6ReplayArchives。
+ * 删除时先解除 betBattles 的外键依赖。当前 V6 战绩使用 combatReplayArchives。
  * 计划见 docs/combat-v6-legacy-table-retirement.md；本版不得生成 DROP。
  */
 export const battleRecordsV3 = pgTable(
@@ -1084,8 +989,8 @@ export const battleReplayArchives = pgTable(
 );
 
 // combat-v6活动战局、指令与RNG仅存在Redis。
-export const combatV6ReplayArchives = pgTable(
-  'wanjiedaoyou_combat_v6_replay_archives',
+export const combatReplayArchives = pgTable(
+  'wanjiedaoyou_combat_replay_archives',
   {
     battleId: uuid('battle_id').primaryKey(),
     metadataVersion: integer('metadata_version').notNull(),
@@ -1103,25 +1008,24 @@ export const combatV6ReplayArchives = pgTable(
       .$type<[string[], string[]]>()
       .notNull()
       .default([[], []]),
-    playable: boolean('playable').notNull().default(false),
     archivedAt: timestamp('archived_at').defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex('combat_v6_replay_source_idempotency_uidx').on(
+    uniqueIndex('combat_replay_source_idempotency_uidx').on(
       table.sourceType,
       table.idempotencyKey,
     ),
-    index('combat_v6_replay_finished_idx').on(table.finishedAt),
+    index('combat_replay_finished_idx').on(table.finishedAt),
   ],
 );
 
 // 不关联角色生命周期：删除角色不应连带删除历史战斗及参与记录。
-export const combatV6ReplayParticipants = pgTable(
-  'wanjiedaoyou_combat_v6_replay_participants',
+export const combatReplayParticipants = pgTable(
+  'wanjiedaoyou_combat_replay_participants',
   {
     battleId: uuid('battle_id')
       .notNull()
-      .references(() => combatV6ReplayArchives.battleId, {
+      .references(() => combatReplayArchives.battleId, {
         onDelete: 'cascade',
       }),
     cultivatorId: uuid('cultivator_id').notNull(),
@@ -1129,7 +1033,7 @@ export const combatV6ReplayParticipants = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.battleId, table.cultivatorId] }),
-    index('combat_v6_replay_participant_cultivator_idx').on(
+    index('combat_replay_participant_cultivator_idx').on(
       table.cultivatorId,
       table.battleId,
     ),

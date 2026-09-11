@@ -281,13 +281,6 @@ export interface SectContextData {
   configVersion: number;
 }
 
-export interface SectProgressionData {
-  activePathId?: CultivatorSectState['activePathId'];
-  methods: CultivatorSectState['methods'];
-  paths: CultivatorSectState['paths'];
-  abilityLoadout: CultivatorSectState['abilityLoadout'];
-}
-
 export interface SectStipendData {
   weekKey: string;
   claimed: boolean;

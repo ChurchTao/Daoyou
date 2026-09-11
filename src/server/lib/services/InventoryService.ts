@@ -1,4 +1,5 @@
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
+import { readCharacterEquipment } from '@server/lib/repositories/characterLoadoutRepository';
 import { hasActiveTower } from '@server/lib/tower/occupancy';
 import type {
   InventoryAction,
@@ -30,23 +31,18 @@ import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { db, type DbTransaction } from '../drizzle/db';
 import {
-  combatV6Beasts,
-  combatV6BuildProfiles,
-  combatV6EquipmentLoadouts,
+  cultivatorBeasts,
+  cultivatorEquipmentSlots,
   inventoryItems,
 } from '../drizzle/schema';
 import { hasActiveDungeon } from '../dungeon/occupancy';
 import { redis } from '../redis';
 import { redisLockKeys, withRedisLock } from '../redis/lock';
 import {
+  beastIndividualData,
   readBeastOwner,
   readBeastRoster,
 } from '../repositories/combatV6BeastRepository';
-import {
-  findActiveCombatV6Membership,
-  findCombatV6Profile,
-  loadActiveCombatV6Build,
-} from '../repositories/combatV6BuildRepository';
 import { lockCultivatorForStateMutation } from '../repositories/playerStateRepository';
 import { arenaOccupancyKey } from './combat-v6/CombatV6ArenaStore';
 import { hasActiveBreakthroughBattle } from './combat-v6/CombatV6BreakthroughOccupancy';
@@ -150,11 +146,11 @@ export async function readInventory(
           .offset(page * 40);
   const equipped = rows.length
     ? await db
-        .select({ id: combatV6EquipmentLoadouts.equipmentInstanceId })
-        .from(combatV6EquipmentLoadouts)
+        .select({ id: cultivatorEquipmentSlots.equipmentInstanceId })
+        .from(cultivatorEquipmentSlots)
         .where(
           inArray(
-            combatV6EquipmentLoadouts.equipmentInstanceId,
+            cultivatorEquipmentSlots.equipmentInstanceId,
             rows.map((r) => r.id),
           ),
         )
@@ -365,8 +361,8 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
         } else if (item) {
           const equipped = await tx
             .select()
-            .from(combatV6EquipmentLoadouts)
-            .where(eq(combatV6EquipmentLoadouts.equipmentInstanceId, item.id));
+            .from(cultivatorEquipmentSlots)
+            .where(eq(cultivatorEquipmentSlots.equipmentInstanceId, item.id));
           if (input.action === 'transfer') {
             if (equipped.length) throw new InventoryError('请先卸下装备');
             if (item.location === input.location)
@@ -484,12 +480,12 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
               slot,
             );
             await tx
-              .update(combatV6Beasts)
-              .set({ individual: learned })
+              .update(cultivatorBeasts)
+              .set({ individual: beastIndividualData(learned) })
               .where(
                 and(
-                  eq(combatV6Beasts.id, beast.id),
-                  eq(combatV6Beasts.cultivatorId, owner),
+                  eq(cultivatorBeasts.id, beast.id),
+                  eq(cultivatorBeasts.cultivatorId, owner),
                 ),
               );
             result = {
@@ -502,20 +498,14 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
           } else if (input.action === 'equip') {
             if (item.location !== 'bag' || item.definitionId !== 'equipment.v6')
               throw new InventoryError('请先将道装取入背包');
-            const membership = await findActiveCombatV6Membership(owner, tx);
-            const profile = membership
-              ? await findCombatV6Profile(membership.membershipId, tx)
-              : null;
-            if (!profile || profile.status !== 'active')
-              throw new InventoryError('请先完成战斗构筑');
             const equipment = item.instanceData as DaoEquipmentInstanceV1;
             const [previous] = await tx
               .select()
-              .from(combatV6EquipmentLoadouts)
+              .from(cultivatorEquipmentSlots)
               .where(
                 and(
-                  eq(combatV6EquipmentLoadouts.profileId, profile.id),
-                  eq(combatV6EquipmentLoadouts.slot, equipment.slot),
+                  eq(cultivatorEquipmentSlots.cultivatorId, owner),
+                  eq(cultivatorEquipmentSlots.slot, equipment.slot),
                 ),
               );
             if (input.equipped && previous?.equipmentInstanceId === item.id)
@@ -530,34 +520,33 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
             if (input.equipped && replaced) replaced.revision++;
             if (input.equipped) {
               await tx
-                .insert(combatV6EquipmentLoadouts)
+                .insert(cultivatorEquipmentSlots)
                 .values({
-                  profileId: profile.id,
+                  cultivatorId: owner,
                   slot: equipment.slot,
                   equipmentInstanceId: item.id,
                 })
                 .onConflictDoUpdate({
                   target: [
-                    combatV6EquipmentLoadouts.profileId,
-                    combatV6EquipmentLoadouts.slot,
+                    cultivatorEquipmentSlots.cultivatorId,
+                    cultivatorEquipmentSlots.slot,
                   ],
                   set: { equipmentInstanceId: item.id },
                 });
             } else
               await tx
-                .delete(combatV6EquipmentLoadouts)
+                .delete(cultivatorEquipmentSlots)
                 .where(
                   and(
-                    eq(combatV6EquipmentLoadouts.profileId, profile.id),
-                    eq(combatV6EquipmentLoadouts.equipmentInstanceId, item.id),
+                    eq(cultivatorEquipmentSlots.cultivatorId, owner),
+                    eq(cultivatorEquipmentSlots.equipmentInstanceId, item.id),
                   ),
                 );
             item.revision++;
-            const build = await loadActiveCombatV6Build(owner, tx);
+            const loadout = await readCharacterEquipment(owner, tx);
             const character = await readBeastOwner(owner, tx);
-            if (!build) throw new InventoryError('战斗构筑不可用');
             const compiled = compileDaoEquipmentSpecialLoadoutV1(
-              build.equipment,
+              loadout,
               character.ownerLevel,
             );
             if (!compiled.ok)
@@ -565,17 +554,13 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
                 compiled.diagnostics.find((d) => d.severity === 'error')
                   ?.message ?? '装配无效',
               );
-            await tx
-              .update(combatV6BuildProfiles)
-              .set({ revision: profile.revision + 1 })
-              .where(eq(combatV6BuildProfiles.id, profile.id));
             await new ResourceEventCommitter().commit(tx, {
               actor: { userId: character.userId, cultivatorId: owner },
               source: 'inventory-equipment',
               scopeDefaults: { cultivatorId: owner },
               changes: [
                 {
-                  resourceTopic: 'player.combat-v6-build',
+                  resourceTopic: 'player.profile',
                   operation: 'invalidate',
                   eventType: 'combat_v6.equipment.changed',
                 },

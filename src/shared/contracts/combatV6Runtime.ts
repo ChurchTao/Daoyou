@@ -39,20 +39,28 @@ export const CombatV6BattleMetadataV1Schema = z.discriminatedUnion(
   'sourceType',
   [
     CombatV6TrainingBattleMetadataV1Schema,
-    z.object({
-      schemaVersion: z.literal(1),
-      sourceType: z.literal('breakthrough'),
-      battleType: z.literal('pve'),
-      idempotencyKey: z.uuid(),
-      payload: z.object({ taskId: z.uuid(), challengeId: z.string().min(1) }).strict(),
-    }).strict(),
-    z.object({
-      schemaVersion: z.literal(1),
-      sourceType: z.literal('sect-task'),
-      battleType: z.literal('pve'),
-      idempotencyKey: z.uuid(),
-      payload: z.object({ recordId: z.uuid(), taskId: z.string().min(1) }).strict(),
-    }).strict(),
+    z
+      .object({
+        schemaVersion: z.literal(1),
+        sourceType: z.literal('breakthrough'),
+        battleType: z.literal('pve'),
+        idempotencyKey: z.uuid(),
+        payload: z
+          .object({ taskId: z.uuid(), challengeId: z.string().min(1) })
+          .strict(),
+      })
+      .strict(),
+    z
+      .object({
+        schemaVersion: z.literal(1),
+        sourceType: z.literal('sect-task'),
+        battleType: z.literal('pve'),
+        idempotencyKey: z.uuid(),
+        payload: z
+          .object({ recordId: z.uuid(), taskId: z.string().min(1) })
+          .strict(),
+      })
+      .strict(),
     z
       .object({
         schemaVersion: z.literal(1),
@@ -188,7 +196,6 @@ export interface CombatV6RedisRuntimeV1 {
   userId: string;
   cultivatorId: string;
   membershipId: string;
-  buildRevision: number;
   metadata: z.infer<typeof CombatV6TrainingBattleMetadataV1Schema>;
   revision: number;
   createdAt: string;
@@ -204,7 +211,6 @@ export const CombatV6RedisRuntimeV1Schema = z
     userId: z.uuid(),
     cultivatorId: z.uuid(),
     membershipId: z.uuid(),
-    buildRevision: z.number().int().nonnegative(),
     metadata: CombatV6BattleMetadataV1Schema,
     revision: z.number().int().nonnegative(),
     createdAt: z.string().datetime(),
@@ -230,7 +236,7 @@ export const CombatV6RedisRuntimeV1Schema = z
           .passthrough(),
         rounds: z.array(z.unknown()),
         events: z.array(z.unknown()),
-        timeline: CombatV6ReplayTimelineSchema.optional(),
+        timeline: CombatV6ReplayTimelineSchema,
       })
       .strict(),
   })
@@ -260,8 +266,8 @@ export const CombatV6ReplayParticipantSchema = z
   .strict();
 
 export interface CombatV6ReplayV1 {
-  timeline?: CombatV6ReplayTimeline;
-  display?: CombatV6ReplayDisplay;
+  timeline: CombatV6ReplayTimeline;
+  display: CombatV6ReplayDisplay;
   seed: number;
   combatVersions: CombatV6VersionStamp;
   initialUnits: LineupUnit[];
@@ -272,7 +278,7 @@ export interface CombatV6ReplayV1 {
     commands: Array<{ unitId: string; command: Command }>;
   }>;
   events: BattleEvent[];
-  replayVersion: 'combat_v6_replay_v1' | typeof COMBAT_V6_REPLAY_VERSION;
+  replayVersion: typeof COMBAT_V6_REPLAY_VERSION;
   battleId: string;
   participants: z.infer<typeof CombatV6ReplayParticipantSchema>[];
   metadata: z.infer<typeof CombatV6ReplayMetadataSchema>;
@@ -285,15 +291,13 @@ export interface CombatV6ReplayV1 {
 
 export const CombatV6ReplayV1Schema = z
   .object({
-    replayVersion: z.enum(['combat_v6_replay_v1', COMBAT_V6_REPLAY_VERSION]),
-    timeline: CombatV6ReplayTimelineSchema.optional(),
-    display: z
-      .object({
-        skills: z.record(z.string(), z.string()),
-        statuses: z.record(z.string(), z.string()),
-        skillDetails: z.record(z.string(), z.unknown()).optional(),
-      })
-      .optional(),
+    replayVersion: z.literal(COMBAT_V6_REPLAY_VERSION),
+    timeline: CombatV6ReplayTimelineSchema,
+    display: z.object({
+      skills: z.record(z.string(), z.string()),
+      statuses: z.record(z.string(), z.string()),
+      skillDetails: z.record(z.string(), z.unknown()).optional(),
+    }),
     battleId: z.uuid(),
     participants: z.array(CombatV6ReplayParticipantSchema).min(1).max(8),
     metadata: CombatV6ReplayMetadataSchema,
@@ -312,9 +316,7 @@ export const CombatV6ReplayV1Schema = z
   })
   .strict()
   .refine(
-    (value) =>
-      value.replayVersion !== COMBAT_V6_REPLAY_VERSION ||
-      (!!value.timeline?.finalUnits && !!value.display),
+    (value) => !!value.timeline.finalUnits,
     'Playable replay requires frozen presentation',
   )
   .refine(

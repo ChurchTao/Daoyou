@@ -17,7 +17,7 @@ import {
 } from '@server/lib/repositories/playerStateRepository';
 import { getPlayerIdentityCultivatorById } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import { QiService } from '@server/lib/services/QiService';
-import { getCombatV6BuildView } from '@server/lib/services/combat-v6/CombatV6BuildService';
+import { getSectCombatView } from '@server/lib/services/combat-v6/CombatV6BuildService';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import {
   PLAYER_RESOURCE_KEYS,
@@ -154,8 +154,8 @@ const readers: {
       qiLastRefreshedAt: qiState.qiLastRefreshedAt?.toISOString() ?? null,
     };
   },
-  'combat-v6-build': ({ cultivatorId, q }) =>
-    getCombatV6BuildView(cultivatorId, q),
+  'sect-combat': ({ cultivatorId, q }) =>
+    getSectCombatView(cultivatorId, q),
   'mail-summary': ({ cultivatorId, q }) =>
     readPlayerMailSummary(cultivatorId, q),
   'task-summary': ({ cultivatorId, q }) =>

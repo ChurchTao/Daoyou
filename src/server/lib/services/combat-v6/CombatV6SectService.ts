@@ -1,15 +1,15 @@
 import { db } from '@server/lib/drizzle/db';
 import {
-  combatV6BuildProfiles,
-  combatV6MeridianLoadouts,
-  combatV6MeridianNodes,
-  combatV6MethodProgress,
+  sectCombatStates,
+  sectMeridianLoadouts,
+  sectMeridianNodes,
+  sectMethodProgress,
 } from '@server/lib/drizzle/schema';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import {
   characterIdentityRow,
-  loadActiveCombatV6Build,
-} from '@server/lib/repositories/combatV6BuildRepository';
+  readActiveSectCombatProgress,
+} from '@server/lib/repositories/sectCombatRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
 import {
   loadSectCultivatorProgress,
@@ -23,17 +23,17 @@ import type { RealmStage, RealmType } from '@shared/types/constants';
 import { and, eq } from 'drizzle-orm';
 import { assertInventoryIdle, InventoryError } from '../InventoryService';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
-import { getCombatV6BuildView } from './CombatV6BuildService';
+import { getSectCombatView } from './CombatV6BuildService';
 
 export async function readSectV6(owner: string): Promise<SectV6View> {
   return db.transaction(
     async (tx) => {
       const character = await loadSectCultivatorProgress(owner, tx);
       if (!character) throw new InventoryError('角色不存在');
-      const build = await getCombatV6BuildView(owner, tx);
+      const build = await getSectCombatView(owner, tx);
       const active =
         build.status === 'active'
-          ? await loadActiveCombatV6Build(owner, tx)
+          ? await readActiveSectCombatProgress(owner, tx)
           : null;
       let blockedReason: string | null =
         build.status === 'active' ? null : '请先选择流派，启用宗门传承';
@@ -71,7 +71,7 @@ export async function mutateSectV6(owner: string, action: SectV6Action) {
       db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, owner);
         await assertInventoryIdle(owner);
-        const build = await loadActiveCombatV6Build(owner, tx);
+        const build = await readActiveSectCombatProgress(owner, tx);
         if (
           !build ||
           build.membershipId !== action.membershipId ||
@@ -94,7 +94,7 @@ export async function mutateSectV6(owner: string, action: SectV6Action) {
         )
           throw new InventoryError('修为、灵石或感悟不足');
         const updated = await tx
-          .update(combatV6BuildProfiles)
+          .update(sectCombatStates)
           .set({
             revision: build.revision + 1,
             meridianDepth: change.progress.meridianDepth,
@@ -102,26 +102,26 @@ export async function mutateSectV6(owner: string, action: SectV6Action) {
           })
           .where(
             and(
-              eq(combatV6BuildProfiles.id, build.profileId),
-              eq(combatV6BuildProfiles.revision, action.expectedRevision),
+              eq(sectCombatStates.membershipId, build.membershipId),
+              eq(sectCombatStates.revision, action.expectedRevision),
             ),
           )
-          .returning({ id: combatV6BuildProfiles.id });
+          .returning({ id: sectCombatStates.membershipId });
         if (!updated.length)
           throw new InventoryError('宗门构筑已变化，请刷新后重试');
         if (action.action === 'train')
           await tx
-            .update(combatV6MethodProgress)
+            .update(sectMethodProgress)
             .set({ level: change.progress.methods[action.methodId] })
             .where(
               and(
-                eq(combatV6MethodProgress.profileId, build.profileId),
-                eq(combatV6MethodProgress.methodId, action.methodId),
+                eq(sectMethodProgress.membershipId, build.membershipId),
+                eq(sectMethodProgress.methodId, action.methodId),
               ),
             );
         if (action.action === 'save') {
           const [loadout] = await tx
-            .update(combatV6MeridianLoadouts)
+            .update(sectMeridianLoadouts)
             .set({
               revision: change.progress.meridianLoadouts.find(
                 (l) => l.pathId === action.pathId,
@@ -129,20 +129,20 @@ export async function mutateSectV6(owner: string, action: SectV6Action) {
             })
             .where(
               and(
-                eq(combatV6MeridianLoadouts.profileId, build.profileId),
-                eq(combatV6MeridianLoadouts.pathId, action.pathId),
+                eq(sectMeridianLoadouts.membershipId, build.membershipId),
+                eq(sectMeridianLoadouts.pathId, action.pathId),
               ),
             )
             .returning();
           if (!loadout) throw new InventoryError('经脉方案缺失');
           await tx
-            .delete(combatV6MeridianNodes)
-            .where(eq(combatV6MeridianNodes.loadoutId, loadout.id));
+            .delete(sectMeridianNodes)
+            .where(eq(sectMeridianNodes.loadoutId, loadout.id));
           const path = COMBAT_V6_SECT_DEFINITIONS_V4[
             build.sect.sectId
           ].paths.find((p) => p.id === action.pathId)!;
           if (action.nodeIds.length)
-            await tx.insert(combatV6MeridianNodes).values(
+            await tx.insert(sectMeridianNodes).values(
               action.nodeIds.map((nodeId) => ({
                 loadoutId: loadout.id,
                 nodeId,
@@ -156,7 +156,7 @@ export async function mutateSectV6(owner: string, action: SectV6Action) {
           scopeDefaults: { cultivatorId: owner },
           changes: [
             {
-              resourceTopic: 'player.combat-v6-build',
+              resourceTopic: 'player.sect-combat',
               operation: 'invalidate',
               eventType: 'combat_v6.sect.changed',
             },

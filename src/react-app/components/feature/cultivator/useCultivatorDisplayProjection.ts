@@ -1,7 +1,6 @@
 import {
-  buildSectProgressionState,
+  membershipState,
   useActiveSectContextQuery,
-  useSectProgressionQuery,
 } from '@app/components/feature/sect/sectResources';
 import {
   useCultivatorCondition,
@@ -59,19 +58,15 @@ export function useCultivatorDisplayProjection(enabled = true) {
   const profile = useCultivatorIdentity(enabled);
   const condition = useCultivatorCondition(enabled);
   const sectContext = useActiveSectContextQuery(enabled);
-  const sectProgression = useSectProgressionQuery(
-    enabled && sectContext.hasSect,
-  );
   const identity = profile.data?.cultivator;
   const sect = useMemo(
     () =>
-      sectContext.hasSect && sectContext.data && sectProgression.data
-        ? buildSectProgressionState(sectContext.data, sectProgression.data)
+      sectContext.hasSect && sectContext.data
+        ? membershipState(sectContext.data)
         : undefined,
     [
       sectContext.data,
       sectContext.hasSect,
-      sectProgression.data,
     ],
   );
   const sectReady =
@@ -183,14 +178,13 @@ export function useCultivatorDisplayProjection(enabled = true) {
       condition.loading ||
       sectContext.sessionLoading ||
       (sectContext.hasSect &&
-        (sectContext.loading || sectProgression.loading)));
+        sectContext.loading));
   const error =
     profile.error ??
     condition.error ??
     (condition.data && !condition.data.combatV6 ? '角色战斗属性尚未加载' : undefined) ??
     sectContext.sessionError ??
-    sectContext.error ??
-    (sectContext.hasSect ? sectProgression.error : undefined);
+    sectContext.error;
 
   return {
     data,

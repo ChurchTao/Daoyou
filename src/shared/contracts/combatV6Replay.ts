@@ -121,7 +121,6 @@ export type CombatV6HistoryItem = {
   roundCount: number;
   sides: [string[], string[]];
   outcome: 'victory' | 'defeat' | 'draw' | 'aborted';
-  playable: boolean;
 };
 export type CombatV6HistoryPage = {
   items: CombatV6HistoryItem[];

@@ -51,7 +51,7 @@ export function CombatV6HistoryList({
               </time>
               <span>
                 {record.roundCount} 回合 ·{' '}
-                {record.playable ? '查看回放 →' : '查看战报 →'}
+                查看回放 →
               </span>
             </div>
           </Link>

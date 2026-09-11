@@ -233,3 +233,6 @@ export type CombatV6ProjectionResult =
   | (ProjectionCommon & {
       ok: false
     })
+
+/** Personal equipment and manuals exist independently of sect membership. */
+export type CharacterCombatInput = Omit<ProjectCultivatorMultiSectToCombatV6Input, 'sect'> & { sect?: SectCombatProgressV6 };

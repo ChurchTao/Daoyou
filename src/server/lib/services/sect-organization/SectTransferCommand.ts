@@ -18,7 +18,7 @@ export async function executeSectTransferCommand(
       result: { membership: result.membership },
       resourceChanges: [
         {
-          resourceTopic: 'player.combat-v6-build',
+          resourceTopic: 'player.sect-combat',
           operation: 'invalidate',
           eventType: 'combat_v6.sect.transferred',
         },

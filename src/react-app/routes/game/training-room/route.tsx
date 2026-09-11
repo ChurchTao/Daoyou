@@ -6,10 +6,10 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { inkFieldVariants } from '@app/components/ui/inkFieldStyles';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
-import { useCombatV6Build } from '@app/lib/resources/player';
+import { useSectCombatState } from '@app/lib/resources/player';
 import type {
-  CombatV6BuildViewV1,
   CombatV6TrainingSessionViewV1,
+  SectCombatView,
 } from '@shared/contracts/combatV6';
 import { useEffect, useState } from 'react';
 
@@ -23,7 +23,7 @@ function BuildInitialization({
   pending,
   onInitialize,
 }: {
-  build: CombatV6BuildViewV1;
+  build: SectCombatView;
   pending: boolean;
   onInitialize: (pathId: string) => void;
 }) {
@@ -31,9 +31,10 @@ function BuildInitialization({
   return (
     <div className="space-y-4">
       <InkCard variant="highlighted" padding="lg">
-        <h2 className="font-heading text-xl">立定 v6 修行流派</h2>
+        <h2 className="font-heading text-xl">选择宗门修行流派</h2>
         <p className="text-ink-secondary mt-2 text-sm leading-7">
-          当前宗门：{build.sectName}。此阶段完成选择后不可切换、升级或重置。
+          当前宗门：{build.sectName}
+          。选择后可前往宗门修炼心法、参悟经脉或切换流派。
         </p>
       </InkCard>
       <div className="grid gap-3 md:grid-cols-2">
@@ -45,7 +46,6 @@ function BuildInitialization({
             className={`border p-4 text-left ${pathId === path.id ? 'border-crimson bg-crimson/5' : 'border-ink/15'}`}
           >
             <strong>{path.name}</strong>
-            <p className="text-ink-secondary mt-1 text-xs">{path.id}</p>
           </button>
         ))}
       </div>
@@ -145,7 +145,7 @@ function EncounterSelection({
 }
 
 export default function TrainingRoomPage() {
-  const buildQuery = useCombatV6Build();
+  const buildQuery = useSectCombatState();
   const build = buildQuery.data;
   const [content, setContent] = useState<ContentView>();
   const combat = useCombatV6Session<CombatV6TrainingSessionViewV1>(
@@ -211,7 +211,7 @@ export default function TrainingRoomPage() {
           pending={pending}
           onInitialize={(activePathId) =>
             void run(async () => {
-              const response = await fetch('/api/combat-v6/build/initialize', {
+              const response = await fetch('/api/combat-v6/sect/path', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -220,7 +220,7 @@ export default function TrainingRoomPage() {
                 }),
               });
               const next =
-                await consumeResourceMutation<CombatV6BuildViewV1>(response);
+                await consumeResourceMutation<SectCombatView>(response);
               buildQuery.setData(next);
             })
           }

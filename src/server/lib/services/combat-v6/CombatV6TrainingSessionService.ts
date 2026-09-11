@@ -4,7 +4,7 @@ import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
-import { findActiveCombatV6Membership } from '@server/lib/repositories/combatV6BuildRepository';
+import { findActiveSectMembership } from '@server/lib/repositories/sectCombatRepository';
 import { hasActiveTower } from '@server/lib/tower/occupancy';
 import { automaticCommands } from '@shared/combat-v6/auto';
 import {
@@ -148,7 +148,6 @@ export class CombatV6TrainingSessionService {
       userId: actor.userId,
       cultivatorId: actor.cultivatorId,
       membershipId: assembled.membershipId,
-      buildRevision: assembled.buildRevision,
       metadata: {
         schemaVersion: 1,
         sourceType: 'training-room',
@@ -328,7 +327,7 @@ export class CombatV6TrainingSessionService {
       );
       throw this.error('CommandNotAllowed', '训练运行态与当前版本不兼容', 422);
     }
-    const membership = await findActiveCombatV6Membership(
+    const membership = await findActiveSectMembership(
       runtime.cultivatorId,
       db,
     );

@@ -1,7 +1,7 @@
 import type { DbExecutor } from '@server/lib/drizzle/db';
 import {
-  combatV6BeastLineups,
-  combatV6Beasts,
+  cultivatorBeastLineups,
+  cultivatorBeasts,
   cultivators,
 } from '@server/lib/drizzle/schema';
 import type { WildSettlement } from '@shared/contracts/combatV6Wild';
@@ -9,6 +9,7 @@ import {
   BeastLineupSchema,
   type BeastRoster,
   BeastSchema,
+  type SummonedBeast,
   loseBeastLifespan,
 } from '@shared/engine/combat-v6/beasts';
 import {
@@ -18,6 +19,22 @@ import {
 import { combatCharacterLevel } from '@shared/engine/combat-v6/projection/character-level';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { and, eq, inArray } from 'drizzle-orm';
+
+/** Identity and ownership have a single authority in relational columns. */
+export function beastIndividualData(beast: SummonedBeast) {
+  const { id: _id, ownerCultivatorId: _owner, ...individual } = beast;
+  void _id;
+  void _owner;
+  return individual;
+}
+
+export function beastFromRow(row: typeof cultivatorBeasts.$inferSelect) {
+  return BeastSchema.parse({
+    ...row.individual,
+    id: row.id,
+    ownerCultivatorId: row.cultivatorId,
+  });
+}
 
 export async function readBeastOwner(cultivatorId: string, tx: DbExecutor) {
   const [row] = await tx
@@ -51,23 +68,23 @@ export async function readBeastRoster(
   }
 > {
   const rows = await tx
-    .select({ individual: combatV6Beasts.individual })
-    .from(combatV6Beasts)
-    .where(eq(combatV6Beasts.cultivatorId, cultivatorId))
-    .orderBy(combatV6Beasts.createdAt, combatV6Beasts.id);
+    .select()
+    .from(cultivatorBeasts)
+    .where(eq(cultivatorBeasts.cultivatorId, cultivatorId))
+    .orderBy(cultivatorBeasts.createdAt, cultivatorBeasts.id);
   const [state] = await tx
     .select()
-    .from(combatV6BeastLineups)
-    .where(eq(combatV6BeastLineups.cultivatorId, cultivatorId));
+    .from(cultivatorBeastLineups)
+    .where(eq(cultivatorBeastLineups.cultivatorId, cultivatorId));
   const { ownerLevel, spiritStones } = await readBeastOwner(cultivatorId, tx);
   return {
     ownerLevel,
     spiritStones,
-    beasts: rows.map((row) => BeastSchema.parse(row.individual)),
+    beasts: rows.map(beastFromRow),
     lineup: BeastLineupSchema.parse(
       state?.lineup ?? { carriedBeastIds: [], revision: 0 },
     ),
-    starterClaimed: !!state?.starterBeastId,
+    starterClaimed: !!state?.starterClaimedAt,
   };
 }
 
@@ -84,10 +101,10 @@ export async function settleBeastProgress(
     const beast = BeastSchema.parse(individual);
     if (beast.ownerCultivatorId !== summary.cultivatorId)
       throw new Error('捕获灵兽归属不符');
-    await tx.insert(combatV6Beasts).values({
+    await tx.insert(cultivatorBeasts).values({
       id: beast.id,
       cultivatorId: summary.cultivatorId,
-      individual: beast,
+      individual: beastIndividualData(beast),
     });
   }
   if (summary.beastExperience) {
@@ -97,9 +114,9 @@ export async function settleBeastProgress(
     const next = gainBeastExp(beast, reward.amount, roster.ownerLevel);
     if (next !== beast)
       await tx
-        .update(combatV6Beasts)
-        .set({ individual: next })
-        .where(eq(combatV6Beasts.id, beast.id));
+        .update(cultivatorBeasts)
+        .set({ individual: beastIndividualData(next) })
+        .where(eq(cultivatorBeasts.id, beast.id));
   }
 }
 
@@ -112,16 +129,18 @@ export async function settleBeastDeaths(
   if (!ids.length) return;
   const rows = await tx
     .select()
-    .from(combatV6Beasts)
+    .from(cultivatorBeasts)
     .where(
       and(
-        eq(combatV6Beasts.cultivatorId, cultivatorId),
-        inArray(combatV6Beasts.id, [...new Set(ids)]),
+        eq(cultivatorBeasts.cultivatorId, cultivatorId),
+        inArray(cultivatorBeasts.id, [...new Set(ids)]),
       ),
     );
   for (const row of rows)
     await tx
-      .update(combatV6Beasts)
-      .set({ individual: loseBeastLifespan(BeastSchema.parse(row.individual)) })
-      .where(eq(combatV6Beasts.id, row.id));
+      .update(cultivatorBeasts)
+      .set({
+        individual: beastIndividualData(loseBeastLifespan(beastFromRow(row))),
+      })
+      .where(eq(cultivatorBeasts.id, row.id));
 }

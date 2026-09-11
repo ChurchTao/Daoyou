@@ -98,7 +98,7 @@ export function conditionChangesAfterConsumable(args: {
     isSectMeridianResetTalismanScenario(args.consumable.spec.scenario)
   ) {
     changes.push({
-      resourceTopic: 'player.combat-v6-build',
+      resourceTopic: 'player.sect-combat',
       eventType: 'combat_v6.meridian_nodes.reset',
       operation: 'invalidate',
     });

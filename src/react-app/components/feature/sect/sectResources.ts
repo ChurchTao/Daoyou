@@ -4,7 +4,6 @@ import {
   sectContextResource,
   sectInfrastructureResource,
   sectMembersResource,
-  sectProgressionResource,
   sectShopResource,
   sectTasksResource,
   type SectMembersParams,
@@ -21,7 +20,6 @@ import {
   SectStipendDataSchema,
 } from '@shared/contracts/sect';
 import {
-  createAbilitySlots,
   resolveSectBenefitSnapshot,
   resolveSectPresentation,
   type CultivatorSectState,
@@ -62,10 +60,6 @@ export function useActiveSectContextQuery(enabled = true) {
 
 export function useSectInfrastructureQuery() {
   return useSingletonResource(sectInfrastructureResource);
-}
-
-export function useSectProgressionQuery(enabled = true) {
-  return useSingletonResource(sectProgressionResource, enabled);
 }
 
 export function useSectTasksQuery() {
@@ -159,19 +153,6 @@ export function resolveSectBenefits(
   );
 }
 
-export function buildSectProgressionState(
-  context: NonNullable<ReturnType<typeof useSectContextQuery>['data']>,
-  progression: NonNullable<ReturnType<typeof useSectProgressionQuery>['data']>,
-): CultivatorSectState {
-  return {
-    ...membershipState(context),
-    activePathId: progression.activePathId,
-    methods: progression.methods,
-    paths: progression.paths,
-    abilityLoadout: progression.abilityLoadout,
-  };
-}
-
 export function getSectPresentationForContext(
   context: { sectId: string } | undefined,
 ): ResolvedSectPresentation {
@@ -180,7 +161,7 @@ export function getSectPresentationForContext(
     : resolveSectPresentation('standard');
 }
 
-function membershipState(
+export function membershipState(
   context: NonNullable<ReturnType<typeof useSectContextQuery>['data']>,
 ): CultivatorSectState {
   return {
@@ -194,9 +175,6 @@ function membershipState(
     office: context.office,
     promotedAt: context.promotedAt,
     configVersion: context.configVersion,
-    methods: {},
-    paths: [],
-    abilityLoadout: createAbilitySlots([]),
   };
 }
 

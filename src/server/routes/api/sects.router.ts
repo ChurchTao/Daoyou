@@ -11,7 +11,6 @@ import {
 import type { AppEnv } from '@server/lib/hono/types';
 import {
   findMembership,
-  loadSectProgressionForMembership,
 } from '@server/lib/repositories/sectRepository';
 import {
   PlayerCommandIdempotencyError,
@@ -203,32 +202,6 @@ export function createSectsRouter(
                   createPostgresSectMembershipQueryContext({ q, runtime }),
                 ),
               };
-            },
-          ),
-        );
-      } catch (error) {
-        return failure(c, error);
-      }
-    },
-  );
-
-  router.get(
-    '/current/progression',
-    requireActiveCultivatorRef(),
-    async (c) => {
-      const ref = c.get('activeCultivatorRef');
-      if (!ref)
-        return c.json({ success: false, error: '当前没有活跃角色' }, 404);
-      try {
-        return c.json(
-          await readResourceWithMeta(
-            { kind: 'cultivator', id: ref.cultivatorId },
-            'sect.progression',
-            async (q) => {
-              const membership = await findMembership(ref.cultivatorId, q);
-              if (!membership)
-                throw new SectError('SECT_MEMBERSHIP_REQUIRED', '尚未拜入宗门');
-              return loadSectProgressionForMembership(membership, q);
             },
           ),
         );

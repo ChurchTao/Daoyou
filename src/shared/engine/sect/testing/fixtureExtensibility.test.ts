@@ -6,7 +6,7 @@ import {
   fixtureSectState,
 } from './fixtures/FixtureSectModule';
 
-describe('宗门组织扩展与历史状态', () => {
+describe('宗门组织扩展与成员状态', () => {
   it('组织目录注册不需要战斗编译器或选招策略', () => {
     const runtime = createSectRuntime([FIXTURE_SECT_MODULE]);
     expect(runtime.registry.require('fixture-sect')).toBe(FIXTURE_SECT_MODULE);
@@ -33,18 +33,9 @@ describe('宗门组织扩展与历史状态', () => {
       0,
     );
   });
-  it('历史水合仍拒绝重复装配和未知心法', () => {
+  it('成员校验拒绝负贡献与错误归属', () => {
     const runtime = createSectRuntime([FIXTURE_SECT_MODULE]);
-    const duplicate = fixtureSectState();
-    duplicate.abilityLoadout = [
-      'fixture-ability-2',
-      'fixture-ability-2',
-      null,
-      null,
-    ];
-    expect(() => runtime.validateState(duplicate)).toThrow('不可重复');
-    const unknown = fixtureSectState();
-    unknown.methods.missing = 1;
-    expect(() => runtime.validateState(unknown)).toThrow('未知心法');
+    expect(() => runtime.validateState({ ...fixtureSectState(), contribution: -1 })).toThrow('非负整数');
+    expect(() => runtime.validateState({ ...fixtureSectState(), status: 'invalid' as never })).toThrow('状态无效');
   });
 });

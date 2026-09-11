@@ -5,7 +5,7 @@ import {
   projectCultivatorMultiSectV5ToCombatV6,
   projectCultivatorWithTrainingToCombatV6,
   type CharacterPanelV1,
-  type ProjectCultivatorMultiSectToCombatV6Input,
+  type CharacterCombatInput,
 } from '@shared/engine/combat-v6/projection';
 
 export type CultivatorDisplayInput = Pick<Cultivator,
@@ -14,7 +14,7 @@ export type CultivatorDisplayInput = Pick<Cultivator,
   combatV6ResourceAuthority?: CombatV6ResourceAuthority & { build: CharacterDisplayBuild | null };
 };
 
-export type CharacterDisplayBuild = Pick<ProjectCultivatorMultiSectToCombatV6Input,
+export type CharacterDisplayBuild = Pick<CharacterCombatInput,
   'sect' | 'equipment' | 'manuals'>;
 
 export interface CombatV6ResourceAuthority {
@@ -60,7 +60,7 @@ export function projectCharacterDisplay(
   build: CharacterDisplayBuild | null,
 ): CharacterPanelV1 {
   const input = {
-    cultivator: { ...cultivator, id: cultivator.id ?? 'character-preview' },
+    cultivator: { ...cultivator, id: cultivator.id || 'character-preview' },
     side: 0 as const, slot: 0, resourcePolicy: 'full' as const,
   };
   const result = build

@@ -153,8 +153,8 @@ export async function listItem(
       throw new InventoryError('物品已变化或数量不足，请重新选择');
     const equipped = await tx
       .select()
-      .from(schema.combatV6EquipmentLoadouts)
-      .where(eq(schema.combatV6EquipmentLoadouts.equipmentInstanceId, item.id))
+      .from(schema.cultivatorEquipmentSlots)
+      .where(eq(schema.cultivatorEquipmentSlots.equipmentInstanceId, item.id))
       .limit(1);
     const reason = auctionBlockReason({
       ...item,

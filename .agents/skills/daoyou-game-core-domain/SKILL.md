@@ -17,6 +17,10 @@ description: Daoyou shared game engine domain guide for battle-v5, creation-v2, 
 
 ## Attribute Boundary
 
+- Current V6 personal display projects `CharacterCombatInput`: character attributes, equipment and personal manuals work with optional sect progress. Do not require a sect profile to apply personal effects.
+- Sect progress contains shared meridian depth, per-path node selections and method levels. Personal manuals and equipment are separate character-owned inputs; see `docs/combat-domain-ownership.md`.
+- `buildRevision` and stored general build readiness were removed. Keep domain revisions separate and derive sect readiness from membership / selected path.
+
 - `Cultivator.attributes` stores only six base attributes: vitality, strength, spirit, endurance, speed, willpower.
 - Derived attributes, hp/mp max, and combat display stats are computed through battle-v5 `AttributeSet` and adapters.
 - `src/shared/engine/cultivator/index.ts` is a migration placeholder. Do not rebuild old cultivator attribute logic there.

@@ -9,6 +9,7 @@ import type { AppEnv } from '@server/lib/hono/types';
 import { ArenaBattleStartOrchestrator } from '@server/lib/services/ArenaBattleStartOrchestrator';
 import { publishArenaRoomChanges } from '@server/lib/services/arenaRoomBroadcaster';
 import { ArenaRoomService } from '@server/lib/services/ArenaRoomService';
+import { CombatV6BuildError } from '@server/lib/services/combat-v6/CombatV6BuildService';
 import {
   ArenaCreateRoomSchema,
   ArenaJoinRoomSchema,
@@ -282,6 +283,9 @@ async function requireArenaMember(c: Context<AppEnv>, roomId: string) {
 }
 
 function arenaError(c: Context<AppEnv>, error: unknown) {
+  if (error instanceof CombatV6BuildError) {
+    return c.json({ error: error.message, code: error.code }, error.status);
+  }
   const message = error instanceof Error ? error.message : '擂台房间操作失败';
   if (/不存在|过期|邀请码无效/.test(message)) {
     return c.json({ error: message }, 404);

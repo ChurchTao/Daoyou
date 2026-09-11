@@ -28,8 +28,8 @@ import {
 } from '@server/lib/services/combat-v6/CombatV6BeastService';
 import {
   CombatV6BuildError,
-  getCombatV6BuildView,
-  initializeCombatV6Build,
+  getSectCombatView,
+  selectInitialSectPath,
 } from '@server/lib/services/combat-v6/CombatV6BuildService';
 import { CombatV6RuntimeStore } from '@server/lib/services/combat-v6/CombatV6RuntimeStore';
 import {
@@ -45,7 +45,7 @@ import { CombatAutoRequestSchema } from '@shared/combat-v6/auto';
 import { combatV6ReplayView } from '@shared/combat-v6/replay';
 import {
   COMBAT_V6_REPLAY_ERROR_CODE,
-  CombatV6BuildInitializeRequestSchema,
+  SectPathSelectionRequestSchema,
   CombatV6ReplayParamsSchema,
   CombatV6TrainingCommandParamsSchema,
   CombatV6TrainingCommandRequestSchema,
@@ -288,14 +288,14 @@ router.post('/beasts/release', async (c) => {
   }
 });
 
-router.get('/build', async (c) => {
+router.get('/sect/state', async (c) => {
   try {
     const current = actor(c);
     return c.json(
       await readResourceWithMeta(
         { kind: 'cultivator', id: current.cultivatorId },
-        'player.combat-v6-build',
-        (tx) => getCombatV6BuildView(current.cultivatorId, tx),
+        'player.sect-combat',
+        (tx) => getSectCombatView(current.cultivatorId, tx),
       ),
     );
   } catch (error) {
@@ -303,14 +303,14 @@ router.get('/build', async (c) => {
   }
 });
 
-router.post('/build/initialize', async (c) => {
+router.post('/sect/path', async (c) => {
   try {
-    const input = CombatV6BuildInitializeRequestSchema.parse(
+    const input = SectPathSelectionRequestSchema.parse(
       await c.req.json(),
     );
     return c.json(
       toPlayerStateMutationResponse(
-        await initializeCombatV6Build(actor(c), input),
+        await selectInitialSectPath(actor(c), input),
       ),
     );
   } catch (error) {

@@ -1,28 +1,28 @@
+import { readCharacterEquipment, readCharacterManuals } from '@server/lib/repositories/characterLoadoutRepository';
 import { db, runDbTasks, type DbExecutor } from '@server/lib/drizzle/db';
 import {
-  combatV6BuildProfiles,
-  combatV6ManualStates,
-  combatV6MeridianLoadouts,
-  combatV6MethodProgress,
+  sectCombatStates,
+  sectMeridianLoadouts,
+  sectMethodProgress,
 } from '@server/lib/drizzle/schema';
 import { readBeastRoster } from '@server/lib/repositories/combatV6BeastRepository';
 import {
   characterIdentityRow,
-  findActiveCombatV6Membership,
-  findCombatV6Profile,
-  listCombatV6MethodLevels,
-  loadActiveCombatV6Build,
+  findActiveSectMembership,
+  findSectCombatState,
+  readSectMethodLevels,
+  readActiveSectCombatProgress,
   lockActiveMembership,
-} from '@server/lib/repositories/combatV6BuildRepository';
+} from '@server/lib/repositories/sectCombatRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
 import { ResourceEventCommitter } from '@server/lib/services/ResourceEventCommitter';
 import type {
-  CombatV6BuildInitializeRequest,
-  CombatV6BuildViewV1,
+  SectPathSelectionRequest,
+  SectCombatView,
 } from '@shared/contracts/combatV6';
 import { COMBAT_V6_BUILD_ERROR_CODE } from '@shared/contracts/combatV6';
 import {
-  createCombatV6BuildView,
+  createSectCombatView,
   createFreshCombatV6MethodLevels,
 } from '@shared/engine/combat-v6/build-state';
 import {
@@ -33,7 +33,7 @@ import type { CombatV6TrainingPlayerInput } from '@shared/engine/combat-v6/encou
 import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmStage, RealmType } from '@shared/types/constants';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { assertCombatV6MutationAllowed } from './CombatV6MutationGuard';
 
 export class CombatV6BuildError extends Error {
@@ -47,39 +47,39 @@ export class CombatV6BuildError extends Error {
   }
 }
 
-export async function getCombatV6BuildView(
+export async function getSectCombatView(
   cultivatorId: string,
   q: DbExecutor,
-): Promise<CombatV6BuildViewV1> {
-  const membership = await findActiveCombatV6Membership(cultivatorId, q);
-  if (!membership) return createCombatV6BuildView({ status: 'uninitialized' });
+): Promise<SectCombatView> {
+  const membership = await findActiveSectMembership(cultivatorId, q);
+  if (!membership) return createSectCombatView({ status: 'uninitialized' });
   if (!(membership.sectId in COMBAT_V6_SECT_DEFINITIONS_V4)) {
-    return createCombatV6BuildView({
+    return createSectCombatView({
       status: 'uninitialized',
       membershipId: membership.membershipId,
     });
   }
   const sectId = membership.sectId as CombatV6SectId;
-  const profile = await findCombatV6Profile(membership.membershipId, q);
-  const methodLevels = profile
-    ? await listCombatV6MethodLevels(profile.id, q)
+  const sectState = await findSectCombatState(membership.membershipId, q);
+  const methodLevels = sectState
+    ? await readSectMethodLevels(membership.membershipId, q)
     : createFreshCombatV6MethodLevels(sectId);
-  const base = createCombatV6BuildView({
+  const base = createSectCombatView({
     status:
-      profile?.status === 'active'
+      sectState?.activePathId
         ? 'active'
-        : profile
+        : sectState
           ? 'pending'
           : 'uninitialized',
-    revision: profile?.revision ?? 0,
+    revision: sectState?.revision ?? 0,
     membershipId: membership.membershipId,
     sectId,
-    activePathId: profile?.activePathId ?? undefined,
+    activePathId: sectState?.activePathId ?? undefined,
     methodLevels,
   });
-  if (profile?.status !== 'active')
-    return { ...base, meridianDepth: profile?.meridianDepth ?? 0 };
-  const build = await loadActiveCombatV6Build(cultivatorId, q);
+  if (!sectState?.activePathId)
+    return { ...base, meridianDepth: sectState?.meridianDepth ?? 0 };
+  const build = await readActiveSectCombatProgress(cultivatorId, q);
   if (!build)
     throw new CombatV6BuildError(
       COMBAT_V6_BUILD_ERROR_CODE.Invalid,
@@ -89,14 +89,12 @@ export async function getCombatV6BuildView(
   return {
     ...base,
     meridianDepth: build.sect.meridianDepth,
-    manuals: build.manuals,
-    equipment: build.equipment,
   };
 }
 
-export async function initializeCombatV6Build(
+export async function selectInitialSectPath(
   actor: { userId: string; cultivatorId: string },
-  input: CombatV6BuildInitializeRequest,
+  input: SectPathSelectionRequest,
 ) {
   return db.transaction(async (tx) => {
     await lockCultivatorForStateMutation(tx, actor.cultivatorId);
@@ -127,58 +125,57 @@ export async function initializeCombatV6Build(
         400,
       );
     }
-    let profile = await findCombatV6Profile(membership.membershipId, tx);
+    let sectState = await findSectCombatState(membership.membershipId, tx);
     if (
-      profile?.status === 'active' ||
-      (profile && profile.revision !== input.expectedRevision)
+      sectState?.activePathId ||
+      (sectState && sectState.revision !== input.expectedRevision)
     ) {
       throw new CombatV6BuildError(
         COMBAT_V6_BUILD_ERROR_CODE.RevisionConflict,
         '构筑状态已经变化',
       );
     }
-    if (!profile) {
-      [profile] = await tx
-        .insert(combatV6BuildProfiles)
-        .values({ membershipId: membership.membershipId, status: 'pending' })
+    if (!sectState) {
+      [sectState] = await tx
+        .insert(sectCombatStates)
+        .values({ membershipId: membership.membershipId })
         .returning();
-      if (!profile)
+      if (!sectState)
         throw new CombatV6BuildError(
           COMBAT_V6_BUILD_ERROR_CODE.Invalid,
           '无法创建combat-v6构筑',
           422,
         );
       const fresh = createFreshCombatV6MethodLevels(sectId);
-      await tx.insert(combatV6MethodProgress).values(
+      await tx.insert(sectMethodProgress).values(
         Object.entries(fresh).map(([methodId, level]) => ({
-          profileId: profile!.id,
+          membershipId: membership.membershipId,
           methodId,
           level,
         })),
       );
     }
-    const levels = await listCombatV6MethodLevels(profile.id, tx);
+    const levels = await readSectMethodLevels(membership.membershipId, tx);
     if (
       definition.methods.some((method) => !Number.isInteger(levels[method.id]))
     ) {
       throw new CombatV6BuildError(
         COMBAT_V6_BUILD_ERROR_CODE.Invalid,
-        '心法迁移数据不完整',
+        '宗门心法数据不完整',
         422,
       );
     }
     const [activated] = await tx
-      .update(combatV6BuildProfiles)
+      .update(sectCombatStates)
       .set({
-        status: 'active',
         activePathId: input.activePathId,
-        revision: sql`${combatV6BuildProfiles.revision} + 1`,
+        revision: sql`${sectCombatStates.revision} + 1`,
       })
       .where(
         and(
-          eq(combatV6BuildProfiles.id, profile.id),
-          eq(combatV6BuildProfiles.status, 'pending'),
-          eq(combatV6BuildProfiles.revision, input.expectedRevision),
+          eq(sectCombatStates.membershipId, membership.membershipId),
+          isNull(sectCombatStates.activePathId),
+          eq(sectCombatStates.revision, input.expectedRevision),
         ),
       )
       .returning();
@@ -187,31 +184,27 @@ export async function initializeCombatV6Build(
         COMBAT_V6_BUILD_ERROR_CODE.RevisionConflict,
         '构筑状态已经变化',
       );
-    await tx.insert(combatV6MeridianLoadouts).values(
+    await tx.insert(sectMeridianLoadouts).values(
       definition.paths.map((path) => ({
-        profileId: profile!.id,
+        membershipId: membership.membershipId,
         pathId: path.id,
         revision: 0,
       })),
     );
-    await tx
-      .insert(combatV6ManualStates)
-      .values({ profileId: profile.id, schemaVersion: 1, revision: 0 });
-
     const state = await new ResourceEventCommitter().commit(tx, {
       actor,
-      source: 'combat-v6-build',
+      source: 'sect-combat',
       scopeDefaults: { cultivatorId: actor.cultivatorId },
       changes: [
         {
-          resourceTopic: 'player.combat-v6-build',
+          resourceTopic: 'player.sect-combat',
           operation: 'invalidate',
           eventType: 'combat_v6.build.initialized',
         },
       ],
     });
     return {
-      result: await getCombatV6BuildView(actor.cultivatorId, tx),
+      result: await getSectCombatView(actor.cultivatorId, tx),
       state,
     };
   });
@@ -223,9 +216,8 @@ export async function assembleCombatV6TrainingPlayer(
 ): Promise<{
   player: CombatV6TrainingPlayerInput;
   membershipId: string;
-  buildRevision: number;
 }> {
-  const membership = await findActiveCombatV6Membership(cultivatorId, q);
+  const membership = await findActiveSectMembership(cultivatorId, q);
   if (!membership) {
     throw new CombatV6BuildError(
       COMBAT_V6_BUILD_ERROR_CODE.MembershipRequired,
@@ -240,22 +232,22 @@ export async function assembleCombatV6TrainingPlayer(
       422,
     );
   }
-  const profile = await findCombatV6Profile(membership.membershipId, q);
-  if (!profile) {
+  const sectState = await findSectCombatState(membership.membershipId, q);
+  if (!sectState) {
     throw new CombatV6BuildError(
       COMBAT_V6_BUILD_ERROR_CODE.NotInitialized,
-      '请先初始化combat-v6构筑',
+      '请先前往宗门或练功房选择修行流派',
     );
   }
-  if (profile.status === 'pending') {
+  if (!sectState.activePathId) {
     throw new CombatV6BuildError(
       COMBAT_V6_BUILD_ERROR_CODE.Pending,
-      '请先确认combat-v6流派',
+      '请先前往宗门或练功房选择修行流派',
     );
   }
   const [cultivator, build] = await runDbTasks(q, [
     () => characterIdentityRow(cultivatorId, q),
-    () => loadActiveCombatV6Build(cultivatorId, q),
+    () => readActiveSectCombatProgress(cultivatorId, q),
   ]);
   if (!cultivator)
     throw new CombatV6BuildError(
@@ -287,8 +279,8 @@ export async function assembleCombatV6TrainingPlayer(
         (cultivator.condition as CultivatorCondition | null) ?? undefined,
     },
     sect: build.sect,
-    equipment: build.equipment,
-    manuals: build.manuals,
+    equipment: await readCharacterEquipment(cultivatorId, q),
+    manuals: await readCharacterManuals(cultivatorId, q),
     beasts: await readBeastRoster(cultivatorId, q),
   };
   const projected = projectCultivatorMultiSectV5ToCombatV6({
@@ -309,6 +301,5 @@ export async function assembleCombatV6TrainingPlayer(
   return {
     player: structuredClone(player),
     membershipId: build.membershipId,
-    buildRevision: build.revision,
   };
 }

@@ -6,7 +6,7 @@ export {
   type InventoryPageParams,
 } from './inventoryDefinitions';
 export {
-  playerCombatV6BuildResource,
+  playerSectCombatResource,
   playerConditionResource,
   playerCurrencyResource,
   playerMailSummaryResource,
@@ -23,7 +23,6 @@ export {
   sectContextResource,
   sectInfrastructureResource,
   sectMembersResource,
-  sectProgressionResource,
   sectShopResource,
   sectTasksResource,
   type SectMembersParams,
@@ -35,7 +34,7 @@ import {
   inventoryMaterialsResource,
 } from './inventoryDefinitions';
 import {
-  playerCombatV6BuildResource,
+  playerSectCombatResource,
   playerConditionResource,
   playerCurrencyResource,
   playerMailSummaryResource,
@@ -51,7 +50,6 @@ import {
   sectContextResource,
   sectInfrastructureResource,
   sectMembersResource,
-  sectProgressionResource,
   sectShopResource,
   sectTasksResource,
 } from './sectDefinitions';
@@ -63,14 +61,13 @@ export const resourceRegistry = {
   playerCondition: playerConditionResource,
   playerProgress: playerProgressResource,
   playerCurrency: playerCurrencyResource,
-  playerCombatV6Build: playerCombatV6BuildResource,
+  playerCombatV6Build: playerSectCombatResource,
   playerMailSummary: playerMailSummaryResource,
   playerTaskSummary: playerTaskSummaryResource,
   playerTasks: playerTasksResource,
   sectContext: sectContextResource,
   sectMembers: sectMembersResource,
   sectInfrastructure: sectInfrastructureResource,
-  sectProgression: sectProgressionResource,
   sectTasks: sectTasksResource,
   sectShop: sectShopResource,
   sectConstructionMember: sectConstructionMemberResource,

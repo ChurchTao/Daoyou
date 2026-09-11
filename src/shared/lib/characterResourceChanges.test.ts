@@ -7,7 +7,7 @@ const change = (resourceTopic: ResourceChangeDescriptor['resourceTopic'], id = s
 
 describe('character panel resource invalidations', () => {
   it('refreshes the panel once per character after profile and build changes', () => {
-    const result = withCharacterPanelInvalidations([change('player.profile'), change('player.combat-v6-build'), change('player.profile', 'player-2')]);
+    const result = withCharacterPanelInvalidations([change('player.profile'), change('player.sect-combat'), change('player.profile', 'player-2')]);
     expect(result.filter(c => c.resourceTopic === 'player.condition').map(c => c.scope.id)).toEqual(['player-1', 'player-2']);
   });
   it('replaces persisted condition updates with a read-model invalidation', () => {

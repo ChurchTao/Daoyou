@@ -309,6 +309,20 @@
       "when": 1789048437114,
       "tag": "0043_manual-level-progression",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1789050374352,
+      "tag": "0044_domain_ownership_cutover",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1789053555643,
+      "tag": "0045_replay_protocol_cutover",
+      "breakpoints": true
     }
   ]
 }

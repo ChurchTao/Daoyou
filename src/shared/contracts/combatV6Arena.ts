@@ -29,7 +29,7 @@ export type ArenaParticipant = {
   slot: number;
 };
 export type ArenaRuntime = {
-  timeline?: CombatV6ReplayTimeline;
+  timeline: CombatV6ReplayTimeline;
   protocol: typeof ARENA_V6_PROTOCOL;
   battleId: string;
   roomId: string;

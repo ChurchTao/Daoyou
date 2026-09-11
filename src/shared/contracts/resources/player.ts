@@ -9,7 +9,7 @@ import {
 } from '@shared/types/constants';
 import type { TaskInstance } from '@shared/types/task';
 import { z } from 'zod';
-import { CombatV6BuildInitializationStatusSchema } from '../combatV6';
+import { SectCombatReadinessSchema } from '../combatV6';
 import { BreakthroughBattlePointerSchema } from '../combatV6Breakthrough';
 import type { PlayerResourceMap } from '../player';
 import type { ResourceChange } from './registry';
@@ -23,71 +23,13 @@ const combatV6SlotSchema = z.union([
   z.literal(6),
 ]);
 
-const combatV6PanelAttrSchema = z.enum([
-  'physicalAtk',
-  'physicalDef',
-  'magicAtk',
-  'magicDef',
-  'maxHp',
-  'maxMp',
-  'healPower',
-  'speed',
-  'hit',
-  'dodge',
-  'critRate',
-  'spellCritRate',
-  'physicalFuryRate',
-  'sealHit',
-  'sealResist',
-]);
-
-const combatV6AttributeSchema = z.enum([
-  'vitality',
-  'strength',
-  'spirit',
-  'endurance',
-  'speed',
-  'willpower',
-]);
-
-const combatV6EquipmentInstanceSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    id: z.string(),
-    templateId: z.string(),
-    name: z.string(),
-    slot: z.enum(['weapon', 'head', 'armor', 'necklace', 'belt', 'footwear']),
-    equipmentLevel: z.number().int(),
-    requiredLevel: z.number().int(),
-    baseStats: z.array(
-      z.object({ attr: combatV6PanelAttrSchema, value: z.number() }).strict(),
-    ),
-    attributeBonuses: z.array(
-      z.object({ attr: combatV6AttributeSchema, value: z.number() }).strict(),
-    ),
-    essenceIds: z.array(z.string()),
-    artId: z.string().optional(),
-    formationInscription: z
-      .object({ patternId: z.string(), level: z.number().int() })
-      .strict()
-      .optional(),
-    appraisalState: z.literal('appraised'),
-    generatorVersion: z.enum([
-      'dao_equipment_generator_v1',
-      'dao_equipment_generator_v2',
-      'dao_equipment_generator_v3',
-    ]),
-    createdAt: z.string(),
-  })
-  .strict();
-
 export const PLAYER_RESOURCE_TOPICS = [
   'player.session',
   'player.profile',
   'player.condition',
   'player.progress',
   'player.currency',
-  'player.combat-v6-build',
+  'player.sect-combat',
   'player.mail-summary',
   'player.task-summary',
   'player.tasks',
@@ -101,7 +43,7 @@ export interface PlayerResourceDataMap {
   'player.condition': PlayerResourceMap['condition'];
   'player.progress': PlayerResourceMap['progress'];
   'player.currency': PlayerResourceMap['currency'];
-  'player.combat-v6-build': PlayerResourceMap['combat-v6-build'];
+  'player.sect-combat': PlayerResourceMap['sect-combat'];
   'player.mail-summary': PlayerResourceMap['mail-summary'];
   'player.task-summary': PlayerResourceMap['task-summary'];
   'player.tasks': TaskInstance[];
@@ -547,10 +489,10 @@ export const PLAYER_RESOURCE_DATA_SCHEMAS = {
       qiLastRefreshedAt: z.string().nullable(),
     })
     .strict(),
-  'player.combat-v6-build': z
+  'player.sect-combat': z
     .object({
       schemaVersion: z.literal(1),
-      status: CombatV6BuildInitializationStatusSchema,
+      status: SectCombatReadinessSchema,
       revision: z.number().int().nonnegative(),
       membershipId: z.string().uuid().optional(),
       sectId: z
@@ -569,32 +511,6 @@ export const PLAYER_RESOURCE_DATA_SCHEMAS = {
         }),
       ),
       paths: z.array(z.object({ id: z.string(), name: z.string() })),
-      manuals: z
-        .object({
-          version: z.literal(1),
-          revision: z.number().int().nonnegative(),
-          learned: z.array(z.object({ manualId: z.string(), level: z.number().int().positive(), unlockedLevel: z.number().int().positive() })),
-          build: z.object({
-            slots: z.array(
-              z.object({
-                slot: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
-                manualId: z.string(),
-              }),
-            ),
-          }),
-        })
-        .optional(),
-      equipment: z
-        .object({
-          weapon: combatV6EquipmentInstanceSchema.optional(),
-          head: combatV6EquipmentInstanceSchema.optional(),
-          armor: combatV6EquipmentInstanceSchema.optional(),
-          necklace: combatV6EquipmentInstanceSchema.optional(),
-          belt: combatV6EquipmentInstanceSchema.optional(),
-          footwear: combatV6EquipmentInstanceSchema.optional(),
-        })
-        .strict()
-        .optional(),
     })
     .strict(),
   'player.mail-summary': z

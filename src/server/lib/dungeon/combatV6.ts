@@ -1,11 +1,15 @@
 import { db, type DbExecutor } from '@server/lib/drizzle/db';
 import {
-  combatV6Beasts,
+  cultivatorBeasts,
   cultivators,
   dungeonRuns,
 } from '@server/lib/drizzle/schema';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
-import { settleBeastDeaths } from '@server/lib/repositories/combatV6BeastRepository';
+import {
+  beastFromRow,
+  beastIndividualData,
+  settleBeastDeaths,
+} from '@server/lib/repositories/combatV6BeastRepository';
 import { archiveCombatV6Replay } from '@server/lib/repositories/combatV6ReplayRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
 import { assembleCombatV6TrainingPlayer } from '@server/lib/services/combat-v6/CombatV6BuildService';
@@ -24,7 +28,7 @@ import { createCombatV6Replay } from '@shared/combat-v6/replay';
 import { liveReplayDelta } from '@shared/combat-v6/replay-timeline';
 import type { CombatV6CommandGroup } from '@shared/contracts/combatV6';
 import type { DungeonSessionView } from '@shared/contracts/combatV6Dungeon';
-import { beastDeathIds, BeastSchema } from '@shared/engine/combat-v6/beasts';
+import { beastDeathIds } from '@shared/engine/combat-v6/beasts';
 import {
   beastVictoryExperience,
   gainBeastExp,
@@ -369,23 +373,21 @@ export async function grantDungeonBeastExperience(
     const { beastId, amount } = reward.beastExperience;
     const [row] = await tx
       .select()
-      .from(combatV6Beasts)
+      .from(cultivatorBeasts)
       .where(
         and(
-          eq(combatV6Beasts.id, beastId),
-          eq(combatV6Beasts.cultivatorId, state.cultivatorId),
+          eq(cultivatorBeasts.id, beastId),
+          eq(cultivatorBeasts.cultivatorId, state.cultivatorId),
         ),
       );
     if (!row) throw new Error('经验接收灵兽不存在');
     await tx
-      .update(combatV6Beasts)
+      .update(cultivatorBeasts)
       .set({
-        individual: gainBeastExp(
-          BeastSchema.parse(row.individual),
-          amount,
-          level,
+        individual: beastIndividualData(
+          gainBeastExp(beastFromRow(row), amount, level),
         ),
       })
-      .where(eq(combatV6Beasts.id, beastId));
+      .where(eq(cultivatorBeasts.id, beastId));
   }
 }

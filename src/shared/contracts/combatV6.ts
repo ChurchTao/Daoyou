@@ -1,6 +1,5 @@
 import type {
   CombatV6SectId,
-  SectCombatProgressV6,
 } from '@shared/engine/combat-v6/content';
 import type {
   BattleEvent,
@@ -12,23 +11,21 @@ import type {
   CombatV6TrainingTierV1,
   TrainingEncounterOutcome,
 } from '@shared/engine/combat-v6/encounter';
-import type { DaoEquipmentLoadoutV1 } from '@shared/engine/combat-v6/equipment';
-import type { CultivatorManualStateV1 } from '@shared/engine/combat-v6/manuals';
 import { z } from 'zod';
 
 export const COMBAT_V6_BUILD_SCHEMA_VERSION = 1 as const;
 export const COMBAT_V6_TRAINING_API_VERSION = 1 as const;
 
-export const CombatV6BuildInitializationStatusSchema = z.enum([
+export const SectCombatReadinessSchema = z.enum([
   'uninitialized',
   'pending',
   'active',
 ]);
-export type CombatV6BuildInitializationStatus = z.infer<
-  typeof CombatV6BuildInitializationStatusSchema
+export type SectCombatReadiness = z.infer<
+  typeof SectCombatReadinessSchema
 >;
 
-export interface CombatV6BuildMethodViewV1 {
+export interface SectCombatMethodView {
   id: string;
   name: string;
   slot: 1 | 2 | 3 | 4 | 5 | 6;
@@ -36,46 +33,32 @@ export interface CombatV6BuildMethodViewV1 {
   isPrimary: boolean;
 }
 
-export interface CombatV6BuildPathViewV1 {
+export interface SectCombatPathView {
   id: string;
   name: string;
 }
 
-export interface CombatV6BuildViewV1 {
+export interface SectCombatView {
   schemaVersion: typeof COMBAT_V6_BUILD_SCHEMA_VERSION;
-  status: CombatV6BuildInitializationStatus;
+  status: SectCombatReadiness;
   revision: number;
   membershipId?: string;
   sectId?: CombatV6SectId;
   sectName?: string;
   activePathId?: string;
   meridianDepth: number;
-  methods: CombatV6BuildMethodViewV1[];
-  paths: CombatV6BuildPathViewV1[];
-  manuals?: CultivatorManualStateV1;
-  equipment?: DaoEquipmentLoadoutV1;
+  methods: SectCombatMethodView[];
+  paths: SectCombatPathView[];
 }
 
-export interface CombatV6PersistedBuildV1 {
-  schemaVersion: typeof COMBAT_V6_BUILD_SCHEMA_VERSION;
-  profileId: string;
-  membershipId: string;
-  cultivatorId: string;
-  status: 'active';
-  revision: number;
-  sect: SectCombatProgressV6;
-  manuals: CultivatorManualStateV1;
-  equipment: DaoEquipmentLoadoutV1;
-}
-
-export const CombatV6BuildInitializeRequestSchema = z
+export const SectPathSelectionRequestSchema = z
   .object({
     activePathId: z.string().min(1).max(160),
     expectedRevision: z.number().int().nonnegative(),
   })
   .strict();
-export type CombatV6BuildInitializeRequest = z.infer<
-  typeof CombatV6BuildInitializeRequestSchema
+export type SectPathSelectionRequest = z.infer<
+  typeof SectPathSelectionRequestSchema
 >;
 
 export const CombatV6TrainingTierSchema = z.union([

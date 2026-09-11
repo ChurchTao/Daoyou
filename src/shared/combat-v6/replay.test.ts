@@ -144,14 +144,15 @@ describe('historical presentation replay', () => {
     expect(after.timeline).toEqual(before.timeline);
     expect(after.display).toEqual(before.display);
   });
-  it('keeps legacy records static, rejects incomplete or unknown formats and corrupt deltas', () => {
+  it('rejects legacy, incomplete or unknown formats and corrupt deltas', () => {
     const { replay } = record('1v3');
     const { timeline, display, ...legacy } = replay;
-    const old = parseCombatV6Replay({
-      ...legacy,
-      replayVersion: 'combat_v6_replay_v1',
-    });
-    expect(combatV6ReplayView(old, id, 'user').timeline).toBeUndefined();
+    expect(() =>
+      parseCombatV6Replay({
+        ...legacy,
+        replayVersion: 'combat_v6_replay_v1',
+      }),
+    ).toThrow();
     expect(() => parseCombatV6Replay(legacy)).toThrow();
     expect(() =>
       parseCombatV6Replay({ ...replay, replayVersion: 'future' }),

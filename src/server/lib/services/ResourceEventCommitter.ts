@@ -51,7 +51,7 @@ export class ResourceEventCommitter {
     );
     const changedCharacters = new Set(originalChanges.filter(change =>
       change.scope.kind === 'cultivator' &&
-      ['player.profile', 'player.combat-v6-build'].includes(change.resourceTopic),
+      ['player.profile', 'player.sect-combat'].includes(change.resourceTopic),
     ).map(change => change.scope.id));
     for (const id of changedCharacters) await refreshCombatV6CharacterResources(id, tx);
     const scopedChanges = withCharacterPanelInvalidations(originalChanges);

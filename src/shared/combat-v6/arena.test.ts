@@ -23,6 +23,7 @@ import {
 import { automaticCommands } from './auto';
 import { applyUnitDelta, contiguousEvents } from './playback';
 import { combatV6ReplayView, createCombatV6Replay } from './replay';
+import { startReplayTimeline } from './replay-timeline';
 
 function fixture(count = 8): ArenaRuntime {
   const units = Array.from({ length: count }, (_, i) => ({
@@ -52,6 +53,7 @@ function fixture(count = 8): ArenaRuntime {
   const battle = arenaBattle(input);
   return {
     ...input,
+    timeline: startReplayTimeline(battle.snapshot(), [], battle.log().length - 1),
     protocol: ARENA_V6_PROTOCOL,
     battleId: 'arena',
     roomId: 'room',

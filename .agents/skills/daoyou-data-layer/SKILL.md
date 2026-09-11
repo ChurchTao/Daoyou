@@ -30,6 +30,19 @@ description: Daoyou PostgreSQL、Drizzle schema/migrations、repositories、tran
 
 ## Durable Model Boundaries
 
+### Character assets and sect combat progression
+
+- Current domain cutover is documented in `docs/combat-domain-ownership.md`; runtime acceptance is tracked separately in `docs/combat-domain-cutover-acceptance.md`.
+- Personal manuals, equipment slots and beasts belong directly to `cultivators.id`; use `cultivator_manual_states`, `cultivator_manual_slots`, `cultivator_equipment_slots`, `cultivator_beasts`, and `cultivator_beast_lineups`.
+- Sect combat state, methods and meridian loadouts belong to `sect_memberships.id`; nodes belong to a loadout. There is no build profile parent or old sect progression hydration.
+- Read independent personal assets through `characterLoadoutRepository`; read sect combat progression through `sectCombatRepository`. Assemble combat projections at runtime, with sect data optional for personal display.
+- Equipment slots reference inventory owner and item ID together. Transfer a sect's progression only; do not copy or reparent personal assets.
+- Beast relational columns are authoritative for ID and owner. Use `beastIndividualData` / `beastFromRow` for writes / reads; do not duplicate identity inside JSON. Starter claim time is independent of the beast's lifetime.
+- V6 history uses `combat_replay_archives` / `combat_replay_participants`; historical participants deliberately do not cascade from character deletion.
+- Do not restore unpublished V6 profile tables, schemaVersion compatibility, old progression APIs, or dual read/write paths. The older product paths described below are separate systems, not fallback sources for the new domain tables.
+
+### Other existing persistent models
+
 - `cultivators.condition` is the current persistent state field. Do not restore old `persistent_state` or `persistent_statuses`.
 - `consumables.spec` is the current consumable authority. Do not restore old `effects`, `use_spec`, or `details` columns.
 - `wanjiedaoyou_creation_products` is the v2 creation product path for `skill | artifact | gongfa`.

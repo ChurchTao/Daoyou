@@ -144,7 +144,6 @@ export async function previewSectTransfer(args: {
   const { source, sourceModule, targetModule } =
     await requireTransferPlan(args);
   const v6 = await planV6SectTransfer(
-    args.cultivatorId,
     source.membershipId,
     source.sectId,
     args.targetSectId,
@@ -220,7 +219,6 @@ export async function executeSectTransfer(args: {
   });
   await assertInventoryIdle(args.cultivatorId);
   const v6 = await planV6SectTransfer(
-    args.cultivatorId,
     source.membershipId,
     source.sectId,
     args.targetSectId,

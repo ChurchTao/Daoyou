@@ -8,7 +8,7 @@ export function withCharacterPanelInvalidations(changes: readonly ScopedChange[]
   const invalidated = new Set<string>();
   for (const change of changes) {
     if (change.resourceTopic !== 'player.condition') result.push(change);
-    if (!['player.profile', 'player.combat-v6-build', 'player.condition'].includes(change.resourceTopic)) continue;
+    if (!['player.profile', 'player.sect-combat', 'player.condition'].includes(change.resourceTopic)) continue;
     const key = `${change.scope.kind}:${change.scope.id}`;
     if (invalidated.has(key)) continue;
     invalidated.add(key);

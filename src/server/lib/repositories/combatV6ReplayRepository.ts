@@ -1,7 +1,7 @@
 import { db, type DbExecutor } from '@server/lib/drizzle/db';
 import {
-  combatV6ReplayArchives,
-  combatV6ReplayParticipants,
+  combatReplayArchives,
+  combatReplayParticipants,
 } from '@server/lib/drizzle/schema';
 import type {
   CombatV6HistoryPage,
@@ -11,20 +11,20 @@ import type { CombatV6ReplayV1 } from '@shared/contracts/combatV6Runtime';
 import { and, desc, eq } from 'drizzle-orm';
 
 async function archive(
-  values: typeof combatV6ReplayArchives.$inferInsert,
+  values: typeof combatReplayArchives.$inferInsert,
   participants: CombatV6ReplayV1['participants'],
   executor: DbExecutor,
 ) {
   await executor.transaction(async (tx) => {
     await tx
-      .insert(combatV6ReplayArchives)
+      .insert(combatReplayArchives)
       .values(values)
       .onConflictDoNothing();
-    const existing = await tx.query.combatV6ReplayArchives.findFirst({
+    const existing = await tx.query.combatReplayArchives.findFirst({
       columns: { battleId: true },
       where: and(
-        eq(combatV6ReplayArchives.sourceType, values.sourceType),
-        eq(combatV6ReplayArchives.idempotencyKey, values.idempotencyKey),
+        eq(combatReplayArchives.sourceType, values.sourceType),
+        eq(combatReplayArchives.idempotencyKey, values.idempotencyKey),
       ),
     });
     if (existing?.battleId !== values.battleId)
@@ -33,7 +33,7 @@ async function archive(
         values.idempotencyKey,
       );
     await tx
-      .insert(combatV6ReplayParticipants)
+      .insert(combatReplayParticipants)
       .values(
         participants.map(({ cultivatorId, side }) => ({
           battleId: values.battleId,
@@ -65,7 +65,6 @@ export async function archiveCombatV6Replay(
       sides: [0, 1].map((side) =>
         replay.initialUnits.filter((u) => u.side === side).map((u) => u.name),
       ) as [string[], string[]],
-      playable: !!replay.timeline,
       replay,
     },
     replay.participants,
@@ -91,9 +90,9 @@ export async function combatV6ReplayExists(
   executor: DbExecutor = db,
 ) {
   const [row] = await executor
-    .select({ battleId: combatV6ReplayArchives.battleId })
-    .from(combatV6ReplayArchives)
-    .where(eq(combatV6ReplayArchives.battleId, battleId))
+    .select({ battleId: combatReplayArchives.battleId })
+    .from(combatReplayArchives)
+    .where(eq(combatReplayArchives.battleId, battleId))
     .limit(1);
   return !!row;
 }
@@ -104,16 +103,16 @@ export async function findOwnedCombatV6Replay(
   executor: DbExecutor = db,
 ) {
   const [row] = await executor
-    .select({ archive: combatV6ReplayArchives })
-    .from(combatV6ReplayArchives)
+    .select({ archive: combatReplayArchives })
+    .from(combatReplayArchives)
     .innerJoin(
-      combatV6ReplayParticipants,
-      eq(combatV6ReplayParticipants.battleId, combatV6ReplayArchives.battleId),
+      combatReplayParticipants,
+      eq(combatReplayParticipants.battleId, combatReplayArchives.battleId),
     )
     .where(
       and(
-        eq(combatV6ReplayArchives.battleId, battleId),
-        eq(combatV6ReplayParticipants.cultivatorId, cultivatorId),
+        eq(combatReplayArchives.battleId, battleId),
+        eq(combatReplayParticipants.cultivatorId, cultivatorId),
       ),
     )
     .limit(1);
@@ -126,8 +125,8 @@ export async function listOwnedCombatV6Replays(
   query: CombatV6HistoryQuery,
   executor: DbExecutor = db,
 ): Promise<CombatV6HistoryPage> {
-  const a = combatV6ReplayArchives;
-  const p = combatV6ReplayParticipants;
+  const a = combatReplayArchives;
+  const p = combatReplayParticipants;
   const pageSize = 10;
   const rows = await executor
     .select({
@@ -137,7 +136,6 @@ export async function listOwnedCombatV6Replays(
       roundCount: a.roundCount,
       sides: a.sides,
       outcome: a.outcome,
-      playable: a.playable,
       side: p.side,
     })
     .from(p)

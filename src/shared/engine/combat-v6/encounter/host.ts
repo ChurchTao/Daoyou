@@ -104,7 +104,7 @@ export type PveRestoredState = Pick<
 
 /** Shared command orchestration. Source-specific compilation and serialization stay outside. */
 export class CombatV6PveHostSession {
-  protected readonly timeline?: CombatV6ReplayTimeline;
+  protected readonly timeline: CombatV6ReplayTimeline;
   readonly playerId: string;
   protected readonly battle: BattleSession;
   protected readonly initialUnits: CompiledCombatV6TrainingEncounterV1['battleInput']['units'];

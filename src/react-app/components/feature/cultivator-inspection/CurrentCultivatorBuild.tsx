@@ -1,20 +1,24 @@
 import { InkNotice } from '@app/components/ui';
-import { useCombatV6Build } from '@app/lib/resources/player';
+import {
+  useCultivatorIdentity,
+  useSectCombatState,
+} from '@app/lib/resources/player';
 import type { CultivatorInspectionData } from '@shared/contracts/player';
 import { useEffect, useState } from 'react';
 import { CultivatorLoadoutSections } from './CultivatorLoadoutSections';
 
-/** Refresh the public view when the existing build resource changes. */
+/** Refresh for independent character assets and sect progression changes. */
 export function CurrentCultivatorBuild({
   cultivatorId,
 }: {
   cultivatorId: string;
 }) {
-  const source = useCombatV6Build();
+  const source = useSectCombatState();
+  const profile = useCultivatorIdentity();
   const [data, setData] = useState<CultivatorInspectionData>();
   const [error, setError] = useState('');
   useEffect(() => {
-    if (!source.data) return;
+    if (!profile.data) return;
     const controller = new AbortController();
     void (async () => {
       try {
@@ -34,9 +38,9 @@ export function CurrentCultivatorBuild({
       }
     })();
     return () => controller.abort();
-  }, [cultivatorId, source.data]);
-  if (error || source.error)
-    return <InkNotice>{error || source.error}</InkNotice>;
+  }, [cultivatorId, source.data, profile.data]);
+  if (error || source.error || profile.error)
+    return <InkNotice>{error || source.error || profile.error}</InkNotice>;
   if (!data) return <InkNotice>正在读取当前构筑…</InkNotice>;
   return <CultivatorLoadoutSections build={data.build} />;
 }

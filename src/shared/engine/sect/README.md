@@ -1,24 +1,23 @@
-# 宗门组织与历史进度目录
+# 宗门组织目录
 
-Phase 10K 起，此模块只负责宗门组织、准入、任务、经营、展示主题及历史进度水合。宗门战斗内容和养成以 `combat-v6/content`、`combat-v6/sect-progression` 为准，不再提供 V5 编译器或选招策略。
+此模块负责宗门组织、准入、任务、经营与展示主题。宗门战斗内容和养成以 `combat-v6/content`、`combat-v6/sect-progression` 为准，不再提供历史进度水合、V5 编译器或选招策略。
 
 ## 目录职责
 
-- `core/domain`：宗门身份、组织与历史玉牒状态类型。
+- `core/domain`：宗门身份与组织状态类型。
 - `core/plugin`：`SectModule`、标准组织组合与准入策略；注册宗门不需要战斗实现。
-- `core/runtime`：宗门注册表与历史状态校验入口。
-- `core/validation`：静态 ID、槽位、节点归属及历史状态结构校验。
-- `core/progression`：仅保留历史神通栏水合所需的解锁校验，不提供养成写入。
+- `core/runtime`：宗门注册表与组织状态校验入口。
+- `core/validation`：静态定义及组织状态结构校验。
 - `core/organization`：任务目录、组织策略、奖励、晋升和交付物规则。
-- `core/presentation`：宗门场景主题与历史槽位规范化；没有旧战斗详情生成器。
+- `core/presentation`：宗门场景主题与设施对话；没有旧战斗详情生成器或技能槽规范化。
 - `content/productionRuntime.ts`：五宗组织模块与展示主题的生产组合根。
-- `content/*/definition.ts`：组织身份与历史心法、流派、节点、战术 ID 等静态数据，用于旧玉牒水合与迁移核对。不能当成 V6 内容生成器。
+- `content/*/definition.ts`：组织身份与静态定义。不能当成 V6 战斗内容生成器。
 
-## V6 与历史进度边界
+## 战斗进度边界
 
-V6 六心法、双流派和七层经脉由现有 V6 定义提供。入宗介绍展示 V6 双流派名称，正式心法／经脉页面继续走 V6 接口。旧养成接口只返回 410，专属命令、服务和旧写入方法已删除。
+六心法、双流派和七层经脉由 V6 定义提供。正式心法／经脉页面走 V6 接口，旧 progression 读取及其水合逻辑已删除。
 
-历史定义保留原 ID、槽位、层顺序和节点归属，避免已有玉牒无法读取。历史数据不自动重写；现有 V6 迁移表与心法槽位的对应关系有共享测试校验。转宗沿用 `CombatV6SectTransfer` 与现有事务，不再保留旧转宗进度计算器。
+战斗成长以 membership 为归属，个人功法、装备和灵兽以 cultivator 为归属。转宗由 `CombatV6SectTransfer` 在现有事务内折算宗门进度，不移动个人资产，也不恢复旧宗进度。领域表映射见 `docs/combat-domain-ownership.md`。
 
 旧的 `core/authoring`、`core/compilation`、流派插件和 V5 对手生成器已删除。各宗目录下的旧 `DESIGN.md` 仅是历史设计说明，不能作为当前实现依据。
 

@@ -4,7 +4,6 @@ import {
 } from '@server/utils/cultivationUtils';
 import { allowsLocalDevTools } from '@shared/config/deployment';
 import type { DevCultivatorPatch } from '@shared/contracts/devTools';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { CultivationProgress } from '@shared/types/cultivator';
@@ -21,7 +20,7 @@ import { ConditionService } from './ConditionService';
 import { assertInventoryIdle, InventoryError } from './InventoryService';
 import { ResourceEventCommitter } from './ResourceEventCommitter';
 import { TaskService } from './TaskService';
-import { assembleCombatV6TrainingPlayer } from './combat-v6/CombatV6BuildService';
+import { readCombatV6ConditionAuthority } from './combat-v6/CombatV6ConditionAuthority';
 import { getBreakthroughTaskDefinition } from './taskDefinitions';
 
 export async function patchDevCultivator(
@@ -115,21 +114,14 @@ export async function patchDevCultivator(
           })
           .where(eq(cultivators.id, owner));
         if (input.resources) {
-          const { player } = await assembleCombatV6TrainingPlayer(owner, tx);
-          const projected = projectCultivatorMultiSectV5ToCombatV6({
-            ...player,
-            side: 0,
-            slot: 0,
-            resourcePolicy: 'full',
-          });
-          if (!projected.ok) throw new InventoryError('角色 v6 构筑不可用');
+          const { maxHp, maxMp } = await readCombatV6ConditionAuthority(owner, tx);
           const condition = ConditionService.applyCombatV6Resources(
             before.condition as CultivatorCondition,
             {
-              hp: Math.min(input.resources.hp, projected.unit.attrs!.maxHp!),
-              mp: Math.min(input.resources.mp, projected.unit.attrs!.maxMp!),
-              maxHp: projected.unit.attrs!.maxHp!,
-              maxMp: projected.unit.attrs!.maxMp!,
+              hp: Math.min(input.resources.hp, maxHp),
+              mp: Math.min(input.resources.mp, maxMp),
+              maxHp,
+              maxMp,
             },
           );
           await tx
@@ -238,7 +230,7 @@ export async function patchDevCultivator(
                 'player.currency',
                 'player.progress',
                 'player.condition',
-                'player.combat-v6-build',
+                'player.sect-combat',
                 'player.tasks',
                 'player.task-summary',
               ] as const

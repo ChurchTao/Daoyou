@@ -1,7 +1,7 @@
 import { withManualAttributes, CHARACTER_MANUALS_V1, compileCharacterManualsV1, resolveCombatCapabilitiesV1 } from "../manuals/index.ts"
 import { COMBAT_V6_PHASE_6D_VERSIONS } from "../version.ts"
 import { projectCultivatorWithEquipmentSpecialInternal } from "./project-cultivator-with-equipment-special.ts"
-import type { CombatV6ProjectionDiagnostic, CombatV6ProjectionResult, ProjectCultivatorMultiSectToCombatV6Input } from "./types.ts"
+import type { CombatV6ProjectionDiagnostic, CombatV6ProjectionResult, CharacterCombatInput } from "./types.ts"
 
 function manualContentConflicts(existingSkills: string[], existingStatuses: string[]): CombatV6ProjectionDiagnostic[] {
   const existing = new Set([...existingSkills, ...existingStatuses])
@@ -10,7 +10,7 @@ function manualContentConflicts(existingSkills: string[], existingStatuses: stri
     .map((id) => ({ severity: "error" as const, code: "CONTENT_ID_CONFLICT" as const, message: `功法战斗内容 ID 冲突：${id}` }))
 }
 
-export function projectCultivatorMultiSectV5ToCombatV6(input: ProjectCultivatorMultiSectToCombatV6Input): CombatV6ProjectionResult {
+export function projectCultivatorMultiSectV5ToCombatV6(input: CharacterCombatInput): CombatV6ProjectionResult {
   const versions = { ...COMBAT_V6_PHASE_6D_VERSIONS }
   const manuals = compileCharacterManualsV1({ state: input.manuals, realm: input.cultivator.realm })
   if (!manuals.ok) return { ok: false, diagnostics: manuals.diagnostics, versions }

@@ -24,7 +24,7 @@ export function publicCombatV6Build(
   });
   if (!projection.ok)
     throw new Error(projection.diagnostics.map((d) => d.message).join('；'));
-  const definition = COMBAT_V6_SECT_DEFINITIONS_V4[build.sect.sectId];
+  const definition = build.sect ? COMBAT_V6_SECT_DEFINITIONS_V4[build.sect.sectId] : undefined;
   const skills = projection.skills.map(
     (skill) =>
       projection.unit.skillOverrides?.find(
@@ -35,9 +35,8 @@ export function publicCombatV6Build(
   return {
     combatPanel: projectCharacterDisplay(character, build),
     build: {
-      sectName: definition.name,
-      pathName: definition.paths.find((p) => p.id === build.sect.activePathId)!
-        .name,
+      sectName: definition?.name ?? null,
+      pathName: definition?.paths.find((p) => p.id === build.sect?.activePathId)?.name ?? null,
       equipment: structuredClone(build.equipment),
       manuals: build.manuals.build.slots.map(entry => ({ ...entry, level: build.manuals.learned.find(m => m.manualId === entry.manualId)!.level })),
       skills: (projection.unit.skills ?? []).map((id) => {
