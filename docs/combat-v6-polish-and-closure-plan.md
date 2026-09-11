@@ -1,7 +1,7 @@
 # V6 改版遗留事项与打磨收尾规划
 
 > 盘点日期：2026-09-11；代码基线：`codex/combat-v6` / `88493635`。  
-> 当前阶段：发布仍在10W验收收尾；10X／10Y之后，10Z修正休整用药并完成连战、换宠经验与战败恢复重点本地验收，剩余矩阵待验。尚未正式发布。
+> 当前阶段：发布仍在10W验收收尾；10Z完成秘境重点本地验收，剩余矩阵待验。用户明确跳过10AA，后确认10AB通用AUTO策略底座与场景接入。尚未正式发布。
 > 本文是后续工作建议与遗留台账，不代表已经批准所有延期功能、调整既有产品边界或执行上线。编号为收尾工作项，不新增或重排历史 Phase。
 
 ## 1. 使用方式与结项规则
@@ -55,7 +55,7 @@ R08依赖R01～R07及首发范围内的核心场景通过；不能仅靠健康�
 | G01 P1 已实现／部分待验 | 10X恢复冻结遭遇的战前确认；10Y依用户补充改为公共物品栏自主提交，实际选物、取消、精确扣除、行动重放及服务中断／结算刷新恢复通过 | 继续补仅旧宝库／storage有物、跨堆叠混合品质、多要求与支付故障／并发运行证据；纯选物测试已覆盖，不据此关闭全部运行矩阵 | [10Y实施与验收](combat-v6-phase-10y-dungeon-recovery.md)、[10X](combat-v6-phase-10x-dungeon-polish.md) |
 | G02 P1 待完善 | 青溪仅5～15级三物种，正式图纸／成品掉落仅10级；领域定义10～180级不等于玩家可获得，宗门交付因此封顶10级 | 先规划一个相邻等级带的区域、图纸、材料、灵兽、成本和任务要求闭环，再递进开放；每一开放档位能靠正式玩法获取并消耗，不用dev发物证明供给 | [9B](combat-v6-phase-9b-capture-progression-plan.md)、[9E](combat-v6-phase-9e-drops-plan.md)、[10S](combat-v6-phase-10s-sect-inventory.md)、[wild.ts](../src/shared/rewards/wild.ts) |
 | G03 P1 待完善 | 秘境普通／精英／首领共用少量等级模板；蜃楼首轮NPC普攻、首领主要加气血；宗门矿兽／长老复用既有技能 | 先验普通构筑难度，再给关键敌人增加能用现有原语表达的技能与行动差异；首发地图和楼层有可解释的难度，不靠重复加血撑时长。地图独有Boss可后续立项 | [10A](combat-v6-phase-10a-dungeon-plan.md)、[10B](combat-v6-phase-10b-tower-plan.md)、[10E](combat-v6-phase-10e-auto-sect-tasks-plan.md) |
-| G04 P1 待完善／待决策 | 天骄榜仍调用ruleset默认普攻／防御，公共AUTO已有技能／治疗／复活选择。法系、封辅和器诀构筑未必被合理体现 | 决定榜单采用统一AUTO还是独立冻结策略；确定性与版本一起管理。用物理、法术、治疗／控制样本检查技能实际施放及胜负变化，不引入无限策略配置或自动换宠 | [10C](combat-v6-phase-10c-ranking-plan.md)、[ranking/battle](../src/shared/engine/combat-v6/ranking/battle.ts)、[公共AUTO](../src/shared/combat-v6/auto.ts) |
+| G04 P1 首版已实现／部分待验 | 10AB统一效用评分＋均衡／进攻／保守权重，主动AUTO、非实时对战与所有NPC接入；仅可观察信息评分，手动及超时补令保持现状。训练和榜单重点本地验收通过 | 继续补全场景运行矩阵和复杂效果估值；全宗门平衡仍单列，不增加自动换宠或玩家策略编辑器。997项共享测试不代表全部真实玩法已验 | [10AB](combat-v6-phase-10ab-auto-utility.md)、[ranking/battle](../src/shared/engine/combat-v6/ranking/battle.ts)、[公共AUTO](../src/shared/combat-v6/auto.ts) |
 | G05 P1 待验／待调优 | 六种突破、金丹以上幻境、全境界排名主要有链路证据，强化测试属性不能证明正常难度 | 先确定正式可得装备／功法／修炼／心法样本，再制定目标回合、失败率、恢复消耗与收益范围；比较清心前后心魔、同级和跨档挑战，记录实际结果再调系数 | [10F](combat-v6-phase-10f-breakthrough-plan.md)、[10B](combat-v6-phase-10b-tower-plan.md)、[10C](combat-v6-phase-10c-ranking-plan.md) |
 | G06 P1 待验／待调优 | 五宗门双流派已实现，器蕴／器诀逐项实战、同队手动AUTO、特殊状态组合未全验 | 覆盖五宗十流派、关键经脉、复活／伤势／护盾／五行／形态和器诀，优先容易叠加或重复计效的组合；纯确定性边界使用shared测试，真实页面验证可选、可用及说明一致 | [宗门设计](combat-v6-sect-skill-meridian-system-design.md)、[9D](combat-v6-phase-9d-forging-plan.md)、[10E](combat-v6-phase-10e-auto-sect-tasks-plan.md) |
 | G07 P1 待调优 | 炼体0～60级节奏、丹毒、配方／灵果供给没有整体经济验证；心法经脉成本已配置但未整体平衡 | 对照正式来源核算升级所需时间、药力、灵石、修为和感悟；发现不可达或明显失衡再改配置。保留消耗品提升五轨、确定性位阶晋升，不新增直接点修 | [修炼设计§13](combat-v6-training-system-design.md#13-后续平衡项)、[宗门设计§13](combat-v6-sect-skill-meridian-system-design.md#13-后续专项平衡项) |

@@ -255,6 +255,7 @@ export async function submitArenaV6(
             participant.unitId,
             runtime.skills,
             (unitId) => arenaBattle(runtime).queryCommands(unitId),
+            { statusDefs: runtime.statusDefs },
           )
         : input.commands;
     try {

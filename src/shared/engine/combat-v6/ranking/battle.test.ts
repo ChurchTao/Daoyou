@@ -93,9 +93,17 @@ it('相同冻结输入与种子恢复结果一致，差量可重建终局', () =
 it('回合上限按平局结束', () => {
   const input = compileRankingBattle([player('a'), player('b')], 5);
   for (const u of input.units) {
+    // This case exercises the round cap, not the new policy's damaging statuses.
+    u.skills = [];
     u.attrs = { ...u.attrs, hp: 100000000, maxHp: 100000000, physicalAtk: 1 };
   }
   const trace = simulateRankingBattle(input);
   expect(trace.finalState.result?.winner).toBe('draw');
   expect(trace.finalState.round).toBe(100);
+});
+
+it('旧策略输入拒绝重新模拟，不静默改变未完成挑战结果', () => {
+  const input = compileRankingBattle([player('a'), player('b')], 5);
+  delete input.versions.autoPolicyVersion;
+  expect(() => simulateRankingBattle(input)).toThrow('策略版本不匹配');
 });

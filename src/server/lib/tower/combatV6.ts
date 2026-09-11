@@ -362,6 +362,7 @@ export async function changeTowerBattle(
         host.playerId,
         battle.snapshot.input.skills ?? [],
         (id) => host.controlledCommandOptions().find((o) => o.unitId === id)!,
+        { statusDefs: battle.snapshot.input.statusDefs },
       );
       if (commands.length) host.submitGroup(commands);
     }

@@ -1,3 +1,4 @@
+import { AUTO_POLICY_VERSION } from '../../../combat-v6/auto-policy';
 import { canonicalizeResourceParams } from '../../../contracts/resources/core';
 import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import type { CreateBattleInput, SkillDef, StatusDef } from '../core';
@@ -12,6 +13,7 @@ import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
 
 export const SECT_BATTLE_VERSIONS = {
   ...COMBAT_V6_PHASE_6D_VERSIONS,
+  autoPolicyVersion: AUTO_POLICY_VERSION,
   rulesetVersion: 'daoyou_rules_v8' as const,
   contentVersion: 'combat-v6-sect-task-v1' as const,
 };

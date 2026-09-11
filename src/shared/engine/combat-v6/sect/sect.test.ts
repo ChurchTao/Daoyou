@@ -1,6 +1,7 @@
 import { SectV6TargetSchema } from '@shared/contracts/combatV6SectTask';
 import type { CultivatorCondition } from '@shared/types/condition';
 import { describe, expect, it } from 'vitest';
+import { automaticCommands } from '../../../combat-v6/auto';
 import { generateStarterBeast } from '../beasts';
 import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '../content';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
@@ -177,16 +178,20 @@ describe('宗门任务原生 V6 Host', () => {
       host.submit(host.playerId, { type: 'defend' });
       const snapshot = host.runtimeSnapshot();
       const restored = new SectBattleHost(snapshot, snapshot);
+      const npc = host.state.units.find((unit) => unit.side === 1)!;
+      const expected = automaticCommands(
+        host.state,
+        npc.id,
+        snapshot.input.skills ?? [],
+        (id) => host.queryCommands(id),
+        { statusDefs: snapshot.input.statusDefs },
+      );
       host.resolveRound();
       restored.resolveRound();
       expect(restored.runtimeSnapshot()).toEqual(host.runtimeSnapshot());
       expect(
-        host
-          .trace()
-          .rounds[0].commands.some(
-            (c) => c.unitId !== host.playerId && c.command.type === 'skill',
-          ),
-      ).toBe(true);
+        host.trace().rounds[0].commands.filter((c) => c.unitId === npc.id),
+      ).toEqual(expected);
       expect(
         host.queryCommands().skills.some((s) => s.skillId.includes('capture')),
       ).toBe(false);

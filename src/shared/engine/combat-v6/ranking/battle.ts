@@ -1,11 +1,14 @@
 import {
+  AUTO_POLICY_VERSION,
+  automaticCommands,
+} from '../../../combat-v6/auto';
+import {
   replayRound,
   startReplayTimeline,
 } from '../../../combat-v6/replay-timeline';
 import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import {
   createBattle,
-  isStanding,
   type CreateBattleInput,
   type SkillDef,
   type StatusDef,
@@ -67,14 +70,17 @@ export function compileRankingBattle(
     statusDefs: [...statuses.values()],
     versions: {
       ...COMBAT_V6_PHASE_6D_VERSIONS,
+      autoPolicyVersion: AUTO_POLICY_VERSION,
       rulesetVersion: 'daoyou_rules_v8',
       contentVersion: 'combat-v6-ranking-v1',
     },
   });
 }
 
-/** Explicitly use ruleset AI for both sides, without online timeout command filling. */
+/** Both sides plan from the same observation boundary; timeout filling stays separate. */
 export function simulateRankingBattle(input: RankingBattleInput) {
+  if (input.versions.autoPolicyVersion !== AUTO_POLICY_VERSION)
+    throw new Error('天骄榜自动策略版本不匹配，请先结束旧版本挑战再切换');
   const battle = createBattle({
     ...structuredClone(input),
     ruleset: daoyouRulesetV6,
@@ -88,21 +94,18 @@ export function simulateRankingBattle(input: RankingBattleInput) {
   const rounds = [];
   while (!battle.finished) {
     const state = battle.snapshot();
-    for (const unit of state.units.filter(isStanding)) {
-      battle.submit(
-        unit.id,
-        daoyouRulesetV6.decideCommand({
-          unit,
+    const commands = state.units
+      .filter((unit) => unit.kind === 'player')
+      .flatMap((unit) =>
+        automaticCommands(
           state,
-          enemies: state.units.filter(
-            (u) => u.side !== unit.side && isStanding(u),
-          ),
-          allies: state.units.filter(
-            (u) => u.side === unit.side && u.id !== unit.id && isStanding(u),
-          ),
-        }),
+          unit.id,
+          input.skills ?? [],
+          (id) => battle.queryCommands(id),
+          { statusDefs: statuses },
+        ),
       );
-    }
+    for (const entry of commands) battle.submit(entry.unitId, entry.command);
     rounds.push({
       round: state.round,
       commands: battle

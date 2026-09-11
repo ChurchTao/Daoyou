@@ -1,3 +1,4 @@
+import { AUTO_POLICY_VERSION } from '../../combat-v6/auto-policy';
 import type { CombatV6VersionStamp } from './core/index.ts';
 
 /** Phase 1 的不可变版本戳；Host 和投影必须按值复制进战斗快照。 */
@@ -136,18 +137,21 @@ export const COMBAT_V6_PHASE_9A_WILD_VERSIONS: CombatV6VersionStamp =
 export const COMBAT_V6_PHASE_9B_ARENA_VERSIONS: CombatV6VersionStamp =
   Object.freeze({
     ...COMBAT_V6_PHASE_9A_ARENA_VERSIONS,
+    autoPolicyVersion: AUTO_POLICY_VERSION,
     rulesetVersion: 'daoyou_rules_v8',
     projectionVersion: 'arena_beast_v2',
   });
 export const COMBAT_V6_PHASE_9B_TRAINING_VERSIONS: CombatV6VersionStamp =
   Object.freeze({
     ...COMBAT_V6_PHASE_9A_TRAINING_VERSIONS,
+    autoPolicyVersion: AUTO_POLICY_VERSION,
     rulesetVersion: 'daoyou_rules_v8',
     projectionVersion: 'training_beast_v2',
   });
 export const COMBAT_V6_PHASE_9B_WILD_VERSIONS: CombatV6VersionStamp =
   Object.freeze({
     ...COMBAT_V6_PHASE_9A_WILD_VERSIONS,
+    autoPolicyVersion: AUTO_POLICY_VERSION,
     rulesetVersion: 'daoyou_rules_v8',
     contentVersion: 'daoyou_wild_capture_content_v1',
     projectionVersion: 'wild_beast_v2',

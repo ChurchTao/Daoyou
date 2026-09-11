@@ -30,7 +30,7 @@ function hasKind(unit: Unit, kinds: string[]): boolean {
   return kinds.some((kind) => unit.statuses.some((s) => s.kind === kind))
 }
 
-function hasCategory(ctx: BattleContext, unit: Unit, categories: import("./enums.ts").StatusCategory[]): boolean {
+function hasCategory(ctx: Pick<BattleContext, 'statusDefs'>, unit: Unit, categories: import("./enums.ts").StatusCategory[]): boolean {
   return unit.statuses.some((status) => {
     const category = ctx.statusDefs.get(status.id)?.category
     return category !== undefined && categories.includes(category)
@@ -38,7 +38,7 @@ function hasCategory(ctx: BattleContext, unit: Unit, categories: import("./enums
 }
 
 export function targetStatusStacks(
-  _ctx: BattleContext,
+  _ctx: Pick<BattleContext, 'statusDefs'>,
   when: EffectWhen | undefined,
   target: Unit | undefined,
 ): number {
@@ -59,7 +59,7 @@ function markName(scope: WhenScope, round: number, when: EffectWhen): string | u
   return undefined
 }
 
-export function matchesWhen(ctx: BattleContext, when: EffectWhen | undefined, scope: WhenScope): boolean {
+export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentAction'> & { state: Pick<BattleContext['state'], 'round'> }, when: EffectWhen | undefined, scope: WhenScope): boolean {
   if (!when) return true
   const skillId = scope.skillId ?? scope.skill?.id ?? ctx.currentAction?.skillId
   const skill = scope.skill

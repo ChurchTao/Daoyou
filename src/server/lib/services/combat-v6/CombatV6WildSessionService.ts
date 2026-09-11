@@ -479,6 +479,7 @@ export class CombatV6WildSessionService {
         host.playerId,
         r.host.input.skills ?? [],
         (id) => host.controlledCommandOptions().find((o) => o.unitId === id)!,
+        { statusDefs: r.host.input.statusDefs },
       );
       if (commands.length) host.submitGroup(commands);
     }

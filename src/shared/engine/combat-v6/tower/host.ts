@@ -14,11 +14,13 @@ import {
 import { projectCharacterToCombatV6 } from '../projection';
 import { daoyouRulesetV6 } from '../rules-daoyou';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
+import { AUTO_POLICY_VERSION } from '../../../combat-v6/auto-policy';
 
 export type TowerBlessings = Partial<Record<TowerBlessingId, number>>;
 export type TowerResources = Record<string, { hp: number; mp: number }>;
 export const TOWER_V6_VERSIONS = {
   ...COMBAT_V6_PHASE_6D_VERSIONS,
+  autoPolicyVersion: AUTO_POLICY_VERSION,
   rulesetVersion: 'daoyou_rules_v8',
   contentVersion: 'combat-v6-tower-v1',
 } as const;

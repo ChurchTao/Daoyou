@@ -1,4 +1,8 @@
 import {
+  AUTO_POLICY_VERSION,
+  automaticCommands,
+} from '../../../combat-v6/auto';
+import {
   controlledUnits,
   validateCommandGroup,
   validatePetCommand,
@@ -13,7 +17,6 @@ import {
   CommandType,
   MatchWinner,
   ResultReason,
-  TargetSide,
   Team,
   createBattle,
   isStanding,
@@ -33,7 +36,6 @@ import type {
   CompileCombatV6TrainingEncounterV1Input,
   CompileCombatV6TrainingEncounterV1Result,
   CompiledCombatV6TrainingEncounterV1,
-  PveCommandStrategyV1,
   TrainingEncounterOutcome,
 } from './types.ts';
 
@@ -119,6 +121,11 @@ export class CombatV6PveHostSession {
     restored?: PveRestoredState,
   ) {
     const compiled = encounter;
+    if (
+      restored &&
+      restored.state.versions.autoPolicyVersion !== AUTO_POLICY_VERSION
+    )
+      throw new Error('自动策略版本不匹配，请先结束旧版本战局再切换');
     this.playerId = compiled.playerId;
     this.initialUnits = clone(compiled.battleInput.units);
     this.skills = clone(compiled.battleInput.skills ?? []);
@@ -228,11 +235,23 @@ export class CombatV6PveHostSession {
           isStanding(unit),
       )
       .sort(stableUnitOrder);
-    for (const npc of npcs) {
-      if (npc.command) continue;
-      const strategy = this.encounter.npcStrategies[npc.id];
-      if (strategy)
-        this.battle.submit(npc.id, this.decideNpcCommand(npc, strategy));
+    const state = this.battle.snapshot();
+    const owners = new Set(npcs.map((npc) => npc.ownerId ?? npc.id));
+    const npcCommands = [...owners].flatMap((ownerId) =>
+      automaticCommands(
+        state,
+        ownerId,
+        this.skills,
+        (id) => this.battle.queryCommands(id),
+        { statusDefs: this.statusDefs },
+      ),
+    );
+    for (const entry of npcCommands) {
+      if (
+        !this.battle.state.units.find((unit) => unit.id === entry.unitId)
+          ?.command
+      )
+        this.battle.submit(entry.unitId, entry.command);
     }
 
     const round = this.battle.state.round;
@@ -333,68 +352,6 @@ export class CombatV6PveHostSession {
           `未知目标：${id}`,
         );
   }
-
-  private decideNpcCommand(
-    unit: Unit,
-    strategy: PveCommandStrategyV1,
-  ): Command {
-    if (strategy.type === 'automatic') {
-      return automaticCommands(this.battle.snapshot(), unit.id, this.skills,
-        (id) => this.battle.queryCommands(id)).find((entry) => entry.unitId === unit.id)?.command ??
-        { type: CommandType.Defend };
-    }
-    if (strategy.type === 'ruleset') {
-      const state = this.battle.snapshot();
-      return this.encounter.battleInput.ruleset.decideCommand({
-        unit,
-        state,
-        enemies: state.units.filter(
-          (u) => u.side !== unit.side && isStanding(u),
-        ),
-        allies: state.units.filter(
-          (u) => u.side === unit.side && u.id !== unit.id && isStanding(u),
-        ),
-      });
-    }
-    if (strategy.type === 'defend') return { type: CommandType.Defend };
-    const enemies = this.battle.state.units
-      .filter(
-        (candidate) => candidate.side !== unit.side && isStanding(candidate),
-      )
-      .sort(stableUnitOrder);
-    if (strategy.type === 'attack')
-      return enemies[0]
-        ? { type: CommandType.Attack, target: enemies[0].id }
-        : { type: CommandType.Defend };
-    const skillId =
-      strategy.skillIds[
-        (this.battle.state.round - 1) % strategy.skillIds.length
-      ];
-    const skill = this.skills.find((candidate) => candidate.id === skillId);
-    if (!skill) return { type: CommandType.Defend };
-    const option = this.battle
-      .queryCommands(unit.id)
-      .skills.find((candidate) => candidate.skillId === skillId);
-    const rawPool =
-      skill.targeting.side === TargetSide.Self
-        ? [unit]
-        : this.battle.state.units
-            .filter(
-              (candidate) =>
-                isStanding(candidate) &&
-                (skill.targeting.side === TargetSide.Any ||
-                  (skill.targeting.side === TargetSide.Enemy
-                    ? candidate.side !== unit.side
-                    : candidate.side === unit.side)),
-            )
-            .sort(stableUnitOrder);
-    const target = option?.selectableTargetIds[0] ?? rawPool[0]?.id;
-    return {
-      type: CommandType.Skill,
-      skillId,
-      targets: target ? [target] : [],
-    };
-  }
 }
 
 export class CombatV6TrainingHostSessionV1
@@ -468,4 +425,3 @@ function stableUnitOrder(a: Unit, b: Unit): number {
 function clone<T>(value: T): T {
   return structuredClone(value);
 }
-import { automaticCommands } from '../../../combat-v6/auto';

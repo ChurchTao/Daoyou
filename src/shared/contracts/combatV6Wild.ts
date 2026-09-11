@@ -59,6 +59,7 @@ export const WildRuntimeSchema = z
                 rulesetVersion: z.literal('daoyou_rules_v8'),
                 contentVersion: z.literal('daoyou_wild_inventory_content_v1'),
                 projectionVersion: z.literal('wild_beast_v2'),
+                autoPolicyVersion: z.string().min(1).optional(),
               })
               .strict(),
             units: z.array(z.record(z.string(), z.unknown())).min(2).max(10),
@@ -154,6 +155,7 @@ export const WildSettlementSchema = z
         rulesetVersion: z.string(),
         contentVersion: z.string(),
         projectionVersion: z.string(),
+        autoPolicyVersion: z.string().min(1).optional(),
       })
       .strict(),
     createdAt: z.iso.datetime(),

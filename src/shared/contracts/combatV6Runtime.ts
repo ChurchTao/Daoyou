@@ -138,6 +138,7 @@ export type CombatV6TerminalReason = z.infer<
 
 const VersionStampSchema = z
   .object({
+    autoPolicyVersion: z.string().min(1).optional(),
     engineVersion: z.string().min(1),
     rulesetVersion: z.string().min(1),
     contentVersion: z.string().min(1),

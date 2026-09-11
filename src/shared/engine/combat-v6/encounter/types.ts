@@ -16,6 +16,7 @@ import type { ProjectCultivatorMultiSectToCombatV6Input } from '../projection/in
 
 export type CombatV6TrainingTierV1 = 60 | 120 | 180;
 
+/** Historical content/snapshot shape; 10AB Host routes every NPC through shared AUTO. */
 export type PveCommandStrategyV1 =
   | { type: 'automatic' }
   | { type: 'ruleset' }

@@ -1,3 +1,4 @@
+import { AUTO_POLICY_VERSION } from '../../../combat-v6/auto-policy';
 import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import { UnitKind, type CreateBattleInput } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
@@ -11,6 +12,7 @@ import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
 
 export const DUNGEON_VERSIONS = {
   ...COMBAT_V6_PHASE_6D_VERSIONS,
+  autoPolicyVersion: AUTO_POLICY_VERSION,
   rulesetVersion: 'daoyou_rules_v8' as const,
   contentVersion: 'combat-v6-dungeon-v1' as const,
 };

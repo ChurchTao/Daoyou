@@ -328,6 +328,7 @@ export async function changeBreakthroughBattle(
               host
                 .controlledCommandOptions()
                 .find((option) => option.unitId === unitId)!,
+            { statusDefs: runtime.snapshot.input.statusDefs },
           );
           if (commands.length) host.submitGroup(commands);
         }

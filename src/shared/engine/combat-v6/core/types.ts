@@ -103,6 +103,8 @@ export type BattleResult = {
 
 /** 战斗、快照与回放共同携带的首版版本契约。 */
 export type CombatV6VersionStamp = {
+  /** Optional on archived battles predating the shared AUTO policy. */
+  autoPolicyVersion?: string;
   engineVersion: 'combat-v6';
   rulesetVersion:
     | 'daoyou_rules_v1'

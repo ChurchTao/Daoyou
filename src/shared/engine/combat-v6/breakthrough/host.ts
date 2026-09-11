@@ -1,3 +1,4 @@
+import { AUTO_POLICY_VERSION } from '../../../combat-v6/auto-policy';
 import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import type { CreateBattleInput } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
@@ -45,6 +46,7 @@ export const BREAKTHROUGH_CHALLENGES = {
 export type BreakthroughChallengeId = keyof typeof BREAKTHROUGH_CHALLENGES;
 export const BREAKTHROUGH_VERSIONS = {
   ...COMBAT_V6_PHASE_6D_VERSIONS,
+  autoPolicyVersion: AUTO_POLICY_VERSION,
   rulesetVersion: 'daoyou_rules_v8',
   contentVersion: 'combat-v6-breakthrough-v1',
 } as const;

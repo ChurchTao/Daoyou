@@ -2,10 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '../engine/combat-v6/content';
 import { createBattle, type SkillDef } from '../engine/combat-v6/core';
 import type { CombatV6TrainingPlayerInput } from '../engine/combat-v6/encounter';
+import { CombatV6PveHostSession } from '../engine/combat-v6/encounter/host';
 import { compileRankingBattle } from '../engine/combat-v6/ranking/battle';
 import { daoyouRulesetV6 } from '../engine/combat-v6/rules-daoyou';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../engine/combat-v6/version';
 import { automaticCommands, CombatAutoRequestSchema } from './auto';
+import { observeAutoBattle } from './auto-observation';
+import { AUTO_POLICY_VERSION } from './auto-policy';
+import { rankAutoActions } from './auto-utility';
 
 const skills: SkillDef[] = [
   {
@@ -48,7 +52,10 @@ const skills: SkillDef[] = [
     effects: [{ type: 'applyStatus', statusId: 'guard', duration: 3 }],
   },
 ];
-function fixture(skillIds = ['heal', 'revive', 'strike', 'capture']) {
+function fixture(
+  skillIds = ['heal', 'revive', 'strike', 'capture'],
+  definitions = skills,
+) {
   const attrs = {
     hp: 1000,
     maxHp: 1000,
@@ -62,7 +69,7 @@ function fixture(skillIds = ['heal', 'revive', 'strike', 'capture']) {
     seed: 42,
     versions: COMBAT_V6_PHASE_6D_VERSIONS,
     ruleset: daoyouRulesetV6,
-    skills,
+    skills: definitions,
     statusDefs: [
       { id: 'guard', name: '护体', kind: 'guard' },
       { id: 'stealth', name: '隐身', kind: 'stealth', untargetable: true },
@@ -194,6 +201,332 @@ describe('当前场次托管', () => {
     expect(choose(battle)[0].command).toEqual({
       type: 'attack',
       target: 'enemy',
+    });
+  });
+});
+
+describe('通用效用策略与观察边界', () => {
+  it('资源蓄积只计算未溢出的收益，满资源不会重复蓄积', () => {
+    const charge: SkillDef = {
+      id: 'charge',
+      name: '蓄势',
+      tags: ['support'],
+      targeting: { side: 'self' },
+      effects: [{ type: 'modifyResource', resourceId: 'energy', amount: 100 }],
+    };
+    const battle = fixture(['charge'], [charge]);
+    battle.unit('player').resources = [
+      { id: 'energy', name: '能量', current: 0, max: 100 },
+    ];
+    const choose = () =>
+      automaticCommands(battle.snapshot(), 'player', [charge], (id) =>
+        battle.queryCommands(id),
+      )[0].command;
+    expect(choose()).toMatchObject({ type: 'skill', skillId: 'charge' });
+    battle.unit('player').resources[0].current = 100;
+    expect(choose().type).toBe('attack');
+  });
+  for (const type of ['attack', 'defend', 'ruleset', 'automatic'] as const) {
+    it(`NPC 的旧 ${type} 配置统一接入效用策略，玩家手动防御保留`, () => {
+      const strong: SkillDef = {
+        id: 'strong',
+        name: '强击',
+        tags: ['spell'],
+        targeting: { side: 'enemy' },
+        effects: [{ type: 'fixedHit', power: 600 }],
+      };
+      const attrs = {
+        hp: 1000,
+        maxHp: 1000,
+        mp: 100,
+        maxMp: 100,
+        speed: 50,
+        physicalAtk: 50,
+        physicalDef: 50,
+      };
+      const host = new CombatV6PveHostSession({
+        playerId: 'player',
+        npcStrategies: { enemy: { type } },
+        sourceProjectionVersions: COMBAT_V6_PHASE_6D_VERSIONS,
+        battleInput: {
+          seed: 1,
+          ruleset: daoyouRulesetV6,
+          versions: {
+            ...COMBAT_V6_PHASE_6D_VERSIONS,
+            autoPolicyVersion: AUTO_POLICY_VERSION,
+          },
+          skills: [strong],
+          units: [
+            { id: 'player', name: '玩家', kind: 'player', side: 0, attrs },
+            {
+              id: 'enemy',
+              name: '敌人',
+              kind: 'npc',
+              side: 1,
+              attrs,
+              skills: ['strong'],
+            },
+          ],
+        },
+      });
+      host.submit('player', { type: 'defend' });
+      host.resolveRound();
+      expect(
+        host.state.units.find((unit) => unit.id === 'enemy')?.lastCommand,
+      ).toMatchObject({ type: 'skill', skillId: 'strong' });
+      expect(
+        host.state.units.find((unit) => unit.id === 'player')?.lastCommand,
+      ).toEqual({ type: 'defend' });
+    });
+  }
+
+  it('群体随机分支不会按每个目标重复展开整组效果', () => {
+    const base: SkillDef = {
+      id: 'area',
+      name: '群攻',
+      tags: ['spell'],
+      targeting: { side: 'enemy', mode: 'all', count: 2 },
+      effects: [
+        {
+          type: 'fixedHit',
+          power: 100,
+          targeting: { side: 'enemy', mode: 'all' },
+        },
+      ],
+    };
+    const random: SkillDef = {
+      ...base,
+      id: 'random-area',
+      effects: [
+        {
+          type: 'randomBranch',
+          branchId: 'always',
+          chance: 1,
+          successEffects: base.effects,
+          failureEffects: [],
+        },
+      ],
+    };
+    const battle = fixture(['area', 'random-area'], [base, random]);
+    const snapshot = battle.snapshot();
+    snapshot.units.find((unit) => unit.id === 'ally')!.side = 1;
+    const observation = observeAutoBattle(snapshot, 'player', []);
+    const options = battle.queryCommands('player');
+    for (const option of options.skills) {
+      option.selectableTargetIds = ['enemy', 'ally'];
+      option.targetCount = 2;
+    }
+    const candidates = rankAutoActions(
+      observation,
+      'player',
+      [base, random],
+      [],
+      options,
+    );
+    const skillScore = (id: string) =>
+      candidates.find(
+        (c) => c.command.type === 'skill' && c.command.skillId === id,
+      )!.score;
+    expect(skillScore('random-area')).toBe(skillScore('area'));
+  });
+  it('改变敌方隐藏属性、技能、指令和 RNG，不影响观察和评分', () => {
+    const battle = fixture();
+    const before = battle.snapshot();
+    const changed = structuredClone(before);
+    const enemy = changed.units.find((unit) => unit.id === 'enemy')!;
+    enemy.attrs.hp *= 100;
+    enemy.attrs.maxHp *= 100;
+    enemy.attrs.mp *= 10;
+    enemy.attrs.maxMp *= 10;
+    enemy.attrs.physicalDef = 999999;
+    enemy.attrs.magicDef = 999999;
+    enemy.skills = ['secret'];
+    enemy.skillOverrides = { secret: skills[0] };
+    enemy.command = { type: 'skill', skillId: 'secret', targets: ['player'] };
+    enemy.lastCommand = { type: 'attack', target: 'player' };
+    enemy.flags.defending = true;
+    changed.rngState++;
+    const observation = observeAutoBattle(before, 'player', []);
+    const after = observeAutoBattle(changed, 'player', []);
+    expect(after).toEqual(observation);
+    expect(
+      rankAutoActions(
+        after,
+        'player',
+        skills,
+        [],
+        battle.queryCommands('player'),
+      ),
+    ).toEqual(
+      rankAutoActions(
+        observation,
+        'player',
+        skills,
+        [],
+        battle.queryCommands('player'),
+      ),
+    );
+    enemy.attrs.hp /= 2;
+    expect(observeAutoBattle(changed, 'player', [])).not.toEqual(observation);
+  });
+
+  it('策略权重改变治疗与进攻取舍，合法候选保持一致', () => {
+    const battle = fixture(['heal', 'strike']);
+    battle.unit('ally').attrs.hp = 800;
+    const observation = observeAutoBattle(battle.snapshot(), 'player', []);
+    const choosePolicy = (policy: 'aggressive' | 'conservative') =>
+      rankAutoActions(
+        observation,
+        'player',
+        skills,
+        [],
+        battle.queryCommands('player'),
+        policy,
+      );
+    const aggressive = choosePolicy('aggressive');
+    const conservative = choosePolicy('conservative');
+    expect(aggressive[0].command).toMatchObject({
+      type: 'skill',
+      skillId: 'strike',
+    });
+    expect(conservative[0].command).toMatchObject({
+      type: 'skill',
+      skillId: 'heal',
+    });
+    expect(aggressive.map((c) => JSON.stringify(c.command)).sort()).toEqual(
+      conservative.map((c) => JSON.stringify(c.command)).sort(),
+    );
+  });
+
+  it('随机分支按概率估算，不把不可能发生的收益算进去', () => {
+    const random: SkillDef = {
+      id: 'random',
+      name: '随机术',
+      tags: ['spell'],
+      targeting: { side: 'enemy' },
+      effects: [
+        {
+          type: 'randomBranch',
+          branchId: 'coin',
+          chance: 0,
+          successEffects: [{ type: 'fixedHit', power: 100000 }],
+          failureEffects: [],
+        },
+      ],
+    };
+    const battle = fixture(['random'], [random]);
+    const result = automaticCommands(
+      battle.snapshot(),
+      'player',
+      [random],
+      (id) => battle.queryCommands(id),
+    );
+    expect(result[0].command.type).toBe('attack');
+  });
+
+  it('普攻优于高耗低收益技能，不能只因技能可用就施放', () => {
+    const weak: SkillDef = {
+      ...skills[2],
+      id: 'weak',
+      costMp: 90,
+      effects: [{ type: 'fixedHit', power: 1 }],
+    };
+    const battle = fixture(['weak'], [weak]);
+    expect(
+      automaticCommands(battle.snapshot(), 'player', [weak], (id) =>
+        battle.queryCommands(id),
+      )[0].command.type,
+    ).toBe('attack');
+  });
+
+  it('人物与灵兽减少重复控制，不把尚未命中当作实际状态', () => {
+    const seal: SkillDef = {
+      id: 'seal',
+      name: '封印',
+      tags: ['spell'],
+      targeting: { side: 'enemy' },
+      effects: [{ type: 'applyStatus', statusId: 'sealed', duration: 3 }],
+    };
+    const definitions = [
+      {
+        id: 'sealed',
+        name: '封印',
+        kind: 'seal',
+        category: 'control' as const,
+        blocksAction: true,
+      },
+    ];
+    const battle = fixture(['seal'], [seal]);
+    battle.unit('pet').skills = ['seal'];
+    const observation = observeAutoBattle(
+      battle.snapshot(),
+      'player',
+      definitions,
+    );
+    const first = rankAutoActions(
+      observation,
+      'player',
+      [seal],
+      definitions,
+      battle.queryCommands('player'),
+    )[0];
+    expect(first.command).toMatchObject({ type: 'skill', skillId: 'seal' });
+    const independent = rankAutoActions(
+      observation,
+      'pet',
+      [seal],
+      definitions,
+      battle.queryCommands('pet'),
+    )[0];
+    const coordinated = rankAutoActions(
+      observation,
+      'pet',
+      [seal],
+      definitions,
+      battle.queryCommands('pet'),
+      'balanced',
+      first.intents,
+    ).find((candidate) => candidate.command.type === 'skill')!;
+    expect(coordinated.score).toBeLessThan(independent.score);
+    expect(coordinated.score).toBeGreaterThan(0);
+    expect(battle.unit('enemy').statuses).toEqual([]);
+  });
+
+  it('公开禁复活状态阻止无效救援；已有同类控制不重复施加', () => {
+    const battle = fixture();
+    const snapshot = battle.snapshot();
+    const ally = snapshot.units.find((unit) => unit.id === 'ally')!;
+    ally.attrs.hp = 0;
+    ally.flags.downed = true;
+    ally.statuses = [
+      {
+        id: 'blocked',
+        kind: 'blocked',
+        remainingRounds: 3,
+        sourceId: 'enemy',
+        appliedRound: 1,
+        speedMod: 0,
+        attrMods: {},
+        damageTakenPhysical: 1,
+        damageTakenSpell: 1,
+        healTaken: 1,
+        healDealt: 1,
+        stacks: 1,
+      },
+    ];
+    const definitions = [
+      { id: 'blocked', name: '禁复活', kind: 'blocked', blocksRevive: true },
+    ];
+    const candidates = rankAutoActions(
+      observeAutoBattle(snapshot, 'player', definitions),
+      'player',
+      skills,
+      definitions,
+      battle.queryCommands('player'),
+    );
+    expect(candidates[0].command).not.toMatchObject({
+      type: 'skill',
+      skillId: 'revive',
     });
   });
 });
