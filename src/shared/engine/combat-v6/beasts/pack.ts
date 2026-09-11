@@ -29,18 +29,23 @@ export const BeastSpeciesPackShape = z.strictObject({
           'agility',
         ]),
         skill: skillId,
-        aptitude: z.enum(['attack', 'defense', 'health', 'mana', 'speed']),
+        aptitudes: z.strictObject({
+          attack: range,
+          defense: range,
+          health: range,
+          mana: range,
+          speed: range,
+        }),
+        growthMilli: z.strictObject({
+          min: integer.min(100).max(3000),
+          max: integer.min(100).max(3000),
+        }),
       }),
     )
     .min(1),
   generation: z.strictObject({
     starterLevel: z.number().int().min(0).max(180),
     lifespan: integer,
-    aptitude: range.extend({ favoredBonus: integer }),
-    growthMilli: z.strictObject({
-      min: integer.min(100).max(3000),
-      max: integer.min(100).max(3000),
-    }),
     captureBonus: z.strictObject({ skillId, chance: probability }),
   }),
 });
@@ -88,7 +93,10 @@ export const BeastSkillsPackShape = z.strictObject({
   families: z.array(z.strictObject({ normal: skillId, advanced: skillId })),
 });
 
-const panelTerm = z.strictObject({ base: number, coefficient: number });
+const panelTerm = z.strictObject({
+  aptitudeCoefficient: number,
+  attributeCoefficient: number,
+});
 export const BeastProgressionPackShape = z.strictObject({
   ...identity,
   pointsPerLevel: integer.min(1).max(100),
@@ -115,12 +123,20 @@ export const BeastProgressionPackShape = z.strictObject({
   panel: z.strictObject({
     naturalBase: number,
     naturalPerLevel: number,
-    health: panelTerm.extend({ base: number.min(1) }),
+    health: panelTerm,
     mana: panelTerm,
     physicalAtk: panelTerm,
     physicalDef: panelTerm,
     magicAtk: panelTerm,
-    magicDef: panelTerm.extend({ magicWeight: number }),
+    magicDef: z.strictObject({
+      aptitudeCoefficient: number,
+      attributeCoefficients: z.strictObject({
+        constitution: number,
+        magic: number,
+        strength: number,
+        endurance: number,
+      }),
+    }),
     speed: panelTerm,
   }),
 });
@@ -194,20 +210,14 @@ export function loadBeastPacks(
       'generation.captureBonus.skillId',
       `技能不存在：${bonus.skillId}`,
     );
-  for (const key of ['aptitude', 'growthMilli'] as const) {
-    const r = species.generation[key];
-    if (r.min > r.max)
-      issue('species.json', `generation.${key}`, '下界不得超过上界');
-  }
-  if (
-    species.generation.aptitude.max + species.generation.aptitude.favoredBonus >
-    100000
-  )
-    issue(
-      'species.json',
-      'generation.aptitude',
-      '偏好加成后超出个体资质合法范围',
-    );
+  species.species.forEach((entry) => {
+    for (const [key, bounds] of Object.entries(entry.aptitudes)) {
+      if (bounds.min > bounds.max)
+        issue('species.json', `[${entry.id}].aptitudes.${key}`, '下界不得超过上界');
+    }
+    if (entry.growthMilli.min > entry.growthMilli.max)
+      issue('species.json', `[${entry.id}].growthMilli`, '下界不得超过上界');
+  });
   const familyIds = new Set<string>();
   skills.families.forEach((f, i) => {
     for (const key of ['normal', 'advanced'] as const) {
@@ -243,6 +253,8 @@ export function loadBeastPacks(
   const maxAttribute =
     progression.panel.naturalBase +
     180 * (progression.panel.naturalPerLevel + progression.pointsPerLevel);
+  if (Math.floor(progression.panel.naturalBase * 0.1 * progression.panel.health.attributeCoefficient) < 1)
+    issue('progression.json', 'panel.health', '零级最低成长个体的气血必须至少为 1');
   for (const key of [
     'health',
     'mana',
@@ -253,12 +265,15 @@ export function loadBeastPacks(
     'speed',
   ] as const) {
     const term = progression.panel[key];
-    const combined =
-      maxAttribute *
-      (key === 'magicDef' ? 1 + progression.panel.magicDef.magicWeight : 1);
+    const attributeCoefficient =
+      key === 'magicDef'
+        ? Object.values(progression.panel.magicDef.attributeCoefficients).reduce(
+            (sum, coefficient) => sum + coefficient, 0,
+          )
+        : progression.panel[key].attributeCoefficient;
     if (
       !Number.isSafeInteger(
-        Math.floor(term.base + combined * 3 * 100 * term.coefficient),
+        Math.floor(180 * 100000 * term.aptitudeCoefficient + maxAttribute * 3 * attributeCoefficient),
       )
     )
       issue(

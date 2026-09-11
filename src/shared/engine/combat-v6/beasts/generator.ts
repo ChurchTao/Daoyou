@@ -12,14 +12,10 @@ export function generateStarterBeast(
   if (!species) throw new Error('未知召唤兽物种');
   const rng = new SeededRng(seed);
   const aptitudes = { attack: 0, defense: 0, health: 0, mana: 0, speed: 0 };
-  for (const key of Object.keys(aptitudes) as (keyof typeof aptitudes)[])
-    aptitudes[key] =
-      BEAST_GENERATION.aptitude.min +
-      Math.floor(
-        rng.next() *
-          (BEAST_GENERATION.aptitude.max - BEAST_GENERATION.aptitude.min + 1),
-      ) +
-      (key === species.aptitude ? BEAST_GENERATION.aptitude.favoredBonus : 0);
+  for (const key of Object.keys(aptitudes) as (keyof typeof aptitudes)[]) {
+    const range = species.aptitudes[key];
+    aptitudes[key] = range.min + Math.floor(rng.next() * (range.max - range.min + 1));
+  }
   const allocatedAttributes = {
     constitution: 0,
     strength: 0,
@@ -37,11 +33,11 @@ export function generateStarterBeast(
     level: BEAST_GENERATION.starterLevel,
     exp: 0,
     growth:
-      (BEAST_GENERATION.growthMilli.min +
+      (species.growthMilli.min +
         Math.floor(
           rng.next() *
-            (BEAST_GENERATION.growthMilli.max -
-              BEAST_GENERATION.growthMilli.min +
+            (species.growthMilli.max -
+              species.growthMilli.min +
               1),
         )) /
       1000,

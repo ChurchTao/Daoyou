@@ -20,7 +20,6 @@ import type {
   ManualAction,
   ManualView,
 } from '@shared/contracts/combatV6Manuals';
-import { findItemDefinition } from '@shared/items/registry';
 import { previewManualAction } from '@shared/manuals/action';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { CultivationProgress } from '@shared/types/cultivator';
@@ -56,15 +55,6 @@ export async function readManuals(owner: string): Promise<ManualView> {
   return db.transaction(
     async (tx) => {
       const { character, manuals, progress } = await readManualFacts(owner, tx);
-      const rows = await tx
-        .select()
-        .from(inventoryItems)
-        .where(
-          and(
-            eq(inventoryItems.cultivatorId, owner),
-            eq(inventoryItems.location, 'bag'),
-          ),
-        );
       let blockedReason: string | null = null;
       {
         try {
@@ -82,12 +72,6 @@ export async function readManuals(owner: string): Promise<ManualView> {
           experienceCap: progress.exp_cap,
         },
         state: manuals,
-        items: rows
-          .filter(
-            (row) =>
-              findItemDefinition(row.definitionId)?.kind === 'manual_jade',
-          )
-          .map(inventoryItemOf),
         blockedReason,
       };
     },

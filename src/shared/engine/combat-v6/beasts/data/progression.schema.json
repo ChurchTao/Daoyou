@@ -169,13 +169,13 @@
         "health": {
           "type": "object",
           "properties": {
-            "base": {
+            "aptitudeCoefficient": {
               "type": "number",
-              "minimum": 1,
+              "minimum": 0,
               "maximum": 100000,
               "multipleOf": 0.000001
             },
-            "coefficient": {
+            "attributeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
@@ -183,21 +183,21 @@
             }
           },
           "required": [
-            "base",
-            "coefficient"
+            "aptitudeCoefficient",
+            "attributeCoefficient"
           ],
           "additionalProperties": false
         },
         "mana": {
           "type": "object",
           "properties": {
-            "base": {
+            "aptitudeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
               "multipleOf": 0.000001
             },
-            "coefficient": {
+            "attributeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
@@ -205,21 +205,21 @@
             }
           },
           "required": [
-            "base",
-            "coefficient"
+            "aptitudeCoefficient",
+            "attributeCoefficient"
           ],
           "additionalProperties": false
         },
         "physicalAtk": {
           "type": "object",
           "properties": {
-            "base": {
+            "aptitudeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
               "multipleOf": 0.000001
             },
-            "coefficient": {
+            "attributeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
@@ -227,21 +227,21 @@
             }
           },
           "required": [
-            "base",
-            "coefficient"
+            "aptitudeCoefficient",
+            "attributeCoefficient"
           ],
           "additionalProperties": false
         },
         "physicalDef": {
           "type": "object",
           "properties": {
-            "base": {
+            "aptitudeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
               "multipleOf": 0.000001
             },
-            "coefficient": {
+            "attributeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
@@ -249,21 +249,21 @@
             }
           },
           "required": [
-            "base",
-            "coefficient"
+            "aptitudeCoefficient",
+            "attributeCoefficient"
           ],
           "additionalProperties": false
         },
         "magicAtk": {
           "type": "object",
           "properties": {
-            "base": {
+            "aptitudeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
               "multipleOf": 0.000001
             },
-            "coefficient": {
+            "attributeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
@@ -271,50 +271,73 @@
             }
           },
           "required": [
-            "base",
-            "coefficient"
+            "aptitudeCoefficient",
+            "attributeCoefficient"
           ],
           "additionalProperties": false
         },
         "magicDef": {
           "type": "object",
           "properties": {
-            "base": {
+            "aptitudeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
               "multipleOf": 0.000001
             },
-            "coefficient": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 100000,
-              "multipleOf": 0.000001
-            },
-            "magicWeight": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 100000,
-              "multipleOf": 0.000001
+            "attributeCoefficients": {
+              "type": "object",
+              "properties": {
+                "constitution": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100000,
+                  "multipleOf": 0.000001
+                },
+                "magic": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100000,
+                  "multipleOf": 0.000001
+                },
+                "strength": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100000,
+                  "multipleOf": 0.000001
+                },
+                "endurance": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100000,
+                  "multipleOf": 0.000001
+                }
+              },
+              "required": [
+                "constitution",
+                "magic",
+                "strength",
+                "endurance"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
-            "base",
-            "coefficient",
-            "magicWeight"
+            "aptitudeCoefficient",
+            "attributeCoefficients"
           ],
           "additionalProperties": false
         },
         "speed": {
           "type": "object",
           "properties": {
-            "base": {
+            "aptitudeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
               "multipleOf": 0.000001
             },
-            "coefficient": {
+            "attributeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
@@ -322,8 +345,8 @@
             }
           },
           "required": [
-            "base",
-            "coefficient"
+            "aptitudeCoefficient",
+            "attributeCoefficient"
           ],
           "additionalProperties": false
         }

@@ -18,7 +18,7 @@ const input: CombatV6TrainingPlayerInput = {
 const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 describe('幻境祝福内容包', () => {
   it('Schema 同步', () => expect(z.toJSONSchema(TowerBlessingsPackShape, { reused: 'ref' })).toEqual(schema));
-  it('完整定义、人物投影、128组抽取和分层预览保持旧基线', () => {
+  it('定义、抽取和预览保持基线，人物投影采用当前六维公式', () => {
     const states = [{}, ...TOWER_BLESSING_IDS.flatMap(id => [1, 3, 5].map(n => ({ [id]: n }))), Object.fromEntries(TOWER_BLESSING_IDS.map(id => [id, TOWER_BLESSING_DEFINITIONS[id].maxStacks]))];
     const projections = states.map(s => projectTowerPlayer(input, s));
     const choices = Array.from({ length: 128 }, (_, i) => buildTowerBlessingChoices({ runId: 'baseline-' + i, clearedFloor: i % 20 + 1, blessings: states[i % states.length], currentHp: i % 2 ? 20 : 90, maxHp: 100, currentMp: i % 3 ? 10 : 90, maxMp: 100 }));

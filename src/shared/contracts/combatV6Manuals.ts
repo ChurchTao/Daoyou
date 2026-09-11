@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import type { CultivatorManualStateV1 } from '../engine/combat-v6/manuals/types';
-import type { InventoryItem } from '../inventory';
 import type { RealmType } from '../types/constants';
 
 const target = {
@@ -22,7 +21,6 @@ export type ManualAction = z.infer<typeof ManualActionSchema>;
 export interface ManualView {
   realm: RealmType;
   state: CultivatorManualStateV1 | null;
-  items: InventoryItem[];
   resources: { experience: number; insight: number; experienceCap: number };
   blockedReason: string | null;
 }

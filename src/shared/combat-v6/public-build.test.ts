@@ -73,7 +73,7 @@ describe('public V6 build', () => {
     const result = publicCombatV6Build(character, input);
     expect(result.build.manuals).toEqual([{ slot: 1, manualId: 'character_manual.changchun', level: 3 }]);
     expect(JSON.stringify(result.build)).not.toContain('songhe');
-    expect(result.combatPanel.maxHp - baseline.combatPanel.maxHp).toBe(60);
+    expect(result.combatPanel.maxHp - baseline.combatPanel.maxHp).toBe(24);
     expect(character.attributes.vitality).toBe(20);
   });
 });

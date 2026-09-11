@@ -8,6 +8,7 @@ import {
 import type { PlayerResourceMutationMeta } from '@shared/contracts/player';
 import { refreshCombatV6CharacterResources } from './combat-v6/CombatV6CharacterResourceRefresh';
 import { withCharacterPanelInvalidations } from '@shared/lib/characterResourceChanges';
+import { withBagInvalidations } from '@shared/lib/bagResourceChanges';
 import {
   RESOURCE_TOPIC_SCOPE_KIND,
   type ResourceChange,
@@ -54,7 +55,7 @@ export class ResourceEventCommitter {
       ['player.profile', 'player.sect-combat'].includes(change.resourceTopic),
     ).map(change => change.scope.id));
     for (const id of changedCharacters) await refreshCombatV6CharacterResources(id, tx);
-    const scopedChanges = withCharacterPanelInvalidations(originalChanges);
+    const scopedChanges = withBagInvalidations(withCharacterPanelInvalidations(originalChanges));
     const commits = await bumpResourceVersions(tx, scopedChanges);
     const changes = await insertResourceChanges(tx, {
       actorUserId: input.actor?.userId,

@@ -95,3 +95,58 @@ describe('召唤兽正式个体', () => {
     expect(beast.skills).toEqual(starter().skills);
   });
 });
+
+
+describe('手游参照召唤兽派生公式', () => {
+  const sample = () => BeastSchema.parse({
+    ...starter(),
+    level: 50,
+    growth: 1.2,
+    aptitudes: { health: 4000, mana: 2400, attack: 1500, defense: 1400, speed: 1300 },
+    allocatedAttributes: { constitution: 10, strength: 70, magic: 100, endurance: 40, agility: 30 },
+  });
+
+  it('完整累加等级资质项与成长属性项后取整', () => {
+    expect(beastPanel(sample())).toMatchObject({
+      hp: 1167, maxHp: 1167, mp: 1210, maxMp: 1210,
+      physicalAtk: 437, magicAtk: 351, physicalDef: 522,
+      magicDef: 346, speed: 308,
+    });
+  });
+
+  it('零级只有天生五维贡献，没有旧面板固定底值', () => {
+    const beast = BeastSchema.parse({
+      ...sample(), level: 0, growth: 1,
+      allocatedAttributes: { constitution: 0, strength: 0, magic: 0, endurance: 0, agility: 0 },
+    });
+    expect(beastPanel(beast)).toMatchObject({
+      maxHp: 70, maxMp: 50, physicalAtk: 16, magicAtk: 13,
+      physicalDef: 24, magicDef: 17, speed: 16,
+    });
+  });
+
+  it('资质不放大加点收益，成长不放大等级资质项', () => {
+    const base = sample();
+    const stronger = { ...base, aptitudes: { ...base.aptitudes, attack: 2500 } };
+    const grown = { ...base, growth: 1.5 };
+    expect(beastPanel(stronger).physicalAtk - beastPanel(base).physicalAtk).toBe(125);
+    expect(beastPanel({ ...stronger, growth: 1.5 }).physicalAtk - beastPanel(grown).physicalAtk).toBe(125);
+    const allocated = {
+      ...base, allocatedAttributes: { ...base.allocatedAttributes, strength: 80, magic: 90 },
+    };
+    expect(beastPanel(allocated).physicalAtk).toBe(456);
+    expect(beastPanel({ ...allocated, aptitudes: stronger.aptitudes }).physicalAtk).toBe(581);
+  });
+
+  it('法防采用法力资质与四维贡献，防御资质和敏捷不参与', () => {
+    const base = sample();
+    const changed = {
+      ...base,
+      aptitudes: { ...base.aptitudes, defense: 5000 },
+      allocatedAttributes: { ...base.allocatedAttributes, agility: 0 },
+      unallocatedPoints: 30,
+    };
+    expect(beastPanel(changed).magicDef).toBe(346);
+    expect(beastPanel({ ...base, aptitudes: { ...base.aptitudes, mana: 3400 } }).magicDef).toBe(376);
+  });
+});

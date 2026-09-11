@@ -2,6 +2,7 @@ import type { RealmType } from '@shared/types/constants';
 import {
   getManualSlotCount,
   manualSlot,
+  MAX_MANUALS_PER_SLOT,
   validateManualStateV1,
 } from './compiler';
 import { CHARACTER_MANUALS_V1, manualRule } from './content';
@@ -42,6 +43,13 @@ export function changeManual(input: {
   const cost = { experience: 0, insight: 0 };
   if (action === 'learn') {
     if (learned) return fail('已学会此功法，请修炼或突破瓶颈');
+    const count = next.learned.filter((entry) =>
+      CHARACTER_MANUALS_V1.some(
+        (manual) => manual.id === entry.manualId && manual.realm === def.realm,
+      ),
+    ).length;
+    if (count >= MAX_MANUALS_PER_SLOT)
+      return fail('该境界位已学满三种功法，暂不支持遗忘或学习新的功法');
     next.learned.push({
       manualId: def.id,
       level: 1,

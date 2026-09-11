@@ -1,7 +1,7 @@
 {
   "$schema": "./species.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 3,
   "species": [
     {
       "id": "combat.wild.species.spirit-fox",
@@ -10,7 +10,32 @@
       "role": "法术",
       "allocation": "magic",
       "skill": "beast.spirit-flame",
-      "aptitude": "mana"
+      "aptitudes": {
+        "attack": {
+          "min": 672,
+          "max": 840
+        },
+        "defense": {
+          "min": 864,
+          "max": 1080
+        },
+        "health": {
+          "min": 2880,
+          "max": 3600
+        },
+        "mana": {
+          "min": 1536,
+          "max": 1920
+        },
+        "speed": {
+          "min": 864,
+          "max": 1080
+        }
+      },
+      "growthMilli": {
+        "min": 982,
+        "max": 1030
+      }
     },
     {
       "id": "combat.wild.species.rock-boar",
@@ -19,7 +44,32 @@
       "role": "防护",
       "allocation": "constitution",
       "skill": "beast.stone-guard",
-      "aptitude": "health"
+      "aptitudes": {
+        "attack": {
+          "min": 816,
+          "max": 1020
+        },
+        "defense": {
+          "min": 864,
+          "max": 1080
+        },
+        "health": {
+          "min": 3960,
+          "max": 4950
+        },
+        "mana": {
+          "min": 1536,
+          "max": 1920
+        },
+        "speed": {
+          "min": 576,
+          "max": 720
+        }
+      },
+      "growthMilli": {
+        "min": 1012,
+        "max": 1060
+      }
     },
     {
       "id": "combat.wild.species.wind-wolf",
@@ -28,21 +78,37 @@
       "role": "物理",
       "allocation": "strength",
       "skill": "beast.wind-strike",
-      "aptitude": "attack"
+      "aptitudes": {
+        "attack": {
+          "min": 1104,
+          "max": 1380
+        },
+        "defense": {
+          "min": 624,
+          "max": 780
+        },
+        "health": {
+          "min": 2160,
+          "max": 2700
+        },
+        "mana": {
+          "min": 960,
+          "max": 1200
+        },
+        "speed": {
+          "min": 864,
+          "max": 1080
+        }
+      },
+      "growthMilli": {
+        "min": 952,
+        "max": 1000
+      }
     }
   ],
   "generation": {
     "starterLevel": 10,
     "lifespan": 1000,
-    "aptitude": {
-      "min": 900,
-      "max": 1100,
-      "favoredBonus": 100
-    },
-    "growthMilli": {
-      "min": 950,
-      "max": 1050
-    },
     "captureBonus": {
       "skillId": "beast.combo",
       "chance": 0.2

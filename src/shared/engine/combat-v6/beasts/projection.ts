@@ -40,41 +40,34 @@ export function beastPanel(input: SummonedBeast) {
       natural + value,
     ]),
   );
+  // Aptitude contributes with level; growth multiplies attributes only.
+  // Sum both terms before flooring so fractional contributions are retained.
   const contribution = (
     value: number,
     aptitude: keyof SummonedBeast['aptitudes'],
-    coeff: number,
-  ) => Math.floor(((value * b.growth * b.aptitudes[aptitude]) / 1000) * coeff);
-  const hp =
-    rule.health.base +
-    contribution(a.constitution, 'health', rule.health.coefficient);
-  const mp =
-    rule.mana.base + contribution(a.magic, 'mana', rule.mana.coefficient);
+    term: { aptitudeCoefficient: number; attributeCoefficient: number },
+  ) => Math.floor(
+    b.level * b.aptitudes[aptitude] * term.aptitudeCoefficient +
+    value * b.growth * term.attributeCoefficient,
+  );
+  const hp = contribution(a.constitution, 'health', rule.health);
+  const mp = contribution(a.magic, 'mana', rule.mana);
+  const magicDefAttributes = Object.entries(rule.magicDef.attributeCoefficients)
+    .reduce((sum, [key, coefficient]) => sum + a[key] * coefficient, 0);
   return {
     ...DEFAULT_ATTRS,
     hp,
     maxHp: hp,
     mp,
     maxMp: mp,
-    physicalAtk:
-      rule.physicalAtk.base +
-      contribution(a.strength, 'attack', rule.physicalAtk.coefficient),
-    physicalDef:
-      rule.physicalDef.base +
-      contribution(a.endurance, 'defense', rule.physicalDef.coefficient),
-    magicAtk:
-      rule.magicAtk.base +
-      contribution(a.magic, 'mana', rule.magicAtk.coefficient),
-    magicDef:
-      rule.magicDef.base +
-      contribution(
-        a.endurance + a.magic * rule.magicDef.magicWeight,
-        'defense',
-        rule.magicDef.coefficient,
-      ),
-    speed:
-      rule.speed.base +
-      contribution(a.agility, 'speed', rule.speed.coefficient),
+    physicalAtk: contribution(a.strength, 'attack', rule.physicalAtk),
+    physicalDef: contribution(a.endurance, 'defense', rule.physicalDef),
+    magicAtk: contribution(a.magic, 'mana', rule.magicAtk),
+    magicDef: Math.floor(
+      b.level * b.aptitudes.mana * rule.magicDef.aptitudeCoefficient +
+      magicDefAttributes * b.growth,
+    ),
+    speed: contribution(a.agility, 'speed', rule.speed),
   };
 }
 

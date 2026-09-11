@@ -22,13 +22,13 @@ export interface CharacterPanelV1 {
 export function compileCharacterPanelV1(attributes: Attributes): CharacterPanelV1 {
   const { vitality, strength, spirit, endurance, speed, willpower } = attributes
   return {
-    physicalAtk: Math.floor(40 + strength * 3.5),
-    magicAtk: Math.floor(40 + spirit * 3.5),
-    physicalDef: Math.floor(10 + endurance * 1.75),
-    magicDef: Math.floor(10 + willpower * 1.75),
-    maxHp: Math.floor(400 + vitality * 20 + endurance * 3),
-    maxMp: Math.floor(200 + spirit * 4 + willpower * 10),
-    speed: Math.floor(speed),
+    physicalAtk: Math.floor(40 + strength),
+    magicAtk: Math.floor(40 + spirit),
+    physicalDef: Math.floor(10 + endurance * 2.2),
+    magicDef: Math.floor(10 + vitality * 0.4 + strength * 0.6 + spirit * 0.4 + endurance * 0.4 + willpower * 1.6),
+    maxHp: Math.floor(400 + vitality * 8),
+    maxMp: Math.floor(200 + spirit * 5 + willpower * 5),
+    speed: Math.floor(vitality * 0.2 + strength * 0.2 + endurance * 0.2 + speed * 1.5),
     hit: Math.floor(80 + speed),
     dodge: Math.floor(speed),
     healPower: Math.floor(vitality * 0.25 + willpower),

@@ -14,6 +14,7 @@ import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
+import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import type {
   InventoryAction,
@@ -54,8 +55,10 @@ export default function InventoryV6() {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState('all');
-  const [data, setData] = useState<InventoryView>();
-  const [bag, setBag] = useState<InventoryView>();
+  const [storage, setData] = useState<InventoryView>();
+  const bagQuery = useInventoryBag();
+  const bag = bagQuery.data;
+  const data = location === 'bag' ? bag : storage;
   const [readFailed, setReadFailed] = useState(false);
   const [slotFilter, setSlotFilter] = useState<DaoEquipmentSlot>();
   const [moving, setMoving] = useState<Item>();
@@ -75,6 +78,7 @@ export default function InventoryV6() {
     };
   }, []);
   useEffect(() => {
+    if (location === 'bag') return;
     const controller = new AbortController();
     reader.current = controller;
     const query = new URLSearchParams({
@@ -83,20 +87,11 @@ export default function InventoryV6() {
       search: remoteSearch,
       kind: remoteKind,
     });
-    const bagRead = combatV6Request<InventoryView>(`${endpoint}?location=bag`, {
+    void combatV6Request<InventoryView>(`${endpoint}?${query}`, {
       signal: controller.signal,
-    });
-    void Promise.all([
-      bagRead,
-      location === 'bag'
-        ? bagRead
-        : combatV6Request<InventoryView>(`${endpoint}?${query}`, {
-            signal: controller.signal,
-          }),
-    ])
-      .then(([bagView, view]) => {
+    })
+      .then((view) => {
         if (!controller.signal.aborted) {
-          setBag(bagView);
           setReadFailed(false);
           setData(view);
           setPage(view.page);
@@ -144,6 +139,7 @@ export default function InventoryV6() {
         tone: 'success',
       });
     } catch (e) {
+      bagQuery.invalidate();
       if (mounted.current)
         pushToast({
           message: `${e instanceof Error ? e.message : '请求失败'}；请重新核对物品状态后操作。`,
@@ -160,7 +156,7 @@ export default function InventoryV6() {
   }
   const filtered = !!search || kind !== 'all' || !!slotFilter;
   const equipped = bag?.items.filter((item) => item.equipped) ?? [];
-  const unavailable = pending || !data;
+  const unavailable = pending || !data || bagQuery.isRefreshing || !!bagQuery.error;
   const visibleData = data ?? (location === 'bag' ? bag : undefined);
   function matches(item: Item) {
     return (
@@ -292,6 +288,7 @@ export default function InventoryV6() {
               取消移动
             </InkButton>
           ) : null}
+          {bagQuery.error ? <p role="alert" className="text-crimson text-sm">{bagQuery.error}</p> : null}
           {!visibleData ? (
             readFailed ? null : (
               <p className="text-ink-secondary text-sm">正在查看物品……</p>
@@ -354,6 +351,7 @@ export default function InventoryV6() {
             <InkButton
               disabled={pending}
               onClick={() => {
+                void bagQuery.reload();
                 setData(undefined);
                 setRefresh((value) => value + 1);
               }}

@@ -17,7 +17,7 @@ export const CAPTURE_SKILL_ID = 'beast.capture';
 export const BEAST_ATTRIBUTE_NAMES = {
   constitution: '体质',
   strength: '力量',
-  magic: '法力',
+  magic: '魔力',
   endurance: '耐力',
   agility: '敏捷',
 } as const;

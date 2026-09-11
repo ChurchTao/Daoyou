@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest"
 import * as projections from "./index.ts"
 import baseline from "./fixtures/before-a1.json"
 
-describe("A1 historical assembly baseline", () => {
+// Retains A1 inputs; panel-dependent hashes follow the approved six-attribute formulas.
+describe("A1 assembly baseline with current character panel", () => {
   for (const [name, expected] of Object.entries(baseline.expected)) {
     it(name, () => {
       const project = projections[name as keyof typeof baseline.expected]

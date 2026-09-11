@@ -26,12 +26,12 @@ import type {
  * 派生属性由 V6 权威面板计算，不写入角色基础属性。
  */
 export interface Attributes {
-  vitality: number; // 体魄：气血上限、少量法术防御
-  strength: number; // 力道：物理攻击
-  spirit: number; // 灵力：法术攻击、少量法力
-  endurance: number; // 根骨：物理防御、少量气血上限
+  vitality: number; // 体魄：气血上限、少量法防、速度与治疗强度
+  strength: number; // 力道：物理攻击、少量法防与速度
+  spirit: number; // 灵力：法术攻击、法力、少量法防与封禁命中
+  endurance: number; // 根骨：物理防御、少量法防与速度
   speed: number; // 身法：行动速度、闪避率、命中
-  willpower: number; // 神识：法防、法力、控制命中与抗性
+  willpower: number; // 神识：法防、法力、治疗强度与封禁抵抗
 }
 
 // 灵根

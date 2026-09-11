@@ -28,7 +28,11 @@ function load(p: ReturnType<typeof input>) {
 
 describe('beast content packs', () => {
   it('preserves all species, skills and book registrations', () => {
-    expect(BEAST_SPECIES).toEqual(before.species);
+    expect(BEAST_SPECIES.map((entry) => ({
+      id: entry.id, name: entry.name, carryLevel: entry.carryLevel,
+      role: entry.role, allocation: entry.allocation, skill: entry.skill,
+      aptitude: before.species.find((s) => s.id === entry.id)!.aptitude,
+    }))).toEqual(before.species);
     expect(BEAST_SKILLS).toEqual(before.skills);
     expect(BOOKS).toEqual(
       before.skills.map((s) => ({
@@ -71,21 +75,21 @@ describe('beast content packs', () => {
     [
       'reversed aptitude',
       (p) => {
-        p.species.generation.aptitude.min = 1200;
+        p.species.species[0].aptitudes.attack.min = 1200;
       },
       '下界',
     ],
     [
       'aptitude overflow',
       (p) => {
-        p.species.generation.aptitude.favoredBonus = 100000;
+        p.species.species[0].aptitudes.attack.max = 100001;
       },
-      '合法范围',
+      'aptitudes.attack.max',
     ],
     [
       'growth overflow',
       (p) => {
-        p.species.generation.growthMilli.max = 3001;
+        p.species.species[0].growthMilli.max = 3001;
       },
       'growthMilli.max',
     ],
@@ -184,14 +188,25 @@ describe('beast content packs', () => {
       '经验存储上限',
     ],
     [
-      'panel overflow',
+      'reversed species growth',
       (p) => {
-        p.progression.panel.naturalBase = 100000;
-        p.progression.panel.naturalPerLevel = 100000;
-        p.progression.panel.magicDef.magicWeight = 100000;
-        p.progression.panel.magicDef.coefficient = 100000;
+        p.species.species[0].growthMilli.min = 1100;
       },
-      '安全整数',
+      '下界',
+    ],
+    [
+      'zero health at birth',
+      (p) => {
+        p.progression.panel.health.attributeCoefficient = 0;
+      },
+      'panel.health',
+    ],
+    [
+      'negative panel coefficient',
+      (p) => {
+        p.progression.panel.magicDef.attributeCoefficients.magic = -1;
+      },
+      'attributeCoefficients.magic',
     ],
     [
       'expression precision',
@@ -220,10 +235,20 @@ afterEach(() => {
 
 it('uses edited generation ranges without invalidating existing individual rolls', async () => {
   const id = '00000000-0000-4000-8000-000000000001';
-  const existing = generateStarterBeast(id, id, species.species[0].id, 42);
+  const existing = {
+    ...generateStarterBeast(id, id, species.species[0].id, 42),
+    aptitudes: { attack: 1000, defense: 1000, health: 1000, mana: 1100, speed: 1000 },
+    growth: 1.05,
+  };
   const copy = structuredClone(species);
-  copy.generation.aptitude = { min: 1500, max: 1500, favoredBonus: 0 };
-  copy.generation.growthMilli = { min: 1200, max: 1200 };
+  copy.species[0].aptitudes = {
+    attack: { min: 1500, max: 1500 },
+    defense: { min: 1600, max: 1600 },
+    health: { min: 4000, max: 4000 },
+    mana: { min: 2400, max: 2400 },
+    speed: { min: 1300, max: 1300 },
+  };
+  copy.species[0].growthMilli = { min: 1200, max: 1200 };
   copy.generation.captureBonus.chance = 1;
   vi.resetModules();
   vi.doMock('./data/species.json', () => ({ default: copy }));
@@ -232,8 +257,11 @@ it('uses edited generation ranges without invalidating existing individual rolls
   const { BeastSchema } = await import('./schema');
   expect(BeastSchema.parse(existing)).toEqual(existing);
   const born = generate(id, id, species.species[0].id, 42);
-  expect(Object.values(born.aptitudes)).toEqual([1500, 1500, 1500, 1500, 1500]);
+  expect(Object.values(born.aptitudes)).toEqual([1500, 1600, 4000, 2400, 1300]);
   expect(born.growth).toBe(1.2);
+  expect(generate(id, id, species.species[1].id, 42)).toEqual(
+    generateStarterBeast(id, id, species.species[1].id, 42),
+  );
   expect(
     generateCapturedBeast(id, id, species.species[0].id, 10, 42).skills,
   ).toEqual([
@@ -251,7 +279,7 @@ it('uses edited points, experience, lifespan and panel parameters consistently',
     deployMinimum: 30,
     restRecoveryPerStone: 20,
   };
-  copy.panel.health = { base: 123, coefficient: 0 };
+  copy.panel.health = { aptitudeCoefficient: 0, attributeCoefficient: 7 };
   vi.resetModules();
   vi.doMock('./data/progression.json', () => ({ default: copy }));
   const { generateStarterBeast: generate } = await import('./generator');
@@ -263,7 +291,7 @@ it('uses edited points, experience, lifespan and panel parameters consistently',
   expect(born.allocatedAttributes.magic).toBe(60);
   expect(nextBeastExp(10)).toBe(150);
   expect(gainBeastExp(born, 150, 180).unallocatedPoints).toBe(6);
-  expect(beastPanel(born).maxHp).toBe(123);
+  expect(beastPanel(born).maxHp).toBe(Math.floor(20 * born.growth * 7));
   expect(canDeployBeast({ ...born, currentLifespan: 30 }, 180)).toBe(true);
   expect(canDeployBeast({ ...born, currentLifespan: 29 }, 180)).toBe(false);
   expect(loseBeastLifespan(born).currentLifespan).toBe(980);

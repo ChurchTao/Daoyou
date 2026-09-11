@@ -1,7 +1,10 @@
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
+import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
+import { useCultivatorIdentity } from '@app/lib/resources/player';
 import type {
   ManualAction,
   ManualView,
@@ -9,6 +12,7 @@ import type {
 import {
   getManualSlotCount,
   manualSlot,
+  MAX_MANUALS_PER_SLOT,
 } from '@shared/engine/combat-v6/manuals/compiler';
 import {
   CHARACTER_MANUALS_V1,
@@ -21,6 +25,8 @@ import { previewManualAction } from '@shared/manuals/action';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { combatV6Request, mutationBody } from '../combat-v6/request';
+import { ManualJadePicker } from './ManualJadePicker';
+import { ManualRealmSlot } from './ManualRealmSlot';
 
 const endpoint = '/api/combat-v6/manuals';
 const labels = {
@@ -38,14 +44,23 @@ function effects(manual: CharacterManualDefV1, level: number) {
 }
 
 export function ManualRoom() {
+  const { pushToast } = useInkUI();
+  const identity = useCultivatorIdentity();
+  const gender = identity.data?.cultivator?.gender;
+  const bag = useInventoryBag();
+  const items = bag.data?.items ?? [];
   const [params] = useSearchParams();
   const [view, setView] = useState<ManualView>();
   const [refresh, setRefresh] = useState(0);
   const [selected, setSelected] = useState<string>();
+  const [selectedJadeId, setSelectedJadeId] = useState<string>();
+  const [picking, setPicking] = useState<{
+    realm: CharacterManualDefV1['realm'];
+    manualId?: string;
+  }>();
   const [confirmation, setConfirmation] = useState<ManualAction>();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const busy = useRef(false);
   const mounted = useRef(true);
   useEffect(() => {
@@ -58,7 +73,10 @@ export function ManualRoom() {
     const controller = new AbortController();
     void combatV6Request<ManualView>(endpoint, { signal: controller.signal })
       .then((data) => {
-        if (!controller.signal.aborted) setView(data);
+        if (!controller.signal.aborted) {
+          setView(data);
+          setError('');
+        }
       })
       .catch((e) => {
         if (!controller.signal.aborted) setError(e.message);
@@ -79,31 +97,39 @@ export function ManualRoom() {
         }),
       );
       if (mounted.current)
-        setNotice(
-          {
+        pushToast({
+          message: {
             learn: '功法已习得。',
             unlock: '瓶颈已突破，可以继续修炼。',
             train: '功法精进一层。',
             activate: '功法已激活，下一场战斗生效。',
           }[action.action],
-        );
+          tone: 'success',
+        });
     } catch (e) {
+      if ('item' in action) bag.invalidate();
       if (mounted.current)
         setError(e instanceof Error ? e.message : '操作失败，请刷新核对');
     } finally {
+      try {
+        const data = await combatV6Request<ManualView>(endpoint);
+        if (mounted.current) setView(data);
+      } catch {
+        if (mounted.current) {
+          setView(undefined);
+          setError('功法状态读取失败，请刷新核对后继续');
+        }
+      }
       busy.current = false;
       if (mounted.current) {
         setPending(false);
         setConfirmation(undefined);
-        setView(undefined);
-        setRefresh((n) => n + 1);
+        setSelectedJadeId(undefined);
       }
     }
   }
 
-  const hintedItem = view?.items.find(
-    (item) => item.id === params.get('itemId'),
-  );
+  const hintedItem = items.find((item) => item.id === params.get('itemId'));
   const hintedManual =
     hintedItem && itemDefinition(hintedItem.definitionId).manualId;
   const manual = CHARACTER_MANUALS_V1.find(
@@ -113,8 +139,12 @@ export function ManualRoom() {
   const rule = manual && manualRule(manual);
   const jade =
     manual &&
-    view?.items.find(
-      (item) => itemDefinition(item.definitionId).manualId === manual.id,
+    items.find(
+      (item) =>
+        item.id ===
+          (selectedJadeId ??
+            (selected === undefined ? hintedItem?.id : undefined)) &&
+        itemDefinition(item.definitionId).manualId === manual.id,
     );
   const unlocked = view ? getManualSlotCount(view.realm) : 0;
   const active = view?.state?.build.slots.some(
@@ -171,17 +201,35 @@ export function ManualRoom() {
         )
       : undefined;
   const cap = view?.resources.experienceCap ?? 1;
+  const learnedInRealm =
+    view?.state?.learned.filter((entry) =>
+      CHARACTER_MANUALS_V1.some(
+        (definition) =>
+          definition.id === entry.manualId &&
+          definition.realm === manual?.realm,
+      ),
+    ).length ?? 0;
+  const closeDrawer = () => {
+    setSelected('');
+    setPicking(undefined);
+    setSelectedJadeId(undefined);
+    setConfirmation(undefined);
+  };
+  function openPicker(realm: CharacterManualDefV1['realm'], manualId?: string) {
+    setPicking({ realm, manualId });
+    setConfirmation(undefined);
+    setSelectedJadeId(undefined);
+  }
 
   return (
     <GameSceneFrame variant="workflow">
-      <div className="space-y-4 text-sm">
-        {error ? (
+      <div className="space-y-4 text-sm" aria-busy={pending}>
+        {error && !manual && !picking ? (
           <p role="alert" className="text-crimson">
             {error}{' '}
             <button onClick={() => setRefresh((n) => n + 1)}>刷新重试</button>
           </p>
         ) : null}
-        {notice ? <p role="status">{notice}</p> : null}
         {!view ? (
           <p>正在翻阅功法……</p>
         ) : (
@@ -189,74 +237,92 @@ export function ManualRoom() {
             {view.blockedReason ? (
               <p role="status">{view.blockedReason}</p>
             ) : null}
-            {MANUAL_REALMS.map((realm, index) => {
-              const entry = view.state?.build.slots.find(
-                (s) => s.slot === index + 1,
-              );
-              const current = CHARACTER_MANUALS_V1.find(
-                (m) => m.id === entry?.manualId,
-              );
-              const currentLevel = view.state?.learned.find(
-                (m) => m.manualId === entry?.manualId,
-              )?.level;
-              return (
-                <section
-                  key={realm}
-                  className="border-ink/10 space-y-3 border-b pb-4"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-semibold">{realm}功法</h3>
-                    <span className="text-ink-secondary text-xs">
-                      {index >= unlocked
-                        ? realm + '开放'
-                        : current
-                          ? current.name + ' · ' + currentLevel + '层'
-                          : '尚未激活'}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {CHARACTER_MANUALS_V1.filter((m) => m.realm === realm).map(
-                      (m) => {
-                        const progress = view.state?.learned.find(
-                          (p) => p.manualId === m.id,
-                        );
-                        return (
-                          <button
-                            key={m.id}
-                            onClick={() => {
-                              setSelected(m.id);
-                              setConfirmation(undefined);
-                            }}
-                            className="hover:bg-ink/5 rounded px-3 py-2 text-left"
-                          >
-                            <span className="block">
-                              {m.name}
-                              {m.rarity === 'rare' ? ' · 珍稀' : ''}
-                            </span>
-                            <span className="text-ink-secondary block text-xs">
-                              {progress ? progress.level + '层' : '未习得'}
-                              {entry?.manualId === m.id ? ' · 已激活' : ''}
-                            </span>
-                          </button>
-                        );
-                      },
+            <div className="grid grid-cols-1 items-center gap-6 py-2 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-8">
+              <div className="mx-auto w-full max-w-64 min-w-0 self-center sm:max-w-80 md:max-w-none">
+                {gender ? (
+                  <img
+                    src={`/assets/manuals/cultivator-${gender === '女' ? 'female' : 'male'}-meditation.webp`}
+                    alt={`${gender}修盘膝入定墨像`}
+                    width={960}
+                    height={960}
+                    className="h-auto w-full select-none"
+                    draggable={false}
+                  />
+                ) : null}
+              </div>
+              <div className="border-ink/15 min-w-0 border-l">
+                {MANUAL_REALMS.map((realm, index) => (
+                  <ManualRealmSlot
+                    key={realm}
+                    realm={realm}
+                    manuals={CHARACTER_MANUALS_V1.filter(
+                      (definition) =>
+                        definition.realm === realm &&
+                        view.state?.learned.some(
+                          (entry) => entry.manualId === definition.id,
+                        ),
                     )}
-                  </div>
-                </section>
-              );
-            })}
+                    state={view.state}
+                    unlocked={index < unlocked}
+                    disabled={pending || !!view.blockedReason || !view.state}
+                    onLearn={() => openPicker(realm)}
+                    onStudy={(definition) => {
+                      setSelected(definition.id);
+                      setSelectedJadeId(undefined);
+                      setConfirmation(undefined);
+                    }}
+                    onActivate={(definition) => {
+                      if (view.state)
+                        void submit({
+                          action: 'activate',
+                          expectedRevision: view.state.revision,
+                          manualId: definition.id,
+                          slot: manualSlot(definition),
+                        });
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
           </>
         )}
       </div>
       <InkDetailDrawer
-        isOpen={!!manual}
-        onClose={() => {
-          setSelected('');
-          setConfirmation(undefined);
-        }}
-        title={manual?.name ?? '功法'}
+        isOpen={!!manual || !!picking}
+        onClose={closeDrawer}
+        title={picking ? '储物袋 · 功法玉简' : (manual?.name ?? '功法')}
+        size="md"
       >
-        {manual && view && rule ? (
+        {error ? (
+          <p role="alert" className="text-crimson mb-4">
+            {error}{' '}
+            <InkButton
+              disabled={pending}
+              onClick={() => setRefresh((n) => n + 1)}
+            >
+              刷新重试
+            </InkButton>
+          </p>
+        ) : null}
+        {view?.blockedReason ? (
+          <p role="status" className="mb-4 text-sm">
+            {view.blockedReason}
+          </p>
+        ) : null}
+        {picking && view ? (
+          <ManualJadePicker
+            view={view}
+            realm={picking.realm}
+            manualId={picking.manualId}
+            disabled={pending || !!view.blockedReason}
+            onChoose={(chosen) => {
+              setSelected(chosen.manualId);
+              if ('item' in chosen) setSelectedJadeId(chosen.item.id);
+              setConfirmation(chosen);
+              setPicking(undefined);
+            }}
+          />
+        ) : manual && view && rule ? (
           <div className="space-y-4 text-sm">
             <p>{manual.description}</p>
             <p>
@@ -273,7 +339,7 @@ export function ManualRoom() {
             <p>
               持有同名玉简{' '}
               <span className="font-mono">
-                {view.items
+                {items
                   .filter(
                     (i) =>
                       itemDefinition(i.definitionId).manualId === manual.id,
@@ -293,6 +359,15 @@ export function ManualRoom() {
                 免费激活
               </InkButton>
             ) : null}
+            {!learned ? (
+              <p className="text-ink-secondary">
+                此境界已学{' '}
+                <span className="font-mono">
+                  {learnedInRealm}/{MAX_MANUALS_PER_SLOT}
+                </span>{' '}
+                种。最多学习三种，暂不支持遗忘或替换，请谨慎选择。
+              </p>
+            ) : null}
             {learned?.level === rule.maxLevel ? (
               <p>功法已圆满</p>
             ) : (
@@ -300,17 +375,38 @@ export function ManualRoom() {
                 {nextKind === 'unlock' ? (
                   <p>已遇瓶颈，需一本同名玉简解锁后续层数。</p>
                 ) : null}
-                <InkButton
-                  disabled={!canAct || !preview?.ok}
-                  onClick={() => setConfirmation(next)}
-                >
-                  {nextKind === 'learn'
-                    ? '学习功法'
-                    : nextKind === 'unlock'
-                      ? '突破瓶颈'
-                      : '修炼下一层'}
-                </InkButton>
-                {!preview?.ok ? (
+                {!confirmation ? (
+                  <InkButton
+                    disabled={
+                      !canAct ||
+                      (nextKind === 'train'
+                        ? !preview?.ok
+                        : nextKind === 'learn' &&
+                          learnedInRealm >= MAX_MANUALS_PER_SLOT)
+                    }
+                    onClick={() => {
+                      if (nextKind === 'train') setConfirmation(next);
+                      else if (jade && next && preview?.ok)
+                        setConfirmation(next);
+                      else
+                        openPicker(
+                          manual.realm,
+                          nextKind === 'unlock' ? manual.id : undefined,
+                        );
+                    }}
+                  >
+                    {nextKind === 'learn'
+                      ? '学习功法'
+                      : nextKind === 'unlock'
+                        ? '突破瓶颈'
+                        : '修炼下一层'}
+                  </InkButton>
+                ) : null}
+                {nextKind === 'learn' &&
+                learnedInRealm >= MAX_MANUALS_PER_SLOT ? (
+                  <p>该境界位已学满三种功法，不能继续学习新的功法。</p>
+                ) : null}
+                {nextKind === 'train' && !preview?.ok ? (
                   <p className="text-ink-secondary">
                     {preview?.diagnostics.map((d) => d.message).join('；') ??
                       '需要一本同名玉简'}
@@ -318,6 +414,11 @@ export function ManualRoom() {
                 ) : null}
               </>
             )}
+            {confirmation && confirmed && !confirmed.ok ? (
+              <p role="alert">
+                {confirmed.diagnostics.map((d) => d.message).join('；')}
+              </p>
+            ) : null}
             {confirmation && confirmed?.ok ? (
               <div className="border-ink/10 space-y-3 border-t pt-4">
                 {confirmation.action === 'train' ? (
@@ -377,7 +478,11 @@ export function ManualRoom() {
                 )}
                 <div className="flex gap-3">
                   <InkButton
-                    disabled={pending}
+                    disabled={
+                      !canAct ||
+                      ('item' in confirmation &&
+                        (bag.isRefreshing || !!bag.error || !bag.data))
+                    }
                     onClick={() => void submit(confirmation)}
                   >
                     确认

@@ -28,6 +28,7 @@ export {
   type SectMembersParams,
 } from './sectDefinitions';
 
+import { inventoryBagResource } from './bag';
 import {
   inventoryArtifactsResource,
   inventoryConsumablesResource,
@@ -56,6 +57,7 @@ import {
 
 /** All production definitions are registered here; pages only select them. */
 export const resourceRegistry = {
+  inventoryBag: inventoryBagResource,
   playerSession: playerSessionResource,
   playerProfile: playerProfileResource,
   playerCondition: playerConditionResource,

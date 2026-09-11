@@ -754,7 +754,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'enlightenment',
                   presentation: 'hub',
-                  summary: '推演、求卷与取舍都归书案。',
+                  summary: '静心入定，循境参悟所习功法。',
                 },
                 '【悟道室】',
               )}

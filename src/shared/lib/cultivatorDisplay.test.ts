@@ -28,8 +28,8 @@ describe('V6 character panel authority', () => {
   });
   it('provides the unaffiliated V6 base panel', () => {
     expect(projectCharacterDisplay(player, null)).toEqual({
-      physicalAtk: 75, magicAtk: 75, physicalDef: 27, magicDef: 27,
-      maxHp: 630, maxMp: 340, speed: 10, hit: 90, dodge: 10,
+      physicalAtk: 50, magicAtk: 50, physicalDef: 32, magicDef: 44,
+      maxHp: 480, maxMp: 300, speed: 21, hit: 90, dodge: 10,
       healPower: 12, sealHit: 5, sealResist: 5, critRate: 0.05, spellCritRate: 0.05, physicalFuryRate: 0,
     });
   });

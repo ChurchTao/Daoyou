@@ -165,8 +165,8 @@ describe('境界功法培养', () => {
     };
     const derived = withManualAttributes(character, result.projection);
     expect(character.attributes.vitality).toBe(10);
-    expect(compileCharacterPanelV1(derived.attributes).maxHp).toBe(650);
-    expect(compileCharacterPanelV1(derived.attributes).maxMp).toBe(350);
+    expect(compileCharacterPanelV1(derived.attributes).maxHp).toBe(488);
+    expect(compileCharacterPanelV1(derived.attributes).maxMp).toBe(305);
   });
 });
 describe('功法数据包', () => {

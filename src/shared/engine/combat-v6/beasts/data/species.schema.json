@@ -53,15 +53,138 @@
             "type": "string",
             "pattern": "^beast\\.[a-z][a-z0-9-]*$"
           },
-          "aptitude": {
-            "type": "string",
-            "enum": [
+          "aptitudes": {
+            "type": "object",
+            "properties": {
+              "attack": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "max": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              },
+              "defense": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "max": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              },
+              "health": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "max": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              },
+              "mana": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "max": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              },
+              "speed": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "max": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
               "attack",
               "defense",
               "health",
               "mana",
               "speed"
-            ]
+            ],
+            "additionalProperties": false
+          },
+          "growthMilli": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 3000
+              },
+              "max": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 3000
+              }
+            },
+            "required": [
+              "min",
+              "max"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -71,7 +194,8 @@
           "role",
           "allocation",
           "skill",
-          "aptitude"
+          "aptitudes",
+          "growthMilli"
         ],
         "additionalProperties": false
       }
@@ -88,52 +212,6 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 100000
-        },
-        "aptitude": {
-          "type": "object",
-          "properties": {
-            "min": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100000
-            },
-            "max": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100000
-            },
-            "favoredBonus": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100000
-            }
-          },
-          "required": [
-            "min",
-            "max",
-            "favoredBonus"
-          ],
-          "additionalProperties": false
-        },
-        "growthMilli": {
-          "type": "object",
-          "properties": {
-            "min": {
-              "type": "integer",
-              "minimum": 100,
-              "maximum": 3000
-            },
-            "max": {
-              "type": "integer",
-              "minimum": 100,
-              "maximum": 3000
-            }
-          },
-          "required": [
-            "min",
-            "max"
-          ],
-          "additionalProperties": false
         },
         "captureBonus": {
           "type": "object",
@@ -159,8 +237,6 @@
       "required": [
         "starterLevel",
         "lifespan",
-        "aptitude",
-        "growthMilli",
         "captureBonus"
       ],
       "additionalProperties": false

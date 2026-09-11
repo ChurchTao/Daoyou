@@ -31,7 +31,7 @@ import type { Consumable } from '@shared/types/cultivator';
 import { and, asc, count, eq, ilike, inArray, ne, or, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
-import { db, type DbExecutor, type DbTransaction } from '../drizzle/db';
+import { db, runDbTasks, type DbExecutor, type DbTransaction } from '../drizzle/db';
 import {
   cultivatorBeasts,
   cultivatorEquipmentSlots,
@@ -109,6 +109,7 @@ export async function assertInventoryIdle(
 export async function readInventory(
   owner: string,
   query: z.infer<typeof InventoryQuerySchema>,
+  executor: DbExecutor = db,
 ): Promise<InventoryView> {
   const ownerFilter = eq(inventoryItems.cultivatorId, owner);
   const matches = ITEM_DEFINITIONS.filter((i) =>
@@ -135,16 +136,16 @@ export async function readInventory(
         )
       : undefined,
   );
-  const [requestedRows, totals, usage] = await Promise.all([
-    db
+  const [requestedRows, totals, usage] = await runDbTasks(executor, [
+    () => executor
       .select()
       .from(inventoryItems)
       .where(filter)
       .orderBy(asc(inventoryItems.slotIndex), asc(inventoryItems.id))
       .limit(query.location === 'bag' ? BAG_CAPACITY : 40)
       .offset(query.location === 'bag' ? 0 : query.page * 40),
-    db.select({ value: count() }).from(inventoryItems).where(filter),
-    db
+    () => executor.select({ value: count() }).from(inventoryItems).where(filter),
+    () => executor
       .select({ value: count() })
       .from(inventoryItems)
       .where(and(ownerFilter, eq(inventoryItems.location, 'bag'))),
@@ -156,7 +157,7 @@ export async function readInventory(
   const rows =
     page === query.page || query.location === 'bag'
       ? requestedRows
-      : await db
+      : await executor
           .select()
           .from(inventoryItems)
           .where(filter)
@@ -164,7 +165,7 @@ export async function readInventory(
           .limit(40)
           .offset(page * 40);
   const equipped = rows.length
-    ? await db
+    ? await executor
         .select({ id: cultivatorEquipmentSlots.equipmentInstanceId })
         .from(cultivatorEquipmentSlots)
         .where(

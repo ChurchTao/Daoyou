@@ -57,15 +57,38 @@ function cultivator(
 }
 
 describe("character_panel_v1", () => {
+  it.each([
+    ["vitality", [80, 0, 0, 0, 0, 4, 2]],
+    ["strength", [0, 0, 10, 0, 0, 6, 2]],
+    ["spirit", [0, 50, 0, 10, 0, 4, 0]],
+    ["endurance", [0, 0, 0, 0, 22, 4, 2]],
+    ["speed", [0, 0, 0, 0, 0, 0, 15]],
+    ["willpower", [0, 50, 0, 0, 0, 16, 0]],
+  ] as const)("applies the agreed ten-point contribution for %s", (attribute, expected) => {
+    const base = compileCharacterPanelV1(BASE_ATTRIBUTES)
+    const next = compileCharacterPanelV1({ ...BASE_ATTRIBUTES, [attribute]: 20 })
+    const keys = ["maxHp", "maxMp", "physicalAtk", "magicAtk", "physicalDef", "magicDef", "speed"] as const
+    expect(keys.map((key) => next[key] - base[key])).toEqual(expected)
+  })
+
+  it("trades spell offense for resistance without changing mana at equal point budgets", () => {
+    const offense = compileCharacterPanelV1({ ...BASE_ATTRIBUTES, spirit: 20 })
+    const balanced = compileCharacterPanelV1({ ...BASE_ATTRIBUTES, spirit: 15, willpower: 15 })
+    const defense = compileCharacterPanelV1({ ...BASE_ATTRIBUTES, willpower: 20 })
+    expect([offense.maxMp, balanced.maxMp, defense.maxMp]).toEqual([350, 350, 350])
+    expect([offense.magicAtk, balanced.magicAtk, defense.magicAtk]).toEqual([60, 55, 50])
+    expect([offense.magicDef, balanced.magicDef, defense.magicDef]).toEqual([48, 54, 60])
+  })
+
   it("matches the all-ten golden panel", () => {
     expect(compileCharacterPanelV1(BASE_ATTRIBUTES)).toEqual({
-      physicalAtk: 75,
-      magicAtk: 75,
-      physicalDef: 27,
-      magicDef: 27,
-      maxHp: 630,
-      maxMp: 340,
-      speed: 10,
+      physicalAtk: 50,
+      magicAtk: 50,
+      physicalDef: 32,
+      magicDef: 44,
+      maxHp: 480,
+      maxMp: 300,
+      speed: 21,
       hit: 90,
       dodge: 10,
       healPower: 12,
@@ -90,13 +113,13 @@ describe("character_panel_v1", () => {
     const panel = compileCharacterPanelV1(attributes)
 
     expect(panel).toMatchObject({
-      physicalAtk: 83,
-      magicAtk: 80,
-      physicalDef: 35,
-      magicDef: 37,
-      maxHp: 713,
-      maxMp: 401,
-      speed: 16,
+      physicalAtk: 52,
+      magicAtk: 51,
+      physicalDef: 41,
+      magicDef: 58,
+      maxHp: 508,
+      maxMp: 335,
+      speed: 33,
       hit: 96,
       dodge: 16,
       healPower: 18,
@@ -123,10 +146,10 @@ describe("base cultivator projection", () => {
       kind: "player",
       level: 5,
       attrs: {
-        hp: 630,
-        maxHp: 630,
-        mp: 340,
-        maxMp: 340,
+        hp: 480,
+        maxHp: 480,
+        mp: 300,
+        maxMp: 300,
         attackCultivate: 0,
         defenseCultivate: 0,
         spellCultivate: 0,
@@ -186,7 +209,7 @@ describe("base cultivator projection", () => {
 
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.unit.attrs).toMatchObject({ hp: 630, maxHp: 630, mp: 0, maxMp: 340 })
+    expect(result.unit.attrs).toMatchObject({ hp: 480, maxHp: 480, mp: 0, maxMp: 300 })
     expect(result.diagnostics.map((item) => item.code)).toEqual([
       "PERSISTENT_STATUSES_NOT_PROJECTED",
       "RESOURCE_CLAMPED",
@@ -240,9 +263,9 @@ describe("base cultivator projection", () => {
 describe("character_training_v1", () => {
   it.each([
     [0, 0, 0],
-    [10, 31, 5],
-    [20, 63, 10],
-    [60, 189, 30],
+    [10, 24, 5],
+    [20, 48, 10],
+    [60, 144, 30],
   ])(
     "compiles life foundation level %i into hp and heal bonuses",
     (level, maxHpBonus, healPowerBonus) => {
@@ -294,8 +317,8 @@ describe("character_training_v1", () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.unit.attrs).toMatchObject({
-      hp: 677,
-      maxHp: 677,
+      hp: 516,
+      maxHp: 516,
       healPower: 19,
       attackCultivate: 13,
       defenseCultivate: 12,
@@ -307,7 +330,7 @@ describe("character_training_v1", () => {
   })
 
   it("defaults missing cultivation to zero and preserves persistent hp", () => {
-    const condition = createCondition(500, 200)
+    const condition = createCondition(400, 200)
     const result = projectCultivatorWithTrainingToCombatV6({
       cultivator: cultivator({ condition }),
       side: 0,
@@ -318,8 +341,8 @@ describe("character_training_v1", () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.unit.attrs).toMatchObject({
-      hp: 500,
-      maxHp: 630,
+      hp: 400,
+      maxHp: 480,
       mp: 200,
       attackCultivate: 0,
     })
@@ -348,7 +371,7 @@ describe("character_training_v1", () => {
 
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.unit.attrs).toMatchObject({ hp: 693, maxHp: 693 })
+    expect(result.unit.attrs).toMatchObject({ hp: 528, maxHp: 528 })
     expect(result.diagnostics.map((item) => item.code)).toContain("RESOURCE_CLAMPED")
   })
 

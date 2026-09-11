@@ -13,6 +13,8 @@ import type {
   ManualSlotV1,
 } from './types.ts';
 
+export const MAX_MANUALS_PER_SLOT = 3;
+
 export function getManualSlotCount(realm: RealmType): number {
   return Math.min(4, REALM_VALUES.indexOf(realm) + 1);
 }
@@ -47,6 +49,7 @@ export function validateManualStateV1(
     fail('功法版本无效');
   const byId = new Map(definitions.map((d) => [d.id, d]));
   const learned = new Set<string>();
+  const learnedCounts = new Map<ManualSlotV1, number>();
   for (const entry of state.learned) {
     const def = entry && byId.get(entry.manualId);
     if (!def || learned.has(entry.manualId)) {
@@ -54,6 +57,10 @@ export function validateManualStateV1(
       continue;
     }
     learned.add(entry.manualId);
+    const slot = manualSlot(def);
+    const count = (learnedCounts.get(slot) ?? 0) + 1;
+    learnedCounts.set(slot, count);
+    if (count > MAX_MANUALS_PER_SLOT) fail('每个境界位最多学习三种功法');
     const rule = manualRule(def);
     if (manualSlot(def) > getManualSlotCount(realm))
       fail('当前境界不能修炼该功法');

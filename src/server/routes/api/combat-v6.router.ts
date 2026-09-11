@@ -181,12 +181,18 @@ function errorResponse(c: Context<AppEnv>, error: unknown) {
 router.get('/inventory', async (c) => {
   c.header('Cache-Control', 'no-store');
   try {
+    const query = InventoryQuerySchema.parse(c.req.query());
+    const owner = actor(c).cultivatorId;
+    if (query.location === 'bag' && query.kind === 'all' && !query.search) {
+      return c.json(await readResourceWithMeta(
+        { kind: 'cultivator', id: owner },
+        'inventory.bag',
+        (tx) => readInventory(owner, query, tx),
+      ));
+    }
     return c.json({
       success: true,
-      data: await readInventory(
-        actor(c).cultivatorId,
-        InventoryQuerySchema.parse(c.req.query()),
-      ),
+      data: await readInventory(owner, query),
     });
   } catch (error) {
     return errorResponse(c, error);

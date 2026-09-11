@@ -234,12 +234,12 @@ describe('projectNaturalRecoveryResources', () => {
     const condition = createCondition({ statuses: [createStatus('major_wound'), createStatus('weakness')] });
     const cultivator = { name: 'test', realm: '炼气' as const, realm_stage: '初期' as const, attributes: { vitality: 10, strength: 10, spirit: 10, endurance: 10, speed: 10, willpower: 10 }, condition };
     const base = projectCharacterDisplay(cultivator, null);
-    expect(base.maxHp).toBe(630);
+    expect(base.maxHp).toBe(480);
     condition.tracks.bodyCultivation!.tracks.qi_blood.level = 10;
     const trained = projectCharacterDisplay(cultivator, null);
-    expect(trained.maxHp).toBe(661);
+    expect(trained.maxHp).toBe(504);
     expect(trained.healPower).toBe(base.healPower + 5);
-    const next = rebaseCharacterResources(condition, { attrs: trained, maxHp: 661, maxMp: 340, recoveryPaused: true }, new Date('2026-01-02'), { toxicityPenaltyMultiplier: 1, naturalRecoveryMultiplier: 1 });
+    const next = rebaseCharacterResources(condition, { attrs: trained, maxHp: 504, maxMp: 300, recoveryPaused: true }, new Date('2026-01-02'), { toxicityPenaltyMultiplier: 1, naturalRecoveryMultiplier: 1 });
     expect(next.resources.hp.current).toBe(100);
   });
 
