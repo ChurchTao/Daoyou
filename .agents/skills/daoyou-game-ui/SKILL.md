@@ -27,6 +27,13 @@ description: 为本项目的主流程游戏 UI 提供抽象规范与审查方法
 
 本 skill 默认只约束 `GameViewportLayout` 主流程页。不要把这些规则强行套到战斗中流程、地图沉浸页、创角流程或后台页，除非用户明确要求统一。
 
+## 当前接入边界
+
+- 先看 `src/react-app/router.tsx` 的真实布局。V6 战斗使用 `src/react-app/layouts/combat-v6-layout.tsx` 和 `src/react-app/components/feature/combat-v6`，不套主流程身份／任务／导航三层审查。
+- 战斗展示与回放核对 `docs/combat-v6-battle-ui.md` 和现有 session/presentation 代码；客户端消费权威状态，不为展示重新计算战斗结果。
+- 角色和物品状态优先复用 `src/react-app/lib/resources` 的 hooks/store/mutations。旧 `useCultivatorBundle` 已不在当前代码中。
+- 角色面板使用 `src/shared/lib/cultivatorDisplay.ts` 的 V6 展示契约；物品视图参考 `docs/item-presentation-ui.md`、`docs/inventory-equipment-ui.md`，不要从旧 creation product 推导新道装属性。
+
 ## Mental Model
 
 ### 1. Identity Layer

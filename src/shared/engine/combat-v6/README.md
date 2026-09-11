@@ -1,5 +1,9 @@
 # combat-v6
 
+数值基线后续治理以
+[`手游数值基线治理计划`](../../../../docs/combat-v6-mobile-numerical-governance-plan.md)
+为准：主要参照《梦幻西游》手游，按证据与版本、伤害结算、人物及召唤灵五维、装备范围、技能微调的顺序推进。当前实现仍是旧数值；该计划不代表已完成手游公式对齐。
+
 完整的新体系设计、隔离边界和分阶段迁移路线以
 [`docs/combat-v6-mhxy-redesign-roadmap.md`](../../../../docs/combat-v6-mhxy-redesign-roadmap.md)
 为 canonical 文档。角色字段的逐项兼容分析见

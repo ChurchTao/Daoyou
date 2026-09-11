@@ -1,4 +1,4 @@
 interface:
   display_name: "Daoyou Data Layer"
-  short_description: "Daoyou Drizzle、迁移、事务与持久模型"
+  short_description: "Daoyou Drizzle 事务、V6 资产归属、统一背包与回放持久化"
   default_prompt: "Use $daoyou-data-layer to modify Daoyou Drizzle schema, migrations, repositories, transactions, or persistence models."

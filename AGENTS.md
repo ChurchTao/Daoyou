@@ -5,13 +5,13 @@ AI agents should read this first. Keep changes small, project-specific, and back
 ## Project Snapshot
 
 - This repo is `Hono + React SPA`, not Next.js or SSR.
-- Runtime stack: Bun, Hono, React 19, React Router 7, Vite, Tailwind CSS 4, PostgreSQL, Drizzle ORM, Better Auth, Redis, AI SDK.
+- Runtime stack: Bun, Hono, React 19, React Router 8, Vite, Tailwind CSS 4, PostgreSQL, Drizzle ORM, Better Auth, Redis, NATS, AI SDK.
 - Use `bun` / `bunx` and the checked-in `bun.lock`. Do not introduce npm/yarn/pnpm lockfiles.
 - Path aliases are `@app` -> `src/react-app`, `@server` -> `src/server`, and `@shared` -> `src/shared`.
 
 ## Key Directories
 
-- `src/index.ts`: root Hono app, production SPA fallback, Bun cron registration.
+- `src/index.ts`: Bun/Hono entrypoint, WebSocket adapter, cron and message infrastructure lifecycle.
 - `src/server`: Hono app, routes, auth, services, repositories, jobs, Redis, LLM, SMTP.
 - `src/react-app`: React SPA routes, layouts, game shell, UI, hooks, providers.
 - `src/shared`: shared contracts, game engines, config, pure logic, domain types.
@@ -37,21 +37,20 @@ bun run db:migrate
 - `bun run build` sequentially invokes `build:client` and `build:server`; Vite configs separate client and server targets. The old V5 resolver Worker target was retired in Phase 10H. Preserve the remaining CI/CD entrypoints.
 - Vitest uses node environment and discovers tests only under `src/shared`.
 - Docker runtime contains only `dist`; ALTCHA uses the server-side `ALTCHA_HMAC_SECRET` and does not require a frontend site key.
-- GitHub Actions currently builds and pushes Docker image on `master`; it is not a lint/test quality gate.
+- GitHub Actions currently builds and pushes the Docker image on tag pushes; it is not a lint/test quality gate.
 
 ## Skills To Use
 
-- `daoyou-dev-runtime`: local startup, build, Docker, env, health check, cron, deployment scripts.
 - `daoyou-backend-api-security`: Hono routes, auth, admin, cron/internal APIs, LLM/provider security, Redis/SMTP integration boundaries.
 - `daoyou-data-layer`: Drizzle schema/migrations, repositories, transactions, Better Auth schema, durable models.
 - `daoyou-game-ui`: `GameViewportLayout` main-flow scene UI structure and review rules.
 - `daoyou-ink-portraits`: 玩家、NPC、BOSS 写意墨像立绘的固定笔墨基准、生成与视觉验收；见 `.agents/skills/daoyou-ink-portraits/SKILL.md`。
-- `daoyou-game-core-domain`: battle-v5, creation-v2, attributes, tags, affixes, product projections.
-- `daoyou-condition-alchemy-market`: condition, pills, alchemy, market, recycle, manual draw.
+- `daoyou-game-core-domain`: combat-v6 core/rules/projection, sects, equipment, manuals, beasts, and shared inventory/reward rules.
+- Only the skills present in `.agents/skills/` are project skill entrypoints. For runtime work, inspect `package.json`, `src/index.ts`, Vite/Docker configs and `docs/local-development.md`; for condition/alchemy/market work, combine the domain, data and backend skills as applicable.
 
 ## Architecture Rules
 
-- New API routes go through `src/server/routes/api/index.ts` and existing Hono middleware: `requireUser`, `requireActiveCultivator`, `requireAdmin`, `validateJson`, `validateQuery`.
+- New API routes go through `src/server/routes/api/index.ts` and existing Hono middleware: `requireUser`, `requireActiveCultivatorRef`, `requireAdmin`, `validateJson`, `validateQuery`.
 - Frontend route loaders are UX guards only; backend middleware is the security boundary.
 - `/api/auth/*` is Better Auth through `src/server/lib/auth/hono.ts`.
 - `/internal/cron/*` uses Bearer `CRON_SECRET` when configured; production requires it, while non-production without `CRON_SECRET` currently allows the request.
@@ -67,34 +66,34 @@ bun run db:migrate
 
 - React routes are centralized in `src/react-app/router.tsx` and loaded with `lazyRoute`.
 - Game scenes use `handle={scene(...)}`; the scene id must exist in `src/react-app/components/game-shell/gameNavigation.ts`.
-- `/game` has distinct layouts: `GameGenesisLayout`, `GameViewportLayout`, `GameCombatLayout`, `GameMapLayout`, `GameDungeonLayout`.
+- `/game` uses distinct genesis, narrative, viewport, activity, combat, map and dungeon layouts. V6 battles have `CombatV6Layout`; inspect `router.tsx` for the actual wrapper before changing a scene.
 - Main-flow game UI must follow `daoyou-game-ui`: identity layer, task layer, and navigation layer stay separate.
 - Do not add `InkPageShell` to game routes.
 - Cross-route reusable UI belongs in `src/react-app/components/feature/**`, `src/react-app/components/ui/**`, or `src/react-app/components/game-shell/**`; `src/react-app/routes/game/**/components` is page-private.
-- Reuse `useCultivatorBundle`, `fetchJsonCached`, `useTaskList`, and provider contexts before adding new page-level state.
+- Reuse `src/react-app/lib/resources` hooks/store, `fetchJsonCached`, `useTaskList`, and provider contexts before adding new page-level state.
 
 ## Data And Domain Rules
 
 - Do not create parallel `src/db` or `src/server/db`; DB entrypoints are `src/server/lib/drizzle/db.ts` and `schema.ts`.
 - The main Drizzle Kit flow manages only `wanjiedaoyou_*` business tables. `drizzle.auth.config.ts` independently manages the fixed `better_auth` schema.
 - Pass `DbExecutor` / `DbTransaction` through write paths; do not open a fresh executor inside a transaction.
-- v2 products (`skill`, `artifact`, `gongfa`) use `wanjiedaoyou_creation_products`; equipment state is `creation_products.is_equipped`.
-- `battleProjection` is runtime data rebuilt during rehydrate; do not persist it directly.
-- Battle records use `wanjiedaoyou_battle_records_v2`.
-- Character persistent state is `cultivators.condition`; do not restore old `persistent_state` or `persistent_statuses`.
-- Consumables use `consumables.spec`; do not restore old `effects`, `use_spec`, or `details`.
-- Character base attributes are only vitality, strength, spirit, endurance, speed, willpower. Derived combat/display attributes come from battle-v5 adapters.
-- Runtime battle tags come from `GameplayTags`; creation/process tags come from `CreationTags`. Do not handwrite runtime tag strings.
+- Current equipment/items use `inventory_items` and `cultivator_equipment_slots`; personal manuals and beasts belong to the cultivator, while sect combat progression belongs to membership. See `daoyou-data-layer` for tables and ownership.
+- Runtime DB access uses `pg.Pool` / node-postgres; use `runDbTasks` when a group of reads may run inside a transaction.
+- Active V6 combat is Redis-authoritative; durable history uses `combat_replay_archives` / `combat_replay_participants`, with NATS-backed terminal/replay delivery.
+- Character persistent state is `cultivators.condition`. Bag consumable facts (including `spec`) are stored in `inventory_items.instance_data`; residual old tables are not the V6 bag authority.
+- Character permanent attributes remain vitality, strength, spirit, endurance, speed, willpower. Current projection is `projectCharacterToCombatV6`; display shares that V6 pipeline.
+- V6 core must stay independent of rules/projection/content and must not import battle-v5 or creation-v2. Do not restore old ability/tag/product projection machinery for new V6 behavior.
+- Legacy tables/types can remain without being current authorities. Check runtime callers and `docs/combat-v6-legacy-table-retirement.md` before migration/deletion; `/api/battle-records/*` is retired with 410.
 
 ## High-Risk Areas
 
-- Build pipeline and SPA fallback in `vite.config.ts` / `src/index.ts`.
+- Client/server build separation, `src/index.ts` startup/shutdown and `src/server/app.ts` routing.
 - Auth, ALTCHA, Better Auth schema, admin allowlist, and session cookie passthrough.
 - LLM provider headers, prompt schemas, resource/reward/cost parsing, and metrics.
 - Drizzle migrations, legacy tables, JSONB model shape, and transaction boundaries.
 - `GameViewportLayout`, bottom dock/HUD/world-chat offset, and scene metadata.
-- battle-v5, creation-v2, `condition`, alchemy, market, manual draw, and resource updates.
-- Redis locks, cron jobs, rankings, market cache, chat cooldown, and health-check behavior.
+- combat-v6 core/content/projection, `condition`, unified inventory, alchemy, market and resource updates.
+- Redis CAS/occupancy locks, NATS/outboxes, terminal settlement, cron jobs, rankings and health-check behavior.
 
 ## Verification Checklist
 

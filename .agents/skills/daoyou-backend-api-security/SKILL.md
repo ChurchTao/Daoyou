@@ -1,6 +1,6 @@
 ---
 name: daoyou-backend-api-security
-description: Daoyou Hono API、认证、授权、Better Auth、ALTCHA、admin、internal cron、LLM header 安全和服务端输入校验指南。Use when adding or modifying src/server routes, middleware, auth, admin endpoints, cron/internal endpoints, shared contracts, LLM provider handling, API validation, or security-relevant frontend auth/admin loaders in this repo. For ordinary admin pages, navigation, and UI state, use daoyou-frontend-routing-state.
+description: Daoyou Hono API、认证、授权、Better Auth、ALTCHA、admin、internal cron、LLM header 安全和服务端输入校验指南。Use when adding or modifying src/server routes, middleware, auth, admin endpoints, cron/internal endpoints, shared contracts, LLM provider handling, API validation, or security-relevant frontend auth/admin loaders in this repo. Does not cover ordinary page styling or navigation.
 ---
 
 # Daoyou Backend API Security
@@ -26,28 +26,37 @@ description: Daoyou Hono API、认证、授权、Better Auth、ALTCHA、admin、
 - Frontend route loaders are UX guards only. Backend handlers are the security boundary.
 - Existing auth middleware:
   - `requireUser()` for logged-in users.
-  - `requireActiveCultivator()` for logged-in users with an active cultivator; it sets `user`, `cultivator`, and `executor`.
-  - `requireAdmin()` for `ADMIN_EMAILS` allowlist.
+  - `requireActiveCultivatorRef()` resolves identity and sets `user` / `activeCultivatorRef`; it does not hydrate a full cultivator or inject a DB executor.
+  - `requireAdmin()` uses `adminAccess.ts` (`ADMIN_USER_IDS` or legacy `ADMIN_EMAILS`). `requireBetterAuthAdmin()` requires a configured user ID for account administration.
   - `validateJson()` and `validateQuery()` for Zod parsing.
-- Admin subroutes currently apply `requireAdmin()` explicitly inside handlers.
+- Inspect each admin subroute for middleware registration; do not assume a filename or frontend loader supplies authorization.
 - `/internal/cron/*` uses `Authorization: Bearer ${CRON_SECRET}`, not user sessions. In production, missing `CRON_SECRET` returns 500.
 
 ## LLM Security Facts
 
-- The browser patches `window.fetch` in `src/react-app/main.tsx` to add `x-llm-api-key` and `x-llm-model` headers for `/api/` requests.
+- The browser patches `window.fetch` in `src/react-app/main.tsx` to add `x-llm-provider`, `x-llm-api-key` and `x-llm-model` headers for `/api/` requests.
 - Server LLM calls should use `src/server/utils/aiClient.ts` (`generateAiText`, `streamAiText`, `generateAiObject`, `generateAiArray`) so provider resolution, metrics, structured output, and retry behavior stay in one path.
 - Server-side `LLM_PROVIDER` is a route table: `provider[/model][:weight],...`. It covers one or many providers and one or many models. Multiple routes are sticky by user id hash on the full `provider + model`. BYOK request config still wins and does not enter the split. Read/parse in `src/shared/config/llmRouting.ts`; `aiClient.ts` only maps env and picks.
 - Server accepts request-level BYOK only when provider, API key, and model pass `src/shared/config/llm.ts`; partial or invalid configuration returns 400 without falling back to the server key.
-- DeepSeek calls use the official provider endpoint. Do not accept a request-level provider or Base URL.
+- Request provider IDs are allowlisted in `src/shared/config/llm.ts`; adapters/endpoints are owned by `src/server/lib/llm/providers.ts`. Do not accept arbitrary request Base URLs.
 - LLM metrics use in-memory fallback plus Redis key `admin:llm-metrics:events:v1`; do not add a parallel metrics store.
 - Prompt files under `src/server/prompts/*.md` have `id:` headers. New prompt scenes usually also need `LlmSceneId`, caller `sceneId`, and schema/constraint updates.
 - Treat LLM output as untrusted input. Numeric state changes need Zod bounds and service/resource-layer guards.
-- `docs/llm-security-defense.md` contains useful historical risk analysis, but parts are stale relative to current code.
+
+## V6 Authority and Mutation Boundaries
+
+- Start with `src/server/routes/api/combat-v6.router.ts` and mode-specific routers, `src/shared/contracts/combatV6*.ts`, and `src/server/lib/services/combat-v6`.
+- Resolve the actor from `activeCultivatorRef`; derive combat attributes, equipment, manuals and beasts server-side through `CombatV6BuildService.ts`. Client commands do not authorize client-supplied combat units, results or rewards.
+- Preserve session ownership/participant checks, `expectedRevision` validation, legal-command queries and Redis CAS. Spectator and replay views must retain their existing visibility checks.
+- State changes use the owning service's mutation/occupancy guards, transaction and resource response path (`CommandExecutors.ts`, `ResourceMutationResponse.ts`, `InventoryService.ts`). Check mode-specific exceptions such as dungeon recovery before reusing a blanket combat lock.
+- Terminal settlement and replay archival run through `src/server/lib/mq/combatV6Messaging.ts` and V6 projectors. Retain retry/idempotency semantics; do not introduce direct route settlement alongside consumers.
+- `/api/battle-records/*` is a 410 retirement endpoint; do not restore V5 battle handlers for new V6 history features.
 
 ## External Service Facts
 
 - Redis access must go through `src/server/lib/redis`; do not instantiate `new Redis()` in feature code.
 - Redis is not optional for many runtime paths even though health-check reports `disabled` when `REDIS_URL` is absent.
+- NATS access uses `src/server/lib/nats`; shared messaging lifecycle is registered from `src/index.ts`. Health checks include Redis, NATS and message infrastructure.
 - SMTP mail uses `src/server/lib/admin/smtp.ts`; required env includes `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `MAIL_FROM`.
 
 ## Workflow
@@ -66,7 +75,7 @@ description: Daoyou Hono API、认证、授权、Better Auth、ALTCHA、admin、
 - Do not rely on React loaders for authorization.
 - Do not bypass `src/server/lib/auth/hono.ts` for login, signup, reset, OTP, or ALTCHA-protected flows.
 - Do not add admin files under `/api/admin` without explicit admin authorization.
-- Do not add provider or Base URL request headers; use the validated DeepSeek configuration from the Hono context.
+- Use the validated `llmConfig` from Hono context and configured provider adapters; do not bypass the provider allowlist or introduce a client Base URL.
 - Do not make public list/ranking/community endpoints private without checking frontend/product usage.
 - Do not assume `src/shared/api` exists; shared contracts live under `src/shared/contracts`.
 - Do not bypass `aiClient.ts` for LLM calls.
