@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "species": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^combat\\.wild\\.species\\.[a-z][a-z0-9-]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "carryLevel": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 180
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "allocation": {
+            "type": "string",
+            "enum": [
+              "constitution",
+              "strength",
+              "magic",
+              "endurance",
+              "agility"
+            ]
+          },
+          "skill": {
+            "type": "string",
+            "pattern": "^beast\\.[a-z][a-z0-9-]*$"
+          },
+          "aptitude": {
+            "type": "string",
+            "enum": [
+              "attack",
+              "defense",
+              "health",
+              "mana",
+              "speed"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "carryLevel",
+          "role",
+          "allocation",
+          "skill",
+          "aptitude"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "generation": {
+      "type": "object",
+      "properties": {
+        "starterLevel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 180
+        },
+        "lifespan": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "aptitude": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "favoredBonus": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            }
+          },
+          "required": [
+            "min",
+            "max",
+            "favoredBonus"
+          ],
+          "additionalProperties": false
+        },
+        "growthMilli": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 3000
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 3000
+            }
+          },
+          "required": [
+            "min",
+            "max"
+          ],
+          "additionalProperties": false
+        },
+        "captureBonus": {
+          "type": "object",
+          "properties": {
+            "skillId": {
+              "type": "string",
+              "pattern": "^beast\\.[a-z][a-z0-9-]*$"
+            },
+            "chance": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "multipleOf": 0.000001
+            }
+          },
+          "required": [
+            "skillId",
+            "chance"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "starterLevel",
+        "lifespan",
+        "aptitude",
+        "growthMilli",
+        "captureBonus"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "species",
+    "generation"
+  ],
+  "additionalProperties": false
+}

@@ -52,7 +52,7 @@ import { CombatV6RuntimeStore } from './combat-v6/CombatV6RuntimeStore';
 import { hasActiveSectTaskBattle } from './combat-v6/CombatV6SectTaskOccupancy';
 import { CombatV6WildStore } from './combat-v6/CombatV6WildStore';
 import { inventoryStackKey } from './inventoryStackKey';
-import { ResourceEventCommitter } from './ResourceEventCommitter';
+import { ResourceEventCommitter, type ResourceCommitResult } from './ResourceEventCommitter';
 
 export class InventoryError extends Error {}
 export function inventoryItemOf(
@@ -363,6 +363,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
         if (input.action !== 'sort' && !item)
           throw new InventoryError('物品已变化，请刷新后重试');
         let result: { oldSkill?: string; newSkill?: string } = {};
+        let state: ResourceCommitResult = { changes: [], baselines: [] };
         if (input.action === 'sort') {
           const bag = next.filter((i) => i.location === 'bag');
           if (
@@ -573,7 +574,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
                 compiled.diagnostics.find((d) => d.severity === 'error')
                   ?.message ?? '装配无效',
               );
-            await new ResourceEventCommitter().commit(tx, {
+            state = await new ResourceEventCommitter().commit(tx, {
               actor: { userId: character.userId, cultivatorId: owner },
               source: 'inventory-equipment',
               scopeDefaults: { cultivatorId: owner },
@@ -589,7 +590,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
         }
         await saveInventoryPlan(owner, before, next, tx);
         lease.assertHeld();
-        return result;
+        return { data: result, state };
       }),
   );
 }

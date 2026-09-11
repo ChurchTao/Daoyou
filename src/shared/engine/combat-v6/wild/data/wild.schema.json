@@ -1,0 +1,388 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "region": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "name": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "realmRequirement": {
+          "type": "string",
+          "enum": [
+            "炼气",
+            "筑基",
+            "金丹",
+            "元婴",
+            "化神",
+            "炼虚",
+            "合体",
+            "大乘",
+            "渡劫"
+          ]
+        },
+        "beastRealm": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "minLevel": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "maxLevel": {
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "required": [
+        "nodeId",
+        "id",
+        "name",
+        "realmRequirement",
+        "beastRealm",
+        "minLevel",
+        "maxLevel"
+      ],
+      "additionalProperties": false
+    },
+    "species": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema3"
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/__schema1"
+          },
+          "name": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "tags": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema4"
+            }
+          },
+          "formula": {
+            "type": "string",
+            "const": "spell"
+          },
+          "targeting": {
+            "type": "object",
+            "properties": {
+              "side": {
+                "type": "string",
+                "enum": [
+                  "enemy",
+                  "ally",
+                  "self",
+                  "any"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10
+              }
+            },
+            "required": [
+              "side",
+              "count"
+            ],
+            "additionalProperties": false
+          },
+          "effects": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema5"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "tags",
+          "formula",
+          "targeting",
+          "effects"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "panels": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/__schema1"
+      },
+      "additionalProperties": {
+        "minItems": 1,
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/__schema7"
+        }
+      }
+    },
+    "baseAttrs": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "enum": [
+          "hp",
+          "maxHp",
+          "mp",
+          "maxMp",
+          "physicalAtk",
+          "physicalDef",
+          "magicAtk",
+          "magicDef",
+          "healPower",
+          "speed",
+          "hit",
+          "dodge",
+          "critRate",
+          "spellCritRate",
+          "physicalFuryRate",
+          "sealHit",
+          "sealResist",
+          "attackCultivate",
+          "defenseCultivate",
+          "spellCultivate",
+          "resistSpellCultivate"
+        ]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/__schema6"
+      },
+      "required": [
+        "hp",
+        "maxHp",
+        "mp",
+        "maxMp",
+        "physicalAtk",
+        "physicalDef",
+        "magicAtk",
+        "magicDef",
+        "healPower",
+        "speed",
+        "hit",
+        "dodge",
+        "critRate",
+        "spellCritRate",
+        "physicalFuryRate",
+        "sealHit",
+        "sealResist",
+        "attackCultivate",
+        "defenseCultivate",
+        "spellCultivate",
+        "resistSpellCultivate"
+      ]
+    },
+    "encounter": {
+      "type": "object",
+      "properties": {
+        "minCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "maxCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      },
+      "required": [
+        "minCount",
+        "maxCount"
+      ],
+      "additionalProperties": false
+    },
+    "activity": {
+      "type": "object",
+      "properties": {
+        "dailyLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "explorationCooldownMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600000
+        }
+      },
+      "required": [
+        "dailyLimit",
+        "explorationCooldownMs"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "region",
+    "species",
+    "skills",
+    "panels",
+    "baseAttrs",
+    "encounter",
+    "activity"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^combat\\.wild\\.[a-z][a-z0-9.-]*$"
+    },
+    "__schema2": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 180
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "name": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "description": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "role": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "skillIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "role",
+        "skillIds"
+      ],
+      "additionalProperties": false
+    },
+    "__schema4": {
+      "type": "string",
+      "enum": [
+        "physical",
+        "spell",
+        "seal",
+        "support",
+        "passive"
+      ]
+    },
+    "__schema5": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "spellHit"
+        },
+        "coeff": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "power": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema6"
+            },
+            {
+              "$ref": "#/$defs/__schema0"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "coeff",
+        "power"
+      ],
+      "additionalProperties": false
+    },
+    "__schema6": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "__schema7": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "maxHp": {
+          "minimum": 1,
+          "$ref": "#/$defs/__schema6"
+        },
+        "maxMp": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "physicalAtk": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "physicalDef": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "magicAtk": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "magicDef": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "speed": {
+          "$ref": "#/$defs/__schema6"
+        }
+      },
+      "required": [
+        "level",
+        "maxHp",
+        "maxMp",
+        "physicalAtk",
+        "physicalDef",
+        "magicAtk",
+        "magicDef",
+        "speed"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "./tower.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "materials": [
+    {
+      "rewardId": "material.ore.qingxi-iron.v1",
+      "weight": 1
+    },
+    {
+      "rewardId": "material.aux.qingxi-stone.v1",
+      "weight": 1
+    },
+    {
+      "rewardId": "material.monster.qingxi-bone.v1",
+      "weight": 1
+    },
+    {
+      "rewardId": "material.tcdb.qingxi-jade.v1",
+      "weight": 1
+    }
+  ],
+  "milestones": {
+    "C": {
+      "quantity": 1,
+      "spiritStonesPerLevel": 5,
+      "reputation": 5
+    },
+    "B": {
+      "quantity": 2,
+      "spiritStonesPerLevel": 10,
+      "reputation": 10
+    },
+    "A": {
+      "quantity": 3,
+      "spiritStonesPerLevel": 15,
+      "reputation": 15
+    },
+    "S": {
+      "quantity": 4,
+      "spiritStonesPerLevel": 20,
+      "reputation": 20
+    }
+  }
+}

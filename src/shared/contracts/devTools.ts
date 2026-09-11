@@ -26,6 +26,20 @@ export const DevCultivatorPatchSchema = z
     unallocatedAttributePoints: z.number().int().min(0).max(100000).optional(),
     spiritStones: z.number().int().min(0).max(100000000).optional(),
     reputation: z.number().int().min(0).max(1000000).optional(),
+    sectCombat: z
+      .object({
+        methods: z
+          .record(z.string().min(1).max(120), z.number().int().min(1).max(180))
+          .refine(
+            (v) => Object.keys(v).length > 0 && Object.keys(v).length <= 6,
+            '指定1至6本心法',
+          )
+          .optional(),
+        meridianDepth: z.number().int().min(0).max(7).optional(),
+      })
+      .strict()
+      .refine((v) => Object.keys(v).length > 0, '宗门构筑调整不能为空')
+      .optional(),
     cultivation: z
       .object({
         experience: z.number().int().min(0).max(1000000000000).optional(),

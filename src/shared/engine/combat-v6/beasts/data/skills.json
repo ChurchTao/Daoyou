@@ -1,0 +1,70 @@
+{
+  "$schema": "./skills.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "skills": [
+    {
+      "id": "beast.spirit-flame",
+      "name": "灵火",
+      "book": true,
+      "effect": {
+        "type": "spellHit",
+        "costMp": 10,
+        "coefficient": 1,
+        "powerBase": 10,
+        "powerPerLevel": 1
+      }
+    },
+    {
+      "id": "beast.stone-guard",
+      "name": "岩甲护身",
+      "book": true,
+      "effect": {
+        "type": "barrier",
+        "costMp": 10,
+        "barrierId": "beast.stone-guard",
+        "name": "岩甲",
+        "kind": "beast-guard",
+        "powerBase": 20,
+        "powerPerLevel": 3,
+        "duration": 2
+      }
+    },
+    {
+      "id": "beast.wind-strike",
+      "name": "疾风爪",
+      "book": true,
+      "effect": {
+        "type": "physicalHit",
+        "costMp": 8,
+        "coefficient": 1.1
+      }
+    },
+    {
+      "id": "beast.combo",
+      "name": "连击",
+      "book": true,
+      "effect": {
+        "type": "combo",
+        "chance": 0.25,
+        "coefficient": 0.75
+      }
+    },
+    {
+      "id": "beast.advanced-combo",
+      "name": "高级连击",
+      "book": true,
+      "effect": {
+        "type": "combo",
+        "chance": 0.4,
+        "coefficient": 0.75
+      }
+    }
+  ],
+  "families": [
+    {
+      "normal": "beast.combo",
+      "advanced": "beast.advanced-combo"
+    }
+  ]
+}

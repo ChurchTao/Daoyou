@@ -8,6 +8,7 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import type { BeastManagementView } from '@shared/contracts/combatV6Beasts';
 import { BEAST_SPECIES } from '@shared/engine/combat-v6/beasts';
+import { BEAST_GENERATION } from '@shared/engine/combat-v6/beasts/content';
 import { BEAST_CAPACITY } from '@shared/engine/combat-v6/beasts/progression';
 import { useEffect, useRef, useState } from 'react';
 import { BeastActionDrawer, type BeastAction } from './BeastActionDrawer';
@@ -329,7 +330,7 @@ export default function BeastsPage() {
           }
         >
           <p className="text-sm leading-7">
-            每位角色可免费选择一次。伙伴初始10级、1000寿命，资质与成长生成后固定，附带一格出生技能。有空位时自动携带，满足出战等级且没有首发时设为首发。
+            每位角色可免费选择一次。伙伴初始{BEAST_GENERATION.starterLevel}级、{BEAST_GENERATION.lifespan}寿命，资质与成长生成后固定，附带一格出生技能。有空位时自动携带，满足出战等级且没有首发时设为首发。
           </p>
         </InkDetailDrawer>
       ) : null}

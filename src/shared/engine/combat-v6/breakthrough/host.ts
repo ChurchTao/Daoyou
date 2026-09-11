@@ -5,7 +5,7 @@ import {
   CombatV6PveHostSession,
   type PveRestoredState,
 } from '../encounter/host';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '../projection';
+import { projectCharacterToCombatV6 } from '../projection';
 import { daoyouRulesetV6 } from '../rules-daoyou';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
 
@@ -100,7 +100,7 @@ export function createBreakthroughHost(
   clearMind: boolean,
   seed: number,
 ) {
-  const projected = projectCultivatorMultiSectV5ToCombatV6({
+  const projected = projectCharacterToCombatV6({
     ...player,
     side: 0,
     slot: 0,
@@ -114,7 +114,7 @@ export function createBreakthroughHost(
     challengeId === 'inner_demon_grand';
   let opponent: CreateBattleInput['units'][number];
   if (mirror) {
-    const enemy = projectCultivatorMultiSectV5ToCombatV6({
+    const enemy = projectCharacterToCombatV6({
       ...player,
       side: 1,
       slot: 0,

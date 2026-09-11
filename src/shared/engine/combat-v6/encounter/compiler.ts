@@ -6,7 +6,7 @@ import {
   type LineupUnit,
   type SkillEffect,
 } from '../core/index.ts';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '../projection/index.ts';
+import { projectCharacterToCombatV6 } from '../projection/index.ts';
 import { daoyouRulesetV6 } from '../rules-daoyou/index.ts';
 import {
   COMBAT_V6_PHASE_6D_VERSIONS,
@@ -249,7 +249,7 @@ export function compileCombatV6TrainingEncounterV1(
   if (!encounter || diagnostics.some((item) => item.severity === 'error'))
     return { ok: false, diagnostics, versions };
 
-  const player = projectCultivatorMultiSectV5ToCombatV6({
+  const player = projectCharacterToCombatV6({
     ...input.player,
     side: Team.A,
     slot: encounter.playerSlot,

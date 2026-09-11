@@ -1,7 +1,7 @@
 import { combatV6SkillDetails } from '@shared/combat-v6/skill-details';
 import {
-  COMBAT_V6_SECT_DEFINITIONS_V4,
-  compileSectCombatV6V4,
+  COMBAT_V6_SECT_DEFINITIONS,
+  compileCurrentSectCombatV6,
 } from '../content/index';
 import type { SectCombatProgressV6 } from '../content/types';
 
@@ -9,9 +9,9 @@ export function sectSkillCatalog(
   progress: SectCombatProgressV6,
   characterLevel: number,
 ) {
-  const definition = COMBAT_V6_SECT_DEFINITIONS_V4[progress.sectId];
+  const definition = COMBAT_V6_SECT_DEFINITIONS[progress.sectId];
   const path = definition.paths.find((p) => p.id === progress.activePathId)!;
-  const compiled = compileSectCombatV6V4({ progress, characterLevel });
+  const compiled = compileCurrentSectCombatV6({ progress, characterLevel });
   if (!compiled.ok)
     throw new Error(compiled.diagnostics.map((d) => d.message).join('；'));
   const projection = compiled.projection;

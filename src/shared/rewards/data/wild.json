@@ -1,0 +1,140 @@
+{
+  "$schema": "./wild.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "nodeId": "SAT_TN_08",
+  "poolId": "qingxi",
+  "poolVersion": 2,
+  "equipmentLevels": [
+    10
+  ],
+  "groups": [
+    {
+      "id": "materials",
+      "chance": 0.3,
+      "source": {
+        "kind": "fixed",
+        "entries": [
+          {
+            "rewardId": "material.ore.qingxi-iron.v1",
+            "quantity": {
+              "min": 1,
+              "max": 1
+            },
+            "weight": 40
+          },
+          {
+            "rewardId": "material.aux.qingxi-stone.v1",
+            "quantity": {
+              "min": 1,
+              "max": 1
+            },
+            "weight": 25
+          },
+          {
+            "rewardId": "material.monster.qingxi-bone.v1",
+            "quantity": {
+              "min": 1,
+              "max": 1
+            },
+            "weight": 25
+          },
+          {
+            "rewardId": "material.tcdb.qingxi-jade.v1",
+            "quantity": {
+              "min": 1,
+              "max": 1
+            },
+            "weight": 10
+          }
+        ]
+      }
+    },
+    {
+      "id": "blueprints",
+      "chance": 0.08,
+      "source": {
+        "kind": "blueprints",
+        "slots": [
+          "weapon",
+          "head",
+          "armor",
+          "necklace",
+          "belt",
+          "footwear"
+        ]
+      }
+    },
+    {
+      "id": "equipment",
+      "chance": 0.01,
+      "source": {
+        "kind": "equipment",
+        "slots": [
+          "weapon",
+          "head",
+          "armor",
+          "necklace",
+          "belt",
+          "footwear"
+        ]
+      }
+    },
+    {
+      "id": "books",
+      "chance": 0.03,
+      "source": {
+        "kind": "fixed",
+        "entries": [
+          {
+            "rewardId": "book.beast.spirit-flame",
+            "quantity": {
+              "min": 1,
+              "max": 1
+            },
+            "weight": 24
+          },
+          {
+            "rewardId": "book.beast.stone-guard",
+            "quantity": {
+              "min": 1,
+              "max": 1
+            },
+            "weight": 24
+          },
+          {
+            "rewardId": "book.beast.wind-strike",
+            "quantity": {
+              "min": 1,
+              "max": 1
+            },
+            "weight": 24
+          },
+          {
+            "rewardId": "book.beast.combo",
+            "quantity": {
+              "min": 1,
+              "max": 1
+            },
+            "weight": 24
+          },
+          {
+            "rewardId": "book.beast.advanced-combo",
+            "quantity": {
+              "min": 1,
+              "max": 1
+            },
+            "weight": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "manuals",
+      "chance": 0.03,
+      "source": {
+        "kind": "manualJades"
+      }
+    }
+  ]
+}

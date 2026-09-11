@@ -1,5 +1,5 @@
-import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '../engine/combat-v6/content';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '../engine/combat-v6/projection';
+import { COMBAT_V6_SECT_DEFINITIONS } from '../engine/combat-v6/content';
+import { projectCharacterToCombatV6 } from '../engine/combat-v6/projection';
 import {
   projectCharacterDisplay,
   type CharacterDisplayBuild,
@@ -15,7 +15,7 @@ export function publicCombatV6Build(
   >,
   build: CharacterDisplayBuild,
 ) {
-  const projection = projectCultivatorMultiSectV5ToCombatV6({
+  const projection = projectCharacterToCombatV6({
     cultivator: { ...character, id: character.id! },
     ...build,
     side: 0,
@@ -24,7 +24,7 @@ export function publicCombatV6Build(
   });
   if (!projection.ok)
     throw new Error(projection.diagnostics.map((d) => d.message).join('；'));
-  const definition = build.sect ? COMBAT_V6_SECT_DEFINITIONS_V4[build.sect.sectId] : undefined;
+  const definition = build.sect ? COMBAT_V6_SECT_DEFINITIONS[build.sect.sectId] : undefined;
   const skills = projection.skills.map(
     (skill) =>
       projection.unit.skillOverrides?.find(

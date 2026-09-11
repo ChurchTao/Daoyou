@@ -1,0 +1,146 @@
+{
+  "species": [
+    {
+      "id": "combat.wild.species.spirit-fox",
+      "name": "青灵狐",
+      "carryLevel": 5,
+      "role": "法术",
+      "allocation": "magic",
+      "skill": "beast.spirit-flame",
+      "aptitude": "mana"
+    },
+    {
+      "id": "combat.wild.species.rock-boar",
+      "name": "岩甲猪",
+      "carryLevel": 5,
+      "role": "防护",
+      "allocation": "constitution",
+      "skill": "beast.stone-guard",
+      "aptitude": "health"
+    },
+    {
+      "id": "combat.wild.species.wind-wolf",
+      "name": "疾风狼",
+      "carryLevel": 5,
+      "role": "物理",
+      "allocation": "strength",
+      "skill": "beast.wind-strike",
+      "aptitude": "attack"
+    }
+  ],
+  "skills": [
+    {
+      "id": "beast.spirit-flame",
+      "name": "灵火",
+      "costMp": 10,
+      "tags": [
+        "spell"
+      ],
+      "formula": "spell",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": "10 + skillLevel"
+        }
+      ]
+    },
+    {
+      "id": "beast.stone-guard",
+      "name": "岩甲护身",
+      "costMp": 10,
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "self",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyBarrier",
+          "id": "beast.stone-guard",
+          "kind": "beast-guard",
+          "name": "岩甲",
+          "power": "20 + skillLevel * 3",
+          "duration": 2
+        }
+      ]
+    },
+    {
+      "id": "beast.wind-strike",
+      "name": "疾风爪",
+      "costMp": 8,
+      "tags": [
+        "physical"
+      ],
+      "formula": "physical",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1.1
+        }
+      ]
+    },
+    {
+      "id": "beast.combo",
+      "name": "连击",
+      "tags": [
+        "passive"
+      ],
+      "targeting": {
+        "side": "enemy"
+      },
+      "effects": [],
+      "hooks": [
+        {
+          "on": "afterHit",
+          "sourceIsSelf": true,
+          "requireKind": "physical",
+          "chance": 0.25,
+          "aim": "hookTarget",
+          "effects": [
+            {
+              "type": "physicalHit",
+              "coeff": 0.75
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "beast.advanced-combo",
+      "name": "高级连击",
+      "tags": [
+        "passive"
+      ],
+      "targeting": {
+        "side": "enemy"
+      },
+      "effects": [],
+      "hooks": [
+        {
+          "on": "afterHit",
+          "sourceIsSelf": true,
+          "requireKind": "physical",
+          "chance": 0.4,
+          "aim": "hookTarget",
+          "effects": [
+            {
+              "type": "physicalHit",
+              "coeff": 0.75
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -8,7 +8,7 @@ import {
   sectMethodProgress,
 } from '@server/lib/drizzle/schema';
 import {
-  COMBAT_V6_SECT_DEFINITIONS_V4,
+  COMBAT_V6_SECT_DEFINITIONS,
   type CombatV6SectId,
   type SectCombatProgressV6,
 } from '@shared/engine/combat-v6/content';
@@ -78,7 +78,7 @@ export async function readSectCombatProgress(
     })
     .from(sectMemberships)
     .where(eq(sectMemberships.id, membershipId));
-  if (!membership || !(membership.sectId in COMBAT_V6_SECT_DEFINITIONS_V4))
+  if (!membership || !(membership.sectId in COMBAT_V6_SECT_DEFINITIONS))
     return null;
   const state = await findSectCombatState(membership.membershipId, q);
   if (!state?.activePathId) return null;

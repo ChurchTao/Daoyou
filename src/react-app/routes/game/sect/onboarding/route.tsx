@@ -9,7 +9,7 @@ import {
 import { getSectPresentation } from '@app/lib/sect/sectPresentation';
 import type { SectCatalogEntry } from '@shared/contracts/sect';
 import {
-  COMBAT_V6_SECT_DEFINITIONS_V4,
+  COMBAT_V6_SECT_DEFINITIONS,
   type CombatV6SectId,
 } from '@shared/engine/combat-v6/content';
 import { productionSectRuntime } from '@shared/engine/sect/content';
@@ -54,7 +54,7 @@ export default function SectOnboardingPage() {
       )
       .map((definition): OnboardingSectEntry => {
         const combat =
-          COMBAT_V6_SECT_DEFINITIONS_V4[definition.id as CombatV6SectId];
+          COMBAT_V6_SECT_DEFINITIONS[definition.id as CombatV6SectId];
         return {
           id: definition.id,
           name: definition.name,

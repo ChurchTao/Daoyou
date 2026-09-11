@@ -1,7 +1,7 @@
 import { rollDrops, type DropPool } from '../drops';
 import { SeededRng } from '../engine/combat-v6/core';
 import type { ItemGrant } from '../inventory';
-import { FIXED_MATERIALS } from '../items/definitions/fixed-materials';
+import { DUNGEON_REWARD_PACK } from './dungeon-pack';
 
 export type DungeonRewardSource = 'exploration' | 'battle' | 'completion';
 export interface DungeonRewardEntry {
@@ -11,11 +11,7 @@ export interface DungeonRewardEntry {
   spiritStones: number;
   beastExperience?: { beastId: string; amount: number };
 }
-export const DUNGEON_REWARD_CONFIG = {
-  exploration: { chance: 0.3, experience: 2, stones: 1 },
-  battle: { chance: 0.6, experience: 5, stones: 2 },
-  completion: { chance: 1, experience: 10, stones: 5 },
-} as const;
+export const DUNGEON_REWARD_CONFIG = DUNGEON_REWARD_PACK.sources;
 
 /** Caller supplies a persisted seed for this run; neither AI score nor client input affects rewards. */
 export function dungeonReward(
@@ -23,10 +19,11 @@ export function dungeonReward(
   key: string,
   source: DungeonRewardSource,
   level: number,
+  pack = DUNGEON_REWARD_PACK,
 ): DungeonRewardEntry {
   if (!Number.isInteger(level) || level < 1 || level > 180)
     throw new Error('Invalid dungeon reward level');
-  const config = DUNGEON_REWARD_CONFIG[source];
+  const config = pack.sources[source];
   const pool: DropPool = {
     id: `dungeon.${source}`,
     version: 1,
@@ -34,10 +31,10 @@ export function dungeonReward(
       {
         id: 'materials',
         chance: config.chance,
-        entries: FIXED_MATERIALS.map((item) => ({
-          rewardId: item.id,
-          weight: 1,
-          quantity: { min: 1, max: 1 },
+        entries: pack.materials.map((item) => ({
+          rewardId: item.rewardId,
+          weight: item.weight,
+          quantity: { min: config.quantity, max: config.quantity },
         })),
       },
     ],

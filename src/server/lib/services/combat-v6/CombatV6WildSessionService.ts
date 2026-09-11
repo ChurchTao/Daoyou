@@ -36,14 +36,14 @@ import {
   generateCapturedBeast,
 } from '@shared/engine/combat-v6/beasts/progression';
 import { SeededRng } from '@shared/engine/combat-v6/core';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
+import { projectCharacterToCombatV6 } from '@shared/engine/combat-v6/projection';
 import {
   WILD_CONTENT_VERSION,
   WILD_REGION,
   WILD_SPECIES,
 } from '@shared/engine/combat-v6/wild/content';
 import { createWildHost, WildHost } from '@shared/engine/combat-v6/wild/host';
-import { wildDay } from '@shared/engine/combat-v6/wild/rules';
+import { WILD_DAILY_LIMIT, wildDay } from '@shared/engine/combat-v6/wild/rules';
 import { evaluateFateContext } from '@shared/lib/fates';
 import { WILD_DROP_POOLS, wildItemRewards } from '@shared/rewards/wild';
 import { eq } from 'drizzle-orm';
@@ -191,8 +191,8 @@ export class CombatV6WildSessionService {
     return {
       ...WILD_REGION,
       species: WILD_SPECIES,
-      dailyLimit: 20,
-      remaining: Math.max(0, 20 - (await store.used(actor.cultivatorId))),
+      dailyLimit: WILD_DAILY_LIMIT,
+      remaining: Math.max(0, WILD_DAILY_LIMIT - (await store.used(actor.cultivatorId))),
       resetsAt: new Date(day.resetAt).toISOString(),
       settlingBattleId: await store.lock(actor.cultivatorId),
       trainingSessionId: activeTraining?.battleId ?? null,
@@ -241,7 +241,7 @@ export class CombatV6WildSessionService {
             actor.cultivatorId,
             tx,
           );
-          const projected = projectCultivatorMultiSectV5ToCombatV6({
+          const projected = projectCharacterToCombatV6({
             ...assembled.player,
             side: 0,
             slot: 0,

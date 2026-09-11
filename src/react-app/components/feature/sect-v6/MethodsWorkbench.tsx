@@ -1,6 +1,6 @@
 import { InkButton } from '@app/components/ui/InkButton';
-import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '@shared/engine/combat-v6/content';
-import { methodTrainingCost } from '@shared/engine/combat-v6/sect-progression';
+import { COMBAT_V6_SECT_DEFINITIONS } from '@shared/engine/combat-v6/content';
+import { methodTrainingCost, methodLevelCap } from '@shared/engine/combat-v6/sect-progression';
 import {
   SECT_PANEL_LABELS,
   sectSkillCatalog,
@@ -14,7 +14,7 @@ import {
 
 export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
   const progress = view.progress!;
-  const definition = COMBAT_V6_SECT_DEFINITIONS_V4[progress.sectId];
+  const definition = COMBAT_V6_SECT_DEFINITIONS[progress.sectId];
   const [methodId, setMethodId] = useState(definition.methods[0].id);
   const [skillId, setSkillId] = useState<string>();
   const method = definition.methods.find((entry) => entry.id === methodId)!;
@@ -36,7 +36,7 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
     methodId,
   };
   const problem = actionProblem(view, action);
-  const cap = Math.min(180, view.characterLevel + 10);
+  const cap = methodLevelCap(view.characterLevel);
   const cost = level < cap ? methodTrainingCost(level + 1) : undefined;
   const panel = method.panel;
   return (

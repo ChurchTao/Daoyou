@@ -14,7 +14,7 @@ import {
   createFreshCombatV6MethodLevels,
 } from '@shared/engine/combat-v6/build-state';
 import {
-  COMBAT_V6_SECT_DEFINITIONS_V4,
+  COMBAT_V6_SECT_DEFINITIONS,
   type CombatV6SectId,
 } from '@shared/engine/combat-v6/content';
 import { transferSectProgress } from '@shared/engine/combat-v6/sect-progression';
@@ -29,12 +29,12 @@ export async function planV6SectTransfer(
   q: DbExecutor,
 ) {
   if (
-    !(sourceId in COMBAT_V6_SECT_DEFINITIONS_V4) ||
-    !(targetId in COMBAT_V6_SECT_DEFINITIONS_V4)
+    !(sourceId in COMBAT_V6_SECT_DEFINITIONS) ||
+    !(targetId in COMBAT_V6_SECT_DEFINITIONS)
   )
     throw new InventoryError('目标宗门尚未接入新版传承');
-  const source = COMBAT_V6_SECT_DEFINITIONS_V4[sourceId as CombatV6SectId];
-  const target = COMBAT_V6_SECT_DEFINITIONS_V4[targetId as CombatV6SectId];
+  const source = COMBAT_V6_SECT_DEFINITIONS[sourceId as CombatV6SectId];
+  const target = COMBAT_V6_SECT_DEFINITIONS[targetId as CombatV6SectId];
   const sectState = await findSectCombatState(membershipId, q);
   const active = sectState?.activePathId
     ? await readSectCombatProgress(membershipId, q)

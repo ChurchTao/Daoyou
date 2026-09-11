@@ -1,6 +1,6 @@
 import { z } from 'zod';
+import type { BattleEvent } from '../core';
 import {
-  SeededRng,
   SkillTag,
   TargetMode,
   TargetSide,
@@ -8,12 +8,9 @@ import {
   type SkillDef,
 } from '../core';
 import { isStanding } from '../core/units';
-import {
-  BEAST_SPECIES,
-  BeastSchema,
-  generateStarterBeast,
-  type SummonedBeast,
-} from './index';
+import { BEAST_PROGRESSION, BEAST_SPECIES } from './content';
+import { BeastSchema, type SummonedBeast } from './schema';
+export { generateCapturedBeast } from './generator';
 
 export const BEAST_CAPACITY = 24;
 export const CAPTURE_SKILL_ID = 'beast.capture';
@@ -26,45 +23,50 @@ export const BEAST_ATTRIBUTE_NAMES = {
 } as const;
 export const BeastAllocationSchema = z
   .object({
-    constitution: z.number().int().min(0).max(900),
-    strength: z.number().int().min(0).max(900),
-    magic: z.number().int().min(0).max(900),
-    endurance: z.number().int().min(0).max(900),
-    agility: z.number().int().min(0).max(900),
+    constitution: z
+      .number()
+      .int()
+      .min(0)
+      .max(180 * BEAST_PROGRESSION.pointsPerLevel),
+    strength: z
+      .number()
+      .int()
+      .min(0)
+      .max(180 * BEAST_PROGRESSION.pointsPerLevel),
+    magic: z
+      .number()
+      .int()
+      .min(0)
+      .max(180 * BEAST_PROGRESSION.pointsPerLevel),
+    endurance: z
+      .number()
+      .int()
+      .min(0)
+      .max(180 * BEAST_PROGRESSION.pointsPerLevel),
+    agility: z
+      .number()
+      .int()
+      .min(0)
+      .max(180 * BEAST_PROGRESSION.pointsPerLevel),
   })
   .strict();
 export function captureMp(carryLevel: number) {
-  return 10 + carryLevel;
+  return (
+    BEAST_PROGRESSION.capture.mpBase +
+    carryLevel * BEAST_PROGRESSION.capture.mpPerCarryLevel
+  );
 }
 export function nextBeastExp(level: number) {
-  return 100 + 20 * level;
+  return (
+    BEAST_PROGRESSION.experience.base +
+    BEAST_PROGRESSION.experience.perLevel * level
+  );
 }
 export function beastRestCost(beast: SummonedBeast) {
-  return Math.ceil((beast.maxLifespan - beast.currentLifespan) / 10);
-}
-
-export function generateCapturedBeast(
-  id: string,
-  ownerId: string,
-  speciesId: string,
-  level: number,
-  seed: number,
-): SummonedBeast {
-  const base = generateStarterBeast(id, ownerId, speciesId, seed);
-  const species = BEAST_SPECIES.find((s) => s.id === speciesId)!;
-  const skills: string[] = [species.skill];
-  if (new SeededRng(seed ^ 0x5bd1e995).chance(0.2)) skills.push('beast.combo');
-  return BeastSchema.parse({
-    ...base,
-    level,
-    allocatedAttributes: {
-      ...base.allocatedAttributes,
-      [species.allocation]: level * 5,
-    },
-    skills,
-    skillSlotCapacity: skills.length,
-    generationVersion: 'summoned_beast_capture_v1',
-  });
+  return Math.ceil(
+    (beast.maxLifespan - beast.currentLifespan) /
+      BEAST_PROGRESSION.lifespan.restRecoveryPerStone,
+  );
 }
 
 export function gainBeastExp(
@@ -91,7 +93,9 @@ export function gainBeastExp(
     ...beast,
     level,
     exp: level === cap ? 0 : exp,
-    unallocatedPoints: beast.unallocatedPoints + (level - beast.level) * 5,
+    unallocatedPoints:
+      beast.unallocatedPoints +
+      (level - beast.level) * BEAST_PROGRESSION.pointsPerLevel,
     revision: beast.revision + 1,
   });
 }
@@ -123,6 +127,7 @@ export function captureSkill(
   ownerLevel: number,
   ownedCount: number,
 ): SkillDef {
+  const chance = BEAST_PROGRESSION.capture;
   return {
     id: CAPTURE_SKILL_ID,
     name: '捕捉',
@@ -139,8 +144,7 @@ export function captureSkill(
             : [];
         }),
       ),
-      chance:
-        'min(0.85, max(0.1, 0.35 + 0.4 * (1 - target.hp / target.maxHp) + 0.01 * (source.level - target.level)))',
+      chance: `min(${chance.maxChance}, max(${chance.minChance}, ${chance.baseChance} + ${chance.missingHpFactor} * (1 - target.hp / target.maxHp) + ${chance.levelDifferenceFactor} * (source.level - target.level)))`,
     },
   };
 }
@@ -157,6 +161,33 @@ export function beastVictoryExperience(
   if (!pet?.id.startsWith('beast:')) return;
   const amount = state.units
     .filter((u) => u.side !== owner.side && u.kind === 'npc' && u.flags.dead)
-    .reduce((sum, u) => sum + 10 * u.level, 0);
+    .reduce(
+      (sum, u) =>
+        sum + BEAST_PROGRESSION.experience.victoryPerEnemyLevel * u.level,
+      0,
+    );
   return amount ? { beastId: pet.id.slice(6), amount } : undefined;
+}
+
+export function beastDeathIds(events: readonly BattleEvent[]): string[] {
+  return [
+    ...new Set(
+      events.flatMap((event) =>
+        event.type === 'unitDead' && event.unitId.startsWith('beast:')
+          ? [event.unitId.slice(6)]
+          : [],
+      ),
+    ),
+  ];
+}
+
+export function loseBeastLifespan(beast: SummonedBeast): SummonedBeast {
+  return {
+    ...beast,
+    currentLifespan: Math.max(
+      0,
+      beast.currentLifespan - BEAST_PROGRESSION.lifespan.deathLoss,
+    ),
+    revision: beast.revision + 1,
+  };
 }

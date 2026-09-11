@@ -2,6 +2,7 @@ import { CombatV6Battle } from '@app/components/feature/combat-v6/CombatV6Battle
 import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
 import { combatV6Request as request } from '@app/components/feature/combat-v6/request';
 import { useCombatV6Session } from '@app/components/feature/combat-v6/useCombatV6Session';
+import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { inkFieldVariants } from '@app/components/ui/inkFieldStyles';
@@ -145,6 +146,7 @@ function EncounterSelection({
 }
 
 export default function TrainingRoomPage() {
+  const { openDialog } = useInkUI();
   const buildQuery = useSectCombatState();
   const build = buildQuery.data;
   const [content, setContent] = useState<ContentView>();
@@ -263,17 +265,28 @@ export default function TrainingRoomPage() {
           onResolve={resolve}
           onAuto={combat.submitAuto}
           onClose={() => {
-            if (!session.outcome && !window.confirm('确认放弃本次训练？'))
+            const closeTraining = () =>
+              run(async () => {
+                await request(
+                  `/api/combat-v6/training/sessions/${session.sessionId}`,
+                  {
+                    method: 'DELETE',
+                    body: JSON.stringify({ expectedRevision: session.revision }),
+                  },
+                );
+                acceptSession(null);
+              });
+            if (session.outcome) {
+              void closeTraining();
               return;
-            void run(async () => {
-              await request(
-                `/api/combat-v6/training/sessions/${session.sessionId}`,
-                {
-                  method: 'DELETE',
-                  body: JSON.stringify({ expectedRevision: session.revision }),
-                },
-              );
-              acceptSession(null);
+            }
+            openDialog({
+              title: '放弃训练',
+              content: '确认放弃本次训练？训练不产生奖励、消耗回写或失败成本。',
+              confirmLabel: '确认放弃',
+              cancelLabel: '继续训练',
+              loadingLabel: '正在结束训练……',
+              onConfirm: closeTraining,
             });
           }}
         />

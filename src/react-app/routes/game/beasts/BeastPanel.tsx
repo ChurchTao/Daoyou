@@ -3,6 +3,7 @@ import { InkModal } from '@app/components/layout/InkModal';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { combatV6SkillDetails } from '@shared/combat-v6/skill-details';
+import { BEAST_PROGRESSION } from '@shared/engine/combat-v6/beasts/content';
 import {
   activeBeastSkills,
   BEAST_SKILLS,
@@ -110,7 +111,7 @@ export function BeastPanel({
       ? '人物等级未达到携带要求'
       : beast.level > ownerLevel
         ? '战斗等级超过人物等级'
-        : beast.currentLifespan < 50
+        : beast.currentLifespan < BEAST_PROGRESSION.lifespan.deployMinimum
           ? '寿命不足，请先休养'
           : undefined;
   return (
@@ -137,7 +138,7 @@ export function BeastPanel({
               寿命 {beast.currentLifespan} / {beast.maxLifespan}
             </span>
             <InkTooltip label="寿命与入场规则">
-              每场满气血、法力入场。野外死亡每场扣除一次50寿命；不足50不能出战，切磋与练功不消耗寿命。
+              每场满气血、法力入场。野外死亡每场扣除一次{BEAST_PROGRESSION.lifespan.deathLoss}寿命；不足{BEAST_PROGRESSION.lifespan.deployMinimum}不能出战，切磋与练功不消耗寿命。
             </InkTooltip>
           </div>
           <div

@@ -39,3 +39,4 @@ export type {
   CombatV6TrainingProjection,
   CombatV6BodyCultivationInput,
 } from "./types.ts"
+export { projectCharacterToCombatV6 } from "./project-character.ts"

@@ -1,38 +1,30 @@
+import { SECT_PROGRESSION, configuredMethodCost, configuredMeridianCost, methodLevelCap } from './pack';
 import type { SectV6Action, SectV6Cost } from '@shared/contracts/combatV6Sect';
 import {
-  COMBAT_V6_SECT_DEFINITIONS_V4,
-  compileSectCombatV6V4,
+  COMBAT_V6_SECT_DEFINITIONS,
+  compileCurrentSectCombatV6,
 } from '../content/index';
 import type { CombatV6SectId, SectCombatProgressV6 } from '../content/types';
 
 export class SectV6RuleError extends Error {}
-export const MERIDIAN_LEVELS = [30, 60, 90, 120, 150, 170, 180] as const;
+export { methodLevelCap } from './pack';
+export const MERIDIAN_LEVELS = SECT_PROGRESSION.meridian.characterLevels;
 export function methodTrainingCost(targetLevel: number): SectV6Cost {
-  if (!Number.isInteger(targetLevel) || targetLevel < 1 || targetLevel > 180)
+  if (!Number.isInteger(targetLevel) || targetLevel < 1 || targetLevel > SECT_PROGRESSION.method.maxLevel)
     throw new SectV6RuleError('心法等级无效');
-  const cultivationExp = Math.ceil((50 * 1.05 ** (targetLevel - 1)) / 10) * 10;
-  return {
-    cultivationExp,
-    spiritStones: Math.ceil((cultivationExp * 3) / 100) * 100,
-    comprehensionInsight: 0,
-  };
+  return configuredMethodCost(SECT_PROGRESSION, targetLevel);
 }
 export function meridianUnlockCost(layer: number): SectV6Cost {
   if (!Number.isInteger(layer) || layer < 1 || layer > 7)
     throw new SectV6RuleError('经脉层级无效');
-  const cultivationExp = 5000 * 4 ** Math.min(layer - 1, 5);
-  return {
-    cultivationExp,
-    spiritStones: cultivationExp * 5,
-    comprehensionInsight: 100,
-  };
+  return configuredMeridianCost(SECT_PROGRESSION, layer);
 }
 export function sectV6Change(
   progress: SectCombatProgressV6,
   characterLevel: number,
   action: SectV6Action,
 ) {
-  const definition = COMBAT_V6_SECT_DEFINITIONS_V4[progress.sectId];
+  const definition = COMBAT_V6_SECT_DEFINITIONS[progress.sectId];
   const next = structuredClone(progress);
   let cost: SectV6Cost = {
     cultivationExp: 0,
@@ -44,7 +36,7 @@ export function sectV6Change(
     if (!method) throw new SectV6RuleError('心法不属于当前宗门');
     const target = progress.methods[method.id] + 1;
     const primary = definition.methods.find((m) => m.isPrimary)!;
-    if (target > Math.min(180, characterLevel + 10))
+    if (target > methodLevelCap(characterLevel))
       throw new SectV6RuleError('已达当前人物等级允许的心法上限');
     if (!method.isPrimary && target > progress.methods[primary.id])
       throw new SectV6RuleError(`分支不可超过${primary.name}`);
@@ -85,7 +77,7 @@ export function sectV6Change(
       );
       loadout.revision++;
       // Validate the saved path even when it is not the active one.
-      const compiled = compileSectCombatV6V4({
+      const compiled = compileCurrentSectCombatV6({
         progress: { ...next, activePathId: path.id },
         characterLevel,
       });
@@ -95,7 +87,7 @@ export function sectV6Change(
         );
     }
   }
-  const compiled = compileSectCombatV6V4({ progress: next, characterLevel });
+  const compiled = compileCurrentSectCombatV6({ progress: next, characterLevel });
   if (!compiled.ok)
     throw new SectV6RuleError(
       compiled.diagnostics.map((d) => d.message).join('；'),
@@ -109,8 +101,8 @@ export function transferSectProgress(
   targetId: CombatV6SectId,
   reversePaths: boolean,
 ): SectCombatProgressV6 {
-  const source = COMBAT_V6_SECT_DEFINITIONS_V4[progress.sectId];
-  const target = COMBAT_V6_SECT_DEFINITIONS_V4[targetId];
+  const source = COMBAT_V6_SECT_DEFINITIONS[progress.sectId];
+  const target = COMBAT_V6_SECT_DEFINITIONS[targetId];
   const index = source.paths.findIndex((p) => p.id === progress.activePathId);
   if (index < 0) throw new SectV6RuleError('当前流派无效');
   return {

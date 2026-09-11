@@ -6,7 +6,7 @@ import {
   CombatV6PveHostSession,
   type PveRestoredState,
 } from '../encounter/host';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '../projection';
+import { projectCharacterToCombatV6 } from '../projection';
 import { daoyouRulesetV6 } from '../rules-daoyou';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
 
@@ -79,7 +79,7 @@ export function freezeSectNpcOpponent(
 export function freezeSectBattleOpponent(
   player: CombatV6TrainingPlayerInput,
 ): SectBattleOpponent {
-  const projected = projectCultivatorMultiSectV5ToCombatV6({
+  const projected = projectCharacterToCombatV6({
     ...player,
     side: 1,
     slot: 0,
@@ -159,7 +159,7 @@ export function createSectBattleHost(
 ): SectBattleHost {
   if (opponent.version !== 'sect-v6-opponent-v1')
     throw new Error('宗门战斗目标版本无效');
-  const projected = projectCultivatorMultiSectV5ToCombatV6({
+  const projected = projectCharacterToCombatV6({
     ...player,
     side: 0,
     slot: 0,

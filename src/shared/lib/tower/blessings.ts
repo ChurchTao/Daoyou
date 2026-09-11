@@ -1,18 +1,6 @@
-export const TOWER_BLESSING_IDS = [
-  'vitality_surge',
-  'strength_surge',
-  'spirit_surge',
-  'endurance_surge',
-  'swift_step',
-  'mind_focus',
-  'jade_bones',
-  'sea_of_qi',
-  'breathing_technique',
-  'meridian_cycle',
-  'balanced_dao',
-] as const;
-
-export type TowerBlessingId = (typeof TOWER_BLESSING_IDS)[number];
+import { TOWER_BLESSINGS_PACK } from './blessing-pack';
+import type { TowerBlessingId } from './blessing-pack';
+export { TOWER_BLESSING_IDS, type TowerBlessingId } from './blessing-pack';
 
 export interface TowerBlessingDefinition {
   id: TowerBlessingId;
@@ -21,78 +9,16 @@ export interface TowerBlessingDefinition {
   maxStacks: number;
 }
 
-export const TOWER_BLESSING_DEFINITIONS: Record<
-  TowerBlessingId,
-  TowerBlessingDefinition
-> = {
-  vitality_surge: {
-    id: 'vitality_surge',
-    name: '体魄澎湃',
-    description: '战斗时体魄提升 8%，可叠加至 5 层。',
-    maxStacks: 5,
-  },
-  strength_surge: {
-    id: 'strength_surge',
-    name: '力贯千钧',
-    description: '战斗时力道提升 8%，可叠加至 5 层。',
-    maxStacks: 5,
-  },
-  spirit_surge: {
-    id: 'spirit_surge',
-    name: '灵海翻涌',
-    description: '战斗时灵力提升 8%，可叠加至 5 层。',
-    maxStacks: 5,
-  },
-  endurance_surge: {
-    id: 'endurance_surge',
-    name: '铁骨铮然',
-    description: '战斗时根骨提升 8%，可叠加至 5 层。',
-    maxStacks: 5,
-  },
-  swift_step: {
-    id: 'swift_step',
-    name: '踏风行',
-    description: '战斗时身法提升 8%，可叠加至 5 层。',
-    maxStacks: 5,
-  },
-  mind_focus: {
-    id: 'mind_focus',
-    name: '明心定神',
-    description: '战斗时神识提升 8%，可叠加至 5 层。',
-    maxStacks: 5,
-  },
-  jade_bones: {
-    id: 'jade_bones',
-    name: '玉骨长生',
-    description: '战斗时最大气血提升 10%，可叠加至 5 层。',
-    maxStacks: 5,
-  },
-  sea_of_qi: {
-    id: 'sea_of_qi',
-    name: '气海扩容',
-    description: '战斗时最大法力提升 12%，可叠加至 5 层。',
-    maxStacks: 5,
-  },
-  breathing_technique: {
-    id: 'breathing_technique',
-    name: '吐纳回元',
-    description: '每场战斗前回复缺失气血的 10%，可叠加至 3 层。',
-    maxStacks: 3,
-  },
-  meridian_cycle: {
-    id: 'meridian_cycle',
-    name: '周天流转',
-    description: '每场战斗前回复缺失法力的 15%，可叠加至 3 层。',
-    maxStacks: 3,
-  },
-  balanced_dao: {
-    id: 'balanced_dao',
-    name: '大道均衡',
-    description: '战斗时六维主属性同步提升 5%，可叠加至 3 层。',
-    maxStacks: 3,
-  },
-};
-
+export function compileTowerBlessingDefinitions(pack = TOWER_BLESSINGS_PACK): Record<TowerBlessingId, TowerBlessingDefinition> {
+  return Object.fromEntries(pack.blessings.map(b => {
+    const percent = b.effect.perStack * 100;
+    const description = b.effect.kind === 'recovery'
+      ? `每场战斗前回复缺失${b.label}的 ${percent}%，可叠加至 ${b.maxStacks} 层。`
+      : `战斗时${b.label}${b.effect.kind === 'allAttributes' ? '同步' : ''}提升 ${percent}%，可叠加至 ${b.maxStacks} 层。`;
+    return [b.id, { id: b.id, name: b.name, description, maxStacks: b.maxStacks }];
+  })) as Record<TowerBlessingId, TowerBlessingDefinition>;
+}
+export const TOWER_BLESSING_DEFINITIONS = compileTowerBlessingDefinitions();
 export function getTowerBlessingDefinition(id: TowerBlessingId) {
   return TOWER_BLESSING_DEFINITIONS[id];
 }

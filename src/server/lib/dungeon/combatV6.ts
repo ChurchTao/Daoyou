@@ -42,7 +42,7 @@ import {
   DungeonHost,
   type DungeonBattleSnapshot,
 } from '@shared/engine/combat-v6/dungeon/host';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
+import { projectCharacterToCombatV6 } from '@shared/engine/combat-v6/projection';
 import { combatCharacterLevel } from '@shared/engine/combat-v6/projection/character-level';
 import { evaluateFateContext } from '@shared/lib/fates';
 import { getMapNode } from '@shared/lib/game/mapSystem';
@@ -67,7 +67,7 @@ export interface DungeonEncounterPayload {
 }
 export async function dungeonPlayer(owner: string, tx: DbExecutor = db) {
   const assembled = await assembleCombatV6TrainingPlayer(owner, tx);
-  const projection = projectCultivatorMultiSectV5ToCombatV6({
+  const projection = projectCharacterToCombatV6({
     ...assembled.player,
     side: 0,
     slot: 0,

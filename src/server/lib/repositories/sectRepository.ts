@@ -1,5 +1,5 @@
 import { createFreshCombatV6MethodLevels } from '@shared/engine/combat-v6/build-state';
-import { COMBAT_V6_SECT_DEFINITIONS_V4, type CombatV6SectId } from '@shared/engine/combat-v6/content';
+import { COMBAT_V6_SECT_DEFINITIONS, type CombatV6SectId } from '@shared/engine/combat-v6/content';
 import {
   type DbExecutor,
   type DbTransaction,
@@ -239,7 +239,7 @@ export async function activateMembership(
       ),
     );
   const sectId = definition.id;
-  if (!(sectId in COMBAT_V6_SECT_DEFINITIONS_V4)) throw new Error('宗门战斗定义不存在');
+  if (!(sectId in COMBAT_V6_SECT_DEFINITIONS)) throw new Error('宗门战斗定义不存在');
   await tx.insert(sectCombatStates).values({membershipId}).onConflictDoNothing();
   await tx.insert(sectMethodProgress).values(
     Object.entries(createFreshCombatV6MethodLevels(sectId as CombatV6SectId)).map(([methodId, level]) => ({membershipId, methodId, level})),

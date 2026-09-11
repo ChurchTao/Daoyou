@@ -26,11 +26,11 @@ import {
   createFreshCombatV6MethodLevels,
 } from '@shared/engine/combat-v6/build-state';
 import {
-  COMBAT_V6_SECT_DEFINITIONS_V4,
+  COMBAT_V6_SECT_DEFINITIONS,
   type CombatV6SectId,
 } from '@shared/engine/combat-v6/content';
 import type { CombatV6TrainingPlayerInput } from '@shared/engine/combat-v6/encounter';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
+import { projectCharacterToCombatV6 } from '@shared/engine/combat-v6/projection';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { and, eq, isNull, sql } from 'drizzle-orm';
@@ -53,7 +53,7 @@ export async function getSectCombatView(
 ): Promise<SectCombatView> {
   const membership = await findActiveSectMembership(cultivatorId, q);
   if (!membership) return createSectCombatView({ status: 'uninitialized' });
-  if (!(membership.sectId in COMBAT_V6_SECT_DEFINITIONS_V4)) {
+  if (!(membership.sectId in COMBAT_V6_SECT_DEFINITIONS)) {
     return createSectCombatView({
       status: 'uninitialized',
       membershipId: membership.membershipId,
@@ -109,7 +109,7 @@ export async function selectInitialSectPath(
         '请先加入宗门',
         404,
       );
-    if (!(membership.sectId in COMBAT_V6_SECT_DEFINITIONS_V4)) {
+    if (!(membership.sectId in COMBAT_V6_SECT_DEFINITIONS)) {
       throw new CombatV6BuildError(
         COMBAT_V6_BUILD_ERROR_CODE.SectUnsupported,
         '当前宗门尚未接入combat-v6',
@@ -117,7 +117,7 @@ export async function selectInitialSectPath(
       );
     }
     const sectId = membership.sectId as CombatV6SectId;
-    const definition = COMBAT_V6_SECT_DEFINITIONS_V4[sectId];
+    const definition = COMBAT_V6_SECT_DEFINITIONS[sectId];
     if (!definition.paths.some((path) => path.id === input.activePathId)) {
       throw new CombatV6BuildError(
         COMBAT_V6_BUILD_ERROR_CODE.PathInvalid,
@@ -225,7 +225,7 @@ export async function assembleCombatV6TrainingPlayer(
       404,
     );
   }
-  if (!(membership.sectId in COMBAT_V6_SECT_DEFINITIONS_V4)) {
+  if (!(membership.sectId in COMBAT_V6_SECT_DEFINITIONS)) {
     throw new CombatV6BuildError(
       COMBAT_V6_BUILD_ERROR_CODE.SectUnsupported,
       '当前宗门尚未接入combat-v6',
@@ -283,7 +283,7 @@ export async function assembleCombatV6TrainingPlayer(
     manuals: await readCharacterManuals(cultivatorId, q),
     beasts: await readBeastRoster(cultivatorId, q),
   };
-  const projected = projectCultivatorMultiSectV5ToCombatV6({
+  const projected = projectCharacterToCombatV6({
     ...player,
     side: 0,
     slot: 0,

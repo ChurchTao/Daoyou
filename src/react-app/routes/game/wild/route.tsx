@@ -5,6 +5,7 @@ import {
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
 import { useCombatV6Session } from '@app/components/feature/combat-v6/useCombatV6Session';
+import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import {
   useCultivatorCondition,
@@ -50,6 +51,7 @@ export default function WildPage() {
   return <WildRegion key={nodeId} nodeId={nodeId} />;
 }
 function WildRegion({ nodeId }: { nodeId: string }) {
+  const { openDialog } = useInkUI();
   const build = useSectCombatState();
   const { reload: reloadCondition } = useCultivatorCondition();
   const combat = useCombatV6Session<WildSessionView>('/api/combat-v6/wild');
@@ -139,22 +141,28 @@ function WildRegion({ nodeId }: { nodeId: string }) {
     });
   const abandon = () => {
     if (!session) return;
-    if (
-      !session.outcome &&
-      !window.confirm(
-        '放弃后会保存当前气血、法力损耗，且不退还探索次数。确认离开？',
-      )
-    )
+    const closeBattle = () =>
+      run(async () => {
+        regionRead.current?.abort();
+        await api(
+          `/sessions/${session.sessionId}`,
+          { expectedRevision: session.revision },
+          'DELETE',
+        );
+        acceptSession(null);
+        await Promise.all([reloadCondition(), reloadRegion()]);
+      });
+    if (session.outcome) {
+      void closeBattle();
       return;
-    void run(async () => {
-      regionRead.current?.abort();
-      await api(
-        `/sessions/${session.sessionId}`,
-        { expectedRevision: session.revision },
-        'DELETE',
-      );
-      acceptSession(null);
-      await Promise.all([reloadCondition(), reloadRegion()]);
+    }
+    openDialog({
+      title: '放弃战斗',
+      content: '放弃后会保存当前气血、法力损耗，且不退还探索次数。确认离开？',
+      confirmLabel: '确认放弃',
+      cancelLabel: '继续战斗',
+      loadingLabel: '正在结束战斗……',
+      onConfirm: closeBattle,
     });
   };
   return (

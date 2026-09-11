@@ -1,0 +1,733 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "passives": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "hooks": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "on": {
+                  "type": "string",
+                  "enum": [
+                    "onHitCalc",
+                    "onDefenseIgnoreCalc",
+                    "onHealCalc",
+                    "onCritRoll",
+                    "onDeath"
+                  ]
+                },
+                "sourceIsSelf": {
+                  "type": "boolean"
+                },
+                "targetIsSelf": {
+                  "type": "boolean"
+                },
+                "aim": {
+                  "type": "string",
+                  "enum": [
+                    "self",
+                    "hookTarget",
+                    "hookSource",
+                    "others"
+                  ]
+                },
+                "when": {
+                  "type": "object",
+                  "properties": {
+                    "skillIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                      }
+                    },
+                    "requireKind": {
+                      "type": "string",
+                      "enum": [
+                        "physical",
+                        "fixed"
+                      ]
+                    },
+                    "damageOrigins": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "action-direct",
+                          "hook-derived",
+                          "status"
+                        ]
+                      }
+                    },
+                    "targetStatusKinds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                      }
+                    },
+                    "targetHpRatioBelow": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "sourceHpRatioBelow": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "requireStatusIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                      }
+                    },
+                    "foeKind": {
+                      "type": "string",
+                      "const": "player"
+                    },
+                    "oncePerBattle": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "effects": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "modifyStrike"
+                          },
+                          "factor": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 10000
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "factor"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "modifyHeal"
+                          },
+                          "factor": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 10000
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "factor"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "modifyDefenseIgnore"
+                          },
+                          "add": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "add"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "modifyChance"
+                          },
+                          "add": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "add"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "dispel"
+                          },
+                          "statusIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                            }
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "statusIds"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "applyStatus"
+                          },
+                          "statusId": {
+                            "type": "string",
+                            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                          },
+                          "duration": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 99
+                          },
+                          "self": {
+                            "type": "boolean"
+                          },
+                          "targeting": {
+                            "type": "object",
+                            "properties": {
+                              "side": {
+                                "type": "string",
+                                "enum": [
+                                  "enemy",
+                                  "ally",
+                                  "self",
+                                  "any"
+                                ]
+                              },
+                              "includeDowned": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "side"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "statusId",
+                          "duration"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "on",
+                "when",
+                "effects"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "hooks"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "paths": {
+      "minItems": 2,
+      "maxItems": 2,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "foundationPassives": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+            }
+          },
+          "nodes": {
+            "minItems": 21,
+            "maxItems": 21,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "layer": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "const": 1
+                    },
+                    {
+                      "type": "number",
+                      "const": 2
+                    },
+                    {
+                      "type": "number",
+                      "const": 3
+                    },
+                    {
+                      "type": "number",
+                      "const": 4
+                    },
+                    {
+                      "type": "number",
+                      "const": 5
+                    },
+                    {
+                      "type": "number",
+                      "const": 6
+                    },
+                    {
+                      "type": "number",
+                      "const": 7
+                    }
+                  ]
+                },
+                "slot": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "const": 1
+                    },
+                    {
+                      "type": "number",
+                      "const": 2
+                    },
+                    {
+                      "type": "number",
+                      "const": 3
+                    }
+                  ]
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "panel": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "attr": {
+                        "type": "string",
+                        "enum": [
+                          "hp",
+                          "maxHp",
+                          "mp",
+                          "maxMp",
+                          "physicalAtk",
+                          "physicalDef",
+                          "magicAtk",
+                          "magicDef",
+                          "healPower",
+                          "speed",
+                          "hit",
+                          "dodge",
+                          "critRate",
+                          "spellCritRate",
+                          "physicalFuryRate",
+                          "sealHit",
+                          "sealResist",
+                          "attackCultivate",
+                          "defenseCultivate",
+                          "spellCultivate",
+                          "resistSpellCultivate"
+                        ]
+                      },
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "add",
+                          "multiply"
+                        ]
+                      },
+                      "value": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10000
+                      }
+                    },
+                    "required": [
+                      "attr",
+                      "mode",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "patches": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "skillId": {
+                            "type": "string",
+                            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "enum": [
+                              "multiplyFixedPower",
+                              "multiplyWoundPower",
+                              "multiplyHealPower",
+                              "addSealBase",
+                              "setPhysicalDefenseIgnore"
+                            ]
+                          },
+                          "value": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 10000
+                          }
+                        },
+                        "required": [
+                          "skillId",
+                          "operation",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "skillId": {
+                            "type": "string",
+                            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "const": "setTargetCount"
+                          },
+                          "value": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 10000
+                              },
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "skillId",
+                          "operation",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "skillId": {
+                            "type": "string",
+                            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "const": "setStatusDuration"
+                          },
+                          "statusId": {
+                            "type": "string",
+                            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                          },
+                          "value": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 99
+                          }
+                        },
+                        "required": [
+                          "skillId",
+                          "operation",
+                          "statusId",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "skillId": {
+                            "type": "string",
+                            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "const": "replaceStatusId"
+                          },
+                          "from": {
+                            "type": "string",
+                            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                          },
+                          "to": {
+                            "type": "string",
+                            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                          }
+                        },
+                        "required": [
+                          "skillId",
+                          "operation",
+                          "from",
+                          "to"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "skillId": {
+                            "type": "string",
+                            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "const": "addPhysicalCoefficient"
+                          },
+                          "hitIndex": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "value": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 10000
+                          }
+                        },
+                        "required": [
+                          "skillId",
+                          "operation",
+                          "hitIndex",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "skillId": {
+                            "type": "string",
+                            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "const": "setPhysicalCannotMiss"
+                          },
+                          "value": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "skillId",
+                          "operation",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "skillId": {
+                            "type": "string",
+                            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "const": "appendEffect"
+                          },
+                          "effect": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "physicalHit"
+                              },
+                              "coeff": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 10000
+                              },
+                              "power": {
+                                "anyOf": [
+                                  {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 10000
+                                  },
+                                  {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  }
+                                ]
+                              },
+                              "cannotMiss": {
+                                "type": "boolean"
+                              },
+                              "when": {
+                                "type": "object",
+                                "properties": {
+                                  "targetSlot": {
+                                    "type": "string",
+                                    "const": "primary"
+                                  }
+                                },
+                                "required": [
+                                  "targetSlot"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "coeff",
+                              "power",
+                              "cannotMiss",
+                              "when"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "skillId",
+                          "operation",
+                          "effect"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                },
+                "passives": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                  }
+                },
+                "grantSkills": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "layer",
+                "slot",
+                "description"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "foundationPassives",
+          "nodes"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "passives",
+    "paths"
+  ],
+  "additionalProperties": false
+}

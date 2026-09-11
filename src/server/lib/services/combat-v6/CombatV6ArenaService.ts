@@ -43,7 +43,7 @@ import {
   projectBeastRoster,
 } from '@shared/engine/combat-v6/beasts';
 import type { SkillDef, StatusDef } from '@shared/engine/combat-v6/core';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
+import { projectCharacterToCombatV6 } from '@shared/engine/combat-v6/projection';
 import { and, eq } from 'drizzle-orm';
 import { JSONCodec } from 'nats';
 import { ArenaRoomService } from '../ArenaRoomService';
@@ -122,7 +122,7 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
             tx,
           );
           const side = seat.teamId === 'alpha' ? 0 : 1;
-          const projection = projectCultivatorMultiSectV5ToCombatV6({
+          const projection = projectCharacterToCombatV6({
             ...player,
             side,
             slot: seat.slot,

@@ -2,16 +2,19 @@ import type { TowerReward } from '../contracts/combatV6Tower';
 import { rollDrops, type DropPool } from '../drops';
 import { SeededRng } from '../engine/combat-v6/core';
 import { combatCharacterLevel } from '../engine/combat-v6/projection/character-level';
-import { FIXED_MATERIALS } from '../items/definitions/fixed-materials';
+import { TOWER_ENCOUNTER_PACK } from '../lib/tower/encounter-pack';
+import { TOWER_REWARD_PACK } from './tower-pack';
 import type { RealmType } from '../types/constants';
 
 export function towerReward(
   floor: number,
   seed: number,
   realm: RealmType,
+  pack = TOWER_REWARD_PACK,
 ): TowerReward | null {
-  if (![5, 10, 15, 20].includes(floor)) return null;
-  const tier = floor / 5;
+  const tier = TOWER_ENCOUNTER_PACK.floors.find(row => row.floor === floor)?.milestone;
+  if (!tier) return null;
+  const reward = pack.milestones[tier];
   const pool: DropPool = {
     id: `tower.milestone.${floor}`,
     version: 1,
@@ -19,10 +22,10 @@ export function towerReward(
       {
         id: 'materials',
         chance: 1,
-        entries: FIXED_MATERIALS.map((item) => ({
-          rewardId: item.id,
-          weight: 1,
-          quantity: { min: tier, max: tier },
+        entries: pack.materials.map((item) => ({
+          rewardId: item.rewardId,
+          weight: item.weight,
+          quantity: { min: reward.quantity, max: reward.quantity },
         })),
       },
     ],
@@ -34,7 +37,7 @@ export function towerReward(
       definitionId: r.rewardId,
       quantity: r.quantity,
     })),
-    spiritStones: combatCharacterLevel(realm, '初期') * tier * 5,
-    reputation: floor,
+    spiritStones: combatCharacterLevel(realm, '初期') * reward.spiritStonesPerLevel,
+    reputation: reward.reputation,
   };
 }

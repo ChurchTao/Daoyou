@@ -1,7 +1,8 @@
+import { generateWildEncounter, type WildCombatant } from './generator';
+export { generateWildEncounter, type WildCombatant } from './generator';
 import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import { captureSkill } from '../beasts/progression';
 import {
-  SeededRng,
   UnitKind,
   type CreateBattleInput,
   type LineupUnit,
@@ -14,14 +15,13 @@ import type {
   CombatV6TrainingPlayerInput,
   PveCommandStrategyV1,
 } from '../encounter/types.ts';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '../projection/index.ts';
+import { projectCharacterToCombatV6 } from '../projection/index.ts';
 import { daoyouRulesetV6 } from '../rules-daoyou/index.ts';
 import {
   COMBAT_V6_PHASE_6D_VERSIONS,
   COMBAT_V6_PHASE_9C_WILD_VERSIONS,
 } from '../version.ts';
 import {
-  WILD_REGION,
   WILD_SKILLS,
   WILD_SPECIES,
   validateWildContent,
@@ -29,24 +29,6 @@ import {
 } from './content.ts';
 
 export const WILD_VERSIONS = COMBAT_V6_PHASE_9C_WILD_VERSIONS;
-export type WildCombatant = {
-  unitId: string;
-  speciesId: string;
-  level: number;
-};
-export function generateWildEncounter(
-  nodeId: string,
-  seed: number,
-): WildCombatant[] {
-  if (nodeId !== WILD_REGION.nodeId) throw new Error('UNKNOWN_WILD_REGION');
-  const rng = new SeededRng(seed);
-  const count = 1 + Math.floor(rng.next() * 3);
-  return Array.from({ length: count }, (_, slot) => ({
-    unitId: `combat.wild.enemy.${slot}`,
-    speciesId: WILD_SPECIES[Math.floor(rng.next() * 3)]!.id,
-    level: 5 + Math.floor(rng.next() * 11),
-  }));
-}
 export interface WildRuntimeSnapshot extends PveRestoredState {
   schemaVersion: 1;
   hostVersion: 'combat_v6_wild_runtime_v1';
@@ -102,7 +84,7 @@ export function createWildHost(
 ): WildHost {
   const diagnostics = validateWildContent();
   if (diagnostics.length) throw new Error(diagnostics.join(';'));
-  const projected = projectCultivatorMultiSectV5ToCombatV6({
+  const projected = projectCharacterToCombatV6({
     ...player,
     side: 0,
     slot: 0,

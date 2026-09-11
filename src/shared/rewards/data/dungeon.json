@@ -1,0 +1,16 @@
+{
+  "$schema": "./dungeon.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "materials": [
+    { "rewardId": "material.ore.qingxi-iron.v1", "weight": 1 },
+    { "rewardId": "material.aux.qingxi-stone.v1", "weight": 1 },
+    { "rewardId": "material.monster.qingxi-bone.v1", "weight": 1 },
+    { "rewardId": "material.tcdb.qingxi-jade.v1", "weight": 1 }
+  ],
+  "sources": {
+    "exploration": { "chance": 0.3, "experience": 2, "stones": 1, "quantity": 1 },
+    "battle": { "chance": 0.6, "experience": 5, "stones": 2, "quantity": 1 },
+    "completion": { "chance": 1, "experience": 10, "stones": 5, "quantity": 1 }
+  }
+}

@@ -4,17 +4,29 @@ import {
 } from '@server/utils/cultivationUtils';
 import { allowsLocalDevTools } from '@shared/config/deployment';
 import type { DevCultivatorPatch } from '@shared/contracts/devTools';
+import { compileCurrentSectCombatV6 } from '@shared/engine/combat-v6/content';
+import { combatCharacterLevel } from '@shared/engine/combat-v6/projection/character-level';
+import { SECT_PROGRESSION } from '@shared/engine/combat-v6/sect-progression/pack';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { CultivationProgress } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../drizzle/db';
-import { cultivators, sectMemberships } from '../drizzle/schema';
+import {
+  cultivators,
+  sectCombatStates,
+  sectMemberships,
+  sectMethodProgress,
+} from '../drizzle/schema';
 import { redisLockKeys, withRedisLock } from '../redis/lock';
 import {
   getOrCreateSpiritField,
   updateSpiritField,
 } from '../repositories/SpiritFieldRepository';
+import {
+  lockActiveMembership,
+  readSectCombatProgress,
+} from '../repositories/sectCombatRepository';
 import { updateCultivatorTask } from '../repositories/taskRepository';
 import { ConditionService } from './ConditionService';
 import { assertInventoryIdle, InventoryError } from './InventoryService';
@@ -113,8 +125,72 @@ export async function patchDevCultivator(
             updatedAt: new Date(),
           })
           .where(eq(cultivators.id, owner));
+        if (input.sectCombat) {
+          const membership = await lockActiveMembership(owner, tx);
+          const progress =
+            membership &&
+            (await readSectCombatProgress(membership.membershipId, tx));
+          if (!progress) throw new InventoryError('请先正式启用宗门流派');
+          for (const id of Object.keys(input.sectCombat.methods ?? {})) {
+            if (!Object.hasOwn(progress.sect.methods, id))
+              throw new InventoryError(`当前宗门没有心法：${id}`);
+          }
+          const candidate = {
+            ...progress.sect,
+            methods: { ...progress.sect.methods, ...input.sectCombat.methods },
+            meridianDepth: (input.sectCombat.meridianDepth ??
+              progress.sect
+                .meridianDepth) as typeof progress.sect.meridianDepth,
+          };
+          const characterLevel = combatCharacterLevel(
+            (input.realm ?? before.realm) as RealmType,
+            (input.realmStage ?? before.realm_stage) as RealmStage,
+          );
+          if (
+            candidate.meridianDepth > 0 &&
+            characterLevel <
+              SECT_PROGRESSION.meridian.characterLevels[
+                candidate.meridianDepth - 1
+              ]
+          )
+            throw new InventoryError('经脉深度超过当前人物等级门槛');
+          for (const loadout of candidate.meridianLoadouts) {
+            const compiled = compileCurrentSectCombatV6({
+              progress: { ...candidate, activePathId: loadout.pathId },
+              characterLevel,
+            });
+            if (!compiled.ok)
+              throw new InventoryError(
+                compiled.diagnostics.map((item) => item.message).join('；'),
+              );
+          }
+          for (const [methodId, level] of Object.entries(
+            input.sectCombat.methods ?? {},
+          )) {
+            await tx
+              .update(sectMethodProgress)
+              .set({ level })
+              .where(
+                and(
+                  eq(sectMethodProgress.membershipId, progress.membershipId),
+                  eq(sectMethodProgress.methodId, methodId),
+                ),
+              );
+          }
+          await tx
+            .update(sectCombatStates)
+            .set({
+              meridianDepth: candidate.meridianDepth,
+              revision: progress.revision + 1,
+              updatedAt: new Date(),
+            })
+            .where(eq(sectCombatStates.membershipId, progress.membershipId));
+        }
         if (input.resources) {
-          const { maxHp, maxMp } = await readCombatV6ConditionAuthority(owner, tx);
+          const { maxHp, maxMp } = await readCombatV6ConditionAuthority(
+            owner,
+            tx,
+          );
           const condition = ConditionService.applyCombatV6Resources(
             before.condition as CultivatorCondition,
             {

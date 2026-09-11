@@ -2,7 +2,7 @@ import { CHARACTER_MANUALS_V1, manualRule } from '@shared/engine/combat-v6/manua
 import { DAO_EQUIPMENT_GENERATOR_VERSION, DAO_EQUIPMENT_TEMPLATE_ID, generateDaoEquipmentV1 } from '@shared/engine/combat-v6/equipment';
 import { describe, expect, it } from 'vitest';
 import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '@shared/engine/combat-v6/content';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '@shared/engine/combat-v6/projection';
+import { projectCharacterToCombatV6 } from '@shared/engine/combat-v6/projection';
 import { characterResourceMaxima, normalizeCharacterResource, projectCharacterDisplay, type CharacterDisplayBuild, type CultivatorDisplayInput } from './cultivatorDisplay';
 
 const player: CultivatorDisplayInput = {
@@ -34,7 +34,7 @@ describe('V6 character panel authority', () => {
     });
   });
   it('matches the battle entry panel with a sect build', () => {
-    const battle = projectCultivatorMultiSectV5ToCombatV6({ ...build, cultivator: { ...player, id: player.id! }, side: 0, slot: 0, resourcePolicy: 'full' });
+    const battle = projectCharacterToCombatV6({ ...build, cultivator: { ...player, id: player.id! }, side: 0, slot: 0, resourcePolicy: 'full' });
     expect(battle.ok).toBe(true);
     if (!battle.ok) throw new Error('invalid fixture');
     expect(battle.unit.attrs).toMatchObject(projectCharacterDisplay(player, build));
@@ -73,7 +73,7 @@ describe('角色个人构筑独立于宗门', () => {
     const panel = projectCharacterDisplay(player, personal);
     expect(panel.maxHp).toBeGreaterThan(baseline.maxHp);
     expect(panel.physicalAtk).toBeGreaterThan(baseline.physicalAtk);
-    const battle = projectCultivatorMultiSectV5ToCombatV6({...personal, cultivator: {...player, id: player.id!}, side: 0, slot: 0, resourcePolicy: 'full'});
+    const battle = projectCharacterToCombatV6({...personal, cultivator: {...player, id: player.id!}, side: 0, slot: 0, resourcePolicy: 'full'});
     expect(battle.ok).toBe(true);
     if (!battle.ok) throw new Error('投影失败');
     expect(battle.unit.attrs).toMatchObject(panel);

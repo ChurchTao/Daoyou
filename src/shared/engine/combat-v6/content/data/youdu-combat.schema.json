@@ -1,0 +1,543 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "baseSkillIds": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+      }
+    },
+    "skills": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "\\S"
+          },
+          "school": {
+            "type": "string",
+            "const": "youdu"
+          },
+          "costMp": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": -1000000,
+                "maximum": 1000000,
+                "multipleOf": 0.000001
+              },
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            ]
+          },
+          "costHp": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": -1000000,
+                "maximum": 1000000,
+                "multipleOf": 0.000001
+              },
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            ]
+          },
+          "tags": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "physical",
+                "spell",
+                "seal",
+                "support",
+                "passive"
+              ]
+            }
+          },
+          "formula": {
+            "type": "string",
+            "const": "fixed"
+          },
+          "sealBase": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000,
+            "multipleOf": 0.000001
+          },
+          "targeting": {
+            "type": "object",
+            "properties": {
+              "side": {
+                "type": "string",
+                "enum": [
+                  "enemy",
+                  "ally",
+                  "self",
+                  "any"
+                ]
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "explicit",
+                  "fill",
+                  "all",
+                  "random",
+                  "lowestHp",
+                  "lowestDef"
+                ]
+              },
+              "count": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000,
+                    "multipleOf": 0.000001
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                ]
+              },
+              "includeDowned": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "side"
+            ],
+            "additionalProperties": false
+          },
+          "effects": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "fixedHit"
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": -1000000,
+                          "maximum": 1000000,
+                          "multipleOf": 0.000001
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "power"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "wound"
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": -1000000,
+                          "maximum": 1000000,
+                          "multipleOf": 0.000001
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "power"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "heal"
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": -1000000,
+                          "maximum": 1000000,
+                          "multipleOf": 0.000001
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    },
+                    "targeting": {
+                      "type": "object",
+                      "properties": {
+                        "side": {
+                          "type": "string",
+                          "enum": [
+                            "enemy",
+                            "ally",
+                            "self",
+                            "any"
+                          ]
+                        },
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "explicit",
+                            "fill",
+                            "all",
+                            "random",
+                            "lowestHp",
+                            "lowestDef"
+                          ]
+                        },
+                        "count": {
+                          "anyOf": [
+                            {
+                              "type": "number",
+                              "minimum": -1000000,
+                              "maximum": 1000000,
+                              "multipleOf": 0.000001
+                            },
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            }
+                          ]
+                        },
+                        "includeDowned": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "side"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "power"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "physicalHit"
+                    },
+                    "coeff": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1000000,
+                      "multipleOf": 0.000001
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": -1000000,
+                          "maximum": 1000000,
+                          "multipleOf": 0.000001
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    },
+                    "cannotMiss": {
+                      "type": "boolean"
+                    },
+                    "defenseIgnore": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "multipleOf": 0.000001
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "coeff"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "applyStatus"
+                    },
+                    "statusId": {
+                      "type": "string",
+                      "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                    },
+                    "duration": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": -1000000,
+                          "maximum": 1000000,
+                          "multipleOf": 0.000001
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    },
+                    "hit": {
+                      "type": "string",
+                      "enum": [
+                        "always",
+                        "seal"
+                      ]
+                    },
+                    "self": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "statusId",
+                    "duration"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "skipNextAction"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "school",
+          "tags",
+          "targeting",
+          "effects"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "statuses": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "\\S"
+          },
+          "kind": {
+            "type": "string",
+            "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "buff",
+              "debuff",
+              "control",
+              "dot"
+            ]
+          },
+          "ticks": {
+            "type": "string",
+            "enum": [
+              "roundEnd"
+            ]
+          },
+          "onTick": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "dot"
+              },
+              "ratioOfMaxHp": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "multipleOf": 0.000001
+              }
+            },
+            "required": [
+              "type",
+              "ratioOfMaxHp"
+            ],
+            "additionalProperties": false
+          },
+          "speedMod": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": -1000000,
+                "maximum": 1000000,
+                "multipleOf": 0.000001
+              },
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            ]
+          },
+          "attrMods": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "hp",
+                "maxHp",
+                "mp",
+                "maxMp",
+                "physicalAtk",
+                "physicalDef",
+                "magicAtk",
+                "magicDef",
+                "healPower",
+                "speed",
+                "hit",
+                "dodge",
+                "critRate",
+                "spellCritRate",
+                "physicalFuryRate",
+                "sealHit",
+                "sealResist",
+                "attackCultivate",
+                "defenseCultivate",
+                "spellCultivate",
+                "resistSpellCultivate"
+              ]
+            },
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": -1000000,
+                  "maximum": 1000000,
+                  "multipleOf": 0.000001
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              ]
+            }
+          },
+          "blocksRevive": {
+            "type": "boolean"
+          },
+          "persistWhenDowned": {
+            "type": "boolean"
+          },
+          "blocksAction": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "category"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "baseSkillIds",
+    "skills",
+    "statuses"
+  ],
+  "additionalProperties": false
+}

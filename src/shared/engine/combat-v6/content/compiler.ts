@@ -171,7 +171,7 @@ function validateProgress(
   if (progressMethodIds.length !== 6 || methodIds.some((id) => !progressMethodIds.includes(id))) {
     diagnostics.push(diagnostic("error", "INVALID_METHOD_SET", "战斗进度必须完整提供六本心法等级", "progress.methods"))
   }
-  const cap = Math.min(180, Math.max(0, Math.floor(input.characterLevel)) + 10)
+  const cap = methodLevelCap(Math.max(0, Math.floor(input.characterLevel)))
   for (const method of definition.methods) {
     const level = progress.methods[method.id]
     if (!Number.isFinite(level) || level < 0) {
@@ -544,3 +544,4 @@ export function compileSectDefinitionV6(input: CompileSectCombatV6Input): Compil
     },
   }
 }
+import { methodLevelCap } from '../sect-progression/pack';

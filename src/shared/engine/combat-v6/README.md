@@ -61,7 +61,7 @@ Phase 7C Redis权威运行时与回放归档见
 - `content/`：提供红尘剑宗、幽都、无相禅宗、天衍圣地、九劫天宫 v6 内容定义、版本化多宗门注册表、双流派经脉和宗门编译器。
 - `equipment/`：提供独立道装类型、六模板、九灵纹、七器蕴、九器诀、v1/v2 确定性生成和两阶段装配编译校验。
 - `manuals/`：提供四个境界位、独立功法层数、同名玉简瓶颈、免费激活切换、JSON 数据包与属性被动编译；旧本篇／真解规则已替代。
-- `projection/`：保留各阶段入口，并提供 `projectCultivatorMultiSectV5ToCombatV6` 五宗门完整人物构筑入口。
+- `projection/`：当前完整人物入口为 `projectCharacterToCombatV6`；历史阶段保留薄适配层，共用功法装配。当前宗门目录与编译入口为 `COMBAT_V6_SECT_DEFINITIONS`、`compileCurrentSectCombatV6`。
 - `encounter/`：提供训练 NPC、六类遭遇、内容校验、指令查询编排、确定性 NPC 策略和共享纯逻辑 Host。
 - `build-state/`：提供五宗门旧心法显式映射、迁移归一化和一次性初始化读模型。
 - `version.ts`：Phase 1～7D 战斗、快照与调试转录共同使用的版本戳。

@@ -1,6 +1,6 @@
 import type { SectCombatView } from '@shared/contracts/combatV6';
 import {
-  COMBAT_V6_SECT_DEFINITIONS_V4,
+  COMBAT_V6_SECT_DEFINITIONS,
   type CombatV6SectId,
   type SectCombatProgressV6,
 } from '../content/index.ts';
@@ -9,7 +9,7 @@ export function createFreshCombatV6MethodLevels(
   sectId: CombatV6SectId,
 ): Record<string, number> {
   return Object.fromEntries(
-    COMBAT_V6_SECT_DEFINITIONS_V4[sectId].methods.map((method) => [method.id, 1]),
+    COMBAT_V6_SECT_DEFINITIONS[sectId].methods.map((method) => [method.id, 1]),
   );
 }
 
@@ -18,7 +18,7 @@ export function createEmptySectCombatProgressV6(
   activePathId: string,
   methods: Readonly<Record<string, number>>,
 ): SectCombatProgressV6 {
-  const definition = COMBAT_V6_SECT_DEFINITIONS_V4[sectId];
+  const definition = COMBAT_V6_SECT_DEFINITIONS[sectId];
   if (!definition.paths.some((path) => path.id === activePathId)) {
     throw new Error(`COMBAT_V6_PATH_INVALID: ${activePathId}`);
   }
@@ -48,7 +48,7 @@ export function createSectCombatView(input: {
   methodLevels?: Readonly<Record<string, number>>;
 }): SectCombatView {
   const definition = input.sectId
-    ? COMBAT_V6_SECT_DEFINITIONS_V4[input.sectId]
+    ? COMBAT_V6_SECT_DEFINITIONS[input.sectId]
     : undefined;
   return structuredClone({
     schemaVersion: 1,

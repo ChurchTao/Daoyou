@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "blessings": {
+      "minItems": 11,
+      "maxItems": 11,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "choices": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 11
+        },
+        "forced": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "resource": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "atOrBelow": {
+                "$ref": "#/$defs/__schema2"
+              }
+            },
+            "required": [
+              "id",
+              "resource",
+              "atOrBelow"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "count",
+        "forced"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "blessings",
+    "choices"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "maxStacks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 99
+        },
+        "effect": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "attribute"
+                },
+                "attribute": {
+                  "type": "string",
+                  "enum": [
+                    "vitality",
+                    "strength",
+                    "spirit",
+                    "endurance",
+                    "speed",
+                    "willpower"
+                  ]
+                },
+                "perStack": {
+                  "$ref": "#/$defs/__schema2"
+                }
+              },
+              "required": [
+                "kind",
+                "attribute",
+                "perStack"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "allAttributes"
+                },
+                "perStack": {
+                  "$ref": "#/$defs/__schema2"
+                }
+              },
+              "required": [
+                "kind",
+                "perStack"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "resourceMax",
+                    "recovery"
+                  ]
+                },
+                "resource": {
+                  "$ref": "#/$defs/__schema3"
+                },
+                "perStack": {
+                  "$ref": "#/$defs/__schema2"
+                }
+              },
+              "required": [
+                "kind",
+                "resource",
+                "perStack"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "label",
+        "maxStacks",
+        "effect"
+      ],
+      "additionalProperties": false
+    },
+    "__schema1": {
+      "type": "string",
+      "enum": [
+        "vitality_surge",
+        "strength_surge",
+        "spirit_surge",
+        "endurance_surge",
+        "swift_step",
+        "mind_focus",
+        "jade_bones",
+        "sea_of_qi",
+        "breathing_technique",
+        "meridian_cycle",
+        "balanced_dao"
+      ]
+    },
+    "__schema2": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "__schema3": {
+      "type": "string",
+      "enum": [
+        "hp",
+        "mp"
+      ]
+    }
+  }
+}

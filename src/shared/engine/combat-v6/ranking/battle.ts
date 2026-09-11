@@ -11,7 +11,7 @@ import {
   type StatusDef,
 } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '../projection';
+import { projectCharacterToCombatV6 } from '../projection';
 import { daoyouRulesetV6 } from '../rules-daoyou';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
 
@@ -40,7 +40,7 @@ export function compileRankingBattle(
   }
   players.forEach((player, index) => {
     const side = index as 0 | 1;
-    const p = projectCultivatorMultiSectV5ToCombatV6({
+    const p = projectCharacterToCombatV6({
       ...player,
       side,
       slot: 0,

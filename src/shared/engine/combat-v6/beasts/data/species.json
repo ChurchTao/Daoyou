@@ -1,0 +1,51 @@
+{
+  "$schema": "./species.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "species": [
+    {
+      "id": "combat.wild.species.spirit-fox",
+      "name": "青灵狐",
+      "carryLevel": 5,
+      "role": "法术",
+      "allocation": "magic",
+      "skill": "beast.spirit-flame",
+      "aptitude": "mana"
+    },
+    {
+      "id": "combat.wild.species.rock-boar",
+      "name": "岩甲猪",
+      "carryLevel": 5,
+      "role": "防护",
+      "allocation": "constitution",
+      "skill": "beast.stone-guard",
+      "aptitude": "health"
+    },
+    {
+      "id": "combat.wild.species.wind-wolf",
+      "name": "疾风狼",
+      "carryLevel": 5,
+      "role": "物理",
+      "allocation": "strength",
+      "skill": "beast.wind-strike",
+      "aptitude": "attack"
+    }
+  ],
+  "generation": {
+    "starterLevel": 10,
+    "lifespan": 1000,
+    "aptitude": {
+      "min": 900,
+      "max": 1100,
+      "favoredBonus": 100
+    },
+    "growthMilli": {
+      "min": 950,
+      "max": 1050
+    },
+    "captureBonus": {
+      "skillId": "beast.combo",
+      "chance": 0.2
+    }
+  }
+}

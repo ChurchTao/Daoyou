@@ -1,18 +1,17 @@
+import { TOWER_BASE_ATTRIBUTES, TOWER_BLESSINGS_PACK, towerBlessingResourceRatio } from '../../../lib/tower/blessing-pack';
 import type { TowerBlessingId } from '../../../lib/tower/blessings';
-import {
-  resolveTowerFloorKind,
-  resolveTowerRealmStage,
-} from '../../../lib/tower/helpers';
+import { TOWER_MAX_FLOOR } from '../../../lib/tower/helpers';
+import { compileTowerEnemies } from './content';
+export { TOWER_ENEMY_CONFIG } from './content';
 import type { RealmType } from '../../../types/constants';
 import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
-import { UnitKind, type CreateBattleInput } from '../core';
+import { type CreateBattleInput } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
 import {
   CombatV6PveHostSession,
   type PveRestoredState,
 } from '../encounter/host';
-import { projectCultivatorMultiSectV5ToCombatV6 } from '../projection';
-import { combatCharacterLevel } from '../projection/character-level';
+import { projectCharacterToCombatV6 } from '../projection';
 import { daoyouRulesetV6 } from '../rules-daoyou';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
 
@@ -23,49 +22,22 @@ export const TOWER_V6_VERSIONS = {
   rulesetVersion: 'daoyou_rules_v8',
   contentVersion: 'combat-v6-tower-v1',
 } as const;
-export const TOWER_ENEMY_CONFIG = {
-  floorGrowth: 0.06,
-  hpBase: 200,
-  hpPerLevel: 30,
-  attackBase: 30,
-  attackPerLevel: 8,
-  defensePerLevel: 4,
-  speedPerLevel: 3,
-  templates: {
-    normal: { name: '蜃影守卫', count: 1, hpScale: 1 },
-    elite: { name: '幻境精锐', count: 2, hpScale: 1 },
-    boss: { name: '蜃楼镇守', count: 1, hpScale: 2 },
-  },
-} as const;
 
 export function projectTowerPlayer(
   player: CombatV6TrainingPlayerInput,
   blessings: TowerBlessings,
+  pack = TOWER_BLESSINGS_PACK,
 ) {
   const input = structuredClone(player);
-  const keys = [
-    'vitality',
-    'strength',
-    'spirit',
-    'endurance',
-    'speed',
-    'willpower',
-  ] as const;
-  const ids = [
-    'vitality_surge',
-    'strength_surge',
-    'spirit_surge',
-    'endurance_surge',
-    'swift_step',
-    'mind_focus',
-  ] as const;
-  keys.forEach((key, i) => {
-    input.cultivator.attributes[key] *=
-      1 +
-      (blessings[ids[i]] ?? 0) * 0.08 +
-      (blessings.balanced_dao ?? 0) * 0.05;
-  });
-  const projected = projectCultivatorMultiSectV5ToCombatV6({
+  for (const key of TOWER_BASE_ATTRIBUTES) {
+    let multiplier = 1;
+    for (const blessing of pack.blessings) {
+      const effect = blessing.effect;
+      if (effect.kind === 'allAttributes' || (effect.kind === 'attribute' && effect.attribute === key)) multiplier += (blessings[blessing.id] ?? 0) * effect.perStack;
+    }
+    input.cultivator.attributes[key] *= multiplier;
+  }
+  const projected = projectCharacterToCombatV6({
     ...input,
     side: 0,
     slot: 0,
@@ -74,10 +46,10 @@ export function projectTowerPlayer(
   if (!projected.ok) throw new Error('请先完成新版宗门构筑');
   const attrs = projected.unit.attrs!;
   attrs.maxHp = attrs.hp = Math.floor(
-    attrs.maxHp! * (1 + (blessings.jade_bones ?? 0) * 0.1),
+    attrs.maxHp! * (1 + towerBlessingResourceRatio(blessings, 'resourceMax', 'hp', pack)),
   );
   attrs.maxMp = attrs.mp = Math.floor(
-    attrs.maxMp! * (1 + (blessings.sea_of_qi ?? 0) * 0.12),
+    attrs.maxMp! * (1 + towerBlessingResourceRatio(blessings, 'resourceMax', 'mp', pack)),
   );
   return projected;
 }
@@ -150,7 +122,7 @@ export function createTowerHost(
   resources: TowerResources,
   seed: number,
 ) {
-  if (!Number.isInteger(floor) || floor < 1 || floor > 20)
+  if (!Number.isInteger(floor) || floor < 1 || floor > TOWER_MAX_FLOOR)
     throw new Error('幻境层数无效');
   const projected = projectTowerPlayer(player, blessings);
   const unit = projected.unit;
@@ -160,12 +132,12 @@ export function createTowerHost(
     attrs.hp = towerRecovery(
       previous.hp,
       attrs.maxHp!,
-      (blessings.breathing_technique ?? 0) * 0.1,
+      towerBlessingResourceRatio(blessings, 'recovery', 'hp'),
     );
     attrs.mp = towerRecovery(
       previous.mp,
       attrs.maxMp!,
-      (blessings.meridian_cycle ?? 0) * 0.15,
+      towerBlessingResourceRatio(blessings, 'recovery', 'mp'),
     );
   }
   const beasts = projectBeastRoster(
@@ -185,55 +157,7 @@ export function createTowerHost(
       };
     return [beast];
   });
-  const kind = resolveTowerFloorKind(floor);
-  const level = combatCharacterLevel(realm, resolveTowerRealmStage(floor));
-  const config = TOWER_ENEMY_CONFIG;
-  const template = config.templates[kind];
-  const scale = 1 + (floor - 1) * config.floorGrowth;
-  const count = template.count;
-  const hp = Math.round(
-    (config.hpBase + level * config.hpPerLevel) * scale * template.hpScale,
-  );
-  const attack = Math.round(
-    (config.attackBase + level * config.attackPerLevel) * scale,
-  );
-  const enemies: CreateBattleInput['units'] = Array.from(
-    { length: count },
-    (_, slot) => ({
-      id: `tower.enemy.${slot}`,
-      name: template.name,
-      side: 1,
-      slot,
-      kind: UnitKind.Npc,
-      level,
-      attrs: {
-        hp,
-        maxHp: hp,
-        mp: 100,
-        maxMp: 100,
-        physicalAtk: attack,
-        magicAtk: attack,
-        physicalDef: level * config.defensePerLevel,
-        magicDef: level * config.defensePerLevel,
-        speed: level * config.speedPerLevel,
-        healPower: 0,
-        hit: 100,
-        dodge: 10,
-        critRate: 0,
-        spellCritRate: 0,
-        physicalFuryRate: 0,
-        sealHit: 0,
-        sealResist: 0,
-        attackCultivate: 0,
-        defenseCultivate: 0,
-        spellCultivate: 0,
-        resistSpellCultivate: 0,
-      },
-      skills: [],
-      passives: [],
-      tags: [],
-    }),
-  );
+  const enemies = compileTowerEnemies(realm, floor);
   return new TowerHost({
     version: 'tower-v6-v1',
     playerId: unit.id!,

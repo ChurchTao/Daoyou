@@ -1,0 +1,515 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "baseSkillIds": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "elemental": {
+      "minItems": 5,
+      "maxItems": 5,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema1"
+      }
+    },
+    "skills": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema7"
+      }
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "baseSkillIds",
+    "elemental",
+    "skills"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^tianyan\\.[a-z][a-z0-9_.]*$"
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "element": {
+          "type": "string",
+          "enum": [
+            "wood",
+            "fire",
+            "earth",
+            "metal",
+            "water"
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "costMp": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "coefficient": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "power": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "sideEffects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        },
+        "markDuration": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 99,
+          "$ref": "#/$defs/__schema4"
+        }
+      },
+      "required": [
+        "element",
+        "name",
+        "costMp",
+        "coefficient",
+        "power",
+        "sideEffects",
+        "markDuration"
+      ],
+      "additionalProperties": false
+    },
+    "__schema2": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "__schema3": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema4"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      ]
+    },
+    "__schema4": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "__schema5": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "spellHit"
+            },
+            "coeff": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "defenseIgnore": {
+              "maximum": 1,
+              "$ref": "#/$defs/__schema4"
+            }
+          },
+          "required": [
+            "type",
+            "coeff",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "fixedHit"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "formula": {
+              "type": "string",
+              "const": "fixed"
+            },
+            "origin": {
+              "type": "string",
+              "enum": [
+                "action-direct",
+                "hook-derived",
+                "status"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "power",
+            "formula",
+            "origin"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "heal",
+                "removeWound",
+                "restoreMp"
+              ]
+            },
+            "power": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema6"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "applyStatus"
+            },
+            "statusId": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "duration": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99,
+              "$ref": "#/$defs/__schema4"
+            },
+            "hit": {
+              "type": "string",
+              "enum": [
+                "always",
+                "seal"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "statusId",
+            "duration"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "applyBarrier"
+            },
+            "id": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "kind": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "name": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "duration": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99,
+              "$ref": "#/$defs/__schema4"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema6"
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "kind",
+            "name",
+            "power",
+            "duration"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "dispel"
+            },
+            "categories": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "buff",
+                  "debuff",
+                  "control",
+                  "dot"
+                ]
+              }
+            },
+            "maxCount": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99,
+              "$ref": "#/$defs/__schema4"
+            }
+          },
+          "required": [
+            "type",
+            "categories",
+            "maxCount"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "copyStatus",
+                "removeStatus"
+              ]
+            },
+            "kinds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema0"
+              }
+            },
+            "maxCount": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99,
+              "$ref": "#/$defs/__schema4"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema6"
+            }
+          },
+          "required": [
+            "type",
+            "kinds",
+            "maxCount"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "modifyResource"
+            },
+            "resourceId": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "amount": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "$ref": "#/$defs/__schema4"
+            },
+            "maxGainPerAction": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "$ref": "#/$defs/__schema4"
+            }
+          },
+          "required": [
+            "type",
+            "resourceId",
+            "amount",
+            "maxGainPerAction"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "__schema6": {
+      "type": "object",
+      "properties": {
+        "side": {
+          "type": "string",
+          "enum": [
+            "enemy",
+            "ally",
+            "self",
+            "any"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "explicit",
+            "fill",
+            "all",
+            "random",
+            "lowestHp",
+            "lowestDef"
+          ]
+        },
+        "count": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "requireStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        }
+      },
+      "required": [
+        "side"
+      ],
+      "additionalProperties": false
+    },
+    "__schema7": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "name": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "school": {
+          "type": "string",
+          "const": "tianyan"
+        },
+        "costMp": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "resourceRequirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "resourceId": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "min": {
+                "$ref": "#/$defs/__schema4"
+              }
+            },
+            "required": [
+              "resourceId",
+              "min"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "resourceCosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "resourceId": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "amount": {
+                "$ref": "#/$defs/__schema4"
+              }
+            },
+            "required": [
+              "resourceId",
+              "amount"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "tags": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema8"
+          }
+        },
+        "formula": {
+          "type": "string",
+          "const": "spell"
+        },
+        "sealBase": {
+          "maximum": 100,
+          "$ref": "#/$defs/__schema4"
+        },
+        "targeting": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "effects": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "school",
+        "costMp",
+        "tags",
+        "targeting",
+        "effects"
+      ],
+      "additionalProperties": false
+    },
+    "__schema8": {
+      "type": "string",
+      "enum": [
+        "physical",
+        "spell",
+        "seal",
+        "support",
+        "passive"
+      ]
+    }
+  }
+}

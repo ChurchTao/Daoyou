@@ -131,7 +131,7 @@ export default function InventoryV6() {
             }),
           ),
         );
-      } else await combatV6Request(endpoint, mutationBody(action));
+      } else await consumeResourceMutation(await fetch(endpoint, mutationBody(action)));
       if (!mounted.current) return;
       setMoving(undefined);
       pushToast({

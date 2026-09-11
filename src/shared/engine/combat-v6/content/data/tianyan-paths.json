@@ -1,0 +1,1208 @@
+{
+  "$schema": "./tianyan-paths.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "passives": [
+    {
+      "id": "tianyan.passive.hetu.foundation.heal",
+      "name": "河图演生·生息",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.hetu_ultimate",
+              "tianyan.skill.life_array"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.hetu.foundation.barrier",
+      "name": "河图演生·护元",
+      "hooks": [
+        {
+          "on": "onBarrierCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.ward",
+              "tianyan.skill.hetu_ultimate",
+              "tianyan.skill.life_array"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyBarrier",
+              "factor": 1.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.hetu.1.1",
+      "name": "生机流转",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.hetu.1.2",
+      "name": "厚土载物",
+      "hooks": [
+        {
+          "on": "onBarrierCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.earth"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyBarrier",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.hetu.4.1",
+      "name": "木德滋荣",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.hetu.4.2",
+      "name": "土德重垣",
+      "hooks": [
+        {
+          "on": "onBarrierCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.earth"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyBarrier",
+              "factor": 1.15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.hetu.4.3",
+      "name": "周天固阵",
+      "hooks": [
+        {
+          "on": "onBarrierCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.ward"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyBarrier",
+              "factor": 1.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.hetu.5.1",
+      "name": "雪中回春",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.hetu_ultimate",
+              "tianyan.skill.life_array"
+            ],
+            "targetHpRatioBelow": 0.5
+          },
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.hetu.5.2",
+      "name": "危垣加护",
+      "hooks": [
+        {
+          "on": "onBarrierCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.ward",
+              "tianyan.skill.hetu_ultimate",
+              "tianyan.skill.life_array"
+            ],
+            "targetHpRatioBelow": 0.5
+          },
+          "effects": [
+            {
+              "type": "modifyBarrier",
+              "factor": 1.15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.hetu.6.1",
+      "name": "大衍生生",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.hetu_ultimate",
+              "tianyan.skill.life_array"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.hetu.6.2",
+      "name": "万象成垣",
+      "hooks": [
+        {
+          "on": "onBarrierCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.ward",
+              "tianyan.skill.hetu_ultimate",
+              "tianyan.skill.life_array"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyBarrier",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.luoshu.foundation",
+      "name": "洛书制化",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.luoshu_ultimate",
+              "tianyan.skill.reverse_divination",
+              "tianyan.skill.reverse_divination_strong"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.luoshu.1.1",
+      "name": "离明炽盛",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.fire"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.luoshu.1.2",
+      "name": "庚金肃杀",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.metal"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.luoshu.2.1",
+      "name": "观印知隙",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.luoshu_ultimate",
+              "tianyan.skill.reverse_divination",
+              "tianyan.skill.reverse_divination_strong"
+            ],
+            "targetStatusIds": [
+              "tianyan.status.mark.wood",
+              "tianyan.status.mark.fire",
+              "tianyan.status.mark.earth",
+              "tianyan.status.mark.metal",
+              "tianyan.status.mark.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.luoshu.2.3",
+      "name": "破妄见真",
+      "hooks": [
+        {
+          "on": "onDefenseIgnoreCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.luoshu_ultimate",
+              "tianyan.skill.reverse_divination",
+              "tianyan.skill.reverse_divination_strong"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyDefenseIgnore",
+              "add": 0.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.luoshu.5.1",
+      "name": "盛极当制",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.luoshu_ultimate",
+              "tianyan.skill.reverse_divination",
+              "tianyan.skill.reverse_divination_strong"
+            ],
+            "targetHpRatioAbove": 0.7,
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.luoshu.5.2",
+      "name": "天机暴显",
+      "hooks": [
+        {
+          "on": "onCritRoll",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.luoshu_ultimate",
+              "tianyan.skill.reverse_divination",
+              "tianyan.skill.reverse_divination_strong"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyChance",
+              "add": 0.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.luoshu.6.1",
+      "name": "万法归算",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.luoshu_ultimate",
+              "tianyan.skill.reverse_divination",
+              "tianyan.skill.reverse_divination_strong"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.luoshu.6.2",
+      "name": "法界无蔽",
+      "hooks": [
+        {
+          "on": "onDefenseIgnoreCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water",
+              "tianyan.skill.luoshu_ultimate",
+              "tianyan.skill.reverse_divination",
+              "tianyan.skill.reverse_divination_strong"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyDefenseIgnore",
+              "add": 0.1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "paths": [
+    {
+      "id": "tianyan.path.hetu",
+      "name": "河图演生",
+      "foundationPassives": [
+        "tianyan.passive.hetu.foundation.heal",
+        "tianyan.passive.hetu.foundation.barrier"
+      ],
+      "grantSkills": [
+        "tianyan.skill.hetu_ultimate"
+      ],
+      "resources": [
+        "tianyan.resource.derivation"
+      ],
+      "nodes": [
+        {
+          "id": "tianyan.node.hetu.1.1",
+          "name": "生机流转",
+          "layer": 1,
+          "slot": 1,
+          "description": "生机流转",
+          "passives": [
+            "tianyan.passive.hetu.1.1"
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.1.2",
+          "name": "厚土载物",
+          "layer": 1,
+          "slot": 2,
+          "description": "厚土载物",
+          "passives": [
+            "tianyan.passive.hetu.1.2"
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.1.3",
+          "name": "灵枢洞明",
+          "layer": 1,
+          "slot": 3,
+          "description": "灵枢洞明",
+          "panel": [
+            {
+              "attr": "healPower",
+              "mode": "add",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.2.1",
+          "name": "河图生息",
+          "layer": 2,
+          "slot": 1,
+          "description": "河图生息",
+          "patches": [
+            {
+              "operation": "appendReactionEffect",
+              "kind": "generate",
+              "effect": {
+                "type": "heal",
+                "power": "floor(target.maxHp * 0.02) + floor(skillLevel * 0.3)",
+                "targeting": {
+                  "side": "ally",
+                  "mode": "lowestHp",
+                  "count": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.2.2",
+          "name": "九宫护元",
+          "layer": 2,
+          "slot": 2,
+          "description": "九宫护元",
+          "patches": [
+            {
+              "operation": "appendReactionEffect",
+              "kind": "generate",
+              "effect": {
+                "type": "applyBarrier",
+                "id": "tianyan.barrier.reaction",
+                "kind": "tianyan.reaction",
+                "name": "九宫护元",
+                "power": "floor(target.maxHp * 0.03) + floor(skillLevel * 0.3)",
+                "duration": 2,
+                "targeting": {
+                  "side": "ally",
+                  "mode": "lowestHp",
+                  "count": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.2.3",
+          "name": "步罡踏斗",
+          "layer": 2,
+          "slot": 3,
+          "description": "步罡踏斗",
+          "panel": [
+            {
+              "attr": "speed",
+              "mode": "add",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.3.1",
+          "name": "生生化阵",
+          "layer": 3,
+          "slot": 1,
+          "description": "生生化阵",
+          "grantSkills": [
+            "tianyan.skill.life_array"
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.3.2",
+          "name": "印布三才",
+          "layer": 3,
+          "slot": 2,
+          "description": "印布三才",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.transfer",
+              "operation": "setEffectTargetCount",
+              "effectType": "copyStatus",
+              "value": 4
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.3.3",
+          "name": "九宫久驻",
+          "layer": 3,
+          "slot": 3,
+          "description": "九宫久驻",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.formation",
+              "operation": "setStatusDuration",
+              "statusId": "tianyan.status.formation",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.4.1",
+          "name": "木德滋荣",
+          "layer": 4,
+          "slot": 1,
+          "description": "木德滋荣",
+          "passives": [
+            "tianyan.passive.hetu.4.1"
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.4.2",
+          "name": "土德重垣",
+          "layer": 4,
+          "slot": 2,
+          "description": "土德重垣",
+          "passives": [
+            "tianyan.passive.hetu.4.2"
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.4.3",
+          "name": "周天固阵",
+          "layer": 4,
+          "slot": 3,
+          "description": "周天固阵",
+          "passives": [
+            "tianyan.passive.hetu.4.3"
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.5.1",
+          "name": "雪中回春",
+          "layer": 5,
+          "slot": 1,
+          "description": "雪中回春",
+          "passives": [
+            "tianyan.passive.hetu.5.1"
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.5.2",
+          "name": "危垣加护",
+          "layer": 5,
+          "slot": 2,
+          "description": "危垣加护",
+          "passives": [
+            "tianyan.passive.hetu.5.2"
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.5.3",
+          "name": "洗髓归元",
+          "layer": 5,
+          "slot": 3,
+          "description": "洗髓归元",
+          "patches": [
+            {
+              "operation": "appendReactionEffect",
+              "kind": "generate",
+              "effect": {
+                "type": "removeWound",
+                "power": "floor(skillLevel * 0.6)",
+                "targeting": {
+                  "side": "ally",
+                  "mode": "lowestHp",
+                  "count": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.6.1",
+          "name": "大衍生生",
+          "layer": 6,
+          "slot": 1,
+          "description": "大衍生生",
+          "passives": [
+            "tianyan.passive.hetu.6.1"
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.6.2",
+          "name": "万象成垣",
+          "layer": 6,
+          "slot": 2,
+          "description": "万象成垣",
+          "passives": [
+            "tianyan.passive.hetu.6.2"
+          ],
+          "patches": [
+            {
+              "operation": "setAllBarrierDuration",
+              "value": 3
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.6.3",
+          "name": "移宫久印",
+          "layer": 6,
+          "slot": 3,
+          "description": "移宫久印",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.transfer",
+              "operation": "setCopyStatusDurationAdd",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.7.1",
+          "name": "众生归元",
+          "layer": 7,
+          "slot": 1,
+          "description": "众生归元",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.hetu_ultimate",
+              "operation": "prependEffect",
+              "effect": {
+                "type": "removeWound",
+                "power": "floor(target.maxHp * 0.05)"
+              }
+            },
+            {
+              "skillId": "tianyan.skill.hetu_ultimate",
+              "operation": "multiplyHealPower",
+              "value": 1.6
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.7.2",
+          "name": "河图天幕",
+          "layer": 7,
+          "slot": 2,
+          "description": "河图天幕",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.hetu_ultimate",
+              "operation": "multiplyBarrierPower",
+              "value": 1.6
+            },
+            {
+              "skillId": "tianyan.skill.hetu_ultimate",
+              "operation": "setBarrierDuration",
+              "barrierId": "tianyan.barrier.ultimate",
+              "value": 3
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.hetu.7.3",
+          "name": "生数不绝",
+          "layer": 7,
+          "slot": 3,
+          "description": "生数不绝",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.hetu_ultimate",
+              "operation": "multiplyRestoreMpPower",
+              "value": 2
+            },
+            {
+              "skillId": "tianyan.skill.hetu_ultimate",
+              "operation": "appendEffect",
+              "effect": {
+                "type": "modifyResource",
+                "resourceId": "tianyan.resource.derivation",
+                "amount": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tianyan.path.luoshu",
+      "name": "洛书制化",
+      "foundationPassives": [
+        "tianyan.passive.luoshu.foundation"
+      ],
+      "grantSkills": [
+        "tianyan.skill.luoshu_ultimate"
+      ],
+      "resources": [
+        "tianyan.resource.derivation"
+      ],
+      "nodes": [
+        {
+          "id": "tianyan.node.luoshu.1.1",
+          "name": "离明炽盛",
+          "layer": 1,
+          "slot": 1,
+          "description": "离明炽盛",
+          "passives": [
+            "tianyan.passive.luoshu.1.1"
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.1.2",
+          "name": "庚金肃杀",
+          "layer": 1,
+          "slot": 2,
+          "description": "庚金肃杀",
+          "passives": [
+            "tianyan.passive.luoshu.1.2"
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.1.3",
+          "name": "星枢灌顶",
+          "layer": 1,
+          "slot": 3,
+          "description": "星枢灌顶",
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.2.1",
+          "name": "观印知隙",
+          "layer": 2,
+          "slot": 1,
+          "description": "观印知隙",
+          "passives": [
+            "tianyan.passive.luoshu.2.1"
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.2.2",
+          "name": "制化余威",
+          "layer": 2,
+          "slot": 2,
+          "description": "制化余威",
+          "patches": [
+            {
+              "operation": "multiplyReactionPower",
+              "value": 1.15
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.2.3",
+          "name": "破妄见真",
+          "layer": 2,
+          "slot": 3,
+          "description": "破妄见真",
+          "passives": [
+            "tianyan.passive.luoshu.2.3"
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.3.1",
+          "name": "逆演天机",
+          "layer": 3,
+          "slot": 1,
+          "description": "逆演天机",
+          "grantSkills": [
+            "tianyan.skill.reverse_divination"
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.3.2",
+          "name": "坎水激流",
+          "layer": 3,
+          "slot": 2,
+          "description": "坎水激流",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.water",
+              "operation": "multiplySpellCoefficients",
+              "value": 1.1538461538461537
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.3.3",
+          "name": "逆数增煞",
+          "layer": 3,
+          "slot": 3,
+          "description": "逆数增煞",
+          "grantSkills": [
+            "tianyan.skill.reverse_divination_strong"
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.4.1",
+          "name": "九紫余烬",
+          "layer": 4,
+          "slot": 1,
+          "description": "九紫余烬",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.fire",
+              "operation": "replaceStatusId",
+              "from": "tianyan.status.scorch",
+              "to": "tianyan.status.scorch_strong"
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.4.2",
+          "name": "七赤破阵",
+          "layer": 4,
+          "slot": 2,
+          "description": "七赤破阵",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.metal",
+              "operation": "setDispelMaxCount",
+              "value": 2
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.4.3",
+          "name": "一白凝时",
+          "layer": 4,
+          "slot": 3,
+          "description": "一白凝时",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.water",
+              "operation": "setStatusDuration",
+              "statusId": "tianyan.status.water_slow",
+              "value": 3
+            },
+            {
+              "skillId": "tianyan.skill.water",
+              "operation": "setStatusDuration",
+              "statusId": "tianyan.status.cold_spring",
+              "value": 3
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.5.1",
+          "name": "盛极当制",
+          "layer": 5,
+          "slot": 1,
+          "description": "盛极当制",
+          "passives": [
+            "tianyan.passive.luoshu.5.1"
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.5.2",
+          "name": "天机暴显",
+          "layer": 5,
+          "slot": 2,
+          "description": "天机暴显",
+          "passives": [
+            "tianyan.passive.luoshu.5.2"
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.5.3",
+          "name": "冲克加刑",
+          "layer": 5,
+          "slot": 3,
+          "description": "冲克加刑",
+          "patches": [
+            {
+              "operation": "multiplyReactionPower",
+              "kind": "overcome",
+              "value": 1.2
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.6.1",
+          "name": "万法归算",
+          "layer": 6,
+          "slot": 1,
+          "description": "万法归算",
+          "passives": [
+            "tianyan.passive.luoshu.6.1"
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.6.2",
+          "name": "法界无蔽",
+          "layer": 6,
+          "slot": 2,
+          "description": "法界无蔽",
+          "passives": [
+            "tianyan.passive.luoshu.6.2"
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.6.3",
+          "name": "逆演重构",
+          "layer": 6,
+          "slot": 3,
+          "description": "逆演重构",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.reverse_divination",
+              "operation": "multiplySpellCoefficients",
+              "value": 1.16
+            },
+            {
+              "skillId": "tianyan.skill.reverse_divination_strong",
+              "operation": "multiplySpellCoefficients",
+              "value": 1.16
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.7.1",
+          "name": "天罚增威",
+          "layer": 7,
+          "slot": 1,
+          "description": "天罚增威",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.luoshu_ultimate",
+              "operation": "multiplySpellCoefficients",
+              "value": 1.125
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.7.2",
+          "name": "破阵尽除",
+          "layer": 7,
+          "slot": 2,
+          "description": "破阵尽除",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.luoshu_ultimate",
+              "operation": "setDispelMaxCount",
+              "value": 2
+            }
+          ]
+        },
+        {
+          "id": "tianyan.node.luoshu.7.3",
+          "name": "断局封天",
+          "layer": 7,
+          "slot": 3,
+          "description": "断局封天",
+          "patches": [
+            {
+              "skillId": "tianyan.skill.luoshu_ultimate",
+              "operation": "setSealBase",
+              "value": 65
+            },
+            {
+              "skillId": "tianyan.skill.luoshu_ultimate",
+              "operation": "setStatusDuration",
+              "statusId": "tianyan.status.sever_meridian",
+              "value": 2
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "barrierDurationTargets": [
+    {
+      "skillId": "tianyan.skill.earth",
+      "barrierId": "tianyan.barrier.earth"
+    },
+    {
+      "skillId": "tianyan.skill.ward",
+      "barrierId": "tianyan.barrier.ward"
+    },
+    {
+      "skillId": "tianyan.skill.life_array",
+      "barrierId": "tianyan.barrier.life_array"
+    },
+    {
+      "skillId": "tianyan.skill.hetu_ultimate",
+      "barrierId": "tianyan.barrier.ultimate"
+    },
+    {
+      "skillId": "tianyan.skill.wood",
+      "barrierId": "tianyan.barrier.reaction"
+    },
+    {
+      "skillId": "tianyan.skill.fire",
+      "barrierId": "tianyan.barrier.reaction"
+    },
+    {
+      "skillId": "tianyan.skill.earth",
+      "barrierId": "tianyan.barrier.reaction"
+    },
+    {
+      "skillId": "tianyan.skill.metal",
+      "barrierId": "tianyan.barrier.reaction"
+    },
+    {
+      "skillId": "tianyan.skill.water",
+      "barrierId": "tianyan.barrier.reaction"
+    }
+  ]
+}

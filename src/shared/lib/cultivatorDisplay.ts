@@ -2,8 +2,7 @@ import type { Cultivator } from '@shared/types/cultivator';
 import type { CultivatorCondition } from '@shared/types/condition';
 import { projectNaturalRecoveryResources } from './condition';
 import {
-  projectCultivatorMultiSectV5ToCombatV6,
-  projectCultivatorWithTrainingToCombatV6,
+  projectCharacterToCombatV6,
   type CharacterPanelV1,
   type CharacterCombatInput,
 } from '@shared/engine/combat-v6/projection';
@@ -63,9 +62,13 @@ export function projectCharacterDisplay(
     cultivator: { ...cultivator, id: cultivator.id || 'character-preview' },
     side: 0 as const, slot: 0, resourcePolicy: 'full' as const,
   };
-  const result = build
-    ? projectCultivatorMultiSectV5ToCombatV6({ ...input, ...build })
-    : projectCultivatorWithTrainingToCombatV6(input);
+  const result = projectCharacterToCombatV6({
+    ...input,
+    ...(build ?? {
+      equipment: {},
+      manuals: { version: 1, revision: 0, learned: [], build: { slots: [] } },
+    }),
+  });
   if (!result.ok) throw new Error(result.diagnostics.map((item) => item.message).join('；'));
   const panel = {} as CharacterPanelV1;
   for (const key of Object.keys(CHARACTER_PANEL_LABELS) as (keyof CharacterPanelV1)[]) {

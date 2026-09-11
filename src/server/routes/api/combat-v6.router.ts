@@ -196,10 +196,10 @@ router.post('/inventory', async (c) => {
   try {
     return c.json({
       success: true,
-      data: await mutateInventory(
+      ...(await mutateInventory(
         actor(c).cultivatorId,
         InventoryActionSchema.parse(await c.req.json()),
-      ),
+      )),
     });
   } catch (error) {
     return errorResponse(c, error);

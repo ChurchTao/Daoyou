@@ -1,4 +1,5 @@
 import { EffectType, HookName } from '@shared/engine/combat-v6/core/enums';
+import { BEAST_COMBO_SKILL_IDS } from '@shared/engine/combat-v6/beasts/content';
 import type {
   SkillDef,
   SkillEffect,
@@ -8,7 +9,7 @@ import { DAO_EQUIPMENT_ART_SKILL_ID } from '@shared/engine/combat-v6/equipment/s
 
 const artIds = new Set<string>(Object.values(DAO_EQUIPMENT_ART_SKILL_ID));
 function beastComboDescription(skill: SkillDef): string | undefined {
-  if (skill.id !== 'beast.combo' && skill.id !== 'beast.advanced-combo') return;
+  if (!BEAST_COMBO_SKILL_IDS.includes(skill.id)) return;
   const hook = skill.hooks?.find((entry) => entry.on === HookName.AfterHit);
   if (typeof hook?.chance !== 'number') return;
   return `自身物理攻击命中后，有 ${Math.round(hook.chance * 100)}% 概率向该目标追加一次物理攻击。`;

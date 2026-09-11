@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "skills": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^beast\\.[a-z][a-z0-9-]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "book": {
+            "type": "boolean"
+          },
+          "effect": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "spellHit"
+                  },
+                  "costMp": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "coefficient": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "powerBase": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "powerPerLevel": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "costMp",
+                  "coefficient",
+                  "powerBase",
+                  "powerPerLevel"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "barrier"
+                  },
+                  "costMp": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "barrierId": {
+                    "type": "string",
+                    "pattern": "^beast\\.[a-z][a-z0-9-]*$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "powerBase": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "powerPerLevel": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  }
+                },
+                "required": [
+                  "type",
+                  "costMp",
+                  "barrierId",
+                  "kind",
+                  "name",
+                  "powerBase",
+                  "powerPerLevel",
+                  "duration"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "physicalHit"
+                  },
+                  "costMp": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "coefficient": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "costMp",
+                  "coefficient"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "combo"
+                  },
+                  "chance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "coefficient": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "chance",
+                  "coefficient"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "book",
+          "effect"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "families": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "normal": {
+            "type": "string",
+            "pattern": "^beast\\.[a-z][a-z0-9-]*$"
+          },
+          "advanced": {
+            "type": "string",
+            "pattern": "^beast\\.[a-z][a-z0-9-]*$"
+          }
+        },
+        "required": [
+          "normal",
+          "advanced"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "skills",
+    "families"
+  ],
+  "additionalProperties": false
+}

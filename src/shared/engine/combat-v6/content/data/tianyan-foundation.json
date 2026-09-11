@@ -1,0 +1,280 @@
+{
+  "$schema": "./tianyan-foundation.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "elements": [
+    {
+      "element": "wood",
+      "markId": "tianyan.status.mark.wood",
+      "skillId": "tianyan.skill.wood"
+    },
+    {
+      "element": "fire",
+      "markId": "tianyan.status.mark.fire",
+      "skillId": "tianyan.skill.fire"
+    },
+    {
+      "element": "earth",
+      "markId": "tianyan.status.mark.earth",
+      "skillId": "tianyan.skill.earth"
+    },
+    {
+      "element": "metal",
+      "markId": "tianyan.status.mark.metal",
+      "skillId": "tianyan.skill.metal"
+    },
+    {
+      "element": "water",
+      "markId": "tianyan.status.mark.water",
+      "skillId": "tianyan.skill.water"
+    }
+  ],
+  "statuses": [
+    {
+      "id": "tianyan.status.mark.wood",
+      "name": "木印",
+      "kind": "tianyan.status.mark",
+      "category": "debuff"
+    },
+    {
+      "id": "tianyan.status.mark.fire",
+      "name": "火印",
+      "kind": "tianyan.status.mark",
+      "category": "debuff"
+    },
+    {
+      "id": "tianyan.status.mark.earth",
+      "name": "土印",
+      "kind": "tianyan.status.mark",
+      "category": "debuff"
+    },
+    {
+      "id": "tianyan.status.mark.metal",
+      "name": "金印",
+      "kind": "tianyan.status.mark",
+      "category": "debuff"
+    },
+    {
+      "id": "tianyan.status.mark.water",
+      "name": "水印",
+      "kind": "tianyan.status.mark",
+      "category": "debuff"
+    },
+    {
+      "id": "tianyan.status.scorch",
+      "name": "灼痕",
+      "kind": "tianyan.scorch",
+      "category": "dot",
+      "ticks": "roundEnd",
+      "onTick": {
+        "type": "dot",
+        "ratioOfMaxHp": 0.02
+      }
+    },
+    {
+      "id": "tianyan.status.scorch_strong",
+      "name": "炽烈灼痕",
+      "kind": "tianyan.scorch",
+      "category": "dot",
+      "ticks": "roundEnd",
+      "onTick": {
+        "type": "dot",
+        "ratioOfMaxHp": 0.03
+      }
+    },
+    {
+      "id": "tianyan.status.magma",
+      "name": "熔岩",
+      "kind": "tianyan.magma",
+      "category": "dot",
+      "ticks": "roundEnd",
+      "onTick": {
+        "type": "dot",
+        "ratioOfMaxHp": 0.03
+      }
+    },
+    {
+      "id": "tianyan.status.water_slow",
+      "name": "凝流",
+      "kind": "tianyan.water_slow",
+      "category": "debuff",
+      "speedMod": "-floor(skillLevel * 0.2)"
+    },
+    {
+      "id": "tianyan.status.cold_spring",
+      "name": "寒泉",
+      "kind": "tianyan.water_slow",
+      "category": "debuff",
+      "speedMod": "-floor(skillLevel * 0.4)"
+    },
+    {
+      "id": "tianyan.status.mire",
+      "name": "泥沼",
+      "kind": "tianyan.mire",
+      "category": "control",
+      "blocksAction": true
+    },
+    {
+      "id": "tianyan.status.collapse_root",
+      "name": "崩根",
+      "kind": "tianyan.collapse_root",
+      "category": "debuff",
+      "attrMods": {
+        "magicDef": "-floor(target.magicDef * 0.2)"
+      }
+    },
+    {
+      "id": "tianyan.status.sever_meridian",
+      "name": "断脉",
+      "kind": "tianyan.sever_meridian",
+      "category": "control",
+      "blocksSpell": true
+    },
+    {
+      "id": "tianyan.status.melt_metal",
+      "name": "熔金",
+      "kind": "tianyan.melt_metal",
+      "category": "debuff",
+      "attrMods": {
+        "physicalAtk": "-floor(target.physicalAtk * 0.2)",
+        "magicAtk": "-floor(target.magicAtk * 0.2)"
+      }
+    },
+    {
+      "id": "tianyan.status.formation",
+      "name": "九宫布阵",
+      "kind": "tianyan.formation",
+      "category": "buff",
+      "attrMods": {
+        "magicDef": "floor(skillLevel * 0.4)",
+        "sealResist": "floor(skillLevel * 0.2)"
+      }
+    }
+  ],
+  "reactions": [
+    {
+      "id": "tianyan.reaction.wildfire",
+      "name": "燎原",
+      "kind": "generate",
+      "oldElement": "wood",
+      "newElement": "fire",
+      "mainFactor": 1.25,
+      "followPower": "floor(source.magicAtk * 0.25)"
+    },
+    {
+      "id": "tianyan.reaction.magma",
+      "name": "熔岩",
+      "kind": "generate",
+      "oldElement": "fire",
+      "newElement": "earth",
+      "mainFactor": 1.15,
+      "statusId": "tianyan.status.magma"
+    },
+    {
+      "id": "tianyan.reaction.forging",
+      "name": "锻锋",
+      "kind": "generate",
+      "oldElement": "earth",
+      "newElement": "metal",
+      "mainFactor": 1.15,
+      "defenseIgnore": 0.2
+    },
+    {
+      "id": "tianyan.reaction.cold_spring",
+      "name": "寒泉",
+      "kind": "generate",
+      "oldElement": "metal",
+      "newElement": "water",
+      "mainFactor": 1.15,
+      "statusId": "tianyan.status.cold_spring"
+    },
+    {
+      "id": "tianyan.reaction.flourish",
+      "name": "滋荣",
+      "kind": "generate",
+      "oldElement": "water",
+      "newElement": "wood",
+      "mainFactor": 1.15,
+      "healingPower": "floor(target.maxHp * 0.04) + floor(skillLevel * 0.5)"
+    },
+    {
+      "id": "tianyan.reaction.evaporate",
+      "name": "蒸发",
+      "kind": "overcome",
+      "oldElement": "fire",
+      "newElement": "water",
+      "followPower": "floor(impactDamage * 0.5)"
+    },
+    {
+      "id": "tianyan.reaction.mire",
+      "name": "泥沼",
+      "kind": "overcome",
+      "oldElement": "water",
+      "newElement": "earth",
+      "followPower": "floor(impactDamage * 0.35)",
+      "statusId": "tianyan.status.mire"
+    },
+    {
+      "id": "tianyan.reaction.collapse_root",
+      "name": "崩根",
+      "kind": "overcome",
+      "oldElement": "earth",
+      "newElement": "wood",
+      "followPower": "floor(impactDamage * 0.4)",
+      "statusId": "tianyan.status.collapse_root"
+    },
+    {
+      "id": "tianyan.reaction.sever_meridian",
+      "name": "断脉",
+      "kind": "overcome",
+      "oldElement": "wood",
+      "newElement": "metal",
+      "followPower": "floor(impactDamage * 0.35)",
+      "statusId": "tianyan.status.sever_meridian"
+    },
+    {
+      "id": "tianyan.reaction.melt_metal",
+      "name": "熔金",
+      "kind": "overcome",
+      "oldElement": "metal",
+      "newElement": "fire",
+      "followPower": "floor(impactDamage * 0.4)",
+      "statusId": "tianyan.status.melt_metal"
+    }
+  ],
+  "statusApplications": {
+    "tianyan.status.magma": {
+      "duration": 2
+    },
+    "tianyan.status.cold_spring": {
+      "duration": 2
+    },
+    "tianyan.status.mire": {
+      "duration": 1,
+      "hit": "seal"
+    },
+    "tianyan.status.collapse_root": {
+      "duration": 2
+    },
+    "tianyan.status.sever_meridian": {
+      "duration": 1,
+      "hit": "seal"
+    },
+    "tianyan.status.melt_metal": {
+      "duration": 2
+    }
+  },
+  "resources": [
+    {
+      "id": "tianyan.resource.derivation",
+      "name": "衍数",
+      "current": 0,
+      "max": 3
+    }
+  ],
+  "reactionResource": {
+    "id": "tianyan.resource.derivation",
+    "amount": 1,
+    "maxGainPerAction": 1
+  }
+}

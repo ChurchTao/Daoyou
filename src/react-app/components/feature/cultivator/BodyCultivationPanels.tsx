@@ -447,9 +447,6 @@ export function BodyCultivationDetailPanel() {
       <GameSceneSection title="炼体说明">
         <div className="text-ink-secondary space-y-2 text-sm leading-7">
           <p>
-            五条轨道分别承载新版修炼：筋骨对应攻法修炼，皮肤对应防御修炼，脏腑对应法术修炼，元神对应抗法修炼，气血对应生命根基。
-          </p>
-          <p>
             炼体丹按药性方向提升对应轨道。丹药名称可以不同，只要药性方向相同，就会作用到同一条轨道。
           </p>
           <p>

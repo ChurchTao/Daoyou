@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "minimum": 1,
+      "$ref": "#/$defs/__schema0"
+    },
+    "tracks": {
+      "type": "object",
+      "properties": {
+        "skin": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "layerName": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "shortDesc": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "benefit": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "name",
+            "layerName",
+            "shortDesc",
+            "benefit"
+          ],
+          "additionalProperties": false
+        },
+        "sinew_bone": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "layerName": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "shortDesc": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "benefit": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "name",
+            "layerName",
+            "shortDesc",
+            "benefit"
+          ],
+          "additionalProperties": false
+        },
+        "organs": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "layerName": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "shortDesc": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "benefit": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "name",
+            "layerName",
+            "shortDesc",
+            "benefit"
+          ],
+          "additionalProperties": false
+        },
+        "qi_blood": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "layerName": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "shortDesc": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "benefit": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "life"
+                },
+                "hpRatioPerLevel": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "healLevelsPerPoint": {
+                  "minimum": 1,
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              "required": [
+                "kind",
+                "hpRatioPerLevel",
+                "healLevelsPerPoint"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "name",
+            "layerName",
+            "shortDesc",
+            "benefit"
+          ],
+          "additionalProperties": false
+        },
+        "primordial_spirit": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "layerName": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "shortDesc": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "benefit": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "name",
+            "layerName",
+            "shortDesc",
+            "benefit"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "skin",
+        "sinew_bone",
+        "organs",
+        "qi_blood",
+        "primordial_spirit"
+      ],
+      "additionalProperties": false
+    },
+    "realms": {
+      "minItems": 7,
+      "maxItems": 7,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema3"
+      }
+    },
+    "progress": {
+      "type": "object",
+      "properties": {
+        "base": {
+          "minimum": 1,
+          "$ref": "#/$defs/__schema0"
+        },
+        "perLevel": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "milestoneInterval": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": [
+        "base",
+        "perLevel",
+        "milestoneInterval"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "tracks",
+    "realms",
+    "progress"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "__schema1": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "training"
+        },
+        "attribute": {
+          "type": "string",
+          "enum": [
+            "attackCultivate",
+            "defenseCultivate",
+            "spellCultivate",
+            "resistSpellCultivate"
+          ]
+        },
+        "perLevel": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "kind",
+        "attribute",
+        "perLevel"
+      ],
+      "additionalProperties": false
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "realm": {
+          "type": "string",
+          "enum": [
+            "mortal_body",
+            "bronze_skin",
+            "iron_bone",
+            "jade_marrow",
+            "golden_body",
+            "dharma_body",
+            "dao_body"
+          ]
+        },
+        "label": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "minCultivationRealm": {
+          "type": "string",
+          "enum": [
+            "炼气",
+            "筑基",
+            "金丹",
+            "元婴",
+            "化神",
+            "炼虚",
+            "合体",
+            "大乘",
+            "渡劫"
+          ]
+        },
+        "totalLevel": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "softTrackCap": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": [
+        "realm",
+        "label",
+        "minCultivationRealm",
+        "totalLevel",
+        "softTrackCap"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

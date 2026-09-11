@@ -1,6 +1,6 @@
 import type { Attributes } from "@shared/types/cultivator"
 import { DAO_RAGE_RESOURCE, DAO_EQUIPMENT_MULTI_SECT_DOWNED_SKILL_IDS } from "../equipment/special-content.ts"
-import { compileSectCombatV6, compileSectCombatV6V2, compileSectCombatV6V3, compileSectCombatV6V4 } from "../content/index.ts"
+import { compileSectCombatV6, compileSectCombatV6V2, compileSectCombatV6V3, compileCurrentSectCombatV6 } from "../content/index.ts"
 import { ATTR_NAMES, type AttrName, type CombatV6VersionStamp, type LineupUnit } from "../core/index.ts"
 import {
   DAO_EQUIPMENT_ARTS_V1,
@@ -123,11 +123,12 @@ function contentConflicts(
 export function projectCultivatorWithEquipmentSpecialInternal(
   input: Omit<CharacterCombatInput, "manuals">,
   versions: CombatV6VersionStamp,
-  allowMultiSect: boolean,
-  allowWuxiang = false,
-  allowTianyan = false,
-  allowJiujie = false,
+  stage: "single-sect" | "two-sects" | "three-sects" | "four-sects" | "current",
 ): CombatV6ProjectionResult {
+  const allowMultiSect = stage !== "single-sect"
+  const allowWuxiang = stage === "three-sects" || stage === "four-sects" || stage === "current"
+  const allowTianyan = stage === "four-sects" || stage === "current"
+  const allowJiujie = stage === "current"
   if (input.sect?.sectId === "jiujie" && !allowJiujie) return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: `${versions.projectionVersion} 不接受九劫天宫`, path: "sect.sectId" }], versions }
   if (input.sect?.sectId === "tianyan" && !allowTianyan) return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: `${versions.projectionVersion} 不接受天衍圣地`, path: "sect.sectId" }], versions }
   if (input.sect?.sectId === "wuxiang" && !allowWuxiang) return { ok: false, diagnostics: [{ severity: "error", code: "INVALID_SECT_ID", message: `${versions.projectionVersion} 不接受无相禅宗`, path: "sect.sectId" }], versions }
@@ -142,7 +143,7 @@ export function projectCultivatorWithEquipmentSpecialInternal(
   const characterPanel = compileCharacterPanelV1(effectiveAttributes)
   const training = compileBodyCultivationV6(input.cultivator.condition?.tracks.bodyCultivation, characterPanel)
   const sect = !input.sect ? undefined : allowJiujie
-    ? compileSectCombatV6V4({ progress: input.sect, characterLevel: base.unit.level ?? 0 })
+    ? compileCurrentSectCombatV6({ progress: input.sect, characterLevel: base.unit.level ?? 0 })
     : allowTianyan
     ? compileSectCombatV6V3({ progress: input.sect, characterLevel: base.unit.level ?? 0 })
     : allowWuxiang
@@ -204,7 +205,7 @@ export function projectCultivatorWithEquipmentSpecialInternal(
 export function projectCultivatorWithEquipmentSpecialToCombatV6(
   input: Omit<CharacterCombatInput, "manuals">,
 ): CombatV6ProjectionResult {
-  return projectCultivatorWithEquipmentSpecialInternal(input, { ...COMBAT_V6_PHASE_4B_VERSIONS }, false)
+  return projectCultivatorWithEquipmentSpecialInternal(input, { ...COMBAT_V6_PHASE_4B_VERSIONS }, "single-sect")
 }
 
 function setChanges(before: string[], after: string[]): { added: string[]; removed: string[] } {

@@ -8,6 +8,7 @@ import type { TowerView } from '@shared/contracts/combatV6Tower';
 import { itemDefinition } from '@shared/inventory';
 import type { TowerBlessingId } from '@shared/lib/tower/blessings';
 import { getTowerBlessingDefinition } from '@shared/lib/tower/blessings';
+import { TOWER_MIN_REALM } from '@shared/lib/tower/helpers';
 import type { TowerLeaderboardEntry } from '@shared/lib/tower/types';
 import type { RealmType } from '@shared/types/constants';
 import { useEffect, useRef, useState } from 'react';
@@ -15,7 +16,7 @@ import { Navigate } from 'react-router';
 import { TowerLeaderboard } from './components/TowerLeaderboard';
 
 function TowerBoard() {
-  const [realm, setRealm] = useState<RealmType>('金丹');
+  const [realm, setRealm] = useState<RealmType>(TOWER_MIN_REALM);
   const [entries, setEntries] = useState<TowerLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -154,7 +155,7 @@ export default function TowerRoute() {
               )
             }
           >
-            {view.eligible ? '进入幻境' : '金丹境界开放'}
+            {view.eligible ? '进入幻境' : `${TOWER_MIN_REALM}境界开放`}
           </InkButton>
         </GameSceneSection>
       ) : (

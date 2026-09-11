@@ -1,0 +1,356 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "pointsPerLevel": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "experience": {
+      "type": "object",
+      "properties": {
+        "base": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "perLevel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "victoryPerEnemyLevel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      },
+      "required": [
+        "base",
+        "perLevel",
+        "victoryPerEnemyLevel"
+      ],
+      "additionalProperties": false
+    },
+    "lifespan": {
+      "type": "object",
+      "properties": {
+        "deathLoss": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "deployMinimum": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "restRecoveryPerStone": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      },
+      "required": [
+        "deathLoss",
+        "deployMinimum",
+        "restRecoveryPerStone"
+      ],
+      "additionalProperties": false
+    },
+    "capture": {
+      "type": "object",
+      "properties": {
+        "mpBase": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "mpPerCarryLevel": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000,
+          "multipleOf": 0.000001
+        },
+        "minChance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "multipleOf": 0.000001
+        },
+        "maxChance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "multipleOf": 0.000001
+        },
+        "baseChance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "multipleOf": 0.000001
+        },
+        "missingHpFactor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "multipleOf": 0.000001
+        },
+        "levelDifferenceFactor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "multipleOf": 0.000001
+        }
+      },
+      "required": [
+        "mpBase",
+        "mpPerCarryLevel",
+        "minChance",
+        "maxChance",
+        "baseChance",
+        "missingHpFactor",
+        "levelDifferenceFactor"
+      ],
+      "additionalProperties": false
+    },
+    "realms": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "minLevel": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 180
+          }
+        },
+        "required": [
+          "name",
+          "minLevel"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "panel": {
+      "type": "object",
+      "properties": {
+        "naturalBase": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000,
+          "multipleOf": 0.000001
+        },
+        "naturalPerLevel": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000,
+          "multipleOf": 0.000001
+        },
+        "health": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            },
+            "coefficient": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            }
+          },
+          "required": [
+            "base",
+            "coefficient"
+          ],
+          "additionalProperties": false
+        },
+        "mana": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            },
+            "coefficient": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            }
+          },
+          "required": [
+            "base",
+            "coefficient"
+          ],
+          "additionalProperties": false
+        },
+        "physicalAtk": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            },
+            "coefficient": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            }
+          },
+          "required": [
+            "base",
+            "coefficient"
+          ],
+          "additionalProperties": false
+        },
+        "physicalDef": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            },
+            "coefficient": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            }
+          },
+          "required": [
+            "base",
+            "coefficient"
+          ],
+          "additionalProperties": false
+        },
+        "magicAtk": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            },
+            "coefficient": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            }
+          },
+          "required": [
+            "base",
+            "coefficient"
+          ],
+          "additionalProperties": false
+        },
+        "magicDef": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            },
+            "coefficient": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            },
+            "magicWeight": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            }
+          },
+          "required": [
+            "base",
+            "coefficient",
+            "magicWeight"
+          ],
+          "additionalProperties": false
+        },
+        "speed": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            },
+            "coefficient": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000,
+              "multipleOf": 0.000001
+            }
+          },
+          "required": [
+            "base",
+            "coefficient"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "naturalBase",
+        "naturalPerLevel",
+        "health",
+        "mana",
+        "physicalAtk",
+        "physicalDef",
+        "magicAtk",
+        "magicDef",
+        "speed"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "pointsPerLevel",
+    "experience",
+    "lifespan",
+    "capture",
+    "realms",
+    "panel"
+  ],
+  "additionalProperties": false
+}

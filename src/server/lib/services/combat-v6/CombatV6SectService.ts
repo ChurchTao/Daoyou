@@ -16,7 +16,7 @@ import {
   spendTrainingResources,
 } from '@server/lib/repositories/sectRepository';
 import type { SectV6Action, SectV6View } from '@shared/contracts/combatV6Sect';
-import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '@shared/engine/combat-v6/content';
+import { COMBAT_V6_SECT_DEFINITIONS } from '@shared/engine/combat-v6/content';
 import { combatCharacterLevel } from '@shared/engine/combat-v6/projection/character-level';
 import { sectV6Change } from '@shared/engine/combat-v6/sect-progression';
 import type { RealmStage, RealmType } from '@shared/types/constants';
@@ -138,7 +138,7 @@ export async function mutateSectV6(owner: string, action: SectV6Action) {
           await tx
             .delete(sectMeridianNodes)
             .where(eq(sectMeridianNodes.loadoutId, loadout.id));
-          const path = COMBAT_V6_SECT_DEFINITIONS_V4[
+          const path = COMBAT_V6_SECT_DEFINITIONS[
             build.sect.sectId
           ].paths.find((p) => p.id === action.pathId)!;
           if (action.nodeIds.length)

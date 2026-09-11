@@ -1,0 +1,1010 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "baseSkillIds": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+      }
+    },
+    "skills": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "school": {
+            "type": "string",
+            "const": "wuxiang"
+          },
+          "costHp": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            ]
+          },
+          "costMp": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            ]
+          },
+          "requireHpRatio": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "resourceRequirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "resourceId": {
+                  "type": "string",
+                  "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                },
+                "min": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000
+                }
+              },
+              "required": [
+                "resourceId",
+                "min"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "resourceCosts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "resourceId": {
+                  "type": "string",
+                  "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                },
+                "amount": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000
+                }
+              },
+              "required": [
+                "resourceId",
+                "amount"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "tags": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "physical",
+                "spell",
+                "seal",
+                "support",
+                "passive"
+              ]
+            }
+          },
+          "formula": {
+            "type": "string",
+            "const": "spell"
+          },
+          "splash": {
+            "type": "object",
+            "properties": {
+              "perTarget": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "floor": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "perTarget",
+              "floor"
+            ],
+            "additionalProperties": false
+          },
+          "targeting": {
+            "type": "object",
+            "properties": {
+              "side": {
+                "type": "string",
+                "enum": [
+                  "enemy",
+                  "ally",
+                  "self",
+                  "any"
+                ]
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "explicit",
+                  "fill",
+                  "all",
+                  "random",
+                  "lowestHp",
+                  "lowestDef"
+                ]
+              },
+              "count": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                ]
+              },
+              "includeDowned": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "side"
+            ],
+            "additionalProperties": false
+          },
+          "effects": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "heal"
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "power"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "removeWound"
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "power"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "spellHit"
+                    },
+                    "coeff": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    },
+                    "defenseIgnore": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "coeff",
+                    "power"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "applyBarrier"
+                    },
+                    "id": {
+                      "type": "string",
+                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    },
+                    "duration": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 99
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id",
+                    "kind",
+                    "name",
+                    "power",
+                    "duration"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "dispel"
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "buff",
+                          "debuff",
+                          "control",
+                          "dot"
+                        ]
+                      }
+                    },
+                    "maxCount": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 99
+                    },
+                    "excludeStatusFlags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "blocksAction",
+                          "blocksSpell",
+                          "blocksPhysical",
+                          "blocksRevive",
+                          "actFirst",
+                          "untargetable",
+                          "revealStealth",
+                          "persistWhenDowned"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "categories",
+                    "maxCount",
+                    "excludeStatusFlags"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "revive"
+                    },
+                    "hpRatio": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "when": {
+                      "type": "object",
+                      "properties": {
+                        "requireAbsentStatusIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                          }
+                        },
+                        "requireStatusIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "hpRatio",
+                    "when"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "skipNextAction"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "applyStatus"
+                    },
+                    "statusId": {
+                      "type": "string",
+                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                    },
+                    "duration": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 99
+                    },
+                    "self": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "statusId",
+                    "duration"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "modifyResource"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                    },
+                    "amount": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    },
+                    "when": {
+                      "type": "object",
+                      "properties": {
+                        "requireAbsentStatusIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                          }
+                        },
+                        "requireStatusIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "resourceId",
+                    "amount"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "successEffects": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "heal"
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "power"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "removeWound"
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "power"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "spellHit"
+                    },
+                    "coeff": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    },
+                    "defenseIgnore": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "coeff",
+                    "power"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "applyBarrier"
+                    },
+                    "id": {
+                      "type": "string",
+                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    },
+                    "duration": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 99
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id",
+                    "kind",
+                    "name",
+                    "power",
+                    "duration"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "dispel"
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "buff",
+                          "debuff",
+                          "control",
+                          "dot"
+                        ]
+                      }
+                    },
+                    "maxCount": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 99
+                    },
+                    "excludeStatusFlags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "blocksAction",
+                          "blocksSpell",
+                          "blocksPhysical",
+                          "blocksRevive",
+                          "actFirst",
+                          "untargetable",
+                          "revealStealth",
+                          "persistWhenDowned"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "categories",
+                    "maxCount",
+                    "excludeStatusFlags"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "revive"
+                    },
+                    "hpRatio": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "when": {
+                      "type": "object",
+                      "properties": {
+                        "requireAbsentStatusIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                          }
+                        },
+                        "requireStatusIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "hpRatio",
+                    "when"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "skipNextAction"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "applyStatus"
+                    },
+                    "statusId": {
+                      "type": "string",
+                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                    },
+                    "duration": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 99
+                    },
+                    "self": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "statusId",
+                    "duration"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "modifyResource"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                    },
+                    "amount": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    },
+                    "when": {
+                      "type": "object",
+                      "properties": {
+                        "requireAbsentStatusIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                          }
+                        },
+                        "requireStatusIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "resourceId",
+                    "amount"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "school",
+          "tags",
+          "targeting",
+          "effects"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "statuses": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "kind": {
+            "type": "string",
+            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "buff",
+              "debuff",
+              "control",
+              "dot"
+            ]
+          },
+          "blocksAction": {
+            "type": "boolean"
+          },
+          "dispellable": {
+            "type": "boolean"
+          },
+          "damageTakenPhysical": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "damageTakenSpell": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "attrMods": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "hp",
+                "maxHp",
+                "mp",
+                "maxMp",
+                "physicalAtk",
+                "physicalDef",
+                "magicAtk",
+                "magicDef",
+                "healPower",
+                "speed",
+                "hit",
+                "dodge",
+                "critRate",
+                "spellCritRate",
+                "physicalFuryRate",
+                "sealHit",
+                "sealResist",
+                "attackCultivate",
+                "defenseCultivate",
+                "spellCultivate",
+                "resistSpellCultivate"
+              ]
+            },
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "category"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "resources": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "current": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "max": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "current",
+          "max"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "baseSkillIds",
+    "skills",
+    "statuses",
+    "resources"
+  ],
+  "additionalProperties": false
+}

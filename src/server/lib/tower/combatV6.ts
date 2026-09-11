@@ -28,6 +28,8 @@ import {
   buildTowerBlessingChoices,
   hashTowerSeed,
   isTowerRealmEligible,
+  TOWER_MAX_FLOOR,
+  TOWER_MIN_REALM,
 } from '@shared/lib/tower/helpers';
 import { getTowerSeasonMeta } from '@shared/lib/tower/season';
 import { towerReward } from '@shared/rewards/tower';
@@ -165,7 +167,7 @@ export async function startTower(owner: string) {
     await assertInventoryIdle(owner);
     const { player } = await assembleCombatV6TrainingPlayer(owner, db);
     if (!isTowerRealmEligible(player.cultivator.realm))
-      throw new TowerV6Error('蜃楼幻境仅向金丹及以上境界开放');
+      throw new TowerV6Error(`蜃楼幻境仅向${TOWER_MIN_REALM}及以上境界开放`);
     const season = getTowerSeasonMeta();
     const key = weekKey(owner, season.seasonKey);
     const rewards =
@@ -476,7 +478,7 @@ export async function changeTowerBattle(
           run.floor++;
           run.status = 'READY';
         }
-        if (run.highestFloor === 20) {
+        if (run.highestFloor === TOWER_MAX_FLOOR) {
           run.status = 'FINISHED';
           run.reason = 'clear';
         } else if (Date.now() >= Date.parse(run.season.seasonEndsAt)) {

@@ -1,0 +1,586 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "tiers": {
+      "minItems": 3,
+      "maxItems": 3,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "templates": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema2"
+      }
+    },
+    "skills": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema5"
+      }
+    },
+    "statusDefs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/__schema3"
+          },
+          "name": {
+            "$ref": "#/$defs/__schema4"
+          },
+          "kind": {
+            "$ref": "#/$defs/__schema3"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "buff",
+              "debuff",
+              "control",
+              "dot"
+            ]
+          },
+          "blocksSpell": {
+            "type": "boolean"
+          },
+          "attrMods": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "hp",
+                "maxHp",
+                "mp",
+                "maxMp",
+                "physicalAtk",
+                "physicalDef",
+                "magicAtk",
+                "magicDef",
+                "healPower",
+                "speed",
+                "hit",
+                "dodge",
+                "critRate",
+                "spellCritRate",
+                "physicalFuryRate",
+                "sealHit",
+                "sealResist",
+                "attackCultivate",
+                "defenseCultivate",
+                "spellCultivate",
+                "resistSpellCultivate"
+              ]
+            },
+            "additionalProperties": {
+              "type": "number",
+              "minimum": -1000000,
+              "maximum": 1000000
+            }
+          },
+          "ticks": {
+            "type": "string",
+            "const": "roundEnd"
+          },
+          "onTick": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "dot"
+              },
+              "ratioOfMaxHp": {
+                "maximum": 1,
+                "$ref": "#/$defs/__schema1"
+              }
+            },
+            "required": [
+              "type",
+              "ratioOfMaxHp"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "category"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "encounters": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema8"
+      }
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "tiers",
+    "templates",
+    "skills",
+    "statusDefs",
+    "encounters"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "anyOf": [
+            {
+              "type": "number",
+              "const": 60
+            },
+            {
+              "type": "number",
+              "const": 120
+            },
+            {
+              "type": "number",
+              "const": 180
+            }
+          ]
+        },
+        "attrs": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "hp",
+              "maxHp",
+              "mp",
+              "maxMp",
+              "physicalAtk",
+              "physicalDef",
+              "magicAtk",
+              "magicDef",
+              "healPower",
+              "speed",
+              "hit",
+              "dodge",
+              "critRate",
+              "spellCritRate",
+              "physicalFuryRate",
+              "sealHit",
+              "sealResist",
+              "attackCultivate",
+              "defenseCultivate",
+              "spellCultivate",
+              "resistSpellCultivate"
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema1"
+          },
+          "required": [
+            "hp",
+            "maxHp",
+            "mp",
+            "maxMp",
+            "physicalAtk",
+            "physicalDef",
+            "magicAtk",
+            "magicDef",
+            "healPower",
+            "speed",
+            "hit",
+            "dodge",
+            "critRate",
+            "spellCritRate",
+            "physicalFuryRate",
+            "sealHit",
+            "sealResist",
+            "attackCultivate",
+            "defenseCultivate",
+            "spellCultivate",
+            "resistSpellCultivate"
+          ]
+        }
+      },
+      "required": [
+        "level",
+        "attrs"
+      ],
+      "additionalProperties": false
+    },
+    "__schema1": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "name": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "player",
+            "npc"
+          ]
+        },
+        "skillIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "strategy": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "defend",
+                    "attack"
+                  ]
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "skill-rotation"
+                },
+                "skillIds": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema3"
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "skillIds"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "attrOverrides": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "hp",
+              "maxHp",
+              "mp",
+              "maxMp",
+              "physicalAtk",
+              "physicalDef",
+              "magicAtk",
+              "magicDef",
+              "healPower",
+              "speed",
+              "hit",
+              "dodge",
+              "critRate",
+              "spellCritRate",
+              "physicalFuryRate",
+              "sealHit",
+              "sealResist",
+              "attackCultivate",
+              "defenseCultivate",
+              "spellCultivate",
+              "resistSpellCultivate"
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema1"
+          }
+        },
+        "maxHpMultiplier": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100,
+          "$ref": "#/$defs/__schema1"
+        },
+        "initialHpRatio": {
+          "maximum": 1,
+          "$ref": "#/$defs/__schema1"
+        },
+        "initialHpFromLevel": {
+          "type": "boolean",
+          "const": true
+        },
+        "speedBonus": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "skillIds",
+        "strategy",
+        "attrOverrides"
+      ],
+      "additionalProperties": false
+    },
+    "__schema3": {
+      "type": "string",
+      "pattern": "^combat\\.training\\.[a-z][a-z0-9.-]*$"
+    },
+    "__schema4": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "__schema5": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "name": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "tags": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema6"
+          }
+        },
+        "formula": {
+          "type": "string",
+          "const": "fixed"
+        },
+        "targeting": {
+          "type": "object",
+          "properties": {
+            "side": {
+              "type": "string",
+              "enum": [
+                "enemy",
+                "ally",
+                "self",
+                "any"
+              ]
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "$ref": "#/$defs/__schema1"
+            }
+          },
+          "required": [
+            "side",
+            "count"
+          ],
+          "additionalProperties": false
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "applyStatus"
+                  },
+                  "statusId": {
+                    "$ref": "#/$defs/__schema3"
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99,
+                    "$ref": "#/$defs/__schema1"
+                  }
+                },
+                "required": [
+                  "type",
+                  "statusId",
+                  "duration"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "wound"
+                  },
+                  "power": {
+                    "$ref": "#/$defs/__schema7"
+                  }
+                },
+                "required": [
+                  "type",
+                  "power"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "fixedHit"
+                  },
+                  "formula": {
+                    "type": "string",
+                    "const": "fixed"
+                  },
+                  "power": {
+                    "$ref": "#/$defs/__schema7"
+                  },
+                  "origin": {
+                    "type": "string",
+                    "enum": [
+                      "action-direct",
+                      "hook-derived",
+                      "status"
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "formula",
+                  "power",
+                  "origin"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "tags",
+        "targeting",
+        "effects"
+      ],
+      "additionalProperties": false
+    },
+    "__schema6": {
+      "type": "string",
+      "enum": [
+        "physical",
+        "spell",
+        "seal",
+        "support",
+        "passive"
+      ]
+    },
+    "__schema7": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema1"
+        },
+        {
+          "$ref": "#/$defs/__schema4"
+        }
+      ]
+    },
+    "__schema8": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "name": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "playerSlot": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9,
+          "$ref": "#/$defs/__schema1"
+        },
+        "participants": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema9"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "playerSlot",
+        "participants"
+      ],
+      "additionalProperties": false
+    },
+    "__schema9": {
+      "type": "object",
+      "properties": {
+        "combatantId": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "side": {
+          "anyOf": [
+            {
+              "type": "number",
+              "const": 0
+            },
+            {
+              "type": "number",
+              "const": 1
+            }
+          ]
+        },
+        "slot": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9,
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "combatantId",
+        "side",
+        "slot"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

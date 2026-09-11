@@ -1,3 +1,5 @@
+import { BODY_CULTIVATION_PACK } from './pack';
+import { bodyCultivationEffectTexts } from './benefits';
 import type {
   BodyCultivationRealm,
   BodyCultivationTrackKey,
@@ -56,27 +58,9 @@ export interface BodyCultivationSummary {
   nextRealm: BodyCultivationNextRealmSummary | null;
 }
 
-function getEffectTexts(key: BodyCultivationTrackKey, level: number): string[] {
-  const safeLevel = Math.max(0, Math.floor(level));
-  switch (key) {
-    case 'skin':
-      return [`防御修炼 Lv.${safeLevel}`];
-    case 'sinew_bone':
-      return [`攻法修炼 Lv.${safeLevel}`];
-    case 'organs':
-      return [`法术修炼 Lv.${safeLevel}`];
-    case 'qi_blood':
-      return [
-        `裸身气血 +${Number((safeLevel * 0.5).toFixed(1))}%`,
-        `固定治疗强度 +${Math.floor(safeLevel / 2)}`,
-      ];
-    case 'primordial_spirit':
-      return [`抗法修炼 Lv.${safeLevel}`];
-  }
-}
-
 function getNextMilestoneLevel(level: number): number {
-  return Math.max(5, Math.ceil((Math.max(0, level) + 1) / 5) * 5);
+  const interval = BODY_CULTIVATION_PACK.progress.milestoneInterval;
+  return Math.max(interval, Math.ceil((Math.max(0, level) + 1) / interval) * interval);
 }
 
 function buildNextRealmSummary(options: {
@@ -134,8 +118,8 @@ export function getBodyCultivationSummary(
       threshold: getBodyCultivationThresholdByLevel(progress.level),
       nextMilestoneLevel,
       levelsToNextMilestone: nextMilestoneLevel - progress.level,
-      currentEffects: getEffectTexts(key, progress.level),
-      nextLevelEffects: getEffectTexts(key, progress.level + 1),
+      currentEffects: bodyCultivationEffectTexts(key, progress.level),
+      nextLevelEffects: bodyCultivationEffectTexts(key, progress.level + 1),
     };
   });
   const totalLevel = tracks.reduce((sum, track) => sum + track.level, 0);

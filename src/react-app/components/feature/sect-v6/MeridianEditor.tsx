@@ -1,7 +1,7 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import {
-  COMBAT_V6_SECT_DEFINITIONS_V4,
+  COMBAT_V6_SECT_DEFINITIONS,
   type MeridianNodeDefV6,
 } from '@shared/engine/combat-v6/content';
 import {
@@ -35,7 +35,7 @@ export function MeridianEditor({
   onExit,
 }: SectWorkspaceProps & { onExit: () => void }) {
   const progress = view.progress!;
-  const definition = COMBAT_V6_SECT_DEFINITIONS_V4[progress.sectId];
+  const definition = COMBAT_V6_SECT_DEFINITIONS[progress.sectId];
   const [pathId, setPathId] = useState(progress.activePathId);
   const [draft, setDraft] = useState<string[] | null>(null);
   const [focusedId, setFocusedId] = useState<string>();

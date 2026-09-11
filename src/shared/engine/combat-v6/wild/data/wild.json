@@ -1,0 +1,429 @@
+{
+  "$schema": "./wild.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "region": {
+    "nodeId": "SAT_TN_08",
+    "id": "combat.wild.region.qingxi",
+    "name": "太岳山·青溪灵草坡",
+    "realmRequirement": "炼气",
+    "beastRealm": "启灵",
+    "minLevel": 5,
+    "maxLevel": 15
+  },
+  "species": [
+    {
+      "id": "combat.wild.species.spirit-fox",
+      "name": "青灵狐",
+      "description": "溪畔启灵的青狐，以灵火护身。",
+      "role": "法术",
+      "skillIds": [
+        "combat.wild.skill.spirit-flame"
+      ]
+    },
+    {
+      "id": "combat.wild.species.rock-boar",
+      "name": "岩甲猪",
+      "description": "岩甲覆背，擅长正面迎敌。",
+      "role": "防御",
+      "skillIds": []
+    },
+    {
+      "id": "combat.wild.species.wind-wolf",
+      "name": "疾风狼",
+      "description": "穿行草坡的疾狼，迅捷而凶猛。",
+      "role": "物理",
+      "skillIds": []
+    }
+  ],
+  "skills": [
+    {
+      "id": "combat.wild.skill.spirit-flame",
+      "name": "灵火",
+      "tags": [
+        "spell"
+      ],
+      "formula": "spell",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 0.85,
+          "power": "10 + skillLevel"
+        }
+      ]
+    }
+  ],
+  "panels": {
+    "combat.wild.species.spirit-fox": [
+      {
+        "level": 5,
+        "maxHp": 150,
+        "maxMp": 90,
+        "physicalAtk": 20,
+        "physicalDef": 18,
+        "magicAtk": 35,
+        "magicDef": 22,
+        "speed": 22
+      },
+      {
+        "level": 6,
+        "maxHp": 170,
+        "maxMp": 100,
+        "physicalAtk": 22,
+        "physicalDef": 20,
+        "magicAtk": 39,
+        "magicDef": 25,
+        "speed": 25
+      },
+      {
+        "level": 7,
+        "maxHp": 190,
+        "maxMp": 110,
+        "physicalAtk": 24,
+        "physicalDef": 22,
+        "magicAtk": 43,
+        "magicDef": 28,
+        "speed": 28
+      },
+      {
+        "level": 8,
+        "maxHp": 210,
+        "maxMp": 120,
+        "physicalAtk": 26,
+        "physicalDef": 24,
+        "magicAtk": 47,
+        "magicDef": 31,
+        "speed": 31
+      },
+      {
+        "level": 9,
+        "maxHp": 230,
+        "maxMp": 130,
+        "physicalAtk": 28,
+        "physicalDef": 26,
+        "magicAtk": 51,
+        "magicDef": 34,
+        "speed": 34
+      },
+      {
+        "level": 10,
+        "maxHp": 250,
+        "maxMp": 140,
+        "physicalAtk": 30,
+        "physicalDef": 28,
+        "magicAtk": 55,
+        "magicDef": 37,
+        "speed": 37
+      },
+      {
+        "level": 11,
+        "maxHp": 270,
+        "maxMp": 150,
+        "physicalAtk": 32,
+        "physicalDef": 30,
+        "magicAtk": 59,
+        "magicDef": 40,
+        "speed": 40
+      },
+      {
+        "level": 12,
+        "maxHp": 290,
+        "maxMp": 160,
+        "physicalAtk": 34,
+        "physicalDef": 32,
+        "magicAtk": 63,
+        "magicDef": 43,
+        "speed": 43
+      },
+      {
+        "level": 13,
+        "maxHp": 310,
+        "maxMp": 170,
+        "physicalAtk": 36,
+        "physicalDef": 34,
+        "magicAtk": 67,
+        "magicDef": 46,
+        "speed": 46
+      },
+      {
+        "level": 14,
+        "maxHp": 330,
+        "maxMp": 180,
+        "physicalAtk": 38,
+        "physicalDef": 36,
+        "magicAtk": 71,
+        "magicDef": 49,
+        "speed": 49
+      },
+      {
+        "level": 15,
+        "maxHp": 350,
+        "maxMp": 190,
+        "physicalAtk": 40,
+        "physicalDef": 38,
+        "magicAtk": 75,
+        "magicDef": 52,
+        "speed": 52
+      }
+    ],
+    "combat.wild.species.rock-boar": [
+      {
+        "level": 5,
+        "maxHp": 220,
+        "maxMp": 30,
+        "physicalAtk": 30,
+        "physicalDef": 35,
+        "magicAtk": 10,
+        "magicDef": 25,
+        "speed": 12
+      },
+      {
+        "level": 6,
+        "maxHp": 250,
+        "maxMp": 35,
+        "physicalAtk": 34,
+        "physicalDef": 39,
+        "magicAtk": 12,
+        "magicDef": 28,
+        "speed": 14
+      },
+      {
+        "level": 7,
+        "maxHp": 280,
+        "maxMp": 40,
+        "physicalAtk": 38,
+        "physicalDef": 43,
+        "magicAtk": 14,
+        "magicDef": 31,
+        "speed": 16
+      },
+      {
+        "level": 8,
+        "maxHp": 310,
+        "maxMp": 45,
+        "physicalAtk": 42,
+        "physicalDef": 47,
+        "magicAtk": 16,
+        "magicDef": 34,
+        "speed": 18
+      },
+      {
+        "level": 9,
+        "maxHp": 340,
+        "maxMp": 50,
+        "physicalAtk": 46,
+        "physicalDef": 51,
+        "magicAtk": 18,
+        "magicDef": 37,
+        "speed": 20
+      },
+      {
+        "level": 10,
+        "maxHp": 370,
+        "maxMp": 55,
+        "physicalAtk": 50,
+        "physicalDef": 55,
+        "magicAtk": 20,
+        "magicDef": 40,
+        "speed": 22
+      },
+      {
+        "level": 11,
+        "maxHp": 400,
+        "maxMp": 60,
+        "physicalAtk": 54,
+        "physicalDef": 59,
+        "magicAtk": 22,
+        "magicDef": 43,
+        "speed": 24
+      },
+      {
+        "level": 12,
+        "maxHp": 430,
+        "maxMp": 65,
+        "physicalAtk": 58,
+        "physicalDef": 63,
+        "magicAtk": 24,
+        "magicDef": 46,
+        "speed": 26
+      },
+      {
+        "level": 13,
+        "maxHp": 460,
+        "maxMp": 70,
+        "physicalAtk": 62,
+        "physicalDef": 67,
+        "magicAtk": 26,
+        "magicDef": 49,
+        "speed": 28
+      },
+      {
+        "level": 14,
+        "maxHp": 490,
+        "maxMp": 75,
+        "physicalAtk": 66,
+        "physicalDef": 71,
+        "magicAtk": 28,
+        "magicDef": 52,
+        "speed": 30
+      },
+      {
+        "level": 15,
+        "maxHp": 520,
+        "maxMp": 80,
+        "physicalAtk": 70,
+        "physicalDef": 75,
+        "magicAtk": 30,
+        "magicDef": 55,
+        "speed": 32
+      }
+    ],
+    "combat.wild.species.wind-wolf": [
+      {
+        "level": 5,
+        "maxHp": 160,
+        "maxMp": 30,
+        "physicalAtk": 38,
+        "physicalDef": 20,
+        "magicAtk": 10,
+        "magicDef": 18,
+        "speed": 35
+      },
+      {
+        "level": 6,
+        "maxHp": 180,
+        "maxMp": 35,
+        "physicalAtk": 42,
+        "physicalDef": 23,
+        "magicAtk": 12,
+        "magicDef": 20,
+        "speed": 39
+      },
+      {
+        "level": 7,
+        "maxHp": 200,
+        "maxMp": 40,
+        "physicalAtk": 46,
+        "physicalDef": 26,
+        "magicAtk": 14,
+        "magicDef": 22,
+        "speed": 43
+      },
+      {
+        "level": 8,
+        "maxHp": 220,
+        "maxMp": 45,
+        "physicalAtk": 50,
+        "physicalDef": 29,
+        "magicAtk": 16,
+        "magicDef": 24,
+        "speed": 47
+      },
+      {
+        "level": 9,
+        "maxHp": 240,
+        "maxMp": 50,
+        "physicalAtk": 54,
+        "physicalDef": 32,
+        "magicAtk": 18,
+        "magicDef": 26,
+        "speed": 51
+      },
+      {
+        "level": 10,
+        "maxHp": 260,
+        "maxMp": 55,
+        "physicalAtk": 58,
+        "physicalDef": 35,
+        "magicAtk": 20,
+        "magicDef": 28,
+        "speed": 55
+      },
+      {
+        "level": 11,
+        "maxHp": 280,
+        "maxMp": 60,
+        "physicalAtk": 62,
+        "physicalDef": 38,
+        "magicAtk": 22,
+        "magicDef": 30,
+        "speed": 59
+      },
+      {
+        "level": 12,
+        "maxHp": 300,
+        "maxMp": 65,
+        "physicalAtk": 66,
+        "physicalDef": 41,
+        "magicAtk": 24,
+        "magicDef": 32,
+        "speed": 63
+      },
+      {
+        "level": 13,
+        "maxHp": 320,
+        "maxMp": 70,
+        "physicalAtk": 70,
+        "physicalDef": 44,
+        "magicAtk": 26,
+        "magicDef": 34,
+        "speed": 67
+      },
+      {
+        "level": 14,
+        "maxHp": 340,
+        "maxMp": 75,
+        "physicalAtk": 74,
+        "physicalDef": 47,
+        "magicAtk": 28,
+        "magicDef": 36,
+        "speed": 71
+      },
+      {
+        "level": 15,
+        "maxHp": 360,
+        "maxMp": 80,
+        "physicalAtk": 78,
+        "physicalDef": 50,
+        "magicAtk": 30,
+        "magicDef": 38,
+        "speed": 75
+      }
+    ]
+  },
+  "baseAttrs": {
+    "hp": 0,
+    "maxHp": 0,
+    "mp": 0,
+    "maxMp": 0,
+    "physicalAtk": 0,
+    "physicalDef": 0,
+    "magicAtk": 0,
+    "magicDef": 0,
+    "speed": 0,
+    "healPower": 0,
+    "hit": 100,
+    "dodge": 10,
+    "critRate": 0,
+    "spellCritRate": 0,
+    "physicalFuryRate": 0,
+    "sealHit": 0,
+    "sealResist": 0,
+    "attackCultivate": 0,
+    "defenseCultivate": 0,
+    "spellCultivate": 0,
+    "resistSpellCultivate": 0
+  },
+  "encounter": {
+    "minCount": 1,
+    "maxCount": 3
+  },
+  "activity": {
+    "dailyLimit": 20,
+    "explorationCooldownMs": 3000
+  }
+}

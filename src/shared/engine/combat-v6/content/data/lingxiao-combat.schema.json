@@ -1,0 +1,467 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "baseSkillIds": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
+      }
+    },
+    "skills": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "school": {
+            "type": "string",
+            "const": "lingxiao"
+          },
+          "costHp": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            ]
+          },
+          "costMp": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            ]
+          },
+          "requireHpRatio": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "resourceRequirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "resourceId": {
+                  "type": "string",
+                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
+                },
+                "min": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000
+                }
+              },
+              "required": [
+                "resourceId",
+                "min"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "tags": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "physical",
+                "spell",
+                "seal",
+                "support",
+                "passive"
+              ]
+            }
+          },
+          "sealBase": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "targeting": {
+            "type": "object",
+            "properties": {
+              "side": {
+                "type": "string",
+                "enum": [
+                  "enemy",
+                  "ally",
+                  "self",
+                  "any"
+                ]
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "explicit",
+                  "fill",
+                  "all",
+                  "random",
+                  "lowestHp",
+                  "lowestDef"
+                ]
+              },
+              "count": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                ]
+              }
+            },
+            "required": [
+              "side"
+            ],
+            "additionalProperties": false
+          },
+          "effects": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "physicalHit"
+                    },
+                    "hits": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 20
+                    },
+                    "coeff": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        {
+                          "minItems": 1,
+                          "maxItems": 20,
+                          "type": "array",
+                          "items": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          }
+                        }
+                      ]
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "coeff",
+                    "power"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "skipNextAction"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "applyStatus"
+                    },
+                    "statusId": {
+                      "type": "string",
+                      "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
+                    },
+                    "duration": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 99
+                    },
+                    "self": {
+                      "type": "boolean"
+                    },
+                    "storeTarget": {
+                      "type": "boolean"
+                    },
+                    "hit": {
+                      "type": "string",
+                      "enum": [
+                        "always",
+                        "seal"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "statusId",
+                    "duration"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "modifyResource"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
+                    },
+                    "amount": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    },
+                    "mode": {
+                      "type": "string",
+                      "const": "set"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "resourceId",
+                    "amount"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "school",
+          "tags",
+          "targeting",
+          "effects"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "statuses": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "kind": {
+            "type": "string",
+            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "buff",
+              "debuff",
+              "control",
+              "dot"
+            ]
+          },
+          "blocksAction": {
+            "type": "boolean"
+          },
+          "actFirst": {
+            "type": "boolean"
+          },
+          "commandPolicy": {
+            "type": "string",
+            "enum": [
+              "none",
+              "random",
+              "randomAttackTarget",
+              "storedAttack"
+            ]
+          },
+          "attrMods": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "hp",
+                "maxHp",
+                "mp",
+                "maxMp",
+                "physicalAtk",
+                "physicalDef",
+                "magicAtk",
+                "magicDef",
+                "healPower",
+                "speed",
+                "hit",
+                "dodge",
+                "critRate",
+                "spellCritRate",
+                "physicalFuryRate",
+                "sealHit",
+                "sealResist",
+                "attackCultivate",
+                "defenseCultivate",
+                "spellCultivate",
+                "resistSpellCultivate"
+              ]
+            },
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              ]
+            }
+          },
+          "speedMod": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "category"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "resources": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "current": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "max": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "current",
+          "max"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "baseSkillIds",
+    "skills",
+    "statuses",
+    "resources"
+  ],
+  "additionalProperties": false
+}

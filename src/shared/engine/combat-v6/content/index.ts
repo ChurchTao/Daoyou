@@ -1,30 +1,35 @@
 import { compileSectDefinitionV6 } from "./compiler.ts"
+import { validateSectSkillLearningContent } from "./skill-learning"
 import { LINGXIAO_V6_DEFINITION } from "./lingxiao.ts"
 import { YOUDU_V6_DEFINITION } from "./youdu.ts"
 import { WUXIANG_V6_DEFINITION } from "./wuxiang.ts"
 import { TIANYAN_V6_DEFINITION, validateTianyanReactionMatrixV1 } from "./tianyan.ts"
 import { JIUJIE_V6_DEFINITION, validateJiujieContentV1 } from "./jiujie.ts"
-import type { CombatV6SectIdV1, CombatV6SectIdV2, CombatV6SectIdV3, CompileSectCombatV6Result, SectCombatProgressV6, SectDefinitionV6 } from "./types.ts"
+import type { CompileSectCombatV6Result, SectCombatProgressV6, SectDefinitionV6 } from "./types.ts"
 
-export const COMBAT_V6_SECT_DEFINITIONS_V1: Record<CombatV6SectIdV1, SectDefinitionV6> = Object.freeze({
+/** 当前宗门目录；历史阶段仅从这里选取已开放的宗门。 */
+export const COMBAT_V6_SECT_DEFINITIONS: Record<import("./types.ts").CombatV6SectId, SectDefinitionV6> = Object.freeze({
   lingxiao: LINGXIAO_V6_DEFINITION,
   youdu: YOUDU_V6_DEFINITION,
-})
-
-export const COMBAT_V6_SECT_DEFINITIONS_V2: Record<CombatV6SectIdV2, SectDefinitionV6> = Object.freeze({
-  ...COMBAT_V6_SECT_DEFINITIONS_V1,
   wuxiang: WUXIANG_V6_DEFINITION,
-})
-
-export const COMBAT_V6_SECT_DEFINITIONS_V3: Record<CombatV6SectIdV3, SectDefinitionV6> = Object.freeze({
-  ...COMBAT_V6_SECT_DEFINITIONS_V2,
   tianyan: TIANYAN_V6_DEFINITION,
-})
-
-export const COMBAT_V6_SECT_DEFINITIONS_V4: Record<import("./types.ts").CombatV6SectId, SectDefinitionV6> = Object.freeze({
-  ...COMBAT_V6_SECT_DEFINITIONS_V3,
   jiujie: JIUJIE_V6_DEFINITION,
 })
+
+export const COMBAT_V6_SECT_DEFINITIONS_V1 = Object.freeze({
+  lingxiao: COMBAT_V6_SECT_DEFINITIONS.lingxiao,
+  youdu: COMBAT_V6_SECT_DEFINITIONS.youdu,
+})
+export const COMBAT_V6_SECT_DEFINITIONS_V2 = Object.freeze({
+  ...COMBAT_V6_SECT_DEFINITIONS_V1,
+  wuxiang: COMBAT_V6_SECT_DEFINITIONS.wuxiang,
+})
+export const COMBAT_V6_SECT_DEFINITIONS_V3 = Object.freeze({
+  ...COMBAT_V6_SECT_DEFINITIONS_V2,
+  tianyan: COMBAT_V6_SECT_DEFINITIONS.tianyan,
+})
+export const COMBAT_V6_SECT_DEFINITIONS_V4 = COMBAT_V6_SECT_DEFINITIONS
+validateSectSkillLearningContent(Object.values(COMBAT_V6_SECT_DEFINITIONS))
 
 function definitionIds(definition: SectDefinitionV6): string[] {
   const authored = [
@@ -83,60 +88,34 @@ export function validateCombatV6SectRegistryV4(
   return [...validateCombatV6SectRegistryV1(registry), ...validateTianyanReactionMatrixV1(), ...validateJiujieContentV1()]
 }
 
-export function compileSectCombatV6(input: {
-  progress: SectCombatProgressV6
-  characterLevel: number
-}): CompileSectCombatV6Result {
-  const registryDiagnostics = validateCombatV6SectRegistryV1()
-  if (registryDiagnostics.some((item) => item.severity === "error")) return { ok: false, diagnostics: registryDiagnostics }
-  const definition = input.progress.sectId in COMBAT_V6_SECT_DEFINITIONS_V1
-    ? COMBAT_V6_SECT_DEFINITIONS_V1[input.progress.sectId as CombatV6SectIdV1]
-    : undefined
-  if (!definition) return { ok: false, diagnostics: [{ severity: "error", code: "UNKNOWN_SECT_CONTENT", message: `未知 combat-v6 宗门：${String(input.progress.sectId)}`, path: "progress.sectId" }] }
-  return compileSectDefinitionV6({
-    definition,
-    progress: input.progress,
-    characterLevel: input.characterLevel,
-  })
-}
+type SectCompileInput = { progress: SectCombatProgressV6; characterLevel: number }
 
-export function compileSectCombatV6V2(input: {
-  progress: SectCombatProgressV6
-  characterLevel: number
-}): CompileSectCombatV6Result {
-  const registryDiagnostics = validateCombatV6SectRegistryV2()
+function compileRegisteredSect(
+  input: SectCompileInput,
+  registry: Partial<Record<import("./types.ts").CombatV6SectId, SectDefinitionV6>>,
+  registryDiagnostics: import("../projection/types.ts").CombatV6ProjectionDiagnostic[],
+): CompileSectCombatV6Result {
   if (registryDiagnostics.some((item) => item.severity === "error")) return { ok: false, diagnostics: registryDiagnostics }
-  const definition = input.progress.sectId in COMBAT_V6_SECT_DEFINITIONS_V2
-    ? COMBAT_V6_SECT_DEFINITIONS_V2[input.progress.sectId as CombatV6SectIdV2]
-    : undefined
+  const definition = registry[input.progress.sectId]
   if (!definition) return { ok: false, diagnostics: [{ severity: "error", code: "UNKNOWN_SECT_CONTENT", message: `未知 combat-v6 宗门：${String(input.progress.sectId)}`, path: "progress.sectId" }] }
   return compileSectDefinitionV6({ definition, progress: input.progress, characterLevel: input.characterLevel })
 }
 
-
-export function compileSectCombatV6V3(input: {
-  progress: SectCombatProgressV6
-  characterLevel: number
-}): CompileSectCombatV6Result {
-  const registryDiagnostics = validateCombatV6SectRegistryV3()
-  if (registryDiagnostics.some((item) => item.severity === "error")) return { ok: false, diagnostics: registryDiagnostics }
-  const definition = input.progress.sectId in COMBAT_V6_SECT_DEFINITIONS_V3
-    ? COMBAT_V6_SECT_DEFINITIONS_V3[input.progress.sectId as CombatV6SectIdV3]
-    : undefined
-  if (!definition) return { ok: false, diagnostics: [{ severity: "error", code: "UNKNOWN_SECT_CONTENT", message: `未知 combat-v6 宗门：${String(input.progress.sectId)}`, path: "progress.sectId" }] }
-  return compileSectDefinitionV6({ definition, progress: input.progress, characterLevel: input.characterLevel })
+/** 当前宗门编译入口。历史适配器保留各自的内容范围和校验顺序。 */
+export function compileCurrentSectCombatV6(input: SectCompileInput): CompileSectCombatV6Result {
+  return compileRegisteredSect(input, COMBAT_V6_SECT_DEFINITIONS, validateCombatV6SectRegistryV4())
 }
 
-export function compileSectCombatV6V4(input: {
-  progress: SectCombatProgressV6
-  characterLevel: number
-}): CompileSectCombatV6Result {
-  const registryDiagnostics = validateCombatV6SectRegistryV4()
-  if (registryDiagnostics.some((item) => item.severity === "error")) return { ok: false, diagnostics: registryDiagnostics }
-  const definition = COMBAT_V6_SECT_DEFINITIONS_V4[input.progress.sectId]
-  if (!definition) return { ok: false, diagnostics: [{ severity: "error", code: "UNKNOWN_SECT_CONTENT", message: `未知 combat-v6 宗门：${String(input.progress.sectId)}`, path: "progress.sectId" }] }
-  return compileSectDefinitionV6({ definition, progress: input.progress, characterLevel: input.characterLevel })
+export function compileSectCombatV6(input: SectCompileInput): CompileSectCombatV6Result {
+  return compileRegisteredSect(input, COMBAT_V6_SECT_DEFINITIONS_V1, validateCombatV6SectRegistryV1())
 }
+export function compileSectCombatV6V2(input: SectCompileInput): CompileSectCombatV6Result {
+  return compileRegisteredSect(input, COMBAT_V6_SECT_DEFINITIONS_V2, validateCombatV6SectRegistryV2())
+}
+export function compileSectCombatV6V3(input: SectCompileInput): CompileSectCombatV6Result {
+  return compileRegisteredSect(input, COMBAT_V6_SECT_DEFINITIONS_V3, validateCombatV6SectRegistryV3())
+}
+export const compileSectCombatV6V4 = compileCurrentSectCombatV6
 
 export {
   LINGXIAO_METHOD_ID,

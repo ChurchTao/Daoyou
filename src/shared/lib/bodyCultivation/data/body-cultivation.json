@@ -1,0 +1,113 @@
+{
+  "$schema": "./body-cultivation.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "tracks": {
+    "skin": {
+      "name": "炼体·皮肤",
+      "layerName": "防御修炼",
+      "shortDesc": "提升 combat-v6 防御修炼",
+      "benefit": {
+        "kind": "training",
+        "attribute": "defenseCultivate",
+        "perLevel": 1
+      }
+    },
+    "sinew_bone": {
+      "name": "炼体·筋骨",
+      "layerName": "攻法修炼",
+      "shortDesc": "提升 combat-v6 攻法修炼",
+      "benefit": {
+        "kind": "training",
+        "attribute": "attackCultivate",
+        "perLevel": 1
+      }
+    },
+    "organs": {
+      "name": "炼体·脏腑",
+      "layerName": "法术修炼",
+      "shortDesc": "提升 combat-v6 法术修炼",
+      "benefit": {
+        "kind": "training",
+        "attribute": "spellCultivate",
+        "perLevel": 1
+      }
+    },
+    "qi_blood": {
+      "name": "炼体·气血",
+      "layerName": "生命根基",
+      "shortDesc": "提升裸身气血与固定治疗强度",
+      "benefit": {
+        "kind": "life",
+        "hpRatioPerLevel": 0.005,
+        "healLevelsPerPoint": 2
+      }
+    },
+    "primordial_spirit": {
+      "name": "炼体·元神",
+      "layerName": "抗法修炼",
+      "shortDesc": "提升 combat-v6 抗法修炼",
+      "benefit": {
+        "kind": "training",
+        "attribute": "resistSpellCultivate",
+        "perLevel": 1
+      }
+    }
+  },
+  "realms": [
+    {
+      "realm": "mortal_body",
+      "label": "凡躯",
+      "minCultivationRealm": "炼气",
+      "totalLevel": 0,
+      "softTrackCap": 5
+    },
+    {
+      "realm": "bronze_skin",
+      "label": "铜皮",
+      "minCultivationRealm": "炼气",
+      "totalLevel": 12,
+      "softTrackCap": 10
+    },
+    {
+      "realm": "iron_bone",
+      "label": "铁骨",
+      "minCultivationRealm": "筑基",
+      "totalLevel": 30,
+      "softTrackCap": 15
+    },
+    {
+      "realm": "jade_marrow",
+      "label": "玉髓",
+      "minCultivationRealm": "金丹",
+      "totalLevel": 55,
+      "softTrackCap": 22
+    },
+    {
+      "realm": "golden_body",
+      "label": "金身",
+      "minCultivationRealm": "元婴",
+      "totalLevel": 90,
+      "softTrackCap": 30
+    },
+    {
+      "realm": "dharma_body",
+      "label": "法身",
+      "minCultivationRealm": "化神",
+      "totalLevel": 140,
+      "softTrackCap": 45
+    },
+    {
+      "realm": "dao_body",
+      "label": "道体",
+      "minCultivationRealm": "合体",
+      "totalLevel": 220,
+      "softTrackCap": 60
+    }
+  ],
+  "progress": {
+    "base": 100,
+    "perLevel": 70,
+    "milestoneInterval": 5
+  }
+}

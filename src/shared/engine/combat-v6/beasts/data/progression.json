@@ -1,0 +1,96 @@
+{
+  "$schema": "./progression.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "pointsPerLevel": 5,
+  "experience": {
+    "base": 100,
+    "perLevel": 20,
+    "victoryPerEnemyLevel": 10
+  },
+  "lifespan": {
+    "deathLoss": 50,
+    "deployMinimum": 50,
+    "restRecoveryPerStone": 10
+  },
+  "capture": {
+    "mpBase": 10,
+    "mpPerCarryLevel": 1,
+    "minChance": 0.1,
+    "maxChance": 0.85,
+    "baseChance": 0.35,
+    "missingHpFactor": 0.4,
+    "levelDifferenceFactor": 0.01
+  },
+  "realms": [
+    {
+      "name": "启灵",
+      "minLevel": 0
+    },
+    {
+      "name": "通慧",
+      "minLevel": 20
+    },
+    {
+      "name": "化妖",
+      "minLevel": 40
+    },
+    {
+      "name": "凝丹",
+      "minLevel": 60
+    },
+    {
+      "name": "妖婴",
+      "minLevel": 80
+    },
+    {
+      "name": "化形",
+      "minLevel": 100
+    },
+    {
+      "name": "妖王",
+      "minLevel": 120
+    },
+    {
+      "name": "妖皇",
+      "minLevel": 140
+    },
+    {
+      "name": "妖圣",
+      "minLevel": 160
+    }
+  ],
+  "panel": {
+    "naturalBase": 10,
+    "naturalPerLevel": 1,
+    "health": {
+      "base": 100,
+      "coefficient": 8
+    },
+    "mana": {
+      "base": 30,
+      "coefficient": 3
+    },
+    "physicalAtk": {
+      "base": 15,
+      "coefficient": 2
+    },
+    "physicalDef": {
+      "base": 10,
+      "coefficient": 1.5
+    },
+    "magicAtk": {
+      "base": 15,
+      "coefficient": 2
+    },
+    "magicDef": {
+      "base": 10,
+      "coefficient": 1,
+      "magicWeight": 0.5
+    },
+    "speed": {
+      "base": 10,
+      "coefficient": 1.5
+    }
+  }
+}

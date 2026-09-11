@@ -9,7 +9,7 @@ import { useResourceMutation } from '@app/lib/resources/mutations';
 import { usePlayerSession } from '@app/lib/resources/player';
 import { CHEAT_HEAVEN_TALISMAN_NAME } from '@shared/config/sectTransferTalisman';
 import type { SectTransferPreviewData } from '@shared/contracts/sect';
-import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '@shared/engine/combat-v6/content';
+import { COMBAT_V6_SECT_DEFINITIONS } from '@shared/engine/combat-v6/content';
 import { SECT_RANK_LABELS } from '@shared/engine/sect';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -33,7 +33,7 @@ export default function SectTransferPage() {
   const currentSectId = session.data?.activeCultivator?.sectId;
   const targets = useMemo(
     () =>
-      Object.values(COMBAT_V6_SECT_DEFINITIONS_V4).filter(
+      Object.values(COMBAT_V6_SECT_DEFINITIONS).filter(
         (definition) => definition.id !== currentSectId,
       ),
     [currentSectId],

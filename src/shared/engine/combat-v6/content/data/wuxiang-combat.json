@@ -1,0 +1,458 @@
+{
+  "$schema": "./wuxiang-combat.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "baseSkillIds": [
+    "wuxiang.skill.single_heal",
+    "wuxiang.skill.group_heal",
+    "wuxiang.skill.barrier",
+    "wuxiang.skill.spell",
+    "wuxiang.skill.purify",
+    "wuxiang.skill.revive",
+    "wuxiang.skill.formless"
+  ],
+  "skills": [
+    {
+      "id": "wuxiang.skill.single_heal",
+      "name": "拈花济世",
+      "school": "wuxiang",
+      "costMp": "25 + floor(skillLevel * 0.35)",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "heal",
+          "power": "60 + floor(skillLevel * 1.4)"
+        }
+      ],
+      "successEffects": [
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.mind",
+          "amount": 1,
+          "when": {
+            "requireAbsentStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.skill.group_heal",
+      "name": "慈航普度",
+      "school": "wuxiang",
+      "costMp": "35 + floor(skillLevel * 0.5)",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "mode": "fill",
+        "count": 5
+      },
+      "effects": [
+        {
+          "type": "heal",
+          "power": "30 + floor(skillLevel * 0.9)"
+        }
+      ],
+      "successEffects": [
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.mind",
+          "amount": 2,
+          "when": {
+            "requireAbsentStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.skill.barrier",
+      "name": "金刚结界",
+      "school": "wuxiang",
+      "costMp": "30 + floor(skillLevel * 0.4)",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "mode": "fill",
+        "count": 4
+      },
+      "effects": [
+        {
+          "type": "applyBarrier",
+          "id": "wuxiang.barrier.guardian",
+          "kind": "wuxiang.guardian",
+          "name": "金刚结界",
+          "power": "40 + floor(skillLevel * 1.1) + floor(target.maxHp * 0.04)",
+          "duration": 3
+        }
+      ],
+      "successEffects": [
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.mind",
+          "amount": 1,
+          "when": {
+            "requireAbsentStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.skill.spell",
+      "name": "明王法印",
+      "school": "wuxiang",
+      "costMp": "25 + floor(skillLevel * 0.45)",
+      "tags": [
+        "spell"
+      ],
+      "formula": "spell",
+      "splash": {
+        "perTarget": 0.08,
+        "floor": 0.6
+      },
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": 5
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": "30 + floor(skillLevel * 1.25)"
+        }
+      ],
+      "successEffects": [
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.mind",
+          "amount": 2,
+          "when": {
+            "requireAbsentStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.skill.purify",
+      "name": "六根清净",
+      "school": "wuxiang",
+      "costMp": "30 + floor(skillLevel * 0.4)",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "removeWound",
+          "power": "floor(skillLevel * 1.5) + floor(target.maxHp * 0.05)"
+        },
+        {
+          "type": "dispel",
+          "categories": [
+            "control",
+            "debuff",
+            "dot"
+          ],
+          "maxCount": 1,
+          "excludeStatusFlags": [
+            "blocksRevive"
+          ]
+        }
+      ],
+      "successEffects": [
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.mind",
+          "amount": 1,
+          "when": {
+            "requireAbsentStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.skill.revive",
+      "name": "涅槃还生",
+      "school": "wuxiang",
+      "costMp": "80 + floor(skillLevel * 0.8)",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "count": 1,
+        "includeDowned": true
+      },
+      "effects": [
+        {
+          "type": "revive",
+          "hpRatio": 0.2,
+          "when": {
+            "requireAbsentStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          }
+        },
+        {
+          "type": "revive",
+          "hpRatio": 0.2,
+          "when": {
+            "requireStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          }
+        }
+      ],
+      "successEffects": [
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.mind",
+          "amount": 2,
+          "when": {
+            "requireAbsentStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.skill.formless",
+      "name": "无相诀",
+      "school": "wuxiang",
+      "costMp": "40 + floor(skillLevel * 0.3)",
+      "resourceRequirements": [
+        {
+          "resourceId": "wuxiang.resource.mind",
+          "min": 6
+        }
+      ],
+      "resourceCosts": [
+        {
+          "resourceId": "wuxiang.resource.mind",
+          "amount": 6
+        }
+      ],
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "wuxiang.status.formless",
+          "duration": 2,
+          "self": true
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.skill.great_barrier",
+      "name": "摩诃护持",
+      "school": "wuxiang",
+      "costMp": "50 + floor(skillLevel * 0.5)",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyBarrier",
+          "id": "wuxiang.barrier.great",
+          "kind": "wuxiang.great",
+          "name": "摩诃护持",
+          "power": "floor(target.maxHp * 0.12) + skillLevel",
+          "duration": 2
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wuxiang.status.great_barrier_guard",
+          "duration": 2
+        }
+      ],
+      "successEffects": [
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.mind",
+          "amount": 1,
+          "when": {
+            "requireAbsentStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.skill.wrath_strike",
+      "name": "忿怒明王",
+      "school": "wuxiang",
+      "costMp": "40 + floor(skillLevel * 0.5)",
+      "costHp": "maxHp * 0.05",
+      "requireHpRatio": 0.15,
+      "tags": [
+        "spell"
+      ],
+      "formula": "spell",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 1.35,
+          "power": "50 + floor(skillLevel * 1.3)"
+        }
+      ],
+      "successEffects": [
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.mind",
+          "amount": 2,
+          "when": {
+            "requireAbsentStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.skill.final_silence",
+      "name": "无量寂灭",
+      "school": "wuxiang",
+      "costMp": "80 + floor(skillLevel * 0.8)",
+      "costHp": "maxHp * 0.1",
+      "requireHpRatio": 0.2,
+      "tags": [
+        "spell"
+      ],
+      "formula": "spell",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 1.8,
+          "power": "80 + floor(skillLevel * 1.6)",
+          "defenseIgnore": 0.15
+        },
+        {
+          "type": "skipNextAction"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wuxiang.status.rest",
+          "duration": 1,
+          "self": true
+        }
+      ],
+      "successEffects": [
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.mind",
+          "amount": 3,
+          "when": {
+            "requireAbsentStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "statuses": [
+    {
+      "id": "wuxiang.status.formless",
+      "name": "无相",
+      "kind": "wuxiang.formless",
+      "category": "buff",
+      "dispellable": false
+    },
+    {
+      "id": "wuxiang.status.great_barrier_guard",
+      "name": "摩诃护持",
+      "kind": "wuxiang.great_guard",
+      "category": "buff",
+      "damageTakenPhysical": 0.9,
+      "damageTakenSpell": 0.9
+    },
+    {
+      "id": "wuxiang.status.magic_guard",
+      "name": "金身护法",
+      "kind": "wuxiang.magic_guard",
+      "category": "buff",
+      "attrMods": {
+        "magicDef": "floor(target.magicDef * 0.1)"
+      }
+    },
+    {
+      "id": "wuxiang.status.revive_guard",
+      "name": "还阳护体",
+      "kind": "wuxiang.revive_guard",
+      "category": "buff",
+      "damageTakenPhysical": 0.8,
+      "damageTakenSpell": 0.8
+    },
+    {
+      "id": "wuxiang.status.formless_guard",
+      "name": "无量法界",
+      "kind": "wuxiang.formless_guard",
+      "category": "buff",
+      "damageTakenPhysical": 0.9,
+      "damageTakenSpell": 0.9
+    },
+    {
+      "id": "wuxiang.status.rest",
+      "name": "寂灭反噬",
+      "kind": "wuxiang.rest",
+      "category": "control",
+      "blocksAction": true
+    }
+  ],
+  "resources": [
+    {
+      "id": "wuxiang.resource.mind",
+      "name": "念",
+      "current": 0,
+      "max": 6
+    }
+  ]
+}

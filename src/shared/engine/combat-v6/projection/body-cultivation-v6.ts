@@ -1,4 +1,6 @@
 import { BODY_CULTIVATION_TRACK_KEYS } from "@shared/lib/bodyCultivation/config"
+import { BODY_CULTIVATION_PACK, bodyTrainingLevelCap } from "@shared/lib/bodyCultivation/pack"
+import { bodyCultivationBenefits } from "@shared/lib/bodyCultivation/benefits"
 import type { BodyCultivationTrackKey } from "@shared/types/condition"
 import type { CharacterPanelV1 } from "./character-panel-v1.ts"
 import type {
@@ -7,12 +9,12 @@ import type {
   CombatV6TrainingProjection,
 } from "./types.ts"
 
-const TRAINING_LEVEL_CAP = 60
-
 export function compileBodyCultivationV6(
   state: CombatV6BodyCultivationInput,
   characterPanel: CharacterPanelV1,
+  pack = BODY_CULTIVATION_PACK,
 ): CombatV6TrainingProjection {
+  const trainingLevelCap = bodyTrainingLevelCap(pack)
   const diagnostics: CombatV6ProjectionDiagnostic[] = []
   const levels = Object.fromEntries(
     BODY_CULTIVATION_TRACK_KEYS.map((key) => [key, 0]),
@@ -33,29 +35,20 @@ export function compileBodyCultivationV6(
       }
 
       const level = Math.floor(rawLevel!)
-      levels[key] = Math.min(TRAINING_LEVEL_CAP, level)
-      if (level > TRAINING_LEVEL_CAP) {
+      levels[key] = Math.min(trainingLevelCap, level)
+      if (level > trainingLevelCap) {
         diagnostics.push({
           severity: "warning",
           code: "TRAINING_LEVEL_CLAMPED",
-          message: `${key} 的 combat-v6 投影等级已夹取到 ${TRAINING_LEVEL_CAP}`,
+          message: `${key} 的 combat-v6 投影等级已夹取到 ${trainingLevelCap}`,
           path,
         })
       }
     }
   }
 
-  const lifeFoundationLevel = levels.qi_blood
   const projection: CombatV6TrainingProjection = {
-    attackCultivate: levels.sinew_bone,
-    defenseCultivate: levels.skin,
-    spellCultivate: levels.organs,
-    resistSpellCultivate: levels.primordial_spirit,
-    lifeFoundationLevel,
-    maxHpBonus: Math.floor(
-      characterPanel.maxHp * lifeFoundationLevel * 0.005,
-    ),
-    healPowerBonus: Math.floor(lifeFoundationLevel / 2),
+    ...bodyCultivationBenefits(levels, characterPanel.maxHp, pack),
     diagnostics,
   }
 

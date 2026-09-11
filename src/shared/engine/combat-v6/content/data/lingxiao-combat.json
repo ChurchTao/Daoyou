@@ -1,0 +1,370 @@
+{
+  "$schema": "./lingxiao-combat.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "baseSkillIds": [
+    "lingxiao.skill.triple",
+    "lingxiao.skill.waiting",
+    "lingxiao.skill.formation",
+    "lingxiao.skill.sword_aura",
+    "lingxiao.skill.clarity",
+    "lingxiao.skill.confuse"
+  ],
+  "skills": [
+    {
+      "id": "lingxiao.skill.triple",
+      "name": "断尘三叠",
+      "school": "lingxiao",
+      "costHp": "maxHp * 0.1",
+      "requireHpRatio": 0.5,
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "hits": 3,
+          "coeff": [
+            0.75,
+            0.85,
+            0.95
+          ],
+          "power": "floor(skillLevel * 0.5)"
+        },
+        {
+          "type": "skipNextAction"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "lingxiao.status.rest",
+          "duration": 1,
+          "self": true
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.skill.waiting",
+      "name": "伏锋待机",
+      "school": "lingxiao",
+      "costHp": "hp * 0.05",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "lingxiao.status.waiting",
+          "duration": 1,
+          "self": true,
+          "storeTarget": true
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.skill.formation",
+      "name": "裂阵沉舟",
+      "school": "lingxiao",
+      "costHp": "maxHp * 0.1",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": "min(3, floor(skillLevel / 60) + 1)"
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 0.85,
+          "power": "floor(skillLevel * 0.4)"
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.skill.sword_aura",
+      "name": "剑煞凝罡",
+      "school": "lingxiao",
+      "costMp": "20 + floor(skillLevel / 5)",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "lingxiao.status.sword_aura",
+          "duration": 5
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.skill.clarity",
+      "name": "澄神守一",
+      "school": "lingxiao",
+      "costMp": "20 + floor(skillLevel / 5)",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "lingxiao.status.clarity",
+          "duration": 5,
+          "self": true
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.skill.confuse",
+      "name": "摄心剑印",
+      "school": "lingxiao",
+      "costMp": "30 + floor(skillLevel / 2)",
+      "tags": [
+        "spell",
+        "seal"
+      ],
+      "sealBase": 50,
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "lingxiao.status.confuse",
+          "duration": 2,
+          "hit": "seal"
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.skill.blood_strike",
+      "name": "血锋连斩",
+      "school": "lingxiao",
+      "costHp": "maxHp * 0.08",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "hits": 2,
+          "coeff": [
+            0.7,
+            0.8
+          ],
+          "power": "floor(skillLevel * 0.4)"
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.skill.zhanchen_ultimate",
+      "name": "一剑开天门",
+      "school": "lingxiao",
+      "costHp": "maxHp * 0.15",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1.65,
+          "power": "floor(skillLevel * 0.6)"
+        },
+        {
+          "type": "skipNextAction"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "lingxiao.status.rest",
+          "duration": 1,
+          "self": true
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.skill.shadow_strike",
+      "name": "惊鸿掠影",
+      "school": "lingxiao",
+      "costMp": "20 + floor(skillLevel / 5)",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 0.8,
+          "power": "floor(skillLevel * 0.4)"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "lingxiao.status.shadow",
+          "duration": 3,
+          "self": true
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "lingxiao.resource.sword_intent",
+          "amount": 2
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.skill.guiyi_ultimate",
+      "name": "万锋归一",
+      "school": "lingxiao",
+      "resourceRequirements": [
+        {
+          "resourceId": "lingxiao.resource.sword_intent",
+          "min": 11
+        }
+      ],
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1.8,
+          "power": "floor(skillLevel * 0.6)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "lingxiao.resource.sword_intent",
+          "amount": 0,
+          "mode": "set"
+        },
+        {
+          "type": "skipNextAction"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "lingxiao.status.rest",
+          "duration": 1,
+          "self": true
+        }
+      ]
+    }
+  ],
+  "statuses": [
+    {
+      "id": "lingxiao.status.rest",
+      "name": "剑息",
+      "kind": "lingxiao.rest",
+      "category": "control",
+      "blocksAction": true
+    },
+    {
+      "id": "lingxiao.status.waiting",
+      "name": "伏锋",
+      "kind": "lingxiao.waiting",
+      "category": "buff",
+      "actFirst": true,
+      "commandPolicy": "storedAttack",
+      "attrMods": {
+        "physicalAtk": "skillLevel",
+        "physicalDef": "skillLevel",
+        "hit": "skillLevel"
+      }
+    },
+    {
+      "id": "lingxiao.status.sword_aura",
+      "name": "剑煞凝罡",
+      "kind": "lingxiao.sword_aura",
+      "category": "buff",
+      "attrMods": {
+        "hit": "skillLevel"
+      }
+    },
+    {
+      "id": "lingxiao.status.clarity",
+      "name": "澄神守一",
+      "kind": "lingxiao.clarity",
+      "category": "buff",
+      "attrMods": {
+        "magicDef": "skillLevel",
+        "sealResist": "floor(skillLevel / 2)"
+      }
+    },
+    {
+      "id": "lingxiao.status.confuse",
+      "name": "摄心",
+      "kind": "lingxiao.confuse",
+      "category": "control",
+      "commandPolicy": "random"
+    },
+    {
+      "id": "lingxiao.status.shadow",
+      "name": "惊鸿",
+      "kind": "lingxiao.shadow",
+      "category": "buff",
+      "speedMod": "floor(skillLevel * 0.5)"
+    },
+    {
+      "id": "lingxiao.status.next_damage",
+      "name": "乘胜",
+      "kind": "lingxiao.next_damage",
+      "category": "buff"
+    },
+    {
+      "id": "lingxiao.status.defend_damage",
+      "name": "蓄势",
+      "kind": "lingxiao.defend_damage",
+      "category": "buff"
+    },
+    {
+      "id": "lingxiao.status.rest_resist",
+      "name": "不惊",
+      "kind": "lingxiao.rest_resist",
+      "category": "buff",
+      "attrMods": {
+        "sealResist": 20
+      }
+    },
+    {
+      "id": "lingxiao.status.chain_break",
+      "name": "连破",
+      "kind": "lingxiao.chain_break",
+      "category": "buff"
+    }
+  ],
+  "resources": [
+    {
+      "id": "lingxiao.resource.sword_intent",
+      "name": "剑意",
+      "current": 0,
+      "max": 11
+    }
+  ]
+}

@@ -1,0 +1,1325 @@
+{
+  "$schema": "./wuxiang-paths.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "passives": [
+    {
+      "id": "wuxiang.passive.compassion.foundation.heal",
+      "name": "慈航渡厄·济世",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.single_heal",
+              "wuxiang.skill.group_heal",
+              "wuxiang.skill.formless"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.foundation.barrier",
+      "name": "慈航渡厄·护生",
+      "hooks": [
+        {
+          "on": "onBarrierCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.barrier",
+              "wuxiang.skill.great_barrier",
+              "wuxiang.skill.formless"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyBarrier",
+              "factor": 1.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.formless.heal",
+      "name": "慈航无相·济世",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.single_heal",
+              "wuxiang.skill.group_heal",
+              "wuxiang.skill.formless"
+            ],
+            "requireStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.formless.barrier",
+      "name": "慈航无相·护生",
+      "hooks": [
+        {
+          "on": "onBarrierCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.barrier",
+              "wuxiang.skill.great_barrier",
+              "wuxiang.skill.formless"
+            ],
+            "requireStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyBarrier",
+              "factor": 1.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.formless.wound",
+      "name": "慈航无相·疗伤",
+      "hooks": [
+        {
+          "on": "onWoundCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.purify"
+            ],
+            "requireStatusIds": [
+              "wuxiang.status.formless"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyWound",
+              "factor": 1.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.1.1",
+      "name": "拈花妙谛",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.single_heal"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.1.2",
+      "name": "普济群生",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.group_heal"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.5.1",
+      "name": "雪中生莲",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.single_heal",
+              "wuxiang.skill.group_heal",
+              "wuxiang.skill.formless"
+            ],
+            "targetHpRatioBelow": 0.5
+          },
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.6.1",
+      "name": "大医精诚",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.single_heal",
+              "wuxiang.skill.group_heal",
+              "wuxiang.skill.formless"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.6.2",
+      "name": "宝相庄严",
+      "hooks": [
+        {
+          "on": "onBarrierCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.barrier",
+              "wuxiang.skill.great_barrier",
+              "wuxiang.skill.formless"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyBarrier",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.6.3",
+      "name": "生死一如",
+      "hooks": [
+        {
+          "on": "onWoundCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.purify"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyWound",
+              "factor": 1.4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.foundation",
+      "name": "明王镇狱",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell",
+              "wuxiang.skill.wrath_strike",
+              "wuxiang.skill.final_silence"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.formless.damage",
+      "name": "明王无相·威",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell",
+              "wuxiang.skill.wrath_strike",
+              "wuxiang.skill.final_silence"
+            ],
+            "requireStatusIds": [
+              "wuxiang.status.formless"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.formless.ignore",
+      "name": "明王无相·破法",
+      "hooks": [
+        {
+          "on": "onDefenseIgnoreCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell",
+              "wuxiang.skill.wrath_strike",
+              "wuxiang.skill.final_silence"
+            ],
+            "requireStatusIds": [
+              "wuxiang.status.formless"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyDefenseIgnore",
+              "add": 0.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.1.1",
+      "name": "烈印初明",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.2.1",
+      "name": "盛极当诛",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell",
+              "wuxiang.skill.wrath_strike",
+              "wuxiang.skill.final_silence"
+            ],
+            "targetHpRatioAbove": 0.7,
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.2.2",
+      "name": "怒目生威",
+      "hooks": [
+        {
+          "on": "onCritRoll",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell",
+              "wuxiang.skill.wrath_strike",
+              "wuxiang.skill.final_silence"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyChance",
+              "add": 0.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.2.3",
+      "name": "破妄见真",
+      "hooks": [
+        {
+          "on": "onDefenseIgnoreCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell",
+              "wuxiang.skill.wrath_strike",
+              "wuxiang.skill.final_silence"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyDefenseIgnore",
+              "add": 0.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.4.3",
+      "name": "法眼圆睁",
+      "hooks": [
+        {
+          "on": "onCritRoll",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyChance",
+              "add": 0.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.5.1",
+      "name": "饮焰归身",
+      "hooks": [
+        {
+          "on": "afterHit",
+          "sourceIsSelf": true,
+          "requireKind": "spell",
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell",
+              "wuxiang.skill.wrath_strike",
+              "wuxiang.skill.final_silence"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "sourceStanding": true
+          },
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "floor(hpDamage * 0.1)",
+              "maxGainPerAction": "floor(maxHp * 0.15)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.5.2.damage",
+      "name": "血海证道·攻",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell",
+              "wuxiang.skill.wrath_strike",
+              "wuxiang.skill.final_silence"
+            ],
+            "sourceHpRatioBelow": 0.5,
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.5.2.taken",
+      "name": "血海证道·险",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "targetIsSelf": true,
+          "when": {
+            "sourceHpRatioBelow": 0.5
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.6.1",
+      "name": "法界无壁",
+      "hooks": [
+        {
+          "on": "onDefenseIgnoreCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell",
+              "wuxiang.skill.wrath_strike",
+              "wuxiang.skill.final_silence"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyDefenseIgnore",
+              "add": 0.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.6.2",
+      "name": "万印齐鸣",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.6.3",
+      "name": "血作灯油",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.18
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.7.3.damage",
+      "name": "一念无间·威",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell",
+              "wuxiang.skill.wrath_strike",
+              "wuxiang.skill.final_silence"
+            ],
+            "requireStatusIds": [
+              "wuxiang.status.formless"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.7.3.crit",
+      "name": "一念无间·怒",
+      "hooks": [
+        {
+          "on": "onCritRoll",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.spell",
+              "wuxiang.skill.wrath_strike",
+              "wuxiang.skill.final_silence"
+            ],
+            "requireStatusIds": [
+              "wuxiang.status.formless"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyChance",
+              "add": 0.1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "paths": [
+    {
+      "id": "wuxiang.path.compassion",
+      "name": "慈航渡厄",
+      "foundationPassives": [
+        "wuxiang.passive.compassion.foundation.heal",
+        "wuxiang.passive.compassion.foundation.barrier",
+        "wuxiang.passive.compassion.formless.heal",
+        "wuxiang.passive.compassion.formless.barrier",
+        "wuxiang.passive.compassion.formless.wound"
+      ],
+      "resources": [
+        "wuxiang.resource.mind"
+      ],
+      "patches": [
+        {
+          "skillId": "wuxiang.skill.revive",
+          "operation": "setReviveRatio",
+          "value": 0.3,
+          "whenStatusId": "wuxiang.status.formless",
+          "statusPresent": true
+        }
+      ],
+      "nodes": [
+        {
+          "id": "wuxiang.node.compassion.1.1",
+          "name": "拈花妙谛",
+          "layer": 1,
+          "slot": 1,
+          "description": "拈花济世治疗提高10%。",
+          "passives": [
+            "wuxiang.passive.compassion.1.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.1.2",
+          "name": "普济群生",
+          "layer": 1,
+          "slot": 2,
+          "description": "慈航普度治疗提高10%。",
+          "passives": [
+            "wuxiang.passive.compassion.1.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.1.3",
+          "name": "灵台澄澈",
+          "layer": 1,
+          "slot": 3,
+          "description": "治疗能力增加30。",
+          "panel": [
+            {
+              "attr": "healPower",
+              "mode": "add",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.2.1",
+          "name": "金刚法界",
+          "layer": 2,
+          "slot": 1,
+          "description": "金刚结界盾量提高15%。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.barrier",
+              "operation": "multiplyBarrierPower",
+              "value": 1.15
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.2.2",
+          "name": "洗髓涤伤",
+          "layer": 2,
+          "slot": 2,
+          "description": "六根清净疗伤提高25%。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.purify",
+              "operation": "multiplyRemoveWoundPower",
+              "value": 1.25
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.2.3",
+          "name": "戒定生慧",
+          "layer": 2,
+          "slot": 3,
+          "description": "抗封增加30。",
+          "panel": [
+            {
+              "attr": "sealResist",
+              "mode": "add",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.3.1",
+          "name": "摩诃护持",
+          "layer": 3,
+          "slot": 1,
+          "description": "授予单体强盾神通。",
+          "grantSkills": [
+            "wuxiang.skill.great_barrier"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.3.2",
+          "name": "涅槃妙谛",
+          "layer": 3,
+          "slot": 2,
+          "description": "常态涅槃还生恢复提高至25%。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.revive",
+              "operation": "setReviveRatio",
+              "value": 0.25,
+              "whenStatusId": "wuxiang.status.formless",
+              "statusPresent": false
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.3.3",
+          "name": "破妄拔魂",
+          "layer": 3,
+          "slot": 3,
+          "description": "六根清净可以净化锢魂。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.purify",
+              "operation": "setDispelExcludeStatusFlags",
+              "value": []
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.4.1",
+          "name": "慈航无量",
+          "layer": 4,
+          "slot": 1,
+          "description": "慈航普度额外作用一人。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.group_heal",
+              "operation": "setTargetCount",
+              "value": 6
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.4.2",
+          "name": "莲界广被",
+          "layer": 4,
+          "slot": 2,
+          "description": "金刚结界额外作用一人。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.barrier",
+              "operation": "setTargetCount",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.4.3",
+          "name": "六尘俱净",
+          "layer": 4,
+          "slot": 3,
+          "description": "六根清净最多净化两个普通负面。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.purify",
+              "operation": "setDispelMaxCount",
+              "value": 2
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.5.1",
+          "name": "雪中生莲",
+          "layer": 5,
+          "slot": 1,
+          "description": "对低于半血目标治疗提高15%。",
+          "passives": [
+            "wuxiang.passive.compassion.5.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.5.2",
+          "name": "金身护法",
+          "layer": 5,
+          "slot": 2,
+          "description": "金刚结界同时提高目标法防。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.barrier",
+              "operation": "appendEffect",
+              "effect": {
+                "type": "applyStatus",
+                "statusId": "wuxiang.status.magic_guard",
+                "duration": 3
+              }
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.5.3",
+          "name": "还阳护体",
+          "layer": 5,
+          "slot": 3,
+          "description": "复活目标获得一回合物法减伤。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.revive",
+              "operation": "appendSuccessEffect",
+              "effect": {
+                "type": "applyStatus",
+                "statusId": "wuxiang.status.revive_guard",
+                "duration": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.6.1",
+          "name": "大医精诚",
+          "layer": 6,
+          "slot": 1,
+          "description": "宗门直接治疗提高10%。",
+          "passives": [
+            "wuxiang.passive.compassion.6.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.6.2",
+          "name": "宝相庄严",
+          "layer": 6,
+          "slot": 2,
+          "description": "宗门护盾提高10%并延长一回合。",
+          "passives": [
+            "wuxiang.passive.compassion.6.2"
+          ],
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.barrier",
+              "operation": "setBarrierDuration",
+              "barrierId": "wuxiang.barrier.guardian",
+              "value": 4
+            },
+            {
+              "skillId": "wuxiang.skill.great_barrier",
+              "operation": "setBarrierDuration",
+              "barrierId": "wuxiang.barrier.great",
+              "value": 3
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.6.3",
+          "name": "生死一如",
+          "layer": 6,
+          "slot": 3,
+          "description": "宗门疗伤提高40%。",
+          "passives": [
+            "wuxiang.passive.compassion.6.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.7.1",
+          "name": "万佛朝宗",
+          "layer": 7,
+          "slot": 1,
+          "description": "入无相时群体恢复。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.formless",
+              "operation": "appendEffect",
+              "effect": {
+                "type": "heal",
+                "power": "floor(target.maxHp * 0.08)",
+                "targeting": {
+                  "side": "ally",
+                  "mode": "all"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.7.2",
+          "name": "无量法界",
+          "layer": 7,
+          "slot": 2,
+          "description": "入无相时群体获得护盾与减伤。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.formless",
+              "operation": "appendEffect",
+              "effect": {
+                "type": "applyBarrier",
+                "id": "wuxiang.barrier.formless",
+                "kind": "wuxiang.formless",
+                "name": "无量法界",
+                "power": "floor(target.maxHp * 0.08)",
+                "duration": 2,
+                "targeting": {
+                  "side": "ally",
+                  "mode": "all"
+                }
+              }
+            },
+            {
+              "skillId": "wuxiang.skill.formless",
+              "operation": "appendEffect",
+              "effect": {
+                "type": "applyStatus",
+                "statusId": "wuxiang.status.formless_guard",
+                "duration": 2,
+                "targeting": {
+                  "side": "ally",
+                  "mode": "all"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.7.3",
+          "name": "彼岸同登",
+          "layer": 7,
+          "slot": 3,
+          "description": "入无相时复活全部未被锢魂的倒地人物。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.formless",
+              "operation": "appendEffect",
+              "effect": {
+                "type": "revive",
+                "hpRatio": 0.15,
+                "targeting": {
+                  "side": "ally",
+                  "mode": "all",
+                  "includeDowned": true
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.path.wrath",
+      "name": "明王镇狱",
+      "foundationPassives": [
+        "wuxiang.passive.wrath.foundation",
+        "wuxiang.passive.wrath.formless.damage",
+        "wuxiang.passive.wrath.formless.ignore"
+      ],
+      "resources": [
+        "wuxiang.resource.mind"
+      ],
+      "nodes": [
+        {
+          "id": "wuxiang.node.wrath.1.1",
+          "name": "烈印初明",
+          "layer": 1,
+          "slot": 1,
+          "description": "明王法印伤害提高8%。",
+          "passives": [
+            "wuxiang.passive.wrath.1.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.1.2",
+          "name": "法相增辉",
+          "layer": 1,
+          "slot": 2,
+          "description": "明王法印额外作用一人。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.spell",
+              "operation": "setTargetCount",
+              "value": 6
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.1.3",
+          "name": "明王灌顶",
+          "layer": 1,
+          "slot": 3,
+          "description": "法攻增加30。",
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.2.1",
+          "name": "盛极当诛",
+          "layer": 2,
+          "slot": 1,
+          "description": "攻击高于七成气血目标时法伤提高8%。",
+          "passives": [
+            "wuxiang.passive.wrath.2.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.2.2",
+          "name": "怒目生威",
+          "layer": 2,
+          "slot": 2,
+          "description": "法术暴击率增加五个百分点。",
+          "passives": [
+            "wuxiang.passive.wrath.2.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.2.3",
+          "name": "破妄见真",
+          "layer": 2,
+          "slot": 3,
+          "description": "宗门主动法术忽略5%法防。",
+          "passives": [
+            "wuxiang.passive.wrath.2.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.3.1",
+          "name": "忿怒明王",
+          "layer": 3,
+          "slot": 1,
+          "description": "授予单体耗血法术。",
+          "grantSkills": [
+            "wuxiang.skill.wrath_strike"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.3.2",
+          "name": "法印深刻",
+          "layer": 3,
+          "slot": 2,
+          "description": "明王法印法术项增加。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.spell",
+              "operation": "addSpellPower",
+              "value": "floor(skillLevel * 0.2)"
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.3.3",
+          "name": "念火相生",
+          "layer": 3,
+          "slot": 3,
+          "description": "明王法印额外获得一点念。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.spell",
+              "operation": "appendSuccessEffect",
+              "effect": {
+                "type": "modifyResource",
+                "resourceId": "wuxiang.resource.mind",
+                "amount": 1,
+                "when": {
+                  "requireAbsentStatusIds": [
+                    "wuxiang.status.formless"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.4.1",
+          "name": "火海无涯",
+          "layer": 4,
+          "slot": 1,
+          "description": "明王法印分灵衰减降低。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.spell",
+              "operation": "setSplash",
+              "perTarget": 0.06,
+              "floor": 0.7
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.4.2",
+          "name": "明王加身",
+          "layer": 4,
+          "slot": 2,
+          "description": "忿怒明王系数提高至1.5。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.wrath_strike",
+              "operation": "multiplySpellCoefficients",
+              "value": 1.111111111111111
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.4.3",
+          "name": "法眼圆睁",
+          "layer": 4,
+          "slot": 3,
+          "description": "明王法印法暴增加五个百分点。",
+          "passives": [
+            "wuxiang.passive.wrath.4.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.5.1",
+          "name": "饮焰归身",
+          "layer": 5,
+          "slot": 1,
+          "description": "主动直接法术伤害吸血10%。",
+          "passives": [
+            "wuxiang.passive.wrath.5.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.5.2",
+          "name": "血海证道",
+          "layer": 5,
+          "slot": 2,
+          "description": "低于半血时增伤并增加承伤。",
+          "passives": [
+            "wuxiang.passive.wrath.5.2.damage",
+            "wuxiang.passive.wrath.5.2.taken"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.5.3",
+          "name": "无相久住",
+          "layer": 5,
+          "slot": 3,
+          "description": "无相持续提高至三回合。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.formless",
+              "operation": "setStatusDuration",
+              "statusId": "wuxiang.status.formless",
+              "value": 3
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.6.1",
+          "name": "法界无壁",
+          "layer": 6,
+          "slot": 1,
+          "description": "宗门法术额外忽略10%法防。",
+          "passives": [
+            "wuxiang.passive.wrath.6.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.6.2",
+          "name": "万印齐鸣",
+          "layer": 6,
+          "slot": 2,
+          "description": "明王法印伤害提高12%。",
+          "passives": [
+            "wuxiang.passive.wrath.6.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.6.3",
+          "name": "血作灯油",
+          "layer": 6,
+          "slot": 3,
+          "description": "明王法印耗血换取18%伤害。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.spell",
+              "operation": "setCostHp",
+              "value": "maxHp * 0.05"
+            },
+            {
+              "skillId": "wuxiang.skill.spell",
+              "operation": "setRequireHpRatio",
+              "value": 0.15
+            }
+          ],
+          "passives": [
+            "wuxiang.passive.wrath.6.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.7.1",
+          "name": "无量寂灭",
+          "layer": 7,
+          "slot": 1,
+          "description": "授予单体终式。",
+          "grantSkills": [
+            "wuxiang.skill.final_silence"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.7.2",
+          "name": "千印归一",
+          "layer": 7,
+          "slot": 2,
+          "description": "法印群攻后追击首目标。",
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.spell",
+              "operation": "appendEffect",
+              "effect": {
+                "type": "spellHit",
+                "coeff": 0.75,
+                "power": "30 + floor(skillLevel * 1.25)",
+                "when": {
+                  "targetSlot": "primary"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.7.3",
+          "name": "一念无间",
+          "layer": 7,
+          "slot": 3,
+          "description": "无相期间额外提高法伤与法暴。",
+          "passives": [
+            "wuxiang.passive.wrath.7.3.damage",
+            "wuxiang.passive.wrath.7.3.crit"
+          ]
+        }
+      ]
+    }
+  ]
+}
