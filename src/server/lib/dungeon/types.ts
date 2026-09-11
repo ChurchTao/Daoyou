@@ -464,6 +464,7 @@ export type DungeonRecoverAction =
   'retry' | 'retry_continue' | 'retry_settle' | 'safe_retreat' | 'force_quit';
 
 export interface DungeonCostLedgerEntry {
+  materialSelections?: import('@shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
   actionId: string;
   round: number;
   choiceId?: number;
@@ -480,6 +481,7 @@ export interface DungeonGainLedgerEntry {
 }
 
 export interface DungeonPendingAction {
+  materialSelections?: import('@shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
   actionId: string;
   choiceId?: number;
   choiceText?: string;

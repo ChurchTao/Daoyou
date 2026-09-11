@@ -1,6 +1,7 @@
 import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
 import { BattleCallbackData } from '@app/routes/game/dungeon/components/DungeonBattle';
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
+import type { DungeonMaterialSelection } from '@shared/contracts/combatV6Dungeon';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import type {
   DungeonOption,
@@ -97,7 +98,9 @@ export function useDungeonViewModel(
     setState,
     loading: stateLoading,
     refresh,
-  } = useDungeonState(hasCultivator);
+    error: readError,
+    dismissSettlement,
+  } = useDungeonState(cultivatorId);
   const {
     startDungeon,
     performAction,
@@ -107,7 +110,7 @@ export function useDungeonViewModel(
     escapeLooting,
     recoverDungeon,
     processing,
-  } = useDungeonActions();
+  } = useDungeonActions(refresh, state);
 
   const { openQiActionConfirm } = useQiActionConfirm();
 
@@ -137,7 +140,7 @@ export function useDungeonViewModel(
    */
   const viewState = useMemo<DungeonViewState>(() => {
     // 加载中
-    if (stateLoading) {
+    if (stateLoading && !state) {
       return { type: 'loading' };
     }
 
@@ -211,9 +214,17 @@ export function useDungeonViewModel(
   /**
    * 操作：执行选项
    */
-  const handlePerformAction = async (option: DungeonOption) => {
+  const handlePerformAction = async (
+    option: DungeonOption,
+    selections: DungeonMaterialSelection[] = [],
+  ) => {
     if (!state?.runId) return;
-    const data = await performAction(option, state.runId, state.currentRound);
+    const data = await performAction(
+      option,
+      state.runId,
+      state.currentRound,
+      selections,
+    );
     await applyMutationResult(
       data as Parameters<typeof resolveDungeonMutationResult>[0],
     );
@@ -302,7 +313,11 @@ export function useDungeonViewModel(
 
   return {
     viewState,
-    processing,
+    processing: processing || stateLoading || !!readError,
+    readError,
+    refreshing: stateLoading,
+    refresh,
+    dismissSettlement,
     actions: {
       beginBattle: async () => {
         if (!state?.encounter) return;

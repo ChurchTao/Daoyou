@@ -131,6 +131,7 @@ type DungeonSettlementOptions = {
 };
 
 type DungeonFlowOptions = {
+  materialSelections?: import('@shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
   deferPersistence?: boolean;
   lease?: RedisLeaseContext;
 };
@@ -549,6 +550,7 @@ export class DungeonService {
       choiceId: action.choiceId,
       choiceText: action.choiceText,
       costs: cloneCosts(action.costs),
+      materialSelections: action.materialSelections,
       committedAt: new Date().toISOString(),
     });
     state.summary_of_sacrifice = state.costLedger.flatMap((entry) =>
@@ -933,10 +935,21 @@ export class DungeonService {
     }
 
     const actionCosts = this.normalizeOptionCosts(chosenOption);
+    const materialSelections = options.materialSelections ?? [];
+    if (
+      state.pendingAction?.actionId === actionId &&
+      (state.pendingAction.choiceId !== choiceId ||
+        stableCompactStringify(state.pendingAction.materialSelections ?? []) !==
+          stableCompactStringify(materialSelections))
+    ) {
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '原行动的提交物品已固定，请沿用原选择重试',
+        409,
+      );
+    }
 
     const consumeActionCostsOrThrow = async (dryRun = false) => {
-      if (actionCosts.length === 0) return;
-
       // 获取 userId
       const userId = await findActiveCultivatorOwnerId(cultivatorId);
       if (!userId) {
@@ -944,13 +957,19 @@ export class DungeonService {
       }
 
       if (dryRun)
-        return validateDungeonCosts(userId, cultivatorId, actionCosts);
+        return validateDungeonCosts(
+          userId,
+          cultivatorId,
+          actionCosts,
+          materialSelections,
+        );
       const result = await getExecutor().transaction(async (tx) => {
         const applied = await applyDungeonCosts(
           userId,
           cultivatorId,
           actionCosts,
           tx,
+          materialSelections,
         );
         if (applied.success) {
           await this.applyConditionResourceLosses(
@@ -976,6 +995,7 @@ export class DungeonService {
       round: state.currentRound,
       status: 'pending',
       costs: actionCosts,
+      materialSelections,
       createdAt: new Date().toISOString(),
     };
     state.pendingAction = pendingAction;
@@ -1045,6 +1065,7 @@ export class DungeonService {
               cultivatorId,
               actionCosts,
               tx,
+              materialSelections,
             );
             if (!consumeResult.success) {
               throw new Error(
@@ -1189,6 +1210,7 @@ export class DungeonService {
             cultivatorId,
             actionCosts,
             tx,
+            materialSelections,
           );
           if (!consumeResult.success) {
             throw new Error(consumeResult.errors?.join('; ') || '资源消耗失败');
@@ -1539,6 +1561,7 @@ export class DungeonService {
             state.cultivatorId,
             pendingActionToCommit.costs,
             tx,
+            pendingActionToCommit.materialSelections,
           );
           if (applied.success) {
             await this.applyConditionResourceLosses(
@@ -1724,6 +1747,7 @@ export class DungeonService {
             state.cultivatorId,
             pendingActionToCommit.costs,
             tx,
+            pendingActionToCommit.materialSelections,
           );
           if (!consumeResult.success) {
             throw new Error(consumeResult.errors?.join('; ') || '资源消耗失败');
@@ -2004,9 +2028,22 @@ export class DungeonService {
     );
   }
 
-  async getState(cultivatorId: string) {
+  async getState(cultivatorId: string, runId?: string) {
     const key = getDungeonKey(cultivatorId);
-    const run = await this.loadActiveRun(cultivatorId);
+    const run = runId
+      ? (
+          await getExecutor()
+            .select()
+            .from(dungeonRuns)
+            .where(
+              and(
+                eq(dungeonRuns.id, runId),
+                eq(dungeonRuns.cultivatorId, cultivatorId),
+              ),
+            )
+            .limit(1)
+        )[0]
+      : await this.loadActiveRun(cultivatorId);
     let state: DungeonState | null;
     if (run) {
       state = run.runState as DungeonState;
@@ -2021,7 +2058,7 @@ export class DungeonService {
         (run.pendingAction as DungeonState['pendingAction']) ?? undefined;
       state.activeBattleId = run.activeBattleId ?? state.activeBattleId;
       this.normalizeState(state);
-      await redis.set(key, JSON.stringify(state), 'EX', REDIS_TTL);
+      if (!runId) await redis.set(key, JSON.stringify(state), 'EX', REDIS_TTL);
     } else {
       state = null;
     }
@@ -2172,6 +2209,17 @@ export class DungeonService {
       throw new Error('副本已失效');
     }
 
+    if (
+      state.status !== 'RECOVERABLE_ERROR' ||
+      !state.recoverableActions?.includes(action)
+    ) {
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '当前状态不允许此恢复操作，请刷新',
+        409,
+      );
+    }
+
     if (action === 'force_quit') {
       return this.quitDungeon(cultivatorId, options);
     }
@@ -2228,6 +2276,7 @@ export class DungeonService {
       state.recoverableActions = undefined;
       delete state.activeBattleId;
       return this.settleDungeon(state, {
+        pendingAction: state.pendingAction,
         deferPersistence: options.deferPersistence,
       });
     }
@@ -2263,7 +2312,7 @@ export class DungeonService {
         cultivatorId,
         pending.choiceId,
         pending.actionId,
-        options,
+        { ...options, materialSelections: pending.materialSelections },
       );
     }
 
@@ -2275,6 +2324,11 @@ export class DungeonService {
     if (!state) return { success: true };
     if (state.activeBattleId)
       throw new Error('请在战斗中使用逃跑指令，或完成战斗后离开');
+    if (state.endDisposition)
+      return this.settleDungeon(state, {
+        pendingAction: state.pendingAction,
+        deferPersistence: options.deferPersistence,
+      });
     return this.settleDungeon(state, {
       endDisposition: 'retreated_after_battle',
       deferPersistence: options.deferPersistence,

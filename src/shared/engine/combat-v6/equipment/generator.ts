@@ -1,6 +1,6 @@
 import { SeededRng } from "../core/index.ts"
 import type { CombatV6ProjectionDiagnostic } from "../projection/types.ts"
-import { daoEquipmentTemplateOf } from "./content.ts"
+import { DAO_EQUIPMENT_BASE_GENERATION, daoEquipmentAttributeRange, daoEquipmentTemplateOf } from "./content.ts"
 import {
   DAO_EQUIPMENT_ARTS_V1,
   DAO_EQUIPMENT_ESSENCES_V1,
@@ -41,8 +41,9 @@ function integer(rng: SeededRng, min: number, max: number): number {
 }
 
 function bonusCount(roll: number): 0 | 1 | 2 {
-  if (roll < 0.5) return 0
-  if (roll < 0.9) return 1
+  const [zero, one] = DAO_EQUIPMENT_BASE_GENERATION.bonusCountProbabilities
+  if (roll < zero) return 0
+  if (roll < zero + one) return 1
   return 2
 }
 
@@ -51,7 +52,8 @@ function takeWeightedAttribute(
   available: DaoEquipmentAttribute[],
   favored: DaoEquipmentAttribute[],
 ): DaoEquipmentAttribute {
-  const weights = available.map((attr) => (favored.includes(attr) ? 2 : 1))
+  const { favoredWeight, normalWeight } = DAO_EQUIPMENT_BASE_GENERATION
+  const weights = available.map((attr) => (favored.includes(attr) ? favoredWeight : normalWeight))
   const total = weights.reduce((sum, weight) => sum + weight, 0)
   let roll = rng.next() * total
   for (let index = 0; index < available.length; index += 1) {
@@ -131,8 +133,7 @@ function generateBaseRolls(
     ),
   }))
   const count = bonusCount(rng.next())
-  const minBonus = Math.max(1, Math.floor(equipmentLevel * 0.08))
-  const maxBonus = Math.max(1, Math.floor(equipmentLevel * 0.14))
+  const { min: minBonus, max: maxBonus } = daoEquipmentAttributeRange(equipmentLevel)
   const available = [...ATTRIBUTES]
   const attributeBonuses: DaoEquipmentAttributeRoll[] = []
   for (let index = 0; index < count; index += 1) {
@@ -203,12 +204,7 @@ export function generateDaoEquipmentV2(
 
 export const daoEquipmentGenerationRulesV1 = {
   bonusCount,
-  attributeRange(equipmentLevel: number): { min: number; max: number } {
-    return {
-      min: Math.max(1, Math.floor(equipmentLevel * 0.08)),
-      max: Math.max(1, Math.floor(equipmentLevel * 0.14)),
-    }
-  },
+  attributeRange: daoEquipmentAttributeRange,
 }
 
 export const daoEquipmentGenerationRulesV2 = { essenceCount, artChance: 0.08 }

@@ -8,6 +8,7 @@ import {
   formatDungeonCostName,
   formatDungeonCostValue,
 } from '@app/lib/dungeon/formatDungeonCost';
+import type { DungeonMaterialSelection } from '@shared/contracts/combatV6Dungeon';
 import type {
   DungeonOption,
   DungeonOptionCost,
@@ -17,6 +18,7 @@ import type {
 import { getResourceIcon } from '@shared/lib/gameConceptDisplay';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useState } from 'react';
+import { DungeonMaterialSubmission } from './DungeonMaterialSubmission';
 import type { DungeonDisplayResources } from './DungeonRunPanel';
 import { DungeonRunPanel } from './DungeonRunPanel';
 
@@ -25,7 +27,10 @@ interface DungeonExploringProps {
   lastRound: DungeonRound | null;
   cultivator: Pick<Cultivator, 'realm' | 'condition'> | null;
   displayResources?: DungeonDisplayResources;
-  onAction: (option: DungeonOption) => Promise<unknown>;
+  onAction: (
+    option: DungeonOption,
+    selections?: DungeonMaterialSelection[],
+  ) => Promise<void>;
   onQuit: () => Promise<boolean>;
   processing: boolean;
 }
@@ -76,6 +81,7 @@ export function DungeonExploring({
   processing,
 }: DungeonExploringProps) {
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
+  const [submission, setSubmission] = useState<DungeonOption | null>(null);
 
   if (!lastRound) {
     return null;
@@ -143,7 +149,7 @@ export function DungeonExploring({
         <InkButton
           variant="primary"
           className="mx-auto mt-4 block!"
-          disabled={!selectedOptionId}
+          disabled={!selectedOptionId || processing}
           pending={processing}
           pendingLabel="推演中……"
           onClick={async () => {
@@ -151,6 +157,14 @@ export function DungeonExploring({
               (item) => item.id === selectedOptionId,
             );
             if (option) {
+              if (
+                (option.costPreview ?? option.costs ?? []).some(
+                  (c) => c.type === 'material' && c.value > 0,
+                )
+              ) {
+                setSubmission(option);
+                return;
+              }
               await onAction(option);
             }
             setSelectedOptionId(null);
@@ -159,6 +173,18 @@ export function DungeonExploring({
           确定抉择
         </InkButton>
       </InkSection>
+
+      {submission ? (
+        <DungeonMaterialSubmission
+          option={submission}
+          processing={processing}
+          onClose={() => setSubmission(null)}
+          onSubmit={async (selections) => {
+            await onAction(submission, selections);
+            setSubmission(null);
+          }}
+        />
+      ) : null}
 
       {state.history.length > 0 ? (
         <InkSection title="回顾前路" subdued>

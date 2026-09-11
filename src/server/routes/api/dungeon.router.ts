@@ -8,10 +8,7 @@ import {
   checkDungeonLimit,
   getDungeonLimitConfig,
 } from '@server/lib/dungeon/dungeonLimiter';
-import {
-  DungeonFlowError,
-  dungeonService,
-} from '@server/lib/dungeon/service_v2';
+import { DungeonFlowError } from '@server/lib/dungeon/service_v2';
 import {
   redisLockErrorResponse,
   requireActiveCultivatorRef,
@@ -21,6 +18,7 @@ import type { AppEnv } from '@server/lib/hono/types';
 import {
   DungeonStartError,
   executeDungeonCommand,
+  readDungeonState,
 } from '@server/lib/services/DungeonApplicationService';
 import {
   QiInsufficientError,
@@ -35,6 +33,7 @@ import {
 import {
   DungeonActionRequestSchema,
   DungeonBeginBattleRequestSchema,
+  DungeonFlowRequestSchema,
 } from '@shared/contracts/combatV6Dungeon';
 import { desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -44,7 +43,7 @@ const StartSchema = z.object({
   mapNodeId: z.string().min(1),
 });
 
-const RecoverSchema = z.object({
+const RecoverSchema = DungeonFlowRequestSchema.extend({
   action: z.enum([
     'retry',
     'retry_continue',
@@ -225,8 +224,18 @@ router.get('/state', requireActiveCultivatorRef(), async (c) => {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
-  const state = await dungeonService.getState(cultivator.cultivatorId);
-  return c.json({ state });
+  const query = z
+    .object({ runId: z.uuid().optional() })
+    .strict()
+    .parse(c.req.query());
+  try {
+    const state = await readDungeonState(cultivator.cultivatorId, query.runId);
+    return c.json({ state });
+  } catch (error) {
+    const lockErrorResponse = redisLockErrorResponse(error);
+    if (lockErrorResponse) return lockErrorResponse;
+    throw error;
+  }
 });
 
 router.post('/action', requireActiveCultivatorRef(), async (c) => {
@@ -260,7 +269,12 @@ router.post('/action', requireActiveCultivatorRef(), async (c) => {
       return c.json({ error: '探索请求无效，请刷新后重试' }, 400);
     if (error instanceof DungeonStartError)
       return c.json({ error: message }, 409);
-    const status = /不足|没有符合条件|资源消耗失败/.test(message) ? 409 : 500;
+    const status =
+      /不足|没有符合条件|资源消耗失败|所选物品|提交的材料|提交数量|选择需要提交/.test(
+        message,
+      )
+        ? 409
+        : 500;
     return c.json({ error: message }, status);
   }
 });
@@ -273,12 +287,12 @@ router.post('/recover', requireActiveCultivatorRef(), async (c) => {
       return c.json({ error: '未授权访问' }, 401);
     }
 
-    const { action } = RecoverSchema.parse(await c.req.json());
+    const input = RecoverSchema.parse(await c.req.json());
     return c.json(
       await executeDungeonCommand({
         userId: user.id,
         cultivatorId: cultivator.cultivatorId,
-        command: { kind: 'recover', action },
+        command: { kind: 'recover', ...input },
       }),
     );
   } catch (error) {
@@ -292,7 +306,14 @@ router.post('/recover', requireActiveCultivatorRef(), async (c) => {
       );
     }
     const message = error instanceof Error ? error.message : '副本恢复失败';
-    return c.json({ error: message }, 500);
+    return c.json(
+      { error: message },
+      error instanceof z.ZodError
+        ? 400
+        : error instanceof DungeonStartError
+          ? 409
+          : 500,
+    );
   }
 });
 
@@ -308,7 +329,10 @@ router.post('/quit', requireActiveCultivatorRef(), async (c) => {
       await executeDungeonCommand({
         userId: user.id,
         cultivatorId: cultivator.cultivatorId,
-        command: { kind: 'quit' },
+        command: {
+          kind: 'quit',
+          ...DungeonFlowRequestSchema.parse(await c.req.json()),
+        },
       }),
     );
   } catch (error) {
@@ -321,6 +345,8 @@ router.post('/quit', requireActiveCultivatorRef(), async (c) => {
         error.status,
       );
     }
+    if (error instanceof DungeonStartError)
+      return c.json({ error: error.message }, 409);
     throw error;
   }
 });
@@ -403,7 +429,10 @@ lootingRouter.post('/continue', requireActiveCultivatorRef(), async (c) => {
       await executeDungeonCommand({
         userId: user.id,
         cultivatorId: cultivator.cultivatorId,
-        command: { kind: 'looting-continue' },
+        command: {
+          kind: 'looting-continue',
+          ...DungeonFlowRequestSchema.parse(await c.req.json()),
+        },
       }),
     );
   } catch (error) {
@@ -417,7 +446,14 @@ lootingRouter.post('/continue', requireActiveCultivatorRef(), async (c) => {
       );
     }
     const message = error instanceof Error ? error.message : '副本推进失败';
-    return c.json({ error: message }, 500);
+    return c.json(
+      { error: message },
+      error instanceof z.ZodError
+        ? 400
+        : error instanceof DungeonStartError
+          ? 409
+          : 500,
+    );
   }
 });
 
@@ -433,7 +469,10 @@ lootingRouter.post('/escape', requireActiveCultivatorRef(), async (c) => {
       await executeDungeonCommand({
         userId: user.id,
         cultivatorId: cultivator.cultivatorId,
-        command: { kind: 'looting-escape' },
+        command: {
+          kind: 'looting-escape',
+          ...DungeonFlowRequestSchema.parse(await c.req.json()),
+        },
       }),
     );
   } catch (error) {
@@ -447,7 +486,14 @@ lootingRouter.post('/escape', requireActiveCultivatorRef(), async (c) => {
       );
     }
     const message = error instanceof Error ? error.message : '副本结算失败';
-    return c.json({ error: message }, 500);
+    return c.json(
+      { error: message },
+      error instanceof z.ZodError
+        ? 400
+        : error instanceof DungeonStartError
+          ? 409
+          : 500,
+    );
   }
 });
 

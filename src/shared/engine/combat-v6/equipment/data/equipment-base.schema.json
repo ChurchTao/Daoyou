@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "templates": {
+      "minItems": 6,
+      "maxItems": 6,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^dao_equipment\\.standard\\.[a-z]+\\.v1$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "slot": {
+            "type": "string",
+            "enum": [
+              "weapon",
+              "head",
+              "armor",
+              "necklace",
+              "belt",
+              "footwear"
+            ]
+          },
+          "baseStats": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "minCoefficient": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "maxCoefficient": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "attr": {
+                  "type": "string",
+                  "enum": [
+                    "physicalAtk",
+                    "physicalDef",
+                    "magicAtk",
+                    "magicDef",
+                    "maxHp",
+                    "maxMp",
+                    "healPower",
+                    "speed",
+                    "hit",
+                    "dodge",
+                    "critRate",
+                    "spellCritRate",
+                    "physicalFuryRate",
+                    "sealHit",
+                    "sealResist"
+                  ]
+                }
+              },
+              "required": [
+                "minCoefficient",
+                "maxCoefficient",
+                "attr"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "favoredAttributes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "vitality",
+                "strength",
+                "spirit",
+                "endurance",
+                "speed",
+                "willpower"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slot",
+          "baseStats",
+          "favoredAttributes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "inscriptions": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^dao_inscription\\.[a-z][a-z0-9_]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "attr": {
+            "type": "string",
+            "enum": [
+              "physicalAtk",
+              "physicalDef",
+              "magicAtk",
+              "magicDef",
+              "maxHp",
+              "maxMp",
+              "healPower",
+              "speed",
+              "hit",
+              "dodge",
+              "critRate",
+              "spellCritRate",
+              "physicalFuryRate",
+              "sealHit",
+              "sealResist"
+            ]
+          },
+          "valuePerLevel": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "allowedSlots": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "weapon",
+                "head",
+                "armor",
+                "necklace",
+                "belt",
+                "footwear"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "attr",
+          "valuePerLevel",
+          "allowedSlots"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "generation": {
+      "type": "object",
+      "properties": {
+        "bonusCountProbabilities": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ]
+        },
+        "favoredWeight": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "normalWeight": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "bonusValue": {
+          "type": "object",
+          "properties": {
+            "minCoefficient": {
+              "type": "number",
+              "minimum": 0
+            },
+            "maxCoefficient": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "minCoefficient",
+            "maxCoefficient"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "bonusCountProbabilities",
+        "favoredWeight",
+        "normalWeight",
+        "bonusValue"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "templates",
+    "inscriptions",
+    "generation"
+  ],
+  "additionalProperties": false
+}

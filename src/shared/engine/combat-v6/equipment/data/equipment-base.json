@@ -1,0 +1,251 @@
+{
+  "$schema": "./equipment-base.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "templates": [
+    {
+      "id": "dao_equipment.standard.weapon.v1",
+      "name": "法兵",
+      "slot": "weapon",
+      "baseStats": [
+        {
+          "attr": "physicalAtk",
+          "minCoefficient": 0.55,
+          "maxCoefficient": 0.85
+        },
+        {
+          "attr": "magicAtk",
+          "minCoefficient": 0.25,
+          "maxCoefficient": 0.45
+        },
+        {
+          "attr": "hit",
+          "minCoefficient": 0.4,
+          "maxCoefficient": 0.7
+        }
+      ],
+      "favoredAttributes": [
+        "strength",
+        "spirit",
+        "willpower"
+      ]
+    },
+    {
+      "id": "dao_equipment.standard.head.v1",
+      "name": "法冠",
+      "slot": "head",
+      "baseStats": [
+        {
+          "attr": "physicalDef",
+          "minCoefficient": 0.12,
+          "maxCoefficient": 0.18
+        },
+        {
+          "attr": "maxMp",
+          "minCoefficient": 2,
+          "maxCoefficient": 3
+        }
+      ],
+      "favoredAttributes": [
+        "vitality",
+        "willpower",
+        "spirit"
+      ]
+    },
+    {
+      "id": "dao_equipment.standard.armor.v1",
+      "name": "法衣",
+      "slot": "armor",
+      "baseStats": [
+        {
+          "attr": "physicalDef",
+          "minCoefficient": 0.25,
+          "maxCoefficient": 0.35
+        },
+        {
+          "attr": "magicDef",
+          "minCoefficient": 0.25,
+          "maxCoefficient": 0.35
+        }
+      ],
+      "favoredAttributes": [
+        "vitality",
+        "endurance",
+        "strength"
+      ]
+    },
+    {
+      "id": "dao_equipment.standard.necklace.v1",
+      "name": "灵佩",
+      "slot": "necklace",
+      "baseStats": [
+        {
+          "attr": "magicDef",
+          "minCoefficient": 0.25,
+          "maxCoefficient": 0.35
+        },
+        {
+          "attr": "magicAtk",
+          "minCoefficient": 0.25,
+          "maxCoefficient": 0.45
+        }
+      ],
+      "favoredAttributes": [
+        "spirit",
+        "willpower",
+        "vitality"
+      ]
+    },
+    {
+      "id": "dao_equipment.standard.belt.v1",
+      "name": "腰封",
+      "slot": "belt",
+      "baseStats": [
+        {
+          "attr": "maxHp",
+          "minCoefficient": 7,
+          "maxCoefficient": 9.5
+        },
+        {
+          "attr": "physicalDef",
+          "minCoefficient": 0.1,
+          "maxCoefficient": 0.16
+        }
+      ],
+      "favoredAttributes": [
+        "vitality",
+        "endurance",
+        "speed"
+      ]
+    },
+    {
+      "id": "dao_equipment.standard.footwear.v1",
+      "name": "云履",
+      "slot": "footwear",
+      "baseStats": [
+        {
+          "attr": "speed",
+          "minCoefficient": 0.3,
+          "maxCoefficient": 0.5
+        },
+        {
+          "attr": "dodge",
+          "minCoefficient": 0.25,
+          "maxCoefficient": 0.4
+        },
+        {
+          "attr": "physicalDef",
+          "minCoefficient": 0.06,
+          "maxCoefficient": 0.1
+        }
+      ],
+      "favoredAttributes": [
+        "speed",
+        "willpower",
+        "endurance"
+      ]
+    }
+  ],
+  "inscriptions": [
+    {
+      "id": "dao_inscription.xuanfeng",
+      "name": "玄锋阵纹",
+      "attr": "physicalAtk",
+      "valuePerLevel": 6,
+      "allowedSlots": [
+        "weapon",
+        "head"
+      ]
+    },
+    {
+      "id": "dao_inscription.lingyao",
+      "name": "灵曜阵纹",
+      "attr": "magicAtk",
+      "valuePerLevel": 6,
+      "allowedSlots": [
+        "weapon",
+        "necklace"
+      ]
+    },
+    {
+      "id": "dao_inscription.jingang",
+      "name": "金刚阵纹",
+      "attr": "physicalDef",
+      "valuePerLevel": 4,
+      "allowedSlots": [
+        "head",
+        "armor",
+        "belt",
+        "footwear"
+      ]
+    },
+    {
+      "id": "dao_inscription.xuanjia",
+      "name": "玄甲阵纹",
+      "attr": "magicDef",
+      "valuePerLevel": 4,
+      "allowedSlots": [
+        "armor",
+        "necklace"
+      ]
+    },
+    {
+      "id": "dao_inscription.changsheng",
+      "name": "长生阵纹",
+      "attr": "maxHp",
+      "valuePerLevel": 80,
+      "allowedSlots": [
+        "belt"
+      ]
+    },
+    {
+      "id": "dao_inscription.canghai",
+      "name": "沧海阵纹",
+      "attr": "maxMp",
+      "valuePerLevel": 40,
+      "allowedSlots": [
+        "head"
+      ]
+    },
+    {
+      "id": "dao_inscription.jifeng",
+      "name": "疾风阵纹",
+      "attr": "speed",
+      "valuePerLevel": 4,
+      "allowedSlots": [
+        "footwear"
+      ]
+    },
+    {
+      "id": "dao_inscription.dongming",
+      "name": "洞明阵纹",
+      "attr": "hit",
+      "valuePerLevel": 6,
+      "allowedSlots": [
+        "weapon"
+      ]
+    },
+    {
+      "id": "dao_inscription.liuyun",
+      "name": "流云阵纹",
+      "attr": "dodge",
+      "valuePerLevel": 6,
+      "allowedSlots": [
+        "footwear"
+      ]
+    }
+  ],
+  "generation": {
+    "bonusCountProbabilities": [
+      0.5,
+      0.4,
+      0.1
+    ],
+    "favoredWeight": 2,
+    "normalWeight": 1,
+    "bonusValue": {
+      "minCoefficient": 0.08,
+      "maxCoefficient": 0.14
+    }
+  }
+}

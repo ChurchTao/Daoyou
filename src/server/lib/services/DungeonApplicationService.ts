@@ -10,6 +10,7 @@ import {
   withRedisLock,
   type RedisLeaseContext,
 } from '@server/lib/redis/lock';
+import type { DungeonExpectedState } from '@shared/contracts/combatV6Dungeon';
 import {
   RESOURCE_DATA_SCHEMAS,
   type ResourceChangeDescriptor,
@@ -34,10 +35,12 @@ type DungeonCommand =
       actionId: string;
       runId: string;
       round: number;
+      materialSelections: import('@shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
     }
   | { kind: 'battle-begin'; encounterId: string }
   | {
       kind: 'recover';
+      expected: DungeonExpectedState;
       action:
         | 'retry'
         | 'retry_continue'
@@ -45,9 +48,9 @@ type DungeonCommand =
         | 'safe_retreat'
         | 'force_quit';
     }
-  | { kind: 'quit' }
-  | { kind: 'looting-continue' }
-  | { kind: 'looting-escape' }
+  | { kind: 'quit'; expected: DungeonExpectedState }
+  | { kind: 'looting-continue'; expected: DungeonExpectedState }
+  | { kind: 'looting-escape'; expected: DungeonExpectedState }
   | { kind: 'battle-abandon'; battleId: string }
   | { kind: 'battle-execute'; battleId: string; requestId?: string };
 
@@ -60,6 +63,19 @@ export class DungeonStartError extends Error {
     super(message);
     this.name = 'DungeonStartError';
   }
+}
+
+/** A synchronized read cannot report an old round while a command is still generating. */
+export function readDungeonState(cultivatorId: string, runId?: string) {
+  return withRedisLock(
+    {
+      key: redisLockKeys.cultivatorMutation(cultivatorId),
+      context: 'dungeon-read',
+      timeoutMs: 30000,
+      retries: 0,
+    },
+    async () => dungeonService.getState(cultivatorId, runId),
+  );
 }
 
 type DungeonDeferredResult = Record<string, unknown> & {
@@ -282,6 +298,19 @@ async function prepareDungeonCommand(
   lease: RedisLeaseContext,
 ): Promise<unknown> {
   const options = { deferPersistence: true as const, lease };
+  if ('expected' in command) {
+    const state = await dungeonService.getState(cultivatorId);
+    const expected = command.expected;
+    if (
+      !state ||
+      state.runId !== expected.runId ||
+      state.currentRound !== expected.round ||
+      state.status !== expected.status ||
+      (state.pendingAction?.actionId ?? null) !== expected.pendingActionId
+    ) {
+      throw new DungeonStartError('探索状态已变化，请重新读取', 409);
+    }
+  }
   switch (command.kind) {
     case 'start':
       return dungeonService.startDungeon(
@@ -305,7 +334,7 @@ async function prepareDungeonCommand(
         cultivatorId,
         command.choiceId,
         command.actionId,
-        options,
+        { ...options, materialSelections: command.materialSelections },
       );
     }
     case 'battle-begin':

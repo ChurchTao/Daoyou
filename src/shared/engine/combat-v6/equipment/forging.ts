@@ -1,6 +1,6 @@
 import { forgedName } from '../../../forging/names';
 import { SeededRng } from '../core';
-import { daoEquipmentTemplateOf } from './content';
+import { daoEquipmentAttributeRange, daoEquipmentTemplateOf } from './content';
 import {
   daoEquipmentGenerationRulesV2,
   generateDaoEquipmentV2,
@@ -76,6 +76,7 @@ export function generateForgedEquipment(
       ),
     };
   });
+  const bonusRange = daoEquipmentAttributeRange(input.equipmentLevel);
   instance.attributeBonuses = instance.attributeBonuses.map((stat) => ({
     ...stat,
     value: rollHigher(
@@ -85,8 +86,8 @@ export function generateForgedEquipment(
       () =>
         integer(
           bonus,
-          Math.max(1, Math.floor(input.equipmentLevel * 0.08)),
-          Math.max(1, Math.floor(input.equipmentLevel * 0.14)),
+          bonusRange.min,
+          bonusRange.max,
         ),
     ),
   }));

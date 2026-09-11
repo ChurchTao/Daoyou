@@ -2,6 +2,7 @@ import type { Attributes } from '@shared/types/cultivator';
 import { isForgedName } from '../../../forging/names';
 import type { CombatV6ProjectionDiagnostic } from '../projection/types.ts';
 import {
+  daoEquipmentAttributeRange,
   daoEquipmentTemplateOf,
   daoFormationInscriptionOf,
 } from './content.ts';
@@ -224,8 +225,7 @@ function validateInstance(
       ),
     );
   } else {
-    const min = Math.max(1, Math.floor(instance.equipmentLevel * 0.08));
-    const max = Math.max(1, Math.floor(instance.equipmentLevel * 0.14));
+    const { min, max } = daoEquipmentAttributeRange(instance.equipmentLevel);
     const seen = new Set<string>();
     for (let index = 0; index < instance.attributeBonuses.length; index += 1) {
       const roll = instance.attributeBonuses[index];

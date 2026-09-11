@@ -4,6 +4,7 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { DungeonViewState } from '@app/lib/hooks/dungeon/useDungeonViewModel';
+import type { DungeonMaterialSelection } from '@shared/contracts/combatV6Dungeon';
 import { isConditionStatusActive } from '@shared/lib/condition';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
 import { dungeonReadiness } from '@shared/lib/dungeon/readiness';
@@ -43,7 +44,10 @@ interface DungeonViewRendererProps {
   actions: {
     beginBattle: () => Promise<void>;
     startDungeon: (nodeId: string) => Promise<void>;
-    performAction: (option: DungeonOption) => Promise<void>;
+    performAction: (
+      option: DungeonOption,
+      selections?: DungeonMaterialSelection[],
+    ) => Promise<void>;
     quitDungeon: () => Promise<boolean>;
     continueLooting: () => Promise<void>;
     escapeLooting: () => Promise<void>;
@@ -366,6 +370,7 @@ export function DungeonViewRenderer({
         )}
       >
         <DungeonExploring
+          key={`${viewState.state.runId}:${viewState.state.currentRound}`}
           state={viewState.state}
           lastRound={viewState.lastRound}
           cultivator={cultivator}

@@ -1,3 +1,4 @@
+import type { DungeonMaterialSelection } from '@shared/contracts/combatV6Dungeon';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import { consumeDungeonMaterials } from '@shared/lib/dungeon/materialCosts';
 import type { DungeonOptionCost } from '@shared/lib/dungeon/types';
@@ -18,6 +19,7 @@ async function materialPlan(
   owner: string,
   costs: DungeonOptionCost[],
   q: DbExecutor,
+  selections: DungeonMaterialSelection[],
 ) {
   const before = costs.some((cost) => cost.type === 'material')
     ? (
@@ -32,7 +34,7 @@ async function materialPlan(
           )
       ).map(inventoryItemOf)
     : [];
-  return { before, after: consumeDungeonMaterials(before, costs) };
+  return { before, after: consumeDungeonMaterials(before, costs, selections) };
 }
 const resourceCosts = (costs: DungeonOptionCost[]) =>
   costs.filter((cost) => cost.type !== 'material') as ResourceOperation[];
@@ -41,8 +43,9 @@ export async function validateDungeonCosts(
   userId: string,
   owner: string,
   costs: DungeonOptionCost[],
+  selections: DungeonMaterialSelection[] = [],
 ) {
-  await materialPlan(owner, costs, getExecutor());
+  await materialPlan(owner, costs, getExecutor(), selections);
   const validation = await resourceEngine.validate(
     userId,
     owner,
@@ -59,8 +62,9 @@ export async function applyDungeonCosts(
   owner: string,
   costs: DungeonOptionCost[],
   tx: DbTransaction,
+  selections: DungeonMaterialSelection[] = [],
 ) {
-  const { before, after } = await materialPlan(owner, costs, tx);
+  const { before, after } = await materialPlan(owner, costs, tx, selections);
   const result = await resourceEngine.applyInTransaction({
     userId,
     cultivatorId: owner,

@@ -53,7 +53,7 @@ export const DungeonCostSchema = z
     name: z
       .string()
       .optional()
-      .describe('材料名称（material 类型需要，如果未知可省略留给系统匹配）'),
+      .describe('材料名称（未知可省略；由玩家按要求选择提交物品）'),
     required_quality: z
       .enum(DUNGEON_QUALITY_VALUES)
       .optional()
@@ -270,6 +270,7 @@ export type DungeonRecoverAction =
   'retry' | 'retry_continue' | 'retry_settle' | 'safe_retreat' | 'force_quit';
 
 export interface DungeonCostLedgerEntry {
+  materialSelections?: import('@shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
   actionId: string;
   round: number;
   choiceId?: number;
@@ -286,6 +287,7 @@ export interface DungeonGainLedgerEntry {
 }
 
 export interface DungeonPendingAction {
+  materialSelections?: import('@shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
   actionId: string;
   choiceId?: number;
   choiceText?: string;
