@@ -28,7 +28,14 @@ import { TaskService } from './TaskService';
 
 type DungeonCommand =
   | { kind: 'start'; mapNodeId: string }
-  | { kind: 'action'; choiceId: number; actionId?: string }
+  | {
+      kind: 'action';
+      choiceId: number;
+      actionId: string;
+      runId: string;
+      round: number;
+    }
+  | { kind: 'battle-begin'; encounterId: string }
   | {
       kind: 'recover';
       action:
@@ -252,6 +259,8 @@ function dungeonCommandSource(command: DungeonCommand): string {
       return 'dungeon_start';
     case 'action':
       return 'dungeon_action';
+    case 'battle-begin':
+      return 'dungeon_battle_begin';
     case 'recover':
       return `dungeon_recover_${command.action}`;
     case 'quit':
@@ -280,11 +289,29 @@ async function prepareDungeonCommand(
         command.mapNodeId,
         options,
       );
-    case 'action':
+    case 'action': {
+      const state = await dungeonService.getState(cultivatorId);
+      if (
+        !state ||
+        state.runId !== command.runId ||
+        (state.currentRound !== command.round &&
+          !state.costLedger?.some(
+            (entry) => entry.actionId === command.actionId,
+          ))
+      ) {
+        throw new DungeonStartError('探索轮次已变化，请刷新后重新选择', 409);
+      }
       return dungeonService.handleAction(
         cultivatorId,
         command.choiceId,
         command.actionId,
+        options,
+      );
+    }
+    case 'battle-begin':
+      return dungeonService.beginBattle(
+        cultivatorId,
+        command.encounterId,
         options,
       );
     case 'recover':

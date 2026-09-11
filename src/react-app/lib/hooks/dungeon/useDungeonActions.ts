@@ -5,7 +5,7 @@ import type {
   DungeonRecoverAction,
   DungeonState,
 } from '@shared/lib/dungeon/types';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 function createActionId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
@@ -35,6 +35,7 @@ async function readDungeonMutation<T>(
 export function useDungeonActions() {
   const { pushToast, openDialog } = useInkUI();
   const [processing, setProcessing] = useState(false);
+  const actionRequest = useRef<{ key: string; id: string } | null>(null);
 
   /**
    * 启动副本
@@ -71,7 +72,14 @@ export function useDungeonActions() {
   /**
    * 执行选项
    */
-  const performAction = async (option: DungeonOption) => {
+  const performAction = async (
+    option: DungeonOption,
+    runId: string,
+    round: number,
+  ) => {
+    const key = `${runId}:${round}:${option.id}`;
+    if (actionRequest.current?.key !== key)
+      actionRequest.current = { key, id: createActionId() };
     try {
       setProcessing(true);
       const res = await fetch('/api/dungeon/action', {
@@ -79,14 +87,43 @@ export function useDungeonActions() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           choiceId: option.id,
-          actionId: createActionId(),
+          actionId: actionRequest.current.id,
+          runId,
+          round,
         }),
       });
 
-      return await readDungeonMutation(res);
+      const data = await readDungeonMutation<{ state?: DungeonState }>(res);
+      if (data && typeof data === 'object' && 'conflict' in data)
+        pushToast({
+          message: data.message ?? '探索状态已变化，请重新选择',
+          tone: 'warning',
+        });
+      return data;
     } catch (e) {
       pushToast({
         message: e instanceof Error ? e.message : '操作失败',
+        tone: 'danger',
+      });
+      return null;
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const beginBattle = async (encounterId: string) => {
+    try {
+      setProcessing(true);
+      return await readDungeonMutation(
+        await fetch('/api/dungeon/battle/begin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ encounterId }),
+        }),
+      );
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '迎战失败，请重试',
         tone: 'danger',
       });
       return null;
@@ -196,6 +233,7 @@ export function useDungeonActions() {
   };
 
   return {
+    beginBattle,
     startDungeon,
     performAction,
     continueLooting,

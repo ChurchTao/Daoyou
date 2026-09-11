@@ -299,6 +299,7 @@ export interface DungeonPendingAction {
 // === Internal State Management ===
 
 export interface DungeonState {
+  encounter?: import('@shared/contracts/combatV6Dungeon').DungeonEncounterView;
   rewardSeed?: number;
   v6Rewards?: import('@shared/rewards/dungeon').DungeonRewardEntry[];
   beastResources?: Record<string, { hp: number; mp: number }>;

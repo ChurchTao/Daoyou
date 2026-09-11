@@ -24,6 +24,7 @@ export type DungeonViewState =
       preSelectedNodeId: string | null;
     }
   | { type: 'exploring'; state: DungeonState; lastRound: DungeonRound }
+  | { type: 'battle_preparation'; state: DungeonState }
   | {
       type: 'in_battle';
       battleId: string;
@@ -100,6 +101,7 @@ export function useDungeonViewModel(
   const {
     startDungeon,
     performAction,
+    beginBattle,
     quitDungeon,
     continueLooting,
     escapeLooting,
@@ -144,6 +146,12 @@ export function useDungeonViewModel(
       return { type: 'not_authenticated' };
     }
 
+    if (
+      !state?.isFinished &&
+      state?.status === 'WAITING_BATTLE' &&
+      state.encounter
+    )
+      return { type: 'battle_preparation', state };
     // 战斗中
     if (
       !state?.isFinished &&
@@ -204,7 +212,8 @@ export function useDungeonViewModel(
    * 操作：执行选项
    */
   const handlePerformAction = async (option: DungeonOption) => {
-    const data = await performAction(option);
+    if (!state?.runId) return;
+    const data = await performAction(option, state.runId, state.currentRound);
     await applyMutationResult(
       data as Parameters<typeof resolveDungeonMutationResult>[0],
     );
@@ -295,6 +304,14 @@ export function useDungeonViewModel(
     viewState,
     processing,
     actions: {
+      beginBattle: async () => {
+        if (!state?.encounter) return;
+        await applyMutationResult(
+          (await beginBattle(state.encounter.id)) as Parameters<
+            typeof resolveDungeonMutationResult
+          >[0],
+        );
+      },
       startDungeon: handleStartDungeon,
       performAction: handlePerformAction,
       quitDungeon: handleQuitDungeon,

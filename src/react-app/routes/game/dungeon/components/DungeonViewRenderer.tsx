@@ -23,6 +23,7 @@ import {
   resolveDungeonSceneDescriptor,
   type DungeonSceneState,
 } from '../dungeonSceneRegistry';
+import { BattlePreparation } from './BattlePreparation';
 import { BattleCallbackData, DungeonBattle } from './DungeonBattle';
 import { DungeonExploring } from './DungeonExploring';
 import { DungeonLooting } from './DungeonLooting';
@@ -40,6 +41,7 @@ interface DungeonViewRendererProps {
   tasks: TaskInstance[];
   processing: boolean;
   actions: {
+    beginBattle: () => Promise<void>;
     startDungeon: (nodeId: string) => Promise<void>;
     performAction: (option: DungeonOption) => Promise<void>;
     quitDungeon: () => Promise<boolean>;
@@ -225,6 +227,24 @@ export function DungeonViewRenderer({
         <div className="mx-auto w-full max-w-xl">
           <InkNotice tone="warning">请先登录或创建角色</InkNotice>
         </div>
+      </DungeonSceneScreen>
+    );
+  }
+
+  if (viewState.type === 'battle_preparation' && viewState.state.encounter) {
+    return (
+      <DungeonSceneScreen
+        descriptor={resolveDungeonRunSceneDescriptor(
+          'battle_preparation',
+          viewState.state,
+        )}
+      >
+        <BattlePreparation
+          encounter={viewState.state.encounter}
+          processing={processing}
+          onBegin={actions.beginBattle}
+          onQuit={actions.quitDungeon}
+        />
       </DungeonSceneScreen>
     );
   }

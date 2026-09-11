@@ -32,17 +32,16 @@ import {
   CombatV6TrainingEventsQuerySchema,
   CombatV6TrainingRevisionRequestSchema,
 } from '@shared/contracts/combatV6';
+import {
+  DungeonActionRequestSchema,
+  DungeonBeginBattleRequestSchema,
+} from '@shared/contracts/combatV6Dungeon';
 import { desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 const StartSchema = z.object({
   mapNodeId: z.string().min(1),
-});
-
-const ActionSchema = z.object({
-  choiceId: z.number(),
-  actionId: z.string().min(1).optional(),
 });
 
 const RecoverSchema = z.object({
@@ -238,12 +237,12 @@ router.post('/action', requireActiveCultivatorRef(), async (c) => {
       return c.json({ error: '未授权访问' }, 401);
     }
 
-    const { choiceId, actionId } = ActionSchema.parse(await c.req.json());
+    const input = DungeonActionRequestSchema.parse(await c.req.json());
     return c.json(
       await executeDungeonCommand({
         userId: user.id,
         cultivatorId: cultivator.cultivatorId,
-        command: { kind: 'action', choiceId, actionId },
+        command: { kind: 'action', ...input },
       }),
     );
   } catch (error) {
@@ -257,6 +256,10 @@ router.post('/action', requireActiveCultivatorRef(), async (c) => {
       );
     }
     const message = error instanceof Error ? error.message : '副本推进失败';
+    if (error instanceof z.ZodError)
+      return c.json({ error: '探索请求无效，请刷新后重试' }, 400);
+    if (error instanceof DungeonStartError)
+      return c.json({ error: message }, 409);
     const status = /不足|没有符合条件|资源消耗失败/.test(message) ? 409 : 500;
     return c.json({ error: message }, status);
   }
@@ -451,6 +454,26 @@ lootingRouter.post('/escape', requireActiveCultivatorRef(), async (c) => {
 battleRouter.get('/probe', requireActiveCultivatorRef(), (c) =>
   c.json({ error: '旧查探入口已停用' }, 410),
 );
+
+battleRouter.post('/begin', requireActiveCultivatorRef(), async (c) => {
+  const { encounterId } = DungeonBeginBattleRequestSchema.parse(
+    await c.req.json(),
+  );
+  try {
+    return c.json(
+      await executeDungeonCommand({
+        ...c.get('activeCultivatorRef')!,
+        command: { kind: 'battle-begin', encounterId },
+      }),
+    );
+  } catch (error) {
+    const locked = redisLockErrorResponse(error);
+    if (locked) return locked;
+    if (error instanceof DungeonFlowError)
+      return c.json({ error: error.message }, 409);
+    throw error;
+  }
+});
 
 battleRouter.post('/abandon', requireActiveCultivatorRef(), (c) =>
   c.json({ error: '旧放弃入口已停用，请使用战斗内逃跑' }, 410),

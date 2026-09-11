@@ -27,7 +27,10 @@ import {
 import { createCombatV6Replay } from '@shared/combat-v6/replay';
 import { liveReplayDelta } from '@shared/combat-v6/replay-timeline';
 import type { CombatV6CommandGroup } from '@shared/contracts/combatV6';
-import type { DungeonSessionView } from '@shared/contracts/combatV6Dungeon';
+import type {
+  DungeonEncounterView,
+  DungeonSessionView,
+} from '@shared/contracts/combatV6Dungeon';
 import { beastDeathIds } from '@shared/engine/combat-v6/beasts';
 import {
   beastVictoryExperience,
@@ -57,6 +60,10 @@ export interface DungeonBattlePayload {
   revision: number;
   startedAt: string;
   settled: boolean;
+}
+export interface DungeonEncounterPayload {
+  encounter: Pick<DungeonBattleSnapshot, 'version' | 'playerId' | 'input'>;
+  preview: DungeonEncounterView;
 }
 export async function dungeonPlayer(owner: string, tx: DbExecutor = db) {
   const assembled = await assembleCombatV6TrainingPlayer(owner, tx);
@@ -94,9 +101,9 @@ export function dungeonLevel(mapId: string) {
   if (!map || !('realm_requirement' in map)) throw new Error('秘境地图无效');
   return combatCharacterLevel(map.realm_requirement as RealmType, '初期');
 }
-export async function prepareDungeonBattle(
+export async function prepareDungeonEncounter(
   state: DungeonState,
-): Promise<DungeonBattlePayload> {
+): Promise<DungeonEncounterPayload> {
   const { player } = await dungeonPlayer(state.cultivatorId);
   const template =
     state.currentRound >= state.maxRounds
@@ -125,22 +132,47 @@ export async function prepareDungeonBattle(
     snapshot.playerId,
     state.beastResources,
   );
-  // Recreate to ensure initial events and replay timeline use the carried resources.
-  const restored = new DungeonHost({
-    version: snapshot.version,
-    playerId: snapshot.playerId,
-    input: snapshot.input,
-  });
+  const unit = snapshot.input.units.find(
+    (unit) => unit.id === snapshot.playerId,
+  )!;
+  return {
+    encounter: {
+      version: snapshot.version,
+      playerId: snapshot.playerId,
+      input: snapshot.input,
+    },
+    preview: {
+      id: randomUUID(),
+      description:
+        state.pendingAction?.costs.find((cost) => cost.type === 'battle')
+          ?.metadata?.description ?? '前路被守敌截住，战意已起。',
+      enemies: snapshot.input.units
+        .filter((unit) => unit.side === 1)
+        .map((unit) => unit.name ?? '秘境守敌'),
+      hp: { current: unit.attrs?.hp ?? 0, max: unit.attrs?.maxHp ?? 0 },
+      mp: { current: unit.attrs?.mp ?? 0, max: unit.attrs?.maxMp ?? 0 },
+      beast:
+        snapshot.input.units.find(
+          (unit) => unit.ownerId === snapshot.playerId && !unit.benched,
+        )?.name ?? null,
+    },
+  };
+}
+export function beginDungeonBattle(
+  state: DungeonState,
+  prepared: DungeonEncounterPayload,
+): DungeonBattlePayload {
+  const restored = new DungeonHost(prepared.encounter);
   return {
     session: {
       battleId: randomUUID(),
       cultivatorId: state.cultivatorId,
       dungeonStateKey: state.runId!,
       enemyData: {
-        name: snapshot.input.units.find((u) => u.side === 1)!.name!,
+        name: prepared.preview.enemies[0],
         realm: state.playerInfo.realm,
         stage: '初期',
-        level: String(level),
+        level: String(dungeonLevel(state.mapNodeId)),
         difficulty: 1,
       },
     },
