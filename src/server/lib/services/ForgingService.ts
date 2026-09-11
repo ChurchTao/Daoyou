@@ -51,7 +51,6 @@ import {
   grantInventory,
   InventoryError,
   inventoryItemOf,
-  readInventory,
   saveInventoryPlan,
 } from './InventoryService';
 import { MailService } from './MailService';
@@ -110,13 +109,11 @@ async function mutate<T>(
 }
 
 export async function readForge(owner: string): Promise<ForgeView> {
-  const [inventory, character, qi] = await Promise.all([
-    readInventory(owner, { location: 'bag', kind: 'all', search: '', page: 0 }),
+  const [character, qi] = await Promise.all([
     readBeastOwner(owner, db),
     QiService.getQiState(owner),
   ]);
   return {
-    inventory,
     ownerLevel: character.ownerLevel,
     spiritStones: character.spiritStones,
     qi: qi.current,

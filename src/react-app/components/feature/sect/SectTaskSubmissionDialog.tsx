@@ -3,6 +3,7 @@ import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { InkModal } from '@app/components/layout';
 import { InkButton, InkInput, InkNotice } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { useInventoryBag } from '@app/lib/resources/bag';
 import { fetchSectSubmissionCandidates } from '@app/lib/sect/sectClient';
 import type { InventoryView } from '@shared/contracts/inventory';
 import type {
@@ -33,7 +34,9 @@ function OpenSubmission({
   action: SectTaskViewAction;
   onClose(): void;
 }) {
-  const [bag, setBag] = useState<InventoryView>();
+  const bagQuery = useInventoryBag();
+  const bag = bagQuery.data;
+  const bagUnavailable = !bag || bagQuery.isRefreshing || !!bagQuery.error;
   const [data, setData] = useState<SectSubmissionCandidatesData>();
   const [selections, setSelections] = useState<
     Array<{ item: BagItem; quantity: string }>
@@ -48,13 +51,7 @@ function OpenSubmission({
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [candidates, response] = await Promise.all([
-        fetchSectSubmissionCandidates(task.definitionId),
-        fetch('/api/combat-v6/inventory?location=bag'),
-      ]);
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? '物品栏读取失败');
-      setBag(result.data);
+      const candidates = await fetchSectSubmissionCandidates(task.definitionId);
       setData(candidates);
       setSelections([]);
       setError('');
@@ -78,7 +75,7 @@ function OpenSubmission({
           '此物不符合委托类型');
   }
   function choose(item: BagItem) {
-    if (pending.current || busy || loading) return;
+    if (pending.current || busy || loading || bagUnavailable) return;
     const reason = reasonFor(item);
     if (reason) {
       setError(reason);
@@ -95,10 +92,15 @@ function OpenSubmission({
     });
   }
   const valid =
+    !bagUnavailable &&
+    !loading &&
     total === requirement.quantity &&
     selections.length > 0 &&
     selections.every(
       (s) =>
+        bag!.items.some(
+          (item) => item.id === s.item.id && item.revision === s.item.revision,
+        ) &&
         Number.isInteger(Number(s.quantity)) &&
         Number(s.quantity) > 0 &&
         Number(s.quantity) <= s.item.quantity,
@@ -123,6 +125,10 @@ function OpenSubmission({
         attempt.current.id,
       );
       if (result) onClose();
+      else {
+        bagQuery.invalidate();
+        await refresh();
+      }
     } finally {
       pending.current = false;
     }
@@ -133,17 +139,24 @@ function OpenSubmission({
         <span>
           随身物品 <span className="font-mono">{bag?.used ?? '—'} / 40</span>
         </span>
-        <InkButton disabled={busy || loading} onClick={() => void refresh()}>
+        <InkButton
+          disabled={busy || loading}
+          onClick={() => {
+            void bagQuery.reload();
+            void refresh();
+          }}
+        >
           刷新选物
         </InkButton>
       </div>
       <InventoryItems
         items={bag?.items ?? []}
-        className="grid-cols-5 gap-1 sm:grid-cols-5"
         slotProps={(item) => ({
-          disabled: !item || busy || loading,
+          disabled: !item || busy || loading || bagUnavailable,
+          badge: item && !reasonFor(item) ? '可选' : undefined,
           selected: !!item && selections.some((s) => s.item.id === item.id),
-          onQuickAction: item ? () => choose(item) : undefined,
+          onQuickAction:
+            item && !reasonFor(item) ? () => choose(item) : undefined,
           children: item
             ? (close) => (
                 <div className="space-y-2">
@@ -151,7 +164,9 @@ function OpenSubmission({
                     <p className="text-sm">{reasonFor(item)}</p>
                   ) : null}
                   <InkButton
-                    disabled={busy || !!reasonFor(item)}
+                    disabled={
+                      busy || loading || bagUnavailable || !!reasonFor(item)
+                    }
                     onClick={() => {
                       choose(item);
                       close();
@@ -184,7 +199,9 @@ function OpenSubmission({
             {describeSectDeliveryRequirement(requirement)}
           </p>
           {loading ? <p className="text-sm">正在查验随身物品…</p> : null}
-          {error ? <InkNotice tone="warning">{error}</InkNotice> : null}
+          {error || bagQuery.error ? (
+            <InkNotice tone="warning">{error || bagQuery.error}</InkNotice>
+          ) : null}
           <div className="lg:hidden">
             <InkButton
               disabled={busy || loading}

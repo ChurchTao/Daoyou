@@ -1,9 +1,8 @@
 import { InkButton } from '@app/components/ui/InkButton';
-import type { InventoryView } from '@shared/contracts/inventory';
+import { useInventoryBag } from '@app/lib/resources/bag';
 import { groupAlchemyBagMaterials } from '@shared/inventory/alchemy';
 import type { Material } from '@shared/types/cultivator';
-import { useEffect, useState } from 'react';
-import { combatV6Request } from '../combat-v6/request';
+import { useState } from 'react';
 import { InventoryItems } from '../items/InventoryItems';
 import {
   ALCHEMY_MAX_DOSE,
@@ -17,33 +16,16 @@ export function AlchemyBag({
   onChoose?: (material: Material, dose: number) => void;
 }) {
   const session = useAlchemyCraftSession();
-  const owner = session.cultivator?.id;
-  const [loaded, setLoaded] = useState<{
-    owner: string;
-    view: InventoryView;
-  }>();
-  const view = loaded?.owner === owner ? loaded?.view : undefined;
-  const [error, setError] = useState('');
-  const [refresh, setRefresh] = useState(0);
+  const bagQuery = useInventoryBag();
+  const view = bagQuery.data;
+  const error = bagQuery.error;
   const [search, setSearch] = useState('');
-  const locked = session.phase === 'firing' || session.phase === 'result';
-  useEffect(() => {
-    const controller = new AbortController();
-    if (owner)
-      void combatV6Request<InventoryView>('/api/combat-v6/inventory', {
-        signal: controller.signal,
-      })
-        .then((data) => {
-          if (!controller.signal.aborted) {
-            setLoaded({ owner, view: data });
-            setError('');
-          }
-        })
-        .catch((e) => {
-          if (!controller.signal.aborted) setError(e.message);
-        });
-    return () => controller.abort();
-  }, [owner, refresh, session.phase]);
+  const locked =
+    session.phase === 'firing' ||
+    session.phase === 'result' ||
+    !view ||
+    bagQuery.isRefreshing ||
+    !!error;
   const groups = groupAlchemyBagMaterials(view?.items ?? []);
   return (
     <div className="space-y-3 text-sm">
@@ -61,7 +43,10 @@ export function AlchemyBag({
           onChange={(e) => setSearch(e.target.value)}
           className="border-ink/20 min-w-0 flex-1 border-b bg-transparent p-2 text-sm"
         />
-        <InkButton disabled={locked} onClick={() => setRefresh((n) => n + 1)}>
+        <InkButton
+          disabled={bagQuery.isRefreshing}
+          onClick={() => void bagQuery.reload()}
+        >
           刷新
         </InkButton>
       </div>
@@ -83,7 +68,7 @@ export function AlchemyBag({
           const full =
             session.materials.ids.length >= ALCHEMY_MAX_MATERIALS && !dose;
           const choose = (amount: number) => {
-            if (material)
+            if (material && !locked)
               (onChoose ?? session.addMaterialToFurnace)(
                 { ...material, element: material.element ?? undefined },
                 amount,
@@ -92,7 +77,11 @@ export function AlchemyBag({
           return {
             disabled: locked || (!!material && full) || !matching,
             className: !matching ? 'opacity-25' : undefined,
-            badge: dose ? `已投${dose}` : undefined,
+            badge: dose
+              ? `已投${dose}`
+              : material && !full
+                ? '可选'
+                : undefined,
             onQuickAction: material
               ? () =>
                   choose(

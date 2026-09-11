@@ -6,7 +6,6 @@ import { ConsumableFactsSchema } from '../items/definitions/consumables';
 import { MaterialFactsSchema } from '../items/definitions/materials';
 import { SeedFactsSchema } from '../items/definitions/seeds';
 import { MailAttachmentsSchema } from '../lib/itemLibrary';
-import type { InventoryView } from './inventory';
 
 const ref = {
   id: z.string().min(1).max(160),
@@ -29,7 +28,6 @@ export const ForgeRequestSchema = z
   );
 export type ForgeRequest = z.infer<typeof ForgeRequestSchema>;
 export type ForgeView = {
-  inventory: InventoryView;
   ownerLevel: number;
   spiritStones: number;
   qi: number;

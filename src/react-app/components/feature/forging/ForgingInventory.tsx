@@ -48,7 +48,7 @@ export function ForgingInventory({
         <p role="status">正在读取储物袋……</p>
       ) : null}
       <InventoryItems
-        items={session.view?.inventory.items ?? []}
+        items={session.inventory?.items ?? []}
         slotProps={(item) => {
           const matching =
             !item ||
@@ -64,7 +64,7 @@ export function ForgingInventory({
             selected: !!item && selected === item.id,
             disabled: !matching || session.locked || !!problem,
             className: !matching ? 'opacity-25' : undefined,
-            badge: used ? `已投${used}` : undefined,
+            badge: used ? `已投${used}` : item && !problem ? '可选' : undefined,
             onQuickAction: item ? () => onChoose(item) : undefined,
             children: item
               ? (close) => (

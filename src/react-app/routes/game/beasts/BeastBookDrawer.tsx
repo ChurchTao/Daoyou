@@ -7,6 +7,8 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
+import { useInventoryBag } from '@app/lib/resources/bag';
+import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { combatV6SkillDetails } from '@shared/combat-v6/skill-details';
 import type { BeastManagementView } from '@shared/contracts/combatV6Beasts';
 import type { InventoryView } from '@shared/contracts/inventory';
@@ -31,10 +33,10 @@ export function BeastBookDrawer({
   onUpdate: (view: BeastManagementView) => void;
 }) {
   const { pushToast } = useInkUI();
-  const [data, setData] = useState<{
-    inventory: InventoryView;
-    roster: BeastManagementView;
-  }>();
+  const bagQuery = useInventoryBag();
+  const inventory = bagQuery.data;
+  const [roster, setData] = useState<BeastManagementView>();
+  const unavailable = !inventory || bagQuery.isRefreshing || !!bagQuery.error;
   const [selectedId, setSelectedId] = useState<string>();
   const [pending, setPending] = useState(false);
   const [refresh, setRefresh] = useState(0);
@@ -43,16 +45,11 @@ export function BeastBookDrawer({
   useEffect(() => {
     const controller = new AbortController();
     lifetime.current = controller;
-    void Promise.all([
-      combatV6Request<InventoryView>('/api/combat-v6/inventory?location=bag', {
-        signal: controller.signal,
-      }),
-      combatV6Request<BeastManagementView>('/api/combat-v6/beasts', {
-        signal: controller.signal,
-      }),
-    ])
-      .then(([inventory, roster]) => {
-        if (!controller.signal.aborted) setData({ inventory, roster });
+    void combatV6Request<BeastManagementView>('/api/combat-v6/beasts', {
+      signal: controller.signal,
+    })
+      .then((roster) => {
+        if (!controller.signal.aborted) setData(roster);
       })
       .catch((e) => {
         if (!controller.signal.aborted)
@@ -63,34 +60,40 @@ export function BeastBookDrawer({
       });
     return () => controller.abort();
   }, [refresh, pushToast]);
-  const beast = data?.roster.beasts.find((entry) => entry.id === beastId);
-  const selected = data?.inventory.items.find((item) => item.id === selectedId);
-  const valid =
-    !!beast &&
-    !!selected &&
-    itemDefinition(selected.definitionId).kind === 'beast_book' &&
-    beast.skillSlotCapacity > 0 &&
-    beast.level <= data!.roster.ownerLevel &&
-    !beast.skills.includes(itemDefinition(selected.definitionId).skillId!);
+  const beast = roster?.beasts.find((entry) => entry.id === beastId);
+  const selected = inventory?.items.find((item) => item.id === selectedId);
+  function bookReason(item: InventoryView['items'][number]) {
+    const definition = itemDefinition(item.definitionId);
+    if (definition.kind !== 'beast_book') return '此物品不是兽诀。';
+    if (!beast || !roster) return '正在核对灵兽状态。';
+    if (!beast.skillSlotCapacity) return '此灵兽没有可用技能格。';
+    if (beast.level > roster.ownerLevel) return '灵兽战斗等级高于人物等级。';
+    if (beast.skills.includes(definition.skillId!)) return '灵兽已拥有此技能。';
+    return '';
+  }
+  const valid = !unavailable && !!selected && !bookReason(selected);
   async function learn() {
-    if (busy.current || !valid) return;
+    if (busy.current || unavailable || !valid) return;
     busy.current = true;
     setPending(true);
     const signal = lifetime.current!.signal;
     try {
-      const result = await combatV6Request<{
+      const result = await consumeResourceMutation<{
         oldSkill?: string;
         newSkill: string;
-      }>('/api/combat-v6/inventory', {
-        ...mutationBody({
-          action: 'learn',
-          id: selected!.id,
-          revision: selected!.revision,
-          beastId,
-          beastRevision: beast!.revision,
+      }>(
+        await fetch('/api/combat-v6/inventory', {
+          ...mutationBody({
+            action: 'learn',
+            id: selected!.id,
+            revision: selected!.revision,
+            beastId,
+            beastRevision: beast!.revision,
+          }),
+          signal,
+          headers: { 'Content-Type': 'application/json' },
         }),
-        signal,
-      });
+      );
       if (signal.aborted) return;
       pushToast({
         message: result.oldSkill
@@ -107,6 +110,7 @@ export function BeastBookDrawer({
         close();
       }
     } catch (e) {
+      bagQuery.invalidate();
       if (!signal.aborted)
         pushToast({
           message: e instanceof Error ? e.message : '操作失败',
@@ -170,6 +174,7 @@ export function BeastBookDrawer({
         <InkButton
           disabled={pending}
           onClick={() => {
+            void bagQuery.reload();
             setData(undefined);
             setSelectedId(undefined);
             setRefresh((value) => value + 1);
@@ -177,24 +182,24 @@ export function BeastBookDrawer({
         >
           刷新兽诀
         </InkButton>
-        {data ? (
+        {bagQuery.error ? <p role="alert">{bagQuery.error}</p> : null}
+        {roster && inventory ? (
           <>
             <div className="text-ink-secondary flex justify-between text-xs">
               <span>储物袋 · 选择兽诀</span>
               <span className="font-mono">
-                {data.inventory.used} / {BAG_CAPACITY}
+                {inventory.used} / {BAG_CAPACITY}
               </span>
             </div>
             <InventoryItems
-              items={data.inventory.items}
+              items={inventory.items}
               slotProps={(item) => {
-                const book =
-                  !!item &&
-                  itemDefinition(item.definitionId).kind === 'beast_book';
+                const reason = item ? bookReason(item) : '';
+                const book = !!item && !reason;
                 return {
                   selected: !!item && selectedId === item.id,
-                  disabled: pending || !book,
-                  className: item && !book ? 'opacity-35' : undefined,
+                  disabled: pending || unavailable,
+                  badge: book ? '可选' : undefined,
                   onQuickAction: book
                     ? () => setSelectedId(item.id)
                     : undefined,
@@ -202,7 +207,7 @@ export function BeastBookDrawer({
                     ? (hide) =>
                         book ? (
                           <InkButton
-                            disabled={pending}
+                            disabled={pending || unavailable}
                             onClick={() => {
                               setSelectedId(item.id);
                               hide();
@@ -211,9 +216,7 @@ export function BeastBookDrawer({
                             选择此兽诀
                           </InkButton>
                         ) : (
-                          <p className="text-ink-secondary">
-                            请选择兽诀用于学习。
-                          </p>
+                          <p className="text-ink-secondary">{reason}</p>
                         )
                     : undefined,
                 };
@@ -223,8 +226,8 @@ export function BeastBookDrawer({
         ) : (
           <p>正在读取兽诀……</p>
         )}
-        {data &&
-        !data.inventory.items.some(
+        {inventory &&
+        !inventory.items.some(
           (item) => itemDefinition(item.definitionId).kind === 'beast_book',
         ) ? (
           <p className="text-ink-secondary">储物袋中暂无兽诀</p>

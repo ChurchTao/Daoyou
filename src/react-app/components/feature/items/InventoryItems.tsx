@@ -30,10 +30,7 @@ export function InventoryItems({
   return (
     <div className="@container">
       <InventoryGrid
-        className={
-          className ??
-          'w-full grid-cols-4 gap-1 sm:grid-cols-4 @min-[360px]:grid-cols-5 @min-[480px]:grid-cols-8'
-        }
+        className={className ?? 'w-full grid-cols-5 gap-1.5 sm:grid-cols-5'}
       >
         {entries.map(({ item, slot }) => (
           <ItemSlot

@@ -5,6 +5,7 @@ import { GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { useInventoryBag } from '@app/lib/resources/bag';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import type { InventoryView } from '@shared/contracts/inventory';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -106,7 +107,9 @@ export default function SpiritFieldPage() {
   const { mutate } = useResourceMutation();
   const { pushToast, openDialog } = useInkUI();
   const [snapshot, setSnapshot] = useState<Snapshot>();
-  const [bag, setBag] = useState<InventoryView>();
+  const bagQuery = useInventoryBag();
+  const bag = bagQuery.data;
+  const bagUnavailable = !bag || bagQuery.isRefreshing || !!bagQuery.error;
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [methodId, setMethodId] = useState('');
   const [chosenRef, setChosenRef] = useState<{
@@ -121,17 +124,10 @@ export default function SpiritFieldPage() {
   const attempt = useRef<{ key: string; id: string } | undefined>(undefined);
   const refresh = useCallback(async () => {
     try {
-      const responses = await Promise.all([
-        fetch('/api/spirit-field'),
-        fetch('/api/combat-v6/inventory?location=bag'),
-      ]);
-      const [field, inventory] = await Promise.all(
-        responses.map((r) => r.json()),
-      );
-      if (!responses[0].ok || !responses[1].ok)
-        throw new Error(field.error ?? inventory.error ?? '灵田读取失败');
+      const response = await fetch('/api/spirit-field');
+      const field = await response.json();
+      if (!response.ok) throw new Error(field.error ?? '灵田读取失败');
       setSnapshot(field.data);
-      setBag(inventory.data ?? inventory);
       setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : '灵田读取失败');
@@ -168,7 +164,7 @@ export default function SpiritFieldPage() {
       method.resourceKind,
     );
   async function act(url: string, body: Record<string, unknown>) {
-    if (pending.current) return;
+    if (pending.current || (chosenRef && bagUnavailable)) return;
     pending.current = true;
     setBusy(true);
     const key = JSON.stringify([url, body]);
@@ -238,6 +234,7 @@ export default function SpiritFieldPage() {
           tone: 'success',
         });
     } catch (e) {
+      bagQuery.invalidate();
       pushToast({
         message: e instanceof Error ? e.message : '灵田操作失败',
         tone: 'danger',
@@ -247,18 +244,28 @@ export default function SpiritFieldPage() {
       setBusy(false);
     }
   }
-  function choose(item: InventoryView['items'][number]) {
-    if (pending.current || !selected) return;
-    const allowed = !selected.plant
-      ? snapshot?.seeds.some((s) => s.materialId === item.id && s.canPlant)
+  function canChoose(item: InventoryView['items'][number]) {
+    if (!selected) return false;
+    return !selected.plant
+      ? snapshot?.seeds.some(
+          (s) =>
+            s.materialId === item.id &&
+            s.revision === item.revision &&
+            s.canPlant,
+        )
       : selected.status === 'awaiting_cultivation' &&
-        needsItem &&
-        snapshot?.resources.some(
-          (r) =>
-            r.id === item.id &&
-            r.kind === method?.resourceKind &&
-            r.quantity >= method.cost.amount,
-        );
+          needsItem &&
+          snapshot?.resources.some(
+            (r) =>
+              r.id === item.id &&
+              r.revision === item.revision &&
+              r.kind === method?.resourceKind &&
+              r.quantity >= method.cost.amount,
+          );
+  }
+  function choose(item: InventoryView['items'][number]) {
+    if (pending.current || bagUnavailable || !selected) return;
+    const allowed = canChoose(item);
     if (!allowed) {
       pushToast({
         message: !selected.plant
@@ -277,7 +284,14 @@ export default function SpiritFieldPage() {
     return (
       <GameSceneFrame variant="workflow">
         <InkNotice tone="warning">{error}</InkNotice>
-        <InkButton onClick={() => void refresh()}>重试</InkButton>
+        <InkButton
+          onClick={() => {
+            void bagQuery.reload();
+            void refresh();
+          }}
+        >
+          重试
+        </InkButton>
       </GameSceneFrame>
     );
   const inventory = (
@@ -286,28 +300,45 @@ export default function SpiritFieldPage() {
         <span>
           随身物品 <span className="font-mono">{bag?.used ?? '—'} / 40</span>
         </span>
-        <InkButton disabled={busy} onClick={() => void refresh()}>
+        <InkButton
+          disabled={busy}
+          onClick={() => {
+            void bagQuery.reload();
+            void refresh();
+          }}
+        >
           刷新
         </InkButton>
       </div>
+      {bagQuery.error ? (
+        <InkNotice tone="warning">{bagQuery.error}</InkNotice>
+      ) : null}
       <InventoryItems
         items={bag?.items ?? []}
-        className="w-full grid-cols-5 gap-1 sm:grid-cols-5"
         slotProps={(item) => ({
-          disabled: !item || busy,
+          disabled: !item || busy || bagUnavailable,
           selected: !!item && item.id === chosen?.id,
-          onQuickAction: item ? () => choose(item) : undefined,
+          badge: item && canChoose(item) ? '可选' : undefined,
+          onQuickAction:
+            item && canChoose(item) ? () => choose(item) : undefined,
           children: item
             ? (close) => (
-                <InkButton
-                  disabled={busy}
-                  onClick={() => {
-                    choose(item);
-                    close();
-                  }}
-                >
-                  投入
-                </InkButton>
+                <>
+                  {!canChoose(item) ? (
+                    <p className="text-ink-secondary">
+                      此物不符合当前播种或培育要求，请选择对应道具。
+                    </p>
+                  ) : null}
+                  <InkButton
+                    disabled={busy || bagUnavailable || !canChoose(item)}
+                    onClick={() => {
+                      choose(item);
+                      close();
+                    }}
+                  >
+                    投入
+                  </InkButton>
+                </>
               )
             : undefined,
         })}
@@ -507,7 +538,7 @@ export default function SpiritFieldPage() {
               {selected.status === 'ready_to_harvest' ? (
                 <InkButton
                   variant="primary"
-                  disabled={busy}
+                  disabled={busy || bagUnavailable}
                   onClick={() =>
                     void act('/api/spirit-field/harvest', {
                       plotIndex: selected.index,

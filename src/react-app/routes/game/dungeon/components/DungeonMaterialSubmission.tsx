@@ -6,6 +6,7 @@ import {
   formatDungeonCostName,
   formatDungeonCostValue,
 } from '@app/lib/dungeon/formatDungeonCost';
+import { useInventoryBag } from '@app/lib/resources/bag';
 import type { DungeonMaterialSelection } from '@shared/contracts/combatV6Dungeon';
 import type { InventoryView } from '@shared/contracts/inventory';
 import {
@@ -13,7 +14,7 @@ import {
   dungeonMaterialMatches,
 } from '@shared/lib/dungeon/materialCosts';
 import type { DungeonOption } from '@shared/lib/dungeon/types';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 
 export function DungeonMaterialSubmission({
   option,
@@ -31,31 +32,17 @@ export function DungeonMaterialSubmission({
     .map((cost, costIndex) => ({ cost, costIndex }))
     .filter(({ cost }) => cost.type === 'material' && cost.value > 0);
   const [activeIndex, setActiveIndex] = useState(requirements[0].costIndex);
-  const [bag, setBag] = useState<InventoryView>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const bagQuery = useInventoryBag();
+  const bag = bagQuery.data;
+  const loading = bagQuery.loading || bagQuery.isRefreshing;
+  const error = bagQuery.error;
   const [choices, setChoices] = useState<
     Array<{ costIndex: number; itemId: string; quantity: string }>
   >([]);
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await fetch('/api/combat-v6/inventory?location=bag');
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? '物品栏读取失败');
-      setBag(data.data);
-      setChoices([]);
-    } catch {
-      setError('暂时无法读取随身物品，请刷新选物');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-  useEffect(() => {
-    const timer = setTimeout(() => void refresh(), 0);
-    return () => clearTimeout(timer);
-  }, [refresh]);
+  const refresh = () => {
+    setChoices([]);
+    return bagQuery.reload();
+  };
   const selections = requirements.map(({ costIndex }) => ({
     costIndex,
     items: choices
@@ -73,7 +60,7 @@ export function DungeonMaterialSubmission({
   } catch {
     /* Selection is incomplete until each requirement is met. */
   }
-  const busy = processing || loading;
+  const busy = processing || loading || !!error || !bag;
   function toggle(item: InventoryView['items'][number]) {
     if (busy || !dungeonMaterialMatches(item, costs[activeIndex])) return;
     setChoices((current) =>
@@ -128,7 +115,13 @@ export function DungeonMaterialSubmission({
               {choices
                 .filter((c) => c.costIndex === costIndex)
                 .map((choice) => {
-                  const item = bag!.items.find((i) => i.id === choice.itemId)!;
+                  const item = bag?.items.find((i) => i.id === choice.itemId);
+                  if (!item)
+                    return (
+                      <p key={choice.itemId} role="alert">
+                        所选物品已变化，请刷新选物。
+                      </p>
+                    );
                   return (
                     <div
                       key={choice.itemId}
@@ -203,14 +196,16 @@ export function DungeonMaterialSubmission({
         <section className="min-w-0 space-y-3" aria-label="秘境提交物品栏">
           <div className="flex items-center justify-between">
             <p className="text-sm">随身物品</p>
-            <InkButton disabled={busy} onClick={() => void refresh()}>
+            <InkButton
+              disabled={processing || loading}
+              onClick={() => void refresh()}
+            >
               刷新选物
             </InkButton>
           </div>
           {loading ? <p className="text-sm">正在读取物品…</p> : null}
           <InventoryItems
             items={bag?.items ?? []}
-            className="grid-cols-5 gap-1 sm:grid-cols-5"
             slotProps={(item) => {
               const eligible =
                 !!item && dungeonMaterialMatches(item, costs[activeIndex]);
@@ -221,7 +216,9 @@ export function DungeonMaterialSubmission({
                   choices.some(
                     (c) => c.costIndex === activeIndex && c.itemId === item.id,
                   ),
-                onQuickAction: item ? () => toggle(item) : undefined,
+                badge: eligible ? '可选' : undefined,
+                onQuickAction:
+                  item && eligible ? () => toggle(item) : undefined,
                 children: item
                   ? (close) => (
                       <div className="space-y-2">

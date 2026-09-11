@@ -4,6 +4,7 @@ import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkInput, InkNotice, InkSelect } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { useInventoryBag } from '@app/lib/resources/bag';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { calculateAuctionSettlement } from '@shared/config/auctionConfig';
 import {
@@ -22,10 +23,16 @@ export function ListItemModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [bag, setBag] = useState<InventoryView>();
+  const bagQuery = useInventoryBag();
+  const bag = bagQuery.data;
+  const bagUnavailable = !bag || bagQuery.isRefreshing || !!bagQuery.error;
   const [friends, setFriends] = useState<FriendCultivatorSummary[]>([]);
   const [error, setError] = useState('');
-  const [selected, setSelected] = useState<InventoryView['items'][number]>();
+  const [selectedRef, setSelected] = useState<InventoryView['items'][number]>();
+  const selected = bag?.items.find(
+    (item) =>
+      item.id === selectedRef?.id && item.revision === selectedRef.revision,
+  );
   const [quantity, setQuantity] = useState('1');
   const [price, setPrice] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
@@ -36,21 +43,7 @@ export function ListItemModal({
   const attempt = useRef<{ key: string; id: string }>(undefined);
   const { mutate } = useResourceMutation();
   const { pushToast } = useInkUI();
-  async function refresh() {
-    try {
-      const response = await fetch('/api/combat-v6/inventory?location=bag');
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? '物品栏读取失败');
-      setBag(result.data);
-      setError('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '物品栏读取失败');
-    }
-  }
-  useEffect(() => {
-    const timer = setTimeout(() => void refresh(), 0);
-    return () => clearTimeout(timer);
-  }, []);
+  const refresh = bagQuery.reload;
   useEffect(() => {
     if (visibility !== 'private') return;
     let cancelled = false;
@@ -68,7 +61,7 @@ export function ListItemModal({
     };
   }, [visibility]);
   function choose(item: InventoryView['items'][number]) {
-    if (pending.current) return;
+    if (pending.current || bagUnavailable) return;
     const reason = auctionBlockReason(item);
     if (reason) {
       pushToast({ message: reason, tone: 'warning' });
@@ -79,7 +72,7 @@ export function ListItemModal({
     setBagOpen(false);
   }
   async function submit() {
-    if (pending.current || !selected) return;
+    if (pending.current || bagUnavailable || !selected) return;
     const body = {
       itemId: selected.id,
       revision: selected.revision,
@@ -136,29 +129,42 @@ export function ListItemModal({
         <span>
           随身物品 <span className="font-mono">{bag?.used ?? '—'} / 40</span>
         </span>
-        <InkButton disabled={busy} onClick={() => void refresh()}>
+        <InkButton
+          disabled={busy || bagQuery.isRefreshing}
+          onClick={() => void refresh()}
+        >
           刷新
         </InkButton>
       </div>
-      {error ? <InkNotice tone="warning">{error}</InkNotice> : null}
+      {error || bagQuery.error ? (
+        <InkNotice tone="warning">{error || bagQuery.error}</InkNotice>
+      ) : null}
       <InventoryItems
         items={bag?.items ?? []}
-        className="grid-cols-5 gap-1 sm:grid-cols-5"
         slotProps={(item) => ({
-          disabled: !item || busy,
+          disabled: !item || busy || bagUnavailable,
           selected: !!item && item.id === selected?.id,
-          onQuickAction: item ? () => choose(item) : undefined,
+          badge: item && !auctionBlockReason(item) ? '可选' : undefined,
+          onQuickAction:
+            item && !auctionBlockReason(item) ? () => choose(item) : undefined,
           children: item
             ? (close) => (
-                <InkButton
-                  disabled={busy}
-                  onClick={() => {
-                    choose(item);
-                    close();
-                  }}
-                >
-                  寄售
-                </InkButton>
+                <>
+                  <p className="text-ink-secondary">
+                    {auctionBlockReason(item)}
+                  </p>
+                  <InkButton
+                    disabled={
+                      busy || bagUnavailable || !!auctionBlockReason(item)
+                    }
+                    onClick={() => {
+                      choose(item);
+                      close();
+                    }}
+                  >
+                    寄售
+                  </InkButton>
+                </>
               )
             : undefined,
         })}
@@ -190,7 +196,7 @@ export function ListItemModal({
               >
                 {(close) => (
                   <InkButton
-                    disabled={busy}
+                    disabled={busy || bagUnavailable}
                     onClick={() => {
                       setSelected(undefined);
                       close();
@@ -209,7 +215,7 @@ export function ListItemModal({
                 max={selected.quantity}
                 value={quantity}
                 onChange={setQuantity}
-                disabled={busy}
+                disabled={busy || bagUnavailable}
               />
             ) : (
               <span className="text-ink-secondary text-sm">
@@ -217,10 +223,16 @@ export function ListItemModal({
               </span>
             )}
           </div>
-          {selected ? (
-            <InkButton disabled={busy} onClick={() => setSelected(undefined)}>
+          {selectedRef ? (
+            <InkButton
+              disabled={busy || bagUnavailable}
+              onClick={() => setSelected(undefined)}
+            >
               移出物品
             </InkButton>
+          ) : null}
+          {selectedRef && !selected ? (
+            <p role="alert">所选物品已变化，请重新选择。</p>
           ) : null}
           <InkInput
             label="单价（灵石／件）"
@@ -229,7 +241,7 @@ export function ListItemModal({
             max={selected ? auctionItemPriceCap(selected) : undefined}
             value={price}
             onChange={setPrice}
-            disabled={busy}
+            disabled={busy || bagUnavailable}
           />
           {selected ? (
             <p className="text-ink-secondary text-xs">
@@ -244,7 +256,7 @@ export function ListItemModal({
             label="寄售范围"
             value={visibility}
             onChange={(v) => setVisibility(v as 'public' | 'private')}
-            disabled={busy}
+            disabled={busy || bagUnavailable}
           >
             <option value="public">公开寄售</option>
             <option value="private">好友专属</option>
@@ -255,7 +267,7 @@ export function ListItemModal({
                 label="专属道友"
                 value={target}
                 onChange={setTarget}
-                disabled={busy}
+                disabled={busy || bagUnavailable}
               >
                 <option value="">选择好友</option>
                 {friends.map((f) => (
@@ -291,7 +303,7 @@ export function ListItemModal({
             <InkButton
               variant="primary"
               pending={busy}
-              disabled={!selected || busy}
+              disabled={!selected || busy || bagUnavailable}
               onClick={() => void submit()}
             >
               确认上架

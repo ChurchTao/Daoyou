@@ -1,8 +1,10 @@
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkButton } from '@app/components/ui/InkButton';
+import { inventoryBagResource, useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { usePlayerSession } from '@app/lib/resources/player';
+import { resourceStore } from '@app/lib/resources/store';
 import type { InventoryView } from '@shared/contracts/inventory';
 import type {
   RecycleQuote,
@@ -77,7 +79,8 @@ function QuantityChoice({
 
 export default function MarketRecyclePage() {
   const owner = usePlayerSession().data?.activeCultivator?.id;
-  const [bag, setBag] = useState<{ owner: string; view: InventoryView }>();
+  const bagQuery = useInventoryBag();
+  const view = bagQuery.data;
   const [selection, setSelection] = useState<RecycleSelection[]>([]);
   const [quote, setQuote] = useState<{ key: string; value: RecycleQuote }>();
   const [message, setMessage] = useState(
@@ -86,7 +89,7 @@ export default function MarketRecyclePage() {
   const [receipts, setReceipts] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
   const [refresh, setRefresh] = useState(0);
-  const [readError, setReadError] = useState('');
+  const readError = bagQuery.error;
   const [quoteError, setQuoteError] = useState('');
   const [legacyOpen, setLegacyOpen] = useState(false);
   const [quoteExpanded, setQuoteExpanded] = useState(
@@ -94,27 +97,18 @@ export default function MarketRecyclePage() {
   );
   const busy = useRef(false);
   const quoteReader = useRef<AbortController | null>(null);
-  const view = bag && bag.owner === owner ? bag.view : undefined;
   const selectionKey = JSON.stringify({ owner, selection });
-  const currentQuote = quote?.key === selectionKey ? quote.value : undefined;
-  const frozen = pending || !view;
-  useEffect(() => {
-    if (!owner) return;
-    const controller = new AbortController();
-    void readJson<InventoryView>('/api/combat-v6/inventory?location=bag', {
-      signal: controller.signal,
-    })
-      .then((value) => {
-        if (!controller.signal.aborted) {
-          setBag({ owner, view: value });
-          setReadError('');
-        }
-      })
-      .catch((error) => {
-        if (!controller.signal.aborted) setReadError(error.message);
-      });
-    return () => controller.abort();
-  }, [owner, refresh]);
+  const selectionCurrent = selection.every((ref) =>
+    view?.items.some(
+      (item) =>
+        item.id === ref.id &&
+        item.revision === ref.revision &&
+        item.quantity >= ref.quantity,
+    ),
+  );
+  const currentQuote =
+    quote?.key === selectionKey && selectionCurrent ? quote.value : undefined;
+  const frozen = pending || !view || bagQuery.isRefreshing || !!readError;
   useEffect(() => {
     const controller = new AbortController();
     quoteReader.current = controller;
@@ -156,7 +150,7 @@ export default function MarketRecyclePage() {
     return () => clearTimeout(timer);
   }, [currentQuote]);
   function choose(item: Item, quantity: number) {
-    if (busy.current) return;
+    if (busy.current || frozen) return;
     const reason = recycleBlockingReason(item);
     if (reason) {
       setMessage(reason);
@@ -181,6 +175,7 @@ export default function MarketRecyclePage() {
     setQuote(undefined);
     setQuoteError('');
     setSelection([]);
+    void bagQuery.reload();
     setRefresh((value) => value + 1);
   }
   async function requote() {
@@ -191,11 +186,13 @@ export default function MarketRecyclePage() {
     setQuote(undefined);
     setQuoteError('');
     try {
-      const updated = await readJson<InventoryView>(
-        '/api/combat-v6/inventory?location=bag',
-      );
-      setBag({ owner, view: updated });
-      setReadError('');
+      const key = resourceStore.register(inventoryBagResource, undefined);
+      if (!key) return;
+      await resourceStore.reload(key);
+      const snapshot = resourceStore.getSnapshot<InventoryView>(key);
+      if (snapshot.error || !snapshot.data)
+        throw new Error(snapshot.error ?? '物品栏读取失败');
+      const updated = snapshot.data;
       setSelection((previous) =>
         previous.flatMap((ref) => {
           const item = updated.items.find((row) => row.id === ref.id);
@@ -220,7 +217,7 @@ export default function MarketRecyclePage() {
     }
   }
   async function sell() {
-    if (busy.current || !currentQuote) return;
+    if (busy.current || frozen || !currentQuote) return;
     busy.current = true;
     setPending(true);
     quoteReader.current?.abort();
@@ -238,9 +235,10 @@ export default function MarketRecyclePage() {
       setSelection([]);
       setQuote(undefined);
       setQuoteError('');
-      setBag(undefined);
+
       setRefresh((value) => value + 1);
     } catch (error) {
+      bagQuery.invalidate();
       setQuoteError(
         error instanceof Error ? error.message : '成交未确认，请重试。',
       );
@@ -400,17 +398,21 @@ export default function MarketRecyclePage() {
           ) : null}
           <InventoryItems
             items={view?.items ?? []}
-            className="w-full grid-cols-5 gap-1 sm:grid-cols-5"
             slotProps={(item) => {
               const chosen =
                 item && selection.find((entry) => entry.id === item.id);
               return {
                 disabled: frozen || !item,
                 selected: Boolean(chosen),
-                badge: chosen ? `售 ${chosen.quantity}` : undefined,
-                onQuickAction: item
-                  ? () => choose(item, chosen ? 0 : 1)
-                  : undefined,
+                badge: chosen
+                  ? `售 ${chosen.quantity}`
+                  : item && !recycleBlockingReason(item)
+                    ? '可选'
+                    : undefined,
+                onQuickAction:
+                  item && !recycleBlockingReason(item)
+                    ? () => choose(item, chosen ? 0 : 1)
+                    : undefined,
                 children: item
                   ? (close) => {
                       const reason = recycleBlockingReason(item);
@@ -451,7 +453,7 @@ export default function MarketRecyclePage() {
             )}
           </span>
           <InkButton
-            disabled={pending || !currentQuote}
+            disabled={frozen || !currentQuote}
             onClick={() => void sell()}
           >
             {pending ? '正在成交……' : '出售所选'}

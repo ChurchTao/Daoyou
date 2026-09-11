@@ -7,12 +7,12 @@ import { GameSceneFrame } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkDialog, type InkDialogState } from '@app/components/ui/InkDialog';
+import { useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorCurrency,
   usePlayerSession,
 } from '@app/lib/resources/player';
-import type { InventoryView } from '@shared/contracts/inventory';
 import type {
   MarketBuyInput,
   MarketPurchaseResult,
@@ -82,12 +82,13 @@ function MarketWorkspace({
   onNavigate(node: string, layer: string): void;
 }) {
   const [snapshot, setSnapshot] = useState<Snapshot>();
-  const [bag, setBag] = useState<InventoryView>();
+  const bagQuery = useInventoryBag(!!owner);
+  const bag = bagQuery.data;
   const [selected, setSelected] = useState<string[]>([]);
   const [refresh, setRefresh] = useState(0);
   const [error, setError] = useState('');
   const [shelfError, setShelfError] = useState('');
-  const [bagError, setBagError] = useState('');
+  const bagError = bagQuery.error;
   const [notice, setNotice] = useState('');
   const [pending, setPending] = useState(false);
   const [bagOpen, setBagOpen] = useState(false);
@@ -126,24 +127,6 @@ function MarketWorkspace({
       });
     return () => controller.abort();
   }, [nodeId, layer, refresh]);
-  useEffect(() => {
-    if (!owner) return;
-    const controller = new AbortController();
-    void read<InventoryView>(
-      '/api/combat-v6/inventory?location=bag',
-      controller.signal,
-    )
-      .then((value) => {
-        if (!controller.signal.aborted) {
-          setBag(value);
-          setBagError('');
-        }
-      })
-      .catch((reason) => {
-        if (!controller.signal.aborted) setBagError(reason.message);
-      });
-    return () => controller.abort();
-  }, [owner, refresh]);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -223,6 +206,7 @@ function MarketWorkspace({
       );
       setRefresh((value) => value + 1);
     } catch (reason) {
+      bagQuery.invalidate();
       setError(reason instanceof Error ? reason.message : '成交未确认，请重试');
     } finally {
       busy.current = false;
@@ -257,10 +241,7 @@ function MarketWorkspace({
         <span>
           随身物品 <span className="font-mono">{bag?.used ?? '—'} / 40</span>
         </span>
-        <InkButton
-          disabled={pending}
-          onClick={() => setRefresh((value) => value + 1)}
-        >
+        <InkButton disabled={pending} onClick={() => void bagQuery.reload()}>
           刷新
         </InkButton>
       </div>
@@ -271,7 +252,6 @@ function MarketWorkspace({
       ) : null}
       <InventoryItems
         items={bag?.items ?? []}
-        className="w-full grid-cols-5 gap-1 sm:grid-cols-5"
         slotProps={(item) => ({ disabled: !item })}
       />
     </div>

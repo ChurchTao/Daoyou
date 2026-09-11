@@ -297,7 +297,6 @@ export default function InventoryV6() {
             <InventoryItems
               items={visibleData.items}
               location={location}
-              className="grid-cols-5 gap-1.5 sm:grid-cols-5"
               slotProps={(entry, slot) => ({
                 disabled: unavailable || (filtered && !entry),
                 className:

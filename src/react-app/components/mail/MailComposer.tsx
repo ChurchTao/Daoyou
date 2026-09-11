@@ -4,11 +4,12 @@ import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkInput, InkNotice, InkSelect } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { useInventoryBag } from '@app/lib/resources/bag';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import type { FriendCultivatorSummary } from '@shared/contracts/friends';
 import type { InventoryView } from '@shared/contracts/inventory';
 import { mailGiftBlockReason, SendMailSchema } from '@shared/contracts/mail';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 export function MailComposer({
   friends,
@@ -21,10 +22,16 @@ export function MailComposer({
   onRecipientChange: (id: string) => void;
   onClose: () => void;
 }) {
-  const [bag, setBag] = useState<InventoryView>();
-  const [error, setError] = useState('');
+  const bagQuery = useInventoryBag();
+  const bag = bagQuery.data;
+  const bagUnavailable = !bag || bagQuery.isRefreshing || !!bagQuery.error;
+  const error = bagQuery.error;
   const [content, setContent] = useState('');
-  const [selected, setSelected] = useState<InventoryView['items'][number]>();
+  const [selectedRef, setSelected] = useState<InventoryView['items'][number]>();
+  const selected = bag?.items.find(
+    (item) =>
+      item.id === selectedRef?.id && item.revision === selectedRef.revision,
+  );
   const [quantity, setQuantity] = useState('1');
   const [bagOpen, setBagOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -32,23 +39,9 @@ export function MailComposer({
   const attempt = useRef<{ key: string; id: string }>(undefined);
   const { mutate } = useResourceMutation();
   const { pushToast } = useInkUI();
-  async function refresh() {
-    try {
-      const response = await fetch('/api/combat-v6/inventory?location=bag');
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? '物品栏读取失败');
-      setBag(result.data);
-      setError('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '物品栏读取失败');
-    }
-  }
-  useEffect(() => {
-    const timer = setTimeout(() => void refresh(), 0);
-    return () => clearTimeout(timer);
-  }, []);
+  const refresh = bagQuery.reload;
   function choose(item: InventoryView['items'][number]) {
-    if (pending.current) return;
+    if (pending.current || bagUnavailable) return;
     const reason = mailGiftBlockReason(item);
     if (reason) {
       pushToast({ message: reason, tone: 'warning' });
@@ -59,7 +52,7 @@ export function MailComposer({
     setBagOpen(false);
   }
   async function send() {
-    if (pending.current) return;
+    if (pending.current || bagUnavailable || (selectedRef && !selected)) return;
     const body = {
       recipientCultivatorId: recipientId,
       content: content.trim(),
@@ -111,29 +104,40 @@ export function MailComposer({
         <span>
           随身物品 <span className="font-mono">{bag?.used ?? '—'} / 40</span>
         </span>
-        <InkButton disabled={busy} onClick={() => void refresh()}>
+        <InkButton
+          disabled={busy || bagQuery.isRefreshing}
+          onClick={() => void refresh()}
+        >
           刷新
         </InkButton>
       </div>
       {error ? <InkNotice tone="warning">{error}</InkNotice> : null}
       <InventoryItems
         items={bag?.items ?? []}
-        className="grid-cols-5 gap-1 sm:grid-cols-5"
         slotProps={(item) => ({
-          disabled: !item || busy,
+          disabled: !item || busy || bagUnavailable,
           selected: !!item && item.id === selected?.id,
-          onQuickAction: item ? () => choose(item) : undefined,
+          badge: item && !mailGiftBlockReason(item) ? '可选' : undefined,
+          onQuickAction:
+            item && !mailGiftBlockReason(item) ? () => choose(item) : undefined,
           children: item
             ? (close) => (
-                <InkButton
-                  disabled={busy}
-                  onClick={() => {
-                    choose(item);
-                    close();
-                  }}
-                >
-                  附带
-                </InkButton>
+                <>
+                  <p className="text-ink-secondary">
+                    {mailGiftBlockReason(item)}
+                  </p>
+                  <InkButton
+                    disabled={
+                      busy || bagUnavailable || !!mailGiftBlockReason(item)
+                    }
+                    onClick={() => {
+                      choose(item);
+                      close();
+                    }}
+                  >
+                    附带
+                  </InkButton>
+                </>
               )
             : undefined,
         })}
@@ -187,7 +191,7 @@ export function MailComposer({
               >
                 {(close) => (
                   <InkButton
-                    disabled={busy}
+                    disabled={busy || bagUnavailable}
                     onClick={() => {
                       setSelected(undefined);
                       close();
@@ -206,7 +210,7 @@ export function MailComposer({
                 max={selected.quantity}
                 value={quantity}
                 onChange={setQuantity}
-                disabled={busy}
+                disabled={busy || bagUnavailable}
               />
             ) : (
               <span className="text-ink-secondary text-sm">
@@ -214,11 +218,17 @@ export function MailComposer({
               </span>
             )}
           </div>
-          {selected && (
-            <InkButton disabled={busy} onClick={() => setSelected(undefined)}>
+          {selectedRef && (
+            <InkButton
+              disabled={busy || bagUnavailable}
+              onClick={() => setSelected(undefined)}
+            >
               移出附件
             </InkButton>
           )}
+          {selectedRef && !selected ? (
+            <p role="alert">附件已变化，请重新选择或移出附件。</p>
+          ) : null}
           <p className="text-ink-secondary text-xs">发送消耗一张空白传音符</p>
           <div className="flex justify-end gap-3">
             <InkButton disabled={busy} onClick={onClose}>
@@ -227,7 +237,12 @@ export function MailComposer({
             <InkButton
               variant="primary"
               pending={busy}
-              disabled={!friends.length || busy}
+              disabled={
+                !friends.length ||
+                busy ||
+                bagUnavailable ||
+                (!!selectedRef && !selected)
+              }
               onClick={() => void send()}
             >
               发出

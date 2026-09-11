@@ -88,7 +88,6 @@ export function ManualJadePicker({
       ) : null}
       <InventoryItems
         items={items}
-        className="grid-cols-5 gap-1.5 sm:grid-cols-5"
         slotProps={(item) => {
           const choice = choices.find((entry) => entry.item.id === item?.id);
           return {

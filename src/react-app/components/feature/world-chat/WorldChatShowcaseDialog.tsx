@@ -3,8 +3,9 @@ import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { InkModal } from '@app/components/layout';
 import { InkButton, InkInput, InkNotice } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { useInventoryBag } from '@app/lib/resources/bag';
 import type { InventoryView } from '@shared/contracts/inventory';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { SendWorldChatShowcaseInput } from './worldChatFeedContext';
 
 export function WorldChatShowcaseDialog({
@@ -18,33 +19,24 @@ export function WorldChatShowcaseDialog({
   send(input: SendWorldChatShowcaseInput): Promise<boolean>;
   onClose(): void;
 }) {
-  const [bag, setBag] = useState<InventoryView>();
-  const [selected, setSelected] = useState<InventoryView['items'][number]>();
+  const bagQuery = useInventoryBag();
+  const bag = bagQuery.data;
+  const bagUnavailable = !bag || bagQuery.isRefreshing || !!bagQuery.error;
+  const [selectedRef, setSelected] = useState<InventoryView['items'][number]>();
+  const selected = bag?.items.find(
+    (item) =>
+      item.id === selectedRef?.id && item.revision === selectedRef.revision,
+  );
   const [text, setText] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const error = bagQuery.error;
+  const loading = bagQuery.loading;
   const [bagOpen, setBagOpen] = useState(false);
   const pending = useRef(false);
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const refresh = () => {
     setSelected(undefined);
-    try {
-      const response = await fetch('/api/combat-v6/inventory?location=bag');
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? '读取失败');
-      setBag(result.data);
-      setError('');
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '读取失败');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-  useEffect(() => {
-    const timer = setTimeout(() => void refresh(), 0);
-    return () => clearTimeout(timer);
-  }, [refresh]);
-  const busy = posting || loading;
+    return bagQuery.reload();
+  };
+  const busy = posting || bagUnavailable;
   function choose(item: InventoryView['items'][number]) {
     if (busy || pending.current) return;
     setSelected(item);
@@ -70,13 +62,15 @@ export function WorldChatShowcaseDialog({
         <span>
           随身物品 <span className="font-mono">{bag?.used ?? '—'} / 40</span>
         </span>
-        <InkButton disabled={busy} onClick={() => void refresh()}>
+        <InkButton
+          disabled={posting || bagQuery.isRefreshing}
+          onClick={() => void refresh()}
+        >
           刷新选物
         </InkButton>
       </div>
       <InventoryItems
         items={bag?.items ?? []}
-        className="grid-cols-5 gap-1 sm:grid-cols-5"
         slotProps={(item) => ({
           disabled: !item || busy,
           selected: !!item && selected?.id === item.id,
@@ -114,13 +108,17 @@ export function WorldChatShowcaseDialog({
           {loading ? <p className="text-sm">正在读取背包…</p> : null}
           {error ? <InkNotice tone="warning">{error}</InkNotice> : null}
           <div className="lg:hidden">
-            <InkButton disabled={busy} onClick={() => setBagOpen(true)}>
+            <InkButton disabled={posting} onClick={() => setBagOpen(true)}>
               选择随身物品
             </InkButton>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-20 shrink-0">
-              <ItemSlot item={selected} emptyLabel="待展示" className="w-full" />
+              <ItemSlot
+                item={selected}
+                emptyLabel="待展示"
+                className="w-full"
+              />
             </div>
             <p className="text-sm">
               {selected?.name ?? '选择一件随身物品供道友鉴赏'}

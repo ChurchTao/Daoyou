@@ -2,6 +2,7 @@ import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { useInventoryBag } from '@app/lib/resources/bag';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorCondition } from '@app/lib/resources/player';
 import type { InventoryView } from '@shared/contracts/inventory';
@@ -34,13 +35,16 @@ export function DungeonRunPanel({
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
-  const [bag, setBag] = useState<InventoryView>();
-  const [readError, setReadError] = useState('');
+  const bagQuery = useInventoryBag();
+  const bag = bagQuery.data;
+  const readError = bagQuery.error;
   const busy = useRef(false);
   const { pushToast } = useInkUI();
   const { mutate } = useResourceMutation();
   const condition = useCultivatorCondition();
   const unavailable =
+    !bag ||
+    bagQuery.isRefreshing ||
     !!readError ||
     !!condition.error ||
     condition.loading ||
@@ -50,20 +54,7 @@ export function DungeonRunPanel({
     .map(
       (item) => `${itemDefinition(item.definitionId).name} ×${item.quantity}`,
     );
-  const refresh = async () => {
-    setReadError('');
-    try {
-      const response = await fetch('/api/combat-v6/inventory?location=bag', {
-        signal: AbortSignal.timeout(15000),
-      });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? '物品栏读取失败');
-      setBag(body.data);
-      await condition.reload();
-    } catch {
-      setReadError('暂时无法核实物品与资源，请重新读取后再用药。');
-    }
-  };
+  const refresh = () => Promise.all([bagQuery.reload(), condition.reload()]);
   const readInventory = async () => {
     if (busy.current) return;
     busy.current = true;
@@ -159,7 +150,6 @@ export function DungeonRunPanel({
           </InkButton>
           <InventoryItems
             items={bag?.items ?? []}
-            className="grid-cols-5 gap-1 sm:grid-cols-5"
             slotProps={(item) => {
               const facts =
                 item?.definitionId === 'consumable.v1'
@@ -169,6 +159,7 @@ export function DungeonRunPanel({
                 facts?.success && canUseDungeonRecoveryPill(state, facts.data);
               return {
                 disabled: !item || pending || processing || unavailable,
+                badge: eligible ? '可选' : undefined,
                 children: item
                   ? (close) => (
                       <div className="space-y-2">

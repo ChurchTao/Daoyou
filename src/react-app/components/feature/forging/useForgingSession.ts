@@ -1,3 +1,4 @@
+import { useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type { ForgeRequest, ForgeView } from '@shared/contracts/forging';
 import type { InventoryView } from '@shared/contracts/inventory';
@@ -14,6 +15,8 @@ const endpoint = '/api/combat-v6/forging';
 const emptyMaterials = (): (string | null)[] => Array(5).fill(null);
 
 export function useForgingSession() {
+  const bagQuery = useInventoryBag();
+  const inventory = bagQuery.data;
   const [view, setView] = useState<ForgeView>();
   const [refresh, setRefresh] = useState(0);
   const [blueprintId, setBlueprintId] = useState('');
@@ -49,7 +52,7 @@ export function useForgingSession() {
     return () => controller.abort();
   }, [refresh]);
 
-  const byId = new Map(view?.inventory.items.map((item) => [item.id, item]));
+  const byId = new Map(inventory?.items.map((item) => [item.id, item]));
   const blueprint = byId.get(blueprintId);
   const definition = blueprint
     ? itemDefinition(blueprint.definitionId)
@@ -60,7 +63,13 @@ export function useForgingSession() {
     if (id) quantities.set(id, (quantities.get(id) ?? 0) + 1);
   }
   const total = materialIds.filter(Boolean).length;
-  const locked = pending || !view || !!result;
+  const locked =
+    pending ||
+    !view ||
+    !!result ||
+    !inventory ||
+    bagQuery.isRefreshing ||
+    !!bagQuery.error;
   function itemProblem(item: ForgeItem, targetCost = cost): string | null {
     const def = itemDefinition(item.definitionId);
     if (def.kind === 'blueprint')
@@ -130,6 +139,7 @@ export function useForgingSession() {
   function reload() {
     if (busy.current) return;
     setError('');
+    void bagQuery.reload();
     setView(undefined);
     setMaterialIds(emptyMaterials());
     setRefresh((n) => n + 1);
@@ -174,6 +184,7 @@ export function useForgingSession() {
       ]);
       if (alive.current) setResult(response);
     } catch (e) {
+      bagQuery.invalidate();
       if (alive.current) {
         setError(
           `${e instanceof Error ? e.message : '请求失败'}。请核对储物袋后重新备料，勿重复开炉。`,
@@ -194,6 +205,7 @@ export function useForgingSession() {
   }
   return {
     view,
+    inventory,
     blueprint,
     cost,
     byId,
@@ -202,7 +214,7 @@ export function useForgingSession() {
     total,
     pending,
     locked,
-    error,
+    error: error || bagQuery.error,
     result,
     problem,
     itemProblem,

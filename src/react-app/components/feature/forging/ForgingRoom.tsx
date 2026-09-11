@@ -97,7 +97,7 @@ export function ForgingRoom() {
     />
   );
   const blueprints =
-    session.view?.inventory.items.filter(
+    session.inventory?.items.filter(
       (item) => itemDefinition(item.definitionId).kind === 'blueprint',
     ) ?? [];
   const { result } = session;
