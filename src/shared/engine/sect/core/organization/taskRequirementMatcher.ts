@@ -1,3 +1,4 @@
+import { getLevelRealmStage } from '@shared/config/realmProgression';
 import type { DaoEquipmentSlot } from '@shared/engine/combat-v6/equipment/types';
 import { CULTIVATION_BOOST_STATUS_KEY } from '@shared/lib/cultivationBoost';
 import {
@@ -175,7 +176,10 @@ export function matchSectDeliveryRequirement(
     if (candidate.slot !== requirement.slot)
       add('wrong_slot', '道装部位不符合要求');
     if (candidate.equipmentLevel < requirement.minEquipmentLevel)
-      add('level_too_low', `道装等级低于 ${requirement.minEquipmentLevel} 级`);
+      add(
+        'level_too_low',
+        `道装境界低于${getLevelRealmStage(requirement.minEquipmentLevel).realm}`,
+      );
   } else if (requirement.kind === 'material' && candidate.kind === 'material') {
     if (candidate.materialType !== requirement.materialType)
       add('wrong_material_type', '材料类型不符合要求');

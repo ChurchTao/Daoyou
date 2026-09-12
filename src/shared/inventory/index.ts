@@ -218,7 +218,7 @@ export function learnBeastSkill(
   const skillId = itemDefinition(definitionId).skillId;
   if (!skillId) throw new InventoryRuleError('该物品不是兽诀');
   if (beast.level > ownerLevel)
-    throw new InventoryRuleError('灵兽等级超过人物，不能培养');
+    throw new InventoryRuleError('灵兽修为超过人物承载上限，不能培养');
   if (beast.skills.includes(skillId))
     throw new InventoryRuleError('灵兽已拥有该技能');
   if (!Number.isInteger(slot) || slot < 0 || slot >= beast.skillSlotCapacity)

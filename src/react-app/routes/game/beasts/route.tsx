@@ -10,6 +10,7 @@ import type { BeastManagementView } from '@shared/contracts/combatV6Beasts';
 import { BEAST_STARTER_SPECIES } from '@shared/engine/combat-v6/beasts';
 import { BEAST_GENERATION } from '@shared/engine/combat-v6/beasts/content';
 import { BEAST_CAPACITY } from '@shared/engine/combat-v6/beasts/progression';
+import { beastRealm } from '@shared/engine/combat-v6/beasts/projection';
 import { useEffect, useRef, useState } from 'react';
 import { BeastActionDrawer, type BeastAction } from './BeastActionDrawer';
 import { BeastBookDrawer } from './BeastBookDrawer';
@@ -213,7 +214,7 @@ export default function BeastsPage() {
                         </span>
                       </span>
                       <span className="text-ink-secondary flex flex-wrap items-center gap-1 text-xs">
-                        {beast.level}级
+                        {beastRealm(beast.level)}
                         {view.lineup.leadBeastId === beast.id ? (
                           <BeastLeadSeal />
                         ) : view.lineup.carriedBeastIds.includes(beast.id) ? (
@@ -339,9 +340,10 @@ export default function BeastsPage() {
           }
         >
           <p className="text-sm leading-7">
-            每位角色可免费选择一次。伙伴初始{BEAST_GENERATION.starterLevel}级、
+            每位角色可免费选择一次。伙伴初始为
+            {beastRealm(BEAST_GENERATION.starterLevel)}境、
             {BEAST_GENERATION.lifespan}
-            寿命，资质、成长与出生技能随机生成，属性点由你分配。有空位时自动携带，满足出战等级且没有首发时设为首发。
+            寿命，资质、成长与出生技能随机生成，属性点由你分配。有空位时自动携带，满足出战境界且没有首发时设为首发。
           </p>
         </InkDetailDrawer>
       ) : null}

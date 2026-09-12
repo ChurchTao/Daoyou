@@ -238,7 +238,7 @@ describe('sect task requirement generation', () => {
         slot: 'weapon' as const,
         mustBeUnequipped: true as const,
       },
-      text: '1件30级及以上法兵，必须处于未装备状态',
+      text: '1件筑基及以上法兵，必须处于未装备状态',
       rawTerms: ['weapon'],
       emphasis: ['quantity', 'effect', 'effect', 'warning'],
     },

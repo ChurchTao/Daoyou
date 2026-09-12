@@ -189,7 +189,7 @@ it('feeds changed JSON into generation, forging and instance validation', async 
     createdAt: '2026-09-11T00:00:00.000Z',
     seed: 1,
     templateId: changed.templates[0].id,
-    equipmentLevel: 180,
+    equipmentLevel: 170,
   };
   expect(daoEquipmentGenerationRulesV1.bonusCount(0)).toBe(2);
   for (const result of [
@@ -204,9 +204,9 @@ it('feeds changed JSON into generation, forging and instance validation', async 
   ]) {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error('generation failed');
-    expect(result.instance.baseStats[0].value).toBe(180);
+    expect(result.instance.baseStats[0].value).toBe(170);
     expect(result.instance.attributeBonuses.map((s) => s.value)).toEqual([
-      36, 36,
+      34, 34,
     ]);
     expect(
       compileDaoEquipmentSpecialLoadoutV1({ weapon: result.instance }, 180).ok,

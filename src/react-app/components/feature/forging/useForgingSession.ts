@@ -1,3 +1,4 @@
+import { equipmentRealm } from '@shared/engine/combat-v6/equipment/realm';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type { ForgeRequest, ForgeView } from '@shared/contracts/forging';
@@ -73,8 +74,8 @@ export function useForgingSession() {
   function itemProblem(item: ForgeItem, targetCost = cost): string | null {
     const def = itemDefinition(item.definitionId);
     if (def.kind === 'blueprint')
-      return def.level! > (view?.ownerLevel ?? 0)
-        ? '图纸等级超过人物等级'
+      return equipmentRealm(def.level!).requiredLevel > (view?.ownerLevel ?? 0)
+        ? '图纸境界超过人物境界'
         : null;
     if (def.kind !== 'material') return '此物不能用于铸造';
     if (!targetCost) return '请先选择道装图纸';

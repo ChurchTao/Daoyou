@@ -1,3 +1,4 @@
+import { equipmentRealm, isEquipmentLevel } from './realm';
 import type { Attributes } from '@shared/types/cultivator';
 import { isForgedName } from '../../../forging/names';
 import type { CombatV6ProjectionDiagnostic } from '../projection/types.ts';
@@ -74,11 +75,7 @@ function diagnostic(
   return { severity: 'error', code, message, ...(path ? { path } : {}) };
 }
 
-function equipmentLevelIsValid(level: number): boolean {
-  return (
-    Number.isInteger(level) && level >= 10 && level <= 180 && level % 10 === 0
-  );
-}
+
 
 function rollIsIntegerInRange(
   value: number,
@@ -140,13 +137,13 @@ function validateInstance(
     );
   }
   if (
-    !equipmentLevelIsValid(instance.equipmentLevel) ||
-    instance.requiredLevel !== instance.equipmentLevel
+    !isEquipmentLevel(instance.equipmentLevel) ||
+    instance.requiredLevel !== equipmentRealm(instance.equipmentLevel).requiredLevel
   ) {
     diagnostics.push(
       diagnostic(
         'INVALID_EQUIPMENT_LEVEL',
-        '器阶必须为10～180的10倍数且御使等级必须相等',
+        '道装必须属于九个境界档位，御使门槛须为对应境界初期',
       ),
     );
   }
@@ -406,12 +403,12 @@ export function compileDaoEquipmentLoadoutV1(
     instanceIds.add(instance.id);
     if (
       !Number.isFinite(characterLevel) ||
-      characterLevel < instance.requiredLevel
+      characterLevel < equipmentRealm(instance.equipmentLevel).requiredLevel
     ) {
       diagnostics.push(
         diagnostic(
           'EQUIPMENT_LEVEL_REQUIREMENT',
-          `人物等级不足以御使 ${instance.name}`,
+          `人物境界不足以御使 ${instance.name}`,
           slot,
         ),
       );
@@ -536,13 +533,13 @@ export function compileDaoEquipmentSpecialLoadoutV1(
         ),
       );
     instanceIds.add(instance.id);
-    const required = Math.max(0, instance.requiredLevel + requiredLevelOffset);
+    const required = Math.max(0, equipmentRealm(instance.equipmentLevel).requiredLevel + requiredLevelOffset);
     effectiveRequiredLevels[slot] = required;
     if (!Number.isFinite(characterLevel) || characterLevel < required) {
       diagnostics.push(
         diagnostic(
           'EQUIPMENT_LEVEL_REQUIREMENT',
-          `人物等级不足以御使 ${instance.name}`,
+          `人物境界不足以御使 ${instance.name}`,
           slot,
         ),
       );

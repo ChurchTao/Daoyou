@@ -1,3 +1,5 @@
+import { getLevelRealmStage } from '@shared/config/realmProgression';
+import { EQUIPMENT_LEVELS } from '../../engine/combat-v6/equipment/realm';
 import { DAO_EQUIPMENT_SLOTS } from '../../engine/combat-v6/equipment/types';
 export const EQUIPMENT_SLOT_NAMES = {
   weapon: '法兵',
@@ -8,11 +10,10 @@ export const EQUIPMENT_SLOT_NAMES = {
   footwear: '云履',
 };
 export const BLUEPRINTS = DAO_EQUIPMENT_SLOTS.flatMap((slot) =>
-  Array.from({ length: 18 }, (_, index) => {
-    const level = (index + 1) * 10;
+  EQUIPMENT_LEVELS.map((level) => {
     return {
       id: `blueprint.${slot}.${level}`,
-      name: `${level}级${EQUIPMENT_SLOT_NAMES[slot]}图纸`,
+      name: `${getLevelRealmStage(level).realm}${EQUIPMENT_SLOT_NAMES[slot]}图纸`,
       kind: 'blueprint' as const,
       stackLimit: 99,
       slot,

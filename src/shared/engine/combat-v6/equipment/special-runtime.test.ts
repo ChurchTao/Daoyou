@@ -224,7 +224,7 @@ function equipment(
   const result = generateDaoEquipmentV2({
     id: slot,
     templateId: `dao_equipment.standard.${slot}.v1`,
-    equipmentLevel: 180,
+    equipmentLevel: 170,
     seed: 1,
     createdAt: 'test',
     generatorVersion: 'dao_equipment_generator_v2',

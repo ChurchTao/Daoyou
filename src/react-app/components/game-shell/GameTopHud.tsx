@@ -632,7 +632,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
                 <tr>
                   <td className="px-3 py-1.5">炼器</td>
                   <td className="text-ink px-3 py-1.5 text-right font-mono">
-                    7～41（随图纸等级）
+                    7～39（随图纸境界）
                   </td>
                 </tr>
               </tbody>

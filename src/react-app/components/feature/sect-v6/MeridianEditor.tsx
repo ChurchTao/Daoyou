@@ -1,5 +1,6 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { getLevelRealmStage } from '@shared/config/realmProgression';
 import {
   COMBAT_V6_SECT_DEFINITIONS,
   type MeridianNodeDefV6,
@@ -232,7 +233,12 @@ export function MeridianEditor({
           {progress.meridianDepth < 7 ? (
             <div className="text-ink-secondary flex flex-wrap items-center justify-between gap-2 text-xs">
               <span>
-                下一层 · 人物{MERIDIAN_LEVELS[Number(progress.meridianDepth)]}级
+                下一层 · 人物
+                {
+                  getLevelRealmStage(
+                    MERIDIAN_LEVELS[Number(progress.meridianDepth)],
+                  ).label
+                }
               </span>
               <InkButton
                 disabled={locked || dirty}
@@ -418,7 +424,11 @@ function NodeDetails({
             <p className="text-ink-secondary text-xs leading-relaxed">
               解锁条件
             </p>
-            <p>人物达到{MERIDIAN_LEVELS[node.layer - 1]}级，逐层解锁。</p>
+            <p>
+              人物达到
+              {getLevelRealmStage(MERIDIAN_LEVELS[node.layer - 1]).label}
+              ，逐层解锁。
+            </p>
           </>
         ) : (
           <>

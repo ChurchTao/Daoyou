@@ -3,6 +3,7 @@ import { BeastSkillGrid } from '@app/components/feature/beasts/BeastSkillGrid';
 import { InkModal } from '@app/components/layout/InkModal';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
+import { getLevelRealmStage } from '@shared/config/realmProgression';
 import {
   BEAST_SPECIES,
   beastPanel,
@@ -15,6 +16,7 @@ import {
   BEAST_ATTRIBUTE_NAMES,
   nextBeastExp,
 } from '@shared/engine/combat-v6/beasts/progression';
+import { beastRealm } from '@shared/engine/combat-v6/beasts/projection';
 import { useState } from 'react';
 import type { BeastAction } from './BeastActionDrawer';
 
@@ -98,9 +100,9 @@ export function BeastPanel({
   const exp = nextBeastExp(beast.level);
   const reason =
     !definition || definition.carryLevel > ownerLevel
-      ? '人物等级未达到携带要求'
+      ? '人物境界未达到携带要求'
       : beast.level > ownerLevel
-        ? '战斗等级超过人物等级'
+        ? '灵兽修为超过人物承载上限'
         : beast.currentLifespan < BEAST_PROGRESSION.lifespan.deployMinimum
           ? '寿命不足，请先休养'
           : undefined;
@@ -120,7 +122,8 @@ export function BeastPanel({
             {isLead ? <BeastLeadSeal /> : null}
           </div>
           <p className="text-ink-secondary text-xs leading-6">
-            战斗等级 {beast.level} · 携带等级 {definition?.carryLevel ?? '—'}
+            境界 {beastRealm(beast.level)} · 携带境界{' '}
+            {definition ? getLevelRealmStage(definition.carryLevel).label : '—'}
           </p>
           <div className="text-ink-secondary flex flex-wrap items-center gap-x-3 text-xs">
             <span>成长 {beast.growth.toFixed(3)}</span>

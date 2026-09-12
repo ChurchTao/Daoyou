@@ -83,7 +83,7 @@ export function BeastBookDrawer({
     if (!definition.skillId) return '此兽诀已无法学习。';
     if (!beast || !roster) return '正在核对灵兽状态。';
     if (!beast.skillSlotCapacity) return '此灵兽没有可用技能格。';
-    if (beast.level > roster.ownerLevel) return '灵兽战斗等级高于人物等级。';
+    if (beast.level > roster.ownerLevel) return '灵兽修为超过人物承载上限。';
     if (beast.skills.includes(definition.skillId!)) return '灵兽已拥有此技能。';
     return '';
   }
@@ -276,7 +276,7 @@ export function BeastBookDrawer({
                 ? itemDefinition(selected.definitionId).name
                 : '归元灵露'}
               将消耗{consumeQuantity}瓶。
-              等级、经验与加点归零，资质、成长及全部技能重新生成，技能格可能减少。
+              修为回到初始境界，经验与加点归零，资质、成长及全部技能重新生成，技能格可能减少。
               原兽诀不返还，当前寿命恢复至原上限，结果不可撤销。
             </>
           ) : (

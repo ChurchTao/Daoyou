@@ -4,97 +4,97 @@ import { generateForgedEquipment } from './forging';
 import { generateDaoEquipmentV1, generateDaoEquipmentV2 } from './generator';
 import { DAO_EQUIPMENT_SLOTS } from './types';
 
-// Captured before G1 migration: complete V1/V2/V3 outputs, including downstream RNG.
+// 九境界档位与初期门槛的完整 V1/V2/V3 输出基线。
 const baselines = [
   {
     slot: 'weapon',
     level: 10,
-    hash: '4e667db374de7128bfab48c25822acf58b1982db33256f081d27f736dbf75cde',
+    hash: '49ad3e35e0bff7a0b5c74a617eb4c870407e6ff75c93603f9becf94bf38724ab',
   },
   {
     slot: 'weapon',
     level: 90,
-    hash: '33ac2b3439268d549526d18efb66718ae855d1616a5fa28eccd67d8c9e021126',
+    hash: '792aec0984022087d6da62a6bcc72fd99f437e8041d4d020b9d5b5ab1cfb119f',
   },
   {
     slot: 'weapon',
-    level: 180,
-    hash: '6dee764f927a449acb40765b2a7be413cf3948e1b875f0c61e35bc93d1e8087a',
+    level: 170,
+    hash: '8f76f38881fa90a7495ac9bfaa9c292e599e720348366ea8b768f222496a9413',
   },
   {
     slot: 'head',
     level: 10,
-    hash: '026e311b51e47e1110ee6130fe6d536a99dadcb03ea1ad97fe7c2759b57548d6',
+    hash: 'c998a93ff16102b0f93fc961b51f3926ff81d4736eb66bd84d9dd7fdf9a611e9',
   },
   {
     slot: 'head',
     level: 90,
-    hash: '4a2e79b4bfd8c42bcf9fa0021067a18776dacb2c00b705761c928a4513421b70',
+    hash: 'ee4604ca1d923c86f53fb11ef08490d2174fac2e35e789170eccdbafb824dc1f',
   },
   {
     slot: 'head',
-    level: 180,
-    hash: 'bddb13189f1b38ff0161cbf501b2094bede6cba46b8b47e221ffee3e4f179fae',
+    level: 170,
+    hash: '7f3c09704b6126eb66971addfcec820e35f2310bc61eb671174e336c120dd6c4',
   },
   {
     slot: 'armor',
     level: 10,
-    hash: 'a5e5b860be186b830dbc7f36fe0468fa1313dfebabf922600c1de1f5cad03301',
+    hash: 'b3cab8b1b45fa3fe5b2eb15391990729da7f739b4e0320ba362ffa7b33a605f2',
   },
   {
     slot: 'armor',
     level: 90,
-    hash: '54e8fb7e024ca83d8a12b8b1b9c8e0f586e63ce403941f162e9691b164676291',
+    hash: '8eff045139c8b86b67a4e5f93aa29b19a53a93ca92c8741353184396362a0c54',
   },
   {
     slot: 'armor',
-    level: 180,
-    hash: 'fd152e01f2f8517e407c10476ae655e8631bf94439342bfb7b6cfe85066009df',
+    level: 170,
+    hash: 'd418afc2a7289c0b320077fac8f61fa7fcd9b67d18304132bf64dc7e64c925e1',
   },
   {
     slot: 'necklace',
     level: 10,
-    hash: '95169b941fdc975dfc8aaeee2f6761dd86c9eea25e643064c284bd8d674512b6',
+    hash: '2dd41a1b4ebc2658362ce1eda42e3b467b5c8a8bfb5a3d4b3389502bbf09b179',
   },
   {
     slot: 'necklace',
     level: 90,
-    hash: 'b0e0993ffa63a096b95e011da43639f12b30414dcde18cd493d55fa4f6f78f73',
+    hash: '7815abc6ba3ec71d15857131f8bedd12c60c9f251c22b6ebfce4414d523da6fe',
   },
   {
     slot: 'necklace',
-    level: 180,
-    hash: '0eb2f13e0fce5e0e8d25007a5daeda74722af923831dfe0a879ed27abf44b6a0',
+    level: 170,
+    hash: '8c4c6ea83bcd20ba908722e273ae4c6696aa56a316b5be850201189a76b0a715',
   },
   {
     slot: 'belt',
     level: 10,
-    hash: '53c6194b28b2ffd74028c78cb51d76ba2f9189b6d34d41e8887c0b4816f83b02',
+    hash: '0afbf4628b191025eb9139f5e2621fc97a5afc3eceaa1a50bdcb86449424b43e',
   },
   {
     slot: 'belt',
     level: 90,
-    hash: '9a9c3f787cc7ae9c50517891e19b768d6185558404ec97a89e2f74b812e84c81',
+    hash: '101593c4762cda6bf7aa5091f7282972272f50f25b33a448f94df5138f81a0a0',
   },
   {
     slot: 'belt',
-    level: 180,
-    hash: '496cec435ad28c6364c3acca2fa7d225abb5ae492e7494aea234209ea07d2c29',
+    level: 170,
+    hash: '3309543ebe4f922de20a6ac023e42c2888ca429ea862519e29ed5add3b10abf7',
   },
   {
     slot: 'footwear',
     level: 10,
-    hash: 'c3df1d7dea7c852ef8b850ce8c549c3649f2748fa30fb426c731c898d8902f18',
+    hash: 'e594223dcba3019addd0b3e8535483e8b76817df4ade6cf5cd0d10374baeb6a5',
   },
   {
     slot: 'footwear',
     level: 90,
-    hash: '0d248d3c16c74e65039d6f780156ab5066c448b8453d9ff94c173b4b76c47f5e',
+    hash: '8d2bcb178d0c41936f279c5e3408f6f35c75c18b5af453fae57d5eabe395f43e',
   },
   {
     slot: 'footwear',
-    level: 180,
-    hash: 'a459b42c4c094ae0a13893d29cb0f656bf7c951275f855347ac303b8b1e5e36d',
+    level: 170,
+    hash: 'b27713b55abbe42490566e3766dedf112edc20400417951f18283a594273f6f1',
   },
 ] as const;
 
@@ -130,7 +130,7 @@ function digest(
 }
 
 it.each(baselines)(
-  'preserves pre-G1 output for $slot at level $level across 256 seeds',
+  'preserves realm-tier output for $slot at level $level across 256 seeds',
   ({ slot, level, hash }) => {
     expect(digest(slot, level)).toBe(hash);
   },

@@ -179,7 +179,7 @@ export function CombatV6Commands({
                       捕捉
                     </button>
                     <InkTooltip label="查看捕捉说明">
-                      执行时消耗法力，失败也会消耗。目标失效会自动转向可捕捉灵兽；持有已满或未达到携带等级时不能捕捉。
+                      执行时消耗法力，失败也会消耗。目标失效会自动转向可捕捉灵兽；持有已满或未达到携带境界时不能捕捉。
                       {capture.costs.mp
                         ? ` 当前目标消耗 ${capture.costs.mp} MP。`
                         : ''}

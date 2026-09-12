@@ -8,6 +8,7 @@ import {
   getRealmStageNaturalAttributeValue,
   getRealmStageRank,
   getRealmStageLevel,
+  getLevelRealmStage,
   getRealmStageUnallocatedAttributeBudget,
 } from './realmProgression';
 
@@ -82,5 +83,34 @@ describe('realmProgression', () => {
     expect(getRealmEffectChanceMultiplier(20)).toBe(1.35);
     expect(getRealmEffectChanceMultiplier(-4)).toBe(0.8);
     expect(getRealmEffectChanceMultiplier(-20)).toBe(0.55);
+  });
+});
+
+describe('等级境界展示', () => {
+  it('全部人物小境界可往返映射', () => {
+    for (const realm of REALM_VALUES) {
+      for (const stage of REALM_STAGE_VALUES) {
+        expect(getLevelRealmStage(getRealmStageLevel(realm, stage))).toEqual({
+          realm,
+          stage,
+          label: `${realm}${stage}`,
+        });
+      }
+    }
+  });
+
+  it.each([
+    [0, '炼气初期'],
+    [5, '炼气初期'],
+    [6, '炼气中期'],
+    [10, '炼气中期'],
+    [20, '炼气圆满'],
+    [21, '筑基初期'],
+    [50, '金丹中期'],
+    [90, '化神中期'],
+    [130, '合体中期'],
+    [180, '渡劫圆满'],
+  ])('将 %s 映射为 %s，并向上取到可满足门槛的境界', (level, label) => {
+    expect(getLevelRealmStage(level).label).toBe(label);
   });
 });

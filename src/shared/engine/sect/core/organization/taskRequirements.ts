@@ -1,3 +1,4 @@
+import { getLevelRealmStage } from '@shared/config/realmProgression';
 import { DAO_EQUIPMENT_SLOTS } from '@shared/engine/combat-v6/equipment/types';
 import { combatCharacterLevel } from '@shared/engine/combat-v6/projection/character-level';
 import type { DailyTaskDifficulty } from '@shared/engine/cultivation/exp-gain-strategies/types';
@@ -514,7 +515,10 @@ export function formatSectDeliveryRequirement(
   if (requirement.kind === 'equipment')
     return [
       emphasized('1件', 'quantity'),
-      emphasized(`${requirement.minEquipmentLevel}级及以上`, 'effect'),
+      emphasized(
+        `${getLevelRealmStage(requirement.minEquipmentLevel).realm}及以上`,
+        'effect',
+      ),
       emphasized(EQUIPMENT_SLOT_NAMES[requirement.slot], 'effect'),
       { text: '，必须处于' },
       emphasized('未装备', 'warning'),

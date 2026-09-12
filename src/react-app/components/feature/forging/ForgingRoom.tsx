@@ -5,6 +5,7 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
+import { getLevelRealmStage } from '@shared/config/realmProgression';
 import { DAO_EQUIPMENT_FORGING } from '@shared/engine/combat-v6/equipment/forging-content';
 import { itemDefinition } from '@shared/inventory';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -169,7 +170,11 @@ export function ForgingRoom() {
                         aria-live="polite"
                       >
                         <p className="text-ink-secondary text-xs">
-                          {result.equipment.equipmentLevel}级 · 已收入储物袋
+                          {
+                            getLevelRealmStage(result.equipment.equipmentLevel)
+                              .realm
+                          }{' '}
+                          · 已收入储物袋
                         </p>
                         <div className="flex justify-center gap-4">
                           <InkButton
@@ -282,7 +287,7 @@ export function ForgingRoom() {
                 <section>
                   <h3 className="mb-2 font-medium">依图定形</h3>
                   <p className="text-ink-secondary">
-                    图纸决定道装的等级与槽位，不可铸造高于人物等级的图纸。每炉需要一卷图纸与规定数量、品质的材料。
+                    图纸决定道装的境界与槽位，不可铸造高于人物境界的图纸。每炉需要一卷图纸与规定数量、品质的材料。
                   </p>
                 </section>
                 <section>

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { QUALITY_VALUES } from '../../../types/constants';
+import { EQUIPMENT_LEVELS } from './realm';
 import {
   DAO_EQUIPMENT_SLOTS,
   type DaoEquipmentArtDefV1,
@@ -22,14 +23,14 @@ export const EquipmentForgingPackShape = z.strictObject({
     costs: z
       .array(
         z.strictObject({
-          level: z.number().int().min(10).max(180).multipleOf(10),
+          level: z.union(EQUIPMENT_LEVELS.map((level) => z.literal(level))),
           spiritStones: z.number().int().nonnegative().max(100_000_000),
           qi: z.number().int().nonnegative().max(1_000_000),
           quantity: z.number().int().min(1).max(5),
           rank: z.enum(QUALITY_VALUES),
         }),
       )
-      .length(18),
+      .length(9),
   }),
 });
 

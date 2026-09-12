@@ -1,3 +1,4 @@
+import { equipmentRealm } from '@shared/engine/combat-v6/equipment/realm';
 import {
   DAO_EQUIPMENT_ARTS_V1,
   DAO_EQUIPMENT_ESSENCES_V1,
@@ -18,9 +19,7 @@ export function EquipmentDetails({
   const old = previous ? InventoryEquipmentSchema.parse(previous) : undefined;
   return (
     <div className="space-y-3 text-sm">
-      <p>
-        {equipment.equipmentLevel}级 · 御使基础等级 {equipment.requiredLevel}
-      </p>
+      <p>御使境界 {equipmentRealm(equipment.equipmentLevel).realm}初期</p>
       {(['baseStats', 'attributeBonuses'] as const).map((key) => (
         <div key={key}>
           <p className="text-ink-secondary">

@@ -21,8 +21,8 @@ const facts = MaterialFactsSchema.parse({
 });
 describe('blueprint forging', () => {
   it('registers unique blueprints for all slots and levels', () => {
-    expect(BLUEPRINTS).toHaveLength(108);
-    expect(new Set(BLUEPRINTS.map((b) => b.id)).size).toBe(108);
+    expect(BLUEPRINTS).toHaveLength(54);
+    expect(new Set(BLUEPRINTS.map((b) => b.id)).size).toBe(54);
   });
   it('charges fixed costs at tier boundaries', () => {
     expect(forgingCost(10)).toEqual({
@@ -31,37 +31,37 @@ describe('blueprint forging', () => {
       quantity: 1,
       rank: '凡品',
     });
-    expect(forgingCost(40).quantity).toBe(1);
+    expect(forgingCost(30).quantity).toBe(1);
     expect(forgingCost(50).rank).toBe('灵品');
-    expect(forgingCost(60)).toEqual({
-      spiritStones: 3600,
-      qi: 17,
+    expect(forgingCost(50)).toEqual({
+      spiritStones: 2500,
+      qi: 15,
       quantity: 2,
       rank: '灵品',
     });
-    expect(forgingCost(180)).toEqual({
-      spiritStones: 32400,
-      qi: 41,
+    expect(forgingCost(170)).toEqual({
+      spiritStones: 28900,
+      qi: 39,
       quantity: 5,
       rank: '地品',
     });
     expect(() => forgingCost(15)).toThrow();
   });
   it('rejects overlevel, excessive, insufficient and under-quality inputs', () => {
-    expect(() => forgingBoosts(20, 19, [{ facts, quantity: 1 }])).toThrow(
-      '人物等级',
+    expect(() => forgingBoosts(30, 20, [{ facts, quantity: 1 }])).toThrow(
+      '人物境界',
     );
-    expect(() => forgingBoosts(20, 20, [{ facts, quantity: 2 }])).toThrow(
+    expect(() => forgingBoosts(10, 20, [{ facts, quantity: 2 }])).toThrow(
       '恰好',
     );
-    expect(() => forgingBoosts(20, 20, [])).toThrow('恰好');
+    expect(() => forgingBoosts(10, 20, [])).toThrow('恰好');
     expect(() =>
-      forgingBoosts(180, 180, [
+      forgingBoosts(170, 180, [
         { facts: { ...facts, rank: '凡品' }, quantity: 5 },
       ]),
     ).toThrow('品质');
     expect(() =>
-      forgingBoosts(20, 20, [
+      forgingBoosts(10, 20, [
         { facts: { ...facts, type: 'herb' }, quantity: 1 },
       ]),
     ).toThrow('不能用于铸造');
@@ -72,7 +72,7 @@ describe('blueprint forging', () => {
   });
   it('groups aux and monster together without quality multipliers', () => {
     expect(
-      forgingBoosts(180, 180, [
+      forgingBoosts(170, 180, [
         { facts: { ...facts, type: 'aux' }, quantity: 2 },
         { facts: { ...facts, type: 'monster', rank: '神品' }, quantity: 3 },
       ]),
@@ -113,7 +113,7 @@ describe('blueprint forging', () => {
           createdAt: '2026-09-07T00:00:00Z',
           seed,
           templateId: `dao_equipment.standard.${slot}.v1`,
-          equipmentLevel: 180,
+          equipmentLevel: 170,
         };
         const base = generateDaoEquipmentV2({
           ...input,
@@ -132,7 +132,7 @@ describe('blueprint forging', () => {
         expect(zero.instance).toEqual({
           ...base.instance,
           generatorVersion: 'dao_equipment_generator_v3',
-          name: forgedName(slot, 180, seed),
+          name: forgedName(slot, 170, seed),
         });
         expect(result.instance.artId).toBe(base.instance.artId);
         expect(result.instance.attributeBonuses.map((r) => r.attr)).toEqual(

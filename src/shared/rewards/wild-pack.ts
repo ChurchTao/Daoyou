@@ -1,3 +1,4 @@
+import { EQUIPMENT_LEVELS } from '../engine/combat-v6/equipment/realm';
 import { formatContentPackErrors } from '@shared/lib/content-pack-errors';
 import { z } from 'zod';
 import { DropPoolSchema, type DropPool } from '../drops';
@@ -9,7 +10,7 @@ import { findItemDefinition } from '../items/registry';
 import raw from './data/wild.json';
 
 export const WILD_EQUIPMENT_REWARDS = new Map<string, { slot: DaoEquipmentSlot; level: number }>(
-  Array.from({ length: 18 }, (_, i) => (i + 1) * 10).flatMap(level => DAO_EQUIPMENT_SLOTS.map(slot => [`equipment.${slot}.${level}`, { slot, level }] as const)),
+  EQUIPMENT_LEVELS.flatMap(level => DAO_EQUIPMENT_SLOTS.map(slot => [`equipment.${slot}.${level}`, { slot, level }] as const)),
 );
 const quantity = z.strictObject({ min: z.number().int().min(1).max(99), max: z.number().int().min(1).max(99) });
 export const WildRewardPackShape = z.strictObject({

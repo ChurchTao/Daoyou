@@ -196,8 +196,7 @@ function WildRegion({ nodeId }: { nodeId: string }) {
                 溪水穿过灵草坡，草丛中不时传来灵兽的动静。
               </p>
               <p className="text-sm">
-                准入：{region.realmRequirement} · 灵兽：{region.beastRealm}（
-                {region.minLevel}～{region.maxLevel}级）
+                准入：{region.realmRequirement} · 灵兽：{region.beastRealm}
               </p>
               <div className="grid gap-4 sm:grid-cols-3">
                 {region.species.map((s) => (

@@ -1,3 +1,4 @@
+import { equipmentRealm, isEquipmentLevel } from "./realm"
 import { SeededRng } from "../core/index.ts"
 import type { CombatV6ProjectionDiagnostic } from "../projection/types.ts"
 import { DAO_EQUIPMENT_BASE_GENERATION, daoEquipmentAttributeRange, daoEquipmentTemplateOf } from "./content.ts"
@@ -29,9 +30,7 @@ function error(
   return { severity: "error", code, message, ...(path ? { path } : {}) }
 }
 
-function isEquipmentLevel(level: number): boolean {
-  return Number.isInteger(level) && level >= 10 && level <= 180 && level % 10 === 0
-}
+
 
 function integer(rng: SeededRng, min: number, max: number): number {
   return min + Math.floor(rng.next() * (max - min + 1))
@@ -69,7 +68,7 @@ export function generateDaoEquipmentV1(
     diagnostics.push(error("UNKNOWN_EQUIPMENT_TEMPLATE", "道装模板不存在", "templateId"))
   }
   if (!isEquipmentLevel(input.equipmentLevel)) {
-    diagnostics.push(error("INVALID_EQUIPMENT_LEVEL", "器阶必须是10～180之间的10倍数", "equipmentLevel"))
+    diagnostics.push(error("INVALID_EQUIPMENT_LEVEL", "道装必须属于九个境界档位", "equipmentLevel"))
   }
   if (!Number.isInteger(input.seed) || input.seed < 0 || input.seed > 0xffffffff) {
     diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "seed 必须是0～2^32-1的整数", "seed"))
@@ -97,7 +96,7 @@ export function generateDaoEquipmentV1(
       name: template.name,
       slot: template.slot,
       equipmentLevel: input.equipmentLevel,
-      requiredLevel: input.equipmentLevel,
+      requiredLevel: equipmentRealm(input.equipmentLevel).requiredLevel,
       baseStats,
       attributeBonuses,
       essenceIds: [],
@@ -155,7 +154,7 @@ export function generateDaoEquipmentV2(
   const diagnostics: CombatV6ProjectionDiagnostic[] = []
   const template = daoEquipmentTemplateOf(input.templateId)
   if (!template) diagnostics.push(error("UNKNOWN_EQUIPMENT_TEMPLATE", "道装模板不存在", "templateId"))
-  if (!isEquipmentLevel(input.equipmentLevel)) diagnostics.push(error("INVALID_EQUIPMENT_LEVEL", "器阶必须是10～180之间的10倍数", "equipmentLevel"))
+  if (!isEquipmentLevel(input.equipmentLevel)) diagnostics.push(error("INVALID_EQUIPMENT_LEVEL", "道装必须属于九个境界档位", "equipmentLevel"))
   if (!Number.isInteger(input.seed) || input.seed < 0 || input.seed > 0xffffffff) diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "seed 必须是0～2^32-1的整数", "seed"))
   if (!input.id?.trim() || !input.createdAt?.trim()) diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "道装 id 与 createdAt 不能为空"))
   if (input.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION_V2) diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "生成器版本不受支持", "generatorVersion"))
@@ -187,7 +186,7 @@ export function generateDaoEquipmentV2(
       name: template.name,
       slot: template.slot,
       equipmentLevel: input.equipmentLevel,
-      requiredLevel: input.equipmentLevel,
+      requiredLevel: equipmentRealm(input.equipmentLevel).requiredLevel,
       baseStats,
       attributeBonuses,
       essenceIds,

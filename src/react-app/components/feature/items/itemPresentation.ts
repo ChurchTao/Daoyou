@@ -1,5 +1,6 @@
 import { tierColorMap } from '@app/components/ui/inkBadgeTiers';
 import { beastSkillPresentation } from '@shared/combat-v6/beast-skill-presentation';
+import { getLevelRealmStage } from '@shared/config/realmProgression';
 import type { InventoryView } from '@shared/contracts/inventory';
 import { BEAST_REFINEMENT } from '@shared/engine/combat-v6/beasts/refinement-config';
 import { CHARACTER_MANUALS_V1 } from '@shared/engine/combat-v6/manuals/content';
@@ -9,7 +10,6 @@ import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
 import { MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
 import { materialFactsOf } from '@shared/items/material';
-import { REALM_STAGE_VALUES, REALM_VALUES } from '@shared/types/constants';
 import { createElement } from 'react';
 import { OriginDewIcon } from './OriginDewIcon';
 
@@ -26,16 +26,8 @@ const equipmentIcons = {
   footwear: '👢',
 };
 function levelTier(level: number) {
-  const realm =
-    REALM_VALUES[
-      Math.min(
-        REALM_VALUES.length - 1,
-        Math.floor(
-          Math.max(0, Math.ceil(level / 5) - 1) / REALM_STAGE_VALUES.length,
-        ),
-      )
-    ];
-  return { color: tierColorMap[realm], tier: `${realm} · ${level}级` };
+  const { realm } = getLevelRealmStage(level);
+  return { color: tierColorMap[realm], tier: realm };
 }
 export function itemPresentation(item: DisplayItem) {
   if (item.definitionId === 'seed.v1') {
@@ -80,8 +72,8 @@ export function itemPresentation(item: DisplayItem) {
       const equipment = InventoryEquipmentSchema.parse(item.instanceData);
       return {
         icon: equipmentIcons[equipment.slot],
-        ...levelTier(equipment.requiredLevel),
-        type: `${EQUIPMENT_SLOT_NAMES[equipment.slot]} · 原始穿戴等级`,
+        ...levelTier(equipment.equipmentLevel),
+        type: `${EQUIPMENT_SLOT_NAMES[equipment.slot]} · 御使境界`,
         description: '',
       };
     }
@@ -90,7 +82,7 @@ export function itemPresentation(item: DisplayItem) {
         icon: '📜',
         ...levelTier(def.level!),
         type: '道装图纸',
-        description: `${EQUIPMENT_SLOT_NAMES[def.slot!]}图纸，铸造消耗一张。不可铸造高于人物等级的图纸。`,
+        description: `${EQUIPMENT_SLOT_NAMES[def.slot!]}图纸，铸造消耗一张。不可铸造高于人物境界的图纸。`,
       };
     case 'beast_refinement': {
       const dew = BEAST_REFINEMENT.items.find((item) => item.id === def.id)!;

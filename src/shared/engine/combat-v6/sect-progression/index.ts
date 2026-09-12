@@ -1,3 +1,4 @@
+import { getLevelRealmStage } from '@shared/config/realmProgression';
 import { SECT_PROGRESSION, configuredMethodCost, configuredMeridianCost, methodLevelCap } from './pack';
 import type { SectV6Action, SectV6Cost } from '@shared/contracts/combatV6Sect';
 import {
@@ -37,7 +38,7 @@ export function sectV6Change(
     const target = progress.methods[method.id] + 1;
     const primary = definition.methods.find((m) => m.isPrimary)!;
     if (target > methodLevelCap(characterLevel))
-      throw new SectV6RuleError('已达当前人物等级允许的心法上限');
+      throw new SectV6RuleError('已达当前人物境界允许的心法上限');
     if (!method.isPrimary && target > progress.methods[primary.id])
       throw new SectV6RuleError(`分支不可超过${primary.name}`);
     cost = methodTrainingCost(target);
@@ -47,7 +48,7 @@ export function sectV6Change(
     if (layer > 7) throw new SectV6RuleError('经脉已全部解锁');
     if (characterLevel < MERIDIAN_LEVELS[layer - 1])
       throw new SectV6RuleError(
-        `人物达到${MERIDIAN_LEVELS[layer - 1]}级后可解锁`,
+        `人物达到${getLevelRealmStage(MERIDIAN_LEVELS[layer - 1]).label}后可解锁`,
       );
     cost = meridianUnlockCost(layer);
     next.meridianDepth = layer as SectCombatProgressV6['meridianDepth'];

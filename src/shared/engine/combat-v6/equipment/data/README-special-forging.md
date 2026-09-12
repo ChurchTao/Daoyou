@@ -43,7 +43,7 @@
 
 `forging.boostPerMaterial` 是每份材料的择优重抽概率增量，原值 0.018；范围 0～0.2，最多六位小数。每炉最多五份是现有炉位限制，因而总概率不会超过 1。炼器室 tooltip 与铸器碑读取同一数值。
 
-`forging.costs` 按器阶列出 10～180 级的全部 18 行，每行填写：
+`forging.costs` 按器阶列出 九个大境界的 9 行（内部器阶 10、30、50、70、90、110、130、150、170），每行填写：
 
 - `spiritStones`：灵石数；`qi`：天地灵气数。
 - `quantity`：材料总数，1～5。
@@ -65,3 +65,5 @@ bun run build
 ```
 
 文件职责：`special-pack.ts`／`forging-pack.ts` 加载校验；`special-compiler.ts` 将机制参数转换为内核定义；`special-content.ts`／`forging-content.ts` 提供已验证内容；`special-ids.ts` 保留稳定程序标识。Schema 从相应 `*PackShape` 生成，并由测试检查一致性。
+
+九境界切换后，每境界只有一档图纸和道装，均在该境界初期开放。旧图纸、装备及待领取附件由 `0047_equipment_realm_cutover.sql` 清空；运行时不兼容旧器阶与旧门槛。生成基线已按九境界规则重录。
