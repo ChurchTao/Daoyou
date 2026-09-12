@@ -1,5 +1,5 @@
 import type { Attributes } from "@shared/types/cultivator"
-import { DAO_RAGE_RESOURCE, DAO_EQUIPMENT_MULTI_SECT_DOWNED_SKILL_IDS } from "../equipment/special-content.ts"
+import { DAO_RAGE_RESOURCE } from "../equipment/special-content.ts"
 import { compileSectCombatV6, compileSectCombatV6V2, compileSectCombatV6V3, compileCurrentSectCombatV6 } from "../content/index.ts"
 import { ATTR_NAMES, type AttrName, type CombatV6VersionStamp, type LineupUnit } from "../core/index.ts"
 import {
@@ -175,11 +175,6 @@ export function projectCultivatorWithEquipmentSpecialInternal(
     .filter((art) => equipment.projection.grantedArtIds.includes(art.id))
     .map((art) => art.skill.id)
   const artSkillLevels = Object.fromEntries(artSkillIds.map((id) => [id, 0]))
-  const phase6Overrides = allowMultiSect
-    ? DAO_EQUIPMENT_ARTS_V1
-        .filter((art) => artSkillIds.includes(art.skill.id) && DAO_EQUIPMENT_MULTI_SECT_DOWNED_SKILL_IDS.includes(art.skill.id))
-        .map((art) => ({ ...structuredClone(art.skill), targeting: { ...art.skill.targeting, includeDowned: true } }))
-    : []
   return {
     ok: true,
     unit: {
@@ -188,7 +183,7 @@ export function projectCultivatorWithEquipmentSpecialInternal(
       skills: [...(sect?.projection.activeSkillIds ?? []), ...artSkillIds],
       passives: [...(sect?.projection.passiveSkillIds ?? []), ...equipment.projection.passiveSkillIds],
       skillLevels: { ...sect?.projection.skillLevels, ...artSkillLevels },
-      skillOverrides: [...(sect?.projection.skillOverrides ?? []), ...equipment.projection.skillOverrides, ...phase6Overrides],
+      skillOverrides: [...(sect?.projection.skillOverrides ?? []), ...equipment.projection.skillOverrides],
       resources: [
         ...(sect?.projection.resources ?? []),
         { ...DAO_RAGE_RESOURCE },

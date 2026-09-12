@@ -357,8 +357,23 @@
             "type": "string",
             "pattern": "^dao_equipment\\.skill\\.[a-z][a-z0-9_]*$"
           },
-          "includeDownedInMultiSect": {
-            "type": "boolean"
+          "sourceName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "self",
+              "ally",
+              "allies",
+              "enemy",
+              "enemies"
+            ]
           },
           "rageCost": {
             "type": "integer",
@@ -379,25 +394,11 @@
                     "minimum": 0,
                     "maximum": 1,
                     "multipleOf": 0.000001
-                  }
-                },
-                "required": [
-                  "type",
-                  "ratio"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "restoreMp"
                   },
-                  "ratio": {
+                  "capPerLevel": {
                     "type": "number",
-                    "minimum": 0,
-                    "maximum": 1,
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000,
                     "multipleOf": 0.000001
                   }
                 },
@@ -416,8 +417,14 @@
                   },
                   "hpRatio": {
                     "type": "number",
-                    "minimum": 0,
+                    "exclusiveMinimum": 0,
                     "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "capPerLevel": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000,
                     "multipleOf": 0.000001
                   }
                 },
@@ -432,31 +439,27 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "const": "dispel"
+                    "const": "cleanse"
                   },
-                  "side": {
-                    "type": "string",
-                    "enum": [
-                      "ally",
-                      "enemy"
-                    ]
-                  },
-                  "categories": {
+                  "kinds": {
                     "minItems": 1,
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "enum": [
-                        "buff",
-                        "control"
-                      ]
+                      "minLength": 1
                     }
+                  },
+                  "healRatio": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
                   }
                 },
                 "required": [
                   "type",
-                  "side",
-                  "categories"
+                  "kinds",
+                  "healRatio"
                 ],
                 "additionalProperties": false
               },
@@ -465,14 +468,83 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "const": "defenseBuff"
+                    "const": "rageDamage"
                   },
-                  "attribute": {
+                  "amount": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "amount"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "status"
+                  },
+                  "statusId": {
+                    "type": "string",
+                    "pattern": "^dao_equipment\\.status\\.[a-z][a-z0-9_]*$"
+                  },
+                  "group": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "modifier": {
                     "type": "string",
                     "enum": [
-                      "physicalDef",
-                      "magicDef"
+                      "physicalDealt",
+                      "spellDealt",
+                      "physicalTaken",
+                      "spellTaken",
+                      "speed",
+                      "healTaken"
                     ]
+                  },
+                  "ratio": {
+                    "type": "number",
+                    "minimum": -1,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "duration": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "const": "battle"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 99
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "statusId",
+                  "group",
+                  "modifier",
+                  "ratio",
+                  "duration"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "restoreMp"
                   },
                   "ratio": {
                     "type": "number",
@@ -480,22 +552,23 @@
                     "maximum": 1,
                     "multipleOf": 0.000001
                   },
-                  "duration": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 99
+                  "casterLevelFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000,
+                    "multipleOf": 0.000001
                   },
-                  "statusId": {
-                    "type": "string",
-                    "pattern": "^dao_equipment\\.status\\.[a-z][a-z0-9_]*$"
+                  "capPerLevel": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000,
+                    "multipleOf": 0.000001
                   }
                 },
                 "required": [
                   "type",
-                  "attribute",
                   "ratio",
-                  "duration",
-                  "statusId"
+                  "casterLevelFactor"
                 ],
                 "additionalProperties": false
               },
@@ -504,15 +577,21 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "const": "physicalHit"
+                    "const": "massRevive"
                   },
-                  "coefficient": {
+                  "hpRatio": {
                     "type": "number",
                     "exclusiveMinimum": 0,
-                    "maximum": 1000000,
+                    "maximum": 1,
                     "multipleOf": 0.000001
                   },
-                  "defenseIgnore": {
+                  "remainingHpRatio": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "remainingMpRatio": {
                     "type": "number",
                     "minimum": 0,
                     "maximum": 1,
@@ -521,8 +600,9 @@
                 },
                 "required": [
                   "type",
-                  "coefficient",
-                  "defenseIgnore"
+                  "hpRatio",
+                  "remainingHpRatio",
+                  "remainingMpRatio"
                 ],
                 "additionalProperties": false
               },
@@ -531,24 +611,70 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "const": "spellHit"
+                    "const": "dispelBuff"
                   },
-                  "coefficient": {
+                  "chance": {
                     "type": "number",
-                    "exclusiveMinimum": 0,
-                    "maximum": 1000000,
+                    "minimum": 0,
+                    "maximum": 1,
                     "multipleOf": 0.000001
                   },
-                  "targetCount": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 10
+                  "artChance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
                   }
                 },
                 "required": [
                   "type",
-                  "coefficient",
-                  "targetCount"
+                  "chance",
+                  "artChance"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "attack"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "physical",
+                      "spell"
+                    ]
+                  },
+                  "resultFactors": {
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1,
+                      "multipleOf": 0.000001
+                    }
+                  },
+                  "defenseIgnore": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "mpDamageRatio": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "kind",
+                  "resultFactors"
                 ],
                 "additionalProperties": false
               }
@@ -559,6 +685,9 @@
           "id",
           "name",
           "skillId",
+          "sourceName",
+          "description",
+          "target",
           "rageCost",
           "effect"
         ],

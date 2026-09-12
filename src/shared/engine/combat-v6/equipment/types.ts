@@ -120,6 +120,7 @@ export interface DaoEquipmentEssenceDefV1 {
 export interface DaoEquipmentArtDefV1 {
   id: string;
   name: string;
+  description: string;
   allowedSlots?: DaoEquipmentSlot[];
   rageCost: number;
   skill: SkillDef;

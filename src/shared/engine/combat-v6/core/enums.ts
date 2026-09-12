@@ -56,6 +56,7 @@ export const SkillTag = {
   Seal: 'seal',
   Support: 'support',
   Passive: 'passive',
+  Art: 'art',
 } as const;
 export type SkillTag = (typeof SkillTag)[keyof typeof SkillTag];
 

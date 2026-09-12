@@ -57,6 +57,9 @@ export function combatV6Units(
   statuses: StatusDef[],
 ): CombatV6TrainingUnitViewV1[] {
   const names = new Map(statuses.map((s) => [s.id, s.name]));
+  const permanentIds = new Set(
+    statuses.filter((s) => s.untilBattleEnd).map((s) => s.id),
+  );
   return state.units
     .filter((u) => !u.flags.benched)
     .map((u) => {
@@ -88,6 +91,7 @@ export function combatV6Units(
           id: s.id,
           name: names.get(s.id) ?? '未知状态',
           remainingRounds: s.remainingRounds,
+          ...(permanentIds.has(s.id) ? { untilBattleEnd: true } : {}),
           stacks: s.stacks,
         })),
         barriers: u.barriers.map((b) => ({

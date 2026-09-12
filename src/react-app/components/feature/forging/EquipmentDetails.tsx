@@ -17,6 +17,9 @@ export function EquipmentDetails({
   previous?: unknown;
 }) {
   const equipment = InventoryEquipmentSchema.parse(data);
+  const art = DAO_EQUIPMENT_ARTS_V1.find(
+    (entry) => entry.id === equipment.artId,
+  );
   const old = previous ? InventoryEquipmentSchema.parse(previous) : undefined;
   return (
     <div className="space-y-3 text-sm">
@@ -97,9 +100,21 @@ export function EquipmentDetails({
       })}
       <p>
         器诀：
-        {DAO_EQUIPMENT_ARTS_V1.find((e) => e.id === equipment.artId)?.name ??
-          '无'}
+        {art?.name ?? '无'}
       </p>
+      {art ? (
+        <p className="text-ink-secondary">
+          战意消耗 <span className="font-mono">{art.rageCost}</span>（归元后{' '}
+          <span className="font-mono">
+            {Math.floor(
+              art.rageCost *
+                (DAO_EQUIPMENT_ESSENCES_V1.find((e) => e.resourceCostFactors)
+                  ?.resourceCostFactors?.['combat.resource.rage'] ?? 1),
+            )}
+          </span>
+          ）。{art.description}
+        </p>
+      ) : null}
       {old ? (
         <p className="text-ink-secondary">
           当前器蕴：

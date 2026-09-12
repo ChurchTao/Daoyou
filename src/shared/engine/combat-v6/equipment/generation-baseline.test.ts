@@ -4,97 +4,97 @@ import { generateForgedEquipment } from './forging';
 import { generateDaoEquipmentV1, generateDaoEquipmentV2 } from './generator';
 import { DAO_EQUIPMENT_SLOTS } from './types';
 
-// 经确认的14器蕴产出池与部位限制基线：炼气、化神、金丹，覆盖 V1/V2/V3 生成入口。
+// 经确认的14器蕴与38器诀产出池基线：炼气、化神、金丹，覆盖 V1/V2/V3 生成入口。
 const baselines = [
   {
     slot: 'weapon',
     level: 10,
-    hash: '1b7f68b46b680ad2cd0b76b691e238cda47ad88cc4ee500bf6bce449b81da13b',
+    hash: '2000971a143fee5f0977c15bfeb359df9212f9666bcfb36de9a4dac3a74af5bf',
   },
   {
     slot: 'weapon',
     level: 90,
-    hash: 'e56c39fadfeb7d578ecb5520c19dad1c40477976900e1da97bb19c8a9316a1fd',
+    hash: 'e43b208878180e72fa7a7df128596586f9cd1276f4ea3a4cfce5a463cd8360cb',
   },
   {
     slot: 'weapon',
     level: 50,
-    hash: '4aa6e952c36dd0abdafbfec0ff077a24f4969f0c568621ded65ad89108f61b5c',
+    hash: 'f597cc780f99d35f8aeea6d3ddf6fa9608415ceb443f388f7d7386880b508125',
   },
   {
     slot: 'head',
     level: 10,
-    hash: '214e7a9a20306d43d861ae4089843e466cae619008efba84d92c8469285c5024',
+    hash: '54e78b5a74047193a77f891e545a87fdd0625549ed1a74fa8065962c10b1f0b3',
   },
   {
     slot: 'head',
     level: 90,
-    hash: '6a7535256874879d3b478eceabe30e7c4af2807d2a1c3408f8be1729fafaa7e0',
+    hash: '9fac3c40a3da4fb25f8b4f27609dc51c38b87cca624fce134588b814294e3db5',
   },
   {
     slot: 'head',
     level: 50,
-    hash: '02a02146d84ded2b8bf773b16e47412fe7c95c6aaea0f24549351ef395261ae0',
+    hash: '37ff566219696071ea98840a54c09e94720cbab42cd58a48e6e4b13c1b2c3c97',
   },
   {
     slot: 'armor',
     level: 10,
-    hash: '038b2f9976c5e246db2d9e7c691c22ebd1bad6da2078ce78981cef87811d52db',
+    hash: '43b1605459c688d3c87ea615d8dfe999183e9852e95b4634e28c0ed292422194',
   },
   {
     slot: 'armor',
     level: 90,
-    hash: '0ac869a6890a7ec9f41ac0e100eadfc0b86b1505ad5a3324657aa148e5c35bda',
+    hash: 'a51bb2f7c7e425950122a4ab29aafaaef6f2aa384018fe1899b57f8d1319baab',
   },
   {
     slot: 'armor',
     level: 50,
-    hash: '30acab154ebc74298f3c21f5d43e99de2cdc6cc5ade029f61b8d16cc4a59a5dc',
+    hash: '2b1fac655caf76204acc4bf172c9115b89af6ca9318ca2d137de8af10baeb222',
   },
   {
     slot: 'necklace',
     level: 10,
-    hash: '7dfe41ca0f8b9bb9096fe7ecdac818313f616ba29d9abbfbb1b367bde1c0d2de',
+    hash: '5238b217dbf342b20ede5b9af61fbde3d07943a2e03f21a38d7f2872c662adea',
   },
   {
     slot: 'necklace',
     level: 90,
-    hash: 'b665e1b2dfc7d3e6054f8de756a5fe0d78db72683dcc338e8fa36cb43d3f5f30',
+    hash: '4432e4b9aa689470d3309f1e9e8552deefda57c016813c6f8617c5e2444c6407',
   },
   {
     slot: 'necklace',
     level: 50,
-    hash: 'e53a26fc70141e581e28aedab5454cde50ec9388ae728a244f6ddd3e37bae640',
+    hash: '5b15bada5676730e9d7e867de59d02c3d7fd6dddf5831f321167b9490d07b9e6',
   },
   {
     slot: 'belt',
     level: 10,
-    hash: '0f1e332aee1a0487b5ceff4893db6f31459c45a522d3f3a1b10bfb159635113f',
+    hash: '80af41d96281bae6965b7113a709b30ae1f187bc7f70f5d3904c2d79a9002d2c',
   },
   {
     slot: 'belt',
     level: 90,
-    hash: '6c652b768e239c983d22557663ca9a916c89bdd183ccc4ef2013fe8912454588',
+    hash: '7ee3881bed1859d3ece8e2cbd548a67d70271777211d1595ef08338188284778',
   },
   {
     slot: 'belt',
     level: 50,
-    hash: '6e17b5d4b93afa9fe84aef67d3d18f05fdcf6245d752404566e9e39080e98334',
+    hash: '5ea732ee6ead0c2f43ba93a86cd2d71c2e097dd1107da2463e36f753493b4a14',
   },
   {
     slot: 'footwear',
     level: 10,
-    hash: '9b76a84217190f872383c66e10c637d4187a7aea18e72c6c248f18d7e0c1c470',
+    hash: '8d34ccd231f0e1bd9da49fab95ca6e294818ff2d39066f87e2a6c3e0231a0e07',
   },
   {
     slot: 'footwear',
     level: 90,
-    hash: '1e068c2b7545203e22e4de15f943449cac010b3e19bb68f879dafe3b4eb24d04',
+    hash: '57cd033b0c5dc866c112feac22359a5d1217a1830d5b59ebeea4f8c3ca49ddf0',
   },
   {
     slot: 'footwear',
     level: 50,
-    hash: '29fcb8934a30e7b2ea71fb21791f9f3c112f62d4428126a3b9c0a6d80e822246',
+    hash: '1fafc842d0907918c69eace383c707ebc5dd9849c17cde978d785626c37cd73c',
   },
 ] as const;
 

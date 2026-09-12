@@ -41,6 +41,7 @@ const unitSchema = z
           id: z.string(),
           name: z.string().optional(),
           remainingRounds: z.number(),
+          untilBattleEnd: z.boolean().optional(),
           stacks: z.number(),
         })
         .strict(),

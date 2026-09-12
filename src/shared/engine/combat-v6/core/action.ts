@@ -448,6 +448,7 @@ function resolveSkillCommand(
   // 失心等封法：法术失败，未同时封物则转普通攻击。
   if (
     skill.tags.includes(SkillTag.Spell) &&
+    !skill.tags.includes(SkillTag.Art) &&
     hasBlock(ctx, unit, StatusFlag.BlocksSpell)
   ) {
     ctx.emit({
@@ -529,7 +530,7 @@ function resolveSkill(
   );
 
   if (targets.length === 0) {
-    if (skill.capture) {
+    if (skill.capture || skill.targeting.requireRevivable) {
       ctx.emit({
         type: EventType.ActionFailed,
         unitId: unit.id,
@@ -546,6 +547,10 @@ function resolveSkill(
     unit.attrs.hp / unit.attrs.maxHp < skill.requireHpRatio
   ) {
     fallbackToAttack(ctx, unit, targetIds, FailReason.HpRequirement);
+    return;
+  }
+  if (skill.requireHpAboveRatio !== undefined && unit.attrs.hp / unit.attrs.maxHp <= skill.requireHpAboveRatio) {
+    ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: FailReason.HpRequirement });
     return;
   }
   const missingResource = skill.resourceRequirements?.find(
@@ -575,7 +580,7 @@ function resolveSkill(
     return;
   }
   if (unit.attrs.mp < mpCost) {
-    if (skill.capture) {
+    if (skill.capture || skill.targeting.requireRevivable) {
       ctx.emit({
         type: EventType.ActionFailed,
         unitId: unit.id,
@@ -711,6 +716,19 @@ function resolveSkill(
       targetIds,
       env,
     );
+  }
+  if (!ctx.currentAction.failed && isStanding(unit) && (skill.successCostHp !== undefined || skill.successCostMp !== undefined)) {
+    const costEnv = { ...env, source: unit };
+    const hp = Math.min(Math.max(0, unit.attrs.hp - MIN_HP), Math.max(0, Math.floor(evalExpr(skill.successCostHp, costEnv))));
+    const mp = Math.min(unit.attrs.mp, Math.max(0, Math.floor(evalExpr(skill.successCostMp, costEnv))));
+    if (hp > 0) {
+      unit.attrs.hp -= hp;
+      ctx.emit({ type: EventType.HpCost, unitId: unit.id, amount: hp, hpAfter: unit.attrs.hp });
+    }
+    if (mp > 0) {
+      unit.attrs.mp -= mp;
+      ctx.emit({ type: EventType.MpCost, unitId: unit.id, amount: mp, mpAfter: unit.attrs.mp });
+    }
   }
   // Repeat only a direct damaging spell; do not repeat utility effects or costs.
   if (!ctx.currentAction.failed && isStanding(unit) && !ctx.state.result &&

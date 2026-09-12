@@ -87,7 +87,7 @@ export function CombatV6Details({
             {detailUnit.statuses.map((s) => (
               <li key={s.id}>
                 {s.name ?? display?.statuses[s.id] ?? '未知状态'} ·{' '}
-                {s.remainingRounds} 回合
+                {s.untilBattleEnd ? '本场持续' : `${s.remainingRounds} 回合`}
                 {s.stacks > 1 ? ` · ${s.stacks} 层` : ''}
               </li>
             ))}

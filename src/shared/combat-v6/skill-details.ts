@@ -8,9 +8,9 @@ import type {
   SkillEffect,
   StatusDef,
 } from '@shared/engine/combat-v6/core/types';
-import { DAO_EQUIPMENT_ART_SKILL_ID } from '@shared/engine/combat-v6/equipment/special-content';
+import { DAO_EQUIPMENT_ARTS_V1 } from '@shared/engine/combat-v6/equipment/special-content';
 
-const artIds = new Set<string>(Object.values(DAO_EQUIPMENT_ART_SKILL_ID));
+const arts = new Map(DAO_EQUIPMENT_ARTS_V1.map((art) => [art.skill.id, art]));
 function beastPassiveDescription(skill: SkillDef): string | undefined {
   const effect = BEAST_SKILL_CONTENT.find(
     (entry) => entry.id === skill.id,
@@ -137,26 +137,28 @@ export function combatV6SkillDetails(
     skills.map((skill) => [
       skill.id,
       {
-        category: artIds.has(skill.id) ? ('art' as const) : ('spell' as const),
-        description: skill.capture
-          ? '尝试收服野生灵兽，气血越低越容易成功；执行时消耗法力，失败仍消耗。'
-          : [
-              BEAST_SKILL_CONTENT.find((entry) => entry.id === skill.id)
-                ?.flavorText,
-              beastComboDescription(skill) ??
-                beastPassiveDescription(skill) ??
-                ([
-                  ...new Set([
-                    ...skill.effects.map(describe),
-                    ...(skill.successEffects ?? []).map(
-                      (effect) => `施放成功后：${describe(effect)}`,
-                    ),
-                  ]),
-                ].join('；') ||
-                  '被动能力，依技能条件触发。'),
-            ]
-              .filter(Boolean)
-              .join('\n'),
+        category: arts.has(skill.id) ? ('art' as const) : ('spell' as const),
+        description:
+          arts.get(skill.id)?.description ??
+          (skill.capture
+            ? '尝试收服野生灵兽，气血越低越容易成功；执行时消耗法力，失败仍消耗。'
+            : [
+                BEAST_SKILL_CONTENT.find((entry) => entry.id === skill.id)
+                  ?.flavorText,
+                beastComboDescription(skill) ??
+                  beastPassiveDescription(skill) ??
+                  ([
+                    ...new Set([
+                      ...skill.effects.map(describe),
+                      ...(skill.successEffects ?? []).map(
+                        (effect) => `施放成功后：${describe(effect)}`,
+                      ),
+                    ]),
+                  ].join('；') ||
+                    '被动能力，依技能条件触发。'),
+              ]
+                .filter(Boolean)
+                .join('\n')),
       },
     ]),
   );

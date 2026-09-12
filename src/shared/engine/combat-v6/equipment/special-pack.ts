@@ -36,38 +36,84 @@ const essenceEffect = z.discriminatedUnion('type', [
     factor: z.number().min(1).max(100).multipleOf(0.000001),
   }),
   z.strictObject({ type: z.literal('rageCost'), factor: ratio.positive() }),
-  z.strictObject({ type: z.literal('sealChance'), side: z.enum(['hit', 'resist']), value: ratio }),
-  z.strictObject({ type: z.literal('antiCrit'), kind: z.enum(['physical', 'spell']), value: ratio }),
-  z.strictObject({ type: z.literal('defenseIgnore'), kind: z.enum(['physical', 'spell']), value: ratio }),
+  z.strictObject({
+    type: z.literal('sealChance'),
+    side: z.enum(['hit', 'resist']),
+    value: ratio,
+  }),
+  z.strictObject({
+    type: z.literal('antiCrit'),
+    kind: z.enum(['physical', 'spell']),
+    value: ratio,
+  }),
+  z.strictObject({
+    type: z.literal('defenseIgnore'),
+    kind: z.enum(['physical', 'spell']),
+    value: ratio,
+  }),
   z.strictObject({ type: z.literal('mpWaiver'), chance: ratio }),
   z.strictObject({ type: z.literal('regeneration'), levelRatio: ratio }),
-  z.strictObject({ type: z.literal('revival'), chance: ratio, hpRatio: ratio.positive() }),
+  z.strictObject({
+    type: z.literal('revival'),
+    chance: ratio,
+    hpRatio: ratio.positive(),
+  }),
 ]);
 const artEffect = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal('heal'), ratio }),
-  z.strictObject({ type: z.literal('restoreMp'), ratio }),
-  z.strictObject({ type: z.literal('revive'), hpRatio: ratio }),
   z.strictObject({
-    type: z.literal('dispel'),
-    side: z.enum(['ally', 'enemy']),
-    categories: z.array(z.enum(['buff', 'control'])).min(1),
-  }),
-  z.strictObject({
-    type: z.literal('defenseBuff'),
-    attribute: z.enum(['physicalDef', 'magicDef']),
+    type: z.literal('heal'),
     ratio,
-    duration: z.number().int().min(1).max(99),
+    capPerLevel: positive.optional(),
+  }),
+  z.strictObject({
+    type: z.literal('revive'),
+    hpRatio: ratio.positive(),
+    capPerLevel: positive.optional(),
+  }),
+  z.strictObject({
+    type: z.literal('cleanse'),
+    kinds: z.array(text).min(1),
+    healRatio: ratio,
+  }),
+  z.strictObject({ type: z.literal('rageDamage'), amount: positive.int() }),
+  z.strictObject({
+    type: z.literal('status'),
     statusId: z.string().regex(/^dao_equipment\.status\.[a-z][a-z0-9_]*$/),
+    group: text,
+    modifier: z.enum([
+      'physicalDealt',
+      'spellDealt',
+      'physicalTaken',
+      'spellTaken',
+      'speed',
+      'healTaken',
+    ]),
+    ratio: z.number().min(-1).max(1).multipleOf(0.000001),
+    duration: z.union([z.literal('battle'), z.number().int().min(1).max(99)]),
   }),
   z.strictObject({
-    type: z.literal('physicalHit'),
-    coefficient: positive,
-    defenseIgnore: ratio,
+    type: z.literal('restoreMp'),
+    ratio,
+    casterLevelFactor: positive,
+    capPerLevel: positive.optional(),
   }),
   z.strictObject({
-    type: z.literal('spellHit'),
-    coefficient: positive,
-    targetCount: z.number().int().min(1).max(10),
+    type: z.literal('massRevive'),
+    hpRatio: ratio.positive(),
+    remainingHpRatio: ratio.positive(),
+    remainingMpRatio: ratio,
+  }),
+  z.strictObject({
+    type: z.literal('dispelBuff'),
+    chance: ratio,
+    artChance: ratio,
+  }),
+  z.strictObject({
+    type: z.literal('attack'),
+    kind: z.enum(['physical', 'spell']),
+    resultFactors: z.array(ratio.positive()).min(1).max(10),
+    defenseIgnore: ratio.optional(),
+    mpDamageRatio: positive.optional(),
   }),
 ]);
 
@@ -95,7 +141,9 @@ export const EquipmentSpecialPackShape = z.strictObject({
         name: text,
         allowedSlots: slots,
         skillId: z.string().regex(/^dao_equipment\.skill\.[a-z][a-z0-9_]*$/),
-        includeDownedInMultiSect: z.boolean().optional(),
+        sourceName: text,
+        description: text,
+        target: z.enum(['self', 'ally', 'allies', 'enemy', 'enemies']),
         rageCost: z.number().int().min(0).max(1_000_000),
         effect: artEffect,
       }),
@@ -137,25 +185,36 @@ export const EquipmentSpecialPackSchema = EquipmentSpecialPackShape.superRefine(
       });
     pack.arts.forEach((art, i) => {
       uniqueId(art.skillId, ['arts', i, 'skillId']);
-      if (
-        art.includeDownedInMultiSect &&
-        (art.effect.type !== 'dispel' || art.effect.side !== 'ally')
-      )
-        ctx.addIssue({
-          code: 'custom',
-          path: ['arts', i, 'includeDownedInMultiSect'],
-          message: '仅友方驱散支持此历史阶段目标扩展',
-        });
-      if (art.effect.type === 'defenseBuff')
+      if (art.effect.type === 'status')
         uniqueId(art.effect.statusId, ['arts', i, 'effect', 'statusId']);
       if (
-        art.effect.type === 'dispel' &&
-        new Set(art.effect.categories).size !== art.effect.categories.length
+        art.effect.type === 'cleanse' &&
+        new Set(art.effect.kinds).size !== art.effect.kinds.length
       )
         ctx.addIssue({
           code: 'custom',
-          path: ['arts', i, 'effect', 'categories'],
-          message: '驱散类别不得重复',
+          path: ['arts', i, 'effect', 'kinds'],
+          message: '解控类别不得重复',
+        });
+      const friendly = ['self', 'ally', 'allies'].includes(art.target);
+      if (
+        (['heal', 'revive', 'cleanse', 'restoreMp', 'massRevive'].includes(
+          art.effect.type,
+        ) &&
+          !friendly) ||
+        (['rageDamage', 'attack'].includes(art.effect.type) &&
+          art.target !== 'enemy') ||
+        (art.effect.type === 'revive' && art.target !== 'ally') ||
+        (art.effect.type === 'massRevive' && art.target !== 'allies') ||
+        (art.effect.type === 'dispelBuff' && art.target !== 'enemies') ||
+        (art.effect.type === 'attack' &&
+          art.effect.mpDamageRatio !== undefined &&
+          art.effect.kind !== 'physical')
+      )
+        ctx.addIssue({
+          code: 'custom',
+          path: ['arts', i, 'target'],
+          message: '效果与目标范围不匹配',
         });
     });
     if (pack.rageResource.initial > pack.rageResource.maximum)

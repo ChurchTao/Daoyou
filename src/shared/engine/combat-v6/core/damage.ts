@@ -19,6 +19,8 @@ export type StrikeInput = {
   target: Unit
   kind: DamageKindType
   coeff: number
+  resultFactor?: number
+  mpDamageRatio?: number
   power: number
   trueDamage?: boolean
   formula?: string
@@ -105,7 +107,14 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     if (sourcePassives.some(s => s.innate?.delayedRevivalRounds))
       for (const s of targetPassives) relationFactor *= s.innate?.damageFromDelayedRevival ?? 1
   }
-  const amount = floorAtLeast(MIN_DAMAGE, (hooked.damage ?? raw) * repeatFactor * relationFactor)
+  let dealtFactor = 1
+  if (input.kind !== DamageKind.Fixed) {
+    for (const status of source.statuses) {
+      const def = ctx.statusDefs.get(status.id)
+      dealtFactor *= (input.kind === DamageKind.Physical ? def?.damageDealtPhysical : def?.damageDealtSpell) ?? 1
+    }
+  }
+  const amount = floorAtLeast(MIN_DAMAGE, (hooked.damage ?? raw) * repeatFactor * relationFactor * dealtFactor * (input.resultFactor ?? 1))
 
   ctx.emit({
     type: EventType.Hit,
@@ -117,6 +126,13 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   })
 
   const hpDamage = applyDamage(ctx, source, target, amount, input.kind, silent, origin, input.cannotKill)
+  if (input.mpDamageRatio !== undefined && hpDamage > 0) {
+    const lost = Math.min(target.attrs.mp, Math.max(0, Math.floor(hpDamage * input.mpDamageRatio)));
+    if (lost > 0) {
+      target.attrs.mp -= lost;
+      ctx.emit({ type: EventType.MpDamage, sourceId: source.id, targetId: target.id, amount: lost, mpAfter: target.attrs.mp });
+    }
+  }
   if (!silent && hpDamage > 0) {
     ctx.hooks.emit(HookName.AfterHit, {
       source,
@@ -335,7 +351,7 @@ function redirectOverflow(
 }
 
 /** 倒地单位不受治疗，只能走 revive。 */
-export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power: number, healMaxHp = false): void {
+export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power: number, healMaxHp = false, fixedBase = false): void {
   if (target.flags.dead || target.flags.escaped || target.flags.downed) return
   if (passiveSkills(ctx.skills, target).some(s => s.innate?.rejectHpRecovery)) return
 
@@ -346,10 +362,10 @@ export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power:
     return
   }
 
-  const amount = floorAtLeast(MIN_DAMAGE, power + effectiveAttrs(source).healPower)
+  const amount = floorAtLeast(MIN_DAMAGE, power + (fixedBase ? 0 : effectiveAttrs(source).healPower))
   const isPrimary =
     ctx.currentAction?.primaryTargetId !== undefined && target.id === ctx.currentAction.primaryTargetId
-  const taken = healTakenFactor(target) * healDealtFactor(source)
+  const taken = healTakenFactor(target) * (fixedBase ? 1 : healDealtFactor(source))
   const hooked = ctx.hooks.emit(HookName.OnHealCalc, {
     source,
     target,
@@ -357,7 +373,7 @@ export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power:
     skillId: ctx.currentAction?.skillId,
     isPrimary,
   })
-  const finalHeal = floorAtLeast(0, hooked.heal ?? amount * taken)
+  const finalHeal = floorAtLeast(0, fixedBase ? amount * taken : hooked.heal ?? amount * taken)
   const hp = Math.min(recoverableHp(target), target.attrs.hp + finalHeal)
   const healed = hp - target.attrs.hp
   target.attrs.hp = hp

@@ -41,6 +41,7 @@ export function checkSkillRequirements(
     reasons.push('blocks-action');
   if (
     skill.tags.includes(SkillTag.Spell) &&
+    !skill.tags.includes(SkillTag.Art) &&
     hasBlock(ctx, unit, StatusFlag.BlocksSpell)
   )
     reasons.push(FailReason.Sealed);
@@ -50,6 +51,8 @@ export function checkSkillRequirements(
   )
     reasons.push(FailReason.Rooted);
   if (targets.length === 0) reasons.push(FailReason.NoTarget);
+  if (skill.requireHpAboveRatio !== undefined && unit.attrs.hp / unit.attrs.maxHp <= skill.requireHpAboveRatio)
+    reasons.push(FailReason.HpRequirement);
   if (
     skill.requireHpRatio !== undefined &&
     unit.attrs.hp / unit.attrs.maxHp < skill.requireHpRatio

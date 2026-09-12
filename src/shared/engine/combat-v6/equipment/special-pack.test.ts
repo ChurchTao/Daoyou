@@ -2,29 +2,27 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import data from './data/equipment-special.json';
 import schema from './data/equipment-special.schema.json';
-import before from './fixtures/special-before-g2.json';
 import {
   compileEquipmentArt,
   compileEquipmentEssence,
   compileRageGainPassive,
 } from './special-compiler';
-import {
-  DAO_EQUIPMENT_ARTS_V1,
-  DAO_EQUIPMENT_MULTI_SECT_DOWNED_SKILL_IDS,
-  DAO_RAGE_RESOURCE,
-  createDaoRageGainPassive,
-} from './special-content';
+import { DAO_EQUIPMENT_ARTS_V1, DAO_RAGE_RESOURCE } from './special-content';
 import {
   EquipmentSpecialPackShape,
   loadEquipmentSpecialPack,
 } from './special-pack';
 
 describe('equipment special configuration', () => {
-  it('preserves pre-G2 arts while validating the refined essence schema', () => {
-    expect(DAO_EQUIPMENT_ARTS_V1).toEqual(before.arts);
+  it('loads the 38 refined arts and validates the schema', () => {
+    expect(DAO_EQUIPMENT_ARTS_V1).toHaveLength(38);
     expect(schema).toEqual(z.toJSONSchema(EquipmentSpecialPackShape));
-    expect(DAO_EQUIPMENT_MULTI_SECT_DOWNED_SKILL_IDS).toEqual(['dao_equipment.skill.qingxin']);
-    expect(DAO_RAGE_RESOURCE).toEqual({ id: 'combat.resource.rage', name: '战意', current: 0, max: 150 });
+    expect(DAO_RAGE_RESOURCE).toEqual({
+      id: 'combat.resource.rage',
+      name: '战意',
+      current: 0,
+      max: 150,
+    });
   });
 
   it.each<[string, (p: typeof data) => void, string]>([
@@ -45,7 +43,7 @@ describe('equipment special configuration', () => {
     [
       'duplicate status',
       (p) => {
-        p.arts[5].effect.statusId = p.arts[4].effect.statusId;
+        p.arts[12].effect.statusId = p.arts[11].effect.statusId;
       },
       'statusId',
     ],

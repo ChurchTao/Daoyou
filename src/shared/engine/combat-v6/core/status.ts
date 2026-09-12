@@ -81,6 +81,13 @@ export function applyStatus(
   }
 
   if (isStatusImmune(ctx, unit, def)) return
+  if (def.priority !== undefined) {
+    const existing = unit.statuses.find(s => s.kind === def.kind)
+    const previous = existing && statusDef(ctx, existing.id)
+    if (existing && previous?.priority !== undefined &&
+      (previous.priority > def.priority || (previous.priority === def.priority &&
+        (previous.untilBattleEnd || (!def.untilBattleEnd && existing.remainingRounds >= duration))))) return
+  }
   // Only ordinary classified buffs may be extended; entry and special effects opt out.
   if (def.category === StatusCategory.Buff && def.extendable !== false && !def.untargetable &&
       !def.blocksRevive && !def.ticks && !def.blocksAction && !def.blocksSpell && !def.blocksPhysical && !def.actFirst) {
@@ -206,6 +213,7 @@ export function tickStatuses(ctx: BattleContext): void {
 
       // Dot 当回合就跳并扣持续；普通状态当回合不扣；expireSameRound（我佛护体）当回合结束即卸。
       if (inst.appliedRound === ctx.state.round && !def?.ticks && !def?.expireSameRound) continue
+      if (def?.untilBattleEnd) continue
       const next = inst.remainingRounds - 1
       if (next <= 0) removeStatus(ctx, unit, inst.id, StatusRemoveReason.Expired)
       else inst.remainingRounds = next

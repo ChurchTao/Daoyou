@@ -10,9 +10,6 @@ import { loadEquipmentSpecialPack } from './special-pack';
 export * from './special-ids';
 
 const pack = loadEquipmentSpecialPack(data);
-export const DAO_EQUIPMENT_MULTI_SECT_DOWNED_SKILL_IDS = pack.arts
-  .filter((art) => art.includeDownedInMultiSect)
-  .map((art) => art.skillId);
 export const DAO_RAGE_RESOURCE = {
   id: DAO_RAGE_RESOURCE_ID,
   name: pack.rageResource.name,

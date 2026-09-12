@@ -305,6 +305,8 @@ export type SkillTargeting = {
   extraCount?: Expr;
   /** 倒地人物只能被复活类选中 */
   includeDowned?: boolean;
+  onlyDowned?: boolean;
+  requireRevivable?: boolean;
   includeDead?: boolean;
   requireStatusIds?: StatusId[];
   requireStatusKinds?: string[];
@@ -365,10 +367,13 @@ type EffectCore =
       type: typeof EffectType.PhysicalHit;
       hits?: Expr;
       coeff?: number | number[];
+      /** Multiplies the resolved damage, rather than the attack formula. */
+      resultFactors?: number[];
       power?: Expr;
       trueDamage?: boolean;
       formula?: FormulaFamily;
       defenseIgnore?: Expr;
+      mpDamageRatio?: number;
       cannotMiss?: boolean;
       cannotKill?: boolean;
     }
@@ -376,6 +381,8 @@ type EffectCore =
       type: typeof EffectType.SpellHit;
       hits?: Expr;
       coeff?: number | number[];
+      /** Multiplies the resolved damage, rather than the attack formula. */
+      resultFactors?: number[];
       power?: Expr;
       trueDamage?: boolean;
       formula?: FormulaFamily;
@@ -386,12 +393,14 @@ type EffectCore =
       type: typeof EffectType.FixedHit;
       hits?: Expr;
       coeff?: number | number[];
+      /** Multiplies the resolved damage, rather than the attack formula. */
+      resultFactors?: number[];
       power?: Expr;
       formula?: FormulaFamily;
       origin?: DamageOrigin;
       cannotKill?: boolean;
     }
-  | { type: typeof EffectType.Heal; power: Expr; healMaxHp?: boolean }
+  | { type: typeof EffectType.Heal; power: Expr; healMaxHp?: boolean; fixedBase?: boolean }
   | {
       type: typeof EffectType.RestoreHp;
       power: Expr;
@@ -400,7 +409,7 @@ type EffectCore =
       clearStatuses?: boolean;
     }
   | { type: typeof EffectType.RestoreMp; power: Expr }
-  | { type: typeof EffectType.Revive; hp?: Expr; hpRatio?: Expr }
+  | { type: typeof EffectType.Revive; hp?: Expr; hpRatio?: Expr; respectHealTaken?: boolean }
   | {
       type: typeof EffectType.ApplyStatus;
       statusId: StatusId;
@@ -431,6 +440,8 @@ type EffectCore =
       categories?: StatusCategory[];
       maxCount?: Expr;
       categoryPriority?: StatusCategory[];
+      chance?: number;
+      chanceByClass?: Record<string, number>;
       includeStatusFlags?: StatusFlag[];
       excludeStatusFlags?: StatusFlag[];
     }
@@ -459,6 +470,7 @@ type EffectCore =
       mode?: 'add' | 'set';
       /** 正向增加时，同一次行动内该单位此资源最多获得多少。 */
       maxGainPerAction?: Expr;
+      affectTarget?: boolean;
     }
   | { type: typeof EffectType.ModifyChance; add?: Expr; factor?: Expr }
   | { type: typeof EffectType.ClearSkipNextAction };
@@ -520,6 +532,9 @@ export type SkillDef = {
   costHp?: Expr;
   costHpFrom?: CostHpFrom;
   requireHpRatio?: number;
+  requireHpAboveRatio?: number;
+  successCostHp?: Expr;
+  successCostMp?: Expr;
   resourceRequirements?: Array<{ resourceId: string; min: number }>;
   resourceCosts?: Array<{ resourceId: string; amount: Expr }>;
   tags: SkillTag[];
@@ -579,7 +594,13 @@ export type StatusDef = {
   maxStacks?: number;
   /** false 时普通 Dispel 不可移除；倒地和自然到期不受影响。 */
   dispellable?: boolean;
+  dispelClass?: string;
   extendable?: boolean;
+  /** Same-kind statuses retain the strongest priority; equal strength retains the longer duration. */
+  priority?: number;
+  untilBattleEnd?: boolean;
+  damageDealtPhysical?: number;
+  damageDealtSpell?: number;
 };
 
 export type ActionScope = {

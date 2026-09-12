@@ -152,100 +152,224 @@ export function compileEquipmentArt(
   entry: EquipmentSpecialPack['arts'][number],
 ): DaoEquipmentArtDefV1 {
   const { effect } = entry;
+  const values: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(effect)) {
+    if (typeof value === 'number') {
+      values[key] = value;
+      values[`${key}Percent`] = Number((Math.abs(value) * 100).toFixed(6));
+    }
+  }
+  if (effect.type === 'attack') values.hits = effect.resultFactors.length;
+  if (effect.type === 'attack')
+    values.segments = effect.resultFactors
+      .map((v) => `${Number((v * 100).toFixed(6))}%`)
+      .join('、');
+  if (effect.type === 'status')
+    values.term =
+      effect.duration === 'battle'
+        ? '持续至战斗结束，倒地清除'
+        : `持续${effect.duration}回合（含施放回合）`;
+  const description = entry.description.replace(
+    /\{(\w+)\}/g,
+    (_, key: string) => {
+      if (!(key in values)) throw new Error(`${entry.id}: 未知文案参数 ${key}`);
+      return String(values[key]);
+    },
+  );
+  const side =
+    entry.target === 'self'
+      ? TargetSide.Self
+      : ['ally', 'allies'].includes(entry.target)
+        ? TargetSide.Ally
+        : TargetSide.Enemy;
   const skill: SkillDef = {
     id: entry.skillId,
     name: entry.name,
     resourceCosts: [
       { resourceId: DAO_RAGE_RESOURCE_ID, amount: entry.rageCost },
     ],
-    tags: [SkillTag.Support],
-    targeting: { side: TargetSide.Ally, count: 1 },
+    tags: [SkillTag.Art, SkillTag.Support],
+    targeting: {
+      side,
+      ...(['allies', 'enemies'].includes(entry.target)
+        ? { mode: TargetMode.All }
+        : { count: 1 }),
+    },
     effects: [],
   };
   let statusDefs: StatusDef[] | undefined;
+  const capped = (power: string, cap?: number) =>
+    cap === undefined ? power : `min(${power}, target.level * ${cap})`;
   switch (effect.type) {
     case 'heal':
       skill.effects = [
-        { type: EffectType.Heal, power: `target.maxHp * ${effect.ratio}` },
+        {
+          type: EffectType.Heal,
+          power: capped(`target.maxHp * ${effect.ratio}`, effect.capPerLevel),
+          fixedBase: true,
+        },
+      ];
+      break;
+    case 'revive':
+      skill.targeting.includeDowned = true;
+      skill.targeting.includeDead = true;
+      skill.targeting.onlyDowned = true;
+      skill.effects = [
+        {
+          type: EffectType.Revive,
+          ...(effect.capPerLevel === undefined
+            ? { hpRatio: effect.hpRatio }
+            : {
+                hp: capped(
+                  `target.maxHp * ${effect.hpRatio}`,
+                  effect.capPerLevel,
+                ),
+              }),
+          respectHealTaken: true,
+        },
       ];
       break;
     case 'restoreMp':
       skill.effects = [
-        { type: EffectType.RestoreMp, power: `target.maxMp * ${effect.ratio}` },
-      ];
-      break;
-    case 'revive':
-      skill.targeting = {
-        side: TargetSide.Ally,
-        count: 1,
-        includeDowned: true,
-      };
-      skill.effects = [{ type: EffectType.Revive, hpRatio: effect.hpRatio }];
-      break;
-    case 'dispel':
-      skill.targeting = {
-        side: effect.side === 'ally' ? TargetSide.Ally : TargetSide.Enemy,
-        count: 1,
-      };
-      skill.effects = [
         {
-          type: EffectType.Dispel,
-          categories: effect.categories.map((category) =>
-            category === 'buff' ? StatusCategory.Buff : StatusCategory.Control,
+          type: EffectType.RestoreMp,
+          power: capped(
+            `target.maxMp * ${effect.ratio} + source.level * ${effect.casterLevelFactor}`,
+            effect.capPerLevel,
           ),
         },
       ];
       break;
-    case 'defenseBuff':
+    case 'massRevive':
+      skill.targeting = {
+        ...skill.targeting,
+        includeDowned: true,
+        includeDead: true,
+        onlyDowned: true,
+        requireRevivable: true,
+      };
+      skill.requireHpAboveRatio = effect.remainingHpRatio;
+      skill.effects = [
+        {
+          type: EffectType.Revive,
+          hpRatio: effect.hpRatio,
+          respectHealTaken: true,
+        },
+      ];
+      skill.successCostHp = `source.hp - floor(source.maxHp * ${effect.remainingHpRatio})`;
+      skill.successCostMp = `source.mp - floor(source.maxMp * ${effect.remainingMpRatio})`;
+      break;
+    case 'dispelBuff':
+      skill.effects = [
+        {
+          type: EffectType.Dispel,
+          categories: [StatusCategory.Buff],
+          chance: effect.chance,
+          chanceByClass: { art: effect.artChance },
+        },
+      ];
+      break;
+    case 'cleanse':
+      skill.effects = [
+        {
+          type: EffectType.Dispel,
+          kinds: effect.kinds,
+          excludeStatusFlags: ['blocksRevive'],
+        },
+      ];
+      if (effect.healRatio > 0)
+        skill.effects.push({
+          type: EffectType.Heal,
+          power: `target.maxHp * ${effect.healRatio}`,
+          fixedBase: true,
+        });
+      break;
+    case 'rageDamage':
+      skill.effects = [
+        {
+          type: EffectType.ModifyResource,
+          resourceId: DAO_RAGE_RESOURCE_ID,
+          amount: -effect.amount,
+          affectTarget: true,
+        },
+      ];
+      break;
+    case 'status': {
+      const modifier: Partial<StatusDef> = {};
+      const factor = Number((1 + effect.ratio).toFixed(6));
+      switch (effect.modifier) {
+        case 'physicalDealt':
+          modifier.damageDealtPhysical = factor;
+          break;
+        case 'spellDealt':
+          modifier.damageDealtSpell = factor;
+          break;
+        case 'physicalTaken':
+          modifier.damageTakenPhysical = factor;
+          break;
+        case 'spellTaken':
+          modifier.damageTakenSpell = factor;
+          break;
+        case 'healTaken':
+          modifier.healTaken = factor;
+          break;
+        case 'speed':
+          modifier.speedMod = `floor(target.speed * ${effect.ratio})`;
+          break;
+      }
       statusDefs = [
         {
           id: effect.statusId,
           name: entry.name,
-          kind:
-            effect.attribute === 'physicalDef'
-              ? 'dao_equipment.guard.physical'
-              : 'dao_equipment.guard.spell',
-          category: StatusCategory.Buff,
-          attrMods: {
-            [effect.attribute]: `floor(target.${effect.attribute} * ${effect.ratio})`,
-          },
+          kind: effect.group,
+          category:
+            side === TargetSide.Enemy
+              ? StatusCategory.Debuff
+              : StatusCategory.Buff,
+          dispelClass: 'art',
+          priority: Math.abs(effect.ratio),
+          untilBattleEnd: effect.duration === 'battle',
+          expireSameRound: true,
+          extendable: false,
+          ...modifier,
         },
       ];
-      skill.targeting = { side: TargetSide.Ally, mode: TargetMode.All };
       skill.effects = [
         {
           type: EffectType.ApplyStatus,
           statusId: effect.statusId,
-          duration: effect.duration,
+          duration: effect.duration === 'battle' ? 1 : effect.duration,
         },
       ];
       break;
-    case 'physicalHit':
-      skill.tags = [SkillTag.Physical];
-      skill.targeting = { side: TargetSide.Enemy, count: 1 };
+    }
+    case 'attack':
+      skill.tags = [
+        SkillTag.Art,
+        effect.kind === 'physical' ? SkillTag.Physical : SkillTag.Spell,
+      ];
       skill.effects = [
         {
-          type: EffectType.PhysicalHit,
-          coeff: effect.coefficient,
-          defenseIgnore: effect.defenseIgnore,
+          type:
+            effect.kind === 'physical'
+              ? EffectType.PhysicalHit
+              : EffectType.SpellHit,
+          hits: effect.resultFactors.length,
+          resultFactors: effect.resultFactors,
+          ...(effect.defenseIgnore === undefined
+            ? {}
+            : { defenseIgnore: effect.defenseIgnore }),
+          ...(effect.kind === 'physical' && effect.mpDamageRatio !== undefined
+            ? { mpDamageRatio: effect.mpDamageRatio }
+            : {}),
         },
-      ];
-      break;
-    case 'spellHit':
-      skill.tags = [SkillTag.Spell];
-      skill.targeting = {
-        side: TargetSide.Enemy,
-        mode: TargetMode.Fill,
-        count: effect.targetCount,
-      };
-      skill.effects = [
-        { type: EffectType.SpellHit, coeff: effect.coefficient },
       ];
       break;
   }
   return {
     id: entry.id,
     name: entry.name,
+    description,
     ...(entry.allowedSlots ? { allowedSlots: entry.allowedSlots } : {}),
     rageCost: entry.rageCost,
     skill,

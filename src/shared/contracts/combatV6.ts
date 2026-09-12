@@ -170,6 +170,7 @@ export interface CombatV6TrainingUnitViewV1 {
     id: string;
     name?: string;
     remainingRounds: number;
+    untilBattleEnd?: boolean;
     stacks: number;
   }>;
   barriers: Array<{

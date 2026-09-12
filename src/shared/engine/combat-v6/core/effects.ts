@@ -11,7 +11,7 @@ import { atLeast, floorAtLeast } from "./math.ts"
 import { applyStatus, copyStatusInstance, envFor, removeStatus } from "./status.ts"
 import { resolveSkillTargets } from "./targeting.ts"
 import type { ExprEnv, SkillDef, SkillEffect, Unit } from "./types.ts"
-import { isStanding, resourceOf } from "./units.ts"
+import { healTakenFactor, isStanding, resourceOf } from "./units.ts"
 import { matchesWhen, targetStatusStacks } from "./when.ts"
 
 type EffectHandler<T extends SkillEffect = SkillEffect> = (
@@ -36,8 +36,7 @@ const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect
   },
   [EffectType.Dispel]: handleDispel,
   [EffectType.Heal]: (ctx, source, _skill, effect, targets, env) => {
-    const power = evalExpr(effect.power, env)
-    for (const t of targets) applyHeal(ctx, source, t, power, effect.healMaxHp)
+    for (const t of targets) applyHeal(ctx, source, t, evalExpr(effect.power, { ...env, target: t }), effect.healMaxHp, effect.fixedBase)
   },
   [EffectType.RestoreHp]: handleRestoreHp,
   [EffectType.RestoreMp]: handleRestoreMp,
@@ -234,12 +233,14 @@ function handleModifyResource(
   _targets: Unit[],
   env: ExprEnv,
 ): void {
-  const resource = resourceOf(source, effect.resourceId)
+  const recipient = effect.affectTarget ? _targets[0] : source
+  if (!recipient) return
+  const resource = resourceOf(recipient, effect.resourceId)
   if (!resource) return
   const before = resource.current
   let value = Math.floor(evalExpr(effect.amount, env))
   const action = ctx.currentAction
-  const gainKey = `${source.id}:${resource.id}`
+  const gainKey = `${recipient.id}:${resource.id}`
   if (effect.mode !== "set" && value > 0 && effect.maxGainPerAction !== undefined && action) {
     const cap = Math.max(0, Math.floor(evalExpr(effect.maxGainPerAction, env)))
     value = Math.min(value, Math.max(0, cap - (action.resourceGains[gainKey] ?? 0)))
@@ -253,7 +254,7 @@ function handleModifyResource(
   ctx.emit({
     type: EventType.ResourceChanged,
     sourceId: source.id,
-    unitId: source.id,
+    unitId: recipient.id,
     resourceId: resource.id,
     before,
     after: resource.current,
@@ -290,7 +291,7 @@ function handleApplyStatus(
 function handleDispel(
   ctx: BattleContext,
   source: Unit,
-  _skill: SkillDef,
+  skill: SkillDef,
   effect: Extract<SkillEffect, { type: typeof EffectType.Dispel }>,
   targets: Unit[],
 ): void {
@@ -318,7 +319,16 @@ function handleDispel(
         return aPriority - bPriority || a.appliedRound - b.appliedRound || a.id.localeCompare(b.id)
       })
       .slice(0, maxCount)
-    for (const status of candidates) removeStatus(ctx, t, status.id, StatusRemoveReason.Dispel)
+    for (const status of candidates) {
+      const cls = ctx.statusDefs.get(status.id)?.dispelClass;
+      const chance = (cls ? effect.chanceByClass?.[cls] : undefined) ?? effect.chance;
+      if (chance !== undefined) {
+        const success = ctx.rng.chance(chance);
+        ctx.emit({ type: EventType.ChanceResolved, branchId: `${skill.id}.dispel.${status.id}`, sourceId: source.id, targetId: t.id, chance, success });
+        if (!success) continue;
+      }
+      removeStatus(ctx, t, status.id, StatusRemoveReason.Dispel)
+    }
   }
 }
 
@@ -330,8 +340,8 @@ function handleRestoreMp(
   targets: Unit[],
   env: ExprEnv,
 ): void {
-  const power = atLeast(0, Math.floor(evalExpr(effect.power, env)))
   for (const t of targets) {
+    const power = atLeast(0, Math.floor(evalExpr(effect.power, { ...env, target: t })))
     const next = Math.min(t.attrs.maxMp, t.attrs.mp + power)
     const gained = next - t.attrs.mp
     t.attrs.mp = next
@@ -354,7 +364,7 @@ function handleRevive(
       effect.hpRatio !== undefined
         ? t.attrs.maxHp * evalExpr(effect.hpRatio, { ...env, target: t })
         : evalExpr(effect.hp, { ...env, target: t })
-    applyRevive(ctx, source, t, hp)
+    applyRevive(ctx, source, t, effect.respectHealTaken ? Math.floor(hp) * healTakenFactor(t) : hp)
   }
 }
 
@@ -391,6 +401,8 @@ function handleHit(
         target: t,
         kind,
         coeff: coeffs[i] ?? 1,
+        resultFactor: effect.resultFactors?.[i],
+        mpDamageRatio: effect.type === EffectType.PhysicalHit ? effect.mpDamageRatio : undefined,
         power,
         trueDamage,
         defenseIgnore:

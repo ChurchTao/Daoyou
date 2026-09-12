@@ -3,7 +3,7 @@ import type { BattleContext } from './context.ts';
 import { TargetMode, TargetSide } from './enums.ts';
 import { evalExpr, skillLevelOf } from './expr.ts';
 import { alliesOf, enemiesOf } from './query.ts';
-import { skillOf } from './skills.ts';
+import { passiveSkills, skillOf } from './skills.ts';
 import type { SkillDef, Unit } from './types.ts';
 import { isStanding, resourceOf } from './units.ts';
 
@@ -41,7 +41,11 @@ export function canSelect(
   skill: SkillDef,
   aoe: boolean,
 ): boolean {
-  if (target.flags.capturedBy) return false;
+  if (target.flags.capturedBy || target.flags.benched) return false;
+  if (skill.targeting.requireRevivable &&
+    (target.statuses.some(s => ctx.statusDefs.get(s.id)?.blocksRevive) ||
+      passiveSkills(ctx.skills, target).some(s => s.innate?.rejectHpRecovery))) return false;
+  if (skill.targeting.onlyDowned && !target.flags.downed && !target.flags.dead) return false;
   if (
     skill.capture &&
     (skill.capture.targetMpCosts[target.id] === undefined ||

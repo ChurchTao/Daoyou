@@ -506,7 +506,8 @@
         "spell",
         "seal",
         "support",
-        "passive"
+        "passive",
+        "art"
       ]
     },
     "__schema7": {
