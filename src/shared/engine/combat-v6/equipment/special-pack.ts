@@ -28,14 +28,20 @@ const essenceEffect = z.discriminatedUnion('type', [
     value: z.number().min(-1_000_000).max(1_000_000),
   }),
   z.strictObject({
-    type: z.literal('requiredLevelOffset'),
-    value: z.number().int().min(-180).max(0),
+    type: z.literal('requiredStageOffset'),
+    value: z.number().int().min(-1).max(0),
   }),
   z.strictObject({
     type: z.literal('rageGain'),
     factor: z.number().min(1).max(100).multipleOf(0.000001),
   }),
   z.strictObject({ type: z.literal('rageCost'), factor: ratio.positive() }),
+  z.strictObject({ type: z.literal('sealChance'), side: z.enum(['hit', 'resist']), value: ratio }),
+  z.strictObject({ type: z.literal('antiCrit'), kind: z.enum(['physical', 'spell']), value: ratio }),
+  z.strictObject({ type: z.literal('defenseIgnore'), kind: z.enum(['physical', 'spell']), value: ratio }),
+  z.strictObject({ type: z.literal('mpWaiver'), chance: ratio }),
+  z.strictObject({ type: z.literal('regeneration'), levelRatio: ratio }),
+  z.strictObject({ type: z.literal('revival'), chance: ratio, hpRatio: ratio.positive() }),
 ]);
 const artEffect = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('heal'), ratio }),
@@ -74,6 +80,7 @@ export const EquipmentSpecialPackShape = z.strictObject({
       z.strictObject({
         id: z.string().regex(/^dao_equipment\.essence\.[a-z][a-z0-9_]*$/),
         name: text,
+        description: text,
         allowedSlots: slots,
         stackPolicy: z.enum(['stack', 'unique', 'highest']),
         conflictGroup: text.optional(),

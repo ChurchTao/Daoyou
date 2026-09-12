@@ -110,7 +110,9 @@ export interface DaoEquipmentEssenceDefV1 {
   stackPolicy: 'stack' | 'unique' | 'highest';
   conflictGroup?: string;
   panel?: CombatV6PanelContribution[];
-  requiredLevelOffset?: number;
+  description?: string;
+  passive?: SkillDef;
+  requiredStageOffset?: number;
   resourceGainFactors?: Record<string, number>;
   resourceCostFactors?: Record<string, number>;
 }

@@ -1,3 +1,4 @@
+import { LEVELS_PER_REALM_STAGE } from '@shared/config/realmProgression';
 import { equipmentRealm, isOpenEquipmentLevel } from './realm';
 import type { Attributes } from '@shared/types/cultivator';
 import { isForgedName } from '../../../forging/names';
@@ -492,14 +493,6 @@ export function compileDaoEquipmentSpecialLoadoutV1(
     }
   }
 
-  const requiredLevelOffset = Math.min(
-    0,
-    ...DAO_EQUIPMENT_SLOTS.flatMap((slot) =>
-      (loadout[slot]?.essenceIds ?? []).map(
-        (id) => essenceMap.get(id)?.requiredLevelOffset ?? 0,
-      ),
-    ),
-  );
   const effectiveRequiredLevels: Partial<
     Record<(typeof DAO_EQUIPMENT_SLOTS)[number], number>
   > = {};
@@ -538,7 +531,7 @@ export function compileDaoEquipmentSpecialLoadoutV1(
         ),
       );
     instanceIds.add(instance.id);
-    const required = Math.max(0, equipmentRealm(instance.equipmentLevel).requiredLevel + requiredLevelOffset);
+    const required = daoEquipmentRequiredLevel(instance, essenceDefs);
     effectiveRequiredLevels[slot] = required;
     if (!Number.isFinite(characterLevel) || characterLevel < required) {
       diagnostics.push(
@@ -687,6 +680,7 @@ export function compileDaoEquipmentSpecialLoadoutV1(
 
   const effectiveEssenceIds: string[] = [];
   const seenNonStack = new Set<string>();
+  const essenceSkills: DaoEquipmentArtDefV1['skill'][] = [];
   let rageGainFactor = 1;
   let rageCostFactor = 1;
   for (const occurrence of occurrences) {
@@ -718,6 +712,10 @@ export function compileDaoEquipmentSpecialLoadoutV1(
           ),
         );
     }
+    if (definition.passive) essenceSkills.push({
+      ...definition.passive,
+      id: `${definition.passive.id}.${occurrence.slot}`,
+    });
     rageGainFactor = Math.max(
       rageGainFactor,
       definition.resourceGainFactors?.[DAO_RAGE_RESOURCE_ID] ?? 1,
@@ -776,13 +774,24 @@ export function compileDaoEquipmentSpecialLoadoutV1(
       diagnostics,
       effectiveEssenceIds,
       grantedArtIds,
-      skills: [...skills, ragePassive],
+      skills: [...skills, ...essenceSkills, ragePassive],
       statusDefs,
-      passiveSkillIds: [ragePassive.id],
+      passiveSkillIds: [...essenceSkills.map((skill) => skill.id), ragePassive.id],
       skillOverrides,
       effectiveRequiredLevels,
       rageGainFactor,
       rageCostFactor,
     },
   };
+}
+
+/** 轻灵仅降低自身御使门槛；炼气初期是最低门槛。 */
+export function daoEquipmentRequiredLevel(
+  instance: Pick<DaoEquipmentInstanceV1, 'equipmentLevel' | 'essenceIds'>,
+  definitions: readonly DaoEquipmentEssenceDefV1[] = DAO_EQUIPMENT_ESSENCES_V1,
+): number {
+  const offset = Math.min(0, ...instance.essenceIds.map(
+    (id) => definitions.find((entry) => entry.id === id)?.requiredStageOffset ?? 0,
+  ));
+  return Math.max(LEVELS_PER_REALM_STAGE, equipmentRealm(instance.equipmentLevel).requiredLevel + offset * LEVELS_PER_REALM_STAGE);
 }

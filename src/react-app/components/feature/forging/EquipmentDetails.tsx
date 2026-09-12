@@ -1,4 +1,5 @@
-import { equipmentRealm } from '@shared/engine/combat-v6/equipment/realm';
+import { getLevelRealmStage } from '@shared/config/realmProgression';
+import { daoEquipmentRequiredLevel } from '@shared/engine/combat-v6/equipment/compiler';
 import {
   DAO_EQUIPMENT_ARTS_V1,
   DAO_EQUIPMENT_ESSENCES_V1,
@@ -19,7 +20,10 @@ export function EquipmentDetails({
   const old = previous ? InventoryEquipmentSchema.parse(previous) : undefined;
   return (
     <div className="space-y-3 text-sm">
-      <p>御使境界 {equipmentRealm(equipment.equipmentLevel).realm}初期</p>
+      <p>
+        御使境界{' '}
+        {getLevelRealmStage(daoEquipmentRequiredLevel(equipment)).label}
+      </p>
       {(['baseStats', 'attributeBonuses'] as const).map((key) => (
         <div key={key}>
           <p className="text-ink-secondary">
@@ -50,8 +54,17 @@ export function EquipmentDetails({
               </div>
             ))}
           </dl>
-          {key === 'attributeBonuses' && equipment.attributeBonuses.length === 2 ? (
-            <p>双加合计 <span className="font-mono">{equipment.attributeBonuses.reduce((sum, roll) => sum + roll.value, 0)}</span></p>
+          {key === 'attributeBonuses' &&
+          equipment.attributeBonuses.length === 2 ? (
+            <p>
+              双加合计{' '}
+              <span className="font-mono">
+                {equipment.attributeBonuses.reduce(
+                  (sum, roll) => sum + roll.value,
+                  0,
+                )}
+              </span>
+            </p>
           ) : null}
           {!equipment[key].length ? <p>无</p> : null}
           {old?.[key]
@@ -72,6 +85,16 @@ export function EquipmentDetails({
           )
           .join('、') || '无'}
       </p>
+      {equipment.essenceIds.map((id) => {
+        const essence = DAO_EQUIPMENT_ESSENCES_V1.find(
+          (entry) => entry.id === id,
+        );
+        return essence?.description ? (
+          <p key={id} className="text-ink-secondary">
+            {essence.name}：{essence.description}
+          </p>
+        ) : null;
+      })}
       <p>
         器诀：
         {DAO_EQUIPMENT_ARTS_V1.find((e) => e.id === equipment.artId)?.name ??

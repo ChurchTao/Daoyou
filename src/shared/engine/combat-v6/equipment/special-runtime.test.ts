@@ -156,9 +156,7 @@ it.each(DAO_EQUIPMENT_ARTS_V1)(
   },
 );
 
-it('preserves the existing source-side rage trigger and per-action cap', () => {
-  // Existing content uses sourceIsSelf on OnBeHit. Preserve this behavior in G2;
-  // changing it to targetIsSelf is a separate gameplay fix, not configuration migration.
+it('grants rage to the damaged target and preserves the per-action cap', () => {
   function resolve(passive: SkillDef) {
     const attack: SkillDef = {
       id: 'test.multi',
@@ -211,9 +209,8 @@ it('preserves the existing source-side rage trigger and per-action cap', () => {
     return battle.snapshot();
   }
   const state = resolve(createDaoRageGainPassive(1.2));
-  expect(state).toEqual(resolve(before.passives[1] as unknown as SkillDef));
-  expect(state.units[0].resources[0].current).toBe(30);
-  expect(state.units[1].resources[0].current).toBe(0);
+  expect(state.units[0].resources[0].current).toBe(0);
+  expect(state.units[1].resources[0].current).toBe(30);
 });
 
 function equipment(
@@ -237,23 +234,22 @@ it('preserves stacked panels, highest factors, cost rounding and conflict reject
   const loadout = {
     weapon: equipment(
       'weapon',
-      [DAO_EQUIPMENT_ESSENCES_V1[0].id, DAO_EQUIPMENT_ESSENCES_V1[5].id],
+      [DAO_EQUIPMENT_ESSENCES_V1[0].id],
       DAO_EQUIPMENT_ARTS_V1[0].id,
     ),
     head: equipment('head', [
       DAO_EQUIPMENT_ESSENCES_V1[0].id,
-      DAO_EQUIPMENT_ESSENCES_V1[5].id,
     ]),
-    armor: equipment('armor', [DAO_EQUIPMENT_ESSENCES_V1[6].id]),
+    belt: equipment('belt', [DAO_EQUIPMENT_ESSENCES_V1[5].id, DAO_EQUIPMENT_ESSENCES_V1[6].id]),
   };
   const result = compileDaoEquipmentSpecialLoadoutV1(loadout, 180);
   expect(result.ok).toBe(true);
   if (!result.ok) return;
   expect(result.projection.panel).toContainEqual({
     attr: 'critRate',
-    value: 0.06,
+    value: 0.02,
   });
-  expect(result.projection.rageGainFactor).toBe(1.2);
+  expect(result.projection.rageGainFactor).toBe(1.25);
   expect(result.projection.rageCostFactor).toBe(0.8);
   expect(result.projection.skillOverrides[0].resourceCosts?.[0].amount).toBe(
     32,

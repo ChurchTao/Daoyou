@@ -10,7 +10,6 @@ import {
 } from './special-compiler';
 import {
   DAO_EQUIPMENT_ARTS_V1,
-  DAO_EQUIPMENT_ESSENCES_V1,
   DAO_EQUIPMENT_MULTI_SECT_DOWNED_SKILL_IDS,
   DAO_RAGE_RESOURCE,
   createDaoRageGainPassive,
@@ -21,12 +20,8 @@ import {
 } from './special-pack';
 
 describe('equipment special configuration', () => {
-  it('preserves every pre-G2 skill, status, essence and rage hook', () => {
-    expect({
-      arts: DAO_EQUIPMENT_ARTS_V1,
-      essences: DAO_EQUIPMENT_ESSENCES_V1,
-      passives: [createDaoRageGainPassive(1), createDaoRageGainPassive(1.2)],
-    }).toEqual(before);
+  it('preserves pre-G2 arts while validating the refined essence schema', () => {
+    expect(DAO_EQUIPMENT_ARTS_V1).toEqual(before.arts);
     expect(schema).toEqual(z.toJSONSchema(EquipmentSpecialPackShape));
     expect(DAO_EQUIPMENT_MULTI_SECT_DOWNED_SKILL_IDS).toEqual(['dao_equipment.skill.qingxin']);
     expect(DAO_RAGE_RESOURCE).toEqual({ id: 'combat.resource.rage', name: '战意', current: 0, max: 150 });
@@ -158,7 +153,7 @@ describe('equipment special configuration', () => {
       compileRageGainPassive(1.5, pack.rageGain).hooks?.[0].effects[0],
     ).toMatchObject({
       amount:
-        'min(25, max(1, floor(floor(hpDamage / target.maxHp * 100) * 1.5)))',
+        'floor(min(25, max(1, floor(hpDamage / target.maxHp * 100))) * 1.5)',
     });
   });
 });

@@ -619,7 +619,11 @@ function resolveSkill(
     },
   });
 
-  if (mpCost > 0) {
+  const waiverChance = skill.capture ? 0 : Math.max(0, ...unit.passives.map(
+    (id) => skillOf(ctx.skills, unit, id)?.innate?.mpCostWaiverChance ?? 0,
+  ));
+  const waiveMp = mpCost > 0 && waiverChance > 0 && ctx.rng.chance(waiverChance);
+  if (mpCost > 0 && !waiveMp) {
     unit.attrs.mp -= mpCost;
     ctx.emit({
       type: EventType.MpCost,

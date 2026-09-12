@@ -169,3 +169,25 @@ it('shares edited generation, pool, cost and material boost configuration', asyn
   expect(FORGING_BOOST_PER_MATERIAL).toBe(0.2);
   expect(forgingCost(10).spiritStones).toBe(321);
 });
+
+it('更换器蕴候选池不改变白字、绿字、器诀或其他成品事实', async () => {
+  const { generateDaoEquipmentV2: original } = await import('./generator');
+  const inputs = Array.from({ length: 256 }, (_, seed) => ({
+    id: 'pool-invariance', createdAt: 'test', seed,
+    templateId: 'dao_equipment.standard.weapon.v1', equipmentLevel: 50,
+    generatorVersion: 'dao_equipment_generator_v2' as const,
+  }));
+  const withoutEssences = (result: ReturnType<typeof original>) => {
+    if (!result.ok) throw new Error('generation failed');
+    const { essenceIds, ...facts } = result.instance;
+    void essenceIds;
+    return facts;
+  };
+  const expected = inputs.map((input) => withoutEssences(original(input)));
+  const copy = structuredClone(data);
+  copy.generation.essencePool.reverse();
+  vi.resetModules();
+  vi.doMock('./data/equipment-forging.json', () => ({ default: copy }));
+  const { generateDaoEquipmentV2: changed } = await import('./generator');
+  expect(inputs.map((input) => withoutEssences(changed(input)))).toEqual(expected);
+});

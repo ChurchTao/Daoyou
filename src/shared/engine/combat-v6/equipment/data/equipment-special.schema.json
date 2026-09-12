@@ -28,6 +28,10 @@
             "type": "string",
             "minLength": 1
           },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
           "allowedSlots": {
             "minItems": 1,
             "type": "array",
@@ -102,11 +106,11 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "const": "requiredLevelOffset"
+                    "const": "requiredStageOffset"
                   },
                   "value": {
                     "type": "integer",
-                    "minimum": -180,
+                    "minimum": -1,
                     "maximum": 0
                   }
                 },
@@ -155,6 +159,157 @@
                   "factor"
                 ],
                 "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "sealChance"
+                  },
+                  "side": {
+                    "type": "string",
+                    "enum": [
+                      "hit",
+                      "resist"
+                    ]
+                  },
+                  "value": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "side",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "antiCrit"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "physical",
+                      "spell"
+                    ]
+                  },
+                  "value": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "kind",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "defenseIgnore"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "physical",
+                      "spell"
+                    ]
+                  },
+                  "value": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "kind",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "mpWaiver"
+                  },
+                  "chance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "chance"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "regeneration"
+                  },
+                  "levelRatio": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "levelRatio"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "revival"
+                  },
+                  "chance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "hpRatio": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "chance",
+                  "hpRatio"
+                ],
+                "additionalProperties": false
               }
             ]
           }
@@ -162,6 +317,7 @@
         "required": [
           "id",
           "name",
+          "description",
           "stackPolicy",
           "effect"
         ],
