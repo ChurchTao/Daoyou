@@ -1,6 +1,7 @@
 import {
   equipmentRealm,
   isEquipmentLevel,
+  isOpenEquipmentLevel,
 } from '@shared/engine/combat-v6/equipment/realm';
 import { z } from 'zod';
 import type { ForgingBoosts } from '../engine/combat-v6/equipment/forging';
@@ -33,6 +34,8 @@ export function forgingBoosts(
   ownerLevel: number,
   materials: { facts: MaterialFacts; quantity: number }[],
 ): ForgingBoosts {
+  if (!isOpenEquipmentLevel(level))
+    throw new InventoryRuleError('道装打造仅开放至化神期');
   const cost = forgingCost(level);
   if (equipmentRealm(level).requiredLevel > ownerLevel)
     throw new InventoryRuleError('图纸境界超过人物境界，无法铸造');
@@ -55,4 +58,17 @@ export function forgingBoosts(
     else throw new InventoryRuleError('该材料不能用于铸造');
   }
   return boosts;
+}
+
+/** 输入均来自服务端库存事实，前端仅复用此规则做确认预览。 */
+export function forgingInputs(
+  level: number,
+  ownerLevel: number,
+  materials: { facts: MaterialFacts; quantity: number }[],
+) {
+  const boosts = forgingBoosts(level, ownerLevel, materials);
+  const cost = forgingCost(level);
+  const excess = materials.reduce((sum, material) =>
+    sum + material.quantity * (QUALITY_ORDER[material.facts.rank] - QUALITY_ORDER[cost.rank]), 0);
+  return { boosts, baseQuality: Math.min(1, excess / (cost.quantity * 2)) };
 }

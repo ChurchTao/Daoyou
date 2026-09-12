@@ -1,9 +1,10 @@
-import { equipmentRealm, isEquipmentLevel } from './realm';
+import { equipmentRealm, isOpenEquipmentLevel } from './realm';
 import type { Attributes } from '@shared/types/cultivator';
 import { isForgedName } from '../../../forging/names';
 import type { CombatV6ProjectionDiagnostic } from '../projection/types.ts';
 import {
   daoEquipmentAttributeRange,
+  daoEquipmentBaseRange,
   daoEquipmentTemplateOf,
   daoFormationInscriptionOf,
 } from './content.ts';
@@ -112,6 +113,10 @@ function validateInstance(
 
   if (
     raw.schemaVersion !== 1 ||
+    instance.numericVersion !== 2 ||
+    !Number.isFinite(instance.baseQuality) ||
+    instance.baseQuality < 0 ||
+    instance.baseQuality > 1 ||
     typeof instance.id !== 'string' ||
     instance.id.trim().length === 0 ||
     typeof instance.name !== 'string' ||
@@ -137,13 +142,13 @@ function validateInstance(
     );
   }
   if (
-    !isEquipmentLevel(instance.equipmentLevel) ||
+    !isOpenEquipmentLevel(instance.equipmentLevel) ||
     instance.requiredLevel !== equipmentRealm(instance.equipmentLevel).requiredLevel
   ) {
     diagnostics.push(
       diagnostic(
         'INVALID_EQUIPMENT_LEVEL',
-        '道装必须属于九个境界档位，御使门槛须为对应境界初期',
+        '道装仅开放至化神期，御使门槛须为对应境界初期',
       ),
     );
   }
@@ -171,7 +176,7 @@ function validateInstance(
         'baseStats',
       ),
     );
-  } else if (template) {
+  } else if (template && isOpenEquipmentLevel(instance.equipmentLevel)) {
     const expectedAttrs = template.baseStats.map((rule) => rule.attr);
     const actualAttrs = instance.baseStats.map((roll) => roll?.attr);
     if (
@@ -192,8 +197,7 @@ function validateInstance(
       const roll = instance.baseStats.find(
         (candidate) => candidate?.attr === rule.attr,
       );
-      const min = Math.floor(instance.equipmentLevel * rule.minCoefficient);
-      const max = Math.floor(instance.equipmentLevel * rule.maxCoefficient);
+      const { min, max } = daoEquipmentBaseRange(rule, instance.equipmentLevel, instance.baseQuality ?? 0);
       if (
         !roll ||
         roll.attr !== rule.attr ||
@@ -212,16 +216,17 @@ function validateInstance(
 
   if (
     !Array.isArray(instance.attributeBonuses) ||
-    instance.attributeBonuses.length > 2
+    instance.attributeBonuses.length > 2 ||
+    ((instance.slot !== 'weapon' && instance.slot !== 'armor') && instance.attributeBonuses.length > 0)
   ) {
     diagnostics.push(
       diagnostic(
         'INVALID_EQUIPMENT_ATTRIBUTE_BONUS',
-        '附灵必须为不超过2条的数组',
+        '仅法兵与法衣可附灵，最多2条',
         'attributeBonuses',
       ),
     );
-  } else {
+  } else if (isOpenEquipmentLevel(instance.equipmentLevel)) {
     const { min, max } = daoEquipmentAttributeRange(instance.equipmentLevel);
     const seen = new Set<string>();
     for (let index = 0; index < instance.attributeBonuses.length; index += 1) {

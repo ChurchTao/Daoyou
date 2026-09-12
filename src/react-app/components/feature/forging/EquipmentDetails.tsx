@@ -50,6 +50,9 @@ export function EquipmentDetails({
               </div>
             ))}
           </dl>
+          {key === 'attributeBonuses' && equipment.attributeBonuses.length === 2 ? (
+            <p>双加合计 <span className="font-mono">{equipment.attributeBonuses.reduce((sum, roll) => sum + roll.value, 0)}</span></p>
+          ) : null}
           {!equipment[key].length ? <p>无</p> : null}
           {old?.[key]
             .filter((r) => !equipment[key].some((n) => n.attr === r.attr))

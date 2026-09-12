@@ -63,6 +63,8 @@ export interface DaoFormationInscriptionStateV1 {
 
 export interface DaoEquipmentInstanceV1 {
   schemaVersion: 1;
+  numericVersion: 2;
+  baseQuality: number;
   id: string;
   templateId: string;
   name: string;
@@ -89,10 +91,8 @@ export interface DaoEquipmentTemplateV1 {
   slot: DaoEquipmentSlot;
   baseStats: Array<{
     attr: CombatV6PanelAttr;
-    minCoefficient: number;
-    maxCoefficient: number;
+    ranges: Array<{ level: number; normal: [number, number]; enhanced: [number, number] }>;
   }>;
-  favoredAttributes: DaoEquipmentAttribute[];
 }
 
 export interface DaoFormationInscriptionDefV1 {
@@ -128,6 +128,7 @@ export interface GenerateDaoEquipmentV1Input {
   id: string;
   createdAt: string;
   seed: number;
+  baseQuality?: number;
   templateId: string;
   equipmentLevel: number;
   generatorVersion: typeof DAO_EQUIPMENT_GENERATOR_VERSION;

@@ -68,25 +68,19 @@ describe('equipment base data pack', () => {
       'templates.0.baseStats.3',
     ],
     [
-      'duplicate preferences',
-      (p) => {
-        p.templates[0].favoredAttributes.push('strength');
-      },
-      'favoredAttributes',
+      'duplicate level',
+      (p) => { p.templates[0].baseStats[0].ranges[1].level = 10; },
+      'ranges',
     ],
     [
       'reversed range',
-      (p) => {
-        p.templates[0].baseStats[0].minCoefficient = 2;
-      },
-      'maxCoefficient',
+      (p) => { p.templates[0].baseStats[0].ranges[0].normal = [999, 1]; },
+      'ranges',
     ],
     [
-      'negative coefficient',
-      (p) => {
-        p.generation.bonusValue.minCoefficient = -1;
-      },
-      'minCoefficient',
+      'negative bonus',
+      (p) => { p.generation.bonusRanges[0].min = -1; },
+      'min',
     ],
     [
       'nonfinite number',
@@ -124,25 +118,14 @@ describe('equipment base data pack', () => {
       'bonusCountProbabilities',
     ],
     [
-      'zero weight',
-      (p) => {
-        p.generation.normalWeight = 0;
-      },
-      'normalWeight',
-    ],
-    [
-      'overflowing weight',
-      (p) => {
-        p.generation.favoredWeight = Number.MAX_VALUE;
-      },
-      'favoredWeight',
+      'duplicate bonus level',
+      (p) => { p.generation.bonusRanges[1].level = 10; },
+      'bonusRanges',
     ],
     [
       'overflowing range',
-      (p) => {
-        p.generation.bonusValue.maxCoefficient = Number.MAX_VALUE;
-      },
-      'maxCoefficient',
+      (p) => { p.templates[0].baseStats[0].ranges[0].enhanced[1] = Number.MAX_VALUE; },
+      'enhanced',
     ],
   ])('rejects %s with file and field diagnostics', (_, mutate, field) => {
     const changed = structuredClone(data);
@@ -153,7 +136,7 @@ describe('equipment base data pack', () => {
 
   it('identifies the content ID for structural and semantic errors', () => {
     const changed = structuredClone(data);
-    changed.templates[0].baseStats[0].minCoefficient = 99;
+    changed.templates[0].baseStats[0].ranges[0].normal = [999, 1];
     expect(() => loadEquipmentBasePack(changed)).toThrow(
       `[${changed.templates[0].id}]`,
     );
@@ -172,11 +155,10 @@ afterEach(() => {
 it('feeds changed JSON into generation, forging and instance validation', async () => {
   const changed = structuredClone(data);
   changed.generation.bonusCountProbabilities = [0, 0, 1];
-  changed.generation.bonusValue = { minCoefficient: 0.2, maxCoefficient: 0.2 };
+  changed.generation.bonusRanges = changed.generation.bonusRanges.map((r) => ({ ...r, min: 34, max: 34 }));
   changed.templates[0].baseStats[0] = {
     attr: 'physicalAtk',
-    minCoefficient: 1,
-    maxCoefficient: 1,
+    ranges: changed.templates[0].baseStats[0].ranges.map((r) => ({ ...r, normal: [170, 170], enhanced: [170, 170] })),
   };
   vi.resetModules();
   vi.doMock('./data/equipment-base.json', () => ({ default: changed }));
@@ -189,7 +171,7 @@ it('feeds changed JSON into generation, forging and instance validation', async 
     createdAt: '2026-09-11T00:00:00.000Z',
     seed: 1,
     templateId: changed.templates[0].id,
-    equipmentLevel: 170,
+    equipmentLevel: 90,
   };
   expect(daoEquipmentGenerationRulesV1.bonusCount(0)).toBe(2);
   for (const result of [

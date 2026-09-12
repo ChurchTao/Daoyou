@@ -36,6 +36,8 @@ const roll = z
 export const InventoryEquipmentSchema = z
   .object({
     schemaVersion: z.literal(1),
+    numericVersion: z.literal(2),
+    baseQuality: z.number().min(0).max(1),
     id: z.string().min(1),
     templateId: z.string().min(1),
     name: z.string().min(1).max(100),

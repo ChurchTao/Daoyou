@@ -56,8 +56,8 @@ describe('blueprint forging', () => {
     );
     expect(() => forgingBoosts(10, 20, [])).toThrow('恰好');
     expect(() =>
-      forgingBoosts(170, 180, [
-        { facts: { ...facts, rank: '凡品' }, quantity: 5 },
+      forgingBoosts(90, 180, [
+        { facts: { ...facts, rank: '凡品' }, quantity: 3 },
       ]),
     ).toThrow('品质');
     expect(() =>
@@ -72,11 +72,11 @@ describe('blueprint forging', () => {
   });
   it('groups aux and monster together without quality multipliers', () => {
     expect(
-      forgingBoosts(170, 180, [
-        { facts: { ...facts, type: 'aux' }, quantity: 2 },
-        { facts: { ...facts, type: 'monster', rank: '神品' }, quantity: 3 },
+      forgingBoosts(90, 180, [
+        { facts: { ...facts, type: 'aux' }, quantity: 1 },
+        { facts: { ...facts, type: 'monster', rank: '神品' }, quantity: 2 },
       ]),
-    ).toEqual({ ore: 0, essence: 0, attributes: 5 });
+    ).toEqual({ ore: 0, essence: 0, attributes: 3 });
   });
   it('uses the exact 1.8% boundary and never decreases a roll', () => {
     expect(
@@ -113,7 +113,7 @@ describe('blueprint forging', () => {
           createdAt: '2026-09-07T00:00:00Z',
           seed,
           templateId: `dao_equipment.standard.${slot}.v1`,
-          equipmentLevel: 170,
+          equipmentLevel: 90,
         };
         const base = generateDaoEquipmentV2({
           ...input,
@@ -132,7 +132,7 @@ describe('blueprint forging', () => {
         expect(zero.instance).toEqual({
           ...base.instance,
           generatorVersion: 'dao_equipment_generator_v3',
-          name: forgedName(slot, 170, seed),
+          name: forgedName(slot, 90, seed),
         });
         expect(result.instance.artId).toBe(base.instance.artId);
         expect(result.instance.attributeBonuses.map((r) => r.attr)).toEqual(

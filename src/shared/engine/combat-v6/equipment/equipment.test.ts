@@ -16,7 +16,7 @@ const CREATED_AT = "2026-09-03T00:00:00.000Z"
 
 function generate(
   templateId: string,
-  equipmentLevel = 170,
+  equipmentLevel = 90,
   seed = 123,
 ): DaoEquipmentInstanceV1 {
   const result = generateDaoEquipmentV1({
@@ -32,18 +32,18 @@ function generate(
 }
 
 describe("道装确定性生成", () => {
-  it("锁定六模板在10级和170级的器胚黄金值", () => {
+  it("锁定六模板在10级和90级的器胚黄金值", () => {
     const expected = [
-      [[8, 2, 5], [133, 48, 93]],
-      [[1, 21], [28, 370]],
-      [[3, 2], [56, 45]],
-      [[3, 2], [56, 48]],
-      [[90, 1], [1525, 18]],
-      [[5, 2, 0], [78, 46, 13]],
+      [[142, 26, 42], [714, 136, 209]],
+      [[142, 18], [714, 91]],
+      [[114, 30], [571, 152]],
+      [[39, 18], [197, 91]],
+      [[172, 11], [858, 61]],
+      [[21, 14], [107, 75]],
     ]
     DAO_EQUIPMENT_TEMPLATES_V1.forEach((template, index) => {
       expect(generate(template.id, 10).baseStats.map((roll) => roll.value)).toEqual(expected[index][0])
-      expect(generate(template.id, 170).baseStats.map((roll) => roll.value)).toEqual(expected[index][1])
+      expect(generate(template.id, 90).baseStats.map((roll) => roll.value)).toEqual(expected[index][1])
     })
   })
 
@@ -53,7 +53,7 @@ describe("道装确定性生成", () => {
       createdAt: CREATED_AT,
       seed: 1,
       templateId: DAO_EQUIPMENT_TEMPLATE_ID.Weapon,
-      equipmentLevel: 170,
+      equipmentLevel: 90,
       generatorVersion: DAO_EQUIPMENT_GENERATOR_VERSION,
     } as const
     const before = structuredClone(input)
@@ -62,23 +62,23 @@ describe("道装确定性生成", () => {
   })
 
   it("seed、模板和器阶参与生成结果", () => {
-    const base = generate(DAO_EQUIPMENT_TEMPLATE_ID.Weapon, 170, 1)
-    expect(generate(DAO_EQUIPMENT_TEMPLATE_ID.Weapon, 170, 2).baseStats).not.toEqual(base.baseStats)
-    expect(generate(DAO_EQUIPMENT_TEMPLATE_ID.Armor, 170, 1).baseStats).not.toEqual(base.baseStats)
-    expect(generate(DAO_EQUIPMENT_TEMPLATE_ID.Weapon, 150, 1).baseStats).not.toEqual(base.baseStats)
+    const base = generate(DAO_EQUIPMENT_TEMPLATE_ID.Weapon, 90, 1)
+    expect(generate(DAO_EQUIPMENT_TEMPLATE_ID.Weapon, 90, 2).baseStats).not.toEqual(base.baseStats)
+    expect(generate(DAO_EQUIPMENT_TEMPLATE_ID.Armor, 90, 1).baseStats).not.toEqual(base.baseStats)
+    expect(generate(DAO_EQUIPMENT_TEMPLATE_ID.Weapon, 70, 1).baseStats).not.toEqual(base.baseStats)
   })
 
-  it("锁定附灵条数阈值、范围和加权不放回结果", () => {
+  it("锁定附灵条数阈值、范围和等权不放回结果", () => {
     expect([
       daoEquipmentGenerationRulesV1.bonusCount(0.499999),
       daoEquipmentGenerationRulesV1.bonusCount(0.5),
       daoEquipmentGenerationRulesV1.bonusCount(0.899999),
       daoEquipmentGenerationRulesV1.bonusCount(0.9),
     ]).toEqual([0, 1, 1, 2])
-    expect(daoEquipmentGenerationRulesV1.attributeRange(170)).toEqual({ min: 13, max: 23 })
-    expect(generate(DAO_EQUIPMENT_TEMPLATE_ID.Weapon, 170, 1).attributeBonuses).toEqual([
-      { attr: "willpower", value: 16 },
-      { attr: "spirit", value: 20 },
+    expect(daoEquipmentGenerationRulesV1.attributeRange(90)).toEqual({ min: 18, max: 36 })
+    expect(generate(DAO_EQUIPMENT_TEMPLATE_ID.Weapon, 90, 1).attributeBonuses).toEqual([
+      { attr: "willpower", value: 23 },
+      { attr: "endurance", value: 31 },
     ])
   })
 
@@ -120,7 +120,7 @@ describe("道装实例、装配和灵纹校验", () => {
       [{ attr: "strength", value: 20 }, { attr: "strength", value: 20 }],
       [{ attr: "luck", value: 20 }],
       [{ attr: "strength", value: 999 }],
-      [{ attr: "strength", value: 20 }, { attr: "spirit", value: 20 }, { attr: "speed", value: 20 }],
+      [{ attr: "strength", value: 20 }, { attr: "endurance", value: 31 }, { attr: "speed", value: 20 }],
     ]
     for (const attributeBonuses of invalidBonuses) {
       const instance = { ...source, attributeBonuses } as DaoEquipmentInstanceV1
@@ -157,10 +157,10 @@ describe("道装实例、装配和灵纹校验", () => {
     for (const definition of DAO_FORMATION_INSCRIPTIONS_V1) {
       const template = DAO_EQUIPMENT_TEMPLATES_V1.find((item) => item.slot === definition.allowedSlots[0])!
       const base = generate(template.id)
-      const plain = compileDaoEquipmentLoadoutV1({ [base.slot]: base }, 170)
+      const plain = compileDaoEquipmentLoadoutV1({ [base.slot]: base }, 90)
       const inscribed = compileDaoEquipmentLoadoutV1({
         [base.slot]: { ...base, formationInscription: { patternId: definition.id, level: 2 } },
-      }, 170)
+      }, 90)
       expect(plain.ok && inscribed.ok).toBe(true)
       if (!plain.ok || !inscribed.ok) continue
       const plainValue = plain.projection.panel.find((roll) => roll.attr === definition.attr)?.value ?? 0

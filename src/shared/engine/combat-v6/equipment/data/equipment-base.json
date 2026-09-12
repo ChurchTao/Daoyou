@@ -1,7 +1,7 @@
 {
   "$schema": "./equipment-base.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "templates": [
     {
       "id": "dao_equipment.standard.weapon.v1",
@@ -10,24 +10,184 @@
       "baseStats": [
         {
           "attr": "physicalAtk",
-          "minCoefficient": 0.55,
-          "maxCoefficient": 0.85
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                116,
+                149
+              ],
+              "enhanced": [
+                127,
+                164
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                233,
+                299
+              ],
+              "enhanced": [
+                256,
+                328
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                350,
+                450
+              ],
+              "enhanced": [
+                385,
+                495
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                466,
+                599
+              ],
+              "enhanced": [
+                512,
+                658
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                583,
+                749
+              ],
+              "enhanced": [
+                641,
+                823
+              ]
+            }
+          ]
         },
         {
           "attr": "magicAtk",
-          "minCoefficient": 0.25,
-          "maxCoefficient": 0.45
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                25,
+                33
+              ],
+              "enhanced": [
+                28,
+                36
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                52,
+                67
+              ],
+              "enhanced": [
+                57,
+                73
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                78,
+                100
+              ],
+              "enhanced": [
+                85,
+                110
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                105,
+                135
+              ],
+              "enhanced": [
+                115,
+                148
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                130,
+                168
+              ],
+              "enhanced": [
+                143,
+                184
+              ]
+            }
+          ]
         },
         {
-          "attr": "hit",
-          "minCoefficient": 0.4,
-          "maxCoefficient": 0.7
+          "attr": "healPower",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                30,
+                54
+              ],
+              "enhanced": [
+                33,
+                59
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                60,
+                108
+              ],
+              "enhanced": [
+                66,
+                118
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                90,
+                162
+              ],
+              "enhanced": [
+                99,
+                178
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                120,
+                216
+              ],
+              "enhanced": [
+                132,
+                237
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                150,
+                270
+              ],
+              "enhanced": [
+                165,
+                297
+              ]
+            }
+          ]
         }
-      ],
-      "favoredAttributes": [
-        "strength",
-        "spirit",
-        "willpower"
       ]
     },
     {
@@ -36,20 +196,125 @@
       "slot": "head",
       "baseStats": [
         {
-          "attr": "physicalDef",
-          "minCoefficient": 0.12,
-          "maxCoefficient": 0.18
+          "attr": "maxMp",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                116,
+                149
+              ],
+              "enhanced": [
+                127,
+                164
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                233,
+                299
+              ],
+              "enhanced": [
+                256,
+                328
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                350,
+                450
+              ],
+              "enhanced": [
+                385,
+                495
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                466,
+                599
+              ],
+              "enhanced": [
+                512,
+                658
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                583,
+                749
+              ],
+              "enhanced": [
+                641,
+                823
+              ]
+            }
+          ]
         },
         {
-          "attr": "maxMp",
-          "minCoefficient": 2,
-          "maxCoefficient": 3
+          "attr": "physicalDef",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                17,
+                22
+              ],
+              "enhanced": [
+                19,
+                24
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                35,
+                45
+              ],
+              "enhanced": [
+                38,
+                49
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                52,
+                67
+              ],
+              "enhanced": [
+                57,
+                73
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                70,
+                90
+              ],
+              "enhanced": [
+                77,
+                99
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                87,
+                112
+              ],
+              "enhanced": [
+                95,
+                123
+              ]
+            }
+          ]
         }
-      ],
-      "favoredAttributes": [
-        "vitality",
-        "willpower",
-        "spirit"
       ]
     },
     {
@@ -58,20 +323,125 @@
       "slot": "armor",
       "baseStats": [
         {
-          "attr": "physicalDef",
-          "minCoefficient": 0.25,
-          "maxCoefficient": 0.35
+          "attr": "maxHp",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                93,
+                119
+              ],
+              "enhanced": [
+                102,
+                131
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                186,
+                239
+              ],
+              "enhanced": [
+                205,
+                263
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                280,
+                360
+              ],
+              "enhanced": [
+                308,
+                396
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                373,
+                479
+              ],
+              "enhanced": [
+                410,
+                526
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                466,
+                599
+              ],
+              "enhanced": [
+                512,
+                658
+              ]
+            }
+          ]
         },
         {
-          "attr": "magicDef",
-          "minCoefficient": 0.25,
-          "maxCoefficient": 0.35
+          "attr": "physicalDef",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                29,
+                37
+              ],
+              "enhanced": [
+                31,
+                41
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                58,
+                74
+              ],
+              "enhanced": [
+                63,
+                81
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                87,
+                112
+              ],
+              "enhanced": [
+                95,
+                123
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                116,
+                149
+              ],
+              "enhanced": [
+                127,
+                163
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                145,
+                187
+              ],
+              "enhanced": [
+                159,
+                205
+              ]
+            }
+          ]
         }
-      ],
-      "favoredAttributes": [
-        "vitality",
-        "endurance",
-        "strength"
       ]
     },
     {
@@ -80,20 +450,125 @@
       "slot": "necklace",
       "baseStats": [
         {
-          "attr": "magicDef",
-          "minCoefficient": 0.25,
-          "maxCoefficient": 0.35
+          "attr": "magicAtk",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                32,
+                41
+              ],
+              "enhanced": [
+                35,
+                45
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                64,
+                82
+              ],
+              "enhanced": [
+                70,
+                90
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                95,
+                123
+              ],
+              "enhanced": [
+                104,
+                135
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                128,
+                164
+              ],
+              "enhanced": [
+                140,
+                180
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                160,
+                206
+              ],
+              "enhanced": [
+                176,
+                226
+              ]
+            }
+          ]
         },
         {
-          "attr": "magicAtk",
-          "minCoefficient": 0.25,
-          "maxCoefficient": 0.45
+          "attr": "magicDef",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                17,
+                22
+              ],
+              "enhanced": [
+                19,
+                24
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                35,
+                45
+              ],
+              "enhanced": [
+                38,
+                49
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                52,
+                67
+              ],
+              "enhanced": [
+                57,
+                73
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                70,
+                90
+              ],
+              "enhanced": [
+                77,
+                99
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                87,
+                112
+              ],
+              "enhanced": [
+                95,
+                123
+              ]
+            }
+          ]
         }
-      ],
-      "favoredAttributes": [
-        "spirit",
-        "willpower",
-        "vitality"
       ]
     },
     {
@@ -103,19 +578,124 @@
       "baseStats": [
         {
           "attr": "maxHp",
-          "minCoefficient": 7,
-          "maxCoefficient": 9.5
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                140,
+                180
+              ],
+              "enhanced": [
+                154,
+                198
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                280,
+                360
+              ],
+              "enhanced": [
+                308,
+                396
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                420,
+                540
+              ],
+              "enhanced": [
+                462,
+                594
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                560,
+                720
+              ],
+              "enhanced": [
+                616,
+                792
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                700,
+                900
+              ],
+              "enhanced": [
+                770,
+                990
+              ]
+            }
+          ]
         },
         {
           "attr": "physicalDef",
-          "minCoefficient": 0.1,
-          "maxCoefficient": 0.16
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                11,
+                15
+              ],
+              "enhanced": [
+                12,
+                16
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                23,
+                30
+              ],
+              "enhanced": [
+                25,
+                33
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                35,
+                45
+              ],
+              "enhanced": [
+                38,
+                49
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                46,
+                59
+              ],
+              "enhanced": [
+                50,
+                64
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                58,
+                74
+              ],
+              "enhanced": [
+                63,
+                81
+              ]
+            }
+          ]
         }
-      ],
-      "favoredAttributes": [
-        "vitality",
-        "endurance",
-        "speed"
       ]
     },
     {
@@ -124,25 +704,125 @@
       "slot": "footwear",
       "baseStats": [
         {
+          "attr": "magicDef",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                17,
+                22
+              ],
+              "enhanced": [
+                19,
+                24
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                35,
+                45
+              ],
+              "enhanced": [
+                38,
+                49
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                52,
+                67
+              ],
+              "enhanced": [
+                57,
+                73
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                70,
+                90
+              ],
+              "enhanced": [
+                77,
+                99
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                87,
+                112
+              ],
+              "enhanced": [
+                95,
+                123
+              ]
+            }
+          ]
+        },
+        {
           "attr": "speed",
-          "minCoefficient": 0.3,
-          "maxCoefficient": 0.5
-        },
-        {
-          "attr": "dodge",
-          "minCoefficient": 0.25,
-          "maxCoefficient": 0.4
-        },
-        {
-          "attr": "physicalDef",
-          "minCoefficient": 0.06,
-          "maxCoefficient": 0.1
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                13,
+                23
+              ],
+              "enhanced": [
+                14,
+                25
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                26,
+                47
+              ],
+              "enhanced": [
+                29,
+                52
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                40,
+                72
+              ],
+              "enhanced": [
+                44,
+                79
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                53,
+                95
+              ],
+              "enhanced": [
+                58,
+                104
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                66,
+                119
+              ],
+              "enhanced": [
+                72,
+                130
+              ]
+            }
+          ]
         }
-      ],
-      "favoredAttributes": [
-        "speed",
-        "willpower",
-        "endurance"
       ]
     }
   ],
@@ -241,11 +921,32 @@
       0.4,
       0.1
     ],
-    "favoredWeight": 2,
-    "normalWeight": 1,
-    "bonusValue": {
-      "minCoefficient": 0.08,
-      "maxCoefficient": 0.14
-    }
+    "bonusRanges": [
+      {
+        "level": 10,
+        "min": 4,
+        "max": 7
+      },
+      {
+        "level": 30,
+        "min": 7,
+        "max": 14
+      },
+      {
+        "level": 50,
+        "min": 11,
+        "max": 22
+      },
+      {
+        "level": 70,
+        "min": 15,
+        "max": 29
+      },
+      {
+        "level": 90,
+        "min": 18,
+        "max": 36
+      }
+    ]
   }
 }

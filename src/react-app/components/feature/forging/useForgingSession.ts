@@ -1,11 +1,12 @@
-import { equipmentRealm } from '@shared/engine/combat-v6/equipment/realm';
+import { equipmentRealm, isOpenEquipmentLevel } from '@shared/engine/combat-v6/equipment/realm';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type { ForgeRequest, ForgeView } from '@shared/contracts/forging';
 import type { InventoryView } from '@shared/contracts/inventory';
 import type { DaoEquipmentInstanceV1 } from '@shared/engine/combat-v6/equipment/types';
-import { forgingCost } from '@shared/forging/rules';
+import { forgingCost, forgingInputs } from '@shared/forging/rules';
 import { itemDefinition } from '@shared/inventory';
+import { FORGING_MATERIAL_TYPES } from '@shared/items/definitions/materials';
 import { materialFactsOf } from '@shared/items/material';
 import { QUALITY_ORDER } from '@shared/types/constants';
 import { useEffect, useRef, useState } from 'react';
@@ -73,6 +74,8 @@ export function useForgingSession() {
     !!bagQuery.error;
   function itemProblem(item: ForgeItem, targetCost = cost): string | null {
     const def = itemDefinition(item.definitionId);
+    if (def.kind === 'blueprint' && !isOpenEquipmentLevel(def.level!))
+      return '该境界道装尚未开放打造';
     if (def.kind === 'blueprint')
       return equipmentRealm(def.level!).requiredLevel > (view?.ownerLevel ?? 0)
         ? '图纸境界超过人物境界'
@@ -80,6 +83,8 @@ export function useForgingSession() {
     if (def.kind !== 'material') return '此物不能用于铸造';
     if (!targetCost) return '请先选择道装图纸';
     const facts = materialFactsOf(item.definitionId, item.instanceData);
+    if (!FORGING_MATERIAL_TYPES.some((type) => type === facts.type))
+      return '此类材料不能用于铸造';
     return QUALITY_ORDER[facts.rank] < QUALITY_ORDER[targetCost.rank]
       ? `本次材料需${targetCost.rank}或更高品质`
       : null;
@@ -102,6 +107,13 @@ export function useForgingSession() {
           : null) ??
         (view.spiritStones < cost!.spiritStones ? '灵石不足' : null) ??
         (view.qi < cost!.qi ? '天地灵气不足' : null));
+
+  const forging = !problem && definition?.level && view
+    ? forgingInputs(definition.level, view.ownerLevel, Array.from(quantities, ([id, quantity]) => {
+        const item = byId.get(id)!;
+        return { facts: materialFactsOf(item.definitionId, item.instanceData), quantity };
+      }))
+    : undefined;
 
   function choose(item: ForgeItem): string {
     if (locked) return '当前不能调整炉中材料';
@@ -218,6 +230,8 @@ export function useForgingSession() {
     error: error || bagQuery.error,
     result,
     problem,
+    forging,
+    definition,
     itemProblem,
     choose,
     remove,

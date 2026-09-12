@@ -14,7 +14,7 @@ import {
 import { BEAST_CAPACITY } from '@shared/engine/combat-v6/beasts/progression';
 import { generateForgedEquipment } from '@shared/engine/combat-v6/equipment/forging';
 import { buildSpiritFieldSeedMaterialFromPlant } from '@shared/engine/spirit-field/seedMaterial';
-import { forgingBoosts, forgingCost } from '@shared/forging/rules';
+import { forgingInputs, forgingCost } from '@shared/forging/rules';
 import {
   addItems,
   itemDefinition,
@@ -163,7 +163,7 @@ export async function forgeEquipment(owner: string, input: ForgeRequest) {
       };
     });
     const character = await readBeastOwner(owner, tx);
-    const boosts = forgingBoosts(
+    const forging = forgingInputs(
       definition.level,
       character.ownerLevel,
       selected,
@@ -178,7 +178,7 @@ export async function forgeEquipment(owner: string, input: ForgeRequest) {
       seed,
       templateId: `dao_equipment.standard.${definition.slot}.v1`,
       equipmentLevel: definition.level,
-      boosts,
+      ...forging,
     });
     if (!generated.ok)
       throw new InventoryError(generated.diagnostics[0].message);

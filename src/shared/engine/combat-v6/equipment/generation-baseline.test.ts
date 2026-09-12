@@ -4,97 +4,97 @@ import { generateForgedEquipment } from './forging';
 import { generateDaoEquipmentV1, generateDaoEquipmentV2 } from './generator';
 import { DAO_EQUIPMENT_SLOTS } from './types';
 
-// 九境界档位与初期门槛的完整 V1/V2/V3 输出基线。
+// 经确认的第二版数值基线：炼气、化神、金丹，覆盖 V1/V2/V3 生成入口。
 const baselines = [
   {
     slot: 'weapon',
     level: 10,
-    hash: '49ad3e35e0bff7a0b5c74a617eb4c870407e6ff75c93603f9becf94bf38724ab',
+    hash: '825fb687331d1c48e14501123974456507029a01f92abc11c682a53f1159876a',
   },
   {
     slot: 'weapon',
     level: 90,
-    hash: '792aec0984022087d6da62a6bcc72fd99f437e8041d4d020b9d5b5ab1cfb119f',
+    hash: '4faef72e6eb242298cd893b75909ccf9ac4a0b1e6329281092352743dfa825b1',
   },
   {
     slot: 'weapon',
-    level: 170,
-    hash: '8f76f38881fa90a7495ac9bfaa9c292e599e720348366ea8b768f222496a9413',
+    level: 50,
+    hash: '3ed1a7c81b9648f55a17cc6b8d80f80e5da876517506e7d87a3e54c51c9186ff',
   },
   {
     slot: 'head',
     level: 10,
-    hash: 'c998a93ff16102b0f93fc961b51f3926ff81d4736eb66bd84d9dd7fdf9a611e9',
+    hash: 'd62be7dbb632fcf72e3fb7705a58184cdf8917890c16b3eb0bde7bf391a82d4c',
   },
   {
     slot: 'head',
     level: 90,
-    hash: 'ee4604ca1d923c86f53fb11ef08490d2174fac2e35e789170eccdbafb824dc1f',
+    hash: '8a18d26d2ecce669976c3df8321743a759de830ceb34ce747c569ff02c475fe9',
   },
   {
     slot: 'head',
-    level: 170,
-    hash: '7f3c09704b6126eb66971addfcec820e35f2310bc61eb671174e336c120dd6c4',
+    level: 50,
+    hash: 'ae74abf76a1a81b454aaa63f7e6b4d28bbf1a3ced8e61aac07a440bfbf2ea87d',
   },
   {
     slot: 'armor',
     level: 10,
-    hash: 'b3cab8b1b45fa3fe5b2eb15391990729da7f739b4e0320ba362ffa7b33a605f2',
+    hash: 'bcf6dd65a81adecad0623f3cf6b7319a81917b978190f582a52b1c55f2b8ea9a',
   },
   {
     slot: 'armor',
     level: 90,
-    hash: '8eff045139c8b86b67a4e5f93aa29b19a53a93ca92c8741353184396362a0c54',
+    hash: 'd44eb1adb6994a225580a851c7c9f5648aba68689df1dad8cd3b96c57894ac4e',
   },
   {
     slot: 'armor',
-    level: 170,
-    hash: 'd418afc2a7289c0b320077fac8f61fa7fcd9b67d18304132bf64dc7e64c925e1',
+    level: 50,
+    hash: '6888c682f1b796755c8f09895f8fe8b7adf8db4cce8d160ac9cd494278a07d5f',
   },
   {
     slot: 'necklace',
     level: 10,
-    hash: '2dd41a1b4ebc2658362ce1eda42e3b467b5c8a8bfb5a3d4b3389502bbf09b179',
+    hash: 'c68541f5bfbbd6f4bfcc99442fd8c88da89ad4fd8a034706340a4034f676c50e',
   },
   {
     slot: 'necklace',
     level: 90,
-    hash: '7815abc6ba3ec71d15857131f8bedd12c60c9f251c22b6ebfce4414d523da6fe',
+    hash: '5e1ba2575f8e1956a617fd4c8b7c5540abb1c2eca905243dcb9ef4b4b803ad28',
   },
   {
     slot: 'necklace',
-    level: 170,
-    hash: '8c4c6ea83bcd20ba908722e273ae4c6696aa56a316b5be850201189a76b0a715',
+    level: 50,
+    hash: '7f2f18a954469cc7bbde6ba199f7ad977e6b55f7085c78134ba3ed71a7e79c5a',
   },
   {
     slot: 'belt',
     level: 10,
-    hash: '0afbf4628b191025eb9139f5e2621fc97a5afc3eceaa1a50bdcb86449424b43e',
+    hash: '3847d9162b3a07e4d3b90c0cc94edf82d0d8759fb9d5c151eb4afbe79ff29f40',
   },
   {
     slot: 'belt',
     level: 90,
-    hash: '101593c4762cda6bf7aa5091f7282972272f50f25b33a448f94df5138f81a0a0',
+    hash: '3b57697a5b8cd4cd1e26d4178e82cf900f87a31f2772db42819296e3e81404e6',
   },
   {
     slot: 'belt',
-    level: 170,
-    hash: '3309543ebe4f922de20a6ac023e42c2888ca429ea862519e29ed5add3b10abf7',
+    level: 50,
+    hash: 'f6787366a38deba2a038987b94f7632e6f73741760c82ea07eb3aa1344955eb2',
   },
   {
     slot: 'footwear',
     level: 10,
-    hash: 'e594223dcba3019addd0b3e8535483e8b76817df4ade6cf5cd0d10374baeb6a5',
+    hash: '2817b3342ae1b8cb46afc7f0aa4c5f3935318818fec3e62002f0f8e39f51eb1e',
   },
   {
     slot: 'footwear',
     level: 90,
-    hash: '8d2bcb178d0c41936f279c5e3408f6f35c75c18b5af453fae57d5eabe395f43e',
+    hash: 'cf1d4b16d86087b82cac68c4be742134ab5b5e7ef7c0cc535b9d59985013116d',
   },
   {
     slot: 'footwear',
-    level: 170,
-    hash: 'b27713b55abbe42490566e3766dedf112edc20400417951f18283a594273f6f1',
+    level: 50,
+    hash: 'a35c0e72946f94265319c18e7dd421499c0bef89867094ec0f82c992f11201c4',
   },
 ] as const;
 

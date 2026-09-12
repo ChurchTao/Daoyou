@@ -23,12 +23,9 @@ export function daoEquipmentAttributeRange(equipmentLevel: number): {
   min: number;
   max: number;
 } {
-  const { minCoefficient, maxCoefficient } =
-    DAO_EQUIPMENT_BASE_GENERATION.bonusValue;
-  return {
-    min: Math.max(1, Math.floor(equipmentLevel * minCoefficient)),
-    max: Math.max(1, Math.floor(equipmentLevel * maxCoefficient)),
-  };
+  const range = DAO_EQUIPMENT_BASE_GENERATION.bonusRanges.find((r) => r.level === equipmentLevel);
+  if (!range) throw new Error('该境界道装尚未开放');
+  return { min: range.min, max: range.max };
 }
 
 export const DAO_FORMATION_INSCRIPTION_ID = {
@@ -56,4 +53,18 @@ export function daoFormationInscriptionOf(
   id: string,
 ): DaoFormationInscriptionDefV1 | undefined {
   return DAO_FORMATION_INSCRIPTIONS_V1.find((pattern) => pattern.id === id);
+}
+
+/** 品阶进度为0～1；全部材料平均超出门槛两阶时封顶。 */
+export function daoEquipmentBaseRange(
+  stat: DaoEquipmentTemplateV1['baseStats'][number],
+  equipmentLevel: number,
+  baseQuality = 0,
+): { min: number; max: number } {
+  const range = stat.ranges.find((r) => r.level === equipmentLevel);
+  if (!range) throw new Error('该境界道装尚未开放');
+  return {
+    min: Math.round(range.normal[0] + baseQuality * (range.enhanced[0] - range.normal[0])),
+    max: Math.round(range.normal[1] + baseQuality * (range.enhanced[1] - range.normal[1])),
+  };
 }

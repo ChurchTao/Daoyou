@@ -1,7 +1,7 @@
-import { equipmentRealm, isEquipmentLevel } from "./realm"
+import { equipmentRealm, isOpenEquipmentLevel } from "./realm"
 import { SeededRng } from "../core/index.ts"
 import type { CombatV6ProjectionDiagnostic } from "../projection/types.ts"
-import { DAO_EQUIPMENT_BASE_GENERATION, daoEquipmentAttributeRange, daoEquipmentTemplateOf } from "./content.ts"
+import { DAO_EQUIPMENT_BASE_GENERATION, daoEquipmentBaseRange, daoEquipmentAttributeRange, daoEquipmentTemplateOf } from "./content.ts"
 import { DAO_EQUIPMENT_SPECIAL_GENERATION, equipmentArtPool, equipmentEssencePool } from "./forging-content.ts"
 import {
   DAO_EQUIPMENT_GENERATOR_VERSION,
@@ -43,22 +43,6 @@ function bonusCount(roll: number): 0 | 1 | 2 {
   return 2
 }
 
-function takeWeightedAttribute(
-  rng: SeededRng,
-  available: DaoEquipmentAttribute[],
-  favored: DaoEquipmentAttribute[],
-): DaoEquipmentAttribute {
-  const { favoredWeight, normalWeight } = DAO_EQUIPMENT_BASE_GENERATION
-  const weights = available.map((attr) => (favored.includes(attr) ? favoredWeight : normalWeight))
-  const total = weights.reduce((sum, weight) => sum + weight, 0)
-  let roll = rng.next() * total
-  for (let index = 0; index < available.length; index += 1) {
-    roll -= weights[index]
-    if (roll < 0) return available[index]
-  }
-  return available[available.length - 1]
-}
-
 export function generateDaoEquipmentV1(
   input: GenerateDaoEquipmentV1Input,
 ): DaoEquipmentGenerationResult {
@@ -67,8 +51,8 @@ export function generateDaoEquipmentV1(
   if (!template) {
     diagnostics.push(error("UNKNOWN_EQUIPMENT_TEMPLATE", "道装模板不存在", "templateId"))
   }
-  if (!isEquipmentLevel(input.equipmentLevel)) {
-    diagnostics.push(error("INVALID_EQUIPMENT_LEVEL", "道装必须属于九个境界档位", "equipmentLevel"))
+  if (!isOpenEquipmentLevel(input.equipmentLevel)) {
+    diagnostics.push(error("INVALID_EQUIPMENT_LEVEL", "道装仅开放至化神期", "equipmentLevel"))
   }
   if (!Number.isInteger(input.seed) || input.seed < 0 || input.seed > 0xffffffff) {
     diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "seed 必须是0～2^32-1的整数", "seed"))
@@ -79,18 +63,23 @@ export function generateDaoEquipmentV1(
   if (input.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION) {
     diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "生成器版本不受支持", "generatorVersion"))
   }
+  if (!Number.isFinite(input.baseQuality ?? 0) || (input.baseQuality ?? 0) < 0 || (input.baseQuality ?? 0) > 1)
+    diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "材料品阶进度必须在0～1之间", "baseQuality"))
   if (!template || diagnostics.length > 0) return { ok: false, diagnostics }
 
   const { rng, baseStats, attributeBonuses } = generateBaseRolls(
     input.seed,
     input.equipmentLevel,
     template,
+    input.baseQuality ?? 0,
   )
   void rng
   return {
     ok: true,
     instance: {
       schemaVersion: 1,
+      numericVersion: 2,
+      baseQuality: input.baseQuality ?? 0,
       id: input.id,
       templateId: template.id,
       name: template.name,
@@ -114,26 +103,24 @@ function generateBaseRolls(
   seed: number,
   equipmentLevel: number,
   template: NonNullable<ReturnType<typeof daoEquipmentTemplateOf>>,
+  baseQuality: number,
 ): {
   rng: SeededRng
   baseStats: Array<{ attr: (typeof template.baseStats)[number]["attr"]; value: number }>
   attributeBonuses: DaoEquipmentAttributeRoll[]
 } {
   const rng = new SeededRng(seed)
-  const baseStats = template.baseStats.map((rule) => ({
-    attr: rule.attr,
-    value: integer(
-      rng,
-      Math.floor(equipmentLevel * rule.minCoefficient),
-      Math.floor(equipmentLevel * rule.maxCoefficient),
-    ),
-  }))
-  const count = bonusCount(rng.next())
+  const baseStats = template.baseStats.map((rule) => {
+    const { min, max } = daoEquipmentBaseRange(rule, equipmentLevel, baseQuality)
+    return { attr: rule.attr, value: integer(rng, min, max) }
+  })
+  const countRoll = rng.next()
+  const count = template.slot === "weapon" || template.slot === "armor" ? bonusCount(countRoll) : 0
   const { min: minBonus, max: maxBonus } = daoEquipmentAttributeRange(equipmentLevel)
   const available = [...ATTRIBUTES]
   const attributeBonuses: DaoEquipmentAttributeRoll[] = []
   for (let index = 0; index < count; index += 1) {
-    const attr = takeWeightedAttribute(rng, available, template.favoredAttributes)
+    const attr = available[Math.floor(rng.next() * available.length)]
     available.splice(available.indexOf(attr), 1)
     attributeBonuses.push({ attr, value: integer(rng, minBonus, maxBonus) })
   }
@@ -154,16 +141,19 @@ export function generateDaoEquipmentV2(
   const diagnostics: CombatV6ProjectionDiagnostic[] = []
   const template = daoEquipmentTemplateOf(input.templateId)
   if (!template) diagnostics.push(error("UNKNOWN_EQUIPMENT_TEMPLATE", "道装模板不存在", "templateId"))
-  if (!isEquipmentLevel(input.equipmentLevel)) diagnostics.push(error("INVALID_EQUIPMENT_LEVEL", "道装必须属于九个境界档位", "equipmentLevel"))
+  if (!isOpenEquipmentLevel(input.equipmentLevel)) diagnostics.push(error("INVALID_EQUIPMENT_LEVEL", "道装仅开放至化神期", "equipmentLevel"))
   if (!Number.isInteger(input.seed) || input.seed < 0 || input.seed > 0xffffffff) diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "seed 必须是0～2^32-1的整数", "seed"))
   if (!input.id?.trim() || !input.createdAt?.trim()) diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "道装 id 与 createdAt 不能为空"))
   if (input.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION_V2) diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "生成器版本不受支持", "generatorVersion"))
+  if (!Number.isFinite(input.baseQuality ?? 0) || (input.baseQuality ?? 0) < 0 || (input.baseQuality ?? 0) > 1)
+    diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "材料品阶进度必须在0～1之间", "baseQuality"))
   if (!template || diagnostics.length > 0) return { ok: false, diagnostics }
 
   const { rng, baseStats, attributeBonuses } = generateBaseRolls(
     input.seed,
     input.equipmentLevel,
     template,
+    input.baseQuality ?? 0,
   )
   const count = essenceCount(rng.next())
   const essencePool = equipmentEssencePool(template.slot)
@@ -181,6 +171,8 @@ export function generateDaoEquipmentV2(
     ok: true,
     instance: {
       schemaVersion: 1,
+      numericVersion: 2,
+      baseQuality: input.baseQuality ?? 0,
       id: input.id,
       templateId: template.id,
       name: template.name,

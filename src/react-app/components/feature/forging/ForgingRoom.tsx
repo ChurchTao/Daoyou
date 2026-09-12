@@ -6,7 +6,9 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { getLevelRealmStage } from '@shared/config/realmProgression';
+import { daoEquipmentBaseRange, daoEquipmentTemplateOf } from '@shared/engine/combat-v6/equipment/content';
 import { DAO_EQUIPMENT_FORGING } from '@shared/engine/combat-v6/equipment/forging-content';
+import { EQUIPMENT_ATTRIBUTE_NAMES } from '@shared/inventory/equipment';
 import { itemDefinition } from '@shared/inventory';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useBeforeUnload, useBlocker } from 'react-router';
@@ -221,7 +223,7 @@ export function ForgingRoom() {
                               : '一卷图纸，最多五份灵材'}
                             <InkTooltip label="材料增益规则">
                               每份材料增加 {boostPercent} 个百分点，同类最多
-                              {maxBoostPercent}%。矿石增益白字择优；天材地宝增益器蕴数量择优；辅助与妖兽材料增益已有附灵数值择优。高品质无额外加成，器诀独立随机。
+                              {maxBoostPercent}%。矿石增益白字择优；天材地宝增益器蕴数量择优；辅助与妖兽材料增益已有附灵数值择优。材料平均品阶越高，白字上下限越高；平均超出门槛两阶封顶。器诀独立随机。
                             </InkTooltip>
                           </div>
                         </div>
@@ -287,13 +289,13 @@ export function ForgingRoom() {
                 <section>
                   <h3 className="mb-2 font-medium">依图定形</h3>
                   <p className="text-ink-secondary">
-                    图纸决定道装的境界与槽位，不可铸造高于人物境界的图纸。每炉需要一卷图纸与规定数量、品质的材料。
+                    图纸决定道装的境界与槽位，不可铸造高于人物境界的图纸。目前开放炼气至化神道装。每炉需要一卷图纸与规定数量、品质的材料。
                   </p>
                 </section>
                 <section>
                   <h3 className="mb-2 font-medium">灵材各有所长</h3>
                   <p className="text-ink-secondary">
-                    矿石偏重白字面板；天材地宝偏重器蕴数量；辅助与妖兽材料偏重附灵数值。同类可叠加择优概率，每份
+                    材料刚好达到品阶门槛时使用基础范围，平均高出两阶时达到最高范围，中间逐步提升。矿石偏重白字面板；天材地宝偏重器蕴数量；辅助与妖兽材料偏重附灵数值。同类可叠加择优概率，每份
                     {boostPercent}%，最多 {maxBoostPercent}%。器诀独立随机。
                   </p>
                 </section>
@@ -349,6 +351,15 @@ export function ForgingRoom() {
               {session.cost?.spiritStones.toLocaleString()} 灵石 ·{' '}
               {session.cost?.qi} 天地灵气
             </p>
+            {session.forging && session.definition ? (
+              <div className="space-y-1">
+                <p className="text-ink-secondary">本炉器胚范围</p>
+                {daoEquipmentTemplateOf(`dao_equipment.standard.${session.definition.slot}.v1`)?.baseStats.map((stat) => {
+                  const range = daoEquipmentBaseRange(stat, session.definition!.level!, session.forging!.baseQuality);
+                  return <p key={stat.attr}>{EQUIPMENT_ATTRIBUTE_NAMES[stat.attr]} <span className="font-mono">{range.min}–{range.max}</span></p>;
+                })}
+              </div>
+            ) : null}
             <p className="text-ink-secondary">
               必定铸成一件道装，属性随机，成品自动入包。
             </p>

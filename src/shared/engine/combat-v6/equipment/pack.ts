@@ -1,14 +1,6 @@
 import { z } from 'zod';
 import { DAO_EQUIPMENT_SLOTS } from './types';
 
-const attributes = z.enum([
-  'vitality',
-  'strength',
-  'spirit',
-  'endurance',
-  'speed',
-  'willpower',
-]);
 const panelAttribute = z.enum([
   'physicalAtk',
   'physicalDef',
@@ -26,10 +18,9 @@ const panelAttribute = z.enum([
   'sealHit',
   'sealResist',
 ]);
-const coefficientRange = z.strictObject({
-  minCoefficient: z.number().nonnegative(),
-  maxCoefficient: z.number().nonnegative(),
-});
+const bounds = z.tuple([z.number().int().nonnegative().max(1000000), z.number().int().nonnegative().max(1000000)]);
+const level = z.union([z.literal(10), z.literal(30), z.literal(50), z.literal(70), z.literal(90)]);
+const statRange = z.strictObject({ level, normal: bounds, enhanced: bounds });
 const probability = z.number().min(0).max(1);
 
 export const EquipmentBasePackShape = z.strictObject({
@@ -43,9 +34,8 @@ export const EquipmentBasePackShape = z.strictObject({
         name: z.string().trim().min(1),
         slot: z.enum(DAO_EQUIPMENT_SLOTS),
         baseStats: z
-          .array(coefficientRange.extend({ attr: panelAttribute }))
+          .array(z.strictObject({ attr: panelAttribute, ranges: z.array(statRange).length(5) }))
           .min(1),
-        favoredAttributes: z.array(attributes),
       }),
     )
     .length(DAO_EQUIPMENT_SLOTS.length),
@@ -62,9 +52,7 @@ export const EquipmentBasePackShape = z.strictObject({
     .min(1),
   generation: z.strictObject({
     bonusCountProbabilities: z.tuple([probability, probability, probability]),
-    favoredWeight: z.number().positive(),
-    normalWeight: z.number().positive(),
-    bonusValue: coefficientRange,
+    bonusRanges: z.array(z.strictObject({ level, min: z.number().int().positive(), max: z.number().int().positive() })).length(5),
   }),
 });
 
@@ -76,15 +64,6 @@ export const EquipmentBasePackSchema = EquipmentBasePackShape.superRefine(
       values.forEach((value, i) => {
         if (values.indexOf(value) !== i) issue([...path, i], '不得重复');
       });
-    };
-    const range = (
-      value: z.infer<typeof coefficientRange>,
-      path: (string | number)[],
-    ) => {
-      if (value.minCoefficient > value.maxCoefficient)
-        issue([...path, 'maxCoefficient'], '上界不得小于下界');
-      if (!Number.isSafeInteger(Math.floor(180 * value.maxCoefficient)))
-        issue([...path, 'maxCoefficient'], '最高器阶的结果超出安全整数范围');
     };
     unique(
       pack.templates.map((t) => t.id),
@@ -104,10 +83,16 @@ export const EquipmentBasePackSchema = EquipmentBasePackShape.superRefine(
         template.baseStats.map((s) => s.attr),
         ['templates', i, 'baseStats'],
       );
-      unique(template.favoredAttributes, ['templates', i, 'favoredAttributes']);
-      template.baseStats.forEach((stat, j) =>
-        range(stat, ['templates', i, 'baseStats', j]),
-      );
+      template.baseStats.forEach((stat, j) => {
+        const path = ['templates', i, 'baseStats', j, 'ranges'];
+        unique(stat.ranges.map((r) => String(r.level)), path);
+        stat.ranges.forEach((r, k) => {
+          if (r.normal[0] > r.normal[1] || r.enhanced[0] > r.enhanced[1])
+            issue([...path, k], '上界不得小于下界');
+          if (r.enhanced.some((v, n) => v < r.normal[n]))
+            issue([...path, k, 'enhanced'], '高品阶范围不得低于普通范围');
+        });
+      });
     });
     unique(
       pack.inscriptions.map((t) => t.id),
@@ -125,14 +110,10 @@ export const EquipmentBasePackSchema = EquipmentBasePackShape.superRefine(
         ['generation', 'bonusCountProbabilities'],
         '0／1／2 条概率之和必须为 1',
       );
-    if (
-      !Number.isFinite(
-        6 *
-          Math.max(pack.generation.favoredWeight, pack.generation.normalWeight),
-      )
-    )
-      issue(['generation', 'favoredWeight'], '累计抽取权重超出有限数值范围');
-    range(pack.generation.bonusValue, ['generation', 'bonusValue']);
+    unique(pack.generation.bonusRanges.map((r) => String(r.level)), ['generation', 'bonusRanges']);
+    pack.generation.bonusRanges.forEach((r, i) => {
+      if (r.min > r.max) issue(['generation', 'bonusRanges', i], '上界不得小于下界');
+    });
   },
 );
 
