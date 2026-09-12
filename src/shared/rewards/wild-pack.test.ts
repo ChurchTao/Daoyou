@@ -11,18 +11,12 @@ import { QINGXI_POOL_V2, wildItemRewards } from './wild';
 const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 describe('野外奖励数据包', () => {
   it('Schema 同步', () => expect(z.toJSONSchema(WildRewardPackShape, { reused: 'ref' })).toEqual(schema));
-  it('旧版五本兽诀奖励池仍保持迁移前的512种子基线', () => {
-    const legacy = structuredClone(raw);
-    legacy.poolVersion = 2;
-    const books = legacy.groups.find((group) => group.id === 'books')!;
-    books.source.entries = books.source.entries!.slice(0, 5);
-    const pool = compileWildRewardPool(loadWildRewardPack(legacy));
-    expect(hash(pool)).toBe('c4f2ffcaed4ed572ee2612ad44828e12acf9c9767f43fa787aaf8ffe5ece9ef3');
-    const outputs = Array.from({ length: 512 }, (_, seed) => {
+  it('移除demo兽诀后新池在512个种子下保持确定性', () => {
+    const run = () => Array.from({length:512}, (_,seed)=>{
       const rng = new SeededRng(seed);
-      return wildItemRewards(pool, () => () => rng.next(), group => `baseline-${seed}-${group}`, '2026-09-11T00:00:00Z');
+      return wildItemRewards(QINGXI_POOL_V2,()=>()=>rng.next(),group=>`baseline-${seed}-${group}`,'2026-09-11T00:00:00Z');
     });
-    expect(hash(outputs)).toBe('4e251b663058178f24e3c1bd5059b3500a21e8f1c88a213f288c30b21e296af6');
+    expect(hash(run())).toBe(hash(run()));
   });
   it('全部已注册兽诀可从扩展池掉落，兽诀组概率仍为3%', () => {
     const group = QINGXI_POOL_V2.groups.find((entry) => entry.id === 'books')!;

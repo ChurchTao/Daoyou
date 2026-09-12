@@ -444,12 +444,24 @@ export function compileBeastSkill(entry: BeastSkillContent): SkillDef {
         targeting: { side: TargetSide.Enemy },
         effects: [],
         hooks: [
-          { on: HookName.OnHitCalc, sourceIsSelf: true, requireKind: DamageKind.Physical,
-            effects: [{ type: EffectType.ModifyStrike, factor: e.physicalFactor }] },
+          {
+            on: HookName.OnHitCalc,
+            sourceIsSelf: true,
+            requireKind: DamageKind.Physical,
+            effects: [
+              { type: EffectType.ModifyStrike, factor: e.physicalFactor },
+            ],
+          },
           {
             on: HookName.AfterHit,
             sourceIsSelf: true,
-            when: { skillIds: [BUILTIN_SKILL_ID.attack], targetAbsentSkillIds: ['beast.reflection', 'beast.advanced-reflection'] },
+            when: {
+              skillIds: [BUILTIN_SKILL_ID.Attack],
+              targetAbsentSkillIds: [
+                'beast.reflection',
+                'beast.advanced-reflection',
+              ],
+            },
             requireKind: DamageKind.Physical,
             chance: e.chance,
             aim: HookAim.HookTarget,

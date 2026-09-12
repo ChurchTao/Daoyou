@@ -49,9 +49,14 @@
               "agility"
             ]
           },
-          "skill": {
-            "type": "string",
-            "pattern": "^beast\\.[a-z][a-z0-9-]*$"
+          "skills": {
+            "minItems": 2,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^beast\\.[a-z][a-z0-9-]*$"
+            }
           },
           "aptitudes": {
             "type": "object",
@@ -193,7 +198,7 @@
           "carryLevel",
           "role",
           "allocation",
-          "skill",
+          "skills",
           "aptitudes",
           "growthMilli"
         ],
@@ -216,10 +221,6 @@
         "captureBonus": {
           "type": "object",
           "properties": {
-            "skillId": {
-              "type": "string",
-              "pattern": "^beast\\.[a-z][a-z0-9-]*$"
-            },
             "chance": {
               "type": "number",
               "minimum": 0,
@@ -228,7 +229,6 @@
             }
           },
           "required": [
-            "skillId",
             "chance"
           ],
           "additionalProperties": false

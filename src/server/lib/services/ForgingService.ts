@@ -8,6 +8,7 @@ import type {
 } from '@shared/contracts/forging';
 import {
   BEAST_SPECIES,
+  BeastSchema,
   generateStarterBeast,
 } from '@shared/engine/combat-v6/beasts';
 import { BEAST_CAPACITY } from '@shared/engine/combat-v6/beasts/progression';
@@ -379,12 +380,19 @@ export async function grantDevResources(input: z.infer<typeof DevGrantSchema>) {
         if (held.total >= BEAST_CAPACITY)
           throw new InventoryError('灵兽持有数量已达上限');
         const id = randomUUID();
-        const individual = generateStarterBeast(
+        const starter = generateStarterBeast(
           id,
           input.cultivatorId,
           grant.speciesId,
           randomInt(0x100000000),
         );
+        const individual = grant.skills
+          ? BeastSchema.parse({
+              ...starter,
+              skills: grant.skills,
+              skillSlotCapacity: grant.skills.length,
+            })
+          : starter;
         await tx
           .insert(cultivatorBeasts)
           .values({

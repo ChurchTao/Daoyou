@@ -66,6 +66,8 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 
 灵兽可通过同一发放接口提交 `{ "type": "beast", "speciesId": "combat.wild.species.rock-boar" }`（speciesId 必须来自灵兽定义）。生成标准 10 级个体，遵循兽栏容量；不会自动携带或设为首发，随后使用正式阵容接口配置。
 
+验收多技能展示时，可额外传入 `skills`，例如 `["beast.strength", "beast.advanced-defense"]`。允许 1–8 个不重复的当前有效技能 ID，技能格容量同步为技能数量，并通过完整灵兽数据校验；省略时沿用初始技能生成规则。
+
 `PATCH http://127.0.0.1:3001/api/dev/cultivators/:id` 使用相同的纯本地环境限制，无需登录。只读查询已有角色 UUID 后，可按需提交以下白名单字段：
 
 ```json

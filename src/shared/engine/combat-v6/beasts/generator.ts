@@ -14,7 +14,8 @@ export function generateStarterBeast(
   const aptitudes = { attack: 0, defense: 0, health: 0, mana: 0, speed: 0 };
   for (const key of Object.keys(aptitudes) as (keyof typeof aptitudes)[]) {
     const range = species.aptitudes[key];
-    aptitudes[key] = range.min + Math.floor(rng.next() * (range.max - range.min + 1));
+    aptitudes[key] =
+      range.min + Math.floor(rng.next() * (range.max - range.min + 1));
   }
   const allocatedAttributes = {
     constitution: 0,
@@ -35,17 +36,20 @@ export function generateStarterBeast(
     growth:
       (species.growthMilli.min +
         Math.floor(
-          rng.next() *
-            (species.growthMilli.max -
-              species.growthMilli.min +
-              1),
+          rng.next() * (species.growthMilli.max - species.growthMilli.min + 1),
         )) /
       1000,
     aptitudes,
     allocatedAttributes,
     unallocatedPoints: 0,
     skillSlotCapacity: 1,
-    skills: [species.skill],
+    skills: [
+      species.skills[
+        Math.floor(
+          new SeededRng(seed ^ 0x27d4eb2d).next() * species.skills.length,
+        )
+      ],
+    ],
     currentLifespan: BEAST_GENERATION.lifespan,
     maxLifespan: BEAST_GENERATION.lifespan,
     generationVersion: BEAST_VERSION,
@@ -63,13 +67,12 @@ export function generateCapturedBeast(
 ): SummonedBeast {
   const base = generateStarterBeast(id, ownerId, speciesId, seed);
   const species = BEAST_SPECIES.find((s) => s.id === speciesId)!;
-  const skills: string[] = [species.skill];
-  if (
-    new SeededRng(seed ^ 0x5bd1e995).chance(
-      BEAST_GENERATION.captureBonus.chance,
-    )
-  )
-    skills.push(BEAST_GENERATION.captureBonus.skillId);
+  const skills = [...base.skills];
+  const rng = new SeededRng(seed ^ 0x5bd1e995);
+  if (rng.chance(BEAST_GENERATION.captureBonus.chance)) {
+    const remaining = species.skills.filter((id) => !skills.includes(id));
+    skills.push(remaining[Math.floor(rng.next() * remaining.length)]);
+  }
   return BeastSchema.parse({
     ...base,
     level,

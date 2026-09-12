@@ -76,10 +76,11 @@ function beastComboDescription(skill: SkillDef): string | undefined {
   if (!BEAST_COMBO_SKILL_IDS.includes(skill.id)) return;
   const hook = skill.hooks?.find((entry) => entry.on === HookName.AfterHit);
   if (typeof hook?.chance !== 'number') return;
-  const effect = BEAST_SKILL_CONTENT.find(entry => entry.id === skill.id)?.effect;
+  const effect = BEAST_SKILL_CONTENT.find(
+    (entry) => entry.id === skill.id,
+  )?.effect;
   if (effect?.type !== 'combo') return;
   return `普通攻击命中后，有 ${Math.round(hook.chance * 100)}% 概率向原目标追加一次普攻；自身所有物理伤害降低 ${Math.round((1 - effect.physicalFactor) * 100)}%。目标拥有反震或高级反震时不触发，偷袭不解除此限制。`;
-
 }
 const effectLabels: Record<SkillEffect['type'], string> = {
   physicalHit: '造成物理伤害',

@@ -1,4 +1,5 @@
 import { InkTooltip } from '@app/components/ui/InkTooltip';
+import { findBeastSkillPresentation } from '@shared/combat-v6/beast-skill-presentation';
 import type { CombatV6SkillCommandOption } from '@shared/engine/combat-v6/core/types';
 import { reasonText } from './presentation';
 
@@ -13,6 +14,7 @@ export function CombatV6SkillChoice({
   resources: Array<{ id: string; name: string }>;
   onSelect: () => void;
 }) {
+  const presentation = findBeastSkillPresentation(skill.skillId);
   const costs =
     [
       skill.costs.mp ? `${skill.costs.mp} 法力` : '',
@@ -33,6 +35,11 @@ export function CombatV6SkillChoice({
           disabled={!skill.ready}
           onClick={onSelect}
         >
+          {presentation ? (
+            <span aria-hidden className="mr-1">
+              {presentation.icon}
+            </span>
+          ) : null}
           {skill.name}
         </button>
         <InkTooltip label={`查看${skill.name}说明`}>

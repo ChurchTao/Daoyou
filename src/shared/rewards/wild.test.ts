@@ -55,6 +55,6 @@ it('changes scene reward ranges through configuration and preserves book weights
   expect(
     QINGXI_POOL_V2.groups
       .find((g) => g.id === 'books')
-      ?.entries.slice(0, 5).map((e) => e.weight),
-  ).toEqual([24, 24, 24, 24, 4]);
+      ?.entries.filter(e => ['book.beast.spirit-flame', 'book.beast.combo', 'book.beast.advanced-combo'].includes(e.rewardId)).map((e) => e.weight),
+  ).toEqual([24, 24, 4]);
 });

@@ -28,7 +28,7 @@ export const BeastSpeciesPackShape = z.strictObject({
           'endurance',
           'agility',
         ]),
-        skill: skillId,
+        skills: z.array(skillId).min(2).max(8),
         aptitudes: z.strictObject({
           attack: range,
           defense: range,
@@ -46,7 +46,7 @@ export const BeastSpeciesPackShape = z.strictObject({
   generation: z.strictObject({
     starterLevel: z.number().int().min(0).max(180),
     lifespan: integer,
-    captureBonus: z.strictObject({ skillId, chance: probability }),
+    captureBonus: z.strictObject({ chance: probability }),
   }),
 });
 
@@ -58,6 +58,7 @@ export const BeastSkillsPackShape = z.strictObject({
         id: skillId,
         name,
         book: z.boolean(),
+        icon: z.string().trim().min(1).max(32),
         effect: z.discriminatedUnion('type', [
           z.strictObject({
             type: z.literal('groupSpell'),
@@ -335,21 +336,25 @@ export function loadBeastPacks(
       issue('skills.json', `[${skill.id}].effect`, '波动下界不得超过上界');
   }
   const ids = new Set(skills.skills.map((s) => s.id));
-  const bonus = species.generation.captureBonus;
   species.species.forEach((s) => {
     if (!wildSpeciesIds.includes(s.id))
       issue('species.json', `[${s.id}].id`, '野外物种引用不存在');
-    if (!ids.has(s.skill))
-      issue('species.json', `[${s.id}].skill`, `初始技能不存在：${s.skill}`);
-    if (bonus.chance > 0 && s.skill === bonus.skillId)
-      issue('species.json', `[${s.id}].skill`, '初始技能与捕捉附带技能重复');
+    if (new Set(s.skills).size !== s.skills.length)
+      issue('species.json', `[${s.id}].skills`, '技能池重复');
+    for (const id of s.skills)
+      if (!ids.has(id))
+        issue('species.json', `[${s.id}].skills`, `初始技能不存在：${id}`);
+    for (const family of skills.families)
+      if (
+        s.skills.includes(family.normal) &&
+        s.skills.includes(family.advanced)
+      )
+        issue(
+          'species.json',
+          `[${s.id}].skills`,
+          '技能池不得同时包含同族普通与高级技能',
+        );
   });
-  if (!ids.has(bonus.skillId))
-    issue(
-      'species.json',
-      'generation.captureBonus.skillId',
-      `技能不存在：${bonus.skillId}`,
-    );
   species.species.forEach((entry) => {
     for (const [key, bounds] of Object.entries(entry.aptitudes)) {
       if (bounds.min > bounds.max)

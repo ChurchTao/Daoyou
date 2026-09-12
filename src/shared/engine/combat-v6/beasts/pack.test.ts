@@ -2,14 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { BOOKS } from '../../../items/definitions/beast-books';
 import { WILD_SPECIES } from '../wild/content';
-import { BEAST_SKILLS, BEAST_SPECIES } from './content';
+import { BEAST_SPECIES } from './content';
 import progression from './data/progression.json';
 import progressionSchema from './data/progression.schema.json';
 import skills from './data/skills.json';
 import skillsSchema from './data/skills.schema.json';
 import species from './data/species.json';
 import speciesSchema from './data/species.schema.json';
-import before from './fixtures/before-g3.json';
 import { generateStarterBeast } from './generator';
 import {
   BeastProgressionPackShape,
@@ -27,21 +26,40 @@ function load(p: ReturnType<typeof input>) {
 }
 
 describe('beast content packs', () => {
-  it('preserves all species, skills and book registrations', () => {
-    expect(BEAST_SPECIES.map((entry) => ({
-      id: entry.id, name: entry.name, carryLevel: entry.carryLevel,
-      role: entry.role, allocation: entry.allocation, skill: entry.skill,
-      aptitude: before.species.find((s) => s.id === entry.id)!.aptitude,
-    }))).toEqual(before.species);
-    expect(BEAST_SKILLS.slice(0, before.skills.length)).toEqual(before.skills);
-    expect(BOOKS.slice(0, before.skills.length)).toEqual(
-      before.skills.map((s) => ({
-        id: `book.${s.id}`,
-        name: `${s.name}兽诀`,
-        kind: 'beast_book',
-        skillId: s.id,
-        stackLimit: 99,
+  it('registers the initial species, books and matching schemas', () => {
+    expect(
+      BEAST_SPECIES.map(({ id, name, carryLevel, role, allocation }) => ({
+        id,
+        name,
+        carryLevel,
+        role,
+        allocation,
       })),
+    ).toEqual([
+      {
+        id: 'combat.wild.species.spirit-fox',
+        name: '青灵狐',
+        carryLevel: 5,
+        role: '法术',
+        allocation: 'magic',
+      },
+      {
+        id: 'combat.wild.species.rock-boar',
+        name: '岩甲猪',
+        carryLevel: 5,
+        role: '防护',
+        allocation: 'constitution',
+      },
+      {
+        id: 'combat.wild.species.wind-wolf',
+        name: '疾风狼',
+        carryLevel: 5,
+        role: '物理',
+        allocation: 'strength',
+      },
+    ]);
+    expect(BOOKS.map((b) => b.skillId)).toEqual(
+      skills.skills.filter((s) => s.book).map((s) => s.id),
     );
     expect(speciesSchema).toEqual(z.toJSONSchema(BeastSpeciesPackShape));
     expect(skillsSchema).toEqual(z.toJSONSchema(BeastSkillsPackShape));
@@ -68,7 +86,7 @@ describe('beast content packs', () => {
     [
       'unknown initial skill',
       (p) => {
-        p.species.species[0].skill = 'beast.missing';
+        p.species.species[0].skills[0] = 'beast.missing';
       },
       '初始技能不存在',
     ],
@@ -96,14 +114,14 @@ describe('beast content packs', () => {
     [
       'duplicate birth skill',
       (p) => {
-        p.species.generation.captureBonus.skillId = p.species.species[0].skill;
+        p.species.species[0].skills[1] = p.species.species[0].skills[0];
       },
       '重复',
     ],
     [
-      'unknown bonus',
+      'unknown pool skill',
       (p) => {
-        p.species.generation.captureBonus.skillId = 'beast.missing';
+        p.species.species[0].skills[1] = 'beast.missing';
       },
       '技能不存在',
     ],
@@ -124,7 +142,7 @@ describe('beast content packs', () => {
     [
       'invalid probability',
       (p) => {
-        p.skills.skills[3].effect.chance = 2;
+        p.skills.skills[1].effect.chance = 2;
       },
       'chance',
     ],
@@ -237,7 +255,13 @@ it('uses edited generation ranges without invalidating existing individual rolls
   const id = '00000000-0000-4000-8000-000000000001';
   const existing = {
     ...generateStarterBeast(id, id, species.species[0].id, 42),
-    aptitudes: { attack: 1000, defense: 1000, health: 1000, mana: 1100, speed: 1000 },
+    aptitudes: {
+      attack: 1000,
+      defense: 1000,
+      health: 1000,
+      mana: 1100,
+      speed: 1000,
+    },
     growth: 1.05,
   };
   const copy = structuredClone(species);
@@ -262,12 +286,13 @@ it('uses edited generation ranges without invalidating existing individual rolls
   expect(generate(id, id, species.species[1].id, 42)).toEqual(
     generateStarterBeast(id, id, species.species[1].id, 42),
   );
+  const captured = generateCapturedBeast(id, id, species.species[0].id, 10, 42);
+  expect(captured.skills).toHaveLength(2);
+  expect(captured.skills[0]).toBe(born.skills[0]);
+  expect(new Set(captured.skills).size).toBe(2);
   expect(
-    generateCapturedBeast(id, id, species.species[0].id, 10, 42).skills,
-  ).toEqual([
-    species.species[0].skill,
-    species.generation.captureBonus.skillId,
-  ]);
+    captured.skills.every((id) => species.species[0].skills.includes(id)),
+  ).toBe(true);
 });
 
 it('uses edited points, experience, lifespan and panel parameters consistently', async () => {

@@ -1,17 +1,15 @@
 import { AttributeAllocation } from '@app/components/feature/attributes/AttributeAllocation';
+import { BeastSkillGrid } from '@app/components/feature/beasts/BeastSkillGrid';
 import { InkModal } from '@app/components/layout/InkModal';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
-import { combatV6SkillDetails } from '@shared/combat-v6/skill-details';
-import { BEAST_PROGRESSION } from '@shared/engine/combat-v6/beasts/content';
 import {
-  activeBeastSkills,
-  BEAST_SKILLS,
   BEAST_SPECIES,
   beastPanel,
   canDeployBeast,
   type SummonedBeast,
 } from '@shared/engine/combat-v6/beasts';
+import { BEAST_PROGRESSION } from '@shared/engine/combat-v6/beasts/content';
 import {
   allocateBeast,
   BEAST_ATTRIBUTE_NAMES,
@@ -21,8 +19,6 @@ import { useState } from 'react';
 import type { BeastAction } from './BeastActionDrawer';
 
 const species = new Map(BEAST_SPECIES.map((s) => [s.id as string, s]));
-const skills = new Map(BEAST_SKILLS.map((s) => [s.id, s]));
-const descriptions = combatV6SkillDetails(BEAST_SKILLS, []);
 export function BeastIcon({ speciesId }: { speciesId: string }) {
   return (
     (
@@ -103,7 +99,6 @@ export function BeastPanel({
       ? beastPanel(allocateBeast(beast, draft, ownerLevel))
       : before;
   const definition = species.get(beast.speciesId);
-  const active = new Set(activeBeastSkills(beast));
   const capped = beast.level >= Math.min(ownerLevel, 180);
   const exp = nextBeastExp(beast.level);
   const reason =
@@ -138,7 +133,10 @@ export function BeastPanel({
               寿命 {beast.currentLifespan} / {beast.maxLifespan}
             </span>
             <InkTooltip label="寿命与入场规则">
-              每场满气血、法力入场。野外死亡每场扣除一次{BEAST_PROGRESSION.lifespan.deathLoss}寿命；不足{BEAST_PROGRESSION.lifespan.deployMinimum}不能出战，切磋与练功不消耗寿命。
+              每场满气血、法力入场。野外死亡每场扣除一次
+              {BEAST_PROGRESSION.lifespan.deathLoss}寿命；不足
+              {BEAST_PROGRESSION.lifespan.deployMinimum}
+              不能出战，切磋与练功不消耗寿命。
             </InkTooltip>
           </div>
           <div
@@ -290,44 +288,7 @@ export function BeastPanel({
             学习兽诀
           </InkButton>
         </div>
-        <div className="flex flex-wrap gap-2.5">
-          {beast.skills.map((id) => {
-            const skill = skills.get(id);
-            const suppressed = !active.has(id);
-            return (
-              <InkTooltip
-                key={id}
-                label={`预览${skill?.name ?? '技能'}`}
-                triggerClassName={`border-ink/20 bg-bgpaper hover:border-teal/60 hover:bg-teal/5 flex size-[68px] flex-col items-center justify-center gap-1 rounded-xs border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal ${suppressed ? 'opacity-50' : ''}`}
-                triggerContent={
-                  <>
-                    <span aria-hidden className="text-2xl">
-                      {id === 'beast.spirit-flame'
-                        ? '🔥'
-                        : id === 'beast.stone-guard'
-                          ? '🛡️'
-                          : id === 'beast.wind-strike'
-                            ? '💨'
-                            : '📜'}
-                    </span>
-                    <span className="w-full truncate px-1 text-xs">
-                      {skill?.name ?? id}
-                    </span>
-                  </>
-                }
-              >
-                <p className="text-teal">{skill?.name ?? id}</p>
-                <p>{descriptions[id]?.description ?? '暂无技能说明'}</p>
-                {suppressed ? (
-                  <p className="text-crimson">被高级技能抑制，当前不生效。</p>
-                ) : null}
-              </InkTooltip>
-            );
-          })}
-          {beast.skills.length === 0 ? (
-            <p className="text-ink-secondary text-xs">尚未习得技能</p>
-          ) : null}
-        </div>
+        <BeastSkillGrid skills={beast.skills} />
       </section>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span

@@ -1,7 +1,7 @@
 {
   "$schema": "./species.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 4,
   "species": [
     {
       "id": "combat.wild.species.spirit-fox",
@@ -9,7 +9,6 @@
       "carryLevel": 5,
       "role": "法术",
       "allocation": "magic",
-      "skill": "beast.spirit-flame",
       "aptitudes": {
         "attack": {
           "min": 672,
@@ -35,7 +34,13 @@
       "growthMilli": {
         "min": 982,
         "max": 1030
-      }
+      },
+      "skills": [
+        "beast.spirit-flame",
+        "beast.spell-mastery",
+        "beast.spell-critical",
+        "beast.wisdom"
+      ]
     },
     {
       "id": "combat.wild.species.rock-boar",
@@ -43,7 +48,6 @@
       "carryLevel": 5,
       "role": "防护",
       "allocation": "constitution",
-      "skill": "beast.stone-guard",
       "aptitudes": {
         "attack": {
           "min": 816,
@@ -69,7 +73,13 @@
       "growthMilli": {
         "min": 1012,
         "max": 1060
-      }
+      },
+      "skills": [
+        "beast.strength",
+        "beast.advanced-defense",
+        "beast.reflection",
+        "beast.regeneration"
+      ]
     },
     {
       "id": "combat.wild.species.wind-wolf",
@@ -77,7 +87,6 @@
       "carryLevel": 5,
       "role": "物理",
       "allocation": "strength",
-      "skill": "beast.wind-strike",
       "aptitudes": {
         "attack": {
           "min": 1104,
@@ -103,14 +112,19 @@
       "growthMilli": {
         "min": 952,
         "max": 1000
-      }
+      },
+      "skills": [
+        "beast.advanced-combo",
+        "beast.sneak-attack",
+        "beast.critical",
+        "beast.agility"
+      ]
     }
   ],
   "generation": {
     "starterLevel": 10,
     "lifespan": 1000,
     "captureBonus": {
-      "skillId": "beast.combo",
       "chance": 0.2
     }
   }

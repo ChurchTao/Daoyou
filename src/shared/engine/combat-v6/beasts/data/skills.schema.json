@@ -32,6 +32,11 @@
           "book": {
             "type": "boolean"
           },
+          "icon": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
           "effect": {
             "oneOf": [
               {
@@ -223,12 +228,19 @@
                     "exclusiveMinimum": 0,
                     "maximum": 100000,
                     "multipleOf": 0.000001
+                  },
+                  "physicalFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
                   }
                 },
                 "required": [
                   "type",
                   "chance",
-                  "coefficient"
+                  "coefficient",
+                  "physicalFactor"
                 ],
                 "additionalProperties": false
               },
@@ -872,6 +884,7 @@
           "id",
           "name",
           "book",
+          "icon",
           "effect"
         ],
         "additionalProperties": false

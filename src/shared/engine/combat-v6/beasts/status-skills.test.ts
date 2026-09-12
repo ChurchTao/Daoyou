@@ -4,6 +4,7 @@ import {
   StatusCategory,
   createBattle,
   restoreBattle,
+  type SkillDef,
   type StatusDef,
 } from '../core';
 import { createDaoyouRuleset } from '../rules-daoyou';
@@ -59,7 +60,16 @@ function input(own: string[] = [], enemy: string[] = []) {
         baseDamage: () => 100,
       },
     }),
-    skills: BEAST_SKILLS.map((s) =>
+    skills: [
+      ...BEAST_SKILLS,
+      {
+        id: 'test.physical',
+        name: '测试物攻',
+        tags: ['physical'],
+        targeting: { side: 'enemy' as const },
+        effects: [{ type: 'physicalHit' as const }],
+      } as SkillDef,
+    ].map((s) =>
       s.id.includes('poison')
         ? { ...s, hooks: s.hooks?.map((h) => ({ ...h, chance: 1 })) }
         : s,
@@ -72,7 +82,7 @@ function input(own: string[] = [], enemy: string[] = []) {
         side: 0 as const,
         kind: 'player' as const,
         passives: own,
-        skills: ['beast.wind-strike'],
+        skills: ['test.physical'],
         attrs: { hp: 1000, mp: 100, maxMp: 100, speed: 100 },
       },
       {
@@ -97,7 +107,7 @@ function turn(
       ? skill
         ? {
             type: CommandType.Skill,
-            skillId: 'beast.wind-strike',
+            skillId: 'test.physical',
             targets: ['b'],
           }
         : { type: CommandType.Attack, target: 'b' }

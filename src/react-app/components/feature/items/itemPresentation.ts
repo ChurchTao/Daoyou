@@ -1,7 +1,6 @@
 import { tierColorMap } from '@app/components/ui/inkBadgeTiers';
-import { combatV6SkillDetails } from '@shared/combat-v6/skill-details';
+import { beastSkillPresentation } from '@shared/combat-v6/beast-skill-presentation';
 import type { InventoryView } from '@shared/contracts/inventory';
-import { BEAST_SKILLS } from '@shared/engine/combat-v6/beasts';
 import { CHARACTER_MANUALS_V1 } from '@shared/engine/combat-v6/manuals/content';
 import { itemDefinition } from '@shared/inventory';
 import { InventoryEquipmentSchema } from '@shared/inventory/equipment';
@@ -15,7 +14,6 @@ export type DisplayItem = Pick<
   InventoryView['items'][number],
   'name' | 'definitionId' | 'instanceData' | 'quantity'
 > & { equipped?: boolean };
-const skills = combatV6SkillDetails(BEAST_SKILLS, []);
 const equipmentIcons = {
   weapon: '⚔️',
   head: '👑',
@@ -92,13 +90,15 @@ export function itemPresentation(item: DisplayItem) {
         description: `${EQUIPMENT_SLOT_NAMES[def.slot!]}图纸，铸造消耗一张。不可铸造高于人物等级的图纸。`,
       };
     case 'beast_book': {
-      const advanced = def.skillId?.includes('advanced-');
+      const skill = beastSkillPresentation(def.skillId!);
+      const advanced = skill.style === 'advanced';
       return {
-        icon: '📕',
+        icon: advanced ? '📕' : '📘',
         color: tierColorMap[advanced ? '玄品' : '凡品'],
-        tier: advanced ? '高级' : '普通',
+        tier:
+          skill.style === 'unavailable' ? '已失效' : advanced ? '高级' : '普通',
         type: '兽诀',
-        description: `${skills[def.skillId!]?.description ?? ''}\n学习消耗一本，随机覆盖一个已有技能，结果不可撤销。同系普通与高级技能同时存在时仅高级生效。`,
+        description: `${skill.description}\n学习消耗一本，随机覆盖一个已有技能，结果不可撤销。同系普通与高级技能同时存在时仅高级生效。`,
       };
     }
     case 'manual_jade':

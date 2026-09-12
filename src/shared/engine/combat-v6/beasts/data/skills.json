@@ -1,7 +1,7 @@
 {
   "$schema": "./skills.schema.json",
   "formatVersion": 1,
-  "contentRevision": 11,
+  "contentRevision": 12,
   "skills": [
     {
       "id": "beast.spirit-flame",
@@ -13,7 +13,8 @@
         "coefficient": 1,
         "powerBase": 10,
         "powerPerLevel": 1
-      }
+      },
+      "icon": "🔥"
     },
     {
       "id": "beast.combo",
@@ -24,7 +25,8 @@
         "chance": 0.45,
         "coefficient": 1,
         "physicalFactor": 0.75
-      }
+      },
+      "icon": "⚔️"
     },
     {
       "id": "beast.advanced-combo",
@@ -35,7 +37,8 @@
         "chance": 0.55,
         "coefficient": 1,
         "physicalFactor": 0.8
-      }
+      },
+      "icon": "⚔️"
     },
     {
       "id": "beast.counter",
@@ -45,7 +48,8 @@
         "type": "counter",
         "chance": 0.3,
         "coefficient": 0.5
-      }
+      },
+      "icon": "↩️"
     },
     {
       "id": "beast.advanced-counter",
@@ -55,7 +59,8 @@
         "type": "counter",
         "chance": 0.3,
         "coefficient": 1
-      }
+      },
+      "icon": "↩️"
     },
     {
       "id": "beast.critical",
@@ -65,7 +70,8 @@
         "type": "critical",
         "kind": "physical",
         "chance": 0.1
-      }
+      },
+      "icon": "💥"
     },
     {
       "id": "beast.advanced-critical",
@@ -75,7 +81,8 @@
         "type": "critical",
         "kind": "physical",
         "chance": 0.2
-      }
+      },
+      "icon": "💥"
     },
     {
       "id": "beast.spell-critical",
@@ -85,7 +92,8 @@
         "type": "critical",
         "kind": "spell",
         "chance": 0.1
-      }
+      },
+      "icon": "✨"
     },
     {
       "id": "beast.advanced-spell-critical",
@@ -95,7 +103,8 @@
         "type": "critical",
         "kind": "spell",
         "chance": 0.15
-      }
+      },
+      "icon": "✨"
     },
     {
       "id": "beast.regeneration",
@@ -105,7 +114,8 @@
         "type": "regeneration",
         "resource": "hp",
         "levelDivisor": 2
-      }
+      },
+      "icon": "🌱"
     },
     {
       "id": "beast.advanced-regeneration",
@@ -115,7 +125,8 @@
         "type": "regeneration",
         "resource": "hp",
         "levelDivisor": 1
-      }
+      },
+      "icon": "🌱"
     },
     {
       "id": "beast.meditation",
@@ -125,7 +136,8 @@
         "type": "regeneration",
         "resource": "mp",
         "levelDivisor": 4
-      }
+      },
+      "icon": "🧘"
     },
     {
       "id": "beast.advanced-meditation",
@@ -135,7 +147,8 @@
         "type": "regeneration",
         "resource": "mp",
         "levelDivisor": 3
-      }
+      },
+      "icon": "🧘"
     },
     {
       "id": "beast.agility",
@@ -144,7 +157,8 @@
       "effect": {
         "type": "speed",
         "factor": 1.1
-      }
+      },
+      "icon": "💨"
     },
     {
       "id": "beast.advanced-agility",
@@ -153,7 +167,8 @@
       "effect": {
         "type": "speed",
         "factor": 1.2
-      }
+      },
+      "icon": "💨"
     },
     {
       "id": "beast.spell-mastery",
@@ -162,7 +177,8 @@
       "effect": {
         "type": "spellBoost",
         "factor": 1.1
-      }
+      },
+      "icon": "🔮"
     },
     {
       "id": "beast.advanced-spell-mastery",
@@ -171,7 +187,8 @@
       "effect": {
         "type": "spellBoost",
         "factor": 1.2
-      }
+      },
+      "icon": "🔮"
     },
     {
       "id": "beast.sluggish",
@@ -180,7 +197,8 @@
       "effect": {
         "type": "speed",
         "factor": 0.8
-      }
+      },
+      "icon": "🐢"
     },
     {
       "id": "beast.thunder",
@@ -192,7 +210,8 @@
         "coefficient": 1,
         "powerBase": 10,
         "powerPerLevel": 1
-      }
+      },
+      "icon": "⚡"
     },
     {
       "id": "beast.falling-rock",
@@ -204,7 +223,8 @@
         "coefficient": 1,
         "powerBase": 10,
         "powerPerLevel": 1
-      }
+      },
+      "icon": "🪨"
     },
     {
       "id": "beast.water-attack",
@@ -216,7 +236,8 @@
         "coefficient": 1,
         "powerBase": 10,
         "powerPerLevel": 1
-      }
+      },
+      "icon": "💧"
     },
     {
       "id": "beast.lifesteal",
@@ -225,7 +246,8 @@
       "effect": {
         "type": "lifesteal",
         "ratio": 0.25
-      }
+      },
+      "icon": "🩸"
     },
     {
       "id": "beast.advanced-lifesteal",
@@ -234,7 +256,8 @@
       "effect": {
         "type": "lifesteal",
         "ratio": 0.3
-      }
+      },
+      "icon": "🩸"
     },
     {
       "id": "beast.reflection",
@@ -245,7 +268,8 @@
         "kind": "physical",
         "chance": 0.3,
         "ratio": 0.25
-      }
+      },
+      "icon": "🪞"
     },
     {
       "id": "beast.advanced-reflection",
@@ -256,7 +280,8 @@
         "kind": "physical",
         "chance": 0.3,
         "ratio": 0.5
-      }
+      },
+      "icon": "🪞"
     },
     {
       "id": "beast.divine-revival",
@@ -266,7 +291,8 @@
         "type": "divineRevival",
         "chance": 0.2,
         "hpRatio": 0.6
-      }
+      },
+      "icon": "🪷"
     },
     {
       "id": "beast.advanced-divine-revival",
@@ -276,7 +302,8 @@
         "type": "divineRevival",
         "chance": 0.3,
         "hpRatio": 1
-      }
+      },
+      "icon": "🪷"
     },
     {
       "id": "beast.spell-reflection",
@@ -287,7 +314,8 @@
         "kind": "spell",
         "chance": 0.3,
         "ratio": 0.25
-      }
+      },
+      "icon": "🔷"
     },
     {
       "id": "beast.advanced-spell-reflection",
@@ -298,7 +326,8 @@
         "kind": "spell",
         "chance": 0.3,
         "ratio": 0.5
-      }
+      },
+      "icon": "🔷"
     },
     {
       "id": "beast.wisdom",
@@ -307,7 +336,8 @@
       "effect": {
         "type": "wisdom",
         "factor": 0.75
-      }
+      },
+      "icon": "💡"
     },
     {
       "id": "beast.advanced-wisdom",
@@ -316,7 +346,8 @@
       "effect": {
         "type": "wisdom",
         "factor": 0.5
-      }
+      },
+      "icon": "💡"
     },
     {
       "id": "beast.sneak-attack",
@@ -325,7 +356,8 @@
       "effect": {
         "type": "sneakAttack",
         "factor": 1.05
-      }
+      },
+      "icon": "🥷"
     },
     {
       "id": "beast.advanced-sneak-attack",
@@ -334,7 +366,8 @@
       "effect": {
         "type": "sneakAttack",
         "factor": 1.1
-      }
+      },
+      "icon": "🥷"
     },
     {
       "id": "beast.spell-resistance",
@@ -344,7 +377,8 @@
         "type": "spellResistance",
         "takenFactor": 0.95,
         "physicalFactor": 0.9
-      }
+      },
+      "icon": "🔰"
     },
     {
       "id": "beast.advanced-spell-resistance",
@@ -354,7 +388,8 @@
         "type": "spellResistance",
         "takenFactor": 0.9,
         "physicalFactor": 0.9
-      }
+      },
+      "icon": "🔰"
     },
     {
       "id": "beast.parry",
@@ -363,7 +398,8 @@
       "effect": {
         "type": "parry",
         "factor": 0.9
-      }
+      },
+      "icon": "🤺"
     },
     {
       "id": "beast.advanced-parry",
@@ -372,7 +408,8 @@
       "effect": {
         "type": "parry",
         "factor": 0.8
-      }
+      },
+      "icon": "🤺"
     },
     {
       "id": "beast.defense",
@@ -382,7 +419,8 @@
         "type": "defenseTraining",
         "perLevel": 0.6,
         "spellFactor": 0.9
-      }
+      },
+      "icon": "🛡️"
     },
     {
       "id": "beast.advanced-defense",
@@ -392,7 +430,8 @@
         "type": "defenseTraining",
         "perLevel": 0.8,
         "spellFactor": 0.95
-      }
+      },
+      "icon": "🛡️"
     },
     {
       "id": "beast.strength",
@@ -402,7 +441,8 @@
         "type": "strengthTraining",
         "perLevel": 0.4,
         "versusDefenseFactor": 0.8
-      }
+      },
+      "icon": "💪"
     },
     {
       "id": "beast.advanced-strength",
@@ -412,7 +452,8 @@
         "type": "strengthTraining",
         "perLevel": 0.55,
         "versusDefenseFactor": 0.8
-      }
+      },
+      "icon": "💪"
     },
     {
       "id": "beast.thunderstorm",
@@ -426,7 +467,8 @@
         "powerPerLevel": 1,
         "levelsPerTarget": 30,
         "maxTargets": 3
-      }
+      },
+      "icon": "🌩️"
     },
     {
       "id": "beast.mountain-crush",
@@ -440,7 +482,8 @@
         "powerPerLevel": 1,
         "levelsPerTarget": 30,
         "maxTargets": 3
-      }
+      },
+      "icon": "⛰️"
     },
     {
       "id": "beast.flood",
@@ -454,7 +497,8 @@
         "powerPerLevel": 1,
         "levelsPerTarget": 30,
         "maxTargets": 3
-      }
+      },
+      "icon": "🌊"
     },
     {
       "id": "beast.wildfire",
@@ -468,7 +512,8 @@
         "powerPerLevel": 1,
         "levelsPerTarget": 30,
         "maxTargets": 3
-      }
+      },
+      "icon": "🌋"
     },
     {
       "id": "beast.spell-combo",
@@ -478,7 +523,8 @@
         "type": "spellRepeat",
         "chance": 0.2,
         "factor": 0.5
-      }
+      },
+      "icon": "🌀"
     },
     {
       "id": "beast.advanced-spell-combo",
@@ -488,7 +534,8 @@
         "type": "spellRepeat",
         "chance": 0.3,
         "factor": 0.5
-      }
+      },
+      "icon": "🌀"
     },
     {
       "id": "beast.spell-fluctuation",
@@ -499,7 +546,8 @@
         "min": 0.8,
         "max": 1.25,
         "suppressReflection": false
-      }
+      },
+      "icon": "🎲"
     },
     {
       "id": "beast.advanced-spell-fluctuation",
@@ -510,7 +558,8 @@
         "min": 0.5,
         "max": 1.6,
         "suppressReflection": true
-      }
+      },
+      "icon": "🎲"
     },
     {
       "id": "beast.stealth",
@@ -521,7 +570,8 @@
         "minDuration": 2,
         "maxDuration": 3,
         "physicalFactor": 0.8
-      }
+      },
+      "icon": "🌫️"
     },
     {
       "id": "beast.advanced-stealth",
@@ -532,7 +582,8 @@
         "minDuration": 3,
         "maxDuration": 5,
         "physicalFactor": 0.85
-      }
+      },
+      "icon": "🌫️"
     },
     {
       "id": "beast.perception",
@@ -541,7 +592,8 @@
       "effect": {
         "type": "perception",
         "dodgeBonus": 0
-      }
+      },
+      "icon": "👁️"
     },
     {
       "id": "beast.advanced-perception",
@@ -550,7 +602,8 @@
       "effect": {
         "type": "perception",
         "dodgeBonus": 10
-      }
+      },
+      "icon": "👁️"
     },
     {
       "id": "beast.poison",
@@ -563,7 +616,8 @@
         "hpRatio": 0.02,
         "mpRatio": 0.01,
         "immune": false
-      }
+      },
+      "icon": "☠️"
     },
     {
       "id": "beast.advanced-poison",
@@ -576,7 +630,8 @@
         "hpRatio": 0.02,
         "mpRatio": 0.01,
         "immune": true
-      }
+      },
+      "icon": "☠️"
     },
     {
       "id": "beast.miracle",
@@ -585,7 +640,8 @@
       "effect": {
         "type": "miracle",
         "immune": false
-      }
+      },
+      "icon": "🌟"
     },
     {
       "id": "beast.advanced-miracle",
@@ -594,7 +650,8 @@
       "effect": {
         "type": "miracle",
         "immune": true
-      }
+      },
+      "icon": "🌟"
     },
     {
       "id": "beast.concentration",
@@ -604,7 +661,8 @@
         "type": "concentration",
         "physicalFactor": 0.8,
         "dodgeBonus": 0
-      }
+      },
+      "icon": "🧠"
     },
     {
       "id": "beast.advanced-concentration",
@@ -614,7 +672,8 @@
         "type": "concentration",
         "physicalFactor": 0.8,
         "dodgeBonus": 10
-      }
+      },
+      "icon": "🧠"
     },
     {
       "id": "beast.eternity",
@@ -624,7 +683,8 @@
         "type": "eternity",
         "factor": 1.5,
         "maxExtra": 3
-      }
+      },
+      "icon": "⏳"
     },
     {
       "id": "beast.advanced-eternity",
@@ -634,7 +694,8 @@
         "type": "eternity",
         "factor": 2,
         "maxExtra": 6
-      }
+      },
+      "icon": "⏳"
     },
     {
       "id": "beast.ghost",
@@ -643,7 +704,8 @@
       "effect": {
         "type": "ghost",
         "delay": 5
-      }
+      },
+      "icon": "👻"
     },
     {
       "id": "beast.advanced-ghost",
@@ -652,7 +714,8 @@
       "effect": {
         "type": "ghost",
         "delay": 5
-      }
+      },
+      "icon": "👻"
     },
     {
       "id": "beast.exorcism",
@@ -661,7 +724,8 @@
       "effect": {
         "type": "exorcism",
         "factor": 1.5
-      }
+      },
+      "icon": "🧿"
     },
     {
       "id": "beast.advanced-exorcism",
@@ -670,7 +734,8 @@
       "effect": {
         "type": "exorcism",
         "factor": 2
-      }
+      },
+      "icon": "🧿"
     },
     {
       "id": "beast.denial",
@@ -680,7 +745,8 @@
         "type": "denial",
         "ghostDamageFactor": 1.2,
         "spellFactor": 1
-      }
+      },
+      "icon": "🚫"
     },
     {
       "id": "beast.advanced-denial",
@@ -690,7 +756,8 @@
         "type": "denial",
         "ghostDamageFactor": 1.2,
         "spellFactor": 0.8
-      }
+      },
+      "icon": "🚫"
     }
   ],
   "families": [

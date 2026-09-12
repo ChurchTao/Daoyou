@@ -117,9 +117,10 @@ function resolve(
   b: ReturnType<typeof create>,
   actor = 'beast:pet',
   spell = false,
+  basic = false,
 ) {
   const target = actor === 'enemy' ? 'beast:pet' : 'enemy';
-  b.submit(actor, {
+  b.submit(actor, basic ? {type: CommandType.Attack, target} : {
     type: CommandType.Skill,
     skillId: spell ? magic.id : hit.id,
     targets: [target],
@@ -179,8 +180,8 @@ describe('第二批经典兽诀的真实内核交互', () => {
       ['beast.combo', 'beast.lifesteal'],
     ]) {
       const combo = create(skills, [], true);
-      resolve(combo);
-      expect(combo.unit('beast:pet').attrs.hp).toBe(525);
+      resolve(combo, 'beast:pet', false, true);
+      expect(combo.unit('beast:pet').attrs.hp).toBe(518);
       expect(
         combo
           .log()
@@ -209,15 +210,15 @@ describe('第二批经典兽诀的真实内核交互', () => {
     resolve(other, 'beast:pet', !spell);
     expect(other.unit('beast:pet').attrs.hp).toBe(500);
   });
-  it('反震不递归、不阻止连击、不对护盾部分和过量伤害反震', () => {
+  it('反震不递归、阻止连击、不对护盾部分和过量伤害反震', () => {
     const both = create(
       ['beast.reflection', 'beast.combo'],
       ['beast.reflection'],
       true,
     );
-    resolve(both);
+    resolve(both, 'beast:pet', false, true);
     expect(both.log().filter((e) => e.type === EventType.Damage)).toHaveLength(
-      3,
+      2,
     );
     const shield = create([], ['beast.reflection'], true);
     barrier(shield, 'enemy', 60);
@@ -320,7 +321,7 @@ describe('第二批经典兽诀的真实内核交互', () => {
     expect(details['beast.lifesteal'].description).toContain(
       '追加攻击与反击不触发',
     );
-    expect(details['beast.reflection'].description).toContain('不阻止连击');
+    expect(details['beast.reflection'].description).toContain('阻止敌方连击');
     expect(details['beast.divine-revival'].description).toContain(
       '成功不计死亡',
     );

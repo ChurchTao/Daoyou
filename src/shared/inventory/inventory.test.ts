@@ -175,7 +175,7 @@ describe('beast books', () => {
     expect(next.skillSlotCapacity).toBe(1);
     expect(next.revision).toBe(beast.revision + 1);
     expect(next.aptitudes).toEqual(beast.aptitudes);
-    expect(beast.skills).toEqual([BEAST_SPECIES[0].skill]);
+    expect(BEAST_SPECIES[0].skills).toContain(beast.skills[0]);
     expect(() => learnBeastSkill(beast, BOOKS[0].id, 10, 0)).toThrow('已拥有');
     expect(() => learnBeastSkill(beast, BOOKS[2].id, 9, 0)).toThrow('不能培养');
     expect(() => learnBeastSkill(beast, BOOKS[2].id, 10, 1)).toThrow('技能格');
@@ -184,10 +184,10 @@ describe('beast books', () => {
     const two = {
       ...beast,
       skillSlotCapacity: 2,
-      skills: [BOOKS[3].skillId, BOOKS[0].skillId],
+      skills: ['beast.combo', BOOKS[0].skillId],
     };
-    const next = learnBeastSkill(two, BOOKS[4].id, 10, 1);
-    expect(next.skills).toEqual([BOOKS[3].skillId, BOOKS[4].skillId]);
-    expect(activeBeastSkills(next)).toEqual([BOOKS[4].skillId]);
+    const next = learnBeastSkill(two, 'book.beast.advanced-combo', 10, 1);
+    expect(next.skills).toEqual(['beast.combo', 'beast.advanced-combo']);
+    expect(activeBeastSkills(next)).toEqual(['beast.advanced-combo']);
   });
 });

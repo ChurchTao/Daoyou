@@ -6,19 +6,19 @@ import {
   gainBeastExp,
   generateCapturedBeast,
 } from './progression';
-// Original G3 scenarios, refreshed for the approved mobile-reference panel formulas and species ranges (revision 3).
+// Original G3 scenarios, refreshed for the approved mobile-reference panel formulas and species skill pools (revision 4); aptitude/growth draws are unchanged.
 const baseline = [
   {
     speciesId: 'combat.wild.species.spirit-fox',
-    hash: 'f936b7c1e6130aea7e79dc7e44b396d965fbabfb0bd0c035c493d0ebecc92649',
+    hash: '8e4aa99daee8a5f482a1b467a2db31eada637391caf2a1e13d78ec79752ac7b6',
   },
   {
     speciesId: 'combat.wild.species.rock-boar',
-    hash: '16d09edb44c072ee35eaa472d3b32ee2a6812140aae71007f527e2d69a875b88',
+    hash: '880076c25f95d7ab0b627d8fd3066cf572767e3a45ca95c1aeb6f72502c299b0',
   },
   {
     speciesId: 'combat.wild.species.wind-wolf',
-    hash: '30d8d1c592ed014867bc385b57f9c1c9c54975900fe716f6a9a09a3b65467c70',
+    hash: '7dc9de1cf2da050c25f870446beae061740df7575c91c448c308e33a055bba9d',
   },
 ];
 function digest(speciesId: string) {

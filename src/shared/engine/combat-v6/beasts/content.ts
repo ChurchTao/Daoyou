@@ -23,12 +23,34 @@ export const BEAST_COMBO_SKILL_IDS = packs.skills.skills
   .map((s) => s.id);
 export const BEAST_PROGRESSION = packs.progression;
 
-export const BEAST_STATUS_DEFS: StatusDef[] = packs.skills.skills.flatMap<StatusDef>(skill =>
-  skill.effect.type === 'stealth' ? [{
-    id: `${skill.id}.status`, name: skill.name, kind: 'beast.stealth', category: StatusCategory.Buff,
-    untargetable: true, blocksSpell: true, expireSameRound: true,
-  }] : skill.effect.type === 'poison' ? [{
-    id: `${skill.id}.status`, name: '中毒', kind: 'beast.poison', category: StatusCategory.Dot,
-    ticks: StatusTick.RoundEnd, onTick: { type: TickKind.Dot, ratioOfMaxHp: skill.effect.hpRatio, ratioOfMaxMp: skill.effect.mpRatio },
-  }] : [],
-);
+export const BEAST_STATUS_DEFS: StatusDef[] =
+  packs.skills.skills.flatMap<StatusDef>((skill) =>
+    skill.effect.type === 'stealth'
+      ? [
+          {
+            id: `${skill.id}.status`,
+            name: skill.name,
+            kind: 'beast.stealth',
+            category: StatusCategory.Buff,
+            untargetable: true,
+            blocksSpell: true,
+            expireSameRound: true,
+          },
+        ]
+      : skill.effect.type === 'poison'
+        ? [
+            {
+              id: `${skill.id}.status`,
+              name: '中毒',
+              kind: 'beast.poison',
+              category: StatusCategory.Dot,
+              ticks: StatusTick.RoundEnd,
+              onTick: {
+                type: TickKind.Dot,
+                ratioOfMaxHp: skill.effect.hpRatio,
+                ratioOfMaxMp: skill.effect.mpRatio,
+              },
+            },
+          ]
+        : [],
+  );
