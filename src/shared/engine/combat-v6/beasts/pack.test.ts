@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { BOOKS } from '../../../items/definitions/beast-books';
-import { WILD_SPECIES } from '../wild/content';
 import { BEAST_SPECIES } from './content';
 import progression from './data/progression.json';
 import progressionSchema from './data/progression.schema.json';
@@ -17,46 +16,22 @@ import {
   loadBeastPacks,
 } from './pack';
 
-const wildIds = WILD_SPECIES.map((s) => s.id);
 function input() {
   return structuredClone({ species, skills, progression });
 }
 function load(p: ReturnType<typeof input>) {
-  return loadBeastPacks(p.species, p.skills, p.progression, wildIds);
+  return loadBeastPacks(p.species, p.skills, p.progression);
 }
 
 describe('beast content packs', () => {
   it('registers the initial species, books and matching schemas', () => {
-    expect(
-      BEAST_SPECIES.map(({ id, name, carryLevel, role, allocation }) => ({
-        id,
-        name,
-        carryLevel,
-        role,
-        allocation,
-      })),
-    ).toEqual([
-      {
-        id: 'combat.wild.species.spirit-fox',
-        name: '青灵狐',
-        carryLevel: 5,
-        role: '法术',
-        allocation: 'magic',
-      },
-      {
-        id: 'combat.wild.species.rock-boar',
-        name: '岩甲猪',
-        carryLevel: 5,
-        role: '防护',
-        allocation: 'constitution',
-      },
-      {
-        id: 'combat.wild.species.wind-wolf',
-        name: '疾风狼',
-        carryLevel: 5,
-        role: '物理',
-        allocation: 'strength',
-      },
+    expect(BEAST_SPECIES).toHaveLength(15);
+    for (const realm of ['炼气', '筑基', '金丹', '元婴', '化神'])
+      expect(BEAST_SPECIES.filter((s) => s.realm === realm)).toHaveLength(3);
+    expect(BEAST_SPECIES.filter((s) => s.starter).map((s) => s.name)).toEqual([
+      '青灵狐',
+      '岩甲猪',
+      '疾风狼',
     ]);
     expect(BOOKS.map((b) => b.skillId)).toEqual(
       skills.skills.filter((s) => s.book).map((s) => s.id),
@@ -70,13 +45,6 @@ describe('beast content packs', () => {
 
   it.each<[string, (p: ReturnType<typeof input>) => void, string]>([
     [
-      'unknown wild identity',
-      (p) => {
-        p.species.species[0].id = 'combat.wild.species.missing';
-      },
-      '引用不存在',
-    ],
-    [
       'duplicate species',
       (p) => {
         p.species.species[1].id = p.species.species[0].id;
@@ -86,7 +54,7 @@ describe('beast content packs', () => {
     [
       'unknown initial skill',
       (p) => {
-        p.species.species[0].skills[0] = 'beast.missing';
+        p.species.species[0].birthSkills.core[0] = 'beast.missing';
       },
       '初始技能不存在',
     ],
@@ -114,14 +82,15 @@ describe('beast content packs', () => {
     [
       'duplicate birth skill',
       (p) => {
-        p.species.species[0].skills[1] = p.species.species[0].skills[0];
+        p.species.species[0].birthSkills.core[1] =
+          p.species.species[0].birthSkills.core[0];
       },
       '重复',
     ],
     [
       'unknown pool skill',
       (p) => {
-        p.species.species[0].skills[1] = 'beast.missing';
+        p.species.species[0].birthSkills.core[1] = 'beast.missing';
       },
       '技能不存在',
     ],
@@ -273,7 +242,7 @@ it('uses edited generation ranges without invalidating existing individual rolls
     speed: { min: 1300, max: 1300 },
   };
   copy.species[0].growthMilli = { min: 1200, max: 1200 };
-  copy.generation.captureBonus.chance = 1;
+  copy.species[0].birthSkills.extraCountWeights = [{ count: 1, weight: 100 }];
   vi.resetModules();
   vi.doMock('./data/species.json', () => ({ default: copy }));
   const { generateStarterBeast: generate, generateCapturedBeast } =
@@ -287,11 +256,16 @@ it('uses edited generation ranges without invalidating existing individual rolls
     generateStarterBeast(id, id, species.species[1].id, 42),
   );
   const captured = generateCapturedBeast(id, id, species.species[0].id, 10, 42);
-  expect(captured.skills).toHaveLength(2);
+  expect(captured.skills).toHaveLength(3);
   expect(captured.skills[0]).toBe(born.skills[0]);
-  expect(new Set(captured.skills).size).toBe(2);
+  expect(new Set(captured.skills).size).toBe(3);
   expect(
-    captured.skills.every((id) => species.species[0].skills.includes(id)),
+    captured.skills.every((id) =>
+      [
+        ...species.species[0].birthSkills.core,
+        ...species.species[0].birthSkills.candidates,
+      ].includes(id),
+    ),
   ).toBe(true);
 });
 
@@ -313,9 +287,10 @@ it('uses edited points, experience, lifespan and panel parameters consistently',
     await import('./progression');
   const id = '00000000-0000-4000-8000-000000000001';
   const born = generate(id, id, species.species[0].id, 42);
-  expect(born.allocatedAttributes.magic).toBe(60);
+  expect(born.allocatedAttributes.magic).toBe(0);
+  expect(born.unallocatedPoints).toBe(60);
   expect(nextBeastExp(10)).toBe(150);
-  expect(gainBeastExp(born, 150, 180).unallocatedPoints).toBe(6);
+  expect(gainBeastExp(born, 150, 180).unallocatedPoints).toBe(66);
   expect(beastPanel(born).maxHp).toBe(Math.floor(20 * born.growth * 7));
   expect(canDeployBeast({ ...born, currentLifespan: 30 }, 180)).toBe(true);
   expect(canDeployBeast({ ...born, currentLifespan: 29 }, 180)).toBe(false);
@@ -334,3 +309,94 @@ it('derives book availability from the skill pack', async () => {
     copy.skills.filter((s) => s.book).map((s) => s.id),
   );
 });
+
+it.each([
+  [
+    'weight total',
+    (p: ReturnType<typeof input>) => {
+      p.species.species[0].birthSkills.extraCountWeights[0].weight = 50;
+    },
+  ],
+  [
+    'duplicate count',
+    (p: ReturnType<typeof input>) => {
+      p.species.species[0].birthSkills.extraCountWeights[1].count = 0;
+    },
+  ],
+  [
+    'too many extras',
+    (p: ReturnType<typeof input>) => {
+      p.species.species[0].birthSkills.extraCountWeights = [
+        { count: 4, weight: 100 },
+      ];
+    },
+  ],
+  [
+    'overlapping skills',
+    (p: ReturnType<typeof input>) => {
+      p.species.species[0].birthSkills.candidates[0] =
+        p.species.species[0].birthSkills.core[0];
+    },
+  ],
+  [
+    'unknown candidate',
+    (p: ReturnType<typeof input>) => {
+      p.species.species[0].birthSkills.candidates[0] = 'beast.missing';
+    },
+  ],
+  [
+    'mixed family',
+    (p: ReturnType<typeof input>) => {
+      p.species.species[0].birthSkills.candidates[0] = 'beast.advanced-wisdom';
+    },
+  ],
+  [
+    'realm mismatch',
+    (p: ReturnType<typeof input>) => {
+      p.species.species[0].carryLevel = 25;
+    },
+  ],
+  [
+    'high level starter',
+    (p: ReturnType<typeof input>) => {
+      p.species.species[3].starter = true;
+    },
+  ],
+] as const)('rejects invalid generation config: %s', (_, edit) => {
+  const p = input();
+  edit(p);
+  expect(() => load(p)).toThrow('species.json');
+});
+
+it.each(['summoned_beast_v1', 'summoned_beast_capture_v1'] as const)(
+  '旧 %s 个体不重抽技能、资质、成长或加点',
+  async (version) => {
+    const { BeastSchema } = await import('./schema');
+    const id = '00000000-0000-4000-8000-000000000001';
+    const current = generateStarterBeast(id, id, species.species[0].id, 42);
+    const { generationContentRevision: _revision, ...base } = current;
+    const old = {
+      ...base,
+      generationVersion: version,
+      growth: 1.001,
+      aptitudes: {
+        attack: 700,
+        defense: 900,
+        health: 3000,
+        mana: 1600,
+        speed: 900,
+      },
+      skills: ['beast.spirit-flame'],
+      skillSlotCapacity: 1,
+      allocatedAttributes: {
+        constitution: 0,
+        strength: 0,
+        magic: 50,
+        endurance: 0,
+        agility: 0,
+      },
+      unallocatedPoints: 0,
+    };
+    expect(BeastSchema.parse(old)).toEqual(old);
+  },
+);

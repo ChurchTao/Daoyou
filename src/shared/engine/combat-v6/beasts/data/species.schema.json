@@ -7,7 +7,7 @@
     },
     "formatVersion": {
       "type": "number",
-      "const": 1
+      "const": 2
     },
     "contentRevision": {
       "type": "integer",
@@ -34,29 +34,85 @@
             "minimum": 0,
             "maximum": 180
           },
-          "role": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
-          },
-          "allocation": {
+          "realm": {
             "type": "string",
             "enum": [
-              "constitution",
-              "strength",
-              "magic",
-              "endurance",
-              "agility"
+              "炼气",
+              "筑基",
+              "金丹",
+              "元婴",
+              "化神",
+              "炼虚",
+              "合体",
+              "大乘",
+              "渡劫"
             ]
           },
-          "skills": {
-            "minItems": 2,
-            "maxItems": 8,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "pattern": "^beast\\.[a-z][a-z0-9-]*$"
-            }
+          "icon": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "starter": {
+            "type": "boolean"
+          },
+          "birthSkills": {
+            "type": "object",
+            "properties": {
+              "core": {
+                "minItems": 1,
+                "maxItems": 8,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^beast\\.[a-z][a-z0-9-]*$"
+                }
+              },
+              "candidates": {
+                "maxItems": 8,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^beast\\.[a-z][a-z0-9-]*$"
+                }
+              },
+              "extraCountWeights": {
+                "minItems": 1,
+                "maxItems": 9,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8
+                    },
+                    "weight": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 100
+                    }
+                  },
+                  "required": [
+                    "count",
+                    "weight"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "core",
+              "candidates",
+              "extraCountWeights"
+            ],
+            "additionalProperties": false
           },
           "aptitudes": {
             "type": "object",
@@ -196,9 +252,11 @@
           "id",
           "name",
           "carryLevel",
-          "role",
-          "allocation",
-          "skills",
+          "realm",
+          "icon",
+          "description",
+          "starter",
+          "birthSkills",
           "aptitudes",
           "growthMilli"
         ],
@@ -218,26 +276,22 @@
           "minimum": 0,
           "maximum": 100000
         },
-        "captureBonus": {
-          "type": "object",
-          "properties": {
-            "chance": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1,
-              "multipleOf": 0.000001
-            }
-          },
-          "required": [
-            "chance"
-          ],
-          "additionalProperties": false
+        "minBirthSkills": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "maxBirthSkills": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
         }
       },
       "required": [
         "starterLevel",
         "lifespan",
-        "captureBonus"
+        "minBirthSkills",
+        "maxBirthSkills"
       ],
       "additionalProperties": false
     }

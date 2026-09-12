@@ -265,6 +265,7 @@ export default function InventoryV6() {
             >
               <option value="all">全部</option>
               <option value="beast_book">兽诀</option>
+              <option value="beast_refinement">归元灵露</option>
               <option value="manual_jade">功法玉简</option>
               <option value="equipment">道装</option>
               <option value="blueprint">图纸</option>

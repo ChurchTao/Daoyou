@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { REALM_VALUES } from '../../../types/constants';
+import { getRealmStageLevel } from '../../../config/realmProgression';
 
 const identity = {
   $schema: z.string().optional(),
@@ -14,21 +16,30 @@ const range = z.strictObject({ min: integer, max: integer });
 
 export const BeastSpeciesPackShape = z.strictObject({
   ...identity,
+  formatVersion: z.literal(2),
   species: z
     .array(
       z.strictObject({
         id: z.string().regex(/^combat\.wild\.species\.[a-z][a-z0-9-]*$/),
         name,
         carryLevel: z.number().int().min(0).max(180),
-        role: name,
-        allocation: z.enum([
-          'constitution',
-          'strength',
-          'magic',
-          'endurance',
-          'agility',
-        ]),
-        skills: z.array(skillId).min(2).max(8),
+        realm: z.enum(REALM_VALUES),
+        icon: z.string().min(1).max(32),
+        description: z.string().min(1).max(300),
+        starter: z.boolean(),
+        birthSkills: z.strictObject({
+          core: z.array(skillId).min(1).max(8),
+          candidates: z.array(skillId).max(8),
+          extraCountWeights: z
+            .array(
+              z.strictObject({
+                count: z.number().int().min(0).max(8),
+                weight: z.number().int().positive().max(100),
+              }),
+            )
+            .min(1)
+            .max(9),
+        }),
         aptitudes: z.strictObject({
           attack: range,
           defense: range,
@@ -46,7 +57,8 @@ export const BeastSpeciesPackShape = z.strictObject({
   generation: z.strictObject({
     starterLevel: z.number().int().min(0).max(180),
     lifespan: integer,
-    captureBonus: z.strictObject({ chance: probability }),
+    minBirthSkills: z.number().int().min(1).max(8),
+    maxBirthSkills: z.number().int().min(1).max(8),
   }),
 });
 
@@ -300,7 +312,6 @@ export function loadBeastPacks(
   speciesData: unknown,
   skillsData: unknown,
   progressionData: unknown,
-  wildSpeciesIds: readonly string[],
 ) {
   const species = parse(BeastSpeciesPackShape, speciesData, 'species.json');
   const skills = parse(BeastSkillsPackShape, skillsData, 'skills.json');
@@ -336,24 +347,61 @@ export function loadBeastPacks(
       issue('skills.json', `[${skill.id}].effect`, '波动下界不得超过上界');
   }
   const ids = new Set(skills.skills.map((s) => s.id));
+  if (species.generation.minBirthSkills > species.generation.maxBirthSkills)
+    issue('species.json', 'generation', '技能格下界不得超过上界');
   species.species.forEach((s) => {
-    if (!wildSpeciesIds.includes(s.id))
-      issue('species.json', `[${s.id}].id`, '野外物种引用不存在');
-    if (new Set(s.skills).size !== s.skills.length)
-      issue('species.json', `[${s.id}].skills`, '技能池重复');
-    for (const id of s.skills)
+    if (s.carryLevel !== getRealmStageLevel(s.realm, '初期'))
+      issue(
+        'species.json',
+        `[${s.id}].carryLevel`,
+        '携带等级须对应开放境界初期',
+      );
+    const { core, candidates, extraCountWeights } = s.birthSkills;
+    const pool = [...core, ...candidates];
+    if (new Set(pool).size !== pool.length)
+      issue('species.json', `[${s.id}].birthSkills`, '技能池重复');
+    for (const id of pool)
       if (!ids.has(id))
-        issue('species.json', `[${s.id}].skills`, `初始技能不存在：${id}`);
+        issue('species.json', `[${s.id}].birthSkills`, `初始技能不存在：${id}`);
     for (const family of skills.families)
+      if (pool.includes(family.normal) && pool.includes(family.advanced))
+        issue(
+          'species.json',
+          `[${s.id}].birthSkills`,
+          '技能池不得同时包含同族普通与高级技能',
+        );
+    if (extraCountWeights.reduce((sum, row) => sum + row.weight, 0) !== 100)
+      issue(
+        'species.json',
+        `[${s.id}].birthSkills.extraCountWeights`,
+        '权重合计必须为100',
+      );
+    if (
+      new Set(extraCountWeights.map((row) => row.count)).size !==
+      extraCountWeights.length
+    )
+      issue(
+        'species.json',
+        `[${s.id}].birthSkills.extraCountWeights`,
+        '额外数量重复',
+      );
+    for (const row of extraCountWeights)
       if (
-        s.skills.includes(family.normal) &&
-        s.skills.includes(family.advanced)
+        row.count > candidates.length ||
+        core.length + row.count < species.generation.minBirthSkills ||
+        core.length + row.count > species.generation.maxBirthSkills
       )
         issue(
           'species.json',
-          `[${s.id}].skills`,
-          '技能池不得同时包含同族普通与高级技能',
+          `[${s.id}].birthSkills.extraCountWeights`,
+          '技能数量超出候选池或出生格数范围',
         );
+    if (s.starter && s.carryLevel > species.generation.starterLevel)
+      issue(
+        'species.json',
+        `[${s.id}].starter`,
+        '初始伙伴携带等级高于出生等级',
+      );
   });
   species.species.forEach((entry) => {
     for (const [key, bounds] of Object.entries(entry.aptitudes)) {
@@ -447,3 +495,7 @@ export function loadBeastPacks(
   if (errors.length) throw new Error(errors.join('\n'));
   return { species, skills, progression };
 }
+
+export type BeastSpeciesDefinition = z.infer<
+  typeof BeastSpeciesPackShape
+>['species'][number];

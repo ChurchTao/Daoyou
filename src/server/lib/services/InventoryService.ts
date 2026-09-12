@@ -6,6 +6,8 @@ import type {
   InventoryQuerySchema,
   InventoryView,
 } from '@shared/contracts/inventory';
+import { refineBeast } from '@shared/engine/combat-v6/beasts/refinement';
+import { BEAST_REFINEMENT } from '@shared/engine/combat-v6/beasts/refinement-config';
 import {
   compileDaoEquipmentSpecialLoadoutV1,
   type DaoEquipmentInstanceV1,
@@ -31,7 +33,12 @@ import type { Consumable } from '@shared/types/cultivator';
 import { and, asc, count, eq, ilike, inArray, ne, or, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
-import { db, runDbTasks, type DbExecutor, type DbTransaction } from '../drizzle/db';
+import {
+  db,
+  runDbTasks,
+  type DbExecutor,
+  type DbTransaction,
+} from '../drizzle/db';
 import {
   cultivatorBeasts,
   cultivatorEquipmentSlots,
@@ -53,7 +60,10 @@ import { hasActiveSectTaskBattle } from './combat-v6/CombatV6SectTaskOccupancy';
 import { CombatV6WildStore } from './combat-v6/CombatV6WildStore';
 import { inventoryStackKey } from './inventoryStackKey';
 import { publishResourceEvents } from './playerStateBroadcaster';
-import { ResourceEventCommitter, type ResourceCommitResult } from './ResourceEventCommitter';
+import {
+  ResourceEventCommitter,
+  type ResourceCommitResult,
+} from './ResourceEventCommitter';
 
 export class InventoryError extends Error {}
 export function inventoryItemOf(
@@ -138,18 +148,21 @@ export async function readInventory(
       : undefined,
   );
   const [requestedRows, totals, usage] = await runDbTasks(executor, [
-    () => executor
-      .select()
-      .from(inventoryItems)
-      .where(filter)
-      .orderBy(asc(inventoryItems.slotIndex), asc(inventoryItems.id))
-      .limit(query.location === 'bag' ? BAG_CAPACITY : 40)
-      .offset(query.location === 'bag' ? 0 : query.page * 40),
-    () => executor.select({ value: count() }).from(inventoryItems).where(filter),
-    () => executor
-      .select({ value: count() })
-      .from(inventoryItems)
-      .where(and(ownerFilter, eq(inventoryItems.location, 'bag'))),
+    () =>
+      executor
+        .select()
+        .from(inventoryItems)
+        .where(filter)
+        .orderBy(asc(inventoryItems.slotIndex), asc(inventoryItems.id))
+        .limit(query.location === 'bag' ? BAG_CAPACITY : 40)
+        .offset(query.location === 'bag' ? 0 : query.page * 40),
+    () =>
+      executor.select({ value: count() }).from(inventoryItems).where(filter),
+    () =>
+      executor
+        .select({ value: count() })
+        .from(inventoryItems)
+        .where(and(ownerFilter, eq(inventoryItems.location, 'bag'))),
   ]);
   const page =
     query.location === 'bag'
@@ -364,7 +377,12 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
               );
         if (input.action !== 'sort' && !item)
           throw new InventoryError('物品已变化，请刷新后重试');
-        let result: { oldSkill?: string; newSkill?: string } = {};
+        let result: {
+          oldSkill?: string;
+          newSkill?: string;
+          oldSkillCount?: number;
+          newSkillCount?: number;
+        } = {};
         let state: ResourceCommitResult = { changes: [], baselines: [] };
         if (input.action === 'sort') {
           const bag = next.filter((i) => i.location === 'bag');
@@ -515,6 +533,44 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
               newSkill: learned.skills[slot],
             };
             item.quantity--;
+            item.revision++;
+            if (!item.quantity) next = next.filter((i) => i.id !== item.id);
+          } else if (input.action === 'refine') {
+            const dew = BEAST_REFINEMENT.items.find(
+              (entry) => entry.id === item.definitionId,
+            );
+            if (
+              !dew ||
+              item.location !== 'bag' ||
+              item.quantity < dew.consumeQuantity
+            )
+              throw new InventoryError('请先将足量归元灵露取入储物袋');
+            const roster = await readBeastRoster(owner, tx);
+            const beast = roster.beasts.find(
+              (b) =>
+                b.id === input.beastId && b.revision === input.beastRevision,
+            );
+            if (!beast) throw new InventoryError('灵兽已变化，请刷新后重试');
+            const refined = refineBeast(
+              beast,
+              item.definitionId,
+              roster.ownerLevel,
+              randomInt(0, 0x7fffffff),
+            );
+            await tx
+              .update(cultivatorBeasts)
+              .set({ individual: beastIndividualData(refined) })
+              .where(
+                and(
+                  eq(cultivatorBeasts.id, beast.id),
+                  eq(cultivatorBeasts.cultivatorId, owner),
+                ),
+              );
+            result = {
+              oldSkillCount: beast.skills.length,
+              newSkillCount: refined.skills.length,
+            };
+            item.quantity -= dew.consumeQuantity;
             item.revision++;
             if (!item.quantity) next = next.filter((i) => i.id !== item.id);
           } else if (input.action === 'equip') {

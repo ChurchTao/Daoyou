@@ -100,6 +100,9 @@ describe('召唤兽正式个体', () => {
 describe('手游参照召唤兽派生公式', () => {
   const sample = () => BeastSchema.parse({
     ...starter(),
+    skills: ['beast.spirit-flame'],
+    skillSlotCapacity: 1,
+    unallocatedPoints: 0,
     level: 50,
     growth: 1.2,
     aptitudes: { health: 4000, mana: 2400, attack: 1500, defense: 1400, speed: 1300 },

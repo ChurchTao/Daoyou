@@ -46,6 +46,7 @@ bun run db:migrate
 - `daoyou-game-ui`: `GameViewportLayout` main-flow scene UI structure and review rules.
 - `daoyou-ink-portraits`: 玩家、NPC、BOSS 写意墨像立绘的固定笔墨基准、生成与视觉验收；见 `.agents/skills/daoyou-ink-portraits/SKILL.md`。
 - `daoyou-game-core-domain`: combat-v6 core/rules/projection, sects, equipment, manuals, beasts, and shared inventory/reward rules.
+- `daoyou-beast-design`: 灵兽物种、生灵层次、命名、资质成长及出生技能池设计与审查；扩充或调整物种前读取 `.agents/skills/daoyou-beast-design/SKILL.md`，实施同时遵守领域技能。
 - Only the skills present in `.agents/skills/` are project skill entrypoints. For runtime work, inspect `package.json`, `src/index.ts`, Vite/Docker configs and `docs/local-development.md`; for condition/alchemy/market work, combine the domain, data and backend skills as applicable.
 
 ## Architecture Rules

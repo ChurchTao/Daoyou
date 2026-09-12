@@ -1,4 +1,9 @@
-export { BEAST_STATUS_DEFS, BEAST_SKILLS, BEAST_SPECIES } from './content';
+export {
+  BEAST_SKILLS,
+  BEAST_SPECIES,
+  BEAST_STARTER_SPECIES,
+  BEAST_STATUS_DEFS,
+} from './content';
 export { generateStarterBeast } from './generator';
 export { beastDeathIds, loseBeastLifespan } from './progression';
 export {
@@ -16,3 +21,6 @@ export {
   type BeastRoster,
   type SummonedBeast,
 } from './schema';
+
+export type { BeastSpeciesDefinition } from './pack';
+export { rollBeastTraits, type BeastTraits } from './trait-generator';

@@ -15,7 +15,7 @@ import {
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
 import { hasActiveTower } from '@server/lib/tower/occupancy';
 import {
-  BEAST_SPECIES,
+  BEAST_STARTER_SPECIES,
   BeastLineupSchema,
   canDeployBeast,
   generateStarterBeast,
@@ -78,8 +78,8 @@ export async function claimStarterBeast(
   cultivatorId: string,
   speciesId: string,
 ) {
-  if (!BEAST_SPECIES.some((s) => s.id === speciesId))
-    throw new BeastError('未知灵兽');
+  if (!BEAST_STARTER_SPECIES.some((s) => s.id === speciesId))
+    throw new BeastError('该物种不可作为初始伙伴领取');
   return mutate(cultivatorId, async (tx) => {
     const roster = await readBeastRoster(cultivatorId, tx);
     if (roster.starterClaimed) return roster;

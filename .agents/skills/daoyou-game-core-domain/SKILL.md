@@ -42,6 +42,7 @@ Current combat is `src/shared/engine/combat-v6`. Read the affected module and it
 
 ## Items and Progression
 
+- For beast species design or content changes involving aptitudes, growth or birth skills, also read [daoyou-beast-design](../daoyou-beast-design/SKILL.md). Its confirmed design baseline is distinct from current runtime behavior; do not restore fixed species roles or complete four-skill templates from older content.
 - New equipment uses V6 equipment instances; equipped slots are separate from inventory. Manual progression and active slots are separate from consumable manual jades.
 - Use `src/shared/items/registry.ts` and definition schemas for item facts, and `src/shared/inventory` for stack/capacity/action rules. Do not translate new items into legacy creation product models.
 - Forge, manual, beast and reward rules have dedicated shared modules; reuse them instead of reproducing costs, eligibility or generation logic in routes/UI.

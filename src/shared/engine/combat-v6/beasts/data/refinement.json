@@ -1,0 +1,28 @@
+{
+  "$schema": "./refinement.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "resetLevel": 0,
+  "resetExperience": 0,
+  "restoreLifespan": true,
+  "items": [
+    {
+      "id": "beast.refinement.origin-dew",
+      "name": "归元灵露",
+      "icon": "💧",
+      "description": "涤去后天积累，使灵兽重归初生，重新孕育资质、成长与天生技能。适用于炼气、筑基、金丹物种。",
+      "allowedRealms": ["炼气", "筑基", "金丹"],
+      "consumeQuantity": 1,
+      "stackLimit": 99
+    },
+    {
+      "id": "beast.refinement.superior-origin-dew",
+      "name": "上品归元灵露",
+      "icon": "🧪",
+      "description": "灵息充沛的归元灵露，可使高阶灵兽重归初生。元婴及以上物种须用此露；不会提高资质、成长或多技能概率。",
+      "allowedRealms": ["炼气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫"],
+      "consumeQuantity": 1,
+      "stackLimit": 99
+    }
+  ]
+}

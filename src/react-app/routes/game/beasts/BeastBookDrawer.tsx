@@ -12,18 +12,26 @@ import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { beastSkillPresentation } from '@shared/combat-v6/beast-skill-presentation';
 import type { BeastManagementView } from '@shared/contracts/combatV6Beasts';
 import type { InventoryView } from '@shared/contracts/inventory';
+import { beastRefinementReason } from '@shared/engine/combat-v6/beasts/refinement';
+import { BEAST_REFINEMENT } from '@shared/engine/combat-v6/beasts/refinement-config';
 import { BAG_CAPACITY, itemDefinition } from '@shared/inventory';
 import { useEffect, useRef, useState } from 'react';
 
 export function BeastBookDrawer({
   beastId,
+  mode = 'learn',
   close,
   onUpdate,
 }: {
   beastId: string;
+  mode?: 'learn' | 'refine';
   close: () => void;
   onUpdate: (view: BeastManagementView) => void;
 }) {
+  const refining = mode === 'refine';
+  const actionName = refining ? '洗炼' : '学习兽诀';
+  const itemName = refining ? '灵露' : '兽诀';
+  const itemKind = refining ? 'beast_refinement' : 'beast_book';
   const { pushToast } = useInkUI();
   const bagQuery = useInventoryBag();
   const inventory = bagQuery.data;
@@ -57,6 +65,20 @@ export function BeastBookDrawer({
   const selected = inventory?.items.find((item) => item.id === selectedId);
   function bookReason(item: InventoryView['items'][number]) {
     const definition = itemDefinition(item.definitionId);
+    if (refining) {
+      if (!beast || !roster) return '正在核对灵兽状态。';
+      const dew = BEAST_REFINEMENT.items.find(
+        (entry) => entry.id === item.definitionId,
+      );
+      const reason = beastRefinementReason(
+        beast,
+        item.definitionId,
+        roster.ownerLevel,
+      );
+      if (reason) return reason;
+      if (dew && item.quantity < dew.consumeQuantity) return '灵露数量不足。';
+      return '';
+    }
     if (definition.kind !== 'beast_book') return '此物品不是兽诀。';
     if (!definition.skillId) return '此兽诀已无法学习。';
     if (!beast || !roster) return '正在核对灵兽状态。';
@@ -65,6 +87,9 @@ export function BeastBookDrawer({
     if (beast.skills.includes(definition.skillId!)) return '灵兽已拥有此技能。';
     return '';
   }
+  const consumeQuantity =
+    BEAST_REFINEMENT.items.find((item) => item.id === selected?.definitionId)
+      ?.consumeQuantity ?? 1;
   const valid = !unavailable && !!selected && !bookReason(selected);
   async function learn() {
     if (busy.current || unavailable || !valid || !confirming) return;
@@ -74,11 +99,13 @@ export function BeastBookDrawer({
     try {
       const result = await consumeResourceMutation<{
         oldSkill?: string;
-        newSkill: string;
+        newSkill?: string;
+        oldSkillCount?: number;
+        newSkillCount?: number;
       }>(
         await fetch('/api/combat-v6/inventory', {
           ...mutationBody({
-            action: 'learn',
+            action: mode,
             id: selected!.id,
             revision: selected!.revision,
             beastId,
@@ -90,9 +117,11 @@ export function BeastBookDrawer({
       );
       if (signal.aborted) return;
       pushToast({
-        message: result.oldSkill
-          ? `${beastSkillPresentation(result.oldSkill).name} → ${beastSkillPresentation(result.newSkill).name}`
-          : `已学会${beastSkillPresentation(result.newSkill).name}`,
+        message: refining
+          ? `已重归初生，技能格 ${result.oldSkillCount} → ${result.newSkillCount}，寿命已恢复。`
+          : result.oldSkill
+            ? `${beastSkillPresentation(result.oldSkill).name} → ${beastSkillPresentation(result.newSkill!).name}`
+            : `已学会${beastSkillPresentation(result.newSkill!).name}`,
         tone: 'success',
       });
       const roster = await combatV6Request<BeastManagementView>(
@@ -125,26 +154,27 @@ export function BeastBookDrawer({
     <>
       <InkDetailDrawer
         isOpen
-        title={`${beast?.name ?? '灵兽'} · 学习兽诀`}
+        title={`${beast?.name ?? '灵兽'} · ${actionName}`}
         size="md"
         footer={
           selected ? (
             <div className="space-y-2 text-sm">
               <p>
-                消耗一本{itemDefinition(selected.definitionId).name}
-                ，随机覆盖一个已有技能，结果不可撤销。
+                {refining ? `消耗${consumeQuantity}瓶` : '消耗一本'}
+                {itemDefinition(selected.definitionId).name}
+                {refining
+                  ? '，重归0级，重新孕育资质、成长与天生技能。'
+                  : '，随机覆盖一个已有技能，结果不可撤销。'}
               </p>
               {!valid ? (
-                <p className="text-ink-secondary">
-                  灵兽需有技能格、战斗等级不高于人物等级，且尚未拥有此技能。
-                </p>
+                <p className="text-ink-secondary">{bookReason(selected)}</p>
               ) : null}
               <InkButton
                 pending={pending}
                 disabled={!valid}
                 onClick={() => setConfirming(true)}
               >
-                学习兽诀
+                {actionName}
               </InkButton>
             </div>
           ) : null
@@ -163,13 +193,13 @@ export function BeastBookDrawer({
               setRefresh((value) => value + 1);
             }}
           >
-            刷新兽诀
+            刷新{itemName}
           </InkButton>
           {bagQuery.error ? <p role="alert">{bagQuery.error}</p> : null}
           {roster && inventory ? (
             <>
               <div className="text-ink-secondary flex justify-between text-xs">
-                <span>储物袋 · 选择兽诀</span>
+                <span>储物袋 · 选择{itemName}</span>
                 <span className="font-mono">
                   {inventory.used} / {BAG_CAPACITY}
                 </span>
@@ -196,7 +226,7 @@ export function BeastBookDrawer({
                                 hide();
                               }}
                             >
-                              选择此兽诀
+                              选择此{itemName}
                             </InkButton>
                           ) : (
                             <p className="text-ink-secondary">{reason}</p>
@@ -207,19 +237,19 @@ export function BeastBookDrawer({
               />
             </>
           ) : (
-            <p>正在读取兽诀……</p>
+            <p>正在读取{itemName}……</p>
           )}
           {inventory &&
           !inventory.items.some(
-            (item) => itemDefinition(item.definitionId).kind === 'beast_book',
+            (item) => itemDefinition(item.definitionId).kind === itemKind,
           ) ? (
-            <p className="text-ink-secondary">储物袋中暂无兽诀</p>
+            <p className="text-ink-secondary">储物袋中暂无{itemName}</p>
           ) : null}
         </div>
       </InkDetailDrawer>
       <InkModal
         isOpen={confirming}
-        title="确认学习兽诀"
+        title={`确认${actionName}`}
         onClose={() => {
           if (!busy.current) setConfirming(false);
         }}
@@ -233,15 +263,29 @@ export function BeastBookDrawer({
               disabled={!valid}
               onClick={() => void learn()}
             >
-              确认学习
+              确认{actionName}
             </InkButton>
           </div>
         }
       >
-        <p className="text-sm">
-          为{beast?.name}学习将消耗一本
-          {selected ? itemDefinition(selected.definitionId).name : '兽诀'}，
-          随机替换该灵兽已有技能中的一个，结果不可撤销。确定学习吗？
+        <p className="text-sm leading-7">
+          {refining ? (
+            <>
+              为{beast?.name}使用
+              {selected
+                ? itemDefinition(selected.definitionId).name
+                : '归元灵露'}
+              将消耗{consumeQuantity}瓶。
+              等级、经验与加点归零，资质、成长及全部技能重新生成，技能格可能减少。
+              原兽诀不返还，当前寿命恢复至原上限，结果不可撤销。
+            </>
+          ) : (
+            <>
+              为{beast?.name}学习将消耗一本
+              {selected ? itemDefinition(selected.definitionId).name : '兽诀'}，
+              随机替换该灵兽已有技能中的一个，结果不可撤销。确定学习吗？
+            </>
+          )}
         </p>
       </InkModal>
     </>

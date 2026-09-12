@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { BEAST_PROGRESSION, BEAST_SKILLS, BEAST_SPECIES } from './content';
 
-export const BEAST_VERSION = 'summoned_beast_v1';
+export const BEAST_VERSION = 'summoned_beast_v2';
 const points = z.number().int().min(0).max(100000);
 export const BeastSchema = z
   .object({
@@ -35,7 +35,12 @@ export const BeastSchema = z
     skills: z.array(z.string()).max(8),
     currentLifespan: points,
     maxLifespan: points,
-    generationVersion: z.enum([BEAST_VERSION, 'summoned_beast_capture_v1']),
+    generationVersion: z.enum([
+      BEAST_VERSION,
+      'summoned_beast_v1',
+      'summoned_beast_capture_v1',
+    ]),
+    generationContentRevision: z.number().int().positive().optional(),
     generationSeed: z.number().int(),
     revision: points,
   })

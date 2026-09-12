@@ -171,14 +171,16 @@ describe('beast books', () => {
   );
   it('replaces only the selected birth slot, without changing growth or capacity', () => {
     const next = learnBeastSkill(beast, BOOKS[2].id, 10, 0);
-    expect(next.skills).toEqual([BOOKS[2].skillId]);
-    expect(next.skillSlotCapacity).toBe(1);
+    expect(next.skills).toEqual([BOOKS[2].skillId, ...beast.skills.slice(1)]);
+    expect(next.skillSlotCapacity).toBe(beast.skillSlotCapacity);
     expect(next.revision).toBe(beast.revision + 1);
     expect(next.aptitudes).toEqual(beast.aptitudes);
-    expect(BEAST_SPECIES[0].skills).toContain(beast.skills[0]);
+    expect(BEAST_SPECIES[0].birthSkills.core).toContain(beast.skills[0]);
     expect(() => learnBeastSkill(beast, BOOKS[0].id, 10, 0)).toThrow('已拥有');
     expect(() => learnBeastSkill(beast, BOOKS[2].id, 9, 0)).toThrow('不能培养');
-    expect(() => learnBeastSkill(beast, BOOKS[2].id, 10, 1)).toThrow('技能格');
+    expect(() =>
+      learnBeastSkill(beast, BOOKS[2].id, 10, beast.skillSlotCapacity),
+    ).toThrow('技能格');
   });
   it('retains suppressed normal skill in its original slot', () => {
     const two = {

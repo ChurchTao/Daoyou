@@ -7,7 +7,7 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import type { BeastManagementView } from '@shared/contracts/combatV6Beasts';
-import { BEAST_SPECIES } from '@shared/engine/combat-v6/beasts';
+import { BEAST_STARTER_SPECIES } from '@shared/engine/combat-v6/beasts';
 import { BEAST_GENERATION } from '@shared/engine/combat-v6/beasts/content';
 import { BEAST_CAPACITY } from '@shared/engine/combat-v6/beasts/progression';
 import { useEffect, useRef, useState } from 'react';
@@ -25,6 +25,7 @@ export default function BeastsPage() {
   const [detailId, setDetailId] = useState<string>();
   const [claimId, setClaimId] = useState<string>();
   const [learningId, setLearningId] = useState<string>();
+  const [refiningId, setRefiningId] = useState<string>();
   const [action, setAction] = useState<{
     beastId: string;
     type: BeastAction;
@@ -131,7 +132,7 @@ export default function BeastsPage() {
     ) ?? [];
   const detail =
     visibleBeasts.find((beast) => beast.id === detailId) ?? visibleBeasts[0];
-  const claim = BEAST_SPECIES.find((species) => species.id === claimId);
+  const claim = BEAST_STARTER_SPECIES.find((species) => species.id === claimId);
   const actionBeast = view?.beasts.find(
     (beast) => beast.id === action?.beastId,
   );
@@ -161,14 +162,13 @@ export default function BeastsPage() {
                 选一位灵兽伙伴，与它一同踏上修行路。
               </p>
               <div className="flex flex-wrap gap-2">
-                {BEAST_SPECIES.map((species) => (
+                {BEAST_STARTER_SPECIES.map((species) => (
                   <InkButton
                     key={species.id}
                     disabled={pending || view.beasts.length >= BEAST_CAPACITY}
                     onClick={() => setClaimId(species.id)}
                   >
-                    <BeastIcon speciesId={species.id} /> {species.name} ·{' '}
-                    {species.role}
+                    <BeastIcon speciesId={species.id} /> {species.name}
                   </InkButton>
                 ))}
               </div>
@@ -271,6 +271,7 @@ export default function BeastsPage() {
                 lineup={(type) => lineup(detail.id, type)}
                 act={(type) => setAction({ beastId: detail.id, type })}
                 learn={() => setLearningId(detail.id)}
+                refine={() => setRefiningId(detail.id)}
                 allocate={(points) =>
                   mutate('allocate', {
                     beastId: detail.id,
@@ -289,6 +290,14 @@ export default function BeastsPage() {
           </div>
         </>
       )}
+      {refiningId ? (
+        <BeastBookDrawer
+          beastId={refiningId}
+          mode="refine"
+          close={() => setRefiningId(undefined)}
+          onUpdate={setView}
+        />
+      ) : null}
       {learningId ? (
         <BeastBookDrawer
           beastId={learningId}
@@ -330,7 +339,9 @@ export default function BeastsPage() {
           }
         >
           <p className="text-sm leading-7">
-            每位角色可免费选择一次。伙伴初始{BEAST_GENERATION.starterLevel}级、{BEAST_GENERATION.lifespan}寿命，资质与成长生成后固定，附带一格出生技能。有空位时自动携带，满足出战等级且没有首发时设为首发。
+            每位角色可免费选择一次。伙伴初始{BEAST_GENERATION.starterLevel}级、
+            {BEAST_GENERATION.lifespan}
+            寿命，资质、成长与出生技能随机生成，属性点由你分配。有空位时自动携带，满足出战等级且没有首发时设为首发。
           </p>
         </InkDetailDrawer>
       ) : null}

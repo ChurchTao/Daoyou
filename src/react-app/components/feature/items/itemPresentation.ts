@@ -1,6 +1,7 @@
 import { tierColorMap } from '@app/components/ui/inkBadgeTiers';
 import { beastSkillPresentation } from '@shared/combat-v6/beast-skill-presentation';
 import type { InventoryView } from '@shared/contracts/inventory';
+import { BEAST_REFINEMENT } from '@shared/engine/combat-v6/beasts/refinement-config';
 import { CHARACTER_MANUALS_V1 } from '@shared/engine/combat-v6/manuals/content';
 import { itemDefinition } from '@shared/inventory';
 import { InventoryEquipmentSchema } from '@shared/inventory/equipment';
@@ -89,6 +90,16 @@ export function itemPresentation(item: DisplayItem) {
         type: '道装图纸',
         description: `${EQUIPMENT_SLOT_NAMES[def.slot!]}图纸，铸造消耗一张。不可铸造高于人物等级的图纸。`,
       };
+    case 'beast_refinement': {
+      const dew = BEAST_REFINEMENT.items.find((item) => item.id === def.id)!;
+      return {
+        icon: dew.icon,
+        color: tierColorMap.玄品,
+        tier: '',
+        type: '归元灵露',
+        description: dew.description,
+      };
+    }
     case 'beast_book': {
       const skill = beastSkillPresentation(def.skillId!);
       const advanced = skill.style === 'advanced';

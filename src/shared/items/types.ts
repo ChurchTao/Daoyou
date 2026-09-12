@@ -6,6 +6,7 @@ export interface ItemDefinition {
   name: string;
   kind:
     | 'beast_book'
+    | 'beast_refinement'
     | 'equipment'
     | 'blueprint'
     | 'material'

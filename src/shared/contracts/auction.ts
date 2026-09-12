@@ -21,6 +21,7 @@ export const AUCTION_ITEM_TYPES = [
   'blueprint',
   'manual_jade',
   'beast_book',
+  'beast_refinement',
 ] as const;
 export type AuctionItemType = (typeof AUCTION_ITEM_TYPES)[number];
 export const AUCTION_TYPE_NAMES: Record<AuctionItemType, string> = {
@@ -31,6 +32,7 @@ export const AUCTION_TYPE_NAMES: Record<AuctionItemType, string> = {
   blueprint: '图纸',
   manual_jade: '玉简',
   beast_book: '兽诀',
+  beast_refinement: '灵露',
 };
 export const AuctionListSchema = z
   .object({

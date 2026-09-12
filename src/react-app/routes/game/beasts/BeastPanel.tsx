@@ -20,16 +20,9 @@ import type { BeastAction } from './BeastActionDrawer';
 
 const species = new Map(BEAST_SPECIES.map((s) => [s.id as string, s]));
 export function BeastIcon({ speciesId }: { speciesId: string }) {
-  return (
-    (
-      {
-        'combat.wild.species.spirit-fox': '🦊',
-        'combat.wild.species.rock-boar': '🐗',
-        'combat.wild.species.wind-wolf': '🐺',
-      } as Record<string, string>
-    )[speciesId] ?? '🐾'
-  );
+  return species.get(speciesId)?.icon ?? '🐾';
 }
+
 export function BeastLeadSeal() {
   return (
     <span className="border-crimson/60 text-crimson shrink-0 rounded-xs border px-1 text-[0.65rem] leading-4">
@@ -70,6 +63,7 @@ export function BeastPanel({
   lineup,
   act,
   learn,
+  refine,
   allocate,
 }: {
   beast: SummonedBeast;
@@ -81,6 +75,7 @@ export function BeastPanel({
   lineup: (action: 'carry' | 'lead' | 'unlead') => void;
   act: (action: BeastAction) => void;
   learn: () => void;
+  refine: () => void;
   allocate: (points: SummonedBeast['allocatedAttributes']) => Promise<boolean>;
 }) {
   const [draft, setDraft] = useState<SummonedBeast['allocatedAttributes']>({
@@ -284,9 +279,14 @@ export function BeastPanel({
       <section className="border-ink/15 border-t pt-4">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="text-teal text-sm">技能</h3>
-          <InkButton disabled={pending} onClick={learn}>
-            学习兽诀
-          </InkButton>
+          <div className="flex items-center gap-2">
+            <InkButton disabled={pending} onClick={learn}>
+              学习兽诀
+            </InkButton>
+            <InkButton disabled={pending} onClick={refine}>
+              洗炼
+            </InkButton>
+          </div>
         </div>
         <BeastSkillGrid skills={beast.skills} />
       </section>

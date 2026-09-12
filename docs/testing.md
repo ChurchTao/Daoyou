@@ -137,3 +137,5 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 调整 realm、realmStage 或 breakthroughPreparation 时会同步当前破境任务，确保准备目标有对应任务。通过外部 dev 请求准备后应刷新浏览器再开始验收，避免页面沿用先前角色缓存。10F 实际运行记录及准备数据去向见 [阶段验收记录](./combat-v6-phase-10f-breakthrough-plan.md#73-解锁后的真实运行验收2026-09-08-至-09)。
 
 `completedDungeonObjectiveIds` 只接受当前大境界破境任务中 kind 为 complete_dungeon 的目标 ID，用于跳过验收准备所需的长秘境流程，不创建秘境通关记录或奖励。未知目标及 win_task_challenge 战斗目标返回 409，整笔联合调整回滚；不能用本接口直接制造试炼胜利。真实试炼胜负、灵兽消耗、任务推进和最终突破必须通过正式页面完成。准备前记录境界、六属性、资源、修为、感悟及任务目标基准；验收记录须区分 dev 准备目标和真实战斗完成目标，结束后恢复临时角色字段并移除 dev 状态，不把准备数据记作真实验收证据。
+
+归元灵露洗炼验收：通过上述`type: item`发放`beast.refinement.origin-dew`或`beast.refinement.superior-origin-dew`，在灵兽详情「学习兽诀」旁选择「洗炼」。规则及示例见[洗炼文档](combat-v6-beast-refinement.md)。首版不配置掉落或商店。
