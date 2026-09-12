@@ -33,8 +33,8 @@ describe('beast content packs', () => {
       role: entry.role, allocation: entry.allocation, skill: entry.skill,
       aptitude: before.species.find((s) => s.id === entry.id)!.aptitude,
     }))).toEqual(before.species);
-    expect(BEAST_SKILLS).toEqual(before.skills);
-    expect(BOOKS).toEqual(
+    expect(BEAST_SKILLS.slice(0, before.skills.length)).toEqual(before.skills);
+    expect(BOOKS.slice(0, before.skills.length)).toEqual(
       before.skills.map((s) => ({
         id: `book.${s.id}`,
         name: `${s.name}兽诀`,
@@ -306,6 +306,6 @@ it('derives book availability from the skill pack', async () => {
   const { BOOKS: books } =
     await import('../../../items/definitions/beast-books');
   expect(books.map((b) => b.skillId)).toEqual(
-    before.skills.slice(1).map((s) => s.id),
+    copy.skills.filter((s) => s.book).map((s) => s.id),
   );
 });

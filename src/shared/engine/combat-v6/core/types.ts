@@ -179,6 +179,7 @@ export type StatusInstance = {
 
 export type UnitFlags = {
   capturedBy?: UnitId;
+  reviveAtRound?: number;
   defending: boolean;
   protecting?: UnitId;
   auto: boolean;
@@ -317,6 +318,9 @@ export type EffectWhen = {
   requireStatusKinds?: string[];
   requireAbsentStatusIds?: StatusId[];
   requireAbsentStatusKinds?: string[];
+  targetWithoutDelayedRevival?: boolean;
+  targetSkillIds?: SkillId[];
+  targetAbsentSkillIds?: SkillId[];
   targetStatusIds?: StatusId[];
   targetStatusKinds?: string[];
   targetAbsentStatusIds?: StatusId[];
@@ -470,6 +474,10 @@ export type RandomBranchEffect = Extract<
 
 export type SkillHook = {
   on: HookName;
+  /** Damage returned to an attacker; may be suppressed by its innate capability. */
+  retaliation?: boolean;
+  /** First-hit guard, bypassed by an attacker with ignoreParry. */
+  parry?: boolean;
   chance?: Expr;
   when?: EffectWhen;
   targetIsSelf?: boolean;
@@ -531,7 +539,7 @@ export type SkillDef = {
   /** 同单位带了列出的技能则本被动不生效（高级连击 vs 连击） */
   conflicts?: SkillId[];
   /** 开战即生效的能力，不占状态栏（感知看破隐身、简易耗蓝） */
-  innate?: { revealStealth?: boolean; mpCostFactor?: number };
+  innate?: { delayedRevivalRounds?: number; preventDelayedRevival?: boolean; rejectHpRecovery?: boolean; rejectBuffs?: boolean; damageToDelayedRevival?: number; damageFromDelayedRevival?: number; immuneStatusCategories?: StatusCategory[]; immuneStatusKinds?: string[]; buffDuration?: { factor: number; maxExtra: number }; entryStatus?: { statusId: string; minDuration: number; maxDuration: number }; revealStealth?: boolean; mpCostFactor?: number; spellMpCostFactor?: number; suppressSpellRetaliation?: boolean; spellRepeat?: { chance: number; factor: number }; spellFluctuation?: { min: number; max: number }; suppressPhysicalRetaliation?: boolean; ignoreParry?: boolean };
 };
 
 /** 状态模板。字段是能力开关，不要为某个门派加专用字段。 */
@@ -558,7 +566,7 @@ export type StatusDef = {
   damageTakenPhysical?: number;
   damageTakenSpell?: number;
   ticks?: StatusTick;
-  onTick?: { type: TickKind; ratioOfMaxHp: number };
+  onTick?: { type: TickKind; ratioOfMaxHp: number; ratioOfMaxMp?: number };
   /** 施加当回合结束也扣持续（复活当回合护体） */
   expireSameRound?: boolean;
   /** 承伤分流：目标留下 keep，其余 toCaster 打到状态来源 */
@@ -571,6 +579,7 @@ export type StatusDef = {
   maxStacks?: number;
   /** false 时普通 Dispel 不可移除；倒地和自然到期不受影响。 */
   dispellable?: boolean;
+  extendable?: boolean;
 };
 
 export type ActionScope = {

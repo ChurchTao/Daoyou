@@ -1,6 +1,6 @@
 import { AUTO_POLICY_VERSION } from '../../../combat-v6/auto-policy';
 import { canonicalizeResourceParams } from '../../../contracts/resources/core';
-import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
+import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import type { CreateBattleInput, SkillDef, StatusDef } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
 import {
@@ -42,9 +42,7 @@ export function freezeSectNpcOpponent(
   const hp = Math.round((100 + level * 20) * spec.hp);
   const attack = Math.round((15 + level * 5) * spec.attack);
   const skills = BEAST_SKILLS.filter((skill) =>
-    template === 'mine_patrol'
-      ? skill.id === 'beast.wind-strike'
-      : skill.id === 'beast.spirit-flame' || skill.id === 'beast.wind-strike',
+    template !== 'mine_patrol' && skill.id === 'beast.spirit-flame',
   );
   return {
     version: 'sect-v6-opponent-v1',
@@ -101,7 +99,7 @@ export function freezeSectBattleOpponent(
       ).filter((unit) => !unit.benched),
     ],
     skills: projected.skills,
-    statusDefs: projected.statusDefs,
+    statusDefs: [...projected.statusDefs, ...BEAST_STATUS_DEFS],
   });
 }
 
@@ -207,7 +205,7 @@ export function createSectBattleHost(
       versions: SECT_BATTLE_VERSIONS,
       units,
       skills: merge([...BEAST_SKILLS, ...projected.skills, ...opponent.skills]),
-      statusDefs: merge([...projected.statusDefs, ...opponent.statusDefs]),
+      statusDefs: merge([...projected.statusDefs, ...opponent.statusDefs, ...BEAST_STATUS_DEFS]),
     }),
   });
 }

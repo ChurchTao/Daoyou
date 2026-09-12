@@ -1,4 +1,4 @@
-export { BEAST_SKILLS, BEAST_SPECIES } from './content';
+export { BEAST_STATUS_DEFS, BEAST_SKILLS, BEAST_SPECIES } from './content';
 export { generateStarterBeast } from './generator';
 export { beastDeathIds, loseBeastLifespan } from './progression';
 export {

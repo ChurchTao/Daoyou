@@ -1,6 +1,6 @@
 import { generateWildEncounter, type WildCombatant } from './generator';
 export { generateWildEncounter, type WildCombatant } from './generator';
-import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
+import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import { captureSkill } from '../beasts/progression';
 import {
   UnitKind,
@@ -154,7 +154,7 @@ export function createWildHost(
       versions: WILD_VERSIONS,
       units,
       skills: [...projected.skills, ...WILD_SKILLS, ...BEAST_SKILLS, capture],
-      statusDefs: projected.statusDefs,
+      statusDefs: [...projected.statusDefs, ...BEAST_STATUS_DEFS],
     },
   });
 }

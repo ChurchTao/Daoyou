@@ -1,5 +1,5 @@
 import { AUTO_POLICY_VERSION } from '../../../combat-v6/auto-policy';
-import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
+import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import { UnitKind, type CreateBattleInput } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
 import {
@@ -157,7 +157,7 @@ export function createDungeonHost(
         })),
       ],
       skills: [...projected.skills, ...BEAST_SKILLS],
-      statusDefs: projected.statusDefs,
+      statusDefs: [...projected.statusDefs, ...BEAST_STATUS_DEFS],
     },
   });
 }

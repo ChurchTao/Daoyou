@@ -41,6 +41,7 @@ export type BattleContext = {
     initialStatusIdsByTarget: Record<UnitId, string[]>
     initialStatusKindsByTarget: Record<UnitId, string[]>
     /** 主效果产生 ActionFailed 后禁止 successEffects。 */
+    spellRepeatFactor?: number
     failed: boolean
   }
   /** 最近一次打击扣血，给后续「按伤害扣蓝」用。 */

@@ -39,6 +39,57 @@
                 "properties": {
                   "type": {
                     "type": "string",
+                    "const": "groupSpell"
+                  },
+                  "costMp": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "coefficient": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "powerBase": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "powerPerLevel": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "levelsPerTarget": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "maxTargets": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  }
+                },
+                "required": [
+                  "type",
+                  "costMp",
+                  "coefficient",
+                  "powerBase",
+                  "powerPerLevel",
+                  "levelsPerTarget",
+                  "maxTargets"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
                     "const": "spellHit"
                   },
                   "costMp": {
@@ -178,6 +229,639 @@
                   "type",
                   "chance",
                   "coefficient"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "counter"
+                  },
+                  "chance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "coefficient": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "chance",
+                  "coefficient"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "regeneration"
+                  },
+                  "resource": {
+                    "type": "string",
+                    "enum": [
+                      "hp",
+                      "mp"
+                    ]
+                  },
+                  "levelDivisor": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "type",
+                  "resource",
+                  "levelDivisor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "critical"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "physical",
+                      "spell"
+                    ]
+                  },
+                  "chance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "kind",
+                  "chance"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "spellBoost"
+                  },
+                  "factor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "factor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "speed"
+                  },
+                  "factor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "factor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "ghost"
+                  },
+                  "delay": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  }
+                },
+                "required": [
+                  "type",
+                  "delay"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "exorcism"
+                  },
+                  "factor": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "factor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "denial"
+                  },
+                  "ghostDamageFactor": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "spellFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "ghostDamageFactor",
+                  "spellFactor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "poison"
+                  },
+                  "chance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  },
+                  "hpRatio": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "mpRatio": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "immune": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "type",
+                  "chance",
+                  "duration",
+                  "hpRatio",
+                  "mpRatio",
+                  "immune"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "miracle"
+                  },
+                  "immune": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "type",
+                  "immune"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "concentration"
+                  },
+                  "physicalFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "dodgeBonus": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "type",
+                  "physicalFactor",
+                  "dodgeBonus"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "eternity"
+                  },
+                  "factor": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "maxExtra": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 99
+                  }
+                },
+                "required": [
+                  "type",
+                  "factor",
+                  "maxExtra"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "stealth"
+                  },
+                  "minDuration": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  },
+                  "maxDuration": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  },
+                  "physicalFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "minDuration",
+                  "maxDuration",
+                  "physicalFactor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "perception"
+                  },
+                  "dodgeBonus": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "type",
+                  "dodgeBonus"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "spellRepeat"
+                  },
+                  "chance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "factor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "chance",
+                  "factor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "spellFluctuation"
+                  },
+                  "min": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "max": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "suppressReflection": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "type",
+                  "min",
+                  "max",
+                  "suppressReflection"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "parry"
+                  },
+                  "factor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "factor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "defenseTraining"
+                  },
+                  "perLevel": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "spellFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "perLevel",
+                  "spellFactor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "strengthTraining"
+                  },
+                  "perLevel": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "versusDefenseFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "perLevel",
+                  "versusDefenseFactor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "wisdom"
+                  },
+                  "factor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "factor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "sneakAttack"
+                  },
+                  "factor": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "factor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "spellResistance"
+                  },
+                  "takenFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "physicalFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "takenFactor",
+                  "physicalFactor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "lifesteal"
+                  },
+                  "ratio": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "ratio"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "reflection"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "physical",
+                      "spell"
+                    ]
+                  },
+                  "chance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "ratio": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "kind",
+                  "chance",
+                  "ratio"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "divineRevival"
+                  },
+                  "chance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "hpRatio": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "chance",
+                  "hpRatio"
                 ],
                 "additionalProperties": false
               }

@@ -3,6 +3,7 @@ import { DEFAULT_ATTRS } from '../core/units';
 import {
   BEAST_PROGRESSION,
   BEAST_SKILLS,
+  BEAST_SKILL_CONTENT,
   BEAST_SKILL_FAMILIES,
   BEAST_SPECIES,
 } from './content';
@@ -16,6 +17,9 @@ import {
 export function activeBeastSkills(beast: SummonedBeast) {
   return beast.skills.filter(
     (id) =>
+      !BEAST_SKILLS.find((s) => s.id === id)?.conflicts?.some((other) =>
+        beast.skills.includes(other),
+      ) &&
       !BEAST_SKILL_FAMILIES.some(
         (family) =>
           id === family.normal && beast.skills.includes(family.advanced),
@@ -26,7 +30,9 @@ export function activeBeastSkills(beast: SummonedBeast) {
 export function beastRealm(level: number) {
   if (!Number.isInteger(level) || level < 0 || level > 180)
     throw new Error('召唤兽等级无效');
-  const realms = BEAST_PROGRESSION.realms.filter((realm) => realm.minLevel <= level);
+  const realms = BEAST_PROGRESSION.realms.filter(
+    (realm) => realm.minLevel <= level,
+  );
   return realms[realms.length - 1].name;
 }
 
@@ -46,28 +52,51 @@ export function beastPanel(input: SummonedBeast) {
     value: number,
     aptitude: keyof SummonedBeast['aptitudes'],
     term: { aptitudeCoefficient: number; attributeCoefficient: number },
-  ) => Math.floor(
-    b.level * b.aptitudes[aptitude] * term.aptitudeCoefficient +
-    value * b.growth * term.attributeCoefficient,
-  );
+  ) =>
+    Math.floor(
+      b.level * b.aptitudes[aptitude] * term.aptitudeCoefficient +
+        value * b.growth * term.attributeCoefficient,
+    );
   const hp = contribution(a.constitution, 'health', rule.health);
   const mp = contribution(a.magic, 'mana', rule.mana);
-  const magicDefAttributes = Object.entries(rule.magicDef.attributeCoefficients)
-    .reduce((sum, [key, coefficient]) => sum + a[key] * coefficient, 0);
+  const magicDefAttributes = Object.entries(
+    rule.magicDef.attributeCoefficients,
+  ).reduce((sum, [key, coefficient]) => sum + a[key] * coefficient, 0);
+  const speedFactor = activeBeastSkills(b).reduce((factor, id) => {
+    const effect = BEAST_SKILL_CONTENT.find((skill) => skill.id === id)!.effect;
+    return effect.type === 'speed' ? factor * effect.factor : factor;
+  }, 1);
+  const training = { physicalAtk: 0, physicalDef: 0, dodge: 0 };
+  for (const id of activeBeastSkills(b)) {
+    const effect = BEAST_SKILL_CONTENT.find((skill) => skill.id === id)!.effect;
+    if (effect.type === 'perception' || effect.type === 'concentration')
+      training.dodge += effect.dodgeBonus;
+    if (effect.type === 'strengthTraining')
+      training.physicalAtk += Math.floor(b.level * effect.perLevel);
+    if (effect.type === 'defenseTraining')
+      training.physicalDef += Math.floor(b.level * effect.perLevel);
+  }
   return {
     ...DEFAULT_ATTRS,
+    dodge: training.dodge,
     hp,
     maxHp: hp,
     mp,
     maxMp: mp,
-    physicalAtk: contribution(a.strength, 'attack', rule.physicalAtk),
-    physicalDef: contribution(a.endurance, 'defense', rule.physicalDef),
+    physicalAtk:
+      contribution(a.strength, 'attack', rule.physicalAtk) +
+      training.physicalAtk,
+    physicalDef:
+      contribution(a.endurance, 'defense', rule.physicalDef) +
+      training.physicalDef,
     magicAtk: contribution(a.magic, 'mana', rule.magicAtk),
     magicDef: Math.floor(
       b.level * b.aptitudes.mana * rule.magicDef.aptitudeCoefficient +
-      magicDefAttributes * b.growth,
+        magicDefAttributes * b.growth,
     ),
-    speed: contribution(a.agility, 'speed', rule.speed),
+    speed: Math.floor(
+      contribution(a.agility, 'speed', rule.speed) * speedFactor,
+    ),
   };
 }
 

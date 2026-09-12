@@ -385,7 +385,7 @@ function handleHit(
     if (effect.when?.targetSlot === "primary" && ctx.currentAction?.primaryTargetId !== t.id) continue
     for (let i = 0; i < hits; i++) {
       // 横扫中途打死目标则后续刀取消。
-      if (!isStanding(t) || ctx.state.result) break
+      if (!isStanding(source) || !isStanding(t) || ctx.state.result) break
       resolveStrike(ctx, {
         source,
         target: t,

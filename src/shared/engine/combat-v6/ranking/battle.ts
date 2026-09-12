@@ -6,7 +6,7 @@ import {
   replayRound,
   startReplayTimeline,
 } from '../../../combat-v6/replay-timeline';
-import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
+import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import {
   createBattle,
   type CreateBattleInput,
@@ -30,7 +30,7 @@ export function compileRankingBattle(
     throw new Error('不能挑战自己');
   const units: CreateBattleInput['units'] = [];
   const skills = new Map<string, SkillDef>(BEAST_SKILLS.map((s) => [s.id, s]));
-  const statuses = new Map<string, StatusDef>();
+  const statuses = new Map<string, StatusDef>(BEAST_STATUS_DEFS.map(s => [s.id, s]));
   function merge<T extends { id: string }>(map: Map<string, T>, values: T[]) {
     for (const value of values) {
       if (

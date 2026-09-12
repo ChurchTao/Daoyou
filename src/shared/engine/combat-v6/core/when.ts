@@ -1,3 +1,4 @@
+import { passiveSkills } from "./skills.ts"
 /**
  * 钩子/效果条件匹配。只认标签、状态、技能 id 列表和数值门槛，不认门派。
  */
@@ -59,7 +60,7 @@ function markName(scope: WhenScope, round: number, when: EffectWhen): string | u
   return undefined
 }
 
-export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentAction'> & { state: Pick<BattleContext['state'], 'round'> }, when: EffectWhen | undefined, scope: WhenScope): boolean {
+export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentAction'> & Partial<Pick<BattleContext, 'skills'>> & { state: Pick<BattleContext['state'], 'round'> }, when: EffectWhen | undefined, scope: WhenScope): boolean {
   if (!when) return true
   const skillId = scope.skillId ?? scope.skill?.id ?? ctx.currentAction?.skillId
   const skill = scope.skill
@@ -91,6 +92,9 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   }
 
   const foe = scope.target
+  if (when.targetWithoutDelayedRevival && foe && ctx.skills && passiveSkills(ctx.skills, foe).some(s => s.innate?.delayedRevivalRounds)) return false
+  if (when.targetAbsentSkillIds && foe && when.targetAbsentSkillIds.some(id => foe.passives.includes(id) || foe.skills.includes(id))) return false
+  if (when.targetSkillIds && (!foe || !when.targetSkillIds.some(id => foe.passives.includes(id) || foe.skills.includes(id)))) return false
   if (when.targetSlot === "primary" && !isPrimary) return false
   if (when.foeKind && foe?.kind !== when.foeKind) return false
   if (when.targetStatusIds && (!foe || !hasId(foe, when.targetStatusIds))) return false

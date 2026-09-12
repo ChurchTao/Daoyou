@@ -27,7 +27,35 @@
 | `spellHit` | `costMp`、`coefficient`、`powerBase`、`powerPerLevel` | 单体法术攻击，附加威力为基础值加技能等级乘每级值 |
 | `physicalHit` | `costMp`、`coefficient` | 单体物理攻击 |
 | `barrier` | `costMp`、`barrierId`、`kind`、`name`、`powerBase`、`powerPerLevel`、`duration` | 自身护盾，护盾值为基础值加技能等级乘每级值 |
+| `counter` | `chance`、`coefficient` | 受到物理伤害后概率反击，复用钩子抑制规则 |
+| `critical` | `kind`、`chance` | 提高物理或法术暴击概率 |
+| `regeneration` | `resource`、`levelDivisor` | 回合末恢复等级除以指定整数的气血或法力，向下取整 |
+| `spellBoost` | `factor` | 法术伤害倍率 |
+| `poison` | `chance`、`duration`、`hpRatio`、`mpRatio`、`immune` | 普攻中毒与高级毒免疫 |
+| `miracle` | `immune` | 回合末净化或异常免疫 |
+| `concentration` | `physicalFactor`、`dodgeBonus` | 控制免疫、物伤代价与躲避 |
+| `ghost` | `delay` | 延迟复起、拒绝气血恢复和常规异常免疫 |
+| `exorcism` | `factor` | 对鬼魂物法增伤并阻止其复起 |
+| `denial` | `ghostDamageFactor`、`spellFactor` | 拒绝增益、异常免疫、鬼魂伤害及法抗倍率 |
+| `eternity` | `factor`、`maxExtra` | 合格增益延长倍率与额外回合上限 |
+| `stealth` | `minDuration`、`maxDuration`、`physicalFactor` | 首次出战隐身状态、禁法与物伤代价 |
+| `perception` | `dodgeBonus` | 看破隐身，可增加面板躲避 |
+| `spellRepeat` | `chance`、`factor` | 直接伤害法术整次追加，原目标、无额外费用、不递归 |
+| `spellFluctuation` | `min`、`max`、`suppressReflection` | 替换法术波动区间，可免法术反震 |
+| `groupSpell` | `costMp`、`coefficient`、`powerBase`、`powerPerLevel`、`levelsPerTarget`、`maxTargets` | 按技能等级增加目标数的群法 |
+| `parry` | `factor` | 每回合首次物理命中减伤 |
+| `defenseTraining` | `perLevel`、`spellFactor` | 加物防并降低自身法伤 |
+| `strengthTraining` | `perLevel`、`versusDefenseFactor` | 加物攻、忽略招架，对防御技能目标承担伤害代价 |
+| `wisdom` | `factor` | 仅法术法力消耗倍率 |
+| `sneakAttack` | `factor` | 物理增伤且不触发物理反击／反震 |
+| `spellResistance` | `takenFactor`、`physicalFactor` | 所受法伤倍率与自身物伤代价 |
+| `lifesteal` | `ratio` | 直接物理命中后按实际扣血精确恢复 |
+| `reflection` | `kind`、`chance`、`ratio` | 对应类型受击后按实际扣血概率反震固定伤害 |
+| `divineRevival` | `chance`、`hpRatio` | 致命时概率复生，服从禁复活与可恢复上限 |
+| `speed` | `factor` | 灵兽共用面板中的速度倍率 |
 | `combo` | `chance`、`coefficient` | 自身物理命中后按概率追加一次物理攻击，保留内核的钩子抑制规则 |
+
+经典技能第一批新增 18 个、第二批新增 8 个，第三阶段新增 6 个，第四阶段新增 6 个，第六阶段新增 4 个，第七阶段新增 4 个，第八阶段新增 4 个，第九阶段新增 8 个，第十阶段新增 6 个，累计含原有技能共 69 个技能及兽诀，详见 [累计迁移记录与后续队列](../../../../../../docs/combat-v6-beast-classic-skills.md)。新书已加入清溪野外掉落池，物种和出生技能不变。
 
 数值 0.25 表示 25% 概率，1.1 表示 1.1 倍系数。参与表达式的参数最多六位小数；不接受自由公式或脚本。新机制仍须扩展编译器。
 

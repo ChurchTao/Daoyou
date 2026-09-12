@@ -1,3 +1,4 @@
+import { applyEntryStatuses } from "./status.ts"
 /**
  * 单次出手结算。按指令类型派发，避免 resolveAction 堆叠成长方法。
  * 这里不出现门派/技能 id 分支。
@@ -380,11 +381,13 @@ function resolveSummon(ctx: BattleContext, unit: Unit, petId: string): void {
     }
   }
   pet.flags.benched = false;
+  applyEntryStatuses(ctx, pet);
   ctx.emit({ type: EventType.PetSummoned, unitId: unit.id, petId: pet.id });
 }
 
 function recallPet(ctx: BattleContext, owner: Unit, pet: Unit): void {
   pet.flags.benched = true;
+  pet.flags.reviveAtRound = undefined;
   clearRoundFlags(pet);
   for (const status of [...pet.statuses])
     if (!ctx.statusDefs.get(status.id)?.persistWhenBenched)
@@ -704,6 +707,23 @@ function resolveSkill(
       targetIds,
       env,
     );
+  }
+  // Repeat only a direct damaging spell; do not repeat utility effects or costs.
+  if (!ctx.currentAction.failed && isStanding(unit) && !ctx.state.result &&
+      skill.tags.includes(SkillTag.Spell) && skill.effects.length > 0 &&
+      skill.effects.every(effect => effect.type === EffectType.SpellHit && !effect.targeting)) {
+    for (const passiveId of unit.passives) {
+      const passive = skillOf(ctx.skills, unit, passiveId);
+      const repeat = passive?.innate?.spellRepeat;
+      if (!repeat) continue;
+      if (targets.some(isStanding) && ctx.rng.chance(repeat.chance)) {
+        ctx.emit({ type: EventType.MechanicTriggered, mechanicId: passiveId, name: passive!.name, sourceId: unit.id, targetId: targets[0]?.id });
+        ctx.currentAction.spellRepeatFactor = repeat.factor;
+        applyDeclaredEffects(ctx, unit, skill, skill.effects, targets, targetIds, env);
+        ctx.currentAction.spellRepeatFactor = undefined;
+      }
+      break;
+    }
   }
   const kind = skill.tags.includes(SkillTag.Physical)
     ? DamageKind.Physical

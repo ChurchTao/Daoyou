@@ -11,16 +11,18 @@ import {
   EventType,
   FailReason,
   failDetail,
+  StatusCategory,
   StatusFlag,
   StatusRemoveReason,
   StatusTick,
   TickKind,
 } from "./enums.ts"
 import { evalExpr, skillLevelOf } from "./expr.ts"
+import { skillOf, passiveSkills } from "./skills.ts"
 import { standingUnits } from "./query.ts"
 import type { Attrs, CommandPolicy as CommandPolicyType, ExprEnv, StatusDef, StatusId, Unit, UnitId } from "./types.ts"
 import { effectiveAttrs, recoverableHp } from "./units.ts"
-import { applyDamage } from "./damage.ts"
+import { applyDamage, applyMpDamage } from "./damage.ts"
 
 export function statusDef(ctx: BattleContext, id: StatusId): StatusDef | undefined {
   return ctx.statusDefs.get(id)
@@ -78,6 +80,15 @@ export function applyStatus(
     return
   }
 
+  if (isStatusImmune(ctx, unit, def)) return
+  // Only ordinary classified buffs may be extended; entry and special effects opt out.
+  if (def.category === StatusCategory.Buff && def.extendable !== false && !def.untargetable &&
+      !def.blocksRevive && !def.ticks && !def.blocksAction && !def.blocksSpell && !def.blocksPhysical && !def.actFirst) {
+    for (const id of unit.passives) {
+      const extension = skillOf(ctx.skills, unit, id)?.innate?.buffDuration
+      if (extension) { duration += Math.min(extension.maxExtra, Math.floor(duration * (extension.factor - 1))); break }
+    }
+  }
   const baseEnv: ExprEnv = options.env ?? {
     skillLevel: 0,
     targets: 1,
@@ -160,7 +171,8 @@ export function copyStatusInstance(
   instance: Unit["statuses"][number],
   durationAdd = 0,
 ): void {
-  if (!statusDef(ctx, instance.id)) return
+  const def = statusDef(ctx, instance.id)
+  if (!def || isStatusImmune(ctx, target, def)) return
   for (const current of [...target.statuses].filter((status) => status.kind === instance.kind)) {
     removeStatus(ctx, target, current.id, StatusRemoveReason.Replaced)
   }
@@ -182,13 +194,14 @@ export function breakStatusesOnDamage(ctx: BattleContext, unit: Unit): void {
 
 export function tickStatuses(ctx: BattleContext): void {
   // 倒地单位也要走持续（锢魂必须在倒地期间仍占回合）。
-  for (const unit of [...standingUnits(ctx.state), ...ctx.state.units.filter((u) => u.flags.downed)]) {
+  for (const unit of [...standingUnits(ctx.state), ...ctx.state.units.filter((u) => u.flags.downed || (u.flags.dead && u.flags.reviveAtRound !== undefined))]) {
     for (const inst of [...unit.statuses]) {
       const def = statusDef(ctx, inst.id)
-      if (def?.ticks === StatusTick.RoundEnd && def.onTick?.type === TickKind.Dot && !unit.flags.downed) {
+      if (def?.ticks === StatusTick.RoundEnd && def.onTick?.type === TickKind.Dot && !unit.flags.downed && !unit.flags.dead) {
         const amount = Math.max(1, Math.floor(unit.attrs.maxHp * def.onTick.ratioOfMaxHp))
         const source = ctx.state.units.find((candidate) => candidate.id === inst.sourceId) ?? unit
         applyDamage(ctx, source, unit, amount, DamageKind.Fixed, true, DamageOrigin.Status)
+        if (def.onTick.ratioOfMaxMp) applyMpDamage(ctx, source, unit, Math.floor(unit.attrs.maxMp * def.onTick.ratioOfMaxMp))
       }
 
       // Dot 当回合就跳并扣持续；普通状态当回合不扣；expireSameRound（我佛护体）当回合结束即卸。
@@ -215,4 +228,26 @@ export function envFor(unit: Unit, skillId: string, targets = 1, target?: Unit):
     source: unit,
     target,
   }
+}
+
+/** Initial deployment effects run once per battle; marks survive recall and restore. */
+export function applyEntryStatuses(ctx: BattleContext, unit: Unit): void {
+  if (unit.flags.benched || unit.flags.dead || unit.flags.escaped) return
+  for (const id of unit.passives) {
+    const entry = skillOf(ctx.skills, unit, id)?.innate?.entryStatus
+    const mark = `battle:entry:${id}`
+    if (!entry || unit.marks.includes(mark)) continue
+    const duration = entry.minDuration + Math.floor(ctx.rng.next() * (entry.maxDuration - entry.minDuration + 1))
+    applyStatus(ctx, unit, entry.statusId, duration, unit.id)
+    unit.marks.push(mark)
+  }
+}
+
+function isStatusImmune(ctx: BattleContext, unit: Unit, def: StatusDef): boolean {
+  const passives = passiveSkills(ctx.skills, unit)
+  if (def.category === StatusCategory.Buff && passives.some(s => s.innate?.rejectBuffs)) return true
+  return !def.blocksRevive && def.dispellable !== false && passives.some(s => {
+    const innate = s.innate
+    return innate?.immuneStatusKinds?.includes(def.kind) || Boolean(def.category && innate?.immuneStatusCategories?.includes(def.category))
+  })
 }

@@ -1,5 +1,5 @@
 import { AUTO_POLICY_VERSION } from '../../../combat-v6/auto-policy';
-import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
+import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import type { CreateBattleInput } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
 import {
@@ -152,8 +152,8 @@ export function createBreakthroughHost(
         magicDef: 10 + level * 3,
         speed: 10 + level * 3,
       },
-      skills: ['beast.spirit-flame', 'beast.wind-strike'],
-      skillLevels: { 'beast.spirit-flame': level, 'beast.wind-strike': level },
+      skills: ['beast.spirit-flame'],
+      skillLevels: { 'beast.spirit-flame': level },
     };
   }
   return new BreakthroughHost({
@@ -168,7 +168,7 @@ export function createBreakthroughHost(
         opponent,
       ],
       skills: [...BEAST_SKILLS, ...projected.skills],
-      statusDefs: projected.statusDefs,
+      statusDefs: [...projected.statusDefs, ...BEAST_STATUS_DEFS],
     }),
   });
 }

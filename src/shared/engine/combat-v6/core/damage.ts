@@ -2,6 +2,7 @@
  * 单次打击：命中 → 公式 → 必杀/波动/防御 → 扣血。
  * 修炼、师门项、分灵都在 rules.baseDamage 里算，这里只把 skillLevel / 人数传过去。
  */
+import { skillOf, passiveSkills } from "./skills.ts"
 import { MIN_DAMAGE, MIN_HP } from "./constants.ts"
 import { absorbBarriers } from "./barriers.ts"
 import type { BattleContext } from "./context.ts"
@@ -80,7 +81,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   const strikeInput = { ...input, defenseIgnore: defenseIgnoreHook.defenseIgnore }
   let raw = computeBase(ctx, source, target, src, dst, strikeInput, fury)
   raw = applyCrit(ctx, raw, crit)
-  if (input.kind !== DamageKind.Fixed) raw = applyFluctuation(ctx, raw, input.kind)
+  if (input.kind !== DamageKind.Fixed) raw = applyFluctuation(ctx, raw, input.kind, source)
   raw = applyDefend(ctx, target, input.kind, raw)
   raw = floorAtLeast(MIN_DAMAGE, raw * damageTakenFactor(target, input.kind))
 
@@ -93,7 +94,18 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     isPrimary,
     origin,
   })
-  const amount = floorAtLeast(MIN_DAMAGE, hooked.damage ?? raw)
+  const repeatFactor = input.kind === DamageKind.Spell && ctx.currentAction?.sourceId === source.id
+    ? ctx.currentAction.spellRepeatFactor ?? 1 : 1
+  let relationFactor = 1
+  if (input.kind === DamageKind.Physical || input.kind === DamageKind.Spell) {
+    const sourcePassives = passiveSkills(ctx.skills, source)
+    const targetPassives = passiveSkills(ctx.skills, target)
+    if (targetPassives.some(s => s.innate?.delayedRevivalRounds))
+      for (const s of sourcePassives) relationFactor *= s.innate?.damageToDelayedRevival ?? 1
+    if (sourcePassives.some(s => s.innate?.delayedRevivalRounds))
+      for (const s of targetPassives) relationFactor *= s.innate?.damageFromDelayedRevival ?? 1
+  }
+  const amount = floorAtLeast(MIN_DAMAGE, (hooked.damage ?? raw) * repeatFactor * relationFactor)
 
   ctx.emit({
     type: EventType.Hit,
@@ -211,7 +223,13 @@ function applyCrit(ctx: BattleContext, raw: number, crit: boolean): number {
   return Math.floor(raw * ctx.rules.formulas.critMultiplier)
 }
 
-function applyFluctuation(ctx: BattleContext, raw: number, kind: DamageKindType): number {
+function applyFluctuation(ctx: BattleContext, raw: number, kind: DamageKindType, source: Unit): number {
+  if (kind === DamageKind.Spell) {
+    for (const id of source.passives) {
+      const range = skillOf(ctx.skills, source, id)?.innate?.spellFluctuation;
+      if (range) return floorAtLeast(MIN_DAMAGE, raw * ctx.rng.range(range.min, range.max));
+    }
+  }
   const formulas = ctx.rules.formulas
   const min =
     kind === DamageKind.Physical ? formulas.physicalFluctuationMin : formulas.fluctuationMin
@@ -319,6 +337,7 @@ function redirectOverflow(
 /** 倒地单位不受治疗，只能走 revive。 */
 export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power: number, healMaxHp = false): void {
   if (target.flags.dead || target.flags.escaped || target.flags.downed) return
+  if (passiveSkills(ctx.skills, target).some(s => s.innate?.rejectHpRecovery)) return
 
   if (healMaxHp) {
     const amount = floorAtLeast(MIN_DAMAGE, power + source.attrs.healPower)
@@ -347,8 +366,9 @@ export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power:
   }
 }
 
-export function applyRevive(ctx: BattleContext, source: Unit, target: Unit, hp: number): boolean {
+export function applyRevive(ctx: BattleContext, source: Unit, target: Unit, hp: number, natural = false): boolean {
   if (target.flags.escaped) return false
+  if (!natural && passiveSkills(ctx.skills, target).some(s => s.innate?.rejectHpRecovery)) return false
   const needsRevive = target.flags.downed || target.flags.dead || target.attrs.hp <= 0
   if (!needsRevive) return false
   if (target.statuses.some((s) => ctx.statusDefs.get(s.id)?.blocksRevive)) {
@@ -373,6 +393,7 @@ export function applyHpRestore(
   options: { revive?: boolean; clearStatuses?: boolean } = {},
 ): number {
   if (target.flags.escaped) return 0
+  if (passiveSkills(ctx.skills, target).some(s => s.innate?.rejectHpRecovery)) return 0
   if (options.revive && target.attrs.hp <= 0) {
     if (target.statuses.some((s) => ctx.statusDefs.get(s.id)?.blocksRevive)) {
       ctx.emit({ type: EventType.ActionFailed, unitId: source.id, reason: FailReason.ReviveBlocked })

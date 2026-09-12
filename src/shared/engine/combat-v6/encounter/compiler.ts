@@ -1,4 +1,4 @@
-import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
+import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import {
   ATTR_NAMES,
   EffectType,
@@ -321,7 +321,7 @@ export function compileCombatV6TrainingEncounterV1(
     diagnostics,
   );
   const statusDefs = mergeDefinitions(
-    [...player.statusDefs, ...content.statusDefs],
+    [...player.statusDefs, ...content.statusDefs, ...BEAST_STATUS_DEFS],
     '状态',
     diagnostics,
   );

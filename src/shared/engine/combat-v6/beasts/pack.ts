@@ -60,6 +60,15 @@ export const BeastSkillsPackShape = z.strictObject({
         book: z.boolean(),
         effect: z.discriminatedUnion('type', [
           z.strictObject({
+            type: z.literal('groupSpell'),
+            costMp: integer,
+            coefficient: number.positive(),
+            powerBase: integer,
+            powerPerLevel: number,
+            levelsPerTarget: integer.min(1),
+            maxTargets: integer.min(1).max(10),
+          }),
+          z.strictObject({
             type: z.literal('spellHit'),
             costMp: integer,
             coefficient: number.positive(),
@@ -85,6 +94,125 @@ export const BeastSkillsPackShape = z.strictObject({
             type: z.literal('combo'),
             chance: probability,
             coefficient: number.positive(),
+            physicalFactor: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('counter'),
+            chance: probability,
+            coefficient: number.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('regeneration'),
+            resource: z.enum(['hp', 'mp']),
+            levelDivisor: integer.min(1),
+          }),
+          z.strictObject({
+            type: z.literal('critical'),
+            kind: z.enum(['physical', 'spell']),
+            chance: probability,
+          }),
+          z.strictObject({
+            type: z.literal('spellBoost'),
+            factor: number.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('speed'),
+            factor: number.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('ghost'),
+            delay: integer.min(1).max(99),
+          }),
+          z.strictObject({
+            type: z.literal('exorcism'),
+            factor: number.min(1),
+          }),
+          z.strictObject({
+            type: z.literal('denial'),
+            ghostDamageFactor: number.min(1),
+            spellFactor: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('poison'),
+            chance: probability,
+            duration: integer.min(1).max(99),
+            hpRatio: probability,
+            mpRatio: probability,
+            immune: z.boolean(),
+          }),
+          z.strictObject({ type: z.literal('miracle'), immune: z.boolean() }),
+          z.strictObject({
+            type: z.literal('concentration'),
+            physicalFactor: probability.positive(),
+            dodgeBonus: integer,
+          }),
+          z.strictObject({
+            type: z.literal('eternity'),
+            factor: number.min(1),
+            maxExtra: integer.max(99),
+          }),
+          z.strictObject({
+            type: z.literal('stealth'),
+            minDuration: integer.min(1).max(99),
+            maxDuration: integer.min(1).max(99),
+            physicalFactor: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('perception'),
+            dodgeBonus: integer,
+          }),
+          z.strictObject({
+            type: z.literal('spellRepeat'),
+            chance: probability,
+            factor: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('spellFluctuation'),
+            min: number.positive(),
+            max: number.positive(),
+            suppressReflection: z.boolean(),
+          }),
+          z.strictObject({
+            type: z.literal('parry'),
+            factor: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('defenseTraining'),
+            perLevel: number,
+            spellFactor: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('strengthTraining'),
+            perLevel: number,
+            versusDefenseFactor: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('wisdom'),
+            factor: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('sneakAttack'),
+            factor: number.min(1),
+          }),
+          z.strictObject({
+            type: z.literal('spellResistance'),
+            takenFactor: probability.positive(),
+            physicalFactor: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('lifesteal'),
+            ratio: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('reflection'),
+            kind: z.enum(['physical', 'spell']),
+            chance: probability,
+            ratio: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('divineRevival'),
+            chance: probability,
+            hpRatio: probability.positive(),
           }),
         ]),
       }),
@@ -194,6 +322,18 @@ export function loadBeastPacks(
       seen.add(entry.id);
     });
   }
+  for (const skill of skills.skills) {
+    if (
+      skill.effect.type === 'stealth' &&
+      skill.effect.minDuration > skill.effect.maxDuration
+    )
+      issue('skills.json', `[${skill.id}].effect`, '持续时间下界不得超过上界');
+    if (
+      skill.effect.type === 'spellFluctuation' &&
+      skill.effect.min > skill.effect.max
+    )
+      issue('skills.json', `[${skill.id}].effect`, '波动下界不得超过上界');
+  }
   const ids = new Set(skills.skills.map((s) => s.id));
   const bonus = species.generation.captureBonus;
   species.species.forEach((s) => {
@@ -213,7 +353,11 @@ export function loadBeastPacks(
   species.species.forEach((entry) => {
     for (const [key, bounds] of Object.entries(entry.aptitudes)) {
       if (bounds.min > bounds.max)
-        issue('species.json', `[${entry.id}].aptitudes.${key}`, '下界不得超过上界');
+        issue(
+          'species.json',
+          `[${entry.id}].aptitudes.${key}`,
+          '下界不得超过上界',
+        );
     }
     if (entry.growthMilli.min > entry.growthMilli.max)
       issue('species.json', `[${entry.id}].growthMilli`, '下界不得超过上界');
@@ -253,8 +397,18 @@ export function loadBeastPacks(
   const maxAttribute =
     progression.panel.naturalBase +
     180 * (progression.panel.naturalPerLevel + progression.pointsPerLevel);
-  if (Math.floor(progression.panel.naturalBase * 0.1 * progression.panel.health.attributeCoefficient) < 1)
-    issue('progression.json', 'panel.health', '零级最低成长个体的气血必须至少为 1');
+  if (
+    Math.floor(
+      progression.panel.naturalBase *
+        0.1 *
+        progression.panel.health.attributeCoefficient,
+    ) < 1
+  )
+    issue(
+      'progression.json',
+      'panel.health',
+      '零级最低成长个体的气血必须至少为 1',
+    );
   for (const key of [
     'health',
     'mana',
@@ -267,13 +421,16 @@ export function loadBeastPacks(
     const term = progression.panel[key];
     const attributeCoefficient =
       key === 'magicDef'
-        ? Object.values(progression.panel.magicDef.attributeCoefficients).reduce(
-            (sum, coefficient) => sum + coefficient, 0,
-          )
+        ? Object.values(
+            progression.panel.magicDef.attributeCoefficients,
+          ).reduce((sum, coefficient) => sum + coefficient, 0)
         : progression.panel[key].attributeCoefficient;
     if (
       !Number.isSafeInteger(
-        Math.floor(180 * 100000 * term.aptitudeCoefficient + maxAttribute * 3 * attributeCoefficient),
+        Math.floor(
+          180 * 100000 * term.aptitudeCoefficient +
+            maxAttribute * 3 * attributeCoefficient,
+        ),
       )
     )
       issue(

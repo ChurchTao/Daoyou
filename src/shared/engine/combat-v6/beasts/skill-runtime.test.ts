@@ -73,7 +73,7 @@ function resolve(skill: SkillDef, seed: number) {
   return { state: battle.snapshot(), events: battle.log() };
 }
 
-it.each(BEAST_SKILLS)(
+it.each(BEAST_SKILLS.filter((skill) => before.skills.some((old) => old.id === skill.id)))(
   'preserves $name events, costs and effects across fixed seeds',
   (skill) => {
     const old = before.skills.find(

@@ -1,3 +1,6 @@
+import { passiveSkills } from "./skills.ts"
+import { applyRevive } from "./damage.ts"
+import { applyEntryStatuses } from "./status.ts"
 import { materializeCommand, rememberCommand } from "./commands.ts"
 import type { BattleContext } from "./context.ts"
 import { BattlePhase, CommandType, EventType, HookName, HpZeroOutcome, MatchWinner, ResultReason, Team } from "./enums.ts"
@@ -81,6 +84,7 @@ export class BattleSession {
         unitIds: units.map((u) => u.id),
         versions: { ...input.versions },
       })
+      for (const unit of units) applyEntryStatuses(this.ctx, unit)
       this.ctx.emit({ type: EventType.RoundStart, round: 1 })
       this.ctx.hooks.emit(HookName.OnRoundStart)
     }
@@ -186,6 +190,11 @@ export class BattleSession {
     for (const unit of this.ctx.state.units) clearRoundFlags(unit)
     this.ctx.state.phase = BattlePhase.Command
     this.ctx.emit({ type: EventType.RoundStart, round: this.ctx.state.round })
+    for (const unit of this.ctx.state.units) {
+      if (unit.flags.reviveAtRound !== undefined && unit.flags.reviveAtRound <= this.ctx.state.round && !unit.flags.benched && !unit.flags.escaped) {
+        if (applyRevive(this.ctx, unit, unit, unit.attrs.maxHp, true)) unit.flags.reviveAtRound = undefined
+      }
+    }
     this.ctx.hooks.emit(HookName.OnRoundStart)
     this.syncRng()
   }
@@ -211,6 +220,10 @@ export class BattleSession {
     if (unit.flags.dead || unit.flags.downed) return
     this.ctx.hooks.emit(HookName.OnFatal, { source, target: unit, skillId, kind, origin })
     if (unit.attrs.hp > 0) return
+    const delay = passiveSkills(this.ctx.skills, unit).find(s => s.innate?.delayedRevivalRounds)?.innate?.delayedRevivalRounds
+    const ban = source && passiveSkills(this.ctx.skills, source).some(s => s.innate?.preventDelayedRevival)
+    if (delay && !ban) unit.flags.reviveAtRound = this.ctx.state.round + delay
+    else unit.flags.reviveAtRound = undefined
     const outcome = this.ctx.rules.hpZeroOutcome(unit)
     clearCombatStatuses(this.ctx, unit)
     clearBarriers(this.ctx, unit)

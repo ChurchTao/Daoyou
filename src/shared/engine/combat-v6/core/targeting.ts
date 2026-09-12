@@ -229,6 +229,7 @@ export function resolveSkillTargets(
     return addExtra(ctx, source, skill, picked, pool);
 
   for (const unit of pool) {
+    if (picked.length >= count) break;
     if (seen.has(unit.id)) continue;
     picked.push(unit);
     seen.add(unit.id);

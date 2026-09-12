@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { SeededRng } from '../engine/combat-v6/core/rng';
 import raw from './data/wild.json';
+import { BOOKS } from '../items/definitions/beast-books';
 import schema from './data/wild.schema.json';
 import { WildRewardPackShape, compileWildRewardPool, loadWildRewardPack } from './wild-pack';
 import { QINGXI_POOL_V2, wildItemRewards } from './wild';
@@ -10,13 +11,32 @@ import { QINGXI_POOL_V2, wildItemRewards } from './wild';
 const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 describe('野外奖励数据包', () => {
   it('Schema 同步', () => expect(z.toJSONSchema(WildRewardPackShape, { reused: 'ref' })).toEqual(schema));
-  it('完整奖励池和512种子实际物品保持迁移前结果', () => {
-    expect(hash(QINGXI_POOL_V2)).toBe('c4f2ffcaed4ed572ee2612ad44828e12acf9c9767f43fa787aaf8ffe5ece9ef3');
+  it('旧版五本兽诀奖励池仍保持迁移前的512种子基线', () => {
+    const legacy = structuredClone(raw);
+    legacy.poolVersion = 2;
+    const books = legacy.groups.find((group) => group.id === 'books')!;
+    books.source.entries = books.source.entries!.slice(0, 5);
+    const pool = compileWildRewardPool(loadWildRewardPack(legacy));
+    expect(hash(pool)).toBe('c4f2ffcaed4ed572ee2612ad44828e12acf9c9767f43fa787aaf8ffe5ece9ef3');
     const outputs = Array.from({ length: 512 }, (_, seed) => {
       const rng = new SeededRng(seed);
-      return wildItemRewards(QINGXI_POOL_V2, () => () => rng.next(), group => `baseline-${seed}-${group}`, '2026-09-11T00:00:00Z');
+      return wildItemRewards(pool, () => () => rng.next(), group => `baseline-${seed}-${group}`, '2026-09-11T00:00:00Z');
     });
     expect(hash(outputs)).toBe('4e251b663058178f24e3c1bd5059b3500a21e8f1c88a213f288c30b21e296af6');
+  });
+  it('全部已注册兽诀可从扩展池掉落，兽诀组概率仍为3%', () => {
+    const group = QINGXI_POOL_V2.groups.find((entry) => entry.id === 'books')!;
+    expect(group.chance).toBe(0.03);
+    expect(group.entries.map((entry) => entry.rewardId)).toEqual(BOOKS.map((book) => book.id));
+    const total = group.entries.reduce((sum, entry) => sum + entry.weight, 0);
+    let weight = 0;
+    for (const entry of group.entries) {
+      const point = (weight + entry.weight / 2) / total;
+      let call = 0;
+      const grants = wildItemRewards({ ...QINGXI_POOL_V2, groups: [group] }, () => () => call++ === 0 ? 0 : point, () => 'unused', '');
+      expect(grants).toEqual([{ definitionId: entry.rewardId, quantity: 1 }]);
+      weight += entry.weight;
+    }
   });
   it('配置等级、概率和部位控制最终奖励', () => {
     const data = structuredClone(raw);

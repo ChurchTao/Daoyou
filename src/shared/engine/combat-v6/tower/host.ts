@@ -4,7 +4,7 @@ import { TOWER_MAX_FLOOR } from '../../../lib/tower/helpers';
 import { compileTowerEnemies } from './content';
 export { TOWER_ENEMY_CONFIG } from './content';
 import type { RealmType } from '../../../types/constants';
-import { BEAST_SKILLS, projectBeastRoster } from '../beasts';
+import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import { type CreateBattleInput } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
 import {
@@ -168,7 +168,7 @@ export function createTowerHost(
       versions: TOWER_V6_VERSIONS,
       units: [unit, ...beasts, ...enemies],
       skills: [...projected.skills, ...BEAST_SKILLS],
-      statusDefs: projected.statusDefs,
+      statusDefs: [...projected.statusDefs, ...BEAST_STATUS_DEFS],
     },
   });
 }

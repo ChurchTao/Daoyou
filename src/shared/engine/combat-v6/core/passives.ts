@@ -31,6 +31,16 @@ export function bindDataHooks(ctx: BattleContext): void {
           if (hook.targetIsSelf && hctx.target?.id !== unit.id) return
           if (hook.sourceIsSelf && hctx.source?.id !== unit.id) return
           if (hook.requireKind && hctx.kind !== hook.requireKind) return
+          if (hook.parry && hctx.source) {
+            const attacker = hctx.source
+            if (attacker.passives.some((id) => skillOf(ctx.skills, attacker, id)?.innate?.ignoreParry)) return
+          }
+          if (hook.retaliation && hctx.source) {
+            const attacker = hctx.source
+            const capability = hctx.kind === DamageKind.Physical ? 'suppressPhysicalRetaliation'
+              : hctx.kind === DamageKind.Spell ? 'suppressSpellRetaliation' : undefined
+            if (capability && attacker.passives.some((id) => skillOf(ctx.skills, attacker, id)?.innate?.[capability])) return
+          }
           if (
             hctx.kind === DamageKind.Fixed &&
             (hook.on === HookName.OnHitCalc || hook.on === HookName.OnCritRoll || hook.on === HookName.OnDefenseIgnoreCalc) &&

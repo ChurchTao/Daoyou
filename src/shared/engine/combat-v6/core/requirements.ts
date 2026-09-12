@@ -31,7 +31,7 @@ export function checkSkillRequirements(
     ? (skill.capture.targetMpCosts[targets[0]?.id] ?? 0)
     : atLeast(
         0,
-        Math.floor(evalExpr(skill.costMp ?? 0, env) * mpCostFactor(ctx, unit)),
+        Math.floor(evalExpr(skill.costMp ?? 0, env) * mpCostFactor(ctx, unit, skill)),
       );
   const hpCost = atLeast(0, Math.floor(evalExpr(skill.costHp ?? 0, env)));
   const resourceCosts = resolveResourceCosts(skill, env);
@@ -89,11 +89,12 @@ function resolveResourceCosts(
   return [...totals].map(([resourceId, amount]) => ({ resourceId, amount }));
 }
 
-function mpCostFactor(ctx: BattleContext, unit: Unit): number {
+function mpCostFactor(ctx: BattleContext, unit: Unit, skill: SkillDef): number {
   let factor = 1;
   for (const id of unit.passives) {
-    const innate = skillOf(ctx.skills, unit, id)?.innate?.mpCostFactor;
-    if (innate !== undefined) factor *= innate;
+    const innate = skillOf(ctx.skills, unit, id)?.innate;
+    factor *= innate?.mpCostFactor ?? 1;
+    if (skill.tags.includes(SkillTag.Spell)) factor *= innate?.spellMpCostFactor ?? 1;
   }
   return factor;
 }

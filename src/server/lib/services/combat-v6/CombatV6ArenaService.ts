@@ -40,6 +40,7 @@ import {
 } from '@shared/contracts/domainEvents';
 import {
   BEAST_SKILLS,
+  BEAST_STATUS_DEFS,
   projectBeastRoster,
 } from '@shared/engine/combat-v6/beasts';
 import type { SkillDef, StatusDef } from '@shared/engine/combat-v6/core';
@@ -140,6 +141,7 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
             ),
           );
           mergeDefinitions(skills, BEAST_SKILLS);
+          mergeDefinitions(statuses, BEAST_STATUS_DEFS);
           participants.push({
             userId: seat.userId,
             cultivatorId: seat.cultivatorId,
