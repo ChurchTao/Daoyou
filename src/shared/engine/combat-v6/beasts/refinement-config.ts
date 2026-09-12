@@ -14,7 +14,8 @@ export const BeastRefinementPackShape = z.strictObject({
       z.strictObject({
         id: z.string().regex(/^beast\.refinement\.[a-z-]+$/),
         name: z.string().min(1).max(40),
-        icon: z.string().min(1).max(32),
+        icon: z.literal('origin-dew'),
+        color: z.enum(['jade', 'gold']),
         description: z.string().min(1).max(300),
         allowedRealms: z.array(z.enum(REALM_VALUES)).min(1),
         consumeQuantity: z.number().int().min(1).max(99),

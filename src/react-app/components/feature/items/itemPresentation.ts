@@ -10,6 +10,8 @@ import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-bluepr
 import { MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
 import { materialFactsOf } from '@shared/items/material';
 import { REALM_STAGE_VALUES, REALM_VALUES } from '@shared/types/constants';
+import { createElement } from 'react';
+import { OriginDewIcon } from './OriginDewIcon';
 
 export type DisplayItem = Pick<
   InventoryView['items'][number],
@@ -93,8 +95,10 @@ export function itemPresentation(item: DisplayItem) {
     case 'beast_refinement': {
       const dew = BEAST_REFINEMENT.items.find((item) => item.id === def.id)!;
       return {
-        icon: dew.icon,
-        color: tierColorMap.玄品,
+        icon: createElement(OriginDewIcon, {
+          className: dew.color === 'jade' ? 'text-teal' : 'text-tier-tian',
+        }),
+        color: dew.color === 'jade' ? 'text-teal' : 'text-tier-tian',
         tier: '',
         type: '归元灵露',
         description: dew.description,

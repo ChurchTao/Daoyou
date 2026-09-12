@@ -4,7 +4,9 @@
 
 ## 规则与配置
 
-策划配置：`src/shared/engine/combat-v6/beasts/data/refinement.json`，配套JSON Schema和`refinement-config.ts`校验。配置维护名称、图标、描述、适用境界、单次消耗、叠加上限、归零等级经验和寿命恢复开关。
+策划配置：`src/shared/engine/combat-v6/beasts/data/refinement.json`，配套JSON Schema和`refinement-config.ts`校验。配置维护名称、图标、颜色、描述、适用境界、单次消耗、叠加上限、归零等级经验和寿命恢复开关。
+
+两档灵露共用 `origin-dew` 瓶形图标，通过 `color` 区分：归元灵露为 `jade`（青碧），上品归元灵露为 `gold`（金色）。储物袋格子与物品详情的图标、名称同步使用该配色，颜色不影响洗炼概率。
 
 | 定义ID | 名称 | 适用物种 |
 | --- | --- | --- |

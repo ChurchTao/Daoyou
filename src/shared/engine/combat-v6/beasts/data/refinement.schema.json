@@ -42,8 +42,14 @@
           },
           "icon": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 32
+            "const": "origin-dew"
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "jade",
+              "gold"
+            ]
           },
           "description": {
             "type": "string",
@@ -83,6 +89,7 @@
           "id",
           "name",
           "icon",
+          "color",
           "description",
           "allowedRealms",
           "consumeQuantity",
