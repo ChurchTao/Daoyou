@@ -109,7 +109,7 @@ function turn(
   b.lockAndResolve();
 }
 it.each(['beast.ghost', 'beast.advanced-ghost'])(
-  '%s 五回合复起、屏蔽神佑且快照保留计时',
+  '%s 五回合复起、屏蔽涅槃重生且快照保留计时',
   (id) => {
     const data = input([id, 'beast.advanced-divine-revival']);
     const b = createBattle(data);
@@ -167,7 +167,7 @@ it.each([
   }
 });
 it.each(['beast.lifesteal', 'beast.advanced-lifesteal'])(
-  '%s 不能从鬼魂吸血，鬼魂自身也不能恢复气血',
+  '%s 不能从魂生噬血，魂生自身也不能恢复气血',
   (id) => {
     const b = createBattle(
       input(['beast.ghost', 'beast.advanced-regeneration'], [id]),
@@ -182,7 +182,7 @@ it.each([
   ['beast.denial', 120, 120],
   ['beast.advanced-denial', 120, 96],
 ] as const)(
-  '%s 拒绝增益、免控制、鬼魂增伤与高级法抗',
+  '%s 拒绝增益、免控制、魂生增伤与高级法抗',
   (id, physical, spellDamage) => {
     for (const spell of [false, true]) {
       const b = createBattle(
@@ -226,7 +226,7 @@ it('换宠取消等待复起，不在后备复活或出现两只出战宠', () =
   expect(b.unit('beast:pet').flags.dead).toBe(true);
   expect(b.unit('reserve').flags.benched).toBe(false);
 });
-it('仅剩等待鬼魂不能维持战斗', () => {
+it('仅剩等待魂生不能维持战斗', () => {
   const b = createBattle(input());
   b.unit('owner').flags.downed = true;
   b.unit('owner').attrs.hp = 0;
@@ -234,7 +234,7 @@ it('仅剩等待鬼魂不能维持战斗', () => {
   turn(b, true);
   expect(b.snapshot().result).toBeDefined();
 });
-it('外部治疗与普通复活不能绕过鬼魂恢复限制', () => {
+it('外部治疗与普通复活不能绕过魂生恢复限制', () => {
   const data = input();
   data.skills.push({
     id: 'test.heal',
@@ -267,7 +267,7 @@ it('外部治疗与普通复活不能绕过鬼魂恢复限制', () => {
   heal();
   expect(b.unit('beast:pet').flags.dead).toBe(true);
 });
-it('驱鬼固定伤害不增幅，但归因于驱鬼者的击杀仍阻止复起', () => {
+it('慑魂固定伤害不增幅，但归因于慑魂者的击杀仍阻止复起', () => {
   const data = input(['beast.ghost'], ['beast.advanced-exorcism']);
   data.skills.push({
     id: 'test.fixed',

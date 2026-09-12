@@ -189,7 +189,7 @@ it.each(['beast.spell-combo', 'beast.advanced-spell-combo'])(
     ).toHaveLength(1);
   },
 );
-it('法连不补已死亡目标，施法者首次反震死亡后不追加', () => {
+it('灵力相续不补已死亡目标，施法者首次反震死亡后不追加', () => {
   const data = input(60, ['beast.spell-combo']);
   data.skills = data.skills.map((s) =>
     s.id === 'beast.spell-combo'
@@ -255,7 +255,7 @@ it.each([
   }
   expect(results.size).toBeGreaterThan(5);
 });
-it('高级法术波动免法术反震，普通版本不免', () => {
+it('高级灵息不定免灵息反震，普通版本不免', () => {
   const ordinary = createBattle(input(60, ['beast.spell-fluctuation'], true));
   resolve(ordinary);
   expect(ordinary.unit('caster').flags.dead).toBe(true);
@@ -271,7 +271,7 @@ it('高级法术波动免法术反震，普通版本不免', () => {
   ).toHaveLength(0);
 });
 
-it('单法连击不重复收费，普通概率既有触发也有未触发', () => {
+it('单灵力相续击不重复收费，普通概率既有触发也有未触发', () => {
   const counts = new Set<number>();
   for (let seed = 1; seed <= 64; seed++) {
     const data = { ...input(29, ['beast.spell-combo']), seed };

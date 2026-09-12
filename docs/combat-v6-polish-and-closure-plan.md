@@ -80,7 +80,7 @@ G10～G13中涉及核心入口不可用、越权、损物或无法结算的失�
 | E04 P2 待决策 | 闭关的新版功法关联 | 10U已取消旧品质倍率；明确是否需要功法提供战外收益、按什么事实计算，避免与六维战斗效果混用。没有决定前维持现状 | [10U](combat-v6-phase-10u-character-build.md) |
 | E05 P2 待决策 | 旧秘籍与专属符箓用途／旧抽取替代 | 旧入口已退役，已有资产暂不转换、不补偿；材料类型、生成能力与权重保留。单独决定新用途或继续停用，不擅自重分权重／全库归档 | [10V](combat-v6-phase-10v-reward-inventory.md)、[10W](combat-v6-phase-10w-release-acceptance.md) |
 | E06 P2 延期 | 新版后台战斗模拟器 | 面向配置验证还是批量平衡研究、如何提供可复现输入与结果；旧后台已删除，不恢复旧执行器，也不以一次性测试脚本代替产品工具 | [10G路线](combat-v6-mhxy-redesign-roadmap.md) |
-| E07 P2 延期 | 灵兽洗点、更多物种／技能、《鬼魂术》等特殊兽诀、经验等级衰减复核 | 洗点只影响自由分配属性还是其他事实；技能仍遵守固定出生格。高等级野外开放前重评当前无经验衰减规则 | [9B](combat-v6-phase-9b-capture-progression-plan.md)、[灵兽设计](combat-v6-summoned-beast-system-design.md) |
+| E07 P2 延期 | 灵兽洗点、更多物种／技能、魂生等特殊兽诀（后续已接入，见技能迁移记录）、经验等级衰减复核 | 洗点只影响自由分配属性还是其他事实；技能仍遵守固定出生格。高等级野外开放前重评当前无经验衰减规则 | [9B](combat-v6-phase-9b-capture-progression-plan.md)、[灵兽设计](combat-v6-summoned-beast-system-design.md) |
 | E08 P3 延期 | 战斗药品与物品指令 | 药品类型、人物／灵兽使用权、下令与执行时扣物边界、各Host是否真实消耗、失败／重试／离场结算；需重新立项，现有战外服药不代表已完成 | [路线图明确延期](combat-v6-mhxy-redesign-roadmap.md#战斗药品与物品指令延后开发) |
 | E09 P3 延期 | 队伍阵法、宗门怒气技扩展、法宝 | 阵位与作用范围、独立资源／装配事实、投影与版本；4B战意和器诀已交付，不重复造同义系统 | [路线图](combat-v6-mhxy-redesign-roadmap.md)、[法宝方向](combat-v6-summoned-beast-system-design.md#12-法宝的未来方向) |
 | E10 P3 候选 | 种族、灵根、命格进入战斗；境界压制、穿透、个体暴击抵抗／暴伤减免 | 当前均不能从旧V5偷偷继承。先确认设计收益和公式族，再以新规则／投影版本实施；旧命格战外作用不受此项否定 | [兼容边界](../src/shared/engine/combat-v6/CHARACTER_COMPATIBILITY.md)、[角色面板](combat-v6-character-panel-design.md) |

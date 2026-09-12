@@ -213,7 +213,7 @@ export class BattleSession {
   }
 
   /**
-   * 先触发 onFatal（神佑等可在此把气血拉回正），仍 <=0 才倒地/死亡。
+   * 先触发 onFatal（涅槃重生等可在此把气血拉回正），仍 <=0 才倒地/死亡。
    * 人物倒地可被复活；召唤兽/NPC 本场死亡，不能再召。
    */
   private applyHpZero(unit: Unit, source?: Unit, skillId?: string, kind?: import("./enums.ts").DamageKind, origin?: import("./enums.ts").DamageOrigin): void {

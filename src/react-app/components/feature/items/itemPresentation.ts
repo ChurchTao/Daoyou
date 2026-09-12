@@ -105,7 +105,7 @@ export function itemPresentation(item: DisplayItem) {
         tier:
           skill.style === 'unavailable' ? '已失效' : advanced ? '高级' : '普通',
         type: '兽诀',
-        description: `${skill.description}\n学习消耗一本，随机覆盖一个已有技能，结果不可撤销。同系普通与高级技能同时存在时仅高级生效。`,
+        description: `蕴有${advanced ? '更深的' : ''}天赋感悟，可助灵兽领悟「${skill.name}」。\n${skill.description}\n学习消耗一本，随机覆盖一个已有技能，结果不可撤销。同系普通与高级技能同时存在时仅高级生效。`,
       };
     }
     case 'manual_jade':

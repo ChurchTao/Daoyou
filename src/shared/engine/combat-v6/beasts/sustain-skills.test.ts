@@ -145,14 +145,14 @@ describe('第二批经典兽诀的真实内核交互', () => {
   it.each([
     ['beast.lifesteal', 25],
     ['beast.advanced-lifesteal', 30],
-  ] as const)('%s 按实际扣血吸血，忽略治疗属性', (id, healed) => {
+  ] as const)('%s 按实际扣血噬血，忽略治疗属性', (id, healed) => {
     const b = create([id]);
     b.unit('beast:pet').attrs.healPower = 10000;
     resolve(b);
     expect(b.unit('beast:pet').attrs.hp).toBe(500 + healed);
     expect(b.unit('enemy').attrs.hp).toBe(900);
   });
-  it('吸血扣除护盾、排除过量伤害，且不能超出可恢复上限', () => {
+  it('噬血扣除护盾、排除过量伤害，且不能超出可恢复上限', () => {
     const shield = create(['beast.lifesteal']);
     barrier(shield, 'enemy', 60);
     resolve(shield);
@@ -167,7 +167,7 @@ describe('第二批经典兽诀的真实内核交互', () => {
     resolve(capped);
     expect(capped.unit('beast:pet').attrs.hp).toBe(900);
   });
-  it('法术、护盾全吸收及连击追加伤害不产生额外吸血', () => {
+  it('法术、护盾全吸收及连击追加伤害不产生额外噬血', () => {
     const spell = create(['beast.lifesteal']);
     resolve(spell, 'beast:pet', true);
     expect(spell.unit('beast:pet').attrs.hp).toBe(500);
@@ -250,7 +250,7 @@ describe('第二批经典兽诀的真实内核交互', () => {
       b.log().filter((e) => e.type === EventType.UnitRevived),
     ).toHaveLength(2);
   });
-  it('神佑受禁复活与伤势限制，非致命伤害不触发', () => {
+  it('涅槃重生受禁复活与伤势限制，非致命伤害不触发', () => {
     const blocked = create(['beast.divine-revival'], [], true);
     blocked.unit('beast:pet').attrs.hp = 1;
     blocked.applyStatus('beast:pet', 'test.no-revive', 5);
@@ -268,7 +268,7 @@ describe('第二批经典兽诀的真实内核交互', () => {
       false,
     );
   });
-  it('反震可触发攻击者神佑；反震致死后吸血不能复活攻击者', () => {
+  it('反震可触发攻击者涅槃重生；反震致死后噬血不能复活攻击者', () => {
     const revived = create(
       ['beast.divine-revival'],
       ['beast.reflection'],
@@ -283,7 +283,7 @@ describe('第二批经典兽诀的真实内核交互', () => {
     expect(dead.unit('beast:pet').attrs.hp).toBe(0);
     expect(beastDeathIds(dead.log())).toEqual(['pet']);
   });
-  it('神佑成功不会改变本次吸血基数', () => {
+  it('涅槃重生成功不会改变本次噬血基数', () => {
     const b = create(['beast.lifesteal'], ['beast.divine-revival'], true);
     b.unit('enemy').attrs.hp = 20;
     resolve(b);
@@ -319,7 +319,7 @@ describe('第二批经典兽诀的真实内核交互', () => {
   it('新技能说明明确迁移后的交互限制', () => {
     const details = combatV6SkillDetails(BEAST_SKILLS, []);
     expect(details['beast.lifesteal'].description).toContain(
-      '追加攻击与反击不触发',
+      '追加攻击与反扑不触发',
     );
     expect(details['beast.reflection'].description).toContain('阻止敌方连击');
     expect(details['beast.divine-revival'].description).toContain(
@@ -328,7 +328,7 @@ describe('第二批经典兽诀的真实内核交互', () => {
   });
 });
 
-describe('第三阶段：慧根、偷袭、法术抵抗', () => {
+describe('第三阶段：慧根、偷袭、耐法', () => {
   it.each([
     ['beast.wisdom', 7],
     ['beast.advanced-wisdom', 5],
@@ -353,7 +353,7 @@ describe('第三阶段：慧根、偷袭、法术抵抗', () => {
     'beast.advanced-counter',
     'beast.reflection',
     'beast.advanced-reflection',
-  ])('偷袭阻止 %s 且不关闭神佑', (retaliation) => {
+  ])('偷袭阻止 %s 且不关闭涅槃重生', (retaliation) => {
     for (const [id, damage] of [
       ['beast.sneak-attack', 105],
       ['beast.advanced-sneak-attack', 110],
@@ -372,7 +372,7 @@ describe('第三阶段：慧根、偷袭、法术抵抗', () => {
       ).toHaveLength(0);
     }
   });
-  it('偷袭不阻止法术反震，也不屏蔽保护者之外的受击逻辑', () => {
+  it('偷袭不阻止灵息反震，也不屏蔽保护者之外的受击逻辑', () => {
     const b = create(['beast.sneak-attack'], ['beast.spell-reflection'], true);
     resolve(b, 'beast:pet', true);
     expect(b.unit('beast:pet').attrs.hp).toBe(475);
@@ -406,7 +406,7 @@ describe('第三阶段：慧根、偷袭、法术抵抗', () => {
   });
 });
 
-describe('第四阶段：物理防护与强力', () => {
+describe('第四阶段：物理防护与蛮力', () => {
   it.each([
     ['beast.parry', 90],
     ['beast.advanced-parry', 80],
@@ -421,7 +421,7 @@ describe('第四阶段：物理防护与强力', () => {
     resolve(b, 'enemy');
     expect(b.unit('beast:pet').attrs.hp).toBe(500 - 2 * amount - 200);
   });
-  it('护盾全吸收仍消耗招架；法术不消耗招架', () => {
+  it('护盾全吸收仍消耗避锋；法术不消耗避锋', () => {
     const b = create(['beast.parry']);
     barrier(b, 'beast:pet', 90);
     b.unit('enemy').skillOverrides[hit.id] = {
@@ -442,7 +442,7 @@ describe('第四阶段：物理防护与强力', () => {
     expect(mixed.unit('beast:pet').attrs.hp).toBe(310);
   });
   it.each(['beast.strength', 'beast.advanced-strength'])(
-    '%s 忽略招架，但只对防御技能目标承担代价',
+    '%s 忽略避锋，但只对坚韧技能目标承担代价',
     (id) => {
       const parry = create([id], ['beast.advanced-parry']);
       resolve(parry);

@@ -31,12 +31,12 @@ it('未知技能只作显示兜底，内容仍必须有图标', () => {
 it('冲突说明保留在描述，冲突技能仍按自身等级展示', () => {
   expect(beastSkillPresentation('beast.ghost')).toMatchObject({
     style: 'normal',
-    description: expect.stringContaining('神佑失效'),
+    description: expect.stringContaining('涅槃重生失效'),
   });
   expect(beastSkillPresentation('beast.advanced-divine-revival')).toMatchObject(
     {
       style: 'advanced',
-      description: expect.stringContaining('持有鬼魂术或否定信仰时不生效'),
+      description: expect.stringContaining('持有魂生或闭灵时不生效'),
     },
   );
 });

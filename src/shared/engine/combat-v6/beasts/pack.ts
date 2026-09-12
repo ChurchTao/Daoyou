@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { REALM_VALUES } from '../../../types/constants';
 import { getRealmStageLevel } from '../../../config/realmProgression';
+import { REALM_VALUES } from '../../../types/constants';
 
 const identity = {
   $schema: z.string().optional(),
@@ -70,6 +70,7 @@ export const BeastSkillsPackShape = z.strictObject({
         id: skillId,
         name,
         book: z.boolean(),
+        flavorText: z.string().trim().min(1).max(200),
         icon: z.string().trim().min(1).max(32),
         effect: z.discriminatedUnion('type', [
           z.strictObject({

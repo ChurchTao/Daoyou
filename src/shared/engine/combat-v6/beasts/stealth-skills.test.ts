@@ -86,7 +86,7 @@ it.each([
     expect(b.queryCommands('pet').skills[0].ready).toBe(true);
   },
 );
-it('无感知单法不可选隐身，感知可选，群法仍可选', () => {
+it('无灵觉单法不可选隐身，灵觉可选，群法仍可选', () => {
   const hidden = createBattle(input());
   const options = hidden.queryCommands('enemy');
   expect(options.attackTargetIds).not.toContain('pet');

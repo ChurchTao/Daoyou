@@ -120,7 +120,7 @@ describe('经典兽诀首批', () => {
     },
   );
 
-  it('敏捷、迟钝只调整速度，高级敏捷不与普通叠加', () => {
+  it('迅捷、迟钝只调整速度，高级迅捷不与普通叠加', () => {
     const base = beastPanel(beast([]));
     for (const [skills, factor] of [
       [['beast.agility'], 1.1],
@@ -161,7 +161,7 @@ describe('经典兽诀首批', () => {
     });
   });
 
-  it('再生不能救回死亡灵兽，后备灵兽不获得回合恢复', () => {
+  it('自愈不能救回死亡灵兽，后备灵兽不获得回合恢复', () => {
     const dead = battle(['beast.advanced-regeneration'], 1, {
       kind: 'pet',
       ownerId: 'enemy',
@@ -213,7 +213,7 @@ describe('经典兽诀首批', () => {
   });
 
   it.each(['beast.counter', 'beast.advanced-counter'])(
-    '%s 可以反击且不会互相无限反击，也不反击法术',
+    '%s 可以反扑且不会互相无限反扑，也不反扑法术',
     (skill) => {
       let counters = 0;
       for (let seed = 1; seed <= 32; seed++) {
@@ -294,7 +294,7 @@ it('第四阶段的加攻加防使用共用面板，普通高级不重复加成'
   }
 });
 
-it('高级感知的躲避加成进入共用面板，高低级同时持有不叠加', () => {
+it('高级灵觉的躲避加成进入共用面板，高低级同时持有不叠加', () => {
   const base = beastPanel(beast([]));
   expect(beastPanel(beast(['beast.perception']))).toEqual(base);
   expect(beastPanel(beast(['beast.perception', 'beast.advanced-perception']))).toEqual({ ...base, dodge: base.dodge + 10 });

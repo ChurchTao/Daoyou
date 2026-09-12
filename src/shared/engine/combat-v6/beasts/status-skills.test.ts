@@ -133,7 +133,7 @@ it('毒由普攻触发，三回合气血与法力损耗，刷新不叠层', () =
   expect(refresh.unit('b').statuses).toHaveLength(1);
   expect(refresh.unit('b').statuses[0].remainingRounds).toBe(2);
 });
-it('高级毒免疫普通与高级毒', () => {
+it('高级毒性免疫普通与高级毒性', () => {
   const b = createBattle(input(['beast.poison'], ['beast.advanced-poison']));
   turn(b, true);
   expect(b.unit('b').statuses).toHaveLength(0);

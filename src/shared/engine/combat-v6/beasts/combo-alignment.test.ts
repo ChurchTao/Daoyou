@@ -117,7 +117,7 @@ it.each(['beast.reflection', 'beast.advanced-reflection'])(
       }
   },
 );
-it('法术反震不阻止物理连击', () => {
+it('灵息反震不阻止物理连击', () => {
   expect(
     run('beast.combo', ['beast.spell-reflection']).unit('b').attrs.hp,
   ).toBe(850);

@@ -28,34 +28,36 @@
 
 ## 2. 技能与兽诀：skills.json
 
-每条技能配置 ID、名称、是否注册兽诀物品 `book` 和一个 `effect`：
+每条技能配置 ID、名称、图标、天赋文案 `flavorText`、是否注册兽诀物品 `book` 和一个 `effect`。天赋文案与从效果参数生成的数值、代价及冲突说明共同展示；技能与兽诀名称共用配置。当前文案定稿见[灵兽技能天赋文案](../../../../../../docs/combat-v6-beast-skill-copy.md)。
+
+效果参数：
 
 | effect.type | 参数 | 机制 |
 | --- | --- | --- |
 | `spellHit` | `costMp`、`coefficient`、`powerBase`、`powerPerLevel` | 单体法术攻击，附加威力为基础值加技能等级乘每级值 |
 | `physicalHit` | `costMp`、`coefficient` | 单体物理攻击 |
 | `barrier` | `costMp`、`barrierId`、`kind`、`name`、`powerBase`、`powerPerLevel`、`duration` | 自身护盾，护盾值为基础值加技能等级乘每级值 |
-| `counter` | `chance`、`coefficient` | 受到物理伤害后概率反击，复用钩子抑制规则 |
+| `counter` | `chance`、`coefficient` | 受到物理伤害后概率反扑，复用钩子抑制规则 |
 | `critical` | `kind`、`chance` | 提高物理或法术暴击概率 |
 | `regeneration` | `resource`、`levelDivisor` | 回合末恢复等级除以指定整数的气血或法力，向下取整 |
 | `spellBoost` | `factor` | 法术伤害倍率 |
-| `poison` | `chance`、`duration`、`hpRatio`、`mpRatio`、`immune` | 普攻中毒与高级毒免疫 |
+| `poison` | `chance`、`duration`、`hpRatio`、`mpRatio`、`immune` | 普攻中毒与高级毒性免疫 |
 | `miracle` | `immune` | 回合末净化或异常免疫 |
 | `concentration` | `physicalFactor`、`dodgeBonus` | 控制免疫、物伤代价与躲避 |
 | `ghost` | `delay` | 延迟复起、拒绝气血恢复和常规异常免疫 |
-| `exorcism` | `factor` | 对鬼魂物法增伤并阻止其复起 |
-| `denial` | `ghostDamageFactor`、`spellFactor` | 拒绝增益、异常免疫、鬼魂伤害及法抗倍率 |
+| `exorcism` | `factor` | 对魂生物法增伤并阻止其复起 |
+| `denial` | `ghostDamageFactor`、`spellFactor` | 拒绝增益、异常免疫、魂生伤害及法抗倍率 |
 | `eternity` | `factor`、`maxExtra` | 合格增益延长倍率与额外回合上限 |
 | `stealth` | `minDuration`、`maxDuration`、`physicalFactor` | 首次出战隐身状态、禁法与物伤代价 |
 | `perception` | `dodgeBonus` | 看破隐身，可增加面板躲避 |
 | `spellRepeat` | `chance`、`factor` | 直接伤害法术整次追加，原目标、无额外费用、不递归 |
-| `spellFluctuation` | `min`、`max`、`suppressReflection` | 替换法术波动区间，可免法术反震 |
+| `spellFluctuation` | `min`、`max`、`suppressReflection` | 替换法术波动区间，可免灵息反震 |
 | `groupSpell` | `costMp`、`coefficient`、`powerBase`、`powerPerLevel`、`levelsPerTarget`、`maxTargets` | 按技能等级增加目标数的群法 |
 | `parry` | `factor` | 每回合首次物理命中减伤 |
 | `defenseTraining` | `perLevel`、`spellFactor` | 加物防并降低自身法伤 |
-| `strengthTraining` | `perLevel`、`versusDefenseFactor` | 加物攻、忽略招架，对防御技能目标承担伤害代价 |
+| `strengthTraining` | `perLevel`、`versusDefenseFactor` | 加物攻、忽略避锋，对坚韧技能目标承担伤害代价 |
 | `wisdom` | `factor` | 仅法术法力消耗倍率 |
-| `sneakAttack` | `factor` | 物理增伤且不触发物理反击／反震 |
+| `sneakAttack` | `factor` | 物理增伤且不触发物理反扑／反震 |
 | `spellResistance` | `takenFactor`、`physicalFactor` | 所受法伤倍率与自身物伤代价 |
 | `lifesteal` | `ratio` | 直接物理命中后按实际扣血精确恢复 |
 | `reflection` | `kind`、`chance`、`ratio` | 对应类型受击后按实际扣血概率反震固定伤害 |

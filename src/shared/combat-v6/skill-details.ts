@@ -19,11 +19,11 @@ function beastPassiveDescription(skill: SkillDef): string | undefined {
   const percent = (value: number) => Math.round(value * 100);
   switch (effect.type) {
     case 'ghost':
-      return `死亡后第 ${effect.delay} 个回合开始复起，恢复至可恢复气血上限；不接受普通气血恢复，免疫常规异常，神佑失效。驱鬼击杀不再复起，等待期间不计存活。`;
+      return `死亡后第 ${effect.delay} 个回合开始复起，恢复至可恢复气血上限；不接受普通气血恢复，免疫常规异常，涅槃重生失效。慑魂击杀不再复起，等待期间不计存活。`;
     case 'exorcism':
-      return `对鬼魂目标的物理和法术伤害提高 ${percent(effect.factor - 1)}%，击杀后阻止其本次鬼魂复起。`;
+      return `对魂生目标的物理和法术伤害提高 ${percent(effect.factor - 1)}%，击杀后阻止其本次魂生复起。`;
     case 'denial':
-      return `免疫常规异常并拒绝增益，压制鬼魂、神佑、神迹、精神集中；受到鬼魂的物理与法术伤害增加 ${percent(effect.ghostDamageFactor - 1)}%。${effect.spellFactor < 1 ? `所受法术伤害降低 ${percent(1 - effect.spellFactor)}%。` : ''}`;
+      return `免疫常规异常并拒绝增益，压制魂生、涅槃重生、清灵、定神；受到魂生的物理与法术伤害增加 ${percent(effect.ghostDamageFactor - 1)}%。${effect.spellFactor < 1 ? `所受法术伤害降低 ${percent(1 - effect.spellFactor)}%。` : ''}`;
     case 'poison':
       return `普通攻击直接扣血后有 ${percent(effect.chance)}% 概率使目标中毒 ${effect.duration} 回合，每回合损失 ${percent(effect.hpRatio)}% 最大气血和 ${percent(effect.mpRatio)}% 最大法力。${effect.immune ? '自身免疫此毒。' : ''}`;
     case 'miracle':
@@ -33,35 +33,35 @@ function beastPassiveDescription(skill: SkillDef): string | undefined {
     case 'eternity':
       return `获得可延长增益时持续时间增加 ${percent(effect.factor - 1)}%，向下取整，最多额外 ${effect.maxExtra} 回合；不延长隐身、控制与特殊入场效果。`;
     case 'stealth':
-      return `每场首次出战时隐身 ${effect.minDuration}～${effect.maxDuration} 回合（含入场回合），不能施法，物理伤害降低 ${percent(1 - effect.physicalFactor)}%。感知可看破，群法仍可命中；召回后不重新触发。`;
+      return `每场首次出战时隐身 ${effect.minDuration}～${effect.maxDuration} 回合（含入场回合），不能施法，物理伤害降低 ${percent(1 - effect.physicalFactor)}%。灵觉可看破，群法仍可命中；召回后不重新触发。`;
     case 'perception':
       return `可以选中隐身目标。${effect.dodgeBonus ? `躲避增加 ${effect.dodgeBonus} 点。` : ''}`;
     case 'spellRepeat':
-      return `直接伤害法术施放后有 ${percent(effect.chance)}% 概率追加同一法术，伤害乘 ${effect.factor}，不额外耗蓝；沿用原目标，不递归触发。`;
+      return `直接伤害法术施放后有 ${percent(effect.chance)}% 概率追加同一法术，伤害乘 ${effect.factor}，不额外消耗法力；沿用原目标，不递归触发。`;
     case 'spellFluctuation':
-      return `法术伤害在 ${percent(effect.min)}%～${percent(effect.max)}% 间均匀波动，替换基础法术波动区间。${effect.suppressReflection ? '法术攻击不触发法术反震。' : ''}`;
+      return `法术伤害在 ${percent(effect.min)}%～${percent(effect.max)}% 间均匀波动，替换基础法术波动区间。${effect.suppressReflection ? '法术攻击不触发灵息反震。' : ''}`;
     case 'groupSpell':
       return `群体法术，攻击 1 + 等级除以 ${effect.levelsPerTarget} 向下取整个目标，最多 ${effect.maxTargets} 个；消耗 ${effect.costMp} 法力，伤害系数 ${effect.coefficient}，附加威力 ${effect.powerBase} + 等级 × ${effect.powerPerLevel}。当前没有元素克制。`;
     case 'parry':
-      return `每回合首次命中的物理伤害降低 ${percent(1 - effect.factor)}%。护盾吸收前消耗次数，强力可忽略此效果且不消耗次数。`;
+      return `每回合首次命中的物理伤害降低 ${percent(1 - effect.factor)}%。护盾吸收前消耗次数，蛮力可忽略此效果且不消耗次数。`;
     case 'defenseTraining':
       return `物理防御提高自身等级 × ${effect.perLevel}，向下取整；自身法术伤害降低 ${percent(1 - effect.spellFactor)}%。`;
     case 'strengthTraining':
-      return `物理攻击提高自身等级 × ${effect.perLevel}，向下取整；忽略招架减伤，攻击拥有防御或高级防御技能的目标时物理伤害降低 ${percent(1 - effect.versusDefenseFactor)}%。`;
+      return `物理攻击提高自身等级 × ${effect.perLevel}，向下取整；忽略避锋减伤，攻击拥有坚韧或高级坚韧技能的目标时物理伤害降低 ${percent(1 - effect.versusDefenseFactor)}%。`;
     case 'wisdom':
       return `法术技能的法力消耗降低 ${percent(1 - effect.factor)}%，与其他减耗倍率相乘后向下取整；不影响物理技能和捕捉。`;
     case 'sneakAttack':
-      return `物理伤害提高 ${percent(effect.factor - 1)}%，物理攻击不触发目标的反击与反震。`;
+      return `物理伤害提高 ${percent(effect.factor - 1)}%，物理攻击不触发目标的反扑与反震。`;
     case 'spellResistance':
       return `受到的法术伤害降低 ${percent(1 - effect.takenFactor)}%，自身造成的物理伤害降低 ${percent(1 - effect.physicalFactor)}%；不减免固定伤害。`;
     case 'lifesteal':
-      return `物理攻击直接命中后，恢复目标实际损失气血的 ${percent(effect.ratio)}%，向下取整，不超过可恢复上限。连击追加攻击与反击不触发吸血，无法从鬼魂目标吸血。`;
+      return `物理攻击直接命中后，恢复目标实际损失气血的 ${percent(effect.ratio)}%，向下取整，不超过可恢复上限。连击追加攻击与反扑不触发噬血，无法从魂生目标噬血。`;
     case 'reflection':
       return `受到${effect.kind === 'physical' ? '物理' : '法术'}攻击并损失气血时，有 ${percent(effect.chance)}% 概率向攻击者反震实际损失气血的 ${percent(effect.ratio)}%，按固定伤害结算，最低 1 点。追加攻击不触发反震。${effect.kind === 'physical' ? '阻止敌方连击，偷袭不解除此限制。' : '不阻止物理连击。'}`;
     case 'divineRevival':
-      return `受到致命伤害时，有 ${percent(effect.chance)}% 概率复生，恢复至最大气血的 ${percent(effect.hpRatio)}%，受可恢复上限和禁复活状态限制。每次致命伤害独立判定，成功不计死亡；持有鬼魂术或否定信仰时不生效。`;
+      return `受到致命伤害时，有 ${percent(effect.chance)}% 概率复生，恢复至最大气血的 ${percent(effect.hpRatio)}%，受可恢复上限和禁复活状态限制。每次致命伤害独立判定，成功不计死亡；持有魂生或闭灵时不生效。`;
     case 'counter':
-      return `受到物理攻击并损失气血时，有 ${percent(effect.chance)}% 概率反击，攻击系数为普攻的 ${percent(effect.coefficient)}%。反击与连击追加攻击不再触发反击。`;
+      return `受到物理攻击并损失气血时，有 ${percent(effect.chance)}% 概率反扑，攻击系数为普攻的 ${percent(effect.coefficient)}%。反扑与连击追加攻击不再触发反扑。`;
     case 'critical':
       return `${effect.kind === 'physical' ? '物理' : '法术'}暴击率提高 ${percent(effect.chance)} 个百分点，暴击倍率沿用战斗规则。`;
     case 'regeneration':
@@ -140,17 +140,23 @@ export function combatV6SkillDetails(
         category: artIds.has(skill.id) ? ('art' as const) : ('spell' as const),
         description: skill.capture
           ? '尝试收服野生灵兽，气血越低越容易成功；执行时消耗法力，失败仍消耗。'
-          : (beastComboDescription(skill) ??
-            beastPassiveDescription(skill) ??
-            ([
-              ...new Set([
-                ...skill.effects.map(describe),
-                ...(skill.successEffects ?? []).map(
-                  (effect) => `施放成功后：${describe(effect)}`,
-                ),
-              ]),
-            ].join('；') ||
-              '被动能力，依技能条件触发。')),
+          : [
+              BEAST_SKILL_CONTENT.find((entry) => entry.id === skill.id)
+                ?.flavorText,
+              beastComboDescription(skill) ??
+                beastPassiveDescription(skill) ??
+                ([
+                  ...new Set([
+                    ...skill.effects.map(describe),
+                    ...(skill.successEffects ?? []).map(
+                      (effect) => `施放成功后：${describe(effect)}`,
+                    ),
+                  ]),
+                ].join('；') ||
+                  '被动能力，依技能条件触发。'),
+            ]
+              .filter(Boolean)
+              .join('\n'),
       },
     ]),
   );
