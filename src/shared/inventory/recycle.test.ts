@@ -1,9 +1,46 @@
 import { describe, expect, it } from 'vitest';
 import { RecycleRequestSchema } from '../contracts/recycle';
+import { consumableFactsOf } from '../items/definitions/consumables';
 import { FIXED_MATERIALS } from '../items/definitions/fixed-materials';
+import type { Consumable } from '../types/cultivator';
 import { recycleBlockingReason } from './recycle';
 
 describe('回收边界', () => {
+  it('允许灵果回收，但仓库灵果仍需先取入随身背包', () => {
+    const fruit: Consumable = {
+      name: '青露灵果',
+      type: '灵果',
+      quality: '玄品',
+      quantity: 1,
+      spec: {
+        kind: 'spirit_fruit',
+        family: 'healing',
+        operations: [
+          {
+            type: 'restore_resource',
+            resource: 'hp',
+            mode: 'percent',
+            value: 0.08,
+          },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'none',
+        },
+        source: { kind: 'spirit_field', version: 1 },
+      },
+    };
+    const item = {
+      definitionId: 'consumable.v1',
+      instanceData: consumableFactsOf(fruit),
+      location: 'bag' as const,
+    };
+    expect(recycleBlockingReason(item)).toBeNull();
+    expect(
+      recycleBlockingReason({ ...item, location: 'storage' }),
+    ).not.toBeNull();
+  });
+
   it('同一选择不能通过重复行超过单格数量', () => {
     const item = { id: 'stack', revision: 2, quantity: 60 };
     expect(

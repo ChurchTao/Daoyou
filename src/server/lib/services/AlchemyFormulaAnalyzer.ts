@@ -139,15 +139,14 @@ export class AlchemyFormulaAnalyzer {
       payloadJson,
     });
 
-    const response = await this.withTimeout(
-      generateAiObject({
-        system,
-        prompt: user,
-        schema: formulaAnalysisSchema,
-        name: 'AlchemyFormulaAnalysis',
-        sceneId: 'alchemy-formula-analysis',
-      }),
-    );
+    const response = await generateAiObject({
+      timeoutMs: this.options.timeoutMs ?? 20_000,
+      system,
+      prompt: user,
+      schema: formulaAnalysisSchema,
+      name: 'AlchemyFormulaAnalysis',
+      sceneId: 'alchemy-formula-analysis',
+    });
 
     const normalized = normalizePlan(response.output);
     const materialMap = new Map(
@@ -221,26 +220,6 @@ export class AlchemyFormulaAnalyzer {
       conclusion: normalized.conclusion.trim(),
       materialJudgments,
     };
-  }
-
-  private async withTimeout<T>(promise: Promise<T>): Promise<T> {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    try {
-      return await Promise.race([
-        promise,
-        new Promise<T>((_, reject) => {
-          timer = setTimeout(
-            () => reject(new Error('LLM alchemy formula analysis timeout')),
-            this.options.timeoutMs ?? 20_000,
-          );
-        }),
-      ]);
-    } finally {
-      if (timer) {
-        clearTimeout(timer);
-      }
-    }
   }
 }
 

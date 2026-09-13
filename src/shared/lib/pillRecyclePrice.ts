@@ -1,3 +1,4 @@
+import { ALCHEMY_ALLOWED_MATERIAL_TYPES } from '@shared/config/alchemyConfig';
 import {
   MATERIAL_ESSENCE_BY_QUALITY,
   MATERIAL_ESSENCE_TYPE_MULTIPLIER,
@@ -5,16 +6,16 @@ import {
   PILL_APPEARANCE_EFFECT_MULTIPLIER,
   PILL_UNIT_ESSENCE_BY_QUALITY,
 } from '@shared/config/alchemyEssenceConfig';
-import { ALCHEMY_ALLOWED_MATERIAL_TYPES } from '@shared/config/alchemyConfig';
 import {
   BASE_PRICES,
   TYPE_MULTIPLIERS,
 } from '@shared/engine/material/creation/config';
 import { PILL_QUALITY_BASE_SCORE } from '@shared/lib/pillScore';
-import type { PillAppearanceGrade } from '@shared/types/consumable';
 import type { Quality } from '@shared/types/constants';
+import type { PillAppearanceGrade } from '@shared/types/consumable';
 
 const PILL_RECYCLE_RETURN_FACTOR = 0.6;
+const SPIRIT_FRUIT_PILL_VALUE_FACTOR = 0.8;
 const SCORE_MODIFIER_MIN = 0.75;
 const SCORE_MODIFIER_MAX = 1.25;
 
@@ -33,7 +34,8 @@ export function calculateMinimumMaterialAnchorCostPerEssence(
   return Math.min(
     ...ALCHEMY_ALLOWED_MATERIAL_TYPES.map((type) => {
       const materialAnchorPrice = BASE_PRICES[quality] * TYPE_MULTIPLIERS[type];
-      const rawEssence = qualityEssence * MATERIAL_ESSENCE_TYPE_MULTIPLIER[type];
+      const rawEssence =
+        qualityEssence * MATERIAL_ESSENCE_TYPE_MULTIPLIER[type];
       return materialAnchorPrice / rawEssence;
     }),
   );
@@ -45,8 +47,8 @@ export function calculateMinimumMaterialAnchorCostPerEssence(
  */
 export function calculatePillRecycleEconomicAnchor(quality: Quality): number {
   return (
-    PILL_UNIT_ESSENCE_BY_QUALITY[quality] *
-    calculateMinimumMaterialAnchorCostPerEssence(quality) /
+    (PILL_UNIT_ESSENCE_BY_QUALITY[quality] *
+      calculateMinimumMaterialAnchorCostPerEssence(quality)) /
     MAX_ALCHEMY_EFFECTIVE_ESSENCE_MULTIPLIER
   );
 }
@@ -66,10 +68,25 @@ export function calculatePillRecycleUnitPrice(
     SCORE_MODIFIER_MAX,
   );
   const quotedPrice = Math.floor(
-    economicAnchor * PILL_RECYCLE_RETURN_FACTOR * scoreModifier *
+    economicAnchor *
+      PILL_RECYCLE_RETURN_FACTOR *
+      scoreModifier *
       (appearance ? PILL_APPEARANCE_EFFECT_MULTIPLIER[appearance] : 1),
   );
   const priceCap = Math.floor(economicAnchor * PILL_RECYCLE_RETURN_FACTOR);
 
   return Math.max(1, Math.min(quotedPrice, priceCap));
+}
+
+/** 灵果效果按同品质丹药的 80% 生成，因此回收价沿用同一经济锚点并同步折减。 */
+export function calculateSpiritFruitRecycleUnitPrice(quality: Quality): number {
+  return Math.max(
+    1,
+    Math.floor(
+      calculatePillRecycleUnitPrice(
+        quality,
+        PILL_QUALITY_BASE_SCORE[quality] ?? PILL_QUALITY_BASE_SCORE.凡品,
+      ) * SPIRIT_FRUIT_PILL_VALUE_FACTOR,
+    ),
+  );
 }

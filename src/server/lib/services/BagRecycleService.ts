@@ -9,6 +9,7 @@ import type {
 import { recycleBlockingReason } from '@shared/inventory/recycle';
 import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { materialFactsOf } from '@shared/items/material';
+import { calculateSpiritFruitRecycleUnitPrice } from '@shared/lib/pillRecyclePrice';
 import { QUALITY_ORDER } from '@shared/types/constants';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -64,7 +65,10 @@ export async function previewBagRecycle(
       return {
         ...ref,
         name: facts.name,
-        unitPrice: calculatePillRecycleUnitPrice(facts),
+        unitPrice:
+          facts.spec.kind === 'spirit_fruit'
+            ? calculateSpiritFruitRecycleUnitPrice(facts.quality)
+            : calculatePillRecycleUnitPrice(facts),
       };
     }
     const material = materialFactsOf(item.definitionId, item.instanceData);

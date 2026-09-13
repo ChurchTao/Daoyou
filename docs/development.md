@@ -90,7 +90,8 @@ bun run dev
 | `API_IP_RATE_LIMIT_WINDOW_SECONDS` | `/api/*` 全局 IP 令牌桶补充周期秒数；默认 `60` |
 | `API_IP_RATE_LIMIT_MAX_REQUESTS` | `/api/*` 同 IP 令牌桶容量和每周期补充 token 数；默认 `300` |
 | `PUBLIC_WEB_ORIGINS` | 允许访问 API 的前端 origin，逗号分隔，如 `https://app.example.com,http://localhost:5173` |
-| `BETTER_AUTH_COOKIE_DOMAIN` | 可选；同站子域部署时可填 `.example.com` 启用跨子域 cookie |
+| `BETTER_AUTH_COOKIE_DOMAIN` | 可选；同站子域部署时可填 `.example.com`；跨站模式必须取消设置 |
+| `BETTER_AUTH_CROSS_SITE_COOKIES` | 默认关闭；设为 `true` 启用 `SameSite=None; Secure; HttpOnly`，要求 `BETTER_AUTH_URL` 为 HTTPS |
 | `ADMIN_EMAILS` | 管理员邮箱白名单，逗号分隔 |
 | `ADMIN_USER_IDS` | Better Auth 管理员用户 ID 白名单，逗号分隔；账号管理工具必须配置 |
 

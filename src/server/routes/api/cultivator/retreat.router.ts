@@ -56,7 +56,7 @@ function createRetreatStreamResponse(
     onStoryComplete?: (story: string) => Promise<void> | void;
   },
 ): Response {
-  return streamSseEvents(c, async (stream) => {
+  return streamSseEvents(c, async (stream, _isAborted, signal) => {
     await stream.writeSSE({
       data: JSON.stringify({ type: 'result', data: args.result }),
     });
@@ -78,7 +78,7 @@ function createRetreatStreamResponse(
       const aiStreamResult = streamAiText({
         system: prompt[0],
         prompt: prompt[1],
-        abortSignal: c.req.raw.signal,
+        abortSignal: signal,
         sceneId:
           args.storySource.type === 'breakthrough'
             ? 'breakthrough-story'

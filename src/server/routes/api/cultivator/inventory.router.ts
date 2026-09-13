@@ -98,7 +98,10 @@ inventoryRouter.get('/', requireActiveCultivatorRef(), async (c) => {
     Math.max(1, parseInt(c.req.query('pageSize') || '20', 10)),
   );
   const consumableKind = c.req.query('consumableKind');
-  if (consumableKind && consumableKind !== 'pill') {
+  if (
+    consumableKind &&
+    !['pill', 'spirit_fruit', 'tradable'].includes(consumableKind)
+  ) {
     return c.json({ success: false, error: '无效的消耗品分类' }, 400);
   }
   let materialTypes: MaterialType[] | undefined;
@@ -183,7 +186,8 @@ inventoryRouter.get('/', requireActiveCultivatorRef(), async (c) => {
     materialElements,
     materialSortBy: materialSortBy as (typeof validSortBy)[number] | undefined,
     materialSortOrder: materialSortOrder as 'asc' | 'desc' | undefined,
-    consumableKind: consumableKind as 'pill' | undefined,
+    consumableKind: consumableKind as
+      'pill' | 'spirit_fruit' | 'tradable' | undefined,
   };
   const scope = { kind: 'cultivator' as const, id: ref.cultivatorId };
   if (type === 'artifacts') {

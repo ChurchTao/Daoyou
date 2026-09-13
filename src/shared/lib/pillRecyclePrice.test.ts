@@ -1,24 +1,28 @@
 import {
+  ALCHEMY_ALLOWED_MATERIAL_TYPES,
+  type AlchemyMaterialType,
+} from '@shared/config/alchemyConfig';
+import {
   MATERIAL_ESSENCE_BY_QUALITY,
   MATERIAL_ESSENCE_TYPE_MULTIPLIER,
   MAX_ALCHEMY_EFFECTIVE_ESSENCE_MULTIPLIER,
   PILL_UNIT_ESSENCE_BY_QUALITY,
 } from '@shared/config/alchemyEssenceConfig';
 import {
-  ALCHEMY_ALLOWED_MATERIAL_TYPES,
-  type AlchemyMaterialType,
-} from '@shared/config/alchemyConfig';
-import {
   BASE_PRICES,
   TYPE_MULTIPLIERS,
 } from '@shared/engine/material/creation/config';
 import { QUALITY_VALUES, type Quality } from '@shared/types/constants';
 import { describe, expect, it } from 'vitest';
-import { rollAlchemyYieldProfile, type AlchemyYieldFactors } from './alchemyYield';
+import {
+  rollAlchemyYieldProfile,
+  type AlchemyYieldFactors,
+} from './alchemyYield';
 import {
   calculateMinimumMaterialAnchorCostPerEssence,
   calculatePillRecycleEconomicAnchor,
   calculatePillRecycleUnitPrice,
+  calculateSpiritFruitRecycleUnitPrice,
 } from './pillRecyclePrice';
 import { PILL_QUALITY_BASE_SCORE } from './pillScore';
 
@@ -86,7 +90,12 @@ describe('calculatePillRecycleUnitPrice', () => {
     (quality) => {
       const economicAnchor = calculatePillRecycleEconomicAnchor(quality);
       for (const score of [0, PILL_QUALITY_BASE_SCORE[quality], 999999]) {
-        for (const appearance of ['low', 'middle', 'high', 'perfect'] as const) {
+        for (const appearance of [
+          'low',
+          'middle',
+          'high',
+          'perfect',
+        ] as const) {
           const price = calculatePillRecycleUnitPrice(
             quality,
             score,
@@ -95,13 +104,31 @@ describe('calculatePillRecycleUnitPrice', () => {
           expect(price).toBeGreaterThanOrEqual(
             Math.floor(economicAnchor * 0.4),
           );
-          expect(price).toBeLessThanOrEqual(
-            Math.floor(economicAnchor * 0.6),
-          );
+          expect(price).toBeLessThanOrEqual(Math.floor(economicAnchor * 0.6));
         }
       }
     },
   );
+});
+
+describe('calculateSpiritFruitRecycleUnitPrice', () => {
+  it.each(QUALITY_VALUES)(
+    '按同品质标准丹药回收价的 80%% 估算%s灵果',
+    (quality) => {
+      const pillPrice = calculatePillRecycleUnitPrice(
+        quality,
+        PILL_QUALITY_BASE_SCORE[quality],
+      );
+      expect(calculateSpiritFruitRecycleUnitPrice(quality)).toBe(
+        Math.max(1, Math.floor(pillPrice * 0.8)),
+      );
+    },
+  );
+
+  it('随品质单调递增', () => {
+    const prices = QUALITY_VALUES.map(calculateSpiritFruitRecycleUnitPrice);
+    expect(prices).toEqual([...prices].sort((a, b) => a - b));
+  });
 });
 
 describe('pill recycle anti-arbitrage invariant', () => {
@@ -193,7 +220,8 @@ describe('pill recycle anti-arbitrage invariant', () => {
         });
         const inputCost = materials.reduce(
           (sum, material) =>
-            sum + materialAnchorCost(material.rank, material.type, material.dose),
+            sum +
+            materialAnchorCost(material.rank, material.type, material.dose),
           0,
         );
         expect(recycleTotal(profile)).toBeLessThanOrEqual(

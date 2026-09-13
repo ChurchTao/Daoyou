@@ -5,6 +5,7 @@ import { streamSSE, type SSEStreamingApi } from 'hono/streaming';
 export type SseEventHandler = (
   stream: SSEStreamingApi,
   isAborted: () => boolean,
+  signal: AbortSignal,
 ) => Promise<void>;
 
 /**
@@ -18,19 +19,27 @@ export function streamSseEvents(
   c: Context<AppEnv>,
   handler: SseEventHandler,
 ): Response {
+  const controller = new AbortController();
   let aborted = false;
   const markAborted = () => {
     aborted = true;
+    controller.abort();
   };
 
   if (c.req.raw.signal.aborted) {
     aborted = true;
+    controller.abort();
   } else {
     c.req.raw.signal.addEventListener('abort', markAborted, { once: true });
   }
 
   return streamSSE(c, async (stream) => {
     stream.onAbort(markAborted);
-    await handler(stream, () => aborted);
+    try {
+      await handler(stream, () => aborted, controller.signal);
+    } finally {
+      c.req.raw.signal.removeEventListener('abort', markAborted);
+      controller.abort();
+    }
   });
 }
