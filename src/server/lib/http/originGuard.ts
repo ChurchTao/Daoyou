@@ -1,6 +1,6 @@
 import type { AppEnv } from '@server/lib/hono/types';
-import { isAllowedPublicWebOrigin, normalizeOrigin } from './origins';
 import type { MiddlewareHandler } from 'hono';
+import { isAllowedPublicWebOrigin, normalizeOrigin } from './origins';
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -29,12 +29,13 @@ export function unsafeRequestOriginGuard(): MiddlewareHandler<AppEnv> {
       return;
     }
 
-    const secFetchSite = context.req.header('sec-fetch-site');
-    if (secFetchSite === 'cross-site') {
-      return context.json({ success: false, error: 'Forbidden origin' }, 403);
-    }
-
-    if (!isAllowedWriteOrigin(context.req.header('origin'))) {
+    const origin = context.req.header('origin');
+    // Cookie-authenticated writes and browser requests must identify their source.
+    // Non-browser, cookie-free callers (e.g. webhooks) retain their own auth boundary.
+    const requiresOrigin =
+      context.req.header('cookie') !== undefined ||
+      context.req.header('sec-fetch-site') !== undefined;
+    if ((!origin && requiresOrigin) || !isAllowedWriteOrigin(origin)) {
       return context.json({ success: false, error: 'Forbidden origin' }, 403);
     }
 
