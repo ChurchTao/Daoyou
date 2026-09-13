@@ -734,8 +734,6 @@
                     },
                     "amount": {
                       "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991,
                       "$ref": "#/$defs/__schema7"
                     },
                     "when": {

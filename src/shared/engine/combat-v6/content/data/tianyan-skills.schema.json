@@ -351,14 +351,10 @@
             },
             "amount": {
               "type": "integer",
-              "minimum": -9007199254740991,
-              "maximum": 9007199254740991,
               "$ref": "#/$defs/__schema4"
             },
             "maxGainPerAction": {
               "type": "integer",
-              "minimum": -9007199254740991,
-              "maximum": 9007199254740991,
               "$ref": "#/$defs/__schema4"
             }
           },

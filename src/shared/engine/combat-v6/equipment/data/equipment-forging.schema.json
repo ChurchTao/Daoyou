@@ -35,7 +35,10 @@
               "minimum": 0,
               "maximum": 1
             }
-          ]
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
         },
         "artChance": {
           "type": "number",

@@ -473,7 +473,7 @@
                   "amount": {
                     "type": "integer",
                     "exclusiveMinimum": 0,
-                    "maximum": 9007199254740991,
+                    "maximum": 1000000,
                     "multipleOf": 0.000001
                   }
                 },
@@ -709,7 +709,7 @@
         "maximum": {
           "type": "integer",
           "exclusiveMinimum": 0,
-          "maximum": 9007199254740991,
+          "maximum": 1000000,
           "multipleOf": 0.000001
         }
       },
@@ -731,7 +731,7 @@
         "maxPerHit": {
           "type": "integer",
           "exclusiveMinimum": 0,
-          "maximum": 9007199254740991,
+          "maximum": 1000000,
           "multipleOf": 0.000001
         },
         "damagePercentScale": {
@@ -743,7 +743,7 @@
         "maxPerAction": {
           "type": "integer",
           "exclusiveMinimum": 0,
-          "maximum": 9007199254740991,
+          "maximum": 1000000,
           "multipleOf": 0.000001
         }
       },

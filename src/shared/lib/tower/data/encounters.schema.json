@@ -31,7 +31,7 @@
     "difficultyStep": {
       "type": "integer",
       "exclusiveMinimum": 0,
-      "maximum": 9007199254740991,
+      "maximum": 1000000,
       "$ref": "#/$defs/__schema0"
     },
     "floors": {

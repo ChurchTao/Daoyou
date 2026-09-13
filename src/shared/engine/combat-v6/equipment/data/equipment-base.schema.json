@@ -110,7 +110,10 @@
                             "minimum": 0,
                             "maximum": 1000000
                           }
-                        ]
+                        ],
+                        "items": false,
+                        "minItems": 2,
+                        "maxItems": 2
                       },
                       "enhanced": {
                         "type": "array",
@@ -125,7 +128,10 @@
                             "minimum": 0,
                             "maximum": 1000000
                           }
-                        ]
+                        ],
+                        "items": false,
+                        "minItems": 2,
+                        "maxItems": 2
                       }
                     },
                     "required": [
@@ -239,7 +245,10 @@
               "minimum": 0,
               "maximum": 1
             }
-          ]
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
         },
         "bonusRanges": {
           "minItems": 5,

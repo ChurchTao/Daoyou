@@ -531,7 +531,7 @@
         },
         "playerSlot": {
           "type": "integer",
-          "minimum": -9007199254740991,
+          "minimum": 0,
           "maximum": 9,
           "$ref": "#/$defs/__schema1"
         },
@@ -571,7 +571,7 @@
         },
         "slot": {
           "type": "integer",
-          "minimum": -9007199254740991,
+          "minimum": 0,
           "maximum": 9,
           "$ref": "#/$defs/__schema1"
         }

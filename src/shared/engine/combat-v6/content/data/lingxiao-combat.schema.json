@@ -437,13 +437,13 @@
           },
           "current": {
             "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
+            "minimum": 0,
+            "maximum": 1000000
           },
           "max": {
             "type": "integer",
             "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
+            "maximum": 1000000
           }
         },
         "required": [

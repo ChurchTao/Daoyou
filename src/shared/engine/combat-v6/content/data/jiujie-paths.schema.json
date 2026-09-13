@@ -143,13 +143,13 @@
                 "min": {
                   "type": "integer",
                   "minimum": 1,
-                  "maximum": 9007199254740991,
+                  "maximum": 10000,
                   "$ref": "#/$defs/__schema6"
                 },
                 "max": {
                   "type": "integer",
                   "minimum": 1,
-                  "maximum": 9007199254740991,
+                  "maximum": 10000,
                   "$ref": "#/$defs/__schema6"
                 }
               },
