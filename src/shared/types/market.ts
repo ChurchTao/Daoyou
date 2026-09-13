@@ -1,20 +1,9 @@
-import type {
-  ElementType,
-  EquipmentSlot,
-  MaterialType,
-  Quality,
-  RealmType,
-} from './constants';
-import type { PillAppearanceGrade } from './consumable';
+import type { MaterialType, Quality, RealmType } from './constants';
 import type { Material } from './cultivator';
 
 export type MarketLayer = 'common' | 'treasure' | 'heaven' | 'black';
 export type RegionProfileKey =
-  | 'tiannan'
-  | 'luanxinghai'
-  | 'dajin'
-  | 'baicao'
-  | 'default';
+  'tiannan' | 'luanxinghai' | 'dajin' | 'baicao' | 'default';
 
 /** 材料库不足时允许使用内存预设兜底的低层市场 */
 export const MARKET_PRESET_FALLBACK_LAYERS: MarketLayer[] = [
@@ -128,59 +117,8 @@ export interface MysteryRevealContext {
   createdAt: number;
 }
 
-export type SellPhase = 'preview' | 'confirm';
-export type SellMode = 'low_bulk' | 'high_single';
-export type SellItemType = 'material' | 'artifact' | 'consumable';
-
 export interface HighTierAppraisal {
   rating: 'S' | 'A' | 'B' | 'C';
   comment: string;
   keywords: string[];
-}
-
-export interface SellPreviewItem {
-  id: string;
-  name: string;
-  rank?: Quality; // material
-  quality?: Quality; // artifact | consumable
-  appearance?: PillAppearanceGrade;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  slot?: EquipmentSlot;
-  score?: number;
-  element?: ElementType;
-}
-
-export interface SellPreviewResponse {
-  success: true;
-  itemType: SellItemType;
-  sessionId: string;
-  mode: SellMode;
-  items: SellPreviewItem[];
-  totalSpiritStones: number;
-  appraisal?: HighTierAppraisal;
-  expiresAt: number;
-}
-
-export interface SellConfirmSoldItem {
-  id: string;
-  name: string;
-  rank?: Quality; // material
-  quality?: Quality; // artifact | consumable
-  appearance?: PillAppearanceGrade;
-  quantity: number;
-  price: number;
-  slot?: EquipmentSlot;
-  score?: number;
-  element?: ElementType;
-}
-
-export interface SellConfirmResponse {
-  success: true;
-  itemType: SellItemType;
-  gainedSpiritStones: number;
-  soldItems: SellConfirmSoldItem[];
-  remainingSpiritStones: number;
-  appraisal?: HighTierAppraisal;
 }

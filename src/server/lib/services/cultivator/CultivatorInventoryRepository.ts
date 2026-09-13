@@ -135,7 +135,7 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
     materialElements?: ElementType[];
     materialSortBy?: MaterialInventorySortBy;
     materialSortOrder?: MaterialInventorySortOrder;
-    consumableKind?: 'pill' | 'spirit_fruit' | 'tradable';
+    consumableKind?: 'pill';
   },
   q: DbExecutor | DbTransaction = getExecutor(),
 ): Promise<PaginatedInventoryResult<T>> {
@@ -189,21 +189,13 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
   }
 
   if (options.type === 'consumables') {
-    const consumableWhere = (() => {
-      if (options.consumableKind === 'tradable') {
-        return and(
-          eq(schema.consumables.cultivatorId, cultivatorId),
-          sql`${schema.consumables.spec}->>'kind' in ('pill', 'spirit_fruit')`,
-        );
-      }
-      if (options.consumableKind) {
-        return and(
-          eq(schema.consumables.cultivatorId, cultivatorId),
-          sql`${schema.consumables.spec}->>'kind' = ${options.consumableKind}`,
-        );
-      }
-      return eq(schema.consumables.cultivatorId, cultivatorId);
-    })();
+    const consumableWhere =
+      options.consumableKind === 'pill'
+        ? and(
+            eq(schema.consumables.cultivatorId, cultivatorId),
+            sql`${schema.consumables.spec}->>'kind' = 'pill'`,
+          )
+        : eq(schema.consumables.cultivatorId, cultivatorId);
     const countResult = await q
       .select({ count: sql<number>`count(*)` })
       .from(schema.consumables)

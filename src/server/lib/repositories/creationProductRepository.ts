@@ -54,30 +54,6 @@ export async function findByTypeAndCultivatorPage(
     .offset((page - 1) * pageSize);
 }
 
-export async function findUnequippedArtifactIdsByQualities(
-  cultivatorId: string,
-  qualities: string[],
-  q: DbExecutor = getExecutor(),
-): Promise<string[]> {
-  if (qualities.length === 0) return [];
-  const rows = await q
-    .select({ id: schema.creationProducts.id })
-    .from(schema.creationProducts)
-    .where(
-      and(
-        eq(schema.creationProducts.cultivatorId, cultivatorId),
-        eq(schema.creationProducts.productType, 'artifact'),
-        eq(schema.creationProducts.isEquipped, false),
-        inArray(schema.creationProducts.quality, qualities),
-      ),
-    )
-    .orderBy(
-      desc(schema.creationProducts.createdAt),
-      desc(schema.creationProducts.id),
-    );
-  return rows.map((row) => row.id);
-}
-
 export async function findArtifactsByIdsAndCultivator(
   cultivatorId: string,
   artifactIds: string[],
@@ -136,23 +112,4 @@ export async function countByType(
       ),
     );
   return result.count;
-}
-
-export async function deleteArtifactsByIdsAndCultivator(
-  cultivatorId: string,
-  artifactIds: string[],
-  q: DbExecutor = getExecutor(),
-): Promise<CreationProductRecord[]> {
-  if (artifactIds.length === 0) return [];
-
-  return q
-    .delete(schema.creationProducts)
-    .where(
-      and(
-        eq(schema.creationProducts.cultivatorId, cultivatorId),
-        eq(schema.creationProducts.productType, 'artifact'),
-        inArray(schema.creationProducts.id, artifactIds),
-      ),
-    )
-    .returning();
 }

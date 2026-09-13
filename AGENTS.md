@@ -6,7 +6,7 @@ AI agents should read this first. Keep changes small, project-specific, and back
 
 - This repo is `Hono + React SPA`, not Next.js or SSR.
 - Runtime stack: Bun, Hono, React 19, React Router 8, Vite, Tailwind CSS 4, PostgreSQL, Drizzle ORM, Better Auth, Redis, NATS, AI SDK.
-- Use `bun` / `bunx` and the checked-in `bun.lock`. Do not introduce npm/yarn/pnpm lockfiles.
+- Use `bun` / `bunx` for local development and keep the checked-in `bun.lock`. Also maintain `package-lock.json` for deployment packaging; dependency updates must keep both lockfiles aligned with `package.json`. Do not introduce yarn/pnpm lockfiles.
 - Path aliases are `@app` -> `src/react-app`, `@server` -> `src/server`, and `@shared` -> `src/shared`.
 
 ## Key Directories

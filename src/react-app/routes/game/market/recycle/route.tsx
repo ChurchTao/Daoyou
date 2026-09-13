@@ -12,13 +12,8 @@ import type {
   RecycleSelection,
 } from '@shared/contracts/recycle';
 import { recycleBlockingReason } from '@shared/inventory/recycle';
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-const LegacyArtifactRecycle = lazy(() =>
-  import('./LegacyArtifactRecycle').then((module) => ({
-    default: module.LegacyArtifactRecycle,
-  })),
-);
 type Item = InventoryView['items'][number];
 async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
@@ -91,7 +86,6 @@ export default function MarketRecyclePage() {
   const [refresh, setRefresh] = useState(0);
   const readError = bagQuery.error;
   const [quoteError, setQuoteError] = useState('');
-  const [legacyOpen, setLegacyOpen] = useState(false);
   const [quoteExpanded, setQuoteExpanded] = useState(
     () => window.matchMedia('(min-width: 1024px)').matches,
   );
@@ -369,17 +363,6 @@ export default function MarketRecyclePage() {
               </div>
             </details>
           ) : null}
-          <details
-            onToggle={(event) => setLegacyOpen(event.currentTarget.open)}
-            className="text-ink-secondary text-xs"
-          >
-            <summary className="cursor-pointer">问问旧法宝的回收</summary>
-            {legacyOpen ? (
-              <Suspense fallback={<p>掌柜正在翻看旧藏……</p>}>
-                <LegacyArtifactRecycle />
-              </Suspense>
-            ) : null}
-          </details>
         </section>
         <section className="min-w-0 space-y-3" aria-label="随身物品栏">
           <div className="flex items-center justify-between gap-2 text-sm">

@@ -1,6 +1,5 @@
 import type { CreationProductRecord } from '@server/lib/repositories/creationProductRepository';
 import { legacyModifiers, legacyRecord } from '@shared/legacy/products';
-import type { Quality } from '@shared/types/constants';
 import type { Artifact } from '@shared/types/cultivator';
 
 function safeRecordJson(value: unknown): Record<string, unknown> {
@@ -26,13 +25,6 @@ export function toArtifactFromProduct(record: CreationProductRecord): Artifact {
   } as Artifact;
 }
 
-export function getArtifactQualityFromProduct(
-  record: Pick<CreationProductRecord, 'quality'>,
-): Quality {
-  const quality = record.quality as Quality | null;
-  return quality || '凡品';
-}
-
 export function getArtifactEffectCountFromProduct(
   record: Pick<CreationProductRecord, 'productModel'>,
 ): number {
@@ -41,15 +33,4 @@ export function getArtifactEffectCountFromProduct(
     ? productModel.affixes.length
     : 0;
   return affixes;
-}
-
-export function getArtifactStateHash(record: CreationProductRecord): string {
-  try {
-    return JSON.stringify({
-      productModel: record.productModel ?? {},
-      isEquipped: record.isEquipped,
-    });
-  } catch {
-    return '{}';
-  }
 }

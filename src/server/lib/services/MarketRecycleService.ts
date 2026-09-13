@@ -1,27 +1,12 @@
-import {
-  getExecutor,
-  type DbExecutor,
-  type DbTransaction,
-} from '@server/lib/drizzle/db';
-import { cultivators } from '@server/lib/drizzle/schema';
-import { redis } from '@server/lib/redis';
-import { parseRedisJson } from '@server/lib/redis/json';
-import type { CreationProductRecord } from '@server/lib/repositories/creationProductRepository';
-import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { calculateSingleElixirScore } from '@server/utils/rankingUtils';
 import {
   APPRAISAL_KEYWORD_BONUS_MAX,
   APPRAISAL_KEYWORD_BONUS_MIN,
   APPRAISAL_KEYWORD_WEIGHTS,
   APPRAISAL_RATING_MULTIPLIER,
-  APPRAISAL_SESSION_TTL_SEC,
-  ARTIFACT_MATERIAL_ANCHOR_FACTOR,
-  ARTIFACT_SLOT_FACTOR,
   HIGH_TIER_BASE_FACTOR,
-  HIGH_TIER_MIN,
   LOW_TIER_ANCHOR_FACTOR,
   PRODUCE_PRICE_FACTOR_MIN,
-  RECYCLE_LOW_TIER_MAX,
   RECYCLE_PRICE_FACTOR_CAP,
 } from '@shared/config/marketConfig';
 import {
@@ -31,23 +16,9 @@ import {
 import { getMaterialTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { calculatePillRecycleUnitPrice as calculatePillRecyclePrice } from '@shared/lib/pillRecyclePrice';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
-import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
-import type {
-  HighTierAppraisal,
-  SellConfirmResponse,
-  SellItemType,
-  SellMode,
-  SellPreviewItem,
-  SellPreviewResponse,
-} from '@shared/types/market';
-import { eq, sql } from 'drizzle-orm';
-import {
-  getArtifactQualityFromProduct,
-  getArtifactStateHash,
-  toArtifactFromProduct,
-} from './creationProductArtifactSupport';
+import type { Consumable, Material } from '@shared/types/cultivator';
+import type { HighTierAppraisal } from '@shared/types/market';
 
-const SELL_SESSION_PREFIX = 'market:sell:session:';
 const APPRAISAL_RATING_STEPS: HighTierAppraisal['rating'][] = [
   'C',
   'B',
@@ -66,51 +37,6 @@ const HIGH_TIER_MATERIAL_BASE_RATING = {
 >;
 
 type HighTierMaterialRank = keyof typeof HIGH_TIER_MATERIAL_BASE_RATING;
-type SellConfirmResult = SellConfirmResponse & {
-  afterCommit?: () => Promise<unknown>;
-};
-
-function isLowTier(quality: Quality): boolean {
-  return (
-    (QUALITY_ORDER[quality] ?? 0) <= (QUALITY_ORDER[RECYCLE_LOW_TIER_MAX] ?? 0)
-  );
-}
-
-function isHighTier(quality: Quality): boolean {
-  return (QUALITY_ORDER[quality] ?? 0) >= (QUALITY_ORDER[HIGH_TIER_MIN] ?? 0);
-}
-
-interface ArtifactSnapshot {
-  id: string;
-  quality: Quality;
-  score: number;
-  slot: Artifact['slot'];
-  effectsHash: string;
-}
-
-interface RecycleSession {
-  sessionId: string;
-  cultivatorId: string;
-  itemType: SellItemType;
-  itemIds: string[];
-  mode: SellMode;
-  quotedItems: SellPreviewItem[];
-  quotedTotal: number;
-  appraisal?: HighTierAppraisal;
-  snapshot: Record<string, ArtifactSnapshot>;
-  createdAt: number;
-  expiresAt: number;
-}
-
-type SessionStore = Omit<SellPreviewResponse, 'success'> & {
-  cultivatorId: string;
-  itemIds: string[];
-  quotedItems: SellPreviewItem[];
-  quotedTotal: number;
-  snapshot: Record<string, ArtifactSnapshot>;
-  createdAt: number;
-};
-
 export class MarketRecycleError extends Error {
   constructor(
     public status: number,
@@ -119,10 +45,6 @@ export class MarketRecycleError extends Error {
     super(message);
     this.name = 'MarketRecycleError';
   }
-}
-
-function buildSessionKey(sessionId: string): string {
-  return `${SELL_SESSION_PREFIX}${sessionId}`;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -196,38 +118,6 @@ export function calculateHighTierUnitPrice(
   return Math.max(1, Math.floor(basePrice * typeMultiplier * factor));
 }
 
-function getArtifactQuality(artifact: Pick<Artifact, 'quality'>): Quality {
-  const value = artifact.quality || '凡品';
-  return value in QUALITY_ORDER ? value : '凡品';
-}
-
-export function calculateArtifactUnitPrice(
-  artifact: Pick<Artifact, 'quality' | 'score' | 'slot' | 'attributeModifiers'>,
-): number {
-  const quality = getArtifactQuality(artifact);
-  const materialAnchorPrice = BASE_PRICES[quality];
-  const qualityFactor = ARTIFACT_MATERIAL_ANCHOR_FACTOR[quality];
-
-  const score = Math.max(0, artifact.score || 0);
-  const scoreMultiplier = clamp(0.92 + score / 3000, 0.92, 1.5);
-  const modifierCount = Array.isArray(artifact.attributeModifiers)
-    ? artifact.attributeModifiers.length
-    : 0;
-  const modifierMultiplier = 1 + Math.min(0.22, modifierCount * 0.05);
-  const slotMultiplier = ARTIFACT_SLOT_FACTOR[artifact.slot] ?? 1;
-
-  const raw = Math.floor(
-    materialAnchorPrice *
-      qualityFactor *
-      scoreMultiplier *
-      modifierMultiplier *
-      slotMultiplier,
-  );
-  const cap = Math.floor(materialAnchorPrice * RECYCLE_PRICE_FACTOR_CAP);
-
-  return Math.max(1, Math.min(raw, cap));
-}
-
 export function calculatePillRecycleUnitPrice(
   consumable: Pick<Consumable, 'quality' | 'score' | 'spec'>,
 ): number {
@@ -246,73 +136,6 @@ function getConsumableQuality(
 ): Quality {
   const value = consumable.quality || '凡品';
   return value in QUALITY_ORDER ? value : '凡品';
-}
-
-function getArtifactAppraisalRating(
-  artifact: Pick<Artifact, 'quality' | 'score' | 'attributeModifiers'>,
-): HighTierAppraisal['rating'] {
-  const quality = getArtifactQuality(artifact);
-  const qualityScore = QUALITY_ORDER[quality] ?? 0;
-  const score = Math.max(0, artifact.score || 0);
-  const modifierCount = Array.isArray(artifact.attributeModifiers)
-    ? artifact.attributeModifiers.length
-    : 0;
-
-  const total =
-    qualityScore * 12 +
-    Math.min(18, Math.floor(score / 220)) +
-    modifierCount * 3;
-  if (total >= 88) return 'S';
-  if (total >= 70) return 'A';
-  if (total >= 54) return 'B';
-  return 'C';
-}
-
-export function buildArtifactHighTierAppraisal(
-  artifact: Pick<
-    Artifact,
-    'name' | 'quality' | 'score' | 'slot' | 'attributeModifiers'
-  >,
-): HighTierAppraisal {
-  const quality = getArtifactQuality(artifact);
-  const score = Math.max(0, artifact.score || 0);
-  const modifierCount = Array.isArray(artifact.attributeModifiers)
-    ? artifact.attributeModifiers.length
-    : 0;
-
-  const rating = getArtifactAppraisalRating(artifact);
-  const slotText =
-    artifact.slot === 'weapon'
-      ? '攻伐之器'
-      : artifact.slot === 'armor'
-        ? '护体之器'
-        : '辅修之器';
-  const scoreText =
-    score >= 2200
-      ? '灵纹浑成'
-      : score >= 1400
-        ? '气机稳固'
-        : score >= 800
-          ? '灵性尚可'
-          : '器韵平平';
-  const effectText =
-    modifierCount >= 4
-      ? '器内道痕层叠，可承重祭'
-      : modifierCount >= 2
-        ? '内蕴数重法效，可堪实战'
-        : '法效单薄，更宜折价流转';
-
-  const comment = `此${quality}${slotText}「${artifact.name}」${scoreText}，${effectText}。按坊市旧例估衡，今可定为${rating}级回收。`;
-
-  const keywords = [quality, slotText, scoreText, effectText.split('，')[0]]
-    .map((item) => item.replace(/[「」]/g, ''))
-    .slice(0, 4);
-
-  return {
-    rating,
-    comment,
-    keywords,
-  };
 }
 
 function shiftAppraisalRating(
@@ -422,328 +245,5 @@ export function buildMaterialHighTierAppraisal(
     rating,
     comment,
     keywords,
-  };
-}
-
-function normalizeItemIds(itemIds: string[]): string[] {
-  const deduped = [...new Set(itemIds.map((id) => id?.trim()).filter(Boolean))];
-  if (deduped.length === 0) {
-    throw new MarketRecycleError(400, '请至少选择一件物品');
-  }
-  return deduped;
-}
-
-async function loadOwnedArtifacts(
-  cultivatorId: string,
-  artifactIds: string[],
-  q: DbExecutor | DbTransaction = getExecutor(),
-): Promise<{ artifacts: Artifact[]; rawRecords: CreationProductRecord[] }> {
-  const rows = await creationProductRepository.findArtifactsByIdsAndCultivator(
-    cultivatorId,
-    artifactIds,
-    q,
-  );
-
-  if (rows.length !== artifactIds.length) {
-    throw new MarketRecycleError(400, '部分法宝不存在或不属于当前角色');
-  }
-
-  const order = new Map(artifactIds.map((id, index) => [id, index]));
-  rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
-  return {
-    artifacts: rows.map(toArtifactFromProduct),
-    rawRecords: rows,
-  };
-}
-
-function ensureArtifactsNotEquipped(
-  artifacts: CreationProductRecord[],
-  message: string,
-): void {
-  if (artifacts.some((artifact) => artifact.isEquipped)) {
-    throw new MarketRecycleError(400, message);
-  }
-}
-
-function buildArtifactSessionSnapshot(
-  items: Artifact[],
-  rawRecords: CreationProductRecord[],
-): Record<string, ArtifactSnapshot> {
-  const rawRecordMap = new Map(rawRecords.map((r) => [r.id, r]));
-  const snapshot: Record<string, ArtifactSnapshot> = {};
-  for (const item of items) {
-    if (!item.id) continue;
-    const rawRecord = rawRecordMap.get(item.id);
-    snapshot[item.id] = {
-      id: item.id,
-      quality: getArtifactQuality(item),
-      score: item.score || 0,
-      slot: item.slot,
-      effectsHash: rawRecord ? getArtifactStateHash(rawRecord) : '[]',
-    };
-  }
-  return snapshot;
-}
-
-async function previewArtifactSell(
-  cultivator: { id: string },
-  artifactIds: string[],
-): Promise<SellPreviewResponse> {
-  const ids = normalizeItemIds(artifactIds);
-  const { artifacts: ownedArtifacts, rawRecords } = await loadOwnedArtifacts(
-    cultivator.id,
-    ids,
-  );
-  ensureArtifactsNotEquipped(rawRecords, '已装备法宝不可回收，请先卸下');
-
-  const lowTier = ownedArtifacts.filter((item) =>
-    isLowTier(getArtifactQuality(item)),
-  );
-  const highTier = ownedArtifacts.filter((item) =>
-    isHighTier(getArtifactQuality(item)),
-  );
-
-  if (lowTier.length > 0 && highTier.length > 0) {
-    throw new MarketRecycleError(400, '不可混合回收低品与高品法宝');
-  }
-  if (highTier.length > 1) {
-    throw new MarketRecycleError(400, '真品及以上法宝仅支持单件鉴定回收');
-  }
-
-  let mode: SellMode;
-  let appraisal: HighTierAppraisal | undefined;
-  let targetArtifacts: Artifact[];
-
-  if (highTier.length === 1) {
-    mode = 'high_single';
-    targetArtifacts = highTier;
-    appraisal = buildArtifactHighTierAppraisal(highTier[0]);
-  } else {
-    mode = 'low_bulk';
-    targetArtifacts = lowTier;
-  }
-
-  if (targetArtifacts.length === 0) {
-    throw new MarketRecycleError(400, '未找到可回收法宝');
-  }
-
-  const targetIds = new Set(targetArtifacts.map((a) => a.id));
-  const targetRawRecords = rawRecords.filter((r) => targetIds.has(r.id));
-
-  const items: SellPreviewItem[] = targetArtifacts.map((item) => {
-    const unitPrice = calculateArtifactUnitPrice(item);
-    return {
-      id: item.id!,
-      name: item.name,
-      quality: getArtifactQuality(item),
-      quantity: 1,
-      unitPrice,
-      totalPrice: unitPrice,
-      slot: item.slot,
-      score: item.score || 0,
-      element: item.element,
-    };
-  });
-
-  const totalSpiritStones = items.reduce(
-    (sum, item) => sum + item.totalPrice,
-    0,
-  );
-  const sessionId = crypto.randomUUID();
-  const createdAt = Date.now();
-  const expiresAt = createdAt + APPRAISAL_SESSION_TTL_SEC * 1000;
-  const session: SessionStore = {
-    itemType: 'artifact',
-    sessionId,
-    mode,
-    items,
-    totalSpiritStones,
-    appraisal,
-    expiresAt,
-    cultivatorId: cultivator.id,
-    itemIds: ids,
-    quotedItems: items,
-    quotedTotal: totalSpiritStones,
-    snapshot: buildArtifactSessionSnapshot(targetArtifacts, targetRawRecords),
-    createdAt,
-  };
-
-  await redis.set(
-    buildSessionKey(sessionId),
-    JSON.stringify(session),
-    'EX',
-    APPRAISAL_SESSION_TTL_SEC,
-  );
-
-  return {
-    success: true,
-    itemType: 'artifact',
-    sessionId,
-    mode,
-    items,
-    totalSpiritStones,
-    appraisal,
-    expiresAt,
-  };
-}
-
-export async function previewSell(
-  cultivator: { id: string },
-  itemIds: string[],
-): Promise<SellPreviewResponse> {
-  return previewArtifactSell(cultivator, itemIds);
-}
-export async function previewAllLowTierSell(cultivator: {
-  id: string;
-}): Promise<SellPreviewResponse> {
-  const qualities = (Object.keys(QUALITY_ORDER) as Quality[]).filter(isLowTier);
-  const ids =
-    await creationProductRepository.findUnequippedArtifactIdsByQualities(
-      cultivator.id,
-      qualities,
-    );
-  if (!ids.length) throw new MarketRecycleError(400, '未找到可回收法宝');
-  return previewArtifactSell(cultivator, ids);
-}
-
-async function readSession(sessionId: string): Promise<RecycleSession> {
-  const key = buildSessionKey(sessionId);
-  const raw = parseRedisJson<SessionStore>(await redis.get(key), key);
-  if (!raw) {
-    throw new MarketRecycleError(410, '回收确认已过期，请重新鉴定');
-  }
-  return {
-    sessionId,
-    cultivatorId: raw.cultivatorId,
-    itemType: raw.itemType || 'material',
-    itemIds: raw.itemIds,
-    mode: raw.mode,
-    quotedItems: raw.quotedItems,
-    quotedTotal: raw.quotedTotal,
-    appraisal: raw.appraisal,
-    snapshot: raw.snapshot || {},
-    createdAt: raw.createdAt,
-    expiresAt: raw.expiresAt,
-  };
-}
-
-async function confirmArtifactSell(
-  cultivatorId: string,
-  session: RecycleSession,
-  tx: DbTransaction,
-): Promise<SellConfirmResult> {
-  const writeSell = async (tx: DbTransaction) => {
-    const rows =
-      await creationProductRepository.findArtifactsByIdsAndCultivator(
-        cultivatorId,
-        session.itemIds,
-        tx,
-      );
-
-    if (rows.length !== session.itemIds.length) {
-      throw new MarketRecycleError(409, '法宝已发生变化，请重新预览');
-    }
-
-    if (rows.some((row) => row.isEquipped)) {
-      throw new MarketRecycleError(409, '法宝已装备，无法回收，请先卸下');
-    }
-
-    const rowMap = new Map(rows.map((row) => [row.id, row]));
-    for (const id of session.itemIds) {
-      const current = rowMap.get(id);
-      const expected = session.snapshot[id] as ArtifactSnapshot | undefined;
-      if (!current || !expected) {
-        throw new MarketRecycleError(409, '法宝已发生变化，请重新预览');
-      }
-      const currentQuality = getArtifactQualityFromProduct(current);
-      const currentScore = current.score || 0;
-      const currentSlot = (current.slot as Artifact['slot']) || 'weapon';
-      const currentEffectsHash = getArtifactStateHash(current);
-      if (
-        currentQuality !== expected.quality ||
-        currentScore !== expected.score ||
-        currentSlot !== expected.slot ||
-        currentEffectsHash !== expected.effectsHash
-      ) {
-        throw new MarketRecycleError(409, '法宝已发生变化，请重新预览');
-      }
-    }
-
-    const deleted =
-      await creationProductRepository.deleteArtifactsByIdsAndCultivator(
-        cultivatorId,
-        session.itemIds,
-        tx,
-      );
-
-    if (deleted.length !== session.itemIds.length) {
-      throw new MarketRecycleError(409, '法宝已发生变化，请重新预览');
-    }
-
-    const [updated] = await tx
-      .update(cultivators)
-      .set({
-        spirit_stones: sql`${cultivators.spirit_stones} + ${session.quotedTotal}`,
-      })
-      .where(eq(cultivators.id, cultivatorId))
-      .returning({
-        spiritStones: cultivators.spirit_stones,
-      });
-
-    if (!updated) {
-      throw new MarketRecycleError(404, '角色不存在或已失效');
-    }
-
-    return updated;
-  };
-
-  const txResult = await writeSell(tx);
-  const afterCommit = () => redis.del(buildSessionKey(session.sessionId));
-
-  return {
-    success: true,
-    itemType: 'artifact',
-    gainedSpiritStones: session.quotedTotal,
-    soldItems: session.quotedItems.map((item) => ({
-      id: item.id,
-      name: item.name,
-      quality: item.quality,
-      quantity: 1,
-      price: item.totalPrice,
-      slot: item.slot,
-      score: item.score,
-      element: item.element,
-    })),
-    remainingSpiritStones: txResult.spiritStones,
-    appraisal: session.appraisal,
-    afterCommit,
-  };
-}
-
-export async function prepareSellConfirmation(
-  cultivatorId: string,
-  sessionId: string,
-): Promise<{
-  commit(tx: DbTransaction): Promise<SellConfirmResult>;
-}> {
-  const session = await readSession(sessionId);
-
-  if (session.itemType !== 'artifact')
-    throw new MarketRecycleError(
-      410,
-      '旧材料和丹药回收已停用，请从随身物品栏重新询价。',
-    );
-  if (session.cultivatorId !== cultivatorId) {
-    throw new MarketRecycleError(410, '回收确认已失效');
-  }
-  if (session.expiresAt < Date.now()) {
-    await redis.del(buildSessionKey(sessionId));
-    throw new MarketRecycleError(410, '回收确认已过期，请重新鉴定');
-  }
-
-  return {
-    commit(tx: DbTransaction) {
-      return confirmArtifactSell(cultivatorId, session, tx);
-    },
   };
 }

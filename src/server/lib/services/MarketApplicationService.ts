@@ -6,11 +6,9 @@ import { getPlayerPreHeavenFates } from '@server/lib/services/cultivator/Cultiva
 import type { MarketBuyInput } from '@shared/contracts/market';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
 import type { PreHeavenFate } from '@shared/types/cultivator';
-import type { SellConfirmResponse } from '@shared/types/market';
 import { eq } from 'drizzle-orm';
 import { playerCommandExecutor } from './CommandExecutors';
 import { readCultivatorRealm } from './cultivator/CultivatorFactsReader';
-import { prepareSellConfirmation } from './MarketRecycleService';
 import {
   markMarketPurchased,
   prepareBatchMarketPurchase,
@@ -50,46 +48,6 @@ export async function executeMarketPurchaseCommand<T>(
   };
 }
 
-export async function executeMarketSellCommand(
-  prepared: {
-    commit(tx: DbTransaction): Promise<
-      SellConfirmResponse & {
-        afterCommit?: () => Promise<unknown>;
-      }
-    >;
-  },
-  tx: DbTransaction,
-): Promise<{
-  result: SellConfirmResponse;
-  resourceChanges: ResourceChangeDescriptor[];
-  afterCommit?: () => Promise<void>;
-}> {
-  const { afterCommit, ...result } = await prepared.commit(tx);
-  const resourceChanges: ResourceChangeDescriptor[] = [
-    {
-      resourceTopic: 'player.currency',
-      eventType: 'currency.market.gained',
-      payload: { spiritStones: result.remainingSpiritStones },
-      operation: 'merge',
-    },
-  ];
-  resourceChanges.push({
-    resourceTopic: 'inventory.artifacts',
-    eventType: 'inventory.market.sold',
-    operation: 'remove-items',
-    payload: { idKey: 'id', ids: result.soldItems.map((item) => item.id) },
-  });
-  return {
-    result,
-    resourceChanges,
-    afterCommit: afterCommit
-      ? async () => {
-          await afterCommit();
-        }
-      : undefined,
-  };
-}
-
 type MarketActor = {
   userId: string;
   cultivatorId: string;
@@ -111,46 +69,6 @@ async function runAfterCommit(
   } catch (error) {
     console.error('市场结算后置副作用失败:', { ...context, error });
   }
-}
-
-export async function confirmMarketSell(args: {
-  actor: MarketActor;
-  sessionId: string;
-}) {
-  return withRedisLock(
-    {
-      key: redisLockKeys.cultivatorMutation(args.actor.cultivatorId),
-      context: 'market-sell',
-      timeoutMs: 10_000,
-      retries: 0,
-    },
-    async (lease) => {
-      const prepared = await prepareSellConfirmation(
-        args.actor.cultivatorId,
-        args.sessionId,
-      );
-      let afterCommit: (() => Promise<void>) | undefined;
-      const committed = await playerCommandExecutor.execute({
-        coordination: { mode: 'redis', lease },
-        userId: args.actor.userId,
-        cultivatorId: args.actor.cultivatorId,
-        source: 'market_sell',
-        command: async (tx) => {
-          const command = await executeMarketSellCommand(
-            prepared,
-            tx,
-          );
-          afterCommit = command.afterCommit;
-          return command;
-        },
-      });
-      await runAfterCommit(afterCommit, {
-        cultivatorId: args.actor.cultivatorId,
-        sessionId: args.sessionId,
-      });
-      return committed;
-    },
-  );
 }
 
 export async function purchaseMarketItems(args: {

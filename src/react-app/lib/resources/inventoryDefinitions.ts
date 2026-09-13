@@ -20,7 +20,7 @@ export interface InventoryPageParams {
   materialSortBy?:
     'createdAt' | 'rank' | 'type' | 'element' | 'quantity' | 'name';
   materialSortOrder?: 'asc' | 'desc';
-  consumableKind?: 'pill' | 'spirit_fruit' | 'tradable';
+  consumableKind?: 'pill';
 }
 
 const normalizedStrings = <T extends string>(
