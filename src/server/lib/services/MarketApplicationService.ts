@@ -39,6 +39,11 @@ export async function executeMarketPurchaseCommand<T>(
     result: committed.result,
     resourceChanges: [
       {
+        resourceTopic: 'inventory.bag',
+        eventType: 'inventory.market.purchased',
+        operation: 'invalidate',
+      },
+      {
         resourceTopic: 'player.currency',
         eventType: 'currency.market.spent',
         operation: 'merge',

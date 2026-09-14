@@ -170,6 +170,11 @@ export function confirmBagRecycle(
         },
         resourceChanges: [
           {
+            resourceTopic: 'inventory.bag',
+            eventType: 'inventory.recycle.sold',
+            operation: 'invalidate',
+          },
+          {
             resourceTopic: 'player.currency',
             eventType: 'currency.market.gained',
             operation: 'merge',

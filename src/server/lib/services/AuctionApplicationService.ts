@@ -53,7 +53,16 @@ export async function executeAuctionListCommand(
 ) {
   const { tx, ...input } = args;
   const result = await listItem(input, { tx, deferCacheClear: true });
-  return { result, resourceChanges: [] as ResourceChangeDescriptor[] };
+  return {
+    result,
+    resourceChanges: [
+      {
+        resourceTopic: 'inventory.bag',
+        eventType: 'inventory.auction.listed',
+        operation: 'invalidate',
+      },
+    ] satisfies ResourceChangeDescriptor[],
+  };
 }
 
 export async function executeAuctionCancelCommand(args: {

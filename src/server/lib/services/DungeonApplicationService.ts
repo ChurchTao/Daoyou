@@ -212,6 +212,13 @@ export async function executeDungeonPersistenceCommand<T>(args: {
 }): Promise<{ result: T; resourceChanges: ResourceChangeDescriptor[] }> {
   const settlement = await args.persist?.(args.tx);
   const resourceChanges: ResourceChangeDescriptor[] = [];
+  if (args.persist) {
+    resourceChanges.push({
+      resourceTopic: 'inventory.bag',
+      eventType: 'inventory.dungeon.changed',
+      operation: 'invalidate',
+    });
+  }
 
   if (settlement?.condition !== undefined) {
     resourceChanges.push({

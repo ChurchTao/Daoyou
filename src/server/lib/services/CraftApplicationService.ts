@@ -190,6 +190,11 @@ export function settleAlchemyCraft(args: {
 }): ResourceChangeDescriptor[] {
   const changes: ResourceChangeDescriptor[] = [
     qiCurrencyChange('currency.changed', args.qi),
+    {
+      resourceTopic: 'inventory.bag',
+      eventType: 'inventory.alchemy.changed',
+      operation: 'invalidate',
+    },
   ];
   for (const change of args.inventoryChanges) {
     changes.push(

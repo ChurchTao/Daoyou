@@ -280,7 +280,13 @@ export async function claimSpiritFieldStarterSeeds(actor: SpiritFieldActor) {
           message: '已领取初始灵种',
           locations: [...new Set(delivered.map((item) => item.location))],
         },
-        resourceChanges: [],
+        resourceChanges: [
+          {
+            resourceTopic: 'inventory.bag',
+            eventType: 'inventory.spirit-field.starter',
+            operation: 'invalidate',
+          },
+        ],
       };
     },
   });
@@ -354,7 +360,13 @@ export async function sowSpiritField(
           message: `已种下${spec.plant.seedName}`,
           plotIndex: input.plotIndex,
         },
-        resourceChanges: [],
+        resourceChanges: [
+          {
+            resourceTopic: 'inventory.bag',
+            eventType: 'inventory.spirit-field.sown',
+            operation: 'invalidate',
+          },
+        ],
       };
     },
   });
@@ -571,6 +583,12 @@ export async function cultivateSpiritField(
         tx,
       );
       const resourceChanges: ResourceChangeDescriptor[] = [];
+      if (itemResourceKind(input.method))
+        resourceChanges.push({
+          resourceTopic: 'inventory.bag',
+          eventType: 'inventory.spirit-field.cultivated',
+          operation: 'invalidate',
+        });
       if (qiChange) resourceChanges.push(qiChange);
       if (condition)
         resourceChanges.push({
@@ -733,7 +751,13 @@ export async function harvestSpiritField(
           successfulHarvestCount,
           locations: [...new Set(delivered.map((item) => item.location))],
         },
-        resourceChanges: [],
+        resourceChanges: [
+          {
+            resourceTopic: 'inventory.bag',
+            eventType: 'inventory.spirit-field.harvested',
+            operation: 'invalidate',
+          },
+        ],
       };
     },
   });

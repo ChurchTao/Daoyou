@@ -498,7 +498,14 @@ function rewardAdapter(q: DbExecutor | DbTransaction, userId: string) {
         ],
         q,
       );
-      return emptySectCommandEffects();
+      const effects = emptySectCommandEffects();
+      effects.resourceChanges.push({
+        scope: { kind: 'cultivator', id: cultivatorId },
+        resourceTopic: 'inventory.bag',
+        operation: 'invalidate',
+        eventType: 'inventory.sect-task.rewarded',
+      });
+      return effects;
     },
   };
 }

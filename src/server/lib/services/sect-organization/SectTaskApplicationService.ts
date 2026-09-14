@@ -455,6 +455,15 @@ export class ExecuteSectTaskActionHandler {
             idKey: 'definitionId',
           },
         },
+        ...(effects.settlement.inventory.length
+          ? [
+              {
+                resourceTopic: 'inventory.bag' as const,
+                operation: 'invalidate' as const,
+                eventType: 'inventory.sect-task.submitted',
+              },
+            ]
+          : []),
         ...effects.resourceChanges,
       ],
     };

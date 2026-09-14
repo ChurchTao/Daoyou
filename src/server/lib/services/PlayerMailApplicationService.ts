@@ -35,6 +35,11 @@ function mailClaimChanges(args: {
 }): ResourceChangeDescriptor[] {
   const changes: ResourceChangeDescriptor[] = [
     {
+      resourceTopic: 'inventory.bag',
+      eventType: 'inventory.mail.claimed',
+      operation: 'invalidate',
+    },
+    {
       resourceTopic: 'player.mail-summary',
       eventType: args.eventType,
       operation: 'replace',
@@ -128,7 +133,13 @@ export function sendCultivatorMail(args: {
         attachment: args.attachment,
         tx,
       });
-      const resourceChanges: ResourceChangeDescriptor[] = [];
+      const resourceChanges: ResourceChangeDescriptor[] = [
+        {
+          resourceTopic: 'inventory.bag',
+          eventType: 'inventory.mail.sent',
+          operation: 'invalidate',
+        },
+      ];
       return {
         result: {
           message: `已向${result.recipientName}发出传音`,

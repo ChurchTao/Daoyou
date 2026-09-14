@@ -30,6 +30,7 @@ import {
   inventoryItemOf,
   saveInventoryPlan,
 } from '../InventoryService';
+import { publishResourceEvents } from '../playerStateBroadcaster';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
 
 async function readManualFacts(owner: string, q: DbExecutor) {
@@ -80,7 +81,7 @@ export async function readManuals(owner: string): Promise<ManualView> {
 }
 
 export async function mutateManuals(owner: string, action: ManualAction) {
-  return withRedisLock(
+  const committed = await withRedisLock(
     {
       key: redisLockKeys.cultivatorMutation(owner),
       context: 'manuals',
@@ -203,4 +204,6 @@ export async function mutateManuals(owner: string, action: ManualAction) {
         return { data: result.state, state };
       }),
   );
+  publishResourceEvents(committed.state.changes);
+  return committed;
 }

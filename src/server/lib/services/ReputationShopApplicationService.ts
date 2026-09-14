@@ -35,6 +35,11 @@ export async function executeReputationShopPurchaseCommand(args: {
   const purchase = await buyReputationShopItem(args);
   const resourceChanges: ResourceChangeDescriptor[] = [
     {
+      resourceTopic: 'inventory.bag',
+      eventType: 'inventory.reputation.purchased',
+      operation: 'invalidate',
+    },
+    {
       resourceTopic: 'player.currency',
       eventType: 'currency.reputation.spent',
       payload: { reputation: purchase.reputation },

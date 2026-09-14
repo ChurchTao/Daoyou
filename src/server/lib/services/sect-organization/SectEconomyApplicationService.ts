@@ -86,6 +86,11 @@ export class SectEconomyApplicationService {
     const result = await this.getShop(cultivatorId, context);
     const resourceChanges: ResourceChangeDescriptor[] = [
       {
+        resourceTopic: 'inventory.bag',
+        eventType: 'inventory.sect-shop.purchased',
+        operation: 'invalidate',
+      },
+      {
         resourceTopic: 'sect.shop',
         eventType: 'sect.shop_purchased',
         operation: 'replace',

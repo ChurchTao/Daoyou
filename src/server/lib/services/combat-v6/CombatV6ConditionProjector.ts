@@ -16,6 +16,7 @@ import { and, eq } from 'drizzle-orm';
 import { ConditionService } from '../ConditionService';
 import { grantInventory } from '../InventoryService';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
+import { publishResourceEvents } from '../playerStateBroadcaster';
 import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
 import { CombatV6WildStore } from './CombatV6WildStore';
 
@@ -59,7 +60,7 @@ export async function projectCombatV6Condition(
     },
     async (lease) => {
       const now = new Date();
-      await db.transaction(async (tx) => {
+      const committed = await db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, s.cultivatorId);
         // A battle has one settlement. Use its UUID as the logical message key
         // for both MQ delivery and coordinator retries (which have no envelope).
@@ -101,11 +102,20 @@ export async function projectCombatV6Condition(
           .update(cultivators)
           .set({ condition })
           .where(eq(cultivators.id, s.cultivatorId));
-        await new ResourceEventCommitter().commit(tx, {
+        const state = await new ResourceEventCommitter().commit(tx, {
           actor: { userId: s.userId, cultivatorId: s.cultivatorId },
           source: 'combat-v6-condition',
           scopeDefaults: { cultivatorId: s.cultivatorId },
           changes: [
+            ...(record.reason === 'battle-ended' && s.itemRewards?.length
+              ? [
+                  {
+                    resourceTopic: 'inventory.bag' as const,
+                    operation: 'invalidate' as const,
+                    eventType: 'inventory.wild.rewarded',
+                  },
+                ]
+              : []),
             {
               resourceTopic: 'player.condition',
               operation: 'invalidate',
@@ -114,7 +124,9 @@ export async function projectCombatV6Condition(
           ],
         });
         lease.assertHeld();
+        return state;
       });
+      if (committed) publishResourceEvents(committed.changes);
       await store.complete(s, now.getTime());
     },
   );

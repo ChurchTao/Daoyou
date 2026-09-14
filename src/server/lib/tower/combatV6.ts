@@ -14,6 +14,7 @@ import type {
   TowerSessionView,
   TowerView,
 } from '@shared/contracts/combatV6Tower';
+import type { ResourceChange } from '@shared/contracts/resources';
 import type { CombatV6TrainingPlayerInput } from '@shared/engine/combat-v6/encounter';
 import {
   createTowerHost,
@@ -55,6 +56,7 @@ import {
   assertInventoryIdle,
   grantInventory,
 } from '../services/InventoryService';
+import { publishResourceEvents } from '../services/playerStateBroadcaster';
 import { ResourceEventCommitter } from '../services/ResourceEventCommitter';
 import { updateTowerWeeklyRecord } from './leaderboard';
 import { towerRunKey } from './occupancy';
@@ -398,19 +400,25 @@ export async function changeTowerBattle(
               run.realm,
             )
           : null;
-      await db.transaction(async (tx) => {
+      const changes = await db.transaction(async (tx) => {
+        const changes: ResourceChange[] = [];
         lease.assertHeld();
         await lockCultivatorForStateMutation(tx, owner);
         // The archive commits with rewards. A failed Redis acknowledgement must
         // rebuild the run from this terminal snapshot without granting again.
-        if (await combatV6ReplayExists(id, tx)) return;
+        if (await combatV6ReplayExists(id, tx)) return changes;
         if (reward) {
           await grantInventory(owner, reward.items, tx);
-          await new ResourceEventCommitter().commit(tx, {
+          const committed = await new ResourceEventCommitter().commit(tx, {
             actor,
             source: 'tower-v6-reward',
             scopeDefaults: { cultivatorId: owner },
             changes: [
+              {
+                resourceTopic: 'inventory.bag',
+                operation: 'invalidate',
+                eventType: 'inventory.tower.rewarded',
+              },
               {
                 resourceTopic: 'player.currency',
                 operation: 'invalidate',
@@ -418,6 +426,7 @@ export async function changeTowerBattle(
               },
             ],
           });
+          changes.push(...committed.changes);
           await tx
             .update(cultivators)
             .set({
@@ -453,7 +462,9 @@ export async function changeTowerBattle(
           tx,
         );
         lease.assertHeld();
+        return changes;
       });
+      publishResourceEvents(changes);
       lease.assertHeld();
       if (reward) rewards.push(reward);
       await redis.set(key, JSON.stringify(rewards), 'EXAT', expires(run));

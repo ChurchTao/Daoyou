@@ -56,6 +56,7 @@ import {
 } from './InventoryService';
 import { MailService } from './MailService';
 import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
+import { publishResourceEvents } from './playerStateBroadcaster';
 import { QiService } from './QiService';
 import { ResourceEventCommitter } from './ResourceEventCommitter';
 
@@ -63,7 +64,7 @@ async function mutate<T>(
   owner: string,
   action: (tx: DbTransaction) => Promise<T>,
 ) {
-  return withRedisLock(
+  const committed = await withRedisLock(
     {
       key: redisLockKeys.cultivatorMutation(owner),
       context: 'forging',
@@ -107,6 +108,8 @@ async function mutate<T>(
         return { data: result, state };
       }),
   );
+  publishResourceEvents(committed.state.changes);
+  return committed;
 }
 
 export async function readForge(owner: string): Promise<ForgeView> {
