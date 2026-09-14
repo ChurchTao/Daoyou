@@ -1,3 +1,4 @@
+import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { InkModal } from '@app/components/layout';
@@ -58,17 +59,17 @@ export function WorldChatShowcaseDialog({
   }
   const inventory = (
     <div className="space-y-3">
-      <div className="flex items-center justify-between text-sm">
-        <span>
-          随身物品 <span className="font-mono">{bag?.used ?? '—'} / 40</span>
-        </span>
-        <InkButton
-          disabled={posting || bagQuery.isRefreshing}
-          onClick={() => void refresh()}
-        >
-          刷新选物
-        </InkButton>
-      </div>
+      <InventoryHeader
+        capacity={<> {bag?.used ?? '—'} / 40</>}
+        actions={
+          <InkButton
+            disabled={posting || bagQuery.isRefreshing}
+            onClick={() => void refresh()}
+          >
+            刷新选物
+          </InkButton>
+        }
+      />
       <InventoryItems
         items={bag?.items ?? []}
         slotProps={(item) => ({

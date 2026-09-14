@@ -1,3 +1,4 @@
+import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import type {
@@ -54,21 +55,17 @@ export function ManualJadePicker({
   });
   return (
     <div className="space-y-4 text-sm">
-      <div className="flex items-center justify-between">
-        <span className="text-ink-secondary">
-          随身物品{' '}
-          <span className="font-mono">
-            {bag.data?.used ?? '—'}/{bag.data?.capacity ?? '—'}
-          </span>{' '}
-          格
-        </span>
-        <InkButton
-          disabled={disabled || bag.isRefreshing}
-          onClick={() => void bag.reload()}
-        >
-          刷新
-        </InkButton>
-      </div>
+      <InventoryHeader
+        capacity={<>{bag.data?.used ?? '—'} / 40</>}
+        actions={
+          <InkButton
+            disabled={disabled || bag.isRefreshing}
+            onClick={() => void bag.reload()}
+          >
+            刷新
+          </InkButton>
+        }
+      />
       <p className="text-ink-secondary">
         {manualId
           ? '选择一本同名玉简，突破当前瓶颈。'

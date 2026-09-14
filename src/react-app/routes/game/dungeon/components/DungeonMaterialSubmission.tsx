@@ -1,3 +1,4 @@
+import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { InkModal } from '@app/components/layout';
@@ -194,15 +195,17 @@ export function DungeonMaterialSubmission({
           </div>
         </div>
         <section className="min-w-0 space-y-3" aria-label="秘境提交物品栏">
-          <div className="flex items-center justify-between">
-            <p className="text-sm">随身物品</p>
-            <InkButton
-              disabled={processing || loading}
-              onClick={() => void refresh()}
-            >
-              刷新选物
-            </InkButton>
-          </div>
+          <InventoryHeader
+            capacity={<> {bag?.used ?? '—'} / 40</>}
+            actions={
+              <InkButton
+                disabled={processing || loading}
+                onClick={() => void refresh()}
+              >
+                刷新选物
+              </InkButton>
+            }
+          />
           {loading ? <p className="text-sm">正在读取物品…</p> : null}
           <InventoryItems
             items={bag?.items ?? []}

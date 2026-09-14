@@ -2,6 +2,7 @@ import {
   combatV6Request,
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
+import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { InkModal } from '@app/components/layout/InkModal';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -14,7 +15,7 @@ import type { BeastManagementView } from '@shared/contracts/combatV6Beasts';
 import type { InventoryView } from '@shared/contracts/inventory';
 import { beastRefinementReason } from '@shared/engine/combat-v6/beasts/refinement';
 import { BEAST_REFINEMENT } from '@shared/engine/combat-v6/beasts/refinement-config';
-import { BAG_CAPACITY, itemDefinition } from '@shared/inventory';
+import { itemDefinition } from '@shared/inventory';
 import { useEffect, useRef, useState } from 'react';
 
 export function BeastBookDrawer({
@@ -184,26 +185,26 @@ export function BeastBookDrawer({
         }}
       >
         <div className="space-y-4 text-sm">
-          <InkButton
-            disabled={pending}
-            onClick={() => {
-              void bagQuery.reload();
-              setData(undefined);
-              setSelectedId(undefined);
-              setRefresh((value) => value + 1);
-            }}
-          >
-            刷新{itemName}
-          </InkButton>
+          <InventoryHeader
+            title={<>储物袋 · 选择{itemName}</>}
+            capacity={<>{inventory?.used ?? '—'} / 40</>}
+            actions={
+              <InkButton
+                disabled={pending}
+                onClick={() => {
+                  void bagQuery.reload();
+                  setData(undefined);
+                  setSelectedId(undefined);
+                  setRefresh((value) => value + 1);
+                }}
+              >
+                刷新{itemName}
+              </InkButton>
+            }
+          />
           {bagQuery.error ? <p role="alert">{bagQuery.error}</p> : null}
           {roster && inventory ? (
             <>
-              <div className="text-ink-secondary flex justify-between text-xs">
-                <span>储物袋 · 选择{itemName}</span>
-                <span className="font-mono">
-                  {inventory.used} / {BAG_CAPACITY}
-                </span>
-              </div>
               <InventoryItems
                 items={inventory.items}
                 slotProps={(item) => {

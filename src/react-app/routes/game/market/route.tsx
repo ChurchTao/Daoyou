@@ -1,3 +1,4 @@
+import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import {
   InventoryGrid,
@@ -237,14 +238,14 @@ function MarketWorkspace({
   }
   const inventory = (
     <div className="space-y-3" aria-label="随身物品栏">
-      <div className="flex min-h-9 items-center justify-between text-sm">
-        <span>
-          随身物品 <span className="font-mono">{bag?.used ?? '—'} / 40</span>
-        </span>
-        <InkButton disabled={pending} onClick={() => void bagQuery.reload()}>
-          刷新
-        </InkButton>
-      </div>
+      <InventoryHeader
+        capacity={<> {bag?.used ?? '—'} / 40</>}
+        actions={
+          <InkButton disabled={pending} onClick={() => void bagQuery.reload()}>
+            刷新
+          </InkButton>
+        }
+      />
       {bagError ? (
         <p role="alert" className="text-crimson text-sm">
           {bagError}

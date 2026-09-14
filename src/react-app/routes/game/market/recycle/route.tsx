@@ -1,3 +1,4 @@
+import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -365,15 +366,14 @@ export default function MarketRecyclePage() {
           ) : null}
         </section>
         <section className="min-w-0 space-y-3" aria-label="随身物品栏">
-          <div className="flex items-center justify-between gap-2 text-sm">
-            <p>
-              随身物品{' '}
-              <span className="font-mono">{view?.used ?? '—'} / 40</span>
-            </p>
-            <InkButton disabled={pending} onClick={reload}>
-              刷新
-            </InkButton>
-          </div>
+          <InventoryHeader
+            capacity={<> {view?.used ?? '—'} / 40</>}
+            actions={
+              <InkButton disabled={pending} onClick={reload}>
+                刷新
+              </InkButton>
+            }
+          />
           {readError ? (
             <p role="alert" className="text-crimson text-sm">
               {readError}

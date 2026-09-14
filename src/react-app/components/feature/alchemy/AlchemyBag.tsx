@@ -1,3 +1,4 @@
+import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { groupAlchemyBagMaterials } from '@shared/inventory/alchemy';
@@ -29,12 +30,17 @@ export function AlchemyBag({
   const groups = groupAlchemyBagMaterials(view?.items ?? []);
   return (
     <div className="space-y-3 text-sm">
-      <header className="flex justify-between">
-        <h3 className="font-medium">储物袋</h3>
-        <span className="text-ink-secondary text-xs">
-          {view?.used ?? '—'} / {view?.capacity ?? 40} 格
-        </span>
-      </header>
+      <InventoryHeader
+        capacity={<>{view?.used ?? '—'} / 40</>}
+        actions={
+          <InkButton
+            disabled={bagQuery.isRefreshing}
+            onClick={() => void bagQuery.reload()}
+          >
+            刷新
+          </InkButton>
+        }
+      />
       <div className="flex gap-3">
         <input
           aria-label="搜索物品"
@@ -43,12 +49,6 @@ export function AlchemyBag({
           onChange={(e) => setSearch(e.target.value)}
           className="border-ink/20 min-w-0 flex-1 border-b bg-transparent p-2 text-sm"
         />
-        <InkButton
-          disabled={bagQuery.isRefreshing}
-          onClick={() => void bagQuery.reload()}
-        >
-          刷新
-        </InkButton>
       </div>
       {error ? (
         <p role="alert">{error}</p>

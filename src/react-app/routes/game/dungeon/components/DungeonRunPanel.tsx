@@ -1,3 +1,4 @@
+import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -142,12 +143,17 @@ export function DungeonRunPanel({
               {readError || '人物资源读取失败，请重新读取后再用药。'}
             </p>
           ) : null}
-          <InkButton
-            disabled={pending || processing}
-            onClick={() => void readInventory()}
-          >
-            {pending ? '正在核实…' : '重新读取'}
-          </InkButton>
+          <InventoryHeader
+            capacity={<>{bag?.used ?? '—'} / 40</>}
+            actions={
+              <InkButton
+                disabled={pending || processing}
+                onClick={() => void readInventory()}
+              >
+                {pending ? '正在核实…' : '重新读取'}
+              </InkButton>
+            }
+          />
           <InventoryItems
             items={bag?.items ?? []}
             slotProps={(item) => {

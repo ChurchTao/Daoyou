@@ -1,3 +1,4 @@
+import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InkButton } from '@app/components/ui/InkButton';
 import { itemDefinition } from '@shared/inventory';
 import { InventoryItems } from '../items/InventoryItems';
@@ -19,12 +20,13 @@ export function ForgingInventory({
 }) {
   return (
     <div className="space-y-3 text-sm">
-      <header className="flex justify-between">
-        <h3 className="font-medium">储物袋</h3>
-        <span className="text-ink-secondary text-xs">
-          已备 {session.total} / {session.cost?.quantity ?? 0}
+      <InventoryHeader capacity={<>{session.inventory?.used ?? '—'} / 40</>} />
+      <p className="text-ink-secondary text-xs">
+        已备{' '}
+        <span className="font-mono">
+          {session.total} / {session.cost?.quantity ?? 0}
         </span>
-      </header>
+      </p>
       <div className="flex gap-4" aria-label="物品类别">
         {(
           [

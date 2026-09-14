@@ -9,6 +9,7 @@ import {
   isQiRestoreTalisman,
   isSectMeridianResetTalisman,
 } from '@app/components/feature/consumables';
+import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -210,34 +211,50 @@ export default function InventoryV6() {
           }}
         />
         <div className="space-y-4">
-          <div className="flex items-center gap-3 text-sm">
-            {(['bag', 'storage'] as const).map((value) => (
-              <button
-                key={value}
+          <InventoryHeader
+            title={
+              <div className="flex flex-wrap gap-3">
+                {(['bag', 'storage'] as const).map((value) => (
+                  <button
+                    key={value}
+                    disabled={pending}
+                    aria-pressed={location === value}
+                    className={
+                      location === value
+                        ? 'text-ink font-semibold underline underline-offset-4'
+                        : 'text-ink-secondary'
+                    }
+                    onClick={() => {
+                      setParams({ location: value });
+                      setPage(0);
+                      setData(undefined);
+                      setMoving(undefined);
+                      setSlotFilter(undefined);
+                    }}
+                  >
+                    {value === 'bag' ? '随身物品' : '洞府储藏室'}
+                  </button>
+                ))}
+              </div>
+            }
+            capacity={
+              location === 'bag'
+                ? `${visibleData?.used ?? '—'} / ${BAG_CAPACITY}`
+                : `${data?.total ?? '—'} 件`
+            }
+            actions={
+              <InkButton
                 disabled={pending}
-                aria-pressed={location === value}
-                className={
-                  location === value
-                    ? 'text-ink font-semibold underline underline-offset-4'
-                    : 'text-ink-secondary'
-                }
                 onClick={() => {
-                  setParams({ location: value });
-                  setPage(0);
+                  void bagQuery.reload();
                   setData(undefined);
-                  setMoving(undefined);
-                  setSlotFilter(undefined);
+                  setRefresh((value) => value + 1);
                 }}
               >
-                {value === 'bag' ? '随身物品' : '洞府储藏室'}
-              </button>
-            ))}
-            <span className="text-ink-secondary ml-auto font-mono text-xs whitespace-nowrap">
-              {location === 'bag'
-                ? `${visibleData?.used ?? '—'} / ${BAG_CAPACITY}`
-                : `${data?.total ?? '—'} 件`}
-            </span>
-          </div>
+                刷新
+              </InkButton>
+            }
+          />
           <div className="flex flex-wrap gap-2">
             <input
               aria-label="搜索物品"
@@ -348,16 +365,6 @@ export default function InventoryV6() {
             />
           )}
           <div className="flex justify-end gap-3">
-            <InkButton
-              disabled={pending}
-              onClick={() => {
-                void bagQuery.reload();
-                setData(undefined);
-                setRefresh((value) => value + 1);
-              }}
-            >
-              刷新
-            </InkButton>
             {location === 'bag' ? (
               <InkButton
                 disabled={unavailable || filtered}

@@ -1,4 +1,5 @@
 import { VaultWithdrawal } from '@app/components/feature/forging/VaultWithdrawal';
+import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
@@ -296,20 +297,20 @@ export default function SpiritFieldPage() {
     );
   const inventory = (
     <div className="space-y-3">
-      <div className="flex items-center justify-between text-sm">
-        <span>
-          随身物品 <span className="font-mono">{bag?.used ?? '—'} / 40</span>
-        </span>
-        <InkButton
-          disabled={busy}
-          onClick={() => {
-            void bagQuery.reload();
-            void refresh();
-          }}
-        >
-          刷新
-        </InkButton>
-      </div>
+      <InventoryHeader
+        capacity={<> {bag?.used ?? '—'} / 40</>}
+        actions={
+          <InkButton
+            disabled={busy}
+            onClick={() => {
+              void bagQuery.reload();
+              void refresh();
+            }}
+          >
+            刷新
+          </InkButton>
+        }
+      />
       {bagQuery.error ? (
         <InkNotice tone="warning">{bagQuery.error}</InkNotice>
       ) : null}
