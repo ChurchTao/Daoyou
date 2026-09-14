@@ -31,7 +31,7 @@ export const AUCTION_TYPE_NAMES: Record<AuctionItemType, string> = {
   equipment: '道装',
   blueprint: '图纸',
   manual_jade: '玉简',
-  beast_book: '兽诀',
+  beast_book: '传承灵印',
   beast_refinement: '灵露',
 };
 export const AuctionListSchema = z

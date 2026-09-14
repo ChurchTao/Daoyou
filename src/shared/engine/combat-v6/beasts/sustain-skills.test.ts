@@ -141,7 +141,7 @@ function barrier(b: ReturnType<typeof create>, id: string, power: number) {
   });
 }
 
-describe('第二批经典兽诀的真实内核交互', () => {
+describe('第二批经典传承灵印的真实内核交互', () => {
   it.each([
     ['beast.lifesteal', 25],
     ['beast.advanced-lifesteal', 30],

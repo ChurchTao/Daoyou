@@ -30,8 +30,8 @@ export function BeastBookDrawer({
   onUpdate: (view: BeastManagementView) => void;
 }) {
   const refining = mode === 'refine';
-  const actionName = refining ? '洗炼' : '学习兽诀';
-  const itemName = refining ? '灵露' : '兽诀';
+  const actionName = refining ? '洗炼' : '领悟传承';
+  const itemName = refining ? '灵露' : '传承灵印';
   const itemKind = refining ? 'beast_refinement' : 'beast_book';
   const { pushToast } = useInkUI();
   const bagQuery = useInventoryBag();
@@ -80,14 +80,20 @@ export function BeastBookDrawer({
       if (dew && item.quantity < dew.consumeQuantity) return '灵露数量不足。';
       return '';
     }
-    if (definition.kind !== 'beast_book') return '此物品不是兽诀。';
-    if (!definition.skillId) return '此兽诀已无法学习。';
+    if (definition.kind !== 'beast_book') return '此物品不是传承灵印。';
+    if (!definition.skillId) return '此灵印已无法用于领悟传承。';
     if (!beast || !roster) return '正在核对灵兽状态。';
     if (!beast.skillSlotCapacity) return '此灵兽没有可用技能格。';
     if (beast.level > roster.ownerLevel) return '灵兽修为超过人物承载上限。';
     if (beast.skills.includes(definition.skillId!)) return '灵兽已拥有此技能。';
     return '';
   }
+  const selectedSkillId = selected
+    ? itemDefinition(selected.definitionId).skillId
+    : undefined;
+  const selectedSkillName = selectedSkillId
+    ? beastSkillPresentation(selectedSkillId).name
+    : undefined;
   const consumeQuantity =
     BEAST_REFINEMENT.items.find((item) => item.id === selected?.definitionId)
       ?.consumeQuantity ?? 1;
@@ -122,7 +128,7 @@ export function BeastBookDrawer({
           ? `已重归初生，技能格 ${result.oldSkillCount} → ${result.newSkillCount}，寿命已恢复。`
           : result.oldSkill
             ? `${beastSkillPresentation(result.oldSkill).name} → ${beastSkillPresentation(result.newSkill!).name}`
-            : `已学会${beastSkillPresentation(result.newSkill!).name}`,
+            : `已领悟${beastSkillPresentation(result.newSkill!).name}`,
         tone: 'success',
       });
       const roster = await combatV6Request<BeastManagementView>(
@@ -161,11 +167,11 @@ export function BeastBookDrawer({
           selected ? (
             <div className="space-y-2 text-sm">
               <p>
-                {refining ? `消耗${consumeQuantity}瓶` : '消耗一本'}
+                {refining ? `消耗${consumeQuantity}瓶` : '消耗1枚'}
                 {itemDefinition(selected.definitionId).name}
                 {refining
                   ? '，重归0级，重新孕育资质、成长与天生技能。'
-                  : '，随机覆盖一个已有技能，结果不可撤销。'}
+                  : `，领悟「${selectedSkillName}」，随机覆盖一个已有技能，结果不可撤销。`}
               </p>
               {!valid ? (
                 <p className="text-ink-secondary">{bookReason(selected)}</p>
@@ -278,13 +284,15 @@ export function BeastBookDrawer({
                 : '归元灵露'}
               将消耗{consumeQuantity}瓶。
               修为回到初始境界，经验与加点归零，资质、成长及全部技能重新生成，技能格可能减少。
-              原兽诀不返还，当前寿命恢复至原上限，结果不可撤销。
+              原传承灵印不返还，当前寿命恢复至原上限，结果不可撤销。
             </>
           ) : (
             <>
-              为{beast?.name}学习将消耗一本
-              {selected ? itemDefinition(selected.definitionId).name : '兽诀'}，
-              随机替换该灵兽已有技能中的一个，结果不可撤销。确定学习吗？
+              为{beast?.name}领悟「{selectedSkillName}」将消耗1枚
+              {selected
+                ? itemDefinition(selected.definitionId).name
+                : '传承灵印'}
+              ， 随机替换该灵兽已有技能中的一个，结果不可撤销。确定领悟吗？
             </>
           )}
         </p>

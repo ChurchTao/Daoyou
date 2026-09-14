@@ -1,5 +1,5 @@
 /**
- * 把技能表里的 hooks 绑到 HookBus。连击/反击/反震走这里，不要在引擎里写兽决 id。
+ * 把技能表里的 hooks 绑到 HookBus。连击/反击/反震走这里，不要在引擎里写传承灵印 id。
  * suppressHooks 期间的打击不再触发 afterHit/onBeHit，避免连击连环、反击反震互爆。
  */
 import type { BattleContext } from "./context.ts"

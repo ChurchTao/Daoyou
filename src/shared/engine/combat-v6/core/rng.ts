@@ -1,6 +1,6 @@
 /**
  * mulberry32：战斗内核唯一随机源。
- * 公式、命中、兽决概率都必须走这里，禁止 Math.random，否则录像无法对拍。
+ * 公式、命中、传承灵印概率都必须走这里，禁止 Math.random，否则录像无法对拍。
  */
 export class SeededRng {
   private s: number

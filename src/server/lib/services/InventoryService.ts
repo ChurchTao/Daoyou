@@ -504,7 +504,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
             });
           } else if (input.action === 'learn') {
             if (item.location !== 'bag')
-              throw new InventoryError('请先从储藏室取出兽诀');
+              throw new InventoryError('请先从储藏室取出传承灵印');
             const roster = await readBeastRoster(owner, tx);
             const beast = roster.beasts.find(
               (b) =>

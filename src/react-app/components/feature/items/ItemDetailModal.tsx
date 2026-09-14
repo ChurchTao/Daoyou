@@ -4,10 +4,8 @@ import {
   toProductDisplayModel,
   type ProductRecordLike,
 } from '@app/components/feature/products';
-import { InkBadge } from '@app/components/ui/InkBadge';
+import { InkModal } from '@app/components/layout';
 import { ItemShowcaseModal } from '@app/components/ui/ItemShowcaseModal';
-import { consumableFactsOf } from '@shared/items/definitions/consumables';
-import { getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type {
@@ -16,8 +14,8 @@ import type {
   Material,
   Skill,
 } from '@shared/types/cultivator';
-import { ConsumableDetails } from './ConsumableDetails';
 import type { ItemDetailPayload } from './itemDetailPayload';
+import { ItemPreview } from './ItemPreview';
 
 interface ItemDetailModalProps {
   isOpen: boolean;
@@ -25,15 +23,6 @@ interface ItemDetailModalProps {
   item: ItemDetailPayload | null;
   viewerRealm?: RealmType;
   viewerCondition?: CultivatorCondition;
-}
-
-function QuantityInfo({ quantity }: { quantity: number }) {
-  return (
-    <div className="border-border/50 flex justify-between border-b pb-2">
-      <span className="opacity-70">持有数量</span>
-      <span className="font-bold">{quantity}</span>
-    </div>
-  );
 }
 
 export function ItemDetailModal({
@@ -93,29 +82,7 @@ export function ItemDetailModal({
     );
   }
 
-  if (item.kind === 'inventory-consumable') {
-    return (
-      <ItemShowcaseModal
-        isOpen
-        onClose={onClose}
-        icon="🌕"
-        name={item.item.name}
-        badges={[
-          <InkBadge key="quality" tier={item.item.quality}>
-            丹药
-          </InkBadge>,
-        ]}
-        extraInfo={<QuantityInfo quantity={item.item.quantity} />}
-        footer={
-          <ConsumableDetails
-            data={consumableFactsOf(item.item)}
-            quantity={item.item.quantity}
-          />
-        }
-      />
-    );
-  }
-  if (item.kind === 'consumable') {
+  if (item.kind === 'consumable' || item.kind === 'inventory-consumable') {
     return (
       <ConsumableDetailModal
         isOpen
@@ -128,30 +95,23 @@ export function ItemDetailModal({
   }
 
   const material = item.item as Material;
-  const typeInfo = getMaterialTypeInfo(material.type);
-  const badges = [
-    <InkBadge key="type" tier={material.rank}>
-      {typeInfo.label}
-    </InkBadge>,
-  ];
-  if (material.element) {
-    badges.push(
-      <InkBadge key="e" tone="default">
-        {material.element}
-      </InkBadge>,
-    );
-  }
-
   return (
-    <ItemShowcaseModal
-      isOpen
-      onClose={onClose}
-      icon={typeInfo.icon}
-      name={material.name}
-      badges={badges}
-      extraInfo={<QuantityInfo quantity={material.quantity} />}
-      description={material.description}
-      descriptionTitle="物品说明"
-    />
+    <InkModal isOpen onClose={onClose}>
+      <ItemPreview
+        item={{
+          name: material.name,
+          quantity: material.quantity,
+          definitionId: material.type === 'seed' ? 'seed.v1' : 'material.v1',
+          instanceData: {
+            name: material.name,
+            type: material.type,
+            rank: material.rank,
+            element: material.element ?? null,
+            description: material.description ?? '',
+          },
+        }}
+        close={onClose}
+      />
+    </InkModal>
   );
 }

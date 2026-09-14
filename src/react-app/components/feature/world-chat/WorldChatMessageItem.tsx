@@ -1,5 +1,4 @@
-import { EquipmentDetails } from '@app/components/feature/forging/EquipmentDetails';
-import { ConsumableDetails } from '@app/components/feature/items/ConsumableDetails';
+import { ItemPreview } from '@app/components/feature/items/ItemPreview';
 import { itemPresentation } from '@app/components/feature/items/itemPresentation';
 import { InkModal } from '@app/components/layout';
 import type { Tier } from '@app/components/ui/InkBadge';
@@ -197,33 +196,12 @@ export function WorldChatMessageItem({
         </div>
       </div>
       {showcaseData ? (
-        <InkModal
-          isOpen={detailOpen}
-          onClose={() => setDetailOpen(false)}
-          title={showcaseData.name}
-        >
-          <div className="space-y-3 text-sm">
-            <p className="text-ink-secondary">
-              发送时的物品状态 · 数量{' '}
-              <span className="font-mono">{showcaseData.quantity}</span>
-            </p>
-            <p className={showcaseData.presentation.color}>
-              {showcaseData.presentation.type} ·{' '}
-              {showcaseData.presentation.tier}
-            </p>
-            {showcaseData.definitionId === 'equipment.v6' ? (
-              <EquipmentDetails data={showcaseData.instanceData} />
-            ) : showcaseData.definitionId === 'consumable.v1' ? (
-              <ConsumableDetails
-                data={showcaseData.instanceData}
-                quantity={showcaseData.quantity}
-              />
-            ) : (
-              <p className="whitespace-pre-line">
-                {showcaseData.presentation.description}
-              </p>
-            )}
-          </div>
+        <InkModal isOpen={detailOpen} onClose={() => setDetailOpen(false)}>
+          <ItemPreview
+            item={showcaseData}
+            close={() => setDetailOpen(false)}
+            context="发送时的物品状态"
+          />
         </InkModal>
       ) : null}
     </>

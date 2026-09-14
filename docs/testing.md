@@ -56,7 +56,7 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 }
 ```
 
-新库存材料使用 `type: item`、`definitionId: material.v1`、`instanceData: { name, type, rank, element?, description? }`。兽诀使用注册的定义 ID；随机道装使用 `{ "type": "equipment", "slot": "weapon", "level": 10 }`。全部定义在 `src/shared/items/definitions`，参数边界见 `src/shared/contracts/forging.ts`。
+新库存材料使用 `type: item`、`definitionId: material.v1`、`instanceData: { name, type, rank, element?, description? }`。传承灵印使用注册的定义 ID；随机道装使用 `{ "type": "equipment", "slot": "weapon", "level": 10 }`。全部定义在 `src/shared/items/definitions`，参数边界见 `src/shared/contracts/forging.ts`。
 
 旧丹药／消耗品验收可提交 `{ "type": "vault-consumable", "facts": { name, type, quality, description, prompt, score, spec }, "quantity": 2 }`，facts 须符合 `ConsumableFactsSchema`，quantity 为 1–3960；沿用历史消耗品发放入口写入洞府宝库，再通过正式取出操作转换。新版消耗品直接发放使用 `type: item`、`definitionId: consumable.v1` 及同一完整 facts 作为 instanceData。该能力仍只在纯本地开放。
 

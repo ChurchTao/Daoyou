@@ -289,7 +289,7 @@ export function restoreBattle(
   })
 }
 
-/** 开打入口。技能表同 id 后写覆盖（测试覆盖兽决概率）；单位 id 不可重复。 */
+/** 开打入口。技能表同 id 后写覆盖（测试覆盖传承灵印概率）；单位 id 不可重复。 */
 export function createBattle(input: CreateBattleInput): BattleSession {
   validateLineup(input.units)
   return new BattleSession(input)

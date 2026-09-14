@@ -3,7 +3,7 @@ import { Team } from "./enums.ts"
 import type { LineupUnit } from "./types.ts"
 
 /**
- * 开打前的入场校验。技能表允许同 id 后写覆盖（测试覆盖兽决概率），单位 id 不允许重复。
+ * 开打前的入场校验。技能表允许同 id 后写覆盖（测试覆盖传承灵印概率），单位 id 不允许重复。
  */
 export function validateLineup(units: LineupUnit[]): void {
   if (units.length === 0) {

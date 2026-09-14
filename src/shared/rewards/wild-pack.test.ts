@@ -11,14 +11,14 @@ import { QINGXI_POOL_V2, wildItemRewards } from './wild';
 const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 describe('野外奖励数据包', () => {
   it('Schema 同步', () => expect(z.toJSONSchema(WildRewardPackShape, { reused: 'ref' })).toEqual(schema));
-  it('移除demo兽诀后新池在512个种子下保持确定性', () => {
+  it('移除demo传承灵印后新池在512个种子下保持确定性', () => {
     const run = () => Array.from({length:512}, (_,seed)=>{
       const rng = new SeededRng(seed);
       return wildItemRewards(QINGXI_POOL_V2,()=>()=>rng.next(),group=>`baseline-${seed}-${group}`,'2026-09-11T00:00:00Z');
     });
     expect(hash(run())).toBe(hash(run()));
   });
-  it('全部已注册兽诀可从扩展池掉落，兽诀组概率仍为3%', () => {
+  it('全部已注册传承灵印可从扩展池掉落，传承灵印组概率仍为3%', () => {
     const group = QINGXI_POOL_V2.groups.find((entry) => entry.id === 'books')!;
     expect(group.chance).toBe(0.03);
     expect(group.entries.map((entry) => entry.rewardId)).toEqual(BOOKS.map((book) => book.id));

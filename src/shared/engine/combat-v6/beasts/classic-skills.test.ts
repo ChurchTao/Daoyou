@@ -101,7 +101,7 @@ function attack(passives: string[], spell = false, seed = 1) {
   return b.log();
 }
 
-describe('经典兽诀首批', () => {
+describe('经典传承灵印首批', () => {
   it.each(BEAST_SKILL_FAMILIES)(
     '$advanced suppresses its normal family in projection',
     ({ normal, advanced }) => {
@@ -259,7 +259,7 @@ describe('经典兽诀首批', () => {
     },
   );
 
-  it('每本新兽诀都具备玩家可理解的效果说明', () => {
+  it('每本新传承灵印都具备玩家可理解的效果说明', () => {
     const details = combatV6SkillDetails(BEAST_SKILLS, []);
     for (const skill of BEAST_SKILLS.slice(5)) {
       expect(details[skill.id].description).not.toContain('依技能条件触发');

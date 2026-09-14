@@ -284,7 +284,7 @@ export function BeastPanel({
           <h3 className="text-teal text-sm">技能</h3>
           <div className="flex items-center gap-2">
             <InkButton disabled={pending} onClick={learn}>
-              学习兽诀
+              领悟传承
             </InkButton>
             <InkButton disabled={pending} onClick={refine}>
               洗炼

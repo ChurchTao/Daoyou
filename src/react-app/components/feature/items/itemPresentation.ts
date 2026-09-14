@@ -30,21 +30,22 @@ function levelTier(level: number) {
   return { color: tierColorMap[realm], tier: realm };
 }
 export function itemPresentation(item: DisplayItem) {
-  if (item.definitionId === 'seed.v1') {
-    const facts = item.instanceData as {
-      rank: keyof typeof tierColorMap;
-      description?: string;
-    };
-    return {
-      icon: '🌱',
-      color: tierColorMap[facts.rank],
-      tier: facts.rank,
-      type: '种子',
-      description: facts.description ?? '',
-    };
-  }
   const def = itemDefinition(item.definitionId);
   switch (def.kind) {
+    case 'seed': {
+      const facts = item.instanceData as {
+        rank: keyof typeof tierColorMap;
+        description?: string;
+      };
+      return {
+        icon: '🌱',
+        color: tierColorMap[facts.rank],
+        tier: facts.rank,
+        type: '种子',
+        description: facts.description ?? '',
+      };
+    }
+
     case 'consumable': {
       const facts = ConsumableFactsSchema.parse(item.instanceData);
       return {
@@ -99,13 +100,21 @@ export function itemPresentation(item: DisplayItem) {
     case 'beast_book': {
       const skill = beastSkillPresentation(def.skillId!);
       const advanced = skill.style === 'advanced';
+      const introduction = advanced
+        ? '封存着更为精深的妖灵传承，可助灵兽领悟其中的本领。'
+        : '封存着妖灵传承的灵念，可助灵兽领悟其中的本领。';
       return {
         icon: advanced ? '📕' : '📘',
         color: tierColorMap[advanced ? '玄品' : '凡品'],
         tier:
-          skill.style === 'unavailable' ? '已失效' : advanced ? '高级' : '普通',
-        type: '兽诀',
-        description: `蕴有${advanced ? '更深的' : ''}天赋感悟，可助灵兽领悟「${skill.name}」。\n${skill.description}\n学习消耗一本，随机覆盖一个已有技能，结果不可撤销。同系普通与高级技能同时存在时仅高级生效。`,
+          skill.style === 'unavailable' ? '已失效' : advanced ? '上品' : '普通',
+        type: '传承灵印',
+        description: `${introduction}\n所载传承：${skill.name}\n${skill.description}`,
+        inheritance: {
+          introduction,
+          name: skill.name,
+          description: skill.description,
+        },
       };
     }
     case 'manual_jade':

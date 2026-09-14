@@ -29,6 +29,29 @@ const item = (slotIndex = 0, quantity = 1): InventoryItem => ({
   revision: 0,
 });
 describe('inventory capacity and immutable facts', () => {
+  it('同名灵印仍按所载传承分别堆叠，普通与上品不会合并', () => {
+    const definitions = [
+      'book.beast.combo',
+      'book.beast.counter',
+      'book.beast.advanced-combo',
+    ];
+    expect(
+      definitions.map((id) => BOOKS.find((book) => book.id === id)!.name),
+    ).toEqual(['传承灵印', '传承灵印', '上品传承灵印']);
+    const entries = definitions.flatMap((definitionId, i) =>
+      [0, 1].map((offset) => ({
+        ...item(i * 2 + offset, 2),
+        definitionId,
+        stackKey: `definition.v1:${definitionId}`,
+      })),
+    );
+    const merged = sortBag(entries);
+    expect(merged).toHaveLength(3);
+    expect(merged.map((entry) => entry.definitionId).sort()).toEqual(
+      [...definitions].sort(),
+    );
+    expect(merged.every((entry) => entry.quantity === 4)).toBe(true);
+  });
   it('sorts and merges without losing quantity or changing stored items', () => {
     const stored = {
       ...item(5, 5),

@@ -6,8 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { EquipmentDetails } from '../forging/EquipmentDetails';
-import { ConsumableDetails } from './ConsumableDetails';
+import { ItemPreview } from './ItemPreview';
 import { itemPresentation, type DisplayItem } from './itemPresentation';
 
 export function InventoryGrid({
@@ -227,65 +226,13 @@ export function ItemSlot({
         className="bg-bgpaper text-ink border-ink/30 fixed inset-auto m-0 w-80 overflow-y-auto overscroll-contain border p-4 text-sm leading-6 [overflow-wrap:anywhere] shadow-xl"
       >
         {open && item && presentation ? (
-          <>
-            <header className="border-ink/15 mb-3 flex items-start gap-3 border-b pb-3">
-              <span aria-hidden="true" className="text-3xl">
-                {presentation.icon}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className={cn('font-medium', presentation.color)}>
-                  {item.name}
-                </p>
-                <p className="text-ink-secondary text-xs">
-                  {[
-                    presentation.type,
-                    presentation.tier,
-                    `${quantityLabel} ${item.quantity}`,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </p>
-              </div>
-              <button
-                type="button"
-                aria-label="关闭物品预览"
-                onClick={close}
-                className="min-h-9 min-w-9 cursor-pointer"
-              >
-                ×
-              </button>
-            </header>
-            {item.definitionId === 'equipment.v6' ? (
-              <>
-                <EquipmentDetails data={item.instanceData} />
-                {comparisonItem ? (
-                  <details className="border-ink/15 mt-3 border-t pt-3">
-                    <summary className="text-ink-secondary cursor-pointer">
-                      与已穿戴的{comparisonItem.name}对比
-                    </summary>
-                    <div className="mt-3">
-                      <EquipmentDetails
-                        data={item.instanceData}
-                        previous={comparisonItem.instanceData}
-                      />
-                    </div>
-                  </details>
-                ) : null}
-              </>
-            ) : item.definitionId === 'consumable.v1' ? (
-              <ConsumableDetails
-                data={item.instanceData}
-                quantity={item.quantity}
-              />
-            ) : (
-              <p className="whitespace-pre-line">{presentation.description}</p>
-            )}
-            {children ? (
-              <div className="border-ink/15 mt-3 space-y-3 border-t pt-3">
-                {children(() => setOpen(false))}
-              </div>
-            ) : null}
-          </>
+          <ItemPreview
+            item={item}
+            comparisonItem={comparisonItem}
+            quantityLabel={quantityLabel}
+            close={close}
+            actions={children?.(() => setOpen(false))}
+          />
         ) : null}
       </div>
     </>
