@@ -28,7 +28,7 @@
 
 完整清单、修仙名、数值及后续8种的证据缺口与确认适配见 [器诀精修规格](../../../../../../docs/combat-v6-equipment-arts-refinement.md)。现共38种（首批30种＋后续8种），取代9种Demo器诀；没有旧装备，不新增器诀数据迁移。
 
-`arts` 定义稳定ID、修仙名称、原名对照 `sourceName`、参数化 `description`、`skillId`、战意 `rageCost`、目标 `target` 和类型化 `effect`。目标支持自身、友方单体／全体、敌方单体／全体。原名只供策划对照，玩家界面使用修仙名称。
+`arts` 定义稳定ID、修仙名称、参数化 `description`、`skillId`、战意 `rageCost`、目标 `target` 和类型化 `effect`。目标支持自身、友方单体／全体、敌方单体／全体。原版名称与设计解释仅记录在精修规格文档中，不进入运行时配置；玩家界面使用修仙名称。
 
 | effect.type | 参数 | 结算 |
 | --- | --- | --- |

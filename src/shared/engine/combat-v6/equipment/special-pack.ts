@@ -141,7 +141,6 @@ export const EquipmentSpecialPackShape = z.strictObject({
         name: text,
         allowedSlots: slots,
         skillId: z.string().regex(/^dao_equipment\.skill\.[a-z][a-z0-9_]*$/),
-        sourceName: text,
         description: text,
         target: z.enum(['self', 'ally', 'allies', 'enemy', 'enemies']),
         rageCost: z.number().int().min(0).max(1_000_000),

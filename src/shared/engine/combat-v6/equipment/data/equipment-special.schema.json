@@ -357,10 +357,6 @@
             "type": "string",
             "pattern": "^dao_equipment\\.skill\\.[a-z][a-z0-9_]*$"
           },
-          "sourceName": {
-            "type": "string",
-            "minLength": 1
-          },
           "description": {
             "type": "string",
             "minLength": 1
@@ -685,7 +681,6 @@
           "id",
           "name",
           "skillId",
-          "sourceName",
           "description",
           "target",
           "rageCost",

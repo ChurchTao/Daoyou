@@ -1,7 +1,7 @@
 {
   "$schema": "./equipment-special.schema.json",
   "formatVersion": 1,
-  "contentRevision": 4,
+  "contentRevision": 6,
   "essences": [
     {
       "id": "dao_equipment.essence.cangfeng",
@@ -169,7 +169,6 @@
     {
       "id": "dao_equipment.art.huiyuan",
       "name": "回元诀",
-      "sourceName": "气疗术",
       "skillId": "dao_equipment.skill.huiyuan",
       "rageCost": 30,
       "target": "ally",
@@ -182,7 +181,6 @@
     {
       "id": "dao_equipment.art.yangyuan",
       "name": "养元诀",
-      "sourceName": "心疗术",
       "skillId": "dao_equipment.skill.yangyuan",
       "rageCost": 60,
       "target": "ally",
@@ -195,7 +193,6 @@
     {
       "id": "dao_equipment.art.xuming",
       "name": "续命诀",
-      "sourceName": "命疗术",
       "skillId": "dao_equipment.skill.xuming",
       "rageCost": 90,
       "target": "ally",
@@ -208,7 +205,6 @@
     {
       "id": "dao_equipment.art.baoyuan",
       "name": "抱元诀",
-      "sourceName": "气归术",
       "skillId": "dao_equipment.skill.baoyuan",
       "rageCost": 60,
       "target": "self",
@@ -221,7 +217,6 @@
     {
       "id": "dao_equipment.art.guizhen",
       "name": "归真诀",
-      "sourceName": "命归术",
       "skillId": "dao_equipment.skill.guizhen",
       "rageCost": 130,
       "target": "self",
@@ -234,7 +229,6 @@
     {
       "id": "dao_equipment.art.huanhun",
       "name": "还魂诀",
-      "sourceName": "回魂咒",
       "skillId": "dao_equipment.skill.huanhun",
       "rageCost": 80,
       "target": "ally",
@@ -247,7 +241,6 @@
     {
       "id": "dao_equipment.art.qingxin",
       "name": "清心诀",
-      "sourceName": "水清诀",
       "skillId": "dao_equipment.skill.qingxin",
       "rageCost": 50,
       "target": "ally",
@@ -269,7 +262,6 @@
     {
       "id": "dao_equipment.art.dichen",
       "name": "涤尘诀",
-      "sourceName": "冰清诀",
       "skillId": "dao_equipment.skill.dichen",
       "rageCost": 100,
       "target": "ally",
@@ -291,7 +283,6 @@
     {
       "id": "dao_equipment.art.taiqing",
       "name": "太清诀",
-      "sourceName": "玉清诀",
       "skillId": "dao_equipment.skill.taiqing",
       "rageCost": 125,
       "target": "allies",
@@ -313,7 +304,6 @@
     {
       "id": "dao_equipment.art.chengtian",
       "name": "澄天诀",
-      "sourceName": "晶清诀",
       "skillId": "dao_equipment.skill.chengtian",
       "rageCost": 150,
       "target": "allies",
@@ -334,8 +324,7 @@
     },
     {
       "id": "dao_equipment.art.cuozhi",
-      "name": "挫志诀",
-      "sourceName": "笑里藏刀",
+      "name": "一念成空",
       "skillId": "dao_equipment.skill.cuozhi",
       "rageCost": 40,
       "target": "enemy",
@@ -347,8 +336,7 @@
     },
     {
       "id": "dao_equipment.art.hanyue",
-      "name": "撼岳诀",
-      "sourceName": "野兽之力",
+      "name": "巨力术",
       "skillId": "dao_equipment.skill.hanyue",
       "rageCost": 40,
       "target": "ally",
@@ -364,8 +352,7 @@
     },
     {
       "id": "dao_equipment.art.hanyueyin",
-      "name": "撼岳法印",
-      "sourceName": "魔兽之印",
+      "name": "天罡助威",
       "skillId": "dao_equipment.skill.hanyueyin",
       "rageCost": 60,
       "target": "allies",
@@ -381,8 +368,7 @@
     },
     {
       "id": "dao_equipment.art.huti",
-      "name": "护体诀",
-      "sourceName": "光辉之甲",
+      "name": "金甲术",
       "skillId": "dao_equipment.skill.huti",
       "rageCost": 40,
       "target": "ally",
@@ -398,8 +384,7 @@
     },
     {
       "id": "dao_equipment.art.hutiyin",
-      "name": "护体法印",
-      "sourceName": "圣灵之甲",
+      "name": "金鳞护阵",
       "skillId": "dao_equipment.skill.hutiyin",
       "rageCost": 60,
       "target": "allies",
@@ -415,8 +400,7 @@
     },
     {
       "id": "dao_equipment.art.lianfeng",
-      "name": "敛锋诀",
-      "sourceName": "放下屠刀",
+      "name": "镇岳印",
       "skillId": "dao_equipment.skill.lianfeng",
       "rageCost": 30,
       "target": "enemy",
@@ -432,8 +416,7 @@
     },
     {
       "id": "dao_equipment.art.lianfengyin",
-      "name": "敛锋法印",
-      "sourceName": "河东狮吼",
+      "name": "消兵化锋",
       "skillId": "dao_equipment.skill.lianfengyin",
       "rageCost": 60,
       "target": "enemies",
@@ -450,7 +433,6 @@
     {
       "id": "dao_equipment.art.liejia",
       "name": "裂甲诀",
-      "sourceName": "破甲术",
       "skillId": "dao_equipment.skill.liejia",
       "rageCost": 35,
       "target": "enemy",
@@ -466,8 +448,7 @@
     },
     {
       "id": "dao_equipment.art.liejiayin",
-      "name": "裂甲法印",
-      "sourceName": "碎甲术",
+      "name": "裂甲术",
       "skillId": "dao_equipment.skill.liejiayin",
       "rageCost": 60,
       "target": "enemies",
@@ -483,8 +464,7 @@
     },
     {
       "id": "dao_equipment.art.xuanling",
-      "name": "玄灵护体",
-      "sourceName": "太极护法",
+      "name": "两仪化法",
       "skillId": "dao_equipment.skill.xuanling",
       "rageCost": 60,
       "target": "ally",
@@ -500,8 +480,7 @@
     },
     {
       "id": "dao_equipment.art.xuantian",
-      "name": "玄天法障",
-      "sourceName": "罗汉金钟",
+      "name": "青莲庇世",
       "skillId": "dao_equipment.skill.xuantian",
       "rageCost": 150,
       "target": "allies",
@@ -517,8 +496,7 @@
     },
     {
       "id": "dao_equipment.art.fuying",
-      "name": "缚影诀",
-      "sourceName": "凝滞术",
+      "name": "凝滞术",
       "skillId": "dao_equipment.skill.fuying",
       "rageCost": 40,
       "target": "enemy",
@@ -534,8 +512,7 @@
     },
     {
       "id": "dao_equipment.art.fuyingyin",
-      "name": "缚影法印",
-      "sourceName": "停陷术",
+      "name": "元磁重域",
       "skillId": "dao_equipment.skill.fuyingyin",
       "rageCost": 60,
       "target": "enemies",
@@ -552,7 +529,6 @@
     {
       "id": "dao_equipment.art.yufeng",
       "name": "御风诀",
-      "sourceName": "流云诀",
       "skillId": "dao_equipment.skill.yufeng",
       "rageCost": 40,
       "target": "ally",
@@ -568,8 +544,7 @@
     },
     {
       "id": "dao_equipment.art.yufengyin",
-      "name": "御风法印",
-      "sourceName": "啸风诀",
+      "name": "御风术",
       "skillId": "dao_equipment.skill.yufengyin",
       "rageCost": 60,
       "target": "allies",
@@ -585,8 +560,7 @@
     },
     {
       "id": "dao_equipment.art.lingyan",
-      "name": "灵焰诀",
-      "sourceName": "凤舞九天",
+      "name": "青冥一气",
       "skillId": "dao_equipment.skill.lingyan",
       "rageCost": 40,
       "target": "ally",
@@ -602,8 +576,7 @@
     },
     {
       "id": "dao_equipment.art.jifa",
-      "name": "寂法诀",
-      "sourceName": "立地成佛",
+      "name": "抑灵咒",
       "skillId": "dao_equipment.skill.jifa",
       "rageCost": 30,
       "target": "enemy",
@@ -619,8 +592,7 @@
     },
     {
       "id": "dao_equipment.art.kurong",
-      "name": "枯荣咒",
-      "sourceName": "凋零曲",
+      "name": "蚀灵咒",
       "skillId": "dao_equipment.skill.kurong",
       "rageCost": 125,
       "target": "enemies",
@@ -636,8 +608,7 @@
     },
     {
       "id": "dao_equipment.art.diefeng",
-      "name": "叠锋斩",
-      "sourceName": "破血狂攻",
+      "name": "双剑合璧",
       "skillId": "dao_equipment.skill.diefeng",
       "rageCost": 80,
       "target": "enemy",
@@ -653,8 +624,7 @@
     },
     {
       "id": "dao_equipment.art.sandie",
-      "name": "三叠灵音",
-      "sourceName": "琴音三叠",
+      "name": "三叠仙音",
       "skillId": "dao_equipment.skill.sandie",
       "rageCost": 60,
       "target": "enemy",
@@ -667,12 +637,11 @@
           1
         ]
       },
-      "description": "法宝鸣动三叠灵音，对敌方单体连续{hits}次法术攻击，每段伤害结果依次为{segments}；目标倒地则停止，不转移目标。"
+      "description": "法宝鸣动三叠仙音，对敌方单体连续{hits}次法术攻击，每段伤害结果依次为{segments}；目标倒地则停止，不转移目标。"
     },
     {
       "id": "dao_equipment.art.juling",
       "name": "聚灵诀",
-      "sourceName": "凝气诀",
       "skillId": "dao_equipment.skill.juling",
       "rageCost": 60,
       "target": "self",
@@ -686,7 +655,6 @@
     {
       "id": "dao_equipment.art.wanxiang",
       "name": "万象归灵",
-      "sourceName": "凝神诀",
       "skillId": "dao_equipment.skill.wanxiang",
       "rageCost": 150,
       "target": "allies",
@@ -700,8 +668,7 @@
     },
     {
       "id": "dao_equipment.art.zebei",
-      "name": "泽被苍生",
-      "sourceName": "四海升平",
+      "name": "玉露回春",
       "skillId": "dao_equipment.skill.zebei",
       "rageCost": 135,
       "target": "allies",
@@ -715,7 +682,6 @@
     {
       "id": "dao_equipment.art.niming",
       "name": "逆命诀",
-      "sourceName": "起死回生",
       "skillId": "dao_equipment.skill.niming",
       "rageCost": 120,
       "target": "ally",
@@ -729,7 +695,6 @@
     {
       "id": "dao_equipment.art.due",
       "name": "渡厄归生",
-      "sourceName": "慈航普度",
       "skillId": "dao_equipment.skill.due",
       "rageCost": 150,
       "target": "allies",
@@ -743,8 +708,7 @@
     },
     {
       "id": "dao_equipment.art.dongxu",
-      "name": "洞虚破甲",
-      "sourceName": "弱点击破",
+      "name": "洞金指",
       "skillId": "dao_equipment.skill.dongxu",
       "rageCost": 50,
       "target": "enemy",
@@ -761,7 +725,6 @@
     {
       "id": "dao_equipment.art.cuiling",
       "name": "摧灵斩",
-      "sourceName": "破碎无双",
       "skillId": "dao_equipment.skill.cuiling",
       "rageCost": 80,
       "target": "enemy",
@@ -778,7 +741,6 @@
     {
       "id": "dao_equipment.art.dangchen",
       "name": "荡尘咒",
-      "sourceName": "散失咒",
       "skillId": "dao_equipment.skill.dangchen",
       "rageCost": 125,
       "target": "enemies",
