@@ -6,19 +6,19 @@ import {
   gainBeastExp,
   generateCapturedBeast,
 } from './progression';
-// V2 generation baseline: approved core/candidate births and unallocated points (species revision 5); aptitude/growth draw order is unchanged.
+// V2 generation baseline: approved core/candidate births and unallocated points (species revision 6: SVG avatars; only generationContentRevision changes); aptitude/growth draw order is unchanged.
 const baseline = [
   {
     speciesId: 'combat.wild.species.spirit-fox',
-    hash: '0240bcd569f55a04872b21be2db3f72982141cd133ddf34df5aea109c137825c',
+    hash: '3f85816daec5a1f9e315947f18363aeb52735b0aa1d453f2e0e617ecc4c44d8a',
   },
   {
     speciesId: 'combat.wild.species.rock-boar',
-    hash: '44cbbd23f0b6bc445c0583a3700fae5c37b15f9a4f0e2dea62a06ed77f261a18',
+    hash: 'd41fb49d3e0d4c5202b05e75fbe0899f1973a464d5f6c69287284ac4c1bc6abe',
   },
   {
     speciesId: 'combat.wild.species.wind-wolf',
-    hash: '7fb18e220fc07f3e3a1baa07090028c864bab8c00cee543a97dd70ef8a6f4ff4',
+    hash: 'f53f409b4972f3f9fe087b69734b74687607bb9a07fd3ba6667005cea0c53466',
   },
 ];
 function digest(speciesId: string) {

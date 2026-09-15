@@ -69,11 +69,13 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'body-cultivation',
         sceneLabel: '肉身炼体',
         href: '/game/body-cultivation',
+        expandedDockLabel: '🥋 肉身炼体',
       },
       {
         id: 'marrow-wash',
         sceneLabel: '洗髓池',
         href: '/game/marrow-wash',
+        expandedDockLabel: '🫧 洗髓池',
       },
       {
         id: 'retreat',

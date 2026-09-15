@@ -1,4 +1,5 @@
 import { AttributeAllocation } from '@app/components/feature/attributes/AttributeAllocation';
+import { BeastIcon } from '@app/components/feature/beasts/BeastIcon';
 import { BeastSkillGrid } from '@app/components/feature/beasts/BeastSkillGrid';
 import { InkModal } from '@app/components/layout/InkModal';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -21,9 +22,6 @@ import { useState } from 'react';
 import type { BeastAction } from './BeastActionDrawer';
 
 const species = new Map(BEAST_SPECIES.map((s) => [s.id as string, s]));
-export function BeastIcon({ speciesId }: { speciesId: string }) {
-  return species.get(speciesId)?.icon ?? '🐾';
-}
 
 export function BeastLeadSeal() {
   return (

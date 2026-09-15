@@ -255,7 +255,10 @@ export function CultivatorStatsPanel({
             {mainStats.map(renderStat)}
           </dl>
           {editing && spent > 0 ? (
-            <div className="mt-2 space-y-2 text-xs" aria-live="polite">
+            <div
+              className="mt-2 hidden space-y-2 text-xs md:block"
+              aria-live="polite"
+            >
               {preview?.error ? (
                 <p className="text-crimson">{preview.error}</p>
               ) : !preview?.data ? (
@@ -334,6 +337,32 @@ export function CultivatorStatsPanel({
               </div>
             ))}
           </dl>
+          {editing && spent > 0 ? (
+            <div
+              className="mt-3 space-y-2 text-xs md:hidden"
+              aria-live="polite"
+            >
+              {preview?.error ? (
+                <p className="text-crimson">{preview.error}</p>
+              ) : !preview?.data ? (
+                <p className="text-ink-secondary">正在推演属性……</p>
+              ) : (
+                <>
+                  <p className="text-teal">加点预览</p>
+                  <dl>
+                    {groups
+                      .flatMap((group) => group.keys)
+                      .filter(
+                        (key) =>
+                          preview.data!.current[key] !==
+                          preview.data!.preview[key],
+                      )
+                      .map(renderStat)}
+                  </dl>
+                </>
+              )}
+            </div>
+          ) : null}
           <div className="border-ink/10 mt-2 flex flex-wrap items-center justify-between gap-3 border-t pt-3 text-xs">
             <span className="text-ink-secondary" aria-live="polite">
               {editing ? '剩余' : '可分配'}{' '}

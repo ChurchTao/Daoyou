@@ -1,3 +1,4 @@
+import { BeastIcon } from '@app/components/feature/beasts/BeastIcon';
 import {
   combatV6Request,
   mutationBody,
@@ -14,7 +15,7 @@ import { beastRealm } from '@shared/engine/combat-v6/beasts/projection';
 import { useEffect, useRef, useState } from 'react';
 import { BeastActionDrawer, type BeastAction } from './BeastActionDrawer';
 import { BeastBookDrawer } from './BeastBookDrawer';
-import { BeastIcon, BeastLeadSeal, BeastPanel } from './BeastPanel';
+import { BeastLeadSeal, BeastPanel } from './BeastPanel';
 
 const base = '/api/combat-v6/beasts';
 export default function BeastsPage() {
