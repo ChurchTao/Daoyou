@@ -1,0 +1,135 @@
+import { diffUnits } from '@shared/combat-v6/playback';
+import type {
+  CombatV6TrainingSessionViewV1,
+  CombatV6TrainingUnitViewV1,
+} from '@shared/contracts/combatV6';
+import type {
+  BattleEvent,
+  BattleState,
+  SkillDef,
+  StatusDef,
+} from '@shared/engine/combat-v6/core';
+import { effectiveAttrs } from '@shared/engine/combat-v6/core/units';
+import { combatV6SkillDetails } from './skill-details';
+
+/** Keep the generation RNG output in the authority/archive, never in live playback. */
+export function combatV6DisplayEvent(event: BattleEvent) {
+  if (event.type === 'unitCaptured')
+    return { type: event.type, unitId: event.unitId, targetId: event.targetId };
+  return event;
+}
+
+export function combatV6Display(skills: SkillDef[], statuses: StatusDef[]) {
+  return {
+    skills: Object.fromEntries(skills.map((s) => [s.id, s.name])),
+    skillDetails: combatV6SkillDetails(skills, statuses),
+    statuses: Object.fromEntries(statuses.map((s) => [s.id, s.name])),
+  };
+}
+
+/** Only units that have appeared, or the viewer's own reserves, may be named publicly. */
+export function visibleUnitNames(
+  state: BattleState,
+  events: readonly import('@shared/engine/combat-v6/core').BattleEvent[],
+  viewerId: string,
+) {
+  const summoned = new Set(
+    events.flatMap((e) =>
+      e.type === 'petSummoned' || e.type === 'petRecalled' ? [e.petId] : [],
+    ),
+  );
+  return Object.fromEntries(
+    state.units
+      .filter(
+        (u) =>
+          !u.flags.benched ||
+          !!u.flags.capturedBy ||
+          u.ownerId === viewerId ||
+          summoned.has(u.id),
+      )
+      .map((u) => [u.id, u.name]),
+  );
+}
+
+/** Whitelist display facts; the server never serializes commands, RNG or private build facts. */
+export function combatV6Units(
+  state: BattleState,
+  statuses: StatusDef[],
+): CombatV6TrainingUnitViewV1[] {
+  const names = new Map(statuses.map((s) => [s.id, s.name]));
+  const permanentIds = new Set(
+    statuses.filter((s) => s.untilBattleEnd).map((s) => s.id),
+  );
+  return state.units
+    .filter((u) => !u.flags.benched)
+    .map((u) => {
+      const attrs = effectiveAttrs(u);
+      return {
+        id: u.id,
+        name: u.name,
+        side: u.side,
+        slot: u.slot,
+        kind: u.kind,
+        ownerId: u.ownerId,
+        hp: u.attrs.hp,
+        maxHp: u.attrs.maxHp,
+        mp: u.attrs.mp,
+        maxMp: u.attrs.maxMp,
+        attributes: {
+          physicalAtk: attrs.physicalAtk,
+          physicalDef: attrs.physicalDef,
+          magicAtk: attrs.magicAtk,
+          magicDef: attrs.magicDef,
+          speed: attrs.speed,
+          healPower: attrs.healPower,
+        },
+        wound: u.wound,
+        downed: u.flags.downed,
+        dead: u.flags.dead,
+        escaped: u.flags.escaped,
+        statuses: u.statuses.map((s) => ({
+          id: s.id,
+          name: names.get(s.id) ?? '未知状态',
+          remainingRounds: s.remainingRounds,
+          ...(permanentIds.has(s.id) ? { untilBattleEnd: true } : {}),
+          stacks: s.stacks,
+        })),
+        barriers: u.barriers.map((b) => ({
+          id: b.id,
+          name: b.name,
+          current: b.current,
+          remainingRounds: b.remainingRounds,
+        })),
+        resources: u.resources.map((r) => ({ ...r })),
+      };
+    });
+}
+
+export function combatV6Playback(
+  fromEventSeq: number,
+  statuses: StatusDef[],
+  initial: BattleState,
+) {
+  let previous = combatV6Units(initial, statuses);
+  const playback: NonNullable<CombatV6TrainingSessionViewV1['playback']> = {
+    format: 'delta-v1',
+    fromEventSeq,
+    frames: [],
+  };
+  return {
+    playback,
+    capture(state: BattleState, afterEventSeq: number) {
+      if (
+        afterEventSeq <=
+        (playback.frames[playback.frames.length - 1]?.afterEventSeq ??
+          fromEventSeq)
+      )
+        return;
+      const next = combatV6Units(state, statuses);
+      playback.frames.push(
+        diffUnits(previous, next, afterEventSeq, state.round),
+      );
+      previous = next;
+    },
+  };
+}

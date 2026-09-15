@@ -9,6 +9,7 @@ import type { AppEnv } from '@server/lib/hono/types';
 import { ArenaBattleStartOrchestrator } from '@server/lib/services/ArenaBattleStartOrchestrator';
 import { publishArenaRoomChanges } from '@server/lib/services/arenaRoomBroadcaster';
 import { ArenaRoomService } from '@server/lib/services/ArenaRoomService';
+import { CombatV6BuildError } from '@server/lib/services/combat-v6/CombatV6BuildService';
 import {
   ArenaCreateRoomSchema,
   ArenaJoinRoomSchema,
@@ -49,7 +50,7 @@ router.get('/rooms/:roomId', requireActiveCultivatorRef(), async (c) => {
   const room = await rooms.getRoom(roomId);
   if (!room) return c.json({ error: '擂台房间不存在或已过期' }, 404);
   const participant = room.teams.alpha
-    .concat(room.teams.beta)
+    .concat(room.teams.beta, room.spectators ?? [])
     .some(
       (seat) =>
         seat.userId === identity.userId &&
@@ -91,11 +92,13 @@ router.post(
     if (identity instanceof Response) return identity;
     const body = getValidatedJson<{
       inviteCode: string;
+      role: 'participant' | 'spectator';
     }>(c);
     try {
       const room = await rooms.joinRoom({
         ...identity,
         inviteCode: body.inviteCode,
+        role: body.role,
       });
       publishRoom(room);
       return c.json({ room });
@@ -223,7 +226,7 @@ router.post(
         revision: room?.revision ?? previous.revision + 1,
         status: room?.status ?? 'cancelled',
       });
-      return c.json({ room });
+      return c.json({ room: null });
     } catch (error) {
       return arenaError(c, error);
     }
@@ -269,7 +272,7 @@ async function requireArenaMember(c: Context<AppEnv>, roomId: string) {
   const room = await rooms.getRoom(roomId);
   if (!room) return c.json({ error: '擂台房间不存在或已过期' }, 404);
   const member = room.teams.alpha
-    .concat(room.teams.beta)
+    .concat(room.teams.beta, room.spectators ?? [])
     .some(
       (seat) =>
         seat.userId === identity.userId &&
@@ -280,6 +283,9 @@ async function requireArenaMember(c: Context<AppEnv>, roomId: string) {
 }
 
 function arenaError(c: Context<AppEnv>, error: unknown) {
+  if (error instanceof CombatV6BuildError) {
+    return c.json({ error: error.message, code: error.code }, error.status);
+  }
   const message = error instanceof Error ? error.message : '擂台房间操作失败';
   if (/不存在|过期|邀请码无效/.test(message)) {
     return c.json({ error: message }, 404);
@@ -293,7 +299,9 @@ function arenaError(c: Context<AppEnv>, error: unknown) {
 }
 
 function arenaUserIds(room: ArenaRoomV1): string[] {
-  return room.teams.alpha.concat(room.teams.beta).map((seat) => seat.userId);
+  return room.teams.alpha
+    .concat(room.teams.beta, room.spectators ?? [])
+    .map((seat) => seat.userId);
 }
 
 function publishRoom(room: ArenaRoomV1): void {

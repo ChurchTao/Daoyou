@@ -9,13 +9,19 @@ import {
 } from '@shared/types/constants';
 import type { TaskInstance } from '@shared/types/task';
 import { z } from 'zod';
+import { SectCombatReadinessSchema } from '../combatV6';
+import { BreakthroughBattlePointerSchema } from '../combatV6Breakthrough';
 import type { PlayerResourceMap } from '../player';
-import {
-  artifactSchema,
-  cultivationTechniqueSchema,
-  skillSchema,
-} from './inventory';
 import type { ResourceChange } from './registry';
+
+const combatV6SlotSchema = z.union([
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(4),
+  z.literal(5),
+  z.literal(6),
+]);
 
 export const PLAYER_RESOURCE_TOPICS = [
   'player.session',
@@ -23,7 +29,7 @@ export const PLAYER_RESOURCE_TOPICS = [
   'player.condition',
   'player.progress',
   'player.currency',
-  'player.loadout',
+  'player.sect-combat',
   'player.mail-summary',
   'player.task-summary',
   'player.tasks',
@@ -37,7 +43,7 @@ export interface PlayerResourceDataMap {
   'player.condition': PlayerResourceMap['condition'];
   'player.progress': PlayerResourceMap['progress'];
   'player.currency': PlayerResourceMap['currency'];
-  'player.loadout': PlayerResourceMap['loadout'];
+  'player.sect-combat': PlayerResourceMap['sect-combat'];
   'player.mail-summary': PlayerResourceMap['mail-summary'];
   'player.task-summary': PlayerResourceMap['task-summary'];
   'player.tasks': TaskInstance[];
@@ -275,6 +281,20 @@ export const conditionStatusSchema = z
   .strict();
 const conditionSchema = z
   .object({
+    combatV6: z
+      .object({
+        maxHp: z.number().positive(),
+        maxMp: z.number().nonnegative(),
+        recoveryPaused: z.boolean(),
+        attrs: z.object({
+          physicalAtk: z.number(), physicalDef: z.number(), magicAtk: z.number(), magicDef: z.number(),
+          maxHp: z.number().positive(), maxMp: z.number().nonnegative(), healPower: z.number(),
+          speed: z.number(), hit: z.number(), dodge: z.number(), critRate: z.number(),
+          spellCritRate: z.number(), physicalFuryRate: z.number(), sealHit: z.number(), sealResist: z.number(),
+        }).strict(),
+      })
+      .strict()
+      .optional(),
     version: z.literal(1),
     resources: z
       .object({
@@ -434,6 +454,7 @@ export const taskInstanceSchema = z
         rewardGrantPendingKey: z.string().optional(),
         rewardExpGrantedKey: z.string().optional(),
         rewardGrantedKey: z.string().optional(),
+        breakthroughBattle: BreakthroughBattlePointerSchema.optional(),
       })
       .strict(),
     createdAt: z.string(),
@@ -468,18 +489,28 @@ export const PLAYER_RESOURCE_DATA_SCHEMAS = {
       qiLastRefreshedAt: z.string().nullable(),
     })
     .strict(),
-  'player.loadout': z
+  'player.sect-combat': z
     .object({
-      skills: z.array(skillSchema),
-      cultivations: z.array(cultivationTechniqueSchema),
-      artifacts: z.array(artifactSchema),
-      equipped: z
-        .object({
-          weapon: z.string().nullable(),
-          armor: z.string().nullable(),
-          accessory: z.string().nullable(),
-        })
-        .strict(),
+      schemaVersion: z.literal(1),
+      status: SectCombatReadinessSchema,
+      revision: z.number().int().nonnegative(),
+      membershipId: z.string().uuid().optional(),
+      sectId: z
+        .enum(['lingxiao', 'youdu', 'wuxiang', 'tianyan', 'jiujie'])
+        .optional(),
+      sectName: z.string().optional(),
+      activePathId: z.string().optional(),
+      meridianDepth: z.number().int().min(0).max(7),
+      methods: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          slot: combatV6SlotSchema,
+          level: z.number().int().min(0).max(180),
+          isPrimary: z.boolean(),
+        }),
+      ),
+      paths: z.array(z.object({ id: z.string(), name: z.string() })),
     })
     .strict(),
   'player.mail-summary': z

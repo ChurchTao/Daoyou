@@ -1,271 +1,134 @@
-import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
-import { BattlePlaybackPanel } from '@app/components/feature/battle/v3/BattlePlaybackPanel';
-import { useBattlePlaybackState } from '@app/components/feature/battle/v3/useBattlePlaybackState';
-import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
-import { GameImmersiveLoading } from '@app/components/game-shell';
-import { InkButton } from '@app/components/ui/InkButton';
-import { useResourceMutation } from '@app/lib/resources/mutations';
-import type { BattleRecordV3 } from '@shared/types/battle';
-import type { RealmType } from '@shared/types/constants';
-import { Suspense, useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
+import { CombatV6ReplayPlayer } from '@app/components/feature/combat-v6/CombatV6ReplayPlayer';
+import {
+  combatV6Request,
+  mutationBody,
+} from '@app/components/feature/combat-v6/request';
+import { usePlayerSession } from '@app/lib/resources/player';
+import type { CombatV6ReplayView } from '@shared/combat-v6/replay';
+import {
+  RankingChallengeSchema,
+  type RankingChallengeRequest,
+  type RankingChallengeResult,
+} from '@shared/contracts/combatV6Ranking';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
 
-type ChallengeBattleResponse =
-  | {
-      type: 'direct_entry';
-      realm: RealmType;
-      rank: number;
-      remainingChallenges: number;
-    }
-  | {
-      type: 'battle_result';
-      battleResult: BattleRecordV3;
-      rankingUpdate: {
-        isWin: boolean;
-        realm: RealmType;
-        affectsRanking: boolean;
-        challengerRank: number | null;
-        targetRank: number | null;
-        remainingChallenges: number;
-        rankChangeType: 'challenge_win' | 'vacancy_entry' | null;
-      };
-    };
-
-type ChallengeMutate = <T>(
-  request: Promise<Response>,
-  options?: { deferRecovery?: boolean },
-) => Promise<T>;
-
-const challengeExecutionRequests = new Map<
-  string,
-  Promise<ChallengeBattleResponse>
->();
-const challengeExecutionResults = new Map<string, ChallengeBattleResponse>();
-
-function getChallengeExecutionKey(targetId: string | null, realm: string | null) {
-  return `${realm?.trim() || 'default'}:${targetId?.trim() || 'direct-entry'}`;
+const inFlight = new Map<string, Promise<RankingChallengeResult>>();
+function execute(owner: string, request: RankingChallengeRequest) {
+  const key = owner + ':' + request.requestId;
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+  const promise = combatV6Request<RankingChallengeResult>(
+    '/api/rankings/challenge-battle/v6',
+    mutationBody(request),
+  ).finally(() => inFlight.delete(key));
+  inFlight.set(key, promise);
+  return promise;
 }
-
-function clearChallengeExecutionCache(key: string) {
-  challengeExecutionRequests.delete(key);
-  challengeExecutionResults.delete(key);
+export default function RankingChallengeRoute() {
+  const [params] = useSearchParams();
+  const owner = usePlayerSession().data?.activeCultivator?.id;
+  const parsed = RankingChallengeSchema.safeParse({
+    requestId: params.get('requestId'),
+    realm: params.get('realm'),
+    targetId: params.get('targetId'),
+  });
+  if (!owner)
+    return (
+      <CombatV6Page title="天骄榜挑战" loading>
+        {null}
+      </CombatV6Page>
+    );
+  if (!parsed.success)
+    return (
+      <CombatV6Page
+        title="天骄榜挑战"
+        error="挑战链接已失效，请返回榜单重新发起"
+        back="/game/rankings"
+      >
+        {null}
+      </CombatV6Page>
+    );
+  return (
+    <Challenge
+      key={owner + ':' + params.toString()}
+      owner={owner}
+      request={parsed.data}
+    />
+  );
 }
-
-async function executeChallengeBattleOnce(
-  key: string,
-  targetId: string | null,
-  realm: string | null,
-  mutate: ChallengeMutate,
-) {
-  const cached = challengeExecutionResults.get(key);
-  if (cached) {
-    return cached;
-  }
-
-  const inFlight = challengeExecutionRequests.get(key);
-  if (inFlight) {
-    return inFlight;
-  }
-
-  const request = mutate<ChallengeBattleResponse>(
-    fetch('/api/rankings/challenge-battle/v5', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        targetId: targetId?.trim() || null,
-        realm: realm?.trim() || undefined,
-      }),
-    }),
-    { deferRecovery: true },
-  )
-    .then((data) => {
-      challengeExecutionResults.set(key, data);
-      return data;
-    })
-    .catch((error) => {
-      clearChallengeExecutionCache(key);
-      throw error;
-    })
-    .finally(() => {
-      challengeExecutionRequests.delete(key);
-    });
-
-  challengeExecutionRequests.set(key, request);
-  return request;
-}
-
-export function ChallengeDirectEntryCard({
-  rank,
-  onBack,
+function Challenge({
+  owner,
+  request,
 }: {
-  rank: number;
-  onBack: () => void;
+  owner: string;
+  request: RankingChallengeRequest;
 }) {
-  return (
-    <div className="flex h-full items-center justify-center px-4 py-20">
-      <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.92)] max-w-md border border-dashed px-5 py-5 text-center">
-        <h1 className="font-ma-shan-zheng text-ink mb-4 text-2xl">成功上榜！</h1>
-        <p className="text-ink mb-6">你已占据万界金榜第 {rank} 名</p>
-        <InkButton onClick={onBack} variant="primary">
-          返回排行榜
-        </InkButton>
-      </div>
-    </div>
-  );
-}
-
-function ChallengeBattlePageContent() {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const [battleResult, setBattleResult] = useState<BattleRecordV3>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>();
-  const [rankingUpdate, setRankingUpdate] = useState<{
-    isWin: boolean;
-    realm: RealmType;
-    affectsRanking: boolean;
-    challengerRank: number | null;
-    targetRank: number | null;
-    remainingChallenges: number;
-    rankChangeType: 'challenge_win' | 'vacancy_entry' | null;
-  } | null>(null);
-  const [directEntry, setDirectEntry] = useState<{
-    rank: number;
-  } | null>(null);
-  const playback = useBattlePlaybackState(battleResult);
-  const { mutate } = useResourceMutation();
-
-  const targetId = searchParams.get('targetId');
-  const realm = searchParams.get('realm');
-  const challengeKey = getChallengeExecutionKey(targetId, realm);
-
-  const backToRankings = () => {
-    clearChallengeExecutionCache(challengeKey);
-    navigate(
-      realm
-        ? `/game/rankings?realm=${encodeURIComponent(realm)}`
-        : '/game/rankings',
-    );
-  };
-
+  const [input] = useState(request);
+  const [data, setData] = useState<{
+    result: RankingChallengeResult;
+    replay?: CombatV6ReplayView;
+  }>();
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+  const back = '/game/rankings?realm=' + encodeURIComponent(input.realm);
   useEffect(() => {
-    let cancelled = false;
-
-    const startChallengeBattle = async () => {
-      setLoading(true);
-      setError(undefined);
-      setDirectEntry(null);
-      setBattleResult(undefined);
-      setRankingUpdate(null);
-
-      try {
-        const data = await executeChallengeBattleOnce(
-          challengeKey,
-          targetId,
-          realm,
-          mutate,
-        );
-        if (cancelled) return;
-
-        if (data.type === 'direct_entry') {
-          setDirectEntry({ rank: data.rank });
-        } else if (data.type === 'battle_result') {
-          setBattleResult(data.battleResult);
-          setRankingUpdate(data.rankingUpdate);
-        }
-      } catch (requestError) {
-        if (!cancelled) {
-          console.error('挑战战斗失败:', requestError);
-          setError(
-            requestError instanceof Error ? requestError.message : '挑战失败，请稍后重试',
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void startChallengeBattle();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [challengeKey, mutate, realm, targetId]);
-
-  if (error) {
-    return (
-      <div className="flex h-full items-center justify-center px-4 py-20">
-        <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.92)] max-w-md border border-dashed px-5 py-5 text-center">
-          <p className="text-crimson mb-4">{error}</p>
-          <InkButton onClick={backToRankings}>
-            返回排行榜
-          </InkButton>
-        </div>
-      </div>
-    );
-  }
-
-  if (directEntry) {
-    return (
-      <ChallengeDirectEntryCard
-        rank={directEntry.rank}
-        onBack={backToRankings}
-      />
-    );
-  }
-
-  const isWin = rankingUpdate?.isWin;
-
+    const abort = new AbortController();
+    void execute(owner, input)
+      .then(async (result) => {
+        const replay = result.battleId
+          ? await combatV6Request<CombatV6ReplayView>(
+              '/api/combat-v6/replays/' + result.battleId,
+              { signal: abort.signal, cache: 'no-store' },
+            )
+          : undefined;
+        if (!abort.signal.aborted) setData({ result, replay });
+      })
+      .catch((e: Error) => {
+        if (!abort.signal.aborted) setError(e.message);
+      });
+    return () => abort.abort();
+  }, [owner, input, attempt]);
+  const summary = data ? (
+    <div className="px-4 py-3 text-sm" role="status">
+      <p>
+        {data.result.affectsRanking
+          ? data.result.challengerRank
+            ? '本次结算名次：第 ' + data.result.challengerRank + ' 名'
+            : '本次未上榜'
+          : '越境切磋，不改变榜单名次'}
+      </p>
+      <p>挑战当日剩余次数：{data.result.remainingChallenges}/10</p>
+      {data.replay ? <Link to={back}>返回天骄榜</Link> : null}
+    </div>
+  ) : null;
   return (
-    <BattlePageLayout
-      title={`排行榜挑战 · ${battleResult ? `${playback.playerName} vs ${playback.opponentName}` : '加载中'}`}
-      subtitle={
-        rankingUpdate?.affectsRanking === false
-          ? '越境切磋只记胜负，不改榜单名次。'
-          : '这一战会直接影响你的榜单名次。'
-      }
-      variant="immersive-battle"
+    <CombatV6Page
+      title="天骄榜挑战"
+      active={!!data?.replay}
+      loading={!data && !error}
       error={error}
-      loading={loading}
-      battleResult={battleResult}
+      back={back}
+      backLabel="返回天骄榜"
+      onRetry={() => {
+        setError('');
+        setAttempt((n) => n + 1);
+      }}
     >
-      <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
-
-      <CombatResultDialog
-        key={`challenge-${battleResult?.outcome.turns}-${battleResult?.outcome.winner.id ?? 'unknown'}`}
-        dialogKey={`challenge-${battleResult?.outcome.turns}-${battleResult?.outcome.winner.id ?? 'unknown'}`}
-        open={!!battleResult && playback.isPlaybackFinished}
-        title={isWin ? '挑战成功' : '挑战失利'}
-        confirmLabel="返回排行榜"
-        onConfirm={backToRankings}
-        content={
-          <div className="space-y-1 leading-8">
-            {rankingUpdate?.challengerRank != null && isWin && (
-              <p>你的排名已更新为第 {rankingUpdate.challengerRank} 名。</p>
-            )}
-            {rankingUpdate?.rankChangeType === 'vacancy_entry' &&
-              rankingUpdate.challengerRank != null && (
-                <p>榜单尚有席位，你已补入第 {rankingUpdate.challengerRank} 名。</p>
-              )}
-            {rankingUpdate?.affectsRanking === false && (
-              <p>此战为越境切磋，不改变{rankingUpdate.realm}榜名次。</p>
-            )}
-            {rankingUpdate && (
-              <p>今日剩余挑战次数：{rankingUpdate.remainingChallenges}/10。</p>
-            )}
-          </div>
-        }
-      />
-    </BattlePageLayout>
-  );
-}
-
-export default function ChallengeBattlePage() {
-  return (
-    <Suspense fallback={<GameImmersiveLoading message="挑战战报推演中……" />}>
-      <ChallengeBattlePageContent />
-    </Suspense>
+      {data?.replay ? (
+        <CombatV6ReplayPlayer
+          key={data.replay.battleId}
+          record={data.replay}
+          autoPlay
+          title="天骄榜挑战"
+          back={back}
+          backLabel="返回天骄榜"
+          endContent={summary}
+        />
+      ) : (
+        summary
+      )}
+    </CombatV6Page>
   );
 }

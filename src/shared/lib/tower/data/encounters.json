@@ -1,0 +1,178 @@
+{
+  "$schema": "./encounters.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "minRealm": "金丹",
+  "difficultyStep": 5,
+  "floors": [
+    {
+      "floor": 1,
+      "kind": "normal",
+      "realmStage": "初期",
+      "milestone": null
+    },
+    {
+      "floor": 2,
+      "kind": "normal",
+      "realmStage": "初期",
+      "milestone": null
+    },
+    {
+      "floor": 3,
+      "kind": "normal",
+      "realmStage": "初期",
+      "milestone": null
+    },
+    {
+      "floor": 4,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 5,
+      "kind": "elite",
+      "realmStage": "中期",
+      "milestone": "C"
+    },
+    {
+      "floor": 6,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 7,
+      "kind": "normal",
+      "realmStage": "后期",
+      "milestone": null
+    },
+    {
+      "floor": 8,
+      "kind": "normal",
+      "realmStage": "后期",
+      "milestone": null
+    },
+    {
+      "floor": 9,
+      "kind": "normal",
+      "realmStage": "后期",
+      "milestone": null
+    },
+    {
+      "floor": 10,
+      "kind": "boss",
+      "realmStage": "圆满",
+      "milestone": "B"
+    },
+    {
+      "floor": 11,
+      "kind": "normal",
+      "realmStage": "初期",
+      "milestone": null
+    },
+    {
+      "floor": 12,
+      "kind": "normal",
+      "realmStage": "初期",
+      "milestone": null
+    },
+    {
+      "floor": 13,
+      "kind": "normal",
+      "realmStage": "初期",
+      "milestone": null
+    },
+    {
+      "floor": 14,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 15,
+      "kind": "elite",
+      "realmStage": "中期",
+      "milestone": "A"
+    },
+    {
+      "floor": 16,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 17,
+      "kind": "normal",
+      "realmStage": "后期",
+      "milestone": null
+    },
+    {
+      "floor": 18,
+      "kind": "normal",
+      "realmStage": "后期",
+      "milestone": null
+    },
+    {
+      "floor": 19,
+      "kind": "normal",
+      "realmStage": "后期",
+      "milestone": null
+    },
+    {
+      "floor": 20,
+      "kind": "boss",
+      "realmStage": "圆满",
+      "milestone": "S"
+    }
+  ],
+  "enemies": {
+    "floorGrowth": 0.06,
+    "hpBase": 200,
+    "hpPerLevel": 30,
+    "attackBase": 30,
+    "attackPerLevel": 8,
+    "defensePerLevel": 4,
+    "speedPerLevel": 3,
+    "templates": {
+      "normal": {
+        "name": "蜃影守卫",
+        "count": 1,
+        "hpScale": 1
+      },
+      "elite": {
+        "name": "幻境精锐",
+        "count": 2,
+        "hpScale": 1
+      },
+      "boss": {
+        "name": "蜃楼镇守",
+        "count": 1,
+        "hpScale": 2
+      }
+    },
+    "baseAttrs": {
+      "hp": 0,
+      "maxHp": 0,
+      "mp": 100,
+      "maxMp": 100,
+      "physicalAtk": 0,
+      "magicAtk": 0,
+      "physicalDef": 0,
+      "magicDef": 0,
+      "speed": 0,
+      "healPower": 0,
+      "hit": 100,
+      "dodge": 10,
+      "critRate": 0,
+      "spellCritRate": 0,
+      "physicalFuryRate": 0,
+      "sealHit": 0,
+      "sealResist": 0,
+      "attackCultivate": 0,
+      "defenseCultivate": 0,
+      "spellCultivate": 0,
+      "resistSpellCultivate": 0
+    }
+  }
+}

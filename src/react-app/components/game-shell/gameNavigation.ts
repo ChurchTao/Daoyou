@@ -46,6 +46,16 @@ export const gameDockGroups: GameNavGroup[] = [
         coreDockLabel: '洞府',
       },
       {
+        id: 'storage',
+        sceneLabel: '洞府储藏室',
+        href: '/game/cave/storage/new?location=storage',
+      },
+      {
+        id: 'legacy-storage',
+        sceneLabel: '洞府宝库',
+        href: '/game/cave/storage',
+      },
+      {
         id: 'cultivator',
         sceneLabel: '道身',
         href: '/game/cultivator',
@@ -58,10 +68,14 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'body-cultivation',
         sceneLabel: '肉身炼体',
+        href: '/game/body-cultivation',
+        expandedDockLabel: '🥋 肉身炼体',
       },
       {
         id: 'marrow-wash',
         sceneLabel: '洗髓池',
+        href: '/game/marrow-wash',
+        expandedDockLabel: '🫧 洗髓池',
       },
       {
         id: 'retreat',
@@ -134,6 +148,13 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '练功房',
         href: '/game/training-room',
       },
+      { id: 'wild', sceneLabel: '野外探索', href: '/game/wild' },
+      {
+        id: 'beasts',
+        sceneLabel: '灵兽袋',
+        href: '/game/beasts',
+        expandedDockLabel: '🐯 灵兽袋',
+      },
       {
         id: 'inventory',
         sceneLabel: '储物袋',
@@ -198,11 +219,6 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '任务中心',
         href: '/game/tasks',
         expandedDockLabel: '📜 任务中心',
-      },
-      {
-        id: 'manual-draw',
-        sceneLabel: '悟道演法',
-        href: '/game/enlightenment/manual-draw',
       },
       {
         id: 'alchemy',
@@ -281,12 +297,6 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🏆 天骄榜',
       },
       {
-        id: 'bet-battle',
-        sceneLabel: '赌战台',
-        href: '/game/bet-battle',
-        expandedDockLabel: '⚔️ 赌战台',
-      },
-      {
         id: 'arena-sparring',
         sceneLabel: '擂台切磋',
         href: '/game/arena',
@@ -295,15 +305,6 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'battle-challenge',
         sceneLabel: '挑战天骄',
-      },
-      {
-        id: 'battle-live-lobby',
-        sceneLabel: '多人战斗邀请',
-        href: '/game/battle/live',
-      },
-      {
-        id: 'battle-live-match',
-        sceneLabel: '实时多人战局',
       },
       {
         id: 'battle-replay',
@@ -316,10 +317,6 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'task-challenge',
         sceneLabel: '破境试炼',
-      },
-      {
-        id: 'bet-battle-challenge',
-        sceneLabel: '赌战挑战',
       },
     ],
   },

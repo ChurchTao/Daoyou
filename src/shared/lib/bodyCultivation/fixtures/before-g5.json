@@ -1,0 +1,616 @@
+{
+  "labels": {
+    "skin": {
+      "name": "炼体·皮肤",
+      "layerName": "防御修炼",
+      "shortDesc": "提升 combat-v6 防御修炼"
+    },
+    "sinew_bone": {
+      "name": "炼体·筋骨",
+      "layerName": "攻法修炼",
+      "shortDesc": "提升 combat-v6 攻法修炼"
+    },
+    "organs": {
+      "name": "炼体·脏腑",
+      "layerName": "法术修炼",
+      "shortDesc": "提升 combat-v6 法术修炼"
+    },
+    "qi_blood": {
+      "name": "炼体·气血",
+      "layerName": "生命根基",
+      "shortDesc": "提升裸身气血与固定治疗强度"
+    },
+    "primordial_spirit": {
+      "name": "炼体·元神",
+      "layerName": "抗法修炼",
+      "shortDesc": "提升 combat-v6 抗法修炼"
+    }
+  },
+  "realms": {
+    "mortal_body": {
+      "realm": "mortal_body",
+      "label": "凡躯",
+      "minCultivationRealm": "炼气",
+      "totalLevel": 0,
+      "softTrackCap": 5,
+      "unlockText": "五轨单轨上限 Lv.5"
+    },
+    "bronze_skin": {
+      "realm": "bronze_skin",
+      "label": "铜皮",
+      "minCultivationRealm": "炼气",
+      "totalLevel": 12,
+      "softTrackCap": 10,
+      "unlockText": "五轨单轨上限提升至 Lv.10"
+    },
+    "iron_bone": {
+      "realm": "iron_bone",
+      "label": "铁骨",
+      "minCultivationRealm": "筑基",
+      "totalLevel": 30,
+      "softTrackCap": 15,
+      "unlockText": "五轨单轨上限提升至 Lv.15"
+    },
+    "jade_marrow": {
+      "realm": "jade_marrow",
+      "label": "玉髓",
+      "minCultivationRealm": "金丹",
+      "totalLevel": 55,
+      "softTrackCap": 22,
+      "unlockText": "五轨单轨上限提升至 Lv.22"
+    },
+    "golden_body": {
+      "realm": "golden_body",
+      "label": "金身",
+      "minCultivationRealm": "元婴",
+      "totalLevel": 90,
+      "softTrackCap": 30,
+      "unlockText": "五轨单轨上限提升至 Lv.30"
+    },
+    "dharma_body": {
+      "realm": "dharma_body",
+      "label": "法身",
+      "minCultivationRealm": "化神",
+      "totalLevel": 140,
+      "softTrackCap": 45,
+      "unlockText": "五轨单轨上限提升至 Lv.45"
+    },
+    "dao_body": {
+      "realm": "dao_body",
+      "label": "道体",
+      "minCultivationRealm": "合体",
+      "totalLevel": 220,
+      "softTrackCap": 60,
+      "unlockText": "五轨单轨上限提升至 Lv.60"
+    }
+  },
+  "thresholds": [
+    100,
+    170,
+    240,
+    310,
+    380,
+    450,
+    520,
+    590,
+    660,
+    730,
+    800,
+    870,
+    940,
+    1010,
+    1080,
+    1150,
+    1220,
+    1290,
+    1360,
+    1430,
+    1500,
+    1570,
+    1640,
+    1710,
+    1780,
+    1850,
+    1920,
+    1990,
+    2060,
+    2130,
+    2200,
+    2270,
+    2340,
+    2410,
+    2480,
+    2550,
+    2620,
+    2690,
+    2760,
+    2830,
+    2900,
+    2970,
+    3040,
+    3110,
+    3180,
+    3250,
+    3320,
+    3390,
+    3460,
+    3530,
+    3600,
+    3670,
+    3740,
+    3810,
+    3880,
+    3950,
+    4020,
+    4090,
+    4160,
+    4230,
+    4300,
+    4370,
+    4440,
+    4510,
+    4580,
+    4650,
+    4720,
+    4790,
+    4860,
+    4930,
+    5000,
+    5070,
+    5140,
+    5210,
+    5280,
+    5350,
+    5420,
+    5490,
+    5560,
+    5630,
+    5700,
+    5770,
+    5840,
+    5910,
+    5980,
+    6050,
+    6120,
+    6190,
+    6260,
+    6330,
+    6400,
+    6470,
+    6540,
+    6610,
+    6680,
+    6750,
+    6820,
+    6890,
+    6960,
+    7030,
+    7100,
+    7170,
+    7240,
+    7310,
+    7380,
+    7450,
+    7520,
+    7590,
+    7660,
+    7730,
+    7800,
+    7870,
+    7940,
+    8010,
+    8080,
+    8150,
+    8220,
+    8290,
+    8360,
+    8430,
+    8500
+  ],
+  "projections": [
+    {
+      "attackCultivate": 0,
+      "defenseCultivate": 0,
+      "spellCultivate": 0,
+      "resistSpellCultivate": 0,
+      "lifeFoundationLevel": 0,
+      "maxHpBonus": 0,
+      "healPowerBonus": 0,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 0,
+      "defenseCultivate": 0,
+      "spellCultivate": 0,
+      "resistSpellCultivate": 0,
+      "lifeFoundationLevel": 0,
+      "maxHpBonus": 0,
+      "healPowerBonus": 0,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 1,
+      "defenseCultivate": 1,
+      "spellCultivate": 1,
+      "resistSpellCultivate": 1,
+      "lifeFoundationLevel": 1,
+      "maxHpBonus": 5,
+      "healPowerBonus": 0,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 1,
+      "defenseCultivate": 1,
+      "spellCultivate": 1,
+      "resistSpellCultivate": 1,
+      "lifeFoundationLevel": 1,
+      "maxHpBonus": 60,
+      "healPowerBonus": 0,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 2,
+      "defenseCultivate": 2,
+      "spellCultivate": 2,
+      "resistSpellCultivate": 2,
+      "lifeFoundationLevel": 2,
+      "maxHpBonus": 10,
+      "healPowerBonus": 1,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 2,
+      "defenseCultivate": 2,
+      "spellCultivate": 2,
+      "resistSpellCultivate": 2,
+      "lifeFoundationLevel": 2,
+      "maxHpBonus": 120,
+      "healPowerBonus": 1,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 5,
+      "defenseCultivate": 5,
+      "spellCultivate": 5,
+      "resistSpellCultivate": 5,
+      "lifeFoundationLevel": 5,
+      "maxHpBonus": 25,
+      "healPowerBonus": 2,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 5,
+      "defenseCultivate": 5,
+      "spellCultivate": 5,
+      "resistSpellCultivate": 5,
+      "lifeFoundationLevel": 5,
+      "maxHpBonus": 300,
+      "healPowerBonus": 2,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 10,
+      "defenseCultivate": 10,
+      "spellCultivate": 10,
+      "resistSpellCultivate": 10,
+      "lifeFoundationLevel": 10,
+      "maxHpBonus": 50,
+      "healPowerBonus": 5,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 10,
+      "defenseCultivate": 10,
+      "spellCultivate": 10,
+      "resistSpellCultivate": 10,
+      "lifeFoundationLevel": 10,
+      "maxHpBonus": 600,
+      "healPowerBonus": 5,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 15,
+      "defenseCultivate": 15,
+      "spellCultivate": 15,
+      "resistSpellCultivate": 15,
+      "lifeFoundationLevel": 15,
+      "maxHpBonus": 75,
+      "healPowerBonus": 7,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 15,
+      "defenseCultivate": 15,
+      "spellCultivate": 15,
+      "resistSpellCultivate": 15,
+      "lifeFoundationLevel": 15,
+      "maxHpBonus": 900,
+      "healPowerBonus": 7,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 22,
+      "defenseCultivate": 22,
+      "spellCultivate": 22,
+      "resistSpellCultivate": 22,
+      "lifeFoundationLevel": 22,
+      "maxHpBonus": 110,
+      "healPowerBonus": 11,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 22,
+      "defenseCultivate": 22,
+      "spellCultivate": 22,
+      "resistSpellCultivate": 22,
+      "lifeFoundationLevel": 22,
+      "maxHpBonus": 1320,
+      "healPowerBonus": 11,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 30,
+      "defenseCultivate": 30,
+      "spellCultivate": 30,
+      "resistSpellCultivate": 30,
+      "lifeFoundationLevel": 30,
+      "maxHpBonus": 150,
+      "healPowerBonus": 15,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 30,
+      "defenseCultivate": 30,
+      "spellCultivate": 30,
+      "resistSpellCultivate": 30,
+      "lifeFoundationLevel": 30,
+      "maxHpBonus": 1800,
+      "healPowerBonus": 15,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 45,
+      "defenseCultivate": 45,
+      "spellCultivate": 45,
+      "resistSpellCultivate": 45,
+      "lifeFoundationLevel": 45,
+      "maxHpBonus": 225,
+      "healPowerBonus": 22,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 45,
+      "defenseCultivate": 45,
+      "spellCultivate": 45,
+      "resistSpellCultivate": 45,
+      "lifeFoundationLevel": 45,
+      "maxHpBonus": 2700,
+      "healPowerBonus": 22,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 59,
+      "defenseCultivate": 59,
+      "spellCultivate": 59,
+      "resistSpellCultivate": 59,
+      "lifeFoundationLevel": 59,
+      "maxHpBonus": 295,
+      "healPowerBonus": 29,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 59,
+      "defenseCultivate": 59,
+      "spellCultivate": 59,
+      "resistSpellCultivate": 59,
+      "lifeFoundationLevel": 59,
+      "maxHpBonus": 3540,
+      "healPowerBonus": 29,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 60,
+      "defenseCultivate": 60,
+      "spellCultivate": 60,
+      "resistSpellCultivate": 60,
+      "lifeFoundationLevel": 60,
+      "maxHpBonus": 300,
+      "healPowerBonus": 30,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 60,
+      "defenseCultivate": 60,
+      "spellCultivate": 60,
+      "resistSpellCultivate": 60,
+      "lifeFoundationLevel": 60,
+      "maxHpBonus": 3600,
+      "healPowerBonus": 30,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 60,
+      "defenseCultivate": 60,
+      "spellCultivate": 60,
+      "resistSpellCultivate": 60,
+      "lifeFoundationLevel": 60,
+      "maxHpBonus": 300,
+      "healPowerBonus": 30,
+      "diagnostics": [
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "skin 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.skin.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "sinew_bone 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.sinew_bone.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "organs 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.organs.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "qi_blood 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.qi_blood.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "primordial_spirit 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.primordial_spirit.level"
+        }
+      ]
+    },
+    {
+      "attackCultivate": 60,
+      "defenseCultivate": 60,
+      "spellCultivate": 60,
+      "resistSpellCultivate": 60,
+      "lifeFoundationLevel": 60,
+      "maxHpBonus": 3600,
+      "healPowerBonus": 30,
+      "diagnostics": [
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "skin 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.skin.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "sinew_bone 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.sinew_bone.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "organs 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.organs.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "qi_blood 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.qi_blood.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "primordial_spirit 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.primordial_spirit.level"
+        }
+      ]
+    },
+    {
+      "attackCultivate": 60,
+      "defenseCultivate": 60,
+      "spellCultivate": 60,
+      "resistSpellCultivate": 60,
+      "lifeFoundationLevel": 60,
+      "maxHpBonus": 300,
+      "healPowerBonus": 30,
+      "diagnostics": [
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "skin 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.skin.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "sinew_bone 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.sinew_bone.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "organs 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.organs.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "qi_blood 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.qi_blood.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "primordial_spirit 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.primordial_spirit.level"
+        }
+      ]
+    },
+    {
+      "attackCultivate": 60,
+      "defenseCultivate": 60,
+      "spellCultivate": 60,
+      "resistSpellCultivate": 60,
+      "lifeFoundationLevel": 60,
+      "maxHpBonus": 3600,
+      "healPowerBonus": 30,
+      "diagnostics": [
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "skin 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.skin.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "sinew_bone 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.sinew_bone.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "organs 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.organs.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "qi_blood 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.qi_blood.level"
+        },
+        {
+          "severity": "warning",
+          "code": "TRAINING_LEVEL_CLAMPED",
+          "message": "primordial_spirit 的 combat-v6 投影等级已夹取到 60",
+          "path": "cultivator.condition.tracks.bodyCultivation.tracks.primordial_spirit.level"
+        }
+      ]
+    },
+    {
+      "attackCultivate": 3,
+      "defenseCultivate": 3,
+      "spellCultivate": 3,
+      "resistSpellCultivate": 3,
+      "lifeFoundationLevel": 3,
+      "maxHpBonus": 15,
+      "healPowerBonus": 1,
+      "diagnostics": []
+    },
+    {
+      "attackCultivate": 3,
+      "defenseCultivate": 3,
+      "spellCultivate": 3,
+      "resistSpellCultivate": 3,
+      "lifeFoundationLevel": 3,
+      "maxHpBonus": 180,
+      "healPowerBonus": 1,
+      "diagnostics": []
+    }
+  ]
+}

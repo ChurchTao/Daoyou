@@ -3,19 +3,20 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkTag } from '@app/components/ui/InkTag';
 import type { ResourceOperation } from '@shared/engine/resource/types';
+import { itemDefinition } from '@shared/inventory';
 import type { DungeonSettlement as DungeonSettlementType } from '@shared/lib/dungeon/types';
-import { Quality } from '@shared/types/constants';
-import type { Material } from '@shared/types/cultivator';
 import {
   getMaterialTypeLabel,
   getResourceTypeInfo,
 } from '@shared/lib/gameConceptDisplay';
+import { Quality } from '@shared/types/constants';
+import type { Material } from '@shared/types/cultivator';
 
 interface DisplayMaterial {
   name: string;
   quantity: number;
   rank?: Quality;
-  element?: string;
+  element?: string | null;
   type?: string;
   description?: string;
 }
@@ -67,52 +68,20 @@ export function DungeonSettlement({
     }))
     .filter((item) => item.value > 0);
 
-  const materialDrops = realGains
-    .filter((gain) => gain.type === 'material')
-    .reduce<DisplayMaterial[]>((acc, gain) => {
-      const data = (gain.data ?? {}) as Partial<Material>;
-      const name = gain.name || data.name || '无名材料';
-      const rank = data.rank;
-      const element = data.element;
-      const type = data.type;
-      const quantity = Math.max(1, data.quantity ?? gain.value ?? 1);
-      const existing = acc.find(
-        (item) =>
-          item.name === name &&
-          item.rank === rank &&
-          item.element === element &&
-          item.type === type,
-      );
-
-      if (existing) {
-        existing.quantity += quantity;
-      } else {
-        acc.push({
-          name,
-          quantity,
-          rank,
-          element,
-          type,
-          description: data.description,
-        });
-      }
-
-      return acc;
-    }, []);
-
-  const displayedMaterials: DisplayMaterial[] =
-    materialDrops.length > 0
-      ? materialDrops
-      : (settlement?.settlement?.reward_blueprints || [])
-          .filter((item) => item.name || item.description)
-          .map((item) => ({
-            name: item.name || '无名材料',
-            quantity: 1,
-            rank: undefined,
-            element: item.element,
-            type: item.material_type,
-            description: item.description,
-          }));
+  const grouped = new Map<string, DisplayMaterial>();
+  for (const item of settlement?.inventoryRewards ?? []) {
+    const definition = itemDefinition(item.definitionId);
+    const key = JSON.stringify([item.definitionId, item.instanceData]);
+    const existing = grouped.get(key);
+    if (existing) existing.quantity += item.quantity;
+    else
+      grouped.set(key, {
+        ...definition.material,
+        name: definition.name,
+        quantity: item.quantity,
+      });
+  }
+  const displayedMaterials = [...grouped.values()];
 
   return (
     <InkCard className="space-y-5 overflow-hidden p-4">
@@ -216,7 +185,7 @@ export function DungeonSettlement({
         variant="primary"
         className="mt-4 block w-full text-center"
       >
-        收入囊中
+        返回洞府
       </InkButton>
     </InkCard>
   );

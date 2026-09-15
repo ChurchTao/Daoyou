@@ -35,9 +35,10 @@ export type SectTaskOfferSnapshot = z.infer<typeof SectTaskOfferSnapshotSchema>;
 export const SectSubmittedItemSnapshotSchema = z
   .object({
     itemId: z.string().min(1).max(128),
-    kind: z.enum(['pill', 'artifact', 'material']),
+    kind: z.enum(['pill', 'artifact', 'equipment', 'material']),
     name: z.string().min(1).max(100),
-    quality: z.string().min(1).max(20),
+    quality: z.string().min(1).max(20).optional(),
+    equipmentLevel: z.number().int().min(0).max(180).optional(),
     quantity: z.number().int().positive().max(99),
     matchedFacts: z.array(z.string().min(1).max(128)).max(16),
   })

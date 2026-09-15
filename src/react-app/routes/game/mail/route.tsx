@@ -5,32 +5,24 @@ import {
   GameSceneFrame,
 } from '@app/components/game-shell';
 import { InkModal } from '@app/components/layout';
+import { MailComposer } from '@app/components/mail/MailComposer';
 import { MailDetailModal } from '@app/components/mail/MailDetailModal';
 import { Mail, MailList } from '@app/components/mail/MailList';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { InkBadge, InkList, InkTabs } from '@app/components/ui';
+import { InkList, InkTabs } from '@app/components/ui';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
 import { InkNotice } from '@app/components/ui/InkNotice';
-import { InkSelect } from '@app/components/ui/InkSelect';
-import {
-  useArtifactInventoryResource,
-  useConsumableInventoryResource,
-  useMaterialInventoryResource,
-} from '@app/lib/resources/inventory';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { usePlayerSession } from '@app/lib/resources/player';
+import { MAX_FRIENDS_PER_CULTIVATOR } from '@shared/config/socialConfig';
 import type {
   FriendCultivatorSummary,
   FriendSearchResponse,
   FriendSearchResult,
 } from '@shared/contracts/friends';
-import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
-import { MAX_FRIENDS_PER_CULTIVATOR } from '@shared/config/socialConfig';
-import { isPillConsumable } from '@shared/lib/consumables';
-import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
-import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { mailLocationText } from '@shared/contracts/mail';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 const PAGE_SIZE = 20;
@@ -38,96 +30,6 @@ const MAIL_PAGE_TABS = [
   { label: '收件玉简', value: 'mail' },
   { label: '好友名录', value: 'friends' },
 ];
-const MIN_TRANSFER_QUALITY = '玄品';
-const TRANSFER_ALLOWED_QUALITIES = Object.keys(QUALITY_ORDER).filter(
-  (quality) =>
-    QUALITY_ORDER[quality as keyof typeof QUALITY_ORDER] >=
-    QUALITY_ORDER[MIN_TRANSFER_QUALITY],
-) as Quality[];
-
-type AttachmentOption = {
-  key: string;
-  itemType: 'material' | 'artifact' | 'consumable';
-  itemId: string;
-  name: string;
-  quantity: number;
-  qualityLabel: string;
-};
-
-type AttachmentItemType = AttachmentOption['itemType'];
-type SelectableAttachment = (Material | Artifact | Consumable) & {
-  itemType: AttachmentItemType;
-};
-
-type InventoryPagination = {
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-  hasMore: boolean;
-};
-
-const defaultAttachmentPagination: InventoryPagination = {
-  page: 1,
-  pageSize: PAGE_SIZE,
-  total: 0,
-  totalPages: 0,
-  hasMore: false,
-};
-
-function isTransferableQuality(quality: string | undefined): boolean {
-  return Boolean(
-    quality &&
-    quality in QUALITY_ORDER &&
-    QUALITY_ORDER[quality as keyof typeof QUALITY_ORDER] >=
-      QUALITY_ORDER[MIN_TRANSFER_QUALITY],
-  );
-}
-
-function getAttachmentQuality(item: SelectableAttachment): Quality {
-  if (item.itemType === 'material') {
-    return (item as Material).rank;
-  }
-
-  const quality = (item as Artifact | Consumable).quality || '凡品';
-  return quality in QUALITY_ORDER ? quality : '凡品';
-}
-
-function getAttachmentUnsupportedReason(
-  item: SelectableAttachment,
-): string | null {
-  if (item.itemType === 'artifact' && (item as Artifact).isEquipped) {
-    return '已装备法宝不可附带';
-  }
-  if (item.itemType === 'consumable' && !isPillConsumable(item as Consumable)) {
-    return '当前仅支持丹药附带';
-  }
-  if (!isTransferableQuality(getAttachmentQuality(item))) {
-    return `仅玄品及以上物品可附带，当前为${getAttachmentQuality(item)}`;
-  }
-  return null;
-}
-
-function toAttachmentOption(
-  item: SelectableAttachment,
-): AttachmentOption | null {
-  if (!item.id || getAttachmentUnsupportedReason(item)) {
-    return null;
-  }
-
-  return {
-    key: `${item.itemType}:${item.id}`,
-    itemType: item.itemType,
-    itemId: item.id,
-    name: item.name,
-    quantity:
-      item.itemType === 'artifact'
-        ? 1
-        : (item as Material | Consumable).quantity,
-    qualityLabel: getAttachmentQuality(item),
-  };
-}
-
 export default function MailPage() {
   const cultivator = usePlayerSession().data?.activeCultivator;
   const [mails, setMails] = useState<Mail[]>([]);
@@ -149,36 +51,7 @@ export default function MailPage() {
   const [friendSearchAttempted, setFriendSearchAttempted] = useState(false);
   const [manualShareLink, setManualShareLink] = useState<string | null>(null);
   const [showSendModal, setShowSendModal] = useState(false);
-  const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
-  const [sending, setSending] = useState(false);
   const [recipientId, setRecipientId] = useState('');
-  const [content, setContent] = useState('');
-  const [activeAttachmentType, setActiveAttachmentType] =
-    useState<AttachmentItemType>('material');
-  const [selectedAttachment, setSelectedAttachment] =
-    useState<AttachmentOption | null>(null);
-  const [attachmentQuantity, setAttachmentQuantity] = useState('1');
-  const materialInventory = useMaterialInventoryResource({
-    pageSize: PAGE_SIZE,
-    enabled: showAttachmentPicker && activeAttachmentType === 'material',
-    materialRanks: TRANSFER_ALLOWED_QUALITIES,
-    materialSortBy: 'rank',
-    materialSortOrder: 'desc',
-  });
-  const artifactInventory = useArtifactInventoryResource({
-    pageSize: PAGE_SIZE,
-    enabled: showAttachmentPicker && activeAttachmentType === 'artifact',
-  });
-  const consumableInventory = useConsumableInventoryResource({
-    pageSize: PAGE_SIZE,
-    enabled: showAttachmentPicker && activeAttachmentType === 'consumable',
-  });
-  const activeAttachmentInventory =
-    activeAttachmentType === 'material'
-      ? materialInventory
-      : activeAttachmentType === 'artifact'
-        ? artifactInventory
-        : consumableInventory;
   const [searchParams, setSearchParams] = useSearchParams();
   const inviteTargetId = searchParams.get('addFriend');
   const activeTab =
@@ -319,9 +192,7 @@ export default function MailPage() {
       .catch((loadError) => {
         pushToast({
           message:
-            loadError instanceof Error
-              ? loadError.message
-              : '获取好友名录失败',
+            loadError instanceof Error ? loadError.message : '获取好友名录失败',
           tone: 'warning',
         });
       })
@@ -374,6 +245,7 @@ export default function MailPage() {
     try {
       setBatchClaiming(true);
       const data = await mutate<{
+        locations?: string[];
         claimedCount: number;
         claimedMailIds: string[];
         unreadMailCount: number;
@@ -402,7 +274,7 @@ export default function MailPage() {
       pushToast({
         message:
           claimedMailIds.length > 0
-            ? `成功领取 ${claimedMailIds.length} 封邮件附件`
+            ? `成功领取 ${claimedMailIds.length} 封邮件附件${data.locations?.length ? ' · ' + mailLocationText(data.locations) : ''}`
             : '暂无可领取附件',
         tone: 'success',
       });
@@ -483,7 +355,10 @@ export default function MailPage() {
         url: link,
       });
     } catch (shareError) {
-      if (shareError instanceof DOMException && shareError.name === 'AbortError') {
+      if (
+        shareError instanceof DOMException &&
+        shareError.name === 'AbortError'
+      ) {
         return;
       }
       pushToast({ message: '分享失败，请改用复制链接', tone: 'warning' });
@@ -535,10 +410,6 @@ export default function MailPage() {
     clearInviteParam();
   };
 
-  const handleOpenAttachmentPicker = () => {
-    setShowAttachmentPicker(true);
-  };
-
   const handleRemoveFriend = async (friendId: string) => {
     try {
       const res = await fetch(`/api/friends/${friendId}`, {
@@ -573,100 +444,10 @@ export default function MailPage() {
     setShowSendModal(true);
   };
 
-  const handleSendMail = async () => {
-    if (!recipientId) {
-      pushToast({ message: '请选择收信道友', tone: 'warning' });
-      return;
-    }
-    if (!content.trim()) {
-      pushToast({ message: '请写下传音内容', tone: 'warning' });
-      return;
-    }
-
-    const quantity = Math.min(
-      MAX_PLAYER_ITEM_QUANTITY,
-      Math.max(1, Number(attachmentQuantity) || 1),
-    );
-    const attachment = selectedAttachment
-      ? {
-          itemType: selectedAttachment.itemType,
-          itemId: selectedAttachment.itemId,
-          quantity:
-            selectedAttachment.itemType === 'artifact'
-              ? 1
-              : Math.min(quantity, selectedAttachment.quantity),
-        }
-      : undefined;
-
-    try {
-      setSending(true);
-      await mutate(
-        fetch('/api/cultivator/mail/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            recipientCultivatorId: recipientId,
-            content,
-            attachment,
-          }),
-        }),
-      );
-      pushToast({ message: '传音已发出', tone: 'success' });
-      setShowSendModal(false);
-      setContent('');
-      setSelectedAttachment(null);
-      setAttachmentQuantity('1');
-    } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '发送传音失败',
-        tone: 'danger',
-      });
-    } finally {
-      setSending(false);
-    }
-  };
-
   const unreadCount = mails.filter((mail) => !mail.isRead).length;
   const pendingAttachments = mails.filter(
     (mail) => mail.type === 'reward' && !mail.isClaimed,
   ).length;
-  const attachmentTabs = [
-    { label: '材料', value: 'material' },
-    { label: '法宝', value: 'artifact' },
-    { label: '丹药', value: 'consumable' },
-  ];
-  const currentAttachmentItems = useMemo(() => {
-    const items =
-      activeAttachmentType === 'material'
-        ? (materialInventory.items ?? []).map((item) => ({
-            ...item,
-            itemType: 'material' as const,
-          }))
-        : activeAttachmentType === 'artifact'
-          ? (artifactInventory.items ?? []).map((item) => ({
-              ...item,
-              itemType: 'artifact' as const,
-            }))
-          : (consumableInventory.items ?? []).map((item) => ({
-              ...item,
-              itemType: 'consumable' as const,
-            }));
-    return items
-      .map(toAttachmentOption)
-      .filter((item): item is AttachmentOption => Boolean(item));
-  }, [
-    activeAttachmentType,
-    artifactInventory.items,
-    consumableInventory.items,
-    materialInventory.items,
-  ]);
-  const currentAttachmentPagination = activeAttachmentInventory.pagination ?? {
-    ...defaultAttachmentPagination,
-    page: activeAttachmentInventory.page,
-  };
-  const attachmentLoading = activeAttachmentInventory.loading;
-  const attachmentError = activeAttachmentInventory.error;
-
   return (
     <GameSceneFrame
       title="【道友传音】"
@@ -919,195 +700,14 @@ export default function MailPage() {
         onClose={() => setSelectedMail(null)}
         onUpdate={handleUpdate}
       />
-      <InkModal
-        isOpen={showSendModal}
-        onClose={() => setShowSendModal(false)}
-        title="发送传音"
-      >
-        <div className="space-y-4">
-          <InkSelect
-            label="收信道友"
-            value={recipientId}
-            onChange={setRecipientId}
-            disabled={friends.length === 0}
-          >
-            <option value="">选择好友</option>
-            {friends.map((friend) => (
-              <option key={friend.id} value={friend.id}>
-                {friend.name} · {friend.realm}
-                {friend.realmStage}
-              </option>
-            ))}
-          </InkSelect>
-          <InkInput
-            label="传音内容"
-            value={content}
-            onChange={setContent}
-            multiline
-            rows={5}
-            placeholder="写下要托玉简送达的话"
-            hint="发送会消耗空白传音符，可在天骄宝阁购买"
-          />
-          <div className="space-y-2">
-            <div className="text-ink font-semibold tracking-[0.08em]">
-              随附物品
-            </div>
-            {selectedAttachment ? (
-              <div className="border-ink/10 bg-paper-2 flex items-center justify-between gap-3 border border-dashed p-3 text-sm">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">
-                    {selectedAttachment.name}
-                  </p>
-                  <p className="text-xs opacity-60">
-                    {selectedAttachment.qualityLabel} · 可用{' '}
-                    {selectedAttachment.quantity}
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  <InkButton
-                    variant="secondary"
-                    onClick={handleOpenAttachmentPicker}
-                  >
-                    更换
-                  </InkButton>
-                  <InkButton
-                    variant="secondary"
-                    onClick={() => {
-                      setSelectedAttachment(null);
-                      setAttachmentQuantity('1');
-                    }}
-                  >
-                    移除
-                  </InkButton>
-                </div>
-              </div>
-            ) : (
-              <InkButton
-                variant="secondary"
-                onClick={handleOpenAttachmentPicker}
-              >
-                选择附件
-              </InkButton>
-            )}
-          </div>
-          {selectedAttachment && selectedAttachment.itemType !== 'artifact' ? (
-            <InkInput
-              label="数量"
-              type="number"
-              min={1}
-              max={Math.min(
-                selectedAttachment.quantity,
-                MAX_PLAYER_ITEM_QUANTITY,
-              )}
-              value={attachmentQuantity}
-              onChange={setAttachmentQuantity}
-              hint={`最多 ${Math.min(
-                selectedAttachment.quantity,
-                MAX_PLAYER_ITEM_QUANTITY,
-              )}`}
-            />
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <InkButton onClick={() => setShowSendModal(false)}>取消</InkButton>
-            <InkButton
-              variant="primary"
-              onClick={handleSendMail}
-              disabled={friends.length === 0}
-              pending={sending}
-              pendingLabel="发送中……"
-            >
-              发出
-            </InkButton>
-          </div>
-        </div>
-      </InkModal>
-      <InkModal
-        isOpen={showAttachmentPicker}
-        onClose={() => setShowAttachmentPicker(false)}
-        title="选择附件"
-        className="max-w-2xl"
-      >
-        <div className="space-y-4">
-          <InkTabs
-            items={attachmentTabs}
-            activeValue={activeAttachmentType}
-            onChange={(value) => {
-              const nextType = value as AttachmentItemType;
-              setActiveAttachmentType(nextType);
-            }}
-          />
-          {attachmentError ? (
-            <InkNotice tone="danger">{attachmentError}</InkNotice>
-          ) : null}
-          {attachmentLoading ? (
-            <GameLoadingState message="正在翻检储物袋……" variant="inline" />
-          ) : currentAttachmentItems.length > 0 ? (
-            <InkList>
-              {currentAttachmentItems.map((item) => (
-                <div
-                  key={item.key}
-                  className="border-ink/10 bg-paper-2 flex items-center justify-between gap-3 border border-dashed p-3"
-                >
-                  <div className="min-w-0">
-                    <InkBadge tier={item.qualityLabel as Quality} hideTierText>
-                      {item.name}
-                    </InkBadge>
-                    <p className="mt-1 text-xs opacity-60">
-                      {item.qualityLabel} · 可用 {item.quantity}
-                    </p>
-                  </div>
-                  <InkButton
-                    variant="primary"
-                    onClick={() => {
-                      setSelectedAttachment(item);
-                      setAttachmentQuantity('1');
-                      setShowAttachmentPicker(false);
-                    }}
-                  >
-                    选择
-                  </InkButton>
-                </div>
-              ))}
-            </InkList>
-          ) : (
-            <InkNotice>
-              {activeAttachmentType === 'material'
-                ? '暂无可附带材料（仅限玄品及以上）。'
-                : activeAttachmentType === 'artifact'
-                  ? '暂无可附带法宝（仅限玄品及以上且未装备）。'
-                  : '暂无可附带丹药（仅限玄品及以上）。'}
-            </InkNotice>
-          )}
-          {currentAttachmentPagination.totalPages > 1 ? (
-            <div className="flex items-center justify-center gap-4">
-              <InkButton
-                variant="secondary"
-                disabled={
-                  attachmentLoading || currentAttachmentPagination.page <= 1
-                }
-                onClick={activeAttachmentInventory.goPrevPage}
-              >
-                上一页
-              </InkButton>
-              <span className="text-ink-secondary text-sm">
-                {currentAttachmentPagination.page} /{' '}
-                {currentAttachmentPagination.totalPages}
-              </span>
-              <InkButton
-                variant="secondary"
-                disabled={
-                  attachmentLoading ||
-                  currentAttachmentPagination.page >=
-                    currentAttachmentPagination.totalPages
-                }
-                onClick={activeAttachmentInventory.goNextPage}
-              >
-                下一页
-              </InkButton>
-            </div>
-          ) : null}
-        </div>
-      </InkModal>
+      {showSendModal && (
+        <MailComposer
+          friends={friends}
+          recipientId={recipientId}
+          onRecipientChange={setRecipientId}
+          onClose={() => setShowSendModal(false)}
+        />
+      )}
       <FriendTargetModal
         targetId={activeFriendTargetId}
         onClose={() => {

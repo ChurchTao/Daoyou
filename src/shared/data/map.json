@@ -434,6 +434,7 @@
     },
     {
       "id": "SAT_TN_08",
+      "wild_encounter_id": "combat.wild.region.qingxi",
       "name": "太岳山·青溪灵草坡",
       "parent_id": "TN_YUE_01",
       "type": "浅层资源点",

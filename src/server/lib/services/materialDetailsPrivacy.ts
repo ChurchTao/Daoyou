@@ -31,15 +31,6 @@ export function sanitizeMaterialForClient<T extends { details?: unknown }>(
   };
 }
 
-export function getHiddenMysteryReveal(
-  details: unknown,
-): HiddenMysteryReveal | null {
-  if (!details || typeof details !== 'object') return null;
-  const value = (details as Record<string, unknown>)[HIDDEN_MYSTERY_REVEAL_KEY];
-  if (!value || typeof value !== 'object') return null;
-  return value as HiddenMysteryReveal;
-}
-
 export function withHiddenMysteryReveal(
   details: unknown,
   reveal: HiddenMysteryReveal,

@@ -1,0 +1,766 @@
+{
+  "$schema": "./equipment-special.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 6,
+  "essences": [
+    {
+      "id": "dao_equipment.essence.cangfeng",
+      "name": "藏锋",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "panelAdd",
+        "attribute": "critRate",
+        "value": 0.01
+      },
+      "description": "器中锋芒凝聚，物理暴击概率提高{valuePercent}%。"
+    },
+    {
+      "id": "dao_equipment.essence.ningshen",
+      "name": "凝神",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "panelAdd",
+        "attribute": "spellCritRate",
+        "value": 0.01
+      },
+      "description": "器中锋芒凝聚，法术暴击概率提高{valuePercent}%。"
+    },
+    {
+      "id": "dao_equipment.essence.pojin",
+      "name": "破禁",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "sealChance",
+        "side": "hit",
+        "value": 0.01
+      },
+      "description": "器蕴护持神识，封禁命中概率提高{valuePercent}%。"
+    },
+    {
+      "id": "dao_equipment.essence.dinghun",
+      "name": "定魂",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "sealChance",
+        "side": "resist",
+        "value": 0.01
+      },
+      "description": "器蕴护持神识，受到封禁时命中概率降低{valuePercent}%。"
+    },
+    {
+      "id": "dao_equipment.essence.qingling",
+      "name": "轻灵",
+      "stackPolicy": "unique",
+      "effect": {
+        "type": "requiredStageOffset",
+        "value": -1
+      },
+      "description": "法宝灵性通明，御使此宝可提前{valueAbs}个小境界，最低为炼气初期；不改变炼制门槛。"
+    },
+    {
+      "id": "dao_equipment.essence.jiangang",
+      "name": "激昂",
+      "stackPolicy": "highest",
+      "effect": {
+        "type": "rageGain",
+        "factor": 1.25
+      },
+      "allowedSlots": [
+        "belt"
+      ],
+      "description": "受创时器灵激荡，所得战意提升至原来的{factorPercent}%。"
+    },
+    {
+      "id": "dao_equipment.essence.guiyuan",
+      "name": "归元",
+      "stackPolicy": "highest",
+      "effect": {
+        "type": "rageCost",
+        "factor": 0.8
+      },
+      "allowedSlots": [
+        "belt"
+      ],
+      "description": "器中灵机归一，施展器诀仅需原本{factorPercent}%的战意。"
+    },
+    {
+      "id": "dao_equipment.essence.zhenyue",
+      "name": "镇岳",
+      "description": "器蕴如山镇身，受到物理攻击时暴击概率降低{valuePercent}%。",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "antiCrit",
+        "kind": "physical",
+        "value": 0.01
+      }
+    },
+    {
+      "id": "dao_equipment.essence.shouxin",
+      "name": "守心",
+      "description": "器灵守护心神，受到法术攻击时暴击概率降低{valuePercent}%。",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "antiCrit",
+        "kind": "spell",
+        "value": 0.01
+      }
+    },
+    {
+      "id": "dao_equipment.essence.pojia",
+      "name": "破甲",
+      "description": "锋芒穿透护体之力，物理攻击忽视目标{valuePercent}%物防。",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "defenseIgnore",
+        "kind": "physical",
+        "value": 0.02
+      }
+    },
+    {
+      "id": "dao_equipment.essence.chuanxuan",
+      "name": "穿玄",
+      "description": "灵机洞穿玄障，法术攻击忽视目标{valuePercent}%法防。",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "defenseIgnore",
+        "kind": "spell",
+        "value": 0.02
+      }
+    },
+    {
+      "id": "dao_equipment.essence.chengnian",
+      "name": "澄念",
+      "description": "器灵澄澈念头，施法时有{chancePercent}%概率免耗本次法力；仍须满足施法所需法力。",
+      "stackPolicy": "unique",
+      "effect": {
+        "type": "mpWaiver",
+        "chance": 0.15
+      },
+      "allowedSlots": [
+        "necklace"
+      ]
+    },
+    {
+      "id": "dao_equipment.essence.huichun",
+      "name": "回春",
+      "description": "器中生机温养道身，每回合结束恢复境界映射等级×{levelRatio}的气血，向下取整；倒地无效，同名不叠加。",
+      "stackPolicy": "unique",
+      "effect": {
+        "type": "regeneration",
+        "levelRatio": 0.5
+      }
+    },
+    {
+      "id": "dao_equipment.essence.huming",
+      "name": "护命",
+      "description": "命火将熄时，器灵有{chancePercent}%概率护主复起，恢复气血上限的{hpRatioPercent}%；受禁复活之法压制时无效。",
+      "stackPolicy": "unique",
+      "effect": {
+        "type": "revival",
+        "chance": 0.2,
+        "hpRatio": 0.3
+      },
+      "allowedSlots": [
+        "weapon"
+      ]
+    }
+  ],
+  "arts": [
+    {
+      "id": "dao_equipment.art.huiyuan",
+      "name": "回元诀",
+      "skillId": "dao_equipment.skill.huiyuan",
+      "rageCost": 30,
+      "target": "ally",
+      "effect": {
+        "type": "heal",
+        "ratio": 0.2
+      },
+      "description": "法宝温养生机，为己方单体恢复最大气血的{ratioPercent}%；受减疗与伤势上限约束，不修复伤势。"
+    },
+    {
+      "id": "dao_equipment.art.yangyuan",
+      "name": "养元诀",
+      "skillId": "dao_equipment.skill.yangyuan",
+      "rageCost": 60,
+      "target": "ally",
+      "effect": {
+        "type": "heal",
+        "ratio": 0.3
+      },
+      "description": "法宝温养生机，为己方单体恢复最大气血的{ratioPercent}%；受减疗与伤势上限约束，不修复伤势。"
+    },
+    {
+      "id": "dao_equipment.art.xuming",
+      "name": "续命诀",
+      "skillId": "dao_equipment.skill.xuming",
+      "rageCost": 90,
+      "target": "ally",
+      "effect": {
+        "type": "heal",
+        "ratio": 0.4
+      },
+      "description": "法宝温养生机，为己方单体恢复最大气血的{ratioPercent}%；受减疗与伤势上限约束，不修复伤势。"
+    },
+    {
+      "id": "dao_equipment.art.baoyuan",
+      "name": "抱元诀",
+      "skillId": "dao_equipment.skill.baoyuan",
+      "rageCost": 60,
+      "target": "self",
+      "effect": {
+        "type": "heal",
+        "ratio": 0.4
+      },
+      "description": "法宝温养生机，为自身恢复最大气血的{ratioPercent}%；受减疗与伤势上限约束，不修复伤势。"
+    },
+    {
+      "id": "dao_equipment.art.guizhen",
+      "name": "归真诀",
+      "skillId": "dao_equipment.skill.guizhen",
+      "rageCost": 130,
+      "target": "self",
+      "effect": {
+        "type": "heal",
+        "ratio": 0.6
+      },
+      "description": "法宝温养生机，为自身恢复最大气血的{ratioPercent}%；受减疗与伤势上限约束，不修复伤势。"
+    },
+    {
+      "id": "dao_equipment.art.huanhun",
+      "name": "还魂诀",
+      "skillId": "dao_equipment.skill.huanhun",
+      "rageCost": 80,
+      "target": "ally",
+      "effect": {
+        "type": "revive",
+        "hpRatio": 0.2
+      },
+      "description": "引命火归身，复起己方单体并恢复最大气血的{hpRatioPercent}%；受禁复活、减疗与伤势上限约束。"
+    },
+    {
+      "id": "dao_equipment.art.qingxin",
+      "name": "清心诀",
+      "skillId": "dao_equipment.skill.qingxin",
+      "rageCost": 50,
+      "target": "ally",
+      "effect": {
+        "type": "cleanse",
+        "kinds": [
+          "lingxiao.confuse",
+          "jiujie.control.suppress",
+          "jiujie.control.confuse",
+          "jiujie.control.million_weapons",
+          "tianyan.mire",
+          "tianyan.sever_meridian",
+          "combat.training.status.control"
+        ],
+        "healRatio": 0
+      },
+      "description": "澄明灵台，解除己方单体的可解除控制，不解除反噬休息、毒、减益或禁复活。"
+    },
+    {
+      "id": "dao_equipment.art.dichen",
+      "name": "涤尘诀",
+      "skillId": "dao_equipment.skill.dichen",
+      "rageCost": 100,
+      "target": "ally",
+      "effect": {
+        "type": "cleanse",
+        "kinds": [
+          "lingxiao.confuse",
+          "jiujie.control.suppress",
+          "jiujie.control.confuse",
+          "jiujie.control.million_weapons",
+          "tianyan.mire",
+          "tianyan.sever_meridian",
+          "combat.training.status.control"
+        ],
+        "healRatio": 0.25
+      },
+      "description": "澄明灵台，解除己方单体的可解除控制，不解除反噬休息、毒、减益或禁复活。随后恢复最大气血的{healRatioPercent}%，受减疗与伤势上限约束。"
+    },
+    {
+      "id": "dao_equipment.art.taiqing",
+      "name": "太清诀",
+      "skillId": "dao_equipment.skill.taiqing",
+      "rageCost": 125,
+      "target": "allies",
+      "effect": {
+        "type": "cleanse",
+        "kinds": [
+          "lingxiao.confuse",
+          "jiujie.control.suppress",
+          "jiujie.control.confuse",
+          "jiujie.control.million_weapons",
+          "tianyan.mire",
+          "tianyan.sever_meridian",
+          "combat.training.status.control"
+        ],
+        "healRatio": 0
+      },
+      "description": "澄明灵台，解除己方全体在场单位的可解除控制，不解除反噬休息、毒、减益或禁复活。"
+    },
+    {
+      "id": "dao_equipment.art.chengtian",
+      "name": "澄天诀",
+      "skillId": "dao_equipment.skill.chengtian",
+      "rageCost": 150,
+      "target": "allies",
+      "effect": {
+        "type": "cleanse",
+        "kinds": [
+          "lingxiao.confuse",
+          "jiujie.control.suppress",
+          "jiujie.control.confuse",
+          "jiujie.control.million_weapons",
+          "tianyan.mire",
+          "tianyan.sever_meridian",
+          "combat.training.status.control"
+        ],
+        "healRatio": 0.15
+      },
+      "description": "澄明灵台，解除己方全体在场单位的可解除控制，不解除反噬休息、毒、减益或禁复活。随后恢复最大气血的{healRatioPercent}%，受减疗与伤势上限约束。"
+    },
+    {
+      "id": "dao_equipment.art.cuozhi",
+      "name": "一念成空",
+      "skillId": "dao_equipment.skill.cuozhi",
+      "rageCost": 40,
+      "target": "enemy",
+      "effect": {
+        "type": "rageDamage",
+        "amount": 70
+      },
+      "description": "器意摄心，削减敌方单体{amount}点战意，最低降至0。"
+    },
+    {
+      "id": "dao_equipment.art.hanyue",
+      "name": "巨力术",
+      "skillId": "dao_equipment.skill.hanyue",
+      "rageCost": 40,
+      "target": "ally",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.hanyue",
+        "group": "dao_equipment.art.physical_up",
+        "modifier": "physicalDealt",
+        "ratio": 0.15,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使己方单体造成的物理伤害结果提高{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.hanyueyin",
+      "name": "天罡助威",
+      "skillId": "dao_equipment.skill.hanyueyin",
+      "rageCost": 60,
+      "target": "allies",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.hanyueyin",
+        "group": "dao_equipment.art.physical_up",
+        "modifier": "physicalDealt",
+        "ratio": 0.1,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使己方全体在场单位造成的物理伤害结果提高{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.huti",
+      "name": "金甲术",
+      "skillId": "dao_equipment.skill.huti",
+      "rageCost": 40,
+      "target": "ally",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.huti",
+        "group": "dao_equipment.art.physical_guard",
+        "modifier": "physicalTaken",
+        "ratio": -0.12,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使己方单体受到的物理伤害结果降低{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.hutiyin",
+      "name": "金鳞护阵",
+      "skillId": "dao_equipment.skill.hutiyin",
+      "rageCost": 60,
+      "target": "allies",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.hutiyin",
+        "group": "dao_equipment.art.physical_guard",
+        "modifier": "physicalTaken",
+        "ratio": -0.08,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使己方全体在场单位受到的物理伤害结果降低{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.lianfeng",
+      "name": "镇岳印",
+      "skillId": "dao_equipment.skill.lianfeng",
+      "rageCost": 30,
+      "target": "enemy",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.lianfeng",
+        "group": "dao_equipment.art.physical_down",
+        "modifier": "physicalDealt",
+        "ratio": -0.15,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使敌方单体造成的物理伤害结果降低{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.lianfengyin",
+      "name": "消兵化锋",
+      "skillId": "dao_equipment.skill.lianfengyin",
+      "rageCost": 60,
+      "target": "enemies",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.lianfengyin",
+        "group": "dao_equipment.art.physical_down",
+        "modifier": "physicalDealt",
+        "ratio": -0.1,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使敌方全体在场单位造成的物理伤害结果降低{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.liejia",
+      "name": "裂甲诀",
+      "skillId": "dao_equipment.skill.liejia",
+      "rageCost": 35,
+      "target": "enemy",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.liejia",
+        "group": "dao_equipment.art.physical_vulnerable",
+        "modifier": "physicalTaken",
+        "ratio": 0.12,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使敌方单体受到的物理伤害结果提高{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.liejiayin",
+      "name": "裂甲术",
+      "skillId": "dao_equipment.skill.liejiayin",
+      "rageCost": 60,
+      "target": "enemies",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.liejiayin",
+        "group": "dao_equipment.art.physical_vulnerable",
+        "modifier": "physicalTaken",
+        "ratio": 0.08,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使敌方全体在场单位受到的物理伤害结果提高{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.xuanling",
+      "name": "两仪化法",
+      "skillId": "dao_equipment.skill.xuanling",
+      "rageCost": 60,
+      "target": "ally",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.xuanling",
+        "group": "dao_equipment.art.spell_guard",
+        "modifier": "spellTaken",
+        "ratio": -0.5,
+        "duration": 5
+      },
+      "description": "法宝结印，使己方单体受到的法术伤害结果降低{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.xuantian",
+      "name": "青莲庇世",
+      "skillId": "dao_equipment.skill.xuantian",
+      "rageCost": 150,
+      "target": "allies",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.xuantian",
+        "group": "dao_equipment.art.spell_guard",
+        "modifier": "spellTaken",
+        "ratio": -0.5,
+        "duration": 3
+      },
+      "description": "法宝结印，使己方全体在场单位受到的法术伤害结果降低{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.fuying",
+      "name": "凝滞术",
+      "skillId": "dao_equipment.skill.fuying",
+      "rageCost": 40,
+      "target": "enemy",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.fuying",
+        "group": "dao_equipment.art.speed_down",
+        "modifier": "speed",
+        "ratio": -0.1,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使敌方单体速度降低{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.fuyingyin",
+      "name": "元磁重域",
+      "skillId": "dao_equipment.skill.fuyingyin",
+      "rageCost": 60,
+      "target": "enemies",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.fuyingyin",
+        "group": "dao_equipment.art.speed_down",
+        "modifier": "speed",
+        "ratio": -0.05,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使敌方全体在场单位速度降低{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.yufeng",
+      "name": "御风诀",
+      "skillId": "dao_equipment.skill.yufeng",
+      "rageCost": 40,
+      "target": "ally",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.yufeng",
+        "group": "dao_equipment.art.speed_up",
+        "modifier": "speed",
+        "ratio": 0.1,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使己方单体速度提高{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.yufengyin",
+      "name": "御风术",
+      "skillId": "dao_equipment.skill.yufengyin",
+      "rageCost": 60,
+      "target": "allies",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.yufengyin",
+        "group": "dao_equipment.art.speed_up",
+        "modifier": "speed",
+        "ratio": 0.05,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使己方全体在场单位速度提高{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.lingyan",
+      "name": "青冥一气",
+      "skillId": "dao_equipment.skill.lingyan",
+      "rageCost": 40,
+      "target": "ally",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.lingyan",
+        "group": "dao_equipment.art.spell_up",
+        "modifier": "spellDealt",
+        "ratio": 0.1,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使己方单体造成的法术伤害结果提高{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.jifa",
+      "name": "抑灵咒",
+      "skillId": "dao_equipment.skill.jifa",
+      "rageCost": 30,
+      "target": "enemy",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.jifa",
+        "group": "dao_equipment.art.spell_down",
+        "modifier": "spellDealt",
+        "ratio": -0.1,
+        "duration": "battle"
+      },
+      "description": "法宝结印，使敌方单体造成的法术伤害结果降低{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.kurong",
+      "name": "蚀灵咒",
+      "skillId": "dao_equipment.skill.kurong",
+      "rageCost": 125,
+      "target": "enemies",
+      "effect": {
+        "type": "status",
+        "statusId": "dao_equipment.status.kurong",
+        "group": "dao_equipment.art.healing_down",
+        "modifier": "healTaken",
+        "ratio": -0.5,
+        "duration": 3
+      },
+      "description": "法宝结印，使敌方全体在场单位受到的治疗降低{ratioPercent}%，{term}。同类取强，不叠加。"
+    },
+    {
+      "id": "dao_equipment.art.diefeng",
+      "name": "双剑合璧",
+      "skillId": "dao_equipment.skill.diefeng",
+      "rageCost": 80,
+      "target": "enemy",
+      "effect": {
+        "type": "attack",
+        "kind": "physical",
+        "resultFactors": [
+          1,
+          1
+        ]
+      },
+      "description": "器锋叠起，对敌方单体连续{hits}次物理攻击，每段伤害结果依次为{segments}；目标倒地则停止，不转移目标。"
+    },
+    {
+      "id": "dao_equipment.art.sandie",
+      "name": "三叠仙音",
+      "skillId": "dao_equipment.skill.sandie",
+      "rageCost": 60,
+      "target": "enemy",
+      "effect": {
+        "type": "attack",
+        "kind": "spell",
+        "resultFactors": [
+          0.3,
+          0.5,
+          1
+        ]
+      },
+      "description": "法宝鸣动三叠仙音，对敌方单体连续{hits}次法术攻击，每段伤害结果依次为{segments}；目标倒地则停止，不转移目标。"
+    },
+    {
+      "id": "dao_equipment.art.juling",
+      "name": "聚灵诀",
+      "skillId": "dao_equipment.skill.juling",
+      "rageCost": 60,
+      "target": "self",
+      "effect": {
+        "type": "restoreMp",
+        "ratio": 0.1,
+        "casterLevelFactor": 3
+      },
+      "description": "法宝聚拢灵息，为自身恢复最大法力的{ratioPercent}%加自身境界映射等级×{casterLevelFactor}点法力，不超过法力上限。"
+    },
+    {
+      "id": "dao_equipment.art.wanxiang",
+      "name": "万象归灵",
+      "skillId": "dao_equipment.skill.wanxiang",
+      "rageCost": 150,
+      "target": "allies",
+      "effect": {
+        "type": "restoreMp",
+        "ratio": 0.1,
+        "casterLevelFactor": 1,
+        "capPerLevel": 10
+      },
+      "description": "灵息遍照己方全体在场单位，每位恢复其最大法力的{ratioPercent}%加施法者境界映射等级×{casterLevelFactor}点法力；每位至多恢复其境界映射等级×{capPerLevel}点。"
+    },
+    {
+      "id": "dao_equipment.art.zebei",
+      "name": "玉露回春",
+      "skillId": "dao_equipment.skill.zebei",
+      "rageCost": 135,
+      "target": "allies",
+      "effect": {
+        "type": "heal",
+        "ratio": 0.25,
+        "capPerLevel": 12
+      },
+      "description": "生机泽被己方全体在场单位，每位恢复最大气血的{ratioPercent}%，基础回复不超过目标境界映射等级×{capPerLevel}；受减疗、禁止回复与伤势上限约束，不修复伤势。"
+    },
+    {
+      "id": "dao_equipment.art.niming",
+      "name": "逆命诀",
+      "skillId": "dao_equipment.skill.niming",
+      "rageCost": 120,
+      "target": "ally",
+      "effect": {
+        "type": "revive",
+        "hpRatio": 0.5,
+        "capPerLevel": 20
+      },
+      "description": "牵引命火，复起己方单体并恢复最大气血的{hpRatioPercent}%，基础回复不超过目标境界映射等级×{capPerLevel}；受禁复活、禁止回复、减疗与伤势上限约束。"
+    },
+    {
+      "id": "dao_equipment.art.due",
+      "name": "渡厄归生",
+      "skillId": "dao_equipment.skill.due",
+      "rageCost": 150,
+      "target": "allies",
+      "effect": {
+        "type": "massRevive",
+        "hpRatio": 1,
+        "remainingHpRatio": 0.1,
+        "remainingMpRatio": 0
+      },
+      "description": "复起己方全部在场倒地单位，按最大气血的{hpRatioPercent}%恢复，受减疗与伤势上限约束；跳过禁复活或禁止回复者，不治疗存活队友。自身气血须高于上限的{remainingHpRatioPercent}%，发动后降至该比例，法力降至上限的{remainingMpRatioPercent}%。无可复活目标时不发动，不扣战意或自损。"
+    },
+    {
+      "id": "dao_equipment.art.dongxu",
+      "name": "洞金指",
+      "skillId": "dao_equipment.skill.dongxu",
+      "rageCost": 50,
+      "target": "enemy",
+      "effect": {
+        "type": "attack",
+        "kind": "physical",
+        "resultFactors": [
+          1
+        ],
+        "defenseIgnore": 0.3
+      },
+      "description": "洞穿护体，对敌方单体进行{hits}次物理攻击，忽视目标{defenseIgnorePercent}%物防。不附加重伤。"
+    },
+    {
+      "id": "dao_equipment.art.cuiling",
+      "name": "摧灵斩",
+      "skillId": "dao_equipment.skill.cuiling",
+      "rageCost": 80,
+      "target": "enemy",
+      "effect": {
+        "type": "attack",
+        "kind": "physical",
+        "resultFactors": [
+          1
+        ],
+        "mpDamageRatio": 1
+      },
+      "description": "器锋摧灵，对敌方单体进行{hits}次物理攻击，并按本次实际气血损失的{mpDamageRatioPercent}%削减其法力；护盾吸收与溢出伤害不计，法力最低降至0。"
+    },
+    {
+      "id": "dao_equipment.art.dangchen",
+      "name": "荡尘咒",
+      "skillId": "dao_equipment.skill.dangchen",
+      "rageCost": 125,
+      "target": "enemies",
+      "effect": {
+        "type": "dispelBuff",
+        "chance": 0.8,
+        "artChance": 0.2
+      },
+      "description": "涤荡敌方全体在场单位的可驱散增益，每条独立判定：普通增益{chancePercent}%概率、器诀增益{artChancePercent}%概率移除。不影响被动与不可驱散状态。"
+    }
+  ],
+  "rageResource": {
+    "name": "战意",
+    "initial": 0,
+    "maximum": 150
+  },
+  "rageGain": {
+    "minPerHit": 1,
+    "maxPerHit": 20,
+    "damagePercentScale": 100,
+    "maxPerAction": 30
+  }
+}

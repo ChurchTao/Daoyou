@@ -5,7 +5,7 @@ import {
   PILL_TOXICITY_CAP,
   REALM_PILL_USAGE_LIMITS,
 } from '@shared/config/consumableSystem';
-import type { CultivatorDisplayInput } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+import type { CultivatorDisplayInput } from '@shared/lib/cultivatorDisplay';
 import {
   BODY_CULTIVATION_REALM_REQUIREMENTS,
   BODY_REALM_LABELS,
@@ -250,6 +250,7 @@ function setTrackState(
         ...condition.tracks,
         bodyCultivation: {
           ...bodyCultivation,
+          breakthrough: undefined,
           tracks: {
             ...bodyCultivation.tracks,
             [key]: {

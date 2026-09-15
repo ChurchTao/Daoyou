@@ -239,6 +239,111 @@
       "when": 1788147338302,
       "tag": "0033_spirit_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1788508381899,
+      "tag": "0034_flowery_squadron_sinister",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1788516324786,
+      "tag": "0035_even_crusher_hogan",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1788670113128,
+      "tag": "0036_unified_v6_replay",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1788676248284,
+      "tag": "0037_v6_replay_history_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1788691868265,
+      "tag": "0038_v6_summoned_beasts",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1788755523519,
+      "tag": "0039_inventory_v6",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1788760243550,
+      "tag": "0040_inventory_slot_capacity",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1788787559076,
+      "tag": "0041_inventory_stack_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1788792210469,
+      "tag": "0042_v6_sect_depth",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1789048437114,
+      "tag": "0043_manual-level-progression",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1789050374352,
+      "tag": "0044_domain_ownership_cutover",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1789053555643,
+      "tag": "0045_replay_protocol_cutover",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1789142259856,
+      "tag": "0046_realm_attribute_level_budget",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1789446143788,
+      "tag": "0047_equipment_outside_bag",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1789465138319,
+      "tag": "0048_competitive_replay_retention",
+      "breakpoints": true
     }
   ]
 }

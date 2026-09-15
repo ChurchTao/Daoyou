@@ -86,6 +86,7 @@ export const DUNGEON_ENEMY_DIFFICULTY_TABLE: Record<
 };
 
 export interface MapNode {
+  wild_encounter_id?: string;
   id: string;
   name: string;
   region: string;
@@ -100,6 +101,7 @@ export interface MapNode {
 }
 
 export interface SatelliteNode {
+  wild_encounter_id?: string;
   id: string;
   name: string;
   parent_id: string;

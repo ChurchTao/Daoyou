@@ -124,25 +124,6 @@ describe('domain event contracts', () => {
       },
     },
     {
-      type: 'bet-battle.created' as const,
-      data: {
-        userId: USER_ID,
-        cultivatorId: CULTIVATOR_ID,
-        cultivatorName: '玄真',
-        battleId: '88888888-8888-4888-8888-888888888888',
-        taunt: '可敢一战',
-      },
-    },
-    {
-      type: 'bet-battle.settled' as const,
-      data: {
-        userId: USER_ID,
-        cultivatorId: CULTIVATOR_ID,
-        battleId: '88888888-8888-4888-8888-888888888888',
-        rumor: '玄真于赌战台取胜。',
-      },
-    },
-    {
       type: 'ranking.position.changed' as const,
       data: {
         userId: USER_ID,

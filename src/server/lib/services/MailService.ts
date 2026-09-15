@@ -4,10 +4,18 @@ import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher';
 import type { MailAttachment } from '@shared/types/mail';
 import { eq } from 'drizzle-orm';
+import { newRewardAttachment } from './MailInventory';
 
 export type { MailAttachment, MailAttachmentType } from '@shared/types/mail';
 
 export class MailService {
+  static async sendNewRewardMail(
+    ...args: Parameters<typeof MailService.sendMail>
+  ) {
+    args[3] = (args[3] ?? []).map(newRewardAttachment);
+    return MailService.sendMail(...args);
+  }
+
   /**
    * Send a mail to a cultivator
    */

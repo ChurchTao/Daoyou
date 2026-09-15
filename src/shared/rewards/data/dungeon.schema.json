@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "minimum": 1,
+      "$ref": "#/$defs/__schema0"
+    },
+    "materials": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema1"
+      }
+    },
+    "sources": {
+      "type": "object",
+      "properties": {
+        "exploration": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "battle": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "completion": {
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "required": [
+        "exploration",
+        "battle",
+        "completion"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "materials",
+    "sources"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "rewardId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "weight": {
+          "minimum": 1,
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": [
+        "rewardId",
+        "weight"
+      ],
+      "additionalProperties": false
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "chance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "experience": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "stones": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 99,
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": [
+        "chance",
+        "experience",
+        "stones",
+        "quantity"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

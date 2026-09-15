@@ -1,12 +1,8 @@
 import {
-  RESOURCE_DATA_SCHEMAS,
-} from '@shared/contracts/resources';
-import {
   SectTaskSubmissionInputSchema,
   type SectTaskActionOutcome,
   type SectTaskSubmissionInput,
 } from '@shared/contracts/sect';
-import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
 import {
   describeSectDeliveryRequirement,
   matchSectDeliveryRequirement,
@@ -18,11 +14,8 @@ import {
   MINING_SESSION_TTL_MS,
   MINING_TIER_MATERIAL_QUANTITY,
   miningRewardQualityPreference,
-  resolveSectBattleTargetRealmCandidates,
   resolveSectTaskExecutionLocationParameters,
   scaleMiningTaskReward,
-  SECT_BATTLE_TARGET_SCHEMA_VERSION,
-  SectBattleTargetSnapshotSchema,
   SectTaskRecordPayloadSchema,
   SectTaskRewardSnapshotSchema,
   simulateMiningTranscript,
@@ -503,86 +496,10 @@ export class BattleTaskExecutor extends BaseTaskExecutor<
   async initializePayload(
     context: SectTaskEnrollmentContext,
   ): Promise<SectTaskRecordPayload> {
-    const player = await context.ports.cultivators.loadRuntime(
-      context.cultivatorId,
-    );
-    if (!player) invalid('角色不存在');
-    const factory = context.ports.modules
-      .require(context.membership.sectId)
-      .battles.get(context.definition.id);
-    if (!factory) invalid('该宗门任务未配置战斗场景');
-    let target: CultivatorCombatInput | null = null;
-    let source:
-      | { cultivatorId: string; sectId: string; sectName: string }
-      | undefined;
-    if (factory.acquisition !== 'preset') {
-      source =
-        (await context.ports.cultivators.findBattleTargetCandidate({
-          requesterSectId: context.membership.sectId,
-          excludeCultivatorId: context.cultivatorId,
-          realms: resolveSectBattleTargetRealmCandidates(
-            player.realm,
-            factory.acquisition,
-          ),
-          relation: factory.acquisition,
-        })) ?? undefined;
-      if (!source)
-        invalid(
-          factory.acquisition === 'same-sect'
-            ? '本周演武名册尚未排到与你同境或低一境的同门，不妨过些时候再来问问。'
-            : '近日悬赏册上没有与你同境或低一境的外宗目标，这份令暂时不能揭。',
-          409,
-        );
-      target = await context.ports.cultivators.loadRuntime(source.cultivatorId);
-      if (!target)
-        invalid(
-          factory.acquisition === 'same-sect'
-            ? '本周演武名册尚未排到与你同境或低一境的同门，不妨过些时候再来问问。'
-            : '近日悬赏册上没有与你同境或低一境的外宗目标，这份令暂时不能揭。',
-          409,
-        );
-    }
-    const scenario = factory.create({
-      player,
-      target,
-      sectId: context.membership.sectId,
-      opponentId: `sect-target-${context.requestId}`,
-    });
-    const battleTarget =
-      factory.acquisition === 'preset'
-        ? SectBattleTargetSnapshotSchema.parse({
-            schemaVersion: SECT_BATTLE_TARGET_SCHEMA_VERSION,
-            kind: 'preset',
-            presetId:
-              scenario.presetId ?? `sect-task-${context.definition.id}-v1`,
-            rulesVersion: 1,
-            challengeTitle: scenario.title,
-            name: scenario.opponent.name,
-            description: scenario.description,
-            realm: scenario.opponent.realm,
-            realmStage: scenario.opponent.realm_stage,
-            combatant: scenario.opponent,
-          })
-        : SectBattleTargetSnapshotSchema.parse({
-            schemaVersion: SECT_BATTLE_TARGET_SCHEMA_VERSION,
-            kind: 'cultivator',
-            sourceCultivatorId: source!.cultivatorId,
-            sourceSectId: source!.sectId,
-            sourceSectName: source!.sectName,
-            lockedAt: context.ports.clock.now().toISOString(),
-            challengeTitle: scenario.title,
-            name: scenario.opponent.name,
-            description: scenario.description,
-            realm: scenario.opponent.realm,
-            realmStage: scenario.opponent.realm_stage,
-            combatant: scenario.opponent,
-          });
+    const battleTarget = await context.ports.battle.freeze(context);
     return SectTaskRecordPayloadSchema.parse({
       ...context.payload,
-      executorData: {
-        ...context.payload.executorData,
-        battleTarget,
-      },
+      executorData: { ...context.payload.executorData, battleTarget },
     });
   }
   async execute(
@@ -590,62 +507,35 @@ export class BattleTaskExecutor extends BaseTaskExecutor<
     context: SectTaskExecutionContext,
   ): Promise<SectTaskExecutionDecision> {
     if (actionKey !== 'execute') invalid('战斗任务不支持该操作');
-    const player = await context.ports.cultivators.loadRuntime(
-      context.cultivatorId,
-    );
-    if (!player) invalid('角色不存在');
-    const target = SectBattleTargetSnapshotSchema.safeParse(
-      context.record.payload.executorData.battleTarget,
-    );
-    if (!target.success) invalid('宗门战斗目标快照缺失', 500);
-    const opponent = structuredClone(target.data.combatant);
-    opponent.id = `sect-task-${context.record.id}-${context.requestId}`;
-    const factory = context.ports.modules
-      .require(context.membership.sectId)
-      .battles.get(context.definition.id);
-    if (!factory) invalid('该宗门任务未配置战斗场景', 500);
-    const resolution = context.ports.battle.execute(
-      player,
-      opponent,
-      factory.stateStrategy,
-      `${context.record.id}:${context.requestId}`,
-    );
-    const battle = resolution.battleResult;
+    const battle = await context.ports.battle.start(context);
     const effects = emptySectCommandEffects();
-    if (resolution.nextCondition) {
-      await context.ports.cultivators.saveCondition(
-        context.cultivatorId,
-        resolution.nextCondition,
-      );
-      effects.resourceChanges.push({
-        resourceTopic: 'player.condition',
-        eventType: 'condition.sect_battle.settled',
-        operation: 'replace',
-        payload: RESOURCE_DATA_SCHEMAS['player.condition'].parse(
-          resolution.nextCondition,
-        ),
-      });
-    }
-    const won = battle.outcome.winner.id === player.id;
+    effects.resourceChanges.push({
+      resourceTopic: 'player.condition',
+      operation: 'invalidate',
+      eventType: 'sect.battle.started',
+    });
     return {
-      completed: won,
+      completed: false,
       completionSettlement: 'deferred',
       effects,
-      outcome: {
-        renderer: 'sect.outcome.battle',
-        data: {
-          battle,
-          won,
-          challengeTitle: target.data.challengeTitle,
-          taskFulfilled: won,
+      payload: SectTaskRecordPayloadSchema.parse({
+        ...context.record.payload,
+        executorData: {
+          ...context.record.payload.executorData,
+          activeBattleId: battle.battleId,
+          battleSettled: false,
         },
+      }),
+      outcome: {
+        renderer: 'sect.outcome.battle-started',
+        data: { battleId: battle.battleId },
       },
     };
   }
 }
 
 abstract class DeliveryTaskExecutor extends BaseTaskExecutor<SectTaskSubmissionInput> {
-  protected abstract readonly itemKind: 'pill' | 'artifact' | 'material';
+  protected abstract readonly itemKind: 'pill' | 'equipment' | 'material';
   inputSchema(): ZodType<SectTaskSubmissionInput> {
     return SectTaskSubmissionInputSchema;
   }
@@ -683,7 +573,9 @@ abstract class DeliveryTaskExecutor extends BaseTaskExecutor<SectTaskSubmissionI
           itemId: item.id,
           kind: item.kind,
           name: item.name,
-          quality: item.quality,
+          ...(item.kind === 'equipment'
+            ? { equipmentLevel: item.equipmentLevel }
+            : { quality: item.quality }),
           quantity,
           matchedFacts: [matchedFact],
         })),
@@ -724,6 +616,7 @@ export class PillDeliveryTaskExecutor extends DeliveryTaskExecutor {
         kind: 'pill',
         itemId: item.id,
         quantity: selection.quantity,
+        revision: selection.revision,
       });
     if (!settlement.consumed) invalid('丹药数量不足');
     const effects = inventorySettlementEffects(settlement);
@@ -739,15 +632,15 @@ export class PillDeliveryTaskExecutor extends DeliveryTaskExecutor {
   }
 }
 
-export class ArtifactDeliveryTaskExecutor extends DeliveryTaskExecutor {
-  readonly key = 'sect.delivery.artifact';
-  protected readonly itemKind = 'artifact' as const;
+export class EquipmentDeliveryTaskExecutor extends DeliveryTaskExecutor {
+  readonly key = 'sect.delivery.equipment';
+  protected readonly itemKind = 'equipment' as const;
   async execute(
     actionKey: string,
     context: SectTaskExecutionContext,
     input: SectTaskSubmissionInput,
   ): Promise<SectTaskExecutionDecision> {
-    if (actionKey !== 'execute') invalid('法宝交付不支持该操作');
+    if (actionKey !== 'execute') invalid('道装交付不支持该操作');
     const requirement = this.requirement(context.record);
     const selection = input.items[0];
     if (
@@ -758,21 +651,22 @@ export class ArtifactDeliveryTaskExecutor extends DeliveryTaskExecutor {
       invalid(`该委托须一次提交 ${requirement.quantity} 件`);
     const item = await context.ports.submissionInventory.findSubmissionItem(
       context.cultivatorId,
-      'artifact',
+      'equipment',
       selection.itemId,
     );
-    if (!item) invalid('未找到该法宝');
+    if (!item) invalid('未找到该道装');
     const match = matchSectDeliveryRequirement(requirement, item);
     if (!match.eligible)
-      invalid(match.violations[0]?.message ?? '法宝不符合要求');
+      invalid(match.violations[0]?.message ?? '道装不符合要求');
     const settlement =
       await context.ports.submissionInventory.consumeSubmissionItem({
         cultivatorId: context.cultivatorId,
-        kind: 'artifact',
+        kind: 'equipment',
         itemId: item.id,
         quantity: selection.quantity,
+        revision: selection.revision,
       });
-    if (!settlement.consumed) invalid('法宝状态已变化，请重试');
+    if (!settlement.consumed) invalid('道装状态已变化，请重试');
     const effects = inventorySettlementEffects(settlement);
     return {
       completed: true,
@@ -799,15 +693,18 @@ export class MaterialDeliveryTaskExecutor extends DeliveryTaskExecutor {
     if (requirement.kind !== 'material') invalid('任务材料要求缺失');
     const selections = [];
     for (const selection of input.items) {
-      const item =
-        await context.ports.submissionInventory.findSubmissionItem(
-          context.cultivatorId,
-          'material',
-          selection.itemId,
-        );
+      const item = await context.ports.submissionInventory.findSubmissionItem(
+        context.cultivatorId,
+        'material',
+        selection.itemId,
+      );
       if (!item || item.kind !== 'material')
         invalid('悬赏所需材料状态已经变化');
-      selections.push({ item, quantity: selection.quantity });
+      selections.push({
+        item,
+        quantity: selection.quantity,
+        revision: selection.revision,
+      });
     }
     const match = matchSectMaterialDeliverySelection(requirement, selections);
     if (!match.eligible)
@@ -820,6 +717,7 @@ export class MaterialDeliveryTaskExecutor extends DeliveryTaskExecutor {
           kind: 'material',
           itemId: selection.item.id,
           quantity: selection.quantity,
+          revision: selection.revision,
         });
       if (!settlement.consumed) invalid('材料状态已变化，请重试');
       effects = mergeSectCommandEffects(
@@ -845,7 +743,6 @@ function inventorySettlementEffects(
   >,
 ): SectCommandEffects {
   const effects = emptySectCommandEffects();
-  if (settlement.change) effects.resourceChanges.push(settlement.change);
   if (settlement.settlement)
     effects.settlement.inventory.push(settlement.settlement);
   return effects;

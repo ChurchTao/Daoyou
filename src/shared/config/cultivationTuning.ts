@@ -1,5 +1,3 @@
-import type { Quality } from '@shared/types/constants';
-
 /**
  * ============================================================
  *  修为系统 · 统一调参面板
@@ -9,7 +7,7 @@ import type { Quality } from '@shared/types/constants';
  *  修改任一常量即可全局生效，无需深入公式函数内部。
  *
  *  核心公式：
- *    修为 = 基础修为 × 闭关年限 × 灵根系数 × 功法系数
+ *    修为 = 基础修为 × 闭关年限 × 灵根系数
  *          × 年限系数 × 随机波动
  *    若触发顿悟，修为 ×1.5，额外获得 20~50 感悟值。
  *    若处于瓶颈期，修为减半。
@@ -26,31 +24,6 @@ export const SPIRITUAL_ROOT_BASE = 0.5;
 
 /** 无灵根时的默认灵根强度（兜底值） */
 export const DEFAULT_SPIRITUAL_ROOT_STRENGTH = 50;
-
-// ──────────────────────────────────────────────
-//  2. 功法系数
-// ──────────────────────────────────────────────
-
-/** 各品级功法对应的修为乘数 */
-export const TECHNIQUE_QUALITY_MULTIPLIERS: Record<Quality, number> = {
-  凡品: 0.8,
-  灵品: 0.85,
-  玄品: 0.9,
-  真品: 0.95,
-  地品: 1.0,
-  天品: 1.05,
-  仙品: 1.1,
-  神品: 1.15,
-};
-
-/** 无功法时的默认修为乘数 */
-export const NO_TECHNIQUE_MULTIPLIER = 1.0;
-
-/** 功法品级遍历时的初始下限（确保不低于此值） */
-export const TECHNIQUE_MIN_MULTIPLIER = 0.8;
-
-/** 功法品质查表时的兜底品级 */
-export const TECHNIQUE_FALLBACK_QUALITY: Quality = '凡品';
 
 // ──────────────────────────────────────────────
 //  3. 年限系数

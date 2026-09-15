@@ -29,7 +29,8 @@ import {
   type IdentityReshapeSessionDTO,
   type IdentityReshapeSessionStore,
 } from '@shared/types/identityReshape';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
+import { findBagTalisman } from './BagConsumables';
 import { playerCommandExecutor } from './CommandExecutors';
 import { consumeConsumableById } from './cultivator/CultivatorInventoryRepository';
 
@@ -99,20 +100,13 @@ async function loadMatchingTalismans(
   cultivatorId: string,
   executor: DbExecutor | DbTransaction = getExecutor(),
 ) {
-  return executor
-    .select()
-    .from(schema.consumables)
-    .where(
-      and(
-        eq(schema.consumables.cultivatorId, cultivatorId),
-        eq(schema.consumables.type, '符箓'),
-        sql`${schema.consumables.quantity} > 0`,
-        sql`${schema.consumables.spec}->>'kind' = 'talisman'`,
-        sql`${schema.consumables.spec}->>'scenario' = ${IDENTITY_RESHAPE_SCENARIO}`,
-        sql`${schema.consumables.spec}->>'sessionMode' = 'consume_on_action'`,
-      ),
-    )
-    .orderBy(asc(schema.consumables.createdAt), asc(schema.consumables.id));
+  return (
+    await findBagTalisman(cultivatorId, IDENTITY_RESHAPE_SCENARIO, executor)
+  ).filter(
+    (item) =>
+      item.spec.kind === 'talisman' &&
+      item.spec.sessionMode === 'consume_on_action',
+  );
 }
 
 export class IdentityReshapeServiceError extends Error {
@@ -187,7 +181,7 @@ export function startIdentityReshape(args: {
         cultivatorId: args.cultivatorId,
         source: 'identity_reshape_start',
         command: async (tx) => {
-          const consumption = await consumeConsumableById(
+          await consumeConsumableById(
             args.userId,
             args.cultivatorId,
             talisman.id,
@@ -197,22 +191,11 @@ export function startIdentityReshape(args: {
           return {
             result: { session: toDto(session) },
             resourceChanges: [
-              consumption.removed
-                ? {
-                    resourceTopic: 'inventory.consumables' as const,
-                    eventType: 'inventory.identity_reshape.consumed',
-                    operation: 'remove-items' as const,
-                    payload: { idKey: 'id', ids: [talisman.id] },
-                  }
-                : {
-                    resourceTopic: 'inventory.consumables' as const,
-                    eventType: 'inventory.identity_reshape.consumed',
-                    operation: 'upsert-items' as const,
-                    payload: {
-                      idKey: 'id',
-                      items: [consumption.remaining!],
-                    },
-                  },
+              {
+                resourceTopic: 'inventory.consumables' as const,
+                eventType: 'inventory.identity_reshape.consumed',
+                operation: 'invalidate' as const,
+              },
             ],
           };
         },

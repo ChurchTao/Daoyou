@@ -1,15 +1,16 @@
-import { BASE_ATTRIBUTE_VALUE } from '@shared/config/realmProgression';
+import { getRealmStageNaturalAttributeValue } from '@shared/config/realmProgression';
 import { ELEMENT_VALUES, type ElementType } from '@shared/types/constants';
 import type { Attributes, SpiritualRoot } from '@shared/types/cultivator';
 
 export function generateAttributes(): Attributes {
+  const naturalValue = getRealmStageNaturalAttributeValue('炼气', '初期');
   return {
-    vitality: BASE_ATTRIBUTE_VALUE,
-    strength: BASE_ATTRIBUTE_VALUE,
-    spirit: BASE_ATTRIBUTE_VALUE,
-    endurance: BASE_ATTRIBUTE_VALUE,
-    speed: BASE_ATTRIBUTE_VALUE,
-    willpower: BASE_ATTRIBUTE_VALUE,
+    vitality: naturalValue,
+    strength: naturalValue,
+    spirit: naturalValue,
+    endurance: naturalValue,
+    speed: naturalValue,
+    willpower: naturalValue,
   };
 }
 

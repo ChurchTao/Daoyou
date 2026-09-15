@@ -430,7 +430,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
               提升：服用炼体丹，丹力会进入对应的肉身轨道。
             </p>
             <p className="text-ink-secondary mt-1">
-              进阶：轨道等级、修为境界、材料和对应方向炼体丹都满足后，才能提升肉身阶位。
+              进阶：五轨总等级与人物境界满足要求后，可无消耗、无失败地逐阶提升肉身阶位。
             </p>
           </div>
           <MarrowWashSummaryContent
@@ -632,13 +632,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
                 <tr>
                   <td className="px-3 py-1.5">炼器</td>
                   <td className="text-ink px-3 py-1.5 text-right font-mono">
-                    {QI_ACTION_COSTS.creation_artifact}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-1.5">创造功法/神通</td>
-                  <td className="text-ink px-3 py-1.5 text-right font-mono">
-                    {QI_ACTION_COSTS.creation_gongfa}
+                    7～39（随图纸境界）
                   </td>
                 </tr>
               </tbody>

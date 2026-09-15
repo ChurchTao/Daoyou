@@ -1,6 +1,5 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
-import { RESOURCE_DATA_SCHEMAS } from '@shared/contracts/resources';
 import { playerCommandExecutor } from './CommandExecutors';
 import { readPlayerTaskSummary } from './PlayerResourceReaderService';
 import { TaskService } from './TaskService';
@@ -20,54 +19,6 @@ export function claimTaskRewardCommand(args: {
         taskId: args.taskId,
         tx,
       }),
-  });
-}
-
-export function executeTaskChallengeCommand(args: {
-  userId: string;
-  cultivatorId: string;
-  taskId: string;
-}) {
-  return playerCommandExecutor.executeWithLock({
-    userId: args.userId,
-    cultivatorId: args.cultivatorId,
-    source: 'task_challenge',
-    command: async (tx) => {
-      const result = await TaskService.runTaskChallenge(
-        args.cultivatorId,
-        args.taskId,
-        { tx },
-      );
-      const taskSummary = await readPlayerTaskSummary(args.cultivatorId, tx);
-      return {
-        result,
-        resourceChanges: [
-          {
-            resourceTopic: 'player.tasks',
-            eventType: 'tasks.challenge_resolved',
-            operation: 'upsert-items',
-            payload: {
-              idKey: 'id',
-              items: [result.task],
-            },
-          },
-          {
-            resourceTopic: 'player.task-summary',
-            eventType: 'tasks.challenge_resolved',
-            operation: 'replace',
-            payload: taskSummary,
-          },
-          {
-            resourceTopic: 'player.condition',
-            eventType: 'condition.task_battle.settled',
-            operation: 'replace',
-            payload: RESOURCE_DATA_SCHEMAS['player.condition'].parse(
-              result.condition,
-            ),
-          },
-        ],
-      };
-    },
   });
 }
 

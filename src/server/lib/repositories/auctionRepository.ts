@@ -1,3 +1,4 @@
+import type { AuctionItemType } from '@shared/contracts/auction';
 import { and, asc, desc, eq, gte, lte, or, sql, type SQL } from 'drizzle-orm';
 import {
   getExecutor,
@@ -17,7 +18,7 @@ export type AuctionListing = typeof schema.auctionListings.$inferSelect;
 export async function createListing(data: {
   sellerId: string;
   sellerName: string;
-  itemType: 'material' | 'artifact' | 'consumable';
+  itemType: AuctionItemType;
   itemId: string;
   itemName: string;
   itemQuality: string;
@@ -78,7 +79,7 @@ export async function findById(
  */
 export interface FindActiveListingsOptions {
   scope?: 'all' | 'mine';
-  itemType?: 'material' | 'artifact' | 'consumable';
+  itemType?: AuctionItemType;
   itemCategory?: string;
   itemQuality?: string;
   itemName?: string;

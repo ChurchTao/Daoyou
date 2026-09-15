@@ -13,7 +13,6 @@ import {
   type BodyCultivationTrackSummary,
 } from '@shared/lib/bodyCultivation/summary';
 import {
-  getMarrowWashSummary,
   type MarrowWashSummary,
 } from '@shared/lib/marrowWash';
 import type { Cultivator } from '@shared/types/cultivator';
@@ -101,7 +100,7 @@ function BodyCultivationOverviewCard({
 
       <div className="border-ink/10 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-dashed px-3 py-3 md:grid-cols-4">
         <BodyMetric label="炼体等级" value={`Lv.${summary.totalLevel}`} />
-        <BodyMetric label="单轨建议上限" value={`Lv.${summary.realm.softTrackCap}`} />
+        <BodyMetric label="单轨上限" value={`Lv.${summary.realm.softTrackCap}`} />
         <BodyMetric label="下一境界" value={nextRealmLabel} />
         <BodyMetric
           label="进阶状态"
@@ -230,53 +229,6 @@ export function BodyCultivationSummaryContent({
   );
 }
 
-export function BodyCultivationEntrySection() {
-  const profile = useCultivatorIdentity();
-  const condition = useCultivatorCondition();
-  const identity = profile.data?.cultivator;
-  if (!identity || !condition.data) return null;
-
-  const summary = getBodyCultivationSummary(condition.data, {
-    cultivatorRealm: identity.realm,
-  });
-  const nextRealm = summary.nextRealm;
-  const nextRealmStatus = nextRealm
-    ? nextRealm.canAttempt
-      ? '可准备进阶'
-      : '条件未齐'
-    : '已圆满';
-
-  return (
-    <GameSceneSection title="肉身炼体">
-      <BodyCultivationOverviewCard
-        summary={summary}
-        nextRealm={nextRealm}
-        status={nextRealmStatus}
-        statusTone={nextRealm?.canAttempt ? 'success' : 'default'}
-        action={
-          <InkButton href="/game/body-cultivation" className="text-xs">
-            查看详情
-          </InkButton>
-        }
-      >
-        {nextRealm ? (
-          <div className="text-ink-secondary flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5">
-            {nextRealm.requirements.map((requirement) => (
-              <RequirementLine key={requirement.label} met={requirement.met}>
-                {requirement.label}
-              </RequirementLine>
-            ))}
-          </div>
-        ) : (
-          <p className="text-ink-secondary text-xs leading-5">
-            已达到当前最高肉身阶位，可继续查看五轨收益。
-          </p>
-        )}
-      </BodyCultivationOverviewCard>
-    </GameSceneSection>
-  );
-}
-
 export function MarrowWashSummaryContent({
   summary,
   action,
@@ -348,32 +300,6 @@ export function MarrowWashSummaryContent({
   );
 }
 
-export function MarrowWashEntrySection() {
-  const profile = useCultivatorIdentity();
-  const condition = useCultivatorCondition();
-  const identity = profile.data?.cultivator;
-  if (!identity || !condition.data) return null;
-
-  const summary = getMarrowWashSummary(condition.data, {
-    cultivatorRealm: identity.realm,
-  });
-  const unallocatedPoints = identity.unallocated_attribute_points ?? 0;
-
-  return (
-    <GameSceneSection title="洗髓">
-      <MarrowWashSummaryContent
-        summary={summary}
-        unallocatedPoints={unallocatedPoints}
-        action={
-          <InkButton href="/game/marrow-wash" className="text-xs">
-            查看详情
-          </InkButton>
-        }
-      />
-    </GameSceneSection>
-  );
-}
-
 export function BodyCultivationDetailPanel() {
   const profile = useCultivatorIdentity();
   const condition = useCultivatorCondition();
@@ -391,7 +317,7 @@ export function BodyCultivationDetailPanel() {
   }
   const breakthroughStatus = nextRealm
     ? nextRealm.canAttempt
-      ? '可破限'
+      ? '可升阶'
       : '条件未齐'
     : '已圆满';
 
@@ -410,7 +336,7 @@ export function BodyCultivationDetailPanel() {
                 variant="primary"
                 className="text-sm"
               >
-                突破
+                提升位阶
               </InkButton>
             ) : null
           }
@@ -420,8 +346,8 @@ export function BodyCultivationDetailPanel() {
               <div className="grid gap-2 text-xs leading-5 md:grid-cols-2">
                 <BodyMetric label="下阶开启" value={nextRealm.unlockText} />
                 <BodyMetric
-                  label="破限入口"
-                  value={nextRealm.canAttempt ? '可进入准备' : '继续炼体'}
+                  label="升阶入口"
+                  value={nextRealm.canAttempt ? '可直接提升' : '继续炼体'}
                 />
               </div>
               <div className="text-ink-secondary flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5">
@@ -447,13 +373,10 @@ export function BodyCultivationDetailPanel() {
       <GameSceneSection title="炼体说明">
         <div className="text-ink-secondary space-y-2 text-sm leading-7">
           <p>
-            五条轨道分别影响不同收益：皮肤偏防御，筋骨和气血偏生命与恢复，脏腑偏攻击和回蓝，元神偏控制抗性。
-          </p>
-          <p>
             炼体丹按药性方向提升对应轨道。丹药名称可以不同，只要药性方向相同，就会作用到同一条轨道。
           </p>
           <p>
-            提升肉身阶位前，需要满足轨道等级、修为境界、材料和对应方向炼体丹的质量要求。
+            肉身位阶只控制单轨上限。五轨总等级与人物境界满足要求后，可无消耗、无失败地逐阶提升。
           </p>
         </div>
       </GameSceneSection>

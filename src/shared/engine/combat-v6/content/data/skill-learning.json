@@ -1,0 +1,667 @@
+{
+  "$schema": "./skill-learning.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "skills": {
+    "lingxiao.skill.triple": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "lingxiao.skill.waiting": {
+      "sourceMethodId": "lingxiao.method.waiting",
+      "unlockMethodLevel": 1
+    },
+    "lingxiao.skill.formation": {
+      "sourceMethodId": "lingxiao.method.formation",
+      "unlockMethodLevel": 1
+    },
+    "lingxiao.skill.sword_aura": {
+      "sourceMethodId": "lingxiao.method.sword_aura",
+      "unlockMethodLevel": 1
+    },
+    "lingxiao.skill.clarity": {
+      "sourceMethodId": "lingxiao.method.clarity",
+      "unlockMethodLevel": 1
+    },
+    "lingxiao.skill.confuse": {
+      "sourceMethodId": "lingxiao.method.clarity",
+      "unlockMethodLevel": 30
+    },
+    "lingxiao.passive.zhanchen.wind_blade": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.bravery": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.guarded_rest": {
+      "sourceMethodId": "lingxiao.method.waiting",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.skill.blood_strike": {
+      "sourceMethodId": "lingxiao.method.sword_aura",
+      "unlockMethodLevel": 1
+    },
+    "lingxiao.passive.zhanchen.kill_intent": {
+      "sourceMethodId": "lingxiao.method.sword_aura",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.stored_edge": {
+      "sourceMethodId": "lingxiao.method.waiting",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.keen_heart": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.reckless_damage": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.reckless_taken": {
+      "sourceMethodId": "lingxiao.method.waiting",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.chain_break": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.victory_chase": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.skill.zhanchen_ultimate": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 100
+    },
+    "lingxiao.passive.guiyi.gain": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.hit": {
+      "sourceMethodId": "lingxiao.method.shadow",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.damage": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.skill.shadow_strike": {
+      "sourceMethodId": "lingxiao.method.shadow",
+      "unlockMethodLevel": 1
+    },
+    "lingxiao.passive.guiyi.extra_triple_intent": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.sharp": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.guard_intent": {
+      "sourceMethodId": "lingxiao.method.waiting",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.waiting_intent": {
+      "sourceMethodId": "lingxiao.method.waiting",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.armor_break": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.crit": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.guarded_rest": {
+      "sourceMethodId": "lingxiao.method.waiting",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.shadow_guard": {
+      "sourceMethodId": "lingxiao.method.waiting",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.flourish": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.steadfast": {
+      "sourceMethodId": "lingxiao.method.waiting",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.receive_intent": {
+      "sourceMethodId": "lingxiao.method.waiting",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.unstoppable": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.skill.guiyi_ultimate": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 100
+    },
+    "lingxiao.passive.guiyi.unending_damage": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.unending_cost": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.skill.edict": {
+      "sourceMethodId": "youdu.method.judge",
+      "unlockMethodLevel": 1
+    },
+    "youdu.skill.wither": {
+      "sourceMethodId": "youdu.method.wither",
+      "unlockMethodLevel": 1
+    },
+    "youdu.skill.pursuit": {
+      "sourceMethodId": "youdu.method.shadow",
+      "unlockMethodLevel": 1
+    },
+    "youdu.skill.soul_seal": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "youdu.skill.insight": {
+      "sourceMethodId": "youdu.method.insight",
+      "unlockMethodLevel": 1
+    },
+    "youdu.skill.sever": {
+      "sourceMethodId": "youdu.method.asura",
+      "unlockMethodLevel": 1
+    },
+    "youdu.passive.soul.foundation": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.skill.life_judge": {
+      "sourceMethodId": "youdu.method.judge",
+      "unlockMethodLevel": 1
+    },
+    "youdu.passive.soul.poisoned": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.soul.low_hp": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.soul.fixed": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.soul.heal": {
+      "sourceMethodId": "youdu.method.wither",
+      "unlockMethodLevel": 0
+    },
+    "youdu.skill.final_judgment": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 100
+    },
+    "youdu.passive.soul.first_kill": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.six.foundation": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.six.poisoned": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.six.direct": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.six.ignore5": {
+      "sourceMethodId": "youdu.method.asura",
+      "unlockMethodLevel": 0
+    },
+    "youdu.skill.ghost_rift": {
+      "sourceMethodId": "youdu.method.asura",
+      "unlockMethodLevel": 1
+    },
+    "youdu.passive.six.low_hp": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.six.ghost_crit": {
+      "sourceMethodId": "youdu.method.asura",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.six.ghost_poisoned": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.six.kill_mark": {
+      "sourceMethodId": "youdu.method.asura",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.six.kill_damage": {
+      "sourceMethodId": "youdu.method.asura",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.six.ignore10": {
+      "sourceMethodId": "youdu.method.asura",
+      "unlockMethodLevel": 0
+    },
+    "youdu.skill.six_paths_ruin": {
+      "sourceMethodId": "youdu.method.asura",
+      "unlockMethodLevel": 100
+    },
+    "youdu.passive.six.desperate_damage": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.six.desperate_taken": {
+      "sourceMethodId": "youdu.method.asura",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.skill.single_heal": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "wuxiang.skill.group_heal": {
+      "sourceMethodId": "wuxiang.method.compassion",
+      "unlockMethodLevel": 1
+    },
+    "wuxiang.skill.barrier": {
+      "sourceMethodId": "wuxiang.method.guardian",
+      "unlockMethodLevel": 1
+    },
+    "wuxiang.skill.spell": {
+      "sourceMethodId": "wuxiang.method.wrath",
+      "unlockMethodLevel": 1
+    },
+    "wuxiang.skill.purify": {
+      "sourceMethodId": "wuxiang.method.purity",
+      "unlockMethodLevel": 1
+    },
+    "wuxiang.skill.revive": {
+      "sourceMethodId": "wuxiang.method.crossing",
+      "unlockMethodLevel": 1
+    },
+    "wuxiang.skill.formless": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "wuxiang.passive.compassion.foundation.heal": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.foundation.barrier": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.formless.heal": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.formless.barrier": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.formless.wound": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.1.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.1.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.skill.great_barrier": {
+      "sourceMethodId": "wuxiang.method.guardian",
+      "unlockMethodLevel": 60
+    },
+    "wuxiang.passive.compassion.5.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.6.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.6.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.6.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.foundation": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.formless.damage": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.formless.ignore": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.1.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.2.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.2.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.2.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.skill.wrath_strike": {
+      "sourceMethodId": "wuxiang.method.wrath",
+      "unlockMethodLevel": 60
+    },
+    "wuxiang.passive.wrath.4.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.5.1": {
+      "sourceMethodId": "wuxiang.method.wrath",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.5.2.damage": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.5.2.taken": {
+      "sourceMethodId": "wuxiang.method.wrath",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.6.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.6.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.6.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.skill.final_silence": {
+      "sourceMethodId": "wuxiang.method.wrath",
+      "unlockMethodLevel": 100
+    },
+    "wuxiang.passive.wrath.7.3.damage": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.7.3.crit": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.skill.wood": {
+      "sourceMethodId": "tianyan.method.wood",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.skill.fire": {
+      "sourceMethodId": "tianyan.method.fire",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.skill.earth": {
+      "sourceMethodId": "tianyan.method.earth",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.skill.metal": {
+      "sourceMethodId": "tianyan.method.metal",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.skill.water": {
+      "sourceMethodId": "tianyan.method.water",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.skill.formation": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 20
+    },
+    "tianyan.skill.transfer": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 40
+    },
+    "tianyan.skill.ward": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 60
+    },
+    "tianyan.passive.reaction.tianyan.reaction.wildfire.damage": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.reaction.tianyan.reaction.magma.damage": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.reaction.tianyan.reaction.forging.damage": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.reaction.tianyan.reaction.forging.ignore": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.reaction.tianyan.reaction.cold_spring.damage": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.reaction.tianyan.reaction.flourish.damage": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.hetu.foundation.heal": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.hetu.foundation.barrier": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.skill.hetu_ultimate": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 60
+    },
+    "tianyan.passive.hetu.1.1": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.hetu.1.2": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.skill.life_array": {
+      "sourceMethodId": "tianyan.method.wood",
+      "unlockMethodLevel": 60
+    },
+    "tianyan.passive.hetu.4.1": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.hetu.4.2": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.hetu.4.3": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.hetu.5.1": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.hetu.5.2": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.hetu.6.1": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.hetu.6.2": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.luoshu.foundation": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.skill.luoshu_ultimate": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 60
+    },
+    "tianyan.passive.luoshu.1.1": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.luoshu.1.2": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.luoshu.2.1": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.luoshu.2.3": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.skill.reverse_divination": {
+      "sourceMethodId": "tianyan.method.fire",
+      "unlockMethodLevel": 60
+    },
+    "tianyan.skill.reverse_divination_strong": {
+      "sourceMethodId": "tianyan.method.fire",
+      "unlockMethodLevel": 60
+    },
+    "tianyan.passive.luoshu.5.1": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.luoshu.5.2": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.luoshu.6.1": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "tianyan.passive.luoshu.6.2": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.skill.thunderstorm": {
+      "sourceMethodId": "jiujie.method.thunder",
+      "unlockMethodLevel": 1
+    },
+    "jiujie.skill.five_thunder": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "jiujie.skill.thunder_slash": {
+      "sourceMethodId": "jiujie.method.pride",
+      "unlockMethodLevel": 1
+    },
+    "jiujie.skill.suppress": {
+      "sourceMethodId": "jiujie.method.seal",
+      "unlockMethodLevel": 1
+    },
+    "jiujie.skill.confuse": {
+      "sourceMethodId": "jiujie.method.cloud",
+      "unlockMethodLevel": 1
+    },
+    "jiujie.skill.million_weapons": {
+      "sourceMethodId": "jiujie.method.guardian",
+      "unlockMethodLevel": 1
+    },
+    "jiujie.skill.divine_guardian": {
+      "sourceMethodId": "jiujie.method.guardian",
+      "unlockMethodLevel": 60
+    },
+    "jiujie.skill.heavenly_prison": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 100
+    },
+    "jiujie.passive.thunder.foundation": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.passive.thunder.l1s1": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.passive.thunder.l2s1": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.passive.thunder.l2s2": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.passive.thunder.l2s3": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.skill.startling_thunder": {
+      "sourceMethodId": "jiujie.method.thunder",
+      "unlockMethodLevel": 60
+    },
+    "jiujie.passive.thunder.l4s3": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.passive.thunder.l5s1": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.passive.thunder.lifesteal": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.passive.thunder.l5s3": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.passive.thunder.l6s1": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.passive.thunder.l6s2": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.passive.thunder.l6s3": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.skill.nine_heavens_thunder": {
+      "sourceMethodId": "jiujie.method.thunder",
+      "unlockMethodLevel": 100
+    },
+    "jiujie.passive.thunder.l7s3.crit": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "jiujie.passive.thunder.l7s3.detonate": {
+      "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    }
+  }
+}

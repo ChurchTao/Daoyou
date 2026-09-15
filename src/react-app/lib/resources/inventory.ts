@@ -1,5 +1,4 @@
 import {
-  inventoryArtifactsResource,
   inventoryConsumablesResource,
   inventoryMaterialsResource,
   type InventoryPageParams,
@@ -58,33 +57,10 @@ export function useMaterialInventoryResource(
   };
 }
 
-export function useArtifactInventoryResource(options: {
-  pageSize: number;
-  enabled?: boolean;
-}) {
-  const { pageSize, enabled = true } = options;
-  const [page, setPage] = useState(1);
-  const params = useMemo(() => ({ page, pageSize }), [page, pageSize]);
-  const query = useResource(inventoryArtifactsResource, params, enabled);
-  return {
-    ...query,
-    items: query.data?.items,
-    pagination: query.data?.pagination,
-    page,
-    setPage,
-    goPrevPage: () => {
-      setPage((current) => Math.max(1, current - 1));
-    },
-    goNextPage: () => {
-      setPage((current) => current + 1);
-    },
-  };
-}
-
 export function useConsumableInventoryResource(options: {
   pageSize: number;
   enabled?: boolean;
-  consumableKind?: 'pill' | 'spirit_fruit' | 'tradable';
+  consumableKind?: 'pill';
 }) {
   const { pageSize, enabled = true, consumableKind } = options;
   const [page, setPage] = useState(1);

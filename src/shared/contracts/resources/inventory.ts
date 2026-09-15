@@ -1,9 +1,3 @@
-import type { AbilityConfig } from '@shared/engine/battle-v5/core/configs';
-import {
-  AbilityType,
-  AttributeType,
-  ModifierType,
-} from '@shared/engine/battle-v5/core/types';
 import {
   CONSUMABLE_TYPE_VALUES,
   ELEMENT_VALUES,
@@ -211,50 +205,14 @@ const paginationSchema = z
   .strict();
 const attributeModifierSchema = z
   .object({
-    attrType: z.nativeEnum(AttributeType),
-    type: z.nativeEnum(ModifierType),
+    attrType: z.string(),
+    type: z.string(),
     value: z.number(),
     scaleByLayer: z.boolean().optional(),
     valueByLayer: z.array(z.number()).readonly().optional(),
   })
   .strict();
-const abilityConfigEnvelopeSchema = z
-  .object({
-    slug: z.string(),
-    name: z.string(),
-    description: z.string().optional(),
-    type: z.nativeEnum(AbilityType),
-    tags: z.array(z.string()).optional(),
-    mpCost: z.number().optional(),
-    hpCost: z.number().optional(),
-    costs: z.array(z.json()).optional(),
-    cooldown: z.number().optional(),
-    priority: z.number().optional(),
-    targetPolicy: z
-      .object({
-        team: z.enum(['enemy', 'ally', 'self', 'any']),
-        scope: z.enum(['single', 'aoe', 'random']),
-        maxTargets: z.number().optional(),
-      })
-      .strict()
-      .optional(),
-    hitPolicy: z.enum(['normal', 'guaranteed']).optional(),
-    selectionProfile: z.json().optional(),
-    castConditions: z.array(z.json()).optional(),
-    effects: z.array(z.json()).optional(),
-    completionEffects: z.array(z.json()).optional(),
-    effectLayers: z.array(z.json()).optional(),
-    baseEffectDisplayName: z.string().optional(),
-    effectPlans: z.array(z.json()).optional(),
-    castEffects: z.array(z.json()).optional(),
-    listeners: z.array(z.json()).optional(),
-    modifiers: z.array(attributeModifierSchema).optional(),
-  })
-  .strict();
-const abilityConfigSchema = z.custom<AbilityConfig>(
-  (value) => abilityConfigEnvelopeSchema.safeParse(value).success,
-  'Invalid ability config',
-);
+const abilityConfigSchema = z.record(z.string(), z.unknown());
 export const skillSchema = z
   .object({
     id: z.string().optional(),

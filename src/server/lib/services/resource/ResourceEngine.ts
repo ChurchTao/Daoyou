@@ -12,10 +12,7 @@ import {
   updateReputation,
   updateSpiritStones,
 } from '@server/lib/services/cultivator/CultivatorStateRepository';
-import {
-  calculateSingleArtifactScore,
-  calculateSingleElixirScore,
-} from '@server/utils/rankingUtils';
+import { calculateSingleElixirScore } from '@server/utils/rankingUtils';
 import type {
   ResourceOperation,
   ResourceOperationResult,
@@ -370,7 +367,6 @@ export class ResourceEngine {
         case 'artifact':
           if (operation.data && 'name' in operation.data) {
             const artifact = { ...operation.data } as Artifact;
-            artifact.score = calculateSingleArtifactScore(artifact);
             const item = await addArtifactToInventoryInTransaction(
               args.cultivatorId,
               artifact,

@@ -1,0 +1,1262 @@
+{
+  "inputs": [
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "full"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "persistent"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "lingxiao",
+        "methods": {
+          "lingxiao.method.canon": 1,
+          "lingxiao.method.sword_aura": 1,
+          "lingxiao.method.waiting": 1,
+          "lingxiao.method.shadow": 1,
+          "lingxiao.method.formation": 1,
+          "lingxiao.method.clarity": 1
+        },
+        "activePathId": "lingxiao.path.zhanchen",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "lingxiao.path.zhanchen",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "lingxiao.path.guiyi",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "full"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "lingxiao",
+        "methods": {
+          "lingxiao.method.canon": 1,
+          "lingxiao.method.sword_aura": 1,
+          "lingxiao.method.waiting": 1,
+          "lingxiao.method.shadow": 1,
+          "lingxiao.method.formation": 1,
+          "lingxiao.method.clarity": 1
+        },
+        "activePathId": "lingxiao.path.zhanchen",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "lingxiao.path.zhanchen",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "lingxiao.path.guiyi",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "persistent"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "lingxiao",
+        "methods": {
+          "lingxiao.method.canon": 1,
+          "lingxiao.method.sword_aura": 1,
+          "lingxiao.method.waiting": 1,
+          "lingxiao.method.shadow": 1,
+          "lingxiao.method.formation": 1,
+          "lingxiao.method.clarity": 1
+        },
+        "activePathId": "lingxiao.path.guiyi",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "lingxiao.path.zhanchen",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "lingxiao.path.guiyi",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "full"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "lingxiao",
+        "methods": {
+          "lingxiao.method.canon": 1,
+          "lingxiao.method.sword_aura": 1,
+          "lingxiao.method.waiting": 1,
+          "lingxiao.method.shadow": 1,
+          "lingxiao.method.formation": 1,
+          "lingxiao.method.clarity": 1
+        },
+        "activePathId": "lingxiao.path.guiyi",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "lingxiao.path.zhanchen",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "lingxiao.path.guiyi",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "persistent"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "youdu",
+        "methods": {
+          "youdu.method.canon": 1,
+          "youdu.method.judge": 1,
+          "youdu.method.wither": 1,
+          "youdu.method.shadow": 1,
+          "youdu.method.asura": 1,
+          "youdu.method.insight": 1
+        },
+        "activePathId": "youdu.path.soul_judge",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "youdu.path.soul_judge",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "youdu.path.six_paths",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "full"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "youdu",
+        "methods": {
+          "youdu.method.canon": 1,
+          "youdu.method.judge": 1,
+          "youdu.method.wither": 1,
+          "youdu.method.shadow": 1,
+          "youdu.method.asura": 1,
+          "youdu.method.insight": 1
+        },
+        "activePathId": "youdu.path.soul_judge",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "youdu.path.soul_judge",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "youdu.path.six_paths",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "persistent"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "youdu",
+        "methods": {
+          "youdu.method.canon": 1,
+          "youdu.method.judge": 1,
+          "youdu.method.wither": 1,
+          "youdu.method.shadow": 1,
+          "youdu.method.asura": 1,
+          "youdu.method.insight": 1
+        },
+        "activePathId": "youdu.path.six_paths",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "youdu.path.soul_judge",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "youdu.path.six_paths",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "full"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "youdu",
+        "methods": {
+          "youdu.method.canon": 1,
+          "youdu.method.judge": 1,
+          "youdu.method.wither": 1,
+          "youdu.method.shadow": 1,
+          "youdu.method.asura": 1,
+          "youdu.method.insight": 1
+        },
+        "activePathId": "youdu.path.six_paths",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "youdu.path.soul_judge",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "youdu.path.six_paths",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "persistent"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "wuxiang",
+        "methods": {
+          "wuxiang.method.canon": 1,
+          "wuxiang.method.compassion": 1,
+          "wuxiang.method.guardian": 1,
+          "wuxiang.method.wrath": 1,
+          "wuxiang.method.purity": 1,
+          "wuxiang.method.crossing": 1
+        },
+        "activePathId": "wuxiang.path.compassion",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "wuxiang.path.compassion",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "wuxiang.path.wrath",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "full"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "wuxiang",
+        "methods": {
+          "wuxiang.method.canon": 1,
+          "wuxiang.method.compassion": 1,
+          "wuxiang.method.guardian": 1,
+          "wuxiang.method.wrath": 1,
+          "wuxiang.method.purity": 1,
+          "wuxiang.method.crossing": 1
+        },
+        "activePathId": "wuxiang.path.compassion",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "wuxiang.path.compassion",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "wuxiang.path.wrath",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "persistent"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "wuxiang",
+        "methods": {
+          "wuxiang.method.canon": 1,
+          "wuxiang.method.compassion": 1,
+          "wuxiang.method.guardian": 1,
+          "wuxiang.method.wrath": 1,
+          "wuxiang.method.purity": 1,
+          "wuxiang.method.crossing": 1
+        },
+        "activePathId": "wuxiang.path.wrath",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "wuxiang.path.compassion",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "wuxiang.path.wrath",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "full"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "wuxiang",
+        "methods": {
+          "wuxiang.method.canon": 1,
+          "wuxiang.method.compassion": 1,
+          "wuxiang.method.guardian": 1,
+          "wuxiang.method.wrath": 1,
+          "wuxiang.method.purity": 1,
+          "wuxiang.method.crossing": 1
+        },
+        "activePathId": "wuxiang.path.wrath",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "wuxiang.path.compassion",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "wuxiang.path.wrath",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "persistent"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "tianyan",
+        "methods": {
+          "tianyan.method.canon": 1,
+          "tianyan.method.wood": 1,
+          "tianyan.method.fire": 1,
+          "tianyan.method.earth": 1,
+          "tianyan.method.metal": 1,
+          "tianyan.method.water": 1
+        },
+        "activePathId": "tianyan.path.hetu",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "tianyan.path.hetu",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "tianyan.path.luoshu",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "full"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "tianyan",
+        "methods": {
+          "tianyan.method.canon": 1,
+          "tianyan.method.wood": 1,
+          "tianyan.method.fire": 1,
+          "tianyan.method.earth": 1,
+          "tianyan.method.metal": 1,
+          "tianyan.method.water": 1
+        },
+        "activePathId": "tianyan.path.hetu",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "tianyan.path.hetu",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "tianyan.path.luoshu",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "persistent"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "tianyan",
+        "methods": {
+          "tianyan.method.canon": 1,
+          "tianyan.method.wood": 1,
+          "tianyan.method.fire": 1,
+          "tianyan.method.earth": 1,
+          "tianyan.method.metal": 1,
+          "tianyan.method.water": 1
+        },
+        "activePathId": "tianyan.path.luoshu",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "tianyan.path.hetu",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "tianyan.path.luoshu",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "full"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "tianyan",
+        "methods": {
+          "tianyan.method.canon": 1,
+          "tianyan.method.wood": 1,
+          "tianyan.method.fire": 1,
+          "tianyan.method.earth": 1,
+          "tianyan.method.metal": 1,
+          "tianyan.method.water": 1
+        },
+        "activePathId": "tianyan.path.luoshu",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "tianyan.path.hetu",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "tianyan.path.luoshu",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "persistent"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "jiujie",
+        "methods": {
+          "jiujie.method.canon": 1,
+          "jiujie.method.seal": 1,
+          "jiujie.method.thunder": 1,
+          "jiujie.method.guardian": 1,
+          "jiujie.method.pride": 1,
+          "jiujie.method.cloud": 1
+        },
+        "activePathId": "jiujie.path.law",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "jiujie.path.law",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "jiujie.path.thunder",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "full"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "jiujie",
+        "methods": {
+          "jiujie.method.canon": 1,
+          "jiujie.method.seal": 1,
+          "jiujie.method.thunder": 1,
+          "jiujie.method.guardian": 1,
+          "jiujie.method.pride": 1,
+          "jiujie.method.cloud": 1
+        },
+        "activePathId": "jiujie.path.law",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "jiujie.path.law",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "jiujie.path.thunder",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "persistent"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "jiujie",
+        "methods": {
+          "jiujie.method.canon": 1,
+          "jiujie.method.seal": 1,
+          "jiujie.method.thunder": 1,
+          "jiujie.method.guardian": 1,
+          "jiujie.method.pride": 1,
+          "jiujie.method.cloud": 1
+        },
+        "activePathId": "jiujie.path.thunder",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "jiujie.path.law",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "jiujie.path.thunder",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "full"
+    },
+    {
+      "cultivator": {
+        "id": "a1",
+        "name": "装配基线",
+        "realm": "炼气",
+        "realm_stage": "后期",
+        "attributes": {
+          "vitality": 10,
+          "strength": 20,
+          "spirit": 30,
+          "endurance": 40,
+          "speed": 50,
+          "willpower": 60
+        }
+      },
+      "sect": {
+        "version": 1,
+        "sectId": "jiujie",
+        "methods": {
+          "jiujie.method.canon": 1,
+          "jiujie.method.seal": 1,
+          "jiujie.method.thunder": 1,
+          "jiujie.method.guardian": 1,
+          "jiujie.method.pride": 1,
+          "jiujie.method.cloud": 1
+        },
+        "activePathId": "jiujie.path.thunder",
+        "meridianDepth": 0,
+        "meridianLoadouts": [
+          {
+            "pathId": "jiujie.path.law",
+            "nodeIds": [],
+            "revision": 0
+          },
+          {
+            "pathId": "jiujie.path.thunder",
+            "nodeIds": [],
+            "revision": 0
+          }
+        ]
+      },
+      "equipment": {},
+      "manuals": {
+        "version": 1,
+        "revision": 0,
+        "learned": [],
+        "build": {
+          "slots": []
+        }
+      },
+      "side": 0,
+      "slot": 0,
+      "resourcePolicy": "persistent"
+    }
+  ],
+  "expected": {
+    "projectCultivatorToCombatV6": [
+      "9d47b1fae290e4699f8764ddd583700ac3a8bc5653da21e6861252a2f8a13d6d",
+      "9d47b1fae290e4699f8764ddd583700ac3a8bc5653da21e6861252a2f8a13d6d",
+      "ab5c4b0303976519ce135d4ea7876cfe1978416445ae7a24ad6d0876d6dc7b84",
+      "687fc839a1aca931230f076c7241bee8168d99668bef42b4d3dbbb112cf00b8a",
+      "b0f5976b57acb83ff880c4e2f2af876508fe3bce904257f2bbb8c52099795e14",
+      "687fc839a1aca931230f076c7241bee8168d99668bef42b4d3dbbb112cf00b8a",
+      "9d47b1fae290e4699f8764ddd583700ac3a8bc5653da21e6861252a2f8a13d6d",
+      "9d47b1fae290e4699f8764ddd583700ac3a8bc5653da21e6861252a2f8a13d6d",
+      "9d47b1fae290e4699f8764ddd583700ac3a8bc5653da21e6861252a2f8a13d6d",
+      "9d47b1fae290e4699f8764ddd583700ac3a8bc5653da21e6861252a2f8a13d6d",
+      "ab8d51da8775bde820374e8429b68260ef217be594ca6a8da78ccc3ec1363660",
+      "ab8d51da8775bde820374e8429b68260ef217be594ca6a8da78ccc3ec1363660",
+      "ab8d51da8775bde820374e8429b68260ef217be594ca6a8da78ccc3ec1363660",
+      "ab8d51da8775bde820374e8429b68260ef217be594ca6a8da78ccc3ec1363660",
+      "2b3824b8c81972d227f89beadf71f66ee40dc97e8641fcfea9c369b67cdff35d",
+      "2b3824b8c81972d227f89beadf71f66ee40dc97e8641fcfea9c369b67cdff35d",
+      "2b3824b8c81972d227f89beadf71f66ee40dc97e8641fcfea9c369b67cdff35d",
+      "2b3824b8c81972d227f89beadf71f66ee40dc97e8641fcfea9c369b67cdff35d",
+      "9adfc2fa50b7554202a473209cd04e193d5439a7f13aac35575b4d767b2ec5fc",
+      "9adfc2fa50b7554202a473209cd04e193d5439a7f13aac35575b4d767b2ec5fc",
+      "9adfc2fa50b7554202a473209cd04e193d5439a7f13aac35575b4d767b2ec5fc",
+      "9adfc2fa50b7554202a473209cd04e193d5439a7f13aac35575b4d767b2ec5fc"
+    ],
+    "projectCultivatorMultiSectToCombatV6": [
+      "0d25198e9fa98bc09e0c8df6e497749a6453f7eeed9a0f17413d088a94d46e3e",
+      "ef2e3a92d99f4d45e4962f41b374b4c0968450bd410f471396343682630337fb",
+      "f21d7e58b67470d2f0c557ebc3711a2c7d1e4b4150f8e7d18918df93270160dc",
+      "ef2e3a92d99f4d45e4962f41b374b4c0968450bd410f471396343682630337fb",
+      "9d6e37c0a7c9415108245e2ad4b3869bc5c21c1d84c8502a77f8cf0b35d0f3ea",
+      "ef2e3a92d99f4d45e4962f41b374b4c0968450bd410f471396343682630337fb",
+      "277a7a024882e9e047483056002d8c38cf3643ce48f1a16d723da4f99d55ecfa",
+      "ef2e3a92d99f4d45e4962f41b374b4c0968450bd410f471396343682630337fb",
+      "061bdf23f19d7f51dc8d035a7d156f76881e274beea65e6af769f789b9ee8457",
+      "ef2e3a92d99f4d45e4962f41b374b4c0968450bd410f471396343682630337fb",
+      "e68aadf11bf05dc3acb5a5216e0ba76b19585f845f11eb8e0e4ff8b909a0f836",
+      "e68aadf11bf05dc3acb5a5216e0ba76b19585f845f11eb8e0e4ff8b909a0f836",
+      "e68aadf11bf05dc3acb5a5216e0ba76b19585f845f11eb8e0e4ff8b909a0f836",
+      "e68aadf11bf05dc3acb5a5216e0ba76b19585f845f11eb8e0e4ff8b909a0f836",
+      "660bb536804235d3b6b8f3a0f67bef31b798732a19353a2b0a85abd782ced35c",
+      "660bb536804235d3b6b8f3a0f67bef31b798732a19353a2b0a85abd782ced35c",
+      "660bb536804235d3b6b8f3a0f67bef31b798732a19353a2b0a85abd782ced35c",
+      "660bb536804235d3b6b8f3a0f67bef31b798732a19353a2b0a85abd782ced35c",
+      "cc4116203ff3eb75e46caec9daf287d9b0185a41266981a4e9b393280b215bed",
+      "cc4116203ff3eb75e46caec9daf287d9b0185a41266981a4e9b393280b215bed",
+      "cc4116203ff3eb75e46caec9daf287d9b0185a41266981a4e9b393280b215bed",
+      "cc4116203ff3eb75e46caec9daf287d9b0185a41266981a4e9b393280b215bed"
+    ],
+    "projectCultivatorMultiSectV3ToCombatV6": [
+      "f22461443c3ccee66bef69fe3d47eef099d41b346c3cbbbaac642a269818bece",
+      "23d31379128724f4c5f3527e6fb1da5cf382f0d1c09079eee6f8483268d2cdcc",
+      "8756435ed52a0f8fbe0e1a5af8ca2d1eda68a4fa87b518cdb4ab0bd56da4b606",
+      "23d31379128724f4c5f3527e6fb1da5cf382f0d1c09079eee6f8483268d2cdcc",
+      "45c3949866290ab1c44135f0c5cf8fd065350108815ffadfe0931da6a172925f",
+      "23d31379128724f4c5f3527e6fb1da5cf382f0d1c09079eee6f8483268d2cdcc",
+      "fa1460701fb31205fc70a794da7a9e87226d506a5e9067abd6ec504a1fd4fba4",
+      "23d31379128724f4c5f3527e6fb1da5cf382f0d1c09079eee6f8483268d2cdcc",
+      "045c9b607e10abc3e88a8e7405f02e6504ac07432bb17d5493731156e89f5d2f",
+      "23d31379128724f4c5f3527e6fb1da5cf382f0d1c09079eee6f8483268d2cdcc",
+      "02e7411b1b23cba4a91838cca9053a0947f49ef97307ac4d55779053384c9956",
+      "23d31379128724f4c5f3527e6fb1da5cf382f0d1c09079eee6f8483268d2cdcc",
+      "ea01c384bd277767b675bc23cd8a695a3259d0af4e50af5a9f7b6e5f65d7ea72",
+      "23d31379128724f4c5f3527e6fb1da5cf382f0d1c09079eee6f8483268d2cdcc",
+      "fe64cc25591c304690ca2538c2f9e3d27e8e1f5a2826660e9b9bd4f7ab6e8e03",
+      "fe64cc25591c304690ca2538c2f9e3d27e8e1f5a2826660e9b9bd4f7ab6e8e03",
+      "fe64cc25591c304690ca2538c2f9e3d27e8e1f5a2826660e9b9bd4f7ab6e8e03",
+      "fe64cc25591c304690ca2538c2f9e3d27e8e1f5a2826660e9b9bd4f7ab6e8e03",
+      "e02182273ed131a1c6e329f7aa1dff75b2fd351029b456cae5756ca13582a2c9",
+      "e02182273ed131a1c6e329f7aa1dff75b2fd351029b456cae5756ca13582a2c9",
+      "e02182273ed131a1c6e329f7aa1dff75b2fd351029b456cae5756ca13582a2c9",
+      "e02182273ed131a1c6e329f7aa1dff75b2fd351029b456cae5756ca13582a2c9"
+    ],
+    "projectCultivatorMultiSectV4ToCombatV6": [
+      "c278afb91168daf048af4fc76a4c8514dd9286c68bd30010a8158848afa6d642",
+      "d1213d06a4783db857e58f94a66ab2a60ec75722a0c97f84efd630971df5edd5",
+      "c16e3478c9ecb38d907e784afc88efb6fa37ef00ad2101f8b29a6ab7cf6f4514",
+      "d1213d06a4783db857e58f94a66ab2a60ec75722a0c97f84efd630971df5edd5",
+      "aedf1bde916a1c50aeb1fec70f6ee1608c03fe7471eb233872b852efebfe0a54",
+      "d1213d06a4783db857e58f94a66ab2a60ec75722a0c97f84efd630971df5edd5",
+      "9eefdd93f5fd4c0368eec0ffd6bbdc72cf841328f1ad534bab202bf3387c057a",
+      "d1213d06a4783db857e58f94a66ab2a60ec75722a0c97f84efd630971df5edd5",
+      "005324ef075a412b596abfd35597b83f5b4a03c4cead8e16dfdfa0a84689164e",
+      "d1213d06a4783db857e58f94a66ab2a60ec75722a0c97f84efd630971df5edd5",
+      "46ccd4673142b8ed2f238235cad34ec1c3a99ef2d6a307eaf59cde0e940cbca8",
+      "d1213d06a4783db857e58f94a66ab2a60ec75722a0c97f84efd630971df5edd5",
+      "a6053e8035e6362785527e8a84f2c031e0d3902776f6d4fa545c91b4654548ab",
+      "d1213d06a4783db857e58f94a66ab2a60ec75722a0c97f84efd630971df5edd5",
+      "b9cf2e6878471ea17b6b9a35127851c6fb12eef5b0aa1d2f5bd9bb1180f275e6",
+      "d1213d06a4783db857e58f94a66ab2a60ec75722a0c97f84efd630971df5edd5",
+      "fc8de250092383c7088359982eeaab371331ad78878346ef0c818c8f0998e25b",
+      "d1213d06a4783db857e58f94a66ab2a60ec75722a0c97f84efd630971df5edd5",
+      "133fe999d0a22cc77968eee093d355524bcdc7b983487b64718c8ee967a6e127",
+      "133fe999d0a22cc77968eee093d355524bcdc7b983487b64718c8ee967a6e127",
+      "133fe999d0a22cc77968eee093d355524bcdc7b983487b64718c8ee967a6e127",
+      "133fe999d0a22cc77968eee093d355524bcdc7b983487b64718c8ee967a6e127"
+    ],
+    "projectCultivatorMultiSectV5ToCombatV6": [
+      "59b1db7975c441076ca13acaf96f4acd4eb959e829c50cd3fe15a78902ab2068",
+      "3cc7408629789c6f1cca943d940341721c5f9522f62517e035c1f2a8dd6b391c",
+      "65b7660db1686add27dce5c65728d36efa9f4713619f9e26e65f99cc1336995d",
+      "3cc7408629789c6f1cca943d940341721c5f9522f62517e035c1f2a8dd6b391c",
+      "38e94c558a1529672a90aed23de1b814869e2fd3be51bb6a6914300d319369d2",
+      "3cc7408629789c6f1cca943d940341721c5f9522f62517e035c1f2a8dd6b391c",
+      "a41394553f40e8307a2b1c432adf1b8317014a60448e0939aaf7f16e89104bdd",
+      "3cc7408629789c6f1cca943d940341721c5f9522f62517e035c1f2a8dd6b391c",
+      "b0cbda0b9295639173f1ac0e447d408e9a5107de0ea62710bc1e10a12f9ee4bc",
+      "3cc7408629789c6f1cca943d940341721c5f9522f62517e035c1f2a8dd6b391c",
+      "5d8726db782c49ce3f0b57b4ae45eded59905c729bf4f2ee14cba6048c8d8341",
+      "3cc7408629789c6f1cca943d940341721c5f9522f62517e035c1f2a8dd6b391c",
+      "2798ef10bfe5302e2cc0c8c82c6ddf028c6dfb6e8af2a4b5dda54944f3d82a7d",
+      "3cc7408629789c6f1cca943d940341721c5f9522f62517e035c1f2a8dd6b391c",
+      "0bfc9d244d2fa1c7f96e71ba0caac33ba3d24ee09c42a71a8434ca62dd7af822",
+      "3cc7408629789c6f1cca943d940341721c5f9522f62517e035c1f2a8dd6b391c",
+      "a4364fe8654b80b97c8f79d404b8e9d5571928378b4d610cfde476acdd472dc9",
+      "3cc7408629789c6f1cca943d940341721c5f9522f62517e035c1f2a8dd6b391c",
+      "219d2a207d1ad62fb2457f28247c1e9a95d0b4c60bfb4f0dfa68c2546e04c43d",
+      "3cc7408629789c6f1cca943d940341721c5f9522f62517e035c1f2a8dd6b391c",
+      "8bf817269ef20247852612920390c90593d3f7c569cb8bb79123703236ba26f5",
+      "3cc7408629789c6f1cca943d940341721c5f9522f62517e035c1f2a8dd6b391c"
+    ]
+  }
+}

@@ -15,16 +15,14 @@ export function AlchemyToolWorkspace({
   children: ReactNode;
 }) {
   return (
-    <section className="border-ink/20 min-h-[34rem] border bg-[rgba(248,243,230,0.42)]">
-      <header className="border-ink/10 bg-[rgba(248,243,230,0.94)] sticky top-0 z-10 flex min-h-16 items-center gap-3 border-b px-4 py-3 backdrop-blur-sm sm:px-6">
-        <InkButton variant="secondary" onClick={onBack} disabled={backDisabled}>
-          ← {backLabel}
+    <section className="space-y-4 text-sm">
+      <header className="border-ink/10 flex items-center justify-between gap-3 border-b pb-3">
+        <h3 className="font-medium">{title}</h3>
+        <InkButton onClick={onBack} disabled={backDisabled}>
+          返回{backLabel}
         </InkButton>
-        <h2 className="min-w-0 flex-1 text-right text-base font-normal sm:text-lg">
-          {title}
-        </h2>
       </header>
-      <div className="px-4 py-6 sm:px-7 sm:py-8">{children}</div>
+      {children}
     </section>
   );
 }

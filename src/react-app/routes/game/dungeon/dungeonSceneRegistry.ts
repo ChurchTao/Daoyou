@@ -71,7 +71,7 @@ const dungeonSceneDescriptors: Record<
     sceneLabel: '遭遇战',
     subtitle: '敌息逼近，先辨虚实，再决生死。',
     backAction: {
-      label: '结束历练',
+      label: '返回洞府',
       href: '/game',
     },
     density: 'card',

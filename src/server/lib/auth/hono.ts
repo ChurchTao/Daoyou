@@ -1,10 +1,10 @@
-import { auth } from '@server/lib/auth/auth';
-import { authUsers } from '@server/lib/auth/schema';
 import {
   isAltchaServerEnabled,
   verifyAltchaPayload,
   type AltchaAction,
 } from '@server/lib/auth/altcha';
+import { auth } from '@server/lib/auth/auth';
+import { authUsers } from '@server/lib/auth/schema';
 import { db } from '@server/lib/drizzle/db';
 import { eq } from 'drizzle-orm';
 import type { Context } from 'hono';
@@ -17,13 +17,16 @@ const CAPTCHA_ACTION_BY_PATH = new Map<string, AltchaAction>([
 ]);
 const ADMIN_AUTH_PATH = '/api/auth/admin';
 
-async function readRequestBody(request: Request): Promise<Record<string, unknown>> {
+async function readRequestBody(
+  request: Request,
+): Promise<Record<string, unknown>> {
   const contentType = request.headers.get('content-type') || '';
 
   if (contentType.includes('application/json')) {
-    const body = (await request.clone().json().catch(() => null)) as
-      | Record<string, unknown>
-      | null;
+    const body = (await request
+      .clone()
+      .json()
+      .catch(() => null)) as Record<string, unknown> | null;
 
     return body ?? {};
   }
@@ -53,7 +56,7 @@ async function validateCaptcha(context: Context): Promise<Response | null> {
   }
 
   if (!isAltchaServerEnabled()) {
-    return authError('人机验证服务未配置', 503);
+    return null;
   }
 
   const body = await readRequestBody(context.req.raw);
@@ -83,13 +86,16 @@ async function validateCaptcha(context: Context): Promise<Response | null> {
   return null;
 }
 
-async function validateOtpSignUpName(context: Context): Promise<Response | null> {
+async function validateOtpSignUpName(
+  context: Context,
+): Promise<Response | null> {
   if (context.req.path !== '/api/auth/sign-in/email-otp') {
     return null;
   }
 
   const body = await readRequestBody(context.req.raw);
-  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+  const email =
+    typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
   const name = typeof body.name === 'string' ? body.name.trim() : '';
 
   if (!email) {

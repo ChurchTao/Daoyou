@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "number",
+      "const": 1
+    },
+    "progressions": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "maxLevel": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 99
+          },
+          "bottlenecks": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "costsByRealm": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "炼气",
+                "筑基",
+                "金丹",
+                "元婴"
+              ]
+            },
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "experience": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000000
+                  },
+                  "insight": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  }
+                },
+                "required": [
+                  "experience",
+                  "insight"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "炼气",
+              "筑基",
+              "金丹",
+              "元婴"
+            ]
+          }
+        },
+        "required": [
+          "maxLevel",
+          "bottlenecks",
+          "costsByRealm"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "manuals": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^character_manual\\.[a-z][a-z0-9_-]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "realm": {
+            "type": "string",
+            "enum": [
+              "炼气",
+              "筑基",
+              "金丹",
+              "元婴"
+            ]
+          },
+          "rarity": {
+            "type": "string",
+            "enum": [
+              "common",
+              "rare"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "progressionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dropWeight": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 1000000000
+          },
+          "effects": {
+            "minItems": 1,
+            "maxItems": 2,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "attribute": {
+                  "type": "string",
+                  "enum": [
+                    "vitality",
+                    "strength",
+                    "spirit",
+                    "endurance",
+                    "speed",
+                    "willpower"
+                  ]
+                },
+                "valuePerLevel": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "attribute",
+                "valuePerLevel"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "realm",
+          "rarity",
+          "description",
+          "progressionId",
+          "dropWeight",
+          "effects"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "version",
+    "progressions",
+    "manuals"
+  ],
+  "additionalProperties": false
+}

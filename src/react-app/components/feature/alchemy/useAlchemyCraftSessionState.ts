@@ -7,9 +7,9 @@ import {
   usePlayerSession,
 } from '@app/lib/resources/player';
 import {
+  ALCHEMY_INPUT_CONSTRAINTS,
   ALCHEMY_MAX_DOSE,
-  CREATION_INPUT_CONSTRAINTS,
-} from '@shared/engine/creation-v2/config/CreationBalance';
+} from '@shared/config/alchemyInput';
 import type { AlchemyFormula, AlchemyMode } from '@shared/types/consumable';
 import type { Material } from '@shared/types/cultivator';
 import {
@@ -31,9 +31,8 @@ import type {
 } from './alchemyTypes';
 
 export const ALCHEMY_MIN_DOSE =
-  CREATION_INPUT_CONSTRAINTS.minQuantityPerMaterial;
-export const ALCHEMY_MAX_MATERIALS =
-  CREATION_INPUT_CONSTRAINTS.maxMaterialKinds;
+  ALCHEMY_INPUT_CONSTRAINTS.minQuantityPerMaterial;
+export const ALCHEMY_MAX_MATERIALS = 5;
 export { ALCHEMY_MAX_DOSE };
 
 const EMPTY_MATERIALS: MaterialDraft = { ids: [], map: {}, doses: {} };
@@ -150,6 +149,19 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
       ),
     [materials.doses, materials.ids],
   );
+  const materialVersions = useMemo(
+    () =>
+      Object.fromEntries(
+        materials.ids.map((id) => [
+          id,
+          JSON.stringify(
+            (materials.map[id] as Material & { members?: unknown }).members ??
+              [],
+          ),
+        ]),
+      ),
+    [materials.ids, materials.map],
+  );
   const selectionKey = useMemo(
     () =>
       JSON.stringify({
@@ -157,8 +169,9 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
         formulaId: formula?.id ?? null,
         ids: materials.ids,
         materialQuantities,
+        materialVersions,
       }),
-    [formula?.id, materialQuantities, materials.ids, mode],
+    [formula?.id, materialQuantities, materialVersions, materials.ids, mode],
   );
   const qiCost = readiness.estimatedQi ?? 1;
   const readyForReadinessCheck =
@@ -178,9 +191,9 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
     mode === 'formula' && Boolean(formula) && readyForCostConfirmation;
   const readyForImprovisedFire = Boolean(
     mode === 'improvised' &&
-      phase === 'preparing' &&
-      readyForCostConfirmation &&
-      intent.trim(),
+    phase === 'preparing' &&
+    readyForCostConfirmation &&
+    intent.trim(),
   );
   const readyForFormulaFire = Boolean(
     mode === 'formula' &&
@@ -244,22 +257,40 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
   );
 
   const addMaterialToFurnace = useCallback(
-    (material: Material): AddMaterialResult => {
+    (
+      material: Material,
+      dose: number = ALCHEMY_MIN_DOSE,
+    ): AddMaterialResult => {
       if (!material.id) return 'limit-reached';
-      if (materials.ids.includes(material.id)) return 'already-added';
+      const amount = Math.max(
+        ALCHEMY_MIN_DOSE,
+        Math.min(
+          ALCHEMY_MAX_DOSE,
+          material.quantity ?? 1,
+          Math.floor(dose) || 1,
+        ),
+      );
+      if (materials.ids.includes(material.id)) {
+        setMaterials((current) => ({
+          ...current,
+          doses: { ...current.doses, [material.id!]: amount },
+        }));
+        invalidateObservation();
+        return 'already-added';
+      }
       if (phase !== 'result' && materials.ids.length >= ALCHEMY_MAX_MATERIALS)
         return 'limit-reached';
       if (phase === 'result') {
         setMaterials({
           ids: [material.id],
           map: { [material.id]: material },
-          doses: { [material.id]: ALCHEMY_MIN_DOSE },
+          doses: { [material.id]: amount },
         });
       } else {
         setMaterials((current) => ({
           ids: [...current.ids, material.id!],
           map: { ...current.map, [material.id!]: material },
-          doses: { ...current.doses, [material.id!]: ALCHEMY_MIN_DOSE },
+          doses: { ...current.doses, [material.id!]: amount },
         }));
       }
       invalidateObservation();
@@ -333,6 +364,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
       alchemyMode: mode,
       materialIds: materials.ids.join(','),
       materialQuantities: JSON.stringify(materialQuantities),
+      materialVersions: JSON.stringify(materialVersions),
     });
     if (mode === 'formula' && formula?.id) params.set('formulaId', formula.id);
     const controller = new AbortController();
@@ -375,6 +407,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
   }, [
     formula?.id,
     materialQuantities,
+    materialVersions,
     materials.ids,
     mode,
     readyForReadinessCheck,
@@ -419,6 +452,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
           body: JSON.stringify({
             materialIds: materials.ids,
             materialQuantities,
+            materialVersions,
           }),
         },
       );
@@ -464,6 +498,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
     analysis.cooldownRemaining,
     formula?.id,
     materialQuantities,
+    materialVersions,
     materials.ids,
     readyForFormulaAnalysis,
     selectionKey,
@@ -482,6 +517,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
       alchemyMode: mode,
       materialIds: materials.ids,
       materialQuantities,
+      materialVersions,
       userPrompt: mode === 'improvised' ? intent.trim() : undefined,
       formulaId: mode === 'formula' ? formula?.id : undefined,
       analysisId: mode === 'formula' ? analysis.value?.analysisId : undefined,
@@ -491,6 +527,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
       formula?.id,
       intent,
       materialQuantities,
+      materialVersions,
       materials.ids,
       mode,
     ],
@@ -563,10 +600,10 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
       openQiActionConfirm({
         actionName: expectedMode === 'formula' ? '依方炼制' : '随心炼制',
         qiCost,
-        confirmLabel:
-          expectedMode === 'improvised' ? '确认尝试' : '确认炼制',
+        confirmLabel: expectedMode === 'improvised' ? '确认尝试' : '确认炼制',
         details,
         onConfirm: async () => {
+          const fireStartedAt = performance.now();
           setPhase('firing');
           setSubmitting(true);
           setStatus(
@@ -602,11 +639,19 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
               }),
             );
             if (!body.consumable) throw new Error('炉中未能凝丹');
+            if (
+              !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ) {
+              const remaining = 1800 - (performance.now() - fireStartedAt);
+              if (remaining > 0)
+                await new Promise<void>((resolve) =>
+                  window.setTimeout(resolve, remaining),
+                );
+            }
             setResult({
               consumable: body.consumable,
               consumables: body.consumables ?? [body.consumable],
-              craftedConsumables:
-                body.craftedConsumables ??
+              craftedConsumables: body.craftedConsumables ??
                 body.consumables ?? [body.consumable],
               yieldProfile: body.yieldProfile ?? null,
               formulaDiscovery: body.formulaDiscovery ?? null,
@@ -615,8 +660,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
             setStatus('炉鸣三响，丹香已从炉隙逸出。');
             setPhase('result');
           } catch (error) {
-            const message =
-              error instanceof Error ? error.message : '炼丹失败';
+            const message = error instanceof Error ? error.message : '炼丹失败';
             setStatus(message);
             const analysisInvalid =
               expectedMode === 'formula' &&

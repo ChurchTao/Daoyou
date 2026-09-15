@@ -31,6 +31,7 @@ interface SectTaskInteractionContextValue {
     action: SectTaskViewAction,
     input: Record<string, unknown>,
     successMessage?: string,
+    requestId?: string,
   ): Promise<SectTaskActionData | undefined>;
   runRaw<T>(
     url: string,
@@ -84,6 +85,7 @@ export function SectTaskInteractionProvider({
       action: SectTaskViewAction,
       input: Record<string, unknown>,
       successMessage?: string,
+      requestId?: string,
     ) => {
       setOutcome(undefined);
       const result = await runRaw<SectTaskActionData>(
@@ -92,7 +94,7 @@ export function SectTaskInteractionProvider({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Idempotency-Key': crypto.randomUUID(),
+            'Idempotency-Key': requestId ?? crypto.randomUUID(),
           },
           body: JSON.stringify({ input }),
         },
@@ -122,15 +124,7 @@ export function SectTaskInteractionProvider({
       navigate: routerNavigate,
       clearOutcome,
     }),
-    [
-      busy,
-      clearOutcome,
-      error,
-      execute,
-      outcome,
-      routerNavigate,
-      runRaw,
-    ],
+    [busy, clearOutcome, error, execute, outcome, routerNavigate, runRaw],
   );
   return (
     <SectTaskInteractionContext.Provider value={value}>

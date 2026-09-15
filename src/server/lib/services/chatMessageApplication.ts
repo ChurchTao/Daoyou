@@ -1,25 +1,19 @@
-import { ensureBattleRecordV3Share } from '@server/lib/repositories/battleRecordV3Repository';
-import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { readCultivatorPublicIdentity } from '@server/lib/services/cultivator/CultivatorFactsReader';
-import {
-  getCultivatorConsumableById,
-  getCultivatorMaterialById,
-} from '@server/lib/services/cultivator/CultivatorInventoryRepository';
 import type { WorldChatCreateMessageRequest } from '@shared/contracts/world-chat';
+import { inventoryShowcaseSnapshot } from '@shared/items/showcase';
 import type {
-  ItemShowcaseSnapshotMap,
-  WorldChatBattleShowcasePayload,
   WorldChatItemShowcasePayload,
   WorldChatMessageChannel,
   WorldChatMessageDTO,
   WorldChatMessageType,
   WorldChatPayload,
 } from '@shared/types/world-chat';
+import { readInventory } from './InventoryService';
 
 export class ChatMessageApplicationError extends Error {
   constructor(
     message: string,
-    readonly status: 400 | 404 | 429,
+    readonly status: 400 | 404 | 409 | 429,
     readonly remainingSeconds?: number,
   ) {
     super(message);
@@ -38,103 +32,25 @@ function normalizeText(
 
 async function buildItemShowcasePayload(params: {
   cultivatorId: string;
-  itemType: 'artifact' | 'material' | 'consumable' | 'skill' | 'gongfa';
   itemId: string;
+  revision: number;
   text?: string;
-}): Promise<WorldChatItemShowcasePayload | null> {
-  const { cultivatorId, itemType, itemId, text } = params;
-  const showcaseText = text?.trim() || undefined;
-
-  if (
-    itemType === 'artifact' ||
-    itemType === 'skill' ||
-    itemType === 'gongfa'
-  ) {
-    const item = await creationProductRepository.findById(itemId);
-    if (
-      !item ||
-      item.cultivatorId !== cultivatorId ||
-      item.productType !== itemType
-    ) {
-      return null;
-    }
-
-    if (itemType === 'artifact') {
-      const snapshot: ItemShowcaseSnapshotMap['artifact'] = {
-        id: item.id,
-        name: item.name,
-        slot: item.slot as ItemShowcaseSnapshotMap['artifact']['slot'],
-        element: item.element as ItemShowcaseSnapshotMap['artifact']['element'],
-        quality: item.quality as ItemShowcaseSnapshotMap['artifact']['quality'],
-        description: item.description ?? undefined,
-        productModel: item.productModel,
-      };
-      return { itemType, itemId, snapshot, text: showcaseText };
-    }
-
-    const snapshot: ItemShowcaseSnapshotMap[typeof itemType] = {
-      id: item.id,
-      name: item.name,
-      productType: itemType,
-      element:
-        item.element as ItemShowcaseSnapshotMap[typeof itemType]['element'],
-      quality:
-        item.quality as ItemShowcaseSnapshotMap[typeof itemType]['quality'],
-      description: item.description,
-      score: item.score ?? 0,
-      productModel: item.productModel,
-    };
-    return { itemType, itemId, snapshot, text: showcaseText };
-  }
-
-  if (itemType === 'material') {
-    const item = await getCultivatorMaterialById(cultivatorId, itemId);
-    if (!item) return null;
-    const snapshot: ItemShowcaseSnapshotMap['material'] = {
-      id: item.id || itemId,
-      name: item.name,
-      type: item.type,
-      rank: item.rank,
-      element: item.element,
-      description: item.description,
-      quantity: item.quantity,
-    };
-    return { itemType, itemId, snapshot, text: showcaseText };
-  }
-
-  const item = await getCultivatorConsumableById(cultivatorId, itemId);
-  if (!item) return null;
-  const snapshot: ItemShowcaseSnapshotMap['consumable'] = {
-    id: item.id || itemId,
-    name: item.name,
-    type: item.type,
-    quality: item.quality,
-    quantity: item.quantity,
-    description: item.description,
-    spec: item.spec,
-  };
-  return { itemType, itemId, snapshot, text: showcaseText };
-}
-
-async function buildBattleShowcasePayload(params: {
-  cultivatorId: string;
-  battleRecordId: string;
-  text?: string;
-}): Promise<WorldChatBattleShowcasePayload | null> {
-  const result = await ensureBattleRecordV3Share(
-    params.battleRecordId,
-    params.cultivatorId,
-  );
-  if (!result) return null;
-
-  const { outcome } = result.record.battleResult;
+}): Promise<WorldChatItemShowcasePayload> {
+  const bag = await readInventory(params.cultivatorId, {
+    location: 'bag',
+    page: 0,
+    search: '',
+    kind: 'all',
+  });
+  const item = bag.items.find((item) => item.id === params.itemId);
+  if (!item)
+    throw new ChatMessageApplicationError('道具不在当前角色背包中', 404);
+  if (item.revision !== params.revision)
+    throw new ChatMessageApplicationError('物品已变化，请刷新后重新选择', 409);
   return {
-    shareCode: result.shareCode,
-    winner: outcome.winner,
-    loser: outcome.loser,
-    turns: outcome.turns,
-    battleCreatedAt: result.record.createdAt.toISOString(),
-    ...(params.text?.trim() ? { text: params.text.trim() } : {}),
+    version: 1,
+    snapshot: inventoryShowcaseSnapshot(item),
+    text: params.text?.trim() || undefined,
   };
 }
 
@@ -198,44 +114,16 @@ export async function createCultivatorChatMessage(params: {
     });
   }
 
-  if (params.request.messageType === 'battle_showcase') {
-    const showcaseText = params.request.textContent?.trim() ?? '';
-    if (countChars(showcaseText) > 100) {
-      throw new ChatMessageApplicationError('附言长度需在 100 字以内', 400);
-    }
-    const payload = await buildBattleShowcasePayload({
-      cultivatorId: params.cultivatorId,
-      battleRecordId: params.request.battleRecordId,
-      text: showcaseText,
-    });
-    if (!payload) {
-      throw new ChatMessageApplicationError('战绩不存在或无权展示', 404);
-    }
-    return params.persist({
-      ...senderBase,
-      messageType: 'battle_showcase',
-      textContent: payload.text,
-      payload,
-    });
-  }
-
-  const showcaseText = (
-    params.request.textContent ??
-    params.request.payload?.text ??
-    ''
-  ).trim();
+  const showcaseText = (params.request.textContent ?? '').trim();
   if (countChars(showcaseText) > 100) {
     throw new ChatMessageApplicationError('附言长度需在 100 字以内', 400);
   }
   const payload = await buildItemShowcasePayload({
     cultivatorId: params.cultivatorId,
-    itemType: params.request.itemType,
+    revision: params.request.revision,
     itemId: params.request.itemId,
     text: showcaseText,
   });
-  if (!payload) {
-    throw new ChatMessageApplicationError('道具不存在或不属于当前角色', 404);
-  }
   return params.persist({
     ...senderBase,
     messageType: 'item_showcase',

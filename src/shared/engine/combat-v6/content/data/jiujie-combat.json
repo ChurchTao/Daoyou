@@ -1,0 +1,401 @@
+{
+  "$schema": "./jiujie-combat.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "statuses": [
+    {
+      "id": "jiujie.status.electric",
+      "name": "电芒",
+      "kind": "jiujie.status.electric",
+      "category": "debuff",
+      "maxStacks": 3
+    },
+    {
+      "id": "jiujie.status.suppress",
+      "name": "镇妖",
+      "kind": "jiujie.control.suppress",
+      "category": "control",
+      "blocksAction": true
+    },
+    {
+      "id": "jiujie.status.confuse",
+      "name": "错乱",
+      "kind": "jiujie.control.confuse",
+      "category": "control",
+      "blocksSpell": true,
+      "commandPolicy": "randomAttackTarget"
+    },
+    {
+      "id": "jiujie.status.confuse_weaken",
+      "name": "乱神摄魄",
+      "kind": "jiujie.control.confuse",
+      "category": "control",
+      "blocksSpell": true,
+      "commandPolicy": "randomAttackTarget",
+      "attrMods": {
+        "magicAtk": "-floor(target.magicAtk * 0.1)"
+      }
+    },
+    {
+      "id": "jiujie.status.million_weapons",
+      "name": "百万神兵",
+      "kind": "jiujie.control.million_weapons",
+      "category": "control",
+      "blocksPhysical": true
+    },
+    {
+      "id": "jiujie.status.million_weapons_weaken",
+      "name": "神兵挫锐",
+      "kind": "jiujie.control.million_weapons",
+      "category": "control",
+      "blocksPhysical": true,
+      "attrMods": {
+        "physicalAtk": "-floor(target.physicalAtk * 0.1)"
+      }
+    },
+    {
+      "id": "jiujie.status.magic_def_break",
+      "name": "天雷破灵",
+      "kind": "jiujie.magic_def_break",
+      "category": "debuff",
+      "attrMods": {
+        "magicDef": "-floor(target.magicDef * 0.1)"
+      }
+    },
+    {
+      "id": "jiujie.status.magic_def_break_strong",
+      "name": "天雷破障",
+      "kind": "jiujie.magic_def_break",
+      "category": "debuff",
+      "attrMods": {
+        "magicDef": "-floor(target.magicDef * 0.15)"
+      }
+    },
+    {
+      "id": "jiujie.status.guardian",
+      "name": "天神护法",
+      "kind": "jiujie.guardian",
+      "category": "buff",
+      "attrMods": {
+        "sealResist": "floor(skillLevel * 0.3)"
+      }
+    }
+  ],
+  "judgment": {
+    "branches": [
+      {
+        "branchId": "jiujie.branch.five_thunder.normal",
+        "chance": 0.5,
+        "when": {
+          "targetAbsentStatusCategories": [
+            "control"
+          ]
+        }
+      },
+      {
+        "branchId": "jiujie.branch.five_thunder.controlled",
+        "chance": 0.5,
+        "when": {
+          "targetStatusCategories": [
+            "control"
+          ]
+        }
+      }
+    ],
+    "successEffects": [
+      {
+        "type": "fixedHit",
+        "formula": "judge",
+        "power": "min(floor(target.hp * 0.25), 50 * skillLevel)",
+        "cannotKill": true
+      },
+      {
+        "type": "damageMp",
+        "power": "floor(target.mp * 0.25)"
+      }
+    ],
+    "failureEffects": [
+      {
+        "type": "fixedHit",
+        "formula": "judge",
+        "power": "min(floor(target.hp * 0.05), 10 * skillLevel)",
+        "cannotKill": true
+      },
+      {
+        "type": "damageMp",
+        "power": "floor(target.mp * 0.05)"
+      }
+    ]
+  },
+  "detonation": {
+    "mechanicId": "jiujie.mechanic.electric_detonate",
+    "name": "电芒引爆",
+    "statusId": "jiujie.status.electric",
+    "minStacks": 1,
+    "power": "floor(source.magicAtk * 0.25 * targetStatusStacks)"
+  },
+  "baseSkillIds": [
+    "jiujie.skill.thunderstorm",
+    "jiujie.skill.five_thunder",
+    "jiujie.skill.thunder_slash",
+    "jiujie.skill.suppress",
+    "jiujie.skill.confuse",
+    "jiujie.skill.million_weapons"
+  ],
+  "skills": [
+    {
+      "id": "jiujie.skill.thunderstorm",
+      "name": "雷霆万钧",
+      "school": "jiujie",
+      "costMp": "25 + floor(skillLevel * 0.45)",
+      "tags": [
+        "spell"
+      ],
+      "formula": "spell",
+      "splash": {
+        "perTarget": 0.08,
+        "floor": 0.6
+      },
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": "min(5, floor(skillLevel / 45) + 1)"
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 0.85,
+          "power": "35 + floor(skillLevel * 1.2)"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.electric",
+          "duration": 3
+        }
+      ]
+    },
+    {
+      "id": "jiujie.skill.five_thunder",
+      "name": "五雷轰顶",
+      "school": "jiujie",
+      "costMp": "35 + floor(skillLevel * 0.5)",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "fiveThunderBranches"
+        }
+      ]
+    },
+    {
+      "id": "jiujie.skill.thunder_slash",
+      "name": "天雷斩",
+      "school": "jiujie",
+      "costMp": "20 + floor(skillLevel * 0.3)",
+      "tags": [
+        "spell",
+        "physical"
+      ],
+      "formula": "physical",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1,
+          "power": "floor(skillLevel * 0.35)"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.magic_def_break",
+          "duration": 2
+        }
+      ]
+    },
+    {
+      "id": "jiujie.skill.suppress",
+      "name": "镇妖",
+      "school": "jiujie",
+      "costMp": "30 + floor(skillLevel * 0.4)",
+      "tags": [
+        "spell",
+        "seal"
+      ],
+      "sealBase": 45,
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.suppress",
+          "duration": 1,
+          "hit": "seal"
+        }
+      ]
+    },
+    {
+      "id": "jiujie.skill.confuse",
+      "name": "错乱",
+      "school": "jiujie",
+      "costMp": "25 + floor(skillLevel * 0.35)",
+      "tags": [
+        "spell",
+        "seal"
+      ],
+      "sealBase": 55,
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.confuse",
+          "duration": 2,
+          "hit": "seal"
+        }
+      ]
+    },
+    {
+      "id": "jiujie.skill.million_weapons",
+      "name": "百万神兵",
+      "school": "jiujie",
+      "costMp": "25 + floor(skillLevel * 0.35)",
+      "tags": [
+        "spell",
+        "seal"
+      ],
+      "sealBase": 55,
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.million_weapons",
+          "duration": 2,
+          "hit": "seal"
+        }
+      ]
+    },
+    {
+      "id": "jiujie.skill.divine_guardian",
+      "name": "天神护法",
+      "school": "jiujie",
+      "costMp": "45 + floor(skillLevel * 0.5)",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "dispel",
+          "categories": [
+            "control"
+          ],
+          "maxCount": 2,
+          "excludeStatusFlags": [
+            "blocksRevive"
+          ]
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.guardian",
+          "duration": 2
+        }
+      ]
+    },
+    {
+      "id": "jiujie.skill.heavenly_prison",
+      "name": "九天镇狱",
+      "school": "jiujie",
+      "costMp": "80 + floor(skillLevel * 0.8)",
+      "tags": [
+        "spell",
+        "seal"
+      ],
+      "sealBase": 60,
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.suppress",
+          "duration": 2,
+          "hit": "seal"
+        }
+      ]
+    },
+    {
+      "id": "jiujie.skill.startling_thunder",
+      "name": "惊曜天雷",
+      "school": "jiujie",
+      "costMp": "45 + floor(skillLevel * 0.5)",
+      "tags": [
+        "spell"
+      ],
+      "formula": "spell",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 1.35,
+          "power": "50 + floor(skillLevel * 1.3)"
+        },
+        {
+          "type": "detonation",
+          "targetCount": 1
+        }
+      ]
+    },
+    {
+      "id": "jiujie.skill.nine_heavens_thunder",
+      "name": "九霄神雷",
+      "school": "jiujie",
+      "costMp": "80 + floor(skillLevel * 0.8)",
+      "tags": [
+        "spell"
+      ],
+      "formula": "spell",
+      "splash": {
+        "perTarget": 0.06,
+        "floor": 0.7
+      },
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": 5
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": "70 + floor(skillLevel * 1.4)"
+        },
+        {
+          "type": "detonation",
+          "targetCount": 5
+        }
+      ]
+    }
+  ]
+}
