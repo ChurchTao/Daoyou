@@ -1,6 +1,7 @@
 import { GameSceneSection } from '@app/components/game-shell/GameSceneSection';
-import { InkButton, InkDialog, type InkDialogState } from '@app/components/ui';
+import { InkButton } from '@app/components/ui';
 import { useCultivatorProgress } from '@app/lib/resources/player';
+import { getBodyCultivationSummary } from '@shared/lib/bodyCultivation/summary';
 import { cn } from '@shared/lib/cn';
 import {
   getBreakthroughPenaltyPercent,
@@ -9,20 +10,8 @@ import {
   isConditionStatusActive,
 } from '@shared/lib/condition';
 import { evaluateFateContext } from '@shared/lib/fates';
-import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
-import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
-import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
-import { getBodyCultivationSummary } from '@shared/lib/bodyCultivation/summary';
 import { getAllTrackConfigs } from '@shared/lib/trackConfigRegistry';
-import type {
-  ConditionStatusInstance,
-  ConditionTrackPath,
-} from '@shared/types/condition';
-import { useState } from 'react';
-import {
-  getPillToxicityEffectDetails,
-  getStatusEffectDetails,
-} from './persistentStatusDetails';
+import type { ConditionTrackPath } from '@shared/types/condition';
 import { useCultivatorDisplayProjection } from './useCultivatorDisplayProjection';
 
 const TRACK_ORDER: ConditionTrackPath[] = [
@@ -33,46 +22,6 @@ const TRACK_ORDER: ConditionTrackPath[] = [
   'body.qi_blood',
   'body.primordial_spirit',
 ];
-
-function formatRemainingTime(
-  expiresAt: string | undefined,
-  now: number,
-): string {
-  if (!expiresAt) return '永久';
-  const expiresAtMs = Date.parse(expiresAt);
-  if (!Number.isFinite(expiresAtMs)) return '永久';
-
-  const remaining = expiresAtMs - now;
-  if (remaining <= 0) return '已过期';
-
-  const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
-  const hours = Math.floor(remaining / (60 * 60 * 1000));
-  const minutes = Math.floor(remaining / (60 * 1000));
-
-  if (days >= 1) return `${days}日`;
-  if (hours >= 1) return `${hours}时`;
-  return `${minutes}分`;
-}
-
-function formatDurationMs(durationMs: number): string {
-  const totalMinutes = Math.max(1, Math.ceil(durationMs / (60 * 1000)));
-  const days = Math.floor(totalMinutes / (24 * 60));
-  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
-  const minutes = totalMinutes % 60;
-
-  if (days >= 1) {
-    return hours > 0 ? `${days}日${hours}时` : `${days}日`;
-  }
-  if (hours >= 1) {
-    return minutes > 0 ? `${hours}时${minutes}分` : `${hours}时`;
-  }
-  return `${minutes}分`;
-}
-
-function formatRecoveryPerHour(value: number): string {
-  const rounded = Number(value.toFixed(value >= 10 ? 1 : 2));
-  return Number.isInteger(rounded) ? `${rounded}` : `${rounded}`;
-}
 
 function usePersistentStatusState() {
   const projection = useCultivatorDisplayProjection();
@@ -181,14 +130,6 @@ function usePersistentStatusState() {
   };
 }
 
-type DetailDialogState =
-  | {
-      kind: 'status';
-      status: ConditionStatusInstance;
-    }
-  | { kind: 'toxicity' }
-  | null;
-
 function CompactInfoRow({
   icon,
   label,
@@ -255,170 +196,6 @@ function CompactInfoRow({
   );
 }
 
-export function CultivatorCurrentStatusSection() {
-  const state = usePersistentStatusState();
-  const [detailDialog, setDetailDialog] = useState<DetailDialogState>(null);
-
-  if (!state) {
-    return null;
-  }
-
-  const hasCultivationState = Boolean(state.cultivator.cultivation_progress);
-
-  const dialog: InkDialogState | null =
-    detailDialog?.kind === 'status'
-      ? (() => {
-          const template = getConditionStatusTemplate(detailDialog.status.key);
-          const details = getStatusEffectDetails(detailDialog.status);
-          if (!template || details.length === 0) {
-            return null;
-          }
-
-          return {
-            id: `status:${detailDialog.status.key}`,
-            title: `【${template.name}】影响`,
-            content: (
-              <div className="space-y-3 text-sm leading-7">
-                <p className="text-ink-secondary">{template.description}</p>
-                <div className="space-y-1">
-                  {details.map((detail) => (
-                    <p key={detail}>{detail}</p>
-                  ))}
-                </div>
-              </div>
-            ),
-            confirmLabel: '知道了',
-            cancelLabel: null,
-          };
-        })()
-      : detailDialog?.kind === 'toxicity'
-        ? {
-            id: 'toxicity',
-            title: '【丹毒】影响',
-            content: (
-              <div className="space-y-3 text-sm leading-7">
-                <div className="space-y-1">
-                  {getPillToxicityEffectDetails(
-                    state.cultivator.condition,
-                    state.cultivator.pre_heaven_fates,
-                  ).map((detail) => (
-                    <p key={detail}>{detail}</p>
-                  ))}
-                </div>
-              </div>
-            ),
-            confirmLabel: '知道了',
-            cancelLabel: null,
-          }
-        : null;
-
-  const cultivationRows = hasCultivationState ? (
-    <>
-      <CompactInfoRow
-        icon={getGameConceptInfo('cultivation_exp').icon}
-        label={getResourceText('cultivation_exp')}
-        value={`${state.cultivationExp} / ${state.cultivationCap}`}
-        trailing={`${state.cultivationPercent}%`}
-      />
-      <CompactInfoRow
-        icon={getGameConceptInfo('comprehension_insight').icon}
-        label={getGameConceptInfo('comprehension_insight').label}
-        value={`${state.comprehensionInsight} / 100`}
-      />
-    </>
-  ) : null;
-
-  return (
-    <>
-      <GameSceneSection title="当前状态" contentClassName="space-y-2">
-        <div>
-          {cultivationRows}
-          <CompactInfoRow
-            icon={getGameConceptInfo('hp').icon}
-            label={getResourceLabel('hp')}
-            note={
-              state.hpRecovery.isFull
-                ? '自然恢复已满'
-                : `自然恢复每时约 ${formatRecoveryPerHour(state.hpRecovery.perHour)}/小时`
-            }
-            value={`${state.currentHp} / ${state.maxHp}`}
-            trailing={
-              state.hpRecovery.isFull
-                ? undefined
-                : state.hpRecovery.timeToFullMs !== null
-                  ? `约 ${formatDurationMs(state.hpRecovery.timeToFullMs)}回满`
-                  : '恢复时机未定'
-            }
-          />
-          <CompactInfoRow
-            icon={getGameConceptInfo('mp').icon}
-            label={getResourceLabel('mp')}
-            note={
-              state.mpRecovery.isFull
-                ? '自然恢复已满'
-                : `自然恢复约 ${formatRecoveryPerHour(state.mpRecovery.perHour)}/小时`
-            }
-            value={`${state.currentMp} / ${state.maxMp}`}
-            trailing={
-              state.mpRecovery.isFull
-                ? undefined
-                : state.mpRecovery.timeToFullMs !== null
-                  ? `约 ${formatDurationMs(state.mpRecovery.timeToFullMs)}回满`
-                  : '恢复时机未定'
-            }
-          />
-          <CompactInfoRow
-            icon="☠️"
-            label="丹毒"
-            note={state.pillToxicityStage.label}
-            value={`${state.pillToxicity}`}
-            trailing={`恢复 ${state.pillToxicityRecoveryEfficiency}% · 破境压制 ${state.breakthroughPenaltyPercent}%`}
-            actionLabel="查看情况"
-            onAction={() => setDetailDialog({ kind: 'toxicity' })}
-          />
-        </div>
-
-        {state.statuses.map((status, index) => {
-          const template = getConditionStatusTemplate(status.key);
-          const effectDetails = getStatusEffectDetails(status);
-
-          return (
-            <CompactInfoRow
-              key={`${status.key}:${index}`}
-              icon={template?.display.icon ?? '💫'}
-              label={template?.name ?? status.key}
-              note={
-                template?.display.shortDesc ??
-                template?.description ??
-                '长期状态影响'
-              }
-              value={
-                status.duration.kind === 'time'
-                  ? formatRemainingTime(status.duration.expiresAt, state.now)
-                  : undefined
-              }
-              trailing={
-                typeof status.usesRemaining === 'number' &&
-                status.usesRemaining > 0
-                  ? `${status.usesRemaining}次`
-                  : undefined
-              }
-              actionLabel={effectDetails.length > 0 ? '查看情况' : undefined}
-              onAction={
-                effectDetails.length > 0
-                  ? () => setDetailDialog({ kind: 'status', status })
-                  : undefined
-              }
-            />
-          );
-        })}
-      </GameSceneSection>
-
-      <InkDialog dialog={dialog} onClose={() => setDetailDialog(null)} />
-    </>
-  );
-}
-
 export function CultivatorTrackSection() {
   const state = usePersistentStatusState();
   const nextRealm = state?.bodySummary.nextRealm ?? null;
@@ -444,7 +221,10 @@ export function CultivatorTrackSection() {
             <div className="border-ink/10 border-b border-dashed py-2.5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-1 items-start gap-3">
-                  <span className="shrink-0 text-base leading-6" aria-hidden="true">
+                  <span
+                    className="shrink-0 text-base leading-6"
+                    aria-hidden="true"
+                  >
                     ⛰️
                   </span>
                   <div className="min-w-0">
@@ -486,7 +266,7 @@ export function CultivatorTrackSection() {
             </InkButton>
           </div>
         ) : null}
-        {state.trackEntries.map(({ config, level, progress, threshold }) => (
+        {state.trackEntries.map(({ config, level, progress, threshold }) =>
           config.key === 'marrow_wash' ? (
             <CompactInfoRow
               key={config.key}
@@ -518,8 +298,8 @@ export function CultivatorTrackSection() {
                 />
               );
             })()
-          )
-        ))}
+          ),
+        )}
       </div>
     </GameSceneSection>
   );

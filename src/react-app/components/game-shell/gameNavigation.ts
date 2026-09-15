@@ -68,10 +68,12 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'body-cultivation',
         sceneLabel: '肉身炼体',
+        href: '/game/body-cultivation',
       },
       {
         id: 'marrow-wash',
         sceneLabel: '洗髓池',
+        href: '/game/marrow-wash',
       },
       {
         id: 'retreat',

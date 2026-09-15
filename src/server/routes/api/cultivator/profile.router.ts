@@ -1,3 +1,16 @@
+import { db } from '@server/lib/drizzle/db';
+import { getValidatedJson, validateJson } from '@server/lib/hono/middleware';
+import { loadPlayerRetreatFacts } from '@server/lib/services/cultivator/CultivatorConditionFactsReader';
+import {
+  AttributeAllocationSchema,
+  type AttributeAllocationRequest,
+  type AttributePreviewData,
+} from '@shared/contracts/characterAttributes';
+import {
+  CHARACTER_ATTRIBUTE_LABELS,
+  projectCharacterDisplay,
+} from '@shared/lib/cultivatorDisplay';
+
 import {
   redisLockErrorResponse,
   requireActiveCultivatorRef,
@@ -32,18 +45,6 @@ const TitleSchema = z.object({
 const ClaimRedeemCodeSchema = z.object({
   code: z.string().trim().min(1).max(64),
 });
-
-const AttributeAllocationSchema = z
-  .object({
-    attribute_model_version: z.literal(2),
-    vitality: z.number().int().min(0).default(0),
-    strength: z.number().int().min(0).default(0),
-    spirit: z.number().int().min(0).default(0),
-    endurance: z.number().int().min(0).default(0),
-    speed: z.number().int().min(0).default(0),
-    willpower: z.number().int().min(0).default(0),
-  })
-  .strict();
 
 function isUniqueViolation(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
@@ -113,6 +114,46 @@ router.post('/title', requireActiveCultivatorRef(), async (c) => {
 
   return c.json(toPlayerStateMutationResponse(committed));
 });
+
+router.post(
+  '/attributes/preview',
+  requireActiveCultivatorRef(),
+  validateJson(AttributeAllocationSchema),
+  async (c) => {
+    const actor = c.get('activeCultivatorRef')!;
+    const delta = getValidatedJson<AttributeAllocationRequest>(c);
+    const result = await db.transaction(
+      async (tx) => {
+        const facts = await loadPlayerRetreatFacts(
+          actor.userId,
+          actor.cultivatorId,
+          tx,
+        );
+        if (!facts) return { error: '角色不存在', status: 404 as const };
+        const keys = Object.keys(
+          CHARACTER_ATTRIBUTE_LABELS,
+        ) as (keyof typeof facts.attributes)[];
+        const spent = keys.reduce((sum, key) => sum + delta[key], 0);
+        if (spent > facts.unallocated_attribute_points)
+          return { error: '未分配属性点不足', status: 400 as const };
+        const attributes = { ...facts.attributes };
+        for (const key of keys) attributes[key] += delta[key];
+        const data: AttributePreviewData = {
+          current: facts.combatV6ResourceAuthority.attrs,
+          preview: projectCharacterDisplay(
+            { ...facts, attributes },
+            facts.combatV6ResourceAuthority.build,
+          ),
+        };
+        return { data };
+      },
+      { isolationLevel: 'repeatable read', accessMode: 'read only' },
+    );
+    if ('error' in result)
+      return c.json({ error: result.error }, result.status);
+    return c.json({ success: true, data: result.data });
+  },
+);
 
 router.post('/attributes/allocate', requireActiveCultivatorRef(), async (c) => {
   const user = c.get('user');

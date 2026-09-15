@@ -199,7 +199,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'cultivator',
                   presentation: 'archive',
-                  summary: '名号、命格、根基与所修皆在此归卷。',
+                  summary: '观气血，察根基。',
                 },
                 '道身',
               )}

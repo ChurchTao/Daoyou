@@ -19,6 +19,7 @@
 
 - v6 战斗页面、阵容、指令和逐行动播报放在 `src/react-app/components/feature/combat-v6/`；仅复用通用 UI 和全局配色，不依赖旧 `feature/battle` 组件。协议与恢复规则见 [v6 战斗 UI](combat-v6-battle-ui.md)
 - 造化/参悟共享材料选择器放在 `src/react-app/components/feature/creation/MaterialSelector.tsx`
+- `/game/cultivator` 默认显示属性：紧凑身份、资源状态、V6 战斗面板、六维加点和修为；身世页签承载生平、灵根、命格与低频身份操作。原 `/game/cultivator/attributes` 重定向至面板加点状态。洗髓与炼体通过全局修行导航进入；不在角色页重复配装与养成明细。加点预览使用只读 `/api/cultivator/attributes/preview`，服务端以一致快照复用 V6 投影，提交仍走原属性分配接口。
 - 道身长期状态与称号编辑放在 `src/react-app/components/feature/cultivator/`
 - 跨玩法复用的分幕演出舞台放在 `src/react-app/components/feature/narrative/`
 - 清扫与采掘共用的横屏、全屏进入和释放逻辑放在 `src/react-app/lib/gameActivityImmersive.ts`；共享启动层和沉浸状态监听放在 `src/react-app/components/feature/game-activity/`

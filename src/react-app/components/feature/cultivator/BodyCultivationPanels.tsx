@@ -13,7 +13,6 @@ import {
   type BodyCultivationTrackSummary,
 } from '@shared/lib/bodyCultivation/summary';
 import {
-  getMarrowWashSummary,
   type MarrowWashSummary,
 } from '@shared/lib/marrowWash';
 import type { Cultivator } from '@shared/types/cultivator';
@@ -230,53 +229,6 @@ export function BodyCultivationSummaryContent({
   );
 }
 
-export function BodyCultivationEntrySection() {
-  const profile = useCultivatorIdentity();
-  const condition = useCultivatorCondition();
-  const identity = profile.data?.cultivator;
-  if (!identity || !condition.data) return null;
-
-  const summary = getBodyCultivationSummary(condition.data, {
-    cultivatorRealm: identity.realm,
-  });
-  const nextRealm = summary.nextRealm;
-  const nextRealmStatus = nextRealm
-    ? nextRealm.canAttempt
-      ? '可准备进阶'
-      : '条件未齐'
-    : '已圆满';
-
-  return (
-    <GameSceneSection title="肉身炼体">
-      <BodyCultivationOverviewCard
-        summary={summary}
-        nextRealm={nextRealm}
-        status={nextRealmStatus}
-        statusTone={nextRealm?.canAttempt ? 'success' : 'default'}
-        action={
-          <InkButton href="/game/body-cultivation" className="text-xs">
-            查看详情
-          </InkButton>
-        }
-      >
-        {nextRealm ? (
-          <div className="text-ink-secondary flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5">
-            {nextRealm.requirements.map((requirement) => (
-              <RequirementLine key={requirement.label} met={requirement.met}>
-                {requirement.label}
-              </RequirementLine>
-            ))}
-          </div>
-        ) : (
-          <p className="text-ink-secondary text-xs leading-5">
-            已达到当前最高肉身阶位，可继续查看五轨收益。
-          </p>
-        )}
-      </BodyCultivationOverviewCard>
-    </GameSceneSection>
-  );
-}
-
 export function MarrowWashSummaryContent({
   summary,
   action,
@@ -345,32 +297,6 @@ export function MarrowWashSummaryContent({
         </div>
       </div>
     </div>
-  );
-}
-
-export function MarrowWashEntrySection() {
-  const profile = useCultivatorIdentity();
-  const condition = useCultivatorCondition();
-  const identity = profile.data?.cultivator;
-  if (!identity || !condition.data) return null;
-
-  const summary = getMarrowWashSummary(condition.data, {
-    cultivatorRealm: identity.realm,
-  });
-  const unallocatedPoints = identity.unallocated_attribute_points ?? 0;
-
-  return (
-    <GameSceneSection title="洗髓">
-      <MarrowWashSummaryContent
-        summary={summary}
-        unallocatedPoints={unallocatedPoints}
-        action={
-          <InkButton href="/game/marrow-wash" className="text-xs">
-            查看详情
-          </InkButton>
-        }
-      />
-    </GameSceneSection>
   );
 }
 
