@@ -295,13 +295,13 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
         abilityChanges: {
           'plain-sword': '牺牲少量基础威力，维持稳定积势。',
           'sect-ultimate': '将剑意凝为一记主斩，并可引爆剑痕追加伤害。',
-          'guiding-sword': '身法高于目标时追加追击，强化抢攻能力。',
+          'guiding-sword': '速度高于目标时追加追击，强化抢攻能力。',
           'linked-edge': '改为三段连击，获得更多剑意并施加剑痕，不再进入调息。',
           'turning-body': '改为先攻后守；短暂提高闪避，首次闪避时反击并积势。',
-          'shadow-step': '进一步提高身法与闪避，首次闪避时额外积势。',
+          'shadow-step': '进一步提高速度与闪避，首次闪避时额外积势。',
           'breaking-edge': '维持基础威力与驱散能力。',
           'sword-aegis': '降低部分法术防御，改以额外闪避替代控制抗性。',
-          'nurturing-sword': '降低部分物攻增幅，同时提高身法。',
+          'nurturing-sword': '降低部分物攻增幅，同时提高速度。',
         },
       },
       tactics: [
@@ -320,7 +320,7 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           id: 'counter',
           name: '回燕',
           description:
-            '优先补《藏锋听雷》；身法不占优且《踏雪无痕》缺失时，先踏雪再施展《剑荡山河》；剑意达到5点后收束。',
+            '优先补《藏锋听雷》；速度不占优且《踏雪无痕》缺失时，先踏雪再施展《剑荡山河》；剑意达到5点后收束。',
         },
       ],
       nodes: [
@@ -328,7 +328,7 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           id: 'swift-opening',
           layerId: '1',
           name: '风起',
-          description: '战斗开始时获得2点剑意；首回合身法提高8%。',
+          description: '战斗开始时获得2点剑意；首回合速度提高8%。',
         },
         {
           id: 'swift-hidden-edge',
@@ -551,7 +551,7 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           'linked-edge':
             '由三段连击改为单段重击，并获得护盾；冷却增加，但不再进入调息。',
           'turning-body': '保留先守后攻，进一步提高直接伤害减免。',
-          'shadow-step': '由身法闪避强化改为护盾、物防与积势。',
+          'shadow-step': '由速度闪避强化改为护盾、物防与积势。',
           'breaking-edge': '提高攻击威力，保留驱散能力。',
           'sword-aegis': '提高法术防御并降低直接伤害，但不再提供控制抗性。',
           'nurturing-sword': '降低部分物攻增幅，同时提高物防。',

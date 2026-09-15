@@ -21,6 +21,7 @@ import {
 import { MANUAL_REALMS } from '@shared/engine/combat-v6/manuals/pack';
 import type { CharacterManualDefV1 } from '@shared/engine/combat-v6/manuals/types';
 import { itemDefinition } from '@shared/inventory';
+import { CHARACTER_ATTRIBUTE_LABELS } from '@shared/lib/characterAttributeLabels';
 import { previewManualAction } from '@shared/manuals/action';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
@@ -29,17 +30,14 @@ import { ManualJadePicker } from './ManualJadePicker';
 import { ManualRealmSlot } from './ManualRealmSlot';
 
 const endpoint = '/api/combat-v6/manuals';
-const labels = {
-  vitality: '体魄',
-  strength: '力量',
-  spirit: '精神',
-  endurance: '耐力',
-  speed: '速度',
-  willpower: '意志',
-};
 function effects(manual: CharacterManualDefV1, level: number) {
   return manual.effects
-    .map((e) => labels[e.attribute] + ' +' + e.valuePerLevel * level)
+    .map(
+      (e) =>
+        CHARACTER_ATTRIBUTE_LABELS[e.attribute] +
+        ' +' +
+        e.valuePerLevel * level,
+    )
     .join(' · ');
 }
 

@@ -1,3 +1,4 @@
+import { CHARACTER_ATTRIBUTE_LABELS } from './characterAttributeLabels';
 import type { ConditionResourceKey } from '@shared/types/condition';
 import type {
   ConsumableType,
@@ -109,37 +110,37 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     description: '战斗事件或代价',
   },
   vitality: {
-    label: '体魄',
+    label: CHARACTER_ATTRIBUTE_LABELS.vitality,
     icon: '💪',
     shortLabel: '体',
-    description: '气血与生命根基，提升最大气血和治疗强度',
+    description: '气血与生命根基，提升最大气血、治疗强度，并提供少量法术防御与行动速度',
   },
   strength: {
-    label: '力道',
+    label: CHARACTER_ATTRIBUTE_LABELS.strength,
     icon: '⚔️',
     shortLabel: '力',
-    description: '筋力与兵刃威势，决定物理攻击',
+    description: '筋力与兵刃威势，提升物理攻击，并提供少量法术防御与行动速度',
   },
   spirit: {
-    label: '灵力',
+    label: CHARACTER_ATTRIBUTE_LABELS.spirit,
     icon: '⚡',
     shortLabel: '灵',
-    description: '灵力浑厚程度，提升法术攻击、法力和封印命中',
+    description: '灵力浑厚程度，提升法术攻击、法力和封印命中，并提供少量法术防御',
   },
   endurance: {
-    label: '根骨',
+    label: CHARACTER_ATTRIBUTE_LABELS.endurance,
     icon: '🦴',
     shortLabel: '骨',
-    description: '筋骨坚韧程度，决定物理防御并提供少量最大气血',
+    description: '筋骨坚韧程度，提升物理防御，并提供少量法术防御与行动速度',
   },
   speed: {
-    label: '身法',
+    label: CHARACTER_ATTRIBUTE_LABELS.speed,
     icon: '🦶',
     shortLabel: '身',
     description: '身形腾挪与步法根基，影响闪避、命中与行动速度',
   },
   willpower: {
-    label: '神识',
+    label: CHARACTER_ATTRIBUTE_LABELS.willpower,
     icon: '👁️',
     shortLabel: '识',
     description: '神魂与意志强度，提升法术防御、法力、治疗强度和封印抵抗',

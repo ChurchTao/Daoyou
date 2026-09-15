@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { DAO_EQUIPMENT_SLOTS } from '../engine/combat-v6/equipment';
+import { CHARACTER_ATTRIBUTE_LABELS } from '../lib/characterAttributeLabels';
+// 器胚使用战斗面板名称；附灵展示必须使用 CHARACTER_ATTRIBUTE_LABELS。
 export const EQUIPMENT_ATTRIBUTE_NAMES = {
+  ...CHARACTER_ATTRIBUTE_LABELS,
   physicalAtk: '物攻',
   physicalDef: '物防',
   magicAtk: '法攻',
@@ -16,11 +19,6 @@ export const EQUIPMENT_ATTRIBUTE_NAMES = {
   physicalFuryRate: '物理狂暴',
   sealHit: '封印命中',
   sealResist: '封印抵抗',
-  vitality: '体质',
-  strength: '力量',
-  spirit: '灵力',
-  endurance: '耐力',
-  willpower: '意志',
 };
 const roll = z
   .object({

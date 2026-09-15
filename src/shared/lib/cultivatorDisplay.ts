@@ -1,3 +1,5 @@
+import { CHARACTER_ATTRIBUTE_LABELS } from './characterAttributeLabels';
+export { CHARACTER_ATTRIBUTE_LABELS } from './characterAttributeLabels';
 import type { Cultivator } from '@shared/types/cultivator';
 import type { CultivatorCondition } from '@shared/types/condition';
 import { projectNaturalRecoveryResources } from './condition';
@@ -27,10 +29,6 @@ export interface CultivatorDisplaySnapshot {
   attrs: CharacterPanelV1;
   resources: Record<'hp' | 'mp', { current: number; max: number; percent: number }>;
 }
-
-export const CHARACTER_ATTRIBUTE_LABELS = {
-  vitality: '体魄', strength: '力道', spirit: '灵力', endurance: '根骨', speed: '身法', willpower: '神识',
-} as const;
 
 export const CHARACTER_PANEL_LABELS: Record<keyof CharacterPanelV1, string> = {
   physicalAtk: '物理攻击', physicalDef: '物理防御', magicAtk: '法术攻击', magicDef: '法术防御',

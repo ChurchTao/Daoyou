@@ -16,6 +16,7 @@ import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
 import { SeedFactsSchema } from '@shared/items/definitions/seeds';
 import { materialFactsOf } from '@shared/items/material';
+import { CHARACTER_ATTRIBUTE_LABELS } from '@shared/lib/characterAttributeLabels';
 import { calculatePillScore } from '@shared/lib/pillScore';
 import type { CultivatorCondition } from '@shared/types/condition';
 import { REALM_VALUES, type RealmType } from '@shared/types/constants';
@@ -103,7 +104,12 @@ export function itemPreviewModel(
       });
       for (const key of ['baseStats', 'attributeBonuses'] as const) {
         const rows: PreviewRow[] = equipment[key].map((roll) => ({
-          label: EQUIPMENT_ATTRIBUTE_NAMES[roll.attr],
+          label:
+            key === 'attributeBonuses'
+              ? CHARACTER_ATTRIBUTE_LABELS[
+                  roll.attr as keyof typeof CHARACTER_ATTRIBUTE_LABELS
+                ]
+              : EQUIPMENT_ATTRIBUTE_NAMES[roll.attr],
           value: signed(roll.value),
           numeric: true,
           tone: key === 'attributeBonuses' ? 'positive' : 'normal',
@@ -115,7 +121,12 @@ export function itemPreviewModel(
         for (const roll of old?.[key] ?? []) {
           if (!equipment[key].some((r) => r.attr === roll.attr))
             rows.push({
-              label: EQUIPMENT_ATTRIBUTE_NAMES[roll.attr],
+              label:
+                key === 'attributeBonuses'
+                  ? CHARACTER_ATTRIBUTE_LABELS[
+                      roll.attr as keyof typeof CHARACTER_ATTRIBUTE_LABELS
+                    ]
+                  : EQUIPMENT_ATTRIBUTE_NAMES[roll.attr],
               value: 0,
               numeric: true,
               delta: -roll.value,

@@ -4,16 +4,9 @@ import type {
   CharacterManualDefV1,
   CultivatorManualStateV1,
 } from '@shared/engine/combat-v6/manuals/types';
+import { CHARACTER_ATTRIBUTE_LABELS } from '@shared/lib/characterAttributeLabels';
 import { useRef } from 'react';
 
-const labels = {
-  vitality: '体魄',
-  strength: '力量',
-  spirit: '精神',
-  endurance: '耐力',
-  speed: '速度',
-  willpower: '意志',
-};
 export function ManualRealmSlot({
   realm,
   manuals,
@@ -171,7 +164,7 @@ export function ManualRealmSlot({
           <div className="my-1 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs">
             {current.effects.map((effect) => (
               <span key={effect.attribute}>
-                {labels[effect.attribute]}{' '}
+                {CHARACTER_ATTRIBUTE_LABELS[effect.attribute]}{' '}
                 <span className="font-mono">
                   +{effect.valuePerLevel * (progress?.level ?? 1)}
                 </span>
