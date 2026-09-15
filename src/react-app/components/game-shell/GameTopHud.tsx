@@ -414,7 +414,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   const openBodyCultivationInfo = () => {
     const openMarrowWashDetail = () => {
       closeDialog();
-      void navigate('/game/marrow-wash');
+      void navigate('/game/cultivator?tab=body');
     };
 
     openDialog({
@@ -449,7 +449,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
       ),
       confirmLabel: '查看详情',
       cancelLabel: '知道了',
-      onConfirm: () => navigate('/game/body-cultivation'),
+      onConfirm: () => navigate('/game/cultivator?tab=body'),
     });
   };
 

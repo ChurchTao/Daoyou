@@ -402,9 +402,10 @@ function ItemActions({
           quantity: item.quantity,
         }
       : undefined;
-  const actionHref = consumable && getTalismanActionHref(consumable);
+  const beastFood = consumable && consumable.spec.kind !== 'talisman' && consumable.spec.operations.some((operation) => operation.type === 'gain_beast_cultivation');
+  const actionHref = beastFood ? '/game/beasts' : consumable && getTalismanActionHref(consumable);
   const directUse =
-    consumable &&
+    !beastFood && consumable &&
     (consumable.spec.kind !== 'talisman' ||
       isQiRestoreTalisman(consumable) ||
       isAttributeResetTalisman(consumable) ||
@@ -422,7 +423,7 @@ function ItemActions({
         ) : null}
         {item.location === 'bag' && consumable && actionHref && !directUse ? (
           <InkButton disabled={pending} onClick={() => navigate(actionHref)}>
-            {getTalismanActionLabel(consumable) ?? '前往使用'}
+            {beastFood ? '前往喂养灵兽' : getTalismanActionLabel(consumable) ?? '前往使用'}
           </InkButton>
         ) : null}
         {item.location === 'bag' && definition.kind === 'equipment' ? (

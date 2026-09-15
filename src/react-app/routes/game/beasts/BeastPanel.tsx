@@ -17,7 +17,6 @@ import {
   BEAST_ATTRIBUTE_NAMES,
   nextBeastExp,
 } from '@shared/engine/combat-v6/beasts/progression';
-import { beastRealm } from '@shared/engine/combat-v6/beasts/projection';
 import { useState } from 'react';
 import type { BeastAction } from './BeastActionDrawer';
 
@@ -64,6 +63,7 @@ export function BeastPanel({
   act,
   learn,
   refine,
+  feed,
   allocate,
 }: {
   beast: SummonedBeast;
@@ -76,6 +76,7 @@ export function BeastPanel({
   act: (action: BeastAction) => void;
   learn: () => void;
   refine: () => void;
+  feed: () => void;
   allocate: (points: SummonedBeast['allocatedAttributes']) => Promise<boolean>;
 }) {
   const [draft, setDraft] = useState<SummonedBeast['allocatedAttributes']>({
@@ -100,7 +101,7 @@ export function BeastPanel({
     !definition || definition.carryLevel > ownerLevel
       ? '人物境界未达到携带要求'
       : beast.level > ownerLevel
-        ? '灵兽修为超过人物承载上限'
+        ? '灵兽等级超过人物等级上限'
         : beast.currentLifespan < BEAST_PROGRESSION.lifespan.deployMinimum
           ? '寿命不足，请先休养'
           : undefined;
@@ -120,7 +121,7 @@ export function BeastPanel({
             {isLead ? <BeastLeadSeal /> : null}
           </div>
           <p className="text-ink-secondary text-xs leading-6">
-            境界 {beastRealm(beast.level)} · 携带境界{' '}
+            等级 <span className="font-mono">{beast.level}</span> · 携带要求{' '}
             {definition ? getLevelRealmStage(definition.carryLevel).label : '—'}
           </p>
           <div className="text-ink-secondary flex flex-wrap items-center gap-x-3 text-xs">
@@ -138,7 +139,7 @@ export function BeastPanel({
           <div
             className="bg-ink/10 mt-2 h-1 overflow-hidden"
             role="progressbar"
-            aria-label="升级经验"
+            aria-label="升级修为"
             aria-valuemin={0}
             aria-valuemax={exp}
             aria-valuenow={Math.min(beast.exp, exp)}
@@ -149,7 +150,7 @@ export function BeastPanel({
             />
           </div>
           <div className="text-ink-secondary mt-1 flex flex-wrap justify-between gap-x-2 text-xs">
-            <span>{capped ? '已达当前培养上限' : '经验'}</span>
+            <span>{capped ? '已达当前培养上限' : '修为'}</span>
             <span>
               {beast.exp.toLocaleString()} / {exp.toLocaleString()}
             </span>
@@ -171,6 +172,9 @@ export function BeastPanel({
             onClick={() => lineup('carry')}
           >
             {carried ? '移出编组' : '加入编组'}
+          </InkButton>
+          <InkButton disabled={pending || capped} onClick={feed}>
+            喂养
           </InkButton>
           <InkButton
             disabled={pending || beast.currentLifespan >= beast.maxLifespan}

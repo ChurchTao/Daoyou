@@ -154,25 +154,11 @@ describe('beast content packs', () => {
       'restRecoveryPerStone',
     ],
     [
-      'missing first realm',
-      (p) => {
-        p.progression.realms[0].minLevel = 1;
-      },
-      '从 0 起',
-    ],
-    [
-      'out-of-order realm',
-      (p) => {
-        p.progression.realms[1].minLevel = 0;
-      },
-      '递增',
-    ],
-    [
       'experience overflow',
       (p) => {
         p.progression.experience.perLevel = 100000;
       },
-      '经验存储上限',
+      '修为存储上限',
     ],
     [
       'reversed species growth',
@@ -272,7 +258,7 @@ it('uses edited generation ranges without invalidating existing individual rolls
 it('uses edited points, experience, lifespan and panel parameters consistently', async () => {
   const copy = structuredClone(progression);
   copy.pointsPerLevel = 6;
-  copy.experience = { base: 50, perLevel: 10, victoryPerEnemyLevel: 10 };
+  copy.experience = { base: 50, perLevel: 10, perLevelSquared: 0, victoryPerEnemyLevel: 10 };
   copy.lifespan = {
     deathLoss: 20,
     deployMinimum: 30,

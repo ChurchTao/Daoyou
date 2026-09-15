@@ -31,6 +31,12 @@ const ConditionStatusDurationSchema = z.union([
 ]);
 
 const ConditionOperationSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('gain_beast_cultivation'),
+      value: z.number().int().positive().max(112125),
+    })
+    .strict(),
   z.object({
     type: z.literal('restore_resource'),
     resource: z.enum(['hp', 'mp']),

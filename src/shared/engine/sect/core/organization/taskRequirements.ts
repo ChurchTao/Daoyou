@@ -49,6 +49,7 @@ const SECT_PILL_FAMILY_LABELS: Record<PillFamily, string> = {
   mana: '回元丹',
   detox: '解毒丹',
   cultivation: '修为丹',
+  beast_cultivation: '灵兽修为丹',
   insight: '悟性丹',
   breakthrough: '破境辅助丹',
   tempering: '淬体丹',

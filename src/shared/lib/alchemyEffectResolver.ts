@@ -1,5 +1,6 @@
 import { ALCHEMY_EFFECT_BASE_BY_QUALITY } from '@shared/config/alchemyEffectConfig';
 import { PILL_APPEARANCE_EFFECT_MULTIPLIER } from '@shared/config/alchemyEssenceConfig';
+import { BEAST_CULTIVATION_BASE_BY_QUALITY } from '@shared/config/beastCultivation';
 import type { Quality } from '@shared/types/constants';
 import {
   ALCHEMY_PROPERTY_KEY_VALUES,
@@ -65,9 +66,14 @@ export function normalizeAlchemyEffectRoute(
     }
     merged.set(effect.key, (merged.get(effect.key) ?? 0) + effect.weight);
   }
-  const selected = [...merged.entries()]
-    .sort((left, right) => right[1] - left[1])
-    .slice(0, 3);
+  const sorted = [...merged.entries()].sort(
+    (left, right) => right[1] - left[1],
+  );
+  // 灵兽与人物药效不能混用同一服用对象。
+  const selected =
+    sorted[0]?.[0] === 'beast_cultivation'
+      ? sorted.slice(0, 1)
+      : sorted.filter(([key]) => key !== 'beast_cultivation').slice(0, 3);
   const total = selected.reduce((sum, [, weight]) => sum + weight, 0);
   return {
     effects: selected.map(([key, weight]) => ({
@@ -85,6 +91,12 @@ export function validateAlchemyEffectRoute(
   }
   if (route.effects.length === 0 || route.effects.length > 3) {
     throw new Error('丹药药性路线必须包含一至三个效果');
+  }
+  if (
+    route.effects.some((effect) => effect.key === 'beast_cultivation') &&
+    route.effects.length !== 1
+  ) {
+    throw new Error('灵兽修为丹药不能混入人物药效');
   }
   const seen = new Set<string>();
   let previousWeight = Number.POSITIVE_INFINITY;
@@ -124,6 +136,8 @@ function getBaseValue(key: AlchemyEffectKey, quality: Quality): number {
       return base.restorePercent;
     case 'detox':
       return base.detox;
+    case 'beast_cultivation':
+      return BEAST_CULTIVATION_BASE_BY_QUALITY[quality];
     case 'cultivation':
       return base.cultivationBoost;
     case 'insight':
@@ -204,6 +218,8 @@ function buildOperation(
         target: 'comprehension_insight',
         value: finalValue,
       };
+    case 'beast_cultivation':
+      return { type: 'gain_beast_cultivation', value: finalValue };
     case 'extend_lifespan':
       return { type: 'increase_lifespan', value: finalValue };
     case 'marrow_wash':
@@ -290,7 +306,11 @@ export function resolveAlchemyEffects(
     operations.push(buildOperation(effect.key, finalValue));
   });
 
-  if (!route.effects.some((effect) => effect.key === 'detox')) {
+  if (
+    !route.effects.some(
+      (effect) => effect.key === 'detox' || effect.key === 'beast_cultivation',
+    )
+  ) {
     operations.push({
       type: 'change_gauge',
       gauge: 'pillToxicity',

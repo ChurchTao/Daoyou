@@ -28,10 +28,11 @@ describe('野外内容数据包', () => {
       expect(() => loadWildPack(invalid)).toThrow(key);
     }
   });
-  it('物种技能、全部等级面板和512种子编组保持原基线', () => {
+  // 内容哈希仅因取消 region.beastRealm 改变，面板与编组保留历史基线。
+  it('取消境界别名后保留全部等级面板和512种子编组基线', () => {
     const panels = WILD_SPECIES.flatMap(s => Array.from({ length: 11 }, (_, i) => wildPanel(s.id, i + 5)));
     const encounters = Array.from({ length: 512 }, (_, seed) => generateWildEncounter(WILD_REGION.nodeId, seed));
-    expect({ content: hash({ region: WILD_REGION, species: WILD_SPECIES, skills: WILD_SKILLS }), panels: hash(panels), encounters: hash(encounters) }).toEqual(before);
+    expect({ content: hash({ region: WILD_REGION, species: WILD_SPECIES, skills: WILD_SKILLS }), panels: hash(panels), encounters: hash(encounters) }).toEqual({ ...before, content: '5ccf5d6e48299fc50623a7fca08a5d41cd77113cadbbe44e87ca89716a107c32' });
   });
   it('配置变化影响生成数量、等级与实际面板', () => {
     const data = structuredClone(raw);

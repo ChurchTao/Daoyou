@@ -19,7 +19,7 @@
 
 - v6 战斗页面、阵容、指令和逐行动播报放在 `src/react-app/components/feature/combat-v6/`；仅复用通用 UI 和全局配色，不依赖旧 `feature/battle` 组件。协议与恢复规则见 [v6 战斗 UI](combat-v6-battle-ui.md)
 - 造化/参悟共享材料选择器放在 `src/react-app/components/feature/creation/MaterialSelector.tsx`
-- `/game/cultivator` 默认显示属性：紧凑身份、资源状态、V6 战斗面板、六维加点和修为；身世页签承载生平、灵根、命格与低频身份操作。原 `/game/cultivator/attributes` 重定向至面板加点状态。洗髓与炼体通过全局修行导航进入；不在角色页重复配装与养成明细。加点预览使用只读 `/api/cultivator/attributes/preview`，服务端以一致快照复用 V6 投影，提交仍走原属性分配接口。
+- `/game/cultivator` 使用左侧「人物属性 / 所修功法 / 肉身修炼」页签，URL 的 `tab=manuals|body` 支持直达。人物属性包含简要身世、境界宗门、资源状态、六维加点、V6 战斗属性与修为，完整生平、灵根命格通过身世详情抽屉查看；所修功法复用现行 V6 `ManualRoom`（学习、参悟、激活）；肉身修炼包含五轨炼体和洗髓进度及原有操作。页签内容不重复创建场景壳。旧 `/game/techniques`、`/game/enlightenment`、`/game/enlightenment/gongfa`、`/game/body-cultivation`、`/game/marrow-wash` 保留重定向并透传查询参数，移除独立全局入口；肉身升阶流程结束返回肉身修炼页签。旧加点地址继续进入人物属性的加点状态。加点预览仍走只读 V6 投影接口。
 - 道身长期状态与称号编辑放在 `src/react-app/components/feature/cultivator/`
 - 跨玩法复用的分幕演出舞台放在 `src/react-app/components/feature/narrative/`
 - 清扫与采掘共用的横屏、全屏进入和释放逻辑放在 `src/react-app/lib/gameActivityImmersive.ts`；共享启动层和沉浸状态监听放在 `src/react-app/components/feature/game-activity/`

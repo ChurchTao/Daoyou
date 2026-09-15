@@ -27,15 +27,6 @@ export function activeBeastSkills(beast: SummonedBeast) {
   );
 }
 
-export function beastRealm(level: number) {
-  if (!Number.isInteger(level) || level < 0 || level > 180)
-    throw new Error('召唤兽等级无效');
-  const realms = BEAST_PROGRESSION.realms.filter(
-    (realm) => realm.minLevel <= level,
-  );
-  return realms[realms.length - 1].name;
-}
-
 export function beastPanel(input: SummonedBeast) {
   const b = BeastSchema.parse(input);
   const rule = BEAST_PROGRESSION.panel;

@@ -877,6 +877,8 @@ export const PillOperationExecutor = {
           }
           break;
         }
+        case 'gain_beast_cultivation':
+          throw new Error('请在灵兽页选择灵兽后喂养');
         case 'gain_progress': {
           const before = getProgressValue(nextCultivator, operation.target);
           applyGainProgressOperation(nextCultivator, operation);

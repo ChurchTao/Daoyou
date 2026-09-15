@@ -1,12 +1,13 @@
 {
   "$schema": "./progression.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "pointsPerLevel": 5,
   "experience": {
     "base": 100,
     "perLevel": 20,
-    "victoryPerEnemyLevel": 10
+    "victoryPerEnemyLevel": 10,
+    "perLevelSquared": 0.5
   },
   "lifespan": {
     "deathLoss": 50,
@@ -22,44 +23,6 @@
     "missingHpFactor": 0.4,
     "levelDifferenceFactor": 0.01
   },
-  "realms": [
-    {
-      "name": "启灵",
-      "minLevel": 0
-    },
-    {
-      "name": "通慧",
-      "minLevel": 20
-    },
-    {
-      "name": "化妖",
-      "minLevel": 40
-    },
-    {
-      "name": "凝丹",
-      "minLevel": 60
-    },
-    {
-      "name": "妖婴",
-      "minLevel": 80
-    },
-    {
-      "name": "化形",
-      "minLevel": 100
-    },
-    {
-      "name": "妖王",
-      "minLevel": 120
-    },
-    {
-      "name": "妖皇",
-      "minLevel": 140
-    },
-    {
-      "name": "妖圣",
-      "minLevel": 160
-    }
-  ],
   "panel": {
     "naturalBase": 10,
     "naturalPerLevel": 1,

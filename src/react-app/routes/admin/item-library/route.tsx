@@ -1102,9 +1102,9 @@ export default function ItemLibraryAdminPage() {
                           </div>
                         ) : null}
 
-                        {operation.type === 'increase_lifespan' ? (
+                        {operation.type === 'increase_lifespan' || operation.type === 'gain_beast_cultivation' ? (
                           <InkInput
-                            label="增加寿元年数"
+                            label={operation.type === 'gain_beast_cultivation' ? '增加灵兽修为' : '增加寿元年数'}
                             value={operation.value}
                             onChange={(value) =>
                               updatePillOperation(index, {

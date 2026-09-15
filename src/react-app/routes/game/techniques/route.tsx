@@ -1,4 +1,5 @@
-import { LegacyProductList } from '@app/components/feature/products/LegacyProductList';
+import { CharacterPanelRedirect } from '@app/components/feature/cultivator/CharacterPanelRedirect';
+
 export default function Page() {
-  return <LegacyProductList type="gongfa" />;
+  return <CharacterPanelRedirect tab="manuals" />;
 }

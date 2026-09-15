@@ -36,11 +36,18 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 100000
+        },
+        "perLevelSquared": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000,
+          "multipleOf": 1e-06
         }
       },
       "required": [
         "base",
         "perLevel",
+        "perLevelSquared",
         "victoryPerEnemyLevel"
       ],
       "additionalProperties": false
@@ -83,37 +90,37 @@
           "type": "number",
           "minimum": 0,
           "maximum": 100000,
-          "multipleOf": 0.000001
+          "multipleOf": 1e-06
         },
         "minChance": {
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "multipleOf": 0.000001
+          "multipleOf": 1e-06
         },
         "maxChance": {
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "multipleOf": 0.000001
+          "multipleOf": 1e-06
         },
         "baseChance": {
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "multipleOf": 0.000001
+          "multipleOf": 1e-06
         },
         "missingHpFactor": {
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "multipleOf": 0.000001
+          "multipleOf": 1e-06
         },
         "levelDifferenceFactor": {
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "multipleOf": 0.000001
+          "multipleOf": 1e-06
         }
       },
       "required": [
@@ -127,30 +134,6 @@
       ],
       "additionalProperties": false
     },
-    "realms": {
-      "minItems": 1,
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
-          },
-          "minLevel": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 180
-          }
-        },
-        "required": [
-          "name",
-          "minLevel"
-        ],
-        "additionalProperties": false
-      }
-    },
     "panel": {
       "type": "object",
       "properties": {
@@ -158,13 +141,13 @@
           "type": "number",
           "minimum": 0,
           "maximum": 100000,
-          "multipleOf": 0.000001
+          "multipleOf": 1e-06
         },
         "naturalPerLevel": {
           "type": "number",
           "minimum": 0,
           "maximum": 100000,
-          "multipleOf": 0.000001
+          "multipleOf": 1e-06
         },
         "health": {
           "type": "object",
@@ -173,13 +156,13 @@
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             },
             "attributeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             }
           },
           "required": [
@@ -195,13 +178,13 @@
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             },
             "attributeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             }
           },
           "required": [
@@ -217,13 +200,13 @@
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             },
             "attributeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             }
           },
           "required": [
@@ -239,13 +222,13 @@
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             },
             "attributeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             }
           },
           "required": [
@@ -261,13 +244,13 @@
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             },
             "attributeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             }
           },
           "required": [
@@ -283,7 +266,7 @@
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             },
             "attributeCoefficients": {
               "type": "object",
@@ -292,25 +275,25 @@
                   "type": "number",
                   "minimum": 0,
                   "maximum": 100000,
-                  "multipleOf": 0.000001
+                  "multipleOf": 1e-06
                 },
                 "magic": {
                   "type": "number",
                   "minimum": 0,
                   "maximum": 100000,
-                  "multipleOf": 0.000001
+                  "multipleOf": 1e-06
                 },
                 "strength": {
                   "type": "number",
                   "minimum": 0,
                   "maximum": 100000,
-                  "multipleOf": 0.000001
+                  "multipleOf": 1e-06
                 },
                 "endurance": {
                   "type": "number",
                   "minimum": 0,
                   "maximum": 100000,
-                  "multipleOf": 0.000001
+                  "multipleOf": 1e-06
                 }
               },
               "required": [
@@ -335,13 +318,13 @@
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             },
             "attributeCoefficient": {
               "type": "number",
               "minimum": 0,
               "maximum": 100000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             }
           },
           "required": [
@@ -372,7 +355,6 @@
     "experience",
     "lifespan",
     "capture",
-    "realms",
     "panel"
   ],
   "additionalProperties": false

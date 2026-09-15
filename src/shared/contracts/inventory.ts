@@ -27,6 +27,15 @@ export const InventoryQuerySchema = z
 export const InventoryActionSchema = z.discriminatedUnion('action', [
   z
     .object({
+      action: z.literal('feed'),
+      ...ref,
+      beastId: z.uuid(),
+      beastRevision: z.number().int().nonnegative(),
+      quantity: z.number().int().min(1).max(99),
+    })
+    .strict(),
+  z
+    .object({
       action: z.literal('transfer'),
       ...ref,
       location: z.enum(['bag', 'storage']),

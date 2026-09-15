@@ -6,7 +6,6 @@ import {
   activeBeastSkills,
   beastDeathIds,
   beastPanel,
-  beastRealm,
   generateStarterBeast,
   loseBeastLifespan,
   projectBeastRoster,
@@ -63,8 +62,6 @@ describe('召唤兽正式个体', () => {
         attrs.resistSpellCultivate,
     ).toBe(0);
     expect(beast).toEqual(before);
-    expect(beastRealm(180)).toBe('妖圣');
-    expect(() => beastRealm(181)).toThrow();
   });
   it('编组上限、唯一性、归属和低寿命入场边界', () => {
     expect(() =>

@@ -2,7 +2,6 @@ import { InkModal } from '@app/components/layout/InkModal';
 import { InkButton } from '@app/components/ui/InkButton';
 import type { SummonedBeast } from '@shared/engine/combat-v6/beasts';
 import { beastRestCost } from '@shared/engine/combat-v6/beasts/progression';
-import { beastRealm } from '@shared/engine/combat-v6/beasts/projection';
 
 export type BeastAction = 'release' | 'rest';
 const labels = { release: '放生', rest: '休养' };
@@ -58,7 +57,7 @@ export function BeastActionDrawer({
       ) : (
         <div className="space-y-3 text-sm">
           <p>
-            {beastRealm(beast.level)}境 · 成长{' '}
+            <span className="font-mono">{beast.level}</span> 级 · 成长{' '}
             <span className="font-mono">{beast.growth.toFixed(3)}</span> ·{' '}
             <span className="font-mono">{beast.skillSlotCapacity}</span>{' '}
             个技能格

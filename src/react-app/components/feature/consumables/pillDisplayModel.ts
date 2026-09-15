@@ -219,6 +219,8 @@ export function getPillFamilyLabel(family: PillFamily): string {
       return '回元';
     case 'detox':
       return '解毒';
+    case 'beast_cultivation':
+      return '灵兽修为';
     case 'cultivation':
       return getGameConceptLabel('cultivation_exp');
     case 'insight':
@@ -242,6 +244,8 @@ export function describePillOperation(operation: ConditionOperation): string {
       return getRestoreEffectText(operation);
     case 'change_gauge':
       return getGaugeChangeText(operation.delta);
+    case 'gain_beast_cultivation':
+      return `灵兽修为 +${operation.value}`;
     case 'gain_progress':
       return `${getProgressTargetLabel(operation.target)} +${operation.value}`;
     case 'increase_lifespan':
@@ -339,6 +343,8 @@ function buildPrimaryEffect(spec: PillSpec): string {
         ? `${getProgressTargetLabel(gain.target)} +${gain.value}`
         : `${getPillFamilyLabel(spec.family)}药效`;
     }
+    case 'beast_cultivation':
+      return '灵兽修为';
     case 'cultivation': {
       const cultivationBoost = spec.operations.find(
         (
@@ -473,6 +479,12 @@ function buildCostAndRuleLines(
     )
     .map((operation) => describePillOperation(operation));
 
+  if (
+    spec.operations.some(
+      (operation) => operation.type === 'gain_beast_cultivation',
+    )
+  )
+    return ['用于喂养灵兽，等级不能超过主人'];
   const quotaCategory = getEffectiveQuotaCategory(spec);
   const usageRuleText =
     getPillUsageProgressText(quotaCategory, options)?.rule ??
@@ -701,6 +713,12 @@ function getSpiritFruitRealmRuleLines(
   consumable: Consumable & { spec: SpiritFruitSpec },
   realm?: RealmType,
 ): string[] {
+  if (
+    consumable.spec.operations.some(
+      (operation) => operation.type === 'gain_beast_cultivation',
+    )
+  )
+    return ['用于喂养灵兽，等级不能超过主人'];
   if (!realm) return [];
   const quality = consumable.quality ?? '凡品';
   const minQuality = getMinimumPillQualityByRealm(realm);

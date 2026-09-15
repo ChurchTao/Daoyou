@@ -1,3 +1,4 @@
+import { MarrowWashPanel } from './MarrowWashPanel';
 import {
   GameSceneSection,
 } from '@app/components/game-shell/GameSceneSection';
@@ -323,51 +324,57 @@ export function BodyCultivationDetailPanel() {
 
   return (
     <div className="space-y-5">
-      <GameSceneSection title="肉身总览">
-        <BodyCultivationOverviewCard
-          summary={summary}
-          nextRealm={nextRealm}
-          status={breakthroughStatus}
-          statusTone={nextRealm?.canAttempt ? 'success' : 'default'}
-          action={
-            nextRealm?.canAttempt ? (
-              <InkButton
-                href="/game/body-cultivation/breakthrough"
-                variant="primary"
-                className="text-sm"
-              >
-                提升位阶
-              </InkButton>
-            ) : null
-          }
-        >
-          {nextRealm ? (
-            <div className="space-y-3">
-              <div className="grid gap-2 text-xs leading-5 md:grid-cols-2">
-                <BodyMetric label="下阶开启" value={nextRealm.unlockText} />
-                <BodyMetric
-                  label="升阶入口"
-                  value={nextRealm.canAttempt ? '可直接提升' : '继续炼体'}
-                />
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+        <GameSceneSection title="肉身总览">
+          <BodyCultivationOverviewCard
+            summary={summary}
+            nextRealm={nextRealm}
+            status={breakthroughStatus}
+            statusTone={nextRealm?.canAttempt ? 'success' : 'default'}
+            action={
+              nextRealm?.canAttempt ? (
+                <InkButton
+                  href="/game/body-cultivation/breakthrough"
+                  variant="primary"
+                  className="text-sm"
+                >
+                  提升位阶
+                </InkButton>
+              ) : null
+            }
+          >
+            {nextRealm ? (
+              <div className="space-y-3">
+                <div className="grid gap-2 text-xs leading-5 md:grid-cols-2">
+                  <BodyMetric label="下阶开启" value={nextRealm.unlockText} />
+                  <BodyMetric
+                    label="升阶入口"
+                    value={nextRealm.canAttempt ? '可直接提升' : '继续炼体'}
+                  />
+                </div>
+                <div className="text-ink-secondary flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5">
+                  {nextRealm.requirements.map((requirement) => (
+                    <RequirementLine
+                      key={requirement.label}
+                      met={requirement.met}
+                    >
+                      {requirement.label}
+                    </RequirementLine>
+                  ))}
+                </div>
               </div>
-              <div className="text-ink-secondary flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5">
-                {nextRealm.requirements.map((requirement) => (
-                  <RequirementLine key={requirement.label} met={requirement.met}>
-                    {requirement.label}
-                  </RequirementLine>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="text-ink-secondary text-xs leading-5">
-              已达到当前最高肉身阶位，可继续查看五轨收益。
-            </p>
-          )}
-        </BodyCultivationOverviewCard>
-      </GameSceneSection>
+            ) : (
+              <p className="text-ink-secondary text-xs leading-5">
+                已达到当前最高肉身阶位，可继续查看五轨收益。
+              </p>
+            )}
+          </BodyCultivationOverviewCard>
+        </GameSceneSection>
 
+        <MarrowWashPanel />
+      </div>
       <GameSceneSection title="五轨修炼">
-        <BodyCultivationTrackGrid summary={summary} />
+        <BodyCultivationTrackGrid summary={summary} dense />
       </GameSceneSection>
 
       <GameSceneSection title="炼体说明">

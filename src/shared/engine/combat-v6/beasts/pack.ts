@@ -245,6 +245,7 @@ export const BeastProgressionPackShape = z.strictObject({
   experience: z.strictObject({
     base: integer.min(1),
     perLevel: integer,
+    perLevelSquared: number,
     victoryPerEnemyLevel: integer,
   }),
   lifespan: z.strictObject({
@@ -261,7 +262,6 @@ export const BeastProgressionPackShape = z.strictObject({
     missingHpFactor: probability,
     levelDifferenceFactor: probability,
   }),
-  realms: z.array(z.strictObject({ name, minLevel: integer.max(180) })).min(1),
   panel: z.strictObject({
     naturalBase: number,
     naturalPerLevel: number,
@@ -433,21 +433,12 @@ export function loadBeastPacks(
   if (progression.capture.minChance > progression.capture.maxChance)
     issue('progression.json', 'capture.minChance', '捕捉下限不得超过上限');
   if (
-    progression.experience.base + 179 * progression.experience.perLevel >
+    progression.experience.base +
+      179 * progression.experience.perLevel +
+      Math.floor(179 ** 2 * progression.experience.perLevelSquared) >
     100000
   )
-    issue('progression.json', 'experience', '升级所需经验超出个体经验存储上限');
-  progression.realms.forEach((r, i) => {
-    if (
-      (i === 0 && r.minLevel !== 0) ||
-      (i > 0 && r.minLevel <= progression.realms[i - 1].minLevel)
-    )
-      issue(
-        'progression.json',
-        `realms.${i}.minLevel`,
-        '境界阈值必须从 0 起严格递增',
-      );
-  });
+    issue('progression.json', 'experience', '升级所需修为超出个体修为存储上限');
   const maxAttribute =
     progression.panel.naturalBase +
     180 * (progression.panel.naturalPerLevel + progression.pointsPerLevel);

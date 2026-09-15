@@ -161,7 +161,7 @@ export default function BodyCultivationBreakthroughPage() {
           >
             提升至{nextRealmLabel ?? '下一位阶'}
           </InkButton>
-          <InkButton href="/game/body-cultivation" variant="secondary">
+          <InkButton href="/game/cultivator?tab=body" variant="secondary">
             返回炼体详情
           </InkButton>
         </InkActionGroup>
@@ -171,7 +171,7 @@ export default function BodyCultivationBreakthroughPage() {
         <InkIdentifyCelebration
           key={celebrationTick}
           variant="basic"
-          onComplete={() => navigate('/game/body-cultivation')}
+          onComplete={() => navigate('/game/cultivator?tab=body')}
         />
       ) : null}
     </GameSceneFrame>

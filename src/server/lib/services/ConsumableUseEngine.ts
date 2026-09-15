@@ -217,6 +217,10 @@ export const ConsumableUseEngine = {
       throw new Error('该消耗品缺少有效丹药或灵果 spec。');
     }
 
+    if (consumable.spec.operations.some((operation) => operation.type === 'gain_beast_cultivation')) {
+      throw new Error('请在灵兽页选择灵兽后喂养');
+    }
+
     const cultivator = await loadPlayerConsumableOperationFacts(
       userId,
       cultivatorId,

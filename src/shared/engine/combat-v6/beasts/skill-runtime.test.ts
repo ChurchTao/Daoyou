@@ -99,5 +99,5 @@ it('preserves capture identity, MP costs, formula and progression boundaries', (
     ).capture,
   ).toMatchObject({ capacity: 0, targetMpCosts: {} });
   expect(captureMp(5)).toBe(15);
-  expect([0, 10, 179, 180].map(nextBeastExp)).toEqual([100, 300, 3680, 3700]);
+  expect([0, 10, 179, 180].map(nextBeastExp)).toEqual([100, 350, 19700, 19900]);
 });

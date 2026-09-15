@@ -59,7 +59,8 @@ export function captureMp(carryLevel: number) {
 export function nextBeastExp(level: number) {
   return (
     BEAST_PROGRESSION.experience.base +
-    BEAST_PROGRESSION.experience.perLevel * level
+    BEAST_PROGRESSION.experience.perLevel * level +
+    Math.floor(BEAST_PROGRESSION.experience.perLevelSquared * level ** 2)
   );
 }
 export function beastRestCost(beast: SummonedBeast) {
@@ -80,7 +81,7 @@ export function gainBeastExp(
     !Number.isInteger(ownerLevel) ||
     ownerLevel < 0
   )
-    throw new Error('灵兽经验输入无效');
+    throw new Error('灵兽修为输入无效');
   const cap = Math.min(180, ownerLevel);
   if (!amount || beast.level >= cap) return beast;
   let level = beast.level;

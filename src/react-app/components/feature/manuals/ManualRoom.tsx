@@ -1,4 +1,3 @@
-import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
@@ -220,7 +219,7 @@ export function ManualRoom() {
   }
 
   return (
-    <GameSceneFrame variant="workflow">
+    <>
       <div className="space-y-4 text-sm" aria-busy={pending}>
         {error && !manual && !picking ? (
           <p role="alert" className="text-crimson">
@@ -502,6 +501,6 @@ export function ManualRoom() {
           </div>
         ) : null}
       </InkDetailDrawer>
-    </GameSceneFrame>
+    </>
   );
 }

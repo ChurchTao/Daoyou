@@ -30,7 +30,6 @@ import type {
 import { DOMAIN_EVENT_DEFINITIONS } from '@shared/contracts/domainEvents';
 import { beastDeathIds } from '@shared/engine/combat-v6/beasts';
 import {
-  beastVictoryExperience,
   generateCapturedBeast,
 } from '@shared/engine/combat-v6/beasts/progression';
 import { SeededRng } from '@shared/engine/combat-v6/core';
@@ -148,7 +147,6 @@ function summaryOf(
         ),
       ];
     }),
-    beastExperience: beastVictoryExperience(r.host.state, r.host.playerId),
     deadBeastIds: beastDeathIds(r.host.events),
     schemaVersion: 1,
     battleId: r.battleId,

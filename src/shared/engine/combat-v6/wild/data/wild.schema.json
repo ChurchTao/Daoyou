@@ -40,9 +40,6 @@
             "渡劫"
           ]
         },
-        "beastRealm": {
-          "$ref": "#/$defs/__schema0"
-        },
         "minLevel": {
           "$ref": "#/$defs/__schema2"
         },
@@ -55,7 +52,6 @@
         "id",
         "name",
         "realmRequirement",
-        "beastRealm",
         "minLevel",
         "maxLevel"
       ],

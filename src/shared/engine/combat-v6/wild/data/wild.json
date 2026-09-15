@@ -1,13 +1,12 @@
 {
   "$schema": "./wild.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "region": {
     "nodeId": "SAT_TN_08",
     "id": "combat.wild.region.qingxi",
     "name": "太岳山·青溪灵草坡",
     "realmRequirement": "炼气",
-    "beastRealm": "启灵",
     "minLevel": 5,
     "maxLevel": 15
   },

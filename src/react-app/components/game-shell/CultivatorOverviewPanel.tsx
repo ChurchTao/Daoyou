@@ -1,82 +1,93 @@
-import { CultivatorBiography } from '@app/components/feature/cultivator/CultivatorBiography';
-import { CultivatorStatsPanel } from '@app/components/feature/cultivator/CultivatorStatsPanel';
-import { CultivatorVitals } from '@app/components/feature/cultivator/CultivatorVitals';
-import { useCultivatorDisplayProjection } from '@app/components/feature/cultivator/useCultivatorDisplayProjection';
-import { getSectIdentityLabels } from '@app/components/feature/sect/sectIdentityDisplay';
-import { useActiveSectContextQuery } from '@app/components/feature/sect/sectResources';
-import { InkNotice, InkTabs } from '@app/components/ui';
+import { CharacterAttributesPanel } from '@app/components/feature/cultivator/CharacterAttributesPanel';
+import { lazy, Suspense, useRef } from 'react';
 import { useSearchParams } from 'react-router';
+import { GameSceneLoading } from './GameSceneFrame';
 
+const ManualRoom = lazy(() =>
+  import('@app/components/feature/manuals/ManualRoom').then((module) => ({
+    default: module.ManualRoom,
+  })),
+);
+const BodyTrainingPanel = lazy(() =>
+  import('@app/components/feature/cultivator/BodyCultivationPanels').then(
+    (module) => ({ default: module.BodyCultivationDetailPanel }),
+  ),
+);
 const tabs = [
-  { value: 'attributes', label: '属性' },
-  { value: 'biography', label: '身世' },
-];
+  { value: 'attributes', label: '人物属性' },
+  { value: 'manuals', label: '所修功法' },
+  { value: 'body', label: '肉身修炼' },
+] as const;
 
 export function CultivatorOverviewPanel() {
-  const projection = useCultivatorDisplayProjection();
-  const sect = useActiveSectContextQuery();
   const [params, setParams] = useSearchParams();
-  const tab = params.get('tab') === 'biography' ? 'biography' : 'attributes';
-  if (projection.error) return <InkNotice>{projection.error}</InkNotice>;
-  if (!projection.data) return <InkNotice>正在读取角色属性……</InkNotice>;
-  const { cultivator } = projection.data;
-  const identity = sect.data ? getSectIdentityLabels(sect.data) : null;
+  const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  const selected = tabs.findIndex((tab) => tab.value === params.get('tab'));
+  const activeIndex = selected < 0 ? 0 : selected;
+  const active = tabs[activeIndex];
+  const select = (index: number) =>
+    setParams(index === 0 ? {} : { tab: tabs[index].value });
   return (
-    <div className="space-y-4">
-      <InkTabs
-        items={tabs}
-        activeValue={tab}
-        onChange={(value) =>
-          setParams(value === 'biography' ? { tab: value } : {})
-        }
-      />
+    <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-5">
       <div
-        className={
-          tab === 'attributes'
-            ? 'grid items-center gap-4 md:grid-cols-2 md:gap-8'
-            : ''
-        }
+        role="tablist"
+        aria-label="角色面板"
+        aria-orientation="vertical"
+        className="border-ink/15 sticky top-3 flex flex-col gap-2 border-r pr-2"
       >
-        <div className="flex items-center gap-4">
-          <img
-            src={`/assets/inventory/cultivator-${cultivator.gender === '女' ? 'female' : 'male'}-ink.webp`}
-            alt=""
-            className="h-20 w-14 shrink-0 object-contain mix-blend-multiply"
-          />
-          <div className="min-w-0 space-y-1 text-sm">
-            <p className="flex flex-wrap items-baseline gap-x-3">
-              <span className="font-semibold">{cultivator.name}</span>
-              {cultivator.title ? (
-                <span className="text-crimson">{cultivator.title}</span>
-              ) : null}
-            </p>
-            <p className="text-ink-secondary">
-              {cultivator.realm} · {cultivator.realm_stage} ·{' '}
-              {identity
-                ? `${identity.sectName} · ${identity.rankLabel}`
-                : '散修'}
-            </p>
-            <p className="text-ink-secondary">
-              寿元{' '}
-              <span className="font-mono">
-                {cultivator.age} / {cultivator.lifespan}
-              </span>{' '}
-              年
-            </p>
-          </div>
-        </div>
-        {tab === 'attributes' ? (
-          <CultivatorVitals projection={projection.data} />
-        ) : null}
+        {tabs.map((tab, index) => (
+          <button
+            key={tab.value}
+            ref={(node) => {
+              buttons.current[index] = node;
+            }}
+            type="button"
+            role="tab"
+            id={`character-tab-${tab.value}`}
+            aria-controls={`character-panel-${tab.value}`}
+            aria-selected={index === activeIndex}
+            tabIndex={index === activeIndex ? 0 : -1}
+            onClick={() => select(index)}
+            onKeyDown={(event) => {
+              const next =
+                event.key === 'ArrowDown'
+                  ? (index + 1) % tabs.length
+                  : event.key === 'ArrowUp'
+                    ? (index + tabs.length - 1) % tabs.length
+                    : event.key === 'Home'
+                      ? 0
+                      : event.key === 'End'
+                        ? tabs.length - 1
+                        : null;
+              if (next === null) return;
+              event.preventDefault();
+              select(next);
+              buttons.current[next]?.focus();
+            }}
+            className={`min-h-24 rounded-sm px-1 py-3 text-sm tracking-widest [writing-mode:vertical-rl] sm:min-h-12 sm:px-2 sm:tracking-normal sm:[writing-mode:horizontal-tb] ${index === activeIndex ? 'bg-ink/5 text-crimson font-semibold' : 'text-ink-secondary hover:bg-ink/5 hover:text-ink'}`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
-      {tab === 'biography' ? (
-        <CultivatorBiography key={cultivator.id} />
-      ) : (
-        <CultivatorStatsPanel
-          key={cultivator.id}
-          projection={projection.data}
-        />
-      )}
+      <section
+        key={active.value}
+        role="tabpanel"
+        id={`character-panel-${active.value}`}
+        aria-labelledby={`character-tab-${active.value}`}
+        tabIndex={0}
+        className="min-w-0"
+      >
+        <Suspense fallback={<GameSceneLoading message="正在翻阅角色资料……" />}>
+          {active.value === 'manuals' ? (
+            <ManualRoom />
+          ) : active.value === 'body' ? (
+            <BodyTrainingPanel />
+          ) : (
+            <CharacterAttributesPanel />
+          )}
+        </Suspense>
+      </section>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import type {
   InventoryQuerySchema,
   InventoryView,
 } from '@shared/contracts/inventory';
+import { previewBeastFeeding } from '@shared/engine/combat-v6/beasts/feeding';
 import { refineBeast } from '@shared/engine/combat-v6/beasts/refinement';
 import { BEAST_REFINEMENT } from '@shared/engine/combat-v6/beasts/refinement-config';
 import {
@@ -369,6 +370,9 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
         if (input.action !== 'sort' && !item)
           throw new InventoryError('物品已变化，请刷新后重试');
         let result: {
+          gained?: number;
+          wasted?: number;
+          level?: number;
           oldSkill?: string;
           newSkill?: string;
           oldSkillCount?: number;
@@ -524,6 +528,50 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
               newSkill: learned.skills[slot],
             };
             item.quantity--;
+            item.revision++;
+            if (!item.quantity) next = next.filter((i) => i.id !== item.id);
+          } else if (input.action === 'feed') {
+            if (
+              item.definitionId !== 'consumable.v1' ||
+              item.location !== 'bag' ||
+              item.quantity < input.quantity
+            )
+              throw new InventoryError('请先将足量丹药或灵果取入储物袋');
+            const facts = ConsumableFactsSchema.parse(item.instanceData);
+            const roster = await readBeastRoster(owner, tx);
+            const beast = roster.beasts.find(
+              (b) =>
+                b.id === input.beastId && b.revision === input.beastRevision,
+            );
+            if (!beast) throw new InventoryError('灵兽已变化，请刷新后重试');
+            let fed;
+            try {
+              fed = previewBeastFeeding(
+                beast,
+                facts.spec,
+                input.quantity,
+                roster.ownerLevel,
+              );
+            } catch (error) {
+              throw new InventoryError(
+                error instanceof Error ? error.message : '喂养无效',
+              );
+            }
+            await tx
+              .update(cultivatorBeasts)
+              .set({ individual: beastIndividualData(fed.beast) })
+              .where(
+                and(
+                  eq(cultivatorBeasts.id, beast.id),
+                  eq(cultivatorBeasts.cultivatorId, owner),
+                ),
+              );
+            result = {
+              gained: fed.gained,
+              wasted: fed.wasted,
+              level: fed.beast.level,
+            };
+            item.quantity -= input.quantity;
             item.revision++;
             if (!item.quantity) next = next.filter((i) => i.id !== item.id);
           } else if (input.action === 'refine') {

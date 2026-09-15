@@ -9,7 +9,6 @@ export { beastDeathIds, loseBeastLifespan } from './progression';
 export {
   activeBeastSkills,
   beastPanel,
-  beastRealm,
   canDeployBeast,
   projectBeastRoster,
 } from './projection';

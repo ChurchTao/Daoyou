@@ -1,4 +1,5 @@
-import { ManualRoom } from '@app/components/feature/manuals/ManualRoom';
-export default function EnlightenmentPage() {
-  return <ManualRoom />;
+import { CharacterPanelRedirect } from '@app/components/feature/cultivator/CharacterPanelRedirect';
+
+export default function Page() {
+  return <CharacterPanelRedirect tab="manuals" />;
 }

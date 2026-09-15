@@ -12,7 +12,7 @@ const level = z.number().int().min(0).max(180);
 const panel = z.strictObject({ level, maxHp: number.min(1), maxMp: number, physicalAtk: number, physicalDef: number, magicAtk: number, magicDef: number, speed: number });
 export const WildPackShape = z.strictObject({
   $schema: z.string().optional(), formatVersion: z.literal(1), contentRevision: z.number().int().positive(),
-  region: z.strictObject({ nodeId: text, id, name: text, realmRequirement: z.enum(Object.keys(REALM_ORDER) as [RealmType, ...RealmType[]]), beastRealm: text, minLevel: level, maxLevel: level }),
+  region: z.strictObject({ nodeId: text, id, name: text, realmRequirement: z.enum(Object.keys(REALM_ORDER) as [RealmType, ...RealmType[]]), minLevel: level, maxLevel: level }),
   species: z.array(z.strictObject({ id, name: text, description: text, role: text, skillIds: z.array(id) })).min(1),
   skills: z.array(z.strictObject({
     id, name: text, tags: z.array(z.enum(SkillTag)).min(1), formula: z.literal(FormulaFamily.Spell),

@@ -251,7 +251,13 @@ export function CultivatorStatsPanel({
               更多属性
             </InkButton>
           </div>
-          <dl className={editing ? 'space-y-1' : 'grid grid-cols-2 gap-x-4'}>
+          <dl
+            className={
+              editing
+                ? 'space-y-1'
+                : 'grid grid-cols-1 gap-x-4 min-[420px]:grid-cols-2'
+            }
+          >
             {mainStats.map(renderStat)}
           </dl>
           {editing && spent > 0 ? (
@@ -279,7 +285,13 @@ export function CultivatorStatsPanel({
               属性说明
             </InkButton>
           </div>
-          <dl className={editing ? 'space-y-1' : 'grid grid-cols-2 gap-x-4'}>
+          <dl
+            className={
+              editing
+                ? 'space-y-1'
+                : 'grid grid-cols-1 gap-x-4 min-[420px]:grid-cols-2'
+            }
+          >
             {primaryKeys.map((key) => (
               <div
                 key={key}

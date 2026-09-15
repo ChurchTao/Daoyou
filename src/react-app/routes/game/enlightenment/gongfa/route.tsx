@@ -1,5 +1,5 @@
-import { ManualRoom } from '@app/components/feature/manuals/ManualRoom';
+import { CharacterPanelRedirect } from '@app/components/feature/cultivator/CharacterPanelRedirect';
 
-export default function GongfaEnlightenmentPage() {
-  return <ManualRoom />;
+export default function Page() {
+  return <CharacterPanelRedirect tab="manuals" />;
 }

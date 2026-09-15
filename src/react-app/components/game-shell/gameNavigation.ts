@@ -68,14 +68,10 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'body-cultivation',
         sceneLabel: '肉身炼体',
-        href: '/game/body-cultivation',
-        expandedDockLabel: '🥋 肉身炼体',
       },
       {
         id: 'marrow-wash',
         sceneLabel: '洗髓池',
-        href: '/game/marrow-wash',
-        expandedDockLabel: '🫧 洗髓池',
       },
       {
         id: 'retreat',
@@ -96,13 +92,10 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'enlightenment',
         sceneLabel: '悟道室',
-        href: '/game/enlightenment',
       },
       {
         id: 'techniques',
         sceneLabel: '所修功法',
-        href: '/game/techniques',
-        expandedDockLabel: '📘 所修功法',
       },
       {
         id: 'skills',
