@@ -5,7 +5,7 @@ import type {
 
 type ScopedChange = ResourceChangeDescriptor & { scope: ResourceScope };
 
-/** Full bag views include equipped flags; invalidate once for each affected character. */
+/** Bag resources include separate equipped items; invalidate once for each affected character. */
 export function withBagInvalidations(
   changes: readonly ScopedChange[],
 ): ScopedChange[] {

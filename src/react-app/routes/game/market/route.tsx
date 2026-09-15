@@ -18,6 +18,7 @@ import type {
   MarketBuyInput,
   MarketPurchaseResult,
 } from '@shared/contracts/market';
+import { seedFactsOf } from '@shared/items/definitions/seeds';
 import {
   getMarketNodeSwitchOptions,
   resolveMarketSwitchLayer,
@@ -364,13 +365,16 @@ function MarketWorkspace({
                       item.type === 'seed' ? 'seed.v1' : 'material.v1',
                     name: item.name,
                     quantity: item.quantity,
-                    instanceData: {
-                      name: item.name,
-                      type: item.type,
-                      rank: item.rank,
-                      element: item.element ?? null,
-                      description: item.description ?? '',
-                    },
+                    instanceData:
+                      item.type === 'seed'
+                        ? seedFactsOf(item)
+                        : {
+                            name: item.name,
+                            type: item.type,
+                            rank: item.rank,
+                            element: item.element ?? null,
+                            description: item.description ?? '',
+                          },
                   }}
                   className="w-full"
                   quantityLabel="库存"

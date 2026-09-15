@@ -536,7 +536,7 @@ export const YOUDU_DEFINITION: SectDefinition = {
           id: 'decree-guard-the-spirit',
           layerId: '1',
           name: '守神如城',
-          description: '控制抗性额外提高10个百分点。',
+          description: '控制抗性额外提高10%。',
         },
         {
           id: 'decree-first-soul-taken',
@@ -593,7 +593,7 @@ export const YOUDU_DEFINITION: SectDefinition = {
           id: 'decree-iron-law',
           layerId: '4',
           name: '幽都铁律',
-          description: '对至少4层蚀魂目标施加控制时，控制命中提高15个百分点。',
+          description: '对至少4层蚀魂目标施加控制时，控制命中提高15%。',
         },
         {
           id: 'decree-five-souls-scattered',

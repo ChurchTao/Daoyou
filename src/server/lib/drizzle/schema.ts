@@ -562,7 +562,7 @@ export const inventoryItems = pgTable(
       .references(() => cultivators.id, { onDelete: 'cascade' })
       .notNull(),
     location: varchar('location', { length: 16 })
-      .$type<'bag' | 'storage'>()
+      .$type<'bag' | 'storage' | 'equipped'>()
       .notNull(),
     slotIndex: integer('slot_index'),
     definitionId: varchar('definition_id', { length: 160 }).notNull(),
@@ -594,7 +594,7 @@ export const inventoryItems = pgTable(
     ),
     check(
       'inventory_slot_valid',
-      sql`(${table.location} = 'bag' AND ${table.slotIndex} IS NOT NULL AND ${table.slotIndex} >= 0) OR (${table.location} = 'storage' AND ${table.slotIndex} IS NULL)`,
+      sql`(${table.location} = 'bag' AND ${table.slotIndex} IS NOT NULL AND ${table.slotIndex} >= 0) OR (${table.location} = 'storage' AND ${table.slotIndex} IS NULL) OR (${table.location} = 'equipped' AND ${table.slotIndex} IS NULL AND ${table.definitionId} = 'equipment.v6')`,
     ),
   ],
 );

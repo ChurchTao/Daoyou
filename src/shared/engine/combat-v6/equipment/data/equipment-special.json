@@ -12,7 +12,7 @@
         "attribute": "critRate",
         "value": 0.01
       },
-      "description": "器中锋芒凝聚，物理暴击概率提高{valuePercent}个百分点。"
+      "description": "器中锋芒凝聚，物理暴击概率提高{valuePercent}%。"
     },
     {
       "id": "dao_equipment.essence.ningshen",
@@ -23,7 +23,7 @@
         "attribute": "spellCritRate",
         "value": 0.01
       },
-      "description": "器中锋芒凝聚，法术暴击概率提高{valuePercent}个百分点。"
+      "description": "器中锋芒凝聚，法术暴击概率提高{valuePercent}%。"
     },
     {
       "id": "dao_equipment.essence.pojin",
@@ -34,7 +34,7 @@
         "side": "hit",
         "value": 0.01
       },
-      "description": "器蕴护持神识，封禁命中概率提高{valuePercent}个百分点。"
+      "description": "器蕴护持神识，封禁命中概率提高{valuePercent}%。"
     },
     {
       "id": "dao_equipment.essence.dinghun",
@@ -45,7 +45,7 @@
         "side": "resist",
         "value": 0.01
       },
-      "description": "器蕴护持神识，受到封禁时命中概率降低{valuePercent}个百分点。"
+      "description": "器蕴护持神识，受到封禁时命中概率降低{valuePercent}%。"
     },
     {
       "id": "dao_equipment.essence.qingling",
@@ -86,7 +86,7 @@
     {
       "id": "dao_equipment.essence.zhenyue",
       "name": "镇岳",
-      "description": "器蕴如山镇身，受到物理攻击时暴击概率降低{valuePercent}个百分点。",
+      "description": "器蕴如山镇身，受到物理攻击时暴击概率降低{valuePercent}%。",
       "stackPolicy": "stack",
       "effect": {
         "type": "antiCrit",
@@ -97,7 +97,7 @@
     {
       "id": "dao_equipment.essence.shouxin",
       "name": "守心",
-      "description": "器灵守护心神，受到法术攻击时暴击概率降低{valuePercent}个百分点。",
+      "description": "器灵守护心神，受到法术攻击时暴击概率降低{valuePercent}%。",
       "stackPolicy": "stack",
       "effect": {
         "type": "antiCrit",

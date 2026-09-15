@@ -139,3 +139,11 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 `completedDungeonObjectiveIds` 只接受当前大境界破境任务中 kind 为 complete_dungeon 的目标 ID，用于跳过验收准备所需的长秘境流程，不创建秘境通关记录或奖励。未知目标及 win_task_challenge 战斗目标返回 409，整笔联合调整回滚；不能用本接口直接制造试炼胜利。真实试炼胜负、灵兽消耗、任务推进和最终突破必须通过正式页面完成。准备前记录境界、六属性、资源、修为、感悟及任务目标基准；验收记录须区分 dev 准备目标和真实战斗完成目标，结束后恢复临时角色字段并移除 dev 状态，不把准备数据记作真实验收证据。
 
 归元灵露洗炼验收：通过上述`type: item`发放`beast.refinement.origin-dew`或`beast.refinement.superior-origin-dew`，在灵兽详情「学习兽诀」旁选择「洗炼」。规则及示例见[洗炼文档](combat-v6-beast-refinement.md)。首版不配置掉落或商店。
+
+## 本地清空随身物品
+
+`DELETE http://127.0.0.1:3001/api/dev/cultivators/:id/inventory/bag` 仅在显式 `APP_ENV=local` 且 `NODE_ENV` 非 production 时可用，不要求登录。只清空指定活跃角色 bag 位置的随身物品，并解除这些物品的残留穿戴引用；保留独立 equipped 位置的已穿戴道装、储藏室、旧宝库、灵石、灵兽及已参悟功法。需要清空已穿戴道装时，先通过正式卸下操作移回背包。
+
+接口复用角色 Redis 锁、SQL 事务、战斗占用检查和资源事件提交／发布。返回 `data: { removed, unequipped }`；空背包重复调用返回两个 0。非法 UUID 返回 400，角色不存在或不活跃、战斗占用等业务冲突返回 409。
+
+需要重新准备物资时，清空后使用已有 `POST /api/dev/resources` 发放，不直接写数据库。清空与发放是两个独立事务；发放失败时背包保持空态，应修正参数后重新发放。验收前保存要保留的样本事实，结束后检查物品数量和储藏室没有变化。

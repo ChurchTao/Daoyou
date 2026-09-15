@@ -61,7 +61,7 @@ export async function readCharacterEquipment(
     equipmentRows.some(
       (row) =>
         row.ownerId !== cultivatorId ||
-        row.location !== 'bag' ||
+        row.location !== 'equipped' ||
         row.definitionId !== 'equipment.v6',
     )
   )

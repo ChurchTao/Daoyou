@@ -25,40 +25,54 @@ function PreviewRows({
 }) {
   return (
     <div className="space-y-1">
-      {rows.map((row, index) => (
-        <div
-          key={index}
-          className={cn(
-            row.label
-              ? 'grid grid-cols-[minmax(0,5.5em)_minmax(0,1fr)] gap-x-3'
-              : '',
-            tones[row.tone ?? tone],
-          )}
-        >
-          {row.label ? (
-            <span className="text-ink-secondary">{row.label}</span>
-          ) : null}
-          <span
+      {rows.map((row, index) =>
+        row.collapsible && row.children?.length ? (
+          <details key={index}>
+            <summary className={cn('cursor-pointer', tones[row.tone ?? tone])}>
+              {row.value}
+            </summary>
+            <div className="mt-1 pl-3">
+              <PreviewRows rows={row.children} />
+            </div>
+          </details>
+        ) : (
+          <div
+            key={index}
             className={cn(
-              'min-w-0 whitespace-pre-line',
-              row.numeric && 'font-mono',
+              row.label
+                ? 'grid grid-cols-[minmax(0,5.5em)_minmax(0,1fr)] gap-x-2'
+                : '',
+              tones[row.tone ?? tone],
             )}
           >
-            {row.value}
-            {row.delta !== undefined && row.delta !== 0 ? (
-              <span
-                className={cn(
-                  'ml-2 font-mono',
-                  row.delta > 0 ? tones.positive : tones.warning,
-                )}
-                aria-label={`较已穿戴${row.delta > 0 ? '增加' : '减少'}${Math.abs(row.delta)}`}
-              >
-                {row.delta > 0 ? '↑' : '↓'} {Math.abs(row.delta)}
-              </span>
+            {row.label ? <span>{row.label}</span> : null}
+            <span
+              className={cn(
+                'min-w-0 whitespace-pre-line',
+                row.numeric && 'font-mono',
+              )}
+            >
+              {row.value}
+              {row.delta !== undefined && row.delta !== 0 ? (
+                <span
+                  className={cn(
+                    'ml-2 font-mono',
+                    row.delta > 0 ? tones.positive : tones.warning,
+                  )}
+                  aria-label={`较已穿戴${row.delta > 0 ? '增加' : '减少'}${Math.abs(row.delta)}`}
+                >
+                  {row.delta > 0 ? '↑' : '↓'} {Math.abs(row.delta)}
+                </span>
+              ) : null}
+            </span>
+            {row.children?.length ? (
+              <div className="text-ink col-span-full mt-1 pl-3">
+                <PreviewRows rows={row.children} />
+              </div>
             ) : null}
-          </span>
-        </div>
-      ))}
+          </div>
+        ),
+      )}
     </div>
   );
 }
@@ -67,25 +81,29 @@ export function ItemPreviewSections({
 }: {
   sections: PreviewSection[];
 }) {
+  const visibleSections = sections.filter((section) => section.rows.length);
+  if (!visibleSections.length) return null;
   return (
     <div className="space-y-4">
-      {sections
-        .filter((s) => s.rows.length)
-        .map((section, index) =>
-          section.collapsible ? (
-            <details key={`${section.title}-${index}`} className="space-y-1.5">
-              <summary className="text-ink-secondary cursor-pointer">
-                {section.title}
-              </summary>
+      {visibleSections.map((section, index) =>
+        section.collapsible ? (
+          <details key={`${section.title}-${index}`} className="space-y-1.5">
+            <summary className="cursor-pointer font-medium text-amber-800">
+              {section.title}
+            </summary>
+            <div className="pl-3">
               <PreviewRows rows={section.rows} tone={section.tone} />
-            </details>
-          ) : (
-            <section key={`${section.title}-${index}`} className="space-y-1.5">
-              <h3 className="text-amber-800">{section.title}</h3>
+            </div>
+          </details>
+        ) : (
+          <section key={`${section.title}-${index}`} className="space-y-1.5">
+            <h3 className="font-medium text-amber-800">{section.title}</h3>
+            <div className="pl-3">
               <PreviewRows rows={section.rows} tone={section.tone} />
-            </section>
-          ),
-        )}
+            </div>
+          </section>
+        ),
+      )}
     </div>
   );
 }
@@ -116,17 +134,30 @@ export function ItemPreview({
     >
       <header className="border-ink/15 flex items-start gap-3 border-b pb-3">
         <div
-          className="border-ink/15 flex size-12 shrink-0 items-center justify-center border text-3xl"
+          className="border-ink/20 bg-paper flex size-14 shrink-0 items-center justify-center rounded-sm border text-4xl"
           aria-hidden="true"
         >
           {model.icon}
         </div>
         <div className="min-w-0 flex-1 space-y-1">
-          <p className={model.color}>{item.name}</p>
-          <p className="text-ink-secondary">
-            {quantityLabel} <span className="font-mono">{item.quantity}</span>
-            {item.equipped ? ' · 已穿戴' : ''}
-          </p>
+          <h2 className={cn(model.color, 'text-base leading-6 font-semibold')}>
+            {item.name}
+          </h2>
+          <div className="space-y-0.5">
+            {model.identity.map((row, index) => (
+              <p key={index} className="text-amber-800">
+                <span className="text-ink-secondary">{row.label}：</span>
+                {row.value}
+              </p>
+            ))}
+          </div>
+          {item.definitionId !== 'equipment.v6' ? (
+            <p className="text-ink-secondary">
+              {quantityLabel} <span className="font-mono">{item.quantity}</span>
+            </p>
+          ) : item.equipped ? (
+            <p className="text-ink-secondary">已穿戴</p>
+          ) : null}
         </div>
         {close ? (
           <button
@@ -139,23 +170,6 @@ export function ItemPreview({
           </button>
         ) : null}
       </header>
-      {model.metadata.length ? (
-        <div className="flex flex-wrap gap-x-5 gap-y-1">
-          {model.metadata.map((row, index) => (
-            <p key={index} className="flex gap-2">
-              <span className="text-ink-secondary">{row.label}</span>
-              <span
-                className={cn(
-                  tones[row.tone ?? 'normal'],
-                  row.numeric && 'font-mono',
-                )}
-              >
-                {row.value}
-              </span>
-            </p>
-          ))}
-        </div>
-      ) : null}
       {context ? <p className="text-ink-secondary">{context}</p> : null}
       <ItemPreviewSections sections={model.sections} />
       {comparisonItem && item.definitionId === 'equipment.v6' ? (
@@ -173,9 +187,16 @@ export function ItemPreview({
         </details>
       ) : null}
       {model.flavor ? (
-        <p className="text-ink-secondary border-ink/10 border-t pt-3 whitespace-pre-line">
-          {model.flavor}
-        </p>
+        <section
+          aria-label="道具描述"
+          className={cn(
+            'text-ink-secondary',
+            (model.sections.length > 0 || context || comparisonItem) &&
+              'border-ink/15 border-t pt-3',
+          )}
+        >
+          <p className="whitespace-pre-line">{model.flavor}</p>
+        </section>
       ) : null}
       {actions ? (
         <footer className="border-ink/15 space-y-3 border-t pt-3">

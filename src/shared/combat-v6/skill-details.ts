@@ -63,7 +63,7 @@ function beastPassiveDescription(skill: SkillDef): string | undefined {
     case 'counter':
       return `受到物理攻击并损失气血时，有 ${percent(effect.chance)}% 概率反扑，攻击系数为普攻的 ${percent(effect.coefficient)}%。反扑与连击追加攻击不再触发反扑。`;
     case 'critical':
-      return `${effect.kind === 'physical' ? '物理' : '法术'}暴击率提高 ${percent(effect.chance)} 个百分点，暴击倍率沿用战斗规则。`;
+      return `${effect.kind === 'physical' ? '物理' : '法术'}暴击率提高 ${percent(effect.chance)}%，暴击倍率沿用战斗规则。`;
     case 'regeneration':
       return `每回合结束时恢复自身等级${effect.levelDivisor === 1 ? '' : `的 1/${effect.levelDivisor}`}点${effect.resource === 'hp' ? '气血' : '法力'}，向下取整，不超过上限；死亡或未出战时不生效。`;
     case 'spellBoost':

@@ -222,7 +222,7 @@ export function ForgingRoom() {
                               ? `${session.cost.quantity} 份灵材 · ${session.cost.rank}起`
                               : '一卷图纸，最多五份灵材'}
                             <InkTooltip label="材料增益规则">
-                              每份材料增加 {boostPercent} 个百分点，同类最多
+                              每份材料增加 {boostPercent}%，同类最多
                               {maxBoostPercent}%。矿石增益白字择优；天材地宝增益器蕴数量择优；辅助与妖兽材料增益已有附灵数值择优。材料平均品阶越高，白字上下限越高；平均超出门槛两阶封顶。器诀独立随机。
                             </InkTooltip>
                           </div>

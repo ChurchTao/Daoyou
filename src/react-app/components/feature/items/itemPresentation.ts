@@ -9,6 +9,7 @@ import { InventoryEquipmentSchema } from '@shared/inventory/equipment';
 import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
 import { MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
+import { SeedFactsSchema } from '@shared/items/definitions/seeds';
 import { materialFactsOf } from '@shared/items/material';
 import { createElement } from 'react';
 import { OriginDewIcon } from './OriginDewIcon';
@@ -33,16 +34,13 @@ export function itemPresentation(item: DisplayItem) {
   const def = itemDefinition(item.definitionId);
   switch (def.kind) {
     case 'seed': {
-      const facts = item.instanceData as {
-        rank: keyof typeof tierColorMap;
-        description?: string;
-      };
+      const { plant } = SeedFactsSchema.parse(item.instanceData).seedSpec;
       return {
         icon: '🌱',
-        color: tierColorMap[facts.rank],
-        tier: facts.rank,
-        type: '种子',
-        description: facts.description ?? '',
+        color: tierColorMap[plant.quality],
+        tier: plant.quality,
+        type: '灵种',
+        description: plant.seedDescription,
       };
     }
 

@@ -1,5 +1,4 @@
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
-import { readCharacterEquipment } from '@server/lib/repositories/characterLoadoutRepository';
 import { hasActiveTower } from '@server/lib/tower/occupancy';
 import type {
   InventoryAction,
@@ -24,6 +23,7 @@ import {
   type InventoryItem,
   type ItemGrant,
 } from '@shared/inventory';
+import { changeEquipmentLocation } from '@shared/inventory/equipment-location';
 import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import { SeedFactsSchema } from '@shared/items/definitions/seeds';
@@ -178,35 +178,17 @@ export async function readInventory(
           .orderBy(asc(inventoryItems.slotIndex), asc(inventoryItems.id))
           .limit(40)
           .offset(page * 40);
-  const equipped = rows.length
-    ? await executor
-        .select({ id: cultivatorEquipmentSlots.equipmentInstanceId })
-        .from(cultivatorEquipmentSlots)
-        .where(
-          inArray(
-            cultivatorEquipmentSlots.equipmentInstanceId,
-            rows.map((r) => r.id),
-          ),
-        )
-    : [];
-  const ids = new Set(equipped.map((i) => i.id));
+  const equipped =
+    query.location === 'bag'
+      ? await executor
+          .select()
+          .from(inventoryItems)
+          .where(and(ownerFilter, eq(inventoryItems.location, 'equipped')))
+          .orderBy(asc(inventoryItems.id))
+      : [];
   return {
     items: rows.map((row) => ({
       ...inventoryItemOf(row),
-      ...(row.definitionId === 'seed.v1'
-        ? {
-            instanceData: (() => {
-              const { plant } = SeedFactsSchema.parse(
-                row.instanceData,
-              ).seedSpec;
-              return {
-                name: plant.seedName,
-                rank: plant.quality,
-                description: `${plant.seedDescription}\n${plant.clueTexts.join('；')}`,
-              };
-            })(),
-          }
-        : {}),
       name:
         row.definitionId === 'equipment.v6' ||
         row.definitionId === 'material.v1' ||
@@ -214,7 +196,12 @@ export async function readInventory(
         row.definitionId === 'consumable.v1'
           ? (row.instanceData as DaoEquipmentInstanceV1).name
           : itemDefinition(row.definitionId).name,
-      equipped: ids.has(row.id),
+      equipped: false,
+    })),
+    equippedItems: equipped.map((row) => ({
+      ...inventoryItemOf(row),
+      name: (row.instanceData as DaoEquipmentInstanceV1).name,
+      equipped: true,
     })),
     total: totals[0].value,
     used: usage[0].value,
@@ -315,9 +302,10 @@ export async function grantInventory(
     );
   await saveInventoryPlan(owner, before, next, tx);
   return next.filter(
-    (item) =>
+    (item): item is InventoryItem & { location: 'bag' | 'storage' } =>
+      item.location !== 'equipped' &&
       item.quantity >
-      (before.find((previous) => previous.id === item.id)?.quantity ?? 0),
+        (before.find((previous) => previous.id === item.id)?.quantity ?? 0),
   );
 }
 export async function mutateInventory(owner: string, input: InventoryAction) {
@@ -341,6 +329,9 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
                 eq(inventoryItems.cultivatorId, owner),
                 or(
                   eq(inventoryItems.location, 'bag'),
+                  input.action === 'equip'
+                    ? eq(inventoryItems.location, 'equipped')
+                    : undefined,
                   input.action === 'sort'
                     ? undefined
                     : eq(inventoryItems.id, input.id),
@@ -574,7 +565,10 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
             item.revision++;
             if (!item.quantity) next = next.filter((i) => i.id !== item.id);
           } else if (input.action === 'equip') {
-            if (item.location !== 'bag' || item.definitionId !== 'equipment.v6')
+            if (
+              item.location !== (input.equipped ? 'bag' : 'equipped') ||
+              item.definitionId !== 'equipment.v6'
+            )
               throw new InventoryError('请先将道装取入背包');
             const equipment = item.instanceData as DaoEquipmentInstanceV1;
             const [previous] = await tx
@@ -590,12 +584,12 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
               throw new InventoryError('该物品已装备');
             if (!input.equipped && previous?.equipmentInstanceId !== item.id)
               throw new InventoryError('装备状态已变化，请刷新');
-            const replaced = next.find(
-              (entry) =>
-                entry.id === previous?.equipmentInstanceId &&
-                entry.id !== item.id,
+            next = changeEquipmentLocation(
+              next,
+              item.id,
+              input.equipped,
+              previous?.equipmentInstanceId,
             );
-            if (input.equipped && replaced) replaced.revision++;
             if (input.equipped) {
               await tx
                 .insert(cultivatorEquipmentSlots)
@@ -620,8 +614,14 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
                     eq(cultivatorEquipmentSlots.equipmentInstanceId, item.id),
                   ),
                 );
-            item.revision++;
-            const loadout = await readCharacterEquipment(owner, tx);
+            const loadout = Object.fromEntries(
+              next
+                .filter((entry) => entry.location === 'equipped')
+                .map((entry) => {
+                  const facts = entry.instanceData as DaoEquipmentInstanceV1;
+                  return [facts.slot, facts];
+                }),
+            );
             const character = await readBeastOwner(owner, tx);
             const compiled = compileDaoEquipmentSpecialLoadoutV1(
               loadout,
@@ -632,6 +632,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
                 compiled.diagnostics.find((d) => d.severity === 'error')
                   ?.message ?? '装配无效',
               );
+            await saveInventoryPlan(owner, before, next, tx);
             state = await new ResourceEventCommitter().commit(tx, {
               actor: { userId: character.userId, cultivatorId: owner },
               source: 'inventory-equipment',
@@ -646,7 +647,8 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
             });
           }
         }
-        await saveInventoryPlan(owner, before, next, tx);
+        if (input.action !== 'equip')
+          await saveInventoryPlan(owner, before, next, tx);
         if (!state.changes.length) {
           state = await new ResourceEventCommitter().commit(tx, {
             actor: { cultivatorId: owner },

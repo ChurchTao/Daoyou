@@ -1098,7 +1098,7 @@
           "name": "怒目生威",
           "layer": 2,
           "slot": 2,
-          "description": "法术暴击率增加五个百分点。",
+          "description": "法术暴击率增加5%。",
           "passives": [
             "wuxiang.passive.wrath.2.2"
           ]
@@ -1194,7 +1194,7 @@
           "name": "法眼圆睁",
           "layer": 4,
           "slot": 3,
-          "description": "明王法印法暴增加五个百分点。",
+          "description": "明王法印法暴增加5%。",
           "passives": [
             "wuxiang.passive.wrath.4.3"
           ]

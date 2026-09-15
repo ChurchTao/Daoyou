@@ -334,7 +334,7 @@ export const WUXIANG_DEFINITION: SectDefinition = {
           layerId: '1',
           name: '戒由身起',
           description:
-            '所有佛相神通气血成本提高1个百分点；成功施展后获得2%最大气血护盾。',
+            '所有佛相神通气血成本提高1%；成功施展后获得2%最大气血护盾。',
         },
         {
           id: 'mirror-guest-in-mirror',
@@ -403,7 +403,7 @@ export const WUXIANG_DEFINITION: SectDefinition = {
           layerId: '4',
           name: '一念两照',
           description:
-            '成功施展无相神通后额外获得2层业痕；《一念无间》气血成本增加2个百分点。',
+            '成功施展无相神通后额外获得2层业痕；《一念无间》气血成本增加2%。',
         },
         {
           id: 'mirror-full-light',
@@ -589,7 +589,7 @@ export const WUXIANG_DEFINITION: SectDefinition = {
           layerId: '1',
           name: '血作灯油',
           description:
-            '所有佛相神通气血成本提高1个百分点；成功施展后获得2%最大气血护盾。',
+            '所有佛相神通气血成本提高1%；成功施展后获得2%最大气血护盾。',
         },
         {
           id: 'demon-three-shores',

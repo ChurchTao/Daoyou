@@ -205,7 +205,9 @@ export function ItemSlot({
         popover="auto"
         role="dialog"
         aria-label={item?.name ?? '物品预览'}
-        onToggle={(e) => setOpen(e.newState === 'open')}
+        onToggle={(e) => {
+          if (e.target === e.currentTarget) setOpen(e.newState === 'open');
+        }}
         onPointerEnter={cancel}
         onPointerLeave={(e) => {
           if (

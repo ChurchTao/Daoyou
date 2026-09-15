@@ -6,6 +6,7 @@ import {
 } from '@app/components/feature/products';
 import { InkModal } from '@app/components/layout';
 import { ItemShowcaseModal } from '@app/components/ui/ItemShowcaseModal';
+import { seedFactsOf } from '@shared/items/definitions/seeds';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type {
@@ -102,13 +103,16 @@ export function ItemDetailModal({
           name: material.name,
           quantity: material.quantity,
           definitionId: material.type === 'seed' ? 'seed.v1' : 'material.v1',
-          instanceData: {
-            name: material.name,
-            type: material.type,
-            rank: material.rank,
-            element: material.element ?? null,
-            description: material.description ?? '',
-          },
+          instanceData:
+            material.type === 'seed'
+              ? seedFactsOf(material)
+              : {
+                  name: material.name,
+                  type: material.type,
+                  rank: material.rank,
+                  element: material.element ?? null,
+                  description: material.description ?? '',
+                },
         }}
         close={onClose}
       />

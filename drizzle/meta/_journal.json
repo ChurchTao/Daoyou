@@ -330,6 +330,13 @@
       "when": 1789142259856,
       "tag": "0046_realm_attribute_level_budget",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1789446143788,
+      "tag": "0047_equipment_outside_bag",
+      "breakpoints": true
     }
   ]
 }

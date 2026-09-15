@@ -17,7 +17,7 @@ export function itemDefinition(id: string) {
 export const InventoryItemSchema = z
   .object({
     id: z.string().min(1).max(160),
-    location: z.enum(['bag', 'storage']),
+    location: z.enum(['bag', 'storage', 'equipped']),
     slotIndex: z
       .number()
       .int()
@@ -39,6 +39,8 @@ export const InventoryItemSchema = z
       return;
     }
     const definition = itemDefinition(item.definitionId);
+    if (item.location === 'equipped' && definition.kind !== 'equipment')
+      ctx.addIssue({ code: 'custom', message: '仅道装可以处于穿戴位置' });
     if (item.quantity > definition.stackLimit)
       ctx.addIssue({ code: 'custom', message: '超过堆叠上限' });
     if (definition.kind === 'equipment') {

@@ -81,6 +81,7 @@ export const InventoryActionSchema = z.discriminatedUnion('action', [
 export type InventoryAction = z.infer<typeof InventoryActionSchema>;
 export type InventoryView = {
   items: (InventoryItem & { name: string; equipped: boolean })[];
+  equippedItems: (InventoryItem & { name: string; equipped: boolean })[];
   used: number;
   total: number;
   page: number;

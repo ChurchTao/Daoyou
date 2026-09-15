@@ -22,6 +22,7 @@ describe('完整背包资源契约', () => {
         equipped: false,
       },
     ],
+    equippedItems: [],
     used: 1,
     total: 1,
     capacity: 40,
@@ -57,6 +58,37 @@ describe('完整背包资源契约', () => {
         ...data,
         items: [{ ...data.items[0], slotIndex: 40 }],
       }).success,
+    ).toBe(false);
+  });
+  it('四十格满背包仍可独立携带六件穿戴道装', () => {
+    const full = {
+      ...data,
+      items: Array.from({ length: 40 }, (_, slotIndex) => ({
+        ...data.items[0],
+        id: `bag-${slotIndex}`,
+        slotIndex,
+      })),
+      used: 40,
+      total: 40,
+      equippedItems: Array.from({ length: 6 }, (_, index) => ({
+        ...data.items[0],
+        id: `equipped-${index}`,
+        definitionId: 'equipment.v6',
+        location: 'equipped',
+        slotIndex: null,
+        equipped: true,
+      })),
+    };
+    expect(inventoryBagSchema.safeParse(full).success).toBe(true);
+    expect(
+      inventoryBagSchema.safeParse({
+        ...full,
+        equippedItems: [...full.equippedItems, full.equippedItems[0]],
+      }).success,
+    ).toBe(false);
+    expect(
+      inventoryBagSchema.safeParse({ ...full, items: [full.equippedItems[0]] })
+        .success,
     ).toBe(false);
   });
 });

@@ -62,7 +62,6 @@ export default function InventoryV6() {
   const data = location === 'bag' ? bag : storage;
   const [readFailed, setReadFailed] = useState(false);
   const [slotFilter, setSlotFilter] = useState<DaoEquipmentSlot>();
-  const [moving, setMoving] = useState<Item>();
   const { pushToast } = useInkUI();
   const [pending, setPending] = useState(false);
   const [refresh, setRefresh] = useState(0);
@@ -129,7 +128,6 @@ export default function InventoryV6() {
         );
       } else await consumeResourceMutation(await fetch(endpoint, mutationBody(action)));
       if (!mounted.current) return;
-      setMoving(undefined);
       pushToast({
         message:
           action.action === 'equip'
@@ -156,7 +154,7 @@ export default function InventoryV6() {
     }
   }
   const filtered = !!search || kind !== 'all' || !!slotFilter;
-  const equipped = bag?.items.filter((item) => item.equipped) ?? [];
+  const equipped = bag?.equippedItems ?? [];
   const unavailable = pending || !data || bagQuery.isRefreshing || !!bagQuery.error;
   const visibleData = data ?? (location === 'bag' ? bag : undefined);
   function matches(item: Item) {
@@ -167,20 +165,6 @@ export default function InventoryV6() {
         (itemDefinition(item.definitionId).kind === 'equipment' &&
           (item.instanceData as DaoEquipmentInstanceV1).slot === slotFilter))
     );
-  }
-  function choose(entry: Item | undefined, slot: number) {
-    if (unavailable) return;
-    if (moving) {
-      void act({
-        action: 'move',
-        id: moving.id,
-        revision: moving.revision,
-        slot,
-        targetId: entry?.id ?? null,
-        targetRevision: entry?.revision ?? null,
-      });
-      return;
-    }
   }
   return (
     <GameSceneFrame variant="workflow">
@@ -207,7 +191,6 @@ export default function InventoryV6() {
             setSearch('');
             setKind('equipment');
             setSlotFilter(slot);
-            setMoving(undefined);
           }}
         />
         <div className="space-y-4">
@@ -228,7 +211,6 @@ export default function InventoryV6() {
                       setParams({ location: value });
                       setPage(0);
                       setData(undefined);
-                      setMoving(undefined);
                       setSlotFilter(undefined);
                     }}
                   >
@@ -265,7 +247,6 @@ export default function InventoryV6() {
                 setSearch(e.target.value);
                 setPage(0);
                 if (location === 'storage') setData(undefined);
-                setMoving(undefined);
               }}
             />
             <select
@@ -276,7 +257,6 @@ export default function InventoryV6() {
                 setKind(e.target.value);
                 setPage(0);
                 if (location === 'storage') setData(undefined);
-                setMoving(undefined);
                 setSlotFilter(undefined);
               }}
             >
@@ -301,11 +281,6 @@ export default function InventoryV6() {
               </InkButton>
             ) : null}
           </div>
-          {moving ? (
-            <InkButton disabled={pending} onClick={() => setMoving(undefined)}>
-              取消移动
-            </InkButton>
-          ) : null}
           {bagQuery.error ? <p role="alert" className="text-crimson text-sm">{bagQuery.error}</p> : null}
           {!visibleData ? (
             readFailed ? null : (
@@ -315,7 +290,7 @@ export default function InventoryV6() {
             <InventoryItems
               items={visibleData.items}
               location={location}
-              slotProps={(entry, slot) => ({
+              slotProps={(entry) => ({
                 disabled: unavailable || (filtered && !entry),
                 className:
                   entry && location === 'bag' && !matches(entry)
@@ -332,9 +307,6 @@ export default function InventoryV6() {
                           (entry.instanceData as DaoEquipmentInstanceV1).slot,
                       )
                     : undefined,
-                selected: !!entry && moving?.id === entry.id,
-                onQuickAction: moving ? () => choose(entry, slot) : undefined,
-                quickOnTouch: !!moving,
                 children: entry
                   ? (close) => (
                       <ItemActions
@@ -346,17 +318,6 @@ export default function InventoryV6() {
                         act={async (action) => {
                           await act(action);
                           close();
-                        }}
-                        move={() => {
-                          setMoving(entry);
-                          pushToast({
-                            message:
-                              '选择目标格位，同类合并，其他物品交换位置。',
-                          });
-                          close();
-                          setSearch('');
-                          setKind('all');
-                          setSlotFilter(undefined);
                         }}
                       />
                     )
@@ -420,14 +381,12 @@ function ItemActions({
   item,
   pending,
   act,
-  move,
   equipped,
   level,
 }: {
   item: Item;
   pending: boolean;
   act: (action: BagAction) => Promise<void>;
-  move: () => void;
   equipped: Item[];
   level?: number;
 }) {
@@ -493,11 +452,6 @@ function ItemActions({
         >
           {item.location === 'bag' ? '存入储藏室' : '取入背包'}
         </InkButton>
-        {item.location === 'bag' ? (
-          <InkButton disabled={pending} onClick={move}>
-            移动／合并
-          </InkButton>
-        ) : null}
       </div>
       {item.location === 'bag' && item.quantity > 1 ? (
         <div className="flex items-center gap-3">
