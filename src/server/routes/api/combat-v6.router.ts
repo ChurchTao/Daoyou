@@ -31,7 +31,6 @@ import {
   getSectCombatView,
   selectInitialSectPath,
 } from '@server/lib/services/combat-v6/CombatV6BuildService';
-import { CombatV6RuntimeStore } from '@server/lib/services/combat-v6/CombatV6RuntimeStore';
 import {
   COMBAT_V6_TRAINING_CONTENT_VIEW,
   CombatV6TrainingSessionError,
@@ -72,7 +71,6 @@ import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 
 const router = new Hono<AppEnv>();
-const combatV6RuntimeStore = new CombatV6RuntimeStore();
 const arenaReplayStore = new CombatV6ArenaStore();
 router.use('*', requireActiveCultivatorRef());
 router.post('/wild/sessions/:id/auto', async (c) => {
@@ -338,7 +336,7 @@ router.get('/replays/:battleId', async (c) => {
       current.cultivatorId,
     );
     if (
-      archived &&
+      archived?.replay &&
       archived.replay.participants.some(
         (p) =>
           p.cultivatorId === current.cultivatorId &&
@@ -370,33 +368,6 @@ router.get('/replays/:battleId', async (c) => {
         },
         202,
       );
-    const terminal = await combatV6RuntimeStore.terminalRecord(params.battleId);
-    if (
-      terminal?.cultivatorId === current.cultivatorId &&
-      terminal.replayExpected
-    )
-      return c.json(
-        {
-          success: false,
-          code: COMBAT_V6_REPLAY_ERROR_CODE.Pending,
-          error: '战斗回放正在归档',
-        },
-        202,
-      );
-    const runtime = await combatV6RuntimeStore.get(params.battleId);
-    if (
-      runtime?.cultivatorId === current.cultivatorId &&
-      runtime.host.state.result
-    ) {
-      return c.json(
-        {
-          success: false,
-          code: COMBAT_V6_REPLAY_ERROR_CODE.Pending,
-          error: '战斗回放正在归档',
-        },
-        202,
-      );
-    }
     return c.json(
       {
         success: false,

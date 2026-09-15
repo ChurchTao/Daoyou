@@ -859,7 +859,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'battle-history',
                   presentation: 'archive',
-                  summary: '翻阅斗法卷宗，回看每一次出招。',
+                  summary: '翻阅天骄榜与擂台战绩，回看斗法交锋。',
                 },
                 '【全部战绩】',
               )}

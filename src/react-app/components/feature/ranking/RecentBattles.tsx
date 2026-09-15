@@ -50,7 +50,7 @@ function RecentBattleList() {
   if (!data.items.length) return <InkNotice>暂无战斗记录。</InkNotice>;
   return (
     <>
-      <CombatV6HistoryList items={data.items.slice(0, 3)} />
+      <CombatV6HistoryList items={data.items.slice(0, 3)} compact />
       <InkButton href="/game/battle/history" className="pt-2">
         查看全部战绩
       </InkButton>

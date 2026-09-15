@@ -16,11 +16,9 @@ import {
   combatV6Units,
   visibleUnitNames,
 } from '@shared/combat-v6/presentation';
-import { createCombatV6Replay } from '@shared/combat-v6/replay';
 import { liveReplayDelta } from '@shared/combat-v6/replay-timeline';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
 import type {
-  CombatV6ReplayV1,
   CombatV6TerminalOutboxV1,
   CombatV6TerminalReason,
 } from '@shared/contracts/combatV6Runtime';
@@ -500,29 +498,10 @@ export class CombatV6WildSessionService {
           nextSummary,
           trace.outcome === 'aborted' ? 'fled' : 'battle-ended',
           trace.outcome!,
-          true,
+          false,
         )
       : undefined;
-    const replay: CombatV6ReplayV1 | undefined = event
-      ? createCombatV6Replay({
-          trace: { ...trace, seed: next.host.input.seed! },
-          battleId: id,
-          participants: [
-            {
-              userId: actor.userId,
-              cultivatorId: actor.cultivatorId,
-              unitId: host.playerId,
-              side: host.state.units.find((u) => u.id === host.playerId)!.side,
-              slot: host.state.units.find((u) => u.id === host.playerId)!.slot,
-            },
-          ],
-          metadata: r.metadata,
-          startedAt: r.createdAt,
-          finishedAt: event.record.finishedAt,
-          reason: event.record.reason,
-        })
-      : undefined;
-    checked(await store.save(next, expected, nextSummary, event, replay));
+    checked(await store.save(next, expected, nextSummary, event));
     if (resolving) presentation.capture(host.state, next.latestEventSeq);
     return {
       ...(await this.view(next, r.latestEventSeq)),

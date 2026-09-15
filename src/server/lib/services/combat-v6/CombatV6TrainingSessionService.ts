@@ -14,7 +14,6 @@ import {
   combatV6Units,
   visibleUnitNames,
 } from '@shared/combat-v6/presentation';
-import { createCombatV6Replay } from '@shared/combat-v6/replay';
 import { liveReplayDelta } from '@shared/combat-v6/replay-timeline';
 import {
   COMBAT_V6_TRAINING_ERROR_CODE,
@@ -25,7 +24,6 @@ import {
   CombatV6BattleFinishedRecordV1Schema,
   type CombatV6BattleFinishedRecordV1,
   type CombatV6RedisRuntimeV1,
-  type CombatV6ReplayV1,
   type CombatV6TerminalOutboxV1,
   type CombatV6TerminalReason,
 } from '@shared/contracts/combatV6Runtime';
@@ -254,15 +252,13 @@ export class CombatV6TrainingSessionService {
     }
     const next = this.nextRuntime(runtime, host);
     let terminal: CombatV6TerminalOutboxV1 | undefined;
-    let archive: CombatV6ReplayV1 | undefined;
     if (host.finished) {
       const outcome = host.trace().outcome!;
       const reason: CombatV6TerminalReason =
         outcome === 'aborted' ? 'fled' : 'battle-ended';
-      terminal = this.terminalEvent(next, outcome, reason, true);
-      archive = this.replay(next, host);
+      terminal = this.terminalEvent(next, outcome, reason, false);
     }
-    await this.save(next, expectedRevision, terminal, archive);
+    await this.save(next, expectedRevision, terminal);
     presentation.capture(host.state, next.latestEventSeq);
     return {
       ...this.view(next, runtime.latestEventSeq),
@@ -397,34 +393,6 @@ export class CombatV6TrainingSessionService {
       record,
     };
   }
-  private replay(
-    runtime: CombatV6RedisRuntimeV1,
-    host: CombatV6TrainingHostV1,
-  ): CombatV6ReplayV1 {
-    const trace = host.trace();
-    if (!trace.finalState || !trace.outcome)
-      throw new Error('Cannot archive unfinished combat-v6 battle');
-    const player = trace.finalState.units.find(
-      (unit) => unit.id === host.playerId,
-    )!;
-    return createCombatV6Replay({
-      trace,
-      battleId: runtime.battleId,
-      participants: [
-        {
-          userId: runtime.userId,
-          cultivatorId: runtime.cultivatorId,
-          unitId: player.id,
-          side: player.side,
-          slot: player.slot,
-        },
-      ],
-      metadata: runtime.metadata,
-      startedAt: runtime.createdAt,
-      finishedAt: new Date().toISOString(),
-      reason: trace.outcome === 'aborted' ? 'fled' : 'battle-ended',
-    });
-  }
   private async expire(runtime: CombatV6RedisRuntimeV1) {
     await this.store.remove(
       runtime,
@@ -438,10 +406,9 @@ export class CombatV6TrainingSessionService {
     runtime: CombatV6RedisRuntimeV1,
     expected: number,
     terminal?: unknown,
-    replay?: unknown,
   ) {
     this.assertStoreResult(
-      await this.store.save(runtime, expected, terminal, replay),
+      await this.store.save(runtime, expected, terminal),
     );
   }
   private assertRevision(runtime: CombatV6RedisRuntimeV1, expected: number) {

@@ -1,7 +1,11 @@
 import { CombatV6HistoryList } from '@app/components/feature/combat-v6/CombatV6HistoryList';
 import { combatV6HistorySources as sources } from '@app/components/feature/combat-v6/presentation';
 import { combatV6Request } from '@app/components/feature/combat-v6/request';
-import { GameLoadingState, GameSceneTabs } from '@app/components/game-shell';
+import {
+  GameLoadingState,
+  GameSceneFrame,
+  GameSceneTabs,
+} from '@app/components/game-shell';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { usePlayerSession } from '@app/lib/resources/player';
 import type { CombatV6HistoryPage } from '@shared/contracts/combatV6Replay';
@@ -20,7 +24,7 @@ export default function BattleHistoryRoute() {
     ? source
     : '';
   return (
-    <div className="space-y-4">
+    <GameSceneFrame variant="lite">
       <GameSceneTabs
         activeValue={selected}
         onChange={(value) => setParams(value ? { source: value } : {})}
@@ -43,7 +47,7 @@ export default function BattleHistoryRoute() {
           })
         }
       />
-    </div>
+    </GameSceneFrame>
   );
 }
 function HistoryPage({
@@ -91,19 +95,28 @@ function HistoryPage({
   return (
     <>
       {!data.items.length ? (
-        <InkNotice>暂无战斗记录。</InkNotice>
+        <InkNotice>
+          {source
+            ? '此类玩法尚无战绩，试试其他分类。'
+            : '尚无战绩，结束斗法后可在此翻阅。'}
+        </InkNotice>
       ) : (
         <CombatV6HistoryList items={data.items} />
       )}
-      <div className="flex items-center justify-between text-sm">
+      <nav
+        aria-label="战绩分页"
+        className="flex items-center justify-between gap-3 pt-3 text-sm"
+      >
         <InkButton disabled={page === 1} onClick={() => onPage(page - 1)}>
           上一页
         </InkButton>
-        <span>第 {page} 页</span>
+        <span className="text-ink-secondary">
+          第 <span className="font-mono">{page}</span> 页
+        </span>
         <InkButton disabled={!data.hasMore} onClick={() => onPage(page + 1)}>
           下一页
         </InkButton>
-      </div>
+      </nav>
     </>
   );
 }

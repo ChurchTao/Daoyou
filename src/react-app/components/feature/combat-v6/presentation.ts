@@ -1,12 +1,6 @@
 import type { CombatV6DisplayEvent } from '@shared/contracts/combatV6';
 
 export const combatV6HistorySources = {
-  'training-room': '练功房',
-  'wild-encounter': '野外遭遇',
-  'sect-task': '宗门挑战',
-  breakthrough: '破境试炼',
-  dungeon: '秘境遭遇',
-  tower: '蜃楼幻境',
   ranking: '天骄榜',
   'arena-sparring': '擂台切磋',
 };

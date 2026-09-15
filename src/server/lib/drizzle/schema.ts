@@ -1002,7 +1002,8 @@ export const combatReplayArchives = pgTable(
     startedAt: timestamp('started_at').notNull(),
     finishedAt: timestamp('finished_at').notNull(),
     outcome: varchar('outcome', { length: 24 }).notNull(),
-    replay: jsonb('replay').$type<CombatV6ReplayV1>().notNull(),
+    // Non-competitive battles retain settlement receipts without replay payloads.
+    replay: jsonb('replay').$type<CombatV6ReplayV1>(),
     roundCount: integer('round_count').notNull().default(0),
     sides: jsonb('sides')
       .$type<[string[], string[]]>()

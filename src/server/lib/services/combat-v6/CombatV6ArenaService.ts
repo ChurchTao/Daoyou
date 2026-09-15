@@ -475,7 +475,7 @@ async function finalizeArenaV6(runtime: ArenaRuntime) {
 export async function arenaReplayV6(id: string, actor: Actor) {
   const row = await findOwnedCombatV6Replay(id, actor.cultivatorId);
   if (
-    !row ||
+    !row?.replay ||
     !row.replay.participants.some(
       (p) => p.userId === actor.userId && p.cultivatorId === actor.cultivatorId,
     )

@@ -337,6 +337,13 @@
       "when": 1789446143788,
       "tag": "0047_equipment_outside_bag",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1789465138319,
+      "tag": "0048_competitive_replay_retention",
+      "breakpoints": true
     }
   ]
 }

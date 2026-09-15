@@ -3,12 +3,13 @@ import {
   combatReplayArchives,
   combatReplayParticipants,
 } from '@server/lib/drizzle/schema';
-import type {
-  CombatV6HistoryPage,
-  CombatV6HistoryQuery,
+import {
+  COMBAT_V6_REPLAY_SOURCES,
+  type CombatV6HistoryPage,
+  type CombatV6HistoryQuery,
 } from '@shared/contracts/combatV6Replay';
 import type { CombatV6ReplayV1 } from '@shared/contracts/combatV6Runtime';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 
 async function archive(
   values: typeof combatReplayArchives.$inferInsert,
@@ -32,6 +33,7 @@ async function archive(
         values.sourceType,
         values.idempotencyKey,
       );
+    if (!participants.length) return;
     await tx
       .insert(combatReplayParticipants)
       .values(
@@ -45,10 +47,14 @@ async function archive(
   });
 }
 
+/** Keep idempotency receipts for PvE settlement, but only retain competitive replays. */
 export async function archiveCombatV6Replay(
   replay: CombatV6ReplayV1,
   executor: DbExecutor = db,
 ): Promise<void> {
+  const keepReplay = COMBAT_V6_REPLAY_SOURCES.some(
+    (source) => source === replay.metadata.sourceType,
+  );
   await archive(
     {
       battleId: replay.battleId,
@@ -65,9 +71,9 @@ export async function archiveCombatV6Replay(
       sides: [0, 1].map((side) =>
         replay.initialUnits.filter((u) => u.side === side).map((u) => u.name),
       ) as [string[], string[]],
-      replay,
+      replay: keepReplay ? replay : null,
     },
-    replay.participants,
+    keepReplay ? replay.participants : [],
     executor,
   );
 }
@@ -112,6 +118,8 @@ export async function findOwnedCombatV6Replay(
     .where(
       and(
         eq(combatReplayArchives.battleId, battleId),
+        inArray(combatReplayArchives.sourceType, [...COMBAT_V6_REPLAY_SOURCES]),
+        isNotNull(combatReplayArchives.replay),
         eq(combatReplayParticipants.cultivatorId, cultivatorId),
       ),
     )
@@ -143,6 +151,8 @@ export async function listOwnedCombatV6Replays(
     .where(
       and(
         eq(p.cultivatorId, cultivatorId),
+        inArray(a.sourceType, [...COMBAT_V6_REPLAY_SOURCES]),
+        isNotNull(a.replay),
         query.source ? eq(a.sourceType, query.source) : undefined,
       ),
     )
