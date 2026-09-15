@@ -1,0 +1,4 @@
+interface:
+  display_name: "灵兽头像美术"
+  short_description: "以雷鹏 A 版为固定参考，统一灵兽头像画风、构图、透明素材与页面验收"
+  default_prompt: "使用 $daoyou-beast-avatars，参照固定基准制作或评审指定灵兽头像，并按本次要求交付预览或接入游戏。"
