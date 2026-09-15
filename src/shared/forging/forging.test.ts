@@ -65,10 +65,9 @@ describe('blueprint forging', () => {
         { facts: { ...facts, type: 'herb' }, quantity: 1 },
       ]),
     ).toThrow('不能用于铸造');
-    for (const type of ['seed', 'skill_manual', 'gongfa_manual'])
-      expect(MaterialFactsSchema.safeParse({ ...facts, type }).success).toBe(
-        false,
-      );
+    expect(
+      MaterialFactsSchema.safeParse({ ...facts, type: 'seed' }).success,
+    ).toBe(false);
   });
   it('groups aux and monster together without quality multipliers', () => {
     expect(

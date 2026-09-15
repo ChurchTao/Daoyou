@@ -42,9 +42,15 @@ export const materialAdapter: ItemAdapter = (item) => {
   const type = MATERIAL_TYPE_NAMES[facts.type];
   return {
     summary: {
-      icon: { herb: '🌿', ore: '🪨', tcdb: '💎', aux: '🧵', monster: '🦴' }[
-        facts.type
-      ],
+      icon: {
+        herb: '🌿',
+        ore: '🪨',
+        tcdb: '💎',
+        aux: '🧵',
+        monster: '🦴',
+        gongfa_manual: '📚',
+        skill_manual: '📖',
+      }[facts.type],
       color: tierColorMap[facts.rank],
       tier: facts.rank,
       type,

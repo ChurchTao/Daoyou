@@ -22,10 +22,11 @@ import {
 } from '@shared/inventory';
 import { consumableFactsOf } from '@shared/items/definitions/consumables';
 import {
-  FORGING_MATERIAL_TYPES,
+  INVENTORY_MATERIAL_TYPES,
   MaterialFactsSchema,
 } from '@shared/items/definitions/materials';
 import { seedFactsOf } from '@shared/items/definitions/seeds';
+import { legacyMaterialUnavailableReason } from '@shared/items/legacy-material';
 import { materialFactsOf } from '@shared/items/material';
 import { parseMailAttachments } from '@shared/lib/itemLibrary';
 import { and, asc, count, eq, gte, ilike, inArray, sql } from 'drizzle-orm';
@@ -55,7 +56,6 @@ import {
   saveInventoryPlan,
 } from './InventoryService';
 import { MailService } from './MailService';
-import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
 import { publishResourceEvents } from './playerStateBroadcaster';
 import { QiService } from './QiService';
 import { ResourceEventCommitter } from './ResourceEventCommitter';
@@ -244,7 +244,7 @@ export async function readVault(
   const filter = and(
     eq(table.cultivatorId, owner),
     query.kind === 'material'
-      ? inArray(materials.type, ['seed', 'herb', ...FORGING_MATERIAL_TYPES])
+      ? inArray(materials.type, ['seed', ...INVENTORY_MATERIAL_TYPES])
       : undefined,
     query.search
       ? ilike(
@@ -274,6 +274,8 @@ export async function readVault(
       description: row.description ?? '',
       element: 'element' in row ? row.element : null,
       kind: query.kind,
+      unavailableReason:
+        'rank' in row ? legacyMaterialUnavailableReason(row) : undefined,
     })),
   };
 }
@@ -296,7 +298,7 @@ export async function withdrawMaterial(
     )
       throw new InventoryError('物品已变化，请刷新宝库');
     if ('rank' in row) {
-      const blocked = getMysteryMaterialBlockingReason([row]);
+      const blocked = legacyMaterialUnavailableReason(row);
       if (blocked) throw new InventoryError(blocked);
       const facts =
         row.type === 'seed'

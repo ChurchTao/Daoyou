@@ -21,6 +21,9 @@ export function groupAlchemyBagMaterials(
     )
       continue;
     const facts = materialFactsOf(item.definitionId, item.instanceData);
+    // These materials are transferable; their gameplay use is not defined yet.
+    if (facts.type === 'gongfa_manual' || facts.type === 'skill_manual')
+      continue;
     const key = inventoryStackIdentity('material.v1', facts)!;
     const group = groups.get(key) ?? {
       ...facts,

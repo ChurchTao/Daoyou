@@ -57,6 +57,7 @@ export type VaultView = {
     element: string | null;
     id: string;
     quantity: number;
+    unavailableReason?: string;
   }[];
   total: number;
   page: number;

@@ -1,18 +1,6 @@
-import {
-  redisLockErrorResponse,
-  requireActiveCultivatorRef,
-} from '@server/lib/hono/middleware';
-import { jsonWithStatus } from '@server/lib/hono/response';
+import { requireActiveCultivatorRef } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
-import {
-  discardInventoryItem,
-  identifyMysteryMaterial,
-} from '@server/lib/services/InventoryApplicationService';
-import { MarketServiceError } from '@server/lib/services/MarketService';
-import {
-  QiInsufficientError,
-  QiServiceError,
-} from '@server/lib/services/QiService';
+import { discardInventoryItem } from '@server/lib/services/InventoryApplicationService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { readResourceWithMeta } from '@server/lib/services/ResourceReadService';
 import { getPaginatedInventoryByType } from '@server/lib/services/cultivator/CultivatorInventoryRepository';
@@ -24,14 +12,13 @@ import {
   type MaterialType,
   type Quality,
 } from '@shared/types/constants';
-import { Hono, type Context } from 'hono';
+import { Hono } from 'hono';
 import { z } from 'zod';
 
 const DiscardSchema = z.object({
   itemId: z.string(),
   itemType: z.enum(['artifact', 'consumable', 'material']),
 });
-const IdentifySchema = z.object({ materialId: z.string().min(1) });
 
 function parseList<T extends string>(
   raw: string | null,
@@ -49,25 +36,6 @@ function parseList<T extends string>(
     throw new Error(`无效的${label}，支持：${values.join(', ')}`);
   }
   return parsed;
-}
-
-function qiErrorResponse(c: Context<AppEnv>, error: unknown) {
-  if (error instanceof QiInsufficientError) {
-    return c.json(
-      {
-        error: error.code,
-        message: error.message,
-        required: error.required,
-        current: error.current,
-        action: error.action,
-      },
-      409,
-    );
-  }
-  if (error instanceof QiServiceError) {
-    return jsonWithStatus(c, { error: error.message }, error.status);
-  }
-  return null;
 }
 
 const inventoryRouter = new Hono<AppEnv>();
@@ -240,33 +208,8 @@ inventoryRouter.post('/discard', requireActiveCultivatorRef(), async (c) => {
   return c.json(toPlayerStateMutationResponse(committed));
 });
 
-inventoryRouter.post('/identify', requireActiveCultivatorRef(), async (c) => {
-  const user = c.get('user');
-  const cultivator = c.get('activeCultivatorRef');
-  if (!user || !cultivator) {
-    return c.json({ error: '未授权访问' }, 401);
-  }
-  try {
-    const { materialId } = IdentifySchema.parse(await c.req.json());
-    const committed = await identifyMysteryMaterial({
-      actor: { userId: user.id, cultivatorId: cultivator.cultivatorId },
-      materialId,
-    });
-    return c.json(toPlayerStateMutationResponse(committed));
-  } catch (error) {
-    const lockErrorResponse = redisLockErrorResponse(error);
-    if (lockErrorResponse) return lockErrorResponse;
-    const qiResponse = qiErrorResponse(c, error);
-    if (qiResponse) return qiResponse;
-    if (error instanceof MarketServiceError) {
-      return jsonWithStatus(c, { error: error.message }, error.status);
-    }
-    if (error instanceof z.ZodError) {
-      return c.json({ error: error.issues[0]?.message || '参数错误' }, 400);
-    }
-    console.error('Identify API error:', error);
-    return c.json({ error: '鉴定失败' }, 500);
-  }
-});
+inventoryRouter.post('/identify', requireActiveCultivatorRef(), (c) =>
+  c.json({ error: '未鉴定材料已弃用，无法鉴定或迁移' }, 410),
+);
 
 export default inventoryRouter;

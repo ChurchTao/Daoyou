@@ -3,10 +3,8 @@ import { isTalismanScenario } from '../config/talismanScenarios';
 import { assertCurrentRewardItem, isRetiredDrawItem } from './retiredDraw';
 
 describe('retired draw production boundary', () => {
-  it('rejects both historical manual kinds and their talismans without changing facts', () => {
+  it('rejects retired draw talismans without changing facts', () => {
     for (const value of [
-      { type: 'gongfa_manual' },
-      { type: 'skill_manual' },
       { spec: { kind: 'talisman', scenario: 'draw_gongfa' } },
       { spec: { kind: 'talisman', scenario: 'draw_skill' } },
     ]) {
@@ -22,6 +20,8 @@ describe('retired draw production boundary', () => {
     for (const value of [
       null,
       { type: 'ore' },
+      { type: 'gongfa_manual' },
+      { type: 'skill_manual' },
       { type: 'seed' },
       { spec: { kind: 'talisman', scenario: 'friend_mail_send' } },
     ]) {

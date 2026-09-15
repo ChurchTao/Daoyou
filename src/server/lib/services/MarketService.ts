@@ -1,11 +1,8 @@
 import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import {
   cultivators,
-  materials,
   playerMutationRequests,
 } from '@server/lib/drizzle/schema';
-import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
-import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import {
@@ -47,11 +44,7 @@ import {
   validateLayerAccess,
 } from '@shared/lib/game/marketConfig';
 import type { MaterialType, Quality, RealmType } from '@shared/types/constants';
-import {
-  MATERIAL_TYPE_VALUES,
-  QUALITY_ORDER,
-  QUALITY_VALUES,
-} from '@shared/types/constants';
+import { QUALITY_ORDER, QUALITY_VALUES } from '@shared/types/constants';
 import type { PreHeavenFate } from '@shared/types/cultivator';
 import type {
   MarketAccessState,
@@ -64,27 +57,22 @@ import type {
 import { MARKET_PRESET_FALLBACK_LAYERS } from '@shared/types/market';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
-import { mapMaterialRow } from './cultivator/CultivatorInventoryRepository';
 import { deliverMarketMaterial } from './MarketInventoryDelivery';
 import {
-  getHiddenMysteryReveal,
   sanitizeMaterialDetails,
   type HiddenMysteryReveal,
 } from './materialDetailsPrivacy';
 import {
   materialLibraryEntryToMaterial,
-  sampleMaterialForRange,
   sampleMaterialLibraryEntries,
   type MaterialLibrarySampleRequest,
 } from './MaterialLibraryService';
-import { QiService } from './QiService';
 
 // ─── Redis 键前缀 ───
 
 const MARKET_CACHE_NAMESPACE = 'market:v2';
 const MARKET_CACHE_PREFIX = `${MARKET_CACHE_NAMESPACE}:listings`;
 const MARKET_BOUGHT_PREFIX = `${MARKET_CACHE_NAMESPACE}:bought`;
-const MYSTERY_PREFIX = 'market:mystery';
 const MARKET_CACHE_WAIT_MS = 150;
 const MARKET_CACHE_WAIT_RETRIES = 3;
 const MYSTERY_PRICE_NOISE_MIN = 0.2;
@@ -148,11 +136,6 @@ async function readPurchasedListings(
   return new Set(rows.map((row) => row.key));
 }
 
-type IdentifyInput = {
-  materialId: string;
-  cultivatorId: string;
-};
-
 export class MarketServiceError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -174,10 +157,6 @@ function getBoughtKey(
   cycle: number,
 ) {
   return `${MARKET_BOUGHT_PREFIX}:${userId}:${nodeId}:${layer}:${cycle}`;
-}
-
-function getMysteryKey(cultivatorId: string, mysteryId: string) {
-  return `${MYSTERY_PREFIX}:${cultivatorId}:${mysteryId}`;
 }
 
 function canUsePresetFallback(layer: MarketLayer): boolean {
@@ -471,80 +450,6 @@ function applyMysteryLayer(
       mysteryReveal,
     };
   });
-}
-
-function isQuality(value: unknown): value is Quality {
-  return typeof value === 'string' && value in QUALITY_ORDER;
-}
-
-function isMaterialType(value: unknown): value is MaterialType {
-  return (
-    typeof value === 'string' &&
-    (MATERIAL_TYPE_VALUES as readonly string[]).includes(value)
-  );
-}
-
-function isMarketLayer(value: unknown): value is MarketLayer {
-  return (
-    value === 'common' ||
-    value === 'treasure' ||
-    value === 'heaven' ||
-    value === 'black'
-  );
-}
-
-function normalizeRankRange(
-  value: unknown,
-  fallback: { min: Quality; max: Quality },
-): { min: Quality; max: Quality } {
-  if (!value || typeof value !== 'object') return fallback;
-  const range = value as { min?: unknown; max?: unknown };
-  if (!isQuality(range.min) || !isQuality(range.max)) return fallback;
-  return { min: range.min, max: range.max };
-}
-
-function resolveMysteryRevealContext(
-  target: typeof materials.$inferSelect,
-  mystery: {
-    type?: unknown;
-    rankRange?: unknown;
-    anchorPrice?: unknown;
-    nodeId?: unknown;
-    layer?: unknown;
-    regionTags?: unknown;
-  },
-): MysteryRevealContext {
-  const nodeId =
-    typeof mystery.nodeId === 'string' && mystery.nodeId.length > 0
-      ? mystery.nodeId
-      : getDefaultMarketNodeId();
-  const layer = isMarketLayer(mystery.layer) ? mystery.layer : 'black';
-  const fallbackRange = resolveLayerConfig(
-    layer,
-    getRegionProfile(nodeId),
-  ).rankRange;
-
-  return {
-    type: isMaterialType(mystery.type)
-      ? mystery.type
-      : isMaterialType(target.type)
-        ? target.type
-        : 'aux',
-    rankRange: normalizeRankRange(mystery.rankRange, fallbackRange),
-    anchorPrice:
-      typeof mystery.anchorPrice === 'number' &&
-      Number.isFinite(mystery.anchorPrice)
-        ? mystery.anchorPrice
-        : 0,
-    nodeId,
-    layer,
-    regionTags: Array.isArray(mystery.regionTags)
-      ? mystery.regionTags.filter(
-          (tag): tag is string => typeof tag === 'string',
-        )
-      : getNodeRegionTags(nodeId),
-    createdAt: Date.now(),
-  };
 }
 
 // ─── 列表清理 ───
@@ -1161,228 +1066,6 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
         })),
       );
       return { result: { totalCost, deliveries } };
-    },
-  };
-}
-
-// ─── 鉴定 ───
-
-export async function prepareMysteryMaterialIdentification(
-  input: IdentifyInput,
-) {
-  const { materialId, cultivatorId } = input;
-  const current = await getExecutor()
-    .select()
-    .from(materials)
-    .where(
-      and(
-        eq(materials.id, materialId),
-        eq(materials.cultivatorId, cultivatorId),
-      ),
-    )
-    .limit(1);
-  const target = current[0];
-  if (!target) {
-    throw new MarketServiceError(404, '未找到待鉴定物品');
-  }
-
-  const details = (target.details || {}) as Record<string, unknown>;
-  const mystery = (details.mystery || null) as {
-    mysteryId?: string;
-    identifyCost?: number;
-    disguiseTier?: keyof typeof QUALITY_ORDER;
-    type?: MaterialType;
-    rankRange?: { min: Quality; max: Quality };
-    nodeId?: string;
-    layer?: MarketLayer;
-    regionTags?: string[];
-  } | null;
-
-  if (!mystery?.mysteryId) {
-    throw new MarketServiceError(400, '此物并非神秘物品，无需鉴定');
-  }
-
-  const mysteryKey = getMysteryKey(cultivatorId, mystery.mysteryId);
-  const cost = QiService.getCost('market_identify');
-  const revealContext = resolveMysteryRevealContext(target, mystery);
-  let revealedMaterial = getHiddenMysteryReveal(details);
-  if (!revealedMaterial) {
-    const sampled = await sampleMaterialForRange({
-      materialType: revealContext.type,
-      rankRange: revealContext.rankRange,
-      count: 1,
-    });
-    if (!sampled) {
-      throw new MarketServiceError(503, '鉴定材料库暂无匹配灵材，请稍后再试');
-    }
-    const sampledMaterial = materialLibraryEntryToMaterial(sampled);
-    revealedMaterial = {
-      name: sampledMaterial.name,
-      type: sampledMaterial.type,
-      rank: sampledMaterial.rank,
-      element: sampledMaterial.element,
-      description: sampledMaterial.description,
-      details: sanitizeMaterialDetails(sampledMaterial.details) ?? {},
-      quantity: 1,
-      itemLibraryItemId: sampled.itemId,
-      boundAt: new Date().toISOString(),
-    };
-  }
-
-  return {
-    async commit(tx: DbTransaction) {
-      let revealedMaterialId = materialId;
-      const qiReservation = await QiService.reserveQi({
-        cultivatorId,
-        action: 'market_identify',
-        actionInstanceId: `market-identify:${mystery.mysteryId}`,
-        metadata: {
-          materialId,
-          mysteryId: mystery.mysteryId,
-          revealName: revealedMaterial.name,
-        },
-        tx,
-      });
-      const qiAfter = qiReservation.qiAfter;
-
-      const consumed =
-        target.quantity > 1
-          ? await tx
-              .update(materials)
-              .set({ quantity: target.quantity - 1 })
-              .where(
-                and(
-                  eq(materials.id, materialId),
-                  eq(materials.cultivatorId, cultivatorId),
-                  eq(materials.quantity, target.quantity),
-                ),
-              )
-              .returning()
-          : await tx
-              .delete(materials)
-              .where(
-                and(
-                  eq(materials.id, materialId),
-                  eq(materials.cultivatorId, cultivatorId),
-                  eq(materials.quantity, target.quantity),
-                ),
-              )
-              .returning();
-      if (consumed.length !== 1) {
-        throw new MarketServiceError(409, '待鉴定物品已发生变化，请重试');
-      }
-
-      const [insertedMaterial] = await tx
-        .insert(materials)
-        .values({
-          cultivatorId,
-          name: revealedMaterial.name,
-          type: revealedMaterial.type,
-          rank: revealedMaterial.rank,
-          element: revealedMaterial.element,
-          description: revealedMaterial.description,
-          quantity: 1,
-          details: sanitizeMaterialDetails(revealedMaterial.details) ?? {},
-        })
-        .returning();
-      revealedMaterialId = insertedMaterial.id;
-
-      await QiService.commitReservation({
-        actionInstanceId: qiReservation.actionInstanceId,
-        metadata: {
-          revealedMaterialId,
-          committedAt: new Date().toISOString(),
-        },
-        tx,
-      });
-
-      const disguiseOrder =
-        QUALITY_ORDER[
-          (mystery.disguiseTier || target.rank) as keyof typeof QUALITY_ORDER
-        ];
-      const realOrder = QUALITY_ORDER[revealedMaterial.rank];
-      const delta = realOrder - disguiseOrder;
-      const jackpotLevel =
-        delta >= 3
-          ? 'legendary_win'
-          : delta >= 1
-            ? 'win'
-            : delta <= -2
-              ? 'big_loss'
-              : 'normal';
-      const [sender] = await tx
-        .select({ userId: cultivators.userId, name: cultivators.name })
-        .from(cultivators)
-        .where(eq(cultivators.id, cultivatorId))
-        .limit(1);
-      if (!sender) throw new Error('鉴定完成后角色不存在');
-      const rumorEvent = await createDomainEvent(
-        {
-          type: 'market.material.revealed',
-          aggregate: { type: 'material', id: revealedMaterialId },
-          data: {
-            userId: sender.userId,
-            cultivatorId,
-            cultivatorName: sender.name,
-            materialId: revealedMaterialId,
-            materialName: revealedMaterial.name,
-            quality: revealedMaterial.rank,
-            snapshot: {
-              id: revealedMaterialId,
-              name: revealedMaterial.name,
-              type: revealedMaterial.type,
-              rank: revealedMaterial.rank,
-              element: revealedMaterial.element,
-              description: revealedMaterial.description,
-              quantity: 1,
-            },
-          },
-          deduplicationKey: `${cultivatorId}:market-reveal:${mystery.mysteryId}`,
-        },
-        tx,
-      );
-
-      const afterCommit = async () => {
-        await redis.del(mysteryKey);
-        publishTransactionalMessageBestEffort(rumorEvent.id, {
-          source: 'market_material_reveal',
-          cultivatorId,
-          materialId: revealedMaterialId,
-        });
-      };
-
-      return {
-        result: {
-          success: true,
-          revealedItem: {
-            id: revealedMaterialId,
-            ...revealedMaterial,
-            quantity: 1,
-          },
-          cost,
-          qiAfter,
-          qiLastRefreshedAt: qiReservation.qiLastRefreshedAt,
-          jackpotLevel,
-          revealEffect:
-            delta >= 2 ? '金光冲霄' : delta <= -2 ? '灵尘散尽' : '封印破除',
-        },
-        inventoryChanges: [
-          target.quantity > 1
-            ? {
-                operation: 'upsert' as const,
-                item: mapMaterialRow(consumed[0]),
-              }
-            : {
-                operation: 'remove' as const,
-                id: target.id,
-              },
-          {
-            operation: 'upsert' as const,
-            item: mapMaterialRow(insertedMaterial),
-          },
-        ],
-        afterCommit,
-      };
     },
   };
 }
