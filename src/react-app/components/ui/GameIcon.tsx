@@ -8,10 +8,12 @@ export interface GameIconProps {
   label?: string;
 }
 
-/** Emoji or a registered icon:name. Both occupy one em and inherit font size. */
+/** Emoji or registered SVG/WebP/PNG via icon:name; size follows the font. */
 export function GameIcon({ value, className, label }: GameIconProps) {
-  const isSvg = value.startsWith('icon:');
-  const source = isSvg ? iconRegistry.get(value.slice(5)) : undefined;
+  const isRegisteredIcon = value.startsWith('icon:');
+  const source = isRegisteredIcon
+    ? iconRegistry.get(value.slice(5))
+    : undefined;
 
   return (
     <span
@@ -28,9 +30,9 @@ export function GameIcon({ value, className, label }: GameIconProps) {
           src={source}
           alt=""
           draggable={false}
-          className="block size-full"
+          className="block size-full object-contain"
         />
-      ) : isSvg || !value.trim() ? (
+      ) : isRegisteredIcon || !value.trim() ? (
         '❔'
       ) : (
         value

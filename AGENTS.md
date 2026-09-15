@@ -64,7 +64,7 @@ bun run db:migrate
 
 ## Frontend Rules
 
-- 新增或迁移图标渲染统一使用 `src/react-app/components/ui/GameIcon.tsx`：emoji 直接传值，SVG 使用 `icon:名称`；资源与名称只在 `components/ui/icons/` 集中管理，业务组件不得自行解析协议或直接导入 SVG 图标。见 `docs/game-icons.md`。
+- 新增或迁移图标渲染统一使用 `src/react-app/components/ui/GameIcon.tsx`：emoji 直接传值，SVG／WebP／PNG 使用 `icon:名称`；素材统一放在 `public/assets/icons/`，名称与路径只在 `components/ui/icons/registry.ts` 注册，业务组件不得自行解析协议或直接引用图标文件。见 `docs/game-icons.md`。
 
 - Numeric data uses Tailwind default `font-mono`; prose inherits the body font. Keep quantity weight/spacing local (`font-semibold tracking-tight`), and do not override `--font-mono` or add numeric font tokens/classes. See `docs/numeric-typography.md`.
 

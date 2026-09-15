@@ -1,20 +1,14 @@
-import fireCrow from './assets/beast-fire-crow.svg';
-import ghostLanternButterfly from './assets/beast-ghost-lantern-butterfly.svg';
-import inkJiao from './assets/beast-ink-jiao.svg';
-import moonMarten from './assets/beast-moon-marten.svg';
-import silverwingMantis from './assets/beast-silverwing-mantis.svg';
-import sixEyedApe from './assets/beast-six-eyed-ape.svg';
-import snowCrane from './assets/beast-snow-crane.svg';
-import thunderPeng from './assets/beast-thunder-peng.svg';
-
-/** Only GameIcon resolves these names. Never construct asset URLs from values. */
+/** GameIcon alone resolves these names; all icon files live in public/assets/icons. */
 export const iconRegistry: ReadonlyMap<string, string> = new Map([
-  ['beast-fire-crow', fireCrow],
-  ['beast-lantern-butterfly', ghostLanternButterfly],
-  ['beast-ink-jiao', inkJiao],
-  ['beast-moon-marten', moonMarten],
-  ['beast-silverwing-mantis', silverwingMantis],
-  ['beast-six-eyed-ape', sixEyedApe],
-  ['beast-snow-crane', snowCrane],
-  ['beast-thunder-peng', thunderPeng],
+  ['beast-fire-crow', '/assets/icons/beast-fire-crow.svg'],
+  [
+    'beast-lantern-butterfly',
+    '/assets/icons/beast-ghost-lantern-butterfly.svg',
+  ],
+  ['beast-ink-jiao', '/assets/icons/beast-ink-jiao.svg'],
+  ['beast-moon-marten', '/assets/icons/beast-moon-marten.svg'],
+  ['beast-silverwing-mantis', '/assets/icons/beast-silverwing-mantis.svg'],
+  ['beast-six-eyed-ape', '/assets/icons/beast-six-eyed-ape.svg'],
+  ['beast-snow-crane', '/assets/icons/beast-snow-crane.svg'],
+  ['beast-thunder-peng', '/assets/icons/beast-thunder-peng.webp'],
 ]);
