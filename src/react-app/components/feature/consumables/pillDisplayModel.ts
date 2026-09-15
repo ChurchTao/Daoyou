@@ -678,7 +678,7 @@ export function toPillDisplayModel(
         : []),
       {
         key: 'cost-and-rules',
-        title: '代价与规则',
+        title: '代价',
         lines: buildCostAndRuleLines(consumable.spec, options),
       },
       {
@@ -695,7 +695,7 @@ function getSpiritFruitRealmRuleLines(
   consumable: Consumable & { spec: SpiritFruitSpec },
   realm?: RealmType,
 ): string[] {
-  if (!realm) return ['进入角色背包后可判断当前境界是否适合服用'];
+  if (!realm) return [];
   const quality = consumable.quality ?? '凡品';
   const minQuality = getMinimumPillQualityByRealm(realm);
   const maxQuality = CULTIVATION_PILL_MAX_QUALITY_BY_REALM[realm];
@@ -706,7 +706,7 @@ function getSpiritFruitRealmRuleLines(
   if (order < QUALITY_ORDER[minQuality]) {
     return [`当前境界至少需要${minQuality}灵果，此果药力过于稀薄`];
   }
-  return ['当前境界可以服用'];
+  return [];
 }
 
 export function toSpiritFruitDisplayModel(
@@ -719,11 +719,7 @@ export function toSpiritFruitDisplayModel(
     familyLabel: getPillFamilyLabel(consumable.spec.family),
     primaryEffect: coreEffects[0] ?? '天地造化药效',
     effectSummary: coreEffects.join(' / ') || '天地造化药效',
-    keywordLabels: [
-      getPillFamilyLabel(consumable.spec.family),
-      '无丹毒',
-      '不限服用额度',
-    ],
+    keywordLabels: [getPillFamilyLabel(consumable.spec.family)],
     detailGroups: [
       { key: 'core-effects', title: '核心效用', lines: coreEffects },
       ...(trackPreviewLines.length > 0
@@ -741,14 +737,7 @@ export function toSpiritFruitDisplayModel(
         lines: [
           ...getSpiritFruitRealmRuleLines(consumable, options?.realm),
           '仅可在场外服用',
-          '不产生丹毒',
-          '不占任何服用额度',
         ],
-      },
-      {
-        key: 'fruit-source',
-        title: '造化来源',
-        lines: ['个人洞府灵田培育所得', '最终形态由三阶段培育自然成型'],
       },
     ],
     flavorText: consumable.description,

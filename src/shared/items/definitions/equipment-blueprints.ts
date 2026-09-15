@@ -13,7 +13,7 @@ export const BLUEPRINTS = DAO_EQUIPMENT_SLOTS.flatMap((slot) =>
   EQUIPMENT_LEVELS.map((level) => {
     return {
       id: `blueprint.${slot}.${level}`,
-      name: `${getLevelRealmStage(level).realm}${EQUIPMENT_SLOT_NAMES[slot]}图纸`,
+      name: `${getLevelRealmStage(level).realm}期${EQUIPMENT_SLOT_NAMES[slot]}`,
       kind: 'blueprint' as const,
       stackLimit: 99,
       slot,

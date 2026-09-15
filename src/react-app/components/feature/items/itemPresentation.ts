@@ -81,7 +81,7 @@ export function itemPresentation(item: DisplayItem) {
         icon: '📜',
         ...levelTier(def.level!),
         type: '道装图纸',
-        description: `${EQUIPMENT_SLOT_NAMES[def.slot!]}图纸，铸造消耗一张。不可铸造高于人物境界的图纸。`,
+        description: `记载${EQUIPMENT_SLOT_NAMES[def.slot!]}铸造之法的图纸，铸造时消耗1张。`,
       };
     case 'beast_refinement': {
       const dew = BEAST_REFINEMENT.items.find((item) => item.id === def.id)!;

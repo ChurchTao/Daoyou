@@ -7,10 +7,10 @@ describe('图纸境界名称', () => {
     expect(new Set(BLUEPRINTS.map((item) => item.name)).size).toBe(54);
     for (const item of BLUEPRINTS) {
       expect(item.id).toBe(`blueprint.${item.slot}.${item.level}`);
-      expect(item.name).not.toMatch(/\d|级/);
+      expect(item.name).not.toMatch(/\d|级|图纸/);
     }
     expect(
       BLUEPRINTS.find((item) => item.id === 'blueprint.armor.10')?.name,
-    ).toBe('炼气法衣图纸');
+    ).toBe('炼气期法衣');
   });
 });

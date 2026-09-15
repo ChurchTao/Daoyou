@@ -17,7 +17,6 @@ import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-bluepr
 import { SeedFactsSchema } from '@shared/items/definitions/seeds';
 import { materialFactsOf } from '@shared/items/material';
 import { CHARACTER_ATTRIBUTE_LABELS } from '@shared/lib/characterAttributeLabels';
-import { calculatePillScore } from '@shared/lib/pillScore';
 import type { CultivatorCondition } from '@shared/types/condition';
 import { REALM_VALUES, type RealmType } from '@shared/types/constants';
 import {
@@ -80,17 +79,20 @@ export function itemPreviewModel(
           InventoryEquipmentSchema.parse(item.instanceData).slot
         ]
       : presentation.type;
-  const identity: PreviewRow[] = [
-    {
-      label: '类型',
-      value:
-        presentation.tier &&
-        def.kind !== 'equipment' &&
-        def.kind !== 'blueprint'
-          ? `${presentation.tier} · ${type}`
-          : type,
-    },
-  ];
+  const identity: PreviewRow[] =
+    def.kind === 'beast_refinement'
+      ? []
+      : [
+          {
+            label: '类型',
+            value:
+              presentation.tier &&
+              def.kind !== 'equipment' &&
+              def.kind !== 'blueprint'
+                ? `${presentation.tier} · ${type}`
+                : type,
+          },
+        ];
 
   switch (def.kind) {
     case 'equipment': {
@@ -232,15 +234,9 @@ export function itemPreviewModel(
                 { ...facts, spec: facts.spec },
                 options,
               );
-        identity.push({ label: '功能', value: model.familyLabel });
-        identity.push({ label: '要求', value: '场外服用' });
-        if (facts.spec.kind === 'pill') {
-          const score = calculatePillScore(facts);
-          if (score !== null)
-            metadata.push({ label: '丹评', value: score, numeric: true });
-        }
         if (model.appearance)
-          metadata.push({ label: '丹相', value: model.appearance.label });
+          identity.push({ label: '丹相', value: model.appearance.label });
+        identity.push({ label: '功能', value: model.familyLabel });
         for (const group of model.detailGroups) {
           const groupLines = group.lines.filter(
             (value) => value !== '仅可在场外服用',
@@ -268,13 +264,7 @@ export function itemPreviewModel(
       const skill = beastSkillPresentation(def.skillId!);
       sections.push({
         title: '所载传承',
-        rows: [
-          {
-            value: skill.name,
-            tone: 'accent',
-            children: lines(skill.description),
-          },
-        ],
+        rows: lines(skill.description),
       });
       flavor = presentation.inheritance?.introduction;
       break;
@@ -287,30 +277,29 @@ export function itemPreviewModel(
           label: '要求',
           value:
             dew.allowedRealms.length === REALM_VALUES.length
-              ? '各境界灵兽均可使用'
-              : `${dew.allowedRealms.join('、')}物种`,
+              ? '不限境界'
+              : `不高于${dew.allowedRealms[dew.allowedRealms.length - 1]}`,
         },
       );
       sections.push({
         title: '洗炼效果',
         rows: [
           {
-            value: '重归初生，重新孕育资质、成长与天生技能，恢复寿命至原上限。',
+            value: '重置等级，重新孕育资质、成长与天生技能，寿命恢复至原上限。',
           },
         ],
       });
+      flavor =
+        dew.color === 'gold'
+          ? '元婴及以上物种须用此露；不额外提高资质、成长或多技能概率。'
+          : '涤去后天积累。';
       break;
     }
     case 'blueprint':
       identity.push({
-        label: '要求',
-        value: `${getLevelRealmStage(def.level!).label}及以上可铸造`,
+        label: '产物境界',
+        value: `${getLevelRealmStage(def.level!).realm}期`,
       });
-      metadata.push(
-        { label: '部位', value: EQUIPMENT_SLOT_NAMES[def.slot!] },
-        { label: '铸造境界', value: getLevelRealmStage(def.level!).label },
-      );
-      flavor = `记载${EQUIPMENT_SLOT_NAMES[def.slot!]}铸造之法的图纸，铸造时消耗一张。`;
       break;
     case 'material': {
       const facts = materialFactsOf(item.definitionId, item.instanceData);
@@ -320,17 +309,11 @@ export function itemPreviewModel(
     }
     case 'manual_jade': {
       const manual = CHARACTER_MANUALS_V1.find((m) => m.id === def.manualId)!;
-      metadata.push({ label: '传承境界', value: manual.realm });
+      identity.push({ label: '传承境界', value: manual.realm });
       flavor = '封存功法传承的玉简，可于悟道室参悟其中法门。';
       sections.push({
         title: '所载功法',
-        rows: [
-          {
-            value: manual.name,
-            tone: 'accent',
-            children: lines(manual.description),
-          },
-        ],
+        rows: lines(manual.description),
       });
       break;
     }
@@ -338,7 +321,7 @@ export function itemPreviewModel(
       const { plant } = SeedFactsSchema.parse(item.instanceData).seedSpec;
       identity.push(
         { label: '功能', value: '灵田培育' },
-        { label: '要求', value: `${plant.minRealm}及以上可播种` },
+        { label: '要求', value: `${plant.minRealm}及以上` },
       );
       metadata.push({ label: '五行', value: plant.element });
       if (plant.clueTexts.length)

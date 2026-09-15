@@ -29,7 +29,7 @@ const item = (slotIndex = 0, quantity = 1): InventoryItem => ({
   revision: 0,
 });
 describe('inventory capacity and immutable facts', () => {
-  it('同名灵印仍按所载传承分别堆叠，普通与上品不会合并', () => {
+  it('灵印以技能命名并按传承分别堆叠，普通与上品不会合并', () => {
     const definitions = [
       'book.beast.combo',
       'book.beast.counter',
@@ -37,7 +37,7 @@ describe('inventory capacity and immutable facts', () => {
     ];
     expect(
       definitions.map((id) => BOOKS.find((book) => book.id === id)!.name),
-    ).toEqual(['传承灵印', '传承灵印', '上品传承灵印']);
+    ).toEqual(['连击', '反扑', '高级连击']);
     const entries = definitions.flatMap((definitionId, i) =>
       [0, 1].map((offset) => ({
         ...item(i * 2 + offset, 2),
