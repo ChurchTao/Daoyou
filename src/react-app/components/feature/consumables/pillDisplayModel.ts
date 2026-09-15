@@ -59,6 +59,8 @@ interface PillDisplayOptions {
 
 export interface PillDetailGroup {
   key: string;
+  role: 'effect' | 'preview' | 'restriction' | 'source';
+  collapsible?: boolean;
   title: string;
   lines: string[];
 }
@@ -471,7 +473,6 @@ function buildCostAndRuleLines(
     )
     .map((operation) => describePillOperation(operation));
 
-  lines.push('仅可在场外服用');
   const quotaCategory = getEffectiveQuotaCategory(spec);
   const usageRuleText =
     getPillUsageProgressText(quotaCategory, options)?.rule ??
@@ -664,6 +665,7 @@ export function toPillDisplayModel(
     detailGroups: [
       {
         key: 'core-effects',
+        role: 'effect' as const,
         title: '核心药效',
         lines: buildCoreEffectLines(consumable.spec),
       },
@@ -671,6 +673,7 @@ export function toPillDisplayModel(
         ? [
             {
               key: 'track-preview',
+              role: 'preview' as const,
               title: '服用预览',
               lines: trackPreviewLines,
             },
@@ -678,11 +681,14 @@ export function toPillDisplayModel(
         : []),
       {
         key: 'cost-and-rules',
+        role: 'restriction' as const,
         title: '代价',
         lines: buildCostAndRuleLines(consumable.spec, options),
       },
       {
         key: 'alchemy-info',
+        role: 'source' as const,
+        collapsible: true,
         title: '炼制信息',
         lines: buildAlchemyInfoLines(consumable),
       },
@@ -721,11 +727,17 @@ export function toSpiritFruitDisplayModel(
     effectSummary: coreEffects.join(' / ') || '天地造化药效',
     keywordLabels: [getPillFamilyLabel(consumable.spec.family)],
     detailGroups: [
-      { key: 'core-effects', title: '核心效用', lines: coreEffects },
+      {
+        key: 'core-effects',
+        role: 'effect' as const,
+        title: '核心效用',
+        lines: coreEffects,
+      },
       ...(trackPreviewLines.length > 0
         ? [
             {
               key: 'track-preview',
+              role: 'preview' as const,
               title: '服用预览',
               lines: trackPreviewLines,
             },
@@ -733,11 +745,9 @@ export function toSpiritFruitDisplayModel(
         : []),
       {
         key: 'fruit-rules',
+        role: 'restriction' as const,
         title: '服用规则',
-        lines: [
-          ...getSpiritFruitRealmRuleLines(consumable, options?.realm),
-          '仅可在场外服用',
-        ],
+        lines: [...getSpiritFruitRealmRuleLines(consumable, options?.realm)],
       },
     ],
     flavorText: consumable.description,

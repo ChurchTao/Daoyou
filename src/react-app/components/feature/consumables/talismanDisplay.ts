@@ -146,47 +146,84 @@ export function getTalismanUsageHint(consumable: Consumable): string {
   );
 }
 
-export function buildTalismanDetailText(consumable: Consumable): string {
-  if (!isTalismanConsumable(consumable)) {
-    return consumable.description ?? '';
-  }
+export interface TalismanDetailRow {
+  label?: string;
+  value: string;
+}
 
-  if (['draw_gongfa', 'draw_skill'].includes(consumable.spec.scenario)) {
-    return '旧版抽取已停用，符箓暂存；暂不转换、不补偿，后续玩法另行设计。';
+/** 具体效果与用途分离，详情预览和使用确认共享同一份结构化内容。 */
+export function talismanDetailRows(
+  consumable: Consumable,
+): TalismanDetailRow[] {
+  if (!isTalismanConsumable(consumable)) return [];
+  const scenario = consumable.spec.scenario;
+  if (['draw_gongfa', 'draw_skill'].includes(scenario)) {
+    return [
+      {
+        value: '旧版抽取已停用，符箓暂存；暂不转换、不补偿，后续玩法另行设计。',
+      },
+    ];
   }
-  const restoreText = getQiRestoreEffectText(consumable.spec.scenario);
-  const lines = isAttributeResetTalismanScenario(consumable.spec.scenario)
-    ? [
-        `用途：重置六维自由分配，返还已投入的可分配属性点`,
-        '使用方式：可在背包中直接使用，也可在根基属性页确认启封',
-        consumable.spec.notes ??
-          `${ATTRIBUTE_RESET_TALISMAN_NAME}启封后，六维回到当前境界自然成长值。`,
-        consumable.description,
-      ]
-    : isSectMeridianResetTalismanScenario(consumable.spec.scenario)
-      ? [
-          '用途：清空新版宗门两流派各一套节点方案',
-          '保留：共用经脉深度、心法等级、当前流派、道印与装备',
-          '使用方式：可在背包中直接使用；没有已选节点时不会消耗',
+  const restoreText = getQiRestoreEffectText(scenario);
+  let rows: TalismanDetailRow[];
+  if (isAttributeResetTalismanScenario(scenario)) {
+    rows = [
+      { label: '用途', value: '重置六维自由分配，返还已投入的可分配属性点' },
+      {
+        label: '使用方式',
+        value: '可在背包中直接使用，也可在根基属性页确认启封',
+      },
+      {
+        value:
           consumable.spec.notes ??
-            `${SECT_MERIDIAN_RESET_TALISMAN_NAME}启封后，可按已解锁的共用深度重新参悟；平时也可免费逐层调整节点。`,
-          consumable.description,
-        ]
-      : restoreText
-        ? [
-            `用途：${restoreText}`,
-            '使用方式：可在背包中直接使用',
-            consumable.spec.notes,
-            consumable.description,
-          ]
-        : [
-            `适用玩法：${getTalismanScenarioLabel(consumable.spec.scenario)}`,
-            '使用方式：需在对应玩法入口使用',
-            consumable.spec.notes,
-            consumable.description,
-          ];
+          `${ATTRIBUTE_RESET_TALISMAN_NAME}启封后，六维回到当前境界自然成长值。`,
+      },
+    ];
+  } else if (isSectMeridianResetTalismanScenario(scenario)) {
+    rows = [
+      { label: '用途', value: '清空新版宗门两流派各一套节点方案' },
+      { label: '保留', value: '共用经脉深度、心法等级、当前流派、道印与装备' },
+      {
+        label: '使用方式',
+        value: '可在背包中直接使用；没有已选节点时不会消耗',
+      },
+      {
+        value:
+          consumable.spec.notes ??
+          `${SECT_MERIDIAN_RESET_TALISMAN_NAME}启封后，可按已解锁的共用深度重新参悟；平时也可免费逐层调整节点。`,
+      },
+    ];
+  } else {
+    rows = [
+      ...(restoreText ? [{ label: '用途', value: restoreText }] : []),
+      {
+        label: '使用方式',
+        value: restoreText ? '可在背包中直接使用' : '需在对应玩法入口使用',
+      },
+      ...(consumable.spec.notes ? [{ value: consumable.spec.notes }] : []),
+    ];
+  }
+  return rows.filter((row) => Boolean(row.value));
+}
 
-  return lines.filter(Boolean).join('\n');
+export function buildTalismanDetailText(consumable: Consumable): string {
+  if (!isTalismanConsumable(consumable)) return consumable.description ?? '';
+  const scenario = consumable.spec.scenario;
+  const retired = ['draw_gongfa', 'draw_skill'].includes(scenario);
+  const genericScenario =
+    !retired &&
+    !isAttributeResetTalismanScenario(scenario) &&
+    !isSectMeridianResetTalismanScenario(scenario) &&
+    !getQiRestoreEffectText(scenario);
+  return [
+    ...(genericScenario
+      ? [`适用玩法：${getTalismanScenarioLabel(scenario)}`]
+      : []),
+    ...talismanDetailRows(consumable).map((row) =>
+      row.label ? `${row.label}：${row.value}` : row.value,
+    ),
+    ...(!retired && consumable.description ? [consumable.description] : []),
+  ].join('\n');
 }
 
 export function buildTalismanUseConfirmText(consumable: Consumable): string {
