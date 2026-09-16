@@ -1,11 +1,12 @@
+import { SPIRIT_FIELD_CARE_ACTIONS } from '@shared/engine/spirit-field/types';
 import {
   QUALITY_VALUES,
   REALM_STAGE_VALUES,
   REALM_VALUES,
 } from '@shared/types/constants';
-import { SPIRIT_FIELD_CARE_ACTIONS } from '@shared/engine/spirit-field/types';
 import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
 import { z } from 'zod';
+import { ItemGrantSchema } from '../inventory';
 import { CombatV6BattleFinishedDataV1Schema } from './combatV6Runtime';
 
 export const DOMAIN_EVENT_STREAM = 'DAOYOU_DOMAIN_EVENTS';
@@ -78,8 +79,29 @@ export const DomainEventDataSchemas = {
       actionInstanceId: z.uuid(),
       realm: z.enum(REALM_VALUES),
       materialCount: z.number().int().positive().max(100),
+      // Absent on legacy queued events; new claims freeze all item facts.
+      rewardSnapshot: z
+        .strictObject({
+          poolId: z.string().min(1),
+          poolVersion: z.number().int().positive(),
+          items: z
+            .array(
+              ItemGrantSchema.extend({
+                quantity: z.number().int().min(1).max(1),
+              }),
+            )
+            .min(1)
+            .max(8),
+        })
+        .optional(),
     })
-    .strict(),
+    .strict()
+    .refine(
+      (data) =>
+        !data.rewardSnapshot ||
+        data.rewardSnapshot.items.length === data.materialCount,
+      '历练奖励总量不一致',
+    ),
   'spirit-field.sown': z
     .object({
       cultivatorId: z.uuid(),
