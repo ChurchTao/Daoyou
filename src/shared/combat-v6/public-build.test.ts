@@ -67,13 +67,13 @@ describe('public V6 build', () => {
     const baseline = publicCombatV6Build(character, input);
     input.manuals.learned = [
       { manualId: 'character_manual.changchun', level: 3, unlockedLevel: 3 },
-      { manualId: 'character_manual.songhe', level: 9, unlockedLevel: 9 },
+      { manualId: 'character_manual.qingmu', level: 9, unlockedLevel: 9 },
     ];
     input.manuals.build.slots = [{ slot: 1, manualId: 'character_manual.changchun' }];
     const result = publicCombatV6Build(character, input);
     expect(result.build.manuals).toEqual([{ slot: 1, manualId: 'character_manual.changchun', level: 3 }]);
-    expect(JSON.stringify(result.build)).not.toContain('songhe');
-    expect(result.combatPanel.maxHp - baseline.combatPanel.maxHp).toBe(24);
+    expect(JSON.stringify(result.build)).not.toContain('qingmu');
+    expect(result.combatPanel.maxHp - baseline.combatPanel.maxHp).toBe(128);
     expect(character.attributes.vitality).toBe(20);
   });
 });

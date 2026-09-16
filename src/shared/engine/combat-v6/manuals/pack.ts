@@ -14,9 +14,64 @@ const cost = z.strictObject({
   experience: positive,
   insight: z.number().int().min(1).max(100),
 });
+const growth = {
+  valueAt1: z.number().positive().max(0.2),
+  valueAt9: z.number().positive().max(0.2),
+};
+export const ManualConditionShape = z.enum([
+  'always',
+  'selfHpBelow50',
+  'selfHpBelow35',
+  'selfHpAbove70',
+  'targetHpBelow50',
+  'targetHpBelow35',
+  'targetHpAbove70',
+  'selfMpBelow50',
+  'selfMpAbove50',
+  'selfMpAbove70',
+  'defending',
+  'selfBarrier',
+  'targetBarrier',
+  'targetDot',
+  'selfControl',
+  'selfDebuff',
+]);
+export const ManualMechanismShape = z.discriminatedUnion('type', [
+  z.strictObject({
+    type: z.literal('damage'),
+    condition: ManualConditionShape,
+    kinds: z
+      .array(z.enum(['physical', 'spell', 'fixed']))
+      .min(1)
+      .max(3),
+    ...growth,
+  }),
+  z.strictObject({
+    type: z.literal('mitigation'),
+    condition: ManualConditionShape,
+    kinds: z
+      .array(z.enum(['physical', 'spell']))
+      .min(1)
+      .max(2),
+    ...growth,
+  }),
+  z.strictObject({
+    type: z.enum([
+      'heal',
+      'barrier',
+      'evasion',
+      'sealResist',
+      'restoreHp',
+      'restoreMp',
+    ]),
+    condition: ManualConditionShape,
+    ...growth,
+  }),
+]);
+export type ManualMechanism = z.infer<typeof ManualMechanismShape>;
 export const ManualPackShape = z.strictObject({
   $schema: z.string().optional(),
-  version: z.literal(1),
+  version: z.literal(3),
   progressions: z.record(
     z.string().min(1),
     z.strictObject({
@@ -31,19 +86,19 @@ export const ManualPackShape = z.strictObject({
         id: z.string().regex(/^character_manual\.[a-z][a-z0-9_-]*$/),
         name: z.string().min(1),
         realm: z.enum(MANUAL_REALMS),
-        rarity: z.enum(['common', 'rare']),
         description: z.string().min(1),
         progressionId: z.string().min(1),
-        dropWeight: positive,
         effects: z
           .array(
             z.strictObject({
               attribute: z.enum(MANUAL_ATTRIBUTES),
+              valueAt1: z.number().int().min(1).max(1000),
               valuePerLevel: z.number().int().min(1).max(100),
             }),
           )
           .min(1)
-          .max(2),
+          .max(1),
+        mechanism: ManualMechanismShape,
       }),
     )
     .min(1),
@@ -55,6 +110,23 @@ export const ManualPackSchema = ManualPackShape.superRefine((pack, ctx) => {
   pack.manuals.forEach((manual, i) => {
     if (ids.has(manual.id)) issue(['manuals', i, 'id'], '功法 ID 重复');
     ids.add(manual.id);
+    const mechanism = manual.mechanism;
+    if (mechanism.valueAt9 <= mechanism.valueAt1)
+      issue(['manuals', i, 'mechanism'], '机制必须随层数增强');
+    if (
+      'kinds' in mechanism &&
+      new Set(mechanism.kinds).size !== mechanism.kinds.length
+    )
+      issue(['manuals', i, 'mechanism'], '伤害类型重复');
+    if (
+      ['mitigation', 'evasion', 'restoreHp', 'restoreMp'].includes(
+        mechanism.type,
+      ) &&
+      mechanism.condition.startsWith('target')
+    )
+      issue(['manuals', i, 'mechanism'], '防护与回合恢复仅支持自身条件');
+    if (mechanism.type === 'sealResist' && mechanism.condition !== 'always')
+      issue(['manuals', i, 'mechanism'], '封印抵抗为常驻能力');
     if (!pack.progressions[manual.progressionId])
       issue(['manuals', i, 'progressionId'], '培养规则不存在');
     if (

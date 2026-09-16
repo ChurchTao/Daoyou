@@ -20,7 +20,7 @@ import type {
   ManualAction,
   ManualView,
 } from '@shared/contracts/combatV6Manuals';
-import { previewManualAction } from '@shared/manuals/action';
+import { manualJadeCost, previewManualAction } from '@shared/manuals/action';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { CultivationProgress } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
@@ -156,15 +156,16 @@ export async function mutateManuals(owner: string, action: ManualAction) {
             .insert(cultivatorManualSlots)
             .values({ cultivatorId: owner, ...nextSlot });
         if ('item' in action) {
+          const jadeCost = manualJadeCost(manuals, action);
           await saveInventoryPlan(
             owner,
             before,
-            item.quantity === 1
+            item.quantity === jadeCost
               ? []
               : [
                   {
                     ...item,
-                    quantity: item.quantity - 1,
+                    quantity: item.quantity - jadeCost,
                     revision: item.revision + 1,
                   },
                 ],

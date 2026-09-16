@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { manualJadeCost } from '../../../manuals/action';
 import { compileCharacterPanelV1 } from '../projection/character-panel-v1';
 import { resolveCombatCapabilitiesV1 } from './capabilities';
 import {
@@ -50,16 +51,16 @@ describe('境界功法培养', () => {
       changeManual({
         state: empty(),
         action: 'learn',
-        manualId: 'character_manual.houtu',
+        manualId: 'character_manual.guiyuan',
         slot: 2,
         realm: '炼气',
         expectedRevision: 0,
         resources: { experience: 0, insight: 0 },
       }).ok,
     ).toBe(false);
-    expect(act(empty(), 'learn', 'character_manual.houtu').ok).toBe(false);
+    expect(act(empty(), 'learn', 'character_manual.guiyuan').ok).toBe(false);
   });
-  it('三本玉简与八次修炼完成九层，瓶颈只解锁不跳层', () => {
+  it('六本玉简与八次修炼完成九层，瓶颈只解锁不跳层', () => {
     const original = empty();
     let state = success(act(original, 'learn'));
     expect(original).toEqual(empty());
@@ -69,27 +70,27 @@ describe('境界功法培养', () => {
       if (p.level === p.unlockedLevel) {
         expect(act(state, 'train').ok).toBe(false);
         const before = p.level;
+        jades += manualJadeCost(state, { action: 'unlock', manualId: id });
         state = success(act(state, 'unlock'));
         expect(state.learned[0].level).toBe(before);
         expect(act(state, 'unlock').ok).toBe(false);
-        jades++;
       }
       const result = act(state, 'train');
       expect(result.ok && result.cost.experience).toBeGreaterThan(0);
       state = success(result);
       expect(state.learned[0].level).toBe(target);
     }
-    expect(jades).toBe(3);
+    expect(jades).toBe(6);
     expect(act(state, 'train').ok).toBe(false);
     expect(act(state, 'unlock').ok).toBe(false);
   });
   it('多个功法独立培养，免费激活保留原有进度', () => {
     let state = success(act(empty(), 'learn'));
     state = success(act(state, 'train'));
-    state = success(act(state, 'learn', 'character_manual.qingfeng'));
-    state = success(act(state, 'train', 'character_manual.qingfeng'));
+    state = success(act(state, 'learn', 'character_manual.gengjin'));
+    state = success(act(state, 'train', 'character_manual.gengjin'));
     expect(state.build.slots[0].manualId).toBe(id);
-    const switched = act(state, 'activate', 'character_manual.qingfeng');
+    const switched = act(state, 'activate', 'character_manual.gengjin');
     expect(switched.ok && switched.cost).toEqual({ experience: 0, insight: 0 });
     state = success(switched);
     state = success(act(state, 'activate'));
@@ -108,21 +109,21 @@ describe('境界功法培养', () => {
       expectedRevision: state.revision,
     };
     expect(
-      changeManual({ ...base, resources: { experience: 19, insight: 100 } }).ok,
+      changeManual({ ...base, resources: { experience: 39, insight: 100 } }).ok,
     ).toBe(false);
     expect(
-      changeManual({ ...base, resources: { experience: 20, insight: 1 } }).ok,
+      changeManual({ ...base, resources: { experience: 40, insight: 3 } }).ok,
     ).toBe(false);
     expect(
       changeManual({
         ...base,
         expectedRevision: 0,
-        resources: { experience: 20, insight: 2 },
+        resources: { experience: 40, insight: 4 },
       }).ok,
     ).toBe(false);
     expect(
-      changeManual({ ...base, resources: { experience: 20, insight: 2 } }),
-    ).toMatchObject({ ok: true, cost: { experience: 20, insight: 2 } });
+      changeManual({ ...base, resources: { experience: 40, insight: 4 } }),
+    ).toMatchObject({ ok: true, cost: { experience: 40, insight: 4 } });
     expect(state.learned[0].level).toBe(1);
   });
   it('拒绝伪造层数、提前解锁、重复槽位和未学激活', () => {
@@ -138,15 +139,14 @@ describe('境界功法培养', () => {
     ])
       expect(validateManualStateV1(invalid, '炼气').length).toBeGreaterThan(0);
   });
-  it('双效果从一层生效，未激活功法不贡献，属性只在投影中累加一次', () => {
-    let state = success(act(empty(), 'learn', 'character_manual.songhe'));
+  it('属性与机制从一层生效，未激活功法不贡献，属性只在投影中累加一次', () => {
+    let state = success(act(empty(), 'learn', 'character_manual.qingmu'));
     state = success(act(state, 'learn'));
     const result = compileCharacterManualsV1({ state, realm: '炼气' });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.projection.attributeBonuses).toEqual({
-      vitality: 1,
-      willpower: 1,
+      willpower: 12,
     });
     expect(result.projection.passiveSkillIds).toHaveLength(1);
     const character = {
@@ -165,15 +165,15 @@ describe('境界功法培养', () => {
     };
     const derived = withManualAttributes(character, result.projection);
     expect(character.attributes.vitality).toBe(10);
-    expect(compileCharacterPanelV1(derived.attributes).maxHp).toBe(488);
-    expect(compileCharacterPanelV1(derived.attributes).maxMp).toBe(305);
+    expect(compileCharacterPanelV1(derived.attributes).maxHp).toBe(480);
+    expect(compileCharacterPanelV1(derived.attributes).maxMp).toBe(360);
   });
 });
 describe('功法数据包', () => {
-  it('十六本内容与逐层成本可以加载', () => {
-    expect(loadManualPack(MANUAL_PACK).manuals).toHaveLength(16);
+  it('二十四本内容与逐层成本可以加载', () => {
+    expect(loadManualPack(MANUAL_PACK).manuals).toHaveLength(24);
   });
-  it.each(['duplicate', 'reference', 'attribute', 'cost', 'bottleneck'])(
+  it.each(['duplicate', 'reference', 'attribute', 'initial', 'cost', 'bottleneck'])(
     '无效配置 %s 在加载时失败',
     (kind) => {
       const pack = structuredClone(MANUAL_PACK);
@@ -181,6 +181,7 @@ describe('功法数据包', () => {
       if (kind === 'reference') pack.manuals[0].progressionId = 'missing';
       if (kind === 'attribute')
         pack.manuals[0].effects.push(pack.manuals[0].effects[0]);
+      if (kind === 'initial') pack.manuals[0].effects[0].valueAt1 = 0;
       if (kind === 'cost') pack.progressions.standard.costsByRealm.炼气.pop();
       if (kind === 'bottleneck')
         pack.progressions.standard.bottlenecks = [6, 3];

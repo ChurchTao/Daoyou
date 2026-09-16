@@ -5,7 +5,7 @@ import { DEFAULT_HITS } from "./constants.ts"
 import type { BattleContext } from "./context.ts"
 import { applyBarrier } from "./barriers.ts"
 import { applyHeal, applyHpRestore, applyMpDamage, applyRevive, applyWound, changeWound, resolveStrike } from "./damage.ts"
-import { DamageKind, EffectType, EventType, FailReason, FormulaFamily, StatusCategory, StatusHit, StatusRemoveReason } from "./enums.ts"
+import { DamageKind, DamageOrigin, EffectType, EventType, FailReason, FormulaFamily, StatusCategory, StatusHit, StatusRemoveReason } from "./enums.ts"
 import { evalExpr } from "./expr.ts"
 import { atLeast, floorAtLeast } from "./math.ts"
 import { applyStatus, copyStatusInstance, envFor, removeStatus } from "./status.ts"
@@ -63,6 +63,7 @@ const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect
         kind: effect.kind,
         name: effect.name,
         amount: ctx.hooks.emit("onBarrierCalc", {
+          origin: ctx.suppressHooks > 0 ? DamageOrigin.HookDerived : DamageOrigin.ActionDirect,
           source,
           target,
           barrier: evalExpr(effect.power, { ...env, target }),
@@ -397,6 +398,7 @@ function handleHit(
       // 横扫中途打死目标则后续刀取消。
       if (!isStanding(source) || !isStanding(t) || ctx.state.result) break
       resolveStrike(ctx, {
+        percentageDamage: effect.type === EffectType.FixedHit ? effect.percentageDamage : undefined,
         source,
         target: t,
         kind,

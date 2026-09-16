@@ -15,6 +15,7 @@ import type { DamageKind as DamageKindType, DamageOrigin as DamageOriginType, Sc
 import { damageTakenFactor, effectiveAttrs, healDealtFactor, healTakenFactor, isStanding, recoverableHp } from "./units.ts"
 
 export type StrikeInput = {
+  percentageDamage?: boolean
   source: Unit
   target: Unit
   kind: DamageKindType
@@ -88,6 +89,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   raw = floorAtLeast(MIN_DAMAGE, raw * damageTakenFactor(target, input.kind))
 
   const hooked = ctx.hooks.emit(HookName.OnHitCalc, {
+    percentageDamage: input.percentageDamage,
     source,
     target,
     damage: raw,
@@ -367,6 +369,7 @@ export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power:
     ctx.currentAction?.primaryTargetId !== undefined && target.id === ctx.currentAction.primaryTargetId
   const taken = healTakenFactor(target) * (fixedBase ? 1 : healDealtFactor(source))
   const hooked = ctx.hooks.emit(HookName.OnHealCalc, {
+    origin: ctx.suppressHooks > 0 ? DamageOrigin.HookDerived : DamageOrigin.ActionDirect,
     source,
     target,
     heal: amount * taken,

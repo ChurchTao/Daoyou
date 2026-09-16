@@ -344,6 +344,13 @@
       "when": 1789465138319,
       "tag": "0048_competitive_replay_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1789533721588,
+      "tag": "0049_manual_first_release",
+      "breakpoints": true
     }
   ]
 }

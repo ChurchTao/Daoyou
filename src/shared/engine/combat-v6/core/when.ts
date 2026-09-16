@@ -15,6 +15,7 @@ export type WhenScope = {
   kind?: DamageKind
   origin?: DamageOrigin
   isPrimary?: boolean
+  percentageDamage?: boolean
   /** 写入 marks 的前缀，通常是被动技能 id + 钩子下标 */
   markKey?: string
 }
@@ -64,6 +65,18 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   if (!when) return true
   const skillId = scope.skillId ?? scope.skill?.id ?? ctx.currentAction?.skillId
   const skill = scope.skill
+  if (when.excludeSkillTags?.some(tag => skill?.tags.includes(tag))) return false
+  if (when.excludePercentageDamage && scope.percentageDamage) return false
+  const mpRatio = scope.source.attrs.mp / Math.max(1, scope.source.attrs.maxMp)
+  if (when.sourceMpRatioBelow !== undefined && mpRatio >= when.sourceMpRatioBelow) return false
+  if (when.sourceMpRatioAbove !== undefined && mpRatio <= when.sourceMpRatioAbove) return false
+  if (when.sourceHasBarrier !== undefined && scope.source.barriers.some(b => b.current > 0) !== when.sourceHasBarrier) return false
+  if (when.targetHasBarrier !== undefined && (!scope.target || scope.target.barriers.some(b => b.current > 0) !== when.targetHasBarrier)) return false
+  if (when.sourceStatusCategories && !hasCategory(ctx, scope.source, when.sourceStatusCategories)) return false
+  if (when.sourceRemovableControl && !scope.source.statuses.some(s => {
+    const def = ctx.statusDefs.get(s.id)
+    return def?.category === 'control' && def.dispellable !== false && !def.blocksRevive
+  })) return false
   const isPrimary =
     scope.isPrimary ??
     (scope.target !== undefined && scope.target.id === ctx.currentAction?.primaryTargetId)

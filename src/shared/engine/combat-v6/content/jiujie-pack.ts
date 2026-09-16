@@ -84,7 +84,7 @@ export function compileJiujieCombat(pack: ReturnType<typeof loadJiujieCombat>) {
   function compileEffect(effect: z.infer<typeof effectShape>): SkillEffect[] {
     if (effect.type === 'fiveThunderBranches') return pack.judgment.branches.map(branch => ({
       type: EffectType.RandomBranch, branchId: branch.branchId, chance: branch.chance, when: branch.when,
-      successEffects: structuredClone(pack.judgment.successEffects), failureEffects: structuredClone(pack.judgment.failureEffects),
+      successEffects: pack.judgment.successEffects.map(e => e.type === EffectType.FixedHit ? { ...e, percentageDamage: true } : structuredClone(e)), failureEffects: pack.judgment.failureEffects.map(e => e.type === EffectType.FixedHit ? { ...e, percentageDamage: true } : structuredClone(e)),
     }));
     if (effect.type === 'detonation') {
       const rule = pack.detonation;

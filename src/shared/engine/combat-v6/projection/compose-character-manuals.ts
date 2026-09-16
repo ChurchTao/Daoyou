@@ -30,7 +30,9 @@ export function composeCharacterManuals(
   const attrs = { ...base.unit.attrs }
   for (const contribution of manuals.projection.panel) {
     attrs[contribution.attr] = contribution.mode === "add"
-      ? Math.floor((attrs[contribution.attr] ?? 0) + contribution.value)
+      ? (contribution.attr === 'sealResist'
+        ? (attrs[contribution.attr] ?? 0) + contribution.value
+        : Math.floor((attrs[contribution.attr] ?? 0) + contribution.value))
       : Math.floor((attrs[contribution.attr] ?? 0) * contribution.value)
   }
   const passiveIds = new Set(capabilities.passiveIds)

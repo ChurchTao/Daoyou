@@ -18,10 +18,10 @@ import {
   manualRule,
 } from '@shared/engine/combat-v6/manuals/content';
 import { MANUAL_REALMS } from '@shared/engine/combat-v6/manuals/pack';
+import { manualEffectLines } from '@shared/engine/combat-v6/manuals/presentation';
 import type { CharacterManualDefV1 } from '@shared/engine/combat-v6/manuals/types';
 import { itemDefinition } from '@shared/inventory';
-import { CHARACTER_ATTRIBUTE_LABELS } from '@shared/lib/characterAttributeLabels';
-import { previewManualAction } from '@shared/manuals/action';
+import { manualJadeCost, previewManualAction } from '@shared/manuals/action';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { combatV6Request, mutationBody } from '../combat-v6/request';
@@ -30,14 +30,7 @@ import { ManualRealmSlot } from './ManualRealmSlot';
 
 const endpoint = '/api/combat-v6/manuals';
 function effects(manual: CharacterManualDefV1, level: number) {
-  return manual.effects
-    .map(
-      (e) =>
-        CHARACTER_ATTRIBUTE_LABELS[e.attribute] +
-        ' +' +
-        e.valuePerLevel * level,
-    )
-    .join(' · ');
+  return manualEffectLines(manual, level).join('；');
 }
 
 export function ManualRoom() {
@@ -323,15 +316,13 @@ export function ManualRoom() {
           <div className="space-y-4 text-sm">
             <p>{manual.description}</p>
             <p>
-              {manual.realm} · {manual.rarity === 'rare' ? '珍稀' : '常见'} ·{' '}
+              {manual.realm} ·{' '}
               {learned ? learned.level + '/' + rule.maxLevel + '层' : '未习得'}
             </p>
-            <p className="font-mono">{effects(manual, learned?.level ?? 1)}</p>
+            <p>{effects(manual, learned?.level ?? 1)}</p>
             <p className="text-ink-secondary">
               {learned ? '圆满效果：' : '一层即可获得上述效果；圆满效果：'}
-              <span className="font-mono">
-                {effects(manual, rule.maxLevel)}
-              </span>
+              <span>{effects(manual, rule.maxLevel)}</span>
             </p>
             <p>
               持有同名玉简{' '}
@@ -362,7 +353,7 @@ export function ManualRoom() {
                 <span className="font-mono">
                   {learnedInRealm}/{MAX_MANUALS_PER_SLOT}
                 </span>{' '}
-                种。最多学习三种，暂不支持遗忘或替换，请谨慎选择。
+                种。最多收藏六种，同位仅一本生效，可免费切换。
               </p>
             ) : null}
             {learned?.level === rule.maxLevel ? (
@@ -370,7 +361,16 @@ export function ManualRoom() {
             ) : (
               <>
                 {nextKind === 'unlock' ? (
-                  <p>已遇瓶颈，需一本同名玉简解锁后续层数。</p>
+                  <p>
+                    已遇瓶颈，需{' '}
+                    <span className="font-mono">
+                      {manualJadeCost(view.state!, {
+                        action: 'unlock',
+                        manualId: manual.id,
+                      })}
+                    </span>{' '}
+                    本同名玉简解锁后续层数。
+                  </p>
                 ) : null}
                 {!confirmation ? (
                   <InkButton
@@ -401,12 +401,12 @@ export function ManualRoom() {
                 ) : null}
                 {nextKind === 'learn' &&
                 learnedInRealm >= MAX_MANUALS_PER_SLOT ? (
-                  <p>该境界位已学满三种功法，不能继续学习新的功法。</p>
+                  <p>该境界位已学满六种功法，不能继续学习新的功法。</p>
                 ) : null}
                 {nextKind === 'train' && !preview?.ok ? (
                   <p className="text-ink-secondary">
                     {preview?.diagnostics.map((d) => d.message).join('；') ??
-                      '需要一本同名玉简'}
+                      '暂时无法修炼，请刷新核对'}
                   </p>
                 ) : null}
               </>
@@ -466,7 +466,11 @@ export function ManualRoom() {
                   </>
                 ) : (
                   <p>
-                    消耗一本《{manual.name}》玉简
+                    消耗{' '}
+                    <span className="font-mono">
+                      {manualJadeCost(view.state!, confirmation)}
+                    </span>{' '}
+                    本《{manual.name}》玉简
                     {confirmation.action === 'unlock'
                       ? '，解锁后仍需修炼升层'
                       : ''}

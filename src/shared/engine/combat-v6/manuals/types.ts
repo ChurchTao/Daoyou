@@ -32,13 +32,13 @@ export interface CombatV6CapabilityContribution {
 export interface CharacterManualDefV1 {
   id: string;
   realm: '炼气' | '筑基' | '金丹' | '元婴';
-  rarity: 'common' | 'rare';
   name: string;
   description: string;
   progressionId: string;
-  dropWeight: number;
+  mechanism: import('./pack').ManualMechanism;
   effects: Array<{
     attribute: keyof import('@shared/types/cultivator').Attributes;
+    valueAt1: number;
     valuePerLevel: number;
   }>;
   skill: SkillDef;

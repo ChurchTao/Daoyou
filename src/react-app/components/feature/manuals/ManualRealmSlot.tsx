@@ -1,3 +1,4 @@
+import { manualAttributeValue } from '@shared/engine/combat-v6/manuals/attributes';
 import { MAX_MANUALS_PER_SLOT } from '@shared/engine/combat-v6/manuals/compiler';
 import { manualRule } from '@shared/engine/combat-v6/manuals/content';
 import type {
@@ -146,7 +147,6 @@ export function ManualRealmSlot({
               <span className="block text-sm font-medium">{current.name}</span>
               <span className="text-ink-secondary text-xs">
                 <span className="font-mono">{progress?.level}</span> 层
-                {current.rarity === 'rare' ? ' · 珍稀' : ''}
               </span>
             </button>
             {manuals.length > 1 ? (
@@ -166,7 +166,7 @@ export function ManualRealmSlot({
               <span key={effect.attribute}>
                 {CHARACTER_ATTRIBUTE_LABELS[effect.attribute]}{' '}
                 <span className="font-mono">
-                  +{effect.valuePerLevel * (progress?.level ?? 1)}
+                  +{manualAttributeValue(effect, progress?.level ?? 1)}
                 </span>
               </span>
             ))}

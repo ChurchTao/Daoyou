@@ -61,6 +61,7 @@ export function bindDataHooks(ctx: BattleContext): void {
             kind: hctx.kind ?? hook.requireKind,
             origin: hctx.origin,
             isPrimary: hctx.isPrimary,
+            percentageDamage: hctx.percentageDamage,
             markKey: `${skill.id}:${hookIndex}`,
           }
           if (!matchesWhen(ctx, hook.when, scope)) return

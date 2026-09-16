@@ -9,8 +9,8 @@ import { compileSectDefinitionV6 } from './compiler';
 import { createEmptySectCombatProgressV6, createFreshCombatV6MethodLevels } from '../build-state';
 
 describe('宗门技能学习配置', () => {
-  it('所有技能、状态、流派节点和心法完整定义与迁移前一致', () => {
-    expect(createHash('sha256').update(JSON.stringify(COMBAT_V6_SECT_DEFINITIONS)).digest('hex')).toBe('e76aa73d14ab25af362a3a41140607242f80f6d0601c0382755cb16e01287a5c');
+  it('技能、状态、流派和心法保持基线（含比例伤害分类）', () => {
+    expect(createHash('sha256').update(JSON.stringify(COMBAT_V6_SECT_DEFINITIONS)).digest('hex')).toBe('0773c048fc7c062f41d00ba6dbdfd42efaefd521d96b3046cf49addd17424565');
   });
   it('Schema 与编辑器一致', () => {
     expect(z.toJSONSchema(SectSkillLearningShape)).toEqual(schema);

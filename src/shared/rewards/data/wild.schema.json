@@ -117,19 +117,6 @@
                 "slots"
               ],
               "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "kind": {
-                  "type": "string",
-                  "const": "manualJades"
-                }
-              },
-              "required": [
-                "kind"
-              ],
-              "additionalProperties": false
             }
           ]
         }

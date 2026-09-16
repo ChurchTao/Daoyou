@@ -3,7 +3,10 @@ import type {
   CombatV6ProjectionDiagnostic,
   CultivatorBaseCombatInput,
 } from '../projection/types.ts';
+import { DaoyouRule } from '../rules-daoyou/constants';
+import { manualAttributeValue } from './attributes';
 import { CHARACTER_MANUALS_V1, manualRule } from './content.ts';
+import { compileManualSkill, manualMechanismValue } from './mechanism';
 import { MANUAL_REALMS } from './pack.ts';
 import type {
   CharacterManualDefV1,
@@ -13,7 +16,7 @@ import type {
   ManualSlotV1,
 } from './types.ts';
 
-export const MAX_MANUALS_PER_SLOT = 3;
+export const MAX_MANUALS_PER_SLOT = 6;
 
 export function getManualSlotCount(realm: RealmType): number {
   return Math.min(4, REALM_VALUES.indexOf(realm) + 1);
@@ -60,7 +63,7 @@ export function validateManualStateV1(
     const slot = manualSlot(def);
     const count = (learnedCounts.get(slot) ?? 0) + 1;
     learnedCounts.set(slot, count);
-    if (count > MAX_MANUALS_PER_SLOT) fail('每个境界位最多学习三种功法');
+    if (count > MAX_MANUALS_PER_SLOT) fail('每个境界位最多学习六种功法');
     const rule = manualRule(def);
     if (manualSlot(def) > getManualSlotCount(realm))
       fail('当前境界不能修炼该功法');
@@ -120,8 +123,16 @@ export function compileCharacterManualsV1(
     for (const effect of def.effects)
       projection.attributeBonuses[effect.attribute] =
         (projection.attributeBonuses[effect.attribute] ?? 0) +
-        effect.valuePerLevel * level;
-    projection.skills.push(def.skill);
+        manualAttributeValue(effect, level);
+    projection.skills.push(compileManualSkill(def, level));
+    if (def.mechanism.type === 'sealResist')
+      projection.panel.push({
+        attr: 'sealResist',
+        mode: 'add',
+        value:
+          manualMechanismValue(def.mechanism, level) *
+          DaoyouRule.hitChanceScale,
+      });
     projection.passiveSkillIds.push(def.skill.id);
     projection.skillLevels[def.skill.id] = level;
     projection.capabilities.push({

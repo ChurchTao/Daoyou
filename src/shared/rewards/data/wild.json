@@ -1,10 +1,10 @@
 {
   "$schema": "./wild.schema.json",
   "formatVersion": 1,
-  "contentRevision": 11,
+  "contentRevision": 12,
   "nodeId": "SAT_TN_08",
   "poolId": "qingxi",
-  "poolVersion": 12,
+  "poolVersion": 13,
   "equipmentLevels": [
     10
   ],
@@ -629,7 +629,201 @@
       "id": "manuals",
       "chance": 0.03,
       "source": {
-        "kind": "manualJades"
+        "kind": "fixed",
+        "entries": [
+          {
+            "rewardId": "jade.character_manual.changchun",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.gengjin",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.qingmu",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.qingquan",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.chiyan",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.houtu_jue",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.guiyuan",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.huanling",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.qingyuan",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.dayan",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.sanzhuan",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.shayao",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.taibai",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.taiyang",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.xuanyin",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.yudan",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.tianluo",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.liuji",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.tuotian",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.mingwang",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.yuanci",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.haoran",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.qianlang",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "rewardId": "jade.character_manual.yousha",
+            "weight": 100,
+            "quantity": {
+              "min": 1,
+              "max": 1
+            }
+          }
+        ]
       }
     }
   ]

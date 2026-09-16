@@ -30,6 +30,7 @@ export type HookContext = {
   isPrimary?: boolean
   crit?: boolean
   chance?: number
+  percentageDamage?: boolean
 }
 
 export type HookFn = (ctx: HookContext) => void

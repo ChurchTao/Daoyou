@@ -7,6 +7,7 @@ import {
 } from '@shared/engine/combat-v6/beasts/content';
 import { BEAST_REFINEMENT } from '@shared/engine/combat-v6/beasts/refinement-config';
 import { CHARACTER_MANUALS_V1 } from '@shared/engine/combat-v6/manuals/content';
+import { manualEffectLines } from '@shared/engine/combat-v6/manuals/presentation';
 import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
 import { MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
 import { SeedFactsSchema } from '@shared/items/definitions/seeds';
@@ -116,7 +117,18 @@ export const manualAdapter: ItemAdapter = (item, def) => {
         field('传承境界', manual.realm),
         quantity(item, options),
       ],
-      sections: [{ title: '所载功法', entries: lines(manual.description) }],
+      sections: [
+        {
+          title: '所载功法',
+          entries: lines(
+            [
+              ...manualEffectLines(manual, 1),
+              '九层：' + manualEffectLines(manual, 9).join('；'),
+              manual.description,
+            ].join('\n'),
+          ),
+        },
+      ],
       description: '封存功法传承的玉简，可于悟道室参悟其中法门。',
     }),
   };

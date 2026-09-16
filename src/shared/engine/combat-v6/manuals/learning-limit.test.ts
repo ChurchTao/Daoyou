@@ -25,7 +25,7 @@ function fullSlot(): CultivatorManualStateV1 {
     learned: [],
     build: { slots: [] },
   };
-  for (const manual of manuals.slice(0, 3)) {
+  for (const manual of manuals) {
     const result = learn(state, manual);
     if (!result.ok) throw new Error(result.diagnostics[0].message);
     state = result.state;
@@ -33,11 +33,11 @@ function fullSlot(): CultivatorManualStateV1 {
   return state;
 }
 
-describe('功法每境界三种学习上限', () => {
-  it('第三种可以学习，第四种拒绝且保留全部进度和激活项', () => {
+describe('功法每境界六种学习上限', () => {
+  it('六种可以全部学习，重复学习拒绝且保留进度和激活项', () => {
     const state = fullSlot();
     const before = structuredClone(state);
-    expect(state.learned).toHaveLength(3);
+    expect(state.learned).toHaveLength(6);
     expect(state.build.slots).toEqual([{ slot: 1, manualId: manuals[0].id }]);
     expect(learn(state, manuals[3])).toMatchObject({ ok: false });
     expect(state).toEqual(before);
@@ -48,7 +48,7 @@ describe('功法每境界三种学习上限', () => {
       state,
       CHARACTER_MANUALS_V1.find((m) => m.realm === '筑基')!,
     );
-    expect(result.ok && result.state.learned).toHaveLength(4);
+    expect(result.ok && result.state.learned).toHaveLength(7);
     expect(result.ok && result.state.build.slots).toHaveLength(2);
   });
   it('学满后仍可修炼、用同名玉简突破及免费切换', () => {
@@ -66,16 +66,17 @@ describe('功法每境界三种学习上限', () => {
       expect(result.ok).toBe(true);
       if (result.ok) state = result.state;
     }
-    expect(state.learned).toHaveLength(3);
+    expect(state.learned).toHaveLength(6);
     expect(state.learned[0]).toMatchObject({ level: 3, unlockedLevel: 6 });
     expect(state.build.slots[0].manualId).toBe(manuals[1].id);
   });
-  it('状态校验拒绝同境界超过三种功法', () => {
+  it('状态校验拒绝同境界超过六种功法', () => {
     const state = fullSlot();
-    state.learned.push({ manualId: manuals[3].id, level: 1, unlockedLevel: 3 });
-    expect(validateManualStateV1(state, '筑基')).toEqual(
+    const extra = { ...manuals[0], id: 'character_manual.extra' };
+    state.learned.push({ manualId: extra.id, level: 1, unlockedLevel: 3 });
+    expect(validateManualStateV1(state, '筑基', [...CHARACTER_MANUALS_V1, extra])).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ message: '每个境界位最多学习三种功法' }),
+        expect.objectContaining({ message: '每个境界位最多学习六种功法' }),
       ]),
     );
   });

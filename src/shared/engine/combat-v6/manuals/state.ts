@@ -49,7 +49,7 @@ export function changeManual(input: {
       ),
     ).length;
     if (count >= MAX_MANUALS_PER_SLOT)
-      return fail('该境界位已学满三种功法，暂不支持遗忘或学习新的功法');
+      return fail('该境界位已学满六种功法');
     next.learned.push({
       manualId: def.id,
       level: 1,

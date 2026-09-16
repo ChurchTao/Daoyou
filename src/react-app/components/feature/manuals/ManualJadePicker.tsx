@@ -9,7 +9,7 @@ import { manualSlot } from '@shared/engine/combat-v6/manuals/compiler';
 import { CHARACTER_MANUALS_V1 } from '@shared/engine/combat-v6/manuals/content';
 import type { CharacterManualDefV1 } from '@shared/engine/combat-v6/manuals/types';
 import { itemDefinition } from '@shared/inventory';
-import { previewManualAction } from '@shared/manuals/action';
+import { manualJadeCost, previewManualAction } from '@shared/manuals/action';
 import { InventoryItems } from '../items/InventoryItems';
 
 export function ManualJadePicker({
@@ -25,6 +25,10 @@ export function ManualJadePicker({
   disabled: boolean;
   onChoose: (action: ManualAction) => void;
 }) {
+  const jadeCost =
+    manualId && view.state
+      ? manualJadeCost(view.state, { action: 'unlock', manualId })
+      : 1;
   const bag = useInventoryBag();
   const items = bag.data?.items ?? [];
   const choices = items.flatMap((item) => {
@@ -68,7 +72,7 @@ export function ManualJadePicker({
       />
       <p className="text-ink-secondary">
         {manualId
-          ? '选择一本同名玉简，突破当前瓶颈。'
+          ? `选择同名玉简，本次突破消耗 ${jadeCost} 本。`
           : `选择一本${realm}功法玉简，开始修习。`}
       </p>
       {bag.error ? (
@@ -79,7 +83,7 @@ export function ManualJadePicker({
       {bag.data && !bag.error && choices.length === 0 ? (
         <p role="status">
           {manualId
-            ? '物品栏中暂无可用于突破的同名玉简。'
+            ? `物品栏中暂无数量足够的同名玉简，本次需要 ${jadeCost} 本。`
             : `物品栏中暂无可学习的${realm}功法玉简。`}
         </p>
       ) : null}

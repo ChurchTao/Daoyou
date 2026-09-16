@@ -3,9 +3,7 @@ import { formatContentPackErrors } from '@shared/lib/content-pack-errors';
 import { z } from 'zod';
 import { DropPoolSchema, type DropPool } from '../drops';
 import { DAO_EQUIPMENT_SLOTS, type DaoEquipmentSlot } from '../engine/combat-v6/equipment/types';
-import { CHARACTER_MANUALS_V1 } from '../engine/combat-v6/manuals/content';
 import { WILD_REGION } from '../engine/combat-v6/wild/content';
-import { MANUAL_JADES } from '../items/definitions/manual-jades';
 import { findItemDefinition } from '../items/registry';
 import raw from './data/wild.json';
 
@@ -22,7 +20,6 @@ export const WildRewardPackShape = z.strictObject({
     source: z.discriminatedUnion('kind', [
       z.strictObject({ kind: z.literal('fixed'), entries: z.array(z.strictObject({ rewardId: z.string().min(1), weight: z.number().positive().max(1000000), quantity })).min(1) }),
       z.strictObject({ kind: z.enum(['equipment', 'blueprints']), slots: z.array(z.enum(DAO_EQUIPMENT_SLOTS)).min(1) }),
-      z.strictObject({ kind: z.literal('manualJades') }),
     ]),
   })).min(1),
 });
@@ -33,7 +30,7 @@ function compilePool(pack: z.infer<typeof WildRewardPackShape>): DropPool {
     groups: pack.groups.map(group => {
       const source = group.source;
       const entries = source.kind === 'fixed' ? source.entries
-        : source.kind === 'manualJades' ? MANUAL_JADES.map(jade => entry(jade.id, CHARACTER_MANUALS_V1.find(m => m.id === jade.manualId)!.dropWeight))
+
           : pack.equipmentLevels.flatMap(level => source.slots.map(slot => entry(`${source.kind === 'blueprints' ? 'blueprint' : 'equipment'}.${slot}.${level}`)));
       return { id: group.id, chance: group.chance, entries };
     }),

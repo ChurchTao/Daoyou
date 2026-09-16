@@ -314,6 +314,14 @@ export type SkillTargeting = {
 
 /** 钩子/效果的通用过滤。引擎只做匹配，不要在这里写门派名。 */
 export type EffectWhen = {
+  excludeSkillTags?: SkillTag[];
+  excludePercentageDamage?: boolean;
+  sourceMpRatioBelow?: number;
+  sourceMpRatioAbove?: number;
+  sourceHasBarrier?: boolean;
+  targetHasBarrier?: boolean;
+  sourceStatusCategories?: StatusCategory[];
+  sourceRemovableControl?: boolean;
   skillIds?: SkillId[];
   skillTags?: SkillTag[];
   requireStatusIds?: StatusId[];
@@ -391,6 +399,8 @@ type EffectCore =
     }
   | {
       type: typeof EffectType.FixedHit;
+      /** Damage based on the target's current/maximum HP, not an ordinary attack. */
+      percentageDamage?: boolean;
       hits?: Expr;
       coeff?: number | number[];
       /** Multiplies the resolved damage, rather than the attack formula. */
