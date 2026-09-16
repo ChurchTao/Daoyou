@@ -1,3 +1,4 @@
+import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
 import { db, type DbExecutor } from '@server/lib/drizzle/db';
 import {
   cultivatorBeasts,
@@ -206,6 +207,7 @@ function view(payload: DungeonBattlePayload, after = -1): DungeonSessionView {
   const snapshot = payload.snapshot;
   return {
     apiVersion: 1,
+    controlledUnitId: host.playerId,
     playback: liveReplayDelta(payload.snapshot.timeline, after),
     sessionId: payload.session.battleId,
     revision: payload.revision,
@@ -216,6 +218,7 @@ function view(payload: DungeonBattlePayload, after = -1): DungeonSessionView {
     outcome: host.trace().outcome,
     units: combatV6Units(host.state, snapshot.input.statusDefs ?? []),
     display: {
+      unitAppearances: publicUnitAppearances(snapshot.timeline.unitAppearances, visibleUnitNames(host.state, snapshot.events, host.playerId)),
       ...combatV6Display(
         snapshot.input.skills ?? [],
         snapshot.input.statusDefs ?? [],

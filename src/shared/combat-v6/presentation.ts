@@ -57,6 +57,21 @@ export function combatV6Units(
   statuses: StatusDef[],
 ): CombatV6TrainingUnitViewV1[] {
   const names = new Map(statuses.map((s) => [s.id, s.name]));
+  const importance = new Map(
+    statuses.map((s) => [
+      s.id,
+      s.blocksAction ||
+      s.blocksSpell ||
+      s.blocksPhysical ||
+      s.blocksRevive ||
+      s.commandPolicy ||
+      s.category === 'control'
+        ? ('control' as const)
+        : s.category === 'debuff' || s.category === 'dot'
+          ? ('harmful' as const)
+          : undefined,
+    ]),
+  );
   const permanentIds = new Set(
     statuses.filter((s) => s.untilBattleEnd).map((s) => s.id),
   );
@@ -90,6 +105,7 @@ export function combatV6Units(
         statuses: u.statuses.map((s) => ({
           id: s.id,
           name: names.get(s.id) ?? '未知状态',
+          importance: importance.get(s.id),
           remainingRounds: s.remainingRounds,
           ...(permanentIds.has(s.id) ? { untilBattleEnd: true } : {}),
           stacks: s.stacks,

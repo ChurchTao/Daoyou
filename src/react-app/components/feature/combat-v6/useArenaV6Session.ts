@@ -17,7 +17,14 @@ export function useArenaV6Session(battleId: string, spectator = false) {
   const [connected, setConnected] = useState(false);
   const [pending, setPending] = useState(false);
   const [clockOffset, setClockOffset] = useState(0);
-  const [retry, setRetry] = useState<ArenaV6Submit>();
+  const [retryInput, setRetry] = useState<ArenaV6Submit>();
+  const retry =
+    retryInput &&
+    state.session?.stage === 'collecting' &&
+    retryInput.round === state.session.round &&
+    !state.session.submittedUnitIds.includes(state.session.controlledUnitId)
+      ? retryInput
+      : undefined;
   const [generation, refresh] = useReducer((n) => n + 1, 0);
   const readRef = useRef<(full?: boolean) => void>(() => {});
   const latest = useRef<ArenaSessionView | null>(null);
@@ -83,7 +90,7 @@ export function useArenaV6Session(battleId: string, spectator = false) {
       void read(full);
     };
     const connect = () => {
-      if (disposed || accessEnded) return;
+      if (disposed || accessEnded || !navigator.onLine) return;
       ready = false;
       buffered = [];
       const url = new URL(`${base}/socket`, window.location.href);
@@ -133,12 +140,26 @@ export function useArenaV6Session(battleId: string, spectator = false) {
           return;
         }
         if (!reading && !latest.current) void read();
-        if (!accessEnded) retryTimer = setTimeout(connect, 1500);
+        if (!accessEnded && navigator.onLine)
+          retryTimer = setTimeout(connect, 1500);
       };
     };
+    const offline = () => {
+      setConnected(false);
+      clearTimeout(retryTimer);
+      socket?.close();
+    };
+    const online = () => {
+      clearTimeout(retryTimer);
+      connect();
+    };
+    window.addEventListener('offline', offline);
+    window.addEventListener('online', online);
     connect();
     return () => {
       disposed = true;
+      window.removeEventListener('offline', offline);
+      window.removeEventListener('online', online);
       lifetime.version++;
       clearTimeout(retryTimer);
       controller?.abort();
@@ -193,12 +214,14 @@ export function useArenaV6Session(battleId: string, spectator = false) {
       commands: import('@shared/contracts/combatV6').CombatV6CommandGroup,
     ) => {
       const session = latest.current;
-      if (spectator || !session || !connected || retry) return;
-      await send({
+      if (spectator || !session || !connected || retry)
+        throw new Error('当前无法下令');
+      const accepted = await send({
         round: session.round,
         requestId: crypto.randomUUID(),
         commands,
       });
+      if (!accepted) throw new Error('提交未确认，草稿已保留');
     },
     [connected, retry, send, spectator],
   );

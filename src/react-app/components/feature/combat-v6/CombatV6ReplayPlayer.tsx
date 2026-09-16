@@ -11,7 +11,7 @@ import { Link } from 'react-router';
 import { CombatV6Details } from './CombatV6Details';
 import { CombatV6Log } from './CombatV6Log';
 import { CombatV6Roster } from './CombatV6Roster';
-import { appendBattleEntries, unitLabels } from './presentation';
+import { appendBattleEntries, frameFeedback, unitLabels } from './presentation';
 
 const none: string[] = [];
 const outcomes: Record<string, string> = {
@@ -40,6 +40,7 @@ export function CombatV6ReplayPlayer({
   const [position, setPosition] = useState(() => seek(0));
   const [running, setRunning] = useState(autoPlay);
   const [speed, setSpeed] = useState(1);
+  const [seekGeneration, setSeekGeneration] = useState(0);
   const [inspected, setInspected] = useState<string>();
   const count = timeline.frames.length;
   const playing = running && position.index < count;
@@ -47,6 +48,7 @@ export function CombatV6ReplayPlayer({
   const move = useCallback(
     (index: number) => {
       setRunning(false);
+      setSeekGeneration((n) => n + 1);
       setPosition(seek(index));
     },
     [seek],
@@ -93,12 +95,27 @@ export function CombatV6ReplayPlayer({
         <CombatV6Roster
           units={position.units}
           labels={labels}
-          controlledId={record.controlledUnitId}
+          appearances={record.display.unitAppearances}
+          ownId={record.controlledUnitId}
+          feedback={
+            playing
+              ? frameFeedback(log.entries, position.visibleSeq)
+              : undefined
+          }
+          recalledOwnerIds={record.events.flatMap(({ seq, event }) =>
+            seq <= position.visibleSeq && event.type === 'petRecalled'
+              ? [event.unitId]
+              : [],
+          )}
           selectedIds={none}
           onInspect={setInspected}
           onPick={setInspected}
         />
-        <CombatV6Log entries={log.entries} visibleSeq={position.visibleSeq} />
+        <CombatV6Log
+          key={seekGeneration}
+          entries={log.entries}
+          visibleSeq={position.visibleSeq}
+        />
       </div>
       {ended ? endContent : null}
       <footer className="cv6-replay-controls" aria-label="回放控制">
@@ -117,7 +134,10 @@ export function CombatV6ReplayPlayer({
           </button>
           <button
             onClick={() => {
-              if (ended) setPosition(seek(0));
+              if (ended) {
+                setPosition(seek(0));
+                setSeekGeneration((n) => n + 1);
+              }
               setRunning(!playing);
             }}
             disabled={!count}

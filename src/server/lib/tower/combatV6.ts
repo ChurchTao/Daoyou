@@ -1,3 +1,4 @@
+import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
 import { automaticCommands } from '@shared/combat-v6/auto';
 import {
   combatV6Display,
@@ -275,6 +276,7 @@ function battleView(run: Run, after = -1): TowerSessionView {
   const host = new TowerHost(battle.snapshot, battle.snapshot);
   return {
     apiVersion: 1,
+    controlledUnitId: host.playerId,
     settlement: host.finished
       ? battle.settled
         ? 'settled'
@@ -290,6 +292,7 @@ function battleView(run: Run, after = -1): TowerSessionView {
     outcome: host.trace().outcome,
     units: combatV6Units(host.state, battle.snapshot.input.statusDefs ?? []),
     display: {
+      unitAppearances: publicUnitAppearances(battle.snapshot.timeline.unitAppearances, visibleUnitNames(host.state, battle.snapshot.events, host.playerId)),
       ...combatV6Display(
         battle.snapshot.input.skills ?? [],
         battle.snapshot.input.statusDefs ?? [],

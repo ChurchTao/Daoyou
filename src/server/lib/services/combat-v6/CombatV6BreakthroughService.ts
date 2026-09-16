@@ -1,3 +1,4 @@
+import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
 import { db, type DbTransaction } from '@server/lib/drizzle/db';
 import { cultivators, cultivatorTasks } from '@server/lib/drizzle/schema';
 import { dungeonPlayer } from '@server/lib/dungeon/combatV6';
@@ -88,6 +89,7 @@ function view(
   const snapshot = runtime.snapshot;
   return {
     apiVersion: 1,
+    controlledUnitId: host.playerId,
     sessionId: runtime.battleId,
     taskId: runtime.taskId,
     challengeTitle: BREAKTHROUGH_CHALLENGES[runtime.challengeId].title,
@@ -100,6 +102,7 @@ function view(
     outcome: host.trace().outcome,
     units: combatV6Units(host.state, snapshot.input.statusDefs ?? []),
     display: {
+      unitAppearances: publicUnitAppearances(snapshot.timeline.unitAppearances, visibleUnitNames(host.state, snapshot.events, host.playerId)),
       ...combatV6Display(
         snapshot.input.skills ?? [],
         snapshot.input.statusDefs ?? [],

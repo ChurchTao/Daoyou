@@ -1,3 +1,5 @@
+import { playerAppearances } from '@shared/combat-v6/unit-appearance';
+import type { CombatV6UnitAppearance } from '@shared/contracts/combatV6';
 import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { db } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
@@ -45,6 +47,7 @@ import {
 } from '@shared/engine/combat-v6/beasts';
 import type { SkillDef, StatusDef } from '@shared/engine/combat-v6/core';
 import { projectCharacterToCombatV6 } from '@shared/engine/combat-v6/projection';
+import { characterBattleSkills } from '@shared/engine/combat-v6/projection/character-battle-skills';
 import { and, eq } from 'drizzle-orm';
 import { JSONCodec } from 'nats';
 import { ArenaRoomService } from '../ArenaRoomService';
@@ -101,6 +104,7 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
         const skills = new Map<string, SkillDef>();
         const statuses = new Map<string, StatusDef>();
         const units: ArenaRuntime['units'] = [];
+        const unitAppearances: Record<string, CombatV6UnitAppearance> = {};
         const participants: ArenaRuntime['participants'] = [];
         for (const seat of seats) {
           if (
@@ -130,7 +134,8 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
             resourcePolicy: 'full',
           });
           if (!projection.ok) throw new ArenaV6Error('参战构筑无法编译');
-          units.push(projection.unit);
+          Object.assign(unitAppearances, playerAppearances(player));
+          units.push(characterBattleSkills(projection.unit, projection.skills, skills));
           units.push(
             ...projectBeastRoster(
               player.beasts,
@@ -149,7 +154,6 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
             side,
             slot: seat.slot,
           });
-          mergeDefinitions(skills, projection.skills);
           mergeDefinitions(statuses, projection.statusDefs);
         }
         units.sort((a, b) => a.side - b.side || (a.slot ?? 0) - (b.slot ?? 0));
@@ -174,6 +178,7 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
             battle.snapshot(),
             input.statusDefs,
             battle.log().length - 1,
+            unitAppearances,
           ),
           events: [...battle.log()],
           rounds: [],

@@ -1,3 +1,4 @@
+import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
 import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { db } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
@@ -536,6 +537,7 @@ export class CombatV6WildSessionService {
     const player = state.units.find((u) => u.id === host.playerId)!;
     return structuredClone({
       apiVersion: 1,
+    controlledUnitId: host.playerId,
       sessionId: r.battleId,
       playback: liveReplayDelta(r.host.timeline, after),
       revision: r.revision,
@@ -553,6 +555,7 @@ export class CombatV6WildSessionService {
         : 'not-started',
       units: combatV6Units(state, r.host.input.statusDefs ?? []),
       display: {
+      unitAppearances: publicUnitAppearances(r.host.timeline.unitAppearances, visibleUnitNames(state, r.host.events, host.playerId)),
         ...combatV6Display(
           r.host.input.skills ?? [],
           r.host.input.statusDefs ?? [],

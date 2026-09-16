@@ -1,3 +1,4 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { findBeastSkillPresentation } from '@shared/combat-v6/beast-skill-presentation';
 import type { CombatV6SkillCommandOption } from '@shared/engine/combat-v6/core/types';
@@ -36,9 +37,7 @@ export function CombatV6SkillChoice({
           onClick={onSelect}
         >
           {presentation ? (
-            <span aria-hidden className="mr-1">
-              {presentation.icon}
-            </span>
+            <GameIcon value={presentation.icon} className="mr-1" />
           ) : null}
           {skill.name}
         </button>
@@ -55,7 +54,23 @@ export function CombatV6SkillChoice({
         </InkTooltip>
       </div>
       <small>
-        {costs}
+        {costs.split(/(\d+)/).map((part, i) =>
+          /^\d+$/.test(part) ? (
+            <span key={i} className="font-mono">
+              {part}
+            </span>
+          ) : (
+            part
+          ),
+        )}
+        {' · '}
+        {skill.targetMode === 'all'
+          ? '全体'
+          : skill.targetMode === 'random'
+            ? '随机'
+            : skill.targetCount > 1
+              ? '多目标'
+              : '单体'}
         {skill.reasons.length
           ? ` · ${skill.reasons.map(reasonText).join('；')}${skill.ready ? '（行动时判定）' : ''}`
           : ''}

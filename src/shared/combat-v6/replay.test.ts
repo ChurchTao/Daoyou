@@ -65,6 +65,21 @@ function record(scenario: (typeof presentationScenarios)[number]) {
   return { replay, snapshots, battle };
 }
 describe('historical presentation replay', () => {
+  it('preserves frozen appearance through archive parsing and filters unseen identities', () => {
+    const { replay } = record('1v3');
+    replay.timeline.unitAppearances = {
+      'unit-0': { icon: 'icon:cultivator-female-avatar' },
+      'never-appeared': { icon: '🐺', speciesName: '疾风狼' },
+    };
+    const parsed = parseCombatV6Replay(replay);
+    expect(parsed.timeline.unitAppearances?.['unit-0'].icon).toBe('icon:cultivator-female-avatar');
+    const view = combatV6ReplayView(parsed, id, 'user');
+    expect(view.display.unitAppearances).toEqual({ 'unit-0': { icon: 'icon:cultivator-female-avatar' } });
+    expect(view.timeline.unitAppearances).toEqual(view.display.unitAppearances);
+    delete replay.timeline.unitAppearances;
+    expect(combatV6ReplayView(replay, id, 'user').display.unitAppearances).toEqual({});
+  });
+
   it('seeks a long timeline across evicted checkpoints and equal public cursors', () => {
     const { replay } = record('1v3');
     const timeline = replay.timeline!;

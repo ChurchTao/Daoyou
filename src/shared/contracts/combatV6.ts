@@ -1,6 +1,4 @@
-import type {
-  CombatV6SectId,
-} from '@shared/engine/combat-v6/content';
+import type { CombatV6SectId } from '@shared/engine/combat-v6/content';
 import type {
   BattleEvent,
   CombatV6CommandOptions,
@@ -21,9 +19,7 @@ export const SectCombatReadinessSchema = z.enum([
   'pending',
   'active',
 ]);
-export type SectCombatReadiness = z.infer<
-  typeof SectCombatReadinessSchema
->;
+export type SectCombatReadiness = z.infer<typeof SectCombatReadinessSchema>;
 
 export interface SectCombatMethodView {
   id: string;
@@ -148,6 +144,11 @@ export const CombatV6TrainingEventsQuerySchema = z
   })
   .strict();
 
+export interface CombatV6UnitAppearance {
+  icon: string;
+  speciesName?: string;
+}
+
 export interface CombatV6TrainingUnitViewV1 {
   /** Other participants expose bars in basis points, not exact resource values. */
   publicBars?: boolean;
@@ -171,6 +172,7 @@ export interface CombatV6TrainingUnitViewV1 {
     name?: string;
     remainingRounds: number;
     untilBattleEnd?: boolean;
+    importance?: 'control' | 'harmful';
     stacks: number;
   }>;
   barriers: Array<{
@@ -224,6 +226,7 @@ export interface CombatV6TrainingSessionViewV1 {
   settlement?: 'pending' | 'settled' | 'not-started';
   apiVersion: typeof COMBAT_V6_TRAINING_API_VERSION;
   sessionId: string;
+  controlledUnitId?: string;
   revision: number;
   expiresAt: string;
   encounterId: string;
@@ -239,6 +242,7 @@ export interface CombatV6TrainingSessionViewV1 {
   events: Array<{ seq: number; event: CombatV6DisplayEvent }>;
   latestEventSeq: number;
   display?: {
+    unitAppearances?: Record<string, CombatV6UnitAppearance>;
     unitNames?: Record<string, string>;
     skills: Record<string, string>;
     skillDetails?: Record<

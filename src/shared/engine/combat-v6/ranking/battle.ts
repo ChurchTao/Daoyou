@@ -1,3 +1,4 @@
+import { playerAppearances, type PresentedBattleInput } from '../../../combat-v6/unit-appearance';
 import {
   AUTO_POLICY_VERSION,
   automaticCommands,
@@ -15,10 +16,11 @@ import {
 } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
 import { projectCharacterToCombatV6 } from '../projection';
+import { characterBattleSkills } from '../projection/character-battle-skills';
 import { daoyouRulesetV6 } from '../rules-daoyou';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
 
-export type RankingBattleInput = Omit<CreateBattleInput, 'ruleset'> & {
+export type RankingBattleInput = PresentedBattleInput & {
   seed: number;
 };
 
@@ -51,7 +53,7 @@ export function compileRankingBattle(
     });
     if (!p.ok) throw new Error('天骄榜构筑无法编译');
     units.push(
-      p.unit,
+      characterBattleSkills(p.unit, p.skills, skills),
       ...projectBeastRoster(
         player.beasts,
         p.unit.id!,
@@ -60,10 +62,10 @@ export function compileRankingBattle(
         p.unit.level,
       ).filter((b) => !b.benched),
     );
-    merge(skills, p.skills);
     merge(statuses, p.statusDefs);
   });
   return structuredClone({
+    unitAppearances: Object.assign({}, ...players.map(playerAppearances)),
     seed,
     units,
     skills: [...skills.values()],
@@ -90,6 +92,7 @@ export function simulateRankingBattle(input: RankingBattleInput) {
     battle.snapshot(),
     statuses,
     battle.log().length - 1,
+    input.unitAppearances,
   );
   const rounds = [];
   while (!battle.finished) {

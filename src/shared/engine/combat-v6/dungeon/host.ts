@@ -1,3 +1,4 @@
+import { playerAppearances, type PresentedBattleInput } from '../../../combat-v6/unit-appearance';
 import { AUTO_POLICY_VERSION } from '../../../combat-v6/auto-policy';
 import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import { UnitKind, type CreateBattleInput } from '../core';
@@ -47,7 +48,7 @@ export function carryDungeonBeastResources(
 export interface DungeonBattleSnapshot extends PveRestoredState {
   version: 'dungeon-v6-v1';
   playerId: string;
-  input: Omit<CreateBattleInput, 'ruleset'>;
+  input: PresentedBattleInput;
 }
 
 export class DungeonHost extends CombatV6PveHostSession {
@@ -78,6 +79,7 @@ export class DungeonHost extends CombatV6PveHostSession {
         sourceProjectionVersions: COMBAT_V6_PHASE_6D_VERSIONS,
       },
       restored,
+      source.input.unitAppearances,
     );
   }
   runtimeSnapshot(): DungeonBattleSnapshot {
@@ -110,6 +112,7 @@ export function createDungeonHost(
     version: 'dungeon-v6-v1',
     playerId: projected.unit.id!,
     input: {
+      unitAppearances: playerAppearances(player),
       seed,
       versions: DUNGEON_VERSIONS,
       units: [

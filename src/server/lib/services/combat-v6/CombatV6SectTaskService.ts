@@ -1,3 +1,4 @@
+import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
 import { isNotNull } from 'drizzle-orm';
 import { db, type DbTransaction } from '@server/lib/drizzle/db';
 import {
@@ -256,6 +257,7 @@ function view(
   const snapshot = runtime.snapshot;
   return {
     apiVersion: 1,
+    controlledUnitId: host.playerId,
     sessionId: runtime.battleId,
     taskId: runtime.taskId,
     revision: runtime.revision,
@@ -267,6 +269,7 @@ function view(
     outcome: host.trace().outcome,
     units: combatV6Units(host.state, snapshot.input.statusDefs ?? []),
     display: {
+      unitAppearances: publicUnitAppearances(snapshot.timeline.unitAppearances, visibleUnitNames(host.state, snapshot.events, host.playerId)),
       ...combatV6Display(
         snapshot.input.skills ?? [],
         snapshot.input.statusDefs ?? [],

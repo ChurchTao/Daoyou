@@ -3,10 +3,12 @@ import type {
   CombatV6DeltaFrameV1,
   CombatV6TrainingSessionViewV1,
   CombatV6TrainingUnitViewV1,
+  CombatV6UnitAppearance,
 } from './combatV6';
 
 /** Stored display facts use authoritative event cursors; API projection reindexes them. */
 export type CombatV6ReplayTimeline = {
+  unitAppearances?: Record<string, CombatV6UnitAppearance>;
   format: 'delta-v1';
   initialUnits: CombatV6TrainingUnitViewV1[];
   finalUnits?: CombatV6TrainingUnitViewV1[];
@@ -42,6 +44,7 @@ const unitSchema = z
           name: z.string().optional(),
           remainingRounds: z.number(),
           untilBattleEnd: z.boolean().optional(),
+          importance: z.enum(['control', 'harmful']).optional(),
           stacks: z.number(),
         })
         .strict(),
@@ -67,6 +70,17 @@ const unitSchema = z
 export const CombatV6ReplayTimelineSchema = z
   .object({
     format: z.literal('delta-v1'),
+    unitAppearances: z
+      .record(
+        z.string(),
+        z
+          .object({
+            icon: z.string(),
+            speciesName: z.string().optional(),
+          })
+          .strict(),
+      )
+      .optional(),
     initialUnits: z.array(unitSchema),
     finalUnits: z.array(unitSchema).optional(),
     initialRound: z.number().int().positive(),

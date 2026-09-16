@@ -1,3 +1,4 @@
+import { playerAppearances } from '../../../combat-v6/unit-appearance';
 import {
   AUTO_POLICY_VERSION,
   automaticCommands,
@@ -119,6 +120,7 @@ export class CombatV6PveHostSession {
   constructor(
     private readonly encounter: CompiledPveEncounter,
     restored?: PveRestoredState,
+    unitAppearances?: CombatV6ReplayTimeline['unitAppearances'],
   ) {
     const compiled = encounter;
     if (
@@ -139,6 +141,7 @@ export class CombatV6PveHostSession {
           this.battle.snapshot(),
           this.statusDefs,
           this.battle.log().length - 1,
+          unitAppearances,
         );
     if (restored) this.rounds.push(...clone(restored.rounds));
   }
@@ -362,7 +365,7 @@ export class CombatV6TrainingHostSessionV1
     private readonly compiled: CompiledCombatV6TrainingEncounterV1,
     restored?: CombatV6TrainingRuntimeSnapshotV1,
   ) {
-    super(compiled, restored);
+    super(compiled, restored, playerAppearances(compiled.sourcePlayerInput));
   }
 
   runtimeSnapshot(): CombatV6TrainingRuntimeSnapshotV1 {

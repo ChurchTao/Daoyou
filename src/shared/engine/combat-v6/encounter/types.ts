@@ -75,7 +75,10 @@ export type CombatV6EncounterDiagnostic = {
 export type CombatV6TrainingPlayerInput = Omit<
   ProjectCultivatorMultiSectToCombatV6Input,
   'side' | 'slot' | 'resourcePolicy'
-> & { beasts?: import('../beasts').BeastRoster };
+> & {
+  beasts?: import('../beasts').BeastRoster;
+  portrait?: 'icon:cultivator-male-avatar' | 'icon:cultivator-female-avatar';
+};
 
 export type CompileCombatV6TrainingEncounterV1Input = {
   encounterId: string;

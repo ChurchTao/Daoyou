@@ -1,3 +1,4 @@
+import { playerAppearances, type PresentedBattleInput } from '../../../combat-v6/unit-appearance';
 import { AUTO_POLICY_VERSION } from '../../../combat-v6/auto-policy';
 import { canonicalizeResourceParams } from '../../../contracts/resources/core';
 import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
@@ -21,6 +22,7 @@ export type SectBattleResourcePolicy = 'full' | 'persistent';
 
 /** Enrollment freezes native enemy units, including only the eligible lead pet. */
 export interface SectBattleOpponent {
+  unitAppearances?: PresentedBattleInput['unitAppearances'];
   version: 'sect-v6-opponent-v1';
   units: CreateBattleInput['units'];
   skills: SkillDef[];
@@ -87,6 +89,7 @@ export function freezeSectBattleOpponent(
   });
   if (!projected.ok) throw new Error('宗门战斗目标缺少有效的新版构筑');
   return structuredClone({
+    unitAppearances: playerAppearances(player),
     version: 'sect-v6-opponent-v1',
     units: [
       projected.unit,
@@ -107,7 +110,7 @@ export interface SectBattleSnapshot extends PveRestoredState {
   version: 'sect-v6-battle-v1';
   playerId: string;
   resourcePolicy: SectBattleResourcePolicy;
-  input: Omit<CreateBattleInput, 'ruleset'>;
+  input: PresentedBattleInput;
 }
 
 export class SectBattleHost extends CombatV6PveHostSession {
@@ -139,6 +142,7 @@ export class SectBattleHost extends CombatV6PveHostSession {
         sourceProjectionVersions: COMBAT_V6_PHASE_6D_VERSIONS,
       },
       restored,
+      source.input.unitAppearances,
     );
   }
 
@@ -201,6 +205,7 @@ export function createSectBattleHost(
     playerId: projected.unit.id!,
     resourcePolicy,
     input: structuredClone({
+      unitAppearances: { ...playerAppearances(player), ...opponent.unitAppearances },
       seed,
       versions: SECT_BATTLE_VERSIONS,
       units,

@@ -1,3 +1,4 @@
+import { publicUnitAppearances } from './unit-appearance';
 import {
   COMBAT_V6_REPLAY_VERSION,
   parseCombatV6Replay,
@@ -80,6 +81,7 @@ export function combatV6ReplayView(
   const frozenDisplay = replay.display;
   const display = {
     ...frozenDisplay,
+    unitAppearances: publicUnitAppearances(replay.timeline.unitAppearances, visibleUnitNames(replay.finalState, replay.events, viewer.unitId)),
     unitNames: visibleUnitNames(
       replay.finalState,
       replay.events,
@@ -150,6 +152,7 @@ function projectTimeline(
   const final = projectReplayUnits(tape.finalUnits!, viewerId, side);
   const timeline: CombatV6ReplayTimeline = {
     ...tape,
+    unitAppearances: publicUnitAppearances(tape.unitAppearances, visibleUnitNames(replay.finalState, replay.events, viewerId)),
     initialUnits: previous,
     finalUnits: final,
     fromEventSeq: publicSeq(tape.fromEventSeq),

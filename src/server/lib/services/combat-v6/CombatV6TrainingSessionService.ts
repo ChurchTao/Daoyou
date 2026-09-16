@@ -1,3 +1,4 @@
+import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
 import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { db } from '@server/lib/drizzle/db';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
@@ -445,6 +446,7 @@ export class CombatV6TrainingSessionService {
     const player = state.units.find((unit) => unit.id === host.playerId);
     return structuredClone({
       apiVersion: 1,
+    controlledUnitId: host.playerId,
       sessionId: runtime.battleId,
       playback: liveReplayDelta(runtime.host.timeline, afterEventSeq),
       revision: runtime.revision,
@@ -457,6 +459,7 @@ export class CombatV6TrainingSessionService {
       ...(host.finished ? { outcome: host.trace().outcome } : {}),
       units: combatV6Units(state, host.trace().statusDefs),
       display: {
+      unitAppearances: publicUnitAppearances(runtime.host.timeline.unitAppearances, visibleUnitNames(state, runtime.host.events, host.playerId)),
         ...combatV6Display(host.trace().skills, host.trace().statusDefs),
         unitNames: visibleUnitNames(state, runtime.host.events, host.playerId),
       },

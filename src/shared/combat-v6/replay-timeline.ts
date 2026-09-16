@@ -19,9 +19,11 @@ export function startReplayTimeline(
   state: BattleState,
   statuses: StatusDef[],
   seq: number,
+  unitAppearances?: CombatV6ReplayTimeline['unitAppearances'],
 ): CombatV6ReplayTimeline {
   return {
     format: 'delta-v1',
+    ...(unitAppearances ? { unitAppearances: structuredClone(unitAppearances) } : {}),
     initialUnits: combatV6Units(state, statuses),
     initialRound: state.round,
     fromEventSeq: seq,

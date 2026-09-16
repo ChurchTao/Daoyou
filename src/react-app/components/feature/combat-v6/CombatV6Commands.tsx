@@ -1,10 +1,11 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
 import type { ArenaSessionView } from '@shared/contracts/combatV6Arena';
 import { CAPTURE_SKILL_ID } from '@shared/engine/combat-v6/beasts/progression';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { CombatV6SkillChoice } from './CombatV6SkillChoice';
 import { reasonText } from './presentation';
 import type { CombatV6Session } from './session';
@@ -14,12 +15,6 @@ export type Choice = {
   ids: string[];
   count: number;
   skillId?: string;
-};
-const outcomeLabels = {
-  victory: '胜利',
-  defeat: '落败',
-  draw: '平局',
-  aborted: '已离场',
 };
 export function CombatV6Commands({
   allowAbandon = true,
@@ -37,7 +32,10 @@ export function CombatV6Commands({
   onAuto,
   autoEnabled,
   onClose,
-  onPrevious,
+  steps,
+  commandError,
+  blockedReason,
+  onRetryCommand,
 }: {
   allowAbandon?: boolean;
   online?: ArenaSessionView;
@@ -54,7 +52,10 @@ export function CombatV6Commands({
   onAuto: () => void;
   autoEnabled: boolean;
   onClose: () => void;
-  onPrevious?: () => void;
+  steps?: ReactNode;
+  commandError?: string;
+  blockedReason?: string;
+  onRetryCommand?: () => void;
 }) {
   const options = session.commandOptions;
   const capture = options?.skills.find(
@@ -62,6 +63,7 @@ export function CombatV6Commands({
   );
   const [category, setCategory] = useState<'spell' | 'art'>();
   const [petsOpen, setPetsOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const skills =
     options?.skills.filter(
       (skill) =>
@@ -69,13 +71,13 @@ export function CombatV6Commands({
         (session.display?.skillDetails?.[skill.skillId]?.category ??
           'spell') === category,
     ) ?? [];
-  const disabled = pending || playing;
+  const disabled = pending || playing || !!blockedReason;
   const ended = !playing && session.outcome;
   return (
     <footer className="cv6-command">
       {ended ? (
         <div className="cv6-command-heading">
-          <strong>{outcomeLabels[ended]}</strong>
+          <strong>本场战斗结束</strong>
           <span className="cv6-muted">
             {session.settlement === 'pending'
               ? '资源结算中……'
@@ -94,7 +96,7 @@ export function CombatV6Commands({
       ) : (
         <>
           <div className="cv6-command-heading">
-            <strong>{playing ? '战斗进行中' : unitName}</strong>
+            {steps ?? <strong>{playing ? '战斗进行中' : unitName}</strong>}
             <button
               disabled={!!session.outcome || (pending && !autoEnabled)}
               aria-pressed={autoEnabled}
@@ -105,26 +107,22 @@ export function CombatV6Commands({
             >
               {autoEnabled ? '取消自动' : '自动'}
             </button>
-            {autoEnabled && <span role="status">自动战斗中</span>}
-            {onPrevious && !playing ? (
-              <button disabled={disabled} onClick={onPrevious}>
-                返回人物指令
-              </button>
-            ) : null}
-            {!online && allowAbandon && (
+            {(options?.canFlee || (!online && allowAbandon)) && !playing ? (
               <button
                 className="cv6-text-button"
+                aria-haspopup="dialog"
                 disabled={disabled}
-                onClick={onClose}
+                onClick={() => setMoreOpen(true)}
               >
-                放弃战斗
+                更多
               </button>
-            )}
+            ) : null}
           </div>
           {!playing && (
             <>
               <div className="cv6-actions">
                 <button
+                  className="cv6-primary-action"
                   disabled={
                     disabled ||
                     !options?.canSubmit ||
@@ -145,6 +143,7 @@ export function CombatV6Commands({
                 {(['spell', 'art'] as const).map((group) => (
                   <button
                     key={group}
+                    className="cv6-primary-action"
                     disabled={disabled || (!!online && !options)}
                     aria-haspopup="dialog"
                     aria-pressed={
@@ -162,14 +161,14 @@ export function CombatV6Commands({
                   </button>
                 ))}
                 {capture ? (
-                  <span className="inline-flex items-center gap-1">
+                  <span className="cv6-capture-action">
                     <button
                       disabled={disabled || !capture.ready}
                       aria-pressed={choice?.skillId === CAPTURE_SKILL_ID}
                       onClick={() =>
                         setAction({
                           type: 'skill',
-                          name: `捕捉 · ${capture.costs.mp} MP`,
+                          name: `捕捉 · ${capture.costs.mp} 法力`,
                           skillId: capture.skillId,
                           ids: capture.selectableTargetIds,
                           count: 1,
@@ -182,6 +181,9 @@ export function CombatV6Commands({
                       执行时消耗法力，失败也会消耗。目标失效会自动转向可捕捉灵兽；持有已满或未达到携带境界时不能捕捉。
                       {capture.costs.mp
                         ? ` 当前目标消耗 ${capture.costs.mp} MP。`
+                        : ''}
+                      {!capture.ready
+                        ? capture.reasons.map(reasonText).join('；')
                         : ''}
                     </InkTooltip>
                   </span>
@@ -197,6 +199,7 @@ export function CombatV6Commands({
                 {!!options?.protectTargetIds.length && (
                   <button
                     disabled={disabled || !options.canSubmit}
+                    aria-pressed={choice?.type === 'protect'}
                     onClick={() =>
                       setAction({
                         type: 'protect',
@@ -209,15 +212,7 @@ export function CombatV6Commands({
                     保护
                   </button>
                 )}
-                {options?.canFlee && (
-                  <button
-                    disabled={disabled}
-                    onClick={() => void submit({ type: 'flee' })}
-                  >
-                    逃跑
-                  </button>
-                )}
-                {!!options?.summonablePets?.length && (
+                {(!!options?.summonablePets?.length || options?.canRecall) && (
                   <button
                     disabled={disabled}
                     onClick={() => {
@@ -225,20 +220,23 @@ export function CombatV6Commands({
                       setPetsOpen(true);
                     }}
                   >
-                    召唤
-                  </button>
-                )}
-                {options?.canRecall && (
-                  <button
-                    disabled={disabled}
-                    onClick={() => void submit({ type: 'recall' })}
-                  >
-                    召回
+                    灵兽
                   </button>
                 )}
               </div>
               <div className="cv6-command-hint" aria-live="polite">
-                {pending ? (
+                {blockedReason ? (
+                  <>
+                    {blockedReason}
+                    {onRetryCommand ? (
+                      <button disabled={pending} onClick={onRetryCommand}>
+                        重试原指令
+                      </button>
+                    ) : null}
+                  </>
+                ) : commandError ? (
+                  <span role="alert">{commandError}</span>
+                ) : pending ? (
                   '正在提交……'
                 ) : choice ? (
                   <>
@@ -258,7 +256,7 @@ export function CombatV6Commands({
                   online.submittedUnitIds.includes(online.controlledUnitId) ? (
                     '已提交，等待其他人物下令'
                   ) : online.stage === 'collecting' && options?.canSubmit ? (
-                    '选择行动 · 超时默认普攻'
+                    ''
                   ) : (
                     '等待战斗推进'
                   )
@@ -277,13 +275,43 @@ export function CombatV6Commands({
                     </button>
                   </>
                 ) : (
-                  '选择行动'
+                  ''
                 )}
               </div>
             </>
           )}
         </>
       )}
+      {moreOpen && !disabled && !ended ? (
+        <InkDetailDrawer
+          isOpen
+          title="其他行动"
+          size="sm"
+          onClose={() => setMoreOpen(false)}
+        >
+          {options?.canFlee ? (
+            <InkButton
+              onClick={() => {
+                setMoreOpen(false);
+                void submit({ type: 'flee' });
+              }}
+            >
+              逃跑
+            </InkButton>
+          ) : null}
+          {!online && allowAbandon ? (
+            <InkButton
+              variant="secondary"
+              onClick={() => {
+                setMoreOpen(false);
+                onClose();
+              }}
+            >
+              放弃战斗
+            </InkButton>
+          ) : null}
+        </InkDetailDrawer>
+      ) : null}
       {category && !disabled && !ended ? (
         <InkDetailDrawer
           isOpen
@@ -347,11 +375,21 @@ export function CombatV6Commands({
       {petsOpen && !disabled && !ended ? (
         <InkDetailDrawer
           isOpen
-          title="召唤灵兽"
+          title="灵兽"
           size="sm"
           onClose={() => setPetsOpen(false)}
         >
           <div className="cv6-skill-list">
+            {options?.canRecall ? (
+              <InkButton
+                onClick={() => {
+                  setPetsOpen(false);
+                  void submit({ type: 'recall' });
+                }}
+              >
+                召回当前灵兽
+              </InkButton>
+            ) : null}
             {options?.summonablePets?.map((pet) => (
               <button
                 key={pet.id}
@@ -360,10 +398,21 @@ export function CombatV6Commands({
                   void submit({ type: 'summon', petId: pet.id });
                 }}
               >
+                <GameIcon
+                  value={
+                    session.display?.unitAppearances?.[pet.id]?.icon ?? '🐾'
+                  }
+                />
                 {pet.name}{' '}
                 <span className="cv6-muted">
-                  气血 {Math.floor((pet.hp / pet.maxHp) * 100)}% · 法力{' '}
-                  {Math.floor((pet.mp / Math.max(1, pet.maxMp)) * 100)}%
+                  气血{' '}
+                  <span className="font-mono">
+                    {Math.floor((pet.hp / pet.maxHp) * 100)}%
+                  </span>{' '}
+                  · 法力{' '}
+                  <span className="font-mono">
+                    {Math.floor((pet.mp / Math.max(1, pet.maxMp)) * 100)}%
+                  </span>
                 </span>
               </button>
             ))}

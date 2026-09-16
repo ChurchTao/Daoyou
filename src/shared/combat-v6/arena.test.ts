@@ -81,6 +81,16 @@ function fixture(count = 8): ArenaRuntime {
 }
 
 describe('arena public host', () => {
+  it('技能详情使用当前角色补丁，不泄露其他角色补丁', () => {
+    const runtime = fixture(2);
+    runtime.state.units[0].skillOverrides.s0 = {
+      ...runtime.skills[0], effects: [{ type: EffectType.Revive, hpRatio: 0.5 }],
+    };
+    const own = arenaView(runtime, 'u0', 0);
+    expect(own.display.skillDetails?.s0.description).toContain('复起');
+    expect(arenaView(runtime, 'u1', 0).display.skillDetails?.s0).toBeUndefined();
+    expect(arenaView(runtime, ARENA_PUBLIC_VIEW, 0).display.skillDetails?.s0).toBeUndefined();
+  });
   it('AUTO 只为本人和在场灵兽生成普通合法指令', () => {
     const runtime = fixture(4);
     runtime.units.push({
@@ -166,6 +176,7 @@ describe('arena public host', () => {
     });
     runtime.state = battle.snapshot();
     runtime.events = [...battle.log()];
+    runtime.timeline.unitAppearances = Object.fromEntries(runtime.units.map(unit => [unit.id!, { icon: unit.ownerId ? '🐺' : 'icon:cultivator-female-avatar' }]));
     expect(runtime.state.units).toHaveLength(56);
     const view = arenaView(runtime, 'u0', 0);
     expect(view.units).toHaveLength(16);
@@ -174,7 +185,10 @@ describe('arena public host', () => {
       'u0:pet:0',
     ]);
     expect(view.controlledCommandOptions?.[0].summonablePets).toHaveLength(5);
+    expect(view.display.unitAppearances?.['u0:pet:1']).toEqual({ icon: '🐺' });
+    expect(view.display.unitAppearances?.['u1:pet:1']).toBeUndefined();
     const publicView = arenaView(runtime, ARENA_PUBLIC_VIEW, 0);
+    expect(Object.keys(publicView.display.unitAppearances ?? {})).toHaveLength(16);
     expect(publicView.controlledCommandOptions).toBeUndefined();
     expect(Object.keys(publicView.display.unitNames ?? {})).toHaveLength(16);
     expect(publicView.units.every((u) => u.publicBars && !u.attributes)).toBe(

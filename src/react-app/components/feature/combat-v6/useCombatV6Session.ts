@@ -141,8 +141,11 @@ export function useCombatV6Session<T extends CombatV6Session>(
     [base, run, acceptSession],
   );
   const submit = useCallback(
-    (commands: import('@shared/contracts/combatV6').CombatV6CommandGroup) =>
-      run(async () => {
+    async (
+      commands: import('@shared/contracts/combatV6').CombatV6CommandGroup,
+    ) => {
+      let completed = false;
+      await run(async () => {
         const session = current.current.session;
         const unitId = session?.commandOptions?.unitId;
         if (!session || !unitId) throw new Error('当前没有可下令的角色');
@@ -157,7 +160,10 @@ export function useCombatV6Session<T extends CombatV6Session>(
             mutationBody({ expectedRevision: accepted.revision }),
           ),
         );
-      }),
+        completed = true;
+      });
+      if (!completed) throw new Error('指令未完成，请重试或恢复战斗');
+    },
     [base, run, acceptSession],
   );
   const submitAuto = useCallback(async () => {

@@ -1,10 +1,10 @@
+import { playerAppearances, type PresentedBattleInput, beastAppearance } from '../../../combat-v6/unit-appearance';
 import { generateWildEncounter, type WildCombatant } from './generator';
 export { generateWildEncounter, type WildCombatant } from './generator';
 import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import { captureSkill } from '../beasts/progression';
 import {
   UnitKind,
-  type CreateBattleInput,
   type LineupUnit,
 } from '../core/index.ts';
 import {
@@ -34,7 +34,7 @@ export interface WildRuntimeSnapshot extends PveRestoredState {
   hostVersion: 'combat_v6_wild_runtime_v1';
   nodeId: string;
   playerId: string;
-  input: Omit<CreateBattleInput, 'ruleset'>;
+  input: PresentedBattleInput;
   npcStrategies: Record<string, PveCommandStrategyV1>;
   combatants: WildCombatant[];
 }
@@ -62,6 +62,7 @@ export class WildHost extends CombatV6PveHostSession {
         sourceProjectionVersions: COMBAT_V6_PHASE_6D_VERSIONS,
       },
       restored,
+      compiled.input.unitAppearances,
     );
   }
   runtimeSnapshot(): WildRuntimeSnapshot {
@@ -150,6 +151,7 @@ export function createWildHost(
     combatants,
     npcStrategies: strategies,
     input: {
+      unitAppearances: { ...playerAppearances(player), ...Object.fromEntries(combatants.map(c => [c.unitId, beastAppearance(c.speciesId)])) },
       seed,
       versions: WILD_VERSIONS,
       units,

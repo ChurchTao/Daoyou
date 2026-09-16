@@ -1,0 +1,347 @@
+import type {
+  CombatV6DisplayEvent,
+  CombatV6TrainingSessionViewV1,
+} from '../contracts/combatV6';
+type CombatV6Unit = CombatV6TrainingSessionViewV1['units'][number];
+type SequencedEvent = CombatV6TrainingSessionViewV1['events'][number];
+type LogSession = Pick<CombatV6TrainingSessionViewV1, 'units' | 'display'> & {
+  spectator?: boolean;
+};
+
+export function unitLabels(units: CombatV6Unit[], spectator = false) {
+  const byId = new Map(units.map((u) => [u.id, u]));
+  const counts = new Map<string, number>();
+  for (const u of units) counts.set(u.name, (counts.get(u.name) ?? 0) + 1);
+  return new Map(
+    units.map((u) => {
+      const slot =
+        (u.ownerId ? byId.get(u.ownerId)?.slot : undefined) ?? u.slot;
+      return [
+        u.id,
+        (counts.get(u.name) ?? 0) > 1
+          ? `${u.name}〔${spectator ? (u.side === 0 ? '青' : '赤') : u.side === 0 ? '我' : '敌'}${slot + 1}${u.ownerId ? '·召' : ''}〕`
+          : u.name,
+      ];
+    }),
+  );
+}
+export function reasonText(reason: string) {
+  const labels: Record<string, string> = {
+    'not-command-phase': '当前不能下令',
+    'unit-cannot-act': '当前无法行动',
+    'blocks-action': '受控制，无法行动',
+    sealed: '受封术影响',
+    rooted: '物理行动受限',
+    'no-target': '没有合法目标',
+    'hp-requirement': '气血未达到施展要求',
+    'insufficient-mp': '法力不足',
+    'resource-requirement': '战斗资源不足',
+    'skip-next-action': '本次行动休息',
+    'not-standing': '当前无法行动',
+    'flee-failed': '逃离失败',
+    'capture-failed': '捕捉失败',
+    'revive-blocked': '当前无法复起',
+    'skill-not-known': '尚未掌握此技能',
+    'passive-not-castable': '被动技能无法主动施展',
+    'summon-invalid': '无法召出该灵兽',
+    'summon-dead': '灵兽已死亡',
+    'summon-already-out': '灵兽已在场',
+  };
+  return labels[reason] ?? labels[reason.split(':')[0]] ?? '当前条件不满足';
+}
+export type LogLine = {
+  seq: number;
+  text: string;
+  tone?: 'damage' | 'heal' | 'critical';
+  targetId?: string;
+  sourceId?: string;
+  sourceLabel?: string;
+  targetName?: string;
+  amount?: number;
+  damageKind?: string;
+  hits?: number;
+  detail?: boolean;
+};
+export type ActionEntry = {
+  seq: number;
+  round: number;
+  endSeq: number;
+  title: string;
+  actorId?: string;
+  lines: LogLine[];
+};
+export type BattleLog = {
+  entries: ActionEntry[];
+  round: number;
+  open: boolean;
+  seq: number;
+};
+export function appendBattleEntries(
+  previous: BattleLog,
+  events: SequencedEvent[],
+  session: LogSession,
+): BattleLog {
+  if (!events.length) return previous;
+  const result = [...previous.entries];
+  let round = previous.round;
+  let entry =
+    previous.open && result.length
+      ? {
+          ...result[result.length - 1],
+          lines: [...result[result.length - 1].lines],
+        }
+      : undefined;
+  if (entry) result[result.length - 1] = entry;
+  const names = unitLabels(session.units, session.spectator);
+  const name = (id?: string) =>
+    names.get(id ?? '') ?? session.display?.unitNames?.[id ?? ''] ?? '未知单位';
+  const resources = new Map(
+    session.units.flatMap((u) =>
+      u.resources.map((r) => [r.id, r.name] as const),
+    ),
+  );
+  const status = (id: string) => session.display?.statuses[id] ?? '未知状态';
+  const resource = (id: string) => resources.get(id) ?? '战斗资源';
+  const add = (seq: number, line: Omit<LogLine, 'seq'>) => {
+    if (!entry) {
+      entry = {
+        seq,
+        endSeq: seq,
+        round,
+        title: round ? '回合变化' : '战斗开始',
+        lines: [],
+      };
+      result.push(entry);
+    }
+    entry.endSeq = seq;
+    entry.lines.push({ ...line, seq });
+  };
+  for (const { seq, event: e } of events) {
+    if (e.type === 'roundStart') {
+      round = e.round;
+      entry = undefined;
+      continue;
+    }
+    if (e.type === 'roundEnd') {
+      entry = undefined;
+      continue;
+    }
+    if (e.type === 'actionStart') {
+      const c = e.command;
+      const verb =
+        c.type === 'skill'
+          ? `施展「${session.display?.skills[c.skillId] ?? '技能'}」`
+          : c.type === 'attack'
+            ? `攻击${name(c.target)}`
+            : c.type === 'protect'
+              ? `保护${name(c.target)}`
+              : c.type === 'defend'
+                ? '凝神防御'
+                : c.type === 'flee'
+                  ? '尝试逃离'
+                  : c.type === 'summon'
+                    ? `召唤${name(c.petId)}`
+                    : c.type === 'recall'
+                      ? '召回灵兽'
+                      : '开始行动';
+      entry = {
+        seq,
+        endSeq: seq,
+        round,
+        title: `${name(e.unitId)}${verb}`,
+        actorId: e.unitId,
+        lines: [],
+      };
+      result.push(entry);
+      continue;
+    }
+    if (e.type === 'actionSkip') {
+      entry = {
+        seq,
+        endSeq: seq,
+        round,
+        title: `${name(e.unitId)}无法行动`,
+        lines: [{ seq, text: reasonText(e.reason) }],
+      };
+      result.push(entry);
+      continue;
+    }
+    const line = eventLine(e);
+    if (line) add(seq, line);
+  }
+  return {
+    entries: result,
+    round,
+    open: !!entry,
+    seq: events[events.length - 1].seq,
+  };
+
+  function eventLine(
+    e: CombatV6DisplayEvent,
+  ): Omit<LogLine, 'seq'> | undefined {
+    switch (e.type) {
+      case 'hit':
+        return e.crit || e.fury
+          ? {
+              text: `${name(e.targetId)}受到${e.crit ? '暴击' : ''}${e.crit && e.fury ? ' · ' : ''}${e.fury ? '狂暴' : ''}`,
+              tone: 'critical',
+              targetId: e.targetId,
+            }
+          : undefined;
+      case 'damage':
+        return {
+          text: `${name(e.targetId)}受到 ${e.amount} 点${damageKinds[e.kind]}伤害${entry?.actorId && entry.actorId !== e.sourceId ? `（来自${name(e.sourceId)}）` : ''}`,
+          tone: 'damage',
+          targetId: e.targetId,
+          targetName: name(e.targetId),
+          amount: e.amount,
+          sourceId: e.sourceId,
+          sourceLabel: entry?.actorId && entry.actorId !== e.sourceId ? name(e.sourceId) : undefined,
+          damageKind: e.kind,
+        };
+      case 'heal':
+        return {
+          text: `${name(e.targetId)}恢复 ${e.amount} 气血`,
+          tone: 'heal',
+          targetId: e.targetId,
+        };
+      case 'miss':
+        return { text: `${name(e.targetId)}未被命中` };
+      case 'protectTrigger':
+        return {
+          text: `${name(e.protectorId)}挺身保护${name(e.originalTargetId)}`,
+          tone: 'critical',
+          targetId: e.protectorId,
+        };
+      case 'actionFailed':
+        return { text: `${name(e.unitId)}行动失败：${reasonText(e.reason)}` };
+      case 'retarget':
+        return { text: `目标转向${name(e.to)}` };
+      case 'statusApplied':
+        return {
+          text: `${name(e.unitId)}获得「${status(e.statusId)}」· ${e.duration}回合`,
+        };
+      case 'statusRemoved':
+        return {
+          text: `${name(e.unitId)}的「${status(e.statusId)}」${statusRemoval[e.reason] ?? '解除'}`,
+          detail: ['expired', 'replaced', 'downed', 'recalled'].includes(
+            e.reason,
+          ),
+        };
+      case 'unitDowned':
+        return {
+          text: `${name(e.unitId)}倒地`,
+          tone: 'critical',
+          targetId: e.unitId,
+        };
+      case 'unitDead':
+        return {
+          text: `${name(e.unitId)}战死`,
+          tone: 'critical',
+          targetId: e.unitId,
+        };
+      case 'unitEscaped':
+        return { text: `${name(e.unitId)}离场` };
+      case 'unitRevived':
+        return {
+          text:
+            typeof e.hp === 'number'
+              ? `${name(e.unitId)}复起，恢复 ${e.hp} 气血`
+              : `${name(e.unitId)}复起`,
+          tone: 'heal',
+        };
+      case 'barrierChanged':
+        return {
+          text: `${name(e.unitId)}${barrierReasons[e.reason]} · 护盾 ${e.before} → ${e.after}`,
+          detail: e.reason === 'expired' || e.reason === 'downed',
+        };
+      case 'woundChanged':
+        return { text: `${name(e.targetId)}伤势 ${e.before} → ${e.after}` };
+      case 'mechanicTriggered':
+        return { text: `${name(e.sourceId)}触发「${e.name}」` };
+      case 'mpCost':
+        return { text: `${name(e.unitId)}法力 −${e.amount}`, detail: true };
+      case 'hpCost':
+        return { text: `${name(e.unitId)}气血 −${e.amount}`, detail: true };
+      case 'mpDamage':
+        return { text: `${name(e.targetId)}法力 −${e.amount}` };
+      case 'mpRestore':
+        return { text: `${name(e.unitId)}法力 +${e.amount}`, detail: true };
+      case 'resourceChanged':
+        return {
+          text: `${name(e.unitId)}${resource(e.resourceId)} ${e.before} → ${e.after}`,
+          detail: true,
+        };
+      case 'chanceResolved':
+        return {
+          text: `${name(e.sourceId)}${e.targetId ? `对${name(e.targetId)}` : ''}的触发判定${e.success ? '成功' : '失败'}（${Math.round(e.chance * 100)}%）`,
+          detail: true,
+        };
+      case 'unitCaptured':
+        return { text: `${name(e.targetId)}已收服，战后加入灵兽列表` };
+      case 'petSummoned':
+        return { text: `${name(e.unitId)}召出${name(e.petId)}` };
+      case 'petRecalled':
+        return { text: `${name(e.unitId)}收回${name(e.petId)}` };
+      default:
+        return undefined;
+    }
+  }
+}
+
+const damageKinds = { physical: '物理', spell: '法术', fixed: '固定' };
+const barrierReasons = {
+  applied: '获得护盾',
+  refreshed: '刷新护盾',
+  absorbed: '护盾吸收伤害',
+  expired: '护盾到期',
+  downed: '倒地失去护盾',
+};
+const statusRemoval: Record<string, string> = {
+  expired: '到期',
+  replaced: '被替换',
+  downed: '随倒地解除',
+  recalled: '随召回解除',
+  damage: '被伤害打破',
+  dispel: '被驱散',
+  consumed: '已消耗',
+};
+
+/** Combine only adjacent damage results; a protection, retarget or other visible event is a boundary. */
+export function compactLogLines(lines: LogLine[]): LogLine[] {
+  const result: LogLine[] = [];
+  for (const line of lines) {
+    const previous = result[result.length - 1];
+    if (
+      line.amount !== undefined &&
+      line.tone === 'damage' &&
+      previous?.tone === 'damage' &&
+      previous.amount !== undefined &&
+      previous.targetId === line.targetId &&
+      previous.sourceId === line.sourceId &&
+      previous.damageKind === line.damageKind
+    ) {
+      const amount = previous.amount + line.amount;
+      const hits = (previous.hits ?? 1) + 1;
+      result[result.length - 1] = {
+        ...previous,
+        amount,
+        hits,
+        text: `${previous.targetName ?? '目标'}受到 ${hits} 段${damageKinds[line.damageKind as keyof typeof damageKinds]}伤害，共 ${amount} 点${previous.sourceLabel ? `（来自${previous.sourceLabel}）` : ''}`,
+      };
+    } else result.push(line);
+  }
+  return result;
+}
+export function frameFeedback(entries: ActionEntry[], visibleSeq: number) {
+  const entry = [...entries].reverse().find((e) => e.seq <= visibleSeq);
+  return entry && visibleSeq <= entry.endSeq
+    ? {
+        seq: visibleSeq,
+        actorId: entry.actorId,
+        targets: entry.lines
+          .filter((l) => l.seq <= visibleSeq && l.targetId)
+          .map((l) => ({ id: l.targetId!, tone: l.tone })),
+      }
+    : undefined;
+}

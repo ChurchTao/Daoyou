@@ -1,3 +1,4 @@
+import { playerAppearances, type PresentedBattleInput } from '../../../combat-v6/unit-appearance';
 import { TOWER_BASE_ATTRIBUTES, TOWER_BLESSINGS_PACK, towerBlessingResourceRatio } from '../../../lib/tower/blessing-pack';
 import type { TowerBlessingId } from '../../../lib/tower/blessings';
 import { TOWER_MAX_FLOOR } from '../../../lib/tower/helpers';
@@ -5,7 +6,6 @@ import { compileTowerEnemies } from './content';
 export { TOWER_ENEMY_CONFIG } from './content';
 import type { RealmType } from '../../../types/constants';
 import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
-import { type CreateBattleInput } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
 import {
   CombatV6PveHostSession,
@@ -76,7 +76,7 @@ export function towerRecovery(current: number, max: number, fraction: number) {
 export interface TowerBattleSnapshot extends PveRestoredState {
   version: 'tower-v6-v1';
   playerId: string;
-  input: Omit<CreateBattleInput, 'ruleset'>;
+  input: PresentedBattleInput;
 }
 export class TowerHost extends CombatV6PveHostSession {
   constructor(
@@ -106,6 +106,7 @@ export class TowerHost extends CombatV6PveHostSession {
         sourceProjectionVersions: COMBAT_V6_PHASE_6D_VERSIONS,
       },
       restored,
+      source.input.unitAppearances,
     );
   }
   runtimeSnapshot(): TowerBattleSnapshot {
@@ -164,6 +165,7 @@ export function createTowerHost(
     version: 'tower-v6-v1',
     playerId: unit.id!,
     input: {
+      unitAppearances: playerAppearances(player),
       seed,
       versions: TOWER_V6_VERSIONS,
       units: [unit, ...beasts, ...enemies],

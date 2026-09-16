@@ -1,7 +1,7 @@
 import { CombatV6Battle } from '@app/components/feature/combat-v6/CombatV6Battle';
 import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
 import { useArenaV6Session } from '@app/components/feature/combat-v6/useArenaV6Session';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
 export default function ArenaBattleRoute() {
@@ -27,7 +27,6 @@ function ArenaBattle({
   const navigate = useNavigate();
   const controller = useArenaV6Session(battleId, spectator);
   const { state, connected, error, pending } = controller;
-  const [now, setNow] = useState(Date.now);
   const [leaving, setLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState<string>();
   const leave = async () => {
@@ -53,10 +52,6 @@ function ArenaBattle({
       setLeaving(false);
     }
   };
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(timer);
-  }, []);
   const session = state.session;
   const playing = state.queue.length > 0;
   return (
@@ -69,36 +64,21 @@ function ArenaBattle({
       back="/game/arena"
       backLabel="返回擂台"
     >
-      {controller.retry ? (
-        <button disabled={pending} onClick={controller.retryCommand}>
-          重试提交原指令
-        </button>
-      ) : null}
       {session ? (
         <>
-          <p className="cv6-muted text-xs" aria-live="polite">
-            {!connected && session.stage !== 'finished'
-              ? '连接恢复中……'
-              : session.stage === 'collecting'
-                ? `下令剩余 ${Math.max(0, Math.ceil((session.commandDeadlineAt - now - controller.clockOffset) / 1000))} 秒 · ${session.units.filter((unit) => unit.kind === 'player' && session.submittedUnitIds.includes(unit.id)).length} 人已提交`
-                : session.stage === 'resolving'
-                  ? '指令已锁定'
-                  : session.stage === 'playback' || playing
-                    ? '逐行动播报中'
-                    : session.terminalReason === 'expired'
-                      ? '战斗已超时结束'
-                      : '战斗已结束'}
-          </p>
           <CombatV6Battle
             title={spectator ? '擂台观战' : '擂台切磋'}
             session={session}
             online={session}
+            connected={connected}
+            onRetryCommand={
+              controller.retry ? controller.retryCommand : undefined
+            }
+            clockOffset={controller.clockOffset}
             shown={state.shown}
             log={state.log}
             playing={playing}
-            pending={
-              spectator ? leaving : pending || !connected || !!controller.retry
-            }
+            pending={spectator ? leaving : pending}
             onCommand={controller.submit}
             onResolve={noResolve}
             onAuto={controller.submitAuto}

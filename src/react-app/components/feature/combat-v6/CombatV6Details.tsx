@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { GameIcon } from '@app/components/ui/GameIcon';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import type { CombatV6Session, CombatV6Unit } from './session';
 const attributeLabels: Record<string, string> = {
   physicalAtk: '物攻',
@@ -19,25 +20,20 @@ export function CombatV6Details({
   display: CombatV6Session['display'];
   onClose: () => void;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    dialog?.showModal();
-    return () => dialog?.close();
-  }, []);
+  const appearance = display?.unitAppearances?.[detailUnit.id];
   return (
-    <dialog
-      ref={dialogRef}
-      className="cv6-dialog"
-      onClose={() => {
-        if (!dialogRef.current?.open) onClose();
-      }}
-      aria-labelledby="cv6-detail-title"
-    >
-      <header>
-        <h2 id="cv6-detail-title">{label}</h2>
-        <button onClick={() => onClose()}>关闭</button>
-      </header>
+    <InkDetailDrawer isOpen title={label} size="sm" onClose={onClose}>
+      <div className="cv6-detail-identity">
+        <span className="cv6-portrait">
+          <GameIcon
+            value={appearance?.icon ?? (detailUnit.ownerId ? '🐾' : '👤')}
+          />
+        </span>
+        {appearance?.speciesName &&
+        appearance.speciesName !== detailUnit.name ? (
+          <span>{appearance.speciesName}</span>
+        ) : null}
+      </div>
       {detailUnit && (
         <div className="cv6-detail-body">
           <dl>
@@ -87,20 +83,33 @@ export function CombatV6Details({
             {detailUnit.statuses.map((s) => (
               <li key={s.id}>
                 {s.name ?? display?.statuses[s.id] ?? '未知状态'} ·{' '}
-                {s.untilBattleEnd ? '本场持续' : `${s.remainingRounds} 回合`}
-                {s.stacks > 1 ? ` · ${s.stacks} 层` : ''}
+                {s.untilBattleEnd ? (
+                  '本场持续'
+                ) : (
+                  <>
+                    <span className="font-mono">{s.remainingRounds}</span> 回合
+                  </>
+                )}
+                {s.stacks > 1 ? (
+                  <>
+                    {' '}
+                    · <span className="font-mono">{s.stacks}</span> 层
+                  </>
+                ) : null}
               </li>
             ))}
             {detailUnit.barriers.map((b) => (
               <li key={b.id}>
                 {b.name} ·{' '}
-                {detailUnit.publicBars ? `${b.current / 100}%` : b.current} ·{' '}
-                {b.remainingRounds} 回合
+                <span className="font-mono">
+                  {detailUnit.publicBars ? `${b.current / 100}%` : b.current}
+                </span>{' '}
+                · <span className="font-mono">{b.remainingRounds}</span> 回合
               </li>
             ))}
           </ul>
         </div>
       )}
-    </dialog>
+    </InkDetailDrawer>
   );
 }

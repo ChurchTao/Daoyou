@@ -262,6 +262,7 @@ export async function assembleCombatV6TrainingPlayer(
       422,
     );
   const player: CombatV6TrainingPlayerInput = {
+    portrait: cultivator.gender === '女' ? 'icon:cultivator-female-avatar' : 'icon:cultivator-male-avatar',
     cultivator: {
       id: cultivator.id,
       name: cultivator.name,

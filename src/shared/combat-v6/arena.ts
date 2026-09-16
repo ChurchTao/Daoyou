@@ -1,3 +1,4 @@
+import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
 import {
   COMBAT_V6_TRAINING_API_VERSION,
   type CombatV6DisplayEvent,
@@ -202,7 +203,9 @@ export function arenaView(
   for (const { event } of events)
     if ('statusId' in event) visibleStatuses.add(event.statusId);
   const display = combatV6Display(
-    runtime.skills.filter((s) => visibleSkills.has(s.id)),
+    runtime.skills.filter((s) => visibleSkills.has(s.id)).map((skill) =>
+      state.units.find((unit) => unit.id === viewerId)?.skillOverrides[skill.id] ?? skill,
+    ),
     runtime.statusDefs,
   );
   for (const { event } of events)
@@ -251,6 +254,7 @@ export function arenaView(
           )
         : undefined,
     display: {
+      unitAppearances: publicUnitAppearances(runtime.timeline.unitAppearances, visibleUnitNames(state, runtime.events, viewerId)),
       ...display,
       unitNames: visibleUnitNames(state, runtime.events, viewerId),
       skills: Object.fromEntries(

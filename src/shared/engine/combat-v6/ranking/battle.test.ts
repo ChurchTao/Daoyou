@@ -5,6 +5,7 @@ import { BEAST_SPECIES, generateStarterBeast } from '../beasts';
 import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '../content';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
 import { compileRankingBattle, simulateRankingBattle } from './battle';
+import { projectCharacterToCombatV6 } from '../projection';
 
 function player(id: string): CombatV6TrainingPlayerInput {
   const def = COMBAT_V6_SECT_DEFINITIONS_V4.youdu;
@@ -106,4 +107,28 @@ it('旧策略输入拒绝重新模拟，不静默改变未完成挑战结果', (
   const input = compileRankingBattle([player('a'), player('b')], 5);
   delete input.versions.autoPolicyVersion;
   expect(() => simulateRankingBattle(input)).toThrow('策略版本不匹配');
+});
+
+it('同宗不同道途的技能按角色隔离，保留补丁与原始构筑', () => {
+  const a = player('a');
+  const b = player('b');
+  a.sect.meridianDepth = 1;
+  a.sect.meridianLoadouts[0].nodeIds = ['youdu.node.soul.1.1'];
+  b.sect.activePathId = COMBAT_V6_SECT_DEFINITIONS_V4.youdu.paths[1].id;
+  const original = structuredClone([a, b]);
+  const projections = [a, b].map((p, side) => projectCharacterToCombatV6({ ...p, side: side as 0 | 1, slot: 0, resourcePolicy: 'full' }));
+  const input = compileRankingBattle([a, b], 24);
+  projections.forEach((p, index) => {
+    if (!p.ok) throw new Error(JSON.stringify(p.diagnostics));
+    const definitions = new Map(input.skills!.map((s) => [s.id, s]));
+    for (const skill of input.units[index].skillOverrides ?? []) definitions.set(skill.id, skill);
+    const expected = new Map(p.skills.map((s) => [s.id, s]));
+    for (const skill of p.unit.skillOverrides ?? []) expected.set(skill.id, skill);
+    for (const id of [...(p.unit.skills ?? []), ...(p.unit.passives ?? [])]) {
+      expect(definitions.get(id)).toEqual(expected.get(id));
+    }
+  });
+  const trace = simulateRankingBattle(input);
+  expect(simulateRankingBattle(structuredClone(input))).toEqual(trace);
+  expect([a, b]).toEqual(original);
 });
