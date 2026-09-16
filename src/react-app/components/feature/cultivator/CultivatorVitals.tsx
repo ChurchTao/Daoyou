@@ -2,6 +2,7 @@ import { InkButton, InkDetailDrawer } from '@app/components/ui';
 import { getPillToxicityStage } from '@shared/lib/condition';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
 import { useState } from 'react';
+import { CharacterSheetRow } from './CharacterSheetRow';
 import {
   getPillToxicityEffectDetails,
   getStatusEffectDetails,
@@ -25,60 +26,69 @@ export function CultivatorVitals({
           const label = key === 'hp' ? '气血' : '法力';
           return (
             <div key={key}>
-              <div className="mb-1 flex justify-between gap-3 text-sm">
-                <span>{label}</span>
-                <span className="font-mono">
-                  {Math.floor(resource.current)} / {Math.floor(resource.max)}
-                </span>
-              </div>
+              <dl className="text-sm">
+                <CharacterSheetRow
+                  label={label}
+                  className="grid-cols-[auto_minmax(0,1fr)] py-0 [&_dd]:text-right"
+                >
+                  <span className="font-mono">
+                    {Math.floor(resource.current)} / {Math.floor(resource.max)}
+                  </span>
+                </CharacterSheetRow>
+              </dl>
               <div
-                role="meter"
+                className="bg-battle-faint mt-1.5 h-1 overflow-hidden rounded-full"
+                role="progressbar"
                 aria-label={label}
                 aria-valuemin={0}
-                aria-valuemax={resource.max}
-                aria-valuenow={resource.current}
-                className="bg-ink/10 h-1.5 overflow-hidden rounded-full"
+                aria-valuemax={Math.floor(resource.max)}
+                aria-valuenow={Math.floor(resource.current)}
               >
                 <div
                   className={
-                    key === 'hp' ? 'bg-crimson/70 h-full' : 'bg-teal/70 h-full'
+                    key === 'hp' ? 'bg-resource-hp h-full' : 'bg-resource-mp h-full'
                   }
-                  style={{ width: `${Math.min(100, resource.percent)}%` }}
+                  style={{
+                    width: `${Math.max(0, Math.min(100, (resource.current / Math.max(1, resource.max)) * 100))}%`,
+                  }}
                 />
               </div>
             </div>
           );
         })}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
-          <span className="text-ink-secondary">状态</span>
-          {toxicity > 0 ? (
-            <button
-              className="text-crimson py-1"
-              onClick={() => setDetails(true)}
-            >
-              丹毒 · {getPillToxicityStage(cultivator.condition).label}{' '}
-              <span className="font-mono">{Math.floor(toxicity)}</span>
-            </button>
-          ) : null}
-          {statuses.map((status, index) => (
-            <button
-              key={`${status.key}:${index}`}
-              className="bg-ink/5 px-2 py-1"
-              onClick={() => setDetails(true)}
-            >
-              {getConditionStatusTemplate(status.key)?.name ?? status.key}
-            </button>
-          ))}
-          {toxicity === 0 && statuses.length === 0 ? (
-            <span className="text-ink-secondary">无异常</span>
-          ) : null}
-          <InkButton
-            className="ml-auto text-xs"
-            onClick={() => setDetails(true)}
-          >
-            状态详情
-          </InkButton>
-        </div>
+        <dl className="col-span-full">
+          <CharacterSheetRow label="状态">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              {toxicity > 0 ? (
+                <button
+                  className="text-crimson text-left"
+                  onClick={() => setDetails(true)}
+                >
+                  丹毒 · {getPillToxicityStage(cultivator.condition).label}{' '}
+                  <span className="font-mono">{Math.floor(toxicity)}</span>
+                </button>
+              ) : null}
+              {statuses.map((status, index) => (
+                <button
+                  key={`${status.key}:${index}`}
+                  className="text-left"
+                  onClick={() => setDetails(true)}
+                >
+                  {getConditionStatusTemplate(status.key)?.name ?? status.key}
+                </button>
+              ))}
+              {toxicity === 0 && statuses.length === 0 ? (
+                <span className="text-ink-secondary">无异常</span>
+              ) : null}
+              <InkButton
+                className="p-0 text-sm leading-6 tracking-normal"
+                onClick={() => setDetails(true)}
+              >
+                状态详情
+              </InkButton>
+            </div>
+          </CharacterSheetRow>
+        </dl>
       </div>
       <InkDetailDrawer
         isOpen={details}

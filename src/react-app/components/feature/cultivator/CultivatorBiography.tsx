@@ -1,260 +1,155 @@
-import { TitleEditorModal } from '@app/components/feature/cultivator/TitleEditorModal';
-import { useCultivatorDisplayProjection } from '@app/components/feature/cultivator/useCultivatorDisplayProjection';
 import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
-import { toFateDisplayModel } from '@app/components/feature/fates/FateDisplayAdapter';
-import { FateEffectInlineList } from '@app/components/feature/fates/FateEffectInlineList';
-import { LingGen } from '@app/components/func/LingGen';
-import { GameSceneSection } from '@app/components/game-shell/GameSceneSection';
-import { useInkUI } from '@app/components/providers/InkUIProvider';
-import {
-  InkButton,
-  InkDialog,
-  InkList,
-  InkNotice,
-  type InkDialogState,
-} from '@app/components/ui';
-import { ItemCard } from '@app/components/ui/ItemCard';
-import { useResourceMutation } from '@app/lib/resources/mutations';
+import { InkBadge, InkNotice } from '@app/components/ui';
+import { GameIcon } from '@app/components/ui/GameIcon';
+import { tierColorMap } from '@app/components/ui/inkBadgeTiers';
+import { useCultivatorIdentity } from '@app/lib/resources/player';
 import { cn } from '@shared/lib/cn';
+import { getElementInfo } from '@shared/lib/gameConceptDisplay';
 import type { Cultivator } from '@shared/types/cultivator';
-import { useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router';
-
-function OverviewDetailItem({
-  icon,
-  label,
-  value,
-  action,
-  className,
-}: {
-  icon: string;
-  label: string;
-  value: ReactNode;
-  action?: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        'flex items-start justify-between gap-3 text-sm leading-7',
-        className,
-      )}
-    >
-      <div className="flex min-w-0 flex-1 items-start gap-3">
-        <span className="shrink-0 text-base leading-7" aria-hidden="true">
-          {icon}
-        </span>
-        <div className="flex min-w-0 flex-1 flex-wrap gap-x-2 gap-y-0.5">
-          <span className="text-battle-muted shrink-0">{label}</span>
-          <span className="text-ink min-w-0 flex-1">{value}</span>
-        </div>
-      </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
-    </div>
-  );
-}
+import { useState } from 'react';
+import { CultivatorReincarnation } from './CultivatorReincarnation';
 
 export function CultivatorBiography() {
-  const projection = useCultivatorDisplayProjection();
-  const cultivator = projection.data?.cultivator ?? null;
-  const navigate = useNavigate();
-  const { pushToast } = useInkUI();
-  const { mutate } = useResourceMutation();
-  const [dialog, setDialog] = useState<InkDialogState | null>(null);
+  const profile = useCultivatorIdentity();
+  const cultivator = profile.data?.cultivator;
   const [detailFate, setDetailFate] = useState<
     Cultivator['pre_heaven_fates'][number] | null
   >(null);
-  const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
-  const [editingTitle, setEditingTitle] = useState('');
-  const [isSavingTitle, setIsSavingTitle] = useState(false);
-
-  if (projection.error) return <InkNotice>{projection.error}</InkNotice>;
-  if (projection.loading && !cultivator)
-    return <InkNotice>正在读取角色属性……</InkNotice>;
-
-  if (!cultivator) {
-    return <InkNotice>尚无角色资料，先去觉醒灵根，再来凝视真形。</InkNotice>;
-  }
-
-  const handleReincarnate = async () => {
-    try {
-      await mutate(
-        fetch('/api/cultivator/active-reincarnate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
-        }),
-      );
-      navigate('/game/reincarnate');
-    } catch (err) {
-      pushToast({
-        message: err instanceof Error ? err.message : '兵解失败',
-        tone: 'danger',
-      });
-    }
-  };
-
-  const handleSaveTitle = async () => {
-    if (
-      editingTitle.length > 0 &&
-      (editingTitle.length < 2 || editingTitle.length > 8)
-    ) {
-      pushToast({ message: '称号长度需在2-8字之间', tone: 'warning' });
-      return;
-    }
-
-    try {
-      setIsSavingTitle(true);
-      await mutate(
-        fetch('/api/cultivator/title', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: editingTitle || null,
-          }),
-        }),
-      );
-
-      pushToast({ message: '名号已定，威震八方！', tone: 'success' });
-      setIsTitleModalOpen(false);
-    } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '保存失败',
-        tone: 'danger',
-      });
-    } finally {
-      setIsSavingTitle(false);
-    }
-  };
-
-  const openTitleEditor = () => {
-    setEditingTitle(cultivator.title || '');
-    setIsTitleModalOpen(true);
-  };
-
-  const openReincarnateDialog = () => {
-    setDialog({
-      id: 'reincarnate-confirm',
-      title: '轮回重修',
-      content: (
-        <div className="space-y-2">
-          <p className="text-crimson text-lg font-bold">道友当真要轮回重修？</p>
-          <p>
-            轮回后，当前修为将尽数散去，
-            <span className="text-crimson">角色状态变为「已陨落」</span>。
-          </p>
-          <p>但可保留部分前世记忆（名字、故事）进入轮回，开启新的一世。</p>
-          <p className="text-sm opacity-60">此操作不可撤销。</p>
-        </div>
-      ),
-      confirmLabel: '轮回',
-      cancelLabel: '不可',
-      onConfirm: handleReincarnate,
-    });
-  };
+  if (profile.error) return <InkNotice>{profile.error}</InkNotice>;
+  if (!cultivator) return <InkNotice>正在读取先天设定……</InkNotice>;
 
   return (
-    <div className="space-y-5">
-      <GameSceneSection title="生平" contentClassName="space-y-2.5">
-        <div className="space-y-1">
-          <OverviewDetailItem
-            icon="👤"
-            label="出身"
-            value={`${cultivator.gender} · ${cultivator.origin || '散修'}`}
-          />
-          <OverviewDetailItem
-            icon="🏮"
-            label="名号"
-            value={
-              cultivator.title ? (
-                <span className="text-crimson">「{cultivator.title}」</span>
-              ) : (
-                '暂无'
-              )
-            }
-            action={
-              <InkButton onClick={openTitleEditor} className="text-sm">
-                修改
-              </InkButton>
-            }
-          />
-          <OverviewDetailItem
-            icon="🫧"
-            label="性情"
-            value={cultivator.personality || '未明'}
-          />
-          <OverviewDetailItem
-            icon="📜"
-            label="背景"
-            value={cultivator.background || '未录'}
-          />
-          {cultivator.balance_notes ? (
-            <OverviewDetailItem
-              icon="🪶"
-              label="天道评语"
-              value={cultivator.balance_notes}
-            />
-          ) : null}
-        </div>
-      </GameSceneSection>
-
-      <LingGen
-        spiritualRoots={cultivator.spiritual_roots || []}
-        title="灵根"
-        sectionVariant="scene"
-      />
-
-      {cultivator.pre_heaven_fates?.length > 0 ? (
-        <GameSceneSection title="先天命格">
-          <InkList>
-            {cultivator.pre_heaven_fates.map((fate, idx) => {
-              const fateDisplay = toFateDisplayModel(fate);
-              return (
-                <ItemCard
-                  key={fate.name + idx}
-                  name={fate.name}
-                  quality={fate.quality}
-                  meta={
-                    <FateEffectInlineList lines={fateDisplay.previewLines} />
-                  }
-                  description={fate.description}
-                  actions={
-                    <InkButton
-                      variant="secondary"
-                      onClick={() => setDetailFate(fate)}
-                    >
-                      详情
-                    </InkButton>
-                  }
-                  layout="col"
+    <div className="space-y-8 text-sm leading-6">
+      <section aria-labelledby="innate-roots-heading">
+        <h3 id="innate-roots-heading" className="mb-3 text-base font-semibold">
+          灵根
+        </h3>
+        {cultivator.spiritual_roots.length ? (
+          <dl className="grid gap-3 lg:grid-cols-2">
+            {cultivator.spiritual_roots.map((root, index) => (
+              <div
+                key={`${root.element}-${index}`}
+                className="bg-ink/3 flex items-center gap-3 rounded-sm px-4 py-4"
+              >
+                <GameIcon
+                  value={getElementInfo(root.element).icon}
+                  className="size-8 text-3xl"
                 />
+                <dt className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5">
+                  <span className="text-base font-semibold">
+                    {root.element}灵根
+                  </span>
+                  {root.grade ? (
+                    <InkBadge
+                      tier={root.grade}
+                      className="px-0 whitespace-nowrap"
+                    />
+                  ) : null}
+                </dt>
+                <dd className="shrink-0 text-right">
+                  <span className="block font-mono text-2xl font-semibold tracking-tight">
+                    {root.baseStrength ?? root.strength}
+                  </span>
+                  <span className="text-ink-secondary text-xs">先天强度</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="text-ink-secondary">暂无灵根记录。</p>
+        )}
+      </section>
+      <section aria-labelledby="innate-fates-heading">
+        <h3 id="innate-fates-heading" className="mb-3 text-base font-semibold">
+          先天命格
+        </h3>
+        {cultivator.pre_heaven_fates.length ? (
+          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+            {cultivator.pre_heaven_fates.map((fate, index) => {
+              return (
+                <article
+                  key={`${fate.name}-${index}`}
+                  className="bg-ink/3 flex min-w-0 flex-col rounded-sm p-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <GameIcon value="🔮" className="size-6 text-2xl" />
+                    <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5">
+                      <h4
+                        className={cn(
+                          'text-base font-semibold break-words',
+                          fate.quality && tierColorMap[fate.quality],
+                        )}
+                      >
+                        {fate.name}
+                      </h4>
+                      {fate.quality ? (
+                        <InkBadge
+                          tier={fate.quality}
+                          className="px-0 whitespace-nowrap"
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDetailFate(fate)}
+                    aria-label={`查看${fate.name}详情`}
+                    className="text-ink-secondary hover:text-ink mt-1 -mb-2 min-h-11 self-end text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+                  >
+                    详情 ›
+                  </button>
+                </article>
               );
             })}
-          </InkList>
-        </GameSceneSection>
-      ) : null}
-
-      <div className="bg-ink/5 rounded-sm p-2 text-right">
-        <p className="text-ink-secondary text-sm leading-7">
-          若此身道途已尽，可舍去此生，重入轮回。
-        </p>
-        <InkButton className="text-sm" onClick={openReincarnateDialog}>
-          转世重修
-        </InkButton>
-      </div>
-      <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
+          </div>
+        ) : (
+          <p className="text-ink-secondary">暂无先天命格记录。</p>
+        )}
+      </section>
+      <section aria-labelledby="innate-biography-heading">
+        <h3
+          id="innate-biography-heading"
+          className="mb-4 flex items-center gap-2 text-base font-semibold"
+        >
+          <GameIcon value="📜" />
+          人物志
+        </h3>
+        <dl className="bg-ink/3 grid grid-cols-2 gap-x-6 gap-y-4 rounded-sm p-4">
+          <div>
+            <dt className="text-ink-secondary mb-1 text-xs">性别</dt>
+            <dd>{cultivator.gender}</dd>
+          </div>
+          <div>
+            <dt className="text-ink-secondary mb-1 text-xs">出身</dt>
+            <dd className="break-words">{cultivator.origin || '散修出身'}</dd>
+          </div>
+          <div className="col-span-full">
+            <dt className="text-ink-secondary mb-1 text-xs">性情</dt>
+            <dd className="break-words whitespace-pre-wrap">
+              {cultivator.personality || '未明'}
+            </dd>
+          </div>
+          <div className="col-span-full">
+            <dt className="text-ink-secondary mb-1 text-xs">生平</dt>
+            <dd className="max-w-prose leading-7 break-words whitespace-pre-wrap">
+              {cultivator.background || '未录'}
+            </dd>
+          </div>
+          {cultivator.balance_notes ? (
+            <div className="col-span-full">
+              <dt className="text-ink-secondary mb-1 text-xs">天道评语</dt>
+              <dd className="max-w-prose leading-7 break-words whitespace-pre-wrap">
+                {cultivator.balance_notes}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      </section>
+      <CultivatorReincarnation key={cultivator.id} />
       <FateDetailModal
         isOpen={detailFate !== null}
         onClose={() => setDetailFate(null)}
         fate={detailFate}
-      />
-      <TitleEditorModal
-        isOpen={isTitleModalOpen}
-        onClose={() => setIsTitleModalOpen(false)}
-        editingTitle={editingTitle}
-        setEditingTitle={setEditingTitle}
-        isSaving={isSavingTitle}
-        onSave={() => void handleSaveTitle()}
       />
     </div>
   );

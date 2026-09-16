@@ -14,9 +14,11 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '../drizzle/db';
 import {
   cultivators,
+  preHeavenFates,
   sectCombatStates,
   sectMemberships,
   sectMethodProgress,
+  spiritualRoots,
 } from '../drizzle/schema';
 import { redisLockKeys, withRedisLock } from '../redis/lock';
 import {
@@ -29,10 +31,21 @@ import {
 } from '../repositories/sectCombatRepository';
 import { updateCultivatorTask } from '../repositories/taskRepository';
 import { ConditionService } from './ConditionService';
+import {
+  buildFateEffectEntry,
+  getNegativeFateEffects,
+  getPositiveFateEffects,
+} from './FateFragmentRegistry';
 import { assertInventoryIdle, InventoryError } from './InventoryService';
 import { ResourceEventCommitter } from './ResourceEventCommitter';
 import { TaskService } from './TaskService';
 import { readCombatV6ConditionAuthority } from './combat-v6/CombatV6ConditionAuthority';
+import {
+  mapPreHeavenFatesForRuntime,
+  mapSpiritualRoots,
+  replacePreHeavenFates,
+  replaceSpiritualRoots,
+} from './cultivator/CultivatorProfileRepository';
 import { getBreakthroughTaskDefinition } from './taskDefinitions';
 
 export async function patchDevCultivator(
@@ -58,6 +71,40 @@ export async function patchDevCultivator(
         if (!before || before.status !== 'active')
           throw new InventoryError('活跃角色不存在');
         await assertInventoryIdle(owner);
+        if (input.spiritualRoots !== undefined) {
+          await replaceSpiritualRoots(
+            before.userId,
+            owner,
+            input.spiritualRoots.map((root) => ({
+              ...root,
+              strength: root.baseStrength + root.marrowWashBonus,
+            })),
+            tx,
+          );
+        }
+        if (input.preHeavenFates !== undefined) {
+          const definitions = [
+            ...getPositiveFateEffects(),
+            ...getNegativeFateEffects(),
+          ];
+          const fates = input.preHeavenFates.map((fate) => {
+            const effects = fate.effectIds.map((id) => {
+              const definition = definitions.find((effect) => effect.id === id);
+              if (!definition) throw new InventoryError(`未知命格效果：${id}`);
+              // Fixed mid-roll values make local UI fixtures reproducible.
+              return buildFateEffectEntry(definition, fate.quality, () => 0.5);
+            });
+            return {
+              name: fate.name,
+              quality: fate.quality,
+              description:
+                fate.description ??
+                effects.map((effect) => effect.description).join(''),
+              effects,
+            };
+          });
+          await replacePreHeavenFates(before.userId, owner, fates, tx);
+        }
         if (input.spiritField) {
           const field = await getOrCreateSpiritField(owner, tx);
           const index = input.spiritField.finishGrowth;
@@ -352,7 +399,33 @@ export async function patchDevCultivator(
           })
           .from(cultivators)
           .where(eq(cultivators.id, owner));
-        return { data: { ...after, ...(sect ? { sect } : {}) }, state };
+        const roots =
+          input.spiritualRoots === undefined
+            ? undefined
+            : mapSpiritualRoots(
+                await tx
+                  .select()
+                  .from(spiritualRoots)
+                  .where(eq(spiritualRoots.cultivatorId, owner)),
+              );
+        const fates =
+          input.preHeavenFates === undefined
+            ? undefined
+            : mapPreHeavenFatesForRuntime(
+                await tx
+                  .select()
+                  .from(preHeavenFates)
+                  .where(eq(preHeavenFates.cultivatorId, owner)),
+              );
+        return {
+          data: {
+            ...after,
+            ...(sect ? { sect } : {}),
+            ...(roots === undefined ? {} : { spiritualRoots: roots }),
+            ...(fates === undefined ? {} : { preHeavenFates: fates }),
+          },
+          state,
+        };
       }),
   );
 }

@@ -86,6 +86,39 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 
 空对象、未知字段、非法境界或越界值返回 400；不存在或非活跃角色、战斗占用返回 409。角色调整采用角色锁和数据库事务，提交后更新资源版本；脚本发起的变更后应刷新页面获取新数据。禁止修改用户归属、认证、角色状态等任意数据库字段。测试结束恢复事先记录的境界、属性和准备性资源改动，保留实际玩法奖励与战绩。
 
+### 本地灵根与先天命格
+
+同一 `PATCH /api/dev/cultivators/:id` 支持以下两个数组。字段省略时保留原值，传 `[]` 清空该类记录，非空数组整体替换；修改沿用角色锁、战斗占用检查、事务与资源版本提交。仅用于纯本地环境，无需数据库迁移。
+
+```json
+{
+  "spiritualRoots": [
+    { "element": "木", "baseStrength": 76, "marrowWashBonus": 6 },
+    { "element": "水", "baseStrength": 64 }
+  ],
+  "preHeavenFates": [
+    {
+      "name": "青木长生",
+      "quality": "玄品",
+      "description": "生来气脉绵长，调息时如草木逢春。",
+      "effectIds": ["natural-recovery"]
+    },
+    {
+      "name": "悟道忘尘",
+      "quality": "地品",
+      "effectIds": ["retreat-insight-gain", "system-spirit-stone-surcharge"]
+    }
+  ]
+}
+```
+
+- 灵根最多 8 条，元素须有效且不重复；`baseStrength` 为 0–100 的整数，`marrowWashBonus` 默认 0，两者之和不超过 120。品级由现有仓储规则根据元素及灵根数量推导；不接受客户端传入品级或当前强度。
+- 命格最多 3 条；名称 1–100 字、品质须为现有品质，说明可省略（最多 2000 字）。每条指定 1–2 个不重复的效果 ID。
+- 效果 ID 来自 `src/server/lib/services/FateFragmentRegistry.ts`，例如 `retreat-exp-gain`、`retreat-insight-gain`、`natural-recovery`、`toxicity-mitigation`、`system-spirit-stone-surcharge`。数值、标签、说明及 rollMeta 由既有构造器按品质和固定 0.5 分位生成；测试接口允许自由组合现有效果，不模拟创角抽签概率，也不接受自定义效果数值。
+- 非法结构、越界、重复元素或重复效果返回 400；未知效果 ID 返回 409，整笔事务回滚。响应在 `data.spiritualRoots` / `data.preHeavenFates` 返回本次调整后的运行时结构，便于核对先天与后天展示。
+- 后天增益仅作为本地测试数据注入，不推进洗髓等级或执行破限；先天设定页显示 `baseStrength`，肉身修炼页显示后天增益与当前总强度。命格使用真实效果，会影响相应玩法。
+- 临时验收前记录原值并恢复；用户明确要求补齐并保留的本地测试角色配置可以保留。外部调用后刷新页面读取新版本。
+
 同一接口支持调整角色**当前已加入宗门**的数据。
 
 高阶宗门技能验收也可通过`sectCombat`临时准备并恢复当前已正式启用的宗门构筑：

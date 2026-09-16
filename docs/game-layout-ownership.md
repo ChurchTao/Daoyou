@@ -19,7 +19,7 @@
 
 - v6 战斗页面、阵容、指令和逐行动播报放在 `src/react-app/components/feature/combat-v6/`；仅复用通用 UI 和全局配色，不依赖旧 `feature/battle` 组件。协议与恢复规则见 [v6 战斗 UI](combat-v6-battle-ui.md)
 - 造化/参悟共享材料选择器放在 `src/react-app/components/feature/creation/MaterialSelector.tsx`
-- `/game/cultivator` 使用左侧「人物属性 / 所修功法 / 肉身修炼」页签，URL 的 `tab=manuals|body` 支持直达。人物属性包含简要身世、境界宗门、资源状态、六维加点、V6 战斗属性与修为，完整生平、灵根命格通过身世详情抽屉查看；所修功法复用现行 V6 `ManualRoom`（学习、参悟、激活）；肉身修炼包含五轨炼体和洗髓进度及原有操作。页签内容不重复创建场景壳。旧 `/game/techniques`、`/game/enlightenment`、`/game/enlightenment/gongfa`、`/game/body-cultivation`、`/game/marrow-wash` 保留重定向并透传查询参数，移除独立全局入口；肉身升阶流程结束返回肉身修炼页签。旧加点地址继续进入人物属性的加点状态。加点预览仍走只读 V6 投影接口。
+- `/game/cultivator` 使用「人物属性 / 先天设定 / 所修功法 / 肉身修炼」四页签，桌面左侧纵向排列，移动端顶部横向排列，URL 的 `tab=innate|manuals|body` 支持直达。人物属性独占左侧墨像与右侧姓名、名号、境界、宗门和寿元，随后显示气血法力、状态、战斗属性与六维加点、修为。先天设定合并先天灵根（仅原始强度）、命格与人物志，转世重修置于该页末尾；后天灵根增益仅在肉身修炼的洗髓区域展示。所修功法复用 `ManualRoom`；肉身修炼按肉身阶位、五轨修炼、洗髓、灵根后天增益排序，以浅底色分组突出阶位与等级，五轨直接展示实际战斗收益的简短说明与进度，不设展开详情，升阶条件按需展开；洗髓保留破限操作，后天灵根突出增益并辅以先天与当前强度。各页签不重复身份资料或场景壳，以留白分组。旧功法、炼体、洗髓地址继续重定向并透传参数，旧加点地址进入人物属性加点状态。加点预览仍走只读 V6 投影接口。
 - 道身长期状态与称号编辑放在 `src/react-app/components/feature/cultivator/`
 - 跨玩法复用的分幕演出舞台放在 `src/react-app/components/feature/narrative/`
 - 清扫与采掘共用的横屏、全屏进入和释放逻辑放在 `src/react-app/lib/gameActivityImmersive.ts`；共享启动层和沉浸状态监听放在 `src/react-app/components/feature/game-activity/`
@@ -45,3 +45,7 @@
 - `InkPageShell` 当前只允许 auth 流程通过 `AuthPageShell` 间接使用，不再属于游戏主流程布局组件
 - `quickActionGroups`、`QuickActionsGrid`、`useHomeViewModel` 不再作为导航或首页编排来源
 - `components/game-shell/immersiveSceneDescriptor.ts` 已废弃；副本或专属页需要私有 scene descriptor 时，放在对应路由族内部
+
+### 人物属性排版约束
+
+人物属性顶部采用左侧透明墨像、右侧身份资料，桌面墨像约 120 × 140px，移动端约 84 × 108px。资源条通栏，战斗属性与六维根基桌面并排、窄屏堆叠，数值右对齐并使用 `font-mono`；每组内部保持固定行序，不再自动拆成多列。加点控件手机保留 44px 触控区域，窄屏变化摘要靠近确认操作。正文仅在资源状态与属性区域之间保留一条细分隔线，其余通过标题和留白分组。先天设定以浅底分组：灵根突出元素图标、名称与先天强度，品阶使用现有 `InkBadge`；命格在宽屏并列、手机堆叠，名称与品级同排并沿用品阶色，外部仅保留图标、名称、品级和详情入口，所有效果与描述均进入详情。人物志将短字段与生平长文分组，长文本自然换行，不再将所有信息铺成同权重的资料行。身份、头像、后天增益均不重复出现在先天设定中。

@@ -18,6 +18,7 @@ import {
   canSubmitAttributeAllocation,
   createEmptyAttributeDraft,
 } from './attributeAllocationControlLogic';
+import { CharacterSheetRow } from './CharacterSheetRow';
 import type { CultivatorDisplayProjection } from './useCultivatorDisplayProjection';
 
 const primaryKeys = Object.keys(
@@ -132,12 +133,12 @@ export function CultivatorStatsPanel({
     const current = preview?.data?.current[key] ?? display.attrs[key];
     const next = preview?.data?.preview[key];
     return (
-      <div
+      <CharacterSheetRow
         key={key}
-        className="flex min-w-0 items-baseline justify-between gap-3 py-2 text-sm"
+        label={CHARACTER_PANEL_LABELS[key]}
+        className="grid-cols-[auto_minmax(0,1fr)] py-1.5 [&_dd]:text-right"
       >
-        <dt className="text-ink-secondary">{CHARACTER_PANEL_LABELS[key]}</dt>
-        <dd className="text-right font-mono">
+        <span className="font-mono">
           {formatCharacterAttributeValue(key, current)}
           {next !== undefined && next !== current ? (
             <span className="text-teal">
@@ -145,8 +146,8 @@ export function CultivatorStatsPanel({
               → {formatCharacterAttributeValue(key, next)}
             </span>
           ) : null}
-        </dd>
-      </div>
+        </span>
+      </CharacterSheetRow>
     );
   };
   const handleAllocateAttributes = async () => {
@@ -247,22 +248,14 @@ export function CultivatorStatsPanel({
         <section className="min-w-0">
           <div className="mb-2 flex min-h-8 items-center justify-between">
             <h3 className="text-sm font-semibold">战斗属性</h3>
-            <InkButton className="text-xs" onClick={() => setDrawer('stats')}>
+            <InkButton className="text-sm" onClick={() => setDrawer('stats')}>
               更多属性
             </InkButton>
           </div>
-          <dl
-            className={
-              editing
-                ? 'space-y-1'
-                : 'grid grid-cols-1 gap-x-4 min-[420px]:grid-cols-2'
-            }
-          >
-            {mainStats.map(renderStat)}
-          </dl>
+          <dl>{mainStats.map(renderStat)}</dl>
           {editing && spent > 0 ? (
             <div
-              className="mt-2 hidden space-y-2 text-xs md:block"
+              className="mt-2 hidden space-y-2 text-sm md:block"
               aria-live="polite"
             >
               {preview?.error ? (
@@ -281,26 +274,18 @@ export function CultivatorStatsPanel({
         <section className="min-w-0">
           <div className="mb-2 flex min-h-8 items-center justify-between">
             <h3 className="text-sm font-semibold">六维根基</h3>
-            <InkButton className="text-xs" onClick={() => setDrawer('help')}>
+            <InkButton className="text-sm" onClick={() => setDrawer('help')}>
               属性说明
             </InkButton>
           </div>
-          <dl
-            className={
-              editing
-                ? 'space-y-1'
-                : 'grid grid-cols-1 gap-x-4 min-[420px]:grid-cols-2'
-            }
-          >
+          <dl>
             {primaryKeys.map((key) => (
-              <div
+              <CharacterSheetRow
                 key={key}
-                className="flex items-center justify-between gap-2 py-2 text-sm"
+                label={CHARACTER_ATTRIBUTE_LABELS[key]}
+                className="grid-cols-[auto_minmax(0,1fr)] py-1.5"
               >
-                <dt className="text-ink-secondary">
-                  {CHARACTER_ATTRIBUTE_LABELS[key]}
-                </dt>
-                <dd className="flex items-center gap-2 font-mono">
+                <div className="flex flex-wrap items-center justify-end gap-2 font-mono">
                   <span>
                     {cultivator.attributes[key]}
                     {editing && attributeDraft[key] > 0 ? (
@@ -313,7 +298,7 @@ export function CultivatorStatsPanel({
                         type="button"
                         aria-label={`减少${CHARACTER_ATTRIBUTE_LABELS[key]}`}
                         disabled={disabled || attributeDraft[key] === 0}
-                        className="border-ink/20 size-8 rounded-sm border disabled:opacity-30"
+                        className="border-ink/20 size-11 rounded-sm border disabled:opacity-30 md:size-8"
                         onClick={() =>
                           setAttributeDraft((previous) => ({
                             ...previous,
@@ -329,7 +314,7 @@ export function CultivatorStatsPanel({
                         disabled={
                           disabled || spent >= unallocatedAttributePoints
                         }
-                        className="border-teal/30 text-teal size-8 rounded-sm border disabled:opacity-30"
+                        className="border-teal/30 text-teal size-11 rounded-sm border disabled:opacity-30 md:size-8"
                         onClick={() =>
                           setAttributeDraft((previous) =>
                             Object.values(previous).reduce(
@@ -345,13 +330,13 @@ export function CultivatorStatsPanel({
                       </button>
                     </>
                   ) : null}
-                </dd>
-              </div>
+                </div>
+              </CharacterSheetRow>
             ))}
           </dl>
           {editing && spent > 0 ? (
             <div
-              className="mt-3 space-y-2 text-xs md:hidden"
+              className="mt-3 space-y-2 text-sm md:hidden"
               aria-live="polite"
             >
               {preview?.error ? (
@@ -375,7 +360,7 @@ export function CultivatorStatsPanel({
               )}
             </div>
           ) : null}
-          <div className="border-ink/10 mt-2 flex flex-wrap items-center justify-between gap-3 border-t pt-3 text-xs">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3 pt-3 text-sm">
             <span className="text-ink-secondary" aria-live="polite">
               {editing ? '剩余' : '可分配'}{' '}
               <span className="font-mono">
@@ -413,7 +398,7 @@ export function CultivatorStatsPanel({
           {editing ? (
             <div className="mt-3 text-right">
               <InkButton
-                className="text-xs"
+                className="text-sm"
                 disabled={disabled}
                 onClick={openResetConfirm}
               >
@@ -426,16 +411,16 @@ export function CultivatorStatsPanel({
       {progress.error ? (
         <InkNotice>{progress.error}</InkNotice>
       ) : progress.data ? (
-        <div className="border-ink/15 border-t pt-4 text-xs">
+        <div className="pt-2 text-sm">
           <div className="mb-2 flex justify-between gap-3">
             <span className="text-ink-secondary">修为</span>
             <span className="font-mono">
               {progress.data.cultivation_exp} / {progress.data.exp_cap}
             </span>
           </div>
-          <div className="bg-ink/10 h-1.5 overflow-hidden rounded-full">
+          <div className="bg-battle-faint h-1.5 overflow-hidden rounded-full">
             <div
-              className="bg-teal/60 h-full"
+              className="bg-ink h-full"
               style={{
                 width: `${Math.max(0, Math.min(100, (progress.data.cultivation_exp / Math.max(1, progress.data.exp_cap)) * 100))}%`,
               }}
@@ -443,7 +428,7 @@ export function CultivatorStatsPanel({
           </div>
         </div>
       ) : (
-        <p className="text-ink-secondary text-xs">正在读取修为……</p>
+        <p className="text-ink-secondary text-sm">正在读取修为……</p>
       )}
       <InkDetailDrawer
         isOpen={drawer !== null}

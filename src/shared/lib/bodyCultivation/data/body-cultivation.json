@@ -6,7 +6,7 @@
     "skin": {
       "name": "炼体·皮肤",
       "layerName": "防御修炼",
-      "shortDesc": "提升 combat-v6 防御修炼",
+      "shortDesc": "减少受到的物理伤害",
       "benefit": {
         "kind": "training",
         "attribute": "defenseCultivate",
@@ -16,7 +16,7 @@
     "sinew_bone": {
       "name": "炼体·筋骨",
       "layerName": "攻法修炼",
-      "shortDesc": "提升 combat-v6 攻法修炼",
+      "shortDesc": "提高造成的物理伤害",
       "benefit": {
         "kind": "training",
         "attribute": "attackCultivate",
@@ -26,7 +26,7 @@
     "organs": {
       "name": "炼体·脏腑",
       "layerName": "法术修炼",
-      "shortDesc": "提升 combat-v6 法术修炼",
+      "shortDesc": "提高法术伤害与封印命中率",
       "benefit": {
         "kind": "training",
         "attribute": "spellCultivate",
@@ -36,7 +36,7 @@
     "qi_blood": {
       "name": "炼体·气血",
       "layerName": "生命根基",
-      "shortDesc": "提升裸身气血与固定治疗强度",
+      "shortDesc": "提高气血上限与施放治疗的恢复量",
       "benefit": {
         "kind": "life",
         "hpRatioPerLevel": 0.005,
@@ -46,7 +46,7 @@
     "primordial_spirit": {
       "name": "炼体·元神",
       "layerName": "抗法修炼",
-      "shortDesc": "提升 combat-v6 抗法修炼",
+      "shortDesc": "减少受到的法术伤害，降低被封印的概率",
       "benefit": {
         "kind": "training",
         "attribute": "resistSpellCultivate",
