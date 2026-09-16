@@ -17,7 +17,6 @@ import type {
   ResourceOperationResult,
   ResourceOperationSettlement,
 } from '@shared/engine/resource/types';
-import { itemDefinition } from '@shared/inventory';
 import {
   calculateDungeonMaterialCost,
   calculateDungeonResourceCost,
@@ -31,7 +30,10 @@ import {
   isSatelliteNode,
   resolveDungeonMapConfig,
 } from '@shared/lib/game/mapSystem';
-import { appendDungeonReward, dungeonReward } from '@shared/rewards/dungeon';
+import {
+  appendDungeonReward,
+  dungeonRewardItemName,
+} from '@shared/rewards/dungeon';
 import type { CultivatorCondition } from '@shared/types/condition';
 import {
   REALM_STAGE_VALUES,
@@ -67,6 +69,7 @@ import {
 import { applyDungeonCosts, validateDungeonCosts } from './costs';
 import { buildDungeonRoundLlmContext } from './llmContext';
 import type { RewardBlueprint } from './reward';
+import { resolveDungeonReward } from './rewards';
 
 import {
   createDungeonRoundLlmSchema,
@@ -207,19 +210,22 @@ function toDungeonPersistenceSettlement(
   };
 }
 
-function appendRoundRewards(state: DungeonState): RewardBlueprint[] {
+async function appendRoundRewards(
+  state: DungeonState,
+): Promise<RewardBlueprint[]> {
   if (state.rewardSeed === undefined) throw new Error('旧秘境会话需维护处理');
-  const reward = dungeonReward(
+  const reward = await resolveDungeonReward(
     state.rewardSeed,
     `exploration:${state.currentRound}`,
     'exploration',
     dungeonLevel(state.mapNodeId),
+    state.v6Rewards,
   );
   const previous = state.v6Rewards ?? [];
   state.v6Rewards = appendDungeonReward(previous, reward);
   if (previous === state.v6Rewards) return [];
   const items = reward.items.map((item) => ({
-    name: itemDefinition(item.definitionId).name,
+    name: dungeonRewardItemName(item),
   }));
   state.accumulatedRewards.push(...items);
   state.currentRoundItems = items;
@@ -797,7 +803,7 @@ export class DungeonService {
       );
 
       // 4. 更新历史并存入 Redis
-      const acceptedItems = appendRoundRewards(state);
+      const acceptedItems = await appendRoundRewards(state);
       const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
       state.history.push({
         round: 1,
@@ -1181,7 +1187,7 @@ export class DungeonService {
     state.costPreview = undefined;
 
     // 记录过程战利品
-    const acceptedItems = appendRoundRewards(state);
+    const acceptedItems = await appendRoundRewards(state);
     const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
 
     // 4. 更新状态
@@ -1299,7 +1305,7 @@ export class DungeonService {
     state.status = 'LOOTING';
     state.currentRoundItems = (
       state.v6Rewards?.find((r) => r.key === `battle:${battleId}`)?.items ?? []
-    ).map((item) => ({ name: itemDefinition(item.definitionId).name }));
+    ).map((item) => ({ name: dungeonRewardItemName(item) }));
     if (options.deferPersistence)
       return {
         state,
@@ -1385,7 +1391,7 @@ export class DungeonService {
         : { state: recoverable, isFinished: false };
     }
 
-    const acceptedItems = appendRoundRewards(state);
+    const acceptedItems = await appendRoundRewards(state);
     const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
 
     state.history.push({
@@ -1509,11 +1515,12 @@ export class DungeonService {
     if (endDisposition === 'completed')
       state.v6Rewards = appendDungeonReward(
         state.v6Rewards ?? [],
-        dungeonReward(
+        await resolveDungeonReward(
           state.rewardSeed,
           'completion',
           'completion',
           dungeonLevel(state.mapNodeId),
+          state.v6Rewards,
         ),
       );
     const endingPrompt = renderPrompt('dungeon-settlement', {

@@ -3,7 +3,10 @@ import {
   combatV6Playback,
   combatV6Units,
 } from '@shared/combat-v6/presentation';
-import { appendDungeonReward, dungeonReward } from '@shared/rewards/dungeon';
+import {
+  appendDungeonReward,
+  planDungeonReward,
+} from '@shared/rewards/dungeon';
 import type { CultivatorCondition } from '@shared/types/condition';
 import { describe, expect, it } from 'vitest';
 import {
@@ -72,7 +75,12 @@ function player(sectId: CombatV6SectId) {
     },
     sect,
     equipment: {},
-    manuals: { version: 1 as const, revision: 0, learned: [], build: { slots: [] } },
+    manuals: {
+      version: 1 as const,
+      revision: 0,
+      learned: [],
+      build: { slots: [] },
+    },
   };
 }
 
@@ -131,7 +139,7 @@ describe('秘境遭遇与收益', () => {
     });
   it('重复来源只累计一次，不同灵兽经验不合并错归属', () => {
     const reward = {
-      ...dungeonReward(5, 'battle:a', 'battle', 10),
+      ...planDungeonReward(5, 'battle:a', 'battle', 10),
       beastExperience: { beastId: 'a', amount: 20 },
     };
     const entries = appendDungeonReward([], reward);
@@ -147,13 +155,15 @@ describe('秘境遭遇与收益', () => {
     ]);
   });
   it('奖励流确定且等级非法时拒绝生成', () => {
-    expect(dungeonReward(27, 'completion', 'completion', 10)).toEqual(
-      dungeonReward(27, 'completion', 'completion', 10),
+    expect(planDungeonReward(27, 'completion', 'completion', 10)).toEqual(
+      planDungeonReward(27, 'completion', 'completion', 10),
     );
+    const reward = planDungeonReward(27, 'completion', 'completion', 10);
     expect(
-      dungeonReward(27, 'completion', 'completion', 10).items,
-    ).toHaveLength(1);
-    expect(() => dungeonReward(1, 'x', 'battle', 0)).toThrow();
-    expect(() => dungeonReward(1, 'x', 'battle', 181)).toThrow();
+      reward.materialCount +
+        reward.items.reduce((sum, item) => sum + item.quantity, 0),
+    ).toBe(1);
+    expect(() => planDungeonReward(1, 'x', 'battle', 0)).toThrow();
+    expect(() => planDungeonReward(1, 'x', 'battle', 181)).toThrow();
   });
 });

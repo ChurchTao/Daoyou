@@ -13,8 +13,13 @@
       "minimum": 1,
       "$ref": "#/$defs/__schema0"
     },
-    "materials": {
+    "poolVersion": {
+      "minimum": 1,
+      "$ref": "#/$defs/__schema0"
+    },
+    "books": {
       "minItems": 1,
+      "maxItems": 500,
       "type": "array",
       "items": {
         "$ref": "#/$defs/__schema1"
@@ -33,18 +38,15 @@
           "$ref": "#/$defs/__schema2"
         }
       },
-      "required": [
-        "exploration",
-        "battle",
-        "completion"
-      ],
+      "required": ["exploration", "battle", "completion"],
       "additionalProperties": false
     }
   },
   "required": [
     "formatVersion",
     "contentRevision",
-    "materials",
+    "poolVersion",
+    "books",
     "sources"
   ],
   "additionalProperties": false,
@@ -66,10 +68,7 @@
           "$ref": "#/$defs/__schema0"
         }
       },
-      "required": [
-        "rewardId",
-        "weight"
-      ],
+      "required": ["rewardId", "weight"],
       "additionalProperties": false
     },
     "__schema2": {
@@ -91,14 +90,25 @@
           "minimum": 1,
           "maximum": 99,
           "$ref": "#/$defs/__schema0"
+        },
+        "weights": {
+          "type": "object",
+          "properties": {
+            "material": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "blueprint": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "book": {
+              "$ref": "#/$defs/__schema0"
+            }
+          },
+          "required": ["material", "blueprint", "book"],
+          "additionalProperties": false
         }
       },
-      "required": [
-        "chance",
-        "experience",
-        "stones",
-        "quantity"
-      ],
+      "required": ["chance", "experience", "stones", "quantity", "weights"],
       "additionalProperties": false
     }
   }

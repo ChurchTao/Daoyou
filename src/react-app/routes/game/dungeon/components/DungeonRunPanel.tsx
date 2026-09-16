@@ -7,10 +7,10 @@ import { useInventoryBag } from '@app/lib/resources/bag';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorCondition } from '@app/lib/resources/player';
 import type { InventoryView } from '@shared/contracts/inventory';
-import { itemDefinition } from '@shared/inventory';
 import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { canUseDungeonRecoveryPill } from '@shared/lib/dungeon/rest';
 import type { DungeonState } from '@shared/lib/dungeon/types';
+import { dungeonRewardItemName } from '@shared/rewards/dungeon';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useRef, useState } from 'react';
 
@@ -52,9 +52,7 @@ export function DungeonRunPanel({
     condition.isRefreshing;
   const rewards = (state.v6Rewards ?? [])
     .flatMap((r) => r.items)
-    .map(
-      (item) => `${itemDefinition(item.definitionId).name} ×${item.quantity}`,
-    );
+    .map((item) => `${dungeonRewardItemName(item)} ×${item.quantity}`);
   const refresh = () => Promise.all([bagQuery.reload(), condition.reload()]);
   const readInventory = async () => {
     if (busy.current) return;

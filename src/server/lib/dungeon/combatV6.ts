@@ -46,12 +46,13 @@ import { projectCharacterToCombatV6 } from '@shared/engine/combat-v6/projection'
 import { combatCharacterLevel } from '@shared/engine/combat-v6/projection/character-level';
 import { evaluateFateContext } from '@shared/lib/fates';
 import { getMapNode } from '@shared/lib/game/mapSystem';
-import { appendDungeonReward, dungeonReward } from '@shared/rewards/dungeon';
+import { appendDungeonReward } from '@shared/rewards/dungeon';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import { and, eq, ne } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import { hasActiveDungeon } from './occupancy';
+import { resolveDungeonReward } from './rewards';
 import type { BattleSession, DungeonState } from './types';
 
 export interface DungeonBattlePayload {
@@ -323,11 +324,13 @@ export async function changeDungeonBattle(
             ),
           };
           if (host.trace().outcome === 'victory') {
-            const reward = dungeonReward(
+            const reward = await resolveDungeonReward(
               state.rewardSeed!,
               `battle:${id}`,
               'battle',
               dungeonLevel(state.mapNodeId),
+              state.v6Rewards,
+              tx,
             );
             reward.beastExperience = beastVictoryExperience(
               host.state,

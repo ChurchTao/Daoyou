@@ -4,11 +4,13 @@ import { InkCard } from '@app/components/ui/InkCard';
 import { InkTag } from '@app/components/ui/InkTag';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import { itemDefinition } from '@shared/inventory';
+import { materialFactsOf } from '@shared/items/material';
 import type { DungeonSettlement as DungeonSettlementType } from '@shared/lib/dungeon/types';
 import {
   getMaterialTypeLabel,
   getResourceTypeInfo,
 } from '@shared/lib/gameConceptDisplay';
+import { dungeonRewardItemName } from '@shared/rewards/dungeon';
 import { Quality } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
 
@@ -76,8 +78,10 @@ export function DungeonSettlement({
     if (existing) existing.quantity += item.quantity;
     else
       grouped.set(key, {
-        ...definition.material,
-        name: definition.name,
+        ...(definition.kind === 'material'
+          ? materialFactsOf(item.definitionId, item.instanceData)
+          : {}),
+        name: dungeonRewardItemName(item),
         quantity: item.quantity,
       });
   }
