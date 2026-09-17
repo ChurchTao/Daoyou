@@ -72,7 +72,7 @@ const UnitRow = memo(function UnitRow({
             </span>
           ) : null}
           {own ? <span className="cv6-self-mark">我</span> : null}
-          {label !== u.name ? (
+          {!u.ownerId && label !== u.name ? (
             <span className="cv6-slot-mark font-mono">{u.slot + 1}</span>
           ) : null}
         </span>
@@ -223,11 +223,20 @@ export function CombatV6Roster({
             <div
               className="cv6-lineup"
               style={
-                { '--cv6-columns': Math.max(1, rows.length) } as CSSProperties
+                {
+                  '--cv6-columns': Math.max(1, Math.min(4, rows.length)),
+                } as CSSProperties
               }
             >
               {rows.map(({ main, pet }) => (
-                <div className="cv6-pair" key={main.id}>
+                <div
+                  className={`cv6-pair ${pet ? 'has-pet' : ''}`}
+                  key={main.id}
+                  role={pet ? 'group' : undefined}
+                  aria-label={
+                    pet ? `${main.name}及其灵兽${pet.name}` : undefined
+                  }
+                >
                   {renderUnit(main)}
                   {pet ? (
                     renderUnit(pet)

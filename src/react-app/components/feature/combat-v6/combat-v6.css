@@ -105,9 +105,15 @@
 }
 .cv6-pair {
   display: grid;
-  gap: 0.25rem;
-  border-left: 1px solid var(--color-battle-faint);
-  padding-left: 0.3rem;
+  align-content: start;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.cv6-pair.has-pet {
+  gap: 0;
+  padding-block: 0.25rem;
+  background: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  border-radius: 4px;
 }
 .cv6-unit {
   position: relative;
@@ -134,7 +140,6 @@
   width: 2.75rem;
   height: 2.75rem;
   flex-shrink: 0;
-  background: var(--color-battle-surface);
 }
 .cv6-portrait > [aria-hidden] {
   font-size: 2.5rem;
@@ -459,11 +464,6 @@
     grid-template-columns: repeat(var(--cv6-columns), minmax(0, 1fr));
     gap: 0.35rem;
   }
-  .cv6-pair {
-    padding-left: 0;
-    border-left: 0;
-    gap: 0.25rem;
-  }
   .cv6-roster h2 {
     height: 1.1rem;
   }
@@ -493,6 +493,7 @@
   }
   .cv6-roster.is-dense .cv6-unit-body {
     flex-direction: column;
+    justify-content: center;
     gap: 1px;
     padding: 0 2px;
   }
