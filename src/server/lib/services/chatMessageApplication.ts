@@ -9,6 +9,7 @@ import type {
   WorldChatPayload,
 } from '@shared/types/world-chat';
 import { readInventory } from './InventoryService';
+import { textFilter } from './textFilter';
 
 export class ChatMessageApplicationError extends Error {
   constructor(
@@ -106,11 +107,12 @@ export async function createCultivatorChatMessage(params: {
     if (textLength < 1 || textLength > 100) {
       throw new ChatMessageApplicationError('消息长度需在 1-100 字之间', 400);
     }
+    const filteredText = textFilter.mask(text).text;
     return params.persist({
       ...senderBase,
       messageType: 'text',
-      textContent: text,
-      payload: { text },
+      textContent: filteredText,
+      payload: { text: filteredText },
     });
   }
 
@@ -122,7 +124,7 @@ export async function createCultivatorChatMessage(params: {
     cultivatorId: params.cultivatorId,
     revision: params.request.revision,
     itemId: params.request.itemId,
-    text: showcaseText,
+    text: textFilter.mask(showcaseText).text,
   });
   return params.persist({
     ...senderBase,
